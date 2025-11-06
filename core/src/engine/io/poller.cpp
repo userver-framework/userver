@@ -109,11 +109,11 @@ void Poller::RemoveImpl(Poller::IoWatcher& watcher) {
 }
 
 Poller::Status Poller::NextEvent(Event& buf, Deadline deadline) {
-    return EventsFilter([this, deadline](Event& buf_) { return event_consumer_.Pop(buf_, deadline); }, buf);
+    return EventsFilter([this, deadline](Event& l_buf) { return event_consumer_.Pop(l_buf, deadline); }, buf);
 }
 
 Poller::Status Poller::NextEventNoblock(Event& buf) {
-    return EventsFilter([this](Event& buf_) { return event_consumer_.PopNoblock(buf_); }, buf);
+    return EventsFilter([this](Event& l_buf) { return event_consumer_.PopNoblock(l_buf); }, buf);
 }
 
 void Poller::Interrupt() {

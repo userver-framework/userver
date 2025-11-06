@@ -30,9 +30,6 @@ TEST(OneofProto2, OneofFundamentalTypes) {
     EXPECT_THROW([[maybe_unused]] const auto& not_found2 = message.oneof.integer(), proto_structs::OneofAccessError);
 }
 
-// TODO enable once fields of message and enum types are implemented.
-#if 0
-
 TEST(OneofProto2, OneofMessage) {
     oneof::structs::Proto2 message;
 
@@ -44,9 +41,9 @@ TEST(OneofProto2, OneofMessage) {
 TEST(OneofProto2, OneofEnum) {
     oneof::structs::Proto2 message;
 
-    message.oneof.set_enum(oneof::structs::Proto2::ENUM2_FOO);
-    EXPECT_TRUE(message.oneof.has_enum());
-    EXPECT_EQ(message.oneof.enum_(), oneof::structs::Proto2::ENUM2_FOO);
+    message.oneof.set_enum_(oneof::structs::Proto2::Enum::kFoo);
+    EXPECT_TRUE(message.oneof.has_enum_());
+    EXPECT_EQ(message.oneof.enum_(), oneof::structs::Proto2::Enum::kFoo);
 }
 
 TEST(OneofProto2, OneofGroup) {
@@ -75,10 +72,10 @@ TEST(OneofProto2, GroupOneof) {
     EXPECT_EQ(message.oneof.group().group_oneof.z().field, "nested_message");
 
     // Change the oneof inside the group
-    message.oneof.group().group_oneof.set_w(oneof::structs::Proto2::ENUM2_FOO);
-    EXPECT_TRUE(message.oneof.group().group_oneof.has_w());
-    EXPECT_EQ(message.oneof.group().group_oneof.w(), oneof::structs::Proto2::ENUM2_FOO);
-    EXPECT_FALSE(message.oneof.group().group_oneof.has_z());
+    message.oneof.mutable_group().group_oneof.set_w(oneof::structs::Proto2::Enum::kFoo);
+    EXPECT_TRUE(message.oneof.mutable_group().group_oneof.has_w());
+    EXPECT_EQ(message.oneof.mutable_group().group_oneof.w(), oneof::structs::Proto2::Enum::kFoo);
+    EXPECT_FALSE(message.oneof.mutable_group().group_oneof.has_z());
 }
 
 TEST(OneofProto2, NestedTypesOutsideGroup) {
@@ -89,12 +86,10 @@ TEST(OneofProto2, NestedTypesOutsideGroup) {
     EXPECT_EQ(message.message_from_group.foo, "foo_value");
 
     // Using EnumInGroup outside the group context
-    message.enum_from_group.push_back(oneof::structs::Proto2::Group::ENUM_IN_GROUP_FOO);
-    EXPECT_EQ(message.enum_from_group.size(), 1);
-    EXPECT_EQ(message.enum_from_group[0], oneof::structs::Proto2::Group::ENUM_IN_GROUP_FOO);
+    message.enum_from_group.push_back(oneof::structs::Proto2::Group::EnumInGroup::kFoo);
+    EXPECT_EQ(message.enum_from_group.size(), std::size_t{1});
+    EXPECT_EQ(message.enum_from_group[0], oneof::structs::Proto2::Group::EnumInGroup::kFoo);
 }
-
-#endif
 
 TEST(OneofProto2, SingleFieldOneof) {
     oneof::structs::Proto2 message;

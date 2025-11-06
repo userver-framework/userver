@@ -19,25 +19,25 @@ std::string GenerateString(size_t size) {
     return Launder(std::move(result));
 }
 
-static void SmallString_Std(benchmark::State& state) {
+static void SmallStringStd(benchmark::State& state) {
     auto s = GenerateString(state.range(0));
     for ([[maybe_unused]] auto _ : state) {
         std::string str{s};
         benchmark::DoNotOptimize(str);
     }
 }
-BENCHMARK(SmallString_Std)->Range(2, 2 << 10);
+BENCHMARK(SmallStringStd)->Range(2, 2 << 10);
 
-static void SmallString_Small(benchmark::State& state) {
+static void SmallStringSmall(benchmark::State& state) {
     auto s = GenerateString(state.range(0));
     for ([[maybe_unused]] auto _ : state) {
         utils::SmallString<1000> str{s};
         benchmark::DoNotOptimize(str);
     }
 }
-BENCHMARK(SmallString_Small)->Range(2, 2 << 10);
+BENCHMARK(SmallStringSmall)->Range(2, 2 << 10);
 
-static void SmallString_Std_Copy(benchmark::State& state) {
+static void SmallStringStdCopy(benchmark::State& state) {
     auto s = GenerateString(state.range(0));
     std::array<std::string, kArraySize> str;
     std::array<std::string, kArraySize> str2;
@@ -49,9 +49,9 @@ static void SmallString_Std_Copy(benchmark::State& state) {
         state.ResumeTiming();
     }
 }
-BENCHMARK(SmallString_Std_Copy)->Range(2, 2 << 10)->Unit(benchmark::kMicrosecond);
+BENCHMARK(SmallStringStdCopy)->Range(2, 2 << 10)->Unit(benchmark::kMicrosecond);
 
-static void SmallString_Small_Copy(benchmark::State& state) {
+static void SmallStringSmallCopy(benchmark::State& state) {
     auto s = GenerateString(state.range(0));
     std::array<utils::SmallString<1000>, kArraySize> str;
     std::array<utils::SmallString<1000>, kArraySize> str2;
@@ -63,9 +63,9 @@ static void SmallString_Small_Copy(benchmark::State& state) {
         state.ResumeTiming();
     }
 }
-BENCHMARK(SmallString_Small_Copy)->Range(2, 2 << 10)->Unit(benchmark::kMicrosecond);
+BENCHMARK(SmallStringSmallCopy)->Range(2, 2 << 10)->Unit(benchmark::kMicrosecond);
 
-static void SmallString_Std_Move(benchmark::State& state) {
+static void SmallStringStdMove(benchmark::State& state) {
     auto s = GenerateString(state.range(0));
     std::array<std::string, kArraySize> str;
     std::array<std::string, kArraySize> str2;
@@ -77,9 +77,9 @@ static void SmallString_Std_Move(benchmark::State& state) {
         state.ResumeTiming();
     }
 }
-BENCHMARK(SmallString_Std_Move)->Range(2, 2 << 10)->Unit(benchmark::kMicrosecond);
+BENCHMARK(SmallStringStdMove)->Range(2, 2 << 10)->Unit(benchmark::kMicrosecond);
 
-static void SmallString_Small_Move(benchmark::State& state) {
+static void SmallStringSmallMove(benchmark::State& state) {
     auto s = GenerateString(state.range(0));
     std::array<utils::SmallString<1000>, kArraySize> str;
     std::array<utils::SmallString<1000>, kArraySize> str2;
@@ -91,7 +91,7 @@ static void SmallString_Small_Move(benchmark::State& state) {
         state.ResumeTiming();
     }
 }
-BENCHMARK(SmallString_Small_Move)->Range(2, 2 << 10)->Unit(benchmark::kMicrosecond);
+BENCHMARK(SmallStringSmallMove)->Range(2, 2 << 10)->Unit(benchmark::kMicrosecond);
 
 static void SmallStringResizeAndOverwrite(benchmark::State& state) {
     auto s = GenerateString(state.range(0));
@@ -100,8 +100,8 @@ static void SmallStringResizeAndOverwrite(benchmark::State& state) {
     for (auto& x : str) x = s;
     for ([[maybe_unused]] auto _ : state) {
         for (size_t i = 0; i < str.size(); i++)
-            str2[i].resize_and_overwrite(str[i].size(), [&](char* data_, size_t size) {
-                std::copy(str[i].data(), str[i].data() + str[i].size(), data_);
+            str2[i].resize_and_overwrite(str[i].size(), [&](char* data, size_t size) {
+                std::copy(str[i].data(), str[i].data() + str[i].size(), data);
                 return size;
             });
         state.PauseTiming();

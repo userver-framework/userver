@@ -67,7 +67,8 @@ std::optional<formats::yaml::Value> GetFromEnvImpl(const formats::yaml::Value& e
     // NOLINTNEXTLINE(concurrency-mt-unsafe)
     const auto* env_value = std::getenv(env_name.As<std::string>().c_str());
     if (env_value) {
-        return formats::yaml::FromString(env_value);
+        formats::yaml::ValueBuilder builder{env_value};
+        return builder.ExtractValue();
     }
 
     return {};

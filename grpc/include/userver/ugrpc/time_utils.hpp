@@ -8,7 +8,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc {
 
-/// Converts `engine::Deadline::Duration` to `gpr_timespec`.
+/// Converts `engine::Deadline::Duration` to `gpr_timespec` (with `GPR_TIMESPAN` clock_type).
 gpr_timespec DurationToTimespec(const engine::Deadline::Duration& duration) noexcept;
 
 template <typename Rep, typename Period>
@@ -19,7 +19,7 @@ gpr_timespec DurationToTimespec(const std::chrono::duration<Rep, Period>& durati
 /// Converts `gpr_timespec` to `engine::Deadline::Duration`
 engine::Deadline::Duration TimespecToDuration(gpr_timespec t) noexcept;
 
-/// Converts `engine::Deadline` to `gpr_timespec`.
+/// Converts `engine::Deadline` to `gpr_timespec` (with `GPR_CLOCK_MONOTONIC` clock_type).
 gpr_timespec DeadlineToTimespec(const engine::Deadline& deadline) noexcept;
 
 /// Converts `gpr_timespec` to `engine::Deadline`

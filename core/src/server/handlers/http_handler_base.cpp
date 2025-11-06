@@ -362,6 +362,10 @@ std::string HttpHandlerBase::GetResponseDataForLogging(
     return utils::log::ToLimitedUtf8(response_data, limit);
 }
 
+std::string HttpHandlerBase::GetUrlForLogging(const http::HttpRequest& request, request::RequestContext&) const {
+    return request.GetUrl();
+}
+
 std::string HttpHandlerBase::GetMetaType(const http::HttpRequest& request) const { return request.GetRequestPath(); }
 
 std::string HttpHandlerBase::GetRequestBodyForLoggingChecked(
@@ -397,6 +401,16 @@ std::string HttpHandlerBase::GetResponseDataForLoggingChecked(
     } catch (const std::exception& ex) {
         LOG_LIMITED_ERROR() << "failed to get response data for logging: " << ex;
         return "<error in GetResponseDataForLogging>";
+    }
+}
+
+std::string HttpHandlerBase::GetUrlForLoggingChecked(const http::HttpRequest& request, request::RequestContext& context)
+    const {
+    try {
+        return GetUrlForLogging(request, context);
+    } catch (const std::exception& ex) {
+        LOG_LIMITED_ERROR() << "failed to get url for logging: " << ex;
+        return "<error in GetUrlForLogging>";
     }
 }
 

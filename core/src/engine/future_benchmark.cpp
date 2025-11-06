@@ -104,7 +104,7 @@ struct FutureCoroSetGet {
 
 }  // namespace
 
-void future_std_single_threaded(benchmark::State& state) {
+void FutureStdSingleThreaded(benchmark::State& state) {
     for ([[maybe_unused]] auto _ : state) {
         std::promise<int> promise;
         auto future = promise.get_future();
@@ -112,9 +112,9 @@ void future_std_single_threaded(benchmark::State& state) {
         benchmark::DoNotOptimize(future.get());
     }
 }
-BENCHMARK(future_std_single_threaded);
+BENCHMARK(FutureStdSingleThreaded);
 
-void future_coro_single_threaded(benchmark::State& state) {
+void FutureCoroSingleThreaded(benchmark::State& state) {
     engine::RunStandalone([&] {
         for ([[maybe_unused]] auto _ : state) {
             engine::Promise<int> promise;
@@ -124,16 +124,16 @@ void future_coro_single_threaded(benchmark::State& state) {
         }
     });
 }
-BENCHMARK(future_coro_single_threaded);
+BENCHMARK(FutureCoroSingleThreaded);
 
-void future_std_set_and_get(benchmark::State& state) {
+void FutureStdSetAndGet(benchmark::State& state) {
     engine::RunStandalone(2, [&] { RunPrepared<FutureStdSetGet>(state); });
 }
-BENCHMARK(future_std_set_and_get);
+BENCHMARK(FutureStdSetAndGet);
 
-void future_coro_set_and_get(benchmark::State& state) {
+void FutureCoroSetAndGet(benchmark::State& state) {
     engine::RunStandalone(2, [&] { RunPrepared<FutureCoroSetGet>(state); });
 }
-BENCHMARK(future_coro_set_and_get);
+BENCHMARK(FutureCoroSetAndGet);
 
 USERVER_NAMESPACE_END

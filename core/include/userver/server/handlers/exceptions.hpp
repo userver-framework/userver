@@ -171,17 +171,17 @@ struct CustomHandlerExceptionData final {
     formats::json::Value details;
 
 private:
-    void Apply(HandlerErrorCode handler_code_) { handler_code = handler_code_; }
+    void Apply(HandlerErrorCode l_handler_code) { handler_code = l_handler_code; }
 
-    void Apply(ServiceErrorCode service_code_) { service_code = std::move(service_code_.body); }
+    void Apply(ServiceErrorCode l_service_code) { service_code = std::move(l_service_code.body); }
 
-    void Apply(InternalMessage internal_message_) { internal_message = std::move(internal_message_.body); }
+    void Apply(InternalMessage l_internal_message) { internal_message = std::move(l_internal_message.body); }
 
-    void Apply(ExternalBody external_body_) { external_body = std::move(external_body_.body); }
+    void Apply(ExternalBody l_external_body) { external_body = std::move(l_external_body.body); }
 
-    void Apply(ExtraHeaders headers_) { headers = std::move(headers_.headers); }
+    void Apply(ExtraHeaders l_headers) { headers = std::move(l_headers.headers); }
 
-    void Apply(formats::json::Value details_) { details = std::move(details_); }
+    void Apply(formats::json::Value l_details) { details = std::move(l_details); }
 
     template <typename MessageBuilder>
     void Apply(MessageBuilder&& builder) {

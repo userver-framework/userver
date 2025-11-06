@@ -2,6 +2,7 @@
 
 [![Ubuntu](https://github.com/userver-framework/userver/actions/workflows/ci.yml/badge.svg)](https://github.com/userver-framework/userver/actions/workflows/ci.yml)
 [![Fedora](https://github.com/userver-framework/userver/actions/workflows/fedora.yml/badge.svg)](https://github.com/userver-framework/userver/actions/workflows/fedora.yml)
+[![Debian](https://github.com/userver-framework/userver/actions/workflows/debian.yml/badge.svg)](https://github.com/userver-framework/userver/actions/workflows/debian.yml)
 [![MacOS](https://github.com/userver-framework/userver/actions/workflows/macos.yml/badge.svg)](https://github.com/userver-framework/userver/actions/workflows/macos.yml)
 [![Alpine](https://github.com/userver-framework/userver/actions/workflows/alpine.yml/badge.svg)](https://github.com/userver-framework/userver/actions/workflows/alpine.yml)
 [![Docker CI](https://github.com/userver-framework/userver/actions/workflows/docker.yaml/badge.svg)](https://github.com/userver-framework/userver/actions/workflows/docker.yaml)

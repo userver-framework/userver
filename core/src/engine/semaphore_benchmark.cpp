@@ -12,7 +12,7 @@
 USERVER_NAMESPACE_BEGIN
 
 /// [RunStandalone sample]
-void semaphore_lock(benchmark::State& state) {
+void SemaphoreLock(benchmark::State& state) {
     engine::RunStandalone([&]() {
         std::size_t i = 0;
         engine::Semaphore sem{std::numeric_limits<std::size_t>::max()};
@@ -27,10 +27,10 @@ void semaphore_lock(benchmark::State& state) {
         }
     });
 }
-BENCHMARK(semaphore_lock);
+BENCHMARK(SemaphoreLock);
 /// [RunStandalone sample]
 
-void semaphore_unlock(benchmark::State& state) {
+void SemaphoreUnlock(benchmark::State& state) {
     engine::RunStandalone([&]() {
         unsigned i = 0;
         engine::Semaphore sem{std::numeric_limits<std::size_t>::max()};
@@ -58,9 +58,9 @@ void semaphore_unlock(benchmark::State& state) {
         }
     });
 }
-BENCHMARK(semaphore_unlock);
+BENCHMARK(SemaphoreUnlock);
 
-void semaphore_lock_unlock_contention(benchmark::State& state) {
+void SemaphoreLockUnlockContention(benchmark::State& state) {
     engine::RunStandalone(state.range(0), [&] {
         engine::Semaphore sem{1};
 
@@ -72,9 +72,9 @@ void semaphore_lock_unlock_contention(benchmark::State& state) {
         });
     });
 }
-BENCHMARK(semaphore_lock_unlock_contention)->RangeMultiplier(2)->Range(1, 32);
+BENCHMARK(SemaphoreLockUnlockContention)->RangeMultiplier(2)->Range(1, 32);
 
-void semaphore_lock_unlock_payload_contention(benchmark::State& state) {
+void SemaphoreLockUnlockPayloadContention(benchmark::State& state) {
     engine::RunStandalone(state.range(0), [&] {
         engine::Semaphore sem{1};
 
@@ -90,9 +90,9 @@ void semaphore_lock_unlock_payload_contention(benchmark::State& state) {
         });
     });
 }
-BENCHMARK(semaphore_lock_unlock_payload_contention)->RangeMultiplier(2)->Range(1, 32);
+BENCHMARK(SemaphoreLockUnlockPayloadContention)->RangeMultiplier(2)->Range(1, 32);
 
-void semaphore_lock_unlock_coro_contention(benchmark::State& state) {
+void SemaphoreLockUnlockCoroContention(benchmark::State& state) {
     engine::RunStandalone(4, [&] {
         engine::Semaphore sem{1};
 
@@ -104,9 +104,9 @@ void semaphore_lock_unlock_coro_contention(benchmark::State& state) {
         });
     });
 }
-BENCHMARK(semaphore_lock_unlock_coro_contention)->RangeMultiplier(2)->Range(1, 1024);
+BENCHMARK(SemaphoreLockUnlockCoroContention)->RangeMultiplier(2)->Range(1, 1024);
 
-void semaphore_lock_unlock_payload_coro_contention(benchmark::State& state) {
+void SemaphoreLockUnlockPayloadCoroContention(benchmark::State& state) {
     engine::RunStandalone(4, [&] {
         engine::Semaphore sem{1};
 
@@ -122,9 +122,9 @@ void semaphore_lock_unlock_payload_coro_contention(benchmark::State& state) {
         });
     });
 }
-BENCHMARK(semaphore_lock_unlock_payload_coro_contention)->RangeMultiplier(2)->Range(1, 1024);
+BENCHMARK(SemaphoreLockUnlockPayloadCoroContention)->RangeMultiplier(2)->Range(1, 1024);
 
-void semaphore_lock_unlock_st_coro_contention(benchmark::State& state) {
+void SemaphoreLockUnlockStCoroContention(benchmark::State& state) {
     engine::RunStandalone([&]() {
         engine::Semaphore sem{1};
 
@@ -137,6 +137,6 @@ void semaphore_lock_unlock_st_coro_contention(benchmark::State& state) {
         });
     });
 }
-BENCHMARK(semaphore_lock_unlock_st_coro_contention)->RangeMultiplier(2)->Range(1, 1024);
+BENCHMARK(SemaphoreLockUnlockStCoroContention)->RangeMultiplier(2)->Range(1, 1024);
 
 USERVER_NAMESPACE_END

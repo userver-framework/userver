@@ -21,14 +21,20 @@ void WriteAccessLog(
         constexpr auto kLevel = logging::Level::kInfo;
 
         if (access_tskv_logger.ShouldLog(kLevel)) {
-            logging::impl::TextLogItem log_item{impl::FormatLogMessage(
-                server_context.client_metadata(),
-                server_context.peer(),
-                context.GetSpan().GetStartSystemTime(),
-                context.GetCallName(),
-                status.error_code()
-            )};
-            access_tskv_logger.Log(kLevel, log_item);
+            const auto* log_extra = context.GetStorageContext().GetOptional(kLogExtraTag);
+
+            access_tskv_logger.Log(
+                kLevel,
+                impl::FormatLogMessage(
+                    server_context.client_metadata(),
+                    server_context.peer(),
+                    context.GetSpan().GetStartSystemTime(),
+                    context.GetCallName(),
+                    status.error_code(),
+                    log_extra
+                )
+                    .ExtractTextLogItem()
+            );
         }
     } catch (const std::exception& ex) {
         LOG_ERROR() << "Error in WriteAccessLog: " << ex;

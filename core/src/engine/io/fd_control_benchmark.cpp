@@ -32,7 +32,7 @@ using FdControl = io::impl::FdControl;
 
 }  // namespace
 
-void fd_control_destroy(benchmark::State& state) {
+void FdControlDestroy(benchmark::State& state) {
     engine::RunStandalone([&]() {
         for ([[maybe_unused]] auto _ : state) {
             state.PauseTiming();
@@ -45,9 +45,9 @@ void fd_control_destroy(benchmark::State& state) {
         }
     });
 }
-BENCHMARK(fd_control_destroy);
+BENCHMARK(FdControlDestroy);
 
-void fd_control_close_destroy(benchmark::State& state) {
+void FdControlCloseDestroy(benchmark::State& state) {
     engine::RunStandalone([&] {
         for ([[maybe_unused]] auto _ : state) {
             state.PauseTiming();
@@ -61,9 +61,9 @@ void fd_control_close_destroy(benchmark::State& state) {
         }
     });
 }
-BENCHMARK(fd_control_close_destroy);
+BENCHMARK(FdControlCloseDestroy);
 
-void fd_control_wait_destroy(benchmark::State& state) {
+void FdControlWaitDestroy(benchmark::State& state) {
     engine::RunStandalone([&] {
         for ([[maybe_unused]] auto _ : state) {
             state.PauseTiming();
@@ -77,9 +77,9 @@ void fd_control_wait_destroy(benchmark::State& state) {
         }
     });
 }
-BENCHMARK(fd_control_wait_destroy);
+BENCHMARK(FdControlWaitDestroy);
 
-void fd_control_construct_wait_destroy(benchmark::State& state) {
+void FdControlConstructWaitDestroy(benchmark::State& state) {
     engine::RunStandalone([&] {
         for ([[maybe_unused]] auto _ : state) {
             state.PauseTiming();
@@ -92,6 +92,6 @@ void fd_control_construct_wait_destroy(benchmark::State& state) {
         }
     });
 }
-BENCHMARK(fd_control_construct_wait_destroy);
+BENCHMARK(FdControlConstructWaitDestroy);
 
 USERVER_NAMESPACE_END

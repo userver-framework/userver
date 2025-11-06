@@ -11,6 +11,7 @@
 #include <userver/utils/function_ref.hpp>
 #include <userver/utils/impl/transparent_hash.hpp>
 #include <userver/utils/overloaded.hpp>
+#include <userver/utils/trx_tracker.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -76,6 +77,7 @@ void ExecuteTestpointCoro(
     const TestpointScope tp_scope;
     if (!tp_scope) return;
 
+    utils::trx_tracker::CheckDisabler disabler;
     tp_scope.GetClient().Execute(name, json, callback);
 }
 

@@ -79,13 +79,17 @@ private:
 static constexpr size_t kClusterHashSlots = 16384;
 
 struct GetClusterHostsRequest {
-    GetClusterHostsRequest(Shard& sentinel_shard, Password password)
-        : sentinel_shard(sentinel_shard), command({"CLUSTER", "SLOTS"}), password(std::move(password)) {}
+    GetClusterHostsRequest(Shard& sentinel_shard, Password password, std::string shard_group_name)
+        : sentinel_shard(sentinel_shard),
+          command({"CLUSTER", "SLOTS"}),
+          password(std::move(password)),
+          shard_group_name(std::move(shard_group_name)) {}
 
     Shard& sentinel_shard;
     CmdArgs command;
 
     Password password;
+    std::string shard_group_name;
 };
 
 struct SlotInterval {
@@ -135,6 +139,7 @@ public:
     GetClusterHostsContext(
         Password password,
         std::shared_ptr<const std::vector<std::string>> shard_names,
+        std::string shard_group_name,
         ProcessGetClusterHostsRequestCb&& callback,
         size_t expected_responses_cnt
     );
@@ -151,6 +156,7 @@ private:
     void ProcessResponses();
     void ProcessResponsesOnce();
 
+    const std::string shard_group_name_;
     const Password password_;
     const std::shared_ptr<const std::vector<std::string>> shard_names_;
     const ProcessGetClusterHostsRequestCb callback_;
@@ -170,7 +176,8 @@ enum class ClusterSlotsResponseStatus {
     kNonCluster,
 };
 
-ClusterSlotsResponseStatus ParseClusterSlotsResponse(const ReplyPtr& reply, ClusterSlotsResponse& res);
+ClusterSlotsResponseStatus
+ParseClusterSlotsResponse(const ReplyPtr& reply, ClusterSlotsResponse& res, const std::string& shard_group_name);
 
 }  // namespace storages::redis::impl
 

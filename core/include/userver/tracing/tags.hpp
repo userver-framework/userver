@@ -21,14 +21,24 @@ extern const std::string kSpanKindServer;
 extern const std::string kSpanKindClient;
 extern const std::string kSpanKindInternal;
 extern const std::string kHttpUrl;
+extern const std::string kUrlFull;
+extern const std::string kHttpUrlTemplate;
 extern const std::string kHttpMetaType;
 extern const std::string kHttpMethod;
+extern const std::string kHttpRequestMethod;
+extern const std::string kHttpRoute;
 extern const std::string kHttpStatusCode;
+extern const std::string kHttpResponseStatusCode;
 extern const std::string kAttempts;
 extern const std::string kMaxAttempts;
 extern const std::string kTimeoutMs;
 extern const std::string kErrorFlag;
 extern const std::string kErrorMessage;
+
+extern const std::string kRpcSystem;
+extern const std::string kRpcService;
+extern const std::string kRpcMethod;
+extern const std::string kGrpcCode;
 
 extern const std::string kDatabaseType;
 extern const std::string kDatabaseMongoType;
@@ -42,6 +52,7 @@ extern const std::string kDatabaseStatementName;
 extern const std::string kDatabaseStatementDescription;
 
 extern const std::string kPeerAddress;
+extern const std::string kServerAddress;
 
 }  // namespace tracing
 

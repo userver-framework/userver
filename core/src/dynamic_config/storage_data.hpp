@@ -3,7 +3,7 @@
 #include <userver/concurrent/async_event_channel.hpp>
 #include <userver/dynamic_config/impl/snapshot.hpp>
 #include <userver/dynamic_config/snapshot.hpp>
-#include <userver/engine/mutex.hpp>
+#include <userver/engine/shared_mutex.hpp>
 #include <userver/rcu/rcu.hpp>
 #include <userver/utils/function_ref.hpp>
 
@@ -26,6 +26,8 @@ public:
 
     SnapshotChannel& GetChannel();
 
+    DiffChannel& GetDiffChannel();
+
     concurrent::AsyncEventSubscriberScope
     DoUpdateAndListen(concurrent::FunctionId id, std::string_view name, SnapshotChannel::Function&& func);
 
@@ -39,7 +41,7 @@ private:
     SnapshotChannel snapshot_channel_;
     DiffChannel diff_channel_;
 
-    engine::Mutex update_mutex_;
+    engine::SharedMutex update_mutex_;
 };
 
 }  // namespace dynamic_config::impl

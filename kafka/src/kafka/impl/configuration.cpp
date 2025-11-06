@@ -28,7 +28,7 @@ namespace {
 // https://docs.confluent.io/platform/current/clients/librdkafka/html/rdkafka_8h.html#a06ade2ca41f32eb82c6f7e3d4acbe19f
 void KafkaLogCallback(const rd_kafka_t*, int level, const char* facility, const char* message) noexcept {
     try {
-        LOG(impl::convertRdKafkaLogLevelToLoggingLevel(level))
+        LOG(impl::ConvertRdKafkaLogLevelToLoggingLevel(level))
             << logging::LogExtra{{{"facility", facility}}} << message;
     } catch (const std::exception& e) {
         UASSERT_MSG(false, e.what());

@@ -110,6 +110,8 @@ std::string_view ToString(OpType type) {
     switch (type) {
         case Type::kInvalid:
             UINVARIANT(false, "Unexpected OpType::kInvalid");
+            // Never reaches
+            return {};
         case Type::kCount:
             return "count";
         case Type::kCountApprox:

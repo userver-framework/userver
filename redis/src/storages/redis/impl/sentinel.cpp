@@ -211,6 +211,8 @@ void Sentinel::AsyncCommand(CommandPtr command, bool master, size_t shard) {
     if (!impl_) return;
     ThrowIfCancelled();
 
+    command->log_extra.Extend("shard_group_name", shard_group_name_);
+
     if (CommandControlImpl{command->control}.force_request_to_master) {
         master = true;
     }

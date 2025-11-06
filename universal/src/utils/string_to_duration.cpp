@@ -13,7 +13,7 @@ namespace utils {
 namespace {
 
 template <class Rep, class Period>
-std::chrono::milliseconds checked_convert(std::chrono::duration<Rep, Period> d, std::string_view data) {
+std::chrono::milliseconds CheckedConvert(std::chrono::duration<Rep, Period> d, std::string_view data) {
     const std::chrono::duration<long double, std::chrono::milliseconds::period> extended_duration{d};
     if (extended_duration > std::chrono::milliseconds::max()) {
         throw std::overflow_error(fmt::format("StringToDuration overflow while representing '{}' as ms", data));
@@ -43,16 +43,16 @@ std::chrono::milliseconds StringToDuration(std::string_view data) {
     const std::string_view remained{end, static_cast<std::size_t>(str_end - end)};
 
     if (remained.empty() || remained == "s") {
-        return checked_convert(std::chrono::seconds{new_to}, data);
+        return CheckedConvert(std::chrono::seconds{new_to}, data);
     } else if (remained == "ms") {
-        return checked_convert(std::chrono::milliseconds{new_to}, data);
+        return CheckedConvert(std::chrono::milliseconds{new_to}, data);
     } else if (remained == "m") {
-        return checked_convert(std::chrono::minutes{new_to}, data);
+        return CheckedConvert(std::chrono::minutes{new_to}, data);
     } else if (remained == "h") {
-        return checked_convert(std::chrono::hours{new_to}, data);
+        return CheckedConvert(std::chrono::hours{new_to}, data);
     } else if (remained == "d") {
         using Days = std::chrono::duration<int64_t, std::ratio<60 * 60 * 24>>;
-        return checked_convert(Days{new_to}, data);
+        return CheckedConvert(Days{new_to}, data);
     }
 
     throw std::logic_error(fmt::format("StringToDuration: unknown format specifier '{}' in string '{}'", remained, data)

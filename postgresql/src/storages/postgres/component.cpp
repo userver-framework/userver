@@ -209,6 +209,7 @@ Postgres::Postgres(const ComponentConfig& config, const ComponentContext& contex
 Postgres::~Postgres() {
     statistics_holder_.Unregister();
     config_subscription_.Unsubscribe();
+    secdist_subscription_.Unsubscribe();
 }
 
 storages::postgres::ClusterPtr Postgres::GetCluster() const { return database_->GetCluster(); }
@@ -290,15 +291,21 @@ properties:
         defaultDescription: engine::current_task::GetBlockingTaskProcessor()
     max_replication_lag:
         type: string
-        description: replication lag limit for usable slaves
+        description: |
+            replication lag limit for usable replicas. If a replica's lag exceeds this value, it stops receiving
+            new requests
         defaultDescription: 60s
     min_pool_size:
         type: integer
-        description: number of connections created initially
+        description: |
+            number of connections created initially by this component instance to each of the provided PostgreSQL
+            hosts. Connections are kept even without requests
         defaultDescription: 4
     max_pool_size:
         type: integer
-        description: limit of connections count
+        description: |
+            maximum number of connections that can be created by this component instance to each of the provided
+            PostgreSQL hosts for "connlimit_mode: manual". Should not be less than `min_pool_size`
         defaultDescription: 15
     sync-start:
         type: boolean
@@ -387,7 +394,9 @@ properties:
                       - random-delay
     max_queue_size:
         type: integer
-        description: maximum number of clients waiting for a connection
+        description: |
+            maximum number of clients waiting for a connection. storages::postgres::PoolError is thrown if a new
+            request exceeds this limit
         defaultDescription: 200
     pipeline_enabled:
         type: boolean
@@ -395,7 +404,8 @@ properties:
         defaultDescription: false
     connecting_limit:
         type: integer
-        description: limit for concurrent establishing connections number per pool (0 - unlimited)
+        description: |
+            limit for concurrent establishing connections number per PostgreSQL host (0 - unlimited)
         defaultDescription: 0
     connlimit_mode:
         type: string

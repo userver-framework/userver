@@ -1,0 +1,121 @@
+syntax = "proto3";
+
+package box.options;
+
+option go_package = "a.yandex-team.ru/taxi/uservices/userver/libraries/proto-structs/codegen-tests/proto/box/options;boxoptions";
+
+import "userver/structs/annotations.proto";
+
+message MyMap {
+    map<string, string> self = 1 [(userver.structs.field).indirect = true];
+}
+
+message Self {
+    Self self = 1 [(userver.structs.field).indirect = true];
+}
+
+message First {
+    Second c = 1;
+}
+
+message Second {
+    Third c = 1;
+}
+
+message Third {
+    First c = 1 [(userver.structs.field).indirect = true];
+}
+
+message CycleEnd {
+    CycleStart cycle = 1;
+}
+
+message CycleStart {
+    CycleEnd cycle = 1 [(userver.structs.field).indirect = true];
+    repeated CycleEnd not_boxed = 2;
+}
+
+message Main1 {
+    message Inner {
+        ImBelowMain1 cycle = 1 [(userver.structs.field).indirect = true];
+    }
+    Main1.Inner inner = 1;
+}
+
+message ImBelowMain1 {
+    Main1 cycle = 1;
+}
+
+message IamAboveMain2 {
+    Main2 cycle = 1;
+}
+
+message Main2 {
+    message Outer {
+        Main2.Inner inner = 1;
+    }
+    message Inner {
+        IamAboveMain2 cycle = 1 [(userver.structs.field).indirect = true];
+    }
+    Inner inner = 1;
+}
+
+message NewCycle {
+    message Inner1 {
+        message InnerInner {
+            NewCycle.Inner2Below inner = 1;
+        }
+        InnerInner inner = 1;
+    }
+    message Inner2Below {
+        message InnerInner {
+            NewCycle.Inner1 inner = 1 [(userver.structs.field).indirect = true];
+        }
+        InnerInner i = 1;
+    }
+    Inner1 inner = 1;
+}
+
+message NewCycle2 {
+    message Inner2Above {
+        message InnerInner {
+            NewCycle2.Inner1 inner = 1 [(userver.structs.field).indirect = true];
+        }
+        NewCycle2.Inner2Above.InnerInner i = 1;
+    }
+    message Inner1 {
+        message InnerInner {
+            NewCycle2.Inner2Above inner = 1;
+        }
+        NewCycle2.Inner1.InnerInner inner = 1;
+    }
+    NewCycle2.Inner1 inner = 1;
+}
+
+message OptionalSelf {
+    optional OptionalSelf self = 1 [(userver.structs.field).indirect = true];
+}
+
+message OptionalDouble {
+    message First {
+        optional Second c = 1 [(userver.structs.field).indirect = true];
+    }
+
+    message Second {
+        optional First c = 1;
+    }
+}
+
+message OptionalTriple {
+    message First {
+        optional Second c = 1;
+    }
+
+    message Second {
+        optional Third c = 1;
+    }
+
+    message Third {
+        optional First c = 1 [(userver.structs.field).indirect = true];
+    }
+}

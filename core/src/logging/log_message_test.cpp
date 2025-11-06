@@ -65,12 +65,12 @@ TEST_F(LoggingTest, TskvEncode) {
     EXPECT_EQ(ToStringViaLogging("line 1\nline 2"), "line 1\\nline 2") << "escaped sequence is present in the message";
 }
 
-TEST_F(LoggingTest, TskvEncodeKeyWithDot) {
+TEST_F(LoggingTest, TskvEncodeKeyWithoutDot) {
     logging::LogExtra le;
     le.Extend("http.port.ipv4", "4040");
     LOG_CRITICAL() << "line 1\nline 2" << le;
     EXPECT_THAT(GetStreamString(), testing::HasSubstr("line 1\\nline 2"));
-    EXPECT_THAT(GetStreamString(), testing::HasSubstr("http_port_ipv4=4040"));
+    EXPECT_THAT(GetStreamString(), testing::HasSubstr("http.port.ipv4=4040"));
 }
 
 TEST_F(LoggingTest, LogFormat) {
@@ -333,6 +333,18 @@ TEST_F(LoggingTest, PartialPrefixModulePath) {
     logging::LogFlush();
 
     CheckModulePath(GetStreamString(), kPath);
+}
+
+TEST_F(LoggingTest, LogExtraBool) {
+    LOG_CRITICAL() << "test" << logging::LogExtra{{"bool_true", true}};
+    logging::LogFlush();
+    EXPECT_THAT(GetStreamString(), testing::HasSubstr("bool_true=1"));
+
+    ClearLog();
+
+    LOG_CRITICAL() << "test" << logging::LogExtra{{"bool_false", false}};
+    logging::LogFlush();
+    EXPECT_THAT(GetStreamString(), testing::HasSubstr("bool_false=0"));
 }
 
 TEST_F(LoggingTest, LogExtraTAXICOMMON1362) {

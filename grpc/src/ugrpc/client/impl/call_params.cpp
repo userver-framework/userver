@@ -106,7 +106,10 @@ CallParams CreateCallParams(const ClientData& client_data, std::size_t method_id
         client_data.GetClientName(),
         client_data.NextQueue(),
         client_data.GetConfigSnapshot(),
+        client_data.GetEndpoint(),
         {ugrpc::impl::MaybeOwnedString::Ref{}, call_name},
+        metadata.service_full_name,
+        GetMethodName(metadata, method_id),
         std::move(call_options),
         std::move(stub),
         client_data.GetMiddlewares(),
@@ -132,11 +135,27 @@ CallParams CreateGenericCallParams(
 
     UINVARIANT(!client_data.GetClientQos(), "Client QOS configs are unsupported for generic services");
 
+    // Для общего случая разбираем call_name вручную
+    auto slash_pos = call_name.find('/');
+    std::string_view service_name;
+    std::string_view method_name;
+
+    if (slash_pos != std::string_view::npos) {
+        service_name = call_name.substr(0, slash_pos);
+        method_name = call_name.substr(slash_pos + 1);
+    } else {
+        service_name = std::string_view{client_data.GetMetadata().service_full_name};
+        method_name = call_name;
+    }
+
     return CallParams{
         client_data.GetClientName(),
         client_data.NextQueue(),
         client_data.GetConfigSnapshot(),
+        client_data.GetEndpoint(),
         ugrpc::impl::MaybeOwnedString{std::string{call_name}},
+        service_name,
+        method_name,
         std::move(call_options),
         client_data.NextStub(),
         client_data.GetMiddlewares(),

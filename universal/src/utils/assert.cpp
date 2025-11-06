@@ -15,6 +15,7 @@ namespace utils {
 
 namespace impl {
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 void UASSERT_failed(
     std::string_view expr,
     const char* file,
@@ -72,11 +73,15 @@ USERVER_NAMESPACE_END
 
 // Function definitions for defined BOOST_ENABLE_ASSERT_HANDLER
 namespace boost {
+
+// NOLINTNEXTLINE(readability-identifier-naming)
 void assertion_failed(char const* expr, char const* function, char const* file, long line) {
     USERVER_NAMESPACE::utils::impl::UASSERT_failed(expr, file, line, function, {});
 }
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 void assertion_failed_msg(char const* expr, char const* msg, char const* function, char const* file, long line) {
     USERVER_NAMESPACE::utils::impl::UASSERT_failed(expr, file, line, function, msg);
 }
+
 }  // namespace boost

@@ -33,7 +33,7 @@ void LogHelper::Impl::AddTag(std::string_view key, const LogExtra::Value& value)
 void LogHelper::Impl::AddTag(std::string_view key, std::string_view value) { formatter_->AddTag(key, value); }
 
 void LogHelper::Impl::Finish() {
-    formatter_->SetText(to_string(msg_));
+    formatter_->SetText(std::string_view{msg_.data(), msg_.size()});
 
     auto& log_item = formatter_->ExtractLoggerItem();
     logger_.Log(level_, log_item);

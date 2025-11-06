@@ -28,8 +28,12 @@ std::shared_ptr<TaskProcessorPools> MakeTaskProcessorPools(const TaskProcessorPo
 
 class TaskProcessorHolder final {
 public:
-    static TaskProcessorHolder
-    Make(std::size_t threads_num, std::string thread_name, std::shared_ptr<TaskProcessorPools> pools);
+    static TaskProcessorHolder Make(
+        std::size_t threads_num,
+        std::string thread_name,
+        TaskQueueType queue_type,
+        std::shared_ptr<TaskProcessorPools> pools
+    );
 
     explicit TaskProcessorHolder(std::unique_ptr<TaskProcessor>&&);
 

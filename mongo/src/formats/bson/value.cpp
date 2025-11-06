@@ -291,7 +291,7 @@ const impl::BsonHolder& Value::GetBson() const { return impl_->GetBson(); }
 
 namespace formats::literals {
 
-bson::Value operator"" _bson(const char* str, size_t len) { return bson::FromJsonString(std::string(str, len)); }
+bson::Value operator""_bson(const char* str, size_t len) { return bson::FromJsonString(std::string(str, len)); }
 
 }  // namespace formats::literals
 

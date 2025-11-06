@@ -7,7 +7,7 @@
 namespace {{ namespace }} {
 
 ClientImpl::ClientImpl(const USERVER_NAMESPACE::chaotic::openapi::client::Config& config,
-             USERVER_NAMESPACE::clients::http::Client& http_client) 
+             USERVER_NAMESPACE::clients::http::Client& http_client)
     : config_(config), http_client_(http_client)
 {
 }
@@ -21,15 +21,16 @@ ClientImpl::ClientImpl(const USERVER_NAMESPACE::chaotic::openapi::client::Config
           const USERVER_NAMESPACE::chaotic::openapi::client::CommandControl& command_control
       ) {
         auto r = http_client_.CreateRequest();
+        r.SetUrlTemplate("{{ op.path }}");
         if (plugins_) {
             r.SetPluginsList(*plugins_);
         }
         ApplyConfig(r, command_control, config_);
-        
+
         {% if not op.empty_request() -%}
         SerializeRequest(request, config_.base_url, r);
         {% endif %}
-        
+
         middleware_manager_.ProcessRequest(r);
 
         std::shared_ptr<USERVER_NAMESPACE::clients::http::Response> response;
@@ -39,7 +40,7 @@ ClientImpl::ClientImpl(const USERVER_NAMESPACE::chaotic::openapi::client::Config
         } catch (const USERVER_NAMESPACE::clients::http::TimeoutException& e) {
             throw {{ op.cpp_namespace() }}::TimeoutException();
         }
-        
+
         return {{ op.cpp_namespace() }}::ParseResponse(*response);
       }
   {% endif %}

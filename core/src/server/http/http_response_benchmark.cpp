@@ -42,7 +42,7 @@ void OutputHeader(std::string& header, std::string_view key, std::string_view va
     append(kCrlf);
 }
 
-void http_headers_serialization_inplace(benchmark::State& state) {
+void HttpHeadersSerializationInplace(benchmark::State& state) {
     for ([[maybe_unused]] auto _ : state) {
         USERVER_NAMESPACE::http::headers::HeadersString os;
 
@@ -71,7 +71,7 @@ void http_headers_serialization_inplace(benchmark::State& state) {
     }
 }
 
-void http_headers_serialization_no_ostreams(benchmark::State& state) {
+void HttpHeadersSerializationNoOstreams(benchmark::State& state) {
     for ([[maybe_unused]] auto _ : state) {
         std::string os;
         os.reserve(1024);
@@ -93,7 +93,7 @@ void http_headers_serialization_no_ostreams(benchmark::State& state) {
     }
 }
 
-void http_headers_serialization_ostreams(benchmark::State& state) {
+void HttpHeadersSerializationOstreams(benchmark::State& state) {
     for ([[maybe_unused]] auto _ : state) {
         std::ostringstream os;
 
@@ -137,9 +137,9 @@ void HttpResponseSetHeaderBenchmark(benchmark::State& state) {
 
 }  // namespace
 
-BENCHMARK(http_headers_serialization_inplace);
-BENCHMARK(http_headers_serialization_no_ostreams);
-BENCHMARK(http_headers_serialization_ostreams);
+BENCHMARK(HttpHeadersSerializationInplace);
+BENCHMARK(HttpHeadersSerializationNoOstreams);
+BENCHMARK(HttpHeadersSerializationOstreams);
 BENCHMARK(HttpResponseSetHeaderBenchmark);
 
 USERVER_NAMESPACE_END

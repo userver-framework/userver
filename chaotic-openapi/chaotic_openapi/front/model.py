@@ -46,7 +46,7 @@ class Parameter:
 
 @dataclasses.dataclass
 class MediaType:
-    schema: Union[types.Schema, types.Ref]
+    schema: Union[types.Schema, types.Ref, None]
     examples: dict[str, Any]
 
 
@@ -140,6 +140,7 @@ class Operation:
     responses: dict[int, Union[Response, Ref]]
     security: list[Security]
 
+    x_client_codegen: bool
     x_middlewares: base_model.XMiddlewares
 
 

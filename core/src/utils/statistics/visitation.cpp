@@ -116,16 +116,11 @@ private:
 };
 
 struct DfsNode {
-    DfsNode(
-        const formats::json::Value& next,
-        std::string&& path_node_,
-        Label&& label_,
-        std::string&& children_label_name_
-    )
+    DfsNode(const formats::json::Value& next, std::string&& path_node, Label&& label, std::string&& children_label_name)
         : current(next),
-          path_node(std::move(path_node_)),
-          label(std::move(label_)),
-          children_label_name(std::move(children_label_name_)) {}
+          path_node(std::move(path_node)),
+          label(std::move(label)),
+          children_label_name(std::move(children_label_name)) {}
 
     bool is_in_subtree{false};
     const formats::json::Value current;

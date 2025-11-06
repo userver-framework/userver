@@ -297,7 +297,7 @@ void Value::CheckInBounds(std::size_t index) const {
 
 namespace formats::literals {
 
-yaml::Value operator"" _yaml(const char* str, size_t len) { return yaml::FromString(std::string(str, len)); }
+yaml::Value operator""_yaml(const char* str, size_t len) { return yaml::FromString(std::string(str, len)); }
 
 }  // namespace formats::literals
 

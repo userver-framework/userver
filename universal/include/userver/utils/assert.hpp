@@ -14,6 +14,7 @@ namespace utils {
 
 namespace impl {
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 [[noreturn]] void UASSERT_failed(
     std::string_view expr,
     const char* file,

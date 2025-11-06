@@ -62,8 +62,10 @@ struct BoundsBlock;
 /// @snippet utils/statistics/histogram_test.cpp  metric tag
 class Histogram final {
 public:
-    /// Sets upper bounds for each non-"infinite" bucket. The lowest bound is
+    /// @brief Sets upper bounds for each non-"infinite" bucket. The lowest bound is
     /// always 0.
+    ///
+    /// @param upper_bounds is copied inside and is not required to be kept alive after the constructor completes.
     explicit Histogram(utils::span<const double> upper_bounds);
 
     /// Copies an existing histogram.

@@ -113,7 +113,7 @@ std::uintptr_t GetStackBegin(const void* cb_ptr) noexcept {
 
 [[noreturn]] __attribute__((noinline)) void
 // the name is intentionally caps-ed, to be easily noticeable in the dumps
-THE_COROUTINE_OVERFLOWED_ITS_STACK() {
+THE_COROUTINE_OVERFLOWED_ITS_STACK() {  // NOLINT(readability-identifier-naming)
     // We are hitting a coroutine stack overflow, which normally would result in a
     // SIGSEGV with some hard to diagnose coredump (basically, the only
     // way to diagnose it correctly as SO is to employ some arcane knowledge:

@@ -99,7 +99,8 @@ public:
         const std::shared_ptr<engine::ev::ThreadPool>& thread_pool,
         const engine::ev::ThreadControl& thread_control,
         Redis& redis_obj,
-        const RedisCreationSettings& redis_settings
+        const RedisCreationSettings& redis_settings,
+        const std::string& shard_group_name
     );
     ~RedisImpl();
 
@@ -216,6 +217,7 @@ private:
     SSLContextPtr ssl_context_;
 #endif
     std::atomic<State> state_{State::kInit};
+    std::string shard_group_name_;
     std::string host_;
     uint16_t port_ = 0;
     std::string server_;
@@ -269,9 +271,13 @@ std::string_view StateToString(RedisState state) {
     return state_str ? *state_str : "unknown";
 }
 
-Redis::Redis(const std::shared_ptr<engine::ev::ThreadPool>& thread_pool, const RedisCreationSettings& redis_settings)
+Redis::Redis(
+    const std::shared_ptr<engine::ev::ThreadPool>& thread_pool,
+    const RedisCreationSettings& redis_settings,
+    const std::string& shard_group_name
+)
     : thread_control_(thread_pool->NextThread()) {
-    impl_ = std::make_shared<RedisImpl>(thread_pool, thread_control_, *this, redis_settings);
+    impl_ = std::make_shared<RedisImpl>(thread_pool, thread_control_, *this, redis_settings, shard_group_name);
 }
 
 Redis::~Redis() {
@@ -331,21 +337,25 @@ Redis::RedisImpl::RedisImpl(
     const std::shared_ptr<engine::ev::ThreadPool>& thread_pool,
     const engine::ev::ThreadControl& thread_control,
     Redis& redis_obj,
-    const RedisCreationSettings& redis_settings
+    const RedisCreationSettings& redis_settings,
+    const std::string& shard_group_name
 )
     : redis_obj_(&redis_obj),
       ev_thread_control_(thread_control),
       thread_pool_(thread_pool),
+      shard_group_name_(shard_group_name),
       send_readonly_(redis_settings.send_readonly),
       connection_security_(redis_settings.connection_security),
       server_id_(ServerId::Generate()),
       retry_budget_(utils::RetryBudgetSettings{100, 0.1, false}) {
     SetCommandsBufferingSettings(CommandsBufferingSettings{});
-    LOG_DEBUG() << "RedisImpl() server_id=" << GetServerId().GetId();
+    log_extra_.Extend("shard_group_name", shard_group_name_);
+    log_extra_.Extend("server_id", GetServerId().GetId());
+    LOG_DEBUG() << "RedisImpl()" << log_extra_;
 }
 
 Redis::RedisImpl::~RedisImpl() {
-    LOG_DEBUG() << "~RedisImpl() server_id=" << GetServerId().GetId() << " server=" << GetServer();
+    LOG_DEBUG() << log_extra_ << "~RedisImpl() server=" << GetServer();
     server_id_.RemoveDescription();
 }
 
@@ -396,7 +406,8 @@ void Redis::RedisImpl::Connect(
     for (const auto& host : host_addrs)
         if (Connect(host, port, password, database_index)) return;
 
-    LOG_ERROR() << "error async connect to Redis server (host addrs =" << host_addrs << ", port=" << port << ")";
+    LOG_ERROR() << log_extra_ << "error async connect to Redis server (host addrs =" << host_addrs << ", port=" << port
+                << ")";
     SetState(State::kInitError);
 }
 
@@ -409,7 +420,6 @@ bool Redis::RedisImpl::Connect(const std::string& host, int port, const Password
     host_ = host;
     port_ = port;
     log_extra_.Extend("redis_server", GetServer());
-    log_extra_.Extend("server_id", GetServerId().GetId());
     password_ = password;
     database_index_ = database_index;
     LOG_INFO() << log_extra_ << "Async connect to Redis server=" << GetServer();
@@ -420,7 +430,7 @@ bool Redis::RedisImpl::Connect(const std::string& host, int port, const Password
     context_->data = this;
 
     if (context_->err) {
-        LOG_WARNING() << "error after redisAsyncConnect (host=" << host << ", port=" << port
+        LOG_WARNING() << log_extra_ << "error after redisAsyncConnect (host=" << host << ", port=" << port
                       << "): " << context_->errstr;
         redisAsyncFree(context_);
         context_ = nullptr;
@@ -429,10 +439,10 @@ bool Redis::RedisImpl::Connect(const std::string& host, int port, const Password
 
     ev_thread_control_.RunInEvLoopBlocking([this, &host]() {
         bool err = false;
-        auto CheckError = [&err, &host](int status, const std::string& name) {
+        auto CheckError = [&err, &host, this](int status, const std::string& name) {
             if (status != REDIS_OK) {
                 err = true;
-                LOG_ERROR() << "error in " << name << " with host " << host;
+                LOG_ERROR() << log_extra_ << "error in " << name << " with host " << host;
             }
         };
         if (!err) Attach();
@@ -488,6 +498,7 @@ void Redis::RedisImpl::InvokeCommand(const CommandPtr& command, ReplyPtr&& reply
     reply->server_id = server_id_;
     reply->log_extra.Extend("redis_server", server_);
     reply->log_extra.Extend("reply_status", ToString(reply->status));
+    reply->log_extra.Extend("shard_group_name", shard_group_name_);
 
     if (reply->IsLoggableError()) LogSocketErrorReply(command, reply);
 
@@ -500,7 +511,7 @@ void Redis::RedisImpl::InvokeCommand(const CommandPtr& command, ReplyPtr&& reply
     try {
         command->callback(command, reply);
     } catch (const std::exception& ex) {
-        LOG_WARNING() << "exception in callback handler (" << command->args << ") " << ex;
+        LOG_WARNING() << log_extra_ << "exception in callback handler (" << command->args << ") " << ex;
     }
 
     if (need_disconnect) Disconnect();
@@ -534,7 +545,7 @@ bool Redis::RedisImpl::WatchCommandTimerEnabled(const CommandsBufferingSettings&
 
 bool Redis::RedisImpl::AsyncCommand(const CommandPtr& command) {
     LOG_DEBUG() << "AsyncCommand for server_id=" << GetServerId().GetId()
-                << " server=" << GetServerId().GetDescription() << " cmd=" << command->args;
+                << " server=" << GetServerId().GetDescription() << " cmd=" << command->args << log_extra_;
     {
         const std::lock_guard<std::mutex> lock(command_mutex_);
         if (destroying_) return false;
@@ -551,7 +562,7 @@ void Redis::RedisImpl::OnTimerPing(struct ev_loop*, ev_timer* w, int) noexcept {
     try {
         impl->OnTimerPingImpl();
     } catch (const std::exception& ex) {
-        LOG_ERROR() << "OnTimerPingImpl() failed: " << ex;
+        LOG_ERROR() << "OnTimerPingImpl() failed: " << ex << impl->log_extra_;
     }
 }
 
@@ -561,7 +572,7 @@ void Redis::RedisImpl::OnTimerInfo(struct ev_loop*, ev_timer* w, int) noexcept {
     try {
         impl->OnTimerInfoImpl();
     } catch (const std::exception& ex) {
-        LOG_ERROR() << "OnTimerInfoImpl() failed: " << ex;
+        LOG_ERROR() << "OnTimerInfoImpl() failed: " << ex << impl->log_extra_;
     }
 }
 
@@ -571,7 +582,7 @@ void Redis::RedisImpl::OnCommandTimeout(struct ev_loop*, ev_timer* w, int) noexc
     try {
         impl->OnCommandTimeoutImpl(w);
     } catch (const std::exception& ex) {
-        LOG_ERROR() << "OnCommandTimeoutImpl() failed: " << ex;
+        LOG_ERROR() << "OnCommandTimeoutImpl() failed: " << ex << impl->log_extra_;
     }
 }
 
@@ -649,12 +660,13 @@ inline void Redis::RedisImpl::OnTimerInfoImpl() {
         CmdArgs{"INFO", "REPLICATION"},
         [this](const CommandPtr&, ReplyPtr reply) {
             if (!*reply) {
-                LOG_DEBUG() << "Failed to get INFO for server_id=" << GetServerId().GetId() << ", host=" << GetHost();
+                LOG_DEBUG() << "Failed to get INFO for server_id=" << GetServerId().GetId() << ", host=" << GetHost()
+                            << log_extra_;
                 return;
             }
             if (!reply->data.IsString()) {
                 LOG_DEBUG() << "Failed to get INFO for server_id=" << GetServerId().GetId() << ", host=" << GetHost()
-                            << ". reply data is not an string but " << reply->data.GetTypeString();
+                            << ". reply data is not an string but " << reply->data.GetTypeString() << log_extra_;
                 return;
             }
             const auto& value = reply->data.GetString();
@@ -719,14 +731,14 @@ void Redis::RedisImpl::OnConnectTimeout(struct ev_loop*, ev_timer* w, int) noexc
     try {
         impl->OnConnectTimeoutImpl();
     } catch (const std::exception& ex) {
-        LOG_ERROR() << "OnConnectTimeoutImpl() failed: " << ex;
+        LOG_ERROR() << "OnConnectTimeoutImpl() failed: " << ex << impl->log_extra_;
     }
 }
 
 void Redis::RedisImpl::OnConnectTimeoutImpl() {
     ev_thread_control_.Stop(connect_timer_);
 
-    LOG_WARNING() << "connect() to redis timeouted, server_id=" << GetServerId().GetId() << " server=" << GetServer();
+    LOG_WARNING() << "connect() to redis timeouted" << log_extra_;
     Disconnect();
 }
 
@@ -753,7 +765,8 @@ void Redis::RedisImpl::SetState(State state) {
     if (state == state_) return;
 
     if (IsFinalState(state_)) {
-        LOG_INFO() << "skipped SetState() from " << StateToString(state_) << " to " << StateToString(state);
+        LOG_INFO() << log_extra_ << "skipped SetState() from " << StateToString(state_) << " to "
+                   << StateToString(state);
         return;
     }
     LOG(StateChangeToLogLevel(state_, state))
@@ -839,7 +852,7 @@ void Redis::RedisImpl::CommandLoopOnTimer(struct ev_loop*, ev_timer* w, int) noe
     try {
         impl->CommandLoopImpl();
     } catch (const std::exception& ex) {
-        LOG_ERROR() << "CommandLoopImpl() failed: " << ex;
+        LOG_ERROR() << "CommandLoopImpl() failed: " << ex << impl->log_extra_;
     }
 }
 
@@ -867,7 +880,7 @@ void Redis::RedisImpl::OnConnect(const redisAsyncContext* c, int status) noexcep
     try {
         impl->OnConnectImpl(status);
     } catch (const std::exception& ex) {
-        LOG_ERROR() << "OnConnectImpl() failed: " << ex;
+        LOG_ERROR() << "OnConnectImpl() failed: " << ex << impl->log_extra_;
     }
 }
 
@@ -877,7 +890,7 @@ void Redis::RedisImpl::OnDisconnect(const redisAsyncContext* c, int status) noex
     try {
         impl->OnDisconnectImpl(status);
     } catch (const std::exception& ex) {
-        LOG_ERROR() << "OnDisconnectImpl() failed: " << ex;
+        LOG_ERROR() << "OnDisconnectImpl() failed: " << ex << impl->log_extra_;
     }
 }
 
@@ -901,7 +914,7 @@ void Redis::RedisImpl::OnConnectImpl(int status) {
 
     const int keep_alive_status = redisEnableKeepAlive(&context_->c);
     if (keep_alive_status != REDIS_OK) {
-        LOG_ERROR() << "redisEnableKeepAlive() failed. Hiredis errstr='"
+        LOG_ERROR() << log_extra_ << "redisEnableKeepAlive() failed. Hiredis errstr='"
                     << (keep_alive_status == REDIS_ERR ? context_->errstr : "") << '\'';
         Disconnect();
         return;
@@ -912,7 +925,7 @@ void Redis::RedisImpl::OnConnectImpl(int status) {
 
 void Redis::RedisImpl::OnDisconnectImpl(int status) {
     if (status == REDIS_ERR) {
-        LOG_LIMITED_WARNING() << "Got disconnect error from hiredis (" << context_->errstr
+        LOG_LIMITED_WARNING() << log_extra_ << "Got disconnect error from hiredis (" << context_->errstr
                               << "). For more information look in server logs ("
                                  "https://wiki.yandex-team.ru/taxi/backend/userver/redis/"
                                  "#logiservera).";
@@ -928,13 +941,13 @@ bool Redis::RedisImpl::InitSecureConnection() {
         redisSSLContextError ssl_error{};
         ssl_context_.reset(redisCreateSSLContext(nullptr, nullptr, nullptr, nullptr, nullptr, &ssl_error));
         if (!ssl_context_) {
-            LOG_ERROR() << "redisCreateSSLContext failed: " << redisSSLContextGetError(ssl_error);
+            LOG_ERROR() << log_extra_ << "redisCreateSSLContext failed: " << redisSSLContextGetError(ssl_error);
             return false;
         }
     }
 
     if (redisInitiateSSLWithContext(&context_->c, ssl_context_.get()) != REDIS_OK) {
-        LOG_ERROR() << "redisInitiateSSLWithContext failed. Hiredis errstr='" << context_->errstr << '\''
+        LOG_ERROR() << log_extra_ << "redisInitiateSSLWithContext failed. Hiredis errstr='" << context_->errstr << '\''
                     << " server=" << server_;
         return false;
     }
@@ -985,7 +998,8 @@ void Redis::RedisImpl::SendReadOnly() {
         return;
     }
 
-    LOG_DEBUG() << "Send READONLY command to slave " << GetServerId().GetDescription() << " in cluster mode";
+    LOG_DEBUG() << log_extra_ << "Send READONLY command to slave " << GetServerId().GetDescription()
+                << " in cluster mode";
     ProcessCommand(PrepareCommand(CmdArgs{"READONLY"}, [this](const CommandPtr&, ReplyPtr reply) {
         if (*reply && reply->data.IsStatus()) {
             SelectDatabase();
@@ -1058,7 +1072,7 @@ void Redis::RedisImpl::OnRedisReply(redisAsyncContext* c, void* r, void* privdat
             impl->OnRedisReplyImpl(redis_reply, privdata, c->err, c->errstr);
         }
     } catch (const std::exception& ex) {
-        LOG_ERROR() << "OnRedisReplyImpl() failed: " << ex;
+        LOG_ERROR() << "OnRedisReplyImpl() failed: " << ex << impl->log_extra_;
     }
 }
 
@@ -1099,7 +1113,7 @@ void Redis::RedisImpl::OnRedisReplyImpl(redisReply* redis_reply, void* privdata,
         if (!subscriber_) --sent_count_;
 
         if (subscriber_) {
-            LOG_DEBUG() << "server_id=" << GetServerId().GetId() << " erase privdata=" << data->first
+            LOG_DEBUG() << log_extra_ << "server_id=" << GetServerId().GetId() << " erase privdata=" << data->first
                         << " unsub=" << IsUnsubscribeReply(reply);
         }
         if (!pcommand->invoke_disabled) {

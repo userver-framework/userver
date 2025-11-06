@@ -32,6 +32,10 @@ void PluginRequest::SetTimeout(std::chrono::milliseconds ms) {
     state_.SetEasyTimeout(ms);
 }
 
+void PluginRequest::SetProxy(utils::zstring_view value) { state_.proxy(value); }
+
+bool PluginRequest::IsProxySet() const { return state_.IsProxySet(); }
+
 const std::string& PluginRequest::GetOriginalUrl() const { return state_.easy().get_original_url(); }
 
 Plugin::Plugin(std::string name) : name_(std::move(name)) {}

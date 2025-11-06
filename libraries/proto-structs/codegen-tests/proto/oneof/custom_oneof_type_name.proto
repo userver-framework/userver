@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package oneof;
+
+option go_package = "a.yandex-team.ru/taxi/uservices/userver/libraries/proto-structs/codegen-tests/proto/oneof;oneof";
+
+import "userver/structs/annotations.proto";
+
+// Demonstrates how to resolve a proto structs naming conflict by manually overriding the generated oneof type name.
+message NameConflict1 {
+  message Nested {
+    // By default, this will generate a type named `FooId` and a field `foo_id`.
+    // Then the type of `simple_id` will be resolved to C++ type of oneof, not to the intended message below.
+    oneof foo_id {
+      // This is a manual work-around to the (hopefully) rare naming conflict.
+      option (userver.structs.oneof).generated_type_name = "FooIdCustom";
+
+      FooId simple_id = 1;
+    }
+  }
+
+  message FooId {}
+}
+
+// Similar to the above except for another naming scheme for the generated type.
+message NameConflict2 {
+  message Nested {
+    // By default, this will generate a type named `TFooId` and a field `FooId`.
+    // Then the type of `simple_id` will be resolved to C++ type of oneof, not to the intended message below.
+    oneof FooId {
+      // This is a manual work-around to the (hopefully) rare naming conflict.
+      option (userver.structs.oneof).generated_type_name = "TFooIdCustom";
+
+      TFooId simple_id = 1;
+    }
+  }
+
+  message TFooId {}
+}

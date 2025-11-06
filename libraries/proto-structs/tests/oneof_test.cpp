@@ -1,10 +1,21 @@
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include <chrono>
 #include <optional>
 #include <unordered_map>
 #include <vector>
 
+#include <userver/proto-structs/any.hpp>
+#include <userver/proto-structs/io/std/chrono/duration.hpp>
+#include <userver/proto-structs/io/userver/utils/box.hpp>
+#include <userver/proto-structs/io/userver/utils/strong_typedef.hpp>
 #include <userver/proto-structs/oneof.hpp>
+#include <userver/utils/box.hpp>
+#include <userver/utils/strong_typedef.hpp>
+
+#include "messages.pb.h"
+#include "struct_simple.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -12,18 +23,16 @@ namespace proto_structs::tests {
 
 enum TestEnum { kValue0 = 0, kValue1 = 1, kValue2 = 2 };
 
-struct TestStruct {
-    std::string f1;
-};
+using RawOneof = proto_structs::Oneof<int32_t, int32_t, std::string, TestEnum, structs::Simple>;
 
-using TestOneof = proto_structs::Oneof<int32_t, int32_t, std::string, TestEnum, TestStruct>;
+struct CustomOneof : RawOneof {};
 
-void CheckAlternativeSet(const TestOneof& oneof, std::size_t set_index) {
+void CheckAlternativeSet(const RawOneof& oneof, std::size_t set_index) {
     ASSERT_EQ(oneof.GetIndex(), set_index);
 
     bool found = false;
 
-    for (std::size_t i = 0; i < TestOneof::kSize; ++i) {
+    for (std::size_t i = 0; i < RawOneof::kSize; ++i) {
         if (i != set_index) {
             ASSERT_FALSE(oneof.Contains(i));
         } else {
@@ -42,47 +51,45 @@ void CheckAlternativeSet(const TestOneof& oneof, std::size_t set_index) {
 }
 
 TEST(OneofTest, Traits) {
-    static_assert(traits::Oneof<TestOneof>);
-    static_assert(traits::Oneof<const volatile TestOneof>);
-    static_assert(TestOneof::kSize == 5);
+    struct Tag {};
 
-    static_assert(!traits::Oneof<TestOneof&>);
+    static_assert(traits::Oneof<RawOneof>);
+    static_assert(traits::Oneof<const volatile RawOneof>);
+    static_assert(traits::Oneof<CustomOneof>);
+    static_assert(traits::Oneof<const volatile CustomOneof>);
+
+    static_assert(RawOneof::kSize == 5);
+    static_assert(CustomOneof::kSize == 5);
+
+    static_assert(!traits::Oneof<RawOneof&>);
+    static_assert(!traits::Oneof<CustomOneof&>);
     static_assert(!traits::Oneof<int32_t>);
     static_assert(!traits::Oneof<std::pair<int32_t, int32_t>>);
 
-    static_assert(std::is_same_v<int32_t, OneofAlternativeType<0, TestOneof>>);
-    static_assert(std::is_same_v<int32_t, OneofAlternativeType<1, TestOneof>>);
-    static_assert(std::is_same_v<std::string, OneofAlternativeType<2, TestOneof>>);
+    static_assert(std::is_same_v<int32_t, OneofAlternativeType<0, RawOneof>>);
+    static_assert(std::is_same_v<int32_t, OneofAlternativeType<1, RawOneof>>);
+    static_assert(std::is_same_v<std::string, OneofAlternativeType<2, RawOneof>>);
+    static_assert(std::is_same_v<TestEnum, OneofAlternativeType<3, RawOneof>>);
+    static_assert(std::is_same_v<structs::Simple, OneofAlternativeType<4, RawOneof>>);
 
-    static_assert(traits::OneofField<int32_t>);
-    static_assert(traits::OneofField<const volatile int32_t>);
-    static_assert(traits::OneofField<uint32_t>);
-    static_assert(traits::OneofField<int64_t>);
-    static_assert(traits::OneofField<uint64_t>);
-    static_assert(traits::OneofField<bool>);
-    static_assert(traits::OneofField<float>);
-    static_assert(traits::OneofField<double>);
-    static_assert(traits::OneofField<std::string>);
-    static_assert(traits::OneofField<const volatile TestEnum>);
-    static_assert(traits::OneofField<TestStruct>);
-
-    static_assert(!traits::OneofField<std::vector<int32_t>>);
-    static_assert(!traits::OneofField<std::optional<int32_t>>);
-    static_assert(!traits::OneofField<std::map<std::string, std::string>>);
-    static_assert(!traits::OneofField<std::unordered_map<int32_t, int32_t>>);
+    static_assert(std::is_same_v<int32_t, OneofAlternativeType<0, CustomOneof>>);
+    static_assert(std::is_same_v<int32_t, OneofAlternativeType<1, CustomOneof>>);
+    static_assert(std::is_same_v<std::string, OneofAlternativeType<2, CustomOneof>>);
+    static_assert(std::is_same_v<TestEnum, OneofAlternativeType<3, CustomOneof>>);
+    static_assert(std::is_same_v<structs::Simple, OneofAlternativeType<4, CustomOneof>>);
 }
 
 TEST(OneofTest, Ctor) {
-    TestOneof default_oneof;
+    RawOneof default_oneof;
 
     CheckAlternativeSet(default_oneof, kOneofNpos);
 
-    TestOneof oneof(std::in_place_index<2>, "hello world");
+    RawOneof oneof(std::in_place_index<2>, "hello world");
 
     CheckAlternativeSet(oneof, 2);
     EXPECT_EQ(oneof.Get<2>(), "hello world");
 
-    TestOneof oneof_copy(oneof);
+    RawOneof oneof_copy(oneof);
 
     CheckAlternativeSet(oneof_copy, 2);
     EXPECT_EQ(oneof_copy.Get<2>(), "hello world");
@@ -94,7 +101,7 @@ TEST(OneofTest, Ctor) {
     EXPECT_EQ(oneof_copy.Get<2>(), "test1");
 
     oneof.Get<2>() = "test2";
-    TestOneof oneof_move(std::move(oneof));
+    RawOneof oneof_move(std::move(oneof));
 
     CheckAlternativeSet(oneof_move, 2);
     EXPECT_EQ(oneof_move.Get<2>(), "test2");
@@ -106,12 +113,16 @@ TEST(OneofTest, Ctor) {
 }
 
 TEST(OneofTest, GetSetEmplace) {
-    TestOneof oneof;
+    RawOneof oneof;
 
     oneof.Set<0>(0);
 
     CheckAlternativeSet(oneof, 0);
     EXPECT_EQ(oneof.Get<0>(), 0);
+    EXPECT_THAT(
+        [&oneof]() { static_cast<void>(oneof.Get<1>()); },
+        ::testing::ThrowsMessage<OneofAccessError>(::testing::HasSubstr("index = 1"))
+    );
 
     oneof.Set<0>(42);
 
@@ -148,14 +159,19 @@ TEST(OneofTest, GetSetEmplace) {
     CheckAlternativeSet(oneof, 3);
     EXPECT_EQ(oneof.Get<3>(), kValue1);
 
-    oneof.Set<4>({.f1 = "test"});
+    oneof.Set<4>({.f1 = 11});
 
     CheckAlternativeSet(oneof, 4);
-    EXPECT_EQ(std::move(oneof).Get<4>().f1, "test");
+    EXPECT_EQ(std::move(oneof).Get<4>().f1, 11);
+
+    oneof.GetMutable<0>() = 6;
+
+    CheckAlternativeSet(oneof, 0);
+    EXPECT_EQ(oneof.Get<0>(), 6);
 }
 
 TEST(OneofTest, Clear) {
-    TestOneof oneof;
+    RawOneof oneof;
 
     EXPECT_NO_THROW(oneof.ClearOneof());
     CheckAlternativeSet(oneof, kOneofNpos);

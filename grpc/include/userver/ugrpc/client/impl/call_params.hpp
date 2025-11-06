@@ -24,7 +24,10 @@ struct CallParams {
     std::string_view client_name;
     grpc::CompletionQueue& queue;
     dynamic_config::Snapshot config;
+    std::string_view endpoint;
     ugrpc::impl::MaybeOwnedString call_name;
+    std::string_view service_name;
+    std::string_view method_name;
     CallOptions call_options;
     StubHandle stub;
     const Middlewares& middlewares;

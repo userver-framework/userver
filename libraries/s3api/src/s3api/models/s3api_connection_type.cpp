@@ -16,6 +16,8 @@ S3ConnectionType Parse(const formats::json::Value& elem, formats::parse::To<S3Co
         return S3ConnectionType::kHttps;
     }
     UINVARIANT(false, "invalid value of connection_type");
+    // Never reaches
+    return S3ConnectionType::kHttp;
 }
 
 std::string_view ToStringView(S3ConnectionType connection_type) {

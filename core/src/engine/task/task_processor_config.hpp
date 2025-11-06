@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <string>
 
+#include <userver/engine/run_standalone.hpp>
 #include <userver/formats/json_fwd.hpp>
 #include <userver/yaml_config/fwd.hpp>
 
@@ -21,11 +22,7 @@ enum class OsScheduling {
     kIdle,
 };
 
-enum class TaskQueueType { kGlobalTaskQueue, kWorkStealingTaskQueue };
-
 OsScheduling Parse(const yaml_config::YamlConfig& value, formats::parse::To<OsScheduling>);
-
-TaskQueueType Parse(const yaml_config::YamlConfig& value, formats::parse::To<TaskQueueType>);
 
 struct TaskProcessorConfig {
     std::string name;

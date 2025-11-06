@@ -131,6 +131,8 @@ std::string ServerMonitor::HandleRequestThrow(const http::HttpRequest& request, 
     }
 
     UINVARIANT(false, "Unexpected 'format' value");
+    // never reaches
+    return {};
 }
 
 std::string

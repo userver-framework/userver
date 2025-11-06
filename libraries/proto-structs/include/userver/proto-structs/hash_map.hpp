@@ -1,8 +1,9 @@
 #pragma once
 
-/// @file
+/// @file userver/proto-structs/hash_map.hpp
 /// @brief @copybrief proto_structs::HashMap
 
+#include <string_view>
 #include <type_traits>
 #include <unordered_map>
 

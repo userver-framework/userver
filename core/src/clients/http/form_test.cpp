@@ -47,7 +47,7 @@ bool ReceivedFull(const HttpRequest& request) {
     return request.find(end_boundary) != std::string::npos;
 }
 
-void validate_filesend(
+void ValidateFilesend(
     const HttpRequest& request,
     std::string key,
     std::string filename,
@@ -82,22 +82,22 @@ void validate_filesend(
     EXPECT_LT(filename_pos, test_data_pos) << "Nested filename appears after test data: " << request;
 }
 
-HttpResponse validating_callback1(const HttpRequest& request) {
+HttpResponse ValidatingCallback1(const HttpRequest& request) {
     if (!ReceivedFull(request)) {
         return {{}, HttpResponse::kTryReadMore};
     }
-    validate_filesend(request, kKey, kFileNameTxt, kImageJpeg, kTestData);
+    ValidateFilesend(request, kKey, kFileNameTxt, kImageJpeg, kTestData);
 
     return {kOkCloseResponse, HttpResponse::kWriteAndClose};
 }
 
-HttpResponse validating_callback2(const HttpRequest& request) {
+HttpResponse ValidatingCallback2(const HttpRequest& request) {
     if (!ReceivedFull(request)) {
         return {{}, HttpResponse::kTryReadMore};
     }
 
-    validate_filesend(request, kKey, kFileNameTxt, kImageJpeg, kTestData);
-    validate_filesend(request, kKey2, kFileName2Bmp, kImageBmp, kOtherTestData);
+    ValidateFilesend(request, kKey, kFileNameTxt, kImageJpeg, kTestData);
+    ValidateFilesend(request, kKey2, kFileName2Bmp, kImageBmp, kOtherTestData);
 
     return {kOkCloseResponse, HttpResponse::kWriteAndClose};
 }
@@ -105,7 +105,7 @@ HttpResponse validating_callback2(const HttpRequest& request) {
 }  // namespace
 
 UTEST(CurlFormTest, MultipartFileWithContentType) {
-    const utest::SimpleServer http_server{&validating_callback1};
+    const utest::SimpleServer http_server{&ValidatingCallback1};
 
     auto http_client_ptr = utest::CreateHttpClient();
     clients::http::Form form;
@@ -123,7 +123,7 @@ UTEST(CurlFormTest, MultipartFileWithContentType) {
 }
 
 UTEST(CurlFormTest, FilesWithContentType) {
-    const utest::SimpleServer http_server{&validating_callback2};
+    const utest::SimpleServer http_server{&ValidatingCallback2};
 
     auto http_client_ptr = utest::CreateHttpClient();
     clients::http::Form form;
@@ -143,7 +143,7 @@ UTEST(CurlFormTest, FilesWithContentType) {
 }
 
 UTEST(CurlFormTest, FormMovable) {
-    const utest::SimpleServer http_server{&validating_callback2};
+    const utest::SimpleServer http_server{&ValidatingCallback2};
 
     auto http_client_ptr = utest::CreateHttpClient();
 

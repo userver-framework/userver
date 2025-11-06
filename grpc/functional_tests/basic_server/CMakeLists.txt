@@ -5,7 +5,8 @@ target_link_libraries(${PROJECT_NAME} userver::core)
 
 include(UserverGrpcTargets)
 userver_add_grpc_library(${PROJECT_NAME}-proto PROTOS samples/greeter.proto)
-target_link_libraries(${PROJECT_NAME} ${PROJECT_NAME}-proto)
+add_subdirectory(unused_proto)  # Test for https://github.com/userver-framework/userver/pull/1014
+target_link_libraries(${PROJECT_NAME} ${PROJECT_NAME}-proto ${PROJECT_NAME}-unused-proto)
 
 userver_chaos_testsuite_add(TESTS_DIRECTORY tests-tls)
 userver_chaos_testsuite_add(TESTS_DIRECTORY tests-unix-socket)

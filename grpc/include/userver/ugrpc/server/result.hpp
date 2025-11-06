@@ -37,7 +37,7 @@ public:
         UINVARIANT(!GetErrorStatus().ok(), "Only error status is allowed, for OK status a response should be provided");
     }
 
-    /// @returns `true` iff the `Result` contains `Response`, as opposed to an error status.
+    /// @returns `true` if the `Result` contains `Response`, as opposed to an error status.
     bool IsSuccess() const { return std::holds_alternative<Response>(result_); }
 
     /// @returns the contained error status.
@@ -92,7 +92,7 @@ public:
     /// Construct from last response. Allows to send last response and `OK` status coalesced in a single batch.
     /*implicit*/ StreamingResult(Response&& last_response) : last_response_(std::move(last_response)) {}
 
-    /// @returns `true` iff the `StreamingResult` contains `OK` status, possibly with a last response.
+    /// @returns `true` if the `StreamingResult` contains `OK` status, possibly with a last response.
     bool IsSuccess() const { return status_.ok(); }
 
     /// @returns the contained status, which can be `OK` or an error status.
@@ -101,7 +101,7 @@ public:
     /// @returns the contained status, which can be `OK` or an error status.
     const grpc::Status& GetStatus() const { return status_; }
 
-    /// @returns `true` iff the `StreamingResult` contains last response, which implies `OK` status.
+    /// @returns `true` if the `StreamingResult` contains last response, which implies `OK` status.
     bool HasLastResponse() const { return last_response_.has_value(); }
 
     /// @returns the contained last response.

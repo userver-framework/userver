@@ -33,7 +33,7 @@ void RunStandalone(
     }
 
     auto task_processor_holder = engine::impl::TaskProcessorHolder::Make(
-        worker_threads, "coro-runner", engine::impl::MakeTaskProcessorPools(config)
+        worker_threads, "coro-runner", config.queue_type, engine::impl::MakeTaskProcessorPools(config)
     );
 
     engine::impl::RunOnTaskProcessorSync(*task_processor_holder, std::move(payload));

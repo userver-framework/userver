@@ -37,19 +37,19 @@ auto TestInvalid(const std::string& input) {
 }
 
 template <typename StringType, typename T>
-auto CheckConverts(StringType input, T expectedResult) {
+auto CheckConverts(StringType input, T expected_result) {
     T actualResult{};
     ASSERT_NO_THROW(actualResult = utils::FromString<T>(input))
         << "type = " << compiler::GetTypeName<T>() << ", input = \"" << input << "\"";
-    ASSERT_EQ(actualResult, expectedResult)
+    ASSERT_EQ(actualResult, expected_result)
         << "type = " << compiler::GetTypeName<T>() << ", input = \"" << input << "\"";
 }
 
 template <typename T>
-auto TestConverts(const std::string& input, T expectedResult) {
-    CheckConverts(input.c_str(), expectedResult);
-    CheckConverts(input, expectedResult);
-    CheckConverts(std::string_view{input}, expectedResult);
+auto TestConverts(const std::string& input, T expected_result) {
+    CheckConverts(input.c_str(), expected_result);
+    CheckConverts(input, expected_result);
+    CheckConverts(std::string_view{input}, expected_result);
 }
 
 template <typename T>

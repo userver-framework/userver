@@ -3,8 +3,8 @@ description: |
     Dynamic config that controls topology settings of service's PostgreSQL
     components.
 
-    Dictionary keys can be either the service **component name** (not database name!)
-    or `__default__`. The latter configuration is applied for every non-matching
+    Dictionary keys can be either the value of `name_alias` static configuration option of the PostgreSQL component
+    (**not database name!**) or `__default__`. The latter configuration is applied for every non-matching
     PostgreSQL component of the service.
 
     Take note that it overrides the static configuration values of the service!
@@ -32,9 +32,13 @@ schema:
                 max_replication_lag_ms:
                     type: integer
                     minimum: 0
+                    description: |
+                        Replication lag limit in milliseconds for usable replicas. If a replica's lag exceeds this
+                        value, it stops receiving new requests.
                 disabled_replicas:
                     type: array
                     x-taxi-cpp-type: std::unordered_set
+                    description: List of force disabled replicas (FQDN).
                     items:
                         type: string
             required:

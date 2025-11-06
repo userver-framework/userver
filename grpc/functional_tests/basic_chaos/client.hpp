@@ -9,6 +9,7 @@
 
 #include <userver/ugrpc/client/client_factory_component.hpp>
 #include <userver/ugrpc/client/impl/client_data.hpp>
+#include <userver/ugrpc/client/impl/client_data_accessor.hpp>
 #include <userver/ugrpc/client/simple_client_component.hpp>
 
 #include <samples/greeter_client.usrv.pb.hpp>
@@ -31,7 +32,7 @@ public:
         // Tests dedicated-channel-count from SimpleClientComponent
         auto& client =
             context.FindComponent<ugrpc::client::SimpleClientComponent<Client>>("greeter-client-component").GetClient();
-        const auto& data = ugrpc::client::impl::GetClientData(client);
+        const auto& data = ugrpc::client::impl::ClientDataAccessor::GetClientData(client);
         const auto stub_state = data.GetStubState();
         UASSERT(stub_state->dedicated_stubs[0].Size() == 3);
         UASSERT(stub_state->dedicated_stubs[1].Size() == 0);

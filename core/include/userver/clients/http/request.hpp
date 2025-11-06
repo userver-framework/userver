@@ -259,6 +259,11 @@ public:
     Request& SetLoggedUrl(std::string url) &;
     Request SetLoggedUrl(std::string url) &&;
 
+    /// Set URL template (low-cardinality) for tracing, i.e. `/v1/user/{user_id}`
+    /// @see https://opentelemetry.io/docs/specs/semconv/registry/attributes/url/
+    Request& SetUrlTemplate(std::string url_template) &;
+    Request SetUrlTemplate(std::string url_template) &&;
+
     /// Set destination name in metric "httpclient.destinations.<name>".
     /// If not set, defaults to HTTP path.  Should be called for all requests
     /// with parameters in HTTP path.

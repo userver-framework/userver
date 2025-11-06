@@ -25,11 +25,6 @@ list(REMOVE_ITEM SOURCES ${UNIT_TEST_SOURCES} ${BENCH_SOURCES} ${INTERNAL_SOURCE
 set(CMAKE_THREAD_PREFER_PTHREAD ON)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
-find_package(
-    Boost REQUIRED CONFIG
-    COMPONENTS program_options filesystem regex stacktrace_basic
-    OPTIONAL_COMPONENTS stacktrace_backtrace stacktrace_windbg
-)
 include(UserverRequireDWCAS) # Should be called after `find_package(Boost)`
 
 message(STATUS "boost: ${Boost_VERSION_STRING}")
@@ -44,8 +39,6 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
         endif()
     endif()
 endif()
-
-find_package_required(OpenSSL "libssl-dev")
 
 find_package(yaml-cpp REQUIRED)
 find_package(zstd REQUIRED)
@@ -240,8 +233,19 @@ endif()
 target_link_libraries(
     ${PROJECT_NAME}
     PUBLIC Threads::Threads userver-internal-sanitize-options userver-internal-compile-options
-    PRIVATE Boost::filesystem Boost::program_options OpenSSL::Crypto OpenSSL::SSL
+    PRIVATE
+        Boost::filesystem
+        Boost::program_options
+        OpenSSL::SSL
+        OpenSSL::Crypto
 )
+if(TARGET Boost::algorithm)
+    # Boost from CPM
+    target_link_libraries(
+        ${PROJECT_NAME}
+        PUBLIC Boost::algorithm Boost::uuid Boost::random Boost::container
+    )
+endif()
 
 if(USERVER_CONAN)
     target_link_libraries(
@@ -400,6 +404,7 @@ _userver_directory_install(
           "${USERVER_ROOT_DIR}/cmake/SetupRe2.cmake"
           "${USERVER_ROOT_DIR}/cmake/sanitize.blacklist.txt"
           "${USERVER_ROOT_DIR}/cmake/sanitize-macos.blacklist.txt"
+          "${USERVER_ROOT_DIR}/cmake/tsan.suppressions.txt"
           "${USERVER_ROOT_DIR}/cmake/RequireLTO.cmake"
           "${USERVER_ROOT_DIR}/cmake/SetupLTO.cmake"
           "${USERVER_ROOT_DIR}/cmake/SetupPGO.cmake"

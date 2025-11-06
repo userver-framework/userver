@@ -8,6 +8,10 @@
 
 {{ utils.include_grpcpp(proto.source_file_without_ext) }}
 
+{% if params.structs %}
+#include <userver/grpc-proto-structs/client/impl/codegen_definitions.hpp>
+{% endif %}
+
 {% call utils.optional_namespace(proto.namespace) %}
 
 {% for service in proto.services %}
@@ -40,11 +44,17 @@ inline const bool k{{service.name}}TypesRegistration =
     }),
     false);
 
-{{service.name}}Client::{{service.name}}Client(
-    USERVER_NAMESPACE::ugrpc::client::impl::ClientInternals&& internals)
-    : impl_(std::move(internals), GetMetadata(),
+{{service.name}}Client::{{service.name}}Client(USERVER_NAMESPACE::ugrpc::client::impl::ClientInternals&& internals)
+    : client_data_(std::move(internals), GetMetadata(),
             std::in_place_type<{{utils.namespace_with_colons(proto.namespace)}}::{{service.name}}>) {
     }
+
+{{service.name}}Client::{{service.name}}Client({{service.name}}Client&&) noexcept = default;
+
+{{service.name}}Client& {{service.name}}Client::operator=({{service.name}}Client&&) noexcept = default;
+
+{{service.name}}Client::~{{service.name}}Client() = default;
+
 {% for method in service.method %}
 {% set method_id = loop.index0 %}
 
@@ -54,7 +64,7 @@ inline const bool k{{service.name}}TypesRegistration =
 ) const {
     return {
         USERVER_NAMESPACE::ugrpc::client::impl::CreateCallParams(
-            impl_, {{method_id}}, std::move(call_options)
+            *client_data_, {{method_id}}, std::move(call_options)
         ),
         &{{service.name}}::Stub::PrepareAsync{{method.name}},
     };
@@ -65,7 +75,7 @@ inline const bool k{{service.name}}TypesRegistration =
 ) const {
     return {
         USERVER_NAMESPACE::ugrpc::client::impl::CreateCallParams(
-            impl_, {{method_id}}, std::move(call_options)
+            *client_data_, {{method_id}}, std::move(call_options)
         ),
         &{{service.name}}::Stub::PrepareAsync{{method.name}},
     };
@@ -77,7 +87,7 @@ inline const bool k{{service.name}}TypesRegistration =
 ) const {
     return {
         USERVER_NAMESPACE::ugrpc::client::impl::CreateCallParams(
-            impl_, {{method_id}}, std::move(call_options)
+            *client_data_, {{method_id}}, std::move(call_options)
         ),
         &{{service.name}}::Stub::PrepareAsync{{method.name}},
         request,
@@ -90,7 +100,7 @@ inline const bool k{{service.name}}TypesRegistration =
 ) const {
     return USERVER_NAMESPACE::ugrpc::client::impl::PerformUnaryCall(
         USERVER_NAMESPACE::ugrpc::client::impl::CreateCallParams(
-            impl_, {{method_id}}, std::move(call_options)
+            *client_data_, {{method_id}}, std::move(call_options)
         ),
         USERVER_NAMESPACE::ugrpc::client::impl::PrepareUnaryCallProxy(
             &{{service.name}}::Stub::PrepareAsync{{method.name}}
@@ -105,7 +115,7 @@ inline const bool k{{service.name}}TypesRegistration =
 ) const {
     return {
         USERVER_NAMESPACE::ugrpc::client::impl::CreateCallParams(
-            impl_, {{method_id}}, std::move(call_options)
+            *client_data_, {{method_id}}, std::move(call_options)
         ),
         USERVER_NAMESPACE::ugrpc::client::impl::PrepareUnaryCallProxy(
             &{{service.name}}::Stub::PrepareAsync{{method.name}}
@@ -124,5 +134,65 @@ USERVER_NAMESPACE::ugrpc::impl::StaticServiceMetadata
       {{utils.namespace_with_colons(proto.namespace)}}::{{service.name}}>(
           k{{service.name}}Methods);
 }
+{% if params.structs %}
+
+namespace structs {
+
+{{service.name}}Client::{{service.name}}Client({{service.name}}Client&&) noexcept = default;
+{{service.name}}Client& {{service.name}}Client::operator=({{service.name}}Client&&) noexcept = default;
+
+{{service.name}}Client::~{{service.name}}Client() = default;
+
+{%- set namespace_path = '::' + proto.namespace if proto.namespace | length > 0 else '' -%}
+{{service.name}}Client::{{service.name}}Client(
+        USERVER_NAMESPACE::utils::SharedRef<{{namespace_path}}::{{service.name}}Client> protobuf_client)
+    : protobuf_client_(std::move(protobuf_client)) {}
+{% for method in service.method %}
+{% set method_id = loop.index0 %}
+
+{% if method.client_streaming and method.server_streaming %}
+{{service.name}}Client::{{method.name}}ReaderWriter {{service.name}}Client::{{method.name}}(
+    USERVER_NAMESPACE::ugrpc::client::CallOptions call_options
+) const {
+    return {{method.name}}ReaderWriter{protobuf_client_->{{method.name}}(std::move(call_options))};
+}
+{% elif method.client_streaming %}
+{{service.name}}Client::{{method.name}}Writer {{service.name}}Client::{{method.name}}(
+    USERVER_NAMESPACE::ugrpc::client::CallOptions call_options
+) const {
+    return {{method.name}}Writer{protobuf_client_->{{method.name}}(std::move(call_options))};
+}
+{% elif method.server_streaming %}
+{{service.name}}Client::{{method.name}}Reader {{service.name}}Client::{{method.name}}(
+    const {{ method.input_type | grpc_to_structs_name }}& request,
+    USERVER_NAMESPACE::ugrpc::client::CallOptions call_options
+) const {
+    return {{method.name}}Reader{protobuf_client_->{{method.name}}(proto_structs::StructToMessage(request), std::move(call_options))};
+}
+{% else %}
+{{ method.output_type | grpc_to_structs_name }} {{service.name}}Client::{{method.name}}(
+    const {{ method.input_type | grpc_to_structs_name }}& request,
+    USERVER_NAMESPACE::ugrpc::client::CallOptions call_options
+) const {
+    const auto response = protobuf_client_->{{method.name}}(proto_structs::StructToMessage(request), std::move(call_options));
+    return proto_structs::MessageToStruct<{{ method.output_type | grpc_to_structs_name }}>(response);
+}
+
+{{service.name}}Client::{{method.name}}ResponseFuture {{service.name}}Client::Async{{method.name}}(
+    const {{ method.input_type | grpc_to_structs_name }}& request,
+    USERVER_NAMESPACE::ugrpc::client::CallOptions call_options
+) const {
+    return {{method.name}}ResponseFuture{protobuf_client_->Async{{method.name}}(proto_structs::StructToMessage(request), std::move(call_options))};
+}
+{% endif %}
+{% endfor %}
+
+USERVER_NAMESPACE::ugrpc::impl::StaticServiceMetadata
+{{ service.name }}Client::GetMetadata() {
+    return {{namespace_path}}::{{service.name}}Client::GetMetadata();
+}
+
+}  // namespace structs
+{% endif %}
 {% endfor %}
 {% endcall %} {# utils.optional_namespace #}

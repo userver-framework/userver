@@ -38,7 +38,9 @@ public:
         const std::string& message,
         MessageType type,
         engine::Deadline deadline
-    ) override;
+    ) override {
+        Publish(exchange, routing_key, Envelope{message, type, {}, {}, {}}, deadline);
+    }
 
     void Publish(
         const Exchange& exchange,
@@ -48,6 +50,13 @@ public:
     ) override {
         Publish(exchange, routing_key, message, MessageType::kTransient, deadline);
     };
+
+    void Publish(
+        const Exchange& exchange,
+        const std::string& routing_key,
+        const Envelope& envelope,
+        engine::Deadline deadline
+    ) override;
 
     std::string Get(const Queue& queue, utils::Flags<Queue::Flags> flags, engine::Deadline deadline) override;
 
@@ -79,7 +88,9 @@ public:
         const std::string& message,
         MessageType type,
         engine::Deadline deadline
-    ) override;
+    ) override {
+        PublishReliable(exchange, routing_key, Envelope{message, type, {}, {}, {}}, deadline);
+    }
 
     void PublishReliable(
         const Exchange& exchange,
@@ -89,6 +100,13 @@ public:
     ) override {
         PublishReliable(exchange, routing_key, message, MessageType::kTransient, deadline);
     }
+
+    virtual void PublishReliable(
+        const Exchange& exchange,
+        const std::string& routing_key,
+        const Envelope& envelope,
+        engine::Deadline deadline
+    ) override;
 
 private:
     utils::FastPimpl<ConnectionPtr, 32, 8> impl_;

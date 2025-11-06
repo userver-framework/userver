@@ -19,7 +19,7 @@ struct IntNode final {
 
 }  // namespace
 
-void intrusive_walkable_pool(benchmark::State& state) {
+void IntrusiveWalkablePool(benchmark::State& state) {
     engine::RunStandalone(state.range(0), [&] {
         concurrent::impl::IntrusiveWalkablePool<  //
             IntNode,
@@ -36,6 +36,6 @@ void intrusive_walkable_pool(benchmark::State& state) {
         });
     });
 }
-BENCHMARK(intrusive_walkable_pool)->Arg(1)->Arg(2)->Arg(4)->Arg(6)->Arg(8)->Arg(12)->Arg(16)->Arg(32);
+BENCHMARK(IntrusiveWalkablePool)->Arg(1)->Arg(2)->Arg(4)->Arg(6)->Arg(8)->Arg(12)->Arg(16)->Arg(32);
 
 USERVER_NAMESPACE_END

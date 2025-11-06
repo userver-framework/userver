@@ -26,6 +26,8 @@ const std::string kMeta = "x-amz-meta-";
 const std::string kTagging = "X-Amz-Tagging";
 constexpr const std::size_t kMaxS3Keys = 1000;
 
+constexpr http::headers::PredefinedHeader kEtagHeader{"ETag"};
+
 void SaveMeta(clients::http::Headers& headers, const ClientImpl::Meta& meta) {
     for (const auto& [header, value] : meta) {
         headers[kMeta + header] = value;
@@ -94,10 +96,10 @@ std::string GeneratePresignedUrl(
     return generated_url.str();
 }
 
-std::vector<ObjectMeta> ParseS3ListResponse(std::string_view s3_response) {
+std::vector<ObjectMeta> ParseS3ListResponse(utils::zstring_view s3_response) {
     std::vector<ObjectMeta> result;
     pugi::xml_document xml;
-    const pugi::xml_parse_result parse_result = xml.load_string(s3_response.data());
+    const pugi::xml_parse_result parse_result = xml.load_string(s3_response.c_str());
     if (parse_result.status != pugi::status_ok) {
         throw ListBucketError(fmt::format(
             "Failed to parse S3 list response as xml, error: {}, response: {}", parse_result.description(), s3_response
@@ -119,10 +121,10 @@ std::vector<ObjectMeta> ParseS3ListResponse(std::string_view s3_response) {
     return result;
 }
 
-std::vector<std::string> ParseS3DirectoriesListResponse(std::string_view s3_response) {
+std::vector<std::string> ParseS3DirectoriesListResponse(utils::zstring_view s3_response) {
     std::vector<std::string> result;
     pugi::xml_document xml;
-    const pugi::xml_parse_result parse_result = xml.load_string(s3_response.data());
+    const pugi::xml_parse_result parse_result = xml.load_string(s3_response.c_str());
     if (parse_result.status != pugi::status_ok) {
         throw ListBucketError(fmt::format(
             "Failed to parse S3 directories list response as xml, error: {}, "
@@ -365,7 +367,6 @@ std::string ClientImpl::RequestApi(
             headers_data->meta.emplace();
             ReadMeta(response->headers(), *headers_data->meta);
         }
-
         if (headers_request.headers) {
             headers_data->headers.emplace();
             for (const auto& header : *headers_request.headers) {
@@ -488,6 +489,90 @@ std::string ClientImpl::CopyObject(
 std::string
 ClientImpl::CopyObject(std::string_view key_from, std::string_view key_to, const std::optional<Meta>& meta) {
     return CopyObject(key_from, bucket_, key_to, meta);
+}
+
+multipart_upload::InitiateMultipartUploadResult ClientImpl::CreateMultipartUpload(
+    const multipart_upload::CreateMultipartUploadRequest& request
+) const try {
+    auto api_request = api_methods::CreateInternalApiRequest(bucket_, request);
+    const auto api_response_body = RequestApi(api_request, "create_multipart_upload");
+    return multipart_upload::InitiateMultipartUploadResult::Parse(api_response_body);
+} catch (const ResponseParsingError& exc) {
+    throw MultipartUploadError(
+        fmt::format("failed to parse CreateMultipartUpload action response - {}; key: {}", exc.what(), request.key)
+    );
+}
+
+multipart_upload::UploadPartResult ClientImpl::UploadPart(const multipart_upload::UploadPartRequest& request) const
+    try {
+    auto api_request = api_methods::CreateInternalApiRequest(bucket_, request);
+
+    const HeaderDataRequest expected_headers({{std::string(kEtagHeader)}}, false);
+    HeadersDataResponse response_headers_data;
+
+    RequestApi(api_request, "upload_part", &response_headers_data, expected_headers);
+    if (!response_headers_data.headers) {
+        throw ResponseParsingError("missing ETag header in response");
+    }
+    const auto iter = response_headers_data.headers->find(kEtagHeader);
+    if (iter == response_headers_data.headers->end()) {
+        throw ResponseParsingError("missing ETag header in response");
+    }
+    if (iter->second.empty()) {
+        throw ResponseParsingError("got empty ETag header value in response");
+    }
+    return {std::move(iter->second)};
+
+} catch (const ResponseParsingError& exc) {
+    throw MultipartUploadError(fmt::format(
+        "failed to parse UploadPart action response - {}; upload_id '{}'; key '{}'",
+        exc.what(),
+        request.upload_id,
+        request.key
+    ));
+}
+
+multipart_upload::CompleteMultipartUploadResult ClientImpl::CompleteMultipartUpload(
+    const multipart_upload::CompleteMultipartUploadRequest& request
+) const try {
+    auto api_request = api_methods::CreateInternalApiRequest(bucket_, request);
+    const auto api_response_body = RequestApi(api_request, "complete_multipart_upload");
+    return multipart_upload::CompleteMultipartUploadResult::Parse(api_response_body);
+} catch (const ResponseParsingError& exc) {
+    throw MultipartUploadError(fmt::format(
+        "failed to parse CompleteMultipartUpload action response - {}; upload_id '{}'; key '{}'",
+        exc.what(),
+        request.upload_id,
+        request.key
+    ));
+}
+
+void ClientImpl::AbortMultipartUpload(const multipart_upload::AbortMultipartUploadRequest& request) const {
+    auto api_request = api_methods::CreateInternalApiRequest(bucket_, request);
+    RequestApi(api_request, "abort_multipart_upload");
+}
+
+multipart_upload::ListPartsResult ClientImpl::ListParts(const multipart_upload::ListPartsRequest& request) const try {
+    auto api_request = api_methods::CreateInternalApiRequest(bucket_, request);
+    const auto api_response_body = RequestApi(api_request, "list_parts");
+    return multipart_upload::ListPartsResult::Parse(api_response_body);
+} catch (const ResponseParsingError& exc) {
+    throw MultipartUploadError(fmt::format(
+        "failed to parse ListParts action response - {}; upload_id '{}'; key '{}'",
+        exc.what(),
+        request.upload_id,
+        request.key
+    ));
+}
+
+multipart_upload::ListMultipartUploadsResult ClientImpl::ListMultipartUploads(
+    const multipart_upload::ListMultipartUploadsRequest& request
+) const try {
+    auto api_request = api_methods::CreateInternalApiRequest(bucket_, request);
+    const auto api_response_body = RequestApi(api_request, "list_multipart_uploads");
+    return multipart_upload::ListMultipartUploadsResult::Parse(api_response_body);
+} catch (const ResponseParsingError& exc) {
+    throw MultipartUploadError(fmt::format("failed to parse ListMultipartUploads action response - {}", exc.what()));
 }
 
 ClientPtr GetS3Client(

@@ -64,24 +64,22 @@ void ConnectionHelper::Publish(
     const ConnectionPtr& connection,
     const Exchange& exchange,
     const std::string& routing_key,
-    const std::string& message,
-    MessageType type,
+    const Envelope& envelope,
     engine::Deadline deadline
 ) {
     tracing::Span span{"publish"};
-    connection->GetChannel().Publish(exchange, routing_key, message, type, deadline);
+    connection->GetChannel().Publish(exchange, routing_key, envelope, deadline);
 }
 
 impl::ResponseAwaiter ConnectionHelper::PublishReliable(
     const ConnectionPtr& connection,
     const Exchange& exchange,
     const std::string& routing_key,
-    const std::string& message,
-    MessageType type,
+    const Envelope& envelope,
     engine::Deadline deadline
 ) {
     return WithSpan("reliable_publish", [&] {
-        return connection->GetReliableChannel().Publish(exchange, routing_key, message, type, deadline);
+        return connection->GetReliableChannel().Publish(exchange, routing_key, envelope, deadline);
     });
 }
 

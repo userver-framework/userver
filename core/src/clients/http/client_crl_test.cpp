@@ -315,13 +315,12 @@ struct TlsServer {
         auto deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
         auto socket = tcp_listener.socket.Accept(deadline);
 
-        auto tls_server = engine::io::TlsWrapper::StartTlsServer(
-            std::move(socket),
+        crypto::SslCtx ssl_ctx = crypto::SslCtx::CreateServerTlsContext(
             crypto::LoadCertificatesChainFromString(kServerCertificate),
             crypto::PrivateKey::LoadFromString(kRevokedServerPrivateKey),
-            deadline,
             cas
         );
+        auto tls_server = engine::io::TlsWrapper::StartTlsServer(std::move(socket), ssl_ctx, deadline);
 
         std::array<char, 2048> data{};
         const auto size = tls_server.RecvSome(data.data(), data.size(), deadline);

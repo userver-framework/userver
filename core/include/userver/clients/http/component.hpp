@@ -46,7 +46,7 @@ namespace components {
 /// testsuite-allowed-url-prefixes | if set, checks that all URLs start with any of the passed prefixes, asserts if not. Set for testing purposes only. | ''
 /// dns_resolver | server hostname resolver type (getaddrinfo or async) | 'async'
 /// set-deadline-propagation-header | whether to set http::common::kXYaTaxiClientTimeoutMs request header, see @ref scripts/docs/en/userver/deadline_propagation.md | true
-/// plugins | Plugin names to apply. A plugin component is called "http-client-plugin-" plus the plugin name. | []
+/// plugins | map of plugins to apply, plugin-name -> ordering index. A plugin component is called "http-client-plugin-" plus the plugin name. | {}
 /// cancellation-policy | Cancellation policy for new requests. | cancel
 ///
 /// ## Static configuration example:
@@ -72,9 +72,6 @@ private:
     void OnConfigUpdate(const dynamic_config::Snapshot& config);
 
     void WriteStatistics(utils::statistics::Writer& writer);
-
-    static std::vector<utils::NotNull<clients::http::Plugin*>>
-    FindPlugins(const std::vector<std::string>& names, const components::ComponentContext& context);
 
     const bool disable_pool_stats_;
     clients::http::Client http_client_;

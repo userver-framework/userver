@@ -5,18 +5,18 @@
 
 USERVER_NAMESPACE_BEGIN
 
-void http_get_cached_date_benchmark(benchmark::State& state) {
+void HttpGetCachedDateBenchmark(benchmark::State& state) {
     for ([[maybe_unused]] auto _ : state) {
         benchmark::DoNotOptimize(server::http::impl::GetCachedDate());
     }
 }
-BENCHMARK(http_get_cached_date_benchmark);
+BENCHMARK(HttpGetCachedDateBenchmark);
 
-void http_make_date_benchmark(benchmark::State& state) {
+void HttpMakeDateBenchmark(benchmark::State& state) {
     for ([[maybe_unused]] auto _ : state) {
         benchmark::DoNotOptimize(server::http::impl::MakeHttpDate(utils::datetime::WallCoarseClock::now()));
     }
 }
-BENCHMARK(http_make_date_benchmark);
+BENCHMARK(HttpMakeDateBenchmark);
 
 USERVER_NAMESPACE_END

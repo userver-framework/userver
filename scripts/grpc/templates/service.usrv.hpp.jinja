@@ -5,7 +5,13 @@
 
 {# DO NOT ADD NEW INCLUDES HERE! Add them inside codegen_declarations.hpp instead #}
 #include <userver/ugrpc/server/impl/codegen_declarations.hpp>
+{% if params.structs %}
+#include <userver/grpc-proto-structs/server/impl/codegen_declarations.hpp>
+{% endif %}
 
+{% if params.structs %}
+#include <{{ proto.source_file_without_ext }}.structs.usrv.pb.hpp>
+{% endif %}
 #include "{{ proto.source_file_without_ext }}.pb.h"
 
 {% call utils.optional_namespace(proto.namespace) %}
@@ -15,8 +21,7 @@
 class {{service.name}}Base
     : public USERVER_NAMESPACE::ugrpc::server::ServiceBase {
  public:
-  using Component = USERVER_NAMESPACE::ugrpc::server::impl::ServiceComponentBase<
-      {{service.name}}Base>;
+  using Component = USERVER_NAMESPACE::ugrpc::server::impl::ServiceComponentBase<{{service.name}}Base>;
 
   {% for method in service.method %}
   {% if method.client_streaming and method.server_streaming %}
@@ -59,4 +64,76 @@ class {{service.name}}Base
   MakeWorker(USERVER_NAMESPACE::ugrpc::server::impl::ServiceInternals&& internals) final;
 };
 {% endfor %}
+
+{% if params.structs %}
+namespace structs {
+{% for service in proto.services %}
+
+using {{service.name}}ProtobufBase = {{utils.namespace_with_colons(proto.namespace)}}::{{service.name}}Base;
+
+// ProtoStruct based Service interface for {{service.name}}
+class {{service.name}}Base
+    : public {{service.name}}ProtobufBase {
+public:
+  using Component = USERVER_NAMESPACE::ugrpc::server::impl::ServiceComponentBase<{{service.name}}Base>;
+
+  {% for method in service.method %}
+  {% if method.client_streaming and method.server_streaming %}
+
+  using {{method.name}}ReaderWriter = USERVER_NAMESPACE::grpc_proto_structs::server::ReaderWriter<
+      {{ method.input_type | grpc_to_structs_name }}, {{ method.output_type | grpc_to_structs_name }}>;
+  using {{method.name}}Result = USERVER_NAMESPACE::ugrpc::server::StreamingResult<
+      {{ method.output_type | grpc_to_structs_name }}>;
+  virtual {{method.name}}Result {{method.name}}(CallContext& context, {{method.name}}ReaderWriter& stream);
+
+  {{service.name}}ProtobufBase::{{method.name}}Result {{method.name}}(
+    CallContext& context,
+    {{service.name}}ProtobufBase::{{method.name}}ReaderWriter& stream) override;
+
+  {% elif method.client_streaming %}
+
+  using {{method.name}}Reader = USERVER_NAMESPACE::grpc_proto_structs::server::Reader<
+      {{ method.input_type | grpc_to_structs_name }}>;
+  using {{method.name}}Result = USERVER_NAMESPACE::ugrpc::server::Result<
+      {{ method.output_type | grpc_to_structs_name }}>;
+  virtual {{method.name}}Result {{method.name}}(CallContext& context, {{method.name}}Reader& reader);
+
+  {{service.name}}ProtobufBase::{{method.name}}Result {{method.name}}(
+    CallContext& context,
+    {{service.name}}ProtobufBase::{{method.name}}Reader& reader) override;
+
+  {% elif method.server_streaming %}
+
+  using {{method.name}}Writer = USERVER_NAMESPACE::grpc_proto_structs::server::Writer<
+      {{ method.output_type | grpc_to_structs_name }}>;
+  using {{method.name}}Result = USERVER_NAMESPACE::ugrpc::server::StreamingResult<
+      {{ method.output_type | grpc_to_structs_name }}>;
+  virtual {{method.name}}Result {{method.name}}(
+    CallContext& context,
+    {{ method.input_type | grpc_to_structs_name }}&& request,
+    {{method.name}}Writer& writer);
+
+  {{service.name}}ProtobufBase::{{method.name}}Result {{method.name}}(
+    CallContext& context,
+    {{ method.input_type | grpc_to_cpp_name }}&& request,
+    {{service.name}}ProtobufBase::{{method.name}}Writer& writer) override;
+
+  {% else %}
+
+  using {{method.name}}Result = USERVER_NAMESPACE::ugrpc::server::Result<
+      {{ method.output_type | grpc_to_structs_name }}>;
+  virtual {{method.name}}Result {{method.name}}(CallContext& context, {{ method.input_type | grpc_to_structs_name }}&& request);
+
+  {{service.name}}ProtobufBase::{{method.name}}Result {{method.name}}(
+    CallContext& context,
+    {{ method.input_type | grpc_to_cpp_name }}&& request) override;
+
+  {% endif %}
+  {% endfor %}
+};
+
+{% endfor %}
+}  // namespace structs
+{% endif %}
+
 {% endcall %} {# utils.optional_namespace #}

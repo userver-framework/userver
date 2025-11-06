@@ -44,7 +44,7 @@ components_manager:
         http-client:
             fs-task-processor: main-task-processor
             plugins:
-              - headers-propagator
+                headers-propagator: 0
 
         dns-client:
             fs-task-processor: fs-task-processor

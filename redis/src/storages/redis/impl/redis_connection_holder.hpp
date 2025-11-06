@@ -30,6 +30,7 @@ public:
         EmplaceEnabler,
         const engine::ev::ThreadControl& sentinel_thread_control,
         const std::shared_ptr<engine::ev::ThreadPool>& redis_thread_pool,
+        const std::string& shard_group_name,
         const std::string& host,
         uint16_t port,
         Password password,
@@ -46,6 +47,7 @@ public:
     static std::shared_ptr<RedisConnectionHolder> Create(
         const engine::ev::ThreadControl& sentinel_thread_control,
         const std::shared_ptr<engine::ev::ThreadPool>& redis_thread_pool,
+        const std::string& shard_group_name,
         const std::string& host,
         uint16_t port,
         Password password,
@@ -77,6 +79,7 @@ private:
     concurrent::Variable<utils::RetryBudgetSettings, std::mutex> retry_budget_settings_;
     engine::ev::ThreadControl ev_thread_;
     std::shared_ptr<engine::ev::ThreadPool> redis_thread_pool_;
+    const std::string shard_group_name_;
     const std::string host_;
     const uint16_t port_;
     const Password password_;

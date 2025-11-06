@@ -9,6 +9,7 @@
 #include <vector>
 
 #include <userver/utils/not_null.hpp>
+#include <userver/utils/zstring_view.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -34,6 +35,10 @@ public:
     void AddQueryParams(std::string_view params);
 
     void SetTimeout(std::chrono::milliseconds ms);
+
+    void SetProxy(utils::zstring_view value);
+
+    bool IsProxySet() const;
 
     const std::string& GetOriginalUrl() const;
 

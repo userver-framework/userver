@@ -13,7 +13,7 @@
 
 #include <userver/concurrent/async_event_source.hpp>
 #include <userver/concurrent/variable.hpp>
-#include <userver/engine/mutex.hpp>
+#include <userver/engine/shared_mutex.hpp>
 #include <userver/engine/task/cancel.hpp>
 #include <userver/engine/task/task_with_result.hpp>
 #include <userver/utils/assert.hpp>
@@ -50,8 +50,8 @@ inline constexpr bool kCheckSubscriptionUB = utils::impl::kEnableAssert;
 // struct fields.
 template <typename Func>
 void CheckDataUsedByCallbackHasNotBeenDestroyedBeforeUnsubscribing(
-    std::function<void(Func&)>& on_listener_removal,
-    Func& listener_func,
+    std::function<void(const Func&)>& on_listener_removal,
+    const Func& listener_func,
     std::string_view channel_name,
     std::string_view listener_name
 ) noexcept {
@@ -77,7 +77,7 @@ template <typename... Args>
 class AsyncEventChannel : public AsyncEventSource<Args...> {
 public:
     using Function = typename AsyncEventSource<Args...>::Function;
-    using OnRemoveCallback = std::function<void(Function&)>;
+    using OnRemoveCallback = std::function<void(const Function&)>;
 
     /// @brief The primary constructor
     /// @param name used for diagnostic purposes and is also accessible with Name
@@ -118,7 +118,7 @@ public:
     template <typename UpdaterFunc>
     AsyncEventSubscriberScope
     DoUpdateAndListen(FunctionId id, std::string_view name, Function&& func, UpdaterFunc&& updater) {
-        const std::lock_guard lock(event_mutex_);
+        const std::shared_lock lock(event_mutex_);
         std::forward<UpdaterFunc>(updater)();
         return DoAddListener(id, name, std::move(func));
     }
@@ -141,21 +141,48 @@ public:
     /// processed a new event may be delivered for the subscribers, same
     /// listener/subscriber is never called concurrently.
     void SendEvent(Args... args) const {
-        const std::lock_guard lock(event_mutex_);
-        auto data = data_.Lock();
-        auto& listeners = data->listeners;
+        struct Task {
+            std::shared_ptr<const Listener> listener;
+            engine::TaskWithResult<void> task;
+        };
+        std::vector<Task> tasks;
 
-        std::vector<engine::TaskWithResult<void>> tasks;
-        tasks.reserve(listeners.size());
+        {
+            // Try to obtain unique lock for event_mutex_ to serialize
+            // calls to SendEvent()
+            event_mutex_.lock();
 
-        for (const auto& [_, listener] : listeners) {
-            tasks.push_back(utils::Async(listener.task_name, [&, &callback = listener.callback] { callback(args...); })
-            );
+            // Now downgrade the lock to shared to allow new subscriptions
+            event_mutex_.unlock_and_lock_shared();
+
+            // Now we want to create N subtasks for callbacks,
+            // which must hold event_mutex_'s std::shared_lock.
+            // A naive implementation would create std::shared_lock{event_mutex_} for each subtask,
+            // however, it might deadlock if any parallel SendEvent() is called and is blocked on
+            // event_mutex_.lock(). It happens due to strict prioritization of writers above readers
+            // in SharedMutex: if there is any pending writer, nobody may lock the mutex for read.
+
+            // To avoid std::bad_alloc and leaked mutex shared lock, do the following:
+            // 1) catch the lock into RAII std::shared_lock...
+            std::shared_lock<engine::SharedMutex> tmp_lock{event_mutex_, std::adopt_lock};
+            // 2) ...and move it into std::shared_ptr
+            auto lock = std::make_shared<std::shared_lock<engine::SharedMutex>>(std::move(tmp_lock));
+
+            auto data = data_.Lock();
+            auto& listeners = data->listeners;
+            tasks.reserve(listeners.size());
+
+            for (const auto& [_, listener] : listeners) {
+                tasks.push_back(Task{
+                    listener,  // an intentional copy
+                    utils::Async(listener->task_name, [&, &callback = listener->callback, lock] { callback(args...); }),
+                });
+            }
         }
+        // Unlock data_ here because callbacks may subscribe to this
 
-        std::size_t i = 0;
-        for (const auto& [_, listener] : listeners) {
-            impl::WaitForTask(listener.name, tasks[i++]);
+        for (auto& task : tasks) {
+            impl::WaitForTask(task.listener->name, task.task);
         }
     }
 
@@ -170,49 +197,71 @@ private:
     };
 
     struct ListenersData final {
-        std::unordered_map<FunctionId, Listener, FunctionId::Hash> listeners;
+        std::unordered_map<FunctionId, std::shared_ptr<const Listener>, FunctionId::Hash> listeners;
         OnRemoveCallback on_listener_removal;
     };
 
     void RemoveListener(FunctionId id, UnsubscribingKind kind) noexcept final {
         const engine::TaskCancellationBlocker blocker;
-        auto data = data_.Lock();
-        auto& listeners = data->listeners;
-        const auto iter = listeners.find(id);
+        const std::shared_lock lock(event_mutex_);
+        std::shared_ptr<const Listener> listener;
+        OnRemoveCallback on_listener_removal;
 
-        if (iter == listeners.end()) {
-            impl::ReportNotSubscribed(Name());
-            return;
+        {
+            auto data = data_.Lock();
+            auto& listeners = data->listeners;
+            const auto iter = listeners.find(id);
+
+            if (iter == listeners.end()) {
+                impl::ReportNotSubscribed(Name());
+                return;
+            }
+
+            listener = iter->second;
+            on_listener_removal = data->on_listener_removal;
+
+            listeners.erase(iter);
         }
+        // Unlock data_ here to be able to (un)subscribe to *this in listener->callback (in debug)
+        // without deadlock
 
         if (kind == UnsubscribingKind::kAutomatic) {
-            if (!data->on_listener_removal) {
-                impl::ReportUnsubscribingAutomatically(name_, iter->second.name);
+            if (!on_listener_removal) {
+                impl::ReportUnsubscribingAutomatically(name_, listener->name);
             }
 
             if constexpr (impl::kCheckSubscriptionUB) {
                 // Fake listener call to check
                 impl::CheckDataUsedByCallbackHasNotBeenDestroyedBeforeUnsubscribing(
-                    data->on_listener_removal, iter->second.callback, name_, iter->second.name
+                    on_listener_removal, listener->callback, name_, listener->name
                 );
             }
         }
-        listeners.erase(iter);
     }
 
     AsyncEventSubscriberScope DoAddListener(FunctionId id, std::string_view name, Function&& func) final {
+        UASSERT(id);
+
         auto data = data_.Lock();
         auto& listeners = data->listeners;
         auto task_name = impl::MakeAsyncChannelName(name_, name);
-        const auto [iterator, success] =
-            listeners.emplace(id, Listener{std::string{name}, std::move(func), std::move(task_name)});
+        const auto [iterator, success] = listeners.emplace(
+            id, std::make_shared<const Listener>(Listener{std::string{name}, std::move(func), std::move(task_name)})
+        );
         if (!success) impl::ReportAlreadySubscribed(Name(), name);
         return AsyncEventSubscriberScope(utils::impl::InternalTag{}, *this, id);
     }
 
     const std::string name_;
     concurrent::Variable<ListenersData> data_;
-    mutable engine::Mutex event_mutex_;
+
+    // event_mutex_ is required only for event serialization,
+    // it doesn't protect any data. The mutex is unique locked
+    // for new event publishing, and is shared locked for calling callbacks.
+    // If any callback is working, no new event publishing is possible.
+    // It *is* possible to re-subscribe on async channel while another callback
+    // operates.
+    mutable engine::SharedMutex event_mutex_;
 };
 
 }  // namespace concurrent

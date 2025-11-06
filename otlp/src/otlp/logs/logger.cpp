@@ -214,7 +214,6 @@ Logger::Logger(
                                                 trace_client = std::move(trace_client)]() mutable {
         SendingLoop(consumer, log_client, trace_client);
     });
-    ;
 }
 
 Logger::~Logger() { Stop(); }

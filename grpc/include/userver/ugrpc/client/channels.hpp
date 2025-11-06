@@ -9,7 +9,7 @@
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 
-#include <userver/ugrpc/client/impl/client_data.hpp>
+#include <userver/ugrpc/client/impl/client_data_accessor.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -17,8 +17,11 @@ namespace ugrpc::client {
 
 namespace impl {
 
-[[nodiscard]] bool
-TryWaitForConnected(ClientData& client_data, engine::Deadline deadline, engine::TaskProcessor& blocking_task_processor);
+[[nodiscard]] bool TryWaitForConnected(
+    const ClientData& client_data,
+    engine::Deadline deadline,
+    engine::TaskProcessor& blocking_task_processor
+);
 
 }  // namespace impl
 
@@ -48,7 +51,9 @@ std::shared_ptr<grpc::Channel> MakeChannel(
 template <typename Client>
 [[nodiscard]] bool
 TryWaitForConnected(Client& client, engine::Deadline deadline, engine::TaskProcessor& blocking_task_processor) {
-    return impl::TryWaitForConnected(impl::GetClientData(client), deadline, blocking_task_processor);
+    return impl::TryWaitForConnected(
+        impl::ClientDataAccessor::GetClientData(client), deadline, blocking_task_processor
+    );
 }
 
 }  // namespace ugrpc::client

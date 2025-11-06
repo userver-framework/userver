@@ -31,6 +31,7 @@ const std::string_view kCommandTypes[] = {
     "expire",
     "flushdb",
     "geoadd",
+    "geopos",
     "georadius_ro",
     "geosearch",
     "get",

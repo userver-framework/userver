@@ -32,23 +32,29 @@ StorageData::StorageData() : StorageData(SnapshotData{}) {}
 rcu::ReadablePtr<SnapshotData> StorageData::Read() const { return config_.Read(); }
 
 void StorageData::Update(SnapshotData config, AfterAssignHook after_assign_hook) {
-    const std::lock_guard lock(update_mutex_);
+    std::unique_lock lock(update_mutex_);
 
     std::optional<Snapshot> previous_config;
     {
-        Snapshot current_config(*this);
+        auto current_config = GetSnapshot();
         if (!current_config.GetData().IsEmpty()) previous_config = std::move(current_config);
     }
 
     config_.Assign(std::move(config));
     after_assign_hook();
-
     const Diff diff{std::move(previous_config), GetSnapshot()};
+
+    lock.release();
+    update_mutex_.unlock_and_lock_shared();
+    std::shared_lock tmp_lock{update_mutex_, std::adopt_lock};
+
     diff_channel_.SendEvent(diff);
     snapshot_channel_.SendEvent(GetSnapshot());
 }
 
 StorageData::SnapshotChannel& StorageData::GetChannel() { return snapshot_channel_; }
+
+StorageData::DiffChannel& StorageData::GetDiffChannel() { return diff_channel_; }
 
 concurrent::AsyncEventSubscriberScope
 StorageData::DoUpdateAndListen(concurrent::FunctionId id, std::string_view name, SnapshotChannel::Function&& func) {
@@ -71,7 +77,7 @@ StorageData::DoUpdateAndListen(concurrent::FunctionId id, std::string_view name,
     //
     // As a result, the subscriber receives two `Diff` object with 'new_config' as
     // a `current` field.
-    const std::lock_guard lock(update_mutex_);
+    std::shared_lock lock(update_mutex_);
 
     auto updater = [&, func_copy = func] {
         const Diff diff{std::nullopt, GetSnapshot()};

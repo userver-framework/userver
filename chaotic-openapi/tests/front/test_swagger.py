@@ -58,6 +58,7 @@ def test_swagger_body_schema(simple_parser):
                 responses={},
                 security=[],
                 x_middlewares=base_model.XMiddlewares(tvm=True),
+                x_client_codegen=True,
             )
         ],
     )
@@ -192,6 +193,7 @@ def test_swagger_responses(simple_parser):
                 },
                 security=[],
                 x_middlewares=base_model.XMiddlewares(tvm=True),
+                x_client_codegen=True,
             )
         ],
     )
@@ -314,6 +316,7 @@ def test_swagger_securuty(simple_parser):
                     ),
                 ],
                 x_middlewares=base_model.XMiddlewares(tvm=True),
+                x_client_codegen=True,
             ),
             model.Operation(
                 description='',
@@ -348,6 +351,7 @@ def test_swagger_securuty(simple_parser):
                     ),
                 ],
                 x_middlewares=base_model.XMiddlewares(tvm=True),
+                x_client_codegen=True,
             ),
             model.Operation(
                 description='',
@@ -382,6 +386,7 @@ def test_swagger_securuty(simple_parser):
                     ),
                 ],
                 x_middlewares=base_model.XMiddlewares(tvm=True),
+                x_client_codegen=True,
             ),
         ],
     )
@@ -471,6 +476,7 @@ def test_swagger_parameters(simple_parser):
                 ],
                 security=[],
                 x_middlewares=base_model.XMiddlewares(tvm=True),
+                x_client_codegen=True,
                 parameters=[
                     model.Parameter(
                         name='pamparam2',

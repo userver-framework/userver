@@ -8,7 +8,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-void background_task_storage(benchmark::State& state) {
+void BackgroundTaskStorage(benchmark::State& state) {
     engine::RunStandalone(state.range(0), [&] {
         concurrent::BackgroundTaskStorageCore bts;
 
@@ -21,6 +21,6 @@ void background_task_storage(benchmark::State& state) {
         });
     });
 }
-BENCHMARK(background_task_storage)->Arg(2)->Arg(4)->Arg(6)->Arg(8)->Arg(12)->Arg(16)->Arg(32);
+BENCHMARK(BackgroundTaskStorage)->Arg(2)->Arg(4)->Arg(6)->Arg(8)->Arg(12)->Arg(16)->Arg(32);
 
 USERVER_NAMESPACE_END

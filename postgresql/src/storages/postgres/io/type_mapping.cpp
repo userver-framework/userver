@@ -21,8 +21,8 @@ namespace storages::postgres::io {
 namespace {
 
 struct PredefinedOidsPair {
-    PredefinedOidsPair(PredefinedOids first_, PredefinedOids second_)
-        : first(std::min(first_, second_)), second(std::max(first_, second_)) {}
+    PredefinedOidsPair(PredefinedOids l_first, PredefinedOids l_second)
+        : first(std::min(l_first, l_second)), second(std::max(l_first, l_second)) {}
 
     PredefinedOids first;
     PredefinedOids second;

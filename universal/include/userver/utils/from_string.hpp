@@ -26,7 +26,7 @@ namespace utils {
 namespace impl {
 
 [[noreturn]] void
-ThrowFromStringException(std::string_view message, std::string_view input, std::type_index resultType);
+ThrowFromStringException(std::string_view message, std::string_view input, std::type_index result_type);
 
 template <typename T>
 std::enable_if_t<std::is_floating_point_v<T>, T> FromString(const char* str) {

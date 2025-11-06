@@ -132,7 +132,7 @@ using HttpResponse = utest::SimpleServer::Response;
 using HttpRequest = utest::SimpleServer::Request;
 using HttpCallback = utest::SimpleServer::OnRequest;
 
-std::optional<HttpResponse> process_100(const HttpRequest& request) {
+std::optional<HttpResponse> Process100(const HttpRequest& request) {
     const bool requires_continue = (request.find("Expect: 100-continue") != std::string::npos);
 
     if (requires_continue || request.empty()) {
@@ -151,7 +151,7 @@ struct EchoCallback {
     HttpResponse operator()(const HttpRequest& request) const {
         LOG_INFO() << "HTTP Server receive: " << request;
 
-        const auto cont = process_100(request);
+        const auto cont = Process100(request);
         if (cont) {
             return *cont;
         }
@@ -184,7 +184,7 @@ struct ValidatingSharedCallback {
     HttpResponse operator()(const HttpRequest& request) const {
         LOG_INFO() << "HTTP Server receive: " << request;
 
-        const auto cont = process_100(request);
+        const auto cont = Process100(request);
 
         EXPECT_FALSE(!!cont) << "This callback does not work with CONTINUE";
 
@@ -245,7 +245,7 @@ struct AuthCallback {
     }
 };
 
-HttpResponse put_validate_callback(const HttpRequest& request) {
+HttpResponse PutValidateCallback(const HttpRequest& request) {
     LOG_INFO() << "HTTP Server receive: " << request;
 
     EXPECT_NE(request.find("PUT"), std::string::npos) << "PUT request has no PUT in headers: " << request;
@@ -256,7 +256,7 @@ HttpResponse put_validate_callback(const HttpRequest& request) {
         HttpResponse::kWriteAndClose};
 }
 
-HttpResponse sleep_callback_base(const HttpRequest& request, std::chrono::milliseconds sleep_for) {
+HttpResponse SleepCallbackBase(const HttpRequest& request, std::chrono::milliseconds sleep_for) {
     LOG_INFO() << "HTTP Server receive: " << request;
 
     engine::InterruptibleSleepFor(sleep_for);
@@ -268,18 +268,14 @@ HttpResponse sleep_callback_base(const HttpRequest& request, std::chrono::millis
         HttpResponse::kWriteAndClose};
 }
 
-HttpResponse sleep_callback(const HttpRequest& request) {
-    return sleep_callback_base(request, utest::kMaxTestWaitTime);
-}
+HttpResponse SleepCallback(const HttpRequest& request) { return SleepCallbackBase(request, utest::kMaxTestWaitTime); }
 
-HttpResponse sleep_callback_1s(const HttpRequest& request) {
-    return sleep_callback_base(request, std::chrono::seconds(1));
-}
+HttpResponse SleepCallback1s(const HttpRequest& request) { return SleepCallbackBase(request, std::chrono::seconds(1)); }
 
-HttpResponse huge_data_callback(const HttpRequest& request) {
+HttpResponse HugeDataCallback(const HttpRequest& request) {
     LOG_INFO() << "HTTP Server receive: " << request;
 
-    const auto cont = process_100(request);
+    const auto cont = Process100(request);
     if (cont) {
         return *cont;
     }
@@ -314,7 +310,7 @@ std::string AssertHeader(const HttpRequest& request, std::string_view header) {
     return TryGetHeader(request, header);
 }
 
-HttpResponse header_validate_callback(const HttpRequest& request) {
+HttpResponse HeaderValidateCallback(const HttpRequest& request) {
     LOG_INFO() << "HTTP Server receive: " << request;
     AssertHeader(request, kTestHeader);
     return {
@@ -323,7 +319,7 @@ HttpResponse header_validate_callback(const HttpRequest& request) {
         HttpResponse::kWriteAndClose};
 }
 
-HttpResponse user_agent_validate_callback(const HttpRequest& request) {
+HttpResponse UserAgentValidateCallback(const HttpRequest& request) {
     LOG_INFO() << "HTTP Server receive: " << request;
     auto header_value = AssertHeader(request, http::headers::kUserAgent);
 
@@ -335,7 +331,7 @@ HttpResponse user_agent_validate_callback(const HttpRequest& request) {
         HttpResponse::kWriteAndClose};
 }
 
-HttpResponse no_user_agent_validate_callback(const HttpRequest& request) {
+HttpResponse NoUserAgentValidateCallback(const HttpRequest& request) {
     LOG_INFO() << "HTTP Server receive: " << request;
     auto header_value = TryGetHeader(request, http::headers::kUserAgent);
     EXPECT_EQ(header_value, utils::GetUserverIdentifier()) << "In request: " << request;
@@ -507,6 +503,8 @@ std::string DifferentUrlsRetryStreamResponseBody(
     }
 
     UINVARIANT(false, "No alive servers");
+    // Never reaches
+    return {};
 }
 
 }  // namespace sample
@@ -597,7 +595,7 @@ UTEST(HttpClient, PostEcho) {
 
 UTEST(HttpClient, StatsOnTimeout) {
     const int kRetries = 5;
-    const utest::SimpleServer http_server{&sleep_callback};
+    const utest::SimpleServer http_server{&SleepCallback};
     auto http_client_ptr = utest::CreateHttpClient();
 
     auto request = http_client_ptr->CreateRequest()
@@ -675,7 +673,7 @@ UTEST(HttpClient, CancelRetries) {
         if (server_requests > kMinRetries) {
             enough_retries_event.Send();
         }
-        return sleep_callback_1s(request);
+        return SleepCallback1s(request);
     };
 
     const utest::SimpleServer http_server{callback};
@@ -733,7 +731,7 @@ UTEST(HttpClient, CancelRetries) {
 }
 
 UTEST(HttpClient, PostShutdownWithPendingRequest) {
-    const utest::SimpleServer http_server{&sleep_callback};
+    const utest::SimpleServer http_server{&SleepCallback};
     auto http_client_ptr = utest::CreateHttpClient();
 
     for (unsigned i = 0; i < kRepetitions; ++i)
@@ -751,7 +749,7 @@ UTEST(HttpClient, PostShutdownWithPendingRequestHuge) {
     // The test produces too much logs otherwise
     auto log_level_scope = LogLevelScope(logging::Level::kError);
 
-    const utest::SimpleServer http_server{&sleep_callback};
+    const utest::SimpleServer http_server{&SleepCallback};
     auto http_client_ptr = utest::CreateHttpClient();
 
     std::string request = kTestData;
@@ -785,7 +783,7 @@ UTEST(HttpClient, PutEcho) {
 }
 
 UTEST(HttpClient, PutValidateHeader) {
-    const utest::SimpleServer http_server{&put_validate_callback};
+    const utest::SimpleServer http_server{&PutValidateCallback};
     auto http_client_ptr = utest::CreateHttpClient();
 
     auto request = http_client_ptr->CreateRequest()
@@ -800,7 +798,7 @@ UTEST(HttpClient, PutValidateHeader) {
 }
 
 UTEST(HttpClient, PutShutdownWithPendingRequest) {
-    const utest::SimpleServer http_server{&sleep_callback};
+    const utest::SimpleServer http_server{&SleepCallback};
     auto http_client_ptr = utest::CreateHttpClient();
 
     for (unsigned i = 0; i < kRepetitions; ++i)
@@ -818,7 +816,7 @@ UTEST(HttpClient, PutShutdownWithPendingRequestHuge) {
     // The test produces too much logs otherwise
     auto log_level_scope = LogLevelScope(logging::Level::kError);
 
-    const utest::SimpleServer http_server{&sleep_callback};
+    const utest::SimpleServer http_server{&SleepCallback};
     auto http_client_ptr = utest::CreateHttpClient();
 
     std::string request = kTestData;
@@ -838,7 +836,7 @@ UTEST(HttpClient, PutShutdownWithPendingRequestHuge) {
 }
 
 UTEST(HttpClient, PutShutdownWithHugeResponse) {
-    const utest::SimpleServer http_server{&huge_data_callback};
+    const utest::SimpleServer http_server{&HugeDataCallback};
     auto http_client_ptr = utest::CreateHttpClient();
 
     for (unsigned i = 0; i < kRepetitions; ++i)
@@ -972,7 +970,7 @@ UTEST(HttpClient, MethodsMixReuseRequestData) {
 }
 
 UTEST(HttpClient, Headers) {
-    const utest::SimpleServer http_server{&header_validate_callback};
+    const utest::SimpleServer http_server{&HeaderValidateCallback};
     auto http_client_ptr = utest::CreateHttpClient();
 
     clients::http::Headers headers;
@@ -994,8 +992,8 @@ UTEST(HttpClient, Headers) {
 }
 
 UTEST(HttpClient, HeadersUserAgent) {
-    const utest::SimpleServer http_server{&user_agent_validate_callback};
-    const utest::SimpleServer http_server_no_ua{&no_user_agent_validate_callback};
+    const utest::SimpleServer http_server{&UserAgentValidateCallback};
+    const utest::SimpleServer http_server_no_ua{&NoUserAgentValidateCallback};
     auto http_client_ptr = utest::CreateHttpClient();
 
     auto request = http_client_ptr->CreateRequest()
@@ -1239,7 +1237,7 @@ UTEST(HttpClient, Retry) {
 
 UTEST(HttpClient, TinyTimeout) {
     auto http_client_ptr = utest::CreateHttpClient();
-    const utest::SimpleServer http_server{sleep_callback_1s};
+    const utest::SimpleServer http_server{SleepCallback1s};
 
     for (unsigned i = 0; i < kRepetitions; ++i) {
         auto response_future = http_client_ptr->CreateRequest()
@@ -1325,7 +1323,7 @@ UTEST(HttpClient, RequestReuseBasic) {
 UTEST(HttpClient, RequestReuseSample) {
     const EchoCallback shared_echo_callback{};
     const utest::SimpleServer http_server{shared_echo_callback, utest::SimpleServer::kTcpIpV6};
-    const utest::SimpleServer http_sleep_server{sleep_callback_1s};
+    const utest::SimpleServer http_sleep_server{SleepCallback1s};
 
     std::string data = "Some long long request";
     for (unsigned i = 0; i < kFewRepetitions; ++i) {
@@ -1368,7 +1366,7 @@ UTEST(HttpClient, RequestReuseSample) {
 UTEST(HttpClient, DISABLED_RequestReuseSampleStream) {
     const EchoCallback shared_echo_callback{};
     const utest::SimpleServer http_server{shared_echo_callback, utest::SimpleServer::kTcpIpV6};
-    const utest::SimpleServer http_sleep_server{sleep_callback_1s};
+    const utest::SimpleServer http_sleep_server{SleepCallback1s};
 
     std::string data = "Some long long request";
     for (unsigned i = 0; i < kFewRepetitions; ++i) {
@@ -1394,7 +1392,7 @@ UTEST(HttpClient, DISABLED_RequestReuseSampleStream) {
 UTEST(HttpClient, RequestReuseDifferentUrlAndTimeout) {
     const EchoCallback shared_echo_callback;
     const utest::SimpleServer http_echo_server{shared_echo_callback, utest::SimpleServer::kTcpIpV6};
-    const utest::SimpleServer http_sleep_server{sleep_callback_1s};
+    const utest::SimpleServer http_sleep_server{SleepCallback1s};
 
     auto http_client_ptr = utest::CreateHttpClient();
 

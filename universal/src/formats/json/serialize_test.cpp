@@ -35,7 +35,7 @@ INSTANTIATE_TYPED_TEST_SUITE_P(FormatsJson, Serialization, formats::json::Value)
 
 namespace {
 
-void TestExceptionMessage(const char* data, const char* expected_msg) {
+void TestExceptionMessage(std::string_view data, std::string_view expected_msg) {
     using formats::json::FromString;
     using ParseException = formats::json::Value::ParseException;
 
@@ -82,6 +82,27 @@ TEST(FormatsJson, ParseFromBadFile) {
     } catch (const ParseException& e) {
         EXPECT_TRUE(std::string_view{e.what()}.find(filename) != std::string_view::npos)
             << "No filename in error message: " << e.what();
+    }
+}
+
+TEST(FormatsJson, ParseStringHasZeroByte) {
+    TestExceptionMessage(
+        std::string_view{"{}\0z", 4},
+        "JSON parse error at line 1 column 3: The document root must not be followed by other values."
+    );
+}
+
+TEST(FormatsJson, ParseStreamHasZeroByte) {
+    std::istringstream is(std::string{"{}\0z", 4});
+
+    try {
+        formats::json::FromStream(is);
+        FAIL() << "Exception was not thrown";
+    } catch (const formats::json::ParseException& exc) {
+        EXPECT_EQ(
+            std::string_view{exc.what()},
+            std::string_view{"JSON parse error at offset 2: The document root must not be followed by other values."}
+        );
     }
 }
 

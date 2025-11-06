@@ -1,12 +1,14 @@
 #!/bin/bash
 
 # Exit on any error and treat unset variables as errors, print all commands
-set -euox pipefail
+set -euo pipefail
 
+VERSION=${VERSION:-$(cat version.txt)}
 DISTRO=${DISTRO:-ubuntu-24.04}
 ALL_MODULES=$(ls scripts/docs/en/deps/$DISTRO)
 ALL_PACKAGES=$(echo $ALL_MODULES | xargs -n1 | sed 's/.*/libuserver-\0-dev/')
 BUILD_DEPENDENCIES=$(cat scripts/docs/en/deps/$DISTRO.md | sed 's/$/,/' | xargs | sed 's/,$//')
+
 
 
 # Cleanup
@@ -82,9 +84,14 @@ done
 #
 # Generate debian/changelog
 cat >debian/changelog <<EOF
-userver (1.0-1) UNRELEASED; urgency=medium
+userver ($VERSION) unstable; urgency=medium
 
-  * Initial release (Closes: #nnnn)  <nnnn is the bug number of your ITP>
+  $(awk '/### Release/ {p++;} {if(p==1) print "  "$0;}' <scripts/docs/en/userver/roadmap_and_changelog.md)
 
- -- segoon <segoon@unknown>  Wed, 20 Aug 2025 22:19:05 +0300
+ -- Vasily Kulikov <segoon@yandex-team.ru>  Wed, 20 Aug 2025 22:19:05 +0300
+EOF
+
+cat <<EOF
+debian/{control,changelog,*} are generated.
+Now run 'dpkg-buildpackage -S' to build debian source package.
 EOF

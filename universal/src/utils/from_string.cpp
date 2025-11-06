@@ -13,12 +13,12 @@ namespace utils {
 namespace impl {
 
 [[noreturn]] void
-ThrowFromStringException(std::string_view message, std::string_view input, std::type_index resultType) {
+ThrowFromStringException(std::string_view message, std::string_view input, std::type_index result_type) {
     throw std::runtime_error(fmt::format(
         R"(utils::FromString error: "{}" while converting "{}" to {})",
         message,
         input,
-        compiler::GetTypeName(resultType)
+        compiler::GetTypeName(result_type)
     ));
 }
 

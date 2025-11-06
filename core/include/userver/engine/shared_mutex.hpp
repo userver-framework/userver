@@ -29,7 +29,7 @@ namespace engine {
 class SharedMutex final {
 public:
     SharedMutex();
-    ~SharedMutex() = default;
+    ~SharedMutex();
 
     SharedMutex(const SharedMutex&) = delete;
     SharedMutex(SharedMutex&&) = delete;
@@ -82,6 +82,8 @@ public:
     /// any specific order (e.g. FIFO) is incorrect and should be fixed.
     void unlock_shared();
 
+    void unlock_and_lock_shared();
+
     /// Tries to lock the mutex for shared ownership without blocking the
     /// task, returns true if succeeded.
     [[nodiscard]] bool try_lock_shared();
@@ -123,7 +125,7 @@ private:
     /* Readers don't try to hold semaphore_ if there is at least one
      * waiting writer => writers don't starve.
      */
-    std::atomic_size_t waiting_writers_count_;
+    std::atomic<ssize_t> waiting_writers_count_;
     Mutex waiting_writers_count_mutex_;
     ConditionVariable waiting_writers_count_cv_;
 };

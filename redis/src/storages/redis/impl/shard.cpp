@@ -241,8 +241,11 @@ bool Shard::AsyncCommand(CommandPtr command) {
         }
     }
 
-    LOG_LIMITED_WARNING() << "No Redis server is ready for shard_group=" << shard_group_name_
-                          << " shard=" << shard_name_ << " slave=" << command->read_only << command->GetLogExtra();
+    logging::LogExtra log_extra;
+    log_extra.Extend("shard_group_name", shard_group_name_);
+    log_extra.Extend("shard_name", shard_name_);
+    log_extra.Extend("slave", command->read_only);
+    LOG_LIMITED_WARNING() << log_extra << "No Redis server is ready" << command->GetLogExtra();
     return false;
 }
 
@@ -280,7 +283,8 @@ bool Shard::ProcessCreation(const std::shared_ptr<engine::ev::ThreadPool>& redis
                 redis_thread_pool,
                 // https://github.com/boostorg/signals2/issues/59
                 // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDelete)
-                redis_settings
+                redis_settings,
+                shard_group_name_
             )};
         if (auto commands_buffering_settings = commands_buffering_settings_.Get())
             entry.instance->SetCommandsBufferingSettings(*commands_buffering_settings);

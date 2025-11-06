@@ -80,7 +80,7 @@ void AsymmetricThreadFenceLight() noexcept {
 }
 
 void AsymmetricThreadFenceHeavy() noexcept {
-    if (IsMembarrierAvailableCached()) {
+    if (TryRegisterThreadCached()) {
         const auto ret = syscall(__NR_membarrier, MEMBARRIER_CMD_PRIVATE_EXPEDITED, 0);
         if (ret != 0) {
             utils::AbortWithStacktrace("membarrier usage failed");

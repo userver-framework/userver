@@ -101,6 +101,11 @@ Checks:
   ,-readability-use-anyofallof\
   ,-hicpp-use-emplace\
   ,-modernize-use-emplace\
+  ,# TODO: will be removed in TAXICOMMON-11134
+  ,-clang-analyzer-optin.cplusplus.UninitializedObject\
+  ,-google-readability-casting\
+  ,-performance-inefficient-vector-operation\
+  ,-performance-unnecessary-copy-initialization\
   "
 
 WarningsAsErrors: '*'
@@ -134,12 +139,12 @@ CheckOptions:
     value: CamelCase
   - key: readability-identifier-naming.PublicMethodIgnoredRegexp
     value: "(begin|end|empty|size|ysize|front|back|parse|format)"
-  # - key: readability-identifier-naming.FunctionCase
-  #   value: CamelCase
-  # - key: readability-identifier-naming.ParameterCase
-  #   value: lower_case
-  # - key: readability-identifier-naming.ParameterPackCase
-  #   value: lower_case
+  - key: readability-identifier-naming.FunctionCase
+    value: CamelCase
+  - key: readability-identifier-naming.ParameterCase
+    value: lower_case
+  - key: readability-identifier-naming.ParameterPackCase
+    value: lower_case
   # - key: readability-identifier-naming.VariableCase
   #   value: lower_case
   # - key: readability-identifier-naming.ConstexprVariableCase
@@ -160,7 +165,7 @@ CheckOptions:
     value: lower_case
   # Allow NCamelCase for NMonitoring.
   - key: readability-identifier-naming.NamespaceIgnoredRegexp
-    value: ^N([A-Z][a-z]+)+$
+    value: ^(N([A-Z][a-z]+)+|Headers)$
   # Allow kCamelCase.
   - key: readability-identifier-naming.ValueTemplateParameterIgnoredRegexp
     value: ^k([A-Z][a-z]+)+$

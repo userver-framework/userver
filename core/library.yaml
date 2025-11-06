@@ -8,6 +8,8 @@ description: userver core stuff
 configs:
     names:
       - BAGGAGE_SETTINGS
+      - EGRESS_HTTP_PROXY_ENABLED
+      - EGRESS_NO_PROXY_TARGETS
       - HTTP_CLIENT_CONNECTION_POOL_SIZE
       - HTTP_CLIENT_CONNECT_THROTTLE
       - USERVER_BAGGAGE_ENABLED

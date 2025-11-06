@@ -47,7 +47,10 @@ CommonComponent::CommonComponent(const components::ComponentConfig& config, cons
       client_statistics_storage_(
           context.FindComponent<components::StatisticsStorage>().GetStorage(),
           ugrpc::impl::StatisticsDomain::kClient
-      ) {
+      ),
+      proxy_settings_{
+          config["proxy-address"].As<std::string>(""),
+          config["servicemesh-settings"]["egress"]["disable_proxy"].As<std::unordered_set<std::string>>({})} {
     ugrpc::impl::SetupNativeLogging();
     ugrpc::impl::UpdateNativeLogLevel(config["native-log-level"].As<logging::Level>(logging::Level::kError));
 }
@@ -77,6 +80,29 @@ properties:
             completion queue count to create. Should be ~2 times less than worker
             threads for best RPS.
         minimum: 1
+    proxy-address:
+        type: string
+        description: |
+            proxy server address. No proxy if address is empty
+            Example: localhost:84
+    servicemesh-settings:
+        type: object
+        description: service settings from separate file for service mesh integration
+        additionalProperties: false
+        properties:
+            egress:
+                type: object
+                description: egress settings
+                additionalProperties: false
+                properties:
+                    disable_proxy:
+                        description: list of addresses that should be accessed directly, bypassing proxy server
+                        type: array
+                        items:
+                            description: |
+                                address that should be accessed directly.
+                                Example: some.grpc.service.net:11080
+                            type: string
 )");
 }
 

@@ -192,6 +192,7 @@ private:
     engine::ev::ThreadControl ev_thread_;
 
     const std::string shard_group_name_;
+    logging::LogExtra log_extra_;
     const std::shared_ptr<const std::vector<std::string>> init_shards_;
     std::vector<std::unique_ptr<ConnectedStatus>> connected_statuses_;
     const std::vector<ConnectionInfo> conns_;

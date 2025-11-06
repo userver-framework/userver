@@ -185,13 +185,13 @@ capture by reference objects that outlive the task object.
 When the task is just stored in a new local variable and is not moved or
 returned from a function, capturing anything is safe:
 
-@code
+@code{.cpp}
 int x{};
 int y{};
 // It's recommended to write out captures explicitly when launching tasks.
 auto task = utils::Async("frobnicate", [&x, &y] {
-// Capturing anything defined before the `task` variable is safe.
-Use(x, y);
+    // Capturing anything defined before the `task` variable is safe.
+    Use(x, y);
 });
 // ...
 task.Get();
@@ -199,15 +199,15 @@ task.Get();
 
 A more complicated example, where the task is moved into a container:
 
-@code
+@code{.cpp}
 // Variables are destroyed in the reverse definition order: y, tasks, x.
 int x{};
 std::vector<engine::TaskWithResult<void>> tasks;
 int y{};
 
 tasks.push_back(utils::Async("frobnicate", [&x, &y] {
-// Capturing x is safe, because `tasks` outlives `x`.
-Use(x);
+    // Capturing x is safe, because `tasks` outlives `x`.
+    Use(x);
 
     // BUG! The task may keep running for some time after `y` is destroyed.
     Use(y);
@@ -224,7 +224,7 @@ of truth.
 Same guidelines apply when tasks are stored in classes or structs: the task
 object must be defined below everything that it accesses:
 
-@code
+@code{.cpp}
 private:
 Foo foo_;
 // Can access foo_ but not bar_.

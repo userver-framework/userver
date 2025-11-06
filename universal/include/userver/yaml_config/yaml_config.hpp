@@ -37,7 +37,7 @@ using ParseException = formats::yaml::ParseException;
 /// If YAML key ends on `#env` and the mode is YamlConfig::Mode::kEnvAllowed
 /// or YamlConfig::Mode::kEnvAndFileAllowed,
 /// then the value of the key is searched in
-/// environment variables of the process and returned as a value. For example:
+/// environment variables of the process and returned as a string value. For example:
 /// @snippet universal/src/yaml_config/yaml_config_test.cpp  sample env
 ///
 /// If YAML key ends on `#file` and the mode is

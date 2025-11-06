@@ -29,6 +29,9 @@ add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-static-service)
 add_subdirectory(tracing)
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-tracing)
 
+add_subdirectory(trx_tracker)
+add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-trx-tracker)
+
 add_subdirectory(uctl)
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-uctl)
 

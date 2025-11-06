@@ -6,6 +6,7 @@
 #include <cstddef>
 #include <string>
 
+#include <userver/engine/task_queue_type.hpp>
 #include <userver/utils/function_ref.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -21,6 +22,7 @@ struct TaskProcessorPoolsConfig final {
     std::string ev_thread_name = "ev";
     bool ev_default_loop_disabled = false;
     bool is_stack_usage_monitor_enabled = true;
+    TaskQueueType queue_type{TaskQueueType::kGlobalTaskQueue};
 };
 
 /// @brief Runs a payload in a temporary coroutine engine instance.

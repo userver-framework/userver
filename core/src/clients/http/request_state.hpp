@@ -12,6 +12,7 @@
 #include <userver/clients/http/error.hpp>
 #include <userver/clients/http/form.hpp>
 #include <userver/clients/http/plugin.hpp>
+#include <userver/clients/http/request.hpp>
 #include <userver/clients/http/response_future.hpp>
 #include <userver/concurrent/queue.hpp>
 #include <userver/crypto/certificate.hpp>
@@ -36,6 +37,8 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace clients::http {
+
+constexpr std::string_view kHeaderExpect = "Expect";
 
 class StreamedResponse;
 class ConnectTo;
@@ -136,9 +139,14 @@ public:
 
     void SetPluginsList(const std::vector<utils::NotNull<Plugin*>>& plugins);
     void SetLoggedUrl(std::string url);
+    void SetUrlTemplate(std::string url_template);
+    void SetMethod(clients::http::HttpMethod method);
+    void data(std::string data);
     void SetEasyTimeout(std::chrono::milliseconds timeout);
 
     void SetTracingManager(const tracing::TracingManagerBase&);
+
+    bool IsProxySet() const;
 
     PluginRequest GetEditableRequestInstance();
 
@@ -233,11 +241,14 @@ private:
     std::optional<tracing::InPlaceSpan> span_storage_;
     std::optional<std::string> log_url_;
 
+    std::optional<std::string> url_template_;
+    HttpMethod method_{HttpMethod::kGet};
+
     std::atomic<bool> is_cancelled_{false};
     std::array<char, CURL_ERROR_SIZE> errorbuffer_{};
 
     clients::dns::Resolver* resolver_{nullptr};
-    std::string proxy_url_;
+    std::optional<std::string> proxy_url_;
     impl::PluginPipeline plugin_pipeline_;
 
     struct StreamData {

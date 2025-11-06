@@ -4,6 +4,7 @@
 #include <stdexcept>
 #include <string>
 
+#include <userver/engine/io.hpp>
 #include <userver/formats/parse/common_containers.hpp>
 #include <userver/fs/blocking/read.hpp>
 
@@ -99,6 +100,12 @@ void PortConfig::ReadTlsSettings(const storages::secdist::SecdistConfig& secdist
             auto pph = secdist.Get<PassphraseConfig>().GetPassphrase(tls_private_key_passphrase_name);
             tls_private_key = crypto::PrivateKey::LoadFromString(contents, pph.GetUnderlying());
         }
+    }
+}
+
+void PortConfig::InitSslCtx() {
+    if (tls) {
+        ssl_ctx = crypto::SslCtx::CreateServerTlsContext(tls_cert_chain, tls_private_key, tls_certificate_authorities);
     }
 }
 

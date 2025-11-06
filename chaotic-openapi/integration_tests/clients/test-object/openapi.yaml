@@ -37,6 +37,9 @@ components:
         Type:
             type: object
             properties:
+                bar:
+                    type: integer
+                    x-usrv-cpp-type: unsigned
                 baz:
                     type: string
             additionalProperties: false

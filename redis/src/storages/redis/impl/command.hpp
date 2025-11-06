@@ -15,7 +15,7 @@ using ReplyCallback = std::function<void(const CommandPtr& cmd, ReplyPtr reply)>
 
 struct Command {
     Command(
-        CmdArgs&& _args,
+        CmdArgs&& args,
         ReplyCallback callback,
         CommandControl control,
         int counter,

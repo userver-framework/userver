@@ -5,6 +5,9 @@
 
 {# DO NOT ADD NEW INCLUDES HERE! Add them inside codegen_declarations.hpp instead #}
 #include <userver/ugrpc/client/impl/codegen_declarations.hpp>
+{% if params.structs %}
+#include <userver/grpc-proto-structs/client/impl/codegen_declarations.hpp>
+{% endif %}
 
 #include "{{ proto.source_file_without_ext }}.pb.h"
 {% if params.structs %}
@@ -17,9 +20,11 @@
 // Client for {{service.name}}
 class {{service.name}}Client final {
 public:
-    // For internal use only
-    {{service.name}}Client(
-        USERVER_NAMESPACE::ugrpc::client::impl::ClientInternals&& internals);
+    {{service.name}}Client({{service.name}}Client&&) noexcept;
+    {{service.name}}Client& operator=({{service.name}}Client&&) noexcept;
+
+    ~{{service.name}}Client();
+
 {% for method in service.method %}
 
 {% if method.client_streaming and method.server_streaming %}
@@ -65,16 +70,92 @@ public:
 {% endif %}
 {% endfor %}
 
+    /// @cond
+    // For internal use only
+    explicit {{service.name}}Client(USERVER_NAMESPACE::ugrpc::client::impl::ClientInternals&& internals);
+
     // For internal use only
     static USERVER_NAMESPACE::ugrpc::impl::StaticServiceMetadata GetMetadata();
+    /// @endcond
 
 private:
-    template <typename Client>
-    friend USERVER_NAMESPACE::ugrpc::client::impl::ClientData&
-    USERVER_NAMESPACE::ugrpc::client::impl::GetClientData(Client& client);
+    friend class USERVER_NAMESPACE::ugrpc::client::impl::ClientDataAccessor;
 
     {# All non-template related client data should be placed in ClientData #}
-    USERVER_NAMESPACE::ugrpc::client::impl::ClientData impl_;
+    USERVER_NAMESPACE::utils::Box<USERVER_NAMESPACE::ugrpc::client::impl::ClientData> client_data_;
 };
+{% if params.structs %}
+
+namespace structs {
+
+// Proto-structs client for {{service.name}}.
+class {{service.name}}Client final {
+public:
+    {{service.name}}Client({{service.name}}Client&&) noexcept;
+    {{service.name}}Client& operator=({{service.name}}Client&&) noexcept;
+
+    ~{{service.name}}Client();
+{% for method in service.method %}
+
+{% if method.client_streaming and method.server_streaming %}
+    using {{method.name}}ReaderWriter =
+        USERVER_NAMESPACE::grpc_proto_structs::client::ReaderWriter<
+            {{ method.input_type | grpc_to_structs_name }},
+            {{ method.output_type | grpc_to_structs_name }}>;
+
+    {{method.name}}ReaderWriter {{method.name}}(
+        USERVER_NAMESPACE::ugrpc::client::CallOptions call_options = {}
+    ) const;
+{% elif method.client_streaming %}
+    using {{method.name}}Writer =
+        USERVER_NAMESPACE::grpc_proto_structs::client::Writer<
+            {{ method.input_type | grpc_to_structs_name }},
+            {{ method.output_type | grpc_to_structs_name }}>;
+    {{method.name}}Writer {{method.name}}(
+        USERVER_NAMESPACE::ugrpc::client::CallOptions call_options = {}
+    ) const;
+{% elif method.server_streaming %}
+    using {{method.name}}Reader =
+        USERVER_NAMESPACE::grpc_proto_structs::client::Reader<
+            {{ method.output_type | grpc_to_structs_name }}>;
+
+    {{method.name}}Reader {{method.name}}(
+        const {{ method.input_type | grpc_to_structs_name }}& request,
+        USERVER_NAMESPACE::ugrpc::client::CallOptions call_options = {}
+    ) const;
+{% else %}
+    {{ method.output_type | grpc_to_structs_name }} {{method.name}}(
+        const {{ method.input_type | grpc_to_structs_name }}& request,
+        USERVER_NAMESPACE::ugrpc::client::CallOptions call_options = {}
+    ) const;
+
+    using {{method.name}}ResponseFuture =
+        USERVER_NAMESPACE::grpc_proto_structs::client::ResponseFuture<
+            {{ method.output_type | grpc_to_structs_name }}>;
+
+    {{method.name}}ResponseFuture Async{{method.name}}(
+        const {{ method.input_type | grpc_to_structs_name }}& request,
+        USERVER_NAMESPACE::ugrpc::client::CallOptions call_options = {}
+    ) const;
+{% endif %}
+{% endfor %}
+{%- set namespace_path = '::' + proto.namespace if proto.namespace | length > 0 else '' -%}
+
+    /// @cond
+    // For internal use only
+    explicit {{service.name}}Client(
+        USERVER_NAMESPACE::utils::SharedRef<{{namespace_path}}::{{service.name}}Client> protobuf_client
+    );
+
+    // For internal use only
+    static USERVER_NAMESPACE::ugrpc::impl::StaticServiceMetadata GetMetadata();
+    /// @endcond
+
+private:
+    USERVER_NAMESPACE::utils::SharedRef<{{namespace_path}}::{{service.name}}Client> protobuf_client_;
+};
+
+}  // namespace structs
+{% endif %}
 {% endfor %}
 {% endcall %} {# utils.optional_namespace #}

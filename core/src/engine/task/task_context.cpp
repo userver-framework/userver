@@ -119,8 +119,6 @@ TaskContext::TaskContext(
     UASSERT(payload_);
     LOG_TRACE() << "task with task_id=" << ReadableTaskId(current_task::GetCurrentTaskContextUnchecked())
                 << " created task with task_id=" << ReadableTaskId(this) << logging::LogExtra::Stacktrace();
-
-    TsanReleaseBarrier();
 }
 
 TaskContext::~TaskContext() noexcept {
@@ -218,12 +216,10 @@ void TaskContext::DoStep() {
         try {
             SetState(Task::State::kRunning);
             auto& coro_ref = *coro_;
-            TsanAcquireBarrier();
             coro_ref(this);
         } catch (...) {
             uncaught = std::current_exception();
         }
-        TsanReleaseBarrier();
     }
 
     if (uncaught) std::rethrow_exception(uncaught);
@@ -328,9 +324,7 @@ TaskContext::WakeupSource TaskContext::Sleep(WaitStrategy& wait_strategy, Deadli
     ProfilerStopExecution();
 
     auto& task_pipe_ref = *task_pipe_;
-    TsanAcquireBarrier();
     [[maybe_unused]] TaskContext* context = task_pipe_ref().get();
-    TsanReleaseBarrier();
 
     ProfilerStartExecution();
     TraceStateTransition(Task::State::kRunning);
@@ -426,7 +420,15 @@ void TaskContext::Wakeup(WakeupSource source, SleepState::Epoch epoch) {
 
         auto new_sleep_state = prev_sleep_state;
         new_sleep_state.flags |= static_cast<SleepFlags>(source);
-        if (sleep_state_.CompareExchangeWeak<std::memory_order_relaxed, std::memory_order_relaxed>(
+
+        // 1) thread1: calls context.GetQueueWaitTimepoint()
+        // 2) thread1: starts waiting for some task in thread2
+        // 3) thread2: wakes up the thread1-coroutine via TaskContext::Wakeup
+        // 4) thread2: TaskContext::Wakeup in Schedule() calls context.SetQueueWaitTimepoint()
+        //
+        // Without std::memory_order_seq_cst in this function TSAN reports a data race at step 4) on
+        // a ServerMinimalComponentList.Basic test. Run the test under TSAN multiple times if planning to change.
+        if (sleep_state_.CompareExchangeWeak<std::memory_order_seq_cst, std::memory_order_relaxed>(
                 prev_sleep_state, new_sleep_state
             )) {
             break;
@@ -445,10 +447,9 @@ void TaskContext::Wakeup(WakeupSource source, NoEpoch) {
 
     if (IsFinished()) return;
 
-    // Set flag regardless of kSleeping - missing kSleeping usually means one of
-    // the following: 1) the task is somewhere between Sleep() and setting
-    // kSleeping in DoStep(). 2) the task is already awaken, but DisableWakeups()
-    // is not yet finished (and not all timers/watchers are stopped).
+    // Set flag regardless of kSleeping - missing kSleeping usually means one of the following:
+    // * the task is somewhere between Sleep() and setting kSleeping in DoStep().
+    // * the task is already awaken, but DisableWakeups() is not yet finished (and not all timers/watchers are stopped).
     const auto prev_sleep_state = sleep_state_.FetchOrFlags<std::memory_order_seq_cst>(static_cast<SleepFlags>(source));
     if (ShouldSchedule(prev_sleep_state.flags, source)) {
         Schedule();
@@ -497,7 +498,6 @@ private:
 void TaskContext::CoroFunc(TaskPipe& task_pipe) {
     for (TaskContext* context : task_pipe) {
         UASSERT(context);
-        context->TsanReleaseBarrier();
         context->task_pipe_ = &task_pipe;
 
         {
@@ -535,7 +535,6 @@ void TaskContext::CoroFunc(TaskPipe& task_pipe) {
         }
 
         context->task_pipe_ = nullptr;
-        context->TsanAcquireBarrier();
     }
 }
 
@@ -713,20 +712,6 @@ bool HasWaitSucceeded(TaskContext::WakeupSource wakeup_source) noexcept {
 
     // Assume that bugs with an unexpected WakeupSource don't reach production.
     return false;
-}
-
-void TaskContext::TsanAcquireBarrier() noexcept {
-#if USERVER_IMPL_HAS_TSAN
-    __tsan_acquire(this);
-    __tsan_acquire(&coro_);
-#endif
-}
-
-void TaskContext::TsanReleaseBarrier() noexcept {
-#if USERVER_IMPL_HAS_TSAN
-    __tsan_release(&coro_);
-    __tsan_release(this);
-#endif
 }
 
 }  // namespace impl

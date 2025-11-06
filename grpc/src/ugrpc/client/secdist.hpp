@@ -1,5 +1,10 @@
 #pragma once
 
+#include <string>
+#include <unordered_map>
+
+#include <userver/formats/json/value.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client {

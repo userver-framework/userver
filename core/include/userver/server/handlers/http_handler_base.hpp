@@ -100,6 +100,8 @@ public:
         const std::string& response_data
     ) const;
 
+    std::string GetUrlForLoggingChecked(const http::HttpRequest& request, request::RequestContext& context) const;
+
     /// Takes the exception and formats it into response, as specified by
     /// exception.
     void HandleCustomHandlerException(const http::HttpRequest& request, const CustomHandlerException& ex) const;
@@ -177,6 +179,9 @@ protected:
         request::RequestContext& context,
         const std::string& response_data
     ) const;
+
+    /// Override it if you need a custom request url logging.
+    virtual std::string GetUrlForLogging(const http::HttpRequest& request, request::RequestContext& context) const;
 
     /// For internal use. You don't need to override it. This method is overridden
     /// in format-specific base handlers.

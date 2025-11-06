@@ -286,7 +286,7 @@ void InsertOne::SetOption(options::SuppressServerExceptions) { impl_->should_thr
 
 InsertMany::InsertMany() = default;
 
-InsertMany::InsertMany(std::vector<formats::bson::Document> documents_) : impl_(std::move(documents_)) {}
+InsertMany::InsertMany(std::vector<formats::bson::Document> documents) : impl_(std::move(documents)) {}
 
 InsertMany::~InsertMany() = default;
 

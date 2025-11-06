@@ -12,9 +12,9 @@
 
 namespace samples {
 
-const dynamic_config::Key<ugrpc::client::ClientQos> kGreeterClientQos{
+const USERVER_NAMESPACE::dynamic_config::Key<ugrpc::client::ClientQos> kGreeterClientQos{
     "GREETER_CLIENT_QOS",
-    dynamic_config::DefaultAsJsonString{R"({
+    USERVER_NAMESPACE::dynamic_config::DefaultAsJsonString{R"({
       "methods": {
         "__default__": {
           "timeout-ms": 10000
@@ -25,7 +25,7 @@ const dynamic_config::Key<ugrpc::client::ClientQos> kGreeterClientQos{
 
 // A user-defined wrapper around api::GreeterServiceClient that provides
 // a simplified interface.
-GreeterClient::GreeterClient(api::GreeterServiceClient&& raw_client) : raw_client_(std::move(raw_client)) {}
+GreeterClient::GreeterClient(api::GreeterServiceClient& raw_client) : raw_client_(raw_client) {}
 
 /// [client]
 std::string GreeterClient::SayHello(std::string name) const {
@@ -38,9 +38,9 @@ std::string GreeterClient::SayHello(std::string name) const {
 }
 
 ugrpc::client::CallOptions GreeterClient::MakeCallOptions() {
-    // Deadline must be set manually for each RPC
-    // Note that here in all tests the deadline equals 20 sec which works for an
-    // example. However, generally speaking the deadline must be set manually for
+    // Timeout must be set manually for each RPC
+    // Note that here in all tests the timeout equals 20 sec which works for an
+    // example. However, generally speaking the timeout must be set manually for
     // each RPC
     ugrpc::client::CallOptions call_options;
     call_options.SetTimeout(std::chrono::seconds{20});

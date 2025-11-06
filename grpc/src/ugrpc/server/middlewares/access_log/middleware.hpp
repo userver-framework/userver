@@ -2,6 +2,7 @@
 
 #include <userver/logging/fwd.hpp>
 
+#include <userver/ugrpc/server/middlewares/access_log/component.hpp>
 #include <userver/ugrpc/server/middlewares/base.hpp>
 
 USERVER_NAMESPACE_BEGIN

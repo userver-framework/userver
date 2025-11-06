@@ -158,6 +158,25 @@ UTEST(Mutex, SampleMutex) {
     /// [Sample engine::Mutex usage]
 }
 
+UTEST_DEATH(MutexDeathTest, SelfDeadlock) {
+    engine::Mutex mutex;
+
+    std::lock_guard lock1{mutex};
+
+    EXPECT_FALSE(mutex.try_lock());
+
+#ifdef NDEBUG
+    UEXPECT_THROW(mutex.lock(), utils::InvariantError);
+#else
+    UEXPECT_DEATH(
+        mutex.lock(),
+        "Assertion 'owner_.load\\(\\) != &current' failed: engine::mutex self deadlock detected! Current coroutine "
+        "tried "
+        "to lock a mutex while holding the same mutex."
+    );
+#endif
+}
+
 REGISTER_TYPED_UTEST_SUITE_P(
     Mutex,
 

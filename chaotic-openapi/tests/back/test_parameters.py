@@ -315,6 +315,6 @@ def test_parameters_too_complex_schema(translate_single_schema):
 Unhandled error while processing <inline>
 Path "/paths/[/]/get/parameters/0/schema", Format "jsonschema"
 Error:
-Unsupported parameter type
+Unsupported parameter type for parameter "param"
 ==============================================================="""
     )

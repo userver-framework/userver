@@ -97,6 +97,12 @@ void ConsumerBaseImpl::OnMessage(const AMQP::Message& message, uint64_t delivery
     consumed.message = std::string(message.body(), message.bodySize());
     consumed.metadata.exchange = message.exchange();
     consumed.metadata.routingKey = message.routingkey();
+    if (message.hasReplyTo()) {
+        consumed.reply_to = message.replyTo();
+    }
+    if (message.hasCorrelationID()) {
+        consumed.correlation_id = message.correlationID();
+    }
 
     bts_.Detach(engine::AsyncNoSpan(
         dispatcher_,

@@ -434,4 +434,12 @@ TEST(JsonStringParser, BomSymbol) {
     EXPECT_EQ(value_str, value_sax);
 }
 
+TEST(JsonStringParser, ZeroByte) {
+    EXPECT_THROW_TEXT(
+        (fjp::ParseToType<formats::json::Value, fjp::JsonValueParser>(std::string_view{"{}\0z", 4})),
+        formats::json::parser::BaseError,
+        "Parse error at pos 2, path '': The document root must not be followed by other values."
+    );
+}
+
 USERVER_NAMESPACE_END

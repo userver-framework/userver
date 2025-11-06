@@ -46,12 +46,9 @@ public:
     }
 
     void Publish(const std::string& message) {
+        const urabbitmq::Envelope envelope{message, urabbitmq::MessageType::kTransient, {}, {}, {}};
         client_->PublishReliable(
-            exchange_,
-            routing_key_,
-            message,
-            urabbitmq::MessageType::kTransient,
-            engine::Deadline::FromDuration(std::chrono::seconds{2})
+            exchange_, routing_key_, envelope, engine::Deadline::FromDuration(std::chrono::seconds{2})
         );
     }
 

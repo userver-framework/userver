@@ -25,6 +25,8 @@ public:
         return item_;
     }
 
+    LoggerItemBase& GetLoggerItem() { return item_; }
+
 private:
     void DoAddTag(std::string_view key, std::string_view value, bool value_is_escaped);
 

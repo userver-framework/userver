@@ -19,9 +19,9 @@ bool TtlReply::KeyExists() const { return value_ != static_cast<int64_t>(kKeyDoe
 
 bool TtlReply::KeyHasExpiration() const { return value_ >= 0; }
 
-size_t TtlReply::GetExpireSeconds() const {
+std::chrono::seconds TtlReply::GetExpire() const {
     if (!KeyHasExpiration()) throw KeyHasNoExpirationException("key has no associated expire or does not exist");
-    return value_;
+    return std::chrono::seconds{value_};
 }
 
 }  // namespace storages::redis

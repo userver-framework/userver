@@ -16,6 +16,7 @@
 #include <userver/logging/log.hpp>
 #include <userver/logging/logger.hpp>
 #include <userver/os_signals/component.hpp>
+#include <userver/testsuite/testpoint.hpp>
 #include <userver/utils/algo.hpp>
 #include <userver/utils/statistics/writer.hpp>
 #include <userver/utils/thread_name.hpp>
@@ -211,6 +212,7 @@ void Logging::StopSocketLoggingDebug(const std::optional<logging::Level>& log_le
 
 void Logging::OnLogRotate() {
     try {
+        TESTPOINT("on-logrotate-called", formats::json::Value{});
         TryReopenFiles();
     } catch (const std::exception& e) {
         LOG_ERROR() << "An error occurred while ReopenAll: " << e;

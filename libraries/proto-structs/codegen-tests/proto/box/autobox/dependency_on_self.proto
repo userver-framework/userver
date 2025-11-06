@@ -1,0 +1,54 @@
+syntax = "proto3";
+
+package box.autobox;
+
+option go_package = "a.yandex-team.ru/taxi/uservices/userver/libraries/proto-structs/codegen-tests/proto/box/autobox;boxautobox";
+
+message DependencyOnSelfDirect {
+  // Should be boxed.
+  DependencyOnSelfDirect field = 1;
+}
+
+message DependencyOnSelfNested {
+  message Nested {
+    // Should be boxed.
+    DependencyOnSelfNested field = 1;
+  }
+}
+
+message DependencyOnSelfOptional {
+  // Should be boxed.
+  optional DependencyOnSelfOptional field = 1;
+}
+
+message DependencyOnSelfRepeated {
+  // Should not be boxed: the outer struct is already declared at this point.
+  repeated DependencyOnSelfRepeated field = 1;
+}
+
+message DependencyWithinSelf {
+  message A {}
+
+  message B {
+    // Should not be boxed.
+    //
+    // When accounting edges at the namespace level, we should say that there is no edge from DependencyWithinSelf
+    // to itself, even though there is a dependency from within DependencyWithinSelf to within DependencyWithinSelf.
+    A field = 1;
+  }
+}
+
+message DependencyOnSelfCollateral {
+  message A {}
+
+  message B {
+    // Should not be boxed.
+    //
+    // Although there is an edge from within DependencyOnSelfCollateral to DependencyOnSelfCollateral,
+    // this dependency is strictly within DependencyOnSelfCollateral and is irrelevant when sorting dependencies
+    // at namespace scope.
+    A field = 1;
+  }
+
+  optional DependencyOnSelfCollateral field = 1;
+}

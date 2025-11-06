@@ -7,6 +7,9 @@ USERVER_NAMESPACE_BEGIN
 namespace {
 constexpr storages::redis::CommandControl kDefaultCc{std::chrono::milliseconds(500), std::chrono::milliseconds(500), 1};
 
+using storages::redis::ExpireOptions;
+using storages::redis::ExpireReply;
+
 class RedisClientTransactionTest : public RedisClientTest {
 public:
     auto& GetTransactionClient() {
@@ -221,10 +224,123 @@ UTEST_F(RedisClientTransactionTest, Expire) {
     auto& client = GetTransactionClient();
     Get(client->Set("mykey", "Hello"));
     EXPECT_EQ(Get(client->Expire("mykey", std::chrono::seconds(10))), storages::redis::ExpireReply::kTimeoutWasSet);
-    EXPECT_EQ(Get(client->Ttl("mykey")).GetExpireSeconds(), 10);
+    EXPECT_EQ(Get(client->Ttl("mykey")).GetExpire().count(), 10);
     Get(client->Set("mykey", "Hello World"));
     EXPECT_FALSE(Get(client->Ttl("mykey")).KeyHasExpiration());
 }
+
+struct ExpireOptionsTransactionTestCase {
+    std::optional<int> initial_expire;
+    int new_expire;
+    ExpireOptions options;
+    storages::redis::ExpireReply expected_reply;
+};
+
+class RedisExpireOptionsTransactionTest : public RedisClientTransactionTest,
+                                          public ::testing::WithParamInterface<ExpireOptionsTransactionTestCase> {};
+
+UTEST_P(RedisExpireOptionsTransactionTest, ExpireOptionsTest) {
+    const Version since{7, 0, 0};
+    if (!CheckVersion(since)) GTEST_SKIP() << SkipMsgByVersion("Expire options", since);
+
+    auto& client = GetTransactionClient();
+    auto [initial_expire, new_expire, options, expected_reply] = GetParam();
+
+    Get(client->Set("mykey", "Hello"));
+    if (initial_expire.has_value()) {
+        Get(client->Expire("mykey", std::chrono::seconds(initial_expire.value())));
+    }
+    EXPECT_EQ(Get(client->Expire("mykey", std::chrono::seconds(new_expire), options)), expected_reply);
+
+    switch (expected_reply) {
+        case ExpireReply::kKeyDoesNotExist:
+            if (initial_expire.has_value()) {
+                EXPECT_EQ(Get(client->Ttl("mykey")).GetExpire().count(), initial_expire.value());
+            } else {
+                EXPECT_FALSE(Get(client->Ttl("mykey")).KeyHasExpiration());
+            }
+            break;
+        case ExpireReply::kTimeoutWasSet:
+            EXPECT_EQ(Get(client->Ttl("mykey")).GetExpire().count(), new_expire);
+            break;
+    }
+}
+
+INSTANTIATE_UTEST_SUITE_P(
+    RedisClientTransactionTest,
+    RedisExpireOptionsTransactionTest,
+    testing::Values(
+        // initial_expire, new_expire, options, expected_reply
+        ExpireOptionsTransactionTestCase{
+            std::nullopt,
+            10,
+            ExpireOptions(ExpireOptions::Compare::kGreaterThan),
+            ExpireReply::kKeyDoesNotExist},
+        ExpireOptionsTransactionTestCase{
+            9,
+            10,
+            ExpireOptions(ExpireOptions::Compare::kGreaterThan),
+            ExpireReply::kTimeoutWasSet},
+        ExpireOptionsTransactionTestCase{
+            11,
+            10,
+            ExpireOptions(ExpireOptions::Compare::kGreaterThan),
+            ExpireReply::kKeyDoesNotExist},
+
+        ExpireOptionsTransactionTestCase{
+            std::nullopt,
+            20,
+            ExpireOptions(ExpireOptions::Compare::kLessThan),
+            ExpireReply::kTimeoutWasSet},
+        ExpireOptionsTransactionTestCase{
+            std::nullopt,
+            20,
+            ExpireOptions(ExpireOptions::Compare::kLessThan, ExpireOptions::Exist::kSetIfExist),
+            ExpireReply::kKeyDoesNotExist},
+        ExpireOptionsTransactionTestCase{
+            19,
+            20,
+            ExpireOptions(ExpireOptions::Compare::kLessThan),
+            ExpireReply::kKeyDoesNotExist},
+        ExpireOptionsTransactionTestCase{
+            21,
+            20,
+            ExpireOptions(ExpireOptions::Compare::kLessThan),
+            ExpireReply::kTimeoutWasSet},
+
+        ExpireOptionsTransactionTestCase{
+            std::nullopt,
+            30,
+            ExpireOptions(ExpireOptions::Exist::kSetIfExist),
+            ExpireReply::kKeyDoesNotExist},
+        ExpireOptionsTransactionTestCase{
+            29,
+            30,
+            ExpireOptions(ExpireOptions::Exist::kSetIfExist),
+            ExpireReply::kTimeoutWasSet},
+        ExpireOptionsTransactionTestCase{
+            31,
+            30,
+            ExpireOptions(ExpireOptions::Exist::kSetIfExist),
+            ExpireReply::kTimeoutWasSet},
+
+        ExpireOptionsTransactionTestCase{
+            std::nullopt,
+            40,
+            ExpireOptions(ExpireOptions::Exist::kSetIfNotExist),
+            ExpireReply::kTimeoutWasSet},
+        ExpireOptionsTransactionTestCase{
+            39,
+            40,
+            ExpireOptions(ExpireOptions::Exist::kSetIfNotExist),
+            ExpireReply::kKeyDoesNotExist},
+        ExpireOptionsTransactionTestCase{
+            41,
+            40,
+            ExpireOptions(ExpireOptions::Exist::kSetIfNotExist),
+            ExpireReply::kKeyDoesNotExist}
+    )
+);
 
 UTEST_F(RedisClientTransactionTest, Georadius) {
     auto& client = GetTransactionClient();
@@ -245,6 +361,22 @@ UTEST_F(RedisClientTransactionTest, Georadius) {
     EXPECT_EQ(result[0].dist, 190.4424);
     EXPECT_EQ(result[1].member, "Catania");
     EXPECT_EQ(result[1].dist, 56.4413);
+}
+
+UTEST_F(RedisClientTransactionTest, Geopos) {
+    auto& client = GetTransactionClient();
+    Get(client->Geoadd("Sicily", {{13.1, 38.2, "Palermo"}, {15.3, 37.4, "Catania"}}));
+
+    const auto result = Get(client->Geopos("Sicily", std::vector<std::string>{"Palermo", "Catania", "NonExisting"}));
+    const auto kGeoTolerance = 1e-5;
+    EXPECT_EQ(result.size(), 3);
+    EXPECT_TRUE(result[0].has_value());
+    EXPECT_TRUE(result[1].has_value());
+    EXPECT_FALSE(result[2].has_value());
+    EXPECT_NEAR(result[0].value().lon, 13.1, kGeoTolerance);
+    EXPECT_NEAR(result[0].value().lat, 38.2, kGeoTolerance);
+    EXPECT_NEAR(result[1].value().lon, 15.3, kGeoTolerance);
+    EXPECT_NEAR(result[1].value().lat, 37.4, kGeoTolerance);
 }
 
 UTEST_F(RedisClientTransactionTest, Getset) {
@@ -491,7 +623,7 @@ UTEST_F(RedisClientTransactionTest, Pexpire) {
     EXPECT_EQ(
         Get(client->Pexpire("key", std::chrono::milliseconds{1999})), storages::redis::ExpireReply::kTimeoutWasSet
     );
-    EXPECT_EQ(Get(client->Ttl("key")).GetExpireSeconds(), 2);
+    EXPECT_EQ(Get(client->Ttl("key")).GetExpire().count(), 2);
 }
 
 UTEST_F(RedisClientTransactionTest, Ping) {
@@ -577,7 +709,7 @@ UTEST_F(RedisClientTransactionTest, Setex) {
     auto& client = GetTransactionClient();
 
     EXPECT_NO_THROW(Get(client->Setex("key", std::chrono::seconds{10}, "value")));
-    EXPECT_EQ(Get(client->Ttl("key")).GetExpireSeconds(), 10);
+    EXPECT_EQ(Get(client->Ttl("key")).GetExpire().count(), 10);
 }
 
 UTEST_F(RedisClientTransactionTest, Sismember) {

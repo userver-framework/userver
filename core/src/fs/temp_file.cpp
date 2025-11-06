@@ -1,6 +1,7 @@
 #include <userver/fs/temp_file.hpp>
 
 #include <userver/engine/async.hpp>
+#include <userver/logging/log.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -27,7 +28,13 @@ TempFile::Create(std::string_view parent_path, std::string_view name_prefix, eng
     };
 }
 
-TempFile::~TempFile() { std::move(*this).Remove(); }
+TempFile::~TempFile() noexcept {
+    try {
+        std::move(*this).Remove();
+    } catch (const std::exception& ex) {
+        LOG_ERROR() << "fs::~TempFile failed with exception:" << ex;
+    }
+}
 
 TempFile TempFile::Adopt(std::string path, engine::TaskProcessor& fs_task_processor) {
     return {fs_task_processor, blocking::TempFile::Adopt(std::move(path))};

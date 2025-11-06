@@ -16,7 +16,7 @@ public:
     void Flush() override {}
 };
 
-void tracing_noop_ctr(benchmark::State& state) {
+void TracingNoopCtr(benchmark::State& state) {
     engine::RunStandalone([&] {
         for ([[maybe_unused]] auto _ : state) {
             tracing::Span tmp = tracing::Span::MakeRootSpan("name");
@@ -25,9 +25,9 @@ void tracing_noop_ctr(benchmark::State& state) {
         }
     });
 }
-BENCHMARK(tracing_noop_ctr);
+BENCHMARK(TracingNoopCtr);
 
-void tracing_happy_log(benchmark::State& state) {
+void TracingHappyLog(benchmark::State& state) {
     const logging::DefaultLoggerGuard guard{std::make_shared<NoopLogger>()};
 
     engine::RunStandalone([&] {
@@ -37,7 +37,7 @@ void tracing_happy_log(benchmark::State& state) {
         }
     });
 }
-BENCHMARK(tracing_happy_log);
+BENCHMARK(TracingHappyLog);
 
 tracing::Span GetSpanWithOpentracingHttpTags() {
     auto span = tracing::Span::MakeRootSpan("name");
@@ -47,7 +47,7 @@ tracing::Span GetSpanWithOpentracingHttpTags() {
     return span;
 }
 
-void tracing_opentracing_ctr(benchmark::State& state) {
+void TracingOpentracingCtr(benchmark::State& state) {
     auto logger = logging::MakeNullLogger();
     engine::RunStandalone([&] {
         for ([[maybe_unused]] auto _ : state) {
@@ -56,7 +56,7 @@ void tracing_opentracing_ctr(benchmark::State& state) {
         }
     });
 }
-BENCHMARK(tracing_opentracing_ctr);
+BENCHMARK(TracingOpentracingCtr);
 
 }  // namespace
 

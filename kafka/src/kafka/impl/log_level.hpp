@@ -6,7 +6,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace kafka::impl {
 
-logging::Level convertRdKafkaLogLevelToLoggingLevel(int log_level) noexcept;
+logging::Level ConvertRdKafkaLogLevelToLoggingLevel(int log_level) noexcept;
 
 }
 

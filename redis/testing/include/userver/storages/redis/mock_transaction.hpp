@@ -45,9 +45,13 @@ public:
 
     RequestExpire Expire(std::string key, std::chrono::seconds ttl) override;
 
+    RequestExpire Expire(std::string key, std::chrono::seconds ttl, ExpireOptions options) override;
+
     RequestGeoadd Geoadd(std::string key, GeoaddArg point_member) override;
 
     RequestGeoadd Geoadd(std::string key, std::vector<GeoaddArg> point_members) override;
+
+    RequestGeopos Geopos(std::string key, std::vector<std::string> members) override;
 
     RequestGeoradius Georadius(
         std::string key,

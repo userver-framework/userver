@@ -1,6 +1,0 @@
-default: true
-description: |
-    Whether task-inherited deadline should be accounted for
-    while executing mongodb queries.
-schema:
-    type: boolean

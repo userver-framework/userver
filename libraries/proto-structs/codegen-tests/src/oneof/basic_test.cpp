@@ -32,15 +32,12 @@ TEST(OneofBasic, LowercaseFundamentalTypes) {
     );
 }
 
-// TODO enable once fields of message and enum types are implemented.
-#if 0
-
 TEST(OneofBasic, LowercaseMessage) {
     oneof::structs::Parent message;
 
     message.lowercase.set_message1(oneof::structs::Message1{.field = "text"});
     EXPECT_TRUE(message.lowercase.has_message1());
-    EXPECT_EQ(message.lowecase.message1().field, "text");
+    EXPECT_EQ(message.lowercase.message1().field, "text");
 
     message.lowercase.set_message2({.field = "text"});
     EXPECT_TRUE(message.lowercase.has_message2());
@@ -50,16 +47,14 @@ TEST(OneofBasic, LowercaseMessage) {
 TEST(OneofBasic, LowercaseEnum) {
     oneof::structs::Parent message;
 
-    message.lowercase.set_enum1(oneof::structs::Enum1::ENUM1_FOO);
+    message.lowercase.set_enum1(oneof::structs::Enum1::kFoo);
     EXPECT_TRUE(message.lowercase.has_enum1());
-    EXPECT_EQ(message.lowercase.enum1(), oneof::structs::Enum1::ENUM1_FOO);
+    EXPECT_EQ(message.lowercase.enum1(), oneof::structs::Enum1::kFoo);
 
-    message.lowercase.set_enum2(oneof::structs::Parent::Enum2::ENUM2_FOO);
+    message.lowercase.set_enum2(oneof::structs::Parent::Enum2::kFoo);
     EXPECT_TRUE(message.lowercase.has_enum2());
-    EXPECT_EQ(message.lowercase.enum2(), oneof::structs::Parent::Enum2::ENUM2_FOO);
+    EXPECT_EQ(message.lowercase.enum2(), oneof::structs::Parent::Enum2::kFoo);
 }
-
-#endif
 
 TEST(OneofBasic, Uppercase) {
     oneof::structs::Parent message;

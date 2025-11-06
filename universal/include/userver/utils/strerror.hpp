@@ -10,10 +10,10 @@ USERVER_NAMESPACE_BEGIN
 namespace utils {
 
 /// MT-safe version of POSIX function `::strerror`
-std::string strerror(int return_code);
+std::string strerror(int return_code);  // NOLINT(readability-identifier-naming)
 
 /// MT-safe version of POSIX function `::strsignal`
-std::string strsignal(int signal_num);
+std::string strsignal(int signal_num);  // NOLINT(readability-identifier-naming)
 
 }  // namespace utils
 

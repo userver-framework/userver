@@ -16,8 +16,11 @@ namespace utils::jemalloc {
 namespace {
 
 #ifndef USERVER_FEATURE_JEMALLOC_ENABLED
+
+// NOLINTNEXTLINE(readability-identifier-naming)
 int mallctl(const char*, void*, size_t*, void*, size_t) { return ENOTSUP; }
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 void malloc_stats_print(void (*write_cb)(void*, const char*), void* je_cbopaque, const char*) {
     write_cb(je_cbopaque, "(libjemalloc support is disabled)");
 }

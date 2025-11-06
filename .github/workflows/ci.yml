@@ -82,11 +82,11 @@ jobs:
                     tests-flags: ''
                     tests-env: ''
 
-                  # GCC-9 - testing minimal required compiler
+                  # GCC-10 - testing minimal required compiler
                   - cmake-flags: >-
                         -GNinja
-                        -DCMAKE_CXX_COMPILER=g++-9
-                        -DCMAKE_C_COMPILER=gcc-9
+                        -DCMAKE_CXX_COMPILER=g++-10
+                        -DCMAKE_C_COMPILER=gcc-10
                         -DCMAKE_BUILD_TYPE=Release
                         -DCMAKE_CXX_STANDARD=17
                         -DUSERVER_USE_LD=gold
@@ -95,9 +95,9 @@ jobs:
                         -DUSERVER_BUILD_TESTS=1
                         -DUSERVER_NO_WERROR=1
                     os: ubuntu-22.04
-                    info: g++-9 + release
-                    id: ubuntu22_gcc9_release
-                    tests-flags: ''
+                    info: g++-10 + release
+                    id: ubuntu22_gcc10_release
+                    tests-flags: '--gtest_filter=-StackUsageMonitorTest.BacktraceLogging'
                     tests-env: ''
 
         name: '${{matrix.os}}: ${{matrix.info}}'
@@ -286,8 +286,6 @@ jobs:
                 ctest -V
 
           - name: Run tests (mongo)
-            # libbson unnecessarily overaligns structures and GCC-9 does not support overaligned new
-            if: matrix.info != 'g++-9 + release'
             run: |
                 sudo apt install -y mongodb-mongosh
                 cd build_debug

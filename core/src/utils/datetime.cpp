@@ -24,30 +24,13 @@ namespace {
 
 std::optional<cctz::time_zone> DoGetOptionalTimezone(const std::string& tzname) {
 #if defined(BSD) && !defined(__APPLE__)
-    if (tzname == "GMT") return GetOptionalTimezone("UTC");
+    if (tzname == "GMT") return DoGetOptionalTimezone("UTC");
 #endif
     cctz::time_zone tz;
     if (!load_time_zone(tzname, &tz)) {
         return std::nullopt;
     }
     return tz;
-}
-
-std::optional<cctz::time_zone> GetOptionalTimezone(const std::string& tzname) {
-    if (engine::current_task::IsTaskProcessorThread()) {
-        static rcu::RcuMap<std::string, std::optional<cctz::time_zone>> map;
-        auto it = map.Get(tzname);
-        if (it) return *it;
-
-        // DoGetOptionalTimezone() may access filesystem, run it in blocking task processor
-        auto [value, _] =
-            map.Emplace(tzname, engine::AsyncNoSpan(engine::current_task::GetBlockingTaskProcessor(), [&tzname] {
-                                    return DoGetOptionalTimezone(tzname);
-                                }).Get());
-        return *value;
-    } else {
-        return DoGetOptionalTimezone(tzname);
-    }
 }
 
 cctz::time_zone GetTimezone(const std::string& tzname) {
@@ -57,6 +40,7 @@ cctz::time_zone GetTimezone(const std::string& tzname) {
     }
     return *tz;
 }
+
 }  // namespace
 
 std::string
@@ -97,6 +81,23 @@ cctz::civil_second Localize(const std::chrono::system_clock::time_point& tp, con
 
 time_t Unlocalize(const cctz::civil_second& local_tp, const std::string& timezone) {
     return Timestamp(cctz::convert(local_tp, GetTimezone(timezone)));
+}
+
+std::optional<cctz::time_zone> GetOptionalTimezone(const std::string& tzname) {
+    if (engine::current_task::IsTaskProcessorThread()) {
+        static rcu::RcuMap<std::string, std::optional<cctz::time_zone>> map;
+        auto it = map.Get(tzname);
+        if (it) return *it;
+
+        // DoGetOptionalTimezone() may access filesystem, run it in blocking task processor
+        auto [value, _] =
+            map.Emplace(tzname, engine::AsyncNoSpan(engine::current_task::GetBlockingTaskProcessor(), [&tzname] {
+                                    return DoGetOptionalTimezone(tzname);
+                                }).Get());
+        return *value;
+    } else {
+        return DoGetOptionalTimezone(tzname);
+    }
 }
 
 }  // namespace utils::datetime

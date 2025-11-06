@@ -66,6 +66,9 @@ ParseReplyDataArray(ReplyData&& array_data, const std::string& request_descripti
 std::vector<GeoPoint>
 ParseReplyDataArray(ReplyData&& array_data, const std::string& request_description, To<std::vector<GeoPoint>>);
 
+std::vector<std::optional<Point>>
+ParseReplyDataArray(ReplyData&& array_data, const std::string& request_description, To<std::vector<std::optional<Point>>>);
+
 std::string Parse(ReplyData&& reply_data, const std::string& request_description, To<std::string>);
 
 double Parse(ReplyData&& reply_data, const std::string& request_description, To<double>);
@@ -90,6 +93,8 @@ void Parse(ReplyData&& reply_data, const std::string& request_description, To<St
 bool Parse(ReplyData&& reply_data, const std::string& request_description, To<std::optional<StatusOk>, bool>);
 
 void Parse(ReplyData&& reply_data, const std::string& request_description, To<StatusPong, void>);
+
+Point Parse(ReplyData&& reply_data, const std::string& request_description, To<Point>);
 
 SetReply Parse(ReplyData&& reply_data, const std::string& request_description, To<SetReply>);
 

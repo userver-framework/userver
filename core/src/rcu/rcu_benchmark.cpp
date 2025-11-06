@@ -15,7 +15,7 @@
 USERVER_NAMESPACE_BEGIN
 
 template <int VariableCount>
-void rcu_read(benchmark::State& state) {
+void RcuRead(benchmark::State& state) {
     engine::RunStandalone([&] {
         rcu::Variable<std::uint64_t> vars[VariableCount];
         {
@@ -34,12 +34,12 @@ void rcu_read(benchmark::State& state) {
         }
     });
 }
-BENCHMARK_TEMPLATE(rcu_read, 1);
-BENCHMARK_TEMPLATE(rcu_read, 2);
-BENCHMARK_TEMPLATE(rcu_read, 4);
+BENCHMARK_TEMPLATE(RcuRead, 1);
+BENCHMARK_TEMPLATE(RcuRead, 2);
+BENCHMARK_TEMPLATE(RcuRead, 4);
 
 template <int VariableCount>
-void rcu_write(benchmark::State& state) {
+void RcuWrite(benchmark::State& state) {
     engine::RunStandalone([&] {
         rcu::Variable<std::uint64_t> vars[VariableCount];
 
@@ -50,11 +50,11 @@ void rcu_write(benchmark::State& state) {
         }
     });
 }
-BENCHMARK_TEMPLATE(rcu_write, 1);
-BENCHMARK_TEMPLATE(rcu_write, 2);
-BENCHMARK_TEMPLATE(rcu_write, 4);
+BENCHMARK_TEMPLATE(RcuWrite, 1);
+BENCHMARK_TEMPLATE(RcuWrite, 2);
+BENCHMARK_TEMPLATE(RcuWrite, 4);
 
-void rcu_contention(benchmark::State& state) {
+void RcuContention(benchmark::State& state) {
     const std::size_t readers_count = state.range(0);
     const std::size_t writers_count = state.range(1);
     const std::size_t kept_readable_pointers_count = state.range(2);
@@ -112,12 +112,9 @@ void rcu_contention(benchmark::State& state) {
         }
     });
 }
-BENCHMARK(rcu_contention)
-    ->RangeMultiplier(2)
-    ->Ranges({{1, 16}, {0, 1}, {1, 4}})
-    ->Ranges({{2048, 2048}, {0, 1}, {1, 4}});
+BENCHMARK(RcuContention)->RangeMultiplier(2)->Ranges({{1, 16}, {0, 1}, {1, 4}})->Ranges({{2048, 2048}, {0, 1}, {1, 4}});
 
-void rcu_of_shared_ptr(benchmark::State& state) {
+void RcuOfSharedPtr(benchmark::State& state) {
     const std::size_t readers_count = state.range(0);
 
     engine::RunStandalone(readers_count, [&] {
@@ -131,6 +128,6 @@ void rcu_of_shared_ptr(benchmark::State& state) {
         });
     });
 }
-BENCHMARK(rcu_of_shared_ptr)->RangeMultiplier(2)->Range(1, 32);
+BENCHMARK(RcuOfSharedPtr)->RangeMultiplier(2)->Range(1, 32);
 
 USERVER_NAMESPACE_END

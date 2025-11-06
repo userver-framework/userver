@@ -176,6 +176,7 @@ using RequestExec = Request<ReplyData, void>;
 using RequestExists = Request<size_t>;
 using RequestExpire = Request<ExpireReply>;
 using RequestGeoadd = Request<size_t>;
+using RequestGeopos = Request<std::vector<std::optional<Point>>>;
 using RequestGeoradius = Request<std::vector<GeoPoint>>;
 using RequestGeosearch = Request<std::vector<GeoPoint>>;
 using RequestGet = Request<std::optional<std::string>>;

@@ -1,5 +1,6 @@
 #include <userver/utest/utest.hpp>
 
+#include <userver/formats/json/value_builder.hpp>
 #include <userver/ugrpc/proto_json.hpp>
 
 #include <tests/messages.pb.h>
@@ -40,6 +41,38 @@ UTEST(ProtoJson, MessageToJsonEmptyOptions) {
     ASSERT_TRUE(json.IsObject());
     EXPECT_FALSE(json.HasMember("greeting"));
     EXPECT_EQ(json["name"], formats::json::ValueBuilder("userver").ExtractValue());
+}
+
+UTEST(ProtoJson, JsonToMessageDefault) {
+    const auto json = formats::json::FromString(R"({"name":"userver","greeting":"hi"})");
+    const auto message = ugrpc::JsonToMessage<sample::ugrpc::GreetingResponse>(json);
+    EXPECT_EQ(message.name(), "userver");
+    EXPECT_EQ(message.greeting(), "hi");
+}
+
+UTEST(ProtoJson, JsonToMessageOptions) {
+    const auto json = formats::json::FromString(R"({"name":"userver","greeting":"hi", "garbage":"yay"})");
+    google::protobuf::util::JsonParseOptions options;
+    options.ignore_unknown_fields = true;
+    const auto message = ugrpc::JsonToMessage<sample::ugrpc::GreetingResponse>(json, options);
+    EXPECT_EQ(message.name(), "userver");
+    EXPECT_EQ(message.greeting(), "hi");
+}
+
+UTEST(ProtoJson, FromJsonStringDefault) {
+    const auto json_string = R"({"name":"userver","greeting":"hi"})";
+    const auto message = ugrpc::FromJsonString<sample::ugrpc::GreetingResponse>(json_string);
+    EXPECT_EQ(message.name(), "userver");
+    EXPECT_EQ(message.greeting(), "hi");
+}
+
+UTEST(ProtoJson, FromJsonStringOptions) {
+    const auto json_string = R"({"name":"userver","greeting":"hi", "garbage":"yay"})";
+    google::protobuf::util::JsonParseOptions options;
+    options.ignore_unknown_fields = true;
+    const auto message = ugrpc::FromJsonString<sample::ugrpc::GreetingResponse>(json_string, options);
+    EXPECT_EQ(message.name(), "userver");
+    EXPECT_EQ(message.greeting(), "hi");
 }
 
 USERVER_NAMESPACE_END

@@ -117,14 +117,14 @@ span(Container&& cont) -> span<std::remove_reference_t<decltype(*std::begin(cont
 
 /// A polyfill for std::as_bytes from C++20
 template <typename T>
-span<const std::byte> as_bytes(span<T> s) noexcept {
+span<const std::byte> as_bytes(span<T> s) noexcept {  // NOLINT(readability-identifier-naming)
     const auto* const data = reinterpret_cast<const std::byte*>(s.data());
     return {data, data + s.size() * sizeof(T)};
 }
 
 /// A polyfill for std::as_writable_bytes from C++20
 template <typename T, typename = std::enable_if_t<!std::is_const_v<T>>>
-span<std::byte> as_writable_bytes(span<T> s) noexcept {
+span<std::byte> as_writable_bytes(span<T> s) noexcept {  // NOLINT(readability-identifier-naming)
     auto* const data = reinterpret_cast<std::byte*>(s.data());
     return {data, data + s.size() * sizeof(T)};
 }

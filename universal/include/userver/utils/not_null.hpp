@@ -106,13 +106,13 @@ template <typename U>
 using UniqueRef = NotNull<std::unique_ptr<U>>;
 
 /// @brief An equivalent of `std::make_shared` for SharedRef.
-template <typename U, typename... Args>
+template <typename U, typename... Args, typename = std::enable_if_t<std::is_constructible_v<U, Args...>>>
 SharedRef<U> MakeSharedRef(Args&&... args) {
     return SharedRef<U>{std::make_shared<U>(std::forward<Args>(args)...)};
 }
 
 /// @brief An equivalent of `std::make_unique` for UniqueRef.
-template <typename U, typename... Args>
+template <typename U, typename... Args, typename = std::enable_if_t<std::is_constructible_v<U, Args...>>>
 UniqueRef<U> MakeUniqueRef(Args&&... args) {
     return UniqueRef<U>{std::make_unique<U>(std::forward<Args>(args)...)};
 }

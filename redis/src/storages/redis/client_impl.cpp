@@ -221,6 +221,18 @@ RequestExpire ClientImpl::Expire(std::string key, std::chrono::seconds ttl, cons
     );
 }
 
+RequestExpire ClientImpl::Expire(
+    std::string key,
+    std::chrono::seconds ttl,
+    ExpireOptions options,
+    const CommandControl& command_control
+) {
+    const auto shard = ShardByKey(key, command_control);
+    return CreateRequest<RequestExpire>(MakeRequest(
+        CmdArgs{"expire", std::move(key), ttl.count(), options}, shard, true, GetCommandControl(command_control)
+    ));
+}
+
 RequestGeoadd ClientImpl::Geoadd(std::string key, GeoaddArg point_member, const CommandControl& command_control) {
     auto shard = ShardByKey(key, command_control);
     return CreateRequest<RequestGeoadd>(MakeRequest(
@@ -233,6 +245,16 @@ ClientImpl::Geoadd(std::string key, std::vector<GeoaddArg> point_members, const 
     auto shard = ShardByKey(key, command_control);
     return CreateRequest<RequestGeoadd>(MakeRequest(
         CmdArgs{"geoadd", std::move(key), std::move(point_members)}, shard, true, GetCommandControl(command_control)
+    ));
+}
+
+RequestGeopos
+ClientImpl::Geopos(std::string key, std::vector<std::string> members, const CommandControl& command_control) {
+    if (members.empty())
+        return CreateDummyRequest<RequestGeopos>(std::make_shared<Reply>("geopos", ReplyData::Array{}));
+    const auto shard = ShardByKey(key, command_control);
+    return CreateRequest<RequestGeopos>(MakeRequest(
+        CmdArgs{"geopos", std::move(key), std::move(members)}, shard, false, GetCommandControl(command_control)
     ));
 }
 

@@ -65,11 +65,11 @@ private:
 
 public:
     WebSocketConnectionImpl(
-        std::unique_ptr<engine::io::RwBase> io_,
+        std::unique_ptr<engine::io::RwBase> io,
         const engine::io::Sockaddr& remote_addr,
         const Config& server_config
     )
-        : io_(std::move(io_)), remote_addr_(remote_addr), config_(server_config) {}
+        : io_(std::move(io)), remote_addr_(remote_addr), config_(server_config) {}
 
     ~WebSocketConnectionImpl() override { LOG_TRACE() << "Websocket connection closed"; }
 

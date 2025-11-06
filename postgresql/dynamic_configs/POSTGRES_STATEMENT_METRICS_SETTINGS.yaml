@@ -2,8 +2,8 @@ default: {}
 description: |
     Dynamic config that controls statement metrics settings for specific service.
 
-    Dictionary keys can be either the service **component name** (not database name!)
-    or `__default__`. The latter configuration is applied for every non-matching
+    Dictionary keys can be either the value of `name_alias` static configuration option of the PostgreSQL component
+    (**not database name!**) or `__default__`. The latter configuration is applied for every non-matching
     PostgreSQL component of the service.
 
     The value of `max_statement_metrics` controls the maximum size of LRU-cache

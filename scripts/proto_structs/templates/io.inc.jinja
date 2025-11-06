@@ -1,0 +1,203 @@
+{% import "utils.inc.jinja" as utils %}
+
+{% macro render_gen_node(node, context) %}
+{% if node.kind == "namespace" %}
+{{ do_render_namespace(node) -}}
+{% elif node.kind == "struct" %}
+{{ do_render_struct(node, context) -}}
+{% endif %}
+{% endmacro %}
+
+{% macro do_render_namespace(namespace) %}
+
+{% call utils.optional_namespace(namespace.short_name) %}
+{% for child in namespace.children %}
+{{ render_gen_node(child, namespace) -}}
+{% endfor %}
+
+{% endcall %}  {#- optional namespace -#}
+{% endmacro %}
+
+
+{% macro do_render_struct(node, context) %}
+
+// ---------- IO for {{ node.full_cpp_name() }} ----------
+{{ do_render_read(node, context) -}}
+{{ do_render_write_impl(node) -}}
+{{ do_render_write_const_ref(node, context) -}}
+{{ do_render_write_rvalue(node, context) -}}
+{% for child in node.nested_types %}
+{{ render_gen_node(child, context) -}}
+{% endfor %}
+{% endmacro %}
+
+{% macro do_render_vanilla(struct) %}
+::{{ struct.vanilla_full_name -}}
+{%- endmacro %}
+
+{% macro do_render_field_number(struct, field) %}
+{{ do_render_vanilla(struct) -}}::{{ field.field_number_name }}
+{%- endmacro %}
+
+{% macro do_render_field_set(struct, field) %}
+&{{ do_render_vanilla(struct) -}}::set_{{ field.short_vanilla_name }}
+{%- endmacro %}
+
+{% macro do_render_field_clear(struct, field) %}
+&{{ do_render_vanilla(struct)  -}}::clear_{{ field.short_vanilla_name }}
+{%- endmacro %}
+
+{% macro do_render_field_mutable(struct, field) %}
+&{{ do_render_vanilla(struct) -}}::mutable_{{ field.short_vanilla_name }}
+{%- endmacro %}
+
+{% macro do_render_ptr_getter(struct, field) %}
+&{{ do_render_vanilla(struct) -}}::{{ field.short_vanilla_name }}
+{%- endmacro %}
+
+{% macro do_render_ptr_has(struct, field) %}
+&{{ do_render_vanilla(struct) -}}::has_{{ field.short_vanilla_name }}
+{%- endmacro %}
+
+{% macro do_render_field_getter(struct, field, pass_has) %}
+USERVER_NAMESPACE::proto_structs::io::impl::CreateFieldGetter(msg, ::{{ struct.vanilla_full_name }}::{{ field.field_number_name }},
+{% filter indent(width=4, first=True) %}
+{{ do_render_ptr_getter(struct, field) -}} 
+{%- if pass_has -%},{{ do_render_ptr_has(struct, field) -}}{% endif %}
+)
+{% endfilter %}
+{%- endmacro %}
+
+{% macro do_render_read_field(struct, context, field) %}
+.{{ field.short_name }} = USERVER_NAMESPACE::proto_structs::io::impl::ReadField<decltype({{ struct.contextual_cpp_name(context=context) }}::{{ field.short_name }})>(ctx, 
+{% filter indent(width=4, first=True) %}
+{%- if field.read_kind == "other" %}
+{{ do_render_field_getter(struct, field, False) }}
+{%- elif field.read_kind == "optional" %}
+{{ do_render_field_getter(struct, field, True) }}
+{%- elif field.read_kind == "oneof" %}
+{%- for oneof_field in field.oneof_fields %} 
+{{ do_render_field_getter(struct, oneof_field, True) }}
+{%- if not loop.last -%},{%- endif %}
+{% endfor %}
+{% endif %}
+),
+{% endfilter %}
+{% endmacro %}
+
+{% macro do_render_read(struct, context) %}
+
+{{ struct.contextual_cpp_name(context=context) }} ReadProtoStruct(
+{% filter indent(width=4, first=True) %}
+[[maybe_unused]] USERVER_NAMESPACE::proto_structs::io::ReadContext& ctx,
+USERVER_NAMESPACE::proto_structs::io::To<{{ struct.contextual_cpp_name(context=context) }}>,
+[[maybe_unused]] const ::{{ struct.vanilla_full_name }}& msg) {
+return {
+{% filter indent(width=4, first=True) %}
+{%- for field in struct.fields %} 
+{{ do_render_read_field(struct, context, field) }}
+{% endfor %}
+{% endfilter %}
+};
+{% endfilter %}
+}
+{% endmacro %}
+
+
+{% macro do_render_string_setter(struct, field) %}
+USERVER_NAMESPACE::proto_structs::io::impl::CreateFieldSetter(
+{% filter indent(width=4, first=True) %}
+msg,
+{{ do_render_field_number(struct, field) }},
+{{ do_render_field_set(struct, field) }}<const std::string&>,
+{{ do_render_field_clear(struct, field) }}
+{% endfilter %}
+)
+{% endmacro %}
+
+{% macro do_render_simple_setter(struct, field) %}
+USERVER_NAMESPACE::proto_structs::io::impl::CreateFieldSetter(
+{% filter indent(width=4, first=True) %}
+msg, 
+{{ do_render_field_number(struct, field) }},
+{{ do_render_field_set(struct, field) }},
+{{ do_render_field_clear(struct, field)}}
+{% endfilter %}
+)
+{% endmacro %}
+
+{% macro do_render_message_setter(struct, field) %}
+USERVER_NAMESPACE::proto_structs::io::impl::CreateFieldSetter(
+{% filter indent(width=4, first=True) %}
+msg, 
+{{ do_render_field_number(struct, field) }},
+{{ do_render_field_mutable(struct, field) }},
+{{ do_render_field_clear(struct, field) }}
+{% endfilter %}
+)
+{% endmacro %}
+
+{% macro do_render_field_setter(struct, field) %}
+{% filter indent(width=4, first=True) %}
+{%- if field.write_kind == "other" %}
+{{ do_render_simple_setter(struct, field) }}
+{%- elif field.write_kind == "string" %}
+{{ do_render_string_setter(struct, field) }}
+{%- elif field.write_kind == "vector_map_message" %}
+{{ do_render_message_setter(struct, field) }}
+{%- elif field.write_kind == "oneof" %}
+{%- for oneof_field in field.oneof_fields %} 
+{{ do_render_field_setter(struct, oneof_field) }}
+{%- if not loop.last %},{% endif %}
+{% endfor %}
+{% endif %}
+{% endfilter %}
+{% endmacro %}
+
+{% macro do_render_write_field(struct, field) %}
+USERVER_NAMESPACE::proto_structs::io::impl::WriteField(ctx, std::forward<T>(obj).{{ field.short_name }},
+{{ do_render_field_setter(struct, field) }}
+);
+{% endmacro %}
+
+{% macro do_render_write_impl(struct) %}
+
+template<typename T>
+void WriteProtoStructImpl(
+{% filter indent(width=4, first=True) %}
+[[maybe_unused]] USERVER_NAMESPACE::proto_structs::io::WriteContext& ctx,
+[[maybe_unused]] T&& obj,
+[[maybe_unused]] ::{{ struct.vanilla_full_name }}& msg
+{% endfilter %}
+) {
+{% filter indent(width=4, first=True) %}
+{%- for field in struct.fields %} 
+{{ do_render_write_field(struct, field) }}
+{% endfor %}
+{% endfilter %}
+}
+{% endmacro %}
+
+{% macro do_render_write_const_ref(struct, context) %}
+
+void WriteProtoStruct(
+{% filter indent(width=4, first=True) %}
+USERVER_NAMESPACE::proto_structs::io::WriteContext& ctx,
+const {{ struct.contextual_cpp_name(context=context) }}& obj,
+::{{ struct.vanilla_full_name }}& msg) {
+WriteProtoStructImpl(ctx, obj, msg);
+{% endfilter %}
+}
+{% endmacro %}
+
+{% macro do_render_write_rvalue(struct, context) %}
+
+void WriteProtoStruct(
+{% filter indent(width=4, first=True) %}
+USERVER_NAMESPACE::proto_structs::io::WriteContext& ctx,
+{{ struct.contextual_cpp_name(context=context) }}&& obj,
+::{{ struct.vanilla_full_name }}& msg) {
+WriteProtoStructImpl(ctx, std::move(obj), msg);
+{% endfilter %}
+}
+{% endmacro %}

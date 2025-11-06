@@ -16,4 +16,11 @@ paths:
                                 type: object
                                 properties: {}
                                 additionalProperties: false
+    /test3:
+        get:
+            responses:
+                '200':
+                    description: OK
+                    content:
+                        application/json: {}
 components: {}

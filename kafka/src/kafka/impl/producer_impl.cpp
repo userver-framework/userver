@@ -47,7 +47,7 @@ void ProducerImpl::ErrorCallback(rd_kafka_resp_err_t error, const char* reason, 
 }
 
 void ProducerImpl::LogCallback(const char* facility, const char* message, int log_level) const {
-    LOG(convertRdKafkaLogLevelToLoggingLevel(log_level))
+    LOG(ConvertRdKafkaLogLevelToLoggingLevel(log_level))
         << logging::LogExtra{{{"kafka_callback", "log_callback"}, {"facility", facility}}} << message;
 }
 

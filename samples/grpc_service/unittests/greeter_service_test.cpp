@@ -17,9 +17,12 @@ protected:
     GreeterServiceTest() : service_(prefix_) {
         RegisterService(service_);
         StartServer();
+        generated_client_ = MakeClient<samples::api::GreeterServiceClient>();
     }
 
     ~GreeterServiceTest() override { StopServer(); }
+
+    samples::api::GreeterServiceClient& GetGeneratedClient() { return generated_client_.value(); }
 
 private:
     const std::string prefix_{"Hello"};
@@ -27,17 +30,17 @@ private:
     // detached from the component system and only depends on things obtainable
     // in gtest tests.
     samples::GreeterService service_;
+
+    std::optional<samples::api::GreeterServiceClient> generated_client_;
 };
 /// [service fixture]
 }  // namespace
 
 /// [service tests]
 UTEST_F(GreeterServiceTest, SayHelloDirectCall) {
-    const auto client = MakeClient<samples::api::GreeterServiceClient>();
-
     samples::api::GreetingRequest request;
     request.set_name("gtest");
-    const auto response = client.SayHello(request);
+    const auto response = GetGeneratedClient().SayHello(request);
 
     EXPECT_EQ(response.greeting(), "Hello, gtest!");
 }
@@ -46,7 +49,7 @@ UTEST_F(GreeterServiceTest, SayHelloCustomClient) {
     // We've made sure to separate some logic into samples::GreeterClient that is
     // detached from the component system, it only needs the gRPC client, which we
     // can create in gtest tests.
-    const samples::GreeterClient client{MakeClient<samples::api::GreeterServiceClient>()};
+    const samples::GreeterClient client{GetGeneratedClient()};
     const auto response = client.SayHello("gtest");
     EXPECT_EQ(response, "Hello, gtest!");
 }
@@ -54,7 +57,7 @@ UTEST_F(GreeterServiceTest, SayHelloCustomClient) {
 
 /// [service tests response stream]
 UTEST_F(GreeterServiceTest, SayHelloResponseStreamCustomClient) {
-    const samples::GreeterClient client{MakeClient<samples::api::GreeterServiceClient>()};
+    const samples::GreeterClient client{GetGeneratedClient()};
     const auto responses = client.SayHelloResponseStream("gtest");
     EXPECT_THAT(
         responses,
@@ -67,7 +70,7 @@ UTEST_F(GreeterServiceTest, SayHelloResponseStreamCustomClient) {
 
 /// [service tests request stream]
 UTEST_F(GreeterServiceTest, SayHelloRequestStreamCustomClient) {
-    const samples::GreeterClient client{MakeClient<samples::api::GreeterServiceClient>()};
+    const samples::GreeterClient client{GetGeneratedClient()};
 
     const std::vector<std::string_view> names = {"gtest", "!", "!", "!"};
     const auto response = client.SayHelloRequestStream(names);
@@ -78,7 +81,7 @@ UTEST_F(GreeterServiceTest, SayHelloRequestStreamCustomClient) {
 
 /// [service tests streams]
 UTEST_F(GreeterServiceTest, SayHelloStreamsCustomClient) {
-    const samples::GreeterClient client{MakeClient<samples::api::GreeterServiceClient>()};
+    const samples::GreeterClient client{GetGeneratedClient()};
 
     const std::vector<std::string_view> names = {"gtest", "!", "!", "!"};
     const auto responses = client.SayHelloStreams(names);
@@ -102,18 +105,26 @@ public:
         ::samples::api::GreetingRequest&& request,
         SayHelloResponseStreamWriter& writer
     ) override;
+
     SayHelloRequestStreamResult SayHelloRequestStream(CallContext& context, SayHelloRequestStreamReader& reader)
         override;
+
     SayHelloStreamsResult SayHelloStreams(CallContext& context, SayHelloStreamsReaderWriter& stream) override;
 };
 
 // Default-constructs GreeterMock.
-using GreeterClientTest = ugrpc::tests::ServiceFixture<GreeterMock>;
+class GreeterClientTest : public ugrpc::tests::ServiceFixture<GreeterMock> {
+protected:
+    samples::api::GreeterServiceClient& GetGeneratedClient() { return generated_client_; }
+
+private:
+    samples::api::GreeterServiceClient generated_client_{MakeClient<samples::api::GreeterServiceClient>()};
+};
 
 }  // namespace
 
 UTEST_F(GreeterClientTest, SayHelloMockedServiceCustomClient) {
-    const samples::GreeterClient client{MakeClient<samples::api::GreeterServiceClient>()};
+    const samples::GreeterClient client{GetGeneratedClient()};
     const auto response = client.SayHello("gtest");
     EXPECT_EQ(response, "Mocked response");
 }
@@ -138,7 +149,7 @@ GreeterMock::SayHelloResponseStreamResult GreeterMock::SayHelloResponseStream(
 }
 
 UTEST_F(GreeterClientTest, SayHelloResponseStreamMockedServiceCustomClient) {
-    const samples::GreeterClient client{MakeClient<samples::api::GreeterServiceClient>()};
+    const samples::GreeterClient client{GetGeneratedClient()};
     const auto responses = client.SayHelloResponseStream("gtest");
     EXPECT_THAT(
         responses,
@@ -161,7 +172,7 @@ GreeterMock::SayHelloRequestStream(CallContext& /*context*/, SayHelloRequestStre
 }
 
 UTEST_F(GreeterClientTest, SayHelloRequestStreamMockedServiceCustomClient) {
-    const samples::GreeterClient client{MakeClient<samples::api::GreeterServiceClient>()};
+    const samples::GreeterClient client{GetGeneratedClient()};
     const std::vector<std::string_view> names = {"gtest", "!", "!", "!"};
     auto response = client.SayHelloRequestStream(names);
     EXPECT_EQ(response, "Mocked response!!!");
@@ -183,7 +194,7 @@ GreeterMock::SayHelloStreams(CallContext& /*context*/, SayHelloStreamsReaderWrit
 }
 
 UTEST_F(GreeterClientTest, SayHelloStreamsMockedServiceCustomClient) {
-    const samples::GreeterClient client{MakeClient<samples::api::GreeterServiceClient>()};
+    const samples::GreeterClient client{GetGeneratedClient()};
 
     const std::vector<std::string_view> names = {"gtest", "!", "!", "!"};
     const auto responses = client.SayHelloStreams(names);

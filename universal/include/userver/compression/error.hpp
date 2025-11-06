@@ -21,7 +21,8 @@ public:
 
 class ErrWithCode : public DecompressionError {
 public:
-    explicit ErrWithCode(const char* errName) : DecompressionError(fmt::format("Decompression failed: {}", errName)) {}
+    explicit ErrWithCode(const char* err_name)
+        : DecompressionError(fmt::format("Decompression failed: {}", err_name)) {}
 };
 
 }  // namespace compression

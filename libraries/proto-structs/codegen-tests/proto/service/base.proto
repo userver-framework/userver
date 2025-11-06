@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package service;
+
+option go_package = "a.yandex-team.ru/taxi/uservices/userver/libraries/proto-structs/codegen-tests/proto/service;service";
+
+import "google/protobuf/empty.proto";
+
+import "simple/subdirectory/subdirectory.proto";
+import "simple/subdirectory/separate_enum.proto";
+
+service MyService {
+    // We should include SeparateEnumMessage in hpp, despite it is not used in structs.
+    rpc SayHello(simple.subdirectory.SubdirStruct) returns(simple.subdirectory.SeparateEnumMessage) {}
+    // rpc SayGoodby(SomeMessage) returns(google.protobuf.Empty) {}
+    rpc Goodbye(SomeMessage) returns(SomeMessage) {}
+}
+
+message SomeMessage {
+    simple.subdirectory.MyEnum subdir_enum = 1;
+}

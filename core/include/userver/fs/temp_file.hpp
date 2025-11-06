@@ -40,7 +40,7 @@ public:
     TempFile() = delete;
     TempFile(TempFile&& other) noexcept = default;
     TempFile& operator=(TempFile&& other) noexcept = default;
-    ~TempFile();
+    ~TempFile() noexcept;
 
     /// Take ownership of an existing file
     static TempFile Adopt(std::string path, engine::TaskProcessor& fs_task_processor);

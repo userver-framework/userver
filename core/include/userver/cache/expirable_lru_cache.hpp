@@ -121,6 +121,8 @@ public:
      */
     std::optional<Value> GetOptionalNoUpdate(const Key& key);
 
+    std::optional<impl::ExpirableValue<Value>> GetOptionalNoUpdateWithLastUpdateTime(const Key& key);
+
     void Put(const Key& key, const Value& value);
 
     void Put(const Key& key, Value&& value);
@@ -286,21 +288,28 @@ std::optional<Value> ExpirableLruCache<Key, Value, Hash, Equal>::GetOptionalUnex
 }
 
 template <typename Key, typename Value, typename Hash, typename Equal>
-std::optional<Value> ExpirableLruCache<Key, Value, Hash, Equal>::GetOptionalNoUpdate(const Key& key) {
-    auto now = utils::datetime::SteadyNow();
-    auto old_value = lru_.Get(key);
-
+std::optional<impl::ExpirableValue<Value>>
+ExpirableLruCache<Key, Value, Hash, Equal>::GetOptionalNoUpdateWithLastUpdateTime(const Key& key) {
+    const auto now = utils::datetime::SteadyNow();
+    const auto old_value = lru_.Get(key);
     if (old_value) {
         if (!IsExpired(old_value->update_time, now)) {
             impl::CacheHit(stats_);
-
-            return old_value->value;
+            return old_value;
         } else {
             impl::CacheStale(stats_);
         }
     }
     impl::CacheMiss(stats_);
+    return std::nullopt;
+}
 
+template <typename Key, typename Value, typename Hash, typename Equal>
+std::optional<Value> ExpirableLruCache<Key, Value, Hash, Equal>::GetOptionalNoUpdate(const Key& key) {
+    auto value_with_update_time = GetOptionalNoUpdateWithLastUpdateTime(key);
+    if (value_with_update_time.has_value()) {
+        return value_with_update_time->value;
+    }
     return std::nullopt;
 }
 

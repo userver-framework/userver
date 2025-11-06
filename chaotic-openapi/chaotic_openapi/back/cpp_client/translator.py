@@ -1,4 +1,6 @@
 import re
+import sys
+import traceback
 import typing
 from typing import Union
 
@@ -40,6 +42,7 @@ class Translator:
         except chaotic_error.BaseError:
             raise
         except BaseException as exc:
+            print(traceback.format_exc(), file=sys.stderr)
             raise chaotic_error.BaseError(
                 full_filepath=f'<{service.name}>',
                 infile_path='',
@@ -99,13 +102,13 @@ class Translator:
         if name.startswith('/components/schemas/'):
             return '{}::{}'.format(
                 self._spec.cpp_namespace,
-                name.split('/')[-1],
+                cpp_names.cpp_identifier(name.split('/')[-1]),
             )
 
         if name.startswith('/definitions/'):
             return '{}::{}'.format(
                 self._spec.cpp_namespace,
-                name.split('/')[-1],
+                cpp_names.cpp_identifier(name.split('/')[-1]),
             )
 
         match = re.fullmatch('/paths/\\[([^\\]]*)\\]/([a-zA-Z]*)/requestBody(/schema)?', name)
@@ -144,6 +147,16 @@ class Translator:
         match = re.fullmatch('/components/responses/([-a-zA-Z_0-9]*)/content/(.*)/schema', name)
         if match:
             return '{}::Response{}Body{}'.format(
+                self._spec.cpp_namespace,
+                match.group(1),
+                cpp_names.camel_case(
+                    cpp_names.cpp_identifier(match.group(2)),
+                ),
+            )
+
+        match = re.fullmatch('/components/responses/([-a-zA-Z_0-9]*)/headers/([^/]*)/schema', name)
+        if match:
+            return '{}::Response{}Header{}'.format(
                 self._spec.cpp_namespace,
                 match.group(1),
                 cpp_names.camel_case(
@@ -262,13 +275,14 @@ class Translator:
         for name, header in response.headers.items():
             headers.append(self._translate_parameter(header))
 
+        body = {}
+        for content_type, schema in response.content.items():
+            assert isinstance(schema.schema, chaotic_types.Schema)
+            body[content_type] = self._translate_single_schema(schema.schema)
         return types.Response(
             status=status,
             headers=headers,
-            body={
-                content_type: self._translate_single_schema(schema.schema)
-                for content_type, schema in response.content.items()
-            },
+            body=body,
         )
 
     def _translate_request_body(self, request_body: model.RequestBody) -> types.Body:

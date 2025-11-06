@@ -51,6 +51,9 @@ public:
     void Perform() { CallWithRetries(); }
 
     Response&& ExtractResponse() {
+        if (interrupted_) {
+            throw RpcInterruptedError(state_.GetCallName(), "UnaryCall");
+        }
         if (!done_) {
             throw RpcCancelledError{state_.GetCallName(), "UnaryCall"};
         }
@@ -66,7 +69,8 @@ private:
     void CallWithRetries() {
         const utils::FastScopeGuard commit_state_guard([this]() noexcept { state_.Commit(); });
 
-        const auto task_deadline = USERVER_NAMESPACE::server::request::GetTaskInheritedDeadline();
+        const auto deadline =
+            std::min(call_options_.GetDeadline(), USERVER_NAMESPACE::server::request::GetTaskInheritedDeadline());
         const int max_attempts = call_options_.GetAttempts();
         state_.GetSpan().AddTag(tracing::kMaxAttempts, max_attempts);
 
@@ -77,10 +81,20 @@ private:
             state_.GetSpan().AddTag(tracing::kAttempts, attempt);
             impl::SetupClientContext(state_, call_options_);
 
-            const bool completed = PerformAttempt();
-            if (!completed) {
+            const auto completion_status = PerformAttempt();
+            if (AttemptCompletionStatus::kCancelled == completion_status) {
                 break;
             }
+
+            if (AttemptCompletionStatus::kError == completion_status) {
+                OnInterrupted();
+                return;
+            }
+
+            UINVARIANT(
+                AttemptCompletionStatus::kOk == completion_status,
+                "Status becomes available for successfully completed attempt only"
+            );
 
             if (status_.ok()) {
                 OnDone(status_);
@@ -93,7 +107,7 @@ private:
             }
 
             const auto delay = retry_backoff.NextAttemptDelay();
-            if (task_deadline.IsReachable() && task_deadline.TimeLeft() <= delay) {
+            if (deadline.IsReachable() && deadline.TimeLeft() <= delay) {
                 OnDone(status_);
                 return;
             }
@@ -111,7 +125,12 @@ private:
         return call;
     }
 
-    bool PerformAttempt() {
+    enum class AttemptCompletionStatus {
+        kOk,
+        kError,
+        kCancelled,
+    };
+    AttemptCompletionStatus PerformAttempt() {
         RunStartCallHooks();
 
         auto response_reader = StartCall();
@@ -121,19 +140,19 @@ private:
         const auto wait_status = invocation.Wait();
         if (ugrpc::impl::AsyncMethodInvocation::WaitStatus::kCancelled == wait_status) {
             state_.GetClientContext().TryCancel();
-            return false;
+            return AttemptCompletionStatus::kCancelled;
         }
 
-        if (status_.ok() && ugrpc::impl::AsyncMethodInvocation::WaitStatus::kError == wait_status) {
+        if (ugrpc::impl::AsyncMethodInvocation::WaitStatus::kError == wait_status) {
             // CompletionQueue returned ok=false. For Client-side Finish ok should always be true.
-            // If a GRPC status has been set despite ok=false, or if it has been set by a previous attempt, keep it.
-            // Otherwise, propagate ok=false to a failure status.
-            status_ = grpc::Status{grpc::StatusCode::INTERNAL, "Client-side Finish CompletionQueue status failed"};
+            // It signifies that RPC has interrupted in abnormal manner.
+            // Do not attempt further operations on the RPC.
+            return AttemptCompletionStatus::kError;
         }
 
         RunFinishHooks(status_);
 
-        return true;
+        return AttemptCompletionStatus::kOk;
     }
 
     void RunStartCallHooks() { impl::RunMiddlewarePipeline(state_, StartCallHooks(ToBaseMessage(&request_))); }
@@ -148,12 +167,24 @@ private:
         impl::SetStatusForSpan(state_.GetSpan(), status);
     }
 
+    void OnInterrupted() {
+        interrupted_ = true;
+        std::string error_message = "Call interrupted, Network error";
+        const auto debug_error_string = state_.GetClientContext().debug_error_string();
+        if (!debug_error_string.empty()) {
+            error_message += fmt::format("\nAdditional GRPC error information: {}", debug_error_string);
+        }
+        impl::SetErrorForSpan(state_.GetSpan(), error_message);
+        state_.GetStatsScope().OnNetworkError();
+        state_.GetStatsScope().Flush();
+    }
+
     void OnCancelled() {
         if (abandoned_) {
             impl::SetErrorForSpan(state_.GetSpan(), "Call abandoned");
         } else {
-            state_.GetStatsScope().OnCancelled();
             impl::SetErrorForSpan(state_.GetSpan(), "Call cancelled");
+            state_.GetStatsScope().OnCancelled();
         }
         state_.GetStatsScope().Flush();
     }
@@ -168,6 +199,7 @@ private:
     Response response_;
     grpc::Status status_;
     bool done_{false};
+    bool interrupted_{false};
 
     std::atomic<bool> abandoned_{false};
 };

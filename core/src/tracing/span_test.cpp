@@ -8,6 +8,7 @@
 #include <userver/tracing/opentelemetry.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/tracing/span_event.hpp>
+#include <userver/tracing/tags.hpp>
 #include <userver/tracing/tracer.hpp>
 #include <userver/utest/utest.hpp>
 #include <userver/utils/async.hpp>
@@ -187,24 +188,24 @@ UTEST_F(OpentracingSpan, Tags) {
     {
         tracing::Span span("span_name");
         span.AddTag("k", "v");
-        span.AddTag("meta_code", 200);
+        span.AddTag(tracing::kHttpResponseStatusCode, 200);
         span.AddTag("error", false);
-        span.AddTag("method", "POST");
+        span.AddTag(tracing::kHttpRequestMethod, "POST");
         span.AddTag("db.type", "postgres");
         span.AddTag("db.statement", "SELECT * ");
         span.AddTag("peer.address", "127.0.0.1:8080");
-        span.AddTag("http.url", "http://example.com/example");
+        span.AddTag(tracing::kUrlFull, "http://example.com/example");
     }
     FlushOpentracing();
     const auto log_str = GetOtStreamString();
     EXPECT_THAT(log_str, Not(HasSubstr("k=v")));
-    EXPECT_THAT(log_str, HasSubstr("http.status_code"));
+    EXPECT_THAT(log_str, HasSubstr("http.response.status_code"));
     EXPECT_THAT(log_str, HasSubstr("error"));
-    EXPECT_THAT(log_str, HasSubstr("http.method"));
+    EXPECT_THAT(log_str, HasSubstr("http.request.method"));
     EXPECT_THAT(log_str, HasSubstr("db.type"));
     EXPECT_THAT(log_str, HasSubstr("db.statement"));
-    EXPECT_THAT(log_str, HasSubstr("peer.address"));
-    EXPECT_THAT(log_str, HasSubstr("http.url"));
+    EXPECT_THAT(log_str, HasSubstr("server.address"));
+    EXPECT_THAT(log_str, HasSubstr("url.full"));
 }
 
 UTEST_F(OpentracingSpan, FromTracerWithServiceName) {
@@ -221,9 +222,9 @@ UTEST_F(OpentracingSpan, FromTracerWithServiceName) {
 UTEST_F(OpentracingSpan, TagFormat) {
     {
         tracing::Span span("span_name");
-        span.AddTag("meta_code", 200);
+        span.AddTag(tracing::kHttpResponseStatusCode, 200);
         span.AddTag("error", false);
-        span.AddTag("method", "POST");
+        span.AddTag(tracing::kHttpRequestMethod, "POST");
     }
     FlushOpentracing();
     const auto tags = GetTagsJson(GetOtStreamString());
@@ -231,11 +232,11 @@ UTEST_F(OpentracingSpan, TagFormat) {
     for (const auto& tag : tags) {
         CheckTagFormat(tag);
         const auto key = tag["key"].As<std::string>();
-        if (key == "http.status_code") {
+        if (key == "http.response.status_code") {
             CheckTagTypeAndValue(tag, "int64", "200");
         } else if (key == "error") {
             CheckTagTypeAndValue(tag, "bool", "0");
-        } else if (key == "http.method") {
+        } else if (key == "http.request.method") {
             CheckTagTypeAndValue(tag, "string", "POST");
         } else {
             FAIL() << "Got unknown key in tags: " << key;
@@ -920,7 +921,7 @@ UTEST_F(Span, IsCompatibleWithOpentelemetry) {
         tracing::opentelemetry::BuildTraceParentHeader(span.GetTraceId(), span.GetSpanId(), kFlags);
     ASSERT_TRUE(otel_header.has_value()) << otel_header.error();
 
-    const auto otel_data = tracing::opentelemetry::ExtractTraceParentData(otel_header.value());
+    const auto otel_data = tracing::opentelemetry::ExtractTraceParentDataView(otel_header.value());
     ASSERT_TRUE(otel_data.has_value()) << otel_data.error();
 
     EXPECT_EQ(otel_data.value().trace_id, span.GetTraceId());

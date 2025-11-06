@@ -141,6 +141,30 @@ void CmdWithArgs::PutArg(const SetOptions& arg) {
         args_.emplace_back("XX");
 }
 
+void CmdWithArgs::PutArg(const ExpireOptions& arg) {
+    switch (arg.exist) {
+        case ExpireOptions::Exist::kSetIfExist:
+            args_.emplace_back("XX");
+            break;
+        case ExpireOptions::Exist::kSetIfNotExist:
+            args_.emplace_back("NX");
+            break;
+        case ExpireOptions::Exist::kSetAlways:
+            break;
+    };
+
+    switch (arg.compare) {
+        case ExpireOptions::Compare::kGreaterThan:
+            args_.emplace_back("GT");
+            break;
+        case ExpireOptions::Compare::kLessThan:
+            args_.emplace_back("LT");
+            break;
+        case ExpireOptions::Compare::kNone:
+            break;
+    };
+}
+
 void CmdWithArgs::PutArg(const ZaddOptions& arg) {
     if (arg.exist == ZaddOptions::Exist::kAddIfNotExist)
         args_.emplace_back("NX");

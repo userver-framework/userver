@@ -68,23 +68,20 @@ std::string Client::Get(const Queue& queue, utils::Flags<Queue::Flags> flags, en
 void Client::Publish(
     const Exchange& exchange,
     const std::string& routing_key,
-    const std::string& message,
-    MessageType type,
+    const Envelope& envelope,
     engine::Deadline deadline
 ) {
-    ConnectionHelper::Publish(impl_->GetConnection(deadline), exchange, routing_key, message, type, deadline);
+    ConnectionHelper::Publish(impl_->GetConnection(deadline), exchange, routing_key, envelope, deadline);
 }
 
 void Client::PublishReliable(
     const Exchange& exchange,
     const std::string& routing_key,
-    const std::string& message,
-    MessageType type,
+    const Envelope& envelope,
     engine::Deadline deadline
 ) {
-    auto awaiter = ConnectionHelper::PublishReliable(
-        impl_->GetConnection(deadline), exchange, routing_key, message, type, deadline
-    );
+    auto awaiter =
+        ConnectionHelper::PublishReliable(impl_->GetConnection(deadline), exchange, routing_key, envelope, deadline);
     awaiter.Wait(deadline);
 }
 

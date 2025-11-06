@@ -14,7 +14,7 @@ async def _put_foo_value(service_client):
 
 
 async def test_works(service_client, put_foo_value, dynamic_config):
-    assert dynamic_config.get('MONGO_DEADLINE_PROPAGATION_ENABLED_V2')
+    assert dynamic_config.get('USERVER_DEADLINE_PROPAGATION_ENABLED')
 
     async with service_client.capture_logs() as capture:
         response = await service_client.get(
@@ -29,20 +29,3 @@ async def test_works(service_client, put_foo_value, dynamic_config):
     text = logs[0]['text']
     assert 'Operation cancelled: deadline propagation' in text, text
     assert 'storages::mongo::CancelledException' in text, text
-
-
-@pytest.mark.config(MONGO_DEADLINE_PROPAGATION_ENABLED_V2=False)
-async def test_disabled(service_client, put_foo_value, dynamic_config):
-    async with service_client.capture_logs() as capture:
-        response = await service_client.get(
-            '/v1/key-value?key=foo&sleep_ms=200',
-            headers={DP_TIMEOUT_MS: '100'},
-        )
-        assert response.status == 498
-        assert response.text == 'Deadline expired'
-
-    # The mongo request should be completed ignoring the fact that
-    # deadline has already expired.
-    logs = capture.select(_type='response', meta_type='/v1/key-value')
-    assert len(logs) == 1, logs
-    assert logs[0].get('dp_original_body', None) == 'bar', str(logs)

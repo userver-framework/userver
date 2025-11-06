@@ -1,5 +1,8 @@
 #include <userver/ugrpc/proto_json.hpp>
 
+#include <cstddef>
+
+#include <fmt/format.h>
 #include <grpcpp/support/config.h>
 #include <boost/container/small_vector.hpp>
 
@@ -9,9 +12,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc {
 
-namespace {
+namespace impl {
 
-const google::protobuf::util::JsonPrintOptions kOptions = []() {
+const google::protobuf::util::JsonPrintOptions kDefaultJsonPrintOptions = [] {
     google::protobuf::util::JsonPrintOptions options;
 #if GOOGLE_PROTOBUF_VERSION >= 5026001
     options.always_print_fields_with_no_presence = true;
@@ -20,10 +23,52 @@ const google::protobuf::util::JsonPrintOptions kOptions = []() {
 #endif
     return options;
 }();
-}  // namespace
+
+const google::protobuf::util::JsonParseOptions kDefaultJsonParseOptions = [] {
+    google::protobuf::util::JsonParseOptions options;
+    options.ignore_unknown_fields = false;
+    options.case_insensitive_enum_parsing = false;
+    return options;
+}();
+
+void FromJsonStringImpl(
+    std::string_view json_string,
+    google::protobuf::Message& output,
+    const google::protobuf::util::JsonParseOptions& options
+) {
+#if defined(ARCADIA_ROOT)
+    // JSON utils use y_absl::string_view.
+    const auto status = google::protobuf::util::JsonStringToMessage(
+        y_absl::string_view(json_string.data(), json_string.size()), &output, options
+    );
+#elif GOOGLE_PROTOBUF_VERSION >= 4022000
+    // JSON utils use absl::string_view.
+    const auto status = google::protobuf::util::JsonStringToMessage(
+        absl::string_view(json_string.data(), json_string.size()), &output, options
+    );
+#else
+    // JSON utils use StringPiece.
+    const auto status = google::protobuf::util::JsonStringToMessage(
+        google::protobuf::StringPiece(json_string.data(), json_string.size()), &output, options
+    );
+#endif
+
+    if (!status.ok()) {
+#if GOOGLE_PROTOBUF_VERSION >= 4022000
+        // JSON utils use absl::string_view.
+        const std::string_view message(status.message().data(), status.message().size());
+#else
+        // JSON utils use StringPiece.
+        const std::string_view message(status.message().data(), static_cast<std::size_t>(status.message().size()));
+#endif
+        throw formats::json::Exception(fmt::format("Cannot parse protobuf from string: {}", message));
+    }
+}
+
+}  // namespace impl
 
 formats::json::Value MessageToJson(const google::protobuf::Message& message) {
-    return MessageToJson(message, kOptions);
+    return MessageToJson(message, impl::kDefaultJsonPrintOptions);
 }
 
 formats::json::Value
@@ -31,9 +76,9 @@ MessageToJson(const google::protobuf::Message& message, const google::protobuf::
     return formats::json::FromString(ToJsonString(message, options));
 }
 
-std::string ToString(const google::protobuf::Message& message) { return message.DebugString(); }
-
-std::string ToJsonString(const google::protobuf::Message& message) { return ToJsonString(message, kOptions); }
+std::string ToJsonString(const google::protobuf::Message& message) {
+    return ToJsonString(message, impl::kDefaultJsonPrintOptions);
+}
 
 std::string
 ToJsonString(const google::protobuf::Message& message, const google::protobuf::util::JsonPrintOptions& options) {

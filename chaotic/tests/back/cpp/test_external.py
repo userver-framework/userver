@@ -1,3 +1,5 @@
+import pytest
+
 from chaotic.back.cpp import type_name
 from chaotic.back.cpp import types as cpp_types
 from chaotic.back.cpp.translator import Generator
@@ -63,3 +65,42 @@ def test_import(cpp_name_func, cpp_primitive_type):
             json_schema=new_schemas.schemas['vfull#/type2'],
         ),
     }
+
+
+def test_duplicate_name(cpp_name_func):
+    config = parser.ParserConfig(erase_prefix='')
+
+    schema_parser = parser.SchemaParser(
+        config=config,
+        full_filepath='full',
+        full_vfilepath='vfull',
+    )
+    schema_parser.parse_schema('/type1', {'type': 'string'})
+    schemas1 = schema_parser.parsed_schemas()
+
+    schema_parser = parser.SchemaParser(
+        config=config,
+        full_filepath='full2',
+        full_vfilepath='vfull2',
+    )
+    schema_parser.parse_schema('/type1', {'type': 'integer'})
+    schemas2 = schema_parser.parsed_schemas()
+
+    schemas = types.ParsedSchemas.merge([schemas1, schemas2])
+    rr = ref_resolver.RefResolver()
+    resolved_schemas = rr.sort_schemas(
+        schemas,
+    )
+
+    gen = Generator(
+        config=GeneratorConfig(
+            namespaces={'vfull': '', 'vfull2': ''}, include_dirs=None, infile_to_name_func=cpp_name_func
+        ),
+    )
+
+    with pytest.raises(
+        BaseException, match='Duplicate type name: ::type1, generated from vfull2#/type1 and vfull#/type1'
+    ):
+        gen.generate_types(
+            resolved_schemas,
+        )

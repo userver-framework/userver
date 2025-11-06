@@ -102,9 +102,19 @@ public:
 
     RequestExpire Expire(std::string key, std::chrono::seconds ttl, const CommandControl& command_control) override;
 
+    RequestExpire Expire(
+        std::string key,
+        std::chrono::seconds ttl,
+        ExpireOptions options,
+        const CommandControl& command_control
+    ) override;
+
     RequestGeoadd Geoadd(std::string key, GeoaddArg point_member, const CommandControl& command_control) override;
 
     RequestGeoadd Geoadd(std::string key, std::vector<GeoaddArg> point_members, const CommandControl& command_control)
+        override;
+
+    RequestGeopos Geopos(std::string key, std::vector<std::string> members, const CommandControl& command_control)
         override;
 
     RequestGeoradius Georadius(

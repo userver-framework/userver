@@ -1,5 +1,6 @@
 #pragma once
 
+#include <chrono>
 #include <cstdint>
 #include <string>
 
@@ -24,7 +25,8 @@ public:
 
     bool KeyExists() const;
     bool KeyHasExpiration() const;
-    size_t GetExpireSeconds() const;
+    [[deprecated("Use GetExpire() instead")]] size_t GetExpireSeconds() const { return GetExpire().count(); }
+    std::chrono::seconds GetExpire() const;
 
 private:
     int64_t value_;

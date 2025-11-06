@@ -217,7 +217,7 @@ UTEST(Rcu, ReadablePtrMoveAssign) {
 
 UTEST(Rcu, NoCopy) {
     struct X {
-        X(int x_, bool y_) : x(x_), y(y_) {}
+        X(int x, bool y) : x(x), y(y) {}
 
         X(X&&) = default;
         X(const X&) = delete;
@@ -588,6 +588,14 @@ TEST(Rcu, StdMutexChangeRead) {
 
     auto reader = ptr.Read();
     EXPECT_EQ(std::make_pair(3, 2), *reader);
+}
+
+TEST(Rcu, StdMutexWrite) {
+    std::thread new_thread{[] {
+        rcu::Variable<int, rcu::BlockingRcuTraits> v;
+        v.Assign(42);
+    }};
+    new_thread.join();
 }
 
 TEST(Rcu, StdMutexConcurrentWrites) {

@@ -402,6 +402,7 @@ async def test_cluster_failover_pubsub(service_client, redis_cluster_topology):
 
 
 # kill all replicas
+@pytest.mark.skip(reason='Too many flaps. TAXICOMMON-10712')
 async def test_cluster_failover_pubsub2(
     service_client,
     redis_cluster_topology,

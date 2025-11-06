@@ -26,7 +26,11 @@ class Redis {
 public:
     using State = RedisState;
 
-    Redis(const std::shared_ptr<engine::ev::ThreadPool>& thread_pool, const RedisCreationSettings& redis_settings);
+    Redis(
+        const std::shared_ptr<engine::ev::ThreadPool>& thread_pool,
+        const RedisCreationSettings& redis_settings,
+        const std::string& shard_group_name
+    );
     ~Redis();
 
     Redis(Redis&& o) = delete;

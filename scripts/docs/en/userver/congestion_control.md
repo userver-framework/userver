@@ -12,6 +12,8 @@ CC can run in `fake-mode` with no RPS limit (but FSM works). CC goes into `fake-
 * there are no reliable guarantees on CPU, in this case RPS-limit would be triggered too often,
 * service has no HTTP-handles others than server::handlers::Ping.
 
+`fake-mode` can be useful for more flexible traffic restriction settings, according to it's more complex logic, which can be implemented in a middleware.
+
 ## Usage
 
 congestion_control::Component can be useful if your service stops handling requests when overloaded, significantly increasing response time, responding with HTTP 500 codes to requests, eating memory.

@@ -43,6 +43,7 @@ using MiddlewareRunnerComponentBase = USERVER_NAMESPACE::middlewares::RunnerComp
 /// disable-user-pipeline-middlewares | flag to disable `groups::User` middlewares from pipeline | false
 /// disable-all-pipeline-middlewares | flag to disable all middlewares from pipeline | false
 /// middlewares | middlewares names to use | `{}` (use server defaults)
+/// status-codes-log-level | gRPC status code string -> span log level map | {}
 
 // clang-format on
 

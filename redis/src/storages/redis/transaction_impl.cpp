@@ -100,6 +100,11 @@ RequestExpire TransactionImpl::Expire(std::string key, std::chrono::seconds ttl)
     return AddCmd<RequestExpire>("expire", true, std::move(key), ttl.count());
 }
 
+RequestExpire TransactionImpl::Expire(std::string key, std::chrono::seconds ttl, ExpireOptions options) {
+    UpdateShard(key);
+    return AddCmd<RequestExpire>("expire", true, std::move(key), ttl.count(), options);
+}
+
 RequestGeoadd TransactionImpl::Geoadd(std::string key, GeoaddArg point_member) {
     UpdateShard(key);
     return AddCmd<RequestGeoadd>("geoadd", true, std::move(key), std::move(point_member));
@@ -108,6 +113,11 @@ RequestGeoadd TransactionImpl::Geoadd(std::string key, GeoaddArg point_member) {
 RequestGeoadd TransactionImpl::Geoadd(std::string key, std::vector<GeoaddArg> point_members) {
     UpdateShard(key);
     return AddCmd<RequestGeoadd>("geoadd", true, std::move(key), std::move(point_members));
+}
+
+RequestGeopos TransactionImpl::Geopos(std::string key, std::vector<std::string> members) {
+    UpdateShard(key);
+    return AddCmd<RequestGeopos>("geopos", false, std::move(key), std::move(members));
 }
 
 RequestGeoradius TransactionImpl::Georadius(

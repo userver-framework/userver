@@ -85,6 +85,7 @@ SentinelImpl::SentinelImpl(
     // https://github.com/boostorg/signals2/issues/59
     // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDelete)
     UASSERT_MSG(key_shard_, "key_shard should be provided");
+    log_extra_.Extend("shard_group_name", shard_group_name_);
     for (size_t i = 0; i < init_shards_->size(); ++i) {
         shards_[(*init_shards_)[i]] = i;
         connected_statuses_.push_back(std::make_unique<ConnectedStatus>());
@@ -92,7 +93,8 @@ SentinelImpl::SentinelImpl(
     UpdatePassword(password);
 
     Init();
-    LOG_DEBUG() << "Created SentinelImpl, shard_group_name=" << shard_group_name_ << ", cluster_mode=false";
+    LOG_DEBUG() << log_extra_ << "Created SentinelImpl, shard_group_name=" << shard_group_name_
+                << ", cluster_mode=false";
 }
 
 SentinelImpl::~SentinelImpl() { Stop(); }
@@ -127,7 +129,7 @@ void SentinelImpl::WaitConnectedOnce(RedisWaitConnected wait_connected) {
             if (wait_connected.throw_on_fail)
                 throw ClientNotConnectedException(msg);
             else
-                LOG_ERROR() << msg << ", starting with not ready Redis client";
+                LOG_ERROR() << log_extra_ << msg << ", starting with not ready Redis client";
         }
     }
 }
@@ -149,7 +151,7 @@ void SentinelImpl::Init() {
     // https://github.com/boostorg/signals2/issues/59
     // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDelete)
     sentinels_->SignalInstanceStateChange().connect([this](ServerId id, Redis::State state) {
-        LOG_TRACE() << "Signaled server " << id.GetDescription() << " state=" << StateToString(state);
+        LOG_TRACE() << log_extra_ << "Signaled server " << id.GetDescription() << " state=" << StateToString(state);
         if (state != Redis::State::kInit) ev_thread_.Send(watch_state_);
     });
 }
@@ -165,8 +167,10 @@ void SentinelImpl::InitShards(
         shard_options.shard_name = shard;
         shard_options.shard_group_name = shard_group_name_;
         shard_options.cluster_mode = false;
-        shard_options.ready_change_callback = [i, shard](bool ready) {
-            LOG_INFO() << "redis: ready_callback:"
+        shard_options.ready_change_callback = [i, shard, shard_group_name{shard_group_name_}](bool ready) {
+            logging::LogExtra log_extra;
+            log_extra.Extend("shard_group_name", shard_group_name);
+            LOG_INFO() << log_extra << "redis: ready_callback:"
                        << "  shard = " << i << "  shard_name = " << shard << "  ready = " << (ready ? "true" : "false");
         };
         auto object = std::make_shared<Shard>(std::move(shard_options));
@@ -178,7 +182,8 @@ void SentinelImpl::InitShards(
         // https://github.com/boostorg/signals2/issues/59
         // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDelete)
         object->SignalInstanceReady().connect([this, i](ServerId, bool read_only) {
-            LOG_TRACE() << "Signaled kConnected to sentinel: shard_idx=" << i << ", master=" << !read_only;
+            LOG_TRACE() << log_extra_ << "Signaled kConnected to sentinel: shard_idx=" << i
+                        << ", master=" << !read_only;
             if (!read_only)
                 connected_statuses_[i]->SetMasterReady();
             else
@@ -191,22 +196,23 @@ void SentinelImpl::InitShards(
 
 namespace {
 
-void InvokeCommand(CommandPtr command, ReplyPtr&& reply) {
+void InvokeCommand(CommandPtr command, ReplyPtr&& reply, const logging::LogExtra& log_extra) {
     UASSERT(reply);
     const CommandControlImpl cc{command->control};
     if (reply->server_id.IsAny()) {
         reply->server_id = cc.force_server_id;
     }
-    LOG_DEBUG() << "redis_request( " << CommandSpecialPrinter{command}
+    LOG_DEBUG() << log_extra << "redis_request( " << CommandSpecialPrinter{command}
                 << " ):" << (reply->status == ReplyStatus::kOk ? '+' : '-') << ":" << reply->time * 1000.0
                 << " cc: " << command->control.ToString() << command->GetLogExtra();
     ++command->invoke_counter;
     try {
         command->callback(command, reply);
     } catch (const std::exception& ex) {
-        LOG_WARNING() << "exception in command->callback, cmd=" << reply->cmd << " " << ex << command->log_extra;
+        LOG_WARNING() << log_extra << "exception in command->callback, cmd=" << reply->cmd << " " << ex
+                      << command->log_extra;
     } catch (...) {
-        LOG_WARNING() << "exception in command->callback, cmd=" << reply->cmd << command->log_extra;
+        LOG_WARNING() << log_extra << "exception in command->callback, cmd=" << reply->cmd << command->log_extra;
     }
 }
 
@@ -246,7 +252,7 @@ void SentinelImpl::AsyncCommand(const SentinelCommand& scommand, size_t prev_ins
     if (!AdjustDeadline(scommand, dynamic_config_source_.GetSnapshot())) {
         auto reply =
             std::make_shared<Reply>("", ReplyData::CreateError("Deadline propagation"), ReplyStatus::kTimeoutError);
-        InvokeCommand(scommand.command, std::move(reply));
+        InvokeCommand(scommand.command, std::move(reply), log_extra_);
         return;
     }
 
@@ -304,7 +310,7 @@ void SentinelImpl::AsyncCommand(const SentinelCommand& scommand, size_t prev_ins
             const std::chrono::duration<double> time = now - start;
             reply->time = time.count();
             command->args = std::move(ccommand->args);
-            InvokeCommand(command, std::move(reply));
+            InvokeCommand(command, std::move(reply), log_extra_);
             ccommand->args = std::move(command->args);
         },
         command->control,
@@ -327,7 +333,7 @@ void SentinelImpl::AsyncCommand(const SentinelCommand& scommand, size_t prev_ins
 size_t SentinelImpl::ShardByKey(const std::string& key) const {
     UASSERT(!master_shards_.empty());
     const size_t shard = key_shard_->ShardByKey(key);
-    LOG_TRACE() << "key=" << key << " shard=" << shard;
+    LOG_TRACE() << log_extra_ << "key=" << key << " shard=" << shard;
     return shard;
 }
 
@@ -387,7 +393,7 @@ void SentinelImpl::RefreshConnectionInfo() {
         ProcessCreationOfShards(master_shards_);
         ReadSentinels();
     } catch (const std::exception& ex) {
-        LOG_WARNING() << "exception in RefreshConnectionInfo: " << ex.what();
+        LOG_WARNING() << log_extra_ << "exception in RefreshConnectionInfo: " << ex.what();
     }
 
     /* FIXME: this should be called not every check_interval_,
@@ -420,14 +426,14 @@ void SentinelImpl::Stop() {
             while (!commands_.empty()) {
                 auto command = commands_.back().command;
                 for (const auto& args : command->args) {
-                    LOG_ERROR() << fmt::format("Killing request: {}", args.GetJoinedArgs(", "));
+                    LOG_ERROR() << log_extra_ << fmt::format("Killing request: {}", args.GetJoinedArgs(", "));
                     auto reply = std::make_shared<Reply>(
                         args.GetCommandName(),
                         ReplyData::CreateError("Stopping, killing commands remaining in send queue"),
                         ReplyStatus::kEndOfFileError
                     );
                     statistics_internal_.redis_not_ready++;
-                    InvokeCommand(command, std::move(reply));
+                    InvokeCommand(command, std::move(reply), log_extra_);
                 }
                 commands_.pop_back();
             }
@@ -463,7 +469,8 @@ void SentinelImpl::ReadSentinels() {
         GetHostsRequest(*sentinels_, GetPassword()),
         [this](const ConnInfoByShard& info, size_t requests_sent, size_t responses_parsed) {
             if (!CheckQuorum(requests_sent, responses_parsed)) {
-                LOG_WARNING() << "Too many 'sentinel masters' requests failed: requests_sent=" << requests_sent
+                LOG_WARNING() << log_extra_
+                              << "Too many 'sentinel masters' requests failed: requests_sent=" << requests_sent
                               << " responses_parsed=" << responses_parsed;
                 return;
             }
@@ -489,7 +496,7 @@ void SentinelImpl::ReadSentinels() {
 
             for (size_t idx = 0; idx < shard_found.size(); idx++) {
                 if (!shard_found[idx]) {
-                    LOG_WARNING() << "Shard with name=" << (*init_shards_)[idx]
+                    LOG_WARNING() << log_extra_ << "Shard with name=" << (*init_shards_)[idx]
                                   << " was not found in 'SENTINEL MASTERS' reply for "
                                      "shard_group_name="
                                   << shard_group_name_
@@ -505,7 +512,8 @@ void SentinelImpl::ReadSentinels() {
                     GetHostsRequest(*sentinels_, shard_conn.Name(), GetPassword()),
                     [this, watcher, shard](const ConnInfoByShard& info, size_t requests_sent, size_t responses_parsed) {
                         if (!CheckQuorum(requests_sent, responses_parsed)) {
-                            LOG_WARNING() << "Too many 'sentinel slaves' requests "
+                            LOG_WARNING() << log_extra_
+                                          << "Too many 'sentinel slaves' requests "
                                              "failed: requests_sent="
                                           << requests_sent << " responses_parsed=" << responses_parsed;
                             return;
@@ -562,7 +570,7 @@ bool SentinelImpl::SetConnectionInfo(ConnInfoMap info_by_shards, std::vector<std
                 std::vector<std::string> conn_strs;
                 conn_strs.reserve(info_iterator.second.size());
                 for (const auto& conn_str : info_iterator.second) conn_strs.push_back(conn_str.Fulltext());
-                LOG_INFO() << "Redis state changed for client=" << client_name_ << " shard=" << j->first
+                LOG_INFO() << log_extra_ << "Redis state changed for client=" << client_name_ << " shard=" << j->first
                            << ", now it is " << fmt::to_string(fmt::join(conn_strs, ", "))
                            << ", connections=" << shard_ptr->InstancesSize();
                 res = true;
@@ -611,7 +619,8 @@ void SentinelImpl::ProcessWaitingCommands() {
         waiting_commands.swap(commands_);
     }
     if (!waiting_commands.empty()) {
-        LOG_INFO() << "ProcessWaitingCommands client=" << client_name_ << " shard_group_name=" << shard_group_name_
+        LOG_INFO() << log_extra_ << "ProcessWaitingCommands client=" << client_name_
+                   << " shard_group_name=" << shard_group_name_
                    << " waiting_commands.size()=" << waiting_commands.size();
     }
 
@@ -627,7 +636,7 @@ void SentinelImpl::ProcessWaitingCommands() {
                     ReplyStatus::kTimeoutError
                 );
                 statistics_internal_.redis_not_ready++;
-                InvokeCommand(command, std::move(reply));
+                InvokeCommand(command, std::move(reply), log_extra_);
             }
         } else {
             AsyncCommand(scommand, kDefaultPrevInstanceIdx);

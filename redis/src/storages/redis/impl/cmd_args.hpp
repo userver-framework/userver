@@ -146,6 +146,7 @@ private:
     void PutArg(const ScoreOptions& arg);
     void PutArg(const RangeOptions& arg);
     void PutArg(const RangeScoreOptions& arg);
+    void PutArg(const ExpireOptions& arg);
 
     template <typename Arg>
     typename std::enable_if<std::is_arithmetic<Arg>::value, void>::type PutArg(const Arg& arg) {

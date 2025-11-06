@@ -13,6 +13,7 @@
 #include <engine/task/task_counter.hpp>
 #include <engine/task/task_processor_config.hpp>
 #include <engine/task/task_queue.hpp>
+#include <engine/task/task_queue_tsan.hpp>
 #include <engine/task/work_stealing_queue/task_queue.hpp>
 #include <userver/concurrent/impl/interference_shield.hpp>
 #include <userver/engine/impl/detached_tasks_sync_block.hpp>
@@ -58,9 +59,9 @@ public:
 
     const impl::TaskCounter& GetTaskCounter() const { return task_counter_; }
 
-    std::size_t GetTaskQueueSize() const;
+    std::size_t GetTaskQueueSize() const noexcept;
 
-    std::size_t GetWorkerCount() const { return workers_.size(); }
+    std::size_t GetWorkerCount() const noexcept { return workers_.size(); }
 
     void SetSettings(const TaskProcessorSettings& settings, const TaskProcessorProfilerSettings& profiler_settings);
 
@@ -113,7 +114,7 @@ private:
     concurrent::impl::InterferenceShield<impl::DetachedTasksSyncBlock> detached_contexts_{
         impl::DetachedTasksSyncBlock::StopMode::kCancel};
     concurrent::impl::InterferenceShield<OverloadedCache> overloaded_cache_;
-    std::variant<TaskQueue, WorkStealingTaskQueue> task_queue_;
+    std::variant<TaskQueue, WorkStealingTaskQueue, TaskQueueTSan> task_queue_;
     impl::TaskCounter task_counter_;
 
     const TaskProcessorConfig config_;

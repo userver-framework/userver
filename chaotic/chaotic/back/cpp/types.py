@@ -136,9 +136,14 @@ class CppType:
         if cpp_type == 'userver::utils::StrongTypedef' and parts[1][-1] == '>':
             cpp_type = parts[1].split(', ', 1)[0]
             includes.append('userver/utils/strong_typedef.hpp')
+        elif cpp_type == 'utils::StrongTypedef' and parts[1][-1] == '>':
+            # legacy uservices
+            cpp_type = parts[1].split(', ', 1)[0]
+            includes.append('userver/utils/strong_typedef.hpp')
 
         if cpp_type.startswith('::'):
             cpp_type = cpp_type[2:]
+
         includes.append('userver/chaotic/io/' + camel_to_snake_case(cpp_type.replace('::', '/')) + '.hpp')
 
         return includes

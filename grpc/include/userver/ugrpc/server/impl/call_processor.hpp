@@ -30,7 +30,9 @@ namespace ugrpc::server::impl {
 void SetupSpan(
     std::optional<tracing::InPlaceSpan>& span_storage,
     grpc::ServerContext& context,
-    std::string_view call_name
+    std::string_view call_name,
+    std::string_view service_name,
+    std::string_view method_name
 );
 
 grpc::Status ReportHandlerError(const std::exception& ex, CallState& state) noexcept;
@@ -87,7 +89,9 @@ public:
           service_(service),
           service_method_(service_method) {
         // TODO Move setting up Span a middleware?
-        SetupSpan(state_.span_storage, state_.server_context, state_.call_name);
+        SetupSpan(
+            state_.span_storage, state_.server_context, state_.call_name, state_.service_name, state_.method_name
+        );
     }
 
     void DoCall() {
