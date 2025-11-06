@@ -1,0 +1,76 @@
+# yaml
+components_manager:
+    task_processors:
+        main-task-processor:
+            worker_threads: 4
+
+        fs-task-processor:
+            worker_threads: 1
+
+    default_task_processor: main-task-processor
+
+    components:
+        server:
+            listener:
+                port: 8080
+                task_processor: main-task-processor
+                connection:
+                    http-version: '2'
+                    http2-session:
+                        max_concurrent_streams: 100
+                        max_frame_size: 16384
+                        initial_window_size: 65536
+            listener-monitor:
+                port: 8081
+                task_processor: main-task-processor
+        logging:
+            fs-task-processor: fs-task-processor
+            loggers:
+                default:
+                    file_path: '@stderr'
+                    level: error
+                    overflow_behavior: discard
+
+        http-client:
+            fs-task-processor: fs-task-processor
+            user-agent: $server-name
+            user-agent#fallback: 'userver-based-service 1.0'
+        dns-client:
+            fs-task-processor: fs-task-processor
+        testsuite-support:
+        tests-control:
+            path: /tests/{action}
+            method: POST
+            task_processor: main-task-processor
+            testpoint-timeout: 10s
+            testpoint-url: $mockserver/testpoint
+            throttling_enabled: false
+
+        handler-ping:
+            path: /ping
+            method: GET
+            task_processor: main-task-processor
+            throttling_enabled: false
+            url_trailing_slash: strict-match
+
+        etcd-client:
+            endpoints:
+              - http://localhost:2379
+            attempts: 2
+            request_timeout_ms: 500
+            watch_timeout_ms: 1000000
+
+        handler-v1-get:
+            path: /v1/get
+            method: POST
+            task_processor: main-task-processor
+
+        handler-v1-put:
+            path: /v1/put
+            method: PUT
+            task_processor: main-task-processor
+
+        handler-v1-watch:
+            path: /v1/watch
+            method: POST
+            task_processor: main-task-processor

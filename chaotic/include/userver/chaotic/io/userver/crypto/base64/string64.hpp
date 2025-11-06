@@ -5,6 +5,8 @@
 
 #include <string>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace crypto::base64 {
 
 // RFC4648
@@ -13,8 +15,6 @@ class String64 : public USERVER_NAMESPACE::utils::StrongTypedef<String64, std::s
 };
 
 }  // namespace crypto::base64
-
-USERVER_NAMESPACE_BEGIN
 
 namespace chaotic::convert {
 

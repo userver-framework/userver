@@ -1,0 +1,10 @@
+components:
+    schemas:
+        EtcdRangeResponse:
+            type: object
+            additionalProperties: true
+            properties:
+                kvs:
+                    type: array
+                    items:
+                        $ref: 'types.yaml#/components/schemas/RawKeyValueState'

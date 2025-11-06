@@ -1,0 +1,18 @@
+components:
+    schemas:
+        RawKeyValueState:
+            type: object
+            additionalProperties: true
+            required:
+              - key
+              - value
+              - version
+            properties:
+                key:
+                    type: string
+                    format: byte
+                value:
+                    type: string
+                    format: byte
+                version:
+                    type: string

@@ -51,7 +51,7 @@ def test_byte(simple_gen):
     assert types == {
         '::type': cpp_types.CppStringWithFormat(
             raw_cpp_type=type_name.TypeName('std::string'),
-            format_cpp_type='crypto::base64::String64',
+            format_cpp_type='userver::crypto::base64::String64',
             user_cpp_type=None,
             json_schema=None,
             nullable=False,

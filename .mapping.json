@@ -236,7 +236,7 @@
   "chaotic/include/userver/chaotic/dynamic_config_variable_bundle.hpp":"taxi/uservices/userver/chaotic/include/userver/chaotic/dynamic_config_variable_bundle.hpp",
   "chaotic/include/userver/chaotic/exception.hpp":"taxi/uservices/userver/chaotic/include/userver/chaotic/exception.hpp",
   "chaotic/include/userver/chaotic/io/boost/uuids/uuid.hpp":"taxi/uservices/userver/chaotic/include/userver/chaotic/io/boost/uuids/uuid.hpp",
-  "chaotic/include/userver/chaotic/io/crypto/base64/string64.hpp":"taxi/uservices/userver/chaotic/include/userver/chaotic/io/crypto/base64/string64.hpp",
+  "chaotic/include/userver/chaotic/io/userver/crypto/base64/string64.hpp":"taxi/uservices/userver/chaotic/include/userver/chaotic/io/crypto/base64/string64.hpp",
   "chaotic/include/userver/chaotic/io/decimal64/decimal.hpp":"taxi/uservices/userver/chaotic/include/userver/chaotic/io/decimal64/decimal.hpp",
   "chaotic/include/userver/chaotic/io/std/chrono/days.hpp":"taxi/uservices/userver/chaotic/include/userver/chaotic/io/std/chrono/days.hpp",
   "chaotic/include/userver/chaotic/io/std/chrono/duration.hpp":"taxi/uservices/userver/chaotic/include/userver/chaotic/io/std/chrono/duration.hpp",

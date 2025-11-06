@@ -140,6 +140,7 @@ option(USERVER_FEATURE_YDB "Provide asynchronous driver for YDB" "${USERVER_YDB_
 option(USERVER_FEATURE_OTLP "Provide asynchronous OTLP exporters" "${USERVER_LIB_ENABLED_DEFAULT}")
 option(USERVER_FEATURE_SQLITE "Provide asynchronous driver for SQLite" "${USERVER_LIB_ENABLED_DEFAULT}")
 option(USERVER_FEATURE_ODBC "Provide asynchronous wrapper around ODBC" "${USERVER_LIB_ENABLED_DEFAULT}")
+option(USERVER_FEATURE_ETCD "Provide asynchronous driver for etcd" "${USERVER_LIB_ENABLED_DEFAULT}")
 
 set(CMAKE_DEBUG_POSTFIX d)
 
@@ -315,6 +316,11 @@ if(USERVER_FEATURE_ODBC)
     _require_userver_core("USERVER_FEATURE_ODBC")
     add_subdirectory(odbc)
     list(APPEND USERVER_AVAILABLE_COMPONENTS odbc)
+endif()
+
+if (USERVER_FEATURE_ETCD)
+  _require_userver_core("USERVER_FEATURE_ETCD")
+  add_subdirectory(etcd)
 endif()
 
 add_subdirectory(libraries)
