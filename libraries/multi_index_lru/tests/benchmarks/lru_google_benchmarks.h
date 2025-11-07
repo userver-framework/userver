@@ -107,6 +107,7 @@ template<
     template<typename, typename, typename> class LRUCacheContainer
 >
 void google_benchmark() {
+#if __cplusplus >= 202002L
     using UserCache = LRUCacheContainer<
         User,
         indexed_by<
@@ -120,7 +121,7 @@ void google_benchmark() {
     lru_concept_assert_for_one_tag(UserCache, id_tag, int, User);
     lru_concept_assert_for_one_tag(UserCache, email_tag, std::string, User);
     lru_concept_assert_for_one_tag(UserCache, name_tag, std::string, User);
-
+#endif
     for (auto size : CACHE_SIZES) {
         ::benchmark::RegisterBenchmark(
             "GetOperations", 
