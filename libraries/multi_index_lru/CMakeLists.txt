@@ -13,6 +13,7 @@ userver_module(
 target_include_directories(userver-multi-index-lru
     PUBLIC
         ${Boost_INCLUDE_DIRS}
+    PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/tests/"
 )
 
