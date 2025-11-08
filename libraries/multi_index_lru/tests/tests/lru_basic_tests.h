@@ -52,22 +52,22 @@ void test_lru_users() {
     cache.emplace(User{3, "charlie@test.com", "Charlie"});
     
     // find by id
-    auto by_id = cache.template get<id_tag>().find(1);
+    [[maybe_unused]] auto by_id = cache.template get<id_tag>().find(1);
     assert((by_id != cache.template get<id_tag>().end()));
     assert((by_id->get().name == "Alice"));
     
     // find by email
-    auto by_email = cache.template get<email_tag>().find("bob@test.com");
+    [[maybe_unused]] auto by_email = cache.template get<email_tag>().find("bob@test.com");
     assert((by_email != cache.template get<email_tag>().end()));
     assert((by_email->get().id == 2));
     
     //find by name
-    auto by_name = cache.template get<name_tag>().find("Charlie");
+    [[maybe_unused]] auto by_name = cache.template get<name_tag>().find("Charlie");
     assert((by_name != cache.template get<name_tag>().end()));
     assert((by_name->get().email == "charlie@test.com"));
     
     //find by email
-    auto it = cache.template find<email_tag, std::string>("alice@test.com");
+    [[maybe_unused]] auto it = cache.template find<email_tag, std::string>("alice@test.com");
     assert((it != cache.template get<email_tag>().end()));
     
     //find by id
@@ -113,7 +113,7 @@ void test_lru_products() {
     cache.emplace(Product{"A1", "Laptop", 999.99});
     cache.emplace(Product{"A2", "Mouse", 29.99});
     
-    auto laptop = cache.template find<sku_tag, std::string>("A1");
+    [[maybe_unused]] auto laptop = cache.template find<sku_tag, std::string>("A1");
     assert((laptop != cache.template get<sku_tag>().end()));
     
     // A1 was used, so A2 should be ousted
