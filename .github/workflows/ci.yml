@@ -240,6 +240,13 @@ jobs:
                 cd build_debug
                 ./universal/userver-universal-unittest ${{matrix.tests-flags}}
 
+          - name: Run tests (libraries)
+            run: |
+                cd build_debug
+                mkdir libraries || :
+                cd libraries
+                ctest -V
+
           - name: Run tests (core)
             run: |
                 cd build_debug
