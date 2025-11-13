@@ -6,17 +6,26 @@
 #include <boost/multi_index/hashed_index.hpp>
 #include <boost/multi_index/mem_fun.hpp>
 
+#include <utility>
+#include <cstddef>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace multi_index_lru {
-using namespace boost::multi_index;
 
 namespace impl {
 template<typename Value>
 struct ValueWithHook
 {
-    Value value;
-    mutable boost::intrusive::list_member_hook<> list_hook;
+    using boost_list = boost::intrusive::list<
+                            ValueWithHook,
+                            boost::intrusive::member_hook<
+                                ValueWithHook,
+                                boost::intrusive::list_member_hook<>, 
+                                &ValueWithHook::list_hook
+                            >
+                        >;
+
     const ValueWithHook *GetPointerToSelf() const { return this; };
 
     explicit ValueWithHook(const Value& val) : value(val) {}
@@ -35,29 +44,20 @@ struct ValueWithHook
     
     Value* operator->() { return &value; }
     const Value* operator->() const { return &value; }
-    
-    Value& get() { return value; }
-    const Value& get() const { return value; }
 
-    using boost_list = boost::intrusive::list<
-                            ValueWithHook,
-                            boost::intrusive::member_hook<
-                                ValueWithHook,
-                                boost::intrusive::list_member_hook<>, 
-                                &ValueWithHook::list_hook
-                            >
-                        >;
-
-    void push_back_to_list(boost_list &lst) const {
-        lst.push_back(const_cast<ValueWithHook&>(*this));
+    void PushBackToList(boost_list &lst) {
+        lst.push_back(*this);
     }
 
-    void splice_in_list(boost_list &lst) const {
-        lst.splice(lst.end(), lst, lst.iterator_to(const_cast<ValueWithHook&>(*this)));
+    void SpliceInList(boost_list &lst) {
+        lst.splice(lst.end(), lst, lst.iterator_to(*this));
     }
+
+    Value value;
+    mutable boost::intrusive::list_member_hook<> list_hook;
 };
 
-struct internal_ptr_tag {};
+struct internalPtrTag {};
 } // namespace impl
 
 template<
@@ -66,41 +66,8 @@ template<
     typename Allocator = std::allocator<impl::ValueWithHook<Value>>
 >
 class LRUCacheContainer {
-private:
-    using CacheItem = impl::ValueWithHook<Value>;
-    using List =  boost::intrusive::list<
-                        CacheItem,
-                        boost::intrusive::member_hook<
-                            CacheItem,
-                            boost::intrusive::list_member_hook<>, 
-                            &CacheItem::list_hook
-                        >
-                    >;
-
-    using ExtendedIndexSpecifierList = typename boost::mpl::push_back<
-        IndexSpecifierList,
-        hashed_unique<
-            tag<impl::internal_ptr_tag>,
-            const_mem_fun<CacheItem, const CacheItem*, &CacheItem::GetPointerToSelf>
-        >
-    >::type;
-
-    using Container = multi_index_container<
-        CacheItem,
-        ExtendedIndexSpecifierList,
-        Allocator
-    >;
-
-    Container container;
-    size_t max_size;
-
-    List usage_list;
-    
 public:
-    using value_type = Value;
-    using cache_item_type = CacheItem;
-    
-    LRUCacheContainer(size_t max_size) : max_size(max_size) {}
+    explicit LRUCacheContainer(size_t max_size) : max_size(max_size) {}
     
     template<typename... Args>
     bool emplace(Args&&... args) {
@@ -112,9 +79,9 @@ public:
 
         auto &value = *result.first;
         if (result.second) {
-            value.push_back_to_list(usage_list);
+            value.PushBackToList(usage_list);
         } else {
-            value.splice_in_list(usage_list);
+            value.SpliceInList(usage_list);
         }
         return result.second;
     }
@@ -128,12 +95,12 @@ public:
     }
     
     template<typename Tag, typename Key>
-    typename Container::template index<Tag>::type::iterator find(const Key& key) {
+    auto find(const Key& key) {
         auto& primary_index = container.template get<Tag>();
         auto it = primary_index.find(key);
         
         if (it != primary_index.end()) {
-            it->splice_in_list(usage_list);
+            it->SpliceInList(usage_list);
         }
         
         return it;
@@ -180,13 +147,41 @@ public:
     }
     
 private:
+    using CacheItem = impl::ValueWithHook<Value>;
+    using List =  boost::intrusive::list<
+                        CacheItem,
+                        boost::intrusive::member_hook<
+                            CacheItem,
+                            boost::intrusive::list_member_hook<>, 
+                            &CacheItem::list_hook
+                        >
+                    >;
+
+    using ExtendedIndexSpecifierList = typename boost::mpl::push_back<
+        IndexSpecifierList,
+        boost::multi_index::hashed_unique<
+            boost::multi_index::tag<impl::internalPtrTag>,
+            boost::multi_index::const_mem_fun<CacheItem, const CacheItem*, &CacheItem::GetPointerToSelf>
+        >
+    >::type;
+
+    using Container = boost::multi_index::multi_index_container<
+        CacheItem,
+        ExtendedIndexSpecifierList,
+        Allocator
+    >;
+
     void evict_lru() {
         if (!usage_list.empty()) {
             CacheItem *ptr_to_erase = &*usage_list.begin();
             usage_list.erase(usage_list.begin());
-            container.template get<impl::internal_ptr_tag>().erase(ptr_to_erase);
+            container.template get<impl::internalPtrTag>().erase(ptr_to_erase);
         }
     }
+
+    Container container;
+    size_t max_size;
+    List usage_list;
 };
 } // namespace multi_index_lru
 
