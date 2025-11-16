@@ -17,6 +17,8 @@ namespace impl {
 template<typename Value>
 struct ValueWithHook
 {
+    Value value;
+    mutable boost::intrusive::list_member_hook<> list_hook;
     using boost_list = boost::intrusive::list<
                             ValueWithHook,
                             boost::intrusive::member_hook<
@@ -52,9 +54,6 @@ struct ValueWithHook
     void SpliceInList(boost_list &lst) {
         lst.splice(lst.end(), lst, lst.iterator_to(*this));
     }
-
-    Value value;
-    mutable boost::intrusive::list_member_hook<> list_hook;
 };
 
 struct internalPtrTag {};
@@ -67,6 +66,9 @@ template<
 >
 class LRUCacheContainer {
 public:
+    using iterator = typename Container::iterator;
+    using const_iterator = typename Container::const_iterator;
+
     explicit LRUCacheContainer(size_t max_size) : max_size(max_size) {}
     
     template<typename... Args>
@@ -145,6 +147,13 @@ public:
     void clear() {
         container.clear();
     }
+
+    iterator begin() { return container.begin(); }
+    iterator end() { return container.end(); }
+    const_iterator begin() const { return container.begin(); }
+    const_iterator end() const { return container.end(); }
+    const_iterator cbegin() const { return container.cbegin(); }
+    const_iterator cend() const { return container.cend(); }
     
 private:
     using CacheItem = impl::ValueWithHook<Value>;
