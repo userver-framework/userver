@@ -24,6 +24,8 @@ public:
 
     void ProcessInput(std::string_view sw);
 
+    void ProcessInput(std::istream& is);
+
     void PopMe(BaseParser& parser);
 
     [[noreturn]] void ThrowError(const std::string& err_msg);

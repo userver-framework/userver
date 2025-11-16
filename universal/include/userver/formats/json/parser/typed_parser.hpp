@@ -171,6 +171,22 @@ typename Parser::ResultType ParseSingle(Parser& parser, std::string_view input) 
     return result;
 }
 
+template <typename Parser>
+typename Parser::ResultType ParseSingle(Parser& parser, std::istream& is) {
+    using ResultType = typename Parser::ResultType;
+    ResultType result{};
+
+    parser.Reset();
+    SubscriberSink<ResultType> sink(result);
+    parser.Subscribe(sink);
+
+    ParserState state;
+    state.PushParser(parser);
+    state.ProcessInput(is);
+
+    return result;
+}
+
 }  // namespace impl
 
 template <typename T, typename Parser>

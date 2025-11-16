@@ -8,9 +8,11 @@
 
 #include <fmt/format.h>
 
+#include <userver/formats/json/parser/parser.hpp>
 #include <userver/formats/json/value.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 #include <userver/utils/fmt_compat.hpp>
+#include "parser/meta_parser.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -29,6 +31,26 @@ formats::json::Value FromString(std::string_view doc);
 
 /// Parse JSON from stream
 formats::json::Value FromStream(std::istream& is);
+
+/// Parse T from JSON string
+template <typename T, auto... Validators>
+auto FromStringAs(std::string_view doc) {
+    if (doc.empty()) {
+        throw ParseException("JSON document is empty");
+    }
+    auto saxParserChain = parser::CreateSaxParserChain<T, Validators...>();
+    return parser::impl::ParseSingle(saxParserChain, doc);
+};
+
+/// Parse T from JSON stream
+template <typename T, auto... Validators>
+auto FromStreamAs(std::istream& is) {
+    if (!is) {
+        throw BadStreamException(is);
+    }
+    auto saxParserChain = parser::CreateSaxParserChain<T, Validators...>();
+    return parser::impl::ParseSingle(saxParserChain, is);
+};
 
 /// Serialize JSON to stream
 void Serialize(const formats::json::Value& doc, std::ostream& os);
@@ -89,8 +111,8 @@ struct fmt::formatter<USERVER_NAMESPACE::formats::json::Value> : fmt::formatter<
     constexpr static auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
 
     template <typename FormatContext>
-    auto format(const USERVER_NAMESPACE::formats::json::Value& value, FormatContext& ctx)
-        USERVER_FMT_CONST->decltype(ctx.out()) {
+    auto format(const USERVER_NAMESPACE::formats::json::Value& value, FormatContext& ctx) USERVER_FMT_CONST
+        -> decltype(ctx.out()) {
         const USERVER_NAMESPACE::formats::json::impl::StringBuffer buffer(value);
         return fmt::format_to(ctx.out(), "{}", buffer.GetStringView());
     }

@@ -1251,6 +1251,134 @@ void JsonArrayToVariantParseBenchmark(benchmark::State& state) {
 }
 BENCHMARK(JsonArrayToVariantParseBenchmark)->Range(16, 4096);
 
+using ComplexStdContainer = std::vector<std::map<std::string, std::set<int>>>;
+
+std::string GenerateStdJson(size_t outer_size) {
+    std::string result = "[";
+    for (size_t i = 0; i < outer_size; ++i) {
+        result += R"({"data":[1,2,3,4,5],"ids":[10,20,30],"meta":[100,200]})";
+        if (i < outer_size - 1) result += ",";
+    }
+    result += "]";
+    return result;
+}
+
+void ValidateSetNotEmpty(const std::set<int>& s) {
+    if (s.empty()) {
+        __builtin_unreachable();
+    }
+}
+
+template <typename Container>
+void ValidateContainerNotEmpty(const Container& container) {
+    if (container.empty()) {
+        __builtin_unreachable();
+    }
+}
+
+void StdContainer_Dom(benchmark::State& state) {
+    const auto json_string = GenerateStdJson(state.range(0));
+    for (auto _ : state) {
+        auto value = formats::json::FromString(json_string);
+        auto result = value.As<ComplexStdContainer>();
+        benchmark::DoNotOptimize(result);
+    }
+}
+BENCHMARK(StdContainer_Dom)->RangeMultiplier(2)->Range(8, 512);
+
+void StdContainer_Sax(benchmark::State& state) {
+    const auto json_string = GenerateStdJson(state.range(0));
+    for (auto _ : state) {
+        auto result = formats::json::FromStringAs<ComplexStdContainer>(json_string);
+        benchmark::DoNotOptimize(result);
+    }
+}
+BENCHMARK(StdContainer_Sax)->RangeMultiplier(2)->Range(8, 512);
+
+void StdContainer_SaxWithValidators(benchmark::State& state) {
+    using namespace formats::json;
+    const auto json_string = GenerateStdJson(state.range(0));
+
+    using ValidatedSet = parser::WithValidators<std::set<int>, ValidateSetNotEmpty>;
+    using ValidatedMap = std::map<std::string, ValidatedSet>;
+    using ValidatedContainer = std::vector<ValidatedMap>;
+
+    for (auto _ : state) {
+        auto result = FromStringAs<ValidatedContainer, ValidateContainerNotEmpty<ComplexStdContainer>>(json_string);
+        benchmark::DoNotOptimize(result);
+    }
+}
+BENCHMARK(StdContainer_SaxWithValidators)->RangeMultiplier(2)->Range(8, 512);
+
+struct BenchObject {
+    int id;
+    std::string name;
+    double value;
+
+    using ParsedFieldVariant = std::variant<std::monostate, int, std::string, double>;
+    static constexpr auto DescribeForJsonParsing() {
+        return std::make_tuple(
+            formats::json::parser::Field("id", &BenchObject::id),
+            formats::json::parser::Field("name", &BenchObject::name),
+            formats::json::parser::Field("value", &BenchObject::value)
+        );
+    }
+};
+
+void ValidateBenchObjectId(const BenchObject& obj) {
+    if (obj.id < 0) {
+        __builtin_unreachable();
+    }
+}
+
+BenchObject Parse(const formats::json::Value& json, formats::parse::To<BenchObject>) {
+    return {json["id"].As<int>(), json["name"].As<std::string>(), json["value"].As<double>()};
+}
+
+std::string GenerateUserJson(size_t outer_size) {
+    std::string result = "[";
+    for (size_t i = 0; i < outer_size; ++i) {
+        result += fmt::format(R"({{"id":{},"name":"object_{}","value":{}}})", i, i, i / 3.0);
+        if (i < outer_size - 1) result += ",";
+    }
+    result += "]";
+    return result;
+}
+
+using UserObjectList = std::vector<BenchObject>;
+
+void UserType_Dom(benchmark::State& state) {
+    const auto json_string = GenerateUserJson(state.range(0));
+    for (auto _ : state) {
+        auto value = formats::json::FromString(json_string);
+        auto result = value.As<UserObjectList>();
+        benchmark::DoNotOptimize(result);
+    }
+}
+BENCHMARK(UserType_Dom)->RangeMultiplier(2)->Range(8, 512);
+
+void UserType_Sax(benchmark::State& state) {
+    const auto json_string = GenerateUserJson(state.range(0));
+    for (auto _ : state) {
+        auto result = formats::json::FromStringAs<UserObjectList>(json_string);
+        benchmark::DoNotOptimize(result);
+    }
+}
+BENCHMARK(UserType_Sax)->RangeMultiplier(2)->Range(8, 512);
+
+void UserType_SaxWithValidators(benchmark::State& state) {
+    using namespace formats::json;
+    const auto json_string = GenerateUserJson(state.range(0));
+    
+    using ValidatedUserList = std::vector<parser::WithValidators<BenchObject, ValidateBenchObjectId>>;
+
+    for (auto _ : state) {
+        auto result = FromStringAs<ValidatedUserList, ValidateContainerNotEmpty<UserObjectList>>(json_string);
+        benchmark::DoNotOptimize(result);
+    }
+}
+BENCHMARK(UserType_SaxWithValidators)->RangeMultiplier(2)->Range(8, 512);
+
 }  // namespace
 
 USERVER_NAMESPACE_END

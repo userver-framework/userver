@@ -19,6 +19,24 @@ struct JsonValueParser::Impl {
     json::impl::Document raw_value{&g_allocator};
     size_t level{0};
 
+    Impl() = default;
+    
+    Impl(Impl&& other) noexcept 
+        : raw_value(&g_allocator),
+          level(other.level) {
+        raw_value.Swap(other.raw_value);
+        other.level = 0;
+    }
+    
+    Impl& operator=(Impl&& other) noexcept {
+        if (this != &other) {
+            raw_value.Swap(other.raw_value);
+            level = other.level;
+            other.level = 0;
+        }
+        return *this;
+    }
+
     ~Impl() {
         auto generator = [](const auto&) { return false; };
         // This forces GenericDocument to clean up its stack,
@@ -30,6 +48,17 @@ struct JsonValueParser::Impl {
 JsonValueParser::JsonValueParser() = default;
 
 JsonValueParser::~JsonValueParser() = default;
+
+JsonValueParser::JsonValueParser(JsonValueParser&& other) noexcept 
+    : impl_(std::move(other.impl_)) {
+}
+
+JsonValueParser& JsonValueParser::operator=(JsonValueParser&& other) noexcept {
+    if (this != &other) {
+        impl_ = std::move(other.impl_);
+    }
+    return *this;
+}
 
 void JsonValueParser::Null() {
     if (!impl_->raw_value.Null()) Throw(Expected());

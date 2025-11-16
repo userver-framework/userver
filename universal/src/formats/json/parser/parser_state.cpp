@@ -7,6 +7,7 @@
 
 #include <fmt/format.h>
 #include <rapidjson/error/en.h>
+#include <rapidjson/istreamwrapper.h>
 #include <rapidjson/reader.h>
 
 #include <userver/formats/common/path.hpp>
@@ -116,8 +117,63 @@ void ParserState::ProcessInput(std::string_view sw) {
         };
     }
 
+    if (is.Tell() != sw.size()) {
+        throw ParseError(
+            is.Tell(), "", rapidjson::GetParseError_En(rapidjson::ParseErrorCode::kParseErrorDocumentRootNotSingular)
+        );
+    }
+
     if (!stack.empty()) {
         throw ParseError(is.Tell(), "", "data is expected after the end of file");
+    }
+}
+
+void ParserState::ProcessInput(std::istream& is) {
+
+    rapidjson::Reader reader;
+    rapidjson::IStreamWrapper stream(is);
+    reader.IterativeParseInit();
+
+    auto& stack = impl_->stack;
+
+    try {
+        while (!reader.IterativeParseComplete()) {
+            if (stack.empty()) {
+                throw InternalParseError("Symbols after end of document");
+            }
+
+            if (stack.size() > kDepthParseLimit)
+                throw InternalParseError("Exceeded maximum allowed JSON depth of: " + std::to_string(kDepthParseLimit));
+
+            UASSERT(stack.back().parser);
+            ParserHandler handler(*stack.back().parser);
+
+            static constexpr auto kParseFlags =
+                static_cast<rapidjson::ParseFlag>(rapidjson::kParseDefaultFlags | rapidjson::kParseFullPrecisionFlag);
+            reader.IterativeParseNext<kParseFlags>(stream, handler);
+            if (reader.HasParseError()) {
+                throw ParseError{
+                    reader.GetErrorOffset(),
+                    impl_->GetPath(),
+                    rapidjson::GetParseError_En(reader.GetParseErrorCode()),
+                };
+            }
+        }
+    } catch (const ParseError&) {
+        throw;
+    } catch (const std::exception& e) {
+        auto cur_pos = stream.Tell();
+        std::string msg = e.what();
+
+        throw ParseError{
+            cur_pos,
+            impl_->GetPath(),
+            msg,
+        };
+    }
+
+    if (!stack.empty()) {
+        throw ParseError(stream.Tell(), "", "data is expected after the end of file");
     }
 }
 

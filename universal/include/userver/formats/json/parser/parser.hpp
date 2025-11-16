@@ -7,6 +7,7 @@
 #include <userver/formats/json/parser/number_parser.hpp>
 #include <userver/formats/json/parser/parser_json.hpp>
 #include <userver/formats/json/parser/string_parser.hpp>
+#include <userver/formats/json/parser/meta_parser.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
