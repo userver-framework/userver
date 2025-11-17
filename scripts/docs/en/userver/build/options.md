@@ -29,6 +29,7 @@ userver is split into multiple CMake libraries.
 | `userver::ydb`             | `USERVER_FEATURE_YDB`                             | `ydb`                 | @ref scripts/docs/en/userver/ydb.md                       |
 | `userver::otlp`            | `USERVER_FEATURE_OTLP`                            | `otlp`                | @ref opentelemetry "OpenTelemetry Protocol"               |
 | `userver::s3api`           | `USERVER_FEATURE_S3API`                           | `s3api`               | @ref scripts/docs/en/userver/libraries/s3api.md           |
+| `userver::multi_index_lru` | `USERVER_FEATURE_MULTI_INDEX_LRU`                 | `multi_index_lru`     | @ref scripts/docs/en/userver/libraries/multi_index_lru.md |
 | `userver::easy`            | `USERVER_FEATURE_EASY`                            | `easy`                | @ref scripts/docs/en/userver/libraries/easy.md            |
 | `userver::grpc-reflection` | `USERVER_FEATURE_GRPC_REFLECTION`                 | `grpc-reflection`     | @ref scripts/docs/en/userver/libraries/grpc-reflection.md |
 

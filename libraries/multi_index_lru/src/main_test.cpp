@@ -2,6 +2,8 @@
 #include <string>
 
 #include <gtest/gtest.h>
+#include <boost/multi_index/member.hpp>
+
 #include <userver/multi_index_lru/container.hpp>
 
 using namespace USERVER_NAMESPACE;
@@ -27,8 +29,7 @@ protected:
         }
     };
 
-    template<template<typename, typename, typename> class LRUCacheContainer>
-    using UserCache = LRUCacheContainer<
+    using UserCache = multi_index_lru::LRUCacheContainer<
         User,
         boost::multi_index::indexed_by<
             boost::multi_index::ordered_unique<
@@ -40,14 +41,12 @@ protected:
             boost::multi_index::ordered_non_unique<
                 boost::multi_index::tag<name_tag>, 
                 boost::multi_index::member<User, std::string, &User::name>>
-        >,
-        std::allocator<User>
+        >
     >;
 };
 
 TEST_F(LRUUsersTest, BasicOperations) {
-    using MyCache = UserCache<multi_index_lru::LRUCacheContainer>;
-    MyCache cache(3); // capacity == 3
+    UserCache cache(3); // capacity == 3
     
     // Test insertion
     cache.emplace(User{1, "alice@test.com", "Alice"});
@@ -77,8 +76,7 @@ TEST_F(LRUUsersTest, BasicOperations) {
 }
 
 TEST_F(LRUUsersTest, LRUEviction) {
-    using MyCache = UserCache<multi_index_lru::LRUCacheContainer>;
-    MyCache cache(3);
+    UserCache cache(3);
     
     cache.emplace(User{1, "alice@test.com", "Alice"});
     cache.emplace(User{2, "bob@test.com", "Bob"});
@@ -112,8 +110,7 @@ protected:
         }
     };
 
-    template<template<typename, typename, typename> class LRUCacheContainer>
-    using ProductCache = LRUCacheContainer<
+    using ProductCache = multi_index_lru::LRUCacheContainer<
         Product,
         boost::multi_index::indexed_by<
             boost::multi_index::ordered_unique<
@@ -122,14 +119,12 @@ protected:
             boost::multi_index::ordered_unique<
                 boost::multi_index::tag<name_tag>,
                 boost::multi_index::member<Product, std::string, &Product::name>>
-        >,
-        std::allocator<Product>
+        >
     >;
 };
 
 TEST_F(ProductsTest, BasicProductOperations) {
-    using MyCache = ProductCache<multi_index_lru::LRUCacheContainer>;
-    MyCache cache(2);
+    ProductCache cache(2);
     
     cache.emplace(Product{"A1", "Laptop", 999.99});
     cache.emplace(Product{"A2", "Mouse", 29.99});
@@ -140,8 +135,7 @@ TEST_F(ProductsTest, BasicProductOperations) {
 }
 
 TEST_F(ProductsTest, ProductEviction) {
-    using MyCache = ProductCache<multi_index_lru::LRUCacheContainer>;
-    MyCache cache(2);
+    ProductCache cache(2);
     
     cache.emplace(Product{"A1", "Laptop", 999.99});
     cache.emplace(Product{"A2", "Mouse", 29.99});

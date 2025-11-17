@@ -6,6 +6,7 @@
 #include <vector>
 
 #include <benchmark/benchmark.h>
+#include <boost/multi_index/member.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -26,7 +27,7 @@ struct User {
     bool operator==(const User& other) const { return id == other.id && email == other.email && name == other.name; }
 };
 
-mamespace {
+namespace {
 User generateUser() {
     std::string email = "email" + std::to_string(utils::RandRange<int>(0, MAX_ID_SIZE));
     std::string name = "name" + std::to_string(utils::RandRange<int>(0, MAX_ID_SIZE));
@@ -42,14 +43,13 @@ std::string generateEmail() { return "email" + std::to_string(utils::RandRange<i
 
 using UserCache = multi_index_lru::LRUCacheContainer<
     User,
-    multi_index_lru::indexed_by<
-        multi_index_lru::ordered_unique<multi_index_lru::tag<id_tag>, multi_index_lru::member<User, int, &User::id>>,
-        multi_index_lru::
-            ordered_unique<multi_index_lru::tag<email_tag>, multi_index_lru::member<User, std::string, &User::email>>,
-        multi_index_lru::ordered_non_unique<
-            multi_index_lru::tag<name_tag>,
-            multi_index_lru::member<User, std::string, &User::name>>>,
-    std::allocator<User>>;
+    boost::multi_index::indexed_by<
+        boost::multi_index::ordered_unique<boost::multi_index::tag<id_tag>, boost::multi_index::member<User, int, &User::id>>,
+        boost::multi_index::
+            ordered_unique<boost::multi_index::tag<email_tag>, boost::multi_index::member<User, std::string, &User::email>>,
+        boost::multi_index::ordered_non_unique<
+            boost::multi_index::tag<name_tag>,
+            boost::multi_index::member<User, std::string, &User::name>>>>;
 
 void LruFindEmplaceMix(benchmark::State& state) {
     const size_t size = state.range(0);
@@ -78,9 +78,9 @@ void LruFindEmplaceMix(benchmark::State& state) {
 
     for ([[maybe_unused]] auto _ : state) {
         for (size_t i = 0; i < reading_operations_number; ++i) {
-            cache.template find<name_tag, std::string>(names[i]);
-            cache.template find<email_tag, std::string>(emails[i]);
-            cache.template find<id_tag, int>(ids[i]);
+            cache.find<name_tag, std::string>(names[i]);
+            cache.find<email_tag, std::string>(emails[i]);
+            cache.find<id_tag, int>(ids[i]);
         }
 
         for (size_t i = 0; i < writing_operations_number; ++i) {
@@ -116,9 +116,9 @@ static void GetOperations(::benchmark::State& state) {
         state.ResumeTiming();
 
         for (size_t i = 0; i < operations_count; ++i) {
-            ::benchmark::DoNotOptimize(cache.template find<name_tag, std::string>(names[i]));
-            ::benchmark::DoNotOptimize(cache.template find<email_tag, std::string>(emails[i]));
-            ::benchmark::DoNotOptimize(cache.template find<id_tag, int>(ids[i]));
+            ::benchmark::DoNotOptimize(cache.find<name_tag, std::string>(names[i]));
+            ::benchmark::DoNotOptimize(cache.find<email_tag, std::string>(emails[i]));
+            ::benchmark::DoNotOptimize(cache.find<id_tag, int>(ids[i]));
         }
     }
 

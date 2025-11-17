@@ -5,6 +5,10 @@
 #include <boost/intrusive/list_hook.hpp>
 #include <boost/multi_index/hashed_index.hpp>
 #include <boost/multi_index/mem_fun.hpp>
+#include <boost/multi_index/tag.hpp>
+#include <boost/multi_index/ordered_index.hpp>
+#include <boost/multi_index/member.hpp>
+#include <boost/multi_index_container.hpp> 
 
 #include <utility>
 #include <cstddef>
@@ -144,7 +148,7 @@ public:
     void clear() {
         container.clear();
     }
-    
+
 private:
     using CacheItem = impl::ValueWithHook<Value>;
     using List =  boost::intrusive::list<
