@@ -51,12 +51,12 @@ struct ValueWithHook
     Value* operator->() { return &value; }
     const Value* operator->() const { return &value; }
 
-    void PushBackToList(boost_list &lst) {
-        lst.push_back(*this);
+    void PushBackToList(boost_list &lst) const {
+        lst.push_back(const_cast<ValueWithHook&>(*this));
     }
 
-    void SpliceInList(boost_list &lst) {
-        lst.splice(lst.end(), lst, lst.iterator_to(*this));
+    void SpliceInList(boost_list &lst) const {
+        lst.splice(lst.end(), lst, lst.iterator_to(const_cast<ValueWithHook&>(*this)));
     }
 };
 
