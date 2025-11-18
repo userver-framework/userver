@@ -89,10 +89,10 @@ TEST_F(LRUUsersTest, LRUEviction) {
     // Add fourth element - Bob should be evicted
     cache.emplace(User{4, "david@test.com", "David"});
     
-    EXPECT_FALSE(cache.contains<id_tag, int>(2)); // Bob evicted
-    EXPECT_TRUE(cache.contains<id_tag, int>(1));  // Alice remains
-    EXPECT_TRUE(cache.contains<id_tag, int>(3));  // Charlie remains  
-    EXPECT_TRUE(cache.contains<id_tag, int>(4));  // David added
+    EXPECT_FALSE((cache.contains<id_tag, int>(2))); // Bob evicted
+    EXPECT_TRUE((cache.contains<id_tag, int>(1)));  // Alice remains
+    EXPECT_TRUE((cache.contains<id_tag, int>(3)));  // Charlie remains  
+    EXPECT_TRUE((cache.contains<id_tag, int>(4)));  // David added
 }
 
 class ProductsTest : public ::testing::Test {
@@ -144,9 +144,9 @@ TEST_F(ProductsTest, ProductEviction) {
     cache.get<sku_tag>().find("A1");
     cache.emplace(Product{"A3", "Keyboard", 79.99});
     
-    EXPECT_TRUE(cache.contains<sku_tag, std::string>("A1"));  // used
-    EXPECT_TRUE(cache.contains<sku_tag, std::string>("A3"));  // new
-    EXPECT_FALSE(cache.contains<sku_tag, std::string>("A2")); // ousted
+    EXPECT_TRUE((cache.contains<sku_tag, std::string>("A1")));  // used
+    EXPECT_TRUE((cache.contains<sku_tag, std::string>("A3")));  // new
+    EXPECT_FALSE((cache.contains<sku_tag, std::string>("A2"))); // ousted
     
     EXPECT_NE(cache.get<name_tag>().find("Keyboard"), cache.get<name_tag>().end());
     EXPECT_EQ(cache.get<name_tag>().find("Mouse"), cache.get<name_tag>().end());
