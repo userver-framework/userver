@@ -56,23 +56,23 @@ TEST_F(LRUUsersTest, BasicOperations) {
     EXPECT_EQ(cache.size(), 3);
     
     // Test find by id
-    auto by_id = cache.template get<id_tag>().find(1);
-    ASSERT_NE(by_id, cache.template get<id_tag>().end());
+    auto by_id = cache.get<id_tag>().find(1);
+    ASSERT_NE(by_id, cache.get<id_tag>().end());
     EXPECT_EQ(by_id->get().name, "Alice");
     
     // Test find by email
-    auto by_email = cache.template get<email_tag>().find("bob@test.com");
-    ASSERT_NE(by_email, cache.template get<email_tag>().end());
+    auto by_email = cache.get<email_tag>().find("bob@test.com");
+    ASSERT_NE(by_email, cache.get<email_tag>().end());
     EXPECT_EQ(by_email->get().id, 2);
     
     // Test find by name
-    auto by_name = cache.template get<name_tag>().find("Charlie");
-    ASSERT_NE(by_name, cache.template get<name_tag>().end());
+    auto by_name = cache.get<name_tag>().find("Charlie");
+    ASSERT_NE(by_name, cache.get<name_tag>().end());
     EXPECT_EQ(by_name->get().email, "charlie@test.com");
     
     // Test template find method
-    auto it = cache.template find<email_tag, std::string>("alice@test.com");
-    EXPECT_NE(it, cache.template get<email_tag>().end());
+    auto it = cache.find<email_tag, std::string>("alice@test.com");
+    EXPECT_NE(it, cache.get<email_tag>().end());
 }
 
 TEST_F(LRUUsersTest, LRUEviction) {
@@ -83,16 +83,16 @@ TEST_F(LRUUsersTest, LRUEviction) {
     cache.emplace(User{3, "charlie@test.com", "Charlie"});
     
     // Access Alice and Charlie to make them recently used
-    cache.template get<id_tag>().find(1);
-    cache.template get<id_tag>().find(3);
+    cache.get<id_tag>().find(1);
+    cache.get<id_tag>().find(3);
 
     // Add fourth element - Bob should be evicted
     cache.emplace(User{4, "david@test.com", "David"});
     
-    EXPECT_FALSE(cache.template contains<id_tag, int>(2)); // Bob evicted
-    EXPECT_TRUE(cache.template contains<id_tag, int>(1));  // Alice remains
-    EXPECT_TRUE(cache.template contains<id_tag, int>(3));  // Charlie remains  
-    EXPECT_TRUE(cache.template contains<id_tag, int>(4));  // David added
+    EXPECT_FALSE(cache.contains<id_tag, int>(2)); // Bob evicted
+    EXPECT_TRUE(cache.contains<id_tag, int>(1));  // Alice remains
+    EXPECT_TRUE(cache.contains<id_tag, int>(3));  // Charlie remains  
+    EXPECT_TRUE(cache.contains<id_tag, int>(4));  // David added
 }
 
 class ProductsTest : public ::testing::Test {
@@ -129,8 +129,8 @@ TEST_F(ProductsTest, BasicProductOperations) {
     cache.emplace(Product{"A1", "Laptop", 999.99});
     cache.emplace(Product{"A2", "Mouse", 29.99});
     
-    auto laptop = cache.template find<sku_tag, std::string>("A1");
-    ASSERT_NE(laptop, cache.template get<sku_tag>().end());
+    auto laptop = cache.find<sku_tag, std::string>("A1");
+    ASSERT_NE(laptop, cache.get<sku_tag>().end());
     EXPECT_EQ(laptop->get().name, "Laptop");
 }
 
@@ -141,15 +141,15 @@ TEST_F(ProductsTest, ProductEviction) {
     cache.emplace(Product{"A2", "Mouse", 29.99});
     
     // A1 was used, so A2 should be ousted when adding A3
-    cache.template get<sku_tag>().find("A1");
+    cache.get<sku_tag>().find("A1");
     cache.emplace(Product{"A3", "Keyboard", 79.99});
     
-    EXPECT_TRUE(cache.template contains<sku_tag, std::string>("A1"));  // used
-    EXPECT_TRUE(cache.template contains<sku_tag, std::string>("A3"));  // new
-    EXPECT_FALSE(cache.template contains<sku_tag, std::string>("A2")); // ousted
+    EXPECT_TRUE(cache.contains<sku_tag, std::string>("A1"));  // used
+    EXPECT_TRUE(cache.contains<sku_tag, std::string>("A3"));  // new
+    EXPECT_FALSE(cache.contains<sku_tag, std::string>("A2")); // ousted
     
-    EXPECT_NE(cache.template get<name_tag>().find("Keyboard"), cache.template get<name_tag>().end());
-    EXPECT_EQ(cache.template get<name_tag>().find("Mouse"), cache.template get<name_tag>().end());
+    EXPECT_NE(cache.get<name_tag>().find("Keyboard"), cache.get<name_tag>().end());
+    EXPECT_EQ(cache.get<name_tag>().find("Mouse"), cache.get<name_tag>().end());
 }
 
 } // namespace
