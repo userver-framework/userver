@@ -51,6 +51,9 @@ struct ValueWithHook
     Value* operator->() { return &value; }
     const Value* operator->() const { return &value; }
 
+    Value& get() { return value; }
+    const Value& get() const { return value; }
+
     void PushBackToList(boost_list &lst) const {
         lst.push_back(const_cast<ValueWithHook&>(*this));
     }

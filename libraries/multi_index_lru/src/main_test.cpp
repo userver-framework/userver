@@ -6,7 +6,7 @@
 
 #include <userver/multi_index_lru/container.hpp>
 
-using namespace USERVER_NAMESPACE;
+USERVER_NAMESPACE_BEGIN
 
 namespace {
 
@@ -154,13 +154,4 @@ TEST_F(ProductsTest, ProductEviction) {
 
 } // namespace
 
-int main(int argc, char** argv) {
-    ::testing::InitGoogleTest(&argc, argv);
-    int test_result = RUN_ALL_TESTS();
-    
-    if (test_result == 0) {
-        std::cout << "All tests passed!" << std::endl;
-    }
-    
-    return test_result;
-}
+USERVER_NAMESPACE_END
