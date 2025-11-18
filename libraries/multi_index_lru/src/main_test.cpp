@@ -56,17 +56,17 @@ TEST_F(LRUUsersTest, BasicOperations) {
     EXPECT_EQ(cache.size(), 3);
     
     // Test find by id
-    auto by_id = cache.get<id_tag>().find(1);
+    auto by_id = cache.find<id_tag, int>(1);
     ASSERT_NE(by_id, cache.get<id_tag>().end());
     EXPECT_EQ(by_id->get().name, "Alice");
     
     // Test find by email
-    auto by_email = cache.get<email_tag>().find("bob@test.com");
+    auto by_email = cache.find<email_tag, std::string>("bob@test.com");
     ASSERT_NE(by_email, cache.get<email_tag>().end());
     EXPECT_EQ(by_email->get().id, 2);
     
     // Test find by name
-    auto by_name = cache.get<name_tag>().find("Charlie");
+    auto by_name = cache.find<name_tag, std::string>("Charlie");
     ASSERT_NE(by_name, cache.get<name_tag>().end());
     EXPECT_EQ(by_name->get().email, "charlie@test.com");
     
