@@ -83,8 +83,8 @@ TEST_F(LRUUsersTest, LRUEviction) {
     cache.emplace(User{3, "charlie@test.com", "Charlie"});
     
     // Access Alice and Charlie to make them recently used
-    cache.get<id_tag>().find(1);
-    cache.get<id_tag>().find(3);
+    cache.find<id_tag, int>(1);
+    cache.find<id_tag, int>(3);
 
     // Add fourth element - Bob should be evicted
     cache.emplace(User{4, "david@test.com", "David"});
@@ -141,7 +141,7 @@ TEST_F(ProductsTest, ProductEviction) {
     cache.emplace(Product{"A2", "Mouse", 29.99});
     
     // A1 was used, so A2 should be ousted when adding A3
-    cache.get<sku_tag>().find("A1");
+    cache.find<sku_tag, std::string>("A1");
     cache.emplace(Product{"A3", "Keyboard", 79.99});
     
     EXPECT_TRUE((cache.contains<sku_tag, std::string>("A1")));  // used
