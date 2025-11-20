@@ -17,6 +17,29 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace ydb {
+namespace {
+
+void ConvertStatsMode(const QuerySettings& query_settings, NYdb::NQuery::TExecuteQuerySettings& exec_settings) {
+    if (query_settings.collect_query_stats) {
+        // Convert Table Client stats mode to Query Client stats mode
+        switch (*query_settings.collect_query_stats) {
+            case NYdb::NTable::ECollectQueryStatsMode::None:
+                exec_settings.StatsMode(NYdb::NQuery::EStatsMode::None);
+                break;
+            case NYdb::NTable::ECollectQueryStatsMode::Basic:
+                exec_settings.StatsMode(NYdb::NQuery::EStatsMode::Basic);
+                break;
+            case NYdb::NTable::ECollectQueryStatsMode::Full:
+                exec_settings.StatsMode(NYdb::NQuery::EStatsMode::Full);
+                break;
+            case NYdb::NTable::ECollectQueryStatsMode::Profile:
+                exec_settings.StatsMode(NYdb::NQuery::EStatsMode::Profile);
+                break;
+        }
+    }
+}
+
+}  // namespace
 
 Transaction::Transaction(
     TableClient& table_client,
@@ -150,23 +173,7 @@ ExecuteResponse Transaction::Execute(
     if (query_settings.keep_in_query_cache.has_value()) {
         // Query Client doesn't have KeepInQueryCache, it caches automatically
     }
-    if (query_settings.collect_query_stats) {
-        // Convert Table Client stats mode to Query Client stats mode
-        switch (*query_settings.collect_query_stats) {
-            case NYdb::NTable::ECollectQueryStatsMode::None:
-                exec_settings.StatsMode(NYdb::NQuery::EStatsMode::None);
-                break;
-            case NYdb::NTable::ECollectQueryStatsMode::Basic:
-                exec_settings.StatsMode(NYdb::NQuery::EStatsMode::Basic);
-                break;
-            case NYdb::NTable::ECollectQueryStatsMode::Full:
-                exec_settings.StatsMode(NYdb::NQuery::EStatsMode::Full);
-                break;
-            case NYdb::NTable::ECollectQueryStatsMode::Profile:
-                exec_settings.StatsMode(NYdb::NQuery::EStatsMode::Profile);
-                break;
-        }
-    }
+    ConvertStatsMode(query_settings, exec_settings);
     impl::ApplyToRequestSettings(exec_settings, context.settings, context.deadline);
 
     // Must go after PrepareExecuteSettings, because an exception from there
