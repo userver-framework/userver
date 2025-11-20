@@ -20,7 +20,7 @@ namespace ydb {
 
 Transaction::Transaction(
     TableClient& table_client,
-    NYdb::NTable::TTransaction ydb_tx,
+    NYdb::NQuery::TTransaction ydb_tx,
     std::string name,
     OperationSettings&& rollback_settings
 ) noexcept
@@ -87,7 +87,7 @@ void Transaction::Commit(OperationSettings settings) {
     }
 
     const auto commit_settings = impl::PrepareRequestSettings<
-        NYdb::NTable::TCommitTxSettings>(context.settings, context.deadline);
+        NYdb::NQuery::TCommitTxSettings>(context.settings, context.deadline);
 
     auto error_guard = ErrorGuard();
 
@@ -111,7 +111,7 @@ void Transaction::Rollback() {
     impl::RequestContext context{table_client_, kQuery, std::move(settings), impl::IsStreaming{false}, &span_};
 
     const auto rollback_settings = impl::PrepareRequestSettings<
-        NYdb::NTable::TRollbackTxSettings>(context.settings, context.deadline);
+        NYdb::NQuery::TRollbackTxSettings>(context.settings, context.deadline);
 
     [[maybe_unused]] auto error_guard = ErrorGuard();
 
@@ -152,16 +152,23 @@ ExecuteResponse Transaction::Execute(
     impl::RequestContext context{table_client_, query, std::move(settings), impl::IsStreaming{false}, &span_};
     auto internal_params = std::move(builder).Build();
 
-    auto exec_settings = table_client_.ToExecQuerySettings(query_settings);
+    // Convert QuerySettings to Query Client settings
+    NYdb::NQuery::TExecuteQuerySettings exec_settings;
+    if (query_settings.keep_in_query_cache.has_value()) {
+        // Query Client doesn't have KeepInQueryCache, it caches automatically
+    }
+    if (query_settings.collect_query_stats) {
+        exec_settings.StatsMode(impl::ConvertStatsMode(*query_settings.collect_query_stats));
+    }
     impl::ApplyToRequestSettings(exec_settings, context.settings, context.deadline);
 
     // Must go after PrepareExecuteSettings, because an exception from there
     // leaves the transaction active.
     auto error_guard = ErrorGuard();
 
-    auto execute_fut = ydb_tx_.GetSession().ExecuteDataQuery(
+    auto execute_fut = ydb_tx_.GetSession().ExecuteQuery(
         impl::ToString(query.GetStatementView()),
-        NYdb::NTable::TTxControl::Tx(ydb_tx_),
+        NYdb::NQuery::TTxControl::Tx(ydb_tx_),
         std::move(internal_params),
         exec_settings
     );
