@@ -324,7 +324,7 @@ Transaction TableClient::Begin(DynamicTransactionName transaction_name, Operatio
     );
 
     auto status = impl::GetFutureValueChecked(std::move(future), "BeginTransaction", context);
-    return Transaction(*this, status.GetTransaction().GetSession(), status.GetTransaction().GetId(), transaction_name.GetUnderlying(), std::move(settings));
+    return Transaction(*this, status.GetTransaction(), transaction_name.GetUnderlying(), std::move(settings));
 }
 
 void TableClient::ExecuteSchemeQuery(const std::string& query) {

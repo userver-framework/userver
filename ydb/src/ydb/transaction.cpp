@@ -20,8 +20,7 @@ namespace ydb {
 
 Transaction::Transaction(
     TableClient& table_client,
-    NYdb::NQuery::TSession ydb_session,
-    std::string tx_id,
+    NYdb::NQuery::TTransaction ydb_tx,
     std::string name,
     OperationSettings&& rollback_settings
 ) noexcept
@@ -29,8 +28,7 @@ Transaction::Transaction(
       name_(std::move(name)),
       stats_scope_(impl::StatsScope::TransactionTag{}, *table_client_.stats_, name_),
       span_("ydb_transaction"),
-      ydb_session_(std::move(ydb_session)),
-      tx_id_(std::move(tx_id)),
+      ydb_tx_(std::move(ydb_tx)),
       rollback_settings_(std::move(rollback_settings)) {
     span_.DetachFromCoroStack();
     span_.AddTag("transaction_name", name_);
@@ -80,7 +78,7 @@ void Transaction::Commit(OperationSettings settings) {
                 if (data["trx_should_fail"].As<bool>()) {
                     LOG_WARNING() << "Doing Rollback instead of commit "
                                      "due to Testpoint response";
-                    ydb_session_.RollbackTransaction(tx_id_);
+                    ydb_tx_.Rollback();
                     throw TransactionForceRollback();
                 }
             }
@@ -93,7 +91,7 @@ void Transaction::Commit(OperationSettings settings) {
     auto error_guard = ErrorGuard();
 
     impl::GetFutureValueChecked(
-        ydb_session_.CommitTransaction(tx_id_, commit_settings), "Commit", table_client_.driver_->GetRetryBudget(), context
+        ydb_tx_.Commit(commit_settings), "Commit", table_client_.driver_->GetRetryBudget(), context
     );
 
     error_guard.Release();
@@ -114,7 +112,7 @@ void Transaction::Rollback() {
     [[maybe_unused]] auto error_guard = ErrorGuard();
 
     impl::GetFutureValueChecked(
-        ydb_session_.RollbackTransaction(tx_id_, rollback_settings), "Rollback", table_client_.driver_->GetRetryBudget(), context
+        ydb_tx_.Rollback(rollback_settings), "Rollback", table_client_.driver_->GetRetryBudget(), context
     );
 
     trx_lock_.Unlock();
@@ -123,7 +121,7 @@ void Transaction::Rollback() {
 }
 
 PreparedArgsBuilder Transaction::GetBuilder() const {
-    return PreparedArgsBuilder(ydb_session_.GetParamsBuilder());
+    return PreparedArgsBuilder(ydb_tx_.GetSession().GetParamsBuilder());
 }
 
 void Transaction::EnsureActive() const {
@@ -175,9 +173,9 @@ ExecuteResponse Transaction::Execute(
     // leaves the transaction active.
     auto error_guard = ErrorGuard();
 
-    auto execute_fut = ydb_session_.ExecuteQuery(
+    auto execute_fut = ydb_tx_.GetSession().ExecuteQuery(
         impl::ToString(query.GetStatementView()),
-        NYdb::NQuery::TTxControl::Tx(tx_id_),
+        NYdb::NQuery::TTxControl::Tx(ydb_tx_),
         std::move(internal_params),
         exec_settings
     );
