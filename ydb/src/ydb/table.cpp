@@ -311,20 +311,20 @@ Transaction TableClient::Begin(utils::StringLiteral transaction_name, OperationS
 Transaction TableClient::Begin(DynamicTransactionName transaction_name, OperationSettings settings) {
     const Query query{"", Query::Name{"Begin"}};
     impl::RequestContext context{*this, query, std::move(settings)};
-    auto tx_settings = PrepareTxSettings(context.settings);
+    auto tx_settings = PrepareQueryTxSettings(context.settings);
 
-    auto future = impl::RetryOperation(
+    auto future = impl::RetryQuery(
         context,
         [tx_settings = std::move(tx_settings),
          settings = context.settings,
-         deadline = context.deadline](NYdb::NTable::TSession session) {
-            const auto exec_settings = impl::PrepareRequestSettings<NYdb::NTable::TBeginTxSettings>(settings, deadline);
+         deadline = context.deadline](NYdb::NQuery::TSession session) {
+            const auto exec_settings = impl::PrepareRequestSettings<NYdb::NQuery::TBeginTxSettings>(settings, deadline);
             return session.BeginTransaction(tx_settings, exec_settings);
         }
     );
 
     auto status = impl::GetFutureValueChecked(std::move(future), "BeginTransaction", context);
-    return Transaction(*this, status.GetTransaction(), transaction_name.GetUnderlying(), std::move(settings));
+    return Transaction(*this, status.GetTransaction().GetSession(), status.GetTransaction().GetId(), transaction_name.GetUnderlying(), std::move(settings));
 }
 
 void TableClient::ExecuteSchemeQuery(const std::string& query) {
