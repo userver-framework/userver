@@ -19,23 +19,17 @@ USERVER_NAMESPACE_BEGIN
 namespace ydb {
 namespace {
 
-void ConvertStatsMode(const QuerySettings& query_settings, NYdb::NQuery::TExecuteQuerySettings& exec_settings) {
-    if (query_settings.collect_query_stats) {
-        // Convert Table Client stats mode to Query Client stats mode
-        switch (*query_settings.collect_query_stats) {
-            case NYdb::NTable::ECollectQueryStatsMode::None:
-                exec_settings.StatsMode(NYdb::NQuery::EStatsMode::None);
-                break;
-            case NYdb::NTable::ECollectQueryStatsMode::Basic:
-                exec_settings.StatsMode(NYdb::NQuery::EStatsMode::Basic);
-                break;
-            case NYdb::NTable::ECollectQueryStatsMode::Full:
-                exec_settings.StatsMode(NYdb::NQuery::EStatsMode::Full);
-                break;
-            case NYdb::NTable::ECollectQueryStatsMode::Profile:
-                exec_settings.StatsMode(NYdb::NQuery::EStatsMode::Profile);
-                break;
-        }
+NYdb::NQuery::EStatsMode ConvertStatsMode(NYdb::NTable::ECollectQueryStatsMode collect_query_stats) {
+    // Convert Table Client stats mode to Query Client stats mode
+    switch (collect_query_stats) {
+        case NYdb::NTable::ECollectQueryStatsMode::None:
+            return NYdb::NQuery::EStatsMode::None;
+        case NYdb::NTable::ECollectQueryStatsMode::Basic:
+            return NYdb::NQuery::EStatsMode::Basic;
+        case NYdb::NTable::ECollectQueryStatsMode::Full:
+            return NYdb::NQuery::EStatsMode::Full;
+        case NYdb::NTable::ECollectQueryStatsMode::Profile:
+            return NYdb::NQuery::EStatsMode::Profile;
     }
 }
 
@@ -173,7 +167,9 @@ ExecuteResponse Transaction::Execute(
     if (query_settings.keep_in_query_cache.has_value()) {
         // Query Client doesn't have KeepInQueryCache, it caches automatically
     }
-    ConvertStatsMode(query_settings, exec_settings);
+    if (query_settings.collect_query_stats) {
+        exec_settings.StatsMode(ConvertStatsMode(*query_settings.collect_query_stats));
+    }
     impl::ApplyToRequestSettings(exec_settings, context.settings, context.deadline);
 
     // Must go after PrepareExecuteSettings, because an exception from there
