@@ -39,6 +39,7 @@ NYdb::NQuery::EStatsMode ConvertStatsMode(NYdb::NTable::ECollectQueryStatsMode c
         case NYdb::NTable::ECollectQueryStatsMode::Profile:
             return NYdb::NQuery::EStatsMode::Profile;
     }
+    return NYdb::NQuery::EStatsMode::None;  // Safe fallback for invalid enum values
 }
 
 }  // namespace ydb::impl
