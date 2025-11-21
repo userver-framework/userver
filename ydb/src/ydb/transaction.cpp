@@ -17,23 +17,6 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace ydb {
-namespace {
-
-NYdb::NQuery::EStatsMode ConvertStatsMode(NYdb::NTable::ECollectQueryStatsMode collect_query_stats) {
-    // Convert Table Client stats mode to Query Client stats mode
-    switch (collect_query_stats) {
-        case NYdb::NTable::ECollectQueryStatsMode::None:
-            return NYdb::NQuery::EStatsMode::None;
-        case NYdb::NTable::ECollectQueryStatsMode::Basic:
-            return NYdb::NQuery::EStatsMode::Basic;
-        case NYdb::NTable::ECollectQueryStatsMode::Full:
-            return NYdb::NQuery::EStatsMode::Full;
-        case NYdb::NTable::ECollectQueryStatsMode::Profile:
-            return NYdb::NQuery::EStatsMode::Profile;
-    }
-}
-
-}  // namespace
 
 Transaction::Transaction(
     TableClient& table_client,
@@ -168,7 +151,7 @@ ExecuteResponse Transaction::Execute(
         // Query Client doesn't have KeepInQueryCache, it caches automatically
     }
     if (query_settings.collect_query_stats) {
-        exec_settings.StatsMode(ConvertStatsMode(*query_settings.collect_query_stats));
+        exec_settings.StatsMode(impl::ConvertStatsMode(*query_settings.collect_query_stats));
     }
     impl::ApplyToRequestSettings(exec_settings, context.settings, context.deadline);
 

@@ -2,7 +2,9 @@
 
 #include <chrono>
 
+#include <ydb-cpp-sdk/client/query/query.h>
 #include <ydb-cpp-sdk/client/retry/retry.h>
+#include <ydb-cpp-sdk/client/table/table.h>
 #include <ydb-cpp-sdk/client/types/request_settings.h>
 
 #include <userver/engine/deadline.hpp>
@@ -13,6 +15,8 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace ydb::impl {
+
+NYdb::NQuery::EStatsMode ConvertStatsMode(NYdb::NTable::ECollectQueryStatsMode collect_query_stats);
 
 std::chrono::milliseconds GetBoundTimeout(std::chrono::milliseconds timeout, engine::Deadline deadline);
 
