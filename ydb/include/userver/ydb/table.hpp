@@ -231,8 +231,6 @@ private:
 
     void Select1();
 
-    NYdb::NTable::TExecDataQuerySettings ToExecQuerySettings(QuerySettings query_settings) const;
-
     template <typename... Args>
     PreparedArgsBuilder MakeBuilder(Args&&... args);
 
