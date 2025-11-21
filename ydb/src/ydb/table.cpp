@@ -46,6 +46,20 @@ NYdb::NQuery::TTxSettings PrepareQueryTxSettings(const OperationSettings& settin
     }
 }
 
+NYdb::NQuery::EStatsMode ConvertStatsMode(NYdb::NTable::ECollectQueryStatsMode collect_query_stats) {
+    // Convert Table Client stats mode to Query Client stats mode
+    switch (collect_query_stats) {
+        case NYdb::NTable::ECollectQueryStatsMode::None:
+            return NYdb::NQuery::EStatsMode::None;
+        case NYdb::NTable::ECollectQueryStatsMode::Basic:
+            return NYdb::NQuery::EStatsMode::Basic;
+        case NYdb::NTable::ECollectQueryStatsMode::Full:
+            return NYdb::NQuery::EStatsMode::Full;
+        case NYdb::NTable::ECollectQueryStatsMode::Profile:
+            return NYdb::NQuery::EStatsMode::Profile;
+    }
+}
+
 }  // namespace
 
 TableClient::TableClient(
@@ -357,17 +371,26 @@ ExecuteResponse TableClient::ExecuteDataQuery(
 ) {
     impl::RequestContext context{*this, query, std::move(settings)};
 
-    auto future = impl::RetryOperation(
+    // Convert QuerySettings to Query Client settings
+    NYdb::NQuery::TExecuteQuerySettings exec_settings;
+    if (query_settings.keep_in_query_cache.has_value()) {
+        // Query Client doesn't have KeepInQueryCache, it caches automatically
+    }
+    if (query_settings.collect_query_stats) {
+        exec_settings.StatsMode(ConvertStatsMode(*query_settings.collect_query_stats));
+    }
+
+    auto future = impl::RetryQuery(
         context,
         [query,
          params = std::move(builder).Build(),
-         exec_settings = ToExecQuerySettings(query_settings),
+         exec_settings = std::move(exec_settings),
          settings = context.settings,
-         deadline = context.deadline](NYdb::NTable::TSession session) mutable {
+         deadline = context.deadline](NYdb::NQuery::TSession session) mutable {
             impl::ApplyToRequestSettings(exec_settings, settings, deadline);
-            const auto tx_settings = PrepareTxSettings(settings);
-            const auto tx = NYdb::NTable::TTxControl::BeginTx(tx_settings).CommitTx();
-            return session.ExecuteDataQuery(impl::ToString(query.GetStatementView()), tx, params, exec_settings);
+            const auto tx_settings = PrepareQueryTxSettings(settings);
+            const auto tx = NYdb::NQuery::TTxControl::BeginTx(tx_settings).CommitTx();
+            return session.ExecuteQuery(impl::ToString(query.GetStatementView()), tx, params, exec_settings);
         }
     );
 
