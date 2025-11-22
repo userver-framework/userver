@@ -208,13 +208,13 @@ class UserverConan(ConanFile):
 
     def generate(self):
         tool_ch = CMakeToolchain(self)
-        tool_ch.variables['CMAKE_FIND_DEBUG_MODE'] = False
+        tool_ch.cache_variables['CMAKE_FIND_DEBUG_MODE'] = False
 
         tool_ch.cache_variables['USERVER_CONAN'] = True
         tool_ch.cache_variables['USERVER_INSTALL'] = True
         tool_ch.cache_variables['USERVER_DOWNLOAD_PACKAGES'] = True
         tool_ch.cache_variables['USERVER_FEATURE_DWCAS'] = True
-        tool_ch.cache_variables['USERVER_PYTHON_PATH'] = 'python3'
+        tool_ch.variables['USERVER_PYTHON_PATH'] = 'python3'
 
         tool_ch.cache_variables['USERVER_LTO'] = self.options.lto
         tool_ch.cache_variables['USERVER_FEATURE_JEMALLOC'] = self.options.with_jemalloc
@@ -242,7 +242,7 @@ class UserverConan(ConanFile):
             )
 
         if self.options.with_otlp:
-            tool_ch.variables['USERVER_OPENTELEMETRY_PROTO'] = self.dependencies['opentelemetry-proto'].conf_info.get(
+            tool_ch.cache_variables['USERVER_OPENTELEMETRY_PROTO'] = self.dependencies['opentelemetry-proto'].conf_info.get(
                 'user.opentelemetry-proto:proto_root',
             )
 
