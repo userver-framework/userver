@@ -11,6 +11,7 @@
 #include <grpcpp/client_context.h>
 #include <grpcpp/support/config.h>
 
+#include <userver/engine/deadline.hpp>
 #include <userver/utils/move_only_function.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -39,6 +40,12 @@ public:
     std::chrono::milliseconds GetTimeout() const;
     /// @}
 
+    /// @{
+    /// Set and get operation deadline.
+    void SetDeadline(engine::Deadline deadline);
+    engine::Deadline GetDeadline() const;
+    /// @}
+
     /// Add the (\a meta_key, \a meta_value) pair to the metadata associated with a client call.
     void AddMetadata(std::string_view meta_key, std::string_view meta_value);
 
@@ -56,6 +63,7 @@ private:
     int attempts_{0};
 
     std::chrono::milliseconds timeout_{std::chrono::milliseconds::max()};
+    engine::Deadline deadline_;
 
     std::vector<std::pair<grpc::string, grpc::string>> metadata_;
 

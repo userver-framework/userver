@@ -33,7 +33,7 @@ async def _assert_receive_timeout(sock: AsyncioSocket) -> None:
     try:
         data = await sock.recv(1, timeout=_NOTICEABLE_DELAY)
         assert not data
-    except asyncio.TimeoutError:
+    except asyncio.TimeoutError:  # noqa: UP041
         pass
 
 
@@ -84,7 +84,7 @@ async def _server(asyncio_socket: AsyncioSocketsFactory):
     sock.close()
 
 
-@pytest.fixture(name='gate', scope='function')
+@pytest.fixture(name='gate')
 async def _gate(tcp_server):
     gate_config = chaos.GateRoute(
         name='tcp proxy',
@@ -95,14 +95,14 @@ async def _gate(tcp_server):
         yield proxy
 
 
-@pytest.fixture(name='tcp_client', scope='function')
+@pytest.fixture(name='tcp_client')
 async def _client(make_client):
     sock = await make_client()
     yield sock
     sock.close()
 
 
-@pytest.fixture(name='server_connection', scope='function')
+@pytest.fixture(name='server_connection')
 async def _server_connection(tcp_server, gate):
     sock = await tcp_server.accept()
     await gate.wait_for_connections(count=1)

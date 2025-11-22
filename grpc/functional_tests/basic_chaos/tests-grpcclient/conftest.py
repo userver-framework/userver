@@ -64,7 +64,7 @@ async def _gate_ready(_gate_started, greeter_mock):
 
     await _gate_started.sockets_close()
 
-    yield _gate_started
+    return _gate_started
 
 
 # [grpc_mockserver_endpoint example]
@@ -96,7 +96,7 @@ async def _grpc_session_ch(grpc_mockserver_session, grpc_service_port_local):
 async def grpc_ch(_grpc_session_ch, grpc_service_port_local):
     try:
         await asyncio.wait_for(_grpc_session_ch.channel_ready(), timeout=10)
-    except asyncio.TimeoutError:
+    except asyncio.TimeoutError:  # noqa: UP041
         raise RuntimeError(
             f'Failed to connect to remote gRPC server by address [::1]:{grpc_service_port_local}',
         )

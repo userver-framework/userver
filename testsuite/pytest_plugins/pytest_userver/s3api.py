@@ -1,13 +1,9 @@
+from collections.abc import Mapping
 import dataclasses
 import datetime as dt
 import hashlib
 import pathlib
 import sys
-from typing import Dict
-from typing import List
-from typing import Mapping
-from typing import Optional
-from typing import Union
 
 import dateutil.tz as tz
 
@@ -21,7 +17,7 @@ class S3Object:
 class S3MockBucketStorage:
     def __init__(self):
         # use Path to normalize keys (e.g. /a//file.json)
-        self._storage: Dict[pathlib.Path, S3Object] = {}
+        self._storage: dict[pathlib.Path, S3Object] = {}
 
     @staticmethod
     def _generate_etag(data):
@@ -31,8 +27,8 @@ class S3MockBucketStorage:
         self,
         key: str,
         data: bytearray,
-        user_defined_meta: Mapping[str, str] = {},
-        last_modified: Optional[Union[dt.datetime, str]] = None,
+        user_defined_meta: Mapping[str, str] | None = None,
+        last_modified: dt.datetime | str | None = None,
     ):
         key_path = pathlib.Path(key)
         if last_modified is None:
@@ -48,16 +44,17 @@ class S3MockBucketStorage:
             'Size': str(sys.getsizeof(data)),
         }
 
-        meta.update(user_defined_meta)
+        if user_defined_meta:
+            meta.update(user_defined_meta)
 
         self._storage[key_path] = S3Object(data, meta)
         return meta
 
-    def get_object(self, key: str) -> Optional[S3Object]:
+    def get_object(self, key: str) -> S3Object | None:
         key_path = pathlib.Path(key)
         return self._storage.get(key_path)
 
-    def get_objects(self, parent_dir='') -> Dict[str, S3Object]:
+    def get_objects(self, parent_dir='') -> dict[str, S3Object]:
         all_objects = {str(key_path): value for key_path, value in self._storage.items()}
 
         if not parent_dir:
@@ -65,7 +62,7 @@ class S3MockBucketStorage:
 
         return {key: value for key, value in all_objects.items() if key.startswith(str(pathlib.Path(parent_dir)))}
 
-    def delete_object(self, key) -> Optional[S3Object]:
+    def delete_object(self, key) -> S3Object | None:
         key = pathlib.Path(key)
         if key not in self._storage:
             return None
@@ -86,9 +83,9 @@ class S3HandleMock:
 
     def _generate_get_objects_result(
         self,
-        s3_objects_dict: Dict[str, S3Object],
+        s3_objects_dict: dict[str, S3Object],
         max_keys: int,
-        marker: Optional[str],
+        marker: str | None,
     ):
         empty_result = {'result_objects': [], 'is_truncated': False}
         keys = list(s3_objects_dict.keys())
@@ -110,11 +107,11 @@ class S3HandleMock:
 
     def _generate_get_objects_xml(
         self,
-        s3_objects: List[S3Object],
+        s3_objects: list[S3Object],
         bucket_name: str,
         prefix: str,
-        max_keys: Optional[int],
-        marker: Optional[str],
+        max_keys: int | None,
+        marker: str | None,
         is_truncated: bool,
     ):
         contents = ''
@@ -168,7 +165,8 @@ class S3HandleMock:
                 user_defined_meta[meta_key] = meta_value
 
         meta = bucket_storage.put_object(key, data, user_defined_meta)
-        return self._mockserver.make_response('OK', 200, headers=meta)
+        # Some clients like AWS SDK for C++ parse not empty body as XML
+        return self._mockserver.make_response('', 200, headers=meta)
 
     def copy_object(self, request):
         key = self._extract_key(request)
@@ -184,7 +182,8 @@ class S3HandleMock:
         src_data = src_obj.data
         src_meta = src_obj.meta
         meta = dst_bucket_storage.put_object(key, src_data, src_meta)
-        return self._mockserver.make_response('OK', 200, headers=meta)
+        # Some clients like AWS SDK for C++ parse not empty body as XML
+        return self._mockserver.make_response('', 200, headers=meta)
 
     def get_objects(self, request):
         prefix = request.query['prefix']
@@ -218,7 +217,8 @@ class S3HandleMock:
 
         bucket_storage.delete_object(key)
         # S3 always return 204, even if file doesn't exist
-        return self._mockserver.make_response('OK', 204)
+        # Some clients like AWS SDK for C++ parse not empty body as XML
+        return self._mockserver.make_response('', 204)
 
     def get_object_head(self, request):
         key = self._extract_key(request)
@@ -228,8 +228,9 @@ class S3HandleMock:
         s3_object = bucket_storage.get_object(key)
         if not s3_object:
             return self._mockserver.make_response('Object not found', 404)
+        # Some clients like AWS SDK for C++ parse not empty body as XML
         return self._mockserver.make_response(
-            'OK',
+            '',
             200,
             headers=s3_object.meta,
         )

@@ -25,22 +25,22 @@ constexpr storages::redis::CommandControl kDefaultCc{std::chrono::milliseconds(3
 UTEST_F(RedisClusterClientTest, SetGet) {
     auto client = GetClient();
 
-    const size_t kNumKeys = 10;
+    const size_t num_keys = 10;
     const int add = 100;
 
-    for (size_t i = 0; i < kNumKeys; ++i) {
+    for (size_t i = 0; i < num_keys; ++i) {
         auto req = client->Set(MakeKey(i), std::to_string(add + i), kDefaultCc);
         UASSERT_NO_THROW(req.Get());
     }
 
-    for (size_t i = 0; i < kNumKeys; ++i) {
+    for (size_t i = 0; i < num_keys; ++i) {
         auto req = client->Get(MakeKey(i), kDefaultCc);
         auto reply = req.Get();
         ASSERT_TRUE(reply);
         EXPECT_EQ(*reply, std::to_string(add + i));
     }
 
-    for (size_t i = 0; i < kNumKeys; ++i) {
+    for (size_t i = 0; i < num_keys; ++i) {
         auto req = client->Del(MakeKey(i), kDefaultCc);
         EXPECT_EQ(req.Get(), 1);
     }
@@ -49,20 +49,20 @@ UTEST_F(RedisClusterClientTest, SetGet) {
 UTEST_F(RedisClusterClientTest, Mget) {
     auto client = GetClient();
 
-    const size_t kNumKeys = 10;
+    const size_t num_keys = 10;
     const int add = 100;
 
-    for (size_t i = 0; i < kNumKeys; ++i) {
+    for (size_t i = 0; i < num_keys; ++i) {
         auto req = client->Set(MakeKey(i), std::to_string(add + i), kDefaultCc);
         UASSERT_NO_THROW(req.Get());
     }
 
-    for (size_t i = 0; i < kNumKeys; ++i) {
+    for (size_t i = 0; i < num_keys; ++i) {
         auto req = client->Set(MakeKey2(i, add), std::to_string(add * 2 + i), kDefaultCc);
         UASSERT_NO_THROW(req.Get());
     }
 
-    for (size_t i = 0; i < kNumKeys; ++i) {
+    for (size_t i = 0; i < num_keys; ++i) {
         auto req = client->Mget({MakeKey(i), MakeKey2(i, add)}, kDefaultCc);
         auto reply = req.Get();
         ASSERT_EQ(reply.size(), 2);
@@ -73,12 +73,12 @@ UTEST_F(RedisClusterClientTest, Mget) {
         EXPECT_EQ(*reply[1], std::to_string(add * 2 + i));
     }
 
-    for (size_t i = 0; i < kNumKeys; ++i) {
+    for (size_t i = 0; i < num_keys; ++i) {
         auto req = client->Del(MakeKey(i), kDefaultCc);
         EXPECT_EQ(req.Get(), 1);
     }
 
-    for (size_t i = 0; i < kNumKeys; ++i) {
+    for (size_t i = 0; i < num_keys; ++i) {
         auto req = client->Del(MakeKey2(i, add), kDefaultCc);
         EXPECT_EQ(req.Get(), 1);
     }
@@ -141,19 +141,19 @@ UTEST_F(RedisClusterClientTest, Transaction) {
 UTEST_F(RedisClusterClientTest, TransactionSmokeRetriesFailure) {
     auto client = GetClient();
     using namespace std::chrono_literals;
-    storages::redis::CommandControl kRetryCc{1ms, 300ms, 100};
-    kRetryCc.allow_reads_from_master = true;
+    storages::redis::CommandControl k_retry_cc{1ms, 300ms, 100};
+    k_retry_cc.allow_reads_from_master = true;
 
-    const size_t kNumKeys = 3;
-    const size_t kSubseqChanges = 1000;
-    for (size_t i = 0; i < kNumKeys; ++i) {
+    const size_t num_keys = 3;
+    const size_t subseq_changes = 1000;
+    for (size_t i = 0; i < num_keys; ++i) {
         auto transaction = client->Multi();
         const auto key = MakeKey(i);
-        for (size_t j = 0; j < kSubseqChanges; ++j) {
+        for (size_t j = 0; j < subseq_changes; ++j) {
             [[maybe_unused]] auto set = transaction->Set(key, "some value" + std::to_string(j), 500ms);
             [[maybe_unused]] auto get = transaction->Get(key);
         }
-        UASSERT_THROW(transaction->Exec(kRetryCc).Get(), storages::redis::RequestFailedException);
+        UASSERT_THROW(transaction->Exec(k_retry_cc).Get(), storages::redis::RequestFailedException);
     }
 }
 
@@ -178,10 +178,10 @@ UTEST_F(RedisClusterClientTest, TransactionDistinctShards) {
     auto client = GetClient();
     auto transaction = client->Multi(storages::redis::Transaction::CheckShards::kNo);
 
-    const size_t kNumKeys = 10;
+    const size_t num_keys = 10;
     const int add = 100;
 
-    for (size_t i = 0; i < kNumKeys; ++i) {
+    for (size_t i = 0; i < num_keys; ++i) {
         auto set = transaction->Set(MakeKey(i), std::to_string(add + i));
         auto get = transaction->Get(MakeKey(i));
     }
@@ -195,7 +195,7 @@ UTEST_F(RedisClusterClientTest, Eval) {
     client->Set("the_key", "the_value", {}).Get();
 
     // ...
-    const std::string kLuaScript{R"~(
+    const std::string lua_script{R"~(
     if redis.call("get",KEYS[1]) == ARGV[1] then
         redis.call("del",KEYS[1])
         return "del"
@@ -205,10 +205,10 @@ UTEST_F(RedisClusterClientTest, Eval) {
     end
 )~"};
 
-    auto val1 = client->Eval<std::string>(kLuaScript, {"the_key"}, {"mismatched_value"}, {}).Get();
+    auto val1 = client->Eval<std::string>(lua_script, {"the_key"}, {"mismatched_value"}, {}).Get();
     EXPECT_EQ(val1, "mismatched");
 
-    auto val2 = client->Eval<std::string>(kLuaScript, {"the_key"}, {"the_value"}, {}).Get();
+    auto val2 = client->Eval<std::string>(lua_script, {"the_key"}, {"the_value"}, {}).Get();
     EXPECT_EQ(val2, "del");
     /// [Sample eval usage]
 }
@@ -218,7 +218,7 @@ UTEST_F(RedisClusterClientTest, EvalSha) {
 
     /// [Sample evalsha usage]
     auto upload_scripts = [client]() {
-        const std::string kLuaScript{R"~(
+        const std::string lua_script{R"~(
             if redis.call("get",KEYS[1]) == ARGV[1] then
                 redis.call("del",KEYS[1])
                 return "del"
@@ -230,7 +230,7 @@ UTEST_F(RedisClusterClientTest, EvalSha) {
         const std::size_t shards_count = client->ShardsCount();
         std::string script_sha;
         for (std::size_t i = 0; i < shards_count; ++i) {
-            script_sha = client->ScriptLoad(kLuaScript, i, {}).Get();
+            script_sha = client->ScriptLoad(lua_script, i, {}).Get();
         }
         return script_sha;
     };
@@ -267,59 +267,59 @@ UTEST_F(RedisClusterClientTest, Subscribe) {
     auto client = GetClient();
     auto subscribe_client = GetSubscribeClient();
 
-    const std::string kChannel1 = "channel01";
-    const std::string kChannel2 = "channel02";
-    const std::string kMsg1 = "test message1";
-    const std::string kMsg2 = "test message2";
+    const std::string channel1 = "channel01";
+    const std::string channel2 = "channel02";
+    const std::string msg1 = "test message1";
+    const std::string msg2 = "test message2";
 
     engine::SingleConsumerEvent event1;
     engine::SingleConsumerEvent event2;
     size_t msg_counter = 0;
     const auto waiting_time = std::chrono::milliseconds(50);
 
-    auto token1 = subscribe_client->Subscribe(kChannel1, [&](const std::string& channel, const std::string& message) {
-        EXPECT_EQ(channel, kChannel1);
-        EXPECT_EQ(message, kMsg1);
+    auto token1 = subscribe_client->Subscribe(channel1, [&](const std::string& channel, const std::string& message) {
+        EXPECT_EQ(channel, channel1);
+        EXPECT_EQ(message, msg1);
         ++msg_counter;
         event1.Send();
     });
     engine::SleepFor(waiting_time);
 
-    client->Publish(kChannel1, kMsg1, kDefaultCc);
+    client->Publish(channel1, msg1, kDefaultCc);
     ASSERT_TRUE(event1.WaitForEventFor(utest::kMaxTestWaitTime));
     EXPECT_EQ(msg_counter, 1);
 
-    auto token2 = subscribe_client->Subscribe(kChannel2, [&](const std::string& channel, const std::string& message) {
-        EXPECT_EQ(channel, kChannel2);
-        EXPECT_EQ(message, kMsg2);
+    auto token2 = subscribe_client->Subscribe(channel2, [&](const std::string& channel, const std::string& message) {
+        EXPECT_EQ(channel, channel2);
+        EXPECT_EQ(message, msg2);
         ++msg_counter;
         event2.Send();
     });
     engine::SleepFor(waiting_time);
 
-    client->Publish(kChannel2, kMsg2, kDefaultCc);
+    client->Publish(channel2, msg2, kDefaultCc);
     ASSERT_TRUE(event2.WaitForEventFor(utest::kMaxTestWaitTime));
     EXPECT_EQ(msg_counter, 2);
 
     token1.Unsubscribe();
-    client->Publish(kChannel1, kMsg1, kDefaultCc);
+    client->Publish(channel1, msg1, kDefaultCc);
     engine::SleepFor(waiting_time);
     EXPECT_EQ(msg_counter, 2);
 
-    client->Publish(kChannel2, kMsg2, kDefaultCc);
+    client->Publish(channel2, msg2, kDefaultCc);
     ASSERT_TRUE(event2.WaitForEventFor(utest::kMaxTestWaitTime));
     EXPECT_EQ(msg_counter, 3);
 }
 
 // for manual testing of CLUSTER FAILOVER
 UTEST_F(RedisClusterClientTest, LongWork) {
-    const bool kIsManualTesting = false;
-    const auto kTestTime = std::chrono::seconds(300);
-    auto deadline = engine::Deadline::FromDuration(kTestTime);
+    const bool is_manual_testing = false;
+    const auto test_time = std::chrono::seconds(300);
+    auto deadline = engine::Deadline::FromDuration(test_time);
 
     auto client = GetClient();
 
-    const size_t kNumKeys = 10;
+    const size_t num_keys = 10;
     const int add = 100;
 
     size_t num_write_errors = 0;
@@ -328,7 +328,7 @@ UTEST_F(RedisClusterClientTest, LongWork) {
     size_t iterations = 0;
 
     do {
-        for (size_t i = 0; i < kNumKeys; ++i) {
+        for (size_t i = 0; i < num_keys; ++i) {
             auto req = client->Set(MakeKey(i), std::to_string(add + i), kDefaultCc);
             try {
                 req.Get();
@@ -338,7 +338,7 @@ UTEST_F(RedisClusterClientTest, LongWork) {
             }
         }
 
-        for (size_t i = 0; i < kNumKeys; ++i) {
+        for (size_t i = 0; i < num_keys; ++i) {
             auto req = client->Get(MakeKey(i), kDefaultCc);
             try {
                 req.Get();
@@ -348,7 +348,7 @@ UTEST_F(RedisClusterClientTest, LongWork) {
             }
         }
 
-        for (size_t i = 0; i < kNumKeys; ++i) {
+        for (size_t i = 0; i < num_keys; ++i) {
             auto req = client->Del(MakeKey(i), kDefaultCc);
             try {
                 req.Get();
@@ -360,11 +360,11 @@ UTEST_F(RedisClusterClientTest, LongWork) {
 
         ++iterations;
         engine::SleepFor(std::chrono::milliseconds(10));
-    } while (!deadline.IsReached() && kIsManualTesting);
+    } while (!deadline.IsReached() && is_manual_testing);
 
     EXPECT_EQ(num_write_errors, 0);
     EXPECT_EQ(num_read_errors, 0);
-    EXPECT_GT(iterations, kIsManualTesting ? 100 : 0);
+    EXPECT_GT(iterations, is_manual_testing ? 100 : 0);
 }
 
 UTEST_F(RedisClusterClientTest, ClusterSlotsCalled) {

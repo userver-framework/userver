@@ -13,6 +13,8 @@ constexpr auto kWriterLock = std::numeric_limits<Semaphore::Counter>::max();
 
 SharedMutex::SharedMutex() : semaphore_(kWriterLock), waiting_writers_count_(0) {}
 
+SharedMutex::~SharedMutex() { UASSERT(waiting_writers_count_ == 0); }
+
 void SharedMutex::lock() {
     const auto ok = try_lock_until(Deadline{});
     UASSERT(ok);
@@ -66,6 +68,12 @@ void SharedMutex::lock_shared() {
 }
 
 void SharedMutex::unlock_shared() { semaphore_.unlock_shared(); }
+
+void SharedMutex::unlock_and_lock_shared() {
+    const utils::ScopeGuard stop_wait([this] { DecWaitingWriters(); });
+
+    semaphore_.unlock_shared_count(kWriterLock - 1);
+}
 
 bool SharedMutex::try_lock_shared() {
     if (HasWaitingWriter()) return false;

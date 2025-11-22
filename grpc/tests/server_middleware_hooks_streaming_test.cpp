@@ -19,6 +19,7 @@
 
 #include <tests/unit_test_client.usrv.pb.hpp>
 #include <tests/unit_test_service.usrv.pb.hpp>
+#include <tests/unit_test_service_gmock.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -28,12 +29,7 @@ const grpc::Status kUnknownErrorStatus{
     grpc::StatusCode::UNKNOWN,
     "The service method has exited unexpectedly, without providing a status"};
 
-class UnitTestServiceMock : public sample::ugrpc::UnitTestServiceBase {
-public:
-    MOCK_METHOD(ChatResult, Chat, (ugrpc::server::CallContext& /*context*/, ChatReaderWriter& /*stream*/), (override));
-};
-
-using ChatReaderWriter = UnitTestServiceMock::ChatReaderWriter;
+using ChatReaderWriter = tests::UnitTestServiceGmock::ChatReaderWriter;
 
 struct Flags final {
     bool set_error{true};
@@ -41,7 +37,7 @@ struct Flags final {
 
 class ServerMiddlewareHooksStreamingTest : public tests::MiddlewaresFixture<
                                                tests::server::ServerMiddlewareBaseMock,
-                                               ::testing::NiceMock<UnitTestServiceMock>,
+                                               ::testing::NiceMock<tests::UnitTestServiceGmock>,
                                                sample::ugrpc::UnitTestServiceClient,
                                                /*N=*/3> {
 protected:

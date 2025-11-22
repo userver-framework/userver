@@ -21,7 +21,7 @@ USERVER_NAMESPACE_BEGIN
 
 template <>
 struct Parsing<yaml_config::YamlConfig> : public ::testing::Test {
-    constexpr static auto FromString = [](const std::string& str) {
+    constexpr static auto kFromString = [](const std::string& str) {
         return yaml_config::YamlConfig{formats::yaml::FromString(str), {}};
     };
     using ParseException = yaml_config::ParseException;
@@ -749,7 +749,7 @@ TEST(YamlConfig, ExplicitStringType) {
         {},
     };
 
-    const std::pair<std::string, std::string> kExpectedValues[]{
+    const std::pair<std::string, std::string> expected_values[]{
         {"quoted-int", "123"},
         {"str-int", "123"},
         {"quoted-float", "123.5"},
@@ -759,7 +759,7 @@ TEST(YamlConfig, ExplicitStringType) {
         {"quoted-null", "null"},
     };
 
-    for (const auto& [key_raw, expected_value_raw] : kExpectedValues) {
+    for (const auto& [key_raw, expected_value_raw] : expected_values) {
         using Exception = formats::yaml::TypeMismatchException;
 
         // UEXPECT_THROW is implemented using a lambda, which refuses to capture

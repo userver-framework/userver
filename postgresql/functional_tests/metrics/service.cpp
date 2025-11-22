@@ -137,6 +137,7 @@ int main(int argc, char* argv[]) {
                                     .Append<pg::metrics::PostgresHandler>()
                                     .Append<pg::metrics::KeyValueCache>()
                                     .Append<pg::metrics::DistlockMetrics>()
+                                    .Append<components::HttpClientCore>()
                                     .Append<components::HttpClient>()
                                     .Append<components::Postgres>("key-value-database")
                                     .Append<components::TestsuiteSupport>()

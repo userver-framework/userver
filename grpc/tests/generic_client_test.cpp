@@ -96,19 +96,39 @@ UTEST_F(GenericClientTest, MetricsDefaultCallNameIsFake) {
 
 namespace {
 
-using GenericClientLoggingTest = utest::LogCaptureFixture<ugrpc::tests::ServiceFixture<UnitTestService>>;
+template <typename ServiceType>
+class WithClientLogMiddleware : public ugrpc::tests::ServiceFixture<ServiceType> {
+public:
+    WithClientLogMiddleware()
+        : ugrpc::tests::ServiceFixture<ServiceType>(
+              {},
+              {},
+              {
+                  std::make_shared<ugrpc::client::middlewares::log::Middleware>(
+                      ugrpc::client::middlewares::log::Settings{}
+                  ),
+              }
+          ) {}
+};
+
+using GenericClientLoggingTest = utest::LogCaptureFixture<WithClientLogMiddleware<UnitTestService>>;
 
 }  // namespace
 
 UTEST_F(GenericClientLoggingTest, Logs) {
     PerformGenericUnaryCall(*this);
 
-    const auto span_log = GetSingleLog(
-        GetLogCapture().Filter("", {{{std::string_view("stopwatch_name"), std::string_view("external_grpc")}}})
-    );
-    EXPECT_EQ(span_log.GetTagOptional("stopwatch_name"), "external_grpc/sample.ugrpc.UnitTestService/SayHello")
-        << span_log;
-    EXPECT_EQ(span_log.GetTagOptional("grpc_code"), "OK") << span_log;
+    const auto span_log = utest::GetSingleLog(GetLogCapture().Filter(
+        "",
+        {{{std::string_view("stopwatch_name"), kSayHelloCallName},
+          {std::string_view("span_kind"), std::string_view("client")}}}
+    ));
+    EXPECT_EQ(span_log.GetTagOptional("stopwatch_name"), kSayHelloCallName) << span_log;
+    EXPECT_EQ(span_log.GetTagOptional("rpc.system"), "grpc") << span_log;
+    EXPECT_EQ(span_log.GetTagOptional("rpc.service"), "sample.ugrpc.UnitTestService") << span_log;
+    EXPECT_EQ(span_log.GetTagOptional("rpc.method"), "SayHello") << span_log;
+    EXPECT_EQ(span_log.GetTagOptional("server.address"), "localhost") << span_log;
+    EXPECT_EQ(span_log.GetTagOptional(tracing::kGrpcCode), "OK") << span_log;
 }
 
 USERVER_NAMESPACE_END

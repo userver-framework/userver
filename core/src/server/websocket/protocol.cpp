@@ -26,15 +26,15 @@ inline bool RecvAny(engine::io::ReadableBase& readable, utils::span<char> buffer
     UASSERT(0 != buffer.size());
     UASSERT(offset < buffer.size());
 
-    const size_t leftToRead = buffer.size() - offset;
-    const auto optRead = readable.ReadNoblock(buffer.data(), leftToRead);
-    if (!optRead) return false;
+    const size_t left_to_read = buffer.size() - offset;
+    const auto opt_read = readable.ReadNoblock(buffer.data(), left_to_read);
+    if (!opt_read) return false;
 
-    if (leftToRead == *optRead) {
+    if (left_to_read == *opt_read) {
         offset = 0;
         return true;
-    } else if (*optRead > 0) {
-        offset += *optRead;
+    } else if (*opt_read > 0) {
+        offset += *opt_read;
         return false;
     } else  // 0 == *optRead
         throw(engine::io::IoException() << "Socket closed during transfer ");
@@ -77,8 +77,8 @@ void XorMaskInplace(uint8_t* dest, size_t len, Mask32 mask) {
 
 template <class T, class V>
 void PushRaw(const T& value, V& data) {
-    const auto* valBytes = reinterpret_cast<const char*>(&value);
-    data.insert(data.end(), valBytes, valBytes + sizeof(value));
+    const auto* val_bytes = reinterpret_cast<const char*>(&value);
+    data.insert(data.end(), val_bytes, val_bytes + sizeof(value));
 }
 
 }  // namespace
@@ -146,7 +146,7 @@ const std::array<char, sizeof(WSHeader)>& CloseFrame() { return ws_close_frame; 
 std::string WebsocketSecAnswer(std::string_view sec_key) {
     // guid is taken from RFC
     // https://datatracker.ietf.org/doc/html/rfc6455#section-1.3
-    static constexpr std::string_view websocketGuid = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+    static constexpr std::string_view kWebsocketGuid = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
 
 #if defined(CRYPTOPP_NO_GLOBAL_BYTE)
     using CryptoByte = CryptoPP::byte;
@@ -154,13 +154,13 @@ std::string WebsocketSecAnswer(std::string_view sec_key) {
     using CryptoByte = ::byte;
 #endif
 
-    CryptoByte webSocketRespKeySHA1[CryptoPP::SHA1::DIGESTSIZE];
+    CryptoByte web_socket_resp_key_sh_a1[CryptoPP::SHA1::DIGESTSIZE];
     CryptoPP::SHA1 hash;
     hash.Update(reinterpret_cast<const CryptoByte*>(sec_key.data()), sec_key.size());
-    hash.Update(reinterpret_cast<const CryptoByte*>(websocketGuid.data()), websocketGuid.size());
-    hash.Final(webSocketRespKeySHA1);
+    hash.Update(reinterpret_cast<const CryptoByte*>(kWebsocketGuid.data()), kWebsocketGuid.size());
+    hash.Final(web_socket_resp_key_sh_a1);
     return crypto::base64::Base64Encode(
-        std::string_view(reinterpret_cast<const char*>(webSocketRespKeySHA1), sizeof(webSocketRespKeySHA1))
+        std::string_view(reinterpret_cast<const char*>(web_socket_resp_key_sh_a1), sizeof(web_socket_resp_key_sh_a1))
     );
 }
 
@@ -174,22 +174,22 @@ CloseStatus ReadWSFrameImpl(
     // we assume that the WSHeader has been read a while ago
     if (engine::current_task::ShouldCancel()) return CloseStatus::kGoingAway;
 
-    const bool isDataFrame = (hdr.bits.opcode & (kText | kBinary)) || hdr.bits.opcode == kContinuation;
+    const bool is_data_frame = (hdr.bits.opcode & (kText | kBinary)) || hdr.bits.opcode == kContinuation;
     if (hdr.bits.payload_len <= 125) {
         payload_len = hdr.bits.payload_len;
     } else if (hdr.bits.payload_len == 126) {
-        uint16_t payloadLen16 = 0;
-        RecvExactly(io, AsWritableBytes(MakeSpan(&payloadLen16, 1)), {});
-        payload_len = boost::endian::big_to_native(payloadLen16);
+        uint16_t payload_len16 = 0;
+        RecvExactly(io, AsWritableBytes(MakeSpan(&payload_len16, 1)), {});
+        payload_len = boost::endian::big_to_native(payload_len16);
     } else  // if (hdr.payloadLen == 127)
     {
-        uint64_t payloadLen64 = 0;
-        RecvExactly(io, AsWritableBytes(MakeSpan(&payloadLen64, 1)), {});
-        payload_len = boost::endian::big_to_native(payloadLen64);
+        uint64_t payload_len64 = 0;
+        RecvExactly(io, AsWritableBytes(MakeSpan(&payload_len64, 1)), {});
+        payload_len = boost::endian::big_to_native(payload_len64);
     }
     if (engine::current_task::ShouldCancel()) return CloseStatus::kGoingAway;
 
-    if (!isDataFrame && hdr.bits.payload_len > 125) {
+    if (!is_data_frame && hdr.bits.payload_len > 125) {
         // control frame should not have extended payload
         return CloseStatus::kProtocolError;
     }
@@ -201,21 +201,21 @@ CloseStatus ReadWSFrameImpl(
     if (engine::current_task::ShouldCancel()) return CloseStatus::kGoingAway;
 
     if (payload_len > 0) {
-        if (isDataFrame) {
+        if (is_data_frame) {
             if (!frame.payload->empty() && hdr.bits.opcode != kContinuation) {
                 // non-continuation opcode while waiting continuation
                 return CloseStatus::kProtocolError;
             }
         }
 
-        const size_t newPayloadOffset = frame.payload->size();
+        const size_t new_payload_offset = frame.payload->size();
         frame.payload->resize(frame.payload->size() + payload_len);
-        RecvExactly(io, MakeSpan(frame.payload->data() + newPayloadOffset, payload_len), {});
+        RecvExactly(io, MakeSpan(frame.payload->data() + new_payload_offset, payload_len), {});
         if (engine::current_task::ShouldCancel()) return CloseStatus::kGoingAway;
 
         // Apply masking only to the current frame's data, not to the entire buffer
         if (mask.mask32)
-            XorMaskInplace(reinterpret_cast<uint8_t*>(frame.payload->data() + newPayloadOffset), payload_len, mask);
+            XorMaskInplace(reinterpret_cast<uint8_t*>(frame.payload->data() + new_payload_offset), payload_len, mask);
     }
     const char opcode = hdr.bits.opcode;
     const char fin = hdr.bits.fin;

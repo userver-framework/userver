@@ -64,7 +64,7 @@ constexpr std::string_view kDumperName = "name";
 }  // namespace
 
 UTEST(DumpLocator, CleanupTmp) {
-    const std::string kConfig = R"(
+    const std::string config_str = R"(
 enable: true
 world-readable: false
 format-version: 5
@@ -85,7 +85,7 @@ max-age: null
 
     utils::datetime::MockNowSet(BaseTime());
 
-    const dump::Config config{dump::ConfigFromYaml(kConfig, dir, kDumperName)};
+    const dump::Config config{dump::ConfigFromYaml(config_str, dir, kDumperName)};
     dump::DumpLocator locator{config};
     locator.Cleanup();
 
@@ -93,7 +93,7 @@ max-age: null
 }
 
 UTEST(DumpLocator, CleanupByAge) {
-    const std::string kConfig = R"(
+    const std::string config_str = R"(
 enable: true
 world-readable: false
 format-version: 5
@@ -118,7 +118,7 @@ max-age: 1500ms
     utils::datetime::MockNowSet(BaseTime());
     utils::datetime::MockSleep(std::chrono::seconds{3});
 
-    const dump::Config config{dump::ConfigFromYaml(kConfig, dir, kDumperName)};
+    const dump::Config config{dump::ConfigFromYaml(config_str, dir, kDumperName)};
     dump::DumpLocator locator{config};
     locator.Cleanup();
 
@@ -126,7 +126,7 @@ max-age: 1500ms
 }
 
 UTEST(DumpLocator, CleanupByCount) {
-    const std::string kConfig = R"(
+    const std::string config_str = R"(
 enable: true
 world-readable: false
 format-version: 5
@@ -148,7 +148,7 @@ max-age: null
     ASSERT_TRUE(expected_files.erase("2015-03-22T090001.000000Z-v5"));
     ASSERT_TRUE(expected_files.erase("2015-03-22T090002.000000Z-v5"));
 
-    const dump::Config config{dump::ConfigFromYaml(kConfig, dir, kDumperName)};
+    const dump::Config config{dump::ConfigFromYaml(config_str, dir, kDumperName)};
     dump::DumpLocator locator{config};
     locator.Cleanup();
 
@@ -156,7 +156,7 @@ max-age: null
 }
 
 UTEST(DumpLocator, ReadLatestDump) {
-    const std::string kConfig = R"(
+    const std::string config_str = R"(
 enable: true
 world-readable: false
 format-version: 5
@@ -174,7 +174,7 @@ max-age: null
     InsertAll(expected_files, JunkFileNames());
     InsertAll(expected_files, UnrelatedFileNames());
 
-    const dump::Config config{dump::ConfigFromYaml(kConfig, dir, kDumperName)};
+    const dump::Config config{dump::ConfigFromYaml(config_str, dir, kDumperName)};
     const dump::DumpLocator locator{config};
 
     auto dump_info = locator.GetLatestDump();
@@ -190,7 +190,7 @@ max-age: null
 }
 
 UTEST(DumpLocator, DumpAndBump) {
-    const std::string kConfig = R"(
+    const std::string config_str = R"(
 enable: true
 world-readable: false
 format-version: 5
@@ -204,7 +204,7 @@ max-age: null
 
     using namespace std::chrono_literals;
 
-    const dump::Config config{dump::ConfigFromYaml(kConfig, dir, kDumperName)};
+    const dump::Config config{dump::ConfigFromYaml(config_str, dir, kDumperName)};
     dump::DumpLocator locator{config};
 
     auto old_update_time = BaseTime();
@@ -229,7 +229,7 @@ UTEST(DumpLocator, LegacyFilenames) {
     using namespace std::chrono_literals;
     using namespace std::string_literals;
 
-    const std::string kConfig = R"(
+    const std::string config_str = R"(
 enable: true
 world-readable: false
 format-version: 5
@@ -246,7 +246,7 @@ max-age: 30m
 
     utils::datetime::MockNowSet(BaseTime() + 60min);  // 2015-03-22T100000.000000Z
 
-    const dump::Config config{dump::ConfigFromYaml(kConfig, dir, kDumperName)};
+    const dump::Config config{dump::ConfigFromYaml(config_str, dir, kDumperName)};
     dump::DumpLocator locator{config};
 
     {

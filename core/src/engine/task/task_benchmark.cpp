@@ -43,6 +43,23 @@ void EngineTaskYieldSingleThread(benchmark::State& state) {
 }
 BENCHMARK(EngineTaskYieldSingleThread)->RangeMultiplier(2)->Range(1, 128);
 
+void EngineTaskYieldSingleThreadTraced(benchmark::State& state) {
+    engine::RunStandalone([&] {
+        auto& tp = engine::current_task::GetTaskProcessor();
+        engine::TracePlugin plugin(tp.GetWorkerCount());
+        tp.RegisterPlugin(plugin);
+
+        RunParallelBenchmark(state, [](auto& range) {
+            for ([[maybe_unused]] auto _ : range) {
+                engine::Yield();
+            }
+        });
+
+        tp.UnregisterPlugin(plugin);
+    });
+}
+BENCHMARK(EngineTaskYieldSingleThreadTraced)->RangeMultiplier(2)->Range(1, 128);
+
 void EngineTaskYieldMultipleThreads(benchmark::State& state) {
     engine::RunStandalone(state.range(0), [&] {
         std::atomic<std::uint64_t> total_yields{0};

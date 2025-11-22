@@ -50,17 +50,18 @@ def test_parameters(translate_single_schema):
                                 type='integer',
                             ),
                             validators=cpp_types.CppPrimitiveValidator(
-                                prefix='Parameter0', namespace='::test_namespace::root_::get'
+                                prefix='Parameter0',
+                                namespace='::test_namespace::root_::get',
                             ),
                         ),
                         parser='openapi::TrivialParameter<openapi::In::kQuery, kparam, int, int>',
                         required=False,
                         query_log_mode_hide=False,
-                    )
+                    ),
                 ],
                 request_bodies=[],
                 responses=[],
-            )
+            ),
         ],
     )
 
@@ -91,7 +92,7 @@ def test_parameters_ref(translate_single_schema):
                         'type': 'integer',
                     },
                 },
-            }
+            },
         },
     }
     assert translate_single_schema(schema) == types.ClientSpec(
@@ -116,17 +117,18 @@ def test_parameters_ref(translate_single_schema):
                                 type='integer',
                             ),
                             validators=cpp_types.CppPrimitiveValidator(
-                                prefix='ParameterParameter', namespace='::test_namespace'
+                                prefix='ParameterParameter',
+                                namespace='::test_namespace',
                             ),
                         ),
                         parser='openapi::TrivialParameter<openapi::In::kQuery, kparam, int, int>',
                         required=False,
                         query_log_mode_hide=False,
-                    )
+                    ),
                 ],
                 request_bodies=[],
                 responses=[],
-            )
+            ),
         ],
     )
 
@@ -157,7 +159,7 @@ def test_parameters_schemas_ref(translate_single_schema):
                 'Parameter': {
                     'type': 'integer',
                 },
-            }
+            },
         },
     }
     assert translate_single_schema(schema) == types.ClientSpec(
@@ -204,11 +206,11 @@ def test_parameters_schemas_ref(translate_single_schema):
                         parser='openapi::TrivialParameter<openapi::In::kQuery, kparam, int, int>',
                         required=False,
                         query_log_mode_hide=False,
-                    )
+                    ),
                 ],
                 request_bodies=[],
                 responses=[],
-            )
+            ),
         ],
         internal_schemas={
             '::test_namespace::root_::get::Parameter0': cpp_types.CppRef(
@@ -262,7 +264,7 @@ def test_parameters_schemas_ref(translate_single_schema):
                 indirect=False,
                 self_ref=False,
                 cpp_name=None,
-            )
+            ),
         },
         schemas={
             '::test_namespace::Parameter': cpp_types.CppPrimitiveType(

@@ -84,8 +84,8 @@ UTEST_F(GrpcStatistics, DelayBeforeGet) {
 
     auto future = client.AsyncSayHello(out);
 
-    const std::string kMetricsPath = "grpc.client.by-destination";
-    const std::vector<utils::statistics::Label> kMetricsLabels{
+    const std::string metrics_path = "grpc.client.by-destination";
+    const std::vector<utils::statistics::Label> metrics_labels{
         {"grpc_destination", "sample.ugrpc.UnitTestService/SayHello"},
     };
 
@@ -105,7 +105,7 @@ UTEST_F(GrpcStatistics, DelayBeforeGet) {
     // So that RecentPeriod "timings" metric makes the current epoch readable.
     utils::datetime::MockSleep(6s);
 
-    const auto stats = GetStatistics(kMetricsPath, kMetricsLabels);
+    const auto stats = GetStatistics(metrics_path, metrics_labels);
 
     // check status
     EXPECT_EQ(stats.SingleMetric("status", {{"grpc_code", "INVALID_ARGUMENT"}}).AsRate(), 1);

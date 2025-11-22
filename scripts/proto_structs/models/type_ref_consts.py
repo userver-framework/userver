@@ -1,6 +1,6 @@
 """`TypeReference` constants for common built-in C++ types."""
 
-from typing import Mapping
+from collections.abc import Mapping
 
 from proto_structs.models import type_ref
 
@@ -38,6 +38,15 @@ PRIMITIVE_TYPES: Mapping[str, type_ref.TypeReference] = {
     'fixed64': type_ref.BuiltinType(full_cpp_name='std::uint64_t'),
     'sfixed32': type_ref.BuiltinType(full_cpp_name='std::int32_t'),
     'sfixed64': type_ref.BuiltinType(full_cpp_name='std::int64_t'),
+}
+
+#: All Protobuf well-known types, mapped from their Protobuf names to C++ types.
+WELL_KNOWN_TYPES: Mapping[str, type_ref.TypeReference] = {
+    'google.protobuf.Timestamp': type_ref.UserverLibraryType(full_cpp_name_wo_userver='proto_structs::Timestamp'),
+    'google.protobuf.Duration': type_ref.UserverLibraryType(full_cpp_name_wo_userver='proto_structs::Duration'),
+    'google.type.Date': type_ref.UserverLibraryType(full_cpp_name_wo_userver='proto_structs::Date'),
+    'google.type.TimeOfDay': type_ref.UserverLibraryType(full_cpp_name_wo_userver='proto_structs::TimeOfDay'),
+    'google.protobuf.Any': type_ref.UserverLibraryType(full_cpp_name_wo_userver='proto_structs::Any'),
 }
 
 

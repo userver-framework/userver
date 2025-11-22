@@ -201,51 +201,51 @@ UTEST(PeriodicTask, ExceptionPeriod) {
 UTEST(PeriodicTask, SetSettings) {
     SimpleTaskData simple;
 
-    constexpr auto period1 = 50ms;
-    utils::PeriodicTask::Settings settings(period1);
+    constexpr auto kPeriod1 = 50ms;
+    utils::PeriodicTask::Settings settings(kPeriod1);
 
     utils::PeriodicTask task("task", settings, simple.GetTaskFunction());
 
-    constexpr auto period2 = 10ms;
-    settings.period = period2;
+    constexpr auto kPeriod2 = 10ms;
+    settings.period = kPeriod2;
     task.SetSettings(settings);
 
     constexpr Count n = 4;
-    EXPECT_TRUE(simple.WaitFor(period1 + period2 * n * kSlowRatio, [&simple]() { return simple.GetCount() > n; }));
+    EXPECT_TRUE(simple.WaitFor(kPeriod1 + kPeriod2 * n * kSlowRatio, [&simple]() { return simple.GetCount() > n; }));
 
     task.Stop();
 }
 
 UTEST(PeriodicTask, SetSettingsInstant) {
     SimpleTaskData simple;
-    constexpr auto period1 = 120s;
-    utils::PeriodicTask::Settings settings(period1, utils::PeriodicTask::Flags::kNow);
+    constexpr auto kPeriod1 = 120s;
+    utils::PeriodicTask::Settings settings(kPeriod1, utils::PeriodicTask::Flags::kNow);
     utils::PeriodicTask task("task", settings, simple.GetTaskFunction());
 
     constexpr auto kSyncDuration = 1s;
     engine::SleepFor(kSyncDuration);
 
-    constexpr auto period2 = kSyncDuration / 20;
-    settings.period = period2;
+    constexpr auto kPeriod2 = kSyncDuration / 20;
+    settings.period = kPeriod2;
     task.SetSettings(settings);
 
     engine::SleepFor(kSyncDuration);
 
-    EXPECT_TRUE(simple.WaitFor(2 * period2, [&simple]() { return simple.GetCount() > 0; }));
+    EXPECT_TRUE(simple.WaitFor(2 * kPeriod2, [&simple]() { return simple.GetCount() > 0; }));
     task.Stop();
 }
 
 UTEST(PeriodicTask, SetSettingsFirstIteration) {
     SimpleTaskData simple;
 
-    constexpr auto period1 = 50ms;
+    constexpr auto kPeriod1 = 50ms;
 
-    utils::PeriodicTask task("task", period1, simple.GetTaskFunction());
+    utils::PeriodicTask task("task", kPeriod1, simple.GetTaskFunction());
 
-    constexpr auto period2 = 120s;
-    task.SetSettings(period2);
+    constexpr auto kPeriod2 = 120s;
+    task.SetSettings(kPeriod2);
 
-    EXPECT_TRUE(simple.WaitFor(period1 * kSlowRatio, [&simple]() { return simple.GetCount() == 0; }));
+    EXPECT_TRUE(simple.WaitFor(kPeriod1 * kSlowRatio, [&simple]() { return simple.GetCount() == 0; }));
 
     task.Stop();
 }

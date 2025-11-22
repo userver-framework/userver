@@ -23,6 +23,7 @@
 #include <userver/storages/postgres/io/chrono.hpp>
 
 #include <userver/compiler/demangle.hpp>
+#include <userver/engine/sleep.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/utils/assert.hpp>
@@ -66,6 +67,7 @@ namespace components {
 /// incremental-update-op-timeout | timeout for an incremental update | 1s
 /// update-correction | incremental update window adjustment | - (0 for caches with defined GetLastKnownUpdated)
 /// chunk-size | number of rows to request from PostgreSQL via portals, 0 to fetch all rows in one request without portals | 1000
+/// sleep-between-chunks | duration to wait between reading chunks from PostgreSQL | 0ms
 ///
 /// @section pg_cc_cache_policy Cache policy
 ///
@@ -422,6 +424,7 @@ inline constexpr std::string_view kFetchStage = "fetch";
 inline constexpr std::string_view kParseStage = "parse";
 
 inline constexpr std::size_t kDefaultChunkSize = 1000;
+inline constexpr std::chrono::milliseconds kDefaultSleepBetweenChunks{0};
 }  // namespace pg_cache::detail
 
 /// @ingroup userver_components
@@ -487,6 +490,7 @@ private:
     const std::chrono::milliseconds full_update_timeout_;
     const std::chrono::milliseconds incremental_update_timeout_;
     const std::size_t chunk_size_;
+    const std::chrono::milliseconds sleep_between_chunks_;
     std::size_t cpu_relax_iterations_parse_{0};
     std::size_t cpu_relax_iterations_copy_{0};
 };
@@ -503,7 +507,9 @@ PostgreCache<PostgreCachePolicy>::PostgreCache(const ComponentConfig& config, co
       incremental_update_timeout_{config["incremental-update-op-timeout"].As<std::chrono::milliseconds>(
           pg_cache::detail::kDefaultIncrementalUpdateTimeout
       )},
-      chunk_size_{config["chunk-size"].As<size_t>(pg_cache::detail::kDefaultChunkSize)} {
+      chunk_size_{config["chunk-size"].As<size_t>(pg_cache::detail::kDefaultChunkSize)},
+      sleep_between_chunks_{
+          config["sleep-between-chunks"].As<std::chrono::milliseconds>(pg_cache::detail::kDefaultSleepBetweenChunks)} {
     UINVARIANT(
         !chunk_size_ || storages::postgres::Portal::IsSupportedByDriver(),
         "Either set 'chunk-size' to 0, or enable PostgreSQL portals by building "
@@ -658,6 +664,9 @@ void PostgreCache<PostgreCachePolicy>::Update(
                 scope.Reset(std::string{pg_cache::detail::kParseStage});
                 CacheResults(res, data_cache, stats_scope, scope);
                 changes += res.Size();
+                if (sleep_between_chunks_.count() > 0) {
+                    engine::InterruptibleSleepFor(sleep_between_chunks_);
+                }
             }
             trx.Commit();
         } else {

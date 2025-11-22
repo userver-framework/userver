@@ -1,5 +1,3 @@
-import typing
-
 import pytest
 
 import samples.greeter_pb2 as greeter_protos
@@ -15,7 +13,7 @@ def _normalize_metrics(metrics: str) -> str:
     return '\n'.join(result) + '\n'
 
 
-def _drop_non_grpc_metrics(metrics: typing.List[str]) -> typing.List[str]:
+def _drop_non_grpc_metrics(metrics: list[str]) -> list[str]:
     result = []
     for line in metrics:
         if line.startswith(('grpc.server', 'grpc.client')):
@@ -24,7 +22,7 @@ def _drop_non_grpc_metrics(metrics: typing.List[str]) -> typing.List[str]:
     return result
 
 
-def _hide_metrics_values(metrics: typing.List[str]) -> typing.List[str]:
+def _hide_metrics_values(metrics: list[str]) -> list[str]:
     return ['\t'.join(line.split('\t')[0:2]) for line in metrics]
 
 

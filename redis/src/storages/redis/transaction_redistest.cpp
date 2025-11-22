@@ -368,15 +368,15 @@ UTEST_F(RedisClientTransactionTest, Geopos) {
     Get(client->Geoadd("Sicily", {{13.1, 38.2, "Palermo"}, {15.3, 37.4, "Catania"}}));
 
     const auto result = Get(client->Geopos("Sicily", std::vector<std::string>{"Palermo", "Catania", "NonExisting"}));
-    const auto kGeoTolerance = 1e-5;
+    const auto geo_tolerance = 1e-5;
     EXPECT_EQ(result.size(), 3);
     EXPECT_TRUE(result[0].has_value());
     EXPECT_TRUE(result[1].has_value());
     EXPECT_FALSE(result[2].has_value());
-    EXPECT_NEAR(result[0].value().lon, 13.1, kGeoTolerance);
-    EXPECT_NEAR(result[0].value().lat, 38.2, kGeoTolerance);
-    EXPECT_NEAR(result[1].value().lon, 15.3, kGeoTolerance);
-    EXPECT_NEAR(result[1].value().lat, 37.4, kGeoTolerance);
+    EXPECT_NEAR(result[0].value().lon, 13.1, geo_tolerance);
+    EXPECT_NEAR(result[0].value().lat, 38.2, geo_tolerance);
+    EXPECT_NEAR(result[1].value().lon, 15.3, geo_tolerance);
+    EXPECT_NEAR(result[1].value().lat, 37.4, geo_tolerance);
 }
 
 UTEST_F(RedisClientTransactionTest, Getset) {
@@ -996,17 +996,17 @@ UTEST_F(RedisClientTransactionTest, ReadOnlyGetGet) {
 UTEST_F(RedisClientTransactionTest, TransactionSmokeRetriesFailure) {
     auto client = GetClient();
     using namespace std::chrono_literals;
-    storages::redis::CommandControl kRetryCc{1ms, 300ms, 100};
-    kRetryCc.allow_reads_from_master = true;
+    storages::redis::CommandControl k_retry_cc{1ms, 300ms, 100};
+    k_retry_cc.allow_reads_from_master = true;
 
-    const size_t kSubseqChanges = 1000;
+    const size_t subseq_changes = 1000;
     auto transaction = client->Multi();
     const std::string key = "some_key";
-    for (size_t j = 0; j < kSubseqChanges; ++j) {
+    for (size_t j = 0; j < subseq_changes; ++j) {
         [[maybe_unused]] auto set = transaction->Set(key, "some value" + std::to_string(j), 500ms);
         [[maybe_unused]] auto get = transaction->Get(key);
     }
-    UASSERT_THROW(transaction->Exec(kRetryCc).Get(), storages::redis::RequestFailedException);
+    UASSERT_THROW(transaction->Exec(k_retry_cc).Get(), storages::redis::RequestFailedException);
 }
 
 USERVER_NAMESPACE_END

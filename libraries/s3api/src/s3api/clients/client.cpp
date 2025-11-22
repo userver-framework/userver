@@ -96,10 +96,10 @@ std::string GeneratePresignedUrl(
     return generated_url.str();
 }
 
-std::vector<ObjectMeta> ParseS3ListResponse(std::string_view s3_response) {
+std::vector<ObjectMeta> ParseS3ListResponse(utils::zstring_view s3_response) {
     std::vector<ObjectMeta> result;
     pugi::xml_document xml;
-    const pugi::xml_parse_result parse_result = xml.load_string(s3_response.data());
+    const pugi::xml_parse_result parse_result = xml.load_string(s3_response.c_str());
     if (parse_result.status != pugi::status_ok) {
         throw ListBucketError(fmt::format(
             "Failed to parse S3 list response as xml, error: {}, response: {}", parse_result.description(), s3_response
@@ -121,10 +121,10 @@ std::vector<ObjectMeta> ParseS3ListResponse(std::string_view s3_response) {
     return result;
 }
 
-std::vector<std::string> ParseS3DirectoriesListResponse(std::string_view s3_response) {
+std::vector<std::string> ParseS3DirectoriesListResponse(utils::zstring_view s3_response) {
     std::vector<std::string> result;
     pugi::xml_document xml;
-    const pugi::xml_parse_result parse_result = xml.load_string(s3_response.data());
+    const pugi::xml_parse_result parse_result = xml.load_string(s3_response.c_str());
     if (parse_result.status != pugi::status_ok) {
         throw ListBucketError(fmt::format(
             "Failed to parse S3 directories list response as xml, error: {}, "

@@ -84,7 +84,7 @@ Openssl::Openssl() noexcept {
     TrySetDefaultEngineRdrand();
 }
 
-void Openssl::Init() noexcept { [[maybe_unused]] static const Openssl lock; }
+void Openssl::Init() noexcept { [[maybe_unused]] static const Openssl kLock; }
 
 }  // namespace crypto
 

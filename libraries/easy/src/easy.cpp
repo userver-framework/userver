@@ -216,12 +216,15 @@ HttpDep::HttpDep(const components::ComponentContext& context)
     : http_(context.FindComponent<components::HttpClient>().GetHttpClient()) {}
 
 void HttpDep::RegisterOn(easy::HttpBase& app) {
-    app.TryAddComponent<components::HttpClient>(
-        components::HttpClient::kName,
+    app.TryAddComponent<components::HttpClientCore>(
+        components::HttpClientCore::kName,
         "pool-statistics-disable: false\n"
         "thread-name-prefix: http-client\n"
         "threads: 2\n"
         "fs-task-processor: fs-task-processor\n"
+    );
+    app.TryAddComponent<components::HttpClient>(
+        components::HttpClient::kName, fmt::format("core-component: {}\n", components::HttpClientCore::kName)
     );
 }
 

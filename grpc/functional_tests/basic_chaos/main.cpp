@@ -23,6 +23,7 @@ int main(int argc, char* argv[]) {
                                     .AppendComponentList(ugrpc::client::DefaultComponentList())
                                     .Append<ugrpc::client::ClientFactoryComponent>()
                                     .Append<server::handlers::TestsControl>()
+                                    .Append<components::HttpClientCore>()
                                     .Append<components::HttpClient>()
                                     .Append<clients::dns::Component>()
                                     .Append<congestion_control::Component>()

@@ -10,6 +10,7 @@
 #include <clients/http/testsuite.hpp>
 #include <engine/task/task_processor.hpp>
 #include <userver/clients/dns/resolver.hpp>
+#include <userver/clients/http/client_core.hpp>
 #include <userver/clients/http/connect_to.hpp>
 #include <userver/clients/http/streamed_response.hpp>
 #include <userver/concurrent/queue.hpp>
@@ -594,13 +595,13 @@ UTEST(HttpClient, PostEcho) {
 }
 
 UTEST(HttpClient, StatsOnTimeout) {
-    const int kRetries = 5;
+    const int retries = 5;
     const utest::SimpleServer http_server{&SleepCallback};
     auto http_client_ptr = utest::CreateHttpClient();
 
     auto request = http_client_ptr->CreateRequest()
                        .post(http_server.GetBaseUrl(), kTestData)
-                       .retry(kRetries)
+                       .retry(retries)
                        .verify(true)
                        .http_version(USERVER_NAMESPACE::http::HttpVersion::k11)
                        .timeout(kSmallTimeout);
@@ -609,22 +610,22 @@ UTEST(HttpClient, StatsOnTimeout) {
         auto res = request.perform();
         FAIL() << "Must throw, but returned " << res->status_code();
     } catch (const clients::http::BaseException& e) {
-        EXPECT_EQ(e.GetStats().retries_count, kRetries - 1);
-        EXPECT_EQ(e.GetStats().open_socket_count, kRetries);
+        EXPECT_EQ(e.GetStats().retries_count, retries - 1);
+        EXPECT_EQ(e.GetStats().open_socket_count, retries);
 
         EXPECT_GE(e.GetStats().time_to_process, kSmallTimeout);
-        EXPECT_LT(e.GetStats().time_to_process, kSmallTimeout * kRetries);
+        EXPECT_LT(e.GetStats().time_to_process, kSmallTimeout * retries);
     }
 
     try {
         auto res = request.perform();
         FAIL() << "Must throw again, but returned " << res->status_code();
     } catch (const clients::http::BaseException& e) {
-        EXPECT_EQ(e.GetStats().retries_count, (kRetries - 1) * 2);
-        EXPECT_EQ(e.GetStats().open_socket_count, kRetries * 2);
+        EXPECT_EQ(e.GetStats().retries_count, (retries - 1) * 2);
+        EXPECT_EQ(e.GetStats().open_socket_count, retries * 2);
 
         EXPECT_GE(e.GetStats().time_to_process, kSmallTimeout);
-        EXPECT_LT(e.GetStats().time_to_process, kSmallTimeout * kRetries);
+        EXPECT_LT(e.GetStats().time_to_process, kSmallTimeout * retries);
     }
 }
 
@@ -1126,11 +1127,10 @@ UTEST(HttpClient, BasicUsage) {
     const utest::SimpleServer http_server_final{clients::http::Response200WithHeader{"xxx: good"}};
 
     const auto url = http_server_final.GetBaseUrl();
-    auto& http_client = *http_client_ptr;
     const std::string data{};
 
     /// [Sample HTTP Client usage]
-    const auto response = http_client.CreateRequest().post(url, data).timeout(std::chrono::seconds(1)).perform();
+    const auto response = http_client_ptr->CreateRequest().post(url, data).timeout(std::chrono::seconds(1)).perform();
 
     EXPECT_TRUE(response->IsOk());
     /// [Sample HTTP Client usage]
@@ -1150,10 +1150,9 @@ UTEST(HttpClient, GetWithBody) {
     }};
 
     const auto url = http_server_final.GetBaseUrl();
-    auto& http_client = *http_client_ptr;
     std::string data{"get_body_data"};
 
-    const auto response = http_client.CreateRequest()
+    const auto response = http_client_ptr->CreateRequest()
                               .data(std::move(data))
                               .url(url)
                               .set_custom_http_request_method("GET")
@@ -1166,7 +1165,7 @@ UTEST(HttpClient, GetWithBody) {
 
     // Make sure it doesn't depend on order of get/data
     std::string new_data{"get_body_data"};
-    const auto another_response = http_client.CreateRequest()
+    const auto another_response = http_client_ptr->CreateRequest()
                                       .url(url)
                                       .set_custom_http_request_method("GET")
                                       .data(std::move(new_data))
@@ -1187,10 +1186,9 @@ UTEST(HttpClient, RedirectHeaders) {
 
     const utest::SimpleServer http_server_redirect{Response301WithHeader{http_server_final.GetBaseUrl(), "xxx: bad"}};
     const auto url = http_server_redirect.GetBaseUrl();
-    auto& http_client = *http_client_ptr;
     const std::string data{};
 
-    const auto response = http_client.CreateRequest().post(url, data).timeout(std::chrono::seconds(1)).perform();
+    const auto response = http_client_ptr->CreateRequest().post(url, data).timeout(std::chrono::seconds(1)).perform();
 
     EXPECT_TRUE(response->IsOk()) << "Looks like you have an outdated version of cURL library. Update "
                                      "to version 7.72.0 or above is recommended";
@@ -1257,7 +1255,7 @@ UTEST(HttpClient, UsingResolver) {
     const utest::SimpleServer http_server{EchoCallback{}, utest::SimpleServer::kTcpIpV6};
 
     ResolverWrapper resolver_wrapper;
-    auto http_client_ptr = utest::CreateHttpClient(resolver_wrapper.fs_task_processor);
+    auto http_client_ptr = utest::impl::CreateHttpClientCore(resolver_wrapper.fs_task_processor);
     http_client_ptr->SetDnsResolver(&resolver_wrapper.resolver);
 
     const auto server_url = "http://localhost:" + std::to_string(http_server.GetPort());
@@ -1276,7 +1274,7 @@ UTEST(HttpClient, UsingResolverWithIpv6Addrs) {
     const utest::SimpleServer http_server{EchoCallback{}, utest::SimpleServer::kTcpIpV6};
 
     ResolverWrapper resolver_wrapper;
-    auto http_client_ptr = utest::CreateHttpClient(resolver_wrapper.fs_task_processor);
+    auto http_client_ptr = utest::impl::CreateHttpClientCore(resolver_wrapper.fs_task_processor);
     http_client_ptr->SetDnsResolver(&resolver_wrapper.resolver);
 
     const auto server_url = "http://[::1]:" + std::to_string(http_server.GetPort());
@@ -1432,7 +1430,7 @@ UTEST(HttpClient, RequestReuseDifferentUrlAndTimeout) {
 UTEST_DEATH(HttpClientDeathTest, TestsuiteAllowedUrls) {
     auto task = utils::Async("test", [] {
         const utest::SimpleServer http_server{EchoCallback{}};
-        auto http_client_ptr = utest::CreateHttpClient();
+        auto http_client_ptr = utest::impl::CreateHttpClientCore();
         http_client_ptr->SetTestsuiteConfig({{"http://126.0.0.1"}, {}});
 
         UEXPECT_NO_THROW((void)http_client_ptr->CreateRequest().get("http://126.0.0.1").async_perform());
@@ -1512,7 +1510,7 @@ UTEST(HttpClient, CheckSchema) {
 }
 
 UTEST(HttpClient, ShortUrl) {
-    const std::shared_ptr<clients::http::Client> client = utest::CreateHttpClient();
+    const auto client = utest::CreateHttpClient();
     clients::http::Request request = client->CreateRequest();
     request.url("http://ex");
 
@@ -1520,7 +1518,7 @@ UTEST(HttpClient, ShortUrl) {
 }
 
 UTEST(HttpClient, LongUrl) {
-    const std::shared_ptr<clients::http::Client> client = utest::CreateHttpClient();
+    const auto client = utest::CreateHttpClient();
     clients::http::Request request = client->CreateRequest();
     request.url("http://large_enough_to_kick_the_sso_out.com");
 
@@ -1528,7 +1526,7 @@ UTEST(HttpClient, LongUrl) {
 }
 
 UTEST(HttpRequest, GracefulExceptionOnInvalidUrl) {
-    const std::shared_ptr<clients::http::Client> client = utest::CreateHttpClient();
+    const auto client = utest::CreateHttpClient();
     clients::http::Request request = client->CreateRequest();
 
     UASSERT_THROW_MSG(

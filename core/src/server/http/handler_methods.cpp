@@ -19,9 +19,9 @@ std::array<bool, kHandlerMethodsMax + 1> InitHandlerMethodsArray() {
 }  // namespace
 
 bool IsHandlerMethod(HttpMethod method) {
-    static const auto is_handler_method = InitHandlerMethodsArray();
+    static const auto kIsHandlerMethod = InitHandlerMethodsArray();
     auto index = static_cast<size_t>(method);
-    return index <= kHandlerMethodsMax && is_handler_method[index];
+    return index <= kHandlerMethodsMax && kIsHandlerMethod[index];
 }
 
 }  // namespace server::http

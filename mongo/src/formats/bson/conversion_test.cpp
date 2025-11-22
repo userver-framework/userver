@@ -412,6 +412,41 @@ TEST(BsonConversion, Oid) {
     test_elem(doc["e"], "5bb139509ecb0a21a6000002");
 }
 
+TEST(BsonConversion, Decimal128) {
+    auto test_elem = [](const fb::Value& elem, const std::string& decimal_string) {
+        EXPECT_FALSE(elem.IsMissing());
+        EXPECT_FALSE(elem.IsArray());
+        EXPECT_FALSE(elem.IsDocument());
+        EXPECT_FALSE(elem.IsNull());
+        EXPECT_FALSE(elem.IsBool());
+        EXPECT_FALSE(elem.IsInt32());
+        EXPECT_FALSE(elem.IsInt64());
+        EXPECT_FALSE(elem.IsDouble());
+        EXPECT_FALSE(elem.IsString());
+        EXPECT_FALSE(elem.IsDateTime());
+        EXPECT_FALSE(elem.IsOid());
+        EXPECT_FALSE(elem.IsBinary());
+        EXPECT_TRUE(elem.IsDecimal128());
+        EXPECT_FALSE(elem.IsMinKey());
+        EXPECT_FALSE(elem.IsMaxKey());
+        EXPECT_FALSE(elem.IsObject());
+
+        UEXPECT_THROW(elem.ConvertTo<bool>(), fb::TypeMismatchException);
+        UEXPECT_THROW(elem.ConvertTo<int32_t>(), fb::TypeMismatchException);
+        UEXPECT_THROW(elem.ConvertTo<int64_t>(), fb::TypeMismatchException);
+        UEXPECT_THROW(elem.ConvertTo<size_t>(), fb::TypeMismatchException);
+        UEXPECT_THROW(elem.ConvertTo<double>(), fb::TypeMismatchException);
+        EXPECT_EQ(decimal_string, elem.ConvertTo<std::string>());
+    };
+
+    const std::string decimal1_str = "1234567890.123456789012345678901235";
+    const std::string decimal2_str = "-1234567890.123456789012345678901235";
+
+    const auto doc = fb::MakeDoc("a", fb::MakeArray(fb::Decimal128(decimal1_str)), "e", fb::Decimal128(decimal2_str));
+    test_elem(doc["a"][0], decimal1_str);
+    test_elem(doc["e"], decimal2_str);
+}
+
 TEST(BsonConversion, Containers) {
     const auto doc = fb::MakeDoc("a", fb::MakeArray(0, 1, 2), "d", fb::MakeDoc("one", 1.0, "two", 2), "n", nullptr);
 

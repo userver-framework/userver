@@ -111,6 +111,7 @@ int main(int argc, char* argv[]) {
                                     .Append<components::DefaultSecdistProvider>()
                                     .Append<components::TestsuiteSupport>()
                                     .Append<server::handlers::TestsControl>()
+                                    .Append<components::HttpClientCore>()
                                     .Append<components::HttpClient>()
                                     .Append<clients::dns::Component>();
 

@@ -35,6 +35,7 @@ components_manager:
         testsuite-support:
 
         http-client:
+        http-client-core:
             fs-task-processor: main-task-processor
 
         tests-control:

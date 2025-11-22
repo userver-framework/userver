@@ -1,5 +1,4 @@
 import json
-from typing import List
 
 import pytest
 
@@ -12,7 +11,7 @@ pytest_plugins = ['pytest_userver.plugins.kafka']
 
 # /// [Kafka service sample - secdist]
 @pytest.fixture(scope='session')
-def kafka_components() -> List[str]:
+def kafka_components() -> list[str]:
     return ['kafka-consumer', 'kafka-producer']
 
 

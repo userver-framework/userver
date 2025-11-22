@@ -127,7 +127,9 @@ WITH
 SELECT b.str, a.num FROM a JOIN b ON a.num = b.num; -- because why not
 /* note that multi-statements are not allowed by clickhouse! */
 )"};
-    const auto res = cluster->Execute(q, 5, "we").As<DataWithValues>();
+    // 20s to avoid flaps in CI, in a perfect world ~300 should do.
+    const storages::clickhouse::CommandControl cc{std::chrono::seconds{20}};
+    const auto res = cluster->Execute(cc, q, 5, "we").As<DataWithValues>();
     EXPECT_EQ(res.strings.size(), 5);
     EXPECT_EQ(res.strings.front().size(), 2);
 }

@@ -32,7 +32,6 @@ namespace components {
 /// append-path-to-url | add default path '/configs/values' to 'config-url' | true
 /// configs-stage: stage name provided statically, can be overridden from file | -
 /// configs-stage-filepath: file to read stage name from, overrides static "configs-stage" if both are provided, expected format: json file with "env_name" property | -
-/// fallback-to-no-proxy | make additional attempts to retrieve configs by bypassing proxy that is set in USERVER_HTTP_PROXY runtime variable | true
 ///
 /// ## Static configuration example:
 ///

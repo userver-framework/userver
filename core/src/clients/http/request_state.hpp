@@ -12,6 +12,7 @@
 #include <userver/clients/http/error.hpp>
 #include <userver/clients/http/form.hpp>
 #include <userver/clients/http/plugin.hpp>
+#include <userver/clients/http/request.hpp>
 #include <userver/clients/http/response_future.hpp>
 #include <userver/concurrent/queue.hpp>
 #include <userver/crypto/certificate.hpp>
@@ -24,6 +25,7 @@
 #include <userver/tracing/manager.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/tracing/tags.hpp>
+#include <userver/utils/impl/wait_token_storage.hpp>
 #include <userver/utils/not_null.hpp>
 #include <userver/utils/zstring_view.hpp>
 
@@ -37,6 +39,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace clients::http {
 
+constexpr std::string_view kHeaderExpect = "Expect";
+
 class StreamedResponse;
 class ConnectTo;
 
@@ -47,7 +51,6 @@ public:
         RequestStats&& req_stats,
         const std::shared_ptr<DestinationStatistics>& dest_stats,
         clients::dns::Resolver* resolver,
-        const std::vector<utils::NotNull<clients::http::Plugin*>>& plugins,
         const tracing::TracingManagerBase& tracing_manager
     );
     ~RequestState();
@@ -136,9 +139,17 @@ public:
 
     void SetPluginsList(const std::vector<utils::NotNull<Plugin*>>& plugins);
     void SetLoggedUrl(std::string url);
+    void SetUrlTemplate(std::string url_template);
+    void SetMethod(clients::http::HttpMethod method);
+    void data(std::string data);
     void SetEasyTimeout(std::chrono::milliseconds timeout);
 
     void SetTracingManager(const tracing::TracingManagerBase&);
+
+    void SetWaitToken(utils::impl::WaitTokenStorageLock&&);
+
+    /// true if proxy was set using proxy method
+    bool IsProxySet() const;
 
     PluginRequest GetEditableRequestInstance();
 
@@ -187,6 +198,8 @@ private:
 
     void ResolveTargetAddress(clients::dns::Resolver& resolver);
 
+    // should be the first member to prevent HttpClient destruction before destruction of RequestState fields
+    utils::impl::WaitTokenStorageLock wait_token_;
     /// curl handler wrapper
     impl::EasyWrapper easy_;
     RequestStats stats_;
@@ -233,11 +246,14 @@ private:
     std::optional<tracing::InPlaceSpan> span_storage_;
     std::optional<std::string> log_url_;
 
+    std::optional<std::string> url_template_;
+    HttpMethod method_{HttpMethod::kGet};
+
     std::atomic<bool> is_cancelled_{false};
     std::array<char, CURL_ERROR_SIZE> errorbuffer_{};
 
     clients::dns::Resolver* resolver_{nullptr};
-    std::string proxy_url_;
+    std::optional<std::string> proxy_url_;
     impl::PluginPipeline plugin_pipeline_;
 
     struct StreamData {

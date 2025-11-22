@@ -7,7 +7,6 @@
 #include <csignal>
 #include <cstdio>
 #include <cstring>
-#include <iostream>
 
 #include <fmt/format.h>
 #include <fmt/ranges.h>
@@ -157,7 +156,7 @@ ProcessStarter::Exec(const std::string& executable_path, const std::vector<std::
                     try {
                         DoExec(executable_path, args, env, options.stdout_file, options.stderr_file, options.use_path);
                     } catch (const std::exception& ex) {
-                        std::cerr << "Cannot execute child: " << ex.what();
+                        std::fputs(utils::StrCat("Cannot execute child: ", ex.what()).c_str(), stderr);
                     }
                 } catch (...) {
                     // must not do anything in a child

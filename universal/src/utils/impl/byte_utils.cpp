@@ -132,13 +132,13 @@ private:
     }
 
     static inline __m128i DoLowercaseBytes(__m128i value) noexcept {
-        const auto kMaskA = _mm_set1_epi8('A');
-        const auto kMaskZ = _mm_set1_epi8('Z');
-        const auto kMask32 = _mm_set1_epi8(32);
+        const auto mask_a = _mm_set1_epi8('A');
+        const auto mask_z = _mm_set1_epi8('Z');
+        const auto mask32 = _mm_set1_epi8(32);
 
         // mask_az contains 0x00 where character is between 'A' and 'Z',
         // 0xff otherwise
-        const auto mask_az = _mm_or_si128(_mm_cmplt_epi8(value, kMaskA), _mm_cmpgt_epi8(value, kMaskZ));
+        const auto mask_az = _mm_or_si128(_mm_cmplt_epi8(value, mask_a), _mm_cmpgt_epi8(value, mask_z));
         // although _mm_cmp[lt|gt]_epi8 compares SIGNED 8-bits values,
         // which seems dangerous, it's fine because for the resulting value
         // to be 0x00 (what we treat as an uppercase character) the original value
@@ -150,7 +150,7 @@ private:
         static_assert(static_cast<int>('Z') <= std::numeric_limits<std::int8_t>::max());
 
         // set 6-th bit to 1 for uppercase characters
-        const auto lowercase_mask = _mm_andnot_si128(mask_az, kMask32);
+        const auto lowercase_mask = _mm_andnot_si128(mask_az, mask32);
         return _mm_or_si128(value, lowercase_mask);
     }
 };

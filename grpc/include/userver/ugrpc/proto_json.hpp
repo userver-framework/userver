@@ -58,7 +58,7 @@ Message JsonToMessage(const formats::json::Value& json) {
 /// @throws formats::json::Exception on field type mismatch and unknown enum values.
 template <typename Message>
 Message JsonToMessage(const formats::json::Value& json, const google::protobuf::util::JsonParseOptions& options) {
-    Message message{};
+    Message message;
     impl::FromJsonStringImpl(formats::json::ToString(json), message, options);
     return message;
 }
@@ -85,14 +85,48 @@ Message FromJsonString(std::string_view json_string, const google::protobuf::uti
 
 namespace formats::serialize {
 
+/// @brief Conversion from any `google::protobuf::Message` to @ref formats::json::Value.
+/// Uses the same format as @ref ugrpc::MessageToJson with its default options.
+///
+/// Works for `google::protobuf::Value`, `google::protobuf::Struct`, `google::protobuf::ListValue`
+/// (top-level and nested) as well, converts them without extra objects in JSON representation.
+///
+/// Use as:
+/// @code{.cpp}
+/// auto json = formats::json::ValueBuilder{message}.ExtractValue();
+/// @endcode
 json::Value Serialize(const google::protobuf::Message& message, To<json::Value>);
 
 }  // namespace formats::serialize
 
 namespace formats::parse {
 
-google::protobuf::Value Parse(const formats::json::Value& value, To<google::protobuf::Value>);
-
+/// @brief Conversion from @ref formats::json::Value to `google::protobuf::Message`.
+/// Uses the same format as @ref ugrpc::JsonToMessage with its default options.
+///
+/// Works for `google::protobuf::Value`, `google::protobuf::Struct`, `google::protobuf::ListValue`
+/// (top-level and nested) as well, converts them without extra objects in JSON representation.
+///
+/// Use as:
+/// @code{.cpp}
+/// auto value = json.As<google::protobuf::Value>();
+/// @endcode
+template <typename Message, typename = std::enable_if_t<std::is_base_of_v<google::protobuf::Message, Message>>>
+Message Parse(const json::Value& value, To<Message>) {
+    return ugrpc::JsonToMessage<Message>(value);
 }
+
+/// @cond
+// Implementation detail: optimization for `google::protobuf::Value` specifically.
+google::protobuf::Value Parse(const json::Value& value, To<google::protobuf::Value>);
+
+// Implementation detail: optimization for `google::protobuf::Struct` specifically.
+google::protobuf::Struct Parse(const json::Value& value, To<google::protobuf::Struct>);
+
+// Implementation detail: optimization for `google::protobuf::ListValue` specifically.
+google::protobuf::ListValue Parse(const json::Value& value, To<google::protobuf::ListValue>);
+/// @endcond
+
+}  // namespace formats::parse
 
 USERVER_NAMESPACE_END

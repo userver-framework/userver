@@ -1,6 +1,6 @@
 #include <userver/logging/log_helper.hpp>
 
-#include <iostream>
+#include <cstdio>
 #include <memory>
 #include <typeinfo>
 
@@ -148,7 +148,11 @@ void LogHelper::DoLog() noexcept {
 
 void LogHelper::InternalLoggingError(std::string_view message) noexcept {
     try {
-        std::cerr << "LogHelper: " << message << ". " << boost::current_exception_diagnostic_information() << '\n';
+        // Use fmt::format to output the message without interleaving with other logs.
+        std::fputs(
+            fmt::format("LogHelper: {}. {}\n", message, boost::current_exception_diagnostic_information()).c_str(),
+            stderr
+        );
     } catch (...) {
         // ignore
     }

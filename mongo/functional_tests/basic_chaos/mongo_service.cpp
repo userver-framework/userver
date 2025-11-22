@@ -81,6 +81,7 @@ std::string KeyValue::GetValue(const server::http::HttpRequest& request) const {
 int main(int argc, char* argv[]) {
     const auto component_list = components::MinimalServerComponentList()
                                     .Append<clients::dns::Component>()
+                                    .Append<components::HttpClientCore>()
                                     .Append<components::HttpClient>()
                                     .Append<components::Secdist>()
                                     .Append<components::DefaultSecdistProvider>()

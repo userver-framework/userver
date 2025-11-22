@@ -159,6 +159,8 @@ namespace impl {
 
 void* GetRawCurrentTaskContext() noexcept { return current_task::GetCurrentTaskContextUnchecked(); }
 
+bool IsCritical() { return GetCurrentTaskContext().WasStartedAsCritical(); }
+
 }  // namespace impl
 
 }  // namespace current_task

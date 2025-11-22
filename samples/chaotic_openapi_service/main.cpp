@@ -23,6 +23,7 @@ int main(int argc, char* argv[]) {
             .Append<USERVER_NAMESPACE::components::TestsuiteSupport>()
             .Append<USERVER_NAMESPACE::server::handlers::TestsControl>()
             .Append<USERVER_NAMESPACE::components::DynamicConfigClientUpdater>()
+            .Append<USERVER_NAMESPACE::components::HttpClientCore>()
             .Append<USERVER_NAMESPACE::components::HttpClient>()
             .Append<USERVER_NAMESPACE::clients::dns::Component>()
             .Append<USERVER_NAMESPACE::chaotic::openapi::QosMiddlewareFactory<::clients::test::kQosConfig>>(

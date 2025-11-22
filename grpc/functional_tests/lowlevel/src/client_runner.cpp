@@ -11,10 +11,10 @@ USERVER_NAMESPACE_BEGIN
 namespace {
 
 formats::json::Value HandleGet() {
-    static const auto grpc_version = utils::text::Split(grpc::Version(), ".");
+    static const auto kGrpcVersion = utils::text::Split(grpc::Version(), ".");
 
     return formats::json::MakeObject(
-        "grpc-version", formats::json::MakeObject("major", grpc_version.at(0), "minor", grpc_version.at(1))
+        "grpc-version", formats::json::MakeObject("major", kGrpcVersion.at(0), "minor", kGrpcVersion.at(1))
     );
 }
 

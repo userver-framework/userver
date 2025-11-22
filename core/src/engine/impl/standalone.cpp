@@ -21,6 +21,7 @@ std::shared_ptr<TaskProcessorPools> MakeTaskProcessorPools(const TaskProcessorPo
     coro_config.max_size = pools_config.max_coro_pool_size;
     coro_config.stack_size = pools_config.coro_stack_size;
     coro_config.is_stack_usage_monitor_enabled = pools_config.is_stack_usage_monitor_enabled;
+    coro_config.deadlock_detector = pools_config.deadlock_detector;
 
     ev::ThreadPoolConfig ev_config;
     ev_config.threads = pools_config.ev_threads_num;

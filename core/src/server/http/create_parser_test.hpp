@@ -36,12 +36,12 @@ inline std::shared_ptr<request::RequestParser> CreateTestParser(
         /* deadline_expired_status_code = */ http::HttpStatus{498}};
     static server::net::ParserStats test_stats;
     static server::request::ResponseDataAccounter test_accounter;
-    static const server::net::Http2SessionConfig http2_config;
+    static const server::net::Http2SessionConfig kHttp2Config;
     if (http_version == USERVER_NAMESPACE::http::HttpVersion::k2) {
         return std::make_shared<server::http::Http2Session>(
             kTestHandlerInfoIndex,
             kTestRequestConfig,
-            http2_config,
+            kHttp2Config,
             std::move(cb),
             test_stats,
             test_accounter,

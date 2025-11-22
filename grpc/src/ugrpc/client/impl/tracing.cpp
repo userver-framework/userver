@@ -10,7 +10,7 @@ namespace ugrpc::client::impl {
 
 void SetStatusForSpan(tracing::Span& span, const grpc::Status& status) noexcept {
     try {
-        span.AddTag("grpc_code", ugrpc::ToString(status.error_code()));
+        span.AddTag(tracing::kGrpcCode, ugrpc::ToString(status.error_code()));
         if (!status.ok()) {
             SetErrorForSpan(span, status.error_message());
         }

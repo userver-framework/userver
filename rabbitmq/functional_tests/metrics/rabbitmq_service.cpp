@@ -142,6 +142,7 @@ int main(int argc, char* argv[]) {
                                      .Append<components::TestsuiteSupport>()
                                      .Append<server::handlers::ServerMonitor>()
                                      .Append<server::handlers::TestsControl>()
+                                     .Append<components::HttpClientCore>()
                                      .Append<components::HttpClient>();
 
     return utils::DaemonMain(argc, argv, components_list);

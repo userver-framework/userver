@@ -13,7 +13,10 @@ inline __attribute__((always_inline)) void DoNotOptimize(Tp&& value) {
 #endif
 }
 
-static char* volatile mark;
+template <typename T>
+using NotOptimized = T volatile;
+
+static NotOptimized<char*> mark;
 
 __attribute__((noinline)) void DoSomeStuff() {
     std::atomic_signal_fence(std::memory_order_acq_rel);

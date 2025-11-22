@@ -63,11 +63,11 @@ private:
         std::visit(
             utils::Overloaded{
                 [this](TReadSessionEvent::TDataReceivedEvent& e) {
-                    NYdb::NFederatedTopic::TDeferredCommit deferredCommit;
-                    deferredCommit.Add(e);
+                    NYdb::NFederatedTopic::TDeferredCommit deferred_commit;
+                    deferred_commit.Add(e);
                     HandleDataReceivedEvent(e);
                     // commit if HandleDataReceivedEvent succeeded
-                    deferredCommit.Commit();
+                    deferred_commit.Commit();
                 },
                 [](TReadSessionEvent::TCommitOffsetAcknowledgementEvent&) {
                     //

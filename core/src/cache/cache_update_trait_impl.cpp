@@ -194,9 +194,8 @@ void CacheUpdateTrait::Impl::StartPeriodicUpdates(utils::Flags<CacheUpdateTrait:
             first_update_invalidation_ = FirstUpdateInvalidation::kNo;
 
             // Force first update, do it synchronously
-            const tracing::Span span("first-update/" + name_);
             try {
-                DoPeriodicUpdate();
+                utils::CriticalAsync(task_processor_, "first-update/" + name_, [this] { DoPeriodicUpdate(); }).Get();
             } catch (const std::exception& e) {
                 if (dump_time && config->first_update_mode != FirstUpdateMode::kRequired) {
                     LOG_WARNING() << "Failed to update cache " << name_

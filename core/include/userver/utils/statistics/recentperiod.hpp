@@ -4,6 +4,7 @@
 #include <chrono>
 #include <type_traits>
 
+#include <userver/utils/assert.hpp>
 #include <userver/utils/datetime.hpp>
 #include <userver/utils/fixed_array.hpp>
 #include <userver/utils/statistics/fwd.hpp>
@@ -42,7 +43,9 @@ public:
         : epoch_duration_(epoch_duration),
           max_duration_(max_duration),
           epoch_index_(0),
-          items_(GetSizeForDuration(epoch_duration, max_duration)) {}
+          items_(GetSizeForDuration(epoch_duration, max_duration)) {
+        UINVARIANT(Duration::zero() < epoch_duration_, "epoch_duration should be greater than 0");
+    }
 
     Counter& GetCurrentCounter() { return items_[GetCurrentIndex()].counter; }
 

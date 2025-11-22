@@ -3,6 +3,7 @@
 #include <fmt/format.h>
 
 #include <components/component_list_test.hpp>
+#include <userver/compiler/impl/tsan.hpp>
 #include <userver/components/common_component_list.hpp>
 #include <userver/components/run.hpp>
 #include <userver/dynamic_config/test_helpers.hpp>
@@ -84,7 +85,7 @@ components_manager:
     dump-configurator:
       dump-root: $userver-dumps-root
     testsuite-support:
-    http-client:
+    http-client-core:
       pool-statistics-disable: true
       thread-name-prefix: http-client
       threads: 2
@@ -112,7 +113,7 @@ components_manager:
         service-name: config-service
     statistics-storage:
       # Nothing
-    http-client-statistics:
+    http-client-statistics-core:
       fs-task-processor: main-task-processor
     system-statistics-collector:
       fs-task-processor: main-task-processor
@@ -290,6 +291,7 @@ TEST_F(CommonServerComponentList, Smoke) {
     );
 }
 
+#if !USERVER_IMPL_HAS_TSAN
 TEST_F(CommonServerComponentList, Logger) {
     auto& old_logger = logging::GetDefaultLogger();
     logging::impl::SetDefaultLoggerRef(logging::impl::MemLogger::GetMemLogger());
@@ -324,6 +326,7 @@ TEST_F(CommonServerComponentList, Logger) {
     logging::impl::MemLogger::GetMemLogger().ForwardTo(&old_logger);
     logging::impl::MemLogger::GetMemLogger().ForwardTo(nullptr);
 }
+#endif
 
 TEST_F(CommonServerComponentList, TraceLogging) {
     fs::blocking::RewriteFileContents(

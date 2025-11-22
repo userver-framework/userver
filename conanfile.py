@@ -95,7 +95,13 @@ class UserverConan(ConanFile):
         if known_version:
             export_conandata_patches(self)
         else:
-            pass  # Running from develop branch, no patches
+            # Running from develop branch, no patches
+            git = Git(self)
+            tracked_sources = git.included_files()
+            # To speed up copying, we take only the root folders
+            tracked_sources = {f.split('/')[0] for f in tracked_sources}
+            for i in tracked_sources:
+                copy(self, f'{i}*', self.recipe_folder, self.export_sources_folder)
 
     def set_version(self):
         if self.version:
@@ -238,8 +244,8 @@ class UserverConan(ConanFile):
             )
 
         if self.options.with_otlp:
-            tool_ch.cache_variables['USERVER_OPENTELEMETRY_PROTO'] = self.dependencies['opentelemetry-proto'].conf_info.get(
-                'user.opentelemetry-proto:proto_root'
+            tool_ch.variables['USERVER_OPENTELEMETRY_PROTO'] = self.dependencies['opentelemetry-proto'].conf_info.get(
+                'user.opentelemetry-proto:proto_root',
             )
 
         tool_ch.generate()

@@ -28,6 +28,7 @@ int main(int argc, char* argv[]) {
                                     .Append<chaos::ResolverHandler>()
                                     .Append<chaos::HttpServerWithExceptionHandler>()
                                     .Append<components::LoggingConfigurator>()
+                                    .Append<components::HttpClientCore>()
                                     .Append<components::HttpClient>()
                                     .Append<components::TestsuiteSupport>()
                                     .Append<server::handlers::DynamicDebugLog>()

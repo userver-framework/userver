@@ -1,5 +1,4 @@
 from typing import Any
-from typing import Optional
 
 import pytest
 
@@ -42,8 +41,8 @@ def cpp_primitive_type():
     def create(
         validators: CppPrimitiveValidator,
         raw_cpp_type_str: str,
-        user_cpp_type: Optional[str] = None,
-        json_schema: Optional[Schema] = None,
+        user_cpp_type: str | None = None,
+        json_schema: Schema | None = None,
         nullable: bool = False,
         default: Any = None,
     ):

@@ -12,11 +12,13 @@ namespace storages::postgres::io {
 inline constexpr FieldBuffer FieldBuffer::GetSubBuffer(std::size_t offset, std::size_t size, BufferCategory cat) const {
     const auto* new_buffer_start = buffer + offset;
     if (offset > length) {
-        throw InvalidInputBufferSize(fmt::format("Offset {} requested for a buffer of size {}.", offset, length));
+        throw InvalidInputBufferSize(fmt::format("Offset {} requested for a buffer of size {}", offset, length));
     }
     size = size == npos ? length - offset : size;
     if (offset + size > length) {
-        throw InvalidInputBufferSize(fmt::format("Unconsumed bytes in buffer: {}.", length - offset));
+        throw InvalidInputBufferSize(
+            fmt::format("Attempt to read {} bytes more than was sent by server", offset + size - length)
+        );
     }
     if (cat == BufferCategory::kKeepCategory) {
         cat = category;

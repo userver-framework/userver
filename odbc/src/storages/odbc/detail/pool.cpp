@@ -17,7 +17,7 @@ Pool::Pool(const std::string& dsn, std::size_t max_pool_size, std::size_t max_si
     : ConnectionPoolBase<Connection, Pool>(max_pool_size, max_simultaneously_connecting_clients), dsn_(dsn) {
     try {
         Init(0, kInitTimeout);
-    } catch (const Error& odbcErr) {
+    } catch (const Error& odbc_err) {
         Reset();
         throw;
     } catch (const std::exception& ex) {
@@ -29,9 +29,9 @@ Pool::Pool(const std::string& dsn, std::size_t max_pool_size, std::size_t max_si
 Pool::~Pool() { Reset(); }
 
 ConnectionPtr Pool::Acquire() {
-    auto connWrapper = AcquireConnection({});
+    auto conn_wrapper = AcquireConnection({});
 
-    return {std::move(connWrapper.pool_ptr), std::move(connWrapper.connection_ptr)};
+    return {std::move(conn_wrapper.pool_ptr), std::move(conn_wrapper.connection_ptr)};
 }
 
 void Pool::Release(ConnectionUniquePtr connection) { ReleaseConnection(std::move(connection)); }

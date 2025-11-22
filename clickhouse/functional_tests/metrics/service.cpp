@@ -104,6 +104,7 @@ int main(int argc, char* argv[]) {
                                      .Append<server::handlers::ServerMonitor>()
                                      .Append<clickhouse::metrics::HandlerMetricsClickhouse>()
                                      .Append<components::ClickHouse>("clickhouse-database")
+                                     .Append<components::HttpClientCore>()
                                      .Append<components::HttpClient>()
                                      .Append<components::TestsuiteSupport>()
                                      .Append<server::handlers::TestsControl>()

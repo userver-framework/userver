@@ -25,21 +25,21 @@ std::string GenerateRandomData(std::size_t size) {
 static void ZstdDecompress(benchmark::State& state) {
     for ([[maybe_unused]] auto _ : state) {
         state.PauseTiming();
-        const auto kSize = state.range(0);
-        const auto data = GenerateRandomData(kSize);
+        const auto size = state.range(0);
+        const auto data = GenerateRandomData(size);
 
-        const auto kMaxSize = ZSTD_compressBound(kSize);
-        std::string comp_buf(kMaxSize, '\0');
+        const auto max_size = ZSTD_compressBound(size);
+        std::string comp_buf(max_size, '\0');
 
-        const auto kCompSize = ZSTD_compress(comp_buf.data(), kMaxSize, data.data(), kSize, 1);
+        const auto comp_size = ZSTD_compress(comp_buf.data(), max_size, data.data(), size, 1);
 
-        if (ZSTD_isError(kCompSize)) {
+        if (ZSTD_isError(comp_size)) {
             LOG_ERROR() << "Couldn't compress data!";
             return;
         }
 
         state.ResumeTiming();
-        auto decompressed = compression::zstd::Decompress(std::string_view(comp_buf.data(), kCompSize), kSize);
+        auto decompressed = compression::zstd::Decompress(std::string_view(comp_buf.data(), comp_size), size);
     }
 }
 BENCHMARK(ZstdDecompress)->RangeMultiplier(2)->Range(1 << 10, 1 << 15);

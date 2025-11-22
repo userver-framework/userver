@@ -4,10 +4,10 @@
 # https://googleapis.dev/python/protobuf/latest/google/protobuf/descriptor.html
 # https://googleapis.dev/python/protobuf/latest/google/protobuf/message.html
 
+from collections.abc import Callable
+from collections.abc import Mapping
 import typing
 from typing import Any
-from typing import Callable
-from typing import Mapping
 from typing import Type
 from typing import TypeVar
 
@@ -74,7 +74,7 @@ def parse_field(field: descriptor_module.FieldDescriptor, /, defaults: options.P
 TExtension = TypeVar('TExtension', bound=message_module.Message)
 
 
-def _get_option(
+def _get_option(  # noqa: UP047
     any_descriptor: descriptor_module.DescriptorBase,
     /,
     extension_handle: Any,
@@ -84,7 +84,7 @@ def _get_option(
     has_extension_func = typing.cast(Callable[[Any], bool], options_message.HasExtension)
     has_extension = has_extension_func(extension_handle)
     if has_extension:
-        extensions: Mapping[Any, Any] = getattr(options_message, 'Extensions')
+        extensions: Mapping[Any, Any] = getattr(options_message, 'Extensions')  # noqa: B009
         extension: TExtension = extensions[extension_handle]
         return extension
     else:

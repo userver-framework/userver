@@ -1,18 +1,14 @@
 #include <userver/ugrpc/server/middlewares/deadline_propagation/middleware.hpp>
 
-#include <algorithm>
-
 #include <google/protobuf/util/time_util.h>
 
 #include <userver/dynamic_config/snapshot.hpp>
+#include <userver/engine/deadline.hpp>
 #include <userver/engine/task/cancel.hpp>
 #include <userver/server/request/task_inherited_data.hpp>
-#include <userver/utils/algo.hpp>
 #include <userver/utils/impl/internal_tag.hpp>
 
-#include <ugrpc/impl/rpc_metadata.hpp>
 #include <userver/ugrpc/impl/statistics_scope.hpp>
-#include <userver/ugrpc/impl/to_string.hpp>
 #include <userver/ugrpc/status_codes.hpp>
 #include <userver/ugrpc/time_utils.hpp>
 
@@ -26,22 +22,6 @@ namespace ugrpc::server::middlewares::deadline_propagation {
 namespace {
 
 const utils::AnyStorageDataTag<ugrpc::server::StorageContext, engine::Deadline::Duration> kDeadlineReceivedKey;
-
-std::optional<std::chrono::nanoseconds> ExtractPerAttemptTimeout(grpc::ServerContext& server_context) {
-    const auto* per_attempt_timeout_header =
-        utils::FindOrNullptr(server_context.client_metadata(), ugrpc::impl::kXYaTaxiPerAttemptTimeout);
-    if (per_attempt_timeout_header) {
-        google::protobuf::Duration per_attempt_timeout{};
-        const bool result = google::protobuf::util::TimeUtil::FromString(
-            ugrpc::impl::ToString(*per_attempt_timeout_header), &per_attempt_timeout
-        );
-        if (result) {
-            return std::chrono::nanoseconds{
-                google::protobuf::util::TimeUtil::DurationToNanoseconds(per_attempt_timeout)};
-        }
-    }
-    return std::nullopt;
-}
 
 bool CheckAndSetupDeadline(
     tracing::Span& span,
@@ -59,11 +39,6 @@ bool CheckAndSetupDeadline(
 
     auto deadline_duration = ugrpc::TimespecToDuration(server_context.raw_deadline());
 
-    const auto per_attempt_timeout = ExtractPerAttemptTimeout(server_context);
-    if (per_attempt_timeout.has_value()) {
-        deadline_duration = std::min(deadline_duration, *per_attempt_timeout);
-    }
-
     if (deadline_duration == engine::Deadline::Duration::max()) {
         return true;
     }
@@ -73,7 +48,7 @@ bool CheckAndSetupDeadline(
     const auto deadline_duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>(deadline_duration);
 
     const bool cancelled_by_deadline =
-        server_context.IsCancelled() || deadline_duration_ms <= engine::Deadline::Duration{0};
+        engine::current_task::ShouldCancel() || deadline_duration_ms <= engine::Deadline::Duration{0};
 
     span.AddNonInheritableTag("deadline_received_ms", deadline_duration_ms.count());
     statistics_scope.OnDeadlinePropagated();

@@ -230,55 +230,83 @@ Here we say that all server middlewares are located in these groups.
 
 @dot
 digraph Pipeline {
-  node [shape=box];
   compound=true;
   fixedsize=true;
-  rankdir=LR;
-  tooltip = "You didn't hit the arrow with the cursor :-)";
-  labeljust = "l";
-  labelloc = "t";
+  rankdir=TB;
+  labelloc="t";
+  label="grpc-server-middlewares-pipeline\nfrom the start to the end";
+  center=true;
+  shape=box;
+  node [shape=box];
 
-  subgraph cluster_User {
-    shape=box;
-    label = "User";
-    center=true;
-    rankdir=LR;
+  subgraph cluster_PreCore {
+    label="";
+    node [shape=box, width=2.0];
 
-    Baggage [label = "grpc-server-baggage", shape=box, width=2.0];
-    HeadersPropagator [label = "grpc-server-headers-propagator", shape=box, width=2.0];
-
-    Baggage -> HeadersPropagator;
-  }
-
-  subgraph cluster_Core {
-    shape=box;
-    label = "Core";
-    center=true;
-    rankdir=LR;
-
-    CongestionControl [label = "congestion-control", shape=box, width=2.0];
-    DeadlinePropagation [label = "deadline-propagation", shape=box, width=2.0];
-
-    CongestionControl -> DeadlinePropagation;
+    node_PreCore [label="PreCore", penwidth=0, height=0, width=1];
   }
 
   subgraph cluster_Logging {
-    shape=box;
-    label = "Logging";
-    center=true;
+    label="";
+    node [shape=box, width=2.0];
 
-    AccessLog [label="grpc-server-access-log", shape=box, width=2.0];
-    Logging [label = "grpc-server-logging", shape=box, width=2.0];
+    node_Logging [label="Logging", penwidth=0, height=0, width=1];
+    AccessLog [label="grpc-server-access-log"];
+    Logging [label="grpc-server-logging"];
+
+    node_Logging -> AccessLog [style=invis, minlen=0];
+    AccessLog -> Logging [minlen=2];
+
+    {rank=same node_Logging AccessLog Logging}
   }
 
-  PreCore [label = "PreCore", shape=box, width=2.0];
-  Auth [label = "Auth", shape=box, width=2.0];
-  PostCore [label = "PostCore", shape=box, width=2.0];
+  subgraph cluster_Auth {
+    label="";
+    node [shape=box, width=2.0];
 
-  PreCore -> AccessLog -> Logging -> Auth -> CongestionControl;
-  DeadlinePropagation -> PostCore -> Baggage;
+    node_Auth [label="Auth", penwidth=0, height=0, width=1];
+  }
 
-  Pipeline[label = "grpc-server-middlewares-pipeline\n from the start to the end", shape=plaintext, rank="main"];
+  subgraph cluster_Core {
+    label="";
+    node [shape=box, width=2.0];
+
+    node_Core [label="Core", penwidth=0, height=0, width=1];
+    CongestionControl [label="grpc-server-congestion-control"];
+    DeadlinePropagation [label="grpc-server-deadline-propagation"];
+
+    node_Core -> CongestionControl [style=invis, minlen=0];
+    CongestionControl -> DeadlinePropagation [minlen=2];
+
+    {rank=same node_Core CongestionControl DeadlinePropagation}
+  }
+
+  subgraph cluster_PostCore {
+    label="";
+    node [shape=box, width=2.0];
+
+    node_PostCore [label="PostCore", penwidth=0, height=0, width=1];
+  }
+
+  subgraph cluster_User {
+    label="";
+    node [shape=box, width=2.0];
+
+    node_User [label="User", penwidth=0, height=0, width=1];
+    Baggage [label="grpc-server-baggage"];
+    HeadersPropagator [label="grpc-server-headers-propagator"];
+
+    node_User -> Baggage [style=invis, minlen=0];
+    node_User -> HeadersPropagator [style=invis, minlen=0];
+
+    {rank=same node_User Baggage HeadersPropagator}
+  }
+
+  node_PreCore -> node_Logging [ltail=cluster_PreCore, lhead=cluster_Logging];
+  node_Logging -> node_Auth [ltail=cluster_Logging, lhead=cluster_Auth];
+  node_Auth -> node_Core [ltail=cluster_Auth, lhead=cluster_Core];
+  node_Core -> node_PostCore [ltail=cluster_Core, lhead=cluster_PostCore];
+  node_PostCore -> node_User [ltail=cluster_PostCore, lhead=cluster_User];
 }
 @enddot
 

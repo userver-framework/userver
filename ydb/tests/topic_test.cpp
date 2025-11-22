@@ -145,7 +145,7 @@ TYPED_UTEST(YdbTopicReadSessionWithDataHandler, CommitDataEventsPersistence) {
         kTable
     ));
 
-    auto ReadAll = [&](bool commit_data_event) {
+    auto read_all = [&](bool commit_data_event) {
         std::atomic<size_t> data_events_count = 0;
         TypeParam session = this->CreateReadSessionWithDataHandler(
             kTopicPath, kConsumerName, [&data_events_count]() { data_events_count++; }, commit_data_event
@@ -162,15 +162,15 @@ TYPED_UTEST(YdbTopicReadSessionWithDataHandler, CommitDataEventsPersistence) {
     };
 
     // Read entire topic without commiting events, leaving consumer's offset unchanged
-    size_t count = ReadAll(false);
+    size_t count = read_all(false);
     ASSERT_TRUE(count > 0u);
 
     // Read entire topic once again and commit each event, changing consumer's offset
-    count = ReadAll(true);
+    count = read_all(true);
     ASSERT_TRUE(count > 0u);
 
     // There should be no events left for us to read
-    count = ReadAll(true);
+    count = read_all(true);
     ASSERT_EQ(count, 0u);
 
     this->DropConsumer(kTopicPath, kConsumerName);
@@ -183,7 +183,7 @@ UTEST_F(YdbTopicFixture, TopicReadSessionGetEvents) {
     std::vector<NYdb::NTopic::TReadSessionEvent::TDataReceivedEvent> data_received_events;
     std::vector<NYdb::NTopic::TReadSessionEvent::TStartPartitionSessionEvent> start_partition_session_events;
 
-    const auto GetAndHandleEvents = [&] {
+    const auto get_and_handle_events = [&] {
         std::vector<NYdb::NTopic::TReadSessionEvent::TEvent> events;
         auto task = engine::AsyncNoSpan([&events, &session] { UASSERT_NO_THROW(events = session.GetEvents()); });
         task.WaitFor(utest::kMaxTestWaitTime);
@@ -209,7 +209,7 @@ UTEST_F(YdbTopicFixture, TopicReadSessionGetEvents) {
             );
         }
     };
-    GetAndHandleEvents();
+    get_and_handle_events();
 
     ASSERT_TRUE(data_received_events.empty());
     ASSERT_FALSE(start_partition_session_events.empty());
@@ -224,7 +224,7 @@ UTEST_F(YdbTopicFixture, TopicReadSessionGetEvents) {
         kTable
     ));
 
-    GetAndHandleEvents();
+    get_and_handle_events();
 
     ASSERT_FALSE(data_received_events.empty());
 

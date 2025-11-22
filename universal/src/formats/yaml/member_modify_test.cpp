@@ -51,7 +51,7 @@ struct MemberModify<formats::yaml::ValueBuilder> : public ::testing::Test {
     using MemberMissingException = formats::yaml::MemberMissingException;
     using Exception = formats::yaml::Exception;
 
-    constexpr static auto FromString = formats::yaml::FromString;
+    constexpr static auto kFromString = formats::yaml::FromString;
 };
 
 INSTANTIATE_TYPED_TEST_SUITE_P(FormatsYaml, MemberModify, formats::yaml::ValueBuilder);

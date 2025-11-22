@@ -1,7 +1,7 @@
 #include <userver/utils/statistics/testing.hpp>
 
 #include <algorithm>
-#include <iostream>
+#include <ostream>
 #include <sstream>
 #include <unordered_map>
 #include <utility>

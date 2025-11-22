@@ -37,7 +37,7 @@ public:
     static std::any Factory(const formats::json::Value& data) { return T(data); }
 
 private:
-    static std::size_t index_;
+    static std::size_t index;
 };
 
 }  // namespace detail
@@ -162,11 +162,11 @@ namespace detail {
 
 template <typename T>
 const T& SecdistModule<T>::Get(const SecdistConfig& config) {
-    return std::any_cast<const T&>(config.Get(typeid(T), index_));
+    return std::any_cast<const T&>(config.Get(typeid(T), index));
 }
 
 template <typename T>
-std::size_t SecdistModule<T>::index_ = SecdistConfig::Register<T>(&SecdistModule<T>::Factory);
+std::size_t SecdistModule<T>::index = SecdistConfig::Register<T>(&SecdistModule<T>::Factory);
 
 }  // namespace detail
 

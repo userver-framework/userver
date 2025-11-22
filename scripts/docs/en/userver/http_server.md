@@ -47,7 +47,8 @@ To enable Streaming API in your handler:
 ```
 
 2) Enable Streaming API in static config:
-```yaml
+```
+# yaml
 components_manager:
     components:
         handler-stream-api:

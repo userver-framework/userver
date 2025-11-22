@@ -1,7 +1,6 @@
 #include <storages/mysql/impl/connection.hpp>
 
-// for std::cerr in AbortOnBuggyLibmariadb
-#include <iostream>
+#include <cstdio>
 
 #include <fmt/format.h>
 
@@ -68,7 +67,7 @@ constexpr bool kAbortOnBuggyLibmariadb = true;
     LOG_CRITICAL() << message;
     logging::LogFlush();
 
-    std::cerr << message << std::endl;
+    std::fputs(message.c_str(), stderr);
 
     std::abort();
 }

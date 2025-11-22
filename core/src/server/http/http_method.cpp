@@ -23,8 +23,8 @@ struct HttpMethodStrings {
 
 // Modern SSO could hold 7 chars without dynamic allocation
 const HttpMethodStrings& GetHttpMethodStrings() noexcept {
-    static const HttpMethodStrings values{};
-    return values;
+    static const HttpMethodStrings kValues{};
+    return kValues;
 }
 
 }  // namespace

@@ -8,6 +8,7 @@
 #include <userver/tracing/opentelemetry.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/tracing/span_event.hpp>
+#include <userver/tracing/tags.hpp>
 #include <userver/tracing/tracer.hpp>
 #include <userver/utest/utest.hpp>
 #include <userver/utils/async.hpp>
@@ -187,24 +188,24 @@ UTEST_F(OpentracingSpan, Tags) {
     {
         tracing::Span span("span_name");
         span.AddTag("k", "v");
-        span.AddTag("meta_code", 200);
+        span.AddTag(tracing::kHttpResponseStatusCode, 200);
         span.AddTag("error", false);
-        span.AddTag("method", "POST");
+        span.AddTag(tracing::kHttpRequestMethod, "POST");
         span.AddTag("db.type", "postgres");
         span.AddTag("db.statement", "SELECT * ");
         span.AddTag("peer.address", "127.0.0.1:8080");
-        span.AddTag("http.url", "http://example.com/example");
+        span.AddTag(tracing::kUrlFull, "http://example.com/example");
     }
     FlushOpentracing();
     const auto log_str = GetOtStreamString();
     EXPECT_THAT(log_str, Not(HasSubstr("k=v")));
-    EXPECT_THAT(log_str, HasSubstr("http.status_code"));
+    EXPECT_THAT(log_str, HasSubstr("http.response.status_code"));
     EXPECT_THAT(log_str, HasSubstr("error"));
-    EXPECT_THAT(log_str, HasSubstr("http.method"));
+    EXPECT_THAT(log_str, HasSubstr("http.request.method"));
     EXPECT_THAT(log_str, HasSubstr("db.type"));
     EXPECT_THAT(log_str, HasSubstr("db.statement"));
-    EXPECT_THAT(log_str, HasSubstr("peer.address"));
-    EXPECT_THAT(log_str, HasSubstr("http.url"));
+    EXPECT_THAT(log_str, HasSubstr("server.address"));
+    EXPECT_THAT(log_str, HasSubstr("url.full"));
 }
 
 UTEST_F(OpentracingSpan, FromTracerWithServiceName) {
@@ -221,9 +222,9 @@ UTEST_F(OpentracingSpan, FromTracerWithServiceName) {
 UTEST_F(OpentracingSpan, TagFormat) {
     {
         tracing::Span span("span_name");
-        span.AddTag("meta_code", 200);
+        span.AddTag(tracing::kHttpResponseStatusCode, 200);
         span.AddTag("error", false);
-        span.AddTag("method", "POST");
+        span.AddTag(tracing::kHttpRequestMethod, "POST");
     }
     FlushOpentracing();
     const auto tags = GetTagsJson(GetOtStreamString());
@@ -231,11 +232,11 @@ UTEST_F(OpentracingSpan, TagFormat) {
     for (const auto& tag : tags) {
         CheckTagFormat(tag);
         const auto key = tag["key"].As<std::string>();
-        if (key == "http.status_code") {
+        if (key == "http.response.status_code") {
             CheckTagTypeAndValue(tag, "int64", "200");
         } else if (key == "error") {
             CheckTagTypeAndValue(tag, "bool", "0");
-        } else if (key == "http.method") {
+        } else if (key == "http.request.method") {
             CheckTagTypeAndValue(tag, "string", "POST");
         } else {
             FAIL() << "Got unknown key in tags: " << key;
@@ -257,13 +258,13 @@ UTEST_F(Span, ScopeTime) {
 }
 
 UTEST_F(Span, ScopeTimeDoesntOverrideTotalTime) {
-    const int kSleepMs = 11;
+    const int sleep_ms = 11;
     {
         tracing::Span span("span_name");
-        engine::SleepFor(std::chrono::milliseconds(kSleepMs));
+        engine::SleepFor(std::chrono::milliseconds(sleep_ms));
         {
             auto st = span.CreateScopeTime("xxx");
-            engine::SleepFor(std::chrono::milliseconds(kSleepMs));
+            engine::SleepFor(std::chrono::milliseconds(sleep_ms));
         }
     }
 
@@ -288,7 +289,7 @@ UTEST_F(Span, ScopeTimeDoesntOverrideTotalTime) {
     ASSERT_TRUE(xxx_time.has_value());
     ASSERT_TRUE(total_time.has_value());
 
-    EXPECT_LE(xxx_time.value() + kSleepMs, total_time.value());
+    EXPECT_LE(xxx_time.value() + sleep_ms, total_time.value());
 }
 
 UTEST_F(Span, GetElapsedTime) {
@@ -430,17 +431,17 @@ UTEST_F(Span, NoLogPrefixes) {
     constexpr const char* kLogSpan2 = "span";
     constexpr const char* kLogSpan3 = "ign";
 
-    const std::string kIgnorePrefix0 = "ignore_";
-    const std::string kIgnorePrefix1 = "ignore1_";
-    const std::string kIgnorePrefix2 = "ignore2_";
+    const std::string ignore_prefix0 = "ignore_";
+    const std::string ignore_prefix1 = "ignore1_";
+    const std::string ignore_prefix2 = "ignore2_";
 
-    const std::string kIgnoreSpan = "ignor5span";
+    const std::string ignore_span = "ignor5span";
 
     tracing::NoLogSpans no_logs;
     no_logs.prefixes = {
-        kIgnorePrefix0,
-        kIgnorePrefix1,
-        kIgnorePrefix2,
+        ignore_prefix0,
+        ignore_prefix1,
+        ignore_prefix2,
 
         "ignor",
         "ignor0",
@@ -457,18 +458,18 @@ UTEST_F(Span, NoLogPrefixes) {
     tracing::SetNoLogSpans(std::move(no_logs));
 
     // clang-format off
-    { const tracing::Span a{kIgnorePrefix0 + "foo"}; }
+    { const tracing::Span a{ignore_prefix0 + "foo"}; }
     { const tracing::Span a{kLogSpan0}; }
     { const tracing::Span a{kLogSpan1}; }
-    { const tracing::Span a{kIgnorePrefix2 + "XXX"}; }
+    { const tracing::Span a{ignore_prefix2 + "XXX"}; }
     { const tracing::Span a{kLogSpan2}; }
-    { const tracing::Span a{kIgnorePrefix1 + "74dfljzs"}; }
-    { const tracing::Span a{kIgnorePrefix0 + "bar"}; }
+    { const tracing::Span a{ignore_prefix1 + "74dfljzs"}; }
+    { const tracing::Span a{ignore_prefix0 + "bar"}; }
     { const tracing::Span a{kLogSpan3}; }
-    { const tracing::Span a{kIgnorePrefix0}; }
-    { const tracing::Span a{kIgnorePrefix1}; }
-    { const tracing::Span a{kIgnorePrefix2}; }
-    { const tracing::Span a{kIgnoreSpan}; }
+    { const tracing::Span a{ignore_prefix0}; }
+    { const tracing::Span a{ignore_prefix1}; }
+    { const tracing::Span a{ignore_prefix2}; }
+    { const tracing::Span a{ignore_span}; }
     // clang-format on
 
     logging::LogFlush();
@@ -479,10 +480,10 @@ UTEST_F(Span, NoLogPrefixes) {
     EXPECT_THAT(output, HasSubstr(kLogSpan2));
     EXPECT_THAT(output, HasSubstr(kLogSpan3));
 
-    EXPECT_THAT(output, Not(HasSubstr("=" + kIgnorePrefix0)));
-    EXPECT_THAT(output, Not(HasSubstr(kIgnorePrefix1)));
-    EXPECT_THAT(output, Not(HasSubstr(kIgnorePrefix2)));
-    EXPECT_THAT(output, Not(HasSubstr(kIgnoreSpan)));
+    EXPECT_THAT(output, Not(HasSubstr("=" + ignore_prefix0)));
+    EXPECT_THAT(output, Not(HasSubstr(ignore_prefix1)));
+    EXPECT_THAT(output, Not(HasSubstr(ignore_prefix2)));
+    EXPECT_THAT(output, Not(HasSubstr(ignore_span)));
 }
 
 UTEST_F(Span, NoLogMixed) {
@@ -501,23 +502,23 @@ UTEST_F(Span, NoLogMixed) {
 
     constexpr const char* kIgnoreSpan = "i_am_a_span_to_ignore";
 
-    const std::string kIgnorePrefix0 = "ignore";
-    const std::string kIgnorePrefix1 = "skip";
-    const std::string kIgnorePrefix2 = "do_not_keep";
+    const std::string ignore_prefix0 = "ignore";
+    const std::string ignore_prefix1 = "skip";
+    const std::string ignore_prefix2 = "do_not_keep";
 
     // clang-format off
-    { const tracing::Span a{kIgnorePrefix0 + "oops"}; }
+    { const tracing::Span a{ignore_prefix0 + "oops"}; }
     { const tracing::Span a{kLogSpan0}; }
     { const tracing::Span a{kLogSpan1}; }
-    { const tracing::Span a{kIgnorePrefix2 + "I"}; }
+    { const tracing::Span a{ignore_prefix2 + "I"}; }
     { const tracing::Span a{kLogSpan2}; }
-    { const tracing::Span a{kIgnorePrefix1 + "did it"}; }
-    { const tracing::Span a{kIgnorePrefix0 + "again"}; }
+    { const tracing::Span a{ignore_prefix1 + "did it"}; }
+    { const tracing::Span a{ignore_prefix0 + "again"}; }
     { const tracing::Span a{kLogSpan3}; }
     { const tracing::Span a{kLogSpan4}; }
-    { const tracing::Span a{kIgnorePrefix0}; }
-    { const tracing::Span a{kIgnorePrefix1}; }
-    { const tracing::Span a{kIgnorePrefix2}; }
+    { const tracing::Span a{ignore_prefix0}; }
+    { const tracing::Span a{ignore_prefix1}; }
+    { const tracing::Span a{ignore_prefix2}; }
     { const tracing::Span a{kIgnoreSpan}; }
     // clang-format on
 
@@ -530,9 +531,9 @@ UTEST_F(Span, NoLogMixed) {
     EXPECT_THAT(output, HasSubstr(kLogSpan3));
     EXPECT_THAT(output, HasSubstr(kLogSpan4));
 
-    EXPECT_THAT(output, Not(HasSubstr("=" + kIgnorePrefix0)));
-    EXPECT_THAT(output, Not(HasSubstr(kIgnorePrefix1)));
-    EXPECT_THAT(output, Not(HasSubstr(kIgnorePrefix2)));
+    EXPECT_THAT(output, Not(HasSubstr("=" + ignore_prefix0)));
+    EXPECT_THAT(output, Not(HasSubstr(ignore_prefix1)));
+    EXPECT_THAT(output, Not(HasSubstr(ignore_prefix2)));
     EXPECT_THAT(output, Not(HasSubstr(kIgnoreSpan + std::string("\t"))));
 }
 
@@ -920,7 +921,7 @@ UTEST_F(Span, IsCompatibleWithOpentelemetry) {
         tracing::opentelemetry::BuildTraceParentHeader(span.GetTraceId(), span.GetSpanId(), kFlags);
     ASSERT_TRUE(otel_header.has_value()) << otel_header.error();
 
-    const auto otel_data = tracing::opentelemetry::ExtractTraceParentData(otel_header.value());
+    const auto otel_data = tracing::opentelemetry::ExtractTraceParentDataView(otel_header.value());
     ASSERT_TRUE(otel_data.has_value()) << otel_data.error();
 
     EXPECT_EQ(otel_data.value().trace_id, span.GetTraceId());

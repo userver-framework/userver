@@ -1,11 +1,16 @@
 #include <ugrpc/server/middlewares/log/middleware.hpp>
 
+#include <fmt/format.h>
+#include <fmt/ranges.h>
+
 #include <userver/logging/log_extra.hpp>
 #include <userver/tracing/tags.hpp>
-#include <userver/ugrpc/protobuf_logging.hpp>
 #include <userver/utils/algo.hpp>
 
 #include <ugrpc/impl/logging.hpp>
+#include <ugrpc/impl/rpc_metadata.hpp>
+#include <userver/ugrpc/protobuf_logging.hpp>
+#include <userver/ugrpc/server/metadata_utils.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -35,6 +40,17 @@ private:
     logging::Level log_level_threshold_;
 };
 
+void AppendOriginMetadata(const CallContextBase& context, logging::LogExtra& extra) {
+    const auto origin_values = GetRepeatedMetadata(context, ugrpc::impl::ToStringView(ugrpc::impl::kXOrigin));
+
+    // TODO use std::ranges::empty in C++20.
+    if (origin_values.begin() == origin_values.end()) {
+        return;
+    }
+
+    extra.Extend(tracing::kUserAgent, fmt::to_string(fmt::join(origin_values, ";")));
+}
+
 }  // namespace
 
 Middleware::Middleware(const Settings& settings) : settings_(settings) {}
@@ -45,12 +61,12 @@ void Middleware::OnCallStart(MiddlewareCallContext& context) const {
 
     span.AddTag(ugrpc::impl::kComponentTag, "server");
     span.AddTag("meta_type", std::string{context.GetCallName()});
-    span.AddNonInheritableTag(tracing::kSpanKind, tracing::kSpanKindServer);
 
+    const Logger logger{settings_.log_level};
     if (context.IsClientStreaming()) {
-        Logger{settings_.log_level}.Log(
-            settings_.msg_log_level, "gRPC request stream started", logging::LogExtra{{"type", "request"}}
-        );
+        logging::LogExtra extra{{"type", "request"}};
+        AppendOriginMetadata(context, extra);
+        logger.Log(settings_.msg_log_level, "gRPC request stream started", std::move(extra));
     }
 }
 
@@ -65,6 +81,7 @@ void Middleware::PostRecvMessage(MiddlewareCallContext& context, google::protobu
         logger.Log(settings_.msg_log_level, "gRPC request stream message", std::move(extra));
     } else {
         extra.Extend("type", "request");
+        AppendOriginMetadata(context, extra);
         logger.Log(settings_.msg_log_level, "gRPC request", std::move(extra));
     }
 }

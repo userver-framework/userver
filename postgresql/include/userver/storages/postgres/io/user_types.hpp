@@ -107,19 +107,19 @@ struct CppToUserPgImpl {
     using Type = T;
     using Mapping = CppToUserPg<T>;
     static constexpr DBTypeName postgres_name = kPgUserTypeName<T>;
-    static const detail::RegisterUserTypeParser init_;
+    static const detail::RegisterUserTypeParser init;
     static Oid GetOid(const UserTypes& user_types) {
         // TODO Handle oid not found
-        return user_types.FindOid(init_.postgres_name);
+        return user_types.FindOid(init.postgres_name);
     }
     static Oid GetArrayOid(const UserTypes& user_types) {
         // TODO Handle oid not found
-        return user_types.FindArrayOid(init_.postgres_name);
+        return user_types.FindArrayOid(init.postgres_name);
     }
 };
 
 template <typename T>
-const RegisterUserTypeParser CppToUserPgImpl<T>::init_ =
+const RegisterUserTypeParser CppToUserPgImpl<T>::init =
     RegisterUserTypeParser::Register(kPgUserTypeName<T>, std::string{compiler::GetTypeName<T>()});
 
 }  // namespace io::detail

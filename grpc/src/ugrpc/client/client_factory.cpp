@@ -1,5 +1,8 @@
 #include <userver/ugrpc/client/client_factory.hpp>
 
+#include <userver/logging/log.hpp>
+#include <userver/testsuite/grpc_control.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client {
@@ -28,6 +31,11 @@ impl::ClientInternals ClientFactory::MakeClientInternals(
     UINVARIANT(!client_settings.client_name.empty(), "Client name is empty");
     UINVARIANT(!client_settings.endpoint.empty(), "Client endpoint is empty");
 
+    LOG_INFO() << "MakeClient " << client_settings.client_name
+               << ": retry-config.attempts=" << client_factory_settings_.retry_config.attempts
+               << ", channel-count=" << client_factory_settings_.channel_count
+               << ", dedicated-channel-counts: " << client_settings.dedicated_methods_config;
+
     ClientInfo info{
         /*client_name=*/client_settings.client_name,
         /*service_full_name=*/std::nullopt,
@@ -43,10 +51,11 @@ impl::ClientInternals ClientFactory::MakeClientInternals(
                                    : grpc::InsecureChannelCredentials();
 
     impl::ChannelFactory channel_factory{
-        channel_task_processor_, std::move(client_settings.endpoint), std::move(channel_credentials)};
+        channel_task_processor_, std::move(channel_credentials), client_factory_settings_.auth_type};
 
     return impl::ClientInternals{
         std::move(client_settings.client_name),
+        std::move(client_settings.endpoint),
         std::move(middlewares),
         completion_queues_,
         client_statistics_storage_,
@@ -59,6 +68,7 @@ impl::ClientInternals ClientFactory::MakeClientInternals(
         client_factory_settings_.retry_config,
         client_factory_settings_.channel_args,
         client_factory_settings_.default_service_config,
+        client_factory_settings_.proxy_settings,
     };
 }
 

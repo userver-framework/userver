@@ -151,4 +151,50 @@ UTEST(SharedMutex, SampleSharedMutex) {
     /// [Sample engine::SharedMutex usage]
 }
 
+UTEST(SharedMutex, UnlockAndLockShared) {
+    engine::SharedMutex mutex;
+
+    mutex.lock();
+    mutex.unlock_and_lock_shared();
+    mutex.unlock_shared();
+
+    // Check that after unlock_and_lock_shared()+unlock_shared()
+    // unique lock doesn't block
+    mutex.lock();
+    mutex.unlock();
+}
+
+UTEST(SharedMutex, UnlockAndLockSharedIsShared) {
+    engine::SharedMutex mutex;
+
+    mutex.lock();
+    mutex.unlock_and_lock_shared();
+
+    // Check that after unlock_and_lock_shared() shared lock doesn't block
+    mutex.lock_shared();
+    mutex.unlock_shared();
+
+    mutex.unlock_shared();
+}
+
+UTEST(SharedMutex, UnlockAndLockSharedAwakesShared) {
+    engine::SharedMutex mutex;
+
+    mutex.lock();
+    auto reader = utils::Async("", [&mutex] { const std::shared_lock<engine::SharedMutex> lock(mutex); });
+
+    // shared_lock is still blocked
+    reader.WaitFor(std::chrono::milliseconds(50));
+    EXPECT_FALSE(reader.IsFinished());
+
+    mutex.unlock_and_lock_shared();
+
+    // shared_lock is successfully finished
+    reader.WaitFor(std::chrono::milliseconds(50));
+    EXPECT_TRUE(reader.IsFinished());
+    UEXPECT_NO_THROW(reader.Get());
+
+    mutex.unlock_shared();
+}
+
 USERVER_NAMESPACE_END

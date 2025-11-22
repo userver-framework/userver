@@ -149,17 +149,17 @@ UTEST_P(PostgreConnection, QueryQueueActuallyFifo) {
 
     GetConn()->Execute("CREATE TEMP TABLE qq_fifo_test(id INT PRIMARY KEY, value INT)");
 
-    const pg::Query kUpsertQuery{
+    const pg::Query upsert_query{
         "INSERT INTO qq_fifo_test(id, value) VALUES($1, $2) ON CONFLICT(id) DO "
         "UPDATE SET value = $2"};
-    const pg::Query kSelectQuery{"SELECT value FROM qq_fifo_test WHERE ID = $1"};
+    const pg::Query select_query{"SELECT value FROM qq_fifo_test WHERE ID = $1"};
     constexpr std::size_t kInsertSelectPairsCount = 3;
     constexpr int kRowId = 1;
 
     pg::QueryQueue query_queue{kDefaultCC, std::move(GetConn())};
     for (std::size_t i = 0; i < kInsertSelectPairsCount; ++i) {
-        query_queue.Push(kDefaultCC, kUpsertQuery, kRowId, static_cast<int>(i));
-        query_queue.Push(kDefaultCC, kSelectQuery, kRowId);
+        query_queue.Push(kDefaultCC, upsert_query, kRowId, static_cast<int>(i));
+        query_queue.Push(kDefaultCC, select_query, kRowId);
     }
 
     QueryQueueResult result{};

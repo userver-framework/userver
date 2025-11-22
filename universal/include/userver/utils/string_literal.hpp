@@ -39,6 +39,9 @@ public:
         // data()[size()] == '\0' is guaranteed by std::string_view that calls std::strlen(literal)
     }
 
+    void swap(zstring_view&) = delete;  // loses guarantee on lifetime because zstring_view may refer to non-literal
+    void swap(StringLiteral& other) noexcept { zstring_view::swap(other); }
+
     /// Constructs a StringLiteral from a pointer and size.
     /// @warning `str[len]` should be '\0' and `str` should point to compile time literal.
     static constexpr StringLiteral UnsafeMake(const char* str, std::size_t len) noexcept {

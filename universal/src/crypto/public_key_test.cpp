@@ -114,7 +114,7 @@ TEST(Crypto, VerifyRsaFromComponents512) {
 namespace {
 
 constexpr crypto::PublicKey::CurveTypeView kType{"P-256"};
-constexpr auto ecdsa256v1_priv_key = R"(
+constexpr auto kEcdsa256v1PrivKey = R"(
 -----BEGIN PRIVATE KEY-----
 MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgXBhZSD1+ClYPr7OU
 i9mTKIxHwWeXX0D1OU0vj+UVG5ahRANCAARZy8MWHqCFyM04NMK+9chTuhSOLIWV
@@ -133,7 +133,7 @@ constexpr crypto::PublicKey::CoordinateView kY{
 }  // namespace
 
 TEST(Crypto, EcdsaVerifierFromComponents) {
-    const crypto::SignerEs256 signer(ecdsa256v1_priv_key);
+    const crypto::SignerEs256 signer(kEcdsa256v1PrivKey);
     const auto sign = signer.Sign({"Hello, World"});
 
     const auto pub_key = crypto::PublicKey::LoadECFromComponents(kType, kX, kY);

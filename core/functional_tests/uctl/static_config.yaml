@@ -48,11 +48,14 @@ components_manager:
             throttling_enabled: false
             url_trailing_slash: strict-match
         http-client:
+        http-client-core:
             fs-task-processor: fs-task-processor
             user-agent: $server-name
             user-agent#fallback: 'userver-based-service 1.0'
 
         http-client-statistics:
+            core-component: http-client-statistics-core
+        http-client-statistics-core:
             fs-task-processor: fs-task-processor
             pool-statistics-disable: true
             thread-name-prefix: stats

@@ -136,6 +136,7 @@ int main(int argc, const char* const argv[]) {
                                     .Append<server::handlers::TestsControl>()
                                     .Append<components::TestsuiteSupport>()
                                     .Append<clients::dns::Component>()
+                                    .Append<components::HttpClientCore>()
                                     .Append<components::HttpClient>();
 
     return utils::DaemonMain(argc, argv, component_list);

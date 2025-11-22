@@ -64,8 +64,8 @@ constexpr std::string_view kRawInsert = R"(
 constexpr std::size_t kHostsCount = 10;
 
 pg::Transaction GetTransaction(pgd::ClusterImpl& cluster) {
-    static pg::CommandControl kCommandControl{std::chrono::seconds(2), std::chrono::seconds(2)};
-    return cluster.Begin({pg::ClusterHostType::kMaster}, {}, kCommandControl);
+    static pg::CommandControl command_control{std::chrono::seconds(2), std::chrono::seconds(2)};
+    return cluster.Begin({pg::ClusterHostType::kMaster}, {}, command_control);
 }
 
 constexpr size_t kReservedConn = 5;
@@ -94,16 +94,16 @@ public:
 
     std::size_t DoStepV1() {
         // This watchdog use the native host like the watchdog in ClusterImpl.
-        pg::ConnlimitWatchdog connlimit_watchdog_V1{cluster_, testsuite_tasks_, kShardNumber, [] {}};
-        connlimit_watchdog_V1.StepV1();
-        return connlimit_watchdog_V1.GetConnlimit();
+        pg::ConnlimitWatchdog connlimit_watchdog_v1{cluster_, testsuite_tasks_, kShardNumber, [] {}};
+        connlimit_watchdog_v1.StepV1();
+        return connlimit_watchdog_v1.GetConnlimit();
     }
 
     std::size_t DoStepV2() {
         // Use different host names to emulate different hosts.
-        pg::ConnlimitWatchdog connlimit_watchdog_V2{cluster_, testsuite_tasks_, kShardNumber, [] {}, "host2"};
-        connlimit_watchdog_V2.StepV2();
-        return connlimit_watchdog_V2.GetConnlimit();
+        pg::ConnlimitWatchdog connlimit_watchdog_v2{cluster_, testsuite_tasks_, kShardNumber, [] {}, "host2"};
+        connlimit_watchdog_v2.StepV2();
+        return connlimit_watchdog_v2.GetConnlimit();
     }
 
     pgd::ClusterImpl& GetCluster() { return cluster_; }

@@ -136,6 +136,11 @@ void SetLocalTaskCounterData(TaskCounter& counter, std::size_t thread_id) {
     *local_data = {&counter, thread_id};
 }
 
+std::size_t GetCurrentWorkerId() noexcept {
+    auto local_data = local_task_counter_data.Use();
+    return local_data->task_processor_thread_index;
+}
+
 }  // namespace engine::impl
 
 USERVER_NAMESPACE_END

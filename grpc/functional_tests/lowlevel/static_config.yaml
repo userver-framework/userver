@@ -69,9 +69,10 @@ components_manager:
             task_processor: main-task-processor
             testpoint-timeout: 10s
             throttling_enabled: false
-        http-client: # for testsuite
+        http-client:
+        http-client-core: # for testsuite
             fs-task-processor: main-task-processor
-        dns-client: # for http-client
+        dns-client: # for http-client-core
             fs-task-processor: fs-task-processor
 
         # User-defined component

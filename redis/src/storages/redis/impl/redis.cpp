@@ -439,17 +439,17 @@ bool Redis::RedisImpl::Connect(const std::string& host, int port, const Password
 
     ev_thread_control_.RunInEvLoopBlocking([this, &host]() {
         bool err = false;
-        auto CheckError = [&err, &host, this](int status, const std::string& name) {
+        auto check_error = [&err, &host, this](int status, const std::string& name) {
             if (status != REDIS_OK) {
                 err = true;
                 LOG_ERROR() << log_extra_ << "error in " << name << " with host " << host;
             }
         };
         if (!err) Attach();
-        if (!err) CheckError(redisLibevAttach(ev_thread_control_.GetEvLoop(), context_), "redisLibevAttach");
-        if (!err) CheckError(redisAsyncSetConnectCallback(context_, OnConnect), "redisAsyncSetConnectCallback");
+        if (!err) check_error(redisLibevAttach(ev_thread_control_.GetEvLoop(), context_), "redisLibevAttach");
+        if (!err) check_error(redisAsyncSetConnectCallback(context_, OnConnect), "redisAsyncSetConnectCallback");
         if (!err)
-            CheckError(redisAsyncSetDisconnectCallback(context_, OnDisconnect), "redisAsyncSetDisconnectCallback");
+            check_error(redisAsyncSetDisconnectCallback(context_, OnDisconnect), "redisAsyncSetDisconnectCallback");
         SetState(err ? State::kInitError : State::kInit);
     });
     return true;
@@ -1167,8 +1167,8 @@ void Redis::RedisImpl::ProcessCommand(const CommandPtr& command) {
 
             if (command->asking && (!multi || args.IsMultiCommand())) {
                 static const char* asking = "ASKING";
-                static const size_t asking_len = strlen(asking);
-                redisAsyncCommandArgv(context_, nullptr, nullptr, 1, &asking, &asking_len);
+                static const size_t kAskingLen = strlen(asking);
+                redisAsyncCommandArgv(context_, nullptr, nullptr, 1, &asking, &kAskingLen);
             }
             if (redisAsyncCommandArgv(
                     context_,

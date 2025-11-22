@@ -202,7 +202,7 @@ public:
 
 private:
     class Impl;
-    constexpr static std::size_t kSize = 432;
+    constexpr static std::size_t kSize = 448;
     constexpr static std::size_t kAlignment = 16;
     utils::FastPimpl<Impl, kSize, kAlignment> impl_;
 };

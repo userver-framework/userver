@@ -1,24 +1,22 @@
 # Periodics and DistLocks
 
-Basic information on functions and classes that execute some code triggered by
-some non-IO event.
+Basic information on functions and classes that execute some code triggered by some non-IO event.
 
 ### PeriodicTask
 
-utils::PeriodicTask, as the name implies, regularly calls user code. Keep in
+@ref utils::PeriodicTask, as the name implies, regularly calls user code. Keep in
 mind that the task is called on every machine in the cluster.
 
 Well suited for:
 * background actions within the component
 * cheap idempotent database cleanup, provided that repeated cleaning is very
-  cheap for the database; if this is not the case, then use
-  dist_lock::DistLockedTask.
+  cheap for the database; if this is not the case, then use @ref dist_lock::DistLockedTask.
 
 Poorly suited for:
 * Regularly receiving data from another service for caching purposes.
   To do this, it is better to use specially designed
   @ref scripts/docs/en/userver/caches.md "caches".
-* Background DB accesses for periodic changes. Use instead dist_lock::DistLockedTask.
+* Background DB accesses for periodic changes. Use instead @ref dist_lock::DistLockedTask.
 
 The update period can be changed without stopping the periodic task using
 utils::PeriodicTask::SetSettings().
@@ -60,9 +58,10 @@ despite the cancellation, then a brain split will happen and the task will
 start to execute on multiple instances at the same time.
 
 Lock implementation options:
-* via Postgres using storages::postgres::DistLockComponentBase.
-* via Mongo using storages::mongo::DistLockComponentBase.
-* through some special service using the dist_lock::DistLockedWorker component.
+* via Postgres using @ref storages::postgres::DistLockComponentBase.
+* via Mongo using @ref storages::mongo::DistLockComponentBase.
+* via YDB using @ref ydb::DistLockComponentBase.
+* through some special service using the @ref dist_lock::DistLockedWorker component.
 
 It is well suited for:
 * heavy operation that is performed for a long time, while you do not want to
@@ -76,7 +75,7 @@ Poorly suited if:
 * an explicit synchronization point in the form of a lock storage is not
   suitable due to reliability / performance / adding a bottleneck.
 * Execution of a non periodic task that should hold a distributed lock.
-  Use dist_lock::DistLockedTask instead.
+  Use @ref dist_lock::DistLockedTask instead.
 
 Sample:
 ```cpp
@@ -105,14 +104,13 @@ testing of such tasks.
 
 If work in `DoWork` takes a long time, then it is necessary to check for task
 cancellation at least once in `lock-ttl` via
-engine::current_task::ShouldCancel(). Synchronization primitives
-engine::InterruptibleSleepFor, engine::SingleConsumerEvent, engine::Future,
+@ref engine::current_task::ShouldCancel(). Synchronization primitives
+@ref engine::InterruptibleSleepFor, @ref engine::SingleConsumerEvent, engine::Future,
 userver queues, requests to clients - support cancellations, that interrupt
 waiting when the task is canceled. After such a wait, you need to check whether
 the task has been canceled - synchronization primitives throw an exception or
 return `false` from a wait operation, depending on the primitive.
-After engine::InterruptibleSleepFor you should call
-engine::current_task::ShouldCancel() manually.
+After engine::InterruptibleSleepFor you should call @ref engine::current_task::ShouldCancel() manually.
 
 In `DoWork` you can perform one step of the operation, or you can write a loop
 `while (!ShouldCancel())`. You can choose an approach based on this principle:
@@ -126,13 +124,13 @@ More detailed:
   (although there is no guarantee). If in doubt, it is better not to write a
   loop in `DoWork`.
 * In some cases, the distlock performs one big task with interruptions via
-  engine::InterruptibleSleepFor to not overload the CPU and/or the database.
+  @ref engine::InterruptibleSleepFor to not overload the CPU and/or the database.
   Then you need to write a loop inside `DoWork`. Or if the host needs an
   expensive setup before starting the work on a distlock task, then you can
   also write a loop.
 
-DistLocks create a single tracing::Span for the whole lifetime of worker. If
-a shorter Trace ID lifetime is required, then use tracing::Span::MakeSpan()
+DistLocks create a single @ref tracing::Span for the whole lifetime of worker. If
+a shorter Trace ID lifetime is required, then use @ref tracing::Span::MakeSpan()
 to create a new Span inside the `Worker::DoWork()` loop iteration.
 
 

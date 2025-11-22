@@ -129,6 +129,7 @@ int main(int argc, char* argv[]) {
     const auto component_list = components::MinimalServerComponentList()
                                     .Append<server::handlers::ServerMonitor>()
                                     .Append<chaos::KeyValue>()
+                                    .Append<components::HttpClientCore>()
                                     .Append<components::HttpClient>()
                                     .Append<components::Postgres>("key-value-database")
                                     .Append<components::TestsuiteSupport>()

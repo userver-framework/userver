@@ -2,10 +2,14 @@
 Fixtures for controlling userver caches.
 """
 
+from collections.abc import Callable
+from collections.abc import Iterable
+from collections.abc import Sequence
+from collections.abc import Set
 import copy
 import enum
 import types
-import typing
+from typing import Any
 
 import pytest
 
@@ -15,7 +19,7 @@ class UserverCachePlugin:
         self._hooks = {}
 
     @property
-    def userver_cache_control_hooks(self) -> typing.Dict[str, str]:
+    def userver_cache_control_hooks(self) -> dict[str, str]:
         return self._hooks
 
     def pytest_plugin_registered(self, plugin, manager):
@@ -40,12 +44,12 @@ class InvalidationState:
     def __init__(self):
         # None means that we should update all caches.
         # We invalidate all caches at the start of each test.
-        self._invalidated_caches: typing.Optional[typing.Set[str]] = None
+        self._invalidated_caches: set[str] | None = None
 
     def invalidate_all(self) -> None:
         self._invalidated_caches = None
 
-    def invalidate(self, caches: typing.Iterable[str]) -> None:
+    def invalidate(self, caches: Iterable[str]) -> None:
         if self._invalidated_caches is not None:
             self._invalidated_caches.update(caches)
 
@@ -54,7 +58,7 @@ class InvalidationState:
         return self._invalidated_caches is None
 
     @property
-    def caches_to_update(self) -> typing.FrozenSet[str]:
+    def caches_to_update(self) -> frozenset[str]:
         assert self._invalidated_caches is not None
         return frozenset(self._invalidated_caches)
 
@@ -63,7 +67,7 @@ class InvalidationState:
         caches = self._invalidated_caches
         return caches is None or bool(caches)
 
-    def on_caches_updated(self, caches: typing.Iterable[str]) -> None:
+    def on_caches_updated(self, caches: Iterable[str]) -> None:
         if self._invalidated_caches is not None:
             self._invalidated_caches.difference_update(caches)
 
@@ -98,9 +102,9 @@ class CacheControl:
         self,
         *,
         enabled: bool,
-        context: typing.Dict,
-        fixtures: typing.Dict[str, typing.Callable],
-        caches_disabled: typing.Set[str],
+        context: dict[Any, Any],
+        fixtures: dict[str, Callable[[...], Any]],
+        caches_disabled: Set[str],
     ):
         self._enabled = enabled
         self._context = context
@@ -109,11 +113,8 @@ class CacheControl:
 
     def query_caches(
         self,
-        cache_names: typing.Optional[typing.List[str]],
-    ) -> typing.Tuple[
-        typing.Dict,
-        typing.List[typing.Tuple[str, CacheControlAction]],
-    ]:
+        cache_names: list[str] | None,
+    ) -> tuple[dict[Any, Any], list[tuple[str, CacheControlAction]]]:
         """Query cache control handlers.
 
         Returns pair (staged, [(cache_name, action), ...])
@@ -136,7 +137,7 @@ class CacheControl:
             actions.append((cache_name, request.action))
         return staged, actions
 
-    def commit_staged(self, staged: typing.Dict[str, typing.Any]) -> None:
+    def commit_staged(self, staged: dict[str, Any]) -> None:
         """Apply recently committed state."""
         self._context.update(staged)
 
@@ -163,7 +164,7 @@ def cache_invalidation_state() -> InvalidationState:
 
 
 @pytest.fixture(scope='session')
-def _userver_cache_control_context(daemon_scoped_mark) -> typing.Dict:
+def _userver_cache_control_context(daemon_scoped_mark) -> dict[Any, Any]:
     return {}
 
 
@@ -171,7 +172,7 @@ def _userver_cache_control_context(daemon_scoped_mark) -> typing.Dict:
 def _userver_cache_fixtures(
     pytestconfig,
     request,
-) -> typing.Dict[str, typing.Callable]:
+) -> dict[str, Callable[[...], Any]]:
     plugin: UserverCachePlugin = pytestconfig.pluginmanager.get_plugin(
         'userver_cache',
     )
@@ -216,11 +217,7 @@ def userver_cache_control(
     enabled = True
     caches_disabled = set()
 
-    def userver_cache_control_disabled(
-        caches: typing.Sequence[str] = None,
-        *,
-        reason: str,
-    ):
+    def userver_cache_control_disabled(caches: Sequence[str] = None, *, reason: str):
         if caches is not None:
             caches_disabled.update(caches)
             return enabled

@@ -1,7 +1,7 @@
 #include <userver/logging/component.hpp>
 
 #include <chrono>
-#include <iostream>
+#include <cstdio>
 #include <stdexcept>
 
 #include <fmt/chrono.h>
@@ -16,6 +16,7 @@
 #include <userver/logging/log.hpp>
 #include <userver/logging/logger.hpp>
 #include <userver/os_signals/component.hpp>
+#include <userver/testsuite/testpoint.hpp>
 #include <userver/utils/algo.hpp>
 #include <userver/utils/statistics/writer.hpp>
 #include <userver/utils/thread_name.hpp>
@@ -47,10 +48,14 @@ void ReportReopeningErrorAndThrow(
     const std::vector<std::string_view>& failed_loggers,
     const std::string& result_messages
 ) {
-    std::cerr << fmt::format(
-        "[{:%Y-%m-%d %H:%M:%S %Z}] loggers [{}] failed to reopen the log file: logs are getting lost now",
-        std::chrono::system_clock::now(),
-        fmt::join(failed_loggers, ", ")
+    std::fputs(
+        fmt::format(
+            "[{:%Y-%m-%d %H:%M:%S %Z}] loggers [{}] failed to reopen the log file: logs are getting lost now",
+            std::chrono::system_clock::now(),
+            fmt::join(failed_loggers, ", ")
+        )
+            .c_str(),
+        stderr
     );
 
     throw std::runtime_error("ReopenAll errors: " + result_messages);
@@ -211,6 +216,7 @@ void Logging::StopSocketLoggingDebug(const std::optional<logging::Level>& log_le
 
 void Logging::OnLogRotate() {
     try {
+        TESTPOINT("on-logrotate-called", formats::json::Value{});
         TryReopenFiles();
     } catch (const std::exception& e) {
         LOG_ERROR() << "An error occurred while ReopenAll: " << e;

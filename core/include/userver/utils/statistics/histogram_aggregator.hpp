@@ -1,13 +1,13 @@
 #pragma once
 
+/// @file userver/utils/statistics/histogram_aggregator.hpp
+/// @brief @copybrief utils::statistics::HistogramAggregator
+
 #include <memory>
 
 #include <userver/utils/span.hpp>
 #include <userver/utils/statistics/fwd.hpp>
 #include <userver/utils/statistics/histogram_view.hpp>
-
-/// @file userver/utils/statistics/histogram_aggregator.hpp
-/// @brief @copybrief utils::statistics::HistogramAggregator
 
 USERVER_NAMESPACE_BEGIN
 
@@ -19,6 +19,10 @@ namespace utils::statistics {
 /// @snippet utils/statistics/histogram_test.cpp  HistogramAggregator
 class HistogramAggregator final {
 public:
+    /// @brief Sets upper bounds for each non-"infinite" bucket. The lowest bound is
+    /// always 0.
+    ///
+    /// @param upper_bounds is copied inside and is not required to be kept alive after the constructor completes.
     explicit HistogramAggregator(utils::span<const double> upper_bounds);
 
     HistogramAggregator(HistogramAggregator&&) noexcept;

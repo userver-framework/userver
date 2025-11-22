@@ -5,7 +5,7 @@
 
 #include <chrono>
 #include <string_view>
-#include <vector>
+#include <type_traits>
 
 #include <userver/formats/common/meta.hpp>
 #include <userver/formats/common/transfer_tag.hpp>
@@ -86,8 +86,12 @@ public:
     /// @}
 
     /// Universal constructor using Serialize
-    template <typename T>
-    ValueBuilder(const T& t) : ValueBuilder(DoSerialize(t)) {}
+    template <
+        typename T,
+        typename = std::enable_if_t<
+            !std::is_same_v<std::decay_t<T>, ValueBuilder> && !std::is_same_v<std::decay_t<T>, Value> &&
+            !std::is_same_v<std::decay_t<T>, std::string>>>
+    ValueBuilder(T&& t) : ValueBuilder(DoSerialize(std::forward<T>(t))) {}
 
     /// @brief Access member by key for modification.
     /// @throw `TypeMismatchException` if not object or null value.
@@ -170,7 +174,7 @@ public:
     /// @brief Take out the resulting `Value` object.
     /// After calling this method the object is in unspecified
     /// (but valid - possibly null) state.
-    /// @throw `JsonException` if called not from the root builder.
+    /// @throw `json::Exception` if called not from the root builder.
     formats::json::Value ExtractValue();
 
 private:
@@ -192,7 +196,7 @@ private:
     impl::Value& AddMember(std::string_view key, CheckMemberExists);
 
     template <typename T>
-    static Value DoSerialize(const T& t);
+    static Value DoSerialize(T&& t);
 
     impl::MutableValueWrapper value_;
 
@@ -201,9 +205,9 @@ private:
 };
 
 template <typename T>
-Value ValueBuilder::DoSerialize(const T& t) {
+Value ValueBuilder::DoSerialize(T&& t) {
     static_assert(
-        formats::common::impl::kHasSerialize<Value, T>,
+        formats::common::impl::kHasSerialize<Value, std::remove_reference_t<T>>,
         "There is no `Serialize(const T&, formats::serialize::To<json::Value>)` "
         "in namespace of `T` or `formats::serialize`. "
         ""
@@ -213,7 +217,7 @@ Value ValueBuilder::DoSerialize(const T& t) {
         "have not provided a `Serialize` function overload."
     );
 
-    return Serialize(t, formats::serialize::To<Value>());
+    return Serialize(std::forward<T>(t), formats::serialize::To<Value>());
 }
 
 template <typename T>

@@ -82,7 +82,7 @@ TEST(StructToMessage, Scalar) {
 
 TEST(StructToMessage, WellKnownStd) {
     using TimePoint = std::chrono::time_point<std::chrono::system_clock>;
-    auto CreateValid = []() {
+    auto create_valid = []() {
         return structs::WellKnownStd{.f3 = {std::chrono::year{1}, std::chrono::month{1}, std::chrono::day{1}}};
     };
 
@@ -104,7 +104,7 @@ TEST(StructToMessage, WellKnownStd) {
     }
 
     {
-        structs::WellKnownStd obj = CreateValid();
+        structs::WellKnownStd obj = create_valid();
         messages::WellKnownStd msg;
 
         obj.f1 = TimePoint{std::chrono::milliseconds{-987'654'321}};
@@ -125,7 +125,7 @@ TEST(StructToMessage, WellKnownStd) {
         (TimePoint::duration::max().count() / TimePoint::duration::period::den) * TimePoint::duration::period::num;
 
     if (kMaxSecondsInStdTimePoint > ::google::protobuf::util::TimeUtil::kTimestampMaxSeconds) {
-        structs::WellKnownStd obj = CreateValid();
+        structs::WellKnownStd obj = create_valid();
         messages::WellKnownStd msg;
 
         obj.f1 = TimePoint{std::chrono::seconds{kMaxSecondsInStdTimePoint}};
@@ -137,7 +137,7 @@ TEST(StructToMessage, WellKnownStd) {
     }
 
     if ((std::chrono::milliseconds::max().count() / 1000) > ::google::protobuf::util::TimeUtil::kDurationMaxSeconds) {
-        structs::WellKnownStd obj = CreateValid();
+        structs::WellKnownStd obj = create_valid();
         messages::WellKnownStd msg;
 
         obj.f2 = std::chrono::milliseconds::max();
@@ -149,7 +149,7 @@ TEST(StructToMessage, WellKnownStd) {
     }
 
     {
-        structs::WellKnownStd obj = CreateValid();
+        structs::WellKnownStd obj = create_valid();
         obj.f3 = {std::chrono::year{2025}, std::chrono::month{2}, std::chrono::day{29}};
 
         EXPECT_THAT(
@@ -159,7 +159,7 @@ TEST(StructToMessage, WellKnownStd) {
     }
 
     {
-        structs::WellKnownStd obj = CreateValid();
+        structs::WellKnownStd obj = create_valid();
         obj.f4 = std::chrono::hh_mm_ss<std::chrono::microseconds>{std::chrono::hours{25}};
 
         EXPECT_THAT(

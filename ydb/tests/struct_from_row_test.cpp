@@ -14,14 +14,14 @@ class YdbStructFromRow : public YdbSmallTableTest {};
 UTEST_F(YdbStructFromRow, StructReadRow) {
     CreateTable("test_table", true);
 
-    const ydb::Query kSelectQuery{R"(
+    const ydb::Query select_query{R"(
     --!syntax_v1
 
     SELECT value_int, key, value_str
     FROM test_table
     ORDER BY key;
   )"};
-    auto cursor = GetTableClient().ExecuteDataQuery(kSelectQuery).GetSingleCursor();
+    auto cursor = GetTableClient().ExecuteDataQuery(select_query).GetSingleCursor();
     ASSERT_FALSE(cursor.IsTruncated());
 
     ASSERT_EQ(cursor.size(), 3);
@@ -48,14 +48,14 @@ inline constexpr auto ydb::kStructMemberNames<tests::StructReadRowMissingColumn>
 UTEST_F(YdbStructFromRow, StructReadRowMissingColumn) {
     CreateTable("test_table", true);
 
-    const ydb::Query kSelectQuery{R"(
+    const ydb::Query select_query{R"(
     --!syntax_v1
 
     SELECT key, value_str, value_int
     FROM test_table
     ORDER BY key;
   )"};
-    auto cursor = GetTableClient().ExecuteDataQuery(kSelectQuery).GetSingleCursor();
+    auto cursor = GetTableClient().ExecuteDataQuery(select_query).GetSingleCursor();
     ASSERT_FALSE(cursor.IsTruncated());
 
     ASSERT_EQ(cursor.size(), 3);
@@ -79,14 +79,14 @@ inline constexpr auto ydb::kStructMemberNames<tests::StructReadRowExtraColumn> =
 UTEST_F(YdbStructFromRow, StructReadRowExtraColumn) {
     CreateTable("test_table", true);
 
-    const ydb::Query kSelectQuery{R"(
+    const ydb::Query select_query{R"(
     --!syntax_v1
 
     SELECT key, value_str, value_int
     FROM test_table
     ORDER BY key;
   )"};
-    auto cursor = GetTableClient().ExecuteDataQuery(kSelectQuery).GetSingleCursor();
+    auto cursor = GetTableClient().ExecuteDataQuery(select_query).GetSingleCursor();
     ASSERT_FALSE(cursor.IsTruncated());
 
     ASSERT_EQ(cursor.size(), 3);

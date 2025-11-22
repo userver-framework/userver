@@ -1,5 +1,7 @@
 #include <userver/tracing/manager.hpp>
 
+#include <boost/range/adaptor/reversed.hpp>
+
 #include <userver/engine/task/inherited_variable.hpp>
 #include <userver/http/common_headers.hpp>
 #include <userver/server/http/http_request.hpp>
@@ -35,7 +37,7 @@ struct OTelTracingHeadersInheritedData final {
 };
 
 /// @see TracingHeadersInheritedData for details on the contents.
-engine::TaskInheritedVariable<OTelTracingHeadersInheritedData> kOTelTracingHeadersInheritedData;
+engine::TaskInheritedVariable<OTelTracingHeadersInheritedData> kOtelTracingHeadersInheritedData;
 
 /// @see TracingHeadersInheritedData for details on the contents.
 engine::TaskInheritedVariable<std::string> kB3TracingSampledInheritedData;
@@ -87,7 +89,7 @@ bool OpenTelemetryTryFillSpanBuilderFromRequest(
         return false;
     }
 
-    auto extraction_result = tracing::opentelemetry::ExtractTraceParentData(traceparent);
+    auto extraction_result = tracing::opentelemetry::ExtractTraceParentDataView(traceparent);
     if (!extraction_result.has_value()) {
         LOG_LIMITED_WARNING() << fmt::format(
             "Invalid traceparent header format ({}). Skipping Opentelemetry "
@@ -102,20 +104,20 @@ bool OpenTelemetryTryFillSpanBuilderFromRequest(
     span_builder.SetTraceId(std::move(data.trace_id));
     span_builder.SetParentSpanId(std::move(data.span_id));
     if (data.trace_flags.empty()) {
-        data.trace_flags = std::string{kDefaultOtelTraceFlags};
+        data.trace_flags = kDefaultOtelTraceFlags;
     }
 
     const auto& tracestate = request.GetHeader(opentelemetry::kTraceState);
-    kOTelTracingHeadersInheritedData.Set({
+    kOtelTracingHeadersInheritedData.Set({
         tracestate,
-        std::move(data.trace_flags),
+        std::string(data.trace_flags),
     });
     return true;
 }
 
 template <class T>
 void OpenTelemetryFillWithTracingContext(const tracing::Span& span, T& target, const logging::Level log_level) {
-    const auto* data = kOTelTracingHeadersInheritedData.GetOptional();
+    const auto* data = kOtelTracingHeadersInheritedData.GetOptional();
 
     std::string_view traceflags = kDefaultOtelTraceFlags;
     if (data) {
@@ -214,7 +216,6 @@ bool TryFillSpanBuilderFromRequest(Format format, const server::http::HttpReques
         case Format::kB3Alternative:
             return B3TryFillSpanBuilderFromRequest(request, span_builder);
     }
-
     UINVARIANT(false, "Unexpected format of tracing headers");
 }
 
@@ -266,16 +267,14 @@ bool GenericTracingManager::TryFillSpanBuilderFromRequest(
     const server::http::HttpRequest& request,
     SpanBuilder& span_builder
 ) const {
-    for (auto format : kAllFormatsOrdered) {
-        if (!(in_request_response_ & format)) {
-            continue;
-        }
+    bool success = false;
 
-        if (tracing::TryFillSpanBuilderFromRequest(format, request, span_builder)) {
-            return true;
+    for (const auto& format : boost::adaptors::reverse(kAllFormatsOrdered)) {
+        if (in_request_response_ & format) {
+            success |= tracing::TryFillSpanBuilderFromRequest(format, request, span_builder);
         }
     }
-    return false;
+    return success;
 }
 
 void GenericTracingManager::FillRequestWithTracingContext(

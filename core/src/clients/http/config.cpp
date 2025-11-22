@@ -41,13 +41,6 @@ DeadlinePropagationConfig ParseDeadlinePropagationConfig(const yaml_config::Yaml
 
 }  // namespace
 
-CancellationPolicy Parse(yaml_config::YamlConfig value, formats::parse::To<CancellationPolicy>) {
-    auto str = value.As<std::string>();
-    if (str == "cancel") return CancellationPolicy::kCancel;
-    if (str == "ignore") return CancellationPolicy::kIgnore;
-    throw std::runtime_error("Invalid CancellationPolicy value: " + str);
-}
-
 ClientSettings Parse(const yaml_config::YamlConfig& value, formats::parse::To<ClientSettings>) {
     ClientSettings result;
     result.thread_name_prefix = value["thread-name-prefix"].As<std::string>(result.thread_name_prefix);

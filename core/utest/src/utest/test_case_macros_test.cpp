@@ -52,13 +52,13 @@ public:
     ~TestCaseMacrosFixture() override { CheckEngine(); }
 
     static void SetUpTestSuite() {
-        is_test_suite_active_ = true;
+        is_test_suite_active = true;
         CheckEngine();
     }
 
     static void TearDownTestSuite() {
         CheckEngine();
-        is_test_suite_active_ = false;
+        is_test_suite_active = false;
     }
 
 protected:
@@ -67,13 +67,13 @@ protected:
     void TearDown() override { CheckEngine(); }
 
     static void CheckEngine() {
-        UINVARIANT(is_test_suite_active_, "SetUpTestSuite is ignored");
-        const std::lock_guard lock(mutex_);
+        UINVARIANT(is_test_suite_active, "SetUpTestSuite is ignored");
+        const std::lock_guard lock(mutex);
     }
 
 private:
-    static inline bool is_test_suite_active_{false};
-    static inline engine::Mutex mutex_;
+    static inline bool is_test_suite_active{false};
+    static inline engine::Mutex mutex;
 };
 
 UTEST_F(TestCaseMacrosFixture, UtestFEngine) { CheckEngine(); }

@@ -17,7 +17,7 @@ class BaseModel(pydantic.BaseModel):
                 continue
             if field.startswith('x-taxi-go-'):
                 continue
-            if field.startswith('x-taxi-') or field.startswith('x-usrv-'):
+            if field.startswith(('x-taxi-', 'x-usrv-')):
                 assert field in self._model_userver_tags, f'Field {field} is not allowed in this context'
                 continue
 

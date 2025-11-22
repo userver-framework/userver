@@ -15,6 +15,7 @@
 #include <userver/tracing/manager_component.hpp>
 #include <userver/tracing/span_builder.hpp>
 #include <userver/tracing/tags.hpp>
+#include <userver/utils/algo.hpp>
 #include <userver/utils/fast_scope_guard.hpp>
 #include <userver/utils/string_literal.hpp>
 
@@ -88,16 +89,28 @@ void Tracing::HandleRequest(http::HttpRequest& request, request::RequestContext&
 }
 
 tracing::Span Tracing::MakeSpan(const http::HttpRequest& http_request, std::string_view meta_type) const {
-    tracing::SpanBuilder span_builder(fmt::format("http/{}", handler_.HandlerName()));
+    const auto* handler_path = std::get_if<std::string>(&handler_.GetConfig().path);
+    std::string span_name;
+
+    if (handler_path != nullptr) {
+        span_name = utils::StrCat(http_request.GetMethodStr(), " ", *handler_path);
+    } else {
+        span_name = utils::StrCat(http_request.GetMethodStr(), " ", handler_.HandlerName());
+    }
+
+    tracing::SpanBuilder span_builder(std::move(span_name));
     tracing_manager_.TryFillSpanBuilderFromRequest(http_request, span_builder);
     auto span = std::move(span_builder).Build();
 
     span.SetLocalLogLevel(log_level_);
 
+    if (handler_path != nullptr) {
+        span.AddNonInheritableTag(tracing::kHttpRoute, *handler_path);
+    }
     span.AddNonInheritableTag(tracing::kHttpMetaType, std::string{meta_type});
     span.AddNonInheritableTag(tracing::kType, std::string{kTracingTypeResponse});
     span.AddNonInheritableTag(tracing::kSpanKind, tracing::kSpanKindServer);
-    span.AddNonInheritableTag(tracing::kHttpMethod, std::string{http_request.GetMethodStr()});
+    span.AddNonInheritableTag(tracing::kHttpRequestMethod, std::string{http_request.GetMethodStr()});
 
     return span;
 }
@@ -137,7 +150,7 @@ void Tracing::EnrichLogs(
         }
 
         int response_code = static_cast<int>(status_code);
-        span.AddTag(tracing::kHttpStatusCode, response_code);
+        span.AddTag(tracing::kHttpResponseStatusCode, response_code);
         if (response_code >= 500) span.AddTag(tracing::kErrorFlag, true);
 
         if (logging_settings.need_log_response) {
@@ -149,7 +162,7 @@ void Tracing::EnrichLogs(
                 handler_.GetResponseDataForLoggingChecked(request, context, response.GetData())
             );
         }
-        span.AddNonInheritableTag(std::string{kTracingUri}, request.GetUrl());
+        span.AddNonInheritableTag(std::string{kTracingUri}, handler_.GetUrlForLoggingChecked(request, context));
     } catch (const std::exception& ex) {
         LOG_ERROR() << "can't finalize request processing: " << ex;
     }

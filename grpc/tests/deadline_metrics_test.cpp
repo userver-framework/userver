@@ -137,7 +137,7 @@ UTEST_F(DeadlineStatsTests, ClientDeadlineUpdated) {
     size_t expected_value{0};
 
     // TaskInheritedData has set up. Deadline will be propagated
-    tests::InitTaskInheritedDeadline();
+    tests::InitTaskInheritedDeadline(engine::Deadline::FromDuration(tests::kLongTimeout));
 
     // Enabled be default
     // Requests with deadline
@@ -150,7 +150,7 @@ UTEST_F(DeadlineStatsTests, ClientDeadlineUpdated) {
     EXPECT_EQ(GetClientStatistic(kDeadlinePropagated), expected_value);
 
     // reset TaskInheritedDeadline, set once is too short for many requests
-    tests::InitTaskInheritedDeadline();
+    tests::InitTaskInheritedDeadline(engine::Deadline::FromDuration(tests::kLongTimeout));
 
     // Requests without deadline
     // TaskInheritedData will be set as deadline

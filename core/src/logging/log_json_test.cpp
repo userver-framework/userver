@@ -73,9 +73,22 @@ TEST_F(LoggingJsonTest, LogExtraJsonString) {
             "number": 10
         }
     })"_json;
+    logging::JsonString object_as_str{object};
 
-    logging::LogExtra extra;
-    extra.Extend("object", object);  // implicit JsonString constructor
+    logging::LogExtra extra{
+        {"object0", object},         // avoids implicit JsonString constructor and copy
+        {"object1", object_as_str},  // avoids copy of object_as_str
+        {"int42", 42},
+    };
+    extra.Extend("object2", object);  // implicit JsonString constructor with moving out value
+
+    extra.Extend({
+        {"object3", object},                       // avoids implicit JsonString constructor and copy
+        {"object4", object_as_str},                // avoids copy of object_as_str
+        {"object5", logging::JsonString{object}},  // is not optimized for now :(
+        {"int43", 43},
+    });
+    extra.Extend({"object6", object});
     extra.Extend("null_object", logging::JsonString());
 
     LOG_CRITICAL() << extra;
@@ -91,9 +104,14 @@ TEST_F(LoggingJsonTest, LogExtraJsonString) {
     EXPECT_EQ(json["task_id"].As<std::string>(), "0");
     EXPECT_EQ(json["text"].As<std::string>(), "");
     EXPECT_NO_THROW(json["thread_id"].As<std::string>());
+    EXPECT_EQ(json["int42"].As<int>(), 42);
+    EXPECT_EQ(json["int43"].As<int>(), 43);
 
-    EXPECT_TRUE(json["object"].IsObject());
-    EXPECT_EQ(json["object"]["inner"]["number"].As<int>(), 10);
+    for (auto object : {"object0", "object1", "object2", "object3", "object4", "object5", "object6"}) {
+        EXPECT_TRUE(json[object].IsObject()) << "For key '" << object << "' the value is " << ToString(json[object]);
+        EXPECT_EQ(json[object]["inner"]["number"].As<int>(), 10);
+    }
+
     EXPECT_TRUE(json["null_object"].IsNull());
 }
 

@@ -200,14 +200,14 @@ void NumericData::ReadBuffer(FieldBuffer fb) {
 }
 
 std::string NumericData::GetBuffer() const {
-    static const UserTypes types;
+    static const UserTypes kTypes;
     std::string buff;
-    io::WriteBuffer(types, buff, ndigits);
-    io::WriteBuffer(types, buff, weight);
-    io::WriteBuffer(types, buff, sign);
-    io::WriteBuffer(types, buff, dscale);
+    io::WriteBuffer(kTypes, buff, ndigits);
+    io::WriteBuffer(kTypes, buff, weight);
+    io::WriteBuffer(kTypes, buff, sign);
+    io::WriteBuffer(kTypes, buff, dscale);
     for (auto dgt : digits) {
-        io::WriteBuffer(types, buff, dgt);
+        io::WriteBuffer(kTypes, buff, dgt);
     }
     return buff;
 }

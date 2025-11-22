@@ -12,7 +12,7 @@ USERVER_NAMESPACE_BEGIN
 /// @see @ref ugrpc::client::middlewares::headers_propagator::Component
 namespace ugrpc::client::middlewares::headers_propagator {
 
-/// @ingroup userver_components userver_base_classes
+/// @ingroup userver_components
 ///
 /// @brief gRPC client middleware for sending headers stored by the respective HTTP and gRPC server middlewares.
 ///

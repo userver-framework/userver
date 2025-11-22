@@ -67,7 +67,7 @@ constexpr std::string_view kRedisClusterSettingsJsonFormat = R"(
 )";
 
 const USERVER_NAMESPACE::secdist::RedisSettings& GetRedisSettings() {
-    static const auto settings_map = [] {
+    static const auto kSettingsMap = [] {
         constexpr const char* kDefaultSentinelPort = "26379";
         // NOLINTNEXTLINE(concurrency-mt-unsafe)
         const auto* sentinel_port_env = std::getenv(kTestsuiteSentinelPort);
@@ -76,11 +76,11 @@ const USERVER_NAMESPACE::secdist::RedisSettings& GetRedisSettings() {
         )};
     }();
 
-    return settings_map.GetSettings("taxi-test");
+    return kSettingsMap.GetSettings("taxi-test");
 }
 
 const USERVER_NAMESPACE::secdist::RedisSettings& GetRedisClusterSettings() {
-    static const auto settings_map = []() {
+    static const auto kSettingsMap = []() {
         const auto port_strings = []() -> std::vector<std::string> {
             static const auto kDefaultPorts =
                 std::vector<std::string>{"17380", "17381", "17382", "17383", "17384", "17385"};
@@ -114,7 +114,7 @@ const USERVER_NAMESPACE::secdist::RedisSettings& GetRedisClusterSettings() {
         return storages::secdist::RedisMapSettings{formats::json::FromString(json_config)};
     }();
 
-    return settings_map.GetSettings("cluster-test");
+    return kSettingsMap.GetSettings("cluster-test");
 }
 
 dynamic_config::StorageMock MakeRedisDynamicConfigStorage() {

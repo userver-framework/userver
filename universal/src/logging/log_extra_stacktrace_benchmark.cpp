@@ -6,7 +6,9 @@
 #include <benchmark/benchmark.h>
 #include <boost/stacktrace.hpp>
 
+#include <userver/logging/impl/logger_base.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/logging/null_logger.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -14,12 +16,15 @@ namespace {
 
 class Stacktrace : public ::benchmark::Fixture {
 protected:
-    void SetUp(benchmark::State&) override { level_scope_.emplace(logging::Level::kDebug); }
+    void SetUp(benchmark::State&) override {
+        logger_scope_.emplace(logging::impl::MakeNoopLoggerForTests());
+        logging::SetDefaultLoggerLevel(logging::Level::kDebug);
+    }
 
-    void TearDown(benchmark::State&) override { level_scope_.reset(); }
+    void TearDown(benchmark::State&) override { logger_scope_.reset(); }
 
 private:
-    std::optional<logging::DefaultLoggerLevelScope> level_scope_;
+    std::optional<logging::DefaultLoggerGuard> logger_scope_;
 };
 
 }  // namespace

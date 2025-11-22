@@ -54,7 +54,7 @@ private:
     static constexpr std::size_t int_size = sizeof(Integer);
 
     template <typename U>
-    void ReadField(FieldBuffer& buffer, const TypeBufferCategory& categories, U& val) const {
+    void ReadField(FieldBuffer& buffer, const TypeBufferCategory& categories, std::size_t field_index, U& val) const {
         Integer field_type = 0;
         buffer.Read(field_type, BufferCategory::kPlainBuffer);
         auto elem_category = GetTypeBufferCategory(categories, field_type);
@@ -62,14 +62,24 @@ private:
             throw UnknownBufferCategory{
                 static_cast<Oid>(field_type), compiler::GetTypeName<U>(), compiler::GetTypeName<T>()};
         }
-        buffer.ReadRaw(val, categories, elem_category);
+        try {
+            buffer.ReadRaw(val, categories, elem_category);
+        } catch (ResultSetError& error) {
+            error.AddMsgSuffix(fmt::format(
+                ",\n\twhile reading from database to C++ type '{}' (field #{} of a composite C++ type '{}')",
+                compiler::GetTypeName<U>(),
+                field_index,
+                compiler::GetTypeName<T>()
+            ));
+            throw;
+        }
     }
 
     template <typename Tuple, std::size_t... Indexes>
     void
     ReadTuple(FieldBuffer& buffer, const TypeBufferCategory& categories, Tuple&& tuple, std::index_sequence<Indexes...>)
         const {
-        (ReadField(buffer, categories, std::get<Indexes>(std::forward<Tuple>(tuple))), ...);
+        (ReadField(buffer, categories, Indexes, std::get<Indexes>(std::forward<Tuple>(tuple))), ...);
     }
 };
 

@@ -170,8 +170,8 @@ UTEST_P(PostgreConnection, ByteaWrapperRowType) {
 
     EXPECT_EQ(parsed.size(), 1);
 
-    const std::vector<unsigned char> kExpected{'f', 'o', 'o', 'b', 'a', 'r'};
-    EXPECT_EQ(parsed.front().bytes, kExpected);
+    const std::vector<unsigned char> expected{'f', 'o', 'o', 'b', 'a', 'r'};
+    EXPECT_EQ(parsed.front().bytes, expected);
 }
 
 }  // namespace

@@ -15,6 +15,10 @@
 
 USERVER_NAMESPACE_BEGIN
 
+namespace engine {
+class TracePlugin;
+}
+
 namespace tracing {
 
 class SpanBuilder;
@@ -304,6 +308,7 @@ private:
     friend class SpanBuilder;
     friend class TagScope;
     friend class InPlaceSpan;
+    friend class engine::TracePlugin;
 
     explicit Span(std::unique_ptr<Impl, OptionalDeleter>&& pimpl);
 

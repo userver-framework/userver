@@ -1,11 +1,10 @@
 import asyncio
 import asyncio.streams as streams
 import asyncio.trsock as trsock
+from collections.abc import AsyncGenerator
+from collections.abc import Callable
 import json
 from typing import Any
-from typing import AsyncGenerator
-from typing import Callable
-from typing import Dict
 
 import http2
 import pytest
@@ -25,14 +24,14 @@ def max_attempts(_retry_policy) -> int:
 
 
 @pytest.fixture(scope='session')
-def _retry_policy(_default_service_config) -> Dict[str, Any]:
+def _retry_policy(_default_service_config) -> dict[str, Any]:
     return _default_service_config['methodConfig'][0]['retryPolicy']
 
 
 @pytest.fixture(scope='session')
-def _default_service_config(service_config) -> Dict[str, Any]:
+def _default_service_config(service_config) -> dict[str, Any]:
     return json.loads(
-        service_config['components_manager']['components']['grpc-client-factory']['default-service-config']
+        service_config['components_manager']['components']['grpc-client-factory']['default-service-config'],
     )
 
 

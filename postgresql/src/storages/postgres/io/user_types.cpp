@@ -14,8 +14,8 @@ namespace {
 using ParserMap = std::unordered_multimap<DBTypeName, std::string>;
 
 ParserMap& Parsers() {
-    static ParserMap parsers_;
-    return parsers_;
+    static ParserMap parsers;
+    return parsers;
 }
 
 const std::unordered_map<DBTypeDescription::TypeCategory, io::BufferCategory, DBTypeDescription::TypeCategoryHash>
@@ -241,7 +241,7 @@ void LogRegisteredTypes() {
     io::LogRegisteredTypes();
 }
 
-void LogRegisteredTypesOnce() { [[maybe_unused]] static const auto _ = (LogRegisteredTypes(), 1); }
+void LogRegisteredTypesOnce() { [[maybe_unused]] static const auto kHolder = (LogRegisteredTypes(), 1); }
 
 }  // namespace storages::postgres
 

@@ -13,19 +13,19 @@
 USERVER_NAMESPACE_BEGIN
 
 __attribute__((noinline)) static void TestNonCoroutineCtx() {
-    TEST_COMMAND("assert_matches('Task\\s+State\\s+Span', gdb.execute('utask list', to_string=True))");
+    TEST_COMMAND("assert_matches('Task ID\\s+State\\s+Span name', gdb.execute('utask list', to_string=True))");
     TEST_COMMAND("assert_matches('No tasks found', gdb.execute('utask apply all bt', to_string=True))");
 }
 
 __attribute__((noinline)) static void TestSingleCoroutine() {
     engine::RunStandalone([&] {
-        void* volatile current_task = engine::current_task::impl::GetRawCurrentTaskContext();
+        NotOptimized<void*> current_task = engine::current_task::impl::GetRawCurrentTaskContext();
         auto span_name = tracing::Span::CurrentSpan().GetName();
         TEST_COMMAND(
             "current_task = str(gdb.parse_and_eval('current_task'))\n"
             "span_name = re.escape(str(gdb.parse_and_eval('span_name')).strip('\"'))\n"
             "assert_matches(\n"
-            "   f'Task\\\\s+State\\\\s+Span\\n{current_task}\\\\s+Running\\\\s+{span_name}',\n"
+            "   f'Task ID\\\\s+State\\\\s+Span name\\n{current_task}\\\\s+running\\\\s+{span_name}',\n"
             "   gdb.execute('utask list', to_string=True)\n"
             ")"
         );
@@ -64,20 +64,20 @@ __attribute__((noinline)) static void TestSingleCoroutine() {
 
 __attribute__((noinline)) static void TestSleepingCoroutine(bool no_span = false) {
     engine::RunStandalone([&] {
-        void* volatile root_coro = engine::current_task::impl::GetRawCurrentTaskContext();
+        NotOptimized<void*> root_coro = engine::current_task::impl::GetRawCurrentTaskContext();
         const std::string root_coro_name{tracing::Span::CurrentSpan().GetName()};
         auto root_stacktrace = boost::stacktrace::stacktrace();
         auto payload = [&] {
-            void* volatile new_coro = engine::current_task::impl::GetRawCurrentTaskContext();
-            void* volatile root_coro_addr = root_coro;
-            bool volatile no_span_ = no_span;
+            NotOptimized<void*> new_coro = engine::current_task::impl::GetRawCurrentTaskContext();
+            NotOptimized<void*> root_coro_addr = root_coro;
+            NotOptimized<bool> no_span_not_optimized = no_span;
             TEST_COMMAND(
-                "no_span = bool(gdb.parse_and_eval('no_span_'))\n"
+                "no_span = bool(gdb.parse_and_eval('no_span_not_optimized'))\n"
                 "new_coro_span = 'new_coro' if not no_span else ''\n"
                 "assert_matches(\n"
-                "   'Task\\\\s+State\\\\s+Span\\n'\n"
-                "   f'{gdb.parse_and_eval(\"root_coro_addr\")}\\\\s+Suspended\\\\s+span\\n'\n"
-                "   f'{gdb.parse_and_eval(\"new_coro\")}\\\\s+Running\\\\s+{new_coro_span}',\n"
+                "   'Task ID\\\\s+State\\\\s+Span name\\n'\n"
+                "   f'{gdb.parse_and_eval(\"root_coro_addr\")}\\\\s+suspended\\\\s+span\\n'\n"
+                "   f'{gdb.parse_and_eval(\"new_coro\")}\\\\s+running\\\\s+{new_coro_span}',\n"
                 "   gdb.execute('utask list', to_string=True)\n"
                 ")"
             );
@@ -100,7 +100,7 @@ __attribute__((noinline)) static void TestSleepingCoroutine(bool no_span = false
             );
             DoNotOptimize(new_coro);
             DoNotOptimize(root_coro_addr);
-            DoNotOptimize(no_span_);
+            DoNotOptimize(no_span_not_optimized);
             DoNotOptimize(root_frames_addrs);
         };
         if (no_span) {
@@ -126,7 +126,9 @@ __attribute__((noinline)) static void TestMultipleCoroutines(int tasks_cnt = 11,
                 engine::Yield();
                 if (cnt.fetch_add(1) == tasks_cnt - 1) {
                     const std::lock_guard lock(mutex);
-                    void* volatile current_task = engine::current_task::impl::GetRawCurrentTaskContext();
+                    NotOptimized<void*> current_task = engine::current_task::impl::GetRawCurrentTaskContext();
+                    NotOptimized<int> expected_tasks_cnt = tasks_cnt;
+                    NotOptimized<const char*> current_task_name = tracing::Span::CurrentSpan().GetName().data();
                     auto& tasks_ref = tasks;
                     auto& threads_ref = threads;
                     MAKE_COREDUMP_AND_SWITCH_TO();
@@ -139,17 +141,45 @@ __attribute__((noinline)) static void TestMultipleCoroutines(int tasks_cnt = 11,
                         "      gdb.lookup_type(f'{USERVER_NAMESPACE}engine::TaskBase::Impl')\n"
                         "   )['context']['px']\n"
                         "   if gdb.parse_and_eval('threads_ref') == 1:\n"
-                        "      if int(task_ctx) == int(gdb.parse_and_eval('current_task')): state = 'Running'\n"
-                        "      else: state = '(Suspended|Queued)'\n"
-                        "   else: state = '(Running|Suspended|Queued)'\n"
+                        "      if int(task_ctx) == int(gdb.parse_and_eval('current_task')): state = 'running'\n"
+                        "      else: state = '(suspended|queued)'\n"
+                        "   else: state = '(running|suspended|queued)'\n"
                         "   assert_matches(f'{task_ctx}\\\\s+{state}\\\\s+task_{i}', tasks_list_output)\n"
                         "if gdb.parse_and_eval('threads_ref') != 1:\n"
-                        "   assert_matches('(Running.*){1,4}', tasks_list_output)\n",
+                        "   assert_matches('(running.*){1,4}', tasks_list_output)\n",
+                        test_in_coredump = True,
+                    );
+                    TEST_COMMAND(
+                        "task_id = gdb.parse_and_eval('current_task')\n"
+                        "expected_tasks_cnt = gdb.parse_and_eval('expected_tasks_cnt')\n"
+                        "task_name = re.search('\"(.*)\"', str(gdb.parse_and_eval('current_task_name'))).group(1)\n"
+                        "current_task_regex = f'^Task ID\\\\s+State\\\\s+Span "
+                        "name\\\\s+{task_id}\\\\s+running\\\\s+{task_name}\\\\s*$'\n"
+
+                        "tasks_list_by_id = gdb.execute(f'utask list -i {task_id}', to_string=True)\n"
+                        "assert_matches(current_task_regex, tasks_list_by_id)\n"
+
+                        "tasks_list_by_name = gdb.execute(f'utask list -n {task_name}', to_string=True)\n"
+                        "assert_matches(current_task_regex, tasks_list_by_name)\n"
+
+                        "tasks_list_by_backtrace = gdb.execute(f'utask list -b engine::WaitAllChecked', "
+                        "to_string=True)\n"
+                        "root_task_regex = f'^Task ID\\\\s+State\\\\s+Span "
+                        "name\\\\s+0x[0-9a-fA-F]+\\\\s+suspended\\\\s+span\\\\s*$'\n"
+                        "assert_matches(root_task_regex, tasks_list_by_backtrace)\n"
+
+                        "running_tasks = gdb.execute('utask list -s running', to_string=True)\n"
+                        "inactive_tasks = gdb.execute('utask list -s suspended -s queued', to_string=True)\n"
+                        "tasks_cnt = len(running_tasks.strip().split('\\n')[1:]) + "
+                        "len(inactive_tasks.strip().split('\\n')[1:])\n"
+                        "assert_matches(f'^{expected_tasks_cnt + 1}$', str(tasks_cnt))\n",
                         test_in_coredump = True,
                     );
                     cv.NotifyAll();
                     finished.store(true);
                     DoNotOptimize(current_task);
+                    DoNotOptimize(expected_tasks_cnt);
+                    DoNotOptimize(current_task_name);
                     DoNotOptimize(tasks_ref);
                     DoNotOptimize(threads_ref);
                 } else {
@@ -171,13 +201,13 @@ __attribute__((noinline)) void BenchmarkHeavyService(size_t tasks_cnt, size_t th
             void operator()(size_t index) const {
                 std::vector<std::vector<int>> some_used_memory(1000, std::vector<int>(memory_per_task / 1000, 1));
                 if (index == tasks_cnt) {
-                    auto volatile tasks_cnt_ = tasks_cnt;
-                    auto volatile threads_cnt_ = threads_cnt;
-                    auto volatile memory_per_task_ = memory_per_task;
+                    NotOptimized<size_t> tasks_cnt_not_optimized = tasks_cnt;
+                    NotOptimized<size_t> threads_cnt_not_optimized = threads_cnt;
+                    NotOptimized<size_t> memory_per_task_not_optimized = memory_per_task;
                     TEST_COMMAND(
-                        "tasks_cnt = int(gdb.parse_and_eval('tasks_cnt_'))\n"
-                        "threads_cnt = int(gdb.parse_and_eval('threads_cnt_'))\n"
-                        "memory_per_task = int(gdb.parse_and_eval('memory_per_task_'))\n"
+                        "tasks_cnt = int(gdb.parse_and_eval('tasks_cnt_not_optimized'))\n"
+                        "threads_cnt = int(gdb.parse_and_eval('threads_cnt_not_optimized'))\n"
+                        "memory_per_task = int(gdb.parse_and_eval('memory_per_task_not_optimized'))\n"
                         "start_benchmark(tasks_cnt, threads_cnt, memory_per_task)\n"
                         "with measure_time('`utask list` (first call)'):\n"
                         "   gdb.execute('utask list', to_string=True)\n"
@@ -188,9 +218,9 @@ __attribute__((noinline)) void BenchmarkHeavyService(size_t tasks_cnt, size_t th
                         "with measure_time('`utask apply all bt` (second call)'):\n"
                         "   gdb.execute('utask apply all bt', to_string=True)\n"
                     );
-                    DoNotOptimize(tasks_cnt_);
-                    DoNotOptimize(threads_cnt_);
-                    DoNotOptimize(memory_per_task_);
+                    DoNotOptimize(tasks_cnt_not_optimized);
+                    DoNotOptimize(threads_cnt_not_optimized);
+                    DoNotOptimize(memory_per_task_not_optimized);
                 } else {
                     utils::Async("task_" + std::to_string(index + 1), &RecursivePayload::operator(), *this, index + 1)
                         .Wait();

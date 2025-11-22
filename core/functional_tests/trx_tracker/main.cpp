@@ -14,6 +14,7 @@ int main(int argc, char* argv[]) {
                                     .Append<handlers::Handler>()
                                     .Append<server::handlers::ServerMonitor>()
                                     .Append<clients::dns::Component>()
+                                    .Append<components::HttpClientCore>()
                                     .Append<components::HttpClient>()
                                     .Append<components::TestsuiteSupport>()
                                     .Append<server::handlers::TestsControl>();

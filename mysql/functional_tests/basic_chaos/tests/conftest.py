@@ -1,5 +1,4 @@
 import json
-import typing
 
 import pytest
 from pytest_userver import chaos
@@ -10,7 +9,7 @@ pytest_plugins = ['pytest_userver.plugins.mysql']
 
 
 @pytest.fixture(name='gate_settings', scope='session')
-def _gate_settings() -> typing.Tuple[str, int]:
+def _gate_settings() -> tuple[str, int]:
     return ('localhost', 19355)
 
 
@@ -51,7 +50,7 @@ async def _gate_ready(service_client, _gate):
     _gate.start_accepting()
 
     await _gate.wait_for_connections(timeout=5.0)
-    yield _gate
+    return _gate
 
 
 @pytest.fixture(scope='session')

@@ -96,7 +96,7 @@ namespace traits {
 
 /// @brief Concept of the @ref proto_structs::Oneof.
 template <typename T>
-concept Oneof = impl::traits::InheritsFromInstantiation<proto_structs::Oneof, T>;
+concept Oneof = impl::traits::kInheritsFromInstantiation<proto_structs::Oneof, T>;
 
 }  // namespace traits
 

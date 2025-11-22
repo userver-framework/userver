@@ -142,6 +142,7 @@ int main(int argc, char* argv[]) {
     const auto component_list = components::MinimalServerComponentList()
                                     .Append<samples_sqlite_service::sqlite::KeyValue>()
                                     .Append<components::SQLite>("key-value-database")
+                                    .Append<components::HttpClientCore>()
                                     .Append<components::HttpClient>()
                                     .Append<server::handlers::TestsControl>()
                                     .Append<components::TestsuiteSupport>()

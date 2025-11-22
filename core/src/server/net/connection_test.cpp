@@ -5,7 +5,7 @@
 #include <server/handlers/http_handler_base_statistics.hpp>
 #include <server/http/request_handler_base.hpp>
 #include <server/net/create_socket.hpp>
-#include <userver/clients/http/client.hpp>
+#include <userver/clients/http/client_core.hpp>
 #include <userver/engine/io/sockaddr.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/server/http/http_request.hpp>
@@ -268,7 +268,7 @@ UTEST_P(ServerNetConnection, KeepAlive) {
     net::ListenerConfig config = CreateConfig(http_ver);
     auto request_socket = net::CreateSocket(config, config.ports[0]);
 
-    auto http_client_ptr = utest::CreateHttpClient();
+    auto http_client_ptr = utest::impl::CreateHttpClientCore();
     http_client_ptr->SetMaxHostConnections(1);
 
     auto request = CreateRequest(*http_client_ptr, request_socket, http_ver, ConnectionHeader::kKeepAlive);
@@ -307,7 +307,7 @@ UTEST_P(ServerNetConnection, CancelMultipleInFlight) {
     net::ListenerConfig config = CreateConfig(http_ver);
     auto request_socket = net::CreateSocket(config, config.ports[0]);
 
-    auto http_client_ptr = utest::CreateHttpClient();
+    auto http_client_ptr = utest::impl::CreateHttpClientCore();
     http_client_ptr->SetMaxHostConnections(1);
 
     for (unsigned ii = 0; ii < kMaxAttempts; ++ii) {

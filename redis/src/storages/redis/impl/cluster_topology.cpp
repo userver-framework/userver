@@ -21,7 +21,7 @@ ClusterTopology::ClusterTopology(
             all_instances_count += info.slaves.size() + 1;
         }
 
-        auto HostPortToString = [](const std::pair<std::string, int>& host_port) {
+        auto host_port_to_string = [](const std::pair<std::string, int>& host_port) {
             return host_port.first + ":" + std::to_string(host_port.second);
         };
         cluster_shards_.reserve(infos_.size());
@@ -32,13 +32,13 @@ ClusterTopology::ClusterTopology(
 
         for (const auto& info : infos_) {
             const auto current_shard = cluster_shards_.size();
-            const auto& master_host_port = HostPortToString(info.master.HostPort());
+            const auto& master_host_port = host_port_to_string(info.master.HostPort());
             /// Throws rcu::MissingKeyException on missing key in nodes
             std::shared_ptr<const RedisConnectionHolder> master = nodes[master_host_port];
             std::vector<std::shared_ptr<const RedisConnectionHolder>> replicas;
             replicas.reserve(info.slaves.size());
             for (const auto& replica : info.slaves) {
-                auto host_port = HostPortToString(replica.HostPort());
+                auto host_port = host_port_to_string(replica.HostPort());
                 /// Throws rcu::MissingKeyException on missing key in nodes
                 replicas.push_back(nodes[host_port]);
                 host_port_to_shard_[host_port] = current_shard;
@@ -150,7 +150,7 @@ ClusterTopology::GetAvailableServersWeighted(size_t shard_idx, bool with_master,
 
 const std::string& GetShardName(size_t shard_index) {
     static const size_t kMaxClusterShards = 500;
-    static const std::vector<std::string> names = [] {
+    static const std::vector<std::string> kNames = [] {
         std::vector<std::string> shard_names;
         shard_names.reserve(kMaxClusterShards);
         for (size_t i = 0; i < kMaxClusterShards; ++i) {
@@ -163,7 +163,7 @@ const std::string& GetShardName(size_t shard_index) {
         }
         return shard_names;
     }();
-    return names.at(shard_index);
+    return kNames.at(shard_index);
 }
 
 }  // namespace storages::redis::impl

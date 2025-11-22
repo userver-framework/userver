@@ -3,7 +3,6 @@ import dataclasses
 import os
 import pathlib
 from typing import Any
-from typing import Optional
 
 import yaml
 
@@ -104,7 +103,7 @@ def _get_template_includes(name: str, client_name: str, graph: dict[str, list[st
     return includes[name]
 
 
-def extract_includes(name: str, path: pathlib.Path, schemas_dir: pathlib.Path) -> Optional[list[str]]:
+def extract_includes(name: str, path: pathlib.Path, schemas_dir: pathlib.Path) -> list[str] | None:
     with open(path) as ifile:
         content = yaml.safe_load(ifile)
 
@@ -160,7 +159,7 @@ def is_file_produced_feature(data: dict[str, Any]) -> bool:
     return False
 
 
-def extract_cpp_type_header(cpp_type: str) -> Optional[str]:
+def extract_cpp_type_header(cpp_type: str) -> str | None:
     parts = cpp_type.split('::')
     if len(parts) < 2:
         return None

@@ -261,6 +261,7 @@ std::string Value::ConvertTo<std::string>() const {
     if (IsInt64() || IsDateTime()) return std::to_string(ConvertTo<int64_t>());
     if (IsDouble()) return std::to_string(As<double>());
     if (IsOid()) return As<Oid>().ToString();
+    if (IsDecimal128()) return As<Decimal128>().ToString();
 
     throw TypeMismatchException(impl_->Type(), BSON_TYPE_UTF8, GetPath());
 }

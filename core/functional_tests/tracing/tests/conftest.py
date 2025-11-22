@@ -46,7 +46,7 @@ def _userver_service_client_options(userver_service_client_options):
     return userver_service_client_options
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture
 async def assert_ids_in_file(service_client, jaeger_logs_path):
     with open(jaeger_logs_path, 'w') as jaeger_file:
         jaeger_file.truncate(0)
@@ -72,11 +72,11 @@ async def assert_ids_in_file(service_client, jaeger_logs_path):
         f'\ttrace_id={trace_id}',
         'service_name=http-tracing-test',
         'duration=',
-        'operation_name=external',
+        'operation_name=GET localhost',
         'tags=[{"',
         'test-service/echo-no-body"',
-        '"key":"http.url"',
-        '"key":"http.status_code"',
+        '"key":"url.full"',
+        '"key":"http.response.status_code"',
         '"value":"200"',
         '}]',
     }

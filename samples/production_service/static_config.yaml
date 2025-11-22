@@ -67,12 +67,15 @@ components_manager:
         # /// [Production service sample - static config variables usage]
         # yaml
         http-client:
+        http-client-core:
             fs-task-processor: fs-task-processor
             user-agent: $server-name
             user-agent#fallback: 'userver-based-service 1.0'
         # /// [Production service sample - static config variables usage]
 
         http-client-statistics:
+            core-component: http-client-statistics-core
+        http-client-statistics-core:
             fs-task-processor: fs-task-processor
             pool-statistics-disable: true
             thread-name-prefix: stats

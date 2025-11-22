@@ -132,8 +132,10 @@ auto MakeTaskQueue(TaskProcessorConfig config) {
 TaskProcessor::TaskProcessor(TaskProcessorConfig config, std::shared_ptr<impl::TaskProcessorPools> pools)
     : task_queue_(MakeTaskQueue(config)),
       task_counter_(config.worker_threads),
-      config_(std::move(config)),
-      pools_(std::move(pools)) {
+      config_(config),
+      pools_(std::move(pools)),
+      plugin_manager_(*this, config.worker_threads),
+      trace_plugin_(config.worker_threads) {
     utils::impl::FinishStaticRegistration();
     try {
         LOG_INFO() << "creating task_processor " << Name() << " "
@@ -155,9 +157,16 @@ TaskProcessor::TaskProcessor(TaskProcessorConfig config, std::shared_ptr<impl::T
         Cleanup();
         throw;
     }
+
+    if (config_.trace_coroutines) {
+        RegisterPlugin(trace_plugin_);
+    }
 }
 
-TaskProcessor::~TaskProcessor() { Cleanup(); }
+TaskProcessor::~TaskProcessor() {
+    UnregisterPlugin(trace_plugin_);
+    Cleanup();
+}
 
 void TaskProcessor::Cleanup() noexcept {
     InitiateShutdown();
@@ -208,7 +217,7 @@ ev::ThreadPool& TaskProcessor::EventThreadPool() { return pools_->EventThreadPoo
 
 impl::CountedCoroutinePtr TaskProcessor::GetCoroutine() { return {pools_->GetCoroPool().GetCoroutine(), *this}; }
 
-std::size_t TaskProcessor::GetTaskQueueSize() const {
+std::size_t TaskProcessor::GetTaskQueueSize() const noexcept {
     return std::visit([](auto&& arg) { return arg.GetSizeApproximate(); }, task_queue_);
 }
 
@@ -315,7 +324,23 @@ TaskProcessor& TaskProcessor::GetBlockingTaskProcessor() {
 
 void TaskProcessor::SetBlockingTaskProcessor(TaskProcessor& task_processor) { fs_task_processor_ = &task_processor; }
 
-size_t GetQueueSize(const TaskProcessor& task_processor) { return task_processor.GetTaskQueueSize(); }
+std::size_t GetQueueSize(const TaskProcessor& task_processor) noexcept { return task_processor.GetTaskQueueSize(); }
+
+std::size_t GetWorkerCount(const TaskProcessor& task_processor) noexcept { return task_processor.GetWorkerCount(); }
+
+void TaskProcessor::HookBeforeSleep(const impl::TaskContext& task) noexcept { plugin_manager_.HookBeforeSleep(task); }
+
+void TaskProcessor::HookAfterWakeup(const impl::TaskContext& task) noexcept { plugin_manager_.HookAfterWakeup(task); }
+
+void TaskProcessor::HookTaskCreate(const impl::TaskContext& task) noexcept { plugin_manager_.HookTaskCreate(task); }
+
+void TaskProcessor::HookTaskDestroy(const impl::TaskContext& task) noexcept { plugin_manager_.HookTaskDestroy(task); }
+
+void TaskProcessor::RegisterPlugin(PluginBase& plugin) { plugin_manager_.RegisterPlugin(plugin); }
+
+void TaskProcessor::UnregisterPlugin(PluginBase& plugin) noexcept { plugin_manager_.UnregisterPlugin(plugin); }
+
+const TracePlugin& TaskProcessor::GetTracePlugin() const { return trace_plugin_; }
 
 void RegisterThreadStartedHook(std::function<void()> func) {
     utils::impl::AssertStaticRegistrationAllowed("Calling engine::RegisterThreadStartedHook()");

@@ -22,7 +22,7 @@ std::shared_ptr<RequestStats> DestinationStatistics::GetExistingStatisticsForDes
 ) {
     /*
      * It's safe to return RequestStats holding a reference to Statistics as
-     * RequestStats lifetime is less than clients::http::Client's one.
+     * RequestStats lifetime is less than clients::http::ClientCore's one.
      */
     auto stats = rcu_map_.Get(destination);
     if (stats)
@@ -42,7 +42,7 @@ std::shared_ptr<RequestStats> DestinationStatistics::GetStatisticsForDestination
             if (max_auto_destinations_ != 0) {
                 LOG_LIMITED_WARNING() << "Too many httpclient metrics destinations used (" << max_auto_destinations_
                                       << "), either increase "
-                                         "components.http-client.destination-metrics-auto-max-size "
+                                         "components.http-client-core.destination-metrics-auto-max-size "
                                          "or explicitly set destination via "
                                          "Request::SetDestinationMetricName().";
             }

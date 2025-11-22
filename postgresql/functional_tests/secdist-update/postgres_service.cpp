@@ -72,6 +72,7 @@ int main(int argc, char* argv[]) {
                                     .Append<components::Secdist>()
                                     .Append<components::DefaultSecdistProvider>()
                                     .Append<chaos::PostgresHandler>()
+                                    .Append<components::HttpClientCore>()
                                     .Append<components::HttpClient>()
                                     .Append<components::Postgres>("key-value-database")
                                     .Append<components::TestsuiteSupport>()

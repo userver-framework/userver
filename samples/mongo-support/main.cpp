@@ -17,6 +17,7 @@ int main(int argc, char* argv[]) {
         // userver components
         components::MinimalServerComponentList()
             .Append<clients::dns::Component>()
+            .Append<components::HttpClientCore>()
             .Append<components::HttpClient>()
             .Append<congestion_control::Component>()
             .Append<server::handlers::Ping>()

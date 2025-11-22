@@ -12,10 +12,10 @@ namespace ugrpc::server::impl {
 
 namespace {
 
-constexpr std::string_view kGenericServiceFullNameFake = "Generic";
+constexpr utils::StringLiteral kGenericServiceFullNameFake = "Generic";
 
 constexpr std::array kGenericMethodsFake = {ugrpc::impl::MethodDescriptor{
-    /*method_full_name*/ "Generic/Generic",
+    /*method_full_name*/ utils::StringLiteral{"Generic/Generic"},
     /*method_type*/ ugrpc::impl::RpcType::kBidiStreaming,
 }};
 
@@ -31,7 +31,7 @@ public:
     explicit AsyncService(std::size_t method_count) { UASSERT(method_count == 1); }
 
     template <typename CallTraits>
-    void Prepare(
+    void RequestCall(
         int method_id,
         grpc::GenericServerContext& context,
         typename CallTraits::InitialRequest& /*initial_request*/,

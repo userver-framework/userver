@@ -91,7 +91,7 @@ UTEST(StatisticsHistogram, Sample) {
     /// [sample]
     utils::statistics::Storage storage;
 
-    utils::statistics::Histogram histogram{std::vector<double>{1.5, 5, 42, 60}};
+    utils::statistics::Histogram histogram{{1.5, 5, 42, 60}};
 
     auto statistics_holder =
         storage.RegisterWriter("test", [&](utils::statistics::Writer& writer) { writer = histogram; });

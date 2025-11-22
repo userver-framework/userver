@@ -6,7 +6,8 @@
 
 You just enable middleware globally by default.
 
-```yaml
+```
+# yaml
 components_manager:
     components:
         grpc-server-middlewares-pipeline:
@@ -23,7 +24,8 @@ There are some ways to enable/disable for a particular service/client.
 
 For example, there is a auth middleware, but some service don't require the auth middleware by some reasons.
 
-```yaml
+```
+# yaml
 components_manager:
     components:
         grpc-server-middlewares-pipeline:
@@ -40,7 +42,8 @@ components_manager:
 
 For example, you want to start test some middleware in a particular service or client.
 
-```yaml
+```
+# yaml
 components_manager:
     components:
         grpc-server-middlewares-pipeline:
@@ -74,7 +77,8 @@ For more information about options see docs `ugrpc::server::ServiceComponentBase
 
 Example of the static YAML config.
 
-```yaml
+```
+# yaml
         grpc-client-factory:
             channel-args: {}
             # Disable all middlewares. But you can force enable some middlewares.

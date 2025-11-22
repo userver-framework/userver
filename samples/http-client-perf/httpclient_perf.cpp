@@ -5,7 +5,7 @@
 
 #include <boost/program_options.hpp>
 
-#include <userver/clients/http/client.hpp>
+#include <userver/clients/http/standalone_client.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/get_all.hpp>
 #include <userver/engine/run_standalone.hpp>
@@ -153,13 +153,13 @@ void DoWork(const Config& config, const std::vector<std::string>& urls) {
     LOG_INFO() << "Starting thread " << std::this_thread::get_id();
 
     auto& tp = engine::current_task::GetTaskProcessor();
-    http::Client http_client{{"", config.io_threads}, tp, std::vector<utils::NotNull<clients::http::Plugin*>>{}};
+    http::StandaloneConfig standalone_config;
+    standalone_config.multiplexing_enabled = config.multiplexing;
+    if (config.max_host_connections > 0) standalone_config.max_host_connections = config.max_host_connections;
+    auto http_client = http::CreateStandaloneHttpClient({"", config.io_threads}, standalone_config, tp);
     LOG_INFO() << "Client created";
 
-    http_client.SetMultiplexingEnabled(config.multiplexing);
-    if (config.max_host_connections > 0) http_client.SetMaxHostConnections(config.max_host_connections);
-
-    WorkerContext worker_context{{0}, 2000, 0, http_client, config, urls};
+    WorkerContext worker_context{{0}, 2000, 0, *http_client, config, urls};
 
     std::vector<engine::TaskWithResult<void>> tasks;
     tasks.resize(config.coroutines);

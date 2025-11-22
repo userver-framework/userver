@@ -16,9 +16,9 @@ namespace impl {
 
 std::string MakeHttpDate(std::chrono::system_clock::time_point date) {
     static const std::string kFormatString = "%a, %d %b %Y %H:%M:%S %Z";
-    static const auto tz = cctz::utc_time_zone();
+    static const auto kTz = cctz::utc_time_zone();
 
-    return cctz::format(kFormatString, date, tz);
+    return cctz::format(kFormatString, date, kTz);
 }
 
 constexpr size_t kMaxDateHeaderLength = 128;

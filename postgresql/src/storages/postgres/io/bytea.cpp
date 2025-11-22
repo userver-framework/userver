@@ -11,7 +11,7 @@ struct PgToCpp<PredefinedOids::kBytea, std::string> : detail::PgToCppPredefined<
 
 namespace {
 
-const bool kReference = detail::ForceReference(PgToCpp<PredefinedOids::kBytea, std::string>::init_);
+const bool kReference = detail::ForceReference(PgToCpp<PredefinedOids::kBytea, std::string>::init);
 
 }  // namespace
 

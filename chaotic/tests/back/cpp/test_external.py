@@ -94,12 +94,15 @@ def test_duplicate_name(cpp_name_func):
 
     gen = Generator(
         config=GeneratorConfig(
-            namespaces={'vfull': '', 'vfull2': ''}, include_dirs=None, infile_to_name_func=cpp_name_func
+            namespaces={'vfull': '', 'vfull2': ''},
+            include_dirs=None,
+            infile_to_name_func=cpp_name_func,
         ),
     )
 
     with pytest.raises(
-        BaseException, match='Duplicate type name: ::type1, generated from vfull2#/type1 and vfull#/type1'
+        BaseException,
+        match='Duplicate type name: ::type1, generated from vfull2#/type1 and vfull#/type1',
     ):
         gen.generate_types(
             resolved_schemas,

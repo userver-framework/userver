@@ -17,30 +17,30 @@ USERVER_NAMESPACE_BEGIN
 using namespace std::chrono_literals;
 
 UTEST(WaitAny, VectorTasks) {
-    const size_t kTaskCount = 4;
-    const size_t kTaskOrderShift = 1;
+    const size_t task_count = 4;
+    const size_t task_order_shift = 1;
     std::vector<engine::TaskWithResult<size_t>> tasks;
     std::atomic<size_t> finished_counter{0};
-    for (size_t i = 0; i < kTaskCount; i++) {
+    for (size_t i = 0; i < task_count; i++) {
         tasks.push_back(engine::AsyncNoSpan([&finished_counter, i] {
-            const size_t order = (i + kTaskCount - kTaskOrderShift) % kTaskCount;
+            const size_t order = (i + task_count - task_order_shift) % task_count;
             while (finished_counter < order) engine::Yield();
             return i;
         }));
     }
-    std::array<bool, kTaskCount> completed{};
+    std::array<bool, task_count> completed{};
     completed.fill(false);
-    for (size_t i = 0; i < kTaskCount; i++) {
+    for (size_t i = 0; i < task_count; i++) {
         auto task_idx_opt = engine::WaitAny(tasks);
         ASSERT_TRUE(!!task_idx_opt);
 
         // After calling Get() the task will be ignored by WaitAny()
         auto task_res = tasks[*task_idx_opt].Get();
-        EXPECT_EQ(task_res, (finished_counter + kTaskOrderShift) % kTaskCount);
+        EXPECT_EQ(task_res, (finished_counter + task_order_shift) % task_count);
         completed[task_res] = true;
         ++finished_counter;
     }
-    for (size_t i = 0; i < kTaskCount; i++) {
+    for (size_t i = 0; i < task_count; i++) {
         EXPECT_TRUE(completed[i]);
     }
     EXPECT_EQ(engine::WaitAny(tasks), std::nullopt);
@@ -49,9 +49,9 @@ UTEST(WaitAny, VectorTasks) {
 UTEST(WaitAny, Cancelled) {
     std::atomic<bool> started{false};
     auto task = engine::AsyncNoSpan([&started]() {
-        const size_t kTaskCount = 3;
+        const size_t task_count = 3;
         std::vector<engine::TaskWithResult<void>> tasks;
-        for (size_t i = 0; i < kTaskCount; i++) {
+        for (size_t i = 0; i < task_count; i++) {
             tasks.push_back(engine::AsyncNoSpan([] {
                 for (;;) {
                     engine::Yield();
@@ -107,9 +107,9 @@ UTEST(WaitAny, WaitAnyFor) {
 }
 
 UTEST(WaitAny, WaitAnyUntil) {
-    const size_t kTaskCount = 2;
+    const size_t task_count = 2;
     std::vector<engine::TaskWithResult<void>> tasks;
-    for (size_t i = 0; i < kTaskCount; i++) {
+    for (size_t i = 0; i < task_count; i++) {
         tasks.push_back(engine::AsyncNoSpan([i] {
             if (i == 1) {
                 engine::SleepFor(10ms);
@@ -174,9 +174,9 @@ UTEST(WaitAny, Sample) {
 }
 
 UTEST(WaitAny, Throwing) {
-    const size_t kTaskCount = 2;
+    const size_t task_count = 2;
     std::vector<engine::TaskWithResult<void>> tasks;
-    for (size_t i = 0; i < kTaskCount; i++) {
+    for (size_t i = 0; i < task_count; i++) {
         tasks.push_back(engine::AsyncNoSpan([i] {
             if (i == 1) throw std::runtime_error("test");
             for (;;) {
@@ -199,9 +199,9 @@ UTEST(WaitAny, Throwing) {
 
 #ifndef NDEBUG
 UTEST_DEATH(WaitAnyDeathTest, DuplicateTask) {
-    const size_t kTaskCount = 2;
+    const size_t task_count = 2;
     std::vector<engine::TaskWithResult<void>> tasks;
-    for (size_t i = 0; i < kTaskCount; i++) {
+    for (size_t i = 0; i < task_count; i++) {
         tasks.push_back(engine::AsyncNoSpan([] { engine::SleepFor(10ms); }));
     }
 

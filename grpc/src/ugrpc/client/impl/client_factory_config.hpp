@@ -5,16 +5,12 @@
 
 #include <userver/yaml_config/yaml_config.hpp>
 
+#include <userver/ugrpc/client/auth_type.hpp>
 #include <userver/ugrpc/client/retry_config.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client::impl {
-
-enum class AuthType {
-    kInsecure,
-    kSsl,
-};
 
 /// Settings relating to the ClientFactory
 struct ClientFactoryConfig final {

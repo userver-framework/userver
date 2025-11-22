@@ -185,6 +185,7 @@ int main(int argc, char* argv[]) {
                                     .Append<components::Redis>("key-value-database")
                                     .Append<components::TestsuiteSupport>()
                                     .Append<clients::dns::Component>()
+                                    .Append<components::HttpClientCore>()
                                     .Append<components::HttpClient>()
                                     .Append<server::handlers::TestsControl>()
                                     .Append<components::DynamicConfigClient>()

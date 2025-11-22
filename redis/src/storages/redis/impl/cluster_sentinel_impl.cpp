@@ -371,7 +371,7 @@ public:
         sentinels_->SetConnectionInfo(info_array);
     }
 
-    static size_t GetClusterSlotsCalledCounter() { return cluster_slots_call_counter_.load(std::memory_order_relaxed); }
+    static size_t GetClusterSlotsCalledCounter() { return cluster_slots_call_counter.load(std::memory_order_relaxed); }
 
     boost::signals2::signal<void(HostPort, Redis::State)>& GetSignalNodeStateChanged() override {
         return signal_node_state_change_;
@@ -458,12 +458,12 @@ private:
     std::unordered_map<HostPort, utils::datetime::SteadyCoarseClock::time_point> nodes_last_seen_time_;
     rcu::RcuMap<std::string, std::string, StdMutexRcuMapTraits<std::string>> ip_by_fqdn_;
 
-    static std::atomic<size_t> cluster_slots_call_counter_;
+    static std::atomic<size_t> cluster_slots_call_counter;
 
     const ConnectionSecurity connection_security_;
 };
 
-std::atomic<size_t> ClusterTopologyHolder::cluster_slots_call_counter_(0);
+std::atomic<size_t> ClusterTopologyHolder::cluster_slots_call_counter(0);
 
 namespace {
 
@@ -715,7 +715,7 @@ void ClusterTopologyHolder::UpdateClusterTopology() {
         return;
     };
     if (update_cluster_slots_flag_.exchange(true)) return;
-    auto reset_update_cluster_slots_ = MakeSharedScopeGuard([&]() noexcept { update_cluster_slots_flag_ = false; });
+    auto reset_update_cluster_slots = MakeSharedScopeGuard([&]() noexcept { update_cluster_slots_flag_ = false; });
     /// Update sentinel
     sentinels_->ProcessCreation(redis_thread_pool_);
 
@@ -724,13 +724,13 @@ void ClusterTopologyHolder::UpdateClusterTopology() {
     ProcessGetClusterHostsRequest(
         shards_names_,
         GetClusterHostsRequest(*sentinels_, GetPassword(), shard_group_name_),
-        [this, reset{std::move(reset_update_cluster_slots_)}](
+        [this, reset{std::move(reset_update_cluster_slots)}](
             ClusterShardHostInfos shard_infos, size_t requests_sent, size_t responses_parsed, bool is_non_cluster_error
         ) {
             LOG_DEBUG() << log_extra_
                         << "Parsing response from cluster slots: shard_infos.size(): " << shard_infos.size()
                         << ", requests_sent=" << requests_sent << ", responses_parsed=" << responses_parsed;
-            const auto deferred = utils::FastScopeGuard([&]() noexcept { ++cluster_slots_call_counter_; });
+            const auto deferred = utils::FastScopeGuard([&]() noexcept { ++cluster_slots_call_counter; });
             if (is_non_cluster_error) {
                 LOG_DEBUG() << log_extra_ << "Non cluster error: shard_infos.size(): " << shard_infos.size();
                 throw std::runtime_error("Redis must be in cluster mode");
@@ -823,7 +823,7 @@ void ClusterTopologyHolder::GetStatistics(SentinelStatistics& stats, const Metri
     }
     stats.internal.is_autotoplogy = true;
     stats.internal.cluster_topology_checks =
-        utils::statistics::Rate{cluster_slots_call_counter_.load(std::memory_order_relaxed)};
+        utils::statistics::Rate{cluster_slots_call_counter.load(std::memory_order_relaxed)};
     stats.internal.cluster_topology_updates =
         utils::statistics::Rate{current_topology_version_.load(std::memory_order_relaxed)};
 

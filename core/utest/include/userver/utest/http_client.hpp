@@ -5,6 +5,7 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace clients::http {
+class ClientCore;
 class Client;
 class Plugin;
 }  // namespace clients::http
@@ -18,6 +19,14 @@ class TracingManagerBase;
 }
 
 namespace utest {
+
+namespace impl {
+
+std::shared_ptr<clients::http::ClientCore> CreateHttpClientCore();
+
+std::shared_ptr<clients::http::ClientCore> CreateHttpClientCore(engine::TaskProcessor& fs_task_processor);
+
+}  // namespace impl
 
 std::shared_ptr<clients::http::Client> CreateHttpClient();
 

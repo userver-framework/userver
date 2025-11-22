@@ -86,6 +86,9 @@ components_manager:
 # /// [Sample http client component config]
 # yaml
     http-client:
+      core-component: http-client-core
+      plugins: {}
+    http-client-core:
       pool-statistics-disable: false
       thread-name-prefix: http-client
       threads: 2
@@ -121,7 +124,6 @@ components_manager:
       http-retries: 5
       config-url: http://localhost:8083/
       configs-stage: $configs_stage
-      fallback-to-no-proxy: false
 # /// [Sample dynamic configs client component config]
 # /// [Sample dynamic config client updater component config]
 # yaml
@@ -179,6 +181,8 @@ components_manager:
       fs-task-processor: fs-task-processor
 # /// [Sample dynamic config component config]
     http-client-statistics:
+      core-component: http-client-statistics-core
+    http-client-statistics-core:
       fs-task-processor: fs-task-processor
 # /// [Sample system statistics component config]
 # yaml

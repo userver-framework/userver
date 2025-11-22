@@ -9,6 +9,7 @@
 #include <userver/engine/task/task_processor_fwd.hpp>
 
 #include <userver/ugrpc/client/impl/completion_queue_pool.hpp>
+#include <userver/ugrpc/client/proxy_settings.hpp>
 #include <userver/ugrpc/impl/completion_queue_pool_base.hpp>
 #include <userver/ugrpc/impl/statistics_storage.hpp>
 
@@ -29,6 +30,8 @@ namespace ugrpc::client {
 /// ---- | ----------- | -------------
 /// blocking-task-processor | the task processor for blocking channel creation | -
 /// native-log-level | min log level for the native gRPC library | 'error'
+/// proxy-address | proxy server address | ''
+/// servicemesh-settings | settings for service mesh integration | -
 ///
 /// @see ugrpc::client::ClientFactoryComponent
 
@@ -51,6 +54,7 @@ private:
     std::optional<impl::CompletionQueuePool> client_completion_queues_;
     ugrpc::impl::CompletionQueuePoolBase& completion_queues_;
     ugrpc::impl::StatisticsStorage client_statistics_storage_;
+    ProxySettings proxy_settings_;
 };
 
 }  // namespace ugrpc::client

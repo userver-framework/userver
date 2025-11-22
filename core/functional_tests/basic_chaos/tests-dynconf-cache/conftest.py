@@ -1,5 +1,5 @@
 import json
-import typing
+from typing import Any
 
 import pytest
 
@@ -36,7 +36,7 @@ def config_service_defaults():
 
 
 # TODO also test that the service uses configs from the cache.
-_CONFIGS_CACHE: typing.Dict[str, typing.Any] = {}
+_CONFIGS_CACHE: dict[str, Any] = {}
 
 
 # Overriding a built-in userver config hook

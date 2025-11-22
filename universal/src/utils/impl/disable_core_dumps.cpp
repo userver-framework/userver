@@ -1,8 +1,8 @@
 #include <userver/utils/impl/disable_core_dumps.hpp>
 
 #include <sys/resource.h>
+#include <cstdio>
 #include <cstdlib>
-#include <iostream>
 
 #include <userver/utils/strerror.hpp>
 
@@ -24,9 +24,7 @@ public:
 
     ~Impl() {
         if (::setrlimit(RLIMIT_CORE, &old_limits_) == -1) {
-            const auto error_code = errno;
-            std::cerr << "Failed to return the core dump limit to defaults: " << utils::strerror(error_code)
-                      << std::flush;
+            std::perror("Failed to return the core dump limit to defaults");
             std::abort();
         }
     }

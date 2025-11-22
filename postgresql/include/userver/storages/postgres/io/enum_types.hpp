@@ -122,8 +122,8 @@ class EnumerationMap {
         return maps;
     }
     static const MapsPair& GetMaps() {
-        static auto maps_ = MapLiterals();
-        return maps_;
+        static auto maps = MapLiterals();
+        return maps;
     }
     static const EnumToString& EnumeratorMap() { return GetMaps().first; }
     static const StringToEnum& LiteralMap() { return GetMaps().second; }

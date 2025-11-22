@@ -9,8 +9,8 @@ USERVER_NAMESPACE_BEGIN
 namespace s3api::authenticators {
 
 TEST(S3ApiUtils, MakeHeaderDate) {
-    const auto kMockTime = std::chrono::system_clock::from_time_t(1567534400);
-    utils::datetime::MockNowSet(kMockTime);
+    const auto mock_time = std::chrono::system_clock::from_time_t(1567534400);
+    utils::datetime::MockNowSet(mock_time);
     EXPECT_EQ("Tue, 03 Sep 2019 18:13:20 +0000", s3api::authenticators::MakeHeaderDate());
 }
 

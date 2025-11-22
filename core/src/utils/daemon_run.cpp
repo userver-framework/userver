@@ -1,6 +1,7 @@
 #include <userver/utils/daemon_run.hpp>
 
-#include <iostream>
+#include <cstdio>
+#include <sstream>
 
 #include <boost/exception/diagnostic_information.hpp>
 #include <boost/program_options.hpp>
@@ -50,12 +51,15 @@ int DaemonMain(const int argc, const char* const argv[], const components::Compo
         po::store(po::parse_command_line(argc, argv, desc), vm);
         po::notify(vm);
     } catch (const std::exception& ex) {
-        std::cerr << ex.what() << '\n';
+        const auto msg = fmt::format("{}\n", ex.what());
+        std::fputs(msg.c_str(), stderr);
         return 1;
     }
 
     if (vm.count("help")) {
-        std::cerr << desc << '\n';
+        std::ostringstream oss;
+        oss << desc << '\n';
+        std::fputs(oss.str().c_str(), stderr);
         return 0;
     }
 
@@ -66,12 +70,12 @@ int DaemonMain(const boost::program_options::variables_map& vm, const components
     utils::impl::FinishStaticRegistration();
 
     if (vm.count("print-config-schema")) {
-        std::cout << components::impl::GetStaticConfigSchema(components_list) << "\n";
+        std::puts(components::impl::GetStaticConfigSchema(components_list).c_str());
         return 0;
     }
 
     if (vm.count("print-dynamic-config-defaults")) {
-        std::cout << components::impl::GetDynamicConfigDefaults() << "\n";
+        std::puts(components::impl::GetDynamicConfigDefaults().c_str());
         return 0;
     }
 
@@ -84,14 +88,14 @@ int DaemonMain(const boost::program_options::variables_map& vm, const components
         );
         return 0;
     } catch (const std::exception& ex) {
-        auto msg = fmt::format("Unhandled exception in components::Run: {}", ex.what());
-        std::cerr << msg << "\n";
+        const auto msg = fmt::format("Unhandled exception in components::Run: {}\n", ex.what());
+        std::fputs(msg.c_str(), stderr);
         return 1;
     } catch (...) {
-        auto msg = fmt::format(
-            "Non-standard exception in components::Run: {}", boost::current_exception_diagnostic_information()
+        const auto msg = fmt::format(
+            "Non-standard exception in components::Run: {}\n", boost::current_exception_diagnostic_information()
         );
-        std::cerr << msg << '\n';
+        std::fputs(msg.c_str(), stderr);
         return 1;
     }
 }
@@ -103,14 +107,14 @@ int DaemonMain(const components::InMemoryConfig& config, const components::Compo
         components::Run(config, components_list);
         return 0;
     } catch (const std::exception& ex) {
-        auto msg = fmt::format("Unhandled exception in components::Run: {}", ex.what());
-        std::cerr << msg << "\n";
+        auto msg = fmt::format("Unhandled exception in components::Run: {}\n", ex.what());
+        std::fputs(msg.c_str(), stderr);
         return 1;
     } catch (...) {
         auto msg = fmt::format(
-            "Non-standard exception in components::Run: {}", boost::current_exception_diagnostic_information()
+            "Non-standard exception in components::Run: {}\n", boost::current_exception_diagnostic_information()
         );
-        std::cerr << msg << '\n';
+        std::fputs(msg.c_str(), stderr);
         return 1;
     }
 }

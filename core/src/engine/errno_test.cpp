@@ -8,6 +8,7 @@
 #include <thread>
 #include <vector>
 
+#include <userver/compiler/impl/tsan.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/sleep.hpp>
@@ -16,6 +17,8 @@
 
 USERVER_NAMESPACE_BEGIN
 
+// Test is not ready to TSan non-migrating scheduler
+#if !USERVER_IMPL_HAS_TSAN
 namespace {
 constexpr size_t kNumThreads = 2;
 }  // namespace
@@ -65,5 +68,6 @@ UTEST_MT(Errno, IsCoroLocal, kNumThreads) {
         EXPECT_TRUE(task.Get());
     }
 }
+#endif
 
 USERVER_NAMESPACE_END

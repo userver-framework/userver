@@ -17,6 +17,7 @@
 #include <components/component_context_component_info.hpp>
 #include <components/manager.hpp>
 #include <components/manager_config.hpp>
+#include <engine/task/task_processor.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -26,8 +27,6 @@ namespace {
 
 const std::string kOnAllComponentsLoadedRootName = "all_components_loaded";
 const std::string kClearComponentsRootName = "clear_components";
-
-const std::chrono::seconds kPrintAddingComponentsPeriod{10};
 
 }  // namespace
 
@@ -72,13 +71,19 @@ auto& ComponentContextImpl::GetComponentInfo(Self& self, std::string_view compon
 }
 
 ComponentContextImpl::ComponentContextImpl(const Manager& manager, std::vector<std::string>&& loading_component_names)
-    : manager_(manager) {
+    : manager_(manager), trace_plugin_(engine::current_task::GetTaskProcessor().GetWorkerCount()) {
     UASSERT(std::is_sorted(loading_component_names.begin(), loading_component_names.end()));
     UASSERT(
         std::unique(loading_component_names.begin(), loading_component_names.end()) == loading_component_names.end()
     );
 
     components_.reserve(loading_component_names.size());
+
+    if (manager.GetConfig().enable_component_load_tracing) {
+        LOG_WARNING() << "Component loading tracing is enabled";
+        auto& tp = engine::current_task::GetTaskProcessor();
+        tp.RegisterPlugin(trace_plugin_);
+    }
 
     for (auto& component_name : loading_component_names) {
         auto [_, success] = components_.emplace(std::move(component_name));
@@ -500,9 +505,11 @@ void ComponentContextImpl::StartPrintAddingComponentsTask() {
         for (;;) {
             {
                 auto data = shared_data_.UniqueLock();
-                print_adding_components_cv_.WaitFor(data.GetLock(), kPrintAddingComponentsPeriod, [&data]() {
-                    return data->print_adding_components_stopped;
-                });
+                print_adding_components_cv_.WaitFor(
+                    data.GetLock(),
+                    manager_.GetConfig().component_load_print_interval,
+                    [&data]() { return data->print_adding_components_stopped; }
+                );
                 if (data->print_adding_components_stopped) return;
             }
             PrintAddingComponents();
@@ -518,6 +525,10 @@ void ComponentContextImpl::StopPrintAddingComponentsTask() {
     }
     print_adding_components_cv_.NotifyAll();
     print_adding_components_task_ = {};
+
+    auto& tp = engine::current_task::GetTaskProcessor();
+    tp.UnregisterPlugin(trace_plugin_);
+    trace_plugin_.Clear();
 }
 
 void ComponentContextImpl::PrintAddingComponents() const {
@@ -534,6 +545,8 @@ void ComponentContextImpl::PrintAddingComponents() const {
     }
     LOG_INFO() << "still adding components, busy: [" << JoinNamesFromInfo(busy_components, ", ") << "], loading: ["
                << JoinNamesFromInfo(adding_components, ", ") << ']';
+
+    trace_plugin_.PrintStacksByComponentNames(ExtractNamesFromInfo(busy_components));
 }
 
 }  // namespace components::impl

@@ -6,7 +6,7 @@ import pytest
 async def _check_that_restores(client, gate):
     try:
         await gate.wait_for_connections(timeout=10.0)
-    except asyncio.TimeoutError:
+    except asyncio.TimeoutError:  # noqa: UP041
         assert False, 'Timeout while waiting for restore'
 
     assert gate.connections_count() >= 1

@@ -11,6 +11,7 @@
 #include <boost/range/adaptor/map.hpp>
 #include <boost/range/adaptor/transformed.hpp>
 
+#include <userver/ugrpc/impl/to_string.hpp>
 #include <userver/ugrpc/server/call_context.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/text.hpp>
@@ -22,15 +23,15 @@ namespace ugrpc::server {
 /// @brief Returns an std::input_range containing std::string_view
 /// which are non-owning references to the values of the metadata field.
 /// The references must not outlive the call object to avoid undefined behavior.
-inline auto GetRepeatedMetadata(CallContextBase& context, std::string_view field_name) {
+inline auto GetRepeatedMetadata(const CallContextBase& context, std::string_view field_name) {
     UASSERT(field_name == utils::text::ToLower(field_name));
     const auto& metadata = context.GetServerContext().client_metadata();
-    auto [it_begin, it_end] = metadata.equal_range(grpc::string_ref(field_name.data(), field_name.length()));
+    auto [it_begin, it_end] = metadata.equal_range(ugrpc::impl::ToGrpcStringRef(field_name));
 
     using Metadata = std::multimap<grpc::string_ref, grpc::string_ref>;
     return boost::iterator_range<Metadata::const_iterator>(it_begin, it_end) |
            boost::adaptors::transformed([](const std::pair<const grpc::string_ref, grpc::string_ref>& entry) {
-               return std::string_view(entry.second.begin(), entry.second.length());
+               return ugrpc::impl::ToStringView(entry.second);
            });
 }
 

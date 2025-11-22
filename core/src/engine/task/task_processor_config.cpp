@@ -61,6 +61,8 @@ TaskProcessorConfig Parse(const yaml_config::YamlConfig& value, formats::parse::
         config.task_trace_logger_name = task_trace["logger"].As<std::string>();
     }
 
+    config.trace_coroutines = value["trace-coroutines"].As<bool>(config.trace_coroutines);
+
     return config;
 }
 

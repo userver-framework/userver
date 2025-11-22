@@ -104,20 +104,20 @@ namespace detail {
 
 template <typename Duration, typename Buffer>
 void DoFormatTimePoint(std::chrono::time_point<ClockType, Duration> value, const UserTypes& types, Buffer& buf) {
-    static const auto pg_epoch = std::chrono::time_point_cast<Duration>(PostgresEpochTimePoint());
+    static const auto kPgEpoch = std::chrono::time_point_cast<Duration>(PostgresEpochTimePoint());
     if (value == kTimestampPositiveInfinity) {
         WriteBuffer(types, buf, std::numeric_limits<Bigint>::max());
     } else if (value == kTimestampNegativeInfinity) {
         WriteBuffer(types, buf, std::numeric_limits<Bigint>::min());
     } else {
-        const auto tmp = std::chrono::duration_cast<std::chrono::microseconds>(value - pg_epoch).count();
+        const auto tmp = std::chrono::duration_cast<std::chrono::microseconds>(value - kPgEpoch).count();
         WriteBuffer(types, buf, tmp);
     }
 }
 
 template <typename Duration>
 void DoParseTimePoint(std::chrono::time_point<ClockType, Duration>& value, const FieldBuffer& buffer) {
-    static const auto pg_epoch = std::chrono::time_point_cast<Duration>(PostgresEpochTimePoint());
+    static const auto kPgEpoch = std::chrono::time_point_cast<Duration>(PostgresEpochTimePoint());
     Bigint usec{0};
     ReadBuffer(buffer, usec);
     if (usec == std::numeric_limits<Bigint>::max()) {
@@ -125,7 +125,7 @@ void DoParseTimePoint(std::chrono::time_point<ClockType, Duration>& value, const
     } else if (usec == std::numeric_limits<Bigint>::min()) {
         value = kTimestampNegativeInfinity;
     } else {
-        value = pg_epoch + std::chrono::microseconds{usec};
+        value = kPgEpoch + std::chrono::microseconds{usec};
     }
 }
 

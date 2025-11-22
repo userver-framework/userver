@@ -2,8 +2,6 @@
 import dataclasses
 import itertools
 from typing import Any
-from typing import Optional
-from typing import Union
 
 from chaotic import cpp_keywords
 from chaotic.back.cpp import type_name
@@ -15,9 +13,9 @@ USERVER_COLONCOLON = 'userver::'
 @dataclasses.dataclass
 class CppType:
     raw_cpp_type: type_name.TypeName
-    json_schema: Optional[types.Schema]
+    json_schema: types.Schema | None
     nullable: bool  # TODO: maybe move into  field?
-    user_cpp_type: Optional[str]
+    user_cpp_type: str | None
 
     _only_json_reason = ''
 
@@ -206,13 +204,13 @@ def camel_to_snake_case(string: str) -> str:
 
 @dataclasses.dataclass
 class CppPrimitiveValidator:
-    min: Union[Optional[int], float] = None
-    max: Union[Optional[int], float] = None
-    exclusiveMin: Union[Optional[int], float] = None
-    exclusiveMax: Union[Optional[int], float] = None
-    minLength: Optional[int] = None
-    maxLength: Optional[int] = None
-    pattern: Optional[str] = None
+    min: int | float | None = None
+    max: int | float | None = None
+    exclusiveMin: int | float | None = None
+    exclusiveMax: int | float | None = None
+    minLength: int | None = None
+    maxLength: int | None = None
+    pattern: str | None = None
 
     namespace: str = ''
     prefix: str = ''
@@ -237,7 +235,7 @@ class CppPrimitiveValidator:
 # boolean, integer, number, string
 @dataclasses.dataclass
 class CppPrimitiveType(CppType):
-    default: Optional[Any] = None
+    default: Any | None = None
     validators: CppPrimitiveValidator = dataclasses.field(
         default_factory=CppPrimitiveValidator,
     )
@@ -320,7 +318,7 @@ class CppPrimitiveType(CppType):
 
 @dataclasses.dataclass
 class CppStringWithFormat(CppType):
-    default: Optional[Any] = None
+    default: Any | None = None
     format_cpp_type: str = ''
 
     KNOWN_X_PROPERTIES = [
@@ -384,7 +382,7 @@ class CppRef(CppType):
     orig_cpp_type: CppType
     indirect: bool
     self_ref: bool
-    cpp_name: Optional[str] = None
+    cpp_name: str | None = None
 
     KNOWN_X_PROPERTIES = ['x-usrv-cpp-indirect', 'x-taxi-cpp-indirect']
 
@@ -496,7 +494,7 @@ class CppStringEnumItem:
 class CppStringEnum(CppType):
     name: str
     enums: list[CppStringEnumItem]
-    default: Optional[EnumItemName]
+    default: EnumItemName | None
 
     __hash__ = CppType.__hash__
 
@@ -526,8 +524,8 @@ class CppStringEnum(CppType):
 @dataclasses.dataclass
 class CppStructPrimitiveField:
     raw_cpp_type: str
-    user_cpp_type: Optional[str] = None
-    default: Optional[Any] = None  # the type already checked at front stage
+    user_cpp_type: str | None = None
+    default: Any | None = None  # the type already checked at front stage
 
 
 @dataclasses.dataclass
@@ -545,7 +543,7 @@ class CppStructField:
         else:
             return self
 
-    def _default(self) -> Optional[str]:
+    def _default(self) -> str | None:
         return getattr(self.schema, 'default', None)
 
     def _get_default(self) -> str:
@@ -610,7 +608,7 @@ class CppStructField:
 class CppStruct(CppType):
     fields: dict[str, CppStructField]
     # 'None' means 'do not generate extra member'
-    extra_type: Union[CppType, bool, None] = False
+    extra_type: CppType | bool | None = False
     autodiscover_default_dict: bool = False
     strict_parsing: bool = True
 
@@ -630,7 +628,7 @@ class CppStruct(CppType):
             self.extra_type = self.fields['__default__'].schema
             self.fields['__default__'].required = False
 
-    def without_json_schema(self) -> 'CppType':
+    def without_json_schema(self) -> CppType:
         tmp = super().without_json_schema()
         assert isinstance(tmp, CppStruct)
 
@@ -739,8 +737,8 @@ class CppStruct(CppType):
 
 @dataclasses.dataclass
 class CppArrayValidator:
-    minItems: Optional[int] = None
-    maxItems: Optional[int] = None
+    minItems: int | None = None
+    maxItems: int | None = None
 
     def is_none(self) -> bool:
         return self == CppArrayValidator()
@@ -920,7 +918,7 @@ class CppVariantWithDiscriminator(CppType):
 
     def parser_type(self, ns: str, name: str) -> str:
         variants_list = []
-        for _, variant in self.variants.items():
+        for variant in self.variants.values():
             variants_list.append(variant.parser_type(ns, name))
         variants = ', '.join(variants_list)
 

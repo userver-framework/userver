@@ -20,6 +20,7 @@ int main(int argc, const char* const argv[]) {
                                     .Append<components::TestsuiteSupport>()
                                     .Append<server::handlers::TestsControl>()
                                     .Append<clients::dns::Component>()
+                                    .Append<components::HttpClientCore>()
                                     .Append<components::HttpClient>()
                                     .AppendComponentList(ugrpc::client::DefaultComponentList())
                                     .Append<ugrpc::client::ClientFactoryComponent>()

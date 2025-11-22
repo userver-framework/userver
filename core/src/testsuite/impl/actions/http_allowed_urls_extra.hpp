@@ -1,6 +1,5 @@
 #pragma once
 
-#include <userver/clients/http/client.hpp>
 #include <userver/formats/json/inline.hpp>
 #include <userver/testsuite/http_allowed_urls_extra.hpp>
 #include <userver/testsuite/testsuite_support.hpp>

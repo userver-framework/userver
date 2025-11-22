@@ -124,6 +124,7 @@ std::string KeyValue::DeleteValue(std::string_view key) const {
 int main(int argc, char* argv[]) {
     const auto component_list = components::MinimalServerComponentList()
                                     .Append<chaos::KeyValue>("handler-cluster")
+                                    .Append<components::HttpClientCore>()
                                     .Append<components::HttpClient>()
                                     .Append<components::Secdist>()
                                     .Append<components::DefaultSecdistProvider>()

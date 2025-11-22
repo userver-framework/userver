@@ -42,7 +42,7 @@ in userver.
 Otherwise, if the native driver is written in C++ and is not too big, then
 it may be possible to patch it to use userver IO primitives
 (engine::io::Socket, for example) and cleaning out other blocking primitives
-in favor of userver ones (engine::Mutex, engine::ConditionVariable). This
+in favor of userver ones (engine::Mutex, @ref engine::ConditionVariable). This
 approach was used to write the Clickhouse driver in userver.
 
 In both approaches there is a downside. The native library must be integrated
@@ -56,7 +56,7 @@ Implement the protocol yourself (probably reusing a subset of the native
 library functionality).  This approach was used to write the PostgreSQL driver
 in userver - it creates a
 connection in a separate `TaskProcessor` via native functions, and then
-subscribes to the socket via engine::io::Socket, parses the protocol in the
+subscribes to the socket via @ref engine::io::Socket, parses the protocol in the
 main `TaskProcessor`.
 
 Such an approach may open the door for further optimizations. If no native

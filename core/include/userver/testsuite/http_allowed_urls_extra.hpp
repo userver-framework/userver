@@ -1,7 +1,6 @@
 #pragma once
 
-#include <chrono>
-#include <functional>
+#include <memory>
 #include <string>
 
 #include <userver/components/component_fwd.hpp>
@@ -10,19 +9,19 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace clients::http {
-class Client;
+class ClientCore;
 }  // namespace clients::http
 
 namespace testsuite {
 
 class HttpAllowedUrlsExtra final {
 public:
-    void RegisterHttpClient(clients::http::Client& http_client);
+    void RegisterHttpClient(std::shared_ptr<clients::http::ClientCore> http_client);
 
     void SetAllowedUrlsExtra(std::vector<std::string>&& urls);
 
 private:
-    clients::http::Client* http_client_{nullptr};
+    std::shared_ptr<clients::http::ClientCore> http_client_{nullptr};
 };
 
 }  // namespace testsuite

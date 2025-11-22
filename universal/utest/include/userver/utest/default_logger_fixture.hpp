@@ -19,7 +19,7 @@ class DefaultLoggerFixture : public Base {
 public:
     static void TearDownTestSuite() {
         Base::TearDownTestSuite();
-        once_used_loggers_.clear();
+        once_used_loggers.clear();
     }
 
 protected:
@@ -32,7 +32,7 @@ protected:
 
         // Logger could be used by the ev-thread, so we postpone the
         // destruction of logger for the lifetime of coroutine engine.
-        once_used_loggers_.emplace_back(std::move(new_logger));
+        once_used_loggers.emplace_back(std::move(new_logger));
     }
 
     /// Set the default logger level
@@ -61,7 +61,7 @@ private:
     logging::impl::LoggerBase* logger_initial_{nullptr};
     logging::Level level_initial_{};
 
-    static inline std::vector<logging::LoggerPtr> once_used_loggers_;
+    static inline std::vector<logging::LoggerPtr> once_used_loggers;
 };
 
 }  // namespace utest

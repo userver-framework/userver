@@ -63,8 +63,8 @@ std::optional<double> CpuLimitRtc() {
 }  // namespace
 
 std::optional<double> CpuLimit() {
-    static const auto limit = CpuLimitRtc();
-    return limit;
+    static const auto kLimit = CpuLimitRtc();
+    return kLimit;
 }
 
 bool IsInRtc() { return !!CpuLimitRtc(); }

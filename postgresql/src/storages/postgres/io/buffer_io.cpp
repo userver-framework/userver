@@ -1,7 +1,7 @@
 #include <userver/storages/postgres/io/buffer_io.hpp>
 
 #include <atomic>
-#include <iostream>
+#include <cstdio>
 #include <typeindex>
 #include <unordered_map>
 
@@ -94,7 +94,7 @@ void ReportOdrProblems() {
 
         LOG_ERROR() << msg;
         logging::LogFlush();
-        std::cerr << msg;
+        std::fputs(msg.c_str(), stderr);
         std::abort();
     }
 }

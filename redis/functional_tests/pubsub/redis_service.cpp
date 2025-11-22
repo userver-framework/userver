@@ -209,6 +209,7 @@ int main(int argc, char* argv[]) {
                                     .Append<chaos::ReadStoreReturn>("handler-sentinel-with-master")
                                     .Append<chaos::ReadStoreReturn>("handler-standalone")
                                     .Append<chaos::ManySubscriptions>("handler-many-subscriptions")
+                                    .Append<components::HttpClientCore>()
                                     .Append<components::HttpClient>()
                                     .Append<components::Secdist>()
                                     .Append<components::DefaultSecdistProvider>()

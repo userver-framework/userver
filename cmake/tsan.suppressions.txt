@@ -1,0 +1,32 @@
+#######################################################################################################################
+# ThreadSanitizer suppressions file as per https://github.com/google/sanitizers/wiki/ThreadSanitizerSuppressions      #
+#                                                                                                                     #
+# Use it by setting environment variable TSAN_OPTIONS="suppressions=path-to/cmake/tsan.suppressions.txt" if userver   #
+# is built with CMake option -DUSERVER_SANITIZE='thread'                                                              #
+#######################################################################################################################
+
+# libev uses `sig_atomic_t volatile` for `EV_ATOMIC_T`, that is not atomic. However all the accesess are synchronized
+# via assembly implemented memory barriers
+race:libev/ev.c
+
+# We believe into moodycamel more than into TSan. Assume that ImplicitProducer::enqueue is fine for now.
+race:moodycamel/concurrentqueue.h
+
+# boost::context::fiber::resume() overwrites memory not used any more by other coroutines
+race:boost/context/fiber_ucontext.hpp
+
+
+#######################################################################################################################
+# Issues and TODOs:
+#######################################################################################################################
+
+# MonitorForPageFaults() may exit before or in the middle of the Stop() call. In that case there is a race between
+# stop_fd_.Close(); and stop_fd usage from const auto stop_fd = stop_fd_.Get();
+#
+# Same race happens for monitor_fd_.Close() and monitor_fd_.Get()
+#
+# TODO: TAXICOMMON-11076
+race:core/src/engine/coro/stack_usage_monitor.cpp
+
+# TODO: TAXICOMMON-11116
+race:core/src/engine/impl/detached_tasks_sync_block.cpp

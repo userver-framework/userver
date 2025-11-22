@@ -1,5 +1,8 @@
 #pragma once
 
+#include <grpcpp/support/async_stream.h>
+#include <grpcpp/support/async_unary_call.h>
+
 #include <userver/ugrpc/server/impl/async_methods.hpp>
 #include <userver/ugrpc/server/impl/call_kind.hpp>
 #include <userver/ugrpc/server/impl/stream_adapter.hpp>
@@ -28,7 +31,7 @@ template <typename ServiceBaseType, typename ContextType, typename RequestType, 
 struct CallTraitsUnaryCall final {
     using Request = RequestType;
     using Response = ResponseType;
-    using RawResponder = impl::RawResponseWriter<ResponseType>;
+    using RawResponder = grpc::ServerAsyncResponseWriter<Response>;
     using InitialRequest = Request;
     using Context = ContextType;
     using RawContext = decltype(DetectRawContextType(std::declval<ContextType&>()));
@@ -42,7 +45,7 @@ template <typename ServiceBaseType, typename ContextType, typename RequestType, 
 struct CallTraitsInputStream final {
     using Request = RequestType;
     using Response = ResponseType;
-    using RawResponder = impl::RawReader<Request, Response>;
+    using RawResponder = grpc::ServerAsyncReader<Response, Request>;
     using InitialRequest = NoInitialRequest;
     using RawContextType = ::grpc::ServerContext;
     using Context = ContextType;
@@ -57,7 +60,7 @@ template <typename ServiceBaseType, typename ContextType, typename RequestType, 
 struct CallTraitsOutputStream final {
     using Request = RequestType;
     using Response = ResponseType;
-    using RawResponder = impl::RawWriter<Response>;
+    using RawResponder = grpc::ServerAsyncWriter<Response>;
     using InitialRequest = Request;
     using Context = ContextType;
     using RawContext = decltype(DetectRawContextType(std::declval<ContextType&>()));
@@ -71,7 +74,7 @@ template <typename ServiceBaseType, typename ContextType, typename RequestType, 
 struct CallTraitsBidirectionalStream final {
     using Request = RequestType;
     using Response = ResponseType;
-    using RawResponder = impl::RawReaderWriter<Request, Response>;
+    using RawResponder = grpc::ServerAsyncReaderWriter<Response, Request>;
     using InitialRequest = NoInitialRequest;
     using Context = ContextType;
     using RawContext = decltype(DetectRawContextType(std::declval<ContextType&>()));

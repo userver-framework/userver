@@ -1,5 +1,4 @@
 import pathlib
-import platform
 
 import grpc
 import pytest
@@ -24,11 +23,11 @@ def prepare_service_config(get_free_port):
             'cert': str(TESTDIR / 'cert.crt'),
         }
 
-        # MacOS does not support unix-socket + TLS
-        if platform.system() == 'Darwin':
-            grpc_server.pop('unix-socket-path', None)
-            if 'port' not in grpc_server:
-                grpc_server['port'] = get_free_port()
+        # MacOS does not support unix-socket + TLS.
+        # It seems that recent versions of gRPC (e.g. 1.54.3) also do not support that.
+        grpc_server.pop('unix-socket-path', None)
+        if 'port' not in grpc_server:
+            grpc_server['port'] = get_free_port()
 
     return _do_patch
 

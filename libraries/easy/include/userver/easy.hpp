@@ -16,6 +16,7 @@
 #include <userver/server/request/request_context.hpp>
 
 #include <userver/storages/postgres/cluster.hpp>
+#include <userver/storages/query.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -28,7 +29,7 @@ class DependenciesBase : public components::ComponentBase {
 public:
     static constexpr std::string_view kName = "easy-dependencies";
     using components::ComponentBase::ComponentBase;
-    virtual ~DependenciesBase();
+    ~DependenciesBase() override;
 };
 
 }  // namespace impl

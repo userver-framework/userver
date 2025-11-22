@@ -22,9 +22,9 @@ namespace storages::redis::impl {
 
 std::chrono::milliseconds MillisecondsSinceEpoch();
 
-constexpr size_t ReplySizeBucketCount = 15;
-constexpr size_t RequestSizeBucketCount = 15;
-constexpr size_t TimingBucketCount = 15;
+constexpr size_t kReplySizeBucketCount = 15;
+constexpr size_t kRequestSizeBucketCount = 15;
+constexpr size_t kTimingBucketCount = 15;
 
 class Statistics {
 public:

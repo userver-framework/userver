@@ -19,6 +19,7 @@
 
 #include <tests/unit_test_client.usrv.pb.hpp>
 #include <tests/unit_test_service.usrv.pb.hpp>
+#include <tests/unit_test_service_gmock.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -30,16 +31,6 @@ const grpc::Status kUnknownErrorStatus{
 
 const grpc::Status kUnimplementedStatus{grpc::StatusCode::UNIMPLEMENTED, "This method is unimplemented"};
 
-class UnitTestServiceMock : public sample::ugrpc::UnitTestServiceBase {
-public:
-    MOCK_METHOD(
-        SayHelloResult,
-        SayHello,
-        (ugrpc::server::CallContext& /*context*/, ::sample::ugrpc::GreetingRequest&& /*request*/),
-        (override)
-    );
-};
-
 struct Flags final {
     bool set_error{true};
 };
@@ -47,7 +38,7 @@ struct Flags final {
 // NOLINTNEXTLINE(fuchsia-multiple-inheritance)
 class ServerMiddlewareHooksUnaryTest : public tests::MiddlewaresFixture<
                                            tests::server::ServerMiddlewareBaseMock,
-                                           ::testing::NiceMock<UnitTestServiceMock>,
+                                           ::testing::NiceMock<tests::UnitTestServiceGmock>,
                                            sample::ugrpc::UnitTestServiceClient,
                                            /*N=*/3>,
                                        public testing::WithParamInterface<Flags> {

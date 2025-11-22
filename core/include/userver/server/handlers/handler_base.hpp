@@ -61,6 +61,7 @@ public:
 
     /// Produces response to a request unrecognized by the protocol based on
     /// provided generic response. Does not throw.
+    /// The error should be stored into response status and body prior to this call.
     virtual void ReportMalformedRequest(http::HttpRequest&) const {}
 
     /// Returns whether this is a monitoring handler.

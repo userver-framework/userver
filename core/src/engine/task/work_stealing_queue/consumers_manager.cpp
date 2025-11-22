@@ -24,7 +24,7 @@ void ConsumersManager::NotifyNewTask() {
 }
 
 void ConsumersManager::NotifyWakeUp(Consumer* const consumer) {
-    const std::lock_guard lock_(mutex_);
+    const std::lock_guard lock(mutex_);
     if (!is_sleeping_[consumer->inner_index_]) {
         return;
     }
@@ -33,7 +33,7 @@ void ConsumersManager::NotifyWakeUp(Consumer* const consumer) {
 }
 
 void ConsumersManager::NotifySleep(Consumer* const consumer) {
-    const std::lock_guard lock_(mutex_);
+    const std::lock_guard lock(mutex_);
 
     if (is_sleeping_[consumer->inner_index_]) {
         return;
@@ -64,7 +64,7 @@ bool ConsumersManager::StopStealing() noexcept {
 void ConsumersManager::WakeUpOne() {
     Consumer* consumer = nullptr;
     {
-        const std::lock_guard lock_(mutex_);
+        const std::lock_guard lock(mutex_);
         while (!sleep_dq_.empty()) {
             Consumer* candidate = sleep_dq_.front();
             sleep_dq_.pop_front();
@@ -92,7 +92,7 @@ void ConsumersManager::WakeUpAll() {
     std::vector<Consumer*> consumers;
     consumers.reserve(consumers_count_);
     {
-        const std::lock_guard lock_(mutex_);
+        const std::lock_guard lock(mutex_);
         while (!sleep_dq_.empty()) {
             Consumer* consumer = sleep_dq_.front();
             sleep_dq_.pop_front();

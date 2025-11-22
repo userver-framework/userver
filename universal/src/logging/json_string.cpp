@@ -7,6 +7,7 @@
 #include <userver/formats/json/value.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/string_literal.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -14,7 +15,7 @@ namespace logging {
 
 namespace {
 
-constexpr std::string_view kNull = "null";
+constexpr utils::StringLiteral kNull = "null";
 
 }  // namespace
 

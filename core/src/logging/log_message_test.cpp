@@ -65,12 +65,12 @@ TEST_F(LoggingTest, TskvEncode) {
     EXPECT_EQ(ToStringViaLogging("line 1\nline 2"), "line 1\\nline 2") << "escaped sequence is present in the message";
 }
 
-TEST_F(LoggingTest, TskvEncodeKeyWithDot) {
+TEST_F(LoggingTest, TskvEncodeKeyWithoutDot) {
     logging::LogExtra le;
     le.Extend("http.port.ipv4", "4040");
     LOG_CRITICAL() << "line 1\nline 2" << le;
     EXPECT_THAT(GetStreamString(), testing::HasSubstr("line 1\\nline 2"));
-    EXPECT_THAT(GetStreamString(), testing::HasSubstr("http_port_ipv4=4040"));
+    EXPECT_THAT(GetStreamString(), testing::HasSubstr("http.port.ipv4=4040"));
 }
 
 TEST_F(LoggingTest, LogFormat) {
@@ -183,8 +183,8 @@ TEST_F(LoggingTest, Decimal) {
 }
 
 TEST_F(LoggingTest, PlainException) {
-    const std::string kWhat = "test exception";
-    EXPECT_EQ(ToStringViaLogging(std::runtime_error(kWhat)), kWhat + " (std::runtime_error)");
+    const std::string what = "test exception";
+    EXPECT_EQ(ToStringViaLogging(std::runtime_error(what)), what + " (std::runtime_error)");
 }
 
 TEST_F(LoggingTest, TracefulExceptionDebug) {

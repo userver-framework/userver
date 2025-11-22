@@ -3,6 +3,7 @@
 #include <userver/logging/level.hpp>
 #include <userver/logging/log_extra.hpp>
 #include <userver/tracing/tags.hpp>
+#include <userver/ugrpc/client/impl/call_state.hpp>
 #include <userver/ugrpc/protobuf_logging.hpp>
 #include <userver/ugrpc/status_codes.hpp>
 
@@ -48,6 +49,7 @@ void Middleware::PreStartCall(MiddlewareCallContext& context) const {
     span.AddTag(ugrpc::impl::kComponentTag, "client");
     span.AddTag("meta_type", std::string{context.GetCallName()});
     span.AddTag(tracing::kSpanKind, tracing::kSpanKindClient);
+    span.AddTag(tracing::kRpcSystem, context.GetClientContext().peer());
 
     if (context.IsClientStreaming()) {
         SpanLogger{span, settings_.log_level}.Log(
@@ -58,7 +60,9 @@ void Middleware::PreStartCall(MiddlewareCallContext& context) const {
 
 /// [MiddlewareBase Message methods example]
 void Middleware::PreSendMessage(MiddlewareCallContext& context, const google::protobuf::Message& message) const {
-    const SpanLogger logger{context.GetSpan(), settings_.log_level};
+    auto& span = context.GetSpan();
+
+    const SpanLogger logger{span, settings_.log_level};
     logging::LogExtra extra{
         {ugrpc::impl::kTypeTag, "request"},
         {ugrpc::impl::kBodyTag, GetMessageForLogging(message, settings_)},

@@ -30,28 +30,28 @@ UTEST_F(KafkaServiceTest, Produce) {
 
 /// [Kafka service sample - consumer unit test]
 UTEST_F(KafkaServiceTest, Consume) {
-    const std::string kTestTopic1{"test-topic-1"};
-    const std::string kTestTopic2{"test-topic-2"};
-    const std::array kTestMessages{
+    const std::string test_topic1{"test-topic-1"};
+    const std::string test_topic2{"test-topic-2"};
+    const std::array test_messages{
         kafka::utest::Message{
-            kTestTopic1,
+            test_topic1,
             "test-key-1",
             "test-msg-1",
             /*partition=*/0},
         kafka::utest::Message{
-            kTestTopic2,
+            test_topic2,
             "test-key-2",
             "test-msg-2",
             /*partition=*/0}};
 
-    SendMessages(kTestMessages);
+    SendMessages(test_messages);
 
-    auto consumer = MakeConsumer("kafka-consumer", /*topics=*/{kTestTopic1, kTestTopic2});
+    auto consumer = MakeConsumer("kafka-consumer", /*topics=*/{test_topic1, test_topic2});
     auto user_callback = [](kafka::MessageBatchView messages) { kafka_sample::Consume(messages); };
     const auto received_messages =
-        ReceiveMessages(consumer, kTestMessages.size(), /* commit_after_receive */ true, std::move(user_callback));
-    ASSERT_EQ(received_messages.size(), kTestMessages.size());
-    EXPECT_THAT(received_messages, ::testing::UnorderedElementsAreArray(kTestMessages));
+        ReceiveMessages(consumer, test_messages.size(), /* commit_after_receive */ true, std::move(user_callback));
+    ASSERT_EQ(received_messages.size(), test_messages.size());
+    EXPECT_THAT(received_messages, ::testing::UnorderedElementsAreArray(test_messages));
 }
 /// [Kafka service sample - consumer unit test]
 

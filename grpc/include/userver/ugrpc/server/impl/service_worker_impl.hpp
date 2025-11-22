@@ -76,9 +76,9 @@ struct MethodData final {
     typename CallTraits::ServiceBase& service;
     const typename CallTraits::ServiceMethod service_method;
 
-    std::string_view call_name{GetMethodFullName(service_data.metadata, method_id)};
+    utils::StringLiteral call_name{ugrpc::impl::GetMethodFullName(service_data.metadata, method_id)};
     // Remove name of the service and slash
-    std::string_view method_name{GetMethodName(service_data.metadata, method_id)};
+    utils::StringLiteral method_name{ugrpc::impl::GetMethodName(service_data.metadata, method_id)};
     ugrpc::impl::MethodStatistics& statistics{service_data.service_statistics.GetMethodStatistics(method_id)};
 };
 
@@ -92,7 +92,7 @@ public:
 
     void operator()() && {
         // Based on the tensorflow code, we must first call AsyncNotifyWhenDone
-        // and only then Prepare<>
+        // and only then RequestCall<>
         // see
         // https://git.ecdf.ed.ac.uk/s1886313/tensorflow/-/blob/438604fc885208ee05f9eef2d0f2c630e1360a83/tensorflow/core/distributed_runtime/rpc/grpc_call.h#L201
         // and grpc::ServerContext::AsyncNotifyWhenDone
@@ -103,21 +103,21 @@ public:
         auto& queue = method_data_.service_data.internals.completion_queues.GetQueue(method_data_.queue_id);
 
         // the request for an incoming RPC must be performed synchronously
-        method_data_.service_data.async_service.template Prepare<CallTraits>(
+        method_data_.service_data.async_service.template RequestCall<CallTraits>(
             method_data_.method_id,
             context_,
             initial_request_,
             raw_responder_,
             queue,
             queue,
-            prepare_.GetCompletionTag()
+            request_call_.GetCompletionTag()
         );
 
         // Note: we ignore task cancellations here. Even if notify_when_done has
         // already cancelled this RPC, we want to:
         // 1. listen to further RPCs for the same method
         // 2. handle this RPC correctly, including metrics, logs, etc.
-        if (Wait(prepare_) != impl::AsyncMethodInvocation::WaitStatus::kOk) {
+        if (!request_call_.WaitNonCancellable()) {
             // the CompletionQueue is shutting down
 
             // Do not wait for notify_when_done. When queue is shutting down, it will
@@ -131,7 +131,7 @@ public:
             // should wait on this async operation. CompletionQueue has a pointer to
             // stack-allocated object, that object is going to be freed upon exit. To
             // prevent segfaults, wait until queue is done with this object.
-            notify_when_done.Wait();
+            notify_when_done.WaitNonCancellable();
         });
 
         // start a concurrent listener immediately, as advised by gRPC docs
@@ -190,7 +190,7 @@ private:
     typename CallTraits::RawContext context_{};
     InitialRequest initial_request_{};
     RawResponder raw_responder_{&context_};
-    ugrpc::impl::AsyncMethodInvocation prepare_;
+    ugrpc::impl::AsyncMethodInvocation request_call_;
     std::optional<tracing::InPlaceSpan> span_storage_{};
 };
 

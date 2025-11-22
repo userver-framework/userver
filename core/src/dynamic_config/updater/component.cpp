@@ -3,7 +3,6 @@
 #include <fmt/format.h>
 
 #include <userver/cache/update_type.hpp>
-#include <userver/clients/http/component.hpp>
 #include <userver/components/component.hpp>
 #include <userver/dynamic_config/client/component.hpp>
 #include <userver/dynamic_config/storage/component.hpp>

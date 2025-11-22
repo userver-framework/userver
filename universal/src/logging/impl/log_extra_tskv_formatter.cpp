@@ -1,6 +1,5 @@
 #include <userver/logging/impl/log_extra_tskv_formatter.hpp>
 
-#include <iostream>
 #include <stdexcept>
 
 #include <boost/container/small_vector.hpp>

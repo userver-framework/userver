@@ -129,8 +129,8 @@ UTEST_F(StandAloneCheckerTest, NonceCount) {
 }
 
 UTEST_F(StandAloneCheckerTest, InvalidNonce) {
-    const auto* invalid_nonce_ = "abc88743bacdf9238";
-    UserData test_data{kValidHA1, invalid_nonce_, utils::datetime::Now(), 0};
+    const auto* invalid_nonce = "abc88743bacdf9238";
+    UserData test_data{kValidHA1, invalid_nonce, utils::datetime::Now(), 0};
     EXPECT_EQ(checker.ValidateUserData(client_context, test_data), ValidateResult::kWrongUserData);
 
     test_data.nonce = kValidNonce;

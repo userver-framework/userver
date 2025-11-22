@@ -6,13 +6,12 @@ Make gRPC requests to the service.
 
 # pylint: disable=redefined-outer-name
 import asyncio
+from collections.abc import AsyncIterable
+from collections.abc import Awaitable
+from collections.abc import Callable
 import pathlib
 import tempfile
-from typing import AsyncIterable
-from typing import Awaitable
-from typing import Callable
-from typing import Optional
-from typing import Union
+from typing import TypeAlias
 
 import google.protobuf.message
 import grpc
@@ -21,8 +20,8 @@ import pytest
 DEFAULT_TIMEOUT = 15.0
 USERVER_CONFIG_HOOKS = ['userver_config_grpc_endpoint']
 
-MessageOrStream = Union[google.protobuf.message.Message, AsyncIterable[google.protobuf.message.Message]]
-_AsyncExcCheck = Callable[[], None]
+MessageOrStream: TypeAlias = google.protobuf.message.Message | AsyncIterable[google.protobuf.message.Message]
+_AsyncExcCheck: TypeAlias = Callable[[], None]
 
 
 @pytest.fixture(scope='session')
@@ -134,7 +133,7 @@ async def grpc_channel(
             grpc_session_channel.channel_ready(),
             timeout=grpc_service_timeout,
         )
-    except asyncio.TimeoutError:
+    except asyncio.TimeoutError:  # noqa: UP041
         raise RuntimeError(
             f'Failed to connect to remote gRPC server by address {grpc_service_endpoint}',
         )
@@ -142,7 +141,7 @@ async def grpc_channel(
 
 
 @pytest.fixture(scope='session')
-def grpc_socket_path() -> Optional[pathlib.Path]:
+def grpc_socket_path() -> pathlib.Path | None:
     """
     Path for the UNIX socket over which testsuite will talk to the gRPC service, if it chooses to use a UNIX socket.
 
@@ -213,7 +212,7 @@ class _GenericClientInterceptor(
     grpc.aio.StreamStreamClientInterceptor,
 ):
     def __init__(self):
-        self.prepare_func: Optional[Callable[[grpc.aio.ClientCallDetails, MessageOrStream], Awaitable[None]]] = None
+        self.prepare_func: Callable[[grpc.aio.ClientCallDetails, MessageOrStream], Awaitable[None]] | None = None
 
     async def intercept_unary_unary(self, continuation, client_call_details, request):
         await self.prepare_func(client_call_details, request)
@@ -239,7 +238,7 @@ def _grpc_channel_interceptor(daemon_scoped_mark) -> _GenericClientInterceptor:
 
 class _AsyncExcClientInterceptor(grpc.aio.UnaryUnaryClientInterceptor, grpc.aio.StreamUnaryClientInterceptor):
     def __init__(self):
-        self.asyncexc_check: Optional[_AsyncExcCheck] = None
+        self.asyncexc_check: _AsyncExcCheck | None = None
 
     async def intercept_unary_unary(self, continuation, client_call_details, request):
         try:

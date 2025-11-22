@@ -5,7 +5,7 @@
 #include <userver/engine/sleep.hpp>
 #include <userver/logging/log.hpp>
 
-#include <userver/clients/http/client.hpp>
+#include <userver/clients/http/client_core.hpp>
 #include <userver/utest/http_client.hpp>
 #include <userver/utest/simple_server.hpp>
 #include <userver/utest/utest.hpp>
@@ -27,14 +27,14 @@ static HttpResponse Callback(int code, const HttpRequest& request) {
 }
 
 UTEST(DestinationStatistics, Empty) {
-    auto client = utest::CreateHttpClient();
+    auto client = utest::impl::CreateHttpClientCore();
 
     EXPECT_EQ(client->GetDestinationStatistics().begin(), client->GetDestinationStatistics().end());
 }
 
 UTEST(DestinationStatistics, Ok) {
     const utest::SimpleServer http_server{[](const HttpRequest& request) { return Callback(200, request); }};
-    auto client = utest::CreateHttpClient();
+    auto client = utest::impl::CreateHttpClientCore();
 
     auto url = http_server.GetBaseUrl();
 
@@ -64,7 +64,7 @@ UTEST(DestinationStatistics, CancelledFuture) {
         engine::InterruptibleSleepFor(utest::kMaxTestWaitTime);
         return Callback(200, request);
     }};
-    auto client = utest::CreateHttpClient();
+    auto client = utest::impl::CreateHttpClientCore();
 
     auto url = http_server.GetBaseUrl();
 
@@ -88,7 +88,7 @@ UTEST(DestinationStatistics, CancelledFuture) {
 UTEST(DestinationStatistics, Multiple) {
     const utest::SimpleServer http_server{[](const HttpRequest& request) { return Callback(200, request); }};
     const utest::SimpleServer http_server2{[](const HttpRequest& request) { return Callback(500, request); }};
-    auto client = utest::CreateHttpClient();
+    auto client = utest::impl::CreateHttpClientCore();
 
     client->SetDestinationMetricsAutoMaxSize(100);
 

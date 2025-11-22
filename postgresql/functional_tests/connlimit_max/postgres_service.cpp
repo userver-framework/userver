@@ -20,6 +20,7 @@ int main(int argc, char* argv[]) {
                                     .Append<server::handlers::ServerMonitor>()
                                     .Append<components::DynamicConfigClient>()
                                     .Append<components::DynamicConfigClientUpdater>()
+                                    .Append<components::HttpClientCore>()
                                     .Append<components::HttpClient>()
                                     .Append<components::Postgres>("key-value-database")
                                     .Append<components::TestsuiteSupport>()

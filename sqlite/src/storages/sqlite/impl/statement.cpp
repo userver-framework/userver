@@ -33,8 +33,8 @@ std::string Statement::GetStatementText() const noexcept {
     if (!query) {
         return std::string{};
     }
-    std::string queryString{query};
-    return queryString;
+    std::string query_string{query};
+    return query_string;
 }
 
 std::string Statement::getExpandedStatementText() const noexcept {
@@ -42,9 +42,9 @@ std::string Statement::getExpandedStatementText() const noexcept {
     if (!expanded) {
         return std::string{};
     }
-    std::string expandedString{expanded};
+    std::string expanded_string{expanded};
     sqlite3_free(expanded);
-    return expandedString;
+    return expanded_string;
 }
 
 OperationType Statement::GetOperationType() const noexcept {

@@ -178,8 +178,8 @@ public:
             }
 
             if (frame_.ping_received) {
-                MessageExtended pongMsg{MakeBinarySpan(*frame_.payload), impl::WSOpcodes::kPong, {}};
-                SendExtended(pongMsg);
+                MessageExtended pong_msg{MakeBinarySpan(*frame_.payload), impl::WSOpcodes::kPong, {}};
+                SendExtended(pong_msg);
                 frame_.payload->resize(frame_.payload->size() - payload_len);
                 frame_.ping_received = false;
                 continue;

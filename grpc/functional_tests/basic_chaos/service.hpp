@@ -130,9 +130,9 @@ GreeterServiceComponent::SayHelloIndependentStreamsResult GreeterServiceComponen
 
     auto write_task = engine::AsyncNoSpan([&stream, prefix = prefix_, &kTimeIntervalWrite] {
         api::GreetingResponse response;
-        const std::array kNames = {
+        const std::array names = {
             "Python", "C++", "linux", "userver", "grpc", "kernel", "developer", "core", "anonymous", "user"};
-        for (const auto& name : kNames) {
+        for (const auto& name : names) {
             response.set_greeting(fmt::format("{}, {}", prefix, name));
             stream.Write(response);
             engine::SleepFor(kTimeIntervalWrite);

@@ -12,8 +12,6 @@ USERVER_NAMESPACE_BEGIN
 /// @see @ref ugrpc::client::middlewares::log::Component
 namespace ugrpc::client::middlewares::log {
 
-struct Settings;
-
 /// @ingroup userver_components
 ///
 /// @brief Component for gRPC client logging

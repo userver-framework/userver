@@ -32,6 +32,10 @@ void PluginRequest::SetTimeout(std::chrono::milliseconds ms) {
     state_.SetEasyTimeout(ms);
 }
 
+void PluginRequest::SetProxy(utils::zstring_view value) { state_.proxy(value); }
+
+bool PluginRequest::IsProxySet() const { return state_.IsProxySet(); }
+
 const std::string& PluginRequest::GetOriginalUrl() const { return state_.easy().get_original_url(); }
 
 Plugin::Plugin(std::string name) : name_(std::move(name)) {}
@@ -40,12 +44,12 @@ const std::string& Plugin::GetName() const { return name_; }
 
 namespace impl {
 
-PluginPipeline::PluginPipeline(const std::vector<utils::NotNull<Plugin*>>& plugins) : plugins_(&plugins) {}
+PluginPipeline::PluginPipeline(utils::span<const utils::NotNull<Plugin*>> plugins) : plugins_(plugins) {}
 
 void PluginPipeline::HookCreateSpan(RequestState& request_state, tracing::Span& span) {
     PluginRequest req(request_state);
 
-    for (const auto& plugin : *plugins_) {
+    for (const auto& plugin : plugins_) {
         plugin->HookCreateSpan(req, span);
     }
 }
@@ -54,7 +58,7 @@ void PluginPipeline::HookOnCompleted(RequestState& request_state, Response& resp
     PluginRequest req(request_state);
 
     // NOLINTNEXTLINE(modernize-loop-convert)
-    for (const auto& plugin : *plugins_ | boost::adaptors::reversed) {
+    for (const auto& plugin : plugins_ | boost::adaptors::reversed) {
         plugin->HookOnCompleted(req, response);
     }
 }
@@ -63,7 +67,7 @@ void PluginPipeline::HookOnError(RequestState& request_state, std::error_code ec
     PluginRequest req(request_state);
 
     // NOLINTNEXTLINE(modernize-loop-convert)
-    for (const auto& plugin : *plugins_ | boost::adaptors::reversed) {
+    for (const auto& plugin : plugins_ | boost::adaptors::reversed) {
         plugin->HookOnError(req, ec);
     }
 }
@@ -71,7 +75,7 @@ void PluginPipeline::HookOnError(RequestState& request_state, std::error_code ec
 bool PluginPipeline::HookOnRetry(RequestState& request_state) {
     PluginRequest req(request_state);
 
-    for (const auto& plugin : *plugins_) {
+    for (const auto& plugin : plugins_) {
         if (!plugin->HookOnRetry(req)) return false;
     }
     return true;
@@ -80,7 +84,7 @@ bool PluginPipeline::HookOnRetry(RequestState& request_state) {
 void PluginPipeline::HookPerformRequest(RequestState& request_state) {
     PluginRequest req(request_state);
 
-    for (const auto& plugin : *plugins_) {
+    for (const auto& plugin : plugins_) {
         plugin->HookPerformRequest(req);
     }
 }

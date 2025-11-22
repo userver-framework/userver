@@ -115,10 +115,10 @@ private:
     }
 
     std::string DeleteValue(std::string_view key) const {
-        const storages::sqlite::Query kDeleteValue{db::sql::kDeleteKeyValue.data()};
+        const storages::sqlite::Query delete_value{db::sql::kDeleteKeyValue.data()};
 
         auto res =
-            sqlite_client_->Execute(storages::sqlite::OperationType::kReadWrite, kDeleteValue, key).AsExecutionResult();
+            sqlite_client_->Execute(storages::sqlite::OperationType::kReadWrite, delete_value, key).AsExecutionResult();
         return std::to_string(res.rows_affected);
     }
 

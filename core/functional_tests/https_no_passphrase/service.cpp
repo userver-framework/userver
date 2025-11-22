@@ -20,6 +20,7 @@ int main(int argc, char* argv[]) {
     const auto component_list = components::MinimalServerComponentList()
                                     .Append<https::HttpServerHandler>()
                                     .Append<components::LoggingConfigurator>()
+                                    .Append<components::HttpClientCore>()
                                     .Append<components::HttpClient>()
                                     .Append<components::TestsuiteSupport>()
                                     .Append<server::handlers::TestsControl>()

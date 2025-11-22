@@ -1,11 +1,11 @@
+from __future__ import annotations
+
 import argparse
 import dataclasses
 import enum
 import os
 import pathlib
-from typing import List
 from typing import NoReturn
-from typing import Optional
 
 import jinja2
 
@@ -17,7 +17,7 @@ class QueryLogMode(enum.Enum):
     NAME_ONLY = 2
 
     @staticmethod
-    def parse(arg: str) -> 'QueryLogMode':
+    def parse(arg: str) -> QueryLogMode:
         if arg == 'full':
             return QueryLogMode.FULL
         elif arg == 'name-only':
@@ -95,8 +95,8 @@ def camel_case(string: str) -> str:
     return result
 
 
-def read_items(args) -> List[SqlQuery]:
-    items: List[SqlQuery] = []
+def read_items(args) -> list[SqlQuery]:
+    items: list[SqlQuery] = []
     for filename in args.files:
         with open(filename, 'r') as file:
             content = file.read()
@@ -118,9 +118,9 @@ def raise_error(*args) -> NoReturn:
 
 def render(
     params: SqlParams,
-    sql_items: List[SqlQuery],
-    yql_items: List[SqlQuery],
-    env: Optional[jinja2.Environment] = None,
+    sql_items: list[SqlQuery],
+    yql_items: list[SqlQuery],
+    env: jinja2.Environment | None = None,
 ) -> None:
     os.makedirs(
         pathlib.Path(f'{params.src_root}/include/{params.namespace}'),

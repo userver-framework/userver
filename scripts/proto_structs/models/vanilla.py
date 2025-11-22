@@ -1,13 +1,11 @@
 """Collect vanilla types."""
 
-from typing import List
-
 from proto_structs.models import gen_node
 from proto_structs.models import names
 
 
-def collect_vanilla_types(*, types: List[gen_node.TypeNode]) -> List[gen_node.VanillaTypeDeclaration]:
-    vanillas: List[gen_node.VanillaTypeDeclaration] = []
+def collect_vanilla_types(*, types: list[gen_node.TypeNode]) -> list[gen_node.VanillaTypeDeclaration]:
+    vanillas: list[gen_node.VanillaTypeDeclaration] = []
     for type_node in types:
         for child in type_node.iter_all_children():
             if isinstance(child, gen_node.StructNode):

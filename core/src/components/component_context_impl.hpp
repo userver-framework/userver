@@ -12,6 +12,7 @@
 #include <userver/utils/projected_set.hpp>
 
 #include <components/component_context_component_info.hpp>
+#include <engine/tracer_plugin.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -176,6 +177,8 @@ private:
     engine::ConditionVariable print_adding_components_cv_;
     concurrent::Variable<ProtectedData> shared_data_;
     engine::TaskWithResult<void> print_adding_components_task_;
+
+    engine::TracePlugin trace_plugin_;
 };
 
 }  // namespace components::impl

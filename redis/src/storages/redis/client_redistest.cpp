@@ -243,18 +243,18 @@ UTEST_F(RedisClientTest, EvalSha) {
 
 UTEST_F(RedisClientTest, Generic) {
     auto client = GetClient();
-    const storages::redis::CommandControl kCommandControl{};
+    const storages::redis::CommandControl command_control{};
     constexpr size_t kKeyIndex = 0;
-    UEXPECT_NO_THROW(client->GenericCommand<void>("set", {"key0", "foo"}, kKeyIndex, kCommandControl).Wait());
-    EXPECT_EQ(client->GenericCommand<std::string>("get", {"key0"}, kKeyIndex, kCommandControl).Get(), "foo");
+    UEXPECT_NO_THROW(client->GenericCommand<void>("set", {"key0", "foo"}, kKeyIndex, command_control).Wait());
+    EXPECT_EQ(client->GenericCommand<std::string>("get", {"key0"}, kKeyIndex, command_control).Get(), "foo");
     EXPECT_EQ(
-        client->GenericCommand<int64_t>("LPUSH", {"list", "1", "2", "3", "4"}, kKeyIndex, kCommandControl).Get(), 4
+        client->GenericCommand<int64_t>("LPUSH", {"list", "1", "2", "3", "4"}, kKeyIndex, command_control).Get(), 4
     );
-    const std::vector<std::string> kExpected{"4", "3", "2", "1"};
+    const std::vector<std::string> expected{"4", "3", "2", "1"};
     EXPECT_EQ(
-        client->GenericCommand<std::vector<std::string>>("LRANGE", {"list", "0", "-1"}, kKeyIndex, kCommandControl)
+        client->GenericCommand<std::vector<std::string>>("LRANGE", {"list", "0", "-1"}, kKeyIndex, command_control)
             .Get(),
-        kExpected
+        expected
     );
 }
 
@@ -417,15 +417,15 @@ UTEST_F(RedisClientTest, Geopos) {
     client->Geoadd("Sicily", {{13.1, 38.2, "Palermo"}, {15.3, 37.4, "Catania"}}, {}).Get();
     const auto result =
         client->Geopos("Sicily", std::vector<std::string>{"Palermo", "Catania", "NonExisting"}, {}).Get();
-    const auto kGeoTolerance = 1e-5;
+    const auto geo_tolerance = 1e-5;
     EXPECT_EQ(result.size(), 3);
     EXPECT_TRUE(result[0].has_value());
     EXPECT_TRUE(result[1].has_value());
     EXPECT_FALSE(result[2].has_value());
-    EXPECT_NEAR(result[0].value().lon, 13.1, kGeoTolerance);
-    EXPECT_NEAR(result[0].value().lat, 38.2, kGeoTolerance);
-    EXPECT_NEAR(result[1].value().lon, 15.3, kGeoTolerance);
-    EXPECT_NEAR(result[1].value().lat, 37.4, kGeoTolerance);
+    EXPECT_NEAR(result[0].value().lon, 13.1, geo_tolerance);
+    EXPECT_NEAR(result[0].value().lat, 38.2, geo_tolerance);
+    EXPECT_NEAR(result[1].value().lon, 15.3, geo_tolerance);
+    EXPECT_NEAR(result[1].value().lat, 37.4, geo_tolerance);
 }
 
 UTEST_F(RedisClientTest, Getset) {

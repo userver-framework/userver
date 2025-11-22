@@ -12,6 +12,7 @@
 
 #include <components/component_context_impl.hpp>
 #include <components/manager_config.hpp>
+#include <engine/deadlock_detector.hpp>
 #include <engine/task/exception_hacks.hpp>
 #include <engine/task/task_processor.hpp>
 #include <engine/task/task_processor_pools.hpp>

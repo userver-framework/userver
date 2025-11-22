@@ -201,8 +201,8 @@ engine::Future<DeliveryResult> ProducerImpl::ScheduleMessageDelivery(
 #endif
 
     if (enqueue_error == RD_KAFKA_RESP_ERR_NO_ERROR) {
-        [[maybe_unused]] const auto _headers_holder = headers_holder.release();
-        [[maybe_unused]] const auto _waiter = waiter.release();
+        [[maybe_unused]] const auto headers_holder_ptr = headers_holder.release();
+        [[maybe_unused]] const auto waiter_ptr = waiter.release();
     } else {
         LOG_WARNING("Failed to enqueue message to Kafka local queue: {}", rd_kafka_err2str(enqueue_error));
         waiter->SetDeliveryResult(DeliveryResult{enqueue_error});

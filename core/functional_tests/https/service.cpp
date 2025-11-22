@@ -23,6 +23,7 @@ int main(int argc, char* argv[]) {
                                     .Append<components::DefaultSecdistProvider>()
                                     .Append<components::Secdist>()
                                     .Append<components::LoggingConfigurator>()
+                                    .Append<components::HttpClientCore>()
                                     .Append<components::HttpClient>()
                                     .Append<components::TestsuiteSupport>()
                                     .Append<server::handlers::TestsControl>()

@@ -19,7 +19,7 @@
 int main(int argc, char* argv[]) {
     const auto component_list = components::MinimalServerComponentList()
                                     .AppendComponentList(ugrpc::server::DefaultComponentList())
-                                    .AppendComponentList(ugrpc::client::MinimalComponentList())
+                                    .AppendComponentList(ugrpc::client::DefaultComponentList())
                                     .Append<ugrpc::client::ClientFactoryComponent>()
                                     .Append<components::TestsuiteSupport>()
                                     .Append<congestion_control::Component>()

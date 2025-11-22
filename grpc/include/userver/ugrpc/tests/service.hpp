@@ -123,12 +123,29 @@ public:
     explicit Service(std::in_place_t, Args&&... args)
         : Service(server::ServerConfig{}, std::in_place, std::forward<Args>(args)...) {}
 
-    /// Passes @a args to the service.
+    /// Passes @a args to the service, @a server_config to @ref ServiceBase::ServiceBase.
     template <typename... Args>
-    Service(server::ServerConfig&& server_config, std::in_place_t = std::in_place, Args&&... args)
+    explicit Service(server::ServerConfig&& server_config, std::in_place_t = std::in_place, Args&&... args)
+        : Service(
+              std::move(server_config),
+              GetDefaultServerMiddlewares(),
+              GetDefaultClientMiddlewares(),
+              std::in_place,
+              std::forward<Args>(args)...
+          ) {}
+
+    /// Passes @a args to the service, @a server_config to @ref ServiceBase::ServiceBase, sets custom middlewares.
+    template <typename... Args>
+    Service(
+        server::ServerConfig&& server_config,
+        server::Middlewares server_middlewares,
+        client::Middlewares client_middlewares,
+        std::in_place_t = std::in_place,
+        Args&&... args
+    )
         : ServiceBase(std::move(server_config)), service_(std::forward<Args>(args)...) {
-        SetServerMiddlewares(GetDefaultServerMiddlewares());
-        SetClientMiddlewares(GetDefaultClientMiddlewares());
+        SetServerMiddlewares(std::move(server_middlewares));
+        SetClientMiddlewares(std::move(client_middlewares));
         RegisterService(service_);
         StartServer();
     }

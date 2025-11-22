@@ -26,14 +26,14 @@ const pg::UserTypes types;
 template <typename Duration>
 std::string
 FormatToTZ(const std::chrono::time_point<std::chrono::system_clock, Duration>& tp, const cctz::time_zone& tz) {
-    static const std::string ts_format_tz = "%Y-%m-%d %H:%M:%E*S%Ez";
-    return cctz::format(ts_format_tz, tp, tz);
+    static const std::string kTsFormatTz = "%Y-%m-%d %H:%M:%E*S%Ez";
+    return cctz::format(kTsFormatTz, tp, tz);
 }
 
 template <typename Duration>
 std::string FormatToUtc(const std::chrono::time_point<std::chrono::system_clock, Duration>& tp) {
-    static const auto utc = cctz::utc_time_zone();
-    return FormatToTZ(tp, utc);
+    static const auto kUtc = cctz::utc_time_zone();
+    return FormatToTZ(tp, kUtc);
 }
 
 template <typename Duration>
@@ -42,10 +42,10 @@ std::string FormatToLocal(const std::chrono::time_point<std::chrono::system_cloc
 }
 
 pg::TimePoint ParseUTC(const ::std::string& value) {
-    static const auto utc = cctz::utc_time_zone();
-    static const std::string ts_format_tz = "%Y-%m-%d %H:%M:%E*S%Ez";
+    static const auto kUtc = cctz::utc_time_zone();
+    static const std::string kTsFormatTz = "%Y-%m-%d %H:%M:%E*S%Ez";
     pg::TimePoint tp;
-    cctz::parse(ts_format_tz, value, utc, &tp);
+    cctz::parse(kTsFormatTz, value, kUtc, &tp);
     return tp;
 }
 

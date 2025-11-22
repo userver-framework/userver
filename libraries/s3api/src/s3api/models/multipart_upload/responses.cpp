@@ -69,9 +69,9 @@ ExtractRequiredChildValueAsIntegral(const pugi::xml_node& node, const char* chil
     return *maybe_value;
 }
 
-constexpr auto ExtractRequiredChildValueAsUInt = ExtractRequiredChildValueAsIntegral<unsigned>;
-constexpr auto ExtractChildValueAsUInt = ExtractChildValueAsIntegral<unsigned>;
-constexpr auto ExtractChildValueAsULong = ExtractChildValueAsIntegral<unsigned long>;
+constexpr auto kExtractRequiredChildValueAsUInt = ExtractRequiredChildValueAsIntegral<unsigned>;
+constexpr auto kExtractChildValueAsUInt = ExtractChildValueAsIntegral<unsigned>;
+constexpr auto kExtractChildValueAsULong = ExtractChildValueAsIntegral<unsigned long>;
 
 }  // namespace
 
@@ -122,7 +122,7 @@ ListMultipartUploadsResult ListMultipartUploadsResult::Parse(utils::zstring_view
     result.next_upload_id_marker = ExtractChildValue(xml_root_item, "NextUploadIdMarker");
     result.delimiter = ExtractChildValue(xml_root_item, "Delimiter");
     result.is_truncated = ToBoolean(ExtractChildValue(xml_root_item, "IsTruncated"));
-    result.max_uploads = ExtractChildValueAsUInt(xml_root_item, "MaxUploads");
+    result.max_uploads = kExtractChildValueAsUInt(xml_root_item, "MaxUploads");
 
     for (auto node = xml_root_item.child("Upload"); node; node = node.next_sibling("Upload")) {
         ListMultipartUploadsResult::MultipartUpload multipart_upload;
@@ -156,17 +156,17 @@ ListPartsResult ListPartsResult::Parse(utils::zstring_view http_s3_respose_body)
     const auto xml_root_item = GetRequiredChildNode(xml, "ListPartsResult");
     result.bucket = ExtractRequiredChildValue(xml_root_item, "Bucket");
     result.upload_id = ExtractRequiredChildValue(xml_root_item, "UploadId");
-    result.max_parts = ExtractChildValueAsUInt(xml_root_item, "MaxParts");
-    result.part_number_marker = ExtractChildValueAsUInt(xml_root_item, "PartNumberMarker");
-    result.next_part_number_marker = ExtractChildValueAsUInt(xml_root_item, "NextPartNumberMarker");
+    result.max_parts = kExtractChildValueAsUInt(xml_root_item, "MaxParts");
+    result.part_number_marker = kExtractChildValueAsUInt(xml_root_item, "PartNumberMarker");
+    result.next_part_number_marker = kExtractChildValueAsUInt(xml_root_item, "NextPartNumberMarker");
     result.key = ExtractRequiredChildValue(xml_root_item, "Key");
     result.is_truncated = ToBoolean(ExtractChildValue(xml_root_item, "IsTruncated"));
 
     for (auto part_node = xml_root_item.child("Part"); part_node; part_node = part_node.next_sibling("Part")) {
         ListPartsResult::Part part;
         part.etag = ExtractRequiredChildValue(part_node, "ETag");
-        part.part_number = ExtractRequiredChildValueAsUInt(part_node, "PartNumber");
-        part.byte_size = ExtractChildValueAsULong(part_node, "Size");
+        part.part_number = kExtractRequiredChildValueAsUInt(part_node, "PartNumber");
+        part.byte_size = kExtractChildValueAsULong(part_node, "Size");
 
         if (const auto maybe_last_modified_ts_str = ExtractChildValue(part_node, "LastModified")) {
             // See S3 client aws-sdk-cpp implementaton references:

@@ -5,7 +5,7 @@
 #include <fmt/compile.h>
 #include <fmt/format.h>
 
-#include <logging/timestamp.hpp>
+#include <userver/logging/impl/timestamp.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

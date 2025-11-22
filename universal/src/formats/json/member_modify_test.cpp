@@ -58,7 +58,7 @@ struct MemberModify<formats::json::ValueBuilder> : public ::testing::Test {
     using MemberMissingException = formats::json::MemberMissingException;
     using Exception = formats::json::Exception;
 
-    constexpr static auto FromString = formats::json::FromString;
+    constexpr static auto kFromString = formats::json::FromString;
 };
 
 INSTANTIATE_TYPED_TEST_SUITE_P(FormatsJson, MemberModify, formats::json::ValueBuilder);

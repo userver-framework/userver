@@ -8,10 +8,10 @@
 #include <userver/server/handlers/exceptions.hpp>
 #include <userver/ugrpc/client/exceptions.hpp>
 #include <userver/ugrpc/status_utils.hpp>
+#include <userver/ugrpc/tests/service_fixtures.hpp>
 
 #include <tests/unit_test_client.usrv.pb.hpp>
 #include <tests/unit_test_service.usrv.pb.hpp>
-#include <userver/ugrpc/tests/service_fixtures.hpp>
 
 using namespace std::chrono_literals;
 
@@ -37,34 +37,6 @@ public:
 
     ChatResult Chat(CallContext& /*context*/, ChatReaderWriter& /*stream*/) override {
         return grpc::Status{grpc::StatusCode::INTERNAL, "message", "details"};
-    }
-};
-
-class UnitTestServiceWithDetailedError final : public sample::ugrpc::UnitTestServiceBase {
-public:
-    static grpc::Status MakeError() {
-        google::rpc::Status status_obj;
-
-        status_obj.set_code(grpc::StatusCode::RESOURCE_EXHAUSTED);
-        status_obj.set_message("message");
-
-        google::rpc::Help help;
-        auto& link = *help.add_links();
-        link.set_description("test_url");
-        link.set_url("http://help.url/auth/fts-documentation/tvm");
-        status_obj.add_details()->PackFrom(help);
-
-        google::rpc::QuotaFailure quota_failure;
-        auto& violation = *quota_failure.add_violations();
-        violation.set_subject("123-pipepline000");
-        violation.set_description("fts quota [fts-receive] exhausted");
-        status_obj.add_details()->PackFrom(quota_failure);
-
-        return ugrpc::ToGrpcStatus(status_obj);
-    }
-
-    SayHelloResult SayHello(CallContext& /*context*/, sample::ugrpc::GreetingRequest&& /*request*/) override {
-        return MakeError();
     }
 };
 
@@ -125,44 +97,6 @@ UTEST_F(GrpcClientErrorTest, BidirectionalStream) {
     sample::ugrpc::StreamGreetingResponse in;
     auto call = client.Chat();
     UEXPECT_THROW(static_cast<void>(call.Read(in)), ugrpc::client::InternalError);
-}
-
-using GrpcClientWithDetailedErrorTest = ugrpc::tests::ServiceFixture<UnitTestServiceWithDetailedError>;
-
-UTEST_F(GrpcClientWithDetailedErrorTest, UnaryRPC) {
-    constexpr std::string_view kExpectedMessage =
-        R"(code: 8
-message: "message"
-details {
-  [type.googleapis.com/google.rpc.Help] {
-    links {
-      description: "test_url"
-      url: "http://help.url/auth/fts-documentation/tvm"
-    }
-  }
-}
-details {
-  [type.googleapis.com/google.rpc.QuotaFailure] {
-    violations {
-      subject: "123-pipepline000"
-      description: "fts quota [fts-receive] exhausted"
-    }
-  }
-}
-)";
-
-    auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
-    sample::ugrpc::GreetingRequest out;
-    out.set_name("userver");
-    try {
-        client.SayHello(out);
-    } catch (ugrpc::client::ResourceExhaustedError& e) {
-        const auto& status = e.GetStatus();
-        auto gstatus = ugrpc::ToGoogleRpcStatus(status);
-        ASSERT_TRUE(gstatus.has_value());
-        const auto gstatus_string = ugrpc::GetGStatusLimitedMessage(*gstatus);
-        EXPECT_EQ(gstatus_string, kExpectedMessage);
-    }
 }
 
 namespace {

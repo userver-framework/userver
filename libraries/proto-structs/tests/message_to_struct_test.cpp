@@ -80,7 +80,7 @@ TEST(MessageToStruct, Scalar) {
 }
 
 TEST(MessageToStruct, WellKnownStd) {
-    auto CreateValid = []() {
+    auto create_valid = []() {
         messages::WellKnownStd msg;
         msg.mutable_f3()->set_year(1);
         msg.mutable_f3()->set_month(1);
@@ -88,7 +88,7 @@ TEST(MessageToStruct, WellKnownStd) {
         return msg;
     };
 
-    ASSERT_NO_THROW(static_cast<void>(MessageToStruct<structs::WellKnownStd>(CreateValid())));
+    ASSERT_NO_THROW(static_cast<void>(MessageToStruct<structs::WellKnownStd>(create_valid())));
 
     {
         messages::WellKnownStd msg;
@@ -108,7 +108,7 @@ TEST(MessageToStruct, WellKnownStd) {
     }
 
     {
-        messages::WellKnownStd msg = CreateValid();
+        messages::WellKnownStd msg = create_valid();
         structs::WellKnownStd obj;
 
         *msg.mutable_f1() = ::google::protobuf::util::TimeUtil::NanosecondsToTimestamp(-987'654'321'123'456'789LL);
@@ -129,7 +129,7 @@ TEST(MessageToStruct, WellKnownStd) {
     }
 
     {
-        messages::WellKnownStd msg = CreateValid();
+        messages::WellKnownStd msg = create_valid();
         msg.mutable_f1()->set_nanos(1'999'999'999);
 
         EXPECT_THAT(
@@ -139,7 +139,7 @@ TEST(MessageToStruct, WellKnownStd) {
     }
 
     {
-        messages::WellKnownStd msg = CreateValid();
+        messages::WellKnownStd msg = create_valid();
         msg.mutable_f2()->set_nanos(-1'999'999'999);
 
         EXPECT_THAT(
@@ -149,7 +149,7 @@ TEST(MessageToStruct, WellKnownStd) {
     }
 
     {
-        messages::WellKnownStd msg = CreateValid();
+        messages::WellKnownStd msg = create_valid();
         msg.mutable_f3()->set_day(0);  // not full date is not allowed for std::chrono::year_month_day
 
         EXPECT_THAT(
@@ -159,7 +159,7 @@ TEST(MessageToStruct, WellKnownStd) {
     }
 
     {
-        messages::WellKnownStd msg = CreateValid();
+        messages::WellKnownStd msg = create_valid();
         msg.mutable_f4()->set_seconds(60);  // leap second is not allowed for std::chrono::hh_mm_ss
 
         EXPECT_THAT(
@@ -170,13 +170,13 @@ TEST(MessageToStruct, WellKnownStd) {
 }
 
 TEST(MessageToStruct, WellKnownUsrv) {
-    auto CreateValid = []() {
+    auto create_valid = []() {
         messages::WellKnownUsrv msg;
         msg.mutable_f7()->set_value("0.000");
         return msg;
     };
 
-    ASSERT_NO_THROW(static_cast<void>(MessageToStruct<structs::WellKnownUsrv>(CreateValid())));
+    ASSERT_NO_THROW(static_cast<void>(MessageToStruct<structs::WellKnownUsrv>(create_valid())));
 
     {
         messages::WellKnownUsrv msg;
@@ -207,7 +207,7 @@ TEST(MessageToStruct, WellKnownUsrv) {
     }
 
     {
-        messages::WellKnownUsrv msg = CreateValid();
+        messages::WellKnownUsrv msg = create_valid();
         structs::WellKnownUsrv obj;
         messages::Simple any_payload;
 
@@ -236,7 +236,7 @@ TEST(MessageToStruct, WellKnownUsrv) {
     }
 
     {
-        messages::WellKnownUsrv msg = CreateValid();
+        messages::WellKnownUsrv msg = create_valid();
         msg.mutable_f2()->set_nanos(1'999'999'999);
 
         EXPECT_THAT(
@@ -246,7 +246,7 @@ TEST(MessageToStruct, WellKnownUsrv) {
     }
 
     {
-        messages::WellKnownUsrv msg = CreateValid();
+        messages::WellKnownUsrv msg = create_valid();
         msg.mutable_f3()->set_nanos(-1'999'999'999);
 
         EXPECT_THAT(
@@ -256,7 +256,7 @@ TEST(MessageToStruct, WellKnownUsrv) {
     }
 
     {
-        messages::WellKnownUsrv msg = CreateValid();
+        messages::WellKnownUsrv msg = create_valid();
         msg.mutable_f4()->set_year(10'000);
 
         EXPECT_THAT(
@@ -266,7 +266,7 @@ TEST(MessageToStruct, WellKnownUsrv) {
     }
 
     {
-        messages::WellKnownUsrv msg = CreateValid();
+        messages::WellKnownUsrv msg = create_valid();
         msg.mutable_f5()->set_hours(-1);
 
         EXPECT_THAT(
@@ -276,7 +276,7 @@ TEST(MessageToStruct, WellKnownUsrv) {
     }
 
     {
-        messages::WellKnownUsrv msg = CreateValid();
+        messages::WellKnownUsrv msg = create_valid();
         msg.mutable_f6()->set_hours(24);
 
         EXPECT_THAT(
@@ -284,7 +284,7 @@ TEST(MessageToStruct, WellKnownUsrv) {
             ::testing::ThrowsMessage<ReadError>(::testing::HasSubstr("'messages.WellKnownUsrv.f6'"))
         );
 
-        msg = CreateValid();
+        msg = create_valid();
         msg.mutable_f6()->set_seconds(60);
 
         EXPECT_THAT(
@@ -294,7 +294,7 @@ TEST(MessageToStruct, WellKnownUsrv) {
     }
 
     {
-        messages::WellKnownUsrv msg = CreateValid();
+        messages::WellKnownUsrv msg = create_valid();
         msg.mutable_f7()->set_value("");
 
         EXPECT_THAT(

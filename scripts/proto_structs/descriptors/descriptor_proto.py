@@ -1,9 +1,7 @@
 """Functions for working with raw descriptors from `google.protobuf.descriptor_pb2`."""
 
+from collections.abc import Mapping
 import functools
-from typing import Dict
-from typing import List
-from typing import Mapping
 
 import google.protobuf.descriptor as descriptor
 import google.protobuf.descriptor_pb2 as descriptor_pb2  # pyright: ignore
@@ -23,8 +21,8 @@ def message_fields_map(  # pyright: ignore
 ) -> Mapping[str, descriptor_pb2.FieldDescriptorProto]:  # pyright: ignore
     """Returns a mapping from field names to their descriptors."""
     message_proto = to_descriptor_proto(message)  # pyright: ignore
-    fields: List[descriptor_pb2.FieldDescriptorProto] = message_proto.field  # pyright: ignore
-    result: Dict[str, descriptor_pb2.FieldDescriptorProto] = {}  # pyright: ignore
+    fields: list[descriptor_pb2.FieldDescriptorProto] = message_proto.field  # pyright: ignore
+    result: dict[str, descriptor_pb2.FieldDescriptorProto] = {}  # pyright: ignore
     for field in fields:  # pyright: ignore
         field_name: str = field.name  # pyright: ignore
         result[field_name] = field  # pyright: ignore

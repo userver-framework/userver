@@ -6,18 +6,17 @@ that may be useful when working with the
 @ingroup userver_testsuite
 """
 
+from __future__ import annotations
+
+from collections.abc import Iterable
+from collections.abc import Iterator
+from collections.abc import Set
 import contextlib
 import copy
 import dataclasses
 import datetime
 from typing import Any
-from typing import Dict
-from typing import Iterable
-from typing import Iterator
-from typing import List
-from typing import Optional
-from typing import Set
-from typing import Tuple
+from typing import TypeAlias
 
 from pytest_userver.plugins import caches
 
@@ -45,7 +44,7 @@ class UnknownConfigError(BaseError):
     """Invalid dynamic config name in `@pytest.mark.config`"""
 
 
-ConfigValuesDict = Dict[str, Any]
+ConfigValuesDict: TypeAlias = dict[str, Any]
 
 
 class _RemoveKey:
@@ -68,10 +67,10 @@ class _ConfigEntry:
     static_default_preferred: bool
 
 
-_ConfigDict = Dict[str, _ConfigEntry | _RemoveKey]
+_ConfigDict: TypeAlias = dict[str, _ConfigEntry | _RemoveKey]
 
 
-def _create_config_dict(values: ConfigValuesDict, kill_switches_disabled: Optional[Set[str]] = None) -> _ConfigDict:
+def _create_config_dict(values: ConfigValuesDict, kill_switches_disabled: Set[str] | None = None) -> _ConfigDict:
     if kill_switches_disabled is None:
         kill_switches_disabled = set()
 
@@ -85,7 +84,7 @@ def _create_config_dict(values: ConfigValuesDict, kill_switches_disabled: Option
 @dataclasses.dataclass
 class _ChangelogEntry:
     timestamp: str
-    dirty_keys: Set[str]
+    dirty_keys: set[str]
     state: _ConfigDict
     prev_state: _ConfigDict
 
@@ -93,9 +92,9 @@ class _ChangelogEntry:
     def new(
         cls,
         *,
-        previous: Optional['_ChangelogEntry'],
+        previous: _ChangelogEntry | None,
         timestamp: str,
-    ) -> '_ChangelogEntry':
+    ) -> _ChangelogEntry:
         if previous:
             prev_state = previous.state
         else:
@@ -124,8 +123,8 @@ class _ChangelogEntry:
 class _Updates:
     timestamp: str
     values: ConfigValuesDict
-    removed: List[str]
-    kill_switches_disabled: List[str]
+    removed: list[str]
+    kill_switches_disabled: list[str]
 
     def is_empty(self) -> bool:
         return not self.values and not self.removed
@@ -133,7 +132,7 @@ class _Updates:
 
 class _Changelog:
     timestamp: datetime.datetime
-    committed_entries: List[_ChangelogEntry]
+    committed_entries: list[_ChangelogEntry]
     staged_entry: _ChangelogEntry
 
     def __init__(self):
@@ -169,7 +168,7 @@ class _Changelog:
         self,
         config_dict: _ConfigDict,
         updated_since: str,
-        ids: Optional[List[str]] = None,
+        ids: list[str] | None = None,
     ) -> _Updates:
         entry = self.commit()
         config_dict, removed = self._get_updated_since(config_dict, updated_since)
@@ -195,7 +194,7 @@ class _Changelog:
         self,
         config_dict: _ConfigDict,
         updated_since: str,
-    ) -> Tuple[_ConfigDict, List[str]]:
+    ) -> tuple[_ConfigDict, list[str]]:
         if not updated_since:
             return config_dict, []
         dirty_keys = set()
@@ -274,7 +273,7 @@ class DynamicConfig:
         self,
         *,
         initial_values: ConfigValuesDict,
-        defaults: Optional[ConfigValuesDict],
+        defaults: ConfigValuesDict | None,
         config_cache_components: Iterable[str],
         cache_invalidation_state: caches.InvalidationState,
         changelog: _Changelog,
@@ -308,7 +307,8 @@ class DynamicConfig:
             self._kill_switches_disabled.add(key)
 
         config_dict = _create_config_dict(
-            values={key: self._values.get(key, None) for key in keys}, kill_switches_disabled=set(keys)
+            values={key: self._values.get(key, None) for key in keys},
+            kill_switches_disabled=set(keys),
         )
         self._changelog.add_entries(config_dict)
         self._sync_with_service()
@@ -368,11 +368,11 @@ class DynamicConfig:
     @contextlib.contextmanager
     def modify_many(
         self,
-        *keys: Tuple[str, ...],
-    ) -> Tuple[Any, ...]:
+        *keys: tuple[str, ...],
+    ) -> tuple[Any, ...]:
         values = tuple(self.get(key) for key in keys)
         yield values
-        self.set_values(dict(zip(keys, values)))
+        self.set_values(dict(zip(keys, values, strict=True)))
 
     def _sync_with_service(self) -> None:
         self._cache_invalidation_state.invalidate(

@@ -21,8 +21,8 @@ constexpr const char* kPostgresDsn = "POSTGRES_TEST_DSN";
 }  // namespace
 
 pg::DefaultCommandControls GetTestCmdCtls() {
-    static auto kDefaultCmdCtls = pg::DefaultCommandControls(kTestCmdCtl, {}, {});
-    return kDefaultCmdCtls;
+    static auto default_cmd_ctls = pg::DefaultCommandControls(kTestCmdCtl, {}, {});
+    return default_cmd_ctls;
 }
 
 DefaultCommandControlScope::DefaultCommandControlScope(storages::postgres::CommandControl default_cmd_ctl)

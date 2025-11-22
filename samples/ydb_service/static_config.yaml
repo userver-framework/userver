@@ -39,6 +39,7 @@ components_manager:
             update-interval: 5s
 
         http-client:
+        http-client-core:
             fs-task-processor: fs-task-processor
             user-agent: $server-name
             user-agent#fallback: 'userver-based-service 1.0'

@@ -2,8 +2,8 @@
 
 #include <userver/rcu/rcu.hpp>
 
-#include <userver/ugrpc/client/fwd.hpp>
 #include <userver/ugrpc/client/impl/stub_any.hpp>
+#include <userver/ugrpc/client/impl/stub_state.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -13,7 +13,7 @@ struct StubState;
 
 class StubHandle final {
 public:
-    StubHandle(rcu::ReadablePtr<StubState>&& state, StubAny& stub) : state_{std::move(state)}, stub_{stub} {}
+    StubHandle(rcu::ReadablePtr<StubState>&& state, StubAny& stub);
 
     StubHandle(StubHandle&&) noexcept = default;
     StubHandle& operator=(StubHandle&&) = delete;

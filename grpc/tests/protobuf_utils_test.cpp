@@ -12,6 +12,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace {
 
+const std::string kNewLineTruncatedMarker = "\n...(truncated)";
+constexpr std::string_view kTruncateMarker = "...(truncated)";
+
 sample::ugrpc::LoggingMessage ConstructComplexMessage() {
     sample::ugrpc::LoggingMessage message;
 
@@ -48,8 +51,8 @@ UTEST(ToLimitedDebugString, Basic) {
     const auto expected = message.DebugString();
     EXPECT_EQ(out, expected);
 
-    out = ugrpc::ToLimitedDebugString(message, 8);
-    EXPECT_EQ(out, expected.substr(0, 8));
+    out = ugrpc::ToLimitedDebugString(message, 20);
+    EXPECT_EQ(out, expected.substr(0, 5) + kNewLineTruncatedMarker);
 }
 
 UTEST(ToLimitedDebugString, Fit) {
@@ -61,17 +64,75 @@ UTEST(ToLimitedDebugString, Fit) {
 }
 
 UTEST(ToLimitedDebugString, Limited) {
-    constexpr std::size_t kLimit = 10;
+    constexpr std::size_t kLimit = 30;
     sample::ugrpc::GreetingResponse message;
-    message.set_name("1234567890");
+    message.set_name("123456789012345678901234567890");
     const auto out = ugrpc::ToLimitedDebugString(message, kLimit);
-    EXPECT_EQ(out, "name: \"123");
+    EXPECT_EQ(out, "name: \"12345678\n...(truncated)");
+}
+
+UTEST(ToLimitedDebugString, EdgeCaseTruncateToMarker) {
+    constexpr std::size_t kLimit = kTruncateMarker.size();
+    sample::ugrpc::GreetingResponse message;
+    message.set_name("12345678901234567890");
+    {
+        const auto out = ugrpc::ToLimitedDebugString(message, kLimit);
+        EXPECT_EQ(out, kTruncateMarker);
+    }
+    {
+        const auto out = ugrpc::ToLimitedDebugString(message, kLimit + 1);
+        EXPECT_EQ(out, kTruncateMarker);
+    }
+}
+
+UTEST(ToLimitedDebugString, EdgeCaseTruncateUpToMarker) {
+    constexpr std::size_t kLimit = kTruncateMarker.size();
+    sample::ugrpc::GreetingResponse message;
+    message.set_name("1");
+
+    const auto expected = "name: \"1\"\n";
+    {
+        const auto out = ugrpc::ToLimitedDebugString(message, kLimit);
+        EXPECT_EQ(out, expected);
+    }
+    {
+        const auto out = ugrpc::ToLimitedDebugString(message, kLimit + 1);
+        EXPECT_EQ(out, expected);
+    }
+}
+
+UTEST(ToLimitedDebugString, EdgeCaseFullyTruncated) {
+    constexpr std::size_t kLimit = 0;
+    sample::ugrpc::GreetingResponse message;
+    message.set_name("12345678901234567890");
+    const auto out = ugrpc::ToLimitedDebugString(message, kLimit);
+    EXPECT_EQ(out, kTruncateMarker);
+}
+
+UTEST(ToLimitedDebugString, EdgeCaseLimitOne) {
+    constexpr std::size_t kLimit = 1;
+    sample::ugrpc::GreetingResponse message;
+    message.set_name("12345678901234567890");
+    const auto out = ugrpc::ToLimitedDebugString(message, kLimit);
+    EXPECT_EQ(out, kTruncateMarker);
+}
+
+UTEST(ToLimitedDebugString, EdgeCaseSeven) {
+    // <EMPTY> will fit, but there should be "...", because string is not truncated to empty
+    constexpr std::size_t kLimit = 7;
+
+    sample::ugrpc::GreetingResponse message;
+    message.set_name("12345678901234567890");
+    const auto out = ugrpc::ToLimitedDebugString(message, kLimit);
+    EXPECT_EQ(out, kTruncateMarker);
 }
 
 UTEST(ToLimitedDebugString, Complex) {
     constexpr std::size_t kLimit = 512;
     const auto message = ConstructComplexMessage();
-    const auto expected = ugrpc::impl::ToString(message.Utf8DebugString().substr(0, kLimit));
+    const auto expected =
+        ugrpc::impl::ToString(message.Utf8DebugString().substr(0, kLimit - kNewLineTruncatedMarker.size())) +
+        kNewLineTruncatedMarker;
     ASSERT_EQ(expected, ugrpc::ToLimitedDebugString(message, kLimit));
 }
 

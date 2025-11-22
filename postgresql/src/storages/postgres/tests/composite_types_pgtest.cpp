@@ -180,6 +180,17 @@ struct User {
     std::bitset<4> status{};
 };
 
+struct ZoneSettingsV1 {
+    bool repeat_requests_enabled;
+    std::chrono::seconds order_update_period;  // intentionally missmatch with DB type
+};
+
+struct ZoneIntegrationSettingsV1 {
+    ZoneSettingsV1 technical_settings;
+    bool enabled;
+    int x;
+};
+
 }  // namespace pgtest
 
 /*! [User type mapping] */
@@ -243,6 +254,16 @@ struct CppToUserPg<pgtest::WithUnorderedSet> {
 template <>
 struct CppToUserPg<pgtest::User> {
     static constexpr DBTypeName postgres_name = "__pgtest.user";
+};
+
+template <>
+struct CppToUserPg<pgtest::ZoneSettingsV1> {
+    static constexpr DBTypeName postgres_name = "__pgtest.zones_settings_v1";
+};
+
+template <>
+struct CppToUserPg<pgtest::ZoneIntegrationSettingsV1> {
+    static constexpr DBTypeName postgres_name = "__pgtest.zones_integration_settings_v1";
 };
 
 }  // namespace storages::postgres::io
@@ -705,14 +726,14 @@ UTEST_P(PostgreConnection, CompositeTypeParseExceptionReadability) {
       )
     )~"));
 
-        const auto searchQuery = storages::Query(R"(
+        const auto search_query = storages::Query(R"(
       SELECT id, status
       FROM __pgtest.user
       WHERE id = $1.id and status = $1.status;
     )");
 
         UEXPECT_THROW_MSG(
-            GetConn()->Execute(searchQuery, pgtest::User{1, 2}),
+            GetConn()->Execute(search_query, pgtest::User{1, 2}),
             storages::postgres::UserTypeError,
             fmt::format(
                 "Type '__pgtest.user' was not created in database and "
@@ -740,7 +761,7 @@ UTEST_P(PostgreConnection, CompositeTypeParseExceptionReadability) {
       )
     )~"));
 
-        const auto searchQuery = storages::Query(R"(
+        const auto search_query = storages::Query(R"(
       SELECT id, status
       FROM __pgtest.user_table
       WHERE id = $1.id and status = $1.status;
@@ -750,7 +771,7 @@ UTEST_P(PostgreConnection, CompositeTypeParseExceptionReadability) {
         UASSERT_NO_THROW(GetConn()->ReloadUserTypes());
 
         UEXPECT_THROW_MSG(
-            GetConn()->Execute(searchQuery, pgtest::User{1, 2}),
+            GetConn()->Execute(search_query, pgtest::User{1, 2}),
             storages::postgres::UserTypeError,
             "Type mismatch for '__pgtest.user' field 'status'. In database the "
             "type is 'bit' (oid: 1560), user supplied type is 'varbit' (oid: "
@@ -796,6 +817,72 @@ UTEST_P(PostgreConnection, CompositeTypeParseExceptionReadability) {
             storages::postgres::NoBinaryParser,
             "PostgreSQL result set field 'row' of a composite type "
             "'__pgtest.no_cpp_type' (oid: "
+        );
+    }
+    {
+        UEXPECT_NO_THROW(
+            GetConn()->Execute("create type __pgtest.zones_settings_v1 as (x1 BOOLEAN, "
+                               "x2 BIGINT"  // intentionally missmatch with C++ type
+                               ")")
+        );
+        UEXPECT_NO_THROW(
+            GetConn()->Execute("create type __pgtest.zones_integration_settings_v1 as "
+                               "(x1 __pgtest.zones_settings_v1, x2 BOOLEAN, x3 INT)")
+        );
+
+        // Auto reload doesn't work for outgoing types
+        UASSERT_NO_THROW(GetConn()->ReloadUserTypes());
+
+// Following test aborts in debug
+#ifdef NDEBUG
+        auto res = GetConn()->Execute("SELECT ROW(true, 1)::__pgtest.zones_settings_v1");
+        UEXPECT_THROW_MSG(
+            res[0][0].As<pgtest::ZoneSettingsV1>(),
+            storages::postgres::InvalidInputBufferSize,
+            fmt::format(
+                " as a C++ type '{0}'. Refer to the 'Supported data types' in the documentation to make sure that "
+                "the database type is actually representable as a C++ type '{0}'. Error details: "
+                "Attempt to read 4 bytes more than was sent by server,\n"
+                "\twhile reading from database to C++ type '{1}' (field #1 of a composite C++ type '{0}')",
+                compiler::GetTypeName<pgtest::ZoneSettingsV1>(),
+                compiler::GetTypeName<std::chrono::seconds>()
+            )
+        );
+#endif
+        UEXPECT_THROW_MSG(
+            GetConn()->Execute("SELECT $1::__pgtest.zones_settings_v1", pgtest::ZoneSettingsV1{true, {}}),
+            storages::postgres::UserTypeError,
+            "Type mismatch for '__pgtest.zones_settings_v1' field 'x2'. In database the type is 'int8' (oid: 20), "
+            "user supplied type is 'interval' (oid: "
+        );
+
+// Following test aborts in debug
+#ifdef NDEBUG
+        res = GetConn()->Execute(
+            "SELECT ROW(ROW(true, 1)::__pgtest.zones_settings_v1, true, 3)::__pgtest.zones_integration_settings_v1"
+        );
+        UEXPECT_THROW_MSG(
+            res[0][0].As<pgtest::ZoneIntegrationSettingsV1>(),
+            storages::postgres::InvalidInputBufferSize,
+            fmt::format(
+                " as a C++ type '{0}'. Refer to the 'Supported data types' in the documentation to make sure that "
+                "the database type is actually representable as a C++ type '{0}'. Error details: "
+                "Attempt to read 4 bytes more than was sent by server,\n"
+                "\twhile reading from database to C++ type '{1}' (field #1 of a composite C++ type '{2}'),\n"
+                "\twhile reading from database to C++ type '{2}' (field #0 of a composite C++ type '{0}')",
+                compiler::GetTypeName<pgtest::ZoneIntegrationSettingsV1>(),
+                compiler::GetTypeName<std::chrono::seconds>(),
+                compiler::GetTypeName<pgtest::ZoneSettingsV1>()
+            )
+        );
+#endif
+        UEXPECT_THROW_MSG(
+            GetConn()->Execute(
+                "SELECT $1::__pgtest.zones_integration_settings_v1", pgtest::ZoneIntegrationSettingsV1{{}, true, 3}
+            ),
+            storages::postgres::UserTypeError,
+            "Type mismatch for '__pgtest.zones_settings_v1' field 'x2'. In database the type is 'int8' (oid: 20), "
+            "user supplied type is 'interval' (oid: "
         );
     }
 }

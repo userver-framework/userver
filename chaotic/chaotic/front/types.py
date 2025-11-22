@@ -1,12 +1,10 @@
 import collections
+from collections.abc import Callable
 import dataclasses
 import enum
 import typing
 from typing import Any
-from typing import Callable
-from typing import Optional
 from typing import TypeVar
-from typing import Union
 
 from chaotic import error
 
@@ -97,8 +95,8 @@ class Base:
             validate_type(field.name, getattr(self, field.name), field.type)
 
 
-_OptionalBool = TypeVar('_OptionalBool', bool, Optional[bool])
-_OptionalStr = TypeVar('_OptionalStr', str, Optional[str])
+_OptionalBool = TypeVar('_OptionalBool', bool, bool | None)
+_OptionalStr = TypeVar('_OptionalStr', str, str | None)
 
 
 @dataclasses.dataclass
@@ -177,7 +175,7 @@ class Ref(Schema):
 @dataclasses.dataclass
 class Boolean(Schema):
     type: str = 'boolean'
-    default: Optional[bool] = None
+    default: bool | None = None
     nullable: bool = False
     deprecated: bool = False
 
@@ -209,15 +207,15 @@ INTEGER_FORMAT_TO_FORMAT = {
 @dataclasses.dataclass
 class Integer(Schema):
     type: str = 'integer'
-    default: Optional[int] = None
+    default: int | None = None
     nullable: bool = False
-    minimum: Optional[int] = None
-    maximum: Optional[int] = None
-    exclusiveMinimum: Optional[int] = None
-    exclusiveMaximum: Optional[int] = None
+    minimum: int | None = None
+    maximum: int | None = None
+    exclusiveMinimum: int | None = None
+    exclusiveMaximum: int | None = None
     # TODO: multipleOf
-    enum: Optional[list[int]] = None
-    format: Optional[IntegerFormat] = None
+    enum: list[int] | None = None
+    format: IntegerFormat | None = None
     deprecated: bool = False
 
     def __post_init__(self) -> None:
@@ -237,13 +235,13 @@ class Integer(Schema):
 @dataclasses.dataclass
 class Number(Schema):
     type: str = 'number'
-    default: Optional[Union[float, int]] = None
+    default: float | int | None = None
     nullable: bool = False
-    minimum: Optional[Union[float, int]] = None
-    maximum: Optional[Union[float, int]] = None
-    exclusiveMinimum: Optional[Union[float, int]] = None
-    exclusiveMaximum: Optional[Union[float, int]] = None
-    format: Optional[str] = None
+    minimum: float | int | None = None
+    maximum: float | int | None = None
+    exclusiveMinimum: float | int | None = None
+    exclusiveMaximum: float | int | None = None
+    format: str | None = None
     deprecated: bool = False
     # TODO: multipleOf
 
@@ -284,13 +282,13 @@ STRING_FORMAT_TO_FORMAT = {
 @dataclasses.dataclass
 class String(Schema):
     type: str = 'string'
-    default: Optional[str] = None
+    default: str | None = None
     nullable: bool = False
-    enum: Optional[list[str]] = None
-    pattern: Optional[str] = None
-    format: Optional[StringFormat] = None
-    minLength: Optional[int] = None
-    maxLength: Optional[int] = None
+    enum: list[str] | None = None
+    pattern: str | None = None
+    format: StringFormat | None = None
+    minLength: int | None = None
+    maxLength: int | None = None
     deprecated: bool = False
 
     def __post_init__(self) -> None:
@@ -313,8 +311,8 @@ class Array(Schema):
     items: Schema
     type: str = 'array'
     nullable: bool = False
-    minItems: Optional[int] = None
-    maxItems: Optional[int] = None
+    minItems: int | None = None
+    maxItems: int | None = None
     deprecated: bool = False
 
     def visit_children(self, cb: Callable[[Schema, Schema], None]) -> None:
@@ -329,8 +327,8 @@ class Array(Schema):
 class SchemaObjectRaw:
     type: str
     additionalProperties: Any
-    properties: Optional[dict] = None
-    required: Optional[list[str]] = None
+    properties: dict | None = None
+    required: list[str] | None = None
     nullable: bool = False
     deprecated: bool = False
 
@@ -338,9 +336,9 @@ class SchemaObjectRaw:
 @smart_fields
 @dataclasses.dataclass
 class SchemaObject(Schema):
-    additionalProperties: Union[Schema, bool]
+    additionalProperties: Schema | bool
     properties: dict[str, Schema]
-    required: Optional[list[str]] = None
+    required: list[str] | None = None
     nullable: bool = False
 
     def __post_init__(self) -> None:
@@ -413,8 +411,8 @@ class MappingType(enum.Enum):
 @dataclasses.dataclass
 class DiscMapping:
     # only one list must be not none
-    str_values: Optional[list[list[str]]] = None
-    int_values: Optional[list[list[int]]] = None
+    str_values: list[list[str]] | None = None
+    int_values: list[list[int]] | None = None
 
     def append(self, value: list):
         if self.str_values is not None:
@@ -453,7 +451,7 @@ class DiscMapping:
 @dataclasses.dataclass
 class OneOfWithDiscriminator(Schema):
     oneOf: list[Ref]  # type:ignore
-    discriminator_property: Optional[str] = None
+    discriminator_property: str | None = None
     mapping: DiscMapping = dataclasses.field(default_factory=DiscMapping)
     nullable: bool = False
 
@@ -469,14 +467,14 @@ class OneOfWithDiscriminator(Schema):
 @dataclasses.dataclass
 class OneOfDiscriminatorRaw:
     propertyName: str  # type:ignore
-    mapping: Optional[dict[str, str]] = None
+    mapping: dict[str, str] | None = None
 
 
 @smart_fields
 @dataclasses.dataclass
 class OneOfRaw:
     oneOf: list  # type:ignore
-    discriminator: Optional[dict] = None
+    discriminator: dict | None = None
     nullable: bool = False
     deprecated: bool = False
 

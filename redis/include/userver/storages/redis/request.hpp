@@ -36,13 +36,17 @@ public:
 
     explicit Request(std::unique_ptr<RequestDataBase<ReplyType>>&& impl) : impl_(std::move(impl)) {}
 
-    /// Wait for the request to finish on Redis server
+    /// Wait for the request to finish on Redis server, server or request errors (if any) are logged but not thrown.
+    ///
+    /// @throws Exceptions on missuse (for example, calling Wait() on a single result from a transaction before waiting
+    /// for the transaction itself).
     void Wait() { impl_->Wait(); }
 
     /// Ignore the query result and do not wait for the Redis server to finish executing it
     void IgnoreResult() const noexcept {}
 
     /// Wait for the request to finish on Redis server and get the result
+    /// @throws server or request related exceptions
     ReplyType Get(const std::string& request_description = {}) { return impl_->Get(request_description); }
 
     /// @cond

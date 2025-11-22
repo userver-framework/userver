@@ -272,8 +272,21 @@ google::protobuf::Value ParseImpl(const formats::json::Value& value) {
 
 }  // namespace
 
-google::protobuf::Value Parse(const formats::json::Value& value, To<google::protobuf::Value>) {
-    return ParseImpl(value);
+// TODO use iterative implementation for any google::protobuf::Message, not just for top-level Value and Struct.
+google::protobuf::Value Parse(const json::Value& value, To<google::protobuf::Value>) { return ParseImpl(value); }
+
+google::protobuf::Struct Parse(const json::Value& value, To<google::protobuf::Struct>) {
+    value.CheckObject();
+    auto protobuf_value = ParseImpl(value);
+    UASSERT(protobuf_value.has_struct_value());
+    return std::move(*protobuf_value.mutable_struct_value());
+}
+
+google::protobuf::ListValue Parse(const json::Value& value, To<google::protobuf::ListValue>) {
+    value.CheckArray();
+    auto protobuf_value = ParseImpl(value);
+    UASSERT(protobuf_value.has_list_value());
+    return std::move(*protobuf_value.mutable_list_value());
 }
 
 }  // namespace formats::parse

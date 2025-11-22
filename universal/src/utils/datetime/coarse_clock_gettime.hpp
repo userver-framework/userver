@@ -37,7 +37,7 @@ template <typename Duration, int Flag>
 Duration CoarseResolution() noexcept {
     static_assert(Flag == kCoarseSteadyClockNativeFlag || Flag == kCoarseRealtimeClockNativeFlag);
 
-    static const Duration cached_resolution = []() {
+    static const Duration kCachedResolution = []() {
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
         ::timespec tp;
         const auto res = ::clock_getres(static_cast<clockid_t>(Flag), &tp);
@@ -47,7 +47,7 @@ Duration CoarseResolution() noexcept {
         );
     }();
 
-    return cached_resolution;
+    return kCachedResolution;
 }
 
 }  // namespace utils::datetime

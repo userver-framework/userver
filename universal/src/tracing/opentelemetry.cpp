@@ -5,8 +5,8 @@
 #include <fmt/format.h>
 
 #include <userver/utils/algo.hpp>
+#include <userver/utils/assert.hpp>
 #include <userver/utils/encoding/hex.hpp>
-#include <userver/utils/text_light.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -22,39 +22,52 @@ constexpr char kDefaultVersion[] = "00";
 
 }  // namespace
 
-utils::expected<TraceParentData, std::string> ExtractTraceParentData(std::string_view trace_parent) {
+utils::expected<TraceParentDataView, USERVER_NAMESPACE::utils::StringLiteral> ExtractTraceParentDataView(
+    std::string_view trace_parent
+) noexcept {
+    // https://uptrace.dev/get/opentelemetry-dotnet/traceparent
+    // trace_parent has the format "00-80e1afed08e019fc1110464cfa66635c-7a085853722dc6d2-01"
     if (trace_parent.size() != kTraceParentSize) {
-        return utils::unexpected("Invalid header size");
+        return utils::unexpected(utils::StringLiteral{"Invalid OpenTelemetry header size"});
     }
 
-    std::vector<std::string_view> trace_fields = utils::text::SplitIntoStringViewVector(trace_parent, "-");
+    TraceParentDataView result;
 
-    if (trace_fields.size() != 4) {
-        return utils::unexpected("Invalid fields count");
+    result.version = trace_parent.substr(0, kVersionSize);
+    if (result.version != "00" && result.version != "01") {
+        return utils::unexpected(utils::StringLiteral{"Invalid version in the OpenTelemetry header"});
     }
+    trace_parent.remove_prefix(kVersionSize);
 
-    for (const auto& field : trace_fields) {
-        if (!utils::encoding::IsHexData(field)) {
-            return utils::unexpected("One of the fields is not hex data");
-        }
-    }
-
-    const std::string_view version{trace_fields[0]};
-    const std::string_view trace_id{trace_fields[1]};
-    const std::string_view span_id{trace_fields[2]};
-    const std::string_view trace_flags{trace_fields[3]};
-
-    if (version.size() != kVersionSize || trace_id.size() != kTraceIdSize || span_id.size() != kSpanIdSize ||
-        trace_flags.size() != kTraceFlagsSize) {
-        return utils::unexpected("One of the fields has invalid size");
-    }
-
-    return TraceParentData{
-        std::string{version},
-        utils::SmallString<kTraceIdSize>{trace_id},
-        utils::SmallString<kSpanIdSize>{span_id},
-        std::string{trace_flags},
+    using MemberPointerType = std::string_view TraceParentDataView::*;
+    static constexpr std::pair<std::size_t, MemberPointerType> kChunkSizesAndMemberPtrsAfterVersion[] = {
+        {kTraceIdSize, &TraceParentDataView::trace_id},
+        {kSpanIdSize, &TraceParentDataView::span_id},
+        {kTraceFlagsSize, &TraceParentDataView::trace_flags},
     };
+    for (const auto& [pos, field] : kChunkSizesAndMemberPtrsAfterVersion) {
+        UASSERT_MSG(pos < trace_parent.size(), "Initial size check or logic is incorrect");
+
+        if (trace_parent[0] != '-') {
+            return utils::unexpected(utils::StringLiteral{"One of the OpenTelemetry header fields has invalid size"});
+        }
+
+        const auto unchecked_field = trace_parent.substr(1, pos);
+        trace_parent.remove_prefix(pos + 1);
+
+        if (!utils::encoding::IsHexData(unchecked_field)) {
+            return utils::unexpected(
+                unchecked_field.find('-') == std::string_view::npos
+                    ? utils::StringLiteral{"One of the OpenTelemetry header fields is not hex data"}
+                    : utils::StringLiteral{"One of the OpenTelemetry header fields has invalid size"}
+            );
+        }
+
+        result.*field = unchecked_field;
+    }
+    UASSERT_MSG(trace_parent.empty(), "Initial size check or logic is incorrect");
+
+    return result;
 }
 
 utils::expected<std::string, std::string>

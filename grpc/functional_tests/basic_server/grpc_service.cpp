@@ -87,6 +87,7 @@ int main(int argc, char* argv[]) {
                                     .Append<clients::dns::Component>()
                                     .Append<server::middlewares::HeadersPropagatorFactory>()
                                     .Append<clients::http::plugins::headers_propagator::Component>()
+                                    .Append<components::HttpClientCore>()
                                     .Append<components::HttpClient>();
     return utils::DaemonMain(argc, argv, component_list);
 }

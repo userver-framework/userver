@@ -130,8 +130,8 @@ std::vector<storages::redis::CommandControl> BuildTestData() {
 
 const std::vector<storages::redis::CommandControl>& TestData() {
     // C++11 standard ensures that initialization will be thread-safe
-    static const std::vector<storages::redis::CommandControl> test_data{BuildTestData()};
-    return test_data;
+    static const std::vector<storages::redis::CommandControl> kTestData{BuildTestData()};
+    return kTestData;
 }
 
 }  // namespace

@@ -189,6 +189,7 @@ std::string ReadStoreReturn::Delete() const {
 int main(int argc, char* argv[]) {
     const auto component_list = components::MinimalServerComponentList()
                                     .Append<chaos::ReadStoreReturn>("handler-cluster")
+                                    .Append<components::HttpClientCore>()
                                     .Append<components::HttpClient>()
                                     .Append<components::Secdist>()
                                     .Append<components::DefaultSecdistProvider>()

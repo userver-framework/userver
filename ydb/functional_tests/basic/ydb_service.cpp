@@ -89,6 +89,7 @@ int main(int argc, char* argv[]) {
                               .Append<server::handlers::TestsControl>()
                               .Append<components::DynamicConfigClient>()
                               .Append<components::DynamicConfigClientUpdater>()
+                              .Append<components::HttpClientCore>()
                               .Append<components::HttpClient>()
                               .Append<clients::dns::Component>()
                               .Append<components::DefaultSecdistProvider>()

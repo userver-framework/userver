@@ -1,4 +1,4 @@
-import asyncio
+import asyncio  # noqa: I001
 import logging
 import os
 import os.path
@@ -8,12 +8,13 @@ import signal
 import subprocess
 import time
 
-from library.python import resource
 import pytest
 import redis
 import redis.asyncio as aredis
 import yatest.common
 import yatest.common.network
+
+from library.python import resource
 
 CLUSTER_MINIMUM_NODES_COUNT = 6
 REPLICA_COUNT = 1
@@ -213,7 +214,7 @@ class _RedisClusterNode:
 
 class RedisClusterTopology:
     def __init__(self, ports, cluster_ports):
-        all_ports = [(port, cport) for port, cport in zip(ports, cluster_ports)]
+        all_ports = [(port, cport) for port, cport in zip(ports, cluster_ports, strict=True)]
         self.nodes = [_RedisClusterNode(REDIS_CLUSTER_HOST, port, cluster_port) for port, cluster_port in all_ports]
         self.nodes_by_names = {node.get_address(): node for node in self.nodes}
         self.added_master = None
@@ -466,7 +467,7 @@ class RedisClusterTopology:
                     logging.warning(f'failed get nodes (wrong count) {ret}')
                     return False
                 ids = set()
-                for node, data in ret.items():
+                for data in ret.values():
                     if data['flags'] == 'handshake':
                         logging.warning(f'failed get nodes (handshake) {ret}')
                         return False

@@ -50,14 +50,6 @@ grpc::ChannelArguments MakeChannelArgs(const yaml_config::YamlConfig& channel_ar
 
 }  // namespace
 
-AuthType Parse(const yaml_config::YamlConfig& value, formats::parse::To<AuthType>) {
-    constexpr utils::TrivialBiMap kMap([](auto selector) {
-        return selector().Case(AuthType::kInsecure, "insecure").Case(AuthType::kSsl, "ssl");
-    });
-
-    return utils::ParseFromValueString(value, kMap);
-}
-
 ClientFactoryConfig Parse(const yaml_config::YamlConfig& value, formats::parse::To<ClientFactoryConfig>) {
     ClientFactoryConfig config;
     config.auth_type = value["auth-type"].As<AuthType>(AuthType::kInsecure);
@@ -65,7 +57,6 @@ ClientFactoryConfig Parse(const yaml_config::YamlConfig& value, formats::parse::
         config.ssl_credentials_options = MakeCredentialsOptions(value["ssl-credentials-options"]);
     }
     config.retry_config = value["retry-config"].As<RetryConfig>();
-    LOG_INFO() << "RetryConfig: attempts=" << config.retry_config.attempts;
     config.channel_args = MakeChannelArgs(value["channel-args"]);
     config.default_service_config = value["default-service-config"].As<std::optional<std::string>>();
     config.channel_count = value["channel-count"].As<std::size_t>(config.channel_count);

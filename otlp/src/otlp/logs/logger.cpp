@@ -1,6 +1,7 @@
 #include "logger.hpp"
 
 #include <chrono>
+#include <cstdio>
 
 #include <fmt/format.h>
 
@@ -206,7 +207,7 @@ Logger::Logger(
       queue_(Queue::Create(config_.max_queue_size)),
       queue_producer_(queue_->GetMultiProducer()) {
     SetLevel(config_.log_level);
-    std::cerr << "OTLP logger has started\n";
+    std::fputs("OTLP logger has started\n", stderr);
 
     sender_task_ = engine::CriticalAsyncNoSpan([this,
                                                 consumer = queue_->GetConsumer(),
@@ -214,7 +215,6 @@ Logger::Logger(
                                                 trace_client = std::move(trace_client)]() mutable {
         SendingLoop(consumer, log_client, trace_client);
     });
-    ;
 }
 
 Logger::~Logger() { Stop(); }
@@ -335,15 +335,13 @@ void Logger::DoLog(
 ) {
     try {
         auto response_future = client.AsyncExport(request);
-        // this will disable tracing, but not logging. One must disable
-        // logging middleware in grpc client factory configuration
-        response_future.GetContext().GetSpan().SetLogLevel(logging::Level::kNone);
         auto response = response_future.Get();
     } catch (const ugrpc::client::RpcCancelledError&) {
-        std::cerr << "Stopping OTLP sender task\n";
+        std::fputs("Stopping OTLP sender task\n", stderr);
         throw;
     } catch (const std::exception& e) {
-        std::cerr << "Failed to write down OTLP log(s): " << e.what() << typeid(e).name() << "\n";
+        const auto msg = fmt::format("Failed to write down OTLP log(s): {} {}\n", e.what(), typeid(e).name());
+        std::fputs(msg.c_str(), stderr);
     }
     // TODO: count exceptions
 }
@@ -354,15 +352,13 @@ void Logger::DoTrace(
 ) {
     try {
         auto response_future = trace_client.AsyncExport(request);
-        // this will disable tracing, but not logging. One must disable
-        // logging middleware in grpc client factory configuration
-        response_future.GetContext().GetSpan().SetLogLevel(logging::Level::kNone);
         auto response = response_future.Get();
     } catch (const ugrpc::client::RpcCancelledError&) {
-        std::cerr << "Stopping OTLP sender task\n";
+        std::fputs("Stopping OTLP sender task\n", stderr);
         throw;
     } catch (const std::exception& e) {
-        std::cerr << "Failed to write down OTLP trace(s): " << e.what() << typeid(e).name() << "\n";
+        const auto msg = fmt::format("Failed to write down OTLP trace(s): {} {}\n", e.what(), typeid(e).name());
+        std::fputs(msg.c_str(), stderr);
     }
     // TODO: count exceptions
 }

@@ -6,6 +6,7 @@
 #include <utility>
 
 #include <grpcpp/impl/codegen/proto_utils.h>
+#include <grpcpp/support/async_stream.h>
 
 #include <userver/utils/impl/internal_tag.hpp>
 
@@ -62,7 +63,7 @@ public:
 private:
     StreamingCallState state_;
     CallContext context_;
-    RawReader<Response> stream_;
+    std::unique_ptr<grpc::ClientAsyncReader<Response>> stream_;
 };
 
 /// @brief Controls a request stream -> single response RPC
@@ -131,7 +132,7 @@ private:
     StreamingCallState state_;
     CallContext context_;
     Response response_;
-    RawWriter<Request> stream_;
+    std::unique_ptr<grpc::ClientAsyncWriter<Request>> stream_;
 };
 
 /// @brief Controls a request stream -> response stream RPC
@@ -243,7 +244,7 @@ public:
 private:
     StreamingCallState state_;
     CallContext context_;
-    RawReaderWriter<Request, Response> stream_;
+    std::unique_ptr<grpc::ClientAsyncReaderWriter<Request, Response>> stream_;
 };
 
 template <typename Response>

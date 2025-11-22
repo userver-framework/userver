@@ -30,14 +30,14 @@ TEST(FormatsYaml, NativeLocation) {
 }
 
 TEST(FormatsYaml, ValueBuilderLocation) {
-    formats::yaml::ValueBuilder builderExample;
-    builderExample["field1"] = "one";
-    builderExample["field2"] = 1;
+    formats::yaml::ValueBuilder builder_example;
+    builder_example["field1"] = "one";
+    builder_example["field2"] = 1;
 
-    formats::yaml::ValueBuilder builderYaml;
-    builderYaml["my_value"] = builderExample.ExtractValue();
+    formats::yaml::ValueBuilder builder_yaml;
+    builder_yaml["my_value"] = builder_example.ExtractValue();
 
-    auto yaml = builderYaml.ExtractValue();
+    auto yaml = builder_yaml.ExtractValue();
 
     EXPECT_EQ(LocationPair(yaml), std::pair(0, 0));
     EXPECT_EQ(LocationPair(yaml["my_value"]), std::pair(0, 0));

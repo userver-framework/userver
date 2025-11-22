@@ -16,6 +16,7 @@ int main(int argc, char* argv[]) {
     auto component_list = components::MinimalServerComponentList()
                               .Append<components::SQLite>("key-value-database")
                               .Append<components::SQLite>("batch-database")
+                              .Append<components::HttpClientCore>()
                               .Append<components::HttpClient>()
                               .Append<server::handlers::TestsControl>()
                               .Append<components::TestsuiteSupport>()

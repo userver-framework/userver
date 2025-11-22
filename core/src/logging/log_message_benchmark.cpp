@@ -6,6 +6,7 @@
 #include <userver/logging/impl/tag_writer.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/logging/logger.hpp>
+#include <userver/logging/null_logger.hpp>
 
 #include <utils/gbench_auxiliary.hpp>
 
@@ -13,15 +14,12 @@ USERVER_NAMESPACE_BEGIN
 
 namespace {
 
-class NoopLogger : public logging::impl::TextLogger {
+class PrependedTagLogger final : public logging::impl::TextLogger {
 public:
-    NoopLogger() noexcept : TextLogger(logging::Format::kRaw) { SetLevel(logging::Level::kInfo); }
-    void Log(logging::Level, logging::impl::formatters::LoggerItemRef) override {}
-    void Flush() override {}
-};
+    PrependedTagLogger() noexcept : TextLogger(logging::Format::kRaw) { SetLevel(logging::Level::kInfo); }
 
-class PrependedTagLogger final : public NoopLogger {
-public:
+    void Log(logging::Level, logging::impl::formatters::LoggerItemRef) override {}
+
     void PrependCommonTags(logging::impl::TagWriter writer) const override {
         writer.PutTag("aaaaaaaaaaaaaaaaaa", "value");
         writer.PutTag("bbbbbbbbbb", 42);
@@ -37,7 +35,7 @@ public:
 };
 
 class LogHelperBenchmark : public benchmark::Fixture {
-    void SetUp(const benchmark::State&) override { guard_.emplace(std::make_shared<NoopLogger>()); }
+    void SetUp(const benchmark::State&) override { guard_.emplace(logging::impl::MakeNoopLoggerForTests()); }
 
     void TearDown(const benchmark::State&) override { guard_.reset(); }
 

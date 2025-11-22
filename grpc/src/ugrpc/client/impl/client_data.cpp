@@ -11,6 +11,18 @@ namespace ugrpc::client::impl {
 
 ClientData::~ClientData() { config_subscription_.Unsubscribe(); }
 
+StubHandle ClientData::NextStub(std::size_t method_id) const {
+    auto stub_state = stub_state_.Read();
+    auto& stub = impl::NextStub(*stub_state, method_id);
+    return StubHandle{std::move(stub_state), stub};
+}
+
+StubHandle ClientData::NextStub() const {
+    auto stub_state = stub_state_.Read();
+    auto& stub = impl::NextStub(*stub_state);
+    return StubHandle{std::move(stub_state), stub};
+}
+
 grpc::CompletionQueue& ClientData::NextQueue() const { return internals_.completion_queues.NextQueue(); }
 
 ugrpc::impl::MethodStatistics& ClientData::GetStatistics(std::size_t method_id) const {
@@ -28,6 +40,8 @@ const ugrpc::impl::StaticServiceMetadata& ClientData::GetMetadata() const {
 }
 
 const dynamic_config::Key<ClientQos>* ClientData::GetClientQos() const { return internals_.qos; }
+
+rcu::ReadablePtr<StubState> ClientData::GetStubState() const { return stub_state_.Read(); }
 
 ugrpc::impl::ServiceStatistics& ClientData::GetServiceStatistics() {
     return internals_.statistics_storage.GetServiceStatistics(GetMetadata(), internals_.client_name);

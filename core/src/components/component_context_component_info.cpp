@@ -183,6 +183,11 @@ std::unique_ptr<RawComponentBase> ComponentInfo::ExtractComponent() {
     return component;
 }
 
+std::unordered_set<std::string> ExtractNamesFromInfo(const std::vector<ConstComponentInfoRef>& container) {
+    auto v = container | boost::adaptors::transformed([](auto info) { return std::string{info->GetName()}; });
+    return boost::copy_range<std::unordered_set<std::string>>(v);
+}
+
 std::string JoinNamesFromInfo(const std::vector<ConstComponentInfoRef>& container, std::string_view separator) {
     return JoinNamesFromInfoImpl(container, separator);
 }

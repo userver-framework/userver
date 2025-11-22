@@ -431,36 +431,36 @@ void Fsm::EmitAction(Action&& action) {
 }
 
 const std::string& Fsm::StateToDebugString(State state) {
-    static const std::string subscribing = "kSubscribing";
-    static const std::string subscribed = "kSubscribed";
-    static const std::string unsubscribing = "kUnsubscribing";
-    static const std::string rebalancing_wait_subscribe = "kRebalancingWaitSubscribe";
-    static const std::string rebalancing_wait_unsubscribe = "kRebalancingWaitUnsubscribe";
-    static const std::string unsubscribed = "kUnsubscribed";
+    static const std::string kSubscribing = "kSubscribing";
+    static const std::string kSubscribed = "kSubscribed";
+    static const std::string kUnsubscribing = "kUnsubscribing";
+    static const std::string kRebalancingWaitSubscribe = "kRebalancingWaitSubscribe";
+    static const std::string kRebalancingWaitUnsubscribe = "kRebalancingWaitUnsubscribe";
+    static const std::string kUnsubscribed = "kUnsubscribed";
 
     switch (state) {
         case State::kSubscribing:
-            return subscribing;
+            return kSubscribing;
 
         case State::kSubscribed:
-            return subscribed;
+            return kSubscribed;
 
         case State::kUnsubscribing:
-            return unsubscribing;
+            return kUnsubscribing;
 
         case State::kRebalancingWaitSubscribe:
-            return rebalancing_wait_subscribe;
+            return kRebalancingWaitSubscribe;
 
         case State::kRebalancingWaitUnsubscribe:
-            return rebalancing_wait_unsubscribe;
+            return kRebalancingWaitUnsubscribe;
 
         case State::kUnsubscribed:
-            return unsubscribed;
+            return kUnsubscribed;
     }
 
     // not reachable
-    static const std::string none;
-    return none;
+    static const std::string kNone;
+    return kNone;
 }
 
 void Fsm::ChangeState(State new_state) {

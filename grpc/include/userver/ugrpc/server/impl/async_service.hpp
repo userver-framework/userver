@@ -21,7 +21,7 @@ public:
     }
 
     template <typename CallTraits>
-    void Prepare(
+    void RequestCall(
         int method_id,
         grpc::ServerContext& context,
         typename CallTraits::InitialRequest& initial_request,

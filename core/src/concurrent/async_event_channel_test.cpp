@@ -4,6 +4,8 @@
 #include <stdexcept>
 
 #include <userver/concurrent/async_event_channel.hpp>
+#include <userver/engine/single_consumer_event.hpp>
+#include <userver/engine/sleep.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -221,6 +223,88 @@ UTEST(AsyncEventChannel, OnListenerRemovalSample) {
         EXPECT_EQ(value, 0);
     }
     /*! [OnListenerRemoval sample] */
+}
+
+UTEST(AsyncEventChannel, SendEventConcurrent) {
+    concurrent::AsyncEventChannel<> channel("channel");
+    engine::SingleConsumerEvent inside_callback;
+    engine::SingleConsumerEvent may_exit;
+    std::atomic<bool> skip{false};
+
+    auto sub = channel.AddListener(concurrent::FunctionId(&channel), "test", [&] {
+        if (skip) return;
+
+        inside_callback.Send();
+        EXPECT_TRUE(may_exit.WaitForEvent());
+    });
+
+    // This callback invocation may result in deadlock
+    auto sub2 = channel.AddListener(concurrent::FunctionId(&may_exit), "test2", [] {});
+
+    auto first_task = engine::AsyncNoSpan([&] { channel.SendEvent(); });
+
+    EXPECT_TRUE(inside_callback.WaitForEvent());
+
+    skip = true;
+
+    auto task1 = engine::AsyncNoSpan([&] { channel.SendEvent(); });
+    auto task2 = engine::AsyncNoSpan([&] { channel.SendEvent(); });
+
+    // Make sure task1 & task2 are waiting on SharedMutex::lock()
+    engine::SleepFor(std::chrono::milliseconds(100));
+
+    // One task is inside critical section while another is still waiting
+    // on SharedMutex::lock()
+    may_exit.Send();
+
+    first_task.Get();
+}
+
+UTEST(AsyncEventChannel, SendEventConcurrent2) {
+    concurrent::AsyncEventChannel<> channel("channel");
+    engine::SingleConsumerEvent inside_callback;
+    engine::SingleConsumerEvent may_exit;
+
+    auto sub = channel.AddListener(concurrent::FunctionId(&channel), "test", [&] {
+        inside_callback.Send();
+        EXPECT_TRUE(may_exit.WaitForEvent());
+    });
+
+    std::atomic<std::size_t> calls{0};
+    auto sub2 = channel.AddListener(concurrent::FunctionId(&may_exit), "test2", [&calls] { ++calls; });
+
+    auto first_task = engine::AsyncNoSpan([&] { channel.SendEvent(); });
+
+    EXPECT_TRUE(inside_callback.WaitForEvent());
+
+    auto may_exit_task = engine::AsyncNoSpan([&] { may_exit.Send(); });
+    sub.Unsubscribe();
+
+    auto task1 = engine::AsyncNoSpan([&] { channel.SendEvent(); });
+    auto task2 = engine::AsyncNoSpan([&] { channel.SendEvent(); });
+
+    first_task.Get();
+    task1.Get();
+    task2.Get();
+    EXPECT_EQ(calls.load(), 3);
+}
+
+UTEST(AsyncEventChannel, UnsibscribeWhileHandling) {
+    engine::SingleConsumerEvent started;
+    std::atomic<bool> unsubscribe_has_finished{false};
+    concurrent::AsyncEventChannel<> channel("channel");
+
+    auto sub = channel.AddListener(concurrent::FunctionId(&channel), "test", [&] {
+        started.Send();
+        engine::SleepFor(std::chrono::milliseconds(5));
+        EXPECT_FALSE(unsubscribe_has_finished);
+    });
+
+    auto send_task = engine::AsyncNoSpan([&] { channel.SendEvent(); });
+    (void)started.WaitForEvent();
+
+    sub.Unsubscribe();
+    unsubscribe_has_finished = true;
 }
 
 }  // namespace

@@ -5,7 +5,10 @@
 #include <userver/engine/deadline.hpp>
 
 #include <userver/utils/assert.hpp>
+#include <userver/utils/fast_scope_guard.hpp>
 
+#include <engine/deadlock_detector.hpp>
+#include <engine/deadlock_detector/actor.hpp>
 #include <engine/impl/wait_list.hpp>
 #include <engine/impl/wait_list_light.hpp>
 #include <engine/task/task_context.hpp>
@@ -16,10 +19,10 @@ USERVER_NAMESPACE_BEGIN
 namespace engine::impl {
 
 template <class Waiters>
-class MutexImpl {
+class MutexImpl : public deadlock_detector::Actor {
 public:
     MutexImpl();
-    ~MutexImpl();
+    ~MutexImpl() override;
 
     MutexImpl(const MutexImpl&) = delete;
     MutexImpl(MutexImpl&&) = delete;
@@ -33,6 +36,8 @@ public:
     bool try_lock();
 
     bool try_lock_until(Deadline deadline);
+
+    utils::StringLiteral GetActorType() const override { return "Mutex"; }
 
 private:
     class MutexWaitStrategy;
@@ -149,6 +154,9 @@ void MutexImpl<Waiters>::lock() {
 
 template <class Waiters>
 void MutexImpl<Waiters>::unlock() {
+    auto& dd_state = deadlock_detector::GetState();
+    dd_state.HookBeforeRemoveDependency(*this, current_task::GetCurrentTaskContext());
+
 #if USERVER_IMPL_HAS_TSAN
     __tsan_mutex_pre_unlock(this, 0);
 #endif
@@ -182,21 +190,40 @@ bool MutexImpl<Waiters>::try_lock() {
     __tsan_mutex_post_lock(this, __tsan_mutex_try_lock | (result ? 0 : __tsan_mutex_try_lock_failed), 0);
 #endif
 
+    auto& dd_state = deadlock_detector::GetState();
+    if (result) dd_state.HookBeforeAddDependency(*this, current_task::GetCurrentTaskContext());
+
     return result;
 }
 
 template <class Waiters>
 bool MutexImpl<Waiters>::try_lock_until(Deadline deadline) {
+    bool result = false;
 #if USERVER_IMPL_HAS_TSAN
     __tsan_mutex_pre_lock(this, __tsan_mutex_try_lock);
+
+    // Use ScopeGuard to be sure __tsan_mutex_post_lock() is called
+    // even in case of exception in UINVARIANT() below
+    const utils::FastScopeGuard stop_wait([this, &result]() noexcept {
+        __tsan_mutex_post_lock(this, __tsan_mutex_try_lock | (result ? 0 : __tsan_mutex_try_lock_failed), 0);
+    });
 #endif
+
+    std::optional<deadlock_detector::WaitScope> scope;
+    if (!deadline.IsReachable()) scope.emplace(*this);
 
     auto& current = current_task::GetCurrentTaskContext();
-    const auto result = LockFastPath(current) || LockSlowPath(current, deadline);
+    UINVARIANT(
+        owner_.load() != &current,
+        "engine::mutex self deadlock detected! Current coroutine tried to lock a mutex while holding the same mutex."
+    );
 
-#if USERVER_IMPL_HAS_TSAN
-    __tsan_mutex_post_lock(this, __tsan_mutex_try_lock | (result ? 0 : __tsan_mutex_try_lock_failed), 0);
-#endif
+    result = LockFastPath(current) || LockSlowPath(current, deadline);
+
+    scope.reset();
+
+    auto& dd_state = deadlock_detector::GetState();
+    if (result) dd_state.HookBeforeAddDependency(*this, current_task::GetCurrentTaskContext());
 
     return result;
 }

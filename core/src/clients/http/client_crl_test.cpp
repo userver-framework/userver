@@ -6,6 +6,7 @@
 
 #include <userver/crypto/certificate.hpp>
 #include <userver/crypto/private_key.hpp>
+#include <userver/engine/async.hpp>
 #include <userver/engine/io/tls_wrapper.hpp>
 #include <userver/fs/blocking/temp_file.hpp>
 #include <userver/fs/blocking/write.hpp>

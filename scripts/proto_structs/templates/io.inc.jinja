@@ -5,8 +5,6 @@
 {{ do_render_namespace(node) -}}
 {% elif node.kind == "struct" %}
 {{ do_render_struct(node, context) -}}
-{% elif node.kind == "oneof" %}
-{{ do_render_oneof(node, context) -}}
 {% endif %}
 {% endmacro %}
 
@@ -24,8 +22,6 @@
 {% macro do_render_struct(node, context) %}
 
 // ---------- IO for {{ node.full_cpp_name() }} ----------
-
-{{ do_render_operator_equals(node, context) -}}
 {{ do_render_read(node, context) -}}
 {{ do_render_write_impl(node) -}}
 {{ do_render_write_const_ref(node, context) -}}
@@ -71,23 +67,6 @@ USERVER_NAMESPACE::proto_structs::io::impl::CreateFieldGetter(msg, ::{{ struct.v
 )
 {% endfilter %}
 {%- endmacro %}
-
-{% macro do_render_operator_equals(struct, context) %}
-
-{% set struct_type_name = struct.contextual_cpp_name(context=context) %}
-bool {{ struct_type_name }}::operator==([[maybe_unused]] const {{ struct_type_name }}& rhs) const {
-{% filter indent(width=4, first=True) %}
-return true
-{%- filter indent(width=4, first=False) %}
-{% for field in struct.fields -%}
-{{ ' &&' }}
-{{ field.short_name }} == rhs.{{ field.short_name }}
-{%- endfor -%}
-;
-{% endfilter %}
-{% endfilter %}
-}
-{% endmacro %}
 
 {% macro do_render_read_field(struct, context, field) %}
 .{{ field.short_name }} = USERVER_NAMESPACE::proto_structs::io::impl::ReadField<decltype({{ struct.contextual_cpp_name(context=context) }}::{{ field.short_name }})>(ctx, 
@@ -221,12 +200,4 @@ USERVER_NAMESPACE::proto_structs::io::WriteContext& ctx,
 WriteProtoStructImpl(ctx, std::move(obj), msg);
 {% endfilter %}
 }
-{% endmacro %}
-
-{% macro do_render_oneof(oneof, context) %}
-
-// ---------- IO for {{ oneof.full_cpp_name() }} ----------
-
-{% set oneof_type_name = oneof.contextual_cpp_name(context=context) %}
-bool {{ oneof_type_name }}::operator==(const {{ oneof_type_name }}&) const = default;
 {% endmacro %}

@@ -110,8 +110,8 @@ auto TableClient::ExecuteWithPathImpl(
         NYdb::NTable::TSession,
         NYdb::NTable::TTableClient&>;
 
-    const Query kQuery{"", Query::Name{operation_name}};
-    impl::RequestContext context{*this, kQuery, std::move(settings)};
+    const Query query{"", Query::Name{operation_name}};
+    impl::RequestContext context{*this, query, std::move(settings)};
 
     auto future = impl::RetryOperation(
         context,
@@ -152,8 +152,8 @@ ReadTableResults TableClient::ReadTable(
     NYdb::NTable::TReadTableSettings&& read_settings,
     OperationSettings settings
 ) {
-    const Query kQuery{"", Query::Name{"ReadTable"}};
-    impl::RequestContext context{*this, kQuery, std::move(settings), impl::IsStreaming{true}};
+    const Query query{"", Query::Name{"ReadTable"}};
+    impl::RequestContext context{*this, query, std::move(settings), impl::IsStreaming{true}};
 
     auto future = impl::RetryOperation(
         context,

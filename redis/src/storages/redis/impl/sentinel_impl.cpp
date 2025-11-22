@@ -105,9 +105,9 @@ SentinelImpl::GetAvailableServersWeighted(size_t shard_idx, bool with_master, co
 }
 
 void SentinelImpl::WaitConnectedDebug(bool allow_empty_slaves) {
-    static const auto timeout = std::chrono::milliseconds(50);
+    static const auto kTimeout = std::chrono::milliseconds(50);
 
-    for (;; std::this_thread::sleep_for(timeout)) {
+    for (;; std::this_thread::sleep_for(kTimeout)) {
         const std::lock_guard sentinels_lock{sentinels_mutex_};
 
         bool connected_all = true;

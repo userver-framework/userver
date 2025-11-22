@@ -16,6 +16,7 @@ int main(int argc, char* argv[]) {
                               .Append<components::TestsuiteSupport>()
                               .Append<server::handlers::TestsControl>()
                               .Append<clients::dns::Component>()
+                              .Append<components::HttpClientCore>()
                               .Append<components::HttpClient>();
     samples::hello::AppendHello(component_list);
 

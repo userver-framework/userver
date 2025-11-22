@@ -122,6 +122,7 @@ int main(int argc, char* argv[]) {
                                     .Append<components::DefaultSecdistProvider>()
                                     .Append<components::Redis>("key-value-database")
                                     .Append<components::TestsuiteSupport>()
+                                    .Append<components::HttpClientCore>()
                                     .Append<components::HttpClient>()
                                     .Append<clients::dns::Component>()
                                     .Append<server::handlers::TestsControl>();

@@ -34,6 +34,10 @@ public:
     zstring_view& operator=(std::string_view) = delete;
     zstring_view& operator=(const zstring_view&) = default;
 
+    void remove_suffix(std::size_t) = delete;  // zstring_view becomes not null-terminated after that function call
+    void swap(std::string_view&) = delete;     // zstring_view may become not null-terminated after that function call
+    void swap(zstring_view& other) noexcept { std::string_view::swap(other); }
+
     constexpr const char* c_str() const noexcept { return std::string_view::data(); }
 
     /// Constructs a zstring_view from a pointer and size.

@@ -112,6 +112,7 @@ int main(int argc, char* argv[]) {
                                     .Append<chaos::KeyValue>("handler-sentinel-0")
                                     .Append<chaos::KeyValue>("handler-sentinel-1")
                                     .Append<chaos::KeyValue>("handler-sentinel-2")
+                                    .Append<components::HttpClientCore>()
                                     .Append<components::HttpClient>()
                                     .Append<components::Secdist>()
                                     .Append<components::DefaultSecdistProvider>()

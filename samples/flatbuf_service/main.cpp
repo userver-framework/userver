@@ -102,6 +102,7 @@ int main(int argc, char* argv[]) {
                               .Append<samples::fbs_handle::FbsSumEcho>()  //
 
                               .Append<clients::dns::Component>()            //
+                              .Append<components::HttpClientCore>()         //
                               .Append<components::HttpClient>()             //
                               .Append<samples::fbs_request::FbsRequest>();  //
     return utils::DaemonMain(argc, argv, component_list);

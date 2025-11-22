@@ -154,6 +154,7 @@ int main(int argc, char* argv[]) {
                                      .Append<components::DefaultSecdistProvider>()
                                      .Append<components::TestsuiteSupport>()
                                      .Append<server::handlers::TestsControl>()
+                                     .Append<components::HttpClientCore>()
                                      .Append<components::HttpClient>();
 
     return utils::DaemonMain(argc, argv, components_list);

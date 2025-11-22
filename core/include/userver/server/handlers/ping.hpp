@@ -12,8 +12,8 @@ namespace server::handlers {
 
 /// @ingroup userver_components userver_http_handlers
 ///
-/// @brief Handler that returns HTTP 200 if the service is OK and able to
-/// process requests.
+/// @brief Base class for handlers that returns HTTP 200 if the service
+/// is OK and able to process requests.
 ///
 /// Uses components::State::IsAnyComponentInFatalState() to detect
 /// fatal state (can not process requests).
@@ -21,12 +21,29 @@ namespace server::handlers {
 /// ## Static options:
 /// Inherits all the options from server::handlers::HttpHandlerBase
 /// @ref userver_http_handlers
+class PingBase : public HttpHandlerBase {
+public:
+    PingBase(const components::ComponentConfig& config, const components::ComponentContext& component_context);
+
+    std::string HandleRequestThrow(const http::HttpRequest& request, request::RequestContext& context) const override;
+
+private:
+    const components::State components_;
+};
+
+/// @ingroup userver_components userver_http_handlers
+///
+/// @brief Ping handler implementation with warmup
+///
+/// ## Static options:
+/// Inherits all the options from server::handlers::PingBase
+/// @ref userver_http_handlers
 /// and adds the following ones:
 ///
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
 /// warmup-time-secs | how much time it needs to warmup the server | 0
-class Ping final : public HttpHandlerBase {
+class Ping final : public PingBase {
 public:
     Ping(const components::ComponentConfig& config, const components::ComponentContext& component_context);
 
@@ -42,8 +59,6 @@ public:
 
 private:
     void AppendWeightHeaders(http::HttpResponse&) const;
-
-    const components::State components_;
 
     std::chrono::steady_clock::time_point load_time_{};
     std::chrono::seconds awacs_weight_warmup_time_{60};
