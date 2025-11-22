@@ -46,10 +46,6 @@ class UserverConan(ConanFile):
         'with_s3api': [True, False],
         'with_grpc_reflection': [True, False],
         'with_grpc_protovalidate': [True, False],
-        'namespace': ['ANY'],
-        'namespace_begin': ['ANY'],
-        'namespace_end': ['ANY'],
-        'python_path': ['ANY'],
     }
 
     default_options = {
@@ -72,10 +68,6 @@ class UserverConan(ConanFile):
         'with_s3api': True,
         'with_grpc_reflection': True,
         'with_grpc_protovalidate': False,
-        'namespace': 'userver',
-        'namespace_begin': 'namespace userver {',
-        'namespace_end': '}',
-        'python_path': 'python3',
         'mongo-c-driver/*:with_sasl': 'cyrus',
         'grpc/*:php_plugin': False,
         'grpc/*:node_plugin': False,
@@ -218,10 +210,7 @@ class UserverConan(ConanFile):
         tool_ch.cache_variables['USERVER_INSTALL'] = True
         tool_ch.cache_variables['USERVER_DOWNLOAD_PACKAGES'] = True
         tool_ch.cache_variables['USERVER_FEATURE_DWCAS'] = True
-        tool_ch.cache_variables['USERVER_NAMESPACE'] = self.options.namespace
-        tool_ch.cache_variables['USERVER_NAMESPACE_BEGIN'] = self.options.namespace_begin
-        tool_ch.cache_variables['USERVER_NAMESPACE_END'] = self.options.namespace_end
-        tool_ch.cache_variables['USERVER_PYTHON_PATH'] = self.options.python_path
+        tool_ch.cache_variables['USERVER_PYTHON_PATH'] = 'python3'
 
         tool_ch.cache_variables['USERVER_LTO'] = self.options.lto
         tool_ch.cache_variables['USERVER_FEATURE_JEMALLOC'] = self.options.with_jemalloc
