@@ -214,42 +214,42 @@ class UserverConan(ConanFile):
         tool_ch = CMakeToolchain(self)
         tool_ch.variables['CMAKE_FIND_DEBUG_MODE'] = False
 
-        tool_ch.variables['USERVER_CONAN'] = True
-        tool_ch.variables['USERVER_INSTALL'] = True
-        tool_ch.variables['USERVER_DOWNLOAD_PACKAGES'] = True
-        tool_ch.variables['USERVER_FEATURE_DWCAS'] = True
-        tool_ch.variables['USERVER_NAMESPACE'] = self.options.namespace
-        tool_ch.variables['USERVER_NAMESPACE_BEGIN'] = self.options.namespace_begin
-        tool_ch.variables['USERVER_NAMESPACE_END'] = self.options.namespace_end
-        tool_ch.variables['USERVER_PYTHON_PATH'] = self.options.python_path
+        tool_ch.cache_variables['USERVER_CONAN'] = True
+        tool_ch.cache_variables['USERVER_INSTALL'] = True
+        tool_ch.cache_variables['USERVER_DOWNLOAD_PACKAGES'] = True
+        tool_ch.cache_variables['USERVER_FEATURE_DWCAS'] = True
+        tool_ch.cache_variables['USERVER_NAMESPACE'] = self.options.namespace
+        tool_ch.cache_variables['USERVER_NAMESPACE_BEGIN'] = self.options.namespace_begin
+        tool_ch.cache_variables['USERVER_NAMESPACE_END'] = self.options.namespace_end
+        tool_ch.cache_variables['USERVER_PYTHON_PATH'] = self.options.python_path
 
-        tool_ch.variables['USERVER_LTO'] = self.options.lto
-        tool_ch.variables['USERVER_FEATURE_JEMALLOC'] = self.options.with_jemalloc
-        tool_ch.variables['USERVER_FEATURE_MONGODB'] = self.options.with_mongodb
-        tool_ch.variables['USERVER_FEATURE_POSTGRESQL'] = self.options.with_postgresql
-        tool_ch.variables['USERVER_FEATURE_PATCH_LIBPQ'] = self.options.with_postgresql_extra
-        tool_ch.variables['USERVER_FEATURE_REDIS'] = self.options.with_redis
-        tool_ch.variables['USERVER_FEATURE_REDIS_TLS'] = self.options.with_redis_tls
-        tool_ch.variables['USERVER_FEATURE_GRPC'] = self.options.with_grpc
-        tool_ch.variables['USERVER_FEATURE_CLICKHOUSE'] = self.options.with_clickhouse
-        tool_ch.variables['USERVER_FEATURE_RABBITMQ'] = self.options.with_rabbitmq
-        tool_ch.variables['USERVER_FEATURE_UTEST'] = self.options.with_utest
-        tool_ch.variables['USERVER_FEATURE_TESTSUITE'] = self.options.with_utest
-        tool_ch.variables['USERVER_FEATURE_KAFKA'] = self.options.with_kafka
-        tool_ch.variables['USERVER_FEATURE_OTLP'] = self.options.with_otlp
-        tool_ch.variables['USERVER_FEATURE_SQLITE'] = self.options.with_sqlite
-        tool_ch.variables['USERVER_FEATURE_EASY'] = self.options.with_easy
-        tool_ch.variables['USERVER_FEATURE_S3API'] = self.options.with_s3api
-        tool_ch.variables['USERVER_FEATURE_GRPC_REFLECTION'] = self.options.with_grpc_reflection
-        tool_ch.variables['USERVER_FEATURE_GRPC_PROTOVALIDATE'] = self.options.with_grpc_protovalidate
+        tool_ch.cache_variables['USERVER_LTO'] = self.options.lto
+        tool_ch.cache_variables['USERVER_FEATURE_JEMALLOC'] = self.options.with_jemalloc
+        tool_ch.cache_variables['USERVER_FEATURE_MONGODB'] = self.options.with_mongodb
+        tool_ch.cache_variables['USERVER_FEATURE_POSTGRESQL'] = self.options.with_postgresql
+        tool_ch.cache_variables['USERVER_FEATURE_PATCH_LIBPQ'] = self.options.with_postgresql_extra
+        tool_ch.cache_variables['USERVER_FEATURE_REDIS'] = self.options.with_redis
+        tool_ch.cache_variables['USERVER_FEATURE_REDIS_TLS'] = self.options.with_redis_tls
+        tool_ch.cache_variables['USERVER_FEATURE_GRPC'] = self.options.with_grpc
+        tool_ch.cache_variables['USERVER_FEATURE_CLICKHOUSE'] = self.options.with_clickhouse
+        tool_ch.cache_variables['USERVER_FEATURE_RABBITMQ'] = self.options.with_rabbitmq
+        tool_ch.cache_variables['USERVER_FEATURE_UTEST'] = self.options.with_utest
+        tool_ch.cache_variables['USERVER_FEATURE_TESTSUITE'] = self.options.with_utest
+        tool_ch.cache_variables['USERVER_FEATURE_KAFKA'] = self.options.with_kafka
+        tool_ch.cache_variables['USERVER_FEATURE_OTLP'] = self.options.with_otlp
+        tool_ch.cache_variables['USERVER_FEATURE_SQLITE'] = self.options.with_sqlite
+        tool_ch.cache_variables['USERVER_FEATURE_EASY'] = self.options.with_easy
+        tool_ch.cache_variables['USERVER_FEATURE_S3API'] = self.options.with_s3api
+        tool_ch.cache_variables['USERVER_FEATURE_GRPC_REFLECTION'] = self.options.with_grpc_reflection
+        tool_ch.cache_variables['USERVER_FEATURE_GRPC_PROTOVALIDATE'] = self.options.with_grpc_protovalidate
 
         if self.options.with_grpc:
-            tool_ch.variables['USERVER_GOOGLE_COMMON_PROTOS'] = (
+            tool_ch.cache_variables['USERVER_GOOGLE_COMMON_PROTOS'] = (
                 self.dependencies['googleapis'].cpp_info.components['google_rpc_status_proto'].resdirs[0]
             )
 
         if self.options.with_otlp:
-            tool_ch.variables['USERVER_OPENTELEMETRY_PROTO'] = self.dependencies['opentelemetry-proto'].conf_info.get(
+            tool_ch.cache_variables['USERVER_OPENTELEMETRY_PROTO'] = self.dependencies['opentelemetry-proto'].conf_info.get(
                 'user.opentelemetry-proto:proto_root'
             )
 
