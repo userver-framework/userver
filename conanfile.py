@@ -9,7 +9,6 @@ from conan.tools.cmake import cmake_layout
 from conan.tools.cmake import CMakeDeps
 from conan.tools.cmake import CMakeToolchain
 from conan.tools.files import get, copy, export_conandata_patches
-from conan.tools.files import load
 from conan.tools.scm import Git
 from conan.tools.system import package_manager
 
@@ -87,6 +86,9 @@ class UserverConan(ConanFile):
         known_version = (self.conan_data or {}).get("sources", {}).get(self.version)
         if known_version:
             get(self, **known_version, strip_root=True)
+        else:
+            # Running from develop branch, do nothing
+            pass
 
     def export_sources(self):
         known_version = (self.conan_data or {}).get("sources", {}).get(self.version)
@@ -100,20 +102,6 @@ class UserverConan(ConanFile):
             tracked_sources = {f.split('/')[0] for f in tracked_sources}
             for i in tracked_sources:
                 copy(self, f'{i}*', self.recipe_folder, self.export_sources_folder)
-
-    def set_version(self):
-        if self.version:
-            return
-
-        content = load(
-            self,
-            os.path.join(
-                os.path.dirname(os.path.realpath(__file__)),
-                'version.txt',
-            ),
-        )
-
-        self.version = content.strip()  # pylint: disable=attribute-defined-outside-init
 
     def layout(self):
         cmake_layout(self)
@@ -214,7 +202,6 @@ class UserverConan(ConanFile):
         tool_ch.cache_variables['USERVER_INSTALL'] = True
         tool_ch.cache_variables['USERVER_DOWNLOAD_PACKAGES'] = True
         tool_ch.cache_variables['USERVER_FEATURE_DWCAS'] = True
-        tool_ch.variables['USERVER_PYTHON_PATH'] = 'python3'
 
         tool_ch.cache_variables['USERVER_LTO'] = self.options.lto
         tool_ch.cache_variables['USERVER_FEATURE_JEMALLOC'] = self.options.with_jemalloc
