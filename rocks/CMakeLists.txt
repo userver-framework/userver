@@ -5,7 +5,7 @@ include(SetupRocksDB)
 userver_module(
     rocks
     SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}"
-    LINK_LIBRARIES RocksDB::rocksdb
+    LINK_LIBRARIES_PRIVATE RocksDB::rocksdb
     UTEST_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*_test.cpp"
     DEPENDS core
 )

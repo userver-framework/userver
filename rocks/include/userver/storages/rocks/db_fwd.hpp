@@ -5,10 +5,8 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::rocks {
-
-class Client;
-using ClientPtr = std::shared_ptr<Client>;
-
+class Db;
+using DbPtr = std::shared_ptr<Db>;
 }  // namespace storages::rocks
 
 USERVER_NAMESPACE_END

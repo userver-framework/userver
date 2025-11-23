@@ -1,37 +1,72 @@
 #include <userver/storages/rocks/component.hpp>
 
-#include <memory>
+#include <optional>
 
-#include <userver/storages/rocks/client.hpp>
+#include <userver/storages/rocks/db.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace storages::rocks {
+namespace components {
 
-Component::Component(const components::ComponentConfig& config, const components::ComponentContext& context)
-    : ComponentBase(config, context),
-      client_ptr_(std::make_shared<storages::rocks::Client>(
-          config["db-path"].As<std::string>(),
-          context.GetTaskProcessor(config["task-processor"].As<std::string>())
-      )) {}
-
-storages::rocks::ClientPtr Component::MakeClient() { return client_ptr_; }
-
-yaml_config::Schema Component::GetStaticConfigSchema() {
+yaml_config::Schema Rocks::GetStaticConfigSchema() {
     return yaml_config::MergeSchemas<ComponentBase>(R"(
 type: object
-description: Rocks client component
+description: RocksDB component
 additionalProperties: false
 properties:
-    task-processor:
+    db_path:
         type: string
-        description: name of the task processor to run the blocking file operations
-    db-path:
+        description: path to the database file
+    max_background_jobs:
+        type: integer
+        minimum: 1
+        description: maximum number of concurrent background jobs, including flushes and compactions
+    column_families:
+        type: array
+        items:
+            type: string
+            description: name of column family
+        description: list of initial column families
+    compression:
         type: string
-        description: path to database file
+        description: compress blocks using this compression algorithm
+    compression_level:
+        type: integer
+        description: compression level applicable to zstd and lz4
+    bottommost_compression:
+        type: string
+        description: compress bottommost blocks using this compression algorithm
+    bottommost_compression_level:
+        type: integer
+        description: compression level applicable to zstd and lz4
+    use_direct_reads:
+        type: boolean
+        description: enable direct I/O mode for read/write
+    use_direct_io_for_flush_and_compaction:
+        type: boolean
+        description: use O_DIRECT for writes in background flush and compactions
 )");
 }
-}  // namespace storages::rocks
+
+Rocks::Rocks(const components::ComponentConfig& config, const components::ComponentContext& context)
+    : ComponentBase{config, context}, db_ptr_{std::make_shared<storages::rocks::Db>(
+        config["db_path"].As<std::string>(),
+        config["max_background_jobs"].As<int>(),
+        config["column_families"].As<std::vector<std::string>>(),
+        storages::rocks::DbOptions{
+            config["compression"].As<std::optional<std::string>>(),
+            config["compression_level"].As<std::optional<int>>(),
+            config["bottommost_compression"].As<std::optional<std::string>>(),
+            config["bottommost_compression_level"].As<std::optional<int>>(),
+            config["use_direct_reads"].As<std::optional<bool>>(),
+            config["use_direct_io_for_flush_and_compaction"].As<std::optional<bool>>()
+        },
+        context.GetTaskProcessor("rocks-task-processor")
+    )} {}
+
+const storages::rocks::DbPtr& Rocks::GetDb() const { return db_ptr_; }
+
+}  // namespace components
 
 USERVER_NAMESPACE_END

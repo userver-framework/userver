@@ -6,21 +6,21 @@
 #include <stdexcept>
 #include <string_view>
 
+namespace rocksdb {
+class Status;
+}  // namespace rocksdb
+
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::rocks {
 
-/// Generic rocks-related exception
-class Exception : public std::runtime_error {
-public:
-    using std::runtime_error::runtime_error;
-};
+namespace detail {
+void CheckStatus(const rocksdb::Status& status, std::string_view description);
+}  // namespace detail
 
-/// Request execution failed
-class RequestFailedException : public Exception {
+class StatusNokException : public std::runtime_error {
 public:
-    RequestFailedException(std::string_view request_description, std::string_view status);
-
+    StatusNokException(std::string_view description, std::string_view status);
     std::string_view GetStatusString() const;
 
 private:

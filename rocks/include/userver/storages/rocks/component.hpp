@@ -1,45 +1,40 @@
 #pragma once
 
 /// @file userver/storages/rocks/component.hpp
-/// @brief @copybrief rocks::Rocks
+/// @brief @copybrief components::Rocks
 
+#include <string_view>
+#include <userver/storages/rocks/db_fwd.hpp>
 #include <userver/components/component_base.hpp>
 #include <userver/components/component_config.hpp>
 #include <userver/components/component_context.hpp>
-#include <userver/engine/task/task_processor_fwd.hpp>
-#include <userver/storages/rocks/client_fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace storages::rocks {
+namespace components {
 
-// clang-format off
-
-/// @ingroup userver_components
-///
-/// @brief RocksDB client component.
-/// ## Static options:
-/// Name                               | Description                                      | Default value
-/// ---------------------------------- | ------------------------------------------------ | ---------------
-/// task-processor                     | name of the task processor to run the blocking file operations | -
-/// db-path                            | path to database file                            | -
-
-// clang-format on
-
-class Component : public components::ComponentBase {
+/**
+ * @brief Component for configuring and managing RocksDB.
+ */
+class Rocks final : public components::ComponentBase {
 public:
-    Component(const components::ComponentConfig&, const components::ComponentContext&);
-
-    ~Component() = default;
-
-    storages::rocks::ClientPtr MakeClient();
-
+    static constexpr std::string_view kName = "rocks";
     static yaml_config::Schema GetStaticConfigSchema();
 
+    /**
+     * @brief Constructor of the Rocks class.
+     */
+    Rocks(const components::ComponentConfig&, const components::ComponentContext&);
+
+    /**
+     * @brief Return a pointer to the database instance.
+     */
+    [[nodiscard]] const storages::rocks::DbPtr& GetDb() const;
+
 private:
-    storages::rocks::ClientPtr client_ptr_;
+    storages::rocks::DbPtr db_ptr_;
 };
 
-}  // namespace storages::rocks
+}  // namespace components
 
 USERVER_NAMESPACE_END
