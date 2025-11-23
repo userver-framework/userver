@@ -117,6 +117,6 @@ jobs:
                 ; do
                     mv conanfile.py $SAMPLE/
                     echo "Run: ${{ matrix.container && 'sudo -u test-user' }} ${{matrix.tests-env}} conan test $SAMPLE/ --build=never -s:a compiler.cppstd=17 -pr:b=default ${{matrix.conanflags}} ${USERVER_VERSION}"
-                    ${{ matrix.container && 'sudo -u test-user' }} ${{matrix.tests-env}} conan test $SAMPLE/ --build=never -s:a compiler.cppstd=17 -pr:b=default ${{matrix.conanflags}} "${USERVER_VERSION}"
+                    ${{ matrix.container && 'sudo -u test-user' }} ${{matrix.tests-env}} conan test $SAMPLE/ --build=never -s:a compiler.cppstd=17 -pr:b=default ${{matrix.conanflags}} \"${USERVER_VERSION}\"
                     mv $SAMPLE/conanfile.py ./
                 done
