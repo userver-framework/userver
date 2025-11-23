@@ -449,8 +449,8 @@ Thanks to Open-Source community we have Conan support.
 To build the userver Conan package run the following in the userver root directory:
 
 ```shell
-conan profile new --detect default && conan profile update settings.compiler.libcxx=libstdc++11 default
-conan create . --build=missing -pr:b=default
+conan profile detect && conan profile show
+conan create . --build=missing --version=`cat version.txt` -pr:b=default
 ```
 
 Make sure to pass flags corresponding to the desired userver libraries, e.g. `-o with_grpc=0`.
