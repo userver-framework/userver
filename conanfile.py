@@ -240,9 +240,9 @@ class UserverConan(ConanFile):
     def build(self):
         # pg_config is required to build psycopg2 from source without system package.
         # However, this approach fails on later stage, when venv for tests is built.
-        # libpq = self.dependencies["libpq"]
-        # if libpq:
-        #     os.environ["PATH"] = os.environ["PATH"] + ":" + libpq.package_folder+ "/bin"
+        libpq = self.dependencies["libpq"]
+        if libpq:
+            os.environ["PATH"] = os.environ["PATH"] + ":" + libpq.package_folder+ "/bin"
 
         cmake = CMake(self)
         cmake.configure()
@@ -259,9 +259,23 @@ class UserverConan(ConanFile):
 
     def system_requirements(self):
         if self.options.with_postgresql:
-            # pg_config is required to build psycopg2 python module from source at
-            # testsuite venv creation during functional testing of user code.
-            package_manager.Apt(self).install(['libpq-dev'])
-            package_manager.Yum(self).install(['libpq-devel'])
-            package_manager.PacMan(self).install(['libpq-dev'])
-            package_manager.Zypper(self).install(['libpq-devel'])
+            self.output.warning(
+                'Testing services linked with userver::postgresql require '
+                'PostgreSQL database and libpq-dev* packages installed in your system',
+            )
+        if self.options.with_kafka:
+            self.output.warning(
+                'Testing services linked with userver::kafka require Kafka installed in your system',
+            )
+        if self.options.with_mongodb:
+            self.output.warning(
+                'Testing services linked with userver::mongo require MongoDB installed in your system',
+            )
+        if self.options.with_redis:
+            self.output.warning(
+                'Testing services linked with userver::redis require RedisDB installed in your system',
+            )
+        if self.options.with_clickhouse:
+            self.output.warning(
+                'Testing services linked with userver::clickhouse require ClickHouse installed in your system',
+            )

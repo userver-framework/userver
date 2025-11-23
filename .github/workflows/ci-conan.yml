@@ -86,7 +86,7 @@ jobs:
                       | sudo tee -a /etc/apt/sources.list.d/mongodb-org-7.0.list
 
                 sudo DEBIAN_FRONTEND=noninteractive apt update
-                sudo DEBIAN_FRONTEND=noninteractive apt install -y postgresql redis mongodb-org mongodb-mongosh locales
+                sudo DEBIAN_FRONTEND=noninteractive apt install -y postgresql libpq-dev redis mongodb-org mongodb-mongosh locales
                 ${{ matrix.container && 'sudo locale-gen en_US.UTF-8' }}
                 ${{ matrix.container && 'update-locale LC_ALL="en_US.UTF-8" LANG="en_US.UTF-8" LANGUAGE="en_US.UTF-8"' }}
                 sudo ./scripts/kafka/ubuntu_install_kafka.sh
@@ -94,6 +94,7 @@ jobs:
 
           - name: Test userver conan package
             run: |-
+                mv libraries/easy/samples/1_hi samples/
                 mv libraries/easy/samples/3_json samples/
                 mv scripts/tests/conanfile.py samples/
                 rm -rf userver/cmake/
@@ -101,6 +102,7 @@ jobs:
 
                 USERVER_VERSION=$(${{ matrix.container && 'sudo -u test-user' }} conan list -c -v quiet userver/* | tail -n 1 | tr -d ' ')
                 for SAMPLE in \
+                    1_hi \
                     3_json \
                     chaotic_service \
                     embedded_files \
