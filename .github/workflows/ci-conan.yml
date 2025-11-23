@@ -99,7 +99,7 @@ jobs:
                 rm -rf userver/cmake/
                 cd samples/
 
-                USERVER_VERSION=$(${{ matrix.container && 'sudo -u test-user' }} conan list -c -v quiet userver/* | tail -n 1)
+                USERVER_VERSION=$(${{ matrix.container && 'sudo -u test-user' }} conan list -c -v quiet userver/* | tail -n 1 | tr -d ' ')
                 for SAMPLE in \
                     3_json \
                     chaotic_service \
