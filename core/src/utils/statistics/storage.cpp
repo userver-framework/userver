@@ -63,8 +63,9 @@ public:
             source.extender(StatisticsRequest{});
         }
     } catch (const std::exception& e) {
-        LOG_ERROR() << "Unhandled exception while statistics holder " << source.prefix_path
-                    << " is unregistering automatically: " << e.what();
+        LOG_ERROR()
+            << "Unhandled exception while statistics holder " << source.prefix_path
+            << " is unregistering automatically: " << e.what();
     }
 }
 
@@ -76,7 +77,8 @@ Request Request::MakeWithPrefix(const std::string& prefix, AddLabels add_labels,
         prefix,
         prefix.empty() ? PrefixMatch::kNoop : PrefixMatch::kStartsWith,
         std::move(require_labels),
-        std::move(add_labels)};
+        std::move(add_labels)
+    };
 }
 
 Request Request::MakeWithPath(const std::string& path, AddLabels add_labels, std::vector<Label> require_labels) {
@@ -94,11 +96,14 @@ Request::Request(
     : prefix(std::move(prefix_in)),
       prefix_match_type(path_match_type_in),
       require_labels(std::move(require_labels_in)),
-      add_labels(std::move(add_labels_in)) {}
+      add_labels(std::move(add_labels_in))
+{}
 
 BaseFormatBuilder::~BaseFormatBuilder() = default;
 
-Storage::Storage() : may_register_extenders_(true) {}
+Storage::Storage()
+    : may_register_extenders_(true)
+{}
 
 formats::json::Value Storage::GetAsJson() const {
     formats::json::ValueBuilder result;
@@ -141,15 +146,17 @@ void Storage::VisitMetrics(BaseFormatBuilder& out, const Request& request) const
 
             try {
                 auto writer =
-                    (entry.prefix_path.empty() ? Writer{state, labels_vector}
-                                               : Writer{state, labels_vector}[entry.prefix_path]);
+                    (entry.prefix_path.empty()
+                         ? Writer{state, labels_vector}
+                         : Writer{state, labels_vector}[entry.prefix_path]);
                 if (writer) {
                     LOG_DEBUG() << "Getting statistics for prefix=" << entry.prefix_path;
                     entry.writer(writer);
                 }
             } catch (const std::exception& e) {
                 UASSERT_MSG(
-                    false, fmt::format("Failed to write metrics for prefix '{}': {}", entry.prefix_path, e.what())
+                    false,
+                    fmt::format("Failed to write metrics for prefix '{}': {}", entry.prefix_path, e.what())
                 );
                 LOG_ERROR() << "Failed to write metrics for prefix '" << entry.prefix_path << "': " << e;
             }
@@ -182,10 +189,8 @@ Entry Storage::DoRegisterExtender(impl::MetricsSource&& source) {
     return Entry(Entry::Impl{this, res});
 }
 
-void Storage::UnregisterExtender(
-    impl::StorageIterator iterator,
-    [[maybe_unused]] impl::UnregisteringKind kind
-) noexcept {
+void Storage::UnregisterExtender(impl::StorageIterator iterator, [[maybe_unused]] impl::UnregisteringKind kind)
+    noexcept {
     const std::lock_guard lock(mutex_);
     if constexpr (impl::kCheckSubscriptionUB) {
         if (kind == impl::UnregisteringKind::kAutomatic) {

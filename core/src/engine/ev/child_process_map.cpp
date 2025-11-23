@@ -20,7 +20,9 @@ ChildProcessMap& GetChildProcessMap() {
 ChildProcessMapValue* ChildProcessMapGetOptional(int pid) {
     auto& child_process_map = GetChildProcessMap();
     auto it = child_process_map.find(pid);
-    if (it == child_process_map.end()) return nullptr;
+    if (it == child_process_map.end()) {
+        return nullptr;
+    }
     return &it->second;
 }
 

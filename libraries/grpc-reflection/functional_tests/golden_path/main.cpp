@@ -16,14 +16,16 @@
 #include <userver/grpc-reflection/reflection_service_component.hpp>
 
 int main(int argc, char* argv[]) {
-    const auto component_list = components::MinimalServerComponentList()
-                                    .Append<congestion_control::Component>()
-                                    .Append<grpc_reflection::ReflectionServiceComponent>()
-                                    .Append<components::TestsuiteSupport>()
-                                    .Append<server::handlers::TestsControl>()
-                                    .Append<ugrpc::server::HealthComponent>()
-                                    .Append<components::HttpClient>()
-                                    .AppendComponentList(ugrpc::server::DefaultComponentList())
-                                    .Append<clients::dns::Component>();
+    const auto component_list =
+        components::MinimalServerComponentList()
+            .Append<congestion_control::Component>()
+            .Append<grpc_reflection::ReflectionServiceComponent>()
+            .Append<components::TestsuiteSupport>()
+            .Append<server::handlers::TestsControl>()
+            .Append<ugrpc::server::HealthComponent>()
+            .Append<components::HttpClientCore>()
+            .Append<components::HttpClient>()
+            .AppendComponentList(ugrpc::server::DefaultComponentList())
+            .Append<clients::dns::Component>();
     return utils::DaemonMain(argc, argv, component_list);
 }

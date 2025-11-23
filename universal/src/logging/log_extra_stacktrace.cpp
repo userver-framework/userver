@@ -27,8 +27,9 @@ void ExtendLogExtraWithStacktrace(
     try {
         log_extra.Extend(
             std::string{kTraceKey},
-            (flags & LogExtraStacktraceFlags::kNoCache) ? boost::stacktrace::to_string(trace)
-                                                        : stacktrace_cache::to_string(trace),
+            (flags & LogExtraStacktraceFlags::kNoCache)
+                ? boost::stacktrace::to_string(trace)
+                : stacktrace_cache::to_string(trace),
             (flags & LogExtraStacktraceFlags::kFrozen) ? LogExtra::ExtendType::kFrozen : LogExtra::ExtendType::kNormal
         );
     } catch (const std::exception& e) {

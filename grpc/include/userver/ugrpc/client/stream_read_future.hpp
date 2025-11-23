@@ -22,11 +22,8 @@ template <typename RawStream>
 class [[nodiscard]] StreamReadFuture {
 public:
     /// @cond
-    StreamReadFuture(
-        impl::StreamingCallState& state,
-        RawStream& stream,
-        const google::protobuf::Message* recv_message
-    ) noexcept;
+    StreamReadFuture(impl::StreamingCallState& state, RawStream& stream, const google::protobuf::Message* recv_message)
+        noexcept;
     /// @endcond
 
     StreamReadFuture(StreamReadFuture&& other) noexcept;
@@ -69,11 +66,16 @@ StreamReadFuture<RawStream>::StreamReadFuture(
 template <typename RawStream>
 StreamReadFuture<RawStream>::StreamReadFuture(StreamReadFuture&& other) noexcept
     // state_ == nullptr signals that *this is empty. Other fields may remain garbage in `other`.
-    : state_{std::exchange(other.state_, nullptr)}, stream_{other.stream_}, recv_message_{other.recv_message_} {}
+    : state_{std::exchange(other.state_, nullptr)},
+      stream_{other.stream_},
+      recv_message_{other.recv_message_}
+{}
 
 template <typename RawStream>
 StreamReadFuture<RawStream>& StreamReadFuture<RawStream>::operator=(StreamReadFuture&& other) noexcept {
-    if (this == &other) return *this;
+    if (this == &other) {
+        return *this;
+    }
     [[maybe_unused]] auto for_destruction = std::move(*this);
     // state_ == nullptr signals that *this is empty. Other fields may remain garbage in `other`.
     state_ = std::exchange(other.state_, nullptr);

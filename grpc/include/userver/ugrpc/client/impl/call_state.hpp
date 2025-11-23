@@ -11,6 +11,7 @@
 #include <userver/engine/single_waiting_task_mutex.hpp>
 #include <userver/tracing/in_place_span.hpp>
 
+#include <userver/ugrpc/client/fwd.hpp>
 #include <userver/ugrpc/client/impl/call_kind.hpp>
 #include <userver/ugrpc/client/impl/middleware_pipeline.hpp>
 #include <userver/ugrpc/client/impl/stub_handle.hpp>

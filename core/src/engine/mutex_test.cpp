@@ -68,8 +68,9 @@ TYPED_UTEST_P(Mutex, TryLock) {
                      return !!std::unique_lock<TypeParam>(mutex, std::chrono::system_clock::now());
                  }).Get());
 
-    auto long_waiter =
-        engine::AsyncNoSpan([&mutex] { return !!std::unique_lock<TypeParam>(mutex, utest::kMaxTestWaitTime); });
+    auto long_waiter = engine::AsyncNoSpan([&mutex] {
+        return !!std::unique_lock<TypeParam>(mutex, utest::kMaxTestWaitTime);
+    });
     engine::Yield();
     EXPECT_FALSE(long_waiter.IsFinished());
     lock.unlock();
@@ -98,7 +99,9 @@ TYPED_UTEST_P_MT(Mutex, LockPassing, kThreads) {
         for (size_t i = 0; i < worker_count; ++i) {
             tasks.push_back(engine::AsyncNoSpan(work));
         }
-        for (auto& task : tasks) task.Get();
+        for (auto& task : tasks) {
+            task.Get();
+        }
     }
 }
 

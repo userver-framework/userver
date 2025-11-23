@@ -29,15 +29,21 @@ struct DocumentDeleter {
 
 class MutableBson {
 public:
-    MutableBson() : bson_(bson_new()) {}
+    MutableBson()
+        : bson_(bson_new())
+    {}
 
-    MutableBson(const uint8_t* data, size_t len) : bson_(bson_new_from_data(data, len)) {}
+    MutableBson(const uint8_t* data, size_t len)
+        : bson_(bson_new_from_data(data, len))
+    {}
 
     MutableBson(const MutableBson& other) { *this = other; }
     MutableBson(MutableBson&&) noexcept = default;
 
     MutableBson& operator=(const MutableBson& rhs) {
-        if (this == &rhs) return *this;
+        if (this == &rhs) {
+            return *this;
+        }
 
         return *this = CopyNative(rhs.bson_.get());
     }
@@ -54,7 +60,9 @@ public:
     BsonHolder Extract() { return std::move(bson_); }
 
 private:
-    explicit MutableBson(bson_t* bson) : bson_(bson) {}
+    explicit MutableBson(bson_t* bson)
+        : bson_(bson)
+    {}
 
 // https://jira.mongodb.org/browse/CDRIVER-3378
 #pragma GCC diagnostic push
@@ -66,11 +74,15 @@ private:
 // This MUST be initialized externally
 class UninitializedBson {
 public:
-    UninitializedBson() : bson_(static_cast<bson_t*>(bson_malloc(sizeof(bson_t)))) {}
+    UninitializedBson()
+        : bson_(static_cast<bson_t*>(bson_malloc(sizeof(bson_t))))
+    {}
 
     ~UninitializedBson() {
         bson_t* native_bson_ptr = bson_.get();
-        if (bson_) DocumentDeleter{}(native_bson_ptr);
+        if (bson_) {
+            DocumentDeleter{}(native_bson_ptr);
+        }
     }
 
     bson_t* Get() { return bson_.get(); }
@@ -93,7 +105,9 @@ private:
 class ArrayIndexer {
 public:
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
-    ArrayIndexer(uint32_t init_idx = 0) : idx_(init_idx) {}
+    ArrayIndexer(uint32_t init_idx = 0)
+        : idx_(init_idx)
+    {}
 
     uint32_t Index() const { return idx_; }
 
@@ -114,7 +128,9 @@ private:
 class SubarrayBson {
 public:
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
-    SubarrayBson(bson_t* parent, const char* key, size_t key_len) : parent_(parent) {
+    SubarrayBson(bson_t* parent, const char* key, size_t key_len)
+        : parent_(parent)
+    {
         bson_append_array_begin(parent_, key, key_len, &bson_);
     }
 
@@ -133,7 +149,9 @@ private:
 class SubdocBson {
 public:
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
-    SubdocBson(bson_t* parent, const char* key, size_t key_len) : parent_(parent) {
+    SubdocBson(bson_t* parent, const char* key, size_t key_len)
+        : parent_(parent)
+    {
         bson_append_document_begin(parent_, key, key_len, &bson_);
     }
 

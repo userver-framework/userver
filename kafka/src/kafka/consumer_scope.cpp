@@ -26,8 +26,10 @@ OffsetRange ConsumerScope::GetOffsetRange(
     return consumer_.GetOffsetRange(topic, partition, timeout);
 }
 
-std::vector<std::uint32_t>
-ConsumerScope::GetPartitionIds(utils::zstring_view topic, std::optional<std::chrono::milliseconds> timeout) const {
+std::vector<std::uint32_t> ConsumerScope::GetPartitionIds(
+    utils::zstring_view topic,
+    std::optional<std::chrono::milliseconds> timeout
+) const {
     return consumer_.GetPartitionIds(topic, timeout);
 }
 

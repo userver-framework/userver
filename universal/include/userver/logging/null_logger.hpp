@@ -20,6 +20,15 @@ TextLoggerRef GetNullLogger() noexcept;
 /// @see components::Logging
 TextLoggerPtr MakeNullLogger();
 
+namespace impl {
+
+// Creates a logger that drops all incoming messages, but
+// * reports log level INFO (customizable) to force forming those messages;
+// * uses Formats::kRaw to produce reasonable CPU usage for formatting logs.
+TextLoggerPtr MakeNoopLoggerForTests();
+
+}  // namespace impl
+
 }  // namespace logging
 
 USERVER_NAMESPACE_END

@@ -31,7 +31,8 @@ Pool::Pool(
           ValidateConfig(pool_config, id),
           dns_resolver,
           config_source
-      )) {}
+      ))
+{}
 
 Pool::Pool(Pool&&) noexcept = default;
 
@@ -48,9 +49,8 @@ bool Pool::HasCollection(utils::zstring_view name) const {
 }
 
 Collection Pool::GetCollection(std::string name) const {
-    return Collection(
-        std::make_shared<impl::cdriver::CDriverCollectionImpl>(impl_, impl_->DefaultDatabaseName(), std::move(name))
-    );
+    return Collection(std::make_shared<
+                      impl::cdriver::CDriverCollectionImpl>(impl_, impl_->DefaultDatabaseName(), std::move(name)));
 }
 
 std::vector<std::string> Pool::ListCollectionNames() const {

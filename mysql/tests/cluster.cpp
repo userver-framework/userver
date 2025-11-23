@@ -69,7 +69,9 @@ UTEST(Cluster, InsertMany) {
     }
 
     cluster->ExecuteBulk(
-        ClusterHostType::kPrimary, table.FormatWithTableName("INSERT INTO {}(Id, Value) VALUES(?, ?)"), rows_to_insert
+        ClusterHostType::kPrimary,
+        table.FormatWithTableName("INSERT INTO {}(Id, Value) VALUES(?, ?)"),
+        rows_to_insert
     );
 
     const auto db_rows = table.DefaultExecute("SELECT Id, Value FROM {}").AsVector<Row>();
@@ -92,7 +94,9 @@ UTEST(Cluster, UpdateMany) {
     }
 
     cluster->ExecuteBulk(
-        ClusterHostType::kPrimary, table.FormatWithTableName("INSERT INTO {}(Id, Value) VALUES(?, ?)"), rows_to_insert
+        ClusterHostType::kPrimary,
+        table.FormatWithTableName("INSERT INTO {}(Id, Value) VALUES(?, ?)"),
+        rows_to_insert
     );
 
     {
@@ -163,7 +167,9 @@ UTEST(ShowCase, BatchInsert) {
     }
 
     cluster->ExecuteBulk(
-        ClusterHostType::kPrimary, table.FormatWithTableName("INSERT INTO {}(Id, Value) VALUES(?, ?)"), rows_to_insert
+        ClusterHostType::kPrimary,
+        table.FormatWithTableName("INSERT INTO {}(Id, Value) VALUES(?, ?)"),
+        rows_to_insert
     );
 }
 
@@ -192,7 +198,9 @@ UTEST(Cluster, MappedBatchInsert) {
     std::vector<UserRow> users{{1, "Ivan", "Trofimov"}, {2, "John", "Doe"}};
 
     cluster->ExecuteBulkMapped<DbRow>(
-        ClusterHostType::kPrimary, table.FormatWithTableName("INSERT INTO {}(Id, Username) VALUES(?, ?)"), users
+        ClusterHostType::kPrimary,
+        table.FormatWithTableName("INSERT INTO {}(Id, Username) VALUES(?, ?)"),
+        users
     );
 
     const auto db_rows = table.DefaultExecute("SELECT Id, Username FROM {}").AsVector<DbRow>();
@@ -223,17 +231,18 @@ namespace execute_sample {
 
 /// [uMySQL usage sample - Cluster Execute]
 void PerformExecute(const Cluster& cluster, std::chrono::milliseconds timeout, const std::string& title, int amount) {
-    const auto insertion_result = cluster
-                                      .Execute(
-                                          CommandControl{timeout},
-                                          ClusterHostType::kPrimary,
-                                          "INSERT INTO SampleTable(title, amount, created) "
-                                          "VALUES(?, ?, ?)",
-                                          title,
-                                          amount,
-                                          std::chrono::system_clock::now()
-                                      )
-                                      .AsExecutionResult();
+    const auto insertion_result =
+        cluster
+            .Execute(
+                CommandControl{timeout},
+                ClusterHostType::kPrimary,
+                "INSERT INTO SampleTable(title, amount, created) "
+                "VALUES(?, ?, ?)",
+                title,
+                amount,
+                std::chrono::system_clock::now()
+            )
+            .AsExecutionResult();
 
     EXPECT_EQ(insertion_result.rows_affected, 1);
     EXPECT_EQ(insertion_result.last_insert_id, 1);
@@ -260,15 +269,16 @@ struct SampleRow final {
 };
 
 void PerformExecuteDecompose(const Cluster& cluster, std::chrono::milliseconds timeout, const SampleRow& row) {
-    const auto insertion_result = cluster
-                                      .ExecuteDecompose(
-                                          CommandControl{timeout},
-                                          ClusterHostType::kPrimary,
-                                          "INSERT INTO SampleTable(title, amount, created) "
-                                          "VALUES(?, ?, ?)",
-                                          row
-                                      )
-                                      .AsExecutionResult();
+    const auto insertion_result =
+        cluster
+            .ExecuteDecompose(
+                CommandControl{timeout},
+                ClusterHostType::kPrimary,
+                "INSERT INTO SampleTable(title, amount, created) "
+                "VALUES(?, ?, ?)",
+                row
+            )
+            .AsExecutionResult();
 
     EXPECT_EQ(insertion_result.rows_affected, 1);
     EXPECT_EQ(insertion_result.last_insert_id, 1);
@@ -281,7 +291,9 @@ UTEST(Cluster, ExecuteDecompose) {
     PrepareExampleTable(*cluster);
 
     PerformExecuteDecompose(
-        *cluster, std::chrono::milliseconds{1750}, SampleRow{"title", 2, std::chrono::system_clock::now()}
+        *cluster,
+        std::chrono::milliseconds{1750},
+        SampleRow{"title", 2, std::chrono::system_clock::now()}
     );
 }
 
@@ -297,15 +309,16 @@ struct SampleRow final {
 };
 
 void PerformExecuteBulk(const Cluster& cluster, std::chrono::milliseconds timeout, const std::vector<SampleRow>& rows) {
-    const auto bulk_insertion_result = cluster
-                                           .ExecuteBulk(
-                                               CommandControl{timeout},
-                                               ClusterHostType::kPrimary,
-                                               "INSERT INTO SampleTable(title, amount, created) "
-                                               "VALUES(?, ?, ?)",
-                                               rows
-                                           )
-                                           .AsExecutionResult();
+    const auto bulk_insertion_result =
+        cluster
+            .ExecuteBulk(
+                CommandControl{timeout},
+                ClusterHostType::kPrimary,
+                "INSERT INTO SampleTable(title, amount, created) "
+                "VALUES(?, ?, ?)",
+                rows
+            )
+            .AsExecutionResult();
 
     // When performing a multi insert prepared statement, mysql_stmt_insert_id()
     // will return the value of the first row.
@@ -359,15 +372,16 @@ void PerformExecuteBulkMapped(
     std::chrono::milliseconds timeout,
     const std::vector<SampleUserStruct>& data
 ) {
-    const auto bulk_insertion_result = cluster
-                                           .ExecuteBulkMapped<SampleRow>(
-                                               CommandControl{timeout},
-                                               ClusterHostType::kPrimary,
-                                               "INSERT INTO SampleTable(title, amount, created) "
-                                               "VALUES(?, ?, ?)",
-                                               data
-                                           )
-                                           .AsExecutionResult();
+    const auto bulk_insertion_result =
+        cluster
+            .ExecuteBulkMapped<SampleRow>(
+                CommandControl{timeout},
+                ClusterHostType::kPrimary,
+                "INSERT INTO SampleTable(title, amount, created) "
+                "VALUES(?, ?, ?)",
+                data
+            )
+            .AsExecutionResult();
 
     // When performing a multi insert prepared statement, mysql_stmt_insert_id()
     // will return the value of the first row.

@@ -15,7 +15,9 @@ struct CustomObject {
 
     CustomObject(const ns::CustomObject&);
 
-    explicit CustomObject(std::string&& foo) : foo(std::move(foo)) {}
+    explicit CustomObject(std::string&& foo)
+        : foo(std::move(foo))
+    {}
 
     std::string foo;
 };

@@ -31,7 +31,10 @@ std::atomic<TestpointControl*> control_instance{nullptr};
 
 class TestpointScope final {
 public:
-    TestpointScope() : lock_(client_instance_mutex), client_(client_instance) {}
+    TestpointScope()
+        : lock_(client_instance_mutex),
+          client_(client_instance)
+    {}
 
     explicit operator bool() const noexcept { return client_ != nullptr; }
 
@@ -51,7 +54,9 @@ private:
 namespace impl {
 
 bool IsTestpointEnabled(std::string_view name) noexcept {
-    if (!client_instance) return false;
+    if (!client_instance) {
+        return false;
+    }
 
     // Test facility that should not throw in production
     try {
@@ -59,7 +64,8 @@ bool IsTestpointEnabled(std::string_view name) noexcept {
         return std::visit(
             utils::Overloaded{
                 [](const EnableAll&) { return true; },
-                [&](const EnableOnly& names) { return utils::impl::FindTransparent(names, name) != names.end(); }},
+                [&](const EnableOnly& names) { return utils::impl::FindTransparent(names, name) != names.end(); }
+            },
             *enabled_names
         );
     } catch (const std::exception& e) {
@@ -75,7 +81,9 @@ void ExecuteTestpointCoro(
     TestpointClientBase::Callback callback
 ) {
     const TestpointScope tp_scope;
-    if (!tp_scope) return;
+    if (!tp_scope) {
+        return;
+    }
 
     utils::trx_tracker::CheckDisabler disabler;
     tp_scope.GetClient().Execute(name, json, callback);
@@ -150,7 +158,9 @@ void TestpointControl::SetClient(TestpointClientBase& client) {
 }
 
 bool AreTestpointsAvailable() noexcept {
-    if (!client_instance) return false;
+    if (!client_instance) {
+        return false;
+    }
     return true;
 }
 

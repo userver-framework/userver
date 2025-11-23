@@ -19,8 +19,10 @@ namespace engine {
 
 namespace {
 
-TaskProcessor*
-GetMonitorTaskProcessor(const components::ComponentConfig& config, const components::ComponentContext& context) {
+TaskProcessor* GetMonitorTaskProcessor(
+    const components::ComponentConfig& config,
+    const components::ComponentContext& context
+) {
     static constexpr std::string_view kOurTaskProcessorFieldName{"task-processor"};
     static constexpr std::string_view kMonitoringTaskProcessorFieldName{"task_processor"};
 
@@ -47,10 +49,11 @@ public:
     Impl(const components::ComponentConfig& config, const components::ComponentContext& context) {
         auto* monitor_task_processor = GetMonitorTaskProcessor(config, context);
         if (!monitor_task_processor) {
-            LOG_WARNING() << "TaskProcessorLoadMonitor is enabled, but neither "
-                             "'task-processor' is specified in config, nor "
-                             "server::handlers::ServerMonitor is enabled. The "
-                             "monitoring will be no-op.";
+            LOG_WARNING()
+                << "TaskProcessorLoadMonitor is enabled, but neither "
+                   "'task-processor' is specified in config, nor "
+                   "server::handlers::ServerMonitor is enabled. The "
+                   "monitoring will be no-op.";
             return;
         }
 
@@ -75,9 +78,10 @@ public:
         }
 
         auto& storage = context.FindComponent<components::StatisticsStorage>().GetStorage();
-        statistics_holder_ = storage.RegisterWriter(
-            "engine.task-processors-load-percent", [this](utils::statistics::Writer& writer) { ExtendWriter(writer); }
-        );
+        statistics_holder_ =
+            storage.RegisterWriter("engine.task-processors-load-percent", [this](utils::statistics::Writer& writer) {
+                ExtendWriter(writer);
+            });
     }
 
     ~Impl() {
@@ -128,7 +132,9 @@ TaskProcessorsLoadMonitor::TaskProcessorsLoadMonitor(
     const components::ComponentConfig& config,
     const components::ComponentContext& context
 )
-    : components::ComponentBase{config, context}, impl_{std::make_unique<Impl>(config, context)} {}
+    : components::ComponentBase{config, context},
+      impl_{std::make_unique<Impl>(config, context)}
+{}
 
 TaskProcessorsLoadMonitor::~TaskProcessorsLoadMonitor() = default;
 

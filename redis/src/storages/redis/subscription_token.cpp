@@ -25,15 +25,20 @@ SubscriptionToken& SubscriptionToken::operator=(SubscriptionToken&&) noexcept = 
 SubscriptionToken::SubscriptionToken(SubscriptionToken&& other) noexcept = default;
 
 SubscriptionToken::SubscriptionToken(std::unique_ptr<impl::SubscriptionTokenImplBase>&& implementation)
-    : impl_(std::move(implementation)) {}
+    : impl_(std::move(implementation))
+{}
 
 void SubscriptionToken::SetMaxQueueLength(size_t length) {
-    if (!impl_) return;
+    if (!impl_) {
+        return;
+    }
     impl_->SetMaxQueueLength(length);
 }
 
 void SubscriptionToken::Unsubscribe() {
-    if (!impl_) return;
+    if (!impl_) {
+        return;
+    }
     impl_->Unsubscribe();
 }
 

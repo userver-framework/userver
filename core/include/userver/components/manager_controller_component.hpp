@@ -37,6 +37,7 @@ class Manager;
 /// coro_pool.stack_size | size of a single coroutine stack @ref scripts/docs/en/userver/stack.md | 256 * 1024
 /// coro_pool.local_cache_size | local coroutine cache size per thread | 32
 /// coro_pool.stack_usage_monitor_enabled | whether stack usage is accounted and warnings about too high stack usage are logged @ref scripts/docs/en/userver/stack.md | true
+/// coro_pool.deadlock_detector | Coroutines deadlock detector mode. Can slow down the service. One of: off, on, detect-only. | off
 /// event_thread_pool.threads | number of threads to process low level IO system calls (number of ev loops to start in libev) | 2
 /// event_thread_pool.thread_name | set OS thread name to this value | 'event-worker'
 /// components | dictionary of "component name": "options" | -
@@ -50,6 +51,8 @@ class Manager;
 /// userver_experiments.*NAME* | whether to enable certain userver experiments; these are gradually enabled by userver team, for internal use only | false
 /// graceful_shutdown_interval | at shutdown, first hang for this duration with /ping 5xx to give the balancer a chance to redirect new requests to other hosts | 0s
 /// enable_trx_tracker | Enable checking of heavy operations (like http calls) while having active database transactions. | true
+/// enable_component_load_tracing | whether trace all components coroutines during boot, and dump alive coroutines stacktraces on slow boot. Can slow down service startup. | false
+/// component_load_print_interval | how often to print "still loading components: ..." log message during startup | 10s
 ///
 /// ## Static task_processor options:
 /// Name | Description | Default value

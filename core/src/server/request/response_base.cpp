@@ -7,7 +7,9 @@ USERVER_NAMESPACE_BEGIN
 namespace server::http::impl {
 
 Http2StreamEventProducer::Http2StreamEventProducer(Http2StreamEventQueue& queue, engine::SingleConsumerEvent& event)
-    : producer_(queue.GetProducer()), event_(event) {}
+    : producer_(queue.GetProducer()),
+      event_(event)
+{}
 
 void Http2StreamEventProducer::PushEvent(Http2StreamEvent event, engine::Deadline deadline) {
     const auto res = producer_.Push(std::move(event), deadline);
@@ -55,10 +57,13 @@ std::chrono::milliseconds ResponseDataAccounter::GetAvgRequestTime() const {
 }
 
 ResponseBase::ResponseBase(ResponseDataAccounter& data_accounter)
-    : ResponseBase{data_accounter, std::chrono::steady_clock::now()} {}
+    : ResponseBase{data_accounter, std::chrono::steady_clock::now()}
+{}
 
 ResponseBase::ResponseBase(ResponseDataAccounter& data_account, std::chrono::steady_clock::time_point now)
-    : accounter_{data_account}, create_time_{now} {
+    : accounter_{data_account},
+      create_time_{now}
+{
     guard_.emplace(accounter_, create_time_, data_.size());
 }
 

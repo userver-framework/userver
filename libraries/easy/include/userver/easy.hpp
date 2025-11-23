@@ -16,6 +16,7 @@
 #include <userver/server/request/request_context.hpp>
 
 #include <userver/storages/postgres/cluster.hpp>
+#include <userver/storages/query.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -28,7 +29,7 @@ class DependenciesBase : public components::ComponentBase {
 public:
     static constexpr std::string_view kName = "easy-dependencies";
     using components::ComponentBase::ComponentBase;
-    virtual ~DependenciesBase();
+    ~DependenciesBase() override;
 };
 
 }  // namespace impl
@@ -48,7 +49,9 @@ public:
     static constexpr std::string_view kName = "easy-dependencies";
 
     DependenciesComponent(const components::ComponentConfig& config, const components::ComponentContext& context)
-        : DependenciesBase(config, context), dependencies_(context) {}
+        : DependenciesBase(config, context),
+          dependencies_(context)
+    {}
 
     Dependencies GetDependencies() const { return dependencies_; }
 
@@ -164,7 +167,9 @@ public:
         HttpBase::Callback func_;
     };
 
-    HttpWith(int argc, const char* const argv[]) : impl_(argc, argv) {
+    HttpWith(int argc, const char* const argv[])
+        : impl_(argc, argv)
+    {
         impl_.TryAddComponent<DependenciesComponent>(DependenciesComponent::kName);
     }
     ~HttpWith() { Dependency::RegisterOn(impl_); }
@@ -323,7 +328,7 @@ private:
 }  // namespace easy
 
 template <class Dependencies>
-inline constexpr auto components::kConfigFileMode<easy::DependenciesComponent<Dependencies>> =
-    ConfigFileMode::kNotRequired;
+inline constexpr auto
+    components::kConfigFileMode<easy::DependenciesComponent<Dependencies>> = ConfigFileMode::kNotRequired;
 
 USERVER_NAMESPACE_END

@@ -47,7 +47,8 @@ UTEST_DEATH(ColumnsMismatchDeathTest, Select) {
 
     const storages::clickhouse::Query more_columns_query{
         "SELECT toUInt64(0) as one, randomString(2) as two, randomString(2) as "
-        "three"};
+        "three"
+    };
     EXPECT_UINVARIANT_FAILURE(cluster->Execute(more_columns_query).As<DataWithTwoColumns>());
     EXPECT_UINVARIANT_FAILURE(cluster->Execute(more_columns_query).AsRows<DataWithTwoFields>());
     EXPECT_UINVARIANT_FAILURE(cluster->Execute(more_columns_query).AsContainer<std::vector<DataWithTwoFields>>());

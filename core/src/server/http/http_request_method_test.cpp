@@ -20,7 +20,9 @@ class HttpRequestMethods : public ::testing::TestWithParam<MethodsData> {};
 
 std::string PrintMethodsDataTestName(const ::testing::TestParamInfo<MethodsData>& data) {
     std::string res = data.param.method_query;
-    if (res.empty()) res = "_empty_";
+    if (res.empty()) {
+        res = "_empty_";
+    }
     return res;
 }
 
@@ -50,8 +52,8 @@ INSTANTIATE_UTEST_SUITE_P(
 UTEST_P(HttpRequestMethods, Test) {
     const auto& param = GetParam();
     bool parsed = false;
-    auto parser =
-        server::CreateTestParser([&param, &parsed](std::shared_ptr<server::http::HttpRequest>&& http_request) {
+    auto
+        parser = server::CreateTestParser([&param, &parsed](std::shared_ptr<server::http::HttpRequest>&& http_request) {
             parsed = true;
             EXPECT_EQ(http_request->GetMethod(), param.method);
         });

@@ -10,7 +10,9 @@ USERVER_NAMESPACE_BEGIN
 namespace clients::http::plugins::retry_budget {
 
 Component::Component(const components::ComponentConfig& config, const components::ComponentContext& context)
-    : ComponentBase(config, context), plugin_(std::make_unique<retry_budget::Plugin>()) {
+    : ComponentBase(config, context),
+      plugin_(std::make_unique<retry_budget::Plugin>())
+{
     auto policy = config.As<USERVER_NAMESPACE::utils::RetryBudgetSettings>();
     plugin_->Storage().SetPolicy(policy);
 }

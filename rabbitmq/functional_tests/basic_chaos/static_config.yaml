@@ -44,6 +44,7 @@ components_manager:
             fs-task-processor: fs-task-processor
 
         http-client:
+        http-client-core:
             fs-task-processor: fs-task-processor
             user-agent: userver testsuite
 

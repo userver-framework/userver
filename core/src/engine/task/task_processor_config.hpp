@@ -38,6 +38,8 @@ struct TaskProcessorConfig {
     std::size_t task_trace_max_csw{0};
     std::string task_trace_logger_name;
 
+    bool trace_coroutines{false};
+
     void SetName(const std::string& new_name);
 };
 

@@ -33,8 +33,12 @@ UTEST(IoWatcher, DevNull) {
 
         char c{};
         const int rc = read(fd, &c, 1);
-        if (rc == 0) done = true;
-        if (rc > 0) counter += rc;
+        if (rc == 0) {
+            done = true;
+        }
+        if (rc > 0) {
+            counter += rc;
+        }
         EXPECT_EQ(rc, 0);
 
         cv.notify_all();

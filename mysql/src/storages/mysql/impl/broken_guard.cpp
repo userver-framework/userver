@@ -9,7 +9,9 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::mysql::impl {
 
 BrokenGuard::BrokenGuard(Connection& connection)
-    : connection_{connection}, exceptions_on_enter_{std::uncaught_exceptions()} {
+    : connection_{connection},
+      exceptions_on_enter_{std::uncaught_exceptions()}
+{
     if (connection_.IsBroken()) {
         throw MySQLException(0, "Connection is broken.");
     }
@@ -30,7 +32,8 @@ BrokenGuard::~BrokenGuard() {
             within_range(ER_ERROR_FIRST_SECTION_2, ER_ERROR_LAST_SECTION_2) ||
             within_range(ER_ERROR_FIRST_SECTION_3, ER_ERROR_LAST_SECTION_3) ||
             within_range(ER_ERROR_FIRST_SECTION_4, ER_ERROR_LAST_SECTION_4) ||
-            within_range(ER_ERROR_FIRST_SECTION_5, ER_ERROR_LAST)) {
+            within_range(ER_ERROR_FIRST_SECTION_5, ER_ERROR_LAST))
+        {
             // all of these are mysqld errors
             return;
         }

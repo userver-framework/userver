@@ -165,13 +165,15 @@ MongoCache<MongoCacheTraits>::MongoCache(const ComponentConfig& config, const Co
       mongo_collections_(context.FindComponent<typename MongoCacheTraits::MongoCollectionsComponent>()
                              .template GetCollectionForLibrary<CollectionsType>()),
       mongo_collection_(std::addressof(mongo_collections_.get()->*MongoCacheTraits::kMongoCollectionsField)),
-      correction_(impl::GetMongoCacheUpdateCorrection(config)) {
+      correction_(impl::GetMongoCacheUpdateCorrection(config))
+{
     [[maybe_unused]] mongo_cache::impl::CheckTraits<MongoCacheTraits> check_traits;
 
     if (CachingComponentBase<typename MongoCacheTraits::DataType>::GetAllowedUpdateTypes() ==
             cache::AllowedUpdateTypes::kFullAndIncremental &&
         !mongo_cache::impl::kHasUpdateFieldName<MongoCacheTraits> &&
-        !mongo_cache::impl::kHasFindOperation<MongoCacheTraits>) {
+        !mongo_cache::impl::kHasFindOperation<MongoCacheTraits>)
+    {
         throw std::logic_error(fmt::format(
             "Incremental update support is requested in config but no update field "
             "name is specified in traits of '{}' cache",
@@ -236,22 +238,25 @@ void MongoCache<MongoCacheTraits>::Update(
             if (type == cache::UpdateType::kIncremental || new_cache->count(key) == 0) {
                 (*new_cache)[key] = std::move(object);
             } else {
-                LOG_LIMITED_ERROR() << "Found duplicate key for 2 items in cache " << MongoCacheTraits::kName
-                                    << ", key=" << key;
+                LOG_LIMITED_ERROR()
+                    << "Found duplicate key for 2 items in cache " << MongoCacheTraits::kName << ", key=" << key;
             }
         } catch (const std::exception& e) {
-            LOG_LIMITED_ERROR() << "Failed to deserialize cache item of cache " << MongoCacheTraits::kName
-                                << ", _id=" << doc["_id"].template ConvertTo<std::string>() << ", what(): " << e;
+            LOG_LIMITED_ERROR()
+                << "Failed to deserialize cache item of cache " << MongoCacheTraits::kName
+                << ", _id=" << doc["_id"].template ConvertTo<std::string>() << ", what(): " << e;
             stats_scope.IncreaseDocumentsParseFailures(1);
 
-            if (!MongoCacheTraits::kAreInvalidDocumentsSkipped) throw;
+            if (!MongoCacheTraits::kAreInvalidDocumentsSkipped) {
+                throw;
+            }
         }
     }
 
     const auto elapsed_time = scope.ElapsedTotal(kFetchAndParseStage);
     if (elapsed_time > kCpuRelaxThreshold) {
-        cpu_relax_iterations_ =
-            static_cast<std::size_t>(static_cast<double>(doc_count) / (elapsed_time / kCpuRelaxInterval));
+        cpu_relax_iterations_ = static_cast<
+            std::size_t>(static_cast<double>(doc_count) / (elapsed_time / kCpuRelaxInterval));
         LOG_TRACE() << fmt::format(
             "Elapsed time for updating {} {} for {} data items is over threshold. "
             "Will relax CPU every {} iterations",
@@ -299,8 +304,8 @@ storages::mongo::operations::Find MongoCache<MongoCacheTraits>::GetFindOperation
             bson::ValueBuilder query_builder(bson::ValueBuilder::Type::kObject);
             if constexpr (mongo_cache::impl::kHasUpdateFieldName<MongoCacheTraits>) {
                 if (type == cache::UpdateType::kIncremental) {
-                    query_builder[MongoCacheTraits::kMongoUpdateFieldName] =
-                        bson::MakeDoc("$gt", last_update - correction);
+                    query_builder
+                        [MongoCacheTraits::kMongoUpdateFieldName] = bson::MakeDoc("$gt", last_update - correction);
                 }
             }
             return sm::operations::Find(query_builder.ExtractValue());
@@ -332,9 +337,8 @@ std::string GetMongoCacheSchema();
 
 template <class MongoCacheTraits>
 yaml_config::Schema MongoCache<MongoCacheTraits>::GetStaticConfigSchema() {
-    return yaml_config::MergeSchemas<CachingComponentBase<typename MongoCacheTraits::DataType>>(
-        impl::GetMongoCacheSchema()
-    );
+    return yaml_config::MergeSchemas<
+        CachingComponentBase<typename MongoCacheTraits::DataType>>(impl::GetMongoCacheSchema());
 }
 
 }  // namespace components

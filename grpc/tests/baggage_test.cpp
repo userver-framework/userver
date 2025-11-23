@@ -120,8 +120,8 @@ class ClientBaggageTestService final : public sample::ugrpc::UnitTestServiceBase
 public:
     SayHelloResult SayHello(CallContext& context, sample::ugrpc::GreetingRequest&& /*request*/) override {
         sample::ugrpc::GreetingResponse response;
-        const auto* baggage_header =
-            utils::FindOrNullptr(context.GetServerContext().client_metadata(), ugrpc::impl::kXBaggage);
+        const auto*
+            baggage_header = utils::FindOrNullptr(context.GetServerContext().client_metadata(), ugrpc::impl::kXBaggage);
 
         if (baggage_header) {
             response.set_name(ugrpc::impl::ToString(*baggage_header));

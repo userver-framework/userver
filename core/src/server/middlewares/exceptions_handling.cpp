@@ -13,7 +13,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::middlewares {
 
-ExceptionsHandling::ExceptionsHandling(const handlers::HttpHandlerBase& handler) : handler_{handler} {}
+ExceptionsHandling::ExceptionsHandling(const handlers::HttpHandlerBase& handler)
+    : handler_{handler}
+{}
 
 void ExceptionsHandling::HandleRequest(http::HttpRequest& request, request::RequestContext& context) const {
     try {
@@ -25,7 +27,9 @@ void ExceptionsHandling::HandleRequest(http::HttpRequest& request, request::Requ
     }
 }
 
-UnknownExceptionsHandling::UnknownExceptionsHandling(const handlers::HttpHandlerBase& handler) : handler_{handler} {}
+UnknownExceptionsHandling::UnknownExceptionsHandling(const handlers::HttpHandlerBase& handler)
+    : handler_{handler}
+{}
 
 void UnknownExceptionsHandling::HandleRequest(http::HttpRequest& request, request::RequestContext& context) const {
     try {

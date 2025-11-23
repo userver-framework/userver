@@ -104,7 +104,8 @@ TYPED_TEST_P(Conversion, Double) {
              std::pair{value["ez"], 0.0},
              std::pair{value["en"], -3.14},
              std::pair{value["ep"], 3.14},
-         }) {
+         })
+    {
         EXPECT_EQ(!!ethalon, elem.template ConvertTo<bool>());
         EXPECT_EQ(static_cast<int32_t>(ethalon), elem.template ConvertTo<int32_t>());
         EXPECT_EQ(static_cast<int64_t>(ethalon), elem.template ConvertTo<int64_t>());
@@ -138,7 +139,8 @@ TYPED_TEST_P(Conversion, Int32) {
              std::pair{value["ez"], 0},
              std::pair{value["en"], -314},
              std::pair{value["ep"], 314},
-         }) {
+         })
+    {
         EXPECT_EQ(!!ethalon, elem.template ConvertTo<bool>());
         EXPECT_EQ(ethalon, elem.template ConvertTo<int32_t>());
         EXPECT_EQ(ethalon, elem.template ConvertTo<int64_t>());
@@ -172,7 +174,8 @@ TYPED_TEST_P(Conversion, Int64) {
              std::pair{value["ez"], 0},
              std::pair{value["en"], -314},
              std::pair{value["ep"], 314},
-         }) {
+         })
+    {
         EXPECT_EQ(!!ethalon, elem.template ConvertTo<bool>());
         EXPECT_EQ(ethalon, elem.template ConvertTo<int32_t>());
         EXPECT_EQ(ethalon, elem.template ConvertTo<int64_t>());
@@ -202,7 +205,8 @@ TYPED_TEST_P(Conversion, Utf8) {
              std::pair{value["b"], std::string{"0"}},
              std::pair{value["c"], std::string{"10"}},
              std::pair{value["d"], std::string{"-10"}},
-         }) {
+         })
+    {
         EXPECT_TRUE(elem.template ConvertTo<bool>()) << "ethalon=" << ethalon;
         // possible false positive because of conditional in catch?
         // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)

@@ -12,10 +12,10 @@ namespace ugrpc::server::impl {
 
 namespace {
 
-constexpr std::string_view kGenericServiceFullNameFake = "Generic";
+constexpr utils::StringLiteral kGenericServiceFullNameFake = "Generic";
 
 constexpr std::array kGenericMethodsFake = {ugrpc::impl::MethodDescriptor{
-    /*method_full_name*/ "Generic/Generic",
+    /*method_full_name*/ utils::StringLiteral{"Generic/Generic"},
     /*method_type*/ ugrpc::impl::RpcType::kBidiStreaming,
 }};
 
@@ -31,7 +31,7 @@ public:
     explicit AsyncService(std::size_t method_count) { UASSERT(method_count == 1); }
 
     template <typename CallTraits>
-    void Prepare(
+    void RequestCall(
         int method_id,
         grpc::GenericServerContext& context,
         typename CallTraits::InitialRequest& /*initial_request*/,
@@ -52,14 +52,17 @@ private:
 
 struct GenericServiceWorker::Impl {
     Impl(GenericServiceBase& service, ServiceInternals&& internals)
-        : service(service), service_data(std::move(internals), kGenericMetadataFake) {}
+        : service(service),
+          service_data(std::move(internals), kGenericMetadataFake)
+    {}
 
     GenericServiceBase& service;
     ServiceData<GenericServiceTag> service_data;
 };
 
 GenericServiceWorker::GenericServiceWorker(GenericServiceBase& service, ServiceInternals&& internals)
-    : impl_(service, std::move(internals)) {}
+    : impl_(service, std::move(internals))
+{}
 
 GenericServiceWorker::GenericServiceWorker(GenericServiceWorker&&) noexcept = default;
 

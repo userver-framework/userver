@@ -1,6 +1,6 @@
+from collections.abc import Iterator
 import pathlib
 import tempfile
-from typing import Iterator
 
 import pytest
 

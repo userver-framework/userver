@@ -15,7 +15,7 @@ struct PgToCpp<PredefinedOids::kDate, Date> : detail::PgToCppPredefined<Predefin
 
 namespace {
 
-const auto kReference = detail::ForceReference(PgToCpp<PredefinedOids::kDate, Date>::init_);
+const auto kReference = detail::ForceReference(PgToCpp<PredefinedOids::kDate, Date>::init);
 
 }  // namespace
 }  // namespace io

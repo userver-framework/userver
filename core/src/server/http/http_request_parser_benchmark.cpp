@@ -33,11 +33,17 @@ inline server::http::HttpRequestParser CreateBenchmarkParser(server::http::HttpR
         /*.decompress_request = */ false,
         /* set_tracing_headers = */ true,
         /* deadline_propagation_enabled = */ true,
-        /* deadline_expired_status_code = */ server::http::HttpStatus{498}};
+        /* deadline_expired_status_code = */ server::http::HttpStatus{498}
+    };
     static server::net::ParserStats test_stats;
     static server::request::ResponseDataAccounter test_accounter;
     return server::http::HttpRequestParser(
-        kTestHandlerInfoIndex, kTestRequestConfig, std::move(cb), test_stats, test_accounter, engine::io::Sockaddr{}
+        kTestHandlerInfoIndex,
+        kTestRequestConfig,
+        std::move(cb),
+        test_stats,
+        test_accounter,
+        engine::io::Sockaddr{}
     );
 }
 

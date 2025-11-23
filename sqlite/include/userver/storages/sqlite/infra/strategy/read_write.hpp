@@ -17,11 +17,15 @@ private:
     Pool& GetReadOnly() const final;
     Pool& GetReadWrite() const final;
 
-    PoolPtr
-    InitializeReadOnlyPoolReference(settings::SQLiteSettings settings, engine::TaskProcessor& blocking_task_processor);
+    PoolPtr InitializeReadOnlyPoolReference(
+        settings::SQLiteSettings settings,
+        engine::TaskProcessor& blocking_task_processor
+    );
 
-    PoolPtr
-    InitializeReadWritePoolReference(settings::SQLiteSettings settings, engine::TaskProcessor& blocking_task_processor);
+    PoolPtr InitializeReadWritePoolReference(
+        settings::SQLiteSettings settings,
+        engine::TaskProcessor& blocking_task_processor
+    );
 
     // Order is strong, write connection would be create first
     PoolPtr write_connection_pool_;

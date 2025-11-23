@@ -22,10 +22,12 @@ ProducerComponent::ProducerComponent(
           config.Name(),
           context.GetTaskProcessor("producer-task-processor"),
           config.As<impl::ProducerConfiguration>(),
-          context.FindComponent<components::Secdist>().Get().Get<impl::BrokerSecrets>().GetSecretByComponentName(
-              config.Name()
-          )
-      ) {
+          context.FindComponent<components::Secdist>()
+              .Get()
+              .Get<impl::BrokerSecrets>()
+              .GetSecretByComponentName(config.Name())
+      )
+{
     auto& storage = context.FindComponent<components::StatisticsStorage>().GetStorage();
 
     statistics_holder_ = storage.RegisterWriter("kafka_producer", [this](utils::statistics::Writer& writer) {

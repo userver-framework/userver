@@ -20,7 +20,9 @@
 
 namespace samples {
 
-GreeterService::GreeterService(std::string prefix) : prefix_(std::move(prefix)) {}
+GreeterService::GreeterService(std::string prefix)
+    : prefix_(std::move(prefix))
+{}
 
 /// [server RPC handling]
 GreeterService::SayHelloResult GreeterService::SayHello(CallContext& /*context*/, api::GreetingRequest&& request) {
@@ -54,8 +56,10 @@ GreeterService::SayHelloResponseStreamResult GreeterService::SayHelloResponseStr
 /// [server RPC handling response_stream]
 
 /// [server RPC handling request_stream]
-GreeterService::SayHelloRequestStreamResult
-GreeterService::SayHelloRequestStream(CallContext& /*context*/, SayHelloRequestStreamReader& reader) {
+GreeterService::SayHelloRequestStreamResult GreeterService::SayHelloRequestStream(
+    CallContext& /*context*/,
+    SayHelloRequestStreamReader& reader
+) {
     std::string message{};
     api::GreetingRequest request;
     while (reader.Read(request)) {
@@ -68,8 +72,10 @@ GreeterService::SayHelloRequestStream(CallContext& /*context*/, SayHelloRequestS
 /// [server RPC handling request_stream]
 
 /// [server RPC handling streams]
-GreeterService::SayHelloStreamsResult
-GreeterService::SayHelloStreams(CallContext& /*context*/, SayHelloStreamsReaderWriter& stream) {
+GreeterService::SayHelloStreamsResult GreeterService::SayHelloStreams(
+    CallContext& /*context*/,
+    SayHelloStreamsReaderWriter& stream
+) {
     std::string message;
     api::GreetingRequest request;
     api::GreetingResponse response;
@@ -87,7 +93,9 @@ GreeterServiceComponent::GreeterServiceComponent(
     const components::ComponentConfig& config,
     const components::ComponentContext& context
 )
-    : ugrpc::server::ServiceComponentBase(config, context), service_(config["greeting-prefix"].As<std::string>()) {
+    : ugrpc::server::ServiceComponentBase(config, context),
+      service_(config["greeting-prefix"].As<std::string>())
+{
     RegisterService(service_);
 }
 /// [component]

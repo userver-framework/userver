@@ -8,12 +8,10 @@ and skips the synchronous `Update`.
 Advantages:
 - Faster service start: the service no longer waits for the first synchronous
   `Update` that may query a database or make some other network requests.
-- Better fault tolerance: the service now boots successfully even if the first
-  update fails.
+- Better fault tolerance: the service now boots successfully even if the first update fails.
 
 Disadvantages:
-- CPU time is spent on periodic serialization of data and writing to the dump
-  file.
+- CPU time is spent on periodic serialization of data and writing to the dump file.
 - Disk accesses consume the IO quota, which can negatively affect other disk
   users (for example, logging or other caches).
 
@@ -56,8 +54,7 @@ In order for a data type to be serialized for cache dumps the `Write` and
     * Integers, floats, doubles, strings, `std::chrono`, `enum`, `uuid` in
       `<userver/dump/common.hpp>`
     * C++ Standard Library and Boost containers, `std::optional`,
-      `utils::StrongTypedef`, `std::{unique,shared}_ptr` in
-      `<userver/dump/common_containers.hpp>`
+      `utils::StrongTypedef`, `std::{unique,shared}_ptr` in `<userver/dump/common_containers.hpp>`
     * Protobuf messages in `<userver/dump/protobuf.hpp>`
     * Trivial structures (aggregates) in `<userver/dump/aggregates.hpp>`, but
       you will have to enable dumps manually:

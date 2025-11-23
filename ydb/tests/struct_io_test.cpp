@@ -25,14 +25,14 @@ const ydb::Query kInsertQuery{R"(
 UTEST_F(YdbStructIO, StructRead) {
     CreateTable("test_table", true);
 
-    const ydb::Query kSelectQuery{R"(
+    const ydb::Query select_query{R"(
     --!syntax_v1
 
     SELECT <|key: key, value_str: value_str, value_int: value_int|> as item
     FROM test_table
     ORDER BY test_table.item.key;
   )"};
-    auto cursor = GetTableClient().ExecuteDataQuery(kSelectQuery).GetSingleCursor();
+    auto cursor = GetTableClient().ExecuteDataQuery(select_query).GetSingleCursor();
     ASSERT_FALSE(cursor.IsTruncated());
 
     EXPECT_EQ(cursor.size(), 3);

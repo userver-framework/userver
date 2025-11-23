@@ -41,10 +41,14 @@ bool GetFromHandlerMethodIndex(
         it = index_map.find(path.size());
     } else {
         it = index_map.upper_bound(path.size());
-        if (it == index_map.begin()) return false;
+        if (it == index_map.begin()) {
+            return false;
+        }
         --it;
     }
-    if (it == index_map.end()) return false;
+    if (it == index_map.end()) {
+        return false;
+    }
     const auto& handler_method_index = it->second;
 
     const auto* handler_info_data = handler_method_index.GetHandlerInfoData(method);
@@ -55,11 +59,12 @@ bool GetFromHandlerMethodIndex(
 
     match_result.handler_info = &handler_info_data->handler_info;
     for (const auto& arg : handler_info_data->wildcards) {
-        if (arg.index > path.size())
+        if (arg.index > path.size()) {
             throw std::logic_error(
                 "matched path from handler has length greater than path from "
                 "request"
             );
+        }
         match_result.args_from_path.emplace_back(arg.name, arg.index == path.size() ? std::string{} : path[arg.index]);
     }
     match_result.status = MatchRequestResult::Status::kOk;
@@ -80,18 +85,20 @@ void WildcardPathIndex::AddHandler(const handlers::HttpHandlerBase& handler, eng
     if (url_trailing_slash == handlers::UrlTrailingSlashOption::kBoth && !path.empty()) {
         if (path.back() == '/') {
             if (path.size() > 1) {
-                if (path[path.size() - 2] == '/')
+                if (path[path.size() - 2] == '/') {
                     throw std::runtime_error("can't use 'url_trailing_slash' option with path ends with '//'");
+                }
                 AddHandler(path.substr(0, path.size() - 1), handler, task_processor);
             }
         } else if (path.back() == '*') {
             if (path.size() > 1 && path[path.size() - 2] == '/') {
                 // ends with '/*' but not with '//*'
-                if (path.size() > 2 && path[path.size() - 3] == '/')
+                if (path.size() > 2 && path[path.size() - 3] == '/') {
                     throw std::runtime_error(
                         "can't use 'url_trailing_slash' option with path ends with "
                         "'//*'"
                     );
+                }
                 AddHandler(path.substr(0, path.size() - 2), handler, task_processor);
             } else {
                 throw std::runtime_error("incorrect path: '" + path + "': trailing '*' allowed after '/' only");
@@ -152,10 +159,14 @@ bool WildcardPathIndex::MatchRequest(
     MatchRequestResult& match_result
 ) const {
     for (const auto& next_item : node.next) {
-        if (next_item.first >= path.size()) break;
+        if (next_item.first >= path.size()) {
+            break;
+        }
         auto it = next_item.second.find(path[next_item.first]);
         if (it != next_item.second.end()) {
-            if (MatchRequest(it->second, method, path, path_string_length, match_result)) return true;
+            if (MatchRequest(it->second, method, path, path_string_length, match_result)) {
+                return true;
+            }
         }
     }
 

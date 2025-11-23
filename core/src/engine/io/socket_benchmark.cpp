@@ -93,7 +93,8 @@ BENCHMARK(SocketSendAllV);
         );
         for ([[maybe_unused]] auto _ : state) {
             const auto send_bytes = client.SendAll(
-                {{size_buff.data(), size_buff.size()}, {send_buff.data(), send_buff.size()}}, test_deadline
+                {{size_buff.data(), size_buff.size()}, {send_buff.data(), send_buff.size()}},
+                test_deadline
             );
             benchmark::DoNotOptimize(send_bytes);
         }

@@ -22,7 +22,9 @@ struct MutableValueWrapper::JsonPath {
 
     template <typename T>
     JsonPath(T&& element, std::shared_ptr<JsonPath> parent)
-        : element(std::forward<T>(element)), parent(std::move(parent)) {}
+        : element(std::forward<T>(element)),
+          parent(std::move(parent))
+    {}
 
     static Value& FetchMember(Value& root, const std::shared_ptr<JsonPath>& path);
     static std::string ToString(const std::shared_ptr<JsonPath>&);
@@ -31,10 +33,16 @@ struct MutableValueWrapper::JsonPath {
 struct MutableValueWrapper::Impl {
     Impl() = default;
 
-    Impl(VersionedValuePtr&& root, size_t version) : value(std::move(root)), current_version(version) {}
+    Impl(VersionedValuePtr&& root, size_t version)
+        : value(std::move(root)),
+          current_version(version)
+    {}
 
     Impl(std::shared_ptr<JsonPath>&& path, VersionedValuePtr root, const Value& member, int depth, size_t version)
-        : path(std::move(path)), value(MakeValue(std::move(root), member, depth)), current_version(version) {}
+        : path(std::move(path)),
+          value(MakeValue(std::move(root), member, depth)),
+          current_version(version)
+    {}
 
     static formats::json::Value MakeValue(VersionedValuePtr&& root, const Value& member, int depth) {
         // Custom root_ptr_for_path_ is not used for Value inside ValueBuilder.
@@ -49,7 +57,9 @@ struct MutableValueWrapper::Impl {
 
 MutableValueWrapper::MutableValueWrapper() = default;
 
-MutableValueWrapper::MutableValueWrapper(VersionedValuePtr root) : impl_(std::move(root), root.Version()) {}
+MutableValueWrapper::MutableValueWrapper(VersionedValuePtr root)
+    : impl_(std::move(root), root.Version())
+{}
 
 MutableValueWrapper::MutableValueWrapper(
     std::shared_ptr<JsonPath> path,
@@ -57,7 +67,8 @@ MutableValueWrapper::MutableValueWrapper(
     const Value& member,
     int depth
 )
-    : impl_(std::move(path), std::move(root), member, depth, root.Version()) {}
+    : impl_(std::move(path), std::move(root), member, depth, root.Version())
+{}
 
 MutableValueWrapper::MutableValueWrapper(const MutableValueWrapper&) = default;
 
@@ -75,7 +86,8 @@ MutableValueWrapper MutableValueWrapper::WrapMember(std::string&& element, const
         std::make_shared<JsonPath>(std::move(element), impl_->path),
         impl_->value.holder_,
         member,
-        impl_->value.depth_ + 1};
+        impl_->value.depth_ + 1
+    };
 }
 
 MutableValueWrapper MutableValueWrapper::WrapElement(size_t index) const {
@@ -84,7 +96,8 @@ MutableValueWrapper MutableValueWrapper::WrapElement(size_t index) const {
         std::make_shared<JsonPath>(index, impl_->path),
         impl_->value.holder_,
         (*impl_->value.value_ptr_)[static_cast<::rapidjson::SizeType>(index)],
-        impl_->value.depth_ + 1};
+        impl_->value.depth_ + 1
+    };
 }
 
 const formats::json::Value& MutableValueWrapper::operator*() const {
@@ -133,7 +146,10 @@ void MutableValueWrapper::EnsureCurrent() const {
 Value& MutableValueWrapper::JsonPath::FetchMember(Value& root, const std::shared_ptr<JsonPath>& path) {
     class Visitor {
     public:
-        Visitor(Value& value, const std::shared_ptr<JsonPath>& path) : value_(value), path_(path) {}
+        Visitor(Value& value, const std::shared_ptr<JsonPath>& path)
+            : value_(value),
+              path_(path)
+        {}
 
         Value& operator()(const std::string& element) {
             if (!value_.IsObject()) {
@@ -161,12 +177,16 @@ Value& MutableValueWrapper::JsonPath::FetchMember(Value& root, const std::shared
         const std::shared_ptr<JsonPath>& path_;
     };
 
-    if (!path) return root;
+    if (!path) {
+        return root;
+    }
     return std::visit(Visitor{FetchMember(root, path->parent), path}, path->element);
 }
 
 std::string MutableValueWrapper::JsonPath::ToString(const std::shared_ptr<JsonPath>& path) {
-    if (!path) return {};
+    if (!path) {
+        return {};
+    }
     auto path_str = ToString(path->parent);
     std::visit([&path_str](const auto& element) { common::AppendPath(path_str, element); }, path->element);
     return path_str;

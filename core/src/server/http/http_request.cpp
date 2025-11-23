@@ -18,9 +18,13 @@ namespace {
 std::string EscapeLogString(std::string_view str, const std::array<uint8_t, 256>& need_escape_map) {
     size_t esc_cnt = 0;
     for (const char ch : str) {
-        if (need_escape_map[static_cast<uint8_t>(ch)]) esc_cnt++;
+        if (need_escape_map[static_cast<uint8_t>(ch)]) {
+            esc_cnt++;
+        }
     }
-    if (!esc_cnt) return std::string{str};
+    if (!esc_cnt) {
+        return std::string{str};
+    }
     std::string res;
     res.reserve(str.size() + esc_cnt * 3);
     for (const char ch : str) {
@@ -39,8 +43,12 @@ std::string EscapeLogString(std::string_view str, const std::array<uint8_t, 256>
 std::string EscapeForAccessLog(std::string_view str) {
     constexpr auto prepare_need_escape = []() {
         std::array<uint8_t, 256> res{};
-        for (int i = 0; i < 32; i++) res[i] = 1;
-        for (int i = 127; i < 256; i++) res[i] = 1;
+        for (int i = 0; i < 32; i++) {
+            res[i] = 1;
+        }
+        for (int i = 127; i < 256; i++) {
+            res[i] = 1;
+        }
         res[static_cast<uint8_t>('\\')] = 1;
         res[static_cast<uint8_t>('"')] = 1;
         return res;
@@ -48,12 +56,16 @@ std::string EscapeForAccessLog(std::string_view str) {
 
     static constexpr auto kNeedEscape = prepare_need_escape();
 
-    if (str.empty()) return "-";
+    if (str.empty()) {
+        return "-";
+    }
     return EscapeLogString(str, kNeedEscape);
 }
 
 std::string EscapeForAccessTskvLog(std::string_view str) {
-    if (str.empty()) return "-";
+    if (str.empty()) {
+        return "-";
+    }
 
     std::string encoded_str;
     EncodeTskv(encoded_str, str, utils::encoding::EncodeTskvMode::kValue);
@@ -68,7 +80,8 @@ const std::vector<std::string> kEmptyVector{};
 namespace server::http {
 
 HttpRequest::HttpRequest(request::ResponseDataAccounter& data_accounter, utils::impl::InternalTag)
-    : pimpl_(*this, data_accounter) {}
+    : pimpl_(*this, data_accounter)
+{}
 
 HttpRequest::~HttpRequest() = default;
 
@@ -101,7 +114,9 @@ const std::string& HttpRequest::GetArg(std::string_view arg_name) const {
     pimpl_->args_referenced = true;
 #endif
     const auto* ptr = utils::impl::FindTransparentOrNullptr(pimpl_->request_args, arg_name);
-    if (!ptr) return kEmptyString;
+    if (!ptr) {
+        return kEmptyString;
+    }
     return ptr->at(0);
 }
 
@@ -110,7 +125,9 @@ const std::vector<std::string>& HttpRequest::GetArgVector(std::string_view arg_n
     pimpl_->args_referenced = true;
 #endif
     const auto* ptr = utils::impl::FindTransparentOrNullptr(pimpl_->request_args, arg_name);
-    if (!ptr) return kEmptyVector;
+    if (!ptr) {
+        return kEmptyVector;
+    }
     return *ptr;
 }
 
@@ -124,7 +141,9 @@ size_t HttpRequest::ArgCount() const { return pimpl_->request_args.size(); }
 std::vector<std::string> HttpRequest::ArgNames() const {
     std::vector<std::string> res;
     res.reserve(pimpl_->request_args.size());
-    for (const auto& arg : pimpl_->request_args) res.push_back(arg.first);
+    for (const auto& arg : pimpl_->request_args) {
+        res.push_back(arg.first);
+    }
     return res;
 }
 
@@ -132,7 +151,9 @@ const FormDataArg& HttpRequest::GetFormDataArg(std::string_view arg_name) const 
     static const FormDataArg kEmptyFormDataArg{};
 
     const auto* ptr = utils::impl::FindTransparentOrNullptr(pimpl_->form_data_args, arg_name);
-    if (!ptr) return kEmptyFormDataArg;
+    if (!ptr) {
+        return kEmptyFormDataArg;
+    }
     return ptr->at(0);
 }
 
@@ -140,7 +161,9 @@ const std::vector<FormDataArg>& HttpRequest::GetFormDataArgVector(std::string_vi
     static const std::vector<FormDataArg> kEmptyFormDataArgVector{};
 
     const auto* ptr = utils::impl::FindTransparentOrNullptr(pimpl_->form_data_args, arg_name);
-    if (!ptr) return kEmptyFormDataArgVector;
+    if (!ptr) {
+        return kEmptyFormDataArgVector;
+    }
     return *ptr;
 }
 
@@ -154,13 +177,17 @@ size_t HttpRequest::FormDataArgCount() const { return pimpl_->form_data_args.siz
 std::vector<std::string> HttpRequest::FormDataArgNames() const {
     std::vector<std::string> res;
     res.reserve(pimpl_->form_data_args.size());
-    for (const auto& [name, _] : pimpl_->form_data_args) res.push_back(name);
+    for (const auto& [name, _] : pimpl_->form_data_args) {
+        res.push_back(name);
+    }
     return res;
 }
 
 const std::string& HttpRequest::GetPathArg(std::string_view arg_name) const {
     const auto* ptr = utils::impl::FindTransparentOrNullptr(pimpl_->path_args_by_name_index, arg_name);
-    if (!ptr) return kEmptyString;
+    if (!ptr) {
+        return kEmptyString;
+    }
     UASSERT(*ptr < pimpl_->path_args.size());
     return pimpl_->path_args[*ptr];
 }
@@ -179,13 +206,17 @@ size_t HttpRequest::PathArgCount() const { return pimpl_->path_args.size(); }
 
 const std::string& HttpRequest::GetHeader(std::string_view header_name) const {
     auto it = pimpl_->headers.find(header_name);
-    if (it == pimpl_->headers.end()) return kEmptyString;
+    if (it == pimpl_->headers.end()) {
+        return kEmptyString;
+    }
     return it->second;
 }
 
 const std::string& HttpRequest::GetHeader(const USERVER_NAMESPACE::http::headers::PredefinedHeader& header_name) const {
     auto it = pimpl_->headers.find(header_name);
-    if (it == pimpl_->headers.end()) return kEmptyString;
+    if (it == pimpl_->headers.end()) {
+        return kEmptyString;
+    }
     return it->second;
 }
 
@@ -209,7 +240,9 @@ const HttpRequest::HeadersMap& HttpRequest::GetHeaders() const { return pimpl_->
 
 const std::string& HttpRequest::GetCookie(const std::string& cookie_name) const {
     auto it = pimpl_->cookies.find(cookie_name);
-    if (it == pimpl_->cookies.end()) return kEmptyString;
+    if (it == pimpl_->cookies.end()) {
+        return kEmptyString;
+    }
     return it->second;
 }
 
@@ -280,9 +313,8 @@ void HttpRequest::SetPathArgs(std::vector<std::pair<std::string, std::string>> a
 
 void HttpRequest::AccountResponseTime() {
     if (pimpl_->request_statistics) {
-        auto timing = std::chrono::duration_cast<std::chrono::milliseconds>(
-            pimpl_->finish_send_response_time - pimpl_->start_time
-        );
+        auto timing = std::chrono::duration_cast<
+            std::chrono::milliseconds>(pimpl_->finish_send_response_time - pimpl_->start_time);
         pimpl_->request_statistics->ForMethod(GetMethod()).Account(handlers::HttpRequestStatisticsEntry{timing});
     }
 }
@@ -339,7 +371,9 @@ void HttpRequest::WriteAccessLogs(
     const logging::TextLoggerPtr& logger_access_tskv,
     const std::string& remote_address
 ) const {
-    if (!logger_access && !logger_access_tskv) return;
+    if (!logger_access && !logger_access_tskv) {
+        return;
+    }
 
     const auto tp = utils::datetime::WallCoarseClock::now();
     WriteAccessLog(logger_access, tp, remote_address);
@@ -351,7 +385,9 @@ void HttpRequest::WriteAccessLog(
     utils::datetime::WallCoarseClock::time_point tp,
     const std::string& remote_address
 ) const {
-    if (!logger_access) return;
+    if (!logger_access) {
+        return;
+    }
 
     logging::impl::TextLogItem item{
         fmt::format(
@@ -380,7 +416,9 @@ void HttpRequest::WriteAccessTskvLog(
     utils::datetime::WallCoarseClock::time_point tp,
     const std::string& remote_address
 ) const {
-    if (!logger_access_tskv) return;
+    if (!logger_access_tskv) {
+        return;
+    }
 
     logging::impl::TextLogItem item{fmt::format(
         "tskv"

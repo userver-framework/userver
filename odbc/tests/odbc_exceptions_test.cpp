@@ -23,10 +23,12 @@ auto kSettings = storages::odbc::settings::ODBCClusterSettings{{kHostSettings}};
 
 UTEST(ConnectionError, InvalidDSN) {
     storages::odbc::Cluster cluster(storages::odbc::settings::ODBCClusterSettings{
-        {storages::odbc::settings::HostSettings{"invalid_dsn", {5, 10}}}});
+        {storages::odbc::settings::HostSettings{"invalid_dsn", {5, 10}}}
+    });
 
     UEXPECT_THROW(
-        cluster.Execute(storages::odbc::ClusterHostType::kMaster, "SELECT 1"), storages::odbc::ConnectionError
+        cluster.Execute(storages::odbc::ClusterHostType::kMaster, "SELECT 1"),
+        storages::odbc::ConnectionError
     );
 }
 
@@ -39,10 +41,13 @@ UTEST(ConnectionError, InvalidCredentials) {
             "DATABASE=postgres;"
             "UID=invalid_user;"
             "PWD=invalid_password;",
-            {5, 10}}}});
+            {5, 10}
+        }}
+    });
 
     UEXPECT_THROW(
-        cluster.Execute(storages::odbc::ClusterHostType::kMaster, "SELECT 1"), storages::odbc::ConnectionError
+        cluster.Execute(storages::odbc::ClusterHostType::kMaster, "SELECT 1"),
+        storages::odbc::ConnectionError
     );
 }
 

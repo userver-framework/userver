@@ -48,7 +48,9 @@ constexpr std::string_view kErrorAtPath2 = "': ";
 namespace formats::json {
 
 ExceptionWithPath::ExceptionWithPath(std::string_view msg, std::string_view path)
-    : Exception(utils::StrCat(kErrorAtPath1, path, kErrorAtPath2, msg)), path_size_(path.size()) {}
+    : Exception(utils::StrCat(kErrorAtPath1, path, kErrorAtPath2, msg)),
+      path_size_(path.size())
+{}
 
 std::string_view ExceptionWithPath::GetPath() const noexcept {
     return GetMessage().substr(kErrorAtPath1.size(), path_size_);
@@ -58,14 +60,19 @@ std::string_view ExceptionWithPath::GetMessageWithoutPath() const noexcept {
     return GetMessage().substr(path_size_ + kErrorAtPath1.size() + kErrorAtPath2.size());
 }
 
-BadStreamException::BadStreamException(const std::istream& is) : Exception(MsgForState(is.rdstate(), "input")) {}
+BadStreamException::BadStreamException(const std::istream& is)
+    : Exception(MsgForState(is.rdstate(), "input"))
+{}
 
-BadStreamException::BadStreamException(const std::ostream& os) : Exception(MsgForState(os.rdstate(), "output")) {}
+BadStreamException::BadStreamException(const std::ostream& os)
+    : Exception(MsgForState(os.rdstate(), "output"))
+{}
 
 TypeMismatchException::TypeMismatchException(int actual, int expected, std::string_view path)
     : ExceptionWithPath(MsgForType(static_cast<impl::Type>(actual), static_cast<impl::Type>(expected)), path),
       actual_(actual),
-      expected_(expected) {}
+      expected_(expected)
+{}
 
 std::string_view TypeMismatchException::GetActual() const {
     return impl::NameForType(static_cast<impl::Type>(actual_));
@@ -75,17 +82,23 @@ std::string_view TypeMismatchException::GetExpected() const {
 }
 
 OutOfBoundsException::OutOfBoundsException(size_t index, size_t size, std::string_view path)
-    : ExceptionWithPath(MsgForIndex(index, size), path) {}
+    : ExceptionWithPath(MsgForIndex(index, size), path)
+{}
 
-MemberMissingException::MemberMissingException(std::string_view path) : ExceptionWithPath("Field is missing", path) {}
+MemberMissingException::MemberMissingException(std::string_view path)
+    : ExceptionWithPath("Field is missing", path)
+{}
 
-ConversionException::ConversionException(std::string_view msg, std::string_view path) : ExceptionWithPath(msg, path) {}
+ConversionException::ConversionException(std::string_view msg, std::string_view path)
+    : ExceptionWithPath(msg, path)
+{}
 
 UnknownDiscriminatorException::UnknownDiscriminatorException(
     std::string_view path,
     std::string_view discriminator_field
 )
-    : ExceptionWithPath(MsgForUnknownDiscriminator(discriminator_field), path) {}
+    : ExceptionWithPath(MsgForUnknownDiscriminator(discriminator_field), path)
+{}
 
 }  // namespace formats::json
 

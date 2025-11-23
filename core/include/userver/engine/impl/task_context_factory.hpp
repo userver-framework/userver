@@ -26,8 +26,11 @@ struct TaskConfig final {
     engine::Deadline deadline;
 };
 
-[[nodiscard]] TaskContext&
-PlacementNewTaskContext(std::byte* storage, TaskConfig config, utils::impl::WrappedCallBase& payload);
+[[nodiscard]] TaskContext& PlacementNewTaskContext(
+    std::byte* storage,
+    TaskConfig config,
+    utils::impl::WrappedCallBase& payload
+);
 
 // Never returns nullptr, may throw.
 std::byte* AllocateFusedTaskContext(std::size_t total_size);

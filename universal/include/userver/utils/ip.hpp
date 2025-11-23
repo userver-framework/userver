@@ -29,11 +29,13 @@ class AddressBase final {
     static_assert(N == 4 || N == 16, "Address can only be 4 or 16 bytes size");
 
 public:
-    static constexpr std::size_t AddressSize = N;
+    static constexpr std::size_t kAddressSize = N;
     using BytesType = std::array<unsigned char, N>;
 
     AddressBase() noexcept : address_({0}) {}
-    explicit AddressBase(const BytesType& address) : address_(address) {}
+    explicit AddressBase(const BytesType& address)
+        : address_(address)
+    {}
 
     /// @brief Get the address in bytes, in network byte order.
     const BytesType& GetBytes() const noexcept { return address_; }
@@ -88,10 +90,13 @@ public:
     NetworkBase() noexcept = default;
 
     NetworkBase(const AddressType& address, unsigned short prefix_length)
-        : address_(address), prefix_length_(prefix_length) {
+        : address_(address),
+          prefix_length_(prefix_length)
+    {
         if (prefix_length > kMaximumPrefixLength) {
             throw std::out_of_range(fmt::format(
-                "{} prefix length is too large", std::is_same_v<Address, AddressV4> ? "NetworkV4" : "NetworkV6"
+                "{} prefix length is too large",
+                std::is_same_v<Address, AddressV4> ? "NetworkV4" : "NetworkV6"
             ));
         }
     }
@@ -215,7 +220,10 @@ InetNetwork NetworkV6ToInetNetwork(const NetworkV6& network);
 /// @brief Invalid network or address
 class AddressSystemError final : public std::exception {
 public:
-    AddressSystemError(std::error_code code, std::string_view msg) : msg_(msg), code_(code) {}
+    AddressSystemError(std::error_code code, std::string_view msg)
+        : msg_(msg),
+          code_(code)
+    {}
 
     /// Operating system error code.
     const std::error_code& Code() const { return code_; }

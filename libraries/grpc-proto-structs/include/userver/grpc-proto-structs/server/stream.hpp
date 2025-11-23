@@ -24,7 +24,9 @@ public:
     using RequestMessage = proto_structs::traits::CompatibleMessageType<Request>;
     using ProtobufMessageReader = ugrpc::server::Reader<RequestMessage>;
 
-    explicit Reader(ProtobufMessageReader& reader) : reader_{reader} {}
+    explicit Reader(ProtobufMessageReader& reader)
+        : reader_{reader}
+    {}
 
     /// @brief Await and read the next incoming message.
     ///
@@ -57,7 +59,9 @@ public:
     using ResponseMessage = proto_structs::traits::CompatibleMessageType<Response>;
     using ProtobufMessageWriter = ugrpc::server::Writer<ResponseMessage>;
 
-    explicit Writer(ProtobufMessageWriter& writer) : writer_{writer} {}
+    explicit Writer(ProtobufMessageWriter& writer)
+        : writer_{writer}
+    {}
 
     /// @{
     /// @brief Write the next outgoing message.
@@ -98,11 +102,14 @@ private:
 template <typename Request, typename Response>
 class ReaderWriter : public Reader<Request>, public Writer<Response> {
 public:
-    using ProtobufMessageReaderWriter = ugrpc::server::
-        ReaderWriter<typename Reader<Request>::RequestMessage, typename Writer<Response>::ResponseMessage>;
+    using ProtobufMessageReaderWriter = ugrpc::server::ReaderWriter<
+        typename Reader<Request>::RequestMessage,
+        typename Writer<Response>::ResponseMessage>;
 
     explicit ReaderWriter(ProtobufMessageReaderWriter& reader_writer)
-        : Reader<Request>{reader_writer}, Writer<Response>{reader_writer} {}
+        : Reader<Request>{reader_writer},
+          Writer<Response>{reader_writer}
+    {}
 };
 
 }  // namespace grpc_proto_structs::server

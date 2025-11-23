@@ -17,7 +17,9 @@ class bad_expected_access : public std::exception {
 public:
     using std::exception::exception;
 
-    explicit bad_expected_access(const std::string& message) : message_{message} {}
+    explicit bad_expected_access(const std::string& message)
+        : message_{message}
+    {}
 
     const char* what() const noexcept override { return message_.c_str(); }
 
@@ -92,18 +94,26 @@ private:
 };
 
 template <class E>
-unexpected<E>::unexpected(const E& error) : value_{error} {}
+unexpected<E>::unexpected(const E& error)
+    : value_{error}
+{}
 
 template <class E>
-unexpected<E>::unexpected(E&& error) : value_{std::forward<E>(error)} {}
+unexpected<E>::unexpected(E&& error)
+    : value_{std::forward<E>(error)}
+{}
 
 template <class E>
 template <class... Args>
-unexpected<E>::unexpected(Args&&... args) : value_(std::forward<Args>(args)...) {}
+unexpected<E>::unexpected(Args&&... args)
+    : value_(std::forward<Args>(args)...)
+{}
 
 template <class E>
 template <class U, class... Args>
-unexpected<E>::unexpected(std::initializer_list<U> il, Args&&... args) : value_(il, std::forward<Args>(args)...) {}
+unexpected<E>::unexpected(std::initializer_list<U> il, Args&&... args)
+    : value_(il, std::forward<Args>(args)...)
+{}
 
 template <class E>
 E& unexpected<E>::error() noexcept {
@@ -116,27 +126,41 @@ const E& unexpected<E>::error() const noexcept {
 }
 
 template <class S, class E>
-constexpr expected<S, E>::expected() noexcept(std::is_void_v<S>) : data_(std::in_place_index<0>) {}
+constexpr expected<S, E>::expected() noexcept(std::is_void_v<S>)
+    : data_(std::in_place_index<0>)
+{}
 
 template <class S, class E>
-expected<S, E>::expected(const S& success) : data_(success) {}
+expected<S, E>::expected(const S& success)
+    : data_(success)
+{}
 
 template <class S, class E>
-expected<S, E>::expected(S&& success) : data_(std::forward<S>(success)) {}
+expected<S, E>::expected(S&& success)
+    : data_(std::forward<S>(success))
+{}
 
 template <class S, class E>
-expected<S, E>::expected(const unexpected<E>& error) : data_(error.error()) {}
+expected<S, E>::expected(const unexpected<E>& error)
+    : data_(error.error())
+{}
 
 template <class S, class E>
-expected<S, E>::expected(unexpected<E>&& error) : data_(std::forward<unexpected<E>>(error.error())) {}
+expected<S, E>::expected(unexpected<E>&& error)
+    : data_(std::forward<unexpected<E>>(error.error()))
+{}
 
 template <class S, class E>
 template <class G, typename>
-expected<S, E>::expected(const unexpected<G>& error) : data_(utils::unexpected<E>(std::forward<G>(error.error()))) {}
+expected<S, E>::expected(const unexpected<G>& error)
+    : data_(utils::unexpected<E>(std::forward<G>(error.error())))
+{}
 
 template <class S, class E>
 template <class G, typename>
-expected<S, E>::expected(unexpected<G>&& error) : data_(utils::unexpected<E>(std::forward<G>(error.error()))) {}
+expected<S, E>::expected(unexpected<G>&& error)
+    : data_(utils::unexpected<E>(std::forward<G>(error.error())))
+{}
 
 template <class S, class E>
 bool expected<S, E>::has_value() const noexcept {

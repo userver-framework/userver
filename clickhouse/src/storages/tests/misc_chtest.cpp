@@ -67,7 +67,8 @@ UTEST(Query, Works) {
     const storages::clickhouse::Query q{
         "SELECT c.number, randomString(10), c.number as t, NOW64() "
         "FROM "
-        "numbers(0, 10000) c "};
+        "numbers(0, 10000) c "
+    };
     auto res = cluster->Execute(q).As<SomeData>();
     EXPECT_EQ(res.vec_str.size(), expected_size);
 
@@ -87,7 +88,8 @@ UTEST(Compression, Works) {
     const storages::clickhouse::Query q{
         "SELECT c.number, randomString(10), c.number as t, NOW64() "
         "FROM "
-        "numbers(0, 10000) c "};
+        "numbers(0, 10000) c "
+    };
     auto res = cluster->Execute(q).As<SomeData>();
     EXPECT_EQ(res.vec_str.size(), 10000);
 }
@@ -130,8 +132,9 @@ UTEST(Insert, AsRowsWorks) {
     std::vector<SomeDataRow> data{{1, "first", 2, now}, {3, "second", 4, now}};
     cluster->InsertRows("tmp_table", {"id", "value", "count", "tp"}, data);
 
-    const auto result = cluster->Execute("SELECT id, value, count, tp FROM tmp_table ORDER BY id")
-                            .AsContainer<std::vector<SomeDataRow>>();
+    const auto result =
+        cluster->Execute("SELECT id, value, count, tp FROM tmp_table ORDER BY id")
+            .AsContainer<std::vector<SomeDataRow>>();
     ASSERT_EQ(result.size(), 2);
     EXPECT_EQ(result[0], data[0]);
     EXPECT_EQ(result[1], data[1]);
@@ -150,13 +153,14 @@ UTEST(Query, AvoidUnexpectedCancellation) {
 
     // 2000ms to avoid flaps in CI, in perfect world ~300 should do
     const storages::clickhouse::CommandControl cc{std::chrono::milliseconds{2000}};
-    const auto result = cluster
-                            ->Execute(
-                                cc,
-                                "SELECT id, value, sleepEachRow(0.1) FROM "
-                                "tmp_table_with_sleep ORDER BY id"
-                            )
-                            .AsContainer<std::vector<SomeDataRowWithSleep>>();
+    const auto result =
+        cluster
+            ->Execute(
+                cc,
+                "SELECT id, value, sleepEachRow(0.1) FROM "
+                "tmp_table_with_sleep ORDER BY id"
+            )
+            .AsContainer<std::vector<SomeDataRowWithSleep>>();
     ASSERT_EQ(result.size(), 2);
     EXPECT_EQ(result[0], data[0]);
     EXPECT_EQ(result[1], data[1]);

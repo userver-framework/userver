@@ -11,8 +11,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace clients::http {
 
-constexpr char kResponse200WithHeaderPattern[] =
-    "HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Length: 0\r\n{}\r\n\r\n";
+constexpr char
+    kResponse200WithHeaderPattern[] = "HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Length: 0\r\n{}\r\n\r\n";
 
 struct Response200WithHeader {
     using HttpResponse = utest::SimpleServer::Response;

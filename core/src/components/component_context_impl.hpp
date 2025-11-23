@@ -12,6 +12,7 @@
 #include <userver/utils/projected_set.hpp>
 
 #include <components/component_context_component_info.hpp>
+#include <engine/tracer_plugin.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -34,8 +35,11 @@ class ComponentContextImpl {
 public:
     ComponentContextImpl(const Manager& manager, std::vector<std::string>&& loading_component_names);
 
-    RawComponentBase*
-    AddComponent(std::string_view name, const ComponentConfig& config, const ComponentAdderBase& adder);
+    RawComponentBase* AddComponent(
+        std::string_view name,
+        const ComponentConfig& config,
+        const ComponentAdderBase& adder
+    );
 
     void OnAllComponentsLoaded();
 
@@ -61,8 +65,11 @@ public:
 
     bool Contains(std::string_view name) const noexcept;
 
-    [[noreturn]] void
-    ThrowNonRegisteredComponent(std::string_view name, std::string_view type, ComponentInfo& current_component) const;
+    [[noreturn]] void ThrowNonRegisteredComponent(
+        std::string_view name,
+        std::string_view type,
+        ComponentInfo& current_component
+    ) const;
 
     [[noreturn]] void ThrowComponentTypeMismatch(
         std::string_view name,
@@ -118,7 +125,8 @@ private:
               stage_switch_handler_name(stage_switch_handler_name),
               dependency_type(dependency_type),
               allow_cancelling(allow_cancelling),
-              is_component_lifetime_stage_switchings_cancelled{false} {}
+              is_component_lifetime_stage_switchings_cancelled{false}
+        {}
 
         const ComponentLifetimeStage& next_stage;
         void (ComponentInfo::*stage_switch_handler)();
@@ -176,6 +184,8 @@ private:
     engine::ConditionVariable print_adding_components_cv_;
     concurrent::Variable<ProtectedData> shared_data_;
     engine::TaskWithResult<void> print_adding_components_task_;
+
+    engine::TracePlugin trace_plugin_;
 };
 
 }  // namespace components::impl

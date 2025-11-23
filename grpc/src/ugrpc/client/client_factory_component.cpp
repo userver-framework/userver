@@ -28,8 +28,10 @@ const storages::secdist::SecdistConfig* GetSecdistConfig(const components::Compo
     return nullptr;
 }
 
-std::shared_ptr<grpc::ChannelCredentials>
-MakeCredentials(AuthType auth_type, const grpc::SslCredentialsOptions& ssl_credentials_options) {
+std::shared_ptr<grpc::ChannelCredentials> MakeCredentials(
+    AuthType auth_type,
+    const grpc::SslCredentialsOptions& ssl_credentials_options
+) {
     if (auth_type == AuthType::kSsl) {
         LOG_INFO() << "GRPC client (SSL) initialized...";
         return grpc::SslCredentials(ssl_credentials_options);
@@ -49,7 +51,8 @@ std::unordered_map<std::string, std::shared_ptr<grpc::ChannelCredentials>> MakeC
         const auto& secdist = secdist_config->Get<Secdist>();
         for (const auto& [client_name, token] : secdist.tokens) {
             client_credentials[client_name] = grpc::CompositeChannelCredentials(
-                credentials, grpc::AccessTokenCredentials(ugrpc::impl::ToGrpcString(token))
+                credentials,
+                grpc::AccessTokenCredentials(ugrpc::impl::ToGrpcString(token))
             );
         }
     }

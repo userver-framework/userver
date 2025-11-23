@@ -59,7 +59,8 @@ std::size_t GetDamerauLevenshteinDistance(RandomIt begin1, RandomIt end1, Random
             cur_line[col] =
                 std::min(cur_line[col], first_prev_line[col - 1] + (*(begin1 + col - 1) != *(begin2 + line_index - 1)));
             if (line_index >= 2 && col >= 2 && *(begin1 + col - 1) == *(begin2 + line_index - 2) &&
-                *(begin1 + col - 2) == *(begin2 + line_index - 1)) {
+                *(begin1 + col - 2) == *(begin2 + line_index - 1))
+            {
                 cur_line[col] = std::min(cur_line[col], second_prev_line[col - 2] + 1);
             }
         }

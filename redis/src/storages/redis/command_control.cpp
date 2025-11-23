@@ -33,7 +33,9 @@ public:
     std::string GetDescription(size_t server_id) const {
         const std::lock_guard<std::mutex> lock(mutex_);
         auto it = descriptions_.find(server_id);
-        if (it != descriptions_.end()) return it->second;
+        if (it != descriptions_.end()) {
+            return it->second;
+        }
         return {};
     }
 
@@ -48,12 +50,16 @@ ServerIdDescriptionMap& GetServerIdDescriptionMap() {
 }
 
 std::optional<int> ToIntOpt(const std::optional<CommandControl::Strategy>& strategy) {
-    if (!strategy) return std::nullopt;
+    if (!strategy) {
+        return std::nullopt;
+    }
     return static_cast<int>(*strategy);
 }
 
 std::optional<int64_t> ToIntOpt(const std::optional<ServerId>& server_id) {
-    if (!server_id || server_id->IsAny()) return std::nullopt;
+    if (!server_id || server_id->IsAny()) {
+        return std::nullopt;
+    }
     return server_id->GetId();
 }
 
@@ -68,19 +74,23 @@ constexpr utils::TrivialBiMap kToStrategy = [](auto selector) {
 }  // namespace
 
 void ServerId::SetDescription(std::string description) const {
-    if (IsAny()) return;
+    if (IsAny()) {
+        return;
+    }
     GetServerIdDescriptionMap().SetDescription(id_, std::move(description));
 }
 
 void ServerId::RemoveDescription() const {
-    if (IsAny()) return;
+    if (IsAny()) {
+        return;
+    }
     GetServerIdDescriptionMap().RemoveDescription(id_);
 }
 
 std::string ServerId::GetDescription() const { return GetServerIdDescriptionMap().GetDescription(id_); }
 
-std::atomic<int64_t> ServerId::next_id_{0};
-ServerId ServerId::invalid_ = ServerId::Generate();
+std::atomic<int64_t> ServerId::next_id{0};
+ServerId ServerId::invalid = ServerId::Generate();
 
 CommandControl CommandControl::MergeWith(const CommandControl& b) const {
     CommandControl res(*this);

@@ -19,7 +19,10 @@ CDriverCursorImpl::CDriverCursorImpl(
     cdriver::CursorPtr cursor,
     std::shared_ptr<stats::OperationStatisticsItem> find_stats
 )
-    : client_(std::move(client)), cursor_(std::move(cursor)), find_stats_(std::move(find_stats)) {
+    : client_(std::move(client)),
+      cursor_(std::move(cursor)),
+      find_stats_(std::move(find_stats))
+{
     if (cursor_) {
         // Precondition: we've got a valid cursor (it could be errored-out right
         // away due to stream selection error, for example).
@@ -38,22 +41,30 @@ bool CDriverCursorImpl::IsValid() const { return cursor_ || current_; }
 bool CDriverCursorImpl::HasMore() const { return cursor_ && mongoc_cursor_more(cursor_.get()); }
 
 std::uint32_t CDriverCursorImpl::GetBatchSize() const {
-    if (!cursor_) throw std::logic_error("GetBatchSize called on an invalid cursor");
+    if (!cursor_) {
+        throw std::logic_error("GetBatchSize called on an invalid cursor");
+    }
     return mongoc_cursor_get_batch_size(cursor_.get());
 }
 
 void CDriverCursorImpl::SetBatchSize(std::uint32_t size) {
-    if (!cursor_) throw std::logic_error("SetBatchSize called on an invalid cursor");
+    if (!cursor_) {
+        throw std::logic_error("SetBatchSize called on an invalid cursor");
+    }
     mongoc_cursor_set_batch_size(cursor_.get(), size);
 }
 
 const formats::bson::Document& CDriverCursorImpl::Current() const {
-    if (!IsValid()) throw std::logic_error("Reading from invalid cursor");
+    if (!IsValid()) {
+        throw std::logic_error("Reading from invalid cursor");
+    }
     return *current_;
 }
 
 void CDriverCursorImpl::Next() {
-    if (!IsValid()) throw std::logic_error("Advancing cursor past the end");
+    if (!IsValid()) {
+        throw std::logic_error("Advancing cursor past the end");
+    }
 
     current_ = std::nullopt;
     if (!HasMore()) {

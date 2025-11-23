@@ -47,45 +47,71 @@ void CheckIndex(std::uint8_t actual) {
 
 }  // namespace
 
-AnyValue::AnyValue(std::string string_value) : value_{std::move(string_value)} {
+AnyValue::AnyValue(std::string string_value)
+    : value_{std::move(string_value)}
+{
     CheckIndex<ValueIndex::String>(value_.index());
 }
 
-AnyValue::AnyValue(const char* string_value) : value_{std::string{string_value}} {
+AnyValue::AnyValue(const char* string_value)
+    : value_{std::string{string_value}}
+{
     CheckIndex<ValueIndex::String>(value_.index());
 }
 
-AnyValue::AnyValue(bool bool_value) : value_{bool_value} { CheckIndex<ValueIndex::Bool>(value_.index()); }
+AnyValue::AnyValue(bool bool_value)
+    : value_{bool_value}
+{
+    CheckIndex<ValueIndex::Bool>(value_.index());
+}
 
-AnyValue::AnyValue(int int_value) : value_{utils::numeric_cast<std::int64_t>(int_value)} {
+AnyValue::AnyValue(int int_value)
+    : value_{utils::numeric_cast<std::int64_t>(int_value)}
+{
     CheckIndex<ValueIndex::Int>(value_.index());
 }
 
-AnyValue::AnyValue(long int_value) : value_{utils::numeric_cast<std::int64_t>(int_value)} {
+AnyValue::AnyValue(long int_value)
+    : value_{utils::numeric_cast<std::int64_t>(int_value)}
+{
     CheckIndex<ValueIndex::Int>(value_.index());
 }
 
-AnyValue::AnyValue(long long int_value) : value_{utils::numeric_cast<std::int64_t>(int_value)} {
+AnyValue::AnyValue(long long int_value)
+    : value_{utils::numeric_cast<std::int64_t>(int_value)}
+{
     CheckIndex<ValueIndex::Int>(value_.index());
 }
 
-AnyValue::AnyValue(unsigned int int_value) : value_{utils::numeric_cast<std::int64_t>(int_value)} {
+AnyValue::AnyValue(unsigned int int_value)
+    : value_{utils::numeric_cast<std::int64_t>(int_value)}
+{
     CheckIndex<ValueIndex::Int>(value_.index());
 }
 
-AnyValue::AnyValue(unsigned long int_value) : value_{utils::numeric_cast<std::int64_t>(int_value)} {
+AnyValue::AnyValue(unsigned long int_value)
+    : value_{utils::numeric_cast<std::int64_t>(int_value)}
+{
     CheckIndex<ValueIndex::Int>(value_.index());
 }
 
-AnyValue::AnyValue(unsigned long long int_value) : value_{utils::numeric_cast<std::int64_t>(int_value)} {
+AnyValue::AnyValue(unsigned long long int_value)
+    : value_{utils::numeric_cast<std::int64_t>(int_value)}
+{
     CheckIndex<ValueIndex::Int>(value_.index());
 }
 
-AnyValue::AnyValue(float double_value) : value_{static_cast<double>(double_value)} {
+AnyValue::AnyValue(float double_value)
+    : value_{static_cast<double>(double_value)}
+{
     CheckIndex<ValueIndex::Double>(value_.index());
 }
 
-AnyValue::AnyValue(double double_value) : value_{double_value} { CheckIndex<ValueIndex::Double>(value_.index()); }
+AnyValue::AnyValue(double double_value)
+    : value_{double_value}
+{
+    CheckIndex<ValueIndex::Double>(value_.index());
+}
 
 const AnyValue::Data& AnyValue::GetData() const { return value_; }
 

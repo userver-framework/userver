@@ -25,9 +25,11 @@ public:
     // Component is valid after construction and is able to accept requests
     ConfigDistributor(const components::ComponentConfig& config, const components::ComponentContext& context);
 
-    formats::json::Value
-    HandleRequestJsonThrow(const server::http::HttpRequest&, const formats::json::Value& json, server::request::RequestContext&)
-        const override;
+    formats::
+        json::
+            Value
+            HandleRequestJsonThrow(const server::http::HttpRequest&, const formats::json::Value& json, server::request::RequestContext&)
+                const override;
 
     void SetNewValues(KeyValues&& key_values) {
         config_values_.Assign(ConfigDataWithTimestamp{
@@ -45,7 +47,8 @@ ConfigDistributor::ConfigDistributor(
     const components::ComponentConfig& config,
     const components::ComponentContext& context
 )
-    : HttpHandlerJsonBase(config, context) {
+    : HttpHandlerJsonBase(config, context)
+{
     constexpr std::string_view kDynamicConfig = R"~({
     "BAGGAGE_SETTINGS": {
       "allowed_keys": []
@@ -56,7 +59,6 @@ ConfigDistributor::ConfigDistributor(
     "USERVER_LOG_REQUEST_HEADERS": false,
     "USERVER_CANCEL_HANDLE_REQUEST_BY_DEADLINE": false,
     "USERVER_RPS_CCONTROL_CUSTOM_STATUS": {},
-    "USERVER_HTTP_PROXY": "",
     "USERVER_TASK_PROCESSOR_QOS": {
       "default-service": {
         "default-task-processor": {
@@ -86,12 +88,16 @@ ConfigDistributor::ConfigDistributor(
 }
 
 /// [Config service sample - HandleRequestJsonThrow]
-formats::json::ValueBuilder
-MakeConfigs(const rcu::ReadablePtr<ConfigDataWithTimestamp>& config_values_ptr, const formats::json::Value& request);
+formats::json::ValueBuilder MakeConfigs(
+    const rcu::ReadablePtr<ConfigDataWithTimestamp>& config_values_ptr,
+    const formats::json::Value& request
+);
 
-formats::json::Value ConfigDistributor::
-    HandleRequestJsonThrow(const server::http::HttpRequest& request, const formats::json::Value& json, server::request::RequestContext&)
-        const {
+formats::json::
+    Value
+    ConfigDistributor::
+        HandleRequestJsonThrow(const server::http::HttpRequest& request, const formats::json::Value& json, server::request::RequestContext&)
+            const {
     formats::json::ValueBuilder result;
 
     const auto config_values_ptr = config_values_.Read();
@@ -105,8 +111,10 @@ formats::json::Value ConfigDistributor::
 /// [Config service sample - HandleRequestJsonThrow]
 
 /// [Config service sample - MakeConfigs]
-formats::json::ValueBuilder
-MakeConfigs(const rcu::ReadablePtr<ConfigDataWithTimestamp>& config_values_ptr, const formats::json::Value& request) {
+formats::json::ValueBuilder MakeConfigs(
+    const rcu::ReadablePtr<ConfigDataWithTimestamp>& config_values_ptr,
+    const formats::json::Value& request
+) {
     formats::json::ValueBuilder configs(formats::common::Type::kObject);
 
     const auto updated_since = request["updated_since"].As<std::string>({});

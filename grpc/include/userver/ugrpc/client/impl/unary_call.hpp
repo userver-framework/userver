@@ -38,7 +38,8 @@ public:
           state_{std::move(params), CallKind::kUnaryCall},
           context_{utils::impl::InternalTag{}, state_},
           prepare_unary_call_{std::move(prepare_unary_call)},
-          request_{request} {}
+          request_{request}
+    {}
 
     ~UnaryCall() = default;
 
@@ -51,6 +52,9 @@ public:
     void Perform() { CallWithRetries(); }
 
     Response&& ExtractResponse() {
+        if (inherited_deadline_reached_) {
+            USERVER_NAMESPACE::server::request::MarkTaskInheritedDeadlineExpired();
+        }
         if (interrupted_) {
             throw RpcInterruptedError(state_.GetCallName(), "UnaryCall");
         }
@@ -69,8 +73,8 @@ private:
     void CallWithRetries() {
         const utils::FastScopeGuard commit_state_guard([this]() noexcept { state_.Commit(); });
 
-        const auto deadline =
-            std::min(call_options_.GetDeadline(), USERVER_NAMESPACE::server::request::GetTaskInheritedDeadline());
+        const auto inherited_deadline = USERVER_NAMESPACE::server::request::GetTaskInheritedDeadline();
+        const auto deadline = std::min(call_options_.GetDeadline(), inherited_deadline);
         const int max_attempts = call_options_.GetAttempts();
         state_.GetSpan().AddTag(tracing::kMaxAttempts, max_attempts);
 
@@ -108,6 +112,9 @@ private:
 
             const auto delay = retry_backoff.NextAttemptDelay();
             if (deadline.IsReachable() && deadline.TimeLeft() <= delay) {
+                if (deadline == inherited_deadline) {
+                    inherited_deadline_reached_ = true;
+                }
                 OnDone(status_);
                 return;
             }
@@ -165,6 +172,7 @@ private:
         done_ = true;
         impl::HandleCallStatistics(state_, status);
         impl::SetStatusForSpan(state_.GetSpan(), status);
+        state_.ResetSpan();
     }
 
     void OnInterrupted() {
@@ -177,6 +185,7 @@ private:
         impl::SetErrorForSpan(state_.GetSpan(), error_message);
         state_.GetStatsScope().OnNetworkError();
         state_.GetStatsScope().Flush();
+        state_.ResetSpan();
     }
 
     void OnCancelled() {
@@ -187,6 +196,7 @@ private:
             state_.GetStatsScope().OnCancelled();
         }
         state_.GetStatsScope().Flush();
+        state_.ResetSpan();
     }
 
     CallOptions call_options_;
@@ -200,6 +210,7 @@ private:
     grpc::Status status_;
     bool done_{false};
     bool interrupted_{false};
+    bool inherited_deadline_reached_{false};
 
     std::atomic<bool> abandoned_{false};
 };

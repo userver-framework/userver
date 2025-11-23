@@ -21,13 +21,19 @@ template <
 class FloatingWithPrecision {
 public:
     template <typename U>
-    FloatingWithPrecision(U value) : value_(value) {}
+    FloatingWithPrecision(U value)
+        : value_(value)
+    {}
 
     template <typename U, std::uint32_t AnotherPrecision>
-    FloatingWithPrecision(const FloatingWithPrecision<U, AnotherPrecision>& other) : value_(other.value_) {}
+    FloatingWithPrecision(const FloatingWithPrecision<U, AnotherPrecision>& other)
+        : value_(other.value_)
+    {}
 
     template <typename U, std::uint32_t AnotherPrecision>
-    FloatingWithPrecision(FloatingWithPrecision<U, AnotherPrecision>&& other) : value_(other.value_) {}
+    FloatingWithPrecision(FloatingWithPrecision<U, AnotherPrecision>&& other)
+        : value_(other.value_)
+    {}
 
     template <typename U, std::uint32_t AnotherPrecision>
     FloatingWithPrecision& operator=(const FloatingWithPrecision<U, AnotherPrecision>& other) {

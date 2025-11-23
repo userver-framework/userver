@@ -22,7 +22,8 @@ constexpr utils::StringLiteral kOnAllComponentsAreStopping = "on_all_components_
 template <typename Range>
 std::string JoinNamesFromInfoImpl(const Range& component_info_refs, std::string_view separator) {
     return fmt::to_string(fmt::join(
-        component_info_refs | boost::adaptors::transformed([](auto info) { return info->GetName(); }), separator
+        component_info_refs | boost::adaptors::transformed([](auto info) { return info->GetName(); }),
+        separator
     ));
 }
 
@@ -31,7 +32,9 @@ std::string JoinNamesFromInfoImpl(const Range& component_info_refs, std::string_
 StageSwitchingCancelledException::StageSwitchingCancelledException(const std::string& message)
     : std::runtime_error(message) {}
 
-ComponentInfo::ComponentInfo(std::string name) : name_(std::move(name)) {}
+ComponentInfo::ComponentInfo(std::string name)
+    : name_(std::move(name))
+{}
 
 void ComponentInfo::SetComponent(std::unique_ptr<RawComponentBase>&& component) {
     bool call_on_loading_cancelled = false;
@@ -39,14 +42,20 @@ void ComponentInfo::SetComponent(std::unique_ptr<RawComponentBase>&& component) 
         const std::lock_guard lock{mutex_};
         component_ = std::move(component);
         stage_ = ComponentLifetimeStage::kCreated;
-        if (stage_switching_cancelled_) call_on_loading_cancelled = true;
+        if (stage_switching_cancelled_) {
+            call_on_loading_cancelled = true;
+        }
     }
-    if (call_on_loading_cancelled) OnLoadingCancelled();
+    if (call_on_loading_cancelled) {
+        OnLoadingCancelled();
+    }
     cv_.NotifyAll();
 }
 
 void ComponentInfo::ClearComponent() {
-    if (!HasComponent()) return;
+    if (!HasComponent()) {
+        return;
+    }
     tracing::Span span(std::string{kStopComponentRootName});
     span.AddTag(std::string{kComponentName}, name_);
 
@@ -64,7 +73,9 @@ RawComponentBase* ComponentInfo::GetComponent() const {
 RawComponentBase* ComponentInfo::WaitAndGetComponent() const {
     std::unique_lock lock{mutex_};
     auto ok = cv_.Wait(lock, [this]() { return stage_switching_cancelled_ || component_ != nullptr; });
-    if (!ok || stage_switching_cancelled_) throw ComponentsLoadCancelledException();
+    if (!ok || stage_switching_cancelled_) {
+        throw ComponentsLoadCancelledException();
+    }
     return component_.get();
 }
 
@@ -115,13 +126,19 @@ void ComponentInfo::SetStageSwitchingCancelled(bool cancelled) {
 }
 
 void ComponentInfo::OnLoadingCancelled() {
-    if (!HasComponent()) return;
-    if (on_loading_cancelled_called_.exchange(true)) return;
+    if (!HasComponent()) {
+        return;
+    }
+    if (on_loading_cancelled_called_.exchange(true)) {
+        return;
+    }
     component_->OnLoadingCancelled();
 }
 
 void ComponentInfo::OnAllComponentsLoaded() {
-    if (!HasComponent()) return;
+    if (!HasComponent()) {
+        return;
+    }
     try {
         component_->OnAllComponentsLoaded();
     } catch (const std::exception& ex) {
@@ -132,7 +149,9 @@ void ComponentInfo::OnAllComponentsLoaded() {
 }
 
 void ComponentInfo::OnAllComponentsAreStopping() {
-    if (!HasComponent()) return;
+    if (!HasComponent()) {
+        return;
+    }
     try {
         const tracing::Span span(std::string{kOnAllComponentsAreStopping});
         component_->OnAllComponentsAreStopping();
@@ -157,7 +176,9 @@ ComponentLifetimeStage ComponentInfo::GetStage() const {
 void ComponentInfo::WaitStage(ComponentLifetimeStage stage, std::string method_name) const {
     std::unique_lock lock{mutex_};
     auto ok = cv_.Wait(lock, [this, stage]() { return stage_switching_cancelled_ || stage_ == stage; });
-    if (!ok && stage_switching_cancelled_) throw StageSwitchingCancelledException(method_name.append(" cancelled"));
+    if (!ok && stage_switching_cancelled_) {
+        throw StageSwitchingCancelledException(method_name.append(" cancelled"));
+    }
 }
 
 std::string ComponentInfo::GetDependencies() const {
@@ -181,6 +202,11 @@ std::unique_ptr<RawComponentBase> ComponentInfo::ExtractComponent() {
         std::swap(component, component_);
     }
     return component;
+}
+
+std::unordered_set<std::string> ExtractNamesFromInfo(const std::vector<ConstComponentInfoRef>& container) {
+    auto v = container | boost::adaptors::transformed([](auto info) { return std::string{info->GetName()}; });
+    return boost::copy_range<std::unordered_set<std::string>>(v);
 }
 
 std::string JoinNamesFromInfo(const std::vector<ConstComponentInfoRef>& container, std::string_view separator) {

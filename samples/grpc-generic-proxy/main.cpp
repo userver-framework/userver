@@ -29,6 +29,7 @@ int main(int argc, char* argv[]) {
             .Append<congestion_control::Component>()
             .Append<components::TestsuiteSupport>()
             // HTTP client and server are (sadly) needed for testsuite support
+            .Append<components::HttpClientCore>()
             .Append<components::HttpClient>()
             .Append<clients::dns::Component>()
             .Append<server::handlers::TestsControl>()

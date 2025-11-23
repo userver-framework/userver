@@ -26,7 +26,9 @@ stats::OpType ToStatsOpType(operations::Delete::Mode);
 
 class Count::Impl {
 public:
-    explicit Impl(formats::bson::Document filter) : filter(std::move(filter)) {}
+    explicit Impl(formats::bson::Document filter)
+        : filter(std::move(filter))
+    {}
 
     formats::bson::Document filter;
     stats::OperationKey op_key{stats::OpType::kCount};
@@ -45,7 +47,9 @@ public:
 
 class Find::Impl {
 public:
-    explicit Impl(formats::bson::Document filter) : filter(std::move(filter)) {}
+    explicit Impl(formats::bson::Document filter)
+        : filter(std::move(filter))
+    {}
 
     formats::bson::Document filter;
     stats::OperationKey op_key{stats::OpType::kFind};
@@ -57,7 +61,9 @@ public:
 
 class InsertOne::Impl {
 public:
-    explicit Impl(formats::bson::Document&& document) : document(std::move(document)) {}
+    explicit Impl(formats::bson::Document&& document)
+        : document(std::move(document))
+    {}
 
     formats::bson::Document document;
     stats::OperationKey op_key{stats::OpType::kInsertOne};
@@ -69,7 +75,9 @@ class InsertMany::Impl {
 public:
     Impl() = default;
 
-    explicit Impl(std::vector<formats::bson::Document>&& documents) : documents(std::move(documents)) {}
+    explicit Impl(std::vector<formats::bson::Document>&& documents)
+        : documents(std::move(documents))
+    {}
 
     std::vector<formats::bson::Document> documents;
     stats::OperationKey op_key{stats::OpType::kInsertMany};
@@ -80,7 +88,9 @@ public:
 class ReplaceOne::Impl {
 public:
     Impl(formats::bson::Document&& selector, formats::bson::Document&& replacement)
-        : selector(std::move(selector)), replacement(std::move(replacement)) {}
+        : selector(std::move(selector)),
+          replacement(std::move(replacement))
+    {}
 
     formats::bson::Document selector;
     formats::bson::Document replacement;
@@ -92,7 +102,10 @@ public:
 class Update::Impl {
 public:
     Impl(Mode mode, formats::bson::Document&& selector, formats::bson::Document update)
-        : mode(mode), selector(std::move(selector)), update(std::move(update)) {}
+        : mode(mode),
+          selector(std::move(selector)),
+          update(std::move(update))
+    {}
 
     Mode mode;
     bool should_throw{true};  // moved here for size optimization
@@ -105,7 +118,10 @@ public:
 
 class Delete::Impl {
 public:
-    Impl(Mode mode, formats::bson::Document&& selector) : mode(mode), selector(std::move(selector)) {}
+    Impl(Mode mode, formats::bson::Document&& selector)
+        : mode(mode),
+          selector(std::move(selector))
+    {}
 
     Mode mode;
     bool should_throw{true};  // moved here for size optimization
@@ -116,7 +132,9 @@ public:
 
 class FindAndModify::Impl {
 public:
-    explicit Impl(formats::bson::Document&& query) : query(std::move(query)) {}
+    explicit Impl(formats::bson::Document&& query)
+        : query(std::move(query))
+    {}
 
     formats::bson::Document query;
     stats::OperationKey op_key{stats::OpType::kFindAndModify};
@@ -127,7 +145,9 @@ public:
 
 class FindAndRemove::Impl {
 public:
-    explicit Impl(formats::bson::Document&& query) : query(std::move(query)) {}
+    explicit Impl(formats::bson::Document&& query)
+        : query(std::move(query))
+    {}
 
     formats::bson::Document query;
     stats::OperationKey op_key{stats::OpType::kFindAndRemove};
@@ -137,7 +157,9 @@ public:
 
 class Bulk::Impl {
 public:
-    explicit Impl(Mode mode) : mode(mode) {}
+    explicit Impl(Mode mode)
+        : mode(mode)
+    {}
 
     impl::cdriver::BulkOperationPtr bulk;
     stats::OperationKey op_key{stats::OpType::kBulk};
@@ -147,7 +169,9 @@ public:
 
 class Aggregate::Impl {
 public:
-    explicit Impl(formats::bson::Value pipeline) : pipeline(std::move(pipeline)) {}
+    explicit Impl(formats::bson::Value pipeline)
+        : pipeline(std::move(pipeline))
+    {}
 
     formats::bson::Value pipeline;
     impl::cdriver::ReadPrefsPtr read_prefs;
@@ -159,9 +183,14 @@ public:
 
 class Distinct::Impl {
 public:
-    explicit Impl(std::string field) : field(std::move(field)) {}
+    explicit Impl(std::string field)
+        : field(std::move(field))
+    {}
 
-    Impl(std::string field, formats::bson::Document filter) : field(std::move(field)), filter(std::move(filter)) {}
+    Impl(std::string field, formats::bson::Document filter)
+        : field(std::move(field)),
+          filter(std::move(filter))
+    {}
 
     std::string field;
     std::optional<formats::bson::Document> filter;

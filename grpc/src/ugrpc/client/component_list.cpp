@@ -5,6 +5,7 @@
 #include <userver/ugrpc/client/middlewares/deadline_propagation/component.hpp>
 #include <userver/ugrpc/client/middlewares/headers_propagator/component.hpp>
 #include <userver/ugrpc/client/middlewares/log/component.hpp>
+#include <userver/ugrpc/client/middlewares/origin/component.hpp>
 #include <userver/ugrpc/client/middlewares/pipeline.hpp>
 #include <userver/ugrpc/client/middlewares/testsuite/component.hpp>
 
@@ -25,7 +26,8 @@ components::ComponentList DefaultComponentList() {
     return components::ComponentList()
         .AppendComponentList(MinimalComponentList())
         .Append<middlewares::headers_propagator::Component>()
-        .Append<middlewares::baggage::Component>();
+        .Append<middlewares::baggage::Component>()
+        .Append<middlewares::origin::Component>();
 }
 
 }  // namespace ugrpc::client

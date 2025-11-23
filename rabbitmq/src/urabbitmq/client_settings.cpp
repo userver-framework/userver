@@ -112,7 +112,8 @@ ClientSettings::ClientSettings() = default;
 ClientSettings::ClientSettings(const components::ComponentConfig& config, const RabbitEndpoints& rabbit_endpoints)
     : pool_settings{config.As<PoolSettings>()},
       endpoints{rabbit_endpoints},
-      use_secure_connection{config["use_secure_connection"].As<bool>(true)} {}
+      use_secure_connection{config["use_secure_connection"].As<bool>(true)}
+{}
 
 RabbitEndpointsMulti::RabbitEndpointsMulti(const formats::json::Value& doc) {
     const auto rabbitmq_settings = doc["rabbitmq_settings"];

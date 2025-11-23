@@ -17,8 +17,10 @@ USERVER_NAMESPACE_BEGIN
 namespace dump {
 
 namespace impl {
-std::chrono::milliseconds
-ParseMs(const formats::json::Value& value, std::optional<std::chrono::milliseconds> default_value = {});
+std::chrono::milliseconds ParseMs(
+    const formats::json::Value& value,
+    std::optional<std::chrono::milliseconds> default_value = {}
+);
 }
 
 extern const std::string_view kDump;

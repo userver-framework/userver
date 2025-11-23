@@ -1,11 +1,10 @@
 import collections
+from collections.abc import Callable
 import dataclasses
 import os
 import pathlib
 import re
-from typing import Callable
 from typing import NoReturn
-from typing import Optional
 
 from chaotic import cpp_names
 from chaotic import error
@@ -22,7 +21,7 @@ class GeneratorConfig:
     # infile_path -> cpp type
     infile_to_name_func: Callable
     # type: ignore
-    include_dirs: Optional[list[str]] = dataclasses.field(
+    include_dirs: list[str] | None = dataclasses.field(
         # type: ignore
         default_factory=list,
     )
@@ -49,12 +48,12 @@ class FormatChooser:
         self.types = types
         self.parent: dict[
             cpp_types.CppType,
-            list[Optional[cpp_types.CppType]],
+            list[cpp_types.CppType | None],
         ] = collections.defaultdict(list)
 
     def check_for_json_onlyness(self) -> None:
         def add(
-            parent: Optional[cpp_types.CppType],
+            parent: cpp_types.CppType | None,
             type_: cpp_types.CppType,
         ) -> None:
             self.parent[type_].append(parent)
@@ -212,7 +211,7 @@ class Generator:
                 f'Unknown x- property: {prop} in {location} at {file}',
             )
 
-    def _extract_user_cpp_type(self, schema: types.Schema) -> Optional[str]:
+    def _extract_user_cpp_type(self, schema: types.Schema) -> str | None:
         cpp_type = schema.get_x_property_str(
             'x-usrv-cpp-type',
         ) or schema.get_x_property_str('x-taxi-cpp-type')
@@ -315,7 +314,7 @@ class Generator:
                         value=val,
                         raw_name=raw_name,
                         cpp_name=to_camel_case(raw_name),
-                    )
+                    )  # noqa: COM812
                 )
 
             return cpp_types.CppIntEnum(
@@ -327,17 +326,15 @@ class Generator:
                 enums=emum_items,
             )
 
-        if schema.format is None:
-            raw_cpp_type = 'int'
-        elif schema.format.value == 32:
-            raw_cpp_type = 'std::int32_t'
-        elif schema.format.value == 64:
-            raw_cpp_type = 'std::int64_t'
-        else:
-            self._raise(
-                schema,
-                f'"format: {schema.format.value}" is not implemented',
-            )
+        match schema.format:
+            case None:
+                raw_cpp_type = 'int'
+            case types.IntegerFormat.INT32:
+                raw_cpp_type = 'std::int32_t'
+            case types.IntegerFormat.INT64:
+                raw_cpp_type = 'std::int64_t'
+            case _:
+                self._raise(schema, f'"format: {schema.format}" is not implemented')
 
         typedef_tag = schema.get_x_property_str(
             'x-usrv-cpp-typedef-tag',
@@ -418,7 +415,7 @@ class Generator:
                     ),
                 )
 
-            default: Optional[cpp_types.EnumItemName]
+            default: cpp_types.EnumItemName | None
             if schema.default:
                 default = cpp_types.EnumItemName(
                     name.in_global_scope() + '::' + self._str_enum_name(schema.default),
@@ -460,23 +457,21 @@ class Generator:
             validators.pattern = '^[a-z][-a-z0-9+.]*:.*'
 
         if schema.format and schema.format not in {types.StringFormat.BINARY, types.StringFormat.URI}:
-            if schema.format == types.StringFormat.BYTE:
-                format_cpp_type = 'crypto::base64::String64'
-            elif schema.format == types.StringFormat.UUID:
-                format_cpp_type = 'boost::uuids::uuid'
-            elif schema.format == types.StringFormat.DATE:
-                format_cpp_type = 'userver::utils::datetime::Date'
-            elif schema.format == types.StringFormat.DATE_TIME:
-                format_cpp_type = 'userver::utils::datetime::TimePointTz'
-            elif schema.format == types.StringFormat.DATE_TIME_ISO_BASIC:
-                format_cpp_type = 'userver::utils::datetime::TimePointTzIsoBasic'
-            elif schema.format == types.StringFormat.DATE_TIME_FRACTION:
-                format_cpp_type = 'userver::utils::datetime::TimePointTzFraction'
-            else:
-                self._raise(
-                    schema,
-                    f'"format: {schema.format}" is unsupported yet',
-                )
+            match schema.format:
+                case types.StringFormat.BYTE:
+                    format_cpp_type = 'crypto::base64::String64'
+                case types.StringFormat.UUID:
+                    format_cpp_type = 'boost::uuids::uuid'
+                case types.StringFormat.DATE:
+                    format_cpp_type = 'userver::utils::datetime::Date'
+                case types.StringFormat.DATE_TIME:
+                    format_cpp_type = 'userver::utils::datetime::TimePointTz'
+                case types.StringFormat.DATE_TIME_ISO_BASIC:
+                    format_cpp_type = 'userver::utils::datetime::TimePointTzIsoBasic'
+                case types.StringFormat.DATE_TIME_FRACTION:
+                    format_cpp_type = 'userver::utils::datetime::TimePointTzFraction'
+                case _:
+                    self._raise(schema, f'"format: {schema.format}" is unsupported yet')
             return cpp_types.CppStringWithFormat(
                 json_schema=schema,
                 nullable=schema.nullable,
@@ -509,11 +504,11 @@ class Generator:
         # Field name must not be the same as the type
         type_name = field_name.title()
         if type_name == field_name:
-            type_name = type_name + '_'
+            type_name += '_'
 
         # Struct X may not have subtype X
         if type_name == class_name.in_local_scope():
-            type_name = type_name + '_'
+            type_name += '_'
 
         type_name = self._normalize_name(type_name)
 
@@ -618,7 +613,7 @@ class Generator:
         elif schema.mapping.is_int():
             mapping_values = schema.mapping.as_ints()
 
-        for field_value, refs in zip(schema.oneOf, mapping_values):
+        for field_value, refs in zip(schema.oneOf, mapping_values, strict=True):
             for ref_ in refs:
                 variants[ref_] = self._gen_ref(
                     type_name.TypeName(''),
@@ -657,7 +652,7 @@ class Generator:
             for field_name, schema in schema.properties.items()
         }
 
-        extra_type: cpp_types.CppType | Optional[bool]
+        extra_type: cpp_types.CppType | bool | None
         if schema.additionalProperties:
             if isinstance(schema.additionalProperties, types.Schema):
                 extra_name = 'Extra'

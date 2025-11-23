@@ -41,7 +41,10 @@ public:
 private:
     struct StatementEvent final {
         StatementEvent(const std::string& statement_name, size_t duration, ExecutionResult result)
-            : statement_name{statement_name}, duration_ms{duration}, result{result} {}
+            : statement_name{statement_name},
+              duration_ms{duration},
+              result{result}
+        {}
 
         std::string statement_name;
         std::size_t duration_ms;

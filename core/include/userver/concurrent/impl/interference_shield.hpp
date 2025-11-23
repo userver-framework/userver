@@ -21,7 +21,9 @@ template <typename T>
 class alignas(kDestructiveInterferenceSize) InterferenceShield final {
 public:
     template <typename... Args>
-    constexpr InterferenceShield(Args&&... args) : value_(std::forward<Args>(args)...) {}
+    constexpr InterferenceShield(Args&&... args)
+        : value_(std::forward<Args>(args)...)
+    {}
 
     constexpr T& operator*() { return value_; }
     constexpr const T& operator*() const { return value_; }

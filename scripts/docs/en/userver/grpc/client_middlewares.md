@@ -17,6 +17,7 @@ There are default middlewares:
  - @ref ugrpc::client::middlewares::deadline_propagation::Component
  - @ref ugrpc::client::middlewares::baggage::Component
  - @ref ugrpc::client::middlewares::headers_propagator::Component
+ - @ref ugrpc::client::middlewares::origin::Component
  - @ref ugrpc::client::middlewares::testsuite::Component (used only in testsuite)
 
 If you add these middlewares to the @ref components::ComponentList, these middlewares will be enabled by default. 
@@ -26,7 +27,8 @@ As will be shown below, custom middlewares require additional actions to work: r
 `ugrpc::client::MiddlewarePipelineComponent` is a global configuration of client middlewares.
 If you don't want to disable userver middlewares, just take that config:
 
-```yaml
+```
+# yaml
 components_manager:
     components:
         grpc-client-middlewares-pipeline:
@@ -40,7 +42,8 @@ components_manager:
 
 You can enable or disable any middleware:
 
-```yaml
+```
+# yaml
 components_manager:
     components:
         grpc-client-common:

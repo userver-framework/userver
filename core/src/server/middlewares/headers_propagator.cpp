@@ -13,7 +13,8 @@ USERVER_NAMESPACE_BEGIN
 namespace server::middlewares {
 
 HeadersPropagator::HeadersPropagator(const handlers::HttpHandlerBase&, std::vector<std::string> headers)
-    : headers_(std::move(headers)) {}
+    : headers_(std::move(headers))
+{}
 
 void HeadersPropagator::HandleRequest(http::HttpRequest& request, request::RequestContext& context) const {
     USERVER_NAMESPACE::server::request::HeadersToPropagate headers_to_propagate;
@@ -32,10 +33,14 @@ HeadersPropagatorFactory::HeadersPropagatorFactory(
     const components::ComponentConfig& config,
     const components::ComponentContext& context
 )
-    : HttpMiddlewareFactoryBase(config, context), headers_(config["headers"].As<std::vector<std::string>>({})) {}
+    : HttpMiddlewareFactoryBase(config, context),
+      headers_(config["headers"].As<std::vector<std::string>>({}))
+{}
 
-std::unique_ptr<HttpMiddlewareBase>
-HeadersPropagatorFactory::Create(const handlers::HttpHandlerBase& handler, yaml_config::YamlConfig) const {
+std::unique_ptr<HttpMiddlewareBase> HeadersPropagatorFactory::Create(
+    const handlers::HttpHandlerBase& handler,
+    yaml_config::YamlConfig
+) const {
     return std::make_unique<HeadersPropagator>(handler, headers_);
 }
 

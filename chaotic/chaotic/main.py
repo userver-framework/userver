@@ -1,12 +1,11 @@
 import argparse
+from collections.abc import Callable
 import dataclasses
 import os
 import pathlib
 import re
 import sys
 from typing import Any
-from typing import Callable
-from typing import Optional
 
 import yaml
 
@@ -31,7 +30,7 @@ class NameMapItem:
         self.pattern = re.compile(pattern)
         self.dest = dest
 
-    def match(self, data: str, *, stem: str) -> Optional[str]:
+    def match(self, data: str, *, stem: str) -> str | None:
         match = self.pattern.fullmatch(data)  # pylint: disable=no-member
         if match:
             return self.dest.format(*match.groups(), stem=stem)

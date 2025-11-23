@@ -52,7 +52,10 @@ impl::Dependencies MakeDependencies(
 
 namespace impl {
 
-MiddlewarePipeline::MiddlewarePipeline(Dependencies&& deps) : deps_(deps), pipeline_(BuildPipeline(std::move(deps))) {}
+MiddlewarePipeline::MiddlewarePipeline(Dependencies&& deps)
+    : deps_(deps),
+      pipeline_(BuildPipeline(std::move(deps)))
+{}
 
 std::vector<std::string> MiddlewarePipeline::GetPerServiceMiddlewares(const impl::MiddlewareRunnerConfig& config
 ) const {
@@ -87,7 +90,8 @@ AnyMiddlewarePipelineComponent::AnyMiddlewarePipelineComponent(
     impl::BuiltInConfig&& base_config
 )
     : components::ComponentBase(config, context),
-      pipeline_(MakeDependencies(config, context, std::move(base_config))) {}
+      pipeline_(MakeDependencies(config, context, std::move(base_config)))
+{}
 
 const impl::MiddlewarePipeline& AnyMiddlewarePipelineComponent::GetPipeline() const { return pipeline_; }
 

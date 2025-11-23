@@ -25,12 +25,16 @@ using AuthCheckers = std::unordered_map<std::string, auth::AuthCheckerBasePtr>;
 
 AuthCheckers MakeAuthCheckers(const components::ComponentConfig& config, const components::ComponentContext& context) {
     const auto auth_config_raw = config["auth_checkers"];
-    if (auth_config_raw.IsMissing()) return {};
+    if (auth_config_raw.IsMissing()) {
+        return {};
+    }
 
     const auth::HandlerAuthConfig auth_config(auth_config_raw);
 
     const auto* auth_middleware_factory = context.FindComponentOptional<server::middlewares::AuthFactory>();
-    if (!auth_middleware_factory) return {};
+    if (!auth_middleware_factory) {
+        return {};
+    }
 
     AuthCheckers checkers;
     for (const auto& type : auth_config.GetTypes()) {
@@ -40,11 +44,13 @@ AuthCheckers MakeAuthCheckers(const components::ComponentConfig& config, const c
             if (sp_checker) {
                 checkers[type] = sp_checker;
                 LOG_INFO() << "Loaded " << type << " auth checker for implicit options handler";
-            } else
+            } else {
                 LOG_ERROR() << "Internal error during creating " << type << " auth checker";
+            }
         } catch (const std::exception& err) {
-            LOG_ERROR() << "Unable to create " << type << " auth checker "
-                        << "for implicit OPTIONS handler, skipping the check: " << err.what();
+            LOG_ERROR()
+                << "Unable to create " << type << " auth checker "
+                << "for implicit OPTIONS handler, skipping the check: " << err.what();
         }
     }
 
@@ -60,7 +66,8 @@ ImplicitOptions::ImplicitOptions(
 )
     : HttpHandlerBase(config, context, is_monitor),
       server_(context.FindComponent<components::Server>().GetServer()),
-      auth_checkers_(MakeAuthCheckers(config, context)) {}
+      auth_checkers_(MakeAuthCheckers(config, context))
+{}
 
 ImplicitOptions::~ImplicitOptions() = default;
 
@@ -88,7 +95,9 @@ std::string ImplicitOptions::ExtractAllowedMethods(const std::string& path) cons
 }
 
 const http::HandlerInfoIndex& ImplicitOptions::GetHandlerInfoIndex() const {
-    if (handler_info_index_) return *handler_info_index_;
+    if (handler_info_index_) {
+        return *handler_info_index_;
+    }
 
     const std::lock_guard lock(handler_info_index_mutex_);
 
@@ -119,7 +128,8 @@ std::string ImplicitOptions::HandleRequestThrow(
         }
 
         response.SetHeader(
-            USERVER_NAMESPACE::http::headers::kXYaTaxiAllowAuthResponse, check_status.value_or(kUnknownChecker)
+            USERVER_NAMESPACE::http::headers::kXYaTaxiAllowAuthResponse,
+            check_status.value_or(kUnknownChecker)
         );
         response.SetHeader(
             USERVER_NAMESPACE::http::headers::kAccessControlAllowHeaders,

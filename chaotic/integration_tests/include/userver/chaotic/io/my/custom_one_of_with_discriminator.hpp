@@ -18,8 +18,12 @@ namespace my {
 struct CustomOneOfWithDiscriminator {
     CustomOneOfWithDiscriminator() = default;
 
-    CustomOneOfWithDiscriminator(int x) : val(x) {}
-    CustomOneOfWithDiscriminator(std::string x) : val(x) {}
+    CustomOneOfWithDiscriminator(int x)
+        : val(x)
+    {}
+    CustomOneOfWithDiscriminator(std::string x)
+        : val(x)
+    {}
 
     std::variant<int, std::string> val;
 };

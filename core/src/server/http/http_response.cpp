@@ -37,9 +37,15 @@ const std::string kHostname = hostinfo::blocking::GetRealHostName();
 void CheckHeaderName(std::string_view name) {
     static constexpr auto init = []() {
         std::array<uint8_t, 256> res{};  // zero initialize
-        for (int i = 0; i < 32; i++) res[i] = 1;
-        for (int i = 127; i < 256; i++) res[i] = 1;
-        for (const unsigned char c : "()<>@,;:\\\"/[]?={} \t") res[c] = 1;
+        for (int i = 0; i < 32; i++) {
+            res[i] = 1;
+        }
+        for (int i = 127; i < 256; i++) {
+            res[i] = 1;
+        }
+        for (const unsigned char c : "()<>@,;:\\\"/[]?={} \t") {
+            res[c] = 1;
+        }
         return res;
     };
     static constexpr auto bad_chars = init();
@@ -113,7 +119,8 @@ void OutputHeader(USERVER_NAMESPACE::http::headers::HeadersString& header, std::
 }  // namespace impl
 
 HttpResponse::HttpResponse(const HttpRequest& request, request::ResponseDataAccounter& data_accounter)
-    : HttpResponse{request, data_accounter, std::chrono::steady_clock::now(), utils::StrCaseHash{}} {}
+    : HttpResponse{request, data_accounter, std::chrono::steady_clock::now(), utils::StrCaseHash{}}
+{}
 
 HttpResponse::HttpResponse(
     const HttpRequest& request,
@@ -121,7 +128,10 @@ HttpResponse::HttpResponse(
     std::chrono::steady_clock::time_point now,
     utils::StrCaseHash hasher
 )
-    : ResponseBase{data_accounter, now}, request_{request}, cookies_{0, hasher} {}
+    : ResponseBase{data_accounter, now},
+      request_{request},
+      cookies_{0, hasher}
+{}
 
 HttpResponse::~HttpResponse() = default;
 
@@ -208,14 +218,18 @@ HttpResponse::HeadersMapKeys HttpResponse::GetHeaderNames() const { return HttpR
 
 const std::string& HttpResponse::GetHeader(std::string_view header_name) const {
     auto it = headers_.find(header_name);
-    if (it == headers_.end()) return kEmptyString;
+    if (it == headers_.end()) {
+        return kEmptyString;
+    }
     return it->second;
 }
 
 const std::string& HttpResponse::GetHeader(const USERVER_NAMESPACE::http::headers::PredefinedHeader& header_name
 ) const {
     auto it = headers_.find(header_name);
-    if (it == headers_.end()) return kEmptyString;
+    if (it == headers_.end()) {
+        return kEmptyString;
+    }
     return it->second;
 }
 
@@ -242,7 +256,11 @@ void HttpResponse::SendResponse(engine::io::RwBase& socket) {
         char* old_data_pointer = data;
         AppendToCharArray(data, "HTTP/");
         data = fmt::format_to(
-            data, FMT_COMPILE("{}.{} {} "), request_.GetHttpMajor(), request_.GetHttpMinor(), static_cast<int>(status_)
+            data,
+            FMT_COMPILE("{}.{} {} "),
+            request_.GetHttpMajor(),
+            request_.GetHttpMinor(),
+            static_cast<int>(status_)
         );
         AppendToCharArray(data, StatusCodeString(status_));
         AppendToCharArray(data, kCrlf);
@@ -265,7 +283,9 @@ void HttpResponse::SendResponse(engine::io::RwBase& socket) {
     headers_.OutputInHttpFormat(header);
     if (headers_.find(USERVER_NAMESPACE::http::headers::kConnection) == end) {
         impl::OutputHeader(
-            header, USERVER_NAMESPACE::http::headers::kConnection, (request_.IsFinal() ? kClose : kKeepAlive)
+            header,
+            USERVER_NAMESPACE::http::headers::kConnection,
+            (request_.IsFinal() ? kClose : kKeepAlive)
         );
     }
     for (const auto& cookie : cookies_) {
@@ -299,22 +319,27 @@ void HttpResponse::SendResponse(engine::io::RwBase& socket) {
     SetSent(sent_bytes, std::chrono::steady_clock::now());
 }
 
-std::size_t
-HttpResponse::SetBodyNotStreamed(engine::io::RwBase& socket, USERVER_NAMESPACE::http::headers::HeadersString& header) {
+std::size_t HttpResponse::SetBodyNotStreamed(
+    engine::io::RwBase& socket,
+    USERVER_NAMESPACE::http::headers::HeadersString& header
+) {
     const bool is_body_forbidden = IsBodyForbiddenForStatus(status_);
     const bool is_head_request = request_.GetMethod() == HttpMethod::kHead;
     const auto& data = GetData();
 
     if (!is_body_forbidden) {
         impl::OutputHeader(
-            header, USERVER_NAMESPACE::http::headers::kContentLength, fmt::format(FMT_COMPILE("{}"), data.size())
+            header,
+            USERVER_NAMESPACE::http::headers::kContentLength,
+            fmt::format(FMT_COMPILE("{}"), data.size())
         );
     }
     header.append(kCrlf);
 
     if (is_body_forbidden && !data.empty()) {
-        LOG_LIMITED_WARNING() << "Non-empty body provided for response with HTTP code " << static_cast<int>(status_)
-                              << " which does not allow one, it will be dropped";
+        LOG_LIMITED_WARNING()
+            << "Non-empty body provided for response with HTTP code " << static_cast<int>(status_)
+            << " which does not allow one, it will be dropped";
     }
 
     ssize_t sent_bytes = 0;
@@ -327,8 +352,10 @@ HttpResponse::SetBodyNotStreamed(engine::io::RwBase& socket, USERVER_NAMESPACE::
     return sent_bytes;
 }
 
-std::size_t
-HttpResponse::SetBodyStreamed(engine::io::RwBase& socket, USERVER_NAMESPACE::http::headers::HeadersString& header) {
+std::size_t HttpResponse::SetBodyStreamed(
+    engine::io::RwBase& socket,
+    USERVER_NAMESPACE::http::headers::HeadersString& header
+) {
     const bool is_body_forbidden = IsBodyForbiddenForStatus(status_);
 
     impl::OutputHeader(header, USERVER_NAMESPACE::http::headers::kTransferEncoding, "chunked");
@@ -356,8 +383,10 @@ HttpResponse::SetBodyStreamed(engine::io::RwBase& socket, USERVER_NAMESPACE::htt
             continue;
         }
 
-        auto size = first_chunk_processed ? fmt::format("\r\n{:x}\r\n", body_part.size())
-                                          : fmt::format("{:x}\r\n", body_part.size());
+        auto size =
+            first_chunk_processed
+                ? fmt::format("\r\n{:x}\r\n", body_part.size())
+                : fmt::format("{:x}\r\n", body_part.size());
         sent_bytes +=
             socket.WriteAll({{size.data(), size.size()}, {body_part.data(), body_part.size()}}, engine::Deadline{});
 

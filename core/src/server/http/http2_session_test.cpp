@@ -52,12 +52,14 @@ public:
           server_([this](const MockHttpRequest& request) -> MockHttpResponse { return ServerHandler(request); }),
           client_ptr_(utest::CreateHttpClient()),
           queue_(RequestsQueue::Create()),
-          producer_(queue_->GetProducer()) {
-        [[maybe_unused]] const auto response = client_ptr_->CreateRequest()
-                                                   .http_version(USERVER_NAMESPACE::http::HttpVersion::k2)
-                                                   .get(server_.GetBaseUrl())
-                                                   .timeout(kTimeout)
-                                                   .perform();
+          producer_(queue_->GetProducer())
+    {
+        [[maybe_unused]] const auto response =
+            client_ptr_->CreateRequest()
+                .http_version(USERVER_NAMESPACE::http::HttpVersion::k2)
+                .get(server_.GetBaseUrl())
+                .timeout(kTimeout)
+                .perform();
     }
 
     const utest::SimpleServer& GetServer() const { return server_; }
@@ -70,8 +72,8 @@ public:
 
 private:
     void NewRequestCallback(ParsedRequestPtr&& request) {
-        if (const auto& h = request->GetHeader(USERVER_NAMESPACE::http::headers::k2::kHttp2SettingsHeader);
-            !h.empty()) {
+        if (const auto& h = request->GetHeader(USERVER_NAMESPACE::http::headers::k2::kHttp2SettingsHeader); !h.empty())
+        {
             is_upgrade_http_ = true;
             dynamic_cast<Http2Session*>(parser_http2_.get())->UpgradeToHttp2(h);
             return;
@@ -105,7 +107,8 @@ private:
               reinterpret_cast<std::uint8_t*>(status200.data()),
               status.size(),
               status200.size(),
-              NGHTTP2_NV_FLAG_NONE}}};
+              NGHTTP2_NV_FLAG_NONE}}
+        };
 
         auto session_ptr = dynamic_cast<Http2Session*>(parser_http2_.get())->GetNghttp2SessionPtr();
         const int rv = nghttp2_submit_response(session_ptr, cur_stream_id_, headers.data(), headers.size(), nullptr);
@@ -169,11 +172,12 @@ UTEST_F(Http2SessionTest, SimpleRequest) {
     auto consumer = GetConsumer();
     ParsedRequestImplPtr request;
 
-    const auto response = client.CreateRequest()
-                              .http_version(USERVER_NAMESPACE::http::HttpVersion::k2)
-                              .get(url)
-                              .timeout(kTimeout)
-                              .perform();
+    const auto response =
+        client.CreateRequest()
+            .http_version(USERVER_NAMESPACE::http::HttpVersion::k2)
+            .get(url)
+            .timeout(kTimeout)
+            .perform();
     EXPECT_EQ(200, response->status_code());
 
     EXPECT_TRUE(consumer.Pop(request));
@@ -193,11 +197,12 @@ UTEST_F(Http2SessionTest, SmallDataParst) {
     auto consumer = GetConsumer();
     ParsedRequestImplPtr request;
 
-    const auto response = client.CreateRequest()
-                              .http_version(USERVER_NAMESPACE::http::HttpVersion::k2)
-                              .get(url)
-                              .timeout(kTimeout)
-                              .perform();
+    const auto response =
+        client.CreateRequest()
+            .http_version(USERVER_NAMESPACE::http::HttpVersion::k2)
+            .get(url)
+            .timeout(kTimeout)
+            .perform();
     EXPECT_EQ(200, response->status_code());
 
     EXPECT_TRUE(consumer.Pop(request));
@@ -213,21 +218,23 @@ UTEST_F(Http2SessionTest, Url) {
     auto consumer = GetConsumer();
     ParsedRequestImplPtr request;
 
-    const auto response = client.CreateRequest()
-                              .http_version(USERVER_NAMESPACE::http::HttpVersion::k2)
-                              .get(url)
-                              .timeout(kTimeout)
-                              .perform();
+    const auto response =
+        client.CreateRequest()
+            .http_version(USERVER_NAMESPACE::http::HttpVersion::k2)
+            .get(url)
+            .timeout(kTimeout)
+            .perform();
     EXPECT_EQ(200, response->status_code());
 
     EXPECT_TRUE(consumer.Pop(request));
     EXPECT_EQ(request->GetUrl(), "/test_url");
 
-    const auto thraling_slash = client.CreateRequest()
-                                    .http_version(USERVER_NAMESPACE::http::HttpVersion::k2)
-                                    .get(url + "/")
-                                    .timeout(kTimeout)
-                                    .perform();
+    const auto thraling_slash =
+        client.CreateRequest()
+            .http_version(USERVER_NAMESPACE::http::HttpVersion::k2)
+            .get(url + "/")
+            .timeout(kTimeout)
+            .perform();
     EXPECT_EQ(200, response->status_code());
 
     EXPECT_TRUE(consumer.Pop(request));
@@ -249,14 +256,16 @@ UTEST_F(Http2SessionTest, Headers) {
         std::make_pair(std::string{"a"}, std::string{"b"}),
         std::make_pair(std::string{"CAPS"}, std::string{"CAPS"}),
         std::make_pair(std::string{"double"}, std::string{"double_value1"}),  // uses only first value
-        std::make_pair(std::string{"double"}, std::string{"double_value2"})};
+        std::make_pair(std::string{"double"}, std::string{"double_value2"})
+    };
 
-    const auto response = client.CreateRequest()
-                              .http_version(USERVER_NAMESPACE::http::HttpVersion::k2)
-                              .headers(headers)
-                              .get(url)
-                              .timeout(kTimeout)
-                              .perform();
+    const auto response =
+        client.CreateRequest()
+            .http_version(USERVER_NAMESPACE::http::HttpVersion::k2)
+            .headers(headers)
+            .get(url)
+            .timeout(kTimeout)
+            .perform();
     EXPECT_EQ(200, response->status_code());
 
     EXPECT_TRUE(consumer.Pop(request));
@@ -277,11 +286,12 @@ UTEST_F(Http2SessionTest, Body) {
 
     const std::string data{"test_data"};
 
-    const auto response = client.CreateRequest()
-                              .http_version(USERVER_NAMESPACE::http::HttpVersion::k2)
-                              .post(url, data)
-                              .timeout(kTimeout)
-                              .perform();
+    const auto response =
+        client.CreateRequest()
+            .http_version(USERVER_NAMESPACE::http::HttpVersion::k2)
+            .post(url, data)
+            .timeout(kTimeout)
+            .perform();
 
     EXPECT_EQ(200, response->status_code());
 
@@ -289,11 +299,12 @@ UTEST_F(Http2SessionTest, Body) {
     EXPECT_EQ(request->RequestBody(), "test_data");
 
     const std::string empty_data{};
-    const auto response2 = client.CreateRequest()
-                               .http_version(USERVER_NAMESPACE::http::HttpVersion::k2)
-                               .post(url, empty_data)
-                               .timeout(kTimeout)
-                               .perform();
+    const auto response2 =
+        client.CreateRequest()
+            .http_version(USERVER_NAMESPACE::http::HttpVersion::k2)
+            .post(url, empty_data)
+            .timeout(kTimeout)
+            .perform();
     EXPECT_EQ(200, response->status_code());
 
     EXPECT_TRUE(consumer.Pop(request));
@@ -306,11 +317,12 @@ UTEST_F(Http2SessionTest, QueryArgs) {
     auto consumer = GetConsumer();
     ParsedRequestImplPtr request;
 
-    const auto response = client.CreateRequest()
-                              .http_version(USERVER_NAMESPACE::http::HttpVersion::k2)
-                              .get(GetServer().GetBaseUrl() + "/foo/bar?query1=value1&query2=value2")
-                              .timeout(kTimeout)
-                              .perform();
+    const auto response =
+        client.CreateRequest()
+            .http_version(USERVER_NAMESPACE::http::HttpVersion::k2)
+            .get(GetServer().GetBaseUrl() + "/foo/bar?query1=value1&query2=value2")
+            .timeout(kTimeout)
+            .perform();
 
     EXPECT_EQ(200, response->status_code());
     EXPECT_TRUE(consumer.Pop(request));
@@ -332,12 +344,13 @@ UTEST_F(Http2SessionTest, HeavyHeader) {
     const std::string heavy_header(10000, '!');
     const clients::http::Headers headers{std::make_pair(std::string{"heavy_header"}, heavy_header)};
 
-    const auto response = client.CreateRequest()
-                              .http_version(USERVER_NAMESPACE::http::HttpVersion::k2)
-                              .headers(headers)
-                              .get(url)
-                              .timeout(kTimeout)
-                              .perform();
+    const auto response =
+        client.CreateRequest()
+            .http_version(USERVER_NAMESPACE::http::HttpVersion::k2)
+            .headers(headers)
+            .get(url)
+            .timeout(kTimeout)
+            .perform();
     EXPECT_EQ(200, response->status_code());
 
     EXPECT_TRUE(consumer.Pop(request));
@@ -356,12 +369,13 @@ UTEST_F(Http2SessionTest, ForCurl) {
     const clients::http::Headers headers{std::make_pair(std::string{"heavy_header"}, heavy_header)};
 
     const std::string body{"swag"};
-    const auto response = client.CreateRequest()
-                              .http_version(USERVER_NAMESPACE::http::HttpVersion::k2)
-                              .headers(headers)
-                              .post(url, body)
-                              .timeout(kTimeout)
-                              .perform();
+    const auto response =
+        client.CreateRequest()
+            .http_version(USERVER_NAMESPACE::http::HttpVersion::k2)
+            .headers(headers)
+            .post(url, body)
+            .timeout(kTimeout)
+            .perform();
     EXPECT_EQ(200, response->status_code());
     EXPECT_TRUE(consumer.Pop(request));
     EXPECT_EQ(request->GetHeader("heavy_header"), heavy_header);

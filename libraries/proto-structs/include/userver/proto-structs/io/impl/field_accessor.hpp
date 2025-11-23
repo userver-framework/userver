@@ -94,7 +94,9 @@ public:
     using SetFunc = void (Message::*)(ArgType);
 
     FieldSetterWithArg(Message& message, int field_number, SetFunc set_func, ClearFunc clear_func)
-        : Base(message, field_number, clear_func), set_func_(set_func) {}
+        : Base(message, field_number, clear_func),
+          set_func_(set_func)
+    {}
 
     void SetValue(ArgType value) const { (Base::GetMessage().*set_func_)(value); }
 
@@ -119,7 +121,9 @@ public:
         SetFuncForRvalue set_func_for_rvalue,
         ClearFunc clear_func
     )
-        : Base(message, field_number, set_func, clear_func), set_func_for_rvalue_(set_func_for_rvalue) {}
+        : Base(message, field_number, set_func, clear_func),
+          set_func_for_rvalue_(set_func_for_rvalue)
+    {}
 
     void SetValue(std::string&& value) const { (Base::GetMessage().*set_func_for_rvalue_)(std::move(value)); }
 
@@ -137,7 +141,9 @@ public:
     using GetMutableFunc = TReturn (Message::*)();
 
     FieldSetterWithMutable(Message& message, int field_number, GetMutableFunc get_mutable_func, ClearFunc clear_func)
-        : Base(message, field_number, clear_func), get_mutable_func_(get_mutable_func) {}
+        : Base(message, field_number, clear_func),
+          get_mutable_func_(get_mutable_func)
+    {}
 
     ReturnType GetMutableValue() const { return (Base::GetMessage().*get_mutable_func_)(); }
 
@@ -194,14 +200,14 @@ auto CreateFieldSetter(
 namespace traits {
 
 template <typename T>
-concept FieldGetter = proto_structs::impl::traits::InheritsFromInstantiation<proto_structs::io::impl::FieldGetter, T>;
+concept FieldGetter = proto_structs::impl::traits::kInheritsFromInstantiation<proto_structs::io::impl::FieldGetter, T>;
 
 template <typename T>
 concept FieldGetterWithPresence =
-    proto_structs::impl::traits::InheritsFromInstantiation<proto_structs::io::impl::FieldGetterWithPresence, T>;
+    proto_structs::impl::traits::kInheritsFromInstantiation<proto_structs::io::impl::FieldGetterWithPresence, T>;
 
 template <typename T>
-concept FieldSetter = proto_structs::impl::traits::InheritsFromInstantiation<proto_structs::io::impl::FieldSetter, T>;
+concept FieldSetter = proto_structs::impl::traits::kInheritsFromInstantiation<proto_structs::io::impl::FieldSetter, T>;
 
 }  // namespace traits
 

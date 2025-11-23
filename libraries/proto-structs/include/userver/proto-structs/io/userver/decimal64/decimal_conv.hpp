@@ -14,8 +14,11 @@ USERVER_NAMESPACE_BEGIN
 namespace proto_structs::io {
 
 template <int Prec, typename TRoundPolicy>
-decimal64::Decimal<Prec, TRoundPolicy>
-ReadProtoStruct(ReadContext& ctx, To<decimal64::Decimal<Prec, TRoundPolicy>>, const ::google::type::Decimal& msg) {
+decimal64::Decimal<Prec, TRoundPolicy> ReadProtoStruct(
+    ReadContext& ctx,
+    To<decimal64::Decimal<Prec, TRoundPolicy>>,
+    const ::google::type::Decimal& msg
+) {
     using Decimal = decimal64::Decimal<Prec, TRoundPolicy>;
     Decimal result = {};
 

@@ -22,11 +22,15 @@ StandaloneTopologyHolder::StandaloneTopologyHolder(
       password_(std::move(password)),
       database_index_(database_index),
       conn_to_create_(conn),
-      create_node_watch_(ev_thread_, [this] {
-          // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDelete)
-          CreateNode();
-          create_node_watch_.Start();
-      }) {
+      create_node_watch_(
+          ev_thread_,
+          [this] {
+              // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDelete)
+              CreateNode();
+              create_node_watch_.Start();
+          }
+      )
+{
     LOG_DEBUG() << "Created StandaloneTopologyHolder with " << conn.host << ":" << conn.port;
 }
 
@@ -54,7 +58,9 @@ bool StandaloneTopologyHolder::WaitReadyOnce(engine::Deadline deadline, WaitConn
     LOG_DEBUG() << "WaitReadyOnce in mode " << ToString(mode);
     std::unique_lock lock{mutex_};
     return cv_.WaitUntil(lock, deadline, [this, mode]() {
-        if (!is_nodes_received_) return false;
+        if (!is_nodes_received_) {
+            return false;
+        }
         auto ptr = topology_.Read();
         return ptr->IsReady(mode);
     });
@@ -80,8 +86,9 @@ std::shared_ptr<Redis> StandaloneTopologyHolder::GetRedisInstance(const HostPort
 void StandaloneTopologyHolder::GetStatistics(SentinelStatistics& stats, const MetricsSettings& settings) const {
     stats.internal.is_autotoplogy = false;
     stats.internal.cluster_topology_checks = utils::statistics::Rate{0};
-    stats.internal.cluster_topology_updates =
-        utils::statistics::Rate{current_topology_version_.load(std::memory_order_relaxed)};
+    stats.internal.cluster_topology_updates = utils::statistics::Rate{
+        current_topology_version_.load(std::memory_order_relaxed)
+    };
 
     auto topology = GetTopology();
     topology->GetStatistics(settings, stats);
@@ -174,8 +181,10 @@ void StandaloneTopologyHolder::CreateNode() {
     {
         const std::lock_guard lock{mutex_};
         // one shard
-        ClusterShardHostInfos shard_infos{// only master, no slaves
-                                          ClusterShardHostInfo{conn_to_create_, {}, {}}};
+        ClusterShardHostInfos shard_infos{
+            // only master, no slaves
+            ClusterShardHostInfo{conn_to_create_, {}, {}}
+        };
 
         if (auto topology_ptr = topology_.Read(); topology_ptr->HasSameInfos(shard_infos)) {
             LOG_INFO() << "Current topology has the same shard";
@@ -187,7 +196,9 @@ void StandaloneTopologyHolder::CreateNode() {
         auto redis_connection = CreateRedisInstance(conn_to_create_);
         redis_connection->signal_state_change.connect([host_port, this](redis::RedisState state) {
             GetSignalNodeStateChanged()(host_port, state);
-            { const std::lock_guard lock{mutex_}; }
+            {
+                const std::lock_guard lock{mutex_};
+            }
             cv_.NotifyAll();
         });
 

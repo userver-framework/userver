@@ -129,7 +129,8 @@ UTEST_F(SQLiteSavepointsTest, AutoRollback) {
     try {
         Savepoint savepoint{nullptr, {}};
         UEXPECT_NO_THROW(savepoint = client->Save(OperationType::kReadWrite, "test_savepoint"))
-            << "Begin default savepoint";
+            << "Begin default "
+               "savepoint";
         int last_insert_id{};
         UEXPECT_NO_THROW(
             last_insert_id =
@@ -152,14 +153,15 @@ UTEST_F(SQLiteSavepointsTest, MultipleSavepoints) {
     {
         Savepoint savepoint1{nullptr, {}};
         UEXPECT_NO_THROW(savepoint1 = client->Save(OperationType::kReadWrite, "test_savepoint1"))
-            << "Begin first savepoint";
-        UEXPECT_NO_THROW(savepoint1.Execute("INSERT INTO test VALUES (NULL, 'first')"))
-            << "Insert first row in savepoint";
+            << "Begin first "
+               "savepoint";
+        UEXPECT_NO_THROW(savepoint1.Execute("INSERT INTO test VALUES (NULL, 'first')")
+        ) << "Insert first row in savepoint";
 
         Savepoint savepoint2{nullptr, {}};
         UEXPECT_NO_THROW(savepoint2 = savepoint1.Save("test_savepoint2")) << "Begin second savepoint";
-        UEXPECT_NO_THROW(savepoint2.Execute("INSERT INTO test VALUES (NULL, 'second')"))
-            << "Insert second row in savepoint";
+        UEXPECT_NO_THROW(savepoint2.Execute("INSERT INTO test VALUES (NULL, 'second')")
+        ) << "Insert second row in savepoint";
 
         UEXPECT_NO_THROW(savepoint1.Release()) << "Commit all nested transactions (savepoints)";
     }
@@ -168,14 +170,15 @@ UTEST_F(SQLiteSavepointsTest, MultipleSavepoints) {
     {
         Savepoint savepoint1{nullptr, {}};
         UEXPECT_NO_THROW(savepoint1 = client->Save(OperationType::kReadWrite, "test_savepoint1"))
-            << "Begin first savepoint";
-        UEXPECT_NO_THROW(savepoint1.Execute("INSERT INTO test VALUES (NULL, 'first')"))
-            << "Insert first row in savepoint";
+            << "Begin first "
+               "savepoint";
+        UEXPECT_NO_THROW(savepoint1.Execute("INSERT INTO test VALUES (NULL, 'first')")
+        ) << "Insert first row in savepoint";
 
         Savepoint savepoint2{nullptr, {}};
         UEXPECT_NO_THROW(savepoint2 = savepoint1.Save("test_savepoint2")) << "Begin second savepoint";
-        UEXPECT_NO_THROW(savepoint2.Execute("INSERT INTO test VALUES (NULL, 'second')"))
-            << "Insert second row in savepoint";
+        UEXPECT_NO_THROW(savepoint2.Execute("INSERT INTO test VALUES (NULL, 'second')")
+        ) << "Insert second row in savepoint";
 
         UEXPECT_NO_THROW(savepoint2.RollbackTo()) << "Rollback iternal transaction ";
         UEXPECT_NO_THROW(savepoint1.Release()) << "Commit iternal transaction ";

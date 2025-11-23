@@ -60,7 +60,8 @@ struct FloatingPointBinaryParser : BufferParserBase<T> {
                 break;
             default:
                 throw InvalidInputBufferSize{
-                    fmt::format("Buffer size {} is invalid for a floating point value type", buf.length)};
+                    fmt::format("Buffer size {} is invalid for a floating point value type", buf.length)
+                };
         }
     }
 };
@@ -70,7 +71,9 @@ struct FloatingPointBinaryFormatter {
     static constexpr std::size_t size = sizeof(T);
     T value;
 
-    explicit FloatingPointBinaryFormatter(T val) : value{val} {}
+    explicit FloatingPointBinaryFormatter(T val)
+        : value{val}
+    {}
 
     template <typename Buffer>
     void operator()(const UserTypes& types, Buffer& buf) const {
@@ -86,11 +89,15 @@ struct FloatingPointBinaryFormatter {
 /** @name 4 byte floating point */
 template <>
 struct BufferParser<float> : detail::FloatingPointBinaryParser<float> {
-    explicit BufferParser(float& val) : FloatingPointBinaryParser(val) {}
+    explicit BufferParser(float& val)
+        : FloatingPointBinaryParser(val)
+    {}
 };
 template <>
 struct BufferFormatter<float> : detail::FloatingPointBinaryFormatter<float> {
-    explicit BufferFormatter(float val) : FloatingPointBinaryFormatter(val) {}
+    explicit BufferFormatter(float val)
+        : FloatingPointBinaryFormatter(val)
+    {}
 };
 //@}
 
@@ -98,11 +105,15 @@ struct BufferFormatter<float> : detail::FloatingPointBinaryFormatter<float> {
 /** @name 8 byte floating point */
 template <>
 struct BufferParser<double> : detail::FloatingPointBinaryParser<double> {
-    explicit BufferParser(double& val) : FloatingPointBinaryParser(val) {}
+    explicit BufferParser(double& val)
+        : FloatingPointBinaryParser(val)
+    {}
 };
 template <>
 struct BufferFormatter<double> : detail::FloatingPointBinaryFormatter<double> {
-    explicit BufferFormatter(double val) : FloatingPointBinaryFormatter(val) {}
+    explicit BufferFormatter(double val)
+        : FloatingPointBinaryFormatter(val)
+    {}
 };
 //@}
 

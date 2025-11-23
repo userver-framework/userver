@@ -27,7 +27,9 @@ bool CheckMasterChanged(storages::redis::impl::Sentinel& sentinel, const size_t 
     for (auto i = 0; i < kSentinelChangeHostsMaxAttempts; ++i) {
         auto res = MakeGetRequest(sentinel, "value").Get();
         LOG_DEBUG() << "got reply with type=" << res->data.GetTypeString() << " data=" << res->data.ToDebugString();
-        if (static_cast<size_t>(res->data.GetInt() - magic_value) == expected_idx) return true;
+        if (static_cast<size_t>(res->data.GetInt() - magic_value) == expected_idx) {
+            return true;
+        }
         engine::SleepFor(kSentinelChangeHostsWaitingTime);
     }
     return false;
@@ -255,8 +257,9 @@ UTEST(Redis, SentinelForceShardIdx) {
     auto& sentinel = sentinel_test.SentinelClient();
 
     for (size_t shard_idx = 0; shard_idx < shard_count; shard_idx++) {
-        EXPECT_TRUE(sentinel_test.Master(shard_idx).WaitForFirstPingReply(kSentinelChangeHostsWaitingTime))
-            << "shard_idx=" << shard_idx;
+        EXPECT_TRUE(sentinel_test.Master(shard_idx).WaitForFirstPingReply(kSentinelChangeHostsWaitingTime)
+        ) << "shard_idx="
+          << shard_idx;
         storages::redis::CommandControl cc;
         cc.force_shard_idx = shard_idx;
         auto res = MakeGetRequest(sentinel, "value", cc).Get();

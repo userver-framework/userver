@@ -3,15 +3,12 @@ Start the service in testsuite.
 """
 
 # pylint: disable=redefined-outer-name
+from collections.abc import Iterable
 import logging
 import pathlib
 import time
 import typing
 from typing import Any
-from typing import Dict
-from typing import Iterable
-from typing import List
-from typing import Optional
 
 import pytest
 
@@ -51,18 +48,18 @@ def pytest_addoption(parser) -> None:
 
 
 @pytest.fixture(scope='session')
-def service_env():
+def service_env() -> dict[str, str]:
     """
     Override this to pass extra environment variables to the service.
 
     @snippet samples/redis_service/testsuite/conftest.py  service_env
     @ingroup userver_testsuite_fixtures
     """
-    return None
+    return {}
 
 
 @pytest.fixture(scope='session')
-async def service_http_ping_url(service_config, service_baseurl) -> Optional[str]:
+async def service_http_ping_url(service_config, service_baseurl) -> str | None:
     """
     Returns the service HTTP ping URL that is used by the testsuite to detect
     that the service is ready to work. Returns None if there's no such URL.
@@ -280,7 +277,7 @@ async def service_daemon_instance(
 
 
 @pytest.fixture(scope='session')
-def daemon_scoped_mark(request) -> Optional[Dict[str, Any]]:
+def daemon_scoped_mark(request) -> dict[str, Any] | None:
     """
     Depend on this fixture directly or transitively to make your fixture a per-daemon fixture.
 
@@ -362,7 +359,7 @@ def pytest_generate_tests(metafunc: pytest.Metafunc) -> None:
 
 # TODO use dependent parametrize instead of patching param value after it becomes available
 #  https://github.com/pytest-dev/pytest/issues/13233
-def pytest_collection_modifyitems(items: List[pytest.Item]):
+def pytest_collection_modifyitems(items: list[pytest.Item]):
     for item in items:
         oneshot_marker = item.get_closest_marker('uservice_oneshot')
         if oneshot_marker and isinstance(item, pytest.Function):

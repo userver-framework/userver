@@ -51,15 +51,19 @@ Field GetFieldOrDefault(
     return parser_func(service_field, context);
 }
 
-engine::TaskProcessor&
-ParseTaskProcessor(const yaml_config::YamlConfig& field, const components::ComponentContext& context) {
+engine::TaskProcessor& ParseTaskProcessor(
+    const yaml_config::YamlConfig& field,
+    const components::ComponentContext& context
+) {
     return context.GetTaskProcessor(field.As<std::string>());
 }
 
 }  // namespace
 
-ServiceDefaults
-ParseServiceDefaults(const yaml_config::YamlConfig& value, const components::ComponentContext& context) {
+ServiceDefaults ParseServiceDefaults(
+    const yaml_config::YamlConfig& value,
+    const components::ComponentContext& context
+) {
     return ServiceDefaults{
         /*task_processor=*/ParseOptional(value[kTaskProcessorKey], context, ParseTaskProcessor),
     };
@@ -71,9 +75,8 @@ server::ServiceConfig ParseServiceConfig(
     const ServiceDefaults& defaults
 ) {
     return server::ServiceConfig{
-        /*task_processor=*/GetFieldOrDefault(
-            value[kTaskProcessorKey], defaults.task_processor, context, ParseTaskProcessor
-        ),
+        /*task_processor=*/
+        GetFieldOrDefault(value[kTaskProcessorKey], defaults.task_processor, context, ParseTaskProcessor),
         /*middlewares=*/{},
         /*status_codes_log_level=*/
         value[kStatusCodesLogLevelKey].As<boost::container::flat_map<grpc::StatusCode, logging::Level>>({}),

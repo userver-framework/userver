@@ -10,7 +10,9 @@ USERVER_NAMESPACE_BEGIN
 namespace clients::http::plugins::headers_propagator {
 
 Component::Component(const components::ComponentConfig& config, const components::ComponentContext& context)
-    : ComponentBase(config, context), plugin_(std::make_unique<headers_propagator::Plugin>()) {}
+    : ComponentBase(config, context),
+      plugin_(std::make_unique<headers_propagator::Plugin>())
+{}
 
 Component::~Component() = default;
 

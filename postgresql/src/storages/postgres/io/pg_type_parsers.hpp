@@ -20,7 +20,8 @@ struct CharToEnum : BufferParserBase<Enum> {
     void operator()(const FieldBuffer& buffer) {
         if (buffer.length != 1) {
             throw InvalidInputBufferSize{
-                fmt::format("Invalid buffer size {} for type '{}'", buffer.length, compiler::GetTypeName<ValueType>())};
+                fmt::format("Invalid buffer size {} for type '{}'", buffer.length, compiler::GetTypeName<ValueType>())
+            };
         }
         this->value = static_cast<ValueType>(*buffer.buffer);
     }

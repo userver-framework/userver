@@ -19,8 +19,8 @@ class SimpleMetadataService final : public sample::ugrpc::UnitTestServiceBase {
 public:
     SayHelloResult SayHello(CallContext& context, sample::ugrpc::GreetingRequest&& request) override {
         /// [server_read_client_metadata]
-        const std::multimap<grpc::string_ref, grpc::string_ref>& client_metadata =
-            context.GetServerContext().client_metadata();
+        const std::multimap<grpc::string_ref, grpc::string_ref>&
+            client_metadata = context.GetServerContext().client_metadata();
         const std::optional<grpc::string_ref> custom_header = utils::FindOptional(client_metadata, "custom-header");
         /// [server_read_client_metadata]
 
@@ -49,8 +49,11 @@ public:
         return response;
     }
 
-    ReadManyResult
-    ReadMany(CallContext& context, sample::ugrpc::StreamGreetingRequest&& request, ReadManyWriter& writer) override {
+    ReadManyResult ReadMany(
+        CallContext& context,
+        sample::ugrpc::StreamGreetingRequest&& request,
+        ReadManyWriter& writer
+    ) override {
         context.GetServerContext().AddInitialMetadata("stream-started", "true");
         context.GetServerContext().AddInitialMetadata("total-items", std::to_string(request.number()));
 
@@ -98,8 +101,8 @@ UTEST_F(MetadataTest, ClientReadInitialMetadata) {
     auto response = future.Get();
 
     /// [client_read_initial_metadata]
-    const std::multimap<grpc::string_ref, grpc::string_ref>& initial_metadata =
-        future.GetContext().GetClientContext().GetServerInitialMetadata();
+    const std::multimap<grpc::string_ref, grpc::string_ref>&
+        initial_metadata = future.GetContext().GetClientContext().GetServerInitialMetadata();
     /// [client_read_initial_metadata]
 
     EXPECT_THAT(initial_metadata, testing::Contains(testing::Pair("response-header", "response-value")));
@@ -116,8 +119,8 @@ UTEST_F(MetadataTest, ClientReadTrailingMetadata) {
     auto response = future.Get();
 
     /// [client_read_trailing_metadata]
-    const std::multimap<grpc::string_ref, grpc::string_ref>& trailing_metadata =
-        future.GetContext().GetClientContext().GetServerTrailingMetadata();
+    const std::multimap<grpc::string_ref, grpc::string_ref>&
+        trailing_metadata = future.GetContext().GetClientContext().GetServerTrailingMetadata();
     /// [client_read_trailing_metadata]
 
     EXPECT_THAT(trailing_metadata, testing::Contains(testing::Pair("request-id", "req-123")));
@@ -148,13 +151,13 @@ UTEST_F(MetadataTest, StreamingRequestResponseMetadata) {
 
     const grpc::ClientContext& client_context = stream.GetContext().GetClientContext();
 
-    const std::multimap<grpc::string_ref, grpc::string_ref>& initial_metadata =
-        client_context.GetServerInitialMetadata();
+    const std::multimap<grpc::string_ref, grpc::string_ref>&
+        initial_metadata = client_context.GetServerInitialMetadata();
     EXPECT_THAT(initial_metadata, testing::Contains(testing::Pair("stream-started", "true")));
     EXPECT_THAT(initial_metadata, testing::Contains(testing::Pair("total-items", "3")));
 
-    const std::multimap<grpc::string_ref, grpc::string_ref>& trailing_metadata =
-        client_context.GetServerTrailingMetadata();
+    const std::multimap<grpc::string_ref, grpc::string_ref>&
+        trailing_metadata = client_context.GetServerTrailingMetadata();
     EXPECT_THAT(trailing_metadata, testing::Contains(testing::Pair("stream-completed", "true")));
 }
 

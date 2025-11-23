@@ -71,7 +71,9 @@ public:
     ChatResult Chat(CallContext& /*context*/, ChatReaderWriter& stream) override {
         for (;;) {
             sample::ugrpc::StreamGreetingRequest request;
-            if (!stream.Read(request)) return grpc::Status::OK;
+            if (!stream.Read(request)) {
+                return grpc::Status::OK;
+            }
             sample::ugrpc::StreamGreetingResponse response{};
             // NOLINTNEXTLINE(clang-analyzer-optin.cplusplus.UninitializedObject)
             stream.Write(response);
@@ -93,9 +95,13 @@ UTEST_F_MT(GrpcCancelDeadline, TryCancel, 2) {
     try {
         auto call = client.Chat(std::move(call_options));
         for (;;) {
-            if (!call.Write({})) return;
+            if (!call.Write({})) {
+                return;
+            }
             sample::ugrpc::StreamGreetingResponse response;
-            if (!call.Read(response)) return;
+            if (!call.Read(response)) {
+                return;
+            }
         }
     } catch (const ugrpc::client::DeadlineExceededError&) {
         deadline_exception_caught = true;
@@ -145,7 +151,9 @@ UTEST_F_MT(GrpcCancelWritesDone, TryCancel, 2) {
     try {
         for (;;) {
             sample::ugrpc::StreamGreetingResponse response;
-            if (!call.Read(response)) return;
+            if (!call.Read(response)) {
+                return;
+            }
         }
     } catch (const ugrpc::client::DeadlineExceededError&) {
     }
@@ -230,9 +238,8 @@ UTEST_F_MT(GrpcServerEcho, DestroyServerDuringRequest, 2) {
 UTEST(GrpcServer, DeadlineAffectsWaitForReady) {
     ugrpc::tests::StandaloneClientFactory client_factory;
 
-    auto client = client_factory.MakeClient<sample::ugrpc::UnitTestServiceClient>(
-        ugrpc::tests::MakeIpv6Endpoint(ugrpc::tests::GetFreeIpv6Port())
-    );
+    auto client = client_factory.MakeClient<
+        sample::ugrpc::UnitTestServiceClient>(ugrpc::tests::MakeIpv6Endpoint(ugrpc::tests::GetFreeIpv6Port()));
 
     ugrpc::client::CallOptions call_options;
     call_options.SetTimeout(100ms);
@@ -330,10 +337,9 @@ UTEST_F(GrpcCancelSleep, CancelByTimeoutLogging) {
     GetServer().StopServing();
 
     EXPECT_THAT(
-        GetLogCapture().Filter(
-            "RPC interrupted in 'sample.ugrpc.UnitTestService/SayHello'. "
-            "The previously logged cancellation or network exception, if any, is likely caused by it."
-        ),
+        GetLogCapture()
+            .Filter("RPC interrupted in 'sample.ugrpc.UnitTestService/SayHello'. "
+                    "The previously logged cancellation or network exception, if any, is likely caused by it."),
         testing::SizeIs(1)
     ) << GetLogCapture().GetAll();
 }
@@ -393,17 +399,16 @@ UTEST_F(GrpcCancelError, CancelByError) {
     EXPECT_EQ(get_metric("status", {{"grpc_code", "UNKNOWN"}}), 0);
 
     ASSERT_THAT(
-        GetLogCapture().Filter(
-            "Uncaught exception in 'sample.ugrpc.UnitTestService/Chat': Some error (std::runtime_error)"
-        ),
+        GetLogCapture()
+            .Filter("Uncaught exception in 'sample.ugrpc.UnitTestService/Chat': Some error "
+                    "(std::runtime_error)"),
         testing::SizeIs(1)
     ) << GetLogCapture().GetAll();
 
     ASSERT_THAT(
-        GetLogCapture().Filter(
-            "RPC interrupted in 'sample.ugrpc.UnitTestService/Chat'. "
-            "The previously logged cancellation or network exception, if any, is likely caused by it."
-        ),
+        GetLogCapture()
+            .Filter("RPC interrupted in 'sample.ugrpc.UnitTestService/Chat'. "
+                    "The previously logged cancellation or network exception, if any, is likely caused by it."),
         testing::SizeIs(1)
     ) << GetLogCapture().GetAll();
 }

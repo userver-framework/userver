@@ -40,6 +40,7 @@ components_manager:
             task_processor: monitor-task-processor
 
         http-client:
+        http-client-core:
             fs-task-processor: fs-task-processor
             user-agent: $server-name
             user-agent#fallback: 'userver-based-service 1.0'

@@ -27,7 +27,9 @@ auto ParsePoolConfig(const ComponentConfig& config) {
 
 }  // namespace
 
-Mongo::Mongo(const ComponentConfig& config, const ComponentContext& context) : ComponentBase(config, context) {
+Mongo::Mongo(const ComponentConfig& config, const ComponentContext& context)
+    : ComponentBase(config, context)
+{
     auto dbalias = config["dbalias"].As<std::string>("");
 
     std::string connection_string;
@@ -45,9 +47,8 @@ Mongo::Mongo(const ComponentConfig& config, const ComponentContext& context) : C
     const auto pool_config = ParsePoolConfig(config);
     auto config_source = context.FindComponent<DynamicConfig>().GetSource();
 
-    pool_ = std::make_shared<storages::mongo::Pool>(
-        config.Name(), connection_string, pool_config, dns_resolver, config_source
-    );
+    pool_ = std::make_shared<
+        storages::mongo::Pool>(config.Name(), connection_string, pool_config, dns_resolver, config_source);
 
     if (!dbalias_.empty()) {
         secdist_subscriber_ = secdist->UpdateAndListen(this, dbalias_, &Mongo::OnSecdistUpdate);
@@ -57,7 +58,8 @@ Mongo::Mongo(const ComponentConfig& config, const ComponentContext& context) : C
 
     auto section_name = config.Name();
     if (boost::algorithm::starts_with(section_name, kStandardMongoPrefix) &&
-        section_name.size() != kStandardMongoPrefix.size()) {
+        section_name.size() != kStandardMongoPrefix.size())
+    {
         section_name = section_name.substr(kStandardMongoPrefix.size());
     }
     statistics_holder_ = statistics_storage.GetStorage().RegisterWriter(
@@ -109,11 +111,14 @@ MultiMongo::MultiMongo(const ComponentConfig& config, const ComponentContext& co
           ParsePoolConfig(config),
           clients::dns::GetResolverPtr(config, context),
           context.FindComponent<DynamicConfig>().GetSource()
-      ) {
+      )
+{
     auto& statistics_storage = context.FindComponent<components::StatisticsStorage>();
-    statistics_holder_ = statistics_storage.GetStorage().RegisterWriter(
-        multi_mongo_.GetName(), [this](utils::statistics::Writer& writer) { writer = multi_mongo_; }
-    );
+    statistics_holder_ =
+        statistics_storage.GetStorage()
+            .RegisterWriter(multi_mongo_.GetName(), [this](utils::statistics::Writer& writer) {
+                writer = multi_mongo_;
+            });
 }
 
 MultiMongo::~MultiMongo() { statistics_holder_.Unregister(); }

@@ -43,7 +43,9 @@ void WriteAccessLog(
 
 }  // namespace
 
-Middleware::Middleware(Settings&& settings) : logger_(std::move(settings.access_tskv_logger)) {}
+Middleware::Middleware(Settings&& settings)
+    : logger_(std::move(settings.access_tskv_logger))
+{}
 
 void Middleware::OnCallFinish(MiddlewareCallContext& context, const grpc::Status& status) const {
     WriteAccessLog(context, status, *logger_);

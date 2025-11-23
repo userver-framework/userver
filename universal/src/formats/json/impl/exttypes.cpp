@@ -17,8 +17,12 @@ Type GetExtendedType(const Value& val) {
         case rapidjson::kFalseType:
             return booleanValue;
         case rapidjson::kNumberType:
-            if (val.IsInt64()) return intValue;
-            if (val.IsUint64()) return uintValue;
+            if (val.IsInt64()) {
+                return intValue;
+            }
+            if (val.IsUint64()) {
+                return uintValue;
+            }
             return realValue;
     }
     return errorValue;

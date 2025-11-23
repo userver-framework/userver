@@ -20,10 +20,11 @@ void Plugin::HookCreateSpan(PluginRequest& request, tracing::Span&) {
 
 void Plugin::HookOnCompleted(PluginRequest& request, Response& response) {
     auto& dest = GetDestination(request.GetOriginalUrl());
-    if (!response.IsError())
+    if (!response.IsError()) {
         dest.AccountOk();
-    else
+    } else {
         dest.AccountFail();
+    }
 }
 
 void Plugin::HookOnError(PluginRequest& request, std::error_code) {

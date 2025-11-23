@@ -15,7 +15,8 @@ const dynamic_config::Key<int> kMeaningOfLife{"MEANING_OF_LIFE", 42};
 
 DynamicConfig::DynamicConfig(const components::ComponentConfig& config, const components::ComponentContext& context)
     : server::handlers::HttpHandlerBase(config, context),
-      config_source_(context.FindComponent<components::DynamicConfig>().GetSource()) {}
+      config_source_(context.FindComponent<components::DynamicConfig>().GetSource())
+{}
 
 std::string DynamicConfig::HandleRequest(
     [[maybe_unused]] server::http::HttpRequest& request,

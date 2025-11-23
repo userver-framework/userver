@@ -22,9 +22,11 @@ USERVER_NAMESPACE_BEGIN
 
 inline constexpr std::uint32_t kConnectionId = 0;
 
-inline constexpr storages::postgres::CommandControl kTestCmdCtl{// TODO: lower execute timeout after TAXICOMMON-1313
-                                                                std::chrono::seconds{2},
-                                                                std::chrono::milliseconds{500}};
+inline constexpr storages::postgres::CommandControl kTestCmdCtl{
+    // TODO: lower execute timeout after TAXICOMMON-1313
+    std::chrono::seconds{2},
+    std::chrono::milliseconds{500}
+};
 
 storages::postgres::DefaultCommandControls GetTestCmdCtls();
 
@@ -39,9 +41,11 @@ private:
 };
 
 inline const storages::postgres::ConnectionSettings kCachePreparedStatements{
-    storages::postgres::ConnectionSettings::kCachePreparedStatements};
+    storages::postgres::ConnectionSettings::kCachePreparedStatements
+};
 inline const storages::postgres::ConnectionSettings kNoPreparedStatements{
-    storages::postgres::ConnectionSettings::kNoPreparedStatements};
+    storages::postgres::ConnectionSettings::kNoPreparedStatements
+};
 inline const storages::postgres::ConnectionSettings kNoUserTypes{
     storages::postgres::ConnectionSettings::kCachePreparedStatements,
     storages::postgres::ConnectionSettings::kPredefinedTypesOnly,
@@ -92,8 +96,9 @@ private:
 };
 
 // NOLINTNEXTLINE(fuchsia-multiple-inheritance)
-class PostgreConnection : public PostgreSQLBase,
-                          public ::testing::WithParamInterface<storages::postgres::ConnectionSettings> {
+class PostgreConnection
+    : public PostgreSQLBase,
+      public ::testing::WithParamInterface<storages::postgres::ConnectionSettings> {
 protected:
     PostgreConnection();
     ~PostgreConnection() override;

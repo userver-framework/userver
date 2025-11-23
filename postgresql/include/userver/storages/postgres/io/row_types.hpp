@@ -119,16 +119,17 @@ template <RowCategoryType Tag>
 using RowCategoryConstant = std::integral_constant<RowCategoryType, Tag>;
 
 template <typename T>
-struct RowCategory : std::conditional_t<
-                         IsTuple<T>::value,
-                         RowCategoryConstant<RowCategoryType::kTuple>,
-                         std::conditional_t<
-                             HasIntrospection<T>::value,
-                             RowCategoryConstant<RowCategoryType::kIntrusiveIntrospection>,
-                             std::conditional_t<
-                                 IsSuitableRowType<T>::value,
-                                 RowCategoryConstant<RowCategoryType::kAggregate>,
-                                 RowCategoryConstant<RowCategoryType::kNonRow>>>> {};
+struct RowCategory
+    : std::conditional_t<
+          IsTuple<T>::value,
+          RowCategoryConstant<RowCategoryType::kTuple>,
+          std::conditional_t<
+              HasIntrospection<T>::value,
+              RowCategoryConstant<RowCategoryType::kIntrusiveIntrospection>,
+              std::conditional_t<
+                  IsSuitableRowType<T>::value,
+                  RowCategoryConstant<RowCategoryType::kAggregate>,
+                  RowCategoryConstant<RowCategoryType::kNonRow>>>> {};
 
 template <typename Tag, typename T, USERVER_NAMESPACE::utils::StrongTypedefOps Ops, typename Enable>
 struct RowCategory<USERVER_NAMESPACE::utils::StrongTypedef<Tag, T, Ops, Enable>> : RowCategory<T> {};

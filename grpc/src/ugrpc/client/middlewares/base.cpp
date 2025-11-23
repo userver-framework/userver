@@ -22,7 +22,9 @@ MiddlewareBase::MiddlewareBase() = default;
 
 MiddlewareBase::~MiddlewareBase() = default;
 
-MiddlewareCallContext::MiddlewareCallContext(impl::CallState& state) : state_(state) {}
+MiddlewareCallContext::MiddlewareCallContext(impl::CallState& state)
+    : state_(state)
+{}
 
 grpc::ClientContext& MiddlewareCallContext::GetClientContext() noexcept { return state_.GetClientContext(); }
 

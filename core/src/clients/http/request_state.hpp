@@ -25,6 +25,7 @@
 #include <userver/tracing/manager.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/tracing/tags.hpp>
+#include <userver/utils/impl/wait_token_storage.hpp>
 #include <userver/utils/not_null.hpp>
 #include <userver/utils/zstring_view.hpp>
 
@@ -50,7 +51,6 @@ public:
         RequestStats&& req_stats,
         const std::shared_ptr<DestinationStatistics>& dest_stats,
         clients::dns::Resolver* resolver,
-        const std::vector<utils::NotNull<clients::http::Plugin*>>& plugins,
         const tracing::TracingManagerBase& tracing_manager
     );
     ~RequestState();
@@ -146,6 +146,9 @@ public:
 
     void SetTracingManager(const tracing::TracingManagerBase&);
 
+    void SetWaitToken(utils::impl::WaitTokenStorageLock&&);
+
+    /// true if proxy was set using proxy method
     bool IsProxySet() const;
 
     PluginRequest GetEditableRequestInstance();
@@ -195,6 +198,8 @@ private:
 
     void ResolveTargetAddress(clients::dns::Resolver& resolver);
 
+    // should be the first member to prevent HttpClient destruction before destruction of RequestState fields
+    utils::impl::WaitTokenStorageLock wait_token_;
     /// curl handler wrapper
     impl::EasyWrapper easy_;
     RequestStats stats_;
@@ -252,7 +257,9 @@ private:
     impl::PluginPipeline plugin_pipeline_;
 
     struct StreamData {
-        StreamData(Queue::Producer&& queue_producer) : queue_producer(std::move(queue_producer)) {}
+        StreamData(Queue::Producer&& queue_producer)
+            : queue_producer(std::move(queue_producer))
+        {}
 
         Queue::Producer queue_producer;
         std::atomic<bool> headers_promise_set{false};

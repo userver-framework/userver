@@ -12,14 +12,13 @@ namespace clients::http::plugins::retry_budget {
 
 UTEST(RetryBudget, RetryOk) {
     int count = 0;
-    const utest::HttpServerMock http_server(
-        [&count](const utest::HttpServerMock::HttpRequest&) -> utest::HttpServerMock::HttpResponse {
+    const utest::HttpServerMock
+        http_server([&count](const utest::HttpServerMock::HttpRequest&) -> utest::HttpServerMock::HttpResponse {
             count++;
             utest::HttpServerMock::HttpResponse response{};
             response.response_status = 500;
             return response;
-        }
-    );
+        });
 
     Plugin plugin;
     auto http_client = utest::CreateHttpClientWithPlugin(plugin);
@@ -32,14 +31,13 @@ UTEST(RetryBudget, RetryOk) {
 
 UTEST(RetryBudget, NoBudget) {
     int count = 0;
-    const utest::HttpServerMock http_server(
-        [&count](const utest::HttpServerMock::HttpRequest&) -> utest::HttpServerMock::HttpResponse {
+    const utest::HttpServerMock
+        http_server([&count](const utest::HttpServerMock::HttpRequest&) -> utest::HttpServerMock::HttpResponse {
             count++;
             utest::HttpServerMock::HttpResponse response{};
             response.response_status = 500;
             return response;
-        }
-    );
+        });
 
     Plugin plugin;
     auto http_client = utest::CreateHttpClientWithPlugin(plugin);

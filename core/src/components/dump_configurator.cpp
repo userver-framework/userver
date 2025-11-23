@@ -8,7 +8,9 @@ USERVER_NAMESPACE_BEGIN
 namespace components {
 
 DumpConfigurator::DumpConfigurator(const ComponentConfig& config, const ComponentContext& context)
-    : ComponentBase(config, context), dump_root_(config["dump-root"].As<std::string>()) {}
+    : ComponentBase(config, context),
+      dump_root_(config["dump-root"].As<std::string>())
+{}
 
 const std::string& DumpConfigurator::GetDumpRoot() const { return dump_root_; }
 

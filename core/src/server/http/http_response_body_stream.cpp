@@ -11,7 +11,9 @@ ResponseBodyStream::ResponseBodyStream(
     server::http::HttpResponse::Producer&& queue_producer,
     server::http::HttpResponse& http_response
 )
-    : queue_producer_(std::move(queue_producer)), http_response_(http_response) {}
+    : queue_producer_(std::move(queue_producer)),
+      http_response_(http_response)
+{}
 
 ResponseBodyStream::~ResponseBodyStream() {
     if (http_response_.GetStreamId().has_value()) {
@@ -32,7 +34,8 @@ void ResponseBodyStream::PushBodyChunk(std::string&& chunk, engine::Deadline dea
                 UASSERT(http_response_.GetStreamId().has_value());
                 queue_producer.PushEvent({*http_response_.GetStreamId(), std::move(chunk)}, deadline);
             },
-            [](std::monostate) { UINVARIANT(false, "unreachable"); }},
+            [](std::monostate) { UINVARIANT(false, "unreachable"); }
+        },
         queue_producer_
     );
 }

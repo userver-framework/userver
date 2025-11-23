@@ -1,13 +1,11 @@
 import collections
+from collections.abc import Generator
 import contextlib
 import dataclasses
 import os
 import re
 from typing import Any
-from typing import Generator
 from typing import NoReturn
-from typing import Optional
-from typing import Union
 
 from chaotic import error
 from chaotic.front import ref
@@ -66,7 +64,7 @@ class SchemaParser:
                 self._raise(f'Duplicate path: {path}')
             self._state.schemas[path] = data
 
-    def _parse_schema(self, input__: dict) -> Union[types.Schema, types.Ref]:
+    def _parse_schema(self, input__: dict) -> types.Schema | types.Ref:
         data = self.do_parse_schema(input__)
         source_location = types.SourceLocation(
             filepath=self.full_vfilepath,
@@ -76,7 +74,7 @@ class SchemaParser:
         data._source_location = source_location  # type: ignore
         return data
 
-    def do_parse_schema(self, input__: dict) -> Union[types.Schema, types.Ref]:
+    def do_parse_schema(self, input__: dict) -> types.Schema | types.Ref:
         if 'type' in input__:
             return self._parse_type(input__['type'], input__)
         elif '$ref' in input__:
@@ -314,7 +312,7 @@ class SchemaParser:
     def _parse_int(self, input_: dict) -> types.Integer:
         format_str = input_.pop('format', None)
 
-        fmt: Optional[types.IntegerFormat]
+        fmt: types.IntegerFormat | None
         if format_str:
             fmt = types.IntegerFormat.from_string(format_str)
         else:
@@ -329,7 +327,7 @@ class SchemaParser:
 
     def _parse_string(self, input_: dict) -> types.String:
         format_str = input_.pop('format', None)
-        fmt: Optional[types.StringFormat]
+        fmt: types.StringFormat | None
         if format_str:
             fmt = types.StringFormat.from_string(format_str)
         else:
@@ -374,9 +372,8 @@ class SchemaParser:
 
         fields = set(input_.keys())
         fields.remove('$ref')
-        if 'description' in fields:
-            # description is explicitly allowed in $ref
-            fields.remove('description')
+        # description is explicitly allowed in $ref
+        fields.discard('description')
 
         if 'x-usrv-cpp-indirect' in fields:
             indirect = True

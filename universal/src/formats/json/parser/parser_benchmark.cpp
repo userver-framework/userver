@@ -16,7 +16,9 @@ namespace {
 std::string Build(size_t len) {
     std::string r = "[";
     for (size_t i = 0; i < len; i++) {
-        if (i > 0) r += ',';
+        if (i > 0) {
+            r += ',';
+        }
         r += '1';
     }
     r += ']';
@@ -26,7 +28,9 @@ std::string Build(size_t len) {
 std::string BuildArray(size_t len) {
     std::string r = "[";
     for (size_t i = 0; i < len; i++) {
-        if (i > 0) r += ',';
+        if (i > 0) {
+            r += ',';
+        }
         r += Build(len);
     }
     r += ']';
@@ -210,7 +214,9 @@ std::string BuildArrayOfNumbers(std::size_t size) {
     const std::string number = "56.411117000000004";
     std::string result = "[";
     for (std::size_t i = 0; i < size; ++i) {
-        if (i != 0) result += ", ";
+        if (i != 0) {
+            result += ", ";
+        }
         result += number;
     }
     result += "]";

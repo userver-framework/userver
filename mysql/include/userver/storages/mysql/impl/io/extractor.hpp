@@ -114,14 +114,18 @@ private:
     // first, and then insert it.
     // If we can't bind in place the same applies.
     // Otherwise, we can emplace_back and bind that new instance.
-    using InternalStorageType = std::
-        conditional_t<!kIsMapped && kCanBindInPlace, InPlaceStorage<Container>, ProxyingStorage<Container, MapFrom>>;
+    using InternalStorageType = std::conditional_t<
+        !kIsMapped && kCanBindInPlace,
+        InPlaceStorage<Container>,
+        ProxyingStorage<Container, MapFrom>>;
     InternalStorageType storage_;
 };
 
 template <typename Container, typename MapFrom, typename ExtractionTag>
 TypedExtractor<Container, MapFrom, ExtractionTag>::TypedExtractor()
-    : ExtractorBase{GetColumnsCount()}, storage_{InternalStorageType{binder_}} {}
+    : ExtractorBase{GetColumnsCount()},
+      storage_{InternalStorageType{binder_}}
+{}
 
 template <typename Container, typename MapFrom, typename ExtractionTag>
 void TypedExtractor<Container, MapFrom, ExtractionTag>::Reserve(std::size_t size) {
@@ -154,7 +158,9 @@ Container&& TypedExtractor<Container, MapFrom, ExtractionTag>::ExtractData() {
 }
 
 template <typename Container>
-InPlaceStorage<Container>::InPlaceStorage(ResultBinder& binder) : binder_{binder} {}
+InPlaceStorage<Container>::InPlaceStorage(ResultBinder& binder)
+    : binder_{binder}
+{}
 
 template <typename Container>
 void InPlaceStorage<Container>::Reserve(std::size_t size) {
@@ -186,7 +192,9 @@ Container&& InPlaceStorage<Container>::ExtractData() {
 }
 
 template <typename Container, typename MapFrom>
-ProxyingStorage<Container, MapFrom>::ProxyingStorage(ResultBinder& binder) : binder_{binder} {}
+ProxyingStorage<Container, MapFrom>::ProxyingStorage(ResultBinder& binder)
+    : binder_{binder}
+{}
 
 template <typename Container, typename MapFrom>
 void ProxyingStorage<Container, MapFrom>::Reserve([[maybe_unused]] std::size_t size) {

@@ -8,7 +8,9 @@ namespace my {
 struct CustomDateTime {
     USERVER_NAMESPACE::utils::datetime::TimePointTz time_point;
 
-    CustomDateTime(USERVER_NAMESPACE::utils::datetime::TimePointTz time_point) : time_point(time_point) {}
+    CustomDateTime(USERVER_NAMESPACE::utils::datetime::TimePointTz time_point)
+        : time_point(time_point)
+    {}
 };
 
 inline bool operator==(const CustomDateTime& lhs, const CustomDateTime& rhs) {

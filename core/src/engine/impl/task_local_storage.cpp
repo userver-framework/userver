@@ -54,7 +54,9 @@ using InheritedDataList = boost::intrusive::list<
 
 }  // namespace
 
-DataBase::DataBase(Deleter deleter) : deleter_(deleter) {}
+DataBase::DataBase(Deleter deleter)
+    : deleter_(deleter)
+{}
 
 void DataBase::DeleteSelf() noexcept { deleter_(*this); }
 
@@ -152,13 +154,17 @@ void Storage::InitializeFrom(Storage&& other) noexcept {
 
 DataBase* Storage::GetGeneric(Key key) noexcept {
     UASSERT(key < variable_count);
-    if (!impl_->data) return nullptr;
+    if (!impl_->data) {
+        return nullptr;
+    }
     return impl_->data[key].ptr;
 }
 
 void Storage::Impl::DoSetGeneric(Key key, DataBase& node) {
     UASSERT(key < variable_count);
-    if (!data) data = std::make_unique<DataPtr[]>(variable_count);
+    if (!data) {
+        data = std::make_unique<DataPtr[]>(variable_count);
+    }
     data[key].ptr = &node;
 }
 
@@ -178,18 +184,24 @@ void Storage::SetGeneric(Key key, InheritedDataBase& node, bool has_existing_var
 
 void Storage::EraseInherited(Key key) noexcept {
     UASSERT(key < variable_count);
-    if (!impl_->data) return;
+    if (!impl_->data) {
+        return;
+    }
 
     auto& data_ptr = impl_->data[key];
     auto* const data = data_ptr.ptr;
-    if (!data) return;
+    if (!data) {
+        return;
+    }
 
     data_ptr.ptr = nullptr;
     impl_->inherited_data_storage.erase(InheritedDataList::s_iterator_to(data_ptr));
     data->DeleteSelf();
 }
 
-Variable::Variable() : key_(RegisterVariable()) {}
+Variable::Variable()
+    : key_(RegisterVariable())
+{}
 
 Key Variable::GetKey() const noexcept { return key_; }
 

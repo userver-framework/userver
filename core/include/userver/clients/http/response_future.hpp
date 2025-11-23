@@ -5,11 +5,9 @@
 
 #include <future>
 #include <memory>
-#include <type_traits>
 
-#include <userver/clients/http/config.hpp>
+#include <userver/clients/http/cancellation_policy.hpp>
 #include <userver/clients/http/response.hpp>
-#include <userver/compiler/select.hpp>
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/future.hpp>
 #include <userver/engine/impl/context_accessor.hpp>

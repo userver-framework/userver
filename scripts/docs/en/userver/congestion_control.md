@@ -34,7 +34,8 @@ congestion_control::Component cannot be useful if:
 ## Example configuration
 
 1. Add congestion_control::Component in the static config:
-```yaml
+```
+# yaml
 components_manager:
     components:
         congestion-control:

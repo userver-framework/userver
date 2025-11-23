@@ -1,9 +1,9 @@
 {
   "configurations": [
     {
-      "name": "CMake",
       "compileCommands": "${config:cmake.buildDirectory}/compile_commands.json",
-      "configurationProvider": "ms-vscode.cmake-tools"
+      "configurationProvider": "ms-vscode.cmake-tools",
+      "name": "CMake"
     }
   ],
   "version": 4

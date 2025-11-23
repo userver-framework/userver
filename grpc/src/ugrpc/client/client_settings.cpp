@@ -6,8 +6,10 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client {
 
-std::size_t
-GetMethodChannelCount(const DedicatedMethodsConfig& dedicated_methods_config, std::string_view method_name) {
+std::size_t GetMethodChannelCount(
+    const DedicatedMethodsConfig& dedicated_methods_config,
+    std::string_view method_name
+) {
     return utils::FindOrDefault(dedicated_methods_config, std::string{method_name}, std::size_t{0});
 }
 

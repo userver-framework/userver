@@ -17,7 +17,9 @@ USERVER_NAMESPACE_BEGIN
 namespace components {
 
 ClickHouse::ClickHouse(const ComponentConfig& config, const ComponentContext& context)
-    : ComponentBase{config, context}, dns_{context.FindComponent<clients::dns::Component>()} {
+    : ComponentBase{config, context},
+      dns_{context.FindComponent<clients::dns::Component>()}
+{
     const auto& secdist = context.FindComponent<Secdist>().Get();
     const auto& settings_multi = secdist.Get<storages::clickhouse::impl::ClickhouseSettingsMulti>();
     const auto& settings = settings_multi.Get(storages::clickhouse::impl::GetSecdistAlias(config));

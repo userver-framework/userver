@@ -5,7 +5,8 @@ USERVER_NAMESPACE_BEGIN
 namespace curl {
 
 MultiStatistics::MultiStatistics()
-    : busy_storage_(utils::statistics::kDefaultEpochDuration, utils::statistics::kDefaultMaxPeriod) {}
+    : busy_storage_(utils::statistics::kDefaultEpochDuration, utils::statistics::kDefaultMaxPeriod)
+{}
 
 void MultiStatistics::mark_open_socket() { open_++; }
 

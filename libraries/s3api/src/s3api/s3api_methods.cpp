@@ -15,7 +15,9 @@ namespace {
 
 class StringWriter : public pugi::xml_writer {
 public:
-    explicit StringWriter(std::string& out) : out_(out) {}
+    explicit StringWriter(std::string& out)
+        : out_(out)
+    {}
 
     void write(const void* data, size_t size) override { out_.append(static_cast<const char*>(data), size); }
 
@@ -104,8 +106,8 @@ Request GetObjectHead(std::string_view bucket, std::string_view path) {
 }
 
 void SetRange(Request& req, size_t begin, size_t end) {
-    req.headers[USERVER_NAMESPACE::http::headers::kRange] =
-        "bytes=" + std::to_string(begin) + '-' + std::to_string(end);
+    req.headers
+        [USERVER_NAMESPACE::http::headers::kRange] = "bytes=" + std::to_string(begin) + '-' + std::to_string(end);
 }
 
 void SetRange(Request& req, std::string_view range) { req.headers[USERVER_NAMESPACE::http::headers::kRange] = range; }
@@ -158,8 +160,10 @@ Request CopyObject(
     return req;
 }
 
-Request
-CreateInternalApiRequest(const std::string& bucket, const multipart_upload::CreateMultipartUploadRequest& request) {
+Request CreateInternalApiRequest(
+    const std::string& bucket,
+    const multipart_upload::CreateMultipartUploadRequest& request
+) {
     Request result;
     result.method = clients::http::HttpMethod::kPost;
     result.bucket = bucket;
@@ -184,8 +188,10 @@ CreateInternalApiRequest(const std::string& bucket, const multipart_upload::Crea
     return result;
 }
 
-Request
-CreateInternalApiRequest(const std::string& bucket, const multipart_upload::AbortMultipartUploadRequest& request) {
+Request CreateInternalApiRequest(
+    const std::string& bucket,
+    const multipart_upload::AbortMultipartUploadRequest& request
+) {
     Request result;
     result.method = clients::http::HttpMethod::kDelete;
     result.bucket = bucket;
@@ -193,8 +199,10 @@ CreateInternalApiRequest(const std::string& bucket, const multipart_upload::Abor
     return result;
 }
 
-Request
-CreateInternalApiRequest(const std::string& bucket, const multipart_upload::CompleteMultipartUploadRequest& request) {
+Request CreateInternalApiRequest(
+    const std::string& bucket,
+    const multipart_upload::CompleteMultipartUploadRequest& request
+) {
     Request result;
     result.method = clients::http::HttpMethod::kPost;
     result.bucket = bucket;
@@ -214,7 +222,8 @@ CreateInternalApiRequest(const std::string& bucket, const multipart_upload::Comp
     doc.save(writer, "", pugi::format_raw);
     result.headers = clients::http::Headers{
         {http::headers::kContentType, content_types::kApplicationXml},
-        {http::headers::kContentLength, std::to_string(result.body.size())}};
+        {http::headers::kContentLength, std::to_string(result.body.size())}
+    };
 
     return result;
 }
@@ -228,7 +237,8 @@ Request CreateInternalApiRequest(const std::string& bucket, const multipart_uplo
     // We explicitly override this Content-Type value here to make this request be signed correctly.
     result.headers = clients::http::Headers{
         {http::headers::kContentLength, std::to_string(request.data.size())},
-        {http::headers::kContentType, std::string{content_types::kDefault}}};
+        {http::headers::kContentType, std::string{content_types::kDefault}}
+    };
 
     result.bucket = bucket;
     result.req = fmt::format(
@@ -263,8 +273,10 @@ Request CreateInternalApiRequest(const std::string& bucket, const multipart_uplo
     return result;
 }
 
-Request
-CreateInternalApiRequest(const std::string& bucket, const multipart_upload::ListMultipartUploadsRequest& request) {
+Request CreateInternalApiRequest(
+    const std::string& bucket,
+    const multipart_upload::ListMultipartUploadsRequest& request
+) {
     using EncodingType = multipart_upload::ListMultipartUploadsRequest::EncodingType;
 
     Request result;

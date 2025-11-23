@@ -8,7 +8,8 @@ namespace components {
 
 StatisticsStorage::StatisticsStorage(const ComponentConfig&, const ComponentContext&)
     : metrics_storage_(std::make_shared<utils::statistics::MetricsStorage>()),
-      metrics_storage_registration_(metrics_storage_->RegisterIn(storage_)) {}
+      metrics_storage_registration_(metrics_storage_->RegisterIn(storage_))
+{}
 
 StatisticsStorage::~StatisticsStorage() {
     for (auto& entry : metrics_storage_registration_) {

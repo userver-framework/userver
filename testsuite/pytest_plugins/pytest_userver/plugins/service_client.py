@@ -3,8 +3,9 @@ Service main and monitor clients.
 """
 
 # pylint: disable=redefined-outer-name
+from collections.abc import AsyncGenerator
+from collections.abc import Callable
 import contextlib
-import typing
 
 import aiohttp.client_exceptions
 import pytest
@@ -52,7 +53,7 @@ async def userver_client_cleanup(
     _dynamic_config_defaults_storage,
     _check_config_marks,
     dynamic_config,
-) -> typing.Callable[[client.Client], typing.AsyncGenerator]:
+) -> Callable[[client.Client], AsyncGenerator]:
     """
     Contains the pre-test and post-test setup that depends
     on @ref service_client.

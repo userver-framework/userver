@@ -86,7 +86,9 @@ public:
 /// Server-side error
 class ServerException : public QueryException {
 public:
-    explicit ServerException(int code) : code_(code) {}
+    explicit ServerException(int code)
+        : code_(code)
+    {}
 
     int Code() const { return code_; }
 

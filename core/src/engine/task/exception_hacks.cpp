@@ -63,8 +63,9 @@ public:
             Teardown();
             LOG_WARNING() << "Failed to mlock(2) process debug info, an attempt took " << total_duration_ms;
         } else {
-            LOG_INFO() << "mlock(2)-ed approx " << mlocked_size_approx_ << " of process debug info within "
-                       << total_duration_ms;
+            LOG_INFO()
+                << "mlock(2)-ed approx " << mlocked_size_approx_ << " of process debug info within "
+                << total_duration_ms;
         }
     }
 
@@ -260,9 +261,7 @@ extern "C" {
 #ifndef __clang__
 [[gnu::visibility("default")]] [[gnu::externally_visible]]
 #endif
-    int
-    dl_iterate_phdr(USERVER_NAMESPACE::engine::impl::DlIterateCb callback,
-                    void* data) {
+int dl_iterate_phdr(USERVER_NAMESPACE::engine::impl::DlIterateCb callback, void* data) {
     return USERVER_NAMESPACE::engine::impl::DlIteratePhdr(callback, data);
 }
 
@@ -287,7 +286,7 @@ void* dlopen(const char* filename, int flags) {
 [[gnu::visibility("default")]] [[gnu::externally_visible]]
 #endif
 // NOLINTNEXTLINE(readability-inconsistent-declaration-parameter-name)
-void* dlmopen(Lmid_t lmid, const char *filename, int flags) {
+void* dlmopen(Lmid_t lmid, const char* filename, int flags) {
     using DlMOpenSignature = void* (*)(Lmid_t, const char*, int);
     constexpr const char* kFunctionName = "dlmopen";
     static void* func = dlsym(RTLD_NEXT, "dlmopen");
@@ -304,7 +303,7 @@ void* dlmopen(Lmid_t lmid, const char *filename, int flags) {
 [[gnu::visibility("default")]] [[gnu::externally_visible]]
 #endif
 // NOLINTNEXTLINE(readability-inconsistent-declaration-parameter-name)
-int dlclose(void *handle) {
+int dlclose(void* handle) {
     using DlCloseSignature = int (*)(void*);
     constexpr const char* kFunctionName = "dlclose";
     static void* func = dlsym(RTLD_NEXT, "dlclose");

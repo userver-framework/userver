@@ -27,7 +27,8 @@ Decompression::Decompression(const handlers::HttpHandlerBase& handler)
     : decompress_request_{GetDecompressRequestFromHandlerSettings(handler)},
       max_request_size_{handler.GetConfig().request_config.max_request_size},
       parse_args_from_body_{handler.GetConfig().request_config.parse_args_from_body},
-      handler_{handler} {}
+      handler_{handler}
+{}
 
 void Decompression::HandleRequest(http::HttpRequest& request, request::RequestContext& context) const {
     if (DecompressRequestBody(request)) {
@@ -43,8 +44,9 @@ bool Decompression::DecompressRequestBody(http::HttpRequest& request) const {
     const auto scope_time = tracing::ScopeTime::CreateOptionalScopeTime("http_decompress_request_body");
 
     const auto& content_encoding = request.GetHeader(USERVER_NAMESPACE::http::headers::kContentEncoding);
-    const utils::FastScopeGuard encoding_remove_guard{
-        [&request]() noexcept { request.RemoveHeader(USERVER_NAMESPACE::http::headers::kContentEncoding); }};
+    const utils::FastScopeGuard encoding_remove_guard{[&request]() noexcept {
+        request.RemoveHeader(USERVER_NAMESPACE::http::headers::kContentEncoding);
+    }};
 
     try {
         using FunctionPtr = std::string (*)(std::string_view, std::size_t);
@@ -63,15 +65,15 @@ bool Decompression::DecompressRequestBody(http::HttpRequest& request) const {
             return true;
         }
     } catch (const compression::TooBigError&) {
-        handler_.HandleCustomHandlerException(
-            request, handlers::ClientError{handlers::HandlerErrorCode::kPayloadTooLarge}
-        );
+        handler_
+            .HandleCustomHandlerException(request, handlers::ClientError{handlers::HandlerErrorCode::kPayloadTooLarge});
         return false;
     } catch (const std::exception& e) {
         handler_.HandleCustomHandlerException(
             request,
             handlers::RequestParseError{
-                handlers::InternalMessage{fmt::format("Failed to decompress request body: {}", e.what())}}
+                handlers::InternalMessage{fmt::format("Failed to decompress request body: {}", e.what())}
+            }
         );
         return false;
     }
@@ -87,17 +89,21 @@ bool Decompression::DecompressRequestBody(http::HttpRequest& request) const {
 }
 
 SetAcceptEncoding::SetAcceptEncoding(const handlers::HttpHandlerBase& handler)
-    : decompress_request_{GetDecompressRequestFromHandlerSettings(handler)} {}
+    : decompress_request_{GetDecompressRequestFromHandlerSettings(handler)}
+{}
 
 void SetAcceptEncoding::HandleRequest(http::HttpRequest& request, request::RequestContext& context) const {
-    const utils::ScopeGuard set_accept_encoding_scope{
-        [this, &request] { SetResponseAcceptEncoding(request.GetHttpResponse()); }};
+    const utils::ScopeGuard set_accept_encoding_scope{[this, &request] {
+        SetResponseAcceptEncoding(request.GetHttpResponse());
+    }};
 
     Next(request, context);
 }
 
 void SetAcceptEncoding::SetResponseAcceptEncoding(http::HttpResponse& response) const {
-    if (!decompress_request_) return;
+    if (!decompress_request_) {
+        return;
+    }
 
     // RFC7694, 3.
     // This specification expands that definition to allow "Accept-Encoding"

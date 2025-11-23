@@ -19,6 +19,7 @@ components_manager:
             service-url: http://some-service.example/v1/action
 
         http-client:
+        http-client-core:
             pool-statistics-disable: false
             thread-name-prefix: http-client
             threads: 2

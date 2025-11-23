@@ -98,10 +98,11 @@ PublicKey PublicKey::LoadFromString(std::string_view key) {
 
     auto pubkey_bio = MakeBioString(key);
 
-    std::shared_ptr<EVP_PKEY> pubkey(
-        ::PEM_read_bio_PUBKEY(pubkey_bio.get(), nullptr, &NoPasswordCb, nullptr), ::EVP_PKEY_free
-    );
-    if (!pubkey) throw KeyParseError(FormatSslError("Failed to load public key"));
+    std::shared_ptr<EVP_PKEY>
+        pubkey(::PEM_read_bio_PUBKEY(pubkey_bio.get(), nullptr, &NoPasswordCb, nullptr), ::EVP_PKEY_free);
+    if (!pubkey) {
+        throw KeyParseError(FormatSslError("Failed to load public key"));
+    }
     return PublicKey{std::move(pubkey)};
 }
 

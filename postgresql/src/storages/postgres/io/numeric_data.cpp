@@ -42,7 +42,8 @@ constexpr std::int64_t kPowersOfTen[]{
     1'000'000'000'000'000,
     10'000'000'000'000'000,
     100'000'000'000'000'000,
-    1'000'000'000'000'000'000};
+    1'000'000'000'000'000'000
+};
 
 constexpr auto kMaxPowerOfTen = sizeof(kPowersOfTen) / sizeof(kPowersOfTen[0]) - 1;
 
@@ -200,14 +201,14 @@ void NumericData::ReadBuffer(FieldBuffer fb) {
 }
 
 std::string NumericData::GetBuffer() const {
-    static const UserTypes types;
+    static const UserTypes kTypes;
     std::string buff;
-    io::WriteBuffer(types, buff, ndigits);
-    io::WriteBuffer(types, buff, weight);
-    io::WriteBuffer(types, buff, sign);
-    io::WriteBuffer(types, buff, dscale);
+    io::WriteBuffer(kTypes, buff, ndigits);
+    io::WriteBuffer(kTypes, buff, weight);
+    io::WriteBuffer(kTypes, buff, sign);
+    io::WriteBuffer(kTypes, buff, dscale);
     for (auto dgt : digits) {
-        io::WriteBuffer(types, buff, dgt);
+        io::WriteBuffer(kTypes, buff, dgt);
     }
     return buff;
 }
@@ -218,7 +219,9 @@ std::string NumericData::ToString() const {
     }
 
     std::int32_t before_point = (weight + 1) * kDigitWidth;
-    if (before_point <= 0) before_point = 1;
+    if (before_point <= 0) {
+        before_point = 1;
+    }
 
     std::string res;
 
@@ -371,7 +374,8 @@ IntegralRepresentation NumericData::ToInt64() const {
                 throw NumericOverflow{
                     "PosrgreSQL buffer contains a value that is too big to fit into "
                     "int64 + '" +
-                    ToString() + "'"};
+                    ToString() + "'"
+                };
             }
             rep.value = static_cast<std::int64_t>(new_val);
         }
@@ -393,7 +397,8 @@ IntegralRepresentation NumericData::ToInt64() const {
                 throw NumericOverflow{
                     "PosrgreSQL buffer contains a value that is too big to fit into "
                     "int64 + '" +
-                    ToString() + "'"};
+                    ToString() + "'"
+                };
             }
             rep.value = static_cast<std::int64_t>(new_val);
         }
@@ -407,9 +412,12 @@ IntegralRepresentation NumericData::ToInt64() const {
 void NumericData::FromInt64(IntegralRepresentation rep) {
     if (rep.fractional_digit_count < 0 || static_cast<std::int64_t>(kMaxPowerOfTen) < rep.fractional_digit_count) {
         throw InvalidRepresentation{
-            "Number of digits after decimal point is invalid " + std::to_string(rep.fractional_digit_count)};
+            "Number of digits after decimal point is invalid " + std::to_string(rep.fractional_digit_count)
+        };
     }
-    if (rep.value == 0) return;
+    if (rep.value == 0) {
+        return;
+    }
 
     sign = rep.value < 0 ? kNumericNegative : kNumericPositive;
     const std::uint64_t abs_value = std::abs(rep.value);

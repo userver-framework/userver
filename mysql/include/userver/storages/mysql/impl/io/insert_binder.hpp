@@ -40,7 +40,10 @@ template <typename Container, typename MapTo = typename Container::value_type>
 class InsertBinder final : public InsertBinderBase {
 public:
     explicit InsertBinder(const Container& container)
-        : InsertBinderBase{kColumnsCount}, container_{container}, current_row_it_{container_.begin()} {
+        : InsertBinderBase{kColumnsCount},
+          container_{container},
+          current_row_it_{container_.begin()}
+    {
         static_assert(kColumnsCount != 0, "Rows to insert have zero columns");
         static_assert(meta::kIsSizable<Container>, "Container should be sizeable for batch insertion");
 

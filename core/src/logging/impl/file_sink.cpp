@@ -7,7 +7,9 @@ USERVER_NAMESPACE_BEGIN
 namespace logging::impl {
 
 FileSink::FileSink(const std::string& filename)
-    : FdSink(OpenFile<fs::blocking::FileDescriptor>(filename)), filename_{filename} {
+    : FdSink(OpenFile<fs::blocking::FileDescriptor>(filename)),
+      filename_{filename}
+{
     if (GetFd().GetSize() > 0) {
         GetFd().Write("\n");
     }

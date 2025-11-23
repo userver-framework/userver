@@ -28,7 +28,8 @@ void MiddlewareBase::PostRecvMessage(MiddlewareCallContext&, google::protobuf::M
 void MiddlewareBase::PreSendMessage(MiddlewareCallContext&, google::protobuf::Message&) const {}
 
 MiddlewareCallContext::MiddlewareCallContext(utils::impl::InternalTag, impl::CallState& state)
-    : CallContextBase(utils::impl::InternalTag{}, state) {}
+    : CallContextBase(utils::impl::InternalTag{}, state)
+{}
 
 void MiddlewareCallContext::SetError(grpc::Status&& status) noexcept {
     UASSERT(!status.ok());

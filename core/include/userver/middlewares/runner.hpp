@@ -67,7 +67,8 @@ public:
     )
         : impl::WithMiddlewareDependencyComponentBase(config, context),
           global_config_(config.As<formats::yaml::Value>()),
-          dependency_(std::move(builder).ExtractDependency(/*middleware_name=*/config.Name())) {}
+          dependency_(std::move(builder).ExtractDependency(/*middleware_name=*/config.Name()))
+    {}
 
     /// @brief Returns a middleware according to the component's settings.
     ///
@@ -75,8 +76,10 @@ public:
     /// @param middleware_config config for the middleware.
     ///
     /// @warning Don't store `info` by reference. `info` object will be dropped after the `CreateMiddleware` call.
-    virtual std::shared_ptr<const MiddlewareBase>
-    CreateMiddleware(const HandlerInfo& info, const yaml_config::YamlConfig& middleware_config) const = 0;
+    virtual std::shared_ptr<const MiddlewareBase> CreateMiddleware(
+        const HandlerInfo& info,
+        const yaml_config::YamlConfig& middleware_config
+    ) const = 0;
 
     /// @brief This method should return the schema of a middleware configuration.
     /// Always write `return GetStaticConfigSchema();` in this method.
@@ -121,8 +124,9 @@ private:
 /// So, 'Pipeline' is responsible for the order of middlewares. `RunnerComponentBase` is responsible for creating
 /// middlewares and overriding configs.
 template <typename MiddlewareBase, typename HandlerInfo>
-class RunnerComponentBase : public components::ComponentBase,
-                            public impl::PipelineCreatorInterface<MiddlewareBase, HandlerInfo> {
+class RunnerComponentBase
+    : public components::ComponentBase,
+      public impl::PipelineCreatorInterface<MiddlewareBase, HandlerInfo> {
 public:
     static yaml_config::Schema GetStaticConfigSchema() {
         return yaml_config::MergeSchemas<components::ComponentBase>(R"(
@@ -196,15 +200,17 @@ RunnerComponentBase<MiddlewareBase, HandlerInfo>::RunnerComponentBase(
 
 /// @cond
 template <typename MiddlewareBase, typename HandlerInfo>
-std::vector<std::shared_ptr<const MiddlewareBase>> RunnerComponentBase<MiddlewareBase, HandlerInfo>::CreateMiddlewares(
-    const HandlerInfo& info
-) const {
+std::vector<std::shared_ptr<const MiddlewareBase>> RunnerComponentBase<
+    MiddlewareBase,
+    HandlerInfo>::CreateMiddlewares(const HandlerInfo& info) const {
     std::vector<std::shared_ptr<const MiddlewareBase>> middlewares{};
     middlewares.reserve(middleware_infos_.size());
     for (const auto& [factory, local_config] : middleware_infos_) {
         try {
             auto config = impl::ValidateAndMergeMiddlewareConfigs(
-                factory->GetGlobalConfig(utils::impl::InternalTag{}), local_config, factory->GetMiddlewareConfigSchema()
+                factory->GetGlobalConfig(utils::impl::InternalTag{}),
+                local_config,
+                factory->GetMiddlewareConfigSchema()
             );
             middlewares.push_back(factory->CreateMiddleware(info, config));
         } catch (const std::exception& e) {
@@ -231,11 +237,9 @@ public:
         const components::ComponentConfig& config,
         const components::ComponentContext& context
     )
-        : MiddlewareFactoryComponentBase<MiddlewareBase, HandlerInfo>(
-              config,
-              context,
-              middlewares::MiddlewareDependencyBuilder{Middleware::kDependency}
-          ) {}
+        : MiddlewareFactoryComponentBase<
+              MiddlewareBase,
+              HandlerInfo>(config, context, middlewares::MiddlewareDependencyBuilder{Middleware::kDependency}) {}
 
 private:
     std::shared_ptr<const MiddlewareBase> CreateMiddleware(const HandlerInfo&, const yaml_config::YamlConfig&)

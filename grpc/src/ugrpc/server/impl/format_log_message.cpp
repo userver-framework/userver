@@ -4,12 +4,11 @@
 #include <fmt/compile.h>
 #include <fmt/format.h>
 
-#include <userver/compiler/thread_local.hpp>
 #include <userver/logging/impl/logger_base.hpp>
+#include <userver/logging/impl/timestamp.hpp>
 #include <userver/ugrpc/impl/to_string.hpp>
 #include <userver/utils/datetime.hpp>
 #include <userver/utils/encoding/tskv.hpp>
-#include <userver/utils/impl/source_location.hpp>
 #include <userver/utils/text_light.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -19,7 +18,9 @@ namespace ugrpc::server::impl {
 namespace {
 
 std::string EscapeForAccessTskvLog(std::string_view str) {
-    if (str.empty()) return "-";
+    if (str.empty()) {
+        return "-";
+    }
 
     std::string encoded_str;
     EncodeTskv(encoded_str, str, utils::encoding::EncodeTskvMode::kValue);
@@ -29,8 +30,12 @@ std::string EscapeForAccessTskvLog(std::string_view str) {
 std::string ParseIp(std::string_view sv) {
     static constexpr std::string_view kIpv6 = "ipv6:";
     static constexpr std::string_view kIpv4 = "ipv4:";
-    if (utils::text::StartsWith(sv, kIpv6)) sv = sv.substr(kIpv6.size());
-    if (utils::text::StartsWith(sv, kIpv4)) sv = sv.substr(kIpv4.size());
+    if (utils::text::StartsWith(sv, kIpv6)) {
+        sv = sv.substr(kIpv6.size());
+    }
+    if (utils::text::StartsWith(sv, kIpv4)) {
+        sv = sv.substr(kIpv4.size());
+    }
 
     auto pos1 = sv.find("%5B");
     auto pos2 = sv.find("%5D");
@@ -39,39 +44,6 @@ std::string ParseIp(std::string_view sv) {
     }
 
     return EscapeForAccessTskvLog(sv);
-}
-
-using SecondsTimePoint = std::chrono::time_point<std::chrono::system_clock, std::chrono::seconds>;
-
-constexpr std::string_view kTimeTemplate = "0000-00-00T00:00:00";
-
-struct CachedTime final {
-    SecondsTimePoint cached_time{};
-    char cached_time_string[kTimeTemplate.size()]{};
-};
-
-compiler::ThreadLocal local_time_cache = [] { return CachedTime{}; };
-
-std::string_view GetCurrentTimeString(std::chrono::system_clock::time_point start_time) noexcept {
-    auto cache = local_time_cache.Use();
-    const auto rounded_now = std::chrono::time_point_cast<std::chrono::seconds>(start_time);
-    if (rounded_now != cache->cached_time) {
-        fmt::format_to(
-            cache->cached_time_string,
-            FMT_COMPILE("{:%FT%T}"),
-            fmt::localtime(std::chrono::system_clock::to_time_t(start_time))
-        );
-        cache->cached_time = rounded_now;
-    }
-
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wreturn-stack-address"
-#endif
-    return std::string_view{cache->cached_time_string, kTimeTemplate.size()};
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
 }
 
 }  // namespace
@@ -84,7 +56,7 @@ logging::impl::LogExtraTskvFormatter FormatLogMessage(
     grpc::StatusCode code,
     const logging::LogExtra* log_extra
 ) {
-    static const auto timezone = utils::datetime::LocalTimezoneTimestring(start_time, "%z");
+    static const auto kTimezone = utils::datetime::LocalTimezoneTimestring(start_time, "%z");
 
     const auto it = metadata.find("user-agent");
     std::string_view user_agent;
@@ -113,8 +85,8 @@ logging::impl::LogExtraTskvFormatter FormatLogMessage(
         "\tupstream_response_time={}.{:0>3}"
         "\tgrpc_status={}"
         "\tgrpc_status_code={}",
-        GetCurrentTimeString(start_time),
-        timezone,
+        logging::impl::GetCurrentLocalTimeString(start_time).ToStringView(),
+        kTimezone,
         EscapeForAccessTskvLog(user_agent),
         ip,
         ip,

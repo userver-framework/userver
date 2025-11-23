@@ -73,7 +73,8 @@ class GrpcClientQosConfigExceeded : public GrpcClientQosConfigFixture<tests::Tim
 public:
     GrpcClientQosConfigExceeded()
         : client_deadline_(engine::Deadline::FromDuration(tests::kShortTimeout)),
-          long_deadline_(engine::Deadline::FromDuration(tests::kLongTimeout)) {}
+          long_deadline_(engine::Deadline::FromDuration(tests::kLongTimeout))
+    {}
 
     ~GrpcClientQosConfigExceeded() override {
         EXPECT_TRUE(client_deadline_.IsReached());

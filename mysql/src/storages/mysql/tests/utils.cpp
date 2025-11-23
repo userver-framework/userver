@@ -97,7 +97,8 @@ std::shared_ptr<Cluster> CreateCluster(clients::dns::Resolver& resolver) {
     initial_pool_size: 1
     max_pool_size: 5
   )"),
-        {}}};
+        {}
+    }};
 
     // CreateDatabase(resolver, settings.endpoints.front(),
     // settings.auth.database);
@@ -120,7 +121,8 @@ std::chrono::system_clock::time_point ToMariaDBPrecision(std::chrono::system_clo
 ClusterWrapper::ClusterWrapper()
     : resolver_(engine::current_task::GetTaskProcessor(), {}),
       cluster_{CreateCluster(resolver_)},
-      deadline_{engine::Deadline::FromDuration(std::chrono::seconds{20})} {}
+      deadline_{engine::Deadline::FromDuration(std::chrono::seconds{20})}
+{}
 
 ClusterWrapper::~ClusterWrapper() = default;
 
@@ -131,12 +133,17 @@ storages::mysql::Cluster* ClusterWrapper::operator->() const { return cluster_.g
 engine::Deadline ClusterWrapper::GetDeadline() const { return deadline_; }
 
 TmpTable::TmpTable(std::string_view definition)
-    : owned_cluster_{std::in_place}, cluster_{*owned_cluster_}, table_name_{GenerateTableName()} {
+    : owned_cluster_{std::in_place},
+      cluster_{*owned_cluster_},
+      table_name_{GenerateTableName()}
+{
     CreateTable(definition);
 }
 
 TmpTable::TmpTable(ClusterWrapper& cluster, std::string_view definition)
-    : cluster_{cluster}, table_name_{GenerateTableName()} {
+    : cluster_{cluster},
+      table_name_{GenerateTableName()}
+{
     CreateTable(definition);
 }
 

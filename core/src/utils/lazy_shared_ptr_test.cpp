@@ -12,7 +12,9 @@ class Cache final {
 public:
     using DataType = std::vector<int>;
 
-    explicit Cache(DataType vector) : ptr_(std::make_shared<DataType>(std::move(vector))) {}
+    explicit Cache(DataType vector)
+        : ptr_(std::make_shared<DataType>(std::move(vector)))
+    {}
 
     Cache(Cache&&) = delete;
 

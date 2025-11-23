@@ -28,7 +28,8 @@ public:
     GreeterClient(const components::ComponentConfig& config, const components::ComponentContext& context)
         : ComponentBase(config, context),
           client_factory_(context.FindComponent<ugrpc::client::ClientFactoryComponent>().GetFactory()),
-          client_(client_factory_.MakeClient<Client>("greeter", config["endpoint"].As<std::string>())) {
+          client_(client_factory_.MakeClient<Client>("greeter", config["endpoint"].As<std::string>()))
+    {
         // Tests dedicated-channel-count from SimpleClientComponent
         auto& client =
             context.FindComponent<ugrpc::client::SimpleClientComponent<Client>>("greeter-client-component").GetClient();

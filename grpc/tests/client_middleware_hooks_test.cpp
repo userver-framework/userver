@@ -6,32 +6,18 @@
 #include <tests/middlewares_fixture.hpp>
 #include <tests/unit_test_client.usrv.pb.hpp>
 #include <tests/unit_test_service.usrv.pb.hpp>
+#include <tests/unit_test_service_gmock.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace {
 
-class UnitTestServiceMock : public sample::ugrpc::UnitTestServiceBase {
-public:
-    MOCK_METHOD(SayHelloResult, SayHello, (CallContext&, sample::ugrpc::GreetingRequest&&), (override));
-
-    MOCK_METHOD(
-        ReadManyResult,
-        ReadMany,
-        (CallContext&, sample::ugrpc::StreamGreetingRequest&&, ReadManyWriter&),
-        (override)
-    );
-
-    MOCK_METHOD(WriteManyResult, WriteMany, (CallContext&, WriteManyReader&), (override));
-
-    MOCK_METHOD(ChatResult, Chat, (CallContext&, ChatReaderWriter&), (override));
-};
-
-class ClientMiddlewaresHooksTest : public tests::MiddlewaresFixture<
-                                       tests::client::ClientMiddlewareBaseMock,
-                                       ::testing::NiceMock<UnitTestServiceMock>,
-                                       sample::ugrpc::UnitTestServiceClient,
-                                       /*N=*/1> {
+class ClientMiddlewaresHooksTest
+    : public tests::MiddlewaresFixture<
+          tests::client::ClientMiddlewareBaseMock,
+          ::testing::NiceMock<tests::UnitTestServiceGmock>,
+          sample::ugrpc::UnitTestServiceClient,
+          /*N=*/1> {
 public:
     using CallContext = ugrpc::server::CallContext;
 
@@ -41,14 +27,14 @@ public:
     using StreamRequest = sample::ugrpc::StreamGreetingRequest;
     using StreamResponse = sample::ugrpc::StreamGreetingResponse;
 
-    using UnaryResult = UnitTestServiceMock::SayHelloResult;
-    using ServerStreamingResult = UnitTestServiceMock::ReadManyResult;
-    using ClientStreamingResult = UnitTestServiceMock::WriteManyResult;
-    using BidirectionalStreamingResult = UnitTestServiceMock::ChatResult;
+    using UnaryResult = tests::UnitTestServiceGmock::SayHelloResult;
+    using ServerStreamingResult = tests::UnitTestServiceGmock::ReadManyResult;
+    using ClientStreamingResult = tests::UnitTestServiceGmock::WriteManyResult;
+    using BidirectionalStreamingResult = tests::UnitTestServiceGmock::ChatResult;
 
-    using Writer = UnitTestServiceMock::ReadManyWriter;
-    using Reader = UnitTestServiceMock::WriteManyReader;
-    using ReaderWriter = UnitTestServiceMock::ChatReaderWriter;
+    using Writer = tests::UnitTestServiceGmock::ReadManyWriter;
+    using Reader = tests::UnitTestServiceGmock::WriteManyReader;
+    using ReaderWriter = tests::UnitTestServiceGmock::ChatReaderWriter;
 
 protected:
     using UnaryCallback = std::function<UnaryResult(CallContext&, Request&&)>;

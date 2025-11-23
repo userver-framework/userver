@@ -25,7 +25,9 @@ struct BufferFormatter<MultiPrecision<Precision>> {
     using Value = MultiPrecision<Precision>;
     const Value& value;
 
-    BufferFormatter(const Value& val) : value{val} {}
+    BufferFormatter(const Value& val)
+        : value{val}
+    {}
 
     template <typename Buffer>
     void operator()(const UserTypes&, Buffer& buf) const {

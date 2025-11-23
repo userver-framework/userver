@@ -36,7 +36,9 @@ std::optional<double> CpuLimitRtc() {
     // NOLINTNEXTLINE(concurrency-mt-unsafe)
     const char* cpu_limit_c_str = std::getenv("CPU_LIMIT");
     if (!cpu_limit_c_str) {
-        if (const auto limit_deploy = CpuLimitDeploy()) return limit_deploy;
+        if (const auto limit_deploy = CpuLimitDeploy()) {
+            return limit_deploy;
+        }
         LOG_INFO() << "CPU_LIMIT env is unset, ignoring it";
         return {};
     }
@@ -63,8 +65,8 @@ std::optional<double> CpuLimitRtc() {
 }  // namespace
 
 std::optional<double> CpuLimit() {
-    static const auto limit = CpuLimitRtc();
-    return limit;
+    static const auto kLimit = CpuLimitRtc();
+    return kLimit;
 }
 
 bool IsInRtc() { return !!CpuLimitRtc(); }

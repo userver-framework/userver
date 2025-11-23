@@ -1,8 +1,6 @@
 import dataclasses
 import enum
 from typing import Any
-from typing import Optional
-from typing import Union
 
 from chaotic.front import types
 from . import base_model
@@ -40,13 +38,13 @@ class Parameter:
     style: Style
     schema: types.Schema
 
-    x_cpp_name: Optional[str]
+    x_cpp_name: str | None
     x_query_log_mode_hide: bool
 
 
 @dataclasses.dataclass
 class MediaType:
-    schema: Union[types.Schema, types.Ref, None]
+    schema: types.Schema | types.Ref | None
     examples: dict[str, Any]
 
 
@@ -61,7 +59,7 @@ class Response:
 class RequestBody:
     content_type: str
     required: bool
-    schema: Union[types.Ref, types.Schema]
+    schema: types.Ref | types.Schema
 
 
 @dataclasses.dataclass
@@ -121,7 +119,7 @@ class OAuthSecurity(Security):
 @dataclasses.dataclass
 class HttpSecurity(Security):
     scheme: str
-    bearerFormat: Optional[str] = None
+    bearerFormat: str | None = None
 
 
 @dataclasses.dataclass
@@ -134,10 +132,10 @@ class Operation:
     description: str
     path: str
     method: str
-    operationId: Union[str, None]
+    operationId: str | None
     parameters: list[Parameter]
-    requestBody: Union[list[RequestBody], Ref]
-    responses: dict[int, Union[Response, Ref]]
+    requestBody: list[RequestBody] | Ref
+    responses: dict[int, Response | Ref]
     security: list[Security]
 
     x_client_codegen: bool

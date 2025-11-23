@@ -29,43 +29,75 @@ YAML::NodeType::value ToNative(Type t) {
 
 }  // namespace
 
-ValueBuilder::ValueBuilder() : value_(YAML::Node()) {}
+ValueBuilder::ValueBuilder()
+    : value_(YAML::Node())
+{}
 
-ValueBuilder::ValueBuilder(Type type) : value_(YAML::Node(ToNative(type))) {}
+ValueBuilder::ValueBuilder(Type type)
+    : value_(YAML::Node(ToNative(type)))
+{}
 
 ValueBuilder::ValueBuilder(const ValueBuilder& other) { Copy(other); }
 
 // NOLINTNEXTLINE(performance-noexcept-move-constructor)
 ValueBuilder::ValueBuilder(ValueBuilder&& other) { Move(std::move(other)); }
 
-ValueBuilder::ValueBuilder(bool t) : value_(YAML::Node(t)) {}
+ValueBuilder::ValueBuilder(bool t)
+    : value_(YAML::Node(t))
+{}
 
-ValueBuilder::ValueBuilder(const char* str) : value_(YAML::Node(str)) {}
+ValueBuilder::ValueBuilder(const char* str)
+    : value_(YAML::Node(str))
+{}
 
-ValueBuilder::ValueBuilder(char* str) : ValueBuilder(std::string_view{str}) {}
+ValueBuilder::ValueBuilder(char* str)
+    : ValueBuilder(std::string_view{str})
+{}
 
-ValueBuilder::ValueBuilder(const std::string& str) : value_(YAML::Node(str)) {}
+ValueBuilder::ValueBuilder(const std::string& str)
+    : value_(YAML::Node(str))
+{}
 
-ValueBuilder::ValueBuilder(std::string_view str) : value_(YAML::Node(str)) {}
+ValueBuilder::ValueBuilder(std::string_view str)
+    : value_(YAML::Node(str))
+{}
 
-ValueBuilder::ValueBuilder(int t) : value_(YAML::Node(t)) {}
+ValueBuilder::ValueBuilder(int t)
+    : value_(YAML::Node(t))
+{}
 
-ValueBuilder::ValueBuilder(unsigned int t) : value_(YAML::Node(t)) {}
+ValueBuilder::ValueBuilder(unsigned int t)
+    : value_(YAML::Node(t))
+{}
 
-ValueBuilder::ValueBuilder(long t) : value_(YAML::Node(t)) {}
+ValueBuilder::ValueBuilder(long t)
+    : value_(YAML::Node(t))
+{}
 
-ValueBuilder::ValueBuilder(unsigned long t) : value_(YAML::Node(t)) {}
+ValueBuilder::ValueBuilder(unsigned long t)
+    : value_(YAML::Node(t))
+{}
 
-ValueBuilder::ValueBuilder(long long t) : value_(YAML::Node(t)) {}
+ValueBuilder::ValueBuilder(long long t)
+    : value_(YAML::Node(t))
+{}
 
-ValueBuilder::ValueBuilder(unsigned long long t) : value_(YAML::Node(t)) {}
+ValueBuilder::ValueBuilder(unsigned long long t)
+    : value_(YAML::Node(t))
+{}
 
-ValueBuilder::ValueBuilder(float t) : value_(YAML::Node(formats::common::ValidateFloat<Exception>(t))) {}
+ValueBuilder::ValueBuilder(float t)
+    : value_(YAML::Node(formats::common::ValidateFloat<Exception>(t)))
+{}
 
-ValueBuilder::ValueBuilder(double t) : value_(YAML::Node(formats::common::ValidateFloat<Exception>(t))) {}
+ValueBuilder::ValueBuilder(double t)
+    : value_(YAML::Node(formats::common::ValidateFloat<Exception>(t)))
+{}
 
 ValueBuilder& ValueBuilder::operator=(const ValueBuilder& other) {
-    if (this == &other) return *this;
+    if (this == &other) {
+        return *this;
+    }
 
     Copy(other);
     return *this;
@@ -87,10 +119,12 @@ ValueBuilder::ValueBuilder(
     const formats::yaml::Path& path,
     const std::string& key
 )
-    : value_(Value::EmplaceEnabler{}, value, path, key) {}
+    : value_(Value::EmplaceEnabler{}, value, path, key)
+{}
 
 ValueBuilder::ValueBuilder(EmplaceEnabler, const YAML::Node& value, const formats::yaml::Path& path, size_t index)
-    : value_(Value::EmplaceEnabler{}, value, path, index) {}
+    : value_(Value::EmplaceEnabler{}, value, path, index)
+{}
 
 ValueBuilder::ValueBuilder(common::TransferTag, ValueBuilder&& value) noexcept : value_(std::move(value.value_)) {}
 
@@ -130,7 +164,8 @@ ValueBuilder::iterator ValueBuilder::end() {
     return {
         value_.GetNative().end(),
         value_.GetNative().IsSequence() ? static_cast<int>(value_.GetNative().size()) : -1,
-        value_.path_};
+        value_.path_
+    };
 }
 
 bool ValueBuilder::IsEmpty() const { return value_.IsEmpty(); }

@@ -42,9 +42,10 @@ components_manager:
         grpc-client-middlewares-pipeline:
 
         http-client:
-            fs-task-processor: main-task-processor
             plugins:
                 headers-propagator: 0
+        http-client-core:
+            fs-task-processor: main-task-processor
 
         dns-client:
             fs-task-processor: fs-task-processor

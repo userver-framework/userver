@@ -22,10 +22,14 @@ Verdict Parse(const yaml_config::YamlConfig& yaml, formats::parse::To<Verdict>) 
     };
 
     auto v = kValues.TryFind(value);
-    if (v) return *v;
+    if (v) {
+        return *v;
+    }
 
     throw std::runtime_error(fmt::format(
-        "Can't parse error_injection::Verdict from '{}'. Expecting one of: {}", value, kValues.DescribeFirst()
+        "Can't parse error_injection::Verdict from '{}'. Expecting one of: {}",
+        value,
+        kValues.DescribeFirst()
     ));
 }
 

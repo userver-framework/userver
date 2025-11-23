@@ -1,6 +1,5 @@
 import collections
 from typing import Any
-from typing import Optional
 
 from chaotic import error
 from chaotic.front import types
@@ -52,7 +51,7 @@ class RefResolver:
 
         def visitor(
             local_schema: types.Schema,
-            parent: Optional[types.Schema],
+            parent: types.Schema | None,
         ) -> None:
             if not isinstance(local_schema, types.Ref):
                 return

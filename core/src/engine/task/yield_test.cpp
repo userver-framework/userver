@@ -27,11 +27,12 @@ UTEST_MT(EngineYield, DISABLED_IsBroken, 2) {
     // massive [de]allocation for example)
     // 2. one reasonably fast task
     auto slow_task = engine::AsyncNoSpan([] { std::this_thread::sleep_for(std::chrono::milliseconds{500}); });
-    const auto fast_task_duration = engine::AsyncNoSpan([start = std::chrono::steady_clock::now()] {
-                                        std::this_thread::sleep_for(std::chrono::milliseconds{2});
-                                        const auto finish = std::chrono::steady_clock::now();
-                                        return std::chrono::duration_cast<std::chrono::milliseconds>(finish - start);
-                                    }).Get();
+    const auto fast_task_duration =
+        engine::AsyncNoSpan([start = std::chrono::steady_clock::now()] {
+            std::this_thread::sleep_for(std::chrono::milliseconds{2});
+            const auto finish = std::chrono::steady_clock::now();
+            return std::chrono::duration_cast<std::chrono::milliseconds>(finish - start);
+        }).Get();
 
     // One would expect that fast task will be executed within some
     // moderate amount of time, because no matter which thread gets blocked

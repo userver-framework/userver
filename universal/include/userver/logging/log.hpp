@@ -162,14 +162,15 @@ struct EntryStorage final {
 // * ShouldLog() calls and related `if` statements and runtime checks
 // * SourceLocation info
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define USERVER_IMPL_ERASE_LOG                                                   \
-    true ? logging::impl::Noop{}                                                 \
-         : USERVER_NAMESPACE::logging::LogHelper(                                \
-               USERVER_NAMESPACE::logging::GetDefaultLogger(),                   \
-               USERVER_NAMESPACE::logging::Level::kTrace,                        \
-               USERVER_NAMESPACE::utils::impl::SourceLocation::Custom(0, {}, {}) \
-           )                                                                     \
-               .AsLvalue()
+#define USERVER_IMPL_ERASE_LOG                                                  \
+    true                                                                        \
+        ? logging::impl::Noop{}                                                 \
+        : USERVER_NAMESPACE::logging::LogHelper(                                \
+              USERVER_NAMESPACE::logging::GetDefaultLogger(),                   \
+              USERVER_NAMESPACE::logging::Level::kTrace,                        \
+              USERVER_NAMESPACE::utils::impl::SourceLocation::Custom(0, {}, {}) \
+          )                                                                     \
+              .AsLvalue()
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define USERVER_IMPL_LOGS_TRACE_ERASER(X) USERVER_IMPL_ERASE_LOG
@@ -338,7 +339,8 @@ struct EntryStorage final {
                  thread_local USERVER_NAMESPACE::logging::impl::RateLimitData rl_data; \
                  return rl_data;                                                       \
              }(),                                                                      \
-             (lvl)};                                                                   \
+             (lvl)                                                                     \
+         };                                                                            \
          log_limited_to_rl.ShouldLog();                                                \
          log_limited_to_rl.SetShouldNotLog())                                          \
     LOG_TO((logger), log_limited_to_rl.GetLevel(), __VA_ARGS__) << log_limited_to_rl

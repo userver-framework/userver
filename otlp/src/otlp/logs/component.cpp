@@ -24,11 +24,12 @@ USERVER_NAMESPACE_BEGIN
 namespace otlp {
 
 LoggerComponent::LoggerComponent(const components::ComponentConfig& config, const components::ComponentContext& context)
-    : old_logger_(logging::GetDefaultLogger()) {
+    : old_logger_(logging::GetDefaultLogger())
+{
     auto client_factory_name = config["client-factory-name"].As<std::string>();
 
-    auto& client_factory =
-        context.FindComponent<ugrpc::client::ClientFactoryComponent>(client_factory_name).GetFactory();
+    auto&
+        client_factory = context.FindComponent<ugrpc::client::ClientFactoryComponent>(client_factory_name).GetFactory();
 
     std::string logs_endpoint;
     std::string tracing_endpoint;
@@ -55,13 +56,11 @@ LoggerComponent::LoggerComponent(const components::ComponentConfig& config, cons
         tracing_endpoint = tracing_endpoint_cfg.As<std::string>();
     }
 
-    auto client = client_factory.MakeClient<opentelemetry::proto::collector::logs::v1::LogsServiceClient>(
-        "otlp-logger", logs_endpoint
-    );
+    auto client = client_factory.MakeClient<
+        opentelemetry::proto::collector::logs::v1::LogsServiceClient>("otlp-logger", logs_endpoint);
 
-    auto trace_client = client_factory.MakeClient<opentelemetry::proto::collector::trace::v1::TraceServiceClient>(
-        "otlp-tracer", tracing_endpoint
-    );
+    auto trace_client = client_factory.MakeClient<
+        opentelemetry::proto::collector::trace::v1::TraceServiceClient>("otlp-tracer", tracing_endpoint);
 
     LoggerConfig logger_config;
     logger_config.max_queue_size = config["max-queue-size"].As<size_t>(65535);
@@ -69,8 +68,8 @@ LoggerComponent::LoggerComponent(const components::ComponentConfig& config, cons
     logger_config.service_name = config["service-name"].As<std::string>("unknown_service");
     logger_config.log_level = config["log-level"].As<USERVER_NAMESPACE::logging::Level>();
     logger_config.extra_attributes = config["extra-attributes"].As<std::unordered_map<std::string, std::string>>({});
-    logger_config.attributes_mapping =
-        config["attributes-mapping"].As<std::unordered_map<std::string, std::string>>({});
+    logger_config.attributes_mapping = config["attributes-mapping"].As<std::unordered_map<std::string, std::string>>({}
+    );
     logger_config.logs_sink = config["sinks"]["logs"].As<SinkType>(SinkType::kOtlp);
     logger_config.tracing_sink = config["sinks"]["tracing"].As<SinkType>(SinkType::kOtlp);
 

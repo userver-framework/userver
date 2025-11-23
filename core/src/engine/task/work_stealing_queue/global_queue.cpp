@@ -17,7 +17,9 @@ std::size_t CalculateDistributedCountersCount(const std::size_t consumers_count)
 }  // namespace
 
 GlobalQueue::GlobalQueue(std::size_t consumers_count)
-    : consumers_count_(consumers_count), shared_counters_(CalculateDistributedCountersCount(consumers_count), 0) {}
+    : consumers_count_(consumers_count),
+      shared_counters_(CalculateDistributedCountersCount(consumers_count), 0)
+{}
 
 void GlobalQueue::Push(impl::TaskContext* ctx) { DoPush(GetRandomIndex(), utils::span(&ctx, 1)); }
 

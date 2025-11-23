@@ -58,7 +58,9 @@ Value& Value::operator=(Value&& other) {
 }
 
 Value& Value::operator=(const Value& other) {
-    if (this == &other) return *this;
+    if (this == &other) {
+        return *this;
+    }
 
     value_pimpl_->reset(*other.value_pimpl_);
     path_ = other.path_;
@@ -70,17 +72,23 @@ Value::~Value() = default;
 Value::Value(const YAML::Node& root) noexcept : value_pimpl_(root) {}
 
 Value::Value(Value&& other, std::string path_prefix)
-    : value_pimpl_(std::move(other.value_pimpl_)), path_(Path::WithPrefix(std::move(path_prefix))) {
+    : value_pimpl_(std::move(other.value_pimpl_)),
+      path_(Path::WithPrefix(std::move(path_prefix)))
+{
     if (!other.path_.IsRoot()) {
         throw PathPrefixException(other.path_.ToStringView(), path_.ToStringView());
     }
 }
 
 Value::Value(EmplaceEnabler, const YAML::Node& value, const formats::yaml::Path& path, std::string_view key)
-    : value_pimpl_(value), path_(path.MakeChildPath(key)) {}
+    : value_pimpl_(value),
+      path_(path.MakeChildPath(key))
+{}
 
 Value::Value(EmplaceEnabler, const YAML::Node& value, const formats::yaml::Path& path, size_t index)
-    : value_pimpl_(value), path_(path.MakeChildPath(index)) {}
+    : value_pimpl_(value),
+      path_(path.MakeChildPath(index))
+{}
 
 Value Value::CloneWithReplacedPath(std::string&& new_path) const {
     auto cloned = Clone();
@@ -187,7 +195,9 @@ std::string Parse(const Value& value, parse::To<std::string>) {
 }
 
 bool Value::HasMember(std::string_view key) const {
-    if (IsMissing()) return false;
+    if (IsMissing()) {
+        return false;
+    }
     CheckObjectOrNull();
     return static_cast<bool>((*value_pimpl_)[key]);
 }

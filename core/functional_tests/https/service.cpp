@@ -18,18 +18,20 @@
 #include "httpserver_handlers.hpp"
 
 int main(int argc, char* argv[]) {
-    const auto component_list = components::MinimalServerComponentList()
-                                    .Append<https::HttpServerHandler>()
-                                    .Append<components::DefaultSecdistProvider>()
-                                    .Append<components::Secdist>()
-                                    .Append<components::LoggingConfigurator>()
-                                    .Append<components::HttpClient>()
-                                    .Append<components::TestsuiteSupport>()
-                                    .Append<server::handlers::TestsControl>()
-                                    .Append<server::handlers::ServerMonitor>()
-                                    .Append<server::handlers::Ping>()
-                                    .Append<clients::dns::Component>()
-                                    .Append<server::handlers::OnLogRotate>();
+    const auto component_list =
+        components::MinimalServerComponentList()
+            .Append<https::HttpServerHandler>()
+            .Append<components::DefaultSecdistProvider>()
+            .Append<components::Secdist>()
+            .Append<components::LoggingConfigurator>()
+            .Append<components::HttpClientCore>()
+            .Append<components::HttpClient>()
+            .Append<components::TestsuiteSupport>()
+            .Append<server::handlers::TestsControl>()
+            .Append<server::handlers::ServerMonitor>()
+            .Append<server::handlers::Ping>()
+            .Append<clients::dns::Component>()
+            .Append<server::handlers::OnLogRotate>();
 
     return utils::DaemonMain(argc, argv, component_list);
 }

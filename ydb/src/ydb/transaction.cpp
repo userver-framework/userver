@@ -76,8 +76,9 @@ void Transaction::Commit(OperationSettings settings) {
             formats::json::MakeObject("trx_name", name_),
             [this](const formats::json::Value& data) {
                 if (data["trx_should_fail"].As<bool>()) {
-                    LOG_WARNING() << "Doing Rollback instead of commit "
-                                     "due to Testpoint response";
+                    LOG_WARNING()
+                        << "Doing Rollback instead of commit "
+                           "due to Testpoint response";
                     ydb_tx_.Rollback();
                     throw TransactionForceRollback();
                 }
@@ -85,13 +86,16 @@ void Transaction::Commit(OperationSettings settings) {
         );
     }
 
-    const auto commit_settings =
-        impl::PrepareRequestSettings<NYdb::NTable::TCommitTxSettings>(context.settings, context.deadline);
+    const auto commit_settings = impl::PrepareRequestSettings<
+        NYdb::NTable::TCommitTxSettings>(context.settings, context.deadline);
 
     auto error_guard = ErrorGuard();
 
     impl::GetFutureValueChecked(
-        ydb_tx_.Commit(commit_settings), "Commit", table_client_.driver_->GetRetryBudget(), context
+        ydb_tx_.Commit(commit_settings),
+        "Commit",
+        table_client_.driver_->GetRetryBudget(),
+        context
     );
 
     error_guard.Release();
@@ -106,13 +110,16 @@ void Transaction::Rollback() {
     auto settings = rollback_settings_;
     impl::RequestContext context{table_client_, kQuery, std::move(settings), impl::IsStreaming{false}, &span_};
 
-    const auto rollback_settings =
-        impl::PrepareRequestSettings<NYdb::NTable::TRollbackTxSettings>(context.settings, context.deadline);
+    const auto rollback_settings = impl::PrepareRequestSettings<
+        NYdb::NTable::TRollbackTxSettings>(context.settings, context.deadline);
 
     [[maybe_unused]] auto error_guard = ErrorGuard();
 
     impl::GetFutureValueChecked(
-        ydb_tx_.Rollback(rollback_settings), "Rollback", table_client_.driver_->GetRetryBudget(), context
+        ydb_tx_.Rollback(rollback_settings),
+        "Rollback",
+        table_client_.driver_->GetRetryBudget(),
+        context
     );
 
     trx_lock_.Unlock();
@@ -160,7 +167,10 @@ ExecuteResponse Transaction::Execute(
     );
 
     auto status = impl::GetFutureValueChecked(
-        std::move(execute_fut), "Transaction::Execute", table_client_.driver_->GetRetryBudget(), context
+        std::move(execute_fut),
+        "Transaction::Execute",
+        table_client_.driver_->GetRetryBudget(),
+        context
     );
 
     error_guard.Release();

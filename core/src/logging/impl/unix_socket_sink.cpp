@@ -4,7 +4,7 @@
 #include <sys/un.h>
 #include <unistd.h>
 
-#include <iostream>
+#include <cstdio>
 
 #include <fmt/format.h>
 
@@ -43,8 +43,7 @@ void UnixSocketClient::send(std::string_view message) {
 void UnixSocketClient::close() {
     if (socket_ != -1) {
         if (::close(socket_) == -1) {
-            const std::string error_msg = utils::strerror(errno);
-            std::cerr << "Error while closing socket: " << error_msg << std::endl;
+            std::perror("Error while closing socket");
         }
 
         socket_ = -1;

@@ -105,7 +105,8 @@ IntrusiveMpscQueueImpl::NodePtr IntrusiveMpscQueueImpl::DoTryPop(PopMode mode) n
     // hard to correct both head_ and tail_ in Push).
     NodeRef head = head_->load(std::memory_order_acquire);
     if (head == tail &&
-        head_->compare_exchange_strong(head, stub_, std::memory_order_release, std::memory_order_relaxed)) {
+        head_->compare_exchange_strong(head, stub_, std::memory_order_release, std::memory_order_relaxed))
+    {
         tail_ = stub_;
         UASSERT(GetNext(tail).load(std::memory_order_relaxed) == nullptr);
         return tail;

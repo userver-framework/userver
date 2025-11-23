@@ -11,7 +11,9 @@ TEST(FixedArray, Sample) {
     /// [Sample FixedArray]
     class NonDefaultConstructible final {
     public:
-        explicit NonDefaultConstructible(std::string str) : str_(std::move(str)) {}
+        explicit NonDefaultConstructible(std::string str)
+            : str_(std::move(str))
+        {}
 
         std::string GetString() const { return str_; }
 
@@ -79,10 +81,12 @@ TEST(FixedArray, GenerateOrder) {
 }
 
 TEST(FixedArray, GenerateNonMovable) {
-    using NonMovable = std::atomic<int>;
+    /// [Sample GenerateFixedArray]
+    using NonMovable = std::atomic<std::size_t>;
     constexpr std::size_t kObjectCount = 42;
 
-    auto array = utils::GenerateFixedArray(kObjectCount, [](int x) { return NonMovable(x); });
+    // Make an utils::FixedArray<NonMovable> with values {0, 1, 2, 3, 4, 5, ...}
+    auto array = utils::GenerateFixedArray(kObjectCount, [](std::size_t index) { return NonMovable(index); });
 
     EXPECT_EQ(array.size(), kObjectCount);
     EXPECT_FALSE(array.empty());
@@ -91,6 +95,7 @@ TEST(FixedArray, GenerateNonMovable) {
         EXPECT_EQ(item.load(), index++);
     }
     EXPECT_EQ(index, kObjectCount);
+    /// [Sample GenerateFixedArray]
 }
 
 USERVER_NAMESPACE_END

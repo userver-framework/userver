@@ -54,13 +54,13 @@ void PortInfo::Init(
 ) {
     LOG_DEBUG() << "Creating listener" << (is_monitor ? " (monitor)" : "");
 
-    engine::TaskProcessor& task_processor = listener_config.task_processor
-                                                ? component_context.GetTaskProcessor(*listener_config.task_processor)
-                                                : engine::current_task::GetTaskProcessor();
+    engine::TaskProcessor& task_processor =
+        listener_config.task_processor
+            ? component_context.GetTaskProcessor(*listener_config.task_processor)
+            : engine::current_task::GetTaskProcessor();
 
-    request_handler.emplace(
-        component_context, config.logger_access, config.logger_access_tskv, is_monitor, config.server_name
-    );
+    request_handler
+        .emplace(component_context, config.logger_access, config.logger_access_tskv, is_monitor, config.server_name);
 
     endpoint_info = std::make_shared<net::EndpointInfo>(listener_config, *request_handler);
 
@@ -153,7 +153,8 @@ ServerImpl::ServerImpl(
     const storages::secdist::SecdistConfig& secdist,
     const components::ComponentContext& component_context
 )
-    : config_(std::move(config)) {
+    : config_(std::move(config))
+{
     LOG_DEBUG() << "Creating server";
 
     for (auto& port : config_.listener.ports) {
@@ -169,8 +170,9 @@ ServerImpl::ServerImpl(
         monitor_port_info_.Init(config_, *config_.monitor_listener, component_context, true);
     }
 
-    middlewares_ = component_context.FindComponent<middlewares::PipelineBuilder>(config_.middleware_pipeline_builder)
-                       .BuildPipeline(middlewares::DefaultPipeline());
+    middlewares_ =
+        component_context.FindComponent<middlewares::PipelineBuilder>(config_.middleware_pipeline_builder)
+            .BuildPipeline(middlewares::DefaultPipeline());
 
     LOG_INFO() << "Server is created, listening for incoming connections.";
 }
@@ -201,7 +203,9 @@ void ServerImpl::StartPortInfos() {
 void ServerImpl::Stop() {
     {
         const std::lock_guard lock{on_stop_mutex_};
-        if (is_stopping_) return;
+        if (is_stopping_) {
+            return;
+        }
         is_stopping_ = true;
     }
 
@@ -263,7 +267,9 @@ net::StatsAggregation ServerImpl::GetServerStats() const {
     net::StatsAggregation summary;
 
     const std::shared_lock lock{on_stop_mutex_};
-    if (is_stopping_) return summary;
+    if (is_stopping_) {
+        return summary;
+    }
     for (const auto& listener : main_port_info_.listeners) {
         summary += listener.GetStats();
     }
@@ -297,8 +303,8 @@ void ServerImpl::WriteTotalHandlerStatistics(utils::statistics::Writer& writer) 
 
         for (const auto handler_ptr : handlers) {
             for (const auto method : handler_ptr->GetAllowedMethods()) {
-                total.Add(handlers::HttpHandlerStatisticsSnapshot{
-                    handler_ptr->GetHandlerStatistics().GetByMethod(method)});
+                total.Add(handlers::HttpHandlerStatisticsSnapshot{handler_ptr->GetHandlerStatistics().GetByMethod(method
+                )});
             }
         }
     }
@@ -326,7 +332,8 @@ Server::Server(
     const storages::secdist::SecdistConfig& secdist,
     const components::ComponentContext& component_context
 )
-    : pimpl_(std::make_unique<ServerImpl>(std::move(config), secdist, component_context)) {}
+    : pimpl_(std::make_unique<ServerImpl>(std::move(config), secdist, component_context))
+{}
 
 Server::~Server() = default;
 

@@ -39,6 +39,9 @@ components_manager:
             skip-headers:
                 skipped-header: true
 
+        grpc-client-origin:
+            user-agent: proxy-client-service
+
         grpc-client-factory:
             middlewares:
                 grpc-client-deadline-propagation:
@@ -68,6 +71,7 @@ components_manager:
             throttling_enabled: false
 
         http-client:
+        http-client-core:
             fs-task-processor: main-task-processor
 
         dns-client:

@@ -4,9 +4,8 @@
 #include <fmt/compile.h>
 #include <fmt/format.h>
 
-#include <logging/timestamp.hpp>
-
 #include <userver/compiler/thread_local.hpp>
+#include <userver/logging/impl/timestamp.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/encoding/tskv.hpp>
 
@@ -28,7 +27,9 @@ char* Append(char* output, const Args&... args) {
 
 namespace logging::impl::formatters {
 
-Tskv::Tskv(Level level, Format format, const utils::impl::SourceLocation& location) : format_(format) {
+Tskv::Tskv(Level level, Format format, const utils::impl::SourceLocation& location)
+    : format_(format)
+{
     switch (format) {
         case Format::kTskv: {
             constexpr std::string_view kTemplate = "tskv\ttimestamp=0000-00-00T00:00:00.000000\tlevel=\tmodule= ( : )";
@@ -49,7 +50,7 @@ Tskv::Tskv(Level level, Format format, const utils::impl::SourceLocation& locati
         }
         case Format::kLtsv: {
             constexpr std::string_view kTemplate = "timestamp:0000-00-00T00:00:00.000000\tlevel:\tmodule: ( : )";
-            const auto now = TimePoint::clock::now();
+            const auto now = std::chrono::system_clock::now();
             const auto level_string = logging::ToUpperCaseString(level);
             item_.log_line.resize_and_overwrite(
                 kTemplate.size() + level_string.size() + location.GetFunctionName().size() +
@@ -76,14 +77,15 @@ Tskv::Tskv(Level level, Format format, const utils::impl::SourceLocation& locati
 void Tskv::AddTag(std::string_view key, const LogExtra::Value& value) {
     std::visit(
         [&, this](const auto& x) {
-            if constexpr (std::is_same_v<decltype(x), const std::string&>)
+            if constexpr (std::is_same_v<decltype(x), const std::string&>) {
                 DoAddTag(key, std::string_view{x}, false);
-            else if constexpr (std::is_same_v<decltype(x), const JsonString&>)
+            } else if constexpr (std::is_same_v<decltype(x), const JsonString&>) {
                 DoAddTag(key, x.GetView(), false);
-            else if constexpr (std::is_same_v<decltype(x), const bool&>)
+            } else if constexpr (std::is_same_v<decltype(x), const bool&>) {
                 DoAddTag(key, (x ? "1" : "0"), true);
-            else
+            } else {
                 DoAddTag(key, fmt::to_string(x), true);
+            }
         },
         value
     );

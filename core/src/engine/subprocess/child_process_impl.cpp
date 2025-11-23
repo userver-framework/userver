@@ -12,7 +12,9 @@ USERVER_NAMESPACE_BEGIN
 namespace engine::subprocess {
 
 ChildProcessImpl::ChildProcessImpl(int pid, Future<ChildProcessStatus>&& status_future)
-    : pid_(pid), status_future_(std::move(status_future)) {}
+    : pid_(pid),
+      status_future_(std::move(status_future))
+{}
 
 void ChildProcessImpl::WaitNonCancellable() {
     const TaskCancellationBlocker cancel_blocker;

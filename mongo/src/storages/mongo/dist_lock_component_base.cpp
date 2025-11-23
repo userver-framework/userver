@@ -25,7 +25,9 @@ DistLockComponentBase::DistLockComponentBase(
     auto optional_restart_delay = component_config["restart-delay"].As<std::optional<std::chrono::milliseconds>>();
     const auto prolong_ratio = 10;
 
-    if (mongo_timeout >= ttl / 2) throw std::runtime_error("mongo-timeout must be less than lock-ttl / 2");
+    if (mongo_timeout >= ttl / 2) {
+        throw std::runtime_error("mongo-timeout must be less than lock-ttl / 2");
+    }
 
     dist_lock::DistLockSettings settings{ttl / prolong_ratio, ttl / prolong_ratio, ttl, mongo_timeout};
     if (optional_restart_delay) {
@@ -75,7 +77,9 @@ dist_lock::DistLockedWorker& DistLockComponentBase::GetWorker() { return *worker
 bool DistLockComponentBase::OwnsLock() const noexcept { return worker_->OwnsLock() || testsuite_enabled_; }
 
 void DistLockComponentBase::Start() {
-    if (testsuite_enabled_) return;
+    if (testsuite_enabled_) {
+        return;
+    }
     worker_->Start();
 }
 

@@ -55,18 +55,19 @@ def test_headers(translate_single_schema):
                                         type='integer',
                                     ),
                                     validators=cpp_types.CppPrimitiveValidator(
-                                        namespace='::test_namespace::root_::get', prefix='Response200HeaderHeader'
+                                        namespace='::test_namespace::root_::get',
+                                        prefix='Response200HeaderHeader',
                                     ),
                                 ),
                                 parser='openapi::TrivialParameter<openapi::In::kHeader, kHeader, int, int>',
                                 required=False,
                                 query_log_mode_hide=False,
-                            )
+                            ),
                         ],
                         body={},
-                    )
+                    ),
                 ],
-            )
+            ),
         ],
     )
 
@@ -87,9 +88,9 @@ def test_header_ref(translate_single_schema):
                                 },
                             },
                         },
-                    }
-                }
-            }
+                    },
+                },
+            },
         },
         'components': {
             'headers': {
@@ -135,8 +136,8 @@ def test_header_ref(translate_single_schema):
                                 query_log_mode_hide=False,
                             ),
                         ],
-                    )
+                    ),
                 ],
-            )
+            ),
         ],
     )

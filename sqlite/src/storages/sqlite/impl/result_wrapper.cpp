@@ -10,7 +10,9 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::sqlite::impl {
 
 ResultWrapper::ResultWrapper(StatementBasePtr prepare_statement, std::shared_ptr<infra::ConnectionPtr> connection_ptr)
-    : prepare_statement_{std::move(prepare_statement)}, connection_ptr_{std::move(connection_ptr)} {
+    : prepare_statement_{std::move(prepare_statement)},
+      connection_ptr_{std::move(connection_ptr)}
+{
     ExecutionStep();  // First execution step (fetch first row or apply mutations)
 }
 

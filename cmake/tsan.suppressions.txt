@@ -1,4 +1,9 @@
-# ThreadSanitizer suppressions file as per https://github.com/google/sanitizers/wiki/ThreadSanitizerSuppressions
+#######################################################################################################################
+# ThreadSanitizer suppressions file as per https://github.com/google/sanitizers/wiki/ThreadSanitizerSuppressions      #
+#                                                                                                                     #
+# Use it by setting environment variable TSAN_OPTIONS="suppressions=path-to/cmake/tsan.suppressions.txt" if userver   #
+# is built with CMake option -DUSERVER_SANITIZE='thread'                                                              #
+#######################################################################################################################
 
 # libev uses `sig_atomic_t volatile` for `EV_ATOMIC_T`, that is not atomic. However all the accesess are synchronized
 # via assembly implemented memory barriers

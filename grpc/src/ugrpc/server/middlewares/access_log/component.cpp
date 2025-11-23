@@ -18,10 +18,13 @@ Component::Component(const components::ComponentConfig& config, const components
           USERVER_NAMESPACE::middlewares::MiddlewareDependencyBuilder()
               .InGroup<USERVER_NAMESPACE::middlewares::groups::Logging>()
       ),
-      logging_component_(context.FindComponent<components::Logging>()) {}
+      logging_component_(context.FindComponent<components::Logging>())
+{}
 
-std::shared_ptr<const MiddlewareBase>
-Component::CreateMiddleware(const ServiceInfo&, const yaml_config::YamlConfig& middleware_config) const {
+std::shared_ptr<const MiddlewareBase> Component::CreateMiddleware(
+    const ServiceInfo&,
+    const yaml_config::YamlConfig& middleware_config
+) const {
     Settings settings;
     const auto logger_name = middleware_config["access-tskv-logger"].As<std::string>();
     settings.access_tskv_logger = logging_component_.GetTextLogger(logger_name);

@@ -25,10 +25,11 @@ class ClientImpl;
 /// @brief Interface for communicating with a RabbitMQ cluster.
 ///
 /// Usually retrieved from components::RabbitMQ component.
-class Client : public std::enable_shared_from_this<Client>,
-               public IAdminInterface,
-               public IChannelInterface,
-               public IReliableChannelInterface {
+class Client
+    : public std::enable_shared_from_this<Client>,
+      public IAdminInterface,
+      public IChannelInterface,
+      public IReliableChannelInterface {
 public:
     /// Client factory function
     /// @param resolver asynchronous DNS resolver

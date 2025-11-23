@@ -18,7 +18,11 @@ namespace {
 
 class ReplyState {
 public:
-    explicit ReplyState(std::string&& span_name) : span_(std::move(span_name)) { span_.Get().DetachFromCoroStack(); }
+    explicit ReplyState(std::string&& span_name)
+        : span_(std::move(span_name))
+    {
+        span_.Get().DetachFromCoroStack();
+    }
 
     ~ReplyState() {
         if (!executed_) {
@@ -89,8 +93,9 @@ CommandPtr Request::PrepareRequest(CmdArgs&& args, const CommandControl& command
         std::move(args),
         [state_ptr = std::move(state_ptr)](const CommandPtr&, ReplyPtr reply) mutable {
             if (!state_ptr) {
-                LOG_LIMITED_WARNING() << "redis::Command keeps running after "
-                                         "triggering the callback initially";
+                LOG_LIMITED_WARNING()
+                    << "redis::Command keeps running after "
+                       "triggering the callback initially";
                 return;
             }
 
@@ -98,7 +103,9 @@ CommandPtr Request::PrepareRequest(CmdArgs&& args, const CommandControl& command
 
             if (state_ptr->GetRepliesToSkip() != 0) {
                 state_ptr->SetRepliesToSkip(state_ptr->GetRepliesToSkip() - 1);
-                if (reply->data.IsStatus()) return;
+                if (reply->data.IsStatus()) {
+                    return;
+                }
             }
 
             reply->FillSpanTags(state_ptr->Span());

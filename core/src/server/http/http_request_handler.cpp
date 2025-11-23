@@ -35,7 +35,8 @@ HttpRequestHandler::HttpRequestHandler(
       server_name_(std::move(server_name)),
       rate_limit_(utils::TokenBucket::MakeUnbounded()),
       metrics_(component_context.FindComponent<components::StatisticsStorage>().GetMetricsStorage()),
-      config_source_(component_context.FindComponent<components::DynamicConfig>().GetSource()) {
+      config_source_(component_context.FindComponent<components::DynamicConfig>().GetSource())
+{
     auto& logging_component = component_context.FindComponent<components::Logging>();
 
     if (logger_access_component && !logger_access_component->empty()) {
@@ -60,7 +61,9 @@ engine::TaskWithResult<void> HttpRequestHandler::StartFailsafeTask(std::shared_p
 
     return engine::AsyncNoSpan([request = std::move(http_request), handler]() {
         request->SetTaskStartTime();
-        if (handler) handler->ReportMalformedRequest(*request);
+        if (handler) {
+            handler->ReportMalformedRequest(*request);
+        }
         request->SetResponseNotifyTime();
         request->GetHttpResponse().SetReady();
     });
@@ -69,7 +72,8 @@ engine::TaskWithResult<void> HttpRequestHandler::StartFailsafeTask(std::shared_p
 namespace {
 
 utils::statistics::MetricTag<std::atomic<size_t>> kCcStatusCodeIsCustom{
-    "congestion-control.rps.is-custom-status-activated"};
+    "congestion-control.rps.is-custom-status-activated"
+};
 
 }  // namespace
 
@@ -83,7 +87,9 @@ engine::TaskWithResult<void> HttpRequestHandler::StartRequestTask(std::shared_pt
         return StartFailsafeTask(std::move(http_request));
     }
 
-    if (new_request_hook_) new_request_hook_(http_request);
+    if (new_request_hook_) {
+        new_request_hook_(http_request);
+    }
 
     http_request->SetTaskCreateTime();
 
@@ -106,8 +112,9 @@ engine::TaskWithResult<void> HttpRequestHandler::StartRequestTask(std::shared_pt
         http_request->SetResponseStatus(HttpStatus::kTooManyRequests);
         http_request->GetHttpResponse().SetReady();
         http_request->SetTaskCreateTime();
-        LOG_LIMITED_ERROR() << "Request throttled (too many pending responses, "
-                               "limit via 'server.max_response_size_in_flight')";
+        LOG_LIMITED_ERROR()
+            << "Request throttled (too many pending responses, "
+               "limit via 'server.max_response_size_in_flight')";
         return StartFailsafeTask(std::move(http_request));
     }
 
@@ -126,16 +133,19 @@ engine::TaskWithResult<void> HttpRequestHandler::StartRequestTask(std::shared_pt
         }
 
         SetThrottleReason(
-            http_response, "congestion-control", std::string{USERVER_NAMESPACE::http::headers::ratelimit_reason::kCC}
+            http_response,
+            "congestion-control",
+            std::string{USERVER_NAMESPACE::http::headers::ratelimit_reason::kCC}
         );
 
         http_response.SetStatus(status);
         http_response.SetReady();
 
-        LOG_LIMITED_ERROR() << "Request throttled (congestion control, "
-                               "limit via USERVER_RPS_CCONTROL and USERVER_RPS_CCONTROL_ENABLED), "
-                            << "limit=" << rate_limit_.GetRatePs() << "/sec, "
-                            << "url=" << http_request->GetUrl() << ", status_code=" << static_cast<size_t>(status);
+        LOG_LIMITED_ERROR()
+            << "Request throttled (congestion control, "
+               "limit via USERVER_RPS_CCONTROL and USERVER_RPS_CCONTROL_ENABLED), "
+            << "limit=" << rate_limit_.GetRatePs() << "/sec, "
+            << "url=" << http_request->GetUrl() << ", status_code=" << static_cast<size_t>(status);
 
         return StartFailsafeTask(std::move(http_request));
     }

@@ -35,7 +35,9 @@ namespace {
 using impl::StatsFormat;
 
 std::optional<StatsFormat> ParseFormat(std::string_view format) {
-    if (format.empty()) return {};
+    if (format.empty()) {
+        return {};
+    }
 
     constexpr utils::TrivialBiMap kToFormat = [](auto selector) {
         return selector()
@@ -69,7 +71,8 @@ ServerMonitor::ServerMonitor(
     : HttpHandlerBase(config, component_context, /*is_monitor = */ true),
       statistics_storage_(component_context.FindComponent<components::StatisticsStorage>().GetStorage()),
       common_labels_{config["common-labels"].As<CommonLabels>({})},
-      default_format_{ParseFormat(config["format"].As<std::string>({}))} {}
+      default_format_{ParseFormat(config["format"].As<std::string>({}))}
+{}
 
 std::string ServerMonitor::HandleRequestThrow(const http::HttpRequest& request, request::RequestContext&) const {
     const auto& prefix = request.GetArg("prefix");

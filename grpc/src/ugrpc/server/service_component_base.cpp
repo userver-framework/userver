@@ -25,7 +25,8 @@ ServiceComponentBase::ServiceComponentBase(
     : impl::MiddlewareRunnerComponentBase(config, context, MiddlewarePipelineComponent::kName),
       server_(context.FindComponent<ServerComponent>()),
       config_(server_.ParseServiceConfig(config, context)),
-      info_(ServiceInfo{config.Name()}) {
+      info_(ServiceInfo{config.Name()})
+{
     config_.middlewares = CreateMiddlewares(*info_);
 }
 

@@ -5,7 +5,7 @@
 #include <server/handlers/http_handler_base_statistics.hpp>
 #include <server/http/request_handler_base.hpp>
 #include <server/net/create_socket.hpp>
-#include <userver/clients/http/client.hpp>
+#include <userver/clients/http/client_core.hpp>
 #include <userver/engine/io/sockaddr.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/server/http/http_request.hpp>
@@ -25,7 +25,9 @@ class TestHttprequestHandler : public server::http::RequestHandlerBase {
 public:
     enum class Behaviors { kNoop, kHang };
 
-    explicit TestHttprequestHandler(Behaviors behavior = Behaviors::kNoop) : behavior_(behavior) {}
+    explicit TestHttprequestHandler(Behaviors behavior = Behaviors::kNoop)
+        : behavior_(behavior)
+    {}
 
     engine::TaskWithResult<void> StartRequestTask(std::shared_ptr<server::http::HttpRequest> http_request
     ) const override {
@@ -74,11 +76,12 @@ clients::http::ResponseFuture CreateRequest(
     USERVER_NAMESPACE::http::HttpVersion http_ver = USERVER_NAMESPACE::http::HttpVersion::k11,
     ConnectionHeader header = ConnectionHeader::kKeepAlive
 ) {
-    auto ret = http_client.CreateRequest()
-                   .http_version(http_ver)
-                   .get(HttpConnectionUriFromSocket(request_socket))
-                   .retry(1)
-                   .timeout(std::chrono::milliseconds(100));
+    auto ret =
+        http_client.CreateRequest()
+            .http_version(http_ver)
+            .get(HttpConnectionUriFromSocket(request_socket))
+            .retry(1)
+            .timeout(std::chrono::milliseconds(100));
     if (header == ConnectionHeader::kClose) {
         ret.headers({{"Connection", "close"}});
     }
@@ -139,9 +142,10 @@ UTEST_P(ServerNetConnection, EarlyCancel) {
     task.RequestCancel();
     task.WaitFor(utest::kMaxTestWaitTime);
     EXPECT_TRUE(task.IsFinished());
-    UEXPECT_THROW(request.Get(), std::exception) << "Looks like the `socket_listener_` task was started (the "
-                                                    "request "
-                                                    "was received and processed). Too bad: the test tested nothing";
+    UEXPECT_THROW(request.Get(), std::exception)
+        << "Looks like the `socket_listener_` task was started (the "
+           "request "
+           "was received and processed). Too bad: the test tested nothing";
 }
 
 UTEST_P(ServerNetConnection, EarlyTimeout) {
@@ -268,7 +272,7 @@ UTEST_P(ServerNetConnection, KeepAlive) {
     net::ListenerConfig config = CreateConfig(http_ver);
     auto request_socket = net::CreateSocket(config, config.ports[0]);
 
-    auto http_client_ptr = utest::CreateHttpClient();
+    auto http_client_ptr = utest::impl::CreateHttpClientCore();
     http_client_ptr->SetMaxHostConnections(1);
 
     auto request = CreateRequest(*http_client_ptr, request_socket, http_ver, ConnectionHeader::kKeepAlive);
@@ -307,7 +311,7 @@ UTEST_P(ServerNetConnection, CancelMultipleInFlight) {
     net::ListenerConfig config = CreateConfig(http_ver);
     auto request_socket = net::CreateSocket(config, config.ports[0]);
 
-    auto http_client_ptr = utest::CreateHttpClient();
+    auto http_client_ptr = utest::impl::CreateHttpClientCore();
     http_client_ptr->SetMaxHostConnections(1);
 
     for (unsigned ii = 0; ii < kMaxAttempts; ++ii) {

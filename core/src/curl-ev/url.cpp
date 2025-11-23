@@ -6,12 +6,18 @@ USERVER_NAMESPACE_BEGIN
 
 namespace curl {
 
-url::url() : url_(native::curl_url()) {}
+url::url()
+    : url_(native::curl_url())
+{}
 
-url::url(const url& other) : url_(other.url_ ? native::curl_url_dup(other.url_.get()) : nullptr) {}
+url::url(const url& other)
+    : url_(other.url_ ? native::curl_url_dup(other.url_.get()) : nullptr)
+{}
 
 url& url::operator=(const url& rhs) {
-    if (this == &rhs) return *this;
+    if (this == &rhs) {
+        return *this;
+    }
 
     *this = url{rhs};
     return *this;
@@ -20,7 +26,9 @@ url& url::operator=(const url& rhs) {
 void url::SetAbsoluteUrl(const char* url, std::error_code& ec) {
     SetHost(nullptr, ec);
     UASSERT(!ec);
-    if (!ec) SetUrl(url, ec);
+    if (!ec) {
+        SetUrl(url, ec);
+    }
 }
 
 void url::SetAbsoluteUrl(const char* url) {

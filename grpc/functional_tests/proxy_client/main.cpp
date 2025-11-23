@@ -16,19 +16,21 @@
 #include <userver/dynamic_config/updater/component.hpp>
 
 int main(int argc, const char* const argv[]) {
-    const auto component_list = components::MinimalServerComponentList()
-                                    .Append<server::handlers::ServerMonitor>()
-                                    .Append<congestion_control::Component>()
-                                    .Append<components::TestsuiteSupport>()
-                                    .Append<server::handlers::TestsControl>()
-                                    .Append<clients::dns::Component>()
-                                    .Append<components::HttpClient>()
-                                    .AppendComponentList(ugrpc::client::DefaultComponentList())
-                                    .Append<ugrpc::client::ClientFactoryComponent>()
-                                    .Append<functional_tests::GreeterClientComponent>()
-                                    .Append<functional_tests::GreeterClientTestComponent>()
-                                    .Append<components::DynamicConfigClient>()
-                                    .Append<components::DynamicConfigClientUpdater>();
+    const auto component_list =
+        components::MinimalServerComponentList()
+            .Append<server::handlers::ServerMonitor>()
+            .Append<congestion_control::Component>()
+            .Append<components::TestsuiteSupport>()
+            .Append<server::handlers::TestsControl>()
+            .Append<clients::dns::Component>()
+            .Append<components::HttpClientCore>()
+            .Append<components::HttpClient>()
+            .AppendComponentList(ugrpc::client::DefaultComponentList())
+            .Append<ugrpc::client::ClientFactoryComponent>()
+            .Append<functional_tests::GreeterClientComponent>()
+            .Append<functional_tests::GreeterClientTestComponent>()
+            .Append<components::DynamicConfigClient>()
+            .Append<components::DynamicConfigClientUpdater>();
 
     return utils::DaemonMain(argc, argv, component_list);
 }

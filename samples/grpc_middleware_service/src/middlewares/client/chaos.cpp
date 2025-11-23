@@ -11,7 +11,9 @@ const ::grpc::string kExperinetFeature = "x-my-experiments-enabled";
 const ::grpc::string kEnable = "enable";
 const ::grpc::string kDisable = "disable";
 
-ChaosMiddleware::ChaosMiddleware(bool feature_enabled) : feature_enabled_(feature_enabled) {}
+ChaosMiddleware::ChaosMiddleware(bool feature_enabled)
+    : feature_enabled_(feature_enabled)
+{}
 
 void ChaosMiddleware::PreStartCall(ugrpc::client::MiddlewareCallContext& context) const {
     const auto rand = utils::Rand();

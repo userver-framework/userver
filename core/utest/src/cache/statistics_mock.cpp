@@ -5,7 +5,8 @@ USERVER_NAMESPACE_BEGIN
 namespace cache {
 
 UpdateStatisticsScopeMock::UpdateStatisticsScopeMock(UpdateType type)
-    : scope_(utils::impl::InternalTag{}, stats_, type) {}
+    : scope_(utils::impl::InternalTag{}, stats_, type)
+{}
 
 UpdateStatisticsScope& UpdateStatisticsScopeMock::GetScope() { return scope_; }
 

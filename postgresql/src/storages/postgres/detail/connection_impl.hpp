@@ -79,11 +79,17 @@ public:
 
     Connection::Statistics GetStatsAndReset();
 
-    ResultSet
-    ExecuteCommand(const Query& query, const detail::QueryParameters& params, OptionalCommandControl statement_cmd_ctl);
+    ResultSet ExecuteCommand(
+        const Query& query,
+        const detail::QueryParameters& params,
+        OptionalCommandControl statement_cmd_ctl
+    );
 
-    const PreparedStatementInfo&
-    PrepareStatement(const Query& query, const detail::QueryParameters& params, TimeoutDuration timeout);
+    const PreparedStatementInfo& PrepareStatement(
+        const Query& query,
+        const detail::QueryParameters& params,
+        TimeoutDuration timeout
+    );
     void AddIntoPipeline(
         CommandControl cc,
         const std::string& prepared_statement_name,

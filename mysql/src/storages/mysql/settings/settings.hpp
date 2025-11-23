@@ -49,8 +49,11 @@ struct PoolSettings final {
     AuthSettings auth_settings;
     ConnectionSettings connection_settings;
 
-    static PoolSettings
-    Create(const components::ComponentConfig& config, const EndpointInfo& endpoint_info, const AuthSettings& auth);
+    static PoolSettings Create(
+        const components::ComponentConfig& config,
+        const EndpointInfo& endpoint_info,
+        const AuthSettings& auth
+    );
 };
 
 struct MysqlSettings final {

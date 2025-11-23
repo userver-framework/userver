@@ -25,9 +25,14 @@ public:
     using RedisConnectionPtr = std::shared_ptr<const RedisConnectionHolder>;
     using ServersWeighted = std::unordered_map<ServerId, size_t, ServerIdHasher>;
 
-    ClusterShard() : current_(utils::RandRange(std::numeric_limits<size_t>::max())) {}
+    ClusterShard()
+        : current_(utils::RandRange(std::numeric_limits<size_t>::max()))
+    {}
     ClusterShard(size_t shard, RedisConnectionPtr master, std::vector<RedisConnectionPtr> replicas)
-        : replicas_(std::move(replicas)), master_(std::move(master)), shard_(shard) {}
+        : replicas_(std::move(replicas)),
+          master_(std::move(master)),
+          shard_(shard)
+    {}
     ClusterShard(const ClusterShard& other) = delete;
     ClusterShard(ClusterShard&& other) noexcept
         : replicas_(std::move(other.replicas_)),
@@ -43,8 +48,10 @@ public:
     ServersWeighted GetAvailableServersWeighted(bool with_master, const CommandControl& command_control) const;
 
 private:
-    static void
-    GetNearestServersPing(const CommandControl& command_control, std::vector<RedisConnectionPtr>& instances);
+    static void GetNearestServersPing(
+        const CommandControl& command_control,
+        std::vector<RedisConnectionPtr>& instances
+    );
     /// Return suitable instance if it is the only suitable instance.
     /// If there no suitable or multiple suitable instances then method return
     /// nullptr

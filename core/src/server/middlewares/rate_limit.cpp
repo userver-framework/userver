@@ -16,7 +16,8 @@ RateLimit::RateLimit(const handlers::HttpHandlerBase& handler)
       statistics_{handler.GetHandlerStatistics()},
       max_requests_per_second_{handler.GetConfig().max_requests_per_second},
       max_requests_in_flight_{handler.GetConfig().max_requests_in_flight},
-      handler_{handler} {
+      handler_{handler}
+{
     if (max_requests_per_second_.has_value()) {
         const auto max_rps = *max_requests_per_second_;
         UASSERT_MSG(max_rps > 0, "max_requests_per_second option was not verified in config parsing");
@@ -41,7 +42,9 @@ bool RateLimit::CheckRateLimit(const http::HttpRequest& request) const {
         auto& response = request.GetHttpResponse();
         auto log_reason = fmt::format("reached max_requests_per_second={}", max_requests_per_second_.value_or(0));
         SetThrottleReason(
-            response, std::move(log_reason), std::string{USERVER_NAMESPACE::http::headers::ratelimit_reason::kGlobal}
+            response,
+            std::move(log_reason),
+            std::string{USERVER_NAMESPACE::http::headers::ratelimit_reason::kGlobal}
         );
         statistics.IncrementRateLimitReached();
 

@@ -24,7 +24,10 @@ std::string GetMessageForLogging(const google::protobuf::Message& message, const
 
 class SpanLogger {
 public:
-    SpanLogger(const tracing::Span& span, logging::Level log_level) : span_{span}, log_level_threshold_(log_level) {}
+    SpanLogger(const tracing::Span& span, logging::Level log_level)
+        : span_{span},
+          log_level_threshold_(log_level)
+    {}
 
     void Log(logging::Level level, std::string_view message, logging::LogExtra&& extra) const {
         if (level < log_level_threshold_) {
@@ -41,7 +44,9 @@ private:
 
 }  // namespace
 
-Middleware::Middleware(const Settings& settings) : settings_(settings) {}
+Middleware::Middleware(const Settings& settings)
+    : settings_(settings)
+{}
 
 void Middleware::PreStartCall(MiddlewareCallContext& context) const {
     auto& span = context.GetSpan();
@@ -52,9 +57,8 @@ void Middleware::PreStartCall(MiddlewareCallContext& context) const {
     span.AddTag(tracing::kRpcSystem, context.GetClientContext().peer());
 
     if (context.IsClientStreaming()) {
-        SpanLogger{span, settings_.log_level}.Log(
-            settings_.msg_log_level, "gRPC request stream started", logging::LogExtra{}
-        );
+        SpanLogger{span, settings_.log_level}
+            .Log(settings_.msg_log_level, "gRPC request stream started", logging::LogExtra{});
     }
 }
 
@@ -100,7 +104,8 @@ void Middleware::PostFinish(MiddlewareCallContext& context, const grpc::Status& 
         logging::LogExtra extra{
             {ugrpc::impl::kTypeTag, "error_status"},
             {ugrpc::impl::kCodeTag, ugrpc::ToString(status.error_code())},
-            {tracing::kErrorMessage, std::move(error_details)}};
+            {tracing::kErrorMessage, std::move(error_details)}
+        };
         logger.Log(logging::Level::kWarning, "gRPC error", std::move(extra));
     }
 }

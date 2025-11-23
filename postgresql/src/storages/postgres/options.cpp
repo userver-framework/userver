@@ -62,16 +62,24 @@ OptionalCommandControl GetHandlerOptionalCommandControl(
     std::string_view method
 ) {
     const auto* const by_method_map = utils::impl::FindTransparentOrNullptr(map, path);
-    if (!by_method_map) return std::nullopt;
+    if (!by_method_map) {
+        return std::nullopt;
+    }
     const auto* const value = utils::impl::FindTransparentOrNullptr(*by_method_map, method);
-    if (!value) return std::nullopt;
+    if (!value) {
+        return std::nullopt;
+    }
     return *value;
 }
 
-OptionalCommandControl
-GetQueryOptionalCommandControl(const CommandControlByQueryMap& map, std::string_view query_name) {
+OptionalCommandControl GetQueryOptionalCommandControl(
+    const CommandControlByQueryMap& map,
+    std::string_view query_name
+) {
     const auto* value = utils::impl::FindTransparentOrNullptr(map, query_name);
-    if (!value) return std::nullopt;
+    if (!value) {
+        return std::nullopt;
+    }
     return *value;
 }
 

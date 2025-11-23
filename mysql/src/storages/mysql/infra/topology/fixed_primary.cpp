@@ -18,7 +18,8 @@ std::size_t WrappingIncrement(std::atomic<size_t>& value, std::size_t mod) {
 FixedPrimary::FixedPrimary(clients::dns::Resolver& resolver, const std::vector<settings::PoolSettings>& settings)
     : TopologyBase(resolver, settings),
       primary_{InitializePrimaryPoolReference()},
-      secondaries_{InitializeSecondariesVector()} {}
+      secondaries_{InitializeSecondariesVector()}
+{}
 
 FixedPrimary::~FixedPrimary() = default;
 

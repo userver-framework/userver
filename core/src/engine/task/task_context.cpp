@@ -20,6 +20,7 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/underlying_value.hpp>
 
+#include <engine/deadlock_detector.hpp>
 #include <engine/ev/thread_pool.hpp>
 #include <engine/impl/future_utils.hpp>
 #include <engine/impl/generic_wait_list.hpp>
@@ -79,7 +80,9 @@ auto ReadableTaskId(const TaskContext* task) noexcept { return logging::HexShort
 
 class CurrentTaskScope final {
 public:
-    explicit CurrentTaskScope(TaskContext& context, EhGlobals& eh_store) : eh_store_(eh_store) {
+    explicit CurrentTaskScope(TaskContext& context, EhGlobals& eh_store)
+        : eh_store_(eh_store)
+    {
         current_task::SetCurrentTaskContext(&context);
         ExchangeEhGlobals(eh_store_);
     }
@@ -115,13 +118,18 @@ TaskContext::TaskContext(
       payload_(&payload),
       finish_waiters_(wait_type),
       cancel_deadline_(deadline),
-      trace_csw_left_(task_processor_.GetTaskTraceMaxCswForNewTask()) {
+      trace_csw_left_(task_processor_.GetTaskTraceMaxCswForNewTask())
+{
     UASSERT(payload_);
-    LOG_TRACE() << "task with task_id=" << ReadableTaskId(current_task::GetCurrentTaskContextUnchecked())
-                << " created task with task_id=" << ReadableTaskId(this) << logging::LogExtra::Stacktrace();
+
+    task_processor_.HookTaskCreate(*this);
+    LOG_TRACE()
+        << "task with task_id=" << ReadableTaskId(current_task::GetCurrentTaskContextUnchecked())
+        << " created task with task_id=" << ReadableTaskId(this) << logging::LogExtra::Stacktrace();
 }
 
 TaskContext::~TaskContext() noexcept {
+    task_processor_.HookTaskDestroy(*this);
     LOG_TRACE() << "Task with task_id=" << ReadableTaskId(this) << " stopped" << logging::LogExtra::Stacktrace();
     UASSERT(magic_ == kMagic);
 
@@ -167,10 +175,17 @@ void TaskContext::FinishDetached() noexcept {
 FutureStatus TaskContext::WaitUntil(Deadline deadline) const noexcept {
     // try to avoid ctx switch if possible
     static_assert(noexcept(IsFinished()));
-    if (IsFinished()) return FutureStatus::kReady;
+    if (IsFinished()) {
+        return FutureStatus::kReady;
+    }
 
     static_assert(noexcept(current_task::GetCurrentTaskContext()));
     auto& current = current_task::GetCurrentTaskContext();
+
+    std::optional<deadlock_detector::WaitScope> scope;
+    if (!deadline.IsReachable()) {
+        scope.emplace(*this);
+    }
 
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
     auto& target = const_cast<TaskContext&>(*this);
@@ -190,7 +205,9 @@ FutureStatus TaskContext::WaitUntil(Deadline deadline) const noexcept {
 }
 
 void TaskContext::DoStep() {
-    if (IsFinished()) return;
+    if (IsFinished()) {
+        return;
+    }
 
     SleepState::Flags clear_flags{SleepFlags::kSleeping};
     if (!coro_) {
@@ -222,7 +239,9 @@ void TaskContext::DoStep() {
         }
     }
 
-    if (uncaught) std::rethrow_exception(uncaught);
+    if (uncaught) {
+        std::rethrow_exception(uncaught);
+    }
 
     switch (yield_reason_) {
         case YieldReason::kTaskCancelled:
@@ -243,7 +262,9 @@ void TaskContext::DoStep() {
             SetState(Task::State::kSuspended);
             {
                 SleepState::Flags new_flags = SleepFlags::kSleeping;
-                if (!IsCancellable()) new_flags |= SleepFlags::kNonCancellable;
+                if (!IsCancellable()) {
+                    new_flags |= SleepFlags::kNonCancellable;
+                }
 
                 // Synchronization point for relaxed SetState()
                 auto prev_sleep_state = sleep_state_.FetchOrFlags<std::memory_order_seq_cst>(new_flags);
@@ -251,8 +272,9 @@ void TaskContext::DoStep() {
                 // The previous kWakeupBy* flags in sleep_state_ are not cleared here,
                 // which allows RequestCancel to cancel the next sleep session.
                 UASSERT(!(prev_sleep_state.flags & SleepFlags::kSleeping));
-                if (new_flags & SleepFlags::kNonCancellable)
+                if (new_flags & SleepFlags::kNonCancellable) {
                     prev_sleep_state.flags.Clear({SleepFlags::kWakeupByCancelRequest, SleepFlags::kNonCancellable});
+                }
                 if (prev_sleep_state.flags) {
                     Schedule();
                 }
@@ -267,8 +289,9 @@ void TaskContext::DoStep() {
 void TaskContext::RequestCancel(TaskCancellationReason reason) {
     auto expected = TaskCancellationReason::kNone;
     if (cancellation_reason_.compare_exchange_strong(expected, reason)) {
-        LOG_TRACE() << "task with task_id=" << ReadableTaskId(current_task::GetCurrentTaskContextUnchecked())
-                    << " cancelled task with task_id=" << ReadableTaskId(this) << logging::LogExtra::Stacktrace();
+        LOG_TRACE()
+            << "task with task_id=" << ReadableTaskId(current_task::GetCurrentTaskContextUnchecked())
+            << " cancelled task with task_id=" << ReadableTaskId(this) << logging::LogExtra::Stacktrace();
         const auto epoch = GetEpoch();
         Wakeup(WakeupSource::kCancelRequest, epoch);
     }
@@ -305,7 +328,9 @@ TaskContext::WakeupSource TaskContext::Sleep(WaitStrategy& wait_strategy, Deadli
 
     // If the previous Sleep woke up due to both kCancelRequest and kWaitList, the
     // cancellation signal would be lost, so we must check it here.
-    if (ShouldCancel()) return TaskContext::WakeupSource::kCancelRequest;
+    if (ShouldCancel()) {
+        return TaskContext::WakeupSource::kCancelRequest;
+    }
 
     const auto sleep_epoch = sleep_state_.Load<std::memory_order_seq_cst>().epoch;
 
@@ -316,22 +341,30 @@ TaskContext::WakeupSource TaskContext::Sleep(WaitStrategy& wait_strategy, Deadli
     }
 
     const bool has_deadline = deadline.IsReachable() && (!IsCancellable() || deadline < cancel_deadline_);
-    if (has_deadline) ArmDeadlineTimer(deadline, sleep_epoch);
+    if (has_deadline) {
+        ArmDeadlineTimer(deadline, sleep_epoch);
+    }
 
     yield_reason_ = YieldReason::kTaskWaiting;
     UASSERT(task_pipe_);
+
     TraceStateTransition(Task::State::kSuspended);
-    ProfilerStopExecution();
+    ProfilerStopExecution();  // TODO: move to hook
+    GetTaskProcessor().HookBeforeSleep(*this);
 
     auto& task_pipe_ref = *task_pipe_;
     [[maybe_unused]] TaskContext* context = task_pipe_ref().get();
 
-    ProfilerStartExecution();
+    GetTaskProcessor().HookAfterWakeup(*this);
+    ProfilerStartExecution();  // TODO: move to hook
     TraceStateTransition(Task::State::kRunning);
+
     UASSERT(context == this);
     UASSERT(state_ == Task::State::kRunning);
 
-    if (has_deadline) ArmCancellationTimer();
+    if (has_deadline) {
+        ArmCancellationTimer();
+    }
     wait_strategy.DisableWakeups();
 
     const auto old_sleep_state = sleep_state_.Exchange<std::memory_order_acq_rel>(MakeNextEpochSleepState(sleep_epoch));
@@ -345,7 +378,10 @@ void TaskContext::ArmDeadlineTimer(Deadline deadline, SleepState::Epoch sleep_ep
         deadline_timer_.RestartWakeup(deadline, sleep_epoch);
     } else {
         deadline_timer_.StartWakeup(
-            boost::intrusive_ptr{this}, task_processor_.EventThreadPool().NextTimerThread(), deadline, sleep_epoch
+            boost::intrusive_ptr{this},
+            task_processor_.EventThreadPool().NextTimerThread(),
+            deadline,
+            sleep_epoch
         );
     }
 }
@@ -359,7 +395,9 @@ void TaskContext::ArmCancellationTimer() {
         deadline_timer_.RestartCancel(cancel_deadline_);
     } else {
         deadline_timer_.StartCancel(
-            boost::intrusive_ptr{this}, task_processor_.EventThreadPool().NextTimerThread(), cancel_deadline_
+            boost::intrusive_ptr{this},
+            task_processor_.EventThreadPool().NextTimerThread(),
+            cancel_deadline_
         );
     }
 }
@@ -369,7 +407,9 @@ bool TaskContext::ShouldSchedule(SleepState::Flags prev_flags, WakeupSource sour
      * are serialized due to seq_cst in FetchOr().
      */
 
-    if (!(prev_flags & SleepFlags::kSleeping)) return false;
+    if (!(prev_flags & SleepFlags::kSleeping)) {
+        return false;
+    }
 
     if (source == WakeupSource::kCancelRequest) {
         /* Don't wakeup if:
@@ -400,7 +440,9 @@ bool TaskContext::ShouldSchedule(SleepState::Flags prev_flags, WakeupSource sour
 SleepState::Epoch TaskContext::GetEpoch() noexcept { return sleep_state_.Load<std::memory_order_acquire>().epoch; }
 
 void TaskContext::Wakeup(WakeupSource source, SleepState::Epoch epoch) {
-    if (IsFinished()) return;
+    if (IsFinished()) {
+        return;
+    }
 
     auto prev_sleep_state = sleep_state_.Load<std::memory_order_relaxed>();
 
@@ -428,9 +470,10 @@ void TaskContext::Wakeup(WakeupSource source, SleepState::Epoch epoch) {
         //
         // Without std::memory_order_seq_cst in this function TSAN reports a data race at step 4) on
         // a ServerMinimalComponentList.Basic test. Run the test under TSAN multiple times if planning to change.
-        if (sleep_state_.CompareExchangeWeak<std::memory_order_seq_cst, std::memory_order_relaxed>(
-                prev_sleep_state, new_sleep_state
-            )) {
+        if (sleep_state_.CompareExchangeWeak<
+                std::memory_order_seq_cst,
+                std::memory_order_relaxed>(prev_sleep_state, new_sleep_state))
+        {
             break;
         }
     }
@@ -445,7 +488,9 @@ void TaskContext::Wakeup(WakeupSource source, NoEpoch) {
     UASSERT(source != WakeupSource::kBootstrap);
     UASSERT(source != WakeupSource::kCancelRequest);
 
-    if (IsFinished()) return;
+    if (IsFinished()) {
+        return;
+    }
 
     // Set flag regardless of kSleeping - missing kSleeping usually means one of the following:
     // * the task is somewhere between Sleep() and setting kSleeping in DoStep().
@@ -471,7 +516,11 @@ private:
 
 class TaskContext::LocalStorageGuard {
 public:
-    explicit LocalStorageGuard(TaskContext& context) : context_(context) { context_.local_storage_.emplace(); }
+    explicit LocalStorageGuard(TaskContext& context)
+        : context_(context)
+    {
+        context_.local_storage_.emplace();
+    }
 
     ~LocalStorageGuard() { context_.local_storage_.reset(); }
 
@@ -497,6 +546,7 @@ private:
 
 void TaskContext::CoroFunc(TaskPipe& task_pipe) {
     for (TaskContext* context : task_pipe) {
+        // `context` is accessed in gdb, do not rename
         UASSERT(context);
         context->task_pipe_ = &task_pipe;
 
@@ -555,7 +605,9 @@ task_local::Storage& TaskContext::GetLocalStorage() noexcept {
 bool TaskContext::IsReady() const noexcept { return IsFinished(); }
 
 EarlyWakeup TaskContext::TryAppendWaiter(TaskContext& waiter) {
-    if (&waiter == this) ReportDeadlock();
+    if (&waiter == this) {
+        ReportDeadlock();
+    }
     return EarlyWakeup{finish_waiters_->GetSignalOrAppend(&waiter)};
 }
 
@@ -587,11 +639,15 @@ TaskContext::WakeupSource TaskContext::GetPrimaryWakeupSource(SleepState::Flags 
         {SleepFlags::kWakeupByDeadlineTimer, WakeupSource::kDeadlineTimer},
         {SleepFlags::kWakeupByBootstrap, WakeupSource::kBootstrap},
     };
-    for (auto it : l)
-        if (sleep_flags & it.first) return it.second;
+    for (auto it : l) {
+        if (sleep_flags & it.first) {
+            return it.second;
+        }
+    }
 
-    if ((sleep_flags & SleepFlags::kWakeupByCancelRequest) && !(sleep_flags & SleepFlags::kNonCancellable))
+    if ((sleep_flags & SleepFlags::kWakeupByCancelRequest) && !(sleep_flags & SleepFlags::kNonCancellable)) {
         return WakeupSource::kCancelRequest;
+    }
 
     UINVARIANT(false, fmt::format("Cannot find valid wakeup source for {}", sleep_flags.GetValue()));
 }
@@ -623,7 +679,9 @@ void TaskContext::ProfilerStartExecution() noexcept {
 
 void TaskContext::ProfilerStopExecution() noexcept {
     auto threshold_us = task_processor_.GetProfilerThreshold();
-    if (threshold_us.count() <= 0) return;
+    if (threshold_us.count() <= 0) {
+        return;
+    }
 
     if (execute_started_ == std::chrono::steady_clock::time_point{}) {
         // the task was started w/o profiling, skip it
@@ -639,19 +697,24 @@ void TaskContext::ProfilerStopExecution() noexcept {
         if (task_processor_.ShouldProfilerForceStacktrace()) {
             logging::impl::ExtendLogExtraWithStacktrace(extra_stacktrace);
         }
-        LOG_ERROR() << "Profiler threshold reached, task was executing "
-                       "for too long without context switch ("
-                    << duration_us.count() << "us >= " << threshold_us.count() << "us)" << extra_stacktrace;
+        LOG_ERROR()
+            << "Profiler threshold reached, task was executing "
+               "for too long without context switch ("
+            << duration_us.count() << "us >= " << threshold_us.count() << "us)" << extra_stacktrace;
     }
 }
 
 void TaskContext::TraceStateTransition(Task::State state) {
-    if (trace_csw_left_ == 0) return;
+    if (trace_csw_left_ == 0) {
+        return;
+    }
     --trace_csw_left_;
 
     auto now = std::chrono::steady_clock::now();
     auto diff = now - last_state_change_timepoint_;
-    if (last_state_change_timepoint_ == std::chrono::steady_clock::time_point()) diff = {};
+    if (last_state_change_timepoint_ == std::chrono::steady_clock::time_point()) {
+        diff = {};
+    }
     auto diff_us = std::chrono::duration_cast<std::chrono::microseconds>(diff).count();
     last_state_change_timepoint_ = now;
 
@@ -660,18 +723,23 @@ void TaskContext::TraceStateTransition(Task::State state) {
         return;
     }
 
-    LOG_INFO_TO(*logger) << "Task " << logging::HexShort(GetTaskId()) << " changed state to "
-                         << Task::GetStateName(state) << ", delay = " << diff_us << "us"
-                         << logging::LogExtra::Stacktrace(*logger);
+    LOG_INFO_TO(*logger
+    ) << "Task "
+      << logging::HexShort(GetTaskId()) << " changed state to " << Task::GetStateName(state) << ", delay = " << diff_us
+      << "us" << logging::LogExtra::Stacktrace(*logger);
 }
 
 void TaskContext::ResetPayload() noexcept {
-    if (!payload_) return;
+    if (!payload_) {
+        return;
+    }
 
     std::destroy_at(std::exchange(payload_, nullptr));
 }
 
 CountedCoroutinePtr& TaskContext::GetCoroutinePtr() noexcept { return coro_; }
+
+utils::StringLiteral TaskContext::GetActorType() const { return "Task"; }
 
 void intrusive_ptr_add_ref(TaskContext* p) noexcept {
     UASSERT(p);

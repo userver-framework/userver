@@ -37,7 +37,10 @@ struct ConnectionCfg {
         int s3retries = 1,
         std::optional<std::string> proxy = {}
     )
-        : timeout(s3timeout), retries(s3retries), proxy(proxy) {}
+        : timeout(s3timeout),
+          retries(s3retries),
+          proxy(proxy)
+    {}
 
     std::chrono::milliseconds timeout{1000};
     int retries = 1;
@@ -77,7 +80,9 @@ public:
     struct HeaderDataRequest {
         HeaderDataRequest() {}
         HeaderDataRequest(std::optional<std::unordered_set<std::string>> headers, bool need_meta)
-            : headers(std::move(headers)), need_meta(need_meta) {}
+            : headers(std::move(headers)),
+              need_meta(need_meta)
+        {}
         std::optional<std::unordered_set<std::string>> headers{std::nullopt};
         bool need_meta{true};
     };
@@ -144,11 +149,16 @@ public:
         const std::optional<Meta>& meta = std::nullopt
     ) = 0;
 
-    virtual std::string
-    CopyObject(std::string_view key_from, std::string_view key_to, const std::optional<Meta>& meta = std::nullopt) = 0;
+    virtual std::string CopyObject(
+        std::string_view key_from,
+        std::string_view key_to,
+        const std::optional<Meta>& meta = std::nullopt
+    ) = 0;
 
-    virtual std::optional<HeadersDataResponse>
-    GetObjectHead(std::string_view path, const HeaderDataRequest& request = HeaderDataRequest()) const = 0;
+    virtual std::optional<HeadersDataResponse> GetObjectHead(
+        std::string_view path,
+        const HeaderDataRequest& request = HeaderDataRequest()
+    ) const = 0;
 
     virtual std::string GenerateDownloadUrl(std::string_view path, time_t expires, bool use_ssl = false) const = 0;
 

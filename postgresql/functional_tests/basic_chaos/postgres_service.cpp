@@ -53,7 +53,8 @@ private:
 
 PostgresHandler::PostgresHandler(const components::ComponentConfig& config, const components::ComponentContext& context)
     : HttpHandlerBase(config, context),
-      pg_cluster_(context.FindComponent<components::Postgres>("key-value-database").GetCluster()) {}
+      pg_cluster_(context.FindComponent<components::Postgres>("key-value-database").GetCluster())
+{}
 
 std::string
 PostgresHandler::HandleRequestThrow(const server::http::HttpRequest& request, server::request::RequestContext&) const {
@@ -74,9 +75,9 @@ PostgresHandler::HandleRequestThrow(const server::http::HttpRequest& request, se
 
         storages::postgres::CommandControl cc{timeout, timeout};
         TESTPOINT("before_trx_begin", {});
-        auto transaction = pg_cluster_->Begin(
-            storages::postgres::ClusterHostType::kMaster, storages::postgres::TransactionOptions{}, cc
-        );
+        auto transaction =
+            pg_cluster_
+                ->Begin(storages::postgres::ClusterHostType::kMaster, storages::postgres::TransactionOptions{}, cc);
         TESTPOINT("after_trx_begin", {});
 
         // Disk on CI could be overloaded, so we use a lightweight query.
@@ -100,9 +101,9 @@ PostgresHandler::HandleRequestThrow(const server::http::HttpRequest& request, se
         const std::chrono::seconds timeout{type == kPortalSmallTimeout ? 3 : 25};
 
         storages::postgres::CommandControl cc{timeout, timeout};
-        auto transaction = pg_cluster_->Begin(
-            storages::postgres::ClusterHostType::kMaster, storages::postgres::TransactionOptions{}, cc
-        );
+        auto transaction =
+            pg_cluster_
+                ->Begin(storages::postgres::ClusterHostType::kMaster, storages::postgres::TransactionOptions{}, cc);
 
         auto portal = transaction.MakePortal(cc, kPortalQuery);
         TESTPOINT("after_make_portal", {});
@@ -129,14 +130,16 @@ PostgresHandler::HandleRequestThrow(const server::http::HttpRequest& request, se
 }  // namespace chaos
 
 int main(int argc, char* argv[]) {
-    const auto component_list = components::MinimalServerComponentList()
-                                    .Append<components::DynamicConfigClient>()
-                                    .Append<components::DynamicConfigClientUpdater>()
-                                    .Append<chaos::PostgresHandler>()
-                                    .Append<components::HttpClient>()
-                                    .Append<components::Postgres>("key-value-database")
-                                    .Append<components::TestsuiteSupport>()
-                                    .Append<server::handlers::TestsControl>()
-                                    .Append<clients::dns::Component>();
+    const auto component_list =
+        components::MinimalServerComponentList()
+            .Append<components::DynamicConfigClient>()
+            .Append<components::DynamicConfigClientUpdater>()
+            .Append<chaos::PostgresHandler>()
+            .Append<components::HttpClientCore>()
+            .Append<components::HttpClient>()
+            .Append<components::Postgres>("key-value-database")
+            .Append<components::TestsuiteSupport>()
+            .Append<server::handlers::TestsControl>()
+            .Append<clients::dns::Component>();
     return utils::DaemonMain(argc, argv, component_list);
 }

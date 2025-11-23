@@ -32,7 +32,8 @@ ListenerImpl::ListenerImpl(
     : task_processor_(task_processor),
       endpoint_info_(std::move(endpoint_info)),
       stats_(std::make_shared<Stats>()),
-      data_accounter_(data_accounter) {
+      data_accounter_(data_accounter)
+{
     for (const auto& port : endpoint_info_->listener_config.ports) {
         socket_listener_tasks_.push_back(engine::CriticalAsyncNoSpan(
             task_processor_,
@@ -58,7 +59,9 @@ ListenerImpl::ListenerImpl(
 
 ListenerImpl::~ListenerImpl() {
     LOG_TRACE() << "Stopping socket listener task";
-    for (auto& task : socket_listener_tasks_) task.SyncCancel();
+    for (auto& task : socket_listener_tasks_) {
+        task.SyncCancel();
+    }
     LOG_TRACE() << "Stopped socket listener task";
 
     connections_.CancelAndWait();
@@ -73,13 +76,14 @@ void ListenerImpl::AcceptConnection(engine::io::Socket& request_socket, const Po
     utils::FastScopeGuard guard{[this]() noexcept { --endpoint_info_->connection_count; }};
 
     if (new_connection_count > endpoint_info_->listener_config.max_connections) {
-        LOG_LIMITED_WARNING() << " reached max_connections=" << endpoint_info_->listener_config.max_connections
-                              << ", dropping connection #" << new_connection_count;
+        LOG_LIMITED_WARNING()
+            << " reached max_connections=" << endpoint_info_->listener_config.max_connections
+            << ", dropping connection #" << new_connection_count;
         return;
     }
 
-    LOG_DEBUG() << "Accepted connection #" << new_connection_count << '/'
-                << endpoint_info_->listener_config.max_connections;
+    LOG_DEBUG()
+        << "Accepted connection #" << new_connection_count << '/' << endpoint_info_->listener_config.max_connections;
 
     // In case of TaskProcessor overload we wish to keep the connection,
     // as reopening it is CPU consuming
@@ -96,7 +100,9 @@ void ListenerImpl::AcceptConnection(engine::io::Socket& request_socket, const Po
 void ListenerImpl::ProcessConnection(engine::io::Socket peer_socket, const PortConfig& port_config) {
     if (peer_socket.Getsockname().Domain() == engine::io::AddrDomain::kInet6 ||
         peer_socket.Getsockname().Domain() == engine::io::AddrDomain::kInet)
+    {
         peer_socket.SetOption(IPPROTO_TCP, TCP_NODELAY, 1);
+    }
 
     const auto fd = peer_socket.Fd();
 

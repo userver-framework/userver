@@ -3,7 +3,9 @@
 #include <userver/clients/http/component.hpp>
 #include <userver/components/component.hpp>
 #include <userver/formats/json.hpp>
+#include <userver/fs/read.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/utils/text_light.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -17,16 +19,34 @@ std::string ReadStageName(const std::string& filepath) {
     try {
         return FromFile(filepath)["env_name"].As<std::string>();
     } catch (const std::exception& exception) {
-        LOG_ERROR() << "Error during config service client initialization. "
-                    << "Got error while reading stage name from file: " << filepath << ", error: " << exception;
+        LOG_ERROR()
+            << "Error during config service client initialization. "
+            << "Got error while reading stage name from file: " << filepath << ", error: " << exception;
         throw;
     }
 }
 
+#ifdef ARCADIA_ROOT
+bool IsClownductorPrestable() {
+    auto filepath = "/etc/clownductor_group";
+    auto& tp = engine::current_task::GetBlockingTaskProcessor();
+
+    if (!fs::FileExists(tp, filepath)) {
+        return false;
+    }
+    auto content = fs::ReadFileContents(tp, filepath);
+    utils::text::Trim(content);
+    return utils::text::EndsWith(content, "_pre_stable");
+}
+#else
+bool IsClownductorPrestable() { return false; }
+#endif
+
 }  // namespace
 
 DynamicConfigClient::DynamicConfigClient(const ComponentConfig& config, const ComponentContext& context)
-    : ComponentBase(config, context) {
+    : ComponentBase(config, context)
+{
     dynamic_config::ClientConfig client_config;
     client_config.service_name = config["service-name"].As<std::string>();
     client_config.get_configs_overrides_for_service = config["get-configs-overrides-for-service"].As<bool>(true);
@@ -42,15 +62,15 @@ DynamicConfigClient::DynamicConfigClient(const ComponentConfig& config, const Co
             client_config.stage_name = *stage_name;
         }
     }
+    client_config.is_prestable = IsClownductorPrestable();
     client_config.config_url = config["config-url"].As<std::string>();
-    client_config.fallback_to_no_proxy = config["fallback-to-no-proxy"].As<bool>(true);
 
     if (!client_config.stage_name.empty() && client_config.get_configs_overrides_for_service) {
         throw std::logic_error("Cannot get overrides for both stage and service yet");
     }
 
-    config_client_ =
-        std::make_unique<dynamic_config::Client>(context.FindComponent<HttpClient>().GetHttpClient(), client_config);
+    config_client_ = std::make_unique<
+        dynamic_config::Client>(context.FindComponent<HttpClient>().GetHttpClient(), client_config);
 }
 
 dynamic_config::Client& DynamicConfigClient::GetClient() const { return *config_client_; }
@@ -85,10 +105,6 @@ properties:
     configs-stage:
         type: string
         description: stage name provided statically, can be overridden from file
-    fallback-to-no-proxy:
-        type: boolean
-        description: make additional attempts to retrieve configs by bypassing proxy that is set in USERVER_HTTP_PROXY runtime variable
-        defaultDescription: true
     append-path-to-url:
         type: boolean
         description: add default path '/configs/values' to 'config-url'

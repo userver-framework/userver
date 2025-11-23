@@ -14,8 +14,11 @@ namespace s3api::authenticators {
 
 std::string MakeHeaderDate();
 std::string MakeHeaderContentMd5(const std::string& data);
-std::string
-MakeHeaderAuthorization(const std::string& string_to_sign, const std::string& access_key, const Secret& secret_key);
+std::string MakeHeaderAuthorization(
+    const std::string& string_to_sign,
+    const std::string& access_key,
+    const Secret& secret_key
+);
 std::string MakeSignature(const std::string& string_to_sign, const Secret& secret_key);
 
 std::string MakeStringToSign(

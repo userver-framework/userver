@@ -2,7 +2,6 @@ import re
 
 import pytest
 import pytest_userver.client
-import pytest_userver.grpc
 
 SAY_HELLO = "'samples.api.GreeterService/SayHello'"
 

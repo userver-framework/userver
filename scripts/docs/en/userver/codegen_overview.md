@@ -13,6 +13,18 @@ You may use code generators for the following activity:
 * @ref scripts/docs/en/userver/chaotic_clients.md
 * @ref scripts/docs/en/userver/sql_files.md 
 
+## userver_embed_file and embedding files
+
+For embedding arbitrary data there is a `userver_embed_file` CMake function:
+
+@snippet samples/embedded_files/CMakeLists.txt  embedded
+
+To use the embedded file from C++ just include the generated header and call @ref utils::FindResource() function to
+get the embedded file contents:
+
+@snippet samples/embedded_files/main.cpp  embedded usage
+
+
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly

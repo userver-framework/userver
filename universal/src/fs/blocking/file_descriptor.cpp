@@ -72,7 +72,11 @@ constexpr int kNoFd = -1;
 
 }  // namespace
 
-FileDescriptor::FileDescriptor(int fd) : fd_(fd) { UASSERT(fd != kNoFd); }
+FileDescriptor::FileDescriptor(int fd)
+    : fd_(fd)
+{
+    UASSERT(fd != kNoFd);
+}
 
 FileDescriptor FileDescriptor::Open(const std::string& path, OpenMode flags, boost::filesystem::perms perms) {
     UASSERT(!path.empty());
@@ -130,7 +134,9 @@ void FileDescriptor::Write(std::string_view contents) {
     while (len > 0) {
         const ssize_t s = ::write(fd_, buffer, len);
         if (s < 0) {
-            if (errno == EAGAIN || errno == EINTR) continue;
+            if (errno == EAGAIN || errno == EINTR) {
+                continue;
+            }
 
             const auto code = std::make_error_code(std::errc{errno});
             throw std::system_error(code, "calling ::write");
@@ -146,7 +152,9 @@ std::size_t FileDescriptor::Read(char* buffer, std::size_t max_size) {
     while (true) {
         const ::ssize_t s = ::read(fd_, buffer, max_size);
         if (s < 0) {
-            if (errno == EAGAIN || errno == EINTR) continue;
+            if (errno == EAGAIN || errno == EINTR) {
+                continue;
+            }
 
             const auto code = std::make_error_code(std::errc{errno});
             throw std::system_error(code, "calling ::read");
@@ -160,7 +168,9 @@ void FileDescriptor::Seek(std::size_t offset_in_bytes) {
     while (true) {
         const auto s = ::lseek(fd_, offset_in_bytes, SEEK_SET);
         if (s < 0) {
-            if (errno == EAGAIN || errno == EINTR) continue;
+            if (errno == EAGAIN || errno == EINTR) {
+                continue;
+            }
 
             const auto code = std::make_error_code(std::errc{errno});
             throw std::system_error(code, "calling ::lseek");

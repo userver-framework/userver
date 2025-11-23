@@ -27,12 +27,8 @@ Date::Date(utils::impl::InternalTag, std::int32_t year, std::int32_t month, std:
     }
 }
 
-bool Date::IsValid(
-    utils::impl::InternalTag,
-    std::int32_t year_num,
-    std::int32_t month_num,
-    std::int32_t day_num
-) noexcept {
+bool Date::IsValid(utils::impl::InternalTag, std::int32_t year_num, std::int32_t month_num, std::int32_t day_num)
+    noexcept {
     std::optional<std::chrono::year> year;
     std::optional<std::chrono::month> month;
     std::optional<std::chrono::day> day;

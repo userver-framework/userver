@@ -140,16 +140,16 @@ support deadline propagation.
 ### Blocking the deadline propagation
 
 Task-inherited deadline is by default propagated from the handler task to child tasks created via `utils::*Async*`.
-There it is used in all clients that support it. This is implemented via `server::request::kTaskInheritedData`
-and `server::request::GetTaskInheritedDeadline`.
+There it is used in all clients that support it. This is implemented via @ref server::request::kTaskInheritedData
+and @ref server::request::GetTaskInheritedDeadline.
 
 In _background tasks_ that are started from the task of the request, but do not affect its completion, the deadline
 should not be propagated from the request tasks. Blocking such deadline propagation can be achieved by the following
 mechanisms:
 
-- `concurrent::BackgroundTaskStorage::AsyncDetach`
-- `utils::AsyncBackground`
-- `engine::AsyncNoSpan` (don't use it if you are not sure that you need it!)
+- @ref concurrent::BackgroundTaskStorage::AsyncDetach()
+- @ref utils::AsyncBackground
+- @ref engine::AsyncNoSpan (don't use it if you are not sure that you need it!)
 
 @warning when creating background tasks via `utils::Async` (instead of `utils::AsyncBackground`), requests performed
 in them will be interrupted along with the parent task**
@@ -181,7 +181,7 @@ Metrics:
 * `cancelled-by-deadline` (monotonic counter) - counts requests the handling of which was cancelled by deadline
   (deadline expired by the end of handling, or some operation estimated that the deadline would surely expire).
 
-Log tags of the request's `tracing::Span`:
+Log tags of the request's @ref tracing::Span :
 
 * `deadline_received_ms=...` if the calling service has set a deadline for the request
 * if deadline expired while handling the request:
@@ -284,7 +284,7 @@ Log tags of the request's `tracing::Span`:
 
 To disable deadline propagation in the static config:
 
-* `http-client.set-deadline-propagation-header: false`
+* `http-client-core.set-deadline-propagation-header: false`
 * timeouts are updated from the task-inherited deadline regardless of this config
 
 To disable deadline propagation in the dynamic config:
@@ -349,8 +349,18 @@ If the request is sent with deadline propagation enabled, then:
 ## Deadline propagation details for Postgres
 
 1. If the deadline has expired before the start of `Execute`, the exception `stores::postgres::ConnectionInterrupted` is
-   thrown
-2. The request timeout is not updated from the deadline **TODO**
+   thrown.
+2. There are two timeouts in Postgres. See @ref storages::postgres::CommandControl.
+  `statement_timeout` is adjusted and `network_timeout` isn't adjusted by deadline propagation. 
+
+  For example:
+
+  For a query in some handler `statement_timeout=500ms` and `network_timeout=600ms`. But a client calls that handler with
+  timeout `300ms`.
+  `statement_timeout` is adjusted to 300ms and `network_timeout` **is not** adjusted. 
+
+  `network_timeout` isn't adjusted, because we want to give Postgres the opportunity to cancel the request, and not
+  immediately break the connection. Otherwise, this would lead to failure of a connection pool during DP timeouts.
 
 ## Deadline propagation details for Redis
 

@@ -48,7 +48,8 @@ Connection::Connection(
       stats_(std::move(stats)),
       data_accounter_(data_accounter),
       remote_address_(remote_address),
-      peer_name_(remote_address_.PrimaryAddressString()) {
+      peer_name_(remote_address_.PrimaryAddressString())
+{
     LOG_DEBUG() << "Incoming connection from " << Getpeername() << ", fd " << Fd();
 
     ++stats_->active_connections;
@@ -65,18 +66,23 @@ void Connection::Process() {
 
 int Connection::Fd() const {
     auto* socket = dynamic_cast<engine::io::Socket*>(peer_socket_.get());
-    if (socket) return socket->Fd();
+    if (socket) {
+        return socket->Fd();
+    }
 
     auto* tls_socket = dynamic_cast<engine::io::TlsWrapper*>(peer_socket_.get());
-    if (tls_socket) return tls_socket->GetRawFd();
+    if (tls_socket) {
+        return tls_socket->GetRawFd();
+    }
 
     return -2;
 }
 
 void Connection::Shutdown() noexcept {
-    LOG_TRACE() << "Terminating requests processing (canceling in-flight "
-                   "requests) for fd "
-                << Fd();
+    LOG_TRACE()
+        << "Terminating requests processing (canceling in-flight "
+           "requests) for fd "
+        << Fd();
 
     peer_socket_.reset();
 
@@ -128,7 +134,9 @@ void Connection::ListenForRequests() noexcept {
                 ProcessRequest(std::move(request));
             }
             pending_requests_.resize(0);
-            if (should_stop_accepting_requests) is_accepting_requests_ = false;
+            if (should_stop_accepting_requests) {
+                is_accepting_requests_ = false;
+            }
         }
 
         LOG_TRACE() << "Gracefully stopping ListenForRequests()";
@@ -139,8 +147,10 @@ void Connection::ListenForRequests() noexcept {
     } catch (const engine::io::IoSystemError& ex) {
         // working with raw values because std::errc compares error_category
         // default_error_category() fixed only in GCC 9.1 (PR libstdc++/60555)
-        auto log_level = ex.Code().value() == static_cast<int>(std::errc::connection_reset) ? logging::Level::kInfo
-                                                                                            : logging::Level::kError;
+        auto log_level =
+            ex.Code().value() == static_cast<int>(std::errc::connection_reset)
+                ? logging::Level::kInfo
+                : logging::Level::kError;
         LOG(log_level) << "I/O error while receiving from peer " << Getpeername() << " on fd " << Fd() << ": " << ex;
     } catch (const std::exception& ex) {
         LOG_ERROR() << "Error while receiving from peer " << Getpeername() << " on fd " << Fd() << ": " << ex;
@@ -148,7 +158,9 @@ void Connection::ListenForRequests() noexcept {
 }
 
 bool Connection::WaitOnSocket(engine::Deadline deadline) {
-    if (!peer_socket_) return false;
+    if (!peer_socket_) {
+        return false;
+    }
 
     bool is_readable = true;
     if (pending_data_size_ != pending_data_.size()) {
@@ -189,8 +201,8 @@ bool Connection::WaitOnSocket(engine::Deadline deadline) {
     }
     pending_data_size_ = is_readable ? peer_socket_->ReadSome(pending_data_.data(), pending_data_.size(), deadline) : 0;
     if (!pending_data_size_) {
-        LOG_TRACE() << "Peer " << Getpeername() << " on fd " << Fd()
-                    << " closed connection or the connection timed out";
+        LOG_TRACE()
+            << "Peer " << Getpeername() << " on fd " << Fd() << " closed connection or the connection timed out";
 
         // RFC7230 does not specify rules for connections half-closed from
         // client side. However, section 6 tells us that in most cases
@@ -222,7 +234,9 @@ void Connection::ProcessRequest(std::shared_ptr<http::HttpRequest>&& request_ptr
 }
 
 bool Connection::ReadSome() {
-    if (pending_data_size_ == pending_data_.size()) return true;
+    if (pending_data_size_ == pending_data_.size()) {
+        return true;
+    }
 
     try {
         const engine::TaskCancellationBlocker blocker;
@@ -233,7 +247,9 @@ bool Connection::ReadSome() {
             engine::Deadline::Passed()
         );
         pending_data_size_ += count;
-        if (count == 0) return false;
+        if (count == 0) {
+            return false;
+        }
     } catch (const engine::io::IoTimeout&) {
         // Read only a part of SSL Record, not a EOF
     } catch (const std::exception& e) {
@@ -322,14 +338,17 @@ void Connection::SendResponse(http::HttpRequest& request) {
                 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
                 auto& http_response = static_cast<http::HttpResponse&>(response);
                 if (const auto& h = request.GetHeader(USERVER_NAMESPACE::http::headers::k2::kHttp2SettingsHeader);
-                    !h.empty()) {
+                    !h.empty())
+                {
                     const auto send = peer_socket_->WriteAll(
                         http::kSwitchingProtocolResponse.data(),
                         http::kSwitchingProtocolResponse.size(),
                         engine::Deadline{}
                     );
                     LOG_TRACE() << fmt::format(
-                        "Write {} bytes, and wanted write {}", send, http::kSwitchingProtocolResponse.size()
+                        "Write {} bytes, and wanted write {}",
+                        send,
+                        http::kSwitchingProtocolResponse.size()
                     );
 
                     auto parser = MakeParser(USERVER_NAMESPACE::http::HttpVersion::k2);
@@ -356,8 +375,10 @@ void Connection::SendResponse(http::HttpRequest& request) {
         } catch (const engine::io::IoSystemError& ex) {
             // working with raw values because std::errc compares error_category
             // default_error_category() fixed only in GCC 9.1 (PR libstdc++/60555)
-            auto log_level = ex.Code().value() == static_cast<int>(std::errc::broken_pipe) ? logging::Level::kWarning
-                                                                                           : logging::Level::kError;
+            auto log_level =
+                ex.Code().value() == static_cast<int>(std::errc::broken_pipe)
+                    ? logging::Level::kWarning
+                    : logging::Level::kError;
             LOG(log_level) << "I/O error while sending data: " << ex;
             response.SetSendFailed(std::chrono::steady_clock::now());
         } catch (const std::exception& ex) {
@@ -377,8 +398,8 @@ void Connection::SendResponse(http::HttpRequest& request) {
 std::string Connection::Getpeername() const { return peer_name_; }
 
 std::unique_ptr<request::RequestParser> Connection::MakeParser(USERVER_NAMESPACE::http::HttpVersion ver) {
-    const auto on_req_cb = [&pending_requests_ = pending_requests_](HttpRequestPtr&& request_ptr) {
-        pending_requests_.push_back(std::move(request_ptr));
+    const auto on_req_cb = [&pending_requests = pending_requests_](HttpRequestPtr&& request_ptr) {
+        pending_requests.push_back(std::move(request_ptr));
     };
     if (ver == USERVER_NAMESPACE::http::HttpVersion::k2) {
         return std::make_unique<http::Http2Session>(

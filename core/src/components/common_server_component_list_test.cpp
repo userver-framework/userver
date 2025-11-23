@@ -85,7 +85,7 @@ components_manager:
     dump-configurator:
       dump-root: $userver-dumps-root
     testsuite-support:
-    http-client:
+    http-client-core:
       pool-statistics-disable: true
       thread-name-prefix: http-client
       threads: 2
@@ -113,7 +113,7 @@ components_manager:
         service-name: config-service
     statistics-storage:
       # Nothing
-    http-client-statistics:
+    http-client-statistics-core:
       fs-task-processor: main-task-processor
     system-statistics-collector:
       fs-task-processor: main-task-processor
@@ -247,7 +247,8 @@ class CommonServerComponentList : public ComponentList {
 protected:
     CommonServerComponentList() {
         fs::blocking::RewriteFileContents(
-            GetDynamicConfigCachePath(), formats::json::ToString(dynamic_config::impl::GetDefaultDocsMap().AsJson())
+            GetDynamicConfigCachePath(),
+            formats::json::ToString(dynamic_config::impl::GetDefaultDocsMap().AsJson())
         );
     }
 
@@ -390,9 +391,10 @@ TEST_F(CommonServerComponentList, BlockingDefaultLogger) {
     );
 
     const components::InMemoryConfig config{std::string{kStaticConfig} + GetConfigVarsPath()};
-    const auto component_list = components::CommonComponentList()
-                                    .AppendComponentList(components::CommonServerComponentList())
-                                    .Append<server::handlers::Ping>();
+    const auto component_list =
+        components::CommonComponentList()
+            .AppendComponentList(components::CommonServerComponentList())
+            .Append<server::handlers::Ping>();
     UEXPECT_THROW_MSG(components::RunOnce(config, component_list), std::exception, "efault logger");
 }
 

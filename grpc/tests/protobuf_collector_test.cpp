@@ -27,14 +27,17 @@ TEST(GetGeneratedMessages, Ok) {
     EXPECT_THAT(generated_message, testing::Contains(ugrpc::FindGeneratedMessage("sample.ugrpc.GreetingRequest")));
     EXPECT_THAT(generated_message, testing::Contains(ugrpc::FindGeneratedMessage("sample.ugrpc.GreetingResponse")));
     EXPECT_THAT(
-        generated_message, testing::Contains(ugrpc::FindGeneratedMessage("sample.ugrpc.StreamGreetingRequest"))
+        generated_message,
+        testing::Contains(ugrpc::FindGeneratedMessage("sample.ugrpc.StreamGreetingRequest"))
     );
     EXPECT_THAT(
-        generated_message, testing::Contains(ugrpc::FindGeneratedMessage("sample.ugrpc.StreamGreetingResponse"))
+        generated_message,
+        testing::Contains(ugrpc::FindGeneratedMessage("sample.ugrpc.StreamGreetingResponse"))
     );
     EXPECT_THAT(generated_message, testing::Contains(ugrpc::FindGeneratedMessage("google.protobuf.Empty")));
     EXPECT_THAT(
-        generated_message, testing::Contains(ugrpc::FindGeneratedMessage("sample.ugrpc.MessageWithDifferentTypes"))
+        generated_message,
+        testing::Contains(ugrpc::FindGeneratedMessage("sample.ugrpc.MessageWithDifferentTypes"))
     );
 }
 

@@ -6,9 +6,9 @@
 #include <chrono>
 #include <string>
 #include <system_error>
-#include <vector>
 
 #include <userver/utils/not_null.hpp>
+#include <userver/utils/span.hpp>
 #include <userver/utils/zstring_view.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -96,7 +96,8 @@ namespace impl {
 
 class PluginPipeline final {
 public:
-    explicit PluginPipeline(const std::vector<utils::NotNull<Plugin*>>& plugins);
+    PluginPipeline() = default;
+    explicit PluginPipeline(utils::span<const utils::NotNull<Plugin*>> plugins);
 
     void HookPerformRequest(RequestState& request);
 
@@ -109,7 +110,7 @@ public:
     bool HookOnRetry(RequestState& request);
 
 private:
-    utils::NotNull<const std::vector<utils::NotNull<Plugin*>>*> plugins_;
+    utils::span<const utils::NotNull<Plugin*>> plugins_;
 };
 
 }  // namespace impl

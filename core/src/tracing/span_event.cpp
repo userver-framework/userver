@@ -19,10 +19,16 @@ constexpr std::string_view kAttributes = "attributes";
 
 }  // namespace
 
-SpanEvent::SpanEvent(std::string_view name) : name{name}, timestamp{std::chrono::system_clock::now()} {}
+SpanEvent::SpanEvent(std::string_view name)
+    : name{name},
+      timestamp{std::chrono::system_clock::now()}
+{}
 
 SpanEvent::SpanEvent(std::string_view name, SpanEvent::KeyValue attributes)
-    : name{name}, timestamp{std::chrono::system_clock::now()}, attributes{std::move(attributes)} {}
+    : name{name},
+      timestamp{std::chrono::system_clock::now()},
+      attributes{std::move(attributes)}
+{}
 
 SpanEvent Parse(const formats::json::Value& value, formats::parse::To<SpanEvent>) {
     SpanEvent event{value[kName].As<std::string>()};

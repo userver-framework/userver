@@ -19,17 +19,17 @@ std::chrono::system_clock::time_point DoGetDate(const ColumnRef& column, size_t 
     const auto tics = impl::NativeGetAt<NativeType>(column, ind);
 
     using clock = std::chrono::system_clock;
-    return clock::time_point{
-        std::chrono::duration_cast<clock::duration>(typename DateColumnType::time_resolution{tics})};
+    return clock::time_point{std::chrono::duration_cast<clock::duration>(typename DateColumnType::time_resolution{tics})
+    };
 }
 
 template <typename DateColumnType>
 ColumnRef DoSerializeDate(const std::vector<std::chrono::system_clock::time_point>& from) {
     auto column = clickhouse::impl::clickhouse_cpp::ColumnDateTime64(DateColumnType::Tag::kPrecision);
     for (const auto tp : from) {
-        column.Append(
-            std::chrono::duration_cast<typename DateColumnType::time_resolution>(tp.time_since_epoch()).count()
-        );
+        column
+            .Append(std::chrono::duration_cast<typename DateColumnType::time_resolution>(tp.time_since_epoch()).count()
+            );
     }
 
     return std::make_shared<decltype(column)>(std::move(column));
@@ -44,15 +44,18 @@ ColumnRef GetDatetimeColumn(const ColumnRef& column) {
 
 template <>
 DateTime64ColumnMilli::DateTime64Column(ColumnRef column)
-    : ClickhouseColumn{GetDatetimeColumn<DateTime64ColumnMilli>(column)} {}
+    : ClickhouseColumn{GetDatetimeColumn<DateTime64ColumnMilli>(column)}
+{}
 
 template <>
 DateTime64ColumnMicro::DateTime64Column(ColumnRef column)
-    : ClickhouseColumn{GetDatetimeColumn<DateTime64ColumnMicro>(column)} {}
+    : ClickhouseColumn{GetDatetimeColumn<DateTime64ColumnMicro>(column)}
+{}
 
 template <>
 DateTime64ColumnNano::DateTime64Column(ColumnRef column)
-    : ClickhouseColumn{GetDatetimeColumn<DateTime64ColumnNano>(column)} {}
+    : ClickhouseColumn{GetDatetimeColumn<DateTime64ColumnNano>(column)}
+{}
 
 template <>
 DateTime64ColumnMilli::cpp_type ColumnIterator<DateTime64ColumnMilli>::DataHolder::Get() const {

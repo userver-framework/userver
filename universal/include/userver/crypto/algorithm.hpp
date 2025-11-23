@@ -24,8 +24,8 @@ struct StringsEqualConstTimeComparator {
 
     /// Overload for utils::StrongTypedef that hold string like objects
     template <typename T>
-    auto operator()(const T& x, const T& y) const noexcept
-        -> decltype(algorithm::AreStringsEqualConstTime(x.GetUnderlying(), y.GetUnderlying())) {
+    auto operator()(const T& x, const T& y) const
+        noexcept -> decltype(algorithm::AreStringsEqualConstTime(x.GetUnderlying(), y.GetUnderlying())) {
         static_assert(
             noexcept(algorithm::AreStringsEqualConstTime(x.GetUnderlying(), y.GetUnderlying())),
             "The comparator should not throw as this affects efficiency "

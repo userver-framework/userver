@@ -24,8 +24,8 @@ namespace impl {
 struct WriterState;
 
 template <class Metric>
-constexpr auto HasDumpMetricWriter() noexcept
-    -> decltype(DumpMetric(std::declval<Writer&>(), std::declval<const Metric&>()), std::true_type{}) {
+constexpr auto HasDumpMetricWriter()
+    noexcept -> decltype(DumpMetric(std::declval<Writer&>(), std::declval<const Metric&>()), std::true_type{}) {
     return {};
 }
 
@@ -112,7 +112,9 @@ public:
     /// function.
     template <class T>
     void operator=(const T& value) {
-        if constexpr (std::is_arithmetic_v<T> || std::is_same_v<std::decay_t<T>, Rate> || std::is_same_v<std::decay_t<T>, HistogramView> || std::is_same_v<std::decay_t<T>, MetricValue>) {
+        if constexpr (std::is_arithmetic_v<T> || std::is_same_v<std::decay_t<T>, Rate> ||
+                      std::is_same_v<std::decay_t<T>, HistogramView> || std::is_same_v<std::decay_t<T>, MetricValue>)
+        {
             Write(value);
         } else {
             if (state_) {

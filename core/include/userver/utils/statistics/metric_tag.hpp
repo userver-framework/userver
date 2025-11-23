@@ -41,7 +41,9 @@ class MetricTag final {
 public:
     /// Register metric, passing a copy of `args` to the constructor of `Metric`
     template <typename... Args>
-    explicit MetricTag(std::string path, Args&&... args) : key_{typeid(Metric), std::move(path)} {
+    explicit MetricTag(std::string path, Args&&... args)
+        : key_{typeid(Metric), std::move(path)}
+    {
         impl::RegisterMetricInfo(key_, impl::MakeMetricFactory<Metric>(std::forward<Args>(args)...));
     }
 

@@ -26,9 +26,10 @@ ConsumerComponent::ConsumerComponent(
           context.GetTaskProcessor("consumer-blocking-task-processor"),
           context.GetTaskProcessor("main-task-processor"),
           config.As<impl::ConsumerConfiguration>(),
-          context.FindComponent<components::Secdist>().Get().Get<impl::BrokerSecrets>().GetSecretByComponentName(
-              config.Name()
-          ),
+          context.FindComponent<components::Secdist>()
+              .Get()
+              .Get<impl::BrokerSecrets>()
+              .GetSecretByComponentName(config.Name()),
           [&config] {
               impl::ConsumerExecutionParams params{};
               params.max_batch_size = config["max_batch_size"].As<std::size_t>(params.max_batch_size);
@@ -39,13 +40,15 @@ ConsumerComponent::ConsumerComponent(
                   config["restart_after_failure_delay"].As<std::chrono::milliseconds>(params.restart_after_failure_delay
                   );
               params.message_key_log_format = config["message_key_log_format"].As<impl::MessageKeyLogFormat>();
-              params.debug_info_log_level =
-                  config["debug_info_log_level"].As<logging::Level>(params.debug_info_log_level);
+              params
+                  .debug_info_log_level = config["debug_info_log_level"].As<logging::Level>(params.debug_info_log_level
+              );
               params.operation_log_level = config["operation_log_level"].As<logging::Level>(params.operation_log_level);
 
               return params;
           }()
-      ) {
+      )
+{
     auto& storage = context.FindComponent<components::StatisticsStorage>().GetStorage();
 
     statistics_holder_ = storage.RegisterWriter("kafka_consumer", [this](utils::statistics::Writer& writer) {

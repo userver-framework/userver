@@ -98,7 +98,11 @@ Writer::Writer(impl::WriterState* state) noexcept
       initial_labels_size_(state ? state->add_labels.size() : 0),
       current_labels_size_(initial_labels_size_) {}
 
-Writer::Writer(impl::WriterState& state, LabelsSpan labels) : Writer(&state) { AppendLabelsSpan(labels); }
+Writer::Writer(impl::WriterState& state, LabelsSpan labels)
+    : Writer(&state)
+{
+    AppendLabelsSpan(labels);
+}
 
 Writer::Writer(Writer& other, MoveTag) noexcept
     : state_(other.state_),

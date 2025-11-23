@@ -24,15 +24,15 @@ namespace cache {
 struct MockEnvironment final {
     MockEnvironment() = default;
     explicit MockEnvironment(testsuite::impl::PeriodicUpdatesMode update_mode)
-        : cache_control(update_mode, testsuite::CacheControl::UnitTests{}) {}
+        : cache_control(update_mode, testsuite::CacheControl::UnitTests{})
+    {}
 
     dynamic_config::StorageMock config_storage{{::dynamic_config::USERVER_DUMPS, {}}, {cache::kCacheConfigSet, {}}};
     utils::statistics::Storage statistics_storage;
     utils::statistics::MetricsStoragePtr metrics_storage = std::make_shared<utils::statistics::MetricsStorage>();
     fs::blocking::TempDirectory dump_root = fs::blocking::TempDirectory::Create();
-    testsuite::CacheControl cache_control{
-        testsuite::impl::PeriodicUpdatesMode::kDisabled,
-        testsuite::CacheControl::UnitTests{}};
+    testsuite::CacheControl
+        cache_control{testsuite::impl::PeriodicUpdatesMode::kDisabled, testsuite::CacheControl::UnitTests{}};
     testsuite::DumpControl dump_control{testsuite::DumpControl::PeriodicsMode::kDisabled};
 };
 
@@ -52,7 +52,9 @@ public:
 template <typename T>
 class DataSourceMock final {
 public:
-    explicit DataSourceMock(std::optional<T> data) : data_(std::move(data)) {}
+    explicit DataSourceMock(std::optional<T> data)
+        : data_(std::move(data))
+    {}
 
     /// @brief Called inside `Update` of a test cache to fetch actual data
     /// @throws MockError if "null" is stored in the `DataSourceMock`

@@ -114,7 +114,11 @@ struct FdPoller::Impl final : public engine::impl::ContextAccessor {
 
 void FdPoller::Impl::WakeupWaiters() { waiters->SetSignalAndWakeupOne(); }
 
-FdPoller::Impl::Impl(ev::ThreadControl control) : watcher(control, this) { watcher.Init(&IoWatcherCb); }
+FdPoller::Impl::Impl(ev::ThreadControl control)
+    : watcher(control, this)
+{
+    watcher.Init(&IoWatcherCb);
+}
 
 FdPoller::Impl::~Impl() = default;
 
@@ -169,7 +173,9 @@ void FdPoller::Impl::IoWatcherCb(struct ev_loop*, ev_io* watcher, int) noexcept 
 
 bool FdPoller::Impl::IsValid() const noexcept { return state != State::kInvalid; }
 
-FdPoller::FdPoller(const ev::ThreadControl& control) : pimpl_(control) {
+FdPoller::FdPoller(const ev::ThreadControl& control)
+    : pimpl_(control)
+{
     static_assert(std::atomic<State>::is_always_lock_free);
 }
 
@@ -220,7 +226,8 @@ void FdPoller::SwitchStateToReadyToUse() {
     auto old_state = State::kInUse;
     const auto res = pimpl_->state.compare_exchange_strong(old_state, State::kReadyToUse);
     UASSERT_MSG(
-        res, fmt::format("Socket misuse: expected socket state is '{}', actual state is '{}'", State::kInUse, old_state)
+        res,
+        fmt::format("Socket misuse: expected socket state is '{}', actual state is '{}'", State::kInUse, old_state)
     );
 }
 

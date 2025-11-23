@@ -25,8 +25,10 @@ public:
     static yaml_config::Schema GetStaticConfigSchema();
 
 private:
-    std::unique_ptr<HttpMiddlewareBase>
-    Create(const handlers::HttpHandlerBase&, yaml_config::YamlConfig middleware_config) const override;
+    std::unique_ptr<HttpMiddlewareBase> Create(
+        const handlers::HttpHandlerBase&,
+        yaml_config::YamlConfig middleware_config
+    ) const override;
 
     std::vector<std::string> headers_;
 };
@@ -37,7 +39,7 @@ template <>
 inline constexpr bool components::kHasValidate<server::middlewares::HeadersPropagatorFactory> = true;
 
 template <>
-inline constexpr auto components::kConfigFileMode<server::middlewares::HeadersPropagatorFactory> =
-    ConfigFileMode::kNotRequired;
+inline constexpr auto
+    components::kConfigFileMode<server::middlewares::HeadersPropagatorFactory> = ConfigFileMode::kNotRequired;
 
 USERVER_NAMESPACE_END

@@ -1,10 +1,8 @@
+from collections.abc import Callable
 import dataclasses
 import re
 import typing
 from typing import Any
-from typing import Callable
-from typing import Optional
-from typing import Union
 
 import pydantic
 
@@ -47,18 +45,17 @@ class Parser:
 
         self._append_schema(parsed)
 
-    @staticmethod
-    def _guess_parser(schema: dict):
+    def _guess_parser(self, schema: dict):
         if 'openapi' in schema or 'components' in schema:
             return openapi.OpenApi
         elif 'swagger' in schema or 'definitions' in schema:
             return swagger.Swagger
-        assert False, schema
+        assert False, f"Don't know about file format ({self._state.full_filepath}): {schema}"
 
     def _convert_openapi_header(
         self,
         name: str,
-        header: Union[openapi.Header, openapi.Ref],
+        header: openapi.Header | openapi.Ref,
         infile_path: str,
     ) -> model.Parameter:
         if isinstance(header, openapi.Ref):
@@ -112,7 +109,7 @@ class Parser:
 
     def _convert_openapi_parameter(
         self,
-        parameter: Union[openapi.Parameter, openapi.Ref],
+        parameter: openapi.Parameter | openapi.Ref,
         infile_path: str,
     ) -> model.Parameter:
         if isinstance(parameter, openapi.Ref):
@@ -134,8 +131,8 @@ class Parser:
 
     def _is_swagger_request_body(
         self,
-        parameter: Union[swagger.Parameter, swagger.Ref],
-        global_params: dict[str, Union[model.Parameter, list[model.RequestBody]]],
+        parameter: swagger.Parameter | swagger.Ref,
+        global_params: dict[str, model.Parameter | list[model.RequestBody]],
     ) -> bool:
         if isinstance(parameter, swagger.Ref):
             return isinstance(global_params[self._locate_ref(parameter.ref)], list)
@@ -144,10 +141,12 @@ class Parser:
 
     def _convert_swagger_request_body(
         self,
-        request_body: Union[swagger.Parameter, swagger.Ref],
+        request_body: swagger.Parameter | swagger.Ref,
         infile_path: str,
-        consumes: list[str] = [],
-    ) -> Union[list[model.RequestBody], model.Ref]:
+        consumes: list[str] | None = None,
+    ) -> list[model.RequestBody] | model.Ref:
+        consumes = consumes or []
+
         if isinstance(request_body, swagger.Ref):
             ref_ = ref_resolver.normalize_ref(
                 self._state.full_filepath,
@@ -195,7 +194,9 @@ class Parser:
         ]
 
     def _convert_swagger_parameter(
-        self, parameter: Union[swagger.Parameter, swagger.Ref], infile_path: str
+        self,
+        parameter: swagger.Parameter | swagger.Ref,
+        infile_path: str,
     ) -> model.Parameter:
         if isinstance(parameter, swagger.Ref):
             return self._state.service.parameters[self._locate_ref(parameter.ref)]
@@ -234,9 +235,9 @@ class Parser:
 
     def _convert_openapi_response(
         self,
-        response: Union[openapi.Response, openapi.Ref],
+        response: openapi.Response | openapi.Ref,
         infile_path: str,
-    ) -> Union[model.Response, model.Ref]:
+    ) -> model.Response | model.Ref:
         assert infile_path.count('#') <= 1
 
         if isinstance(response, openapi.Ref):
@@ -266,8 +267,11 @@ class Parser:
         )
 
     def _convert_swagger_response(
-        self, response: Union[swagger.Response, swagger.Ref], produces: list[str], infile_path: str
-    ) -> Union[model.Response, model.Ref]:
+        self,
+        response: swagger.Response | swagger.Ref,
+        produces: list[str],
+        infile_path: str,
+    ) -> model.Response | model.Ref:
         assert infile_path.count('#') <= 1
 
         if isinstance(response, swagger.Ref):
@@ -299,9 +303,9 @@ class Parser:
 
     def _convert_openapi_request_body(
         self,
-        request_body: Union[openapi.RequestBody, openapi.Ref],
+        request_body: openapi.RequestBody | openapi.Ref,
         infile_path: str,
-    ) -> Union[list[model.RequestBody], model.Ref]:
+    ) -> list[model.RequestBody] | model.Ref:
         if isinstance(request_body, openapi.Ref):
             ref_ = ref_resolver.normalize_ref(
                 self._state.full_filepath,
@@ -342,77 +346,86 @@ class Parser:
             authCode = flows.authorizationCode
             refreshUrl = authCode.refreshUrl or ''
             model_flows.append(
-                model.AuthCodeFlow(refreshUrl, authCode.scopes, authCode.authorizationUrl, authCode.tokenUrl)
+                model.AuthCodeFlow(refreshUrl, authCode.scopes, authCode.authorizationUrl, authCode.tokenUrl),
             )
 
         return model_flows
 
     def _convert_openapi_securuty(
-        self, security_scheme: Union[openapi.SecurityScheme, openapi.Ref], flows_scopes: Optional[list[str]] = None
+        self,
+        security_scheme: openapi.SecurityScheme | openapi.Ref,
+        flows_scopes: list[str] | None = None,
     ) -> model.Security:
         if isinstance(security_scheme, openapi.Ref):
             return self._state.service.security[self._locate_ref(security_scheme.ref)]
 
         description = security_scheme.description or ''
-        if security_scheme.type == openapi.SecurityType.http:
-            assert security_scheme.scheme_
-            return model.HttpSecurity(description, security_scheme.scheme_, security_scheme.bearerFormat)
-        elif security_scheme.type == openapi.SecurityType.apiKey:
-            assert security_scheme.name
-            assert security_scheme.in_
-            security_in = model.SecurityIn(security_scheme.in_.name)
-            return model.ApiKeySecurity(description, security_scheme.name, security_in)
-        elif security_scheme.type == openapi.SecurityType.oauth2:
-            assert security_scheme.flows
-            flows = self._convert_openapi_flows(security_scheme.flows)
-            if flows_scopes:
-                for flow in flows:
-                    flow.scopes = {key: flow.scopes[key] for key in flows_scopes if key in flow.scopes}
-            return model.OAuthSecurity(description, flows)
-        elif security_scheme.type == openapi.SecurityType.openIdConnect:
-            assert security_scheme.openIdConnectUrl
-            return model.OpenIdConnectSecurity(description, security_scheme.openIdConnectUrl)
-        else:
-            assert False
-
-    def _convert_swagger_security(
-        self, security_def: swagger.SecurityDef, flows_scopes: Optional[list[str]] = None
-    ) -> model.Security:
-        description = security_def.description or ''
-        if security_def.type == swagger.SecurityType.basic:
-            return model.Security(description)
-        elif security_def.type == swagger.SecurityType.apiKey:
-            assert security_def.name
-            assert security_def.in_
-            security_in = model.SecurityIn(security_def.in_.name)
-            return model.ApiKeySecurity(description, security_def.name, security_in)
-        elif security_def.type == swagger.SecurityType.oauth2:
-            flow: model.Flow
-            if security_def.flow == swagger.OAuthFlow.implicit:
-                assert security_def.authorizationUrl
-                flow = model.ImplicitFlow('', security_def.scopes, security_def.authorizationUrl)
-            elif security_def.flow == swagger.OAuthFlow.password:
-                assert security_def.tokenUrl
-                flow = model.PasswordFlow('', security_def.scopes, security_def.tokenUrl)
-            elif security_def.flow == swagger.OAuthFlow.application:
-                assert security_def.tokenUrl
-                flow = model.ClientCredFlow('', security_def.scopes, security_def.tokenUrl)
-            elif security_def.flow == swagger.OAuthFlow.accessCode:
-                assert security_def.authorizationUrl
-                assert security_def.tokenUrl
-                flow = model.AuthCodeFlow('', security_def.scopes, security_def.authorizationUrl, security_def.tokenUrl)
-            else:
+        match security_scheme.type:
+            case openapi.SecurityType.http:
+                assert security_scheme.scheme_
+                return model.HttpSecurity(description, security_scheme.scheme_, security_scheme.bearerFormat)
+            case openapi.SecurityType.apiKey:
+                assert security_scheme.name
+                assert security_scheme.in_
+                security_in = model.SecurityIn(security_scheme.in_.name)
+                return model.ApiKeySecurity(description, security_scheme.name, security_in)
+            case openapi.SecurityType.oauth2:
+                assert security_scheme.flows
+                flows = self._convert_openapi_flows(security_scheme.flows)
+                if flows_scopes:
+                    for flow in flows:
+                        flow.scopes = {key: flow.scopes[key] for key in flows_scopes if key in flow.scopes}
+                return model.OAuthSecurity(description, flows)
+            case openapi.SecurityType.openIdConnect:
+                assert security_scheme.openIdConnectUrl
+                return model.OpenIdConnectSecurity(description, security_scheme.openIdConnectUrl)
+            case _:
                 assert False
 
-            if flows_scopes:
-                flow.scopes = {key: flow.scopes[key] for key in flows_scopes if key in flow.scopes}
-            return model.OAuthSecurity(description, [flow])
-        else:
-            assert False
+    def _convert_swagger_security(
+        self,
+        security_def: swagger.SecurityDef,
+        flows_scopes: list[str] | None = None,
+    ) -> model.Security:
+        description = security_def.description or ''
+        match security_def.type:
+            case swagger.SecurityType.basic:
+                return model.Security(description)
+            case swagger.SecurityType.apiKey:
+                assert security_def.name
+                assert security_def.in_
+                security_in = model.SecurityIn(security_def.in_.name)
+                return model.ApiKeySecurity(description, security_def.name, security_in)
+            case swagger.SecurityType.oauth2:
+                flow: model.Flow
+                match security_def.flow:
+                    case swagger.OAuthFlow.implicit:
+                        assert security_def.authorizationUrl
+                        flow = model.ImplicitFlow('', security_def.scopes, security_def.authorizationUrl)
+                    case swagger.OAuthFlow.password:
+                        assert security_def.tokenUrl
+                        flow = model.PasswordFlow('', security_def.scopes, security_def.tokenUrl)
+                    case swagger.OAuthFlow.application:
+                        assert security_def.tokenUrl
+                        flow = model.ClientCredFlow('', security_def.scopes, security_def.tokenUrl)
+                    case swagger.OAuthFlow.accessCode:
+                        assert security_def.authorizationUrl
+                        assert security_def.tokenUrl
+                        flow = model.AuthCodeFlow(
+                            '', security_def.scopes, security_def.authorizationUrl, security_def.tokenUrl
+                        )
+                    case _:
+                        assert False
+
+                if flows_scopes:
+                    flow.scopes = {key: flow.scopes[key] for key in flows_scopes if key in flow.scopes}
+                return model.OAuthSecurity(description, [flow])
+            case _:
+                assert False
 
     def _append_schema(
         self,
-        parsed: Union[openapi.OpenApi, swagger.Swagger],
+        parsed: openapi.OpenApi | swagger.Swagger,
     ) -> None:
         components_schemas: dict[str, Any] = {}
         components_schemas_path = ''
@@ -440,7 +453,7 @@ class Parser:
                 security_scheme = self._convert_openapi_securuty(sec_scheme)
                 self._state.service.security[self._state.full_filepath + '#' + infile_path] = security_scheme
 
-            def _convert_op_security(security: Optional[openapi.Security]) -> list[model.Security]:
+            def _convert_op_security(security: openapi.Security | None) -> list[model.Security]:
                 if not security:
                     security = default_security
 
@@ -500,7 +513,7 @@ class Parser:
             consumes = parsed.consumes
 
             # parameters
-            global_params: dict[str, Union[model.Parameter, list[model.RequestBody]]] = {}
+            global_params: dict[str, model.Parameter | list[model.RequestBody]] = {}
             for name, sw_parameter in parsed.parameters.items():
                 if self._is_swagger_request_body(sw_parameter, global_params):
                     infile_path = '/requestBodies/' + name
@@ -532,7 +545,7 @@ class Parser:
                 security_def = self._convert_swagger_security(sec_def)
                 self._state.service.security[self._state.full_filepath + '#' + infile_path] = security_def
 
-            def _convert_op_security(security: Optional[swagger.Security]) -> list[model.Security]:
+            def _convert_op_security(security: swagger.Security | None) -> list[model.Security]:
                 if not security:
                     security = default_security
 
@@ -546,11 +559,12 @@ class Parser:
             for sw_path, sw_path_item in parsed.paths.items():
                 infile_path = f'/paths/[{sw_path}]'
                 sw_path_params: dict[tuple[str, model.In], model.Parameter] = {}
-                sw_path_body: Union[list[model.RequestBody], model.Ref] = []
+                sw_path_body: list[model.RequestBody] | model.Ref = []
                 for i, sw_path_parameter in enumerate(sw_path_item.parameters):
                     if self._is_swagger_request_body(sw_path_parameter, global_params):
                         sw_path_body = self._convert_swagger_request_body(
-                            sw_path_parameter, infile_path + f'/requestBodies/{i}'
+                            sw_path_parameter,
+                            infile_path + f'/requestBodies/{i}',
                         )
                     else:
                         sw_param = self._convert_swagger_parameter(sw_path_parameter, infile_path + f'/parameters/{i}')
@@ -560,13 +574,15 @@ class Parser:
                     op_params: swagger.Parameters,
                     infile_path: str,
                     consumes: list[str],
-                ) -> tuple[list[model.Parameter], Union[list[model.RequestBody], model.Ref]]:
+                ) -> tuple[list[model.Parameter], list[model.RequestBody] | model.Ref]:
                     params = sw_path_params.copy()
                     body = sw_path_body
                     for i, sw_parameter in enumerate(op_params):
                         if self._is_swagger_request_body(sw_parameter, global_params):
                             body = self._convert_swagger_request_body(
-                                sw_parameter, infile_path + '/requestBody', consumes
+                                sw_parameter,
+                                infile_path + '/requestBody',
+                                consumes,
                             )
                         else:
                             param = self._convert_swagger_parameter(sw_parameter, infile_path + f'/parameters/{i}')
@@ -575,25 +591,53 @@ class Parser:
                     return list(params.values()), body
 
                 self._append_swagger_operation(
-                    parsed.basePath + sw_path, 'get', sw_path_item.get, _convert_op_security, _convert_op_params
+                    parsed.basePath + sw_path,
+                    'get',
+                    sw_path_item.get,
+                    _convert_op_security,
+                    _convert_op_params,
                 )
                 self._append_swagger_operation(
-                    parsed.basePath + sw_path, 'post', sw_path_item.post, _convert_op_security, _convert_op_params
+                    parsed.basePath + sw_path,
+                    'post',
+                    sw_path_item.post,
+                    _convert_op_security,
+                    _convert_op_params,
                 )
                 self._append_swagger_operation(
-                    parsed.basePath + sw_path, 'put', sw_path_item.put, _convert_op_security, _convert_op_params
+                    parsed.basePath + sw_path,
+                    'put',
+                    sw_path_item.put,
+                    _convert_op_security,
+                    _convert_op_params,
                 )
                 self._append_swagger_operation(
-                    parsed.basePath + sw_path, 'delete', sw_path_item.delete, _convert_op_security, _convert_op_params
+                    parsed.basePath + sw_path,
+                    'delete',
+                    sw_path_item.delete,
+                    _convert_op_security,
+                    _convert_op_params,
                 )
                 self._append_swagger_operation(
-                    parsed.basePath + sw_path, 'options', sw_path_item.options, _convert_op_security, _convert_op_params
+                    parsed.basePath + sw_path,
+                    'options',
+                    sw_path_item.options,
+                    _convert_op_security,
+                    _convert_op_params,
                 )
                 self._append_swagger_operation(
-                    parsed.basePath + sw_path, 'head', sw_path_item.head, _convert_op_security, _convert_op_params
+                    parsed.basePath + sw_path,
+                    'head',
+                    sw_path_item.head,
+                    _convert_op_security,
+                    _convert_op_params,
                 )
                 self._append_swagger_operation(
-                    parsed.basePath + sw_path, 'patch', sw_path_item.patch, _convert_op_security, _convert_op_params
+                    parsed.basePath + sw_path,
+                    'patch',
+                    sw_path_item.patch,
+                    _convert_op_security,
+                    _convert_op_params,
                 )
             self._make_sure_operations_are_unique()
         else:
@@ -620,7 +664,7 @@ class Parser:
                 raise Exception(f'Operation {operation.method.upper()} {operation.path} is duplicated')
             seen.add(new)
 
-    def _parse_schema(self, schema: Any, infile_path: str, allow_file=False) -> Union[types.Schema, types.Ref]:
+    def _parse_schema(self, schema: Any, infile_path: str, allow_file=False) -> types.Schema | types.Ref:
         parser = chaotic_parser.SchemaParser(
             config=chaotic_parser.ParserConfig(
                 erase_prefix='',
@@ -649,8 +693,8 @@ class Parser:
         self,
         path: str,
         method: str,
-        operation: Optional[openapi.Operation],
-        security_converter: Callable[[Optional[openapi.Security]], list[model.Security]],
+        operation: openapi.Operation | None,
+        security_converter: Callable[[openapi.Security | None], list[model.Security]],
         path_params: dict[tuple[str, model.In], model.Parameter],
     ) -> None:
         if not operation:
@@ -686,18 +730,18 @@ class Parser:
                 security=security_converter(operation.security),
                 x_middlewares=operation.x_taxi_middlewares or base_model.XMiddlewares(tvm=True),
                 x_client_codegen=operation.x_client_codegen,
-            )
+            ),
         )
 
     def _append_swagger_operation(
         self,
         path: str,
         method: str,
-        operation: Optional[swagger.Operation],
-        security_converter: Callable[[Optional[swagger.Security]], list[model.Security]],
+        operation: swagger.Operation | None,
+        security_converter: Callable[[swagger.Security | None], list[model.Security]],
         params_converter: Callable[
             [swagger.Parameters, str, list[str]],
-            tuple[list[model.Parameter], Union[list[model.RequestBody], model.Ref]],
+            tuple[list[model.Parameter], list[model.RequestBody] | model.Ref],
         ],
     ) -> None:
         if not operation:
@@ -717,14 +761,16 @@ class Parser:
                 requestBody=body,
                 responses={
                     int(status): self._convert_swagger_response(
-                        response, operation.produces, infile_path + f'/responses/{status}'
+                        response,
+                        operation.produces,
+                        infile_path + f'/responses/{status}',
                     )
                     for status, response in operation.responses.items()
                 },
                 security=security_converter(operation.security),
                 x_middlewares=operation.x_taxi_middlewares or base_model.XMiddlewares(tvm=True),
                 x_client_codegen=operation.x_client_codegen,
-            )
+            ),
         )
 
     def service(self) -> model.Service:

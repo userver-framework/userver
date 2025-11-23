@@ -50,10 +50,12 @@ Cluster::Cluster(
     const settings::MysqlSettings& settings,
     const components::ComponentConfig& config
 )
-    : topology_{CreateTopology(resolver, settings, config)} {
+    : topology_{CreateTopology(resolver, settings, config)}
+{
     const auto client_info = impl::metadata::NativeClientInfo::Get();
-    LOG_INFO() << "MySQL cluster initialized."
-               << " Native client version: " << client_info.client_version_id.ToString();
+    LOG_INFO()
+        << "MySQL cluster initialized."
+        << " Native client version: " << client_info.client_version_id.ToString();
 }
 
 Cluster::~Cluster() = default;
@@ -70,8 +72,11 @@ CommandResultSet Cluster::ExecuteCommand(ClusterHostType host_type, const Query&
     return ExecuteCommand(std::nullopt, host_type, command);
 }
 
-CommandResultSet
-Cluster::ExecuteCommand(OptionalCommandControl command_control, ClusterHostType host_type, const Query& command) const {
+CommandResultSet Cluster::ExecuteCommand(
+    OptionalCommandControl command_control,
+    ClusterHostType host_type,
+    const Query& command
+) const {
     const auto deadline = GetDeadline(command_control, GetDefaultCommandControl());
 
     tracing::Span execute_plain_span{impl::tracing::kQuerySpan};

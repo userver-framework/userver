@@ -48,9 +48,9 @@ def test_request_body(translate_single_schema):
                             user_cpp_type=None,
                             validators=cpp_types.CppPrimitiveValidator(),
                         ),
-                    )
+                    ),
                 ],
-            )
+            ),
         ],
     )
 
@@ -105,9 +105,9 @@ def test_request_body_ref(translate_single_schema):
                             user_cpp_type=None,
                             validators=cpp_types.CppPrimitiveValidator(),
                         ),
-                    )
+                    ),
                 ],
-            )
+            ),
         ],
     )
 
@@ -156,8 +156,8 @@ def test_request_body_nonrequired(translate_single_schema):
                             user_cpp_type=None,
                             validators=cpp_types.CppPrimitiveValidator(),
                         ),
-                    )
+                    ),
                 ],
-            )
+            ),
         ],
     )

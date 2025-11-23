@@ -9,10 +9,14 @@ GreeterServiceComponent::GreeterServiceComponent(
     const components::ComponentConfig& config,
     const components::ComponentContext& context
 )
-    : api::GreeterServiceBase::Component(config, context), prefix_(config["greeting-prefix"].As<std::string>()) {}
+    : api::GreeterServiceBase::Component(config, context),
+      prefix_(config["greeting-prefix"].As<std::string>())
+{}
 
-GreeterServiceComponent::SayHelloResult
-GreeterServiceComponent::SayHello(CallContext& /*context*/, api::GreetingRequest&& request) {
+GreeterServiceComponent::SayHelloResult GreeterServiceComponent::SayHello(
+    CallContext& /*context*/,
+    api::GreetingRequest&& request
+) {
     api::GreetingResponse response;
     response.set_greeting(fmt::format("{}, {}!", prefix_, request.name()));
 

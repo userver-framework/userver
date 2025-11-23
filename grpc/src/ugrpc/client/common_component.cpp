@@ -50,7 +50,9 @@ CommonComponent::CommonComponent(const components::ComponentConfig& config, cons
       ),
       proxy_settings_{
           config["proxy-address"].As<std::string>(""),
-          config["servicemesh-settings"]["egress"]["disable_proxy"].As<std::unordered_set<std::string>>({})} {
+          config["servicemesh-settings"]["egress"]["disable_proxy"].As<std::unordered_set<std::string>>({})
+      }
+{
     ugrpc::impl::SetupNativeLogging();
     ugrpc::impl::UpdateNativeLogLevel(config["native-log-level"].As<logging::Level>(logging::Level::kError));
 }

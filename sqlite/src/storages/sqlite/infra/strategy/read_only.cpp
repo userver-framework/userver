@@ -14,7 +14,8 @@ ReadOnlyStrategy::ReadOnlyStrategy(
     const settings::SQLiteSettings& settings,
     engine::TaskProcessor& blocking_task_processor
 )
-    : read_connection_pool_{InitializeReadOnlyPoolReference(settings, blocking_task_processor)} {}
+    : read_connection_pool_{InitializeReadOnlyPoolReference(settings, blocking_task_processor)}
+{}
 
 ReadOnlyStrategy::~ReadOnlyStrategy() = default;
 
@@ -29,8 +30,8 @@ PoolPtr ReadOnlyStrategy::InitializeReadOnlyPoolReference(
     settings.read_mode = settings::SQLiteSettings::ReadMode::kReadOnly;  // coercively set read
                                                                          // only mode
     PoolPtr read_connection_pool;
-    engine::TaskWithResult<void> init_task =
-        engine::AsyncNoSpan([&read_connection_pool, &blocking_task_processor, &settings]() {
+    engine::TaskWithResult<void>
+        init_task = engine::AsyncNoSpan([&read_connection_pool, &blocking_task_processor, &settings]() {
             read_connection_pool = Pool::Create(settings, blocking_task_processor);
         });
     init_task.Wait();

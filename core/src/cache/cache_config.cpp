@@ -53,7 +53,9 @@ std::chrono::milliseconds GetDefaultJitter(std::chrono::milliseconds interval) {
 
 AllowedUpdateTypes ParseUpdateMode(const yaml_config::YamlConfig& config) {
     const auto update_types = config[kUpdateTypes].As<std::optional<AllowedUpdateTypes>>();
-    if (update_types) return *update_types;
+    if (update_types) {
+        return *update_types;
+    }
 
     if (config.HasMember(kFullUpdateInterval) && config.HasMember(kUpdateInterval)) {
         return AllowedUpdateTypes::kFullAndIncremental;
@@ -104,7 +106,8 @@ ConfigPatch Parse(const formats::json::Value& value, formats::parse::To<ConfigPa
         ParseMs(value[kFullUpdateJitterMs]),
         std::nullopt,
         value[kUpdatesEnabled].As<bool>(true),
-        value[kAlertOnFailingToUpdateTimes].As<size_t>(0)};
+        value[kAlertOnFailingToUpdateTimes].As<size_t>(0)
+    };
 
     if (!config.update_interval.count() && !config.full_update_interval.count()) {
         throw utils::impl::AttachTraceToException(ConfigError("Update interval is not set for cache"));
@@ -147,19 +150,24 @@ Config::Config(const yaml_config::YamlConfig& config, const std::optional<dump::
       ),
       exception_interval(config[kExceptionInterval].As<std::optional<std::chrono::milliseconds>>()),
       updates_enabled(config[kUpdatesEnabled].As<bool>(true)),
-      alert_on_failing_to_update_times(config[kAlertOnFailingToUpdateTimes].As<size_t>(0)) {
+      alert_on_failing_to_update_times(config[kAlertOnFailingToUpdateTimes].As<size_t>(0))
+{
     switch (allowed_update_types) {
         case AllowedUpdateTypes::kFullAndIncremental:
             if (!update_interval.count() || !full_update_interval.count()) {
                 throw ConfigError(fmt::format(
-                    "Both {} and {} must be set at '{}'", kUpdateInterval, kFullUpdateInterval, config.GetPath()
+                    "Both {} and {} must be set at '{}'",
+                    kUpdateInterval,
+                    kFullUpdateInterval,
+                    config.GetPath()
                 ));
             }
             if (update_interval >= full_update_interval) {
-                LOG_WARNING() << "Incremental updates requested for cache at '" << config.GetPath()
-                              << "' but have lower frequency than full updates and "
-                                 "will never happen. Remove "
-                              << kFullUpdateInterval << " config field if this is intended.";
+                LOG_WARNING()
+                    << "Incremental updates requested for cache at '" << config.GetPath()
+                    << "' but have lower frequency than full updates and "
+                       "will never happen. Remove "
+                    << kFullUpdateInterval << " config field if this is intended.";
             }
             break;
         case AllowedUpdateTypes::kOnlyFull:
@@ -183,7 +191,9 @@ Config::Config(const yaml_config::YamlConfig& config, const std::optional<dump::
     if (config.HasMember(dump::kDump)) {
         if (!config[dump::kDump].HasMember(kFirstUpdateMode)) {
             throw ConfigError(fmt::format(
-                "If dumps are enabled, then '{}' must be set for cache at '{}'", kFirstUpdateMode, config.GetPath()
+                "If dumps are enabled, then '{}' must be set for cache at '{}'",
+                kFirstUpdateMode,
+                config.GetPath()
             ));
         }
 
@@ -214,7 +224,9 @@ Config::Config(const yaml_config::YamlConfig& config, const std::optional<dump::
         if (allowed_update_types == AllowedUpdateTypes::kOnlyFull) {
             if (first_update_type != FirstUpdateType::kFull) {
                 throw ConfigError(fmt::format(
-                    "Cache at '{}' can't perform the update specified in '{}'", config.GetPath(), kFirstUpdateType
+                    "Cache at '{}' can't perform the update specified in '{}'",
+                    config.GetPath(),
+                    kFirstUpdateType
                 ));
             }
         } else if (first_update_mode != FirstUpdateMode::kSkip) {
@@ -234,13 +246,14 @@ Config Config::MergeWith(const ConfigPatch& patch) const {
     copy.full_update_jitter = patch.full_update_jitter;
     copy.updates_enabled = patch.updates_enabled;
     copy.alert_on_failing_to_update_times = patch.alert_on_failing_to_update_times;
-    if (patch.exception_interval) copy.exception_interval = patch.exception_interval;
+    if (patch.exception_interval) {
+        copy.exception_interval = patch.exception_interval;
+    }
     return copy;
 }
 
-const dynamic_config::Key<std::unordered_map<std::string, ConfigPatch>> kCacheConfigSet{
-    "USERVER_CACHES",
-    dynamic_config::DefaultAsJsonString{"{}"}};
+const dynamic_config::Key<std::unordered_map<std::string, ConfigPatch>>
+    kCacheConfigSet{"USERVER_CACHES", dynamic_config::DefaultAsJsonString{"{}"}};
 
 }  // namespace cache
 

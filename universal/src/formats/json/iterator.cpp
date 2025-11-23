@@ -28,7 +28,8 @@ formats::json::Value& GetValue(impl::MutableValueWrapper& container) { return *c
 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 template <typename Traits, IteratorDirection Direction>
 Iterator<Traits, Direction>::Iterator(ContainerType container, int pos)
-    : Iterator(std::move(container), GetValue(container).GetExtendedType(), pos) {}
+    : Iterator(std::move(container), GetValue(container).GetExtendedType(), pos)
+{}
 
 template <typename Traits, IteratorDirection Direction>
 Iterator<Traits, Direction>::Iterator(ContainerType&& container, int type, int pos) noexcept
@@ -36,7 +37,10 @@ Iterator<Traits, Direction>::Iterator(ContainerType&& container, int type, int p
 
 template <typename Traits, IteratorDirection Direction>
 Iterator<Traits, Direction>::Iterator(const Iterator<Traits, Direction>& other)
-    : container_(other.container_), type_(other.type_), pos_(other.pos_) {}
+    : container_(other.container_),
+      type_(other.type_),
+      pos_(other.pos_)
+{}
 
 template <typename Traits, IteratorDirection Direction>
 Iterator<Traits, Direction>::Iterator(Iterator<Traits, Direction>&& other) noexcept
@@ -44,7 +48,9 @@ Iterator<Traits, Direction>::Iterator(Iterator<Traits, Direction>&& other) noexc
 
 template <typename Traits, IteratorDirection Direction>
 Iterator<Traits, Direction>& Iterator<Traits, Direction>::operator=(const Iterator<Traits, Direction>& other) {
-    if (this == &other) return *this;
+    if (this == &other) {
+        return *this;
+    }
 
     container_ = other.container_;
     type_ = other.type_;
@@ -120,7 +126,9 @@ size_t Iterator<Traits, Direction>::GetIndex() const {
 
 template <>
 void Iterator<Value::IterTraits, IteratorDirection::kForward>::UpdateValue() const {
-    if (current_) return;
+    if (current_) {
+        return;
+    }
 
     if (type_ == impl::Type::arrayValue) {
         current_.emplace(
@@ -143,7 +151,9 @@ void Iterator<Value::IterTraits, IteratorDirection::kForward>::UpdateValue() con
 
 template <>
 void Iterator<Value::IterTraits, IteratorDirection::kReverse>::UpdateValue() const {
-    if (current_) return;
+    if (current_) {
+        return;
+    }
 
     if (type_ == impl::Type::arrayValue) {
         current_.emplace(
@@ -160,7 +170,9 @@ void Iterator<Value::IterTraits, IteratorDirection::kReverse>::UpdateValue() con
 
 template <>
 void Iterator<ValueBuilder::IterTraits, IteratorDirection::kForward>::UpdateValue() const {
-    if (current_) return;
+    if (current_) {
+        return;
+    }
 
     if (type_ == impl::Type::arrayValue) {
         current_.emplace(ValueBuilder::EmplaceEnabler{}, container_.WrapElement(pos_));
@@ -174,7 +186,9 @@ void Iterator<ValueBuilder::IterTraits, IteratorDirection::kForward>::UpdateValu
 
 template <>
 void Iterator<ValueBuilder::IterTraits, IteratorDirection::kReverse>::UpdateValue() const {
-    if (current_) return;
+    if (current_) {
+        return;
+    }
 
     if (type_ == impl::Type::arrayValue) {
         current_.emplace(ValueBuilder::EmplaceEnabler{}, container_.WrapElement(pos_));

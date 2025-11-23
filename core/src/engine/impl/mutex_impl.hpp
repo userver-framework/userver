@@ -7,6 +7,8 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/fast_scope_guard.hpp>
 
+#include <engine/deadlock_detector.hpp>
+#include <engine/deadlock_detector/actor.hpp>
 #include <engine/impl/wait_list.hpp>
 #include <engine/impl/wait_list_light.hpp>
 #include <engine/task/task_context.hpp>
@@ -17,10 +19,10 @@ USERVER_NAMESPACE_BEGIN
 namespace engine::impl {
 
 template <class Waiters>
-class MutexImpl {
+class MutexImpl : public deadlock_detector::Actor {
 public:
     MutexImpl();
-    ~MutexImpl();
+    ~MutexImpl() override;
 
     MutexImpl(const MutexImpl&) = delete;
     MutexImpl(MutexImpl&&) = delete;
@@ -34,6 +36,8 @@ public:
     bool try_lock();
 
     bool try_lock_until(Deadline deadline);
+
+    utils::StringLiteral GetActorType() const override { return "Mutex"; }
 
 private:
     class MutexWaitStrategy;
@@ -49,7 +53,10 @@ template <>
 class MutexImpl<WaitList>::MutexWaitStrategy final : public WaitStrategy {
 public:
     MutexWaitStrategy(MutexImpl<WaitList>& mutex, TaskContext& current)
-        : mutex_(mutex), current_(current), waiter_token_(mutex_.lock_waiters_) {}
+        : mutex_(mutex),
+          current_(current),
+          waiter_token_(mutex_.lock_waiters_)
+    {}
 
     EarlyWakeup SetupWakeups() override {
         WaitList::Lock lock(mutex_.lock_waiters_);
@@ -76,7 +83,10 @@ private:
 template <>
 class MutexImpl<WaitListLight>::MutexWaitStrategy final : public WaitStrategy {
 public:
-    MutexWaitStrategy(MutexImpl<WaitListLight>& mutex, TaskContext& current) : mutex_(mutex), current_(current) {}
+    MutexWaitStrategy(MutexImpl<WaitListLight>& mutex, TaskContext& current)
+        : mutex_(mutex),
+          current_(current)
+    {}
 
     EarlyWakeup SetupWakeups() override {
         if (TryLock()) {
@@ -107,7 +117,9 @@ private:
 };
 
 template <class Waiters>
-MutexImpl<Waiters>::MutexImpl() : owner_(nullptr) {
+MutexImpl<Waiters>::MutexImpl()
+    : owner_(nullptr)
+{
 #if USERVER_IMPL_HAS_TSAN
     __tsan_mutex_create(this, __tsan_mutex_not_static);
 #endif
@@ -150,6 +162,9 @@ void MutexImpl<Waiters>::lock() {
 
 template <class Waiters>
 void MutexImpl<Waiters>::unlock() {
+    auto& dd_state = deadlock_detector::GetState();
+    dd_state.HookBeforeRemoveDependency(*this, current_task::GetCurrentTaskContext());
+
 #if USERVER_IMPL_HAS_TSAN
     __tsan_mutex_pre_unlock(this, 0);
 #endif
@@ -183,6 +198,11 @@ bool MutexImpl<Waiters>::try_lock() {
     __tsan_mutex_post_lock(this, __tsan_mutex_try_lock | (result ? 0 : __tsan_mutex_try_lock_failed), 0);
 #endif
 
+    auto& dd_state = deadlock_detector::GetState();
+    if (result) {
+        dd_state.HookBeforeAddDependency(*this, current_task::GetCurrentTaskContext());
+    }
+
     return result;
 }
 
@@ -199,6 +219,11 @@ bool MutexImpl<Waiters>::try_lock_until(Deadline deadline) {
     });
 #endif
 
+    std::optional<deadlock_detector::WaitScope> scope;
+    if (!deadline.IsReachable()) {
+        scope.emplace(*this);
+    }
+
     auto& current = current_task::GetCurrentTaskContext();
     UINVARIANT(
         owner_.load() != &current,
@@ -206,6 +231,13 @@ bool MutexImpl<Waiters>::try_lock_until(Deadline deadline) {
     );
 
     result = LockFastPath(current) || LockSlowPath(current, deadline);
+
+    scope.reset();
+
+    auto& dd_state = deadlock_detector::GetState();
+    if (result) {
+        dd_state.HookBeforeAddDependency(*this, current_task::GetCurrentTaskContext());
+    }
 
     return result;
 }

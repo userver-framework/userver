@@ -8,7 +8,9 @@ RequestExecDataImpl::RequestExecDataImpl(
     impl::Request&& request,
     std::vector<TransactionImpl::ResultPromise>&& result_promises
 )
-    : request_(std::move(request)), result_promises_(std::move(result_promises)) {}
+    : request_(std::move(request)),
+      result_promises_(std::move(result_promises))
+{}
 
 void RequestExecDataImpl::Wait() { impl::Wait(request_); }
 

@@ -167,6 +167,8 @@ private:
 
 void SetLocalTaskCounterData(TaskCounter& counter, std::size_t thread_id);
 
+std::size_t GetCurrentWorkerId() noexcept;
+
 }  // namespace engine::impl
 
 USERVER_NAMESPACE_END

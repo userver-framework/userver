@@ -43,7 +43,8 @@ public:
         : epoch_duration_(epoch_duration),
           max_duration_(max_duration),
           epoch_index_(0),
-          items_(GetSizeForDuration(epoch_duration, max_duration)) {
+          items_(GetSizeForDuration(epoch_duration, max_duration))
+    {
         UINVARIANT(Duration::zero() < epoch_duration_, "epoch_duration should be greater than 0");
     }
 
@@ -77,9 +78,15 @@ public:
         for (std::size_t i = 0; i < items_.size(); i++, index = (index + items_.size() - 1) % items_.size()) {
             const Duration epoch = items_[index].epoch;
 
-            if (epoch > current_epoch) continue;
-            if (epoch == current_epoch && !with_current_epoch) continue;
-            if (epoch < start_epoch) break;
+            if (epoch > current_epoch) {
+                continue;
+            }
+            if (epoch == current_epoch && !with_current_epoch) {
+                continue;
+            }
+            if (epoch < start_epoch) {
+                break;
+            }
 
             if constexpr (kUseAddFunction) {
                 const Duration this_epoch_duration = (i == 0) ? first_epoch_duration : epoch_duration_;
@@ -130,7 +137,9 @@ private:
 
     std::size_t GetPreviousIndex(int epochs_ago) {
         int index = static_cast<int>(GetCurrentIndex()) - epochs_ago;
-        while (index < 0) index += items_.size();
+        while (index < 0) {
+            index += items_.size();
+        }
         return index % items_.size();
     }
 

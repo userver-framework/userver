@@ -16,7 +16,8 @@ public:
 
     GreeterServiceComponent(const components::ComponentConfig& config, const components::ComponentContext& context)
         : samples::api::GreeterServiceBase::Component(config, context),
-          client_(context.FindComponent<GreeterClient>()) {}
+          client_(context.FindComponent<GreeterClient>())
+    {}
 
     inline SayHelloResult SayHello(CallContext& context, samples::api::GreetingRequest&& request) override;
 
@@ -26,8 +27,10 @@ private:
     GreeterClient& client_;
 };
 
-GreeterServiceComponent::SayHelloResult
-GreeterServiceComponent::SayHello(CallContext& /*context*/, samples::api::GreetingRequest&& request) {
+GreeterServiceComponent::SayHelloResult GreeterServiceComponent::SayHello(
+    CallContext& /*context*/,
+    samples::api::GreetingRequest&& request
+) {
     samples::api::GreetingResponse response;
     const auto greeting = client_.SayHello(request.name());
     response.set_greeting("FWD: " + greeting);

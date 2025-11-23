@@ -115,14 +115,18 @@ void AppendUint64Option(formats::bson::impl::BsonBuilder& builder, std::string_v
 }
 
 void AppendSkip(formats::bson::impl::BsonBuilder& builder, options::Skip skip) {
-    if (!skip.Value()) return;
+    if (!skip.Value()) {
+        return;
+    }
 
     static constexpr utils::StringLiteral kOptionName = "skip";
     AppendUint64Option(builder, kOptionName, skip.Value());
 }
 
 void AppendLimit(formats::bson::impl::BsonBuilder& builder, options::Limit limit) {
-    if (!limit.Value()) return;
+    if (!limit.Value()) {
+        return;
+    }
 
     static constexpr utils::StringLiteral kOptionName = "limit";
     AppendUint64Option(builder, kOptionName, limit.Value());
@@ -142,15 +146,19 @@ void EnableFlag(const impl::cdriver::FindAndModifyOptsPtr& fam_options, mongoc_f
     UASSERT(!!fam_options);
     const auto old_flags = mongoc_find_and_modify_opts_get_flags(fam_options.get());
     if (!mongoc_find_and_modify_opts_set_flags(
-            fam_options.get(), static_cast<mongoc_find_and_modify_flags_t>(old_flags | new_flag)
-        )) {
+            fam_options.get(),
+            static_cast<mongoc_find_and_modify_flags_t>(old_flags | new_flag)
+        ))
+    {
         throw MongoException("Cannot set FAM flag ") << static_cast<std::int32_t>(new_flag);
     }
 }
 
 }  // namespace
 
-Count::Count(formats::bson::Document filter) : impl_(std::move(filter)) {}
+Count::Count(formats::bson::Document filter)
+    : impl_(std::move(filter))
+{}
 Count::~Count() = default;
 
 Count::Count(const Count& other) = default;
@@ -202,7 +210,9 @@ void CountApprox::SetOption(const options::MaxServerTime& max_server_time) {
     AppendMaxServerTime(impl_->max_server_time, max_server_time);
 }
 
-Find::Find(formats::bson::Document filter) : impl_(std::move(filter)) {}
+Find::Find(formats::bson::Document filter)
+    : impl_(std::move(filter))
+{}
 Find::~Find() = default;
 
 Find::Find(const Find& other) = default;
@@ -225,7 +235,9 @@ void Find::SetOption(options::Limit limit) { AppendLimit(impl::EnsureBuilder(imp
 ATTRIBUTE_NO_SANITIZE_UNDEFINED
 void Find::SetOption(options::Projection projection) {
     const bson_t* projection_bson = projection.GetProjectionBson();
-    if (bson_empty0(projection_bson)) return;
+    if (bson_empty0(projection_bson)) {
+        return;
+    }
 
     static constexpr utils::StringLiteral kOptionName = "projection";
     impl::EnsureBuilder(impl_->options).Append(kOptionName, projection_bson);
@@ -234,7 +246,9 @@ void Find::SetOption(options::Projection projection) {
 ATTRIBUTE_NO_SANITIZE_UNDEFINED
 void Find::SetOption(const options::Sort& sort) {
     const bson_t* sort_bson = sort.GetSortBson();
-    if (bson_empty0(sort_bson)) return;
+    if (bson_empty0(sort_bson)) {
+        return;
+    }
 
     static constexpr utils::StringLiteral kOptionName = "sort";
     impl::EnsureBuilder(impl_->options).Append(kOptionName, sort_bson);
@@ -265,7 +279,9 @@ void Find::SetOption(const options::MaxServerTime& max_server_time) {
     AppendMaxServerTime(impl_->max_server_time, max_server_time);
 }
 
-InsertOne::InsertOne(formats::bson::Document document) : impl_(std::move(document)) {}
+InsertOne::InsertOne(formats::bson::Document document)
+    : impl_(std::move(document))
+{}
 
 InsertOne::~InsertOne() = default;
 
@@ -286,7 +302,9 @@ void InsertOne::SetOption(options::SuppressServerExceptions) { impl_->should_thr
 
 InsertMany::InsertMany() = default;
 
-InsertMany::InsertMany(std::vector<formats::bson::Document> documents) : impl_(std::move(documents)) {}
+InsertMany::InsertMany(std::vector<formats::bson::Document> documents)
+    : impl_(std::move(documents))
+{}
 
 InsertMany::~InsertMany() = default;
 
@@ -313,7 +331,8 @@ void InsertMany::SetOption(const options::WriteConcern& write_concern) {
 void InsertMany::SetOption(options::SuppressServerExceptions) { impl_->should_throw = false; }
 
 ReplaceOne::ReplaceOne(formats::bson::Document selector, formats::bson::Document replacement)
-    : impl_(std::move(selector), std::move(replacement)) {}
+    : impl_(std::move(selector), std::move(replacement))
+{}
 
 ReplaceOne::~ReplaceOne() = default;
 
@@ -335,7 +354,8 @@ void ReplaceOne::SetOption(const options::WriteConcern& write_concern) {
 void ReplaceOne::SetOption(options::SuppressServerExceptions) { impl_->should_throw = false; }
 
 Update::Update(Mode mode, formats::bson::Document selector, formats::bson::Document update)
-    : impl_(mode, std::move(selector), std::move(update)) {}
+    : impl_(mode, std::move(selector), std::move(update))
+{}
 
 Update::~Update() = default;
 
@@ -369,7 +389,9 @@ void Update::SetOption(const options::ArrayFilters& filters) {
 
 void Update::SetOption(const options::Hint& hint) { AppendHint(impl::EnsureBuilder(impl_->options), hint); }
 
-Delete::Delete(Mode mode, formats::bson::Document selector) : impl_(mode, std::move(selector)) {}
+Delete::Delete(Mode mode, formats::bson::Document selector)
+    : impl_(mode, std::move(selector))
+{}
 
 Delete::~Delete() = default;
 
@@ -392,7 +414,8 @@ void Delete::SetOption(const options::Hint& hint) { AppendHint(impl::EnsureBuild
 
 ATTRIBUTE_NO_SANITIZE_UNDEFINED
 FindAndModify::FindAndModify(formats::bson::Document query, const formats::bson::Document& update)
-    : impl_(std::move(query)) {
+    : impl_(std::move(query))
+{
     impl_->options.reset(mongoc_find_and_modify_opts_new());
     const bson_t* native_update_bson_ptr = update.GetBson().get();
     if (!mongoc_find_and_modify_opts_set_update(impl_->options.get(), native_update_bson_ptr)) {
@@ -462,7 +485,9 @@ void FindAndModify::SetOption(const options::ArrayFilters& filters) {
     }
 }
 
-FindAndRemove::FindAndRemove(formats::bson::Document query) : impl_(std::move(query)) {
+FindAndRemove::FindAndRemove(formats::bson::Document query)
+    : impl_(std::move(query))
+{
     impl_->options.reset(mongoc_find_and_modify_opts_new());
     EnableFlag(impl_->options, MONGOC_FIND_AND_MODIFY_REMOVE);
 }
@@ -510,7 +535,9 @@ void FindAndRemove::SetOption(const options::MaxServerTime& max_server_time) {
     AppendMaxServerTime(impl_->max_server_time, max_server_time);
 }
 
-Aggregate::Aggregate(formats::bson::Value pipeline) : impl_(std::move(pipeline)) {
+Aggregate::Aggregate(formats::bson::Value pipeline)
+    : impl_(std::move(pipeline))
+{
     if (!impl_->pipeline.IsArray()) {
         throw InvalidQueryArgumentException("Aggregation pipeline is not an array");
     }
@@ -571,15 +598,21 @@ void Drop::SetOption(const options::WriteConcern& write_concern) {
 ATTRIBUTE_NO_SANITIZE_UNDEFINED
 void AppendCollation(formats::bson::impl::BsonBuilder& builder, const options::Collation& collation) {
     const bson_t* collation_bson = collation.GetCollationBson();
-    if (bson_empty0(collation_bson)) return;
+    if (bson_empty0(collation_bson)) {
+        return;
+    }
 
     static constexpr utils::StringLiteral kOptionName = "collation";
     builder.Append(kOptionName, collation_bson);
 }
 
-Distinct::Distinct(std::string field) : impl_(std::move(field)) {}
+Distinct::Distinct(std::string field)
+    : impl_(std::move(field))
+{}
 
-Distinct::Distinct(std::string field, formats::bson::Document filter) : impl_(std::move(field), std::move(filter)) {}
+Distinct::Distinct(std::string field, formats::bson::Document filter)
+    : impl_(std::move(field), std::move(filter))
+{}
 
 Distinct::~Distinct() = default;
 

@@ -48,7 +48,9 @@ public:
     MinMaxAvg(const MinMaxAvg& other) noexcept { *this = other; }
 
     MinMaxAvg& operator=(const MinMaxAvg& rhs) noexcept {
-        if (this == &rhs) return *this;
+        if (this == &rhs) {
+            return *this;
+        }
 
         const auto count = rhs.count_.load(std::memory_order_acquire);
         minimum_ = rhs.minimum_.load(std::memory_order_relaxed);
@@ -96,19 +98,27 @@ public:
     ) {
         ValueType current_minimum = minimum_.load(std::memory_order_relaxed);
         while (current_minimum > other.minimum_.load(std::memory_order_relaxed) ||
-               !count_.load(std::memory_order_relaxed)) {
+               !count_.load(std::memory_order_relaxed))
+        {
             if (minimum_.compare_exchange_weak(
-                    current_minimum, other.minimum_.load(std::memory_order_relaxed), std::memory_order_relaxed
-                )) {
+                    current_minimum,
+                    other.minimum_.load(std::memory_order_relaxed),
+                    std::memory_order_relaxed
+                ))
+            {
                 break;
             }
         }
         ValueType current_maximum = maximum_.load(std::memory_order_relaxed);
         while (current_maximum < other.maximum_.load(std::memory_order_relaxed) ||
-               !count_.load(std::memory_order_relaxed)) {
+               !count_.load(std::memory_order_relaxed))
+        {
             if (maximum_.compare_exchange_weak(
-                    current_maximum, other.maximum_.load(std::memory_order_relaxed), std::memory_order_relaxed
-                )) {
+                    current_maximum,
+                    other.maximum_.load(std::memory_order_relaxed),
+                    std::memory_order_relaxed
+                ))
+            {
                 break;
             }
         }

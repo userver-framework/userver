@@ -23,11 +23,11 @@ int main(int argc, char* argv[]) {
             .Append<USERVER_NAMESPACE::components::TestsuiteSupport>()
             .Append<USERVER_NAMESPACE::server::handlers::TestsControl>()
             .Append<USERVER_NAMESPACE::components::DynamicConfigClientUpdater>()
+            .Append<USERVER_NAMESPACE::components::HttpClientCore>()
             .Append<USERVER_NAMESPACE::components::HttpClient>()
             .Append<USERVER_NAMESPACE::clients::dns::Component>()
-            .Append<USERVER_NAMESPACE::chaotic::openapi::QosMiddlewareFactory<::clients::test::kQosConfig>>(
-                "chaotic-client-middleware-qos-test"
-            )
+            .Append<USERVER_NAMESPACE::chaotic::openapi::QosMiddlewareFactory<
+                ::clients::test::kQosConfig>>("chaotic-client-middleware-qos-test")
             .Append<::clients::test::Component>();
 
     USERVER_NAMESPACE::chaotic::openapi::middlewares::AppendDefaultMiddlewares(component_list);

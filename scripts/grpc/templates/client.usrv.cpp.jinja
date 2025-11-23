@@ -144,6 +144,10 @@ namespace structs {
 {{service.name}}Client::~{{service.name}}Client() = default;
 
 {%- set namespace_path = '::' + proto.namespace if proto.namespace | length > 0 else '' -%}
+const {{namespace_path}}::{{service.name}}Client& {{ service.name }}Client::GetProtobufClient() const { return *protobuf_client_; }
+
+{{namespace_path}}::{{service.name}}Client& {{ service.name }}Client::GetProtobufClient() { return *protobuf_client_; }
+
 {{service.name}}Client::{{service.name}}Client(
         USERVER_NAMESPACE::utils::SharedRef<{{namespace_path}}::{{service.name}}Client> protobuf_client)
     : protobuf_client_(std::move(protobuf_client)) {}

@@ -119,8 +119,11 @@ ResultSet Connection::Execute(
     return pimpl_->ExecuteCommand(query, params, std::move(statement_cmd_ctl));
 }
 
-Connection::PreparedStatementMeta
-Connection::PrepareStatement(const Query& query, const detail::QueryParameters& params, TimeoutDuration timeout) {
+Connection::PreparedStatementMeta Connection::PrepareStatement(
+    const Query& query,
+    const detail::QueryParameters& params,
+    TimeoutDuration timeout
+) {
     const auto& statement_info = pimpl_->PrepareStatement(query, params, timeout);
 
     return {statement_info.statement_name, statement_info.description};

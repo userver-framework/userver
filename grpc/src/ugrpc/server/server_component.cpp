@@ -19,9 +19,9 @@ ServerComponent::ServerComponent(const components::ComponentConfig& config, cons
           context.FindComponent<components::StatisticsStorage>().GetStorage(),
           context.FindComponent<components::DynamicConfig>().GetSource()
       ),
-      service_defaults_(
-          std::make_unique<impl::ServiceDefaults>(impl::ParseServiceDefaults(config["service-defaults"], context))
-      ) {}
+      service_defaults_(std::make_unique<
+                        impl::ServiceDefaults>(impl::ParseServiceDefaults(config["service-defaults"], context)))
+{}
 
 ServerComponent::~ServerComponent() { server_.Stop(); }
 

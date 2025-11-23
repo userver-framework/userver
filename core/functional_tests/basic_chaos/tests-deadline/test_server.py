@@ -1,5 +1,5 @@
 import asyncio
-import typing
+from typing import Any
 
 import pytest
 
@@ -17,9 +17,9 @@ DP_DEADLINE_EXPIRED = 'X-YaTaxi-Deadline-Expired'
 def _call(service_client):
     async def _call(
         htype: str = 'common',
-        data: typing.Any = None,
+        data: Any = None,
         timeout: float = DEFAULT_TIMEOUT,
-        headers: typing.Optional[typing.Dict[str, str]] = None,
+        headers: dict[str, str] | None = None,
     ) -> http.ClientResponse:
         if not data:
             data = DEFAULT_DATA

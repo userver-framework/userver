@@ -39,14 +39,20 @@ public:
         UASSERT(!locker_id.empty());
         attempts_++;
         auto locked_by = locked_by_var_.Lock();
-        if (!locked_by->empty() && *locked_by != locker_id) throw dist_lock::LockIsAcquiredByAnotherHostException();
-        if (!allowed_) throw std::runtime_error("not allowed");
+        if (!locked_by->empty() && *locked_by != locker_id) {
+            throw dist_lock::LockIsAcquiredByAnotherHostException();
+        }
+        if (!allowed_) {
+            throw std::runtime_error("not allowed");
+        }
         *locked_by = locker_id;
     }
 
     void Release(const std::string& locker_id) override {
         auto locked_by = locked_by_var_.Lock();
-        if (*locked_by == locker_id) locked_by->clear();
+        if (*locked_by == locker_id) {
+            locked_by->clear();
+        }
     }
 
     bool IsLocked() {
@@ -74,7 +80,9 @@ auto MakeMockStrategy() { return std::make_shared<MockDistLockStrategy>(); }
 
 class DistLockWorkload {
 public:
-    explicit DistLockWorkload(bool abort_on_cancel = false) : abort_on_cancel_(abort_on_cancel) {}
+    explicit DistLockWorkload(bool abort_on_cancel = false)
+        : abort_on_cancel_(abort_on_cancel)
+    {}
 
     bool IsLocked() const { return is_locked_; }
 
@@ -101,7 +109,9 @@ public:
                 work_loop_on = work_loop_on_;
             }
 
-            if (work_loop_on && abort_on_cancel_) engine::current_task::CancellationPoint();
+            if (work_loop_on && abort_on_cancel_) {
+                engine::current_task::CancellationPoint();
+            }
         } catch (...) {
             SetLocked(false);
             throw;
@@ -132,17 +142,13 @@ private:
 }  // namespace
 
 UTEST(LockedWorker, Noop) {
-    const dist_lock::DistLockedWorker locked_worker(
-        kWorkerName, [] {}, MakeMockStrategy(), MakeSettings()
-    );
+    const dist_lock::DistLockedWorker locked_worker(kWorkerName, [] {}, MakeMockStrategy(), MakeSettings());
 }
 
 UTEST_MT(LockedWorker, StartStop, 3) {
     auto strategy = MakeMockStrategy();
     DistLockWorkload work;
-    dist_lock::DistLockedWorker locked_worker(
-        kWorkerName, [&] { work.Work(); }, strategy, MakeSettings()
-    );
+    dist_lock::DistLockedWorker locked_worker(kWorkerName, [&] { work.Work(); }, strategy, MakeSettings());
     EXPECT_FALSE(work.IsLocked());
 
     locked_worker.Start();
@@ -157,9 +163,7 @@ UTEST_MT(LockedWorker, StartStop, 3) {
 UTEST_MT(LockedWorker, Watchdog, 3) {
     auto strategy = MakeMockStrategy();
     DistLockWorkload work;
-    dist_lock::DistLockedWorker locked_worker(
-        kWorkerName, [&] { work.Work(); }, strategy, MakeSettings()
-    );
+    dist_lock::DistLockedWorker locked_worker(kWorkerName, [&] { work.Work(); }, strategy, MakeSettings());
 
     locked_worker.Start();
     strategy->Allow(true);
@@ -174,9 +178,7 @@ UTEST_MT(LockedWorker, Watchdog, 3) {
 UTEST_MT(LockedWorker, OkAfterFail, 3) {
     auto strategy = MakeMockStrategy();
     DistLockWorkload work;
-    dist_lock::DistLockedWorker locked_worker(
-        kWorkerName, [&] { work.Work(); }, strategy, MakeSettings()
-    );
+    dist_lock::DistLockedWorker locked_worker(kWorkerName, [&] { work.Work(); }, strategy, MakeSettings());
 
     locked_worker.Start();
     EXPECT_FALSE(work.WaitForLocked(true, kAttemptTimeout));
@@ -199,9 +201,7 @@ UTEST_MT(LockedWorker, OkFailOk, 3) {
 #endif
     auto strategy = MakeMockStrategy();
     DistLockWorkload work;
-    dist_lock::DistLockedWorker locked_worker(
-        kWorkerName, [&] { work.Work(); }, strategy, MakeSettings()
-    );
+    dist_lock::DistLockedWorker locked_worker(kWorkerName, [&] { work.Work(); }, strategy, MakeSettings());
 
     locked_worker.Start();
     strategy->Allow(true);
@@ -227,9 +227,7 @@ UTEST_MT(LockedWorker, OkFailOk, 3) {
 UTEST_MT(LockedWorker, LockedByOther, 3) {
     auto strategy = MakeMockStrategy();
     DistLockWorkload work;
-    dist_lock::DistLockedWorker locked_worker(
-        kWorkerName, [&] { work.Work(); }, strategy, MakeSettings()
-    );
+    dist_lock::DistLockedWorker locked_worker(kWorkerName, [&] { work.Work(); }, strategy, MakeSettings());
 
     locked_worker.Start();
     strategy->Allow(true);
@@ -247,9 +245,7 @@ UTEST_MT(LockedWorker, LockedByOther, 3) {
 UTEST_MT(LockedTask, Smoke, 3) {
     auto strategy = MakeMockStrategy();
     DistLockWorkload work;
-    const dist_lock::DistLockedTask locked_task(
-        kWorkerName, [&] { work.Work(); }, strategy, MakeSettings()
-    );
+    const dist_lock::DistLockedTask locked_task(kWorkerName, [&] { work.Work(); }, strategy, MakeSettings());
 
     EXPECT_EQ(0U, work.GetFinishedWorkCount());
     strategy->Allow(true);
@@ -300,9 +296,7 @@ UTEST_MT(LockedTask, Fail, 3) {
 
     auto strategy = MakeMockStrategy();
     DistLockWorkload work(true);
-    const dist_lock::DistLockedTask locked_task(
-        kWorkerName, [&] { work.Work(); }, strategy, settings
-    );
+    const dist_lock::DistLockedTask locked_task(kWorkerName, [&] { work.Work(); }, strategy, settings);
 
     EXPECT_EQ(0U, work.GetStartedWorkCount());
     EXPECT_EQ(0U, work.GetFinishedWorkCount());
@@ -325,9 +319,8 @@ UTEST_MT(LockedTask, NoWait, 3) {
     strategy->SetLockedBy("me");
 
     DistLockWorkload work(true);
-    const dist_lock::DistLockedTask locked_task(
-        kWorkerName, [&] { work.Work(); }, strategy, settings, dist_lock::DistLockWaitingMode::kNoWait
-    );
+    const dist_lock::DistLockedTask
+        locked_task(kWorkerName, [&] { work.Work(); }, strategy, settings, dist_lock::DistLockWaitingMode::kNoWait);
 
     engine::InterruptibleSleepFor(3 * settings.prolong_interval);
 
@@ -347,7 +340,11 @@ UTEST_MT(LockedTask, NoWaitAcquire, 3) {
     strategy->Allow(true);
 
     const dist_lock::DistLockedTask locked_task(
-        kWorkerName, [&] { work.Work(); }, strategy, MakeSettings(), dist_lock::DistLockWaitingMode::kNoWait
+        kWorkerName,
+        [&] { work.Work(); },
+        strategy,
+        MakeSettings(),
+        dist_lock::DistLockWaitingMode::kNoWait
     );
 
     EXPECT_TRUE(work.WaitForLocked(true, kAttemptTimeout));
@@ -367,16 +364,13 @@ UTEST(LockedTask, MultipleWorkers) {
     EXPECT_EQ(0, work.GetFinishedWorkCount());
     strategy->Allow(true);
 
-    const dist_lock::DistLockedTask first(
-        kWorkerName, [&] { work.Work(); }, strategy, MakeSettings()
-    );
+    const dist_lock::DistLockedTask first(kWorkerName, [&] { work.Work(); }, strategy, MakeSettings());
 
     EXPECT_TRUE(work.WaitForLocked(true, kAttemptTimeout));
     EXPECT_EQ(1, work.GetStartedWorkCount());
 
-    const dist_lock::DistLockedTask second(
-        kWorkerName, [&] { work.Work(); }, strategy, MakeSettings(), dist_lock::DistLockWaitingMode::kNoWait
-    );
+    const dist_lock::DistLockedTask
+        second(kWorkerName, [&] { work.Work(); }, strategy, MakeSettings(), dist_lock::DistLockWaitingMode::kNoWait);
 
     second.WaitFor(kAttemptTimeout);
     EXPECT_TRUE(second.GetState() == engine::Task::State::kCompleted);

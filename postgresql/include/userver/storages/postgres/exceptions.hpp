@@ -200,7 +200,10 @@ class RuntimeError : public Error {
 template <typename Base>
 class ServerError : public Base {
 public:
-    explicit ServerError(const Message& msg) : Base(msg.GetMessage()), msg_{msg} {}
+    explicit ServerError(const Message& msg)
+        : Base(msg.GetMessage()),
+          msg_{msg}
+    {}
 
     const Message& GetServerMessage() const { return msg_; }
 
@@ -659,7 +662,8 @@ public:
               field_index,
               field_name,
               compiler::GetTypeName<T>()
-          )) {}
+          ))
+    {}
 };
 
 /// @brief A value of a non-nullable type requested to be set null.
@@ -835,7 +839,8 @@ public:
               "Invalid enumeration value '{}' for enum type '{}'",
               USERVER_NAMESPACE::utils::UnderlyingValue(val),
               compiler::GetTypeName<Enum>()
-          )) {}
+          ))
+    {}
 };
 //@}
 

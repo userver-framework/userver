@@ -45,13 +45,16 @@ const auto kStatisticsName = "redis";
 const auto kSubscribeStatisticsName = "redis-pubsub";
 
 template <typename RedisGroup>
-USERVER_NAMESPACE::secdist::RedisSettings
-GetSecdistSettings(components::Secdist& secdist_component, const RedisGroup& redis_group) {
+USERVER_NAMESPACE::secdist::RedisSettings GetSecdistSettings(
+    components::Secdist& secdist_component,
+    const RedisGroup& redis_group
+) {
     try {
         return secdist_component.Get().Get<storages::secdist::RedisMapSettings>().GetSettings(redis_group.config_name);
     } catch (const storages::secdist::SecdistError& ex) {
-        LOG_ERROR() << "Failed to load redis config (db=" << redis_group.db
-                    << " config_name=" << redis_group.config_name << "): " << ex;
+        LOG_ERROR()
+            << "Failed to load redis config (db=" << redis_group.db << " config_name=" << redis_group.config_name
+            << "): " << ex;
         throw;
     }
 }
@@ -121,9 +124,11 @@ Parse(const yaml_config::YamlConfig& value, formats::parse::To<storages::redis::
 }
 
 Redis::Redis(const ComponentConfig& config, const ComponentContext& component_context)
-    : ComponentBase(config, component_context), config_(component_context.FindComponent<DynamicConfig>().GetSource()) {
-    const auto& testsuite_redis_control =
-        component_context.FindComponent<components::TestsuiteSupport>().GetRedisControl();
+    : ComponentBase(config, component_context),
+      config_(component_context.FindComponent<DynamicConfig>().GetSource())
+{
+    const auto&
+        testsuite_redis_control = component_context.FindComponent<components::TestsuiteSupport>().GetRedisControl();
     Connect(config, component_context, testsuite_redis_control);
 
     config_subscription_ = config_.UpdateAndListen(this, "redis", &Redis::OnConfigUpdate);
@@ -137,45 +142,53 @@ Redis::Redis(const ComponentConfig& config, const ComponentContext& component_co
         WriteStatistics(writer);
     });
 
-    subscribe_statistics_holder_ = statistics_storage.RegisterWriter(
-        kSubscribeStatisticsName, [this](utils::statistics::Writer& writer) { WriteStatisticsPubsub(writer); }
-    );
+    subscribe_statistics_holder_ =
+        statistics_storage.RegisterWriter(kSubscribeStatisticsName, [this](utils::statistics::Writer& writer) {
+            WriteStatisticsPubsub(writer);
+        });
 }
 
-std::shared_ptr<storages::redis::Client>
-Redis::GetClient(const std::string& name, storages::redis::RedisWaitConnected wait_connected) const {
+std::shared_ptr<storages::redis::Client> Redis::GetClient(
+    const std::string& name,
+    storages::redis::RedisWaitConnected wait_connected
+) const {
     auto it = clients_.find(name);
-    if (it == clients_.end())
+    if (it == clients_.end()) {
         throw std::runtime_error(fmt::format(
             "{} redis client not found. Available clients: [{}]",
             name,
             fmt::join(clients_ | boost::adaptors::map_keys, ", ")
         ));
+    }
     it->second->WaitConnectedOnce(wait_connected);
     return it->second;
 }
 
 std::shared_ptr<storages::redis::impl::Sentinel> Redis::Client(const std::string& name) const {
     auto it = sentinels_.find(name);
-    if (it == sentinels_.end())
+    if (it == sentinels_.end()) {
         throw std::runtime_error(fmt::format(
             "{} redis client not found. Available clients: [{}]",
             name,
             fmt::join(clients_ | boost::adaptors::map_keys, ", ")
         ));
+    }
     return it->second;
 }
 
-std::shared_ptr<storages::redis::SubscribeClient>
-Redis::GetSubscribeClient(const std::string& name, storages::redis::RedisWaitConnected wait_connected) const {
+std::shared_ptr<storages::redis::SubscribeClient> Redis::GetSubscribeClient(
+    const std::string& name,
+    storages::redis::RedisWaitConnected wait_connected
+) const {
     auto it = subscribe_clients_.find(name);
-    if (it == subscribe_clients_.end())
+    if (it == subscribe_clients_.end()) {
         throw std::runtime_error(fmt::format(
             "{} redis subscribe-client not found. Available subscribe-clients: "
             "[{}]",
             name,
             fmt::join(subscribe_clients_ | boost::adaptors::map_keys, ", ")
         ));
+    }
     it->second->WaitConnectedOnce(wait_connected);
     return std::static_pointer_cast<storages::redis::SubscribeClient>(it->second);
 }
@@ -189,14 +202,13 @@ void Redis::Connect(
 
     auto config_source = component_context.FindComponent<DynamicConfig>().GetSource();
 
-    static_metrics_settings_.level =
-        Parse(config["metrics_level"], formats::parse::To<storages::redis::MetricsSettings::Level>());
+    static_metrics_settings_
+        .level = Parse(config["metrics_level"], formats::parse::To<storages::redis::MetricsSettings::Level>());
     metrics_settings_.Assign(storages::redis::MetricsSettings({}, static_metrics_settings_));
     const auto redis_pools = config["thread_pools"].As<RedisPools>();
 
-    thread_pools_ = std::make_shared<storages::redis::impl::ThreadPools>(
-        redis_pools.sentinel_thread_pool_size, redis_pools.redis_thread_pool_size
-    );
+    thread_pools_ = std::make_shared<
+        storages::redis::impl::ThreadPools>(redis_pools.sentinel_thread_pool_size, redis_pools.redis_thread_pool_size);
 
     const auto redis_groups = config["groups"].As<std::vector<RedisGroup>>();
     for (const RedisGroup& redis_group : redis_groups) {
@@ -248,17 +260,18 @@ void Redis::Connect(
             cc,
             testsuite_redis_control
         );
-        if (sentinel)
-            subscribe_clients_.emplace(
-                redis_group.db, std::make_shared<storages::redis::SubscribeClientImpl>(std::move(sentinel))
-            );
-        else
+        if (sentinel) {
+            subscribe_clients_
+                .emplace(redis_group.db, std::make_shared<storages::redis::SubscribeClientImpl>(std::move(sentinel)));
+        } else {
             LOG_WARNING() << "skip subscribe-redis client for " << redis_group.db;
+        }
     }
 
     auto redis_wait_connected_subscribe = redis_config.redis_wait_connected;
-    if (redis_wait_connected_subscribe.mode != storages::redis::WaitConnectedMode::kNoWait)
+    if (redis_wait_connected_subscribe.mode != storages::redis::WaitConnectedMode::kNoWait) {
         redis_wait_connected_subscribe.mode = storages::redis::WaitConnectedMode::kMasterOrSlave;
+    }
     for (auto& subscribe_client_it : subscribe_clients_) {
         subscribe_client_it.second->WaitConnectedOnce(redis_wait_connected_subscribe);
     }
@@ -299,13 +312,12 @@ void Redis::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
         client->SetCommandsBufferingSettings(redis_config.commands_buffering_settings);
         client->SetReplicationMonitoringSettings(redis_config.replication_monitoring_settings.GetOptional(name)
                                                      .value_or(storages::redis::ReplicationMonitoringSettings{}));
-        client->SetRetryBudgetSettings(
-            redis_config.retry_budget_settings.GetOptional(name).value_or(utils::RetryBudgetSettings{})
-        );
+        client->SetRetryBudgetSettings(redis_config.retry_budget_settings.GetOptional(name)
+                                           .value_or(utils::RetryBudgetSettings{}));
     }
 
-    auto subscriber_cc =
-        std::make_shared<storages::redis::CommandControl>(redis_config.subscriber_default_command_control);
+    auto subscriber_cc = std::make_shared<
+        storages::redis::CommandControl>(redis_config.subscriber_default_command_control);
     for (auto& it : subscribe_clients_) {
         auto& subscribe_client = it.second->GetNative();
         subscribe_client.SetConfigDefaultCommandControl(subscriber_cc);
@@ -314,9 +326,8 @@ void Redis::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
 
     auto metrics_settings = metrics_settings_.Read();
     if (metrics_settings->dynamic_settings != redis_config.metrics_settings) {
-        metrics_settings_.Assign(
-            storages::redis::MetricsSettings(redis_config.metrics_settings, static_metrics_settings_)
-        );
+        metrics_settings_
+            .Assign(storages::redis::MetricsSettings(redis_config.metrics_settings, static_metrics_settings_));
     }
 
     auto pubsub_metrics_settings = pubsub_metrics_settings_.Read();

@@ -1,5 +1,4 @@
 import json
-import typing
 
 import pytest
 from pytest_userver import chaos
@@ -15,12 +14,12 @@ def userver_testsuite_middleware_enabled():
 
 
 @pytest.fixture(name='sentinel_gate_settings', scope='session')
-def _sentinel_gate_settings(get_free_port) -> typing.Tuple[str, int]:
+def _sentinel_gate_settings(get_free_port) -> tuple[str, int]:
     return ('localhost', get_free_port())
 
 
 @pytest.fixture(name='master_gate_settings', scope='session')
-def _master_gate_settings(get_free_port) -> typing.Tuple[str, int]:
+def _master_gate_settings(get_free_port) -> tuple[str, int]:
     return ('localhost', get_free_port())
 
 
@@ -88,7 +87,7 @@ async def _sentinel_gate_ready(
     _sentinel_gate.start_accepting()
 
     await _sentinel_gate.wait_for_connections(timeout=5.0)
-    yield _sentinel_gate
+    return _sentinel_gate
 
 
 @pytest.fixture(scope='session')
@@ -114,4 +113,4 @@ async def _master_gate_ready(service_client, _master_gate):
     _master_gate.start_accepting()
 
     await _master_gate.wait_for_connections(timeout=5.0)
-    yield _master_gate
+    return _master_gate

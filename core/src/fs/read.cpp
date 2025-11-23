@@ -37,19 +37,24 @@ FileInfoWithDataMap ReadRecursiveFilesInfoWithData(
     utils::Flags<SettingsReadFile> flags
 ) {
     FileInfoWithDataMap data{};
-    for (auto it = utils::Async(
-                       async_tp, "init", [&path] { return boost::filesystem::recursive_directory_iterator(path); }
-         ).Get();
+    for (auto it =
+             utils::Async(async_tp, "init", [&path] { return boost::filesystem::recursive_directory_iterator(path); })
+                 .Get();
          it != boost::filesystem::recursive_directory_iterator();
-         utils::Async(async_tp, "next", [&it] { ++it; }).Get()) {
+         utils::Async(async_tp, "next", [&it] { ++it; }).Get())
+    {
         // only files
-        if (it->status().type() != boost::filesystem::regular_file) continue;
-        if ((flags & SettingsReadFile::kSkipHidden) && IsHiddenFile(it->path())) continue;
+        if (it->status().type() != boost::filesystem::regular_file) {
+            continue;
+        }
+        if ((flags & SettingsReadFile::kSkipHidden) && IsHiddenFile(it->path())) {
+            continue;
+        }
         FileInfoWithData info{};
         info.extension = it->path().extension().string();
         info.data = ReadFileContents(async_tp, it->path().string());
-        data[GetLexicallyRelative(it->path().string(), path)] =
-            std::make_shared<const FileInfoWithData>(std::move(info));
+        data[GetLexicallyRelative(it->path().string(), path)] = std::make_shared<const FileInfoWithData>(std::move(info)
+        );
     }
     return data;
 }

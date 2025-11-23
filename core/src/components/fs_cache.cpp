@@ -15,7 +15,8 @@ FsCache::FsCache(const components::ComponentConfig& config, const components::Co
           config["dir"].As<std::string>("/var/www"),
           config["update-period"].As<std::chrono::milliseconds>(0),
           GetFsTaskProcessor(config, context)
-      ) {}
+      )
+{}
 
 yaml_config::Schema FsCache::GetStaticConfigSchema() {
     return yaml_config::MergeSchemas<components::ComponentBase>(R"(

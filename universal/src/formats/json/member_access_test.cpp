@@ -38,7 +38,9 @@ struct MemberAccess<formats::json::Value> : public ::testing::Test {
         "Value iterators are not assignable"
     );
 
-    MemberAccess() : doc(kDoc) {}
+    MemberAccess()
+        : doc(kDoc)
+    {}
     formats::json::Value doc;
 
     using ValueBuilder = formats::json::ValueBuilder;

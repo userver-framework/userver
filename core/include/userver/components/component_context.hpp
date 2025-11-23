@@ -154,11 +154,8 @@ public:
 
     /// @cond
     // For internal use only.
-    ComponentContext(
-        utils::impl::InternalTag,
-        impl::ComponentContextImpl& impl,
-        impl::ComponentInfo& component_info
-    ) noexcept;
+    ComponentContext(utils::impl::InternalTag, impl::ComponentContextImpl& impl, impl::ComponentInfo& component_info)
+        noexcept;
 
     // For internal use only.
     impl::ComponentContextImpl& GetImpl(utils::impl::InternalTag) const;
@@ -191,8 +188,11 @@ private:
 
     [[noreturn]] void ThrowNonRegisteredComponent(std::string_view name, std::string_view type) const;
 
-    [[noreturn]] void
-    ThrowComponentTypeMismatch(std::string_view name, std::string_view type, RawComponentBase* component) const;
+    [[noreturn]] void ThrowComponentTypeMismatch(
+        std::string_view name,
+        std::string_view type,
+        RawComponentBase* component
+    ) const;
 
     RawComponentBase* DoFindComponent(std::string_view name) const;
 

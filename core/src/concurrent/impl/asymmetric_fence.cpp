@@ -21,8 +21,8 @@ namespace {
 
 // These constants are not available on the host architecture pre-Linux 4.14.
 // Still, they may be supported by the target Linux kernel.
-constexpr int MEMBARRIER_CMD_PRIVATE_EXPEDITED = 1 << 3;
-constexpr int MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED = 1 << 4;
+constexpr int kMembarrierCmdPrivateExpedited = 1 << 3;
+constexpr int kMembarrierCmdRegisterPrivateExpedited = 1 << 4;
 
 enum class MembarrierRegistrationStatus : std::uint8_t {
     kNotCheckedYet = 0,
@@ -34,12 +34,12 @@ thread_local USERVER_IMPL_CONSTINIT auto thread_registration_status = Membarrier
 
 bool IsMembarrierAvailable() noexcept {
     const auto ret = syscall(__NR_membarrier, MEMBARRIER_CMD_QUERY, 0);
-    return ret != -1 && (ret & MEMBARRIER_CMD_PRIVATE_EXPEDITED) != 0;
+    return ret != -1 && (ret & kMembarrierCmdPrivateExpedited) != 0;
 }
 
 bool IsMembarrierAvailableCached() noexcept {
-    static const bool cache = IsMembarrierAvailable();
-    return cache;
+    static const bool kCache = IsMembarrierAvailable();
+    return kCache;
 }
 
 bool TryRegisterThread() noexcept {
@@ -47,7 +47,7 @@ bool TryRegisterThread() noexcept {
         return false;
     }
 
-    const auto ret = syscall(__NR_membarrier, MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED, 0);
+    const auto ret = syscall(__NR_membarrier, kMembarrierCmdRegisterPrivateExpedited, 0);
     if (ret != 0) {
         utils::AbortWithStacktrace("membarrier init failed");
     }
@@ -81,7 +81,7 @@ void AsymmetricThreadFenceLight() noexcept {
 
 void AsymmetricThreadFenceHeavy() noexcept {
     if (TryRegisterThreadCached()) {
-        const auto ret = syscall(__NR_membarrier, MEMBARRIER_CMD_PRIVATE_EXPEDITED, 0);
+        const auto ret = syscall(__NR_membarrier, kMembarrierCmdPrivateExpedited, 0);
         if (ret != 0) {
             utils::AbortWithStacktrace("membarrier usage failed");
         }
@@ -92,8 +92,10 @@ void AsymmetricThreadFenceHeavy() noexcept {
 
 void AsymmetricThreadFenceForceRegisterThread() noexcept {
     if (__builtin_expect(thread_registration_status == MembarrierRegistrationStatus::kNotCheckedYet, false)) {
-        thread_registration_status = TryRegisterThread() ? MembarrierRegistrationStatus::kRegistered
-                                                         : MembarrierRegistrationStatus::kUnsupported;
+        thread_registration_status =
+            TryRegisterThread()
+                ? MembarrierRegistrationStatus::kRegistered
+                : MembarrierRegistrationStatus::kUnsupported;
     }
 }
 

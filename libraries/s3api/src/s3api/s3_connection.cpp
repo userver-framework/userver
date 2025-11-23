@@ -10,8 +10,12 @@ USERVER_NAMESPACE_BEGIN
 namespace s3api {
 
 namespace {
-clients::http::Request&
-GetMethod(clients::http::Request& req, std::string_view url, std::string_view body, clients::http::HttpMethod method) {
+clients::http::Request& GetMethod(
+    clients::http::Request& req,
+    std::string_view url,
+    std::string_view body,
+    clients::http::HttpMethod method
+) {
     // TODO: Get rid of extra string_view->string conversion once
     // http::Request can work with string_view directly
     switch (method) {
@@ -48,9 +52,9 @@ std::shared_ptr<clients::http::Response> S3Connection::RequestApi(Request& r, st
     if (config_.proxy.has_value()) {
         http_req.proxy(config_.proxy.value());
     }
-    http_req.SetDestinationMetricName(
-        fmt::format("{}/{}", r.headers[USERVER_NAMESPACE::http::headers::kHost], method_name)
-    );
+    http_req
+        .SetDestinationMetricName(fmt::format("{}/{}", r.headers[USERVER_NAMESPACE::http::headers::kHost], method_name)
+        );
     std::shared_ptr<clients::http::Response> response;
     try {
         response = GetMethod(http_req, full_url, r.body, r.method).perform();
@@ -67,10 +71,11 @@ std::shared_ptr<clients::http::Response> S3Connection::RequestApi(Request& r, st
 
 std::shared_ptr<clients::http::Response> S3Connection::DoStartApiRequest(const Request& r) const {
     auto headers = r.headers;
-    if (!r.bucket.empty())
+    if (!r.bucket.empty()) {
         headers[USERVER_NAMESPACE::http::headers::kHost] = r.bucket + "." + api_url_;
-    else
+    } else {
         headers[USERVER_NAMESPACE::http::headers::kHost] = api_url_;
+    }
 
     const std::string full_url = GetUrl(r, connection_type_);
 

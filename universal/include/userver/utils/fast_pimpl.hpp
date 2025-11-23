@@ -47,10 +47,14 @@ template <class T, std::size_t Size, std::size_t Alignment, bool Strict = false>
 class FastPimpl final {
 public:
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init,performance-noexcept-move-constructor)
-    FastPimpl(FastPimpl&& v) noexcept(noexcept(T(std::declval<T>()))) : FastPimpl(std::move(*v)) {}
+    FastPimpl(FastPimpl&& v) noexcept(noexcept(T(std::declval<T>())))
+        : FastPimpl(std::move(*v))
+    {}
 
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
-    FastPimpl(const FastPimpl& v) noexcept(noexcept(T(std::declval<const T&>()))) : FastPimpl(*v) {}
+    FastPimpl(const FastPimpl& v) noexcept(noexcept(T(std::declval<const T&>())))
+        : FastPimpl(*v)
+    {}
 
     // NOLINTNEXTLINE(bugprone-unhandled-self-assignment,cert-oop54-cpp)
     FastPimpl& operator=(const FastPimpl& rhs) noexcept(noexcept(std::declval<T&>() = std::declval<const T&>())) {

@@ -95,7 +95,7 @@ class UserverConan(ConanFile):
         git = Git(self)
         tracked_sources = git.included_files()
         # To speed up copying, we take only the root folders
-        tracked_sources = set(f.split('/')[0] for f in tracked_sources)
+        tracked_sources = {f.split('/')[0] for f in tracked_sources}
         for i in tracked_sources:
             copy(self, f'{i}*', self.recipe_folder, self.export_sources_folder)
 
@@ -241,7 +241,7 @@ class UserverConan(ConanFile):
 
         if self.options.with_otlp:
             tool_ch.variables['USERVER_OPENTELEMETRY_PROTO'] = self.dependencies['opentelemetry-proto'].conf_info.get(
-                'user.opentelemetry-proto:proto_root'
+                'user.opentelemetry-proto:proto_root',
             )
 
         tool_ch.generate()

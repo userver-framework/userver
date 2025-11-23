@@ -359,7 +359,8 @@ std::optional<T> StatementResultSet::DoAsOptionalSingleRow() && {
 
 template <typename DbType>
 MappedStatementResultSet<DbType>::MappedStatementResultSet(StatementResultSet&& result_set)
-    : result_set_{std::move(result_set)} {}
+    : result_set_{std::move(result_set)}
+{}
 
 template <typename DbType>
 MappedStatementResultSet<DbType>::~MappedStatementResultSet() = default;

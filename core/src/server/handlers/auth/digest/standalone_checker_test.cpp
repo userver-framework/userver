@@ -38,7 +38,8 @@ public:
         std::string&& realm,
         const SecdistConfig& secdist_config
     )
-        : AuthStandaloneCheckerBase(digest_settings, std::move(realm), secdist_config, kWays, kWaySize) {}
+        : AuthStandaloneCheckerBase(digest_settings, std::move(realm), secdist_config, kWays, kWaySize)
+    {}
 
     std::optional<HA1> GetHA1(std::string_view) const override { return kValidHA1; }
 };
@@ -88,7 +89,8 @@ public:
               "auth",                              // qop
               "00000001",                          // nc
               "auth-param"                         // authparam
-          }) {
+          })
+    {
         client_context = correct_client_context;
     }
 
@@ -129,8 +131,8 @@ UTEST_F(StandAloneCheckerTest, NonceCount) {
 }
 
 UTEST_F(StandAloneCheckerTest, InvalidNonce) {
-    const auto* invalid_nonce_ = "abc88743bacdf9238";
-    UserData test_data{kValidHA1, invalid_nonce_, utils::datetime::Now(), 0};
+    const auto* invalid_nonce = "abc88743bacdf9238";
+    UserData test_data{kValidHA1, invalid_nonce, utils::datetime::Now(), 0};
     EXPECT_EQ(checker.ValidateUserData(client_context, test_data), ValidateResult::kWrongUserData);
 
     test_data.nonce = kValidNonce;

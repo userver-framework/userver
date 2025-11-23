@@ -2,14 +2,30 @@ BasedOnStyle: Google
 DerivePointerAlignment: false
 IncludeBlocks: Preserve
 AttributeMacros: ["noexcept"]
-IndentRequires: false
+IndentRequiresClause: false
 ColumnLimit: 120
 IndentWidth: 4
 TabWidth: 4
 AccessModifierOffset: -4
 BinPackParameters: false
 BinPackArguments: false
-AllowAllParametersOfDeclarationOnNextLine: false
 AlignAfterOpenBracket: BlockIndent
 AlwaysBreakAfterDefinitionReturnType: None
-PenaltyReturnTypeOnItsOwnLine: 200
+AllowAllParametersOfDeclarationOnNextLine: false
+AllowAllArgumentsOnNextLine: false
+BreakBeforeBraces: Custom
+BraceWrapping:
+    AfterControlStatement: MultiLine
+PenaltyBreakOpenParenthesis: 5000000
+PenaltyIndentedWhitespace: 100000
+PenaltyBreakFirstLessLess: 0
+PenaltyBreakScopeResolution: 20000000
+PenaltyBreakAssignment: 10000
+PenaltyExcessCharacter: 1000000000
+PenaltyBreakBeforeFirstCallParameter: 1
+PenaltyReturnTypeOnItsOwnLine: 10000000
+InsertBraces: true
+IndentWrappedFunctionNames: false
+
+# Use unpatched ContinuationIndenter, remove this line if you use vanilla clang-format code
+VanillaContinuationIndenter: true

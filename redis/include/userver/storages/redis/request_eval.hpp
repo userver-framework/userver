@@ -15,7 +15,9 @@ namespace storages::redis {
 template <typename ScriptResult, typename ReplyType = ScriptResult>
 class [[nodiscard]] RequestEval final {
 public:
-    explicit RequestEval(RequestEvalCommon&& request) : request_(std::move(request)) {}
+    explicit RequestEval(RequestEvalCommon&& request)
+        : request_(std::move(request))
+    {}
 
     /// Wait for the request to finish on Redis server
     void Wait() { request_.Wait(); }

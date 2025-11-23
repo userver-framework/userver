@@ -94,7 +94,11 @@ enum class Action { StartTry, Stop };
 struct PlanEntry {
 public:
     PlanEntry(TimePoint timepoint, std::size_t request_index, std::size_t attempt_id, Action action)
-        : timepoint(timepoint), request_index(request_index), attempt_id(attempt_id), action(action) {}
+        : timepoint(timepoint),
+          request_index(request_index),
+          attempt_id(attempt_id),
+          action(action)
+    {}
 
     bool operator<(const PlanEntry& other) const noexcept { return Tie() < other.Tie(); }
     bool operator>(const PlanEntry& other) const noexcept { return Tie() > other.Tie(); }
@@ -122,10 +126,14 @@ struct SubrequestWrapper {
 
     SubrequestWrapper() = default;
     SubrequestWrapper(SubrequestWrapper&&) noexcept = default;
-    explicit SubrequestWrapper(std::optional<RequestType>&& request) : request(std::move(request)) {}
+    explicit SubrequestWrapper(std::optional<RequestType>&& request)
+        : request(std::move(request))
+    {}
 
     engine::impl::ContextAccessor* TryGetContextAccessor() {
-        if (!request) return nullptr;
+        if (!request) {
+            return nullptr;
+        }
         return request->TryGetContextAccessor();
     }
 
@@ -144,7 +152,9 @@ struct Context {
     using ReplyType = typename RequestTraits<RequestStrategy>::ReplyType;
 
     Context(std::vector<RequestStrategy> inputs, HedgingSettings settings)
-        : inputs_(std::move(inputs)), settings_(std::move(settings)) {
+        : inputs_(std::move(inputs)),
+          settings_(std::move(settings))
+    {
         const std::size_t size = this->inputs_.size();
         request_states_.resize(size);
     }
@@ -160,11 +170,15 @@ struct Context {
     }
 
     std::optional<TimePoint> NextEventTime() const {
-        if (plan_.empty()) return std::nullopt;
+        if (plan_.empty()) {
+            return std::nullopt;
+        }
         return plan_.top().timepoint;
     }
     std::optional<PlanEntry> PopPlan() {
-        if (plan_.empty()) return std::nullopt;
+        if (plan_.empty()) {
+            return std::nullopt;
+        }
         auto ret = plan_.top();
         plan_.pop();
         return ret;
@@ -211,7 +225,9 @@ struct Context {
     /// Called on elapsed timeout of WaitAny when next event is Stop some
     /// request
     void OnActionStop() {
-        for (std::size_t i = 0; i < inputs_.size(); ++i) FinishAllSubrequests(i);
+        for (std::size_t i = 0; i < inputs_.size(); ++i) {
+            FinishAllSubrequests(i);
+        }
         stop_ = true;
     }
 
@@ -254,8 +270,12 @@ struct Context {
     /// Called on getting error in request with @param request_idx
     void OnRetriableReply(std::size_t request_idx, std::chrono::milliseconds retry_delay, TimePoint now) {
         const auto& request_state = request_states_[request_idx];
-        if (request_state.finished) return;
-        if (request_state.attempts_made >= settings_.max_attempts) return;
+        if (request_state.finished) {
+            return;
+        }
+        if (request_state.attempts_made >= settings_.max_attempts) {
+            return;
+        }
 
         plan_.emplace(now + retry_delay, request_idx, request_state.attempts_made, Action::StartTry);
     }
@@ -300,7 +320,9 @@ private:
     template <typename TRequestStrategy>
     friend auto HedgeRequestsBulkAsync(std::vector<TRequestStrategy> inputs, HedgingSettings settings);
     using Task = engine::TaskWithResult<std::vector<std::optional<ReplyType>>>;
-    HedgedRequestBulkFuture(Task&& task) : task_(std::move(task)) {}
+    HedgedRequestBulkFuture(Task&& task)
+        : task_(std::move(task))
+    {}
     Task task_;
 };
 
@@ -327,7 +349,9 @@ private:
     template <typename TRequestStrategy>
     friend auto HedgeRequestAsync(TRequestStrategy input, HedgingSettings settings);
     using Task = engine::TaskWithResult<std::optional<ReplyType>>;
-    HedgedRequestFuture(Task&& task) : task_(std::move(task)) {}
+    HedgedRequestFuture(Task&& task)
+        : task_(std::move(task))
+    {}
     Task task_;
 };
 
@@ -423,8 +447,10 @@ auto HedgeRequestsBulkAsync(std::vector<RequestStrategy> inputs, HedgingSettings
 /// if request was denied by strategy e.g. ProcessReply always returned
 /// std::nullopt or ExtractReply returned std::nullopt
 template <typename RequestStrategy>
-std::optional<typename RequestTraits<RequestStrategy>::ReplyType>
-HedgeRequest(RequestStrategy input, HedgingSettings settings) {
+std::optional<typename RequestTraits<RequestStrategy>::ReplyType> HedgeRequest(
+    RequestStrategy input,
+    HedgingSettings settings
+) {
     std::vector<RequestStrategy> inputs;
     inputs.emplace_back(std::move(input));
     auto bulk_ret = HedgeRequestsBulk(std::move(inputs), std::move(settings));

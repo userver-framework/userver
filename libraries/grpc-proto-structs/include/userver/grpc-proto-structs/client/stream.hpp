@@ -20,7 +20,9 @@ public:
     using ProtobufResponse = proto_structs::traits::CompatibleMessageType<StructsResponse>;
     using ProtobufReader = ugrpc::client::Reader<ProtobufResponse>;
 
-    explicit Reader(ProtobufReader&& reader) : reader_{std::move(reader)} {}
+    explicit Reader(ProtobufReader&& reader)
+        : reader_{std::move(reader)}
+    {}
 
     Reader(Reader&&) = default;
     Reader& operator=(Reader&&) = default;
@@ -63,7 +65,9 @@ public:
 
     using ProtobufWriter = ugrpc::client::Writer<ProtobufRequest, ProtobufResponse>;
 
-    explicit Writer(ProtobufWriter&& writer) : writer_{std::move(writer)} {}
+    explicit Writer(ProtobufWriter&& writer)
+        : writer_{std::move(writer)}
+    {}
 
     Writer(Writer&&) = default;
     Writer& operator=(Writer&&) = default;
@@ -110,7 +114,9 @@ public:
 
     using ProtobufReaderWriter = ugrpc::client::ReaderWriter<ProtobufRequest, ProtobufResponse>;
 
-    explicit ReaderWriter(ProtobufReaderWriter&& reader_writer) : reader_writer_{std::move(reader_writer)} {}
+    explicit ReaderWriter(ProtobufReaderWriter&& reader_writer)
+        : reader_writer_{std::move(reader_writer)}
+    {}
 
     ReaderWriter(ReaderWriter&&) = default;
     ReaderWriter& operator=(ReaderWriter&&) = default;

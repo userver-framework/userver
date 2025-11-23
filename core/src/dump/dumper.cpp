@@ -60,7 +60,10 @@ struct UpdateTime final {
 
 struct DumpData {
     DumpData(const Config& static_config, std::unique_ptr<OperationsFactory> rw_factory, DumpableEntity& dumpable)
-        : rw_factory(std::move(rw_factory)), dumpable(dumpable), locator(static_config) {
+        : rw_factory(std::move(rw_factory)),
+          dumpable(dumpable),
+          locator(static_config)
+    {
         UASSERT(this->rw_factory);
     }
 
@@ -71,7 +74,9 @@ struct DumpData {
 };
 
 struct UpdateData {
-    explicit UpdateData(Statistics& statistics) : is_current_from_dump(statistics.is_current_from_dump) {}
+    explicit UpdateData(Statistics& statistics)
+        : is_current_from_dump(statistics.is_current_from_dump)
+    {}
 
     std::optional<UpdateTime> update_time;
     std::atomic<bool>& is_current_from_dump;
@@ -90,7 +95,9 @@ enum class SignalStatus {
 };
 
 engine::Deadline GetCooldown(const DynamicConfig& config, engine::Deadline::TimePoint previous_write_time) {
-    if (!config.dumps_enabled) return {};
+    if (!config.dumps_enabled) {
+        return {};
+    }
     return engine::Deadline::FromTimePoint(previous_write_time + config.min_dump_interval);
 }
 
@@ -186,7 +193,8 @@ Dumper::Impl::Impl(
       fs_task_processor_(fs_task_processor),
       dump_data_(static_config_, std::move(rw_factory), dumpable),
       update_data_(statistics_),
-      testsuite_registration_(std::in_place, dump_control, self) {
+      testsuite_registration_(std::in_place, dump_control, self)
+{
     statistics_holder_ =
         statistics_storage.RegisterWriter(fmt::format("cache.dump"), [this](utils::statistics::Writer& writer) {
             writer.ValueWithLabels(statistics_, {{"cache_name", Name()}});
@@ -240,7 +248,8 @@ void Dumper::Impl::ReadDumpDebug() {
 void Dumper::Impl::OnUpdateCompleted() {
     auto expected = SignalStatus::kNotSignaled;
     if (data_signal_status_.load() != expected ||
-        !data_signal_status_.compare_exchange_strong(expected, SignalStatus::kSignaling)) {
+        !data_signal_status_.compare_exchange_strong(expected, SignalStatus::kSignaling))
+    {
         // If kSignaled, then our job is already done.
         // If kSignaling, then let's pretend we are sequenced right after them.
         return;
@@ -287,7 +296,9 @@ void Dumper::Impl::PeriodicWriteTask() {
         //    then wait for the next dumped data to arrive, to avoid trying to write
         //    endlessly.
         if (previous_write_succeeded || config->min_dump_interval == std::chrono::seconds{0}) {
-            if (!data_updated_signal_.WaitForEvent()) break;
+            if (!data_updated_signal_.WaitForEvent()) {
+                break;
+            }
             if (config_updated_signal_.IsReady()) {
                 continue;  // reload config
             }
@@ -298,7 +309,9 @@ void Dumper::Impl::PeriodicWriteTask() {
             if (config_updated_signal_.WaitForEventUntil(cooldown)) {
                 continue;  // reload config
             }
-            if (engine::current_task::ShouldCancel()) break;
+            if (engine::current_task::ShouldCancel()) {
+                break;
+            }
         }
 
         auto dump_data = dump_data_.Lock();
@@ -414,17 +427,18 @@ void Dumper::Impl::DoWriteDump(TimePoint update_time, tracing::ScopeTime& scope,
     LOG_INFO() << Name() << ": a new dump has been written at \"" << dump_path << '"';
 
     statistics_.last_written_size = dump_size;
-    statistics_.last_nontrivial_write_duration =
-        std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - dump_start);
+    statistics_.last_nontrivial_write_duration = std::chrono::duration_cast<
+        std::chrono::milliseconds>(std::chrono::steady_clock::now() - dump_start);
     statistics_.last_nontrivial_write_start_time = dump_start;
 }
 
 std::optional<TimePoint> Dumper::Impl::LoadFromDump(DumpData& dump_data, const DynamicConfig& config) {
     tried_to_read_dump_.store(true);
     if (!config.dumps_enabled) {
-        LOG_DEBUG() << Name()
-                    << ": could not load a dump, because dumps are disabled for "
-                       "this dumper";
+        LOG_DEBUG()
+            << Name()
+            << ": could not load a dump, because dumps are disabled for "
+               "this dumper";
         return {};
     }
 
@@ -436,7 +450,9 @@ std::optional<TimePoint> Dumper::Impl::LoadFromDump(DumpData& dump_data, const D
 
             try {
                 auto dump_stats = dump_data.locator.GetLatestDump();
-                if (!dump_stats) return std::optional<TimePoint>{};
+                if (!dump_stats) {
+                    return std::optional<TimePoint>{};
+                }
 
                 auto reader = dump_data.rw_factory->CreateReader(dump_stats->full_path);
                 dump_data.dumpable.ReadAndSet(*reader);
@@ -450,7 +466,9 @@ std::optional<TimePoint> Dumper::Impl::LoadFromDump(DumpData& dump_data, const D
             }
         }).Get();
 
-    if (!update_time) return {};
+    if (!update_time) {
+        return {};
+    }
     const UpdateTime update_times{*update_time, *update_time};
 
     {
@@ -462,8 +480,8 @@ std::optional<TimePoint> Dumper::Impl::LoadFromDump(DumpData& dump_data, const D
     dump_data.dumped_update_time = update_times;
 
     statistics_.is_loaded = true;
-    statistics_.load_duration =
-        std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - load_start);
+    statistics_.load_duration = std::chrono::duration_cast<
+        std::chrono::milliseconds>(std::chrono::steady_clock::now() - load_start);
     return update_time;
 }
 
@@ -485,27 +503,31 @@ Dumper::Dumper(
           dump_control,
           dumpable,
           *this
-      ) {}
+      )
+{}
 
 Dumper::Dumper(
     const components::ComponentConfig& config,
     const components::ComponentContext& context,
     DumpableEntity& dumpable
 )
-    : Dumper(ParseConfig(config, context), context, dumpable) {}
+    : Dumper(ParseConfig(config, context), context, dumpable)
+{}
 
 Dumper::Dumper(const Config& initial_config, const components::ComponentContext& context, DumpableEntity& dumpable)
     : impl_(
           initial_config,
           CreateOperationsFactory(initial_config, context),
-          initial_config.fs_task_processor ? context.GetTaskProcessor(*initial_config.fs_task_processor)
-                                           : engine::current_task::GetBlockingTaskProcessor(),
+          initial_config.fs_task_processor
+              ? context.GetTaskProcessor(*initial_config.fs_task_processor)
+              : engine::current_task::GetBlockingTaskProcessor(),
           context.FindComponent<components::DynamicConfig>().GetSource(),
           context.FindComponent<components::StatisticsStorage>().GetStorage(),
           context.FindComponent<components::TestsuiteSupport>().GetDumpControl(),
           dumpable,
           *this
-      ) {}
+      )
+{}
 
 Dumper::~Dumper() = default;
 

@@ -21,14 +21,17 @@ KeysForShards::KeysForShards(
     for (size_t len = 1; len <= max_len; len++) {
         std::string key_buf(len, ' ');
         GenerateLexMinKeysForShards(0, len, shard_by_key, need, key_buf, keys_);
-        if (!need) break;
+        if (!need) {
+            break;
+        }
     }
     if (need) {
         for (size_t i = 0; i < keys_.size(); i++) {
-            if (keys_[i].empty())
+            if (keys_[i].empty()) {
                 throw std::runtime_error(
                     "failed to generate key with length<=" + std::to_string(max_len) + " for shard=" + std::to_string(i)
                 );
+            }
         }
         throw std::logic_error("need > 0, but all keys are not empty");
     }
@@ -58,7 +61,9 @@ void KeysForShards::GenerateLexMinKeysForShards(
     for (char c = 'a'; c <= 'z'; c++) {
         key_buf[pos] = c;
         GenerateLexMinKeysForShards(pos + 1, len, shard_by_key, need, key_buf, keys);
-        if (!need) return;
+        if (!need) {
+            return;
+        }
     }
 }
 
@@ -66,7 +71,9 @@ std::string KeysForShards::KeysToDebugString() const {
     std::ostringstream os;
     os << '[';
     for (size_t i = 0; i < keys_.size(); i++) {
-        if (i) os << ", ";
+        if (i) {
+            os << ", ";
+        }
         os << keys_[i];
     }
     os << ']';

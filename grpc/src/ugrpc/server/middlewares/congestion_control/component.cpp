@@ -34,7 +34,8 @@ Component::Component(const components::ComponentConfig& config, const components
           context,
           USERVER_NAMESPACE::middlewares::MiddlewareDependencyBuilder()
               .InGroup<USERVER_NAMESPACE::middlewares::groups::Core>()
-      ) {
+      )
+{
     auto* cc_component = context.FindComponentOptional<USERVER_NAMESPACE::congestion_control::Component>();
 
     auto& server = context.FindComponent<ServerComponent>().GetServer();
@@ -48,8 +49,10 @@ Component::Component(const components::ComponentConfig& config, const components
     }
 }
 
-std::shared_ptr<const MiddlewareBase>
-Component::CreateMiddleware(const ugrpc::server::ServiceInfo&, const yaml_config::YamlConfig& middleware_config) const {
+std::shared_ptr<const MiddlewareBase> Component::CreateMiddleware(
+    const ugrpc::server::ServiceInfo&,
+    const yaml_config::YamlConfig& middleware_config
+) const {
     auto middleware = std::make_shared<Middleware>(middleware_config.As<Settings>(), rate_limit_);
     return middleware;
 }

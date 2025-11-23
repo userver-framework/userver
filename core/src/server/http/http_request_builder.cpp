@@ -11,8 +11,12 @@ namespace server::http {
 namespace {
 
 inline void Strip(const char*& begin, const char*& end) {
-    while (begin < end && isspace(*begin)) ++begin;
-    while (begin < end && isspace(end[-1])) --end;
+    while (begin < end && isspace(*begin)) {
+        ++begin;
+    }
+    while (begin < end && isspace(end[-1])) {
+        --end;
+    }
 }
 
 request::ResponseDataAccounter default_data_accounter;
@@ -20,9 +24,12 @@ request::ResponseDataAccounter default_data_accounter;
 }  // namespace
 
 HttpRequestBuilder::HttpRequestBuilder(request::ResponseDataAccounter& data_accounter)
-    : request_(std::make_shared<HttpRequest>(data_accounter, utils::impl::InternalTag{})) {}
+    : request_(std::make_shared<HttpRequest>(data_accounter, utils::impl::InternalTag{}))
+{}
 
-HttpRequestBuilder::HttpRequestBuilder() : HttpRequestBuilder(default_data_accounter) {}
+HttpRequestBuilder::HttpRequestBuilder()
+    : HttpRequestBuilder(default_data_accounter)
+{}
 
 HttpRequestBuilder& HttpRequestBuilder::SetRemoteAddress(engine::io::Sockaddr remote_address) {
     request_->pimpl_->remote_address = std::move(remote_address);
@@ -166,9 +173,8 @@ void HttpRequestBuilder::ParseCookies() {
             }
             Strip(key_begin, key_end);
             if (key_begin < key_end) {
-                request_->pimpl_->cookies.emplace(
-                    std::piecewise_construct, std::tie(key_begin, key_end), std::tie(value_begin, value_end)
-                );
+                request_->pimpl_->cookies
+                    .emplace(std::piecewise_construct, std::tie(key_begin, key_end), std::tie(value_begin, value_end));
             }
             parse_key = true;
             key_begin = ptr + 1;

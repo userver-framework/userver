@@ -44,6 +44,7 @@ int main(int argc, const char* const argv[]) {
             .Append<samples::digest_auth::Hello>()
             .Append<samples::digest_auth::Hello>("handler-hello-proxy")
             .Append<components::TestsuiteSupport>()
+            .Append<components::HttpClientCore>()
             .Append<components::HttpClient>()
             .Append<server::handlers::TestsControl>()
             .Append<clients::dns::Component>()

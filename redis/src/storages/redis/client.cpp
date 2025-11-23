@@ -16,13 +16,21 @@ RequestGet Client::Get(std::string key, RetryNilFromMaster, const CommandControl
     return Get(std::move(key), command_control.MergeWith(kRetryNilFromMaster));
 }
 
-RequestHget
-Client::Hget(std::string key, std::string field, RetryNilFromMaster, const CommandControl& command_control) {
+RequestHget Client::Hget(
+    std::string key,
+    std::string field,
+    RetryNilFromMaster,
+    const CommandControl& command_control
+) {
     return Hget(std::move(key), std::move(field), command_control.MergeWith(kRetryNilFromMaster));
 }
 
-RequestZscore
-Client::Zscore(std::string key, std::string member, RetryNilFromMaster, const CommandControl& command_control) {
+RequestZscore Client::Zscore(
+    std::string key,
+    std::string member,
+    RetryNilFromMaster,
+    const CommandControl& command_control
+) {
     return Zscore(std::move(key), std::move(member), command_control.MergeWith(kRetryNilFromMaster));
 }
 

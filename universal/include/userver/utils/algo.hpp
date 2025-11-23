@@ -92,7 +92,8 @@ template <typename ToContainer, typename FromContainer>
 ToContainer AsContainer(FromContainer&& container) {
     if constexpr (std::is_rvalue_reference_v<decltype(container)>) {
         return ToContainer(
-            std::make_move_iterator(std::begin(container)), std::make_move_iterator(std::end(container))
+            std::make_move_iterator(std::begin(container)),
+            std::make_move_iterator(std::end(container))
         );
     } else {
         return ToContainer(std::begin(container), std::end(container));

@@ -44,11 +44,14 @@ private:
 KeyValue::KeyValue(const components::ComponentConfig& config, const components::ComponentContext& context)
     : server::handlers::HttpHandlerBase(config, context),
       redis_client_{
-          context.FindComponent<components::Redis>("key-value-database").GetClient(config["db"].As<std::string>())} {}
+          context.FindComponent<components::Redis>("key-value-database").GetClient(config["db"].As<std::string>())
+      }
+{}
 
-std::string
-KeyValue::HandleRequestThrow(const server::http::HttpRequest& request, server::request::RequestContext& /*context*/)
-    const {
+std::string KeyValue::HandleRequestThrow(
+    const server::http::HttpRequest& request,
+    server::request::RequestContext& /*context*/
+) const {
     const auto& key = request.GetArg("key");
     if (key.empty()) {
         throw server::handlers::ClientError(server::handlers::ExternalBody{"No 'key' query argument"});
@@ -63,7 +66,8 @@ KeyValue::HandleRequestThrow(const server::http::HttpRequest& request, server::r
             return DeleteValue(key);
         default:
             throw server::handlers::ClientError(server::handlers::ExternalBody{
-                fmt::format("Unsupported method {}", request.GetMethod())});
+                fmt::format("Unsupported method {}", request.GetMethod())
+            });
     }
 }
 
@@ -108,16 +112,18 @@ std::string KeyValue::DeleteValue(std::string_view key) const {
 }  // namespace chaos
 
 int main(int argc, char* argv[]) {
-    const auto component_list = components::MinimalServerComponentList()
-                                    .Append<chaos::KeyValue>("handler-cluster")
-                                    .Append<chaos::KeyValue>("handler-sentinel")
-                                    .Append<chaos::KeyValue>("handler-standalone")
-                                    .Append<components::HttpClient>()
-                                    .Append<components::Secdist>()
-                                    .Append<components::DefaultSecdistProvider>()
-                                    .Append<components::Redis>("key-value-database")
-                                    .Append<components::TestsuiteSupport>()
-                                    .Append<server::handlers::TestsControl>()
-                                    .Append<clients::dns::Component>();
+    const auto component_list =
+        components::MinimalServerComponentList()
+            .Append<chaos::KeyValue>("handler-cluster")
+            .Append<chaos::KeyValue>("handler-sentinel")
+            .Append<chaos::KeyValue>("handler-standalone")
+            .Append<components::HttpClientCore>()
+            .Append<components::HttpClient>()
+            .Append<components::Secdist>()
+            .Append<components::DefaultSecdistProvider>()
+            .Append<components::Redis>("key-value-database")
+            .Append<components::TestsuiteSupport>()
+            .Append<server::handlers::TestsControl>()
+            .Append<clients::dns::Component>();
     return utils::DaemonMain(argc, argv, component_list);
 }

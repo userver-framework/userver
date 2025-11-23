@@ -6,7 +6,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::mysql::impl::io {
 
-ResultBinder::ResultBinder(std::size_t size) : impl_{size} {}
+ResultBinder::ResultBinder(std::size_t size)
+    : impl_{size}
+{}
 
 ResultBinder::~ResultBinder() = default;
 

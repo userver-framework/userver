@@ -90,7 +90,7 @@ CallParams CreateCallParams(const ClientData& client_data, std::size_t method_id
         throw RpcCancelledError(call_name, "RPC construction");
     }
 
-    auto stub = client_data.NextStubFromMethodId(method_id);
+    auto stub = client_data.NextStub(method_id);
 
     const auto qos = stub.GetClientQos().methods.GetOptional(call_name).value_or(Qos{});
     ApplyRetryConfiguration(call_options, qos, client_data.GetRetryConfig(), client_data.GetTestsuiteControl());
@@ -98,7 +98,10 @@ CallParams CreateCallParams(const ClientData& client_data, std::size_t method_id
         ApplyRetryConfiguration(call_options, qos, client_data.GetRetryConfig(), client_data.GetTestsuiteControl());
     } else {
         ApplyRetryConfigurationStreaming(
-            call_options, qos, client_data.GetRetryConfig(), client_data.GetTestsuiteControl()
+            call_options,
+            qos,
+            client_data.GetRetryConfig(),
+            client_data.GetTestsuiteControl()
         );
     }
 

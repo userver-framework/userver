@@ -14,14 +14,17 @@ USERVER_NAMESPACE_BEGIN
 namespace ugrpc::server::middlewares::headers_propagator {
 
 Component::Component(const components::ComponentConfig& config, const components::ComponentContext& context)
-    : MiddlewareFactoryComponentBase(config, context) {}
+    : MiddlewareFactoryComponentBase(config, context)
+{}
 
-std::shared_ptr<const MiddlewareBase>
-Component::CreateMiddleware(const ugrpc::server::ServiceInfo&, const yaml_config::YamlConfig& middleware_config) const {
+std::shared_ptr<const MiddlewareBase> Component::CreateMiddleware(
+    const ugrpc::server::ServiceInfo&,
+    const yaml_config::YamlConfig& middleware_config
+) const {
     const auto headers = middleware_config["headers"].As<std::vector<std::string>>({});
-    return std::make_shared<Middleware>(utils::AsContainer<decltype(headers)>(
-        headers | boost::adaptors::transformed([](const auto& h) { return utils::text::ToLower(h); })
-    ));
+    return std::make_shared<
+        Middleware>(utils::AsContainer<decltype(headers
+                    )>(headers | boost::adaptors::transformed([](const auto& h) { return utils::text::ToLower(h); })));
 }
 
 yaml_config::Schema Component::GetMiddlewareConfigSchema() const { return GetStaticConfigSchema(); }

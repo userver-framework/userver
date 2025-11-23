@@ -229,7 +229,8 @@ struct StructRowParser final {
         UASSERT(columns_count >= kFieldsCount);
         if (columns_count != kFieldsCount) {
             throw ParseError(fmt::format(
-                "Unexpected extra columns while parsing row to '{}' struct type", compiler::GetTypeName<T>()
+                "Unexpected extra columns while parsing row to '{}' struct type",
+                compiler::GetTypeName<T>()
             ));
         }
 
@@ -241,11 +242,11 @@ struct StructRowParser final {
     }
 
     template <std::size_t... Indices>
-    static T
-    ParseRowImpl(NYdb::TResultSetParser& parser, const std::unique_ptr<std::size_t[]>& cpp_to_ydb_mapping, std::index_sequence<Indices...>) {
+    static T ParseRowImpl(NYdb::TResultSetParser& parser, const std::unique_ptr<std::size_t[]>& cpp_to_ydb_mapping, std::index_sequence<Indices...>) {
         return T{
             Parse<boost::pfr::tuple_element_t<Indices, T>>(
-                parser.ColumnParser(cpp_to_ydb_mapping[Indices]), ParseContext{/*column_name=*/kFieldNames[Indices]}
+                parser.ColumnParser(cpp_to_ydb_mapping[Indices]),
+                ParseContext{/*column_name=*/kFieldNames[Indices]}
             )...,
         };
     }

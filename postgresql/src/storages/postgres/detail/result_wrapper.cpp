@@ -22,26 +22,30 @@ namespace {
 
 const std::string kSeverityLogExtraKey = "pg_severity";
 
-constexpr std::pair<const char*, int> kExtraErrorFields[]{// pg_severity is processed separately
-                                                          {"pg_sqlstate", PG_DIAG_SQLSTATE},
-                                                          {"pg_detail", PG_DIAG_MESSAGE_DETAIL},
-                                                          {"pg_hint", PG_DIAG_MESSAGE_HINT},
-                                                          {"pg_statement_position", PG_DIAG_STATEMENT_POSITION},
-                                                          {"pg_internal_query", PG_DIAG_INTERNAL_QUERY},
-                                                          {"pg_internal_position", PG_DIAG_INTERNAL_POSITION},
-                                                          {"pg_context", PG_DIAG_CONTEXT},
-                                                          {"pg_schema", PG_DIAG_SCHEMA_NAME},
-                                                          {"pg_table", PG_DIAG_TABLE_NAME},
-                                                          {"pg_column", PG_DIAG_COLUMN_NAME},
-                                                          {"pg_datatype", PG_DIAG_DATATYPE_NAME},
-                                                          {"pg_constraint", PG_DIAG_CONSTRAINT_NAME}};
+constexpr std::pair<const char*, int> kExtraErrorFields[]{
+    // pg_severity is processed separately
+    {"pg_sqlstate", PG_DIAG_SQLSTATE},
+    {"pg_detail", PG_DIAG_MESSAGE_DETAIL},
+    {"pg_hint", PG_DIAG_MESSAGE_HINT},
+    {"pg_statement_position", PG_DIAG_STATEMENT_POSITION},
+    {"pg_internal_query", PG_DIAG_INTERNAL_QUERY},
+    {"pg_internal_position", PG_DIAG_INTERNAL_POSITION},
+    {"pg_context", PG_DIAG_CONTEXT},
+    {"pg_schema", PG_DIAG_SCHEMA_NAME},
+    {"pg_table", PG_DIAG_TABLE_NAME},
+    {"pg_column", PG_DIAG_COLUMN_NAME},
+    {"pg_datatype", PG_DIAG_DATATYPE_NAME},
+    {"pg_constraint", PG_DIAG_CONSTRAINT_NAME}
+};
 
 // A scope we use to manage a type-name "path".
 // Only used when we've encountered an unknown buffer category.
 class TypeNameScope final {
 public:
     template <typename Fn>
-    TypeNameScope(std::vector<std::string>& context, Fn&& ctx_factory) : context_{context} {
+    TypeNameScope(std::vector<std::string>& context, Fn&& ctx_factory)
+        : context_{context}
+    {
         context_.emplace_back(ctx_factory());
     }
     ~TypeNameScope() { context_.pop_back(); }
@@ -101,12 +105,14 @@ bool DoAddTypeBufferCategories(
         // Recursively add buffer categories for data members
         const auto& type_desc = types.GetCompositeDescription(data_type);
         auto type_name = types.FindName(data_type);
-        const ScopeType path_scope{
-            context, [&type_name] { return fmt::format(FMT_COMPILE("type `{}`"), type_name.ToString()); }};
+        const ScopeType
+            path_scope{context, [&type_name] { return fmt::format(FMT_COMPILE("type `{}`"), type_name.ToString()); }};
         auto n_fields = type_desc.Size();
         for (std::size_t f_no = 0; f_no < n_fields; ++f_no) {
             const ScopeType child_scope{
-                context, [&type_desc, f_no] { return fmt::format(FMT_COMPILE("field `{}`"), type_desc[f_no].name); }};
+                context,
+                [&type_desc, f_no] { return fmt::format(FMT_COMPILE("field `{}`"), type_desc[f_no].name); }
+            };
             if (!DoAddTypeBufferCategories<ScopeType>(type_desc[f_no].type, types, cats, context)) {
                 return false;
             }
@@ -128,9 +134,10 @@ bool AddTypeBufferCategories(
 
     for (std::size_t f_no = 0; f_no < n_fields; ++f_no) {
         auto data_type = get_field_type_oid_fn(f_no);
-        ScopeType path_start_scope{context, [&get_field_name_fn, f_no] {
-                                       return fmt::format("result set field `{}`", get_field_name_fn(f_no));
-                                   }};
+        ScopeType path_start_scope{
+            context,
+            [&get_field_name_fn, f_no] { return fmt::format("result set field `{}`", get_field_name_fn(f_no)); }
+        };
 
         if (!DoAddTypeBufferCategories<ScopeType>(data_type, types, buffer_categories, context)) {
             return false;
@@ -146,7 +153,11 @@ struct ResultWrapper::CachedFieldBufferCategories final {
     boost::container::small_vector<io::BufferCategory, 16> data;
 };
 
-ResultWrapper::ResultWrapper(ResultHandle&& res) : handle{std::move(res)} { UASSERT(handle); }
+ResultWrapper::ResultWrapper(ResultHandle&& res)
+    : handle{std::move(res)}
+{
+    UASSERT(handle);
+}
 
 ResultWrapper::~ResultWrapper() = default;
 
@@ -181,8 +192,8 @@ void ResultWrapper::FillBufferCategories(const UserTypes& types) {
         const auto data_type = GetFieldTypeOid(f_no);
         const auto f = buffer_categories.find(data_type);
 
-        cached_buffer_categories->data[f_no] =
-            (f == buffer_categories.end() ? io::BufferCategory::kNoParser : f->second);
+        cached_buffer_categories
+            ->data[f_no] = (f == buffer_categories.end() ? io::BufferCategory::kNoParser : f->second);
     }
 }
 
@@ -220,7 +231,9 @@ std::size_t ResultWrapper::RowsAffected() const {
 
 std::size_t ResultWrapper::IndexOfName(USERVER_NAMESPACE::utils::zstring_view name) const {
     auto n = PQfnumber(handle.get(), name.c_str());
-    if (n < 0) return ResultSet::npos;
+    if (n < 0) {
+        return ResultSet::npos;
+    }
     return n;
 }
 
@@ -240,7 +253,8 @@ FieldDescription ResultWrapper::GetFieldDescription(std::size_t col) const {
         PQftable(handle.get(), col),
         PQftablecol(handle.get(), col),
         PQfsize(handle.get(), col),
-        PQfmod(handle.get(), col)};
+        PQfmod(handle.get(), col)
+    };
 }
 
 bool ResultWrapper::IsFieldNull(std::size_t row, std::size_t col) const { return PQgetisnull(handle.get(), row, col); }
@@ -259,13 +273,15 @@ io::FieldBuffer ResultWrapper::GetFieldBuffer(std::size_t row, std::size_t col) 
     if (PQfformat(handle.get(), col) != io::kPgBinaryDataFormat) {
         throw ResultSetError{
             fmt::format("Column with index {} has text format\n", col) +
-            logging::stacktrace_cache::to_string(boost::stacktrace::stacktrace{})};
+            logging::stacktrace_cache::to_string(boost::stacktrace::stacktrace{})
+        };
     }
     return io::FieldBuffer{
         IsFieldNull(row, col),
         GetFieldBufferCategory(col),
         GetFieldLength(row, col),
-        reinterpret_cast<const std::uint8_t*>(PQgetvalue(handle.get(), row, col))};
+        reinterpret_cast<const std::uint8_t*>(PQgetvalue(handle.get(), row, col))
+    };
 }
 
 std::string ResultWrapper::GetErrorMessage() const {

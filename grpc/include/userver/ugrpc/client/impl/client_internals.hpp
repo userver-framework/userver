@@ -6,9 +6,9 @@
 #include <grpcpp/support/channel_arguments.h>
 
 #include <userver/dynamic_config/source.hpp>
-#include <userver/testsuite/grpc_control.hpp>
 
 #include <userver/ugrpc/client/client_settings.hpp>
+#include <userver/ugrpc/client/fwd.hpp>
 #include <userver/ugrpc/client/impl/channel_factory.hpp>
 #include <userver/ugrpc/client/middlewares/fwd.hpp>
 #include <userver/ugrpc/client/proxy_settings.hpp>

@@ -75,7 +75,8 @@ struct Component::Impl {
           server(server),
           server_sensor(tp),
           server_controller(kServerControllerName, dynamic_config),
-          fake_mode(fake_mode) {
+          fake_mode(fake_mode)
+    {
         server_limiter.RegisterLimitee(server);
         server_sensor.RegisterRequestsSource(server);
     }
@@ -88,7 +89,8 @@ Component::Component(const components::ComponentConfig& config, const components
           context.FindComponent<components::Server>().GetServer(),
           engine::current_task::GetTaskProcessor(),
           config["fake-mode"].As<bool>(false)
-      ) {
+      )
+{
     auto min_threads = config["min-cpu"].As<size_t>(1);
     auto only_rtc = config["only-rtc"].As<bool>(true);
 
@@ -113,8 +115,9 @@ Component::Component(const components::ComponentConfig& config, const components
     }
 
     if (pimpl_->fake_mode) {
-        LOG_WARNING() << "congestion_control is started in fake-mode, no RPS limit "
-                         "is enforced";
+        LOG_WARNING()
+            << "congestion_control is started in fake-mode, no RPS limit "
+               "is enforced";
     }
 
     pimpl_->wd.Register({pimpl_->server_sensor, pimpl_->server_limiter, pimpl_->server_controller});
@@ -122,8 +125,9 @@ Component::Component(const components::ComponentConfig& config, const components
     pimpl_->config_subscription = pimpl_->dynamic_config.UpdateAndListen(this, kName, &Component::OnConfigUpdate);
 
     auto& storage = context.FindComponent<components::StatisticsStorage>().GetStorage();
-    pimpl_->statistics_holder =
-        storage.RegisterWriter(std::string{kName}, [this](utils::statistics::Writer& writer) { ExtendWriter(writer); });
+    pimpl_->statistics_holder = storage.RegisterWriter(std::string{kName}, [this](utils::statistics::Writer& writer) {
+        ExtendWriter(writer);
+    });
 }
 
 Component::~Component() {
@@ -137,16 +141,18 @@ void Component::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
 
     bool enabled = !pimpl_->fake_mode.load() && !pimpl_->force_disabled.load();
     if (enabled && !is_enabled_dynamic) {
-        LOG_INFO() << "Congestion control is explicitly disabled in "
-                      "USERVER_RPS_CCONTROL_ENABLED config";
+        LOG_INFO()
+            << "Congestion control is explicitly disabled in "
+               "USERVER_RPS_CCONTROL_ENABLED config";
         enabled = false;
     }
     pimpl_->server_controller.SetEnabled(enabled);
 }
 
 void Component::OnAllComponentsLoaded() {
-    LOG_DEBUG() << "Found " << pimpl_->server.GetThrottlableHandlersCount()
-                << " registered HTTP handlers with enabled throttling";
+    LOG_DEBUG()
+        << "Found " << pimpl_->server.GetThrottlableHandlersCount()
+        << " registered HTTP handlers with enabled throttling";
     if (pimpl_->server.GetThrottlableHandlersCount() == 0) {
         pimpl_->force_disabled = true;
         LOG_WARNING() << "No throttlable HTTP handlers registered, disabling";

@@ -50,7 +50,14 @@ TEST(TrivialBiMap, StringBasicDescribe) {
 
 /// [sample bidir bimap]
 enum class Colors { kRed, kOrange, kYellow, kGreen, kBlue, kViolet };
-enum ThirdPartyColor { kGreen, kBlue, kViolet, kRed, kOrange, kYellow };
+enum ThirdPartyColor {
+    kGreen,
+    kBlue,
+    kViolet,
+    kRed,
+    kOrange,
+    kYellow
+};
 
 constexpr utils::TrivialBiMap kColorSwitch = [](auto selector) {
     return selector()

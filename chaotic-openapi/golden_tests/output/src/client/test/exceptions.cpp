@@ -23,7 +23,9 @@ std::string_view Exception::HandleInfo() const noexcept { return kHandleInfo; }
 
 HttpException::~HttpException() = default;
 
-TimeoutException::TimeoutException() : HttpException(USERVER_NAMESPACE::clients::http::ErrorKind::kTimeout) {}
+TimeoutException::TimeoutException()
+    : HttpException(USERVER_NAMESPACE::clients::http::ErrorKind::kTimeout)
+{}
 
 TimeoutException::~TimeoutException() = default;
 

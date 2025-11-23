@@ -39,8 +39,12 @@ namespace {
 constexpr auto kStatisticsName = "postgresql";
 
 storages::postgres::ConnlimitMode ParseConnlimitMode(const std::string& value) {
-    if (value == "manual") return storages::postgres::ConnlimitMode::kManual;
-    if (value == "auto") return storages::postgres::ConnlimitMode::kAuto;
+    if (value == "manual") {
+        return storages::postgres::ConnlimitMode::kManual;
+    }
+    if (value == "auto") {
+        return storages::postgres::ConnlimitMode::kAuto;
+    }
 
     UINVARIANT(false, "Unknown connlimit mode: " + value);
 }
@@ -54,7 +58,9 @@ storages::postgres::OmitDescribeInExecuteMode ParseOmitDescribe(const dynamic_co
 
 template <typename T>
 void MergeField(T& field, const std::optional<T>& opt) {
-    if (opt) field = *opt;
+    if (opt) {
+        field = *opt;
+    }
 }
 
 void MergePoolSettings(
@@ -95,7 +101,8 @@ Postgres::Postgres(const ComponentConfig& config, const ComponentContext& contex
     : ComponentBase(config, context),
       name_{config["name_alias"].As<std::string>(config.Name())},
       database_{std::make_shared<storages::postgres::Database>()},
-      config_source_{context.FindComponent<DynamicConfig>().GetSource()} {
+      config_source_{context.FindComponent<DynamicConfig>().GetSource()}
+{
     storages::postgres::LogRegisteredTypesOnce();
 
     namespace pg = storages::postgres;
@@ -128,8 +135,10 @@ Postgres::Postgres(const ComponentConfig& config, const ComponentContext& contex
         db_name_ = monitoring_dbalias;
     }
 
-    initial_settings_.init_mode = config["sync-start"].As<bool>(true) ? storages::postgres::InitMode::kSync
-                                                                      : storages::postgres::InitMode::kAsync;
+    initial_settings_.init_mode =
+        config["sync-start"].As<bool>(true)
+            ? storages::postgres::InitMode::kSync
+            : storages::postgres::InitMode::kAsync;
     initial_settings_.db_name = db_name_;
     initial_settings_.connlimit_mode = ParseConnlimitMode(config["connlimit_mode"].As<std::string>("auto"));
 
@@ -150,17 +159,21 @@ Postgres::Postgres(const ComponentConfig& config, const ComponentContext& contex
             ? storages::postgres::PipelineMode::kEnabled
             : storages::postgres::PipelineMode::kDisabled;
     initial_settings_.conn_settings.omit_describe_mode = ParseOmitDescribe(initial_config);
-    initial_settings_.statement_metrics_settings = pg_config.statement_metrics_settings.GetOptional(name_).value_or(
-        config.As<storages::postgres::StatementMetricsSettings>()
-    );
+    initial_settings_.statement_metrics_settings =
+        pg_config.statement_metrics_settings.GetOptional(name_)
+            .value_or(config.As<storages::postgres::StatementMetricsSettings>());
 
     const auto task_processor_name = config["blocking_task_processor"].As<std::optional<std::string>>();
-    auto& bg_task_processor = task_processor_name ? context.GetTaskProcessor(*task_processor_name)
-                                                  : engine::current_task::GetBlockingTaskProcessor();
+    auto& bg_task_processor =
+        task_processor_name
+            ? context.GetTaskProcessor(*task_processor_name)
+            : engine::current_task::GetBlockingTaskProcessor();
 
     error_injection::Settings ei_settings;
     auto ei_settings_opt = config["error-injection"].As<std::optional<error_injection::Settings>>();
-    if (ei_settings_opt) ei_settings = *ei_settings_opt;
+    if (ei_settings_opt) {
+        ei_settings = *ei_settings_opt;
+    }
 
     auto& statistics_storage = context.FindComponent<components::StatisticsStorage>().GetStorage();
     statistics_holder_ = statistics_storage.RegisterWriter(kStatisticsName, [this](utils::statistics::Writer& writer) {
@@ -186,7 +199,8 @@ Postgres::Postgres(const ComponentConfig& config, const ComponentContext& contex
             storages::postgres::DefaultCommandControls{
                 pg_config.default_command_control,
                 pg_config.handlers_command_control,
-                pg_config.queries_command_control},
+                pg_config.queries_command_control
+            },
             testsuite_pg_ctl,
             ei_settings,
             testsuite_tasks,
@@ -242,9 +256,10 @@ void Postgres::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
     auto connection_settings = initial_settings_.conn_settings;
     MergeConnectionSettings(pg_config.connection_settings.GetOptional(name_), connection_settings);
 
-    connection_settings.pipeline_mode = cfg[::dynamic_config::POSTGRES_CONNECTION_PIPELINE_EXPERIMENT] > 0
-                                            ? storages::postgres::PipelineMode::kEnabled
-                                            : storages::postgres::PipelineMode::kDisabled;
+    connection_settings.pipeline_mode =
+        cfg[::dynamic_config::POSTGRES_CONNECTION_PIPELINE_EXPERIMENT] > 0
+            ? storages::postgres::PipelineMode::kEnabled
+            : storages::postgres::PipelineMode::kDisabled;
     connection_settings.omit_describe_mode = ParseOmitDescribe(cfg);
     const auto statement_metrics_settings =
         pg_config.statement_metrics_settings.GetOptional(name_).value_or(initial_settings_.statement_metrics_settings);

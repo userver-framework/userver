@@ -213,7 +213,9 @@ public:
     using pointer = const_iterator;
     //@}
 
-    explicit ResultSet(std::shared_ptr<detail::ResultWrapper> pimpl) : pimpl_{std::move(pimpl)} {}
+    explicit ResultSet(std::shared_ptr<detail::ResultWrapper> pimpl)
+        : pimpl_{std::move(pimpl)}
+    {}
 
     /// Number of rows in the result set
     size_type Size() const;
@@ -583,7 +585,9 @@ public:
 #endif
 
     //@}
-    explicit TypedResultSet(ResultSet result) : result_{std::move(result)} {}
+    explicit TypedResultSet(ResultSet result)
+        : result_{std::move(result)}
+    {}
 
     /// Number of rows in the result set
     size_type Size() const { return result_.Size(); }

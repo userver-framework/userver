@@ -7,7 +7,9 @@ USERVER_NAMESPACE_BEGIN
 namespace ugrpc::server {
 
 HealthComponent::HealthComponent(const components::ComponentConfig& config, const components::ComponentContext& context)
-    : ServiceComponentBase{config, context}, service_{context} {
+    : ServiceComponentBase{config, context},
+      service_{context}
+{
     RegisterService(*service_);
 }
 

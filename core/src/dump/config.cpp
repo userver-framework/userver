@@ -25,10 +25,13 @@ constexpr auto kDefaultMaxDumpCount = uint64_t{1};
 
 namespace impl {
 
-std::chrono::milliseconds
-ParseMs(const formats::json::Value& value, std::optional<std::chrono::milliseconds> default_value) {
-    const auto result =
-        std::chrono::milliseconds{default_value ? value.As<int64_t>(default_value->count()) : value.As<int64_t>()};
+std::chrono::milliseconds ParseMs(
+    const formats::json::Value& value,
+    std::optional<std::chrono::milliseconds> default_value
+) {
+    const auto result = std::chrono::milliseconds{
+        default_value ? value.As<int64_t>(default_value->count()) : value.As<int64_t>()
+    };
     if (result < std::chrono::milliseconds::zero()) {
         throw formats::json::ParseException("Negative duration");
     }
@@ -52,7 +55,8 @@ Config::Config(std::string name, const yaml_config::YamlConfig& config, std::str
       max_dump_age_set(config.HasMember(kMaxDumpAge)),
       dump_is_encrypted(config[kEncrypted].As<bool>(false)),
       static_dumps_enabled(config[kDumpsEnabled].As<bool>()),
-      static_min_dump_interval(config[kMinDumpInterval].As<std::chrono::milliseconds>(0)) {
+      static_min_dump_interval(config[kMinDumpInterval].As<std::chrono::milliseconds>(0))
+{
     if (max_dump_age && *max_dump_age <= std::chrono::milliseconds::zero()) {
         throw std::logic_error(fmt::format("{}: {} must be positive", this->name, kMaxDumpAge));
     }
@@ -63,7 +67,8 @@ Config::Config(std::string name, const yaml_config::YamlConfig& config, std::str
 
 DynamicConfig::DynamicConfig(const Config& config, ConfigPatch&& patch)
     : dumps_enabled(patch.dumps_enabled.value_or(config.static_dumps_enabled)),
-      min_dump_interval(patch.min_dump_interval_ms.value_or(config.static_min_dump_interval)) {}
+      min_dump_interval(patch.min_dump_interval_ms.value_or(config.static_min_dump_interval))
+{}
 
 bool DynamicConfig::operator==(const DynamicConfig& other) const noexcept {
     return dumps_enabled == other.dumps_enabled && min_dump_interval == other.min_dump_interval;

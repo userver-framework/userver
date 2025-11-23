@@ -3,8 +3,6 @@ Testpoints support for the server.
 """
 
 # pylint: disable=redefined-outer-name
-import typing
-
 import pytest
 
 USERVER_CONFIG_HOOKS = ['userver_config_testpoint']
@@ -20,7 +18,7 @@ class UnregisteredTestpointError(BaseError):
 
 class TestpointControl:
     def __init__(self):
-        self.enabled_testpoints: typing.FrozenSet[str] = frozenset()
+        self.enabled_testpoints: frozenset[str] = frozenset()
 
 
 DISABLED_ERROR = """Access to {opname!r} on unregistered testpoint {name}

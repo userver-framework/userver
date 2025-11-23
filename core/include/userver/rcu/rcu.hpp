@@ -264,7 +264,9 @@ public:
             // Is the record we locked 'current_'? If so, congratulations, we are
             // holding a lock to 'current_'.
             auto* new_current = ptr.current_.load(std::memory_order_seq_cst);
-            if (new_current == record) break;
+            if (new_current == record) {
+                break;
+            }
 
             // 'current_' changed, try again
             record = new_current;
@@ -318,12 +320,18 @@ public:
     /// @cond
     // For internal use only. Use `var.StartWrite()` instead
     explicit WritablePtr(Variable<T, RcuTraits>& var)
-        : var_(var), lock_(var.mutex_), record_(&var.EmplaceSnapshot(*var.current_.load()->data)) {}
+        : var_(var),
+          lock_(var.mutex_),
+          record_(&var.EmplaceSnapshot(*var.current_.load()->data))
+    {}
 
     // For internal use only. Use `var.Emplace(args...)` instead
     template <typename... Args>
     WritablePtr(Variable<T, RcuTraits>& var, std::in_place_t, Args&&... initial_value_args)
-        : var_(var), lock_(var.mutex_), record_(&var.EmplaceSnapshot(std::forward<Args>(initial_value_args)...)) {}
+        : var_(var),
+          lock_(var.mutex_),
+          record_(&var.EmplaceSnapshot(std::forward<Args>(initial_value_args)...))
+    {}
     /// @endcond
 
     WritablePtr(WritablePtr&& other) noexcept
@@ -411,7 +419,9 @@ public:
     /// initial value
     template <typename... Args>
     // TODO make explicit
-    Variable(Args&&... initial_value_args) : current_(&EmplaceSnapshot(std::forward<Args>(initial_value_args)...)) {}
+    Variable(Args&&... initial_value_args)
+        : current_(&EmplaceSnapshot(std::forward<Args>(initial_value_args)...))
+    {}
 
     Variable(const Variable&) = delete;
     Variable(Variable&&) = delete;
@@ -508,7 +518,9 @@ private:
 
     void ScanRetiredList(std::unique_lock<MutexType>& lock) noexcept {
         UASSERT(lock.owns_lock());
-        if (retired_list_.IsEmpty()) return;
+        if (retired_list_.IsEmpty()) {
+            return;
+        }
 
         concurrent::impl::AsymmetricThreadFenceHeavy();
 
@@ -520,7 +532,8 @@ private:
 
     void DeleteSnapshot(impl::SnapshotRecord<T>& record) noexcept {
         static_assert(
-            noexcept(deleter_.Delete(SnapshotHandle<T>{record, free_list_})), "DeleterType::Delete must be noexcept"
+            noexcept(deleter_.Delete(SnapshotHandle<T>{record, free_list_})),
+            "DeleterType::Delete must be noexcept"
         );
         deleter_.Delete(SnapshotHandle<T>{record, free_list_});
     }

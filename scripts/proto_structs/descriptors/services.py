@@ -2,8 +2,6 @@
 
 from collections.abc import Iterable
 import typing
-from typing import Dict
-from typing import List
 
 import google.protobuf.descriptor as descriptor
 
@@ -13,9 +11,9 @@ from proto_structs.models import type_ref
 
 def collect_rpc_input_output_types(file: descriptor.FileDescriptor) -> Iterable[type_ref.TypeReference]:
     """Collects input and output types of all gRPC service methods in the file."""
-    services = typing.cast(Dict[str, descriptor.ServiceDescriptor], file.services_by_name)
+    services = typing.cast(dict[str, descriptor.ServiceDescriptor], file.services_by_name)
     for service in services.values():
-        methods: List[descriptor.MethodDescriptor] = service.methods
+        methods: list[descriptor.MethodDescriptor] = service.methods
         for method in methods:
             input_type: descriptor.Descriptor = method.input_type
             output_type: descriptor.Descriptor = method.output_type

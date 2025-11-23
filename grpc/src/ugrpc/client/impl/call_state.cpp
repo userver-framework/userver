@@ -64,7 +64,8 @@ void AddTracingMetadata(grpc::ClientContext& client_context, const tracing::Span
 }  // namespace
 
 RpcConfigValues::RpcConfigValues(const dynamic_config::Snapshot& config)
-    : enforce_task_deadline(config[::dynamic_config::USERVER_GRPC_CLIENT_ENABLE_DEADLINE_PROPAGATION]) {}
+    : enforce_task_deadline(config[::dynamic_config::USERVER_GRPC_CLIENT_ENABLE_DEADLINE_PROPAGATION])
+{}
 
 CallState::CallState(CallParams&& params, CallKind call_kind)
     : stub_(std::move(params.stub)),
@@ -75,7 +76,8 @@ CallState::CallState(CallParams&& params, CallKind call_kind)
       config_values_(params.config),
       middleware_pipeline_(params.middlewares),
       testsuite_grpc_(params.testsuite_grpc),
-      call_kind_(call_kind) {
+      call_kind_(call_kind)
+{
     UINVARIANT(!client_name_.empty(), "client name should not be empty");
 
     SetupSpan(span_, params.endpoint, call_name_.Get(), params.service_name, params.method_name);
@@ -141,7 +143,8 @@ grpc::ClientContext& CallState::GetClientContextCommitted() {
 }
 
 StreamingCallState::StreamingCallState(CallParams&& params, CallKind call_kind)
-    : CallState(std::move(params), call_kind) {
+    : CallState(std::move(params), call_kind)
+{
     SetupClientContext(*this, params.call_options);
     Commit();
 }

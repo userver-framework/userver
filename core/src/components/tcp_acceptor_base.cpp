@@ -16,7 +16,8 @@ namespace components {
 using server::net::ListenerConfig;
 
 TcpAcceptorBase::TcpAcceptorBase(const ComponentConfig& config, const ComponentContext& context)
-    : TcpAcceptorBase(config, context, config.As<ListenerConfig>()) {}
+    : TcpAcceptorBase(config, context, config.As<ListenerConfig>())
+{}
 
 TcpAcceptorBase::~TcpAcceptorBase() = default;
 
@@ -63,14 +64,16 @@ TcpAcceptorBase::TcpAcceptorBase(
     : ComponentBase(config, context),
       no_delay_(config["no_delay"].As<bool>(true)),
       acceptor_task_processor_(
-          acceptor_config.task_processor ? context.GetTaskProcessor(*acceptor_config.task_processor)
-                                         : engine::current_task::GetTaskProcessor()
+          acceptor_config.task_processor
+              ? context.GetTaskProcessor(*acceptor_config.task_processor)
+              : engine::current_task::GetTaskProcessor()
       ),
       sockets_task_processor_(
           config["sockets_task_processor"].IsMissing()
               ? acceptor_task_processor_
               : context.GetTaskProcessor(config["sockets_task_processor"].As<std::string>())
-      ) {
+      )
+{
     for (const auto& port : acceptor_config.ports) {
         auto socket = server::net::CreateSocket(acceptor_config, port);
         sockets_.emplace_back(SocketData{std::move(socket), {}});
@@ -100,7 +103,10 @@ void TcpAcceptorBase::OnAllComponentsLoaded() {
     for (auto& socket_data : sockets_) {
         socket_data.acceptor =
             engine::AsyncNoSpan(
-                acceptor_task_processor_, &TcpAcceptorBase::KeepAccepting, this, std::ref(socket_data.listen_sock)
+                acceptor_task_processor_,
+                &TcpAcceptorBase::KeepAccepting,
+                this,
+                std::ref(socket_data.listen_sock)
             )
                 .AsTask();
     }

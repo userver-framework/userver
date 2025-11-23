@@ -8,7 +8,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::mongo {
 
-MongoError::MongoError() : value_{} {}
+MongoError::MongoError()
+    : value_{}
+{}
 
 MongoError::operator bool() const { return !!value_.code; }
 
@@ -138,7 +140,9 @@ uint32_t MongoError::Domain() const { return value_.domain; }
 bson_error_t* MongoError::GetNative() { return &value_; }
 
 [[noreturn]] void MongoError::Throw(std::string prefix) const {
-    if (!prefix.empty()) prefix += ": ";
+    if (!prefix.empty()) {
+        prefix += ": ";
+    }
 
     switch (GetKind()) {
         case Kind::kNoError:

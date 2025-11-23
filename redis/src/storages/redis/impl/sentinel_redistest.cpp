@@ -34,7 +34,9 @@ UTEST_F(SentinelTest, ReplyServerId) {
             EXPECT_FALSE(id.IsAny());
             server_ids.insert(id);
         }
-        if (server_ids.size() > 1) break;
+        if (server_ids.size() > 1) {
+            break;
+        }
         engine::SleepFor(kSleepInterval);
     }
     EXPECT_GT(server_ids.size(), 1);

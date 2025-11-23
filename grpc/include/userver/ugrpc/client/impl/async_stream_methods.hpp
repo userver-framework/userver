@@ -16,21 +16,10 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client::impl {
 
-/// @{
-/// @brief Helper type aliases for low-level asynchronous gRPC streams
-/// @see <grpcpp/impl/codegen/async_stream_impl.h>
-template <typename Response>
-using RawReader = std::unique_ptr<grpc::ClientAsyncReader<Response>>;
-
-template <typename Request>
-using RawWriter = std::unique_ptr<grpc::ClientAsyncWriter<Request>>;
-
-template <typename Request, typename Response>
-using RawReaderWriter = std::unique_ptr<grpc::ClientAsyncReaderWriter<Request, Response>>;
-/// @}
-
-ugrpc::impl::AsyncMethodInvocation::WaitStatus
-WaitAndTryCancelIfNeeded(ugrpc::impl::AsyncMethodInvocation& invocation, grpc::ClientContext& context) noexcept;
+ugrpc::impl::AsyncMethodInvocation::WaitStatus WaitAndTryCancelIfNeeded(
+    ugrpc::impl::AsyncMethodInvocation& invocation,
+    grpc::ClientContext& context
+) noexcept;
 
 void CheckOk(StreamingCallState& state, ugrpc::impl::AsyncMethodInvocation::WaitStatus status, std::string_view stage);
 
@@ -109,7 +98,8 @@ void Finish(
 }
 
 template <typename GrpcStream>
-void FinishAbandoned(GrpcStream& stream, StreamingCallState& state) noexcept try {
+void FinishAbandoned(GrpcStream& stream, StreamingCallState& state) noexcept try
+{
     if (state.IsFinished()) {
         return;
     }

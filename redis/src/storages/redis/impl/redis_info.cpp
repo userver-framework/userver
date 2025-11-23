@@ -11,11 +11,17 @@ ReplicationInfo ParseReplicationInfo(const std::string& info) {
 
     const auto lines = utils::text::Split(info, "\n\r");
     for (const auto& line : lines) {
-        if (line.empty()) continue;
-        if (line.front() == '#') continue;
+        if (line.empty()) {
+            continue;
+        }
+        if (line.front() == '#') {
+            continue;
+        }
 
         auto it = line.find(':');
-        if (it == std::string::npos) continue;
+        if (it == std::string::npos) {
+            continue;
+        }
 
         auto key = line.substr(0, it);
         auto value = line.substr(it + 1);

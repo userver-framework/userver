@@ -61,9 +61,8 @@ TYPED_TEST(DumpCommonNumeric, Numeric) {
     } else {
         // 8-bit types are not allowed in uniform_int_distribution, so increase the
         // T size.
-        std::uniform_int_distribution<std::common_type_t<Num, unsigned short>> distribution(
-            std::numeric_limits<Num>::min(), std::numeric_limits<Num>::max()
-        );
+        std::uniform_int_distribution<std::common_type_t<Num, unsigned short>>
+            distribution(std::numeric_limits<Num>::min(), std::numeric_limits<Num>::max());
         for (int i = 0; i < 1000; ++i) {
             TestWriteReadCycle(static_cast<Num>(utils::WithDefaultRandom(distribution)));
         }
@@ -99,7 +98,10 @@ TEST(DumpCommon, Bool) {
 }
 
 struct TwoStrings {
-    TwoStrings(std::string_view a, std::string_view b) : a(a), b(b) {}
+    TwoStrings(std::string_view a, std::string_view b)
+        : a(a),
+          b(b)
+    {}
 
     std::string a;
     std::string b;
@@ -129,7 +131,9 @@ namespace {
 
 class MyBigInt final {
 public:
-    explicit MyBigInt(std::string_view str) : data_(str) {}
+    explicit MyBigInt(std::string_view str)
+        : data_(str)
+    {}
 
     // This could be some buffer from an external serialization library.
     std::string_view AsStringView() const { return data_; }
@@ -212,7 +216,9 @@ TEST(DumpCommon, ReadEntire) {
             const std::string data(1 << exp_size, 'a');
 
             dump::MockReader reader(data);
-            if (pre_read) dump::ReadStringViewUnsafe(reader, 1);
+            if (pre_read) {
+                dump::ReadStringViewUnsafe(reader, 1);
+            }
 
             const auto result = dump::ReadEntire(reader);
             EXPECT_EQ(result, data.substr(pre_read));

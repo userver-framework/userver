@@ -2,7 +2,6 @@
 
 #include <fmt/format.h>
 
-#include <ugrpc/client/middlewares/log/middleware.hpp>
 #include <userver/engine/task/task.hpp>
 #include <userver/ugrpc/client/middlewares/deadline_propagation/middleware.hpp>
 #include <userver/ugrpc/server/middlewares/deadline_propagation/middleware.hpp>
@@ -11,14 +10,17 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::tests {
 
-ServiceBase::ServiceBase() : ServiceBase(server::ServerConfig{}) {}
+ServiceBase::ServiceBase()
+    : ServiceBase(server::ServerConfig{})
+{}
 
 ServiceBase::ServiceBase(server::ServerConfig&& server_config)
     : config_storage_(dynamic_config::MakeDefaultStorage({})),
       unix_socket_path_(server_config.unix_socket_path),
       server_(std::move(server_config), statistics_storage_, config_storage_.GetSource()),
       testsuite_({}, false),
-      client_statistics_storage_(statistics_storage_, ugrpc::impl::StatisticsDomain::kClient) {}
+      client_statistics_storage_(statistics_storage_, ugrpc::impl::StatisticsDomain::kClient)
+{}
 
 ServiceBase::~ServiceBase() = default;
 
@@ -101,9 +103,7 @@ server::Middlewares GetDefaultServerMiddlewares() {
 }
 
 client::Middlewares GetDefaultClientMiddlewares() {
-    return {
-        std::make_shared<client::middlewares::log::Middleware>(ugrpc::client::middlewares::log::Settings{}),
-        std::make_shared<client::middlewares::deadline_propagation::Middleware>()};
+    return {std::make_shared<client::middlewares::deadline_propagation::Middleware>()};
 }
 
 }  // namespace ugrpc::tests

@@ -90,11 +90,11 @@ TEST_F(LoggingTest, DynamicDebugAnyLineRemove) {
     LOG_INFO() << "123";
     LOG_INFO() << "456";
 
-    const std::string kBadPath = "Non existing path (*&#(R&!(!@(*)*#&)@#$!";
-    UEXPECT_THROW_MSG(logging::AddDynamicDebugLog(kBadPath, 1), std::runtime_error, kBadPath);
+    const std::string bad_path = "Non existing path (*&#(R&!(!@(*)*#&)@#$!";
+    UEXPECT_THROW_MSG(logging::AddDynamicDebugLog(bad_path, 1), std::runtime_error, bad_path);
 
-    const int kBadLine{98888988};
-    UEXPECT_THROW_MSG(logging::AddDynamicDebugLog(location, kBadLine), std::runtime_error, "98888988");
+    const int bad_line{98888988};
+    UEXPECT_THROW_MSG(logging::AddDynamicDebugLog(location, bad_line), std::runtime_error, "98888988");
 
     EXPECT_FALSE(LoggedTextContains("before"));
     EXPECT_FALSE(LoggedTextContains("123"));

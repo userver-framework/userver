@@ -181,11 +181,14 @@ public:
     StrongTypedef& operator=(const StrongTypedef&) = default;
     StrongTypedef& operator=(StrongTypedef&&) noexcept = default;
 
-    constexpr StrongTypedef(impl::strong_typedef::InitializerList<T> lst) : data_(lst) {}
+    constexpr StrongTypedef(impl::strong_typedef::InitializerList<T> lst)
+        : data_(lst)
+    {}
 
     template <typename... Args, typename = std::enable_if_t<std::is_constructible_v<T, Args...>>>
     explicit constexpr StrongTypedef(Args&&... args) noexcept(noexcept(T(std::forward<Args>(args)...)))
-        : data_(std::forward<Args>(args)...) {
+        : data_(std::forward<Args>(args)...)
+    {
         using impl::strong_typedef::IsStrongToStrongConversion;
         static_assert(
             !IsStrongToStrongConversion<StrongTypedef, Args...>(),
@@ -266,8 +269,8 @@ private:
             int> /*Enable*/                                                                           \
         = 0>                                                                                          \
     constexpr auto operator OPERATOR(const T& lhs, const U& rhs)                                      \
-        ->decltype(impl::strong_typedef::UnwrapIfStrongTypedef(lhs)                                   \
-                       OPERATOR impl::strong_typedef::UnwrapIfStrongTypedef(rhs)) {                   \
+        ->decltype(impl::strong_typedef::UnwrapIfStrongTypedef(lhs                                    \
+        ) OPERATOR impl::strong_typedef::UnwrapIfStrongTypedef(rhs)) {                                \
         if constexpr (impl::strong_typedef::IsStrongTypedef<T>{}) {                                   \
             if constexpr (impl::strong_typedef::IsStrongTypedef<U>{}) {                               \
                 impl::strong_typedef::CheckStrongCompare<T, U>();                                     \
@@ -412,8 +415,8 @@ USERVER_NAMESPACE_END
 // std::hash support
 template <class Tag, class T, USERVER_NAMESPACE::utils::StrongTypedefOps Ops>
 struct std::hash<USERVER_NAMESPACE::utils::StrongTypedef<Tag, T, Ops>> : std::hash<T> {
-    std::size_t operator()(const USERVER_NAMESPACE::utils::StrongTypedef<Tag, T, Ops>& v) const
-        noexcept(noexcept(std::declval<const std::hash<T>>()(std::declval<const T&>()))) {
+    std::size_t operator()(const USERVER_NAMESPACE::utils::StrongTypedef<Tag, T, Ops>& v
+    ) const noexcept(noexcept(std::declval<const std::hash<T>>()(std::declval<const T&>()))) {
         return std::hash<T>::operator()(v.GetUnderlying());
     }
 };

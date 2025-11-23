@@ -34,7 +34,8 @@ public:
                   return unary_call_.ExtractResponse();
               }
           )},
-          cancellation_token_{perform_task_} {}
+          cancellation_token_{perform_task_}
+    {}
 
     ~AsyncUnaryCallAdapter() override { unary_call_.Abandon(); }
 

@@ -81,7 +81,9 @@ components::ComponentList MinimalMiddlewareComponents() {
 }
 
 PipelineBuilder::PipelineBuilder(const components::ComponentConfig& config, const components::ComponentContext& context)
-    : components::ComponentBase{config, context}, middlewares_to_append_{config["append"].As<MiddlewaresList>({})} {}
+    : components::ComponentBase{config, context},
+      middlewares_to_append_{config["append"].As<MiddlewaresList>({})}
+{}
 
 const MiddlewaresList& PipelineBuilder::GetMiddlewaresToAppend() const { return middlewares_to_append_; }
 
@@ -105,7 +107,8 @@ HandlerPipelineBuilder::HandlerPipelineBuilder(
     const components::ComponentConfig& config,
     const components::ComponentContext& context
 )
-    : components::ComponentBase{config, context} {}
+    : components::ComponentBase{config, context}
+{}
 
 }  // namespace server::middlewares
 

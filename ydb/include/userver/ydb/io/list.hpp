@@ -29,7 +29,10 @@ public:
 
     ParseItemsIterator() = default;
 
-    ParseItemsIterator(NYdb::TValueParser& parser, const ParseContext& context) : parser_(&parser), context_(&context) {
+    ParseItemsIterator(NYdb::TValueParser& parser, const ParseContext& context)
+        : parser_(&parser),
+          context_(&context)
+    {
         ++*this;
     }
 

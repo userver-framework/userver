@@ -143,12 +143,16 @@ public:
     /// @brief The default name of components::Redis
     static constexpr std::string_view kName = "redis";
 
-    std::shared_ptr<storages::redis::Client>
-    GetClient(const std::string& name, storages::redis::RedisWaitConnected wait_connected = {}) const;
+    std::shared_ptr<storages::redis::Client> GetClient(
+        const std::string& name,
+        storages::redis::RedisWaitConnected wait_connected = {}
+    ) const;
     [[deprecated("use GetClient()")]] std::shared_ptr<storages::redis::impl::Sentinel> Client(const std::string& name
     ) const;
-    std::shared_ptr<storages::redis::SubscribeClient>
-    GetSubscribeClient(const std::string& name, storages::redis::RedisWaitConnected wait_connected = {}) const;
+    std::shared_ptr<storages::redis::SubscribeClient> GetSubscribeClient(
+        const std::string& name,
+        storages::redis::RedisWaitConnected wait_connected = {}
+    ) const;
 
     static yaml_config::Schema GetStaticConfigSchema();
 

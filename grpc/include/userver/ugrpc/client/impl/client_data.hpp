@@ -10,15 +10,15 @@
 #include <userver/dynamic_config/snapshot.hpp>
 #include <userver/rcu/rcu.hpp>
 #include <userver/testsuite/grpc_control.hpp>
+#include <userver/utils/assert.hpp>
 #include <userver/utils/fixed_array.hpp>
 
 #include <userver/ugrpc/client/client_qos.hpp>
 #include <userver/ugrpc/client/impl/channel_argument_utils.hpp>
 #include <userver/ugrpc/client/impl/client_internals.hpp>
 #include <userver/ugrpc/client/impl/compat/channel_arguments_builder.hpp>
-#include <userver/ugrpc/client/impl/stub_any.hpp>
 #include <userver/ugrpc/client/impl/stub_handle.hpp>
-#include <userver/ugrpc/client/impl/stub_pool.hpp>
+#include <userver/ugrpc/client/impl/stub_state.hpp>
 #include <userver/ugrpc/client/middlewares/fwd.hpp>
 #include <userver/ugrpc/impl/static_service_metadata.hpp>
 #include <userver/ugrpc/impl/statistics.hpp>
@@ -30,16 +30,10 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client::impl {
 
+struct StubState;
+
 struct GenericClientTag final {
     explicit GenericClientTag() = default;
-};
-
-struct StubState {
-    ClientQos client_qos;
-
-    StubPool stubs;
-    // method_id -> stub_pool
-    utils::FixedArray<StubPool> dedicated_stubs;
 };
 
 /// The internal state of generated gRPC clients
@@ -58,20 +52,26 @@ public:
               internals_.default_service_config,
               internals_.retry_config,
               metadata
-          ) {
+          )
+    {
         if (internals_.qos) {
             SubscribeOnConfigUpdate<Service>(
-                ::dynamic_config::EGRESS_GRPC_PROXY_ENABLED, ::dynamic_config::EGRESS_NO_PROXY_TARGETS, *internals_.qos
+                ::dynamic_config::EGRESS_GRPC_PROXY_ENABLED,
+                ::dynamic_config::EGRESS_NO_PROXY_TARGETS,
+                *internals_.qos
             );
         } else {
-            ConstructStubState<Service>();
+            SubscribeOnConfigUpdate<
+                Service>(::dynamic_config::EGRESS_GRPC_PROXY_ENABLED, ::dynamic_config::EGRESS_NO_PROXY_TARGETS);
         }
     }
 
     template <typename Service>
     ClientData(ClientInternals&& internals, GenericClientTag, std::in_place_type_t<Service>)
-        : internals_(std::move(internals)) {
-        ConstructStubState<Service>();
+        : internals_(std::move(internals))
+    {
+        SubscribeOnConfigUpdate<
+            Service>(::dynamic_config::EGRESS_GRPC_PROXY_ENABLED, ::dynamic_config::EGRESS_NO_PROXY_TARGETS);
     }
 
     ~ClientData();
@@ -81,19 +81,9 @@ public:
     ClientData& operator=(ClientData&&) = delete;
     ClientData& operator=(const ClientData&) = delete;
 
-    StubHandle NextStubFromMethodId(std::size_t method_id) const {
-        auto stub_state = stub_state_.Read();
-        auto& dedicated_stubs = stub_state->dedicated_stubs[method_id];
-        auto& stubs = dedicated_stubs.Size() ? dedicated_stubs : stub_state->stubs;
-        auto& stub = stubs.NextStub();
-        return StubHandle{std::move(stub_state), stub};
-    }
+    StubHandle NextStub(std::size_t method_id) const;
 
-    StubHandle NextStub() const {
-        auto stub_state = stub_state_.Read();
-        auto& stub = stub_state->stubs.NextStub();
-        return StubHandle{std::move(stub_state), stub};
-    }
+    StubHandle NextStub() const;
 
     grpc::CompletionQueue& NextQueue() const;
 
@@ -115,12 +105,28 @@ public:
 
     const RetryConfig& GetRetryConfig() const { return internals_.retry_config; }
 
-    rcu::ReadablePtr<StubState> GetStubState() const { return stub_state_.Read(); }
+    rcu::ReadablePtr<StubState> GetStubState() const;
 
     /// @returns Target endpoint address string from the channel factory
     std::string_view GetEndpoint() const { return internals_.endpoint; }
 
 private:
+    template <typename Stub>
+    static StubPool MakeStubs(
+        std::size_t size,
+        const ChannelFactory& channel_factory,
+        std::string_view target,
+        const grpc::ChannelArguments& channel_args
+    ) {
+        auto channels = utils::GenerateFixedArray(size, [&channel_factory, target, &channel_args](std::size_t) {
+            return channel_factory.CreateChannel(target, channel_args);
+        });
+        auto stubs = utils::GenerateFixedArray(channels.size(), [&channels](std::size_t index) {
+            return MakeStub<Stub>(channels[index]);
+        });
+        return StubPool{std::move(channels), std::move(stubs)};
+    }
+
     template <typename Stub>
     static utils::FixedArray<StubPool> MakeDedicatedStubs(
         const ugrpc::impl::StaticServiceMetadata& metadata,
@@ -132,7 +138,7 @@ private:
         return utils::GenerateFixedArray(GetMethodsCount(metadata), [&](std::size_t method_id) {
             const auto method_channel_count =
                 GetMethodChannelCount(dedicated_methods_config, GetMethodName(metadata, method_id));
-            return StubPool::Create<Stub>(method_channel_count, channel_factory, target, channel_args);
+            return MakeStubs<Stub>(method_channel_count, channel_factory, target, channel_args);
         });
     }
 
@@ -140,46 +146,42 @@ private:
 
     template <typename Service, typename... Keys>
     void SubscribeOnConfigUpdate(const Keys&... keys) {
-        config_subscription_ = internals_.config_source.UpdateAndListen(
-            this, internals_.client_name, &ClientData::OnConfigUpdate<Service>, keys...
-        );
+        config_subscription_ =
+            internals_.config_source
+                .UpdateAndListen(this, internals_.client_name, &ClientData::OnConfigUpdate<Service>, keys...);
     }
 
     template <typename Service>
     void OnConfigUpdate(const dynamic_config::Snapshot& config) {
-        UASSERT(internals_.qos);
-        const auto& client_qos = config[*internals_.qos];
-        auto cfg_proxy_enabled = config[::dynamic_config::EGRESS_GRPC_PROXY_ENABLED];
-        const auto& cfg_no_proxy_targets = config[::dynamic_config::EGRESS_NO_PROXY_TARGETS].targets;
-        ConstructStubState<Service>(cfg_proxy_enabled, cfg_no_proxy_targets, client_qos);
-    }
+        auto client_qos = internals_.qos ? config[*internals_.qos] : ClientQos{};
 
-    template <typename Service>
-    void ConstructStubState(
-        bool proxy_enabled = false,
-        const std::unordered_set<std::string>& no_proxy_targets = {},
-        const ClientQos& client_qos = {}
-    ) {
         std::string target = internals_.endpoint;
 
-        auto channel_args = channel_arguments_builder_.has_value()
-                                ? channel_arguments_builder_->Build(client_qos)
-                                : BuildChannelArguments(internals_.channel_args, internals_.default_service_config);
+        auto channel_args =
+            channel_arguments_builder_.has_value()
+                ? channel_arguments_builder_->Build(client_qos)
+                : BuildChannelArguments(internals_.channel_args, internals_.default_service_config);
 
         const auto& proxy_settings = internals_.proxy_settings;
 
+        auto proxy_enabled = config[::dynamic_config::EGRESS_GRPC_PROXY_ENABLED];
+        const auto& no_proxy_targets = config[::dynamic_config::EGRESS_NO_PROXY_TARGETS].targets;
         if (!proxy_settings.proxy_address.empty() && proxy_enabled && !proxy_settings.no_proxy_targets.count(target) &&
-            !no_proxy_targets.count(target)) {
+            !no_proxy_targets.count(target))
+        {
             SetHttpProxy(target, channel_args, internals_.channel_factory.GetAuthType(), proxy_settings.proxy_address);
         }
-        auto stubs = StubPool::Create<typename Service::Stub>(
-            internals_.channel_count, internals_.channel_factory, target, channel_args
-        );
+        auto stubs = MakeStubs<
+            typename Service::Stub>(internals_.channel_count, internals_.channel_factory, target, channel_args);
 
         auto dedicated_stubs =
             metadata_.has_value()
                 ? MakeDedicatedStubs<typename Service::Stub>(
-                      *metadata_, internals_.dedicated_methods_config, internals_.channel_factory, target, channel_args
+                      *metadata_,
+                      internals_.dedicated_methods_config,
+                      internals_.channel_factory,
+                      target,
+                      channel_args
                   )
                 : utils::FixedArray<StubPool>{};
 

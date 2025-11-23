@@ -24,7 +24,9 @@ namespace {
 
 std::optional<cctz::time_zone> DoGetOptionalTimezone(const std::string& tzname) {
 #if defined(BSD) && !defined(__APPLE__)
-    if (tzname == "GMT") return DoGetOptionalTimezone("UTC");
+    if (tzname == "GMT") {
+        return DoGetOptionalTimezone("UTC");
+    }
 #endif
     cctz::time_zone tz;
     if (!load_time_zone(tzname, &tz)) {
@@ -43,13 +45,19 @@ cctz::time_zone GetTimezone(const std::string& tzname) {
 
 }  // namespace
 
-std::string
-Timestring(std::chrono::system_clock::time_point tp, const std::string& timezone, const std::string& format) {
+std::string Timestring(
+    std::chrono::system_clock::time_point tp,
+    const std::string& timezone,
+    const std::string& format
+) {
     return cctz::format(format, tp, GetTimezone(timezone));
 }
 
-std::optional<std::chrono::system_clock::time_point>
-OptionalStringtime(const std::string& timestring, const std::string& timezone, const std::string& format) {
+std::optional<std::chrono::system_clock::time_point> OptionalStringtime(
+    const std::string& timestring,
+    const std::string& timezone,
+    const std::string& format
+) {
     auto tz = GetOptionalTimezone(timezone);
     if (!tz.has_value()) {
         return std::nullopt;
@@ -62,8 +70,11 @@ std::string Timestring(time_t timestamp, const std::string& timezone, const std:
     return Timestring(tp, timezone, format);
 }
 
-std::chrono::system_clock::time_point
-Stringtime(const std::string& timestring, const std::string& timezone, const std::string& format) {
+std::chrono::system_clock::time_point Stringtime(
+    const std::string& timestring,
+    const std::string& timezone,
+    const std::string& format
+) {
     const auto optional_tp = OptionalStringtime(timestring, GetTimezone(timezone), format);
     if (!optional_tp) {
         throw DateParseError(timestring);
@@ -87,7 +98,9 @@ std::optional<cctz::time_zone> GetOptionalTimezone(const std::string& tzname) {
     if (engine::current_task::IsTaskProcessorThread()) {
         static rcu::RcuMap<std::string, std::optional<cctz::time_zone>> map;
         auto it = map.Get(tzname);
-        if (it) return *it;
+        if (it) {
+            return *it;
+        }
 
         // DoGetOptionalTimezone() may access filesystem, run it in blocking task processor
         auto [value, _] =

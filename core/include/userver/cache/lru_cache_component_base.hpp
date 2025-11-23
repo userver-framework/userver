@@ -120,14 +120,16 @@ private:
 };
 
 template <typename Key, typename Value, typename Hash, typename Equal>
-LruCacheComponent<Key, Value, Hash, Equal>::LruCacheComponent(
-    const components::ComponentConfig& config,
-    const components::ComponentContext& context
-)
+LruCacheComponent<
+    Key,
+    Value,
+    Hash,
+    Equal>::LruCacheComponent(const components::ComponentConfig& config, const components::ComponentContext& context)
     : ComponentBase(config, context),
       name_(components::GetCurrentComponentName(context)),
       static_config_(config),
-      cache_(std::make_shared<Cache>(static_config_.ways, static_config_.GetWaySize())) {
+      cache_(std::make_shared<Cache>(static_config_.ways, static_config_.GetWaySize()))
+{
     if (impl::IsDumpSupportEnabled(config)) {
         dumper_ = std::make_shared<dump::Dumper>(config, context, static_cast<dump::DumpableEntity&>(*this));
         cache_->SetDumper(dumper_);
@@ -138,13 +140,14 @@ LruCacheComponent<Key, Value, Hash, Equal>::LruCacheComponent(
     cache_->SetBackgroundUpdate(static_config_.config.background_update);
 
     if (static_config_.use_dynamic_config) {
-        LOG_INFO() << "Dynamic LRU cache config is enabled, subscribing on "
-                      "dynamic-config updates, cache="
-                   << name_;
+        LOG_INFO()
+            << "Dynamic LRU cache config is enabled, subscribing on "
+               "dynamic-config updates, cache="
+            << name_;
 
-        config_subscription_ = impl::FindDynamicConfigSource(context).UpdateAndListen(
-            this, "cache." + name_, &LruCacheComponent::OnConfigUpdate
-        );
+        config_subscription_ =
+            impl::FindDynamicConfigSource(context)
+                .UpdateAndListen(this, "cache." + name_, &LruCacheComponent::OnConfigUpdate);
     } else {
         LOG_INFO() << "Dynamic LRU cache config is disabled, cache=" << name_;
     }
@@ -168,8 +171,11 @@ LruCacheComponent<Key, Value, Hash, Equal>::~LruCacheComponent() {
 }
 
 template <typename Key, typename Value, typename Hash, typename Equal>
-typename LruCacheComponent<Key, Value, Hash, Equal>::CacheWrapper LruCacheComponent<Key, Value, Hash, Equal>::GetCache(
-) {
+typename LruCacheComponent<Key, Value, Hash, Equal>::CacheWrapper LruCacheComponent<
+    Key,
+    Value,
+    Hash,
+    Equal>::GetCache() {
     return CacheWrapper(cache_, [this](const Key& key) { return GetByKey(key); });
 }
 

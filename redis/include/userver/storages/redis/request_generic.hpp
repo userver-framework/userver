@@ -16,7 +16,9 @@ namespace storages::redis {
 template <typename ReplyType>
 class [[nodiscard]] RequestGeneric final {
 public:
-    explicit RequestGeneric(RequestGenericCommon&& request) : request_(std::move(request)) {}
+    explicit RequestGeneric(RequestGenericCommon&& request)
+        : request_(std::move(request))
+    {}
 
     void Wait() { request_.Wait(); }
 

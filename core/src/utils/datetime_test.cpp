@@ -81,7 +81,9 @@ TEST(Datetime, TimePointToTicks) {
 TEST(Datetime, kDefaultDriverTimezone) {
     /// [kDefaultDriverTimezone]
     const auto tp = utils::datetime::Stringtime(
-        "2014-03-17T02:47:07+00:00", utils::datetime::kDefaultDriverTimezone, utils::datetime::kRfc3339Format
+        "2014-03-17T02:47:07+00:00",
+        utils::datetime::kDefaultDriverTimezone,
+        utils::datetime::kRfc3339Format
     );
     EXPECT_EQ(utils::datetime::Stringtime("2014-03-17T02:47:07+0000"), tp);
     /// [kDefaultDriverTimezone]

@@ -19,11 +19,13 @@ std::string MakeConnectionString(std::string_view database) {
     return fmt::format("mongodb://localhost:{}/{}", mongo_port_env ? mongo_port_env : kDefaultMongoPort, database);
 }
 
-storages::mongo::PoolPtr
-CreatePool(std::string_view dbname, storages::mongo::PoolConfig pool_config, dynamic_config::Source config_source) {
-    return std::make_shared<storages::mongo::Pool>(
-        std::string{dbname}, MakeConnectionString(dbname), pool_config, nullptr, config_source
-    );
+storages::mongo::PoolPtr CreatePool(
+    std::string_view dbname,
+    storages::mongo::PoolConfig pool_config,
+    dynamic_config::Source config_source
+) {
+    return std::make_shared<
+        storages::mongo::Pool>(std::string{dbname}, MakeConnectionString(dbname), pool_config, nullptr, config_source);
 }
 
 }  // namespace
@@ -44,7 +46,9 @@ storages::mongo::PoolConfig MakeDefaultPoolConfig() {
     return config;
 }
 
-MongoLocal::MongoLocal() : MongoLocal(kDefaultDatabaseName, MakeDefaultPoolConfig()) {}
+MongoLocal::MongoLocal()
+    : MongoLocal(kDefaultDatabaseName, MakeDefaultPoolConfig())
+{}
 
 MongoLocal::MongoLocal(
     std::optional<std::string_view> dbname,
@@ -55,7 +59,8 @@ MongoLocal::MongoLocal(
           dbname.value_or(kDefaultDatabaseName),
           pool_config.value_or(MakeDefaultPoolConfig()),
           config_source
-      )} {}
+      )}
+{}
 
 storages::mongo::PoolPtr MongoLocal::GetPool() const { return pool_; }
 

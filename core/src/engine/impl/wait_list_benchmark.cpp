@@ -113,7 +113,7 @@ void WaitListAddRemoveContention(benchmark::State& state) {
 
         std::vector<engine::TaskWithResult<void>> tasks;
         tasks.reserve(state.range(0) - 1);
-        for (int i = 0; i < state.range(0) - 1; i++)
+        for (int i = 0; i < state.range(0) - 1; i++) {
             tasks.push_back(engine::AsyncNoSpan([&]() {
                 const boost::intrusive_ptr<TaskContext> ctx = MakeContext();
                 while (run) {
@@ -125,6 +125,7 @@ void WaitListAddRemoveContention(benchmark::State& state) {
                     wl.Remove(guard, *ctx);
                 }
             }));
+        }
 
         const boost::intrusive_ptr<TaskContext> ctx = MakeContext();
         for ([[maybe_unused]] auto _ : state) {
@@ -148,7 +149,7 @@ void WaitListAddRemoveContentionUnbalanced(benchmark::State& state) {
 
         std::vector<engine::TaskWithResult<void>> tasks;
         tasks.reserve(state.range(0) - 1);
-        for (int i = 0; i < state.range(0) - 1; i++)
+        for (int i = 0; i < state.range(0) - 1; i++) {
             tasks.push_back(engine::AsyncNoSpan([&]() {
                 auto contexts = MakeContexts();
                 while (run) {
@@ -162,6 +163,7 @@ void WaitListAddRemoveContentionUnbalanced(benchmark::State& state) {
                     }
                 }
             }));
+        }
 
         auto contexts = MakeContexts();
         for ([[maybe_unused]] auto _ : state) {

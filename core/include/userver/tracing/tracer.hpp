@@ -29,7 +29,9 @@ public:
     static Tracer CopyCurrentTracer();
 
     Tracer(std::string_view service_name, logging::LoggerPtr optional_logger)
-        : service_name_(service_name), optional_logger_(std::move(optional_logger)) {}
+        : service_name_(service_name),
+          optional_logger_(std::move(optional_logger))
+    {}
 
     // Only works if legacy opentracing is set up.
     const std::string& GetServiceName() const;

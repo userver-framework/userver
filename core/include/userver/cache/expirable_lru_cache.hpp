@@ -42,8 +42,8 @@ template <typename Value>
 impl::ExpirableValue<Value> Read(dump::Reader& reader, dump::To<impl::ExpirableValue<Value>>) {
     const auto [now, steady_now] = utils::impl::GetGlobalTime();
     // Evaluation order of arguments is guaranteed in brace-initialization.
-    return impl::ExpirableValue<Value>{
-        reader.Read<Value>(), reader.Read<std::chrono::system_clock::time_point>() - now + steady_now};
+    return impl::ExpirableValue<
+        Value>{reader.Read<Value>(), reader.Read<std::chrono::system_clock::time_point>() - now + steady_now};
 }
 
 }  // namespace impl
@@ -167,13 +167,14 @@ private:
 };
 
 template <typename Key, typename Value, typename Hash, typename Equal>
-ExpirableLruCache<Key, Value, Hash, Equal>::ExpirableLruCache(
-    size_t ways,
-    size_t way_size,
-    const Hash& hash,
-    const Equal& equal
-)
-    : lru_(ways, way_size, hash, equal), mutex_set_{ways, way_size, hash, equal} {}
+ExpirableLruCache<
+    Key,
+    Value,
+    Hash,
+    Equal>::ExpirableLruCache(size_t ways, size_t way_size, const Hash& hash, const Equal& equal)
+    : lru_(ways, way_size, hash, equal),
+      mutex_set_{ways, way_size, hash, equal}
+{}
 
 template <typename Key, typename Value, typename Hash, typename Equal>
 ExpirableLruCache<Key, Value, Hash, Equal>::~ExpirableLruCache() {
@@ -201,11 +202,11 @@ void ExpirableLruCache<Key, Value, Hash, Equal>::SetBackgroundUpdate(BackgroundU
 }
 
 template <typename Key, typename Value, typename Hash, typename Equal>
-Value ExpirableLruCache<Key, Value, Hash, Equal>::Get(
-    const Key& key,
-    const UpdateValueFunc& update_func,
-    ReadMode read_mode
-) {
+Value ExpirableLruCache<
+    Key,
+    Value,
+    Hash,
+    Equal>::Get(const Key& key, const UpdateValueFunc& update_func, ReadMode read_mode) {
     auto now = utils::datetime::SteadyNow();
     auto opt_old_value = GetOptional(key, update_func);
     if (opt_old_value) {
@@ -229,8 +230,11 @@ Value ExpirableLruCache<Key, Value, Hash, Equal>::Get(
 }
 
 template <typename Key, typename Value, typename Hash, typename Equal>
-std::optional<Value>
-ExpirableLruCache<Key, Value, Hash, Equal>::GetOptional(const Key& key, const UpdateValueFunc& update_func) {
+std::optional<Value> ExpirableLruCache<
+    Key,
+    Value,
+    Hash,
+    Equal>::GetOptional(const Key& key, const UpdateValueFunc& update_func) {
     auto now = utils::datetime::SteadyNow();
     auto old_value = lru_.Get(key);
 
@@ -266,10 +270,11 @@ std::optional<Value> ExpirableLruCache<Key, Value, Hash, Equal>::GetOptionalUnex
 }
 
 template <typename Key, typename Value, typename Hash, typename Equal>
-std::optional<Value> ExpirableLruCache<Key, Value, Hash, Equal>::GetOptionalUnexpirableWithUpdate(
-    const Key& key,
-    const UpdateValueFunc& update_func
-) {
+std::optional<Value> ExpirableLruCache<
+    Key,
+    Value,
+    Hash,
+    Equal>::GetOptionalUnexpirableWithUpdate(const Key& key, const UpdateValueFunc& update_func) {
     auto now = utils::datetime::SteadyNow();
     auto old_value = lru_.Get(key);
 
@@ -288,8 +293,11 @@ std::optional<Value> ExpirableLruCache<Key, Value, Hash, Equal>::GetOptionalUnex
 }
 
 template <typename Key, typename Value, typename Hash, typename Equal>
-std::optional<impl::ExpirableValue<Value>>
-ExpirableLruCache<Key, Value, Hash, Equal>::GetOptionalNoUpdateWithLastUpdateTime(const Key& key) {
+std::optional<impl::ExpirableValue<Value>> ExpirableLruCache<
+    Key,
+    Value,
+    Hash,
+    Equal>::GetOptionalNoUpdateWithLastUpdateTime(const Key& key) {
     const auto now = utils::datetime::SteadyNow();
     const auto old_value = lru_.Get(key);
     if (old_value) {
@@ -379,19 +387,23 @@ void ExpirableLruCache<Key, Value, Hash, Equal>::UpdateInBackground(const Key& k
 }
 
 template <typename Key, typename Value, typename Hash, typename Equal>
-bool ExpirableLruCache<Key, Value, Hash, Equal>::IsExpired(
-    std::chrono::steady_clock::time_point update_time,
-    std::chrono::steady_clock::time_point now
-) const {
+bool ExpirableLruCache<
+    Key,
+    Value,
+    Hash,
+    Equal>::IsExpired(std::chrono::steady_clock::time_point update_time, std::chrono::steady_clock::time_point now)
+    const {
     auto max_lifetime = max_lifetime_.load();
     return max_lifetime.count() != 0 && update_time + max_lifetime < now;
 }
 
 template <typename Key, typename Value, typename Hash, typename Equal>
-bool ExpirableLruCache<Key, Value, Hash, Equal>::ShouldUpdate(
-    std::chrono::steady_clock::time_point update_time,
-    std::chrono::steady_clock::time_point now
-) const {
+bool ExpirableLruCache<
+    Key,
+    Value,
+    Hash,
+    Equal>::ShouldUpdate(std::chrono::steady_clock::time_point update_time, std::chrono::steady_clock::time_point now)
+    const {
     auto max_lifetime = max_lifetime_.load();
     return (background_update_mode_.load() == BackgroundUpdateMode::kEnabled) && max_lifetime.count() != 0 &&
            update_time + max_lifetime / 2 < now;
@@ -404,7 +416,9 @@ public:
     using ReadMode = typename Cache::ReadMode;
 
     LruCacheWrapper(std::shared_ptr<Cache> cache, typename Cache::UpdateValueFunc update_func)
-        : cache_(std::move(cache)), update_func_(std::move(update_func)) {}
+        : cache_(std::move(cache)),
+          update_func_(std::move(update_func))
+    {}
 
     /// Get cached value or evaluates if "key" is missing in cache
     Value Get(const Key& key, ReadMode read_mode = ReadMode::kUseCache) {

@@ -1,11 +1,16 @@
 #include <ugrpc/server/middlewares/log/middleware.hpp>
 
+#include <fmt/format.h>
+#include <fmt/ranges.h>
+
 #include <userver/logging/log_extra.hpp>
 #include <userver/tracing/tags.hpp>
-#include <userver/ugrpc/protobuf_logging.hpp>
 #include <userver/utils/algo.hpp>
 
 #include <ugrpc/impl/logging.hpp>
+#include <ugrpc/impl/rpc_metadata.hpp>
+#include <userver/ugrpc/protobuf_logging.hpp>
+#include <userver/ugrpc/server/metadata_utils.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -22,7 +27,9 @@ std::string GetMessageForLogging(const google::protobuf::Message& message, const
 
 class Logger {
 public:
-    explicit Logger(logging::Level log_level) : log_level_threshold_(log_level) {}
+    explicit Logger(logging::Level log_level)
+        : log_level_threshold_(log_level)
+    {}
 
     void Log(logging::Level level, std::string_view message, logging::LogExtra&& extra) const {
         if (level < log_level_threshold_) {
@@ -35,9 +42,22 @@ private:
     logging::Level log_level_threshold_;
 };
 
+void AppendOriginMetadata(const CallContextBase& context, logging::LogExtra& extra) {
+    const auto origin_values = GetRepeatedMetadata(context, ugrpc::impl::ToStringView(ugrpc::impl::kXOrigin));
+
+    // TODO use std::ranges::empty in C++20.
+    if (origin_values.begin() == origin_values.end()) {
+        return;
+    }
+
+    extra.Extend(tracing::kUserAgent, fmt::to_string(fmt::join(origin_values, ";")));
+}
+
 }  // namespace
 
-Middleware::Middleware(const Settings& settings) : settings_(settings) {}
+Middleware::Middleware(const Settings& settings)
+    : settings_(settings)
+{}
 
 void Middleware::OnCallStart(MiddlewareCallContext& context) const {
     auto& span = context.GetSpan();
@@ -46,10 +66,11 @@ void Middleware::OnCallStart(MiddlewareCallContext& context) const {
     span.AddTag(ugrpc::impl::kComponentTag, "server");
     span.AddTag("meta_type", std::string{context.GetCallName()});
 
+    const Logger logger{settings_.log_level};
     if (context.IsClientStreaming()) {
-        Logger{settings_.log_level}.Log(
-            settings_.msg_log_level, "gRPC request stream started", logging::LogExtra{{"type", "request"}}
-        );
+        logging::LogExtra extra{{"type", "request"}};
+        AppendOriginMetadata(context, extra);
+        logger.Log(settings_.msg_log_level, "gRPC request stream started", std::move(extra));
     }
 }
 
@@ -64,6 +85,7 @@ void Middleware::PostRecvMessage(MiddlewareCallContext& context, google::protobu
         logger.Log(settings_.msg_log_level, "gRPC request stream message", std::move(extra));
     } else {
         extra.Extend("type", "request");
+        AppendOriginMetadata(context, extra);
         logger.Log(settings_.msg_log_level, "gRPC request", std::move(extra));
     }
 }
@@ -87,9 +109,8 @@ void Middleware::OnCallFinish(MiddlewareCallContext& context, const grpc::Status
     const Logger logger{settings_.log_level};
     if (status.ok()) {
         if (context.IsServerStreaming()) {
-            logger.Log(
-                settings_.msg_log_level, "gRPC response stream finished", logging::LogExtra{{"type", "response"}}
-            );
+            logger
+                .Log(settings_.msg_log_level, "gRPC response stream finished", logging::LogExtra{{"type", "response"}});
         }
     } else {
         auto error_details = ugrpc::ToLimitedDebugString(status, settings_.max_msg_size);

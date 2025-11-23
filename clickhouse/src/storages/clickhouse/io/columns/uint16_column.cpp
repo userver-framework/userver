@@ -11,7 +11,8 @@ using NativeType = clickhouse::impl::clickhouse_cpp::ColumnUInt16;
 }
 
 UInt16Column::UInt16Column(ColumnRef column)
-    : ClickhouseColumn{impl::GetTypedColumn<UInt16Column, NativeType>(column)} {}
+    : ClickhouseColumn{impl::GetTypedColumn<UInt16Column, NativeType>(column)}
+{}
 
 template <>
 UInt16Column::cpp_type ColumnIterator<UInt16Column>::DataHolder::Get() const {

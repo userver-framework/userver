@@ -88,7 +88,9 @@ public:
     GenericTracingManager() = delete;
 
     GenericTracingManager(utils::Flags<Format> in_request_response, utils::Flags<Format> new_request)
-        : in_request_response_{in_request_response}, new_request_{new_request} {}
+        : in_request_response_{in_request_response},
+          new_request_{new_request}
+    {}
 
     bool TryFillSpanBuilderFromRequest(const server::http::HttpRequest& request, SpanBuilder& span_builder)
         const override;

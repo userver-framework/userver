@@ -136,7 +136,10 @@ struct fmt::formatter<USERVER_NAMESPACE::http::StatusCode> {
     template <typename FormatContext>
     auto format(USERVER_NAMESPACE::http::StatusCode status, FormatContext& ctx) const {
         return fmt::format_to(
-            ctx.out(), "{} {}", static_cast<int>(status), USERVER_NAMESPACE::http::StatusCodeString(status)
+            ctx.out(),
+            "{} {}",
+            static_cast<int>(status),
+            USERVER_NAMESPACE::http::StatusCodeString(status)
         );
     }
 };

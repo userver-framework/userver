@@ -26,7 +26,7 @@ const std::string kGrpcMethod = "grpc_method";
 inline ugrpc::client::CallOptions MakeCallOptions(bool set_timeout) {
     ugrpc::client::CallOptions call_options;
     if (set_timeout) {
-        call_options.SetTimeout(kLongTimeout);
+        call_options.SetTimeout(kLongTimeout + kShortTimeout);
     }
     return call_options;
 }

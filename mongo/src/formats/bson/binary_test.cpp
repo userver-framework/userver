@@ -93,7 +93,8 @@ TEST(Binary, Invalid) {
 
     // Empty key
     UEXPECT_THROW(
-        formats::bson::FromBinaryString(std::string{7, 0, 0, 0, 0x7F, '\0', 0x00}), formats::bson::ParseException
+        formats::bson::FromBinaryString(std::string{7, 0, 0, 0, 0x7F, '\0', 0x00}),
+        formats::bson::ParseException
     );
 
     // Invalid boolean value

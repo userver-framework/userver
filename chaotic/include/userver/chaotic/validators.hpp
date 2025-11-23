@@ -19,7 +19,9 @@ struct Minimum final {
     static void Validate(T value) {
         static_assert(std::is_arithmetic_v<T>);
 
-        if (value < Value) throw std::runtime_error(fmt::format("Invalid value, minimum={}, given={}", Value, value));
+        if (value < Value) {
+            throw std::runtime_error(fmt::format("Invalid value, minimum={}, given={}", Value, value));
+        }
     }
 };
 
@@ -29,7 +31,9 @@ struct Maximum final {
     static void Validate(T value) {
         static_assert(std::is_arithmetic_v<T>);
 
-        if (value > Value) throw std::runtime_error(fmt::format("Invalid value, maximum={}, given={}", Value, value));
+        if (value > Value) {
+            throw std::runtime_error(fmt::format("Invalid value, maximum={}, given={}", Value, value));
+        }
     }
 };
 
@@ -39,8 +43,9 @@ struct ExclusiveMinimum final {
     static void Validate(T value) {
         static_assert(std::is_arithmetic_v<T>);
 
-        if (value <= Value)
+        if (value <= Value) {
             throw std::runtime_error(fmt::format("Invalid value, exclusive minimum={}, given={}", Value, value));
+        }
     }
 };
 
@@ -50,8 +55,9 @@ struct ExclusiveMaximum final {
     static void Validate(T value) {
         static_assert(std::is_arithmetic_v<T>);
 
-        if (value >= Value)
+        if (value >= Value) {
             throw std::runtime_error(fmt::format("Invalid value, exclusive maximum={}, given={}", Value, value));
+        }
     }
 };
 

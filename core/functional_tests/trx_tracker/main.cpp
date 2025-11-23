@@ -10,12 +10,14 @@
 #include "src/handler.hpp"
 
 int main(int argc, char* argv[]) {
-    const auto component_list = components::MinimalServerComponentList()
-                                    .Append<handlers::Handler>()
-                                    .Append<server::handlers::ServerMonitor>()
-                                    .Append<clients::dns::Component>()
-                                    .Append<components::HttpClient>()
-                                    .Append<components::TestsuiteSupport>()
-                                    .Append<server::handlers::TestsControl>();
+    const auto component_list =
+        components::MinimalServerComponentList()
+            .Append<handlers::Handler>()
+            .Append<server::handlers::ServerMonitor>()
+            .Append<clients::dns::Component>()
+            .Append<components::HttpClientCore>()
+            .Append<components::HttpClient>()
+            .Append<components::TestsuiteSupport>()
+            .Append<server::handlers::TestsControl>();
     return utils::DaemonMain(argc, argv, component_list);
 }

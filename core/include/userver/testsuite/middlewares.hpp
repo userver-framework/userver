@@ -18,8 +18,8 @@ private:
     const server::handlers::HttpHandlerBase& handler_;
 };
 
-using ExceptionsHandlingMiddlewareFactory =
-    server::middlewares::SimpleHttpMiddlewareFactory<ExceptionsHandlingMiddleware>;
+using ExceptionsHandlingMiddlewareFactory = server::middlewares::SimpleHttpMiddlewareFactory<
+    ExceptionsHandlingMiddleware>;
 
 }  // namespace testsuite
 

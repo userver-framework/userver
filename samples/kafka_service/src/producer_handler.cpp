@@ -44,7 +44,8 @@ bool IsCorrectRequest(const formats::json::Value& request_json) {
 /// [Kafka service sample - producer component find]
 ProducerHandler::ProducerHandler(const components::ComponentConfig& config, const components::ComponentContext& context)
     : server::handlers::HttpHandlerJsonBase{config, context},
-      producer_{context.FindComponent<kafka::ProducerComponent>().GetProducer()} {}
+      producer_{context.FindComponent<kafka::ProducerComponent>().GetProducer()}
+{}
 /// [Kafka service sample - producer component find]
 
 /// [Kafka service sample - producer handler implementation]

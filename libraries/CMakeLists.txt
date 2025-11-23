@@ -2,9 +2,14 @@ option(USERVER_FEATURE_EASY "Build easy HTTP server library" "${USERVER_LIB_ENAB
 option(USERVER_FEATURE_S3API "Build S3 api client library" "${USERVER_LIB_ENABLED_DEFAULT}")
 option(USERVER_FEATURE_GRPC_REFLECTION "Build grpc reflection library" "${USERVER_LIB_ENABLED_DEFAULT}")
 option(USERVER_FEATURE_GRPC_PROTOVALIDATE "Build grpc protovalidate library" "OFF")
+option(USERVER_FEATURE_MULTI_INDEX_LRU "Build multi index lru library" "${USERVER_LIB_ENABLED_DEFAULT}")
 
 if(USERVER_FEATURE_S3API)
     add_subdirectory(s3api)
+endif()
+
+if (USERVER_FEATURE_MULTI_INDEX_LRU)
+    add_subdirectory(multi-index-lru)
 endif()
 
 if(USERVER_FEATURE_EASY)

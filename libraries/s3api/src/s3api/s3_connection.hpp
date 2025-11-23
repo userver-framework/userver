@@ -32,7 +32,8 @@ public:
         : api_url_(std::move(server_url)),
           connection_type_(connection_type),
           http_client_(http_client),
-          config_(params) {}
+          config_(params)
+    {}
 
     S3Connection(const S3Connection& other) = default;
 

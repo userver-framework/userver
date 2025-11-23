@@ -231,12 +231,14 @@ TEST(TestTrimUtf8Truncated, TrimTruncatedEnding) {
         auto test_view_str = test_str;
         auto test_view = std::string_view{test_view_str};
 
-        UEXPECT_NO_THROW(utils::text::utf8::TrimTruncatedEnding(test_str))
-            << "hex(test_str_orig): " << ToHex(test_str_orig);
+        UEXPECT_NO_THROW(utils::text::utf8::TrimTruncatedEnding(test_str)
+        ) << "hex(test_str_orig): "
+          << ToHex(test_str_orig);
         EXPECT_EQ(test_str, expected) << "hex(test_str_orig): " << ToHex(test_str_orig);
 
-        UEXPECT_NO_THROW(utils::text::utf8::TrimViewTruncatedEnding(test_view))
-            << "hex(test_str_orig): " << ToHex(test_str_orig);
+        UEXPECT_NO_THROW(utils::text::utf8::TrimViewTruncatedEnding(test_view)
+        ) << "hex(test_str_orig): "
+          << ToHex(test_str_orig);
         EXPECT_EQ(test_view, std::string_view{expected}) << "hex(test_str_orig): " << ToHex(test_str_orig);
 
         // have to check, that TrimViewTruncatedEnding
@@ -340,73 +342,74 @@ TEST(CheckIsCString, IsCString) {
 }
 
 TEST(GetTextPosByCodePointPosTakePrefixRemovePrefix, Utf8) {
-    const auto& DoCheck = [](const std::string_view text,    //
-                             const std::size_t count,        //
-                             const std::size_t text_pos,     //
-                             const std::string_view prefix,  //
-                             const std::string_view suffix) {
-        using utils::text::utf8::GetTextPosByCodePointPos;
-        ASSERT_EQ(text_pos, GetTextPosByCodePointPos(text, count));
+    const auto& do_check =
+        [](const std::string_view text,    //
+           const std::size_t count,        //
+           const std::size_t text_pos,     //
+           const std::string_view prefix,  //
+           const std::string_view suffix) {
+            using utils::text::utf8::GetTextPosByCodePointPos;
+            ASSERT_EQ(text_pos, GetTextPosByCodePointPos(text, count));
 
-        {
-            auto temp = std::string{text};
-            utils::text::utf8::TakePrefix(temp, count);
-            ASSERT_EQ(prefix, temp);
-        }
+            {
+                auto temp = std::string{text};
+                utils::text::utf8::TakePrefix(temp, count);
+                ASSERT_EQ(prefix, temp);
+            }
 
-        {
-            auto temp = text;
-            utils::text::utf8::TakeViewPrefix(temp, count);
-            ASSERT_EQ(prefix, temp);
-        }
+            {
+                auto temp = text;
+                utils::text::utf8::TakeViewPrefix(temp, count);
+                ASSERT_EQ(prefix, temp);
+            }
 
-        {
-            auto temp = std::string{text};
-            utils::text::utf8::RemovePrefix(temp, count);
-            ASSERT_EQ(suffix, temp);
-        }
+            {
+                auto temp = std::string{text};
+                utils::text::utf8::RemovePrefix(temp, count);
+                ASSERT_EQ(suffix, temp);
+            }
 
-        {
-            auto temp = text;
-            utils::text::utf8::RemoveViewPrefix(temp, count);
-            ASSERT_EQ(suffix, temp);
-        }
-    };
+            {
+                auto temp = text;
+                utils::text::utf8::RemoveViewPrefix(temp, count);
+                ASSERT_EQ(suffix, temp);
+            }
+        };
 
     // NOLINTNEXTLINE(readability-redundant-string-init)
     constexpr std::string_view kEmptyText{""};
-    DoCheck(kEmptyText, 0, 0, "", "");
-    DoCheck(kEmptyText, 1, 0, "", "");
+    do_check(kEmptyText, 0, 0, "", "");
+    do_check(kEmptyText, 1, 0, "", "");
 
     constexpr std::string_view kSimpleText{"abc"};
-    DoCheck(kSimpleText, 0, 0, "", "abc");
-    DoCheck(kSimpleText, 1, 1, "a", "bc");
-    DoCheck(kSimpleText, 2, 2, "ab", "c");
-    DoCheck(kSimpleText, 3, 3, "abc", "");
-    DoCheck(kSimpleText, 4, 3, "abc", "");
+    do_check(kSimpleText, 0, 0, "", "abc");
+    do_check(kSimpleText, 1, 1, "a", "bc");
+    do_check(kSimpleText, 2, 2, "ab", "c");
+    do_check(kSimpleText, 3, 3, "abc", "");
+    do_check(kSimpleText, 4, 3, "abc", "");
 
     constexpr std::string_view kComplexText{"aЭ百Юb度科dЯ"};
-    DoCheck(kComplexText, 0, 0, "", "aЭ百Юb度科dЯ");
-    DoCheck(kComplexText, 1, 1, "a", "Э百Юb度科dЯ");
-    DoCheck(kComplexText, 2, 3, "aЭ", "百Юb度科dЯ");
-    DoCheck(kComplexText, 3, 6, "aЭ百", "Юb度科dЯ");
-    DoCheck(kComplexText, 4, 8, "aЭ百Ю", "b度科dЯ");
-    DoCheck(kComplexText, 5, 9, "aЭ百Юb", "度科dЯ");
-    DoCheck(kComplexText, 6, 12, "aЭ百Юb度", "科dЯ");
-    DoCheck(kComplexText, 7, 15, "aЭ百Юb度科", "dЯ");
-    DoCheck(kComplexText, 8, 16, "aЭ百Юb度科d", "Я");
-    DoCheck(kComplexText, 9, 18, "aЭ百Юb度科dЯ", "");
-    DoCheck(kComplexText, 10, 18, "aЭ百Юb度科dЯ", "");
-    DoCheck(kComplexText, 99, 18, "aЭ百Юb度科dЯ", "");
+    do_check(kComplexText, 0, 0, "", "aЭ百Юb度科dЯ");
+    do_check(kComplexText, 1, 1, "a", "Э百Юb度科dЯ");
+    do_check(kComplexText, 2, 3, "aЭ", "百Юb度科dЯ");
+    do_check(kComplexText, 3, 6, "aЭ百", "Юb度科dЯ");
+    do_check(kComplexText, 4, 8, "aЭ百Ю", "b度科dЯ");
+    do_check(kComplexText, 5, 9, "aЭ百Юb", "度科dЯ");
+    do_check(kComplexText, 6, 12, "aЭ百Юb度", "科dЯ");
+    do_check(kComplexText, 7, 15, "aЭ百Юb度科", "dЯ");
+    do_check(kComplexText, 8, 16, "aЭ百Юb度科d", "Я");
+    do_check(kComplexText, 9, 18, "aЭ百Юb度科dЯ", "");
+    do_check(kComplexText, 10, 18, "aЭ百Юb度科dЯ", "");
+    do_check(kComplexText, 99, 18, "aЭ百Юb度科dЯ", "");
 
     // invalid utf-8
-    DoCheck("\xF7", 1, 1, "\xF7", "");
-    DoCheck("\xC2_bcdef", 1, 2, "\xC2_", "bcdef");
-    DoCheck("\xE0_bcdef", 1, 3, "\xE0_b", "cdef");
-    DoCheck("\xF0_bcdef", 1, 4, "\xF0_bc", "def");
-    DoCheck("\xFF_bcdef", 1, 4, "\xFF_bc", "def");
-    DoCheck("\xFF_bcdef", 2, 5, "\xFF_bcd", "ef");
-    DoCheck("\xE0_b\xC0", 2, 4, "\xE0_b\xC0", "");
+    do_check("\xF7", 1, 1, "\xF7", "");
+    do_check("\xC2_bcdef", 1, 2, "\xC2_", "bcdef");
+    do_check("\xE0_bcdef", 1, 3, "\xE0_b", "cdef");
+    do_check("\xF0_bcdef", 1, 4, "\xF0_bc", "def");
+    do_check("\xFF_bcdef", 1, 4, "\xFF_bc", "def");
+    do_check("\xFF_bcdef", 2, 5, "\xFF_bcd", "ef");
+    do_check("\xE0_b\xC0", 2, 4, "\xE0_b\xC0", "");
 }
 
 USERVER_NAMESPACE_END

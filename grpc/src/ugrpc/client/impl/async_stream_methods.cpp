@@ -35,8 +35,10 @@ void ThrowIfDeadlineIsExceeded(grpc::ClientContext& context, std::string_view ca
     }
 }
 
-ugrpc::impl::AsyncMethodInvocation::WaitStatus
-WaitAndTryCancelIfNeeded(ugrpc::impl::AsyncMethodInvocation& invocation, grpc::ClientContext& context) noexcept {
+ugrpc::impl::AsyncMethodInvocation::WaitStatus WaitAndTryCancelIfNeeded(
+    ugrpc::impl::AsyncMethodInvocation& invocation,
+    grpc::ClientContext& context
+) noexcept {
     const auto wait_status = invocation.Wait();
     if (ugrpc::impl::AsyncMethodInvocation::WaitStatus::kCancelled == wait_status) {
         context.TryCancel();

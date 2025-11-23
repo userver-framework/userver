@@ -36,9 +36,11 @@ public:
         return sample::ugrpc::GreetingResponse{};
     }
 
-    ReadManyResult
-    ReadMany(CallContext& context, sample::ugrpc::StreamGreetingRequest&& /*request*/, ReadManyWriter& /*writer*/)
-        override {
+    ReadManyResult ReadMany(
+        CallContext& context,
+        sample::ugrpc::StreamGreetingRequest&& /*request*/,
+        ReadManyWriter& /*writer*/
+    ) override {
         SetMetadata(context.GetServerContext());
         return grpc::Status::OK;
     }

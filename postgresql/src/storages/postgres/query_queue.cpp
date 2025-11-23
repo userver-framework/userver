@@ -21,7 +21,8 @@ struct QueryQueue::QueriesStorage final {
         QueryMeta(std::string prepared_statement_name, ParamsHolder&& params, TimeoutDuration statement_timeout)
             : prepared_statement_name{std::move(prepared_statement_name)},
               params{std::move(params)},
-              statement_timeout{statement_timeout} {}
+              statement_timeout{statement_timeout}
+        {}
     };
 
     std::vector<QueryMeta> queries;
@@ -29,7 +30,9 @@ struct QueryQueue::QueriesStorage final {
 };
 
 QueryQueue::QueryQueue(CommandControl default_cc, detail::ConnectionPtr&& conn)
-    : default_cc_{default_cc}, conn_{std::move(conn)} {
+    : default_cc_{default_cc},
+      conn_{std::move(conn)}
+{
     UINVARIANT(conn_->IsPipelineActive(), "QueryQueue usage requires pipelining to be enabled");
 
     UINVARIANT(conn_->ArePreparedStatementsEnabled(), "QueryQueue usage requires prepared statements to be enabled");
@@ -54,8 +57,9 @@ std::vector<ResultSet> QueryQueue::Collect(TimeoutDuration timeout) {
     tracing::Span collect_span{"query_queue_collect"};
     auto scope = collect_span.CreateScopeTime();
 
-    const USERVER_NAMESPACE::utils::ScopeGuard reset_guard{
-        [this] { [[maybe_unused]] const detail::ConnectionPtr tmp{std::move(conn_)}; }};
+    const USERVER_NAMESPACE::utils::ScopeGuard reset_guard{[this] {
+        [[maybe_unused]] const detail::ConnectionPtr tmp{std::move(conn_)};
+    }};
 
     if (queries_storage_->queries.empty()) {
         return {};
@@ -68,14 +72,17 @@ std::vector<ResultSet> QueryQueue::Collect(TimeoutDuration timeout) {
         const auto& description = queries_storage_->descriptions[i];
         const CommandControl cc{
             timeout /* .execute, used for SetStatementTimeout deadline */,
-            meta.statement_timeout /* .statement, used as expected */};
+            meta.statement_timeout /* .statement, used as expected */
+        };
         conn_->AddIntoPipeline(cc, meta.prepared_statement_name, meta.params.params_proxy, description, scope);
     }
 
     auto result = conn_->GatherPipeline(timeout, queries_storage_->descriptions);
     if (result.size() != queries_storage_->queries.size()) {
         throw RuntimeError{fmt::format(
-            "QueryQueue results count mismatch: expected {}, got {}", queries_storage_->queries.size(), result.size()
+            "QueryQueue results count mismatch: expected {}, got {}",
+            queries_storage_->queries.size(),
+            result.size()
         )};
     }
     return result;
@@ -87,9 +94,8 @@ void QueryQueue::DoPush(CommandControl cc, const Query& query, ParamsHolder&& pa
     ValidateUsage();
 
     auto prepared_statement_meta = conn_->PrepareStatement(query, params.params_proxy, cc.network_timeout_ms);
-    queries_storage_->queries.emplace_back(
-        std::move(prepared_statement_meta.statement_name), std::move(params), cc.statement_timeout_ms
-    );
+    queries_storage_->queries
+        .emplace_back(std::move(prepared_statement_meta.statement_name), std::move(params), cc.statement_timeout_ms);
     queries_storage_->descriptions.emplace_back(std::move(prepared_statement_meta.description));
 }
 

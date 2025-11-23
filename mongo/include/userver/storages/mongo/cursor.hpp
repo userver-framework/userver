@@ -37,7 +37,9 @@ public:
 
         class DocHolder {
         public:
-            explicit DocHolder(value_type doc) : doc_(std::move(doc)) {}
+            explicit DocHolder(value_type doc)
+                : doc_(std::move(doc))
+            {}
 
             value_type& operator*() { return doc_; }
 

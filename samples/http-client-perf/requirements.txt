@@ -1,1 +1,3 @@
-yandex-taxi-testsuite[]
+# pytest-8.4.2 works; pytest-9.0.0 seems to be broken with testsuite.
+pytest < 9.0
+yandex-taxi-testsuite[] >= 0.3.3, < 0.4

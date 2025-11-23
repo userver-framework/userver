@@ -20,7 +20,9 @@ int main(int argc, char* argv[]) {
                 auto key = request_json.As<schemas::KeyRequest>().key;
 
                 auto res = dep.pg().Execute(
-                    storages::postgres::ClusterHostType::kSlave, "SELECT value FROM key_value_table WHERE key=$1", key
+                    storages::postgres::ClusterHostType::kSlave,
+                    "SELECT value FROM key_value_table WHERE key=$1",
+                    key
                 );
 
                 const schemas::KeyValue response{key, res[0][0].As<std::string>()};

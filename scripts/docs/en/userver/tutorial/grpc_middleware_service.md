@@ -39,7 +39,8 @@ For more information about `kDependency`:
 
 Lastly, add this component to the static config and register it in the pipeline:
 
-```yaml
+```
+# yaml
 components_manager:
     components:
         grpc-server-auth:

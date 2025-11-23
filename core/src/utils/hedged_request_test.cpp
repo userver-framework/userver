@@ -28,7 +28,8 @@ struct TestFuture {
                   return reply;
               }
           )),
-          attempt(attempt) {}
+          attempt(attempt)
+    {}
     TestFuture(TestFuture&&) noexcept = default;
     std::string Get() { return task.Get(); }
     auto* TryGetContextAccessor() { return task.TryGetContextAccessor(); }
@@ -75,7 +76,9 @@ public:
     using ReplyType = std::string;
 
     TestStrategy(EventLog& event_log, AttemptProgram attempt_program)
-        : attempt_program(std::move(attempt_program)), event_log(event_log) {}
+        : attempt_program(std::move(attempt_program)),
+          event_log(event_log)
+    {}
 
     std::optional<RequestType> Create(size_t attempt) {
         event_log.push_back({Event::StartRequest, attempt});
@@ -89,7 +92,9 @@ public:
     std::optional<std::chrono::milliseconds> ProcessReply(RequestType&& request) {
         reply = std::move(request).Get();
         event_log.push_back({Event::ProcessReply, request.attempt});
-        if (attempt_program.size() <= request.attempt) return std::nullopt;
+        if (attempt_program.size() <= request.attempt) {
+            return std::nullopt;
+        }
         return attempt_program[request.attempt].process_reply_result;
     }
 
@@ -97,7 +102,9 @@ public:
 
     void Finish(RequestType&& request) {
         event_log.push_back({Event::Finish, request.attempt});
-        if (request.task.IsValid()) request.task.SyncCancel();
+        if (request.task.IsValid()) {
+            request.task.SyncCancel();
+        }
     }
 
     std::optional<ReplyType> reply;

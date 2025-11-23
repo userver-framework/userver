@@ -20,8 +20,10 @@ namespace storages::sqlite::infra {
 
 class Pool final : public drivers::impl::ConnectionPoolBase<impl::Connection, Pool> {
 public:
-    static std::shared_ptr<Pool>
-    Create(const settings::SQLiteSettings& settings, engine::TaskProcessor& blocking_task_processor);
+    static std::shared_ptr<Pool> Create(
+        const settings::SQLiteSettings& settings,
+        engine::TaskProcessor& blocking_task_processor
+    );
     ~Pool();
 
     ConnectionPtr Acquire();

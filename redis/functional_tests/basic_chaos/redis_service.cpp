@@ -46,11 +46,13 @@ private:
 KeyValue::KeyValue(const components::ComponentConfig& config, const components::ComponentContext& context)
     : server::handlers::HttpHandlerBase(config, context),
       redis_client_{context.FindComponent<components::Redis>("key-value-database").GetClient("test")},
-      redis_cc_{std::chrono::seconds{15}, std::chrono::seconds{60}, 4} {}
+      redis_cc_{std::chrono::seconds{15}, std::chrono::seconds{60}, 4}
+{}
 
-std::string
-KeyValue::HandleRequestThrow(const server::http::HttpRequest& request, server::request::RequestContext& /*context*/)
-    const {
+std::string KeyValue::HandleRequestThrow(
+    const server::http::HttpRequest& request,
+    server::request::RequestContext& /*context*/
+) const {
     const auto& key = request.GetArg("key");
     if (key.empty()) {
         throw server::handlers::ClientError(server::handlers::ExternalBody{"No 'key' query argument"});
@@ -72,7 +74,8 @@ KeyValue::HandleRequestThrow(const server::http::HttpRequest& request, server::r
             return DeleteValue(key);
         default:
             throw server::handlers::ClientError(server::handlers::ExternalBody{
-                fmt::format("Unsupported method {}", request.GetMethod())});
+                fmt::format("Unsupported method {}", request.GetMethod())
+            });
     }
 }
 
@@ -136,12 +139,15 @@ MakeManyRequests::MakeManyRequests(
 )
     : server::handlers::HttpHandlerBase(config, context),
       redis_client_{context.FindComponent<components::Redis>("key-value-database").GetClient("test")},
-      redis_cc_{std::chrono::seconds{15}, std::chrono::seconds{60}, 4} {
+      redis_cc_{std::chrono::seconds{15}, std::chrono::seconds{60}, 4}
+{
     redis_cc_.allow_reads_from_master = true;
 }
 
-std::string MakeManyRequests::
-    HandleRequestThrow(const server::http::HttpRequest& request, server::request::RequestContext& /*context*/) const {
+std::string MakeManyRequests::HandleRequestThrow(
+    const server::http::HttpRequest& request,
+    server::request::RequestContext& /*context*/
+) const {
     constexpr size_t kRequestsCount = 1000;
 
     auto cc = redis_cc_;
@@ -176,18 +182,20 @@ std::string MakeManyRequests::
 }  // namespace chaos
 
 int main(int argc, char* argv[]) {
-    const auto component_list = components::MinimalServerComponentList()
-                                    .Append<chaos::KeyValue>()
-                                    .Append<chaos::MakeManyRequests>()
-                                    .Append<server::handlers::ServerMonitor>()
-                                    .Append<components::Secdist>()
-                                    .Append<components::DefaultSecdistProvider>()
-                                    .Append<components::Redis>("key-value-database")
-                                    .Append<components::TestsuiteSupport>()
-                                    .Append<clients::dns::Component>()
-                                    .Append<components::HttpClient>()
-                                    .Append<server::handlers::TestsControl>()
-                                    .Append<components::DynamicConfigClient>()
-                                    .Append<components::DynamicConfigClientUpdater>();
+    const auto component_list =
+        components::MinimalServerComponentList()
+            .Append<chaos::KeyValue>()
+            .Append<chaos::MakeManyRequests>()
+            .Append<server::handlers::ServerMonitor>()
+            .Append<components::Secdist>()
+            .Append<components::DefaultSecdistProvider>()
+            .Append<components::Redis>("key-value-database")
+            .Append<components::TestsuiteSupport>()
+            .Append<clients::dns::Component>()
+            .Append<components::HttpClientCore>()
+            .Append<components::HttpClient>()
+            .Append<server::handlers::TestsControl>()
+            .Append<components::DynamicConfigClient>()
+            .Append<components::DynamicConfigClientUpdater>();
     return utils::DaemonMain(argc, argv, component_list);
 }

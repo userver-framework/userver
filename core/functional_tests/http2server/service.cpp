@@ -84,17 +84,19 @@ public:
 };
 
 int main(int argc, char* argv[]) {
-    auto component_list = components::MinimalServerComponentList()
-                              .Append<components::TestsuiteSupport>()
-                              .Append<components::HttpClient>()
-                              .Append<clients::dns::Component>()
-                              .Append<server::handlers::ServerMonitor>()
-                              .Append<server::handlers::TestsControl>()
-                              .Append<components::DynamicConfigClientUpdater>()
-                              .Append<components::DynamicConfigClient>()
-                              .Append<HandlerHttp2>()
-                              .Append<HandlerHttp2Stream>()
-                              .Append<server::handlers::Ping>();
+    auto component_list =
+        components::MinimalServerComponentList()
+            .Append<components::TestsuiteSupport>()
+            .Append<components::HttpClientCore>()
+            .Append<components::HttpClient>()
+            .Append<clients::dns::Component>()
+            .Append<server::handlers::ServerMonitor>()
+            .Append<server::handlers::TestsControl>()
+            .Append<components::DynamicConfigClientUpdater>()
+            .Append<components::DynamicConfigClient>()
+            .Append<HandlerHttp2>()
+            .Append<HandlerHttp2Stream>()
+            .Append<server::handlers::Ping>();
 
     return utils::DaemonMain(argc, argv, component_list);
 }

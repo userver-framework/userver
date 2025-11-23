@@ -13,7 +13,8 @@ USERVER_NAMESPACE_BEGIN
 
 TEST(UtilsAlgo, StrCat) {
     EXPECT_EQ(
-        utils::StrCat("a", std::string_view{"bbb"}, std::string{"cc"}, static_cast<const char*>("dddd")), "abbbccdddd"
+        utils::StrCat("a", std::string_view{"bbb"}, std::string{"cc"}, static_cast<const char*>("dddd")),
+        "abbbccdddd"
     );
 }
 

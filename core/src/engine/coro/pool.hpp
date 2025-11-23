@@ -59,7 +59,7 @@ private:
     // Coroutines in local_coro_buffer_ are counted as used in statistics.
     // Unprotected thread_local is OK here, because coro::Pool is always used
     // outside of any coroutine.
-    static inline thread_local std::vector<Coroutine> local_coro_buffer_;
+    static inline thread_local std::vector<Coroutine> local_coro_buffer;
 
     debug::MarkedAllocator stack_allocator_;
     // Some pointers arithmetic in StackUsageMonitor depends on this.

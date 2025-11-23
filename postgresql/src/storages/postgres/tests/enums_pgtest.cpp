@@ -90,7 +90,8 @@ struct CppToUserPg<RainbowRO> : EnumMappingBase<RainbowRO> {
         {EnumType::kOrange, "orange"},
         {EnumType::kYellow, "yellow"},
         {EnumType::kGreen, "green"},
-        {EnumType::kCyan, "cyan"}};
+        {EnumType::kCyan, "cyan"}
+    };
 };
 
 template <>
@@ -210,7 +211,8 @@ UTEST_P(PostgreConnection, EnumTrivialMapRoundtrip) {
         AnotherRainbow::kOrange,
         AnotherRainbow::kYellow,
         AnotherRainbow::kGreen,
-        AnotherRainbow::kCyan};
+        AnotherRainbow::kCyan
+    };
     for (const auto& en : enumerators) {
         UEXPECT_NO_THROW(res = GetConn()->Execute("select $1", en));
         EXPECT_EQ(en, res[0][0].As<AnotherRainbow>());

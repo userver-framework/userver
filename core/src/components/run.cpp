@@ -46,7 +46,10 @@ namespace {
 
 class LogScope final {
 public:
-    LogScope() : logger_prev_{logging::GetDefaultLogger()}, level_scope_{logging::GetDefaultLoggerLevel()} {
+    LogScope()
+        : logger_prev_{logging::GetDefaultLogger()},
+          level_scope_{logging::GetDefaultLoggerLevel()}
+    {
         logging::impl::SetDefaultLoggerRef(logging::impl::MemLogger::GetMemLogger());
     }
 
@@ -77,8 +80,8 @@ void HandleJemallocSettings() {
     if (utils::impl::kJemallocBgThread.IsEnabled()) {
         auto ec = utils::jemalloc::SetMaxBgThreads(kDefaultMaxBgThreads);
         if (ec) {
-            LOG_WARNING() << "Failed to set max_background_threads to " << kDefaultMaxBgThreads
-                          << ", code: " << ec.value();
+            LOG_WARNING()
+                << "Failed to set max_background_threads to " << kDefaultMaxBgThreads << ", code: " << ec.value();
         }
 
         ec = utils::jemalloc::EnableBgThreads();
@@ -95,11 +98,11 @@ void PreheatStacktraceCollector() {
     const auto dummy_stacktrace = logging::stacktrace_cache::to_string(boost::stacktrace::stacktrace{});
     const auto finish = now();
 
-    const auto initialization_duration_ms =
-        std::chrono::duration_cast<std::chrono::milliseconds>(finish - start).count();
+    const auto
+        initialization_duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>(finish - start).count();
     if (dummy_stacktrace.size() == 0) {
-        LOG_WARNING() << "Failed to initialize stacktrace collector, an attempt took " << initialization_duration_ms
-                      << "ms";
+        LOG_WARNING()
+            << "Failed to initialize stacktrace collector, an attempt took " << initialization_duration_ms << "ms";
     } else {
         LOG_INFO() << "Initialized stacktrace collector within " << initialization_duration_ms << "ms";
     }
@@ -149,7 +152,8 @@ ManagerConfig ParseManagerConfigAndSetupLogging(
     details += std::visit(
         utils::Overloaded{
             [](const std::string& path) { return fmt::format("file '{}'", path); },
-            [](const InMemoryConfig&) { return std::string{"in-memory config"}; }},
+            [](const InMemoryConfig&) { return std::string{"in-memory config"}; }
+        },
         config
     );
     if (config_vars_path) {
@@ -219,7 +223,9 @@ void DoRun(
         throw;
     }
 
-    if (run_mode == RunMode::kOnce) return;
+    if (run_mode == RunMode::kOnce) {
+        return;
+    }
 
     for (;;) {
         auto signum = signal_catcher.Catch();

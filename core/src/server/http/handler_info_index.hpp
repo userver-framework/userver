@@ -17,7 +17,9 @@ namespace server::http {
 
 struct HandlerInfo {
     HandlerInfo(engine::TaskProcessor& task_processor, const handlers::HttpHandlerBase& handler)
-        : task_processor(task_processor), handler(handler) {}
+        : task_processor(task_processor),
+          handler(handler)
+    {}
 
     engine::TaskProcessor& task_processor;
     const handlers::HttpHandlerBase& handler;
@@ -27,7 +29,9 @@ struct MatchRequestResult {
     enum class Status { kHandlerNotFound, kMethodNotAllowed, kOk };
 
     MatchRequestResult() = default;
-    explicit MatchRequestResult(const HandlerInfo& handler_info) : handler_info(&handler_info) {}
+    explicit MatchRequestResult(const HandlerInfo& handler_info)
+        : handler_info(&handler_info)
+    {}
 
     const HandlerInfo* handler_info = nullptr;
     size_t matched_path_length = 0;

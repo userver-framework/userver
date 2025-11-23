@@ -14,7 +14,9 @@ namespace {
 /// [service fixture]
 class GreeterServiceTest : public ugrpc::tests::ServiceFixtureBase {
 protected:
-    GreeterServiceTest() : service_(prefix_) {
+    GreeterServiceTest()
+        : service_(prefix_)
+    {
         RegisterService(service_);
         StartServer();
         generated_client_ = MakeClient<samples::api::GreeterServiceClient>();
@@ -62,7 +64,11 @@ UTEST_F(GreeterServiceTest, SayHelloResponseStreamCustomClient) {
     EXPECT_THAT(
         responses,
         testing::ElementsAre(
-            "Hello, gtest!", "Hello, gtest!!", "Hello, gtest!!!", "Hello, gtest!!!!", "Hello, gtest!!!!!"
+            "Hello, gtest!",
+            "Hello, gtest!!",
+            "Hello, gtest!!!",
+            "Hello, gtest!!!!",
+            "Hello, gtest!!!!!"
         )
     );
 }
@@ -139,8 +145,8 @@ GreeterMock::SayHelloResponseStreamResult GreeterMock::SayHelloResponseStream(
     samples::api::GreetingResponse response;
     std::string message = "Mocked response";
 
-    const int kCountSend = 5;
-    for (auto i = 0; i < kCountSend; ++i) {
+    const int count_send = 5;
+    for (auto i = 0; i < count_send; ++i) {
         message.push_back('!');
         response.set_greeting(grpc::string(message));
         writer.Write(response);
@@ -154,15 +160,21 @@ UTEST_F(GreeterClientTest, SayHelloResponseStreamMockedServiceCustomClient) {
     EXPECT_THAT(
         responses,
         testing::ElementsAre(
-            "Mocked response!", "Mocked response!!", "Mocked response!!!", "Mocked response!!!!", "Mocked response!!!!!"
+            "Mocked response!",
+            "Mocked response!!",
+            "Mocked response!!!",
+            "Mocked response!!!!",
+            "Mocked response!!!!!"
         )
     );
 }
 /// [client tests response stream]
 
 /// [client tests request stream]
-GreeterMock::SayHelloRequestStreamResult
-GreeterMock::SayHelloRequestStream(CallContext& /*context*/, SayHelloRequestStreamReader& reader) {
+GreeterMock::SayHelloRequestStreamResult GreeterMock::SayHelloRequestStream(
+    CallContext& /*context*/,
+    SayHelloRequestStreamReader& reader
+) {
     samples::api::GreetingResponse response;
     samples::api::GreetingRequest request;
     while (reader.Read(request)) {
@@ -180,8 +192,10 @@ UTEST_F(GreeterClientTest, SayHelloRequestStreamMockedServiceCustomClient) {
 /// [client tests request stream]
 
 /// [client tests streams]
-GreeterMock::SayHelloStreamsResult
-GreeterMock::SayHelloStreams(CallContext& /*context*/, SayHelloStreamsReaderWriter& stream) {
+GreeterMock::SayHelloStreamsResult GreeterMock::SayHelloStreams(
+    CallContext& /*context*/,
+    SayHelloStreamsReaderWriter& stream
+) {
     samples::api::GreetingResponse response;
     std::string message = "Mocked response";
     samples::api::GreetingRequest request;

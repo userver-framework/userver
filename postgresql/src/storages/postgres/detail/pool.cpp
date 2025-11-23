@@ -48,11 +48,13 @@ class Stopwatch {
 public:
     using Accumulator =
         USERVER_NAMESPACE::utils::statistics::RecentPeriod<Percentile, Percentile, detail::SteadyCoarseClock>;
-    explicit Stopwatch(Accumulator& acc) : accum_{acc}, start_{SteadyClock::now()} {}
+    explicit Stopwatch(Accumulator& acc)
+        : accum_{acc},
+          start_{SteadyClock::now()}
+    {}
     ~Stopwatch() {
-        accum_.GetCurrentCounter().Account(
-            std::chrono::duration_cast<std::chrono::milliseconds>(SteadyClock::now() - start_).count()
-        );
+        accum_.GetCurrentCounter()
+            .Account(std::chrono::duration_cast<std::chrono::milliseconds>(SteadyClock::now() - start_).count());
     }
 
 private:
@@ -64,7 +66,8 @@ auto MakeLogExtraFromConnectionStats(const InstanceStatistics& stats) {
     return logging::LogExtra{
         {{"pg_conn_active", stats.connection.active},
          {"pg_conn_open", stats.connection.open_total},
-         {"pg_conn_max", stats.connection.maximum}}};
+         {"pg_conn_max", stats.connection.maximum}}
+    };
 }
 
 }  // namespace
@@ -119,7 +122,8 @@ ConnectionPool::ConnectionPool(
               const auto& cfg = config[::dynamic_config::POSTGRES_CONGESTION_CONTROL_SETTINGS];
               return congestion_control::v2::ConvertConfig(cfg);
           }
-      ) {
+      )
+{
     if (USERVER_NAMESPACE::utils::impl::kPgCcExperiment.IsEnabled()) {
         cc_controller_.Start();
     }
@@ -182,9 +186,10 @@ void ConnectionPool::Init(InitMode mode) {
         throw InvalidConfig("PostgreSQL pool max size is less than requested initial size");
     }
 
-    LOG_INFO() << (mode == InitMode::kAsync ? "Asynchronously" : "Synchronously")
-               << " initializing PostgreSQL connection pool, creating up to " << settings->min_size
-               << " connections to " << DsnCutPassword(dsn_);
+    LOG_INFO()
+        << (mode == InitMode::kAsync ? "Asynchronously" : "Synchronously")
+        << " initializing PostgreSQL connection pool, creating up to " << settings->min_size << " connections to "
+        << DsnCutPassword(dsn_);
 
     std::vector<engine::TaskWithResult<bool>> tasks;
     tasks.reserve(settings->min_size);
@@ -215,15 +220,16 @@ void ConnectionPool::Init(InitMode mode) {
                 LOG_ERROR() << "Failed to establish connection to PostgreSQL server";
             }
         } catch (const std::exception& e) {
-            LOG_ERROR() << "Failed to establish connection with PostgreSQL server " << DsnCutPassword(dsn_) << ": "
-                        << e;
+            LOG_ERROR()
+                << "Failed to establish connection with PostgreSQL server " << DsnCutPassword(dsn_) << ": " << e;
         }
     }
 
     const auto connections_count = size_semaphore_.UsedApprox();
     if (connections_count < settings->min_size) {
-        LOG_WARNING() << "Pool is poorly initialized, " << settings->min_size - connections_count
-                      << " connections have not been opened, " << connections_count << " connections are ready to use";
+        LOG_WARNING()
+            << "Pool is poorly initialized, " << settings->min_size - connections_count
+            << " connections have not been opened, " << connections_count << " connections are ready to use";
     } else {
         LOG_INFO() << "Pool initialized, " << connections_count << " connections are ready to use";
     }
@@ -262,24 +268,22 @@ void ConnectionPool::AccountConnectionStats(Connection::Statistics conn_stats) {
     stats_.transaction.execute_timeout += conn_stats.execute_timeout;
     stats_.transaction.duplicate_prepared_statements += conn_stats.duplicate_prepared_statements;
 
-    stats_.transaction.total_percentile.GetCurrentCounter().Account(
-        std::chrono::duration_cast<std::chrono::milliseconds>(conn_stats.trx_end_time - conn_stats.trx_start_time)
-            .count()
-    );
-    stats_.transaction.busy_percentile.GetCurrentCounter().Account(
-        std::chrono::duration_cast<std::chrono::milliseconds>(conn_stats.sum_query_duration).count()
-    );
-    stats_.transaction.wait_start_percentile.GetCurrentCounter().Account(
-        std::chrono::duration_cast<std::chrono::milliseconds>(conn_stats.work_start_time - conn_stats.trx_start_time)
-            .count()
-    );
-    stats_.transaction.wait_end_percentile.GetCurrentCounter().Account(
-        std::chrono::duration_cast<std::chrono::milliseconds>(conn_stats.trx_end_time - conn_stats.last_execute_finish)
-            .count()
-    );
-    stats_.transaction.return_to_pool_percentile.GetCurrentCounter().Account(
-        std::chrono::duration_cast<std::chrono::milliseconds>(now - conn_stats.trx_end_time).count()
-    );
+    stats_.transaction.total_percentile.GetCurrentCounter()
+        .Account(std::chrono::duration_cast<
+                     std::chrono::milliseconds>(conn_stats.trx_end_time - conn_stats.trx_start_time)
+                     .count());
+    stats_.transaction.busy_percentile.GetCurrentCounter()
+        .Account(std::chrono::duration_cast<std::chrono::milliseconds>(conn_stats.sum_query_duration).count());
+    stats_.transaction.wait_start_percentile.GetCurrentCounter()
+        .Account(std::chrono::duration_cast<
+                     std::chrono::milliseconds>(conn_stats.work_start_time - conn_stats.trx_start_time)
+                     .count());
+    stats_.transaction.wait_end_percentile.GetCurrentCounter()
+        .Account(std::chrono::duration_cast<
+                     std::chrono::milliseconds>(conn_stats.trx_end_time - conn_stats.last_execute_finish)
+                     .count());
+    stats_.transaction.return_to_pool_percentile.GetCurrentCounter()
+        .Account(std::chrono::duration_cast<std::chrono::milliseconds>(now - conn_stats.trx_end_time).count());
 }
 
 void ConnectionPool::Release(Connection* connection) {
@@ -351,7 +355,9 @@ NotifyScope ConnectionPool::Listen(std::string_view channel, OptionalCommandCont
 }
 
 TimeoutDuration ConnectionPool::GetExecuteTimeout(OptionalCommandControl cmd_ctl) const {
-    if (cmd_ctl) return cmd_ctl->network_timeout_ms;
+    if (cmd_ctl) {
+        return cmd_ctl->network_timeout_ms;
+    }
 
     return GetDefaultCommandControl().network_timeout_ms;
 }
@@ -361,15 +367,20 @@ CommandControl ConnectionPool::GetDefaultCommandControl() const { return default
 void ConnectionPool::SetSettings(const PoolSettings& settings) {
     auto max_connections = settings.max_size;
     auto cc_max_connections = cc_max_connections_.load();
-    if (cc_max_connections_ > 0 && cc_max_connections < max_connections) max_connections = cc_max_connections;
+    if (cc_max_connections_ > 0 && cc_max_connections < max_connections) {
+        max_connections = cc_max_connections;
+    }
 
     auto reader = settings_.Read();
-    if (*reader == settings) return;
+    if (*reader == settings) {
+        return;
+    }
     if (reader->max_size != max_connections) {
         size_semaphore_.SetCapacity(max_connections);
     }
-    if (reader->connecting_limit != settings.connecting_limit)
+    if (reader->connecting_limit != settings.connecting_limit) {
         connecting_semaphore_.SetCapacity(settings.connecting_limit ? settings.connecting_limit : kUnlimitedConnecting);
+    }
 
     auto writer = settings_.StartWrite();
     *writer = settings;
@@ -411,7 +422,9 @@ engine::TaskWithResult<bool> ConnectionPool::Connect(engine::SemaphoreLock lock,
 }
 
 bool ConnectionPool::DoConnect(engine::SemaphoreLock size_lock, ConnectionSettings&& conn_settings) {
-    if (!size_lock) return false;
+    if (!size_lock) {
+        return false;
+    }
     LOG_TRACE() << "Creating PostgreSQL connection, current pool size: " << size_semaphore_.UsedApprox();
     const engine::SemaphoreLock connecting_lock{connecting_semaphore_, kConnectingTimeout};
     if (!connecting_lock) {
@@ -481,8 +494,9 @@ void ConnectionPool::CheckMinPoolSizeUnderflow() {
     auto settings = settings_.Read();
     auto count = size_semaphore_.UsedApprox();
     if (count < settings->min_size) {
-        LOG_DEBUG() << "Current pool size is less than min_size (" << count << " < " << settings->min_size
-                    << "). Create new connection.";
+        LOG_DEBUG()
+            << "Current pool size is less than min_size (" << count << " < " << settings->min_size
+            << "). Create new connection.";
         TryCreateConnectionAsync();
     }
 }
@@ -594,8 +608,9 @@ void ConnectionPool::CleanupConnection(Connection* connection) {
             // many synchronous calls and/or keep precious connections hanging.
             // Assume a router with sane connection management logic is in place.
             if (connection->Cleanup(kCleanupTimeout)) {
-                LOG_DEBUG() << "Successfully finished waiting for a dirty connection "
-                               "to clean up itself";
+                LOG_DEBUG()
+                    << "Successfully finished waiting for a dirty connection "
+                       "to clean up itself";
                 AccountConnectionStats(connection->GetStatsAndReset());
                 Push(connection);
                 return;

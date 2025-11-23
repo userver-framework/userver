@@ -10,7 +10,8 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::sqlite {
 
 Transaction::Transaction(std::shared_ptr<infra::ConnectionPtr> connection, const settings::TransactionOptions& options)
-    : connection_{std::move(connection)} {
+    : connection_{std::move(connection)}
+{
     if (connection_ && connection_->IsValid()) {
         (*connection_)->Begin(options);
         trx_lock_.Lock();
@@ -22,8 +23,9 @@ Transaction& Transaction::operator=(Transaction&&) noexcept = default;
 
 Transaction::~Transaction() {
     if (connection_ && connection_->IsValid()) {
-        LOG_INFO() << "Transaction handle is destroyed without an explicit "
-                      "commit or rollback, rolling back automatically";
+        LOG_INFO()
+            << "Transaction handle is destroyed without an explicit "
+               "commit or rollback, rolling back automatically";
         try {
             Rollback();
         } catch (const std::exception& err) {

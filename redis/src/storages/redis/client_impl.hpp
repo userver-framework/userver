@@ -180,8 +180,12 @@ public:
     RequestHincrby Hincrby(std::string key, std::string field, int64_t increment, const CommandControl& command_control)
         override;
 
-    RequestHincrbyfloat
-    Hincrbyfloat(std::string key, std::string field, double increment, const CommandControl& command_control) override;
+    RequestHincrbyfloat Hincrbyfloat(
+        std::string key,
+        std::string field,
+        double increment,
+        const CommandControl& command_control
+    ) override;
 
     RequestHkeys Hkeys(std::string key, const CommandControl& command_control) override;
 
@@ -278,8 +282,11 @@ public:
 
     RequestSet Set(std::string key, std::string value, const CommandControl& command_control) override;
 
-    RequestSet
-    Set(std::string key, std::string value, std::chrono::milliseconds ttl, const CommandControl& command_control
+    RequestSet Set(
+        std::string key,
+        std::string value,
+        std::chrono::milliseconds ttl,
+        const CommandControl& command_control
     ) override;
 
     RequestSetIfExist SetIfExist(std::string key, std::string value, const CommandControl& command_control) override;
@@ -301,8 +308,11 @@ public:
         const CommandControl& command_control
     ) override;
 
-    RequestSetIfNotExistOrGet
-    SetIfNotExistOrGet(std::string key, std::string value, const CommandControl& command_control) override;
+    RequestSetIfNotExistOrGet SetIfNotExistOrGet(
+        std::string key,
+        std::string value,
+        const CommandControl& command_control
+    ) override;
 
     RequestSetIfNotExistOrGet SetIfNotExistOrGet(
         std::string key,
@@ -367,8 +377,12 @@ public:
     RequestZaddIncr ZaddIncr(std::string key, double score, std::string member, const CommandControl& command_control)
         override;
 
-    RequestZaddIncrExisting
-    ZaddIncrExisting(std::string key, double score, std::string member, const CommandControl& command_control) override;
+    RequestZaddIncrExisting ZaddIncrExisting(
+        std::string key,
+        double score,
+        std::string member,
+        const CommandControl& command_control
+    ) override;
 
     RequestZcard Zcard(std::string key, const CommandControl& command_control) override;
 
@@ -376,14 +390,22 @@ public:
 
     RequestZrange Zrange(std::string key, int64_t start, int64_t stop, const CommandControl& command_control) override;
 
-    RequestZrangeWithScores
-    ZrangeWithScores(std::string key, int64_t start, int64_t stop, const CommandControl& command_control) override;
+    RequestZrangeWithScores ZrangeWithScores(
+        std::string key,
+        int64_t start,
+        int64_t stop,
+        const CommandControl& command_control
+    ) override;
 
     RequestZrangebyscore Zrangebyscore(std::string key, double min, double max, const CommandControl& command_control)
         override;
 
-    RequestZrangebyscore
-    Zrangebyscore(std::string key, std::string min, std::string max, const CommandControl& command_control) override;
+    RequestZrangebyscore Zrangebyscore(
+        std::string key,
+        std::string min,
+        std::string max,
+        const CommandControl& command_control
+    ) override;
 
     RequestZrangebyscore Zrangebyscore(
         std::string key,
@@ -401,8 +423,12 @@ public:
         const CommandControl& command_control
     ) override;
 
-    RequestZrangebyscoreWithScores
-    ZrangebyscoreWithScores(std::string key, double min, double max, const CommandControl& command_control) override;
+    RequestZrangebyscoreWithScores ZrangebyscoreWithScores(
+        std::string key,
+        double min,
+        double max,
+        const CommandControl& command_control
+    ) override;
 
     RequestZrangebyscoreWithScores ZrangebyscoreWithScores(
         std::string key,
@@ -431,14 +457,26 @@ public:
 
     RequestZrem Zrem(std::string key, std::vector<std::string> members, const CommandControl& command_control) override;
 
-    RequestZremrangebyrank
-    Zremrangebyrank(std::string key, int64_t start, int64_t stop, const CommandControl& command_control) override;
+    RequestZremrangebyrank Zremrangebyrank(
+        std::string key,
+        int64_t start,
+        int64_t stop,
+        const CommandControl& command_control
+    ) override;
 
-    RequestZremrangebyscore
-    Zremrangebyscore(std::string key, double min, double max, const CommandControl& command_control) override;
+    RequestZremrangebyscore Zremrangebyscore(
+        std::string key,
+        double min,
+        double max,
+        const CommandControl& command_control
+    ) override;
 
-    RequestZremrangebyscore
-    Zremrangebyscore(std::string key, std::string min, std::string max, const CommandControl& command_control) override;
+    RequestZremrangebyscore Zremrangebyscore(
+        std::string key,
+        std::string min,
+        std::string max,
+        const CommandControl& command_control
+    ) override;
 
     ScanRequest<ScanTag::kZscan> Zscan(std::string key, ZscanOptions options, const CommandControl& command_control)
         override;

@@ -50,9 +50,14 @@ private:
         utils::match_results matches;
         const auto result = utils::regex_search(from, matches, rgx);
         EXPECT_TRUE(result);
-        if (!result) return {};
+        if (!result) {
+            return {};
+        }
         return {
-            utils::FromString<int>(matches[1]), utils::FromString<int>(matches[2]), utils::FromString<int>(matches[3])};
+            utils::FromString<int>(matches[1]),
+            utils::FromString<int>(matches[2]),
+            utils::FromString<int>(matches[3])
+        };
     }
 
     Version version_;

@@ -23,8 +23,9 @@ struct NodeSettings final {
 
 NodeSettings Parse(const yaml_config::YamlConfig& config, formats::parse::To<NodeSettings>) {
     NodeSettings result;
-    result.session_grace_period =
-        config["session-grace-period"].As<std::chrono::milliseconds>(result.session_grace_period);
+    result
+        .session_grace_period = config["session-grace-period"].As<std::chrono::milliseconds>(result.session_grace_period
+    );
     return result;
 }
 
@@ -76,7 +77,8 @@ DistLockComponentBase::DistLockComponentBase(
 )
     : components::ComponentBase(component_config, component_context),
       testsuite_tasks_(testsuite::GetTestsuiteTasks(component_context)),
-      testsuite_task_name_("distlock/" + component_config.Name()) {
+      testsuite_task_name_("distlock/" + component_config.Name())
+{
     const auto semaphore_name = component_config["semaphore-name"].As<std::string>();
     const auto database_settings = component_config["database-settings"];
     const auto database = database_settings["dbname"].As<std::string>();
@@ -91,8 +93,10 @@ DistLockComponentBase::DistLockComponentBase(
     }
 
     const auto task_processor_name = component_config["task-processor"].As<std::optional<std::string>>();
-    auto& task_processor = task_processor_name.has_value() ? component_context.GetTaskProcessor(*task_processor_name)
-                                                           : engine::current_task::GetTaskProcessor();
+    auto& task_processor =
+        task_processor_name.has_value()
+            ? component_context.GetTaskProcessor(*task_processor_name)
+            : engine::current_task::GetTaskProcessor();
 
     worker_.emplace(
         task_processor,

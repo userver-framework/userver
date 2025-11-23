@@ -21,9 +21,8 @@ namespace components {
 
 namespace {
 
-const dynamic_config::Key<logging::DynamicDebugConfig> kDynamicDebugConfig{
-    "USERVER_LOG_DYNAMIC_DEBUG",
-    dynamic_config::DefaultAsJsonString{R"(
+const dynamic_config::Key<logging::DynamicDebugConfig>
+    kDynamicDebugConfig{"USERVER_LOG_DYNAMIC_DEBUG", dynamic_config::DefaultAsJsonString{R"(
   {
     "force-disabled": [],
     "force-enabled": []
@@ -35,12 +34,17 @@ alerts::Source kDynamicDebugInvalidLocation{"dynamic_debug_invalid_location"};
 }  // namespace
 
 LoggingConfigurator::LoggingConfigurator(const ComponentConfig& config, const ComponentContext& context)
-    : metrics_storage_(context.FindComponent<components::StatisticsStorage>().GetMetricsStorage()) {
+    : metrics_storage_(context.FindComponent<components::StatisticsStorage>().GetMetricsStorage())
+{
     logging::impl::SetLogLimitedEnable(config["limited-logging-enable"].As<bool>());
     logging::impl::SetLogLimitedInterval(config["limited-logging-interval"].As<std::chrono::milliseconds>());
 
     config_subscription_ = context.FindComponent<components::DynamicConfig>().GetSource().UpdateAndListen(
-        this, kName, &LoggingConfigurator::OnConfigUpdate, ::dynamic_config::USERVER_NO_LOG_SPANS, kDynamicDebugConfig
+        this,
+        kName,
+        &LoggingConfigurator::OnConfigUpdate,
+        ::dynamic_config::USERVER_NO_LOG_SPANS,
+        kDynamicDebugConfig
     );
 }
 

@@ -99,7 +99,8 @@ Boolean type is mapped to C++ `bool` type.
 
 Example:
 
-```yaml
+```
+# yaml
 should_greet:
     type: bool
 
@@ -122,7 +123,8 @@ Integer supports the following validators:
 
 Example:
 
-```yaml
+```
+# yaml
 pet_count:
     type: integer
     format: int64
@@ -133,7 +135,8 @@ pet_count:
 
 For other C++ integer types, first choose the appropriate raw type as above, then the desired C++ type:
 
-```yaml
+```
+# yaml
 pet_count:
     type: integer
     format: int64
@@ -166,7 +169,8 @@ Number supports the following validators:
 
 Example:
 
-```yaml
+```
+# yaml
 latitude:
     type: number
     minimum: -90.0
@@ -197,7 +201,8 @@ Please note: `{min,max}Length` relates to UTF-8 code points, not bytes.
 
 Example:
 
-```yaml
+```
+# yaml
 entity_uuid:
     type: string
     format: uuid
@@ -223,7 +228,8 @@ Array supports the following validators:
 
 Example:
 
-```yaml
+```
+# yaml
 pet_names:
     type: array
     maxItems: 10
@@ -244,7 +250,7 @@ Non-required fields of C++ type `T` produce C++ fields with type `std::optional<
 
 E.g. the following JSONSchema:
 ```
-yaml
+# yaml
 type: object
 additionalProperties: false
 properties:
@@ -320,7 +326,7 @@ but it can be never `nullptr`.
 Example:
 
 ```
-yaml
+# yaml
 TreeNode:
     type: object
     additionalProperties: false

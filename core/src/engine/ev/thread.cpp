@@ -27,13 +27,19 @@ const auto kCpuStatsThrottle = static_cast<std::size_t>(kCpuStatsCollectInterval
 
 }  // namespace
 
-Thread::Thread(const std::string& thread_name) : Thread(thread_name, EventLoop::EvLoopType::kNewLoop) {}
+Thread::Thread(const std::string& thread_name)
+    : Thread(thread_name, EventLoop::EvLoopType::kNewLoop)
+{}
 
 Thread::Thread(const std::string& thread_name, UseDefaultEvLoop)
-    : Thread(thread_name, EventLoop::EvLoopType::kDefaultLoop) {}
+    : Thread(thread_name, EventLoop::EvLoopType::kDefaultLoop)
+{}
 
 Thread::Thread(const std::string& thread_name, EventLoop::EvLoopType ev_loop_type)
-    : event_loop_(ev_loop_type), name_{thread_name}, cpu_stats_storage_{kCpuStatsCollectInterval, kCpuStatsThrottle} {
+    : event_loop_(ev_loop_type),
+      name_{thread_name},
+      cpu_stats_storage_{kCpuStatsCollectInterval, kCpuStatsThrottle}
+{
     UASSERT_MSG(kDeferredInterval > std::chrono::milliseconds{4}, "Timer events would happen too often");
     Start();
 }
@@ -118,7 +124,9 @@ void Thread::Start() {
 
 void Thread::StopEventLoop() {
     ev_async_send(GetEvLoop(), &watch_break_);
-    if (thread_.joinable()) thread_.join();
+    if (thread_.joinable()) {
+        thread_.join();
+    }
 
     if (func_queue_.TryPopBlocking()) {
         utils::AbortWithStacktrace("Some work was enqueued on a dead Thread");

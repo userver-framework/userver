@@ -9,7 +9,9 @@ USERVER_NAMESPACE_BEGIN
 namespace ugrpc::impl {
 
 RpcStatisticsScope::RpcStatisticsScope(MethodStatistics& statistics)
-    : statistics_(statistics), start_time_(std::chrono::steady_clock::now()) {
+    : statistics_(statistics),
+      start_time_(std::chrono::steady_clock::now())
+{
     statistics_->AccountStarted();
 }
 
@@ -65,7 +67,9 @@ void RpcStatisticsScope::Flush() noexcept {
 }
 
 void RpcStatisticsScope::RedirectTo(MethodStatistics& statistics) {
-    if (!start_time_) return;
+    if (!start_time_) {
+        return;
+    }
 
     // Relies on the fact that all metrics, except for 'started' metric,
     // are only actually accounted in Flush.
@@ -74,7 +78,9 @@ void RpcStatisticsScope::RedirectTo(MethodStatistics& statistics) {
 }
 
 void RpcStatisticsScope::AccountTiming() noexcept {
-    if (!start_time_) return;
+    if (!start_time_) {
+        return;
+    }
 
     const auto finish_time = finish_time_.has_value() ? *finish_time_ : std::chrono::steady_clock::now();
     statistics_->AccountTiming(std::chrono::duration_cast<std::chrono::milliseconds>(finish_time - *start_time_));

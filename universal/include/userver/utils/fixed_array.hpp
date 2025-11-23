@@ -19,9 +19,11 @@ namespace utils {
 ///
 /// @brief A fixed-size array with the size determined at runtime.
 ///
-/// The array also allows initializing each of the array elements with the same
-/// parameters:
+/// The array allows initializing each of the array elements with the same parameters:
 /// @snippet src/utils/fixed_array_test.cpp  Sample FixedArray
+///
+/// The array also allows initializing each of the array elements with the output of a generator funtion:
+/// @snippet src/utils/fixed_array_test.cpp  Sample GenerateFixedArray
 template <class T>
 class FixedArray final {
 public:
@@ -93,8 +95,11 @@ private:
 };
 
 /// @brief Applies @p generator to indices in the range `[0, size)`, storing the
-/// results in a new utils::FixedArray. The generator is guaranteed to be
-/// invoked in the first-to-last order.
+/// results in a new utils::FixedArray. The generator is guaranteed to be invoked in the first-to-last order.
+///
+/// Usage example:
+/// @snippet src/utils/fixed_array_test.cpp  Sample GenerateFixedArray
+///
 /// @param size How many objects to generate
 /// @param generator A functor that takes an index and returns an object for the
 /// `FixedArray`
@@ -104,8 +109,12 @@ auto GenerateFixedArray(std::size_t size, GeneratorFunc&& generator);
 
 template <class T>
 template <class... Args>
-FixedArray<T>::FixedArray(std::size_t size, Args&&... args) : size_(size) {
-    if (size_ == 0) return;
+FixedArray<T>::FixedArray(std::size_t size, Args&&... args)
+    : size_(size)
+{
+    if (size_ == 0) {
+        return;
+    }
     storage_ = std::allocator<T>{}.allocate(size_);
 
     auto* begin = data();
@@ -123,8 +132,12 @@ FixedArray<T>::FixedArray(std::size_t size, Args&&... args) : size_(size) {
 
 template <class T>
 template <class GeneratorFunc>
-FixedArray<T>::FixedArray(impl::InternalTag /*tag*/, std::size_t size, GeneratorFunc&& generator) : size_(size) {
-    if (size_ == 0) return;
+FixedArray<T>::FixedArray(impl::InternalTag /*tag*/, std::size_t size, GeneratorFunc&& generator)
+    : size_(size)
+{
+    if (size_ == 0) {
+        return;
+    }
     storage_ = std::allocator<T>{}.allocate(size_);
 
     auto* our_begin = begin();

@@ -122,8 +122,8 @@ UTEST(Consumer, BasicGetWorks) {
     const urabbitmq::Envelope envelope{"Hi from userver!", urabbitmq::MessageType::kTransient};
     client->PublishReliable(client.GetExchange(), client.GetRoutingKey(), envelope, client.GetDeadline());
 
-    const std::string consumed_message =
-        client->Get(client.GetQueue(), urabbitmq::Queue::Flags::kNoAck, client.GetDeadline());
+    const std::string
+        consumed_message = client->Get(client.GetQueue(), urabbitmq::Queue::Flags::kNoAck, client.GetDeadline());
 
     EXPECT_EQ(!consumed_message.empty(), true);
     EXPECT_EQ(consumed_message, envelope.message);

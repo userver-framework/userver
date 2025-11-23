@@ -16,8 +16,9 @@ DistLockComponentBase::DistLockComponentBase(
     const components::ComponentContext& component_context
 )
     : components::ComponentBase(component_config, component_context) {
-    auto cluster = component_context.FindComponent<components::Postgres>(component_config["cluster"].As<std::string>())
-                       .GetCluster();
+    auto cluster =
+        component_context.FindComponent<components::Postgres>(component_config["cluster"].As<std::string>())
+            .GetCluster();
     auto table = component_config["table"].As<std::string>();
     auto lock_name = component_config["lockname"].As<std::string>();
 
@@ -25,7 +26,9 @@ DistLockComponentBase::DistLockComponentBase(
     auto pg_timeout = component_config["pg-timeout"].As<std::chrono::milliseconds>();
     const auto prolong_ratio = 10;
 
-    if (pg_timeout >= ttl / 2) throw std::runtime_error("pg-timeout must be less than lock-ttl / 2");
+    if (pg_timeout >= ttl / 2) {
+        throw std::runtime_error("pg-timeout must be less than lock-ttl / 2");
+    }
 
     dist_lock::DistLockSettings settings{ttl / prolong_ratio, ttl / prolong_ratio, ttl, pg_timeout};
     settings.worker_func_restart_delay =
@@ -80,8 +83,12 @@ dist_lock::DistLockedWorker& DistLockComponentBase::GetWorker() { return *worker
 bool DistLockComponentBase::OwnsLock() const noexcept { return worker_->OwnsLock() || testsuite_enabled_; }
 
 void DistLockComponentBase::AutostartDistLock() {
-    if (testsuite_enabled_) return;
-    if (autostart_) worker_->Start();
+    if (testsuite_enabled_) {
+        return;
+    }
+    if (autostart_) {
+        worker_->Start();
+    }
 }
 
 void DistLockComponentBase::StopDistLock() { worker_->Stop(); }

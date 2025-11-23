@@ -26,7 +26,8 @@ ConsumerSettings Parse(const yaml_config::YamlConfig& config, formats::parse::To
 class ConsumerComponentBase::Impl final : public ConsumerBase {
 public:
     Impl(std::shared_ptr<Client>&& client, const ConsumerSettings& settings)
-        : ConsumerBase{std::move(client), settings} {}
+        : ConsumerBase{std::move(client), settings}
+    {}
 
     ~Impl() override = default;
 
@@ -58,7 +59,8 @@ ConsumerComponentBase::ConsumerComponentBase(
       impl_{std::make_unique<Impl>(
           context.FindComponent<components::RabbitMQ>(config["rabbit_name"].As<std::string>()).GetClient(),
           config.As<ConsumerSettings>()
-      )} {}
+      )}
+{}
 
 ConsumerComponentBase::~ConsumerComponentBase() = default;
 

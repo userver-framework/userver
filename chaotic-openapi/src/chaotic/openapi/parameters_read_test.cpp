@@ -12,13 +12,14 @@ namespace co = chaotic::openapi;
 static constexpr co::Name kName{"foo"};
 
 UTEST(OpenapiParametersRead, SourceHttpRequest) {
-    auto request = server::http::HttpRequestBuilder()
-                       .AddRequestArg("foo", "bar")
-                       .AddRequestArg("foo", "baz")
-                       .AddHeader("foo", "header")
-                       .AddHeader("Cookie", "foo=cookie")
-                       .SetPathArgs({{"foo", "path"}})
-                       .Build();
+    auto request =
+        server::http::HttpRequestBuilder()
+            .AddRequestArg("foo", "bar")
+            .AddRequestArg("foo", "baz")
+            .AddHeader("foo", "header")
+            .AddHeader("Cookie", "foo=cookie")
+            .SetPathArgs({{"foo", "path"}})
+            .Build();
     const auto& source = *request;
 
     auto query_multi = co::ReadParameter<co::ArrayParameter<co::In::kQueryExplode, kName, ',', std::string>>(source);
@@ -67,7 +68,8 @@ UTEST(OpenapiParametersRead, TypeArrayOfString) {
     auto request = server::http::HttpRequestBuilder().AddRequestArg("foo", "bar,baz").Build();
 
     const std::vector<std::string> foo{
-        co::ReadParameter<co::ArrayParameter<co::In::kQuery, kName, ',', std::string>>(*request)};
+        co::ReadParameter<co::ArrayParameter<co::In::kQuery, kName, ',', std::string>>(*request)
+    };
     EXPECT_EQ(foo, (std::vector<std::string>{"bar", "baz"}));
 }
 
@@ -76,16 +78,18 @@ UTEST(OpenapiParametersRead, TypeArrayOfUser) {
 
     using Decimal = decimal64::Decimal<10>;
     const std::vector<Decimal> foo{
-        co::ReadParameter<co::ArrayParameter<co::In::kQuery, kName, ',', std::string, Decimal>>(*request)};
+        co::ReadParameter<co::ArrayParameter<co::In::kQuery, kName, ',', std::string, Decimal>>(*request)
+    };
     EXPECT_EQ(foo, (std::vector<Decimal>{Decimal{"1.2"}, Decimal{"3.4"}}));
 }
 
 UTEST(OpenapiParametersRead, TypeStringExplode) {
-    auto request = server::http::HttpRequestBuilder()
-                       .AddRequestArg("foo", "1")
-                       .AddRequestArg("foo", "2")
-                       .AddRequestArg("foo", "3")
-                       .Build();
+    auto request =
+        server::http::HttpRequestBuilder()
+            .AddRequestArg("foo", "1")
+            .AddRequestArg("foo", "2")
+            .AddRequestArg("foo", "3")
+            .Build();
 
     const std::vector<int> foo{co::ReadParameter<co::ArrayParameter<co::In::kQueryExplode, kName, ',', int>>(*request)};
     EXPECT_EQ(foo, (std::vector{1, 2, 3}));

@@ -15,9 +15,9 @@ SubscriptionQueue<Item>::SubscriptionQueue(
     : queue_(Queue::Create()),
       producer_(queue_->GetProducer()),
       consumer_(queue_->GetConsumer()),
-      token_(std::make_unique<impl::SubscriptionToken>(
-          GetSubscriptionToken(subscribe_sentinel, std::move(channel), command_control)
-      )) {}
+      token_(std::make_unique<
+             impl::SubscriptionToken>(GetSubscriptionToken(subscribe_sentinel, std::move(channel), command_control)))
+{}
 
 template <typename Item>
 SubscriptionQueue<Item>::~SubscriptionQueue() {
@@ -54,9 +54,9 @@ SubscriptionQueue<Item>::GetSubscriptionToken(
             if (!producer_.PushNoblock(Item(message))) {
                 // Use SubscriptionQueue::SetMaxLength() or
                 // SubscriptionToken::SetMaxQueueLength() if limit is too low
-                LOG_ERROR() << "failed to push message '" << message << "' from channel '" << channel
-                            << "' into subscription queue due to overflow (max length=" << queue_->GetSoftMaxSize()
-                            << ')';
+                LOG_ERROR()
+                    << "failed to push message '" << message << "' from channel '" << channel
+                    << "' into subscription queue due to overflow (max length=" << queue_->GetSoftMaxSize() << ')';
                 // either this line
                 result = Outcome::kOverflowDiscarded;
             }
@@ -82,10 +82,10 @@ SubscriptionQueue<Item>::GetSubscriptionToken(
             if (!producer_.PushNoblock(Item(channel, message))) {
                 // Use SubscriptionQueue::SetMaxLength() or
                 // SubscriptionToken::SetMaxQueueLength() if limit is too low
-                LOG_ERROR() << "failed to push pmessage '" << message << "' from channel '" << channel
-                            << "' from pattern '" << pattern
-                            << "' into subscription queue due to overflow (max length=" << queue_->GetSoftMaxSize()
-                            << ')';
+                LOG_ERROR()
+                    << "failed to push pmessage '" << message << "' from channel '" << channel << "' from pattern '"
+                    << pattern << "' into subscription queue due to overflow (max length=" << queue_->GetSoftMaxSize()
+                    << ')';
                 // either this line
                 result = Outcome::kOverflowDiscarded;
             }
@@ -111,9 +111,9 @@ SubscriptionQueue<Item>::GetSubscriptionToken(
             if (!producer_.PushNoblock(Item(message))) {
                 // Use SubscriptionQueue::SetMaxLength() or
                 // SubscriptionToken::SetMaxQueueLength() if limit is too low
-                LOG_ERROR() << "failed to push message '" << message << "' from channel '" << channel
-                            << "' into subscription queue due to overflow (max length=" << queue_->GetSoftMaxSize()
-                            << ')';
+                LOG_ERROR()
+                    << "failed to push message '" << message << "' from channel '" << channel
+                    << "' into subscription queue due to overflow (max length=" << queue_->GetSoftMaxSize() << ')';
                 // either this line
                 result = Outcome::kOverflowDiscarded;
             }

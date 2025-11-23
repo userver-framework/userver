@@ -92,8 +92,11 @@ private:
     );
     void Close(engine::Deadline deadline) noexcept;
 
-    Statement&
-    PrepareStatement(std::string_view statement, engine::Deadline deadline, std::optional<std::size_t> batch_size);
+    Statement& PrepareStatement(
+        std::string_view statement,
+        engine::Deadline deadline,
+        std::optional<std::size_t> batch_size
+    );
 
     std::atomic<bool> broken_{false};
 

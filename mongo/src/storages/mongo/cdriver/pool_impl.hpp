@@ -32,7 +32,9 @@ public:
     class Connection final {
     public:
         Connection(mongoc_client_t* client, stats::ApmStats* apm_stats, int64_t epoch)
-            : epoch_(epoch), client_(client) {
+            : epoch_(epoch),
+              client_(client)
+        {
             UASSERT(client_);
             UASSERT(apm_stats);
             stats_.apm_stats = apm_stats;
@@ -83,7 +85,9 @@ public:
         }
 
         ~BoundClientPtr() {
-            if (ptr_) pool_->Push(std::move(ptr_));
+            if (ptr_) {
+                pool_->Push(std::move(ptr_));
+            }
         }
 
         mongoc_client_t* get() { return ptr_->GetNativePtr(); }

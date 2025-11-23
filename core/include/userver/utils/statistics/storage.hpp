@@ -48,12 +48,18 @@ public:
     Request() = default;
 
     /// Makes request for metrics whose path starts with the `prefix`.
-    static Request
-    MakeWithPrefix(const std::string& prefix, AddLabels add_labels = {}, std::vector<Label> require_labels = {});
+    static Request MakeWithPrefix(
+        const std::string& prefix,
+        AddLabels add_labels = {},
+        std::vector<Label> require_labels = {}
+    );
 
     /// Makes request for metrics whose path is `path`.
-    static Request
-    MakeWithPath(const std::string& path, AddLabels add_labels = {}, std::vector<Label> require_labels = {});
+    static Request MakeWithPath(
+        const std::string& path,
+        AddLabels add_labels = {},
+        std::vector<Label> require_labels = {}
+    );
 
     /// Return metrics whose path matches with this `prefix`
     const std::string prefix{};

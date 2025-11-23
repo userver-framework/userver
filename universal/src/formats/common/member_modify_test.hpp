@@ -27,7 +27,7 @@ TYPED_TEST_P(MemberModify, CheckNestedTypesChange) {
     EXPECT_FALSE(this->GetBuiltValue()["key3"]["sub"].template As<bool>());
     this->builder["key3"] = -100;
     EXPECT_EQ(this->GetBuiltValue()["key3"].template As<int>(), -100);
-    this->builder["key3"] = this->FromString("{\"sub\":-1}");
+    this->builder["key3"] = this->kFromString("{\"sub\":-1}");
     EXPECT_EQ(this->GetBuiltValue()["key3"]["sub"].template As<int>(), -1);
 }
 
@@ -133,7 +133,9 @@ TYPED_TEST_P(MemberModify, CopyExistingMember) {
 
 TYPED_TEST_P(MemberModify, CopyExistingMemberByIt) {
     auto it = this->builder.begin();
-    while (it != this->builder.end() && it.GetName() != "key1") ++it;
+    while (it != this->builder.end() && it.GetName() != "key1") {
+        ++it;
+    }
     ASSERT_NE(this->builder.end(), it);
 
     this->builder["key1_copy"] = *it;

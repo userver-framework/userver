@@ -24,7 +24,9 @@ namespace impl {
 
 template <typename T>
 struct MpscQueueNode final : public SinglyLinkedBaseHook {
-    explicit MpscQueueNode(T&& value) : value(std::move(value)) {}
+    explicit MpscQueueNode(T&& value)
+        : value(std::move(value))
+    {}
 
     T value;
 };
@@ -67,7 +69,9 @@ public:
     /// @cond
     // For internal use only
     explicit MpscQueue(std::size_t max_size, EmplaceEnabler /*unused*/)
-        : remaining_capacity_(max_size), remaining_capacity_control_(remaining_capacity_) {}
+        : remaining_capacity_(max_size),
+          remaining_capacity_control_(remaining_capacity_)
+    {}
 
     MpscQueue(MpscQueue&&) = delete;
     MpscQueue(const MpscQueue&) = delete;

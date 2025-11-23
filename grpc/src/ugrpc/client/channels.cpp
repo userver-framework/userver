@@ -20,18 +20,27 @@ namespace impl {
 
 namespace {
 
-[[nodiscard]] bool
-DoTryWaitForConnected(grpc::Channel& channel, grpc::CompletionQueue& queue, engine::Deadline deadline) {
+[[nodiscard]] bool DoTryWaitForConnected(
+    grpc::Channel& channel,
+    grpc::CompletionQueue& queue,
+    engine::Deadline deadline
+) {
     while (true) {
         // A potentially-blocking call
         const auto state = channel.GetState(true);
 
-        if (state == ::GRPC_CHANNEL_READY) return true;
-        if (state == ::GRPC_CHANNEL_SHUTDOWN) return false;
+        if (state == ::GRPC_CHANNEL_READY) {
+            return true;
+        }
+        if (state == ::GRPC_CHANNEL_SHUTDOWN) {
+            return false;
+        }
 
         ugrpc::impl::AsyncMethodInvocation operation;
         channel.NotifyOnStateChange(state, deadline, &queue, operation.GetCompletionTag());
-        if (operation.Wait() != ugrpc::impl::AsyncMethodInvocation::WaitStatus::kOk) return false;
+        if (operation.Wait() != ugrpc::impl::AsyncMethodInvocation::WaitStatus::kOk) {
+            return false;
+        }
     }
 }
 
@@ -51,7 +60,11 @@ DoTryWaitForConnected(grpc::Channel& channel, grpc::CompletionQueue& queue, engi
     tasks.reserve(channels.size());
     for (auto& channel : channels) {
         tasks.emplace_back(engine::AsyncNoSpan(
-            blocking_task_processor, DoTryWaitForConnected, std::ref(*channel), std::ref(queue), deadline
+            blocking_task_processor,
+            DoTryWaitForConnected,
+            std::ref(*channel),
+            std::ref(queue),
+            deadline
         ));
     }
     const auto results = engine::GetAll(tasks);

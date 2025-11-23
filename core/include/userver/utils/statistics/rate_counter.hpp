@@ -29,7 +29,9 @@ public:
     RateCounter(const RateCounter& other) noexcept : val_(other.Load().value) {}
 
     RateCounter& operator=(const RateCounter& other) noexcept {
-        if (this == &other) return *this;
+        if (this == &other) {
+            return *this;
+        }
 
         Store(other.Load());
         return *this;

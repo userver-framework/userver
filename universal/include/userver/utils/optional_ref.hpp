@@ -103,7 +103,9 @@ private:
 
 template <class T, class U>
 constexpr bool operator==(OptionalRef<T> lhs, OptionalRef<U> rhs) noexcept {
-    if (!lhs || !rhs) return !lhs && !rhs;
+    if (!lhs || !rhs) {
+        return !lhs && !rhs;
+    }
     return *lhs == *rhs;
 }
 

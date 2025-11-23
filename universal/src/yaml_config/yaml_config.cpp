@@ -19,7 +19,9 @@ namespace yaml_config {
 namespace {
 
 bool IsSubstitution(const formats::yaml::Value& value) {
-    if (!value.IsString()) return false;
+    if (!value.IsString()) {
+        return false;
+    }
     const auto& str = value.As<std::string>();
     return !str.empty() && str.front() == '$';
 }
@@ -115,7 +117,10 @@ std::optional<YamlConfig> GetSharpCommandValue(
             LOG_INFO() << "using fallback value for '" << key << '\'';
             // Strip substitutions off to disallow nested substitutions
             return YamlConfig{
-                yaml[fallback_name].CloneWithReplacedPath(yaml[key].GetPath()), {}, YamlConfig::Mode::kSecure};
+                yaml[fallback_name].CloneWithReplacedPath(yaml[key].GetPath()),
+                {},
+                YamlConfig::Mode::kSecure
+            };
         }
     }
 
@@ -170,11 +175,15 @@ std::optional<YamlConfig> GetYamlConfig(
 }  // namespace
 
 YamlConfig::YamlConfig(formats::yaml::Value yaml, formats::yaml::Value config_vars, Mode mode)
-    : yaml_(std::move(yaml)), config_vars_(std::move(config_vars)), mode_(mode) {}
+    : yaml_(std::move(yaml)),
+      config_vars_(std::move(config_vars)),
+      mode_(mode)
+{}
 
 YamlConfig YamlConfig::operator[](std::string_view key) const {
     if (utils::text::EndsWith(key, "#env") || utils::text::EndsWith(key, "#file") ||
-        utils::text::EndsWith(key, "#fallback")) {
+        utils::text::EndsWith(key, "#fallback"))
+    {
         UASSERT_MSG(false, "Do not use names ending on #env, #file and #fallback");
         return MakeMissingConfig(*this, key);
     }

@@ -38,9 +38,8 @@ bool IsWebSocketUpgradeRequest(std::string_view req) {
     if (end >= req.end()) {
         return false;
     }
-    return utils::StrIcaseEqual{}(
-        std::string_view{it, kWebsocketUpgradeHeaderValue.size()}, kWebsocketUpgradeHeaderValue
-    );
+    return utils::StrIcaseEqual{
+    }(std::string_view{it, kWebsocketUpgradeHeaderValue.size()}, kWebsocketUpgradeHeaderValue);
 }
 
 HttpMethod ConvertHttpMethod(llhttp_method method) {
@@ -94,7 +93,8 @@ HttpRequestParser::HttpRequestParser(
       on_new_request_cb_(std::move(on_new_request_cb)),
       stats_(stats),
       data_accounter_(data_accounter),
-      remote_address_(std::move(remote_address)) {
+      remote_address_(std::move(remote_address))
+{
     llhttp_init(&parser_, HTTP_REQUEST, &parser_settings);
     parser_.data = this;
 }
@@ -108,8 +108,8 @@ bool HttpRequestParser::Parse(std::string_view req) {
     }
     if (err != HPE_OK) {
         const auto parsed = static_cast<size_t>(llhttp_get_error_pos(&parser_) - req.data() + 1);
-        LOG_WARNING() << "parsed=" << parsed << " size=" << req.size()
-                      << " error_description=" << llhttp_errno_name(err);
+        LOG_WARNING()
+            << "parsed=" << parsed << " size=" << req.size() << " error_description=" << llhttp_errno_name(err);
         FinalizeRequest();
         return false;
     }
@@ -180,7 +180,9 @@ int HttpRequestParser::OnUrlImpl(llhttp_t* p, const char* data, size_t size) {
 int HttpRequestParser::OnHeaderFieldImpl(llhttp_t* p, const char* data, size_t size) {
     UASSERT(request_constructor_);
     LOG_TRACE() << "header field: '" << std::string_view(data, size) << "'";
-    if (!CheckUrlComplete(p)) return -1;
+    if (!CheckUrlComplete(p)) {
+        return -1;
+    }
     try {
         request_constructor_->AppendHeaderField(data, size);
     } catch (const std::exception& ex) {
@@ -192,7 +194,9 @@ int HttpRequestParser::OnHeaderFieldImpl(llhttp_t* p, const char* data, size_t s
 
 int HttpRequestParser::OnHeaderValueImpl(llhttp_t* p, const char* data, size_t size) {
     UASSERT(request_constructor_);
-    if (!CheckUrlComplete(p)) return -1;
+    if (!CheckUrlComplete(p)) {
+        return -1;
+    }
     LOG_TRACE() << "header value: '" << std::string_view(data, size) << '\'';
     try {
         request_constructor_->AppendHeaderValue(data, size);
@@ -205,7 +209,9 @@ int HttpRequestParser::OnHeaderValueImpl(llhttp_t* p, const char* data, size_t s
 
 int HttpRequestParser::OnHeadersCompleteImpl(llhttp_t* p) {
     UASSERT(request_constructor_);
-    if (!CheckUrlComplete(p)) return -1;
+    if (!CheckUrlComplete(p)) {
+        return -1;
+    }
     try {
         request_constructor_->AppendHeaderField("", 0);
     } catch (const std::exception& ex) {
@@ -218,7 +224,9 @@ int HttpRequestParser::OnHeadersCompleteImpl(llhttp_t* p) {
 
 int HttpRequestParser::OnBodyImpl(llhttp_t* p, const char* data, size_t size) {
     UASSERT(request_constructor_);
-    if (!CheckUrlComplete(p)) return -1;
+    if (!CheckUrlComplete(p)) {
+        return -1;
+    }
     LOG_TRACE() << "body: '" << std::string_view(data, size) << "'";
     try {
         request_constructor_->AppendBody(data, size);
@@ -235,9 +243,13 @@ int HttpRequestParser::OnMessageCompleteImpl(llhttp_t* p) {
         return 0;
     }
     request_constructor_->SetIsFinal(!llhttp_should_keep_alive(p));
-    if (!CheckUrlComplete(p)) return -1;
+    if (!CheckUrlComplete(p)) {
+        return -1;
+    }
     LOG_TRACE() << "message complete";
-    if (!FinalizeRequest()) return -1;
+    if (!FinalizeRequest()) {
+        return -1;
+    }
     return 0;
 }
 
@@ -248,7 +260,9 @@ void HttpRequestParser::CreateRequestConstructor() {
 }
 
 bool HttpRequestParser::CheckUrlComplete(llhttp_t* p) {
-    if (url_complete_) return true;
+    if (url_complete_) {
+        return true;
+    }
     url_complete_ = true;
     request_constructor_->SetMethod(ConvertHttpMethod(static_cast<llhttp_method>(p->method)));
     request_constructor_->SetHttpMajor(p->http_major);
@@ -270,7 +284,9 @@ bool HttpRequestParser::FinalizeRequest() {
 }
 
 bool HttpRequestParser::FinalizeRequestImpl() {
-    if (!request_constructor_) CreateRequestConstructor();
+    if (!request_constructor_) {
+        CreateRequestConstructor();
+    }
 
     if (auto request = request_constructor_->Finalize()) {
         on_new_request_cb_(std::move(request));

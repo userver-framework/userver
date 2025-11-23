@@ -31,8 +31,12 @@ void DumpMetric(utils::statistics::Writer& writer, HttpHandlerStatisticsHelper h
 void HttpHandlerMethodStatistics::Account(const HttpHandlerStatisticsEntry& stats) noexcept {
     reply_codes_.Account(static_cast<utils::statistics::HttpCodes::Code>(stats.code));
     timings_.GetCurrentCounter().Account(stats.timing.count());
-    if (stats.deadline.IsReachable()) ++deadline_received_;
-    if (stats.cancelled_by_deadline) ++cancelled_by_deadline_;
+    if (stats.deadline.IsReachable()) {
+        ++deadline_received_;
+    }
+    if (stats.cancelled_by_deadline) {
+        ++cancelled_by_deadline_;
+    }
 }
 
 std::size_t HttpHandlerMethodStatistics::GetInFlight() const noexcept {
@@ -53,7 +57,8 @@ HttpHandlerStatisticsSnapshot::HttpHandlerStatisticsSnapshot(const HttpHandlerMe
       too_many_requests_in_flight(stats.too_many_requests_in_flight_.Load()),
       rate_limit_reached(stats.rate_limit_reached_.Load()),
       deadline_received(stats.deadline_received_.Load()),
-      cancelled_by_deadline(stats.cancelled_by_deadline_.Load()) {}
+      cancelled_by_deadline(stats.cancelled_by_deadline_.Load())
+{}
 
 void HttpHandlerStatisticsSnapshot::Add(const HttpHandlerStatisticsSnapshot& other) {
     timings.Add(other.timings);
@@ -88,7 +93,11 @@ HttpHandlerStatisticsScope::HttpHandlerStatisticsScope(
     http::HttpMethod method,
     server::http::HttpResponse& response
 )
-    : stats_(stats), method_(method), start_time_(std::chrono::steady_clock::now()), response_(response) {
+    : stats_(stats),
+      method_(method),
+      start_time_(std::chrono::steady_clock::now()),
+      response_(response)
+{
     stats_.ForMethod(method).IncrementInFlight();
 }
 

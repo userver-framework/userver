@@ -15,7 +15,9 @@ USERVER_NAMESPACE_BEGIN
 namespace ugrpc::impl {
 
 MethodStatistics::MethodStatistics(StatisticsDomain domain, utils::statistics::StripedRateCounter& global_started)
-    : domain_(domain), global_started_(global_started) {}
+    : domain_(domain),
+      global_started_(global_started)
+{}
 
 void MethodStatistics::AccountStarted() noexcept {
     ++started_;
@@ -94,9 +96,9 @@ void DumpMetric(utils::statistics::Writer& writer, const MethodStatisticsSnapsho
     total_requests += cancelled_value;
 
     // "active" is not a rate metric. Also, beware of overflow
-    writer["active"] = static_cast<std::int64_t>(stats.started.value) -
-                       static_cast<std::int64_t>(started_renamed.value) -
-                       static_cast<std::int64_t>(total_requests.value);
+    writer["active"] =
+        static_cast<std::int64_t>(stats.started.value) - static_cast<std::int64_t>(started_renamed.value) -
+        static_cast<std::int64_t>(total_requests.value);
 
     writer["rps"] = total_requests;
     writer["eps"] = error_requests;
@@ -109,7 +111,9 @@ void DumpMetric(utils::statistics::Writer& writer, const MethodStatisticsSnapsho
     writer["cancelled-by-deadline-propagation"] = deadline_cancelled_value;
 }
 
-MethodStatisticsSnapshot::MethodStatisticsSnapshot(const StatisticsDomain domain) : domain(domain) {}
+MethodStatisticsSnapshot::MethodStatisticsSnapshot(const StatisticsDomain domain)
+    : domain(domain)
+{}
 
 MethodStatisticsSnapshot::MethodStatisticsSnapshot(const MethodStatistics& stats)
     : domain(stats.domain_),
@@ -120,7 +124,8 @@ MethodStatisticsSnapshot::MethodStatisticsSnapshot(const MethodStatistics& stats
       internal_errors(stats.internal_errors_.Load()),
       cancelled(stats.cancelled_.Load()),
       deadline_updated(stats.deadline_updated_.Load()),
-      deadline_cancelled(stats.deadline_cancelled_.Load()) {
+      deadline_cancelled(stats.deadline_cancelled_.Load())
+{
     // For the 'active' metric, it is important to load the 'started' value after
     // loading the 'started_renamed' and 'total_requests' values.
     // More details in DumpMetric for MethodStatisticsSnapshot
@@ -184,7 +189,9 @@ ServiceStatistics::ServiceStatistics(
     StatisticsDomain domain,
     utils::statistics::StripedRateCounter& global_started
 )
-    : metadata_(metadata), method_statistics_(GetMethodsCount(metadata), domain, global_started) {}
+    : metadata_(metadata),
+      method_statistics_(GetMethodsCount(metadata), domain, global_started)
+{}
 
 MethodStatistics& ServiceStatistics::GetMethodStatistics(std::size_t method_id) {
     return method_statistics_[method_id];
@@ -213,7 +220,11 @@ void ServiceStatistics::DumpAndCountTotal(
         const MethodStatisticsSnapshot snapshot{method_statistics_[i]};
         total.Add(snapshot);
         DumpMetricWithLabels(
-            writer, snapshot, client_name, method_descriptor.method_full_name, metadata_.service_full_name
+            writer,
+            snapshot,
+            client_name,
+            method_descriptor.method_full_name,
+            metadata_.service_full_name
         );
     }
 }

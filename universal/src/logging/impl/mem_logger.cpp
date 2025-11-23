@@ -61,13 +61,18 @@ void MemLogger::Log(Level level, formatters::LoggerItemRef msg) {
         return;
     }
 
-    if (pimpl_->data.size() > kMaxLogItems) return;
+    if (pimpl_->data.size() > kMaxLogItems) {
+        return;
+    }
 
     pimpl_->data.push_back(std::move(item));
 }
 
-formatters::BasePtr
-MemLogger::MakeFormatter(Level level, LogClass log_class, const utils::impl::SourceLocation& location) {
+formatters::BasePtr MemLogger::MakeFormatter(
+    Level level,
+    LogClass log_class,
+    const utils::impl::SourceLocation& location
+) {
     return std::make_unique<formatters::Struct>(level, log_class, location);
 }
 

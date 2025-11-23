@@ -278,7 +278,9 @@ TEST(BsonExtraction, Int32) {
 namespace {
 
 bool FitsInSizeT(int64_t value) {
-    if (value < 0) return false;
+    if (value < 0) {
+        return false;
+    }
     if constexpr (sizeof(size_t) < sizeof(int64_t)) {
         return value <= static_cast<int64_t>(std::numeric_limits<size_t>::max());
     } else {
@@ -435,7 +437,12 @@ TEST(BsonExtraction, Binary) {
     };
 
     const auto doc = fb::MakeDoc(
-        "a", fb::MakeArray(fb::Binary(""), fb::Binary("test")), "ee", fb::Binary(""), "e", fb::Binary("\377\377")
+        "a",
+        fb::MakeArray(fb::Binary(""), fb::Binary("test")),
+        "ee",
+        fb::Binary(""),
+        "e",
+        fb::Binary("\377\377")
     );
     test_elem(doc["a"][0], {});
     test_elem(doc["a"][1], "test");
@@ -563,8 +570,8 @@ TEST(BsonExtraction, Timestamp) {
     const fb::Timestamp time_only(1554138241, 0);
     const fb::Timestamp nonzero(1554138241, 321);
 
-    const auto doc =
-        fb::MakeDoc("a", fb::MakeArray(zero, time_only, nonzero), "ez", zero, "et", time_only, "enz", nonzero);
+    const auto
+        doc = fb::MakeDoc("a", fb::MakeArray(zero, time_only, nonzero), "ez", zero, "et", time_only, "enz", nonzero);
 
     test_elem(doc["a"][0], zero);
     test_elem(doc["a"][1], time_only);

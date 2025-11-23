@@ -119,15 +119,19 @@ std::string MakeUrl(std::string_view path, const Args& query_args, MultiArgs que
 ///   auto url = MakeUrl("/api/search", {{"q", "smartphone"}, {"sort", "relevance"}});
 ///   // Returns: "/api/search?q=smartphone&sort=relevance"
 /// @endcode
-std::string
-MakeUrl(std::string_view path, std::initializer_list<std::pair<std::string_view, std::string_view>> query_args);
+std::string MakeUrl(
+    std::string_view path,
+    std::initializer_list<std::pair<std::string_view, std::string_view>> query_args
+);
 
 /// @brief Make an URL with query arguments
 /// @param path Base URL path
 /// @param query_args vector of query parameters as key-value pairs
 /// @returns Complete URL with query string
-std::string
-MakeUrl(std::string_view path, const std::vector<std::pair<std::string_view, std::string_view>>& query_args);
+std::string MakeUrl(
+    std::string_view path,
+    const std::vector<std::pair<std::string_view, std::string_view>>& query_args
+);
 
 /// @brief Make a path from a template and arguments
 /// @param path Template string with placeholders in format {name}
@@ -151,8 +155,11 @@ std::optional<std::string> MakeUrlWithPathArgs(std::string_view path, const Path
 ///                                 http::Args{{"filter", "active"}});
 ///   // Returns: "/api/v1/users/123?filter=active"
 /// @endcode
-std::optional<std::string>
-MakeUrlWithPathArgs(std::string_view path, const PathArgs& path_args, const Args& query_args);
+std::optional<std::string> MakeUrlWithPathArgs(
+    std::string_view path,
+    const PathArgs& path_args,
+    const Args& query_args
+);
 
 /// @brief Make an URL with path parameters and query arguments
 /// @param path Template string with placeholders in format {name}

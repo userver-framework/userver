@@ -37,7 +37,9 @@ std::string MakeLockerId(const std::string& name) {
 
 class Locker::LockGuard {
 public:
-    LockGuard(Locker& locker) : locker_(locker) {}
+    LockGuard(Locker& locker)
+        : locker_(locker)
+    {}
     ~LockGuard() { TryUnlock(); }
 
     void TryUnlock() noexcept {
@@ -69,7 +71,8 @@ Locker::Locker(
       worker_func_(std::move(worker_func)),
       settings_(settings),
       retry_mode_(retry_mode),
-      base_log_level_(base_log_level) {
+      base_log_level_(base_log_level)
+{
     UASSERT(strategy_);
 }
 
@@ -88,7 +91,9 @@ void Locker::SetSettings(const DistLockSettings& settings) {
 }
 
 std::optional<std::chrono::steady_clock::duration> Locker::GetLockedDuration() const {
-    if (!is_locked_) return {};
+    if (!is_locked_) {
+        return {};
+    }
     return std::chrono::steady_clock::now().time_since_epoch() - lock_acquire_since_epoch_.load();
 }
 
@@ -117,24 +122,31 @@ void Locker::Run(LockerMode mode, dist_lock::DistLockWaitingMode waiting_mode, t
             LOG(base_log_level_) << "Fail to acquire lock. It was acquired by another host";
             stats_.lock_failures++;
             if (is_locked_) {
-                LOG_ERROR() << "DistLockedTask brain split detected! Someone else acquired the "
-                               "lock while we're assuming we're holding the lock. It may be "
-                               "a brain split in DB backend or missing cancellation point in "
-                               "worker code.";
+                LOG_ERROR()
+                    << "DistLockedTask brain split detected! Someone else acquired the "
+                       "lock while we're assuming we're holding the lock. It may be "
+                       "a brain split in DB backend or missing cancellation point in "
+                       "worker code.";
                 stats_.brain_splits++;
                 LOG_DEBUG() << "Terminating watchdog task";
-                if (watchdog_task.IsValid()) watchdog_task.RequestCancel();
+                if (watchdog_task.IsValid()) {
+                    watchdog_task.RequestCancel();
+                }
                 GetTask(watchdog_task, name_, "cancel and watchdog wait after brain split detected");
                 LOG_DEBUG() << "Terminated watchdog task";
                 ExchangeLockState(false, utils::datetime::SteadyNow());
             }
-            if (waiting_mode == dist_lock::DistLockWaitingMode::kNoWait) break;
+            if (waiting_mode == dist_lock::DistLockWaitingMode::kNoWait) {
+                break;
+            }
         } catch (const std::exception& ex) {
             stats_.lock_failures++;
             LOG_WARNING() << "Lock acquisition failed: " << ex;
         }
 
-        if (engine::current_task::ShouldCancel()) break;
+        if (engine::current_task::ShouldCancel()) {
+            break;
+        }
 
         auto delay = is_locked_ ? settings.prolong_interval : settings.acquire_interval;
         if (watchdog_task.IsValid()) {
@@ -153,11 +165,13 @@ void Locker::Run(LockerMode mode, dist_lock::DistLockWaitingMode waiting_mode, t
                 if (!worker_succeeded || mode == LockerMode::kWorker) {
                     lock_guard.TryUnlock();
                     if (retry_mode_ == DistLockRetryMode::kSingleAttempt) {
-                        if (exception)
+                        if (exception) {
                             std::rethrow_exception(exception);
-                        else
+                        } else {
                             throw WorkerFuncFailedException{
-                                fmt::format("worker name='{}' id='{}' task failed", name_, id_)};
+                                fmt::format("worker name='{}' id='{}' task failed", name_, id_)
+                            };
+                        }
                     }
                     engine::InterruptibleSleepFor(settings.worker_func_restart_delay);
                 }
@@ -166,12 +180,17 @@ void Locker::Run(LockerMode mode, dist_lock::DistLockWaitingMode waiting_mode, t
             engine::InterruptibleSleepFor(delay);
         }
     }
-    if (watchdog_task.IsValid()) watchdog_task.RequestCancel();
+    if (watchdog_task.IsValid()) {
+        watchdog_task.RequestCancel();
+    }
     GetTask(watchdog_task, name_, "cancel and watchdog wait on finish");
 }
 
-engine::TaskWithResult<void>
-Locker::RunAsync(engine::TaskProcessor& task_processor, LockerMode locker_mode, DistLockWaitingMode waiting_mode) {
+engine::TaskWithResult<void> Locker::RunAsync(
+    engine::TaskProcessor& task_processor,
+    LockerMode locker_mode,
+    DistLockWaitingMode waiting_mode
+) {
     tracing::Span span(impl::LockerName(Name()));
     span.DetachFromCoroStack();
 
@@ -210,21 +229,24 @@ void Locker::RunWatchdog() {
         const auto settings = GetSettings();
 
         const auto refresh_since_epoch = lock_refresh_since_epoch_.load(std::memory_order_acquire);
-        const auto deadline = std::chrono::steady_clock::time_point{refresh_since_epoch} + settings.lock_ttl -
-                              settings.forced_stop_margin;
+        const auto deadline =
+            std::chrono::steady_clock::time_point{refresh_since_epoch} + settings.lock_ttl -
+            settings.forced_stop_margin;
         const auto now = utils::datetime::SteadyNow();
 
         failed_to_prolong = (deadline < now);
         if (failed_to_prolong) {
-            LOG_ERROR() << "Failed to prolong the lock before the deadline, "
-                           "voluntarily dropping the lock and killing the worker "
-                           "task '"
-                        << name_ << "' to avoid brain split";
+            LOG_ERROR()
+                << "Failed to prolong the lock before the deadline, "
+                   "voluntarily dropping the lock and killing the worker "
+                   "task '"
+                << name_ << "' to avoid brain split";
             stats_.watchdog_triggers++;
             break;
         } else {
-            LOG_DEBUG() << "Watchdog found a valid locked timepoint (" << now.time_since_epoch().count() << " < "
-                        << deadline.time_since_epoch().count() << ") for task '" << name_ << "'";
+            LOG_DEBUG()
+                << "Watchdog found a valid locked timepoint (" << now.time_since_epoch().count() << " < "
+                << deadline.time_since_epoch().count() << ") for task '" << name_ << "'";
         }
 
         try {

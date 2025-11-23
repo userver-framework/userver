@@ -61,8 +61,11 @@ public:
         return response;
     }
 
-    ReadManyResult
-    ReadMany(CallContext& context, sample::ugrpc::StreamGreetingRequest&& request, ReadManyWriter& writer) override {
+    ReadManyResult ReadMany(
+        CallContext& context,
+        sample::ugrpc::StreamGreetingRequest&& request,
+        ReadManyWriter& writer
+    ) override {
         CheckServerContext(context.GetServerContext());
         sample::ugrpc::StreamGreetingResponse response;
         response.set_name("Hello again " + request.name());
@@ -351,7 +354,9 @@ UTEST_P_MT(GrpcClientMultichannelTest, MultiThreadedClientTest, 4) {
     engine::SleepFor(50ms);
 
     keep_running = false;
-    for (auto& task : tasks) task.Get();
+    for (auto& task : tasks) {
+        task.Get();
+    }
 }
 
 INSTANTIATE_UTEST_SUITE_P(Basic, GrpcClientMultichannelTest, testing::Values(std::size_t{1}, std::size_t{4}));
@@ -360,9 +365,11 @@ namespace {
 
 class WriteAndFinishService final : public sample::ugrpc::UnitTestServiceBase {
 public:
-    ReadManyResult
-    ReadMany(CallContext& /*context*/, sample::ugrpc::StreamGreetingRequest&& request, ReadManyWriter& /*writer*/)
-        override {
+    ReadManyResult ReadMany(
+        CallContext& /*context*/,
+        sample::ugrpc::StreamGreetingRequest&& request,
+        ReadManyWriter& /*writer*/
+    ) override {
         sample::ugrpc::StreamGreetingResponse response;
         response.set_number(kNumber);
         response.set_name("Hello " + request.name());

@@ -32,12 +32,13 @@ UTEST(HttpServerMock, Sample) {
 
     // Making a request to the `mock`
     auto http_client_ptr = utest::CreateHttpClient();
-    auto response = http_client_ptr->CreateRequest()
-                        .post(mock.GetBaseUrl() + "/path?arg1=val1", "body")
-                        .headers({std::make_pair("header_a", "value1")})
-                        .retry(1)
-                        .timeout(utest::kMaxTestWaitTime)
-                        .perform();
+    auto response =
+        http_client_ptr->CreateRequest()
+            .post(mock.GetBaseUrl() + "/path?arg1=val1", "body")
+            .headers({std::make_pair("header_a", "value1")})
+            .retry(1)
+            .timeout(utest::kMaxTestWaitTime)
+            .perform();
 
     // Response from the `mock`
     EXPECT_EQ(200, response->status_code());
@@ -68,19 +69,21 @@ UTEST(HttpServerMock, Ctr) {
         std::make_pair(std::string{"header"}, std::string{"value2"}),
     };
     for (int i = 0; i < 2; i++) {
-        auto response = http_client_ptr->CreateRequest()
-                            .post(mock.GetBaseUrl() + "?arg1=val1&arg2=val2", kRequestBody)
-                            .headers(headers)
-                            .retry(1)
-                            .timeout(utest::kMaxTestWaitTime)
-                            .perform();
+        auto response =
+            http_client_ptr->CreateRequest()
+                .post(mock.GetBaseUrl() + "?arg1=val1&arg2=val2", kRequestBody)
+                .headers(headers)
+                .retry(1)
+                .timeout(utest::kMaxTestWaitTime)
+                .perform();
 
         EXPECT_EQ(287, response->status_code());
         EXPECT_EQ(kResponseBody, response->body());
         EXPECT_EQ(
             (clients::http::Headers{
                 std::make_pair(std::string{"x"}, std::string{"y"}),
-                std::make_pair(std::string{"Content-Length"}, std::string{"13"})}),
+                std::make_pair(std::string{"Content-Length"}, std::string{"13"})
+            }),
             response->headers()
         );
     }

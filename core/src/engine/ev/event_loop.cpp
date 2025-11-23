@@ -28,10 +28,11 @@ std::atomic_flag& GetEvDefaultLoopFlag() noexcept {
 }
 
 void AcquireEvDefaultLoop() {
-    if (GetEvDefaultLoopFlag().test_and_set())
+    if (GetEvDefaultLoopFlag().test_and_set()) {
         throw std::runtime_error(
             "Trying to use more than one ev_default_loop, thread_name=" + utils::GetCurrentThreadName()
         );
+    }
     LOG_DEBUG() << "Acquire ev_default_loop for thread_name=" << utils::GetCurrentThreadName();
 }
 
@@ -42,8 +43,12 @@ void ReleaseEvDefaultLoop() {
 
 }  // namespace
 
-EventLoop::EventLoop(EvLoopType ev_loop_mode) : ev_loop_mode_(ev_loop_mode) {
-    if (ev_loop_mode_ == EvLoopType::kDefaultLoop) AcquireEvDefaultLoop();
+EventLoop::EventLoop(EvLoopType ev_loop_mode)
+    : ev_loop_mode_(ev_loop_mode)
+{
+    if (ev_loop_mode_ == EvLoopType::kDefaultLoop) {
+        AcquireEvDefaultLoop();
+    }
     Start();
 }
 
@@ -108,34 +113,37 @@ void EventLoop::ChildWatcherImpl(ev_child* w) {
         "components::ProcessStarter instead"
     );
     if (!child_process_info) {
-        LOG_ERROR() << "Got signal for thread with pid=" << w->rpid << ", status=" << w->rstatus
-                    << ", but thread with this pid was not found in child_process_map. "
-                       "Don't use 'system' to start subprocesses, use "
-                       "components::ProcessStarter instead";
+        LOG_ERROR()
+            << "Got signal for thread with pid=" << w->rpid << ", status=" << w->rstatus
+            << ", but thread with this pid was not found in child_process_map. "
+               "Don't use 'system' to start subprocesses, use "
+               "components::ProcessStarter instead";
         return;
     }
 
     auto process_status = subprocess::ChildProcessStatus{
         w->rstatus,
-        std::chrono::duration_cast<std::chrono::milliseconds>(
-            std::chrono::steady_clock::now() - child_process_info->start_time
-        )};
+        std::chrono::duration_cast<
+            std::chrono::milliseconds>(std::chrono::steady_clock::now() - child_process_info->start_time)
+    };
     if (process_status.IsExited() || process_status.IsSignaled()) {
-        LOG_INFO() << "Child process with pid=" << w->rpid << " was "
-                   << (process_status.IsExited() ? "exited normally" : "terminated by a signal");
+        LOG_INFO()
+            << "Child process with pid=" << w->rpid << " was "
+            << (process_status.IsExited() ? "exited normally" : "terminated by a signal");
         child_process_info->status_promise.set_value(std::move(process_status));
         ChildProcessMapErase(w->rpid);
     } else {
         if (WIFSTOPPED(w->rstatus)) {
-            LOG_WARNING() << "Child process with pid=" << w->rpid
-                          << " was stopped with signal=" << WSTOPSIG(w->rstatus);
+            LOG_WARNING()
+                << "Child process with pid=" << w->rpid << " was stopped with signal=" << WSTOPSIG(w->rstatus);
         } else {
             const bool continued = WIFCONTINUED(w->rstatus);
             if (continued) {
                 LOG_WARNING() << "Child process with pid=" << w->rpid << " was resumed";
             } else {
-                LOG_WARNING() << "Child process with pid=" << w->rpid
-                              << " was notified in ChildWatcher with unknown reason (w->rstatus=" << w->rstatus << ')';
+                LOG_WARNING()
+                    << "Child process with pid=" << w->rpid
+                    << " was notified in ChildWatcher with unknown reason (w->rstatus=" << w->rstatus << ')';
             }
         }
     }

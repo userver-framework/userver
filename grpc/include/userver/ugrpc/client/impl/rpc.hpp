@@ -6,6 +6,7 @@
 #include <utility>
 
 #include <grpcpp/impl/codegen/proto_utils.h>
+#include <grpcpp/support/async_stream.h>
 
 #include <userver/utils/impl/internal_tag.hpp>
 
@@ -62,7 +63,7 @@ public:
 private:
     StreamingCallState state_;
     CallContext context_;
-    RawReader<Response> stream_;
+    std::unique_ptr<grpc::ClientAsyncReader<Response>> stream_;
 };
 
 /// @brief Controls a request stream -> single response RPC
@@ -131,7 +132,7 @@ private:
     StreamingCallState state_;
     CallContext context_;
     Response response_;
-    RawWriter<Request> stream_;
+    std::unique_ptr<grpc::ClientAsyncWriter<Request>> stream_;
 };
 
 /// @brief Controls a request stream -> response stream RPC
@@ -243,7 +244,7 @@ public:
 private:
     StreamingCallState state_;
     CallContext context_;
-    RawReaderWriter<Request, Response> stream_;
+    std::unique_ptr<grpc::ClientAsyncReaderWriter<Request, Response>> stream_;
 };
 
 template <typename Response>
@@ -253,12 +254,18 @@ InputStream<Response>::InputStream(
     PrepareServerStreamingCall<Stub, Request, Response> prepare_async_method,
     const Request& request
 )
-    : state_{std::move(params), CallKind::kInputStream}, context_{utils::impl::InternalTag{}, state_} {
+    : state_{std::move(params), CallKind::kInputStream},
+      context_{utils::impl::InternalTag{}, state_}
+{
     RunMiddlewarePipeline(state_, StartCallHooks(ToBaseMessage(&request)));
 
     // NOLINTNEXTLINE(cppcoreguidelines-prefer-member-initializer)
     stream_ = impl::PrepareCall(
-        prepare_async_method, state_.GetStub(), &state_.GetClientContext(), request, &state_.GetQueue()
+        prepare_async_method,
+        state_.GetStub(),
+        &state_.GetClientContext(),
+        request,
+        &state_.GetQueue()
     );
     impl::StartCall(*stream_, state_);
 
@@ -295,13 +302,19 @@ OutputStream<Request, Response>::OutputStream(
     CallParams&& params,
     PrepareClientStreamingCall<Stub, Request, Response> prepare_async_method
 )
-    : state_{std::move(params), CallKind::kOutputStream}, context_{utils::impl::InternalTag{}, state_} {
+    : state_{std::move(params), CallKind::kOutputStream},
+      context_{utils::impl::InternalTag{}, state_}
+{
     RunMiddlewarePipeline(state_, StartCallHooks());
 
     // 'response_' will be filled upon successful 'Finish' async call
     // NOLINTNEXTLINE(cppcoreguidelines-prefer-member-initializer)
     stream_ = impl::PrepareCall(
-        prepare_async_method, state_.GetStub(), &state_.GetClientContext(), &response_, &state_.GetQueue()
+        prepare_async_method,
+        state_.GetStub(),
+        &state_.GetClientContext(),
+        &response_,
+        &state_.GetQueue()
     );
     impl::StartCall(*stream_, state_);
 }
@@ -365,7 +378,9 @@ BidirectionalStream<Request, Response>::BidirectionalStream(
     CallParams&& params,
     PrepareBidiStreamingCall<Stub, Request, Response> prepare_async_method
 )
-    : state_{std::move(params), CallKind::kBidirectionalStream}, context_{utils::impl::InternalTag{}, state_} {
+    : state_{std::move(params), CallKind::kBidirectionalStream},
+      context_{utils::impl::InternalTag{}, state_}
+{
     RunMiddlewarePipeline(state_, StartCallHooks());
 
     // NOLINTNEXTLINE(cppcoreguidelines-prefer-member-initializer)
@@ -379,9 +394,9 @@ BidirectionalStream<Request, Response>::~BidirectionalStream() {
 }
 
 template <typename Request, typename Response>
-typename BidirectionalStream<Request, Response>::StreamReadFuture BidirectionalStream<Request, Response>::ReadAsync(
-    Response& response
-) {
+typename BidirectionalStream<Request, Response>::StreamReadFuture BidirectionalStream<
+    Request,
+    Response>::ReadAsync(Response& response) {
     if (!IsReadAvailable(state_)) {
         // If the stream is already finished, we must exit immediately.
         // If not, even the middlewares may access something that is already dead.

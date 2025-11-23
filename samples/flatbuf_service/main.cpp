@@ -21,11 +21,12 @@ public:
 
     // Component is valid after construction and is able to accept requests
     FbsSumEcho(const components::ComponentConfig& config, const components::ComponentContext& context)
-        : HttpHandlerFlatbufBase(config, context) {}
+        : HttpHandlerFlatbufBase(config, context)
+    {}
 
     fbs::SampleResponse::NativeTableType
-    HandleRequestFlatbufThrow(const server::http::HttpRequest& request, const fbs::SampleRequest::NativeTableType& fbs_request, server::request::RequestContext&)
-        const override {
+    HandleRequestFlatbufThrow(const server::http::HttpRequest& request, const fbs::SampleRequest::NativeTableType& fbs_request, server::request::RequestContext&) const
+        override {
         request.GetHttpResponse().SetContentType(http::content_type::kApplicationOctetStream);
         fbs::SampleResponse::NativeTableType res;
         res.sum = fbs_request.arg1 + fbs_request.arg2;
@@ -47,7 +48,8 @@ public:
     FbsRequest(const components::ComponentConfig& config, const components::ComponentContext& context)
         : ComponentBase(config, context),
           http_client_{context.FindComponent<components::HttpClient>().GetHttpClient()},
-          task_{utils::Async("requests", [this]() { KeepRequesting(); })} {}
+          task_{utils::Async("requests", [this]() { KeepRequesting(); })}
+    {}
 
     void KeepRequesting() const;
 
@@ -72,11 +74,12 @@ void FbsRequest::KeepRequesting() const {
     std::string data(reinterpret_cast<const char*>(fbb.GetBufferPointer()), fbb.GetSize());
 
     // Send it
-    const auto response = http_client_.CreateRequest()
-                              .post("http://localhost:8084/fbs", std::move(data))
-                              .timeout(std::chrono::seconds(1))
-                              .retry(10)
-                              .perform();
+    const auto response =
+        http_client_.CreateRequest()
+            .post("http://localhost:8084/fbs", std::move(data))
+            .timeout(std::chrono::seconds(1))
+            .retry(10)
+            .perform();
 
     // Response code should be 200 (use proper error handling in real code!)
     UASSERT_MSG(response->IsOk(), "Sample should work well in tests");
@@ -98,11 +101,13 @@ void FbsRequest::KeepRequesting() const {
 }  // namespace samples::fbs_request
 
 int main(int argc, char* argv[]) {
-    auto component_list = components::MinimalServerComponentList()        //
-                              .Append<samples::fbs_handle::FbsSumEcho>()  //
+    auto component_list =
+        components::MinimalServerComponentList()        //
+            .Append<samples::fbs_handle::FbsSumEcho>()  //
 
-                              .Append<clients::dns::Component>()            //
-                              .Append<components::HttpClient>()             //
-                              .Append<samples::fbs_request::FbsRequest>();  //
+            .Append<clients::dns::Component>()            //
+            .Append<components::HttpClientCore>()         //
+            .Append<components::HttpClient>()             //
+            .Append<samples::fbs_request::FbsRequest>();  //
     return utils::DaemonMain(argc, argv, component_list);
 }

@@ -13,8 +13,10 @@ namespace components {
 
 namespace {
 
-storages::secdist::SecdistConfig::Settings
-ParseSettings(const ComponentConfig& config, const ComponentContext& context) {
+storages::secdist::SecdistConfig::Settings ParseSettings(
+    const ComponentConfig& config,
+    const ComponentContext& context
+) {
     storages::secdist::SecdistConfig::Settings settings;
 
     const auto provider_name = config["provider"].As<std::string>("default-secdist-provider");
@@ -26,7 +28,9 @@ ParseSettings(const ComponentConfig& config, const ComponentContext& context) {
 }  // namespace
 
 Secdist::Secdist(const ComponentConfig& config, const ComponentContext& context)
-    : ComponentBase(config, context), secdist_(ParseSettings(config, context)) {}
+    : ComponentBase(config, context),
+      secdist_(ParseSettings(config, context))
+{}
 
 const storages::secdist::SecdistConfig& Secdist::Get() const { return secdist_.Get(); }
 

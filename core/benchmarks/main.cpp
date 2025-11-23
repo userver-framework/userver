@@ -13,7 +13,9 @@ int main(int argc, char** argv) {
     const USERVER_NAMESPACE::logging::DefaultLoggerLevelScope level_scope{USERVER_NAMESPACE::logging::Level::kError};
 
     ::benchmark::Initialize(&argc, argv);
-    if (::benchmark::ReportUnrecognizedArguments(argc, argv)) return 1;
+    if (::benchmark::ReportUnrecognizedArguments(argc, argv)) {
+        return 1;
+    }
     ::benchmark::RunSpecifiedBenchmarks();
     ::benchmark::Shutdown();
 }

@@ -16,11 +16,14 @@ InspectRequests::InspectRequests(
     const components::ComponentContext& component_context
 )
     : HttpHandlerJsonBase(config, component_context, /* is_monitor = */ true),
-      view_(component_context.FindComponent<components::Server>().GetServer().GetRequestsView()) {}
+      view_(component_context.FindComponent<components::Server>().GetServer().GetRequestsView())
+{}
 
 formats::json::ValueBuilder FormatHeadersAsJson(const http::HttpRequest& request) {
     formats::json::ValueBuilder result(formats::json::Type::kObject);
-    for (const auto& name : request.GetHeaderNames()) result[name] = request.GetHeader(name);
+    for (const auto& name : request.GetHeaderNames()) {
+        result[name] = request.GetHeader(name);
+    }
 
     return result;
 }
@@ -29,7 +32,9 @@ formats::json::ValueBuilder FormatArgsAsJson(const http::HttpRequest& request) {
     formats::json::ValueBuilder result(formats::json::Type::kObject);
     for (const auto& name : request.ArgNames()) {
         formats::json::ValueBuilder values_json(formats::json::Type::kArray);
-        for (const auto& value : request.GetArgVector(name)) values_json.PushBack(value);
+        for (const auto& value : request.GetArgVector(name)) {
+            values_json.PushBack(value);
+        }
 
         result[name] = values_json;
     }
@@ -38,7 +43,9 @@ formats::json::ValueBuilder FormatArgsAsJson(const http::HttpRequest& request) {
 
 formats::json::ValueBuilder FormatCookiesAsJson(const http::HttpRequest& request) {
     formats::json::ValueBuilder result(formats::json::Type::kObject);
-    for (const auto& name : request.GetCookieNames()) result[name] = request.GetCookie(name);
+    for (const auto& name : request.GetCookieNames()) {
+        result[name] = request.GetCookie(name);
+    }
 
     return result;
 }
@@ -75,11 +82,13 @@ formats::json::Value InspectRequests::
         /* TODO: change if we support non-HTTP requests */
 
         formats::json::ValueBuilder request_json(formats::json::Type::kObject);
-        if (with_body) request_json["request-body"] = request->RequestBody();
+        if (with_body) {
+            request_json["request-body"] = request->RequestBody();
+        }
         request_json["method"] = request->GetMethodStr();
         request_json["url"] = request->GetUrl();
-        request_json["http_version"] =
-            std::to_string(request->GetHttpMajor()) + "." + std::to_string(request->GetHttpMinor());
+        request_json
+            ["http_version"] = std::to_string(request->GetHttpMajor()) + "." + std::to_string(request->GetHttpMinor());
         request_json["request_path"] = request->GetRequestPath();
         request_json["handling-duration-ms"] = FormatHandlingDuration(*request);
         request_json["start-handling-timestamp"] = FormatStartHandlingTimestamp(*request);

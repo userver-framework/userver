@@ -33,11 +33,12 @@ void FormatLogMessage(benchmark::State& state) {
     UINVARIANT(utils::text::StartsWith(log_line_view, "tskv\ttimestamp=1971-05-"), "Fail");
     UINVARIANT(log_line_view.find("\ttimezone=") != std::string::npos, "Fail 1");
     UINVARIANT(
-        log_line_view.find("\tuser_agent=grpc-go/1.45.0\t"
-                           "ip=2a02:aaaa:aaaa:aaaa::1:1f\t"
-                           "x_real_ip=2a02:aaaa:aaaa:aaaa::1:1f\t"
-                           "request=hello.HelloService/SayHello\t"
-                           "request_time=") != std::string::npos,
+        log_line_view
+                .find("\tuser_agent=grpc-go/1.45.0\t"
+                      "ip=2a02:aaaa:aaaa:aaaa::1:1f\t"
+                      "x_real_ip=2a02:aaaa:aaaa:aaaa::1:1f\t"
+                      "request=hello.HelloService/SayHello\t"
+                      "request_time=") != std::string::npos,
         "Fail 2"
     );
 

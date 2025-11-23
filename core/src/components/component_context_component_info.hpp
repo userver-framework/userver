@@ -5,6 +5,7 @@
 #include <set>
 #include <stdexcept>
 #include <string>
+#include <unordered_set>
 
 #include <userver/components/raw_component_base.hpp>
 #include <userver/engine/condition_variable.hpp>
@@ -110,6 +111,8 @@ private:
     bool stage_switching_cancelled_{false};
     std::atomic<bool> on_loading_cancelled_called_{false};
 };
+
+std::unordered_set<std::string> ExtractNamesFromInfo(const std::vector<ConstComponentInfoRef>& container);
 
 std::string JoinNamesFromInfo(const std::vector<ConstComponentInfoRef>& container, std::string_view separator);
 

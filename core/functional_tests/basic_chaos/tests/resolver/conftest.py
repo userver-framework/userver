@@ -88,20 +88,21 @@ class DnsServerProtocol:
         response += struct.pack('!H', 1)  # class IN
         response += struct.pack('!I', 99999)  # TTL
 
-        if query_type == b'\x00\x01':  # type A record
-            response += struct.pack('!H', 4)  # data length (IPv4)
-            response += socket.inet_pton(
-                socket.AF_INET,
-                '77.88.55.55',
-            )  # our fake IPv4 address
-        elif query_type == b'\x00\x1c':  # type AAAA record
-            response += struct.pack('!H', 16)  # data length (IPv6)
-            response += socket.inet_pton(
-                socket.AF_INET6,
-                '2a02:6b8:a::a',
-            )  # our fake IPv6 address
-        else:
-            raise Exception('unknown type')
+        match query_type:
+            case b'\x00\x01':  # type A record
+                response += struct.pack('!H', 4)  # data length (IPv4)
+                response += socket.inet_pton(
+                    socket.AF_INET,
+                    '77.88.55.55',
+                )  # our fake IPv4 address
+            case b'\x00\x1c':  # type AAAA record
+                response += struct.pack('!H', 16)  # data length (IPv6)
+                response += socket.inet_pton(
+                    socket.AF_INET6,
+                    '2a02:6b8:a::a',
+                )  # our fake IPv6 address
+            case _:
+                raise Exception('unknown type')
 
         logger.info(
             f'Dns "{self.name}" sends {len(response)} bytes to {addr} '
@@ -131,7 +132,7 @@ async def _dns_mock(dns_info):
         yield server
 
 
-@pytest.fixture(scope='function', name='dns_mock2_lazy')
+@pytest.fixture(name='dns_mock2_lazy')
 async def _dns_mock2_lazy(dns_info2):
     return create_server(dns_info2, 'secondary')
 
@@ -146,7 +147,7 @@ def _dns_info2(for_dns_gate_port2) -> DnsInfo:
     return DnsInfo('::1', for_dns_gate_port2)
 
 
-@pytest.fixture(scope='function', name='dns_mock_stats')
+@pytest.fixture(name='dns_mock_stats')
 def _dns_mock_stats(dns_mock):
     dns_mock.reset_stats()
 
@@ -184,10 +185,10 @@ async def _gate_ready(service_client, _gate_started):
     await _gate_started.to_client_pass()
     await _gate_started.sockets_close()  # close keepalive connections
 
-    yield _gate_started
+    return _gate_started
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture
 def gen_domain_name():
     def _gen_domain_name(length: int = 10, tld: str = '.com'):
         domain = ''.join(sys_random.choice(string.ascii_lowercase) for _ in range(length))

@@ -44,9 +44,8 @@ public:
 
 private:
     utils::statistics::Storage statistics_storage_;
-    ugrpc::impl::StatisticsStorage client_statistics_storage_{
-        statistics_storage_,
-        ugrpc::impl::StatisticsDomain::kClient};
+    ugrpc::impl::StatisticsStorage
+        client_statistics_storage_{statistics_storage_, ugrpc::impl::StatisticsDomain::kClient};
     dynamic_config::StorageMock config_storage_{dynamic_config::MakeDefaultStorage({})};
     client::impl::CompletionQueuePool completion_queues_{1};
     testsuite::GrpcControl testsuite_control_{{}, false};

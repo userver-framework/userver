@@ -32,16 +32,16 @@ std::string ToString(T value) {
 
 template <typename T>
 auto TestInvalid(const std::string& input) {
-    ASSERT_THROW(utils::FromString<T>(input), std::runtime_error)
+    ASSERT_THROW(utils::FromString<T>(input), utils::FromStringException)
         << "type = " << compiler::GetTypeName<T>() << ", input = \"" << input << "\"";
 }
 
 template <typename StringType, typename T>
 auto CheckConverts(StringType input, T expected_result) {
-    T actualResult{};
-    ASSERT_NO_THROW(actualResult = utils::FromString<T>(input))
+    T actual_result{};
+    ASSERT_NO_THROW(actual_result = utils::FromString<T>(input))
         << "type = " << compiler::GetTypeName<T>() << ", input = \"" << input << "\"";
-    ASSERT_EQ(actualResult, expected_result)
+    ASSERT_EQ(actual_result, expected_result)
         << "type = " << compiler::GetTypeName<T>() << ", input = \"" << input << "\"";
 }
 
@@ -64,9 +64,8 @@ auto DistributionForTesting() {
     } else {
         // 8-bit types are not allowed in uniform_int_distribution, so increase the
         // T size.
-        return std::uniform_int_distribution<std::common_type_t<T, unsigned short>>(
-            std::numeric_limits<T>::min(), std::numeric_limits<T>::max()
-        );
+        return std::uniform_int_distribution<
+            std::common_type_t<T, unsigned short>>(std::numeric_limits<T>::min(), std::numeric_limits<T>::max());
     }
 }
 
@@ -75,8 +74,18 @@ auto DistributionForTesting() {
 template <typename T>
 class FromStringTest : public ::testing::Test {};
 
-using NumericTypes = ::testing::
-    Types<int8_t, uint8_t, int16_t, uint16_t, int32_t, uint32_t, int64_t, uint64_t, float, double, long double>;
+using NumericTypes = ::testing::Types<
+    int8_t,
+    uint8_t,
+    int16_t,
+    uint16_t,
+    int32_t,
+    uint32_t,
+    int64_t,
+    uint64_t,
+    float,
+    double,
+    long double>;
 TYPED_TEST_SUITE(FromStringTest, NumericTypes);
 
 TYPED_TEST(FromStringTest, Sign) {
@@ -98,11 +107,11 @@ TYPED_TEST(FromStringTest, Randomized) {
 
     // `randomEngine` is initialized with a fixed default seed
     // NOLINTNEXTLINE(cert-msc51-cpp)
-    std::default_random_engine randomEngine;
+    std::default_random_engine random_engine;
     auto distribution = DistributionForTesting<T>();
 
     for (int i = 0; i < kTestIterations; ++i) {
-        TestPreserves(static_cast<T>(distribution(randomEngine)));
+        TestPreserves(static_cast<T>(distribution(random_engine)));
     }
 }
 
@@ -140,6 +149,16 @@ TYPED_TEST(FromStringTest, StrangeDecimalPoints) {
     }
 }
 
+TYPED_TEST(FromStringTest, HasZeroByte) {
+    using T = TypeParam;
+
+    if constexpr (std::is_floating_point_v<T>) {
+        TestInvalid<T>({"1.1\0 <- zero byte", 17});
+    }
+
+    TestInvalid<T>({"1\0 <- zero byte", 15});
+}
+
 TYPED_TEST(FromStringTest, Exponents) {
     using T = TypeParam;
 
@@ -159,14 +178,8 @@ TYPED_TEST(FromStringTest, NonDecimal) {
     TestInvalid<T>("0b10");
     TestInvalid<T>("0o10");
 
-    if constexpr (std::is_floating_point_v<T>) {
-        TestConverts("0x10", T{0x10});
-        TestConverts("0xAB", T{0xAB});
-        TestConverts("0xab", T{0xAB});
-        TestConverts("0xABP2", T{0xABP2});
-    } else {
-        TestInvalid<T>("0x10");
-    }
+    TestInvalid<T>("0x10");
+    TestInvalid<T>("0X10");
 }
 
 TYPED_TEST(FromStringTest, ExtraSpaces) {
@@ -223,7 +236,7 @@ TYPED_TEST(FromStringTest, ExceptionDetails) {
 
     try {
         utils::FromString<T>(".blah");
-    } catch (const std::runtime_error& e) {
+    } catch (const utils::FromStringException& e) {
         what = e.what();
     } catch (const std::exception& e) {
         // swallow

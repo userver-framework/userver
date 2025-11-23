@@ -48,7 +48,10 @@ private:
 
 class DoubleBufferingState::ProducerLock {
 public:
-    explicit ProducerLock(DoubleBufferingState& state) : state_(state), locked_index_(state.LockProducer()) {}
+    explicit ProducerLock(DoubleBufferingState& state)
+        : state_(state),
+          locked_index_(state.LockProducer())
+    {}
     ~ProducerLock() { state_.UnlockProducer(locked_index_); }
 
     ProducerLock(const ProducerLock&) = delete;
@@ -65,7 +68,10 @@ private:
 
 class DoubleBufferingState::ConsumerLock {
 public:
-    explicit ConsumerLock(DoubleBufferingState& state) : state_(state), locked_index_(state.LockConsumer()) {}
+    explicit ConsumerLock(DoubleBufferingState& state)
+        : state_(state),
+          locked_index_(state.LockConsumer())
+    {}
     ~ConsumerLock() { state_.UnlockConsumer(locked_index_); }
 
     ConsumerLock(const ConsumerLock&) = delete;

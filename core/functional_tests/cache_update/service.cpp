@@ -24,7 +24,8 @@ public:
     static constexpr std::string_view kName = "alert-cache";
 
     AlertCache(const components::ComponentConfig& config, const components::ComponentContext& context)
-        : CachingComponentBase(config, context) {
+        : CachingComponentBase(config, context)
+    {
         CacheUpdateTrait::StartPeriodicUpdates();
     }
 
@@ -51,7 +52,8 @@ public:
     static constexpr std::string_view kName = "sample-cache";
 
     CacheSample(const components::ComponentConfig& config, const components::ComponentContext& context)
-        : CachingComponentBase(config, context) {
+        : CachingComponentBase(config, context)
+    {
         CacheUpdateTrait::StartPeriodicUpdates();
     }
 
@@ -84,7 +86,9 @@ public:
     static constexpr std::string_view kName = "handler-cache-state";
 
     HandlerCacheState(const components::ComponentConfig& config, const components::ComponentContext& context)
-        : server::handlers::HttpHandlerBase(config, context), cache_(context.FindComponent<CacheSample>()) {}
+        : server::handlers::HttpHandlerBase(config, context),
+          cache_(context.FindComponent<CacheSample>())
+    {}
     std::string HandleRequestThrow(const server::http::HttpRequest&, server::request::RequestContext&) const override {
         cache_.UpdateSyncDebug(cache::UpdateType::kIncremental);
         cache_.UpdateSyncDebug(cache::UpdateType::kIncremental);
@@ -103,12 +107,13 @@ private:
 }  // namespace functional_tests
 
 int main(int argc, const char* const argv[]) {
-    const auto component_list = components::ComponentList()
-                                    .AppendComponentList(components::CommonComponentList())
-                                    .AppendComponentList(components::CommonServerComponentList())
-                                    .Append<functional_tests::CacheSample>()
-                                    .Append<functional_tests::HandlerCacheState>()
-                                    .Append<functional_tests::AlertCache>()
-                                    .Append<server::handlers::Ping>();
+    const auto component_list =
+        components::ComponentList()
+            .AppendComponentList(components::CommonComponentList())
+            .AppendComponentList(components::CommonServerComponentList())
+            .Append<functional_tests::CacheSample>()
+            .Append<functional_tests::HandlerCacheState>()
+            .Append<functional_tests::AlertCache>()
+            .Append<server::handlers::Ping>();
     return utils::DaemonMain(argc, argv, component_list);
 }

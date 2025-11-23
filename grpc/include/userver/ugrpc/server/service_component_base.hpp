@@ -79,7 +79,9 @@ class ServiceComponentBase : public server::ServiceComponentBase, public Service
 
 public:
     ServiceComponentBase(const components::ComponentConfig& config, const components::ComponentContext& context)
-        : server::ServiceComponentBase(config, context), ServiceInterface() {
+        : server::ServiceComponentBase(config, context),
+          ServiceInterface()
+    {
         // At this point the derived class that implements ServiceInterface is not
         // constructed yet. We rely on the implementation detail that the methods of
         // ServiceInterface are never called right after RegisterService. Unless

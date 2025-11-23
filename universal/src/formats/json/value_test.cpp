@@ -1,6 +1,8 @@
 #include <gtest/gtest.h>
 
+#include <userver/formats/json/array.hpp>
 #include <userver/formats/json/exception.hpp>
+#include <userver/formats/json/object.hpp>
 #include <userver/formats/json/serialize.hpp>
 #include <userver/formats/json/serialize_container.hpp>
 #include <userver/formats/json/value.hpp>
@@ -13,7 +15,7 @@ USERVER_NAMESPACE_BEGIN
 
 template <>
 struct Parsing<formats::json::Value> : public ::testing::Test {
-    constexpr static auto FromString = formats::json::FromString;
+    constexpr static auto kFromString = formats::json::FromString;
     using ParseException = formats::json::Value::ParseException;
 };
 
@@ -78,16 +80,18 @@ void CheckExactValues(int bits) {
         auto json = formats::json::FromString(json_str);
         auto dval = json["value"].As<double>();
         auto ival = static_cast<int64_t>(dval);
-        if (ival != value) throw TestIncorrectValueException("test");
+        if (ival != value) {
+            throw TestIncorrectValueException("test");
+        }
     }
 }
 
 TEST(FormatsJson, LargeDoubleValueAsInt64) {
-    const int kMaxCorrectBits = 53;
+    const int max_correct_bits = 53;
 
-    for (int bits = kMaxCorrectBits; bits >= kMaxCorrectBits - 5; --bits) {
+    for (int bits = max_correct_bits; bits >= max_correct_bits - 5; --bits) {
         const int64_t start = (1L << bits);
-        const int max_add = bits == kMaxCorrectBits ? -1 : 20;
+        const int max_add = bits == max_correct_bits ? -1 : 20;
         for (int add = max_add; add >= -20; --add) {
             const int64_t value = start + add;
             std::string json_str = R"({"value": )" + std::to_string(value) + ".0}";
@@ -97,7 +101,7 @@ TEST(FormatsJson, LargeDoubleValueAsInt64) {
         }
     }
 
-    ASSERT_THROW(CheckExactValues(kMaxCorrectBits + 1), TestIncorrectValueException);
+    ASSERT_THROW(CheckExactValues(max_correct_bits + 1), TestIncorrectValueException);
 
     // 2 ** 53 == 9007199254740992
     TestLargeDoubleValueAsInt64(R"({"value": 9007199254740992.0})", 9007199254740992, false);

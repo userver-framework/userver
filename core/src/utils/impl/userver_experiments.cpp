@@ -17,7 +17,9 @@ namespace utils::impl {
 
 struct UserverExperimentSetter final {
     static void Set(UserverExperiment& experiment, bool value) noexcept {
-        if (value) LOG_INFO() << "Enabled experiment " << experiment.GetName();
+        if (value) {
+            LOG_INFO() << "Enabled experiment " << experiment.GetName();
+        }
         experiment.enabled_ = value;
     }
 };
@@ -46,9 +48,15 @@ auto GetEnabledUserverExperiments() {
 
 }  // namespace
 
-UserverExperiment::UserverExperiment(std::string name) : name_(std::move(name)) { RegisterExperiment(*this); }
+UserverExperiment::UserverExperiment(std::string name)
+    : name_(std::move(name))
+{
+    RegisterExperiment(*this);
+}
 
-UserverExperimentsScope::UserverExperimentsScope() : old_enabled_(GetEnabledUserverExperiments()) {}
+UserverExperimentsScope::UserverExperimentsScope()
+    : old_enabled_(GetEnabledUserverExperiments())
+{}
 
 UserverExperimentsScope::~UserverExperimentsScope() {
     for (const auto& [_, experiment] : GetExperimentsInfo()) {

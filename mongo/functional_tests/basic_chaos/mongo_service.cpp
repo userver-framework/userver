@@ -26,7 +26,8 @@ public:
 
     KeyValue(const components::ComponentConfig& config, const components::ComponentContext& context)
         : HttpHandlerBase(config, context),
-          pool_(context.FindComponent<components::Mongo>("key-value-database").GetPool()) {}
+          pool_(context.FindComponent<components::Mongo>("key-value-database").GetPool())
+    {}
 
     std::string HandleRequestThrow(const server::http::HttpRequest& request, server::request::RequestContext&)
         const override {
@@ -79,16 +80,18 @@ std::string KeyValue::GetValue(const server::http::HttpRequest& request) const {
 }  // namespace chaos
 
 int main(int argc, char* argv[]) {
-    const auto component_list = components::MinimalServerComponentList()
-                                    .Append<clients::dns::Component>()
-                                    .Append<components::HttpClient>()
-                                    .Append<components::Secdist>()
-                                    .Append<components::DefaultSecdistProvider>()
-                                    .Append<components::TestsuiteSupport>()
-                                    .Append<server::handlers::TestsControl>()
-                                    .Append<components::Mongo>("key-value-database")
-                                    .Append<chaos::KeyValue>()
-                                    .Append<components::DynamicConfigClient>()
-                                    .Append<components::DynamicConfigClientUpdater>();
+    const auto component_list =
+        components::MinimalServerComponentList()
+            .Append<clients::dns::Component>()
+            .Append<components::HttpClientCore>()
+            .Append<components::HttpClient>()
+            .Append<components::Secdist>()
+            .Append<components::DefaultSecdistProvider>()
+            .Append<components::TestsuiteSupport>()
+            .Append<server::handlers::TestsControl>()
+            .Append<components::Mongo>("key-value-database")
+            .Append<chaos::KeyValue>()
+            .Append<components::DynamicConfigClient>()
+            .Append<components::DynamicConfigClientUpdater>();
     return utils::DaemonMain(argc, argv, component_list);
 }

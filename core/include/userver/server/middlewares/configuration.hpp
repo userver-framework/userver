@@ -112,7 +112,7 @@ template <>
 inline constexpr bool components::kHasValidate<server::middlewares::HandlerPipelineBuilder> = true;
 
 template <>
-inline constexpr auto components::kConfigFileMode<server::middlewares::HandlerPipelineBuilder> =
-    ConfigFileMode::kNotRequired;
+inline constexpr auto
+    components::kConfigFileMode<server::middlewares::HandlerPipelineBuilder> = ConfigFileMode::kNotRequired;
 
 USERVER_NAMESPACE_END

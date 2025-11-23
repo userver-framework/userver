@@ -39,10 +39,10 @@ grpc::Status ReportHandlerError(const std::exception& ex, CallState& state) noex
 
 void ReportRpcInterruptedError(CallState& state) noexcept;
 
-grpc::Status
-ReportCustomError(const USERVER_NAMESPACE::server::handlers::CustomHandlerException& ex, CallState& state) noexcept;
+grpc::Status ReportCustomError(const USERVER_NAMESPACE::server::handlers::CustomHandlerException& ex, CallState& state)
+    noexcept;
 
-void CheckFinishStatus(bool finish_op_succeeded, const grpc::Status& status, CallState& state) noexcept;
+void ReportFinish(bool finish_op_succeeded, const grpc::Status& status, CallState& state) noexcept;
 
 template <typename Response>
 void UnpackResult(Result<Response>&& result, std::optional<Response>& response, grpc::Status& status) {
@@ -87,10 +87,15 @@ public:
           context_(utils::impl::InternalTag{}, state_),
           initial_request_(initial_request),
           service_(service),
-          service_method_(service_method) {
+          service_method_(service_method)
+    {
         // TODO Move setting up Span a middleware?
         SetupSpan(
-            state_.span_storage, state_.server_context, state_.call_name, state_.service_name, state_.method_name
+            state_.span_storage,
+            state_.server_context,
+            state_.call_name,
+            state_.service_name,
+            state_.method_name
         );
     }
 
@@ -102,7 +107,7 @@ public:
 
         if (!Status().ok()) {
             RunOnCallFinish();
-            impl::CheckFinishStatus(responder_.FinishWithError(Status()), Status(), state_);
+            impl::ReportFinish(responder_.FinishWithError(Status()), Status(), state_);
             return;
         }
 
@@ -124,7 +129,7 @@ public:
 
         if (!Status().ok()) {
             RunOnCallFinish();
-            impl::CheckFinishStatus(responder_.FinishWithError(Status()), Status(), state_);
+            impl::ReportFinish(responder_.FinishWithError(Status()), Status(), state_);
             return;
         }
 
@@ -134,18 +139,18 @@ public:
         RunOnCallFinish();
 
         if (!Status().ok()) {
-            impl::CheckFinishStatus(responder_.FinishWithError(Status()), Status(), state_);
+            impl::ReportFinish(responder_.FinishWithError(Status()), Status(), state_);
             return;
         }
 
         if constexpr (IsServerStreaming(CallTraits::kCallKind)) {
             if (!final_response) {
-                impl::CheckFinishStatus(responder_.Finish(), Status(), state_);
+                impl::ReportFinish(responder_.Finish(), Status(), state_);
                 return;
             }
         }
         UASSERT(final_response);
-        impl::CheckFinishStatus(responder_.Finish(*final_response), Status(), state_);
+        impl::ReportFinish(responder_.Finish(*final_response), Status(), state_);
     }
 
 private:

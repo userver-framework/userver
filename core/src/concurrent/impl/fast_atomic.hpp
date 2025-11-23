@@ -97,7 +97,10 @@ public:
     template <std::memory_order Success, std::memory_order Failure>
     USERVER_IMPL_PROTECT_DWCAS_ATTR bool compare_exchange_strong(T& expected, T desired) noexcept {
         return static_cast<AtomicRef>(impl_).compare_exchange_strong(
-            expected, desired, impl::ToInternalMemoryOrder(Success), impl::ToInternalMemoryOrder(Failure)
+            expected,
+            desired,
+            impl::ToInternalMemoryOrder(Success),
+            impl::ToInternalMemoryOrder(Failure)
         );
     }
 

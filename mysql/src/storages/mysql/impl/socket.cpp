@@ -49,7 +49,10 @@ int ToMySQLEvents(engine::io::FdPoller::Kind kind) {
 }  // namespace
 
 Socket::Socket(int fd, int mysql_events)
-    : fd_{fd}, poller_{engine::current_task::GetEventThread()}, mysql_events_to_wait_on_{mysql_events} {}
+    : fd_{fd},
+      poller_{engine::current_task::GetEventThread()},
+      mysql_events_to_wait_on_{mysql_events}
+{}
 
 // Poller is Reset + Invalidated transactionally in Wait, so we don't need to
 // invalidate it in destructor.

@@ -39,7 +39,10 @@ void TimeStorage::MergeInto(logging::impl::TagWriter writer) {
 
         const auto ns_count = value.count();
         fmt::format_to(
-            std::back_inserter(duration_memory_buffer), FMT_COMPILE("{}.{:0>6}"), ns_count / kNsInMs, ns_count % kNsInMs
+            std::back_inserter(duration_memory_buffer),
+            FMT_COMPILE("{}.{:0>6}"),
+            ns_count / kNsInMs,
+            ns_count % kNsInMs
         );
 
         const std::string_view key_tag_sw{key_buffer.data(), key_buffer.size()};

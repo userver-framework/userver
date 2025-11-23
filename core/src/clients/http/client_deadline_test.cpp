@@ -19,12 +19,16 @@ using ResponseQueue = concurrent::SpmcQueue<int>;
 
 class WaitingEchoHandler final {
 public:
-    explicit WaitingEchoHandler(ResponseQueue& queue) : data_(std::make_shared<Data>(Data{queue.GetMultiConsumer()})) {}
+    explicit WaitingEchoHandler(ResponseQueue& queue)
+        : data_(std::make_shared<Data>(Data{queue.GetMultiConsumer()}))
+    {}
 
     utest::HttpServerMock::HttpResponse operator()(const utest::HttpServerMock::HttpRequest& request) {
         int response_status{};
         const bool success = data_->responses.Pop(response_status);
-        if (!success) return {500, {}, ""};
+        if (!success) {
+            return {500, {}, ""};
+        }
 
         utest::HttpServerMock::HttpResponse response{};
         response.response_status = response_status;

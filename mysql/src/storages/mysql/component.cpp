@@ -33,11 +33,13 @@ std::shared_ptr<storages::mysql::Cluster> CreateCluster(
 Component::Component(const components::ComponentConfig& config, const components::ComponentContext& context)
     : ComponentBase{config, context},
       dns_{context.FindComponent<clients::dns::Component>()},
-      cluster_{CreateCluster(dns_.GetResolver(), config, context)} {
+      cluster_{CreateCluster(dns_.GetResolver(), config, context)}
+{
     auto& statistics_storage = context.FindComponent<components::StatisticsStorage>();
-    statistics_holder_ = statistics_storage.GetStorage().RegisterWriter(
-        "mysql", [this](utils::statistics::Writer& writer) { cluster_->WriteStatistics(writer); }
-    );
+    statistics_holder_ =
+        statistics_storage.GetStorage().RegisterWriter("mysql", [this](utils::statistics::Writer& writer) {
+            cluster_->WriteStatistics(writer);
+        });
 }
 
 Component::~Component() { statistics_holder_.Unregister(); }

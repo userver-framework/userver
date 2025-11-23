@@ -43,7 +43,10 @@ public:
     using size_type = std::size_t;
 
     FieldView(const detail::ResultWrapper& res, size_type row_index, size_type field_index)
-        : res_{res}, row_index_{row_index}, field_index_{field_index} {}
+        : res_{res},
+          row_index_{row_index},
+          field_index_{field_index}
+    {}
 
     template <typename T>
     size_type To(T&& val) const {
@@ -145,10 +148,11 @@ public:
     /// If the field is null, set the variable to the default value.
     template <typename T>
     void Coalesce(T& val, const T& default_val) const {
-        if (!IsNull())
+        if (!IsNull()) {
             To(val);
-        else
+        } else {
             val = default_val;
+        }
     }
 
     /// Convert the field's buffer into a C++ type.
@@ -165,7 +169,9 @@ public:
     /// If the field is null, return default value.
     template <typename T>
     typename std::decay<T>::type Coalesce(const T& default_val) const {
-        if (IsNull()) return default_val;
+        if (IsNull()) {
+            return default_val;
+        }
         return As<T>();
     }
     //@}
@@ -177,7 +183,10 @@ protected:
     Field() = default;
 
     Field(detail::ResultWrapperPtr res, size_type row, size_type col)
-        : res_{std::move(res)}, row_index_{row}, field_index_{col} {}
+        : res_{std::move(res)},
+          row_index_{row},
+          field_index_{col}
+    {}
 
     //@{
     /** @name Iteration support */
@@ -203,7 +212,8 @@ private:
     friend class Row;
 
     ConstFieldIterator(detail::ResultWrapperPtr res, size_type row, size_type col)
-        : ConstDataIterator(std::move(res), row, col) {}
+        : ConstDataIterator(std::move(res), row, col)
+    {}
 };
 
 /// @brief Reverse iterator over fields in a result set's row
@@ -216,7 +226,8 @@ private:
     friend class Row;
 
     ReverseConstFieldIterator(detail::ResultWrapperPtr res, size_type row, size_type col)
-        : ConstDataIterator(std::move(res), row, col) {}
+        : ConstDataIterator(std::move(res), row, col)
+    {}
 };
 
 }  // namespace storages::postgres

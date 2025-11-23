@@ -13,12 +13,16 @@ SystemStatisticsCollector::SystemStatisticsCollector(const ComponentConfig& conf
     : ComponentBase(config, context),
       with_nginx_(config["with-nginx"].As<bool>(false)),
       fs_task_processor_(GetFsTaskProcessor(config, context)),
-      periodic_("system_statistics_collector", {std::chrono::seconds(10), {utils::PeriodicTask::Flags::kNow}}, [this] {
-          ProcessTimer();
-      }) {
-    statistics_holder_ = context.FindComponent<components::StatisticsStorage>().GetStorage().RegisterWriter(
-        "", [this](utils::statistics::Writer& writer) { ExtendStatistics(writer); }
-    );
+      periodic_(
+          "system_statistics_collector",
+          {std::chrono::seconds(10), {utils::PeriodicTask::Flags::kNow}},
+          [this] { ProcessTimer(); }
+      )
+{
+    statistics_holder_ =
+        context.FindComponent<components::StatisticsStorage>()
+            .GetStorage()
+            .RegisterWriter("", [this](utils::statistics::Writer& writer) { ExtendStatistics(writer); });
 }
 
 SystemStatisticsCollector::~SystemStatisticsCollector() { statistics_holder_.Unregister(); }

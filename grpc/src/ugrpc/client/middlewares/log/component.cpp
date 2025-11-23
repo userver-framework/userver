@@ -24,7 +24,8 @@ Component::Component(const components::ComponentConfig& config, const components
           context,
           USERVER_NAMESPACE::middlewares::MiddlewareDependencyBuilder()
               .InGroup<USERVER_NAMESPACE::middlewares::groups::Logging>()
-      ) {}
+      )
+{}
 
 Component::~Component() = default;
 

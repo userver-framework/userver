@@ -94,7 +94,8 @@ constexpr auto kDeadlineMaxTime = std::chrono::seconds{60};
 
         std::atomic<bool> reading{true};
         crypto::SslCtx ssl_ctx = crypto::SslCtx::CreateServerTlsContext(
-            crypto::LoadCertificatesChainFromString(cert), crypto::PrivateKey::LoadFromString(key)
+            crypto::LoadCertificatesChainFromString(cert),
+            crypto::PrivateKey::LoadFromString(key)
         );
         auto server_task = engine::AsyncNoSpan(
             [&reading, deadline, &ssl_ctx](auto&& server) {
@@ -137,7 +138,8 @@ BENCHMARK(TlsWriteAllBuffered)->RangeMultiplier(2)->Range(1 << 6, 1 << 12)->Unit
 
         std::atomic<bool> reading{true};
         crypto::SslCtx ssl_ctx = crypto::SslCtx::CreateServerTlsContext(
-            crypto::LoadCertificatesChainFromString(cert), crypto::PrivateKey::LoadFromString(key)
+            crypto::LoadCertificatesChainFromString(cert),
+            crypto::PrivateKey::LoadFromString(key)
         );
         auto server_task = engine::AsyncNoSpan(
             [&reading, deadline, &ssl_ctx](auto&& server) {

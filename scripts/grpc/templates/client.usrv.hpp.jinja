@@ -95,6 +95,11 @@ public:
     {{service.name}}Client& operator=({{service.name}}Client&&) noexcept;
 
     ~{{service.name}}Client();
+
+{%- set namespace_path = '::' + proto.namespace if proto.namespace | length > 0 else '' -%}
+    const {{namespace_path}}::{{service.name}}Client& GetProtobufClient() const;
+
+    {{namespace_path}}::{{service.name}}Client& GetProtobufClient();
 {% for method in service.method %}
 
 {% if method.client_streaming and method.server_streaming %}
@@ -139,7 +144,6 @@ public:
     ) const;
 {% endif %}
 {% endfor %}
-{%- set namespace_path = '::' + proto.namespace if proto.namespace | length > 0 else '' -%}
 
     /// @cond
     // For internal use only

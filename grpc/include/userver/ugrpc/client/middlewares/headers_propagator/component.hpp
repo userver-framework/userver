@@ -12,7 +12,7 @@ USERVER_NAMESPACE_BEGIN
 /// @see @ref ugrpc::client::middlewares::headers_propagator::Component
 namespace ugrpc::client::middlewares::headers_propagator {
 
-/// @ingroup userver_components userver_base_classes
+/// @ingroup userver_components
 ///
 /// @brief gRPC client middleware for sending headers stored by the respective HTTP and gRPC server middlewares.
 ///
@@ -37,14 +37,16 @@ public:
 
     yaml_config::Schema GetMiddlewareConfigSchema() const override;
 
-    std::shared_ptr<const MiddlewareBase>
-    CreateMiddleware(const ugrpc::client::ClientInfo&, const yaml_config::YamlConfig& middleware_config) const override;
+    std::shared_ptr<const MiddlewareBase> CreateMiddleware(
+        const ugrpc::client::ClientInfo&,
+        const yaml_config::YamlConfig& middleware_config
+    ) const override;
 };
 
 }  // namespace ugrpc::client::middlewares::headers_propagator
 
 template <>
-inline constexpr auto components::kConfigFileMode<ugrpc::client::middlewares::headers_propagator::Component> =
-    ConfigFileMode::kNotRequired;
+inline constexpr auto components::kConfigFileMode<
+    ugrpc::client::middlewares::headers_propagator::Component> = ConfigFileMode::kNotRequired;
 
 USERVER_NAMESPACE_END

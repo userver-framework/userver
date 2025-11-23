@@ -79,9 +79,10 @@ public:
 private:
     void AppendInto(bson_t*, std::string_view key, const ValueImpl&);
 
-    static constexpr std::size_t kSize = compiler::SelectSize()  //
-                                             .For64Bit(8)
-                                             .For32Bit(4);
+    static constexpr std::size_t kSize =
+        compiler::SelectSize()  //
+            .For64Bit(8)
+            .For32Bit(4);
     static constexpr std::size_t kAlignment = alignof(void*);
     utils::FastPimpl<MutableBson, kSize, kAlignment, utils::kStrictMatch> bson_;
 };

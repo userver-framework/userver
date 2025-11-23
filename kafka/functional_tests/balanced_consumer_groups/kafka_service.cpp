@@ -111,11 +111,10 @@ HandlerKafkaConsumerGroups::HandlerKafkaConsumerGroups(
     auto consumer_by_name = consumer_by_name_.Lock();
     auto messages_by_consumer = messages_by_consumer_.Lock();
     for (const auto& consumer_name : config[kConsumersListFieldName].As<std::vector<std::string>>()) {
-        consumer_by_name->emplace(
-            consumer_name, utils::LazyPrvalue([&context, &consumer_name] {
-                return context.FindComponent<kafka::ConsumerComponent>(consumer_name).GetConsumer();
-            })
-        );
+        consumer_by_name
+            ->emplace(consumer_name, utils::LazyPrvalue([&context, &consumer_name] {
+                          return context.FindComponent<kafka::ConsumerComponent>(consumer_name).GetConsumer();
+                      }));
         messages_by_consumer->emplace(consumer_name, std::vector<formats::json::Value>{});
     }
 }
@@ -235,18 +234,20 @@ properties:
 }  // namespace functional_tests
 
 int main(int argc, char* argv[]) {
-    const auto components_list = components::MinimalServerComponentList()
-                                     .Append<kafka::ConsumerComponent>("kafka-consumer-first")
-                                     .Append<kafka::ConsumerComponent>("kafka-consumer-second")
-                                     .Append<kafka::ConsumerComponent>("kafka-consumer-cooperative-first")
-                                     .Append<kafka::ConsumerComponent>("kafka-consumer-cooperative-second")
-                                     .Append<components::TestsuiteSupport>()
-                                     .Append<components::Secdist>()
-                                     .Append<components::DefaultSecdistProvider>()
-                                     .Append<components::HttpClient>()
-                                     .Append<clients::dns::Component>()
-                                     .Append<server::handlers::TestsControl>()
-                                     .Append<functional_tests::HandlerKafkaConsumerGroups>();
+    const auto components_list =
+        components::MinimalServerComponentList()
+            .Append<kafka::ConsumerComponent>("kafka-consumer-first")
+            .Append<kafka::ConsumerComponent>("kafka-consumer-second")
+            .Append<kafka::ConsumerComponent>("kafka-consumer-cooperative-first")
+            .Append<kafka::ConsumerComponent>("kafka-consumer-cooperative-second")
+            .Append<components::TestsuiteSupport>()
+            .Append<components::Secdist>()
+            .Append<components::DefaultSecdistProvider>()
+            .Append<components::HttpClientCore>()
+            .Append<components::HttpClient>()
+            .Append<clients::dns::Component>()
+            .Append<server::handlers::TestsControl>()
+            .Append<functional_tests::HandlerKafkaConsumerGroups>();
 
     return utils::DaemonMain(argc, argv, components_list);
 }

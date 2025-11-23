@@ -78,9 +78,8 @@ public:
         // TODO: avoid copy
         values_.push_back(std::string{val.data(), val.size()});
         UASSERT(ptr == values_.data());
-        ng_headers_.push_back(
-            UnsafeHeaderToNGHeader(USERVER_NAMESPACE::http::headers::kSetCookie, values_.back(), false)
-        );
+        ng_headers_
+            .push_back(UnsafeHeaderToNGHeader(USERVER_NAMESPACE::http::headers::kSetCookie, values_.back(), false));
         const std::string_view key = USERVER_NAMESPACE::http::headers::kSetCookie;
         bytes_ += (key.size() + val.size());
     }
@@ -98,7 +97,10 @@ private:
 
 class Http2ResponseWriter final {
 public:
-    Http2ResponseWriter(HttpResponse& response, Http2Session& session) : response_(response), http2_session_(session) {}
+    Http2ResponseWriter(HttpResponse& response, Http2Session& session)
+        : response_(response),
+          http2_session_(session)
+    {}
 
     void WriteHttpResponse() {
         auto data = response_.ExtractData();
@@ -107,9 +109,9 @@ public:
         const bool is_body_forbidden = IsBodyForbiddenForStatus(response_.status_);
 
         if (is_body_forbidden && !data.empty()) {
-            LOG_LIMITED_WARNING() << "Non-empty body provided for response with HTTP2 code "
-                                  << static_cast<int>(response_.status_)
-                                  << " which does not allow one, it will be dropped";
+            LOG_LIMITED_WARNING()
+                << "Non-empty body provided for response with HTTP2 code " << static_cast<int>(response_.status_)
+                << " which does not allow one, it will be dropped";
         }
 
         const auto stream_id = response_.GetStreamId().value();
@@ -131,7 +133,8 @@ public:
             nghttp2_submit_response(http2_session_.GetNghttp2SessionPtr(), stream_id, nva.data(), nva.size(), provider);
         if (rv != 0) {
             throw std::runtime_error{
-                fmt::format("Fail to submit the response with err id = {}. Err: {}", rv, nghttp2_strerror(rv))};
+                fmt::format("Fail to submit the response with err id = {}. Err: {}", rv, nghttp2_strerror(rv))
+            };
         }
 
         http2_session_.WriteWhileWant();
@@ -144,7 +147,8 @@ private:
         Http2HeaderWriter header_writer{response_.headers_.size() + response_.cookies_.size() + 3};
 
         header_writer.AddKeyValue(
-            USERVER_NAMESPACE::http::headers::k2::kStatus, fmt::to_string(static_cast<std::uint16_t>(response_.status_))
+            USERVER_NAMESPACE::http::headers::k2::kStatus,
+            fmt::to_string(static_cast<std::uint16_t>(response_.status_))
         );
 
         const auto& headers = response_.headers_;

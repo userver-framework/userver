@@ -7,7 +7,6 @@
 #include <csignal>
 #include <cstdio>
 #include <cstring>
-#include <iostream>
 
 #include <fmt/format.h>
 #include <fmt/ranges.h>
@@ -104,10 +103,14 @@ EnvironmentVariables ApplyEnvironmentUpdate(
 }  // namespace
 
 ProcessStarter::ProcessStarter(TaskProcessor& task_processor)
-    : thread_control_(task_processor.EventThreadPool().GetEvDefaultLoopThread()) {}
+    : thread_control_(task_processor.EventThreadPool().GetEvDefaultLoopThread())
+{}
 
-ChildProcess
-ProcessStarter::Exec(const std::string& executable_path, const std::vector<std::string>& args, ExecOptions&& options) {
+ChildProcess ProcessStarter::Exec(
+    const std::string& executable_path,
+    const std::vector<std::string>& args,
+    ExecOptions&& options
+) {
     EnvironmentVariables env = ApplyEnvironmentUpdate(std::move(options.env), std::move(options.env_update));
 
     if (options.use_path && executable_path.find('/') != std::string::npos && !env.GetValueOptional("PATH")) {
@@ -157,7 +160,7 @@ ProcessStarter::Exec(const std::string& executable_path, const std::vector<std::
                     try {
                         DoExec(executable_path, args, env, options.stdout_file, options.stderr_file, options.use_path);
                     } catch (const std::exception& ex) {
-                        std::cerr << "Cannot execute child: " << ex.what();
+                        std::fputs(utils::StrCat("Cannot execute child: ", ex.what()).c_str(), stderr);
                     }
                 } catch (...) {
                     // must not do anything in a child

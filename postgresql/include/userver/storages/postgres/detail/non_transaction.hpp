@@ -68,8 +68,11 @@ public:
     );
     /// @}
 private:
-    ResultSet
-    DoExecute(const Query& query, const detail::QueryParameters& params, OptionalCommandControl statement_cmd_ctl);
+    ResultSet DoExecute(
+        const Query& query,
+        const detail::QueryParameters& params,
+        OptionalCommandControl statement_cmd_ctl
+    );
     const UserTypes& GetConnectionUserTypes() const;
 
     detail::ConnectionPtr conn_;

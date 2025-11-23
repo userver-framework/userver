@@ -58,7 +58,9 @@ public:
         }
 
         const engine::Deadline deadline = CalcPostHookDeadline();
-        if (deadline.IsReached()) return;
+        if (deadline.IsReached()) {
+            return;
+        }
 
         LOG_ERROR() << "Error injection hook triggered verdict: max-delay / random-delay";
         auto scope_time = tracing::Span::CurrentSpan().CreateScopeTime("error_injection_delay");

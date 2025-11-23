@@ -48,7 +48,10 @@ struct Action {
         kDeleteFsm
     };
 
-    Action(Type type, ServerId server_id = ServerId()) : type(type), server_id(server_id) {}
+    Action(Type type, ServerId server_id = ServerId())
+        : type(type),
+          server_id(server_id)
+    {}
 
     static std::string TypeToDebugString(Type type);
     std::string ToDebugString() const;

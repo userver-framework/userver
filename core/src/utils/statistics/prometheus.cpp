@@ -119,7 +119,9 @@ private:
                 [](Rate) { return false; },
                 [](HistogramView) { return false; },
             });
-            if (should_skip) return;
+            if (should_skip) {
+                return;
+            }
         }
 
         const auto type = value.Visit(utils::Overloaded{
@@ -189,15 +191,19 @@ std::string ToPrometheusLabel(std::string_view name) {
 
 }  // namespace impl
 
-std::string
-ToPrometheusFormat(const utils::statistics::Storage& statistics, const utils::statistics::Request& request) {
+std::string ToPrometheusFormat(
+    const utils::statistics::Storage& statistics,
+    const utils::statistics::Request& request
+) {
     impl::FormatBuilder<impl::Typed::kYes> builder{};
     statistics.VisitMetrics(builder, request);
     return builder.Release();
 }
 
-std::string
-ToPrometheusFormatUntyped(const utils::statistics::Storage& statistics, const utils::statistics::Request& request) {
+std::string ToPrometheusFormatUntyped(
+    const utils::statistics::Storage& statistics,
+    const utils::statistics::Request& request
+) {
     impl::FormatBuilder<impl::Typed::kNo> builder{};
     statistics.VisitMetrics(builder, request);
     return builder.Release();

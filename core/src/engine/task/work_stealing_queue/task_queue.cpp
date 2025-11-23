@@ -12,7 +12,7 @@ namespace engine {
 namespace {
 // It is only used in worker threads outside of any coroutine,
 // so it does not need to be protected via compiler::ThreadLocal
-thread_local Consumer* localConsumer = nullptr;
+thread_local Consumer* local_consumer = nullptr;
 }  // namespace
 
 WorkStealingTaskQueue::WorkStealingTaskQueue(const TaskProcessorConfig& config)
@@ -20,7 +20,8 @@ WorkStealingTaskQueue::WorkStealingTaskQueue(const TaskProcessorConfig& config)
       global_queue_(consumers_count_),
       background_queue_(consumers_count_),
       consumers_(config.worker_threads, *this, consumers_manager_),
-      consumers_manager_(consumers_count_) {
+      consumers_manager_(consumers_count_)
+{
     for (size_t i = 0; i < consumers_count_; ++i) {
         consumers_[i].SetIndex(i);
     }
@@ -34,7 +35,8 @@ void WorkStealingTaskQueue::Push(boost::intrusive_ptr<impl::TaskContext>&& conte
 boost::intrusive_ptr<impl::TaskContext> WorkStealingTaskQueue::PopBlocking() {
     boost::intrusive_ptr<impl::TaskContext> context{
         DoPopBlocking(),
-        /* add_ref= */ false};
+        /* add_ref= */ false
+    };
     if (!context) {
         DoPush(nullptr);
     }
@@ -56,7 +58,7 @@ std::size_t WorkStealingTaskQueue::GetSizeApproximate() const noexcept {
 
 void WorkStealingTaskQueue::PrepareWorker(std::size_t index) {
     if (index < consumers_count_) {
-        localConsumer = &consumers_[index];
+        local_consumer = &consumers_[index];
     }
 }
 
@@ -81,7 +83,7 @@ impl::TaskContext* WorkStealingTaskQueue::DoPopBlocking() {
     return consumer->PopBlocking();
 }
 
-Consumer* WorkStealingTaskQueue::GetConsumer() { return localConsumer; }
+Consumer* WorkStealingTaskQueue::GetConsumer() { return local_consumer; }
 
 }  // namespace engine
 

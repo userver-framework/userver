@@ -1,6 +1,6 @@
 #pragma once
 
-#include <iostream>
+#include <ostream>
 
 #include <userver/utils/trivial_map.hpp>
 

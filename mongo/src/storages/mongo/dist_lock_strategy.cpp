@@ -30,10 +30,14 @@ std::string MakeOwnerId(const std::string& prefix, const std::string& locker) {
 }  // namespace
 
 DistLockStrategy::DistLockStrategy(Collection collection, std::string lock_name)
-    : DistLockStrategy(std::move(collection), std::move(lock_name), hostinfo::blocking::GetRealHostName()) {}
+    : DistLockStrategy(std::move(collection), std::move(lock_name), hostinfo::blocking::GetRealHostName())
+{}
 
 DistLockStrategy::DistLockStrategy(Collection collection, std::string lock_name, std::string owner)
-    : collection_(std::move(collection)), lock_name_(std::move(lock_name)), owner_prefix_(std::move(owner)) {}
+    : collection_(std::move(collection)),
+      lock_name_(std::move(lock_name)),
+      owner_prefix_(std::move(owner))
+{}
 
 void DistLockStrategy::Acquire(std::chrono::milliseconds lock_ttl, const std::string& locker_id) {
     namespace bson = formats::bson;
@@ -48,15 +52,17 @@ void DistLockStrategy::Acquire(std::chrono::milliseconds lock_ttl, const std::st
         lock_name_,
         "$or",
         bson::MakeArray(
-            bson::MakeDoc(fields::kLockedTill, bson::MakeDoc("$lte", now)), bson::MakeDoc(fields::kOwner, owner)
+            bson::MakeDoc(fields::kLockedTill, bson::MakeDoc("$lte", now)),
+            bson::MakeDoc(fields::kOwner, owner)
         )
     );
     auto update = bson::MakeDoc("$set", bson::MakeDoc(fields::kLockedTill, expiration_time, fields::kOwner, owner));
 
     try {
         LOG_INFO() << "Owner " << owner << " try to acquire lock " << lock_name_;
-        auto lock = collection_.FindAndModify(std::move(query), update, options::Upsert{}, options::ReturnNew{})
-                        .FoundDocument();
+        auto lock =
+            collection_.FindAndModify(std::move(query), update, options::Upsert{}, options::ReturnNew{})
+                .FoundDocument();
         if (!lock) {
             throw dist_lock::LockIsAcquiredByAnotherHostException();
         }
@@ -64,8 +70,8 @@ void DistLockStrategy::Acquire(std::chrono::milliseconds lock_ttl, const std::st
         LOG_INFO() << "Lock " << lock_name_ << " has not been acqired because of key duplication";
         throw dist_lock::LockIsAcquiredByAnotherHostException();
     } catch (const MongoException& exc) {
-        LOG_WARNING() << "owner " << owner << " could not acquire a lock " << lock_name_
-                      << " because of mongo error: " << exc;
+        LOG_WARNING()
+            << "owner " << owner << " could not acquire a lock " << lock_name_ << " because of mongo error: " << exc;
         throw;
     }
 }
@@ -80,8 +86,9 @@ void DistLockStrategy::Release(const std::string& locker_id) {
     try {
         deleted_count = collection_.FindAndRemove(std::move(query)).DeletedCount();
     } catch (const std::exception& e) {
-        LOG_WARNING() << "owner " << owner << " could not release a lock " << lock_name_
-                      << " because of mongo error: " << e.what();
+        LOG_WARNING()
+            << "owner " << owner << " could not release a lock " << lock_name_
+            << " because of mongo error: " << e.what();
         return;
     }
     if (!deleted_count) {

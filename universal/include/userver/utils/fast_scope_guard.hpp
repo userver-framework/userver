@@ -52,7 +52,9 @@ public:
     }
 
     ~FastScopeGuard() {
-        if (is_active_) std::move(callback_)();
+        if (is_active_) {
+            std::move(callback_)();
+        }
     }
 
     constexpr void Release() noexcept { is_active_ = false; }

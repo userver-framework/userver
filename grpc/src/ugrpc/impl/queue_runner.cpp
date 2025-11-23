@@ -30,7 +30,9 @@ void ProcessQueue(grpc::CompletionQueue& queue, engine::SingleUseEvent& completi
 
 }  // namespace
 
-QueueRunner::QueueRunner(grpc::CompletionQueue& queue) : queue_(queue) {
+QueueRunner::QueueRunner(grpc::CompletionQueue& queue)
+    : queue_(queue)
+{
     std::thread([this] { ProcessQueue(queue_, completion_); }).detach();
 }
 

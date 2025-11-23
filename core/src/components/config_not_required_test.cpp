@@ -92,7 +92,8 @@ TEST_F(ComponentList, ConfigNotRequiredDefault) {
 TEST_F(ComponentList, ConfigNotRequiredCustom) {
     expected_greeting = "custom";
     components::RunOnce(
-        components::InMemoryConfig{utils::StrCat(kStaticConfigBase, kCustomGreetingConfig)}, MakeComponentList()
+        components::InMemoryConfig{utils::StrCat(kStaticConfigBase, kCustomGreetingConfig)},
+        MakeComponentList()
     );
 }
 

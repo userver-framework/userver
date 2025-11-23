@@ -9,13 +9,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace {
 
-class NoopLogger : public logging::impl::TextLogger {
-public:
-    NoopLogger() noexcept : TextLogger(logging::Format::kRaw) { SetLevel(logging::Level::kInfo); }
-    void Log(logging::Level, logging::impl::formatters::LoggerItemRef) override {}
-    void Flush() override {}
-};
-
 void TracingNoopCtr(benchmark::State& state) {
     engine::RunStandalone([&] {
         for ([[maybe_unused]] auto _ : state) {
@@ -28,7 +21,7 @@ void TracingNoopCtr(benchmark::State& state) {
 BENCHMARK(TracingNoopCtr);
 
 void TracingHappyLog(benchmark::State& state) {
-    const logging::DefaultLoggerGuard guard{std::make_shared<NoopLogger>()};
+    const logging::DefaultLoggerGuard guard{logging::impl::MakeNoopLoggerForTests()};
 
     engine::RunStandalone([&] {
         for ([[maybe_unused]] auto _ : state) {

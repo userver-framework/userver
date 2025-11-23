@@ -44,7 +44,7 @@ template <>
 inline constexpr bool components::kHasValidate<ugrpc::server::MiddlewarePipelineComponent> = true;
 
 template <>
-inline constexpr auto components::kConfigFileMode<ugrpc::server::MiddlewarePipelineComponent> =
-    ConfigFileMode::kNotRequired;
+inline constexpr auto
+    components::kConfigFileMode<ugrpc::server::MiddlewarePipelineComponent> = ConfigFileMode::kNotRequired;
 
 USERVER_NAMESPACE_END

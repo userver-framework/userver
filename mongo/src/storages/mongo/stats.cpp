@@ -151,13 +151,18 @@ std::string_view ToString(OpType type) {
 
 bool OperationKey::operator==(const OperationKey& other) const noexcept { return op_type == other.op_type; }
 
-PoolConnectStatistics::PoolConnectStatistics() : ping(utils::MakeSharedRef<OperationStatisticsItem>()) {}
+PoolConnectStatistics::PoolConnectStatistics()
+    : ping(utils::MakeSharedRef<OperationStatisticsItem>())
+{}
 
 OperationStopwatch::OperationStopwatch(std::shared_ptr<OperationStatisticsItem> stats_ptr, std::string&& label)
-    : stats_item_(std::move(stats_ptr)), scope_time_(tracing::Span::CurrentSpan().CreateScopeTime(std::move(label))) {}
+    : stats_item_(std::move(stats_ptr)),
+      scope_time_(tracing::Span::CurrentSpan().CreateScopeTime(std::move(label)))
+{}
 
 OperationStopwatch::OperationStopwatch(std::shared_ptr<OperationStatisticsItem> stats_ptr)
-    : OperationStopwatch(std::move(stats_ptr), "operation") {}
+    : OperationStopwatch(std::move(stats_ptr), "operation")
+{}
 
 OperationStopwatch::~OperationStopwatch() { Account(ErrorType::kOther); }
 
@@ -172,7 +177,9 @@ void OperationStopwatch::Discard() {
 
 void OperationStopwatch::Account(ErrorType error_type) noexcept {
     const auto stats_item = std::exchange(stats_item_, nullptr);
-    if (!stats_item) return;
+    if (!stats_item) {
+        return;
+    }
 
     try {
         stats_item->Account(error_type);
@@ -186,7 +193,9 @@ void OperationStopwatch::Account(ErrorType error_type) noexcept {
 }
 
 ConnectionWaitStopwatch::ConnectionWaitStopwatch(std::shared_ptr<PoolConnectStatistics> stats_ptr)
-    : stats_ptr_(std::move(stats_ptr)), scope_time_(tracing::Span::CurrentSpan().CreateScopeTime("conn-wait")) {}
+    : stats_ptr_(std::move(stats_ptr)),
+      scope_time_(tracing::Span::CurrentSpan().CreateScopeTime("conn-wait"))
+{}
 
 ConnectionWaitStopwatch::~ConnectionWaitStopwatch() {
     try {
@@ -198,15 +207,21 @@ ConnectionWaitStopwatch::~ConnectionWaitStopwatch() {
 }
 
 ConnectionThrottleStopwatch::ConnectionThrottleStopwatch(std::shared_ptr<PoolConnectStatistics> stats_ptr)
-    : stats_ptr_(std::move(stats_ptr)), scope_time_(tracing::Span::CurrentSpan().CreateScopeTime("conn-throttle")) {}
+    : stats_ptr_(std::move(stats_ptr)),
+      scope_time_(tracing::Span::CurrentSpan().CreateScopeTime("conn-throttle"))
+{}
 
 ConnectionThrottleStopwatch::~ConnectionThrottleStopwatch() {
-    if (stats_ptr_) Stop();
+    if (stats_ptr_) {
+        Stop();
+    }
 }
 
 void ConnectionThrottleStopwatch::Stop() noexcept {
     const auto stats_ptr = std::exchange(stats_ptr_, nullptr);
-    if (!stats_ptr) return;
+    if (!stats_ptr) {
+        return;
+    }
 
     try {
         stats_ptr->queue_wait_timings_agg.GetCurrentCounter().Account(GetMilliseconds(scope_time_.Reset()));

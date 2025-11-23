@@ -12,7 +12,9 @@ namespace components {
 namespace {
 const storages::secdist::SecdistConfig& GetSecdist(const components::ComponentContext& component_context) {
     auto* component = component_context.FindComponentOptional<components::Secdist>();
-    if (component) return component->Get();
+    if (component) {
+        return component->Get();
+    }
 
     static const storages::secdist::SecdistConfig kEmpty;
     return kEmpty;
@@ -28,7 +30,8 @@ Server::Server(
           component_config.As<server::ServerConfig>(),
           GetSecdist(component_context),
           component_context
-      )) {
+      ))
+{
     auto& statistics_storage = component_context.FindComponent<StatisticsStorage>().GetStorage();
     server_statistics_holder_ = statistics_storage.RegisterWriter("server", [this](utils::statistics::Writer& writer) {
         WriteStatistics(writer);

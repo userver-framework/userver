@@ -11,7 +11,7 @@ struct Serialization : public ::testing::Test {};
 TYPED_TEST_SUITE_P(Serialization);
 
 TYPED_TEST_P(Serialization, StringToString) {
-    auto&& doc = this->FromString(this->kDoc);
+    auto&& doc = this->kFromString(this->kDoc);
 
     auto str = ToString(doc);
     EXPECT_EQ(str.size(), std::strlen(this->kDoc));
@@ -23,7 +23,7 @@ TYPED_TEST_P(Serialization, StringToString) {
 
 TYPED_TEST_P(Serialization, StreamToString) {
     std::istringstream is(this->kDoc);
-    auto&& doc = this->FromStream(is);
+    auto&& doc = this->kFromStream(is);
 
     auto str = ToString(doc);
     EXPECT_EQ(str.size(), std::strlen(this->kDoc));
@@ -34,7 +34,7 @@ TYPED_TEST_P(Serialization, StreamToString) {
 }
 
 TYPED_TEST_P(Serialization, StringToStream) {
-    auto&& doc = this->FromString(this->kDoc);
+    auto&& doc = this->kFromString(this->kDoc);
     std::ostringstream os;
     Serialize(doc, os);
     const auto str = os.str();
@@ -49,13 +49,13 @@ TYPED_TEST_P(Serialization, StreamReadException) {
     std::fstream is("some-missing-doc");
     // possible false positive because of conditional in catch?
     // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
-    EXPECT_THROW(this->FromStream(is), BadStreamException);
+    EXPECT_THROW(this->kFromStream(is), BadStreamException);
 }
 
 TYPED_TEST_P(Serialization, StreamWriteException) {
     using BadStreamException = typename TestFixture::BadStreamException;
 
-    auto&& doc = this->FromString(this->kDoc);
+    auto&& doc = this->kFromString(this->kDoc);
     std::ostringstream os;
     os.setstate(std::ios::failbit);
     // possible false positive because of conditional in catch?
@@ -69,14 +69,14 @@ TYPED_TEST_P(Serialization, ParsingException) {
     // Differs from JSON
     // possible false positive because of conditional in catch?
     // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
-    EXPECT_THROW(this->FromString("&"), ParseException);
+    EXPECT_THROW(this->kFromString("&"), ParseException);
 }
 
 TYPED_TEST_P(Serialization, EmptyDocException) {
     using ParseException = typename TestFixture::ParseException;
     // possible false positive because of conditional in catch?
     // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
-    EXPECT_THROW(this->FromString(""), ParseException);
+    EXPECT_THROW(this->kFromString(""), ParseException);
 }
 
 REGISTER_TYPED_TEST_SUITE_P(

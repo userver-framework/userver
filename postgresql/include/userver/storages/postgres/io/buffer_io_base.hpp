@@ -11,17 +11,19 @@ template <typename T, typename = USERVER_NAMESPACE::utils::void_t<>>
 struct ShouldInitMapping : std::false_type {};
 
 template <typename T>
-struct ShouldInitMapping<T, USERVER_NAMESPACE::utils::void_t<decltype(T::init_)>> : std::true_type {};
+struct ShouldInitMapping<T, USERVER_NAMESPACE::utils::void_t<decltype(T::init)>> : std::true_type {};
 
 template <typename T>
 struct BufferParserBase {
     using ValueType = T;
 
     ValueType& value;
-    explicit BufferParserBase(ValueType& v) : value{v} {
+    explicit BufferParserBase(ValueType& v)
+        : value{v}
+    {
         using PgMapping = CppToPg<ValueType>;
         if constexpr (ShouldInitMapping<PgMapping>{}) {
-            ForceReference(PgMapping::init_);
+            ForceReference(PgMapping::init);
         }
     }
 };
@@ -31,10 +33,12 @@ struct BufferParserBase<T&&> {
     using ValueType = T;
 
     ValueType value;
-    explicit BufferParserBase(ValueType&& v) : value{std::move(v)} {
+    explicit BufferParserBase(ValueType&& v)
+        : value{std::move(v)}
+    {
         using PgMapping = CppToPg<ValueType>;
         if constexpr (ShouldInitMapping<PgMapping>{}) {
-            ForceReference(PgMapping::init_);
+            ForceReference(PgMapping::init);
         }
     }
 };
@@ -43,7 +47,9 @@ template <typename T>
 struct BufferFormatterBase {
     using ValueType = T;
     const ValueType& value;
-    explicit BufferFormatterBase(const ValueType& v) : value{v} {}
+    explicit BufferFormatterBase(const ValueType& v)
+        : value{v}
+    {}
 };
 
 }  // namespace storages::postgres::io::detail

@@ -14,7 +14,10 @@ std::string MakeConflictMessage(const formats::json::ValueBuilder& original, con
     const auto original_value = formats::json::ValueBuilder{original}.ExtractValue();
     const auto patch_value = formats::json::ValueBuilder{patch}.ExtractValue();
     return fmt::format(
-        "Conflicting metrics at '{}', original='{}', patch='{}'", original.GetPath(), original_value, patch_value
+        "Conflicting metrics at '{}', original='{}', patch='{}'",
+        original.GetPath(),
+        original_value,
+        patch_value
     );
 }
 
@@ -62,9 +65,10 @@ std::optional<std::string> FindNonNumberMetricPath(const formats::json::Value& j
             if (path.has_value()) {
                 return path;
             }
-        } else if (value.IsInt() || value.IsInt64() || value.IsUInt64() || value.IsDouble() || value.IsNull()) {  // TODO:
-                                                                                                                  // remove
-                                                                                                                  // IsNull()
+        } else if (value.IsInt() || value.IsInt64() || value.IsUInt64() || value.IsDouble() || value.IsNull())
+        {  // TODO:
+           // remove
+           // IsNull()
             continue;
         } else {
             return value.GetPath();

@@ -47,7 +47,9 @@ UTEST(SingleUseEvent, SendAndWait) {
     std::atomic<bool> is_event_sent{false};
 
     auto task = engine::AsyncNoSpan([&] {
-        while (!is_event_sent) engine::Yield();
+        while (!is_event_sent) {
+            engine::Yield();
+        }
         UEXPECT_NO_THROW(event.Wait());
     });
 
@@ -107,7 +109,9 @@ UTEST_MT(SingleUseEvent, SimpleTaskQueue, 5) {
     auto server_task = utils::Async("server", [&] {
         while (keep_running_server) {
             SimpleTask* task{};
-            if (!task_queue.pop(task)) continue;
+            if (!task_queue.pop(task)) {
+                continue;
+            }
 
             task->response = task->request * 2;
             task->completion.Send();
@@ -117,7 +121,9 @@ UTEST_MT(SingleUseEvent, SimpleTaskQueue, 5) {
     engine::SleepFor(50ms);
 
     keep_running_clients = false;
-    for (auto& task : client_tasks) task.Get();
+    for (auto& task : client_tasks) {
+        task.Get();
+    }
     keep_running_server = false;
     server_task.Get();
 }

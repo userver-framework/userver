@@ -212,15 +212,21 @@ public:
 
     //@{
     /** @name Command sending interface */
-    ResultSet
-    Execute(const Query& query, const detail::QueryParameters& = {}, OptionalCommandControl statement_cmd_ctl = {});
+    ResultSet Execute(
+        const Query& query,
+        const detail::QueryParameters& = {},
+        OptionalCommandControl statement_cmd_ctl = {}
+    );
 
     struct PreparedStatementMeta final {
         std::string statement_name;
         ResultSet description;
     };
-    PreparedStatementMeta
-    PrepareStatement(const Query& query, const detail::QueryParameters& params, TimeoutDuration timeout);
+    PreparedStatementMeta PrepareStatement(
+        const Query& query,
+        const detail::QueryParameters& params,
+        TimeoutDuration timeout
+    );
 
     void AddIntoPipeline(
         CommandControl cc,

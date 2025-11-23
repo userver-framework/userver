@@ -80,7 +80,8 @@ std::string ProcessDelete(const http::HttpRequest& request, request::RequestCont
 }  // namespace
 
 DynamicDebugLog::DynamicDebugLog(const components::ComponentConfig& config, const components::ComponentContext& context)
-    : HttpHandlerBase(config, context, /*is_monitor = */ true) {}
+    : HttpHandlerBase(config, context, /*is_monitor = */ true)
+{}
 
 std::string DynamicDebugLog::HandleRequestThrow(const http::HttpRequest& request, request::RequestContext& context)
     const {

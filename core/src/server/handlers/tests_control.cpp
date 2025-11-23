@@ -29,7 +29,8 @@ TestsControl::TestsControl(
     const components::ComponentConfig& config,
     const components::ComponentContext& component_context
 )
-    : HttpHandlerJsonBase(config, component_context) {
+    : HttpHandlerJsonBase(config, component_context)
+{
     auto& testsuite_support = component_context.FindComponent<components::TestsuiteSupport>();
 
     const bool skip_unregistered_testpoints = config["skip-unregistered-testpoints"].As<bool>(false);
@@ -41,19 +42,18 @@ TestsControl::TestsControl(
 
     if (testpoint_url) {
         auto& http_client = component_context.FindComponent<components::HttpClient>().GetHttpClient();
-        const auto testpoint_timeout =
-            config["testpoint-timeout"].As<std::chrono::milliseconds>(std::chrono::seconds(1));
-        testpoint_client_ =
-            std::make_unique<testsuite::impl::HttpTestpointClient>(http_client, *testpoint_url, testpoint_timeout);
+        const auto testpoint_timeout = config["testpoint-timeout"].As<std::chrono::milliseconds>(std::chrono::seconds(1)
+        );
+        testpoint_client_ = std::make_unique<
+            testsuite::impl::HttpTestpointClient>(http_client, *testpoint_url, testpoint_timeout);
         testsuite_support.GetTestpointControl().SetClient(*testpoint_client_);
     }
 
     namespace actions = testsuite::impl::actions;
 
     // Default tests/control action
-    actions_.emplace(
-        kDefaultAction, std::make_unique<actions::Control>(component_context, testpoint_client_ != nullptr)
-    );
+    actions_
+        .emplace(kDefaultAction, std::make_unique<actions::Control>(component_context, testpoint_client_ != nullptr));
 
     // Periodic tasks support
     actions_.emplace("run_periodic_task", std::make_unique<actions::PeriodicTaskRun>(testsuite_support));
@@ -83,17 +83,18 @@ TestsControl::TestsControl(
     actions_.emplace("http_allowed_urls_extra", std::make_unique<actions::HttpAllowedUrlsExtra>(testsuite_support));
 
     // Dynamic config
-    actions_.emplace(
-        "get_dynamic_config_defaults", std::make_unique<actions::DynamicConfigDefaults>(component_context)
-    );
+    actions_
+        .emplace("get_dynamic_config_defaults", std::make_unique<actions::DynamicConfigDefaults>(component_context));
 }
 
 TestsControl::~TestsControl() = default;
 
-formats::json::Value TestsControl::
-    HandleRequestJsonThrow(const http::HttpRequest& request, const formats::json::Value& request_body, request::RequestContext&)
-        const {
-    if (request.GetMethod() != http::HttpMethod::kPost) throw ClientError();
+formats::json::Value
+TestsControl::HandleRequestJsonThrow(const http::HttpRequest& request, const formats::json::Value& request_body, request::RequestContext&)
+    const {
+    if (request.GetMethod() != http::HttpMethod::kPost) {
+        throw ClientError();
+    }
 
     const auto& path_action = request.GetPathArg(0);
     if (!path_action.empty() && path_action != kDefaultAction) {
@@ -111,8 +112,10 @@ formats::json::Value TestsControl::
     return PerformAction(kDefaultAction, request_body);
 }
 
-formats::json::Value
-TestsControl::PerformAction(const std::string& action_name, const formats::json::Value& request_body) const {
+formats::json::Value TestsControl::PerformAction(
+    const std::string& action_name,
+    const formats::json::Value& request_body
+) const {
     const auto it = actions_.find(action_name);
     if (it != actions_.end()) {
         return it->second->Perform(request_body);

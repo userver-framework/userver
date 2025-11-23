@@ -25,7 +25,10 @@ bool IsStopped(CoordinationSession& session) {
 class BinarySemaphore final {
 public:
     BinarySemaphore(CoordinationSession& session, std::string_view semaphore_name, impl::dist_lock::Statistics& stats)
-        : session_(session), semaphore_name_(semaphore_name), stats_(stats) {}
+        : session_(session),
+          semaphore_name_(semaphore_name),
+          stats_(stats)
+    {}
 
     [[nodiscard]] bool Acquire() {
         try {
@@ -79,7 +82,8 @@ public:
           callback_{callback},
           settings_{settings},
           stats_{stats},
-          owns_lock_{owns_lock} {}
+          owns_lock_{owns_lock}
+    {}
 
     void Run(bool run_once) {
         while (!engine::current_task::ShouldCancel() && !IsStopped(session_)) {
@@ -177,7 +181,8 @@ DistLockedWorker::DistLockedWorker(
       semaphore_name_{semaphore_name},
       settings_{std::move(settings)},
       callback_{std::move(callback)},
-      stats_{utils::MakeUniqueRef<impl::dist_lock::Statistics>()} {}
+      stats_{utils::MakeUniqueRef<impl::dist_lock::Statistics>()}
+{}
 
 DistLockedWorker::~DistLockedWorker() {
     UASSERT_MSG(
@@ -236,7 +241,8 @@ void DistLockedWorker::Run(bool run_once) {
                 callback_,
                 settings_,
                 *stats_,
-                owns_lock_};
+                owns_lock_
+            };
             session_task.Run(run_once);
 
             LOG_INFO() << "Session finished";

@@ -18,9 +18,9 @@ utils::statistics::Entry RegisterOnStatisticsStorage(
     const std::string& name,
     std::function<void(utils::statistics::Writer&)> func
 ) {
-    return context.FindComponent<components::StatisticsStorage>().GetStorage().RegisterWriter(
-        "cache", std::move(func), {{"cache_name", name}}
-    );
+    return context.FindComponent<components::StatisticsStorage>()
+        .GetStorage()
+        .RegisterWriter("cache", std::move(func), {{"cache_name", name}});
 }
 
 dynamic_config::Source FindDynamicConfigSource(const components::ComponentContext& context) {

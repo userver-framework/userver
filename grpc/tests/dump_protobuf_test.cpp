@@ -25,8 +25,9 @@ std::string AsJsonString(const google::protobuf::Message& message) {
 }
 
 void ExpectEquals(const google::protobuf::Message& message1, const google::protobuf::Message& message2) {
-    EXPECT_TRUE(google::protobuf::util::MessageDifferencer::Equals(message1, message2))
-        << AsJsonString(message1) << " != " << AsJsonString(message2);
+    EXPECT_TRUE(google::protobuf::util::MessageDifferencer::Equals(message1, message2)
+    ) << AsJsonString(message1)
+      << " != " << AsJsonString(message2);
 }
 
 template <typename Message>

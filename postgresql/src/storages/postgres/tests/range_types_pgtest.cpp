@@ -20,9 +20,11 @@ TEST(Postgre, RangeTypeEmpty) {
 
     EXPECT_EQ(pg::IntegerRange{}, pg::MakeRange(0, 0)) << "Equal range ends with upper not included is an empty range";
     EXPECT_EQ(pg::IntegerRange{}, pg::MakeRange(0, 0, pg::RangeBound::kUpper))
-        << "Equal range ends with lower not included is an empty range";
+        << "Equal range ends with lower not "
+           "included is an empty range";
     EXPECT_NE(pg::IntegerRange{}, pg::MakeRange(0, 0, pg::RangeBound::kBoth))
-        << "Equal range ends with both included is not an empty range";
+        << "Equal range ends with both included "
+           "is not an empty range";
 }
 
 TEST(Postgre, RangeTypeIncludeLower) {
@@ -151,7 +153,8 @@ UTEST_P(PostgreConnection, Int4RangeRoundtripTest) {
         {"[0,)", "upper-unbounded-inclusive", pg::MakeRange(0, pg::kUnbounded)},
         {"(,0]", "lower-unbounded-inclusive", pg::MakeRange(pg::kUnbounded, 0, pg::RangeBound::kUpper)},
         {"(0,)", "upper-unbounded-exclusive", pg::MakeRange(0, pg::kUnbounded, pg::RangeBound::kNone)},
-        {"(,0)", "lower-unbounded-exclusive", pg::MakeRange(pg::kUnbounded, 0, pg::RangeBound::kNone)}};
+        {"(,0)", "lower-unbounded-exclusive", pg::MakeRange(pg::kUnbounded, 0, pg::RangeBound::kNone)}
+    };
 
     for (const auto& test : test_data) {
         UEXPECT_NO_THROW(
@@ -185,7 +188,8 @@ UTEST_P(PostgreConnection, Int8RangeRoundtripTest) {
         {"[0,)", "upper-unbounded-inclusive", pg::MakeRange(0, pg::kUnbounded)},
         {"(,0]", "lower-unbounded-inclusive", pg::MakeRange(pg::kUnbounded, 0, pg::RangeBound::kUpper)},
         {"(0,)", "upper-unbounded-exclusive", pg::MakeRange(0, pg::kUnbounded, pg::RangeBound::kNone)},
-        {"(,0)", "lower-unbounded-exclusive", pg::MakeRange(pg::kUnbounded, 0, pg::RangeBound::kNone)}};
+        {"(,0)", "lower-unbounded-exclusive", pg::MakeRange(pg::kUnbounded, 0, pg::RangeBound::kNone)}
+    };
 
     for (const auto& test : test_data) {
         UEXPECT_NO_THROW(

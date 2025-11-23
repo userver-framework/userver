@@ -19,13 +19,14 @@ HttpHandlerStatic::HttpHandlerStatic(
 )
     : HttpHandlerBase(config, context),
       config_(context.FindComponent<components::DynamicConfig>().GetSource()),
-      storage_(
-          context.FindComponent<components::FsCache>(config["fs-cache-component"].As<std::string>("fs-cache-component"))
-              .GetClient()
-      ),
+      storage_(context
+                   .FindComponent<components::FsCache>(config["fs-cache-component"].As<std::string>("fs-cache-component"
+                   ))
+                   .GetClient()),
       cache_age_(config["expires"].As<std::chrono::seconds>(600)),
       directory_file_(config["directory-file"].As<std::string>("index.html")),
-      not_found_file_(config["not-found-file"].As<std::string>("/404.html")) {}
+      not_found_file_(config["not-found-file"].As<std::string>("/404.html"))
+{}
 
 std::string HttpHandlerStatic::HandleRequestThrow(const http::HttpRequest& request, request::RequestContext&) const {
     std::string search_path;

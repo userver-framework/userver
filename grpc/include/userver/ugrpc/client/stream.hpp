@@ -31,9 +31,9 @@ public:
         impl::PrepareServerStreamingCall<Stub, Request, Response> prepare_async_method,
         const Request& request
     )
-        : stream_(
-              std::make_unique<impl::InputStream<Response>>(std::move(params), std::move(prepare_async_method), request)
-          ) {}
+        : stream_(std::make_unique<
+                  impl::InputStream<Response>>(std::move(params), std::move(prepare_async_method), request))
+    {}
     /// @endcond
 
     Reader(Reader&&) noexcept = default;
@@ -72,10 +72,9 @@ public:
     // For internal use only
     template <typename Stub>
     Writer(impl::CallParams&& params, impl::PrepareClientStreamingCall<Stub, Request, Response> prepare_async_method)
-        : stream_(std::make_unique<impl::OutputStream<Request, Response>>(
-              std::move(params),
-              std::move(prepare_async_method)
-          )) {}
+        : stream_(std::make_unique<
+                  impl::OutputStream<Request, Response>>(std::move(params), std::move(prepare_async_method)))
+    {}
     /// @endcond
 
     Writer(Writer&&) noexcept = default;
@@ -169,8 +168,8 @@ private:
 template <typename Request, typename Response>
 class [[nodiscard]] ReaderWriter final {
 public:
-    using StreamReadFuture =
-        ugrpc::client::StreamReadFuture<typename impl::BidirectionalStream<Request, Response>::RawStream>;
+    using StreamReadFuture = ugrpc::client::StreamReadFuture<
+        typename impl::BidirectionalStream<Request, Response>::RawStream>;
 
     /// @cond
     // For internal use only
@@ -179,10 +178,9 @@ public:
         impl::CallParams&& params,
         impl::PrepareBidiStreamingCall<Stub, Request, Response> prepare_async_method
     )
-        : stream_(std::make_unique<impl::BidirectionalStream<Request, Response>>(
-              std::move(params),
-              std::move(prepare_async_method)
-          )) {}
+        : stream_(std::make_unique<
+                  impl::BidirectionalStream<Request, Response>>(std::move(params), std::move(prepare_async_method)))
+    {}
     /// @endcond
 
     ReaderWriter(ReaderWriter&&) noexcept = default;

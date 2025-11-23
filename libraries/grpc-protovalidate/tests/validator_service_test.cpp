@@ -24,8 +24,10 @@ public:
         return response;
     }
 
-    CheckConstraintsStreamingResult
-    CheckConstraintsStreaming(CallContext&, CheckConstraintsStreamingReaderWriter& stream) override {
+    CheckConstraintsStreamingResult CheckConstraintsStreaming(
+        CallContext&,
+        CheckConstraintsStreamingReaderWriter& stream
+    ) override {
         types::ConstrainedRequest request;
         types::ConstrainedResponse response{};
         while (stream.Read(request)) {
@@ -41,8 +43,9 @@ public:
     }
 };
 
-class GrpcServerValidatorTest : public ugrpc::tests::ServiceFixtureBase,
-                                public testing::WithParamInterface<grpc_protovalidate::server::Settings> {
+class GrpcServerValidatorTest
+    : public ugrpc::tests::ServiceFixtureBase,
+      public testing::WithParamInterface<grpc_protovalidate::server::Settings> {
 public:
     GrpcServerValidatorTest() {
         SetServerMiddlewares({std::make_shared<grpc_protovalidate::server::Middleware>(GetParam())});
@@ -67,7 +70,8 @@ INSTANTIATE_UTEST_SUITE_P(
                 {
                     {"types.UnitTestService/CheckConstraintsUnary", {.fail_fast = false, .send_violations = true}},
                     {"/UnknownMethod", {.fail_fast = true, .send_violations = false}},
-                }},
+                }
+        },
         grpc_protovalidate::server::Settings{
             .global =
                 {
@@ -78,7 +82,8 @@ INSTANTIATE_UTEST_SUITE_P(
                 {
                     {"types.UnitTestService/CheckConstraintsUnary", {.fail_fast = false, .send_violations = true}},
                     {"/UnknownMethod", {.fail_fast = true, .send_violations = false}},
-                }},
+                }
+        },
         grpc_protovalidate::server::Settings{
             .global =
                 {
@@ -89,7 +94,8 @@ INSTANTIATE_UTEST_SUITE_P(
                 {
                     {"types.UnitTestService/CheckConstraintsUnary", {.fail_fast = false, .send_violations = true}},
                     {"/UnknownMethod", {.fail_fast = true, .send_violations = false}},
-                }}
+                }
+        }
     )
 );
 
@@ -126,7 +132,9 @@ UTEST_P_MT(GrpcServerValidatorTest, AllValid, 2) {
     auto write_task = engine::AsyncNoSpan([&stream, &requests] {
         for (const auto& request : requests) {
             const bool success = stream.Write(request);
-            if (!success) return false;
+            if (!success) {
+                return false;
+            }
         }
 
         return stream.WritesDone();
@@ -185,7 +193,9 @@ UTEST_P_MT(GrpcServerValidatorTest, AllInvalid, 2) {
     auto write_task = engine::AsyncNoSpan([&stream, &requests] {
         for (const auto& request : requests) {
             const bool success = stream.Write(request);
-            if (!success) return false;
+            if (!success) {
+                return false;
+            }
         }
 
         return stream.WritesDone();

@@ -22,7 +22,9 @@ std::string GetSecdistAlias(const components::ComponentConfig& config) {
 }  // namespace
 
 RabbitMQ::RabbitMQ(const ComponentConfig& config, const ComponentContext& context)
-    : ComponentBase{config, context}, dns_{context.FindComponent<clients::dns::Component>()} {
+    : ComponentBase{config, context},
+      dns_{context.FindComponent<clients::dns::Component>()}
+{
     const auto& secdist = context.FindComponent<Secdist>().Get();
     const auto& settings_multi = secdist.Get<urabbitmq::RabbitEndpointsMulti>();
     const auto& endpoints = settings_multi.Get(GetSecdistAlias(config));
@@ -31,10 +33,11 @@ RabbitMQ::RabbitMQ(const ComponentConfig& config, const ComponentContext& contex
     client_ = urabbitmq::Client::Create(dns_.GetResolver(), settings);
 
     auto& statistics_storage = context.FindComponent<components::StatisticsStorage>();
-    statistics_holder_ = statistics_storage.GetStorage().RegisterWriter(
-        "rabbitmq." + config.Name(),
-        [this](utils::statistics::Writer& writer) { return client_->WriteStatistics(writer); }
-    );
+    statistics_holder_ =
+        statistics_storage.GetStorage()
+            .RegisterWriter("rabbitmq." + config.Name(), [this](utils::statistics::Writer& writer) {
+                return client_->WriteStatistics(writer);
+            });
 }
 
 RabbitMQ::~RabbitMQ() { statistics_holder_.Unregister(); }

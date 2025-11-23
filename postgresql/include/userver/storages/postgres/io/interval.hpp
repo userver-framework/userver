@@ -29,8 +29,13 @@ struct Interval {
 
     constexpr Interval() = default;
     constexpr Interval(Integer months, Integer days, Bigint microseconds)
-        : months{months}, days{days}, microseconds{microseconds} {}
-    constexpr explicit Interval(DurationType ms) : microseconds{ms.count()} {}
+        : months{months},
+          days{days},
+          microseconds{microseconds}
+    {}
+    constexpr explicit Interval(DurationType ms)
+        : microseconds{ms.count()}
+    {}
 
     constexpr bool operator==(const Interval& rhs) const {
         return months == rhs.months && days == rhs.days && microseconds == rhs.microseconds;
@@ -38,10 +43,11 @@ struct Interval {
     constexpr bool operator!=(const Interval& rhs) const { return !(*this == rhs); }
 
     constexpr DurationType GetDuration() const {
-        if (months != 0) throw UnsupportedInterval{};
-        return std::chrono::duration_cast<DurationType>(
-            std::chrono::microseconds{microseconds} + std::chrono::hours{days * 24}
-        );
+        if (months != 0) {
+            throw UnsupportedInterval{};
+        }
+        return std::chrono::duration_cast<
+            DurationType>(std::chrono::microseconds{microseconds} + std::chrono::hours{days * 24});
     }
 };
 

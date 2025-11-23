@@ -55,8 +55,10 @@ public:
     Server& GetServer() noexcept;
 
     /// @cond
-    ServiceConfig
-    ParseServiceConfig(const components::ComponentConfig& config, const components::ComponentContext& context);
+    ServiceConfig ParseServiceConfig(
+        const components::ComponentConfig& config,
+        const components::ComponentContext& context
+    );
     /// @endcond
 
     static yaml_config::Schema GetStaticConfigSchema();

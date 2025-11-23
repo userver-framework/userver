@@ -46,7 +46,9 @@ struct TpLogger::ActionVisitor final {
 };
 
 TpLogger::TpLogger(Format format, std::string logger_name)
-    : impl::TextLogger(format), logger_name_(std::move(logger_name)) {
+    : impl::TextLogger(format),
+      logger_name_(std::move(logger_name))
+{
     SetLevel(logging::Level::kInfo);
 }
 
@@ -75,8 +77,9 @@ void TpLogger::StartConsumerTask(
         queue_consumer_ = {};
     });
 
-    consuming_task_ =
-        engine::CriticalAsyncNoSpan(task_processor, [this, guard = std::move(exit_async_guard)] { ProcessingLoop(); });
+    consuming_task_ = engine::CriticalAsyncNoSpan(task_processor, [this, guard = std::move(exit_async_guard)] {
+        ProcessingLoop();
+    });
 }
 
 TpLogger::~TpLogger() {
@@ -257,7 +260,9 @@ void TpLogger::AccountLogConsumed() noexcept {
 void TpLogger::ConsumeNode(concurrent::impl::SinglyLinkedBaseHook& node) noexcept {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
     auto& action_node = static_cast<impl::async::ActionNode&>(node);
-    if (&action_node == &stop_node_) return;
+    if (&action_node == &stop_node_) {
+        return;
+    }
 
     BackendPerform(std::move(action_node.action));
     delete &action_node;
@@ -309,8 +314,8 @@ void TpLogger::BackendReopen(ReopenMode reopen_mode) const {
         } catch (const std::exception& e) {
             result_messages += e.what();
             result_messages += "; ";
-            LOG_ERROR() << "Exception on log reopen in sink #" << index << " of logger '" << GetLoggerName()
-                        << "': " << e;
+            LOG_ERROR()
+                << "Exception on log reopen in sink #" << index << " of logger '" << GetLoggerName() << "': " << e;
         }
     }
     if (!result_messages.empty()) {

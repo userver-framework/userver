@@ -193,6 +193,13 @@ properties:
                         logger:
                             type: string
                             description: .
+                trace-coroutines:
+                    type: boolean
+                    description: |
+                      Whether trace all components coroutines in runtime.
+                      It's required for `service/dump-coroutines` handler.
+                      Can significantly slow down the service.
+                    defaultDescription: false
         properties: {}
     default_task_processor:
         type: string
@@ -243,6 +250,19 @@ properties:
             Enable checking of heavy operations (like http calls) while having
             active database transactions.
         defaultDescription: true
+    component_load_print_interval:
+        type: string
+        description: |
+            How often to print still loading components list.
+            Useful for debugging service start freeze.
+        defaultDescription: 10s
+    enable_component_load_tracing:
+        type: boolean
+        description: |
+            whether trace all components coroutines during boot, and dump
+            alive coroutines stacktraces on slow boot.
+            Can slow down service startup.
+        defaultDescription: false
 )");
 }
 
@@ -277,6 +297,10 @@ ManagerConfig Parse(const yaml_config::YamlConfig& value, formats::parse::To<Man
     config.graceful_shutdown_interval =
         value["graceful_shutdown_interval"].As<std::chrono::milliseconds>(config.graceful_shutdown_interval);
     config.enable_trx_tracker = value["enable_trx_tracker"].As<bool>(config.enable_trx_tracker);
+    config.enable_component_load_tracing =
+        value["enable_component_load_tracing"].As<bool>(config.enable_component_load_tracing);
+    config.component_load_print_interval =
+        utils::StringToDuration(value["component_load_print_interval"].As<std::string>("10s"));
 
     return config;
 }

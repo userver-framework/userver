@@ -49,10 +49,15 @@ std::shared_ptr<grpc::Channel> MakeChannel(
 /// @returns `true` if the state changed before `deadline` expired
 /// @note The wait operation does not support task cancellations
 template <typename Client>
-[[nodiscard]] bool
-TryWaitForConnected(Client& client, engine::Deadline deadline, engine::TaskProcessor& blocking_task_processor) {
+[[nodiscard]] bool TryWaitForConnected(
+    Client& client,
+    engine::Deadline deadline,
+    engine::TaskProcessor& blocking_task_processor
+) {
     return impl::TryWaitForConnected(
-        impl::ClientDataAccessor::GetClientData(client), deadline, blocking_task_processor
+        impl::ClientDataAccessor::GetClientData(client),
+        deadline,
+        blocking_task_processor
     );
 }
 

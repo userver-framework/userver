@@ -14,10 +14,12 @@ CacheUpdateTrait::CacheUpdateTrait(
     const components::ComponentConfig& config,
     const components::ComponentContext& context
 )
-    : CacheUpdateTrait(CacheDependencies::Make(config, context)) {}
+    : CacheUpdateTrait(CacheDependencies::Make(config, context))
+{}
 
 CacheUpdateTrait::CacheUpdateTrait(CacheDependencies&& dependencies)
-    : impl_(std::make_unique<Impl>(std::move(dependencies), *this)) {}
+    : impl_(std::make_unique<Impl>(std::move(dependencies), *this))
+{}
 
 CacheUpdateTrait::~CacheUpdateTrait() = default;
 

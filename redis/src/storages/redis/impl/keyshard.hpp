@@ -19,7 +19,9 @@ class KeyShardFactory {
     std::string type_;
 
 public:
-    KeyShardFactory(const std::string& type) : type_(type) {}
+    KeyShardFactory(const std::string& type)
+        : type_(type)
+    {}
     std::unique_ptr<KeyShard> operator()(size_t nshards);
     bool IsClusterStrategy() const;
 };

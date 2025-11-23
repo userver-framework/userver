@@ -15,7 +15,9 @@ ResultSet::size_type ResultSet::FieldCount() const { return pimpl_ != nullptr ? 
 bool ResultSet::IsEmpty() const { return Size() == 0; }
 
 ResultSet::reference ResultSet::operator[](size_type index) const& {
-    if (index >= Size()) throw RowIndexOutOfBounds{index};
+    if (index >= Size()) {
+        throw RowIndexOutOfBounds{index};
+    }
     return {pimpl_, index};
 }
 

@@ -12,11 +12,13 @@ namespace storages::postgres::io {
 inline constexpr FieldBuffer FieldBuffer::GetSubBuffer(std::size_t offset, std::size_t size, BufferCategory cat) const {
     const auto* new_buffer_start = buffer + offset;
     if (offset > length) {
-        throw InvalidInputBufferSize(fmt::format("Offset {} requested for a buffer of size {}.", offset, length));
+        throw InvalidInputBufferSize(fmt::format("Offset {} requested for a buffer of size {}", offset, length));
     }
     size = size == npos ? length - offset : size;
     if (offset + size > length) {
-        throw InvalidInputBufferSize(fmt::format("Unconsumed bytes in buffer: {}.", length - offset));
+        throw InvalidInputBufferSize(
+            fmt::format("Attempt to read {} bytes more than was sent by server", offset + size - length)
+        );
     }
     if (cat == BufferCategory::kKeepCategory) {
         cat = category;
@@ -74,8 +76,9 @@ template <typename T, typename Buffer>
 struct FormatterAcceptsReplacementOid<
     T,
     Buffer,
-    USERVER_NAMESPACE::utils::void_t<decltype(std::declval<T&>(
-    )(std::declval<const UserTypes&>(), std::declval<Buffer&>(), std::declval<Oid>()))>> : std::true_type {};
+    USERVER_NAMESPACE::utils::void_t<
+        decltype(std::declval<T&>()(std::declval<const UserTypes&>(), std::declval<Buffer&>(), std::declval<Oid>()))>>
+    : std::true_type {};
 
 }  // namespace detail
 

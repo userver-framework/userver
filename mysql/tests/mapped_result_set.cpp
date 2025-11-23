@@ -65,14 +65,16 @@ UTEST(MappedResultSet, MappedVectorWorks) {
     ClusterWrapper cluster{};
     cluster->ExecuteCommand(ClusterHostType::kPrimary, "DROP TABLE IF EXISTS Users");
     cluster->ExecuteCommand(
-        ClusterHostType::kPrimary, "CREATE TABLE Users(first_name TEXT NOT NULL, last_name TEXT NOT NULL)"
+        ClusterHostType::kPrimary,
+        "CREATE TABLE Users(first_name TEXT NOT NULL, last_name TEXT NOT NULL)"
     );
 
     cluster->ExecuteDecompose(ClusterHostType::kPrimary, "INSERT INTO Users VALUES(?, ?)", DbUser{"Ivan", "Trofimov"});
 
-    const auto users = cluster->Execute(ClusterHostType::kPrimary, "SELECT first_name, last_name FROM Users")
-                           .MapFrom<DbUser>()
-                           .AsVector<std::string>();
+    const auto users =
+        cluster->Execute(ClusterHostType::kPrimary, "SELECT first_name, last_name FROM Users")
+            .MapFrom<DbUser>()
+            .AsVector<std::string>();
     ASSERT_EQ(users.size(), 1);
     EXPECT_EQ(users.front(), "Ivan Trofimov");
 }

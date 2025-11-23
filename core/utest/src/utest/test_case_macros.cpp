@@ -21,7 +21,9 @@ namespace {
 
 std::string TraceToStringIfAny(const std::exception& ex) {
     const auto* traceful = dynamic_cast<const utils::TracefulExceptionBase*>(&ex);
-    if (!traceful) return {};
+    if (!traceful) {
+        return {};
+    }
     return logging::stacktrace_cache::to_string(traceful->Trace());
 }
 
@@ -72,8 +74,12 @@ void DoRunTest(
 
     engine::RunStandalone(worker_threads, config, [&] {
         auto test = CallLoggingExceptions("the test fixture's constructor", factory);
-        if (!test) return;  // test fixture's constructor has thrown
-        if (IsCurrentTestCancelled()) return;
+        if (!test) {
+            return;  // test fixture's constructor has thrown
+        }
+        if (IsCurrentTestCancelled()) {
+            return;
+        }
 
         test->SetThreadCount(worker_threads);
 
@@ -83,7 +89,9 @@ void DoRunTest(
         }};
 
         CallLoggingExceptions("SetUp()", [&] { test->SetUp(); });
-        if (IsCurrentTestCancelled()) return;
+        if (IsCurrentTestCancelled()) {
+            return;
+        }
 
         CallLoggingExceptions("the test body", [&] { test->TestBody(); });
     });
@@ -99,7 +107,8 @@ void DoRunTest(
     engine::TaskProcessorPoolsConfig config{};
     if (static_cast<bool>(death_tests_enabled)) {
         EXPECT_THAT(
-            testing::UnitTest::GetInstance()->current_test_info()->test_suite_name(), testing::EndsWith("DeathTest")
+            testing::UnitTest::GetInstance()->current_test_info()->test_suite_name(),
+            testing::EndsWith("DeathTest")
         ) << "Tests that use UEXPECT_DEATH should have 'DeathTest' suffix "
              "in their 'test suite name'";
         testing::FLAGS_gtest_death_test_style = "threadsafe";

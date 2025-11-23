@@ -31,7 +31,8 @@ gpr_timespec DurationToTimespec(const engine::Deadline::Duration& duration) noex
 engine::Deadline::Duration TimespecToDuration(gpr_timespec t) noexcept {
     t = gpr_convert_clock_type(t, GPR_TIMESPAN);
     if (gpr_time_cmp(t, gpr_inf_future(t.clock_type)) == 0 ||
-        t.tv_sec >= std::chrono::duration_cast<std::chrono::seconds>(engine::Deadline::Duration::max()).count()) {
+        t.tv_sec >= std::chrono::duration_cast<std::chrono::seconds>(engine::Deadline::Duration::max()).count())
+    {
         return engine::Deadline::Duration::max();
     }
     if (gpr_time_cmp(t, gpr_time_0(t.clock_type)) < 0) {
@@ -45,8 +46,8 @@ engine::Deadline::Duration TimespecToDuration(gpr_timespec t) noexcept {
 }
 
 gpr_timespec DeadlineToTimespec(const engine::Deadline& deadline) noexcept {
-    gpr_timespec t =
-        DurationToTimespec(deadline.IsReachable() ? deadline.TimeLeft() : engine::Deadline::Duration::max());
+    gpr_timespec
+        t = DurationToTimespec(deadline.IsReachable() ? deadline.TimeLeft() : engine::Deadline::Duration::max());
     return gpr_convert_clock_type(t, GPR_CLOCK_MONOTONIC);
 }
 

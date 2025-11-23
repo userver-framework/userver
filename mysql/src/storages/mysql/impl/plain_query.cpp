@@ -17,7 +17,9 @@ namespace {
 class NativeResultDeleter {
 public:
     NativeResultDeleter(Connection& connection, engine::Deadline deadline)
-        : connection_{connection}, deadline_{deadline} {}
+        : connection_{connection},
+          deadline_{deadline}
+    {}
 
     void operator()(MYSQL_RES* native_result) const noexcept {
         try {
@@ -34,27 +36,33 @@ private:
 
 }  // namespace
 
-PlainQuery::PlainQuery(Connection& connection, std::string_view query) : connection_{&connection}, query_{query} {}
+PlainQuery::PlainQuery(Connection& connection, std::string_view query)
+    : connection_{&connection},
+      query_{query}
+{}
 
 PlainQuery::~PlainQuery() = default;
 
 PlainQuery::PlainQuery(PlainQuery&& other) noexcept = default;
 
 void PlainQuery::Execute(engine::Deadline deadline) {
-    const int err = NativeInterface{connection_->GetSocket(), deadline}.QueryExecute(
-        &connection_->GetNativeHandler(), query_.data(), query_.length()
-    );
+    const int err =
+        NativeInterface{connection_->GetSocket(), deadline}
+            .QueryExecute(&connection_->GetNativeHandler(), query_.data(), query_.length());
 
     if (err != 0) {
         throw MySQLCommandException{
-            mysql_errno(&connection_->GetNativeHandler()), connection_->GetNativeError("Failed to execute a query: ")};
+            mysql_errno(&connection_->GetNativeHandler()),
+            connection_->GetNativeError("Failed to execute a query: ")
+        };
     }
 }
 
 QueryResult PlainQuery::FetchResult(engine::Deadline deadline) {
     const std::unique_ptr<MYSQL_RES, NativeResultDeleter> native_result{
         NativeInterface{connection_->GetSocket(), deadline}.QueryStoreResult(&connection_->GetNativeHandler()),
-        NativeResultDeleter{*connection_, deadline}};
+        NativeResultDeleter{*connection_, deadline}
+    };
     if (!native_result) {
         // Well, query doesn't return any result set
         return {};
@@ -68,7 +76,10 @@ QueryResult PlainQuery::FetchResult(engine::Deadline deadline) {
         }
 
         result.AppendRow(QueryResultRow{
-            row, mysql_field_count(&connection_->GetNativeHandler()), mysql_fetch_lengths(native_result.get())});
+            row,
+            mysql_field_count(&connection_->GetNativeHandler()),
+            mysql_fetch_lengths(native_result.get())
+        });
     }
 
     return result;

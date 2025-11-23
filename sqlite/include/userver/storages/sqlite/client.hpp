@@ -107,8 +107,12 @@ public:
     /// @param args           Parameters to bind to the query
     /// @return CursorResultSet<T> lazily delivering rows in batches
     template <typename T, typename... Args>
-    CursorResultSet<T>
-    GetCursor(OperationType operation_type, std::size_t batch_size, const Query& query, const Args&... args) const;
+    CursorResultSet<T> GetCursor(
+        OperationType operation_type,
+        std::size_t batch_size,
+        const Query& query,
+        const Args&... args
+    ) const;
 
     /// @brief Writes client statistics to the provided writer.
     ///
@@ -168,8 +172,12 @@ void Client::ExecuteMany(OperationType operation_type, const Query& query, const
 }
 
 template <typename T, typename... Args>
-CursorResultSet<T>
-Client::GetCursor(OperationType operation_type, std::size_t batch_size, const Query& query, const Args&... args) const {
+CursorResultSet<T> Client::GetCursor(
+    OperationType operation_type,
+    std::size_t batch_size,
+    const Query& query,
+    const Args&... args
+) const {
     auto connection = GetConnection(operation_type);
     AccountQueryExecute(connection);
     try {

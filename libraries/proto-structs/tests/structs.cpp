@@ -12,8 +12,11 @@
 
 namespace structs {
 
-ConversionFailure
-ReadProtoStruct(ups::io::ReadContext& ctx, ups::io::To<ConversionFailure>, const messages::ConversionFailure& msg) {
+ConversionFailure ReadProtoStruct(
+    ups::io::ReadContext& ctx,
+    ups::io::To<ConversionFailure>,
+    const messages::ConversionFailure& msg
+) {
     if (msg.error_type() == messages::ConversionFailure::TYPE_EXCEPTION) {
         throw std::runtime_error("conversion_failure_exception");
     } else if (msg.error_type() == messages::ConversionFailure::TYPE_ERROR) {
@@ -37,39 +40,47 @@ void WriteProtoStruct(ups::io::WriteContext& ctx, const ConversionFailure& obj, 
 
 Scalar ReadProtoStruct(ups::io::ReadContext& ctx, ups::io::To<Scalar>, const messages::Scalar& msg) {
     return {
-        .f1 = ups::io::impl::ReadField<bool>(
-            ctx, ups::io::impl::CreateFieldGetter(msg, messages::Scalar::kF1FieldNumber, &messages::Scalar::f1)
-        ),
+        .f1 = ups::io::impl::ReadField<
+            bool>(ctx, ups::io::impl::CreateFieldGetter(msg, messages::Scalar::kF1FieldNumber, &messages::Scalar::f1)),
         .f2 = ups::io::impl::ReadField<int32_t>(
-            ctx, ups::io::impl::CreateFieldGetter(msg, messages::Scalar::kF2FieldNumber, &messages::Scalar::f2)
+            ctx,
+            ups::io::impl::CreateFieldGetter(msg, messages::Scalar::kF2FieldNumber, &messages::Scalar::f2)
         ),
         .f3 = ups::io::impl::ReadField<uint32_t>(
-            ctx, ups::io::impl::CreateFieldGetter(msg, messages::Scalar::kF3FieldNumber, &messages::Scalar::f3)
+            ctx,
+            ups::io::impl::CreateFieldGetter(msg, messages::Scalar::kF3FieldNumber, &messages::Scalar::f3)
         ),
         .f4 = ups::io::impl::ReadField<int64_t>(
-            ctx, ups::io::impl::CreateFieldGetter(msg, messages::Scalar::kF4FieldNumber, &messages::Scalar::f4)
+            ctx,
+            ups::io::impl::CreateFieldGetter(msg, messages::Scalar::kF4FieldNumber, &messages::Scalar::f4)
         ),
         .f5 = ups::io::impl::ReadField<uint64_t>(
-            ctx, ups::io::impl::CreateFieldGetter(msg, messages::Scalar::kF5FieldNumber, &messages::Scalar::f5)
+            ctx,
+            ups::io::impl::CreateFieldGetter(msg, messages::Scalar::kF5FieldNumber, &messages::Scalar::f5)
         ),
-        .f6 = ups::io::impl::ReadField<float>(
-            ctx, ups::io::impl::CreateFieldGetter(msg, messages::Scalar::kF6FieldNumber, &messages::Scalar::f6)
-        ),
+        .f6 = ups::io::impl::ReadField<
+            float>(ctx, ups::io::impl::CreateFieldGetter(msg, messages::Scalar::kF6FieldNumber, &messages::Scalar::f6)),
         .f7 = ups::io::impl::ReadField<double>(
-            ctx, ups::io::impl::CreateFieldGetter(msg, messages::Scalar::kF7FieldNumber, &messages::Scalar::f7)
+            ctx,
+            ups::io::impl::CreateFieldGetter(msg, messages::Scalar::kF7FieldNumber, &messages::Scalar::f7)
         ),
         .f8 = ups::io::impl::ReadField<std::string>(
-            ctx, ups::io::impl::CreateFieldGetter(msg, messages::Scalar::kF8FieldNumber, &messages::Scalar::f8)
+            ctx,
+            ups::io::impl::CreateFieldGetter(msg, messages::Scalar::kF8FieldNumber, &messages::Scalar::f8)
         ),
         .f9 = ups::io::impl::ReadField<std::string>(
-            ctx, ups::io::impl::CreateFieldGetter(msg, messages::Scalar::kF9FieldNumber, &messages::Scalar::f9)
+            ctx,
+            ups::io::impl::CreateFieldGetter(msg, messages::Scalar::kF9FieldNumber, &messages::Scalar::f9)
         ),
         .f10 = ups::io::impl::ReadField<TestEnum>(
-            ctx, ups::io::impl::CreateFieldGetter(msg, messages::Scalar::kF10FieldNumber, &messages::Scalar::f10)
+            ctx,
+            ups::io::impl::CreateFieldGetter(msg, messages::Scalar::kF10FieldNumber, &messages::Scalar::f10)
         ),
         .f11 = ups::io::impl::ReadField<std::size_t>(
-            ctx, ups::io::impl::CreateFieldGetter(msg, messages::Scalar::kF11FieldNumber, &messages::Scalar::f11)
-        )};
+            ctx,
+            ups::io::impl::CreateFieldGetter(msg, messages::Scalar::kF11FieldNumber, &messages::Scalar::f11)
+        )
+    };
 }
 
 template <typename T>
@@ -78,49 +89,70 @@ void WriteScalarStruct(ups::io::WriteContext& ctx, T&& obj, messages::Scalar& ms
         ctx,
         std::forward<T>(obj).f1,
         ups::io::impl::CreateFieldSetter(
-            msg, messages::Scalar::kF1FieldNumber, &messages::Scalar::set_f1, &messages::Scalar::clear_f1
+            msg,
+            messages::Scalar::kF1FieldNumber,
+            &messages::Scalar::set_f1,
+            &messages::Scalar::clear_f1
         )
     );
     ups::io::impl::WriteField(
         ctx,
         std::forward<T>(obj).f2,
         ups::io::impl::CreateFieldSetter(
-            msg, messages::Scalar::kF2FieldNumber, &messages::Scalar::set_f2, &messages::Scalar::clear_f2
+            msg,
+            messages::Scalar::kF2FieldNumber,
+            &messages::Scalar::set_f2,
+            &messages::Scalar::clear_f2
         )
     );
     ups::io::impl::WriteField(
         ctx,
         std::forward<T>(obj).f3,
         ups::io::impl::CreateFieldSetter(
-            msg, messages::Scalar::kF3FieldNumber, &messages::Scalar::set_f3, &messages::Scalar::clear_f3
+            msg,
+            messages::Scalar::kF3FieldNumber,
+            &messages::Scalar::set_f3,
+            &messages::Scalar::clear_f3
         )
     );
     ups::io::impl::WriteField(
         ctx,
         std::forward<T>(obj).f4,
         ups::io::impl::CreateFieldSetter(
-            msg, messages::Scalar::kF4FieldNumber, &messages::Scalar::set_f4, &messages::Scalar::clear_f4
+            msg,
+            messages::Scalar::kF4FieldNumber,
+            &messages::Scalar::set_f4,
+            &messages::Scalar::clear_f4
         )
     );
     ups::io::impl::WriteField(
         ctx,
         std::forward<T>(obj).f5,
         ups::io::impl::CreateFieldSetter(
-            msg, messages::Scalar::kF5FieldNumber, &messages::Scalar::set_f5, &messages::Scalar::clear_f5
+            msg,
+            messages::Scalar::kF5FieldNumber,
+            &messages::Scalar::set_f5,
+            &messages::Scalar::clear_f5
         )
     );
     ups::io::impl::WriteField(
         ctx,
         std::forward<T>(obj).f6,
         ups::io::impl::CreateFieldSetter(
-            msg, messages::Scalar::kF6FieldNumber, &messages::Scalar::set_f6, &messages::Scalar::clear_f6
+            msg,
+            messages::Scalar::kF6FieldNumber,
+            &messages::Scalar::set_f6,
+            &messages::Scalar::clear_f6
         )
     );
     ups::io::impl::WriteField(
         ctx,
         std::forward<T>(obj).f7,
         ups::io::impl::CreateFieldSetter(
-            msg, messages::Scalar::kF7FieldNumber, &messages::Scalar::set_f7, &messages::Scalar::clear_f7
+            msg,
+            messages::Scalar::kF7FieldNumber,
+            &messages::Scalar::set_f7,
+            &messages::Scalar::clear_f7
         )
     );
     ups::io::impl::WriteField(
@@ -149,14 +181,20 @@ void WriteScalarStruct(ups::io::WriteContext& ctx, T&& obj, messages::Scalar& ms
         ctx,
         std::forward<T>(obj).f10,
         ups::io::impl::CreateFieldSetter(
-            msg, messages::Scalar::kF10FieldNumber, &messages::Scalar::set_f10, &messages::Scalar::clear_f10
+            msg,
+            messages::Scalar::kF10FieldNumber,
+            &messages::Scalar::set_f10,
+            &messages::Scalar::clear_f10
         )
     );
     ups::io::impl::WriteField(
         ctx,
         std::forward<T>(obj).f11,
         ups::io::impl::CreateFieldSetter(
-            msg, messages::Scalar::kF11FieldNumber, &messages::Scalar::set_f11, &messages::Scalar::clear_f11
+            msg,
+            messages::Scalar::kF11FieldNumber,
+            &messages::Scalar::set_f11,
+            &messages::Scalar::clear_f11
         )
     );
 }
@@ -186,7 +224,8 @@ WellKnownStd ReadProtoStruct(ups::io::ReadContext& ctx, ups::io::To<WellKnownStd
         .f4 = ups::io::impl::ReadField<std::chrono::hh_mm_ss<std::chrono::microseconds>>(
             ctx,
             ups::io::impl::CreateFieldGetter(msg, messages::WellKnownStd::kF4FieldNumber, &messages::WellKnownStd::f4)
-        )};
+        )
+    };
 }
 
 template <typename T>
@@ -241,8 +280,11 @@ void WriteProtoStruct(ups::io::WriteContext& ctx, WellKnownStd&& obj, messages::
     WriteWellKnownStruct(ctx, std::move(obj), msg);
 }
 
-WellKnownUsrv
-ReadProtoStruct(ups::io::ReadContext& ctx, ups::io::To<WellKnownUsrv>, const messages::WellKnownUsrv& msg) {
+WellKnownUsrv ReadProtoStruct(
+    ups::io::ReadContext& ctx,
+    ups::io::To<WellKnownUsrv>,
+    const messages::WellKnownUsrv& msg
+) {
     return {
         .f1 = ups::io::impl::ReadField<ups::Any>(
             ctx,
@@ -271,7 +313,8 @@ ReadProtoStruct(ups::io::ReadContext& ctx, ups::io::To<WellKnownUsrv>, const mes
         .f7 = ups::io::impl::ReadField<USERVER_NAMESPACE::decimal64::Decimal<3>>(
             ctx,
             ups::io::impl::CreateFieldGetter(msg, messages::WellKnownUsrv::kF7FieldNumber, &messages::WellKnownUsrv::f7)
-        )};
+        )
+    };
 }
 
 template <typename T>
@@ -361,27 +404,40 @@ Optional ReadProtoStruct(ups::io::ReadContext& ctx, ups::io::To<Optional>, const
         .f1 = ups::io::impl::ReadField<std::optional<int32_t>>(
             ctx,
             ups::io::impl::CreateFieldGetter(
-                msg, messages::Optional::kF1FieldNumber, &messages::Optional::f1, &messages::Optional::has_f1
+                msg,
+                messages::Optional::kF1FieldNumber,
+                &messages::Optional::f1,
+                &messages::Optional::has_f1
             )
         ),
         .f2 = ups::io::impl::ReadField<std::optional<std::string>>(
             ctx,
             ups::io::impl::CreateFieldGetter(
-                msg, messages::Optional::kF2FieldNumber, &messages::Optional::f2, &messages::Optional::has_f2
+                msg,
+                messages::Optional::kF2FieldNumber,
+                &messages::Optional::f2,
+                &messages::Optional::has_f2
             )
         ),
         .f3 = ups::io::impl::ReadField<std::optional<TestEnum>>(
             ctx,
             ups::io::impl::CreateFieldGetter(
-                msg, messages::Optional::kF3FieldNumber, &messages::Optional::f3, &messages::Optional::has_f3
+                msg,
+                messages::Optional::kF3FieldNumber,
+                &messages::Optional::f3,
+                &messages::Optional::has_f3
             )
         ),
         .f4 = ups::io::impl::ReadField<std::optional<Simple>>(
             ctx,
             ups::io::impl::CreateFieldGetter(
-                msg, messages::Optional::kF4FieldNumber, &messages::Optional::f4, &messages::Optional::has_f4
+                msg,
+                messages::Optional::kF4FieldNumber,
+                &messages::Optional::f4,
+                &messages::Optional::has_f4
             )
-        )};
+        )
+    };
 }
 
 template <typename T>
@@ -390,7 +446,10 @@ void WriteOptionalStruct(ups::io::WriteContext& ctx, T&& obj, messages::Optional
         ctx,
         std::forward<T>(obj).f1,
         ups::io::impl::CreateFieldSetter(
-            msg, messages::Optional::kF1FieldNumber, &messages::Optional::set_f1, &messages::Optional::clear_f1
+            msg,
+            messages::Optional::kF1FieldNumber,
+            &messages::Optional::set_f1,
+            &messages::Optional::clear_f1
         )
     );
     ups::io::impl::WriteField(
@@ -408,14 +467,20 @@ void WriteOptionalStruct(ups::io::WriteContext& ctx, T&& obj, messages::Optional
         ctx,
         std::forward<T>(obj).f3,
         ups::io::impl::CreateFieldSetter(
-            msg, messages::Optional::kF3FieldNumber, &messages::Optional::set_f3, &messages::Optional::clear_f3
+            msg,
+            messages::Optional::kF3FieldNumber,
+            &messages::Optional::set_f3,
+            &messages::Optional::clear_f3
         )
     );
     ups::io::impl::WriteField(
         ctx,
         std::forward<T>(obj).f4,
         ups::io::impl::CreateFieldSetter(
-            msg, messages::Optional::kF4FieldNumber, &messages::Optional::mutable_f4, &messages::Optional::clear_f4
+            msg,
+            messages::Optional::kF4FieldNumber,
+            &messages::Optional::mutable_f4,
+            &messages::Optional::clear_f4
         )
     );
 }
@@ -430,17 +495,22 @@ void WriteProtoStruct(ups::io::WriteContext& ctx, Optional&& obj, messages::Opti
 Repeated ReadProtoStruct(ups::io::ReadContext& ctx, ups::io::To<Repeated>, const messages::Repeated& msg) {
     return {
         .f1 = ups::io::impl::ReadField<std::vector<int32_t>>(
-            ctx, ups::io::impl::CreateFieldGetter(msg, messages::Repeated::kF1FieldNumber, &messages::Repeated::f1)
+            ctx,
+            ups::io::impl::CreateFieldGetter(msg, messages::Repeated::kF1FieldNumber, &messages::Repeated::f1)
         ),
         .f2 = ups::io::impl::ReadField<std::vector<std::string>>(
-            ctx, ups::io::impl::CreateFieldGetter(msg, messages::Repeated::kF2FieldNumber, &messages::Repeated::f2)
+            ctx,
+            ups::io::impl::CreateFieldGetter(msg, messages::Repeated::kF2FieldNumber, &messages::Repeated::f2)
         ),
         .f3 = ups::io::impl::ReadField<std::vector<TestEnum>>(
-            ctx, ups::io::impl::CreateFieldGetter(msg, messages::Repeated::kF3FieldNumber, &messages::Repeated::f3)
+            ctx,
+            ups::io::impl::CreateFieldGetter(msg, messages::Repeated::kF3FieldNumber, &messages::Repeated::f3)
         ),
         .f4 = ups::io::impl::ReadField<std::vector<Simple>>(
-            ctx, ups::io::impl::CreateFieldGetter(msg, messages::Repeated::kF4FieldNumber, &messages::Repeated::f4)
-        )};
+            ctx,
+            ups::io::impl::CreateFieldGetter(msg, messages::Repeated::kF4FieldNumber, &messages::Repeated::f4)
+        )
+    };
 }
 
 template <typename T>
@@ -449,28 +519,40 @@ void WriteRepeatedStruct(ups::io::WriteContext& ctx, T&& obj, messages::Repeated
         ctx,
         std::forward<T>(obj).f1,
         ups::io::impl::CreateFieldSetter(
-            msg, messages::Repeated::kF1FieldNumber, &messages::Repeated::mutable_f1, &messages::Repeated::clear_f1
+            msg,
+            messages::Repeated::kF1FieldNumber,
+            &messages::Repeated::mutable_f1,
+            &messages::Repeated::clear_f1
         )
     );
     ups::io::impl::WriteField(
         ctx,
         std::forward<T>(obj).f2,
         ups::io::impl::CreateFieldSetter(
-            msg, messages::Repeated::kF2FieldNumber, &messages::Repeated::mutable_f2, &messages::Repeated::clear_f2
+            msg,
+            messages::Repeated::kF2FieldNumber,
+            &messages::Repeated::mutable_f2,
+            &messages::Repeated::clear_f2
         )
     );
     ups::io::impl::WriteField(
         ctx,
         std::forward<T>(obj).f3,
         ups::io::impl::CreateFieldSetter(
-            msg, messages::Repeated::kF3FieldNumber, &messages::Repeated::mutable_f3, &messages::Repeated::clear_f3
+            msg,
+            messages::Repeated::kF3FieldNumber,
+            &messages::Repeated::mutable_f3,
+            &messages::Repeated::clear_f3
         )
     );
     ups::io::impl::WriteField(
         ctx,
         std::forward<T>(obj).f4,
         ups::io::impl::CreateFieldSetter(
-            msg, messages::Repeated::kF4FieldNumber, &messages::Repeated::mutable_f4, &messages::Repeated::clear_f4
+            msg,
+            messages::Repeated::kF4FieldNumber,
+            &messages::Repeated::mutable_f4,
+            &messages::Repeated::clear_f4
         )
     );
 }
@@ -485,18 +567,21 @@ void WriteProtoStruct(ups::io::WriteContext& ctx, Repeated&& obj, messages::Repe
 
 Map ReadProtoStruct(ups::io::ReadContext& ctx, ups::io::To<Map>, const messages::Map& msg) {
     return {
-        .f1 = ups::io::impl::ReadField<std::map<int32_t, int32_t>>(
-            ctx, ups::io::impl::CreateFieldGetter(msg, messages::Map::kF1FieldNumber, &messages::Map::f1)
-        ),
+        .f1 = ups::io::impl::ReadField<std::map<
+            int32_t,
+            int32_t>>(ctx, ups::io::impl::CreateFieldGetter(msg, messages::Map::kF1FieldNumber, &messages::Map::f1)),
         .f2 = ups::io::impl::ReadField<std::unordered_map<std::string, std::string>>(
-            ctx, ups::io::impl::CreateFieldGetter(msg, messages::Map::kF2FieldNumber, &messages::Map::f2)
+            ctx,
+            ups::io::impl::CreateFieldGetter(msg, messages::Map::kF2FieldNumber, &messages::Map::f2)
         ),
-        .f3 = ups::io::impl::ReadField<std::map<bool, TestEnum>>(
-            ctx, ups::io::impl::CreateFieldGetter(msg, messages::Map::kF3FieldNumber, &messages::Map::f3)
-        ),
+        .f3 = ups::io::impl::ReadField<std::map<
+            bool,
+            TestEnum>>(ctx, ups::io::impl::CreateFieldGetter(msg, messages::Map::kF3FieldNumber, &messages::Map::f3)),
         .f4 = ups::io::impl::ReadField<std::unordered_map<std::string, Simple, USERVER_NAMESPACE::utils::StrCaseHash>>(
-            ctx, ups::io::impl::CreateFieldGetter(msg, messages::Map::kF4FieldNumber, &messages::Map::f4)
-        )};
+            ctx,
+            ups::io::impl::CreateFieldGetter(msg, messages::Map::kF4FieldNumber, &messages::Map::f4)
+        )
+    };
 }
 
 template <typename T>
@@ -505,28 +590,40 @@ void WriteMapStruct(ups::io::WriteContext& ctx, T&& obj, messages::Map& msg) {
         ctx,
         std::forward<T>(obj).f1,
         ups::io::impl::CreateFieldSetter(
-            msg, messages::Map::kF1FieldNumber, &messages::Map::mutable_f1, &messages::Map::clear_f1
+            msg,
+            messages::Map::kF1FieldNumber,
+            &messages::Map::mutable_f1,
+            &messages::Map::clear_f1
         )
     );
     ups::io::impl::WriteField(
         ctx,
         std::forward<T>(obj).f2,
         ups::io::impl::CreateFieldSetter(
-            msg, messages::Map::kF2FieldNumber, &messages::Map::mutable_f2, &messages::Map::clear_f2
+            msg,
+            messages::Map::kF2FieldNumber,
+            &messages::Map::mutable_f2,
+            &messages::Map::clear_f2
         )
     );
     ups::io::impl::WriteField(
         ctx,
         std::forward<T>(obj).f3,
         ups::io::impl::CreateFieldSetter(
-            msg, messages::Map::kF3FieldNumber, &messages::Map::mutable_f3, &messages::Map::clear_f3
+            msg,
+            messages::Map::kF3FieldNumber,
+            &messages::Map::mutable_f3,
+            &messages::Map::clear_f3
         )
     );
     ups::io::impl::WriteField(
         ctx,
         std::forward<T>(obj).f4,
         ups::io::impl::CreateFieldSetter(
-            msg, messages::Map::kF4FieldNumber, &messages::Map::mutable_f4, &messages::Map::clear_f4
+            msg,
+            messages::Map::kF4FieldNumber,
+            &messages::Map::mutable_f4,
+            &messages::Map::clear_f4
         )
     );
 }
@@ -542,18 +639,31 @@ Oneof ReadProtoStruct(ups::io::ReadContext& ctx, ups::io::To<Oneof>, const messa
         .test_oneof = ups::io::impl::ReadField<Oneof::Type>(
             ctx,
             ups::io::impl::CreateFieldGetter(
-                msg, messages::Oneof::kF1FieldNumber, &messages::Oneof::f1, &messages::Oneof::has_f1
+                msg,
+                messages::Oneof::kF1FieldNumber,
+                &messages::Oneof::f1,
+                &messages::Oneof::has_f1
             ),
             ups::io::impl::CreateFieldGetter(
-                msg, messages::Oneof::kF2FieldNumber, &messages::Oneof::f2, &messages::Oneof::has_f2
+                msg,
+                messages::Oneof::kF2FieldNumber,
+                &messages::Oneof::f2,
+                &messages::Oneof::has_f2
             ),
             ups::io::impl::CreateFieldGetter(
-                msg, messages::Oneof::kF3FieldNumber, &messages::Oneof::f3, &messages::Oneof::has_f3
+                msg,
+                messages::Oneof::kF3FieldNumber,
+                &messages::Oneof::f3,
+                &messages::Oneof::has_f3
             ),
             ups::io::impl::CreateFieldGetter(
-                msg, messages::Oneof::kF4FieldNumber, &messages::Oneof::f4, &messages::Oneof::has_f4
+                msg,
+                messages::Oneof::kF4FieldNumber,
+                &messages::Oneof::f4,
+                &messages::Oneof::has_f4
             )
-        )};
+        )
+    };
 }
 
 template <typename T>
@@ -562,7 +672,10 @@ void WriteOneofStruct(ups::io::WriteContext& ctx, T&& obj, messages::Oneof& msg)
         ctx,
         std::forward<T>(obj).test_oneof,
         ups::io::impl::CreateFieldSetter(
-            msg, messages::Oneof::kF1FieldNumber, &messages::Oneof::set_f1, &messages::Oneof::clear_f1
+            msg,
+            messages::Oneof::kF1FieldNumber,
+            &messages::Oneof::set_f1,
+            &messages::Oneof::clear_f1
         ),
         ups::io::impl::CreateFieldSetter(
             msg,
@@ -572,10 +685,16 @@ void WriteOneofStruct(ups::io::WriteContext& ctx, T&& obj, messages::Oneof& msg)
             &messages::Oneof::clear_f2
         ),
         ups::io::impl::CreateFieldSetter(
-            msg, messages::Oneof::kF3FieldNumber, &messages::Oneof::set_f3, &messages::Oneof::clear_f3
+            msg,
+            messages::Oneof::kF3FieldNumber,
+            &messages::Oneof::set_f3,
+            &messages::Oneof::clear_f3
         ),
         ups::io::impl::CreateFieldSetter(
-            msg, messages::Oneof::kF4FieldNumber, &messages::Oneof::mutable_f4, &messages::Oneof::clear_f4
+            msg,
+            messages::Oneof::kF4FieldNumber,
+            &messages::Oneof::mutable_f4,
+            &messages::Oneof::clear_f4
         )
     );
 }
@@ -591,38 +710,54 @@ void WriteProtoStruct(ups::io::WriteContext& ctx, Oneof&& obj, messages::Oneof& 
 Indirect ReadProtoStruct(ups::io::ReadContext& ctx, ups::io::To<Indirect>, const messages::Indirect& msg) {
     return {
         .f1 = ups::io::impl::ReadField<Indirect::Box<Simple>>(
-            ctx, ups::io::impl::CreateFieldGetter(msg, messages::Indirect::kF1FieldNumber, &messages::Indirect::f1)
+            ctx,
+            ups::io::impl::CreateFieldGetter(msg, messages::Indirect::kF1FieldNumber, &messages::Indirect::f1)
         ),
         .f2 = ups::io::impl::ReadField<std::optional<Indirect::Box<ups::Duration>>>(
             ctx,
             ups::io::impl::CreateFieldGetter(
-                msg, messages::Indirect::kF2FieldNumber, &messages::Indirect::f2, &messages::Indirect::has_f2
+                msg,
+                messages::Indirect::kF2FieldNumber,
+                &messages::Indirect::f2,
+                &messages::Indirect::has_f2
             )
         ),
         .f3 = ups::io::impl::ReadField<std::vector<Indirect::Box<Simple>>>(
-            ctx, ups::io::impl::CreateFieldGetter(msg, messages::Indirect::kF3FieldNumber, &messages::Indirect::f3)
+            ctx,
+            ups::io::impl::CreateFieldGetter(msg, messages::Indirect::kF3FieldNumber, &messages::Indirect::f3)
         ),
         .f4 = ups::io::impl::ReadField<std::map<int32_t, Indirect::Box<Simple>>>(
-            ctx, ups::io::impl::CreateFieldGetter(msg, messages::Indirect::kF4FieldNumber, &messages::Indirect::f4)
+            ctx,
+            ups::io::impl::CreateFieldGetter(msg, messages::Indirect::kF4FieldNumber, &messages::Indirect::f4)
         ),
         .test_oneof = ups::io::impl::ReadField<Indirect::OneofType>(
             ctx,
             ups::io::impl::CreateFieldGetter(
-                msg, messages::Indirect::kF5FieldNumber, &messages::Indirect::f5, &messages::Indirect::has_f5
+                msg,
+                messages::Indirect::kF5FieldNumber,
+                &messages::Indirect::f5,
+                &messages::Indirect::has_f5
             ),
             ups::io::impl::CreateFieldGetter(
-                msg, messages::Indirect::kF6FieldNumber, &messages::Indirect::f6, &messages::Indirect::has_f6
+                msg,
+                messages::Indirect::kF6FieldNumber,
+                &messages::Indirect::f6,
+                &messages::Indirect::has_f6
             )
         ),
         .f7 = ups::io::impl::ReadField<Indirect::Box<int32_t>>(
-            ctx, ups::io::impl::CreateFieldGetter(msg, messages::Indirect::kF7FieldNumber, &messages::Indirect::f7)
+            ctx,
+            ups::io::impl::CreateFieldGetter(msg, messages::Indirect::kF7FieldNumber, &messages::Indirect::f7)
         ),
         .f8 = ups::io::impl::ReadField<Indirect::Box<std::vector<Indirect::Box<TestEnum>>>>(
-            ctx, ups::io::impl::CreateFieldGetter(msg, messages::Indirect::kF8FieldNumber, &messages::Indirect::f8)
+            ctx,
+            ups::io::impl::CreateFieldGetter(msg, messages::Indirect::kF8FieldNumber, &messages::Indirect::f8)
         ),
         .f9 = ups::io::impl::ReadField<Indirect::Box<std::map<std::string, Indirect::Box<Simple>>>>(
-            ctx, ups::io::impl::CreateFieldGetter(msg, messages::Indirect::kF9FieldNumber, &messages::Indirect::f9)
-        )};
+            ctx,
+            ups::io::impl::CreateFieldGetter(msg, messages::Indirect::kF9FieldNumber, &messages::Indirect::f9)
+        )
+    };
 }
 
 template <typename T>
@@ -631,35 +766,50 @@ void WriteIndirectStruct(ups::io::WriteContext& ctx, T&& obj, messages::Indirect
         ctx,
         std::forward<T>(obj).f1,
         ups::io::impl::CreateFieldSetter(
-            msg, messages::Indirect::kF1FieldNumber, &messages::Indirect::mutable_f1, &messages::Indirect::clear_f1
+            msg,
+            messages::Indirect::kF1FieldNumber,
+            &messages::Indirect::mutable_f1,
+            &messages::Indirect::clear_f1
         )
     );
     ups::io::impl::WriteField(
         ctx,
         std::forward<T>(obj).f2,
         ups::io::impl::CreateFieldSetter(
-            msg, messages::Indirect::kF2FieldNumber, &messages::Indirect::mutable_f2, &messages::Indirect::clear_f2
+            msg,
+            messages::Indirect::kF2FieldNumber,
+            &messages::Indirect::mutable_f2,
+            &messages::Indirect::clear_f2
         )
     );
     ups::io::impl::WriteField(
         ctx,
         std::forward<T>(obj).f3,
         ups::io::impl::CreateFieldSetter(
-            msg, messages::Indirect::kF3FieldNumber, &messages::Indirect::mutable_f3, &messages::Indirect::clear_f3
+            msg,
+            messages::Indirect::kF3FieldNumber,
+            &messages::Indirect::mutable_f3,
+            &messages::Indirect::clear_f3
         )
     );
     ups::io::impl::WriteField(
         ctx,
         std::forward<T>(obj).f4,
         ups::io::impl::CreateFieldSetter(
-            msg, messages::Indirect::kF4FieldNumber, &messages::Indirect::mutable_f4, &messages::Indirect::clear_f4
+            msg,
+            messages::Indirect::kF4FieldNumber,
+            &messages::Indirect::mutable_f4,
+            &messages::Indirect::clear_f4
         )
     );
     ups::io::impl::WriteField(
         ctx,
         std::forward<T>(obj).test_oneof,
         ups::io::impl::CreateFieldSetter(
-            msg, messages::Indirect::kF5FieldNumber, &messages::Indirect::mutable_f5, &messages::Indirect::clear_f5
+            msg,
+            messages::Indirect::kF5FieldNumber,
+            &messages::Indirect::mutable_f5,
+            &messages::Indirect::clear_f5
         ),
         ups::io::impl::CreateFieldSetter(
             msg,
@@ -673,21 +823,30 @@ void WriteIndirectStruct(ups::io::WriteContext& ctx, T&& obj, messages::Indirect
         ctx,
         std::forward<T>(obj).f7,
         ups::io::impl::CreateFieldSetter(
-            msg, messages::Indirect::kF7FieldNumber, &messages::Indirect::set_f7, &messages::Indirect::clear_f7
+            msg,
+            messages::Indirect::kF7FieldNumber,
+            &messages::Indirect::set_f7,
+            &messages::Indirect::clear_f7
         )
     );
     ups::io::impl::WriteField(
         ctx,
         std::forward<T>(obj).f8,
         ups::io::impl::CreateFieldSetter(
-            msg, messages::Indirect::kF8FieldNumber, &messages::Indirect::mutable_f8, &messages::Indirect::clear_f8
+            msg,
+            messages::Indirect::kF8FieldNumber,
+            &messages::Indirect::mutable_f8,
+            &messages::Indirect::clear_f8
         )
     );
     ups::io::impl::WriteField(
         ctx,
         std::forward<T>(obj).f9,
         ups::io::impl::CreateFieldSetter(
-            msg, messages::Indirect::kF9FieldNumber, &messages::Indirect::mutable_f9, &messages::Indirect::clear_f9
+            msg,
+            messages::Indirect::kF9FieldNumber,
+            &messages::Indirect::mutable_f9,
+            &messages::Indirect::clear_f9
         )
     );
 }
@@ -703,27 +862,37 @@ void WriteProtoStruct(ups::io::WriteContext& ctx, Indirect&& obj, messages::Indi
 Strong ReadProtoStruct(ups::io::ReadContext& ctx, ups::io::To<Strong>, const messages::Strong& msg) {
     return {
         .f1 = ups::io::impl::ReadField<USERVER_NAMESPACE::utils::StrongTypedef<Strong::Tag, int32_t>>(
-            ctx, ups::io::impl::CreateFieldGetter(msg, messages::Strong::kF1FieldNumber, &messages::Strong::f1)
+            ctx,
+            ups::io::impl::CreateFieldGetter(msg, messages::Strong::kF1FieldNumber, &messages::Strong::f1)
         ),
-        .f2 =
-            ups::io::impl::ReadField<std::optional<USERVER_NAMESPACE::utils::StrongTypedef<Strong::Tag, std::string>>>(
-                ctx,
-                ups::io::impl::CreateFieldGetter(
-                    msg, messages::Strong::kF2FieldNumber, &messages::Strong::f2, &messages::Strong::has_f2
-                )
-            ),
+        .f2 = ups::io::impl::ReadField<
+            std::optional<USERVER_NAMESPACE::utils::StrongTypedef<Strong::Tag, std::string>>>(
+            ctx,
+            ups::io::impl::CreateFieldGetter(
+                msg,
+                messages::Strong::kF2FieldNumber,
+                &messages::Strong::f2,
+                &messages::Strong::has_f2
+            )
+        ),
         .f3 = ups::io::impl::ReadField<std::vector<USERVER_NAMESPACE::utils::StrongTypedef<Strong::Tag, TestEnum>>>(
-            ctx, ups::io::impl::CreateFieldGetter(msg, messages::Strong::kF3FieldNumber, &messages::Strong::f3)
+            ctx,
+            ups::io::impl::CreateFieldGetter(msg, messages::Strong::kF3FieldNumber, &messages::Strong::f3)
         ),
         .f4 = ups::io::impl::ReadField<std::map<int32_t, USERVER_NAMESPACE::utils::StrongTypedef<Strong::Tag, Simple>>>(
-            ctx, ups::io::impl::CreateFieldGetter(msg, messages::Strong::kF4FieldNumber, &messages::Strong::f4)
+            ctx,
+            ups::io::impl::CreateFieldGetter(msg, messages::Strong::kF4FieldNumber, &messages::Strong::f4)
         ),
         .test_oneof = ups::io::impl::ReadField<Strong::OneofType>(
             ctx,
             ups::io::impl::CreateFieldGetter(
-                msg, messages::Strong::kF5FieldNumber, &messages::Strong::f5, &messages::Strong::has_f5
+                msg,
+                messages::Strong::kF5FieldNumber,
+                &messages::Strong::f5,
+                &messages::Strong::has_f5
             )
-        )};
+        )
+    };
 }
 
 template <typename T>
@@ -732,7 +901,10 @@ void WriteStrongStruct(ups::io::WriteContext& ctx, T&& obj, messages::Strong& ms
         ctx,
         std::forward<T>(obj).f1,
         ups::io::impl::CreateFieldSetter(
-            msg, messages::Strong::kF1FieldNumber, &messages::Strong::set_f1, &messages::Strong::clear_f1
+            msg,
+            messages::Strong::kF1FieldNumber,
+            &messages::Strong::set_f1,
+            &messages::Strong::clear_f1
         )
     );
     ups::io::impl::WriteField(
@@ -750,21 +922,30 @@ void WriteStrongStruct(ups::io::WriteContext& ctx, T&& obj, messages::Strong& ms
         ctx,
         std::forward<T>(obj).f3,
         ups::io::impl::CreateFieldSetter(
-            msg, messages::Strong::kF3FieldNumber, &messages::Strong::mutable_f3, &messages::Strong::clear_f3
+            msg,
+            messages::Strong::kF3FieldNumber,
+            &messages::Strong::mutable_f3,
+            &messages::Strong::clear_f3
         )
     );
     ups::io::impl::WriteField(
         ctx,
         std::forward<T>(obj).f4,
         ups::io::impl::CreateFieldSetter(
-            msg, messages::Strong::kF4FieldNumber, &messages::Strong::mutable_f4, &messages::Strong::clear_f4
+            msg,
+            messages::Strong::kF4FieldNumber,
+            &messages::Strong::mutable_f4,
+            &messages::Strong::clear_f4
         )
     );
     ups::io::impl::WriteField(
         ctx,
         std::forward<T>(obj).test_oneof,
         ups::io::impl::CreateFieldSetter(
-            msg, messages::Strong::kF1FieldNumber, &messages::Strong::mutable_f5, &messages::Strong::clear_f5
+            msg,
+            messages::Strong::kF1FieldNumber,
+            &messages::Strong::mutable_f5,
+            &messages::Strong::clear_f5
         )
     );
 }
@@ -782,21 +963,30 @@ Erroneous ReadProtoStruct(ups::io::ReadContext& ctx, ups::io::To<Erroneous>, con
         .f1 = ups::io::impl::ReadField<std::optional<ConversionFailure>>(
             ctx,
             ups::io::impl::CreateFieldGetter(
-                msg, messages::Erroneous::kF1FieldNumber, &messages::Erroneous::f1, &messages::Erroneous::has_f1
+                msg,
+                messages::Erroneous::kF1FieldNumber,
+                &messages::Erroneous::f1,
+                &messages::Erroneous::has_f1
             )
         ),
         .f2 = ups::io::impl::ReadField<std::vector<ConversionFailure>>(
-            ctx, ups::io::impl::CreateFieldGetter(msg, messages::Erroneous::kF2FieldNumber, &messages::Erroneous::f2)
+            ctx,
+            ups::io::impl::CreateFieldGetter(msg, messages::Erroneous::kF2FieldNumber, &messages::Erroneous::f2)
         ),
         .f3 = ups::io::impl::ReadField<std::unordered_map<int32_t, ConversionFailure>>(
-            ctx, ups::io::impl::CreateFieldGetter(msg, messages::Erroneous::kF3FieldNumber, &messages::Erroneous::f3)
+            ctx,
+            ups::io::impl::CreateFieldGetter(msg, messages::Erroneous::kF3FieldNumber, &messages::Erroneous::f3)
         ),
         .test_oneof = ups::io::impl::ReadField<Erroneous::OneofType>(
             ctx,
             ups::io::impl::CreateFieldGetter(
-                msg, messages::Erroneous::kF4FieldNumber, &messages::Erroneous::f4, &messages::Erroneous::has_f4
+                msg,
+                messages::Erroneous::kF4FieldNumber,
+                &messages::Erroneous::f4,
+                &messages::Erroneous::has_f4
             )
-        )};
+        )
+    };
 }
 
 void WriteProtoStruct(ups::io::WriteContext& ctx, const Erroneous& obj, messages::Erroneous& msg) {
@@ -804,28 +994,40 @@ void WriteProtoStruct(ups::io::WriteContext& ctx, const Erroneous& obj, messages
         ctx,
         obj.f1,
         ups::io::impl::CreateFieldSetter(
-            msg, messages::Erroneous::kF1FieldNumber, &messages::Erroneous::mutable_f1, &messages::Erroneous::clear_f1
+            msg,
+            messages::Erroneous::kF1FieldNumber,
+            &messages::Erroneous::mutable_f1,
+            &messages::Erroneous::clear_f1
         )
     );
     ups::io::impl::WriteField(
         ctx,
         obj.f2,
         ups::io::impl::CreateFieldSetter(
-            msg, messages::Erroneous::kF2FieldNumber, &messages::Erroneous::mutable_f2, &messages::Erroneous::clear_f2
+            msg,
+            messages::Erroneous::kF2FieldNumber,
+            &messages::Erroneous::mutable_f2,
+            &messages::Erroneous::clear_f2
         )
     );
     ups::io::impl::WriteField(
         ctx,
         obj.f3,
         ups::io::impl::CreateFieldSetter(
-            msg, messages::Erroneous::kF3FieldNumber, &messages::Erroneous::mutable_f3, &messages::Erroneous::clear_f3
+            msg,
+            messages::Erroneous::kF3FieldNumber,
+            &messages::Erroneous::mutable_f3,
+            &messages::Erroneous::clear_f3
         )
     );
     ups::io::impl::WriteField(
         ctx,
         obj.test_oneof,
         ups::io::impl::CreateFieldSetter(
-            msg, messages::Erroneous::kF4FieldNumber, &messages::Erroneous::mutable_f4, &messages::Erroneous::clear_f4
+            msg,
+            messages::Erroneous::kF4FieldNumber,
+            &messages::Erroneous::mutable_f4,
+            &messages::Erroneous::clear_f4
         )
     );
 }
@@ -850,12 +1052,14 @@ void CheckWellKnownStdEqual(const WellKnownStd& obj, const messages::WellKnownSt
     EXPECT_EQ(
         obj.f1.time_since_epoch(),
         std::chrono::duration_cast<TimeType::duration>(std::chrono::nanoseconds{
-            ::google::protobuf::util::TimeUtil::TimestampToNanoseconds(msg.f1())})
+            ::google::protobuf::util::TimeUtil::TimestampToNanoseconds(msg.f1())
+        })
     );
     EXPECT_EQ(
         obj.f2,
         std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::nanoseconds{
-            ::google::protobuf::util::TimeUtil::DurationToNanoseconds(msg.f2())})
+            ::google::protobuf::util::TimeUtil::DurationToNanoseconds(msg.f2())
+        })
     );
 
     EXPECT_EQ(static_cast<int>(obj.f3.year()), msg.f3().year());

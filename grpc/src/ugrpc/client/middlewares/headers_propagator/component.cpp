@@ -21,7 +21,8 @@ Settings Parse(const yaml_config::YamlConfig& config, formats::parse::To<Setting
 }
 
 Component::Component(const components::ComponentConfig& config, const components::ComponentContext& context)
-    : MiddlewareFactoryComponentBase(config, context) {}
+    : MiddlewareFactoryComponentBase(config, context)
+{}
 
 Component::~Component() = default;
 

@@ -15,7 +15,9 @@ void DumpMetric(utils::statistics::Writer& writer, const PubsubChannelStatistics
         writer["subscribed-ms"] = std::chrono::duration_cast<std::chrono::milliseconds>(diff).count();
 
         auto inst_name = stats.server_id->GetDescription();
-        if (inst_name.empty()) inst_name = "unknown";
+        if (inst_name.empty()) {
+            inst_name = "unknown";
+        }
         writer.ValueWithLabels(1, {"redis_instance", inst_name});
     }
 }

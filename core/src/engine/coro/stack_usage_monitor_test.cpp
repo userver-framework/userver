@@ -51,8 +51,9 @@ class StackUsageMonitorTest : public LoggingTest {};
 
 UTEST_F(StackUsageMonitorTest, BacktraceLogging) {
     if (!engine::coro::StackUsageMonitor::DebugCanUseUserfaultfd()) {
-        GTEST_SKIP() << "Target platform doesn't have/support userspace "
-                        "page-faulting via userfaultfd(2)";
+        GTEST_SKIP()
+            << "Target platform doesn't have/support userspace "
+               "page-faulting via userfaultfd(2)";
     }
 
 #if defined(__has_feature)

@@ -56,7 +56,8 @@ DefaultTracingManagerLocator::DefaultTracingManagerLocator(
 )
     : components::ComponentBase(config, context),
       default_manager_(config["incoming-format"].As<FlagsFormat>(), config["new-requests-format"].As<FlagsFormat>()),
-      tracing_manager_(GetTracingManagerFromConfig(default_manager_, config, context)) {}
+      tracing_manager_(GetTracingManagerFromConfig(default_manager_, config, context))
+{}
 
 const TracingManagerBase& DefaultTracingManagerLocator::GetTracingManager() const { return tracing_manager_; }
 

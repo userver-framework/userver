@@ -2,10 +2,9 @@
 Configure the service in testsuite.
 """
 
+from collections.abc import Callable
 import pathlib
 import socket
-from typing import Callable
-from typing import Optional
 
 import pytest
 
@@ -44,7 +43,7 @@ def pytest_addoption(parser) -> None:
         '--service-source-dir',
         type=pathlib.Path,
         help='Path to service source directory.',
-        default=pathlib.Path('.'),
+        default=pathlib.Path(),  # Current directory by default.
     )
 
 
@@ -171,8 +170,11 @@ _allocated_ports = set()
 
 @pytest.fixture(scope='session')
 def choose_free_port(
-    pytestconfig, get_free_port, _testsuite_socket_cleanup, _testsuite_default_af
-) -> Callable[[Optional[int]], int]:
+    pytestconfig,
+    get_free_port,
+    _testsuite_socket_cleanup,
+    _testsuite_default_af,
+) -> Callable[[int | None], int]:
     """
     A function that chooses a free port based on the optional hint given in the parameter.
 
@@ -181,7 +183,7 @@ def choose_free_port(
 
     family, address = _testsuite_default_af
 
-    def choose(port_hint: Optional[int] = None, /) -> int:
+    def choose(port_hint: int | None = None, /) -> int:
         should_not_randomize_ports = pytestconfig.option.service_runner_mode
         if should_not_randomize_ports and port_hint is not None and port_hint != 0:
             if _is_port_free(port_hint, family, address):

@@ -33,11 +33,14 @@ Component::Component(const components::ComponentConfig& config, const components
           USERVER_NAMESPACE::middlewares::MiddlewareDependencyBuilder()
               .InGroup<USERVER_NAMESPACE::middlewares::groups::Logging>()
               .After<access_log::Component>(USERVER_NAMESPACE::middlewares::DependencyType::kWeak)
-      ) {}
+      )
+{}
 /// [middleware InGroup]
 
-std::shared_ptr<const MiddlewareBase>
-Component::CreateMiddleware(const ugrpc::server::ServiceInfo&, const yaml_config::YamlConfig& middleware_config) const {
+std::shared_ptr<const MiddlewareBase> Component::CreateMiddleware(
+    const ugrpc::server::ServiceInfo&,
+    const yaml_config::YamlConfig& middleware_config
+) const {
     return std::make_shared<Middleware>(middleware_config.As<Settings>());
 }
 

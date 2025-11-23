@@ -56,8 +56,8 @@ struct YdbComponent::DatabaseUtils final {
     ) {
         const auto table_settings = impl::ParseTableSettings(dbconfig, dbsettings);
         const auto topic_settings = impl::TopicSettings{};
-        const auto driver_settings =
-            impl::ParseDriverSettings(dbconfig, dbsettings, std::move(credentials_provider_factory));
+        const auto
+            driver_settings = impl::ParseDriverSettings(dbconfig, dbsettings, std::move(credentials_provider_factory));
 
         auto driver = std::make_shared<impl::Driver>(dbname, driver_settings);
 
@@ -74,13 +74,15 @@ struct YdbComponent::DatabaseUtils final {
             std::move(table_client),
             std::move(topic_client),
             std::move(federated_topic_client),
-            std::move(coordination_client)};
+            std::move(coordination_client)
+        };
     }
 };
 
 YdbComponent::YdbComponent(const components::ComponentConfig& config, const components::ComponentContext& context)
     : components::ComponentBase(config, context),
-      config_(context.FindComponent<components::DynamicConfig>().GetSource()) {
+      config_(context.FindComponent<components::DynamicConfig>().GetSource())
+{
     auto secdist_settings =
         context.FindComponent<components::Secdist>().Get().Get<impl::secdist::YdbSettings>().settings;
     auto config_source = context.FindComponent<components::DynamicConfig>().GetSource();
@@ -95,22 +97,23 @@ YdbComponent::YdbComponent(const components::ComponentConfig& config, const comp
 
         std::shared_ptr<NYdb::ICredentialsProviderFactory> credentials_provider_factory;
         if (const auto credentials_config = dbconfig["credentials"]; !credentials_config.IsMissing()) {
-            const auto& credentials_provider_component =
-                context.FindComponent<CredentialsProviderComponent>(config["credentials-provider"].As<std::string>());
+            const auto& credentials_provider_component = context.FindComponent<
+                CredentialsProviderComponent>(config["credentials-provider"].As<std::string>());
             credentials_provider_factory =
                 credentials_provider_component.CreateCredentialsProviderFactory(credentials_config);
         }
 
-        databases_.emplace(dbname, engine::CriticalAsyncNoSpan(engine::current_task::GetBlockingTaskProcessor(), [&] {
-                                       return DatabaseUtils::Make(
-                                           dbname,
-                                           dbconfig,
-                                           dbsettings,
-                                           credentials_provider_factory,
-                                           operation_settings,
-                                           config_source
-                                       );
-                                   }).Get());
+        databases_
+            .emplace(dbname, engine::CriticalAsyncNoSpan(engine::current_task::GetBlockingTaskProcessor(), [&] {
+                                 return DatabaseUtils::Make(
+                                     dbname,
+                                     dbconfig,
+                                     dbsettings,
+                                     credentials_provider_factory,
+                                     operation_settings,
+                                     config_source
+                                 );
+                             }).Get());
 
         if (dbconfig.HasMember("aliases")) {
             for (const auto& config_alias : dbconfig["aliases"]) {
@@ -131,8 +134,9 @@ YdbComponent::YdbComponent(const components::ComponentConfig& config, const comp
     }
 
     auto& stats_storage = context.FindComponent<components::StatisticsStorage>().GetStorage();
-    statistic_holder_ =
-        stats_storage.RegisterWriter("ydb", [this](utils::statistics::Writer& writer) { WriteStatistics(writer); });
+    statistic_holder_ = stats_storage.RegisterWriter("ydb", [this](utils::statistics::Writer& writer) {
+        WriteStatistics(writer);
+    });
 
     config_subscription_ = config_.UpdateAndListen(this, "ydb", &YdbComponent::OnConfigUpdate);
 }

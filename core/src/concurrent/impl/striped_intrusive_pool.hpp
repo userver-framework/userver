@@ -83,7 +83,13 @@ public:
             const auto expectnot = reinterpret_cast<std::intptr_t>(static_cast<T*>(nullptr));
 
             const int ret = rseq_load_cbeq_store_add_load_store__ptr(
-                RSEQ_MO_RELAXED, RSEQ_PERCPU_CPU_ID, &slot, expectnot, HookOffset, &head, cpu
+                RSEQ_MO_RELAXED,
+                RSEQ_PERCPU_CPU_ID,
+                &slot,
+                expectnot,
+                HookOffset,
+                &head,
+                cpu
             );
 
             if (rseq_likely(!ret)) {

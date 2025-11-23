@@ -26,6 +26,9 @@ components_manager:
         grpc-client-headers-propagator:
             skip-headers:
                 skipped-header: true
+
+        grpc-client-origin:
+            user-agent: middleware-client-service
         # /// [grpc client factory]
         # yaml
         grpc-client-factory:
@@ -60,6 +63,7 @@ components_manager:
 
         # http client (for testsuite support)
         http-client:
+        http-client-core:
             fs-task-processor: main-task-processor
 
         dns-client:

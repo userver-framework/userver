@@ -55,8 +55,11 @@ void ConflatedEventChannel::AddChannel(concurrent::AsyncEventSource<Args...>& ch
 }
 
 template <typename Class>
-concurrent::AsyncEventSubscriberScope
-ConflatedEventChannel::UpdateAndListen(Class* obj, std::string_view name, void (Class::*func)()) {
+concurrent::AsyncEventSubscriberScope ConflatedEventChannel::UpdateAndListen(
+    Class* obj,
+    std::string_view name,
+    void (Class::*func)()
+) {
     return DoUpdateAndListen(obj, name, func, [&] { (obj->*func)(); });
 }
 

@@ -133,6 +133,7 @@ and make sure that it builds and passes tests.
 * @ref scripts/docs/en/userver/deadline_propagation.md
 * @ref scripts/docs/en/userver/congestion_control.md
 * @ref scripts/docs/en/userver/stack.md
+* @ref scripts/docs/en/userver/dump_coroutines.md
 
 
 ## Caches

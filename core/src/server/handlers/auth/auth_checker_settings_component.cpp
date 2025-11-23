@@ -24,7 +24,8 @@ AuthCheckerSettings::AuthCheckerSettings(
     const ComponentContext& component_context
 )
     : ComponentBase(component_config, component_context),
-      settings_(GetSettings(component_context.FindComponentOptional<Secdist>())) {}
+      settings_(GetSettings(component_context.FindComponentOptional<Secdist>()))
+{}
 
 yaml_config::Schema AuthCheckerSettings::GetStaticConfigSchema() {
     return yaml_config::MergeSchemas<ComponentBase>(R"(

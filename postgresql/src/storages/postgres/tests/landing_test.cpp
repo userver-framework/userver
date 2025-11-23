@@ -33,7 +33,9 @@ struct IdAndValue final {
 
 std::size_t InsertDecomposed(storages::postgres::Cluster& pg, const std::vector<IdAndValue>& rows) {
     auto res = pg.ExecuteDecompose(
-        storages::postgres::ClusterHostType::kMaster, "INSERT INTO keys VALUES (UNNEST($1), UNNEST($2))", rows
+        storages::postgres::ClusterHostType::kMaster,
+        "INSERT INTO keys VALUES (UNNEST($1), UNNEST($2))",
+        rows
     );
     return res.RowsAffected();
 }

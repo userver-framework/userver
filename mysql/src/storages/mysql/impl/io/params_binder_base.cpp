@@ -6,7 +6,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::mysql::impl::io {
 
-ParamsBinderBase::ParamsBinderBase(std::size_t size) : binds_impl_{size} {}
+ParamsBinderBase::ParamsBinderBase(std::size_t size)
+    : binds_impl_{size}
+{}
 
 ParamsBinderBase::ParamsBinderBase(ParamsBinderBase&& other) noexcept : binds_impl_{std::move(other.binds_impl_)} {}
 

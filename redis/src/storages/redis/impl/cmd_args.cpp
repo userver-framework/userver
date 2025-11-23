@@ -85,17 +85,24 @@ void CmdWithArgs::PutArg(const GeoradiusOptions& arg) {
             break;
     }
 
-    if (arg.withcoord) args_.emplace_back("WITHCOORD");
-    if (arg.withdist) args_.emplace_back("WITHDIST");
-    if (arg.withhash) args_.emplace_back("WITHHASH");
+    if (arg.withcoord) {
+        args_.emplace_back("WITHCOORD");
+    }
+    if (arg.withdist) {
+        args_.emplace_back("WITHDIST");
+    }
+    if (arg.withhash) {
+        args_.emplace_back("WITHHASH");
+    }
     if (arg.count) {
         args_.emplace_back("COUNT");
         args_.emplace_back(std::to_string(arg.count));
     }
-    if (arg.sort == GeoradiusOptions::Sort::kAsc)
+    if (arg.sort == GeoradiusOptions::Sort::kAsc) {
         args_.emplace_back("ASC");
-    else if (arg.sort == GeoradiusOptions::Sort::kDesc)
+    } else if (arg.sort == GeoradiusOptions::Sort::kDesc) {
         args_.emplace_back("DESC");
+    }
 }
 
 void CmdWithArgs::PutArg(const GeosearchOptions& arg) {
@@ -114,17 +121,24 @@ void CmdWithArgs::PutArg(const GeosearchOptions& arg) {
             break;
     }
 
-    if (arg.withcoord) args_.emplace_back("WITHCOORD");
-    if (arg.withdist) args_.emplace_back("WITHDIST");
-    if (arg.withhash) args_.emplace_back("WITHHASH");
+    if (arg.withcoord) {
+        args_.emplace_back("WITHCOORD");
+    }
+    if (arg.withdist) {
+        args_.emplace_back("WITHDIST");
+    }
+    if (arg.withhash) {
+        args_.emplace_back("WITHHASH");
+    }
     if (arg.count) {
         args_.emplace_back("COUNT");
         args_.emplace_back(std::to_string(arg.count));
     }
-    if (arg.sort == GeosearchOptions::Sort::kAsc)
+    if (arg.sort == GeosearchOptions::Sort::kAsc) {
         args_.emplace_back("ASC");
-    else if (arg.sort == GeosearchOptions::Sort::kDesc)
+    } else if (arg.sort == GeosearchOptions::Sort::kDesc) {
         args_.emplace_back("DESC");
+    }
 }
 
 void CmdWithArgs::PutArg(const SetOptions& arg) {
@@ -135,10 +149,11 @@ void CmdWithArgs::PutArg(const SetOptions& arg) {
         args_.emplace_back("EX");
         args_.emplace_back(std::to_string(arg.seconds));
     }
-    if (arg.exist == SetOptions::Exist::kSetIfNotExist)
+    if (arg.exist == SetOptions::Exist::kSetIfNotExist) {
         args_.emplace_back("NX");
-    else if (arg.exist == SetOptions::Exist::kSetIfExist)
+    } else if (arg.exist == SetOptions::Exist::kSetIfExist) {
         args_.emplace_back("XX");
+    }
 }
 
 void CmdWithArgs::PutArg(const ExpireOptions& arg) {
@@ -166,21 +181,27 @@ void CmdWithArgs::PutArg(const ExpireOptions& arg) {
 }
 
 void CmdWithArgs::PutArg(const ZaddOptions& arg) {
-    if (arg.exist == ZaddOptions::Exist::kAddIfNotExist)
+    if (arg.exist == ZaddOptions::Exist::kAddIfNotExist) {
         args_.emplace_back("NX");
-    else if (arg.exist == ZaddOptions::Exist::kAddIfExist)
+    } else if (arg.exist == ZaddOptions::Exist::kAddIfExist) {
         args_.emplace_back("XX");
+    }
 
-    if (arg.compare == ZaddOptions::Compare::kGreaterThan)
+    if (arg.compare == ZaddOptions::Compare::kGreaterThan) {
         args_.emplace_back("GT");
-    else if (arg.compare == ZaddOptions::Compare::kLessThan)
+    } else if (arg.compare == ZaddOptions::Compare::kLessThan) {
         args_.emplace_back("LT");
+    }
 
-    if (arg.return_value == ZaddOptions::ReturnValue::kChangedCount) args_.emplace_back("CH");
+    if (arg.return_value == ZaddOptions::ReturnValue::kChangedCount) {
+        args_.emplace_back("CH");
+    }
 }
 
 void CmdWithArgs::PutArg(const ScoreOptions& arg) {
-    if (arg.withscores) args_.emplace_back("WITHSCORES");
+    if (arg.withscores) {
+        args_.emplace_back("WITHSCORES");
+    }
 }
 
 void CmdWithArgs::PutArg(const RangeOptions& arg) {
@@ -201,9 +222,9 @@ logging::LogHelper& operator<<(logging::LogHelper& os, const CmdWithArgs& v) {
 
     bool first_arg = true;
     for (const auto& arg : v.args_) {
-        if (first_arg)
+        if (first_arg) {
             first_arg = false;
-        else {
+        } else {
             os << " ";
             if (os.IsLimitReached()) {
                 os << "...";
@@ -229,13 +250,16 @@ logging::LogHelper& operator<<(logging::LogHelper& os, const CmdWithArgs& v) {
 }
 
 logging::LogHelper& operator<<(logging::LogHelper& os, const CmdArgs& v) {
-    if (v.commands_.size() > 1) os << "[";
+    if (v.commands_.size() > 1) {
+        os << "[";
+    }
     bool first = true;
     for (const auto& arg_array : v.commands_) {
-        if (first)
+        if (first) {
             first = false;
-        else
+        } else {
             os << ", ";
+        }
 
         if (os.IsLimitReached()) {
             os << "...";
@@ -244,7 +268,9 @@ logging::LogHelper& operator<<(logging::LogHelper& os, const CmdArgs& v) {
 
         os << "\"" << arg_array << "\"";
     }
-    if (v.commands_.size() > 1) os << "]";
+    if (v.commands_.size() > 1) {
+        os << "]";
+    }
     return os;
 }
 

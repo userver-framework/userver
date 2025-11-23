@@ -139,7 +139,9 @@ template <typename Value>
 class MutableWrapper {
 public:
     template <typename... Args>
-    /*implicit*/ MutableWrapper(Args&&... args) : value_(std::forward<Args>(args)...) {}
+    /*implicit*/ MutableWrapper(Args&&... args)
+        : value_(std::forward<Args>(args)...)
+    {}
 
     Value& operator*() const { return value_; }
     Value* operator->() const { return std::addressof(value_); }

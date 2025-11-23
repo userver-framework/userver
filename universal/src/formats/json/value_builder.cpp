@@ -36,43 +36,66 @@ rapidjson::Type ToNativeType(Type type) {
 
 }  // namespace
 
-ValueBuilder::ValueBuilder(Type type) : value_(impl::VersionedValuePtr::Create(ToNativeType(type))) {}
+ValueBuilder::ValueBuilder(Type type)
+    : value_(impl::VersionedValuePtr::Create(ToNativeType(type)))
+{}
 
 ValueBuilder::ValueBuilder(const ValueBuilder& other) { Copy(value_->GetNative(), other); }
 
 // NOLINTNEXTLINE(performance-noexcept-move-constructor)
 ValueBuilder::ValueBuilder(ValueBuilder&& other) { Move(value_->GetNative(), std::move(other)); }
 
-ValueBuilder::ValueBuilder(bool t) : value_(impl::VersionedValuePtr::Create(t)) {}
+ValueBuilder::ValueBuilder(bool t)
+    : value_(impl::VersionedValuePtr::Create(t))
+{}
 
-ValueBuilder::ValueBuilder(const char* str) : value_(impl::VersionedValuePtr::Create(str, g_allocator)) {}
+ValueBuilder::ValueBuilder(const char* str)
+    : value_(impl::VersionedValuePtr::Create(str, g_allocator))
+{}
 
-ValueBuilder::ValueBuilder(char* str) : value_(impl::VersionedValuePtr::Create(std::as_const(str), g_allocator)) {}
+ValueBuilder::ValueBuilder(char* str)
+    : value_(impl::VersionedValuePtr::Create(std::as_const(str), g_allocator))
+{}
 
-ValueBuilder::ValueBuilder(const std::string& str) : value_(impl::VersionedValuePtr::Create(str, g_allocator)) {}
+ValueBuilder::ValueBuilder(const std::string& str)
+    : value_(impl::VersionedValuePtr::Create(str, g_allocator))
+{}
 
 ValueBuilder::ValueBuilder(std::string_view str)
-    : value_(impl::VersionedValuePtr::Create(::rapidjson::Type::kNullType)) {
+    : value_(impl::VersionedValuePtr::Create(::rapidjson::Type::kNullType))
+{
     // GenericValue ctor has an invalid type for size
     value_->GetNative().SetString(rapidjson::StringRef(str.data(), str.size()), g_allocator);
 }
 
-ValueBuilder::ValueBuilder(int t) : value_(impl::VersionedValuePtr::Create(t)) {}
+ValueBuilder::ValueBuilder(int t)
+    : value_(impl::VersionedValuePtr::Create(t))
+{}
 
-ValueBuilder::ValueBuilder(unsigned int t) : value_(impl::VersionedValuePtr::Create(t)) {}
+ValueBuilder::ValueBuilder(unsigned int t)
+    : value_(impl::VersionedValuePtr::Create(t))
+{}
 
-ValueBuilder::ValueBuilder(uint64_t t) : value_(impl::VersionedValuePtr::Create(t)) {}
+ValueBuilder::ValueBuilder(uint64_t t)
+    : value_(impl::VersionedValuePtr::Create(t))
+{}
 
-ValueBuilder::ValueBuilder(int64_t t) : value_(impl::VersionedValuePtr::Create(t)) {}
+ValueBuilder::ValueBuilder(int64_t t)
+    : value_(impl::VersionedValuePtr::Create(t))
+{}
 
 ValueBuilder::ValueBuilder(float t)
-    : value_(impl::VersionedValuePtr::Create(formats::common::ValidateFloat<Exception>(t))) {}
+    : value_(impl::VersionedValuePtr::Create(formats::common::ValidateFloat<Exception>(t)))
+{}
 
 ValueBuilder::ValueBuilder(double t)
-    : value_(impl::VersionedValuePtr::Create(formats::common::ValidateFloat<Exception>(t))) {}
+    : value_(impl::VersionedValuePtr::Create(formats::common::ValidateFloat<Exception>(t)))
+{}
 
 ValueBuilder& ValueBuilder::operator=(const ValueBuilder& other) {
-    if (this == &other) return *this;
+    if (this == &other) {
+        return *this;
+    }
 
     if ((value_->IsArray() || value_->IsObject()) && value_->GetSize() != 0) {
         value_.OnMembersChange();
@@ -99,11 +122,12 @@ ValueBuilder::ValueBuilder(const formats::json::Value& other) {
 ValueBuilder::ValueBuilder(formats::json::Value&& other) {
     // As we have new native object created,
     // we fill it with the other's native object.
-    if (other.IsUniqueReference())
+    if (other.IsUniqueReference()) {
         value_->GetNative() = std::move(other.GetNative());
-    else
+    } else {
         // rapidjson uses move semantics in assignment
         value_->GetNative().CopyFrom(other.GetNative(), g_allocator);
+    }
 }
 
 ValueBuilder::ValueBuilder(EmplaceEnabler, impl::MutableValueWrapper value) noexcept : ValueBuilder(std::move(value)) {}
@@ -173,7 +197,9 @@ void ValueBuilder::Resize(std::size_t size) {
     value_->CheckArrayOrNull();
     auto& native = value_->GetNative();
 
-    if (native.IsNull()) native.SetArray();
+    if (native.IsNull()) {
+        native.SetArray();
+    }
 
     const auto old_capacity = native.Capacity();
 

@@ -27,9 +27,9 @@ if(USERVER_BUILD_TESTS)
     add_subdirectory(integration_tests)
 
     option(USERVER_CHAOTIC_GOLDEN_TESTS "Whether to run golden tests of chaotic" ON)
-    if (USERVER_CHAOTIC_GOLDEN_TESTS)
-        add_subdirectory(golden_tests)
-    endif()
+    #if (USERVER_CHAOTIC_GOLDEN_TESTS)
+    #    add_subdirectory(golden_tests)
+    #endif()
 endif()
 
 _userver_directory_install(

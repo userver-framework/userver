@@ -50,13 +50,14 @@ std::pair<std::string, middlewares::impl::MiddlewareDependency> Dependency(
 ) {
     return {
         std::string{Before::kName},
-        Builder().InGroup<Group>().template After<After>(con_type).ExtractDependency(Before::kName)};
+        Builder().InGroup<Group>().template After<After>(con_type).ExtractDependency(Before::kName)
+    };
 }
 
 middlewares::impl::Dependencies kDefaultDependencies{
     {std::string{Log::kName}, Builder().InGroup<middlewares::groups::Logging>().ExtractDependency(Log::kName)},
-    {std::string{Congestion::kName},
-     Builder().InGroup<middlewares::groups::Core>().ExtractDependency(Congestion::kName)},
+    {std::string{Congestion::kName}, Builder().InGroup<middlewares::groups::Core>().ExtractDependency(Congestion::kName)
+    },
     {std::string{Deadline::kName},
      Builder().InGroup<middlewares::groups::Core>().After<Congestion>(kWeakConnect).ExtractDependency(Deadline::kName)},
     {std::string{Baggage::kName}, Builder().InGroup<middlewares::groups::User>().ExtractDependency(Baggage::kName)},
@@ -192,9 +193,11 @@ TEST(MiddlewarePipeline, MultiDependency) {
     auto dependencies = kDefaultDependencies;
     dependencies.insert(
         {std::string{A2::kName},
-         Builder().InGroup<middlewares::groups::Core>().After<Congestion>().Before<Deadline>().ExtractDependency(
-             A2::kName
-         )}
+         Builder()
+             .InGroup<middlewares::groups::Core>()
+             .After<Congestion>()
+             .Before<Deadline>()
+             .ExtractDependency(A2::kName)}
     );
 
     const middlewares::impl::MiddlewarePipeline pipeline{std::move(dependencies)};
@@ -215,9 +218,10 @@ TEST(MiddlewarePipeline, BetweenGroups) {
     auto dependencies = kDefaultDependencies;
     dependencies.insert(
         {std::string{A1::kName},
-         Builder().After<middlewares::groups::Logging>().Before<middlewares::groups::Auth>().ExtractGroupDependency(
-             A1::kName
-         )}
+         Builder()
+             .After<middlewares::groups::Logging>()
+             .Before<middlewares::groups::Auth>()
+             .ExtractGroupDependency(A1::kName)}
     );
 
     const middlewares::impl::MiddlewarePipeline pipeline{std::move(dependencies)};
@@ -237,9 +241,8 @@ TEST(MiddlewarePipeline, BetweenGroups) {
 TEST(MiddlewarePipeline, DisablePerService) {
     auto dependencies = kDefaultDependencies;
 
-    dependencies.emplace(
-        std::string{U1::kName}, Builder().InGroup<middlewares::groups::User>().ExtractDependency(U1::kName)
-    );
+    dependencies
+        .emplace(std::string{U1::kName}, Builder().InGroup<middlewares::groups::User>().ExtractDependency(U1::kName));
 
     const middlewares::impl::MiddlewarePipeline pipeline{std::move(dependencies)};
     const auto list = pipeline.GetPerServiceMiddlewares(middlewares::impl::MiddlewareRunnerConfig{
@@ -288,11 +291,11 @@ TEST(MiddlewarePipeline, DisableAllPipelineMiddlewares) {
     auto dependencies = kDefaultDependencies;
 
     dependencies.emplace(
-        std::string{A1::kName}, Builder().InGroup<middlewares::groups::Auth>().After<A2>().ExtractDependency(A1::kName)
+        std::string{A1::kName},
+        Builder().InGroup<middlewares::groups::Auth>().After<A2>().ExtractDependency(A1::kName)
     );
-    dependencies.emplace(
-        std::string{A2::kName}, Builder().InGroup<middlewares::groups::Auth>().ExtractDependency(A2::kName)
-    );
+    dependencies
+        .emplace(std::string{A2::kName}, Builder().InGroup<middlewares::groups::Auth>().ExtractDependency(A2::kName));
     const middlewares::impl::MiddlewarePipeline pipeline{std::move(dependencies)};
     const auto list = pipeline.GetPerServiceMiddlewares(middlewares::impl::MiddlewareRunnerConfig{
         {{
@@ -359,7 +362,8 @@ TEST(MiddlewarePipeline, DurabilityOrder) {
         Builder().InGroup<middlewares::groups::User>().Before<Baggage>().ExtractDependency(U1::kName)
     );
     dependencies.emplace(
-        std::string{U2::kName}, Builder().InGroup<middlewares::groups::User>().Before<U1>().ExtractDependency(U2::kName)
+        std::string{U2::kName},
+        Builder().InGroup<middlewares::groups::User>().Before<U1>().ExtractDependency(U2::kName)
     );
     const middlewares::impl::MiddlewarePipeline pipeline{std::move(dependencies)};
     const auto list = pipeline.GetPerServiceMiddlewares(kEmptyConfig);

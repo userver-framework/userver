@@ -5,7 +5,8 @@ namespace samples::grpc::auth {
 GreeterClient::GreeterClient(const components::ComponentConfig& config, const components::ComponentContext& context)
     : ComponentBase(config, context),
       client_factory_(context.FindComponent<ugrpc::client::ClientFactoryComponent>().GetFactory()),
-      client_(client_factory_.MakeClient<api::GreeterServiceClient>("greeter", config["endpoint"].As<std::string>())) {}
+      client_(client_factory_.MakeClient<api::GreeterServiceClient>("greeter", config["endpoint"].As<std::string>()))
+{}
 
 std::string GreeterClient::SayHello(std::string name) {
     api::GreetingRequest request;

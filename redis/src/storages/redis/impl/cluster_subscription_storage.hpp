@@ -57,7 +57,9 @@ protected:
 
 private:
     struct ChannelInfo {
-        explicit ChannelInfo(size_t shard_idx) : info(shard_idx) {}
+        explicit ChannelInfo(size_t shard_idx)
+            : info(shard_idx)
+        {}
 
         std::unordered_map<SubscriptionId, Sentinel::UserMessageCallback> callbacks;
         CommandControl control;
@@ -69,7 +71,9 @@ private:
         ShardChannelInfo& GetInfo(size_t /*shard_idx*/) { return info; }
     };
     struct PChannelInfo {
-        explicit PChannelInfo(size_t shard_idx) : info(shard_idx) {}
+        explicit PChannelInfo(size_t shard_idx)
+            : info(shard_idx)
+        {}
         std::unordered_map<SubscriptionId, Sentinel::UserPmessageCallback> callbacks;
         CommandControl control;
         // shard -> Fsm

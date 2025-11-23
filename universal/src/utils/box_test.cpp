@@ -105,7 +105,9 @@ TEST(UtilsBox, Assignment) {
 namespace {
 
 struct ThrowsOnAssignment final {
-    explicit ThrowsOnAssignment(int value) : value(value) {}
+    explicit ThrowsOnAssignment(int value)
+        : value(value)
+    {}
 
     ThrowsOnAssignment(const ThrowsOnAssignment&) = default;
 

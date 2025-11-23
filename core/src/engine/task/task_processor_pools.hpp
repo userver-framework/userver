@@ -1,6 +1,7 @@
 #pragma once
 
 #include <engine/coro/pool.hpp>
+#include <engine/deadlock_detector.hpp>
 #include <engine/ev/thread_pool.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -19,10 +20,12 @@ public:
 
     CoroPool& GetCoroPool() { return coro_pool_; }
     ev::ThreadPool& EventThreadPool() { return event_thread_pool_; }
+    deadlock_detector::State& GetDeadlockDetectorState() { return dd_state_; }
 
 private:
     CoroPool coro_pool_;
     ev::ThreadPool event_thread_pool_;
+    deadlock_detector::State dd_state_;
 };
 
 }  // namespace engine::impl

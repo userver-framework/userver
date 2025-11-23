@@ -269,8 +269,8 @@ UTEST_P(PostgreConnection, RollbackOnBusyOeErroredConnection) {
 
     EXPECT_EQ(pg::ConnectionState::kIdle, GetConn()->GetState());
     // Network timeout
-    const DefaultCommandControlScope scope(pg::CommandControl{
-        std::chrono::milliseconds{10}, std::chrono::milliseconds{0}});
+    const DefaultCommandControlScope
+        scope(pg::CommandControl{std::chrono::milliseconds{10}, std::chrono::milliseconds{0}});
     GetConn()->Begin({}, {});
     UEXPECT_THROW(GetConn()->Execute("select pg_sleep(1)"), pg::ConnectionTimeoutError);
     EXPECT_EQ(pg::ConnectionState::kTranActive, GetConn()->GetState());
@@ -295,8 +295,8 @@ UTEST_P(PostgreConnection, CommitOnBusyOeErroredConnection) {
 
     EXPECT_EQ(pg::ConnectionState::kIdle, GetConn()->GetState());
     // Network timeout
-    const DefaultCommandControlScope scope(pg::CommandControl{
-        std::chrono::milliseconds{10}, std::chrono::milliseconds{0}});
+    const DefaultCommandControlScope
+        scope(pg::CommandControl{std::chrono::milliseconds{10}, std::chrono::milliseconds{0}});
     GetConn()->Begin({}, {});
     UEXPECT_THROW(GetConn()->Execute("select pg_sleep(1)"), pg::ConnectionTimeoutError);
     EXPECT_EQ(pg::ConnectionState::kTranActive, GetConn()->GetState());
@@ -323,8 +323,8 @@ UTEST_P(PostgreConnection, StatementTimeout) {
 
     EXPECT_EQ(pg::ConnectionState::kIdle, GetConn()->GetState());
     // Network timeout
-    const DefaultCommandControlScope scope(pg::CommandControl{
-        std::chrono::milliseconds{10}, std::chrono::milliseconds{0}});
+    const DefaultCommandControlScope
+        scope(pg::CommandControl{std::chrono::milliseconds{10}, std::chrono::milliseconds{0}});
     UEXPECT_THROW(GetConn()->Execute("select pg_sleep(1)"), pg::ConnectionTimeoutError);
     EXPECT_EQ(pg::ConnectionState::kTranActive, GetConn()->GetState());
     UEXPECT_NO_THROW(GetConn()->CancelAndCleanup(utest::kMaxTestWaitTime));
@@ -422,7 +422,8 @@ UTEST_F(PostgreCustomConnection, PreparedStatementsOverrideEnabled) {
     auto cc = pg::CommandControl{
         std::chrono::milliseconds{100},
         std::chrono::milliseconds{10},
-        pg::CommandControl::PreparedStatementsOptionOverride::kEnabled};
+        pg::CommandControl::PreparedStatementsOptionOverride::kEnabled
+    };
     UEXPECT_NO_THROW(conn->Execute("select 1", {}, cc));
     const auto stats = conn->GetStatsAndReset();
     EXPECT_GT(stats.prepared_statements_current, old_stats.prepared_statements_current);
@@ -436,7 +437,8 @@ UTEST_F(PostgreCustomConnection, PreparedStatementsOverrideDisabled) {
     auto cc = pg::CommandControl{
         std::chrono::milliseconds{100},
         std::chrono::milliseconds{10},
-        pg::CommandControl::PreparedStatementsOptionOverride::kDisabled};
+        pg::CommandControl::PreparedStatementsOptionOverride::kDisabled
+    };
     UEXPECT_NO_THROW(conn->Execute("select 1", {}, cc));
     const auto stats = conn->GetStatsAndReset();
     EXPECT_EQ(stats.prepared_statements_current, old_stats.prepared_statements_current);

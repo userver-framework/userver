@@ -33,7 +33,8 @@ template <>
 class grpc::TimePoint<USERVER_NAMESPACE::engine::Deadline> {
 public:
     /*implicit*/ TimePoint(const USERVER_NAMESPACE::engine::Deadline& time)
-        : time_(USERVER_NAMESPACE::ugrpc::DeadlineToTimespec(time)) {}
+        : time_(USERVER_NAMESPACE::ugrpc::DeadlineToTimespec(time))
+    {}
 
     gpr_timespec raw_time() const noexcept { return time_; }
 

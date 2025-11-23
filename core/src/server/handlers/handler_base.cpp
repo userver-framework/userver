@@ -21,7 +21,8 @@ HandlerBase::HandlerBase(
           config,
           context.FindComponent<components::Server>().GetServer().GetConfig(),
           is_monitor_
-      )) {}
+      ))
+{}
 
 const HandlerConfig& HandlerBase::GetConfig() const { return config_; }
 

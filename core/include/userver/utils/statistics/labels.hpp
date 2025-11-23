@@ -21,7 +21,10 @@ public:
     LabelView() = delete;
     LabelView(Label&& label) = delete;
     explicit LabelView(const Label& label);
-    constexpr LabelView(std::string_view name, std::string_view value) : name_(name), value_(value) {
+    constexpr LabelView(std::string_view name, std::string_view value)
+        : name_(name),
+          value_(value)
+    {
         UINVARIANT(!name_.empty(), "The label name must not be empty.");
     }
 

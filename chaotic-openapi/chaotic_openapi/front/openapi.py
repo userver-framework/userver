@@ -1,7 +1,6 @@
 import enum
 from typing import Any
-from typing import Optional
-from typing import Union
+from typing import TypeAlias
 
 import pydantic
 
@@ -12,8 +11,8 @@ from . import errors
 # https://spec.openapis.org/oas/v3.0.0.html#info-object
 class Info(base_model.BaseModel):
     title: str
-    description: Optional[str] = None
-    termsOfService: Optional[str] = None
+    description: str | None = None
+    termsOfService: str | None = None
     contact: Any = None
     license: Any = None
     version: str
@@ -22,11 +21,11 @@ class Info(base_model.BaseModel):
 # https://spec.openapis.org/oas/v3.0.0.html#server-object
 class Server(base_model.BaseModel):
     url: str
-    description: Optional[str] = None
+    description: str | None = None
     variables: dict[str, Any] = pydantic.Field(default_factory=dict)
 
 
-Schema = Any
+Schema: TypeAlias = Any
 
 
 # https://spec.openapis.org/oas/v3.0.0.html#style-values
@@ -42,13 +41,13 @@ class Style(str, enum.Enum):
 
 # https://spec.openapis.org/oas/v3.0.0.html#header-object
 class Header(base_model.BaseModel):
-    description: Optional[str] = None
+    description: str | None = None
     required: bool = False
     deprecated: bool = False
     allowEmptyValue: bool = False
 
-    style: Optional[Style] = None
-    explode: Optional[bool] = None
+    style: Style | None = None
+    explode: bool | None = None
     allowReserved: bool = False
     schema_: Schema = pydantic.Field(alias='schema')
     example: Any = None
@@ -76,7 +75,7 @@ class Ref(base_model.BaseModel):
 # https://spec.openapis.org/oas/v3.0.0.html#responses-object
 class Response(base_model.BaseModel):
     description: str
-    headers: dict[str, Union[Header, Ref]] = pydantic.Field(default_factory=dict)
+    headers: dict[str, Header | Ref] = pydantic.Field(default_factory=dict)
     content: dict[str, MediaType] = pydantic.Field(default_factory=dict)
     # TODO: links
 
@@ -102,13 +101,13 @@ class QueryLogMode(str, enum.Enum):
 class Parameter(base_model.BaseModel):
     name: str
     in_: In = pydantic.Field(alias='in')
-    description: Optional[str] = None
+    description: str | None = None
     required: bool = False
     deprecated: bool = False
     allowEmptyValue: bool = False
 
-    style: Optional[Style] = None
-    explode: Optional[bool] = None
+    style: Style | None = None
+    explode: bool | None = None
     allowReserved: bool = False
     schema_: Schema = pydantic.Field(alias='schema')
     example: Any = None
@@ -116,11 +115,11 @@ class Parameter(base_model.BaseModel):
 
     # content: dict[str, MediaType] = {}
 
-    x_handler_tag: Optional[str] = pydantic.Field(
+    x_handler_tag: str | None = pydantic.Field(
         default=None,
         validation_alias=pydantic.AliasChoices('x-taxi-handler-tag', 'x-usrv-handler-tag'),
     )
-    x_cpp_name: Optional[str] = pydantic.Field(
+    x_cpp_name: str | None = pydantic.Field(
         default=None,
         validation_alias=pydantic.AliasChoices('x-taxi-cpp-name', 'x-usrv-cpp-name'),
     )
@@ -148,7 +147,7 @@ class Parameter(base_model.BaseModel):
 
 # https://spec.openapis.org/oas/v3.0.0.html#request-body-object
 class RequestBody(base_model.BaseModel):
-    description: Optional[str] = None
+    description: str | None = None
     content: dict[str, MediaType]
     required: bool = False
 
@@ -167,25 +166,25 @@ class SecurityIn(str, enum.Enum):
 
 
 class ImplicitFlow(base_model.BaseModel):
-    refreshUrl: Optional[str] = None
+    refreshUrl: str | None = None
     scopes: dict[str, str] = pydantic.Field(default_factory=dict)
     authorizationUrl: str
 
 
 class PasswordFlow(base_model.BaseModel):
-    refreshUrl: Optional[str] = None
+    refreshUrl: str | None = None
     scopes: dict[str, str] = pydantic.Field(default_factory=dict)
     tokenUrl: str
 
 
 class ClientCredFlow(base_model.BaseModel):
-    refreshUrl: Optional[str] = None
+    refreshUrl: str | None = None
     scopes: dict[str, str] = pydantic.Field(default_factory=dict)
     tokenUrl: str
 
 
 class AuthCodeFlow(base_model.BaseModel):
-    refreshUrl: Optional[str] = None
+    refreshUrl: str | None = None
     scopes: dict[str, str] = pydantic.Field(default_factory=dict)
     authorizationUrl: str
     tokenUrl: str
@@ -193,47 +192,48 @@ class AuthCodeFlow(base_model.BaseModel):
 
 # https://spec.openapis.org/oas/v3.0.0.html#oauth-flows-object
 class OAuthFlows(base_model.BaseModel):
-    implicit: Optional[ImplicitFlow] = None
-    password: Optional[PasswordFlow] = None
-    clientCredentials: Optional[ClientCredFlow] = None
-    authorizationCode: Optional[AuthCodeFlow] = None
+    implicit: ImplicitFlow | None = None
+    password: PasswordFlow | None = None
+    clientCredentials: ClientCredFlow | None = None
+    authorizationCode: AuthCodeFlow | None = None
 
 
 # https://spec.openapis.org/oas/v3.0.0.html#security-scheme-object
 class SecurityScheme(base_model.BaseModel):
     type: SecurityType
-    description: Optional[str] = None
-    name: Optional[str] = None
-    in_: Optional[SecurityIn] = pydantic.Field(alias='in', default=None)
-    scheme_: Optional[str] = pydantic.Field(alias='scheme', default=None)
-    bearerFormat: Optional[str] = None
-    flows: Optional[OAuthFlows] = None
-    openIdConnectUrl: Optional[str] = None
+    description: str | None = None
+    name: str | None = None
+    in_: SecurityIn | None = pydantic.Field(alias='in', default=None)
+    scheme_: str | None = pydantic.Field(alias='scheme', default=None)
+    bearerFormat: str | None = None
+    flows: OAuthFlows | None = None
+    openIdConnectUrl: str | None = None
 
     def model_post_init(self, context: Any, /) -> None:
         super().model_post_init(context)
 
-        if self.type == SecurityType.apiKey:
-            if not self.name:
-                raise ValueError(errors.missing_field_msg('name'))
-            if not self.in_:
-                raise ValueError(errors.missing_field_msg('in'))
-        elif self.type == SecurityType.oauth2:
-            if not self.flows:
-                raise ValueError(errors.missing_field_msg('flows'))
-        elif self.type == SecurityType.http:
-            if not self.scheme_:
-                raise ValueError(errors.missing_field_msg('scheme'))
-        elif self.type == SecurityType.openIdConnect:
-            if not self.openIdConnectUrl:
-                raise ValueError(errors.missing_field_msg('openIdConnectUrl'))
+        match self.type:
+            case SecurityType.apiKey:
+                if not self.name:
+                    raise ValueError(errors.missing_field_msg('name'))
+                if not self.in_:
+                    raise ValueError(errors.missing_field_msg('in'))
+            case SecurityType.oauth2:
+                if not self.flows:
+                    raise ValueError(errors.missing_field_msg('flows'))
+            case SecurityType.http:
+                if not self.scheme_:
+                    raise ValueError(errors.missing_field_msg('scheme'))
+            case SecurityType.openIdConnect:
+                if not self.openIdConnectUrl:
+                    raise ValueError(errors.missing_field_msg('openIdConnectUrl'))
 
 
-SecuritySchemes = dict[str, Union[SecurityScheme, Ref]]
+SecuritySchemes: TypeAlias = dict[str, SecurityScheme | Ref]
 
 
 # https://spec.openapis.org/oas/v3.0.0.html#security-requirement-object
-Security = dict[str, list[str]]
+Security: TypeAlias = dict[str, list[str]]
 
 
 # https://spec.openapis.org/oas/v3.0.0.html#components-object
@@ -250,19 +250,19 @@ class Components(base_model.BaseModel):
 # https://spec.openapis.org/oas/v3.0.0.html#operation-object
 class Operation(base_model.BaseModel):
     tags: list[str] = pydantic.Field(default_factory=list)
-    summary: Optional[str] = None
+    summary: str | None = None
     description: str = ''
     externalDocs: Any = None
 
-    operationId: Optional[str] = None
-    parameters: list[Union[Parameter, Ref]] = pydantic.Field(default_factory=list)
-    requestBody: Optional[Union[RequestBody, Ref]] = None
-    responses: dict[Union[str, int], Union[Response, Ref]]
+    operationId: str | None = None
+    parameters: list[Parameter | Ref] = pydantic.Field(default_factory=list)
+    requestBody: RequestBody | Ref | None = None
+    responses: dict[str | int, Response | Ref]
     deprecated: bool = False
-    security: Optional[Security] = None
+    security: Security | None = None
     servers: list[Server] = pydantic.Field(default_factory=list)
 
-    x_taxi_middlewares: Optional[base_model.XMiddlewares] = pydantic.Field(
+    x_taxi_middlewares: base_model.XMiddlewares | None = pydantic.Field(
         default=None,
         validation_alias=pydantic.AliasChoices('x-taxi-middlewares', 'x-usrv-middlewares'),
     )
@@ -292,20 +292,20 @@ class Operation(base_model.BaseModel):
 
 # https://spec.openapis.org/oas/v3.0.0.html#path-item-object
 class Path(base_model.BaseModel):
-    summary: Optional[str] = None
+    summary: str | None = None
     description: str = ''
 
-    get: Optional[Operation] = None
-    post: Optional[Operation] = None
-    put: Optional[Operation] = None
-    delete: Optional[Operation] = None
-    options: Optional[Operation] = None
-    head: Optional[Operation] = None
-    patch: Optional[Operation] = None
-    trace: Optional[Operation] = None
+    get: Operation | None = None
+    post: Operation | None = None
+    put: Operation | None = None
+    delete: Operation | None = None
+    options: Operation | None = None
+    head: Operation | None = None
+    patch: Operation | None = None
+    trace: Operation | None = None
 
     servers: list[Server] = pydantic.Field(default_factory=list)
-    parameters: list[Union[Parameter, Ref]] = pydantic.Field(default_factory=list)
+    parameters: list[Parameter | Ref] = pydantic.Field(default_factory=list)
 
 
 class XTaxiClientQos(base_model.BaseModel):
@@ -315,7 +315,7 @@ class XTaxiClientQos(base_model.BaseModel):
 # https://spec.openapis.org/oas/v3.0.0.html#schema
 class OpenApi(base_model.BaseModel):
     openapi: str = '3.0.0'
-    info: Optional[Info] = None
+    info: Info | None = None
     servers: list[Server] = pydantic.Field(default_factory=list)
     paths: dict[str, Path] = pydantic.Field(default_factory=dict)
     components: Components = Components()
@@ -323,30 +323,30 @@ class OpenApi(base_model.BaseModel):
     tags: list[Any] = pydantic.Field(default_factory=list)
     externalDocs: Any = None
 
-    x_taxi_client_qos: Optional[XTaxiClientQos] = pydantic.Field(
+    x_taxi_client_qos: XTaxiClientQos | None = pydantic.Field(
         default=None,
         validation_alias=pydantic.AliasChoices('x-taxi-client-qos', 'x-usrv-client-qos'),
     )
-    x_taxi_middlewares: Optional[base_model.XMiddlewares] = pydantic.Field(
+    x_taxi_middlewares: base_model.XMiddlewares | None = pydantic.Field(
         default=None,
         validation_alias=pydantic.AliasChoices('x-taxi-middlewares', 'x-usrv-middlewares'),
     )
 
-    def validate_security(self, security: Optional[Security]) -> None:
+    def validate_security(self, security: Security | None) -> None:
         if not security:
             return
 
         for name, values in security.items():
             if name not in self.components.securitySchemes:
                 raise ValueError(
-                    f'Undefined security name="{name}". Expected on of: {self.components.securitySchemes.keys()}'
+                    f'Undefined security name="{name}". Expected on of: {self.components.securitySchemes.keys()}',
                 )
             sec_scheme = self.components.securitySchemes[name]
 
             if isinstance(sec_scheme, Ref):
                 if sec_scheme not in self.components.securitySchemes:
                     raise ValueError(
-                        f'Invalid reference "{sec_scheme}". Expected one of: "{self.components.securitySchemes.keys()}"'
+                        f'Invalid reference "{sec_scheme}". Expected one of: "{self.components.securitySchemes.keys()}"',
                     )
             elif isinstance(sec_scheme, SecurityScheme):
                 if sec_scheme.type not in [SecurityType.oauth2, SecurityType.openIdConnect]:

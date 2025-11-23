@@ -19,9 +19,8 @@ namespace storages::sqlite::tests {
 
 namespace {
 
-std::string TestParamNameIsolationLevel(
-    const ::testing::TestParamInfo<sqlite::settings::TransactionOptions::IsolationLevel>& info
-) {
+std::string TestParamNameIsolationLevel(const ::testing::TestParamInfo<
+                                        sqlite::settings::TransactionOptions::IsolationLevel>& info) {
     return IsolationLevelToString(info.param);
 }
 
@@ -53,8 +52,8 @@ UTEST_P_MT(SQLiteTransactionsConcurrentTest, IsolationLevels, 3) {
     bool reader_selected = false;
 
     auto writer = engine::AsyncNoSpan([&]() {
-        settings::TransactionOptions writer_options{
-            trx_isolation_lvl, settings::TransactionOptions::LockingMode::kImmediate};
+        settings::TransactionOptions
+            writer_options{trx_isolation_lvl, settings::TransactionOptions::LockingMode::kImmediate};
         Transaction trx{nullptr, {}};
 
         UEXPECT_NO_THROW(trx = client->Begin(OperationType::kReadWrite, writer_options));

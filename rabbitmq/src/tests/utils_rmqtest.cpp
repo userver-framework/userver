@@ -34,15 +34,17 @@ ClientWrapper::ClientWrapper()
       queue_{utils::generators::GenerateUuid()},
       routing_key_{utils::generators::GenerateUuid()},
       deadline_{engine::Deadline::FromDuration(utest::kMaxTestWaitTime)},
-      admin_{client_->GetAdminChannel(deadline_)} {}
+      admin_{client_->GetAdminChannel(deadline_)}
+{}
 
 ClientWrapper::~ClientWrapper() {
     try {
         admin_.RemoveExchange(GetExchange(), GetDeadline());
         admin_.RemoveQueue(GetQueue(), GetDeadline());
     } catch (const std::exception& ex) {
-        LOG_ERROR() << "Failed to clean up after test execution, next tests might "
-                       "fail randomly";
+        LOG_ERROR()
+            << "Failed to clean up after test execution, next tests might "
+               "fail randomly";
     }
 }
 

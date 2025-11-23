@@ -16,7 +16,8 @@ ReflectionServiceComponent::ReflectionServiceComponent(
 )
     : ugrpc::server::ServiceComponentBase(config, context),
       service_(std::make_unique<grpc_reflection::ProtoServerReflection>()),
-      ugrpc_server_(context.FindComponent<ugrpc::server::ServerComponent>().GetServer()) {
+      ugrpc_server_(context.FindComponent<ugrpc::server::ServerComponent>().GetServer())
+{
     LOG_INFO() << "Preparing to register service";
     RegisterService(*service_);
     LOG_INFO() << "Service registered";

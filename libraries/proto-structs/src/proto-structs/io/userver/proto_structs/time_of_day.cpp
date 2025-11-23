@@ -8,7 +8,8 @@
 
 namespace proto_structs::io {
 
-TimeOfDay ReadProtoStruct(ReadContext& ctx, To<TimeOfDay>, const ::google::type::TimeOfDay& msg) try {
+TimeOfDay ReadProtoStruct(ReadContext& ctx, To<TimeOfDay>, const ::google::type::TimeOfDay& msg) try
+{
     return TimeOfDay(utils::impl::InternalTag{}, msg.hours(), msg.minutes(), msg.seconds(), msg.nanos());
 } catch (const ValueError& e) {
     ctx.AddError(e.what());

@@ -2,7 +2,6 @@ import re
 import sys
 import traceback
 import typing
-from typing import Union
 
 from chaotic import cpp_names
 from chaotic import error as chaotic_error
@@ -64,7 +63,7 @@ class Translator:
                 namespaces={schema.source_location().filepath: '' for schema in service.schemas.values()},
                 infile_to_name_func=self.map_infile_path_to_cpp_type,
                 include_dirs=self._include_dirs,
-            )
+            ),
         )
         self._spec.schemas = gen.generate_types(resolved_schemas)
         self._raw_schemas = {str(schema.source_location()): schema for schema in service.schemas.values()}
@@ -131,7 +130,8 @@ class Translator:
             )
 
         match = re.fullmatch(
-            '/paths/\\[([^\\]]*)\\]/([a-zA-Z]*)/responses/([0-9]*)/headers/([-a-zA-Z0-9_]*)/schema', name
+            '/paths/\\[([^\\]]*)\\]/([a-zA-Z]*)/responses/([0-9]*)/headers/([-a-zA-Z0-9_]*)/schema',
+            name,
         )
         if match:
             return '{}::{}::{}::Response{}Header{}'.format(
@@ -249,7 +249,7 @@ class Translator:
                 namespaces={schema.source_location().filepath: ''},
                 infile_to_name_func=self.map_infile_path_to_cpp_type,
                 include_dirs=self._include_dirs,
-            )
+            ),
         )
         gen_types = gen.generate_types(
             resolved_schemas,
@@ -265,14 +265,14 @@ class Translator:
 
     def _translate_response(
         self,
-        response: Union[model.Response, model.Ref],
+        response: model.Response | model.Ref,
         status: int,
     ) -> types.Response:
         if isinstance(response, model.Ref):
             response = self._raw_responses[response.ref]
 
         headers = []
-        for name, header in response.headers.items():
+        for header in response.headers.values():
             headers.append(self._translate_parameter(header))
 
         body = {}

@@ -27,8 +27,12 @@ void WriteProtoStruct(WriteContext& ctx, utils::Box<T>&& obj, TMessage& msg) {
 }
 
 template <typename TStructField, typename TMessageField>
-utils::Box<TStructField>
-ReadProtoField(ReadContext& ctx, To<utils::Box<TStructField>>, int field_number, const TMessageField& message_field) {
+utils::Box<TStructField> ReadProtoField(
+    ReadContext& ctx,
+    To<utils::Box<TStructField>>,
+    int field_number,
+    const TMessageField& message_field
+) {
     return {ctx.ReadField<TStructField>(field_number, message_field)};
 }
 

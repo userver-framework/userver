@@ -88,7 +88,9 @@ std::string to_string(const boost::stacktrace::stacktrace& st) {
 
 bool GlobalEnableStacktrace(bool enable) { return stacktrace_enabled.exchange(enable); }
 
-StacktraceGuard::StacktraceGuard(bool enabled) : old_(logging::stacktrace_cache::GlobalEnableStacktrace(enabled)) {}
+StacktraceGuard::StacktraceGuard(bool enabled)
+    : old_(logging::stacktrace_cache::GlobalEnableStacktrace(enabled))
+{}
 
 StacktraceGuard::~StacktraceGuard() { logging::stacktrace_cache::GlobalEnableStacktrace(old_); }
 

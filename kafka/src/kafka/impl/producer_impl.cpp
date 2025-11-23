@@ -41,14 +41,16 @@ void ProducerImpl::ErrorCallback(rd_kafka_resp_err_t error, const char* reason, 
     ) << fmt::format("Error {} occurred because of '{}': {}", static_cast<int>(error), reason, rd_kafka_err2str(error));
 
     if (error == RD_KAFKA_RESP_ERR__RESOLVE || error == RD_KAFKA_RESP_ERR__TRANSPORT ||
-        error == RD_KAFKA_RESP_ERR__AUTHENTICATION || error == RD_KAFKA_RESP_ERR__ALL_BROKERS_DOWN) {
+        error == RD_KAFKA_RESP_ERR__AUTHENTICATION || error == RD_KAFKA_RESP_ERR__ALL_BROKERS_DOWN)
+    {
         ++stats_.connections_error;
     }
 }
 
 void ProducerImpl::LogCallback(const char* facility, const char* message, int log_level) const {
-    LOG(ConvertRdKafkaLogLevelToLoggingLevel(log_level))
-        << logging::LogExtra{{{"kafka_callback", "log_callback"}, {"facility", facility}}} << message;
+    LOG(ConvertRdKafkaLogLevelToLoggingLevel(log_level)
+    ) << logging::LogExtra{{{"kafka_callback", "log_callback"}, {"facility", facility}}}
+      << message;
 }
 
 void ProducerImpl::DeliveryReportCallback(const rd_kafka_message_t* message) const {
@@ -112,7 +114,8 @@ ProducerImpl::ProducerImpl(
     : delivery_timeout_(std::stoull(configuration.GetOption("delivery.timeout.ms"))),
       debug_info_log_level_(debug_info_log_level),
       operation_log_level_(operation_log_level),
-      producer_(std::move(configuration).Release()) {
+      producer_(std::move(configuration).Release())
+{
     /// Sets the callback which is called when delivery reports queue transfers
     /// from empty state to non-empty.
     /// Registered callback is called from internal librdkafka thread, not userver
@@ -201,8 +204,8 @@ engine::Future<DeliveryResult> ProducerImpl::ScheduleMessageDelivery(
 #endif
 
     if (enqueue_error == RD_KAFKA_RESP_ERR_NO_ERROR) {
-        [[maybe_unused]] const auto _headers_holder = headers_holder.release();
-        [[maybe_unused]] const auto _waiter = waiter.release();
+        [[maybe_unused]] const auto headers_holder_ptr = headers_holder.release();
+        [[maybe_unused]] const auto waiter_ptr = waiter.release();
     } else {
         LOG_WARNING("Failed to enqueue message to Kafka local queue: {}", rd_kafka_err2str(enqueue_error));
         waiter->SetDeliveryResult(DeliveryResult{enqueue_error});
@@ -240,7 +243,9 @@ void ProducerImpl::DispatchEvent(const EventHolder& event_holder) const {
         } break;
         case RD_KAFKA_EVENT_ERROR: {
             ErrorCallback(
-                rd_kafka_event_error(event), rd_kafka_event_error_string(event), rd_kafka_event_error_is_fatal(event)
+                rd_kafka_event_error(event),
+                rd_kafka_event_error_string(event),
+                rd_kafka_event_error_is_fatal(event)
             );
         } break;
         case RD_KAFKA_EVENT_LOG: {

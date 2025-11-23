@@ -12,11 +12,13 @@
 #include "hello_service.hpp"
 
 int main(int argc, char* argv[]) {
-    auto component_list = components::MinimalServerComponentList()
-                              .Append<components::TestsuiteSupport>()
-                              .Append<server::handlers::TestsControl>()
-                              .Append<clients::dns::Component>()
-                              .Append<components::HttpClient>();
+    auto component_list =
+        components::MinimalServerComponentList()
+            .Append<components::TestsuiteSupport>()
+            .Append<server::handlers::TestsControl>()
+            .Append<clients::dns::Component>()
+            .Append<components::HttpClientCore>()
+            .Append<components::HttpClient>();
     samples::hello::AppendHello(component_list);
 
     return utils::DaemonMain(argc, argv, component_list);
