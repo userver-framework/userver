@@ -1,7 +1,7 @@
 #pragma once
 
 /// @file userver/proto-structs/convert.hpp
-/// @brief Functions for protobuf message to/from struct conversion
+/// @brief Functions for protobuf message to/from struct conversion.
 ///
 /// Conversion functions rely on user-defined functions with the following signatures:
 /// 1. `StructType ReadProtoStruct(proto_structs::io::ReadContext&,
@@ -27,11 +27,11 @@ USERVER_NAMESPACE_BEGIN
 
 namespace proto_structs {
 
-/// @brief Converts protobuf message @a msg to proto struct @a obj
+/// @brief Converts protobuf message @a msg to proto struct @a obj.
 /// @tparam TMessage protobuf message type
 /// @tparam TStruct proto struct type
-/// @throws ReadError if conversion has failed
-/// @warning If function throws an exception, @a obj is left in a valid but unspecified state
+/// @throws ReadError if conversion has failed.
+/// @warning If function throws an exception, @a obj is left in a valid but unspecified state.
 template <traits::ProtoMessage TMessage, traits::ProtoStruct TStruct>
 void MessageToStruct(const TMessage& msg, TStruct& obj) {
     io::ReadContext ctx(*msg.GetDescriptor());
@@ -48,10 +48,10 @@ void MessageToStruct(const TMessage& msg, TStruct& obj) {
     }
 }
 
-/// @brief Converts protobuf message @a msg to specified proto struct type
+/// @brief Converts protobuf message @a msg to specified proto struct type.
 /// @tparam TStruct proto struct type
 /// @tparam TMessage protobuf message type
-/// @throws ReadError if conversion has failed
+/// @throws ReadError if conversion has failed.
 template <traits::ProtoStruct TStruct, traits::ProtoMessage TMessage>
 [[nodiscard]] TStruct MessageToStruct(const TMessage& msg) {
     TStruct obj;
@@ -59,11 +59,11 @@ template <traits::ProtoStruct TStruct, traits::ProtoMessage TMessage>
     return obj;
 }
 
-/// @brief Converts proto struct @a obj to protobuf message @a msg
+/// @brief Converts proto struct @a obj to protobuf message @a msg.
 /// @tparam TStruct proto struct type
 /// @tparam TMessage protobuf message type
-/// @throws WriteError if conversion has failed
-/// @warning If function throws an exception, @a msg is left in a valid but unspecified state
+/// @throws WriteError if conversion has failed.
+/// @warning If function throws an exception, @a msg is left in a valid but unspecified state.
 template <typename TStruct, traits::ProtoMessage TMessage>
 requires traits::ProtoStruct<std::remove_cvref_t<TStruct>>
 void StructToMessage(TStruct&& obj, TMessage& msg) {
@@ -81,9 +81,9 @@ void StructToMessage(TStruct&& obj, TMessage& msg) {
     }
 }
 
-/// @brief Converts proto struct @a obj to it's compatible protobuf message type
+/// @brief Converts proto struct @a obj to it's compatible protobuf message type.
 /// @tparam TStruct proto struct type
-/// @throws WriteError if conversion has failed
+/// @throws WriteError if conversion has failed.
 template <typename TStruct>
 requires traits::ProtoStruct<std::remove_cvref_t<TStruct>>
 [[nodiscard]] traits::CompatibleMessageType<std::remove_cvref_t<TStruct>> StructToMessage(TStruct&& obj) {

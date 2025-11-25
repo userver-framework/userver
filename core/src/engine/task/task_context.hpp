@@ -212,9 +212,6 @@ private:
 
     void TraceStateTransition(Task::State state);
 
-    void TsanAcquireBarrier() noexcept;
-    void TsanReleaseBarrier() noexcept;
-
     const uint64_t magic_{kMagic};
     TaskProcessor& task_processor_;
     TaskCounter::Token task_counter_token_;

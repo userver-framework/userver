@@ -109,7 +109,7 @@ TYPED_TEST(ProjectedSet, ProjectedInsertOrAssign) {
 
 namespace {
 
-// gcc-9 and gcc-11 get confused when using this function in userver-core. Unit tests are fine, though.
+// gcc-10 and gcc-11 get confused when using this function in userver-core. Unit tests are fine, though.
 template <typename Value, auto Projection>
 decltype(auto) ProjectedUnwrapThen(const utils::impl::MutableWrapper<Value>& value) {
     return std::invoke(Projection, std::as_const(*value));

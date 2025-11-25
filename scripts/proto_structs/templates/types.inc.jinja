@@ -44,8 +44,6 @@ using ProtobufMessage = ::{{ struct.vanilla_full_name_fwd }};
 {% for nested in struct.nested_types %}
 {{ render_gen_node(nested) -}}
 {% endfor %}
-
-bool operator==(const {{ struct.name.short_name }}&) const;
 {% call utils.prepend_empty_line_if_not_empty() %}
 {% for field in struct.fields %}
 {{ do_render_field(struct, field) -}}

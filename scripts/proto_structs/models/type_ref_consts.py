@@ -40,6 +40,15 @@ PRIMITIVE_TYPES: Mapping[str, type_ref.TypeReference] = {
     'sfixed64': type_ref.BuiltinType(full_cpp_name='std::int64_t'),
 }
 
+#: All Protobuf well-known types, mapped from their Protobuf names to C++ types.
+WELL_KNOWN_TYPES: Mapping[str, type_ref.TypeReference] = {
+    'google.protobuf.Timestamp': type_ref.UserverLibraryType(full_cpp_name_wo_userver='proto_structs::Timestamp'),
+    'google.protobuf.Duration': type_ref.UserverLibraryType(full_cpp_name_wo_userver='proto_structs::Duration'),
+    'google.type.Date': type_ref.UserverLibraryType(full_cpp_name_wo_userver='proto_structs::Date'),
+    'google.type.TimeOfDay': type_ref.UserverLibraryType(full_cpp_name_wo_userver='proto_structs::TimeOfDay'),
+    'google.protobuf.Any': type_ref.UserverLibraryType(full_cpp_name_wo_userver='proto_structs::Any'),
+}
+
 
 def make_optional(value: type_ref.TypeReference) -> type_ref.TypeReference:
     """Makes `std::optional<T>` type."""

@@ -1,7 +1,6 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#include <chrono>
 #include <limits>
 
 #include <google/protobuf/util/time_util.h>
@@ -10,7 +9,6 @@
 
 #include "messages.pb.h"
 #include "structs.hpp"
-#include "taxi/uservices/userver/libraries/proto-structs/tests/struct_simple.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -82,18 +80,104 @@ TEST(StructToMessage, Scalar) {
     }
 }
 
-TEST(StructToMessage, WellKnown) {
+TEST(StructToMessage, WellKnownStd) {
     using TimePoint = std::chrono::time_point<std::chrono::system_clock>;
     auto CreateValid = []() {
-        return structs::WellKnown{.f4 = {std::chrono::year{1}, std::chrono::month{1}, std::chrono::day{1}}};
+        return structs::WellKnownStd{.f3 = {std::chrono::year{1}, std::chrono::month{1}, std::chrono::day{1}}};
     };
 
     {
-        structs::WellKnown obj{
+        structs::WellKnownStd obj{
+            .f1 = TimePoint{std::chrono::milliseconds{123'456'789}},
+            .f2 = std::chrono::milliseconds{987'654'321},
+            .f3 = {std::chrono::year{2025}, std::chrono::month{8}, std::chrono::day{27}},
+            .f4 = std::chrono::hh_mm_ss<std::chrono::microseconds>{
+                std::chrono::minutes(65) + std::chrono::seconds{13} + std::chrono::microseconds{123'456}}};
+
+        auto msg = StructToMessage(obj);
+
+        CheckWellKnownStdEqual(obj, msg);
+
+        msg = StructToMessage(structs::WellKnownStd{obj});
+
+        CheckWellKnownStdEqual(obj, msg);
+    }
+
+    {
+        structs::WellKnownStd obj = CreateValid();
+        messages::WellKnownStd msg;
+
+        obj.f1 = TimePoint{std::chrono::milliseconds{-987'654'321}};
+        *msg.mutable_f1() = ::google::protobuf::util::TimeUtil::NanosecondsToTimestamp(123'456'789'987'654'321LL);
+        *msg.mutable_f2() = ::google::protobuf::util::TimeUtil::NanosecondsToDuration(1001);
+
+        ASSERT_NO_THROW(StructToMessage(obj, msg));
+        CheckWellKnownStdEqual(obj, msg);
+
+        obj.f2 = std::chrono::milliseconds{-987'654'321};
+        *msg.mutable_f2() = ::google::protobuf::util::TimeUtil::NanosecondsToDuration(123'456'789'987'654'321LL);
+
+        ASSERT_NO_THROW(StructToMessage(structs::WellKnownStd{obj}, msg));
+        CheckWellKnownStdEqual(obj, msg);
+    }
+
+    constexpr auto kMaxSecondsInStdTimePoint =
+        (TimePoint::duration::max().count() / TimePoint::duration::period::den) * TimePoint::duration::period::num;
+
+    if (kMaxSecondsInStdTimePoint > ::google::protobuf::util::TimeUtil::kTimestampMaxSeconds) {
+        structs::WellKnownStd obj = CreateValid();
+        messages::WellKnownStd msg;
+
+        obj.f1 = TimePoint{std::chrono::seconds{kMaxSecondsInStdTimePoint}};
+
+        EXPECT_THAT(
+            [&obj]() { static_cast<void>(StructToMessage(obj)); },
+            ::testing::ThrowsMessage<WriteError>(::testing::HasSubstr("'messages.WellKnownStd.f1'"))
+        );
+    }
+
+    if ((std::chrono::milliseconds::max().count() / 1000) > ::google::protobuf::util::TimeUtil::kDurationMaxSeconds) {
+        structs::WellKnownStd obj = CreateValid();
+        messages::WellKnownStd msg;
+
+        obj.f2 = std::chrono::milliseconds::max();
+
+        EXPECT_THAT(
+            [&obj]() { static_cast<void>(StructToMessage(obj)); },
+            ::testing::ThrowsMessage<WriteError>(::testing::HasSubstr("'messages.WellKnownStd.f2'"))
+        );
+    }
+
+    {
+        structs::WellKnownStd obj = CreateValid();
+        obj.f3 = {std::chrono::year{2025}, std::chrono::month{2}, std::chrono::day{29}};
+
+        EXPECT_THAT(
+            [&obj]() { static_cast<void>(StructToMessage(obj)); },
+            ::testing::ThrowsMessage<WriteError>(::testing::HasSubstr("'messages.WellKnownStd.f3'"))
+        );
+    }
+
+    {
+        structs::WellKnownStd obj = CreateValid();
+        obj.f4 = std::chrono::hh_mm_ss<std::chrono::microseconds>{std::chrono::hours{25}};
+
+        EXPECT_THAT(
+            [&obj]() { static_cast<void>(StructToMessage(obj)); },
+            ::testing::ThrowsMessage<WriteError>(::testing::HasSubstr("'messages.WellKnownStd.f4'"))
+        );
+    }
+}
+
+TEST(StructToMessage, WellKnownUsrv) {
+    using TimePoint = Timestamp::TimePoint;
+
+    {
+        structs::WellKnownUsrv obj{
             .f1 = structs::Simple{.f1 = 100},
             .f2 = TimePoint{std::chrono::milliseconds{123'456'789}},
             .f3 = std::chrono::milliseconds{987'654'321},
-            .f4 = {std::chrono::year{2025}, std::chrono::month{8}, std::chrono::day{27}},
+            .f4 = std::chrono::year_month_day{std::chrono::year{2025}, std::chrono::month{8}, std::chrono::day{27}},
             .f5 =
                 std::chrono::hh_mm_ss<std::chrono::microseconds>{
                     std::chrono::minutes(65) + std::chrono::seconds{13} + std::chrono::microseconds{123'456}},
@@ -106,20 +190,20 @@ TEST(StructToMessage, WellKnown) {
 
         auto msg = StructToMessage(obj);
 
-        CheckWellKnownEqual(obj, msg);
+        CheckWellKnownUsrvEqual(obj, msg);
         ASSERT_TRUE(msg.f1().UnpackTo(&any_payload));
         CheckSimpleEqual(obj.f1.Unpack<structs::Simple>(), any_payload);
 
-        msg = StructToMessage(structs::WellKnown{obj});
+        msg = StructToMessage(structs::WellKnownUsrv{obj});
 
-        CheckWellKnownEqual(obj, msg);
+        CheckWellKnownUsrvEqual(obj, msg);
         ASSERT_TRUE(msg.f1().UnpackTo(&any_payload));
         CheckSimpleEqual(obj.f1.Unpack<structs::Simple>(), any_payload);
     }
 
     {
-        structs::WellKnown obj = CreateValid();
-        messages::WellKnown msg;
+        structs::WellKnownUsrv obj;
+        messages::WellKnownUsrv msg;
 
         obj.f2 = TimePoint{std::chrono::milliseconds{-987'654'321}};
         obj.f7 = decimal64::Decimal<3>("1001.001");
@@ -132,104 +216,17 @@ TEST(StructToMessage, WellKnown) {
         *msg.mutable_f3() = ::google::protobuf::util::TimeUtil::NanosecondsToDuration(1001);
 
         ASSERT_NO_THROW(StructToMessage(obj, msg));
-        CheckWellKnownEqual(obj, msg);
+        CheckWellKnownUsrvEqual(obj, msg);
 
         ASSERT_NO_THROW((obj.f1 = structs::Scalar{.f2 = 5}));
         obj.f3 = std::chrono::milliseconds{-987'654'321};
         obj.f7 = decimal64::Decimal<3>("-1001.001");
         *msg.mutable_f3() = ::google::protobuf::util::TimeUtil::NanosecondsToDuration(123'456'789'987'654'321LL);
 
-        ASSERT_NO_THROW(StructToMessage(structs::WellKnown{obj}, msg));
-        CheckWellKnownEqual(obj, msg);
+        ASSERT_NO_THROW(StructToMessage(structs::WellKnownUsrv{obj}, msg));
+        CheckWellKnownUsrvEqual(obj, msg);
         ASSERT_TRUE(msg.f1().UnpackTo(&any_payload));
         CheckScalarEqual(obj.f1.Unpack<structs::Scalar>(), any_payload);
-    }
-
-    constexpr auto kMaxSecondsInStdTimePoint =
-        (TimePoint::duration::max().count() / TimePoint::duration::period::den) * TimePoint::duration::period::num;
-    constexpr auto kMinSecondsInStdTimePoint =
-        (TimePoint::duration::min().count() / TimePoint::duration::period::den) * TimePoint::duration::period::num;
-
-    if (kMaxSecondsInStdTimePoint > ::google::protobuf::util::TimeUtil::kTimestampMaxSeconds) {
-        structs::WellKnown obj = CreateValid();
-        messages::WellKnown msg;
-
-        obj.f2 = TimePoint{std::chrono::seconds{kMaxSecondsInStdTimePoint}};
-
-        ASSERT_NO_THROW(StructToMessage(obj, msg));
-        EXPECT_EQ(msg.f2().seconds(), ::google::protobuf::util::TimeUtil::kTimestampMaxSeconds);
-    }
-
-    if (kMinSecondsInStdTimePoint < ::google::protobuf::util::TimeUtil::kTimestampMinSeconds) {
-        structs::WellKnown obj = CreateValid();
-        messages::WellKnown msg;
-
-        obj.f2 = TimePoint{std::chrono::seconds{kMinSecondsInStdTimePoint}};
-
-        ASSERT_NO_THROW(StructToMessage(obj, msg));
-        EXPECT_EQ(msg.f2().seconds(), ::google::protobuf::util::TimeUtil::kTimestampMinSeconds);
-    }
-
-    if ((std::chrono::milliseconds::max().count() / 1000) > ::google::protobuf::util::TimeUtil::kDurationMaxSeconds) {
-        structs::WellKnown obj = CreateValid();
-        messages::WellKnown msg;
-
-        obj.f3 = std::chrono::milliseconds::max();
-
-        ASSERT_NO_THROW(StructToMessage(obj, msg));
-        EXPECT_EQ(msg.f3().seconds(), ::google::protobuf::util::TimeUtil::kDurationMaxSeconds);
-    }
-
-    if ((std::chrono::milliseconds::min().count() / 1000) < ::google::protobuf::util::TimeUtil::kDurationMinSeconds) {
-        structs::WellKnown obj = CreateValid();
-        messages::WellKnown msg;
-
-        obj.f3 = std::chrono::milliseconds::min();
-
-        ASSERT_NO_THROW(StructToMessage(obj, msg));
-        EXPECT_EQ(msg.f3().seconds(), ::google::protobuf::util::TimeUtil::kDurationMinSeconds);
-    }
-
-    {
-        structs::WellKnown obj = CreateValid();
-        obj.f4 = std::chrono::year_month_day{};
-
-        EXPECT_THAT(
-            [&obj]() { static_cast<void>(StructToMessage(obj)); },
-            ::testing::ThrowsMessage<WriteError>(::testing::HasSubstr("'messages.WellKnown.f4'"))
-        );
-
-        obj.f4 = {std::chrono::year{0}, std::chrono::month{5}, std::chrono::day{5}};
-
-        EXPECT_THAT(
-            [&obj]() { static_cast<void>(StructToMessage(obj)); },
-            ::testing::ThrowsMessage<WriteError>(::testing::HasSubstr("'messages.WellKnown.f4'"))
-        );
-
-        obj.f4 = {std::chrono::year{2025}, std::chrono::month{2}, std::chrono::day{29}};
-
-        EXPECT_THAT(
-            [&obj]() { static_cast<void>(StructToMessage(obj)); },
-            ::testing::ThrowsMessage<WriteError>(::testing::HasSubstr("'messages.WellKnown.f4'"))
-        );
-    }
-
-    {
-        structs::WellKnown obj = CreateValid();
-        obj.f5 = std::chrono::hh_mm_ss<std::chrono::microseconds>{std::chrono::hours{25}};
-
-        EXPECT_THAT(
-            [&obj]() { static_cast<void>(StructToMessage(obj)); },
-            ::testing::ThrowsMessage<WriteError>(::testing::HasSubstr("'messages.WellKnown.f5'"))
-        );
-
-        obj = CreateValid();
-        obj.f5 = std::chrono::hh_mm_ss<std::chrono::microseconds>{std::chrono::microseconds{-1}};
-
-        EXPECT_THAT(
-            [&obj]() { static_cast<void>(StructToMessage(obj)); },
-            ::testing::ThrowsMessage<WriteError>(::testing::HasSubstr("'messages.WellKnown.f5'"))
-        );
     }
 }
 

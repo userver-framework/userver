@@ -1,7 +1,7 @@
 #pragma once
 
 /// @file userver/proto-structs/io/context.hpp
-/// @brief Context base classes providing methods for conversion process management
+/// @brief Context base classes providing methods for conversion process management.
 
 #include <string>
 #include <string_view>
@@ -20,10 +20,10 @@ class FieldDescriptor;
 USERVER_NAMESPACE_BEGIN
 
 /// @brief Namespace for conversion utlities and predefined proto-structs conversion hooks for well-known std/userver
-///        types
+///        types.
 namespace proto_structs::io {
 
-/// @brief Read/write operation context
+/// @brief Read/write operation context.
 class Context {
 protected:
     explicit Context(const ::google::protobuf::Descriptor& message_desc) noexcept : top_message_desc_(message_desc) {}
@@ -42,14 +42,14 @@ private:
     ::boost::container::small_vector<int, 16> path_;
 };
 
-/// @brief Read/write operation context with error information
+/// @brief Read/write operation context with error information.
 /// @tparam TError error type
 template <typename TError>
 class ContextWithErrors : public Context {
 public:
     using Error = TError;
 
-    /// @brief Returns `true` if context contains at least one error
+    /// @brief Returns `true` if context contains at least one error.
     bool HasErrors() const noexcept { return !errors_.empty(); }
 
     /// @cond
@@ -57,16 +57,16 @@ public:
     std::vector<Error>&& GetErrors(utils::impl::InternalTag) && noexcept;
     /// @endcond
 
-    /// @brief Adds conversion error
-    /// @throws Error exception
+    /// @brief Adds conversion error.
+    /// @throws Error exception.
     /// Parameter @a field_number contains protobuf message field number for which conversion has failed.
     void AddError(int field_number, std::string_view reason);
 
-    /// @brief Adds conversion error
+    /// @brief Adds conversion error.
     /// Parameter @a field_desc contains protobuf message field descriptor for which conversion has failed.
     void AddError(const ::google::protobuf::FieldDescriptor& field_desc, std::string_view reason);
 
-    /// @brief Adds conversion error
+    /// @brief Adds conversion error.
     /// Method is intended for cases when it is hard to associate error with concrete field of the protobuf message.
     void AddError(std::string_view reason);
 

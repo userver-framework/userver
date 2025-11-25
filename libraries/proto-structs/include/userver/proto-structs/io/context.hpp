@@ -1,7 +1,7 @@
 #pragma once
 
 /// @file userver/proto-structs/io/context.hpp
-/// @brief Conversion context classes which provide methods for performing conversion
+/// @brief Conversion context classes which provide methods for performing conversion.
 
 #include <limits>
 #include <type_traits>
@@ -27,7 +27,7 @@ void StructToMessage(TStruct&&, TMessage&);
 
 namespace proto_structs::io {
 
-/// @brief Read operation context passed to user-defined `ReadProtoStruct` global functions
+/// @brief Read operation context passed to user-defined `ReadProtoStruct` global functions.
 class ReadContext final : public ContextWithErrors<ReadError> {
 private:
     using ContextWithErrors<ReadError>::ContextWithErrors;
@@ -39,7 +39,7 @@ private:
 
 public:
     /// @brief Converts protobuf message field @a message_field with number @a field_number to a proto struct field
-    ///        with type `T`
+    ///        with type `T`.
     /// @tparam T proto struct field type
     /// @tparam U protobuf message type
     template <typename T, typename U>
@@ -58,7 +58,7 @@ public:
     }
 
     /// @brief Converts protobuf message field @a message_field with number @a field_number to a proto struct field
-    ///        with type `T`
+    ///        with type `T`.
     /// @tparam T proto struct field type
     /// @tparam U protobuf message type
     template <proto_structs::traits::ProtoStruct TStruct, proto_structs::traits::ProtoMessage TMessage>
@@ -90,7 +90,7 @@ public:
     }
 
     /// @brief Converts protobuf message field @a message_field with number @a field_number to the proto struct field
-    ///        @a struct_field
+    ///        @a struct_field.
     /// @tparam T proto struct field type
     /// @tparam U protobuf message type
     template <typename T, typename U>
@@ -99,7 +99,7 @@ public:
     }
 };
 
-/// @brief Write operation context passed to user-defined `WriteProtoStruct` global functions
+/// @brief Write operation context passed to user-defined `WriteProtoStruct` global functions.
 class WriteContext final : public ContextWithErrors<WriteError> {
 protected:
     using ContextWithErrors<WriteError>::ContextWithErrors;
@@ -112,7 +112,7 @@ protected:
 
 public:
     /// @brief Converts proto struct field @a struct_field to the protobuf message field @a message_field with number
-    ///        @a field_number
+    ///        @a field_number.
     /// @tparam T proto struct field type
     /// @tparam U protobuf message type
     template <typename T, typename U>
@@ -132,7 +132,7 @@ public:
     }
 
     /// @brief Converts proto struct field @a struct_field to the protobuf message field @a message_field with number
-    ///        @a field_number
+    ///        @a field_number.
     /// @tparam T proto struct field type
     /// @tparam U protobuf message type
     template <typename TStruct, proto_structs::traits::ProtoMessage TMessage>
@@ -207,7 +207,7 @@ concept SizeTypeCompatibleWith =
 
 namespace proto_structs::io {
 
-/// @brief Determines compatability between protobuf/std scalar types
+/// @brief Determines compatability between protobuf/std scalar types.
 template <typename TStdType, typename TProtobufType>
 concept ScalarCompatibleWith = traits::ProtoScalar<TStdType> &&
                                (std::is_same_v<std::remove_cv_t<TStdType>, std::remove_cv_t<TProtobufType>> ||

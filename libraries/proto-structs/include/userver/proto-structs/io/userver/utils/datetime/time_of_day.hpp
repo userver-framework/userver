@@ -1,7 +1,7 @@
 #pragma once
 
 /// @file userver/proto-structs/io/userver/utils/datetime/time_of_day.hpp
-/// @brief Provides `userver::utils::datetime::TimeOfDay` proto struct field support
+/// @brief Provides `userver::utils::datetime::TimeOfDay` proto struct field support.
 
 #include <userver/utils/time_of_day.hpp>
 

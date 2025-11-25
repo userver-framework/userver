@@ -49,7 +49,7 @@ private:
 using Client = GreeterClient;
 
 /// [component]
-extern const dynamic_config::Key<ugrpc::client::ClientQos> kGreeterClientQos;
+extern const USERVER_NAMESPACE::dynamic_config::Key<ugrpc::client::ClientQos> kGreeterClientQos;
 
 class GreeterClientComponent final : public ugrpc::client::SimpleClientComponent<Client> {
 public:

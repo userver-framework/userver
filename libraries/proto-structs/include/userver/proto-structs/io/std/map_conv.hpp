@@ -1,7 +1,7 @@
 #pragma once
 
 /// @file userver/proto-structs/io/std/map_conv.hpp
-/// @brief Provides read/write context class with the ability to handle `std::map` conversion
+/// @brief Provides read/write context class with the ability to handle `std::map` conversion.
 
 #include <userver/proto-structs/io/std/map.hpp>
 

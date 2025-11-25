@@ -1,7 +1,7 @@
 #pragma once
 
 /// @file userver/proto-structs/io/userver/utils/strong_typedef_conv.hpp
-/// @brief Provides read/write context class with the ability to handle `userver::utils::StrongTypedef` conversion
+/// @brief Provides read/write context class with the ability to handle `userver::utils::StrongTypedef` conversion.
 
 #include <userver/proto-structs/io/userver/utils/strong_typedef.hpp>
 

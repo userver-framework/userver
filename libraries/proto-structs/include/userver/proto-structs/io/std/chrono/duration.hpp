@@ -1,7 +1,7 @@
 #pragma once
 
 /// @file userver/proto-structs/io/std/chrono/duration.hpp
-/// @brief Provides `std::chrono::duration` proto struct field support
+/// @brief Provides `std::chrono::duration` proto struct field support.
 
 #include <chrono>
 

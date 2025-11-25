@@ -93,7 +93,7 @@ void Tskv::DoAddTag(std::string_view key, std::string_view value, bool value_is_
     if (!utils::encoding::ShouldKeyBeEscaped(key)) {
         item_.log_line += key;
     } else {
-        utils::encoding::EncodeTskv(item_.log_line, key, utils::encoding::EncodeTskvMode::kKeyReplacePeriod);
+        utils::encoding::EncodeTskv(item_.log_line, key, utils::encoding::EncodeTskvMode::kKey);
     }
     switch (format_) {
         case Format::kTskv:

@@ -8,6 +8,7 @@
 #include <mutex>
 #include <thread>
 
+#include <userver/compiler/impl/tsan.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/utest/utest.hpp>
 #include <userver/utils/algo.hpp>
@@ -160,6 +161,7 @@ UTEST(RcuMap, Snapshot) {
     EXPECT_EQ(2, *second_snap.at("b"));
 }
 
+#if !USERVER_IMPL_HAS_TSAN
 UTEST_MT(RcuMap, ConcurrentUpdates, 4) {
     rcu::RcuMap<int, std::atomic<uint32_t>> map;
     std::array<engine::TaskWithResult<void>, 4> workers;
@@ -221,6 +223,7 @@ UTEST_MT(RcuMap, ConcurrentTryEmplace, 16) {
         EXPECT_EQ(insertions, kTasks / 2);
     }
 }
+#endif
 
 UTEST(RcuMap, IterStability) {
     rcu::RcuMap<int, int> map;

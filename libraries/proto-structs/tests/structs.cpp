@@ -4,7 +4,6 @@
 
 #include <google/protobuf/util/time_util.h>
 
-#include <cstdint>
 #include <userver/proto-structs/io/impl/read.hpp>
 #include <userver/proto-structs/io/impl/write.hpp>
 #include <userver/proto-structs/io/supported_types_conv.hpp>
@@ -170,89 +169,190 @@ void WriteProtoStruct(ups::io::WriteContext& ctx, Scalar&& obj, messages::Scalar
     WriteScalarStruct(ctx, std::move(obj), msg);
 }
 
-WellKnown ReadProtoStruct(ups::io::ReadContext& ctx, ups::io::To<WellKnown>, const messages::WellKnown& msg) {
+WellKnownStd ReadProtoStruct(ups::io::ReadContext& ctx, ups::io::To<WellKnownStd>, const messages::WellKnownStd& msg) {
     return {
-        .f1 = ups::io::impl::ReadField<ups::Any>(
-            ctx, ups::io::impl::CreateFieldGetter(msg, messages::WellKnown::kF1FieldNumber, &messages::WellKnown::f1)
+        .f1 = ups::io::impl::ReadField<std::chrono::time_point<std::chrono::system_clock>>(
+            ctx,
+            ups::io::impl::CreateFieldGetter(msg, messages::WellKnownStd::kF1FieldNumber, &messages::WellKnownStd::f1)
         ),
-        .f2 = ups::io::impl::ReadField<std::chrono::time_point<std::chrono::system_clock>>(
-            ctx, ups::io::impl::CreateFieldGetter(msg, messages::WellKnown::kF2FieldNumber, &messages::WellKnown::f2)
+        .f2 = ups::io::impl::ReadField<std::chrono::milliseconds>(
+            ctx,
+            ups::io::impl::CreateFieldGetter(msg, messages::WellKnownStd::kF2FieldNumber, &messages::WellKnownStd::f2)
         ),
-        .f3 = ups::io::impl::ReadField<std::chrono::milliseconds>(
-            ctx, ups::io::impl::CreateFieldGetter(msg, messages::WellKnown::kF3FieldNumber, &messages::WellKnown::f3)
+        .f3 = ups::io::impl::ReadField<std::chrono::year_month_day>(
+            ctx,
+            ups::io::impl::CreateFieldGetter(msg, messages::WellKnownStd::kF3FieldNumber, &messages::WellKnownStd::f3)
         ),
-        .f4 = ups::io::impl::ReadField<std::chrono::year_month_day>(
-            ctx, ups::io::impl::CreateFieldGetter(msg, messages::WellKnown::kF4FieldNumber, &messages::WellKnown::f4)
-        ),
-        .f5 = ups::io::impl::ReadField<std::chrono::hh_mm_ss<std::chrono::microseconds>>(
-            ctx, ups::io::impl::CreateFieldGetter(msg, messages::WellKnown::kF5FieldNumber, &messages::WellKnown::f5)
-        ),
-        .f6 = ups::io::impl::ReadField<USERVER_NAMESPACE::utils::datetime::TimeOfDay<std::chrono::microseconds>>(
-            ctx, ups::io::impl::CreateFieldGetter(msg, messages::WellKnown::kF6FieldNumber, &messages::WellKnown::f6)
-        ),
-        .f7 = ups::io::impl::ReadField<USERVER_NAMESPACE::decimal64::Decimal<3>>(
-            ctx, ups::io::impl::CreateFieldGetter(msg, messages::WellKnown::kF7FieldNumber, &messages::WellKnown::f7)
+        .f4 = ups::io::impl::ReadField<std::chrono::hh_mm_ss<std::chrono::microseconds>>(
+            ctx,
+            ups::io::impl::CreateFieldGetter(msg, messages::WellKnownStd::kF4FieldNumber, &messages::WellKnownStd::f4)
         )};
 }
 
 template <typename T>
-void WriteWellKnownStruct(ups::io::WriteContext& ctx, T&& obj, messages::WellKnown& msg) {
+void WriteWellKnownStruct(ups::io::WriteContext& ctx, T&& obj, messages::WellKnownStd& msg) {
     ups::io::impl::WriteField(
         ctx,
         std::forward<T>(obj).f1,
         ups::io::impl::CreateFieldSetter(
-            msg, messages::WellKnown::kF1FieldNumber, &messages::WellKnown::mutable_f1, &messages::WellKnown::clear_f1
+            msg,
+            messages::WellKnownStd::kF1FieldNumber,
+            &messages::WellKnownStd::mutable_f1,
+            &messages::WellKnownStd::clear_f1
         )
     );
     ups::io::impl::WriteField(
         ctx,
         std::forward<T>(obj).f2,
         ups::io::impl::CreateFieldSetter(
-            msg, messages::WellKnown::kF2FieldNumber, &messages::WellKnown::mutable_f2, &messages::WellKnown::clear_f2
+            msg,
+            messages::WellKnownStd::kF2FieldNumber,
+            &messages::WellKnownStd::mutable_f2,
+            &messages::WellKnownStd::clear_f2
         )
     );
     ups::io::impl::WriteField(
         ctx,
         std::forward<T>(obj).f3,
         ups::io::impl::CreateFieldSetter(
-            msg, messages::WellKnown::kF3FieldNumber, &messages::WellKnown::mutable_f3, &messages::WellKnown::clear_f3
+            msg,
+            messages::WellKnownStd::kF3FieldNumber,
+            &messages::WellKnownStd::mutable_f3,
+            &messages::WellKnownStd::clear_f3
         )
     );
     ups::io::impl::WriteField(
         ctx,
         std::forward<T>(obj).f4,
         ups::io::impl::CreateFieldSetter(
-            msg, messages::WellKnown::kF4FieldNumber, &messages::WellKnown::mutable_f4, &messages::WellKnown::clear_f4
+            msg,
+            messages::WellKnownStd::kF4FieldNumber,
+            &messages::WellKnownStd::mutable_f4,
+            &messages::WellKnownStd::clear_f4
+        )
+    );
+}
+
+void WriteProtoStruct(ups::io::WriteContext& ctx, const WellKnownStd& obj, messages::WellKnownStd& msg) {
+    WriteWellKnownStruct(ctx, obj, msg);
+}
+
+void WriteProtoStruct(ups::io::WriteContext& ctx, WellKnownStd&& obj, messages::WellKnownStd& msg) {
+    WriteWellKnownStruct(ctx, std::move(obj), msg);
+}
+
+WellKnownUsrv
+ReadProtoStruct(ups::io::ReadContext& ctx, ups::io::To<WellKnownUsrv>, const messages::WellKnownUsrv& msg) {
+    return {
+        .f1 = ups::io::impl::ReadField<ups::Any>(
+            ctx,
+            ups::io::impl::CreateFieldGetter(msg, messages::WellKnownUsrv::kF1FieldNumber, &messages::WellKnownUsrv::f1)
+        ),
+        .f2 = ups::io::impl::ReadField<ups::Timestamp>(
+            ctx,
+            ups::io::impl::CreateFieldGetter(msg, messages::WellKnownUsrv::kF2FieldNumber, &messages::WellKnownUsrv::f2)
+        ),
+        .f3 = ups::io::impl::ReadField<ups::Duration>(
+            ctx,
+            ups::io::impl::CreateFieldGetter(msg, messages::WellKnownUsrv::kF3FieldNumber, &messages::WellKnownUsrv::f3)
+        ),
+        .f4 = ups::io::impl::ReadField<ups::Date>(
+            ctx,
+            ups::io::impl::CreateFieldGetter(msg, messages::WellKnownUsrv::kF4FieldNumber, &messages::WellKnownUsrv::f4)
+        ),
+        .f5 = ups::io::impl::ReadField<ups::TimeOfDay>(
+            ctx,
+            ups::io::impl::CreateFieldGetter(msg, messages::WellKnownUsrv::kF5FieldNumber, &messages::WellKnownUsrv::f5)
+        ),
+        .f6 = ups::io::impl::ReadField<USERVER_NAMESPACE::utils::datetime::TimeOfDay<std::chrono::microseconds>>(
+            ctx,
+            ups::io::impl::CreateFieldGetter(msg, messages::WellKnownUsrv::kF6FieldNumber, &messages::WellKnownUsrv::f6)
+        ),
+        .f7 = ups::io::impl::ReadField<USERVER_NAMESPACE::decimal64::Decimal<3>>(
+            ctx,
+            ups::io::impl::CreateFieldGetter(msg, messages::WellKnownUsrv::kF7FieldNumber, &messages::WellKnownUsrv::f7)
+        )};
+}
+
+template <typename T>
+void WriteWellKnownStruct(ups::io::WriteContext& ctx, T&& obj, messages::WellKnownUsrv& msg) {
+    ups::io::impl::WriteField(
+        ctx,
+        std::forward<T>(obj).f1,
+        ups::io::impl::CreateFieldSetter(
+            msg,
+            messages::WellKnownUsrv::kF1FieldNumber,
+            &messages::WellKnownUsrv::mutable_f1,
+            &messages::WellKnownUsrv::clear_f1
+        )
+    );
+    ups::io::impl::WriteField(
+        ctx,
+        std::forward<T>(obj).f2,
+        ups::io::impl::CreateFieldSetter(
+            msg,
+            messages::WellKnownUsrv::kF2FieldNumber,
+            &messages::WellKnownUsrv::mutable_f2,
+            &messages::WellKnownUsrv::clear_f2
+        )
+    );
+    ups::io::impl::WriteField(
+        ctx,
+        std::forward<T>(obj).f3,
+        ups::io::impl::CreateFieldSetter(
+            msg,
+            messages::WellKnownUsrv::kF3FieldNumber,
+            &messages::WellKnownUsrv::mutable_f3,
+            &messages::WellKnownUsrv::clear_f3
+        )
+    );
+    ups::io::impl::WriteField(
+        ctx,
+        std::forward<T>(obj).f4,
+        ups::io::impl::CreateFieldSetter(
+            msg,
+            messages::WellKnownUsrv::kF4FieldNumber,
+            &messages::WellKnownUsrv::mutable_f4,
+            &messages::WellKnownUsrv::clear_f4
         )
     );
     ups::io::impl::WriteField(
         ctx,
         std::forward<T>(obj).f5,
         ups::io::impl::CreateFieldSetter(
-            msg, messages::WellKnown::kF5FieldNumber, &messages::WellKnown::mutable_f5, &messages::WellKnown::clear_f5
+            msg,
+            messages::WellKnownUsrv::kF5FieldNumber,
+            &messages::WellKnownUsrv::mutable_f5,
+            &messages::WellKnownUsrv::clear_f5
         )
     );
     ups::io::impl::WriteField(
         ctx,
         std::forward<T>(obj).f6,
         ups::io::impl::CreateFieldSetter(
-            msg, messages::WellKnown::kF6FieldNumber, &messages::WellKnown::mutable_f6, &messages::WellKnown::clear_f6
+            msg,
+            messages::WellKnownUsrv::kF6FieldNumber,
+            &messages::WellKnownUsrv::mutable_f6,
+            &messages::WellKnownUsrv::clear_f6
         )
     );
     ups::io::impl::WriteField(
         ctx,
         std::forward<T>(obj).f7,
         ups::io::impl::CreateFieldSetter(
-            msg, messages::WellKnown::kF7FieldNumber, &messages::WellKnown::mutable_f7, &messages::WellKnown::clear_f7
+            msg,
+            messages::WellKnownUsrv::kF7FieldNumber,
+            &messages::WellKnownUsrv::mutable_f7,
+            &messages::WellKnownUsrv::clear_f7
         )
     );
 }
 
-void WriteProtoStruct(ups::io::WriteContext& ctx, const WellKnown& obj, messages::WellKnown& msg) {
+void WriteProtoStruct(ups::io::WriteContext& ctx, const WellKnownUsrv& obj, messages::WellKnownUsrv& msg) {
     WriteWellKnownStruct(ctx, obj, msg);
 }
 
-void WriteProtoStruct(ups::io::WriteContext& ctx, WellKnown&& obj, messages::WellKnown& msg) {
+void WriteProtoStruct(ups::io::WriteContext& ctx, WellKnownUsrv&& obj, messages::WellKnownUsrv& msg) {
     WriteWellKnownStruct(ctx, std::move(obj), msg);
 }
 
@@ -493,7 +593,7 @@ Indirect ReadProtoStruct(ups::io::ReadContext& ctx, ups::io::To<Indirect>, const
         .f1 = ups::io::impl::ReadField<Indirect::Box<Simple>>(
             ctx, ups::io::impl::CreateFieldGetter(msg, messages::Indirect::kF1FieldNumber, &messages::Indirect::f1)
         ),
-        .f2 = ups::io::impl::ReadField<std::optional<Indirect::Box<std::chrono::nanoseconds>>>(
+        .f2 = ups::io::impl::ReadField<std::optional<Indirect::Box<ups::Duration>>>(
             ctx,
             ups::io::impl::CreateFieldGetter(
                 msg, messages::Indirect::kF2FieldNumber, &messages::Indirect::f2, &messages::Indirect::has_f2
@@ -744,33 +844,51 @@ void CheckScalarEqual(const Scalar& obj, const messages::Scalar& msg) {
     EXPECT_EQ(static_cast<int>(obj.f11), msg.f11());
 }
 
-void CheckWellKnownEqual(const WellKnown& obj, const messages::WellKnown& msg) {
+void CheckWellKnownStdEqual(const WellKnownStd& obj, const messages::WellKnownStd& msg) {
     using TimeType = std::chrono::time_point<std::chrono::system_clock>;
 
+    EXPECT_EQ(
+        obj.f1.time_since_epoch(),
+        std::chrono::duration_cast<TimeType::duration>(std::chrono::nanoseconds{
+            ::google::protobuf::util::TimeUtil::TimestampToNanoseconds(msg.f1())})
+    );
+    EXPECT_EQ(
+        obj.f2,
+        std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::nanoseconds{
+            ::google::protobuf::util::TimeUtil::DurationToNanoseconds(msg.f2())})
+    );
+
+    EXPECT_EQ(static_cast<int>(obj.f3.year()), msg.f3().year());
+    EXPECT_EQ(static_cast<unsigned>(obj.f3.month()), static_cast<unsigned>(msg.f3().month()));
+    EXPECT_EQ(static_cast<unsigned>(obj.f3.day()), static_cast<unsigned>(msg.f3().day()));
+
+    EXPECT_EQ(obj.f4.hours().count(), msg.f4().hours());
+    EXPECT_EQ(obj.f4.minutes().count(), msg.f4().minutes());
+    EXPECT_EQ(obj.f4.seconds().count(), msg.f4().seconds());
+    EXPECT_EQ(
+        obj.f4.subseconds().count(),
+        std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::nanoseconds(msg.f4().nanos())).count()
+    );
+}
+
+void CheckWellKnownUsrvEqual(const WellKnownUsrv& obj, const messages::WellKnownUsrv& msg) {
     EXPECT_EQ(obj.f1.GetProtobufAny().type_url(), msg.f1().type_url());
     EXPECT_EQ(obj.f1.GetProtobufAny().value(), msg.f1().value());
-    EXPECT_EQ(
-        obj.f2.time_since_epoch(),
-        std::chrono::duration_cast<TimeType::duration>(std::chrono::nanoseconds{
-            ::google::protobuf::util::TimeUtil::TimestampToNanoseconds(msg.f2())})
-    );
-    EXPECT_EQ(
-        obj.f3,
-        std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::nanoseconds{
-            ::google::protobuf::util::TimeUtil::DurationToNanoseconds(msg.f3())})
-    );
 
-    EXPECT_EQ(static_cast<int>(obj.f4.year()), msg.f4().year());
-    EXPECT_EQ(static_cast<unsigned>(obj.f4.month()), static_cast<unsigned>(msg.f4().month()));
-    EXPECT_EQ(static_cast<unsigned>(obj.f4.day()), static_cast<unsigned>(msg.f4().day()));
+    EXPECT_EQ(obj.f2.Seconds().count(), msg.f2().seconds());
+    EXPECT_EQ(obj.f2.Nanos().count(), msg.f2().nanos());
 
-    EXPECT_EQ(obj.f5.hours().count(), msg.f5().hours());
-    EXPECT_EQ(obj.f5.minutes().count(), msg.f5().minutes());
-    EXPECT_EQ(obj.f5.seconds().count(), msg.f5().seconds());
-    EXPECT_EQ(
-        obj.f5.subseconds().count(),
-        std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::nanoseconds(msg.f5().nanos())).count()
-    );
+    EXPECT_EQ(obj.f3.Seconds().count(), msg.f3().seconds());
+    EXPECT_EQ(obj.f3.Nanos().count(), msg.f3().nanos());
+
+    EXPECT_EQ(obj.f4.YearNum(), msg.f4().year());
+    EXPECT_EQ(obj.f4.MonthNum(), msg.f4().month());
+    EXPECT_EQ(obj.f4.DayNum(), msg.f4().day());
+
+    EXPECT_EQ(obj.f5.Hours().count(), msg.f5().hours());
+    EXPECT_EQ(obj.f5.Minutes().count(), msg.f5().minutes());
+    EXPECT_EQ(obj.f5.Seconds().count(), msg.f5().seconds());
+    EXPECT_EQ(obj.f5.Nanos().count(), msg.f5().nanos());
 
     EXPECT_EQ(obj.f6.Hours().count(), msg.f6().hours());
     EXPECT_EQ(obj.f6.Minutes().count(), msg.f6().minutes());
@@ -909,10 +1027,8 @@ void CheckIndirectEqual(const Indirect& obj, const messages::Indirect& msg) {
 
     if (obj.f2) {
         EXPECT_TRUE(msg.has_f2());
-        EXPECT_EQ(
-            *obj.f2.value(),
-            std::chrono::nanoseconds{::google::protobuf::util::TimeUtil::DurationToNanoseconds(msg.f2())}
-        );
+        EXPECT_EQ((*obj.f2.value()).Seconds().count(), msg.f2().seconds());
+        EXPECT_EQ((*obj.f2.value()).Nanos().count(), msg.f2().nanos());
     } else {
         EXPECT_FALSE(msg.has_f2());
     }
@@ -992,10 +1108,9 @@ void CheckStrongEqual(const Strong& obj, const messages::Strong& msg) {
 
     if (obj.test_oneof.Contains(0)) {
         EXPECT_TRUE(msg.has_f5());
-        EXPECT_EQ(
-            obj.test_oneof.Get<0>().GetUnderlying(),
-            std::chrono::nanoseconds{::google::protobuf::util::TimeUtil::DurationToNanoseconds(msg.f5())}
-        );
+        EXPECT_EQ(obj.test_oneof.Get<0>().GetUnderlying().Seconds().count(), msg.f5().seconds());
+        EXPECT_EQ(obj.test_oneof.Get<0>().GetUnderlying().Nanos().count(), msg.f5().nanos());
+
     } else {
         EXPECT_FALSE(msg.has_f5());
     }

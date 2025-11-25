@@ -10,6 +10,7 @@
 #include <userver/ugrpc/client/impl/async_method_invocation.hpp>
 #include <userver/ugrpc/client/impl/async_methods.hpp>
 #include <userver/ugrpc/client/impl/call_state.hpp>
+#include <userver/ugrpc/time_utils.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -42,6 +43,8 @@ void ProcessFinishAbandoned(CallState& state) noexcept;
 void ProcessCancelled(CallState& state, std::string_view stage) noexcept;
 
 void ProcessNetworkError(CallState& state, std::string_view stage) noexcept;
+
+void ThrowIfDeadlineIsExceeded(grpc::ClientContext& context, std::string_view call_name);
 
 template <typename GrpcStream>
 void StartCall(GrpcStream& stream, StreamingCallState& state) {
@@ -87,6 +90,7 @@ void Finish(
             state.GetStatsScope().SetFinishTime(finish.GetFinishTime());
             ProcessNetworkError(state, "Finish");
             if (throw_on_error) {
+                ThrowIfDeadlineIsExceeded(state.GetClientContext(), state.GetCallName());
                 throw RpcInterruptedError(state.GetCallName(), "Finish");
             }
             break;

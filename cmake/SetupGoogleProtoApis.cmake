@@ -19,12 +19,10 @@ if(NOT EXISTS ${api-common-protos_SOURCE_DIR})
     cpmaddpackage(
         NAME
         api-common-protos
-        VERSION
-        1.50.0
         GITHUB_REPOSITORY
         googleapis/api-common-protos
         GIT_TAG
-        1.50.0
+        main
         DOWNLOAD_ONLY
         YES
     )

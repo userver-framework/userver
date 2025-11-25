@@ -82,7 +82,6 @@ private:
     LogBuffer msg_;
     Level level_;
     std::optional<LazyInitedStream> lazy_stream_;
-    std::optional<std::unordered_set<std::string>> debug_tag_keys_;
     LoggerRef logger_;
     impl::formatters::BasePtr formatter_;
 };

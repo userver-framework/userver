@@ -209,6 +209,7 @@ Postgres::Postgres(const ComponentConfig& config, const ComponentContext& contex
 Postgres::~Postgres() {
     statistics_holder_.Unregister();
     config_subscription_.Unsubscribe();
+    secdist_subscription_.Unsubscribe();
 }
 
 storages::postgres::ClusterPtr Postgres::GetCluster() const { return database_->GetCluster(); }

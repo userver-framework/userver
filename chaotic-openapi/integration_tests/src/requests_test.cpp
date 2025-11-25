@@ -115,7 +115,7 @@ UTEST_F(RequestsQueryLogMode, HideOperation) {
 
     EXPECT_EQ(response->status_code(), 200);
 
-    auto text = GetLogCapture().GetAll().back().GetTag("http_url");
+    auto text = GetLogCapture().GetAll().back().GetTag("http.url");
     EXPECT_TRUE(utils::text::EndsWith(text, "test1/query-log-mode?password=***&secret=***"));
 }
 
@@ -132,7 +132,7 @@ UTEST_F(RequestsQueryLogMode, HideParameter) {
 
     EXPECT_EQ(response->status_code(), 200);
 
-    auto text = GetLogCapture().GetAll().back().GetTag("http_url");
+    auto text = GetLogCapture().GetAll().back().GetTag("http.url");
     EXPECT_TRUE(utils::text::EndsWith(text, "test1/query-log-mode/parameter?password=***&secret=bar")) << text;
 }
 

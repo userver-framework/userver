@@ -9,6 +9,7 @@ from typing import Optional
 
 from proto_structs.models import options
 from proto_structs.models import type_ref
+from proto_structs.models import type_ref_consts
 
 
 def get_type_override(
@@ -18,5 +19,4 @@ def get_type_override(
     If we wish to use a custom C++ type for the referenced Protobuf type, returns it. Otherwise, returns `None`.
     `proto_type_name` is the full Protobuf type name in the form `package.of.Type.Nested`.
     """
-    # TODO(TAXICOMMON-10999): support well-known types
-    return None
+    return type_ref_consts.WELL_KNOWN_TYPES.get(proto_type_name)

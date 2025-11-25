@@ -9,8 +9,7 @@
 private:                                                                                  \
     enum { kCounterStart = __COUNTER__ + 1 }; /* An inline constant would violate odr. */ \
 public:                                                                                   \
-    using Base::Base;                                                                     \
-    bool operator==(const oneof_type&) const;
+    using Base::Base;
 
 #define UPROTO_ONEOF_FIELD(oneof_type, field_type, field_name)                     \
 private:                                                                           \

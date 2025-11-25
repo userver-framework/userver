@@ -35,8 +35,8 @@ public:
 };
 
 /// @brief RPC failed without a status. This means that either the call got
-/// cancelled using `TryCancel`, the deadline has expired, or the channel is
-/// broken.
+/// cancelled using `TryCancel` or the channel is broken.
+/// Note: Deadline expiration throws  @ref ugrpc::client::DeadlineExceededError
 class RpcInterruptedError final : public RpcError {
 public:
     RpcInterruptedError(std::string_view call_name, std::string_view stage);

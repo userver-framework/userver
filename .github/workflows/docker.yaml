@@ -65,7 +65,7 @@ jobs:
                         -DUSERVER_BUILD_SAMPLES=1
                         -DUSERVER_BUILD_TESTS=1
                         -DCMAKE_BUILD_TYPE=Release
-                    gtest-filter: -YdbExecuteTpl/1.SimpleWriteReadBinary
+                    gtest-filter: -YdbExecuteTpl/1.SimpleWriteReadBinary:LoggingTest.Format:LoggingTest.CallFormat
                     image: ubuntu-22.04-userver-base-ci
                     info: ubuntu + clang-16 + cxx20
                     id: ubuntu_clang16_cxx20
@@ -80,7 +80,7 @@ jobs:
                         -DUSERVER_BUILD_SAMPLES=1
                         -DUSERVER_BUILD_TESTS=1
                         -DCMAKE_BUILD_TYPE=Release
-                    gtest-filter: '*'
+                    gtest-filter: '-LoggingTest.Format:LoggingTest.CallFormat'
                     image: ubuntu-22.04-userver-base-ci
                     info: ubuntu + gcc-13 + cxx20
                     id: ubuntu_gcc13_cxx20

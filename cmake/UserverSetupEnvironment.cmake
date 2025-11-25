@@ -31,6 +31,11 @@ function(_userver_setup_environment_impl)
     message(STATUS "C compiler: ${CMAKE_C_COMPILER}")
     message(STATUS "C++ compiler: ${CMAKE_CXX_COMPILER}")
 
+    if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS 10.0 AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+        message(FATAL_ERROR "GCC compilers below version 10 are not supported")
+        return()
+    endif()
+
     cmake_policy(SET CMP0057 NEW)
     if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
         include("${USERVER_CMAKE_DIR}/SetupHomebrew.cmake")

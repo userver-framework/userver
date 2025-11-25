@@ -11,9 +11,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine {
 
-// Not considered implicitly noexcept on gcc-9.
-// NOLINTNEXTLINE(hicpp-use-equals-default,modernize-use-equals-default)
-SingleUseEvent::SingleUseEvent() noexcept {}
+SingleUseEvent::SingleUseEvent() noexcept = default;
 
 SingleUseEvent::~SingleUseEvent() = default;
 

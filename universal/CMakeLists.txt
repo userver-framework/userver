@@ -404,6 +404,7 @@ _userver_directory_install(
           "${USERVER_ROOT_DIR}/cmake/SetupRe2.cmake"
           "${USERVER_ROOT_DIR}/cmake/sanitize.blacklist.txt"
           "${USERVER_ROOT_DIR}/cmake/sanitize-macos.blacklist.txt"
+          "${USERVER_ROOT_DIR}/cmake/tsan.suppressions.txt"
           "${USERVER_ROOT_DIR}/cmake/RequireLTO.cmake"
           "${USERVER_ROOT_DIR}/cmake/SetupLTO.cmake"
           "${USERVER_ROOT_DIR}/cmake/SetupPGO.cmake"

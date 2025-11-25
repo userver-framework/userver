@@ -29,9 +29,9 @@ namespace proto_structs {
 /// At least we generate something valid for other fields and types in the file,
 /// so that if the current field is not actually needed, then proto structs are usable.
 struct UnbreakableDependencyCycle final {
-    // TODO We cannot actually compare the contents of such field, because they are not parsed into proto structs.
-    //  Transitively, any data structure containing such field should not be comparable.
-    bool operator==(const UnbreakableDependencyCycle& other) const = default;
+    /// We cannot actually compare the contents of such field, because they are not parsed into proto structs.
+    /// Transitively, any data structure containing such field is not comparable.
+    bool operator==(const UnbreakableDependencyCycle& other) const = delete;
 };
 
 }  // namespace proto_structs

@@ -3,9 +3,12 @@
 #include <gtest/gtest.h>
 
 #include <userver/proto-structs/convert.hpp>
+#include <userver/proto-structs/type_mapping.hpp>
 
 #include <simple/base.pb.h>
 #include <simple/base.structs.usrv.pb.hpp>
+
+#include <google/protobuf/any.h>
 
 namespace ss = simple::structs;
 
@@ -23,9 +26,7 @@ TEST(SingleFile, SimpleStruct) {
     message.nested.swag = "foo";
     message.optional_nested = std::optional<ss::SimpleStruct::NestedStruct>{{.swag = "foo"}};
 
-    ss::SimpleStruct::ProtobufMessage vanilla;
-
-    ::proto_structs::StructToMessage(std::move(message), vanilla);
+    auto vanilla = ::proto_structs::StructToMessage(std::move(message));
 
     EXPECT_EQ(vanilla.some_integer(), 5);
     EXPECT_EQ(vanilla.some_text(), "foo");
@@ -112,6 +113,61 @@ TEST(Oneof, OneofInStruct) {
     [[maybe_unused]] ss::SimpleStruct message;
     message.something.set_bar("bar");
     EXPECT_EQ(message.something.bar(), "bar");
+}
+
+TEST(Oneof, WellKnownTypes) {
+    const std::chrono::seconds kSeconds{1};
+    const std::chrono::nanoseconds kNanoseconds{1};
+    const std::chrono::year kYear{2025};
+    const std::chrono::month kMonth{10};
+    const std::chrono::day kDay{30};
+    const std::chrono::hours kHours{20};
+    const std::chrono::minutes kMinutes{10};
+    const std::string kString{"swag"};
+
+    ss::WellKnownUsrv message;
+
+    message.f1 = proto_structs::Timestamp(kSeconds, kNanoseconds);
+    message.f2 = proto_structs::Duration(kSeconds, kNanoseconds);
+    message.f3 = proto_structs::Date(kYear, kMonth, kDay);
+    message.f4 = proto_structs::TimeOfDay(kHours, kMinutes, kSeconds);
+
+    google::protobuf::Any pbuf_any;
+    proto_structs::traits::CompatibleMessageType<ss::ForAny> for_any;
+    for_any.set_f1(kString);
+
+    EXPECT_TRUE(pbuf_any.PackFrom(for_any));
+
+    message.f5 = proto_structs::Any{pbuf_any};
+
+    const auto vanilla = proto_structs::StructToMessage(std::move(message));
+
+    ss::WellKnownUsrv parsed;
+    proto_structs::MessageToStruct(vanilla, parsed);
+
+    ASSERT_EQ(parsed.f1.Seconds(), kSeconds);
+    ASSERT_EQ(parsed.f1.Nanos(), kNanoseconds);
+
+    ASSERT_EQ(parsed.f2.Seconds(), kSeconds);
+    ASSERT_EQ(parsed.f2.Nanos(), kNanoseconds);
+
+    ASSERT_TRUE(parsed.f3.Year().has_value());
+    ASSERT_TRUE(parsed.f3.Month().has_value());
+    ASSERT_TRUE(parsed.f3.Day().has_value());
+
+    ASSERT_EQ(parsed.f3.Year(), kYear);
+    ASSERT_EQ(parsed.f3.Month(), kMonth);
+    ASSERT_EQ(parsed.f3.Day(), kDay);
+
+    ASSERT_EQ(parsed.f4.Hours(), kHours);
+    ASSERT_EQ(parsed.f4.Minutes(), kMinutes);
+    ASSERT_EQ(parsed.f4.Seconds(), kSeconds);
+    ASSERT_EQ(parsed.f4.Nanos(), std::chrono::nanoseconds{0});
+
+    ASSERT_TRUE(parsed.f5.Is<proto_structs::traits::CompatibleMessageType<ss::ForAny>>());
+
+    const auto parsed_any = parsed.f5.Unpack<ss::ForAny>();
+    ASSERT_EQ(parsed_any.f1, kString);
 }
 
 USERVER_NAMESPACE_END

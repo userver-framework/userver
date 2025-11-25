@@ -50,14 +50,6 @@ grpc::ChannelArguments MakeChannelArgs(const yaml_config::YamlConfig& channel_ar
 
 }  // namespace
 
-AuthType Parse(const yaml_config::YamlConfig& value, formats::parse::To<AuthType>) {
-    constexpr utils::TrivialBiMap kMap([](auto selector) {
-        return selector().Case(AuthType::kInsecure, "insecure").Case(AuthType::kSsl, "ssl");
-    });
-
-    return utils::ParseFromValueString(value, kMap);
-}
-
 ClientFactoryConfig Parse(const yaml_config::YamlConfig& value, formats::parse::To<ClientFactoryConfig>) {
     ClientFactoryConfig config;
     config.auth_type = value["auth-type"].As<AuthType>(AuthType::kInsecure);

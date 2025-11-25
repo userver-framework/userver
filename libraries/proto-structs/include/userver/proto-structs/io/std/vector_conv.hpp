@@ -1,7 +1,7 @@
 #pragma once
 
 /// @file userver/proto-structs/io/std/vector_conv.hpp
-/// @brief Provides read/write context class with the ability to handle `std::vector` conversion
+/// @brief Provides read/write context class with the ability to handle `std::vector` conversion.
 
 #include <userver/proto-structs/io/std/vector.hpp>
 

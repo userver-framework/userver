@@ -1,7 +1,7 @@
 #pragma once
 
 /// @file userver/proto-structs/io/userver/utils/box.hpp
-/// @brief Provides `userver::utils::Box` proto struct field support
+/// @brief Provides `userver::utils::Box` proto struct field support.
 
 #include <userver/utils/box.hpp>
 

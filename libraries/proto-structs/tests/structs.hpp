@@ -1,17 +1,16 @@
 #pragma once
 
-#include <cstdint>
 #include <userver/proto-structs/io/fwd.hpp>
 #include <userver/proto-structs/io/supported_types.hpp>
 #include <userver/proto-structs/type_mapping.hpp>
 
 #include "struct_simple.hpp"
-#include "userver/utils/box.hpp"
 
 namespace messages {
 class ConversionFailure;
 class Scalar;
-class WellKnown;
+class WellKnownStd;
+class WellKnownUsrv;
 class Optional;
 class Repeated;
 class Map;
@@ -60,14 +59,23 @@ struct Scalar {
     std::size_t f11 = {};
 };
 
-struct WellKnown {
-    using ProtobufMessage = messages::WellKnown;
+struct WellKnownStd {
+    using ProtobufMessage = messages::WellKnownStd;
+
+    std::chrono::time_point<std::chrono::system_clock> f1 = {};
+    std::chrono::milliseconds f2 = {};
+    std::chrono::year_month_day f3 = {};
+    std::chrono::hh_mm_ss<std::chrono::microseconds> f4 = {};
+};
+
+struct WellKnownUsrv {
+    using ProtobufMessage = messages::WellKnownUsrv;
 
     ups::Any f1 = {};
-    std::chrono::time_point<std::chrono::system_clock> f2 = {};
-    std::chrono::milliseconds f3 = {};
-    std::chrono::year_month_day f4 = {};
-    std::chrono::hh_mm_ss<std::chrono::microseconds> f5 = {};
+    ups::Timestamp f2 = {};
+    ups::Duration f3 = {};
+    ups::Date f4 = {};
+    ups::TimeOfDay f5 = {};
     USERVER_NAMESPACE::utils::datetime::TimeOfDay<std::chrono::microseconds> f6 = {};
     USERVER_NAMESPACE::decimal64::Decimal<3> f7 = {};
 };
@@ -115,7 +123,7 @@ struct Indirect {
     using OneofType = ups::Oneof<Box<Simple>, Box<std::string>>;
 
     Box<Simple> f1 = {};
-    std::optional<Box<std::chrono::nanoseconds>> f2 = {};
+    std::optional<Box<ups::Duration>> f2 = {};
     std::vector<Box<Simple>> f3 = {};
     std::map<int32_t, Box<Simple>> f4 = {};
     OneofType test_oneof = {};
@@ -132,7 +140,7 @@ struct Strong {
     using F2Strong = USERVER_NAMESPACE::utils::StrongTypedef<Tag, std::string>;
     using F3Strong = USERVER_NAMESPACE::utils::StrongTypedef<Tag, TestEnum>;
     using F4Strong = USERVER_NAMESPACE::utils::StrongTypedef<Tag, Simple>;
-    using F5Strong = USERVER_NAMESPACE::utils::StrongTypedef<Tag, std::chrono::nanoseconds>;
+    using F5Strong = USERVER_NAMESPACE::utils::StrongTypedef<Tag, ups::Duration>;
     using OneofType = ups::Oneof<F5Strong>;
 
     F1Strong f1 = {};
@@ -160,9 +168,13 @@ Scalar ReadProtoStruct(ups::io::ReadContext&, ups::io::To<Scalar>, const message
 void WriteProtoStruct(ups::io::WriteContext&, const Scalar&, messages::Scalar&);
 void WriteProtoStruct(ups::io::WriteContext&, Scalar&&, messages::Scalar&);
 
-WellKnown ReadProtoStruct(ups::io::ReadContext&, ups::io::To<WellKnown>, const messages::WellKnown&);
-void WriteProtoStruct(ups::io::WriteContext&, const WellKnown&, messages::WellKnown&);
-void WriteProtoStruct(ups::io::WriteContext&, WellKnown&&, messages::WellKnown&);
+WellKnownStd ReadProtoStruct(ups::io::ReadContext&, ups::io::To<WellKnownStd>, const messages::WellKnownStd&);
+void WriteProtoStruct(ups::io::WriteContext&, const WellKnownStd&, messages::WellKnownStd&);
+void WriteProtoStruct(ups::io::WriteContext&, WellKnownStd&&, messages::WellKnownStd&);
+
+WellKnownUsrv ReadProtoStruct(ups::io::ReadContext&, ups::io::To<WellKnownUsrv>, const messages::WellKnownUsrv&);
+void WriteProtoStruct(ups::io::WriteContext&, const WellKnownUsrv&, messages::WellKnownUsrv&);
+void WriteProtoStruct(ups::io::WriteContext&, WellKnownUsrv&&, messages::WellKnownUsrv&);
 
 Optional ReadProtoStruct(ups::io::ReadContext&, ups::io::To<Optional>, const messages::Optional&);
 void WriteProtoStruct(ups::io::WriteContext&, const Optional&, messages::Optional&);
@@ -192,7 +204,8 @@ Erroneous ReadProtoStruct(ups::io::ReadContext&, ups::io::To<Erroneous>, const m
 void WriteProtoStruct(ups::io::WriteContext&, const Erroneous&, messages::Erroneous&);
 
 void CheckScalarEqual(const Scalar&, const messages::Scalar&);
-void CheckWellKnownEqual(const WellKnown&, const messages::WellKnown&);
+void CheckWellKnownStdEqual(const WellKnownStd&, const messages::WellKnownStd&);
+void CheckWellKnownUsrvEqual(const WellKnownUsrv&, const messages::WellKnownUsrv&);
 void CheckOptionalEqual(const Optional&, const messages::Optional&);
 void CheckRepeatedEqual(const Repeated&, const messages::Repeated&);
 void CheckMapEqual(const Map&, const messages::Map&);

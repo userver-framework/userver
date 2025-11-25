@@ -7,7 +7,7 @@ set -euox pipefail
 apt update
 DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends \
   apt-utils apt-transport-https ca-certificates dirmngr wget curl software-properties-common \
-  gnupg gnupg2
+  gnupg gnupg2 sudo
 
 gpg_retrieve_curl() {
   # See https://unix.stackexchange.com/questions/682929/migrating-away-from-apt-key-adv
@@ -50,7 +50,7 @@ echo "deb [signed-by=/usr/share/keyrings/clickhouse-keyring.gpg] https://package
     | tee /etc/apt/sources.list.d/clickhouse.list
 
 # Adding mariadb repositories (from https://www.linuxcapable.com/how-to-install-mariadb-on-ubuntu-linux/ )
-gpg_retrieve_curl http://mirror.mariadb.org/PublicKey_v2 mariadb
+gpg_retrieve_curl https://mariadb.org/mariadb_release_signing_key.pgp mariadb
 # Restore the correct URL after https://jira.mariadb.org/browse/MDBF-651
 #echo "deb [arch=amd64,arm64,ppc64el signed-by=/usr/share/keyrings/mariadb.gpg] https://deb.mariadb.org/10.11/ubuntu $(lsb_release -cs) main" \
 #    | tee /etc/apt/sources.list.d/mariadb.list
@@ -64,20 +64,7 @@ deb [arch=amd64 signed-by=/usr/share/keyrings/confluent.gpg] https://packages.co
 deb [signed-by=/usr/share/keyrings/confluent.gpg] https://packages.confluent.io/clients/deb $(lsb_release -cs) main\n" \
     | tee /etc/apt/sources.list.d/confluent.list
 
-# convoluted setup of rabbitmq + erlang taken from https://www.rabbitmq.com/install-debian.html#apt-quick-start-packagecloud
-## Team RabbitMQ's main signing key
-gpg_retrieve_curl https://keys.openpgp.org/vks/v1/by-fingerprint/0A9AF2115F4687BD29803A206B73A36E6026DFCA com.rabbitmq.team
-## Launchpad PPA that provides modern Erlang releases
-gpg_retrieve_curl "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0xf77f1eda57ebb1cc" net.launchpad.ppa.rabbitmq.erlang
-## PackageCloud RabbitMQ repository
-gpg_retrieve_curl https://packagecloud.io/rabbitmq/rabbitmq-server/gpgkey io.packagecloud.rabbitmq
-## Add apt repositories maintained by Team RabbitMQ
-printf "\
-deb [signed-by=/usr/share/keyrings/net.launchpad.ppa.rabbitmq.erlang.gpg] http://ppa.launchpad.net/rabbitmq/rabbitmq-erlang/ubuntu $(lsb_release -cs) main \n\
-deb-src [signed-by=/usr/share/keyrings/net.launchpad.ppa.rabbitmq.erlang.gpg] http://ppa.launchpad.net/rabbitmq/rabbitmq-erlang/ubuntu $(lsb_release -cs) main \n\
-deb [signed-by=/usr/share/keyrings/io.packagecloud.rabbitmq.gpg] https://packagecloud.io/rabbitmq/rabbitmq-server/ubuntu/ $(lsb_release -cs) main \n\
-deb-src [signed-by=/usr/share/keyrings/io.packagecloud.rabbitmq.gpg] https://packagecloud.io/rabbitmq/rabbitmq-server/ubuntu/ $(lsb_release -cs) main\n" \
-    | tee /etc/apt/sources.list.d/rabbitmq.list
+curl -fsSL https://raw.githubusercontent.com/userver-framework/userver/refs/heads/develop/scripts/rabbitmq/ubuntu_install_rabbitmq_server.sh | bash
 
 gpg_retrieve_curl https://www.mongodb.org/static/pgp/server-6.0.asc mongodb
 echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb.gpg ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/6.0 multiverse" \

@@ -14,10 +14,14 @@ namespace ugrpc::client::impl {
 class StubPool final {
 public:
     template <typename Stub>
-    static StubPool
-    Create(std::size_t size, const ChannelFactory& channel_factory, const grpc::ChannelArguments& channel_args) {
-        auto channels = utils::GenerateFixedArray(size, [&channel_factory, &channel_args](std::size_t) {
-            return channel_factory.CreateChannel(channel_args);
+    static StubPool Create(
+        std::size_t size,
+        const ChannelFactory& channel_factory,
+        std::string_view target,
+        const grpc::ChannelArguments& channel_args
+    ) {
+        auto channels = utils::GenerateFixedArray(size, [&channel_factory, target, &channel_args](std::size_t) {
+            return channel_factory.CreateChannel(target, channel_args);
         });
         auto stubs = utils::GenerateFixedArray(channels.size(), [&channels](std::size_t index) {
             return MakeStub<Stub>(channels[index]);

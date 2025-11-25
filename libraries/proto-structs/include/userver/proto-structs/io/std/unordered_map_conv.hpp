@@ -1,7 +1,7 @@
 #pragma once
 
 /// @file userver/proto-structs/io/std/unordered_map_conv.hpp
-/// @brief Provides read/write context class with the ability to handle `std::unordered_map` conversion
+/// @brief Provides read/write context class with the ability to handle `std::unordered_map` conversion.
 
 #include <userver/proto-structs/io/std/unordered_map.hpp>
 

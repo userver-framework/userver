@@ -11,6 +11,7 @@
 #include <userver/ugrpc/client/client_settings.hpp>
 #include <userver/ugrpc/client/impl/channel_factory.hpp>
 #include <userver/ugrpc/client/middlewares/fwd.hpp>
+#include <userver/ugrpc/client/proxy_settings.hpp>
 #include <userver/ugrpc/client/retry_config.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -25,6 +26,7 @@ namespace ugrpc::client::impl {
 /// Contains all non-code-generated dependencies for creating a gRPC client
 struct ClientInternals final {
     std::string client_name;
+    std::string endpoint;
     Middlewares middlewares;
     ugrpc::impl::CompletionQueuePoolBase& completion_queues;
     ugrpc::impl::StatisticsStorage& statistics_storage;
@@ -37,6 +39,7 @@ struct ClientInternals final {
     const RetryConfig& retry_config;
     const grpc::ChannelArguments& channel_args;
     const std::optional<std::string>& default_service_config;
+    const ProxySettings& proxy_settings;
 };
 
 }  // namespace ugrpc::client::impl

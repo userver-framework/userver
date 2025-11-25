@@ -1,7 +1,7 @@
 #pragma once
 
 /// @file userver/proto-structs/io/std/chrono/year_month_day.hpp
-/// @brief Provides `std::chrono::year_month_day` proto struct field support
+/// @brief Provides `std::chrono::year_month_day` proto struct field support.
 
 #include <chrono>
 
