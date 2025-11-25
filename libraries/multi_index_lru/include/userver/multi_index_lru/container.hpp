@@ -1,6 +1,5 @@
 #pragma once
 
-#include <boost/multi_index/hashed_index.hpp>
 #include <boost/multi_index/sequenced_index.hpp>
 #include <boost/multi_index/identity.hpp>
 #include <boost/multi_index_container.hpp> 
@@ -80,10 +79,7 @@ public:
 
 private:
     using AdditionalIndices = boost::mpl::list<
-        boost::multi_index::sequenced<>,
-        boost::multi_index::hashed_unique<
-            boost::multi_index::identity<Value>
-        >
+        boost::multi_index::sequenced<>
     >;
 
     using ExtendedIndexSpecifierList =

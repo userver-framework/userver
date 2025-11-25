@@ -16,9 +16,3 @@ target_include_directories(userver-multi-index-lru
     PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/tests/"
 )
-
-_userver_directory_install(
-    COMPONENT multi-index-lru
-    FILES "${USERVER_ROOT_DIR}/cmake/modules/Findboost.cmake"
-    DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/userver/modules"
-)

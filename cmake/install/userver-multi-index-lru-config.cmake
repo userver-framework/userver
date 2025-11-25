@@ -1,6 +1,6 @@
 include_guard(GLOBAL)
 
-if(userver_multiindex_lru_FOUND)
+if(userver_multi_index_lru_FOUND)
     return()
 endif()
 
