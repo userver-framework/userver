@@ -41,7 +41,7 @@ std::string generateName() { return "name" + std::to_string(utils::RandRange<int
 std::string generateEmail() { return "email" + std::to_string(utils::RandRange<int>(0, MAX_ID_SIZE)); }
 } // namespace
 
-using UserCache = multi_index_lru::LRUCacheContainer<
+using UserCache = multi_index_lru::Container<
     User,
     boost::multi_index::indexed_by<
         boost::multi_index::ordered_unique<boost::multi_index::tag<id_tag>, boost::multi_index::member<User, int, &User::id>>,

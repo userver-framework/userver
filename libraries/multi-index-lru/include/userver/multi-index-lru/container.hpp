@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/multi-index-lru/container.hpp
+/// @brief @copybrief multi_index_lru::Container
+
 #include <boost/multi_index/sequenced_index.hpp>
 #include <boost/multi_index/identity.hpp>
 #include <boost/multi_index_container.hpp> 
@@ -15,14 +18,18 @@ USERVER_NAMESPACE_BEGIN
 
 namespace multi_index_lru {
 
+
+/// @ingroup userver_containers
+///
+/// @brief MultiIndex LRU container
 template<
     typename Value,
     typename IndexSpecifierList,
     typename Allocator = std::allocator<Value>
 >
-class LRUCacheContainer {
+class Container {
 public:
-    explicit LRUCacheContainer(size_t max_size) : max_size(max_size) {}
+    explicit Container(size_t max_size) : max_size(max_size) {}
     
     template<typename... Args>
     bool emplace(Args&&... args) {
@@ -85,13 +92,13 @@ private:
     using ExtendedIndexSpecifierList =
         boost::mpl::joint_view<IndexSpecifierList, AdditionalIndices>;
 
-    using Container = boost::multi_index::multi_index_container<
+    using BoostContainer = boost::multi_index::multi_index_container<
         Value,
         ExtendedIndexSpecifierList,
         Allocator
     >;
 
-    Container container;
+    BoostContainer container;
     size_t max_size;
 };
 } // namespace multi_index_lru

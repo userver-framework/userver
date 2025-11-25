@@ -11,7 +11,7 @@ The container maintains elements in access order while supporting multiple index
 ```cpp
 #include <userver/utils/multi_index_lru.hpp>
 
-using MyLruCache = multi_index_lru::LRUCacheContainer<
+using MyLruCache = multi_index_lru::Container<
     MyValue,
     boost::multi_index::indexed_by<
         boost::multi_index::hashed_unique<

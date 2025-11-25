@@ -29,7 +29,7 @@ protected:
         }
     };
 
-    using UserCache = multi_index_lru::LRUCacheContainer<
+    using UserCache = multi_index_lru::Container<
         User,
         boost::multi_index::indexed_by<
             boost::multi_index::ordered_unique<
@@ -110,7 +110,7 @@ protected:
         }
     };
 
-    using ProductCache = multi_index_lru::LRUCacheContainer<
+    using ProductCache = multi_index_lru::Container<
         Product,
         boost::multi_index::indexed_by<
             boost::multi_index::ordered_unique<
