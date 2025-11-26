@@ -33,12 +33,13 @@ public:
     
     template<typename... Args>
     bool emplace(Args&&... args) {
-        auto result = container.emplace_front(std::forward<Args>(args)...);
+        auto& seq_index = container.template get<0>();
+        auto result = seq_index.emplace_front(std::forward<Args>(args)...);
 
-        if (result.second == false) {
-            container.relocate(container.begin(),result.first);
-        } else if (container.size() >= max_size) {
-            container.pop_back();
+        if (!result.second) {
+            seq_index.relocate(seq_index.begin(), result.first);
+        } else if (seq_index.size() > max_size) {
+            seq_index.pop_back();
         }
         return result.second;
     }
@@ -53,7 +54,9 @@ public:
         auto it = primary_index.find(key);
         
         if (it != primary_index.end()) {
-            container.relocate(container.begin(),it);
+            auto& seq_index = container.template get<0>();
+            auto seq_it = container.template project<0>(it);
+            seq_index.relocate(seq_index.begin(), seq_it);
         }
         
         return it;
@@ -75,8 +78,9 @@ public:
     
     void set_capacity(size_t new_capacity) {
         max_size = new_capacity;
+        auto& seq_index = container.template get<0>();
         while (container.size() > max_size) {
-            container.pop_back();
+            seq_index.pop_back();
         }
     }
     
@@ -90,7 +94,7 @@ private:
     >;
 
     using ExtendedIndexSpecifierList =
-        boost::mpl::joint_view<IndexSpecifierList, AdditionalIndices>;
+        boost::mpl::joint_view<AdditionalIndices, IndexSpecifierList>;
 
     using BoostContainer = boost::multi_index::multi_index_container<
         Value,
