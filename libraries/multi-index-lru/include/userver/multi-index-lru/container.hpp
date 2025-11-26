@@ -88,6 +88,11 @@ public:
         container.clear();
     }
 
+    template<typename Tag>
+    auto end() {
+        return container.template get<Tag>().end();
+    }
+
 private:
     using AdditionalIndices = boost::mpl::list<
         boost::multi_index::sequenced<>

@@ -54,17 +54,17 @@ TEST_F(LRUUsersTest, BasicOperations) {
     // Test find by id
     auto by_id = cache.find<IdTag, int>(1);
     ASSERT_NE(by_id, cache.end<IdTag>());
-    EXPECT_EQ(by_id->get().name, "Alice");
+    EXPECT_EQ(by_id->name, "Alice");
 
     // Test find by email
     auto by_email = cache.find<EmailTag, std::string>("bob@test.com");
     ASSERT_NE(by_email, cache.end<EmailTag>());
-    EXPECT_EQ(by_email->get().id, 2);
+    EXPECT_EQ(by_email->id, 2);
 
     // Test find by name
     auto by_name = cache.find<NameTag, std::string>("Charlie");
     ASSERT_NE(by_name, cache.end<NameTag>());
-    EXPECT_EQ(by_name->get().email, "charlie@test.com");
+    EXPECT_EQ(by_name->email, "charlie@test.com");
 
     // Test template find method
     auto it = cache.find<EmailTag, std::string>("alice@test.com");
@@ -125,7 +125,7 @@ TEST_F(ProductsTest, BasicProductOperations) {
 
     auto laptop = cache.find<SkuTag, std::string>("A1");
     ASSERT_NE(laptop, cache.end<SkuTag>());
-    EXPECT_EQ(laptop->get().name, "Laptop");
+    EXPECT_EQ(laptop->name, "Laptop");
 }
 
 TEST_F(ProductsTest, ProductEviction) {
