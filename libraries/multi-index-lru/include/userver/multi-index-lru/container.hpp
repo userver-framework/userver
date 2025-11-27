@@ -66,8 +66,8 @@ public:
     bool contains(const Key& key) {
         return this->template find<Tag, Key>(key) != container_.template get<Tag>().end();
     }
-    
-    template<typename Tag, typename Key>
+
+    template <typename Tag, typename Key>
     bool erase(const Key& key) {
         return container_.template get<Tag>().erase(key) > 0;
     }
