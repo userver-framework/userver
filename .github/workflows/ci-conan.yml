@@ -28,7 +28,7 @@ jobs:
                     conanflags: ''
                     tests-env: 'JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64'
                   - os: macos-14
-                    conanflags: '-o with_mongodb=False' #'-o python_path=python3.11'
+                    conanflags: '' #'-o with_mongodb=False' #'-o python_path=python3.11'
                     tests-env: ''
 
         steps:
@@ -100,7 +100,7 @@ jobs:
                 rm -rf userver/cmake/
                 cd samples/
 
-                USERVER_VERSION=$(${{ matrix.container && 'sudo -u test-user' }} conan list -c -v quiet userver/* | tail -n 1 | tr -d ' ')
+                USERVER_VERSION=$(${{ matrix.container && 'sudo -u test-user' }} conan list -c -v quiet userver/* | tail -n 1)
                 for SAMPLE in \
                     1_hi \
                     3_json \
