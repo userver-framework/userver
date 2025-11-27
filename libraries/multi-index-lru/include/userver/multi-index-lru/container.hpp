@@ -43,22 +43,22 @@ public:
         }
         return result.second;
     }
-    
+
     bool insert(const Value& value) { return emplace(value); }
 
     bool insert(Value&& value) { return emplace(std::move(value)); }
-    
-    template<typename Tag, typename Key>
+
+    template <typename Tag, typename Key>
     auto find(const Key& key) {
         auto& primary_index = container_.template get<Tag>();
         auto it = primary_index.find(key);
-        
+
         if (it != primary_index.end()) {
             auto& seq_index = container_.template get<0>();
             auto seq_it = container_.template project<0>(it);
             seq_index.relocate(seq_index.begin(), seq_it);
         }
-        
+
         return it;
     }
     
@@ -71,11 +71,11 @@ public:
     bool erase(const Key& key) {
         return container_.template get<Tag>().erase(key) > 0;
     }
-    
+
     size_t size() const { return container_.size(); }
     bool empty() const { return container_.empty(); }
     size_t capacity() const { return max_size_; }
-    
+
     void set_capacity(size_t new_capacity) {
         max_size_ = new_capacity;
         auto& seq_index = container_.template get<0>();
