@@ -256,26 +256,3 @@ class UserverConan(ConanFile):
         # https://docs.conan.io/2/examples/tools/cmake/cmake_toolchain/use_package_config_cmake.html
         self.cpp_info.set_property('cmake_find_mode', 'none')
         self.cpp_info.builddirs.append(os.path.join('lib', 'cmake', 'userver'))
-
-    def system_requirements(self):
-        if self.options.with_postgresql:
-            self.output.warning(
-                'Testing services linked with userver::postgresql require '
-                'PostgreSQL database and libpq-dev* packages installed in your system',
-            )
-        if self.options.with_kafka:
-            self.output.warning(
-                'Testing services linked with userver::kafka require Kafka installed in your system',
-            )
-        if self.options.with_mongodb:
-            self.output.warning(
-                'Testing services linked with userver::mongo require MongoDB installed in your system',
-            )
-        if self.options.with_redis:
-            self.output.warning(
-                'Testing services linked with userver::redis require RedisDB installed in your system',
-            )
-        if self.options.with_clickhouse:
-            self.output.warning(
-                'Testing services linked with userver::clickhouse require ClickHouse installed in your system',
-            )
