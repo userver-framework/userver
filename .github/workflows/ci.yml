@@ -7,7 +7,6 @@ name: Ubuntu
           - master
           - develop
           - feature/**
-          - new_lru_multiindex_branch
 
 env:
     JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64

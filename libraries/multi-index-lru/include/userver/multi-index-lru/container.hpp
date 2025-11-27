@@ -29,16 +29,16 @@ template<
 >
 class Container {
 public:
-    explicit Container(size_t max_size) : max_size(max_size) {}
+    explicit Container(size_t max_size) : max_size_(max_size) {}
     
     template<typename... Args>
     bool emplace(Args&&... args) {
-        auto& seq_index = container.template get<0>();
+        auto& seq_index = container_.template get<0>();
         auto result = seq_index.emplace_front(std::forward<Args>(args)...);
 
         if (!result.second) {
             seq_index.relocate(seq_index.begin(), result.first);
-        } else if (seq_index.size() > max_size) {
+        } else if (seq_index.size() > max_size_) {
             seq_index.pop_back();
         }
         return result.second;
@@ -50,12 +50,12 @@ public:
     
     template<typename Tag, typename Key>
     auto find(const Key& key) {
-        auto& primary_index = container.template get<Tag>();
+        auto& primary_index = container_.template get<Tag>();
         auto it = primary_index.find(key);
         
         if (it != primary_index.end()) {
-            auto& seq_index = container.template get<0>();
-            auto seq_it = container.template project<0>(it);
+            auto& seq_index = container_.template get<0>();
+            auto seq_it = container_.template project<0>(it);
             seq_index.relocate(seq_index.begin(), seq_it);
         }
         
@@ -64,33 +64,33 @@ public:
     
     template<typename Tag, typename Key>
     bool contains(const Key& key) {
-        return this->template find<Tag, Key>(key) != container.template get<Tag>().end();
+        return this->template find<Tag, Key>(key) != container_.template get<Tag>().end();
     }
     
     template<typename Tag, typename Key>
     bool erase(const Key& key) {
-        return container.template get<Tag>().erase(key) > 0;
+        return container_.template get<Tag>().erase(key) > 0;
     }
     
-    size_t size() const { return container.size(); }
-    bool empty() const { return container.empty(); }
-    size_t capacity() const { return max_size; }
+    size_t size() const { return container_.size(); }
+    bool empty() const { return container_.empty(); }
+    size_t capacity() const { return max_size_; }
     
     void set_capacity(size_t new_capacity) {
-        max_size = new_capacity;
-        auto& seq_index = container.template get<0>();
-        while (container.size() > max_size) {
+        max_size_ = new_capacity;
+        auto& seq_index = container_.template get<0>();
+        while (container_.size() > max_size_) {
             seq_index.pop_back();
         }
     }
     
     void clear() {
-        container.clear();
+        container_.clear();
     }
 
     template<typename Tag>
     auto end() {
-        return container.template get<Tag>().end();
+        return container_.template get<Tag>().end();
     }
 
 private:
@@ -107,8 +107,8 @@ private:
         Allocator
     >;
 
-    BoostContainer container;
-    size_t max_size;
+    BoostContainer container_;
+    size_t max_size_;
 };
 } // namespace multi_index_lru
 
