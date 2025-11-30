@@ -73,15 +73,13 @@ using add_seq_index_t = typename add_seq_index<IndexList>::type;
 /// @ingroup userver_containers
 ///
 /// @brief MultiIndex LRU container
-template<
-    typename Value,
-    typename IndexSpecifierList,
-    typename Allocator = std::allocator<Value>
->
+template <typename Value, typename IndexSpecifierList, typename Allocator = std::allocator<Value> >
 class Container {
 public:
-    explicit Container(std::size_t max_size) : max_size_(max_size) {}
-    
+    explicit Container(size_t max_size)
+        : max_size_(max_size)
+    {}
+
     template<typename... Args>
     bool emplace(Args&&... args) {
         auto& seq_index = container_.template get<0>();
@@ -112,8 +110,8 @@ public:
 
         return it;
     }
-    
-    template<typename Tag, typename Key>
+
+    template <typename Tag, typename Key>
     bool contains(const Key& key) {
         return this->template find<Tag, Key>(key) != container_.template get<Tag>().end();
     }
@@ -134,11 +132,10 @@ public:
             seq_index.pop_back();
         }
     }
-    
-    void clear() {
-        container_.clear();
-    }
 
+    void clear() { container_.clear(); }
+
+    template <typename Tag>
     template<typename Tag>
     auto end() {
         return container_.template get<Tag>().end();
