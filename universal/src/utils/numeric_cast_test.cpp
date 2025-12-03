@@ -52,7 +52,6 @@ TEST(NumericCast, UnsignedToSignedOverflow) {
 }
 
 TEST(NumericCast, FloatingPointOverflow) {
-    /// [Sample utils::numeric_cast usage]
     using FloatLimits = std::numeric_limits<float>;
 
     EXPECT_EQ(utils::numeric_cast<float>(double(FloatLimits::max())), FloatLimits::max());
@@ -68,10 +67,11 @@ TEST(NumericCast, FloatingPointOverflow) {
     using DoubleLimits = std::numeric_limits<double>;
 
     EXPECT_EQ(utils::numeric_cast<double>(static_cast<long double>(DoubleLimits::max())), DoubleLimits::max());
-    EXPECT_THROW(utils::numeric_cast<double>(2.0L * DoubleLimits::max()), std::runtime_error);
     EXPECT_EQ(utils::numeric_cast<double>(static_cast<long double>(DoubleLimits::lowest())), DoubleLimits::lowest());
-    EXPECT_THROW(utils::numeric_cast<double>(2.0L * DoubleLimits::lowest()), std::runtime_error);
-    /// [Sample utils::numeric_cast usage]
+    if constexpr (sizeof(double) < sizeof(long double)) {
+        EXPECT_THROW(utils::numeric_cast<double>(2.0L * DoubleLimits::max()), std::runtime_error);
+        EXPECT_THROW(utils::numeric_cast<double>(2.0L * DoubleLimits::lowest()), std::runtime_error);
+    }
 }
 
 }  // namespace
