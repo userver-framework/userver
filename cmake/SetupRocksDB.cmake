@@ -30,7 +30,7 @@ cpmaddpackage(
     GITHUB_REPOSITORY
     facebook/rocksdb
     GIT_TAG
-    v9.7.4
+    v10.4.2
     OPTIONS
     "ROCKSDB_BUILD_SHARED OFF"
     "WITH_SNAPPY ON"
