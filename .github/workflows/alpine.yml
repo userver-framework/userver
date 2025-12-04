@@ -26,7 +26,7 @@ jobs:
         runs-on: ubuntu-24.04
 
         env:
-            CMAKE_PROGRAM_PATH: /usr/lib/llvm17/bin
+            CMAKE_PROGRAM_PATH: /usr/lib/llvm19/bin
             CMAKE_FLAGS: >-
                 -DCMAKE_BUILD_TYPE=Debug
                 -DCMAKE_CXX_STANDARD=17
