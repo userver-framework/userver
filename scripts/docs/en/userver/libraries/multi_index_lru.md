@@ -8,21 +8,5 @@ The container maintains elements in access order while supporting multiple index
 
 ## Usage
 
-```cpp
-#include <userver/utils/multi_index_lru.hpp>
-
-using MyLruCache = multi_index_lru::LRUCacheContainer<
-    MyValue,
-    boost::multi_index::indexed_by<
-        boost::multi_index::hashed_unique<
-            boost::multi_index::tag<MyTag>,
-            boost::multi_index::member<MyValue, std::string, &MyValue::key>
-        >
-    >
->;
-
-MyLruCache cache(1000); // Capacity of 1000 items
-cache.insert(my_value);
-auto it = cache.find<MyTag>("some_key");
-```
+@snippet libraries/multi-index-lru/src/main_test.cpp Usage
 
