@@ -8,10 +8,6 @@
 #include <boost/multi_index_container.hpp> 
 #include <boost/multi_index/ordered_index.hpp>
 
-#include <boost/mpl/list.hpp>
-#include <boost/mpl/joint_view.hpp>
-#include <boost/mpl/aux_/na.hpp>
-
 #include <utility>
 #include <cstddef>
 #include <tuple>
@@ -21,26 +17,42 @@ USERVER_NAMESPACE_BEGIN
 namespace multi_index_lru {
 
 namespace impl {
+template<typename T, typename = std::void_t<>>
+inline constexpr bool is_mpl_na = false;
+
 template<typename T>
-constexpr bool is_mpl_na = std::is_same_v<T, boost::mpl::na>;
+inline constexpr bool is_mpl_na<T, std::void_t<decltype(std::declval<T>().~na())>> = true;
 
-template<typename First, typename... Rest>
-struct filter_na {
-    using rest_filtered = typename filter_na<Rest...>::type;
-
-    using type = std::conditional_t<
-        is_mpl_na<First>,
-        rest_filtered,
-        decltype(std::tuple_cat(std::tuple<First>(), rest_filtered()))
-    >;
+template<typename T>
+struct tag
+{
+    using type = T;
 };
 
-template<typename First>
-struct filter_na<First> {
+template<typename... Ts>
+struct select_last
+{
+    using type = typename decltype((tag<Ts>{}, ...))::type;
+};
+
+template <typename ... Args>
+struct filter_na {
+private:
+    static constexpr size_t count = sizeof...(Args);
+    
+    template<size_t... I>
+    static auto makeTupleWithoutLast(std::index_sequence<I...>) {
+        using Tuple = std::tuple<Args...>;
+        return std::tuple<std::tuple_element_t<I, Tuple>...>{};
+    }
+
+public:
+    using LastType = typename select_last<Args...>::type;
+    
     using type = std::conditional_t<
-        is_mpl_na<First>,
-        std::tuple<>,
-        std::tuple<First>
+        is_mpl_na<LastType>,
+        decltype(makeTupleWithoutLast(std::make_index_sequence<count - 1>{})),
+        std::tuple<Args ...>
     >;
 };
 
@@ -136,7 +148,6 @@ public:
     void clear() { container_.clear(); }
 
     template <typename Tag>
-    template<typename Tag>
     auto end() {
         return container_.template get<Tag>().end();
     }
