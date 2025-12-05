@@ -64,6 +64,20 @@ static int getReadyForQuery(PGconn* conn);
 static int getBackendKeyData(PGconn *conn, int msgLength);
 #endif
 
+#if PG_VERSION_NUM >= 170000
+extern const char * pg_encoding_to_char_private(int);
+
+const char * pg_encoding_to_char(int encode){
+  return pg_encoding_to_char_private(encode);
+}
+
+extern int	pg_char_to_encoding_private(const char *name);
+
+int pg_char_to_encoding(const char *name){
+  return pg_char_to_encoding_private(name);
+}
+#endif
+
 /* Glue to simplify working with error reporting between versions */
 #if PG_VERSION_NUM >= 140000
 #define updatePQXExpBuffer appendPQExpBuffer
