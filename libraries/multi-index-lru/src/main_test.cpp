@@ -170,6 +170,7 @@ TEST(Snippet, SimpleUsage) {
     MyLruCache cache(1000); // Capacity of 1000 items
     cache.insert(my_value);
     auto it = cache.find<MyTag>("some_key");
+    EXPECT_NE(it, cache.end<MyTag>());
 /// [Usage]
 }
 
