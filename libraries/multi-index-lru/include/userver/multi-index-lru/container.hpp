@@ -23,59 +23,43 @@ inline constexpr bool is_mpl_na = false;
 template<typename T>
 inline constexpr bool is_mpl_na<T, std::void_t<decltype(std::declval<T>().~na())>> = true;
 
-template<typename T>
-struct tag
-{
-    using type = T;
+template<typename... Indices>
+struct lazy_add_seq {
+    using type = boost::multi_index::indexed_by<
+        boost::multi_index::sequenced<>,
+        Indices...
+    >;
 };
 
-template<typename... Ts>
-struct select_last
-{
-    using type = typename decltype((tag<Ts>{}, ...))::type;
-};
-
-template <typename ... Args>
-struct filter_na {
+template<typename... Indices>
+struct lazy_add_seq_no_last {
 private:
-    static constexpr size_t count = sizeof...(Args);
-    
-    template<size_t... I>
-    static auto makeTupleWithoutLast(std::index_sequence<I...>) {
-        using Tuple = std::tuple<Args...>;
-        return std::tuple<std::tuple_element_t<I, Tuple>...>{};
+    template <std::size_t... I>
+    static auto makeWithoutLast(std::index_sequence<I...>) {
+        using Tuple = std::tuple<Indices...>;
+        return boost::multi_index::indexed_by<
+            boost::multi_index::sequenced<>,
+            std::tuple_element_t<I, Tuple>...
+        >{};
     }
 
 public:
-    using LastType = typename select_last<Args...>::type;
-    
-    using type = std::conditional_t<
-        is_mpl_na<LastType>,
-        decltype(makeTupleWithoutLast(std::make_index_sequence<count - 1>{})),
-        std::tuple<Args ...>
-    >;
+    using type = decltype(makeWithoutLast(
+        std::make_index_sequence<sizeof...(Indices) - 1>{}
+    ));
 };
 
 template<typename IndexList> struct add_seq_index {};
 
 template<typename... Indices>
 struct add_seq_index<boost::multi_index::indexed_by<Indices...>> {
-private:
-    using filtered = typename filter_na<Indices...>::type;
+    using LastType = decltype((Indices{}, ...));
 
-    template<typename Tuple>
-    struct wrap_tuple;
-
-    template<typename... Ts>
-    struct wrap_tuple<std::tuple<Ts...>> {
-        using type = boost::multi_index::indexed_by<
-            boost::multi_index::sequenced<>,
-            Ts...
-        >;
-    };
-
-public:
-    using type = typename wrap_tuple<filtered>::type;
+    using type = typename std::conditional_t<
+        is_mpl_na<LastType>,
+        lazy_add_seq_no_last<Indices...>,
+        lazy_add_seq<Indices...>
+    >::type;
 };
 
 template<typename IndexList>
