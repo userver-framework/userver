@@ -71,8 +71,6 @@ _userver_module_find_library(
     PATHS ${USERVER_PG_LIBRARY_DIR} /usr/local/lib # FreeBSD
     /usr/local/pgsql/lib # postgresql: make install
 )
-find_package(CURL REQUIRED)
-target_link_libraries(PostgreSQLInternal INTERFACE CURL::libcurl)
 
 _userver_module_find_library(
     NAMES
@@ -111,3 +109,6 @@ _userver_module_find_library(
 )
 
 _userver_module_end()
+
+find_package(CURL REQUIRED)
+target_link_libraries(PostgreSQLInternal INTERFACE CURL::libcurl)
