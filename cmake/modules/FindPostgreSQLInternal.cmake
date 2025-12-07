@@ -13,6 +13,7 @@ _userver_module_begin(
     postgresql16-server
 )
 
+
 _userver_module_find_include(
     NAMES
     postgres_fe.h
@@ -34,6 +35,7 @@ _userver_module_find_include(
     pgsql/server # postgresql-server-devel
 )
 
+
 _userver_module_find_include(
     NAMES
     libpq-int.h
@@ -47,6 +49,7 @@ _userver_module_find_include(
     pgsql/internal # postgresql-private-devel
 )
 
+
 _userver_module_find_include(
     NAMES
     libpq-fe.h
@@ -59,11 +62,23 @@ _userver_module_find_include(
     pgsql
 )
 
+
 _userver_module_find_library(
     NAMES libpq.a # must be a static library as we use internal symbols
     PATHS ${USERVER_PG_LIBRARY_DIR} /usr/local/lib # FreeBSD
     /usr/local/pgsql/lib # postgresql: make install
 )
+
+
+# PostgreSQL 18 can be configured with option --with-curl. In that case we have the libpq-oauth library
+_userver_module_find_library(
+    NAMES libpq-oauth.a
+    PATHS ${USERVER_PG_LIBRARY_DIR} /usr/local/lib # FreeBSD
+    /usr/local/pgsql/lib # postgresql: make install
+)
+find_package(CURL REQUIRED)
+target_link_library(PostgreSQLInternal INTERFACE CURL::libcurl)
+
 
 _userver_module_find_library(
     NAMES
@@ -83,6 +98,7 @@ _userver_module_find_library(
     /usr/local/pgsql/lib # postgresql: make install
 )
 
+
 _userver_module_find_library(
     NAMES
     libpgport.a
@@ -100,5 +116,6 @@ _userver_module_find_library(
     /usr/lib/postgresql/20/lib
     /usr/local/pgsql/lib # postgresql: make install
 )
+
 
 _userver_module_end()
