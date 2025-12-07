@@ -110,7 +110,7 @@ macro(_userver_module_find_part)
     #     return()
     # endif()
 
-    set(options OPTIONAL)
+    set(options)
     set(oneValueArgs PART_TYPE)
     set(multiValueArgs NAMES PATHS PATH_SUFFIXES)
 
@@ -149,9 +149,7 @@ macro(_userver_module_find_part)
 
 	if(${mangled_name})
         list(APPEND "${variable}" "${${mangled_name}}")
-    elseif (NOT ARG_OPTIONAL)
-        message(FATAL_ERROR "Failed to find ${ARG_PART_TYPE} '${ARG_NAMES}'")
-	endif()
+    endif()
 
     unset(variable)
     unset(names_joined)
@@ -160,21 +158,16 @@ macro(_userver_module_find_part)
 endmacro()
 
 macro(_userver_module_find_library)
-    set(options OPTIONAL)
+    set(options)
     set(oneValueArgs)
     set(multiValueArgs NAMES PATHS PATH_SUFFIXES)
 
     cmake_parse_arguments(ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" "${ARGN}")
-	set(OPTIONAL_TO_PASS)
-	if(ARG_OPTIONAL)
-	    set(OPTIONAL_TO_PASS OPTIONAL)
-	endif()
 
     _userver_module_find_part(
         PART_TYPE
         library
-		${OPTIONAL_TO_PASS}
-        NAMES
+	    NAMES
         ${ARG_NAMES}
         PATHS
         ${ARG_PATHS}
