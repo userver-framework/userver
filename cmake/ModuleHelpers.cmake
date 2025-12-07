@@ -110,8 +110,8 @@ macro(_userver_module_find_part)
     #     return()
     # endif()
 
-    set(options)
-    set(oneValueArgs PART_TYPE MODE)
+    set(options OPTIONAL)
+    set(oneValueArgs PART_TYPE)
     set(multiValueArgs NAMES PATHS PATH_SUFFIXES)
 
     cmake_parse_arguments(ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" "${ARGN}")
@@ -138,16 +138,19 @@ macro(_userver_module_find_part)
     set(find_command_args "${mangled_name}" NAMES ${ARG_NAMES} PATH_SUFFIXES ${ARG_PATH_SUFFIXES} PATHS ${ARG_PATHS})
     message(DEBUG "STATUS FIND(${ARG_NAMES}) ARGS: ${find_command_args}")
     if("${ARG_PART_TYPE}" STREQUAL "library")
-        find_library(${find_command_args} ${ARG_MODE})
+        find_library(${find_command_args})
     elseif("${ARG_PART_TYPE}" STREQUAL "path")
-        find_path(${find_command_args} ${ARG_MODE})
+        find_path(${find_command_args})
     elseif("${ARG_PART_TYPE}" STREQUAL "program")
-        find_program(${find_command_args} ${ARG_MODE})
+        find_program(${find_command_args})
     else()
         message(FATAL_ERROR "Invalid PART_TYPE")
     endif()
-	if(${mangled_name}_FOUND)
+
+	if(${mangled_name})
         list(APPEND "${variable}" "${${mangled_name}}")
+    elseif (NOT ARG_OPTIONAL)
+        message(FATAL_ERROR "Failed to find ${ARG_PART_TYPE} '${ARG_NAMES}'")
 	endif()
 
     unset(variable)
@@ -157,19 +160,20 @@ macro(_userver_module_find_part)
 endmacro()
 
 macro(_userver_module_find_library)
-    set(options)
-    set(oneValueArgs MODE)
+    set(options OPTIONAL)
+    set(oneValueArgs)
     set(multiValueArgs NAMES PATHS PATH_SUFFIXES)
 
     cmake_parse_arguments(ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" "${ARGN}")
-	if(NOT ${ARG_MODE})
-	    set(ARG_MODE REQUIRED)
+	set(OPTIONAL_TO_PASS)
+	if(ARG_OPTIONAL)
+	    set(OPTIONAL_TO_PASS OPTIONAL)
 	endif()
 
     _userver_module_find_part(
         PART_TYPE
         library
-		MODE ${ARG_MODE}
+		${OPTIONAL_TO_PASS}
         NAMES
         ${ARG_NAMES}
         PATHS

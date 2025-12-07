@@ -67,6 +67,7 @@ _userver_module_find_library(
 
 # PostgreSQL 18 can be configured with option --with-curl. In that case we have the libpq-oauth library
 _userver_module_find_library(
+    OPTIONAL
     NAMES libpq-oauth.a
     PATHS ${USERVER_PG_LIBRARY_DIR} /usr/local/lib # FreeBSD
     /usr/local/pgsql/lib # postgresql: make install
