@@ -92,6 +92,24 @@ _userver_module_find_library(
 )
 
 _userver_module_find_library(
+    OPTIONAL
+    NAMES libpgcommon_shlib.a
+    PATHS
+    ${USERVER_PG_SERVER_LIBRARY_DIR}
+    ${USERVER_PG_LIBRARY_DIR}
+    /usr/lib/postgresql/12/lib
+    /usr/lib/postgresql/13/lib
+    /usr/lib/postgresql/14/lib
+    /usr/lib/postgresql/15/lib
+    /usr/lib/postgresql/16/lib
+    /usr/lib/postgresql/17/lib
+    /usr/lib/postgresql/18/lib
+    /usr/lib/postgresql/19/lib
+    /usr/lib/postgresql/20/lib
+    /usr/local/pgsql/lib # postgresql: make install
+)
+
+_userver_module_find_library(
     NAMES
     libpgport.a
     PATHS
