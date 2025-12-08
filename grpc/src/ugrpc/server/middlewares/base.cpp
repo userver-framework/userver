@@ -51,7 +51,9 @@ void MiddlewareBase::PostRecvMessage(MiddlewareCallContext&, google::protobuf::M
 
 void MiddlewareBase::PreSendMessage(MiddlewareCallContext&, google::protobuf::Message&) const {}
 
-void MiddlewareBase::OnCallFinish(MiddlewareCallContext&, const grpc::Status&) const {}
+void MiddlewareBase::PreSendStatus(MiddlewareCallContext&, grpc::Status&) const {}
+
+void MiddlewareBase::OnCallFinish(MiddlewareCallContext&, const std::optional<grpc::Status>&) const {}
 
 }  // namespace ugrpc::server
 

@@ -8,20 +8,60 @@
 #include <boost/multi_index/sequenced_index.hpp>
 #include <boost/multi_index_container.hpp>
 
-#include <boost/mpl/joint_view.hpp>
-#include <boost/mpl/list.hpp>
-
 #include <cstddef>
+#include <tuple>
 #include <utility>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace multi_index_lru {
 
+namespace impl {
+template <typename T, typename = std::void_t<>>
+inline constexpr bool is_mpl_na = false;
+
+template <typename T>
+inline constexpr bool is_mpl_na<T, std::void_t<decltype(std::declval<T>().~na())>> = true;
+
+template <typename... Indices>
+struct lazy_add_seq {
+    using type = boost::multi_index::indexed_by<boost::multi_index::sequenced<>, Indices...>;
+};
+
+template <typename... Indices>
+struct lazy_add_seq_no_last {
+private:
+    template <std::size_t... I>
+    static auto makeWithoutLast(std::index_sequence<I...>) {
+        using Tuple = std::tuple<Indices...>;
+        return boost::multi_index::indexed_by<boost::multi_index::sequenced<>, std::tuple_element_t<I, Tuple>...>{};
+    }
+
+public:
+    using type = decltype(makeWithoutLast(std::make_index_sequence<sizeof...(Indices) - 1>{}));
+};
+
+template <typename IndexList>
+struct add_seq_index {};
+
+template <typename... Indices>
+struct add_seq_index<boost::multi_index::indexed_by<Indices...>> {
+    using LastType = decltype((Indices{}, ...));
+
+    using type = typename std::conditional_t<
+        is_mpl_na<LastType>,
+        lazy_add_seq_no_last<Indices...>,
+        lazy_add_seq<Indices...>>::type;
+};
+
+template <typename IndexList>
+using add_seq_index_t = typename add_seq_index<IndexList>::type;
+}  // namespace impl
+
 /// @ingroup userver_containers
 ///
 /// @brief MultiIndex LRU container
-template <typename Value, typename IndexSpecifierList, typename Allocator = std::allocator<Value> >
+template <typename Value, typename IndexSpecifierList, typename Allocator = std::allocator<Value>>
 class Container {
 public:
     explicit Container(size_t max_size)
@@ -69,11 +109,11 @@ public:
         return container_.template get<Tag>().erase(key) > 0;
     }
 
-    size_t size() const { return container_.size(); }
+    std::size_t size() const { return container_.size(); }
     bool empty() const { return container_.empty(); }
-    size_t capacity() const { return max_size_; }
+    std::size_t capacity() const { return max_size_; }
 
-    void set_capacity(size_t new_capacity) {
+    void set_capacity(std::size_t new_capacity) {
         max_size_ = new_capacity;
         auto& seq_index = container_.template get<0>();
         while (container_.size() > max_size_) {
@@ -89,14 +129,12 @@ public:
     }
 
 private:
-    using AdditionalIndices = boost::mpl::list<boost::multi_index::sequenced<> >;
-
-    using ExtendedIndexSpecifierList = boost::mpl::joint_view<AdditionalIndices, IndexSpecifierList>;
+    using ExtendedIndexSpecifierList = impl::add_seq_index_t<IndexSpecifierList>;
 
     using BoostContainer = boost::multi_index::multi_index_container<Value, ExtendedIndexSpecifierList, Allocator>;
 
     BoostContainer container_;
-    size_t max_size_;
+    std::size_t max_size_;
 };
 }  // namespace multi_index_lru
 

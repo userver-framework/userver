@@ -91,7 +91,7 @@ void Middleware::OnCallStart(MiddlewareCallContext& context) const {
     }
 }
 
-void Middleware::OnCallFinish(MiddlewareCallContext& context, const grpc::Status& status) const {
+void Middleware::PreSendStatus(MiddlewareCallContext& context, grpc::Status& status) const {
     const auto* const inherited_data = USERVER_NAMESPACE::server::request::kTaskInheritedData.GetOptional();
 
     // if !USERVER_DEADLINE_PROPAGATION_ENABLED, inherited_data must be nullptr

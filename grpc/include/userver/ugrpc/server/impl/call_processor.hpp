@@ -10,8 +10,10 @@
 #include <google/protobuf/message.h>
 #include <grpcpp/server_context.h>
 
+#include <userver/logging/log.hpp>
 #include <userver/server/handlers/exceptions.hpp>
 #include <userver/tracing/in_place_span.hpp>
+#include <userver/utils/fast_scope_guard.hpp>
 #include <userver/utils/impl/internal_tag.hpp>
 
 #include <userver/ugrpc/server/exceptions.hpp>
@@ -125,6 +127,9 @@ public:
         RunOnCallStart();
 
         bool finished = false;
+        const utils::FastScopeGuard post_finish_hooks_guard([this, &finished]() noexcept {
+            RunOnCallFinish(finished ? std::make_optional(std::move(status_)) : std::nullopt);
+        });
 
         // Don't keep the config snapshot for too long, especially for streaming RPCs.
         state_.config_snapshot.reset();
@@ -138,7 +143,7 @@ public:
         }
 
         if (!engine::current_task::ShouldCancel() && !responder_.IsInterrupted()) {
-            RunOnCallFinish(response);
+            RunPreFinishHooks(response);
             finished = impl::Finish(responder_, response, status_);
         }
 
@@ -183,7 +188,7 @@ private:
         }
     }
 
-    void RunOnCallFinish(std::optional<Response>& response) {
+    void RunPreFinishHooks(std::optional<Response>& response) {
         const auto& mids = state_.middlewares;
         const auto rbegin = mids.rbegin() + (mids.size() - success_pre_hooks_count_);
         for (auto it = rbegin; it != mids.rend(); ++it) {
@@ -197,8 +202,20 @@ private:
                 }
             }
 
-            // We must call all OnRpcFinish despite the failures. So, don't check the status.
-            RunWithCatch([this, &middleware] { middleware->OnCallFinish(middleware_call_context_, status_); });
+            RunWithCatch([this, &middleware] { middleware->PreSendStatus(middleware_call_context_, status_); });
+        }
+    }
+
+    void RunOnCallFinish(const std::optional<grpc::Status>& status) {
+        const auto& mids = state_.middlewares;
+        const auto rbegin = mids.rbegin() + (mids.size() - success_pre_hooks_count_);
+        for (auto it = rbegin; it != mids.rend(); ++it) {
+            const auto& middleware = *it;
+            try {
+                middleware->OnCallFinish(middleware_call_context_, status);
+            } catch (const std::exception& ex) {
+                LOG_WARNING() << "Error in OnCallFinish: " << ex;
+            }
         }
     }
 

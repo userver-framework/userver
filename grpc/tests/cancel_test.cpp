@@ -332,12 +332,8 @@ UTEST_F(GrpcCancelSleep, CancelByTimeoutLogging) {
     // Make sure server logs are written.
     GetServer().StopServing();
 
-    EXPECT_THAT(
-        GetLogCapture()
-            .Filter("RPC interrupted in 'sample.ugrpc.UnitTestService/SayHello'. "
-                    "The previously logged cancellation or network exception, if any, is likely caused by it."),
-        testing::SizeIs(1)
-    ) << GetLogCapture().GetAll();
+    EXPECT_THAT(GetLogCapture().Filter("", {{"error_msg", "RPC interrupted"}}), testing::SizeIs(1))
+        << GetLogCapture().GetAll();
 }
 
 namespace {
@@ -401,12 +397,8 @@ UTEST_F(GrpcCancelError, CancelByError) {
         testing::SizeIs(1)
     ) << GetLogCapture().GetAll();
 
-    ASSERT_THAT(
-        GetLogCapture()
-            .Filter("RPC interrupted in 'sample.ugrpc.UnitTestService/Chat'. "
-                    "The previously logged cancellation or network exception, if any, is likely caused by it."),
-        testing::SizeIs(1)
-    ) << GetLogCapture().GetAll();
+    ASSERT_THAT(GetLogCapture().Filter("", {{"error_msg", "RPC interrupted"}}), testing::SizeIs(1))
+        << GetLogCapture().GetAll();
 }
 
 USERVER_NAMESPACE_END

@@ -106,26 +106,33 @@ void Middleware::PreSendMessage(MiddlewareCallContext& context, google::protobuf
     }
 }
 
-void Middleware::OnCallFinish(MiddlewareCallContext& context, const grpc::Status& status) const {
+void Middleware::OnCallFinish(MiddlewareCallContext& context, const std::optional<grpc::Status>& status) const {
     const Logger logger{settings_.log_level};
-    if (status.ok()) {
-        if (context.IsServerStreaming()) {
-            logger
-                .Log(settings_.msg_log_level, "gRPC response stream finished", logging::LogExtra{{"type", "response"}});
+    logging::LogExtra extra{{"type", "response"}};
+    if (status.has_value()) {
+        if (status->ok()) {
+            if (context.IsServerStreaming()) {
+                logger.Log(settings_.msg_log_level, "gRPC response stream finished", std::move(extra));
+            }
+        } else {
+            auto error_details = ugrpc::ToLimitedDebugString(*status, settings_.max_msg_size);
+            extra.Extend({
+                {ugrpc::impl::kCodeTag, ugrpc::ToString(status->error_code())},
+                {ugrpc::impl::kTypeTag, "error_status"},
+                {ugrpc::impl::kBodyTag, std::move(error_details)},
+            });
+            const auto default_error_log_level =
+                IsServerError(status->error_code()) ? logging::Level::kError : logging::Level::kWarning;
+            const auto error_log_level =
+                utils::FindOrDefault(settings_.status_codes_log_level, status->error_code(), default_error_log_level);
+            logger.Log(error_log_level, "gRPC error", std::move(extra));
         }
     } else {
-        auto error_details = ugrpc::ToLimitedDebugString(status, settings_.max_msg_size);
-        logging::LogExtra extra{
-            {"type", "response"},
-            {ugrpc::impl::kCodeTag, ugrpc::ToString(status.error_code())},
+        extra.Extend({
             {ugrpc::impl::kTypeTag, "error_status"},
-            {ugrpc::impl::kBodyTag, std::move(error_details)},
-        };
-        const auto default_error_log_level =
-            IsServerError(status.error_code()) ? logging::Level::kError : logging::Level::kWarning;
-        const auto error_log_level =
-            utils::FindOrDefault(settings_.status_codes_log_level, status.error_code(), default_error_log_level);
-        logger.Log(error_log_level, "gRPC error", std::move(extra));
+            {ugrpc::impl::kBodyTag, "RPC interrupted"},
+        });
+        logger.Log(logging::Level::kWarning, "gRPC error", std::move(extra));
     }
 }
 

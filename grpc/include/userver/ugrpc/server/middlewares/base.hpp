@@ -3,6 +3,7 @@
 /// @file userver/ugrpc/server/middlewares/base.hpp
 /// @brief @copybrief ugrpc::server::MiddlewareBase
 
+#include <optional>
 #include <string>
 
 #include <google/protobuf/message.h>
@@ -118,14 +119,23 @@ public:
     ///  * stream: once per response message, that is, 0, 1, more times per Call (RPC).
     virtual void PreSendMessage(MiddlewareCallContext& context, google::protobuf::Message& response) const;
 
-    /// @brief This hook is invoked once per Call (RPC), after the handler function returns, but before the message is
-    /// sent to the upstream client.
+    /// @brief The function is invoked before sending the final status of the call.
     ///
-    /// All OnCallStart invoked in the reverse order relatively OnCallFinish. You can change grpc status and it will
-    /// apply for a rpc call.
+    /// PreSendStatus is called exactly once per Call (RPC), right before sending
+    /// the final gRPC status to the client. This allows middlewares to inspect
+    /// and potentially modify the status that will be sent to the client.
+    virtual void PreSendStatus(MiddlewareCallContext& context, grpc::Status& status) const;
+
+    /// @brief This hook is invoked once per Call (RPC), after the handler function
+    /// has finished execution and the final status is determined.
     ///
-    /// @warning If Handler (grpc method) returns !ok status, OnCallFinish won't be called.
-    virtual void OnCallFinish(MiddlewareCallContext& context, const grpc::Status& status) const;
+    /// OnCallFinish is called exactly once per Call (RPC), regardless of whether
+    /// the call succeeded or failed. It's the final middleware hook in the call chain.
+    /// This is useful for cleanup operations, logging, or metrics collection that should
+    /// happen after the RPC is completely processed.
+    /// @param context The middleware call context containing call information
+    /// @param status The final status of the call, if available
+    virtual void OnCallFinish(MiddlewareCallContext& context, const std::optional<grpc::Status>& status) const;
 };
 
 /// @ingroup userver_base_classes

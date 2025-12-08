@@ -17,7 +17,7 @@ class Middleware final : public MiddlewareBase {
 public:
     explicit Middleware(Settings&& settings);
 
-    void OnCallFinish(MiddlewareCallContext& context, const grpc::Status& status) const override;
+    void OnCallFinish(MiddlewareCallContext& context, const std::optional<grpc::Status>& status) const override;
 
 private:
     logging::TextLoggerPtr logger_;

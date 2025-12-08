@@ -1,11 +1,5 @@
 #include <userver/ugrpc/server/impl/call_processor.hpp>
 
-#include <chrono>
-
-#include <boost/container/flat_map.hpp>
-
-#include <userver/logging/impl/logger_base.hpp>
-#include <userver/logging/log.hpp>
 #include <userver/tracing/opentelemetry.hpp>
 #include <userver/tracing/tags.hpp>
 #include <userver/utils/algo.hpp>
@@ -134,11 +128,6 @@ void ReportFinished(const grpc::Status& status, CallState& state) noexcept {
 
 void ReportInterrupted(CallState& state) noexcept {
     try {
-        // RPC interruption leads to asynchronous task cancellation by RpcFinishedEvent,
-        // so the task either is already cancelled, or is going to be cancelled.
-        LOG_WARNING()
-            << "RPC interrupted in '" << state.call_name
-            << "'. The previously logged cancellation or network exception, if any, is likely caused by it.";
         state.statistics_scope.OnNetworkError();
         auto& span = state.GetSpan();
         span.AddNonInheritableTag(tracing::kErrorFlag, true);

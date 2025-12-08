@@ -26,7 +26,14 @@ public:
         (const, override)
     );
 
-    MOCK_METHOD(void, OnCallFinish, (ugrpc::server::MiddlewareCallContext&, const grpc::Status&), (const, override));
+    MOCK_METHOD(void, PreSendStatus, (ugrpc::server::MiddlewareCallContext&, grpc::Status&), (const, override));
+
+    MOCK_METHOD(
+        void,
+        OnCallFinish,
+        (ugrpc::server::MiddlewareCallContext&, const std::optional<grpc::Status>&),
+        (const, override)
+    );
 };
 
 }  // namespace tests::server

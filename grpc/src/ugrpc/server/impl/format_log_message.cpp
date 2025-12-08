@@ -6,10 +6,12 @@
 
 #include <userver/logging/impl/logger_base.hpp>
 #include <userver/logging/impl/timestamp.hpp>
-#include <userver/ugrpc/impl/to_string.hpp>
 #include <userver/utils/datetime.hpp>
 #include <userver/utils/encoding/tskv.hpp>
 #include <userver/utils/text_light.hpp>
+
+#include <userver/ugrpc/impl/to_string.hpp>
+#include <userver/ugrpc/status_codes.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -53,7 +55,7 @@ logging::impl::LogExtraTskvFormatter FormatLogMessage(
     std::string_view peer,
     std::chrono::system_clock::time_point start_time,
     std::string_view call_name,
-    grpc::StatusCode code,
+    std::optional<grpc::StatusCode> code,
     const logging::LogExtra* log_extra
 ) {
     static const auto kTimezone = utils::datetime::LocalTimezoneTimestring(start_time, "%z");
@@ -96,8 +98,8 @@ logging::impl::LogExtraTskvFormatter FormatLogMessage(
         // TODO remove, this is for safe migration from old access log parsers.
         request_time_seconds.count(),
         request_time_milliseconds.count(),
-        static_cast<int>(code),
-        ToString(code)
+        code.has_value() ? std::to_string(static_cast<int>(*code)) : "-",
+        code.has_value() ? ToString(*code) : "-"
     );
 
     if (log_extra) {

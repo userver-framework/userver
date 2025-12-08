@@ -3,6 +3,7 @@
 #include <string>
 
 #include <gtest/gtest.h>
+#include <boost/multi_index/hashed_index.hpp>
 #include <boost/multi_index/member.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -144,6 +145,29 @@ TEST_F(ProductsTest, ProductEviction) {
 
     EXPECT_NE(cache.find<NameTag>("Keyboard"), cache.end<NameTag>());
     EXPECT_EQ(cache.find<NameTag>("Mouse"), cache.end<NameTag>());
+}
+
+TEST(Snippet, SimpleUsage) {
+    struct MyValueT {
+        std::string key;
+        int val;
+    };
+
+    struct MyTag {};
+
+    MyValueT my_value{"some_key", 1};
+    /// [Usage]
+    using MyLruCache = multi_index_lru::Container<
+        MyValueT,
+        boost::multi_index::indexed_by<boost::multi_index::hashed_unique<
+            boost::multi_index::tag<MyTag>,
+            boost::multi_index::member<MyValueT, std::string, &MyValueT::key>>>>;
+
+    MyLruCache cache(1000);  // Capacity of 1000 items
+    cache.insert(my_value);
+    auto it = cache.find<MyTag>("some_key");
+    EXPECT_NE(it, cache.end<MyTag>());
+    /// [Usage]
 }
 
 }  // namespace

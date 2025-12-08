@@ -5,6 +5,9 @@ properties:
     cluster:
         type: string
         description: postgres cluster name
+    shard-number:
+        type: integer
+        description: postgres shard number
     table:
         type: string
         description: table name to store distlocks

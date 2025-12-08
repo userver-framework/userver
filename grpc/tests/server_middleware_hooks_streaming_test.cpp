@@ -69,7 +69,7 @@ protected:
 
     void SetupRpcFinishWait(engine::SingleUseEvent& rpc_finish) {
         ON_CALL(M0(), OnCallFinish)
-            .WillByDefault([&rpc_finish](ugrpc::server::MiddlewareCallContext&, const grpc::Status&) {
+            .WillByDefault([&rpc_finish](ugrpc::server::MiddlewareCallContext&, const std::optional<grpc::Status>&) {
                 // 'OnCallFinish' of M0 is the last hook => M1 and M2 hooks already finished.
                 rpc_finish.Send();
             });

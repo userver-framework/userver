@@ -29,9 +29,10 @@ DistLockComponentBase::DistLockComponentBase(
       name_(component_config.Name()),
       real_host_name_(hostinfo::blocking::GetRealHostName())
 {
+    auto shard_number = component_config["shard-number"].As<size_t>(components::Postgres::kDefaultShardNumber);
     auto cluster =
         component_context.FindComponent<components::Postgres>(component_config["cluster"].As<std::string>())
-            .GetCluster();
+            .GetClusterForShard(shard_number);
     auto table = component_config["table"].As<std::string>();
     auto lock_name = component_config["lockname"].As<std::string>();
 
