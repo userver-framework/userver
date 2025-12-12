@@ -95,6 +95,11 @@ void SetNativeOptions(MYSQL* mysql, const settings::ConnectionSettings& connecti
     if (connection_settings.use_compression) {
         mysql_optionsv(mysql, MYSQL_OPT_COMPRESS, nullptr);
     }
+
+    if (!connection_settings.use_secure_connection) {
+        my_bool verify_server_cert = 0;
+        mysql_optionsv(mysql, MYSQL_OPT_SSL_VERIFY_SERVER_CERT, &verify_server_cert);
+    }
 }
 
 compiler::ThreadLocal mysql_local_scope = [] { return MysqlThreadEnd{}; };

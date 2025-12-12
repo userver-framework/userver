@@ -10,6 +10,7 @@ components_manager:
         sample-sql-component:
             initial_pool_size: 3
             max_pool_size: 15
+            use_secure_connection: false
 # /// [MySQL service sample - static config]
         http-client:
         http-client-core:

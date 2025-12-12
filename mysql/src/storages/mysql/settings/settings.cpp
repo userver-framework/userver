@@ -49,8 +49,8 @@ ConnectionSettings Parse(const yaml_config::YamlConfig& doc, formats::parse::To<
     ConnectionSettings settings{};
     // TODO : named const
     settings.statements_cache_size = doc["statements_cache_size"].As<std::size_t>(20);
-    // TODO
-    settings.use_secure_connection = false;
+
+    settings.use_secure_connection = doc["use_secure_connection"].As<bool>(true);
     // TODO
     settings.use_compression = false;
     // TODO
