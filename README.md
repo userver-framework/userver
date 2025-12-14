@@ -17,7 +17,7 @@
 [![urealmedium CI](https://github.com/userver-framework/realmedium_sample/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/userver-framework/realmedium_sample/actions/workflows/ci.yml)
 [![urealmedium Docker build](https://github.com/userver-framework/realmedium_sample/actions/workflows/docker.yaml/badge.svg?branch=develop)](https://github.com/userver-framework/realmedium_sample/actions/workflows/docker.yaml)
 [![upastebin CI](https://github.com/userver-framework/upastebin/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/userver-framework/upastebin/actions/workflows/ci.yml)
-[![upastebin Docker](https://github.com/userver-framework/upastebin/actions/workflows/docker.yaml/badge.svg?branch=develop)](https://github.com/userver-framework/upastebin/actions/workflows/docker.ymal)
+[![upastebin Docker](https://github.com/userver-framework/upastebin/actions/workflows/docker.yaml/badge.svg?branch=develop)](https://github.com/userver-framework/upastebin/actions/workflows/docker.yaml)
 
 
 **userver** is an open source asynchronous framework with a rich set of abstractions
