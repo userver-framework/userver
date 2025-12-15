@@ -46,7 +46,7 @@ public:
             empty = plugins_.empty();
         }
 
-        if (empty) {
+        if (!empty) {
             has_any_plugin_ = true;
         }
     }
