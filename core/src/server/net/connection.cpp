@@ -139,12 +139,11 @@ void Connection::ListenForRequests() noexcept {
                     << "Received " << pending_data_size_ << " byte(s) from " << Getpeername() << " on fd " << Fd();
             }
 
-            bool should_stop_accepting_requests = false;
             if (!request_parser.Parse({pending_data_.data(), pending_data_size_})) {
                 LOG_DEBUG() << "Malformed request from " << Getpeername() << " on fd " << Fd();
 
                 // Stop accepting new requests, send previous answers.
-                should_stop_accepting_requests = true;
+                is_accepting_requests_ = false;
             }
             pending_data_size_ = 0;
 
@@ -152,9 +151,6 @@ void Connection::ListenForRequests() noexcept {
                 ProcessRequest(std::move(request));
             }
             pending_requests.resize(0);
-            if (should_stop_accepting_requests) {
-                is_accepting_requests_ = false;
-            }
         }
 
         LOG_TRACE() << "Gracefully stopping ListenForRequests()";
