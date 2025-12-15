@@ -77,8 +77,8 @@ private:
     logging::DefaultLoggerLevelScope log_level_scope_{logging::Level::kInfo};
 };
 
-void CheckMetadata(const grpc::ClientContext& context) {
-    const auto& metadata = context.GetServerInitialMetadata();
+void CheckMetadata(const grpc::ClientContext& client_context) {
+    const auto& metadata = client_context.GetServerInitialMetadata();
     const auto& span = tracing::Span::CurrentSpan();
 
     // - TraceId should propagate both to sub-spans within a single service,

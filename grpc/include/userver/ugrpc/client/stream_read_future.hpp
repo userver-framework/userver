@@ -97,11 +97,12 @@ bool StreamReadFuture<RawStream>::Get() {
     UINVARIANT(state_, "'Get' must be called only once");
     const impl::StreamingCallState::AsyncMethodInvocationGuard guard(*state_);
     auto* const state = std::exchange(state_, nullptr);
-    const auto result = impl::WaitAndTryCancelIfNeeded(state->GetAsyncMethodInvocation(), state->GetClientContext());
-    if (result == ugrpc::impl::AsyncMethodInvocation::WaitStatus::kCancelled) {
+    const auto
+        wait_status = impl::WaitAndTryCancelIfNeeded(state->GetAsyncMethodInvocation(), state->GetClientContext());
+    if (wait_status == ugrpc::impl::AsyncMethodInvocation::WaitStatus::kCancelled) {
         state->GetStatsScope().OnCancelled();
         state->GetStatsScope().Flush();
-    } else if (result == ugrpc::impl::AsyncMethodInvocation::WaitStatus::kError) {
+    } else if (wait_status == ugrpc::impl::AsyncMethodInvocation::WaitStatus::kError) {
         // Finish can only be called once all the data is read, otherwise the
         // underlying gRPC driver hangs.
         impl::Finish(*stream_, *state, /*final_response=*/nullptr, /*throw_on_error=*/true);
@@ -110,7 +111,7 @@ bool StreamReadFuture<RawStream>::Get() {
             RunMiddlewarePipeline(*state, impl::MiddlewareHooks::RecvMessageHooks(*recv_message_));
         }
     }
-    return result == ugrpc::impl::AsyncMethodInvocation::WaitStatus::kOk;
+    return wait_status == ugrpc::impl::AsyncMethodInvocation::WaitStatus::kOk;
 }
 
 template <typename RawStream>

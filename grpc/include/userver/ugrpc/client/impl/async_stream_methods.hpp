@@ -18,10 +18,14 @@ namespace ugrpc::client::impl {
 
 ugrpc::impl::AsyncMethodInvocation::WaitStatus WaitAndTryCancelIfNeeded(
     ugrpc::impl::AsyncMethodInvocation& invocation,
-    grpc::ClientContext& context
+    grpc::ClientContext& client_context
 ) noexcept;
 
-void CheckOk(StreamingCallState& state, ugrpc::impl::AsyncMethodInvocation::WaitStatus status, std::string_view stage);
+void CheckOk(
+    StreamingCallState& state,
+    ugrpc::impl::AsyncMethodInvocation::WaitStatus wait_status,
+    std::string_view stage
+);
 
 void CheckFinishStatus(CallState& state);
 
@@ -33,13 +37,13 @@ void ProcessCancelled(CallState& state, std::string_view stage) noexcept;
 
 void ProcessNetworkError(CallState& state, std::string_view stage) noexcept;
 
-void ThrowIfDeadlineIsExceeded(grpc::ClientContext& context, std::string_view call_name);
+void ThrowIfDeadlineIsExceeded(grpc::ClientContext& client_context, std::string_view call_name);
 
 template <typename GrpcStream>
 void StartCall(GrpcStream& stream, StreamingCallState& state) {
-    ugrpc::impl::AsyncMethodInvocation start_call;
-    stream.StartCall(start_call.GetCompletionTag());
-    CheckOk(state, WaitAndTryCancelIfNeeded(start_call, state.GetClientContext()), "StartCall");
+    ugrpc::impl::AsyncMethodInvocation invocation;
+    stream.StartCall(invocation.GetCompletionTag());
+    CheckOk(state, WaitAndTryCancelIfNeeded(invocation, state.GetClientContext()), "StartCall");
 }
 
 template <typename GrpcStream>
@@ -53,14 +57,13 @@ void Finish(
 
     state.SetFinished();
 
-    FinishAsyncMethodInvocation finish;
-    auto& status = state.GetStatus();
-    stream.Finish(&status, finish.GetCompletionTag());
+    FinishAsyncMethodInvocation invocation;
+    stream.Finish(&state.GetStatus(), invocation.GetCompletionTag());
+    const auto wait_status = WaitAndTryCancelIfNeeded(invocation, state.GetClientContext());
 
-    const auto wait_status = WaitAndTryCancelIfNeeded(finish, state.GetClientContext());
     switch (wait_status) {
         case ugrpc::impl::AsyncMethodInvocation::WaitStatus::kOk:
-            state.GetStatsScope().SetFinishTime(finish.GetFinishTime());
+            state.GetStatsScope().SetFinishTime(invocation.GetFinishTime());
             try {
                 ProcessFinish(state, final_response);
             } catch (const std::exception& ex) {
@@ -76,7 +79,7 @@ void Finish(
             break;
 
         case ugrpc::impl::AsyncMethodInvocation::WaitStatus::kError:
-            state.GetStatsScope().SetFinishTime(finish.GetFinishTime());
+            state.GetStatsScope().SetFinishTime(invocation.GetFinishTime());
             ProcessNetworkError(state, "Finish");
             if (throw_on_error) {
                 ThrowIfDeadlineIsExceeded(state.GetClientContext(), state.GetCallName());
@@ -107,24 +110,16 @@ void FinishAbandoned(GrpcStream& stream, StreamingCallState& state) noexcept try
 
     state.GetClientContext().TryCancel();
 
-    FinishAsyncMethodInvocation finish;
-    stream.Finish(&state.GetStatus(), finish.GetCompletionTag());
+    FinishAsyncMethodInvocation invocation;
+    stream.Finish(&state.GetStatus(), invocation.GetCompletionTag());
+    const auto ok = invocation.WaitNonCancellable();
 
-    const engine::TaskCancellationBlocker cancel_blocker;
-    const auto wait_status = finish.Wait();
+    state.GetStatsScope().SetFinishTime(invocation.GetFinishTime());
 
-    state.GetStatsScope().SetFinishTime(finish.GetFinishTime());
-
-    switch (wait_status) {
-        case ugrpc::impl::AsyncMethodInvocation::WaitStatus::kOk:
-            ProcessFinishAbandoned(state);
-            break;
-        case ugrpc::impl::AsyncMethodInvocation::WaitStatus::kError:
-            ProcessNetworkError(state, "Finish");
-            break;
-        case ugrpc::impl::AsyncMethodInvocation::WaitStatus::kCancelled:
-        case ugrpc::impl::AsyncMethodInvocation::WaitStatus::kDeadline:
-            UINVARIANT(false, "unreachable");
+    if (ok) {
+        ProcessFinishAbandoned(state);
+    } else {
+        ProcessNetworkError(state, "Finish");
     }
 } catch (const std::exception& ex) {
     LOG_WARNING() << "There is a caught exception in 'FinishAbandoned': " << ex;
@@ -133,9 +128,9 @@ void FinishAbandoned(GrpcStream& stream, StreamingCallState& state) noexcept try
 template <typename GrpcStream, typename Response>
 [[nodiscard]] bool Read(GrpcStream& stream, Response& response, StreamingCallState& state) {
     UINVARIANT(IsReadAvailable(state), "'impl::Read' called on a finished call");
-    ugrpc::impl::AsyncMethodInvocation read;
-    stream.Read(&response, read.GetCompletionTag());
-    const auto wait_status = WaitAndTryCancelIfNeeded(read, state.GetClientContext());
+    ugrpc::impl::AsyncMethodInvocation invocation;
+    stream.Read(&response, invocation.GetCompletionTag());
+    const auto wait_status = WaitAndTryCancelIfNeeded(invocation, state.GetClientContext());
     if (wait_status == ugrpc::impl::AsyncMethodInvocation::WaitStatus::kCancelled) {
         state.GetStatsScope().OnCancelled();
     }
@@ -146,8 +141,8 @@ template <typename GrpcStream, typename Response>
 void ReadAsync(GrpcStream& stream, Response& response, StreamingCallState& state) {
     UINVARIANT(IsReadAvailable(state), "'impl::Read' called on a finished call");
     state.EmplaceAsyncMethodInvocation();
-    auto& read = state.GetAsyncMethodInvocation();
-    stream.Read(&response, read.GetCompletionTag());
+    auto& invocation = state.GetAsyncMethodInvocation();
+    stream.Read(&response, invocation.GetCompletionTag());
 }
 
 template <typename GrpcStream, typename Request>
@@ -160,16 +155,16 @@ bool Write(GrpcStream& stream, const Request& request, grpc::WriteOptions option
 
     UINVARIANT(IsWriteAvailable(state), "'impl::Write' called on a stream that is closed for writes");
 
-    ugrpc::impl::AsyncMethodInvocation write;
-    stream.Write(request, options, write.GetCompletionTag());
-    const auto result = WaitAndTryCancelIfNeeded(write, state.GetClientContext());
-    if (result == ugrpc::impl::AsyncMethodInvocation::WaitStatus::kCancelled) {
+    ugrpc::impl::AsyncMethodInvocation invocation;
+    stream.Write(request, options, invocation.GetCompletionTag());
+    const auto wait_status = WaitAndTryCancelIfNeeded(invocation, state.GetClientContext());
+    if (wait_status == ugrpc::impl::AsyncMethodInvocation::WaitStatus::kCancelled) {
         state.GetStatsScope().OnCancelled();
     }
-    if (result != ugrpc::impl::AsyncMethodInvocation::WaitStatus::kOk) {
+    if (wait_status != ugrpc::impl::AsyncMethodInvocation::WaitStatus::kOk) {
         state.SetWritesFinished();
     }
-    return result == ugrpc::impl::AsyncMethodInvocation::WaitStatus::kOk;
+    return wait_status == ugrpc::impl::AsyncMethodInvocation::WaitStatus::kOk;
 }
 
 template <typename GrpcStream, typename Request>
@@ -182,9 +177,9 @@ void WriteAndCheck(GrpcStream& stream, const Request& request, grpc::WriteOption
 
     UINVARIANT(IsWriteAndCheckAvailable(state), "'impl::WriteAndCheck' called on a finished or closed stream");
 
-    ugrpc::impl::AsyncMethodInvocation write;
-    stream.Write(request, options, write.GetCompletionTag());
-    CheckOk(state, WaitAndTryCancelIfNeeded(write, state.GetClientContext()), "WriteAndCheck");
+    ugrpc::impl::AsyncMethodInvocation invocation;
+    stream.Write(request, options, invocation.GetCompletionTag());
+    CheckOk(state, WaitAndTryCancelIfNeeded(invocation, state.GetClientContext()), "WriteAndCheck");
 }
 
 template <typename GrpcStream>
@@ -197,9 +192,9 @@ bool WritesDone(GrpcStream& stream, StreamingCallState& state) {
 
     UINVARIANT(IsWriteAvailable(state), "'impl::WritesDone' called on a stream that is closed for writes");
     state.SetWritesFinished();
-    ugrpc::impl::AsyncMethodInvocation writes_done;
-    stream.WritesDone(writes_done.GetCompletionTag());
-    const auto wait_status = WaitAndTryCancelIfNeeded(writes_done, state.GetClientContext());
+    ugrpc::impl::AsyncMethodInvocation invocation;
+    stream.WritesDone(invocation.GetCompletionTag());
+    const auto wait_status = WaitAndTryCancelIfNeeded(invocation, state.GetClientContext());
     if (wait_status == ugrpc::impl::AsyncMethodInvocation::WaitStatus::kCancelled) {
         state.GetStatsScope().OnCancelled();
     }

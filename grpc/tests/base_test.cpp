@@ -115,8 +115,8 @@ ugrpc::client::CallOptions PrepareCallOptions() {
     return call_options;
 }
 
-void CheckClientContext(const grpc::ClientContext& context) {
-    const auto& metadata = context.GetServerTrailingMetadata();
+void CheckClientContext(const grpc::ClientContext& client_context) {
+    const auto& metadata = client_context.GetServerTrailingMetadata();
     const auto iter = metadata.find("resp_header");
     ASSERT_NE(iter, metadata.end());
     EXPECT_EQ(iter->second, "value");

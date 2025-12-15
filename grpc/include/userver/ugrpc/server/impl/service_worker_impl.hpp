@@ -107,6 +107,7 @@ public:
 
         auto& queue = method_data_.service_data.internals.completion_queues.GetQueue(method_data_.queue_id);
 
+        ugrpc::impl::AsyncMethodInvocation request_call_invocation;
         // the request for an incoming RPC must be performed synchronously
         method_data_.service_data.async_service.template RequestCall<CallTraits>(
             method_data_.method_id,
@@ -115,14 +116,14 @@ public:
             raw_responder_,
             queue,
             queue,
-            request_call_.GetCompletionTag()
+            request_call_invocation.GetCompletionTag()
         );
 
         // Note: we ignore task cancellations here. Even if notify_when_done has
         // already cancelled this RPC, we want to:
         // 1. listen to further RPCs for the same method
         // 2. handle this RPC correctly, including metrics, logs, etc.
-        if (!request_call_.WaitNonCancellable()) {
+        if (!request_call_invocation.WaitNonCancellable()) {
             // the CompletionQueue is shutting down
 
             // Do not wait for notify_when_done. When queue is shutting down, it will
@@ -197,7 +198,6 @@ private:
     typename CallTraits::RawContext context_{};
     InitialRequest initial_request_{};
     RawResponder raw_responder_{&context_};
-    ugrpc::impl::AsyncMethodInvocation request_call_;
     std::optional<tracing::InPlaceSpan> span_storage_{};
 };
 

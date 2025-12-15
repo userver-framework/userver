@@ -67,11 +67,11 @@ public:
 
     decltype(auto) operator()(
         StubHandle& stub_handle,
-        grpc::ClientContext* context,
+        grpc::ClientContext* client_context,
         const grpc::ByteBuffer& request,
         grpc::CompletionQueue* cq
     ) const {
-        return impl::PrepareCall(prepare_async_method_, stub_handle, context, method_name_, request, cq);
+        return impl::PrepareCall(prepare_async_method_, stub_handle, client_context, method_name_, request, cq);
     }
 
 private:
