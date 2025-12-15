@@ -1,0 +1,24 @@
+name: userver gentoo test
+
+on:
+  pull_request:
+
+jobs:
+  ebuild-userver-test:
+    runs-on ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: src prepare
+        run: |
+          mkdir -p "${GITHUB_WORKSPACE}/distfiles"
+          mkdir -p "${GITHUB_WORKSPACE}/packages"
+
+      - name: ebuild test
+        uses: hacking-gentoo/action-ebuild-test@v1
+        with:
+          overlay-path: scripts/docs/en/deps/gentoo
+          package: dev-cpp/userver
+          version: "2.13"
