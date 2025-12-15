@@ -115,7 +115,7 @@ USERVER_FEATURE_S3API=OFF
 Use-flags:
 
 ```
-grpc - install dependencies to build with Grpc (unrecomented) (use with Cmake option )
+grpc - install dependencies to build with Grpc (unrecomented) (use with Cmake option USERVER_FEATURE_GRPC=ON)
 postgres - install dependencies to build with PostgreSQL (use with Cmake option USERVER_FEATURE_POSTGRESQL=ON)
 redis - install dependencies to build with Redis db (use with Cmake option USERVER_FEATURE_REDIS=ON)
 mongodb  - install dependencies to build with Mongo db (use with Cmake option USERVER_FEATURE_MONGODB=ON)
