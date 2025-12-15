@@ -29,7 +29,7 @@ incorrect_filed_name:
     UEXPECT_THROW_MSG(
         formats::yaml::FromString(schema).As<yaml_config::Schema>(),
         std::runtime_error,
-        "Schema field name must be one of ['type', 'description', "
+        "Schema field name must be one of ['type', 'description', 'default', "
         "'defaultDescription', 'additionalProperties', 'properties', 'items', "
         "'enum', 'minimum', 'maximum', 'minItems', 'maxItems'], but "
         "'incorrect_filed_name' was given. "

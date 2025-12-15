@@ -14,52 +14,56 @@ properties:
         description: (*required*) interval between Update invocations
     update-jitter:
         type: string
-        description: max. amount of time by which update-interval may be adjusted
-            for requests dispersal
-        defaultDescription: update_interval / 10
+        description: |
+            Max. amount of time by which update-interval may be adjusted
+            for requests dispersal.
+
+            Default: update_interval / 10
     updates-enabled:
         type: boolean
         description: if false, cache updates are disabled (except for the first one
             if !first-update-fail-ok)
-        defaultDescription: true
+        default: true
     full-update-interval:
         type: string
         description: interval between full updates
     full-update-jitter:
         type: string
-        description: max. amount of time by which full-update-interval may be adjusted
-            for requests dispersal
-        defaultDescription: full-update-interval / 10
+        description: |
+            Max. amount of time by which full-update-interval may be adjusted
+            for requests dispersal.
+
+            Default: full-update-interval / 10
     exception-interval:
         type: string
         description: sleep interval after an unhandled exception
-        defaultDescription: update_interval
+        default: update_interval
     first-update-fail-ok:
         type: boolean
         description: whether first update failure is non-fatal
-        defaultDescription: false
+        default: false
     task-processor:
         type: string
         description: the name of the TaskProcessor for running DoWork
-        defaultDescription: main-task-processor
+        default: main-task-processor
     config-settings:
         type: boolean
         description: enables dynamic reconfiguration with CacheConfigSet
-        defaultDescription: true
+        default: true
     additional-cleanup-interval:
         type: string
         description: how often to run background RCU garbage collector
-        defaultDescription: 10 seconds
+        default: 10 seconds
     is-strong-period:
         type: boolean
         description: whether to include Update execution time in update-interval
-        defaultDescription: false
+        default: false
     has-pre-assign-check:
         type: boolean
         description: |
             enables the check before changing the value in the cache, by
             default it is the check that the new value is not empty
-        defaultDescription: false
+        default: false
     testsuite-force-periodic-update:
         type: boolean
         description: |
@@ -76,7 +80,7 @@ properties:
             fire an alert if the cache update failed specified amount of times
             in a row. If zero - alerts are disabled. Value from dynamic config
             takes priority over static
-        defaultDescription: 0
+        default: 0
         minimum: 0
     safe-data-lifetime:
         type: boolean
@@ -84,7 +88,7 @@ properties:
             enables awaiting data destructors in the component's destructor.
             Can be set to `false` if the stored data does not refer to the component
             and its dependencies.
-        defaultDescription: true
+        default: true
     dump:
         type: object
         description: Manages cache behavior after dump load
@@ -104,7 +108,7 @@ properties:
                   - skip
                   - required
                   - best-effort
-                defaultDescription: skip
+                default: skip
             first-update-type:
                 type: string
                 description: |
@@ -113,4 +117,4 @@ properties:
                   - full
                   - incremental
                   - incremental-then-async-full
-                defaultDescription: full
+                default: full

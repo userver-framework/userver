@@ -5,7 +5,6 @@ properties:
     config:
         type: string
         description: path to the config file with data
-        defaultDescription: ''
     inline:
         type: object
         description: inline data as a JSON
@@ -14,7 +13,7 @@ properties:
     format:
         type: string
         description: secdist format
-        defaultDescription: 'json'
+        default: 'json'
         enum:
           - json
           - yaml
@@ -23,11 +22,13 @@ properties:
         type: boolean
         description: do not terminate components load if no file found by the config
             option
-        defaultDescription: false
+        default: false
     environment-secrets-key:
         type: string
         description: name of environment variable from which to load additional data
     blocking-task-processor:
         type: string
-        description: name of task processor for background blocking operations
-        defaultDescription: engine::current_task::GetBlockingTaskProcessor()
+        description: |
+            Name of task processor for background blocking operations
+
+            Default: engine::current_task::GetBlockingTaskProcessor()

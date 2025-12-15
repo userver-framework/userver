@@ -12,7 +12,7 @@ RequestExecDataImpl::RequestExecDataImpl(
       result_promises_(std::move(result_promises))
 {}
 
-void RequestExecDataImpl::Wait() { impl::Wait(request_); }
+void RequestExecDataImpl::Wait() noexcept { impl::Wait(request_); }
 
 void RequestExecDataImpl::Get(const std::string& request_description) {
     auto reply = GetReply();

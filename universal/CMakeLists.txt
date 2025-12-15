@@ -16,11 +16,12 @@ file(GLOB_RECURSE SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/include/*.hpp ${CMAKE_CURR
 )
 
 file(GLOB_RECURSE UNIT_TEST_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/*_test.cpp)
+file(GLOB_RECURSE COMPILEFAIL_TEST_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/*_compilefailtest.cpp)
 file(GLOB_RECURSE BENCH_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/*_benchmark.cpp)
 file(GLOB_RECURSE INTERNAL_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/internal/*.cpp
      ${CMAKE_CURRENT_SOURCE_DIR}/internal/*.hpp
 )
-list(REMOVE_ITEM SOURCES ${UNIT_TEST_SOURCES} ${BENCH_SOURCES} ${INTERNAL_SOURCES})
+list(REMOVE_ITEM SOURCES ${UNIT_TEST_SOURCES} ${COMPILEFAIL_TEST_SOURCES} ${BENCH_SOURCES} ${INTERNAL_SOURCES})
 
 set(CMAKE_THREAD_PREFER_PTHREAD ON)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
@@ -233,18 +234,11 @@ endif()
 target_link_libraries(
     ${PROJECT_NAME}
     PUBLIC Threads::Threads userver-internal-sanitize-options userver-internal-compile-options
-    PRIVATE
-        Boost::filesystem
-        Boost::program_options
-        OpenSSL::SSL
-        OpenSSL::Crypto
+    PRIVATE Boost::filesystem Boost::program_options OpenSSL::SSL OpenSSL::Crypto
 )
 if(TARGET Boost::algorithm)
     # Boost from CPM
-    target_link_libraries(
-        ${PROJECT_NAME}
-        PUBLIC Boost::algorithm Boost::uuid Boost::random Boost::container
-    )
+    target_link_libraries(${PROJECT_NAME} PUBLIC Boost::algorithm Boost::uuid Boost::random Boost::container)
 endif()
 
 if(USERVER_CONAN)
@@ -320,40 +314,6 @@ if(USERVER_FEATURE_UTEST)
         set(_benchmark_target benchmark::benchmark)
     endif()
 
-    if(CMAKE_VERSION GREATER_EQUAL 3.29)
-        # alias targets are supported in try_compile from cmake 3.29
-        try_compile(
-            HAVE_MAYBE_REENTER_WITHOUT_ASLR ${CMAKE_CURRENT_BINARY_DIR}/benchmarks/main_check_aslr_disable
-            SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/benchmarks/main_check_aslr_disable.cpp
-            LINK_LIBRARIES ${_benchmark_target}
-        )
-    else()
-        if(USERVER_CONAN)
-            set(_benchmark_original_target benchmark::benchmark_main)
-        else()
-            if(TARGET UserverGBench) # userver module
-                set(_benchmark_original_target UserverGBench)
-            elseif(TARGET benchmark) # CPM module
-                set(_benchmark_original_target benchmark)
-            else()
-                set(_benchmark_original_target) # to fail compilation
-            endif()
-        endif()
-
-        try_compile(
-            HAVE_MAYBE_REENTER_WITHOUT_ASLR ${CMAKE_CURRENT_BINARY_DIR}/benchmarks/main_check_aslr_disable
-            SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/benchmarks/main_check_aslr_disable.cpp
-            LINK_LIBRARIES ${_benchmark_original_target}
-        )
-    endif()
-
-    if(NOT HAVE_MAYBE_REENTER_WITHOUT_ASLR)
-        target_compile_definitions(${PROJECT_NAME}-internal-ubench INTERFACE USERVER_IMPL_NO_MAYBE_REENTER_WITHOUT_ASLR_EXISTS)
-        message(STATUS "Benchmark ASLR turned off")
-    else()
-        message(STATUS "Benchmark ASLR turned on")
-    endif()
-
     target_link_libraries(${PROJECT_NAME}-internal-ubench INTERFACE ${_benchmark_target} ${PROJECT_NAME})
 endif()
 
@@ -393,6 +353,18 @@ if(USERVER_BUILD_TESTS)
     endif()
 
     add_google_benchmark_tests(${PROJECT_NAME}-benchmark)
+
+    add_library(${PROJECT_NAME}-compile-fail EXCLUDE_FROM_ALL ${COMPILEFAIL_TEST_SOURCES})
+    target_link_libraries(
+        ${PROJECT_NAME}-compile-fail
+        PUBLIC ${PROJECT_NAME}
+    )
+    add_test(
+	NAME ${PROJECT_NAME}-compile-err-msg-test
+	COMMAND
+	    python3 ${USERVER_ROOT_DIR}/scripts/compile_fail_test.py ${CMAKE_CURRENT_SOURCE_DIR}
+	WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    )
 endif()
 
 _userver_directory_install(

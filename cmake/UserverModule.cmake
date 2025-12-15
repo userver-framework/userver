@@ -118,7 +118,11 @@ function(userver_module MODULE)
             userver-${MODULE}-dbtest PRIVATE $<TARGET_PROPERTY:userver-${MODULE},INCLUDE_DIRECTORIES>
                                              ${ARG_DBTEST_DIRS}
         )
-        userver_add_utest(NAME userver-${MODULE}-dbtest DATABASES ${ARG_DBTEST_DATABASES} TEST_ENV ${ARG_DBTEST_ENV})
+        userver_add_utest(
+            NAME userver-${MODULE}-dbtest
+            DATABASES ${ARG_DBTEST_DATABASES}
+            TEST_ENV ${ARG_DBTEST_ENV}
+        )
     endif()
 
     # 1. userver-${MODULE}-benchmark
@@ -132,7 +136,9 @@ function(userver_module MODULE)
                                                 ${ARG_UBENCH_DIRS}
         )
         userver_add_ubench_test(
-            NAME userver-${MODULE}-benchmark DATABASES ${ARG_UBENCH_DATABASES} TEST_ENV ${ARG_UBENCH_ENV}
+            NAME userver-${MODULE}-benchmark
+            DATABASES ${ARG_UBENCH_DATABASES}
+            TEST_ENV ${ARG_UBENCH_ENV}
         )
     endif()
 
@@ -140,10 +146,7 @@ function(userver_module MODULE)
     if(ARG_GENERATE_DYNAMIC_CONFIGS)
         userver_target_generate_chaotic_dynamic_configs(userver-${MODULE}-dynamic-configs dynamic_configs/*.yaml)
         target_link_libraries(userver-${MODULE} PUBLIC userver-${MODULE}-dynamic-configs)
-        _userver_install_targets(
-	    COMPONENT ${MODULE}
-	    TARGETS userver-${MODULE}-dynamic-configs
-        )
+        _userver_install_targets(COMPONENT ${MODULE} TARGETS userver-${MODULE}-dynamic-configs)
         _userver_directory_install(
             COMPONENT ${MODULE}
             DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/dynamic_configs/include

@@ -112,6 +112,12 @@ inline constexpr bool kHasValidate<DynamicConfig> = true;
 template <>
 inline constexpr auto kConfigFileMode<DynamicConfig> = ConfigFileMode::kNotRequired;
 
+dynamic_config::Source LocateDependency(
+    const components::WithType<dynamic_config::Source>&,
+    const components::ComponentConfig& config,
+    const components::ComponentContext& context
+);
+
 }  // namespace components
 
 USERVER_NAMESPACE_END

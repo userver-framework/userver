@@ -5,11 +5,11 @@ properties:
     guess-cpu-limit:
         type: boolean
         description: .
-        defaultDescription: false
+        default: false
     worker_threads:
         type: integer
         description: .
-        defaultDescription: 6
+        default: 6
     thread_name:
         type: string
         description: .
@@ -20,7 +20,7 @@ properties:
             `idle` sets the lowest priority.
             `low-priority` sets the priority below `normal` but
             higher than `idle`.
-        defaultDescription: normal
+        default: normal
         enum:
           - normal
           - low-priority
@@ -33,11 +33,11 @@ properties:
             every:
                 type: integer
                 description: .
-                defaultDescription: 1000
+                default: 1000
             max-context-switch-count:
                 type: integer
                 description: .
-                defaultDescription: 0
+                default: 0
             logger:
                 type: string
                 description: .

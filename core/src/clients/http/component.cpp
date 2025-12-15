@@ -1,9 +1,10 @@
 #include <userver/clients/http/component.hpp>
 
-#include <boost/range/adaptor/map.hpp>
+#include <boost/range/adaptor/transformed.hpp>
 
-#include <userver/clients/http/plugin_component.hpp>
+#include <userver/clients/http/middlewares/component.hpp>
 
+#include <userver/clients/http/middlewares/pipeline_component.hpp>
 #include <userver/components/component_config.hpp>
 #include <userver/components/component_context.hpp>
 #include <userver/utils/algo.hpp>
@@ -19,25 +20,27 @@ namespace components {
 
 namespace {
 
-constexpr std::string_view kHttpClientPluginPrefix = "http-client-plugin-";
-
-using PluginsIndices = std::unordered_map<std::string, std::uint32_t>;
-
-static std::vector<utils::NotNull<clients::http::Plugin*>> FindPlugins(
-    const PluginsIndices& plugins_indices,
+static std::vector<utils::NotNull<clients::http::MiddlewareBase*>> FindMiddlewares(
+    middlewares::impl::MiddlewaresMap middlewares_map,
     const components::ComponentContext& context
 ) {
-    auto names = utils::AsContainer<std::vector<std::string>>(plugins_indices | boost::adaptors::map_keys);
-    std::sort(names.begin(), names.end(), [&plugins_indices](const std::string& lhs, const std::string& rhs) {
-        return std::tie(plugins_indices.at(lhs), lhs) < std::tie(plugins_indices.at(rhs), rhs);
-    });
-    std::vector<utils::NotNull<clients::http::Plugin*>> plugins;
-    for (const auto& name : names) {
-        auto& component = context.FindComponent<
-            clients::http::plugin::ComponentBase>(std::string{kHttpClientPluginPrefix} + name);
-        plugins.emplace_back(&component.GetPlugin());
+    const auto& pipeline_component = context.FindComponent<clients::http::MiddlewarePipelineComponent>();
+    for (const auto& [name, config] : pipeline_component.GetMiddlewaresConfig().middlewares) {
+        middlewares_map.try_emplace(name, config);
     }
-    return plugins;
+    std::vector<clients::http::middlewares::ComponentBase*> components;
+    for (const auto& [name, config] : middlewares_map) {
+        if (config.enabled) {
+            components.push_back(&context.FindComponent<clients::http::middlewares::ComponentBase>(name));
+        }
+    }
+    std::sort(components.begin(), components.end(), [](const auto& lhs, const auto& rhs) {
+        return lhs->GetIndex(utils::impl::InternalTag{}) < rhs->GetIndex(utils::impl::InternalTag{});
+    });
+    return utils::AsContainer<std::vector<utils::NotNull<
+        clients::http::MiddlewareBase*>>>(components | boost::adaptors::transformed([](const auto& component) {
+                                              return &component->GetMiddleware();
+                                          }));
 }
 
 }  // namespace
@@ -50,7 +53,7 @@ HttpClient::HttpClient(const ComponentConfig& component_config, const ComponentC
               .FindComponent<components::HttpClientCore>(component_config["core-component"]
                                                              .As<std::string>(components::HttpClientCore::kName))
               .GetHttpClientCore(utils::impl::InternalTag{}),
-          FindPlugins(component_config["plugins"].As<PluginsIndices>({}), context)
+          FindMiddlewares(component_config["middlewares"].As<middlewares::impl::MiddlewaresMap>({}), context)
       )
 {}
 

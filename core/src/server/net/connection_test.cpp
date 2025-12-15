@@ -1,4 +1,7 @@
 #include <server/net/connection.hpp>
+#include <server/net/http2_connection.hpp>
+
+#include <type_traits>
 
 #include <fmt/format.h>
 
@@ -98,19 +101,27 @@ net::ListenerConfig CreateConfig(
     return config;
 }
 
+template <typename ConnectionType>
+USERVER_NAMESPACE::http::HttpVersion HttpVersion() {
+    if constexpr (std::is_same_v<ConnectionType, net::Http2Connection>) {
+        return USERVER_NAMESPACE::http::HttpVersion::k2;
+    }
+    return USERVER_NAMESPACE::http::HttpVersion::k11;
+}
+
 // The param tells which http protocol to use.
-class ServerNetConnection : public testing::TestWithParam<USERVER_NAMESPACE::http::HttpVersion> {};
+template <typename T>
+class ServerNetConnection : public ::testing::Test {};
+
+using ConnectionTypes = ::testing::Types<net::Connection, net::Http2Connection>;
 
 }  // namespace
 
-INSTANTIATE_UTEST_SUITE_P(
-    /*no prefix*/,
-    ServerNetConnection,
-    ::testing::Values(USERVER_NAMESPACE::http::HttpVersion::k11, USERVER_NAMESPACE::http::HttpVersion::k2)
-);
+TYPED_UTEST_SUITE(ServerNetConnection, ConnectionTypes);
 
-UTEST_P(ServerNetConnection, EarlyCancel) {
-    const auto http_ver = GetParam();
+TYPED_UTEST(ServerNetConnection, EarlyCancel) {
+    using ConnectionType = TypeParam;
+    const auto http_ver = HttpVersion<ConnectionType>();
     net::ListenerConfig config = CreateConfig(http_ver);
     auto request_socket = net::CreateSocket(config, config.ports[0]);
 
@@ -124,7 +135,7 @@ UTEST_P(ServerNetConnection, EarlyCancel) {
     TestHttprequestHandler handler;
 
     auto task = engine::AsyncNoSpan([&] {
-        net::Connection connection(
+        ConnectionType connection(
             config.connection_config,
             config.handler_defaults,
             std::make_unique<engine::io::Socket>(std::move(peer)),
@@ -148,8 +159,9 @@ UTEST_P(ServerNetConnection, EarlyCancel) {
            "was received and processed). Too bad: the test tested nothing";
 }
 
-UTEST_P(ServerNetConnection, EarlyTimeout) {
-    const auto http_ver = GetParam();
+TYPED_UTEST(ServerNetConnection, EarlyTimeout) {
+    using ConnectionType = TypeParam;
+    const auto http_ver = HttpVersion<ConnectionType>();
     net::ListenerConfig config = CreateConfig(http_ver);
     auto request_socket = net::CreateSocket(config, config.ports[0]);
 
@@ -165,7 +177,7 @@ UTEST_P(ServerNetConnection, EarlyTimeout) {
     UEXPECT_THROW(res.Get(), clients::http::TimeoutException);
 
     auto task = engine::AsyncNoSpan([&] {
-        net::Connection connection(
+        ConnectionType connection(
             config.connection_config,
             config.handler_defaults,
             std::make_unique<engine::io::Socket>(std::move(peer)),
@@ -181,8 +193,9 @@ UTEST_P(ServerNetConnection, EarlyTimeout) {
     EXPECT_TRUE(task.IsFinished());
 }
 
-UTEST_P(ServerNetConnection, TimeoutWithTaskCancellation) {
-    const auto http_ver = GetParam();
+TYPED_UTEST(ServerNetConnection, TimeoutWithTaskCancellation) {
+    using ConnectionType = TypeParam;
+    const auto http_ver = HttpVersion<ConnectionType>();
     net::ListenerConfig config = CreateConfig(http_ver);
     auto request_socket = net::CreateSocket(config, config.ports[0]);
 
@@ -196,7 +209,7 @@ UTEST_P(ServerNetConnection, TimeoutWithTaskCancellation) {
     TestHttprequestHandler handler{TestHttprequestHandler::Behaviors::kHang};
 
     auto task = engine::AsyncNoSpan([&] {
-        net::Connection connection(
+        ConnectionType connection(
             config.connection_config,
             config.handler_defaults,
             std::make_unique<engine::io::Socket>(std::move(peer)),
@@ -215,8 +228,9 @@ UTEST_P(ServerNetConnection, TimeoutWithTaskCancellation) {
     UEXPECT_THROW(res.Get(), clients::http::TimeoutException);
 }
 
-UTEST_P(ServerNetConnection, EarlyTeardown) {
-    const auto http_ver = GetParam();
+TYPED_UTEST(ServerNetConnection, EarlyTeardown) {
+    using ConnectionType = TypeParam;
+    const auto http_ver = HttpVersion<ConnectionType>();
     net::ListenerConfig config = CreateConfig(http_ver);
     auto request_socket = net::CreateSocket(config, config.ports[0]);
 
@@ -233,8 +247,9 @@ UTEST_P(ServerNetConnection, EarlyTeardown) {
     http_client_ptr.reset();
 }
 
-UTEST_P(ServerNetConnection, RemoteClosed) {
-    const auto http_ver = GetParam();
+TYPED_UTEST(ServerNetConnection, RemoteClosed) {
+    using ConnectionType = TypeParam;
+    const auto http_ver = HttpVersion<ConnectionType>();
     net::ListenerConfig config = CreateConfig(http_ver);
     auto request_socket = net::CreateSocket(config, config.ports[0]);
 
@@ -248,7 +263,7 @@ UTEST_P(ServerNetConnection, RemoteClosed) {
     TestHttprequestHandler handler;
 
     auto task = engine::AsyncNoSpan([&] {
-        net::Connection connection(
+        ConnectionType connection(
             config.connection_config,
             config.handler_defaults,
             std::make_unique<engine::io::Socket>(std::move(peer)),
@@ -267,8 +282,9 @@ UTEST_P(ServerNetConnection, RemoteClosed) {
     EXPECT_TRUE(task.IsFinished());
 }
 
-UTEST_P(ServerNetConnection, KeepAlive) {
-    const auto http_ver = GetParam();
+TYPED_UTEST(ServerNetConnection, KeepAlive) {
+    using ConnectionType = TypeParam;
+    const auto http_ver = HttpVersion<ConnectionType>();
     net::ListenerConfig config = CreateConfig(http_ver);
     auto request_socket = net::CreateSocket(config, config.ports[0]);
 
@@ -284,7 +300,7 @@ UTEST_P(ServerNetConnection, KeepAlive) {
     TestHttprequestHandler handler;
 
     auto task = engine::AsyncNoSpan([&] {
-        net::Connection connection(
+        ConnectionType connection(
             config.connection_config,
             config.handler_defaults,
             std::make_unique<engine::io::Socket>(std::move(peer)),
@@ -304,10 +320,11 @@ UTEST_P(ServerNetConnection, KeepAlive) {
     EXPECT_EQ(handler.asyncs_finished, 2);
 }
 
-UTEST_P(ServerNetConnection, CancelMultipleInFlight) {
+TYPED_UTEST(ServerNetConnection, CancelMultipleInFlight) {
+    using ConnectionType = TypeParam;
     constexpr std::size_t kInFlightRequests = 10;
     constexpr std::size_t kMaxAttempts = 10;
-    const auto http_ver = GetParam();
+    const auto http_ver = HttpVersion<ConnectionType>();
     net::ListenerConfig config = CreateConfig(http_ver);
     auto request_socket = net::CreateSocket(config, config.ports[0]);
 
@@ -324,7 +341,7 @@ UTEST_P(ServerNetConnection, CancelMultipleInFlight) {
         TestHttprequestHandler handler;
 
         auto task = engine::AsyncNoSpan([&] {
-            net::Connection connection(
+            ConnectionType connection(
                 config.connection_config,
                 config.handler_defaults,
                 std::make_unique<engine::io::Socket>(std::move(peer)),

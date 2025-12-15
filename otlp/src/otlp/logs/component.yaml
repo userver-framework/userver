@@ -43,15 +43,15 @@ properties:
     max-queue-size:
         type: integer
         description: max async queue size
-        defaultDescription: 65535
+        default: 65535
     max-batch-delay:
         type: string
         description: max delay between send batches (e.g. 100ms or 1s)
-        defaultDescription: 100ms
+        default: 100ms
     service-name:
         type: string
         description: service name
-        defaultDescription: unknown_service
+        default: unknown_service
     sinks:
         type: object
         description: sinks to send logs/traces to
@@ -61,12 +61,12 @@ properties:
                 type: string
                 enum: [otlp, default, both]
                 description: logs sink, one of [otlp, default, both]
-                defaultDescription: otlp
+                default: otlp
             tracing:
                 type: string
                 enum: [otlp, default, both]
                 description: tracing sink, one of [otlp, default, both]
-                defaultDescription: otlp
+                default: otlp
     attributes-mapping:
         type: object
         description: rename rules for OTLP attributes

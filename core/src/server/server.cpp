@@ -112,7 +112,8 @@ public:
     );
     ~ServerImpl();
 
-    void StartPortInfos();
+    void StartPortInfo();
+    void StartMonitorPortInfo();
     void Stop();
 
     void AddHandler(const handlers::HttpHandlerBase& handler, engine::TaskProcessor& task_processor);
@@ -178,7 +179,7 @@ ServerImpl::ServerImpl(
 
 ServerImpl::~ServerImpl() { Stop(); }
 
-void ServerImpl::StartPortInfos() {
+void ServerImpl::StartPortInfo() {
     UASSERT(main_port_info_.request_handler);
 
     if (has_requests_view_watchers_.load()) {
@@ -188,13 +189,15 @@ void ServerImpl::StartPortInfos() {
         main_port_info_.request_handler->SetNewRequestHook(hook);
     }
 
-    main_port_info_.Start();
     main_port_info_.request_handler->DisableAddHandler();
+    main_port_info_.Start();
+
     if (monitor_port_info_.request_handler) {
         monitor_port_info_.request_handler->DisableAddHandler();
     }
+}
 
-    // TODO: move to ctr for early start
+void ServerImpl::StartMonitorPortInfo() {
     if (monitor_port_info_.request_handler) {
         monitor_port_info_.Start();
     } else {
@@ -383,10 +386,17 @@ const http::HttpRequestHandler& Server::GetHttpRequestHandler(bool is_monitor) c
     return pimpl_->GetHttpRequestHandler(is_monitor);
 }
 
+void Server::StartMonitorPort()
+{
+    LOG_INFO() << "Starting monitor port";
+    pimpl_->StartMonitorPortInfo();
+    LOG_INFO() << "Monitor port is started";
+}
+
 void Server::Start() {
-    LOG_INFO() << "Starting server";
-    pimpl_->StartPortInfos();
-    LOG_INFO() << "Server is started";
+    LOG_INFO() << "Starting server port";
+    pimpl_->StartPortInfo();
+    LOG_INFO() << "Server port is started";
 }
 
 void Server::Stop() { pimpl_->Stop(); }

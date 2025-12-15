@@ -54,13 +54,14 @@ _userver_prepare_chaotic()
 # Generates ${TARGET} cmake target for C++ types, parsers, serializers from JSONSchema file(s).
 #
 # Options:
-# - OUTPUT_DIR - where to put generated .cpp/.hpp/.ipp files, usually ${CMAKE_CURRENT_BINARY_DIR}/smth
-# - RELATIVE_TO - --relative-to option to chaotic-gen
-# - FORMAT - can be ON/OFF, enable to format generated files, defaults to USERVER_CHAOTIC_FORMAT
-# - SCHEMAS - JSONSchema source files
-# - ARGS - extra args to chaotic-gen
-# - INSTALL_INCLUDES_COMPONENT - component to install generated includes
-# - LINK_TARGETS - targets to link (used by x-usrv-cpp-type)
+#
+# * OUTPUT_DIR - where to put generated .cpp/.hpp/.ipp files, usually ${CMAKE_CURRENT_BINARY_DIR}/smth
+# * RELATIVE_TO - --relative-to option to chaotic-gen
+# * FORMAT - can be ON/OFF, enable to format generated files, defaults to USERVER_CHAOTIC_FORMAT
+# * SCHEMAS - JSONSchema source files
+# * ARGS - extra args to chaotic-gen
+# * INSTALL_INCLUDES_COMPONENT - component to install generated includes
+# * LINK_TARGETS - targets to link (used by x-usrv-cpp-type)
 function(userver_target_generate_chaotic TARGET)
     set(OPTIONS GENERATE_SERIALIZERS PARSE_EXTRA_FORMATS)
     set(ONE_VALUE_ARGS OUTPUT_DIR RELATIVE_TO FORMAT INSTALL_INCLUDES_COMPONENT OUTPUT_PREFIX ERASE_PATH_PREFIX)
@@ -142,17 +143,16 @@ function(userver_target_generate_chaotic TARGET)
 
     get_target_property(TARGET_LIBRARIES "${TARGET}" LINK_LIBRARIES)
     foreach(LIBRARY ${TARGET_LIBRARIES})
-	get_target_property(DIRS "${LIBRARY}" INTERFACE_INCLUDE_DIRECTORIES)
-	foreach(DIRECTORY ${DIRS})
-	    set(CHAOTIC_ARGS ${CHAOTIC_ARGS} -I ${DIRECTORY})
-	endforeach()
+        get_target_property(DIRS "${LIBRARY}" INTERFACE_INCLUDE_DIRECTORIES)
+        foreach(DIRECTORY ${DIRS})
+            set(CHAOTIC_ARGS ${CHAOTIC_ARGS} -I ${DIRECTORY})
+        endforeach()
     endforeach()
 
     add_custom_command(
         OUTPUT ${SCHEMAS}
         COMMAND ${CMAKE_COMMAND} -E env "USERVER_PYTHON=${USERVER_CHAOTIC_PYTHON_BINARY}" "${CHAOTIC_BIN}"
-                ${CHAOTIC_EXTRA_ARGS} ${CHAOTIC_ARGS} ${PARSE_SCHEMAS}
-                --clang-format "${CLANG_FORMAT}"
+                ${CHAOTIC_EXTRA_ARGS} ${CHAOTIC_ARGS} ${PARSE_SCHEMAS} --clang-format "${CLANG_FORMAT}"
         DEPENDS ${PARSE_SCHEMAS}
         WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
         VERBATIM ${CODEGEN}
@@ -269,9 +269,8 @@ function(userver_target_generate_chaotic_dynamic_configs TARGET SCHEMAS_REGEX)
 
     add_custom_command(
         OUTPUT ${OUTPUT_FILENAMES}
-        COMMAND
-            env "USERVER_PYTHON=${USERVER_CHAOTIC_PYTHON_BINARY}" "${CHAOTIC_DYNAMIC_CONFIGS_BIN}" ${CHAOTIC_EXTRA_ARGS}
-            -o "${OUTPUT_DIR}" ${CHGEN_FILENAMES}
+        COMMAND env "USERVER_PYTHON=${USERVER_CHAOTIC_PYTHON_BINARY}" "${CHAOTIC_DYNAMIC_CONFIGS_BIN}"
+                ${CHAOTIC_EXTRA_ARGS} -o "${OUTPUT_DIR}" ${CHGEN_FILENAMES}
         COMMENT "Generating dynamic configs${CONFIG_NAMES}"
         DEPENDS ${CHGEN_FILENAMES}
         WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"

@@ -514,8 +514,8 @@ Request Request::delete_method(std::string url, std::string data) && {
     return std::move(this->delete_method(std::move(url), std::move(data)));
 }
 
-Request& Request::SetPluginsList(const std::vector<utils::NotNull<Plugin*>>& plugins) & {
-    pimpl_->SetPluginsList(plugins);
+Request& Request::SetMiddlewaresList(const std::vector<utils::NotNull<MiddlewareBase*>>& middlewares) & {
+    pimpl_->SetMiddlewaresList(middlewares);
     return *this;
 }
 

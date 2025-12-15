@@ -5,4 +5,4 @@ properties:
     warmup-time-secs:
         type: integer
         description: time to server warmup, set to zero to disable the feature
-        defaultDescription: 0
+        default: 0

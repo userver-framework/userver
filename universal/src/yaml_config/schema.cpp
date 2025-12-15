@@ -24,7 +24,8 @@ void CheckFieldsNames(const formats::yaml::Value& yaml_schema) {
         return selector()
             .Case("type")
             .Case("description")
-            .Case("defaultDescription")
+            .Case("default")
+            .Case("defaultDescription")  // deprecated
             .Case("additionalProperties")
             .Case("properties")
             .Case("items")

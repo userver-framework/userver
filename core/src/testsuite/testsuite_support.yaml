@@ -5,11 +5,11 @@ properties:
     testsuite-periodic-update-enabled:
         type: boolean
         description: whether caches update periodically
-        defaultDescription: true
+        default: true
     testsuite-periodic-dumps-enabled:
         type: boolean
         description: whether dumpable components write dumps periodically
-        defaultDescription: true
+        default: true
     testsuite-pg-execute-timeout:
         type: string
         description: execute timeout override for postgres
@@ -19,7 +19,7 @@ properties:
     testsuite-pg-readonly-master-expected:
         type: boolean
         description: mutes readonly master detection warning
-        defaultDescription: false
+        default: false
     testsuite-redis-timeout-connect:
         type: string
         description: minimum connection timeout for redis
@@ -38,12 +38,12 @@ properties:
     testsuite-tasks-enabled:
         type: boolean
         description: Weather or not testsuite tasks are enabled
-        defaultDescription: false
+        default: false
     testsuite-increased-timeout:
         type: string
         description: increase timeouts in testing environments. Overrides postgres,
             redis and grpc timeouts if these are missing
-        defaultDescription: 0ms
+        default: 0ms
     cache-update-execution:
         type: string
         description: |
@@ -55,4 +55,4 @@ properties:
         enum:
           - concurrent
           - sequential
-        defaultDescription: concurrent
+        default: concurrent

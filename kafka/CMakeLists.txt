@@ -13,9 +13,7 @@ userver_module(
     DBTEST_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/tests"
     DBTEST_LINK_LIBRARIES userver::kafka-utest
     DEPENDS core
-    EMBED_FILES
-        src/kafka/consumer_component.yaml
-        src/kafka/producer_component.yaml
+    EMBED_FILES src/kafka/consumer_component.yaml src/kafka/producer_component.yaml
 )
 
 target_compile_options(${PROJECT_NAME} PRIVATE "-Wno-ignored-qualifiers")

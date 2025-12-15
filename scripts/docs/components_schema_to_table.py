@@ -8,52 +8,70 @@ from typing import Any
 import yaml
 
 USERVER_ROOT = pathlib.Path(__file__).parent.parent.parent
+DEFAULT_DESCRIPTION_TAG = '\nDefault:'
 
 
-def normalize_default_value(data: Any) -> str:
+def normalize_default_value(yaml_node: dict) -> str:
+    data = yaml_node.get('default')
+    if data is None and DEFAULT_DESCRIPTION_TAG in yaml_node.get('description'):
+        data = yaml_node.get('description').rsplit(DEFAULT_DESCRIPTION_TAG, 1)[-1]
+
     if data is True:
         return 'true'
     elif data is False:
         return 'false'
+    elif data is None:
+        return '--'
     else:
-        value = str(data).replace('<', '&lt;').replace('>', '&gt;')
-        if not value:
-            return '--'
-        return value
+        data = str(data).replace('\n', ' ').replace('\r', '').replace('<', '&lt;').replace('>', '&gt;').strip()
+        if data == '':
+            return '""'
+        return data
 
 
 def merge_descriptions(yaml_node: dict, other: dict) -> dict:
-    if not yaml_node.get('description') and not yaml_node.get('defaultDescription'):
+    if not yaml_node.get('description') and not yaml_node.get('default'):
         return other
 
-    if not other.get('description') and not other.get('defaultDescription'):
+    if not other.get('description') and not other.get('default'):
         return yaml_node
 
     value_merged = yaml_node.copy()
 
     if yaml_node.get('description') and other.get('description'):
         description = yaml_node['description'].strip()
+
         if not description.endswith('.'):
             description += '.'
-        description += ' <i>Each of the elements:</i> ' + other['description']
+
+        if DEFAULT_DESCRIPTION_TAG in description:
+            description = description.replace(DEFAULT_DESCRIPTION_TAG, ' <i>Each of the elements:</i> ' + other['description'] + DEFAULT_DESCRIPTION_TAG)
+        else:
+            description += ' <i>Each of the elements:</i> ' + other['description']
 
         value_merged['description'] = description
-    elif not yaml_node.get('description') and other.get('description'):
-        value_merged['description'] = other['description']
 
-    if not yaml_node.get('defaultDescription') and other.get('defaultDescription'):
-        value_merged['defaultDescription'] = other['defaultDescription']
+    for field in ('description', 'default'):
+        if not yaml_node.get(field) and other.get(field):
+            value_merged[field] = other[field]
 
     return value_merged
 
 
 def enrich_description(yaml_node: dict) -> str:
-    description = yaml_node['description'].replace('\n', ' ').replace('\r', '').strip()
+    description = yaml_node['description']
+
+    if DEFAULT_DESCRIPTION_TAG in description:
+        description = description.rsplit(DEFAULT_DESCRIPTION_TAG, 1)[0]
+
+    description = description.replace('\n', ' ').replace('\r', '').strip()
     description = f'{description[0].upper()}{description[1:]}'
     if not description.endswith('.'):
         description += '.'
+
     if enum := yaml_node.get('enum'):
         description += ' <i>Possible values:</i> ' + ', '.join(str(x) for x in enum) + '.'
+
     return description
 
 
@@ -107,7 +125,7 @@ def format_schema(yaml_node: Any) -> str:
     for key, value in key_values:
         key = key.replace('\n', ' ').replace('\r', '')
         description = enrich_description(value)
-        default = normalize_default_value(value.get('defaultDescription', '--'))
+        default = normalize_default_value(value)
         result += f'{key:{max_key_size}} | {description:{max_value_size}} | {default}\n'
 
     return result

@@ -3,7 +3,7 @@
 /// @file userver/tracing/manager.hpp
 /// @brief @copybrief tracing::TracingManagerBase
 
-#include <userver/clients/http/plugin.hpp>
+#include <userver/clients/http/middlewares/base.hpp>
 #include <userver/clients/http/response.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/tracing/span_builder.hpp>
@@ -36,7 +36,7 @@ public:
         const = 0;
 
     /// Fill new client requests with tracing information
-    virtual void FillRequestWithTracingContext(const Span& span, clients::http::PluginRequest request) const = 0;
+    virtual void FillRequestWithTracingContext(const Span& span, clients::http::MiddlewareRequest request) const = 0;
 
     /// Fill response with tracing information
     virtual void FillResponseWithTracingContext(const Span& span, server::http::HttpResponse& response) const = 0;
@@ -77,7 +77,7 @@ Format FormatFromString(std::string_view format);
 
 bool TryFillSpanBuilderFromRequest(Format format, const server::http::HttpRequest& request, SpanBuilder& span_builder);
 
-void FillRequestWithTracingContext(Format format, const tracing::Span& span, clients::http::PluginRequest request);
+void FillRequestWithTracingContext(Format format, const tracing::Span& span, clients::http::MiddlewareRequest request);
 
 void FillResponseWithTracingContext(Format format, const Span& span, server::http::HttpResponse& response);
 
@@ -95,7 +95,8 @@ public:
     bool TryFillSpanBuilderFromRequest(const server::http::HttpRequest& request, SpanBuilder& span_builder)
         const override;
 
-    void FillRequestWithTracingContext(const tracing::Span& span, clients::http::PluginRequest request) const override;
+    void FillRequestWithTracingContext(const tracing::Span& span, clients::http::MiddlewareRequest request)
+        const override;
 
     void FillResponseWithTracingContext(const Span& span, server::http::HttpResponse& response) const override;
 

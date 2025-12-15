@@ -84,6 +84,7 @@ constexpr auto kDeadlineMaxTime = std::chrono::seconds{60};
 
 }  // namespace
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 [[maybe_unused]] void TlsWriteAllBuffered(benchmark::State& state) {
     engine::RunStandalone(2, [&]() {
         const auto deadline = Deadline::FromDuration(kDeadlineMaxTime);
@@ -126,8 +127,10 @@ constexpr auto kDeadlineMaxTime = std::chrono::seconds{60};
     });
 }
 
-BENCHMARK(TlsWriteAllBuffered)->RangeMultiplier(2)->Range(1 << 6, 1 << 12)->Unit(benchmark::kNanosecond);
+// TODO: https://st.yandex-team.ru/TAXICOMMON-11429
+// BENCHMARK(TlsWriteAllBuffered)->RangeMultiplier(2)->Range(1 << 6, 1 << 12)->Unit(benchmark::kNanosecond);
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 [[maybe_unused]] void TlsWriteAllDefault(benchmark::State& state) {
     engine::RunStandalone(2, [&]() {
         const auto deadline = Deadline::FromDuration(kDeadlineMaxTime);
@@ -172,6 +175,7 @@ BENCHMARK(TlsWriteAllBuffered)->RangeMultiplier(2)->Range(1 << 6, 1 << 12)->Unit
     });
 }
 
-BENCHMARK(TlsWriteAllDefault)->RangeMultiplier(2)->Range(1 << 6, 1 << 12)->Unit(benchmark::kNanosecond);
+// TODO: https://st.yandex-team.ru/TAXICOMMON-11429
+// BENCHMARK(TlsWriteAllDefault)->RangeMultiplier(2)->Range(1 << 6, 1 << 12)->Unit(benchmark::kNanosecond);
 
 USERVER_NAMESPACE_END

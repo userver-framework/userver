@@ -17,7 +17,6 @@
 #include <userver/utils/impl/internal_tag.hpp>
 
 #include <userver/ugrpc/server/exceptions.hpp>
-#include <userver/ugrpc/server/impl/call_kind.hpp>
 #include <userver/ugrpc/server/impl/call_state.hpp>
 #include <userver/ugrpc/server/impl/call_traits.hpp>
 #include <userver/ugrpc/server/impl/exceptions.hpp>
@@ -73,7 +72,7 @@ bool Finish(
     grpc::Status& status
 ) {
     if (status.ok()) {
-        if constexpr (IsServerStreaming(CallTraits::kCallKind)) {
+        if constexpr (!IsSingleResponseMethod(CallTraits::kRpcType)) {
             if (response.has_value()) {
                 return responder.Finish(*response);
             } else {
@@ -106,7 +105,7 @@ public:
         ServiceBase& service,
         ServiceMethod service_method
     )
-        : state_(std::move(params), CallTraits::kCallKind),
+        : state_(std::move(params)),
           responder_(state_, raw_responder),
           middleware_call_context_(utils::impl::InternalTag{}, state_, status_),
           initial_request_(initial_request),
@@ -158,14 +157,14 @@ private:
     auto CallHandler() {
         Context context{utils::impl::InternalTag{}, state_};
 
-        if constexpr (impl::IsClientStreaming(CallTraits::kCallKind)) {
+        if constexpr (!IsSingleRequestMethod(CallTraits::kRpcType)) {
             return (service_.*service_method_)(context, responder_);
-        } else if constexpr (CallTraits::kCallKind == CallKind::kUnaryCall) {
+        } else if constexpr (CallTraits::kRpcType == RpcType::kUnary) {
             return (service_.*service_method_)(context, std::move(initial_request_));
-        } else if constexpr (CallTraits::kCallKind == CallKind::kOutputStream) {
+        } else if constexpr (CallTraits::kRpcType == RpcType::kServerStreaming) {
             return (service_.*service_method_)(context, std::move(initial_request_), responder_);
         } else {
-            static_assert(!sizeof(CallTraits), "Unexpected CallCategory");
+            static_assert(!sizeof(CallTraits), "Unexpected RpcType");
         }
     }
 

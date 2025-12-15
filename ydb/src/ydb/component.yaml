@@ -16,25 +16,25 @@ properties:
             retries:
                 type: integer
                 description: default retries count for an operation
-                defaultDescription: 3
+                default: 3
             operation-timeout:
                 type: string
                 description: |
                     default operation timeout in utils::StringToDuration() format
-                defaultDescription: 1s
+                default: 1s
             cancel-after:
                 type: string
                 description: |
                     cancel operation after specified string in
                     utils::StringToDuration() format
-                defaultDescription: 1s
+                default: 1s
             client-timeout:
                 type: string
                 description: default client timeout in utils::StringToDuration format
-                defaultDescription: 1s
+                default: 1s
             get-session-timeout:
                 type: string
-                defaultDescription: 5s
+                default: 5s
                 description: default session timeout
     databases:
         type: object
@@ -60,30 +60,30 @@ properties:
                 max_pool_size:
                     type: integer
                     minimum: 1
-                    defaultDescription: 50
+                    default: 50
                     description: maximum connection pool size
                 min_pool_size:
                     type: integer
                     minimum: 1
-                    defaultDescription: 10
+                    default: 10
                     description: minimum connection pool size
                 get_session_retry_limit:
                     type: integer
                     minimum: 0
-                    defaultDescription: 5
+                    default: 5
                     description: retries count to get session, every attempt with
                         a get-session-timeout
                 keep-in-query-cache:
                     type: boolean
-                    defaultDescription: true
+                    default: true
                     description: whether to use query cache
                 prefer_local_dc:
                     type: boolean
-                    defaultDescription: true
+                    default: true
                     description: prefer making requests to local data center
                 sync_start:
                     type: boolean
-                    defaultDescription: true
+                    default: true
                     description: fail to boot if YDB is not available
                 aliases:
                     description: list of aliases for this database
@@ -93,15 +93,19 @@ properties:
                         description: alias name
                 by-database-timings-buckets-ms:
                     type: array
-                    description: histogram bounds for by-database timing metrics
-                    defaultDescription: 40 buckets with +20% increment per step
+                    description: |
+                        Histogram bounds for by-database timing metrics.
+
+                        Default: 40 buckets with +20% increment per step
                     items:
                         type: number
                         description: upper bound for an individual bucket
                 by-query-timings-buckets-ms:
                     type: array
-                    description: histogram bounds for by-query timing metrics
-                    defaultDescription: 15 buckets with +100% increment per step
+                    description: |
+                        Histogram bounds for by-query timing metrics.
+
+                        Default: 15 buckets with +100% increment per step
                     items:
                         type: number
                         description: upper bound for an individual bucket

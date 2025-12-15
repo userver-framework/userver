@@ -4,5 +4,7 @@ additionalProperties: false
 properties:
     task_processor:
         type: string
-        description: the name of the TaskProcessor for process starting
-        defaultDescription: the 'default_task_processor' value from components::ManagerControllerComponent
+        description: |
+            The name of the TaskProcessor for process starting.
+
+            Default: the 'default_task_processor' value from components::ManagerControllerComponent

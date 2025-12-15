@@ -1,10 +1,10 @@
 include_guard(GLOBAL)
 
 option(USERVER_DOWNLOAD_PACKAGE_BOOST "Download and setup Boost if no library of matching version was found"
-    ${USERVER_DOWNLOAD_PACKAGES}
+       ${USERVER_DOWNLOAD_PACKAGES}
 )
 option(USERVER_FORCE_DOWNLOAD_BOOST "Download Boost even if there is an installed system package"
-    ${USERVER_FORCE_DOWNLOAD_PACKAGES}
+       ${USERVER_FORCE_DOWNLOAD_PACKAGES}
 )
 
 set(BOOST_VERSION 1.89.0)
@@ -48,26 +48,34 @@ if(NOT USERVER_FORCE_DOWNLOAD_BOOST AND NOT BOOST_CPM)
 endif()
 
 include(DownloadUsingCPM)
-set(BOOST_CPM TRUE CACHE BOOL "")
+set(BOOST_CPM
+    TRUE
+    CACHE BOOL ""
+)
 
 cpmaddpackage(
     NAME Boost
     VERSION ${BOOST_VERSION}
     URL https://github.com/boostorg/boost/releases/download/boost-${BOOST_VERSION}/boost-${BOOST_VERSION}-cmake.tar.xz
-    URL_HASH SHA256=67acec02d0d118b5de9eb441f5fb707b3a1cdd884be00ca24b9a73c995511f74
-    OPTIONS
-        "BOOST_ENABLE_CMAKE ON"
-        "BOOST_INCLUDE_LIBRARIES ${BOOST_INCLUDE_LIBRARIES_LIST}"
-        "BOOST_SKIP_INSTALL_RULES ON"
-	"BUILD_SHARED_LIBS OFF"
-	"BOOST_RUNTIME_LINK static"
-	"BUILD_TESTING OFF"
-	"BOOST_LOCKFREE_BUILD_TESTS OFF"
+        URL_HASH SHA256=67acec02d0d118b5de9eb441f5fb707b3a1cdd884be00ca24b9a73c995511f74
+    OPTIONS "BOOST_ENABLE_CMAKE ON"
+            "BOOST_INCLUDE_LIBRARIES ${BOOST_INCLUDE_LIBRARIES_LIST}"
+            "BOOST_SKIP_INSTALL_RULES ON"
+            "BUILD_SHARED_LIBS OFF"
+            "BOOST_RUNTIME_LINK static"
+            "BUILD_TESTING OFF"
+            "BOOST_LOCKFREE_BUILD_TESTS OFF"
     EXCLUDE_FROM_ALL
 )
 
 # set version variable as find_package() does
-set(Boost_VERSION_STRING ${BOOST_VERSION} CACHE STRING "")
+set(Boost_VERSION_STRING
+    ${BOOST_VERSION}
+    CACHE STRING ""
+)
 
 # We have fresh version of boost, DWCAS should work
-set(USERVER_IMPL_DWCAS_CHECKED TRUE CACHE INTERNAL "TRUE iff checked that DWCAS works")
+set(USERVER_IMPL_DWCAS_CHECKED
+    TRUE
+    CACHE INTERNAL "TRUE iff checked that DWCAS works"
+)

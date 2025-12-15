@@ -22,6 +22,11 @@ CancelledException::CancelledException(ByDeadlinePropagation)
 
 bool CancelledException::IsByDeadlinePropagation() const { return by_deadline_propagation_; }
 
+TransactionException::TransactionException(Type type, std::string_view what)
+    : MongoException(what),
+      type_(type)
+{}
+
 }  // namespace storages::mongo
 
 USERVER_NAMESPACE_END

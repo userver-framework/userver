@@ -49,7 +49,10 @@ bool IsValidMetadataAsciiValue(std::string_view meta_key) {
 void CheckCustomMetadata(std::string_view meta_key, std::string_view meta_value) {
     UINVARIANT(IsValidMetadataHeaderName(meta_key), fmt::format("Invalid Custom Metadata Key: {}", meta_key));
     if (!utils::text::EndsWith(meta_key, "-bin")) {
-        UINVARIANT(IsValidMetadataAsciiValue(meta_value), fmt::format("Invalid Custom Metadata Value: {}", meta_value));
+        UINVARIANT(
+            IsValidMetadataAsciiValue(meta_value),
+            fmt::format("Invalid Custom Metadata Value, Key: {}", meta_key)
+        );
     }
 }
 

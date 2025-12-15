@@ -40,23 +40,20 @@ include(DownloadUsingCPM)
 
 message(STATUS "Downloading librdkafka v${USERVER_KAFKA_VERSION}")
 cpmaddpackage(
-    NAME
-    RdKafka
-    GITHUB_REPOSITORY
-    confluentinc/librdkafka
-    VERSION
-    ${USERVER_KAFKA_VERSION}
-    OPTIONS
-    "RDKAFKA_BUILD_STATIC ON"
-    "RDKAFKA_BUILD_EXAMPLES OFF"
-    "RDKAFKA_BUILD_TESTS OFF"
-    "WITH_SSL ON"
-    "WITH_SASL ON"
-    "WITH CURL ON"
-    "WITH_ZLIB ON"
-    "WITH_ZSTD ON"
-    "WITH_LIBDL OFF"
-    "ENABLE_LZ4_EXT ON"
+    NAME RdKafka
+    GITHUB_REPOSITORY confluentinc/librdkafka
+    GIT_SHALLOW TRUE
+    VERSION ${USERVER_KAFKA_VERSION}
+    OPTIONS "RDKAFKA_BUILD_STATIC ON"
+            "RDKAFKA_BUILD_EXAMPLES OFF"
+            "RDKAFKA_BUILD_TESTS OFF"
+            "WITH_SSL ON"
+            "WITH_SASL ON"
+            "WITH CURL ON"
+            "WITH_ZLIB ON"
+            "WITH_ZSTD ON"
+            "WITH_LIBDL OFF"
+            "ENABLE_LZ4_EXT ON"
 )
 
 set(KAFKA_CPM TRUE)

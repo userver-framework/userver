@@ -5,7 +5,7 @@ properties:
     skip-headers:
         type: object
         description: map from metadata fields (headers) to whether it should be skipped
-        defaultDescription: '{}'
+        default: {}
         additionalProperties:
             type: boolean
             description: true - disable header

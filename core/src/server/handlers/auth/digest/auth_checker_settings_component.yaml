@@ -5,30 +5,30 @@ properties:
     algorithm:
         type: string
         description: algorithm for hashing nonce
-        defaultDescription: sha256
+        default: sha256
     domains:
         type: array
         description: domains for use
-        defaultDescription: "['/']"
+        default: "['/']"
         items:
             type: string
             description: domain name
     qops:
         type: array
         description: qop-options
-        defaultDescription: "['auth']"
+        default: "['auth']"
         items:
             type: string
             description: qop name
     is-proxy:
         type: boolean
         description: if set, the Proxy prefix is inserted into the header
-        defaultDescription: false
+        default: false
     is-session:
         type: boolean
         description: enable sessions
-        defaultDescription: false
+        default: false
     nonce-ttl:
         type: string
         description: ttl for nonce
-        defaultDescription: 10s
+        default: 10s

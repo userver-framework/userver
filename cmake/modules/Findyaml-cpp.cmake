@@ -1,13 +1,8 @@
 _userver_module_begin(
-    NAME
-    yaml-cpp
-    DEBIAN_NAMES
-    libyaml-cpp-dev
-    FORMULA_NAMES
-    yaml-cpp
-    PACMAN_NAMES
-    yaml-cpp
-
+    NAME yaml-cpp
+    DEBIAN_NAMES libyaml-cpp-dev
+    FORMULA_NAMES yaml-cpp
+    PACMAN_NAMES yaml-cpp
     CPM_NAME yaml-cpp
     CPM_GITHUB_REPOSITORY jbeder/yaml-cpp
     CPM_GIT_TAG yaml-cpp-0.7.0

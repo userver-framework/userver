@@ -9,6 +9,7 @@
 #include <userver/formats/bson/bson_builder.hpp>
 #include <userver/formats/bson/document.hpp>
 #include <userver/formats/bson/serialize.hpp>
+#include <userver/formats/json/value.hpp>
 #include <userver/utils/algo.hpp>
 
 USERVER_NAMESPACE_BEGIN

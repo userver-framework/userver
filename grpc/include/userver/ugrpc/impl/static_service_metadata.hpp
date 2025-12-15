@@ -6,7 +6,7 @@
 #include <userver/utils/span.hpp>
 #include <userver/utils/string_literal.hpp>
 
-#include <userver/ugrpc/impl/rpc_type.hpp>
+#include <userver/ugrpc/rpc_type.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

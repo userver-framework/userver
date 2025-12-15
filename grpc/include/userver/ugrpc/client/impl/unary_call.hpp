@@ -36,7 +36,7 @@ public:
 
     UnaryCall(CallParams&& params, PrepareUnaryCall&& prepare_unary_call, const Request& request)
         : call_options_{std::move(params.call_options)},
-          state_{std::move(params), CallKind::kUnaryCall},
+          state_{std::move(params)},
           context_{utils::impl::InternalTag{}, state_},
           prepare_unary_call_{std::move(prepare_unary_call)},
           request_{request}
@@ -163,10 +163,15 @@ private:
         return AttemptCompletionStatus::kOk;
     }
 
-    void RunStartCallHooks() { impl::RunMiddlewarePipeline(state_, StartCallHooks(ToBaseMessage(&request_))); }
+    void RunStartCallHooks() {
+        impl::RunMiddlewarePipeline(state_, MiddlewareHooks::StartCallHooks(ToBaseMessage(&request_)));
+    }
 
     void RunFinishHooks(const grpc::Status& status) {
-        impl::RunMiddlewarePipeline(state_, FinishHooks(status, ToBaseMessage(&response_)));
+        impl::RunMiddlewarePipeline(
+            state_,
+            MiddlewareHooks::FinishHooks(status, status.ok() ? ToBaseMessage(&response_) : nullptr)
+        );
     }
 
     void OnDone(const grpc::Status& status) {

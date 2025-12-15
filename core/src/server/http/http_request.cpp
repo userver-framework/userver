@@ -323,12 +323,7 @@ void HttpRequest::MarkAsInternalServerError() const {
     // TODO : refactor, this being here is a bit ridiculous
     pimpl_->response.SetStatus(http::HttpStatus::kInternalServerError);
     pimpl_->response.SetData({});
-
-    std::string server_header = pimpl_->response.GetHeader(USERVER_NAMESPACE::http::headers::kServer);
-    pimpl_->response.ClearHeaders();
-    if (!server_header.empty()) {
-        pimpl_->response.SetHeader(USERVER_NAMESPACE::http::headers::kServer, std::move(server_header));
-    }
+    pimpl_->response.ClearUserHeaders();
 }
 
 void HttpRequest::SetHttpHandler(const handlers::HttpHandlerBase& handler) { pimpl_->handler = &handler; }

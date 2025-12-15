@@ -41,9 +41,10 @@ components_manager:
         grpc-server-middlewares-pipeline:
         grpc-client-middlewares-pipeline:
 
-        http-client:
-            plugins:
-                headers-propagator: 0
+        http-client-middleware-pipeline:
+            middlewares:
+                http-client-headers-propagator:
+                    enabled: true
         http-client-core:
             fs-task-processor: main-task-processor
 
@@ -56,7 +57,7 @@ components_manager:
         grpc-server-headers-propagator:
             headers: ["custom-header-1", "custom-header-2"]
 
-        http-client-plugin-headers-propagator: {}
+        http-client-headers-propagator: {}
 
         congestion-control:
 

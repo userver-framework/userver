@@ -21,9 +21,9 @@ void ExceptionsHandling::HandleRequest(http::HttpRequest& request, request::Requ
     try {
         Next(request, context);
     } catch (const handlers::CustomHandlerException& ex) {
-        handler_.HandleCustomHandlerException(request, ex);
+        handler_.HandleCustomHandlerException(request, context, ex);
     } catch (const std::exception& ex) {
-        handler_.HandleUnknownException(request, ex);
+        handler_.HandleUnknownException(request, context, ex);
     }
 }
 
@@ -35,7 +35,7 @@ void UnknownExceptionsHandling::HandleRequest(http::HttpRequest& request, reques
     try {
         Next(request, context);
     } catch (const std::exception& ex) {
-        handler_.HandleUnknownException(request, ex);
+        handler_.HandleUnknownException(request, context, ex);
     } catch (...) {
         LOG_WARNING() << "unknown exception in '" << handler_.HandlerName() << "' handler (task cancellation?)";
         request.GetHttpResponse().SetStatus(http::HttpStatus::kClientClosedRequest);

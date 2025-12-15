@@ -22,13 +22,13 @@ inline constexpr std::array<USERVER_NAMESPACE::ugrpc::impl::MethodDescriptor, {{
     USERVER_NAMESPACE::ugrpc::impl::MethodDescriptor{
         "{{proto.package_prefix}}{{service.name}}/{{method.name}}",
 {% if method.client_streaming and method.server_streaming %}
-        USERVER_NAMESPACE::ugrpc::impl::RpcType::kBidiStreaming,
+        USERVER_NAMESPACE::ugrpc::RpcType::kBidiStreaming,
 {% elif method.client_streaming %}
-        USERVER_NAMESPACE::ugrpc::impl::RpcType::kClientStreaming,
+        USERVER_NAMESPACE::ugrpc::RpcType::kClientStreaming,
 {% elif method.server_streaming %}
-        USERVER_NAMESPACE::ugrpc::impl::RpcType::kServerStreaming,
+        USERVER_NAMESPACE::ugrpc::RpcType::kServerStreaming,
 {% else %}
-        USERVER_NAMESPACE::ugrpc::impl::RpcType::kUnary,
+        USERVER_NAMESPACE::ugrpc::RpcType::kUnary,
 {% endif %}
     },
 {% endfor %}

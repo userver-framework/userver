@@ -144,23 +144,29 @@ public:
 private:
     Http2HeaderWriter GetHeaders() const {
         // Preallocate space for all headers
-        Http2HeaderWriter header_writer{response_.headers_.size() + response_.cookies_.size() + 3};
+        Http2HeaderWriter header_writer{
+            response_.system_headers_.size() + response_.user_headers_.size() + response_.cookies_.size() + 3
+        };
 
         header_writer.AddKeyValue(
             USERVER_NAMESPACE::http::headers::k2::kStatus,
             fmt::to_string(static_cast<std::uint16_t>(response_.status_))
         );
 
-        const auto& headers = response_.headers_;
-        const auto end = headers.cend();
-        if (headers.find(USERVER_NAMESPACE::http::headers::kDate) == end) {
+        if (!response_.HasHeader(USERVER_NAMESPACE::http::headers::kDate)) {
             header_writer.AddKeyValue(USERVER_NAMESPACE::http::headers::kDate, std::string{impl::GetCachedDate()});
         }
-        if (headers.find(USERVER_NAMESPACE::http::headers::kContentType) == end) {
+        if (!response_.HasHeader(USERVER_NAMESPACE::http::headers::kContentType)) {
             header_writer.AddKeyValue(USERVER_NAMESPACE::http::headers::kContentType, kDefaultContentType);
         }
         const std::string_view content_length_header{USERVER_NAMESPACE::http::headers::kContentLength};
-        for (const auto& [key, value] : headers) {
+        for (const auto& [key, value] : response_.system_headers_) {
+            if (key == content_length_header) {
+                continue;
+            }
+            header_writer.AddKeyValue(key, value);
+        }
+        for (const auto& [key, value] : response_.user_headers_) {
             if (key == content_length_header) {
                 continue;
             }

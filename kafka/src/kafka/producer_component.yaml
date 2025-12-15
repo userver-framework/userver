@@ -11,7 +11,7 @@ properties:
             because it enables you to more easily correlate requests on the broker
             with the client instance which made it,
             which can be helpful in debugging and troubleshooting scenarios.
-        defaultDescription: userver
+        default: userver
     delivery_timeout:
         type: string
         description: time a produced message waits for successful delivery
@@ -21,7 +21,7 @@ properties:
     enable_idempotence:
         type: boolean
         description: whether to make producer idempotent
-        defaultDescription: false
+        default: false
     queue_buffering_max_messages:
         type: integer
         description: |
@@ -29,7 +29,7 @@ properties:
             words, maximum number of simultaneously send requests waiting for delivery
         minimum: 0
         maximum: 2147483647
-        defaultDescription: 100000
+        default: 100000
     queue_buffering_max_kbytes:
         type: integer
         description: |
@@ -38,18 +38,18 @@ properties:
             exceeded no more send requests are accepted regardless to the number of messages
         minimum: 1
         maximum: 2147483647
-        defaultDescription: 1048576
+        default: 1048576
     message_max_bytes:
         type: integer
         description: one message maximum size
         minimum: 1000
         maximum: 1000000000
-        defaultDescription: 1000000
+        default: 1000000
     message_send_max_retries:
         type: integer
         description: maximum number of send request retries until `delivery_timeout`
             reached
-        defaultDescription: 2147483647
+        default: 2147483647
     retry_backoff:
         type: string
         description: |
@@ -57,13 +57,13 @@ properties:
             It will be backed off exponentially until number of retries is exhausted
             and bounded by `retry_backoff_max`.
             The backoff must fit in [1ms; 300000ms]
-        defaultDescription: 100ms
+        default: 100ms
     retry_backoff_max:
         type: string
         description: |
             backoff upper bound.
             The backoff must fit in [1ms; 300000ms]
-        defaultDescription: 1000ms
+        default: 1000ms
     security_protocol:
         type: string
         description: protocol used to communicate with brokers
@@ -77,7 +77,7 @@ properties:
         description: |
             SASL mechanism to use for authentication.
             Must be set if `security_protocol` equals `SASL_SSL`
-        defaultDescription: none
+        default: ''
         enum:
           - PLAIN
           - SCRAM-SHA-512
@@ -87,7 +87,7 @@ properties:
             file or directory path to CA certificate(s) for verifying the broker's key.
             Must be set if `security_protocol` equals `SASL_SSL` or `SSL`.
             If set to `probe`, CA certificates are probed from the default certificates paths
-        defaultDescription: none
+        default: none
 
     rd_kafka_custom_options:
         type: object
@@ -99,14 +99,14 @@ properties:
         additionalProperties:
             type: string
             description: librdkafka option value
-        defaultDescription: '{}'
+        default: {}
     debug_info_log_level:
         type: string
         description: |
             log level for everything debug information
-        defaultDescription: debug
+        default: debug
     operation_log_level:
         type: string
         description: |
             log level for infos about ordinary actions
-        defaultDescription: debug
+        default: debug

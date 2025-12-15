@@ -3,9 +3,23 @@
 # ----------------------------------
 with section('parse'):  # noqa: F821
     # Specify structure for custom cmake functions
+    # flags - single word flags
     # pargs - positional arguments
     # kwargs - keyword arguments
     additional_commands = {
+        'cpmaddpackage': {
+            'flags': ['EXCLUDE_FROM_ALL', 'DOWNLOAD_ONLY', 'SYSTEM'],
+            'kwargs': {
+                'NAME': '*',
+                'VERSION': '*',
+                'GITHUB_REPOSITORY': '*',
+                'URL': '*',
+                'OPTIONS': '*',
+                'PATCHES': '*',
+                'SOURCE_SUBDIR': '*',
+                'GIT_TAG': '*',
+            },
+        },
         'userver_module': {
             'pargs': 1,
             'kwargs': {
@@ -28,6 +42,8 @@ with section('parse'):  # noqa: F821
                 'UBENCH_LINK_LIBRARIES': '*',
                 'UBENCH_ENV': '*',
                 'POSTGRES_TEST_DSN': '*',
+                'DEPENDS': '*',
+                'EMBED_FILES': '*',
             },
             'flags': ['NO_INSTALL', 'NO_CORE_LINK', 'GENERATE_DYNAMIC_CONFIGS'],
         },
@@ -61,6 +77,61 @@ with section('parse'):  # noqa: F821
             },
             'flags': ['UNIQUE'],
         },
+        'userver_testsuite_requirements': {
+            'flags': ['TESTSUITE_ONLY'],
+            'kwargs': {
+                'REQUIREMENTS_FILES_VAR': '*',
+            },
+        },
+        'userver_testsuite_add': {
+            'kwargs': {
+                'SERVICE_TARGET': '*',
+                'TEST_SUFFIX': '*',
+                'WORKING_DIRECTORY': '*',
+                'PYTHON_BINARY': '*',
+                'PRETTY_LOGS': '*',
+                'SQL_LIBRARY': '*',
+                'PYTEST_ARGS': '*',
+                'REQUIREMENTS': '*',
+                'PYTHONPATH': '*',
+                'TEST_ENV': '*',
+            },
+        },
+        'userver_testsuite_add_simple': {
+            'kwargs': {
+                'SERVICE_TARGET': '*',
+                'TEST_SUFFIX': '*',
+                'WORKING_DIRECTORY': '*',
+                'PYTHON_BINARY': '*',
+                'PRETTY_LOGS': '*',
+                'CONFIG_PATH': '*',
+                'CONFIG_VARS_PATH': '*',
+                'DYNAMIC_CONFIG_FALLBACK_PATH': '*',
+                'SECDIST_PATH': '*',
+                'DUMP_CONFIG': '*',
+                'SQL_LIBRARY': '*',
+                'PYTEST_ARGS': '*',
+                'REQUIREMENTS': '*',
+                'PYTHONPATH': '*',
+                'TEST_ENV': '*',
+            },
+        },
+        'userver_add_utest': {
+            'flags': ['DISABLE_GTEST_XML_OUTPUT'],
+            'kwargs': {
+                'NAME': '*',
+                'DATABASES': '*',
+                'TEST_ENV': '*',
+                'TEST_ARGS': '*',
+            },
+        },
+        'userver_add_ubench_test': {
+            'kwargs': {
+                'NAME': '*',
+                'DATABASES': '*',
+                'TEST_ENV': '*',
+            },
+        },
         'userver_venv_setup': {
             'kwargs': {
                 'NAME': '*',
@@ -79,6 +150,48 @@ with section('parse'):  # noqa: F821
         'userver_chaos_testsuite_add': {
             'kwargs': {
                 'ENV': '*',
+            },
+        },
+        '_userver_module_begin': {
+            'flags': ['CPM_DOWNLOAD_ONLY'],
+            'kwargs': {
+                'NAME': '*',
+                'DEBIAN_NAMES': '*',
+                'FORMULA_NAMES': '*',
+                'RPM_NAMES': '*',
+                'PKG_NAMES': '*',
+                'PACMAN_NAMES': '*',
+                'PKG_CONFIG_NAMES': '*',
+                'VERSION': '*',
+                'CPM_NAME': '*',
+                'CPM_GIT_TAG': '*',
+                'CPM_URL': '*',
+                'CPM_GITHUB_REPOSITORY': '*',
+                'CPM_VERSION': '*',
+                'CPM_OPTIONS': '*',
+            },
+        },
+        '_userver_module_find_include': {
+            'kwargs': {
+                'NAME': '*',
+                'PATHS': '*',
+                'PATH_SUFFIXES': '*',
+            },
+        },
+        '_userver_module_find_library': {
+            'flags': ['OPTIONAL'],
+            'kwargs': {
+                'NAMES': '*',
+                'PATHS': '*',
+            },
+        },
+        '_userver_module_find_part': {
+            'flags': ['OPTIONAL'],
+            'kwargs': {
+                'PART_TYPE': '*',
+                'NAMES': '*',
+                'PATH_SUFFIXES': '*',
+                'PATHS': '*',
             },
         },
     }

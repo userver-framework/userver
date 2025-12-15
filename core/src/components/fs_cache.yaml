@@ -5,13 +5,15 @@ properties:
     dir:
         type: string
         description: directory to cache files from
-        defaultDescription: /var/www
+        default: /var/www
     update-period:
         type: string
         description: |
             update period (0 - fill the cache only at startup)
-        defaultDescription: 0
+        default: 0
     fs-task-processor:
         type: string
-        description: task processor to do filesystem operations
-        defaultDescription: engine::current_task::GetBlockingTaskProcessor()
+        description: |
+            Task processor to do filesystem operations
+
+            Default: engine::current_task::GetBlockingTaskProcessor()

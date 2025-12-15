@@ -8,7 +8,7 @@
 /// @brief @copybrief components::HttpClient
 
 #include <userver/clients/http/client.hpp>
-#include <userver/clients/http/client_with_plugins.hpp>
+#include <userver/clients/http/client_with_middlewares.hpp>
 #include <userver/clients/http/component_core.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -17,10 +17,10 @@ namespace components {
 
 /// @ingroup userver_components
 ///
-/// @brief Component that manages @ref clients::http::ClientWithPlugins.
+/// @brief Component that manages @ref clients::http::ClientWithMiddlewares.
 ///
 /// Reuses @ref clients::http::ClientCore from @ref components::HttpClientCore and applies
-/// sequence of @ref clients::http::Plugin to the request.
+/// sequence of @ref clients::http::MiddlewareBase to the request.
 ///
 /// Returned references to @ref clients::http::Client live for a lifetime of the
 /// component and are safe for concurrent use.
@@ -47,7 +47,7 @@ public:
     static yaml_config::Schema GetStaticConfigSchema();
 
 private:
-    clients::http::ClientWithPlugins http_client_;
+    clients::http::ClientWithMiddlewares http_client_;
 };
 
 template <>

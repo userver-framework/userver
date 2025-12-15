@@ -9,6 +9,7 @@
 #include <system_error>
 
 #include <server/net/create_socket.hpp>
+#include <server/net/http2_connection.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/io/exception.hpp>
 #include <userver/engine/io/socket.hpp>
@@ -118,18 +119,31 @@ void ListenerImpl::ProcessConnection(engine::io::Socket peer_socket, const PortC
         socket = std::make_unique<engine::io::Socket>(std::move(peer_socket));
     }
 
-    Connection connection_ptr(
-        endpoint_info_->listener_config.connection_config,
-        endpoint_info_->listener_config.handler_defaults,
-        std::move(socket),
-        std::move(remote_address),
-        endpoint_info_->request_handler,
-        stats_,
-        data_accounter_
-    );
-
     LOG_TRACE() << "Start connection processing for fd " << fd;
-    connection_ptr.Process();
+    if (endpoint_info_->listener_config.connection_config.http_version == USERVER_NAMESPACE::http::HttpVersion::k2) {
+        Http2Connection connection_ptr(
+            endpoint_info_->listener_config.connection_config,
+            endpoint_info_->listener_config.handler_defaults,
+            std::move(socket),
+            std::move(remote_address),
+            endpoint_info_->request_handler,
+            stats_,
+            data_accounter_
+        );
+        connection_ptr.Process();
+    } else {
+        Connection connection_ptr(
+            endpoint_info_->listener_config.connection_config,
+            endpoint_info_->listener_config.handler_defaults,
+            std::move(socket),
+            std::move(remote_address),
+            endpoint_info_->request_handler,
+            stats_,
+            data_accounter_
+        );
+
+        connection_ptr.Process();
+    }
     LOG_TRACE() << "Finishing connection for fd " << fd;
 }
 

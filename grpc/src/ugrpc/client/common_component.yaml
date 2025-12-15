@@ -8,7 +8,7 @@ properties:
     native-log-level:
         type: string
         description: min log level for the native gRPC library
-        defaultDescription: error
+        default: error
         enum:
           - debug
           - info

@@ -8,4 +8,4 @@ properties:
             type: string
             description: name of a middleware to append
         description: list of middlewares to append by default
-        defaultDescription: an empty list
+        default: an empty list

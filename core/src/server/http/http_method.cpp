@@ -1,5 +1,7 @@
 #include <userver/server/http/http_method.hpp>
 
+#include <userver/yaml_config/yaml_config.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace server::http {
@@ -87,6 +89,11 @@ HttpMethod HttpMethodFromString(std::string_view method_str) {
     }
 
     return result;
+}
+
+HttpMethod Parse(const yaml_config::YamlConfig& value, formats::parse::To<HttpMethod>)
+{
+    return HttpMethodFromString(value.As<std::string>());
 }
 
 const std::string& ToString(HttpMethod method) noexcept {

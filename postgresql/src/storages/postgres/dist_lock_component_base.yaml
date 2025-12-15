@@ -24,19 +24,19 @@ properties:
     restart-delay:
         type: string
         description: how much time to wait after failed task restart
-        defaultDescription: 100ms
+        default: 100ms
     autostart:
         type: boolean
         description: if true, start automatically after component load
-        defaultDescription: true
+        default: true
     task-processor:
         type: string
         description: the name of the TaskProcessor for running DoWork
-        defaultDescription: main-task-processor
+        default: main-task-processor
     testsuite-support:
         type: boolean
         description: Enable testsuite support
-        defaultDescription: false
+        default: false
     locker-log-level:
         type: string
         description: Base logging level for locker logs (default is info)

@@ -31,7 +31,10 @@ constexpr utils::StringLiteral kTracingUri = "uri";
 
 std::string GetHeadersLogString(const http::HttpResponse& response) {
     formats::json::ValueBuilder json_headers(formats::json::Type::kObject);
-    for (const auto& header_name : response.GetHeaderNames()) {
+    for (const auto& header_name : response.GetSystemHeaderNames()) {
+        json_headers[header_name] = response.GetHeader(header_name);
+    }
+    for (const auto& header_name : response.GetUserHeaderNames()) {
         json_headers[header_name] = response.GetHeader(header_name);
     }
     return formats::json::ToString(json_headers.ExtractValue());
@@ -69,13 +72,13 @@ void Tracing::HandleRequest(http::HttpRequest& request, request::RequestContext&
     const auto meta_type = misc::CutTrailingSlash(request.GetRequestPath(), handler_.GetConfig().url_trailing_slash);
     auto span = MakeSpan(request, meta_type);
     LogYandexHeaders(request);
+    FillResponseWithTracingContext(span, request.GetHttpResponse());
 
     // This needs ConfigSnapshot, which is reset down the call chain in Next(),
     // so we prepare settings here
     const auto logging_settings = ParseLoggingSettings(context);
     const utils::FastScopeGuard guard{[this, &span, &logging_settings, &request, &context]() noexcept {
         try {
-            FillResponseWithTracingContext(span, request.GetHttpResponse());
             EnrichLogs(span, logging_settings, request, context);
         } catch (const std::exception& ex) {
             // Something went really wrong if our tracing threw itself.

@@ -5,4 +5,4 @@ properties:
     grpc-status-code:
         type: string
         description: gRPC status code for ratelimited responses
-        defaultDescription: RESOURCE_EXHAUSTED
+        default: RESOURCE_EXHAUSTED

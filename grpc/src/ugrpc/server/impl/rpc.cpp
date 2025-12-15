@@ -11,7 +11,7 @@ USERVER_NAMESPACE_BEGIN
 namespace ugrpc::server::impl {
 
 std::unique_lock<engine::SingleWaitingTaskMutex> ResponderBase::TakeMutexIfBidirectional() {
-    if (state_.call_kind == impl::CallKind::kBidirectionalStream) {
+    if (RpcType::kBidiStreaming == state_.rpc_type) {
         // In stream -> stream RPCs, Recv and Send hooks will naturally run in parallel.
         // However, this can cause data races when:
         // * accessing StorageContext;

@@ -131,7 +131,7 @@ void HttpResponseSetHeaderBenchmark(benchmark::State& state) {
         response.SetHeader(Headers::kAcceptEncoding, "gzip, identity");
         response.SetHeader(Headers::kConnection, "keep-alive");
         response.SetHeader(Headers::kContentLength, "13");
-        if (!response.ClearHeaders()) {
+        if (!response.ClearUserHeaders()) {
             std::abort();
         }
     }

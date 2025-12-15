@@ -4,8 +4,10 @@ additionalProperties: false
 properties:
     fs-task-processor:
         type: string
-        description: name of the task processor to handle the blocking file operations
-        defaultDescription: engine::current_task::GetBlockingTaskProcessor()
+        description: |
+            Name of the task processor to handle the blocking file operations
+
+            Default: engine::current_task::GetBlockingTaskProcessor()
     db-path:
         type: string
         description: path to the database file or `::memory::` for in-memory mode
@@ -13,23 +15,23 @@ properties:
         type: boolean
         description: create the database file if it does not exist at the specified
             path
-        defaultDescription: true
+        default: true
     is_read_only:
         type: boolean
         description: open the database in read-only mode
-        defaultDescription: false
+        default: false
     shared_cache:
         type: boolean
         description: enable shared in-memory cache for the database
-        defaultDescription: false
+        default: false
     read_uncommitted:
         type: boolean
         description: allow reading uncommitted data (requires shared_cache)
-        defaultDescription: false
+        default: false
     journal_mode:
         type: string
         description: mode for database journaling
-        defaultDescription: wal
+        default: wal
         enum:
           - delete
           - truncate
@@ -41,15 +43,15 @@ properties:
         type: integer
         description: timeout duration (in milliseconds) to wait when the database
             is busy
-        defaultDescription: 5000
+        default: 5000
     foreign_keys:
         type: boolean
         description: enable enforcement of foreign key constraints
-        defaultDescription: true
+        default: true
     synchronous:
         type: string
         description: set the level of synchronization to ensure data durability
-        defaultDescription: normal
+        default: normal
         enum:
           - extra
           - full
@@ -59,39 +61,39 @@ properties:
         type: integer
         description: maximum cache size, specified in number of pages or in kibibytes
             (negative value)
-        defaultDescription: -2000
+        default: -2000
     journal_size_limit:
         type: integer
         description: limit the size of rollback-journal and WAL files (in bytes)
-        defaultDescription: 67108864
+        default: 67108864
     mmap_size:
         type: integer
         description: maximum number of bytes allocated for memory-mapped I/O
-        defaultDescription: 30000000000
+        default: 30000000000
     page_size:
         type: integer
         description: size of a database page (in bytes)
-        defaultDescription: 4096
+        default: 4096
     temp_store:
         type: string
         description: storage location for temporary tables and indexes
-        defaultDescription: memory
+        default: memory
         enum:
           - memory
           - file
     persistent-prepared-statements:
         type: boolean
         description: cache prepared statements for reuse
-        defaultDescription: true
+        default: true
     max_prepared_cache_size:
         type: integer
         description: maximum number of prepared statements to cache
-        defaultDescription: 200
+        default: 200
     initial_read_only_pool_size:
         type: integer
         description: initial size of the read-only connection pool
-        defaultDescription: 5
+        default: 5
     max_read_only_pool_size:
         type: integer
         description: maximum size of the read-only connection pool
-        defaultDescription: 10
+        default: 10

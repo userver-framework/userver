@@ -27,8 +27,10 @@ function(userver_embed_file TARGET)
     add_custom_command(
         OUTPUT ${CONFIG_HPP}
         DEPENDS ${USERVER_CMAKE_DIR}/embedded_config.cmake ${ARG_FILEPATH}
-        COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR} -DFILEPATH=${ARG_FILEPATH}
-                -DOUTPUT=${CONFIG_HPP} -DNAME_C_ESCAPED=${NAME_C_ESCAPED} -DNAME=${ARG_NAME} -P ${USERVER_CMAKE_DIR}/embedded_config.cmake ${CODEGEN}
+        COMMAND
+            ${CMAKE_COMMAND} -DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR} -DFILEPATH=${ARG_FILEPATH} -DOUTPUT=${CONFIG_HPP}
+            -DNAME_C_ESCAPED=${NAME_C_ESCAPED} -DNAME=${ARG_NAME} -P ${USERVER_CMAKE_DIR}/embedded_config.cmake
+            ${CODEGEN}
     )
     _userver_codegen_register_files("${CONFIG_HPP}")
     add_library(${TARGET} STATIC ${CONFIG_HPP} ${CMAKE_CURRENT_BINARY_DIR}/embedded/embedded.cpp)

@@ -189,12 +189,15 @@ Frame stack usage is 208822391 bytes
 
 ## GDB complains: received signal ?, Unknown signal
 
-This is a side effect of stack usage monitor interfering with GDB. In unit tests you can set the environment variable
-`USERVER_ENABLE_STACK_USAGE_MONITOR=0` to disable the monitor, in other binaries you can either disable it
-via static config option `coro_pool.stack_usage_monitor_enabled` in components::ManagerControllerComponent or by
-disabling it at all at build time of the framework via `USERVER_FEATURE_STACK_USAGE_MONITOR`
-(see @ref scripts/docs/en/userver/build/options.md).
+This is a side effect of the stack usage monitor interfering with GDB. In recent versions, the framework automatically detects
+an attached debugger and disables the stack usage monitor to avoid this issue, printing the log warning: "Detected attached 
+debugger. Stack usage monitor is disabled".
 
+If automatic detection does not work in your environment, or if you want to disable the monitor for other reasons, you have 
+several options. For unit tests, you can set the environment variable USERVER_ENABLE_STACK_USAGE_MONITOR=0. For other binaries, 
+you can either disable it via the static config option coro_pool.stack_usage_monitor_enabled in 
+components::ManagerControllerComponent, or disable it entirely at build time using USERVER_FEATURE_STACK_USAGE_MONITOR (see @ref
+ scripts/docs/en/userver/build/options.md).
 
 ## Adding new pretty-printers and commands
 

@@ -40,7 +40,7 @@ bool IsClownductorPrestable() {
     }
     auto content = fs::ReadFileContents(tp, filepath);
     utils::text::Trim(content);
-    return utils::text::EndsWith(content, "_pre_stable");
+    return utils::text::EndsWith(content, "_pre_stable") || utils::text::EndsWith(content, "_prestable");
 }
 #else
 bool IsClownductorPrestable() { return false; }
@@ -73,8 +73,11 @@ DynamicConfigClient::DynamicConfigClient(const ComponentConfig& config, const Co
         throw std::logic_error("Cannot get overrides for both stage and service yet");
     }
 
-    config_client_ = std::make_unique<
-        dynamic_config::Client>(context.FindComponent<HttpClient>().GetHttpClient(), client_config);
+    config_client_ = std::make_unique<dynamic_config::Client>(
+        context.FindComponent<HttpClient>(config["http-client"].As<std::string>("dynamic-config-http-client"))
+            .GetHttpClient(),
+        client_config
+    );
 }
 
 dynamic_config::Client& DynamicConfigClient::GetClient() const { return *config_client_; }

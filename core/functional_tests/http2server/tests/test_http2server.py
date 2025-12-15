@@ -9,6 +9,7 @@ import h2.connection
 import h2.events
 import h2.settings
 import pytest
+import pytest_userver.utils.sync as sync
 
 DEFAULT_PATH = '/http2server'
 DEFAULT_DATA = {'hello': 'world'}
@@ -134,19 +135,26 @@ async def test_concurrent_requests(
 
     await service_client.update_server_state()
 
-    await asyncio.sleep(1.0)
+    def expect_eq(a, b):
+        if a == b:
+            return
+        raise sync.NotReady
 
-    metrics = await monitor_client.metrics(prefix='server.requests.http2')
-    assert len(metrics) == 5
-    total_requests = clients_count * req_per_client + current_streams
-    assert total_requests == await _get_metric(monitor_client, 'streams-count')
-    assert total_requests == await _get_metric(monitor_client, 'streams-close')
-    assert 0 == await _get_metric(monitor_client, 'reset-streams')
-    assert 0 == await _get_metric(monitor_client, 'goaway')
-    assert streams_parse_error == await _get_metric(
-        monitor_client,
-        'streams-parse-error',
-    )
+    async def is_ready():
+        metrics = await monitor_client.metrics(prefix='server.requests.http2')
+        expect_eq(len(metrics), 5)
+        total_requests = clients_count * req_per_client + current_streams
+        expect_eq(total_requests, await _get_metric(monitor_client, 'streams-count'))
+        expect_eq(total_requests, await _get_metric(monitor_client, 'streams-close'))
+        expect_eq(0, await _get_metric(monitor_client, 'reset-streams'))
+        expect_eq(0, await _get_metric(monitor_client, 'goaway'))
+        expect_eq(
+            streams_parse_error,
+            await _get_metric(monitor_client, 'streams-parse-error'),
+        )
+        return True
+
+    await sync.wait(is_ready)
 
 
 async def test_concurrent_requests_with_big_body(

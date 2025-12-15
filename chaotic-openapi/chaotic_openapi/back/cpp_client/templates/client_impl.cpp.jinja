@@ -22,8 +22,8 @@ ClientImpl::ClientImpl(const USERVER_NAMESPACE::chaotic::openapi::client::Config
       ) {
         auto r = http_client_.CreateRequest();
         r.SetUrlTemplate("{{ op.path }}");
-        if (plugins_) {
-            r.SetPluginsList(*plugins_);
+        if (core_middlewares_) {
+            r.SetMiddlewaresList(*core_middlewares_);
         }
         ApplyConfig(r, command_control, config_);
 

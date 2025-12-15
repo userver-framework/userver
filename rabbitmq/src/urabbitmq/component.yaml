@@ -5,23 +5,25 @@ additionalProperties: false
 properties:
     secdist_alias:
         type: string
-        description: name of the key in secdist config
-        defaultDescription: <components name>
+        description: |
+            Name of the key in secdist config
+
+            Default: <components name>
     min_pool_size:
         type: integer
         description: minimum connections pool size (per host)
-        defaultDescription: 5
+        default: 5
     max_pool_size:
         type: integer
         description: |
             maximum connections pool size (per host, consumers excluded)
-        defaultDescription: 10
+        default: 10
     max_in_flight_requests:
         type: integer
         description: |
             per-connection limit for requests awaiting response from the broker
-        defaultDescription: 5
+        default: 5
     use_secure_connection:
         type: boolean
         description: whether to use TLS for connections
-        defaultDescription: true
+        default: true

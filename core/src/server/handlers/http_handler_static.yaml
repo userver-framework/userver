@@ -7,17 +7,17 @@ properties:
     fs-cache-component:
         type: string
         description: Name of the FsCache component
-        defaultDescription: fs-cache-component
+        default: fs-cache-component
     expires:
         type: string
         description: Cache age in seconds
-        defaultDescription: 600
+        default: 600
     directory-file:
         type: string
         description: File to return for directory requests. File name (not path) search
             in requested directory
-        defaultDescription: index.html
+        default: index.html
     not-found-file:
         type: string
         description: File to return for missing files
-        defaultDescription: /404.html
+        default: /404.html

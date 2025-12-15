@@ -36,7 +36,9 @@ endif()
 
 add_library(${PROJECT_NAME}-internal STATIC ${SOURCES})
 
-list(APPEND EMBED_FILES
+list(
+    APPEND
+    EMBED_FILES
     src/ugrpc/client/client_factory_component.yaml
     src/ugrpc/client/common_component.yaml
     src/ugrpc/client/middlewares/headers_propagator/component.yaml

@@ -7,6 +7,7 @@
 
 #include <gtest/gtest.h>
 
+#include <userver/compiler/impl/asan.hpp>
 #include <userver/engine/run_in_coro.hpp>  // legacy
 #include <userver/utest/assert_macros.hpp>
 #include <userver/utest/test_case_macros.hpp>
@@ -43,6 +44,14 @@ USERVER_NAMESPACE_END
 #else
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define DISABLED_IN_DEBUG_TEST_NAME(name) name
+#endif
+
+#if USERVER_IMPL_HAS_ASAN
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define DISABLED_IN_ASAN_TEST_NAME(name) DISABLED_##name
+#else
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define DISABLED_IN_ASAN_TEST_NAME(name) name
 #endif
 
 #ifdef __APPLE__

@@ -97,11 +97,19 @@ public:
 
     /// Takes the exception and formats it into response, as specified by
     /// exception.
-    void HandleCustomHandlerException(const http::HttpRequest& request, const CustomHandlerException& ex) const;
+    void HandleCustomHandlerException(
+        const http::HttpRequest& request,
+        request::RequestContext& context,
+        const CustomHandlerException& ex
+    ) const;
 
     /// Takes the exception and formats it into response as an internal server
     /// error.
-    void HandleUnknownException(const http::HttpRequest& request, const std::exception& ex) const;
+    void HandleUnknownException(
+        const http::HttpRequest& request,
+        request::RequestContext& context,
+        const std::exception& ex
+    ) const;
 
     /// Helper function to log an unknown exception
     void LogUnknownException(const std::exception& ex, std::optional<logging::Level> log_level_override = {}) const;

@@ -10,7 +10,5 @@ userver_module(
     SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}"
     LINK_LIBRARIES userver::grpc protovalidate_cc::protovalidate_cc
     UTEST_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp"
-    EMBED_FILES
-        src/grpc-protovalidate/client/component.yaml
-        src/grpc-protovalidate/server/component.yaml
+    EMBED_FILES src/grpc-protovalidate/client/component.yaml src/grpc-protovalidate/server/component.yaml
 )

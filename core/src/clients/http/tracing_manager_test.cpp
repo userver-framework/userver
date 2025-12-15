@@ -18,7 +18,7 @@ public:
         return true;
     }
 
-    void FillRequestWithTracingContext(const tracing::Span&, clients::http::PluginRequest) const override {
+    void FillRequestWithTracingContext(const tracing::Span&, clients::http::MiddlewareRequest) const override {
         ++fill_request_counter_;
     }
 

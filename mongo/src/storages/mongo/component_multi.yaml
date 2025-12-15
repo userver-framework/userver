@@ -5,46 +5,48 @@ properties:
     appname:
         type: string
         description: application name for the DB server
-        defaultDescription: userver
+        default: userver
     conn_timeout:
         type: string
         description: connection timeout
-        defaultDescription: 2s
+        default: 2s
     so_timeout:
         type: string
         description: socket timeout
-        defaultDescription: 10s
+        default: 10s
     queue_timeout:
         type: string
         description: max connection queue wait time
-        defaultDescription: 1s
+        default: 1s
     initial_size:
         type: string
         description: number of connections created initially (per database)
-        defaultDescription: 16
+        default: 16
     max_size:
         type: integer
         description: limit for total connections number (per database)
-        defaultDescription: 128
+        default: 128
     idle_limit:
         type: integer
         description: limit for idle connections number (per database)
-        defaultDescription: 64
+        default: 64
     connecting_limit:
         type: integer
         description: limit for establishing connections number (per database)
-        defaultDescription: 8
+        default: 8
     local_threshold:
         type: string
-        description: latency window for instance selection
-        defaultDescription: mongodb default
+        description: |
+            Latency window for instance selection.
+
+            Default: mongodb default
     max_replication_lag:
         type: string
         description: replication lag limit for usable secondaries, min. 90s
     stats_verbosity:
         type: string
         description: changes the granularity of reported metrics
-        defaultDescription: 'terse'
+        default: 'terse'
         enum:
           - terse
           - full
@@ -52,7 +54,7 @@ properties:
     dns_resolver:
         type: string
         description: server hostname resolver type (getaddrinfo or async)
-        defaultDescription: 'async'
+        default: 'async'
         enum:
           - getaddrinfo
           - async
@@ -64,8 +66,8 @@ properties:
             fake-mode:
                 type: boolean
                 description: whether CC limiter is actually working
-                defaultDescription: false
+                default: false
             enabled:
                 type: boolean
                 description: whether CC is enabled for the database
-                defaultDescription: true
+                default: true

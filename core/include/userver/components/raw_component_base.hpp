@@ -3,6 +3,9 @@
 /// @file userver/components/raw_component_base.hpp
 /// @brief @copybrief components::RawComponentBase
 
+#include <type_traits>
+#include <userver/utils/void_t.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace yaml_config {
@@ -71,11 +74,21 @@ inline constexpr bool kHasValidate = false;
 template <typename Component>
 inline constexpr bool kForceNoValidation = false;
 
+namespace impl {
+
+template <typename Component, typename = void>
+inline constexpr auto kDefaultConfigFileMode = ConfigFileMode::kRequired;
+
+template <typename Component>
+inline constexpr auto
+    kDefaultConfigFileMode<Component, utils::void_t<decltype(Component::kConfigFileMode)>> = Component::kConfigFileMode;
+}  // namespace impl
+
 /// Specialize this to customize the loading of component settings
 ///
 /// @see @ref select-config-file-mode "Setup config file mode"
 template <typename Component>
-inline constexpr auto kConfigFileMode = ConfigFileMode::kRequired;
+inline constexpr auto kConfigFileMode = impl::kDefaultConfigFileMode<Component>;
 
 }  // namespace components
 

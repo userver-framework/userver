@@ -18,16 +18,24 @@ public:
 
     virtual ~StateBase();
 
-    void HookBeforeAddDependency(const Actor& subject, const Actor& object);
+    void OnResourceAcquire(const Actor& owner, const Actor& resource);
 
-    void HookBeforeRemoveDependency(const Actor& subject, const Actor& object) noexcept;
+    void OnResourceRelease(const Actor& owner, const Actor& resource) noexcept;
 
-    void HookActorDestroy(const Actor& object);
+    void OnWaitForResourceStart(const Actor& waiting, const Actor& resource);
+
+    void OnWaitForResourceFinish(const Actor& waiting, const Actor& resource) noexcept;
+
+    void OnActorDestroy(const Actor& actor);
 
 protected:
     virtual void OnCycleFound(const std::vector<const Actor*>& cycle) = 0;
 
 private:
+    void AddDependency(const Actor& from, const Actor& to);
+
+    void RemoveDependency(const Actor& from, const Actor& to) noexcept;
+
     struct Impl;
     utils::FastPimpl<Impl, 232, 8> impl_;
 };
@@ -45,12 +53,12 @@ State& GetState();
 
 class WaitScope final {
 public:
-    explicit WaitScope(const Actor& a);
+    explicit WaitScope(const Actor& resource);
     WaitScope(WaitScope&&) = delete;
     ~WaitScope();
 
 private:
-    const Actor& actor_;
+    const Actor& resource_;
 };
 
 }  // namespace engine::deadlock_detector

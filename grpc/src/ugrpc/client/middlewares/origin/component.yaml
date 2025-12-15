@@ -4,6 +4,8 @@ additionalProperties: false
 properties:
     user-agent:
         type: string
-        description: The name of the current deploy unit that will appear in `x-origin`
-            metadata
-        defaultDescription: Do not send `x-origin`
+        description: |
+            The name of the current deploy unit that will appear in `x-origin`
+            metadata.
+
+            Default: Do not send `x-origin`

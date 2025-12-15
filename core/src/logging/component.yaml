@@ -5,7 +5,7 @@ properties:
     fs-task-processor:
         type: string
         description: task processor for disk I/O operations
-        defaultDescription: engine::current_task::GetBlockingTaskProcessor()
+        default: engine::current_task::GetBlockingTaskProcessor()
     loggers:
         type: object
         description: logger options
@@ -21,11 +21,11 @@ properties:
                 level:
                     type: string
                     description: log verbosity
-                    defaultDescription: info
+                    default: info
                 format:
                     type: string
                     description: log output format
-                    defaultDescription: tskv
+                    default: tskv
                     enum:
                       - tskv
                       - ltsv
@@ -36,30 +36,30 @@ properties:
                     type: string
                     description: messages of this and higher levels get flushed to
                         the file immediately
-                    defaultDescription: warning
+                    default: warning
                 message_queue_size:
                     type: integer
                     description: the size of internal message queue, must be a power
                         of 2
-                    defaultDescription: 65536
+                    default: 65536
                 overflow_behavior:
                     type: string
                     description: "message handling policy while the queue is full:
                         `discard` drops messages, `block` waits until message gets
                         into the queue"
-                    defaultDescription: discard
+                    default: discard
                     enum:
                       - discard
                       - block
                 fs-task-processor:
                     type: string
                     description: task processor for disk I/O operations for this logger
-                    defaultDescription: top-level `fs-task-processor` option
+                    default: top-level `fs-task-processor` option
                 testsuite-capture:
                     type: object
                     description: if exists, setups additional TCP log sink for testing
                         purposes
-                    defaultDescription: "{}"
+                    default: "{}"
                     additionalProperties: false
                     properties:
                         host:

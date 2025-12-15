@@ -16,6 +16,7 @@
 #include <userver/tracing/span.hpp>
 #include <userver/utils/impl/internal_tag_fwd.hpp>
 
+#include <userver/ugrpc/rpc_type.hpp>
 #include <userver/ugrpc/time_utils.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -62,14 +63,11 @@ public:
     /// @returns RPC name
     std::string_view GetCallName() const noexcept;
 
+    /// @returns RPC type
+    RpcType GetRpcType() const noexcept;
+
     /// @returns RPC span
     tracing::Span& GetSpan() noexcept;
-
-    /// @returns Is a client-side streaming call
-    bool IsClientStreaming() const noexcept;
-
-    /// @returns Is a server-side streaming call
-    bool IsServerStreaming() const noexcept;
 
     /// @cond
     // For internal use only

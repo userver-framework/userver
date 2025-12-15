@@ -29,16 +29,15 @@ MiddlewaresList DefaultPipeline() {
     return {
         // Metrics should go before everything else, basically.
         std::string{builtin::kHandlerMetrics},
-        // Tracing should go before UnknownExceptionsHandlingMiddleware because it
-        // adds some headers, which otherwise might be cleared
-        std::string{builtin::kTracing},
-        // Ditto
-        std::string{builtin::kSetAcceptEncoding},
 
         // Every exception caught here is transformed into Http500 without
         // context.
         // All middlewares except for the most obscure ones should go below.
         std::string{builtin::kUnknownExceptionsHandling},
+
+        // Setting headers middlewares should be before terminating middlewares to set headers for errors
+        std::string{builtin::kTracing},
+        std::string{builtin::kSetAcceptEncoding},
 
         // Should be self-explanatory
         std::string{builtin::kRateLimit},

@@ -122,7 +122,7 @@ components_manager:
 
         handler-ping:
             path: /ping
-            method: GET
+            method: GET,POST
             task_processor: main-task-processor
             throttling_enabled: false
             url_trailing_slash: strict-match

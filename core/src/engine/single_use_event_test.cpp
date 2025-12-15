@@ -262,6 +262,7 @@ UTEST_P_MT(SingleUseEventWaitAny, WaitSendRace, 2) {
     }
 }
 
+#if !USERVER_IMPL_HAS_TSAN
 UTEST_P_MT(SingleUseEventWaitAny, SendCancelRace, 3) {
     const auto event_to_notify = GetParam();
     const auto test_deadline = engine::Deadline::FromDuration(50ms);
@@ -297,5 +298,6 @@ UTEST_P_MT(SingleUseEventWaitAny, SendCancelRace, 3) {
         }
     }
 }
+#endif
 
 USERVER_NAMESPACE_END

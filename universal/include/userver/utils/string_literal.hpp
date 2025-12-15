@@ -12,7 +12,6 @@
 
 #include <userver/compiler/impl/constexpr.hpp>
 #include <userver/formats/serialize/to.hpp>
-#include <userver/utils/assert.hpp>
 #include <userver/utils/zstring_view.hpp>
 
 USERVER_NAMESPACE_BEGIN

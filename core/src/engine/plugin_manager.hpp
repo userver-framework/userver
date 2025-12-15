@@ -19,6 +19,12 @@ public:
         : mutex_set_(tp, worker_count)
     {}
 
+    ~PluginManager()
+    {
+        // Wait until all Hook*() are finished
+        (void)mutex_set_.WriteLock();
+    }
+
     void RegisterPlugin(PluginBase& plugin) {
         has_any_plugin_ = true;
 
@@ -40,7 +46,7 @@ public:
             empty = plugins_.empty();
         }
 
-        if (empty) {
+        if (!empty) {
             has_any_plugin_ = true;
         }
     }

@@ -10,8 +10,8 @@ properties:
         type: boolean
         description: do not send testpoints data for paths that were not registered
             by `testpoint-url`
-        defaultDescription: false
+        default: false
     testpoint-timeout:
         type: string
         description: timeout to use while working with testpoint-url
-        defaultDescription: 1s
+        default: 1s

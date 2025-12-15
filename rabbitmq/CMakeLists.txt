@@ -13,9 +13,7 @@ userver_module(
     DBTEST_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*_rmqtest.cpp"
     DBTEST_DATABASES rabbitmq
     DEPENDS core
-    EMBED_FILES
-        src/urabbitmq/component.yaml
-        src/urabbitmq/consumer_component_base.yaml
+    EMBED_FILES src/urabbitmq/component.yaml src/urabbitmq/consumer_component_base.yaml
 )
 
 _userver_directory_install(

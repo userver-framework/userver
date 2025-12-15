@@ -14,8 +14,7 @@ userver_module(
     UBENCH_DATABASES redis
     DEPENDS core
     GENERATE_DYNAMIC_CONFIGS
-    EMBED_FILES
-        src/storages/redis/component.yaml
+    EMBED_FILES src/storages/redis/component.yaml
 )
 
 # for libev

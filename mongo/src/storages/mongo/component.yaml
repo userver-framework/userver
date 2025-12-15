@@ -11,4 +11,4 @@ properties:
     maintenance_period:
         type: string
         description: pool maintenance period (idle connections pruning etc.)
-        defaultDescription: 15s
+        default: 15s

@@ -31,8 +31,7 @@ userver_module(
     LINK_LIBRARIES_PRIVATE SQLite::SQLite3
     UTEST_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*_test.cpp"
     DEPENDS core
-    EMBED_FILES
-        src/storages/sqlite/component.yaml
+    EMBED_FILES src/storages/sqlite/component.yaml
 )
 
 if(USERVER_BUILD_TESTS)

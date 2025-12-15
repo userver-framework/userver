@@ -27,12 +27,12 @@ RateLimit::RateLimit(const handlers::HttpHandlerBase& handler)
 }
 
 void RateLimit::HandleRequest(http::HttpRequest& request, request::RequestContext& context) const {
-    if (CheckRateLimit(request)) {
+    if (CheckRateLimit(request, context)) {
         Next(request, context);
     }
 }
 
-bool RateLimit::CheckRateLimit(const http::HttpRequest& request) const {
+bool RateLimit::CheckRateLimit(const http::HttpRequest& request, request::RequestContext& context) const {
     auto& statistics = statistics_.ForMethod(request.GetMethod());
 
     const bool success = rate_limit_.Obtain();
@@ -48,7 +48,7 @@ bool RateLimit::CheckRateLimit(const http::HttpRequest& request) const {
         );
         statistics.IncrementRateLimitReached();
 
-        FailProcessingAndSetResponse(request);
+        FailProcessingAndSetResponse(request, context);
         return false;
     }
 
@@ -65,16 +65,16 @@ bool RateLimit::CheckRateLimit(const http::HttpRequest& request) const {
 
         statistics.IncrementTooManyRequestsInFlight();
 
-        FailProcessingAndSetResponse(request);
+        FailProcessingAndSetResponse(request, context);
         return false;
     }
 
     return true;
 }
 
-void RateLimit::FailProcessingAndSetResponse(const http::HttpRequest& request) const {
+void RateLimit::FailProcessingAndSetResponse(const http::HttpRequest& request, request::RequestContext& context) const {
     const auto ex = handlers::ExceptionWithCode<handlers::HandlerErrorCode::kTooManyRequests>{};
-    handler_.HandleCustomHandlerException(request, ex);
+    handler_.HandleCustomHandlerException(request, context, ex);
 }
 
 }  // namespace server::middlewares

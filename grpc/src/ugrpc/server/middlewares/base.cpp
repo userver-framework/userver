@@ -3,7 +3,7 @@
 #include <userver/components/component.hpp>
 #include <userver/utils/impl/internal_tag.hpp>
 
-#include <userver/ugrpc/server/impl/call_kind.hpp>
+#include <userver/ugrpc/rpc_type.hpp>
 #include <userver/ugrpc/server/impl/call_state.hpp>
 #include <userver/ugrpc/server/impl/exceptions.hpp>
 
@@ -23,13 +23,7 @@ void MiddlewareCallContext::SetError(grpc::Status&& status) noexcept {
     }
 }
 
-bool MiddlewareCallContext::IsClientStreaming() const noexcept {
-    return impl::IsClientStreaming(GetCallState(utils::impl::InternalTag{}).call_kind);
-}
-
-bool MiddlewareCallContext::IsServerStreaming() const noexcept {
-    return impl::IsServerStreaming(GetCallState(utils::impl::InternalTag{}).call_kind);
-}
+RpcType MiddlewareCallContext::GetRpcType() const noexcept { return GetCallState(utils::impl::InternalTag{}).rpc_type; }
 
 const dynamic_config::Snapshot& MiddlewareCallContext::GetInitialDynamicConfig() const {
     const auto& config_snapshot = GetCallState(utils::impl::InternalTag{}).config_snapshot;

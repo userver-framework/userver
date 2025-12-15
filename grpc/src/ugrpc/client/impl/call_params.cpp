@@ -94,7 +94,7 @@ CallParams CreateCallParams(const ClientData& client_data, std::size_t method_id
 
     const auto qos = stub.GetClientQos().methods.GetOptional(call_name).value_or(Qos{});
     ApplyRetryConfiguration(call_options, qos, client_data.GetRetryConfig(), client_data.GetTestsuiteControl());
-    if (ugrpc::impl::RpcType::kUnary == GetMethodType(metadata, method_id)) {
+    if (RpcType::kUnary == GetMethodType(metadata, method_id)) {
         ApplyRetryConfiguration(call_options, qos, client_data.GetRetryConfig(), client_data.GetTestsuiteControl());
     } else {
         ApplyRetryConfigurationStreaming(
@@ -110,6 +110,7 @@ CallParams CreateCallParams(const ClientData& client_data, std::size_t method_id
         client_data.NextQueue(),
         client_data.GetConfigSnapshot(),
         client_data.GetEndpoint(),
+        GetMethodType(metadata, method_id),
         {ugrpc::impl::MaybeOwnedString::Ref{}, call_name},
         metadata.service_full_name,
         GetMethodName(metadata, method_id),
@@ -156,6 +157,7 @@ CallParams CreateGenericCallParams(
         client_data.NextQueue(),
         client_data.GetConfigSnapshot(),
         client_data.GetEndpoint(),
+        RpcType::kUnary,
         ugrpc::impl::MaybeOwnedString{std::string{call_name}},
         service_name,
         method_name,

@@ -11,10 +11,9 @@ tracing::Span& CallState::GetSpan() {
     return span_storage->Get();
 }
 
-CallState::CallState(CallParams&& params, CallKind call_kind)
+CallState::CallState(CallParams&& params)
     : CallParams(std::move(params)),
       statistics_scope(method_statistics),
-      call_kind(call_kind),
       config_snapshot(config_source.GetSnapshot())
 {}
 

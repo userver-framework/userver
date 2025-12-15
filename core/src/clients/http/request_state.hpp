@@ -7,11 +7,11 @@
 #include <string>
 #include <system_error>
 
+#include <clients/http/middlewares/pipeline.hpp>
 #include <userver/clients/dns/resolver_fwd.hpp>
 #include <userver/clients/http/config.hpp>
 #include <userver/clients/http/error.hpp>
 #include <userver/clients/http/form.hpp>
-#include <userver/clients/http/plugin.hpp>
 #include <userver/clients/http/request.hpp>
 #include <userver/clients/http/response_future.hpp>
 #include <userver/concurrent/queue.hpp>
@@ -137,7 +137,7 @@ public:
     std::shared_ptr<Response> response() const { return response_; }
     std::shared_ptr<Response> response_move() { return std::move(response_); }
 
-    void SetPluginsList(const std::vector<utils::NotNull<Plugin*>>& plugins);
+    void SetMiddlewaresList(const std::vector<utils::NotNull<MiddlewareBase*>>& middlewares);
     void SetLoggedUrl(std::string url);
     void SetUrlTemplate(std::string url_template);
     void SetMethod(clients::http::HttpMethod method);
@@ -151,7 +151,7 @@ public:
     /// true if proxy was set using proxy method
     bool IsProxySet() const;
 
-    PluginRequest GetEditableRequestInstance();
+    MiddlewareRequest GetEditableRequestInstance();
 
 private:
     /// final callback that calls user callback and set value in promise
@@ -254,7 +254,7 @@ private:
 
     clients::dns::Resolver* resolver_{nullptr};
     std::optional<std::string> proxy_url_;
-    impl::PluginPipeline plugin_pipeline_;
+    MiddlewaresPipeline middlewares_pipeline_;
 
     struct StreamData {
         StreamData(Queue::Producer&& queue_producer)

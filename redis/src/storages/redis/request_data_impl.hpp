@@ -20,7 +20,7 @@ namespace storages::redis {
 
 namespace impl {
 
-void Wait(impl::Request& request);
+void Wait(impl::Request& request) noexcept;
 
 template <ScanTag TScanTag>
 storages::redis::Request<ScanReplyTmpl<TScanTag>> MakeScanRequest(
@@ -48,7 +48,7 @@ public:
         : request_(std::move(request))
     {}
 
-    void Wait() override { impl::Wait(request_); }
+    void Wait() noexcept override { impl::Wait(request_); }
 
     ReplyType Get(const std::string& request_description) override {
         auto reply = GetReply();
@@ -112,7 +112,7 @@ public:
         : reply_(std::move(reply))
     {}
 
-    void Wait() override {}
+    void Wait() noexcept override {}
 
     ReplyType Get(const std::string& request_description) override {
         return impl::ParseReply<Result, ReplyType>(std::move(reply_), request_description);

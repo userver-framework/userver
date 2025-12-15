@@ -176,6 +176,8 @@ void ClientCore::SetMaxHostConnections(size_t max_host_connections) {
 
 void ClientCore::SetDnsResolver(clients::dns::Resolver* resolver) { resolver_ = resolver; }
 
+std::size_t ClientCore::GetActiveRequestCountDebug() const { return pending_tasks_.load(); }
+
 void ClientCore::ReinitEasy() {
     easy_.Set(utils::CriticalAsync(fs_task_processor_, "http_easy_reinit", &curl::easy::CreateBlocking).Get());
 }

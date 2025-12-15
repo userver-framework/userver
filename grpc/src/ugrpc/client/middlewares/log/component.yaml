@@ -5,12 +5,12 @@ properties:
     log-level:
         type: string
         description: set log level threshold
-        defaultDescription: debug
+        default: debug
     msg-log-level:
         type: string
         description: set up logging level for request/response messages
-        defaultDescription: debug
+        default: debug
     msg-size-log-limit:
         type: string
         description: max message size to log, the rest will be truncated
-        defaultDescription: 512
+        default: 512

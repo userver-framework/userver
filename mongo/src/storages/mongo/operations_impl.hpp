@@ -136,6 +136,15 @@ public:
         : query(std::move(query))
     {}
 
+    Impl CloneWithOptions(impl::cdriver::FindAndModifyOptsPtr opts) const {
+        Impl impl{formats::bson::Document(query)};
+        impl.op_key = op_key;
+        impl.options = std::move(opts);
+        impl.should_retry_dupkey = should_retry_dupkey;
+        impl.max_server_time = max_server_time;
+        return impl;
+    }
+
     formats::bson::Document query;
     stats::OperationKey op_key{stats::OpType::kFindAndModify};
     impl::cdriver::FindAndModifyOptsPtr options;
@@ -148,6 +157,14 @@ public:
     explicit Impl(formats::bson::Document&& query)
         : query(std::move(query))
     {}
+
+    Impl CloneWithOptions(impl::cdriver::FindAndModifyOptsPtr opts) const {
+        Impl impl{formats::bson::Document(query)};
+        impl.op_key = op_key;
+        impl.options = std::move(opts);
+        impl.max_server_time = max_server_time;
+        return impl;
+    }
 
     formats::bson::Document query;
     stats::OperationKey op_key{stats::OpType::kFindAndRemove};

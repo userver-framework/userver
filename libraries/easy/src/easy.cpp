@@ -13,6 +13,7 @@
 
 #include <userver/clients/dns/component.hpp>
 #include <userver/clients/http/component.hpp>
+#include <userver/clients/http/middlewares/pipeline_component.hpp>
 #include <userver/components/component_context.hpp>
 #include <userver/components/minimal_server_component_list.hpp>
 #include <userver/components/run.hpp>
@@ -227,6 +228,8 @@ void HttpDep::RegisterOn(easy::HttpBase& app) {
         "threads: 2\n"
         "fs-task-processor: fs-task-processor\n"
     );
+    app.TryAddComponent<
+        clients::http::MiddlewarePipelineComponent>(clients::http::MiddlewarePipelineComponent::kName, "");
     app.TryAddComponent<components::HttpClient>(
         components::HttpClient::kName,
         fmt::format("core-component: {}\n", components::HttpClientCore::kName)

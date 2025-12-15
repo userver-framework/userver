@@ -4,8 +4,10 @@ additionalProperties: false
 properties:
     component-name:
         type: string
-        description: tracing manager component's name
-        defaultDescription: uses tracing::GenericTracingManager with below settings
+        description: |
+            Tracing manager component's name
+
+            Default: uses tracing::GenericTracingManager with below settings
     incoming-format:
         type: array
         description: Incoming tracing data formats
@@ -17,7 +19,7 @@ properties:
               - yandex
               - taxi
               - opentelemetry
-            defaultDescription: "['opentelemetry', 'taxi']"
+            default: ['opentelemetry', 'taxi']
     new-requests-format:
         type: array
         description: Send tracing data in those formats

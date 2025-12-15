@@ -5,4 +5,4 @@ properties:
     update-correction:
         type: string
         description: adjusts incremental updates window to overlap with previous update
-        defaultDescription: 0
+        default: 0

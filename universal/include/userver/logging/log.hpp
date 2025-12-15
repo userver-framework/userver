@@ -231,7 +231,7 @@ struct EntryStorage final {
 #define USERVER_IMPL_DYNAMIC_DEBUG_ENTRY                                                                 \
     []() noexcept -> const USERVER_NAMESPACE::logging::impl::StaticLogEntry& {                           \
         struct NameHolder {                                                                              \
-            static constexpr const char* Get() noexcept { return USERVER_FILEPATH.data(); }              \
+            static constexpr const char* Get() noexcept { return USERVER_FILEPATH.c_str(); }             \
         };                                                                                               \
         const auto& entry = USERVER_NAMESPACE::logging::impl::EntryStorage<NameHolder, __LINE__>::entry; \
         return entry;                                                                                    \

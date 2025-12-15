@@ -3,28 +3,22 @@
 #include <memory>
 #include <string>
 
+#include <server/http/http_request_parser.hpp>
 #include <server/http/request_handler_base.hpp>
 #include <server/net/connection_config.hpp>
 #include <server/net/stats.hpp>
-
-// TODO: use fwd
-#include <server/http/http2_session.hpp>
-#include <server/http/http_request_parser.hpp>
-//
-#include <userver/engine/io/socket.hpp>
+#include <server/request/request_parser.hpp>
 #include <userver/server/http/http_request.hpp>
+
+#include <userver/engine/io/socket.hpp>
 #include <userver/server/request/request_config.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace server::net {
 
-struct Http2SessionConfig;
-
 class Connection final {
 public:
-    enum class Type { kRequest, kMonitor };
-
     Connection(
         const ConnectionConfig& config,
         const request::HttpRequestConfig& handler_defaults_config,
@@ -46,7 +40,6 @@ private:
 
     void ListenForRequests() noexcept;
     void ProcessRequest(std::shared_ptr<http::HttpRequest>&& request_ptr);
-    bool WaitOnSocket(engine::Deadline deadline);
 
     engine::TaskWithResult<void> HandleQueueItem(const std::shared_ptr<http::HttpRequest>& request) noexcept;
     void SendResponse(http::HttpRequest& request);
@@ -54,8 +47,6 @@ private:
     std::string Getpeername() const;
 
     bool ReadSome();
-    std::unique_ptr<request::RequestParser> MakeParser(USERVER_NAMESPACE::http::HttpVersion ver);
-    bool TryDetectHttpVersion(std::string& buffer, std::string_view req);
 
     const ConnectionConfig& config_;
     const request::HttpRequestConfig& handler_defaults_config_;
@@ -63,11 +54,6 @@ private:
     const http::RequestHandlerBase& request_handler_;
     const std::shared_ptr<Stats> stats_;
     request::ResponseDataAccounter& data_accounter_;
-    std::unique_ptr<request::RequestParser> parser_{nullptr};
-    bool is_http2_parser_{false};
-
-    using HttpRequestPtr = std::shared_ptr<http::HttpRequest>;
-    std::vector<HttpRequestPtr> pending_requests_;
 
     engine::io::Sockaddr remote_address_;
     std::string peer_name_;

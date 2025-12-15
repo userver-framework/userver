@@ -11,20 +11,24 @@ properties:
     unix-socket:
         type: string
         description: unix socket to listen on instead of listening on a port
-        defaultDescription: ''
+        default: ''
     task_processor:
         type: string
-        description: task processor to accept incoming connections
-        defaultDescription: the 'default_task_processor' value from components::ManagerControllerComponent
+        description: |
+            Task processor to accept incoming connections.
+
+            Default: the 'default_task_processor' value from components::ManagerControllerComponent
     backlog:
         type: integer
         description: max count of new connections pending acceptance
-        defaultDescription: 1024
+        default: 1024
     no_delay:
         type: boolean
         description: whether to set the TCP_NODELAY option on incoming sockets
-        defaultDescription: true
+        default: true
     sockets_task_processor:
         type: string
-        description: task processor to process accepted sockets
-        defaultDescription: value of `task_processor`
+        description: |
+            Task processor to process accepted sockets.
+
+            Default: value of `task_processor`

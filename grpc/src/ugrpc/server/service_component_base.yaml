@@ -5,7 +5,7 @@ properties:
     task-processor:
         type: string
         description: the task processor to use for responses
-        defaultDescription: uses grpc-server.service-defaults.task-processor
+        default: uses grpc-server.service-defaults.task-processor
     status-codes-log-level:
         type: object
         properties: {}

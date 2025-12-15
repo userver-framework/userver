@@ -16,23 +16,26 @@ properties:
     task_processor:
         type: string
         description: a task processor to execute the requests
-        defaultDescription: the 'default_task_processor' value from components::ManagerControllerComponent
+        default: the 'default_task_processor' value from components::ManagerControllerComponent
     method:
         type: string
         description: comma-separated list of allowed methods
     max_request_size:
         type: integer
-        description: max size of the whole request
-        defaultDescription: 1024 * 1024
+        description: |
+            Maximum size of the whole request. Limits both the size of the request
+            and the size of a decompressed request body (if compression is being used).
+            Requests exceeding the limit are rejected with 'Request Entity Too Large' (413) HTTP code.
+        default: 1024 * 1024
     max_headers_size:
         type: integer
         description: max request headers size of empty to do not limit
-        defaultDescription: 65536
+        default: 65536
     parse_args_from_body:
         type: boolean
         description: optional field to parse request according to x-www-form-urlencoded
             rules and make parameters accessible as query parameters
-        defaultDescription: false
+        default: false
     auth:
         type: object
         description: server::handlers::auth::HandlerAuthConfig authorization config
@@ -51,59 +54,65 @@ properties:
         type: string
         description: "'both' to treat URLs with and without a trailing slash as equal,
             'strict-match' otherwise"
-        defaultDescription: 'both'
+        default: 'both'
         enum:
           - both
           - strict-match
     max_requests_in_flight:
         type: integer
-        description: integer to limit max pending requests to this handler
-        defaultDescription: <no limit>
+        description: |
+            integer to limit max pending requests to this handler
+
+            Default: <no limit>
     request_body_size_log_limit:
         type: integer
         description: trim the request to this size before logging
-        defaultDescription: 512
+        default: 512
     request_headers_size_log_limit:
         type: integer
         description: trim request headers to this size before logging
-        defaultDescription: 512
+        default: 512
     response_data_size_log_limit:
         type: integer
         description: trim responses to this size before logging
-        defaultDescription: 512
+        default: 512
     max_requests_per_second:
         type: integer
-        description: integer to limit RPS to this handler
-        defaultDescription: <no limit>
+        description: |
+            integer to limit RPS to this handler
+
+            Default: <no limit>
     decompress_request:
         type: boolean
         description: allow decompression of the requests
-        defaultDescription: true
+        default: true
     throttling_enabled:
         type: boolean
         description: allow throttling of the requests by components::Server , for
             more info see its `max_response_size_in_flight` and `requests_queue_size_threshold`
             options
-        defaultDescription: true
+        default: true
     set-response-server-hostname:
         type: boolean
-        description: set to true to add the `X-YaTaxi-Server-Hostname` header with
+        description: |
+            set to true to add the `X-YaTaxi-Server-Hostname` header with
             instance name, set to false to not add the header
-        defaultDescription: <takes the value from components::Server config>
+
+            Default: <takes the value from components::Server config>
     response-body-stream:
         type: boolean
         description: TODO
-        defaultDescription: false
+        default: false
     monitor-handler:
         type: boolean
         description: overrides the in-code `is_monitor` flag that makes the handler
             run either on 'server.listener' or on 'server.listener-monitor'
-        defaultDescription: uses in-code flag value
+        default: uses in-code flag value
     set_tracing_headers:
         type: boolean
         description: whether to set http tracing headers (X-YaTraceId, X-YaSpanId,
             X-RequestId)
-        defaultDescription: true
+        default: true
     deadline_propagation_enabled:
         type: boolean
         description: |
@@ -120,14 +129,14 @@ properties:
 
             Deadline propagation is disabled if disabled statically OR
             dynamically.
-        defaultDescription: true
+        default: true
     deadline_expired_status_code:
         type: integer
         description: the HTTP status code to return if the request deadline expires
-        defaultDescription: taken from server.listener.handler-defaults.deadline_expired_status_code
+        default: taken from server.listener.handler-defaults.deadline_expired_status_code
         minimum: 400
         maximum: 599
     enable_write_statistics:
         type: boolean
         description: whether to write handler statistics
-        defaultDescription: true
+        default: true

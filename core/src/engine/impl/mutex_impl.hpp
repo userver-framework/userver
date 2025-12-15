@@ -163,7 +163,7 @@ void MutexImpl<Waiters>::lock() {
 template <class Waiters>
 void MutexImpl<Waiters>::unlock() {
     auto& dd_state = deadlock_detector::GetState();
-    dd_state.HookBeforeRemoveDependency(*this, current_task::GetCurrentTaskContext());
+    dd_state.OnResourceRelease(current_task::GetCurrentTaskContext(), *this);
 
 #if USERVER_IMPL_HAS_TSAN
     __tsan_mutex_pre_unlock(this, 0);
@@ -200,7 +200,7 @@ bool MutexImpl<Waiters>::try_lock() {
 
     auto& dd_state = deadlock_detector::GetState();
     if (result) {
-        dd_state.HookBeforeAddDependency(*this, current_task::GetCurrentTaskContext());
+        dd_state.OnResourceAcquire(current_task::GetCurrentTaskContext(), *this);
     }
 
     return result;
@@ -236,7 +236,7 @@ bool MutexImpl<Waiters>::try_lock_until(Deadline deadline) {
 
     auto& dd_state = deadlock_detector::GetState();
     if (result) {
-        dd_state.HookBeforeAddDependency(*this, current_task::GetCurrentTaskContext());
+        dd_state.OnResourceAcquire(current_task::GetCurrentTaskContext(), *this);
     }
 
     return result;

@@ -20,7 +20,12 @@ public:
 
     // Send a chunk of response data. It may NOT generate
     // exactly one HTTP chunk per call to PushBodyChunk().
+    // May not be called after SetBody().
     void PushBodyChunk(std::string&& chunk, engine::Deadline deadline);
+
+    // Set full response body instead of sending chunks.
+    // May not be called after PushBodyChunk().
+    void SetBody(std::string&& body);
 
     void SetHeader(const std::string&, const std::string&);
 
@@ -38,6 +43,7 @@ private:
     ResponseBodyStream(HttpResponse::Producer&& queue_producer, HttpResponse& http_response);
 
     bool headers_ended_{false};
+    bool headers_end_sent_{false};
     HttpResponse::Producer queue_producer_;
     HttpResponse& http_response_;
 };

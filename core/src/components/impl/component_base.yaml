@@ -6,4 +6,4 @@ properties:
     load-enabled:
         type: boolean
         description: set to `false` to disable loading of the component
-        defaultDescription: true
+        default: true

@@ -276,6 +276,8 @@ YamlConfig::const_iterator YamlConfig::end() const { return const_iterator{*this
 
 formats::yaml::Value YamlConfig::GetRawYamlWithoutConfigVars() const { return yaml_; }
 
+formats::yaml::Value YamlConfig::GetRawConfigVars() const { return config_vars_; }
+
 bool Parse(const YamlConfig& value, formats::parse::To<bool>) { return value.yaml_.As<bool>(); }
 
 int64_t Parse(const YamlConfig& value, formats::parse::To<int64_t>) { return value.yaml_.As<int64_t>(); }

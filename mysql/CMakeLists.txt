@@ -15,8 +15,7 @@ userver_module(
     UBENCH_LINK_LIBRARIES libmariadb
     UBENCH_DATABASES mysql
     DEPENDS core
-    EMBED_FILES
-        src/storages/mysql/component.yaml
+    EMBED_FILES src/storages/mysql/component.yaml
 )
 
 if(USERVER_MYSQL_ALLOW_BUGGY_LIBMARIADB)

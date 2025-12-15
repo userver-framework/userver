@@ -11,12 +11,12 @@ properties:
     lifetime:
         type: string
         description: TTL for cache entries (0 is unlimited)
-        defaultDescription: 0
+        default: 0
     background-update:
         type: boolean
         description: enables asynchronous updates for expiring values
-        defaultDescription: false
+        default: false
     config-settings:
         type: boolean
         description: enables dynamic reconfiguration with CacheConfigSet
-        defaultDescription: true
+        default: true

@@ -6,19 +6,19 @@ properties:
         type: string
         description: name of the component derived from components::DynamicConfigUpdatesSinkBase
             to be used for storing received updates
-        defaultDescription: dynamic-config
+        default: dynamic-config
     store-enabled:
         type: boolean
         description: store the retrieved values into the updates sink component
-        defaultDescription: true
+        default: true
     load-only-my-values:
         type: boolean
         description: request from the client only the values used by this service
-        defaultDescription: true
+        default: true
     deduplicate-update-types:
         type: string
         description: config update types for best-effort deduplication
-        defaultDescription: full-and-incremental
+        default: full-and-incremental
         enum:
           - none
           - only-full

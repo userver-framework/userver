@@ -16,7 +16,7 @@
 #include <userver/utils/any_storage.hpp>
 
 #include <userver/ugrpc/impl/statistics_scope.hpp>
-#include <userver/ugrpc/server/impl/call_kind.hpp>
+#include <userver/ugrpc/rpc_type.hpp>
 #include <userver/ugrpc/server/middlewares/fwd.hpp>
 #include <userver/ugrpc/server/storage_context.hpp>
 #include <userver/ugrpc/status_codes.hpp>
@@ -32,6 +32,7 @@ namespace ugrpc::server::impl {
 // Non-templated dependencies of CallProcessor. Must be movable.
 struct CallParams {
     grpc::ServerContext& server_context;
+    RpcType rpc_type{};
     const std::string_view call_name;
     const std::string_view service_name;
     const std::string_view method_name;
@@ -45,12 +46,11 @@ struct CallParams {
 
 // Non-templated state of CallProcessor. Can be non-movable.
 struct CallState : CallParams {
-    CallState(CallParams&& params, CallKind call_kind);
+    explicit CallState(CallParams&& params);
 
     tracing::Span& GetSpan();
 
     ugrpc::impl::RpcStatisticsScope statistics_scope;
-    CallKind call_kind;
     std::optional<dynamic_config::Snapshot> config_snapshot;
     utils::AnyStorage<StorageContext> storage_context{};
 };

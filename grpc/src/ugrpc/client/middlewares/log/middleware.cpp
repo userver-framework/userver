@@ -56,7 +56,7 @@ void Middleware::PreStartCall(MiddlewareCallContext& context) const {
     span.AddTag(tracing::kSpanKind, tracing::kSpanKindClient);
     span.AddTag(tracing::kRpcSystem, context.GetClientContext().peer());
 
-    if (context.IsClientStreaming()) {
+    if (!IsSingleRequestMethod(context.GetRpcType())) {
         SpanLogger{span, settings_.log_level}
             .Log(settings_.msg_log_level, "gRPC request stream started", logging::LogExtra{});
     }
@@ -72,10 +72,10 @@ void Middleware::PreSendMessage(MiddlewareCallContext& context, const google::pr
         {ugrpc::impl::kBodyTag, GetMessageForLogging(message, settings_)},
         {ugrpc::impl::kMessageMarshalledLenTag, message.ByteSizeLong()},
     };
-    if (context.IsClientStreaming()) {
-        logger.Log(settings_.msg_log_level, "gRPC request stream message", std::move(extra));
-    } else {
+    if (IsSingleRequestMethod(context.GetRpcType())) {
         logger.Log(settings_.msg_log_level, "gRPC request", std::move(extra));
+    } else {
+        logger.Log(settings_.msg_log_level, "gRPC request stream message", std::move(extra));
     }
 }
 
@@ -86,10 +86,10 @@ void Middleware::PostRecvMessage(MiddlewareCallContext& context, const google::p
         {ugrpc::impl::kBodyTag, GetMessageForLogging(message, settings_)},
         {ugrpc::impl::kMessageMarshalledLenTag, message.ByteSizeLong()},
     };
-    if (context.IsServerStreaming()) {
-        logger.Log(settings_.msg_log_level, "gRPC response stream message", std::move(extra));
-    } else {
+    if (IsSingleResponseMethod(context.GetRpcType())) {
         logger.Log(settings_.msg_log_level, "gRPC response", std::move(extra));
+    } else {
+        logger.Log(settings_.msg_log_level, "gRPC response stream message", std::move(extra));
     }
 }
 /// [MiddlewareBase Message methods example]
@@ -97,7 +97,7 @@ void Middleware::PostRecvMessage(MiddlewareCallContext& context, const google::p
 void Middleware::PostFinish(MiddlewareCallContext& context, const grpc::Status& status) const {
     const SpanLogger logger{context.GetSpan(), settings_.log_level};
     if (status.ok()) {
-        if (context.IsServerStreaming()) {
+        if (!IsSingleResponseMethod(context.GetRpcType())) {
             logger.Log(settings_.msg_log_level, "gRPC response stream finished", logging::LogExtra{});
         }
     } else {

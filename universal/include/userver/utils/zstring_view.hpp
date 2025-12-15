@@ -11,11 +11,13 @@
 #include <fmt/format.h>
 
 #include <userver/formats/serialize/to.hpp>
-#include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace utils {
+
+// Forward declaration
+[[noreturn]] void AbortWithStacktrace(std::string_view message) noexcept;
 
 /// @ingroup userver_containers
 ///
@@ -48,8 +50,11 @@ public:
 
 private:
     constexpr zstring_view(const char* str, std::size_t len) noexcept : std::string_view{str, len} {
-        UASSERT_MSG(str, "null not allowed");
-        UASSERT_MSG(str[len] == 0, "Not null-terminated");
+#ifndef NDEBUG
+        if (!str || str[len] != 0) {
+            USERVER_NAMESPACE::utils::AbortWithStacktrace("`str` should be not null and should be null terminated");
+        }
+#endif
     }
 };
 

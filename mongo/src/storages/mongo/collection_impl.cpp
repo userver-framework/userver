@@ -8,7 +8,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::mongo::impl {
 
-CollectionImpl::CollectionImpl(std::string&& database_name, std::string&& collection_name)
+CollectionImpl::CollectionImpl(std::string database_name, std::string collection_name)
     : database_name_(std::move(database_name)),
       collection_name_(std::move(collection_name))
 {

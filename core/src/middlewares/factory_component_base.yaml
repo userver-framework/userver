@@ -5,4 +5,4 @@ properties:
     enabled:
         type: string
         description: the flag to enable/disable middleware in the pipeline
-        defaultDescription: true
+        default: true

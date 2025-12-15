@@ -67,16 +67,16 @@ RpcConfigValues::RpcConfigValues(const dynamic_config::Snapshot& config)
     : enforce_task_deadline(config[::dynamic_config::USERVER_GRPC_CLIENT_ENABLE_DEADLINE_PROPAGATION])
 {}
 
-CallState::CallState(CallParams&& params, CallKind call_kind)
+CallState::CallState(CallParams&& params)
     : stub_(std::move(params.stub)),
       client_name_(params.client_name),
       call_name_(std::move(params.call_name)),
+      rpc_type_(params.rpc_type),
       stats_scope_(params.statistics),
       queue_(params.queue),
       config_values_(params.config),
       middleware_pipeline_(params.middlewares),
-      testsuite_grpc_(params.testsuite_grpc),
-      call_kind_(call_kind)
+      testsuite_grpc_(params.testsuite_grpc)
 {
     UINVARIANT(!client_name_.empty(), "client name should not be empty");
 
@@ -107,16 +107,16 @@ const MiddlewarePipeline& CallState::GetMiddlewarePipeline() const noexcept { re
 
 const testsuite::GrpcControl& CallState::GetTestsuiteControl() const noexcept { return testsuite_grpc_; }
 
-std::string_view CallState::GetCallName() const noexcept { return call_name_.Get(); }
-
 std::string_view CallState::GetClientName() const noexcept { return client_name_; }
+
+RpcType CallState::GetRpcType() const noexcept { return rpc_type_; }
+
+std::string_view CallState::GetCallName() const noexcept { return call_name_.Get(); }
 
 tracing::Span& CallState::GetSpan() noexcept {
     UASSERT(span_);
     return span_->Get();
 }
-
-CallKind CallState::GetCallKind() const noexcept { return call_kind_; }
 
 void CallState::ResetSpan() noexcept {
     UASSERT(span_);
@@ -142,8 +142,8 @@ grpc::ClientContext& CallState::GetClientContextCommitted() {
     return *client_context_;
 }
 
-StreamingCallState::StreamingCallState(CallParams&& params, CallKind call_kind)
-    : CallState(std::move(params), call_kind)
+StreamingCallState::StreamingCallState(CallParams&& params)
+    : CallState(std::move(params))
 {
     SetupClientContext(*this, params.call_options);
     Commit();
@@ -185,7 +185,7 @@ ugrpc::impl::AsyncMethodInvocation& StreamingCallState::GetAsyncMethodInvocation
 }
 
 std::unique_lock<engine::SingleWaitingTaskMutex> StreamingCallState::TakeMutexIfBidirectional() noexcept {
-    if (GetCallKind() == impl::CallKind::kBidirectionalStream) {
+    if (GetRpcType() == RpcType::kBidiStreaming) {
         // Analogy as 'ugrpc::server::impl::ResponseBase::TakeMutexIfBidirectional'
         return std::unique_lock(bidirectional_mutex_);
     }

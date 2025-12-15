@@ -15,6 +15,7 @@
 #include <userver/middlewares/runner.hpp>
 #include <userver/utils/impl/internal_tag_fwd.hpp>
 
+#include <userver/ugrpc/rpc_type.hpp>
 #include <userver/ugrpc/server/call_context.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -68,11 +69,8 @@ public:
     /// @snippet samples/grpc_middleware_service/src/middlewares/server/auth.cpp Middleware implementation
     void SetError(grpc::Status&& status) noexcept;
 
-    /// @returns Is a client-side streaming call
-    bool IsClientStreaming() const noexcept;
-
-    /// @returns Is a server-side streaming call
-    bool IsServerStreaming() const noexcept;
+    /// @returns RPC type
+    RpcType GetRpcType() const noexcept;
 
     /// @brief Get values extracted from dynamic_config. Snapshot will be
     /// deleted when the last middleware completes.

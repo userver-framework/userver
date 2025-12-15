@@ -24,6 +24,12 @@ ResponseBodyStream::~ResponseBodyStream() {
 
 void ResponseBodyStream::PushBodyChunk(std::string&& chunk, engine::Deadline deadline) {
     UASSERT_MSG(headers_ended_, "SetEndOfHeaders() was not called before PushBodyChunk()");
+    UASSERT_MSG(http_response_.GetData().empty(), "PushBodyChunk() was called after SetBody()");
+
+    if (headers_ended_ && !headers_end_sent_) {
+        http_response_.SetHeadersEnd();
+        headers_end_sent_ = true;
+    }
     std::visit(
         utils::Overloaded{
             [&chunk, &deadline](HttpResponse::Queue::Producer& queue_producer) mutable {
@@ -40,6 +46,11 @@ void ResponseBodyStream::PushBodyChunk(std::string&& chunk, engine::Deadline dea
     );
 }
 
+void ResponseBodyStream::SetBody(std::string&& body) {
+    UASSERT_MSG(!headers_end_sent_, "SetBody() was called after PushBodyChunk()");
+    http_response_.SetData(std::move(body));
+}
+
 void ResponseBodyStream::SetHeader(const std::string& name, const std::string& value) {
     http_response_.SetHeader(name, value);
 }
@@ -48,10 +59,7 @@ void ResponseBodyStream::SetHeader(std::string_view name, const std::string& val
     http_response_.SetHeader(name, value);
 }
 
-void ResponseBodyStream::SetEndOfHeaders() {
-    headers_ended_ = true;
-    http_response_.SetHeadersEnd();
-}
+void ResponseBodyStream::SetEndOfHeaders() { headers_ended_ = true; }
 
 void ResponseBodyStream::SetStatusCode(int status_code) {
     http_response_.SetStatus(static_cast<server::http::HttpStatus>(status_code));

@@ -287,7 +287,7 @@ formats::json::Value ServiceConfigBuilder::BuildMethodConfigArray(const ClientQo
 
     // push unary method configs AS IS
     for (const auto& [method_id, method_config] : prepared_method_configs_.method_configs) {
-        if (ugrpc::impl::RpcType::kUnary == GetMethodType(metadata_, method_id)) {
+        if (RpcType::kUnary == GetMethodType(metadata_, method_id)) {
             method_config_array.PushBack(method_config);
         }
     }
@@ -297,7 +297,7 @@ formats::json::Value ServiceConfigBuilder::BuildMethodConfigArray(const ClientQo
     std::vector<std::string_view> default_stream_methods;
 
     for (std::size_t method_id = 0; method_id < GetMethodsCount(metadata_); ++method_id) {
-        if (ugrpc::impl::RpcType::kUnary == GetMethodType(metadata_, method_id)) {
+        if (RpcType::kUnary == GetMethodType(metadata_, method_id)) {
             continue;
         }
 

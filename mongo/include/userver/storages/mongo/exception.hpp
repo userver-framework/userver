@@ -47,6 +47,22 @@ class PoolOverloadException : public MongoException {
     using MongoException::MongoException;
 };
 
+/// Transaction-related exception
+class TransactionException : public MongoException {
+public:
+    enum class Type {
+        kTransientError,  ///< Transient error that may be retried
+        kPermanentError,  ///< Permanent error, cannot retry
+    };
+
+    TransactionException(Type type, std::string_view what);
+
+    Type GetType() const noexcept { return type_; }
+
+private:
+    Type type_;
+};
+
 /// Network (connectivity) error
 class NetworkException : public MongoException {
 public:

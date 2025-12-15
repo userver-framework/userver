@@ -2,6 +2,7 @@
 
 #include <userver/components/component_config.hpp>
 #include <userver/components/component_context.hpp>
+#include <userver/components/statistics_storage.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/storages/secdist/component.hpp>
@@ -73,6 +74,8 @@ ClientFactoryComponent::ClientFactoryComponent(
     : impl::MiddlewareRunnerComponentBase(config, context, MiddlewarePipelineComponent::kName) {
     auto& client_common_component = context.FindComponent<CommonComponent>();
 
+    auto& metrics_storage = context.FindComponent<components::StatisticsStorage>().GetMetricsStorageRef();
+
     const auto config_source = context.FindComponent<components::DynamicConfig>().GetSource();
 
     auto& testsuite_grpc = context.FindComponent<components::TestsuiteSupport>().GetGrpcControl();
@@ -103,6 +106,7 @@ ClientFactoryComponent::ClientFactoryComponent(
         *this,  // impl::PipelineCreatorInterface&
         client_common_component.completion_queues_,
         client_common_component.client_statistics_storage_,
+        metrics_storage,
         testsuite_grpc,
         config_source
     );

@@ -17,8 +17,7 @@ userver_module(
         "${CMAKE_CURRENT_SOURCE_DIR}/src/storages/tests/utils_test.cpp"
     DBTEST_DATABASES clickhouse
     DEPENDS core
-    EMBED_FILES
-        src/storages/clickhouse/component.yaml
+    EMBED_FILES src/storages/clickhouse/component.yaml
 )
 
 target_compile_options(${PROJECT_NAME} PUBLIC "-Wno-error=pedantic")

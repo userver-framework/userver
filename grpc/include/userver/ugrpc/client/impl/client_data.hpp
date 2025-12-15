@@ -16,6 +16,7 @@
 #include <userver/ugrpc/client/client_qos.hpp>
 #include <userver/ugrpc/client/impl/channel_argument_utils.hpp>
 #include <userver/ugrpc/client/impl/client_internals.hpp>
+#include <userver/ugrpc/client/impl/client_qos_errors_reporter.hpp>
 #include <userver/ugrpc/client/impl/compat/channel_arguments_builder.hpp>
 #include <userver/ugrpc/client/impl/stub_handle.hpp>
 #include <userver/ugrpc/client/impl/stub_state.hpp>
@@ -153,7 +154,12 @@ private:
 
     template <typename Service>
     void OnConfigUpdate(const dynamic_config::Snapshot& config) {
-        auto client_qos = internals_.qos ? config[*internals_.qos] : ClientQos{};
+        const auto& client_qos = internals_.qos ? config[*internals_.qos] : ClientQos{};
+
+        if (metadata_.has_value() && internals_.qos) {
+            internals_.client_qos_error_reporter
+                .ValidateAndReportClientQosErrors(client_qos, internals_.qos->GetName(), *metadata_);
+        }
 
         std::string target = internals_.endpoint;
 

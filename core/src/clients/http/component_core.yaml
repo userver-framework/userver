@@ -5,34 +5,36 @@ properties:
     pool-statistics-disable:
         type: boolean
         description: set to true to disable statistics for connection pool
-        defaultDescription: false
+        default: false
     thread-name-prefix:
         type: string
         description: set OS thread name to this value
-        defaultDescription: ''
+        default: ''
     threads:
         type: integer
         description: number of threads to process low level HTTP related IO system
             calls
-        defaultDescription: 8
+        default: 8
     fs-task-processor:
         type: string
-        description: task processor to run blocking HTTP related calls, like DNS resolving
-            or hosts reading
-        defaultDescription: engine::current_task::GetBlockingTaskProcessor()
+        description: |
+            Task processor to run blocking HTTP related calls, like DNS resolving
+            or hosts reading.
+
+            Default: engine::current_task::GetBlockingTaskProcessor()
     destination-metrics-auto-max-size:
         type: integer
         description: set max number of automatically created destination metrics
-        defaultDescription: 100
+        default: 100
     user-agent:
         type: string
         description: User-Agent HTTP header to show on all requests, result of utils::GetUserverIdentifier()
             if empty
-        defaultDescription: ''
+        default: ''
     testsuite-enabled:
         type: boolean
         description: enable testsuite testing support
-        defaultDescription: false
+        default: false
     testsuite-timeout:
         type: string
         description: if set, force the request timeout regardless of the value passed
@@ -47,7 +49,7 @@ properties:
     dns_resolver:
         type: string
         description: server hostname resolver type
-        defaultDescription: 'async'
+        default: 'async'
         enum:
           - getaddrinfo
           - async
@@ -58,11 +60,11 @@ properties:
             using the original timeout and the value of task-inherited deadline.
             Note: timeout is always updated from the task-inherited deadline
             when present.
-        defaultDescription: true
+        default: true
     cancellation-policy:
         type: string
         description: Cancellation policy for new requests
         enum:
           - cancel
           - ignore
-        defaultDescription: 'cancel'
+        default: 'cancel'

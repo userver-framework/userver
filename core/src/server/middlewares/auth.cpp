@@ -38,9 +38,9 @@ bool Auth::CheckAuth(const http::HttpRequest& request, request::RequestContext& 
         handlers::auth::CheckAuth(auth_checkers_, request, context);
         return true;
     } catch (const handlers::CustomHandlerException& ex) {
-        handler_.HandleCustomHandlerException(request, ex);
+        handler_.HandleCustomHandlerException(request, context, ex);
     } catch (const std::exception& ex) {
-        handler_.HandleUnknownException(request, ex);
+        handler_.HandleUnknownException(request, context, ex);
     }
 
     return false;

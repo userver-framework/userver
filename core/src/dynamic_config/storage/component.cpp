@@ -384,6 +384,17 @@ yaml_config::Schema DynamicConfig::GetStaticConfigSchema() {
     return yaml_config::MergeSchemasFromResource<ComponentBase>("src/dynamic_config/storage/component.yaml");
 }
 
+/// [LocateDependency example]
+dynamic_config::Source LocateDependency(
+    const components::WithType<dynamic_config::Source>&,
+    const components::ComponentConfig&,
+    const components::ComponentContext& context
+)
+{
+    return context.FindComponent<components::DynamicConfig>().GetSource();
+}
+/// [LocateDependency example]
+
 }  // namespace components
 
 USERVER_NAMESPACE_END

@@ -149,7 +149,15 @@ bool HttpResponse::SetHeader(std::string name, std::string value) {
     CheckHeaderName(name);
     CheckHeaderValue(value);
 
-    headers_.insert_or_assign(std::move(name), std::move(value));
+    if (system_headers_ended_) {
+        if (system_headers_.contains(name)) {
+            LOG_DEBUG() << "User response header is not set, because it overrides system header: " << name;
+            return false;
+        }
+        user_headers_.insert_or_assign(std::move(name), std::move(value));
+    } else {
+        system_headers_.insert_or_assign(std::move(name), std::move(value));
+    }
 
     return true;
 }
@@ -166,7 +174,16 @@ bool HttpResponse::SetHeader(const USERVER_NAMESPACE::http::headers::PredefinedH
 
     CheckHeaderValue(value);
 
-    headers_.insert_or_assign(header, std::move(value));
+    if (system_headers_ended_) {
+        if (system_headers_.contains(header)) {
+            LOG_DEBUG()
+                << "User response header is not set, because it overrides system header: " << std::string_view(header);
+            return false;
+        }
+        user_headers_.insert_or_assign(header, std::move(value));
+    } else {
+        system_headers_.insert_or_assign(header, std::move(value));
+    }
 
     return true;
 }
@@ -189,13 +206,13 @@ bool HttpResponse::SetStatus(HttpStatus status) {
     return true;
 }
 
-bool HttpResponse::ClearHeaders() {
+bool HttpResponse::ClearUserHeaders() {
     if (headers_end_.IsReady()) {
         // Attempt to set headers for Stream'ed response after it is already set
         return false;
     }
 
-    headers_.clear();
+    user_headers_.clear();
     return true;
 }
 
@@ -214,31 +231,47 @@ void HttpResponse::SetCookie(Cookie cookie) {
 
 void HttpResponse::ClearCookies() { cookies_.clear(); }
 
-HttpResponse::HeadersMapKeys HttpResponse::GetHeaderNames() const { return HttpResponse::HeadersMapKeys{headers_}; }
+HttpResponse::HeadersMapKeys HttpResponse::GetSystemHeaderNames() const {
+    return HttpResponse::HeadersMapKeys{system_headers_};
+}
+
+HttpResponse::HeadersMapKeys HttpResponse::GetUserHeaderNames() const {
+    return HttpResponse::HeadersMapKeys{user_headers_};
+}
 
 const std::string& HttpResponse::GetHeader(std::string_view header_name) const {
-    auto it = headers_.find(header_name);
-    if (it == headers_.end()) {
-        return kEmptyString;
+    auto it = user_headers_.find(header_name);
+    if (it != user_headers_.end()) {
+        return it->second;
     }
-    return it->second;
+    it = system_headers_.find(header_name);
+    if (it != system_headers_.end()) {
+        return it->second;
+    }
+    return kEmptyString;
 }
 
 const std::string& HttpResponse::GetHeader(const USERVER_NAMESPACE::http::headers::PredefinedHeader& header_name
 ) const {
-    auto it = headers_.find(header_name);
-    if (it == headers_.end()) {
-        return kEmptyString;
+    auto it = user_headers_.find(header_name);
+    if (it != user_headers_.end()) {
+        return it->second;
     }
-    return it->second;
+    it = system_headers_.find(header_name);
+    if (it != system_headers_.end()) {
+        return it->second;
+    }
+    return kEmptyString;
 }
 
 bool HttpResponse::HasHeader(std::string_view header_name) const {
-    return headers_.find(header_name) != headers_.end();
+    return user_headers_.find(header_name) != user_headers_.end() ||
+           system_headers_.find(header_name) != system_headers_.end();
 }
 
 bool HttpResponse::HasHeader(const USERVER_NAMESPACE::http::headers::PredefinedHeader& header_name) const {
-    return headers_.find(header_name) != headers_.end();
+    return user_headers_.find(header_name) != user_headers_.end() ||
+           system_headers_.find(header_name) != system_headers_.end();
 }
 
 HttpResponse::CookiesMapKeys HttpResponse::GetCookieNames() const { return HttpResponse::CookiesMapKeys{cookies_}; }
@@ -246,6 +279,8 @@ HttpResponse::CookiesMapKeys HttpResponse::GetCookieNames() const { return HttpR
 const Cookie& HttpResponse::GetCookie(std::string_view cookie_name) const { return cookies_.at(cookie_name.data()); }
 
 void HttpResponse::SetHeadersEnd() { headers_end_.Send(); }
+
+void HttpResponse::SetSystemHeadersEnd() { system_headers_ended_ = true; };
 
 bool HttpResponse::WaitForHeadersEnd() { return headers_end_.WaitForEvent(); }
 
@@ -267,9 +302,9 @@ void HttpResponse::SendResponse(engine::io::RwBase& socket) {
         return data - old_data_pointer;
     });
 
-    headers_.erase(USERVER_NAMESPACE::http::headers::kContentLength);
-    const auto end = headers_.end();
-    if (headers_.find(USERVER_NAMESPACE::http::headers::kDate) == end) {
+    system_headers_.erase(USERVER_NAMESPACE::http::headers::kContentLength);
+    user_headers_.erase(USERVER_NAMESPACE::http::headers::kContentLength);
+    if (!HasHeader(USERVER_NAMESPACE::http::headers::kDate)) {
         impl::OutputHeader(
             header,
             USERVER_NAMESPACE::http::headers::kDate,
@@ -277,11 +312,12 @@ void HttpResponse::SendResponse(engine::io::RwBase& socket) {
             impl::GetCachedDate()
         );
     }
-    if (headers_.find(USERVER_NAMESPACE::http::headers::kContentType) == end) {
+    if (!HasHeader(USERVER_NAMESPACE::http::headers::kContentType)) {
         impl::OutputHeader(header, USERVER_NAMESPACE::http::headers::kContentType, kDefaultContentType);
     }
-    headers_.OutputInHttpFormat(header);
-    if (headers_.find(USERVER_NAMESPACE::http::headers::kConnection) == end) {
+    system_headers_.OutputInHttpFormat(header);
+    user_headers_.OutputInHttpFormat(header);
+    if (!HasHeader(USERVER_NAMESPACE::http::headers::kConnection)) {
         impl::OutputHeader(
             header,
             USERVER_NAMESPACE::http::headers::kConnection,

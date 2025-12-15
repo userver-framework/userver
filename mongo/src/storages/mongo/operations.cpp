@@ -423,6 +423,10 @@ FindAndModify::FindAndModify(formats::bson::Document query, const formats::bson:
     }
 }
 
+FindAndModify::FindAndModify(Impl&& impl)
+    : impl_(std::move(impl))
+{}
+
 FindAndModify::~FindAndModify() = default;
 
 FindAndModify::FindAndModify(FindAndModify&&) noexcept = default;
@@ -491,6 +495,10 @@ FindAndRemove::FindAndRemove(formats::bson::Document query)
     impl_->options.reset(mongoc_find_and_modify_opts_new());
     EnableFlag(impl_->options, MONGOC_FIND_AND_MODIFY_REMOVE);
 }
+
+FindAndRemove::FindAndRemove(Impl&& impl)
+    : impl_(std::move(impl))
+{}
 
 FindAndRemove::~FindAndRemove() = default;
 

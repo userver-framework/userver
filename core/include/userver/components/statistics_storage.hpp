@@ -47,6 +47,11 @@ public:
 
     utils::statistics::MetricsStoragePtr GetMetricsStorage() { return metrics_storage_; }
 
+    utils::statistics::MetricsStorage& GetMetricsStorageRef() {
+        UASSERT(metrics_storage_ != nullptr);
+        return *metrics_storage_;
+    }
+
     static yaml_config::Schema GetStaticConfigSchema();
 
 private:

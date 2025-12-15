@@ -494,7 +494,7 @@ void RequestState::OnCompleted(std::shared_ptr<RequestState> holder, std::error_
             err = easy.rate_limit_error();
         }
 
-        holder->plugin_pipeline_.HookOnError(*holder, err);
+        holder->middlewares_pipeline_.HookOnError(*holder, err);
 
         span.AddTag(tracing::kErrorFlag, true);
         span.AddTag(tracing::kErrorMessage, err.message());
@@ -531,7 +531,7 @@ void RequestState::OnCompleted(std::shared_ptr<RequestState> holder, std::error_
             span.AddTag(tracing::kErrorFlag, true);
         }
 
-        holder->plugin_pipeline_.HookOnCompleted(*holder, *holder->response());
+        holder->middlewares_pipeline_.HookOnCompleted(*holder, *holder->response());
 
         holder->span_storage_.reset();
 
@@ -567,7 +567,7 @@ void RequestState::OnRetry(std::shared_ptr<RequestState> holder, std::error_code
         (err && !holder->retry_.on_fails) || holder->is_cancelled_.load();
 
     if (!not_need_retry) {
-        not_need_retry = !holder->plugin_pipeline_.HookOnRetry(*holder);
+        not_need_retry = !holder->middlewares_pipeline_.HookOnRetry(*holder);
     }
 
     if (not_need_retry) {
@@ -668,8 +668,8 @@ void RequestState::ParseHeader(char* ptr, size_t size) try
     LOG_ERROR() << "Failed to parse header: " << e.what();
 }
 
-void RequestState::SetPluginsList(const std::vector<utils::NotNull<Plugin*>>& plugins) {
-    plugin_pipeline_ = impl::PluginPipeline(plugins);
+void RequestState::SetMiddlewaresList(const std::vector<utils::NotNull<MiddlewareBase*>>& middlewares) {
+    middlewares_pipeline_ = MiddlewaresPipeline(middlewares);
 }
 
 void RequestState::SetLoggedUrl(std::string url) { log_url_ = std::move(url); }
@@ -782,7 +782,7 @@ void RequestState::PerformRequest(curl::easy::handler_type handler) {
 
     UpdateTimeoutHeader();
 
-    plugin_pipeline_.HookPerformRequest(*this);
+    middlewares_pipeline_.HookPerformRequest(*this);
 
     if (resolver_ && retry_.current == 1) {
         engine::DetachUnscopedUnsafe(
@@ -1079,7 +1079,7 @@ void RequestState::StartNewSpan(utils::impl::SourceLocation location) {
     auto request_editable_instance = GetEditableRequestInstance();
 
     tracing_manager_->FillRequestWithTracingContext(span, request_editable_instance);
-    plugin_pipeline_.HookCreateSpan(*this, span);
+    middlewares_pipeline_.HookCreateSpan(*this, span);
     span.AddTag(tracing::kUrlFull, GetLoggedOriginalUrl());
     span.AddTag(
         tracing::kServerAddress,
@@ -1135,7 +1135,7 @@ void RequestState::ResolveTargetAddress(clients::dns::Resolver& resolver) {
 
 void RequestState::SetTracingManager(const tracing::TracingManagerBase& m) { tracing_manager_ = m; }
 
-PluginRequest RequestState::GetEditableRequestInstance() { return PluginRequest(*this); }
+MiddlewareRequest RequestState::GetEditableRequestInstance() { return MiddlewareRequest(*this); }
 
 void RequestState::SetWaitToken(utils::impl::WaitTokenStorageLock&& wait_token) { wait_token_ = std::move(wait_token); }
 

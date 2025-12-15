@@ -19,12 +19,8 @@ userver_module(
     UBENCH_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*_benchmark.cpp"
     DEPENDS core
     GENERATE_DYNAMIC_CONFIGS
-    EMBED_FILES
-        src/cache/base_mongo_cache.yaml
-        src/storages/mongo/component.yaml
-        src/storages/mongo/component_multi.yaml
-        src/storages/mongo/dist_lock_component_base.yaml
-
+    EMBED_FILES src/cache/base_mongo_cache.yaml src/storages/mongo/component.yaml
+                src/storages/mongo/component_multi.yaml src/storages/mongo/dist_lock_component_base.yaml
 )
 
 _userver_directory_install(

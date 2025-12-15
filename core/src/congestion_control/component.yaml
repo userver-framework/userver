@@ -6,18 +6,18 @@ properties:
         type: boolean
         description: if set, an actual throttling is skipped, but FSM is still working
             and producing informational logs
-        defaultDescription: false
+        default: false
     min-cpu:
         type: integer
         description: force fake-mode if the current cpu number is less than the specified
             value
-        defaultDescription: 1
+        default: 1
     only-rtc:
         type: boolean
         description: if set to true and hostinfo::IsInRtc() returns false then forces
             the fake-mode
-        defaultDescription: true
+        default: true
     status-code:
         type: integer
         description: HTTP status code for ratelimited responses
-        defaultDescription: 429
+        default: 429

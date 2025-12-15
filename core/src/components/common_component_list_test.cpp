@@ -85,9 +85,21 @@ components_manager:
 # /// [Sample testsuite support component config]
 # /// [Sample http client component config]
 # yaml
+    http-client-middleware-pipeline:
+      middlewares:
+        # http-client-middleware-enabled:
+        #  enabled: true
+        http-client-middleware-disabled:
+          enabled: false
+        http-client-middleware-override:
+          enabled: false
     http-client:
       core-component: http-client-core
-      plugins: {}
+      middlewares:
+        # http-client-middleware-override:
+        #   enabled: true
+        # http-client-middleware-additional:
+        #   enabled: true
     http-client-core:
       pool-statistics-disable: false
       thread-name-prefix: http-client

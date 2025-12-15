@@ -24,9 +24,7 @@ userver_module(
     UTEST_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/tests"
     GENERATE_DYNAMIC_CONFIGS
     DEPENDS core
-    EMBED_FILES
-        src/ydb/component.yaml
-        src/ydb/dist_lock/component_base.yaml
+    EMBED_FILES src/ydb/component.yaml src/ydb/dist_lock/component_base.yaml
 )
 
 # Enforce that userver-ydb requires C++20

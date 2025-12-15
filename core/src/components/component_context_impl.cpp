@@ -168,6 +168,11 @@ void ComponentContextImpl::OnAllComponentsAreStopping() {
 }
 
 void ComponentContextImpl::ClearComponents() {
+    if (components_.empty()) {
+        // Already cleared
+        return;
+    }
+
     StopPrintAddingComponentsTask();
     const tracing::Span span(kClearComponentsRootName);
     OnAllComponentsAreStopping();
@@ -182,6 +187,7 @@ void ComponentContextImpl::ClearComponents() {
          false}
     );
 
+    components_.clear();
     LOG_INFO() << "Stopped all components";
 }
 
@@ -197,6 +203,7 @@ void ComponentContextImpl::CancelComponentsLoad() {
         return;
     }
     for (auto& component_info : components_) {
+        LOG_DEBUG() << "Call OnLoadingCancelled() for component '" << component_info->GetName() << "'";
         component_info->OnLoadingCancelled();
     }
 }
@@ -502,8 +509,9 @@ void ComponentContextImpl::CheckForDependencyCycle(
 
     if (FindDependencyPathDfs(new_dependency_from, new_dependency_to, handled, &dependency_chain, data)) {
         dependency_chain.push_back(new_dependency_to);
-        LOG_ERROR() << "Found circular dependency between components: " << JoinNamesFromInfo(dependency_chain, " -> ");
-        throw std::runtime_error("circular components dependency");
+        auto msg = JoinNamesFromInfo(dependency_chain, " -> ");
+        LOG_ERROR() << "Found circular dependency between components: " << msg;
+        throw std::runtime_error("circular components dependency: " + msg);
     }
 }
 

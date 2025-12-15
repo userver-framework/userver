@@ -8,6 +8,5 @@ userver_module(
     LINK_LIBRARIES RocksDB::rocksdb
     UTEST_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*_test.cpp"
     DEPENDS core
-    EMBED_FILES
-        src/storages/rocks/component.yaml
+    EMBED_FILES src/storages/rocks/component.yaml
 )

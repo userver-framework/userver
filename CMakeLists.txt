@@ -188,7 +188,7 @@ include(ModuleHelpers)
 include(AddGoogleTests)
 include(FindPackageRequired)
 include(IncludeWhatYouUse)
-include(UserverTestsuite)
+include(UserverVenv)
 include(UserverCodegenTarget)
 include(UserverGenerateComponentsSchemaDocs)
 include(UserverGenerateDynamicConfigsDocs)
@@ -212,6 +212,7 @@ if(USERVER_FEATURE_GRPC)
     include(SetupProtobuf)
 endif()
 
+include(UserverTestsuite)  # Uses protobuf version.
 if(USERVER_BUILD_TESTS)
     include(testsuite/SetupUserverTestsuiteEnv.cmake)
     add_subdirectory(testsuite)
@@ -366,6 +367,18 @@ if(USERVER_BUILD_TESTS)
             "-DUSERVER_GOOGLE_COMMON_PROTOS=${USERVER_GOOGLE_COMMON_PROTOS} -DUSERVER_DOWNLOAD_PACKAGES=${USERVER_DOWNLOAD_PACKAGES}"
         )
     endif()
+
+    include(UserverVenv)
+    userver_venv_setup(
+        NAME sleep_in_tests
+        PYTHON_OUTPUT_VAR PYTHON_BINARY
+        REQUIREMENTS "${USERVER_ROOT_DIR}/scripts/pylint/requirements.txt"
+        UNIQUE
+    )
+    add_test(NAME sleep-in-tests
+        COMMAND
+	    env PYTHON_BINARY=${PYTHON_BINARY} PYTHONPATH="${USERVER_ROOT_DIR}" "${USERVER_ROOT_DIR}/scripts/pylint/pylint_all.sh"
+    )
 endif()
 
 _userver_add_target_gen_component_schemas_docs()

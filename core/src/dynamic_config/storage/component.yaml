@@ -5,25 +5,33 @@ properties:
     updates-enabled:
         type: boolean
         description: should be set to 'true' if there is an updater component
-        defaultDescription: false
+        default: false
     defaults:
         type: object
-        description: optional values for configs that override the defaults specified
+        description: |
+            Optional values for configs that override the defaults specified
             in dynamic_config::Key definitions
-        defaultDescription: values from dynamic_config::Key definitions are used
+
+            Default: values from dynamic_config::Key definitions are used
         properties: {}
         additionalProperties: true
     defaults-path:
         type: string
-        description: optional file with config values that override the defaults specified
-            in dynamic_config::Key definitions
-        defaultDescription: values from dynamic_config::Key definitions are used
+        description: |
+            Optional file with config values that override the defaults specified
+            in dynamic_config::Key definitions.
+
+            Default: values from dynamic_config::Key definitions are used
     fs-cache-path:
         type: string
-        description: path to the file to read and dump a config cache; set to empty
-            string to disable reading and dumping configs to FS
-        defaultDescription: no fs cache
+        description: |
+            Path to the file to read and dump a config cache; set to empty
+            string to disable reading and dumping configs to FS.
+
+            Default: no fs cache
     fs-task-processor:
         type: string
-        description: name of the task processor to run the blocking file write operations
-        defaultDescription: engine::current_task::GetBlockingTaskProcessor()
+        description: |
+            Name of the task processor to run the blocking file write operations.
+
+            Default: engine::current_task::GetBlockingTaskProcessor()

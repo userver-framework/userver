@@ -146,11 +146,17 @@ size_t Erase(Container& container, const T& elem) {
     }
 }
 
-/// @brief returns true if there is an element in container which satisfies
+/// @brief returns true if there is an element in the container which satisfies
 /// the predicate
 template <typename Container, typename Pred>
 bool ContainsIf(const Container& container, Pred pred) {
     return std::find_if(std::begin(container), std::end(container), pred) != std::end(container);
+}
+
+/// @brief returns true if there is a specified element in the container
+template <typename Container>
+bool Contains(const Container& container, const typename Container::value_type& item) {
+    return std::find(std::begin(container), std::end(container), item) != std::end(container);
 }
 
 }  // namespace utils

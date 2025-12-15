@@ -15,12 +15,12 @@ properties:
     restart-delay:
         type: string
         description: how much time to wait after failed task restart
-        defaultDescription: 100ms
+        default: 100ms
     task-processor:
         type: string
         description: the name of the TaskProcessor for running DoWork
-        defaultDescription: main-task-processor
+        default: main-task-processor
     testsuite-support:
         type: boolean
         description: Enable testsuite support
-        defaultDescription: false
+        default: false

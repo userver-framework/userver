@@ -1,24 +1,20 @@
-import asyncio
 import os
 import signal
+
+import pytest_userver.utils.sync as sync
 
 TIMEOUT = 60
 
 
 async def wait_for_logfile(fname: str):
-    for i in range(TIMEOUT):
+    async def check_ready():
         with open(fname) as ifile:
             for line in ifile.readlines():
                 if 'Starting to catch signals' in line:
-                    # Yes, sleeping for sync. Yes, that's bad.
-                    # No, it is not possible to wait for a specific event.
-                    await asyncio.sleep(1)
                     return
+        raise sync.NotReady()
 
-        # not yet started, waiting
-        await asyncio.sleep(1)
-
-    assert False, f'log file {fname} does not contain start log entry, has the service started?'
+    await sync.wait_until(check_ready)
 
 
 async def test_boot_logs(
@@ -50,9 +46,8 @@ async def test_boot_logs(
 
         daemon.process.send_signal(signal.SIGUSR1)
 
-        for i in range(TIMEOUT):
-            if os.path.exists(_service_logfile_path):
-                break
-            await asyncio.sleep(1)
-        else:
-            assert False, f'log file {_service_logfile_path} is not reopened'
+        async def check_ready():
+            if not os.path.exists(_service_logfile_path):
+                raise sync.NotReady()
+
+        await sync.wait_until(check_ready)

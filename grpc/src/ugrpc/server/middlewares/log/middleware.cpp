@@ -67,7 +67,7 @@ void Middleware::OnCallStart(MiddlewareCallContext& context) const {
     span.AddTag("meta_type", std::string{context.GetCallName()});
 
     const Logger logger{settings_.log_level};
-    if (context.IsClientStreaming()) {
+    if (!IsSingleRequestMethod(context.GetRpcType())) {
         logging::LogExtra extra{{"type", "request"}};
         AppendOriginMetadata(context, extra);
         logger.Log(settings_.msg_log_level, "gRPC request stream started", std::move(extra));
@@ -81,12 +81,12 @@ void Middleware::PostRecvMessage(MiddlewareCallContext& context, google::protobu
         {ugrpc::impl::kBodyTag, GetMessageForLogging(request, settings_)},
         {ugrpc::impl::kMessageMarshalledLenTag, request.ByteSizeLong()},
     };
-    if (context.IsClientStreaming()) {
-        logger.Log(settings_.msg_log_level, "gRPC request stream message", std::move(extra));
-    } else {
+    if (IsSingleRequestMethod(context.GetRpcType())) {
         extra.Extend("type", "request");
         AppendOriginMetadata(context, extra);
         logger.Log(settings_.msg_log_level, "gRPC request", std::move(extra));
+    } else {
+        logger.Log(settings_.msg_log_level, "gRPC request stream message", std::move(extra));
     }
 }
 
@@ -98,11 +98,11 @@ void Middleware::PreSendMessage(MiddlewareCallContext& context, google::protobuf
         {ugrpc::impl::kBodyTag, GetMessageForLogging(response, settings_)},
         {ugrpc::impl::kMessageMarshalledLenTag, response.ByteSizeLong()},
     };
-    if (context.IsServerStreaming()) {
-        logger.Log(settings_.msg_log_level, "gRPC response stream message", std::move(extra));
-    } else {
+    if (IsSingleResponseMethod(context.GetRpcType())) {
         extra.Extend("type", "response");
         logger.Log(settings_.msg_log_level, "gRPC response", std::move(extra));
+    } else {
+        logger.Log(settings_.msg_log_level, "gRPC response stream message", std::move(extra));
     }
 }
 
@@ -111,7 +111,7 @@ void Middleware::OnCallFinish(MiddlewareCallContext& context, const std::optiona
     logging::LogExtra extra{{"type", "response"}};
     if (status.has_value()) {
         if (status->ok()) {
-            if (context.IsServerStreaming()) {
+            if (!IsSingleResponseMethod(context.GetRpcType())) {
                 logger.Log(settings_.msg_log_level, "gRPC response stream finished", std::move(extra));
             }
         } else {

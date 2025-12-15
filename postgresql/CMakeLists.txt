@@ -50,10 +50,8 @@ userver_module(
     UBENCH_ENV POSTGRES_DSN_BENCH=postgresql://testsuite@localhost:15433/postgres
     DEPENDS core
     GENERATE_DYNAMIC_CONFIGS
-    EMBED_FILES
-        src/cache/base_postgres_cache.yaml
-        src/storages/postgres/component.yaml
-        src/storages/postgres/dist_lock_component_base.yaml
+    EMBED_FILES src/cache/base_postgres_cache.yaml src/storages/postgres/component.yaml
+                src/storages/postgres/dist_lock_component_base.yaml
 )
 
 target_sources(${PROJECT_NAME} PRIVATE "${LIBPQ_VERSION_DIR}/userver_libpq_version.hpp")

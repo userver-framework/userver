@@ -18,7 +18,7 @@
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/rcu/rcu.hpp>
 #include <userver/utils/fast_pimpl.hpp>
-#include <userver/utils/impl/internal_tag.hpp>
+#include <userver/utils/impl/internal_tag_fwd.hpp>
 #include <userver/utils/not_null.hpp>
 #include <userver/utils/periodic_task.hpp>
 #include <userver/utils/swappingsmart.hpp>
@@ -73,8 +73,8 @@ public:
     /// @brief Returns a HTTP request builder type with preset values of
     /// User-Agent and some of the Testsuite stuff (if any).
     ///
-    /// @note This method does not apply plugins, they could be applied
-    /// manually using @ref clients::http::Request::SetPluginsList()
+    /// @note This method does not apply middlewares, they could be applied
+    /// manually using @ref clients::http::Request::SetMiddlewaresList()
     /// @note This method is thread-safe despite being non-const.
     Request CreateRequest() override;
 
@@ -109,6 +109,9 @@ public:
 
     // For internal use only.
     void SetDnsResolver(clients::dns::Resolver* resolver);
+
+    // For internal use only.
+    std::size_t GetActiveRequestCountDebug() const;
     /// @endcond
 
 private:

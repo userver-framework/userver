@@ -41,7 +41,6 @@ find_package_required(ZLIB "zlib1g-dev")
 
 find_package(Iconv REQUIRED)
 
-
 find_package(libev REQUIRED)
 find_package(libnghttp2 REQUIRED)
 
@@ -95,34 +94,30 @@ endif()
 
 target_link_libraries(
     ${PROJECT_NAME}
-    PUBLIC
-	userver-universal
-	Boost::locale
-	CURL::libcurl
-    PRIVATE
-	Boost::filesystem
-	Boost::program_options
-	Boost::iostreams
-	Iconv::Iconv
-	OpenSSL::SSL
-	OpenSSL::Crypto
-	ZLIB::ZLIB
+    PUBLIC userver-universal Boost::locale CURL::libcurl
+    PRIVATE Boost::filesystem
+            Boost::program_options
+            Boost::iostreams
+            Iconv::Iconv
+            OpenSSL::SSL
+            OpenSSL::Crypto
+            ZLIB::ZLIB
 )
 if(TARGET Boost::endian)
     # Boost from CPM
-    target_link_libraries(
-	${PROJECT_NAME}
-	PUBLIC userver-universal Boost::endian Boost::lockfree
-    )
+    target_link_libraries(${PROJECT_NAME} PUBLIC userver-universal Boost::endian Boost::lockfree)
 endif()
 
-list(APPEND EMBED_FILES
+list(
+    APPEND
+    EMBED_FILES
     src/baggage/baggage_manager.yaml
     src/cache/caching_component_base.yaml
     src/cache/lru_cache_component_base.yaml
     src/clients/http/component.yaml
     src/clients/http/component_core.yaml
-    src/clients/http/plugins/retry_budget/component.yaml
+    src/clients/http/middlewares/pipeline_component.yaml
+    src/clients/http/middlewares/retry_budget/component.yaml
     src/components/impl/component_base.yaml
     src/components/dump_configurator.yaml
     src/components/fs_cache.yaml
@@ -153,6 +148,7 @@ list(APPEND EMBED_FILES
     src/server/handlers/ping.yaml
     src/server/handlers/server_monitor.yaml
     src/server/handlers/tests_control.yaml
+    src/server/middlewares/cors.yaml
     src/server/middlewares/configuration.yaml
     src/server/middlewares/headers_propagator.yaml
     src/server/websocket/websocket_handler.yaml
@@ -192,14 +188,11 @@ if(CMAKE_SYSTEM_NAME MATCHES "Darwin" AND CMAKE_SYSTEM_PROCESSOR MATCHES "arm64"
     endif()
 endif()
 
-if("${Boost_VERSION_STRING}" VERSION_LESS "1.88.0")
-    option(USERVER_FEATURE_UBOOST_CORO "Use vendored boost context instead of a system one"
-           "${USERVER_UBOOST_CORO_DEFAULT}"
-    )
-else()
-    message(STATUS "Found a modern Boost version (${Boost_VERSION_STRING}), not using vendored Boost::context and Boost::coroutine2")
-    set(USERVER_FEATURE_UBOOST_CORO OFF)
+if("${Boost_VERSION_STRING}" VERSION_GREATER_EQUAL "1.88.0")
+    set(USERVER_UBOOST_CORO_DEFAULT OFF)
 endif()
+
+option(USERVER_FEATURE_UBOOST_CORO "Use vendored boost context instead of a system one" ${USERVER_UBOOST_CORO_DEFAULT})
 
 if(USERVER_FEATURE_UBOOST_CORO)
     add_subdirectory(${USERVER_THIRD_PARTY_DIRS}/uboost_coro uboost_coro_build)

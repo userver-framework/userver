@@ -163,7 +163,10 @@ function(_userver_install_component)
     string(TOUPPER "${ARG_MODULE}" MODULE_UPPER)
     if(CPACK_COMPONENTS_GROUPING STREQUAL ONE_PER_GROUP)
         if(NOT CPACK_DEBIAN_${MODULE_UPPER}_PACKAGE_DEPENDS)
-	    message(FATAL_ERROR "File with per-component dependencies is missing (component ${ARG_MODULE}). Either use CPACK_COMPONENTS_GROUPING=ALL_COMPONENTS_IN_ONE to build a single all-in-one package, or create dependency file ${USERVER_ROOT_DIR}/scripts/docs/en/deps/${DEPENDENCIES_FILESTEM}/${ARG_MODULE}.")
+            message(
+                FATAL_ERROR
+                    "File with per-component dependencies is missing (component ${ARG_MODULE}). Either use CPACK_COMPONENTS_GROUPING=ALL_COMPONENTS_IN_ONE to build a single all-in-one package, or create dependency file ${USERVER_ROOT_DIR}/scripts/docs/en/deps/${DEPENDENCIES_FILESTEM}/${ARG_MODULE}."
+            )
         endif()
     endif()
 
@@ -173,17 +176,23 @@ function(_userver_install_component)
         COMMAND sed "s/ \\(.\\)/, \\1/g"
         OUTPUT_VARIABLE MODULE_DEPENDS
     )
-    file(APPEND "${CMAKE_BINARY_DIR}/cpack.variables.inc" "
+    file(
+        APPEND "${CMAKE_BINARY_DIR}/cpack.variables.inc"
+        "
         set(CPACK_DEBIAN_${MODULE_UPPER}_PACKAGE_NAME libuserver-${ARG_MODULE}-dev)
         set(CPACK_DEBIAN_${MODULE_UPPER}_PACKAGE_CONFLICTS libuserver-all-dev)
         set(CPACK_COMPONENT_${MODULE_UPPER}_DEPENDS ${ARG_DEPENDS})
         set(CPACK_DEBIAN_${MODULE_UPPER}_PACKAGE_DEPENDS \"${MODULE_DEPENDS}\")
-    ")
+    "
+    )
 
-    file(APPEND "${CMAKE_BINARY_DIR}/cpack.inc" "
+    file(
+        APPEND "${CMAKE_BINARY_DIR}/cpack.inc"
+        "
         cpack_add_component_group(${ARG_MODULE} EXPANDED)
         cpack_add_component(${ARG_MODULE} GROUP ${ARG_MODULE} INSTALL_TYPES Full)
-    ")
+    "
+    )
 endfunction()
 
 function(_userver_prepare_components)
@@ -207,7 +216,10 @@ function(_userver_prepare_components)
     elseif(OS_CODENAME MATCHES "^bionic")
         set(DEPENDENCIES_FILESTEM "ubuntu-18.04")
     endif()
-    set(DEPENDENCIES_FILESTEM ${DEPENDENCIES_FILESTEM} CACHE INTERNAL "")
+    set(DEPENDENCIES_FILESTEM
+        ${DEPENDENCIES_FILESTEM}
+        CACHE INTERNAL ""
+    )
 endfunction()
 
 _userver_prepare_components()

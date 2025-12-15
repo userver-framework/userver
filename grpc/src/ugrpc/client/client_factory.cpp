@@ -15,6 +15,7 @@ ClientFactory::ClientFactory(
     impl::MiddlewarePipelineCreator& middleware_pipeline_creator,
     ugrpc::impl::CompletionQueuePoolBase& completion_queues,
     ugrpc::impl::StatisticsStorage& statistics_storage,
+    utils::statistics::MetricsStorage& metrics_storage,
     testsuite::GrpcControl& testsuite_grpc,
     dynamic_config::Source config_source
 )
@@ -23,6 +24,7 @@ ClientFactory::ClientFactory(
       middleware_pipeline_creator_(middleware_pipeline_creator),
       completion_queues_(completion_queues),
       client_statistics_storage_(statistics_storage),
+      client_qos_errors_reporter_(metrics_storage),
       config_source_(config_source),
       testsuite_grpc_(testsuite_grpc)
 {}
@@ -64,6 +66,7 @@ impl::ClientInternals ClientFactory::MakeClientInternals(
         std::move(middlewares),
         completion_queues_,
         client_statistics_storage_,
+        client_qos_errors_reporter_,
         config_source_,
         testsuite_grpc_,
         client_settings.client_qos,

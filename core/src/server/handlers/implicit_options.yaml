@@ -4,8 +4,10 @@ additionalProperties: false
 properties:
     auth_checkers:
         type: object
-        description: server::handlers::auth::HandlerAuthConfig authorization config
-        defaultDescription: auth checker testing is disabled
+        description: |
+            server::handlers::auth::HandlerAuthConfig authorization config
+
+            Default: auth checker testing is disabled
         additionalProperties: false
         properties:
             type:

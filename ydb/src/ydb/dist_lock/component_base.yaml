@@ -21,11 +21,13 @@ properties:
         type: boolean
         description: if true, then create the coordination node and the semaphore
             unless they already exist
-        defaultDescription: true
+        default: true
     task-processor:
         type: string
-        description: the name of the TaskProcessor for running DoWork
-        defaultDescription: the default TaskProcessor, typically main-task-processor
+        description: |
+            The name of the TaskProcessor for running DoWork.
+
+            Default: the default TaskProcessor, typically main-task-processor
     node-settings:
         type: object
         description: settings for coordination node creation
@@ -42,21 +44,21 @@ properties:
         type: string
         description: for how long we will try to restore session after a network failure
             before dropping it
-        defaultDescription: 5s
+        default: 5s
     restart-session-delay:
         type: string
         description: backoff before attempting to reconnect session after it returns
             "permanent failure"
-        defaultDescription: 1s
+        default: 1s
     acquire-interval:
         type: string
         description: backoff before repeating a failed Acquire call
-        defaultDescription: 100ms
+        default: 100ms
     restart-delay:
         type: string
         description: backoff before calling DoWork again after it returns or throws
-        defaultDescription: 100ms
+        default: 100ms
     cancel-task-time-limit:
         type: string
         description: time, within which a cancelled DoWork is expected to finish
-        defaultDescription: 5s
+        default: 5s

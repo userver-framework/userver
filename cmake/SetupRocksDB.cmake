@@ -25,25 +25,22 @@ find_package(zstd REQUIRED)
 include(DownloadUsingCPM)
 
 cpmaddpackage(
-    NAME
-    RocksDB
-    GITHUB_REPOSITORY
-    facebook/rocksdb
-    GIT_TAG
-    v10.4.2
-    OPTIONS
-    "ROCKSDB_BUILD_SHARED OFF"
-    "WITH_SNAPPY ON"
-    "WITH_BZ2 ON"
-    "WITH_ZSTD ON"
-    "WITH_TESTS OFF"
-    "WITH_BENCHMARK_TOOLS OFF"
-    "WITH_TOOLS OFF"
-    "WITH_CORE_TOOLS OFF"
-    "WITH_TRACE_TOOLS OFF"
-    "USE_RTTI ON"
-    "GFLAGS_SHARED FALSE"
-    "CMAKE_SKIP_INSTALL_RULES ON"
+    NAME RocksDB
+    GITHUB_REPOSITORY facebook/rocksdb
+    GIT_TAG v10.4.2
+    GIT_SHALLOW TRUE
+    OPTIONS "ROCKSDB_BUILD_SHARED OFF"
+            "WITH_SNAPPY ON"
+            "WITH_BZ2 ON"
+            "WITH_ZSTD ON"
+            "WITH_TESTS OFF"
+            "WITH_BENCHMARK_TOOLS OFF"
+            "WITH_TOOLS OFF"
+            "WITH_CORE_TOOLS OFF"
+            "WITH_TRACE_TOOLS OFF"
+            "USE_RTTI ON"
+            "GFLAGS_SHARED FALSE"
+            "CMAKE_SKIP_INSTALL_RULES ON"
 )
 
 mark_targets_as_system("${rocksdb_SOURCE_DIR}")

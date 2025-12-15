@@ -31,7 +31,7 @@ properties:
                     type: string
                     description: one of RedisStandalone, RedisCluster, KeyShardCrc32,
                         KeyShardTaximeterCrc32 or KeyShardGpsStorageDriver
-                    defaultDescription: "KeyShardTaximeterCrc32"
+                    default: "KeyShardTaximeterCrc32"
                     enum:
                       - RedisCluster
                       - KeyShardCrc32
@@ -41,11 +41,11 @@ properties:
                 allow_reads_from_master:
                     type: boolean
                     description: allows read requests from master instance
-                    defaultDescription: false
+                    default: false
     metrics_level:
         type: string
         description: set metrics detail level
-        defaultDescription: "Instance"
+        default: instance
         enum:
           - cluster
           - shard
@@ -67,7 +67,7 @@ properties:
                 sharding_strategy:
                     type: string
                     description: either RedisCluster or KeyShardTaximeterCrc32
-                    defaultDescription: "KeyShardTaximeterCrc32"
+                    default: "KeyShardTaximeterCrc32"
                     enum:
                       - RedisCluster
                       - KeyShardTaximeterCrc32
@@ -76,4 +76,4 @@ properties:
                     type: boolean
                     description: allows subscriptions to master instance to distribute
                         load
-                    defaultDescription: false
+                    default: false

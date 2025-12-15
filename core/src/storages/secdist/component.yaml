@@ -6,8 +6,8 @@ properties:
         type: string
         description: period between data updates in utils::StringToDuration() suitable
             format ('0s' for no updates)
-        defaultDescription: 10s
+        default: 10s
     provider:
         type: string
         description: optional secdist provider component name
-        defaultDescription: default-secdist-provider
+        default: default-secdist-provider

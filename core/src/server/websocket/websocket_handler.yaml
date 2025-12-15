@@ -5,8 +5,8 @@ properties:
     max-remote-payload:
         type: integer
         description: max input message payload size
-        defaultDescription: 65536
+        default: 65536
     fragment-size:
         type: integer
         description: max output fragment size
-        defaultDescription: 65536
+        default: 65536

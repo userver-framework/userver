@@ -6,6 +6,7 @@
 
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/debugging.hpp>
 
 #include <utils/sys_info.hpp>
 
@@ -14,16 +15,17 @@ USERVER_NAMESPACE_BEGIN
 namespace engine::coro {
 
 namespace {
-bool IsStackUsageMonitorEnabled() {
+bool IsStackUsageMonitorDisabled() {
     // NOLINTNEXTLINE(concurrency-mt-unsafe)
     auto* enable = std::getenv("USERVER_ENABLE_STACK_USAGE_MONITOR");
-    if (!enable) {
+    if (enable && std::string_view(enable) == "0") {
+        LOG_WARNING() << "Stack usage monitor is explicitly disabled via USERVER_ENABLE_STACK_USAGE_MONITOR env var";
+        return true;
+    } else if (utils::IsDebuggerPresent()) {
+        LOG_WARNING() << "Detected attached debugger. Stack usage monitor is disabled";
         return true;
     }
-    if (std::string_view(enable) == "0") {
-        return false;
-    }
-    return true;
+    return false;
 }
 }  // namespace
 
@@ -41,9 +43,7 @@ Pool::Pool(PoolConfig config, Executor executor)
     UASSERT(local_coroutine_move_size_ <= config_.local_cache_size);
     const moodycamel::ProducerToken token(initial_coroutines_);
 
-    if (!IsStackUsageMonitorEnabled()) {
-        LOG_WARNING() << "Stack usage monitor is explicitly disabled via USERVER_ENABLE_STACK_USAGE_MONITOR env var";
-    } else if (config_.is_stack_usage_monitor_enabled) {
+    if (!IsStackUsageMonitorDisabled() && config_.is_stack_usage_monitor_enabled) {
         stack_usage_monitor_.Start();
     }
 

@@ -2,6 +2,7 @@ import asyncio
 import logging
 
 import pytest
+import pytest_userver.utils.sync as sync
 import websockets
 
 # Disabling redundant logs from third party library
@@ -146,15 +147,14 @@ async def test_ping_pong_close(websocket_client):
         websocket_client.ping_interval = None
         websocket_client.ping_timeout = None
 
-        for _ in range(20):
-            try:
-                await chat.recv()
-                await asyncio.sleep(1)
-            except websockets.exceptions.ConnectionClosed:
-                connection_closed_by_ping = True
-                break
+        async def check_ready():
+            await chat.recv()
+            raise sync.NotReady()
 
-        assert connection_closed_by_ping
+        try:
+            await sync.wait_until(check_ready)
+        except websockets.exceptions.ConnectionClosed:
+            pass
 
 
 async def test_upgrade_header_with_tab_then_reconnect(service_port):

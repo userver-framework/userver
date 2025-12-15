@@ -8,6 +8,7 @@
 #include <userver/dynamic_config/test_helpers.hpp>
 #include <userver/engine/io/sockaddr.hpp>
 #include <userver/testsuite/grpc_control.hpp>
+#include <userver/utils/statistics/metrics_storage.hpp>
 #include <userver/utils/statistics/storage.hpp>
 
 #include <userver/ugrpc/client/client_factory.hpp>
@@ -44,6 +45,8 @@ public:
 
 private:
     utils::statistics::Storage statistics_storage_;
+    utils::statistics::MetricsStorage metrics_storage_;
+    std::vector<utils::statistics::Entry> metrics_storage_registration_;
     ugrpc::impl::StatisticsStorage
         client_statistics_storage_{statistics_storage_, ugrpc::impl::StatisticsDomain::kClient};
     dynamic_config::StorageMock config_storage_{dynamic_config::MakeDefaultStorage({})};

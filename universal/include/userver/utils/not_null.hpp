@@ -20,7 +20,7 @@ namespace utils {
 template <typename T>
 class NotNull {
     static_assert(!std::is_reference_v<T>, "NotNull does not work with references");
-    static_assert(!std::is_const_v<T>);
+    static_assert(!std::is_const_v<T>, "NotNull does not work with const T");
 
 public:
     constexpr explicit NotNull() = delete;

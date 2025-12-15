@@ -1,6 +1,7 @@
 import asyncio
 
 import pytest
+import pytest_userver.utils.sync as sync
 import redis
 
 # Some messages may be lost (it's a Redis limitation). *_failover tests require more than 100 retries on slow CI
@@ -38,7 +39,8 @@ async def _validate_pubsub(
     for i in range(INPUT_CHANNELS_COUNT):
         channel_name = channel_prefix + str(i)
         message = msg + str(i)
-        for _ in range(REQUESTS_RETRIES):
+
+        async def check_ready():
             publish_method(redis_db, channel_name, message)
 
             response = await service_client.get(
@@ -52,11 +54,11 @@ async def _validate_pubsub(
             if data:
                 assert message in data
                 await service_client.delete(url)
-                break
+                return
 
-            await asyncio.sleep(REQUESTS_RELAX_TIME)
-        else:
-            assert False, f'Retries exceeded trying to read from {channel_name}'
+            raise sync.NotReady()
+
+        await sync.wait_until(check_ready)
 
 
 async def _test_service_subscription(service_client, node, prefix):
@@ -93,13 +95,13 @@ async def _validate_service_publish(service_client, nodes, shards_count=0):
     redis_clients = [(node, node.get_client()) for node in nodes]
 
     async def _get_message(pubsub, retries=5, delay=0.5):
-        ret = None
-        for _ in range(retries):
+        async def check_ready():
             ret = pubsub.get_message()
             if ret is not None:
                 return ret
-            await asyncio.sleep(delay)
-        return ret
+            raise sync.NotReady()
+
+        return await sync.wait_until(check_ready)
 
     async def _ensure_published(
         pubsub,
@@ -120,8 +122,13 @@ async def _validate_service_publish(service_client, nodes, shards_count=0):
         assert False, 'Retries exceeded'
 
     async def _validate(service_client, pubsub, prefix):
-        for index in range(REQUESTS_RETRIES):
+        index = 1
+
+        async def check_ready():
+            nonlocal index
+            index = index + 1
             msg = prefix + str(index)
+
             try:
                 response = await service_client.get(url, params={'publish': msg})
                 assert response.status == 200
@@ -130,8 +137,9 @@ async def _validate_service_publish(service_client, nodes, shards_count=0):
                 return
             except Exception as exc:  # pylint: disable=broad-except
                 print(f'Pubsub validation failed for shard zero: {exc}')
-            await asyncio.sleep(REQUESTS_RELAX_TIME)
-        assert False, 'Retries exceeded for shard zero'
+                raise sync.NotReady()
+
+        await sync.wait_until(check_ready)
 
     async def _validate_round_robin(service_client, pubsub, prefix):
         successes = list()
@@ -180,13 +188,13 @@ async def _validate_service_spublish(service_client, nodes):
     """
 
     async def _get_message(pubsub, retries=5, delay=0.5):
-        ret = None
-        for _ in range(retries):
+        async def check_ready():
             ret = pubsub.get_sharded_message()
             if ret is not None:
                 return ret
-            await asyncio.sleep(delay)
-        return ret
+            raise sync.NotReady()
+
+        return await sync.wait_until(check_ready)
 
     async def _ensure_published(
         pubsub,

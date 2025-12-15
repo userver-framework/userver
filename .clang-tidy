@@ -77,6 +77,7 @@ Checks:
   ,-misc-no-recursion\
   ,-misc-unconventional-assign-operator\
   ,-misc-use-anonymous-namespace\
+  ,-misc-override-with-different-visibility\
   ,-modernize-avoid-c-arrays\
   ,-modernize-pass-by-value\
   ,-modernize-return-braced-init-list\

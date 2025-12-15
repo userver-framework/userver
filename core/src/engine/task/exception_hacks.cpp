@@ -6,6 +6,9 @@
 #if __has_feature(memory_sanitizer)
 #define HAS_MSAN 1
 #endif
+#if __has_feature(address_sanitizer)
+#define HAS_ASAN 1
+#endif
 #endif
 
 // Thread Sanitizer uses dl_iterate_phdr function on initialization and fails if
@@ -14,7 +17,11 @@
 // Memory sanitizer gets crazy with uninstumented dl_phdr_info and conveniently
 // segfaults with stackoverflow trying to report the backtrace from within
 // dl_iterate_phdr.
-#if !defined(USERVER_DISABLE_PHDR_CACHE) && defined(__linux__) && !USERVER_IMPL_HAS_TSAN && !defined(HAS_MSAN)
+//
+// Address sanitizer also calls dl_iterate_phdr during its initialization
+// (before main and before static constructors), causing a crash.
+#if !defined(USERVER_DISABLE_PHDR_CACHE) && defined(__linux__) && !USERVER_IMPL_HAS_TSAN && !defined(HAS_MSAN) && \
+    !defined(HAS_ASAN)
 #define USE_PHDR_CACHE 1  // NOLINT
 #endif
 

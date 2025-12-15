@@ -168,6 +168,7 @@ private:
         CallProcessor<CallTraits> call_processor{
             CallParams{
                 context_,
+                CallTraits::kRpcType,
                 call_name,
                 service_name,
                 method_name,

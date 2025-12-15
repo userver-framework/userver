@@ -4,11 +4,7 @@
 #include <system_error>
 #include <vector>
 
-#include <server/http/http2_session.hpp>
-#include <server/http/http2_writer.hpp>
-#include <server/http/http_request_parser.hpp>
 #include <server/http/request_handler_base.hpp>
-#include <server/net/listener_config.hpp>
 
 #include <userver/engine/async.hpp>
 #include <userver/engine/exception.hpp>
@@ -16,21 +12,14 @@
 #include <userver/engine/io/tls_wrapper.hpp>
 #include <userver/engine/task/cancel.hpp>
 #include <userver/engine/wait_any.hpp>
-#include <userver/http/common_headers.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/server/request/request_config.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/fast_scope_guard.hpp>
-#include <userver/utils/text_light.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace server::net {
-
-namespace {
-constexpr std::string_view kHttp2Preface = "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n";
-constexpr std::string_view kPrefaceBegin = kHttp2Preface.substr(0, 2);
-}  // namespace
 
 Connection::Connection(
     const ConnectionConfig& config,
@@ -50,6 +39,7 @@ Connection::Connection(
       remote_address_(remote_address),
       peer_name_(remote_address_.PrimaryAddressString())
 {
+    UASSERT(config_.http_version != USERVER_NAMESPACE::http::HttpVersion::k2);
     LOG_DEBUG() << "Incoming connection from " << Getpeername() << ", fd " << Fd();
 
     ++stats_->active_connections;
@@ -91,38 +81,66 @@ void Connection::Shutdown() noexcept {
 }
 
 void Connection::ListenForRequests() noexcept {
-    using HttpVersion = USERVER_NAMESPACE::http::HttpVersion;
+    using RequestBasePtr = std::shared_ptr<http::HttpRequest>;
+
     try {
-        if (config_.http_version != HttpVersion::k2) {
-            parser_ = MakeParser(HttpVersion::k11);
-        }
+        std::vector<RequestBasePtr> pending_requests;
+
+        http::HttpRequestParser request_parser(
+            request_handler_.GetHandlerInfoIndex(),
+            handler_defaults_config_,
+            [&pending_requests](RequestBasePtr&& request_ptr) { pending_requests.push_back(std::move(request_ptr)); },
+            stats_->parser_stats,
+            data_accounter_,
+            remote_address_
+        );
 
         pending_data_.resize(config_.in_buffer_size);
-        std::string http_version_buffer;
-        http_version_buffer.reserve(kPrefaceBegin.size());
         while (is_accepting_requests_) {
             auto deadline = engine::Deadline::FromDuration(config_.keepalive_timeout);
 
             if (pending_data_size_ == 0) {
-                if (!WaitOnSocket(deadline)) {
+                if (!peer_socket_) {
                     return;
                 }
+
+                bool is_readable = true;
+                // If we didn't fill the buffer in the previous loop iteration we almost
+                // certainly will hit EWOULDBLOCK on the subsequent recv syscall from
+                // peer_socket_.RecvSome, which will fall back to event-loop waiting
+                // for socket to become readable, and then issue another recv syscall,
+                // effectively doing
+                // 1. recv (returns -1)
+                // 2. notify event-loop about read interest
+                // 3. recv (return some data)
+                //
+                // So instead we just do 2. and 3., shaving off a whole recv syscall
+                if (pending_data_size_ != pending_data_.size()) {
+                    is_readable = peer_socket_->WaitReadable(deadline);
+                }
+
+                pending_data_size_ =
+                    is_readable ? peer_socket_->ReadSome(pending_data_.data(), pending_data_.size(), deadline) : 0;
+                if (!pending_data_size_) {
+                    LOG_TRACE()
+                        << "Peer " << Getpeername() << " on fd " << Fd()
+                        << " closed connection or the connection timed out";
+
+                    // RFC7230 does not specify rules for connections half-closed from
+                    // client side. However, section 6 tells us that in most cases
+                    // connections are closed after sending/receiving the last response.
+                    // See also: https://github.com/httpwg/http-core/issues/22
+                    //
+                    // It is faster (and probably more efficient) for us to cancel
+                    // currently processing and pending requests.
+                    return;
+                }
+                LOG_TRACE()
+                    << "Received " << pending_data_size_ << " byte(s) from " << Getpeername() << " on fd " << Fd();
             }
 
             bool should_stop_accepting_requests = false;
-            bool res = false;
-            const std::string_view req{pending_data_.data(), pending_data_size_};
-            if (config_.http_version == HttpVersion::k2) {
-                if (parser_ || TryDetectHttpVersion(http_version_buffer, req)) {
-                    res = parser_->Parse(req);
-                } else {
-                    // We have to wait next bytes to detect the version
-                    res = true;
-                }
-            } else {  // Pure HTTP/1.1
-                res = parser_->Parse(req);
-            }
-            if (!res) {
+            if (!request_parser.Parse({pending_data_.data(), pending_data_size_})) {
                 LOG_DEBUG() << "Malformed request from " << Getpeername() << " on fd " << Fd();
 
                 // Stop accepting new requests, send previous answers.
@@ -130,10 +148,10 @@ void Connection::ListenForRequests() noexcept {
             }
             pending_data_size_ = 0;
 
-            for (auto&& request : pending_requests_) {
+            for (auto&& request : pending_requests) {
                 ProcessRequest(std::move(request));
             }
-            pending_requests_.resize(0);
+            pending_requests.resize(0);
             if (should_stop_accepting_requests) {
                 is_accepting_requests_ = false;
             }
@@ -155,66 +173,6 @@ void Connection::ListenForRequests() noexcept {
     } catch (const std::exception& ex) {
         LOG_ERROR() << "Error while receiving from peer " << Getpeername() << " on fd " << Fd() << ": " << ex;
     }
-}
-
-bool Connection::WaitOnSocket(engine::Deadline deadline) {
-    if (!peer_socket_) {
-        return false;
-    }
-
-    bool is_readable = true;
-    if (pending_data_size_ != pending_data_.size()) {
-        if (is_http2_parser_) {
-            UASSERT(dynamic_cast<http::Http2Session*>(parser_.get()));
-            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
-            auto* session = static_cast<http::Http2Session*>(parser_.get());
-            auto& streaming_event = session->GetStreamingEvent();
-            while (true) {
-                auto notified_event = engine::CriticalAsyncNoSpan([&streaming_event] {
-                    [[maybe_unused]] const auto res = streaming_event.WaitForEvent();
-                });
-                const auto indx = engine::WaitAnyUntil(deadline, peer_socket_->GetReadableBase(), notified_event);
-                if (!indx) {
-                    return false;
-                }
-                const auto index = indx.value();
-                if (index == 1) {
-                    session->HandleStreamingEvents();
-                } else {
-                    UASSERT(index == 0);
-                    break;
-                }
-            }
-        } else {
-            // If we didn't fill the buffer in the previous loop iteration we almost
-            // certainly will hit EWOULDBLOCK on the subsequent recv syscall from
-            // peer_socket_.RecvSome, which will fall back to event-loop waiting
-            // for socket to become readable, and then issue another recv syscall,
-            // effectively doing
-            // 1. recv (returns -1)
-            // 2. notify event-loop about read interest
-            // 3. recv (return some data)
-            //
-            // So instead we just do 2. and 3., shaving off a whole recv syscall
-            is_readable = peer_socket_->WaitReadable(deadline);
-        }
-    }
-    pending_data_size_ = is_readable ? peer_socket_->ReadSome(pending_data_.data(), pending_data_.size(), deadline) : 0;
-    if (!pending_data_size_) {
-        LOG_TRACE()
-            << "Peer " << Getpeername() << " on fd " << Fd() << " closed connection or the connection timed out";
-
-        // RFC7230 does not specify rules for connections half-closed from
-        // client side. However, section 6 tells us that in most cases
-        // connections are closed after sending/receiving the last response.
-        // See also: https://github.com/httpwg/http-core/issues/22
-        //
-        // It is faster (and probably more efficient) for us to cancel
-        // currently processing and pending requests.
-        return false;
-    }
-    LOG_TRACE() << "Received " << pending_data_size_ << " byte(s) from " << Getpeername() << " on fd " << Fd();
-    return true;
 }
 
 void Connection::ProcessRequest(std::shared_ptr<http::HttpRequest>&& request_ptr) {
@@ -239,7 +197,7 @@ bool Connection::ReadSome() {
     }
 
     try {
-        const engine::TaskCancellationBlocker blocker;
+        engine::TaskCancellationBlocker blocker;
 
         auto count = peer_socket_->ReadSome(
             pending_data_.data() + pending_data_size_,
@@ -308,10 +266,7 @@ engine::TaskWithResult<void> Connection::HandleQueueItem(const std::shared_ptr<h
             request_task.Get();
         }
     } catch (const engine::TaskCancelledException& e) {
-        auto reason = e.Reason();
-        auto lvl =
-            reason == engine::TaskCancellationReason::kUserRequest ? logging::Level::kWarning : logging::Level::kError;
-        LOG_LIMITED(lvl) << "Handler task was cancelled with reason: " << ToString(reason);
+        LOG_LIMITED_ERROR() << "Handler task was cancelled with reason: " << ToString(e.Reason());
         auto& response = request->GetHttpResponse();
         if (!response.IsReady()) {
             response.SetReady();
@@ -334,44 +289,7 @@ void Connection::SendResponse(http::HttpRequest& request) {
     if (is_response_chain_valid_ && peer_socket_) {
         try {
             // Might be a stream reading or a fully constructed response
-            if (config_.http_version == USERVER_NAMESPACE::http::HttpVersion::k2) {
-                // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
-                auto& http_response = static_cast<http::HttpResponse&>(response);
-                if (const auto& h = request.GetHeader(USERVER_NAMESPACE::http::headers::k2::kHttp2SettingsHeader);
-                    !h.empty())
-                {
-                    const auto send = peer_socket_->WriteAll(
-                        http::kSwitchingProtocolResponse.data(),
-                        http::kSwitchingProtocolResponse.size(),
-                        engine::Deadline{}
-                    );
-                    LOG_TRACE() << fmt::format(
-                        "Write {} bytes, and wanted write {}",
-                        send,
-                        http::kSwitchingProtocolResponse.size()
-                    );
-
-                    auto parser = MakeParser(USERVER_NAMESPACE::http::HttpVersion::k2);
-                    UASSERT(dynamic_cast<http::Http2Session*>(parser.get()));
-                    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
-                    auto http2_session = static_cast<http::Http2Session*>(parser.get());
-                    http2_session->UpgradeToHttp2(h);
-                    http_response.SetStreamId(static_cast<std::int32_t>(http::kStreamIdAfterUpgradeResponse));
-
-                    http::WriteHttp2ResponseToSocket(http_response, *http2_session);
-                    parser_ = std::move(parser);
-                } else if (request.GetHttpMajor() == 1) {
-                    response.SendResponse(*peer_socket_);
-                } else {
-                    UASSERT(dynamic_cast<http::Http2Session*>(parser_.get()));
-                    auto http2_session =
-                        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
-                        static_cast<http::Http2Session*>(parser_.get());
-                    http::WriteHttp2ResponseToSocket(http_response, *http2_session);
-                }
-            } else {
-                response.SendResponse(*peer_socket_);
-            }
+            response.SendResponse(*peer_socket_);
         } catch (const engine::io::IoSystemError& ex) {
             // working with raw values because std::errc compares error_category
             // default_error_category() fixed only in GCC 9.1 (PR libstdc++/60555)
@@ -396,53 +314,6 @@ void Connection::SendResponse(http::HttpRequest& request) {
 }
 
 std::string Connection::Getpeername() const { return peer_name_; }
-
-std::unique_ptr<request::RequestParser> Connection::MakeParser(USERVER_NAMESPACE::http::HttpVersion ver) {
-    const auto on_req_cb = [&pending_requests = pending_requests_](HttpRequestPtr&& request_ptr) {
-        pending_requests.push_back(std::move(request_ptr));
-    };
-    if (ver == USERVER_NAMESPACE::http::HttpVersion::k2) {
-        return std::make_unique<http::Http2Session>(
-            request_handler_.GetHandlerInfoIndex(),
-            handler_defaults_config_,
-            config_.http2_session_config,
-            on_req_cb,
-            stats_->parser_stats,
-            data_accounter_,
-            remote_address_,
-            peer_socket_.get()
-        );
-    }
-    return std::make_unique<http::HttpRequestParser>(
-        request_handler_.GetHandlerInfoIndex(),
-        handler_defaults_config_,
-        on_req_cb,
-        stats_->parser_stats,
-        data_accounter_,
-        remote_address_
-    );
-}
-
-bool Connection::TryDetectHttpVersion(std::string& buffer, std::string_view req) {
-    using HttpVersion = USERVER_NAMESPACE::http::HttpVersion;
-    const auto first_piece = buffer;
-    // We can receive a 1 byte, so we have to save bytes until there are
-    // enough(2 bytes) of them to detect the version
-    buffer.append(req.substr(0, std::min(kPrefaceBegin.size() - buffer.size(), req.size())));
-    if (buffer.size() > 1) {
-        if (buffer == kPrefaceBegin) {
-            parser_ = MakeParser(HttpVersion::k2);
-            is_http2_parser_ = true;
-        } else {
-            parser_ = MakeParser(HttpVersion::k11);
-        }
-        UASSERT(parser_);
-        if (!first_piece.empty()) {
-            parser_->Parse(first_piece);
-        }
-    }
-    return !!parser_;
-}
 
 }  // namespace server::net
 

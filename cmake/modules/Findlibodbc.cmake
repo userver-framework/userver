@@ -1,14 +1,9 @@
 _userver_module_begin(
-    NAME
-    libodbc
-    VERSION
-    2.3.6
-    DEBIAN_NAMES
-    unixodbc-dev
-    FORMULA_NAMES
-    unixodbc
-    PKG_CONFIG_NAMES
-    unixodbc
+    NAME libodbc
+    VERSION 2.3.6
+    DEBIAN_NAMES unixodbc-dev
+    FORMULA_NAMES unixodbc
+    PKG_CONFIG_NAMES unixodbc
 )
 
 _userver_module_find_include(NAMES sql.h sqlext.h PATH_SUFFIXES unixodbc odbc)

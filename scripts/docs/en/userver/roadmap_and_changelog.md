@@ -35,6 +35,181 @@ Changelog news also go to the
 
 ## Changelog
 
+### Release v2.14
+
+* Added a @ref ugrpc::RichStatus builder for creating rich gRPC error statuses with
+  structured details following Google's error model
+* Implemented a Multi Index LRU container, thanks to [hzhdlrp](https://github.com/hzhdlrp).
+* Statement name is now logged when using @ref storages::postgres::Portal.
+* @ref storages::postgres::DistLockComponentBase now can be configured at runtime via @ref POSTGRES_DISTLOCK_SETTINGS.
+* Added @ref utils::TaskBuilder
+* ‎@ref scripts/docs/en/userver/libraries/s3api.md now has @ref QUALITY_TIERS "Platinum Tier".
+* Kafka is now more accurate in computing message time spent in @ref kafka::ConsumerComponent queue.
+* @ref utils::statistics::RecentPeriod is does not lose precision under heavy contention.
+* Added functionality to @ref ‎scripts/docs/en/userver/dump_coroutines.md
+* Added DeadlockDetector that can be enabled via `coro_pool.deadlock_detector` option
+  in @ref components::ManagerControllerComponent.
+* Added @ref storages::mongo::Transaction
+* Added @ref server::middlewares::Cors
+* @ref components::ComponentContext::RegisterScope() now can be used to register some resource that will be
+  called after the component is successfully created (including all
+  class descendants) and destroyed right before calling the destructor of the most derived component. This is a low
+  level feature, more high level functions for caches, distlocks and subscriptions will appear soon.
+
+* Build
+  * The oldest supported Python is now Python 3.10.
+  * Build fixes for PostgreSQL >= 17 on Ubuntu. Many thanks to [Pavel Sidorovich](https://github.com/RayeS2070)
+    for the initial PR!
+  * Chaotic golden tests now use clang-format on both sides of the diff to avoid failures dues to clang-format version
+    changes. Many thanks to [Konstantin Goncharik](https://github.com/botanegg) for the PR!
+  * The correct stable version of devcontainer is now presumed by `userver-create-service` script, resulting in stable
+    work of the service on older containers.
+  * Added `rdkafka_mock.h` header to workaround uncommon header location in some of the build environments.
+    Many thanks to [Vitalii](https://github.com/beryll1um) for the PR!
+  * Removed USERVER_HTTP_PROXY dynamic config
+  * Multiple updates to CI packet versions, build processes and docker container creation.
+
+* Documentation and diagnostics
+  * Tables with static configuration options are now build from component schemas. As a result the options description
+    became more accurate.
+  * Added @ref pytest_userver.plugins.service.service_start_timeout "service_start_timeout" fixture into testsuite.
+    Many thanks to [DmitriyH](https://github.com/DmitriyH) for the PR!
+  * Added multipart methods support for testsuite @ref pytest_userver.plugins.s3api "s3api plugin".
+  * @ref utils::FromString() now reports if input sequence of chars to convert contains '\0' character.
+  * Improved diagnostics for PostgreSQL composite types related errors, including nested composite types.
+  * A lot of updates for different sections of documentation, including @ref utils::FixedArray,
+    @ref ‎scripts/docs/en/userver/deadline_propagation.md, @ref clients::http::Request,
+    @ref ‎scripts/docs/en/userver/gdb_debugging.md.
+
+
+Plugins are renamed to middlewares and @ref components::HttpClient was split into @ref components::HttpClient
+  and @ref components::HttpClientCore.
+
+**Migration guide**:
+
+1. Instead of `.Append<components::HttpClient>()` use `.AppendComponentList(clients::http::ComponentList())` in
+   your component list (see @ref clients::http::ComponentList "docs").
+2. For classes inherited from @ref tracing::TracingManagerBase:
+   1. Change @ref clients::http::PluginRequest in @ref tracing::TracingManagerBase::FillRequestWithTracingContext() parameters to @ref clients::http::MiddlewareRequest
+3. For classes inherited from @ref clients::http::Plugin:
+   1. Replace `#include <userver/clients/http/plugin.hpp>` with `#include <userver/clients/http/middlewares/base.hpp>`
+   2. Change base class to @ref clients::http::MiddlewareBase
+   3. Change @ref clients::http::PluginRequest in methods parameters to @ref clients::http::MiddlewareRequest
+   4. Stop passing middleware name to  base class constructor
+   5. Empty methods implementations (or `return true;` for @ref clients::http::MiddlewareBase::HookOnRetry()) may be omitted
+
+   For example:
+
+   ```
+   # diff
+   -#include <userver/clients/http/plugin.hpp>
+   +#include <userver/clients/http/middlewares/base.hpp>
+   ...
+
+   -class MyPlugin : public clients::http::Plugin {
+   +class MyMiddleware : public clients::http::MiddlewareBase {
+   public:
+   ...
+   -    MyPlugin() : clients::http::Plugin("my-plugin") {}
+   +    MyMiddleware() : clients::http::MiddlewareBase() {}
+
+   -    void HookPerformRequest(clients::http::PluginRequest& request) override { do_something(request); }
+   +    void HookPerformRequest(clients::http::MiddlewareRequest& request) override { do_something(request); };
+
+   -    void HookCreateSpan(clients::http::PluginRequest&, tracing::Span&) override {}
+   -    void HookOnCompleted(clients::http::PluginRequest&, clients::http::Response&) override {}
+   -    void HookOnError(clients::http::PluginRequest&, std::error_code) override {}
+   -    bool HookOnRetry(clients::http::PluginRequest&) override { return true; }
+   ...
+   };
+   ```
+4. For plugin components inherited from @ref clients::http::plugin::ComponentBase:
+   1. Replace `#include <userver/clients/http/plugin_component.hpp>` with `#include <userver/clients/http/middlewares/component.hpp>`
+   2. Change base class to @ref clients::http::middlewares::ComponentBase
+   3. Component name is not required to have prefix `http-client-plugin-` anymore, `http-client-` prefix is suggested instead
+   4. Rename `GetPlugin` method to `GetMiddleware`, change its return type to `clients::http::MiddlewareBase`
+   5. Use @ref dynamic\_config::Source::UpdateAndListen() to subscribe on dynamic config updates
+   6. Pass middleware index to base class constructor, instead of setting it in config file
+
+   For example:
+
+   ```
+   # diff
+   -#include <userver/clients/http/plugin_component.hpp>
+   +#include <userver/clients/http/middlewares/component.hpp>
+   ...
+
+   -class SomeComponentName : public clients::http::plugin::ComponentBase {
+   +class SomeComponentName : public clients::http::middlewares::ComponentBase {
+   public:
+   -    static constexpr std::string_view kName = "http-client-plugin-my-plugin-name";
+   +    static constexpr std::string_view kName = "http-client-my-middleware-name";
+
+   -    SomeComponentName(const components::ComponentConfig& config, const components::ComponentContext& context)
+   -        : ComponentBase(config, context),
+   -          plugin_(std::make_unique<Plugin>()),
+   +    SomeComponentName(const components::ComponentConfig& config, const components::ComponentContext& context)
+   +        : ComponentBase(config, context, clients::http::middlewares::MiddlewareIndex{1234}),
+   +          middleware_(std::make_unique<Middleware>()),
+   {
+       auto& config_component = context.FindComponent<components::DynamicConfig>();
+       subscriber_scope_ =
+   -        components::DynamicConfig::NoblockSubscriber{config_component}
+   -            .GetEventSource()
+   -            .AddListener(this, kName, &Component::OnConfigUpdate);
+   +        config_component
+   +            .GetSource()
+   +            .UpdateAndListen(this, kName, &Component::OnConfigUpdate);
+   }
+   ...
+   -    clients::http::Plugin& GetPlugin() override { return *plugin_; }
+   +    clients::http::MiddlewareBase& GetMiddleware() override { return *middleware_; }
+
+   private:
+   -    std::unique_ptr<clients::http::Plugin> plugin_;
+   +    std::unique_ptr<clients::http::MiddlewareBase> middleware_;
+   };
+   ```
+5. Rename `http-client:` to `http-client-core:` in static config.
+6. If you are using or customized plugins/middlewares:
+   1. In every @ref components::HttpClient config, rename `plugins` to `middlewares`
+   2. Update middleware component names to current `Component::kName`
+   3. Use full middleware components names as keys and `{enabled: true}` as values in `middlewares` for every @ref components::HttpClient config
+   4. Move middlewares that you want to use for all @ref components::HttpClient instances from `http-client.middlewares` to `http-client-middleware-pipeline.middlewares`
+   5. Set `dynamic-config-http-client.middlewares.<middleware name>.enabled` to `false` for all middlewares that are subscribed to dynamic configs updates
+
+   For example:
+
+   ```
+   # diff
+   components_manager:
+       components:
+   -        http-client-plugin-common-plugin-name:
+   +        http-client-common-middleware-name:
+               ...
+   -        http-client-plugin-plugin-with-dynamic-config:
+   +        http-client-middleware-with-dynamic-config:
+               ...
+   
+   -        http-client:
+   +        http-client-core:
+                fs-task-processor: fs-task-processor
+   -            plugins:
+   -                common-plugin-name: 1
+   -                with-dynamic-config: 2
+   +        http-client-middleware-pipeline:
+   +            middlewares:
+   +                http-client-common-middleware-name:
+   +                    enabled: true
+   +                http-client-middleware-with-dynamic-config:
+   +                    enabled: true
+   +        dynamic-config-http-client:
+   +            middlewares:
+   +                http-client-middleware-with-dynamic-config:
+   +                    enabled: false
+   ```
+
+
 ### Release v2.13
 
 * Recursive subscriptions on dynamic configs now work without deadlocks.

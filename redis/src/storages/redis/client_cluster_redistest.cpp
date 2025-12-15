@@ -192,6 +192,38 @@ UTEST_F(RedisClusterClientTest, TransactionDistinctShards) {
     UASSERT_THROW(transaction->Exec(kDefaultCc).Get(), storages::redis::RequestFailedException);
 }
 
+// Must abort in debug builds
+#ifdef NDEBUG
+UTEST_F(RedisClusterClientTest, NotStartedTransactionNoExec) {
+    auto client = GetClient();
+    auto transaction = client->Multi(storages::redis::Transaction::CheckShards::kNo);
+
+    auto get_req = transaction->Get("key1");
+    auto set_req = transaction->Set("key1", "value");
+
+    EXPECT_THROW(get_req.Get(), storages::redis::NotStartedTransactionException);
+    EXPECT_THROW(get_req.Wait(), storages::redis::NotStartedTransactionException);
+
+    EXPECT_THROW(set_req.Get(), storages::redis::NotStartedTransactionException);
+    EXPECT_THROW(set_req.Wait(), storages::redis::NotStartedTransactionException);
+}
+
+UTEST_F(RedisClusterClientTest, NotStartedTransactionTransactionNoGet) {
+    auto client = GetClient();
+    auto transaction = client->Multi(storages::redis::Transaction::CheckShards::kNo);
+
+    auto get_req = transaction->Get("key2");
+    auto set_req = transaction->Set("key2", "value");
+    auto request = transaction->Exec({});
+
+    EXPECT_THROW(get_req.Get(), storages::redis::NotStartedTransactionException);
+    EXPECT_THROW(get_req.Wait(), storages::redis::NotStartedTransactionException);
+
+    EXPECT_THROW(set_req.Get(), storages::redis::NotStartedTransactionException);
+    EXPECT_THROW(set_req.Wait(), storages::redis::NotStartedTransactionException);
+}
+#endif
+
 UTEST_F(RedisClusterClientTest, Eval) {
     auto client = GetClient();
 

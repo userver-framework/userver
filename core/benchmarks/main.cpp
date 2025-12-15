@@ -3,10 +3,16 @@
 #include <userver/logging/log.hpp>
 #include <userver/utils/impl/static_registration.hpp>
 
+namespace benchmark {
+
+// MaybeReenterWithoutASLR appeared in Google benchmark 1.9.3. Do nothing for older versions.
+template <typename... Args>
+static void MaybeReenterWithoutASLR(Args&&...) {}
+
+}  // namespace benchmark
+
 int main(int argc, char** argv) {
-#ifndef USERVER_IMPL_NO_MAYBE_REENTER_WITHOUT_ASLR_EXISTS
     ::benchmark::MaybeReenterWithoutASLR(argc, argv);
-#endif
 
     USERVER_NAMESPACE::utils::impl::FinishStaticRegistration();
 

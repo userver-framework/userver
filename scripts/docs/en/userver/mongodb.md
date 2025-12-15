@@ -15,6 +15,7 @@ databases and the BSON format.
 * Timeouts;
 * Congestion control to work smoothly under heavy load and to restore from metastable failure state;
 * @ref scripts/docs/en/userver/deadline_propagation.md .
+* @ref storages::mongo::Transaction
 
 
 ## Metrics

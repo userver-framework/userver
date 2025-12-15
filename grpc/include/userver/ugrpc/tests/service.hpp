@@ -11,6 +11,7 @@
 #include <userver/dynamic_config/storage_mock.hpp>
 #include <userver/dynamic_config/test_helpers.hpp>
 #include <userver/testsuite/grpc_control.hpp>
+#include <userver/utils/statistics/metrics_storage.hpp>
 #include <userver/utils/statistics/storage.hpp>
 
 #include <userver/ugrpc/client/client_factory.hpp>
@@ -92,6 +93,8 @@ private:
     server::ServiceConfig MakeServiceConfig();
 
     utils::statistics::Storage statistics_storage_;
+    utils::statistics::MetricsStorage metrics_storage_;
+    std::vector<utils::statistics::Entry> metrics_storage_registration_;
     dynamic_config::StorageMock config_storage_;
     std::optional<std::string> unix_socket_path_;
     server::Server server_;

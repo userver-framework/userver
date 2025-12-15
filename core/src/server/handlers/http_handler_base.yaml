@@ -4,8 +4,10 @@ additionalProperties: false
 properties:
     log-level:
         type: string
-        description: overrides log level for this handle
-        defaultDescription: <no override>
+        description: |
+            Overrides log level for this handle.
+
+            Default: <no override>
     status-codes-log-level:
         type: object
         properties: {}
@@ -20,7 +22,7 @@ properties:
                 type: string
                 description: name of a component to build a middleware pipeline for
                     this particular handler
-                defaultDescription: default-handler-middleware-pipeline-builder
+                default: default-handler-middleware-pipeline-builder
         additionalProperties:
             type: object
             properties: {}

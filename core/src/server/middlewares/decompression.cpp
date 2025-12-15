@@ -31,12 +31,12 @@ Decompression::Decompression(const handlers::HttpHandlerBase& handler)
 {}
 
 void Decompression::HandleRequest(http::HttpRequest& request, request::RequestContext& context) const {
-    if (DecompressRequestBody(request)) {
+    if (DecompressRequestBody(request, context)) {
         Next(request, context);
     }
 }
 
-bool Decompression::DecompressRequestBody(http::HttpRequest& request) const {
+bool Decompression::DecompressRequestBody(http::HttpRequest& request, request::RequestContext& context) const {
     if (!decompress_request_ || !request.IsBodyCompressed()) {
         return true;
     }
@@ -65,12 +65,16 @@ bool Decompression::DecompressRequestBody(http::HttpRequest& request) const {
             return true;
         }
     } catch (const compression::TooBigError&) {
-        handler_
-            .HandleCustomHandlerException(request, handlers::ClientError{handlers::HandlerErrorCode::kPayloadTooLarge});
+        handler_.HandleCustomHandlerException(
+            request,
+            context,
+            handlers::ClientError{handlers::HandlerErrorCode::kPayloadTooLarge}
+        );
         return false;
     } catch (const std::exception& e) {
         handler_.HandleCustomHandlerException(
             request,
+            context,
             handlers::RequestParseError{
                 handlers::InternalMessage{fmt::format("Failed to decompress request body: {}", e.what())}
             }
@@ -80,6 +84,7 @@ bool Decompression::DecompressRequestBody(http::HttpRequest& request) const {
 
     handler_.HandleCustomHandlerException(
         request,
+        context,
         handlers::ClientError{
             handlers::HandlerErrorCode::kUnsupportedMediaType,
             handlers::InternalMessage{fmt::format("Unsupported Content-Encoding: '{}'", content_encoding)},
@@ -93,10 +98,7 @@ SetAcceptEncoding::SetAcceptEncoding(const handlers::HttpHandlerBase& handler)
 {}
 
 void SetAcceptEncoding::HandleRequest(http::HttpRequest& request, request::RequestContext& context) const {
-    const utils::ScopeGuard set_accept_encoding_scope{[this, &request] {
-        SetResponseAcceptEncoding(request.GetHttpResponse());
-    }};
-
+    SetResponseAcceptEncoding(request.GetHttpResponse());
     Next(request, context);
 }
 
