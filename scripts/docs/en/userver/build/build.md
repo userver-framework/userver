@@ -186,13 +186,14 @@ You can download prebuilt userver using one of the following ways:
 2. @ref docker_with_ubuntu_22_04 "Docker (manual)";
 3. @ref prebuilt_deb_package "prebuilt Debian package";
 4. @ref userver_conan "Conan";
+5. @ref gentoo_ebuild "Gentoo ebuild"
 
 Alternatively, install @ref scripts/docs/en/userver/build/dependencies.md "build dependencies" for userver,
 then build userver in one of the following ways:
 
-5. @ref userver_install "install userver";
-6. let the service template download and build userver as a subdirectory using (@ref userver_cpm "CPM");
-7. pass a path to custom userver location to `download_userver()`, then let the service
+6. @ref userver_install "install userver";
+7. let the service template download and build userver as a subdirectory using (@ref userver_cpm "CPM");
+8. pass a path to custom userver location to `download_userver()`, then let the service
    @ref service_templates_presets "build userver as a subdirectory".
 
 @anchor devcontainers
@@ -475,6 +476,42 @@ target_link_libraries(${PROJECT_NAME} PUBLIC userver::grpc)
 ```
 
 @see @ref userver_libraries
+
+
+@anchor gentoo_ebuild
+## Gentoo ebuild
+
+You can install userver via Emerge in Gentoo Linux:
+
+1. Set needed use-flags in file `/etc/portage/package.use/userver`:
+
+   ```bash
+   dev-cpp/userver-framework flag1 flag2 ...
+   ```
+
+   Supported use-flags:
+
+   ```
+   chaotic - Provide chaotic-codegen for jsonschema
+   postgres - Provide asynchronous driver for PostgreSQL
+   redis - Provide asynchronous driver for Redis
+   mongodb - Provide asynchronous driver for MongoDB
+   mysql - Provide asynchronous driver for MySQL/MariaDB
+   rabbitmq - Provide asynchronous driver for RabbitMQ (AMQP 0-9-1)
+   kafka - Provide asynchronous driver for Apache Kafka
+   utest - Provide utest and ubench for unit testing and benchmarking coroutines
+   testsute - Enable functional tests via testsuite
+   easy - Build easy HTTP server lirary
+   ```
+   
+2. Install userver:
+
+   ```bash
+   sudo emerge app-portage/eselect-repository
+   sudo eselect repository add userver-framework git https://github.com/halfdarkangel/userver-overlay.git
+   sudo emerge --sync
+   sudo emerge --ask dev-cpp/userver
+   ```
 
 
 ## Yandex Cloud with Ubuntu 22.04
