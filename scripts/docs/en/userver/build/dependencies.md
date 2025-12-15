@@ -88,7 +88,7 @@ USERVER_FEATURE_PATCH_LIBPQ=0
 
 ### Gentoo
 
-\b Dependencies: @ref scripts/docs/en/deps/userver-meta-2.13.ebuild "third_party/userver/scripts/docs/en/deps/userver-meta-2.13.ebuild"
+\b Dependencies: @ref scripts/docs/en/deps/Gentoo/userver-meta/userver-meta-2.13.ebuild "third_party/userver/scripts/docs/en/deps/Gentoo/userver-meta/userver-meta-2.13.ebuild"
 
 Dependencies can be installed via:
 
