@@ -28,13 +28,12 @@ private:
 }  // namespace impl
 
 // BEWARE! No separate fs-task-processor. Testing almost single thread mode.
-// Minimal amount of coroutines and stack to work well under ASAN
+// Minimal amount of coroutines to work well under ASAN
 inline constexpr std::string_view kMinimalStaticConfig = R"(
 components_manager:
   coro_pool:
     initial_size: 5
     max_size: 50
-    stack_size: 32768  # 32KB
   default_task_processor: main-task-processor
   fs_task_processor: main-task-processor
   event_thread_pool:
