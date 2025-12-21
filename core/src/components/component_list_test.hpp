@@ -34,6 +34,7 @@ components_manager:
   coro_pool:
     initial_size: 5
     max_size: 50
+    stack_usage_monitor_enabled: false
   default_task_processor: main-task-processor
   fs_task_processor: main-task-processor
   event_thread_pool:
