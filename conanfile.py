@@ -109,7 +109,7 @@ class UserverConan(ConanFile):
             ),
         )
 
-        hotfix_version = 1
+        hotfix_version = 2
         self.version = content.strip() + f".{hotfix_version}"  # pylint: disable=attribute-defined-outside-init
 
     def layout(self):
@@ -164,7 +164,7 @@ class UserverConan(ConanFile):
             self.requires('cyrus-sasl/2.1.28')
         if self.options.with_mongodb:
             self.requires(
-                'mongo-c-driver/1.28.0',
+                'mongo-c-driver/1.29.0',
                 transitive_headers=True,
                 transitive_libs=True,
             )
