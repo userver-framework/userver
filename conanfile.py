@@ -121,7 +121,7 @@ class UserverConan(ConanFile):
             self.options['jemalloc'].enable_prof = True
 
     def requirements(self):
-        self.requires('boost/1.88.0', transitive_headers=True)
+        self.requires('boost/1.90.0', transitive_headers=True)
         self.requires('c-ares/1.33.1')
         self.requires('cctz/2.4', transitive_headers=True)
         self.requires('concurrentqueue/1.0.3', transitive_headers=True)
