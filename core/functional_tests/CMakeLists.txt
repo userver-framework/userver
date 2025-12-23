@@ -35,6 +35,9 @@ add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-sharded-http-handler-metrics)
 add_subdirectory(static_service)
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-static-service)
 
+add_subdirectory(static_streaming_service)
+add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-static-streaming-service)
+
 add_subdirectory(slow_start)
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-slow-start)
 

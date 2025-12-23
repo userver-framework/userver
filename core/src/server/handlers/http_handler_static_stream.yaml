@@ -1,0 +1,26 @@
+type: object
+description: |
+    Handler that returns HTTP 200 if file exist
+    and returns file data with mapped content/type
+additionalProperties: false
+properties:
+    dir:
+        type: string
+        description: directory to serve files from
+        defaultDescription: /var/www
+    buffer-size:
+        type: integer
+        description: read operation buffer size in bytes
+        defaultDescription: 8192
+    fs-task-processor:
+        type: string
+        description: task processor to do filesystem operations
+        defaultDescription: engine::current_task::GetBlockingTaskProcessor()
+    directory-file:
+        type: string
+        description: File to return for directory requests. File name (not path) search in requested directory
+        defaultDescription: index.html
+    not-found-file:
+        type: string
+        description: File to return for missing files
+        defaultDescription: /404.html

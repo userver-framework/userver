@@ -136,6 +136,7 @@ list(
     src/server/handlers/handler_base.yaml
     src/server/handlers/http_handler_base.yaml
     src/server/handlers/http_handler_static.yaml
+    src/server/handlers/http_handler_static_stream.yaml
     src/server/handlers/implicit_options.yaml
     src/server/handlers/ping.yaml
     src/server/handlers/server_monitor.yaml
