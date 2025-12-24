@@ -18,20 +18,6 @@ USERVER_NAMESPACE_BEGIN
 namespace ydb {
 namespace {
 
-NYdb::NTable::TTxSettings PrepareTxSettings(const OperationSettings& settings) {
-    switch (settings.tx_mode.value()) {
-        case TransactionMode::kSerializableRW: {
-            return NYdb::NTable::TTxSettings::SerializableRW();
-        }
-        case TransactionMode::kOnlineRO: {
-            return NYdb::NTable::TTxSettings::OnlineRO();
-        }
-        case TransactionMode::kStaleRO: {
-            return NYdb::NTable::TTxSettings::StaleRO();
-        }
-    }
-}
-
 NYdb::NQuery::TTxSettings PrepareQueryTxSettings(const OperationSettings& settings) {
     switch (settings.tx_mode.value()) {
         case TransactionMode::kSerializableRW: {
