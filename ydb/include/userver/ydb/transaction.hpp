@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include <ydb-cpp-sdk/client/query/query.h>
+#include <ydb-cpp-sdk/client/query/client.h>
 
 #include <userver/tracing/span.hpp>
 #include <userver/utils/trx_tracker.hpp>
