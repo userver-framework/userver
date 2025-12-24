@@ -18,17 +18,14 @@ USERVER_NAMESPACE_BEGIN
 namespace ydb {
 namespace {
 
-NYdb::NQuery::TTxSettings PrepareQueryTxSettings(const OperationSettings& settings) {
-    switch (settings.tx_mode.value()) {
-        case TransactionMode::kSerializableRW: {
+NYdb::NQuery::TTxSettings MakeTxSettings(TransactionMode tx_mode) {
+    switch (tx_mode) {
+        case TransactionMode::kSerializableRW:
             return NYdb::NQuery::TTxSettings::SerializableRW();
-        }
-        case TransactionMode::kOnlineRO: {
+        case TransactionMode::kOnlineRO:
             return NYdb::NQuery::TTxSettings::OnlineRO();
-        }
-        case TransactionMode::kStaleRO: {
+        case TransactionMode::kStaleRO:
             return NYdb::NQuery::TTxSettings::StaleRO();
-        }
     }
 }
 
@@ -309,7 +306,7 @@ Transaction TableClient::Begin(utils::StringLiteral transaction_name, OperationS
 Transaction TableClient::Begin(DynamicTransactionName transaction_name, OperationSettings settings) {
     const Query query{"", Query::Name{"Begin"}};
     impl::RequestContext context{*this, query, std::move(settings)};
-    auto tx_settings = PrepareQueryTxSettings(context.settings);
+    auto tx_settings = MakeTxSettings(context.settings.tx_mode.value());
 
     auto future = impl::RetryQuery(
         context,
@@ -375,7 +372,7 @@ ExecuteResponse TableClient::ExecuteDataQuery(
          settings = context.settings,
          deadline = context.deadline](NYdb::NQuery::TSession session) mutable {
             impl::ApplyToRequestSettings(exec_settings, settings, deadline);
-            const auto tx_settings = PrepareQueryTxSettings(settings);
+            const auto tx_settings = MakeTxSettings(settings.tx_mode.value());
             const auto tx = NYdb::NQuery::TTxControl::BeginTx(tx_settings).CommitTx();
             return session.ExecuteQuery(impl::ToString(query.GetStatementView()), tx, params, exec_settings);
         }
@@ -415,7 +412,7 @@ ExecuteResponse TableClient::ExecuteQuery(
          settings = context.settings,
          deadline = context.deadline](NYdb::NQuery::TSession session) mutable {
             impl::ApplyToRequestSettings(exec_settings, settings, deadline);
-            const auto tx_settings = PrepareQueryTxSettings(settings);
+            const auto tx_settings = MakeTxSettings(settings.tx_mode.value());
             const auto tx = NYdb::NQuery::TTxControl::BeginTx(tx_settings).CommitTx();
             return session.ExecuteQuery(impl::ToString(query.GetStatementView()), tx, params, exec_settings);
         }
