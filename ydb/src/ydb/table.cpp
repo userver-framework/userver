@@ -441,7 +441,7 @@ void DumpMetric(utils::statistics::Writer& writer, const TableClient& table_clie
     );
 }
 
-PreparedArgsBuilder TableClient::GetBuilder() const { return PreparedArgsBuilder(NYdb::TParamsBuilder{}); }
+PreparedArgsBuilder TableClient::GetBuilder() const { return PreparedArgsBuilder{}; }
 
 NYdb::NTable::TExecDataQuerySettings TableClient::ToExecQuerySettings(QuerySettings query_settings) const {
     NYdb::NTable::TExecDataQuerySettings exec_settings;
