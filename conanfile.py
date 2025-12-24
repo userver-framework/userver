@@ -109,7 +109,7 @@ class UserverConan(ConanFile):
             ),
         )
 
-        hotfix_version = 1
+        hotfix_version = 2
         self.version = content.strip() + f".{hotfix_version}"  # pylint: disable=attribute-defined-outside-init
 
     def layout(self):
@@ -121,7 +121,11 @@ class UserverConan(ConanFile):
             self.options['jemalloc'].enable_prof = True
 
     def requirements(self):
-        self.requires('boost/1.85.0', transitive_headers=True)
+        self.requires('boost/1.90.0', transitive_headers=True, options={
+            "with_stacktrace_backtrace": True,
+            "without_stacktrace": False,
+            "without_cobalt": True
+        })
         self.requires('c-ares/1.33.1')
         self.requires('cctz/2.4', transitive_headers=True)
         self.requires('concurrentqueue/1.0.3', transitive_headers=True)
@@ -164,7 +168,7 @@ class UserverConan(ConanFile):
             self.requires('cyrus-sasl/2.1.28')
         if self.options.with_mongodb:
             self.requires(
-                'mongo-c-driver/1.28.0',
+                'mongo-c-driver/1.29.0',
                 transitive_headers=True,
                 transitive_libs=True,
             )
