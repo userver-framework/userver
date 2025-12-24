@@ -150,14 +150,7 @@ ExecuteResponse Transaction::Execute(
     impl::RequestContext context{table_client_, query, std::move(settings), impl::IsStreaming{false}, &span_};
     auto internal_params = std::move(builder).Build();
 
-    // Convert QuerySettings to Query Client settings
-    NYdb::NQuery::TExecuteQuerySettings exec_settings;
-    if (query_settings.keep_in_query_cache.has_value()) {
-        // Query Client doesn't have KeepInQueryCache, it caches automatically
-    }
-    if (query_settings.collect_query_stats) {
-        exec_settings.StatsMode(impl::ConvertStatsMode(*query_settings.collect_query_stats));
-    }
+    auto exec_settings = impl::ToExecuteQuerySettings(query_settings);
     impl::ApplyToRequestSettings(exec_settings, context.settings, context.deadline);
 
     // Must go after PrepareExecuteSettings, because an exception from there

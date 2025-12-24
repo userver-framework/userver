@@ -16,6 +16,7 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace ydb {
+
 namespace {
 
 NYdb::NQuery::TTxSettings MakeTxSettings(TransactionMode tx_mode) {
@@ -355,20 +356,11 @@ ExecuteResponse TableClient::ExecuteDataQuery(
 ) {
     impl::RequestContext context{*this, query, std::move(settings)};
 
-    // Convert QuerySettings to Query Client settings
-    NYdb::NQuery::TExecuteQuerySettings exec_settings;
-    if (query_settings.keep_in_query_cache.has_value()) {
-        // Query Client doesn't have KeepInQueryCache, it caches automatically
-    }
-    if (query_settings.collect_query_stats) {
-        exec_settings.StatsMode(impl::ConvertStatsMode(*query_settings.collect_query_stats));
-    }
-
     auto future = impl::RetryQuery(
         context,
         [query,
          params = std::move(builder).Build(),
-         exec_settings = std::move(exec_settings),
+         exec_settings = impl::ToExecuteQuerySettings(query_settings),
          settings = context.settings,
          deadline = context.deadline](NYdb::NQuery::TSession session) mutable {
             impl::ApplyToRequestSettings(exec_settings, settings, deadline);
@@ -440,14 +432,6 @@ void DumpMetric(utils::statistics::Writer& writer, const TableClient& table_clie
 
 PreparedArgsBuilder TableClient::GetBuilder() const { return PreparedArgsBuilder{}; }
 
-NYdb::NTable::TExecDataQuerySettings TableClient::ToExecQuerySettings(QuerySettings query_settings) const {
-    NYdb::NTable::TExecDataQuerySettings exec_settings;
-    exec_settings.KeepInQueryCache(query_settings.keep_in_query_cache.value_or(keep_in_query_cache_));
-    if (query_settings.collect_query_stats) {
-        exec_settings.CollectQueryStats(*query_settings.collect_query_stats);
-    }
-    return exec_settings;
-}
 }  // namespace ydb
 
 USERVER_NAMESPACE_END
