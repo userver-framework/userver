@@ -127,9 +127,7 @@ void Transaction::Rollback() {
     // Successful rollback is still a transaction error for logs and stats.
 }
 
-PreparedArgsBuilder Transaction::GetBuilder() const {
-    return PreparedArgsBuilder(ydb_tx_.GetSession().GetParamsBuilder());
-}
+PreparedArgsBuilder Transaction::GetBuilder() const { return PreparedArgsBuilder(NYdb::TParamsBuilder{}); }
 
 void Transaction::EnsureActive() const {
     if (!is_active_) {
