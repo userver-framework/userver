@@ -26,7 +26,9 @@ public:
     int Get() const { return value_; }
 
 private:
-    explicit NonMovable(int value) : value_(value) {}
+    explicit NonMovable(int value)
+        : value_(value)
+    {}
 
     int value_;
 };
@@ -54,8 +56,9 @@ TEST(LazyPrvalue, ImplicitlyConvertible) {
 auto IntPtrIdentity(std::unique_ptr<int>&& x) { return std::move(x); }
 
 TEST(LazyPrvalue, Mutable) {
-    const auto ptr =
-        IntPtrIdentity(utils::LazyPrvalue([x = std::make_unique<int>(42)]() mutable { return std::move(x); }));
+    const auto ptr = IntPtrIdentity(utils::LazyPrvalue([x = std::make_unique<int>(42)]() mutable {
+        return std::move(x);
+    }));
     EXPECT_EQ(*ptr, 42);
 }
 

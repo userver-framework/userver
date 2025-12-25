@@ -35,7 +35,9 @@ private:
 };
 
 template <typename T>
-CursorResultSet<T>::CursorResultSet(StatementResultSet&& result_set) : result_set_{std::move(result_set)} {}
+CursorResultSet<T>::CursorResultSet(StatementResultSet&& result_set)
+    : result_set_{std::move(result_set)}
+{}
 
 template <typename T>
 CursorResultSet<T>::~CursorResultSet() = default;

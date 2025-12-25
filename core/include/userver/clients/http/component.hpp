@@ -8,36 +8,32 @@
 /// @brief @copybrief components::HttpClient
 
 #include <userver/clients/http/client.hpp>
-#include <userver/clients/http/client_with_plugins.hpp>
+#include <userver/clients/http/client_with_middlewares.hpp>
 #include <userver/clients/http/component_core.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace components {
 
-// clang-format off
-
 /// @ingroup userver_components
 ///
-/// @brief Component that manages @ref clients::http::ClientWithPlugins.
+/// @brief Component that manages @ref clients::http::ClientWithMiddlewares.
 ///
 /// Reuses @ref clients::http::ClientCore from @ref components::HttpClientCore and applies
-/// sequence of @ref clients::http::Plugin to the request.
+/// sequence of @ref clients::http::MiddlewareBase to the request.
 ///
 /// Returned references to @ref clients::http::Client live for a lifetime of the
 /// component and are safe for concurrent use.
 ///
-/// ## Static options:
-/// Name | Description | Default value
-/// ---- | ----------- | -------------
-/// core-component | name of components::HttpClientCore component to use | 'http-client-core'
-/// plugins | map of plugins to apply, plugin-name -> ordering index. A plugin component is called "http-client-plugin-" plus the plugin name. | {}
+/// ## Static options of components::HttpClient :
+/// @include{doc} scripts/docs/en/components_schema/core/src/clients/http/component.md
+///
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
 ///
 /// ## Static configuration example:
 ///
 /// @snippet components/common_component_list_test.cpp  Sample http client component config
-
-// clang-format on
 class HttpClient final : public ComponentBase {
 public:
     /// @ingroup userver_component_names
@@ -51,7 +47,7 @@ public:
     static yaml_config::Schema GetStaticConfigSchema();
 
 private:
-    clients::http::ClientWithPlugins http_client_;
+    clients::http::ClientWithMiddlewares http_client_;
 };
 
 template <>

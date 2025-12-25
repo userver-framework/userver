@@ -18,7 +18,8 @@ public:
     static constexpr std::string_view kAuthType = "apikey";
 
     explicit AuthCheckerApiKeyFactory(const components::ComponentContext& context)
-        : settings_(context.FindComponent<components::AuthCheckerSettings>().Get()) {}
+        : settings_(context.FindComponent<components::AuthCheckerSettings>().Get())
+    {}
 
     AuthCheckerBasePtr MakeAuthChecker(const HandlerAuthConfig& config) const override {
         return std::make_shared<AuthCheckerApiKey>(config, settings_);

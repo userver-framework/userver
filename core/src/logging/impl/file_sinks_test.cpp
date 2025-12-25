@@ -133,7 +133,8 @@ UTEST_P(FileSinks, TestReopenBeforeRemoveCreate) {
     {
         // Re-create file manually
         [[maybe_unused]] const auto fd = fs::blocking::FileDescriptor::Open(
-            Filename(), {fs::blocking::OpenFlag::kWrite, fs::blocking::OpenFlag::kCreateIfNotExists}
+            Filename(),
+            {fs::blocking::OpenFlag::kWrite, fs::blocking::OpenFlag::kCreateIfNotExists}
         );
     }
 

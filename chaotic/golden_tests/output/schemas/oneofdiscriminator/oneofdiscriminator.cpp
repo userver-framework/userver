@@ -26,8 +26,11 @@ A Parse(USERVER_NAMESPACE::formats::json::Value json, USERVER_NAMESPACE::formats
 /* Parse(USERVER_NAMESPACE::yaml_config::Value, To<::ns::A>) was not generated: ::ns::A has JSON-specific field "extra"
  */
 
-USERVER_NAMESPACE::formats::json::Value
-Serialize([[maybe_unused]] const ::ns::A& value, USERVER_NAMESPACE::formats::serialize::To<USERVER_NAMESPACE::formats::json::Value>) {
+USERVER_NAMESPACE::
+    formats::
+        json::
+            Value
+            Serialize([[maybe_unused]] const ::ns::A& value, USERVER_NAMESPACE::formats::serialize::To<USERVER_NAMESPACE::formats::json::Value>) {
     USERVER_NAMESPACE::formats::json::ValueBuilder vb = value.extra;
 
     if (value.type) {
@@ -61,8 +64,11 @@ B Parse(USERVER_NAMESPACE::formats::json::Value json, USERVER_NAMESPACE::formats
 /* Parse(USERVER_NAMESPACE::yaml_config::Value, To<::ns::B>) was not generated: ::ns::B has JSON-specific field "extra"
  */
 
-USERVER_NAMESPACE::formats::json::Value
-Serialize([[maybe_unused]] const ::ns::B& value, USERVER_NAMESPACE::formats::serialize::To<USERVER_NAMESPACE::formats::json::Value>) {
+USERVER_NAMESPACE::
+    formats::
+        json::
+            Value
+            Serialize([[maybe_unused]] const ::ns::B& value, USERVER_NAMESPACE::formats::serialize::To<USERVER_NAMESPACE::formats::json::Value>) {
     USERVER_NAMESPACE::formats::json::ValueBuilder vb = value.extra;
 
     if (value.type) {
@@ -94,8 +100,11 @@ C Parse(USERVER_NAMESPACE::yaml_config::Value json, USERVER_NAMESPACE::formats::
     return Parse<USERVER_NAMESPACE::yaml_config::Value>(json, to);
 }
 
-USERVER_NAMESPACE::formats::json::Value
-Serialize([[maybe_unused]] const ::ns::C& value, USERVER_NAMESPACE::formats::serialize::To<USERVER_NAMESPACE::formats::json::Value>) {
+USERVER_NAMESPACE::
+    formats::
+        json::
+            Value
+            Serialize([[maybe_unused]] const ::ns::C& value, USERVER_NAMESPACE::formats::serialize::To<USERVER_NAMESPACE::formats::json::Value>) {
     USERVER_NAMESPACE::formats::json::ValueBuilder vb = USERVER_NAMESPACE::formats::common::Type::kObject;
 
     if (value.version) {
@@ -123,8 +132,11 @@ D Parse(USERVER_NAMESPACE::yaml_config::Value json, USERVER_NAMESPACE::formats::
     return Parse<USERVER_NAMESPACE::yaml_config::Value>(json, to);
 }
 
-USERVER_NAMESPACE::formats::json::Value
-Serialize([[maybe_unused]] const ::ns::D& value, USERVER_NAMESPACE::formats::serialize::To<USERVER_NAMESPACE::formats::json::Value>) {
+USERVER_NAMESPACE::
+    formats::
+        json::
+            Value
+            Serialize([[maybe_unused]] const ::ns::D& value, USERVER_NAMESPACE::formats::serialize::To<USERVER_NAMESPACE::formats::json::Value>) {
     USERVER_NAMESPACE::formats::json::ValueBuilder vb = USERVER_NAMESPACE::formats::common::Type::kObject;
 
     if (value.version) {
@@ -138,8 +150,10 @@ bool operator==(const ::ns::IntegerOneOfDiscriminator& lhs, const ::ns::IntegerO
     return lhs.foo == rhs.foo && true;
 }
 
-USERVER_NAMESPACE::logging::LogHelper&
-operator<<(USERVER_NAMESPACE::logging::LogHelper& lh, const ::ns::IntegerOneOfDiscriminator& value) {
+USERVER_NAMESPACE::logging::LogHelper& operator<<(
+    USERVER_NAMESPACE::logging::LogHelper& lh,
+    const ::ns::IntegerOneOfDiscriminator& value
+) {
     return lh << ToString(USERVER_NAMESPACE::formats::json::ValueBuilder(value).ExtractValue());
 }
 
@@ -156,8 +170,7 @@ IntegerOneOfDiscriminator Parse(
 /* Parse(USERVER_NAMESPACE::yaml_config::Value, To<::ns::IntegerOneOfDiscriminator>) was not generated:
  * ::ns::IntegerOneOfDiscriminator::Foo has JSON-specific field "extra" */
 
-USERVER_NAMESPACE::formats::json::Value
-Serialize([[maybe_unused]] const ::ns::IntegerOneOfDiscriminator& value, USERVER_NAMESPACE::formats::serialize::To<USERVER_NAMESPACE::formats::json::Value>) {
+USERVER_NAMESPACE::formats::json::Value Serialize([[maybe_unused]] const ::ns::IntegerOneOfDiscriminator& value, USERVER_NAMESPACE::formats::serialize::To<USERVER_NAMESPACE::formats::json::Value>) {
     USERVER_NAMESPACE::formats::json::ValueBuilder vb = USERVER_NAMESPACE::formats::common::Type::kObject;
 
     if (value.foo) {
@@ -174,8 +187,10 @@ bool operator==(const ::ns::OneOfDiscriminator& lhs, const ::ns::OneOfDiscrimina
     return lhs.foo == rhs.foo && true;
 }
 
-USERVER_NAMESPACE::logging::LogHelper&
-operator<<(USERVER_NAMESPACE::logging::LogHelper& lh, const ::ns::OneOfDiscriminator& value) {
+USERVER_NAMESPACE::logging::LogHelper& operator<<(
+    USERVER_NAMESPACE::logging::LogHelper& lh,
+    const ::ns::OneOfDiscriminator& value
+) {
     return lh << ToString(USERVER_NAMESPACE::formats::json::ValueBuilder(value).ExtractValue());
 }
 

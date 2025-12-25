@@ -63,7 +63,7 @@ def _call(modified_service_client, gate):
                 data=data,
                 testsuite_skip_prepare=testsuite_skip_prepare,
             )
-        except asyncio.TimeoutError:  # noqa: UP041
+        except asyncio.TimeoutError:
             return ErrorType.TIMEOUT
         except exceptions.ServerDisconnectedError:
             return ErrorType.DISCONNECT
@@ -133,7 +133,7 @@ async def test_ok_compressed_gzip(call):
     response = await call(
         htype='echo',
         headers={'content-encoding': 'gzip'},
-        data=gzip.compress('abcd'.encode()),  # noqa: UP012
+        data=gzip.compress(b'abcd'),
         testsuite_skip_prepare=True,
     )
     assert response.status == 200
@@ -144,7 +144,7 @@ async def test_ok_compressed_gzip_args(call):
     response = await call(
         htype='echo-and-check-args',
         headers={'content-encoding': 'gzip'},
-        data=gzip.compress('abcd'.encode()),  # noqa: UP012
+        data=gzip.compress(b'abcd'),
         testsuite_skip_prepare=True,
         args={'srv': 'mt-dev', 'lang': 'en-ru'},
     )
@@ -156,7 +156,7 @@ async def test_ok_compressed_gzip_body_args(call):
     response = await call(
         htype='echo-and-check-args',
         headers={'content-encoding': 'gzip'},
-        data=gzip.compress('lang=en-ru'.encode()),  # noqa: UP012
+        data=gzip.compress(b'lang=en-ru'),
         testsuite_skip_prepare=True,
         args={'srv': 'mt-dev'},
         url='/chaos/httpserver-parse-body-args',
@@ -169,7 +169,7 @@ async def test_ok_compressed_zstd(call):
     response = await call(
         htype='echo',
         headers={'content-encoding': 'zstd'},
-        data=zstd.compress('abcdefgh'.encode()),  # noqa: UP012
+        data=zstd.compress(b'abcdefgh'),
         testsuite_skip_prepare=True,
     )
     assert response.status == 200
@@ -180,7 +180,7 @@ async def test_ok_compressed_zstd_args(call):
     response = await call(
         htype='echo-and-check-args',
         headers={'content-encoding': 'zstd'},
-        data=zstd.compress('abcdefgh'.encode()),  # noqa: UP012
+        data=zstd.compress(b'abcdefgh'),
         testsuite_skip_prepare=True,
         args={'srv': 'mt-dev', 'lang': 'en-ru'},
     )
@@ -192,7 +192,7 @@ async def test_ok_compressed_zstd_body_args(call):
     response = await call(
         htype='echo-and-check-args',
         headers={'content-encoding': 'zstd'},
-        data=zstd.compress('lang=en-ru'.encode()),  # noqa: UP012
+        data=zstd.compress(b'lang=en-ru'),
         testsuite_skip_prepare=True,
         args={'srv': 'mt-dev'},
         url='/chaos/httpserver-parse-body-args',
@@ -277,7 +277,7 @@ async def test_partial_request(call, gate, check_restore):
             testsuite_skip_prepare=True,
         )
         if response == ErrorType.DISCONNECT:
-            fail = fail + 1  # noqa: PLR6104
+            fail += 1
         elif isinstance(response, http.ClientResponse):
             success = True
             break

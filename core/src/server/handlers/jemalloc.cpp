@@ -44,7 +44,8 @@ std::optional<Jemalloc::Command> Jemalloc::GetCommandFromString(std::string_view
 std::string Jemalloc::ListCommands() { return kStrToCommand.DescribeFirst(); }
 
 Jemalloc::Jemalloc(const components::ComponentConfig& config, const components::ComponentContext& component_context)
-    : HttpHandlerBase(config, component_context, /*is_monitor = */ true) {}
+    : HttpHandlerBase(config, component_context, /*is_monitor = */ true)
+{}
 
 std::string Jemalloc::HandleRequestThrow(const http::HttpRequest& request, request::RequestContext&) const {
 #ifndef USERVER_FEATURE_JEMALLOC_ENABLED

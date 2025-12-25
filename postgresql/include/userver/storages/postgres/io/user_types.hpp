@@ -20,7 +20,8 @@ class CompositeTypeDescription {
 public:
     using CompositeFieldDefs = std::vector<CompositeFieldDef>;
     CompositeTypeDescription(CompositeFieldDefs::const_iterator begin, CompositeFieldDefs::const_iterator end)
-        : attributes_{begin, end} {}
+        : attributes_{begin, end}
+    {}
     std::size_t Size() const { return attributes_.size(); }
     bool Empty() const { return attributes_.empty(); }
     const CompositeFieldDef& operator[](std::size_t index) const {
@@ -119,8 +120,8 @@ struct CppToUserPgImpl {
 };
 
 template <typename T>
-const RegisterUserTypeParser CppToUserPgImpl<T>::init =
-    RegisterUserTypeParser::Register(kPgUserTypeName<T>, std::string{compiler::GetTypeName<T>()});
+const RegisterUserTypeParser CppToUserPgImpl<
+    T>::init = RegisterUserTypeParser::Register(kPgUserTypeName<T>, std::string{compiler::GetTypeName<T>()});
 
 }  // namespace io::detail
 

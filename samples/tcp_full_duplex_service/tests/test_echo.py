@@ -51,7 +51,7 @@ async def test_basic(service_client, asyncio_socket, monitor_client, tcp_service
     # /// [Functional test]
 
 
-@pytest.fixture(name='gate', scope='function')  # noqa: PT003
+@pytest.fixture(name='gate')
 async def _gate(tcp_service_port):
     gate_config = chaos.GateRoute(
         name='tcp proxy',

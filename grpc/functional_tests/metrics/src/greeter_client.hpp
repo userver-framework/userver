@@ -23,7 +23,8 @@ public:
               "greeter",
               // The service endpoint (URI).
               config["endpoint"].As<std::string>()
-          )) {}
+          ))
+    {}
 
     std::string SayHello(std::string name);
 

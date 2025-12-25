@@ -26,8 +26,8 @@ void SetErrorAndResetSpan(CallState& state, std::string_view error_message) noex
 
 }  // namespace
 
-void ThrowIfDeadlineIsExceeded(grpc::ClientContext& context, std::string_view call_name) {
-    const auto raw_deadline = context.raw_deadline();
+void ThrowIfDeadlineIsExceeded(grpc::ClientContext& client_context, std::string_view call_name) {
+    const auto raw_deadline = client_context.raw_deadline();
     const auto deadline = ugrpc::TimespecToDeadline(raw_deadline);
     if (deadline.IsReached()) {
         grpc::Status deadline_status(grpc::StatusCode::DEADLINE_EXCEEDED, "Deadline exceeded");
@@ -35,22 +35,28 @@ void ThrowIfDeadlineIsExceeded(grpc::ClientContext& context, std::string_view ca
     }
 }
 
-ugrpc::impl::AsyncMethodInvocation::WaitStatus
-WaitAndTryCancelIfNeeded(ugrpc::impl::AsyncMethodInvocation& invocation, grpc::ClientContext& context) noexcept {
+ugrpc::impl::AsyncMethodInvocation::WaitStatus WaitAndTryCancelIfNeeded(
+    ugrpc::impl::AsyncMethodInvocation& invocation,
+    grpc::ClientContext& client_context
+) noexcept {
     const auto wait_status = invocation.Wait();
     if (ugrpc::impl::AsyncMethodInvocation::WaitStatus::kCancelled == wait_status) {
-        context.TryCancel();
+        client_context.TryCancel();
     }
     return wait_status;
 }
 
-void CheckOk(StreamingCallState& state, ugrpc::impl::AsyncMethodInvocation::WaitStatus status, std::string_view stage) {
-    if (status == ugrpc::impl::AsyncMethodInvocation::WaitStatus::kError) {
+void CheckOk(
+    StreamingCallState& state,
+    ugrpc::impl::AsyncMethodInvocation::WaitStatus wait_status,
+    std::string_view stage
+) {
+    if (wait_status == ugrpc::impl::AsyncMethodInvocation::WaitStatus::kError) {
         state.SetFinished();
         ThrowIfDeadlineIsExceeded(state.GetClientContext(), state.GetCallName());
         ProcessNetworkError(state, stage);
         throw RpcInterruptedError(state.GetCallName(), stage);
-    } else if (status == ugrpc::impl::AsyncMethodInvocation::WaitStatus::kCancelled) {
+    } else if (wait_status == ugrpc::impl::AsyncMethodInvocation::WaitStatus::kCancelled) {
         state.SetFinished();
         ProcessCancelled(state, stage);
         throw RpcCancelledError(state.GetCallName(), stage);
@@ -64,17 +70,18 @@ void CheckFinishStatus(CallState& state) {
     }
 }
 
-void ProcessFinish(CallState& state, const google::protobuf::Message* final_response) {
-    const auto& status = state.GetStatus();
+void ProcessFinish(CallState& state, const grpc::Status& status, const google::protobuf::Message* response) {
+    RunMiddlewarePipeline(state, MiddlewareHooks::FinishHooks(status, status.ok() ? response : nullptr));
 
     HandleCallStatistics(state, status);
-
-    RunMiddlewarePipeline(state, FinishHooks(status, final_response));
 
     SetStatusAndResetSpan(state, status);
 }
 
-void ProcessFinishAbandoned(CallState& state) noexcept { SetStatusAndResetSpan(state, state.GetStatus()); }
+void ProcessFinishAbandoned(CallState& state, const grpc::Status& status) noexcept {
+    // Nothing to do with statistics, `RpcStatisticsScope` automatically accounts "abandoned-error"
+    SetStatusAndResetSpan(state, status);
+}
 
 void ProcessCancelled(CallState& state, std::string_view stage) noexcept {
     state.GetStatsScope().OnCancelled();

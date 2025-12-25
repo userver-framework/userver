@@ -23,7 +23,9 @@ auto EnsureBulk(impl::cdriver::BulkOperationPtr& bulk_ptr, Bulk::Mode mode) {
 
 }  // namespace
 
-Bulk::Bulk(Mode mode) : impl_(mode) {}
+Bulk::Bulk(Mode mode)
+    : impl_(mode)
+{}
 Bulk::~Bulk() = default;
 
 Bulk::Bulk(Bulk&&) noexcept = default;
@@ -33,13 +35,15 @@ bool Bulk::IsEmpty() const { return !impl_->bulk; }
 
 void Bulk::SetOption(options::WriteConcern::Level level) {
     mongoc_bulk_operation_set_write_concern(
-        EnsureBulk(impl_->bulk, impl_->mode), impl::MakeCDriverWriteConcern(level).get()
+        EnsureBulk(impl_->bulk, impl_->mode),
+        impl::MakeCDriverWriteConcern(level).get()
     );
 }
 
 void Bulk::SetOption(const options::WriteConcern& write_concern) {
     mongoc_bulk_operation_set_write_concern(
-        EnsureBulk(impl_->bulk, impl_->mode), impl::MakeCDriverWriteConcern(write_concern).get()
+        EnsureBulk(impl_->bulk, impl_->mode),
+        impl::MakeCDriverWriteConcern(write_concern).get()
     );
 }
 
@@ -49,8 +53,12 @@ void Bulk::Append(const bulk_ops::InsertOne& insert_subop) {
     MongoError error;
     const bson_t* native_bson_ptr = insert_subop.impl_->document.GetBson().get();
     if (!mongoc_bulk_operation_insert_with_opts(
-            EnsureBulk(impl_->bulk, impl_->mode), native_bson_ptr, nullptr, error.GetNative()
-        )) {
+            EnsureBulk(impl_->bulk, impl_->mode),
+            native_bson_ptr,
+            nullptr,
+            error.GetNative()
+        ))
+    {
         error.Throw("Error appending insert to bulk");
     }
 }
@@ -65,7 +73,8 @@ void Bulk::Append(const bulk_ops::ReplaceOne& replace_subop) {
             native_replacement_bson_ptr,
             impl::GetNative(replace_subop.impl_->options),
             error.GetNative()
-        )) {
+        ))
+    {
         error.Throw("Error appending replace to bulk");
     }
 }
@@ -96,7 +105,9 @@ void Bulk::Append(const bulk_ops::Update& update_subop) {
             );
             break;
     }
-    if (!has_succeeded) error.Throw("Error appending update to bulk");
+    if (!has_succeeded) {
+        error.Throw("Error appending update to bulk");
+    }
 }
 
 void Bulk::Append(const bulk_ops::Delete& delete_subop) {
@@ -106,17 +117,25 @@ void Bulk::Append(const bulk_ops::Delete& delete_subop) {
     switch (delete_subop.impl_->mode) {
         case bulk_ops::Delete::Mode::kSingle:
             has_succeeded = mongoc_bulk_operation_remove_one_with_opts(
-                EnsureBulk(impl_->bulk, impl_->mode), native_selector_bson_ptr, nullptr, error.GetNative()
+                EnsureBulk(impl_->bulk, impl_->mode),
+                native_selector_bson_ptr,
+                nullptr,
+                error.GetNative()
             );
             break;
 
         case bulk_ops::Delete::Mode::kMulti:
             has_succeeded = mongoc_bulk_operation_remove_many_with_opts(
-                EnsureBulk(impl_->bulk, impl_->mode), native_selector_bson_ptr, nullptr, error.GetNative()
+                EnsureBulk(impl_->bulk, impl_->mode),
+                native_selector_bson_ptr,
+                nullptr,
+                error.GetNative()
             );
             break;
     }
-    if (!has_succeeded) error.Throw("Error appending delete to bulk");
+    if (!has_succeeded) {
+        error.Throw("Error appending delete to bulk");
+    }
 }
 
 }  // namespace storages::mongo::operations

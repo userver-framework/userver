@@ -135,7 +135,9 @@ class ReturnNew {};
 /// Specifies the number of documents to skip
 class Skip {
 public:
-    explicit Skip(size_t value) : value_(value) {}
+    explicit Skip(size_t value)
+        : value_(value)
+    {}
 
     size_t Value() const { return value_; }
 
@@ -147,7 +149,9 @@ private:
 /// @note The value of `0` means "no limit".
 class Limit {
 public:
-    explicit Limit(size_t value) : value_(value) {}
+    explicit Limit(size_t value)
+        : value_(value)
+    {}
 
     size_t Value() const { return value_; }
 
@@ -304,7 +308,9 @@ private:
 /// @warning This does not set any client-side timeouts.
 class MaxServerTime {
 public:
-    explicit MaxServerTime(const std::chrono::milliseconds& value) : value_(value) {}
+    explicit MaxServerTime(const std::chrono::milliseconds& value)
+        : value_(value)
+    {}
 
     const std::chrono::milliseconds& Value() const { return value_; }
 

@@ -60,7 +60,9 @@ UTEST_F(YdbStructFromRow, StructReadRowMissingColumn) {
 
     ASSERT_EQ(cursor.size(), 3);
     UEXPECT_THROW_MSG(
-        cursor.GetFirstRow().As<tests::StructReadRowMissingColumn>(), ydb::ParseError, "Missing column 'extra_value'"
+        cursor.GetFirstRow().As<tests::StructReadRowMissingColumn>(),
+        ydb::ParseError,
+        "Missing column 'extra_value'"
     );
 }
 
@@ -91,7 +93,9 @@ UTEST_F(YdbStructFromRow, StructReadRowExtraColumn) {
 
     ASSERT_EQ(cursor.size(), 3);
     UEXPECT_THROW_MSG(
-        cursor.GetFirstRow().As<tests::StructReadRowExtraColumn>(), ydb::ParseError, "Unexpected extra columns"
+        cursor.GetFirstRow().As<tests::StructReadRowExtraColumn>(),
+        ydb::ParseError,
+        "Unexpected extra columns"
     );
 }
 

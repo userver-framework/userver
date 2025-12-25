@@ -60,7 +60,8 @@ constexpr bool kAbortOnBuggyLibmariadb = true;
         "https://jira.mariadb.org/projects/CONC/issues/CONC-622.\n"
         "Please either update libmariadb3 to at least 3.3.4, or set "
         "USERVER_MYSQL_ALLOW_BUGGY_LIBMARIADB cmake variable to disable this "
-        "assert and leak instead in aforementioned situations.\n"};
+        "assert and leak instead in aforementioned situations.\n"
+    };
 
     const auto message = fmt::format(kBuggyLibmariadbTemplate, client_version_id.ToString());
 
@@ -107,15 +108,20 @@ Connection::Connection(
     const settings::ConnectionSettings& connection_settings,
     engine::Deadline deadline
 )
-    : socket_{-1, 0}, statements_cache_{*this, connection_settings.statements_cache_size} {
-    { auto _ = mysql_local_scope.Use(); }
+    : socket_{-1, 0},
+      statements_cache_{*this, connection_settings.statements_cache_size}
+{
+    {
+        auto _ = mysql_local_scope.Use();
+    }
 
     InitSocket(resolver, endpoint_info, auth_settings, connection_settings, deadline);
     server_info_ = metadata::ServerInfo::Get(mysql_);
 
     const auto server_info = metadata::ServerInfo::Get(mysql_);
-    LOG_INFO() << "MySQL connection initialized."
-               << " Server type: " << server_info.server_type_str << " " << server_info.server_version.ToString();
+    LOG_INFO()
+        << "MySQL connection initialized."
+        << " Server type: " << server_info.server_type_str << " " << server_info.server_version.ToString();
 }
 
 Connection::~Connection() {
@@ -193,7 +199,11 @@ bool Connection::IsBroken() const { return broken_.load(); }
 
 std::string Connection::GetNativeError(std::string_view prefix) {
     return fmt::format(
-        "{}: error({}) [{}] \"{}\"", prefix, mysql_errno(&mysql_), mysql_sqlstate(&mysql_), mysql_error(&mysql_)
+        "{}: error({}) [{}] \"{}\"",
+        prefix,
+        mysql_errno(&mysql_),
+        mysql_sqlstate(&mysql_),
+        mysql_error(&mysql_)
     );
 }
 
@@ -217,7 +227,8 @@ void Connection::InitSocket(
         const auto addr_domain = addr.Domain();
         if (ip_mode != settings::IpMode::kAny) {
             if ((addr_domain == engine::io::AddrDomain::kInet6 && ip_mode != settings::IpMode::kIpV6) ||
-                (addr_domain == engine::io::AddrDomain::kInet && ip_mode != settings::IpMode::kIpV4)) {
+                (addr_domain == engine::io::AddrDomain::kInet && ip_mode != settings::IpMode::kIpV4))
+            {
                 continue;
             }
         }
@@ -293,9 +304,10 @@ bool Connection::DoInitSocket(
                 // The decision was made to allow executing with <3.3.4 because 3.3.4 is
                 // very recent at the time of writing, and it's probably too restricting
                 // to refuse to start with lower versions.
-                LOG_CRITICAL() << "Can't clean up connection resources due to "
-                                  "https://jira.mariadb.org/browse/CONC-622, connection will "
-                                  "be leaked. Consider upgrading libmariadb3 to 3.3.4 or higher.";
+                LOG_CRITICAL()
+                    << "Can't clean up connection resources due to "
+                       "https://jira.mariadb.org/browse/CONC-622, connection will "
+                       "be leaked. Consider upgrading libmariadb3 to 3.3.4 or higher.";
             }
         } else {
             mysql_close(&mysql_);

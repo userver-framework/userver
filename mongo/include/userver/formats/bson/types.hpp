@@ -99,7 +99,9 @@ logging::LogHelper& operator<<(logging::LogHelper& lh, const Oid& value);
 class Binary {
 public:
     /// Constructor from a string storage
-    explicit Binary(std::string data) : data_(std::move(data)) {}
+    explicit Binary(std::string data)
+        : data_(std::move(data))
+    {}
 
     /// @name Raw data access
     /// @{

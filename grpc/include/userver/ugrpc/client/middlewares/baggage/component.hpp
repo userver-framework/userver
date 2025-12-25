@@ -29,7 +29,7 @@ using Component = SimpleMiddlewareFactoryComponent<Middleware>;
 }  // namespace ugrpc::client::middlewares::baggage
 
 template <>
-inline constexpr auto components::kConfigFileMode<ugrpc::client::middlewares::baggage::Component> =
-    ConfigFileMode::kNotRequired;
+inline constexpr auto
+    components::kConfigFileMode<ugrpc::client::middlewares::baggage::Component> = ConfigFileMode::kNotRequired;
 
 USERVER_NAMESPACE_END

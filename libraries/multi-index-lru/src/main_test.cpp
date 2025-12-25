@@ -3,6 +3,7 @@
 #include <string>
 
 #include <gtest/gtest.h>
+#include <boost/multi_index/hashed_index.hpp>
 #include <boost/multi_index/member.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -30,8 +31,9 @@ protected:
     using UserCache = multi_index_lru::Container<
         User,
         boost::multi_index::indexed_by<
-            boost::multi_index::
-                ordered_unique<boost::multi_index::tag<IdTag>, boost::multi_index::member<User, int, &User::id>>,
+            boost::multi_index::ordered_unique<
+                boost::multi_index::tag<IdTag>,
+                boost::multi_index::member<User, int, &User::id>>,
             boost::multi_index::ordered_unique<
                 boost::multi_index::tag<EmailTag>,
                 boost::multi_index::member<User, std::string, &User::email>>,
@@ -53,17 +55,17 @@ TEST_F(LRUUsersTest, BasicOperations) {
     // Test find by id
     auto by_id = cache.find<IdTag, int>(1);
     ASSERT_NE(by_id, cache.end<IdTag>());
-    EXPECT_EQ(by_id->get().name, "Alice");
+    EXPECT_EQ(by_id->name, "Alice");
 
     // Test find by email
     auto by_email = cache.find<EmailTag, std::string>("bob@test.com");
     ASSERT_NE(by_email, cache.end<EmailTag>());
-    EXPECT_EQ(by_email->get().id, 2);
+    EXPECT_EQ(by_email->id, 2);
 
     // Test find by name
     auto by_name = cache.find<NameTag, std::string>("Charlie");
     ASSERT_NE(by_name, cache.end<NameTag>());
-    EXPECT_EQ(by_name->get().email, "charlie@test.com");
+    EXPECT_EQ(by_name->email, "charlie@test.com");
 
     // Test template find method
     auto it = cache.find<EmailTag, std::string>("alice@test.com");
@@ -124,7 +126,7 @@ TEST_F(ProductsTest, BasicProductOperations) {
 
     auto laptop = cache.find<SkuTag, std::string>("A1");
     ASSERT_NE(laptop, cache.end<SkuTag>());
-    EXPECT_EQ(laptop->get().name, "Laptop");
+    EXPECT_EQ(laptop->name, "Laptop");
 }
 
 TEST_F(ProductsTest, ProductEviction) {
@@ -143,6 +145,29 @@ TEST_F(ProductsTest, ProductEviction) {
 
     EXPECT_NE(cache.find<NameTag>("Keyboard"), cache.end<NameTag>());
     EXPECT_EQ(cache.find<NameTag>("Mouse"), cache.end<NameTag>());
+}
+
+TEST(Snippet, SimpleUsage) {
+    struct MyValueT {
+        std::string key;
+        int val;
+    };
+
+    struct MyTag {};
+
+    MyValueT my_value{"some_key", 1};
+    /// [Usage]
+    using MyLruCache = multi_index_lru::Container<
+        MyValueT,
+        boost::multi_index::indexed_by<boost::multi_index::hashed_unique<
+            boost::multi_index::tag<MyTag>,
+            boost::multi_index::member<MyValueT, std::string, &MyValueT::key>>>>;
+
+    MyLruCache cache(1000);  // Capacity of 1000 items
+    cache.insert(my_value);
+    auto it = cache.find<MyTag>("some_key");
+    EXPECT_NE(it, cache.end<MyTag>());
+    /// [Usage]
 }
 
 }  // namespace

@@ -55,9 +55,9 @@ TEST(PostgreIO, Numeric) {
         auto fb = pg::test::MakeFieldBuffer(buffer);
         Numeric tgt{0};
         UEXPECT_NO_THROW(io::ReadBuffer(fb, tgt));
-        EXPECT_EQ(0, src.compare(tgt)) << "Number written to the buffer "
-                                       << std::setprecision(std::numeric_limits<Numeric>::digits10) << src
-                                       << " is expected to be equal to number read from buffer " << tgt;
+        EXPECT_EQ(0, src.compare(tgt))
+            << "Number written to the buffer " << std::setprecision(std::numeric_limits<Numeric>::digits10) << src
+            << " is expected to be equal to number read from buffer " << tgt;
     }
 }
 
@@ -121,7 +121,8 @@ UTEST_P(PostgreConnection, NumericRoundtrip) {
         Numeric{"10000"},
         Numeric{"99999999"},
         Numeric{"-100500"},
-        Numeric{"3.14159265358979323846"}};
+        Numeric{"3.14159265358979323846"}
+    };
 
     for (auto n : test_values) {
         UEXPECT_NO_THROW(res = GetConn()->Execute("select $1", n));
@@ -153,8 +154,9 @@ TEST_P(PostgreDecimalIO, BufferIO) {
 
     fb = pg::test::MakeFieldBuffer(buffer_str2);
     auto parsed_str = pg::io::detail::NumericBufferToString(fb);
-    EXPECT_EQ(expected_str, parsed_str) << "The number string parsed out of the binary buffer is equal to the "
-                                           "original";
+    EXPECT_EQ(expected_str, parsed_str)
+        << "The number string parsed out of the binary buffer is equal to the "
+           "original";
 }
 
 std::string TestDescription(const ::testing::TestParamInfo<DecIOTestData>& info) {
@@ -218,7 +220,8 @@ UTEST_P(PostgreConnection, DecimalRoundtrip) {
         Decimal{"99999999"},
         Decimal{"9999999"},
         Decimal{"-100500"},
-        Decimal{"3.1415926535"}};
+        Decimal{"3.1415926535"}
+    };
 
     for (auto n : test_values) {
         UEXPECT_NO_THROW(res = GetConn()->Execute("select $1", n));

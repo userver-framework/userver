@@ -18,7 +18,9 @@ static_assert(SIGUSR2 == kSigUsr2);
 }  // namespace
 
 Processor::Processor(engine::TaskProcessor& task_processor)
-    : channel_(kOsSignalProcessorChannelName.data()), task_processor_(task_processor) {}
+    : channel_(kOsSignalProcessorChannelName.data()),
+      task_processor_(task_processor)
+{}
 
 void Processor::Notify(int signum, utils::impl::InternalTag) {
     UINVARIANT(

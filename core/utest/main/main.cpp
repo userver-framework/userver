@@ -37,8 +37,9 @@ Config ParseConfig(int argc, char** argv) {
     po::notify(vm);
 
     Config config;
-    if (vm.count("log-level"))
+    if (vm.count("log-level")) {
         config.log_level = USERVER_NAMESPACE::logging::LevelFromString(vm["log-level"].as<std::string>());
+    }
 
     return config;
 }

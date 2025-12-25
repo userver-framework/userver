@@ -41,7 +41,9 @@ ResultWrapper::ResultHandle MakeResultHandle(SQLHDBC handle) {
     return result_handle;
 }
 
-ResultWrapper::ResultWrapper(ResultHandle&& res) : handle{std::move(res)} {}
+ResultWrapper::ResultWrapper(ResultHandle&& res)
+    : handle{std::move(res)}
+{}
 ResultWrapper::~ResultWrapper() = default;
 
 ResultWrapper::ResultWrapper(ResultWrapper&& other) noexcept = default;
@@ -93,7 +95,8 @@ SQLSMALLINT ResultWrapper::GetColumnType(std::size_t col) const {
 std::string ResultWrapper::GetString(std::size_t row, std::size_t col) const {
     SQLSMALLINT type = GetColumnType(col);
     if (type != SQL_CHAR && type != SQL_VARCHAR && type != SQL_LONGVARCHAR && type != SQL_WCHAR &&
-        type != SQL_WVARCHAR && type != SQL_WLONGVARCHAR) {
+        type != SQL_WVARCHAR && type != SQL_WLONGVARCHAR)
+    {
         throw ResultSetError(fmt::format("Type mismatch: column {} is not a string type (SQL type: {})", col + 1, type)
         );
     }
@@ -101,7 +104,9 @@ std::string ResultWrapper::GetString(std::size_t row, std::size_t col) const {
     SQLCHAR value[1024];
     SQLLEN value_len = sizeof(value);
     CheckStatus(
-        SQLGetData(handle.get(), col + 1, SQL_C_CHAR, value, sizeof(value), &value_len), handle.get(), SQL_HANDLE_STMT
+        SQLGetData(handle.get(), col + 1, SQL_C_CHAR, value, sizeof(value), &value_len),
+        handle.get(),
+        SQL_HANDLE_STMT
     );
     return std::string(reinterpret_cast<char*>(value), value_len);
 }
@@ -146,7 +151,9 @@ bool ResultWrapper::GetBool(std::size_t row, std::size_t col) const {
     CheckStatus(SQLFetchScroll(handle.get(), SQL_FETCH_ABSOLUTE, row + 1), handle.get(), SQL_HANDLE_STMT);
     bool value = false;
     CheckStatus(
-        SQLGetData(handle.get(), col + 1, SQL_C_BIT, &value, sizeof(value), nullptr), handle.get(), SQL_HANDLE_STMT
+        SQLGetData(handle.get(), col + 1, SQL_C_BIT, &value, sizeof(value), nullptr),
+        handle.get(),
+        SQL_HANDLE_STMT
     );
     return value;
 }
@@ -156,7 +163,9 @@ bool ResultWrapper::IsFieldNull(std::size_t row, std::size_t col) const {
     SQLLEN marker = 0;
     bool dummy = false;  // NOTE: odbc requires a buffer for SQL_C_DEFAULT
     CheckStatus(
-        SQLGetData(handle.get(), col + 1, SQL_C_DEFAULT, &dummy, sizeof(dummy), &marker), handle.get(), SQL_HANDLE_STMT
+        SQLGetData(handle.get(), col + 1, SQL_C_DEFAULT, &dummy, sizeof(dummy), &marker),
+        handle.get(),
+        SQL_HANDLE_STMT
     );
     return marker == SQL_NULL_DATA;
 }

@@ -35,21 +35,11 @@ namespace components {
 /// * @ref HTTP_CLIENT_CONNECT_THROTTLE
 /// * @ref HTTP_CLIENT_CONNECTION_POOL_SIZE
 ///
-/// ## Static options:
-/// Name | Description | Default value
-/// ---- | ----------- | -------------
-/// pool-statistics-disable | set to true to disable statistics for connection pool | false
-/// thread-name-prefix | set OS thread name to this value | ''
-/// threads | number of threads to process low level HTTP related IO system calls | 8
-/// fs-task-processor | task processor to run blocking HTTP related calls, like DNS resolving or hosts reading | engine::current_task::GetBlockingTaskProcessor()
-/// destination-metrics-auto-max-size | set max number of automatically created destination metrics | 100
-/// user-agent | User-Agent HTTP header to show on all requests, result of utils::GetUserverIdentifier() if empty | empty
-/// testsuite-enabled | enable testsuite testing support | false
-/// testsuite-timeout | if set, force the request timeout regardless of the value passed in code | -
-/// testsuite-allowed-url-prefixes | if set, checks that all URLs start with any of the passed prefixes, asserts if not. Set for testing purposes only. | ''
-/// dns_resolver | server hostname resolver type (getaddrinfo or async) | 'async'
-/// set-deadline-propagation-header | whether to set http::common::kXYaTaxiClientTimeoutMs request header, see @ref scripts/docs/en/userver/deadline_propagation.md | true
-/// cancellation-policy | Cancellation policy for new requests. | cancel
+/// ## Static options @ref components::HttpClientCore :
+/// @include{doc} scripts/docs/en/components_schema/core/src/clients/http/component_core.md
+///
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
 ///
 /// ## Static configuration example:
 ///

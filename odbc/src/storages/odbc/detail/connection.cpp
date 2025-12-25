@@ -55,7 +55,9 @@ Connection::DatabaseHandle MakeDatabaseHandle(SQLHENV env) {
 }  // namespace
 
 Connection::Connection(const std::string& dsn)
-    : env_(MakeEnvironmentHandle()), handle_(Connection::DatabaseHandle(SQL_NULL_HDBC, &DestroyDatabaseHandle)) {
+    : env_(MakeEnvironmentHandle()),
+      handle_(Connection::DatabaseHandle(SQL_NULL_HDBC, &DestroyDatabaseHandle))
+{
     SQLRETURN ret =
         SQLSetEnvAttr(env_.get(), SQL_ATTR_CONNECTION_POOLING, reinterpret_cast<SQLPOINTER>(SQL_CP_ONE_PER_DRIVER), 0);
     if (!SQL_SUCCEEDED(ret)) {

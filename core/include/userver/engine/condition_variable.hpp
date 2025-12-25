@@ -78,8 +78,11 @@ public:
     /// or the time point is reached or the task is cancelled.
     /// @returns the value of the predicate
     template <typename Clock, typename Duration, typename Predicate>
-    bool
-    WaitUntil(std::unique_lock<Mutex>& lock, std::chrono::time_point<Clock, Duration> until, Predicate&& predicate);
+    bool WaitUntil(
+        std::unique_lock<Mutex>& lock,
+        std::chrono::time_point<Clock, Duration> until,
+        Predicate&& predicate
+    );
 
     /// @brief Suspends execution until the predicate is `true` when notified
     /// or the deadline is reached or the task is cancelled.

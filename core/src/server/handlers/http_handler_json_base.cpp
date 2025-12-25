@@ -31,7 +31,8 @@ HttpHandlerJsonBase::HttpHandlerJsonBase(
     const components::ComponentContext& component_context,
     bool is_monitor
 )
-    : HttpHandlerBase(config, component_context, is_monitor) {}
+    : HttpHandlerBase(config, component_context, is_monitor)
+{}
 
 std::string HttpHandlerJsonBase::HandleRequestThrow(const http::HttpRequest& request, request::RequestContext& context)
     const {
@@ -40,9 +41,8 @@ std::string HttpHandlerJsonBase::HandleRequestThrow(const http::HttpRequest& req
     auto& response = request.GetHttpResponse();
     response.SetContentType(USERVER_NAMESPACE::http::content_type::kApplicationJson);
 
-    const auto& response_json = context.SetData<formats::json::Value>(
-        kResponseDataName, HandleRequestJsonThrow(request, request_json, context)
-    );
+    const auto& response_json = context.SetData<
+        formats::json::Value>(kResponseDataName, HandleRequestJsonThrow(request, request_json, context));
 
     const auto scope_time = tracing::ScopeTime::CreateOptionalScopeTime(kSerializeJson);
     return formats::json::ToString(response_json);
@@ -74,7 +74,8 @@ void HttpHandlerJsonBase::ParseRequestData(const http::HttpRequest& request, req
         context.SetData<formats::json::Value>(kRequestDataName, formats::json::FromString(request.RequestBody()));
     } catch (const formats::json::Exception& e) {
         throw RequestParseError(
-            InternalMessage{"Invalid JSON body"}, ExternalBody{std::string("Invalid JSON body: ") + e.what()}
+            InternalMessage{"Invalid JSON body"},
+            ExternalBody{std::string("Invalid JSON body: ") + e.what()}
         );
     }
 }

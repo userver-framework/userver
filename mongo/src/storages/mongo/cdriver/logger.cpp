@@ -34,8 +34,9 @@ logging::Level ConvertLogLevel(mongoc_log_level_t level) {
 
 void LogMongocMessage(mongoc_log_level_t level, const char* domain, const char* message, void*) {
     try {
-        LOG(ConvertLogLevel(level)) << "Mongo driver " << mongoc_log_level_str(level) << " [" << domain
-                                    << "]: " << message;
+        LOG(ConvertLogLevel(level)
+        ) << "Mongo driver "
+          << mongoc_log_level_str(level) << " [" << domain << "]: " << message;
     } catch (const std::exception&) {
         // cannot throw here
     }

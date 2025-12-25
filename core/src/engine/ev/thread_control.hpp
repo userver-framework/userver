@@ -29,9 +29,13 @@ class UniquePayloadAsync final : public SingleShotAsyncPayload<UniquePayloadAsyn
     static_assert(!std::is_reference_v<Func>);
 
 public:
-    explicit UniquePayloadAsync(Func&& func) : func_(std::move(func)) {}
+    explicit UniquePayloadAsync(Func&& func)
+        : func_(std::move(func))
+    {}
 
-    explicit UniquePayloadAsync(const Func& func) : func_(func) {}
+    explicit UniquePayloadAsync(const Func& func)
+        : func_(func)
+    {}
 
     void DoPerformAndRelease() {
         const utils::FastScopeGuard guard([this]() noexcept { delete this; });

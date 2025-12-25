@@ -51,7 +51,7 @@ for i in range(len(test_programs)):
 
 test_params = {
     os.path.split(test_program)[-1]: (test_program, test_source)
-    for test_program, test_source in zip(test_programs, test_sources)  # noqa: B905
+    for test_program, test_source in zip(test_programs, test_sources, strict=True)
 }
 
 test_programs_in_release = get_paths_from_env('TESTS_IN_RELEASE')
@@ -62,7 +62,7 @@ test_coredumps = get_paths_from_env('TESTS_COREDUMP')
 
 @pytest.mark.parametrize(
     'test_key,test_coredump',
-    [(key, False) for key in test_params] + [(key, True) for key in test_coredumps],  # noqa: COM812
+    [(key, False) for key in test_params] + [(key, True) for key in test_coredumps],
 )
 def test_gdb_printers(capsys: pytest.CaptureFixture[str], test_key: str, test_coredump: str):
     test_program, test_source = test_params[test_key]

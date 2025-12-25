@@ -30,16 +30,17 @@ class UnitTestServiceCancelEcho final : public sample::ugrpc::UnitTestServiceBas
 public:
     ChatResult Chat(CallContext& /*context*/, ChatReaderWriter& stream) override {
         sample::ugrpc::StreamGreetingRequest request;
-        sample::ugrpc::StreamGreetingResponse response{};
 
-        EXPECT_TRUE(stream.Read(request));
-        // NOLINTNEXTLINE(clang-analyzer-optin.cplusplus.UninitializedObject)
-        UEXPECT_NO_THROW(stream.Write(response));
-
-        EXPECT_FALSE(stream.Read(request));
-        // NOLINTNEXTLINE(clang-analyzer-optin.cplusplus.UninitializedObject)
-        UEXPECT_THROW(stream.Write(response), ugrpc::server::RpcInterruptedError);
-
+        {
+            sample::ugrpc::StreamGreetingResponse response{};
+            EXPECT_TRUE(stream.Read(request));
+            UEXPECT_NO_THROW(stream.Write(std::move(response)));
+        }
+        {
+            sample::ugrpc::StreamGreetingResponse response{};
+            EXPECT_FALSE(stream.Read(request));
+            UEXPECT_THROW(stream.Write(std::move(response)), ugrpc::server::RpcInterruptedError);
+        }
         return grpc::Status::OK;
     }
 };
@@ -71,10 +72,11 @@ public:
     ChatResult Chat(CallContext& /*context*/, ChatReaderWriter& stream) override {
         for (;;) {
             sample::ugrpc::StreamGreetingRequest request;
-            if (!stream.Read(request)) return grpc::Status::OK;
+            if (!stream.Read(request)) {
+                return grpc::Status::OK;
+            }
             sample::ugrpc::StreamGreetingResponse response{};
-            // NOLINTNEXTLINE(clang-analyzer-optin.cplusplus.UninitializedObject)
-            stream.Write(response);
+            stream.Write(std::move(response));
             return grpc::Status::OK;
         }
     }
@@ -93,9 +95,13 @@ UTEST_F_MT(GrpcCancelDeadline, TryCancel, 2) {
     try {
         auto call = client.Chat(std::move(call_options));
         for (;;) {
-            if (!call.Write({})) return;
+            if (!call.Write({})) {
+                return;
+            }
             sample::ugrpc::StreamGreetingResponse response;
-            if (!call.Read(response)) return;
+            if (!call.Read(response)) {
+                return;
+            }
         }
     } catch (const ugrpc::client::DeadlineExceededError&) {
         deadline_exception_caught = true;
@@ -114,10 +120,8 @@ public:
         sample::ugrpc::StreamGreetingRequest request;
         EXPECT_TRUE(stream.Read(request));
 
-        sample::ugrpc::StreamGreetingResponse response{};
         for (;;) {
-            // NOLINTNEXTLINE(clang-analyzer-optin.cplusplus.UninitializedObject)
-            stream.Write(response);
+            stream.Write(sample::ugrpc::StreamGreetingResponse{});
         }
 
         return grpc::Status::OK;
@@ -145,7 +149,9 @@ UTEST_F_MT(GrpcCancelWritesDone, TryCancel, 2) {
     try {
         for (;;) {
             sample::ugrpc::StreamGreetingResponse response;
-            if (!call.Read(response)) return;
+            if (!call.Read(response)) {
+                return;
+            }
         }
     } catch (const ugrpc::client::DeadlineExceededError&) {
     }
@@ -158,10 +164,8 @@ public:
     ChatResult Chat(CallContext& /*context*/, ChatReaderWriter& stream) override {
         sample::ugrpc::StreamGreetingRequest request;
         EXPECT_TRUE(stream.Read(request));
-        sample::ugrpc::StreamGreetingResponse response{};
 
-        // NOLINTNEXTLINE(clang-analyzer-optin.cplusplus.UninitializedObject)
-        stream.Write(response);
+        stream.Write(sample::ugrpc::StreamGreetingResponse{});
         return grpc::Status::OK;
     }
 };
@@ -189,11 +193,11 @@ class UnitTestServiceEcho final : public sample::ugrpc::UnitTestServiceBase {
 public:
     ChatResult Chat(CallContext& /*context*/, ChatReaderWriter& stream) override {
         sample::ugrpc::StreamGreetingRequest request;
-        sample::ugrpc::StreamGreetingResponse response;
         while (stream.Read(request)) {
+            sample::ugrpc::StreamGreetingResponse response;
             response.set_name(request.name());
             response.set_number(request.number());
-            stream.Write(response);
+            stream.Write(std::move(response));
         }
         return grpc::Status::OK;
     }
@@ -230,9 +234,8 @@ UTEST_F_MT(GrpcServerEcho, DestroyServerDuringRequest, 2) {
 UTEST(GrpcServer, DeadlineAffectsWaitForReady) {
     ugrpc::tests::StandaloneClientFactory client_factory;
 
-    auto client = client_factory.MakeClient<sample::ugrpc::UnitTestServiceClient>(
-        ugrpc::tests::MakeIpv6Endpoint(ugrpc::tests::GetFreeIpv6Port())
-    );
+    auto client = client_factory.MakeClient<
+        sample::ugrpc::UnitTestServiceClient>(ugrpc::tests::MakeIpv6Endpoint(ugrpc::tests::GetFreeIpv6Port()));
 
     ugrpc::client::CallOptions call_options;
     call_options.SetTimeout(100ms);
@@ -329,13 +332,8 @@ UTEST_F(GrpcCancelSleep, CancelByTimeoutLogging) {
     // Make sure server logs are written.
     GetServer().StopServing();
 
-    EXPECT_THAT(
-        GetLogCapture().Filter(
-            "RPC interrupted in 'sample.ugrpc.UnitTestService/SayHello'. "
-            "The previously logged cancellation or network exception, if any, is likely caused by it."
-        ),
-        testing::SizeIs(1)
-    ) << GetLogCapture().GetAll();
+    EXPECT_THAT(GetLogCapture().Filter("", {{"error_msg", "RPC interrupted"}}), testing::SizeIs(1))
+        << GetLogCapture().GetAll();
 }
 
 namespace {
@@ -393,19 +391,14 @@ UTEST_F(GrpcCancelError, CancelByError) {
     EXPECT_EQ(get_metric("status", {{"grpc_code", "UNKNOWN"}}), 0);
 
     ASSERT_THAT(
-        GetLogCapture().Filter(
-            "Uncaught exception in 'sample.ugrpc.UnitTestService/Chat': Some error (std::runtime_error)"
-        ),
+        GetLogCapture()
+            .Filter("Uncaught exception in 'sample.ugrpc.UnitTestService/Chat': Some error "
+                    "(std::runtime_error)"),
         testing::SizeIs(1)
     ) << GetLogCapture().GetAll();
 
-    ASSERT_THAT(
-        GetLogCapture().Filter(
-            "RPC interrupted in 'sample.ugrpc.UnitTestService/Chat'. "
-            "The previously logged cancellation or network exception, if any, is likely caused by it."
-        ),
-        testing::SizeIs(1)
-    ) << GetLogCapture().GetAll();
+    ASSERT_THAT(GetLogCapture().Filter("", {{"error_msg", "RPC interrupted"}}), testing::SizeIs(1))
+        << GetLogCapture().GetAll();
 }
 
 USERVER_NAMESPACE_END

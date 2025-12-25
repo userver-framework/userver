@@ -25,15 +25,21 @@ template <typename Response>
 class Result {
 public:
     /// Construct from `Response`, implies `OK` status.
-    /*implicit*/ Result(Response&& response) : result_{std::move(response)} {}
+    /*implicit*/ Result(Response&& response)
+        : result_{std::move(response)}
+    {}
 
     /// Construct from `grpc::Status`, only error status is allowed.
-    /*implicit*/ Result(grpc::Status&& status) : result_{std::move(status)} {
+    /*implicit*/ Result(grpc::Status&& status)
+        : result_{std::move(status)}
+    {
         UINVARIANT(!GetErrorStatus().ok(), "Only error status is allowed, for OK status a response should be provided");
     }
 
     /// Construct from `grpc::Status`, only error status is allowed.
-    /*implicit*/ Result(const grpc::Status& status) : result_{status} {
+    /*implicit*/ Result(const grpc::Status& status)
+        : result_{status}
+    {
         UINVARIANT(!GetErrorStatus().ok(), "Only error status is allowed, for OK status a response should be provided");
     }
 
@@ -84,13 +90,19 @@ template <typename Response>
 class StreamingResult final {
 public:
     /// Construct from `grpc::Status` (which can be `OK` or an error status).
-    /*implicit*/ StreamingResult(grpc::Status&& status) : status_{std::move(status)} {}
+    /*implicit*/ StreamingResult(grpc::Status&& status)
+        : status_{std::move(status)}
+    {}
 
     /// Construct from `grpc::Status` (which can be `OK` or an error status).
-    /*implicit*/ StreamingResult(const grpc::Status& status) : status_{status} {}
+    /*implicit*/ StreamingResult(const grpc::Status& status)
+        : status_{status}
+    {}
 
     /// Construct from last response. Allows to send last response and `OK` status coalesced in a single batch.
-    /*implicit*/ StreamingResult(Response&& last_response) : last_response_(std::move(last_response)) {}
+    /*implicit*/ StreamingResult(Response&& last_response)
+        : last_response_(std::move(last_response))
+    {}
 
     /// @returns `true` if the `StreamingResult` contains `OK` status, possibly with a last response.
     bool IsSuccess() const { return status_.ok(); }

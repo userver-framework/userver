@@ -72,7 +72,9 @@ UTEST(ProtobufLogging, ComplexError) {
     detail->set_value(detail_value.SerializeAsString());
 
     grpc::Status complex_status(
-        grpc::StatusCode::INVALID_ARGUMENT, "Invalid parameter provided", error_details.SerializeAsString()
+        grpc::StatusCode::INVALID_ARGUMENT,
+        "Invalid parameter provided",
+        error_details.SerializeAsString()
     );
 
     const auto result = ugrpc::ToUnlimitedDebugString(complex_status);
@@ -116,9 +118,8 @@ UTEST(ProtobufLogging, GetErrorDetailsSizeLimiting) {
     google::protobuf::StringValue detail_value;
     detail_value.set_value(large_message);
     detail->set_value(detail_value.SerializeAsString());
-    grpc::Status large_error(
-        grpc::StatusCode::NOT_FOUND, "Invalid parameter provided", error_details.SerializeAsString()
-    );
+    grpc::Status
+        large_error(grpc::StatusCode::NOT_FOUND, "Invalid parameter provided", error_details.SerializeAsString());
     const auto small_result = ugrpc::ToLimitedDebugString(large_error, 100);
     EXPECT_LE(small_result.size(), 200u);
 
@@ -137,9 +138,8 @@ UTEST(ProtobufLogging, GetErrorDetailsUnlimited) {
     google::protobuf::StringValue detail_value;
     detail_value.set_value(large_message);
     detail->set_value(detail_value.SerializeAsString());
-    grpc::Status large_error(
-        grpc::StatusCode::NOT_FOUND, "Invalid parameter provided", error_details.SerializeAsString()
-    );
+    grpc::Status
+        large_error(grpc::StatusCode::NOT_FOUND, "Invalid parameter provided", error_details.SerializeAsString());
     const auto unlimited_result = ugrpc::ToUnlimitedDebugString(large_error);
 
     EXPECT_THAT(unlimited_result, testing::HasSubstr(large_message));

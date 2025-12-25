@@ -75,8 +75,8 @@ private:
         CombinedHook<HookExtractor, MemberHook<&IntrusiveWalkablePoolHook<T>::permanent_list_hook>>;
     using FreeListHookExtractor =
         CombinedHook<HookExtractor, MemberHook<&IntrusiveWalkablePoolHook<T>::free_list_hook>>;
-    static constexpr std::ptrdiff_t kFreeListHookOffset =
-        HookOffset + offsetof(IntrusiveWalkablePoolHook<T>, free_list_hook);
+    static constexpr std::ptrdiff_t
+        kFreeListHookOffset = HookOffset + offsetof(IntrusiveWalkablePoolHook<T>, free_list_hook);
 
     IntrusiveStack<T, PermanentListHookExtractor> permanent_list_;
     StripedIntrusivePool<T, FreeListHookExtractor, kFreeListHookOffset> free_list_{};

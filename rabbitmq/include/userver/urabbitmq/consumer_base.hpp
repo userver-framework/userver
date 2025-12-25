@@ -67,8 +67,7 @@ protected:
     /// that `ack` ever reached the broker (network issues or unexpected shutdown,
     /// for example).
     /// It is however guaranteed for message to be requeued if `Process` fails.
-    virtual void Process(std::string) { /* do nothing */
-    }
+    virtual void Process(std::string) { /* do nothing */ }
 
     /// @brief You may override this method in derived class and implement
     /// message handling logic. By default it just calls `Process(std::string)`

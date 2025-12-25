@@ -18,4 +18,9 @@ if(NOT USERVER_FORCE_DOWNLOAD_FMT)
 endif()
 
 include(DownloadUsingCPM)
-cpmaddpackage(NAME fmt GIT_TAG 11.1.4 GITHUB_REPOSITORY fmtlib/fmt)
+cpmaddpackage(
+    NAME fmt
+    GIT_TAG 11.1.4
+    GIT_SHALLOW TRUE
+    GITHUB_REPOSITORY fmtlib/fmt
+)

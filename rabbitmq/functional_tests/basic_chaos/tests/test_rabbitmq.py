@@ -23,9 +23,9 @@ async def _stop_consumer(service_client):
 async def _publish_message(service_client, message):
     request_str = f'/v1/messages?message={message["message"]}&reliable=1'
     if 'reply_to' in message:
-        request_str = request_str + f'&reply_to={message["reply_to"]}'  # noqa: PLR6104
+        request_str += f'&reply_to={message["reply_to"]}'
     if 'correlation_id' in message:
-        request_str = request_str + f'&correlation_id={message["correlation_id"]}'  # noqa: PLR6104
+        request_str += f'&correlation_id={message["correlation_id"]}'
     response = await service_client.post(
         request_str,
     )

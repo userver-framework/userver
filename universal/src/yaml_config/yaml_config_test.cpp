@@ -354,7 +354,11 @@ TEST(YamlConfig, VariableMap) {
     UEXPECT_THROW(conf["bad_array"].As<std::vector<std::string>>(), yaml_config::Exception);
 
     const std::vector<std::optional<std::string>> expected_vec_miss{
-        std::nullopt, std::optional<std::string>("str333"), std::optional<std::string>("xxx"), std::nullopt};
+        std::nullopt,
+        std::optional<std::string>("str333"),
+        std::optional<std::string>("xxx"),
+        std::nullopt
+    };
     EXPECT_EQ(conf["array_with_missing"].As<std::vector<std::optional<std::string>>>(), expected_vec_miss);
 }
 
@@ -373,7 +377,9 @@ TEST(YamlConfig, NoVariableMap) {
 
     yaml_config::YamlConfig yaml(std::move(node), {}, yaml_config::YamlConfig::Mode::kEnvAndFileAllowed);
     UEXPECT_THROW_MSG(
-        yaml["some_element"]["some"].As<int>(), std::exception, "Error at path 'some_element.some': Field is missing"
+        yaml["some_element"]["some"].As<int>(),
+        std::exception,
+        "Error at path 'some_element.some': Field is missing"
     );
     UEXPECT_THROW_MSG(
         yaml["some_element"]["some2"][2].As<int>(),
@@ -393,7 +399,9 @@ TEST(YamlConfig, NoVariableMap) {
     )");
     yaml = yaml_config::YamlConfig(std::move(node), {}, yaml_config::YamlConfig::Mode::kEnvAndFileAllowed);
     UEXPECT_THROW_MSG(
-        yaml["some_element"]["some"].As<int>(), std::exception, "Error at path 'some_element.some': Field is missing"
+        yaml["some_element"]["some"].As<int>(),
+        std::exception,
+        "Error at path 'some_element.some': Field is missing"
     );
 }
 
@@ -402,7 +410,9 @@ template <typename Accessor>
 class YamlConfigAccessor : public ::testing::Test {};
 
 struct SquareBracketAccessor {
-    explicit SquareBracketAccessor(const yaml_config::YamlConfig& value) : value(value) {}
+    explicit SquareBracketAccessor(const yaml_config::YamlConfig& value)
+        : value(value)
+    {}
 
     template <typename X>
     auto Access(X&& arg) const {
@@ -416,7 +426,9 @@ struct SquareBracketAccessor {
 };
 
 struct IteratorAccessor {
-    explicit IteratorAccessor(const yaml_config::YamlConfig& value) : value(value) {}
+    explicit IteratorAccessor(const yaml_config::YamlConfig& value)
+        : value(value)
+    {}
 
     auto Access(size_t index) const {
         auto it = value.begin();
@@ -501,10 +513,12 @@ TYPED_TEST(YamlConfigAccessor, SquareBracketOperatorArray) {
     EXPECT_TRUE(root_array[1]["miss_val"]["sub_val"].IsMissing());
     EXPECT_TRUE(root_array[1]["miss_val2"]["sub_val"].IsMissing());
     EXPECT_EQ(
-        root_array[1]["miss_val"]["sub_val"].template As<std::optional<std::string>>(), std::optional<std::string>{}
+        root_array[1]["miss_val"]["sub_val"].template As<std::optional<std::string>>(),
+        std::optional<std::string>{}
     );
     EXPECT_EQ(
-        root_array[1]["miss_val2"]["sub_val"].template As<std::optional<std::string>>(), std::optional<std::string>{}
+        root_array[1]["miss_val2"]["sub_val"].template As<std::optional<std::string>>(),
+        std::optional<std::string>{}
     );
     EXPECT_EQ(root_array[1]["miss_val"]["sub_val"].template As<std::optional<std::string>>("def"), "def");
     EXPECT_EQ(root_array[1]["miss_val2"]["sub_val"].template As<std::optional<std::string>>("def"), "def");
@@ -572,7 +586,8 @@ TYPED_TEST(YamlConfigAccessor, SquareBracketOperatorObject) {
     EXPECT_TRUE(root_object["e1"]["miss_val"]["sub_val"].IsMissing());
     EXPECT_TRUE(root_object["e1"]["miss_val2"]["sub_val"].IsMissing());
     EXPECT_EQ(
-        root_object["e1"]["miss_val"]["sub_val"].template As<std::optional<std::string>>(), std::optional<std::string>{}
+        root_object["e1"]["miss_val"]["sub_val"].template As<std::optional<std::string>>(),
+        std::optional<std::string>{}
     );
     EXPECT_EQ(
         root_object["e1"]["miss_val2"]["sub_val"].template As<std::optional<std::string>>(),
@@ -907,18 +922,19 @@ TEST(YamlConfig, DeepYamlToJson) {
 
     formats::json::ValueBuilder expected_json_builder;
     formats::common::SetAtPath(
-        expected_json_builder, std::vector(path), formats::json::ValueBuilder("value").ExtractValue()
+        expected_json_builder,
+        std::vector(path),
+        formats::json::ValueBuilder("value").ExtractValue()
     );
     const auto expected_json = expected_json_builder.ExtractValue();
 
     const yaml_config::YamlConfig yaml{node, {}};
     const auto json = yaml.As<formats::json::Value>();
 
-    EXPECT_EQ(json, expected_json) << "Actual json value:\n"
-                                   << ToString(json) << "\n  actual json depth: " << CountDepth(json)
-                                   << "\n  expected json value:\n"
-                                   << ToString(expected_json)
-                                   << "\n  expected json depth: " << CountDepth(expected_json);
+    EXPECT_EQ(json, expected_json)
+        << "Actual json value:\n"
+        << ToString(json) << "\n  actual json depth: " << CountDepth(json) << "\n  expected json value:\n"
+        << ToString(expected_json) << "\n  expected json depth: " << CountDepth(expected_json);
 }
 
 USERVER_NAMESPACE_END

@@ -27,7 +27,8 @@ public:
     class LimitReachedException final : public std::exception {};
 
     explicit LimitingOutputStream(google::protobuf::io::ArrayOutputStream& output_stream)
-        : output_stream_{output_stream} {}
+        : output_stream_{output_stream}
+    {}
 
     /*
       Might throw `LimitReachedException` on limit reached
@@ -82,7 +83,9 @@ void Print(const google::protobuf::Message& message, google::protobuf::io::ZeroC
 }  // namespace
 
 std::string ToLimitedDebugString(const google::protobuf::Message& message, std::size_t limit) {
-    if (limit == 0) return std::string{kTruncateMarker};
+    if (limit == 0) {
+        return std::string{kTruncateMarker};
+    }
 
     boost::container::small_vector<char, 1024> output_buffer{limit, boost::container::default_init};
     google::protobuf::io::ArrayOutputStream output_stream{output_buffer.data(), utils::numeric_cast<int>(limit)};
@@ -96,11 +99,13 @@ std::string ToLimitedDebugString(const google::protobuf::Message& message, std::
         // to walk the whole message and apply noop printing.
     }
 
-    std::string_view truncated_str =
-        std::string_view{output_buffer.data(), static_cast<std::size_t>(output_stream.ByteCount())};
+    std::string_view
+        truncated_str = std::string_view{output_buffer.data(), static_cast<std::size_t>(output_stream.ByteCount())};
     UASSERT(truncated_str.size() <= limit);
 
-    if (truncated_str.empty()) return std::string{kEmptyMarker};
+    if (truncated_str.empty()) {
+        return std::string{kEmptyMarker};
+    }
 
     if (limiting_output_stream.LimitReached()) {
         if (truncated_str.size() <= kTruncateMarker.size() + kNewLine.size()) {
@@ -119,7 +124,9 @@ std::string ToUnlimitedDebugString(const google::protobuf::Message& message) {
     google::protobuf::io::StringOutputStream output_stream(&result);
     ugrpc::Print(message, output_stream);
     std::string returned_str = std::string(result);
-    if (returned_str.empty()) return std::string{kEmptyMarker};
+    if (returned_str.empty()) {
+        return std::string{kEmptyMarker};
+    }
     return returned_str;
 }
 

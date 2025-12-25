@@ -123,7 +123,8 @@ private:
 TestUpdatesSink::TestUpdatesSink(const components::ComponentConfig& config, const components::ComponentContext& context)
     : components::DynamicConfigUpdatesSinkBase(config, context),
       name_(config.Name()),
-      next_sink_(dynamic_config::FindUpdatesSink(config, context)) {}
+      next_sink_(dynamic_config::FindUpdatesSink(config, context))
+{}
 
 void TestUpdatesSink::SetConfig(std::string_view updater, dynamic_config::DocsMap&& config) {
     auto sinks_chain = config.Get(kUpdatesSinkChainConfigName).As<std::string>();
@@ -165,7 +166,8 @@ public:
 
     ChainVerifier(const components::ComponentConfig& config, const components::ComponentContext& context)
         : components::ComponentBase(config, context),
-          source_(context.FindComponent<components::DynamicConfig>().GetSource()) {}
+          source_(context.FindComponent<components::DynamicConfig>().GetSource())
+    {}
 
     static yaml_config::Schema GetStaticConfigSchema() {
         return yaml_config::MergeSchemas<components::ComponentBase>(R"(
@@ -205,7 +207,8 @@ TEST_F(ComponentList, DynamicConfigUpdatesSink) {
     const std::string static_config = std::string{kStaticConfig} + config_vars_path + '\n';
 
     fs::blocking::RewriteFileContents(
-        config_vars_path, fmt::format(kConfigVarsTemplate, "dynamic-config-test-updates-sink2")
+        config_vars_path,
+        fmt::format(kConfigVarsTemplate, "dynamic-config-test-updates-sink2")
     );
 
     components::RunOnce(components::InMemoryConfig{static_config}, MakeComponentList());
@@ -227,8 +230,9 @@ TEST_F(ComponentList, DynamicConfigUpdatesSinkUsedByMultipleSources) {
         EXPECT_THAT(text, testing::HasSubstr("dynamic-config-test-updates-sink1"));
         EXPECT_THAT(text, testing::HasSubstr("dynamic-config-test-updates-sink2"));
     } catch (...) {
-        ADD_FAILURE() << "expected 'std::runtime_error' but exception of another "
-                         "type is caught";
+        ADD_FAILURE()
+            << "expected 'std::runtime_error' but exception of another "
+               "type is caught";
     }
 }
 

@@ -53,7 +53,8 @@ const std::array<ClientDirectiveTypes, kClientMandatoryDirectivesNumber> kMandat
     ClientDirectiveTypes::kNonce,
     ClientDirectiveTypes::kResponse,
     ClientDirectiveTypes::kUri,
-    ClientDirectiveTypes::kUsername};
+    ClientDirectiveTypes::kUsername
+};
 
 enum class State {
     kStateSpace,
@@ -86,8 +87,9 @@ ContextFromClient Parser::ParseAuthInfo(std::string_view auth_header_value) {
                     state = State::kStateToken;
                 } else if (std::isspace(delimiter)) {
                     // Skip
-                } else
+                } else {
                     throw ParseException("Invalid header format");
+                }
                 break;
 
             case State::kStateToken:
@@ -95,8 +97,9 @@ ContextFromClient Parser::ParseAuthInfo(std::string_view auth_header_value) {
                     state = State::kStateEquals;
                 } else if (std::isalnum(delimiter) || delimiter == '_' || delimiter == '-') {
                     token += delimiter;
-                } else
+                } else {
                     throw ParseException("Invalid header format");
+                }
                 break;
 
             case State::kStateEquals:
@@ -105,8 +108,9 @@ ContextFromClient Parser::ParseAuthInfo(std::string_view auth_header_value) {
                     state = State::kStateValue;
                 } else if (delimiter == '"') {
                     state = State::kStateValueQuoted;
-                } else
+                } else {
                     throw ParseException("Invalid header format");
+                }
                 break;
 
             case State::kStateValueQuoted:
@@ -148,8 +152,9 @@ ContextFromClient Parser::ParseAuthInfo(std::string_view auth_header_value) {
                     state = State::kStateSpace;
                 } else if (std::isspace(delimiter)) {
                     // Skip
-                } else
+                } else {
                     throw ParseException("Invalid header format");
+                }
                 break;
         }
     }
@@ -169,10 +174,12 @@ ContextFromClient Parser::ParseAuthInfo(std::string_view auth_header_value) {
 }
 
 void Parser::PushToClientContext(std::string&& directive, std::string&& value, ContextFromClient& client_context) {
-    const auto directive_type =
-        kClientDirectivesMap.TryFind(std::move(directive)).value_or(ClientDirectiveTypes::kUnknown);
+    const auto
+        directive_type = kClientDirectivesMap.TryFind(std::move(directive)).value_or(ClientDirectiveTypes::kUnknown);
     const auto index = static_cast<std::size_t>(directive_type);
-    if (directive_type != ClientDirectiveTypes::kUnknown) directives_counter_[index]++;
+    if (directive_type != ClientDirectiveTypes::kUnknown) {
+        directives_counter_[index]++;
+    }
     switch (directive_type) {
         case ClientDirectiveTypes::kUsername:
             client_context.username = std::move(value);

@@ -83,7 +83,7 @@ class RefResolver:
                     # an exception will be raised later in sort_dfs()
                     break
                 seen.add(cur_node)
-            local_schema.schema = cur_node
+            local_schema.schema_ = cur_node
             if indirect:
                 local_schema.indirect = indirect
 

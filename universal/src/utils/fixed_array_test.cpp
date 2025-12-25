@@ -11,7 +11,9 @@ TEST(FixedArray, Sample) {
     /// [Sample FixedArray]
     class NonDefaultConstructible final {
     public:
-        explicit NonDefaultConstructible(std::string str) : str_(std::move(str)) {}
+        explicit NonDefaultConstructible(std::string str)
+            : str_(std::move(str))
+        {}
 
         std::string GetString() const { return str_; }
 

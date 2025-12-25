@@ -18,8 +18,6 @@ class Consumer;
 
 }  // namespace impl
 
-// clang-format off
-
 /// @ingroup userver_components
 ///
 /// @brief Apache Kafka Consumer client component.
@@ -35,29 +33,11 @@ class Consumer;
 ///
 /// @snippet samples/kafka_service/testsuite/conftest.py  Kafka service sample - secdist
 ///
-/// ## Static options:
-/// Name                               | Description                                      | Default value
-/// ---------------------------------- | ------------------------------------------------ | ---------------
-/// client_id                          | Client identifier. May be an arbitrary string | userver
-/// group_id                           | consumer group id (name) | --
-/// topics                             | list of topics consumer subscribes | --
-/// max_batch_size                     | maximum number of messages consumer waits for new message before calling a callback | 1
-/// poll_timeout                       | maximum amount of time consumer waits for messages for new messages before calling a callback | 1s
-/// max_callback_duration              | duration user callback must fit not to be kicked from the consumer group | 5m
-/// restart_after_failure_delay        | time consumer suspends execution if user-callback fails | 10s
-/// auto_offset_reset                  | action to take when there is no initial offset in offset store | smallest
-/// env_pod_name                       | environment variable to substitute `{pod_name}` substring in `group_id` | none
-/// security_protocol                  | protocol used to communicate with brokers | --
-/// sasl_mechanisms                    | SASL mechanism to use for authentication | none
-/// ssl_ca_location                    | File or directory path to CA certificate(s) for verifying the broker's key | none
-/// topic_metadata_refresh_interval    | period of time at which topic and broker metadata is refreshed | 5m
-/// metadata_max_age                   | metadata cache max age | 15
-/// rd_kafka_custom_options            | a map of librdkafka library additional options | '{}'
-/// debug_info_log_level               | log level for everything debug information | debug
-/// operation_log_level                | log level for infos about ordinary actions | info
-
-// clang-format on
-
+/// ## Static options of kafka::ConsumerComponent :
+/// @include{doc} scripts/docs/en/components_schema/kafka/src/kafka/consumer_component.md
+///
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
 class ConsumerComponent final : public components::ComponentBase {
 public:
     /// @ingroup userver_component_names

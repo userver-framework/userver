@@ -151,9 +151,9 @@ const io::TypeBufferCategory& UserTypes::GetTypeBufferCategories() const { retur
 
 void UserTypes::AddType(DBTypeDescription&& desc) {
     auto oid = desc.oid;
-    LOG_TRACE() << "User type " << oid << " " << desc.schema << "." << desc.name
-                << " class: " << static_cast<char>(desc.type_class)
-                << " category: " << static_cast<char>(desc.category);
+    LOG_TRACE()
+        << "User type " << oid << " " << desc.schema << "." << desc.name
+        << " class: " << static_cast<char>(desc.type_class) << " category: " << static_cast<char>(desc.category);
 
     if (auto ins = types_.insert(std::move(desc)); ins.second) {
         by_oid_.insert(std::make_pair(oid, ins.first));
@@ -201,7 +201,8 @@ const CompositeTypeDescription& UserTypes::GetCompositeDescription(Oid oid) cons
 
     throw UserTypeError{
         "Composite type description for oid " + std::to_string(oid) +
-        " not found. Forgot a migration or rolled it after the service started?"};
+        " not found. Forgot a migration or rolled it after the service started?"
+    };
 }
 
 const DBTypeDescription* UserTypes::GetTypeDescription(Oid oid) const {
@@ -214,7 +215,8 @@ void UserTypes::CheckRegisteredTypes() const {
         auto it = by_name_.find(pg_name);
         if (it == by_name_.end()) {
             throw UserTypeError{
-                fmt::format("Registered user type {}.{} not found. Forgot a migration?", pg_name.schema, pg_name.name)};
+                fmt::format("Registered user type {}.{} not found. Forgot a migration?", pg_name.schema, pg_name.name)
+            };
         }
     }
 }

@@ -1,4 +1,4 @@
-from proto_schema_parser import ast  # noqa: I001
+from proto_schema_parser import ast
 from proto_schema_parser import parser
 from proto_structs.ast import includes_collection
 import pytest

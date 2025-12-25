@@ -12,11 +12,12 @@ USERVER_NAMESPACE_BEGIN
 
 namespace {
 
-class ClientMiddlewaresHooksTest : public tests::MiddlewaresFixture<
-                                       tests::client::ClientMiddlewareBaseMock,
-                                       ::testing::NiceMock<tests::UnitTestServiceGmock>,
-                                       sample::ugrpc::UnitTestServiceClient,
-                                       /*N=*/1> {
+class ClientMiddlewaresHooksTest
+    : public tests::MiddlewaresFixture<
+          tests::client::ClientMiddlewareBaseMock,
+          ::testing::NiceMock<tests::UnitTestServiceGmock>,
+          sample::ugrpc::UnitTestServiceClient,
+          /*N=*/1> {
 public:
     using CallContext = ugrpc::server::CallContext;
 
@@ -61,11 +62,12 @@ protected:
 
     void SetHappyPathServerStreaming() {
         SetServerStreaming([](CallContext&, StreamRequest&& request, Writer& writer) -> ServerStreamingResult {
-            StreamResponse response;
-            response.set_name("Hello again " + request.name());
+            const std::string response_name = "Hello again " + request.name();
             for (int i = 0; i < request.number(); ++i) {
+                StreamResponse response;
+                response.set_name(response_name);
                 response.set_number(i);
-                writer.Write(response);
+                writer.Write(std::move(response));
             }
 
             return grpc::Status::OK;
@@ -91,14 +93,14 @@ protected:
     void SetHappyPathBidirectionalStreaming() {
         SetBidirectionalStreaming([](CallContext&, ReaderWriter& stream) -> BidirectionalStreamingResult {
             StreamRequest request;
-            StreamResponse response;
 
             int count = 0;
             while (stream.Read(request)) {
+                StreamResponse response;
                 ++count;
                 response.set_number(count);
                 response.set_name("Hello " + request.name());
-                stream.Write(response);
+                stream.Write(std::move(response));
             }
             return grpc::Status::OK;
         });
@@ -665,7 +667,7 @@ UTEST_F(ClientMiddlewaresHooksTest, BadStatusServerStreaming) {
     SetServerStreaming([&wait_read](CallContext&, StreamRequest&& request, Writer& writer) -> ServerStreamingResult {
         StreamResponse response;
         response.set_name("Hello again " + request.name());
-        writer.Write(response);
+        writer.Write(std::move(response));
 
         wait_read.Wait();
 
@@ -700,7 +702,7 @@ UTEST_F(ClientMiddlewaresHooksTest, BadStatusBidirectionalStreaming) {
         StreamResponse response;
         response.set_number(0);
         response.set_name("Hello " + request.name());
-        stream.Write(response);
+        stream.Write(std::move(response));
 
         wait_read.Wait();
 

@@ -59,8 +59,8 @@ AccumulatedData operator-(const AccumulatedData& lhs, const AccumulatedData& rhs
     return result;
 }
 
-AccumulatedDataByCollection
-operator-(const AccumulatedDataByCollection& lhs, const AccumulatedDataByCollection& rhs) noexcept {
+AccumulatedDataByCollection operator-(const AccumulatedDataByCollection& lhs, const AccumulatedDataByCollection& rhs)
+    noexcept {
     AccumulatedDataByCollection result;
     for (const auto& [coll, data] : lhs) {
         if (rhs.count(coll) > 0) {
@@ -77,7 +77,9 @@ operator-(const AccumulatedDataByCollection& lhs, const AccumulatedDataByCollect
     return result;
 }
 
-Sensor::Sensor(impl::PoolImpl& pool) : pool_(pool) {}
+Sensor::Sensor(impl::PoolImpl& pool)
+    : pool_(pool)
+{}
 
 Sensor::Data Sensor::GetCurrent() {
     const auto& stats = pool_.GetStatistics();

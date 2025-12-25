@@ -18,7 +18,8 @@ SubscriptionRebalanceScheduler::SubscriptionRebalanceScheduler(
     : thread_control_(thread_pool.NextThread()),
       storage_(storage),
       shard_idx_(shard_idx),
-      rebalance_min_interval_{kRebalanceMinIntervalDefault} {
+      rebalance_min_interval_{kRebalanceMinIntervalDefault}
+{
     timer_.data = this;
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
     ev_timer_init(&timer_, OnTimer, 0.0, 0.0);

@@ -103,7 +103,9 @@ UTEST(Rcu, ReadCommitted) {
 template <typename Tag>
 struct Counted {
     Counted() { counter++; }
-    Counted(const Counted&) : Counted() {}
+    Counted(const Counted&)
+        : Counted()
+    {}
     Counted(Counted&&) = delete;
 
     ~Counted() { counter--; }
@@ -217,7 +219,10 @@ UTEST(Rcu, ReadablePtrMoveAssign) {
 
 UTEST(Rcu, NoCopy) {
     struct X {
-        X(int x, bool y) : x(x), y(y) {}
+        X(int x, bool y)
+            : x(x),
+              y(y)
+        {}
 
         X(X&&) = default;
         X(const X&) = delete;
@@ -397,7 +402,9 @@ namespace {
 struct CleaningUpInt final {
     std::uint64_t value;
 
-    explicit CleaningUpInt(std::uint64_t value) : value(value) {}
+    explicit CleaningUpInt(std::uint64_t value)
+        : value(value)
+    {}
     ~CleaningUpInt() { value = 0; }
 };
 
@@ -487,7 +494,9 @@ namespace {
 
 class DestructionTracker final {
 public:
-    explicit DestructionTracker(std::atomic<bool>& destroyed) : destroyed_(destroyed) {}
+    explicit DestructionTracker(std::atomic<bool>& destroyed)
+        : destroyed_(destroyed)
+    {}
 
     ~DestructionTracker() { destroyed_.store(true); }
 
@@ -567,7 +576,9 @@ UTEST_MT(Rcu, Core, 3) {
             }
         }));
 
-        for (auto& task : tasks) task.Get();
+        for (auto& task : tasks) {
+            task.Get();
+        }
     }
 }
 
@@ -630,7 +641,9 @@ namespace {
 
 struct ThrowsOnZero final {
     explicit ThrowsOnZero(int x) {
-        if (x == 0) throw std::runtime_error("Zero");
+        if (x == 0) {
+            throw std::runtime_error("Zero");
+        }
     }
 };
 

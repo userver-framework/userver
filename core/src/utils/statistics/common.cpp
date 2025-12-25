@@ -13,8 +13,12 @@ std::string DurationToString(seconds duration) {
 
     std::string result;
 
-    if (min.count()) result = std::to_string(min.count()) + "min";
-    if (sec.count()) result += std::to_string(sec.count()) + "sec";
+    if (min.count()) {
+        result = std::to_string(min.count()) + "min";
+    }
+    if (sec.count()) {
+        result += std::to_string(sec.count()) + "sec";
+    }
 
     return result;
 }

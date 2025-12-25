@@ -13,6 +13,7 @@
 
 #include <userver/clients/dns/component.hpp>
 #include <userver/clients/http/component.hpp>
+#include <userver/clients/http/middlewares/pipeline_component.hpp>
 #include <userver/components/component_context.hpp>
 #include <userver/components/minimal_server_component_list.hpp>
 #include <userver/components/run.hpp>
@@ -60,7 +61,8 @@ constexpr std::string_view kConfigLoggingTemplate = R"~(
 constexpr std::string_view kConfigHandlerTemplate{
     "path: {0}                  # Registering handler by URL '{0}'.\n"
     "method: {1}\n"
-    "task_processor: main-task-processor  # Run it on CPU bound task processor\n"};
+    "task_processor: main-task-processor  # Run it on CPU bound task processor\n"
+};
 
 struct SharedPyaload {
     std::unordered_map<std::string, HttpBase::Callback> http_functions;
@@ -83,7 +85,8 @@ public:
     Handle(const components::ComponentConfig& config, const components::ComponentContext& context)
         : HttpHandlerBase(config, context),
           deps_{context.FindComponent<impl::DependenciesBase>()},
-          callback_{globals.http_functions.at(config.Name())} {}
+          callback_{globals.http_functions.at(config.Name())}
+    {}
 
     std::string HandleRequestThrow(const server::http::HttpRequest& request, server::request::RequestContext&)
         const override {
@@ -102,7 +105,8 @@ HttpBase::HttpBase(int argc, const char* const argv[])
     : argc_{argc},
       argv_{argv},
       static_config_{kConfigBase},
-      component_list_{components::MinimalServerComponentList()} {}
+      component_list_{components::MinimalServerComponentList()}
+{}
 
 HttpBase::~HttpBase() {
     static_config_.append(fmt::format(kConfigServerTemplate, port_));
@@ -190,7 +194,8 @@ void HttpBase::Port(std::uint16_t port) { port_ = port; }
 void HttpBase::LogLevel(logging::Level level) { level_ = level; }
 
 PgDep::PgDep(const components::ComponentContext& context)
-    : pg_cluster_(context.FindComponent<components::Postgres>("postgres").GetCluster()) {
+    : pg_cluster_(context.FindComponent<components::Postgres>("postgres").GetCluster())
+{
     const auto& db_schema = HttpBase::GetDbSchema();
     if (!db_schema.empty()) {
         pg_cluster_->Execute(storages::postgres::ClusterHostType::kMaster, db_schema);
@@ -207,13 +212,13 @@ void PgDep::RegisterOn(HttpBase& app) {
     );
 
     app.TryAddComponent<components::TestsuiteSupport>(components::TestsuiteSupport::kName, "");
-    app.TryAddComponent<clients::dns::Component>(
-        clients::dns::Component::kName, "fs-task-processor: fs-task-processor"
-    );
+    app.TryAddComponent<
+        clients::dns::Component>(clients::dns::Component::kName, "fs-task-processor: fs-task-processor");
 }
 
 HttpDep::HttpDep(const components::ComponentContext& context)
-    : http_(context.FindComponent<components::HttpClient>().GetHttpClient()) {}
+    : http_(context.FindComponent<components::HttpClient>().GetHttpClient())
+{}
 
 void HttpDep::RegisterOn(easy::HttpBase& app) {
     app.TryAddComponent<components::HttpClientCore>(
@@ -223,8 +228,11 @@ void HttpDep::RegisterOn(easy::HttpBase& app) {
         "threads: 2\n"
         "fs-task-processor: fs-task-processor\n"
     );
+    app.TryAddComponent<
+        clients::http::MiddlewarePipelineComponent>(clients::http::MiddlewarePipelineComponent::kName, "");
     app.TryAddComponent<components::HttpClient>(
-        components::HttpClient::kName, fmt::format("core-component: {}\n", components::HttpClientCore::kName)
+        components::HttpClient::kName,
+        fmt::format("core-component: {}\n", components::HttpClientCore::kName)
     );
 }
 

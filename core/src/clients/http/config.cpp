@@ -20,7 +20,9 @@ void ParseTokenBucketSettings(
     std::optional<int> per_second_value
 ) {
     limit = limit_value.value_or(impl::ThrottleConfig::kNoLimit);
-    if (limit == 0) limit = impl::ThrottleConfig::kNoLimit;
+    if (limit == 0) {
+        limit = impl::ThrottleConfig::kNoLimit;
+    }
 
     if (limit != impl::ThrottleConfig::kNoLimit) {
         const auto per_second = per_second_value.value_or(0);
@@ -56,13 +58,22 @@ namespace clients::http::impl {
 ThrottleConfig Parse(const ::dynamic_config::http_client_connect_throttle::VariableType& value) {
     ThrottleConfig result;
     ParseTokenBucketSettings(
-        result.http_connect_limit, result.http_connect_rate, value.http_limit, value.http_per_second
+        result.http_connect_limit,
+        result.http_connect_rate,
+        value.http_limit,
+        value.http_per_second
     );
     ParseTokenBucketSettings(
-        result.https_connect_limit, result.https_connect_rate, value.https_limit, value.https_per_second
+        result.https_connect_limit,
+        result.https_connect_rate,
+        value.https_limit,
+        value.https_per_second
     );
     ParseTokenBucketSettings(
-        result.per_host_connect_limit, result.per_host_connect_rate, value.per_host_limit, value.per_host_per_second
+        result.per_host_connect_limit,
+        result.per_host_connect_rate,
+        value.per_host_limit,
+        value.per_host_per_second
     );
     return result;
 }

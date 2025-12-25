@@ -4,7 +4,7 @@
 #include <vector>
 
 #include <userver/clients/dns/component.hpp>
-#include <userver/clients/http/component.hpp>
+#include <userver/clients/http/component_list.hpp>
 #include <userver/components/component_context.hpp>
 #include <userver/components/minimal_server_component_list.hpp>
 #include <userver/concurrent/variable.hpp>
@@ -28,7 +28,8 @@ public:
 
     MyRabbitProducer(const components::ComponentConfig& config, const components::ComponentContext& context)
         : components::LoggableComponentBase{config, context},
-          client_{context.FindComponent<components::RabbitMQ>(config["rabbit_name"].As<std::string>()).GetClient()} {
+          client_{context.FindComponent<components::RabbitMQ>(config["rabbit_name"].As<std::string>()).GetClient()}
+    {
         const auto setup_deadline = engine::Deadline::FromDuration(std::chrono::seconds{2});
 
         auto admin_channel = client_->GetAdminChannel(setup_deadline);
@@ -48,7 +49,10 @@ public:
     void Publish(const std::string& message) {
         const urabbitmq::Envelope envelope{message, urabbitmq::MessageType::kTransient, {}, {}, {}};
         client_->PublishReliable(
-            exchange_, routing_key_, envelope, engine::Deadline::FromDuration(std::chrono::seconds{2})
+            exchange_,
+            routing_key_,
+            envelope,
+            engine::Deadline::FromDuration(std::chrono::seconds{2})
         );
     }
 
@@ -77,7 +81,8 @@ public:
     static constexpr std::string_view kName{"my-consumer"};
 
     MyRabbitConsumer(const components::ComponentConfig& config, const components::ComponentContext& context)
-        : urabbitmq::ConsumerComponentBase{config, context} {}
+        : urabbitmq::ConsumerComponentBase{config, context}
+    {}
 
     std::vector<int> GetConsumedMessages() {
         auto storage = storage_.Lock();
@@ -111,13 +116,14 @@ public:
     RequestHandler(const components::ComponentConfig& config, const components::ComponentContext& context)
         : server::handlers::HttpHandlerJsonBase{config, context},
           my_producer_{context.FindComponent<MyRabbitProducer>()},
-          my_consumer_{context.FindComponent<MyRabbitConsumer>()} {}
+          my_consumer_{context.FindComponent<MyRabbitConsumer>()}
+    {}
 
     ~RequestHandler() override = default;
 
     formats::json::Value
-    HandleRequestJsonThrow(const server::http::HttpRequest& request, const formats::json::Value& request_json, server::request::RequestContext&)
-        const override {
+    HandleRequestJsonThrow(const server::http::HttpRequest& request, const formats::json::Value& request_json, server::request::RequestContext&) const
+        override {
         request.GetHttpResponse().SetContentType(http::content_type::kApplicationJson);
         if (request.GetMethod() == server::http::HttpMethod::kGet) {
             formats::json::ValueBuilder builder{formats::json::Type::kObject};
@@ -144,18 +150,18 @@ private:
 }  // namespace samples::amqp
 
 int main(int argc, char* argv[]) {
-    const auto components_list = components::MinimalServerComponentList()
-                                     .Append<components::RabbitMQ>("my-rabbit")
-                                     .Append<samples::amqp::MyRabbitProducer>()
-                                     .Append<samples::amqp::MyRabbitConsumer>()
-                                     .Append<samples::amqp::RequestHandler>()
-                                     .Append<clients::dns::Component>()
-                                     .Append<components::Secdist>()
-                                     .Append<components::DefaultSecdistProvider>()
-                                     .Append<components::TestsuiteSupport>()
-                                     .Append<server::handlers::TestsControl>()
-                                     .Append<components::HttpClientCore>()
-                                     .Append<components::HttpClient>();
+    const auto components_list =
+        components::MinimalServerComponentList()
+            .Append<components::RabbitMQ>("my-rabbit")
+            .Append<samples::amqp::MyRabbitProducer>()
+            .Append<samples::amqp::MyRabbitConsumer>()
+            .Append<samples::amqp::RequestHandler>()
+            .Append<clients::dns::Component>()
+            .Append<components::Secdist>()
+            .Append<components::DefaultSecdistProvider>()
+            .Append<components::TestsuiteSupport>()
+            .Append<server::handlers::TestsControl>()
+            .AppendComponentList(clients::http::ComponentList());
 
     return utils::DaemonMain(argc, argv, components_list);
 }

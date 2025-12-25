@@ -54,6 +54,6 @@ def _split_rpc_name(rpc_name: str) -> tuple[str, str]:
     results = normalized.split('/')
     if len(results) != 2:
         raise ValueError(
-            f'Invalid RPC name: "{rpc_name}". RPC name must be of the form "with.package.ServiceName/MethodName"'  # noqa: COM812
+            f'Invalid RPC name: "{rpc_name}". RPC name must be of the form "with.package.ServiceName/MethodName"',
         )
     return results

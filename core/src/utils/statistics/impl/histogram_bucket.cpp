@@ -12,7 +12,9 @@ Bucket::Bucket(const Bucket& other) noexcept
       sum(other.sum.load(std::memory_order_relaxed)) {}
 
 Bucket& Bucket::operator=(const Bucket& other) noexcept {
-    if (this == &other) return *this;
+    if (this == &other) {
+        return *this;
+    }
     upper_bound = other.upper_bound;
     counter.store(other.counter.load(std::memory_order_relaxed), std::memory_order_relaxed);
     sum.store(other.sum.load(std::memory_order_relaxed), std::memory_order_relaxed);

@@ -1,7 +1,7 @@
 #include <userver/utest/using_namespace_userver.hpp>
 
 #include <userver/clients/dns/component.hpp>
-#include <userver/clients/http/component.hpp>
+#include <userver/clients/http/component_list.hpp>
 #include <userver/components/minimal_server_component_list.hpp>
 #include <userver/congestion_control/component.hpp>
 #include <userver/server/handlers/ping.hpp>
@@ -17,8 +17,7 @@ int main(int argc, char* argv[]) {
         // userver components
         components::MinimalServerComponentList()
             .Append<clients::dns::Component>()
-            .Append<components::HttpClientCore>()
-            .Append<components::HttpClient>()
+            .AppendComponentList(clients::http::ComponentList())
             .Append<congestion_control::Component>()
             .Append<server::handlers::Ping>()
             .Append<server::handlers::TestsControl>()

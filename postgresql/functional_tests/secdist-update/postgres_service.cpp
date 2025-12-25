@@ -3,7 +3,7 @@
 
 #include <userver/utest/using_namespace_userver.hpp>
 
-#include <userver/clients/http/component.hpp>
+#include <userver/clients/http/component_list.hpp>
 #include <userver/components/component.hpp>
 #include <userver/components/minimal_server_component_list.hpp>
 #include <userver/dynamic_config/client/component.hpp>
@@ -47,7 +47,8 @@ private:
 
 PostgresHandler::PostgresHandler(const components::ComponentConfig& config, const components::ComponentContext& context)
     : HttpHandlerBase(config, context),
-      pg_cluster_(context.FindComponent<components::Postgres>("key-value-database").GetCluster()) {}
+      pg_cluster_(context.FindComponent<components::Postgres>("key-value-database").GetCluster())
+{}
 
 std::string PostgresHandler::HandleRequestThrow(const server::http::HttpRequest&, server::request::RequestContext&)
     const {
@@ -68,15 +69,15 @@ std::string PostgresHandler::HandleRequestThrow(const server::http::HttpRequest&
 }  // namespace chaos
 
 int main(int argc, char* argv[]) {
-    const auto component_list = components::MinimalServerComponentList()
-                                    .Append<components::Secdist>()
-                                    .Append<components::DefaultSecdistProvider>()
-                                    .Append<chaos::PostgresHandler>()
-                                    .Append<components::HttpClientCore>()
-                                    .Append<components::HttpClient>()
-                                    .Append<components::Postgres>("key-value-database")
-                                    .Append<components::TestsuiteSupport>()
-                                    .Append<server::handlers::TestsControl>()
-                                    .Append<clients::dns::Component>();
+    const auto component_list =
+        components::MinimalServerComponentList()
+            .Append<components::Secdist>()
+            .Append<components::DefaultSecdistProvider>()
+            .Append<chaos::PostgresHandler>()
+            .AppendComponentList(clients::http::ComponentList())
+            .Append<components::Postgres>("key-value-database")
+            .Append<components::TestsuiteSupport>()
+            .Append<server::handlers::TestsControl>()
+            .Append<clients::dns::Component>();
     return utils::DaemonMain(argc, argv, component_list);
 }

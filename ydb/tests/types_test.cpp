@@ -163,7 +163,9 @@ UTEST_F(TTypesYdbTestCase, ResponseValueType) {
         AssertNullableColumn(row, "value_uuid", uuid_val);
         AssertNullableColumn(row, "value_json", formats::json::FromString(R"({"qwe": "asd", "zxc": 123})"));
         AssertNullableColumn(
-            row, "value_json_doc", ydb::JsonDocument(formats::json::FromString(R"({"qwe":123,"zxc":"asd"})"))
+            row,
+            "value_json_doc",
+            ydb::JsonDocument(formats::json::FromString(R"({"qwe":123,"zxc":"asd"})"))
         );
     }
 }
@@ -223,7 +225,10 @@ UTEST_F(TTypesYdbTestCase, PreparedRequestType) {
     DoTestPreparedRequestType(GetTableClient(), "String", "value_str", std::string{"str"});
     DoTestPreparedRequestType(GetTableClient(), "Utf8", "value_utf8", ydb::Utf8{"utf8"});
     DoTestPreparedRequestType(
-        GetTableClient(), "Timestamp", "value_ts", std::chrono::system_clock::time_point{std::chrono::microseconds{123}}
+        GetTableClient(),
+        "Timestamp",
+        "value_ts",
+        std::chrono::system_clock::time_point{std::chrono::microseconds{123}}
     );
     DoTestPreparedRequestType(GetTableClient(), "Uuid", "value_uuid", uuid_val);
 }
@@ -545,7 +550,9 @@ UTEST_F(TTypesYdbTestCase, PreparedStructUpsertNullableTypes) {
         ydb::InsertColumn{"value_str", std::optional{std::string("string")}},
         ydb::InsertColumn{"value_utf8", std::optional{ydb::Utf8{"utf8"}}},
         ydb::InsertColumn{
-            "value_ts", std::optional{std::chrono::system_clock::time_point{std::chrono::microseconds{12345}}}},
+            "value_ts",
+            std::optional{std::chrono::system_clock::time_point{std::chrono::microseconds{12345}}}
+        },
     };
     std::vector<ydb::InsertRow> rows{row};
     UASSERT_NO_THROW(builder.Add("$items", rows));
@@ -724,7 +731,8 @@ UTEST_F(TTypesYdbTestCase, PreparedUpsertNullStructTypes) {
         ydb::InsertColumn{"value_double", std::optional<double>{}},
         ydb::InsertColumn{"value_str", std::optional<std::string>{}},
         ydb::InsertColumn{"value_utf8", std::optional<ydb::Utf8>{}},
-        ydb::InsertColumn{"value_ts", std::optional<std::chrono::system_clock::time_point>{}}};
+        ydb::InsertColumn{"value_ts", std::optional<std::chrono::system_clock::time_point>{}}
+    };
 
     std::vector<ydb::InsertRow> rows{row};
     UASSERT_NO_THROW(builder.Add("$items", rows));

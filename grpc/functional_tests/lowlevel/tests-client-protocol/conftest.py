@@ -31,7 +31,7 @@ def _retry_policy(_default_service_config) -> dict[str, Any]:
 @pytest.fixture(scope='session')
 def _default_service_config(service_config) -> dict[str, Any]:
     return json.loads(
-        service_config['components_manager']['components']['grpc-client-factory']['default-service-config']  # noqa: COM812
+        service_config['components_manager']['components']['grpc-client-factory']['default-service-config'],
     )
 
 

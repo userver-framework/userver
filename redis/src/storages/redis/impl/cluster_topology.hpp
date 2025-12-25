@@ -84,8 +84,11 @@ public:
 
     void GetStatistics(const MetricsSettings& settings, SentinelStatistics& stats) const;
 
-    std::unordered_map<ServerId, size_t, ServerIdHasher>
-    GetAvailableServersWeighted(size_t shard_idx, bool with_master, const CommandControl& cc) const;
+    std::unordered_map<ServerId, size_t, ServerIdHasher> GetAvailableServersWeighted(
+        size_t shard_idx,
+        bool with_master,
+        const CommandControl& cc
+    ) const;
 
 private:
     ClusterShardHostInfos infos_;

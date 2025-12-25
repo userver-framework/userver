@@ -23,7 +23,8 @@ public:
 
     KeyValue(const components::ComponentConfig& config, const components::ComponentContext& context)
         : HttpHandlerBase(config, context),
-          sqlite_client_(context.FindComponent<components::SQLite>("key-value-database").GetClient()) {
+          sqlite_client_(context.FindComponent<components::SQLite>("key-value-database").GetClient())
+    {
         sqlite_client_->Execute(storages::sqlite::OperationType::kReadWrite, db::sql::kCreateTable.data());
     }
 
@@ -45,7 +46,8 @@ public:
                 return UpdateValue(key, request);
             default:
                 throw server::handlers::ClientError(server::handlers::ExternalBody{
-                    fmt::format("Unsupported method {}", request.GetMethod())});
+                    fmt::format("Unsupported method {}", request.GetMethod())
+                });
         }
     }
 
@@ -65,8 +67,8 @@ private:
     std::string PostValue(std::string_view key, const server::http::HttpRequest& request) const {
         const auto& value = request.GetArg("value");
 
-        storages::sqlite::Transaction transaction =
-            sqlite_client_->Begin(storages::sqlite::OperationType::kReadWrite, {});
+        storages::sqlite::Transaction
+            transaction = sqlite_client_->Begin(storages::sqlite::OperationType::kReadWrite, {});
 
         auto res = transaction.Execute(db::sql::kInsertKeyValue.data(), key, value).AsExecutionResult();
         if (res.rows_affected) {
@@ -89,7 +91,8 @@ private:
         using storages::sqlite::settings::TransactionOptions;
 
         storages::sqlite::Transaction transaction = sqlite_client_->Begin(
-            storages::sqlite::OperationType::kReadWrite, TransactionOptions{TransactionOptions::LockingMode::kImmediate}
+            storages::sqlite::OperationType::kReadWrite,
+            TransactionOptions{TransactionOptions::LockingMode::kImmediate}
         );
 
         auto res = transaction.Execute(db::sql::kUpdateKeyValue.data(), value, key).AsExecutionResult();

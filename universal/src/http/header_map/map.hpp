@@ -75,8 +75,11 @@ public:
     enum class InsertOrModifyOccupiedAction { kAppend, kReplace, kNoop, kAssert };
 
     Iterator InsertOrModify(MaybeOwnedKey key, std::string&& value, InsertOrModifyOccupiedAction occupied_action);
-    Iterator
-    InsertOrModify(const PredefinedHeader& header, std::string&& value, InsertOrModifyOccupiedAction occupied_action);
+    Iterator InsertOrModify(
+        const PredefinedHeader& header,
+        std::string&& value,
+        InsertOrModifyOccupiedAction occupied_action
+    );
 
     Iterator Erase(std::string_view key);
     Iterator Erase(const PredefinedHeader& header);

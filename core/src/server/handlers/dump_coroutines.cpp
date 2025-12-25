@@ -15,7 +15,8 @@ DumpCoroutines::DumpCoroutines(
     const components::ComponentConfig& config,
     const components::ComponentContext& component_context
 )
-    : HttpHandlerJsonBase(config, component_context, true) {
+    : HttpHandlerJsonBase(config, component_context, true)
+{
     impl_->trace_plugin = &engine::current_task::GetTaskProcessor().GetTracePlugin();
 }
 

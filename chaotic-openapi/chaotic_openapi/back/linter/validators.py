@@ -1,4 +1,4 @@
-import sys  # noqa: I001
+import sys
 
 from chaotic.front import types
 from chaotic_openapi.front import model
@@ -17,7 +17,7 @@ def validate(service: model.Service) -> None:
 
 def validate_nonobject_body(service: model.Service) -> None:
     for operation in service.operations:
-        for content_type, body in operation.requestBody.items():  # noqa: PERF102
+        for body in operation.requestBody.values():
             if isinstance(body, types.Ref):
                 schema = service.schemas[body.ref]
             else:
@@ -25,7 +25,7 @@ def validate_nonobject_body(service: model.Service) -> None:
 
             if not isinstance(
                 schema,
-                (types.SchemaObject, types.OneOfWithDiscriminator, types.OneOfWithoutDiscriminator),  # noqa: COM812
+                (types.SchemaObject, types.OneOfWithDiscriminator, types.OneOfWithoutDiscriminator),
             ):
                 report_error('non-object-body', schema.source_location(), 'Non-object type in body root is forbidden')
 
@@ -44,11 +44,11 @@ def validate_dash_in_field_name(service: model.Service) -> None:
                 report_error(
                     'dash-in-field-name',
                     child.source_location(),
-                    'Dash in field name is useless for JS/Typescript',  # noqa: COM812
+                    'Dash in field name is useless for JS/Typescript',
                 )
 
     for operation in service.operations:
-        for content_type, body in operation.requestBody.items():  # noqa: PERF102
+        for body in operation.requestBody.values():
             if isinstance(body, types.Ref):
                 schema = service.schemas[body.ref]
             else:

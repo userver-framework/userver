@@ -18,7 +18,8 @@ struct SpanWrapCall::Impl {
 };
 
 SpanWrapCall::Impl::Impl(std::string&& name, InheritVariables inherit_variables, const SourceLocation& location)
-    : span(std::move(name), tracing::InPlaceSpan::DetachedTag{}, location) {
+    : span(std::move(name), tracing::InPlaceSpan::DetachedTag{}, location)
+{
     if (!engine::current_task::IsTaskProcessorThread()) {
         return;
     }
@@ -35,7 +36,8 @@ SpanWrapCall::SpanWrapCall(
     const SourceLocation& location,
     HideSpan hide_span
 )
-    : pimpl_(std::move(name), inherit_variables, location) {
+    : pimpl_(std::move(name), inherit_variables, location)
+{
     if (hide_span == HideSpan::kYes) {
         pimpl_->span.Get().SetLogLevel(logging::Level::kNone);
     }

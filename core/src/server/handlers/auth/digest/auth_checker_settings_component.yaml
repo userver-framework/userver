@@ -1,0 +1,34 @@
+type: object
+description: settings for digest authentication
+additionalProperties: false
+properties:
+    algorithm:
+        type: string
+        description: algorithm for hashing nonce
+        default: sha256
+    domains:
+        type: array
+        description: domains for use
+        default: "['/']"
+        items:
+            type: string
+            description: domain name
+    qops:
+        type: array
+        description: qop-options
+        default: "['auth']"
+        items:
+            type: string
+            description: qop name
+    is-proxy:
+        type: boolean
+        description: if set, the Proxy prefix is inserted into the header
+        default: false
+    is-session:
+        type: boolean
+        description: enable sessions
+        default: false
+    nonce-ttl:
+        type: string
+        description: ttl for nonce
+        default: 10s

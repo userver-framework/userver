@@ -27,7 +27,9 @@ namespace concurrent::impl {
 
 class Latch final {
 public:
-    inline explicit Latch(std::ptrdiff_t expected) : expected_(expected) {}
+    inline explicit Latch(std::ptrdiff_t expected)
+        : expected_(expected)
+    {}
 
     inline void count_down() {
         std::unique_lock lk{mtx_};

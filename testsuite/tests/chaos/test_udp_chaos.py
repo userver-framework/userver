@@ -22,7 +22,7 @@ async def _assert_receive_timeout(sock: AsyncioSocket) -> None:
     try:
         data = await sock.recv(RECV_MAX_SIZE, timeout=_NOTICEABLE_DELAY)
         assert not data
-    except asyncio.TimeoutError:  # noqa: UP041
+    except asyncio.TimeoutError:
         pass
 
 
@@ -48,7 +48,7 @@ class UdpServer:
         return addr
 
 
-@pytest.fixture(name='udp_server', scope='function')  # noqa: PT003
+@pytest.fixture(name='udp_server')
 async def _server(make_socket):
     sock = make_socket()
     sock.bind(('127.0.0.1', 0))
@@ -58,7 +58,7 @@ async def _server(make_socket):
         sock.close()
 
 
-@pytest.fixture(name='gate', scope='function')  # noqa: PT003
+@pytest.fixture(name='gate')
 async def _gate(udp_server):
     gate_config = chaos.GateRoute(
         name='udp proxy',

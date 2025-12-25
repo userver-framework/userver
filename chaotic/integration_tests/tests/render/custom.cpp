@@ -90,7 +90,8 @@ TEST(Custom, OneOf) {
 
 TEST(Custom, OneOfWithDiscriminator) {
     auto json = formats::json::MakeObject(
-        "oneOfWithDiscriminator", formats::json::MakeObject("type", "CustomStruct1", "field1", 3)
+        "oneOfWithDiscriminator",
+        formats::json::MakeObject("type", "CustomStruct1", "field1", 3)
     );
     auto custom = json.As<ns::ObjWithCustom>();
     EXPECT_EQ(custom.oneOfWithDiscriminator, my::CustomOneOfWithDiscriminator(3));

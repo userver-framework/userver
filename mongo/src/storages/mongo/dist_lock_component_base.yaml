@@ -1,0 +1,26 @@
+type: object
+description: Base class for mongo-based distlock worker components
+additionalProperties: false
+properties:
+    lockname:
+        type: string
+        description: name of the lock
+    lock-ttl:
+        type: string
+        description: TTL of the lock; must be at least as long as the duration between
+            subsequent cancellation checks, otherwise brain split is possible
+    mongo-timeout:
+        type: string
+        description: timeout, must be at least 2*lock-ttl
+    restart-delay:
+        type: string
+        description: how much time to wait after failed task restart
+        default: 100ms
+    task-processor:
+        type: string
+        description: the name of the TaskProcessor for running DoWork
+        default: main-task-processor
+    testsuite-support:
+        type: boolean
+        description: Enable testsuite support
+        default: false

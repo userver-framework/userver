@@ -15,14 +15,15 @@
 
 /// [Register middlewares]
 int main(int argc, const char* const argv[]) {
-    const auto component_list = components::MinimalServerComponentList()
-                                    .Append<congestion_control::Component>()
-                                    .AppendComponentList(ugrpc::server::DefaultComponentList())
-                                    .Append<server::handlers::ServerMonitor>()
-                                    .Append<components::TestsuiteSupport>()
-                                    .Append<functional_tests::MyMiddlewareComponent>()
-                                    .Append<functional_tests::MySecondMiddlewareComponent>()
-                                    .Append<functional_tests::GreeterServiceComponent>();
+    const auto component_list =
+        components::MinimalServerComponentList()
+            .Append<congestion_control::Component>()
+            .AppendComponentList(ugrpc::server::DefaultComponentList())
+            .Append<server::handlers::ServerMonitor>()
+            .Append<components::TestsuiteSupport>()
+            .Append<functional_tests::MyMiddlewareComponent>()
+            .Append<functional_tests::MySecondMiddlewareComponent>()
+            .Append<functional_tests::GreeterServiceComponent>();
 
     return utils::DaemonMain(argc, argv, component_list);
 }

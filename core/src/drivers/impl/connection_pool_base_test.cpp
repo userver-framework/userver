@@ -30,7 +30,8 @@ template <typename Derived, typename Connection = DummyConnection>
 class DummyBasePool : public ConnectionPoolBase<Connection, Derived>, public DummyMetrics {
 public:
     DummyBasePool(std::size_t max_pool_size, std::size_t max_simultaneously_connecting_clients)
-        : ConnectionPoolBase<Connection, Derived>{max_pool_size, max_simultaneously_connecting_clients} {}
+        : ConnectionPoolBase<Connection, Derived>{max_pool_size, max_simultaneously_connecting_clients}
+    {}
 
     void InitPool(std::size_t initial_pool_size) {
         ConnectionPoolBase<Connection, Derived>::Init(initial_pool_size, std::chrono::milliseconds{10});
@@ -60,7 +61,9 @@ public:
         std::unique_ptr<DummyConnection> connection;
 
         ConnectionPtr(std::shared_ptr<BasicPool>&& pool, std::unique_ptr<DummyConnection>&& connection)
-            : pool{std::move(pool)}, connection{std::move(connection)} {}
+            : pool{std::move(pool)},
+              connection{std::move(connection)}
+        {}
 
         ConnectionPtr(ConnectionPtr&& other) noexcept = default;
 
@@ -106,7 +109,9 @@ class BrokenConnection final {
 public:
     static bool IsBroken() { return true; }
 
-    BrokenConnection(std::atomic<std::size_t>& destruction_counter) : destruction_counter_{destruction_counter} {}
+    BrokenConnection(std::atomic<std::size_t>& destruction_counter)
+        : destruction_counter_{destruction_counter}
+    {}
 
     ~BrokenConnection() { ++destruction_counter_; }
 

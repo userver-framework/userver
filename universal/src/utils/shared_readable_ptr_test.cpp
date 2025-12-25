@@ -47,7 +47,10 @@ struct Pair {
     int x;
     std::string y;
 
-    Pair(int x, std::string y) : x{x}, y{std::move(y)} {}
+    Pair(int x, std::string y)
+        : x{x},
+          y{std::move(y)}
+    {}
 
     bool operator==(const Pair& other) const { return other.x == x && other.y == y; }
 };

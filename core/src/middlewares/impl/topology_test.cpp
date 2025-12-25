@@ -20,7 +20,8 @@ TEST(TopologySort, Basic) {
         "grpc-server-baggage",
         "grpc-server-congestion-control",
         "grpc-server-deadline-propagation",
-        "grpc-server-headers-propagator"};
+        "grpc-server-headers-propagator"
+    };
     ASSERT_EQ(sort, expected);
 }
 

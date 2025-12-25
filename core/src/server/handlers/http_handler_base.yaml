@@ -1,0 +1,31 @@
+type: object
+description: Base class for all the userver HTTP handlers
+additionalProperties: false
+properties:
+    log-level:
+        type: string
+        description: |
+            Overrides log level for this handle.
+
+            Default: <no override>
+    status-codes-log-level:
+        type: object
+        properties: {}
+        additionalProperties:
+            type: string
+            description: log level
+        description: HTTP status code -> log level map
+    middlewares:
+        type: object
+        properties:
+            pipeline-builder:
+                type: string
+                description: name of a component to build a middleware pipeline for
+                    this particular handler
+                default: default-handler-middleware-pipeline-builder
+        additionalProperties:
+            type: object
+            properties: {}
+            additionalProperties: true
+            description: per-middleware configuration
+        description: middleware name -> middleware configuration map

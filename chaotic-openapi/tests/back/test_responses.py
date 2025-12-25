@@ -1,4 +1,4 @@
-from chaotic_openapi.back.cpp_client import types  # noqa: I001
+from chaotic_openapi.back.cpp_client import types
 
 from chaotic.back.cpp import type_name
 from chaotic.back.cpp import types as cpp_types
@@ -53,9 +53,9 @@ def test_response(translate_single_schema):
                                 validators=cpp_types.CppPrimitiveValidator(),
                             ),
                         },
-                    )  # noqa: COM812
+                    ),
                 ],
-            )  # noqa: COM812
+            ),
         ],
     )
 
@@ -71,9 +71,9 @@ def test_response_ref(translate_single_schema):
                         '200': {
                             '$ref': '#/components/responses/Response200',
                         },
-                    }  # noqa: COM812
-                }  # noqa: COM812
-            }  # noqa: COM812
+                    },
+                },
+            },
         },
         'components': {
             'responses': {
@@ -115,8 +115,8 @@ def test_response_ref(translate_single_schema):
                                 validators=cpp_types.CppPrimitiveValidator(),
                             ),
                         },
-                    )  # noqa: COM812
+                    ),
                 ],
-            )  # noqa: COM812
+            ),
         ],
     )

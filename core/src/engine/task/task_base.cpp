@@ -24,7 +24,9 @@ static_assert(
 
 static_assert(!std::is_polymorphic_v<TaskBase>, "Slicing is used by derived types, virtual functions would not work.");
 
-TaskBase::TaskBase(impl::TaskContextHolder&& context) : pimpl_(Impl{std::move(context).Extract()}) {
+TaskBase::TaskBase(impl::TaskContextHolder&& context)
+    : pimpl_(Impl{std::move(context).Extract()})
+{
     pimpl_->context->Wakeup(impl::TaskContext::WakeupSource::kBootstrap, impl::SleepState::Epoch{0});
 }
 
@@ -79,7 +81,9 @@ void TaskBase::BlockingWait() const {
     UASSERT(!current_task::IsTaskProcessorThread());
 
     auto& context = *pimpl_->context;
-    if (context.IsFinished()) return;
+    if (context.IsFinished()) {
+        return;
+    }
 
     std::packaged_task<void()> task([&context] {
         const TaskCancellationBlocker block_cancels;

@@ -11,7 +11,6 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace components {
-// clang-format off
 
 /// @ingroup userver_components
 ///
@@ -19,25 +18,22 @@ namespace components {
 ///
 /// The component must be configured in service config.
 ///
-/// Secdist requires a provider storages::secdist::SecdistProvider
-/// You can implement your own or use components::DefaultSecdistProvider
+/// Secdist requires a provider @ref storages::secdist::SecdistProvider
+/// You can implement your own or use @ref components::DefaultSecdistProvider.
 ///
 /// ## Static configuration example:
 ///
 /// @snippet samples/redis_service/static_config.yaml Sample secdist static config
 ///
-/// ## Static options:
-/// Name | Description | Default value
-/// ---- | ----------- | -------------
-/// provider | optional secdist provider component name | 'default-secdist-provider'
-/// update-period | period between data updates in utils::StringToDuration() suitable format ('0s' for no updates) | 10s
-
-// clang-format on
-
+/// ## Static options of components::Secdist :
+/// @include{doc} scripts/docs/en/components_schema/core/src/storages/secdist/component.md
+///
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
 class Secdist final : public ComponentBase {
 public:
     /// @ingroup userver_component_names
-    /// @brief The default name of components::Secdist
+    /// @brief The default name of @ref components::Secdist
     static constexpr std::string_view kName = "secdist";
 
     Secdist(const ComponentConfig&, const ComponentContext&);

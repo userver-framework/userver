@@ -28,12 +28,13 @@ public:
 }  // namespace functional_tests
 
 int main(int argc, const char* const argv[]) {
-    const auto component_list = components::ComponentList()
-                                    .AppendComponentList(components::CommonComponentList())
-                                    .AppendComponentList(components::CommonServerComponentList())
-                                    .Append<components::Secdist>()
-                                    .Append<components::DefaultSecdistProvider>()
-                                    .Append<functional_tests::SlowComponent>()
-                                    .Append<server::handlers::Ping>();
+    const auto component_list =
+        components::ComponentList()
+            .AppendComponentList(components::CommonComponentList())
+            .AppendComponentList(components::CommonServerComponentList())
+            .Append<components::Secdist>()
+            .Append<components::DefaultSecdistProvider>()
+            .Append<functional_tests::SlowComponent>()
+            .Append<server::handlers::Ping>();
     return utils::DaemonMain(argc, argv, component_list);
 }

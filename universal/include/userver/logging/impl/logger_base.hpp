@@ -38,8 +38,11 @@ public:
 
     virtual void Log(Level, formatters::LoggerItemRef item) = 0;
 
-    virtual formatters::BasePtr
-    MakeFormatter(Level level, LogClass log_class, const utils::impl::SourceLocation& location) = 0;
+    virtual formatters::BasePtr MakeFormatter(
+        Level level,
+        LogClass log_class,
+        const utils::impl::SourceLocation& location
+    ) = 0;
 
     virtual void Flush() {}
 
@@ -67,12 +70,16 @@ struct TextLogItem : formatters::LoggerItemBase {
     utils::SmallString<4096> log_line;
 
     TextLogItem() = default;
-    explicit TextLogItem(std::string_view str) : log_line(str) {}
+    explicit TextLogItem(std::string_view str)
+        : log_line(str)
+    {}
 };
 
 class TextLogger : public LoggerBase {
 public:
-    explicit TextLogger(Format format) : format_(format) {}
+    explicit TextLogger(Format format)
+        : format_(format)
+    {}
 
     Format GetFormat() const noexcept;
 

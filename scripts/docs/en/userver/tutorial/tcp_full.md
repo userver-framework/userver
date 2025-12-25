@@ -61,7 +61,7 @@ statistics:
 
 ### ProcessSocket
 
-The full-duplex communication means that the same engine::io::Socket is
+The full-duplex communication means that the same @ref engine::io::Socket is
 concurrently used for sending and receiving data. It is safe to concurrently
 read and write into socket. We would need two functions:
 * function that reads data from socket and puts it into a queue
@@ -82,7 +82,7 @@ the following steps:
 
 @snippet samples/tcp_full_duplex_service/main.cpp  TCP sample - ProcessSocket
 
-The tracing::Span and utils::Async work together to produce nice logs that
+The @ref tracing::Span and utils::Async work together to produce nice logs that
 allow you to trace particular file descriptor:
 ```
 tskv	timestamp=2022-08-22T16:31:34.855853	text=Failed to read data	fd=108	link=5bc8829cc3dc425d8d5c5d560f815fa2	trace_id=63eb16f2165d45669c23df725530572c	span_id=17b35cd05db1c11e

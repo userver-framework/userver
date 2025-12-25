@@ -16,7 +16,9 @@ namespace {
 
 class PrependedTagLogger final : public logging::impl::TextLogger {
 public:
-    PrependedTagLogger() noexcept : TextLogger(logging::Format::kRaw) { SetLevel(logging::Level::kInfo); }
+    PrependedTagLogger() noexcept : TextLogger(logging::Format::kRaw) {
+        SetLevel(logging::Level::kInfo);
+    }
 
     void Log(logging::Level, logging::impl::formatters::LoggerItemRef) override {}
 

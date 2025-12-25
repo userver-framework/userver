@@ -6,9 +6,15 @@ namespace engine {
 
 DeadlockDetector Parse(const yaml_config::YamlConfig& value, formats::parse::To<DeadlockDetector>) {
     auto str = value.As<std::string>();
-    if (str == "off") return DeadlockDetector::kOff;
-    if (str == "on") return DeadlockDetector::kOff;
-    if (str == "detect-only") return DeadlockDetector::kDetectOnly;
+    if (str == "disabled") {
+        return DeadlockDetector::kOff;
+    }
+    if (str == "enabled") {
+        return DeadlockDetector::kOn;
+    }
+    if (str == "detect-only") {
+        return DeadlockDetector::kDetectOnly;
+    }
     throw std::runtime_error("Unknown value: " + str);
 }
 

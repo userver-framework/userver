@@ -76,7 +76,7 @@ information on dynamic configs, see @ref scripts/docs/en/userver/dynamic_config.
 @htmlonly <div class="bottom-nav"> @endhtmlonly
 ⇦ @ref scripts/docs/en/userver/dynamic_config.md | @ref scripts/docs/en/userver/log_level_running_service.md ⇨
 @htmlonly </div> @endhtmlonly
-"""  # noqa: COM812
+""",
             )
 
 

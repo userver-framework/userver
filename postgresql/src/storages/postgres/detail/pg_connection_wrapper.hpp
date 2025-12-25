@@ -89,8 +89,7 @@ public:
     SendQuery(USERVER_NAMESPACE::utils::zstring_view statement, const QueryParameters& params, tracing::ScopeTime&);
 
     /// @brief Wrapper for PQsendPrepare
-    void
-    SendPrepare(USERVER_NAMESPACE::utils::zstring_view name, USERVER_NAMESPACE::utils::zstring_view statement, const QueryParameters& params, tracing::ScopeTime&);
+    void SendPrepare(USERVER_NAMESPACE::utils::zstring_view name, USERVER_NAMESPACE::utils::zstring_view statement, const QueryParameters& params, tracing::ScopeTime&);
 
     /// @brief Wrapper for PQsendDescribePrepared
     void SendDescribePrepared(USERVER_NAMESPACE::utils::zstring_view name, tracing::ScopeTime&);
@@ -104,8 +103,7 @@ public:
     );
 
     /// @brief Wrapper for PQXSendPortalBind
-    void
-    SendPortalBind(USERVER_NAMESPACE::utils::zstring_view statement_name, USERVER_NAMESPACE::utils::zstring_view portal_name, const QueryParameters& params, tracing::ScopeTime&);
+    void SendPortalBind(USERVER_NAMESPACE::utils::zstring_view statement_name, USERVER_NAMESPACE::utils::zstring_view portal_name, const QueryParameters& params, tracing::ScopeTime&);
 
     /// @brief Wrapper for PQXSendPortalExecute
     void

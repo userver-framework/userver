@@ -324,7 +324,12 @@ TEST(BsonConversion, Binary) {
     };
 
     const auto doc = fb::MakeDoc(
-        "a", fb::MakeArray(fb::Binary(""), fb::Binary("test")), "ee", fb::Binary(""), "e", fb::Binary("\377\377")
+        "a",
+        fb::MakeArray(fb::Binary(""), fb::Binary("test")),
+        "ee",
+        fb::Binary(""),
+        "e",
+        fb::Binary("\377\377")
     );
     test_elem(doc["a"][0], {});
     test_elem(doc["a"][1], "test");

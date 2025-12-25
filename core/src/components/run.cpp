@@ -13,6 +13,8 @@
 #include <userver/crypto/openssl.hpp>
 #include <userver/dynamic_config/snapshot.hpp>
 #include <userver/dynamic_config/value.hpp>
+#include <userver/engine/exception.hpp>
+#include <userver/engine/task/task_with_result.hpp>
 #include <userver/formats/json/serialize.hpp>
 #include <userver/fs/blocking/read.hpp>
 #include <userver/logging/impl/mem_logger.hpp>
@@ -46,7 +48,10 @@ namespace {
 
 class LogScope final {
 public:
-    LogScope() : logger_prev_{logging::GetDefaultLogger()}, level_scope_{logging::GetDefaultLoggerLevel()} {
+    LogScope()
+        : logger_prev_{logging::GetDefaultLogger()},
+          level_scope_{logging::GetDefaultLoggerLevel()}
+    {
         logging::impl::SetDefaultLoggerRef(logging::impl::MemLogger::GetMemLogger());
     }
 
@@ -77,8 +82,8 @@ void HandleJemallocSettings() {
     if (utils::impl::kJemallocBgThread.IsEnabled()) {
         auto ec = utils::jemalloc::SetMaxBgThreads(kDefaultMaxBgThreads);
         if (ec) {
-            LOG_WARNING() << "Failed to set max_background_threads to " << kDefaultMaxBgThreads
-                          << ", code: " << ec.value();
+            LOG_WARNING()
+                << "Failed to set max_background_threads to " << kDefaultMaxBgThreads << ", code: " << ec.value();
         }
 
         ec = utils::jemalloc::EnableBgThreads();
@@ -95,11 +100,11 @@ void PreheatStacktraceCollector() {
     const auto dummy_stacktrace = logging::stacktrace_cache::to_string(boost::stacktrace::stacktrace{});
     const auto finish = now();
 
-    const auto initialization_duration_ms =
-        std::chrono::duration_cast<std::chrono::milliseconds>(finish - start).count();
+    const auto
+        initialization_duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>(finish - start).count();
     if (dummy_stacktrace.size() == 0) {
-        LOG_WARNING() << "Failed to initialize stacktrace collector, an attempt took " << initialization_duration_ms
-                      << "ms";
+        LOG_WARNING()
+            << "Failed to initialize stacktrace collector, an attempt took " << initialization_duration_ms << "ms";
     } else {
         LOG_INFO() << "Initialized stacktrace collector within " << initialization_duration_ms << "ms";
     }
@@ -149,7 +154,8 @@ ManagerConfig ParseManagerConfigAndSetupLogging(
     details += std::visit(
         utils::Overloaded{
             [](const std::string& path) { return fmt::format("file '{}'", path); },
-            [](const InMemoryConfig&) { return std::string{"in-memory config"}; }},
+            [](const InMemoryConfig&) { return std::string{"in-memory config"}; }
+        },
         config
     );
     if (config_vars_path) {
@@ -176,6 +182,33 @@ ManagerConfig ParseManagerConfigAndSetupLogging(
         return manager_config;
     } catch (const std::exception& ex) {
         throw std::runtime_error(fmt::format("Error while parsing {}. Details: {}", details, ex.what()));
+    }
+}
+
+void CatchSignalsLoop(impl::Manager& manager, RunMode run_mode, utils::SignalCatcher& signal_catcher) noexcept {
+    if (run_mode == RunMode::kOnce) {
+        return;
+    }
+
+    LOG_INFO() << "Starting to catch signals";
+    for (;;) {
+        auto signum = signal_catcher.Catch();
+        if (signum == SIGTERM || signum == SIGQUIT) {
+            break;
+        } else if (signum == SIGINT) {
+            if (IsTraced()) {
+                // SIGINT is masked and cannot be used
+                std::raise(SIGTRAP);
+            } else {
+                break;
+            }
+        } else if (signum == SIGUSR1 || signum == SIGUSR2) {
+            LOG_INFO() << "Signal caught: " << utils::strsignal(signum);
+            manager.OnSignal(signum);
+        } else {
+            LOG_WARNING() << "Got unexpected signal: " << signum << " (" << utils::strsignal(signum) << ')';
+            UASSERT_MSG(false, "unexpected signal");
+        }
     }
 }
 
@@ -213,32 +246,29 @@ void DoRun(
             PreheatStacktraceCollector();
         }
 
-        manager.emplace(std::make_unique<ManagerConfig>(std::move(manager_config)), start_time, component_list);
+        manager.emplace(std::make_unique<ManagerConfig>(std::move(manager_config)), start_time);
+
+        // Start component system in background.
+        // POSIX signals can be already handled while component system is loading.
+        auto signal_on_stop = run_mode == RunMode::kNormal;
+        auto start_components_task = manager->StartComponentSystem(component_list, signal_on_stop);
+
+        // The main event loop.
+        // Other threads handle coroutines.
+        CatchSignalsLoop(*manager, run_mode, signal_catcher);
+
+        if (run_mode == RunMode::kNormal) {
+            start_components_task.RequestCancel();
+        }
+
+        try {
+            start_components_task.BlockingWait();
+            start_components_task.Get();
+        } catch (const engine::WaitInterruptedException&) {
+        }
     } catch (const std::exception& ex) {
         LOG_ERROR() << "Loading failed: " << ex;
         throw;
-    }
-
-    if (run_mode == RunMode::kOnce) return;
-
-    for (;;) {
-        auto signum = signal_catcher.Catch();
-        if (signum == SIGTERM || signum == SIGQUIT) {
-            break;
-        } else if (signum == SIGINT) {
-            if (IsTraced()) {
-                // SIGINT is masked and cannot be used
-                std::raise(SIGTRAP);
-            } else {
-                break;
-            }
-        } else if (signum == SIGUSR1 || signum == SIGUSR2) {
-            LOG_INFO() << "Signal caught: " << utils::strsignal(signum);
-            manager->OnSignal(signum);
-        } else {
-            LOG_WARNING() << "Got unexpected signal: " << signum << " (" << utils::strsignal(signum) << ')';
-            UASSERT_MSG(false, "unexpected signal");
-        }
     }
 }
 

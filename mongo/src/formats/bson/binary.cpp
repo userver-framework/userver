@@ -12,8 +12,8 @@ namespace formats::bson {
 
 namespace {
 
-constexpr bson_validate_flags_t kBsonValidateFlag =
-    static_cast<bson_validate_flags_t>(BSON_VALIDATE_UTF8 | BSON_VALIDATE_UTF8_ALLOW_NULL | BSON_VALIDATE_EMPTY_KEYS);
+constexpr bson_validate_flags_t kBsonValidateFlag = static_cast<
+    bson_validate_flags_t>(BSON_VALIDATE_UTF8 | BSON_VALIDATE_UTF8_ALLOW_NULL | BSON_VALIDATE_EMPTY_KEYS);
 
 // Attempts to use bson_validate_with_error_and_offset if it is available,
 // otherwise fallbacks to the other ValidateWithErrorAndOffset function.
@@ -65,7 +65,9 @@ Document FromBinaryString(std::string_view binary) {
 
 BsonString ToBinaryString(const formats::bson::Document& doc) { return BsonString(doc.GetBson()); }
 
-BsonString::BsonString(impl::BsonHolder impl) : impl_(std::move(impl)) {}
+BsonString::BsonString(impl::BsonHolder impl)
+    : impl_(std::move(impl))
+{}
 
 std::string BsonString::ToString() const { return {reinterpret_cast<const char*>(Data()), Size()}; }
 

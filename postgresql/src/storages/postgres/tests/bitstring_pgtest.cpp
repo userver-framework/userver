@@ -29,12 +29,8 @@ constexpr std::size_t kHeaderSize = sizeof(int32_t);  // sizeof header with coun
 constexpr std::uint8_t kUint8Value = 0xF2u;
 constexpr std::uint64_t kUint64Value = 0xF000000000000002u;
 
-constexpr utils::Flags<TestFlags> kFlagsValue{
-    TestFlags::k2,
-    TestFlags::k16,
-    TestFlags::k32,
-    TestFlags::k64,
-    TestFlags::k128};
+constexpr utils::Flags<TestFlags>
+    kFlagsValue{TestFlags::k2, TestFlags::k16, TestFlags::k32, TestFlags::k64, TestFlags::k128};
 
 constexpr std::bitset<1> kBitset1Value{0x1};
 constexpr std::bitset<8> kBitset8Value{0xF2};
@@ -51,7 +47,8 @@ std::bitset<65> Bitset65Value() {
         "00000000"
         "00000000"
         "00000000"
-        "00000010"};
+        "00000010"
+    };
 }
 
 constexpr std::array<bool, 8> kArrayValue{false, true, false, false, true, true, true, true};
@@ -285,7 +282,8 @@ void BitStringOverflowTest(const U& src_value, const Connection& conn) {
     UEXPECT_NO_THROW(res = conn->Execute("select $1", pg::BitString<kBitStringType>(src_value)));
     T tgt_value{};
     UEXPECT_THROW(
-        res[0][0].To(pg::BitString<kBitStringType>(tgt_value)), USERVER_NAMESPACE::storages::postgres::BitStringOverflow
+        res[0][0].To(pg::BitString<kBitStringType>(tgt_value)),
+        USERVER_NAMESPACE::storages::postgres::BitStringOverflow
     );
 }
 
@@ -299,19 +297,19 @@ UTEST_P(PostgreConnection, BitStringOverflow) {
     BitStringOverflowTest<pg::BitStringType::kBitVarying, std::uint64_t>(Bitset65Value(), GetConn());
 
     BitStringNoOverflowTest<pg::BitStringType::kBitVarying>(kBitset8Value, kFlagsValue, GetConn());
-    BitStringOverflowTest<pg::BitStringType::kBitVarying, std::decay_t<decltype(kFlagsValue)>>(
-        Bitset65Value(), GetConn()
-    );
+    BitStringOverflowTest<
+        pg::BitStringType::kBitVarying,
+        std::decay_t<decltype(kFlagsValue)>>(Bitset65Value(), GetConn());
 
     BitStringNoOverflowTest<pg::BitStringType::kBitVarying>(kBitset8Value, kArrayValue, GetConn());
-    BitStringOverflowTest<pg::BitStringType::kBitVarying, std::decay_t<decltype(kArrayValue)>>(
-        kBitset9Value, GetConn()
-    );
+    BitStringOverflowTest<
+        pg::BitStringType::kBitVarying,
+        std::decay_t<decltype(kArrayValue)>>(kBitset9Value, GetConn());
 
     BitStringNoOverflowTest<pg::BitStringType::kBitVarying>(kBitset8Value, kBitset8Value, GetConn());
-    BitStringOverflowTest<pg::BitStringType::kBitVarying, std::decay_t<decltype(kBitset8Value)>>(
-        kBitset9Value, GetConn()
-    );
+    BitStringOverflowTest<
+        pg::BitStringType::kBitVarying,
+        std::decay_t<decltype(kBitset8Value)>>(kBitset9Value, GetConn());
 
     BitStringNoOverflowTest<pg::BitStringType::kBit>(kBitset8Value, kUint8Value, GetConn());
     BitStringOverflowTest<pg::BitStringType::kBit, std::uint8_t>(kBitset9Value, GetConn());

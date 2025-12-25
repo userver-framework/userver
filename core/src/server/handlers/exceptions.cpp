@@ -52,9 +52,8 @@ std::string_view GetCodeDescription(HandlerErrorCode code) {
 }
 
 std::string_view GetFallbackServiceCode(HandlerErrorCode code) {
-    return kFallbackServiceCodes.TryFind(code).value_or(
-        kFallbackServiceCodes.TryFind(HandlerErrorCode::kUnknownError).value()
-    );
+    return kFallbackServiceCodes.TryFind(code)
+        .value_or(kFallbackServiceCodes.TryFind(HandlerErrorCode::kUnknownError).value());
 }
 
 }  // namespace server::handlers

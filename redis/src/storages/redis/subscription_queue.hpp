@@ -14,7 +14,9 @@ struct ChannelSubscriptionQueueItem {
     std::string message;
 
     ChannelSubscriptionQueueItem() = default;
-    explicit ChannelSubscriptionQueueItem(std::string message) : message(std::move(message)) {}
+    explicit ChannelSubscriptionQueueItem(std::string message)
+        : message(std::move(message))
+    {}
 };
 
 struct PatternSubscriptionQueueItem {
@@ -23,14 +25,18 @@ struct PatternSubscriptionQueueItem {
 
     PatternSubscriptionQueueItem() = default;
     PatternSubscriptionQueueItem(std::string channel, std::string message)
-        : channel(std::move(channel)), message(std::move(message)) {}
+        : channel(std::move(channel)),
+          message(std::move(message))
+    {}
 };
 
 struct ShardedSubscriptionQueueItem {
     std::string message;
 
     ShardedSubscriptionQueueItem() = default;
-    explicit ShardedSubscriptionQueueItem(std::string message) : message(std::move(message)) {}
+    explicit ShardedSubscriptionQueueItem(std::string message)
+        : message(std::move(message))
+    {}
 };
 
 template <typename Item>

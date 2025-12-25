@@ -129,97 +129,97 @@ const auto kHugeUnorderedMapping = std::unordered_map<std::string_view, int>{
 };
 
 enum class Enum1 {
-    C1,
-    C2,
-    C3,
-    C4,
-    C5,
-    C6,
-    C7,
-    C8,
-    C9,
-    C10,
-    C11,
-    C12,
-    C13,
-    C14,
-    C15,
-    C16,
+    kC1,
+    kC2,
+    kC3,
+    kC4,
+    kC5,
+    kC6,
+    kC7,
+    kC8,
+    kC9,
+    kC10,
+    kC11,
+    kC12,
+    kC13,
+    kC14,
+    kC15,
+    kC16,
 };
 
 enum class Enum2 {
-    C1,
-    C2,
-    C3,
-    C4,
-    C5,
-    C6,
-    C7,
-    C8,
-    C9,
-    C10,
-    C11,
-    C12,
-    C13,
-    C14,
-    C15,
-    C16,
+    kC1,
+    kC2,
+    kC3,
+    kC4,
+    kC5,
+    kC6,
+    kC7,
+    kC8,
+    kC9,
+    kC10,
+    kC11,
+    kC12,
+    kC13,
+    kC14,
+    kC15,
+    kC16,
 };
 
 constexpr utils::TrivialBiMap kEnumTrivialBiMap = [](auto selector) {
     return selector()
-        .Case(Enum1::C1, Enum2::C10)
-        .Case(Enum1::C2, Enum2::C14)
-        .Case(Enum1::C3, Enum2::C2)
-        .Case(Enum1::C4, Enum2::C1)
-        .Case(Enum1::C5, Enum2::C16)
-        .Case(Enum1::C6, Enum2::C9)
-        .Case(Enum1::C7, Enum2::C5)
-        .Case(Enum1::C8, Enum2::C7)
-        .Case(Enum1::C9, Enum2::C4)
-        .Case(Enum1::C10, Enum2::C3)
-        .Case(Enum1::C11, Enum2::C11)
-        .Case(Enum1::C12, Enum2::C6)
-        .Case(Enum1::C13, Enum2::C12)
-        .Case(Enum1::C14, Enum2::C15)
-        .Case(Enum1::C15, Enum2::C8)
-        .Case(Enum1::C16, Enum2::C13);
+        .Case(Enum1::kC1, Enum2::kC10)
+        .Case(Enum1::kC2, Enum2::kC14)
+        .Case(Enum1::kC3, Enum2::kC2)
+        .Case(Enum1::kC4, Enum2::kC1)
+        .Case(Enum1::kC5, Enum2::kC16)
+        .Case(Enum1::kC6, Enum2::kC9)
+        .Case(Enum1::kC7, Enum2::kC5)
+        .Case(Enum1::kC8, Enum2::kC7)
+        .Case(Enum1::kC9, Enum2::kC4)
+        .Case(Enum1::kC10, Enum2::kC3)
+        .Case(Enum1::kC11, Enum2::kC11)
+        .Case(Enum1::kC12, Enum2::kC6)
+        .Case(Enum1::kC13, Enum2::kC12)
+        .Case(Enum1::kC14, Enum2::kC15)
+        .Case(Enum1::kC15, Enum2::kC8)
+        .Case(Enum1::kC16, Enum2::kC13);
 };
 
 std::optional<Enum1> Enum1From2Switch(Enum2 value) {
     switch (value) {
-        case Enum2::C10:
-            return Enum1::C1;
-        case Enum2::C14:
-            return Enum1::C2;
-        case Enum2::C2:
-            return Enum1::C3;
-        case Enum2::C1:
-            return Enum1::C4;
-        case Enum2::C16:
-            return Enum1::C5;
-        case Enum2::C9:
-            return Enum1::C6;
-        case Enum2::C5:
-            return Enum1::C7;
-        case Enum2::C7:
-            return Enum1::C8;
-        case Enum2::C4:
-            return Enum1::C9;
-        case Enum2::C3:
-            return Enum1::C10;
-        case Enum2::C11:
-            return Enum1::C11;
-        case Enum2::C6:
-            return Enum1::C12;
-        case Enum2::C12:
-            return Enum1::C13;
-        case Enum2::C15:
-            return Enum1::C14;
-        case Enum2::C8:
-            return Enum1::C15;
-        case Enum2::C13:
-            return Enum1::C16;
+        case Enum2::kC10:
+            return Enum1::kC1;
+        case Enum2::kC14:
+            return Enum1::kC2;
+        case Enum2::kC2:
+            return Enum1::kC3;
+        case Enum2::kC1:
+            return Enum1::kC4;
+        case Enum2::kC16:
+            return Enum1::kC5;
+        case Enum2::kC9:
+            return Enum1::kC6;
+        case Enum2::kC5:
+            return Enum1::kC7;
+        case Enum2::kC7:
+            return Enum1::kC8;
+        case Enum2::kC4:
+            return Enum1::kC9;
+        case Enum2::kC3:
+            return Enum1::kC10;
+        case Enum2::kC11:
+            return Enum1::kC11;
+        case Enum2::kC6:
+            return Enum1::kC12;
+        case Enum2::kC12:
+            return Enum1::kC13;
+        case Enum2::kC15:
+            return Enum1::kC14;
+        case Enum2::kC8:
+            return Enum1::kC15;
+        case Enum2::kC13:
+            return Enum1::kC16;
         default:
             return std::nullopt;
     }
@@ -445,7 +445,7 @@ void MappingHugeUnorderedLast(benchmark::State& state) {
 BENCHMARK(MappingHugeUnorderedLast);
 
 void MappingEnumsTrivialBiMap(benchmark::State& state) {
-    const auto enum2 = Launder(Enum2::C7);
+    const auto enum2 = Launder(Enum2::kC7);
 
     for ([[maybe_unused]] auto _ : state) {
         benchmark::DoNotOptimize(kEnumTrivialBiMap.TryFind(enum2));
@@ -454,7 +454,7 @@ void MappingEnumsTrivialBiMap(benchmark::State& state) {
 BENCHMARK(MappingEnumsTrivialBiMap);
 
 void MappingEnumsSwitch(benchmark::State& state) {
-    const auto enum2 = Launder(Enum2::C7);
+    const auto enum2 = Launder(Enum2::kC7);
 
     for ([[maybe_unused]] auto _ : state) {
         benchmark::DoNotOptimize(Enum1From2Switch(enum2));

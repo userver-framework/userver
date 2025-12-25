@@ -2,15 +2,12 @@
 
 #include <atomic>
 #include <cstdint>
-#include <memory>
-#include <vector>
 
 #include <ev.h>
 #include <boost/intrusive/list_hook.hpp>
 #include <boost/smart_ptr/intrusive_ref_counter.hpp>
 
 #include <engine/coro/pool.hpp>
-#include <engine/deadlock_detector/actor.hpp>
 #include <engine/ev/thread_control.hpp>
 #include <engine/task/context_timer.hpp>
 #include <engine/task/counted_coroutine_ptr.hpp>
@@ -19,6 +16,7 @@
 #include <engine/task/task_counter.hpp>
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/future_status.hpp>
+#include <userver/engine/impl/actor.hpp>
 #include <userver/engine/impl/context_accessor.hpp>
 #include <userver/engine/impl/detached_tasks_sync_block.hpp>
 #include <userver/engine/impl/task_local_storage.hpp>
@@ -83,7 +81,7 @@ public:
 
     TaskContext(TaskProcessor&, Task::Importance, Task::WaitMode, Deadline, utils::impl::WrappedCallBase& payload);
 
-    ~TaskContext() noexcept override;
+    ~TaskContext() noexcept;
 
     TaskContext(const TaskContext&) = delete;
     TaskContext(TaskContext&&) = delete;

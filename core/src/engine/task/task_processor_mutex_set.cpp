@@ -9,7 +9,9 @@ USERVER_NAMESPACE_BEGIN
 namespace engine {
 
 TaskProcessorMutexSet::TaskProcessorMutexSet(TaskProcessor& tp, std::size_t worker_count)
-    : tp_(tp), mutexes_(worker_count) {}
+    : tp_(tp),
+      mutexes_(worker_count)
+{}
 
 std::lock_guard<std::mutex> TaskProcessorMutexSet::ReadLockFromCoroutine() noexcept {
     UASSERT_MSG(MayReadLock(), "Trying to lock from non-coroutine or another task processor");

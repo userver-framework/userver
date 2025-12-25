@@ -1,0 +1,8 @@
+type: object
+description: Base class for all caches polling mongo collection
+additionalProperties: false
+properties:
+    update-correction:
+        type: string
+        description: adjusts incremental updates window to overlap with previous update
+        default: 0

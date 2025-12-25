@@ -12,7 +12,9 @@ namespace formats::json::impl {
 
 struct VersionedValuePtr::Data {
     template <typename... Args>
-    explicit Data(Args&&... args) : native(std::forward<Args>(args)...) {}
+    explicit Data(Args&&... args)
+        : native(std::forward<Args>(args)...)
+    {}
 
     // rapidjson has somewhat broken class hierarchy, we have to do this manually
     // https://github.com/Tencent/rapidjson/issues/387

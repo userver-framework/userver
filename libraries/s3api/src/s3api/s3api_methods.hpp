@@ -25,8 +25,11 @@ Request PutObject(
 
 Request DeleteObject(std::string_view bucket, std::string_view path);
 
-Request
-GetObject(std::string_view bucket, std::string_view path, std::optional<std::string_view> version = std::nullopt);
+Request GetObject(
+    std::string_view bucket,
+    std::string_view path,
+    std::optional<std::string_view> version = std::nullopt
+);
 
 Request GetObjectHead(std::string_view bucket, std::string_view path);
 
@@ -52,21 +55,29 @@ Request CopyObject(
     std::string_view content_type
 );
 
-Request
-CreateInternalApiRequest(const std::string& bucket, const multipart_upload::CreateMultipartUploadRequest& request);
+Request CreateInternalApiRequest(
+    const std::string& bucket,
+    const multipart_upload::CreateMultipartUploadRequest& request
+);
 
-Request
-CreateInternalApiRequest(const std::string& bucket, const multipart_upload::AbortMultipartUploadRequest& request);
+Request CreateInternalApiRequest(
+    const std::string& bucket,
+    const multipart_upload::AbortMultipartUploadRequest& request
+);
 
-Request
-CreateInternalApiRequest(const std::string& bucket, const multipart_upload::CompleteMultipartUploadRequest& request);
+Request CreateInternalApiRequest(
+    const std::string& bucket,
+    const multipart_upload::CompleteMultipartUploadRequest& request
+);
 
 Request CreateInternalApiRequest(const std::string& bucket, const multipart_upload::UploadPartRequest& request);
 
 Request CreateInternalApiRequest(const std::string& bucket, const multipart_upload::ListPartsRequest& request);
 
-Request
-CreateInternalApiRequest(const std::string& bucket, const multipart_upload::ListMultipartUploadsRequest& request);
+Request CreateInternalApiRequest(
+    const std::string& bucket,
+    const multipart_upload::ListMultipartUploadsRequest& request
+);
 
 }  // namespace s3api::api_methods
 

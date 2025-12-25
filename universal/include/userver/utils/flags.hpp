@@ -67,7 +67,9 @@ class AtomicFlags final {
 public:
     using ValueType = std::underlying_type_t<Enum>;
 
-    constexpr AtomicFlags() : AtomicFlags(Enum::kNone) {}
+    constexpr AtomicFlags()
+        : AtomicFlags(Enum::kNone)
+    {}
     constexpr explicit AtomicFlags(Enum);
     constexpr AtomicFlags(std::initializer_list<Enum>);
 
@@ -216,10 +218,14 @@ constexpr bool operator!=(Enum lhs, Flags<Enum> rhs) {
 }
 
 template <typename Enum>
-constexpr AtomicFlags<Enum>::AtomicFlags(Enum value) : value_(static_cast<ValueType>(value)) {}
+constexpr AtomicFlags<Enum>::AtomicFlags(Enum value)
+    : value_(static_cast<ValueType>(value))
+{}
 
 template <typename Enum>
-constexpr AtomicFlags<Enum>::AtomicFlags(std::initializer_list<Enum> values) : AtomicFlags(Enum(values)) {}
+constexpr AtomicFlags<Enum>::AtomicFlags(std::initializer_list<Enum> values)
+    : AtomicFlags(Enum(values))
+{}
 
 template <typename Enum>
 AtomicFlags<Enum>::operator bool() const {

@@ -49,6 +49,9 @@ add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-http-client-perf)
 add_subdirectory(hello_service)
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-hello_service)
 
+add_subdirectory(cors_service)
+add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-cors_service)
+
 add_subdirectory(embedded_files)
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-embedded_files)
 

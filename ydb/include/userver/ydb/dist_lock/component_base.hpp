@@ -7,7 +7,6 @@
 #include <string>
 
 #include <userver/components/component_base.hpp>
-#include <userver/utils/statistics/entry.hpp>
 #include <userver/ydb/dist_lock/worker.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -17,8 +16,6 @@ class TestsuiteTasks;
 }  // namespace testsuite
 
 namespace ydb {
-
-// clang-format off
 
 /// @ingroup userver_components userver_base_classes
 ///
@@ -34,28 +31,16 @@ namespace ydb {
 ///
 /// @snippet ydb/functional_tests/basic/static_config.yaml  sample-dist-lock
 ///
-/// ## Static options:
-/// name           | Description  | Default value
-/// -------------- | ------------ | -------------
-/// semaphore-name | name of the semaphore within the coordination node | --
-/// database-settings.dbname | the key of the database within ydb component (NOT the actual database path) | --
-/// database-settings.coordination-node | name of the coordination node within the database | --
-/// initial-setup | if true, then create the coordination node and the semaphore unless they already exist | true
-/// task-processor | the name of the TaskProcessor for running DoWork | main-task-processor
-/// node-settings.session-grace-period | the time after which the lock will be given to another host after a network failure | 10s
-/// session-timeout | for how long we will try to restore session after a network failure before dropping it | 5s
-/// restart-session-delay | backoff before attempting to reconnect session after it returns "permanent failure" | 1s
-/// acquire-interval | backoff before repeating a failed Acquire call | 100ms
-/// restart-delay | backoff before calling DoWork again after it returns or throws | 100ms
-/// cancel-task-time-limit | time, within which a cancelled DoWork is expected to finish | 5s
+/// ## Static options of ydb::DistLockComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/ydb/src/ydb/dist_lock/component_base.md
+///
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
 ///
 /// @see @ref scripts/docs/en/userver/periodics.md
-
-// clang-format on
 class DistLockComponentBase : public components::ComponentBase {
 public:
     DistLockComponentBase(const components::ComponentConfig&, const components::ComponentContext&);
-    ~DistLockComponentBase() override;
 
     /// @brief Checks if the the current service instance owns the lock.
     ///
@@ -111,9 +96,6 @@ private:
     // Worker contains a task that may refer to other fields, so it must be right
     // before subscriptions. Add new fields above this comment.
     std::optional<DistLockedWorker> worker_;
-
-    // Subscriptions must be the last fields.
-    utils::statistics::Entry statistics_holder_;
 };
 
 }  // namespace ydb

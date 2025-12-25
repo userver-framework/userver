@@ -126,9 +126,11 @@ BitString(const USERVER_NAMESPACE::utils::Flags<Enum>& bits) {
 }
 
 template <BitStringType kBitStringType, typename Enum>
-constexpr detail::
-    BitStringRefWrapper<USERVER_NAMESPACE::utils::Flags<Enum>&, detail::BitContainerInterface::kFlags, kBitStringType>
-    BitString(USERVER_NAMESPACE::utils::Flags<Enum>& bits) {
+constexpr detail::BitStringRefWrapper<
+    USERVER_NAMESPACE::utils::Flags<Enum>&,
+    detail::BitContainerInterface::kFlags,
+    kBitStringType>
+BitString(USERVER_NAMESPACE::utils::Flags<Enum>& bits) {
     return {bits};
 }
 
@@ -145,27 +147,32 @@ constexpr auto Bit(BitContainer&& bits) {
 namespace io {
 
 template <typename BitContainerRef, BitStringType kBitStringType>
-struct BufferParser<
-    postgres::detail::
-        BitStringRefWrapper<BitContainerRef, postgres::detail::BitContainerInterface::kCommon, kBitStringType>>
+struct BufferParser<postgres::detail::BitStringRefWrapper<
+    BitContainerRef,
+    postgres::detail::BitContainerInterface::kCommon,
+    kBitStringType>>
     : detail::BufferParserBase<postgres::detail::BitStringRefWrapper<
           BitContainerRef,
           postgres::detail::BitContainerInterface::kCommon,
           kBitStringType>&&> {
     using BitContainer = std::decay_t<BitContainerRef>;
-    using BaseType = detail::BufferParserBase<
-        postgres::detail::
-            BitStringRefWrapper<BitContainerRef, postgres::detail::BitContainerInterface::kCommon, kBitStringType>&&>;
+    using BaseType = detail::BufferParserBase<postgres::detail::BitStringRefWrapper<
+        BitContainerRef,
+        postgres::detail::BitContainerInterface::kCommon,
+        kBitStringType>&&>;
     using BaseType::BaseType;
 
     void operator()(FieldBuffer buffer) {
         Integer bit_count{0};
         buffer.Read(bit_count, BufferCategory::kPlainBuffer);
-        if (static_cast<std::size_t>((bit_count + 7) / 8) > buffer.length) throw InvalidBitStringRepresentation{};
+        if (static_cast<std::size_t>((bit_count + 7) / 8) > buffer.length) {
+            throw InvalidBitStringRepresentation{};
+        }
 
         auto& bits = this->value.bits;
         if (const Integer target_bit_count = io::traits::BitContainerTraits<BitContainer>::BitCount();
-            target_bit_count < bit_count) {
+            target_bit_count < bit_count)
+        {
             throw BitStringOverflow(bit_count, target_bit_count);
         }
 
@@ -181,16 +188,19 @@ struct BufferParser<
 };
 
 template <typename BitContainerRef, BitStringType kBitStringType>
-struct BufferParser<
-    postgres::detail::
-        BitStringRefWrapper<BitContainerRef, postgres::detail::BitContainerInterface::kFlags, kBitStringType>>
-    : detail::BufferParserBase<
-          postgres::detail::
-              BitStringRefWrapper<BitContainerRef, postgres::detail::BitContainerInterface::kFlags, kBitStringType>&&> {
+struct BufferParser<postgres::detail::BitStringRefWrapper<
+    BitContainerRef,
+    postgres::detail::BitContainerInterface::kFlags,
+    kBitStringType>>
+    : detail::BufferParserBase<postgres::detail::BitStringRefWrapper<
+          BitContainerRef,
+          postgres::detail::BitContainerInterface::kFlags,
+          kBitStringType>&&> {
     using BitContainer = std::decay_t<BitContainerRef>;
-    using BaseType = detail::BufferParserBase<
-        postgres::detail::
-            BitStringRefWrapper<BitContainerRef, postgres::detail::BitContainerInterface::kFlags, kBitStringType>&&>;
+    using BaseType = detail::BufferParserBase<postgres::detail::BitStringRefWrapper<
+        BitContainerRef,
+        postgres::detail::BitContainerInterface::kFlags,
+        kBitStringType>&&>;
     using BaseType::BaseType;
 
     void operator()(FieldBuffer buffer) {
@@ -218,16 +228,19 @@ struct BufferParser<std::bitset<N>> : detail::BufferParserBase<std::bitset<N>> {
 };
 
 template <typename BitContainerRef, BitStringType kBitStringType>
-struct BufferFormatter<
-    postgres::detail::
-        BitStringRefWrapper<BitContainerRef, postgres::detail::BitContainerInterface::kCommon, kBitStringType>>
-    : detail::BufferFormatterBase<
-          postgres::detail::
-              BitStringRefWrapper<BitContainerRef, postgres::detail::BitContainerInterface::kCommon, kBitStringType>> {
+struct BufferFormatter<postgres::detail::BitStringRefWrapper<
+    BitContainerRef,
+    postgres::detail::BitContainerInterface::kCommon,
+    kBitStringType>>
+    : detail::BufferFormatterBase<postgres::detail::BitStringRefWrapper<
+          BitContainerRef,
+          postgres::detail::BitContainerInterface::kCommon,
+          kBitStringType>> {
     using BitContainer = std::decay_t<BitContainerRef>;
-    using BaseType = detail::BufferFormatterBase<
-        postgres::detail::
-            BitStringRefWrapper<BitContainerRef, postgres::detail::BitContainerInterface::kCommon, kBitStringType>>;
+    using BaseType = detail::BufferFormatterBase<postgres::detail::BitStringRefWrapper<
+        BitContainerRef,
+        postgres::detail::BitContainerInterface::kCommon,
+        kBitStringType>>;
     using BaseType::BaseType;
 
     template <typename Buffer>
@@ -252,16 +265,19 @@ struct BufferFormatter<
 };
 
 template <typename BitContainerRef, BitStringType kBitStringType>
-struct BufferFormatter<
-    postgres::detail::
-        BitStringRefWrapper<BitContainerRef, postgres::detail::BitContainerInterface::kFlags, kBitStringType>>
-    : detail::BufferFormatterBase<
-          postgres::detail::
-              BitStringRefWrapper<BitContainerRef, postgres::detail::BitContainerInterface::kFlags, kBitStringType>> {
+struct BufferFormatter<postgres::detail::BitStringRefWrapper<
+    BitContainerRef,
+    postgres::detail::BitContainerInterface::kFlags,
+    kBitStringType>>
+    : detail::BufferFormatterBase<postgres::detail::BitStringRefWrapper<
+          BitContainerRef,
+          postgres::detail::BitContainerInterface::kFlags,
+          kBitStringType>> {
     using BitContainer = std::decay_t<BitContainerRef>;
-    using BaseType = detail::BufferFormatterBase<
-        postgres::detail::
-            BitStringRefWrapper<BitContainerRef, postgres::detail::BitContainerInterface::kFlags, kBitStringType>>;
+    using BaseType = detail::BufferFormatterBase<postgres::detail::BitStringRefWrapper<
+        BitContainerRef,
+        postgres::detail::BitContainerInterface::kFlags,
+        kBitStringType>>;
     using BaseType::BaseType;
 
     template <typename Buffer>

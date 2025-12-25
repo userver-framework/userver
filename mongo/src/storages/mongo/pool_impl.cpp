@@ -28,7 +28,8 @@ PoolImpl::PoolImpl(std::string&& id, const PoolConfig& static_config, dynamic_co
               const auto& cfg = snapshot[::dynamic_config::MONGO_CONGESTION_CONTROL_SETTINGS];
               return congestion_control::v2::ConvertConfig(cfg);
           }
-      ) {}
+      )
+{}
 
 void PoolImpl::Start() {
     config_subscriber_ = config_source_.UpdateAndListen(this, "mongo_pool", &PoolImpl::OnConfigUpdate);
@@ -42,9 +43,9 @@ void PoolImpl::Stop() noexcept {
 
 void PoolImpl::OnConfigUpdate(const dynamic_config::Snapshot& config) {
     const bool cc_enabled =
-        config[::dynamic_config::MONGO_CONGESTION_CONTROL_DATABASES_SETTINGS].GetOptional(id_).value_or(
-            config[::dynamic_config::MONGO_CONGESTION_CONTROL_ENABLED]
-        );
+        config[::dynamic_config::MONGO_CONGESTION_CONTROL_DATABASES_SETTINGS]
+            .GetOptional(id_)
+            .value_or(config[::dynamic_config::MONGO_CONGESTION_CONTROL_ENABLED]);
     cc_controller_.SetEnabled(cc_enabled);
 
     const auto new_pool_settings = config[::dynamic_config::MONGO_CONNECTION_POOL_SETTINGS].GetOptional(id_);

@@ -23,7 +23,9 @@ void CreateDirectory(const char* path, boost::filesystem::perms perms) {
         const auto code = errno;
         if (code != EEXIST) {
             throw std::system_error(
-                code, std::generic_category(), fmt::format("Error while creating directory \"{}\"", path)
+                code,
+                std::generic_category(),
+                fmt::format("Error while creating directory \"{}\"", path)
             );
         }
     }
@@ -51,8 +53,8 @@ void CreateDirectories(std::string_view path, boost::filesystem::perms perms) {
 
 void CreateDirectories(std::string_view path) {
     using boost::filesystem::perms;
-    const auto perms0755 =
-        perms::owner_all | perms::group_read | perms::group_exe | perms::others_read | perms::others_exe;
+    const auto
+        perms0755 = perms::owner_all | perms::group_read | perms::group_exe | perms::others_read | perms::others_exe;
     CreateDirectories(path, perms0755);
 }
 

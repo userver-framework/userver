@@ -16,7 +16,11 @@ struct RefCountData final {
     // signed to allow for erroneous deletion to be detected.
     static inline std::atomic<std::int64_t> objects_count{0};
 
-    RefCountData(int value = 0) : val(value) { objects_count.fetch_add(1); }
+    RefCountData(int value = 0)
+        : val(value)
+    {
+        objects_count.fetch_add(1);
+    }
     ~RefCountData() { objects_count.fetch_sub(1); }
     // Non-copyable, non-movable
     RefCountData(const RefCountData&) = delete;

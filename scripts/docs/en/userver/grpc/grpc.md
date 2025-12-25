@@ -19,7 +19,7 @@ See also:
 * Creating asynchronous gRPC clients and services;
 * Forwarding gRPC Core logs to userver logs;
 * Caching and reusing connections;
-* @ref scripts/docs/en/userver/grpc/grpc_retries.md;
+* @ref scripts/docs/en/userver/grpc/timeouts_retries.md;
 * Collection of metrics on driver usage;
 * Cancellation support;
 * Automatic authentication using middlewares;
@@ -53,7 +53,7 @@ In a component constructor, find @ref ugrpc::client::ClientFactoryComponent and 
 
 Client creation in an expensive operation! Either create them once at the server boot time or cache them. An automated
 solution for client creation and caching is the @ref ugrpc::client::SimpleClientComponent. It also allows to
-specify dynamic config for @ref ugrpc::client::ClientQos:
+specify dynamic config for @ref ugrpc::client::ClientQos :
 
 @snippet samples/grpc_service/src/greeter_client.hpp  component
 
@@ -169,7 +169,7 @@ Use @ref ugrpc::client::MiddlewareBase to implement new middlewares.
 #### List of standard client middlewares:
 
 1. `grpc-client-logging` with component @ref ugrpc::client::middlewares::log::Component - logs requests and responses.
-2. `grpc-client-deadline-propagation` with component @ref ugrpc::client::middlewares::deadline_propagation::Component - 
+2. `grpc-client-deadline-propagation` with component @ref ugrpc::client::middlewares::deadline_propagation::Component -
    activates @ref scripts/docs/en/userver/deadline_propagation.md.
 3. `grpc-client-baggage` with component @ref ugrpc::client::middlewares::baggage::Component - passes request baggage to subrequests.
 4. `grpc-client-headers-propagator` with component @ref ugrpc::client::middlewares::headers_propagator::Component - propagates headers.
@@ -403,7 +403,7 @@ Each metric has the following labels:
 * `grpc_service` - fully qualified grpc (proto) service name
 * `grpc_method` - fully qualified grpc method name
 * `grpc_destination` = `grpc_service/grpc_method`
-* `grpc_destination_full` = `client_name/grpc_service/grpc_method` (only for client metrics)
+* `grpc_destination_full` = `destination_prefix_in_metrics/grpc_service/grpc_method` (only for client metrics, if not explicitly specified in client settings `destination_prefix_in_metrics` = `client(client_name)`)
 
 These are the metrics provided for each gRPC method:
 

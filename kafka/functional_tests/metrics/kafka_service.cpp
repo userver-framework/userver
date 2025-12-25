@@ -10,7 +10,7 @@
 #include <userver/components/minimal_server_component_list.hpp>
 
 #include <userver/clients/dns/component.hpp>
-#include <userver/clients/http/component.hpp>
+#include <userver/clients/http/component_list.hpp>
 #include <userver/concurrent/variable.hpp>
 #include <userver/engine/wait_all_checked.hpp>
 #include <userver/formats/json/serialize.hpp>
@@ -182,7 +182,8 @@ HandlerKafkaConsumer::HandlerKafkaConsumer(
     const components::ComponentContext& context
 )
     : server::handlers::HttpHandlerJsonBase(config, context),
-      consumer_(context.FindComponent<kafka::ConsumerComponent>("kafka-consumer").GetConsumer()) {
+      consumer_(context.FindComponent<kafka::ConsumerComponent>("kafka-consumer").GetConsumer())
+{
     consumer_.Start([this](kafka::MessageBatchView messages) {
         Consume(messages);
         consumer_.AsyncCommit();
@@ -247,9 +248,8 @@ void HandlerKafkaConsumer::Consume(kafka::MessageBatchView messages) {
             continue;
         }
 
-        (*this_messages)[message.GetTopic()].emplace_back(
-            Serialize(message, formats::serialize::To<formats::json::Value>{})
-        );
+        (*this_messages)[message.GetTopic()]
+            .emplace_back(Serialize(message, formats::serialize::To<formats::json::Value>{}));
     }
 
     DumpCurrentConsumed(*this_messages);
@@ -402,9 +402,10 @@ formats::json::Value HandlerKafkaProducers::HandleMultiProducersRequest(
         const auto* producer = producers.at(i);
         auto message = request_json[i].As<RequestMessage>();
 
-        send_tasks.emplace_back(
-            producer->SendAsync(std::move(message.topic), std::move(message.key), std::move(message.payload))
-        );
+        send_tasks
+            .emplace_back(producer
+                              ->SendAsync(std::move(message.topic), std::move(message.key), std::move(message.payload))
+            );
     }
 
     engine::WaitAllChecked(send_tasks);
@@ -414,19 +415,19 @@ formats::json::Value HandlerKafkaProducers::HandleMultiProducersRequest(
 }  // namespace functional_tests
 
 int main(int argc, char* argv[]) {
-    const auto components_list = components::MinimalServerComponentList()
-                                     .Append<server::handlers::ServerMonitor>()
-                                     .Append<kafka::ConsumerComponent>("kafka-consumer")
-                                     .Append<kafka::ProducerComponent>("kafka-producer")
-                                     .Append<components::TestsuiteSupport>()
-                                     .Append<components::Secdist>()
-                                     .Append<components::DefaultSecdistProvider>()
-                                     .Append<components::HttpClientCore>()
-                                     .Append<components::HttpClient>()
-                                     .Append<clients::dns::Component>()
-                                     .Append<server::handlers::TestsControl>()
-                                     .Append<functional_tests::HandlerKafkaConsumer>()
-                                     .Append<functional_tests::HandlerKafkaProducers>();
+    const auto components_list =
+        components::MinimalServerComponentList()
+            .Append<server::handlers::ServerMonitor>()
+            .Append<kafka::ConsumerComponent>("kafka-consumer")
+            .Append<kafka::ProducerComponent>("kafka-producer")
+            .Append<components::TestsuiteSupport>()
+            .Append<components::Secdist>()
+            .Append<components::DefaultSecdistProvider>()
+            .AppendComponentList(clients::http::ComponentList())
+            .Append<clients::dns::Component>()
+            .Append<server::handlers::TestsControl>()
+            .Append<functional_tests::HandlerKafkaConsumer>()
+            .Append<functional_tests::HandlerKafkaProducers>();
 
     return utils::DaemonMain(argc, argv, components_list);
 }

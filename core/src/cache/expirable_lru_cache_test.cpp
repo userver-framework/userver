@@ -37,9 +37,13 @@ void EngineYield() {
 
 class Counter {
 public:
-    Counter(int value) : value_(value) {}
+    Counter(int value)
+        : value_(value)
+    {}
 
-    Counter() : Counter(0) {}
+    Counter()
+        : Counter(0)
+    {}
 
     void Flush() { value_ = 0; }
 

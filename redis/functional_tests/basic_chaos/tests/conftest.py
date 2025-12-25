@@ -87,7 +87,7 @@ async def _sentinel_gate_ready(
     _sentinel_gate.start_accepting()
 
     await _sentinel_gate.wait_for_connections(timeout=5.0)
-    yield _sentinel_gate  # noqa: PT022
+    return _sentinel_gate
 
 
 @pytest.fixture(scope='session')
@@ -113,4 +113,4 @@ async def _master_gate_ready(service_client, _master_gate):
     _master_gate.start_accepting()
 
     await _master_gate.wait_for_connections(timeout=5.0)
-    yield _master_gate  # noqa: PT022
+    return _master_gate

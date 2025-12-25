@@ -11,9 +11,15 @@ struct CustomAllOf {
     CustomAllOf() = default;
 
     template <typename T>
-    CustomAllOf(T&& value) : a(std::move(value.field1)), b(std::move(value.field2)) {}
+    CustomAllOf(T&& value)
+        : a(std::move(value.field1)),
+          b(std::move(value.field2))
+    {}
 
-    CustomAllOf(std::string&& a, std::string&& b) : a(std::move(a)), b(std::move(b)) {}
+    CustomAllOf(std::string&& a, std::string&& b)
+        : a(std::move(a)),
+          b(std::move(b))
+    {}
 
     std::optional<std::string> a;
     std::optional<std::string> b;

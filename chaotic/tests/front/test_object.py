@@ -38,7 +38,7 @@ def test_unknown_fields(simple_parse):
             'properties': {},
             'additionalProperties': False,
         })
-    assert exc.value.infile_path == '/definitions/type/unknown_field'
+    assert exc.value.infile_path == '/definitions/type'
     assert 'Unknown field: "unknown_field"' in exc.value.msg
 
 

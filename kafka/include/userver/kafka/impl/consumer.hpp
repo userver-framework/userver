@@ -70,8 +70,10 @@ public:
 
     /// @brief Retrieves the partition IDs for the specified topic.
     /// @see ConsumerScope::GetPartitionIds for better commitment process
-    std::vector<std::uint32_t>
-    GetPartitionIds(utils::zstring_view topic, std::optional<std::chrono::milliseconds> timeout = std::nullopt) const;
+    std::vector<std::uint32_t> GetPartitionIds(
+        utils::zstring_view topic,
+        std::optional<std::chrono::milliseconds> timeout = std::nullopt
+    ) const;
     /// @endcond
 
     /// @brief Seeks the \b partition_id for the specified \b topic to a given \b offset .

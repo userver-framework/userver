@@ -8,14 +8,17 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::server::middlewares::headers_propagator {
 
-Middleware::Middleware(std::vector<std::string> headers) : headers_(std::move(headers)) {}
+Middleware::Middleware(std::vector<std::string> headers)
+    : headers_(std::move(headers))
+{}
 
 void Middleware::OnCallStart(MiddlewareCallContext& context) const {
     const auto& server_context = context.GetServerContext();
     USERVER_NAMESPACE::server::request::HeadersToPropagate headers_to_propagate;
     for (const auto& header_name : headers_) {
         const auto* header_value = utils::FindOrNullptr(
-            server_context.client_metadata(), grpc::string_ref{header_name.data(), header_name.size()}
+            server_context.client_metadata(),
+            grpc::string_ref{header_name.data(), header_name.size()}
         );
         if (!header_value) {
             continue;

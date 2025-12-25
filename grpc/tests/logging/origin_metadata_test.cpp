@@ -40,22 +40,21 @@ template <typename ServiceType>
 class WithClientOriginMiddleware : public ugrpc::tests::ServiceFixture<ServiceType> {
 public:
     WithClientOriginMiddleware()
-        : ugrpc::tests::ServiceFixture<ServiceType>(
-              {},
-              {},
-              {std::make_shared<ugrpc::client::middlewares::origin::Middleware>([] {
-                  // TODO in C++20, rewrite IILE to designated initialization.
-                  ugrpc::client::middlewares::origin::Settings origin_settings;
-                  origin_settings.user_agent = kSampleUserAgent;
-                  return origin_settings;
-              }())}
-          ) {}
+        : ugrpc::tests::ServiceFixture<
+              ServiceType>({}, {}, {std::make_shared<ugrpc::client::middlewares::origin::Middleware>([] {
+                               // TODO in C++20, rewrite IILE to designated initialization.
+                               ugrpc::client::middlewares::origin::Settings origin_settings;
+                               origin_settings.user_agent = kSampleUserAgent;
+                               return origin_settings;
+                           }())}) {}
 };
 
 template <typename ClientType, typename Base>
 class WithClient : public Base {
 public:
-    WithClient() : client_(this->Base::template MakeClient<ClientType>()) {}
+    WithClient()
+        : client_(this->Base::template MakeClient<ClientType>())
+    {}
 
     ClientType& GetClient() { return client_; }
 
@@ -82,7 +81,8 @@ UTEST_F(OriginMetadataClientTest, UnaryCall) {
     EXPECT_CALL(GetService(), SayHello)
         .WillOnce([](const ugrpc::server::CallContext& context, sample::ugrpc::GreetingRequest&&) {
             EXPECT_THAT(
-                ugrpc::server::GetRepeatedMetadata(context, "x-origin"), testing::ElementsAre(kSampleUserAgent)
+                ugrpc::server::GetRepeatedMetadata(context, "x-origin"),
+                testing::ElementsAre(kSampleUserAgent)
             );
             return sample::ugrpc::GreetingResponse{};
         });

@@ -151,7 +151,8 @@ UTEST_P(PostgreConnection, QueryQueueActuallyFifo) {
 
     const pg::Query upsert_query{
         "INSERT INTO qq_fifo_test(id, value) VALUES($1, $2) ON CONFLICT(id) DO "
-        "UPDATE SET value = $2"};
+        "UPDATE SET value = $2"
+    };
     const pg::Query select_query{"SELECT value FROM qq_fifo_test WHERE ID = $1"};
     constexpr std::size_t kInsertSelectPairsCount = 3;
     constexpr int kRowId = 1;

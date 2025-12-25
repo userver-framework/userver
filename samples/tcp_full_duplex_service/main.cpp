@@ -13,7 +13,7 @@
 #include <userver/utils/statistics/metric_tag.hpp>
 #include <userver/utils/statistics/metrics_storage.hpp>
 
-#include <userver/clients/http/component.hpp>
+#include <userver/clients/http/component_list.hpp>
 #include <userver/server/handlers/tests_control.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
 
@@ -67,7 +67,8 @@ void ResetMetric(Stats& stats) {
 /// [TCP sample - constructor]
 Echo::Echo(const components::ComponentConfig& config, const components::ComponentContext& context)
     : TcpAcceptorBase(config, context),
-      stats_(context.FindComponent<components::StatisticsStorage>().GetMetricsStorage()->GetMetric(kTcpEchoTag)) {}
+      stats_(context.FindComponent<components::StatisticsStorage>().GetMetricsStorage()->GetMetric(kTcpEchoTag))
+{}
 /// [TCP sample - constructor]
 
 /// [TCP sample - SendRecv]
@@ -129,15 +130,15 @@ void Echo::ProcessSocket(engine::io::Socket&& sock) {
 
 /// [TCP sample - main]
 int main(int argc, const char* const argv[]) {
-    const auto component_list = components::MinimalServerComponentList()
-                                    .Append<server::handlers::ServerMonitor>()
-                                    .Append<samples::tcp::echo::Echo>()
-                                    // Testuite components:
-                                    .Append<server::handlers::TestsControl>()
-                                    .Append<components::TestsuiteSupport>()
-                                    .Append<clients::dns::Component>()
-                                    .Append<components::HttpClientCore>()
-                                    .Append<components::HttpClient>();
+    const auto component_list =
+        components::MinimalServerComponentList()
+            .Append<server::handlers::ServerMonitor>()
+            .Append<samples::tcp::echo::Echo>()
+            // Testuite components:
+            .Append<server::handlers::TestsControl>()
+            .Append<components::TestsuiteSupport>()
+            .Append<clients::dns::Component>()
+            .AppendComponentList(clients::http::ComponentList());
 
     return utils::DaemonMain(argc, argv, component_list);
 }

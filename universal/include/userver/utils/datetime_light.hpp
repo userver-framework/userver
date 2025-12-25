@@ -114,8 +114,10 @@ std::string Timestring(std::chrono::system_clock::time_point tp);
 /// @brief Returns time in a string of specified format in local timezone
 /// @see kRfc3339Format, kTaximeterFormat, kStartOfTheEpoch,
 /// kDefaultDriverTimezone, kDefaultTimezone, kDefaultFormat, kIsoFormat
-std::string
-LocalTimezoneTimestring(std::chrono::system_clock::time_point tp, const std::string& format = kDefaultFormat);
+std::string LocalTimezoneTimestring(
+    std::chrono::system_clock::time_point tp,
+    const std::string& format = kDefaultFormat
+);
 
 /// @brief Returns time in a string of specified format in UTC timezone
 /// @see kRfc3339Format, kTaximeterFormat, kStartOfTheEpoch,
@@ -135,9 +137,8 @@ std::string UtcTimestring(
         if (days > std::chrono::duration_cast<Duration>(std::chrono::hours::max())) {
             throw std::runtime_error("tp does not find std::chrono::hours");
         }
-        const std::chrono::time_point<std::chrono::system_clock, std::chrono::hours> tp_hours(
-            std::chrono::duration_cast<std::chrono::hours>(days)
-        );
+        const std::chrono::time_point<std::chrono::system_clock, std::chrono::hours>
+            tp_hours(std::chrono::duration_cast<std::chrono::hours>(days));
         return cctz::format(format, tp_hours, cctz::utc_time_zone());
     }
 }
@@ -146,15 +147,19 @@ std::string UtcTimestring(
 /// @throws utils::datetime::DateParseError
 /// @see kRfc3339Format, kTaximeterFormat, kStartOfTheEpoch,
 /// kDefaultDriverTimezone, kDefaultTimezone, kDefaultFormat, kIsoFormat
-std::chrono::system_clock::time_point
-LocalTimezoneStringtime(const std::string& timestring, const std::string& format = kDefaultFormat);
+std::chrono::system_clock::time_point LocalTimezoneStringtime(
+    const std::string& timestring,
+    const std::string& format = kDefaultFormat
+);
 
 /// @brief Extracts time point from a string of a specified format in UTC timezone
 /// @throws utils::datetime::DateParseError
 /// @see kRfc3339Format, kTaximeterFormat, kStartOfTheEpoch,
 /// kDefaultDriverTimezone, kDefaultTimezone, kDefaultFormat, kIsoFormat
-std::chrono::system_clock::time_point
-UtcStringtime(const std::string& timestring, const std::string& format = kDefaultFormat);
+std::chrono::system_clock::time_point UtcStringtime(
+    const std::string& timestring,
+    const std::string& format = kDefaultFormat
+);
 
 /// @brief Extracts time point from a string of a kDefaultFormat format in UTC timezone
 /// @throws utils::datetime::DateParseError
@@ -164,8 +169,11 @@ std::chrono::system_clock::time_point Stringtime(const std::string& timestring);
 /// @throws utils::datetime::DateParseError
 /// @see kRfc3339Format, kTaximeterFormat, kStartOfTheEpoch,
 /// kDefaultDriverTimezone, kDefaultTimezone, kDefaultFormat, kIsoFormat
-std::optional<std::chrono::system_clock::time_point>
-OptionalStringtime(const std::string& timestring, const cctz::time_zone& timezone, const std::string& format);
+std::optional<std::chrono::system_clock::time_point> OptionalStringtime(
+    const std::string& timestring,
+    const cctz::time_zone& timezone,
+    const std::string& format
+);
 
 /// @brief Extracts time point from a string of a kDefaultFormat format in UTC timezone
 /// @throws utils::datetime::DateParseError

@@ -115,6 +115,19 @@ properties:
                 type: boolean
                 description: stack usage monitor status
                 defaultDescription: true
+            deadlock_detector:
+                type: string
+                description: |
+                    Coroutines deadlock detection mode.
+                        `disabled` disables deadlock detection.
+                        `enabled` allows deadlock detection alongs with stacktraces collection.
+                        `detect-only` allows only deadlock detection.
+                    Deadlock detection could slow down the service.
+                defaultDescription: disabled
+                enum:
+                  - disabled
+                  - enabled
+                  - detect-only
     event_thread_pool:
         type: object
         description: event thread pool options

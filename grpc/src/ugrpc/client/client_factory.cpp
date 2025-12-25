@@ -3,6 +3,8 @@
 #include <userver/logging/log.hpp>
 #include <userver/testsuite/grpc_control.hpp>
 
+#include <userver/ugrpc/impl/completion_queue_pool_base.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client {
@@ -13,6 +15,7 @@ ClientFactory::ClientFactory(
     impl::MiddlewarePipelineCreator& middleware_pipeline_creator,
     ugrpc::impl::CompletionQueuePoolBase& completion_queues,
     ugrpc::impl::StatisticsStorage& statistics_storage,
+    utils::statistics::MetricsStorage& metrics_storage,
     testsuite::GrpcControl& testsuite_grpc,
     dynamic_config::Source config_source
 )
@@ -21,8 +24,10 @@ ClientFactory::ClientFactory(
       middleware_pipeline_creator_(middleware_pipeline_creator),
       completion_queues_(completion_queues),
       client_statistics_storage_(statistics_storage),
+      client_qos_errors_reporter_(metrics_storage),
       config_source_(config_source),
-      testsuite_grpc_(testsuite_grpc) {}
+      testsuite_grpc_(testsuite_grpc)
+{}
 
 impl::ClientInternals ClientFactory::MakeClientInternals(
     ClientSettings&& client_settings,
@@ -31,10 +36,11 @@ impl::ClientInternals ClientFactory::MakeClientInternals(
     UINVARIANT(!client_settings.client_name.empty(), "Client name is empty");
     UINVARIANT(!client_settings.endpoint.empty(), "Client endpoint is empty");
 
-    LOG_INFO() << "MakeClient " << client_settings.client_name
-               << ": retry-config.attempts=" << client_factory_settings_.retry_config.attempts
-               << ", channel-count=" << client_factory_settings_.channel_count
-               << ", dedicated-channel-counts: " << client_settings.dedicated_methods_config;
+    LOG_INFO()
+        << "MakeClient " << client_settings.client_name << ": completion-queue-count=" << completion_queues_.GetSize()
+        << ", retry-config.attempts=" << client_factory_settings_.retry_config.attempts
+        << ", channel-count=" << client_factory_settings_.channel_count
+        << ", dedicated-channel-counts: " << client_settings.dedicated_methods_config;
 
     ClientInfo info{
         /*client_name=*/client_settings.client_name,
@@ -46,19 +52,25 @@ impl::ClientInternals ClientFactory::MakeClientInternals(
 
     auto middlewares = middleware_pipeline_creator_.CreateMiddlewares(info);
 
-    auto channel_credentials = testsuite_grpc_.IsTlsEnabled()
-                                   ? GetClientCredentials(client_factory_settings_, client_settings.client_name)
-                                   : grpc::InsecureChannelCredentials();
+    auto channel_credentials =
+        testsuite_grpc_.IsTlsEnabled()
+            ? GetClientCredentials(client_factory_settings_, client_settings.client_name)
+            : grpc::InsecureChannelCredentials();
 
-    impl::ChannelFactory channel_factory{
-        channel_task_processor_, std::move(channel_credentials), client_factory_settings_.auth_type};
+    impl::ChannelFactory
+        channel_factory{channel_task_processor_, std::move(channel_credentials), client_factory_settings_.auth_type};
+
+    std::string destination_prefix_in_metrics =
+        client_settings.destination_prefix_in_metrics.value_or(fmt::format("client({})", client_settings.client_name));
 
     return impl::ClientInternals{
         std::move(client_settings.client_name),
+        std::move(destination_prefix_in_metrics),
         std::move(client_settings.endpoint),
         std::move(middlewares),
         completion_queues_,
         client_statistics_storage_,
+        client_qos_errors_reporter_,
         config_source_,
         testsuite_grpc_,
         client_settings.client_qos,

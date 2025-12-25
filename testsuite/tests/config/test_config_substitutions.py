@@ -43,8 +43,8 @@ def test_substitute_nested(userver_config_substitutions):
                         '$foo',
                     ],
                     'and-strings': '$foo',
-                }  # noqa: COM812
-            }  # noqa: COM812
+                },
+            },
         ],
     }
 
@@ -61,7 +61,7 @@ def test_substitute_nested(userver_config_substitutions):
                         'foo_value',
                     ],
                     'and-strings': 'foo_value',
-                }  # noqa: COM812
-            }  # noqa: COM812
+                },
+            },
         ],
     }

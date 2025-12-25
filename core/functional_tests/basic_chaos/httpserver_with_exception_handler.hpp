@@ -12,7 +12,8 @@ public:
         const components::ComponentConfig& config,
         const components::ComponentContext& context
     )
-        : HttpHandlerBase(config, context) {}
+        : HttpHandlerBase(config, context)
+    {}
 
     std::string HandleRequestThrow(const server::http::HttpRequest&, server::request::RequestContext&) const override {
         throw std::runtime_error("some runtime error");

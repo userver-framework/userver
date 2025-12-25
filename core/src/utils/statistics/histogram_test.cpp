@@ -93,8 +93,9 @@ UTEST(StatisticsHistogram, Sample) {
 
     utils::statistics::Histogram histogram{{1.5, 5, 42, 60}};
 
-    auto statistics_holder =
-        storage.RegisterWriter("test", [&](utils::statistics::Writer& writer) { writer = histogram; });
+    auto statistics_holder = storage.RegisterWriter("test", [&](utils::statistics::Writer& writer) {
+        writer = histogram;
+    });
 
     histogram.Account(10);
     histogram.Account(1.2);
@@ -197,16 +198,20 @@ UTEST(StatisticsHistogram, BucketNarrowing) {
 
 UTEST_DEATH(StatisticsHistogramDeathTest, InvalidBuckets) {
     EXPECT_UINVARIANT_FAILURE_MSG(
-        (utils::statistics::Histogram{std::vector<double>{10, 5, 3}}), "Histogram bounds must be sorted"
+        (utils::statistics::Histogram{std::vector<double>{10, 5, 3}}),
+        "Histogram bounds must be sorted"
     );
     EXPECT_UINVARIANT_FAILURE_MSG(
-        (utils::statistics::Histogram{std::vector<double>{5, 5}}), "Histogram bounds must not contain duplicates"
+        (utils::statistics::Histogram{std::vector<double>{5, 5}}),
+        "Histogram bounds must not contain duplicates"
     );
     EXPECT_UINVARIANT_FAILURE_MSG(
-        utils::statistics::Histogram{std::vector<double>{-5}}, "Histogram bounds must be positive"
+        utils::statistics::Histogram{std::vector<double>{-5}},
+        "Histogram bounds must be positive"
     );
     EXPECT_UINVARIANT_FAILURE_MSG(
-        utils::statistics::Histogram{std::vector<double>{0}}, "Histogram bounds must be positive"
+        utils::statistics::Histogram{std::vector<double>{0}},
+        "Histogram bounds must be positive"
     );
     EXPECT_UINVARIANT_FAILURE_MSG(
         utils::statistics::Histogram{std::vector<double>{std::numeric_limits<double>::quiet_NaN()}},
@@ -220,7 +225,9 @@ UTEST_DEATH(StatisticsHistogramDeathTest, InvalidBuckets) {
 
 class StatisticsHistogramMetricTag : public testing::Test {
 protected:
-    StatisticsHistogramMetricTag() : metrics_storage_holder_(metrics_storage_.RegisterIn(storage_)) {}
+    StatisticsHistogramMetricTag()
+        : metrics_storage_holder_(metrics_storage_.RegisterIn(storage_))
+    {}
 
     utils::statistics::Storage& GetStorage() { return storage_; }
 
@@ -239,9 +246,8 @@ void AssertAccounted10(utils::statistics::HistogramView histogram) {
 }
 
 /// [metric tag]
-utils::statistics::MetricTag<utils::statistics::Histogram> kRuntimeHistogramMetric{
-    "histogram_metric_sample_runtime",
-    Bounds()};
+utils::statistics::MetricTag<utils::statistics::Histogram>
+    kRuntimeHistogramMetric{"histogram_metric_sample_runtime", Bounds()};
 
 void AccountHistogram(utils::statistics::MetricsStorage& metrics_storage) {
     metrics_storage.GetMetric(kRuntimeHistogramMetric).Account(10);
@@ -257,8 +263,9 @@ class StatisticsHistogramFormat : public testing::Test {
 protected:
     StatisticsHistogramFormat() {
         AccountSome(histogram_);
-        statistics_holder_ =
-            storage_.RegisterWriter("test", [&](utils::statistics::Writer& writer) { writer = histogram_; });
+        statistics_holder_ = storage_.RegisterWriter("test", [&](utils::statistics::Writer& writer) {
+            writer = histogram_;
+        });
     }
 
     const utils::statistics::Storage& GetStorage() const { return storage_; }
@@ -292,7 +299,8 @@ UTEST_F(StatisticsHistogramFormat, JsonFormat) {
 
 UTEST_F(StatisticsHistogramFormat, PrettyFormat) {
     EXPECT_EQ(
-        utils::statistics::ToPrettyFormat(GetStorage()), "test:\tHIST_RATE\t[1.5]=1,[5]=1,[42]=5,[60]=0,[inf]=1\n"
+        utils::statistics::ToPrettyFormat(GetStorage()),
+        "test:\tHIST_RATE\t[1.5]=1,[5]=1,[42]=5,[60]=0,[inf]=1\n"
     );
 }
 
@@ -350,7 +358,8 @@ UTEST_F_DEATH(StatisticsHistogramFormatDeathTest, Graphite) {
 UTEST_F(StatisticsHistogramFormat, SolomonFormat) {
     // Solomon does not understand 'sum'
     EXPECT_EQ(
-        formats::json::FromString(utils::statistics::ToSolomonFormat(GetStorage(), {})), formats::json::FromString(R"(
+        formats::json::FromString(utils::statistics::ToSolomonFormat(GetStorage(), {})),
+        formats::json::FromString(R"(
 {
   "metrics": [
     {

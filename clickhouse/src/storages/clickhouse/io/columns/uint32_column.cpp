@@ -11,7 +11,8 @@ using NativeType = clickhouse::impl::clickhouse_cpp::ColumnUInt32;
 }
 
 UInt32Column::UInt32Column(ColumnRef column)
-    : ClickhouseColumn{impl::GetTypedColumn<UInt32Column, NativeType>(column)} {}
+    : ClickhouseColumn{impl::GetTypedColumn<UInt32Column, NativeType>(column)}
+{}
 
 template <>
 UInt32Column::cpp_type ColumnIterator<UInt32Column>::DataHolder::Get() const {

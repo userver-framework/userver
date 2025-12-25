@@ -22,7 +22,9 @@ void Unwind() {
     auto& ctx = current_task::GetCurrentTaskContext();
     UASSERT(ctx.GetState() == Task::State::kRunning);
 
-    if (std::uncaught_exceptions()) return;
+    if (std::uncaught_exceptions()) {
+        return;
+    }
 
     if (ctx.SetCancellable(false)) {
         LOG_TRACE() << "Cancelling current task" << logging::LogExtra::Stacktrace();
@@ -50,7 +52,9 @@ bool ShouldCancel() noexcept {
 TaskCancellationReason CancellationReason() noexcept { return GetCurrentTaskContext().CancellationReason(); }
 
 void CancellationPoint() {
-    if (current_task::ShouldCancel()) Unwind();
+    if (current_task::ShouldCancel()) {
+        Unwind();
+    }
 }
 
 void SetDeadline(Deadline deadline) { GetCurrentTaskContext().SetCancelDeadline(deadline); }
@@ -62,7 +66,9 @@ void RequestCancel() { return GetCurrentTaskContext().RequestCancel(TaskCancella
 }  // namespace current_task
 
 TaskCancellationBlocker::TaskCancellationBlocker()
-    : context_(current_task::GetCurrentTaskContext()), was_allowed_(context_.SetCancellable(false)) {}
+    : context_(current_task::GetCurrentTaskContext()),
+      was_allowed_(context_.SetCancellable(false))
+{}
 
 TaskCancellationBlocker::~TaskCancellationBlocker() {
     UASSERT(context_.IsCurrent());
@@ -94,7 +100,11 @@ TaskCancellationToken::TaskCancellationToken() noexcept = default;
 
 TaskCancellationToken::TaskCancellationToken(impl::TaskContext& context) noexcept : context_(&context) {}
 
-TaskCancellationToken::TaskCancellationToken(Task& task) : context_(task.pimpl_->context) { UASSERT(context_); }
+TaskCancellationToken::TaskCancellationToken(Task& task)
+    : context_(task.pimpl_->context)
+{
+    UASSERT(context_);
+}
 
 // clang-tidy insists on defaulting this,
 // gcc complains about exception-specification mismatch with '= default'

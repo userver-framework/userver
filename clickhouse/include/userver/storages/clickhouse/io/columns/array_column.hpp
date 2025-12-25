@@ -58,7 +58,9 @@ ArrayColumn<T>::ArrayDataHolder::ArrayDataHolder(
     typename ColumnIterator<ArrayColumn<T>>::IteratorPosition iter_position,
     ColumnRef&& column
 )
-    : inner_{std::move(column)}, ind_(iter_position == decltype(iter_position)::kEnd ? GetColumnSize(inner_) : 0) {}
+    : inner_{std::move(column)},
+      ind_(iter_position == decltype(iter_position)::kEnd ? GetColumnSize(inner_) : 0)
+{}
 
 template <typename T>
 typename ArrayColumn<T>::ArrayDataHolder ArrayColumn<T>::ArrayDataHolder::operator++(int) {
@@ -96,7 +98,9 @@ bool ArrayColumn<T>::ArrayDataHolder::operator==(const ArrayDataHolder& other) c
 }
 
 template <typename T>
-ArrayColumn<T>::ArrayColumn(ColumnRef column) : ClickhouseColumn<ArrayColumn>{std::move(column)} {}
+ArrayColumn<T>::ArrayColumn(ColumnRef column)
+    : ClickhouseColumn<ArrayColumn>{std::move(column)}
+{}
 
 template <typename T>
 ColumnRef ArrayColumn<T>::Serialize(const container_type& from) {

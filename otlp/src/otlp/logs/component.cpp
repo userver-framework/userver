@@ -19,16 +19,21 @@
 
 #include <opentelemetry/proto/collector/logs/v1/logs_service_client.usrv.pb.hpp>
 
+#ifndef ARCADIA_ROOT
+#include "generated/src/otlp/logs/component.yaml.hpp"  // Y_IGNORE
+#endif
+
 USERVER_NAMESPACE_BEGIN
 
 namespace otlp {
 
 LoggerComponent::LoggerComponent(const components::ComponentConfig& config, const components::ComponentContext& context)
-    : old_logger_(logging::GetDefaultLogger()) {
+    : old_logger_(logging::GetDefaultLogger())
+{
     auto client_factory_name = config["client-factory-name"].As<std::string>();
 
-    auto& client_factory =
-        context.FindComponent<ugrpc::client::ClientFactoryComponent>(client_factory_name).GetFactory();
+    auto&
+        client_factory = context.FindComponent<ugrpc::client::ClientFactoryComponent>(client_factory_name).GetFactory();
 
     std::string logs_endpoint;
     std::string tracing_endpoint;
@@ -55,13 +60,11 @@ LoggerComponent::LoggerComponent(const components::ComponentConfig& config, cons
         tracing_endpoint = tracing_endpoint_cfg.As<std::string>();
     }
 
-    auto client = client_factory.MakeClient<opentelemetry::proto::collector::logs::v1::LogsServiceClient>(
-        "otlp-logger", logs_endpoint
-    );
+    auto client = client_factory.MakeClient<
+        opentelemetry::proto::collector::logs::v1::LogsServiceClient>("otlp-logger", logs_endpoint);
 
-    auto trace_client = client_factory.MakeClient<opentelemetry::proto::collector::trace::v1::TraceServiceClient>(
-        "otlp-tracer", tracing_endpoint
-    );
+    auto trace_client = client_factory.MakeClient<
+        opentelemetry::proto::collector::trace::v1::TraceServiceClient>("otlp-tracer", tracing_endpoint);
 
     LoggerConfig logger_config;
     logger_config.max_queue_size = config["max-queue-size"].As<size_t>(65535);
@@ -69,8 +72,8 @@ LoggerComponent::LoggerComponent(const components::ComponentConfig& config, cons
     logger_config.service_name = config["service-name"].As<std::string>("unknown_service");
     logger_config.log_level = config["log-level"].As<USERVER_NAMESPACE::logging::Level>();
     logger_config.extra_attributes = config["extra-attributes"].As<std::unordered_map<std::string, std::string>>({});
-    logger_config.attributes_mapping =
-        config["attributes-mapping"].As<std::unordered_map<std::string, std::string>>({});
+    logger_config.attributes_mapping = config["attributes-mapping"].As<std::unordered_map<std::string, std::string>>({}
+    );
     logger_config.logs_sink = config["sinks"]["logs"].As<SinkType>(SinkType::kOtlp);
     logger_config.tracing_sink = config["sinks"]["tracing"].As<SinkType>(SinkType::kOtlp);
 
@@ -127,89 +130,7 @@ LoggerComponent::~LoggerComponent() {
 }
 
 yaml_config::Schema LoggerComponent::GetStaticConfigSchema() {
-    return yaml_config::MergeSchemas<components::RawComponentBase>(R"(
-type: object
-description: >
-    OpenTelemetry logger component
-additionalProperties: false
-properties:
-    endpoint:
-        type: string
-        description: >
-            Hostname:port of otel collector (gRPC). This endpoint is used
-            both for logs and traces. If you want separate endpoints, then
-            use "logs-endpoint" and "tracing-endpoint" members.
-            Please note that "endpoint" is mutually exclusive with either
-            "logs-endpoint" or "tracing-endpoint". Basically, you either have
-            one endpoint for both, or you specify directly what goes where.
-    logs-endpoint:
-        type: string
-        description: >
-            Hostname:port of otel collector (gRPC). This endpoint is used
-            only for logs.
-    tracing-endpoint:
-        type: string
-        description: >
-            Hostname:port of otel collector (gRPC). This endpoint is used
-            only for traces.
-    client-factory-name:
-        type: string
-        description: >
-            This component needs ugrpc::client::ClientFactoryComponent to
-            work and we will look for it with name given in this
-            parameter.
-            You need to set that component propertly, e.g. disable
-            middlwares (otherwise it will be an infinite loop of client
-            producing logs that go into otlp logger and back to client
-            and that causes even more logs).
-
-            Although it is possible to omit this parameter and use
-            default ClientFactoryComponent instance, it is not recommended
-            and will cause severe problems in the long run.
-
-    log-level:
-        type: string
-        description: log level
-    max-queue-size:
-        type: integer
-        description: max async queue size
-    max-batch-delay:
-        type: string
-        description: max delay between send batches (e.g. 100ms or 1s)
-    service-name:
-        type: string
-        description: service name
-    sinks:
-        type: object
-        description: sinks to send logs/traces to
-        additionalProperties: false
-        properties:
-            logs:
-                type: string
-                enum: [otlp, default, both]
-                description: logs sink
-                defaultDescription: otlp
-            tracing:
-                type: string
-                enum: [otlp, default, both]
-                description: tracing sink
-                defaultDescription: otlp
-    attributes-mapping:
-        type: object
-        description: rename rules for OTLP attributes
-        properties: {}
-        additionalProperties:
-            type: string
-            description: new attribute name
-    extra-attributes:
-        type: object
-        description: extra OTLP attributes
-        properties: {}
-        additionalProperties:
-            type: string
-            description: attribute value
-
-)");
+    return yaml_config::MergeSchemasFromResource<components::RawComponentBase>("src/otlp/logs/component.yaml");
 }
 
 }  // namespace otlp

@@ -3,17 +3,20 @@
 #include <fmt/format.h>
 
 #include <userver/storages/redis/transaction.hpp>
+#include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::redis::impl {
 
 [[noreturn]] void ThrowTransactionNotStarted(std::string_view description) {
-    throw NotStartedTransactionException(fmt::format(
-        "trying to {} transaction's subcommand result before calling "
-        "Exec() + Get() for the entire transaction",
+    auto message = fmt::format(
+        "Trying to {} transaction's subcommand result before calling Exec() + Get() for the entire transaction",
         description
-    ));
+    );
+
+    UASSERT_MSG(false, message);
+    throw NotStartedTransactionException(std::move(message));
 }
 
 }  // namespace storages::redis::impl

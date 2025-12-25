@@ -1,12 +1,16 @@
+#include <userver/formats/common/type.hpp>
 #include <userver/formats/parse/boost_flat_containers.hpp>
 #include <userver/formats/parse/boost_optional.hpp>
 #include <userver/formats/parse/time_of_day.hpp>
 #include <userver/formats/parse/to.hpp>
 #include <userver/formats/parse/variant.hpp>
+#include <userver/utils/meta_light.hpp>
 
+#include <limits>
 #include <map>
 #include <optional>
 #include <set>
+#include <stdexcept>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
@@ -199,6 +203,46 @@ TYPED_TEST_P(Parsing, IntOverflow) {
     EXPECT_EQ(65535, value.template As<uint16_t>());
 }
 
+TYPED_TEST_P(Parsing, MaxMinFloat) {
+    using Value = std::decay_t<decltype(this->kFromString(""))>;
+
+    constexpr float kFloatMax = std::numeric_limits<float>::max();
+    constexpr float kFloatMin = std::numeric_limits<float>::min();
+
+    auto float_max = this->kFromString(fmt::format("[{}]", kFloatMax))[0];
+    auto float_negative_max = this->kFromString(fmt::format("[{}]", -kFloatMax))[0];
+    auto float_min = this->kFromString(fmt::format("[{}]", kFloatMin))[0];
+    auto float_negative_min = this->kFromString(fmt::format("[{}]", -kFloatMin))[0];
+
+    EXPECT_EQ(float_max.template As<float>(), kFloatMax);
+    EXPECT_EQ(float_negative_max.template As<float>(), -kFloatMax);
+    EXPECT_EQ(float_min.template As<float>(), kFloatMin);
+    EXPECT_EQ(float_negative_min.template As<float>(), -kFloatMin);
+}
+
+TYPED_TEST_P(Parsing, InfNanFloatDouble) {
+// May abort in test builds
+#ifdef NDEBUG
+    using Value = std::decay_t<decltype(this->kFromString(""))>;
+    using Exception = typename Value::Exception;
+
+    constexpr float kFloatInf = std::numeric_limits<float>::infinity();
+    constexpr float kFloatNan = std::numeric_limits<float>::quiet_NaN();
+
+    EXPECT_THROW(this->kFromString(fmt::format("[{}]", kFloatInf))[0].template As<float>(), Exception);
+    EXPECT_THROW(this->kFromString(fmt::format("[{}]", -kFloatInf))[0].template As<float>(), Exception);
+    EXPECT_THROW(this->kFromString(fmt::format("[{}]", kFloatNan))[0].template As<float>(), Exception);
+    EXPECT_THROW(this->kFromString(fmt::format("[{}]", -kFloatNan))[0].template As<float>(), Exception);
+
+    constexpr double kDoubleInf = std::numeric_limits<double>::infinity();
+    constexpr double kDoubleNan = std::numeric_limits<double>::quiet_NaN();
+    EXPECT_THROW(this->kFromString(fmt::format("[{}]", kDoubleInf))[0].template As<double>(), Exception);
+    EXPECT_THROW(this->kFromString(fmt::format("[{}]", -kDoubleInf))[0].template As<double>(), Exception);
+    EXPECT_THROW(this->kFromString(fmt::format("[{}]", kDoubleNan))[0].template As<double>(), Exception);
+    EXPECT_THROW(this->kFromString(fmt::format("[{}]", -kDoubleNan))[0].template As<double>(), Exception);
+#endif
+}
+
 TYPED_TEST_P(Parsing, UserProvidedCommonParser) {
     auto value = this->kFromString("[42]")[0];
 
@@ -302,7 +346,9 @@ TYPED_TEST_P(Parsing, TimeOfDayNormalized) {
 
 struct DontDefaultMe {
     DontDefaultMe() { Fail(); }
-    explicit DontDefaultMe(int value) : value(value) {}
+    explicit DontDefaultMe(int value)
+        : value(value)
+    {}
     int value = 0;
 
     static void Fail() { FAIL() << "Extra default constructor invoked by As"; }
@@ -370,6 +416,8 @@ REGISTER_TYPED_TEST_SUITE_P(
     Int,
     UInt,
     IntOverflow,
+    MaxMinFloat,
+    InfNanFloatDouble,
     UserProvidedCommonParser,
 
     ChronoDoubleSeconds,

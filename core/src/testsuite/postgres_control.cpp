@@ -14,7 +14,8 @@ PostgresControl::PostgresControl(
 )
     : network_timeout_(network_timeout),
       statement_timeout_(statement_timeout),
-      is_readonly_master_expected_(readonly_master == ReadonlyMaster::kExpected) {
+      is_readonly_master_expected_(readonly_master == ReadonlyMaster::kExpected)
+{
     if (network_timeout.count() < 0) {
         throw std::invalid_argument("Negative network_timeout");
     }

@@ -14,6 +14,7 @@
 #include <userver/ugrpc/client/client_settings.hpp>
 #include <userver/ugrpc/client/fwd.hpp>
 #include <userver/ugrpc/client/impl/client_internals.hpp>
+#include <userver/ugrpc/client/impl/client_qos_errors_reporter.hpp>
 #include <userver/ugrpc/client/middlewares/pipeline.hpp>
 #include <userver/ugrpc/impl/static_service_metadata.hpp>
 
@@ -58,20 +59,24 @@ public:
         impl::MiddlewarePipelineCreator& middleware_pipeline_creator,
         ugrpc::impl::CompletionQueuePoolBase& completion_queues,
         ugrpc::impl::StatisticsStorage& statistics_storage,
+        utils::statistics::MetricsStorage& metrics_storage,
         testsuite::GrpcControl& testsuite_grpc,
         dynamic_config::Source config_source
     );
     /// @endcond
 
 private:
-    impl::ClientInternals
-    MakeClientInternals(ClientSettings&& client_settings, std::optional<ugrpc::impl::StaticServiceMetadata> meta);
+    impl::ClientInternals MakeClientInternals(
+        ClientSettings&& client_settings,
+        std::optional<ugrpc::impl::StaticServiceMetadata> meta
+    );
 
     ClientFactorySettings client_factory_settings_;
     engine::TaskProcessor& channel_task_processor_;
     impl::MiddlewarePipelineCreator& middleware_pipeline_creator_;
     ugrpc::impl::CompletionQueuePoolBase& completion_queues_;
     ugrpc::impl::StatisticsStorage& client_statistics_storage_;
+    impl::ClientQosErrorsReporter client_qos_errors_reporter_;
     const dynamic_config::Source config_source_;
     testsuite::GrpcControl& testsuite_grpc_;
 };

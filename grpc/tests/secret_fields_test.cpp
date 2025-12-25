@@ -51,8 +51,9 @@ enum class MiddlewareFlag {
 using MiddlewareFlags = utils::Flags<MiddlewareFlag>;
 
 // NOLINTNEXTLINE(fuchsia-multiple-inheritance)
-class SecretFieldsServiceFixture : public ugrpc::tests::ServiceFixtureBase,
-                                   public testing::WithParamInterface<MiddlewareFlags> {
+class SecretFieldsServiceFixture
+    : public ugrpc::tests::ServiceFixtureBase,
+      public testing::WithParamInterface<MiddlewareFlags> {
 protected:
     SecretFieldsServiceFixture() {
         if (GetParam() & MiddlewareFlag::kServerLog) {
@@ -142,13 +143,15 @@ UTEST(ToLimitedDebugStringWithSecrets, Basic) {
     message.set_count(7);
     auto out = ugrpc::ToLimitedDebugString(message, kLimit);
     const std::string expected_full_str =
-        "id: \"swag\"\nname: \"test-name\"\npassword: [REDACTED]\ncount: [REDACTED]\n";
+        "id: \"swag\"\nname: \"test-name\"\npassword: [REDACTED]\ncount: "
+        "[REDACTED]\n";
     EXPECT_EQ(out, expected_full_str);
 
     out = ugrpc::ToLimitedDebugString(message, 44);
     EXPECT_EQ(out.size(), 44);
     EXPECT_EQ(
-        out.substr(0, 44), expected_full_str.substr(0, 44 - kNewLineTruncatedMarker.size()) + kNewLineTruncatedMarker
+        out.substr(0, 44),
+        expected_full_str.substr(0, 44 - kNewLineTruncatedMarker.size()) + kNewLineTruncatedMarker
     );
 }
 

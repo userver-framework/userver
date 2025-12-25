@@ -6,7 +6,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite {
 
-ResultSet::ResultSet(impl::ResultWrapperPtr pimpl) : pimpl_{std::move(pimpl)} {}
+ResultSet::ResultSet(impl::ResultWrapperPtr pimpl)
+    : pimpl_{std::move(pimpl)}
+{}
 
 ResultSet::ResultSet(ResultSet&& other) noexcept = default;
 

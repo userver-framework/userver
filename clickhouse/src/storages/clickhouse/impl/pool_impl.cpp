@@ -51,10 +51,12 @@ struct PoolImpl::MaintenanceConnectionDeleter final {
 };
 
 PoolImpl::PoolImpl(clients::dns::Resolver& resolver, PoolSettings&& settings)
-    : drivers::impl::
-          ConnectionPoolBase<Connection, PoolImpl>{settings.max_pool_size, kMaxSimultaneouslyConnectingClients},
+    : drivers::impl::ConnectionPoolBase<
+          Connection,
+          PoolImpl>{settings.max_pool_size, kMaxSimultaneouslyConnectingClients},
       resolver_{resolver},
-      pool_settings_{std::move(settings)} {
+      pool_settings_{std::move(settings)}
+{
     try {
         Init(pool_settings_.initial_pool_size, kConnectTimeout);
     } catch (const std::exception&) {

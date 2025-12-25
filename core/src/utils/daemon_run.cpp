@@ -18,10 +18,11 @@ namespace {
 
 template <class Value>
 std::optional<std::string> ToOptional(const Value& val) {
-    if (val.empty())
+    if (val.empty()) {
         return {};
-    else
+    } else {
         return {val.template as<std::string>()};
+    }
 }
 
 }  // namespace
@@ -93,7 +94,8 @@ int DaemonMain(const boost::program_options::variables_map& vm, const components
         return 1;
     } catch (...) {
         const auto msg = fmt::format(
-            "Non-standard exception in components::Run: {}\n", boost::current_exception_diagnostic_information()
+            "Non-standard exception in components::Run: {}\n",
+            boost::current_exception_diagnostic_information()
         );
         std::fputs(msg.c_str(), stderr);
         return 1;
@@ -112,7 +114,8 @@ int DaemonMain(const components::InMemoryConfig& config, const components::Compo
         return 1;
     } catch (...) {
         auto msg = fmt::format(
-            "Non-standard exception in components::Run: {}\n", boost::current_exception_diagnostic_information()
+            "Non-standard exception in components::Run: {}\n",
+            boost::current_exception_diagnostic_information()
         );
         std::fputs(msg.c_str(), stderr);
         return 1;

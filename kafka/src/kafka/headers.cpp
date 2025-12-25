@@ -18,16 +18,24 @@ bool operator==(const HeaderView& lhs, const OwningHeader& rhs) {
 
 bool operator==(const OwningHeader& lhs, const HeaderView& rhs) { return (rhs == lhs); }
 
-OwningHeader::OwningHeader(HeaderView header) : name_{header.name}, value_{header.value} {}
+OwningHeader::OwningHeader(HeaderView header)
+    : name_{header.name},
+      value_{header.value}
+{}
 
-OwningHeader::OwningHeader(std::string name, std::string value) : name_{std::move(name)}, value_{std::move(value)} {}
+OwningHeader::OwningHeader(std::string name, std::string value)
+    : name_{std::move(name)},
+      value_{std::move(value)}
+{}
 
 const std::string& OwningHeader::GetName() const noexcept { return name_; }
 
 std::string_view OwningHeader::GetValue() const noexcept { return value_; }
 
 HeadersIterator::HeadersIterator(const rd_kafka_headers_t* headers, std::size_t index)
-    : headers_{headers}, index_{index} {}
+    : headers_{headers},
+      index_{index}
+{}
 
 HeadersIterator& HeadersIterator::operator++() {
     ++index_;
@@ -62,7 +70,10 @@ bool HeadersIterator::operator==(const HeadersIterator& other) const {
 
 bool HeadersIterator::operator!=(const HeadersIterator& other) const { return !(*this == other); }
 
-HeadersReader::HeadersReader(const rd_kafka_headers_t* headers) : headers_{headers}, size_{size()} {}
+HeadersReader::HeadersReader(const rd_kafka_headers_t* headers)
+    : headers_{headers},
+      size_{size()}
+{}
 
 std::size_t HeadersReader::size() const noexcept {
     if (!headers_) {

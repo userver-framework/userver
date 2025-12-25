@@ -11,7 +11,9 @@ USERVER_NAMESPACE_BEGIN
 namespace urabbitmq::impl {
 
 ResponseAwaiter::ResponseAwaiter(engine::SemaphoreLock&& lock)
-    : lock_{std::move(lock)}, wrapper_{DeferredWrapper::Create()} {}
+    : lock_{std::move(lock)},
+      wrapper_{DeferredWrapper::Create()}
+{}
 
 #ifndef NDEBUG
 ResponseAwaiter::~ResponseAwaiter() {

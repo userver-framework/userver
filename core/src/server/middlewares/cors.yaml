@@ -1,0 +1,46 @@
+type: object
+description: Http service headers propagator middleware
+additionalProperties: false
+properties:
+    allowed-origins:
+        description: Allowed 'Origin' header values
+        type: array
+        items:
+            description: "'Origin' header value"
+            type: string
+
+    allow-credentials:
+        description: |
+            Whether credentials sending is allowed.
+            Credentials include cookies, Transport Layer Security (TLS) client certificates,
+            or authentication headers containing a username and password.
+        type: boolean
+
+    max-age-seconds:
+        description: |
+            How long the results of a preflight request can be cached, in seconds.
+        type: integer
+
+    allowed-methods:
+        description: |
+            One or more HTTP request methods allowed when accessing a resource in response to a preflight request.
+        type: array
+        items:
+            description: HTTP method
+            type: string
+
+    allowed-headers:
+        description: |
+            Headers that can be used during the actual request.
+        type: array
+        items:
+            description: HTTP header
+            type: string
+
+    exposed-headers:
+        description: |
+            Response headers that should be made available to scripts running in the browser in response to a cross-origin request.
+        type: array
+        items:
+            description: HTTP header
+            type: string

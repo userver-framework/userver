@@ -17,7 +17,8 @@ namespace storages::sqlite::impl {
 Statement::Statement(const NativeHandler& db_handler, std::string_view statement)
     : db_handler_{db_handler},
       prepare_statement_(PrepareStatement(statement)),
-      column_count_(sqlite3_column_count(prepare_statement_.get())) {}
+      column_count_(sqlite3_column_count(prepare_statement_.get()))
+{}
 
 Statement::~Statement() = default;
 
@@ -66,7 +67,9 @@ Statement::NativeStatementPtr Statement::PrepareStatement(std::string_view state
     );
     if (ret_code != SQLITE_OK) {
         throw SQLiteException(
-            sqlite3_errmsg(db_handler_.GetHandle()), ret_code, sqlite3_extended_errcode(db_handler_.GetHandle())
+            sqlite3_errmsg(db_handler_.GetHandle()),
+            ret_code,
+            sqlite3_extended_errcode(db_handler_.GetHandle())
         );
     }
 
@@ -76,7 +79,9 @@ Statement::NativeStatementPtr Statement::PrepareStatement(std::string_view state
 void Statement::CheckCode(const int ret_code) const {
     if (ret_code != SQLITE_OK) {
         throw SQLiteException(
-            sqlite3_errmsg(db_handler_.GetHandle()), ret_code, sqlite3_extended_errcode(db_handler_.GetHandle())
+            sqlite3_errmsg(db_handler_.GetHandle()),
+            ret_code,
+            sqlite3_extended_errcode(db_handler_.GetHandle())
         );
     }
 }
@@ -181,7 +186,9 @@ void Statement::CheckStepStatus() {
     // Check if last exec_step finished with error
     if (IsFail()) {
         throw SQLiteException(
-            sqlite3_errmsg(db_handler_.GetHandle()), exec_status_, sqlite3_extended_errcode(db_handler_.GetHandle())
+            sqlite3_errmsg(db_handler_.GetHandle()),
+            exec_status_,
+            sqlite3_extended_errcode(db_handler_.GetHandle())
         );
     }
 }
@@ -245,11 +252,12 @@ void Statement::Extract(int column, std::string& val) const noexcept {
 
 void Statement::Extract(int column, std::vector<uint8_t>& val) const noexcept {
     const void* blob = sqlite3_column_blob(prepare_statement_.get(), column);
-    val = blob ? std::vector<uint8_t>(
-                     static_cast<const uint8_t*>(blob),
-                     static_cast<const uint8_t*>(blob) + sqlite3_column_bytes(prepare_statement_.get(), column)
-                 )
-               : std::vector<uint8_t>{};
+    val =
+        blob ? std::vector<uint8_t>(
+                   static_cast<const uint8_t*>(blob),
+                   static_cast<const uint8_t*>(blob) + sqlite3_column_bytes(prepare_statement_.get(), column)
+               )
+             : std::vector<uint8_t>{};
 }
 
 }  // namespace storages::sqlite::impl

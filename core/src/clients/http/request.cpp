@@ -146,7 +146,9 @@ template <class Range>
 void SetCookies(curl::easy& easy, const Range& cookies_range) {
     std::string cookie_str;
     for (const auto& [name, value] : cookies_range) {
-        if (!cookie_str.empty()) cookie_str += "; ";
+        if (!cookie_str.empty()) {
+            cookie_str += "; ";
+        }
         cookie_str += name;
         cookie_str += '=';
         cookie_str += value;
@@ -206,7 +208,8 @@ Request::Request(
     const tracing::TracingManagerBase& tracing_manager
 )
     : pimpl_(std::make_shared<
-             RequestState>(std::move(wrapper), std::move(req_stats), dest_stats, resolver, tracing_manager)) {
+             RequestState>(std::move(wrapper), std::move(req_stats), dest_stats, resolver, tracing_manager))
+{
     LOG_TRACE() << "Request::Request()";
     // default behavior follow redirects and verify ssl
     pimpl_->follow_redirects(true);
@@ -244,10 +247,13 @@ Request& Request::url(std::string url) & {
     impl.easy().set_url(std::move(url), ec);
 
     /// `curl::easy::set_url(std::string&&, std::error_code&)` doesn't consume the string if fails.
-    if (ec) throw BadArgumentException(ec, "Bad URL", url, {});
+    if (ec) {
+        throw BadArgumentException(ec, "Bad URL", url, {});
+    }
 
     impl.SetDestinationMetricNameAuto(std::string{
-        USERVER_NAMESPACE::http::ExtractMetaTypeFromUrl(impl.easy().get_original_url())});
+        USERVER_NAMESPACE::http::ExtractMetaTypeFromUrl(impl.easy().get_original_url())
+    });
     return *this;
 }
 Request Request::url(std::string url) && { return std::move(this->url(std::move(url))); }
@@ -304,7 +310,9 @@ Request Request::http_version(HttpVersion version) && { return std::move(this->h
 
 Request& Request::retry(short retries, bool on_fails) & {
     UASSERT_MSG(retries >= 0, "retires < 0 (" + std::to_string(retries) + "), uninitialized variable?");
-    if (retries <= 0) retries = 1;
+    if (retries <= 0) {
+        retries = 1;
+    }
     pimpl_->retry(retries, on_fails);
     return *this;
 }
@@ -361,13 +369,21 @@ Request Request::headers(const std::initializer_list<std::pair<utils::zstring_vi
     return std::move(this->headers(headers));
 }
 
-Request&
-Request::http_auth_type(HttpAuthType value, bool auth_only, utils::zstring_view user, utils::zstring_view password) & {
+Request& Request::http_auth_type(
+    HttpAuthType value,
+    bool auth_only,
+    utils::zstring_view user,
+    utils::zstring_view password
+) & {
     pimpl_->http_auth_type(HttpAuthTypeToNative(value), auth_only, user, password);
     return *this;
 }
-Request
-Request::http_auth_type(HttpAuthType value, bool auth_only, utils::zstring_view user, utils::zstring_view password) && {
+Request Request::http_auth_type(
+    HttpAuthType value,
+    bool auth_only,
+    utils::zstring_view user,
+    utils::zstring_view password
+) && {
     return std::move(this->http_auth_type(value, auth_only, user, password));
 }
 
@@ -377,9 +393,8 @@ Request& Request::proxy_headers(const Headers& headers) & {
 }
 Request Request::proxy_headers(const Headers& headers) && { return std::move(this->proxy_headers(headers)); }
 
-Request& Request::proxy_headers(
-    const std::initializer_list<std::pair<utils::zstring_view, utils::zstring_view>>& headers
-) & {
+Request& Request::proxy_headers(const std::initializer_list<
+                                std::pair<utils::zstring_view, utils::zstring_view>>& headers) & {
     SetProxyHeaders(pimpl_->easy(), headers);
     return *this;
 }
@@ -446,9 +461,10 @@ Request& Request::delete_method() & { return method(HttpMethod::kDelete); }
 Request Request::delete_method() && { return std::move(this->delete_method()); }
 
 Request& Request::set_custom_http_request_method(std::string method) & {
-    LOG_LIMITED_WARNING() << "This method can cause unexpected effects in libcurl, i.e., timeouts, "
-                             "changing of request type. Use it only if you need to make "
-                             "GET-request with body.";
+    LOG_LIMITED_WARNING()
+        << "This method can cause unexpected effects in libcurl, i.e., timeouts, "
+           "changing of request type. Use it only if you need to make "
+           "GET-request with body.";
     pimpl_->easy().set_custom_request(method);
     return *this;
 }
@@ -498,8 +514,8 @@ Request Request::delete_method(std::string url, std::string data) && {
     return std::move(this->delete_method(std::move(url), std::move(data)));
 }
 
-Request& Request::SetPluginsList(const std::vector<utils::NotNull<Plugin*>>& plugins) & {
-    pimpl_->SetPluginsList(plugins);
+Request& Request::SetMiddlewaresList(const std::vector<utils::NotNull<MiddlewareBase*>>& middlewares) & {
+    pimpl_->SetMiddlewaresList(middlewares);
     return *this;
 }
 

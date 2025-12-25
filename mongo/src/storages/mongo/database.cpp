@@ -16,7 +16,9 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::mongo::impl {
 
 Database::Database(PoolImplPtr pool, std::string database_name)
-    : pool_(std::move(pool)), database_name_(std::move(database_name)) {
+    : pool_(std::move(pool)),
+      database_name_(std::move(database_name))
+{
     if (!utils::text::IsCString(database_name_)) {
         throw MongoException("Invalid database name: '" + database_name_);
     }
@@ -46,8 +48,8 @@ bool Database::HasCollection(utils::zstring_view collection_name) const {
     const cdriver::DatabasePtr database(mongoc_client_get_database(client.get(), database_name_.c_str()));
 
     MongoError error;
-    const bool has_collection =
-        mongoc_database_has_collection(database.get(), collection_name.c_str(), error.GetNative());
+    const bool
+        has_collection = mongoc_database_has_collection(database.get(), collection_name.c_str(), error.GetNative());
     if (error) {
         error.Throw("Error checking for collection existence");
     }
@@ -55,9 +57,8 @@ bool Database::HasCollection(utils::zstring_view collection_name) const {
 }
 
 Collection Database::GetCollection(std::string collection_name) const {
-    return Collection(
-        std::make_shared<cdriver::CDriverCollectionImpl>(pool_, database_name_, std::move(collection_name))
-    );
+    return Collection(std::make_shared<
+                      cdriver::CDriverCollectionImpl>(pool_, database_name_, std::move(collection_name)));
 }
 
 std::vector<std::string> Database::ListCollectionNames() const {
@@ -67,9 +68,8 @@ std::vector<std::string> Database::ListCollectionNames() const {
     const cdriver::DatabasePtr database(mongoc_client_get_database(client.get(), database_name_.c_str()));
 
     MongoError error;
-    const formats::bson::impl::RawPtr<char*> collection_names(
-        mongoc_database_get_collection_names_with_opts(database.get(), nullptr, error.GetNative())
-    );
+    const formats::bson::impl::RawPtr<char*>
+        collection_names(mongoc_database_get_collection_names_with_opts(database.get(), nullptr, error.GetNative()));
     if (error) {
         error.Throw("Error listing existing collections");
     }

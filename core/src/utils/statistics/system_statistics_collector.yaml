@@ -1,0 +1,16 @@
+type: object
+description: Component for system resource usage statistics collection.
+additionalProperties: false
+properties:
+    fs-task-processor:
+        type: string
+        description: |
+            Task processor to use for statistics gathering.
+
+            Default: engine::current_task::GetBlockingTaskProcessor()
+    with-nginx:
+        type: boolean
+        description: Whether to collect and report nginx processes statistics. Note
+            that this is a relatively expensive option as it requires full scan of
+            the process list.
+        default: false

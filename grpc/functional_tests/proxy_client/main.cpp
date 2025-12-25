@@ -1,7 +1,8 @@
 #include <userver/clients/dns/component.hpp>
-#include <userver/clients/http/component.hpp>
+#include <userver/clients/http/component_list.hpp>
 #include <userver/components/minimal_server_component_list.hpp>
 #include <userver/congestion_control/component.hpp>
+#include <userver/dynamic_config/updater/component_list.hpp>
 #include <userver/server/handlers/server_monitor.hpp>
 #include <userver/server/handlers/tests_control.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
@@ -12,24 +13,21 @@
 #include <userver/ugrpc/client/component_list.hpp>
 
 #include <greeter_client_tests.hpp>
-#include <userver/dynamic_config/client/component.hpp>
-#include <userver/dynamic_config/updater/component.hpp>
 
 int main(int argc, const char* const argv[]) {
-    const auto component_list = components::MinimalServerComponentList()
-                                    .Append<server::handlers::ServerMonitor>()
-                                    .Append<congestion_control::Component>()
-                                    .Append<components::TestsuiteSupport>()
-                                    .Append<server::handlers::TestsControl>()
-                                    .Append<clients::dns::Component>()
-                                    .Append<components::HttpClientCore>()
-                                    .Append<components::HttpClient>()
-                                    .AppendComponentList(ugrpc::client::DefaultComponentList())
-                                    .Append<ugrpc::client::ClientFactoryComponent>()
-                                    .Append<functional_tests::GreeterClientComponent>()
-                                    .Append<functional_tests::GreeterClientTestComponent>()
-                                    .Append<components::DynamicConfigClient>()
-                                    .Append<components::DynamicConfigClientUpdater>();
+    const auto component_list =
+        components::MinimalServerComponentList()
+            .AppendComponentList(USERVER_NAMESPACE::dynamic_config::updater::ComponentList())
+            .Append<server::handlers::ServerMonitor>()
+            .Append<congestion_control::Component>()
+            .Append<components::TestsuiteSupport>()
+            .Append<server::handlers::TestsControl>()
+            .Append<clients::dns::Component>()
+            .AppendComponentList(clients::http::ComponentList())
+            .AppendComponentList(ugrpc::client::DefaultComponentList())
+            .Append<ugrpc::client::ClientFactoryComponent>()
+            .Append<functional_tests::GreeterClientComponent>()
+            .Append<functional_tests::GreeterClientTestComponent>();
 
     return utils::DaemonMain(argc, argv, component_list);
 }

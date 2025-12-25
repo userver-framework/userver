@@ -6,10 +6,14 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client {
 
-std::shared_ptr<grpc::ChannelCredentials>
-GetClientCredentials(const ClientFactorySettings& client_factory_settings, const std::string& client_name) {
+std::shared_ptr<grpc::ChannelCredentials> GetClientCredentials(
+    const ClientFactorySettings& client_factory_settings,
+    const std::string& client_name
+) {
     return utils::FindOrDefault(
-        client_factory_settings.client_credentials, client_name, client_factory_settings.credentials
+        client_factory_settings.client_credentials,
+        client_name,
+        client_factory_settings.credentials
     );
 }
 

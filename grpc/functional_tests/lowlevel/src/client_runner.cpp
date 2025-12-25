@@ -14,7 +14,8 @@ formats::json::Value HandleGet() {
     static const auto kGrpcVersion = utils::text::Split(grpc::Version(), ".");
 
     return formats::json::MakeObject(
-        "grpc-version", formats::json::MakeObject("major", kGrpcVersion.at(0), "minor", kGrpcVersion.at(1))
+        "grpc-version",
+        formats::json::MakeObject("major", kGrpcVersion.at(0), "minor", kGrpcVersion.at(1))
     );
 }
 
@@ -36,12 +37,12 @@ formats::json::Value HandlePost(const ::samples::api::GreeterServiceClient& clie
 
 ClientRunner::ClientRunner(const components::ComponentConfig& config, const components::ComponentContext& context)
     : server::handlers::HttpHandlerJsonBase{config, context},
-      client_{context.FindComponent<ugrpc::client::ClientFactoryComponent>()
-                  .GetFactory()
-                  .MakeClient<::samples::api::GreeterServiceClient>(
-                      "client",
-                      config["server-endpoint"].As<std::string>()
-                  )} {}
+      client_{
+          context.FindComponent<ugrpc::client::ClientFactoryComponent>()
+              .GetFactory()
+              .MakeClient<::samples::api::GreeterServiceClient>("client", config["server-endpoint"].As<std::string>())
+      }
+{}
 
 auto ClientRunner::HandleRequestJsonThrow(
     const HttpRequest& request,

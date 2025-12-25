@@ -19,7 +19,7 @@ def static_servicemesh_settings(grpc_proxy_endpoint, grpc_mockserver_endpoint):
         os.environ['EGRESS_GRPC_PROXY'] = f'{grpc_proxy_endpoint}'
         components_cfg = config['components_manager']['components']
         components_cfg['grpc-client-common']['servicemesh-settings'] = {
-            'egress': {'disable_proxy': [grpc_mockserver_endpoint]}  # noqa: COM812
+            'egress': {'disable_proxy': [grpc_mockserver_endpoint]},
         }
 
     return hook

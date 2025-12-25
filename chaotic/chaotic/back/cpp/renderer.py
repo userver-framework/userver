@@ -53,7 +53,7 @@ def open_namespace(new_ns: str) -> str:
         res = ''
         for namespace in new_ns.split('::'):
             if namespace:
-                res = res + f'namespace {namespace} {{'  # noqa: PLR6104
+                res += f'namespace {namespace} {{'
         return res
     else:
         return ''
@@ -176,7 +176,7 @@ class OneToOneFileRenderer:
 
             filepath = self.filepath_wo_ext(
                 self._vfilepath_to_relfilepath(
-                    schema.schema.source_location().filepath,
+                    schema.schema_.source_location().filepath,
                 ),
             )
             if filepath != ignore_filepath_wo_ext:

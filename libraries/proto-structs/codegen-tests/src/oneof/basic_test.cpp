@@ -28,7 +28,8 @@ TEST(OneofBasic, LowercaseFundamentalTypes) {
     EXPECT_EQ(message.lowercase.string(), "text");
     EXPECT_FALSE(message.lowercase.has_integer());
     EXPECT_THROW(
-        [[maybe_unused]] const auto& not_found2 = message.lowercase.integer(), proto_structs::OneofAccessError
+        [[maybe_unused]] const auto& not_found2 = message.lowercase.integer(),
+        proto_structs::OneofAccessError
     );
 }
 

@@ -9,12 +9,14 @@ namespace samples::hello {
 /// [get]
 HelloHandler::HelloHandler(const components::ComponentConfig& config, const components::ComponentContext& context)
     : server::handlers::HttpHandlerBase(config, context),
-      test_(context.FindComponent<::clients::test::Component>().GetClient()) {}
+      test_(context.FindComponent<::clients::test::Component>().GetClient())
+{}
 /// [get]
 
-std::string
-HelloHandler::HandleRequest(server::http::HttpRequest& request, server::request::RequestContext& /*request_context*/)
-    const {
+std::string HelloHandler::HandleRequest(
+    server::http::HttpRequest& request,
+    server::request::RequestContext& /*request_context*/
+) const {
     auto name = request.GetArg("name");
 
     /// [use]

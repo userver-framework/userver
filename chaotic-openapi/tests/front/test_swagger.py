@@ -1,4 +1,4 @@
-from chaotic_openapi.front import base_model  # noqa: I001
+from chaotic_openapi.front import base_model
 from chaotic_openapi.front import model
 import pytest
 
@@ -53,13 +53,13 @@ def test_swagger_body_schema(simple_parser):
                         content_type='application/json',
                         schema=types.Boolean(),
                         required=True,
-                    )  # noqa: COM812
+                    ),
                 ],
                 responses={},
                 security=[],
                 x_middlewares=base_model.XMiddlewares(tvm=True),
                 x_client_codegen=True,
-            )  # noqa: COM812
+            ),
         ],
     )
 
@@ -81,7 +81,7 @@ def test_swagger_responses(simple_parser):
                         'text/plain; charset=utf-8': {'example1': 'any', 'example2': 'any'},
                         'application/json': {'example1': 'any'},
                     },
-                }  # noqa: COM812
+                },
             },
             'paths': {
                 '/': {
@@ -125,7 +125,7 @@ def test_swagger_responses(simple_parser):
                         schema=types.String(),
                         x_cpp_name=None,
                         x_query_log_mode_hide=False,
-                    )  # noqa: COM812
+                    ),
                 },
                 content={
                     'text/plain; charset=utf-8': model.MediaType(
@@ -137,7 +137,7 @@ def test_swagger_responses(simple_parser):
                         examples={'example1': 'any'},
                     ),
                 },
-            )  # noqa: COM812
+            ),
         },
         operations=[
             model.Operation(
@@ -194,7 +194,7 @@ def test_swagger_responses(simple_parser):
                 security=[],
                 x_middlewares=base_model.XMiddlewares(tvm=True),
                 x_client_codegen=True,
-            )  # noqa: COM812
+            ),
         ],
     )
 
@@ -250,7 +250,7 @@ def test_swagger_securuty(simple_parser):
                         },
                     },
                     'put': {'parameters': [], 'responses': {}},
-                }  # noqa: COM812
+                },
             },
         },
     ) == model.Service(
@@ -260,7 +260,7 @@ def test_swagger_securuty(simple_parser):
             '<inline>#/securityDefinitions/api_key': model.ApiKeySecurity(
                 description='',
                 name='api_key',
-                in_=model.SecurityIn.header,  # noqa: COM812
+                in_=model.SecurityIn.header,
             ),
             '<inline>#/securityDefinitions/oauth_implicit': model.OAuthSecurity(
                 description='',
@@ -372,7 +372,7 @@ def test_swagger_securuty(simple_parser):
                                 refreshUrl='',
                                 scopes={'read': 'read data'},
                                 authorizationUrl='https://example.com/api/oauth/dialog',
-                            )  # noqa: COM812
+                            ),
                         ],
                     ),
                     model.OAuthSecurity(
@@ -383,7 +383,7 @@ def test_swagger_securuty(simple_parser):
                                 scopes={'write': 'modify data', 'read': 'read data'},
                                 authorizationUrl='https://example.com/api/oauth/dialog',
                                 tokenUrl='https://example.com/api/oauth/token',
-                            )  # noqa: COM812
+                            ),
                         ],
                     ),
                 ],
@@ -507,7 +507,7 @@ def test_swagger_parameters(simple_parser):
                         x_query_log_mode_hide=False,
                     ),
                 ],
-            )  # noqa: COM812
+            ),
         ],
     )
 

@@ -30,6 +30,8 @@ public:
     /// @endcond
 };
 
+void PrintTo(const Document& value, std::ostream* os);
+
 }  // namespace formats::bson
 
 USERVER_NAMESPACE_END

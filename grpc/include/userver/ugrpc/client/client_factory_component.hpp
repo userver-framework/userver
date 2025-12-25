@@ -20,8 +20,6 @@ using MiddlewareRunnerComponentBase = USERVER_NAMESPACE::middlewares::RunnerComp
 
 }  // namespace impl
 
-// clang-format off
-
 /// @ingroup userver_components
 ///
 /// @brief Provides a ClientFactory in the component system
@@ -43,28 +41,20 @@ using MiddlewareRunnerComponentBase = USERVER_NAMESPACE::middlewares::RunnerComp
 /// ## Service config
 /// As per https://github.com/grpc/grpc/blob/master/doc/service_config.md
 /// service config should be distributed via the name resolution process.
-/// We allow setting default service_config: pass desired JSON literal
-/// to `default-service-config` parameter
+/// We allow setting default service_config: pass desired JSON literal to `default-service-config` parameter
 ///
-/// ## Static options:
+/// ## Static options of ugrpc::client::ClientFactoryComponent :
+/// @include{doc} scripts/docs/en/components_schema/grpc/src/ugrpc/client/client_factory_component.md
+///
+/// Options inherited from @ref middlewares::RunnerComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/middlewares/runner_component_base.md
+///
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
+///
 /// The default component name for static config is `"grpc-client-factory"`.
 ///
-/// Name | Description | Default value
-/// ---- | ----------- | -------------
-/// auth-type | authentication method, see @ref grpc_ssl_authentication "Authentication" | -
-/// ssl-credentials-options | TLS/SSL options, see @ref grpc_ssl_authentication "Authentication" | -
-/// retry-config | retry configuration for outgoing RPCs | {}
-/// channel-args | a map of channel arguments, see gRPC Core docs | {}
-/// default-service-config | default service config, see above | -
-/// channel-count | Number of underlying grpc::Channel objects | 1
-/// middlewares | middlewares names to use | -
-/// disable-user-pipeline-middlewares | a flag to disable groups::User middlewares from pipeline | false
-/// disable-all-pipeline-middlewares | a flag to disable all middlewares from the pipeline | false
-///
 /// @see https://grpc.github.io/grpc/core/group__grpc__arg__keys.html
-
-// clang-format on
-
 class ClientFactoryComponent final : public impl::MiddlewareRunnerComponentBase {
 public:
     /// @ingroup userver_component_names

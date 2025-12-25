@@ -17,7 +17,7 @@ def test_simple(simple_gen):
                         {'type': 'integer'},
                         {'type': 'string'},
                         {'type': 'number'},
-                    ]  # noqa: COM812
+                    ],
                 },
             },
             'additionalProperties': False,

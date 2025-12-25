@@ -19,7 +19,9 @@ std::string ReadContents(FileDescriptor& fd) {
     while (true) {
         result.resize(size + kBlockSize);
         const auto s = fd.Read(result.data() + size, kBlockSize);
-        if (s == 0) break;
+        if (s == 0) {
+            break;
+        }
         size += s;
     }
 

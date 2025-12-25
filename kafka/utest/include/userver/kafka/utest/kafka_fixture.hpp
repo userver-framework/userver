@@ -62,7 +62,8 @@ public:
     /// To use custom delivery timeout in test, pass `configuration` argument to
     /// MakeProducer.
     static constexpr const std::chrono::milliseconds kDefaultTestProducerTimeout{
-        USERVER_NAMESPACE::utest::kMaxTestWaitTime / 2};
+        USERVER_NAMESPACE::utest::kMaxTestWaitTime / 2
+    };
 
     KafkaCluster();
 

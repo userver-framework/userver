@@ -5,4 +5,4 @@ pytest_plugins = ['pytest_userver.plugins.core', 'pytest_userver.plugins.sql_cov
 
 @pytest.fixture(scope='session')
 def sql_files() -> set:
-    return set(['query1', 'query2', 'query3'])  # noqa: C405
+    return {'query1', 'query2', 'query3'}

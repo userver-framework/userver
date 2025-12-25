@@ -83,7 +83,12 @@ bool ClusterShard::AsyncCommand(CommandPtr command) const {
     const auto max_attempts = replicas_.size() + masters_count + 1;
     for (size_t attempt = 0; attempt < max_attempts; attempt++) {
         const size_t start_idx = GetStartIndex(
-            command->control, attempt, is_nearest_ping_server, command->instance_idx, current, servers_count
+            command->control,
+            attempt,
+            is_nearest_ping_server,
+            command->instance_idx,
+            current,
+            servers_count
         );
 
         size_t idx = SentinelImpl::kDefaultPrevInstanceIdx;
@@ -106,8 +111,9 @@ bool ClusterShard::AsyncCommand(CommandPtr command) const {
         }
     }
 
-    LOG_LIMITED_WARNING() << "No Redis server is ready for shard=" << shard_ << " slave=" << command->read_only
-                          << " available_servers=" << available_servers.size() << command->GetLogExtra();
+    LOG_LIMITED_WARNING()
+        << "No Redis server is ready for shard=" << shard_ << " slave=" << command->read_only
+        << " available_servers=" << available_servers.size() << command->GetLogExtra();
     return false;
 }
 
@@ -228,9 +234,10 @@ ClusterShard::RedisPtr ClusterShard::GetInstance(
     size_t* pinstance_idx
 ) {
     RedisPtr ret;
-    const auto end = (is_nearest_ping_server && attempt == 0 && best_dc_count)
-                         ? std::min(instances.size(), best_dc_count)
-                         : instances.size();
+    const auto end =
+        (is_nearest_ping_server && attempt == 0 && best_dc_count)
+            ? std::min(instances.size(), best_dc_count)
+            : instances.size();
     for (size_t i = 0; i < end; ++i) {
         const auto idx = (start_idx + i) % end;
         const auto& cur = instances[idx];
@@ -241,8 +248,11 @@ ClusterShard::RedisPtr ClusterShard::GetInstance(
 
         if (cur_inst && cur_inst->IsAvailable() && (!retry || cur_inst->CanRetry()) &&
             (!ret || ret->IsDestroying() ||
-             (consider_ping && cur_inst->GetRunningCommands() < ret->GetRunningCommands()))) {
-            if (pinstance_idx) *pinstance_idx = idx;
+             (consider_ping && cur_inst->GetRunningCommands() < ret->GetRunningCommands())))
+        {
+            if (pinstance_idx) {
+                *pinstance_idx = idx;
+            }
             ret = cur_inst;
         }
     }
@@ -278,8 +288,10 @@ size_t GetStartIndex(
     /// Reads from master are possible even with allow_reads_from_master=false
     /// in cases when there no available replica (replicas are broken or
     /// master is the only instance in cluster shard).
-    servers_count = (first_try && first_attempt && !cc.allow_reads_from_master) ? std::max<size_t>(servers_count - 1, 1)
-                                                                                : servers_count;
+    servers_count =
+        (first_try && first_attempt && !cc.allow_reads_from_master)
+            ? std::max<size_t>(servers_count - 1, 1)
+            : servers_count;
     if (is_nearest_ping_server) {
         /// start index for nearest replicas:
         /// for first try and attempt - just first instance (nearest).
@@ -306,8 +318,10 @@ std::vector<ClusterShard::RedisConnectionPtr> ClusterShard::MakeReadonlyWithMast
 
 namespace {
 
-ClusterShard::RedisPtr
-GetRedisIfAvailable(const ClusterShard::RedisConnectionPtr& connection, const CommandControlImpl& command_control) {
+ClusterShard::RedisPtr GetRedisIfAvailable(
+    const ClusterShard::RedisConnectionPtr& connection,
+    const CommandControlImpl& command_control
+) {
     if (!connection) {
         return {};
     }
@@ -315,7 +329,8 @@ GetRedisIfAvailable(const ClusterShard::RedisConnectionPtr& connection, const Co
     auto ret = connection->Get();
 
     if (!ret || !ret->IsAvailable() ||
-        (!command_control.force_server_id.IsAny() && ret->GetServerId() != command_control.force_server_id)) {
+        (!command_control.force_server_id.IsAny() && ret->GetServerId() != command_control.force_server_id))
+    {
         return {};
     }
 
@@ -324,8 +339,10 @@ GetRedisIfAvailable(const ClusterShard::RedisConnectionPtr& connection, const Co
 
 }  // namespace
 
-ClusterShard::ServersWeighted
-ClusterShard::GetAvailableServersWeighted(bool with_master, const CommandControl& command_control) const {
+ClusterShard::ServersWeighted ClusterShard::GetAvailableServersWeighted(
+    bool with_master,
+    const CommandControl& command_control
+) const {
     ClusterShard::ServersWeighted ret;
     const CommandControlImpl cc{command_control};
 

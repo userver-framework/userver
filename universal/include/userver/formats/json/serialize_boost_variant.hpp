@@ -17,7 +17,8 @@ namespace formats::serialize {
 template <typename... Types>
 formats::json::Value Serialize(const boost::variant<Types...>& value, To<formats::json::Value>) {
     return boost::apply_visitor(
-        [](const auto& item) { return formats::json::ValueBuilder(item).ExtractValue(); }, value
+        [](const auto& item) { return formats::json::ValueBuilder(item).ExtractValue(); },
+        value
     );
 }
 

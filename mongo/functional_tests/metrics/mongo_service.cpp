@@ -1,5 +1,5 @@
 #include <userver/clients/dns/component.hpp>
-#include <userver/clients/http/component.hpp>
+#include <userver/clients/http/component_list.hpp>
 #include <userver/components/component.hpp>
 #include <userver/components/minimal_server_component_list.hpp>
 #include <userver/formats/bson/inline.hpp>
@@ -21,7 +21,8 @@ public:
 
     KeyValue(const components::ComponentConfig& config, const components::ComponentContext& context)
         : HttpHandlerBase(config, context),
-          pool_(context.FindComponent<components::Mongo>("key-value-database").GetPool()) {}
+          pool_(context.FindComponent<components::Mongo>("key-value-database").GetPool())
+    {}
 
     std::string HandleRequestThrow(const server::http::HttpRequest& request, server::request::RequestContext&)
         const override {
@@ -100,15 +101,15 @@ public:
 }  // namespace metrics
 
 int main(int argc, char* argv[]) {
-    const auto component_list = components::MinimalServerComponentList()
-                                    .Append<clients::dns::Component>()
-                                    .Append<components::HttpClientCore>()
-                                    .Append<components::HttpClient>()
-                                    .Append<components::TestsuiteSupport>()
-                                    .Append<server::handlers::ServerMonitor>()
-                                    .Append<server::handlers::TestsControl>()
-                                    .Append<components::Mongo>("key-value-database")
-                                    .Append<metrics::KeyValue>()
-                                    .Append<metrics::DistlockMetrics>();
+    const auto component_list =
+        components::MinimalServerComponentList()
+            .Append<clients::dns::Component>()
+            .AppendComponentList(clients::http::ComponentList())
+            .Append<components::TestsuiteSupport>()
+            .Append<server::handlers::ServerMonitor>()
+            .Append<server::handlers::TestsControl>()
+            .Append<components::Mongo>("key-value-database")
+            .Append<metrics::KeyValue>()
+            .Append<metrics::DistlockMetrics>();
     return utils::DaemonMain(argc, argv, component_list);
 }

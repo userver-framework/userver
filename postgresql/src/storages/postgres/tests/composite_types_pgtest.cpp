@@ -96,7 +96,13 @@ class FooClass {
 
 public:
     FooClass() = default;
-    explicit FooClass(int x) : i_(x), s_(std::to_string(x)), d_(x), a_{i_}, v_{s_} {}
+    explicit FooClass(int x)
+        : i_(x),
+          s_(std::to_string(x)),
+          d_(x),
+          a_{i_},
+          v_{s_}
+    {}
 
     // Only non-const version of Introspect() is used by the uPostgres driver
     auto Introspect() { return std::tie(i_, s_, d_, a_, v_); }
@@ -150,9 +156,13 @@ struct NoUserMappingBunch {
 
     bool operator==(const NoUserMappingBunch& rhs) const { return elements == rhs.elements; }
     bool operator==(const BunchOfFoo& rhs) const {
-        if (elements.size() != rhs.foobars.size()) return false;
+        if (elements.size() != rhs.foobars.size()) {
+            return false;
+        }
         for (size_t i = 0; i < elements.size(); ++i) {
-            if (!(elements[i] == rhs.foobars[i])) return false;
+            if (!(elements[i] == rhs.foobars[i])) {
+                return false;
+            }
         }
         return true;
     }
@@ -380,9 +390,9 @@ UTEST_P(PostgreConnection, CompositeTypeRoundtrip) {
 
     // Using a mapped type only for reading
     UEXPECT_NO_THROW(res = GetConn()->Execute("select $1 as foo", fb));
-    UEXPECT_NO_THROW(res.AsContainer<std::vector<pgtest::NoUseInWrite>>())
-        << "A type that is not used for writing query parameter buffers must be "
-           "available for reading";
+    UEXPECT_NO_THROW(res.AsContainer<std::vector<pgtest::NoUseInWrite>>()
+    ) << "A type that is not used for writing query parameter buffers must be "
+         "available for reading";
 
     UEXPECT_NO_THROW(GetConn()->Execute(kDropTestSchema)) << "Drop schema";
 }
@@ -557,9 +567,9 @@ UTEST_P(PostgreConnection, CompositeTypeRoundtripAsRecord) {
 
     // Using a mapped type only for reading
     UEXPECT_NO_THROW(res = GetConn()->Execute("SELECT ROW($1.*) AS record", fb));
-    UEXPECT_NO_THROW(res.AsContainer<std::vector<pgtest::NoUseInWrite>>())
-        << "A type that is not used for writing query parameter buffers must be "
-           "available for reading";
+    UEXPECT_NO_THROW(res.AsContainer<std::vector<pgtest::NoUseInWrite>>()
+    ) << "A type that is not used for writing query parameter buffers must be "
+         "available for reading";
 
     UEXPECT_NO_THROW(GetConn()->Execute(kDropTestSchema)) << "Drop schema";
 }
@@ -599,10 +609,12 @@ UTEST_P(PostgreConnection, VariableRecordTypes) {
 
     pg::ResultSet res{nullptr};
     UEXPECT_NO_THROW(
-        res = GetConn()->Execute("WITH test AS (SELECT unnest(ARRAY[1, 2]) a)"
-                                 "SELECT CASE WHEN a = 1 THEN ROW(42)"
-                                 "WHEN a = 2 THEN ROW('str'::text) "
-                                 "END FROM test")
+        res = GetConn()->Execute(
+            "WITH test AS (SELECT unnest(ARRAY[1, 2]) a)"
+            "SELECT CASE WHEN a = 1 THEN ROW(42)"
+            "WHEN a = 2 THEN ROW('str'::text) "
+            "END FROM test"
+        )
     );
     ASSERT_EQ(2, res.Size());
 
@@ -820,15 +832,14 @@ UTEST_P(PostgreConnection, CompositeTypeParseExceptionReadability) {
         );
     }
     {
-        UEXPECT_NO_THROW(
-            GetConn()->Execute("create type __pgtest.zones_settings_v1 as (x1 BOOLEAN, "
-                               "x2 BIGINT"  // intentionally missmatch with C++ type
-                               ")")
-        );
-        UEXPECT_NO_THROW(
-            GetConn()->Execute("create type __pgtest.zones_integration_settings_v1 as "
-                               "(x1 __pgtest.zones_settings_v1, x2 BOOLEAN, x3 INT)")
-        );
+        UEXPECT_NO_THROW(GetConn()->Execute(
+            "create type __pgtest.zones_settings_v1 as (x1 BOOLEAN, "
+            "x2 BIGINT"  // intentionally missmatch with C++ type
+            ")"
+        ));
+        UEXPECT_NO_THROW(GetConn()
+                             ->Execute("create type __pgtest.zones_integration_settings_v1 as "
+                                       "(x1 __pgtest.zones_settings_v1, x2 BOOLEAN, x3 INT)"));
 
         // Auto reload doesn't work for outgoing types
         UASSERT_NO_THROW(GetConn()->ReloadUserTypes());
@@ -878,7 +889,8 @@ UTEST_P(PostgreConnection, CompositeTypeParseExceptionReadability) {
 #endif
         UEXPECT_THROW_MSG(
             GetConn()->Execute(
-                "SELECT $1::__pgtest.zones_integration_settings_v1", pgtest::ZoneIntegrationSettingsV1{{}, true, 3}
+                "SELECT $1::__pgtest.zones_integration_settings_v1",
+                pgtest::ZoneIntegrationSettingsV1{{}, true, 3}
             ),
             storages::postgres::UserTypeError,
             "Type mismatch for '__pgtest.zones_settings_v1' field 'x2'. In database the type is 'int8' (oid: 20), "

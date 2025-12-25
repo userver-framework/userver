@@ -18,7 +18,9 @@ public:
     using ProtobufStreamFuture = ugrpc::client::StreamReadFuture<ProtobufResponse>;
 
     explicit StreamReadFuture(ProtobufStreamFuture&& future, ProtobufResponse& response)
-        : future_{std::move(future)}, response_(response) {}
+        : future_{std::move(future)},
+          response_(response)
+    {}
 
     /// @brief Await response
     ///

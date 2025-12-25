@@ -35,9 +35,9 @@ const std::string kPortalName = "";
 UTEST_P(PostgreConnection, PortalLowLevelBindExec) {
     CheckConnection(GetConn());
 
-    EXPECT_ANY_THROW(GetConn()->PortalBind(kGetPostgresTypesSQL, kPortalName, {}, {}))
-        << "Attempt to bind a portal outside of transaction block should throw "
-           "an exception";
+    EXPECT_ANY_THROW(GetConn()->PortalBind(kGetPostgresTypesSQL, kPortalName, {}, {})
+    ) << "Attempt to bind a portal outside of transaction block should throw "
+         "an exception";
 
     UEXPECT_NO_THROW(GetConn()->Begin({}, pg::detail::SteadyClock::now()));
 
@@ -68,9 +68,9 @@ UTEST_P(PostgreConnection, PortalLowLevelBindExec) {
 UTEST_P(PostgreConnection, PortalClassBindExec) {
     CheckConnection(GetConn());
 
-    EXPECT_ANY_THROW(pg::Portal(GetConn().get(), kGetPostgresTypesSQL, {}))
-        << "Attempt to bind a portal outside of transaction block should throw "
-           "an exception";
+    EXPECT_ANY_THROW(pg::Portal(GetConn().get(), kGetPostgresTypesSQL, {})
+    ) << "Attempt to bind a portal outside of transaction block should throw "
+         "an exception";
 
     UEXPECT_NO_THROW(GetConn()->Begin({}, pg::detail::SteadyClock::now()));
 
@@ -95,9 +95,9 @@ UTEST_P(PostgreConnection, PortalClassBindExec) {
 UTEST_P(PostgreConnection, NamedPortalClassBindExec) {
     CheckConnection(GetConn());
 
-    EXPECT_ANY_THROW(pg::Portal(GetConn().get(), kGetPostgresTypesSQL, {}))
-        << "Attempt to bind a portal outside of transaction block should throw "
-           "an exception";
+    EXPECT_ANY_THROW(pg::Portal(GetConn().get(), kGetPostgresTypesSQL, {})
+    ) << "Attempt to bind a portal outside of transaction block should throw "
+         "an exception";
 
     UEXPECT_NO_THROW(GetConn()->Begin({}, pg::detail::SteadyClock::now()));
 
@@ -184,7 +184,8 @@ UTEST_P(PostgreConnection, PortalStoredParams) {
     pg::Portal portal{nullptr, "", {}};
     UEXPECT_NO_THROW(
         portal = trx.MakePortal(
-            kGetPostgresTypesSQLPrefix + " where t.oid = $1", utils::UnderlyingValue(pg::io::PredefinedOids::kInt8)
+            kGetPostgresTypesSQLPrefix + " where t.oid = $1",
+            utils::UnderlyingValue(pg::io::PredefinedOids::kInt8)
         )
     );
     portal.Fetch(0);
@@ -252,7 +253,9 @@ UTEST_P(PostgreConnection, PortalCommandControl) {
     pg::Transaction trx{std::move(GetConn())};
     PortalTraverse(
         trx.MakePortal(
-            pg::CommandControl{std::chrono::milliseconds{443}, std::chrono::milliseconds{242}}, kQuery, kIterations
+            pg::CommandControl{std::chrono::milliseconds{443}, std::chrono::milliseconds{242}},
+            kQuery,
+            kIterations
         ),
         kIterations
     );
@@ -261,7 +264,9 @@ UTEST_P(PostgreConnection, PortalCommandControl) {
     // timings once again
     PortalTraverse(
         trx.MakePortal(
-            pg::CommandControl{std::chrono::milliseconds{444}, std::chrono::milliseconds{243}}, kQuery, kIterations
+            pg::CommandControl{std::chrono::milliseconds{444}, std::chrono::milliseconds{243}},
+            kQuery,
+            kIterations
         ),
         kIterations
     );

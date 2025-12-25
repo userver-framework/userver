@@ -1,0 +1,33 @@
+# yaml
+components_manager:
+    task_processors:                  # Task processor is an executor for coroutine tasks
+        main-task-processor:          # Make a task processor for CPU-bound coroutine tasks.
+            worker_threads: 4         # Process tasks in 4 threads.
+
+        fs-task-processor:            # A separate task processor for filesystem bound and synchronous tasks.
+            worker_threads: 1
+
+    components:                       # Configuring components that were registered via component_list
+        server:
+            listener:                 # configuring the main listening socket...
+                port: 8080            # ...to listen on this port and...
+        logging:
+            loggers:
+                default:
+                    file_path: '@stderr'
+                    level: debug
+                    overflow_behavior: discard  # Drop logs if the system is too busy to write them down.
+
+        default-server-middleware-pipeline-builder:
+            append:
+              - cors-middleware
+        cors-middleware:
+            allowed-methods:
+              - GET
+            allowed-origins:
+              - mysite.com
+            allow-credentials: true
+
+        handler-ping:
+            path: /ping
+            method: GET,POST,OPTIONS

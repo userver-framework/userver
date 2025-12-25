@@ -28,7 +28,8 @@ void Middleware::OnCallStart(MiddlewareCallContext& context) const {
             LOG_DEBUG() << "Got baggage header: " << *baggage_header;
 
             auto baggage = USERVER_NAMESPACE::baggage::TryMakeBaggage(
-                ugrpc::impl::ToString(*baggage_header), baggage_settings.allowed_keys
+                ugrpc::impl::ToString(*baggage_header),
+                baggage_settings.allowed_keys
             );
             if (baggage) {
                 USERVER_NAMESPACE::baggage::kInheritedBaggage.Set(std::move(*baggage));

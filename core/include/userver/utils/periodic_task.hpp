@@ -66,7 +66,8 @@ public:
             utils::Flags<Flags> flags = {},
             logging::Level span_level = logging::Level::kInfo
         )
-            : Settings(period, kDistributionPercent, flags, span_level) {}
+            : Settings(period, kDistributionPercent, flags, span_level)
+        {}
 
         constexpr Settings(
             std::chrono::milliseconds period,
@@ -74,7 +75,11 @@ public:
             utils::Flags<Flags> flags = {},
             logging::Level span_level = logging::Level::kInfo
         )
-            : period(period), distribution(distribution), flags(flags), span_level(span_level) {
+            : period(period),
+              distribution(distribution),
+              flags(flags),
+              span_level(span_level)
+        {
             UASSERT(distribution <= period);
         }
 
@@ -84,13 +89,15 @@ public:
             utils::Flags<Flags> flags = {},
             logging::Level span_level = logging::Level::kInfo
         )
-            : Settings(period, period * distribution_percent / 100, flags, span_level) {
+            : Settings(period, period * distribution_percent / 100, flags, span_level)
+        {
             UASSERT(distribution_percent <= 100);
         }
 
         template <class Rep, class Period>
         constexpr /*implicit*/ Settings(std::chrono::duration<Rep, Period> period)
-            : Settings(period, kDistributionPercent, {}, logging::Level::kInfo) {}
+            : Settings(period, kDistributionPercent, {}, logging::Level::kInfo)
+        {}
 
         bool operator==(const Settings& other) const noexcept;
         bool operator!=(const Settings& other) const noexcept;

@@ -34,6 +34,7 @@ jobs:
                         -DCPM_SOURCE_CACHE=/userver/.cpm
                         -DUSERVER_NO_WERROR=0
                         -DUSERVER_BUILD_ALL_COMPONENTS=1
+                        -DUSERVER_FEATURE_ROCKS=0
                         -DUSERVER_BUILD_SAMPLES=1
                         -DUSERVER_BUILD_TESTS=1
                         -DCMAKE_BUILD_TYPE=Release
@@ -49,6 +50,7 @@ jobs:
                         -DUSERVER_USE_LD=gold
                         -DUSERVER_NO_WERROR=0
                         -DUSERVER_BUILD_ALL_COMPONENTS=1
+                        -DUSERVER_FEATURE_ROCKS=0
                         -DUSERVER_BUILD_SAMPLES=1
                         -DUSERVER_BUILD_TESTS=1
                         -DCMAKE_BUILD_TYPE=Release
@@ -62,6 +64,7 @@ jobs:
                         -DCMAKE_CXX_STANDARD=20
                         -DCPM_SOURCE_CACHE=/userver/.cpm
                         -DUSERVER_BUILD_ALL_COMPONENTS=1
+                        -DUSERVER_FEATURE_ROCKS=0
                         -DUSERVER_BUILD_SAMPLES=1
                         -DUSERVER_BUILD_TESTS=1
                         -DCMAKE_BUILD_TYPE=Release
@@ -77,6 +80,7 @@ jobs:
                         -DUSERVER_USE_LD=gold
                         -DUSERVER_NO_WERROR=1
                         -DUSERVER_BUILD_ALL_COMPONENTS=1
+                        -DUSERVER_FEATURE_ROCKS=0
                         -DUSERVER_BUILD_SAMPLES=1
                         -DUSERVER_BUILD_TESTS=1
                         -DCMAKE_BUILD_TYPE=Release
@@ -88,7 +92,7 @@ jobs:
         runs-on: ubuntu-latest
         name: '${{ matrix.info }}'
         steps:
-          - uses: actions/checkout@v5
+          - uses: actions/checkout@v6
 
           - name: Install packages
             run: |
@@ -96,7 +100,7 @@ jobs:
 
           - name: Restore cached directories
             id: restore-cache
-            uses: actions/cache/restore@v4
+            uses: actions/cache/restore@v5
             with:
                 path: |
                     .ccache
@@ -136,7 +140,7 @@ jobs:
                 'cd /userver && cmake --build build -j $(nproc)'
 
           - name: Save cached directories
-            uses: actions/cache/save@v4
+            uses: actions/cache/save@v5
             with:
                 path: |
                     .ccache

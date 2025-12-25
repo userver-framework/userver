@@ -149,8 +149,11 @@ std::string OidPrettyPrint(Oid oid) {
 
 namespace {
 
-std::string
-GetInvalidParserCategoryMessage(std::string_view type, io::BufferCategory parser, io::BufferCategory buffer) {
+std::string GetInvalidParserCategoryMessage(
+    std::string_view type,
+    io::BufferCategory parser,
+    io::BufferCategory buffer
+) {
     std::string message = fmt::format(
         "Buffer category '{}' doesn't match the category of the parser '{}' for type '{}'.",
         ToString(buffer),
@@ -177,13 +180,16 @@ GetInvalidParserCategoryMessage(std::string_view type, io::BufferCategory parser
 }  // anonymous namespace
 
 ConnectionFailed::ConnectionFailed(const Dsn& dsn)
-    : ConnectionError(fmt::format("{} Failed to connect to PostgreSQL server", DsnCutPassword(dsn))) {}
+    : ConnectionError(fmt::format("{} Failed to connect to PostgreSQL server", DsnCutPassword(dsn)))
+{}
 
 ConnectionFailed::ConnectionFailed(const Dsn& dsn, std::string_view message)
-    : ConnectionError(fmt::format("{} {}", DsnCutPassword(dsn), message)) {}
+    : ConnectionError(fmt::format("{} {}", DsnCutPassword(dsn), message))
+{}
 
 PoolError::PoolError(std::string_view msg, std::string_view db_name)
-    : PoolError(fmt::format("{}, db_name={}", msg, db_name)) {}
+    : PoolError(fmt::format("{}, db_name={}", msg, db_name))
+{}
 
 PoolError::PoolError(std::string_view msg)
     : RuntimeError::RuntimeError(fmt::format("Postgres ConnectionPool error: {}", msg)) {}
@@ -194,17 +200,30 @@ std::string IntegrityConstraintViolation::GetTable() const { return GetServerMes
 
 std::string IntegrityConstraintViolation::GetConstraint() const { return GetServerMessage().GetConstraint(); }
 
-AlreadyInTransaction::AlreadyInTransaction() : TransactionError("Connection is already in a transaction block") {}
+AlreadyInTransaction::AlreadyInTransaction()
+    : TransactionError("Connection is already in a transaction block")
+{}
 
-NotInTransaction::NotInTransaction() : TransactionError("Connection is not in a transaction block") {}
+NotInTransaction::NotInTransaction()
+    : TransactionError("Connection is not in a transaction block")
+{}
 
-NotInTransaction::NotInTransaction(const std::string& msg) : TransactionError(msg) {}
+NotInTransaction::NotInTransaction(const std::string& msg)
+    : TransactionError(msg)
+{}
 
-TransactionForceRollback::TransactionForceRollback() : TransactionError("Force rollback due to Testpoint response") {}
+TransactionForceRollback::TransactionForceRollback()
+    : TransactionError("Force rollback due to Testpoint response")
+{}
 
-TransactionForceRollback::TransactionForceRollback(const std::string& msg) : TransactionError(msg) {}
+TransactionForceRollback::TransactionForceRollback(const std::string& msg)
+    : TransactionError(msg)
+{}
 
-ResultSetError::ResultSetError(std::string msg) : LogicError::LogicError(msg), msg_(std::move(msg)) {}
+ResultSetError::ResultSetError(std::string msg)
+    : LogicError::LogicError(msg),
+      msg_(std::move(msg))
+{}
 
 void ResultSetError::AddMsgSuffix(std::string_view str) { msg_ += str; }
 
@@ -213,22 +232,28 @@ void ResultSetError::AddMsgPrefix(std::string_view str) { msg_.insert(0, str); }
 const char* ResultSetError::what() const noexcept { return msg_.c_str(); }
 
 RowIndexOutOfBounds::RowIndexOutOfBounds(std::size_t index)
-    : ResultSetError(fmt::format("Row index {} is out of bounds", index)) {}
+    : ResultSetError(fmt::format("Row index {} is out of bounds", index))
+{}
 
 FieldIndexOutOfBounds::FieldIndexOutOfBounds(std::size_t index)
-    : ResultSetError(fmt::format("Field index {} is out of bounds", index)) {}
+    : ResultSetError(fmt::format("Field index {} is out of bounds", index))
+{}
 
 FieldNameDoesntExist::FieldNameDoesntExist(std::string_view name)
-    : ResultSetError(fmt::format("Field name '{}' doesn't exist", name)) {}
+    : ResultSetError(fmt::format("Field name '{}' doesn't exist", name))
+{}
 
-TypeCannotBeNull::TypeCannotBeNull(std::string_view type) : ResultSetError(fmt::format("{} cannot be null", type)) {}
+TypeCannotBeNull::TypeCannotBeNull(std::string_view type)
+    : ResultSetError(fmt::format("{} cannot be null", type))
+{}
 
 InvalidParserCategory::InvalidParserCategory(
     std::string_view type,
     io::BufferCategory parser,
     io::BufferCategory buffer
 )
-    : ResultSetError(GetInvalidParserCategoryMessage(type, parser, buffer)) {}
+    : ResultSetError(GetInvalidParserCategoryMessage(type, parser, buffer))
+{}
 
 UnknownBufferCategory::UnknownBufferCategory(std::string_view context, Oid type_oid)
     : ResultSetError(fmt::format(
@@ -237,7 +262,8 @@ UnknownBufferCategory::UnknownBufferCategory(std::string_view context, Oid type_
           context,
           impl::OidPrettyPrint(type_oid)
       )),
-      type_oid{type_oid} {}
+      type_oid{type_oid}
+{}
 
 UnknownBufferCategory::UnknownBufferCategory(
     Oid type_oid,
@@ -251,16 +277,19 @@ UnknownBufferCategory::UnknownBufferCategory(
           cpp_field_type,
           cpp_composite_type
       )),
-      type_oid{type_oid} {}
+      type_oid{type_oid}
+{}
 
 InvalidBinaryBuffer::InvalidBinaryBuffer(const std::string& message)
-    : ResultSetError("Invalid binary buffer: " + message) {}
+    : ResultSetError("Invalid binary buffer: " + message)
+{}
 
 InvalidTupleSizeRequested::InvalidTupleSizeRequested(std::size_t field_count, std::size_t tuple_size)
     : ResultSetError(
           "Invalid tuple size requested. Field count " + std::to_string(field_count) + " < tuple size " +
           std::to_string(tuple_size)
-      ) {}
+      )
+{}
 
 NonSingleColumnResultSet::NonSingleColumnResultSet(
     std::size_t actual_size,
@@ -276,15 +305,18 @@ NonSingleColumnResultSet::NonSingleColumnResultSet(
           type_name,
           func,
           type_name
-      )) {}
+      ))
+{}
 
 NonSingleRowResultSet::NonSingleRowResultSet(std::size_t actual_size)
-    : ResultSetError(fmt::format("A single row result set was expected. Actual result set size is {}", actual_size)) {}
+    : ResultSetError(fmt::format("A single row result set was expected. Actual result set size is {}", actual_size))
+{}
 
 FieldTupleMismatch::FieldTupleMismatch(std::size_t field_count, std::size_t tuple_size)
     : ResultSetError(
           fmt::format("Invalid tuple size requested. Field count {} != tuple size {}", field_count, tuple_size)
-      ) {}
+      )
+{}
 
 CompositeSizeMismatch::CompositeSizeMismatch(std::size_t pg_size, std::size_t cpp_size, std::string_view cpp_type)
     : UserTypeError(fmt::format(
@@ -292,7 +324,8 @@ CompositeSizeMismatch::CompositeSizeMismatch(std::size_t pg_size, std::size_t cp
           pg_size,
           cpp_type,
           cpp_size
-      )) {}
+      ))
+{}
 
 CompositeMemberTypeMismatch::CompositeMemberTypeMismatch(
     std::string_view pg_type_schema,
@@ -308,32 +341,44 @@ CompositeMemberTypeMismatch::CompositeMemberTypeMismatch(
           field_name,
           impl::OidPrettyPrint(pg_oid),
           impl::OidPrettyPrint(user_oid)
-      )) {}
+      ))
+{}
 
-DimensionMismatch::DimensionMismatch() : ArrayError("Array dimensions don't match dimensions of C++ type") {}
+DimensionMismatch::DimensionMismatch()
+    : ArrayError("Array dimensions don't match dimensions of C++ type")
+{}
 
 InvalidDimensions::InvalidDimensions(std::size_t expected, std::size_t actual)
-    : ArrayError(fmt::format("Invalid dimension size {}. Expected {}", actual, expected)) {}
+    : ArrayError(fmt::format("Invalid dimension size {}. Expected {}", actual, expected))
+{}
 
 InvalidEnumerationLiteral::InvalidEnumerationLiteral(std::string_view type_name, std::string_view literal)
-    : EnumerationError(fmt::format("Invalid enumeration literal '{}' for enum type '{}'", literal, type_name)) {}
+    : EnumerationError(fmt::format("Invalid enumeration literal '{}' for enum type '{}'", literal, type_name))
+{}
 
-UnsupportedInterval::UnsupportedInterval() : LogicError("PostgreSQL intervals containing months are not supported") {}
+UnsupportedInterval::UnsupportedInterval()
+    : LogicError("PostgreSQL intervals containing months are not supported")
+{}
 
 BoundedRangeError::BoundedRangeError(std::string_view message)
-    : LogicError(fmt::format("PostgreSQL range violates bounded range invariant: {}", message)) {}
+    : LogicError(fmt::format("PostgreSQL range violates bounded range invariant: {}", message))
+{}
 
 BitStringOverflow::BitStringOverflow(std::size_t actual, std::size_t expected)
-    : BitStringError(fmt::format("Invalid bit container size {}. Expected {}", actual, expected)) {}
+    : BitStringError(fmt::format("Invalid bit container size {}. Expected {}", actual, expected))
+{}
 
 InvalidBitStringRepresentation::InvalidBitStringRepresentation()
-    : BitStringError("Invalid bit or bit varying type representation") {}
+    : BitStringError("Invalid bit or bit varying type representation")
+{}
 
 InvalidDSN::InvalidDSN(std::string_view dsn, std::string_view err)
-    : RuntimeError(fmt::format("Invalid dsn '{}': {}", dsn, err)) {}
+    : RuntimeError(fmt::format("Invalid dsn '{}': {}", dsn, err))
+{}
 
 IpAddressInvalidFormat::IpAddressInvalidFormat(std::string_view str)
-    : IpAddressError(fmt::format("IP address invalid format. {}", str)) {}
+    : IpAddressError(fmt::format("IP address invalid format. {}", str))
+{}
 
 }  // namespace storages::postgres
 

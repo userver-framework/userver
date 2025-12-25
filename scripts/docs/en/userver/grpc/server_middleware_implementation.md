@@ -200,7 +200,7 @@ An error status from a handler will be passed to a first `OnCallFinish` and that
 There are 3 middlewares `A`, `B`, `C`.
 Cases:
 1. `A::OnCallStart` and `B::OnCallStart` succeed, but `C::OnCallStart` fails (by `SetError` or exception) ⇒ `B::OnCallFinish` and `A::OnCallFinish` will be called (remember that `OnCallFinish` order is reversed).
-2. If all `OnCallStart` succeed and `C::OnCallFinish` fails, `B::OnCallStart` and `A::OnCallStart` will be called and these hooks get an error status from `C::OnCallFinish`.
+2. If all `OnCallStart` succeed and `C::OnCallFinish` fails, `B::OnCallFinish` and `A::OnCallFinish` will be called and these hooks get an error status from `C::OnCallFinish`.
 3. If a handler returns an error, all `OnCallFinish` will be called.
 4. If there are errors in `PostRecvMessage`/`PreSendMessage` ⇒ RPC is failed ⇒ all `OnCallFinish` hooks will be called.
 

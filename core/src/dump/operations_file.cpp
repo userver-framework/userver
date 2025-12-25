@@ -22,7 +22,8 @@ FileWriter::FileWriter(std::string path, boost::filesystem::perms perms, tracing
     : final_path_(std::move(path)),
       path_(final_path_ + ".tmp"),
       perms_(perms),
-      cpu_relax_(kCheckTimeAfterBytes, &scope) {
+      cpu_relax_(kCheckTimeAfterBytes, &scope)
+{
     constexpr fs::blocking::OpenMode mode{fs::blocking::OpenFlag::kWrite, fs::blocking::OpenFlag::kExclusiveCreate};
     const auto tmp_perms = perms_ | boost::filesystem::perms::owner_write;
 
@@ -56,7 +57,9 @@ void FileWriter::Finish() {
     }
 }
 
-FileReader::FileReader(std::string path) : path_(std::move(path)) {
+FileReader::FileReader(std::string path)
+    : path_(std::move(path))
+{
     try {
         file_ = fs::blocking::CFile(path_, fs::blocking::OpenFlag::kRead);
     } catch (const std::exception& ex) {
@@ -121,7 +124,9 @@ void FileReader::Finish() {
     }
 }
 
-FileOperationsFactory::FileOperationsFactory(boost::filesystem::perms perms) : perms_(perms) {}
+FileOperationsFactory::FileOperationsFactory(boost::filesystem::perms perms)
+    : perms_(perms)
+{}
 
 std::unique_ptr<Reader> FileOperationsFactory::CreateReader(std::string full_path) {
     return std::make_unique<FileReader>(std::move(full_path));

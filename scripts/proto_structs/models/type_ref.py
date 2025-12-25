@@ -195,7 +195,7 @@ class UserverCodegenType(TypeReference, names.HasCppNameImpl):
         )
         yield includes.Include(
             path=includes.proto_path_to_vanilla_pb_h(self._proto_file),
-            kind=includes.IncludeKind.FOR_CPP,  # noqa: COM812
+            kind=includes.IncludeKind.FOR_CPP,
         )
 
 

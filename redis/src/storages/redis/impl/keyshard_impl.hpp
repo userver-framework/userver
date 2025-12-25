@@ -18,7 +18,9 @@ public:
 
 class KeyShardCrc32 : public KeyShard {
 public:
-    KeyShardCrc32(size_t shard_count) : shard_count_(shard_count) {}
+    KeyShardCrc32(size_t shard_count)
+        : shard_count_(shard_count)
+    {}
 
     static constexpr char kName[] = "KeyShardCrc32";
 
@@ -42,7 +44,9 @@ private:
 
 class KeyShardGpsStorageDriver : public KeyShard {
 public:
-    KeyShardGpsStorageDriver(size_t shard_count) : shard_count_(shard_count) {}
+    KeyShardGpsStorageDriver(size_t shard_count)
+        : shard_count_(shard_count)
+    {}
 
     size_t ShardByKey(const std::string& key) const override;
 

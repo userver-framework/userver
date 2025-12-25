@@ -15,7 +15,6 @@ class GreeterService(greeter_pb2_grpc.GreeterServiceServicer):
             message += '!'
             await asyncio.sleep(time_interval)
             yield greeter_pb2.GreetingResponse(greeting=message)
-        return  # noqa: PLR1711
 
     async def SayHelloRequestStream(self, request_iterator, context):
         message = 'Hello, '
@@ -30,7 +29,6 @@ class GreeterService(greeter_pb2_grpc.GreeterServiceServicer):
             income += f'{request.name}'
             await asyncio.sleep(time_interval)
             yield greeter_pb2.GreetingResponse(greeting=f'Hello, {income}')
-        return  # noqa: PLR1711
 
     async def SayHelloIndependentStreams(self, request_iterator, context):
         time_interval_read = 0.2

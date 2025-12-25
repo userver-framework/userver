@@ -58,7 +58,8 @@ DistLockStrategy::DistLockStrategy(
       acquire_query_(MakeAcquireQuery(table)),
       release_query_(MakeReleaseQuery(table)),
       lock_name_(lock_name),
-      owner_prefix_(hostinfo::blocking::GetRealHostName()) {}
+      owner_prefix_(hostinfo::blocking::GetRealHostName())
+{}
 
 void DistLockStrategy::UpdateCommandControl(CommandControl cc) {
     auto cc_ptr = cc_.StartWrite();
@@ -78,14 +79,15 @@ void DistLockStrategy::Acquire(std::chrono::milliseconds lock_ttl, const std::st
         timeout_seconds
     );
 
-    if (result.IsEmpty()) throw dist_lock::LockIsAcquiredByAnotherHostException();
+    if (result.IsEmpty()) {
+        throw dist_lock::LockIsAcquiredByAnotherHostException();
+    }
 }
 
 void DistLockStrategy::Release(const std::string& locker_id) {
     auto cc_ptr = cc_.Read();
-    cluster_->Execute(
-        ClusterHostType::kMaster, *cc_ptr, release_query_, lock_name_, MakeOwnerId(owner_prefix_, locker_id)
-    );
+    cluster_
+        ->Execute(ClusterHostType::kMaster, *cc_ptr, release_query_, lock_name_, MakeOwnerId(owner_prefix_, locker_id));
 }
 
 }  // namespace storages::postgres

@@ -3,6 +3,7 @@
 #include <userver/cache/caching_component_base.hpp>
 #include <userver/clients/dns/component.hpp>
 #include <userver/clients/http/component.hpp>
+#include <userver/clients/http/component_list.hpp>
 #include <userver/components/component.hpp>
 #include <userver/components/minimal_server_component_list.hpp>
 #include <userver/http/url.hpp>
@@ -58,7 +59,6 @@ public:
     static constexpr std::string_view kName = "cache-http-translations";
 
     HttpCachedTranslations(const components::ComponentConfig& config, const components::ComponentContext& context);
-    ~HttpCachedTranslations() override;
 
     void Update(
         cache::UpdateType type,
@@ -96,11 +96,9 @@ HttpCachedTranslations::HttpCachedTranslations(
 )
     : CachingComponentBase(config, context),
       http_client_(context.FindComponent<components::HttpClient>().GetHttpClient()),
-      translations_url_(config["translations-url"].As<std::string>()) {
-    CacheUpdateTrait::StartPeriodicUpdates();
-}
+      translations_url_(config["translations-url"].As<std::string>())
+{}
 
-HttpCachedTranslations::~HttpCachedTranslations() { CacheUpdateTrait::StopPeriodicUpdates(); }
 /// [HTTP caching sample - constructor destructor]
 
 /// [HTTP caching sample - update]
@@ -139,11 +137,12 @@ void HttpCachedTranslations::Update(
 
 /// [HTTP caching sample - GetAllData]
 formats::json::Value HttpCachedTranslations::GetAllData() const {
-    auto response = http_client_.CreateRequest()
-                        .get(translations_url_)  // HTTP GET translations_url_ URL
-                        .retry(2)                // retry once in case of error
-                        .timeout(std::chrono::milliseconds{500})
-                        .perform();  // start performing the request
+    auto response =
+        http_client_.CreateRequest()
+            .get(translations_url_)  // HTTP GET translations_url_ URL
+            .retry(2)                // retry once in case of error
+            .timeout(std::chrono::milliseconds{500})
+            .perform();  // start performing the request
     response->raise_for_status();
     return formats::json::FromString(response->body_view());
 }
@@ -186,7 +185,9 @@ public:
     static constexpr std::string_view kName = "handler-greet-user";
 
     GreetUser(const components::ComponentConfig& config, const components::ComponentContext& context)
-        : HttpHandlerBase(config, context), cache_(context.FindComponent<HttpCachedTranslations>()) {}
+        : HttpHandlerBase(config, context),
+          cache_(context.FindComponent<HttpCachedTranslations>())
+    {}
 
     std::string HandleRequest(server::http::HttpRequest& request, server::request::RequestContext&) const override {
         const auto cache_snapshot = cache_.Get();
@@ -219,14 +220,14 @@ properties:
 
 /// [HTTP caching sample - main]
 int main(int argc, char* argv[]) {
-    const auto component_list = components::MinimalServerComponentList()
-                                    .Append<samples::http_cache::HttpCachedTranslations>()
-                                    .Append<samples::http_cache::GreetUser>()
-                                    .Append<components::TestsuiteSupport>()
-                                    .Append<server::handlers::TestsControl>()
-                                    .Append<clients::dns::Component>()
-                                    .Append<components::HttpClientCore>()
-                                    .Append<components::HttpClient>();
+    const auto component_list =
+        components::MinimalServerComponentList()
+            .Append<samples::http_cache::HttpCachedTranslations>()
+            .Append<samples::http_cache::GreetUser>()
+            .Append<components::TestsuiteSupport>()
+            .Append<server::handlers::TestsControl>()
+            .Append<clients::dns::Component>()
+            .AppendComponentList(clients::http::ComponentList());
     return utils::DaemonMain(argc, argv, component_list);
 }
 /// [HTTP caching sample - main]

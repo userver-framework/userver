@@ -133,7 +133,9 @@ TYPED_TEST_P(MemberModify, CopyExistingMember) {
 
 TYPED_TEST_P(MemberModify, CopyExistingMemberByIt) {
     auto it = this->builder.begin();
-    while (it != this->builder.end() && it.GetName() != "key1") ++it;
+    while (it != this->builder.end() && it.GetName() != "key1") {
+        ++it;
+    }
     ASSERT_NE(this->builder.end(), it);
 
     this->builder["key1_copy"] = *it;

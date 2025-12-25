@@ -4,7 +4,7 @@ import asyncio
 async def _check_that_restores(client, gate):
     try:
         await gate.wait_for_connections(timeout=30.0)
-    except asyncio.TimeoutError:  # noqa: UP041
+    except asyncio.TimeoutError:
         assert False, 'Timeout while waiting for restore'
 
     assert gate.connections_count() >= 1

@@ -16,6 +16,7 @@
 #include <userver/tracing/span.hpp>
 #include <userver/utils/impl/internal_tag_fwd.hpp>
 
+#include <userver/ugrpc/rpc_type.hpp>
 #include <userver/ugrpc/time_utils.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -62,14 +63,11 @@ public:
     /// @returns RPC name
     std::string_view GetCallName() const noexcept;
 
+    /// @returns RPC type
+    RpcType GetRpcType() const noexcept;
+
     /// @returns RPC span
     tracing::Span& GetSpan() noexcept;
-
-    /// @returns Is a client-side streaming call
-    bool IsClientStreaming() const noexcept;
-
-    /// @returns Is a server-side streaming call
-    bool IsServerStreaming() const noexcept;
 
     /// @cond
     // For internal use only
@@ -128,6 +126,14 @@ protected:
 /// If you are not going to use static config, ugrpc::client::ClientInfo and your middleware is default constructible,
 /// just use ugrpc::client::SimpleMiddlewareFactoryComponent.
 ///
+/// ## Static options:
+///
+/// Options inherited from @ref middlewares::MiddlewareFactoryComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/middlewares/factory_component_base.md
+///
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
+///
 /// ## Example:
 ///
 /// @snippet samples/grpc_middleware_service/src/middlewares/client/chaos.hpp gRPC middleware sample
@@ -141,9 +147,12 @@ using MiddlewareFactoryComponentBase =
 /// @brief The alias for a short-cut client factory.
 ///
 /// ## Static options:
-/// Name | Description | Default value
-/// ---- | ----------- | -------------
-/// enabled | the flag to enable/disable middleware in the pipeline | true
+///
+/// Options inherited from @ref middlewares::MiddlewareFactoryComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/middlewares/factory_component_base.md
+///
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
 ///
 /// ## Example usage:
 ///

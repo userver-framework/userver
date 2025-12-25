@@ -311,10 +311,18 @@ inline bool CompareNaive(std::string_view lhs, std::string_view rhs) noexcept {
         unsigned char a = lhs[i];
         unsigned char b = rhs[i];
 
-        if (a == b) continue;
-        if ('A' <= a && a <= 'Z') a |= 32;
-        if ('A' <= b && b <= 'Z') b |= 32;
-        if (a == b) continue;
+        if (a == b) {
+            continue;
+        }
+        if ('A' <= a && a <= 'Z') {
+            a |= 32;
+        }
+        if ('A' <= b && b <= 'Z') {
+            b |= 32;
+        }
+        if (a == b) {
+            continue;
+        }
 
         return false;
     }

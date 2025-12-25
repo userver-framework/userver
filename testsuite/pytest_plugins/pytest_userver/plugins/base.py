@@ -43,7 +43,7 @@ def pytest_addoption(parser) -> None:
         '--service-source-dir',
         type=pathlib.Path,
         help='Path to service source directory.',
-        default=pathlib.Path('.'),  # noqa: PTH201
+        default=pathlib.Path(),  # Current directory by default.
     )
 
 
@@ -173,7 +173,7 @@ def choose_free_port(
     pytestconfig,
     get_free_port,
     _testsuite_socket_cleanup,
-    _testsuite_default_af,  # noqa: COM812
+    _testsuite_default_af,
 ) -> Callable[[int | None], int]:
     """
     A function that chooses a free port based on the optional hint given in the parameter.

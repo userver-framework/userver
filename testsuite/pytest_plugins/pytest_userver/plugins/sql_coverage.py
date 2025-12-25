@@ -66,8 +66,8 @@ def sql_coverage(sql_files) -> Coverage:
     return Coverage(set(sql_files))
 
 
-@pytest.fixture(scope='function', autouse=True)  # noqa: PT003
-async def sql_statement_hook(testpoint, sql_coverage):
+@pytest.fixture(autouse=True)
+def sql_statement_hook(testpoint, sql_coverage):
     """
     Hook that accepts requests from the testpoint with information on PostgreSQL statements coverage.
 
@@ -80,10 +80,10 @@ async def sql_statement_hook(testpoint, sql_coverage):
     def _hook(request):
         sql_coverage.cover(request['name'])
 
-    yield _hook  # noqa: PT022
+    return _hook
 
 
-@pytest.fixture(scope='function', autouse=True)  # noqa: PT003
+@pytest.fixture(autouse=True)
 async def yql_statement_hook(testpoint, sql_coverage):
     """
     Hook that accepts requests from the testpoint with information on YDB statements coverage.
@@ -97,7 +97,7 @@ async def yql_statement_hook(testpoint, sql_coverage):
     def _hook(request):
         sql_coverage.cover(request['name'])
 
-    yield _hook  # noqa: PT022
+    return _hook
 
 
 @pytest.hookimpl(hookwrapper=True)

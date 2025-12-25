@@ -16,7 +16,7 @@ def userver_sqlite_config(tmp_path_factory):
 
     def _patch_config(config_yaml, config_vars):
         components = config_yaml['components_manager']['components']
-        for _, params in components.items():  # noqa: PERF102
+        for params in components.values():
             if params and 'db-path' in params:
                 params['db-path'] = f'file:{params["db-path"]}?mode=memory&cache=shared'
 

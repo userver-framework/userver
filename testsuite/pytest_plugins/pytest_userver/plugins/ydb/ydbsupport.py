@@ -353,7 +353,7 @@ def userver_config_ydb(ydb_service_settings):
         if isinstance(ydb_component, str):
             ydb_component = config_vars[ydb_component[1:]]
         databases = ydb_component['databases']
-        for dbname, dbconfig in databases.items():  # noqa: PERF102
+        for dbconfig in databases.values():
             dbconfig['endpoint'] = endpoint
             dbconfig['database'] = database
 

@@ -59,7 +59,10 @@ bool IsBindable(enum_field_types bind_type, enum_field_types field_type) {
 
 }  // namespace
 
-OutputBindings::OutputBindings(std::size_t size) : owned_binds_{size}, binds_ptr_{owned_binds_.data()} {
+OutputBindings::OutputBindings(std::size_t size)
+    : owned_binds_{size},
+      binds_ptr_{owned_binds_.data()}
+{
     // Not always necessary, but we can live with that
     callbacks_.resize(size);
     intermediate_buffers_.resize(size);
@@ -333,7 +336,8 @@ void OutputBindings::DateTimeAfterFetch(void* value, MYSQL_BIND&, FieldIntermedi
         native_time.hour,
         native_time.minute,
         native_time.second,
-        native_time.second_part};
+        native_time.second_part
+    };
 }
 
 void OutputBindings::BindOptionalDateTime(std::size_t pos, std::optional<DateTime>& val) {
@@ -509,8 +513,8 @@ void OutputBindings::ValidateAgainstStatement(MYSQL_STMT& statement) {
     }
 
     const auto res_deleter = [](MYSQL_RES* res) { mysql_free_result(res); };
-    const std::unique_ptr<MYSQL_RES, decltype(res_deleter)> result_metadata{
-        mysql_stmt_result_metadata(&statement), res_deleter};
+    const std::unique_ptr<MYSQL_RES, decltype(res_deleter)>
+        result_metadata{mysql_stmt_result_metadata(&statement), res_deleter};
     UASSERT(result_metadata);
 
     const auto* fields = mysql_fetch_fields(result_metadata.get());

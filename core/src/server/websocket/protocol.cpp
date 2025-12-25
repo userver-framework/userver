@@ -18,8 +18,9 @@ namespace server::websocket::impl {
 namespace {
 
 inline void RecvExactly(engine::io::ReadableBase& readable, utils::span<char> buffer, engine::Deadline deadline) {
-    if (readable.ReadAll(buffer.data(), buffer.size(), deadline) != buffer.size())
+    if (readable.ReadAll(buffer.data(), buffer.size(), deadline) != buffer.size()) {
         throw(engine::io::IoException() << "Socket closed during transfer ");
+    }
 }
 
 inline bool RecvAny(engine::io::ReadableBase& readable, utils::span<char> buffer, size_t& offset) {
@@ -28,7 +29,9 @@ inline bool RecvAny(engine::io::ReadableBase& readable, utils::span<char> buffer
 
     const size_t left_to_read = buffer.size() - offset;
     const auto opt_read = readable.ReadNoblock(buffer.data(), left_to_read);
-    if (!opt_read) return false;
+    if (!opt_read) {
+        return false;
+    }
 
     if (left_to_read == *opt_read) {
         offset = 0;
@@ -37,7 +40,9 @@ inline bool RecvAny(engine::io::ReadableBase& readable, utils::span<char> buffer
         offset += *opt_read;
         return false;
     } else  // 0 == *optRead
+    {
         throw(engine::io::IoException() << "Socket closed during transfer ");
+    }
 }
 
 template <class T>
@@ -85,8 +90,12 @@ void PushRaw(const T& value, V& data) {
 
 namespace frames {
 
-boost::container::small_vector<char, impl::kMaxFrameHeaderSize>
-DataFrameHeader(utils::span<const std::byte> data, bool is_text, Continuation is_continuation, Final is_final) {
+boost::container::small_vector<char, impl::kMaxFrameHeaderSize> DataFrameHeader(
+    utils::span<const std::byte> data,
+    bool is_text,
+    Continuation is_continuation,
+    Final is_final
+) {
     boost::container::small_vector<char, impl::kMaxFrameHeaderSize> frame;
 
     frame.resize(sizeof(WSHeader));
@@ -96,7 +105,9 @@ DataFrameHeader(utils::span<const std::byte> data, bool is_text, Continuation is
     hdr->bytes = 0;
     hdr->bits.fin = is_final == Final::kYes ? 1 : 0;
     hdr->bits.opcode = is_text ? kText : kBinary;
-    if (is_continuation == Continuation::kYes) hdr->bits.opcode = kContinuation;
+    if (is_continuation == Continuation::kYes) {
+        hdr->bits.opcode = kContinuation;
+    }
 
     if (data.size() <= 125) {
         hdr->bits.payload_len = data.size();
@@ -172,7 +183,9 @@ CloseStatus ReadWSFrameImpl(
     std::size_t& payload_len
 ) {
     // we assume that the WSHeader has been read a while ago
-    if (engine::current_task::ShouldCancel()) return CloseStatus::kGoingAway;
+    if (engine::current_task::ShouldCancel()) {
+        return CloseStatus::kGoingAway;
+    }
 
     const bool is_data_frame = (hdr.bits.opcode & (kText | kBinary)) || hdr.bits.opcode == kContinuation;
     if (hdr.bits.payload_len <= 125) {
@@ -187,18 +200,26 @@ CloseStatus ReadWSFrameImpl(
         RecvExactly(io, AsWritableBytes(MakeSpan(&payload_len64, 1)), {});
         payload_len = boost::endian::big_to_native(payload_len64);
     }
-    if (engine::current_task::ShouldCancel()) return CloseStatus::kGoingAway;
+    if (engine::current_task::ShouldCancel()) {
+        return CloseStatus::kGoingAway;
+    }
 
     if (!is_data_frame && hdr.bits.payload_len > 125) {
         // control frame should not have extended payload
         return CloseStatus::kProtocolError;
     }
 
-    if (payload_len + frame.payload->size() > max_payload_size) return CloseStatus::kTooBigData;
+    if (payload_len + frame.payload->size() > max_payload_size) {
+        return CloseStatus::kTooBigData;
+    }
 
     Mask32 mask;
-    if (hdr.bits.mask) RecvExactly(io, AsWritableBytes(MakeSpan(&mask, 1)), {});
-    if (engine::current_task::ShouldCancel()) return CloseStatus::kGoingAway;
+    if (hdr.bits.mask) {
+        RecvExactly(io, AsWritableBytes(MakeSpan(&mask, 1)), {});
+    }
+    if (engine::current_task::ShouldCancel()) {
+        return CloseStatus::kGoingAway;
+    }
 
     if (payload_len > 0) {
         if (is_data_frame) {
@@ -211,11 +232,14 @@ CloseStatus ReadWSFrameImpl(
         const size_t new_payload_offset = frame.payload->size();
         frame.payload->resize(frame.payload->size() + payload_len);
         RecvExactly(io, MakeSpan(frame.payload->data() + new_payload_offset, payload_len), {});
-        if (engine::current_task::ShouldCancel()) return CloseStatus::kGoingAway;
+        if (engine::current_task::ShouldCancel()) {
+            return CloseStatus::kGoingAway;
+        }
 
         // Apply masking only to the current frame's data, not to the entire buffer
-        if (mask.mask32)
+        if (mask.mask32) {
             XorMaskInplace(reinterpret_cast<uint8_t*>(frame.payload->data() + new_payload_offset), payload_len, mask);
+        }
     }
     const char opcode = hdr.bits.opcode;
     const char fin = hdr.bits.fin;
@@ -229,9 +253,10 @@ CloseStatus ReadWSFrameImpl(
             break;
         case kClose:
             frame.closed = true;
-            if (frame.payload->size() >= 2)
+            if (frame.payload->size() >= 2) {
                 frame.remote_close_status =
                     boost::endian::big_to_native(*(reinterpret_cast<CloseStatusInt const*>(frame.payload->data())));
+            }
             break;
         case kText:
             frame.is_text = true;
@@ -265,7 +290,9 @@ std::optional<CloseStatus> ReadWSFrameDontWaitForHeader(
     std::size_t& payload_len
 ) {
     WSHeader hdr;
-    if (!RecvAny(io, AsWritableBytes(MakeSpan(&hdr, 1)), frame.offset_when_noblock)) return {};
+    if (!RecvAny(io, AsWritableBytes(MakeSpan(&hdr, 1)), frame.offset_when_noblock)) {
+        return {};
+    }
 
     return ReadWSFrameImpl(hdr, frame, io, max_payload_size, payload_len);
 }

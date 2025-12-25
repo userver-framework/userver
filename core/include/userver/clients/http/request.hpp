@@ -15,7 +15,7 @@
 #include <userver/crypto/certificate.hpp>
 #include <userver/crypto/private_key.hpp>
 #include <userver/http/http_version.hpp>
-#include <userver/utils/impl/internal_tag.hpp>
+#include <userver/utils/impl/internal_tag_fwd.hpp>
 #include <userver/utils/impl/source_location.hpp>
 #include <userver/utils/not_null.hpp>
 
@@ -40,7 +40,7 @@ struct DeadlinePropagationConfig;
 class RequestStats;
 class DestinationStatistics;
 struct TestsuiteConfig;
-class Plugin;
+class MiddlewareBase;
 
 namespace impl {
 class EasyWrapper;
@@ -198,11 +198,19 @@ public:
     Request headers(const std::initializer_list<std::pair<utils::zstring_view, utils::zstring_view>>& headers) &&;
 
     /// Sets http auth type to use.
-    Request&
-    http_auth_type(HttpAuthType value, bool auth_only, utils::zstring_view user, utils::zstring_view password) &;
+    Request& http_auth_type(
+        HttpAuthType value,
+        bool auth_only,
+        utils::zstring_view user,
+        utils::zstring_view password
+    ) &;
     /// @overload
-    Request
-    http_auth_type(HttpAuthType value, bool auth_only, utils::zstring_view user, utils::zstring_view password) &&;
+    Request http_auth_type(
+        HttpAuthType value,
+        bool auth_only,
+        utils::zstring_view user,
+        utils::zstring_view password
+    ) &&;
 
     /// Set proxy headers for request
     Request& proxy_headers(const Headers& headers) &;
@@ -325,8 +333,8 @@ public:
         return *this;
     }
 
-    /// Override list of plugins from @ref components::HttpClient for specific request
-    Request& SetPluginsList(const std::vector<utils::NotNull<Plugin*>>& plugins) &;
+    /// Override list of middlewares from @ref components::HttpClient for specific request
+    Request& SetMiddlewaresList(const std::vector<utils::NotNull<MiddlewareBase*>>& middlewares) &;
 
     /// Override log URL. Useful for "there's a secret in the query".
     /// @warning The query might be logged by other intermediate HTTP agents (nginx, L7 balancer, etc.).

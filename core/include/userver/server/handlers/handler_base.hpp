@@ -13,39 +13,15 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::handlers {
 
-// clang-format off
-
 /// @brief Base class for the request handlers.
 ///
-/// Each handler has an associated path and invoked only for the requests for
-/// that path.
+/// Each handler has an associated path and invoked only for the requests for that path.
 ///
-/// ## Static options:
-/// Name | Description | Default value
-/// ---- | ----------- | -------------
-/// path | if a request matches this path wildcard then process it by handler | -
-/// as_fallback | set to "implicit-http-options" and do not specify a path if this handler processes the OPTIONS requests for paths that do not process OPTIONS method | -
-/// task_processor | a task processor to execute the requests | the 'default_task_processor' value from components::ManagerControllerComponent
-/// method | comma-separated list of allowed HTTP methods. HEAD method is implicitly enabled if GET method is enabled | -
-/// max_request_size | max size of the whole request | 1024 * 1024
-/// max_headers_size | max request headers size | 65536
-/// parse_args_from_body | optional field to parse request according to x-www-form-urlencoded rules and make parameters accessible as query parameters | false
-/// auth | server::handlers::auth::HandlerAuthConfig authorization config | -
-/// url_trailing_slash | 'both' to treat URLs with and without a trailing slash as equal, 'strict-match' otherwise | 'both'
-/// max_requests_in_flight | integer to limit max pending requests to this handler | `<no limit>`
-/// request_body_size_log_limit | trim request to this size before logging | 512
-/// request_headers_size_log_limit | limit on the total length of logged headers | 512
-/// response_data_size_log_limit | trim responses to this size before logging | 512
-/// max_requests_per_second | integer to limit RPS to this handler | `<no limit>`
-/// decompress_request | allow decompression of the requests | true
-/// throttling_enabled | allow throttling of the requests by components::Server , for more info see its `max_response_size_in_flight` and `requests_queue_size_threshold` options | true
-/// set-response-server-hostname | set to true to add the `X-YaTaxi-Server-Hostname` header with instance name, set to false to not add the header | `<takes the value from components::Server config>`
-/// monitor-handler | Overrides the in-code `is_monitor` flag that makes the handler run either on `server.listener` or on `server.listener-monitor` | --
-/// set_tracing_headers | whether to set http tracing headers (X-YaTraceId, X-YaSpanId, X-RequestId) | true
-/// deadline_propagation_enabled | when `false`, disables HTTP handler @ref scripts/docs/en/userver/deadline_propagation.md "deadline propagation" | true
-/// deadline_expired_status_code | the HTTP status code to return if the request @ref scripts/docs/en/userver/deadline_propagation.md "deadline expires" | 498
-
-// clang-format on
+/// ## Static options of server::handlers::HandlerBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/server/handlers/handler_base.md
+///
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
 class HandlerBase : public components::ComponentBase {
 public:
     HandlerBase(

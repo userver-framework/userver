@@ -49,10 +49,8 @@ enum class ClusterHostType {
 
 using ClusterHostTypeFlags = USERVER_NAMESPACE::utils::Flags<ClusterHostType>;
 
-constexpr ClusterHostTypeFlags kClusterHostRolesMask{
-    ClusterHostType::kMaster,
-    ClusterHostType::kSyncSlave,
-    ClusterHostType::kSlave};
+constexpr ClusterHostTypeFlags
+    kClusterHostRolesMask{ClusterHostType::kMaster, ClusterHostType::kSyncSlave, ClusterHostType::kSlave};
 
 constexpr ClusterHostTypeFlags kClusterHostStrategyMask{ClusterHostType::kRoundRobin, ClusterHostType::kNearest};
 

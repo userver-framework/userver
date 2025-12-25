@@ -62,7 +62,9 @@ void SetCurrentThreadName(std::string_view name) {
     }
 }
 
-CurrentThreadNameGuard::CurrentThreadNameGuard(std::string_view name) : prev_name_(GetCurrentThreadName()) {
+CurrentThreadNameGuard::CurrentThreadNameGuard(std::string_view name)
+    : prev_name_(GetCurrentThreadName())
+{
     SetCurrentThreadName(name);
 }
 

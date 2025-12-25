@@ -31,7 +31,8 @@ class DeliveryTimeoutException final : public SendException {
     static constexpr const char* kWhat{
         "Message is not delivered after `delivery_timeout` milliseconds. Hint: "
         "Adjust `delivery_timeout` and `queue_buffering_*` options or manually "
-        "retry the send request."};
+        "retry the send request."
+    };
 
 public:
     DeliveryTimeoutException();
@@ -41,7 +42,8 @@ class QueueFullException final : public SendException {
     static constexpr const char* kWhat{
         "The sending queue is full - send request cannot be scheduled. Hint: "
         "Manually retry the error or increase `queue_buffering_max_messages` "
-        "and/or `queue_buffering_max_kbytes` config option."};
+        "and/or `queue_buffering_max_kbytes` config option."
+    };
 
 public:
     QueueFullException();
@@ -50,7 +52,8 @@ public:
 class MessageTooLargeException final : public SendException {
     static constexpr const char* kWhat{
         "Message size exceeds configured limit. Hint: increase "
-        "`message_max_bytes` config option."};
+        "`message_max_bytes` config option."
+    };
 
 public:
     MessageTooLargeException();

@@ -1,0 +1,26 @@
+type: object
+description: Component that does a periodic update of runtime configs.
+additionalProperties: false
+properties:
+    updates-sink:
+        type: string
+        description: name of the component derived from components::DynamicConfigUpdatesSinkBase
+            to be used for storing received updates
+        default: dynamic-config
+    store-enabled:
+        type: boolean
+        description: store the retrieved values into the updates sink component
+        default: true
+    load-only-my-values:
+        type: boolean
+        description: request from the client only the values used by this service
+        default: true
+    deduplicate-update-types:
+        type: string
+        description: config update types for best-effort deduplication
+        default: full-and-incremental
+        enum:
+          - none
+          - only-full
+          - only-incremental
+          - full-and-incremental

@@ -47,16 +47,15 @@ class ThreadControl;
     }
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define IMPLEMENT_CURL_OPTION_BOOLEAN(FUNCTION_NAME, OPTION_NAME)                                               \
-    inline void FUNCTION_NAME(bool enabled) {                                                                   \
-        std::error_code ec;                                                                                     \
-        FUNCTION_NAME(enabled, ec);                                                                             \
-        throw_error(ec, PP_STRINGIZE(FUNCTION_NAME));                                                           \
-    }                                                                                                           \
-    inline void FUNCTION_NAME(bool enabled, std::error_code& ec) {                                              \
-        ec = std::error_code(                                                                                   \
-            static_cast<errc::EasyErrorCode>(native::curl_easy_setopt(handle_, OPTION_NAME, enabled ? 1L : 0L)) \
-        );                                                                                                      \
+#define IMPLEMENT_CURL_OPTION_BOOLEAN(FUNCTION_NAME, OPTION_NAME)                                                      \
+    inline void FUNCTION_NAME(bool enabled) {                                                                          \
+        std::error_code ec;                                                                                            \
+        FUNCTION_NAME(enabled, ec);                                                                                    \
+        throw_error(ec, PP_STRINGIZE(FUNCTION_NAME));                                                                  \
+    }                                                                                                                  \
+    inline void FUNCTION_NAME(bool enabled, std::error_code& ec) {                                                     \
+        ec = std::error_code(static_cast<                                                                              \
+                             errc::EasyErrorCode>(native::curl_easy_setopt(handle_, OPTION_NAME, enabled ? 1L : 0L))); \
     }
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
@@ -88,9 +87,8 @@ class ThreadControl;
         throw_error(ec, PP_STRINGIZE(FUNCTION_NAME));                                                                \
     }                                                                                                                \
     inline void FUNCTION_NAME(utils::zstring_view str, std::error_code& ec) {                                        \
-        ec = std::error_code(                                                                                        \
-            static_cast<errc::EasyErrorCode>(native::curl_easy_setopt(handle_, OPTION_NAME, str.c_str()))            \
-        );                                                                                                           \
+        ec = std::error_code(static_cast<                                                                            \
+                             errc::EasyErrorCode>(native::curl_easy_setopt(handle_, OPTION_NAME, str.c_str())));     \
     }
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
@@ -133,18 +131,18 @@ public:                                                                         
     inline void FUNCTION_NAME##_no_copy(std::string_view, std::error_code&) = delete
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define IMPLEMENT_CURL_OPTION_GET_STRING_VIEW(FUNCTION_NAME, OPTION_NAME)                                              \
-    inline std::string_view FUNCTION_NAME() {                                                                          \
-        std::error_code ec;                                                                                            \
-        auto info = FUNCTION_NAME(ec);                                                                                 \
-        throw_error(ec, PP_STRINGIZE(FUNCTION_NAME));                                                                  \
-        return info;                                                                                                   \
-    }                                                                                                                  \
-    inline std::string_view FUNCTION_NAME(std::error_code& ec) {                                                       \
-        char* info = nullptr;                                                                                          \
-        ec =                                                                                                           \
-            std::error_code(static_cast<errc::EasyErrorCode>(native::curl_easy_getinfo(handle_, OPTION_NAME, &info))); \
-        return info ? info : std::string_view{};                                                                       \
+#define IMPLEMENT_CURL_OPTION_GET_STRING_VIEW(FUNCTION_NAME, OPTION_NAME)                                             \
+    inline std::string_view FUNCTION_NAME() {                                                                         \
+        std::error_code ec;                                                                                           \
+        auto info = FUNCTION_NAME(ec);                                                                                \
+        throw_error(ec, PP_STRINGIZE(FUNCTION_NAME));                                                                 \
+        return info;                                                                                                  \
+    }                                                                                                                 \
+    inline std::string_view FUNCTION_NAME(std::error_code& ec) {                                                      \
+        char* info = nullptr;                                                                                         \
+        ec = std::error_code(static_cast<errc::EasyErrorCode>(native::curl_easy_getinfo(handle_, OPTION_NAME, &info)) \
+        );                                                                                                            \
+        return info ? info : std::string_view{};                                                                      \
     }
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
@@ -368,9 +366,8 @@ public:
     }
     inline void set_http_auth(httpauth_t auth, bool auth_only, std::error_code& ec) {
         auto l = static_cast<long>(auth | (auth_only ? CURLAUTH_ONLY : 0UL));
-        ec = std::error_code(
-            static_cast<errc::EasyErrorCode>(native::curl_easy_setopt(handle_, native::CURLOPT_HTTPAUTH, l))
-        );
+        ec = std::error_code(static_cast<
+                             errc::EasyErrorCode>(native::curl_easy_setopt(handle_, native::CURLOPT_HTTPAUTH, l)));
     }
     IMPLEMENT_CURL_OPTION(set_tls_auth_type, native::CURLOPT_TLSAUTH_TYPE, long);
     IMPLEMENT_CURL_OPTION_STRING(set_tls_auth_user, native::CURLOPT_TLSAUTH_USERNAME);
@@ -703,8 +700,11 @@ private:
         native::curl_off_t ultotal,
         native::curl_off_t ulnow
     ) noexcept;
-    static native::curl_socket_t
-    opensocket(void* clientp, native::curlsocktype purpose, struct native::curl_sockaddr* address) noexcept;
+    static native::curl_socket_t opensocket(
+        void* clientp,
+        native::curlsocktype purpose,
+        struct native::curl_sockaddr* address
+    ) noexcept;
     static int closesocket(void* clientp, native::curl_socket_t item) noexcept;
 
     // do_ev_* methods run in libev thread

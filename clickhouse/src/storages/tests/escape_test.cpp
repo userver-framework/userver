@@ -18,10 +18,12 @@ using clock = std::chrono::system_clock;
 using QueryTester = storages::clickhouse::QueryTester;
 
 constexpr clock::time_point kFakeNow{
-    std::chrono::duration_cast<clock::duration>(std::chrono::nanoseconds{1546300800'123456789ULL})};
+    std::chrono::duration_cast<clock::duration>(std::chrono::nanoseconds{1546300800'123456789ULL})
+};
 
 constexpr clock::time_point kFakeNowLeadingZeros{
-    std::chrono::duration_cast<clock::duration>(std::chrono::nanoseconds{1546300800'001002003ULL})};
+    std::chrono::duration_cast<clock::duration>(std::chrono::nanoseconds{1546300800'001002003ULL})
+};
 
 template <typename SourceT>
 void ValidateEscaping(const SourceT& source, const std::string& expected) {
@@ -78,7 +80,9 @@ TEST(EscapeSetString, Basic) {
 template <typename T>
 class MyRange final {
 public:
-    MyRange(std::initializer_list<T> data) : data_{data} {}
+    MyRange(std::initializer_list<T> data)
+        : data_{data}
+    {}
 
     auto begin() const { return data_.begin(); }
 
@@ -195,20 +199,24 @@ TEST(EscapeFloatingPoint, Basic) {
 }
 TEST(EscapeFloatingPoint, ExceptionalCases) {
     ValidateEscaping(
-        storages::clickhouse::io::FloatingWithPrecision<float, 5>(std::numeric_limits<float>::infinity()), "inf"
+        storages::clickhouse::io::FloatingWithPrecision<float, 5>(std::numeric_limits<float>::infinity()),
+        "inf"
     );
     ValidateEscaping(
-        storages::clickhouse::io::FloatingWithPrecision<float, 5>(-std::numeric_limits<float>::infinity()), "-inf"
+        storages::clickhouse::io::FloatingWithPrecision<float, 5>(-std::numeric_limits<float>::infinity()),
+        "-inf"
     );
     ValidateEscaping(
-        storages::clickhouse::io::FloatingWithPrecision<float, 5>(std::numeric_limits<float>::quiet_NaN()), "nan"
+        storages::clickhouse::io::FloatingWithPrecision<float, 5>(std::numeric_limits<float>::quiet_NaN()),
+        "nan"
     );
 }
 TEST(EscapeFloatingPoint, SwitchPrecision) {
     auto floating_number = storages::clickhouse::io::FloatingWithPrecision<double, 5>(100);
     ValidateEscaping(storages::clickhouse::io::FloatingWithPrecision<float, 2>(floating_number), "100.00");
     ValidateEscaping(
-        storages::clickhouse::io::FloatingWithPrecision<double, 7>(std::move(floating_number)), "100.0000000"
+        storages::clickhouse::io::FloatingWithPrecision<double, 7>(std::move(floating_number)),
+        "100.0000000"
     );
 }
 

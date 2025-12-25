@@ -221,8 +221,8 @@ void LogWarningWithErrno(
     logging::Level level = logging::Level::kWarning
 ) {
     const auto saved_errno = errno;
-    const auto message_with_errno =
-        fmt::format("{}, errno: {} ({})", message, saved_errno, utils::strerror(saved_errno));
+    const auto
+        message_with_errno = fmt::format("{}, errno: {} ({})", message, saved_errno, utils::strerror(saved_errno));
     UASSERT_MSG(false, message_with_errno);
     if (limited) {
         LOG_LIMITED(level) << message_with_errno;
@@ -263,7 +263,9 @@ private:
 
 class StackUsageMonitor::Impl final {
 public:
-    explicit Impl(std::size_t coro_stack_size) : coro_stack_size_{coro_stack_size} {
+    explicit Impl(std::size_t coro_stack_size)
+        : coro_stack_size_{coro_stack_size}
+    {
         UASSERT(coro_stack_size % kPageSize == 0);
     }
     ~Impl() { Stop(); }
@@ -314,9 +316,10 @@ public:
         monitor_thread_ = std::thread{[this] { MonitorForPageFaults(); }};
         is_active_ = true;
 
-        LOG_INFO() << "Successfully initialized StackUsageMonitor, kernel supports "
-                      "following userfaultfd features: "
-                   << supported_features;
+        LOG_INFO()
+            << "Successfully initialized StackUsageMonitor, kernel supports "
+               "following userfaultfd features: "
+            << supported_features;
     }
 
     void Cleanup() noexcept {
@@ -481,7 +484,8 @@ public:
             fmt::format_to(std::back_inserter(buff), "Coroutine is using approximately {}% of its stack\n", usage_pct);
             const auto coro_stack_usage_message = std::string_view{buff.data(), buff.size()};
             const auto stacktrace = boost::stacktrace::stacktrace::from_dump(
-                usage_info->serialized_stacktrace.data(), kMaxBinaryStacktraceSize
+                usage_info->serialized_stacktrace.data(),
+                kMaxBinaryStacktraceSize
             );
 
             const auto readable_stacktrace = logging::stacktrace_cache::to_string(stacktrace);
@@ -563,7 +567,9 @@ private:
                 if (pthread_kill(*faulting_thread_id, kStackUsageSignal)) {
                     // Yikes. Close the userfaultfd, hope for the best.
                     LogWarningWithErrno(
-                        "Failed to wakeup the faulting thread by signal", false, logging::Level::kError
+                        "Failed to wakeup the faulting thread by signal",
+                        false,
+                        logging::Level::kError
                     );
                     break;
                 }
@@ -575,7 +581,9 @@ private:
 
     std::optional<pthread_t> PidToPthreadT(int ptid) const {
         for (const auto& [pid, pthread_id] : thread_id_to_pthread_id_) {
-            if (ptid == pid) return pthread_id;
+            if (ptid == pid) {
+                return pthread_id;
+            }
         }
 
         return std::nullopt;
@@ -617,7 +625,9 @@ public:
 
 #endif
 
-StackUsageMonitor::StackUsageMonitor(std::size_t coro_stack_size) : impl_{coro_stack_size} {}
+StackUsageMonitor::StackUsageMonitor(std::size_t coro_stack_size)
+    : impl_{coro_stack_size}
+{}
 
 StackUsageMonitor::~StackUsageMonitor() { Stop(); }
 

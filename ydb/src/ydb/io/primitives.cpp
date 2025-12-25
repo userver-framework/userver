@@ -54,8 +54,8 @@ void TransformUuid(T1* src, T2* dst) {
 }  // namespace
 
 template <typename PrimitiveTrait>
-std::optional<typename PrimitiveTrait::Type>
-OptionalPrimitiveTraits<PrimitiveTrait>::Parse(NYdb::TValueParser& parser, const ParseContext& context) {
+std::optional<typename PrimitiveTrait::Type> OptionalPrimitiveTraits<
+    PrimitiveTrait>::Parse(NYdb::TValueParser& parser, const ParseContext& context) {
     const bool is_optional = IsOptional(parser);
     if (is_optional) {
         parser.OpenOptional();
@@ -65,9 +65,10 @@ OptionalPrimitiveTraits<PrimitiveTrait>::Parse(NYdb::TValueParser& parser, const
             return {};
         }
     } else {
-        LOG_WARNING() << "Trying to parse " << context.column_name << " as "
-                      << compiler::GetTypeName<std::optional<typename PrimitiveTrait::Type>>()
-                      << " while actual type is not Optional";
+        LOG_WARNING()
+            << "Trying to parse " << context.column_name << " as "
+            << compiler::GetTypeName<std::optional<typename PrimitiveTrait::Type>>()
+            << " while actual type is not Optional";
     }
 
     auto value = PrimitiveTrait::Parse(parser);
@@ -104,8 +105,8 @@ NYdb::TType OptionalPrimitiveTraits<PrimitiveTrait>::MakeType() {
 }
 
 template <typename PrimitiveTrait>
-typename PrimitiveTrait::Type
-PrimitiveTraits<PrimitiveTrait>::Parse(NYdb::TValueParser& parser, const ParseContext& /*context*/) {
+typename PrimitiveTrait::Type PrimitiveTraits<
+    PrimitiveTrait>::Parse(NYdb::TValueParser& parser, const ParseContext& /*context*/) {
     const bool is_optional = IsOptional(parser);
 
     if (is_optional) {
@@ -239,9 +240,10 @@ TimestampTrait::Type TimestampTrait::Parse(const NYdb::TValueParser& value_parse
 
 template <typename Builder>
 void TimestampTrait::Write(NYdb::TValueBuilderBase<Builder>& builder, Type value) {
-    builder.Timestamp(
-        TInstant::MicroSeconds(std::chrono::duration_cast<std::chrono::microseconds>(value.time_since_epoch()).count())
-    );
+    builder
+        .Timestamp(TInstant::MicroSeconds(std::chrono::duration_cast<std::chrono::microseconds>(value.time_since_epoch()
+        )
+                                              .count()));
 }
 
 template struct OptionalPrimitiveTraits<UuidTrait>;

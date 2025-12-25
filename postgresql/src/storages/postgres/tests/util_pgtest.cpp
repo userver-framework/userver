@@ -26,7 +26,8 @@ pg::DefaultCommandControls GetTestCmdCtls() {
 }
 
 DefaultCommandControlScope::DefaultCommandControlScope(storages::postgres::CommandControl default_cmd_ctl)
-    : old_cmd_ctl_(GetTestCmdCtls().GetDefaultCmdCtl()) {
+    : old_cmd_ctl_(GetTestCmdCtls().GetDefaultCmdCtl())
+{
     GetTestCmdCtls().UpdateDefaultCmdCtl(default_cmd_ctl);
 }
 
@@ -78,9 +79,7 @@ pg::DsnList PostgreSQLBase::GetDsnListFromEnv() {
     }
 
     std::vector<std::string> conn_list;
-    boost::split(
-        conn_list, conn_list_env, [](char c) { return c == ';'; }, boost::token_compress_on
-    );
+    boost::split(conn_list, conn_list_env, [](char c) { return c == ';'; }, boost::token_compress_on);
 
     pg::DsnList dsn_list;
     for (auto conn : conn_list) {
@@ -123,7 +122,9 @@ storages::postgres::detail::ConnectionPtr PostgreSQLBase::MakeConnection(
     }
 
     pg::detail::ConnectionPtr conn_ptr{std::move(conn)};
-    if (conn_ptr) CheckConnection(conn_ptr);
+    if (conn_ptr) {
+        CheckConnection(conn_ptr);
+    }
     return conn_ptr;
 }
 
@@ -132,9 +133,10 @@ void PostgreSQLBase::CheckConnection(const pg::detail::ConnectionPtr& conn) {
 
     ASSERT_TRUE(conn->IsConnected()) << "Connection to PostgreSQL is established";
     ASSERT_TRUE(conn->IsIdle()) << "Connection to PosgreSQL is idle after connection";
-    ASSERT_FALSE(conn->IsInTransaction()) << "Connection to PostgreSQL is "
-                                             "not in a transaction after "
-                                             "connection";
+    ASSERT_FALSE(conn->IsInTransaction()
+    ) << "Connection to PostgreSQL is "
+         "not in a transaction after "
+         "connection";
 }
 
 void PostgreSQLBase::FinalizeConnection(pg::detail::ConnectionPtr conn) {
@@ -151,12 +153,26 @@ concurrent::BackgroundTaskStorageCore& PostgreSQLBase::GetTaskStorage() {
     return bts;
 }
 
-PostgreConnection::PostgreConnection() : conn_(MakeConnection(GetDsnFromEnv(), GetTaskProcessor(), GetParam())) {}
+PostgreConnectionBaseFixture::PostgreConnectionBaseFixture() = default;
 
-PostgreConnection::~PostgreConnection() {
+PostgreConnectionBaseFixture::~PostgreConnectionBaseFixture() {
     // force connection cleanup to avoid leaving detached tasks behind
     engine::AsyncNoSpan(GetTaskProcessor(), [] {}).Wait();
 }
+
+storages::postgres::detail::ConnectionPtr PostgreConnectionBaseFixture::MakeConn(
+    storages::postgres::ConnectionSettings settings
+) {
+    return MakeConnection(GetDsnFromEnv(), GetTaskProcessor(), std::move(settings));
+}
+
+PostgreConnection::PostgreConnection()
+    : conn_(MakeConnection(GetDsnFromEnv(), GetTaskProcessor(), GetParam()))
+{}
+
+PostgreConnection::~PostgreConnection() = default;
+
+storages::postgres::detail::ConnectionPtr& PostgreConnection::GetConn() { return conn_; }
 
 INSTANTIATE_UTEST_SUITE_P(
     ConnectionSettings,

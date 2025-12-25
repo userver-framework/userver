@@ -39,7 +39,10 @@ template <typename GrpcService1, typename GrpcService2>
 class Service : public ugrpc::tests::ServiceBase {
 public:
     explicit Service(ugrpc::server::ServerConfig&& server_config)
-        : ServiceBase(std::move(server_config)), service1_(), service2_() {
+        : ServiceBase(std::move(server_config)),
+          service1_(),
+          service2_()
+    {
         RegisterService(service1_);
         RegisterService(service2_);
         StartServer();
@@ -107,7 +110,9 @@ public:
 // NOLINTNEXTLINE(fuchsia-multiple-inheritance)
 class LogServiceTest : public Service<LogService, TraceService>, public utest::DefaultLoggerFixture<::testing::Test> {
 public:
-    LogServiceTest() : Service({}) {
+    LogServiceTest()
+        : Service({})
+    {
         otlp::LoggerConfig config;
         config.logs_sink = otlp::SinkType::kBoth;
         logger_ = std::make_shared<otlp::Logger>(
@@ -145,8 +150,8 @@ UTEST_F(LogServiceTest, ForwardLogs) {
 }
 
 UTEST_F(LogServiceTest, SmokeLogs) {
-    auto timestamp =
-        std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now().time_since_epoch());
+    auto timestamp = std::chrono::duration_cast<
+        std::chrono::nanoseconds>(std::chrono::system_clock::now().time_since_epoch());
     LOG_INFO() << "log";
 
     while (GetService1().logs.size() < 1) {
@@ -164,11 +169,13 @@ UTEST_F(LogServiceTest, SmokeLogs) {
 }
 
 UTEST_F(LogServiceTest, SmokeTrace) {
-    const auto timestamp1 =
-        std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now().time_since_epoch());
-    { const tracing::Span span("some_span"); }
-    const auto timestamp2 =
-        std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now().time_since_epoch());
+    const auto timestamp1 = std::chrono::duration_cast<
+        std::chrono::nanoseconds>(std::chrono::system_clock::now().time_since_epoch());
+    {
+        const tracing::Span span("some_span");
+    }
+    const auto timestamp2 = std::chrono::duration_cast<
+        std::chrono::nanoseconds>(std::chrono::system_clock::now().time_since_epoch());
 
     while (GetService2().spans.size() < 1) {
         engine::SleepFor(std::chrono::milliseconds(10));

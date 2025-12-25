@@ -194,7 +194,9 @@ void Cluster::InsertRows(
     const std::vector<std::string_view>& column_names,
     const Container& data
 ) const {
-    if (data.empty()) return;
+    if (data.empty()) {
+        return;
+    }
 
     const auto request = impl::InsertionRequest::CreateFromRows(table_name, column_names, data);
 

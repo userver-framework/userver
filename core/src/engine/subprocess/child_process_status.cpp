@@ -9,8 +9,12 @@ namespace engine::subprocess {
 namespace {
 
 ChildProcessStatus::ExitReason ExitReasonFromStatus(int status) {
-    if (WIFEXITED(status)) return ChildProcessStatus::ExitReason::kExited;
-    if (WIFSIGNALED(status)) return ChildProcessStatus::ExitReason::kSignaled;
+    if (WIFEXITED(status)) {
+        return ChildProcessStatus::ExitReason::kExited;
+    }
+    if (WIFSIGNALED(status)) {
+        return ChildProcessStatus::ExitReason::kSignaled;
+    }
     throw ChildProcessStatusException("can't create ExitReason from status=" + std::to_string(status));
 }
 
@@ -20,15 +24,20 @@ ChildProcessStatus::ChildProcessStatus(int status, std::chrono::milliseconds exe
     : execution_time_(execution_time),
       exit_reason_(ExitReasonFromStatus(status)),
       exit_code_(IsExited() ? WEXITSTATUS(status) : -1),
-      term_signal_(IsSignaled() ? WTERMSIG(status) : -1) {}
+      term_signal_(IsSignaled() ? WTERMSIG(status) : -1)
+{}
 
 int ChildProcessStatus::GetExitCode() const {
-    if (!IsExited()) throw ChildProcessStatusException("Child process did not exit normally.");
+    if (!IsExited()) {
+        throw ChildProcessStatusException("Child process did not exit normally.");
+    }
     return exit_code_;
 }
 
 int ChildProcessStatus::GetTermSignal() const {
-    if (!IsSignaled()) throw ChildProcessStatusException("Child process was not terminated by a signal.");
+    if (!IsSignaled()) {
+        throw ChildProcessStatusException("Child process was not terminated by a signal.");
+    }
     return term_signal_;
 }
 

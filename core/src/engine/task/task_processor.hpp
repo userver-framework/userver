@@ -14,6 +14,7 @@
 #include <engine/task/task_counter.hpp>
 #include <engine/task/task_processor_config.hpp>
 #include <engine/task/task_queue.hpp>
+#include <engine/task/task_queue_pull_pin.hpp>
 #include <engine/task/task_queue_tsan.hpp>
 #include <engine/task/work_stealing_queue/task_queue.hpp>
 #include <engine/tracer_plugin.hpp>
@@ -40,6 +41,8 @@ class ThreadPool;
 
 class TaskProcessor final {
 public:
+    using TaskQueueVariant = std::variant<TaskQueue, WorkStealingTaskQueue, TaskQueuePullPin, TaskQueueTSan>;
+
     TaskProcessor(TaskProcessorConfig, std::shared_ptr<impl::TaskProcessorPools>);
     ~TaskProcessor();
 
@@ -126,16 +129,18 @@ private:
 
     OverloadByLength GetOverloadByLength(std::size_t max_queue_length) noexcept;
 
-    OverloadByLength
-    ComputeOverloadByLength(OverloadByLength old_overload_by_length, std::size_t max_queue_length) noexcept;
+    OverloadByLength ComputeOverloadByLength(OverloadByLength old_overload_by_length, std::size_t max_queue_length)
+        noexcept;
 
     concurrent::impl::InterferenceShield<impl::DetachedTasksSyncBlock> detached_contexts_{
-        impl::DetachedTasksSyncBlock::StopMode::kCancel};
+        impl::DetachedTasksSyncBlock::StopMode::kCancel
+    };
     concurrent::impl::InterferenceShield<OverloadedCache> overloaded_cache_;
-    std::variant<TaskQueue, WorkStealingTaskQueue, TaskQueueTSan> task_queue_;
+    TaskQueueVariant task_queue_;
     impl::TaskCounter task_counter_;
 
     const TaskProcessorConfig config_;
+    PluginManager plugin_manager_;
     const std::shared_ptr<impl::TaskProcessorPools> pools_;
     std::vector<std::thread> workers_;
     logging::LoggerPtr task_trace_logger_{nullptr};
@@ -153,7 +158,6 @@ private:
     std::unique_ptr<utils::statistics::ThreadPoolCpuStatsStorage> cpu_stats_storage_{nullptr};
     TaskProcessor* fs_task_processor_{nullptr};
 
-    PluginManager plugin_manager_;
     // TracePlugin must start before any task is created to account it
     TracePlugin trace_plugin_;
 };

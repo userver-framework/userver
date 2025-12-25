@@ -25,7 +25,7 @@ def collect(*, file_ast: ast.File, plugin_options: Any | None) -> list[str]:
     The result is always sorted.
     """
     parsed_options = options.PluginOptions(**plugin_options) if plugin_options else options.PluginOptions()
-    includes_set = set(include.path for include in collect_file(file_ast, plugin_options=parsed_options))  # noqa: C401
+    includes_set = {include.path for include in collect_file(file_ast, plugin_options=parsed_options)}
     includes_set.difference_update(includes_bundles.bundle_hpp())
     includes_set.difference_update(includes_bundles.bundle_cpp())
     return sorted(includes_set)
@@ -92,7 +92,7 @@ def _collect_field_type(proto_type_name: str, /, *, context: FileContext) -> Ite
 
     if override := type_overrides.get_type_override(
         proto_type_name=proto_type_name,
-        plugin_options=context.plugin_options,  # noqa: COM812
+        plugin_options=context.plugin_options,
     ):
         yield from override.collect_includes()
         return
@@ -101,7 +101,7 @@ def _collect_field_type(proto_type_name: str, /, *, context: FileContext) -> Ite
     if context.package in _WELL_KNOWN_PACKAGES:
         if override := type_overrides.get_type_override(
             proto_type_name=f'{context.package}.{proto_type_name}',
-            plugin_options=context.plugin_options,  # noqa: COM812
+            plugin_options=context.plugin_options,
         ):
             yield from override.collect_includes()
             return

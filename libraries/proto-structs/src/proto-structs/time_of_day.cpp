@@ -21,7 +21,8 @@ TimeOfDay::TimeOfDay(
           std::chrono::minutes{minutes},
           std::chrono::seconds{seconds},
           std::chrono::nanoseconds{nanos}
-      ) {}
+      )
+{}
 
 void TimeOfDay::ThrowError(
     const std::chrono::hours& hours,

@@ -16,12 +16,12 @@ namespace testsuite {
 
 class HttpAllowedUrlsExtra final {
 public:
-    void RegisterHttpClient(std::shared_ptr<clients::http::ClientCore> http_client);
+    void RegisterHttpClient(clients::http::ClientCore& http_client);
 
     void SetAllowedUrlsExtra(std::vector<std::string>&& urls);
 
 private:
-    std::shared_ptr<clients::http::ClientCore> http_client_{nullptr};
+    clients::http::ClientCore* http_client_{nullptr};
 };
 
 }  // namespace testsuite

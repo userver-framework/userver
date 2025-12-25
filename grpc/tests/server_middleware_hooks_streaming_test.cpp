@@ -27,7 +27,8 @@ namespace {
 
 const grpc::Status kUnknownErrorStatus{
     grpc::StatusCode::UNKNOWN,
-    "The service method has exited unexpectedly, without providing a status"};
+    "The service method has exited unexpectedly, without providing a status"
+};
 
 using ChatReaderWriter = tests::UnitTestServiceGmock::ChatReaderWriter;
 
@@ -35,20 +36,21 @@ struct Flags final {
     bool set_error{true};
 };
 
-class ServerMiddlewareHooksStreamingTest : public tests::MiddlewaresFixture<
-                                               tests::server::ServerMiddlewareBaseMock,
-                                               ::testing::NiceMock<tests::UnitTestServiceGmock>,
-                                               sample::ugrpc::UnitTestServiceClient,
-                                               /*N=*/3> {
+class ServerMiddlewareHooksStreamingTest
+    : public tests::MiddlewaresFixture<
+          tests::server::ServerMiddlewareBaseMock,
+          ::testing::NiceMock<tests::UnitTestServiceGmock>,
+          sample::ugrpc::UnitTestServiceClient,
+          /*N=*/3> {
 protected:
     void SetSuccessHandler() {
         ON_CALL(Service(), Chat).WillByDefault([](ugrpc::server::CallContext& /*context*/, ChatReaderWriter& bs) {
             sample::ugrpc::StreamGreetingRequest request;
-            sample::ugrpc::StreamGreetingResponse response;
             while (bs.Read(request)) {
+                sample::ugrpc::StreamGreetingResponse response;
                 response.set_number(request.number());
                 response.set_name("Hello, " + request.name());
-                bs.Write(response);
+                bs.Write(std::move(response));
             }
             return grpc::Status::OK;
         });
@@ -67,7 +69,7 @@ protected:
 
     void SetupRpcFinishWait(engine::SingleUseEvent& rpc_finish) {
         ON_CALL(M0(), OnCallFinish)
-            .WillByDefault([&rpc_finish](ugrpc::server::MiddlewareCallContext&, const grpc::Status&) {
+            .WillByDefault([&rpc_finish](ugrpc::server::MiddlewareCallContext&, const std::optional<grpc::Status>&) {
                 // 'OnCallFinish' of M0 is the last hook => M1 and M2 hooks already finished.
                 rpc_finish.Send();
             });
@@ -81,8 +83,9 @@ protected:
 };
 
 // NOLINTNEXTLINE(fuchsia-multiple-inheritance)
-class ServerMiddlewareHooksStreamingWithParamTest : public ServerMiddlewareHooksStreamingTest,
-                                                    public testing::WithParamInterface<Flags> {
+class ServerMiddlewareHooksStreamingWithParamTest
+    : public ServerMiddlewareHooksStreamingTest,
+      public testing::WithParamInterface<Flags> {
 protected:
     void SetErrorOrThrowRuntimeError(
         ugrpc::server::MiddlewareCallContext& context,
@@ -144,7 +147,7 @@ UTEST_F(ServerMiddlewareHooksStreamingTest, SuccessMany) {
             sample::ugrpc::StreamGreetingResponse out;
             out.set_name("userver 42");
             out.set_number(42);
-            bs.Write(out);
+            bs.Write(std::move(out));
         }
         return grpc::Status::OK;
     });
@@ -422,7 +425,7 @@ UTEST_F(ServerMiddlewareHooksStreamingTest, ThrowInHandler) {
         sample::ugrpc::StreamGreetingResponse response;
         response.set_number(request.number());
         response.set_name("Hello, " + request.name());
-        bs.Write(response);
+        bs.Write(std::move(response));
 
         EXPECT_TRUE(bs.Read(request));
         EXPECT_EQ(

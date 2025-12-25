@@ -29,7 +29,8 @@ TEST(CurrentProcessOpenFiles, Basic) {
     const auto& path = file_guard.GetPath();
 
     const auto fd = fs::blocking::FileDescriptor::Open(
-        path, {fs::blocking::OpenFlag::kCreateIfNotExists, fs::blocking::OpenFlag::kWrite}
+        path,
+        {fs::blocking::OpenFlag::kCreateIfNotExists, fs::blocking::OpenFlag::kWrite}
     );
 
     const auto opened_files = utest::CurrentProcessOpenFiles();
@@ -37,9 +38,8 @@ TEST(CurrentProcessOpenFiles, Basic) {
     const auto it = std::find_if(opened_files.begin(), opened_files.end(), [](const auto& file) {
         return file.find(kTestFilePart) != std::string::npos;
     });
-    EXPECT_NE(it, opened_files.end()) << fmt::format(
-        "Failed to find open file '{}'. Detected open files: {}", path, fmt::join(opened_files, ", ")
-    );
+    EXPECT_NE(it, opened_files.end())
+        << fmt::format("Failed to find open file '{}'. Detected open files: {}", path, fmt::join(opened_files, ", "));
 }
 
 USERVER_NAMESPACE_END

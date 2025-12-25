@@ -16,7 +16,9 @@ namespace s3api::authenticators {
 class AccessKey : public Authenticator {
 public:
     AccessKey(std::string access_key, Secret secret_key)
-        : access_key_{std::move(access_key)}, secret_key_{std::move(secret_key)} {}
+        : access_key_{std::move(access_key)},
+          secret_key_{std::move(secret_key)}
+    {}
     std::unordered_map<std::string, std::string> Auth(const Request& request) const override;
     std::unordered_map<std::string, std::string> Sign(const Request& request, time_t expires) const override;
 

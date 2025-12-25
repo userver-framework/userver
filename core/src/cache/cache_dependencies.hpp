@@ -31,8 +31,10 @@ struct CacheDependencies final {
     engine::TaskProcessor& fs_task_processor;
     testsuite::DumpControl& dump_control;
 
-    static CacheDependencies
-    Make(const components::ComponentConfig& config, const components::ComponentContext& context);
+    static CacheDependencies Make(
+        const components::ComponentConfig& config,
+        const components::ComponentContext& context
+    );
 };
 
 }  // namespace cache

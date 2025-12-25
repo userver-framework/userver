@@ -5,7 +5,9 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::mongo {
-Collection::Collection(std::shared_ptr<impl::CollectionImpl> impl) : impl_(std::move(impl)) {}
+Collection::Collection(std::shared_ptr<impl::CollectionImpl> impl)
+    : impl_(std::move(impl))
+{}
 
 const std::string& Collection::GetCollectionName() const { return impl_->GetCollectionName(); }
 

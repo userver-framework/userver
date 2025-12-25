@@ -193,8 +193,12 @@ UTEST_MT(TaskInheritedVariable, VariablesAfterParentTaskDeath, 4) {
     assigned_a.Send();
 
     engine::SharedTaskWithResult<void>* tasks[3] = {&task_a, &task_b, &task_c};
-    for (auto* task : tasks) task->Wait();
-    for (auto* task : tasks) task->Get();
+    for (auto* task : tasks) {
+        task->Wait();
+    }
+    for (auto* task : tasks) {
+        task->Get();
+    }
 }
 
 USERVER_NAMESPACE_END

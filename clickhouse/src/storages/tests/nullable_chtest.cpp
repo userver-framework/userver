@@ -63,12 +63,13 @@ UTEST(Nullable, Works) {
 
 UTEST(Nullable, IterationWorks) {
     ClusterWrapper cluster{};
-    auto res = cluster
-                   ->Execute(
-                       "SELECT toNullable(c.number), toNullable(randomString(10)) FROM "
-                       "system.numbers c LIMIT 10"
-                   )
-                   .AsRows<DataOfNulls>();
+    auto res =
+        cluster
+            ->Execute(
+                "SELECT toNullable(c.number), toNullable(randomString(10)) FROM "
+                "system.numbers c LIMIT 10"
+            )
+            .AsRows<DataOfNulls>();
     size_t ind = 0;
     for (auto it = res.begin(); it != res.end(); it++, ++ind) {
         ASSERT_TRUE(it->value.has_value());

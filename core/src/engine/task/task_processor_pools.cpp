@@ -13,7 +13,8 @@ namespace engine::impl {
 TaskProcessorPools::TaskProcessorPools(coro::PoolConfig coro_pool_config, ev::ThreadPoolConfig ev_pool_config)
     : coro_pool_(coro_pool_config, &TaskContext::CoroFunc),
       event_thread_pool_(std::move(ev_pool_config), ev::ThreadPool::kUseDefaultEvLoop),
-      dd_state_(coro_pool_config.deadlock_detector) {
+      dd_state_(coro_pool_config.deadlock_detector)
+{
     const bool old_value = std::exchange(logging::impl::has_background_threads_which_can_log, true);
     UASSERT_MSG(
         !old_value,

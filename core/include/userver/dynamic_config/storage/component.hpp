@@ -18,8 +18,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace components {
 
-// clang-format off
-
 /// @ingroup userver_components
 ///
 /// @brief Component that stores the
@@ -32,8 +30,7 @@ namespace components {
 /// ## Behavior on missing configs
 ///
 /// If a config variable is entirely missing the fetched config, the value from
-/// `dynamic_config_fallback.json` is used (see `fallback-path` static config
-/// option).
+/// `dynamic_config_fallback.json` is used (see `fallback-path` static config option).
 ///
 /// ## Behavior on config parsing failure
 ///
@@ -43,18 +40,13 @@ namespace components {
 /// - If the service is just starting, it will shut down
 /// - If the service is already running, the config updates will stop until
 ///   the config in the config service changes to a valid one. You can
-///   monitor this situation using the metric at path
-///   `cache.any.time.time-from-last-successful-start-ms`
+///   monitor this situation using the metric at path `cache.any.time.time-from-last-successful-start-ms`
 ///
-/// ## Static options
+/// ## Static options of components::DynamicConfigClient :
+/// @include{doc} scripts/docs/en/components_schema/core/src/dynamic_config/storage/component.md
 ///
-/// Name | Description | Default value
-/// ---- | ----------- | -------------
-/// updates-enabled | should be set to 'true' if there is an updater component | false
-/// defaults | overrides the defaults from dynamic_config::Key definitions in code | {}
-/// fallback-path | a path to the fallback config | defaults are taken from dynamic_config::Key definitions
-/// fs-cache-path | path to the file to read and dump a config cache; set to empty string to disable reading and dumping configs to FS | cache is disabled
-/// fs-task-processor | name of the task processor to run the blocking file write operations | engine::current_task::GetBlockingTaskProcessor()
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
 ///
 /// ## Static configuration example:
 ///
@@ -62,12 +54,10 @@ namespace components {
 ///
 /// ## Usage example:
 /// @snippet components/component_sample_test.cpp  Sample user component runtime config source
-
-// clang-format on
 class DynamicConfig final : public DynamicConfigUpdatesSinkBase {
 public:
     /// @ingroup userver_component_names
-    /// @brief The default name of components::DynamicConfig
+    /// @brief The default name of @ref components::DynamicConfig
     static constexpr std::string_view kName = "dynamic-config";
 
     class NoblockSubscriber;
@@ -121,6 +111,12 @@ inline constexpr bool kHasValidate<DynamicConfig> = true;
 
 template <>
 inline constexpr auto kConfigFileMode<DynamicConfig> = ConfigFileMode::kNotRequired;
+
+dynamic_config::Source LocateDependency(
+    const components::WithType<dynamic_config::Source>&,
+    const components::ComponentConfig& config,
+    const components::ComponentContext& context
+);
 
 }  // namespace components
 

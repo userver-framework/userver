@@ -22,7 +22,9 @@ namespace {
 
 struct PredefinedOidsPair {
     PredefinedOidsPair(PredefinedOids l_first, PredefinedOids l_second)
-        : first(std::min(l_first, l_second)), second(std::max(l_first, l_second)) {}
+        : first(std::min(l_first, l_second)),
+          second(std::max(l_first, l_second))
+    {}
 
     PredefinedOids first;
     PredefinedOids second;
@@ -46,7 +48,9 @@ public:
     bool HasParser(PredefinedOids oid) const { return registered_oids_.find(oid) != registered_oids_.end(); }
 
     bool AreMappedToSameType(PredefinedOids first, PredefinedOids second) const {
-        if (first == second) return true;
+        if (first == second) {
+            return true;
+        }
         return shared_parser_oids_.find(PredefinedOidsPair{first, second}) != shared_parser_oids_.end();
     }
 

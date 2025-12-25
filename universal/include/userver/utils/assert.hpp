@@ -82,7 +82,9 @@ USERVER_NAMESPACE_END
                 USERVER_NAMESPACE::utils::impl::UASSERT_failed(#condition, __FILE__, __LINE__, __func__, message); \
             } else {                                                                                               \
                 USERVER_NAMESPACE::utils::impl::LogAndThrowInvariantError(                                         \
-                    #condition, message, USERVER_NAMESPACE::utils::impl::SourceLocation::Current()                 \
+                    #condition,                                                                                    \
+                    message,                                                                                       \
+                    USERVER_NAMESPACE::utils::impl::SourceLocation::Current()                                      \
                 );                                                                                                 \
             }                                                                                                      \
         }                                                                                                          \

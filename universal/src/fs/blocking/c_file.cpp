@@ -65,9 +65,8 @@ CFile::CFile(std::FILE* file) noexcept {
 
 CFile::CFile(const std::string& path, OpenMode flags, boost::filesystem::perms perms) {
     auto fd = FileDescriptor::Open(path, flags, perms);
-    impl_->handle.reset(
-        utils::CheckSyscallNotEquals(::fdopen(fd.GetNative(), ToMode(flags)), nullptr, "calling ::fdopen")
-    );
+    impl_->handle
+        .reset(utils::CheckSyscallNotEquals(::fdopen(fd.GetNative(), ToMode(flags)), nullptr, "calling ::fdopen"));
     std::move(fd).Release();
 
 #ifdef FSETLOCKING_BYCALLER
@@ -104,7 +103,9 @@ std::size_t CFile::Read(char* buffer, std::size_t size) {
 
 void CFile::Write(std::string_view data) {
     UASSERT(IsOpen());
-    if (data.empty()) return;
+    if (data.empty()) {
+        return;
+    }
 
     if (std::fwrite(data.data(), 1, data.size(), impl_->handle.get()) != data.size()) {
         throw std::system_error(std::ferror(impl_->handle.get()), std::generic_category(), "calling fwrite");

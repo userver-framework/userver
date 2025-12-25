@@ -25,7 +25,8 @@ const std::string kTimeZone = "UTC";
 DumpLocator::DumpLocator(Config static_config)
     : config_(std::move(static_config)),
       filename_regex_(GenerateFilenameRegex(FileFormatType::kNormal)),
-      tmp_filename_regex_(GenerateFilenameRegex(FileFormatType::kTmp)) {}
+      tmp_filename_regex_(GenerateFilenameRegex(FileFormatType::kTmp))
+{}
 
 DumpFileStats DumpLocator::RegisterNewDump(TimePoint update_time) {
     std::string dump_path = GenerateDumpPath(update_time);
@@ -66,9 +67,10 @@ std::optional<DumpFileStats> DumpLocator::GetLatestDump() const {
 
 bool DumpLocator::BumpDumpTime(TimePoint old_update_time, TimePoint new_update_time) {
     if (new_update_time < old_update_time) {
-        LOG_WARNING() << config_.name << ": new_update_time < old_update_time, new="
-                      << utils::datetime::Timestring(new_update_time, kTimeZone, kFilenameDateFormat)
-                      << ", old=" << utils::datetime::Timestring(old_update_time, kTimeZone, kFilenameDateFormat);
+        LOG_WARNING()
+            << config_.name << ": new_update_time < old_update_time, new="
+            << utils::datetime::Timestring(new_update_time, kTimeZone, kFilenameDateFormat)
+            << ", old=" << utils::datetime::Timestring(old_update_time, kTimeZone, kFilenameDateFormat);
     }
 
     const std::string old_name = GenerateDumpPath({old_update_time});
@@ -76,16 +78,18 @@ bool DumpLocator::BumpDumpTime(TimePoint old_update_time, TimePoint new_update_t
 
     try {
         if (!boost::filesystem::is_regular_file(old_name)) {
-            LOG_WARNING() << config_.name << ": the previous dump \"" << old_name
-                          << "\" has suddenly disappeared. A new dump will be created.";
+            LOG_WARNING()
+                << config_.name << ": the previous dump \"" << old_name
+                << "\" has suddenly disappeared. A new dump will be created.";
             return false;
         }
         boost::filesystem::rename(old_name, new_name);
         LOG_INFO() << config_.name << ": renamed dump \"" << old_name << "\" to \"" << new_name << "\"";
         return true;
     } catch (const boost::filesystem::filesystem_error& ex) {
-        LOG_ERROR() << config_.name << ": error while trying to rename dump \"" << old_name << " to \"" << new_name
-                    << "\". Reason: " << ex;
+        LOG_ERROR()
+            << config_.name << ": error while trying to rename dump \"" << old_name << " to \"" << new_name
+            << "\". Reason: " << ex;
         return false;
     }
 }
@@ -115,8 +119,9 @@ void DumpLocator::Cleanup() {
 
             auto dump = ParseDumpName(file.path().string());
             if (!dump) {
-                LOG_WARNING() << config_.name << ": unrelated file in the dump directory, path=\""
-                              << file.path().string() << "\"";
+                LOG_WARNING()
+                    << config_.name << ": unrelated file in the dump directory, path=\"" << file.path().string()
+                    << "\"";
                 continue;
             }
 
@@ -150,7 +155,8 @@ std::optional<DumpFileStats> DumpLocator::ParseDumpName(std::string full_path) c
     utils::match_results regex;
     if (utils::regex_match(filename, regex, filename_regex_)) {
         UASSERT_MSG(
-            regex.size() == 3, fmt::format("Incorrect sub-match count: {} for filename {}", regex.size(), filename)
+            regex.size() == 3,
+            fmt::format("Incorrect sub-match count: {} for filename {}", regex.size(), filename)
         );
 
         try {
@@ -186,8 +192,9 @@ std::optional<DumpFileStats> DumpLocator::GetLatestDumpImpl() const {
             auto curr_dump = ParseDumpName(file.path().string());
             if (!curr_dump) {
                 if (utils::regex_match(file.path().filename().string(), tmp_filename_regex_)) {
-                    LOG_DEBUG() << "A leftover tmp file found: \"" << file.path().string()
-                                << "\". It will be removed on next Cleanup";
+                    LOG_DEBUG()
+                        << "A leftover tmp file found: \"" << file.path().string()
+                        << "\". It will be removed on next Cleanup";
                 } else {
                     LOG_WARNING() << "Unrelated file in the dump directory: \"" << file.path().string() << "\"";
                 }
@@ -195,17 +202,18 @@ std::optional<DumpFileStats> DumpLocator::GetLatestDumpImpl() const {
             }
 
             if (curr_dump->format_version != config_.dump_format_version) {
-                LOG_DEBUG() << "Ignoring dump \"" << curr_dump->full_path << "\", because its format version ("
-                            << curr_dump->format_version << ") != current version (" << config_.dump_format_version
-                            << ")";
+                LOG_DEBUG()
+                    << "Ignoring dump \"" << curr_dump->full_path << "\", because its format version ("
+                    << curr_dump->format_version << ") != current version (" << config_.dump_format_version << ")";
                 continue;
             }
 
             if (curr_dump->update_time < min_update_time && config_.max_dump_age) {
-                LOG_DEBUG() << "Ignoring dump \"" << curr_dump->full_path
-                            << "\", because its age is greater than the maximum "
-                               "allowed dump age ("
-                            << config_.max_dump_age->count() << "ms)";
+                LOG_DEBUG()
+                    << "Ignoring dump \"" << curr_dump->full_path
+                    << "\", because its age is greater than the maximum "
+                       "allowed dump age ("
+                    << config_.max_dump_age->count() << "ms)";
                 continue;
             }
 

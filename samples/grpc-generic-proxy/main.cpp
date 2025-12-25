@@ -3,7 +3,7 @@
 #include <userver/utest/using_namespace_userver.hpp>
 
 #include <userver/clients/dns/component.hpp>
-#include <userver/clients/http/component.hpp>
+#include <userver/clients/http/component_list.hpp>
 #include <userver/components/minimal_server_component_list.hpp>
 #include <userver/congestion_control/component.hpp>
 #include <userver/server/component.hpp>
@@ -29,8 +29,7 @@ int main(int argc, char* argv[]) {
             .Append<congestion_control::Component>()
             .Append<components::TestsuiteSupport>()
             // HTTP client and server are (sadly) needed for testsuite support
-            .Append<components::HttpClientCore>()
-            .Append<components::HttpClient>()
+            .AppendComponentList(clients::http::ComponentList())
             .Append<clients::dns::Component>()
             .Append<server::handlers::TestsControl>()
             // gRPC client setup

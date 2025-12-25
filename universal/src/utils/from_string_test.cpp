@@ -31,18 +31,27 @@ std::string ToString(T value) {
 }
 
 template <typename T>
+std::string GetDiagnosticString(std::string_view input) {
+    return fmt::format("type = {}, input = {}", compiler::GetTypeName<T>(), input);
+}
+
+template <typename T>
 auto TestInvalid(const std::string& input) {
-    ASSERT_THROW(utils::FromString<T>(input), std::runtime_error)
-        << "type = " << compiler::GetTypeName<T>() << ", input = \"" << input << "\"";
+    ASSERT_FALSE(utils::FromStringNoThrow<T>(input)) << GetDiagnosticString<T>(input);
+    ASSERT_THROW(utils::FromString<T>(input), utils::FromStringException) << GetDiagnosticString<T>(input);
 }
 
 template <typename StringType, typename T>
 auto CheckConverts(StringType input, T expected_result) {
     T actual_result{};
-    ASSERT_NO_THROW(actual_result = utils::FromString<T>(input))
-        << "type = " << compiler::GetTypeName<T>() << ", input = \"" << input << "\"";
-    ASSERT_EQ(actual_result, expected_result)
-        << "type = " << compiler::GetTypeName<T>() << ", input = \"" << input << "\"";
+
+    ASSERT_NO_THROW(actual_result = utils::FromStringNoThrow<T>(input).value()) << GetDiagnosticString<T>(input);
+    ASSERT_EQ(actual_result, expected_result) << GetDiagnosticString<T>(input);
+
+    actual_result = T{};
+
+    ASSERT_NO_THROW(actual_result = utils::FromString<T>(input)) << GetDiagnosticString<T>(input);
+    ASSERT_EQ(actual_result, expected_result) << GetDiagnosticString<T>(input);
 }
 
 template <typename T>
@@ -64,9 +73,8 @@ auto DistributionForTesting() {
     } else {
         // 8-bit types are not allowed in uniform_int_distribution, so increase the
         // T size.
-        return std::uniform_int_distribution<std::common_type_t<T, unsigned short>>(
-            std::numeric_limits<T>::min(), std::numeric_limits<T>::max()
-        );
+        return std::uniform_int_distribution<
+            std::common_type_t<T, unsigned short>>(std::numeric_limits<T>::min(), std::numeric_limits<T>::max());
     }
 }
 
@@ -75,8 +83,18 @@ auto DistributionForTesting() {
 template <typename T>
 class FromStringTest : public ::testing::Test {};
 
-using NumericTypes = ::testing::
-    Types<int8_t, uint8_t, int16_t, uint16_t, int32_t, uint32_t, int64_t, uint64_t, float, double, long double>;
+using NumericTypes = ::testing::Types<
+    int8_t,
+    uint8_t,
+    int16_t,
+    uint16_t,
+    int32_t,
+    uint32_t,
+    int64_t,
+    uint64_t,
+    float,
+    double,
+    long double>;
 TYPED_TEST_SUITE(FromStringTest, NumericTypes);
 
 TYPED_TEST(FromStringTest, Sign) {
@@ -227,7 +245,7 @@ TYPED_TEST(FromStringTest, ExceptionDetails) {
 
     try {
         utils::FromString<T>(".blah");
-    } catch (const std::runtime_error& e) {
+    } catch (const utils::FromStringException& e) {
         what = e.what();
     } catch (const std::exception& e) {
         // swallow

@@ -82,9 +82,8 @@ function(_userver_setup_environment_impl)
         PARENT_SCOPE
     )
 
-    if (NOT DEFINED CMAKE_CXX_SCAN_FOR_MODULES)
-        # For now, we don't use C++ modules, so we can save ourselves the overhead
-        # of scanning every source file
+    if(NOT DEFINED CMAKE_CXX_SCAN_FOR_MODULES)
+        # For now, we don't use C++ modules, so we can save ourselves the overhead of scanning every source file
         set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
     endif()
 

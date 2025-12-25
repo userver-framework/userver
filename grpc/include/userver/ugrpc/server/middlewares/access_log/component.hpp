@@ -25,12 +25,16 @@ inline const utils::AnyStorageDataTag<ugrpc::server::StorageContext, logging::Lo
 ///
 /// This middleware is disabled and unregistered by default.
 ///
-/// ## Static options:
-/// The component name for static config is `"grpc-server-access-log"`.
+/// ## Static options of ugrpc::server::middlewares::access_log::Component :
+/// @include{doc} scripts/docs/en/components_schema/grpc/src/ugrpc/server/middlewares/access_log/component.md
 ///
-/// Name | Description | Default value
-/// ---- | ----------- | -------------
-/// `access-tskv-logger` | logger name for `access-tskv.log`, must have `format: raw` | -
+/// Options inherited from @ref middlewares::MiddlewareFactoryComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/middlewares/factory_component_base.md
+///
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
+///
+/// The component name for static config is `"grpc-server-access-log"`.
 ///
 /// ## Static configuration example:
 ///
@@ -64,7 +68,7 @@ template <>
 inline constexpr bool components::kHasValidate<ugrpc::server::middlewares::access_log::Component> = true;
 
 template <>
-inline constexpr auto components::kConfigFileMode<ugrpc::server::middlewares::access_log::Component> =
-    ConfigFileMode::kNotRequired;
+inline constexpr auto
+    components::kConfigFileMode<ugrpc::server::middlewares::access_log::Component> = ConfigFileMode::kNotRequired;
 
 USERVER_NAMESPACE_END

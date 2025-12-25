@@ -20,6 +20,10 @@
 #include <dynamic_config/variables/HTTP_CLIENT_CONNECTION_POOL_SIZE.hpp>
 #include <dynamic_config/variables/HTTP_CLIENT_CONNECT_THROTTLE.hpp>
 
+#ifndef ARCADIA_ROOT
+#include "generated/src/clients/http/component_core.yaml.hpp"  // Y_IGNORE
+#endif
+
 USERVER_NAMESPACE_BEGIN
 
 namespace components {
@@ -28,15 +32,17 @@ namespace {
 
 constexpr size_t kDestinationMetricsAutoMaxSizeDefault = 100;
 
-clients::http::ClientSettings
-GetClientSettings(const ComponentConfig& component_config, const ComponentContext& context) {
+clients::http::ClientSettings GetClientSettings(
+    const ComponentConfig& component_config,
+    const ComponentContext& context
+) {
     clients::http::ClientSettings settings;
     settings = component_config.As<clients::http::ClientSettings>();
     auto& tracing_locator = context.FindComponent<tracing::DefaultTracingManagerLocator>();
     settings.tracing_manager = &tracing_locator.GetTracingManager();
-    settings.cancellation_policy = component_config["cancellation-policy"].As<clients::http::CancellationPolicy>(
-        clients::http::CancellationPolicy::kCancel
-    );
+    settings.cancellation_policy =
+        component_config["cancellation-policy"]
+            .As<clients::http::CancellationPolicy>(clients::http::CancellationPolicy::kCancel);
     return settings;
 }
 
@@ -59,12 +65,13 @@ HttpClientCore::HttpClientCore(const ComponentConfig& component_config, const Co
           utils::impl::InternalTag{},
           GetClientSettings(component_config, context),
           GetFsTaskProcessor(component_config, context)
-      )) {
+      ))
+{
     ValidateCurlVersion();
 
-    http_client_->SetDestinationMetricsAutoMaxSize(
-        component_config["destination-metrics-auto-max-size"].As<size_t>(kDestinationMetricsAutoMaxSizeDefault)
-    );
+    http_client_
+        ->SetDestinationMetricsAutoMaxSize(component_config["destination-metrics-auto-max-size"]
+                                               .As<size_t>(kDestinationMetricsAutoMaxSizeDefault));
 
     http_client_->SetDnsResolver(clients::dns::GetResolverPtr(component_config, context));
 
@@ -86,16 +93,17 @@ HttpClientCore::HttpClientCore(const ComponentConfig& component_config, const Co
         http_client_->SetTestsuiteConfig({prefixes, timeout});
 
         auto& testsuite = context.FindComponent<components::TestsuiteSupport>();
-        testsuite.GetHttpAllowedUrlsExtra().RegisterHttpClient(http_client_);
+        testsuite.GetHttpAllowedUrlsExtra().RegisterHttpClient(*http_client_);
     }
 
     clients::http::impl::Config bootstrap_config;
     http_client_->SetConfig(bootstrap_config);
 
     auto& config_component = context.FindComponent<components::DynamicConfig>();
-    subscriber_scope_ = components::DynamicConfig::NoblockSubscriber{config_component}.GetEventSource().AddListener(
-        this, kName, &HttpClientCore::OnConfigUpdate
-    );
+    subscriber_scope_ =
+        components::DynamicConfig::NoblockSubscriber{config_component}
+            .GetEventSource()
+            .AddListener(this, kName, &HttpClientCore::OnConfigUpdate);
 
     const auto thread_name_prefix = component_config["thread-name-prefix"].As<std::string>("");
     auto stats_name = "httpclient" + (thread_name_prefix.empty() ? "" : ("-" + thread_name_prefix));
@@ -129,70 +137,7 @@ void HttpClientCore::WriteStatistics(utils::statistics::Writer& writer) {
 }
 
 yaml_config::Schema HttpClientCore::GetStaticConfigSchema() {
-    return yaml_config::MergeSchemas<ComponentBase>(R"(
-type: object
-description: Component that manages clients::http::ClientCore.
-additionalProperties: false
-properties:
-    pool-statistics-disable:
-        type: boolean
-        description: set to true to disable statistics for connection pool
-        defaultDescription: false
-    thread-name-prefix:
-        type: string
-        description: set OS thread name to this value
-        defaultDescription: ''
-    threads:
-        type: integer
-        description: number of threads to process low level HTTP related IO system calls
-        defaultDescription: 8
-    fs-task-processor:
-        type: string
-        description: task processor to run blocking HTTP related calls, like DNS resolving or hosts reading
-        defaultDescription: engine::current_task::GetBlockingTaskProcessor()
-    destination-metrics-auto-max-size:
-        type: integer
-        description: set max number of automatically created destination metrics
-        defaultDescription: 100
-    user-agent:
-        type: string
-        description: User-Agent HTTP header to show on all requests, result of utils::GetUserverIdentifier() if empty
-        defaultDescription: empty
-    testsuite-enabled:
-        type: boolean
-        description: enable testsuite testing support
-        defaultDescription: false
-    testsuite-timeout:
-        type: string
-        description: if set, force the request timeout regardless of the value passed in code
-    testsuite-allowed-url-prefixes:
-        type: array
-        description: if set, checks that all URLs start with any of the passed prefixes, asserts if not. Set for testing purposes only.
-        items:
-            type: string
-            description: URL prefix
-    dns_resolver:
-        type: string
-        description: server hostname resolver type (getaddrinfo or async)
-        defaultDescription: 'async'
-        enum:
-          - getaddrinfo
-          - async
-    set-deadline-propagation-header:
-        type: boolean
-        description: |
-            Whether to set http::common::kXYaTaxiClientTimeoutMs request header
-            using the original timeout and the value of task-inherited deadline.
-            Note: timeout is always updated from the task-inherited deadline
-            when present.
-        defaultDescription: true
-    cancellation-policy:
-        type: string
-        description: Cancellation policy for new requests
-        enum:
-          - cancel
-          - ignore
-)");
+    return yaml_config::MergeSchemasFromResource<ComponentBase>("src/clients/http/component_core.yaml");
 }
 
 }  // namespace components

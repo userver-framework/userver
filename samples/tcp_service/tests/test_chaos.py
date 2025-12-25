@@ -4,7 +4,7 @@ from pytest_userver import chaos
 _ALL_DATA = 512
 
 
-@pytest.fixture(name='gate', scope='function')  # noqa: PT003
+@pytest.fixture(name='gate')
 async def _gate(tcp_service_port):
     gate_config = chaos.GateRoute(
         name='tcp proxy',

@@ -47,7 +47,9 @@ USERVER_NAMESPACE_END
     template <typename OtherDeps>                                                                      \
     static Self MakeFromSupersetImpl(OtherDeps&& other, USERVER_NAMESPACE::utils::impl::InternalTag) { \
         return {BOOST_PP_SEQ_FOR_EACH(                                                                 \
-            USERVER_IMPL_STRUCT_MAP, BOOST_PP_EMPTY(), USERVER_IMPL_VARIADIC_TO_SEQ(__VA_ARGS__)       \
+            USERVER_IMPL_STRUCT_MAP,                                                                   \
+            BOOST_PP_EMPTY(),                                                                          \
+            USERVER_IMPL_VARIADIC_TO_SEQ(__VA_ARGS__)                                                  \
         )};                                                                                            \
     }
 

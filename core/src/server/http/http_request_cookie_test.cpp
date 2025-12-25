@@ -24,7 +24,9 @@ class HttpRequestCookies : public ::testing::TestWithParam<CookiesData> {};
 
 std::string PrintCookiesDataTestName(const ::testing::TestParamInfo<CookiesData>& data) {
     std::string res = data.param.name;
-    if (res.empty()) res = "_empty_";
+    if (res.empty()) {
+        res = "_empty_";
+    }
     return res;
 }
 
@@ -45,8 +47,8 @@ INSTANTIATE_UTEST_SUITE_P(
 UTEST_P(HttpRequestCookies, Test) {
     const auto& param = GetParam();
     bool parsed = false;
-    auto parser =
-        server::CreateTestParser([&param, &parsed](std::shared_ptr<server::http::HttpRequest>&& http_request) {
+    auto
+        parser = server::CreateTestParser([&param, &parsed](std::shared_ptr<server::http::HttpRequest>&& http_request) {
             parsed = true;
             EXPECT_EQ(http_request->CookieCount(), param.expected.size());
             for (const auto& [name, value] : param.expected) {

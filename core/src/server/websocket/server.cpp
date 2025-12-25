@@ -16,11 +16,16 @@ USERVER_NAMESPACE_BEGIN
 namespace server::websocket {
 
 namespace {
-inline void
-SendExactly(engine::io::WritableBase& writable, utils::span<const char> data1, utils::span<const std::byte> data2) {
+inline void SendExactly(
+    engine::io::WritableBase& writable,
+    utils::span<const char> data1,
+    utils::span<const std::byte> data2
+) {
     if (writable.WriteAll({{data1.data(), data1.size()}, {data2.data(), data2.size()}}, {}) !=
         data1.size() + data2.size())
+    {
         throw(engine::io::IoException() << "Socket closed during transfer");
+    }
 }
 
 Message CloseMessage(CloseStatus status) { return {{}, status, false}; }
@@ -69,7 +74,10 @@ public:
         const engine::io::Sockaddr& remote_addr,
         const Config& server_config
     )
-        : io_(std::move(io)), remote_addr_(remote_addr), config_(server_config) {}
+        : io_(std::move(io)),
+          remote_addr_(remote_addr),
+          config_(server_config)
+    {}
 
     ~WebSocketConnectionImpl() override { LOG_TRACE() << "Websocket connection closed"; }
 
@@ -103,7 +111,10 @@ public:
                 data_to_send = data_to_send.last(data_to_send.size() - config_.fragment_size);
             }
             const auto data_frame_header = impl::frames::DataFrameHeader(
-                data_to_send, message.opcode == impl::WSOpcodes::kText, continuation, impl::frames::Final::kYes
+                data_to_send,
+                message.opcode == impl::WSOpcodes::kText,
+                continuation,
+                impl::frames::Final::kYes
             );
             SendExactly(*io_, data_frame_header, data_to_send);
         }
@@ -113,7 +124,8 @@ public:
         MessageExtended mext{
             MakeBinarySpan(message.data),
             message.is_text ? impl::WSOpcodes::kText : impl::WSOpcodes::kBinary,
-            message.close_status};
+            message.close_status
+        };
         SendExtended(mext);
     }
 
@@ -147,7 +159,9 @@ public:
             if (do_not_wait_for_message_header) {
                 const auto opt_status_raw =
                     ReadWSFrameDontWaitForHeader(frame_, *io_, config_.max_remote_payload, payload_len);
-                if (!opt_status_raw) return false;
+                if (!opt_status_raw) {
+                    return false;
+                }
                 status_raw = *opt_status_raw;
             } else {
                 // ReadWSFrame() returns kGoingAway in case of task cancellation
@@ -189,7 +203,9 @@ public:
                 ping_pending_count_ = 0;
                 continue;
             }
-            if (frame_.waiting_continuation) continue;
+            if (frame_.waiting_continuation) {
+                continue;
+            }
 
             msg.is_text = frame_.is_text;
             stats_.msg_recv++;
@@ -231,8 +247,11 @@ WebSocketConnection::WebSocketConnection() = default;
 
 WebSocketConnection::~WebSocketConnection() = default;
 
-std::shared_ptr<WebSocketConnection>
-MakeWebSocket(std::unique_ptr<engine::io::RwBase>&& socket, engine::io::Sockaddr&& peer_name, const Config& config) {
+std::shared_ptr<WebSocketConnection> MakeWebSocket(
+    std::unique_ptr<engine::io::RwBase>&& socket,
+    engine::io::Sockaddr&& peer_name,
+    const Config& config
+) {
     return std::make_shared<WebSocketConnectionImpl>(std::move(socket), std::move(peer_name), config);
 }
 

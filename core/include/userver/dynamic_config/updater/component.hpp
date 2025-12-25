@@ -25,15 +25,12 @@ USERVER_NAMESPACE_BEGIN
 
 namespace components {
 
-// clang-format off
-
 /// @ingroup userver_components
 ///
 /// @brief Component that does a periodic update of runtime configs.
 ///
 /// Note that the service with dynamic config update component and without
-/// configs cache requires successful update to start. See
-/// @ref dynamic_config_fallback for details and explanation.
+/// configs cache requires successful update to start. See @ref dynamic_config_fallback for details and explanation.
 ///
 /// ## Optional update event deduplication
 ///
@@ -56,30 +53,27 @@ namespace components {
 /// will be sent to every dynamic config subscriber if *any* part of the config
 /// has updated, not if the interesting part has updated.
 ///
-/// ## Static options:
-/// Name | Description | Default value
-/// ---- | ----------- | -------------
-/// updates-sink | name of the component derived from components::DynamicConfigUpdatesSinkBase to be used for storing received updates | dynamic-config
-/// store-enabled | store the retrieved values into the updates sink determined by the `updates-sink` option | true
-/// load-only-my-values | request from the client only the values used by this service | true
-/// deduplicate-update-types | update types for best-effort update event deduplication, see above | `full-and-incremental`
+/// ## Static options @ref components::DynamicConfigClientUpdater :
+/// @include{doc} scripts/docs/en/components_schema/core/src/dynamic_config/updater/component.md
+///
+/// Options inherited from @ref components::CachingComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/cache/caching_component_base.md
+///
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
 ///
 /// See also the options for components::CachingComponentBase.
 ///
 /// ## Static configuration example:
 ///
 /// @snippet components/common_component_list_test.cpp  Sample dynamic config client updater component config
-
-// clang-format on
 class DynamicConfigClientUpdater final : public CachingComponentBase<dynamic_config::DocsMap> {
 public:
     /// @ingroup userver_component_names
-    /// @brief The default name of components::DynamicConfigClientUpdater
+    /// @brief The default name of @ref components::DynamicConfigClientUpdater
     static constexpr std::string_view kName = "dynamic-config-client-updater";
 
     DynamicConfigClientUpdater(const ComponentConfig&, const ComponentContext&);
-
-    ~DynamicConfigClientUpdater() override;
 
     // After calling this method, `Get()` will return a dynamic_config containing
     // the specified keys while the token that this method returned is alive.

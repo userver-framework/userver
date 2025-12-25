@@ -18,7 +18,9 @@ public:
     using VanillaResponse = proto_structs::traits::CompatibleMessageType<Response>;
     using VanillaFuture = ugrpc::client::ResponseFuture<VanillaResponse>;
 
-    explicit ResponseFuture(VanillaFuture&& future) : future_{std::move(future)} {}
+    explicit ResponseFuture(VanillaFuture&& future)
+        : future_{std::move(future)}
+    {}
 
     /// @brief Checks if the asynchronous call has completed.
     ///        Note, that once user gets result, IsReady should not be called.

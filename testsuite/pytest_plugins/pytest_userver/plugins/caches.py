@@ -41,7 +41,7 @@ class UserverCachePlugin:
 
 
 class InvalidationState:
-    def __init__(self):
+    def __init__(self) -> None:
         # None means that we should update all caches.
         # We invalidate all caches at the start of each test.
         self._invalidated_caches: set[str] | None = None

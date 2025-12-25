@@ -28,7 +28,9 @@ template <template <typename> typename TaskType, typename Function, typename... 
     constexpr auto kWaitMode = TaskType<ResultType>::kWaitMode;
 
     return TaskType<ResultType>{MakeTask(
-        {task_processor, importance, kWaitMode, deadline}, std::forward<Function>(f), std::forward<Args>(args)...
+        {task_processor, importance, kWaitMode, deadline},
+        std::forward<Function>(f),
+        std::forward<Args>(args)...
     )};
 }
 
@@ -58,7 +60,11 @@ template <template <typename> typename TaskType, typename Function, typename... 
 template <typename Function, typename... Args>
 [[nodiscard]] auto AsyncNoSpan(TaskProcessor& task_processor, Function&& f, Args&&... args) {
     return impl::MakeTaskWithResult<TaskWithResult>(
-        task_processor, Task::Importance::kNormal, {}, std::forward<Function>(f), std::forward<Args>(args)...
+        task_processor,
+        Task::Importance::kNormal,
+        {},
+        std::forward<Function>(f),
+        std::forward<Args>(args)...
     );
 }
 
@@ -66,7 +72,11 @@ template <typename Function, typename... Args>
 template <typename Function, typename... Args>
 [[nodiscard]] auto SharedAsyncNoSpan(TaskProcessor& task_processor, Function&& f, Args&&... args) {
     return impl::MakeTaskWithResult<SharedTaskWithResult>(
-        task_processor, Task::Importance::kNormal, {}, std::forward<Function>(f), std::forward<Args>(args)...
+        task_processor,
+        Task::Importance::kNormal,
+        {},
+        std::forward<Function>(f),
+        std::forward<Args>(args)...
     );
 }
 
@@ -74,7 +84,11 @@ template <typename Function, typename... Args>
 template <typename Function, typename... Args>
 [[nodiscard]] auto AsyncNoSpan(TaskProcessor& task_processor, Deadline deadline, Function&& f, Args&&... args) {
     return impl::MakeTaskWithResult<TaskWithResult>(
-        task_processor, Task::Importance::kNormal, deadline, std::forward<Function>(f), std::forward<Args>(args)...
+        task_processor,
+        Task::Importance::kNormal,
+        deadline,
+        std::forward<Function>(f),
+        std::forward<Args>(args)...
     );
 }
 
@@ -82,7 +96,11 @@ template <typename Function, typename... Args>
 template <typename Function, typename... Args>
 [[nodiscard]] auto SharedAsyncNoSpan(TaskProcessor& task_processor, Deadline deadline, Function&& f, Args&&... args) {
     return impl::MakeTaskWithResult<SharedTaskWithResult>(
-        task_processor, Task::Importance::kNormal, deadline, std::forward<Function>(f), std::forward<Args>(args)...
+        task_processor,
+        Task::Importance::kNormal,
+        deadline,
+        std::forward<Function>(f),
+        std::forward<Args>(args)...
     );
 }
 
@@ -102,7 +120,10 @@ template <typename Function, typename... Args>
 template <typename Function, typename... Args>
 [[nodiscard]] auto AsyncNoSpan(Deadline deadline, Function&& f, Args&&... args) {
     return AsyncNoSpan(
-        current_task::GetTaskProcessor(), deadline, std::forward<Function>(f), std::forward<Args>(args)...
+        current_task::GetTaskProcessor(),
+        deadline,
+        std::forward<Function>(f),
+        std::forward<Args>(args)...
     );
 }
 
@@ -110,7 +131,10 @@ template <typename Function, typename... Args>
 template <typename Function, typename... Args>
 [[nodiscard]] auto SharedAsyncNoSpan(Deadline deadline, Function&& f, Args&&... args) {
     return SharedAsyncNoSpan(
-        current_task::GetTaskProcessor(), deadline, std::forward<Function>(f), std::forward<Args>(args)...
+        current_task::GetTaskProcessor(),
+        deadline,
+        std::forward<Function>(f),
+        std::forward<Args>(args)...
     );
 }
 
@@ -119,7 +143,11 @@ template <typename Function, typename... Args>
 template <typename Function, typename... Args>
 [[nodiscard]] auto CriticalAsyncNoSpan(TaskProcessor& task_processor, Function&& f, Args&&... args) {
     return impl::MakeTaskWithResult<TaskWithResult>(
-        task_processor, Task::Importance::kCritical, {}, std::forward<Function>(f), std::forward<Args>(args)...
+        task_processor,
+        Task::Importance::kCritical,
+        {},
+        std::forward<Function>(f),
+        std::forward<Args>(args)...
     );
 }
 
@@ -128,7 +156,11 @@ template <typename Function, typename... Args>
 template <typename Function, typename... Args>
 [[nodiscard]] auto SharedCriticalAsyncNoSpan(TaskProcessor& task_processor, Function&& f, Args&&... args) {
     return impl::MakeTaskWithResult<SharedTaskWithResult>(
-        task_processor, Task::Importance::kCritical, {}, std::forward<Function>(f), std::forward<Args>(args)...
+        task_processor,
+        Task::Importance::kCritical,
+        {},
+        std::forward<Function>(f),
+        std::forward<Args>(args)...
     );
 }
 
@@ -137,7 +169,9 @@ template <typename Function, typename... Args>
 template <typename Function, typename... Args>
 [[nodiscard]] auto CriticalAsyncNoSpan(Function&& f, Args&&... args) {
     return CriticalAsyncNoSpan(
-        current_task::GetTaskProcessor(), std::forward<Function>(f), std::forward<Args>(args)...
+        current_task::GetTaskProcessor(),
+        std::forward<Function>(f),
+        std::forward<Args>(args)...
     );
 }
 
@@ -146,7 +180,9 @@ template <typename Function, typename... Args>
 template <typename Function, typename... Args>
 [[nodiscard]] auto SharedCriticalAsyncNoSpan(Function&& f, Args&&... args) {
     return SharedCriticalAsyncNoSpan(
-        current_task::GetTaskProcessor(), std::forward<Function>(f), std::forward<Args>(args)...
+        current_task::GetTaskProcessor(),
+        std::forward<Function>(f),
+        std::forward<Args>(args)...
     );
 }
 

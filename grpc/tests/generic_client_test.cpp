@@ -68,7 +68,10 @@ UTEST_F(GenericClientTest, MetricsRealUnsafe) {
     generic_options.metrics_call_name = std::nullopt;
 
     auto future = client.AsyncUnaryCall(
-        kSayHelloCallName, ugrpc::SerializeToByteBuffer(request), ugrpc::client::CallOptions{}, generic_options
+        kSayHelloCallName,
+        ugrpc::SerializeToByteBuffer(request),
+        ugrpc::client::CallOptions{},
+        generic_options
     );
     EXPECT_EQ(future.GetContext().GetCallName(), kSayHelloCallName);
     future.Get();
@@ -104,9 +107,8 @@ public:
               {},
               {},
               {
-                  std::make_shared<ugrpc::client::middlewares::log::Middleware>(
-                      ugrpc::client::middlewares::log::Settings{}
-                  ),
+                  std::make_shared<
+                      ugrpc::client::middlewares::log::Middleware>(ugrpc::client::middlewares::log::Settings{}),
               }
           ) {}
 };

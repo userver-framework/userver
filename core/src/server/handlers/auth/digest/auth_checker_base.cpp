@@ -39,7 +39,8 @@ namespace {
 class ServerDigestSecretKey {
 public:
     ServerDigestSecretKey(const formats::json::Value& doc)
-        : secret_key_(doc["http_server_digest_auth_secret"].As<std::optional<ServerDigestAuthSecret>>()) {}
+        : secret_key_(doc["http_server_digest_auth_secret"].As<std::optional<ServerDigestAuthSecret>>())
+    {}
 
     const ServerDigestAuthSecret& GetSecretKey() const {
         if (!secret_key_.has_value()) {
@@ -58,11 +59,16 @@ private:
 }  // namespace
 
 UserData::UserData(HA1 ha1, std::string nonce, TimePoint timestamp, std::int64_t nonce_count)
-    : ha1(std::move(ha1)), nonce(std::move(nonce)), timestamp(timestamp), nonce_count(nonce_count) {}
+    : ha1(std::move(ha1)),
+      nonce(std::move(nonce)),
+      timestamp(timestamp),
+      nonce_count(nonce_count)
+{}
 
 Hasher::Hasher(std::string_view algorithm, const SecdistConfig& secdist_config)
     : hash_algorithm_{kHashAlgToType.TryFindICase(algorithm).value_or(HashAlgTypes::kUnknown)},
-      secdist_config_(secdist_config) {
+      secdist_config_(secdist_config)
+{
     if (hash_algorithm_ == HashAlgTypes::kUnknown) {
         throw std::runtime_error("Unknown hash algorithm");
     }
@@ -125,9 +131,8 @@ AuthCheckerBase::AuthCheckerBase(
                     : USERVER_NAMESPACE::http::headers::kAuthorization
       ),
       authenticate_info_header_(is_proxy_ ? kProxyAuthenticationInfo : kAuthenticationInfo),
-      unauthorized_status_(
-          is_proxy_ ? http::HttpStatus::kProxyAuthenticationRequired : http::HttpStatus::kUnauthorized
-      ) {}
+      unauthorized_status_(is_proxy_ ? http::HttpStatus::kProxyAuthenticationRequired : http::HttpStatus::kUnauthorized)
+{}
 
 AuthCheckerBase::~AuthCheckerBase() = default;
 
@@ -202,15 +207,18 @@ AuthCheckResult AuthCheckerBase::CheckAuth(const http::HttpRequest& request, req
     return {};
 }
 
-AuthCheckerBase::ValidateResult
-AuthCheckerBase::ValidateUserData(const ContextFromClient& client_context, const UserData& user_data) const {
+AuthCheckerBase::ValidateResult AuthCheckerBase::ValidateUserData(
+    const ContextFromClient& client_context,
+    const UserData& user_data
+) const {
     const bool are_nonces_equal = crypto::algorithm::AreStringsEqualConstTime(user_data.nonce, client_context.nonce);
     if (!are_nonces_equal) {
         // "nonce" may be in temporary storage.
         auto nonce_creation_time = GetUnnamedNonceCreationTime(client_context.nonce);
         if (!nonce_creation_time.has_value()) {
-            LOG_WARNING() << "Nonces aren't equal and no equivalent nonce found in "
-                             "\"nonce pool\".";
+            LOG_WARNING()
+                << "Nonces aren't equal and no equivalent nonce found in "
+                   "\"nonce pool\".";
             return ValidateResult::kWrongUserData;
         }
 

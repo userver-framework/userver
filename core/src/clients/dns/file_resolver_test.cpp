@@ -41,15 +41,17 @@ using Expected = std::vector<std::string_view>;
     const Expected& expected
 ) {
     if (addrs.size() != expected.size()) {
-        return ::testing::AssertionFailure() << addrs_text << " returned wrong number of addresses: expected "
-                                             << expected.size() << ", got " << addrs.size();
+        return ::testing::AssertionFailure()
+               << addrs_text << " returned wrong number of addresses: expected " << expected.size() << ", got "
+               << addrs.size();
     }
 
     for (size_t i = 0; i < addrs.size(); ++i) {
         const auto addr_str = addrs[i].PrimaryAddressString();
         if (addr_str != expected[i]) {
-            return ::testing::AssertionFailure() << addrs_text << " has unexpected address at position " << i
-                                                 << ": expected " << expected[i] << ", got " << addr_str;
+            return ::testing::AssertionFailure()
+                   << addrs_text << " has unexpected address at position " << i << ": expected " << expected[i]
+                   << ", got " << addr_str;
         }
     }
     return ::testing::AssertionSuccess();
@@ -61,9 +63,8 @@ UTEST(FileResolver, Smoke) {
     auto hosts_file = fs::blocking::TempFile::Create();
     fs::blocking::RewriteFileContents(hosts_file.GetPath(), kTestHosts);
 
-    clients::dns::FileResolver resolver(
-        engine::current_task::GetTaskProcessor(), hosts_file.GetPath(), utest::kMaxTestWaitTime
-    );
+    clients::dns::FileResolver
+        resolver(engine::current_task::GetTaskProcessor(), hosts_file.GetPath(), utest::kMaxTestWaitTime);
 
     EXPECT_PRED_FORMAT2(CheckAddrs, resolver.Resolve("localhost"), (Expected{}));
     EXPECT_PRED_FORMAT2(CheckAddrs, resolver.Resolve("my-localhost"), (Expected{"127.0.0.1", "127.0.0.2"}));

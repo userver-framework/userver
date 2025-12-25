@@ -24,9 +24,15 @@ USERVER_NAMESPACE_BEGIN
 namespace {
 
 struct CheckedInt {
-    CheckedInt() : CheckedInt(42) {}
+    CheckedInt()
+        : CheckedInt(42)
+    {}
 
-    explicit CheckedInt(int x) : x(x) { UASSERT(x != 0); }
+    explicit CheckedInt(int x)
+        : x(x)
+    {
+        UASSERT(x != 0);
+    }
 
     ~CheckedInt() {
         CheckAlive();
@@ -39,8 +45,10 @@ struct CheckedInt {
     concurrent::impl::SinglyLinkedHook<CheckedInt> hook;
 };
 
-using CheckedIntPool = concurrent::impl::
-    StripedIntrusivePool<CheckedInt, concurrent::impl::MemberHook<&CheckedInt::hook>, offsetof(CheckedInt, hook)>;
+using CheckedIntPool = concurrent::impl::StripedIntrusivePool<
+    CheckedInt,
+    concurrent::impl::MemberHook<&CheckedInt::hook>,
+    offsetof(CheckedInt, hook)>;
 
 constexpr int kAttempts = 100;
 

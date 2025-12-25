@@ -8,7 +8,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace {
 struct Movable {
-    explicit Movable(int value) : value(value) {}
+    explicit Movable(int value)
+        : value(value)
+    {}
 
     Movable(const Movable& other) = delete;
     Movable& operator=(const Movable& other) noexcept = delete;
@@ -19,7 +21,9 @@ struct Movable {
 };
 
 struct NotMovable {
-    explicit NotMovable(int value) : value(value) {}
+    explicit NotMovable(int value)
+        : value(value)
+    {}
 
     NotMovable(const NotMovable& other) = delete;
     NotMovable& operator=(const NotMovable& other) noexcept = delete;
@@ -145,7 +149,8 @@ TEST(Lru, VisitAllConst) {
     const_cache.VisitAll([&sum_keys, &sum_values](auto&& key, auto&& value) mutable {
         static_assert(std::is_const_v<std::remove_reference_t<decltype(key)>>, "key must be const in VisitAll");
         static_assert(
-            std::is_const_v<std::remove_reference_t<decltype(value)>>, "value must be const in const VisitAll"
+            std::is_const_v<std::remove_reference_t<decltype(value)>>,
+            "value must be const in const VisitAll"
         );
         sum_keys += key;
         sum_values += value;
@@ -164,7 +169,8 @@ TEST(Lru, VisitAllNonConst) {
     cache.VisitAll([](auto&& key, auto&& value) {
         static_assert(std::is_const_v<std::remove_reference_t<decltype(key)>>, "key must be const in VisitAll");
         static_assert(
-            !std::is_const_v<std::remove_reference_t<decltype(value)>>, "value must be mutable in non-const VisitAll"
+            !std::is_const_v<std::remove_reference_t<decltype(value)>>,
+            "value must be mutable in non-const VisitAll"
         );
         value /= 2;
     });

@@ -13,14 +13,20 @@
 #include <components/manager_config.hpp>
 #include <engine/task/task_processor.hpp>
 
+#ifndef ARCADIA_ROOT
+#include "generated/src/engine/task_processors_load_monitor.yaml.hpp"  // Y_IGNORE
+#endif
+
 USERVER_NAMESPACE_BEGIN
 
 namespace engine {
 
 namespace {
 
-TaskProcessor*
-GetMonitorTaskProcessor(const components::ComponentConfig& config, const components::ComponentContext& context) {
+TaskProcessor* GetMonitorTaskProcessor(
+    const components::ComponentConfig& config,
+    const components::ComponentContext& context
+) {
     static constexpr std::string_view kOurTaskProcessorFieldName{"task-processor"};
     static constexpr std::string_view kMonitoringTaskProcessorFieldName{"task_processor"};
 
@@ -47,10 +53,11 @@ public:
     Impl(const components::ComponentConfig& config, const components::ComponentContext& context) {
         auto* monitor_task_processor = GetMonitorTaskProcessor(config, context);
         if (!monitor_task_processor) {
-            LOG_WARNING() << "TaskProcessorLoadMonitor is enabled, but neither "
-                             "'task-processor' is specified in config, nor "
-                             "server::handlers::ServerMonitor is enabled. The "
-                             "monitoring will be no-op.";
+            LOG_WARNING()
+                << "TaskProcessorLoadMonitor is enabled, but neither "
+                   "'task-processor' is specified in config, nor "
+                   "server::handlers::ServerMonitor is enabled. The "
+                   "monitoring will be no-op.";
             return;
         }
 
@@ -75,9 +82,10 @@ public:
         }
 
         auto& storage = context.FindComponent<components::StatisticsStorage>().GetStorage();
-        statistics_holder_ = storage.RegisterWriter(
-            "engine.task-processors-load-percent", [this](utils::statistics::Writer& writer) { ExtendWriter(writer); }
-        );
+        statistics_holder_ =
+            storage.RegisterWriter("engine.task-processors-load-percent", [this](utils::statistics::Writer& writer) {
+                ExtendWriter(writer);
+            });
     }
 
     ~Impl() {
@@ -128,22 +136,15 @@ TaskProcessorsLoadMonitor::TaskProcessorsLoadMonitor(
     const components::ComponentConfig& config,
     const components::ComponentContext& context
 )
-    : components::ComponentBase{config, context}, impl_{std::make_unique<Impl>(config, context)} {}
+    : components::ComponentBase{config, context},
+      impl_{std::make_unique<Impl>(config, context)}
+{}
 
 TaskProcessorsLoadMonitor::~TaskProcessorsLoadMonitor() = default;
 
 yaml_config::Schema TaskProcessorsLoadMonitor::GetStaticConfigSchema() {
-    return yaml_config::MergeSchemas<components::ComponentBase>(R"(
-type: object
-description: task-processors-load-monitor config
-additionalProperties: false
-properties:
-    task-processor:
-        type: string
-        description: name of the TaskProcessor to run monitoring on
-        defaultDescription: |
-          task_processor of ServerMonitor or none, if ServerMonitor is absent
-)");
+    return yaml_config::MergeSchemasFromResource<
+        components::ComponentBase>("src/engine/task_processors_load_monitor.yaml");
 }
 
 }  // namespace engine

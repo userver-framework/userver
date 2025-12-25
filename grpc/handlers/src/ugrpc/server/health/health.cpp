@@ -14,8 +14,9 @@ bool IsServing(const components::State& components_state) {
 
     const auto lifetime_stage = components_state.GetServiceLifetimeStage();
     if (lifetime_stage != components::ServiceLifetimeStage::kRunning) {
-        LOG_WARNING() << "Service is not ready for requests (stage=" << ToString(lifetime_stage)
-                      << "), returning NOT_SERVING from Health/Check";
+        LOG_WARNING()
+            << "Service is not ready for requests (stage=" << ToString(lifetime_stage)
+            << "), returning NOT_SERVING from Health/Check";
         return false;
     }
 
@@ -28,7 +29,9 @@ USERVER_NAMESPACE_END
 
 namespace grpc::health::v1 {
 
-HealthHandler::HealthHandler(const USERVER_NAMESPACE::components::ComponentContext& context) : components_(context) {}
+HealthHandler::HealthHandler(const USERVER_NAMESPACE::components::ComponentContext& context)
+    : components_(context)
+{}
 
 HealthHandler::CheckResult HealthHandler::Check([[maybe_unused]] CallContext& context, HealthCheckRequest&&) {
     HealthCheckResponse response;

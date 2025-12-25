@@ -17,8 +17,8 @@
 #include <userver/storages/secdist/component.hpp>
 #include <userver/storages/secdist/provider_component.hpp>
 
+#include <userver/clients/http/component_list.hpp>
 #include <userver/utils/daemon_run.hpp>
-#include "userver/clients/http/component.hpp"
 #include "userver/server/handlers/server_monitor.hpp"
 #include "userver/server/handlers/tests_control.hpp"
 #include "userver/storages/clickhouse/io/columns/datetime_column.hpp"
@@ -60,7 +60,8 @@ HandlerMetricsClickhouse::HandlerMetricsClickhouse(
     const components::ComponentContext& context
 )
     : server::handlers::HttpHandlerBase{config, context},
-      clickhouse_{context.FindComponent<components::ClickHouse>("clickhouse-database").GetCluster()} {}
+      clickhouse_{context.FindComponent<components::ClickHouse>("clickhouse-database").GetCluster()}
+{}
 
 std::string
 HandlerMetricsClickhouse::HandleRequestThrow(const server::http::HttpRequest& request, server::request::RequestContext&)
@@ -100,17 +101,17 @@ HandlerMetricsClickhouse::HandleRequestThrow(const server::http::HttpRequest& re
 }  // namespace clickhouse::metrics
 
 int main(int argc, char* argv[]) {
-    const auto components_list = components::MinimalServerComponentList()
-                                     .Append<server::handlers::ServerMonitor>()
-                                     .Append<clickhouse::metrics::HandlerMetricsClickhouse>()
-                                     .Append<components::ClickHouse>("clickhouse-database")
-                                     .Append<components::HttpClientCore>()
-                                     .Append<components::HttpClient>()
-                                     .Append<components::TestsuiteSupport>()
-                                     .Append<server::handlers::TestsControl>()
-                                     .Append<clients::dns::Component>()
-                                     .Append<components::Secdist>()
-                                     .Append<components::DefaultSecdistProvider>();
+    const auto components_list =
+        components::MinimalServerComponentList()
+            .Append<server::handlers::ServerMonitor>()
+            .Append<clickhouse::metrics::HandlerMetricsClickhouse>()
+            .Append<components::ClickHouse>("clickhouse-database")
+            .AppendComponentList(clients::http::ComponentList())
+            .Append<components::TestsuiteSupport>()
+            .Append<server::handlers::TestsControl>()
+            .Append<clients::dns::Component>()
+            .Append<components::Secdist>()
+            .Append<components::DefaultSecdistProvider>();
 
     return utils::DaemonMain(argc, argv, components_list);
 }

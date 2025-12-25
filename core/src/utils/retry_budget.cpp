@@ -15,9 +15,13 @@ namespace {
 constexpr std::int32_t kMillis = 1000;
 }
 
-RetryBudget::RetryBudget() : RetryBudget(RetryBudgetSettings()) {}
+RetryBudget::RetryBudget()
+    : RetryBudget(RetryBudgetSettings())
+{}
 
-RetryBudget::RetryBudget(const RetryBudgetSettings& settings) : token_count_(settings.max_tokens * kMillis) {
+RetryBudget::RetryBudget(const RetryBudgetSettings& settings)
+    : token_count_(settings.max_tokens * kMillis)
+{
     SetSettings(settings);
 }
 
@@ -31,9 +35,11 @@ void RetryBudget::AccountOk() noexcept {
 
     auto expected = token_count_.load(std::memory_order_relaxed);
     while (!token_count_.compare_exchange_weak(
-        expected, std::min(max_tokens, expected + token_ratio), std::memory_order_relaxed, std::memory_order_relaxed
-    ))
-        ;
+        expected,
+        std::min(max_tokens, expected + token_ratio),
+        std::memory_order_relaxed,
+        std::memory_order_relaxed
+    ));
 
     ++ok_rate_counter_;
 }
@@ -45,9 +51,11 @@ void RetryBudget::AccountFail() noexcept {
 
     auto expected = token_count_.load(std::memory_order_relaxed);
     while (!token_count_.compare_exchange_weak(
-        expected, std::max(0, expected - kMillis), std::memory_order_relaxed, std::memory_order_relaxed
-    ))
-        ;
+        expected,
+        std::max(0, expected - kMillis),
+        std::memory_order_relaxed,
+        std::memory_order_relaxed
+    ));
 
     ++fail_rate_counter_;
 }

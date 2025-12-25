@@ -33,7 +33,9 @@ private:
     ::rlimit old_limits_{};
 };
 
-DisableCoreDumps::DisableCoreDumps() : impl_(std::make_unique<Impl>()) {}
+DisableCoreDumps::DisableCoreDumps()
+    : impl_(std::make_unique<Impl>())
+{}
 
 DisableCoreDumps::~DisableCoreDumps() = default;
 

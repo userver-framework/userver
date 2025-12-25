@@ -32,7 +32,9 @@ bool IsLogLimitedEnabled() noexcept { return AtomicLogLimited().load(); }
 void SetLogLimitedInterval(std::chrono::steady_clock::duration d) noexcept { AtomicLogLimitedDuration() = d; }
 
 std::chrono::steady_clock::duration GetLogLimitedInterval() noexcept {
-    if (GetDefaultLoggerLevel() <= Level::kDebug) return {};
+    if (GetDefaultLoggerLevel() <= Level::kDebug) {
+        return {};
+    }
     return AtomicLogLimitedDuration().load();
 }
 

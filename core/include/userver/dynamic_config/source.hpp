@@ -35,7 +35,9 @@ private:
     }
 
     explicit VariableSnapshotPtr(Snapshot&& snapshot, const Key<VariableType>& key)
-        : snapshot_(std::move(snapshot)), variable_(&snapshot_[key]) {}
+        : snapshot_(std::move(snapshot)),
+          variable_(&snapshot_[key])
+    {}
 
     // for the constructor
     friend class Source;
@@ -116,8 +118,11 @@ public:
     ///
     /// @see based on concurrent::AsyncEventSource engine
     template <typename Class>
-    concurrent::AsyncEventSubscriberScope
-    UpdateAndListen(Class* obj, std::string_view name, void (Class::*func)(const dynamic_config::Snapshot& config)) {
+    concurrent::AsyncEventSubscriberScope UpdateAndListen(
+        Class* obj,
+        std::string_view name,
+        void (Class::*func)(const dynamic_config::Snapshot& config)
+    ) {
         return DoUpdateAndListen(
             concurrent::FunctionId(obj),
             name,
@@ -159,8 +164,11 @@ public:
 
     // clang-format on
     template <typename Class>
-    concurrent::AsyncEventSubscriberScope
-    UpdateAndListen(Class* obj, std::string_view name, void (Class::*func)(const dynamic_config::Diff& diff)) {
+    concurrent::AsyncEventSubscriberScope UpdateAndListen(
+        Class* obj,
+        std::string_view name,
+        void (Class::*func)(const dynamic_config::Diff& diff)
+    ) {
         return DoUpdateAndListen(concurrent::FunctionId(obj), name, [obj, func](const dynamic_config::Diff& diff) {
             (obj->*func)(diff);
         });
@@ -197,7 +205,9 @@ public:
         const Keys&... keys
     ) {
         auto wrapper = [obj, func, &keys...](const Diff& diff) {
-            if (!HasChanged(diff, keys...)) return;
+            if (!HasChanged(diff, keys...)) {
+                return;
+            }
             (obj->*func)(diff.current);
         };
         return DoUpdateAndListen(concurrent::FunctionId(obj), name, std::move(wrapper));
@@ -208,7 +218,9 @@ public:
 private:
     template <typename... Keys>
     static bool HasChanged(const Diff& diff, const Keys&... keys) {
-        if (!diff.previous) return true;
+        if (!diff.previous) {
+            return true;
+        }
 
         const auto& previous = *diff.previous;
         const auto& current = diff.current;
@@ -220,11 +232,17 @@ private:
         return !is_equal;
     }
 
-    concurrent::AsyncEventSubscriberScope
-    DoUpdateAndListen(concurrent::FunctionId id, std::string_view name, SnapshotEventSource::Function&& func);
+    concurrent::AsyncEventSubscriberScope DoUpdateAndListen(
+        concurrent::FunctionId id,
+        std::string_view name,
+        SnapshotEventSource::Function&& func
+    );
 
-    concurrent::AsyncEventSubscriberScope
-    DoUpdateAndListen(concurrent::FunctionId id, std::string_view name, DiffEventSource::Function&& func);
+    concurrent::AsyncEventSubscriberScope DoUpdateAndListen(
+        concurrent::FunctionId id,
+        std::string_view name,
+        DiffEventSource::Function&& func
+    );
 
     impl::StorageData* storage_;
 };

@@ -3,8 +3,10 @@ include_guard(GLOBAL)
 function(userver_embed_file TARGET)
     set(OPTIONS)
     set(ONE_VALUE_ARGS NAME FILEPATH HPP_FILENAME)
-    set(MULTI_VALUE_ARGS SQL_FILES)
     cmake_parse_arguments(ARG "${OPTIONS}" "${ONE_VALUE_ARGS}" "${MULTI_VALUE_ARGS}" ${ARGN})
+    if(NOT ARG_NAME)
+        set(ARG_NAME "${ARG_FILEPATH}")
+    endif()
     if(NOT ARG_HPP_FILENAME)
         get_filename_component(ARG_HPP_FILENAME "${ARG_FILEPATH}" NAME)
     endif()
@@ -21,11 +23,14 @@ function(userver_embed_file TARGET)
     _userver_codegen_register_files("${CMAKE_CURRENT_BINARY_DIR}/embedded/embedded.cpp")
 
     get_property(USERVER_CMAKE_DIR GLOBAL PROPERTY userver_cmake_dir)
+    string(MAKE_C_IDENTIFIER "${ARG_NAME}" NAME_C_ESCAPED)
     add_custom_command(
         OUTPUT ${CONFIG_HPP}
         DEPENDS ${USERVER_CMAKE_DIR}/embedded_config.cmake ${ARG_FILEPATH}
-        COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR} -DFILEPATH=${ARG_FILEPATH}
-                -DOUTPUT=${CONFIG_HPP} -DNAME=${ARG_NAME} -P ${USERVER_CMAKE_DIR}/embedded_config.cmake ${CODEGEN}
+        COMMAND
+            ${CMAKE_COMMAND} -DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR} -DFILEPATH=${ARG_FILEPATH} -DOUTPUT=${CONFIG_HPP}
+            -DNAME_C_ESCAPED=${NAME_C_ESCAPED} -DNAME=${ARG_NAME} -P ${USERVER_CMAKE_DIR}/embedded_config.cmake
+            ${CODEGEN}
     )
     _userver_codegen_register_files("${CONFIG_HPP}")
     add_library(${TARGET} STATIC ${CONFIG_HPP} ${CMAKE_CURRENT_BINARY_DIR}/embedded/embedded.cpp)

@@ -30,5 +30,5 @@ private:
 }  // namespace clients::test
 
 template <>
-inline constexpr auto USERVER_NAMESPACE::components::kConfigFileMode<::clients::test::Component> =
-    USERVER_NAMESPACE::components::ConfigFileMode::kNotRequired;
+inline constexpr auto USERVER_NAMESPACE::components::kConfigFileMode<
+    ::clients::test::Component> = USERVER_NAMESPACE::components::ConfigFileMode::kNotRequired;

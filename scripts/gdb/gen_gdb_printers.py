@@ -51,7 +51,7 @@ __asm__(
     ".pushsection \\".debug_gdb_scripts\\", \\"MS\\",@progbits,1\\n"
     ".ascii \\"\\\\4gdb.inlined-script.{protection_macro}\\\\n\\"\\n"'''
 
-bottom_matter = f"""
+bottom_matter = """
     ".byte 0\\n"
     ".popsection\\n");
 
@@ -61,7 +61,7 @@ bottom_matter = f"""
 
 #endif  // __ELF__
 // NOLINTEND
-// clang-format on"""  # noqa: F541
+// clang-format on"""
 
 # Write the inline asm header
 with open(printers_header, 'wt') as header:

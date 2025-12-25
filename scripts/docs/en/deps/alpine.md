@@ -1,7 +1,7 @@
 benchmark-dev
 boost1.84-dev
 boost1.84-static
-clang17-extra-tools
+clang19-extra-tools
 clang18
 cmake
 crypto++-dev

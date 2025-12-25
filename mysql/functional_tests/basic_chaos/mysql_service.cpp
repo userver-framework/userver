@@ -22,7 +22,8 @@ public:
 
     KeyValue(const components::ComponentConfig& config, const components::ComponentContext& context)
         : server::handlers::HttpHandlerBase{config, context},
-          mysql_{context.FindComponent<storages::mysql::Component>("key-value-db").GetCluster()} {}
+          mysql_{context.FindComponent<storages::mysql::Component>("key-value-db").GetCluster()}
+    {}
 
     std::string HandleRequestThrow(const server::http::HttpRequest& request, server::request::RequestContext&)
         const override {
@@ -40,7 +41,8 @@ public:
                 return DeleteValue(key);
             default:
                 throw server::handlers::ClientError{
-                    server::handlers::ExternalBody{fmt::format("Unsupported method {}", request.GetMethod())}};
+                    server::handlers::ExternalBody{fmt::format("Unsupported method {}", request.GetMethod())}
+                };
         }
     }
 
@@ -68,7 +70,11 @@ private:
         }
 
         mysql_->Execute(
-            cc_, storages::mysql::ClusterHostType::kPrimary, "INSERT INTO kv(`key`, value) VALUES (?, ?)", key, value
+            cc_,
+            storages::mysql::ClusterHostType::kPrimary,
+            "INSERT INTO kv(`key`, value) VALUES (?, ?)",
+            key,
+            value
         );
 
         request.SetResponseStatus(server::http::HttpStatus::kCreated);
@@ -88,12 +94,13 @@ private:
 }  // namespace chaos
 
 int main(int argc, char* argv[]) {
-    const auto component_list = components::MinimalServerComponentList()
-                                    .Append<chaos::KeyValue>()
-                                    .Append<components::Secdist>()
-                                    .Append<components::DefaultSecdistProvider>()
-                                    .Append<clients::dns::Component>()
-                                    .Append<storages::mysql::Component>("key-value-db");
+    const auto component_list =
+        components::MinimalServerComponentList()
+            .Append<chaos::KeyValue>()
+            .Append<components::Secdist>()
+            .Append<components::DefaultSecdistProvider>()
+            .Append<clients::dns::Component>()
+            .Append<storages::mysql::Component>("key-value-db");
 
     return utils::DaemonMain(argc, argv, component_list);
 }

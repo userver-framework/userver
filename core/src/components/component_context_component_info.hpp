@@ -7,7 +7,9 @@
 #include <string>
 #include <unordered_set>
 
+#include <userver/components/component_context.hpp>
 #include <userver/components/raw_component_base.hpp>
+#include <userver/components/scope.hpp>
 #include <userver/engine/condition_variable.hpp>
 #include <userver/engine/mutex.hpp>
 #include <userver/utils/not_null.hpp>
@@ -96,15 +98,20 @@ public:
 
     std::string GetDependencies() const;
 
+    void RegisterScope(ScopePtr);
+
 private:
     bool HasComponent() const;
     std::unique_ptr<RawComponentBase> ExtractComponent();
+    void AfterConstruction();
 
     const std::string name_;
 
     mutable engine::Mutex mutex_;
     mutable engine::ConditionVariable cv_;
     std::unique_ptr<RawComponentBase> component_;
+    std::vector<ScopePtr> resource_scopes_;
+    bool scope_registration_finished_{false};
     std::set<ComponentInfoRef> it_depends_on_;
     std::set<ComponentInfoRef> depends_on_it_;
     ComponentLifetimeStage stage_ = ComponentLifetimeStage::kNull;

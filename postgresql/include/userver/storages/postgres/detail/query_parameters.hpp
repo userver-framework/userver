@@ -25,7 +25,8 @@ public:
           types_(ph.ParamTypesBuffer()),
           values_(ph.ParamBuffers()),
           lengths_(ph.ParamLengthsBuffer()),
-          formats_(ph.ParamFormatsBuffer()) {}
+          formats_(ph.ParamFormatsBuffer())
+    {}
 
     bool Empty() const { return size_ == 0; }
     std::size_t Size() const { return size_; }

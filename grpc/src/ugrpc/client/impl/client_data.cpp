@@ -31,7 +31,7 @@ ugrpc::impl::MethodStatistics& ClientData::GetStatistics(std::size_t method_id) 
 }
 
 ugrpc::impl::MethodStatistics& ClientData::GetGenericStatistics(std::string_view call_name) const {
-    return internals_.statistics_storage.GetGenericStatistics(call_name, internals_.client_name);
+    return internals_.statistics_storage.GetGenericStatistics(call_name, internals_.destination_prefix_in_metrics);
 }
 
 const ugrpc::impl::StaticServiceMetadata& ClientData::GetMetadata() const {
@@ -44,7 +44,7 @@ const dynamic_config::Key<ClientQos>* ClientData::GetClientQos() const { return 
 rcu::ReadablePtr<StubState> ClientData::GetStubState() const { return stub_state_.Read(); }
 
 ugrpc::impl::ServiceStatistics& ClientData::GetServiceStatistics() {
-    return internals_.statistics_storage.GetServiceStatistics(GetMetadata(), internals_.client_name);
+    return internals_.statistics_storage.GetServiceStatistics(GetMetadata(), internals_.destination_prefix_in_metrics);
 }
 
 }  // namespace ugrpc::client::impl

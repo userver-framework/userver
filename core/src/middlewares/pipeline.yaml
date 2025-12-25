@@ -1,0 +1,17 @@
+type: object
+description: base class for all the gRPC service components
+additionalProperties: false
+properties:
+    middlewares:
+        type: object
+        description: middlewares names and configs to use
+        additionalProperties:
+            type: object
+            description: a middleware config
+            additionalProperties: false
+            properties:
+                enabled:
+                    type: boolean
+                    description: enable middleware in the list
+                    default: true
+        properties: {}

@@ -1,6 +1,5 @@
 import enum
 from typing import Any
-from typing import TypeAlias
 
 import pydantic
 
@@ -25,7 +24,7 @@ class Server(base_model.BaseModel):
     variables: dict[str, Any] = pydantic.Field(default_factory=dict)
 
 
-Schema: TypeAlias = Any
+Schema = Any
 
 
 # https://spec.openapis.org/oas/v3.0.0.html#style-values
@@ -46,7 +45,7 @@ class Header(base_model.BaseModel):
     deprecated: bool = False
     allowEmptyValue: bool = False
 
-    style: Style | None = None
+    style: Style | None = pydantic.Field(default=None, strict=False)
     explode: bool | None = None
     allowReserved: bool = False
     schema_: Schema = pydantic.Field(alias='schema')
@@ -61,10 +60,10 @@ class MediaType(base_model.BaseModel):
     examples: dict[str, Any] = pydantic.Field(default_factory=dict)
     # encoding: dict[str, Encoding] = {}
 
-    _model_userver_tags: list[str] = [
-        'x-taxi-non-std-type-reason',
-        'x-usrv-non-std-type-reason',
-    ]
+    x_non_std_type_reason: str | None = pydantic.Field(
+        default=None,
+        validation_alias=pydantic.AliasChoices('x-taxi-non-std-type-reason', 'x-usrv-non-std-type-reason'),
+    )
 
 
 # https://spec.openapis.org/oas/v3.0.0.html#reference-object
@@ -100,13 +99,13 @@ class QueryLogMode(str, enum.Enum):
 # https://spec.openapis.org/oas/v3.0.0.html#parameter-object
 class Parameter(base_model.BaseModel):
     name: str
-    in_: In = pydantic.Field(alias='in')
+    in_: In = pydantic.Field(alias='in', strict=False)
     description: str | None = None
     required: bool = False
     deprecated: bool = False
     allowEmptyValue: bool = False
 
-    style: Style | None = None
+    style: Style | None = pydantic.Field(default=None, strict=False)
     explode: bool | None = None
     allowReserved: bool = False
     schema_: Schema = pydantic.Field(alias='schema')
@@ -126,6 +125,7 @@ class Parameter(base_model.BaseModel):
     x_query_log_mode: QueryLogMode = pydantic.Field(
         default=QueryLogMode.show,
         validation_alias=pydantic.AliasChoices('x-taxi-query-log-mode', 'x-usrv-query-log-mode'),
+        strict=False,
     )
     x_explode_true_reason: str = pydantic.Field(
         default='',
@@ -200,10 +200,10 @@ class OAuthFlows(base_model.BaseModel):
 
 # https://spec.openapis.org/oas/v3.0.0.html#security-scheme-object
 class SecurityScheme(base_model.BaseModel):
-    type: SecurityType
+    type: SecurityType = pydantic.Field(strict=False)
     description: str | None = None
     name: str | None = None
-    in_: SecurityIn | None = pydantic.Field(alias='in', default=None)
+    in_: SecurityIn | None = pydantic.Field(alias='in', default=None, strict=False)
     scheme_: str | None = pydantic.Field(alias='scheme', default=None)
     bearerFormat: str | None = None
     flows: OAuthFlows | None = None
@@ -229,11 +229,11 @@ class SecurityScheme(base_model.BaseModel):
                     raise ValueError(errors.missing_field_msg('openIdConnectUrl'))
 
 
-SecuritySchemes: TypeAlias = dict[str, SecurityScheme | Ref]
+SecuritySchemes = dict[str, SecurityScheme | Ref]
 
 
 # https://spec.openapis.org/oas/v3.0.0.html#security-requirement-object
-Security: TypeAlias = dict[str, list[str]]
+Security = dict[str, list[str]]
 
 
 # https://spec.openapis.org/oas/v3.0.0.html#components-object
@@ -273,6 +273,7 @@ class Operation(base_model.BaseModel):
     x_query_log_mode: QueryLogMode = pydantic.Field(
         default=QueryLogMode.show,
         validation_alias=pydantic.AliasChoices('x-taxi-query-log-mode', 'x-usrv-query-log-mode'),
+        strict=False,
     )
     x_client_codegen: bool = pydantic.Field(
         default=True,
@@ -339,14 +340,14 @@ class OpenApi(base_model.BaseModel):
         for name, values in security.items():
             if name not in self.components.securitySchemes:
                 raise ValueError(
-                    f'Undefined security name="{name}". Expected on of: {self.components.securitySchemes.keys()}'  # noqa: COM812
+                    f'Undefined security name="{name}". Expected on of: {self.components.securitySchemes.keys()}',
                 )
             sec_scheme = self.components.securitySchemes[name]
 
             if isinstance(sec_scheme, Ref):
                 if sec_scheme not in self.components.securitySchemes:
                     raise ValueError(
-                        f'Invalid reference "{sec_scheme}". Expected one of: "{self.components.securitySchemes.keys()}"'  # noqa: COM812
+                        f'Invalid reference "{sec_scheme}". Expected one of: "{self.components.securitySchemes.keys()}"',
                     )
             elif isinstance(sec_scheme, SecurityScheme):
                 if sec_scheme.type not in [SecurityType.oauth2, SecurityType.openIdConnect]:

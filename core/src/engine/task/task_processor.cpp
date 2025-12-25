@@ -114,15 +114,16 @@ auto MakeTaskQueue(TaskProcessorConfig config) {
         config.task_processor_queue = TaskQueueType::kTSanTaskQueue;
     }
 #endif
-
-    using ResultType = std::variant<TaskQueue, WorkStealingTaskQueue, TaskQueueTSan>;
+    using TaskQueueVariant = TaskProcessor::TaskQueueVariant;
     switch (config.task_processor_queue) {
         case TaskQueueType::kGlobalTaskQueue:
-            return ResultType{std::in_place_index<0>, std::move(config)};
+            return TaskQueueVariant{std::in_place_type<TaskQueue>, std::move(config)};
         case TaskQueueType::kWorkStealingTaskQueue:
-            return ResultType{std::in_place_index<1>, std::move(config)};
+            return TaskQueueVariant{std::in_place_type<WorkStealingTaskQueue>, std::move(config)};
+        case TaskQueueType::kPullPinTaskQueue:
+            return TaskQueueVariant{std::in_place_type<TaskQueuePullPin>, std::move(config)};
         case TaskQueueType::kTSanTaskQueue:
-            return ResultType{std::in_place_index<2>, std::move(config)};
+            return TaskQueueVariant{std::in_place_type<TaskQueueTSan>, std::move(config)};
     }
     UINVARIANT(false, "Unexpected value of TaskQueueType enum");
 }
@@ -133,13 +134,15 @@ TaskProcessor::TaskProcessor(TaskProcessorConfig config, std::shared_ptr<impl::T
     : task_queue_(MakeTaskQueue(config)),
       task_counter_(config.worker_threads),
       config_(config),
-      pools_(std::move(pools)),
       plugin_manager_(*this, config.worker_threads),
-      trace_plugin_(config.worker_threads) {
+      pools_(std::move(pools)),
+      trace_plugin_(config.worker_threads)
+{
     utils::impl::FinishStaticRegistration();
     try {
-        LOG_INFO() << "creating task_processor " << Name() << " "
-                   << "worker_threads=" << config_.worker_threads << " thread_name=" << config_.thread_name;
+        LOG_INFO()
+            << "creating task_processor " << Name() << " "
+            << "worker_threads=" << config_.worker_threads << " thread_name=" << config_.thread_name;
         concurrent::impl::Latch workers_left{static_cast<std::ptrdiff_t>(config_.worker_threads)};
         workers_.reserve(config_.worker_threads);
         for (std::size_t i = 0; i < config_.worker_threads; ++i) {
@@ -190,21 +193,25 @@ void TaskProcessor::InitiateShutdown() {
 
 void TaskProcessor::Schedule(impl::TaskContext* context) {
     UASSERT(context);
+    UASSERT(&context->GetTaskProcessor() == this);
     const auto [action, max_queue_length] = GetOverloadActionAndValue(action_bit_and_max_task_queue_wait_length_);
     if (max_queue_length && !context->IsCritical()) {
         UASSERT(max_queue_length > 0);
         if (const auto overload_size = GetOverloadByLength(max_queue_length)) {
-            LOG_LIMITED_WARNING() << "failed to enqueue task: task_queue_size_approximate=" << overload_size << " >= "
-                                  << "length_limit=" << max_queue_length << " task_processor=" << Name()
-                                  << ". Make sure that there's enough system resources to process so "
-                                     "many tasks, adjust the "
-                                     "`default-service.default-task-processor.wait_queue_overload."
-                                     "length_limit` parameter in USERVER_TASK_PROCESSOR_QOS dynamic "
-                                     "config to increase the limit.";
+            LOG_LIMITED_WARNING()
+                << "failed to enqueue task: task_queue_size_approximate=" << overload_size << " >= "
+                << "length_limit=" << max_queue_length << " task_processor=" << Name()
+                << ". Make sure that there's enough system resources to process so "
+                   "many tasks, adjust the "
+                   "`default-service.default-task-processor.wait_queue_overload."
+                   "length_limit` parameter in USERVER_TASK_PROCESSOR_QOS dynamic "
+                   "config to increase the limit.";
             HandleOverload(*context, action);
         }
     }
-    if (is_shutting_down_) context->RequestCancel(TaskCancellationReason::kShutdown);
+    if (is_shutting_down_) {
+        context->RequestCancel(TaskCancellationReason::kShutdown);
+    }
 
     SetTaskQueueWaitTimepoint(context);
 
@@ -242,18 +249,20 @@ void TaskProcessor::SetSettings(
     switch (settings.wait_queue_overload.action) {
         case TaskProcessorSettingsOverloadAction::kCancel:
             action_bit_and_max_task_queue_wait_time_ = settings.wait_queue_overload.time_limit_us;
-            action_bit_and_max_task_queue_wait_length_ =
-                utils::numeric_cast<std::int64_t>(settings.wait_queue_overload.length_limit);
+            action_bit_and_max_task_queue_wait_length_ = utils::numeric_cast<
+                std::int64_t>(settings.wait_queue_overload.length_limit);
             break;
         case TaskProcessorSettingsOverloadAction::kIgnore:
             action_bit_and_max_task_queue_wait_time_ = -settings.wait_queue_overload.time_limit_us;
-            action_bit_and_max_task_queue_wait_length_ =
-                -utils::numeric_cast<std::int64_t>(settings.wait_queue_overload.length_limit);
+            action_bit_and_max_task_queue_wait_length_ = -utils::numeric_cast<
+                std::int64_t>(settings.wait_queue_overload.length_limit);
             break;
     }
 
     auto threshold = profiler_settings.execution_slice_threshold_us;
-    if (!profiler_settings.enabled) threshold = std::chrono::microseconds{0};
+    if (!profiler_settings.enabled) {
+        threshold = std::chrono::microseconds{0};
+    }
 
     if (threshold.count() > 0) {
         auto old_threshold = task_profiler_threshold_.exchange(threshold);
@@ -300,14 +309,16 @@ const std::string& TaskProcessor::GetTaskTraceLoggerName() const { return config
 
 void TaskProcessor::SetTaskTraceLogger(logging::LoggerPtr logger) {
     task_trace_logger_ = std::move(logger);
-    [[maybe_unused]] const auto was_task_trace_logger_set =
-        task_trace_logger_set_.exchange(true, std::memory_order_release);
+    [[maybe_unused]] const auto
+        was_task_trace_logger_set = task_trace_logger_set_.exchange(true, std::memory_order_release);
     UASSERT(!was_task_trace_logger_set);
 }
 
 logging::LoggerPtr TaskProcessor::GetTaskTraceLogger() const {
     // logger macros should be ready to deal with null logger
-    if (!task_trace_logger_set_.load(std::memory_order_acquire)) return {};
+    if (!task_trace_logger_set_.load(std::memory_order_acquire)) {
+        return {};
+    }
     return task_trace_logger_;
 }
 
@@ -318,7 +329,9 @@ std::vector<std::uint8_t> TaskProcessor::CollectCurrentLoadPct() const {
 }
 
 TaskProcessor& TaskProcessor::GetBlockingTaskProcessor() {
-    if (fs_task_processor_) return *fs_task_processor_;
+    if (fs_task_processor_) {
+        return *fs_task_processor_;
+    }
     return *this;
 }
 
@@ -377,7 +390,9 @@ void TaskProcessor::FinalizeWorkerThread() noexcept { pools_->GetCoroPool().Clea
 void TaskProcessor::ProcessTasks() noexcept {
     while (true) {
         auto context = std::visit([](auto&& arg) { return arg.PopBlocking(); }, task_queue_);
-        if (!context) break;
+        if (!context) {
+            break;
+        }
 
         CheckWaitTime(*context);
 
@@ -444,19 +459,21 @@ void TaskProcessor::HandleOverload(impl::TaskContext& context, TaskProcessorSett
 
     if (action == TaskProcessorSettingsOverloadAction::kCancel) {
         if (!context.IsCritical()) {
-            LOG_LIMITED_WARNING() << "Task with task_id=" << logging::HexShort(context.GetTaskId())
-                                  << " was waiting in queue for too long, cancelling. Make sure that "
-                                     "there's no blocking syscalls in the task, use utils::CpuRelax. "
-                                     "Adjust the `default-service.default-task-processor."
-                                     "wait_queue_overload.sensor_time_limit_us` parameter in "
-                                     "USERVER_TASK_PROCESSOR_QOS dynamic config to increase the limit.";
+            LOG_LIMITED_WARNING()
+                << "Task with task_id=" << logging::HexShort(context.GetTaskId())
+                << " was waiting in queue for too long, cancelling. Make sure that "
+                   "there's no blocking syscalls in the task, use utils::CpuRelax. "
+                   "Adjust the `default-service.default-task-processor."
+                   "wait_queue_overload.sensor_time_limit_us` parameter in "
+                   "USERVER_TASK_PROCESSOR_QOS dynamic config to increase the limit.";
 
             context.RequestCancel(TaskCancellationReason::kOverload);
             GetTaskCounter().AccountTaskCancelOverload();
         } else {
-            LOG_TRACE() << "Task with task_id=" << logging::HexShort(context.GetTaskId())
-                        << " was waiting in queue for too long, but it is marked "
-                           "as critical, not cancelling.";
+            LOG_TRACE()
+                << "Task with task_id=" << logging::HexShort(context.GetTaskId())
+                << " was waiting in queue for too long, but it is marked "
+                   "as critical, not cancelling.";
         }
     }
 }
@@ -494,9 +511,10 @@ TaskProcessor::OverloadByLength TaskProcessor::ComputeOverloadByLength(
 
     // Avoid rapid entering-exiting "overloaded by length" state with associated
     // contention.
-    const auto size_limit = old_overload_by_length ? kExitOverloadStatusFactorNumerator * max_queue_length /
-                                                         kExitOverloadStatusFactorDenominator
-                                                   : max_queue_length;
+    const auto size_limit =
+        old_overload_by_length
+            ? kExitOverloadStatusFactorNumerator * max_queue_length / kExitOverloadStatusFactorDenominator
+            : max_queue_length;
 
     const OverloadByLength new_overload_by_length = queue_size >= size_limit ? queue_size : 0;
 

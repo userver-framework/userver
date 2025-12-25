@@ -27,8 +27,8 @@ struct SampleRow final {
 void PerformAsVector(const Cluster& cluster, const std::vector<SampleRow>& expected_data) {
     cluster.ExecuteBulk(ClusterHostType::kPrimary, "INSERT INTO SampleTable(id, value) VALUES (?, ?)", expected_data);
 
-    const auto db_rows =
-        cluster.Execute(ClusterHostType::kPrimary, "SELECT id, value FROM SampleTable").AsVector<SampleRow>();
+    const auto
+        db_rows = cluster.Execute(ClusterHostType::kPrimary, "SELECT id, value FROM SampleTable").AsVector<SampleRow>();
 
     static_assert(std::is_same_v<const std::vector<SampleRow>, decltype(db_rows)>);
     EXPECT_EQ(expected_data, db_rows);
@@ -136,8 +136,9 @@ struct SampleRow final {
 void PerformAsContainer(const Cluster& cluster, const std::vector<SampleRow>& data) {
     cluster.ExecuteBulk(ClusterHostType::kPrimary, "INSERT INTO SampleTable(id, value) VALUES(?, ?)", data);
 
-    const auto set_or_rows = cluster.Execute(ClusterHostType::kPrimary, "SELECT id, value FROM SampleTable")
-                                 .AsContainer<std::set<SampleRow>>();
+    const auto set_or_rows =
+        cluster.Execute(ClusterHostType::kPrimary, "SELECT id, value FROM SampleTable")
+            .AsContainer<std::set<SampleRow>>();
 
     static_assert(std::is_same_v<const std::set<SampleRow>, decltype(set_or_rows)>);
     const auto input_as_set = std::set<SampleRow>{data.begin(), data.end()};
@@ -161,8 +162,9 @@ namespace as_container_field_sample {
 void PerformAsContainerField(const Cluster& cluster) {
     cluster.Execute(ClusterHostType::kPrimary, "INSERT INTO SampleTable(id, value) VALUES(?, ?)", 1, "some value");
 
-    const auto set_of_values = cluster.Execute(ClusterHostType::kPrimary, "SELECT value FROM SampleTable")
-                                   .AsContainer<std::set<std::string>>(kFieldTag);
+    const auto set_of_values =
+        cluster.Execute(ClusterHostType::kPrimary, "SELECT value FROM SampleTable")
+            .AsContainer<std::set<std::string>>(kFieldTag);
 
     static_assert(std::is_same_v<const std::set<std::string>, decltype(set_of_values)>);
     ASSERT_EQ(set_of_values.size(), 1);
@@ -189,8 +191,9 @@ struct SampleRow final {
 };
 
 void PerformAsOptionalSingleRow(const Cluster& cluster) {
-    const auto row_optional = cluster.Execute(ClusterHostType::kPrimary, "SELECT id, value FROM SampleTable")
-                                  .AsOptionalSingleRow<SampleRow>();
+    const auto row_optional =
+        cluster.Execute(ClusterHostType::kPrimary, "SELECT id, value FROM SampleTable")
+            .AsOptionalSingleRow<SampleRow>();
 
     static_assert(std::is_same_v<const std::optional<SampleRow>, decltype(row_optional)>);
     EXPECT_FALSE(row_optional.has_value());
@@ -211,8 +214,9 @@ namespace as_optional_single_field_sample {
 
 /// [uMySQL usage sample - StatementResultSet AsOptionalSingleField]
 void PerformAsOptionalSingleField(const Cluster& cluster) {
-    const auto field_optional = cluster.Execute(ClusterHostType::kPrimary, "SELECT value FROM SampleTable")
-                                    .AsOptionalSingleField<std::string>();
+    const auto field_optional =
+        cluster.Execute(ClusterHostType::kPrimary, "SELECT value FROM SampleTable")
+            .AsOptionalSingleField<std::string>();
 
     static_assert(std::is_same_v<const std::optional<std::string>, decltype(field_optional)>);
     EXPECT_FALSE(field_optional.has_value());
@@ -247,9 +251,10 @@ Convert(SampleRow&& db_row, storages::mysql::convert::To<std::pair<const std::in
 void PerformMapFrom(const Cluster& cluster, const std::vector<SampleRow>& data) {
     cluster.ExecuteBulk(ClusterHostType::kPrimary, "INSERT INTO SampleTable(id, value) VALUES(?, ?)", data);
 
-    const auto id_value_map = cluster.Execute(ClusterHostType::kPrimary, "SELECT id, value FROM SampleTable")
-                                  .MapFrom<SampleRow>()
-                                  .AsContainer<std::unordered_map<std::int32_t, std::string>>();
+    const auto id_value_map =
+        cluster.Execute(ClusterHostType::kPrimary, "SELECT id, value FROM SampleTable")
+            .MapFrom<SampleRow>()
+            .AsContainer<std::unordered_map<std::int32_t, std::string>>();
 
     static_assert(std::is_same_v<const std::unordered_map<std::int32_t, std::string>, decltype(id_value_map)>);
     EXPECT_EQ(id_value_map.size(), data.size());

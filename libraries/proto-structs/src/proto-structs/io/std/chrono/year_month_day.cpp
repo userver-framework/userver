@@ -9,8 +9,12 @@
 
 namespace proto_structs::io {
 
-std::chrono::year_month_day
-ReadProtoStruct(ReadContext& ctx, To<std::chrono::year_month_day>, const ::google::type::Date& msg) try {
+std::chrono::year_month_day ReadProtoStruct(
+    ReadContext& ctx,
+    To<std::chrono::year_month_day>,
+    const ::google::type::Date& msg
+) try
+{
     Date date(utils::impl::InternalTag{}, msg.year(), msg.month(), msg.day());
 
     if (!date.HasYearMonthDay()) {
@@ -24,7 +28,8 @@ ReadProtoStruct(ReadContext& ctx, To<std::chrono::year_month_day>, const ::googl
     return std::chrono::year_month_day{std::chrono::year{0}, std::chrono::month{0}, std::chrono::day{0}};
 }
 
-void WriteProtoStruct(WriteContext& ctx, const std::chrono::year_month_day& obj, ::google::type::Date& msg) try {
+void WriteProtoStruct(WriteContext& ctx, const std::chrono::year_month_day& obj, ::google::type::Date& msg) try
+{
     Date date{obj};
     msg.set_year(date.YearNum());
     msg.set_month(date.MonthNum());

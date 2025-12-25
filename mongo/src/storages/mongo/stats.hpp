@@ -148,7 +148,9 @@ struct ConnStats final {
 };
 
 struct PoolStatistics final {
-    PoolStatistics() : pool(utils::MakeSharedRef<PoolConnectStatistics>()) {}
+    PoolStatistics()
+        : pool(utils::MakeSharedRef<PoolConnectStatistics>())
+    {}
 
     utils::SharedRef<PoolConnectStatistics> pool;
     rcu::RcuMap<std::string, CollectionStatistics> collections;

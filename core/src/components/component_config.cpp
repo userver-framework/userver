@@ -4,7 +4,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace components {
 
-ComponentConfig::ComponentConfig(std::string name) : name_(std::move(name)) {}
+ComponentConfig::ComponentConfig(std::string name)
+    : name_(std::move(name))
+{}
 
 ComponentConfig::ComponentConfig(yaml_config::YamlConfig value) : yaml_config::YamlConfig(std::move(value)) {}
 

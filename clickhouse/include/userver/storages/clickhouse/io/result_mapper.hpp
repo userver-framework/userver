@@ -22,7 +22,9 @@ class IteratorsTester;
 template <typename MappedType>
 class ColumnsMapper final {
 public:
-    explicit ColumnsMapper(clickhouse::impl::BlockWrapper& block) : block_{block} {}
+    explicit ColumnsMapper(clickhouse::impl::BlockWrapper& block)
+        : block_{block}
+    {}
 
     template <typename Field, size_t Index>
     void operator()(Field& field, std::integral_constant<size_t, Index> i) {
@@ -31,7 +33,9 @@ public:
 
         auto column = ColumnType{io::columns::GetWrappedColumn(block_, i)};
         field.reserve(column.Size());
-        for (auto& it : column) field.push_back(std::move(it));
+        for (auto& it : column) {
+            field.push_back(std::move(it));
+        }
     }
 
 private:
@@ -42,7 +46,9 @@ template <typename Row>
 class RowsMapper final {
 public:
     using MappedType = typename CppToClickhouse<Row>::mapped_type;
-    explicit RowsMapper(clickhouse::impl::BlockWrapperPtr&& block) : block_{block.release()} {
+    explicit RowsMapper(clickhouse::impl::BlockWrapperPtr&& block)
+        : block_{block.release()}
+    {
         IteratorsHelperT::Init(begin_iterators_, end_iterators_, *block_);
     }
     ~RowsMapper() = default;
@@ -75,7 +81,9 @@ public:
 
         class FieldMapper final {
         public:
-            FieldMapper(const IteratorsTupleT& iterators) : iterators_{iterators} {}
+            FieldMapper(const IteratorsTupleT& iterators)
+                : iterators_{iterators}
+            {}
 
             template <typename Field, size_t Index>
             void operator()(Field& field, [[maybe_unused]] std::integral_constant<size_t, Index> i) const {
@@ -117,7 +125,9 @@ private:
 };
 
 template <typename Row>
-RowsMapper<Row>::Iterator::Iterator(IteratorsTupleT iterators) : iterators_{std::move(iterators)} {}
+RowsMapper<Row>::Iterator::Iterator(IteratorsTupleT iterators)
+    : iterators_{std::move(iterators)}
+{}
 
 template <typename Row>
 typename RowsMapper<Row>::Iterator RowsMapper<Row>::Iterator::operator++(int) {

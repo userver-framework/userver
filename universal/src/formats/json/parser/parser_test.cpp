@@ -198,7 +198,9 @@ TEST(JsonStringParser, ArrayIntObjectNoField) {
     state.PushParser(array_parser);
 
     EXPECT_THROW_TEXT(
-        state.ProcessInput(input), fjp::ParseError, "Parse error at pos 2, path '[0]': Missing required field 'field'"
+        state.ProcessInput(input),
+        fjp::ParseError,
+        "Parse error at pos 2, path '[0]': Missing required field 'field'"
     );
 }
 
@@ -347,7 +349,9 @@ TYPED_TEST(JsonStringParserMap, Invalid) {
     );
 
     EXPECT_THROW_TEXT(
-        state.ProcessInput(R"(}{)"), fjp::ParseError, "Parse error at pos 0, path '': The document is empty."
+        state.ProcessInput(R"(}{)"),
+        fjp::ParseError,
+        "Parse error at pos 0, path '': The document is empty."
     );
 }
 
@@ -359,8 +363,8 @@ TEST(JsonStringParser, JsonValue) {
     for (const auto& input : inputs) {
         auto value_str = formats::json::FromString(input);
         auto value_sax = fjp::ParseToType<formats::json::Value, fjp::JsonValueParser>(input);
-        EXPECT_EQ(value_str, value_sax) << "input: " + input + ", str='" + ToString(value_str) + "', sax='" +
-                                               ToString(value_sax) + "'";
+        EXPECT_EQ(value_str, value_sax)
+            << "input: " + input + ", str='" + ToString(value_str) + "', sax='" + ToString(value_sax) + "'";
     }
 }
 

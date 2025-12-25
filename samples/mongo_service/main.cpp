@@ -17,7 +17,9 @@ public:
     static constexpr std::string_view kName = "handler-translations";
 
     Translations(const components::ComponentConfig& config, const components::ComponentContext& context)
-        : HttpHandlerBase(config, context), pool_(context.FindComponent<components::Mongo>("mongo-tr").GetPool()) {}
+        : HttpHandlerBase(config, context),
+          pool_(context.FindComponent<components::Mongo>("mongo-tr").GetPool())
+    {}
 
     std::string HandleRequest(server::http::HttpRequest& request, server::request::RequestContext&) const override {
         request.GetHttpResponse().SetContentType(http::content_type::kApplicationJson);
@@ -96,10 +98,11 @@ std::string Translations::ReturnDiff(const server::http::HttpRequest& request) c
 
 /// [Mongo service sample - main]
 int main(int argc, char* argv[]) {
-    const auto component_list = components::MinimalServerComponentList()
-                                    .Append<clients::dns::Component>()
-                                    .Append<components::Mongo>("mongo-tr")
-                                    .Append<samples::mongodb::Translations>();
+    const auto component_list =
+        components::MinimalServerComponentList()
+            .Append<clients::dns::Component>()
+            .Append<components::Mongo>("mongo-tr")
+            .Append<samples::mongodb::Translations>();
     return utils::DaemonMain(argc, argv, component_list);
 }
 /// [Mongo service sample - main]

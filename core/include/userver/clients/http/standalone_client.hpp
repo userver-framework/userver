@@ -15,12 +15,12 @@ struct StandaloneConfig final {
     std::optional<size_t> max_host_connections{std::nullopt};
 };
 
-/// @brief Creates HTTP client with given settings and plugins
+/// @brief Creates HTTP client with given settings and middlewares
 std::shared_ptr<Client> CreateStandaloneHttpClient(
     ClientSettings settings,
     StandaloneConfig standalone_config,
     engine::TaskProcessor& fs_task_processor,
-    std::vector<utils::NotNull<clients::http::Plugin*>> plugins = {}
+    std::vector<utils::NotNull<clients::http::MiddlewareBase*>> middlewares = {}
 );
 
 }  // namespace clients::http

@@ -25,8 +25,10 @@ namespace {
 
 class SQLiteMetricsTest : public SQLiteCompositeFixture<SQLitePureConnection> {
 public:
-    utils::statistics::Snapshot
-    GetStatistics(std::string prefix, std::vector<utils::statistics::Label> require_labels = {}) {
+    utils::statistics::Snapshot GetStatistics(
+        std::string prefix,
+        std::vector<utils::statistics::Label> require_labels = {}
+    ) {
         return utils::statistics::Snapshot{statistics_storage_, std::move(prefix), std::move(require_labels)};
     }
 
@@ -64,21 +66,20 @@ UTEST_F(SQLiteMetricsTest, PoolBasic) {
     ClientPtr client;
     UEXPECT_NO_THROW(client = CreateClient(settings));
     UEXPECT_NO_THROW(client->Execute(
-        storages::sqlite::OperationType::kReadWrite, "CREATE TABLE test (id INTEGER PRIMARY KEY, value TEXT)"
+        storages::sqlite::OperationType::kReadWrite,
+        "CREATE TABLE test (id INTEGER PRIMARY KEY, value TEXT)"
     ));
 
-    UEXPECT_NO_THROW(
-        client->Execute(storages::sqlite::OperationType::kReadWrite, "INSERT INTO test VALUES (1, 'first') ")
+    UEXPECT_NO_THROW(client
+                         ->Execute(storages::sqlite::OperationType::kReadWrite, "INSERT INTO test VALUES (1, 'first') ")
     );
-    UEXPECT_NO_THROW(
-        client->Execute(storages::sqlite::OperationType::kReadWrite, "INSERT INTO test VALUES (2, 'second')")
+    UEXPECT_NO_THROW(client
+                         ->Execute(storages::sqlite::OperationType::kReadWrite, "INSERT INTO test VALUES (2, 'second')")
     );
-    UEXPECT_NO_THROW(
-        (client->Execute(storages::sqlite::OperationType::kReadOnly, "SELECT * FROM test").AsVector<RowTuple>())
-    );
-    UEXPECT_NO_THROW(
-        (client->Execute(storages::sqlite::OperationType::kReadWrite, "SELECT * FROM test").AsVector<RowTuple>())
-    );
+    UEXPECT_NO_THROW((client->Execute(storages::sqlite::OperationType::kReadOnly, "SELECT * FROM test")
+                          .AsVector<RowTuple>()));
+    UEXPECT_NO_THROW((client->Execute(storages::sqlite::OperationType::kReadWrite, "SELECT * FROM test")
+                          .AsVector<RowTuple>()));
     const auto write_connection_stats = GetStatistics("sqlite.connections", {{"connection_pool", "write"}});
     EXPECT_EQ(write_connection_stats.SingleMetric("overload").AsRate(), 0);
     EXPECT_EQ(write_connection_stats.SingleMetric("created").AsRate(), 1);
@@ -102,7 +103,8 @@ UTEST_F_MT(SQLiteMetricsTest, PoolWriteInProcess, 10) {
     ClientPtr client;
     UEXPECT_NO_THROW(client = CreateClient(settings));
     UEXPECT_NO_THROW(client->Execute(
-        storages::sqlite::OperationType::kReadWrite, "CREATE TABLE test (id INTEGER PRIMARY KEY, value TEXT)"
+        storages::sqlite::OperationType::kReadWrite,
+        "CREATE TABLE test (id INTEGER PRIMARY KEY, value TEXT)"
     ));
 
     constexpr size_t kWriteTaskCount = 5;
@@ -170,7 +172,8 @@ UTEST_F_MT(SQLiteMetricsTest, PoolReadsInProcess, 10) {
     ClientPtr client;
     UEXPECT_NO_THROW(client = CreateClient(settings));
     UEXPECT_NO_THROW(client->Execute(
-        storages::sqlite::OperationType::kReadWrite, "CREATE TABLE test (id INTEGER PRIMARY KEY, value TEXT)"
+        storages::sqlite::OperationType::kReadWrite,
+        "CREATE TABLE test (id INTEGER PRIMARY KEY, value TEXT)"
     ));
 
     UEXPECT_NO_THROW(client->Execute(OperationType::kReadWrite, "INSERT INTO test VALUES (NULL, 'data')"));
@@ -288,18 +291,17 @@ UTEST_F(SQLiteMetricsTest, QueriesBasic) {
     UEXPECT_NO_THROW(client = CreateClient(settings));
 
     UEXPECT_NO_THROW(client->Execute(
-        storages::sqlite::OperationType::kReadWrite, "CREATE TABLE test (id INTEGER PRIMARY KEY, value TEXT)"
+        storages::sqlite::OperationType::kReadWrite,
+        "CREATE TABLE test (id INTEGER PRIMARY KEY, value TEXT)"
     ));
 
     UEXPECT_NO_THROW(
         client->Execute(storages::sqlite::OperationType::kReadWrite, "INSERT INTO test VALUES (?, ?)", 1, "data")
     );
-    UEXPECT_NO_THROW(
-        (client->Execute(storages::sqlite::OperationType::kReadOnly, "SELECT * FROM test").AsVector<RowTuple>())
-    );
-    UEXPECT_NO_THROW(
-        (client->Execute(storages::sqlite::OperationType::kReadWrite, "SELECT * FROM test").AsVector<RowTuple>())
-    );
+    UEXPECT_NO_THROW((client->Execute(storages::sqlite::OperationType::kReadOnly, "SELECT * FROM test")
+                          .AsVector<RowTuple>()));
+    UEXPECT_NO_THROW((client->Execute(storages::sqlite::OperationType::kReadWrite, "SELECT * FROM test")
+                          .AsVector<RowTuple>()));
 
     const auto write_snapshot = GetStatistics("sqlite.connections", {{"connection_pool", "write"}});
     EXPECT_EQ(write_snapshot.SingleMetric("active").AsInt(), 1);
@@ -309,7 +311,10 @@ UTEST_F(SQLiteMetricsTest, QueriesBasic) {
     // unsuccessful mutation in prepare time
     UEXPECT_THROW(
         client->Execute(
-            storages::sqlite::OperationType::kReadWrite, "INSERT INTO unknown_table VALUES (?, ?)", 2, "data"
+            storages::sqlite::OperationType::kReadWrite,
+            "INSERT INTO unknown_table VALUES (?, ?)",
+            2,
+            "data"
         ),
         SQLiteException
     );
@@ -349,7 +354,8 @@ UTEST_F(SQLiteMetricsTest, TransactionsBasic) {
     ClientPtr client;
     UEXPECT_NO_THROW(client = CreateClient(settings));
     UEXPECT_NO_THROW(client->Execute(
-        storages::sqlite::OperationType::kReadWrite, "CREATE TABLE test (id INTEGER PRIMARY KEY, value TEXT)"
+        storages::sqlite::OperationType::kReadWrite,
+        "CREATE TABLE test (id INTEGER PRIMARY KEY, value TEXT)"
     ));
 
     constexpr size_t kCommittedWriteTransactions = 5;
@@ -369,7 +375,8 @@ UTEST_F(SQLiteMetricsTest, TransactionsBasic) {
     for (size_t i = 0; i < kRollbackedWriteTransactions; ++i) {
         auto trx = client->Begin(storages::sqlite::OperationType::kReadWrite, {});
         UEXPECT_THROW(
-            trx.Execute("INSERT INTO test VALUES (?, ?)", static_cast<std::uint64_t>(i), "data"), SQLiteException
+            trx.Execute("INSERT INTO test VALUES (?, ?)", static_cast<std::uint64_t>(i), "data"),
+            SQLiteException
         );
     }
 

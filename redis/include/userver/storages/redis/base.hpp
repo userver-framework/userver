@@ -43,7 +43,8 @@ struct ConnectionInfo {
           password{std::move(password)},
           read_only{read_only},
           connection_security(security),
-          database_index(db_index) {}
+          database_index(db_index)
+    {}
 };
 
 struct Stat {
@@ -96,7 +97,9 @@ struct MetricsSettings {
     DynamicSettings dynamic_settings;
 
     MetricsSettings(const DynamicSettings& dynamic_settings, const StaticSettings& static_settings)
-        : static_settings(static_settings), dynamic_settings(dynamic_settings) {}
+        : static_settings(static_settings),
+          dynamic_settings(dynamic_settings)
+    {}
     MetricsSettings() = default;
     MetricsSettings(const MetricsSettings&) = default;
     MetricsSettings(MetricsSettings&&) = default;

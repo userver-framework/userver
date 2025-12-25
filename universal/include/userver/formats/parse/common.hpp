@@ -7,6 +7,7 @@
 /// @ingroup userver_universal userver_formats_parse
 
 #include <chrono>
+#include <cmath>
 #include <cstdint>
 #include <limits>
 
@@ -35,8 +36,29 @@ void CheckInBounds(const Value& value, T x, T min, T max) {
 }
 
 template <typename Value>
+void CheckDoubleFitsInFloat(const Value& value, const double dval) {
+    if (!std::isfinite(dval)) {
+        auto msg = fmt::format(
+            "Double value ({}) of '{}' is prohibited for use. Inf and NaN values lead to vulnerabilities in code",
+            dval,
+            value.GetPath()
+        );
+        UASSERT_MSG(false, msg);
+        throw typename Value::ParseException(std::move(msg));
+    }
+
+    auto fval = static_cast<float>(dval);
+
+    if (!std::isfinite(fval)) {
+        throw typename Value::ParseException(
+            fmt::format("Double value ({}) of '{}' does not fit into float", dval, value.GetPath())
+        );
+    }
+}
+
+template <typename Value>
 float NarrowToFloat(double x, const Value& value) {
-    CheckInBounds<double>(value, x, std::numeric_limits<float>::lowest(), std::numeric_limits<float>::max());
+    impl::CheckDoubleFitsInFloat(value, x);
     return static_cast<float>(x);
 }
 

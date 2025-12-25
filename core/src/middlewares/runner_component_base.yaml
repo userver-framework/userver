@@ -1,0 +1,24 @@
+type: object
+description: base class for all the gRPC service components
+additionalProperties: false
+properties:
+    disable-user-pipeline-middlewares:
+        type: boolean
+        description: flag to disable groups::User middlewares from pipeline
+        default: false
+    disable-all-pipeline-middlewares:
+        type: boolean
+        description: flag to disable all middlewares from pipeline
+        default: false
+    middlewares:
+        type: object
+        description: overloads of configs of middlewares per service
+        additionalProperties:
+            type: object
+            description: a middleware config
+            additionalProperties: true
+            properties:
+                enabled:
+                    type: boolean
+                    description: enable middleware in the list
+        properties: {}

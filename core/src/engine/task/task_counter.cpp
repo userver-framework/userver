@@ -33,7 +33,9 @@ TaskCounter::CoroToken::CoroToken(TaskCounter& counter) noexcept : counter_(&cou
 }
 
 TaskCounter::CoroToken::~CoroToken() {
-    if (counter_) counter_->Increment(LocalCounterId::kStopped);
+    if (counter_) {
+        counter_->Increment(LocalCounterId::kStopped);
+    }
 }
 
 TaskCounter::CoroToken::CoroToken(TaskCounter::CoroToken&& other) noexcept
@@ -50,7 +52,9 @@ TaskCounter::RunningToken::RunningToken(TaskCounter& counter) noexcept : counter
 
 TaskCounter::RunningToken::~RunningToken() { counter_.Increment(LocalCounterId::kStoppedRunning); }
 
-TaskCounter::TaskCounter(std::size_t thread_count) : local_counters_(thread_count) {}
+TaskCounter::TaskCounter(std::size_t thread_count)
+    : local_counters_(thread_count)
+{}
 
 TaskCounter::~TaskCounter() { UASSERT(!MayHaveTasksAlive()); }
 

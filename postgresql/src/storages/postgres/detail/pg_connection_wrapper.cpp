@@ -163,7 +163,8 @@ PGConnectionWrapper::PGConnectionWrapper(
       bg_task_storage_{bts},
       log_extra_{{tracing::kDatabaseType, tracing::kDatabasePostgresType}, {"pg_conn_id", id}},
       pool_size_lock_{std::move(pool_size_lock)},
-      last_use_{std::chrono::steady_clock::now()} {
+      last_use_{std::chrono::steady_clock::now()}
+{
     Openssl::Init();
 }
 
@@ -178,8 +179,9 @@ void PGConnectionWrapper::CheckError(USERVER_NAMESPACE::utils::zstring_view cmd,
     if (pg_dispatch_result == 0) {
         HandleSocketPostClose();
         auto* msg = PQerrorMessage(conn_);
-        PGCW_LOG_WARNING() << "libpq " << cmd << " error: " << msg
-                           << (std::is_base_of_v<ConnectionError, ExceptionType> ? kCheckConnectionQuota : "");
+        PGCW_LOG_WARNING()
+            << "libpq " << cmd << " error: " << msg
+            << (std::is_base_of_v<ConnectionError, ExceptionType> ? kCheckConnectionQuota : "");
         throw ExceptionType(fmt::format("{} execution error: {}", cmd, msg));
     }
 }
@@ -224,7 +226,9 @@ int PGConnectionWrapper::GetServerVersion() const { return PQserverVersion(conn_
 
 std::string_view PGConnectionWrapper::GetParameterStatus(const char* name) const {
     const char* value = PQparameterStatus(conn_, name);
-    if (!value) return {};
+    if (!value) {
+        return {};
+    }
     return value;
 }
 
@@ -256,8 +260,9 @@ engine::Task PGConnectionWrapper::Close() {
                         const int res = shutdown(pq_fd, SHUT_RDWR);
                         if (res < 0) {
                             auto old_errno = errno;
-                            LOG_WARNING() << "error while shutdown() socket (" << old_errno
-                                          << "): " << USERVER_NAMESPACE::utils::strerror(old_errno);
+                            LOG_WARNING()
+                                << "error while shutdown() socket (" << old_errno
+                                << "): " << USERVER_NAMESPACE::utils::strerror(old_errno);
                         }
                     }
                 }
@@ -308,8 +313,8 @@ void PGConnectionWrapper::AsyncConnect(const Dsn& dsn, Deadline deadline, tracin
 
 void PGConnectionWrapper::StartAsyncConnect(const Dsn& dsn) {
     if (conn_) {
-        PGCW_LOG_LIMITED_ERROR() << "Attempt to connect a connection that is already connected"
-                                 << logging::LogExtra::Stacktrace();
+        PGCW_LOG_LIMITED_ERROR()
+            << "Attempt to connect a connection that is already connected" << logging::LogExtra::Stacktrace();
         throw ConnectionFailed{dsn, "Already connected"};
     }
 
@@ -354,9 +359,10 @@ void PGConnectionWrapper::WaitConnectionFinish(Deadline deadline, const Dsn& dsn
                     if (engine::current_task::ShouldCancel()) {
                         throw ConnectionInterrupted("Task cancelled while polling connection for reading");
                     }
-                    PGCW_LOG_LIMITED_WARNING() << "Timeout while polling PostgreSQL connection "
-                                                  "socket for reading, timeout was "
-                                               << timeout.count() << "ms";
+                    PGCW_LOG_LIMITED_WARNING()
+                        << "Timeout while polling PostgreSQL connection "
+                           "socket for reading, timeout was "
+                        << timeout.count() << "ms";
                     throw ConnectionTimeoutError("Timed out while polling connection for reading");
                 }
                 break;
@@ -365,9 +371,10 @@ void PGConnectionWrapper::WaitConnectionFinish(Deadline deadline, const Dsn& dsn
                     if (engine::current_task::ShouldCancel()) {
                         throw ConnectionInterrupted("Task cancelled while polling connection for writing");
                     }
-                    PGCW_LOG_LIMITED_WARNING() << "Timeout while polling PostgreSQL connection "
-                                                  "socket for writing, timeout was "
-                                               << timeout.count() << "ms";
+                    PGCW_LOG_LIMITED_WARNING()
+                        << "Timeout while polling PostgreSQL connection "
+                           "socket for writing, timeout was "
+                        << timeout.count() << "ms";
                     throw ConnectionTimeoutError("Timed out while polling connection for writing");
                 }
                 break;
@@ -444,7 +451,9 @@ void PGConnectionWrapper::RefreshSocket(const Dsn& dsn) {
         PGCW_LOG_LIMITED_ERROR() << "Invalid PostgreSQL socket " << fd;
         throw ConnectionFailed{dsn, "Invalid socket handle"};
     }
-    if (fd == socket_.Fd()) return;
+    if (fd == socket_.Fd()) {
+        return;
+    }
 
     if (socket_.IsValid()) {
         auto old_fd = std::move(socket_).Release();
@@ -454,12 +463,16 @@ void PGConnectionWrapper::RefreshSocket(const Dsn& dsn) {
 }
 
 bool PGConnectionWrapper::WaitSocketReadable(Deadline deadline) {
-    if (!socket_.IsValid()) return false;
+    if (!socket_.IsValid()) {
+        return false;
+    }
     return socket_.WaitReadable(deadline);
 }
 
 bool PGConnectionWrapper::WaitSocketWriteable(Deadline deadline) {
-    if (!socket_.IsValid()) return false;
+    if (!socket_.IsValid()) {
+        return false;
+    }
     return socket_.WaitWriteable(deadline);
 }
 
@@ -499,8 +512,9 @@ bool PGConnectionWrapper::TryConsumeInput(Deadline deadline, const PGresult* des
     while (PQXisBusy(conn_, description)) {
         HandleSocketPostClose();
         if (!WaitSocketReadable(deadline)) {
-            LOG_DEBUG() << "Socket " << socket_.Fd() << " has not become readable in TryConsumeInput due to "
-                        << (socket_.IsValid() ? "timeout" : "closed fd");
+            LOG_DEBUG()
+                << "Socket " << socket_.Fd() << " has not become readable in TryConsumeInput due to "
+                << (socket_.IsValid() ? "timeout" : "closed fd");
             return false;
         }
         CheckError<CommandError>("PQconsumeInput", PQconsumeInput(conn_));
@@ -545,9 +559,9 @@ ResultSet PGConnectionWrapper::WaitResult(Deadline deadline, tracing::ScopeTime&
             auto next_handle = MakeResultHandle(pg_res);
 #if LIBPQ_HAS_PIPELINING
             const auto status = PQresultStatus(pg_res);
-            if (status == PGRES_PIPELINE_SYNC)
+            if (status == PGRES_PIPELINE_SYNC) {
                 HandlePipelineSync();
-            else if (status != PGRES_PIPELINE_ABORTED)
+            } else if (status != PGRES_PIPELINE_ABORTED)
 #endif
                 handle = std::move(next_handle);
         }
@@ -556,7 +570,9 @@ ResultSet PGConnectionWrapper::WaitResult(Deadline deadline, tracing::ScopeTime&
         // this counter.
         if (++null_res_counter > 2) {
             MarkAsBroken();
-            if (!handle) throw RuntimeError{"Empty result"};
+            if (!handle) {
+                throw RuntimeError{"Empty result"};
+            }
             pipeline_sync_counter_ = 0;
         }
     } while (IsSyncingPipeline() && PQstatus(conn_) != CONNECTION_BAD);
@@ -576,7 +592,9 @@ Notification PGConnectionWrapper::WaitNotify(Deadline deadline) {
     }
     Notification result;
     result.channel = notify->relname;
-    if (*notify->extra) result.payload = notify->extra;
+    if (*notify->extra) {
+        result.payload = notify->extra;
+    }
 
     return result;
 }
@@ -703,8 +721,8 @@ ResultSet PGConnectionWrapper::MakeResult(ResultHandle&& handle) {
         case PGRES_COPY_IN:
         case PGRES_COPY_OUT:
         case PGRES_COPY_BOTH:
-            PGCW_LOG_LIMITED_ERROR() << "PostgreSQL COPY command invoked which is not implemented"
-                                     << logging::LogExtra::Stacktrace();
+            PGCW_LOG_LIMITED_ERROR()
+                << "PostgreSQL COPY command invoked which is not implemented" << logging::LogExtra::Stacktrace();
             CloseWithError(NotImplemented{"Copy is not implemented"});
         case PGRES_BAD_RESPONSE:
             CloseWithError(ConnectionError{"Failed to parse server response"});
@@ -712,18 +730,21 @@ ResultSet PGConnectionWrapper::MakeResult(ResultHandle&& handle) {
             const Message msg{wrapper};
             switch (msg.GetSeverity()) {
                 case Message::Severity::kDebug:
-                    PGCW_LOG_DEBUG() << "Postgres " << msg.GetSeverityString() << " message: " << msg.GetMessage()
-                                     << msg.GetLogExtra();
+                    PGCW_LOG_DEBUG()
+                        << "Postgres " << msg.GetSeverityString() << " message: " << msg.GetMessage()
+                        << msg.GetLogExtra();
                     break;
                 case Message::Severity::kLog:
                 case Message::Severity::kInfo:
                 case Message::Severity::kNotice:
-                    PGCW_LOG_INFO() << "Postgres " << msg.GetSeverityString() << " message: " << msg.GetMessage()
-                                    << msg.GetLogExtra();
+                    PGCW_LOG_INFO()
+                        << "Postgres " << msg.GetSeverityString() << " message: " << msg.GetMessage()
+                        << msg.GetLogExtra();
                     break;
                 case Message::Severity::kWarning:
-                    PGCW_LOG_LIMITED_WARNING() << "Postgres " << msg.GetSeverityString()
-                                               << " message: " << msg.GetMessage() << msg.GetLogExtra();
+                    PGCW_LOG_LIMITED_WARNING()
+                        << "Postgres " << msg.GetSeverityString() << " message: " << msg.GetMessage()
+                        << msg.GetLogExtra();
                     break;
                 case Message::Severity::kError:
                 case Message::Severity::kFatal:
@@ -857,7 +878,13 @@ void PGConnectionWrapper::SendPreparedQuery(
         CheckError<CommandError>(
             "PQsendQueryPrepared",
             PQsendQueryPrepared(
-                conn_, name.c_str(), size, param_values, param_lengths, param_formats, io::kPgBinaryDataFormat
+                conn_,
+                name.c_str(),
+                size,
+                param_values,
+                param_lengths,
+                param_formats,
+                io::kPgBinaryDataFormat
             )
         );
     }

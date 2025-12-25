@@ -12,6 +12,10 @@
 #include <userver/utils/async.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
+#ifndef ARCADIA_ROOT
+#include "generated/src/storages/secdist/provider_component.yaml.hpp"  // Y_IGNORE
+#endif
+
 USERVER_NAMESPACE_BEGIN
 
 namespace formats::parse {
@@ -51,7 +55,9 @@ namespace {
 
 formats::json::Value DoLoadFromFile(const std::string& path, SecdistFormat format, bool missing_ok) {
     formats::json::Value doc;
-    if (path.empty()) return doc;
+    if (path.empty()) {
+        return doc;
+    }
 
     std::ifstream stream(path);
     try {
@@ -64,8 +70,8 @@ formats::json::Value DoLoadFromFile(const std::string& path, SecdistFormat forma
             // yaml_config allows user to read from env variables and other useful
             // features.
             const auto yaml_doc = formats::yaml::FromStream(stream);
-            const auto yaml_cfg =
-                yaml_config::YamlConfig(yaml_doc, {}, yaml_config::YamlConfig::Mode::kEnvAndFileAllowed);
+            const auto
+                yaml_cfg = yaml_config::YamlConfig(yaml_doc, {}, yaml_config::YamlConfig::Mode::kEnvAndFileAllowed);
             // finally, convert to JSON
             doc = yaml_cfg.As<formats::json::Value>();
         }
@@ -89,7 +95,7 @@ formats::json::Value LoadFromFile(
     bool missing_ok,
     engine::TaskProcessor* blocking_task_processor
 ) {
-    if (blocking_task_processor)
+    if (blocking_task_processor) {
         return utils::Async(
                    *blocking_task_processor,
                    "load_secdist_from_file",
@@ -99,8 +105,9 @@ formats::json::Value LoadFromFile(
                    missing_ok
         )
             .Get();
-    else
+    } else {
         return DoLoadFromFile(path, format, missing_ok);
+    }
 }
 
 void MergeJsonObj(formats::json::ValueBuilder& builder, const formats::json::Value& update) {
@@ -116,7 +123,9 @@ void MergeJsonObj(formats::json::ValueBuilder& builder, const formats::json::Val
 }
 
 void UpdateFromEnv(formats::json::Value& doc, const std::optional<std::string>& environment_secrets_key) {
-    if (!environment_secrets_key) return;
+    if (!environment_secrets_key) {
+        return;
+    }
 
     const auto& env_vars = engine::subprocess::GetCurrentEnvironmentVariablesPtr();
     const auto* value = env_vars->GetValueOptional(*environment_secrets_key);
@@ -135,13 +144,18 @@ void UpdateFromEnv(formats::json::Value& doc, const std::optional<std::string>& 
 
 }  // namespace
 
-DefaultLoader::DefaultLoader(Settings settings) : settings_{std::move(settings)} {}
+DefaultLoader::DefaultLoader(Settings settings)
+    : settings_{std::move(settings)}
+{}
 
 formats::json::Value DefaultLoader::Get() const {
     formats::json::Value doc;
     if (!settings_.config_path.empty()) {
         doc = LoadFromFile(
-            settings_.config_path, settings_.format, settings_.missing_ok, settings_.blocking_task_processor
+            settings_.config_path,
+            settings_.format,
+            settings_.missing_ok,
+            settings_.blocking_task_processor
         );
     } else {
         doc = settings_.inline_config;
@@ -168,13 +182,16 @@ storages::secdist::SecdistFormat FormatFromString(std::string_view str) {
     UINVARIANT(false, fmt::format("Unknown secdist format '{}' (must be one of 'json', 'yaml')", str));
 }
 
-storages::secdist::DefaultLoader::Settings
-ParseSettings(const components::ComponentConfig& config, const components::ComponentContext& context) {
+storages::secdist::DefaultLoader::Settings ParseSettings(
+    const components::ComponentConfig& config,
+    const components::ComponentContext& context
+) {
     storages::secdist::DefaultLoader::Settings settings;
     auto blocking_task_processor_name = config["blocking-task-processor"].As<std::optional<std::string>>();
-    settings.blocking_task_processor = blocking_task_processor_name
-                                           ? &context.GetTaskProcessor(*blocking_task_processor_name)
-                                           : &engine::current_task::GetBlockingTaskProcessor();
+    settings.blocking_task_processor =
+        blocking_task_processor_name
+            ? &context.GetTaskProcessor(*blocking_task_processor_name)
+            : &engine::current_task::GetBlockingTaskProcessor();
     settings.config_path = config["config"].As<std::string>({});
     settings.inline_config = config["inline"].As<formats::json::Value>({});
     if (!settings.config_path.empty() && !settings.inline_config.IsNull()) {
@@ -191,41 +208,14 @@ ParseSettings(const components::ComponentConfig& config, const components::Compo
 }  // namespace
 
 DefaultSecdistProvider::DefaultSecdistProvider(const ComponentConfig& config, const ComponentContext& context)
-    : ComponentBase{config, context}, loader_{ParseSettings(config, context)} {}
+    : ComponentBase{config, context},
+      loader_{ParseSettings(config, context)}
+{}
 
 formats::json::Value DefaultSecdistProvider::Get() const { return loader_.Get(); }
 
 yaml_config::Schema DefaultSecdistProvider::GetStaticConfigSchema() {
-    return yaml_config::MergeSchemas<ComponentBase>(R"(
-type: object
-description: Component that stores security related data (keys, passwords, ...).
-additionalProperties: false
-properties:
-    config:
-        type: string
-        description: path to the config file with data
-        defaultDescription: ''
-    inline:
-        type: object
-        description: inline data
-        additionalProperties: true
-        properties: {}
-    format:
-        type: string
-        description: secdist format
-        defaultDescription: 'json'
-    missing-ok:
-        type: boolean
-        description: do not terminate components load if no file found by the config option
-        defaultDescription: false
-    environment-secrets-key:
-        type: string
-        description: name of environment variable from which to load additional data
-    blocking-task-processor:
-        type: string
-        description: name of task processor for background blocking operations
-        defaultDescription: engine::current_task::GetBlockingTaskProcessor()
-)");
+    return yaml_config::MergeSchemasFromResource<ComponentBase>("src/storages/secdist/provider_component.yaml");
 }
 
 }  // namespace components

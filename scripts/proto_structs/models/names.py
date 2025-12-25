@@ -252,12 +252,12 @@ def to_pascal_case(name: str, to_lower: bool = False) -> str:
     words = ''.join(word[0].upper() + word[1:] for word in name.split('_') if len(word) > 0)
 
     result = ''
-    for prev, ch in zip(' ' + words, words):  # noqa: B905
+    for prev, ch in zip(' ' + words, words, strict=False):
         # Handle digits.
         if prev.isdigit() and ch.isalpha():
-            result = result + ch.upper()  # noqa: PLR6104
+            result += ch.upper()
         else:
-            result = result + ch  # noqa: PLR6104
+            result += ch
     return result
 
 

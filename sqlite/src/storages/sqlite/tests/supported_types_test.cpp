@@ -229,10 +229,10 @@ UTEST_F(SQLiteTypesTest, BindExtract) {
     )) << "Try to bind values of different types";
 
     TestRow actual_test_row;
-    UEXPECT_NO_THROW(
-        (actual_test_row =
-             client->Execute(storages::sqlite::OperationType::kReadOnly, "SELECT * FROM test").AsSingleRow<TestRow>())
-    ) << "Try to extract values of different types";
+    UEXPECT_NO_THROW((
+        actual_test_row =
+            client->Execute(storages::sqlite::OperationType::kReadOnly, "SELECT * FROM test").AsSingleRow<TestRow>()
+    )) << "Try to extract values of different types";
 
     EXPECT_EQ(actual_test_row, expected_test_row) << "Input and output rows must coincide";
 }
@@ -247,10 +247,11 @@ UTEST_F(SQLiteTypesStringViewTest, BindExtract) {
     ) << "Try to bind std::string_view";
 
     std::string actual_str;
-    UEXPECT_NO_THROW(
-        (actual_str = client->Execute(storages::sqlite::OperationType::kReadOnly, "SELECT * FROM test")
-                          .AsSingleField<std::string>())
-    ) << "Try to extract std::string";
+    UEXPECT_NO_THROW((
+        actual_str =
+            client->Execute(storages::sqlite::OperationType::kReadOnly, "SELECT * FROM test")
+                .AsSingleField<std::string>()
+    )) << "Try to extract std::string";
 
     EXPECT_EQ(actual_str, expected_str) << "Input and output std::string must coincide";
 }
@@ -267,10 +268,11 @@ UTEST_F(SQLiteTypesTest, BindExtractOptionalNull) {
     )) << "Try to bind values of different types";
 
     OptionalTestRow actual_test_row;
-    UEXPECT_NO_THROW(
-        (actual_test_row = client->Execute(storages::sqlite::OperationType::kReadOnly, "SELECT * FROM test")
-                               .AsSingleRow<OptionalTestRow>())
-    ) << "Try to extract values of different types";
+    UEXPECT_NO_THROW((
+        actual_test_row =
+            client->Execute(storages::sqlite::OperationType::kReadOnly, "SELECT * FROM test")
+                .AsSingleRow<OptionalTestRow>()
+    )) << "Try to extract values of different types";
 
     EXPECT_EQ(actual_test_row, expected_test_row) << "Input and output rows must coincide";
 }
@@ -298,7 +300,8 @@ UTEST_F(SQLiteTypesTest, BindExtractOptionalWithValue) {
         formats::json::FromString(R"({
         "key1": 42,
         "key2": {"key3":"val"}
-      })")};
+      })")
+    };
     UEXPECT_NO_THROW(client->ExecuteDecompose(
         storages::sqlite::OperationType::kReadWrite,
         "INSERT INTO test VALUES (?, ?, ?, ?, ?, ?, ?, "
@@ -307,10 +310,11 @@ UTEST_F(SQLiteTypesTest, BindExtractOptionalWithValue) {
     )) << "Try to bind values of different types";
 
     OptionalTestRow actual_test_row;
-    UEXPECT_NO_THROW(
-        (actual_test_row = client->Execute(storages::sqlite::OperationType::kReadOnly, "SELECT * FROM test")
-                               .AsSingleRow<OptionalTestRow>())
-    ) << "Try to extract values of different types";
+    UEXPECT_NO_THROW((
+        actual_test_row =
+            client->Execute(storages::sqlite::OperationType::kReadOnly, "SELECT * FROM test")
+                .AsSingleRow<OptionalTestRow>()
+    )) << "Try to extract values of different types";
 
     EXPECT_EQ(actual_test_row, expected_test_row) << "Input and output rows must coincide";
 }
@@ -321,16 +325,19 @@ UTEST_F(SQLiteTypesMismatchTest, BindExtractMismatch) {
     MismatchTypesTestRow expected_input_test_row{};
     MismatchTypesTestRowCorrect expected_correct_test_row{};
     UEXPECT_NO_THROW(client->ExecuteDecompose(
-        storages::sqlite::OperationType::kReadWrite, "INSERT INTO test VALUES (?, ?)", expected_input_test_row
+        storages::sqlite::OperationType::kReadWrite,
+        "INSERT INTO test VALUES (?, ?)",
+        expected_input_test_row
     )) << "Try to bind values of different types";
 
     {
         // Extract in input order
         MismatchTypesTestRow actual_test_row;
-        UEXPECT_NO_THROW(
-            (actual_test_row = client->Execute(storages::sqlite::OperationType::kReadOnly, "SELECT * FROM test")
-                                   .AsSingleRow<MismatchTypesTestRow>())
-        ) << "Try to extract values of different types";
+        UEXPECT_NO_THROW((
+            actual_test_row =
+                client->Execute(storages::sqlite::OperationType::kReadOnly, "SELECT * FROM test")
+                    .AsSingleRow<MismatchTypesTestRow>()
+        )) << "Try to extract values of different types";
 
         EXPECT_EQ(actual_test_row, expected_input_test_row) << "Input and output rows must coincide";
     }
@@ -338,10 +345,11 @@ UTEST_F(SQLiteTypesMismatchTest, BindExtractMismatch) {
     {
         // Extract in correct order
         MismatchTypesTestRowCorrect actual_test_row;
-        UEXPECT_NO_THROW(
-            (actual_test_row = client->Execute(storages::sqlite::OperationType::kReadOnly, "SELECT * FROM test")
-                                   .AsSingleRow<MismatchTypesTestRowCorrect>())
-        ) << "Try to extract values of different types";
+        UEXPECT_NO_THROW((
+            actual_test_row =
+                client->Execute(storages::sqlite::OperationType::kReadOnly, "SELECT * FROM test")
+                    .AsSingleRow<MismatchTypesTestRowCorrect>()
+        )) << "Try to extract values of different types";
 
         EXPECT_EQ(actual_test_row, expected_correct_test_row) << "Input and output rows must coincide";
     }
@@ -353,7 +361,9 @@ UTEST_F(SQLiteTypesStrictMismatchTest, BindExtractMismatch) {
     MismatchTypesTestRow expected_test_row{};
     UEXPECT_THROW(
         client->ExecuteDecompose(
-            storages::sqlite::OperationType::kReadWrite, "INSERT INTO test VALUES (?, ?)", expected_test_row
+            storages::sqlite::OperationType::kReadWrite,
+            "INSERT INTO test VALUES (?, ?)",
+            expected_test_row
         ),
         SQLiteException
     ) << "With STRICT SQLite will be check types";

@@ -38,7 +38,9 @@ struct MemberAccess<formats::json::Value> : public ::testing::Test {
         "Value iterators are not assignable"
     );
 
-    MemberAccess() : doc(kDoc) {}
+    MemberAccess()
+        : doc(kDoc)
+    {}
     formats::json::Value doc;
 
     using ValueBuilder = formats::json::ValueBuilder;
@@ -103,8 +105,8 @@ TEST_F(FormatsJsonSpecificMemberAccess, TypeMismatchExceptionAccessToAttributes)
     try {
         doc["key1"].As<std::string>();
     } catch (const TypeMismatchException& e) {
-        EXPECT_EQ(e.GetActual(), "intValue");
-        EXPECT_EQ(e.GetExpected(), "stringValue");
+        EXPECT_EQ(e.GetActual(), "kIntValue");
+        EXPECT_EQ(e.GetExpected(), "kStringValue");
         EXPECT_EQ(e.GetPath(), "key1");
     }
 }

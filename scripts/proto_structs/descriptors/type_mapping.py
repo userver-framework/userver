@@ -57,7 +57,7 @@ def parse_struct_reference(field_type: descriptor.Descriptor) -> type_ref.TypeRe
 def parse_type_reference(
     field: descriptor.FieldDescriptor,
     *,
-    plugin_options: options.PluginOptions,  # noqa: COM812
+    plugin_options: options.PluginOptions,
 ) -> type_ref.TypeReference:
     """Parses `field` type, not applying any wrappings or replacements yet."""
     type_kind = typing.cast(int, field.type)
@@ -68,7 +68,7 @@ def parse_type_reference(
         enum_type = typing.cast(descriptor.EnumDescriptor, field.enum_type)
         return _apply_type_overrides(parse_enum_reference(enum_type), enum_type, plugin_options)
 
-    if type_kind == descriptor.FieldDescriptor.TYPE_MESSAGE or type_kind == descriptor.FieldDescriptor.TYPE_GROUP:  # noqa: PLR1714
+    if type_kind in (descriptor.FieldDescriptor.TYPE_MESSAGE, descriptor.FieldDescriptor.TYPE_GROUP):
         # Details on groups:
         # https://protobuf.com/docs/descriptors#groups
         message_type = typing.cast(descriptor.Descriptor, field.message_type)
@@ -80,7 +80,7 @@ def parse_type_reference(
 def _apply_type_overrides(
     parsed_type: type_ref.TypeReference,
     proto_type: TypeDescriptor,
-    plugin_options: options.PluginOptions,  # noqa: COM812
+    plugin_options: options.PluginOptions,
 ) -> type_ref.TypeReference:
     full_type_name: str = proto_type.full_name
     type_override = type_overrides.get_type_override(proto_type_name=full_type_name, plugin_options=plugin_options)
@@ -116,7 +116,7 @@ def _should_wrap_in_optional(field: descriptor.FieldDescriptor) -> bool:
     * Message-typed fields are wrapped in `std::optional` iff defined using an explicit `optional` keyword.
     """
     field_kind: int = field.type
-    if field_kind == descriptor.FieldDescriptor.TYPE_MESSAGE or field_kind == descriptor.FieldDescriptor.TYPE_GROUP:  # noqa: PLR1714
+    if field_kind in (descriptor.FieldDescriptor.TYPE_MESSAGE, descriptor.FieldDescriptor.TYPE_GROUP):
         field_proto = descriptor_proto.to_field_descriptor_proto(field)  # pyright: ignore
         # `proto3_optional` checks whether the field is defined in the `.proto` file using `optional` keyword.
         # Note that message-typed fields are always `has_presence == true`, and `optional` keyword does not affect it.

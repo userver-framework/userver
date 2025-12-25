@@ -8,7 +8,10 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::mysql::impl {
 
-NativeInterface::NativeInterface(Socket& socket, engine::Deadline deadline) : socket_{socket}, deadline_{deadline} {}
+NativeInterface::NativeInterface(Socket& socket, engine::Deadline deadline)
+    : socket_{socket},
+      deadline_{deadline}
+{}
 
 int NativeInterface::StatementPrepare(MYSQL_STMT* stmt, const char* stmt_str, std::size_t length) && {
     int err = 0;
@@ -168,9 +171,10 @@ void NativeInterface::Close(MYSQL* mysql) && {
 
         mysql_close_cont(mysql, 0);
 
-        LOG_WARNING() << "Failed to correctly close a connection, forcibly "
-                         "shutting it down. Reason: "
-                      << ex.what();
+        LOG_WARNING()
+            << "Failed to correctly close a connection, forcibly "
+               "shutting it down. Reason: "
+            << ex.what();
     }
 }
 

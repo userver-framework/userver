@@ -19,7 +19,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine {
 
-TracePlugin::TracePlugin(std::size_t worker_count) : alive_tasks_(worker_count) {}
+TracePlugin::TracePlugin(std::size_t worker_count)
+    : alive_tasks_(worker_count)
+{}
 
 void TracePlugin::HookTaskCreate(const impl::TaskContext&) noexcept {}
 
@@ -56,7 +58,9 @@ void TracePlugin::HookAfterWakeup(const impl::TaskContext&) noexcept {}
 void TracePlugin::PrintStacksByComponentNames(const std::unordered_set<std::string>& component_names) const {
     auto tasks = GetAllTasks();
     for (const auto& task : tasks) {
-        if (!utils::FindOrNullptr(component_names, task.component_name)) continue;
+        if (!utils::FindOrNullptr(component_names, task.component_name)) {
+            continue;
+        }
 
         PrintTask(task.task, task);
     }
@@ -68,7 +72,9 @@ std::vector<TracePlugin::Task> TracePlugin::GetAllTasks() const {
 
     for (const auto& map : alive_tasks_) {
         auto tasks = map.Lock();
-        for (const auto& task : *tasks) result.push_back(task.second);
+        for (const auto& task : *tasks) {
+            result.push_back(task.second);
+        }
     }
     return result;
 }

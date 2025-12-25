@@ -67,7 +67,7 @@ class _CodeGenerator:
         except Exception:
             raise Exception(
                 f'userver proto structs codegen failed for file: {self.file_descriptor.name} '
-                '(see details in the exception above)'  # noqa: COM812
+                '(see details in the exception above)',
             )
 
     @staticmethod
@@ -121,7 +121,7 @@ def generate(loader: jinja2.BaseLoader) -> None:
     except Exception:
         raise Exception(
             f'userver proto structs codegen failed to parse options for files: {", ".join(files)} '
-            '(see details in the exception above)'  # noqa: COM812
+            '(see details in the exception above)',
         )
 
     # pylint: disable=no-member

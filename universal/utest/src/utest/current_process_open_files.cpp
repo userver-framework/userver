@@ -38,7 +38,11 @@ std::vector<std::string> CurrentProcessOpenFiles() {
         if (proc_fd_info[i].proc_fdtype == PROX_FDTYPE_VNODE) {
             struct vnode_fdinfowithpath vnode_info {};
             const int bytes_used = proc_pidfdinfo(
-                pid, proc_fd_info[i].proc_fd, PROC_PIDFDVNODEPATHINFO, &vnode_info, PROC_PIDFDVNODEPATHINFO_SIZE
+                pid,
+                proc_fd_info[i].proc_fd,
+                PROC_PIDFDVNODEPATHINFO,
+                &vnode_info,
+                PROC_PIDFDVNODEPATHINFO_SIZE
             );
             if (bytes_used == PROC_PIDFDVNODEPATHINFO_SIZE) {
                 result.emplace_back(vnode_info.pvip.vip_path);

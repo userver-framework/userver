@@ -36,7 +36,8 @@ void SetLogLevel(logging::Level log_level) {
     }
 
     static const logging::DefaultLoggerGuard kLogger{
-        logging::MakeStderrLogger("default", logging::Format::kTskv, log_level)};
+        logging::MakeStderrLogger("default", logging::Format::kTskv, log_level)
+    };
 
     logging::SetDefaultLoggerLevel(log_level);
 }

@@ -110,7 +110,8 @@ UTEST(OutputBinding, AllSupportedDates) {
     TmpTable table{
         cluster,
         "DatetimeT DATETIME(6) NOT NULL, DateT DATE NOT NULL, "
-        "TimestampT TIMESTAMP(6) NOT NULL"};
+        "TimestampT TIMESTAMP(6) NOT NULL"
+    };
 
     struct AllSupportedDates final {
         storages::mysql::DateTime datetime;
@@ -122,11 +123,13 @@ UTEST(OutputBinding, AllSupportedDates) {
     const AllSupportedDates row_to_insert{DateTime{now}, Date{now}, now};
 
     cluster->ExecuteDecompose(
-        ClusterHostType::kPrimary, table.FormatWithTableName("INSERT INTO {} VALUES(?, ?, ?)"), row_to_insert
+        ClusterHostType::kPrimary,
+        table.FormatWithTableName("INSERT INTO {} VALUES(?, ?, ?)"),
+        row_to_insert
     );
 
-    const auto db_row =
-        table.DefaultExecute("SELECT DatetimeT, DateT, TimestampT FROM {}").AsSingleRow<AllSupportedDates>();
+    const auto
+        db_row = table.DefaultExecute("SELECT DatetimeT, DateT, TimestampT FROM {}").AsSingleRow<AllSupportedDates>();
 
     EXPECT_TRUE(DateTimesEqual(row_to_insert.datetime, db_row.datetime));
     EXPECT_TRUE(DatesEqual(row_to_insert.date, db_row.date));
@@ -141,7 +144,8 @@ UTEST(OutputBinding, AllSupportedStrings) {
         "TinyBlobT TINYBLOB NOT NULL, TinyTextT TINYTEXT NOT NULL,"
         "BlobT BLOB NOT NULL, TextT TEXT NOT NULL,"
         "MediumBlobT MEDIUMBLOB NOT NULL, MediumTextT MEDIUMTEXT NOT NULL,"
-        "LongBlobT LONGBLOB NOT NULL, LongTextT LONGTEXT NOT NULL"};
+        "LongBlobT LONGBLOB NOT NULL, LongTextT LONGTEXT NOT NULL"
+    };
 
     struct AllSupportedStrings final {
         std::string varchar;
@@ -166,20 +170,22 @@ UTEST(OutputBinding, AllSupportedStrings) {
         "mediumblob",
         "mediumtext",
         "longblob",
-        "longtext"};
+        "longtext"
+    };
     cluster->ExecuteDecompose(
         ClusterHostType::kPrimary,
         table.FormatWithTableName("INSERT INTO {} VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"),
         row_to_insert
     );
 
-    const auto db_row = table
-                            .DefaultExecute(
-                                "SELECT VarCharT, VarBinaryT, TinyBlobT, TinyTextT, "
-                                "BlobT, TextT, "
-                                "MediumBlobT, MediumTextT, LongBlobT, LongTextT FROM {}"
-                            )
-                            .AsSingleRow<AllSupportedStrings>();
+    const auto db_row =
+        table
+            .DefaultExecute(
+                "SELECT VarCharT, VarBinaryT, TinyBlobT, TinyTextT, "
+                "BlobT, TextT, "
+                "MediumBlobT, MediumTextT, LongBlobT, LongTextT FROM {}"
+            )
+            .AsSingleRow<AllSupportedStrings>();
 
     EXPECT_EQ(row_to_insert.varchar, db_row.varchar);
     EXPECT_EQ(row_to_insert.varbinary, db_row.varbinary);

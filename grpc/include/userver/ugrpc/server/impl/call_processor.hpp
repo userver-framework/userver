@@ -10,12 +10,13 @@
 #include <google/protobuf/message.h>
 #include <grpcpp/server_context.h>
 
+#include <userver/logging/log.hpp>
 #include <userver/server/handlers/exceptions.hpp>
 #include <userver/tracing/in_place_span.hpp>
+#include <userver/utils/fast_scope_guard.hpp>
 #include <userver/utils/impl/internal_tag.hpp>
 
 #include <userver/ugrpc/server/exceptions.hpp>
-#include <userver/ugrpc/server/impl/call_kind.hpp>
 #include <userver/ugrpc/server/impl/call_state.hpp>
 #include <userver/ugrpc/server/impl/call_traits.hpp>
 #include <userver/ugrpc/server/impl/exceptions.hpp>
@@ -35,14 +36,14 @@ void SetupSpan(
     std::string_view method_name
 );
 
+grpc::Status ReportCustomError(const USERVER_NAMESPACE::server::handlers::CustomHandlerException& ex, CallState& state)
+    noexcept;
+
 grpc::Status ReportHandlerError(const std::exception& ex, CallState& state) noexcept;
 
-void ReportRpcInterruptedError(CallState& state) noexcept;
+void ReportFinished(const grpc::Status& status, CallState& state) noexcept;
 
-grpc::Status
-ReportCustomError(const USERVER_NAMESPACE::server::handlers::CustomHandlerException& ex, CallState& state) noexcept;
-
-void ReportFinish(bool finish_op_succeeded, const grpc::Status& status, CallState& state) noexcept;
+void ReportInterrupted(CallState& state) noexcept;
 
 template <typename Response>
 void UnpackResult(Result<Response>&& result, std::optional<Response>& response, grpc::Status& status) {
@@ -65,6 +66,28 @@ void UnpackResult(StreamingResult<Response>&& result, std::optional<Response>& r
 }
 
 template <typename CallTraits>
+bool Finish(
+    impl::Responder<CallTraits>& responder,
+    const std::optional<typename CallTraits::Response>& response,
+    grpc::Status& status
+) {
+    if (status.ok()) {
+        if constexpr (!IsSingleResponseMethod(CallTraits::kRpcType)) {
+            if (response.has_value()) {
+                return responder.Finish(*response);
+            } else {
+                return responder.Finish();
+            }
+        } else {
+            UINVARIANT(response.has_value(), "response should not be empty");
+            return responder.Finish(*response);
+        }
+    } else {
+        return responder.FinishWithError(status);
+    }
+}
+
+template <typename CallTraits>
 class CallProcessor final {
 public:
     using Responder = impl::Responder<CallTraits>;
@@ -82,127 +105,115 @@ public:
         ServiceBase& service,
         ServiceMethod service_method
     )
-        : state_(std::move(params), CallTraits::kCallKind),
+        : state_(std::move(params)),
           responder_(state_, raw_responder),
-          context_(utils::impl::InternalTag{}, state_),
+          middleware_call_context_(utils::impl::InternalTag{}, state_, status_),
           initial_request_(initial_request),
           service_(service),
-          service_method_(service_method) {
+          service_method_(service_method)
+    {
         // TODO Move setting up Span a middleware?
         SetupSpan(
-            state_.span_storage, state_.server_context, state_.call_name, state_.service_name, state_.method_name
+            state_.span_storage,
+            state_.server_context,
+            state_.call_name,
+            state_.service_name,
+            state_.method_name
         );
     }
 
     void DoCall() {
         RunOnCallStart();
 
+        bool finished = false;
+        const utils::FastScopeGuard post_finish_hooks_guard([this, &finished]() noexcept {
+            RunOnCallFinish(finished ? std::make_optional(std::move(status_)) : std::nullopt);
+        });
+
         // Don't keep the config snapshot for too long, especially for streaming RPCs.
         state_.config_snapshot.reset();
 
-        if (!Status().ok()) {
-            RunOnCallFinish();
-            impl::ReportFinish(responder_.FinishWithError(Status()), Status(), state_);
-            return;
+        std::optional<Response> response;
+        if (!engine::current_task::ShouldCancel() && status_.ok()) {
+            RunWithCatch([this, &response] {
+                auto result = CallHandler();
+                impl::UnpackResult(std::move(result), response, status_);
+            });
         }
 
-        // Final response is the response sent to the client together with status in the final batch.
-        std::optional<Response> final_response{};
-
-        RunWithCatch([this, &final_response] {
-            auto result = CallHandler();
-            impl::UnpackResult(std::move(result), final_response, Status());
-        });
-
-        // Streaming handler can detect RPC breakage during a network interaction => IsFinished.
-        // RpcFinishedEvent can signal RPC interruption while in the handler => ShouldCancel.
-        if (responder_.IsFinished() || engine::current_task::ShouldCancel()) {
-            impl::ReportRpcInterruptedError(state_);
-            // Don't run OnCallFinish.
-            return;
+        if (!engine::current_task::ShouldCancel() && !responder_.IsInterrupted()) {
+            RunPreFinishHooks(response);
+            finished = impl::Finish(responder_, response, status_);
         }
 
-        if (!Status().ok()) {
-            RunOnCallFinish();
-            impl::ReportFinish(responder_.FinishWithError(Status()), Status(), state_);
-            return;
+        if (finished) {
+            impl::ReportFinished(status_, state_);
+        } else {
+            impl::ReportInterrupted(state_);
         }
-
-        if (final_response) {
-            RunPreSendMessage(*final_response);
-        }
-        RunOnCallFinish();
-
-        if (!Status().ok()) {
-            impl::ReportFinish(responder_.FinishWithError(Status()), Status(), state_);
-            return;
-        }
-
-        if constexpr (IsServerStreaming(CallTraits::kCallKind)) {
-            if (!final_response) {
-                impl::ReportFinish(responder_.Finish(), Status(), state_);
-                return;
-            }
-        }
-        UASSERT(final_response);
-        impl::ReportFinish(responder_.Finish(*final_response), Status(), state_);
     }
 
 private:
     auto CallHandler() {
         Context context{utils::impl::InternalTag{}, state_};
 
-        if constexpr (impl::IsClientStreaming(CallTraits::kCallKind)) {
+        if constexpr (!IsSingleRequestMethod(CallTraits::kRpcType)) {
             return (service_.*service_method_)(context, responder_);
-        } else if constexpr (CallTraits::kCallKind == CallKind::kUnaryCall) {
+        } else if constexpr (CallTraits::kRpcType == RpcType::kUnary) {
             return (service_.*service_method_)(context, std::move(initial_request_));
-        } else if constexpr (CallTraits::kCallKind == CallKind::kOutputStream) {
+        } else if constexpr (CallTraits::kRpcType == RpcType::kServerStreaming) {
             return (service_.*service_method_)(context, std::move(initial_request_), responder_);
         } else {
-            static_assert(!sizeof(CallTraits), "Unexpected CallCategory");
+            static_assert(!sizeof(CallTraits), "Unexpected RpcType");
         }
     }
 
     void RunOnCallStart() {
         UASSERT(success_pre_hooks_count_ == 0);
         for (const auto& m : state_.middlewares) {
-            RunWithCatch([this, &m] { m->OnCallStart(context_); });
-            if (!Status().ok()) {
+            RunWithCatch([this, &m] { m->OnCallStart(middleware_call_context_); });
+            if (!status_.ok()) {
                 return;
             }
             // On fail, we must call OnRpcFinish only for middlewares for which OnRpcStart has been called successfully.
             // So, we watch to count of these middlewares.
             ++success_pre_hooks_count_;
             if constexpr (std::is_base_of_v<google::protobuf::Message, InitialRequest>) {
-                RunWithCatch([this, &m] { m->PostRecvMessage(context_, initial_request_); });
-                if (!Status().ok()) {
+                RunWithCatch([this, &m] { m->PostRecvMessage(middleware_call_context_, initial_request_); });
+                if (!status_.ok()) {
                     return;
                 }
             }
         }
     }
 
-    void RunOnCallFinish() {
+    void RunPreFinishHooks(std::optional<Response>& response) {
         const auto& mids = state_.middlewares;
         const auto rbegin = mids.rbegin() + (mids.size() - success_pre_hooks_count_);
         for (auto it = rbegin; it != mids.rend(); ++it) {
             const auto& middleware = *it;
-            // We must call all OnRpcFinish despite the failures. So, don't check the status.
-            RunWithCatch([this, &middleware] { middleware->OnCallFinish(context_, Status()); });
+
+            if constexpr (std::is_base_of_v<google::protobuf::Message, Response>) {
+                if (status_.ok() && response.has_value()) {
+                    RunWithCatch([this, &middleware, &response] {
+                        middleware->PreSendMessage(middleware_call_context_, *response);
+                    });
+                }
+            }
+
+            RunWithCatch([this, &middleware] { middleware->PreSendStatus(middleware_call_context_, status_); });
         }
     }
 
-    void RunPreSendMessage(Response& response) {
-        if constexpr (std::is_base_of_v<google::protobuf::Message, Response>) {
-            const auto& mids = state_.middlewares;
-            // We don't want to include a heavy boost header for reverse view.
-            // NOLINTNEXTLINE(modernize-loop-convert)
-            for (auto it = mids.rbegin(); it != mids.rend(); ++it) {
-                const auto& middleware = *it;
-                RunWithCatch([this, &response, &middleware] { middleware->PreSendMessage(context_, response); });
-                if (!Status().ok()) {
-                    return;
-                }
+    void RunOnCallFinish(const std::optional<grpc::Status>& status) {
+        const auto& mids = state_.middlewares;
+        const auto rbegin = mids.rbegin() + (mids.size() - success_pre_hooks_count_);
+        for (auto it = rbegin; it != mids.rend(); ++it) {
+            const auto& middleware = *it;
+            try {
+                middleware->OnCallFinish(middleware_call_context_, status);
+            } catch (const std::exception& ex) {
+                LOG_WARNING() << "Error in OnCallFinish: " << ex;
             }
         }
     }
@@ -212,24 +223,23 @@ private:
         try {
             func();
         } catch (MiddlewareRpcInterruptionError& ex) {
-            Status() = ex.ExtractStatus();
+            status_ = ex.ExtractStatus();
         } catch (ErrorWithStatus& ex) {
-            Status() = ex.ExtractStatus();
+            status_ = ex.ExtractStatus();
         } catch (const USERVER_NAMESPACE::server::handlers::CustomHandlerException& ex) {
-            Status() = impl::ReportCustomError(ex, state_);
+            status_ = impl::ReportCustomError(ex, state_);
         } catch (const RpcInterruptedError& /*ex*/) {
-            UASSERT(responder_.IsFinished());
+            UASSERT(responder_.IsInterrupted());
             // RPC interruption will be reported below.
         } catch (const std::exception& ex) {
-            Status() = impl::ReportHandlerError(ex, state_);
+            status_ = impl::ReportHandlerError(ex, state_);
         }
     }
 
-    grpc::Status& Status() { return context_.GetStatus(utils::impl::InternalTag{}); }
-
     CallState state_;
     Responder responder_;
-    MiddlewareCallContext context_;
+    grpc::Status status_;
+    MiddlewareCallContext middleware_call_context_;
     // Initial request is the request which is sent to the service together with RPC initiation.
     // Unary-request RPCs have an initial request, client-streaming RPCs don't.
     InitialRequest& initial_request_;

@@ -59,6 +59,17 @@ UTEST(TaskBuilder, Deadline) {
     EXPECT_TRUE(task.IsFinished());
 }
 
+UTEST(TaskBuilder, ForwardsMoveOnlyType) {
+    bool task_executed = false;
+    auto test_function = [&task_executed](std::unique_ptr<int>) { task_executed = true; };
+    utils::TaskBuilder builder;
+
+    auto ptr = std::make_unique<int>(42);
+    builder.NoSpan().Build(test_function, std::move(ptr)).Get();
+
+    EXPECT_TRUE(task_executed);
+}
+
 engine::TaskInheritedVariable<int> task_local_variable;
 
 UTEST(TaskBuilder, Background) {

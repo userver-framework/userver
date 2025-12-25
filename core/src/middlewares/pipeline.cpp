@@ -12,6 +12,10 @@
 #include <userver/middlewares/pipeline.hpp>
 #include <userver/middlewares/runner.hpp>
 
+#ifndef ARCADIA_ROOT
+#include "generated/src/middlewares/pipeline.yaml.hpp"  // Y_IGNORE
+#endif
+
 USERVER_NAMESPACE_BEGIN
 
 namespace middlewares {
@@ -52,7 +56,10 @@ impl::Dependencies MakeDependencies(
 
 namespace impl {
 
-MiddlewarePipeline::MiddlewarePipeline(Dependencies&& deps) : deps_(deps), pipeline_(BuildPipeline(std::move(deps))) {}
+MiddlewarePipeline::MiddlewarePipeline(Dependencies&& deps)
+    : deps_(deps),
+      pipeline_(BuildPipeline(std::move(deps)))
+{}
 
 std::vector<std::string> MiddlewarePipeline::GetPerServiceMiddlewares(const impl::MiddlewareRunnerConfig& config
 ) const {
@@ -87,29 +94,13 @@ AnyMiddlewarePipelineComponent::AnyMiddlewarePipelineComponent(
     impl::BuiltInConfig&& base_config
 )
     : components::ComponentBase(config, context),
-      pipeline_(MakeDependencies(config, context, std::move(base_config))) {}
+      pipeline_(MakeDependencies(config, context, std::move(base_config)))
+{}
 
 const impl::MiddlewarePipeline& AnyMiddlewarePipelineComponent::GetPipeline() const { return pipeline_; }
 
 yaml_config::Schema AnyMiddlewarePipelineComponent::GetStaticConfigSchema() {
-    return yaml_config::MergeSchemas<components::ComponentBase>(R"(
-type: object
-description: base class for all the gRPC service components
-additionalProperties: false
-properties:
-    middlewares:
-        type: object
-        description: middlewares names and configs to use
-        additionalProperties:
-            type: object
-            description: a middleware config
-            additionalProperties: false
-            properties:
-                enabled:
-                    type: boolean
-                    description: enable middleware in the list
-        properties: {}
-)");
+    return yaml_config::MergeSchemasFromResource<components::ComponentBase>("src/middlewares/pipeline.yaml");
 }
 
 }  // namespace impl

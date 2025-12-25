@@ -19,10 +19,10 @@ class UnitTestServiceEcho final : public sample::ugrpc::UnitTestServiceBase {
 public:
     ChatResult Chat(CallContext& /*context*/, ChatReaderWriter& stream) override {
         sample::ugrpc::StreamGreetingRequest request;
-        sample::ugrpc::StreamGreetingResponse response{};
         while (stream.Read(request)) {
+            sample::ugrpc::StreamGreetingResponse response{};
             response.set_number(request.number());
-            stream.Write(response);
+            stream.Write(std::move(response));
         }
         return grpc::Status::OK;
     }
@@ -35,7 +35,7 @@ public:
         for (int i = 0; i < 3; ++i) {
             sample::ugrpc::StreamGreetingResponse response{};
             response.set_number(i);
-            writer.Write(response);
+            writer.Write(std::move(response));
         }
         return grpc::Status::OK;
     }
@@ -72,7 +72,9 @@ UTEST_F_MT(GrpcBidirectionalStream, BidirectionalStreamTest, 2) {
     auto write_task = engine::AsyncNoSpan([&stream, &requests] {
         for (const auto& request : requests) {
             const bool success = stream.Write(request);
-            if (!success) return false;
+            if (!success) {
+                return false;
+            }
         }
 
         return stream.WritesDone();
@@ -211,9 +213,8 @@ UTEST_F(GrpcBidirectionalStream, BidirectionalStreamDestroy) {
     };
 
     EXPECT_EQ(get_metric(kStatus, {{"grpc_code", "OK"}}), 0);
-    EXPECT_FALSE(
-        GetStatistics("grpc.client.total", {{"grpc_code", "CANCELLED"}}).SingleMetricOptional(std::string{kStatus})
-    );
+    EXPECT_FALSE(GetStatistics("grpc.client.total", {{"grpc_code", "CANCELLED"}})
+                     .SingleMetricOptional(std::string{kStatus}));
     EXPECT_EQ(get_metric(kAbandoned), 0);
 
     sample::ugrpc::StreamGreetingRequest request;

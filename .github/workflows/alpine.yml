@@ -26,7 +26,7 @@ jobs:
         runs-on: ubuntu-24.04
 
         env:
-            CMAKE_PROGRAM_PATH: /usr/lib/llvm17/bin
+            CMAKE_PROGRAM_PATH: /usr/lib/llvm19/bin
             CMAKE_FLAGS: >-
                 -DCMAKE_BUILD_TYPE=Debug
                 -DCMAKE_CXX_STANDARD=17
@@ -46,13 +46,13 @@ jobs:
                 -DUSERVER_FORCE_DOWNLOAD_GRPC=1
 
         steps:
-          - uses: actions/checkout@v5
+          - uses: actions/checkout@v6
             with:
                 fetch-depth: 0
 
           - name: Restore cached directories
             id: restore-cache
-            uses: actions/cache/restore@v4
+            uses: actions/cache/restore@v5
             with:
                 path: |
                     ${{env.CCACHE_DIR}}
@@ -122,7 +122,7 @@ jobs:
                 cmake --build build_debug -j$(nproc)
 
           - name: Save cached directories
-            uses: actions/cache/save@v4
+            uses: actions/cache/save@v5
             with:
                 path: |
                     ${{env.CCACHE_DIR}}

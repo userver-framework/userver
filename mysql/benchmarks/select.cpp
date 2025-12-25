@@ -40,7 +40,8 @@ void select_many_small_columns(benchmark::State& state) {
             cluster,
             "a INT NOT NULL, b INT NOT NULL, c INT NOT NULL, d INT NOT NULL, "
             "e INT NOT NULL, f INT NOT NULL, g INT NOT NULL, h INT NOT NULL, "
-            "j INT NOT NULL, k INT NOT NULL"};
+            "j INT NOT NULL, k INT NOT NULL"
+        };
         struct Row final {
             std::int32_t a{};
             std::int32_t b{};

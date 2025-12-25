@@ -1,6 +1,7 @@
 #include <userver/components/component_context.hpp>
 
 #include <components/component_context_impl.hpp>
+#include <userver/components/scope.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -24,6 +25,10 @@ engine::TaskProcessor& ComponentContext::GetTaskProcessor(std::string_view name)
 }
 
 std::string_view ComponentContext::GetComponentName() const { return component_info_.GetName(); }
+
+void ComponentContext::RegisterScope(ScopePtr resource_scope) const {
+    component_info_.RegisterScope(std::move(resource_scope));
+}
 
 impl::ComponentContextImpl& ComponentContext::GetImpl(utils::impl::InternalTag) const { return impl_; }
 

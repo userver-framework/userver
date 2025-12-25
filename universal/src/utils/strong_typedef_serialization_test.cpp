@@ -181,8 +181,10 @@ TEST(SerializeStrongTypedef, ToString) {
         utils::StrongTypedef<struct StringTagStrong, std::string, utils::StrongTypedefOps::kCompareStrong>;
     using StringTypedefCompareTransparent =
         utils::StrongTypedef<struct StringTagTransparent, std::string, utils::StrongTypedefOps::kCompareTransparent>;
-    using StringTypedefCompareTransparentOnly = utils::
-        StrongTypedef<struct StringTagTransparentOnly, std::string, utils::StrongTypedefOps::kCompareTransparentOnly>;
+    using StringTypedefCompareTransparentOnly = utils::StrongTypedef<
+        struct StringTagTransparentOnly,
+        std::string,
+        utils::StrongTypedefOps::kCompareTransparentOnly>;
 
     using UInt64Typedef = utils::StrongTypedef<struct UInt64Tag, uint64_t>;
 

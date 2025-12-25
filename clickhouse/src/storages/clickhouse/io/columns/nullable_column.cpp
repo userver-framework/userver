@@ -12,7 +12,8 @@ NullableColumnMeta ExtractNullableMeta(const ColumnRef& column) {
     auto nullable = column->As<clickhouse::impl::clickhouse_cpp::ColumnNullable>();
     if (!nullable) {
         throw std::runtime_error{
-            fmt::format("failed to cast column of type '{}' to Nullable", column->Type()->GetName())};
+            fmt::format("failed to cast column of type '{}' to Nullable", column->Type()->GetName())
+        };
     }
 
     NullableColumnMeta result;

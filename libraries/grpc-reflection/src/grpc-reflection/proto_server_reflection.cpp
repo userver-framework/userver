@@ -53,9 +53,9 @@ void ProtoServerReflection::AddServiceList(const std::vector<std::string_view>& 
 ProtoServerReflection::ServerReflectionInfoResult
 ProtoServerReflection::ServerReflectionInfo(CallContext& /*context*/, ServerReflectionInfoReaderWriter& stream) {
     proto_reflection::ServerReflectionRequest request;
-    proto_reflection::ServerReflectionResponse response;
     ::grpc::Status status;
     while (stream.Read(request)) {
+        proto_reflection::ServerReflectionResponse response;
         switch (request.message_request_case()) {
             case proto_reflection::ServerReflectionRequest::MessageRequestCase::kFileByFilename:
                 status = GetFileByName(request.file_by_filename(), response);
@@ -83,7 +83,7 @@ ProtoServerReflection::ServerReflectionInfo(CallContext& /*context*/, ServerRefl
         }
         response.set_valid_host(request.host());
         response.set_allocated_original_request(new proto_reflection::ServerReflectionRequest(std::move(request)));
-        stream.Write(response);
+        stream.Write(std::move(response));
     }
 
     return grpc::Status::OK;

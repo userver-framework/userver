@@ -42,7 +42,8 @@ class SubscribableFutureWrapper final {
 public:
     explicit SubscribableFutureWrapper(SubscribableFuture&& future)
         : original_future_(static_cast<SubscribableFuture&&>(future)),
-          event_holder_(utils::make_intrusive_ptr<impl::EventHolder>()) {
+          event_holder_(utils::make_intrusive_ptr<impl::EventHolder>())
+    {
         original_future_.Subscribe([event_holder = event_holder_](auto&) { event_holder->event.Send(); });
     }
 
@@ -93,8 +94,10 @@ void WaitForSubscribableFuture(SubscribableFuture&& future) {
 /// @warning Repeatedly waiting again after `deadline` expiration leads to a
 /// memory leak, use drivers::SubscribableFutureWrapper instead.
 template <typename SubscribableFuture>
-[[nodiscard]] engine::FutureStatus
-TryWaitForSubscribableFuture(SubscribableFuture&& future, engine::Deadline deadline) {
+[[nodiscard]] engine::FutureStatus TryWaitForSubscribableFuture(
+    SubscribableFuture&& future,
+    engine::Deadline deadline
+) {
     return SubscribableFutureWrapper<SubscribableFuture&>{future}.TryWaitUntil(deadline);
 }
 

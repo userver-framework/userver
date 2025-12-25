@@ -16,7 +16,9 @@ USERVER_NAMESPACE_BEGIN
 namespace engine::impl {
 
 struct DetachedTasksSyncBlock::Token final {
-    explicit Token(DetachedTasksSyncBlock& owner) : owner(owner) {}
+    explicit Token(DetachedTasksSyncBlock& owner)
+        : owner(owner)
+    {}
 
     concurrent::impl::IntrusiveWalkablePoolHook<Token> pool_hook{};
 
@@ -111,7 +113,9 @@ void DetachedTasksSyncBlock::WaitAllTasksCompleteDebug() noexcept {
 
 std::int64_t DetachedTasksSyncBlock::ActiveTasksApprox() const noexcept {
     UASSERT_MSG(impl_->wait_tokens, "Task count is only available for StopMode::kCancelAndWait");
-    if (!impl_->wait_tokens) return 0;
+    if (!impl_->wait_tokens) {
+        return 0;
+    }
 
     return impl_->wait_tokens->AliveTokensApprox();
 }

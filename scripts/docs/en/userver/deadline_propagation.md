@@ -140,16 +140,16 @@ support deadline propagation.
 ### Blocking the deadline propagation
 
 Task-inherited deadline is by default propagated from the handler task to child tasks created via `utils::*Async*`.
-There it is used in all clients that support it. This is implemented via `server::request::kTaskInheritedData`
-and `server::request::GetTaskInheritedDeadline`.
+There it is used in all clients that support it. This is implemented via @ref server::request::kTaskInheritedData
+and @ref server::request::GetTaskInheritedDeadline.
 
 In _background tasks_ that are started from the task of the request, but do not affect its completion, the deadline
 should not be propagated from the request tasks. Blocking such deadline propagation can be achieved by the following
 mechanisms:
 
-- `concurrent::BackgroundTaskStorage::AsyncDetach`
-- `utils::AsyncBackground`
-- `engine::AsyncNoSpan` (don't use it if you are not sure that you need it!)
+- @ref concurrent::BackgroundTaskStorage::AsyncDetach()
+- @ref utils::AsyncBackground
+- @ref engine::AsyncNoSpan (don't use it if you are not sure that you need it!)
 
 @warning when creating background tasks via `utils::Async` (instead of `utils::AsyncBackground`), requests performed
 in them will be interrupted along with the parent task**
@@ -181,7 +181,7 @@ Metrics:
 * `cancelled-by-deadline` (monotonic counter) - counts requests the handling of which was cancelled by deadline
   (deadline expired by the end of handling, or some operation estimated that the deadline would surely expire).
 
-Log tags of the request's `tracing::Span`:
+Log tags of the request's @ref tracing::Span :
 
 * `deadline_received_ms=...` if the calling service has set a deadline for the request
 * if deadline expired while handling the request:

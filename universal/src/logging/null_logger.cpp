@@ -25,7 +25,9 @@ private:
 
 class NullLogger final : public impl::TextLogger {
 public:
-    NullLogger() noexcept : TextLogger(Format::kRaw) { LoggerBase::SetLevel(Level::kNone); }
+    NullLogger() noexcept : TextLogger(Format::kRaw) {
+        LoggerBase::SetLevel(Level::kNone);
+    }
 
     void SetLevel(Level) override {}
     void Log(Level, impl::formatters::LoggerItemRef) override {}
@@ -37,7 +39,9 @@ public:
 
 class NoopLogger final : public impl::TextLogger {
 public:
-    NoopLogger() noexcept : TextLogger(Format::kRaw) { SetLevel(Level::kInfo); }
+    NoopLogger() noexcept : TextLogger(Format::kRaw) {
+        SetLevel(Level::kInfo);
+    }
     void Log(Level, impl::formatters::LoggerItemRef) override {}
     void Flush() override {}
 };

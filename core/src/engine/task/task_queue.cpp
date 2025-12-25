@@ -11,7 +11,8 @@ constexpr std::size_t kSemaphoreInitialCount = 0;
 }
 
 TaskQueue::TaskQueue(const TaskProcessorConfig& config)
-    : queue_semaphore_(kSemaphoreInitialCount, config.spinning_iterations) {}
+    : queue_semaphore_(kSemaphoreInitialCount, config.spinning_iterations)
+{}
 
 void TaskQueue::Push(boost::intrusive_ptr<impl::TaskContext>&& context) {
     UASSERT(context);
@@ -26,7 +27,8 @@ boost::intrusive_ptr<impl::TaskContext> TaskQueue::PopBlocking() {
 
     boost::intrusive_ptr<impl::TaskContext> context{
         DoPopBlocking(token),
-        /* add_ref= */ false};
+        /* add_ref= */ false
+    };
 
     if (!context) {
         // return "stop" token back

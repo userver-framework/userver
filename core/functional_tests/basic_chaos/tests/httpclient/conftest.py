@@ -37,4 +37,4 @@ async def _gate_ready(service_client, _gate_started):
     _gate_started.start_accepting()
     await _gate_started.sockets_close()  # close keepalive connections
 
-    yield _gate_started  # noqa: PT022
+    return _gate_started

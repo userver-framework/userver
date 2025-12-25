@@ -5,19 +5,25 @@
 #include <userver/engine/task/task.hpp>
 #include <userver/ugrpc/client/middlewares/deadline_propagation/middleware.hpp>
 #include <userver/ugrpc/server/middlewares/deadline_propagation/middleware.hpp>
+#include <userver/utils/statistics/metrics_storage.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::tests {
 
-ServiceBase::ServiceBase() : ServiceBase(server::ServerConfig{}) {}
+ServiceBase::ServiceBase()
+    : ServiceBase(server::ServerConfig{})
+{}
 
 ServiceBase::ServiceBase(server::ServerConfig&& server_config)
-    : config_storage_(dynamic_config::MakeDefaultStorage({})),
+    : metrics_storage_(),
+      metrics_storage_registration_(metrics_storage_.RegisterIn(statistics_storage_)),
+      config_storage_(dynamic_config::MakeDefaultStorage({})),
       unix_socket_path_(server_config.unix_socket_path),
       server_(std::move(server_config), statistics_storage_, config_storage_.GetSource()),
       testsuite_({}, false),
-      client_statistics_storage_(statistics_storage_, ugrpc::impl::StatisticsDomain::kClient) {}
+      client_statistics_storage_(statistics_storage_, ugrpc::impl::StatisticsDomain::kClient)
+{}
 
 ServiceBase::~ServiceBase() = default;
 
@@ -46,6 +52,7 @@ void ServiceBase::StartServer(client::ClientFactorySettings&& client_factory_set
         simple_client_middleware_pipeline_,
         server_.GetCompletionQueues(utils::impl::InternalTag{}),
         client_statistics_storage_,
+        metrics_storage_,
         testsuite_,
         config_storage_.GetSource()
     );

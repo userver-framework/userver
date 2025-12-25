@@ -45,10 +45,11 @@ void LockingCallback(int mode, int n, const char*, int) noexcept {
         abort();
     }
 
-    if (mode & CRYPTO_LOCK)
+    if (mode & CRYPTO_LOCK) {
         mutexes[n].lock();
-    else
+    } else {
         mutexes[n].unlock();
+    }
 }
 #endif
 

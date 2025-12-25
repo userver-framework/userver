@@ -79,8 +79,12 @@ std::string FormProblems(const TypeToIO& map, const char* check_info) {
 
 void ReportOdrProblems() {
     static std::atomic<bool> was_checked{false};
-    if (was_checked) return;
-    if (was_checked.exchange(true)) return;
+    if (was_checked) {
+        return;
+    }
+    if (was_checked.exchange(true)) {
+        return;
+    }
 
     auto odr_parser_problems = FormProblems(GetReaders(), "parsers");
     auto odr_formatter_problems = FormProblems(GetWriters(), "formatters");

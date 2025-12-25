@@ -157,7 +157,9 @@ private:
 };
 
 template <std::size_t N>
-SmallString<N>::SmallString(std::string_view sv) : data_(sv.begin(), sv.end()) {}
+SmallString<N>::SmallString(std::string_view sv)
+    : data_(sv.begin(), sv.end())
+{}
 
 template <std::size_t N>
 SmallString<N>::operator std::string_view() const {
@@ -202,13 +204,17 @@ char& SmallString<N>::operator[](std::size_t pos) {
 
 template <std::size_t N>
 const char& SmallString<N>::at(std::size_t pos) const {
-    if (size() <= pos) throw std::out_of_range("at");
+    if (size() <= pos) {
+        throw std::out_of_range("at");
+    }
     return data_[pos];
 }
 
 template <std::size_t N>
 char& SmallString<N>::at(std::size_t pos) {
-    if (size() <= pos) throw std::out_of_range("at");
+    if (size() <= pos) {
+        throw std::out_of_range("at");
+    }
     return data_[pos];
 }
 

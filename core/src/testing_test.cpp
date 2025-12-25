@@ -73,8 +73,8 @@ UTEST(SimpleServer, ExampleTcpIpV4Twice) {
         EXPECT_EQ(r, kOkRequest) << "SimpleServer received: " << r;
         EXPECT_LE(++i, 2) << "Callback was called more than twice: " << i;
 
-        const auto command =
-            (i == 1 ? SimpleServer::Response::kWriteAndContinue : SimpleServer::Response::kWriteAndClose);
+        const auto
+            command = (i == 1 ? SimpleServer::Response::kWriteAndContinue : SimpleServer::Response::kWriteAndClose);
 
         return SimpleServer::Response{kOkResponse, command};
     };

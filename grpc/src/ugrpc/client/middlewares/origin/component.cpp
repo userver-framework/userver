@@ -4,6 +4,10 @@
 
 #include <ugrpc/client/middlewares/origin/middleware.hpp>
 
+#ifndef ARCADIA_ROOT
+#include "generated/src/ugrpc/client/middlewares/origin/component.yaml.hpp"  // Y_IGNORE
+#endif
+
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client::middlewares::origin {
@@ -15,7 +19,8 @@ Settings Parse(const yaml_config::YamlConfig& config, formats::parse::To<Setting
 }
 
 Component::Component(const components::ComponentConfig& config, const components::ComponentContext& context)
-    : MiddlewareFactoryComponentBase(config, context) {}
+    : MiddlewareFactoryComponentBase(config, context)
+{}
 
 Component::~Component() = default;
 
@@ -29,16 +34,8 @@ std::shared_ptr<const MiddlewareBase> Component::CreateMiddleware(
 yaml_config::Schema Component::GetMiddlewareConfigSchema() const { return GetStaticConfigSchema(); }
 
 yaml_config::Schema Component::GetStaticConfigSchema() {
-    return yaml_config::MergeSchemas<MiddlewareFactoryComponentBase>(R"(
-type: object
-description: gRPC client origin middleware component
-additionalProperties: false
-properties:
-    user-agent:
-        type: string
-        description: The name of the current deploy unit that will appear in `x-origin` metadata
-        defaultDescription: Do not send `x-origin`
-)");
+    return yaml_config::MergeSchemasFromResource<
+        MiddlewareFactoryComponentBase>("src/ugrpc/client/middlewares/origin/component.yaml");
 }
 
 }  // namespace ugrpc::client::middlewares::origin

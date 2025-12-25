@@ -31,8 +31,8 @@ sample::ugrpc::LoggingMessage ConstructComplexMessage() {
     }
 
     for (int i = 0; i < 10; ++i) {
-        (*message.mutable_properties())["test-property-name-" + std::to_string(i)] =
-            "test-property-" + std::to_string(i);
+        (*message.mutable_properties()
+        )["test-property-name-" + std::to_string(i)] = "test-property-" + std::to_string(i);
     }
 
     return message;

@@ -66,7 +66,9 @@ std::string MakePath(const Value* root, const Value* node, int node_depth) {
     TreeStack stack;
     const Value* value = root;
 
-    if (value == node || value == nullptr) return formats::common::kPathRoot;
+    if (value == node || value == nullptr) {
+        return formats::common::kPathRoot;
+    }
 
     stack.reserve(node_depth + 1);
     stack.emplace_back();  // fake "top" frame to avoid extra checks for an empty
@@ -84,7 +86,9 @@ std::string MakePath(const Value* root, const Value* node, int node_depth) {
                     value->MemberCount(),
                     [node](const Member* m) { return &m->value == node; }
                 ))
+            {
                 break;
+            }
         } else if (value->IsArray() && value->Size() > 0) {
             if (ProcessContainer(
                     stack,
@@ -95,12 +99,16 @@ std::string MakePath(const Value* root, const Value* node, int node_depth) {
                     value->Size(),
                     [node](const Value* v) { return v == node; }
                 ))
+            {
                 break;
+            }
         }
 
         while (!stack.back().HasMoreElements()) {
             stack.pop_back();
-            if (stack.empty()) return std::string{kInvalidPathStr};
+            if (stack.empty()) {
+                return std::string{kInvalidPathStr};
+            }
         }
 
         value = stack.back().CurrentValue();

@@ -99,7 +99,8 @@ ClusterImpl::ClusterImpl(
       ei_settings_(ei_settings),
       metrics_(std::move(metrics)),
       rr_host_idx_(0),
-      connlimit_watchdog_(*this, testsuite_tasks, shard_number, [this]() { OnConnlimitChanged(); }) {
+      connlimit_watchdog_(*this, testsuite_tasks, shard_number, [this]() { OnConnlimitChanged(); })
+{
     CreateTopology(dsns);
 
     // Do not use IsConnlimitModeAuto() here because we don't care about
@@ -231,7 +232,9 @@ ClusterStatisticsPtr ClusterImpl::GetStatistics() const {
     if (slaves_dsn_indices_it != dsn_indices_by_type->end() && !slaves_dsn_indices_it->second.indices.empty()) {
         cluster_stats->slaves.reserve(slaves_dsn_indices_it->second.indices.size());
         for (auto dsn_index : slaves_dsn_indices_it->second.indices) {
-            if (is_host_pool_seen[dsn_index]) continue;
+            if (is_host_pool_seen[dsn_index]) {
+                continue;
+            }
 
             auto& slave_desc = cluster_stats->slaves.emplace_back();
             UASSERT(dsn_index < dsns.size());
@@ -244,7 +247,9 @@ ClusterStatisticsPtr ClusterImpl::GetStatistics() const {
         }
     }
     for (size_t i = 0; i < is_host_pool_seen.size(); ++i) {
-        if (is_host_pool_seen[i]) continue;
+        if (is_host_pool_seen[i]) {
+            continue;
+        }
 
         auto& desc = cluster_stats->unknown.emplace_back();
         UASSERT(i < dsns.size());
@@ -288,7 +293,8 @@ ClusterImpl::ConnectionPoolPtr ClusterImpl::FindPool(ClusterHostTypeFlags flags)
         auto dsn_indices_by_type = topology->GetDsnIndicesByType();
         auto dsn_indices_it = dsn_indices_by_type->find(host_role);
         while (host_role != ClusterHostType::kMaster &&
-               (dsn_indices_it == dsn_indices_by_type->end() || dsn_indices_it->second.indices.empty())) {
+               (dsn_indices_it == dsn_indices_by_type->end() || dsn_indices_it->second.indices.empty()))
+        {
             auto fb = Fallback(host_role);
             LOG_WARNING() << "There is no pool for " << host_role << ", falling back to " << fb;
             host_role = fb;
@@ -308,8 +314,11 @@ ClusterImpl::ConnectionPoolPtr ClusterImpl::FindPool(ClusterHostTypeFlags flags)
     return host_pools.at(dsn_index);
 }
 
-Transaction
-ClusterImpl::Begin(ClusterHostTypeFlags flags, const TransactionOptions& options, OptionalCommandControl cmd_ctl) {
+Transaction ClusterImpl::Begin(
+    ClusterHostTypeFlags flags,
+    const TransactionOptions& options,
+    OptionalCommandControl cmd_ctl
+) {
     LOG_TRACE() << "Requested transaction on " << flags;
     const auto role_flags = flags & kClusterHostRolesMask;
     if (options.IsReadOnly()) {
@@ -339,7 +348,9 @@ NotifyScope ClusterImpl::Listen(std::string_view channel, OptionalCommandControl
 
 QueryQueue ClusterImpl::CreateQueryQueue(ClusterHostTypeFlags flags, TimeoutDuration acquire_timeout) {
     return QueryQueue{
-        GetDefaultCommandControl(), FindPool(flags)->Acquire(engine::Deadline::FromDuration(acquire_timeout))};
+        GetDefaultCommandControl(),
+        FindPool(flags)->Acquire(engine::Deadline::FromDuration(acquire_timeout))
+    };
 }
 
 void ClusterImpl::SetDefaultCommandControl(CommandControl cmd_ctl, DefaultCommandControlSource source) {
@@ -374,7 +385,9 @@ void ClusterImpl::SetPoolSettings(const PoolSettings& new_settings) {
             auto connlimit = connlimit_watchdog_.GetConnlimit();
             if (connlimit > 0) {
                 settings.max_size = connlimit;
-                if (settings.min_size > settings.max_size) settings.min_size = settings.max_size;
+                if (settings.min_size > settings.max_size) {
+                    settings.min_size = settings.max_size;
+                }
             }
         }
 
@@ -396,9 +409,13 @@ void ClusterImpl::SetTopologySettings(const TopologySettings& settings) {
 void ClusterImpl::OnConnlimitChanged() {
     auto max_size = connlimit_watchdog_.GetConnlimit();
     auto cluster = cluster_settings_.StartWrite();
-    if (!IsConnlimitModeAuto(*cluster)) return;
+    if (!IsConnlimitModeAuto(*cluster)) {
+        return;
+    }
 
-    if (cluster->pool_settings.max_size == max_size) return;
+    if (cluster->pool_settings.max_size == max_size) {
+        return;
+    }
     cluster->pool_settings.max_size = max_size;
     cluster.Commit();
 
@@ -449,7 +466,9 @@ std::string ClusterImpl::GetDbName() const {
 void ClusterImpl::SetDsnList(const DsnList& dsn) {
     {
         auto td = topology_data_.SharedLock();
-        if (dsn == td->topology->GetDsnList()) return;
+        if (dsn == td->topology->GetDsnList()) {
+            return;
+        }
     }
 
     LOG_WARNING() << "Server list has changed for PG " << GetDbName() << ", eventually will drop old sockets";

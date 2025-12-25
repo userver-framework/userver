@@ -112,9 +112,8 @@ void DoTestValueBuffered(
     const std::string_view embedded_source(extended_source.data() + offset_before_block + offset, source.size());
 
     std::string result;
-    utils::encoding::impl::tskv::EncodeFullyBuffered<Encoder>(
-        result, embedded_source, utils::encoding::EncodeTskvMode::kValue
-    );
+    utils::encoding::impl::tskv::EncodeFullyBuffered<
+        Encoder>(result, embedded_source, utils::encoding::EncodeTskvMode::kValue);
 
     EXPECT_EQ(result, expected_encoded_result)
         << "test_set_name=\"" << test_set_name << "\" test_id_base1=" << test_id_base1 << " offset=" << offset
@@ -153,7 +152,12 @@ TYPED_TEST(EncodeTskv, ValueBuffered) {
             for (std::size_t offset = 0; offset < kMaxBlockAlignment; ++offset) {
                 for (const auto filler_char : {'\0', '\n', '\\'}) {
                     DoTestValueBuffered<typename TestFixture::Encoder>(
-                        test_set.name, test_id_base1, offset, filler_char, test.source, test.expected_encoded_result
+                        test_set.name,
+                        test_id_base1,
+                        offset,
+                        filler_char,
+                        test.source,
+                        test.expected_encoded_result
                     );
                 }
             }

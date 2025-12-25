@@ -48,14 +48,14 @@ def pytest_addoption(parser) -> None:
 
 
 @pytest.fixture(scope='session')
-def service_env():
+def service_env() -> dict[str, str]:
     """
     Override this to pass extra environment variables to the service.
 
     @snippet samples/redis_service/testsuite/conftest.py  service_env
     @ingroup userver_testsuite_fixtures
     """
-    return None  # noqa: RET501
+    return {}
 
 
 @pytest.fixture(scope='session')
@@ -96,6 +96,19 @@ def service_non_http_health_checks(  # pylint: disable=invalid-name
 
 
 @pytest.fixture(scope='session')
+def service_start_timeout() -> float:
+    """
+    Returns service start timeout in seconds.
+
+    Override this fixture to change the service start timeout.
+
+    @ingroup userver_testsuite_fixtures
+    """
+
+    return 100.0
+
+
+@pytest.fixture(scope='session')
 async def service_daemon_scope(
     create_daemon_scope,
     daemon_scoped_mark,
@@ -104,6 +117,7 @@ async def service_daemon_scope(
     service_config_path_temp,
     service_binary,
     service_non_http_health_checks,
+    service_start_timeout,
 ):
     """
     Prepares the start of the service daemon.
@@ -145,11 +159,15 @@ async def service_daemon_scope(
     if service_http_ping_url:
         health_check = None
 
+    # In yandex-taxi-testsuite, each poll retry duration is 0.05 seconds.
+    poll_retries = int(service_start_timeout / 0.05)
+
     async with create_daemon_scope(
         args=[str(service_binary), '--config', str(service_config_path_temp)],
         ping_url=service_http_ping_url,
         health_check=health_check,
         env=service_env,
+        poll_retries=poll_retries,
     ) as scope:
         yield scope
 

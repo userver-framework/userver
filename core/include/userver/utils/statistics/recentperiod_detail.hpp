@@ -15,9 +15,9 @@ struct ResultWantsAddFunction<
     Result,
     Counter,
     Duration,
-    void_t<decltype(std::declval<Result>()
-                        .Add(std::declval<Counter>(), std::declval<Duration>(), std::declval<Duration>()))>>
-    : std::true_type {};
+    void_t<
+        decltype(std::declval<Result>().Add(std::declval<Counter>(), std::declval<Duration>(), std::declval<Duration>())
+        )>> : std::true_type {};
 
 template <typename Result, typename Counter, typename Duration>
 inline constexpr bool kResultWantsAddFunction = ResultWantsAddFunction<Result, Counter, Duration>::value;
@@ -27,10 +27,9 @@ template <typename Result, typename Counter, typename = void_t<>>
 struct ResultCanUseAddAssign : std::false_type {};
 
 template <typename Result, typename Counter>
-struct ResultCanUseAddAssign<
-    Result,
-    Counter,
-    void_t<decltype(std::declval<Result&>() += std::declval<const Counter&>())>> : std::true_type {};
+struct
+    ResultCanUseAddAssign<Result, Counter, void_t<decltype(std::declval<Result&>() += std::declval<const Counter&>())>>
+    : std::true_type {};
 
 template <typename Result, typename Counter>
 inline constexpr bool kResultCanUseAddAssign = ResultCanUseAddAssign<Result, Counter>::value;

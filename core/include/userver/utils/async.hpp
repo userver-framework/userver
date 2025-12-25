@@ -69,7 +69,10 @@ template <typename Function, typename... Args>
 template <typename Function, typename... Args>
 [[nodiscard]] auto Async(engine::TaskProcessor& task_processor, std::string name, Function&& f, Args&&... args) {
     return engine::AsyncNoSpan(
-        task_processor, impl::SpanLazyPrvalue(std::move(name)), std::forward<Function>(f), std::forward<Args>(args)...
+        task_processor,
+        impl::SpanLazyPrvalue(std::move(name)),
+        std::forward<Function>(f),
+        std::forward<Args>(args)...
     );
 }
 
@@ -85,10 +88,17 @@ template <typename Function, typename... Args>
 /// @param args Arguments to pass to the function
 /// @returns engine::TaskWithResult
 template <typename Function, typename... Args>
-[[nodiscard]] auto
-CriticalAsync(engine::TaskProcessor& task_processor, std::string name, Function&& f, Args&&... args) {
+[[nodiscard]] auto CriticalAsync(
+    engine::TaskProcessor& task_processor,
+    std::string name,
+    Function&& f,
+    Args&&... args
+) {
     return engine::CriticalAsyncNoSpan(
-        task_processor, impl::SpanLazyPrvalue(std::move(name)), std::forward<Function>(f), std::forward<Args>(args)...
+        task_processor,
+        impl::SpanLazyPrvalue(std::move(name)),
+        std::forward<Function>(f),
+        std::forward<Args>(args)...
     );
 }
 
@@ -104,10 +114,17 @@ CriticalAsync(engine::TaskProcessor& task_processor, std::string name, Function&
 /// @param args Arguments to pass to the function
 /// @returns engine::SharedTaskWithResult
 template <typename Function, typename... Args>
-[[nodiscard]] auto
-SharedCriticalAsync(engine::TaskProcessor& task_processor, std::string name, Function&& f, Args&&... args) {
+[[nodiscard]] auto SharedCriticalAsync(
+    engine::TaskProcessor& task_processor,
+    std::string name,
+    Function&& f,
+    Args&&... args
+) {
     return engine::SharedCriticalAsyncNoSpan(
-        task_processor, impl::SpanLazyPrvalue(std::move(name)), std::forward<Function>(f), std::forward<Args>(args)...
+        task_processor,
+        impl::SpanLazyPrvalue(std::move(name)),
+        std::forward<Function>(f),
+        std::forward<Args>(args)...
     );
 }
 
@@ -125,7 +142,10 @@ SharedCriticalAsync(engine::TaskProcessor& task_processor, std::string name, Fun
 template <typename Function, typename... Args>
 [[nodiscard]] auto SharedAsync(engine::TaskProcessor& task_processor, std::string name, Function&& f, Args&&... args) {
     return engine::SharedAsyncNoSpan(
-        task_processor, impl::SpanLazyPrvalue(std::move(name)), std::forward<Function>(f), std::forward<Args>(args)...
+        task_processor,
+        impl::SpanLazyPrvalue(std::move(name)),
+        std::forward<Function>(f),
+        std::forward<Args>(args)...
     );
 }
 
@@ -322,8 +342,12 @@ template <typename Function, typename... Args>
 /// @param args Arguments to pass to the function
 /// @returns engine::TaskWithResult
 template <typename Function, typename... Args>
-[[nodiscard]] auto
-AsyncBackground(std::string name, engine::TaskProcessor& task_processor, Function&& f, Args&&... args) {
+[[nodiscard]] auto AsyncBackground(
+    std::string name,
+    engine::TaskProcessor& task_processor,
+    Function&& f,
+    Args&&... args
+) {
     return engine::AsyncNoSpan(
         task_processor,
         impl::SpanLazyPrvalue(std::move(name), impl::SpanWrapCall::InheritVariables::kNo),
@@ -346,8 +370,12 @@ AsyncBackground(std::string name, engine::TaskProcessor& task_processor, Functio
 /// @param args Arguments to pass to the function
 /// @returns engine::TaskWithResult
 template <typename Function, typename... Args>
-[[nodiscard]] auto
-CriticalAsyncBackground(std::string name, engine::TaskProcessor& task_processor, Function&& f, Args&&... args) {
+[[nodiscard]] auto CriticalAsyncBackground(
+    std::string name,
+    engine::TaskProcessor& task_processor,
+    Function&& f,
+    Args&&... args
+) {
     return engine::CriticalAsyncNoSpan(
         task_processor,
         impl::SpanLazyPrvalue(std::move(name), impl::SpanWrapCall::InheritVariables::kNo),

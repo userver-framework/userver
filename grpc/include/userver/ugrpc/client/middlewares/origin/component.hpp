@@ -17,10 +17,14 @@ namespace ugrpc::client::middlewares::origin {
 /// @brief gRPC client middleware that sets `x-origin` metadata. gRPC server will then copy that to `useragent` tag
 /// in server request log.
 ///
-/// ## Static options:
-/// Name | Description | Default value
-/// ---- | ----------- | -------------
-/// user-agent | The name of the current deploy unit that will appear in `x-origin` metadata | Do not send `x-origin`
+/// ## Static options of ugrpc::client::middlewares::log::Component:
+/// @include{doc} scripts/docs/en/components_schema/grpc/src/ugrpc/client/middlewares/origin/component.md
+///
+/// Options inherited from @ref middlewares::MiddlewareFactoryComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/middlewares/factory_component_base.md
+///
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
 ///
 /// Config example:
 /// @snippet samples/grpc_middleware_service/configs/static_config.yaml grpc-client-origin
@@ -40,8 +44,10 @@ public:
 
     yaml_config::Schema GetMiddlewareConfigSchema() const override;
 
-    std::shared_ptr<const MiddlewareBase>
-    CreateMiddleware(const ugrpc::client::ClientInfo&, const yaml_config::YamlConfig& middleware_config) const override;
+    std::shared_ptr<const MiddlewareBase> CreateMiddleware(
+        const ugrpc::client::ClientInfo&,
+        const yaml_config::YamlConfig& middleware_config
+    ) const override;
 };
 
 }  // namespace ugrpc::client::middlewares::origin

@@ -82,8 +82,8 @@ const USERVER_NAMESPACE::secdist::RedisSettings& GetRedisSettings() {
 const USERVER_NAMESPACE::secdist::RedisSettings& GetRedisClusterSettings() {
     static const auto kSettingsMap = []() {
         const auto port_strings = []() -> std::vector<std::string> {
-            static const auto kDefaultPorts =
-                std::vector<std::string>{"17380", "17381", "17382", "17383", "17384", "17385"};
+            static const auto
+                kDefaultPorts = std::vector<std::string>{"17380", "17381", "17382", "17383", "17384", "17385"};
             const auto env = engine::subprocess::GetCurrentEnvironmentVariables();
             const auto* cluster_ports = env.GetValueOptional(kTestsuiteClusterRedisPorts);
             if (!cluster_ports) {
@@ -154,7 +154,14 @@ RedisConnectionState::RedisConnectionState() {
     client_ = std::make_shared<ClientImpl>(sentinel_);
 
     subscribe_sentinel_ = SubscribeSentinel::Create(
-        thread_pools_, GetRedisSettings(), "none", configs_source, "pub", "KeyShardZero", {}, {}
+        thread_pools_,
+        GetRedisSettings(),
+        "none",
+        configs_source,
+        "pub",
+        "KeyShardZero",
+        {},
+        {}
     );
     subscribe_sentinel_->WaitConnectedDebug();
     subscribe_client_ = std::make_shared<SubscribeClientImpl>(subscribe_sentinel_);
@@ -182,7 +189,14 @@ RedisConnectionState::RedisConnectionState(InClusterMode) {
     client_ = std::make_shared<ClientImpl>(sentinel_);
 
     subscribe_sentinel_ = storages::redis::impl::SubscribeSentinel::Create(
-        thread_pools_, GetRedisClusterSettings(), "none", configs_source, "pub", "RedisCluster", {}, {}
+        thread_pools_,
+        GetRedisClusterSettings(),
+        "none",
+        configs_source,
+        "pub",
+        "RedisCluster",
+        {},
+        {}
     );
     subscribe_sentinel_->WaitConnectedDebug();
     subscribe_client_ = std::make_shared<storages::redis::SubscribeClientImpl>(subscribe_sentinel_);

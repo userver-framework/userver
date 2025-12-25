@@ -44,7 +44,10 @@ std::string Action::ToDebugString() const {
     return "Action(" + TypeToDebugString(type) + ", server_id=" + std::to_string(server_id.GetId()) + ")";
 }
 
-Fsm::Fsm(size_t shard, ServerId server_id) : shard_(shard), current_server_id_(server_id) {
+Fsm::Fsm(size_t shard, ServerId server_id)
+    : shard_(shard),
+      current_server_id_(server_id)
+{
     // try to subscribe to anybody by default or to fixed server_id if specified
     EmitAction(Action(Action::Type::kSubscribe, server_id));
 }
@@ -52,10 +55,11 @@ Fsm::Fsm(size_t shard, ServerId server_id) : shard_(shard), current_server_id_(s
 size_t Fsm::GetShard() const { return shard_; }
 
 void Fsm::OnEvent(const Event& event) {
-    LOG_DEBUG() << "OnEvent fsm=" << static_cast<void*>(this) << " state=" << StateToDebugString(state_)
-                << " (current_server_id=" << current_server_id_.GetId() << ")"
-                << " (rebalancing_server_id=" << rebalancing_server_id_.GetId() << ")"
-                << " event=" << event.ToDebugString();
+    LOG_DEBUG()
+        << "OnEvent fsm=" << static_cast<void*>(this) << " state=" << StateToDebugString(state_)
+        << " (current_server_id=" << current_server_id_.GetId() << ")"
+        << " (rebalancing_server_id=" << rebalancing_server_id_.GetId() << ")"
+        << " event=" << event.ToDebugString();
 
     switch (state_) {
         case State::kSubscribing:
@@ -91,11 +95,14 @@ bool Fsm::CanBeRebalanced() const { return state_ == State::kSubscribed && need_
 std::chrono::steady_clock::time_point Fsm::GetCurrentServerTimePoint() const { return current_server_subscription_tp_; }
 
 void Fsm::SetNeedSubscription(bool need_subscription) {
-    if (need_subscription_ == need_subscription) return;
+    if (need_subscription_ == need_subscription) {
+        return;
+    }
     need_subscription_ = need_subscription;
 
-    LOG_INFO() << "Fsm switch need_subscription: fsm=" << static_cast<void*>(this)
-               << ", need_subscription=" << need_subscription_ << ", state=" << StateToDebugString(state_);
+    LOG_INFO()
+        << "Fsm switch need_subscription: fsm=" << static_cast<void*>(this)
+        << ", need_subscription=" << need_subscription_ << ", state=" << StateToDebugString(state_);
 }
 
 void Fsm::HandleSubscribing(const Event& event) {
@@ -130,8 +137,8 @@ void Fsm::HandleSubscribing(const Event& event) {
                 // We're stubborn, try again.
                 // Redis driver should handle timeout, so relax is not needed.
                 ChangeState(State::kSubscribing);
-                LOG_WARNING() << "Subscription to server_id=" << event.server_id.GetId()
-                              << " failed. try any server_id";
+                LOG_WARNING()
+                    << "Subscription to server_id=" << event.server_id.GetId() << " failed. try any server_id";
                 EmitAction(Action(Action::Type::kSubscribe, ServerId()));
             } else {
                 ChangeState(State::kUnsubscribed);
@@ -140,8 +147,9 @@ void Fsm::HandleSubscribing(const Event& event) {
             break;
 
         case Event::Type::kRebalanceRequested:
-            LOG_WARNING() << "Ignore rebalance requests while "
-                             "current_server_id_.IsAny()=true";
+            LOG_WARNING()
+                << "Ignore rebalance requests while "
+                   "current_server_id_.IsAny()=true";
             break;
 
         case Event::Type::kUnsubscribeRequested:
@@ -274,12 +282,13 @@ void Fsm::HandleRebalancingWaitSubscribe(const Event& event) {
 
         case Event::Type::kSubscribeReplyOk:
             if (event.server_id == current_server_id_) {
-                LOG_WARNING() << "Got successful Subscribe reply from server_id=" << event.server_id.GetId()
-                              << " while already subscribed to it";
+                LOG_WARNING()
+                    << "Got successful Subscribe reply from server_id=" << event.server_id.GetId()
+                    << " while already subscribed to it";
             } else if (event.server_id == rebalancing_server_id_) {
                 current_server_subscription_tp_ = std::chrono::steady_clock::now();
-                LOG_DEBUG() << "Successfully subscribed to server_id=" << event.server_id.GetId()
-                            << " after rebalancing";
+                LOG_DEBUG()
+                    << "Successfully subscribed to server_id=" << event.server_id.GetId() << " after rebalancing";
                 std::swap(current_server_id_, rebalancing_server_id_);
                 EmitAction(Action(Action::Type::kUnsubscribe, rebalancing_server_id_));
                 ChangeState(State::kRebalancingWaitUnsubscribe);
@@ -337,8 +346,9 @@ void Fsm::HandleRebalancingWaitUnsubscribe(const Event& event) {
 
         case Event::Type::kSubscribeReplyOk:
             if (event.server_id == current_server_id_ || event.server_id == rebalancing_server_id_) {
-                LOG_WARNING() << "Got successful Subscribe reply from server_id=" << event.server_id.GetId()
-                              << " while already subscribed to it";
+                LOG_WARNING()
+                    << "Got successful Subscribe reply from server_id=" << event.server_id.GetId()
+                    << " while already subscribed to it";
             } else {
                 HandleOkReplyFromOtherServerId(event.server_id);
             }
@@ -413,16 +423,17 @@ void Fsm::HandleUnsubscribed(const Event& event) {
 }
 
 void Fsm::HandleOkReplyFromOtherServerId(ServerId other_server_id) {
-    LOG_WARNING() << "Got a successful Subscribe reply from server_id=" << other_server_id.GetId()
-                  << " but current_server_id=" << current_server_id_.GetId()
-                  << ", rebalancing_server_id=" << rebalancing_server_id_.GetId() << ". Unsubscribe from it.";
+    LOG_WARNING()
+        << "Got a successful Subscribe reply from server_id=" << other_server_id.GetId()
+        << " but current_server_id=" << current_server_id_.GetId()
+        << ", rebalancing_server_id=" << rebalancing_server_id_.GetId() << ". Unsubscribe from it.";
     EmitAction(Action(Action::Type::kUnsubscribe, other_server_id));
 }
 
 void Fsm::HandleErrorReplyFromOtherServerId(ServerId other_server_id) {
-    LOG_WARNING() << "Got an unsuccessful Subscribe reply from server_id=" << other_server_id.GetId()
-                  << " but current_server_id=" << current_server_id_.GetId()
-                  << ", rebalancing_server_id=" << rebalancing_server_id_.GetId() << ". Ignore it.";
+    LOG_WARNING()
+        << "Got an unsuccessful Subscribe reply from server_id=" << other_server_id.GetId() << " but current_server_id="
+        << current_server_id_.GetId() << ", rebalancing_server_id=" << rebalancing_server_id_.GetId() << ". Ignore it.";
 }
 
 void Fsm::EmitAction(Action&& action) {
@@ -464,8 +475,9 @@ const std::string& Fsm::StateToDebugString(State state) {
 }
 
 void Fsm::ChangeState(State new_state) {
-    LOG_INFO() << "Fsm state switch: fsm=" << static_cast<void*>(this) << " " << StateToDebugString(state_) << " => "
-               << StateToDebugString(new_state) << ", need_subscription=" << need_subscription_;
+    LOG_INFO()
+        << "Fsm state switch: fsm=" << static_cast<void*>(this) << " " << StateToDebugString(state_) << " => "
+        << StateToDebugString(new_state) << ", need_subscription=" << need_subscription_;
     state_ = new_state;
 }
 

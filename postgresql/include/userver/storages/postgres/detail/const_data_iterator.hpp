@@ -90,7 +90,9 @@ public:
     //@}
 protected:
     template <typename... T>
-    ConstDataIterator(T&&... args) : value_type(std::forward<T>(args)...) {}
+    ConstDataIterator(T&&... args)
+        : value_type(std::forward<T>(args)...)
+    {}
 
 private:
     FinalType& Rebind() { return static_cast<FinalType&>(*this); }

@@ -9,7 +9,9 @@ namespace clients::http {
 
 std::shared_ptr<RequestStats> DestinationStatistics::GetStatisticsForDestination(const std::string& destination) {
     auto ptr = GetExistingStatisticsForDestination(destination);
-    if (ptr) return ptr;
+    if (ptr) {
+        return ptr;
+    }
 
     return CreateStatisticsForDestination(destination);
 }
@@ -25,32 +27,35 @@ std::shared_ptr<RequestStats> DestinationStatistics::GetExistingStatisticsForDes
      * RequestStats lifetime is less than clients::http::ClientCore's one.
      */
     auto stats = rcu_map_.Get(destination);
-    if (stats)
+    if (stats) {
         return std::make_shared<RequestStats>(*stats);
-    else
+    } else {
         return {};
+    }
 }
 
 std::shared_ptr<RequestStats> DestinationStatistics::GetStatisticsForDestinationAuto(const std::string& destination) {
     auto ptr = GetExistingStatisticsForDestination(destination);
-    if (ptr) return ptr;
+    if (ptr) {
+        return ptr;
+    }
 
     // atomic [current++ iff current < max]
     auto current_auto_destinations = current_auto_destinations_.load();
     do {
         if (current_auto_destinations >= max_auto_destinations_) {
             if (max_auto_destinations_ != 0) {
-                LOG_LIMITED_WARNING() << "Too many httpclient metrics destinations used (" << max_auto_destinations_
-                                      << "), either increase "
-                                         "components.http-client-core.destination-metrics-auto-max-size "
-                                         "or explicitly set destination via "
-                                         "Request::SetDestinationMetricName().";
+                LOG_LIMITED_WARNING()
+                    << "Too many httpclient metrics destinations used (" << max_auto_destinations_
+                    << "), either increase "
+                       "components.http-client-core.destination-metrics-auto-max-size "
+                       "or explicitly set destination via "
+                       "Request::SetDestinationMetricName().";
             }
             return {};
         }
-    } while (
-        !current_auto_destinations_.compare_exchange_strong(current_auto_destinations, current_auto_destinations + 1)
-    );
+    } while (!current_auto_destinations_
+                  .compare_exchange_strong(current_auto_destinations, current_auto_destinations + 1));
 
     return CreateStatisticsForDestination(destination);
 }

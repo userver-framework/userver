@@ -100,7 +100,9 @@ public:
 
     /// Universal constructor using Serialize
     template <typename T>
-    ValueBuilder(const T& t) : ValueBuilder(DoSerialize(t)) {}
+    ValueBuilder(const T& t)
+        : ValueBuilder(DoSerialize(t))
+    {}
 
     /// @brief Transfers the `ValueBuilder` object
     /// @see formats::common::TransferTag for the transfer semantics

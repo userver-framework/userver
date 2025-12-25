@@ -37,7 +37,7 @@ class Manager;
 /// coro_pool.stack_size | size of a single coroutine stack @ref scripts/docs/en/userver/stack.md | 256 * 1024
 /// coro_pool.local_cache_size | local coroutine cache size per thread | 32
 /// coro_pool.stack_usage_monitor_enabled | whether stack usage is accounted and warnings about too high stack usage are logged @ref scripts/docs/en/userver/stack.md | true
-/// coro_pool.deadlock_detector | Coroutines deadlock detector mode. Can slow down the service. One of: off, on, detect-only. | off
+/// coro_pool.deadlock_detector | Coroutines deadlock detection mode. `disabled` disables deadlock detection. `enabled` allows deadlock detection alongs with stacktraces collection. `detect-only` allows only deadlock detection. Deadlock detection could slow down the service. | disabled
 /// event_thread_pool.threads | number of threads to process low level IO system calls (number of ev loops to start in libev) | 2
 /// event_thread_pool.thread_name | set OS thread name to this value | 'event-worker'
 /// components | dictionary of "component name": "options" | -

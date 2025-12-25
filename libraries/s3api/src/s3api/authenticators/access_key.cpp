@@ -28,7 +28,8 @@ std::unordered_map<std::string, std::string> AccessKey::Auth(const Request& requ
 
     std::unordered_map<std::string, std::string> auth_headers{
         {kDate, std::move(header_date)},
-        {kAuthorization, MakeHeaderAuthorization(string_to_sign, access_key_, secret_key_)}};
+        {kAuthorization, MakeHeaderAuthorization(string_to_sign, access_key_, secret_key_)}
+    };
 
     if (header_content_md5) {
         auth_headers.emplace(kContentMd5, std::move(*header_content_md5));
@@ -48,7 +49,8 @@ std::unordered_map<std::string, std::string> AccessKey::Sign(const Request& requ
     std::unordered_map<std::string, std::string> sign_params{
         {kExpires, std::move(param_expires)},
         {kAWSAccessKeyId, access_key_},
-        {kSignature, MakeSignature(string_to_sign, secret_key_)}};
+        {kSignature, MakeSignature(string_to_sign, secret_key_)}
+    };
     return sign_params;
 }
 

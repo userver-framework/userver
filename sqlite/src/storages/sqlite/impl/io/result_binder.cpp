@@ -7,7 +7,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite::impl::io {
 
-ResultBinder::ResultBinder(impl::ResultWrapper& result_wrapper) : impl_{result_wrapper.GetStatement()} {}
+ResultBinder::ResultBinder(impl::ResultWrapper& result_wrapper)
+    : impl_{result_wrapper.GetStatement()}
+{}
 
 ResultBinder::~ResultBinder() = default;
 

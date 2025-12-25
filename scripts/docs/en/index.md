@@ -134,6 +134,7 @@ and make sure that it builds and passes tests.
 * @ref scripts/docs/en/userver/congestion_control.md
 * @ref scripts/docs/en/userver/stack.md
 * @ref scripts/docs/en/userver/dump_coroutines.md
+* @ref scripts/docs/en/userver/long_transactions.md
 
 
 ## Caches
@@ -185,6 +186,7 @@ and make sure that it builds and passes tests.
 * @ref scripts/docs/en/userver/libraries/easy.md
 * @ref scripts/docs/en/userver/libraries/s3api.md
 * @ref scripts/docs/en/userver/libraries/grpc-reflection.md
+* @ref scripts/docs/en/userver/libraries/multi_index_lru.md
 
 ## Opensource
 * @ref scripts/docs/en/userver/development/stability.md

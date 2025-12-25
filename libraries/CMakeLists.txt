@@ -8,7 +8,7 @@ if(USERVER_FEATURE_S3API)
     add_subdirectory(s3api)
 endif()
 
-if (USERVER_FEATURE_MULTI_INDEX_LRU)
+if(USERVER_FEATURE_MULTI_INDEX_LRU)
     add_subdirectory(multi-index-lru)
 endif()
 

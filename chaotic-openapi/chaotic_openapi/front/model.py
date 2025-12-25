@@ -1,3 +1,4 @@
+from collections.abc import Callable
 import dataclasses
 import enum
 from typing import Any
@@ -154,3 +155,45 @@ class Service:
     headers: dict[str, Parameter] = dataclasses.field(default_factory=dict)
     requestBodies: dict[str, list[RequestBody]] = dataclasses.field(default_factory=dict)
     security: dict[str, Security] = dataclasses.field(default_factory=dict)
+
+    # For tests only
+    def visit_all_schemas(
+        self,
+        callback: Callable[[types.Schema], None],
+    ) -> None:
+        def callback2(child: types.Schema, _: types.Schema) -> None:
+            callback(child)
+
+        def clear_response(response):
+            for body2 in response.content.values():
+                callback(body2.schema)
+                body2.schema.visit_children(callback2)
+            for header in response.headers.values():
+                callback(header.schema)
+                header.schema.visit_children(callback2)
+
+        for schema in self.schemas.values():
+            callback(schema)
+            schema.visit_children(callback2)
+        for body in self.requestBodies.values():
+            for b in body:
+                callback(b.schema)
+                b.schema.visit_children(callback2)
+        for response in self.responses.values():
+            clear_response(response)
+        for parameter in self.parameters.values():
+            callback(parameter.schema)
+            parameter.schema.visit_children(callback2)
+
+        for operation in self.operations:
+            if not isinstance(operation.requestBody, Ref):
+                for body3 in operation.requestBody:
+                    callback(body3.schema)
+                    body3.schema.visit_children(callback2)
+            for response2 in operation.responses.values():
+                if isinstance(response2, Ref):
+                    continue
+                clear_response(response2)
+            for parameter in operation.parameters:
+                callback(parameter.schema)
+                parameter.schema.visit_children(callback2)

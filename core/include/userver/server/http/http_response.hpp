@@ -66,12 +66,14 @@ public:
 
     /// @brief Add a new response header or rewrite an existing one.
     /// @returns true if the header was set. Returns false if headers
-    /// were already sent for stream'ed response and the new header was not set.
+    /// were already sent for stream'ed response and the new header was not set,
+    /// or the header overrides system header.
     bool SetHeader(std::string name, std::string value);
 
     /// @brief Add a new response header or rewrite an existing one.
     /// @returns true if the header was set. Returns false if headers
-    /// were already sent for stream'ed response and the new header was not set.
+    /// were already sent for stream'ed response and the new header was not set,
+    /// or the header overrides system header.
     bool SetHeader(std::string_view name, std::string value);
 
     /// @overload
@@ -88,10 +90,15 @@ public:
     /// were already sent for stream'ed response and the new status was not set.
     bool SetStatus(HttpStatus status);
 
-    /// @brief Remove all headers from response.
+    /// @brief Set the end of system headers.
+    /// All headers written before this call are considered system; after - user.
+    /// User headers can't overwrite system headers.
+    void SetSystemHeadersEnd();
+
+    /// @brief Remove all headers from response, except system headers.
     /// @returns true if the headers were cleared. Returns false if headers
     /// were already sent for stream'ed response and the headers were not cleared.
-    bool ClearHeaders();
+    bool ClearUserHeaders();
 
     /// @brief Sets a cookie if it was not set before.
     void SetCookie(Cookie cookie);
@@ -102,8 +109,11 @@ public:
     /// @return HTTP response status
     HttpStatus GetStatus() const { return status_; }
 
-    /// @return List of HTTP headers names.
-    HeadersMapKeys GetHeaderNames() const;
+    /// @return List of HTTP system headers names.
+    HeadersMapKeys GetSystemHeaderNames() const;
+
+    /// @return List of HTTP user headers names.
+    HeadersMapKeys GetUserHeaderNames() const;
 
     /// @return Value of the header with case insensitive name header_name, or an
     /// empty string if no such header.
@@ -155,9 +165,11 @@ private:
 
     const HttpRequest& request_;
     HttpStatus status_ = HttpStatus::kOk;
-    HeadersMap headers_;
+    HeadersMap system_headers_;
+    HeadersMap user_headers_;
     CookiesMap cookies_;
 
+    bool system_headers_ended_ = false;
     engine::SingleConsumerEvent headers_end_{engine::SingleConsumerEvent::NoAutoReset()};
     std::optional<Queue::Consumer> body_stream_;
     Producer body_stream_producer_;

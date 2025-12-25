@@ -3,7 +3,7 @@
 **Quality:** @ref QUALITY_TIERS "Golden Tier".
 
 🐙 **userver** provides access to Apache Kafka Brokers via
-two independent interfaces: kafka::ProducerComponent and
+two independent interfaces: @ref kafka::ProducerComponent and
 kafka::ConsumerComponent.
 
 They expose APIs for sending messages to Kafka topics, suspending
@@ -67,12 +67,12 @@ See @ref scripts/docs/en/userver/service_monitor.md for info on how to get the m
 
 # Unit and functional testing
 - @ref scripts/docs/en/userver/tutorial/kafka_service.md shows how to test userver services with Kafka consumers and producers;
-- kafka::utest::KafkaCluster may be used for convenient unit testing with local consumers and producers instances;
+- @ref kafka::utest::KafkaCluster may be used for convenient unit testing with local consumers and producers instances;
 
 ## More information
-- For configuration see kafka::ProducerComponent and kafka::ConsumerComponent;
-- For understanding of interfaces see kafka::Producer and kafka::ConsumerScope;
-- Also kafka::impl::Consumer and kafka::impl::Configuration are well documented and may be useful;
+- For configuration see @ref kafka::ProducerComponent and @ref kafka::ConsumerComponent;
+- For understanding of interfaces see @ref kafka::Producer and @ref kafka::ConsumerScope;
+- @ref kafka::ConsumerComponent may be useful;
 
 ----------
 

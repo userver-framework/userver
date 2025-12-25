@@ -14,7 +14,8 @@ Component::Component(const components::ComponentConfig& config, const components
       config_(
           // Searching for some component to initialize members
           context.FindComponent<components::DynamicConfig>().GetSource()  // getting "client" from a component
-      ) {
+      )
+{
     // Reading config values from static config
     [[maybe_unused]] auto url = config["some-url"].As<std::string>();
     const auto fs_tp_name = config["fs-task-processor"].As<std::string>();

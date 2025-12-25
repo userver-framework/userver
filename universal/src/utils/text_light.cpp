@@ -38,9 +38,10 @@ std::vector<std::string_view> SplitIntoStringViewVector(std::string_view str, st
     using string_view_split_iterator = boost::split_iterator<std::string_view::const_iterator>;
 
     std::vector<std::string_view> result;
-    auto it = boost::make_split_iterator(str, boost::token_finder([&sep](const char c) {
-                                             return sep.find(c) != std::string_view::npos;
-                                         }));
+    auto it =
+        boost::make_split_iterator(str, boost::token_finder([&sep](const char c) {
+                                       return sep.find(c) != std::string_view::npos;
+                                   }));
     for (; it != string_view_split_iterator(); ++it) {
         result.emplace_back(it->begin(), it->size());
     }
@@ -67,8 +68,12 @@ bool ICaseEndsWith(std::string_view hay, std::string_view needle) noexcept {
 }
 
 std::string RemoveQuotes(std::string_view str) {
-    if (str.empty()) return {};
-    if (str.front() != '"' || str.back() != '"') return std::string{str};
+    if (str.empty()) {
+        return {};
+    }
+    if (str.front() != '"' || str.back() != '"') {
+        return std::string{str};
+    }
     return std::string{str.substr(1, str.size() - 2)};
 }
 
@@ -336,6 +341,24 @@ std::string CamelCaseToSnake(std::string_view camel) {
     }
 
     return snake;
+}
+
+std::string SnakeCaseToCamel(std::string_view snake) {
+    std::string camel;
+
+    bool next_upper = true;
+    for (const char c : snake) {
+        if (next_upper) {
+            camel += static_cast<char>(std::toupper(c));
+            next_upper = false;
+        } else if (c == '_') {
+            next_upper = true;
+        } else {
+            camel += static_cast<char>(std::tolower(c));
+        }
+    }
+
+    return camel;
 }
 
 }  // namespace utils::text

@@ -37,7 +37,9 @@ std::string Format(double value, const std::string& locale, int ndigits, bool is
         res.imbue(GetLocale(locale));
     }
 
-    if (is_fixed) res.setf(std::ios::fixed, std::ios::floatfield);
+    if (is_fixed) {
+        res.setf(std::ios::fixed, std::ios::floatfield);
+    }
     res.precision(ndigits);
 
     res << boost::locale::as::number << value;

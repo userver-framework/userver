@@ -33,7 +33,7 @@ async def test_file_recursive(service_client, service_source_dir):
 
 @pytest.mark.parametrize(
     'path',
-    ['/possible/to/work/from/subpath/dir1/dir2', '/possible/to/work/from/subpath/dir1/dir2/'],  # noqa: COM812
+    ['/possible/to/work/from/subpath/dir1/dir2', '/possible/to/work/from/subpath/dir1/dir2/'],
 )
 async def test_file_recursive_index(service_client, service_source_dir, path):
     response = await service_client.get(path)

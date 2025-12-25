@@ -156,7 +156,9 @@ UTEST(Testpoint, Inactive) {
 TEST(Testpoint, InactiveNoncoro) {
     try {
         TESTPOINT_NONCORO(
-            "name-noncoro", true ? throw Exception() : formats::json::Value{}, engine::current_task::GetTaskProcessor()
+            "name-noncoro",
+            true ? throw Exception() : formats::json::Value{},
+            engine::current_task::GetTaskProcessor()
         );
     } catch (const Exception&) {
         FAIL() << "Exception was thrown on inactive testpoint. JSON expression was "

@@ -116,9 +116,9 @@ static_assert(!tt::kHasFixedDimensions<set_of_vectors>);
 
 static_assert(std::is_same<std::integer_sequence<std::size_t, kDimOne>, tt::FixedDimensions<one_dim_array>::type>::value
 );
-static_assert((
-    std::is_same<std::integer_sequence<std::size_t, kDimTwo, kDimOne>, tt::FixedDimensions<two_dim_array>::type>::value
-));
+static_assert((std::is_same<
+               std::integer_sequence<std::size_t, kDimTwo, kDimOne>,
+               tt::FixedDimensions<two_dim_array>::type>::value));
 static_assert(std::is_same<
               std::integer_sequence<std::size_t, kDimThree, kDimTwo, kDimOne>,
               tt::FixedDimensions<three_dim_array>::type>::value);
@@ -730,8 +730,8 @@ UTEST_P(PostgreConnection, ArraySetRoundtrip) {
     }
     {
         using test_optional_array = std::optional<std::set<std::string>>;
-        test_optional_array src =
-            std::make_optional<std::set<std::string>>({std::string{"foo"}, std::string{"bar"}, std::string{""}});
+        test_optional_array
+            src = std::make_optional<std::set<std::string>>({std::string{"foo"}, std::string{"bar"}, std::string{""}});
         UEXPECT_NO_THROW(res = GetConn()->Execute("select $1 as optional_text_array", src));
         test_optional_array tgt;
         UEXPECT_NO_THROW(res[0][0].To(tgt));
@@ -807,9 +807,8 @@ UTEST_P(PostgreConnection, ArrayUnorderedSetRoundtrip) {
     }
     {
         using test_optional_array = std::optional<std::unordered_set<std::string>>;
-        test_optional_array src = std::make_optional<std::unordered_set<std::string>>(
-            {std::string{"foo"}, std::string{"bar"}, std::string{""}}
-        );
+        test_optional_array src = std::make_optional<
+            std::unordered_set<std::string>>({std::string{"foo"}, std::string{"bar"}, std::string{""}});
         UEXPECT_NO_THROW(res = GetConn()->Execute("select $1 as optional_text_array", src));
         test_optional_array tgt;
         UEXPECT_NO_THROW(res[0][0].To(tgt));
@@ -841,9 +840,8 @@ UTEST_P(PostgreConnection, ArrayOfVarchar) {
     CheckConnection(GetConn());
     const pg::ResultSet res{nullptr};
     UEXPECT_NO_THROW(GetConn()->Execute("create temporary table vchar_array_test( v varchar[] )"));
-    UEXPECT_NO_THROW(
-        GetConn()->Execute("insert into vchar_array_test values ($1)", std::vector<std::string>{"foo", "bar"})
-    );
+    UEXPECT_NO_THROW(GetConn()
+                         ->Execute("insert into vchar_array_test values ($1)", std::vector<std::string>{"foo", "bar"}));
 }
 
 UTEST_P(PostgreConnection, ArrayOfBool) {
@@ -958,8 +956,9 @@ UTEST_P(PostgreConnection, TransactionDecomposedChunkedContainer) {
 
     pg::Transaction trx{std::move(GetConn())};
     UEXPECT_NO_THROW(InsertDecomposedInChunks(trx, rows_to_insert));
-    const auto inserted_rows = trx.Execute("SELECT id, value FROM decomposed_chunked_array_test")
-                                   .AsContainer<std::vector<IdAndValue>>(pg::kRowTag);
+    const auto inserted_rows =
+        trx.Execute("SELECT id, value FROM decomposed_chunked_array_test")
+            .AsContainer<std::vector<IdAndValue>>(pg::kRowTag);
 
     // we don't define operator== on IdAndValue to not bloat the sample (and that
     // operator could confuse people, like why is it needed there), so this

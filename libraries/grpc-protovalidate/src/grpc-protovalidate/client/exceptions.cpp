@@ -14,7 +14,8 @@ ResponseError::ResponseError(std::string_view call_name, buf::validate::Validati
           call_name,
           fmt::format("response violates constraints (count={})", error_info.violations_size())
       ),
-      error_info_(std::move(error_info)) {}
+      error_info_(std::move(error_info))
+{}
 
 const buf::validate::ValidationResult& ResponseError::GetErrorInfo() const { return error_info_; }
 

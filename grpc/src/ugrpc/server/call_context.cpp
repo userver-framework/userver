@@ -8,7 +8,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::server {
 
-CallContextBase::CallContextBase(utils::impl::InternalTag, impl::CallState& state) : state_(state) {}
+CallContextBase::CallContextBase(utils::impl::InternalTag, impl::CallState& state)
+    : state_(state)
+{}
 
 grpc::ServerContext& CallContextBase::GetServerContext() { return state_.server_context; }
 

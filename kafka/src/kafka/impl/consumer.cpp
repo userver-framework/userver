@@ -30,8 +30,8 @@ void CallErrorTestpoint(const std::string& testpoint_name, const std::string& er
 
 std::function<void()> CreateDurationNotifier(std::chrono::milliseconds max_callback_duration) {
     return [max_callback_duration, start_time = std::chrono::system_clock::now()]() {
-        const auto callback_duration =
-            std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - start_time);
+        const auto callback_duration = std::chrono::duration_cast<
+            std::chrono::milliseconds>(std::chrono::system_clock::now() - start_time);
 
         if (callback_duration > max_callback_duration / 2) {
             LOG_WARNING(
@@ -65,7 +65,8 @@ Consumer::Consumer(
       consumer_blocking_task_processor_(consumer_blocking_task_processor),
       main_task_processor_(main_task_processor),
       conf_(Configuration{name, configuration, secrets}.Release()),
-      consumer_(std::make_unique<ConsumerImpl>(name_, conf_, topics_, params, rebalance_callback_, stats_)) {
+      consumer_(std::make_unique<ConsumerImpl>(name_, conf_, topics_, params, rebalance_callback_, stats_))
+{
     /// To check configuration validity
     [[maybe_unused]] auto _ = ConsumerHolder{conf_};
 }
@@ -99,7 +100,8 @@ void Consumer::RunConsuming(ConsumerScope::Callback callback) {
 
     while (!engine::current_task::ShouldCancel()) {
         auto polled_messages = consumer_->PollBatch(
-            execution_params_.max_batch_size, engine::Deadline::FromDuration(execution_params_.poll_timeout)
+            execution_params_.max_batch_size,
+            engine::Deadline::FromDuration(execution_params_.poll_timeout)
         );
 
         if (engine::current_task::ShouldCancel()) {
@@ -118,7 +120,8 @@ void Consumer::RunConsuming(ConsumerScope::Callback callback) {
         auto batch_processing_task =
             utils::Async(main_task_processor_, "messages_processing", callback, utils::span{polled_messages});
         const utils::ScopeGuard callback_duration_notifier{
-            CreateDurationNotifier(execution_params_.max_callback_duration)};
+            CreateDurationNotifier(execution_params_.max_callback_duration)
+        };
 
         try {
             batch_processing_task.Get();
@@ -186,8 +189,10 @@ OffsetRange Consumer::GetOffsetRange(
     ).Get();
 }
 
-std::vector<std::uint32_t>
-Consumer::GetPartitionIds(utils::zstring_view topic, std::optional<std::chrono::milliseconds> timeout) const {
+std::vector<std::uint32_t> Consumer::GetPartitionIds(
+    utils::zstring_view topic,
+    std::optional<std::chrono::milliseconds> timeout
+) const {
     return utils::Async(
                consumer_blocking_task_processor_,
                "consumer_getting_partition_ids",

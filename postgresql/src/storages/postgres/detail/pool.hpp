@@ -138,8 +138,9 @@ private:
 
     void CheckUserTypes();
 
-    using RecentCounter = USERVER_NAMESPACE::utils::statistics::
-        RecentPeriod<USERVER_NAMESPACE::utils::statistics::RelaxedCounter<size_t>, size_t>;
+    using RecentCounter = USERVER_NAMESPACE::utils::statistics::RecentPeriod<
+        USERVER_NAMESPACE::utils::statistics::RelaxedCounter<size_t>,
+        size_t>;
 
     using ConnectionQueue = concurrent::NonFifoMpmcQueue<Connection*>;
 

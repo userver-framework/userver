@@ -116,8 +116,12 @@ public:
         std::string_view protocol
     ) const final;
 
-    std::optional<std::string>
-    ListBucketContents(std::string_view path, int max_keys, std::string marker, std::string delimiter) const final;
+    std::optional<std::string> ListBucketContents(
+        std::string_view path,
+        int max_keys,
+        std::string marker,
+        std::string delimiter
+    ) const final;
 
     std::vector<ObjectMeta> ListBucketContentsParsed(std::string_view path_prefix) const final;
 

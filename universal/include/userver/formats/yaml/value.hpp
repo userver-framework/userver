@@ -19,6 +19,10 @@ namespace formats::yaml {
 
 class ValueBuilder;
 
+namespace impl {
+formats::yaml::Value FromStringAllowRepeatedKeys(const std::string& doc);
+}  // namespace impl
+
 /// @ingroup userver_universal userver_containers userver_formats
 ///
 /// @brief Non-mutable YAML value representation.
@@ -291,6 +295,7 @@ private:
     friend formats::yaml::Value FromString(const std::string&);
     friend formats::yaml::Value FromStream(std::istream&);
     friend void Serialize(const formats::yaml::Value&, std::ostream&);
+    friend formats::yaml::Value impl::FromStringAllowRepeatedKeys(const std::string& doc);
 };
 
 template <typename T>

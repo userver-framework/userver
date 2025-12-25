@@ -30,12 +30,9 @@ RedisConnectionHolder::RedisConnectionHolder(
       port_(port),
       password_(std::move(password)),
       database_index_(database_index),
-      connection_check_timer_(
-          ev_thread_,
-          [this] { EnsureConnected(); },
-          kCheckRedisConnectedInterval
-      ),
-      redis_creation_settings_(redis_creation_settings) {}
+      connection_check_timer_(ev_thread_, [this] { EnsureConnected(); }, kCheckRedisConnectedInterval),
+      redis_creation_settings_(redis_creation_settings)
+{}
 
 RedisConnectionHolder::~RedisConnectionHolder() {
     ev_thread_.RunInEvLoopBlocking([this] { connection_check_timer_.Stop(); });
@@ -94,7 +91,9 @@ void RedisConnectionHolder::CreateConnection() {
     UASSERT(weak_from_this().lock());
     instance->signal_state_change.connect([weak_ptr{weak_from_this()}](Redis::State state) {
         const auto ptr = weak_ptr.lock();
-        if (!ptr) return;
+        if (!ptr) {
+            return;
+        }
 
         ptr->signal_state_change(state);
     });

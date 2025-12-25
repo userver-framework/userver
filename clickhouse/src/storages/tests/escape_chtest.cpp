@@ -84,7 +84,8 @@ UTEST(ExecuteWithArgs, DatesArgs) {
 
     const storages::clickhouse::Query q{
         "SELECT date, milli, micro, nano FROM tmp_table WHERE "
-        "date <= {} AND milli <= {} AND micro <= {} AND nano <= {}"};
+        "date <= {} AND milli <= {} AND micro <= {} AND nano <= {}"
+    };
     const auto res =
         cluster->Execute(q, now, io::DateTime64Milli{now}, io::DateTime64Micro{now}, io::DateTime64Nano{now})
             .As<DataWithDatetime>();
@@ -149,7 +150,8 @@ UTEST(ExecuteWithArgs, InsertSelectNull) {
     const std::optional<uint64_t> null_price;
     const storages::clickhouse::Query query{
         "SELECT fruit, price FROM fruits "
-        "WHERE price is {0}"};
+        "WHERE price is {0}"
+    };
     const auto null_rows = cluster->Execute(query, null_price).AsContainer<std::vector<DataWithOptValue>>();
 
     EXPECT_EQ(null_rows.size(), 1);
@@ -172,7 +174,8 @@ UTEST(ExecuteWithArgs, InsertSelectNotNull) {
     const std::optional<uint64_t> price = 300;
     const storages::clickhouse::Query query{
         "SELECT fruit, price FROM fruits "
-        "WHERE price = {0}"};
+        "WHERE price = {0}"
+    };
     const auto not_null_rows = cluster->Execute(query, price).AsContainer<std::vector<DataWithOptValue>>();
 
     EXPECT_EQ(not_null_rows.size(), 1);

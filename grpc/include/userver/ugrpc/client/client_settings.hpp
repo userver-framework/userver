@@ -4,6 +4,7 @@
 /// @brief @copybrief ugrpc::client::ClientSettings
 
 #include <cstddef>
+#include <optional>
 #include <string>
 #include <unordered_map>
 
@@ -30,6 +31,11 @@ struct ClientSettings final {
     /// sockets are also supported. For details, see:
     /// https://grpc.github.io/grpc/cpp/md_doc_naming.html
     std::string endpoint;
+
+    /// **(Optional)**
+    /// Prefix for the full destination path in metrics: "destination_prefix_in_metrics/grpc_service/grpc_method".
+    /// Default: "client(client_name)".
+    std::optional<std::string> destination_prefix_in_metrics{std::nullopt};
 
     /// **(Optional)**
     /// The name of the QOS

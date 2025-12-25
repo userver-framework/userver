@@ -73,7 +73,9 @@ TEST(DatetimeUtils, BigTimestampToNanoseconds) {
 
 TEST(DatetimeUtils, InvalidTimestampToSystemClock) {
     UEXPECT_THROW_MSG(
-        ugrpc::ToTimePoint(MakeTimestamp(1e15, 0)), ugrpc::TimestampConversionError, "grpc_ts is invalid"
+        ugrpc::ToTimePoint(MakeTimestamp(1e15, 0)),
+        ugrpc::TimestampConversionError,
+        "grpc_ts is invalid"
     );
 }
 
@@ -116,8 +118,11 @@ TEST(DatetimeUtils, InvalidTimestampJsonSerialize) {
 namespace {
 
 #if __cpp_lib_chrono >= 201907L
-constexpr std::chrono::year_month_day
-    kYearMonthDay(std::chrono::year(2025), std::chrono::month(4), std::chrono::day(10));
+constexpr std::chrono::year_month_day kYearMonthDay(
+    std::chrono::year(2025),
+    std::chrono::month(4),
+    std::chrono::day(10)
+);
 #endif
 
 google::type::Date MakeDate(std::int32_t year, std::int32_t month, std::int32_t day) {
@@ -150,9 +155,8 @@ TEST(DatetimeUtilsDateIsValid, DayDoesNotMatchMonth) { EXPECT_FALSE(ugrpc::IsVal
 TEST(DatetimeUtils, ToProtoDateFromYearMonthDay) { EXPECT_TRUE(GrpcCompare(kDate, ugrpc::ToProtoDate(kYearMonthDay))); }
 
 TEST(DatetimeUtils, ToProtoDateFromInvalidYearMonthDay) {
-    constexpr std::chrono::year_month_day kInvalidYearMonthDay(
-        std::chrono::year(11000), std::chrono::month(4), std::chrono::day(10)
-    );
+    constexpr std::chrono::year_month_day
+        kInvalidYearMonthDay(std::chrono::year(11000), std::chrono::month(4), std::chrono::day(10));
     UEXPECT_THROW_MSG(
         formats::json::ValueBuilder(kInvalidYearMonthDay).ExtractValue(),
         ugrpc::DateConversionError,
@@ -164,7 +168,9 @@ TEST(DatetimeUtils, ToYearMonthDay) { EXPECT_EQ(kYearMonthDay, ugrpc::ToYearMont
 
 TEST(DatetimeUtils, ToYearMonthDayInvalidDate) {
     UEXPECT_THROW_MSG(
-        ugrpc::ToYearMonthDay(MakeDate(11000, 4, 10)), ugrpc::DateConversionError, "grpc_date is invalid"
+        ugrpc::ToYearMonthDay(MakeDate(11000, 4, 10)),
+        ugrpc::DateConversionError,
+        "grpc_date is invalid"
     );
 }
 
@@ -174,7 +180,9 @@ TEST(DatetimeUtils, ToProtoDateFromUtilsDate) { EXPECT_TRUE(kGrpcCompare(kDate, 
 
 TEST(DatetimeUtils, ToProtoDateFromInvalidUtilsDate) {
     UEXPECT_THROW_MSG(
-        ugrpc::ToProtoDate(utils::datetime::Date(11000, 4, 10)), ugrpc::DateConversionError, "utils_date is invalid"
+        ugrpc::ToProtoDate(utils::datetime::Date(11000, 4, 10)),
+        ugrpc::DateConversionError,
+        "utils_date is invalid"
     );
 }
 
@@ -229,8 +237,8 @@ constexpr std::chrono::duration kDuration = std::chrono::seconds(123) + std::chr
 const google::protobuf::Duration kBigGrpcDuration = MakeDuration(1e11, 234567000);
 constexpr std::chrono::duration kBigDurationMicroseconds =
     std::chrono::seconds(static_cast<std::int64_t>(1e11)) + std::chrono::microseconds(234567);
-constexpr std::chrono::duration kBigDurationMilliseconds =
-    std::chrono::seconds(static_cast<std::int64_t>(1e11)) + std::chrono::milliseconds(234);
+constexpr std::chrono::duration
+    kBigDurationMilliseconds = std::chrono::seconds(static_cast<std::int64_t>(1e11)) + std::chrono::milliseconds(234);
 
 }  // namespace
 
@@ -262,7 +270,9 @@ TEST(DatetimeUtils, BigDurationToNanoseconds) {
 
 TEST(DatetimeUtils, ToDurationInvalid) {
     UEXPECT_THROW_MSG(
-        ugrpc::ToDuration(MakeDuration(10, -5)), ugrpc::DurationConversionError, "grpc_duration is invalid"
+        ugrpc::ToDuration(MakeDuration(10, -5)),
+        ugrpc::DurationConversionError,
+        "grpc_duration is invalid"
     );
 }
 

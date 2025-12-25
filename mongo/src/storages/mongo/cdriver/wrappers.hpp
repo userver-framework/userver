@@ -87,6 +87,11 @@ struct WriteConcernDeleter {
 };
 using WriteConcernPtr = std::unique_ptr<mongoc_write_concern_t, WriteConcernDeleter>;
 
+struct SessionDeleter {
+    void operator()(mongoc_client_session_t* session) const noexcept { mongoc_client_session_destroy(session); }
+};
+using SessionPtr = std::shared_ptr<mongoc_client_session_t>;
+
 }  // namespace storages::mongo::impl::cdriver
 
 USERVER_NAMESPACE_END

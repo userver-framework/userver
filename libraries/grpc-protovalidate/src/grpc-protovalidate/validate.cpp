@@ -32,7 +32,8 @@ ValidationError::ValidationError(Type type, std::string description, std::string
     : type_(type),
       description_(fmt::format("Message '{}' validation error: {}", message_name, std::move(description))),
       result_(std::nullopt),
-      message_name_(std::move(message_name)) {}
+      message_name_(std::move(message_name))
+{}
 
 ValidationError::ValidationError(buf::validate::ValidationResult result, std::string message_name)
     : type_(Type::kRule),
@@ -42,7 +43,8 @@ ValidationError::ValidationError(buf::validate::ValidationResult result, std::st
           result.violations_size()
       )),
       result_(std::move(result)),
-      message_name_(std::move(message_name)) {}
+      message_name_(std::move(message_name))
+{}
 
 ValidationError::Type ValidationError::GetType() const { return type_; }
 
@@ -95,7 +97,9 @@ logging::LogHelper& operator<<(logging::LogHelper& lh, const ValidationError& er
     return lh;
 }
 
-ValidationResult::ValidationResult(ValidationError error) : error_(std::move(error)) {}
+ValidationResult::ValidationResult(ValidationError error)
+    : error_(std::move(error))
+{}
 
 bool ValidationResult::IsSuccess() const { return !error_.has_value(); }
 

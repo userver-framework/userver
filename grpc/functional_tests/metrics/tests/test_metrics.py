@@ -16,8 +16,12 @@ def _normalize_metrics(metrics: str) -> str:
 def _drop_non_grpc_metrics(metrics: list[str]) -> list[str]:
     result = []
     for line in metrics:
-        if line.startswith(('grpc.server', 'grpc.client')):
-            result.append(line)
+        try:
+            path = line.split(':')[0]
+            if 'grpc' in path:
+                result.append(line)
+        except IndexError:
+            continue
 
     return result
 

@@ -15,7 +15,15 @@ namespace engine {
 
 class PluginManager final {
 public:
-    PluginManager(TaskProcessor& tp, std::size_t worker_count) : mutex_set_(tp, worker_count) {}
+    PluginManager(TaskProcessor& tp, std::size_t worker_count)
+        : mutex_set_(tp, worker_count)
+    {}
+
+    ~PluginManager()
+    {
+        // Wait until all Hook*() are finished
+        (void)mutex_set_.WriteLock();
+    }
 
     void RegisterPlugin(PluginBase& plugin) {
         has_any_plugin_ = true;
@@ -31,16 +39,22 @@ public:
             auto lock = mutex_set_.WriteLock();
 
             auto it = std::find(plugins_.begin(), plugins_.end(), &plugin);
-            if (it != plugins_.end()) plugins_.erase(it);
+            if (it != plugins_.end()) {
+                plugins_.erase(it);
+            }
 
             empty = plugins_.empty();
         }
 
-        if (empty) has_any_plugin_ = true;
+        if (!empty) {
+            has_any_plugin_ = true;
+        }
     }
 
     void HookTaskCreate(const impl::TaskContext& task) {
-        if (!has_any_plugin_) return;
+        if (!has_any_plugin_) {
+            return;
+        }
 
         // TaskContext() can be called outside of coroutine.
         // Fallback to "lock all mutexes" if so.
@@ -54,7 +68,9 @@ public:
     }
 
     void HookTaskDestroy(const impl::TaskContext& task) {
-        if (!has_any_plugin_) return;
+        if (!has_any_plugin_) {
+            return;
+        }
 
         // ~TaskContext() can be called outside of coroutine.
         // Fallback to "lock all mutexes" if so.
@@ -68,7 +84,9 @@ public:
     }
 
     void HookBeforeSleep(const impl::TaskContext& task) {
-        if (!has_any_plugin_) return;
+        if (!has_any_plugin_) {
+            return;
+        }
 
         auto lock = mutex_set_.ReadLockFromCoroutine();
         for (auto* const plugin : plugins_) {
@@ -77,7 +95,9 @@ public:
     }
 
     void HookAfterWakeup(const impl::TaskContext& task) {
-        if (!has_any_plugin_) return;
+        if (!has_any_plugin_) {
+            return;
+        }
 
         auto lock = mutex_set_.ReadLockFromCoroutine();
         for (auto* const plugin : plugins_ | boost::adaptors::reversed) {

@@ -12,7 +12,8 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::sqlite {
 
 Client::Client(const settings::SQLiteSettings& settings, engine::TaskProcessor& blocking_task_processor)
-    : pimpl_(std::make_unique<impl::ClientImpl>(settings, blocking_task_processor)) {}
+    : pimpl_(std::make_unique<impl::ClientImpl>(settings, blocking_task_processor))
+{}
 
 Client::~Client() = default;
 

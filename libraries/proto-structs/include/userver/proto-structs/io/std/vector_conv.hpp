@@ -34,8 +34,12 @@ void WriteVector(WriteContext& ctx, TVector&& struct_field, int field_number, TR
 }  // namespace impl
 
 template <typename TItem, typename TAllocator, proto_structs::traits::ProtoRepeated TRepeated>
-std::vector<TItem, TAllocator>
-ReadProtoField(ReadContext& ctx, To<std::vector<TItem, TAllocator>>, int field_number, const TRepeated& message_field) {
+std::vector<TItem, TAllocator> ReadProtoField(
+    ReadContext& ctx,
+    To<std::vector<TItem, TAllocator>>,
+    int field_number,
+    const TRepeated& message_field
+) {
     std::vector<TItem, TAllocator> result;
     result.reserve(message_field.size());
 

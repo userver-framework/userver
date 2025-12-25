@@ -56,7 +56,9 @@ private:
 #ifndef NDEBUG
         UASSERT_MSG(checked_, "CheckedPtr contents were not checked before dereferencing");
 #endif
-        if (!ptr_) impl::ThrowEmptyCheckedPointerException();
+        if (!ptr_) {
+            impl::ThrowEmptyCheckedPointerException();
+        }
     }
 #ifndef NDEBUG
     mutable bool checked_{false};

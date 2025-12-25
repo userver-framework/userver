@@ -155,7 +155,9 @@ def parse_args(args):
 
 
 def generate_test_script(input_path: str, output_path: str, is_coredump=False, benchmark_report: str | None = None):
-    regexp = re.compile(r'^\s*(TEST_EXPR|TEST_COMMAND|MAKE_COREDUMP_AND_SWITCH_TO)\s*\([^;]*\)', re.M | re.S)  # noqa: FURB167
+    regexp = re.compile(
+        r'^\s*(TEST_EXPR|TEST_COMMAND|MAKE_COREDUMP_AND_SWITCH_TO)\s*\([^;]*\)', re.MULTILINE | re.DOTALL
+    )
 
     with open(input_path, 'r', encoding='utf-8') as input:
         input_text = input.read()

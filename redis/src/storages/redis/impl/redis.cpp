@@ -74,9 +74,13 @@ bool IsFinalState(Redis::State state) {
 }
 
 bool IsUnsubscribeReply(const ReplyPtr& reply) {
-    if (!reply->data || !reply->data.IsArray()) return false;
+    if (!reply->data || !reply->data.IsArray()) {
+        return false;
+    }
     const auto& reply_array = reply->data.GetArray();
-    if (reply_array.size() != 3 || !reply_array[0].IsString()) return false;
+    if (reply_array.size() != 3 || !reply_array[0].IsString()) {
+        return false;
+    }
     return !strcasecmp(reply_array[0].GetString().c_str(), "UNSUBSCRIBE") ||
            !strcasecmp(reply_array[0].GetString().c_str(), "PUNSUBSCRIBE") ||
            !strcasecmp(reply_array[0].GetString().c_str(), "SUNSUBSCRIBE");
@@ -193,7 +197,9 @@ private:
 
     bool SetDestroying() {
         const std::lock_guard<std::mutex> lock(command_mutex_);
-        if (destroying_) return false;
+        if (destroying_) {
+            return false;
+        }
         destroying_ = true;
         return true;
     }
@@ -276,7 +282,8 @@ Redis::Redis(
     const RedisCreationSettings& redis_settings,
     const std::string& shard_group_name
 )
-    : thread_control_(thread_pool->NextThread()) {
+    : thread_control_(thread_pool->NextThread())
+{
     impl_ = std::make_shared<RedisImpl>(thread_pool, thread_control_, *this, redis_settings, shard_group_name);
 }
 
@@ -347,7 +354,8 @@ Redis::RedisImpl::RedisImpl(
       send_readonly_(redis_settings.send_readonly),
       connection_security_(redis_settings.connection_security),
       server_id_(ServerId::Generate()),
-      retry_budget_(utils::RetryBudgetSettings{100, 0.1, false}) {
+      retry_budget_(utils::RetryBudgetSettings{100, 0.1, false})
+{
     SetCommandsBufferingSettings(CommandsBufferingSettings{});
     log_extra_.Extend("shard_group_name", shard_group_name_);
     log_extra_.Extend("server_id", GetServerId().GetId());
@@ -386,7 +394,9 @@ void Redis::RedisImpl::Attach() {
 }
 
 void Redis::RedisImpl::Detach() {
-    if (!attached_) return;
+    if (!attached_) {
+        return;
+    }
 
     ev_thread_control_.Stop(watch_command_);
     ev_thread_control_.Stop(watch_command_timer_);
@@ -403,11 +413,14 @@ void Redis::RedisImpl::Connect(
     const Password& password,
     size_t database_index
 ) {
-    for (const auto& host : host_addrs)
-        if (Connect(host, port, password, database_index)) return;
+    for (const auto& host : host_addrs) {
+        if (Connect(host, port, password, database_index)) {
+            return;
+        }
+    }
 
-    LOG_ERROR() << log_extra_ << "error async connect to Redis server (host addrs =" << host_addrs << ", port=" << port
-                << ")";
+    LOG_ERROR()
+        << log_extra_ << "error async connect to Redis server (host addrs =" << host_addrs << ", port=" << port << ")";
     SetState(State::kInitError);
 }
 
@@ -430,8 +443,9 @@ bool Redis::RedisImpl::Connect(const std::string& host, int port, const Password
     context_->data = this;
 
     if (context_->err) {
-        LOG_WARNING() << log_extra_ << "error after redisAsyncConnect (host=" << host << ", port=" << port
-                      << "): " << context_->errstr;
+        LOG_WARNING()
+            << log_extra_ << "error after redisAsyncConnect (host=" << host << ", port=" << port
+            << "): " << context_->errstr;
         redisAsyncFree(context_);
         context_ = nullptr;
         return false;
@@ -445,11 +459,18 @@ bool Redis::RedisImpl::Connect(const std::string& host, int port, const Password
                 LOG_ERROR() << log_extra_ << "error in " << name << " with host " << host;
             }
         };
-        if (!err) Attach();
-        if (!err) check_error(redisLibevAttach(ev_thread_control_.GetEvLoop(), context_), "redisLibevAttach");
-        if (!err) check_error(redisAsyncSetConnectCallback(context_, OnConnect), "redisAsyncSetConnectCallback");
-        if (!err)
+        if (!err) {
+            Attach();
+        }
+        if (!err) {
+            check_error(redisLibevAttach(ev_thread_control_.GetEvLoop(), context_), "redisLibevAttach");
+        }
+        if (!err) {
+            check_error(redisAsyncSetConnectCallback(context_, OnConnect), "redisAsyncSetConnectCallback");
+        }
+        if (!err) {
             check_error(redisAsyncSetDisconnectCallback(context_, OnDisconnect), "redisAsyncSetDisconnectCallback");
+        }
         SetState(err ? State::kInitError : State::kInit);
     });
     return true;
@@ -457,14 +478,18 @@ bool Redis::RedisImpl::Connect(const std::string& host, int port, const Password
 
 void Redis::RedisImpl::Disconnect() {
     auto self = shared_from_this();  // prevents deleting this in FreeCommands()
-    if (!SetDestroying()) return;
+    if (!SetDestroying()) {
+        return;
+    }
     ev_thread_control_.RunInEvLoopBlocking([this] { DoDisconnect(); });
 }
 
 void Redis::RedisImpl::DoDisconnect() {
     Detach();
 
-    if (state_ == State::kInit || state_ == State::kConnected) redisAsyncDisconnect(context_);
+    if (state_ == State::kInit || state_ == State::kConnected) {
+        redisAsyncDisconnect(context_);
+    }
 
     FreeCommands();
 
@@ -485,7 +510,9 @@ void Redis::RedisImpl::InvokeCommand(const CommandPtr& command, ReplyPtr&& reply
     UASSERT(reply);
 
     const CommandControlImpl cc{command->control};
-    if (cc.account_in_statistics) statistics_.AccountReplyReceived(reply, command);
+    if (cc.account_in_statistics) {
+        statistics_.AccountReplyReceived(reply, command);
+    }
     reply->server = server_;
     if (reply->status == ReplyStatus::kTimeoutError) {
         reply->log_extra.Extend("timeout_ms", cc.timeout_single.count());
@@ -500,7 +527,9 @@ void Redis::RedisImpl::InvokeCommand(const CommandPtr& command, ReplyPtr&& reply
     reply->log_extra.Extend("reply_status", ToString(reply->status));
     reply->log_extra.Extend("shard_group_name", shard_group_name_);
 
-    if (reply->IsLoggableError()) LogSocketErrorReply(command, reply);
+    if (reply->IsLoggableError()) {
+        LogSocketErrorReply(command, reply);
+    }
 
     bool need_disconnect = false;
     if (reply->IsUnusableInstanceError() || reply->IsReadonlyError()) {
@@ -514,7 +543,9 @@ void Redis::RedisImpl::InvokeCommand(const CommandPtr& command, ReplyPtr&& reply
         LOG_WARNING() << log_extra_ << "exception in callback handler (" << command->args << ") " << ex;
     }
 
-    if (need_disconnect) Disconnect();
+    if (need_disconnect) {
+        Disconnect();
+    }
 }
 
 void Redis::RedisImpl::InvokeCommandError(
@@ -528,14 +559,15 @@ void Redis::RedisImpl::InvokeCommandError(
 }
 
 void Redis::RedisImpl::LogSocketErrorReply(const CommandPtr& command, const ReplyPtr& reply) {
-    LOG_WARNING() << "Request to Redis server " << reply->server << " failed with status " << reply->status << " ("
-                  << reply->GetStatusString() << ")" << reply->GetLogExtra() << command->GetLogExtra();
+    LOG_WARNING()
+        << "Request to Redis server " << reply->server << " failed with status " << reply->status << " ("
+        << reply->GetStatusString() << ")" << reply->GetLogExtra() << command->GetLogExtra();
 }
 
 void Redis::RedisImpl::LogInstanceErrorReply(const CommandPtr& command, const ReplyPtr& reply) {
-    LOG_ERROR() << "Request to Redis server " << reply->server
-                << " failed with Redis error reply: " << reply->data.ToDebugString() << reply->GetLogExtra()
-                << command->GetLogExtra();
+    LOG_ERROR()
+        << "Request to Redis server " << reply->server << " failed with Redis error reply: "
+        << reply->data.ToDebugString() << reply->GetLogExtra() << command->GetLogExtra();
 }
 
 bool Redis::RedisImpl::WatchCommandTimerEnabled(const CommandsBufferingSettings& commands_buffering_settings) {
@@ -544,11 +576,14 @@ bool Redis::RedisImpl::WatchCommandTimerEnabled(const CommandsBufferingSettings&
 }
 
 bool Redis::RedisImpl::AsyncCommand(const CommandPtr& command) {
-    LOG_DEBUG() << "AsyncCommand for server_id=" << GetServerId().GetId()
-                << " server=" << GetServerId().GetDescription() << " cmd=" << command->args << log_extra_;
+    LOG_DEBUG()
+        << "AsyncCommand for server_id=" << GetServerId().GetId() << " server=" << GetServerId().GetDescription()
+        << " cmd=" << command->args << log_extra_;
     {
         const std::lock_guard<std::mutex> lock(command_mutex_);
-        if (destroying_) return false;
+        if (destroying_) {
+            return false;
+        }
         ++commands_size_;
         commands_.push_back(command);
     }
@@ -605,8 +640,9 @@ void Redis::RedisImpl::AccountPingLatency(std::chrono::milliseconds latency) {
     logging::LogExtra log_extra = log_extra_;
     log_extra.Extend("ping_ms", latency.count());
     log_extra.Extend("stat_ms", ping_latency_ms_.load());
-    LOG_DEBUG() << "Got ping for Redis server: " << latency.count() << "ms, current ping stat is "
-                << ping_latency_ms_.load() << "ms" << log_extra;
+    LOG_DEBUG()
+        << "Got ping for Redis server: " << latency.count() << "ms, current ping stat is " << ping_latency_ms_.load()
+        << "ms" << log_extra;
 }
 
 void Redis::RedisImpl::AccountRtt() {
@@ -660,13 +696,15 @@ inline void Redis::RedisImpl::OnTimerInfoImpl() {
         CmdArgs{"INFO", "REPLICATION"},
         [this](const CommandPtr&, ReplyPtr reply) {
             if (!*reply) {
-                LOG_DEBUG() << "Failed to get INFO for server_id=" << GetServerId().GetId() << ", host=" << GetHost()
-                            << log_extra_;
+                LOG_DEBUG()
+                    << "Failed to get INFO for server_id=" << GetServerId().GetId() << ", host=" << GetHost()
+                    << log_extra_;
                 return;
             }
             if (!reply->data.IsString()) {
-                LOG_DEBUG() << "Failed to get INFO for server_id=" << GetServerId().GetId() << ", host=" << GetHost()
-                            << ". reply data is not an string but " << reply->data.GetTypeString() << log_extra_;
+                LOG_DEBUG()
+                    << "Failed to get INFO for server_id=" << GetServerId().GetId() << ", host=" << GetHost()
+                    << ". reply data is not an string but " << reply->data.GetTypeString() << log_extra_;
                 return;
             }
             const auto& value = reply->data.GetString();
@@ -762,17 +800,19 @@ logging::Level Redis::RedisImpl::StateChangeToLogLevel(State /*old_state*/, Stat
 }
 
 void Redis::RedisImpl::SetState(State state) {
-    if (state == state_) return;
-
-    if (IsFinalState(state_)) {
-        LOG_INFO() << log_extra_ << "skipped SetState() from " << StateToString(state_) << " to "
-                   << StateToString(state);
+    if (state == state_) {
         return;
     }
-    LOG(StateChangeToLogLevel(state_, state))
-        << log_extra_ << "Redis server connection state for server=" << GetServer()
-        << " (server_id=" << GetServerId().GetId() << ") changed from " << StateToString(state_) << " to "
-        << StateToString(state);
+
+    if (IsFinalState(state_)) {
+        LOG_INFO()
+            << log_extra_ << "skipped SetState() from " << StateToString(state_) << " to " << StateToString(state);
+        return;
+    }
+    LOG(StateChangeToLogLevel(state_, state)
+    ) << log_extra_
+      << "Redis server connection state for server=" << GetServer() << " (server_id=" << GetServerId().GetId()
+      << ") changed from " << StateToString(state_) << " to " << StateToString(state);
     state_ = state;
     statistics_.AccountStateChanged(state);
 
@@ -783,10 +823,13 @@ void Redis::RedisImpl::SetState(State state) {
             ev_thread_control_.Start(ping_timer_);
             ev_thread_control_.Start(info_timer_);
         });
-    } else if (state == State::kInitError || state == State::kDisconnectError || state == State::kDisconnected)
+    } else if (state == State::kInitError || state == State::kDisconnectError || state == State::kDisconnected) {
         Disconnect();
+    }
 
-    if (redis_obj_) redis_obj_->signal_state_change(state);
+    if (redis_obj_) {
+        redis_obj_->signal_state_change(state);
+    }
 }
 
 void Redis::RedisImpl::FreeCommands() {
@@ -833,11 +876,14 @@ void Redis::RedisImpl::OnNewCommandImpl() {
     auto commands_buffering_settings = commands_buffering_settings_.Get();
     if (WatchCommandTimerEnabled(*commands_buffering_settings) &&
         (!commands_buffering_settings->commands_buffering_threshold ||
-         commands_size_.load() < commands_buffering_settings->commands_buffering_threshold)) {
+         commands_size_.load() < commands_buffering_settings->commands_buffering_threshold))
+    {
         if (!std::exchange(watch_command_timer_started_, true)) {
             // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
             ev_timer_set(
-                &watch_command_timer_, ToEvDuration(commands_buffering_settings->watch_command_timer_interval), 0.0
+                &watch_command_timer_,
+                ToEvDuration(commands_buffering_settings->watch_command_timer_interval),
+                0.0
             );
             ev_thread_control_.Start(watch_command_timer_);
         }
@@ -898,8 +944,9 @@ void Redis::RedisImpl::OnConnectImpl(int status) {
     ev_thread_control_.Stop(connect_timer_);
 
     if (status != REDIS_OK) {
-        LOG_WARNING() << log_extra_ << "Connect to Redis failed. Status=" << status << ". Hiredis errstr='"
-                      << (status == REDIS_ERR ? context_->errstr : "") << '\'';
+        LOG_WARNING()
+            << log_extra_ << "Connect to Redis failed. Status=" << status << ". Hiredis errstr='"
+            << (status == REDIS_ERR ? context_->errstr : "") << '\'';
         SetState(State::kDisconnected);
         return;
     }
@@ -914,8 +961,9 @@ void Redis::RedisImpl::OnConnectImpl(int status) {
 
     const int keep_alive_status = redisEnableKeepAlive(&context_->c);
     if (keep_alive_status != REDIS_OK) {
-        LOG_ERROR() << log_extra_ << "redisEnableKeepAlive() failed. Hiredis errstr='"
-                    << (keep_alive_status == REDIS_ERR ? context_->errstr : "") << '\'';
+        LOG_ERROR()
+            << log_extra_ << "redisEnableKeepAlive() failed. Hiredis errstr='"
+            << (keep_alive_status == REDIS_ERR ? context_->errstr : "") << '\'';
         Disconnect();
         return;
     }
@@ -925,10 +973,11 @@ void Redis::RedisImpl::OnConnectImpl(int status) {
 
 void Redis::RedisImpl::OnDisconnectImpl(int status) {
     if (status == REDIS_ERR) {
-        LOG_LIMITED_WARNING() << log_extra_ << "Got disconnect error from hiredis (" << context_->errstr
-                              << "). For more information look in server logs ("
-                                 "https://wiki.yandex-team.ru/taxi/backend/userver/redis/"
-                                 "#logiservera).";
+        LOG_LIMITED_WARNING()
+            << log_extra_ << "Got disconnect error from hiredis (" << context_->errstr
+            << "). For more information look in server logs ("
+               "https://wiki.yandex-team.ru/taxi/backend/userver/redis/"
+               "#logiservera).";
     }
     SetState(status == REDIS_OK ? State::kDisconnected : State::kDisconnectError);
     context_ = nullptr;
@@ -947,8 +996,9 @@ bool Redis::RedisImpl::InitSecureConnection() {
     }
 
     if (redisInitiateSSLWithContext(&context_->c, ssl_context_.get()) != REDIS_OK) {
-        LOG_ERROR() << log_extra_ << "redisInitiateSSLWithContext failed. Hiredis errstr='" << context_->errstr << '\''
-                    << " server=" << server_;
+        LOG_ERROR()
+            << log_extra_ << "redisInitiateSSLWithContext failed. Hiredis errstr='" << context_->errstr << '\''
+            << " server=" << server_;
         return false;
     }
 
@@ -971,10 +1021,11 @@ void Redis::RedisImpl::Authenticate() {
                 } else {
                     if (*reply) {
                         if (reply->IsUnknownCommandError()) {
-                            LOG_WARNING() << log_extra_
-                                          << "AUTH failed: unknown command `AUTH` - "
-                                             "possible when connecting to sentinel instead "
-                                             "of RedisCluster instance";
+                            LOG_WARNING()
+                                << log_extra_
+                                << "AUTH failed: unknown command `AUTH` - "
+                                   "possible when connecting to sentinel instead "
+                                   "of RedisCluster instance";
                             Disconnect();
                             return;
                         }
@@ -982,8 +1033,9 @@ void Redis::RedisImpl::Authenticate() {
                             << log_extra_ << "AUTH failed: response type=" << reply->data.GetTypeString()
                             << " msg=" << reply->data.ToDebugString();
                     } else {
-                        LOG_LIMITED_ERROR() << "AUTH failed with status " << reply->status << " ("
-                                            << reply->GetStatusString() << ") " << log_extra_;
+                        LOG_LIMITED_ERROR()
+                            << "AUTH failed with status " << reply->status << " (" << reply->GetStatusString() << ") "
+                            << log_extra_;
                     }
                     Disconnect();
                 }
@@ -998,18 +1050,20 @@ void Redis::RedisImpl::SendReadOnly() {
         return;
     }
 
-    LOG_DEBUG() << log_extra_ << "Send READONLY command to slave " << GetServerId().GetDescription()
-                << " in cluster mode";
+    LOG_DEBUG()
+        << log_extra_ << "Send READONLY command to slave " << GetServerId().GetDescription() << " in cluster mode";
     ProcessCommand(PrepareCommand(CmdArgs{"READONLY"}, [this](const CommandPtr&, ReplyPtr reply) {
         if (*reply && reply->data.IsStatus()) {
             SelectDatabase();
         } else {
             if (*reply) {
-                LOG_LIMITED_ERROR() << log_extra_ << "READONLY failed: response type=" << reply->data.GetTypeString()
-                                    << " msg=" << reply->data.ToDebugString();
+                LOG_LIMITED_ERROR()
+                    << log_extra_ << "READONLY failed: response type=" << reply->data.GetTypeString()
+                    << " msg=" << reply->data.ToDebugString();
             } else {
-                LOG_LIMITED_ERROR() << "READONLY failed with status=" << reply->status << " ("
-                                    << reply->GetStatusString() << ") " << log_extra_;
+                LOG_LIMITED_ERROR()
+                    << "READONLY failed with status=" << reply->status << " (" << reply->GetStatusString() << ") "
+                    << log_extra_;
             }
             Disconnect();
         }
@@ -1034,21 +1088,24 @@ void Redis::RedisImpl::SelectDatabase() {
         const utils::ScopeGuard auto_disconnect([this]() { Disconnect(); });
 
         if (!*reply) {
-            LOG_LIMITED_ERROR() << "SELECT failed with status " << reply->status << " (" << reply->GetStatusString()
-                                << ") " << log_extra_;
+            LOG_LIMITED_ERROR()
+                << "SELECT failed with status " << reply->status << " (" << reply->GetStatusString() << ") "
+                << log_extra_;
             return;
         }
 
         if (reply->IsUnknownCommandError()) {
-            LOG_WARNING() << log_extra_
-                          << "SELECT failed: unknown command `SELECT` - "
-                             "possible when connecting to Sentinel instead "
-                             "of Redis master or slave instance";
+            LOG_WARNING()
+                << log_extra_
+                << "SELECT failed: unknown command `SELECT` - "
+                   "possible when connecting to Sentinel instead "
+                   "of Redis master or slave instance";
             return;
         }
 
-        LOG_LIMITED_ERROR() << log_extra_ << "SELECT failed: response type=" << reply->data.GetTypeString()
-                            << " msg=" << reply->data.ToDebugString();
+        LOG_LIMITED_ERROR()
+            << log_extra_ << "SELECT failed: response type=" << reply->data.GetTypeString()
+            << " msg=" << reply->data.ToDebugString();
     }));
 }
 
@@ -1065,7 +1122,8 @@ void Redis::RedisImpl::OnRedisReply(redisAsyncContext* c, void* r, void* privdat
             // redis_reply contains error that mismatch Reply status OK.
             // Fix the status here to pass the Reply UASSERT checks.
             UASSERT_MSG(
-                !c->errstr || c->errstr[0] == '\0', fmt::format("For OK status there's an error string: {}", c->errstr)
+                !c->errstr || c->errstr[0] == '\0',
+                fmt::format("For OK status there's an error string: {}", c->errstr)
             );
             impl->OnRedisReplyImpl(redis_reply, privdata, REDIS_ERR_OTHER, nullptr);
         } else {
@@ -1078,7 +1136,9 @@ void Redis::RedisImpl::OnRedisReply(redisAsyncContext* c, void* r, void* privdat
 
 void Redis::RedisImpl::OnRedisReplyImpl(redisReply* redis_reply, void* privdata, int status, const char* errstr) {
     auto data = reply_privdata_.find(reinterpret_cast<size_t>(privdata));
-    if (data == reply_privdata_.end()) return;
+    if (data == reply_privdata_.end()) {
+        return;
+    }
 
     std::unique_ptr<SingleCommand> command_ptr;
     SingleCommand* pcommand = nullptr;
@@ -1110,11 +1170,14 @@ void Redis::RedisImpl::OnRedisReplyImpl(redisReply* redis_reply, void* privdata,
     // TODO: add check in RedisImpl.
     if (!subscriber_ || !redis_reply || IsUnsubscribeReply(reply)) {
         command_ptr = std::move(data->second);
-        if (!subscriber_) --sent_count_;
+        if (!subscriber_) {
+            --sent_count_;
+        }
 
         if (subscriber_) {
-            LOG_DEBUG() << log_extra_ << "server_id=" << GetServerId().GetId() << " erase privdata=" << data->first
-                        << " unsub=" << IsUnsubscribeReply(reply);
+            LOG_DEBUG()
+                << log_extra_ << "server_id=" << GetServerId().GetId() << " erase privdata=" << data->first
+                << " unsub=" << IsUnsubscribeReply(reply);
         }
         if (!pcommand->invoke_disabled) {
             UASSERT(reply_privdata_rev_.count(&pcommand->timer));
@@ -1126,7 +1189,9 @@ void Redis::RedisImpl::OnRedisReplyImpl(redisReply* redis_reply, void* privdata,
     }
     if (!pcommand->invoke_disabled) {
         // prevents double unsubscribe handling
-        if (subscriber_ && (!reply->IsOk() || !reply->data || !reply->data.IsArray())) pcommand->invoke_disabled = true;
+        if (subscriber_ && (!reply->IsOk() || !reply->data || !reply->data.IsArray())) {
+            pcommand->invoke_disabled = true;
+        }
         InvokeCommand(pcommand->meta, std::move(reply));
     }
 }
@@ -1137,7 +1202,9 @@ void Redis::RedisImpl::ProcessCommand(const CommandPtr& command) {
 
     bool multi = false;
     for (const auto& args : command->args) {
-        if (args.IsMultiCommand()) multi = true;
+        if (args.IsMultiCommand()) {
+            multi = true;
+        }
 
         if (!context_) {
             LOG_ERROR() << log_extra_ << "no context";
@@ -1146,7 +1213,9 @@ void Redis::RedisImpl::ProcessCommand(const CommandPtr& command) {
         }
 
         const bool is_special = args.IsSubscribesCommand();
-        if (is_special) subscriber_ = true;
+        if (is_special) {
+            subscriber_ = true;
+        }
         if (subscriber_ && !is_special) {
             LOG_ERROR() << log_extra_ << "impossible for subscriber: " << args.GetCommandName();
             InvokeCommandError(command, args.GetCommandName(), ReplyStatus::kOtherError, "Impossible for subscriber");
@@ -1177,14 +1246,17 @@ void Redis::RedisImpl::ProcessCommand(const CommandPtr& command) {
                     elements_count,
                     argv.data(),
                     argv_len.data()
-                ) != REDIS_OK) {
+                ) != REDIS_OK)
+            {
                 LOG_ERROR() << log_extra_ << "redisAsyncCommandArgv() failed on command " << args.GetCommandName();
                 InvokeCommandError(command, args.GetCommandName(), ReplyStatus::kOtherError, "Failed on command");
                 continue;
             }
         }
 
-        if (args.IsExecCommand()) multi = false;
+        if (args.IsExecCommand()) {
+            multi = false;
+        }
 
         if (!args.IsUnsubscribeCommand()) {
             auto entry = std::make_unique<SingleCommand>();
@@ -1194,7 +1266,10 @@ void Redis::RedisImpl::ProcessCommand(const CommandPtr& command) {
             entry->redis_impl = shared_from_this();
             // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
             ev_timer_init(
-                &entry->timer, OnCommandTimeout, ToEvDuration(CommandControlImpl{command->control}.timeout_single), 0.0
+                &entry->timer,
+                OnCommandTimeout,
+                ToEvDuration(CommandControlImpl{command->control}.timeout_single),
+                0.0
             );
             ev_thread_control_.Start(entry->timer);
 
@@ -1204,7 +1279,9 @@ void Redis::RedisImpl::ProcessCommand(const CommandPtr& command) {
             UASSERT(cmd_iterator.second);
         }
 
-        if (!subscriber_) ++sent_count_;
+        if (!subscriber_) {
+            ++sent_count_;
+        }
         ++cmd_counter_;
     }
 }

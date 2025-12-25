@@ -28,7 +28,9 @@ TEST(Percentile, One) {
 TEST(Percentile, Hundred) {
     utils::statistics::Percentile<100> p;
 
-    for (int i = 0; i < 100; i++) p.Account(i);
+    for (int i = 0; i < 100; i++) {
+        p.Account(i);
+    }
 
     EXPECT_EQ(0U, p.GetPercentile(0));
     EXPECT_EQ(50U, p.GetPercentile(50));

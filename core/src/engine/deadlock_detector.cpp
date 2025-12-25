@@ -1,9 +1,12 @@
 #include <engine/deadlock_detector.hpp>
 
-#include <list>
+#include <unordered_map>
+#include <utility>
+#include <vector>
 
 #include <fmt/format.h>
 #include <fmt/ranges.h>
+#include <boost/config.hpp>
 #include <boost/stacktrace.hpp>
 
 #include <engine/task/task_context.hpp>
@@ -21,9 +24,12 @@ namespace {
 
 class CycleDetector final {
 public:
+    using Actor = engine::impl::deadlock_detector::Actor;
     using Vertex = const Actor*;
 
-    explicit CycleDetector(const std::unordered_map<const Actor*, std::list<const Actor*>>& edges) : edges_(edges) {}
+    explicit CycleDetector(const std::unordered_map<const Actor*, std::vector<const Actor*>>& edges)
+        : edges_(edges)
+    {}
 
     std::optional<std::vector<Vertex>> FindCycle(Vertex start) {
         HandleVertex(start, nullptr);
@@ -42,35 +48,39 @@ private:
         Vertex v{};
 
         // the next not-yet processed dependency of "v"
-        std::list<Vertex>::const_iterator iter;
-        std::list<Vertex>::const_iterator end;
+        std::vector<Vertex>::const_iterator iter;
+        std::vector<Vertex>::const_iterator end;
     };
 
     struct CycleException final : public std::runtime_error {
         explicit CycleException(std::vector<Vertex> cycle)
-            : std::runtime_error("cycle detected"), cycle(std::move(cycle)) {}
+            : std::runtime_error("cycle detected"),
+              cycle(std::move(cycle))
+        {}
 
+        // Actors dependency cycle. Each actor (except the last) blocks the next one.
+        // The last one blocks the first.
         std::vector<Vertex> cycle;
     };
 
-    void HandleVertex(Vertex v, Vertex parent) {
-        auto it_p = parents_.find(v);
-        if (it_p != parents_.end()) {
+    void HandleVertex(Vertex v, Vertex previous) {
+        auto it_p = vertex_to_previous_vertex_.find(v);
+        if (it_p != vertex_to_previous_vertex_.end()) {
             auto finish = it_p->first;
 
             std::vector<Vertex> cycle;
             cycle.push_back(finish);
-            while (parent != finish) {
-                cycle.push_back(parent);
-                parent = parents_[parent];
+            while (previous != finish) {
+                cycle.push_back(previous);
+                previous = vertex_to_previous_vertex_[previous];
             }
             throw CycleException(std::move(cycle));
         }
 
         auto it = edges_.find(v);
-        if (it != edges_.end()) {
+        if (it != edges_.end() && processed_.find(v) == processed_.end()) {
             dfs_processing_stack_.emplace_back(DfsStackItem{v, it->second.begin(), it->second.end()});
-            parents_[v] = parent;
+            vertex_to_previous_vertex_[v] = previous;
         }
     }
 
@@ -78,6 +88,8 @@ private:
         while (!dfs_processing_stack_.empty()) {
             auto& frame = dfs_processing_stack_.back();
             if (frame.iter == frame.end) {
+                vertex_to_previous_vertex_.erase(frame.v);
+                processed_.emplace(frame.v);
                 dfs_processing_stack_.pop_back();
                 continue;
             }
@@ -87,12 +99,14 @@ private:
         }
     }
 
-    const std::unordered_map<const Actor*, std::list<const Actor*>>& edges_;
+    const std::unordered_map<const Actor*, std::vector<const Actor*>>& edges_;
 
     std::vector<DfsStackItem> dfs_processing_stack_;
 
-    // child -> parent
-    std::unordered_map<Vertex, Vertex> parents_;
+    // Allows both visited vertex tracking and backward path reconstruction
+    std::unordered_map<Vertex, Vertex> vertex_to_previous_vertex_;
+
+    std::unordered_set<Vertex> processed_;
 };
 
 }  // namespace
@@ -103,72 +117,110 @@ struct StateBase::Impl {
     concurrent::Variable<std::unordered_map<const Actor*, boost::stacktrace::stacktrace>, std::mutex> backtraces;
 
     // "first" depends on "second"
-    concurrent::Variable<std::unordered_map<const Actor*, std::list<const Actor*>>, std::mutex> active_dependencies;
+    concurrent::Variable<std::unordered_map<const Actor*, std::vector<const Actor*>>, std::mutex> active_dependencies;
 };
 
 StateBase::StateBase(DeadlockDetector dd) {
     impl_->enabled = dd != DeadlockDetector::kOff;
     impl_->collect_stacktrace = dd == DeadlockDetector::kOn;
+    LOG_INFO()
+        << "Deadlock detector is " << (impl_->enabled ? "enabled" : "disabled") << ", stacktraces collection is "
+        << (impl_->collect_stacktrace ? "enabled" : "disabled");
 }
 
 StateBase::~StateBase() = default;
 
-void StateBase::HookBeforeAddDependency(const Actor& subject, const Actor& object) {
-    if (!impl_->enabled) return;
+void StateBase::AddDependency(const Actor& from, const Actor& to) {
+    if (!impl_->enabled) {
+        return;
+    }
 
     const auto* current = current_task::GetCurrentTaskContextUnchecked();
-    if (current && current == &subject && impl_->collect_stacktrace) {
+    if (current != nullptr && current == &from && impl_->collect_stacktrace) {
+        boost::stacktrace::stacktrace trace{};
         auto bt = impl_->backtraces.Lock();
-        bt->emplace(current, boost::stacktrace::stacktrace());
+        bt->emplace(current, std::move(trace));
     }
 
     auto edges = impl_->active_dependencies.Lock();
-    auto& subject_dependencies = (*edges)[&subject];
+    auto& dependencies = (*edges)[&from];
     UASSERT_MSG(
-        std::find(subject_dependencies.begin(), subject_dependencies.end(), &object) == subject_dependencies.end(),
-        fmt::format("Adding already existing dependency {} -> {}", ToAssertString(subject), ToAssertString(object))
+        std::find(dependencies.begin(), dependencies.end(), &to) == dependencies.end(),
+        fmt::format("Adding already existing dependency {} -> {}", ToAssertString(from), ToAssertString(to))
     );
-    subject_dependencies.emplace_back(&object);
-
+    dependencies.emplace_back(&to);
     CycleDetector cd(*edges);
-    auto cycle = cd.FindCycle(&object);
-    if (cycle) {
+    auto cycle = cd.FindCycle(&to);
+    if (BOOST_LIKELY(!cycle.has_value())) {
+        return;
+    }
+    if (impl_->collect_stacktrace) {
         auto bt = impl_->backtraces.Lock();
         for (const auto& actor : *cycle) {
             auto it = bt->find(actor);
-            if (it != bt->end()) {
-                LOG_CRITICAL() << "Deadlocked task " << ToAssertString(*actor)
-                               << boost::stacktrace::to_string(it->second);
+            if (it == bt->end()) {
+                continue;
             }
+            LOG_CRITICAL() << "Deadlocked task " << ToAssertString(*actor) << boost::stacktrace::to_string(it->second);
         }
-
-        OnCycleFound(*cycle);
+    } else {
+        LOG_CRITICAL()
+            << "A deadlock has been identified, but stacktrace collection is currently disabled. To enable "
+               "stacktrace collection, set the `coro_pool.deadlock_detector` option in the "
+               "`components::ManagerControllerComponent` static configuration to `enabled`.";
     }
+
+    OnCycleFound(*cycle);
 }
 
-void StateBase::HookBeforeRemoveDependency(const Actor& subject, const Actor& object) noexcept {
-    if (!impl_->enabled) return;
+void StateBase::RemoveDependency(const Actor& from, const Actor& to) noexcept {
+    if (!impl_->enabled) {
+        return;
+    }
 
     auto edges = impl_->active_dependencies.Lock();
-    auto& v = (*edges)[&subject];
+    auto& v = (*edges)[&from];
 
-    auto it = std::find(v.begin(), v.end(), &object);
+    auto it = std::find(v.begin(), v.end(), &to);
     if (it == v.end()) {
         utils::AbortWithStacktrace(fmt::format(
-            "Trying to stop waiting while not waiting! {} => {}", ToAssertString(subject), ToAssertString(object)
+            "Trying to remove dependency that does not exist! {} => {}",
+            ToAssertString(from),
+            ToAssertString(to)
         ));
     }
-    v.erase(it);
-    if (v.empty()) edges->erase(&subject);
+    if (v.size() == 1) {
+        edges->erase(&from);
+        return;
+    }
+    std::swap(*it, v.back());
+    v.pop_back();
 }
 
-void StateBase::HookActorDestroy(const Actor& object) {
+void StateBase::OnResourceAcquire(const Actor& owner, const Actor& resource) {
+    // Resource release is dependent on the owner
+    AddDependency(resource, owner);
+}
+
+void StateBase::OnResourceRelease(const Actor& owner, const Actor& resource) noexcept {
+    RemoveDependency(resource, owner);
+}
+
+void StateBase::OnWaitForResourceStart(const Actor& waiting, const Actor& resource) {
+    AddDependency(waiting, resource);
+}
+
+void StateBase::OnWaitForResourceFinish(const Actor& waiting, const Actor& resource) noexcept {
+    RemoveDependency(waiting, resource);
+}
+
+void StateBase::OnActorDestroy(const Actor& actor) {
     auto edges = impl_->active_dependencies.Lock();
-    auto it = edges->find(&object);
+    auto it = edges->find(&actor);
     if (it != edges->end() && !it->second.empty()) {
         utils::AbortWithStacktrace(fmt::format(
             "Trying to destroy {} while still waiting for {}!",
-            ToAssertString(object),
+            ToAssertString(actor),
             ToAssertString(*it->second.front())
         ));
     }
@@ -188,14 +240,16 @@ State& GetState() {
     return pool.GetDeadlockDetectorState();
 }
 
-WaitScope::WaitScope(const Actor& a) : actor_(a) {
+WaitScope::WaitScope(const engine::impl::deadlock_detector::Actor& resource)
+    : resource_(resource)
+{
     auto& dd_state = GetState();
-    dd_state.HookBeforeAddDependency(current_task::GetCurrentTaskContext(), actor_);
+    dd_state.OnWaitForResourceStart(current_task::GetCurrentTaskContext(), resource_);
 }
 
 WaitScope::~WaitScope() {
     auto& dd_state = GetState();
-    dd_state.HookBeforeRemoveDependency(current_task::GetCurrentTaskContext(), actor_);
+    dd_state.OnWaitForResourceFinish(current_task::GetCurrentTaskContext(), resource_);
 }
 
 }  // namespace engine::deadlock_detector

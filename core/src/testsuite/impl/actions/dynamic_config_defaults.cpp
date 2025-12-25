@@ -9,7 +9,8 @@ USERVER_NAMESPACE_BEGIN
 namespace testsuite::impl::actions {
 
 DynamicConfigDefaults::DynamicConfigDefaults(const components::ComponentContext& component_context)
-    : defaults_(component_context.FindComponent<components::DynamicConfig>().GetDefaultDocsMap()) {}
+    : defaults_(component_context.FindComponent<components::DynamicConfig>().GetDefaultDocsMap())
+{}
 
 formats::json::Value DynamicConfigDefaults::Perform(const formats::json::Value& /*request_body*/) const {
     return defaults_.AsJson();

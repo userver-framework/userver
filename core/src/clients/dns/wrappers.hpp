@@ -24,7 +24,9 @@ struct ChannelDeleter {
 class ChannelPtr {
 public:
     ChannelPtr() = default;
-    explicit ChannelPtr(ares_channel channel) : channel_{channel} {}
+    explicit ChannelPtr(ares_channel channel)
+        : channel_{channel}
+    {}
 
     auto Use() {
 #if ARES_VERSION >= 0x011400

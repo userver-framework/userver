@@ -10,7 +10,8 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::rocks {
 
 Client::Client(const std::string& db_path, engine::TaskProcessor& blocking_task_processor)
-    : blocking_task_processor_(blocking_task_processor) {
+    : blocking_task_processor_(blocking_task_processor)
+{
     rocksdb::Options options;
     options.create_if_missing = true;
 

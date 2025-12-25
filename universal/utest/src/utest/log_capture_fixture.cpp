@@ -98,7 +98,9 @@ const std::string& LogRecord::GetLogRaw() const { return log_raw_; }
 logging::Level LogRecord::GetLevel() const { return level_; }
 
 LogRecord::LogRecord(utils::impl::InternalTag, logging::Level level, std::string&& log_raw)
-    : level_(level), log_raw_(std::move(log_raw)) {
+    : level_(level),
+      log_raw_(std::move(log_raw))
+{
     utils::encoding::TskvParser parser{log_raw_};
 
     const auto on_invalid_record = [&] {
@@ -137,8 +139,8 @@ std::ostream& operator<<(std::ostream& os, const std::vector<LogRecord>& data) {
 
 LogRecord GetSingleLog(utils::span<const LogRecord> log, const utils::impl::SourceLocation& source_location) {
     if (log.size() != 1) {
-        std::string msg =
-            fmt::format("There are {} log records instead of 1 at {}:\n", log.size(), ToString(source_location));
+        std::string
+            msg = fmt::format("There are {} log records instead of 1 at {}:\n", log.size(), ToString(source_location));
         for (const auto& record : log) {
             msg += record.GetLogRaw();
         }
@@ -149,7 +151,8 @@ LogRecord GetSingleLog(utils::span<const LogRecord> log, const utils::impl::Sour
 }
 
 LogCaptureLogger::LogCaptureLogger(logging::Format format)
-    : logger_(utils::MakeSharedRef<impl::ToStringLogger>(format)) {}
+    : logger_(utils::MakeSharedRef<impl::ToStringLogger>(format))
+{}
 
 logging::TextLoggerPtr LogCaptureLogger::GetLogger() const { return logger_.GetBase(); }
 

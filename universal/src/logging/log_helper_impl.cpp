@@ -40,7 +40,9 @@ void LogHelper::Impl::Finish() {
 }
 
 auto LogHelper::Impl::BufferStd::overflow(int_type c) -> int_type {
-    if (c == std::streambuf::traits_type::eof()) return c;
+    if (c == std::streambuf::traits_type::eof()) {
+        return c;
+    }
     impl_.msg_.push_back(c);
     return c;
 }

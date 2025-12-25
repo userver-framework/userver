@@ -14,7 +14,9 @@ struct Pattern final {
     static const utils::regex kRegex;
 
     static void Validate(const std::string& value) {
-        if (!utils::regex_search(value, kRegex)) throw std::runtime_error("doesn't match regex");
+        if (!utils::regex_search(value, kRegex)) {
+            throw std::runtime_error("doesn't match regex");
+        }
     }
 };
 

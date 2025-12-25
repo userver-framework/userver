@@ -94,7 +94,9 @@ UTEST(MetricsPrettyFormat, NoLabels) {
     utils::statistics::Storage storage;
 
     const auto entry = storage.RegisterWriter(
-        "best_prefix", [](utils::statistics::Writer& writer) { writer.ValueWithLabels(42, {}); }, {}
+        "best_prefix",
+        [](utils::statistics::Writer& writer) { writer.ValueWithLabels(42, {}); },
+        {}
     );
 
     const auto request = utils::statistics::Request::MakeWithPrefix("best_prefix");
@@ -107,7 +109,9 @@ UTEST(MetricsPrettyFormat, Rate) {
     utils::statistics::Storage storage;
 
     const auto entry = storage.RegisterWriter(
-        "best_prefix", [](utils::statistics::Writer& writer) { writer = utils::statistics::Rate{42}; }, {}
+        "best_prefix",
+        [](utils::statistics::Writer& writer) { writer = utils::statistics::Rate{42}; },
+        {}
     );
 
     const auto request = utils::statistics::Request::MakeWithPrefix("best_prefix");

@@ -12,7 +12,10 @@ PeriodicWatcher::PeriodicWatcher(
     std::function<void()> action,
     std::chrono::seconds interval
 )
-    : timer_(ev_thread, this), action_(std::move(action)), interval_(interval) {
+    : timer_(ev_thread, this),
+      action_(std::move(action)),
+      interval_(interval)
+{
     timer_.Init(&PeriodicWatcher::OnTimer, {}, {});
     timer_.Set({}, interval_);
 }

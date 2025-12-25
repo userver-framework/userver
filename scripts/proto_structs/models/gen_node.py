@@ -344,7 +344,7 @@ class EnumNode(TypeNode, names.HasVanillaName):
         yield includes.Include(path='limits', kind=includes.IncludeKind.FOR_HPP)
         yield includes.Include(
             path=includes.proto_path_to_vanilla_pb_h(self.proto_file),
-            kind=includes.IncludeKind.FOR_CPP,  # noqa: COM812
+            kind=includes.IncludeKind.FOR_CPP,
         )
 
     @property
@@ -395,7 +395,7 @@ class OneofNode(TypeNode):
 
 
 COMMON_ONEOF_INCLUDES: Sequence[includes.Include] = [
-    includes.Include(path='userver/proto-structs/impl/oneof_codegen.hpp', kind=includes.IncludeKind.FOR_HPP)  # noqa: COM812
+    includes.Include(path='userver/proto-structs/impl/oneof_codegen.hpp', kind=includes.IncludeKind.FOR_HPP),
 ]
 
 

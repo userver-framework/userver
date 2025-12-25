@@ -101,7 +101,7 @@ def test_default_isomorphic():
         'default': {},
     })
     assert isinstance(var, types.CppStruct)
-    assert var.cpp_user_name() == 'USERVER_NAMESPACE::utils::DefaultDict<std::string>'
+    assert var.cpp_user_name() == 'USERVER_NAMESPACE::utils::DefaultDict<std::string>', var
 
 
 def test_variable_name_invalid_symbols():

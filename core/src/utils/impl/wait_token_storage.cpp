@@ -40,7 +40,9 @@ USERVER_IMPL_CONSTINIT WaitTokenStorageImplPool wait_token_storage_impl_pool;
 
 }  // namespace
 
-WaitTokenStorage::WaitTokenStorage() : impl_(wait_token_storage_impl_pool.Acquire()) {
+WaitTokenStorage::WaitTokenStorage()
+    : impl_(wait_token_storage_impl_pool.Acquire())
+{
     // Reinitialize impl_.
     UASSERT(impl_.tokens.IsFree());
     impl_.shutdown_started.store(false, std::memory_order_relaxed);
@@ -108,8 +110,9 @@ void WaitTokenStorage::WaitForAllTokens() noexcept {
     }
 
     const engine::TaskCancellationBlocker cancel_blocker;
-    const bool wait_success =
-        impl_.tokens_is_free_event.WaitUntil(engine::Deadline{}, [this] { return impl_.tokens.IsFree(); });
+    const bool wait_success = impl_.tokens_is_free_event.WaitUntil(engine::Deadline{}, [this] {
+        return impl_.tokens.IsFree();
+    });
     UASSERT(wait_success);
 }
 
@@ -141,7 +144,9 @@ void WaitTokenStorage::DoUnlock() noexcept {
         // 2. Of all `tokens` unlockers with `shutdown_started == true`, including WaitForAllTokens,
         //    there will be the last one to acquire `shutdown_mutex` lock. It will see all the previous
         //    `impl.tokens.unlock()` calls due to acquire-release ordering in `std::mutex` lock-unlock.
-        { const std::lock_guard lock{impl.shutdown_mutex}; }
+        {
+            const std::lock_guard lock{impl.shutdown_mutex};
+        }
 
         if (impl.tokens.IsFree()) {
             impl.tokens_is_free_event.Send();
@@ -149,12 +154,18 @@ void WaitTokenStorage::DoUnlock() noexcept {
     }
 }
 
-WaitTokenStorageLock::WaitTokenStorageLock(WaitTokenStorage& storage) : storage_(&storage) { storage_->DoLock(); }
+WaitTokenStorageLock::WaitTokenStorageLock(WaitTokenStorage& storage)
+    : storage_(&storage)
+{
+    storage_->DoLock();
+}
 
 WaitTokenStorageLock::WaitTokenStorageLock(WaitTokenStorageLock&& other) noexcept
     : storage_(std::exchange(other.storage_, nullptr)) {}
 
-WaitTokenStorageLock::WaitTokenStorageLock(const WaitTokenStorageLock& other) : storage_(other.storage_) {
+WaitTokenStorageLock::WaitTokenStorageLock(const WaitTokenStorageLock& other)
+    : storage_(other.storage_)
+{
     if (storage_ != nullptr) {
         storage_->DoLock();
     }

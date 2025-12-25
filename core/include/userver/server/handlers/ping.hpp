@@ -18,8 +18,17 @@ namespace server::handlers {
 /// Uses components::State::IsAnyComponentInFatalState() to detect
 /// fatal state (can not process requests).
 ///
-/// ## Static options:
-/// Inherits all the options from server::handlers::HttpHandlerBase
+/// ## Static options of server::handlers::PingBase:
+///
+/// Options inherited from @ref server::handlers::HttpHandlerBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/server/handlers/http_handler_base.md
+///
+/// Options inherited from @ref server::handlers::HandlerBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/server/handlers/handler_base.md
+///
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
+///
 /// @ref userver_http_handlers
 class PingBase : public HttpHandlerBase {
 public:
@@ -35,14 +44,14 @@ private:
 ///
 /// @brief Ping handler implementation with warmup
 ///
-/// ## Static options:
-/// Inherits all the options from server::handlers::PingBase
-/// @ref userver_http_handlers
-/// and adds the following ones:
+/// ## Static options of server::handlers::Ping:
+/// @include{doc} scripts/docs/en/components_schema/ccore/src/server/handlers/ping.md
 ///
-/// Name | Description | Default value
-/// ---- | ----------- | -------------
-/// warmup-time-secs | how much time it needs to warmup the server | 0
+/// Options inherited from @ref server::handlers::HandlerBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/server/handlers/handler_base.md
+///
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
 class Ping final : public PingBase {
 public:
     Ping(const components::ComponentConfig& config, const components::ComponentContext& component_context);

@@ -68,7 +68,9 @@ void WriteToStream(
     [[maybe_unused]] const char* hide_field_name
 ) {
     std::optional<formats::json::StringBuilder::ObjectGuard> guard;
-    if (!hide_brackets) guard.emplace(sw);
+    if (!hide_brackets) {
+        guard.emplace(sw);
+    }
 
     if (!hide_field_name || std::strcmp(hide_field_name, "object_no_mapping_type") != 0) {
         sw.Key("object_no_mapping_type");

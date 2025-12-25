@@ -6,21 +6,27 @@ Make gRPC requests to the service.
 
 # pylint: disable=redefined-outer-name
 import asyncio
-from collections.abc import AsyncIterable
+from collections.abc import AsyncIterator
 from collections.abc import Awaitable
 from collections.abc import Callable
+from collections.abc import Generator
+from collections.abc import Sequence
+import itertools
 import pathlib
 import tempfile
+from typing import Any
 from typing import TypeAlias
 
-import google.protobuf.message
 import grpc
+import grpc.aio
 import pytest
+
+import pytest_userver.client
+from . import _hookspec
 
 DEFAULT_TIMEOUT = 15.0
 USERVER_CONFIG_HOOKS = ['userver_config_grpc_endpoint']
 
-MessageOrStream: TypeAlias = google.protobuf.message.Message | AsyncIterable[google.protobuf.message.Message]
 _AsyncExcCheck: TypeAlias = Callable[[], None]
 
 
@@ -72,40 +78,9 @@ def grpc_service_timeout(pytestconfig) -> float:
     return float(pytestconfig.option.service_timeout) or DEFAULT_TIMEOUT
 
 
-@pytest.fixture
-def grpc_client_prepare(
-    service_client,
-    asyncexc_check,
-) -> Callable[[grpc.aio.ClientCallDetails, MessageOrStream], Awaitable[None]]:
-    """
-    Returns the function that will be called in before each gRPC request,
-    client-side.
-
-    @ingroup userver_testsuite_fixtures
-    """
-
-    async def prepare(
-        _client_call_details: grpc.aio.ClientCallDetails,
-        _request_or_stream: MessageOrStream,
-        /,
-    ) -> None:
-        asyncexc_check()
-        if hasattr(service_client, 'update_server_state'):
-            await service_client.update_server_state()
-
-    return prepare
-
-
 @pytest.fixture(scope='session')
-async def grpc_session_channel(
-    grpc_service_endpoint,
-    _grpc_channel_interceptor,
-    _grpc_channel_interceptor_asyncexc,
-):
-    async with grpc.aio.insecure_channel(
-        grpc_service_endpoint,
-        interceptors=[_grpc_channel_interceptor, _grpc_channel_interceptor_asyncexc],
-    ) as channel:
+async def grpc_session_channel(grpc_service_endpoint):
+    async with grpc.aio.insecure_channel(grpc_service_endpoint) as channel:
         yield channel
 
 
@@ -115,33 +90,42 @@ async def grpc_channel(
     grpc_service_endpoint,
     grpc_service_timeout,
     grpc_session_channel,
-    _grpc_channel_interceptor,
-    grpc_client_prepare,
-    _grpc_channel_interceptor_asyncexc,
-    asyncexc_check,
+    request,
 ):
     """
     Returns the gRPC channel configured by the parameters from the
     @ref pytest_userver.plugins.grpc.client.grpc_service_endpoint "grpc_service_endpoint" fixture.
 
+    You can add interceptors to the channel by implementing the
+    @ref pytest_userver.plugins.grpc._hookspec.pytest_grpc_client_interceptors "pytest_grpc_client_interceptors"
+    hook in your pytest plugin or initial (root) conftest.
+
     @ingroup userver_testsuite_fixtures
     """
-    _grpc_channel_interceptor.prepare_func = grpc_client_prepare
-    _grpc_channel_interceptor_asyncexc.asyncexc_check = asyncexc_check
+    interceptors = request.config.hook.pytest_grpc_client_interceptors(request=request)
+    interceptors_list = list(itertools.chain.from_iterable(interceptors))
+    # Sanity check: we have at least one "builtin" interceptor.
+    assert len(interceptors_list) != 0
+
     try:
         await asyncio.wait_for(
             grpc_session_channel.channel_ready(),
             timeout=grpc_service_timeout,
         )
-    except asyncio.TimeoutError:  # noqa: UP041
+    except asyncio.TimeoutError:
         raise RuntimeError(
             f'Failed to connect to remote gRPC server by address {grpc_service_endpoint}',
         )
-    return grpc_session_channel
+
+    _set_client_interceptors(grpc_session_channel, interceptors_list)
+    try:
+        yield grpc_session_channel
+    finally:
+        _set_client_interceptors(grpc_session_channel, [])
 
 
 @pytest.fixture(scope='session')
-def grpc_socket_path() -> pathlib.Path | None:
+def grpc_socket_path() -> Generator[pathlib.Path, None, None]:
     """
     Path for the UNIX socket over which testsuite will talk to the gRPC service, if it chooses to use a UNIX socket.
 
@@ -203,56 +187,119 @@ def userver_config_grpc_endpoint(
     return patch_config
 
 
-# Taken from
-# https://github.com/grpc/grpc/blob/master/examples/python/interceptors/headers/generic_client_interceptor.py
-class _GenericClientInterceptor(
+# @cond
+
+
+def pytest_addhooks(pluginmanager: pytest.PytestPluginManager):
+    pluginmanager.add_hookspecs(_hookspec)
+
+
+class _UpdateServerStateInterceptor(
     grpc.aio.UnaryUnaryClientInterceptor,
     grpc.aio.UnaryStreamClientInterceptor,
     grpc.aio.StreamUnaryClientInterceptor,
     grpc.aio.StreamStreamClientInterceptor,
 ):
-    def __init__(self):
-        self.prepare_func: Callable[[grpc.aio.ClientCallDetails, MessageOrStream], Awaitable[None]] | None = None
+    def __init__(self, service_client: pytest_userver.client.Client, asyncexc_check: _AsyncExcCheck):
+        self._service_client = service_client
+        self._asyncexc_check = asyncexc_check
 
-    async def intercept_unary_unary(self, continuation, client_call_details, request):
-        await self.prepare_func(client_call_details, request)
-        return await continuation(client_call_details, request)
+    async def _before_call_hook(self) -> None:
+        self._asyncexc_check()
+        if hasattr(self._service_client, 'update_server_state'):
+            await self._service_client.update_server_state()
 
-    async def intercept_unary_stream(self, continuation, client_call_details, request):
-        await self.prepare_func(client_call_details, request)
-        return continuation(client_call_details, next(request))
-
-    async def intercept_stream_unary(self, continuation, client_call_details, request_iterator):
-        await self.prepare_func(client_call_details, request_iterator)
-        return await continuation(client_call_details, request_iterator)
-
-    async def intercept_stream_stream(self, continuation, client_call_details, request_iterator):
-        await self.prepare_func(client_call_details, request_iterator)
-        return continuation(client_call_details, request_iterator)
-
-
-@pytest.fixture(scope='session')
-def _grpc_channel_interceptor(daemon_scoped_mark) -> _GenericClientInterceptor:
-    return _GenericClientInterceptor()
-
-
-class _AsyncExcClientInterceptor(grpc.aio.UnaryUnaryClientInterceptor, grpc.aio.StreamUnaryClientInterceptor):
-    def __init__(self):
-        self.asyncexc_check: _AsyncExcCheck | None = None
-
-    async def intercept_unary_unary(self, continuation, client_call_details, request):
+    async def intercept_unary_unary(
+        self,
+        continuation: Callable[[grpc.aio.ClientCallDetails, Any], Awaitable[grpc.aio.UnaryUnaryCall]],
+        client_call_details: grpc.aio.ClientCallDetails,
+        request: Any,
+    ) -> grpc.aio.UnaryUnaryCall:
+        await self._before_call_hook()
         try:
             return await continuation(client_call_details, request)
         finally:
-            self.asyncexc_check()
+            self._asyncexc_check()
 
-    async def intercept_stream_unary(self, continuation, client_call_details, request_iterator):
+    # Note: full type of this function is Callable[[...], Awaitable[AsyncIterator[Any]]]
+    async def intercept_unary_stream(
+        self,
+        continuation: Callable[[grpc.aio.ClientCallDetails, Any], grpc.aio.UnaryStreamCall],
+        client_call_details: grpc.aio.ClientCallDetails,
+        request: Any,
+    ) -> AsyncIterator[Any]:
+        await self._before_call_hook()
+        call = await continuation(client_call_details, request)
+
+        async def response_stream() -> AsyncIterator[Any]:
+            try:
+                async for response in call:
+                    yield response
+            finally:
+                self._asyncexc_check()
+
+        return response_stream()
+
+    async def intercept_stream_unary(
+        self,
+        continuation: Callable[[grpc.aio.ClientCallDetails, AsyncIterator[Any]], Awaitable[grpc.aio.StreamUnaryCall]],
+        client_call_details: grpc.aio.ClientCallDetails,
+        request_iterator: AsyncIterator[Any],
+    ) -> grpc.aio.StreamUnaryCall:
+        await self._before_call_hook()
         try:
             return await continuation(client_call_details, request_iterator)
         finally:
-            self.asyncexc_check()
+            self._asyncexc_check()
+
+    # Note: full type of this function is Callable[[...], Awaitable[AsyncIterator[Any]]]
+    async def intercept_stream_stream(
+        self,
+        continuation: Callable[[grpc.aio.ClientCallDetails, AsyncIterator[Any]], grpc.aio.StreamStreamCall],
+        client_call_details: grpc.aio.ClientCallDetails,
+        request_iterator: AsyncIterator[Any],
+    ) -> AsyncIterator[Any]:
+        self._asyncexc_check()
+        await self._before_call_hook()
+        call = await continuation(client_call_details, request_iterator)
+
+        async def response_stream() -> AsyncIterator[Any]:
+            try:
+                async for response in call:
+                    yield response
+            finally:
+                self._asyncexc_check()
+
+        return response_stream()
 
 
-@pytest.fixture(scope='session')
-def _grpc_channel_interceptor_asyncexc() -> _AsyncExcClientInterceptor:
-    return _AsyncExcClientInterceptor()
+def pytest_grpc_client_interceptors(request: pytest.FixtureRequest) -> Sequence[grpc.aio.ClientInterceptor]:
+    return [
+        _UpdateServerStateInterceptor(
+            request.getfixturevalue('service_client'),
+            request.getfixturevalue('asyncexc_check'),
+        ),
+    ]
+
+
+def _filter_interceptors(
+    interceptors: Sequence[grpc.aio.ClientInterceptor], desired_type: type[grpc.aio.ClientInterceptor]
+) -> list[grpc.aio.ClientInterceptor]:
+    return [interceptor for interceptor in interceptors if isinstance(interceptor, desired_type)]
+
+
+def _set_client_interceptors(channel: grpc.aio.Channel, interceptors: Sequence[grpc.aio.ClientInterceptor]) -> None:
+    """
+    Allows to set interceptors dynamically while reusing the same underlying channel,
+    which is something grpc-io currently doesn't support.
+
+    Also fixes the bug: multi-inheritance interceptors are only registered for first matching type
+    https://github.com/grpc/grpc/issues/31442
+    """
+    channel._unary_unary_interceptors = _filter_interceptors(interceptors, grpc.aio.UnaryUnaryClientInterceptor)
+    channel._unary_stream_interceptors = _filter_interceptors(interceptors, grpc.aio.UnaryStreamClientInterceptor)
+    channel._stream_unary_interceptors = _filter_interceptors(interceptors, grpc.aio.StreamUnaryClientInterceptor)
+    channel._stream_stream_interceptors = _filter_interceptors(interceptors, grpc.aio.StreamStreamClientInterceptor)
+
+
+# @endcond

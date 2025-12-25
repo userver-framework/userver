@@ -32,8 +32,10 @@ TopologyBase::TopologyBase(
 
 TopologyBase::~TopologyBase() = default;
 
-std::unique_ptr<TopologyBase>
-TopologyBase::Create(clients::dns::Resolver& resolver, const std::vector<settings::PoolSettings>& pools_settings) {
+std::unique_ptr<TopologyBase> TopologyBase::Create(
+    clients::dns::Resolver& resolver,
+    const std::vector<settings::PoolSettings>& pools_settings
+) {
     UASSERT(!pools_settings.empty());
 
     if (pools_settings.size() == 1) {

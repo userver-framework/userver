@@ -15,7 +15,7 @@ DEFAULT_TESTSUITE_HEADERS = frozenset([
 @pytest.mark.parametrize(
     'headers, headers_whitelist, expected_logged_headers',
     [
-        (  #  # noqa: PLR2044
+        (
             {'secret_header': 'secret'},
             [],
             {'secret_header': '***'},
@@ -88,7 +88,7 @@ def _contains_ordered_substrings(string, expected_ordered_substrings):
 @pytest.mark.parametrize(
     'headers, headers_whitelist, expected_ordered_substrings',
     [
-        (  #  # noqa: PLR2044
+        (
             {'d_header': 'd_value', 'c_header': 'c_value', 'a_header': 'a_value', 'b_header': 'b_value'},
             ['a_header', 'c_header'],
             # Whitelisted headers go first (sorted by header name), "secret" headers go second (sorted by header name).

@@ -308,7 +308,7 @@ class DynamicConfig:
 
         config_dict = _create_config_dict(
             values={key: self._values.get(key, None) for key in keys},
-            kill_switches_disabled=set(keys),  # noqa: COM812
+            kill_switches_disabled=set(keys),
         )
         self._changelog.add_entries(config_dict)
         self._sync_with_service()
@@ -372,7 +372,7 @@ class DynamicConfig:
     ) -> tuple[Any, ...]:
         values = tuple(self.get(key) for key in keys)
         yield values
-        self.set_values(dict(zip(keys, values)))  # noqa: B905
+        self.set_values(dict(zip(keys, values, strict=True)))
 
     def _sync_with_service(self) -> None:
         self._cache_invalidation_state.invalidate(

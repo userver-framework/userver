@@ -1,43 +1,16 @@
 #include <userver/cache/base_postgres_cache.hpp>
 
-#include <userver/yaml_config/merge_schemas.hpp>
+#include <userver/utils/resources.hpp>
+
+#ifndef ARCADIA_ROOT
+#include "generated/src/cache/base_postgres_cache.yaml.hpp"  // Y_IGNORE
+#endif
 
 USERVER_NAMESPACE_BEGIN
 
 namespace components::impl {
 
-std::string GetPostgreCacheSchema() {
-    return R"(
-type: object
-description: Caching component for PostgreSQL derived from components::CachingComponentBase.
-additionalProperties: false
-properties:
-    full-update-op-timeout:
-        type: string
-        description: timeout for a full update
-        defaultDescription: 1m
-    incremental-update-op-timeout:
-        type: string
-        description: timeout for an incremental update
-        defaultDescription: 1s
-    update-correction:
-        type: string
-        description: incremental update window adjustment
-        defaultDescription: 0 for caches with defined GetLastKnownUpdated
-    chunk-size:
-        type: integer
-        description: number of rows to request from PostgreSQL, 0 to fetch all rows in one request
-        defaultDescription: 1000
-    sleep-between-chunks:
-        type: string
-        description: duration to wait between reading chunks from PostgreSQL
-        defaultDescription: 0ms
-    pgcomponent:
-        type: string
-        description: PostgreSQL component name
-        defaultDescription: ""
-)";
-}
+std::string GetPostgreCacheSchema() { return utils::FindResource("src/cache/base_postgres_cache.yaml"); }
 
 }  // namespace components::impl
 

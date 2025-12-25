@@ -62,7 +62,9 @@ public:
 
     /// @name Concrete type constructors
     /// @{
-    ValueBuilder(std::nullptr_t) : ValueBuilder() {}
+    ValueBuilder(std::nullptr_t)
+        : ValueBuilder()
+    {}
     ValueBuilder(bool t);
     ValueBuilder(const char* str);
     ValueBuilder(char* str);
@@ -84,7 +86,9 @@ public:
 
     /// Universal constructor using Serialize
     template <typename T>
-    ValueBuilder(const T& t) : ValueBuilder(DoSerialize(t)) {}
+    ValueBuilder(const T& t)
+        : ValueBuilder(DoSerialize(t))
+    {}
 
     /// @brief Access member by key for modification.
     /// @throw `TypeMismatchException` if not object or null value.

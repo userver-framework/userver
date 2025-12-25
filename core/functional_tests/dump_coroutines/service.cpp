@@ -23,11 +23,8 @@ public:
     static constexpr std::string_view kName = "sample-cache";
 
     CachedTranslations(const components::ComponentConfig& config, const components::ComponentContext& context)
-        : CachingComponentBase(config, context) {
-        CacheUpdateTrait::StartPeriodicUpdates();
-    }
-
-    ~CachedTranslations() override { CacheUpdateTrait::StopPeriodicUpdates(); }
+        : CachingComponentBase(config, context)
+    {}
 
     void Update(
         cache::UpdateType /*type*/,
@@ -47,7 +44,8 @@ public:
     static constexpr std::string_view kName = "sample-lru-cache";
 
     LruCachedTranslations(const components::ComponentConfig& config, const components::ComponentContext& context)
-        : LruCacheComponent(config, context) {}
+        : LruCacheComponent(config, context)
+    {}
 
 private:
     std::string DoGetByKey(const std::string& /*key*/) override { return "1"; }
@@ -56,14 +54,15 @@ private:
 }  // namespace functional_tests
 
 int main(int argc, const char* const argv[]) {
-    const auto component_list = components::ComponentList()
-                                    .AppendComponentList(components::CommonComponentList())
-                                    .AppendComponentList(components::CommonServerComponentList())
-                                    .Append<components::Secdist>()
-                                    .Append<components::DefaultSecdistProvider>()
-                                    .Append<functional_tests::CachedTranslations>()
-                                    .Append<functional_tests::LruCachedTranslations>()
-                                    .Append<server::handlers::DumpCoroutines>()
-                                    .Append<server::handlers::Ping>();
+    const auto component_list =
+        components::ComponentList()
+            .AppendComponentList(components::CommonComponentList())
+            .AppendComponentList(components::CommonServerComponentList())
+            .Append<components::Secdist>()
+            .Append<components::DefaultSecdistProvider>()
+            .Append<functional_tests::CachedTranslations>()
+            .Append<functional_tests::LruCachedTranslations>()
+            .Append<server::handlers::DumpCoroutines>()
+            .Append<server::handlers::Ping>();
     return utils::DaemonMain(argc, argv, component_list);
 }

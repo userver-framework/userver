@@ -403,11 +403,12 @@ TYPED_UTEST(YdbExecuteTpl, BulkUpsert) {
 UTEST_F(YdbExecute, ReadTable) {
     CreateTable("read_table", true);
 
-    auto settings = NYdb::NTable::TReadTableSettings{}
-                        .Ordered()
-                        .AppendColumns("key")
-                        .AppendColumns("value_str")
-                        .AppendColumns("value_int");
+    auto settings =
+        NYdb::NTable::TReadTableSettings{}
+            .Ordered()
+            .AppendColumns("key")
+            .AppendColumns("value_str")
+            .AppendColumns("value_int");
     auto results = GetTableClient().ReadTable("read_table", std::move(settings));
 
     auto cursor = results.GetNextResult();

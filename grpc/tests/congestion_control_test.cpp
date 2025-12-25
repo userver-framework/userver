@@ -25,13 +25,14 @@ public:
 class CongestionControlTest : public ugrpc::tests::ServiceFixtureBase {
 protected:
     CongestionControlTest() {
-        std::shared_ptr<utils::TokenBucket> rate_limit =
-            std::make_shared<utils::TokenBucket>(utils::TokenBucket::MakeUnbounded());
+        std::shared_ptr<utils::TokenBucket>
+            rate_limit = std::make_shared<utils::TokenBucket>(utils::TokenBucket::MakeUnbounded());
         rate_limit->SetMaxSize(0);
-        auto congestion_control_middleware =
-            std::make_shared<ugrpc::server::middlewares::congestion_control::Middleware>(
-                ugrpc::server::middlewares::congestion_control::Settings{}, rate_limit
-            );
+        auto congestion_control_middleware = std::make_shared<
+            ugrpc::server::middlewares::congestion_control::Middleware>(
+            ugrpc::server::middlewares::congestion_control::Settings{},
+            rate_limit
+        );
         SetServerMiddlewares({congestion_control_middleware});
 
         RegisterService(service_);
@@ -45,13 +46,14 @@ private:
 class CongestionControlCustomCodeTest : public ugrpc::tests::ServiceFixtureBase {
 protected:
     CongestionControlCustomCodeTest() {
-        std::shared_ptr<utils::TokenBucket> rate_limit =
-            std::make_shared<utils::TokenBucket>(utils::TokenBucket::MakeUnbounded());
+        std::shared_ptr<utils::TokenBucket>
+            rate_limit = std::make_shared<utils::TokenBucket>(utils::TokenBucket::MakeUnbounded());
         rate_limit->SetMaxSize(0);
-        auto congestion_control_middleware =
-            std::make_shared<ugrpc::server::middlewares::congestion_control::Middleware>(
-                ugrpc::server::middlewares::congestion_control::Settings{grpc::StatusCode::INTERNAL}, rate_limit
-            );
+        auto congestion_control_middleware = std::make_shared<
+            ugrpc::server::middlewares::congestion_control::Middleware>(
+            ugrpc::server::middlewares::congestion_control::Settings{grpc::StatusCode::INTERNAL},
+            rate_limit
+        );
         SetServerMiddlewares({congestion_control_middleware});
 
         RegisterService(service_);

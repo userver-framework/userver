@@ -53,7 +53,7 @@ async def test_partitions_share(service_client, testpoint, kafka_producer):
     messages: set[str] = set(
         parse_message_keys(first_consumer_messages) + parse_message_keys(second_consumer_messages),
     )
-    assert messages == set(['key-1', 'key-2'])  # noqa: C405
+    assert messages == {'key-1', 'key-2'}
 
 
 async def test_rebalance_after_one_consumer_stopped(
@@ -134,9 +134,7 @@ async def test_rebalance_after_one_consumer_stopped(
         service_client,
         CONSUMERS[0],
     )
-    assert set(['key-3', 'key-4']) == set(  # noqa: C405
-        parse_message_keys(first_consumer_messages),
-    )
+    assert {'key-3', 'key-4'} == set(parse_message_keys(first_consumer_messages))
 
 
 async def test_rebalance_after_second_consumer_came_after_subscription(
@@ -182,9 +180,7 @@ async def test_rebalance_after_second_consumer_came_after_subscription(
         CONSUMERS[0],
     )
     assert len(first_consumer_messages) == 2
-    assert set(['key-1', 'key-2']) == set(  # noqa: C405
-        parse_message_keys(first_consumer_messages),
-    )
+    assert {'key-1', 'key-2'} == set(parse_message_keys(first_consumer_messages))
 
     await start_consumers(service_client, [CONSUMERS[1]])
     await first_consumer_revoked.wait_call()
@@ -212,7 +208,7 @@ async def test_rebalance_after_second_consumer_came_after_subscription(
     messages: set[str] = set(
         parse_message_keys(first_consumer_messages) + parse_message_keys(second_consumer_messages),
     )
-    assert messages == set(['key-3', 'key-4'])  # noqa: C405
+    assert messages == {'key-3', 'key-4'}
 
 
 @pytest.mark.parametrize('exchange_order', ['stop_start', 'start_stop'])
@@ -268,9 +264,7 @@ async def test_rebalance_full_partitions_exchange(
         CONSUMERS[0],
     )
     assert len(first_consumer_messages) == 2
-    assert set(['key-1', 'key-2']) == set(  # noqa: C405
-        parse_message_keys(first_consumer_messages),
-    )
+    assert {'key-1', 'key-2'} == set(parse_message_keys(first_consumer_messages))
 
     if exchange_order == 'stop_start':
         await stop_consumers(service_client, [CONSUMERS[0]])
@@ -309,6 +303,4 @@ async def test_rebalance_full_partitions_exchange(
 
     assert len(second_consumer_messages) == 2
 
-    assert set(['key-3', 'key-4']) == set(  # noqa: C405
-        parse_message_keys(second_consumer_messages),
-    )
+    assert {'key-3', 'key-4'} == set(parse_message_keys(second_consumer_messages))

@@ -18,8 +18,10 @@ class PoolStrategyBase {
 public:
     virtual ~PoolStrategyBase();
 
-    static std::unique_ptr<PoolStrategyBase>
-    Create(const settings::SQLiteSettings& settings, engine::TaskProcessor& blocking_task_processor);
+    static std::unique_ptr<PoolStrategyBase> Create(
+        const settings::SQLiteSettings& settings,
+        engine::TaskProcessor& blocking_task_processor
+    );
 
     Pool& SelectPool(OperationType op_type) const;
 

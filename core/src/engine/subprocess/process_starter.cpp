@@ -103,10 +103,14 @@ EnvironmentVariables ApplyEnvironmentUpdate(
 }  // namespace
 
 ProcessStarter::ProcessStarter(TaskProcessor& task_processor)
-    : thread_control_(task_processor.EventThreadPool().GetEvDefaultLoopThread()) {}
+    : thread_control_(task_processor.EventThreadPool().GetEvDefaultLoopThread())
+{}
 
-ChildProcess
-ProcessStarter::Exec(const std::string& executable_path, const std::vector<std::string>& args, ExecOptions&& options) {
+ChildProcess ProcessStarter::Exec(
+    const std::string& executable_path,
+    const std::vector<std::string>& args,
+    ExecOptions&& options
+) {
     EnvironmentVariables env = ApplyEnvironmentUpdate(std::move(options.env), std::move(options.env_update));
 
     if (options.use_path && executable_path.find('/') != std::string::npos && !env.GetValueOptional("PATH")) {

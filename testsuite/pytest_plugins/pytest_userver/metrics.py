@@ -91,7 +91,7 @@ class Metric:
     _type: MetricType = MetricType.UNSPECIFIED
     # @endcond
 
-    def __eq__(self, other: Any) -> bool:  # noqa: PYI032
+    def __eq__(self, other: object) -> bool:
         if not isinstance(other, Metric):
             return NotImplemented
         return self.labels == other.labels and self.value == other.value and _type_eq(self._type, other._type)
@@ -102,7 +102,7 @@ class Metric:
     # @cond
     def __post_init__(self):
         if isinstance(self.value, Histogram):
-            assert self._type == MetricType.HIST_RATE or self._type == MetricType.UNSPECIFIED  # noqa: PLR1714
+            assert self._type in (MetricType.HIST_RATE, MetricType.UNSPECIFIED)
         else:
             assert self._type is not MetricType.HIST_RATE
 
@@ -362,7 +362,9 @@ def _get_labels_tuple(metric: Metric) -> tuple[tuple[str, str], ...]:
 def _do_compute_percentile(hist: Histogram, percent: float) -> float:
     # This implementation is O(hist.count()), which is less than perfect.
     # So far, this was not a big enough pain to rewrite it.
-    value_lists = [[bound] * bucket for (bucket, bound) in zip(hist.buckets, hist.bounds)] + [[math.inf] * hist.inf]  # noqa: B905
+    value_lists = [[bound] * bucket for (bucket, bound) in zip(hist.buckets, hist.bounds, strict=True)] + [
+        [math.inf] * hist.inf
+    ]
     values = [item for sublist in value_lists for item in sublist]
 
     # Implementation taken from:
@@ -398,12 +400,12 @@ _FlattenedSnapshot: TypeAlias = Set[tuple[str, Metric]]
 
 
 def _flatten_snapshot(values, ignore_zeros: bool) -> _FlattenedSnapshot:
-    return set(  # noqa: C401
+    return {
         (path, metric)
         for path, metrics in values.items()
         for metric in metrics
         if metric.value != 0 or not ignore_zeros
-    )
+    }
 
 
 def _diff_metric_snapshots(

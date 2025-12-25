@@ -46,7 +46,8 @@ TaskProcessorHolder TaskProcessorHolder::Make(
 }
 
 TaskProcessorHolder::TaskProcessorHolder(std::unique_ptr<TaskProcessor>&& task_processor)
-    : task_processor_(std::move(task_processor)) {}
+    : task_processor_(std::move(task_processor))
+{}
 
 TaskProcessorHolder::~TaskProcessorHolder() = default;
 

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <variant>
+
 #include <google/protobuf/message.h>
 #include <grpcpp/support/status.h>
 
@@ -14,24 +16,36 @@ namespace ugrpc::client::impl {
 
 class MiddlewareHooks {
 public:
-    void SetStartCall() noexcept;
-    void SetSendMessage(const google::protobuf::Message& send_message) noexcept;
-    void SetRecvMessage(const google::protobuf::Message& recv_message) noexcept;
-    void SetStatus(const grpc::Status& status) noexcept;
+    static MiddlewareHooks StartCallHooks(const google::protobuf::Message* request = nullptr) noexcept;
+
+    static MiddlewareHooks SendMessageHooks(const google::protobuf::Message& send_message) noexcept;
+
+    static MiddlewareHooks RecvMessageHooks(const google::protobuf::Message& recv_message) noexcept;
+
+    static MiddlewareHooks FinishHooks(const grpc::Status& status, const google::protobuf::Message* response = nullptr)
+        noexcept;
 
     void Run(const MiddlewareBase& middleware, MiddlewareCallContext& context) const;
 
-private:
-    bool start_call_{false};
-    const google::protobuf::Message* send_message_{};
-    const google::protobuf::Message* recv_message_{};
-    const grpc::Status* status_{};
-};
+    bool Reverse() const noexcept;
 
-MiddlewareHooks StartCallHooks(const google::protobuf::Message* request = nullptr) noexcept;
-MiddlewareHooks SendMessageHooks(const google::protobuf::Message& send_message) noexcept;
-MiddlewareHooks RecvMessageHooks(const google::protobuf::Message& recv_message) noexcept;
-MiddlewareHooks FinishHooks(const grpc::Status& status, const google::protobuf::Message* response = nullptr) noexcept;
+private:
+    struct Inbound {
+        bool start_call{false};
+        const google::protobuf::Message* send_message{};
+    };
+
+    struct Outbound {
+        const grpc::Status* status{};
+        const google::protobuf::Message* recv_message{};
+    };
+
+    using Params = std::variant<Inbound, Outbound>;
+
+    explicit MiddlewareHooks(Params&& params) noexcept;
+
+    Params params_;
+};
 
 }  // namespace ugrpc::client::impl
 

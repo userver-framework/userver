@@ -67,23 +67,41 @@ struct ZaddOptions {
         ReturnValue return_value = ReturnValue::kAddedCount,
         Compare compare = Compare::kNone
     )
-        : exist(exist), compare(compare), return_value(return_value) {}
+        : exist(exist),
+          compare(compare),
+          return_value(return_value)
+    {}
     constexpr ZaddOptions(Exist exist, Compare compare, ReturnValue return_value = ReturnValue::kAddedCount)
-        : exist(exist), compare(compare), return_value(return_value) {}
+        : exist(exist),
+          compare(compare),
+          return_value(return_value)
+    {}
 
     constexpr ZaddOptions(ReturnValue return_value, Exist exist = Exist::kAddAlways, Compare compare = Compare::kNone)
-        : exist(exist), compare(compare), return_value(return_value) {}
+        : exist(exist),
+          compare(compare),
+          return_value(return_value)
+    {}
     constexpr ZaddOptions(ReturnValue return_value, Compare compare, Exist exist = Exist::kAddAlways)
-        : exist(exist), compare(compare), return_value(return_value) {}
+        : exist(exist),
+          compare(compare),
+          return_value(return_value)
+    {}
 
     constexpr ZaddOptions(
         Compare compare,
         Exist exist = Exist::kAddAlways,
         ReturnValue return_value = ReturnValue::kAddedCount
     )
-        : exist(exist), compare(compare), return_value(return_value) {}
+        : exist(exist),
+          compare(compare),
+          return_value(return_value)
+    {}
     constexpr ZaddOptions(Compare compare, ReturnValue return_value, Exist exist = Exist::kAddAlways)
-        : exist(exist), compare(compare), return_value(return_value) {}
+        : exist(exist),
+          compare(compare),
+          return_value(return_value)
+    {}
 
     Exist exist = Exist::kAddAlways;
     Compare compare = Compare::kNone;
@@ -111,7 +129,9 @@ constexpr ZaddOptions operator|(ZaddOptions::ReturnValue return_value, ZaddOptio
 /// @snippet redis/src/storages/redis/client_scan_redistest.cpp  Sample Scan usage
 class Match final {
 public:
-    explicit Match(std::string value) : value_(std::move(value)) {}
+    explicit Match(std::string value)
+        : value_(std::move(value))
+    {}
 
     const std::string& Get() const& { return value_; }
 
@@ -161,12 +181,16 @@ public:
 
 private:
     void Apply(Match pattern) {
-        if (pattern_) throw InvalidArgumentException("duplicate Match parameter");
+        if (pattern_) {
+            throw InvalidArgumentException("duplicate Match parameter");
+        }
         pattern_ = std::move(pattern);
     }
 
     void Apply(Count count) {
-        if (count_) throw InvalidArgumentException("duplicate Count parameter");
+        if (count_) {
+            throw InvalidArgumentException("duplicate Count parameter");
+        }
         count_ = count;
     }
 
@@ -195,14 +219,20 @@ struct ExpireOptions {
     enum class Compare { kNone, kGreaterThan, kLessThan };
 
     ExpireOptions() = default;
-    constexpr ExpireOptions(Exist exist, Compare compare = Compare::kNone) : exist(exist), compare(compare) {
+    constexpr ExpireOptions(Exist exist, Compare compare = Compare::kNone)
+        : exist(exist),
+          compare(compare)
+    {
         if (exist == Exist::kSetIfNotExist && compare != Compare::kNone) {
             // @see https://redis-docs.ru/commands/expire/
             throw std::invalid_argument("When exist is kSetIfNotExist, compare must be kNone");
         }
     }
 
-    constexpr ExpireOptions(Compare compare, Exist exist = Exist::kSetAlways) : exist(exist), compare(compare) {
+    constexpr ExpireOptions(Compare compare, Exist exist = Exist::kSetAlways)
+        : exist(exist),
+          compare(compare)
+    {
         if (exist == Exist::kSetIfNotExist && compare != Compare::kNone) {
             // @see https://redis-docs.ru/commands/expire/
             throw std::invalid_argument("When exist is kSetIfNotExist, compare must be kNone");

@@ -60,7 +60,10 @@ private:
         auto elem_category = GetTypeBufferCategory(categories, field_type);
         if (elem_category == BufferCategory::kNoParser) {
             throw UnknownBufferCategory{
-                static_cast<Oid>(field_type), compiler::GetTypeName<U>(), compiler::GetTypeName<T>()};
+                static_cast<Oid>(field_type),
+                compiler::GetTypeName<U>(),
+                compiler::GetTypeName<T>()
+            };
         }
         try {
             buffer.ReadRaw(val, categories, elem_category);
@@ -130,7 +133,8 @@ private:
             if (io::MappedToSameType(
                     static_cast<PredefinedOids>(field_type),
                     static_cast<PredefinedOids>(types.FindDomainBaseOid(field_desc.type))
-                )) {
+                ))
+            {
                 field_type = field_desc.type;
             } else {
                 throw CompositeMemberTypeMismatch(

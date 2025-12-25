@@ -1,0 +1,4 @@
+type: object
+description: Component for interaction with Baggage header.
+additionalProperties: false
+properties: {}

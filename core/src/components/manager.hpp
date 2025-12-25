@@ -14,9 +14,14 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace engine::impl {
+namespace engine {
+template <typename T>
+class TaskWithResult;
+
+namespace impl {
 class TaskProcessorPools;
-}  // namespace engine::impl
+}  // namespace impl
+}  // namespace engine
 
 namespace os_signals {
 class ProcessorComponent;
@@ -38,13 +43,10 @@ using TaskProcessorsMap = utils::impl::TransparentMap<std::string, std::unique_p
 // to the outside world.
 class Manager final {
 public:
-    Manager(
-        std::unique_ptr<ManagerConfig>&& config,
-        std::chrono::steady_clock::time_point start_time,
-        const ComponentList& component_list
-    );
+    Manager(std::unique_ptr<ManagerConfig>&& config, std::chrono::steady_clock::time_point start_time);
     ~Manager();
 
+    engine::TaskWithResult<void> StartComponentSystem(const ComponentList& component_list, bool signal_on_stop);
     const ManagerConfig& GetConfig() const;
     const std::shared_ptr<engine::impl::TaskProcessorPools>& GetTaskProcessorPools() const;
     const TaskProcessorsMap& GetTaskProcessorsMap() const;

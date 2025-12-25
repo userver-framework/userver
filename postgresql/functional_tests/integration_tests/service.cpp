@@ -3,7 +3,7 @@
 
 #include <userver/utest/using_namespace_userver.hpp>
 
-#include <userver/clients/http/component.hpp>
+#include <userver/clients/http/component_list.hpp>
 #include <userver/components/minimal_server_component_list.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
 #include <userver/server/handlers/server_monitor.hpp>
@@ -37,7 +37,8 @@ private:
 
 KeyValue::KeyValue(const components::ComponentConfig& config, const components::ComponentContext& context)
     : HttpHandlerBase(config, context),
-      pg_cluster_(context.FindComponent<components::Postgres>("key-value-database").GetCluster()) {
+      pg_cluster_(context.FindComponent<components::Postgres>("key-value-database").GetCluster())
+{
     constexpr auto kCreateTable = R"~(
       CREATE TABLE IF NOT EXISTS key_value_table (
         key VARCHAR PRIMARY KEY,
@@ -65,7 +66,8 @@ std::string KeyValue::HandleRequestThrow(const server::http::HttpRequest& reques
             return DeleteValue(key);
         default:
             throw server::handlers::ClientError(server::handlers::ExternalBody{
-                fmt::format("Unsupported method {}", request.GetMethod())});
+                fmt::format("Unsupported method {}", request.GetMethod())
+            });
     }
 }
 
@@ -75,8 +77,8 @@ const storages::postgres::Query kSelectValue{
 };
 
 std::string KeyValue::GetValue(std::string_view key, const server::http::HttpRequest& request) const {
-    const storages::postgres::ResultSet res =
-        pg_cluster_->Execute(storages::postgres::ClusterHostType::kSlave, kSelectValue, key);
+    const storages::postgres::ResultSet
+        res = pg_cluster_->Execute(storages::postgres::ClusterHostType::kSlave, kSelectValue, key);
     if (res.IsEmpty()) {
         request.SetResponseStatus(server::http::HttpStatus::kNotFound);
         return {};
@@ -117,23 +119,23 @@ std::string KeyValue::PostValue(std::string_view key, const server::http::HttpRe
 }
 
 std::string KeyValue::DeleteValue(std::string_view key) const {
-    auto res = pg_cluster_->Execute(
-        storages::postgres::ClusterHostType::kMaster, "DELETE FROM key_value_table WHERE key=$1", key
-    );
+    auto res =
+        pg_cluster_
+            ->Execute(storages::postgres::ClusterHostType::kMaster, "DELETE FROM key_value_table WHERE key=$1", key);
     return std::to_string(res.RowsAffected());
 }
 
 }  // namespace chaos
 
 int main(int argc, char* argv[]) {
-    const auto component_list = components::MinimalServerComponentList()
-                                    .Append<server::handlers::ServerMonitor>()
-                                    .Append<chaos::KeyValue>()
-                                    .Append<components::HttpClientCore>()
-                                    .Append<components::HttpClient>()
-                                    .Append<components::Postgres>("key-value-database")
-                                    .Append<components::TestsuiteSupport>()
-                                    .Append<server::handlers::TestsControl>()
-                                    .Append<clients::dns::Component>();
+    const auto component_list =
+        components::MinimalServerComponentList()
+            .Append<server::handlers::ServerMonitor>()
+            .Append<chaos::KeyValue>()
+            .AppendComponentList(clients::http::ComponentList())
+            .Append<components::Postgres>("key-value-database")
+            .Append<components::TestsuiteSupport>()
+            .Append<server::handlers::TestsControl>()
+            .Append<clients::dns::Component>();
     return utils::DaemonMain(argc, argv, component_list);
 }

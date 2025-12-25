@@ -37,7 +37,10 @@ struct ConnectionCfg {
         int s3retries = 1,
         std::optional<std::string> proxy = {}
     )
-        : timeout(s3timeout), retries(s3retries), proxy(proxy) {}
+        : timeout(s3timeout),
+          retries(s3retries),
+          proxy(proxy)
+    {}
 
     std::chrono::milliseconds timeout{1000};
     int retries = 1;
@@ -77,7 +80,9 @@ public:
     struct HeaderDataRequest {
         HeaderDataRequest() {}
         HeaderDataRequest(std::optional<std::unordered_set<std::string>> headers, bool need_meta)
-            : headers(std::move(headers)), need_meta(need_meta) {}
+            : headers(std::move(headers)),
+              need_meta(need_meta)
+        {}
         std::optional<std::unordered_set<std::string>> headers{std::nullopt};
         bool need_meta{true};
     };
@@ -144,11 +149,16 @@ public:
         const std::optional<Meta>& meta = std::nullopt
     ) = 0;
 
-    virtual std::string
-    CopyObject(std::string_view key_from, std::string_view key_to, const std::optional<Meta>& meta = std::nullopt) = 0;
+    virtual std::string CopyObject(
+        std::string_view key_from,
+        std::string_view key_to,
+        const std::optional<Meta>& meta = std::nullopt
+    ) = 0;
 
-    virtual std::optional<HeadersDataResponse>
-    GetObjectHead(std::string_view path, const HeaderDataRequest& request = HeaderDataRequest()) const = 0;
+    virtual std::optional<HeadersDataResponse> GetObjectHead(
+        std::string_view path,
+        const HeaderDataRequest& request = HeaderDataRequest()
+    ) const = 0;
 
     virtual std::string GenerateDownloadUrl(std::string_view path, time_t expires, bool use_ssl = false) const = 0;
 
@@ -181,7 +191,7 @@ public:
     /// Performs a CreateMultipartUpload S3 Action.
     /// Returns result with `upload ID` which is used to associate all of the parts in the specific multipart upload.
     /// You specify this `upload ID` in each of your subsequent upload part requests
-    /// For details see @ref https://docs.aws.amazon.com/AmazonS3/latest/API/API_CreateMultipartUpload.html
+    /// For details see https://docs.aws.amazon.com/AmazonS3/latest/API/API_CreateMultipartUpload.html
     virtual multipart_upload::InitiateMultipartUploadResult CreateMultipartUpload(
         const multipart_upload::CreateMultipartUploadRequest& request
     ) const = 0;
@@ -189,29 +199,29 @@ public:
     /// @brief Upload a part in a multipart upload sequence.
     /// Performs an UploadPart S3 Action.
     /// Returns ETag value which you must include in the subsequent request to complete the multipart upload.
-    /// For details see @ref https://docs.aws.amazon.com/AmazonS3/latest/API/API_UploadPart.html
+    /// For details see https://docs.aws.amazon.com/AmazonS3/latest/API/API_UploadPart.html
     virtual multipart_upload::UploadPartResult UploadPart(const multipart_upload::UploadPartRequest& request) const = 0;
 
     /// @brief Complete a multipart upload by assembling previously uploaded parts.
     /// Performs a CompleteMultipartUpload S3 Action.
-    /// For details see @ref https://docs.aws.amazon.com/AmazonS3/latest/API/API_CompleteMultipartUpload.html
+    /// For details see https://docs.aws.amazon.com/AmazonS3/latest/API/API_CompleteMultipartUpload.html
     virtual multipart_upload::CompleteMultipartUploadResult CompleteMultipartUpload(
         const multipart_upload::CompleteMultipartUploadRequest& request
     ) const = 0;
 
     /// @brief Abort a multipart upload sequence.
     /// Performs an AbortMultipartUpload S3 Action.
-    /// For details see @ref https://docs.aws.amazon.com/AmazonS3/latest/API/API_AbortMultipartUpload.html
+    /// For details see https://docs.aws.amazon.com/AmazonS3/latest/API/API_AbortMultipartUpload.html
     virtual void AbortMultipartUpload(const multipart_upload::AbortMultipartUploadRequest& request) const = 0;
 
     /// @brief List the parts that have been uploaded for a specific multipart upload.
     /// Performs a ListParts S3 Action.
-    /// For details see @ref https://docs.aws.amazon.com/AmazonS3/latest/API/API_ListParts.html
+    /// For details see https://docs.aws.amazon.com/AmazonS3/latest/API/API_ListParts.html
     virtual multipart_upload::ListPartsResult ListParts(const multipart_upload::ListPartsRequest& request) const = 0;
 
     /// @brief List in-progress multipart uploads in a bucket
     /// Performs a ListMultipartUploads S3 Action.
-    /// For details see @ref https://docs.aws.amazon.com/AmazonS3/latest/API/API_ListMultipartUploads.html
+    /// For details see https://docs.aws.amazon.com/AmazonS3/latest/API/API_ListMultipartUploads.html
     virtual multipart_upload::ListMultipartUploadsResult ListMultipartUploads(
         const multipart_upload::ListMultipartUploadsRequest& request
     ) const = 0;

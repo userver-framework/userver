@@ -23,7 +23,7 @@ UTEST(SharedMutex, SharedLockParallel) {
 
     std::vector<engine::Task> tasks;
     tasks.reserve(2);
-    for (auto i = 0; i < 2; i++)
+    for (auto i = 0; i < 2; i++) {
         tasks.push_back(utils::Async("", [&mutex, &count, &was] {
             const std::shared_lock<engine::SharedMutex> lock(mutex);
 
@@ -32,10 +32,15 @@ UTEST(SharedMutex, SharedLockParallel) {
                 engine::Yield();
             }
 
-            if (count == 2) was = true;
+            if (count == 2) {
+                was = true;
+            }
         }));
+    }
 
-    for (auto i = 0; i < 20 && !was; i++) engine::Yield();
+    for (auto i = 0; i < 20 && !was; i++) {
+        engine::Yield();
+    }
 
     EXPECT_TRUE(was.load());
 }

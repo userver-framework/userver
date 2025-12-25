@@ -20,7 +20,7 @@ async def test_basic(service_binary, tmp_path, mockserver):
         '--url-file',
         urls_file,
         '--count',
-        str(request_count),  # noqa: COM812
+        str(request_count),
     )
     assert await subprocess.wait() == 0
 

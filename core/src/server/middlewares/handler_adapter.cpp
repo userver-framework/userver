@@ -96,7 +96,8 @@ logging::LogExtra GetHeadersLogExtra(
 
     if (need_log_request_headers) {
         headers_log_extra.Extend(
-            "request_headers", GetHeadersLogString(http_request, headers_whitelist, request_headers_size_log_limit)
+            "request_headers",
+            GetHeadersLogString(http_request, headers_whitelist, request_headers_size_log_limit)
         );
     }
 
@@ -119,7 +120,9 @@ logging::LogExtra GetHeadersLogExtra(
 
 }  // namespace
 
-HandlerAdapter::HandlerAdapter(const handlers::HttpHandlerBase& handler) : handler_{handler} {}
+HandlerAdapter::HandlerAdapter(const handlers::HttpHandlerBase& handler)
+    : handler_{handler}
+{}
 
 void HandlerAdapter::HandleRequest(http::HttpRequest& request, request::RequestContext& context) const {
     {
@@ -149,8 +152,8 @@ void HandlerAdapter::LogRequest(const http::HttpRequest& request, request::Reque
 
         const auto& header_whitelist = config_snapshot[::dynamic_config::USERVER_LOG_REQUEST_HEADERS_WHITELIST];
 
-        const std::string_view meta_type =
-            misc::CutTrailingSlash(request.GetRequestPath(), handler_.GetConfig().url_trailing_slash);
+        const std::string_view
+            meta_type = misc::CutTrailingSlash(request.GetRequestPath(), handler_.GetConfig().url_trailing_slash);
 
         logging::LogExtra log_extra{
             {tracing::kHttpMetaType, meta_type},
@@ -161,7 +164,10 @@ void HandlerAdapter::LogRequest(const http::HttpRequest& request, request::Reque
             {tracing::kHttpMethod, request.GetMethodStr()},
         };
         log_extra.Extend(GetHeadersLogExtra(
-            need_log_request_headers, request, header_whitelist, handler_.GetConfig().request_headers_size_log_limit
+            need_log_request_headers,
+            request,
+            header_whitelist,
+            handler_.GetConfig().request_headers_size_log_limit
         ));
 
         LOG_INFO("start handling {} {}", request.GetMethodStr(), meta_type) << log_extra;

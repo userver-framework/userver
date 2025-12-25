@@ -125,20 +125,21 @@ inline auto TaskBuilder::MakeSpanFunctor(
 
 template <typename Function, typename... Args>
 auto TaskBuilder::Build(Function&& f, Args&&... args) {
-    using Task = engine::TaskWithResult<decltype(f(args...))>;
+    using Task = engine::TaskWithResult<std::invoke_result_t<Function, Args...>>;
     return BuildTask<Task>(std::forward<Function>(f), std::forward<Args>(args)...);
 }
 
 template <typename Function, typename... Args>
 auto TaskBuilder::BuildShared(Function&& f, Args&&... args) {
-    using Task = engine::SharedTaskWithResult<decltype(f(args...))>;
+    using Task = engine::SharedTaskWithResult<std::invoke_result_t<Function, Args...>>;
     return BuildTask<Task>(std::forward<Function>(f), std::forward<Args>(args)...);
 }
 
 template <typename Task, typename Function, typename... Args>
 Task TaskBuilder::BuildTask(Function&& f, Args&&... args) {
     UINVARIANT(
-        span_, "Exactly one of the following methods of TaskBuilder must be called: SpanName(), NoSpan(), HideSpan()"
+        span_,
+        "Exactly one of the following methods of TaskBuilder must be called: SpanName(), NoSpan(), HideSpan()"
     );
 
     using HideSpan = utils::impl::SpanWrapCall::HideSpan;

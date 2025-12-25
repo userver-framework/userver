@@ -5,7 +5,7 @@
 #include <engine/task/task_context.hpp>
 
 #include <engine/coro/pool_config.hpp>
-#include <engine/deadlock_detector/actor.hpp>
+#include <userver/engine/impl/actor.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -14,20 +14,30 @@ namespace engine::deadlock_detector {
 
 class StateBase {
 public:
+    using Actor = engine::impl::deadlock_detector::Actor;
+
     explicit StateBase(DeadlockDetector dd);
 
     virtual ~StateBase();
 
-    void HookBeforeAddDependency(const Actor& subject, const Actor& object);
+    void OnResourceAcquire(const Actor& owner, const Actor& resource);
 
-    void HookBeforeRemoveDependency(const Actor& subject, const Actor& object) noexcept;
+    void OnResourceRelease(const Actor& owner, const Actor& resource) noexcept;
 
-    void HookActorDestroy(const Actor& object);
+    void OnWaitForResourceStart(const Actor& waiting, const Actor& resource);
+
+    void OnWaitForResourceFinish(const Actor& waiting, const Actor& resource) noexcept;
+
+    void OnActorDestroy(const Actor& actor);
 
 protected:
     virtual void OnCycleFound(const std::vector<const Actor*>& cycle) = 0;
 
 private:
+    void AddDependency(const Actor& from, const Actor& to);
+
+    void RemoveDependency(const Actor& from, const Actor& to) noexcept;
+
     struct Impl;
     utils::FastPimpl<Impl, 232, 8> impl_;
 };
@@ -36,7 +46,7 @@ class State final : public StateBase {
 protected:
     using StateBase::StateBase;
 
-    void OnCycleFound(const std::vector<const Actor*>& cycle) override;
+    void OnCycleFound(const std::vector<const StateBase::Actor*>& cycle) override;
 };
 
 // The state is global to the process
@@ -45,12 +55,12 @@ State& GetState();
 
 class WaitScope final {
 public:
-    explicit WaitScope(const Actor& a);
+    explicit WaitScope(const engine::impl::deadlock_detector::Actor& resource);
     WaitScope(WaitScope&&) = delete;
     ~WaitScope();
 
 private:
-    const Actor& actor_;
+    const engine::impl::deadlock_detector::Actor& resource_;
 };
 
 }  // namespace engine::deadlock_detector

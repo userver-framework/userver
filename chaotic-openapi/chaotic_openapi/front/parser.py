@@ -41,7 +41,7 @@ class Parser:
         try:
             parsed = parser(**schema)
         except pydantic.ValidationError as exc:
-            raise errors.convert_error(full_filepath, parser.schema_type(), exc) from None
+            raise errors.convert_error(self._state.full_filepath, '', parser.schema_type(), exc) from None
 
         self._append_schema(parsed)
 
@@ -114,9 +114,15 @@ class Parser:
     ) -> model.Parameter:
         if isinstance(parameter, openapi.Ref):
             return self._state.service.parameters[self._locate_ref(parameter.ref)]
+
+        if parameter.explode and parameter.in_ == openapi.In.query:
+            in_ = model.In.queryExplode
+        else:
+            in_ = model.In(parameter.in_)
+
         p = model.Parameter(
             name=parameter.name,
-            in_=model.In(parameter.in_),
+            in_=in_,
             description=parameter.description or '',
             examples=parameter.examples,
             deprecated=parameter.deprecated,
@@ -143,10 +149,8 @@ class Parser:
         self,
         request_body: swagger.Parameter | swagger.Ref,
         infile_path: str,
-        consumes: list[str] | None = None,
+        consumes: list[str] = [],
     ) -> list[model.RequestBody] | model.Ref:
-        consumes = consumes or []
-
         if isinstance(request_body, swagger.Ref):
             ref_ = ref_resolver.normalize_ref(
                 self._state.full_filepath,
@@ -196,7 +200,7 @@ class Parser:
     def _convert_swagger_parameter(
         self,
         parameter: swagger.Parameter | swagger.Ref,
-        infile_path: str,  # noqa: COM812
+        infile_path: str,
     ) -> model.Parameter:
         if isinstance(parameter, swagger.Ref):
             return self._state.service.parameters[self._locate_ref(parameter.ref)]
@@ -270,7 +274,7 @@ class Parser:
         self,
         response: swagger.Response | swagger.Ref,
         produces: list[str],
-        infile_path: str,  # noqa: COM812
+        infile_path: str,
     ) -> model.Response | model.Ref:
         assert infile_path.count('#') <= 1
 
@@ -324,7 +328,7 @@ class Parser:
                     content_type=content_type,
                     schema=schema,
                     required=request_body.required,
-                )  # noqa: COM812
+                )
             )
         return requestBody
 
@@ -346,7 +350,7 @@ class Parser:
             authCode = flows.authorizationCode
             refreshUrl = authCode.refreshUrl or ''
             model_flows.append(
-                model.AuthCodeFlow(refreshUrl, authCode.scopes, authCode.authorizationUrl, authCode.tokenUrl)  # noqa: COM812
+                model.AuthCodeFlow(refreshUrl, authCode.scopes, authCode.authorizationUrl, authCode.tokenUrl),
             )
 
         return model_flows
@@ -354,7 +358,7 @@ class Parser:
     def _convert_openapi_securuty(
         self,
         security_scheme: openapi.SecurityScheme | openapi.Ref,
-        flows_scopes: list[str] | None = None,  # noqa: COM812
+        flows_scopes: list[str] | None = None,
     ) -> model.Security:
         if isinstance(security_scheme, openapi.Ref):
             return self._state.service.security[self._locate_ref(security_scheme.ref)]
@@ -385,7 +389,7 @@ class Parser:
     def _convert_swagger_security(
         self,
         security_def: swagger.SecurityDef,
-        flows_scopes: list[str] | None = None,  # noqa: COM812
+        flows_scopes: list[str] | None = None,
     ) -> model.Security:
         description = security_def.description or ''
         match security_def.type:
@@ -564,7 +568,7 @@ class Parser:
                     if self._is_swagger_request_body(sw_path_parameter, global_params):
                         sw_path_body = self._convert_swagger_request_body(
                             sw_path_parameter,
-                            infile_path + f'/requestBodies/{i}',  # noqa: COM812
+                            infile_path + f'/requestBodies/{i}',
                         )
                     else:
                         sw_param = self._convert_swagger_parameter(sw_path_parameter, infile_path + f'/parameters/{i}')
@@ -582,7 +586,7 @@ class Parser:
                             body = self._convert_swagger_request_body(
                                 sw_parameter,
                                 infile_path + '/requestBody',
-                                consumes,  # noqa: COM812
+                                consumes,
                             )
                         else:
                             param = self._convert_swagger_parameter(sw_parameter, infile_path + f'/parameters/{i}')
@@ -595,49 +599,49 @@ class Parser:
                     'get',
                     sw_path_item.get,
                     _convert_op_security,
-                    _convert_op_params,  # noqa: COM812
+                    _convert_op_params,
                 )
                 self._append_swagger_operation(
                     parsed.basePath + sw_path,
                     'post',
                     sw_path_item.post,
                     _convert_op_security,
-                    _convert_op_params,  # noqa: COM812
+                    _convert_op_params,
                 )
                 self._append_swagger_operation(
                     parsed.basePath + sw_path,
                     'put',
                     sw_path_item.put,
                     _convert_op_security,
-                    _convert_op_params,  # noqa: COM812
+                    _convert_op_params,
                 )
                 self._append_swagger_operation(
                     parsed.basePath + sw_path,
                     'delete',
                     sw_path_item.delete,
                     _convert_op_security,
-                    _convert_op_params,  # noqa: COM812
+                    _convert_op_params,
                 )
                 self._append_swagger_operation(
                     parsed.basePath + sw_path,
                     'options',
                     sw_path_item.options,
                     _convert_op_security,
-                    _convert_op_params,  # noqa: COM812
+                    _convert_op_params,
                 )
                 self._append_swagger_operation(
                     parsed.basePath + sw_path,
                     'head',
                     sw_path_item.head,
                     _convert_op_security,
-                    _convert_op_params,  # noqa: COM812
+                    _convert_op_params,
                 )
                 self._append_swagger_operation(
                     parsed.basePath + sw_path,
                     'patch',
                     sw_path_item.patch,
                     _convert_op_security,
-                    _convert_op_params,  # noqa: COM812
+                    _convert_op_params,
                 )
             self._make_sure_operations_are_unique()
         else:
@@ -680,11 +684,11 @@ class Parser:
 
         if isinstance(schema_ref, types.Ref):
             ref_ = types.Ref(
-                chaotic_parser.SchemaParser._normalize_ref(schema_ref.ref),
+                ref=chaotic_parser.SchemaParser._normalize_ref(schema_ref.ref),
                 indirect=schema_ref.indirect,
                 self_ref=schema_ref.self_ref,
             )
-            ref_._source_location = schema_ref._source_location  # type: ignore
+            ref_.source_location_ = schema_ref.source_location_
             return ref_
         else:
             return schema_ref
@@ -730,7 +734,7 @@ class Parser:
                 security=security_converter(operation.security),
                 x_middlewares=operation.x_taxi_middlewares or base_model.XMiddlewares(tvm=True),
                 x_client_codegen=operation.x_client_codegen,
-            )  # noqa: COM812
+            ),
         )
 
     def _append_swagger_operation(
@@ -763,14 +767,14 @@ class Parser:
                     int(status): self._convert_swagger_response(
                         response,
                         operation.produces,
-                        infile_path + f'/responses/{status}',  # noqa: COM812
+                        infile_path + f'/responses/{status}',
                     )
                     for status, response in operation.responses.items()
                 },
                 security=security_converter(operation.security),
                 x_middlewares=operation.x_taxi_middlewares or base_model.XMiddlewares(tvm=True),
                 x_client_codegen=operation.x_client_codegen,
-            )  # noqa: COM812
+            ),
         )
 
     def service(self) -> model.Service:

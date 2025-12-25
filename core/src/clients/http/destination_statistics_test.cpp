@@ -23,7 +23,8 @@ static HttpResponse Callback(int code, const HttpRequest& request) {
         "HTTP/1.1 " + std::to_string(code) +
             " OK\r\nConnection: close\r\rContent-Length: "
             "0\r\n\r\n",
-        HttpResponse::kWriteAndClose};
+        HttpResponse::kWriteAndClose
+    };
 }
 
 UTEST(DestinationStatistics, Empty) {

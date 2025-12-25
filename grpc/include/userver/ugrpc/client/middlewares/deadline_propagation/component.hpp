@@ -36,7 +36,7 @@ using Component = SimpleMiddlewareFactoryComponent<Middleware>;
 }  // namespace ugrpc::client::middlewares::deadline_propagation
 
 template <>
-inline constexpr auto components::kConfigFileMode<ugrpc::client::middlewares::deadline_propagation::Component> =
-    ConfigFileMode::kNotRequired;
+inline constexpr auto components::kConfigFileMode<
+    ugrpc::client::middlewares::deadline_propagation::Component> = ConfigFileMode::kNotRequired;
 
 USERVER_NAMESPACE_END

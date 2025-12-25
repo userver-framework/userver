@@ -163,7 +163,8 @@ public:
         : queue_(),
           single_producer_token_(queue_),
           producer_side_(*this, std::min(max_size, kUnbounded)),
-          consumer_side_(*this) {}
+          consumer_side_(*this)
+    {}
 
     ~GenericQueue() {
         UASSERT(consumers_count_ == kCreatedAndDead || !consumers_count_);
@@ -407,7 +408,10 @@ template <typename T, typename QueuePolicy>
 class GenericQueue<T, QueuePolicy>::SingleProducerSide final {
 public:
     SingleProducerSide(GenericQueue& queue, std::size_t capacity)
-        : queue_(queue), used_capacity_(0), total_capacity_(capacity) {}
+        : queue_(queue),
+          used_capacity_(0),
+          total_capacity_(capacity)
+    {}
 
     // Blocks if there is a consumer to Pop the current value and task
     // shouldn't cancel and queue if full
@@ -443,7 +447,9 @@ public:
 
     void SetSoftMaxSize(std::size_t new_capacity) {
         const auto old_capacity = total_capacity_.exchange(new_capacity);
-        if (new_capacity > old_capacity) non_full_event_.Send();
+        if (new_capacity > old_capacity) {
+            non_full_event_.Send();
+        }
     }
 
     std::size_t GetSoftMaxSize() const noexcept { return total_capacity_.load(); }
@@ -472,7 +478,10 @@ template <typename T, typename QueuePolicy>
 class GenericQueue<T, QueuePolicy>::MultiProducerSide final {
 public:
     MultiProducerSide(GenericQueue& queue, std::size_t capacity)
-        : queue_(queue), remaining_capacity_(capacity), remaining_capacity_control_(remaining_capacity_) {}
+        : queue_(queue),
+          remaining_capacity_(capacity),
+          remaining_capacity_control_(remaining_capacity_)
+    {}
 
     // Blocks if there is a consumer to Pop the current value and task
     // shouldn't cancel and queue if full
@@ -519,7 +528,11 @@ private:
 template <typename T, typename QueuePolicy>
 class GenericQueue<T, QueuePolicy>::NoMaxSizeProducerSide final {
 public:
-    NoMaxSizeProducerSide(GenericQueue& queue, std::size_t max_size) : queue_(queue) { SetSoftMaxSize(max_size); }
+    NoMaxSizeProducerSide(GenericQueue& queue, std::size_t max_size)
+        : queue_(queue)
+    {
+        SetSoftMaxSize(max_size);
+    }
 
     template <typename Token>
     [[nodiscard]] bool Push(Token& token, T&& value, engine::Deadline /*deadline*/, std::size_t /*value_size*/) {
@@ -557,7 +570,10 @@ private:
 template <typename T, typename QueuePolicy>
 class GenericQueue<T, QueuePolicy>::SingleConsumerSide final {
 public:
-    explicit SingleConsumerSide(GenericQueue& queue) : queue_(queue), element_count_(0) {}
+    explicit SingleConsumerSide(GenericQueue& queue)
+        : queue_(queue),
+          element_count_(0)
+    {}
 
     // Blocks only if queue is empty
     template <typename Token>
@@ -617,7 +633,10 @@ template <typename T, typename QueuePolicy>
 class GenericQueue<T, QueuePolicy>::MultiConsumerSide final {
 public:
     explicit MultiConsumerSide(GenericQueue& queue)
-        : queue_(queue), element_count_(kUnbounded), element_count_control_(element_count_) {
+        : queue_(queue),
+          element_count_(kUnbounded),
+          element_count_control_(element_count_)
+    {
         const bool success = element_count_.try_lock_shared_count(kUnbounded);
         UASSERT(success);
     }

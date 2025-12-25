@@ -18,7 +18,10 @@ public:
     using reference = typename IterTraits::reference;
     using pointer = typename IterTraits::pointer;
 
-    Iterator(const value_type& container, YamlIterator it) : container_(&container), it_(std::move(it)) {}
+    Iterator(const value_type& container, YamlIterator it)
+        : container_(&container),
+          it_(std::move(it))
+    {}
 
     Iterator(const Iterator& other);
     Iterator(Iterator&& other) noexcept;

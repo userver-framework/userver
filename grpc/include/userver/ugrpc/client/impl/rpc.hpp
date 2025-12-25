@@ -254,12 +254,18 @@ InputStream<Response>::InputStream(
     PrepareServerStreamingCall<Stub, Request, Response> prepare_async_method,
     const Request& request
 )
-    : state_{std::move(params), CallKind::kInputStream}, context_{utils::impl::InternalTag{}, state_} {
-    RunMiddlewarePipeline(state_, StartCallHooks(ToBaseMessage(&request)));
+    : state_{std::move(params)},
+      context_{utils::impl::InternalTag{}, state_}
+{
+    RunMiddlewarePipeline(state_, MiddlewareHooks::StartCallHooks(ToBaseMessage(&request)));
 
     // NOLINTNEXTLINE(cppcoreguidelines-prefer-member-initializer)
     stream_ = impl::PrepareCall(
-        prepare_async_method, state_.GetStub(), &state_.GetClientContext(), request, &state_.GetQueue()
+        prepare_async_method,
+        state_.GetStub(),
+        &state_.GetClientContext(),
+        request,
+        &state_.GetQueue()
     );
     impl::StartCall(*stream_, state_);
 
@@ -280,7 +286,7 @@ bool InputStream<Response>::Read(Response& response) {
     }
 
     if (impl::Read(*stream_, response, state_)) {
-        RunMiddlewarePipeline(state_, RecvMessageHooks(response));
+        RunMiddlewarePipeline(state_, MiddlewareHooks::RecvMessageHooks(response));
         return true;
     } else {
         // Finish can only be called once all the data is read, otherwise the
@@ -296,13 +302,19 @@ OutputStream<Request, Response>::OutputStream(
     CallParams&& params,
     PrepareClientStreamingCall<Stub, Request, Response> prepare_async_method
 )
-    : state_{std::move(params), CallKind::kOutputStream}, context_{utils::impl::InternalTag{}, state_} {
-    RunMiddlewarePipeline(state_, StartCallHooks());
+    : state_{std::move(params)},
+      context_{utils::impl::InternalTag{}, state_}
+{
+    RunMiddlewarePipeline(state_, MiddlewareHooks::StartCallHooks());
 
     // 'response_' will be filled upon successful 'Finish' async call
     // NOLINTNEXTLINE(cppcoreguidelines-prefer-member-initializer)
     stream_ = impl::PrepareCall(
-        prepare_async_method, state_.GetStub(), &state_.GetClientContext(), &response_, &state_.GetQueue()
+        prepare_async_method,
+        state_.GetStub(),
+        &state_.GetClientContext(),
+        &response_,
+        &state_.GetQueue()
     );
     impl::StartCall(*stream_, state_);
 }
@@ -320,7 +332,7 @@ bool OutputStream<Request, Response>::Write(const Request& request) {
         return false;
     }
 
-    RunMiddlewarePipeline(state_, SendMessageHooks(request));
+    RunMiddlewarePipeline(state_, MiddlewareHooks::SendMessageHooks(request));
 
     // Don't buffer writes, otherwise in an event subscription scenario, events
     // may never actually be delivered
@@ -336,7 +348,7 @@ void OutputStream<Request, Response>::WriteAndCheck(const Request& request) {
         throw RpcError(state_.GetCallName(), "'WriteAndCheck' called on a finished or closed stream");
     }
 
-    RunMiddlewarePipeline(state_, SendMessageHooks(request));
+    RunMiddlewarePipeline(state_, MiddlewareHooks::SendMessageHooks(request));
 
     // Don't buffer writes, otherwise in an event subscription scenario, events
     // may never actually be delivered
@@ -366,8 +378,10 @@ BidirectionalStream<Request, Response>::BidirectionalStream(
     CallParams&& params,
     PrepareBidiStreamingCall<Stub, Request, Response> prepare_async_method
 )
-    : state_{std::move(params), CallKind::kBidirectionalStream}, context_{utils::impl::InternalTag{}, state_} {
-    RunMiddlewarePipeline(state_, StartCallHooks());
+    : state_{std::move(params)},
+      context_{utils::impl::InternalTag{}, state_}
+{
+    RunMiddlewarePipeline(state_, MiddlewareHooks::StartCallHooks());
 
     // NOLINTNEXTLINE(cppcoreguidelines-prefer-member-initializer)
     stream_ = impl::PrepareCall(prepare_async_method, state_.GetStub(), &state_.GetClientContext(), &state_.GetQueue());
@@ -380,9 +394,9 @@ BidirectionalStream<Request, Response>::~BidirectionalStream() {
 }
 
 template <typename Request, typename Response>
-typename BidirectionalStream<Request, Response>::StreamReadFuture BidirectionalStream<Request, Response>::ReadAsync(
-    Response& response
-) {
+typename BidirectionalStream<Request, Response>::StreamReadFuture BidirectionalStream<
+    Request,
+    Response>::ReadAsync(Response& response) {
     if (!IsReadAvailable(state_)) {
         // If the stream is already finished, we must exit immediately.
         // If not, even the middlewares may access something that is already dead.
@@ -413,7 +427,11 @@ bool BidirectionalStream<Request, Response>::Write(const Request& request) {
 
     {
         const auto lock = state_.TakeMutexIfBidirectional();
-        RunMiddlewarePipeline(state_, SendMessageHooks(request));
+        if (state_.IsFinished()) {
+            // It't forbidden to work with a stream after Finish.
+            return false;
+        }
+        RunMiddlewarePipeline(state_, MiddlewareHooks::SendMessageHooks(request));
     }
 
     // Don't buffer writes, optimize for ping-pong-style interaction
@@ -431,7 +449,11 @@ void BidirectionalStream<Request, Response>::WriteAndCheck(const Request& reques
 
     {
         const auto lock = state_.TakeMutexIfBidirectional();
-        RunMiddlewarePipeline(state_, SendMessageHooks(request));
+        if (state_.IsFinished()) {
+            // It't forbidden to work with a stream after Finish.
+            throw ugrpc::client::RpcInterruptedError{state_.GetCallName(), "WriteAndCheck"};
+        }
+        RunMiddlewarePipeline(state_, MiddlewareHooks::SendMessageHooks(request));
     }
 
     // Don't buffer writes, optimize for ping-pong-style interaction

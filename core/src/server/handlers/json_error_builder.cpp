@@ -16,7 +16,8 @@ JsonErrorBuilder::JsonErrorBuilder(const CustomHandlerException& ex)
           ex.what(),
           ex.GetExternalErrorBody().empty() ? GetCodeDescription(ex.GetCode()) : ex.GetExternalErrorBody(),
           ex.GetDetails()
-      ) {}
+      )
+{}
 
 JsonErrorBuilder::JsonErrorBuilder(
     std::string_view error_code,
@@ -24,7 +25,8 @@ JsonErrorBuilder::JsonErrorBuilder(
     std::string_view external_error_body,
     formats::json::Value details
 )
-    : internal_message_(std::move(internal_message)) {
+    : internal_message_(std::move(internal_message))
+{
     UASSERT_MSG(!error_code.empty(), "Service-specific error code must be provided");
 
     formats::json::ValueBuilder response_json(formats::json::Type::kObject);

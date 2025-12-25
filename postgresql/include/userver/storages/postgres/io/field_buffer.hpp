@@ -76,8 +76,9 @@ template <typename T, typename Buffer>
 struct FormatterAcceptsReplacementOid<
     T,
     Buffer,
-    USERVER_NAMESPACE::utils::void_t<decltype(std::declval<T&>(
-    )(std::declval<const UserTypes&>(), std::declval<Buffer&>(), std::declval<Oid>()))>> : std::true_type {};
+    USERVER_NAMESPACE::utils::void_t<
+        decltype(std::declval<T&>()(std::declval<const UserTypes&>(), std::declval<Buffer&>(), std::declval<Oid>()))>>
+    : std::true_type {};
 
 }  // namespace detail
 

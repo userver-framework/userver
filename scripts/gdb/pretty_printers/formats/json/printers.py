@@ -1,10 +1,10 @@
-from dataclasses import dataclass  # noqa: I001
+import dataclasses
 
 import gdb
 import gdb.printing
 
 
-@dataclass
+@dataclasses.dataclass
 class Constants:
     # @see RAPIDJSON_UINT64_C2 at rapidjson/rapidjson.h
     RJ_UINT64_C2 = (0x0000FFFF << 32) | 0xFFFFFFFF

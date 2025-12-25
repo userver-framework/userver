@@ -56,7 +56,9 @@ void CheckDataUsedByCallbackHasNotBeenDestroyedBeforeUnsubscribing(
     std::string_view channel_name,
     std::string_view listener_name
 ) noexcept {
-    if (!on_listener_removal) return;
+    if (!on_listener_removal) {
+        return;
+    }
     try {
         on_listener_removal(listener_func);
     } catch (const std::exception& e) {
@@ -82,7 +84,10 @@ public:
 
     /// @brief The primary constructor
     /// @param name used for diagnostic purposes and is also accessible with Name
-    explicit AsyncEventChannel(std::string_view name) : name_(name), data_(ListenersData{{}, {}}) {}
+    explicit AsyncEventChannel(std::string_view name)
+        : name_(name),
+          data_(ListenersData{{}, {}})
+    {}
 
     /// @brief The constructor with `AsyncEventSubscriberScope` usage checking.
     ///
@@ -103,7 +108,9 @@ public:
     ///
     /// @see impl::CheckDataUsedByCallbackHasNotBeenDestroyedBeforeUnsubscribing
     AsyncEventChannel(std::string_view name, OnRemoveCallback on_listener_removal)
-        : name_(name), data_(ListenersData{{}, std::move(on_listener_removal)}) {}
+        : name_(name),
+          data_(ListenersData{{}, std::move(on_listener_removal)})
+    {}
 
     /// @brief For use in `UpdateAndListen` of specific event channels
     ///
@@ -117,8 +124,12 @@ public:
     ///
     /// @see AsyncEventSource::AddListener
     template <typename UpdaterFunc>
-    AsyncEventSubscriberScope
-    DoUpdateAndListen(FunctionId id, std::string_view name, Function&& func, UpdaterFunc&& updater) {
+    AsyncEventSubscriberScope DoUpdateAndListen(
+        FunctionId id,
+        std::string_view name,
+        Function&& func,
+        UpdaterFunc&& updater
+    ) {
         const std::shared_lock lock(event_mutex_);
         std::forward<UpdaterFunc>(updater)();
         return DoAddListener(id, name, std::move(func));
@@ -126,8 +137,12 @@ public:
 
     /// @overload
     template <typename Class, typename UpdaterFunc>
-    AsyncEventSubscriberScope
-    DoUpdateAndListen(Class* obj, std::string_view name, void (Class::*func)(Args...), UpdaterFunc&& updater) {
+    AsyncEventSubscriberScope DoUpdateAndListen(
+        Class* obj,
+        std::string_view name,
+        void (Class::*func)(Args...),
+        UpdaterFunc&& updater
+    ) {
         return DoUpdateAndListen(
             FunctionId(obj),
             name,
@@ -205,7 +220,11 @@ private:
         std::string task_name;
 
         Listener(std::string name, Function callback, std::string task_name)
-            : sema(1), name(std::move(name)), callback(std::move(callback)), task_name(std::move(task_name)) {}
+            : sema(1),
+              name(std::move(name)),
+              callback(std::move(callback)),
+              task_name(std::move(task_name))
+        {}
     };
 
     struct ListenersData final {
@@ -250,7 +269,10 @@ private:
             if constexpr (impl::kCheckSubscriptionUB) {
                 // Fake listener call to check
                 impl::CheckDataUsedByCallbackHasNotBeenDestroyedBeforeUnsubscribing(
-                    on_listener_removal, listener->callback, name_, listener->name
+                    on_listener_removal,
+                    listener->callback,
+                    name_,
+                    listener->name
                 );
             }
         }
@@ -263,9 +285,12 @@ private:
         auto& listeners = data->listeners;
         auto task_name = impl::MakeAsyncChannelName(name_, name);
         const auto [iterator, success] = listeners.emplace(
-            id, std::make_shared<const Listener>(std::string{name}, std::move(func), std::move(task_name))
+            id,
+            std::make_shared<const Listener>(std::string{name}, std::move(func), std::move(task_name))
         );
-        if (!success) impl::ReportAlreadySubscribed(Name(), name);
+        if (!success) {
+            impl::ReportAlreadySubscribed(Name(), name);
+        }
         return AsyncEventSubscriberScope(utils::impl::InternalTag{}, *this, id);
     }
 

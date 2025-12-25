@@ -3,7 +3,6 @@ Plugin that imports the required fixtures to start the database
 and adjusts the PostgreSQL "dbconnection" static config value.
 """
 
-from collections.abc import Generator
 from contextlib import contextmanager
 from enum import Enum
 
@@ -123,7 +122,7 @@ def userver_pg_config(pgsql_local):
 
 
 @pytest.fixture
-def userver_pg_trx(testpoint) -> Generator[sql.RegisteredTrx, None, None]:
+def userver_pg_trx(testpoint) -> sql.RegisteredTrx:
     """
     The fixture maintains transaction fault injection state using
     RegisteredTrx class.
@@ -133,7 +132,7 @@ def userver_pg_trx(testpoint) -> Generator[sql.RegisteredTrx, None, None]:
     @snippet postgresql/functional_tests/integration_tests/tests/test_trx_failure.py  fault injection
 
     @ingroup userver_testsuite_fixtures
-    """  # noqa: E501
+    """
 
     registered = sql.RegisteredTrx()
 
@@ -142,11 +141,11 @@ def userver_pg_trx(testpoint) -> Generator[sql.RegisteredTrx, None, None]:
         should_fail = registered.is_failure_enabled(data['trx_name'])
         return {'trx_should_fail': should_fail}
 
-    yield registered  # noqa: PT022
+    return registered
 
 
 @pytest.fixture
-def userver_pg_ntrx(testpoint) -> Generator[RegisteredNtrx, None, None]:
+def userver_pg_ntrx(testpoint) -> RegisteredNtrx:
     """
     The fixture maintains single query fault injection state using
     RegisteredNtrx class.
@@ -156,6 +155,6 @@ def userver_pg_ntrx(testpoint) -> Generator[RegisteredNtrx, None, None]:
     @snippet postgresql/functional_tests/integration_tests/tests/test_ntrx_failure.py  fault injection
 
     @ingroup userver_testsuite_fixtures
-    """  # noqa: E501
+    """
 
-    yield RegisteredNtrx(testpoint)  # noqa: PT022
+    return RegisteredNtrx(testpoint)

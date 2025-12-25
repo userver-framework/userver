@@ -269,7 +269,9 @@ private:
 };
 
 template <typename InputIt>
-HeaderMap::HeaderMap(InputIt first, InputIt last) : HeaderMap{} {
+HeaderMap::HeaderMap(InputIt first, InputIt last)
+    : HeaderMap{}
+{
     insert(first, last);
 }
 

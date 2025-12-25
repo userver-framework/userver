@@ -12,7 +12,9 @@ constexpr std::uint64_t kConsumersSleepingShift = static_cast<std::uint64_t>(1) 
 
 }  // namespace
 
-ConsumersState::ConsumersState(const ConsumersState& other) : state_(other.state_.load()) {}
+ConsumersState::ConsumersState(const ConsumersState& other)
+    : state_(other.state_.load())
+{}
 
 ConsumersState& ConsumersState::operator=(const ConsumersState& other) {
     if (this == &other) {
@@ -40,7 +42,9 @@ void ConsumersState::DecrementSleepingCount() noexcept { state_.fetch_sub(kConsu
 
 ConsumersState::State ConsumersState::CreateState(std::uint64_t data) {
     return ConsumersState::State{
-        static_cast<uint32_t>(data >> 32), static_cast<uint32_t>(data & (kConsumersSleepingShift - 1))};
+        static_cast<uint32_t>(data >> 32),
+        static_cast<uint32_t>(data & (kConsumersSleepingShift - 1))
+    };
 }
 
 }  // namespace engine

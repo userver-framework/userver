@@ -151,8 +151,11 @@ public:
     /// Read-only read committed transaction
     static constexpr TransactionOptions RO{TransactionOptions::kReadOnly};  // NOLINT(readability-identifier-naming)
     /// Read-only serializable deferrable transaction
-    static constexpr TransactionOptions Deferrable{// NOLINT(readability-identifier-naming)
-                                                   TransactionOptions::Deferrable()};
+    // clang-format off
+    static constexpr TransactionOptions Deferrable{  // NOLINT(readability-identifier-naming)
+        TransactionOptions::Deferrable()
+    };
+    // clang-format on
     //@}
 
     static constexpr std::size_t kDefaultRowsInChunk = 1024;
@@ -395,8 +398,11 @@ public:
     TimeoutDuration GetConnStatementTimeoutDebug() const;
 
 private:
-    ResultSet
-    DoExecute(const Query& query, const detail::QueryParameters& params, OptionalCommandControl statement_cmd_ctl);
+    ResultSet DoExecute(
+        const Query& query,
+        const detail::QueryParameters& params,
+        OptionalCommandControl statement_cmd_ctl
+    );
     Portal MakePortal(
         const PortalName&,
         const Query& query,
@@ -419,8 +425,11 @@ ResultSet Transaction::ExecuteDecompose(const Query& query, const Container& arg
 }
 
 template <typename Container>
-ResultSet
-Transaction::ExecuteDecompose(OptionalCommandControl statement_cmd_ctl, const Query& query, const Container& args) {
+ResultSet Transaction::ExecuteDecompose(
+    OptionalCommandControl statement_cmd_ctl,
+    const Query& query,
+    const Container& args
+) {
     return io::DecomposeContainerByColumns(args).Perform([&query, &statement_cmd_ctl, this](const auto&... args) {
         return this->Execute(statement_cmd_ctl, query, args...);
     });

@@ -15,27 +15,30 @@ USERVER_NAMESPACE_BEGIN
 
 namespace {
 
-constexpr std::string_view kBaseTskvPattern = R"(tskv\t)"
-                                              R"(timestamp=\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\t)"
-                                              R"(timezone=[-+]\d{2}\d{2}\t)"
-                                              R"(user_agent=.+\t)"
-                                              R"(ip=[.0-9a-f:\[\]]+\:[0-9]+\t)"
-                                              R"(x_real_ip=[.0-9a-f:\[\]]+\:[0-9]+\t)"
-                                              R"(request=[a-zA-Z./0-9]+\t)"
-                                              R"(request_time=\d+\.\d+\t)"
-                                              R"(upstream_response_time=\d+\.\d+\t)"
-                                              R"(grpc_status=\d+\t)"
-                                              R"(grpc_status_code=[A-Z_]+)";
+constexpr std::string_view kBaseTskvPattern =
+    R"(tskv\t)"
+    R"(timestamp=\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\t)"
+    R"(timezone=[-+]\d{2}\d{2}\t)"
+    R"(user_agent=.+\t)"
+    R"(ip=[.0-9a-f:\[\]]+\:[0-9]+\t)"
+    R"(x_real_ip=[.0-9a-f:\[\]]+\:[0-9]+\t)"
+    R"(request=[a-zA-Z./0-9]+\t)"
+    R"(request_time=\d+\.\d+\t)"
+    R"(upstream_response_time=\d+\.\d+\t)"
+    R"(grpc_status=\d+\t)"
+    R"(grpc_status_code=[A-Z_]+)";
 
 const utils::regex kBaseTskvRegex{std::string{kBaseTskvPattern} + R"(\n)"};
 
 // Constant to check result of LogExtra middleware
 const utils::regex kTskvWithTagsRegex{
-    std::string{kBaseTskvPattern} + R"(\tuser_id=12345)"
-                                    R"(\tsession_id=abc-def-ghi)"
-                                    R"(\trequest_id=req-98765)"
-                                    R"(\tcustom_tag=test-value)"
-                                    R"(\tnumeric_tag=42\n)"};
+    std::string{kBaseTskvPattern} +
+    R"(\tuser_id=12345)"
+    R"(\tsession_id=abc-def-ghi)"
+    R"(\trequest_id=req-98765)"
+    R"(\tcustom_tag=test-value)"
+    R"(\tnumeric_tag=42\n)"
+};
 
 class UnitTestService final : public sample::ugrpc::UnitTestServiceBase {
 public:

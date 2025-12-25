@@ -1,4 +1,4 @@
-from chaotic_openapi.back.cpp_client import types  # noqa: I001
+from chaotic_openapi.back.cpp_client import types
 
 from chaotic.back.cpp import type_name
 from chaotic.back.cpp import types as cpp_types
@@ -56,18 +56,18 @@ def test_headers(translate_single_schema):
                                     ),
                                     validators=cpp_types.CppPrimitiveValidator(
                                         namespace='::test_namespace::root_::get',
-                                        prefix='Response200HeaderHeader',  # noqa: COM812
+                                        prefix='Response200HeaderHeader',
                                     ),
                                 ),
                                 parser='openapi::TrivialParameter<openapi::In::kHeader, kHeader, int, int>',
                                 required=False,
                                 query_log_mode_hide=False,
-                            )  # noqa: COM812
+                            ),
                         ],
                         body={},
-                    )  # noqa: COM812
+                    ),
                 ],
-            )  # noqa: COM812
+            ),
         ],
     )
 
@@ -88,9 +88,9 @@ def test_header_ref(translate_single_schema):
                                 },
                             },
                         },
-                    }  # noqa: COM812
-                }  # noqa: COM812
-            }  # noqa: COM812
+                    },
+                },
+            },
         },
         'components': {
             'headers': {
@@ -136,8 +136,8 @@ def test_header_ref(translate_single_schema):
                                 query_log_mode_hide=False,
                             ),
                         ],
-                    )  # noqa: COM812
+                    ),
                 ],
-            )  # noqa: COM812
+            ),
         ],
     )

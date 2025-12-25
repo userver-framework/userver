@@ -57,7 +57,8 @@ UTEST_F(ConsumerTest, OneConsumerSmallTopics) {
         kafka::utest::Message{topic1, "key-1", "msg-1", /*partition=*/0, /*headers=*/{}},
         kafka::utest::Message{topic1, "key-2", "msg-2", /*partition=*/0, /*headers=*/{}},
         kafka::utest::Message{topic2, "key-3", "msg-3", /*partition=*/0, /*headers=*/{}},
-        kafka::utest::Message{topic2, "key-4", "msg-4", /*partition=*/0, /*headers=*/{}}};
+        kafka::utest::Message{topic2, "key-4", "msg-4", /*partition=*/0, /*headers=*/{}}
+    };
     SendMessages(test_messages);
 
     auto consumer = MakeConsumer("kafka-consumer", /*topics=*/{topic1, topic2});
@@ -97,7 +98,8 @@ UTEST_F(ConsumerTest, OneConsumerLargeTopics) {
             fmt::format("key-{}", i),
             fmt::format("msg-{}", i),
             /*partition=*/i % kNumPartitionsLargeTopic,
-            /*headers=*/{}};
+            /*headers=*/{}
+        };
     });
     SendMessages(test_messages);
 
@@ -119,7 +121,8 @@ UTEST_F(ConsumerTest, ManyConsumersLargeTopics) {
             fmt::format("key-{}", i),
             fmt::format("msg-{}", i),
             /*partition=*/i % kNumPartitionsLargeTopic,
-            /*headers=*/{}};
+            /*headers=*/{}
+        };
     });
     SendMessages(test_messages);
 
@@ -156,19 +159,23 @@ UTEST_F(ConsumerTest, OneConsumerPartitionDistribution) {
             "key",
             "msg-1",
             /*partition=*/std::nullopt,
-            /*headers=*/{}},
+            /*headers=*/{}
+        },
         kafka::utest::Message{
             kLargeTopic1,
             "key",
             "msg-2",
             /*partition=*/std::nullopt,
-            /*headers=*/{}},
+            /*headers=*/{}
+        },
         kafka::utest::Message{
             kLargeTopic1,
             "key",
             "msg-3",
             /*partition=*/std::nullopt,
-            /*headers=*/{}}};
+            /*headers=*/{}
+        }
+    };
     SendMessages(test_messages);
 
     auto consumer = MakeConsumer("kafka-consumer", /*topics=*/{kLargeTopic1});
@@ -192,19 +199,23 @@ UTEST_F(ConsumerTest, OneConsumerRereadAfterCommit) {
             "key-1",
             "msg-1",
             /*partition=*/std::nullopt,
-            /*headers=*/{}},
+            /*headers=*/{}
+        },
         kafka::utest::Message{
             topic,
             "key-2",
             "msg-2",
             /*partition=*/std::nullopt,
-            /*headers=*/{}},
+            /*headers=*/{}
+        },
         kafka::utest::Message{
             topic,
             "key-3",
             "msg-3",
             /*partition=*/std::nullopt,
-            /*headers=*/{}}};
+            /*headers=*/{}
+        }
+    };
     SendMessages(test_messages);
 
     auto consumer = MakeConsumer("kafka-consumer", /*topics=*/{topic});
@@ -238,7 +249,8 @@ UTEST_F(ConsumerTest, LargeBatch) {
         kafka::impl::ConsumerConfiguration{},
         kafka::impl::ConsumerExecutionParams{
             /*max_batch_size=*/100,
-            /*poll_timeout=*/utest::kMaxTestWaitTime / 2}
+            /*poll_timeout=*/utest::kMaxTestWaitTime / 2
+        }
     );
     auto consumer_scope = consumer.MakeConsumerScope();
 
@@ -263,7 +275,11 @@ UTEST_F_MT(ConsumerTest, OneConsumerPartitionOffsets, 2) {
     constexpr std::uint32_t kFirstPartition{0};
     const auto messages = utils::GenerateFixedArray(kMessagesCount, [](std::size_t i) {
         return kafka::utest::Message{
-            kBlockingTopic, fmt::format("key-{}", i), fmt::format("msg-{}", i), i % kNumPartitionsBlockingTopic};
+            kBlockingTopic,
+            fmt::format("key-{}", i),
+            fmt::format("msg-{}", i),
+            i % kNumPartitionsBlockingTopic
+        };
     });
     SendMessages(messages);
 
@@ -318,8 +334,8 @@ UTEST_F_MT(ConsumerTest, OneConsumerPartitionOffsets, 2) {
 }
 
 UTEST_F(ConsumerTest, HeadersProcessing) {
-    static constexpr std::array kExpectedHeaders{
-        kafka::HeaderView{"header-1", "value-1"}, kafka::HeaderView{"header-2", "value-2"}};
+    static constexpr std::array
+        kExpectedHeaders{kafka::HeaderView{"header-1", "value-1"}, kafka::HeaderView{"header-2", "value-2"}};
     const std::vector<kafka::OwningHeader> headers{kExpectedHeaders.begin(), kExpectedHeaders.end()};
 
     const auto topic = GenerateTopic();
@@ -377,7 +393,9 @@ UTEST_F(ConsumerTest, DISABLED_IN_MAC_OS_TEST_NAME(SeekToBeginning)) {
                 if (event_type == kafka::RebalanceEventType::kAssigned) {
                     for (const auto& topic_partitions : partitions) {
                         UEXPECT_NO_THROW(consumer_scope.SeekToBeginning(
-                            topic_partitions.topic, topic_partitions.partition_id, utest::kMaxTestWaitTime
+                            topic_partitions.topic,
+                            topic_partitions.partition_id,
+                            utest::kMaxTestWaitTime
                         ));
                     }
 
@@ -419,12 +437,17 @@ UTEST_F(ConsumerTest, SeekToOffset) {
             if (event_type == kafka::RebalanceEventType::kAssigned) {
                 for (const auto& topic_partitions : partitions) {
                     const auto offset_range = consumer_scope.GetOffsetRange(
-                        topic_partitions.topic, topic_partitions.partition_id, utest::kMaxTestWaitTime
+                        topic_partitions.topic,
+                        topic_partitions.partition_id,
+                        utest::kMaxTestWaitTime
                     );
                     const auto offset_to_seek = offset_range.low + kMessagesToSkip;
 
                     UEXPECT_NO_THROW(consumer_scope.Seek(
-                        topic_partitions.topic, topic_partitions.partition_id, offset_to_seek, utest::kMaxTestWaitTime
+                        topic_partitions.topic,
+                        topic_partitions.partition_id,
+                        offset_to_seek,
+                        utest::kMaxTestWaitTime
                     ));
                 }
 
@@ -475,20 +498,22 @@ UTEST_F(ConsumerTest, SeekToEnd) {
 
     auto consumer = MakeConsumer("kafka-consumer", {topic});
     auto consumer_scope = consumer.MakeConsumerScope();
-    auto rebalance_callback = [&consumer_scope, &seek_completed](
-                                  kafka::TopicPartitionBatchView partitions, kafka::RebalanceEventType event_type
-                              ) {
-        if (event_type == kafka::RebalanceEventType::kAssigned) {
-            for (const auto& topic_partitions : partitions) {
-                UEXPECT_NO_THROW(consumer_scope.SeekToEnd(
-                    topic_partitions.topic, topic_partitions.partition_id, utest::kMaxTestWaitTime
-                ));
-            }
+    auto rebalance_callback =
+        [&consumer_scope,
+         &seek_completed](kafka::TopicPartitionBatchView partitions, kafka::RebalanceEventType event_type) {
+            if (event_type == kafka::RebalanceEventType::kAssigned) {
+                for (const auto& topic_partitions : partitions) {
+                    UEXPECT_NO_THROW(consumer_scope.SeekToEnd(
+                        topic_partitions.topic,
+                        topic_partitions.partition_id,
+                        utest::kMaxTestWaitTime
+                    ));
+                }
 
-            // signals that seek have already occured.
-            seek_completed.Send();
-        }
-    };
+                // signals that seek have already occured.
+                seek_completed.Send();
+            }
+        };
     consumer_scope.SetRebalanceCallback(std::move(rebalance_callback));
 
     auto messages = ReceiveMessages(

@@ -39,7 +39,9 @@ void VisitMessagesRecursiveImpl(
         [&callback,
          &recursion_limit](google::protobuf::Message& message, const google::protobuf::FieldDescriptor& field) -> void {
             // Not a nested message
-            if (!IsMessage(field)) return;
+            if (!IsMessage(field)) {
+                return;
+            }
 
             VisitNestedMessage(message, field, [&](google::protobuf::Message& msg) {
                 VisitMessagesRecursiveImpl(msg, callback, recursion_limit - 1);
@@ -62,7 +64,9 @@ void GetNestedMessageDescriptorsImpl(
         UINVARIANT(field, "field is nullptr");
 
         // Not a nested message
-        if (!IsMessage(*field)) continue;
+        if (!IsMessage(*field)) {
+            continue;
+        }
 
         const google::protobuf::Descriptor* msg = field->message_type();
         UINVARIANT(msg, "msg is nullptr");
@@ -100,7 +104,9 @@ void VisitMessagesRecursive(google::protobuf::Message& message, MessageVisitCall
 
 void VisitFieldsRecursive(google::protobuf::Message& message, FieldVisitCallback callback) {
     VisitMessagesRecursiveImpl(
-        message, [&](google::protobuf::Message& message) -> void { VisitFields(message, callback); }, kMaxRecursionLimit
+        message,
+        [&](google::protobuf::Message& message) -> void { VisitFields(message, callback); },
+        kMaxRecursionLimit
     );
 }
 
@@ -157,8 +163,10 @@ const google::protobuf::Descriptor* FindGeneratedMessage(std::string_view name) 
 #endif
 }
 
-const google::protobuf::FieldDescriptor*
-FindField(const google::protobuf::Descriptor* descriptor, std::string_view field) {
+const google::protobuf::FieldDescriptor* FindField(
+    const google::protobuf::Descriptor* descriptor,
+    std::string_view field
+) {
     UINVARIANT(descriptor, "descriptor is nullptr");
 #if GOOGLE_PROTOBUF_VERSION >= 4022000
     return descriptor->FindFieldByName(field);
@@ -194,7 +202,9 @@ void VisitorCompiler::Compile(const DescriptorList& descriptors) {
         UINVARIANT(descriptor, "descriptor is nullptr");
 
         // We have already compiled this. Skip.
-        if (!compiled_.insert(descriptor).second) continue;
+        if (!compiled_.insert(descriptor).second) {
+            continue;
+        }
 
         // Compile the selection data
         CompileOne(*descriptor);
@@ -204,7 +214,9 @@ void VisitorCompiler::Compile(const DescriptorList& descriptors) {
             UINVARIANT(field, "field is nullptr");
 
             // Not a nested message
-            if (!IsMessage(*field)) continue;
+            if (!IsMessage(*field)) {
+                continue;
+            }
 
             // Sync the reverse edges.
             // Even from unknown types - we might need to compile them in the future.
@@ -261,13 +273,17 @@ const VisitorCompiler::DescriptorSet& VisitorCompiler::GetCompiled(utils::impl::
 
 std::shared_lock<engine::SharedMutex> VisitorCompiler::LockRead() {
     std::shared_lock read_lock(mutex_, std::defer_lock);
-    if (lock_behavior_ == LockBehavior::kShared) read_lock.lock();
+    if (lock_behavior_ == LockBehavior::kShared) {
+        read_lock.lock();
+    }
     return read_lock;
 }
 
 std::unique_lock<engine::SharedMutex> VisitorCompiler::LockWrite() {
     std::unique_lock write_lock(mutex_, std::defer_lock);
-    if (lock_behavior_ == LockBehavior::kShared) write_lock.lock();
+    if (lock_behavior_ == LockBehavior::kShared) {
+        write_lock.lock();
+    }
     return write_lock;
 }
 
@@ -287,7 +303,8 @@ VisitorCompiler::DescriptorSet VisitorCompiler::GetFullSubtrees(const Descriptor
 void VisitorCompiler::PropagateSelected(const google::protobuf::Descriptor* descriptor) {
     UINVARIANT(descriptor, "descriptor is nullptr");
     if (!IsSelected(*descriptor) &&
-        fields_with_selected_children_.find(descriptor) == fields_with_selected_children_.end()) {
+        fields_with_selected_children_.find(descriptor) == fields_with_selected_children_.end())
+    {
         // This does not need to be propagated
         return;
     }
@@ -298,7 +315,9 @@ void VisitorCompiler::PropagateSelected(const google::protobuf::Descriptor* desc
     }
 
     const auto it = reverse_edges_.find(descriptor);
-    if (it == reverse_edges_.end()) return;  // No edges
+    if (it == reverse_edges_.end()) {
+        return;  // No edges
+    }
 
     const FieldDescriptorSet& fields = it->second;
     for (const google::protobuf::FieldDescriptor* field : fields) {
@@ -316,22 +335,30 @@ void VisitorCompiler::PropagateSelected(const google::protobuf::Descriptor* desc
 }
 
 FieldsVisitor::FieldsVisitor(Selector selector)
-    : BaseVisitor<FieldVisitCallback>(LockBehavior::kShared), selector_(selector) {
+    : BaseVisitor<FieldVisitCallback>(LockBehavior::kShared),
+      selector_(selector)
+{
     CompileAllGenerated();
 }
 
 FieldsVisitor::FieldsVisitor(Selector selector, const DescriptorList& descriptors)
-    : BaseVisitor<FieldVisitCallback>(LockBehavior::kShared), selector_(selector) {
+    : BaseVisitor<FieldVisitCallback>(LockBehavior::kShared),
+      selector_(selector)
+{
     Compile(descriptors);
 }
 
 FieldsVisitor::FieldsVisitor(Selector selector, LockBehavior lock_behavior)
-    : BaseVisitor<FieldVisitCallback>(lock_behavior), selector_(selector) {
+    : BaseVisitor<FieldVisitCallback>(lock_behavior),
+      selector_(selector)
+{
     CompileAllGenerated();
 }
 
 FieldsVisitor::FieldsVisitor(Selector selector, const DescriptorList& descriptors, LockBehavior lock_behavior)
-    : BaseVisitor<FieldVisitCallback>(lock_behavior), selector_(selector) {
+    : BaseVisitor<FieldVisitCallback>(lock_behavior),
+      selector_(selector)
+{
     Compile(descriptors);
 }
 
@@ -342,13 +369,17 @@ const FieldsVisitor::Dependencies& FieldsVisitor::GetSelectedFields(utils::impl:
 void FieldsVisitor::CompileOne(const google::protobuf::Descriptor& descriptor) {
     for (const google::protobuf::FieldDescriptor* field : GetFieldDescriptors(descriptor)) {
         UINVARIANT(field, "field is nullptr");
-        if (selector_(*field)) selected_fields_[&descriptor].insert(field);
+        if (selector_(*field)) {
+            selected_fields_[&descriptor].insert(field);
+        }
     }
 }
 
 void FieldsVisitor::DoVisit(google::protobuf::Message& message, FieldVisitCallback callback) const {
     const auto it = selected_fields_.find(message.GetDescriptor());
-    if (it == selected_fields_.end()) return;
+    if (it == selected_fields_.end()) {
+        return;
+    }
 
     // Get reflection
     const google::protobuf::Reflection* reflection = message.GetReflection();
@@ -371,22 +402,30 @@ void FieldsVisitor::DoVisit(google::protobuf::Message& message, FieldVisitCallba
 }
 
 MessagesVisitor::MessagesVisitor(Selector selector)
-    : BaseVisitor<MessageVisitCallback>(LockBehavior::kShared), selector_(selector) {
+    : BaseVisitor<MessageVisitCallback>(LockBehavior::kShared),
+      selector_(selector)
+{
     CompileAllGenerated();
 }
 
 MessagesVisitor::MessagesVisitor(Selector selector, const DescriptorList& descriptors)
-    : BaseVisitor<MessageVisitCallback>(LockBehavior::kShared), selector_(selector) {
+    : BaseVisitor<MessageVisitCallback>(LockBehavior::kShared),
+      selector_(selector)
+{
     Compile(descriptors);
 }
 
 MessagesVisitor::MessagesVisitor(Selector selector, LockBehavior lock_behavior)
-    : BaseVisitor<MessageVisitCallback>(lock_behavior), selector_(selector) {
+    : BaseVisitor<MessageVisitCallback>(lock_behavior),
+      selector_(selector)
+{
     CompileAllGenerated();
 }
 
 MessagesVisitor::MessagesVisitor(Selector selector, const DescriptorList& descriptors, LockBehavior lock_behavior)
-    : BaseVisitor<MessageVisitCallback>(lock_behavior), selector_(selector) {
+    : BaseVisitor<MessageVisitCallback>(lock_behavior),
+      selector_(selector)
+{
     Compile(descriptors);
 }
 
@@ -402,7 +441,9 @@ void MessagesVisitor::CompileOne(const google::protobuf::Descriptor& descriptor)
 
 void MessagesVisitor::DoVisit(google::protobuf::Message& message, MessageVisitCallback callback) const {
     const auto it = selected_messages_.find(message.GetDescriptor());
-    if (it == selected_messages_.end()) return;
+    if (it == selected_messages_.end()) {
+        return;
+    }
     callback(message);
 }
 

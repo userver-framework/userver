@@ -16,10 +16,14 @@ class SslCtx::Impl {
 public:
     static std::unique_ptr<Impl> MakeSslCtx();
 
-    explicit Impl(SSL_CTX* ctx) : ctx_{ctx} {}
+    explicit Impl(SSL_CTX* ctx)
+        : ctx_{ctx}
+    {}
 
     ~Impl() {
-        if (ctx_) SSL_CTX_free(ctx_);
+        if (ctx_) {
+            SSL_CTX_free(ctx_);
+        }
     }
 
     SSL_CTX* Get() noexcept { return ctx_; }
@@ -41,9 +45,10 @@ std::unique_ptr<SslCtx::Impl> SslCtx::Impl::MakeSslCtx() {
     }
 #endif
 
-    constexpr auto options = SSL_OP_ALL | SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_COMPRESSION
+    constexpr auto options =
+        SSL_OP_ALL | SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_COMPRESSION
 #if OPENSSL_VERSION_NUMBER >= 0x010100000L
-                             | SSL_OP_NO_RENEGOTIATION
+        | SSL_OP_NO_RENEGOTIATION
 #endif
         ;
     SSL_CTX_set_options(ssl_ctx, options);
@@ -59,7 +64,9 @@ std::unique_ptr<SslCtx::Impl> SslCtx::Impl::MakeSslCtx() {
 
 void* SslCtx::GetRawSslCtx() const noexcept { return static_cast<void*>(impl_->Get()); }
 
-SslCtx::SslCtx(std::unique_ptr<Impl>&& impl) : impl_(std::move(impl)) {}
+SslCtx::SslCtx(std::unique_ptr<Impl>&& impl)
+    : impl_(std::move(impl))
+{}
 
 SslCtx::SslCtx(SslCtx&& other) noexcept = default;
 SslCtx& SslCtx::operator=(SslCtx&& other) noexcept = default;

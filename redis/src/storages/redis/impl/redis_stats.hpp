@@ -54,7 +54,9 @@ public:
 };
 
 struct InstanceStatistics {
-    InstanceStatistics(const MetricsSettings& settings) : settings(settings) {}
+    InstanceStatistics(const MetricsSettings& settings)
+        : settings(settings)
+    {}
 
     void Fill(const Statistics& other) {
         state = other.state.load(std::memory_order_relaxed);
@@ -66,10 +68,14 @@ struct InstanceStatistics {
         last_ping_ms = other.last_ping_ms.load(std::memory_order_relaxed);
         is_syncing = other.is_syncing.load(std::memory_order_relaxed);
         offset_from_master = other.offset_from_master_bytes.load(std::memory_order_relaxed);
-        for (size_t i = 0; i < error_count.size(); i++) error_count[i] = other.error_count[i];
+        for (size_t i = 0; i < error_count.size(); i++) {
+            error_count[i] = other.error_count[i];
+        }
         for (const auto& [command, timings] : other.command_timings_percentile) {
             auto stats = timings.GetStatsForPeriod();
-            if (!stats.Count()) continue;
+            if (!stats.Count()) {
+                continue;
+            }
             command_timings_percentile.emplace(command, std::move(stats));
         }
     }
@@ -80,10 +86,13 @@ struct InstanceStatistics {
         reply_size_percentile.Add(other.reply_size_percentile);
         timings_percentile.Add(other.timings_percentile);
 
-        for (size_t i = 0; i < error_count.size(); i++) error_count[i] += other.error_count[i];
+        for (size_t i = 0; i < error_count.size(); i++) {
+            error_count[i] += other.error_count[i];
+        }
 
-        for (const auto& [command, timings] : other.command_timings_percentile)
+        for (const auto& [command, timings] : other.command_timings_percentile) {
             command_timings_percentile[command].Add(timings);
+        }
     }
 
     const MetricsSettings& settings;
@@ -102,7 +111,9 @@ struct InstanceStatistics {
 };
 
 struct ShardStatistics {
-    ShardStatistics(const MetricsSettings& settings) : shard_total(settings) {}
+    ShardStatistics(const MetricsSettings& settings)
+        : shard_total(settings)
+    {}
 
     InstanceStatistics shard_total;
     std::unordered_map<std::string, InstanceStatistics> instances;
@@ -115,7 +126,8 @@ struct SentinelStatisticsInternal {
     SentinelStatisticsInternal(const SentinelStatisticsInternal& other)
         : redis_not_ready(other.redis_not_ready),
           cluster_topology_checks(other.cluster_topology_checks),
-          cluster_topology_updates(other.cluster_topology_updates) {}
+          cluster_topology_updates(other.cluster_topology_updates)
+    {}
 
     utils::statistics::RateCounter redis_not_ready{0};
     std::atomic_bool is_autotoplogy{false};
@@ -125,7 +137,9 @@ struct SentinelStatisticsInternal {
 
 struct SentinelStatistics {
     SentinelStatistics(const MetricsSettings& settings, const SentinelStatisticsInternal& internal)
-        : shard_group_total(settings), internal(internal) {}
+        : shard_group_total(settings),
+          internal(internal)
+    {}
 
     InstanceStatistics GetShardGroupTotalStatistics() const;
 

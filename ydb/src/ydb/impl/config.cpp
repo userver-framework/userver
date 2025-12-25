@@ -39,8 +39,9 @@ TableSettings ParseTableSettings(const yaml_config::YamlConfig& dbconfig, const 
 
     result.min_pool_size = dbconfig["min_pool_size"].As<std::uint32_t>(result.min_pool_size);
     result.max_pool_size = dbconfig["max_pool_size"].As<std::uint32_t>(result.max_pool_size);
-    result.get_session_retry_limit =
-        dbconfig["get_session_retry_limit"].As<std::uint32_t>(result.get_session_retry_limit);
+    result
+        .get_session_retry_limit = dbconfig["get_session_retry_limit"].As<std::uint32_t>(result.get_session_retry_limit
+    );
     result.keep_in_query_cache = dbconfig["keep-in-query-cache"].As<bool>(result.keep_in_query_cache);
 
     result.sync_start = dbconfig["sync_start"].As<bool>(result.sync_start);
@@ -83,8 +84,10 @@ DriverSettings ParseDriverSettings(
 
 using OptMs = std::optional<std::chrono::milliseconds>;
 
-const dynamic_config::Key<std::unordered_map<std::string, utils::RetryBudgetSettings>>
-    kRetryBudgetSettings("YDB_RETRY_BUDGET", dynamic_config::DefaultAsJsonString("{}"));
+const dynamic_config::Key<std::unordered_map<std::string, utils::RetryBudgetSettings>> kRetryBudgetSettings(
+    "YDB_RETRY_BUDGET",
+    dynamic_config::DefaultAsJsonString("{}")
+);
 
 }  // namespace ydb::impl
 

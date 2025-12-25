@@ -3,7 +3,7 @@ import logging
 
 import grpc
 
-import samples.greeter_pb2 as greeter_pb2  # noqa: E402, E501
+import samples.greeter_pb2 as greeter_pb2
 
 logger = logging.getLogger(__name__)
 
@@ -130,7 +130,7 @@ async def check_ok_for(case, grpc_client, gate):
             return
         except grpc.RpcError as error:
             logger.warning(f'Error at "{case}" (attempt {i}): {error.code()}')
-        except asyncio.TimeoutError:  # noqa: UP041
+        except asyncio.TimeoutError:
             logger.warning(f'Error at "{case}" (attempt {i}): timeout')
     assert False, f'{case}: all attempts failed'
 
@@ -142,7 +142,7 @@ async def check_unavailable_for(case, grpc_client, gate):
             timeout=10.0,
         )
         assert False, 'Server must return UNAVAILABLE'
-    except asyncio.TimeoutError:  # noqa: UP041
+    except asyncio.TimeoutError:
         assert False, 'Client channel not ready by timeout'
     except grpc.RpcError as error:
         assert grpc.StatusCode.UNAVAILABLE == error.code()

@@ -46,7 +46,10 @@ struct fmt::formatter<USERVER_NAMESPACE::engine::impl::Waiter> {
     template <typename FormatContext>
     auto format(USERVER_NAMESPACE::engine::impl::Waiter waiter, FormatContext& ctx) const {
         return fmt::format_to(
-            ctx.out(), "({}, {})", fmt::ptr(waiter.context), USERVER_NAMESPACE::utils::UnderlyingValue(waiter.epoch)
+            ctx.out(),
+            "({}, {})",
+            fmt::ptr(waiter.context),
+            USERVER_NAMESPACE::utils::UnderlyingValue(waiter.epoch)
         );
     }
 };
@@ -88,9 +91,9 @@ bool WaitListLight::GetSignalOrAppend(boost::intrusive_ptr<TaskContext>&& contex
 
     Waiter expected{};
     // seq_cst is important for the "Append-Check-Wakeup" sequence.
-    const bool success = impl_->waiter.compare_exchange_strong<std::memory_order_seq_cst, std::memory_order_relaxed>(
-        expected, new_waiter
-    );
+    const bool success = impl_->waiter.compare_exchange_strong<
+        std::memory_order_seq_cst,
+        std::memory_order_relaxed>(expected, new_waiter);
     if (!success) {
         UASSERT_MSG(
             expected.context == kSignaled,
@@ -115,13 +118,16 @@ bool WaitListLight::GetSignalOrAppend(boost::intrusive_ptr<TaskContext>&& contex
 void WaitListLight::WakeupOne() {
     // seq_cst is important for the "Append-Check-Wakeup" sequence.
     const auto old_waiter = impl_->waiter.exchange<std::memory_order_seq_cst>(Waiter{});
-    if (old_waiter.context == nullptr) return;
+    if (old_waiter.context == nullptr) {
+        return;
+    }
 
     UASSERT_MSG(old_waiter.context != kSignaled, "Use SetSignalAndWakeupOne for dealing with signals instead");
 
     const boost::intrusive_ptr<TaskContext> context{
         old_waiter.context,
-        /*add_ref=*/false};
+        /*add_ref=*/false
+    };
     DoWakeup(old_waiter);
 }
 
@@ -134,7 +140,8 @@ void WaitListLight::SetSignalAndWakeupOne() {
 
     const boost::intrusive_ptr<TaskContext> context{
         old_waiter.context,
-        /*add_ref=*/false};
+        /*add_ref=*/false
+    };
     DoWakeup(old_waiter);
 }
 
@@ -142,9 +149,9 @@ void WaitListLight::Remove(TaskContext& context) noexcept {
     const Waiter expected{&context, context.GetEpoch()};
 
     auto old_waiter = expected;
-    const bool success = impl_->waiter.compare_exchange_strong<std::memory_order_release, std::memory_order_relaxed>(
-        old_waiter, Waiter{}
-    );
+    const bool success = impl_->waiter.compare_exchange_strong<
+        std::memory_order_release,
+        std::memory_order_relaxed>(old_waiter, Waiter{});
 
     if (!success) {
         UASSERT_MSG(

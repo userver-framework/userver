@@ -17,7 +17,7 @@ class UnregisteredTestpointError(BaseError):
 
 
 class TestpointControl:
-    def __init__(self):
+    def __init__(self) -> None:
         self.enabled_testpoints: frozenset[str] = frozenset()
 
 

@@ -5,6 +5,7 @@
 [![Debian](https://github.com/userver-framework/userver/actions/workflows/debian.yml/badge.svg)](https://github.com/userver-framework/userver/actions/workflows/debian.yml)
 [![MacOS](https://github.com/userver-framework/userver/actions/workflows/macos.yml/badge.svg)](https://github.com/userver-framework/userver/actions/workflows/macos.yml)
 [![Alpine](https://github.com/userver-framework/userver/actions/workflows/alpine.yml/badge.svg)](https://github.com/userver-framework/userver/actions/workflows/alpine.yml)
+[![Arch](https://github.com/userver-framework/userver/actions/workflows/archlinux.yml/badge.svg)](https://github.com/userver-framework/userver/actions/workflows/archlinux.yml)
 [![Docker CI](https://github.com/userver-framework/userver/actions/workflows/docker.yaml/badge.svg)](https://github.com/userver-framework/userver/actions/workflows/docker.yaml)
 [![Conan](https://github.com/userver-framework/userver/actions/workflows/ci-conan.yml/badge.svg)](https://github.com/userver-framework/userver/actions/workflows/ci-conan.yml)
 [![CodeQL](https://github.com/userver-framework/userver/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/userver-framework/userver/actions/workflows/codeql-analysis.yml)
@@ -17,7 +18,7 @@
 [![urealmedium CI](https://github.com/userver-framework/realmedium_sample/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/userver-framework/realmedium_sample/actions/workflows/ci.yml)
 [![urealmedium Docker build](https://github.com/userver-framework/realmedium_sample/actions/workflows/docker.yaml/badge.svg?branch=develop)](https://github.com/userver-framework/realmedium_sample/actions/workflows/docker.yaml)
 [![upastebin CI](https://github.com/userver-framework/upastebin/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/userver-framework/upastebin/actions/workflows/ci.yml)
-[![upastebin Docker](https://github.com/userver-framework/upastebin/actions/workflows/docker.yaml/badge.svg?branch=develop)](https://github.com/userver-framework/upastebin/actions/workflows/docker.ymal)
+[![upastebin Docker](https://github.com/userver-framework/upastebin/actions/workflows/docker.yaml/badge.svg?branch=develop)](https://github.com/userver-framework/upastebin/actions/workflows/docker.yaml)
 
 
 **userver** is an open source asynchronous framework with a rich set of abstractions

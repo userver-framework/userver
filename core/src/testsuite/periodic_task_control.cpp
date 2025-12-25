@@ -68,7 +68,10 @@ PeriodicTaskRegistrationHolder::PeriodicTaskRegistrationHolder(
     std::string name,
     utils::PeriodicTask& task
 )
-    : periodic_task_control_(periodic_task_control), name_(std::move(name)), task_(task) {
+    : periodic_task_control_(periodic_task_control),
+      name_(std::move(name)),
+      task_(task)
+{
     periodic_task_control_.RegisterPeriodicTask(name_, task_);
 }
 

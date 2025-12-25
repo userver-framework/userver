@@ -62,7 +62,7 @@ def main():
         '--working-dir',
         type=pathlib.Path,
         required=True,
-        help='Path to the working directory (build dir)',  # noqa: COM812
+        help='Path to the working directory (build dir)',
     )
     parser.add_argument(
         '--python-path',

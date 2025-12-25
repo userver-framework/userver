@@ -193,7 +193,9 @@ UTEST_MT(RcuMap, ConcurrentUpdates, 4) {
 
     engine::SleepFor(std::chrono::milliseconds(100));
     stop_flag = true;
-    for (auto& w : workers) w.Get();
+    for (auto& w : workers) {
+        w.Get();
+    }
 
     EXPECT_TRUE(map.Erase(-1));
     EXPECT_EQ(map.begin(), map.end());
@@ -213,7 +215,9 @@ UTEST_MT(RcuMap, ConcurrentTryEmplace, 16) {
             tasks.push_back(engine::AsyncNoSpan([&map, &insertions, i] {
                 auto key = std::string(20 + i / 2, 'x');
                 auto res = map.TryEmplace(key, i);
-                if (res.inserted) ++insertions;
+                if (res.inserted) {
+                    ++insertions;
+                }
                 EXPECT_EQ(*res.value / 2, i / 2);
             }));
         }
@@ -239,7 +243,9 @@ UTEST(RcuMap, IterStability) {
         bool has_this_started = false;
         std::array<bool, 10> seen{};
         for (const auto& [k, v] : m) {
-            if (!std::exchange(has_this_started, true)) ++started_count;
+            if (!std::exchange(has_this_started, true)) {
+                ++started_count;
+            }
 
             ASSERT_TRUE(k >= 0 && k < static_cast<int>(seen.size()));
             EXPECT_FALSE(std::exchange(seen[k], true));
@@ -251,7 +257,9 @@ UTEST(RcuMap, IterStability) {
     auto rw_checker = utils::Async("rw_checker", [&] { check(map); });
     auto ro_checker = utils::Async("ro_checker", [&] { check(cmap); });
 
-    while (started_count < 2) engine::Yield();
+    while (started_count < 2) {
+        engine::Yield();
+    }
 
     curr_val = 2;
     for (const auto& [k, v] : map) {
@@ -310,7 +318,9 @@ UTEST(RcuMap, StartWriteNoTearing) {
         Map::Snapshot snapshot;
         while (true) {
             snapshot = map.GetSnapshot();
-            if (!snapshot.empty()) break;
+            if (!snapshot.empty()) {
+                break;
+            }
         }
         EXPECT_EQ(snapshot.size(), 2);
         EXPECT_EQ(*snapshot.at("foo"), 10);

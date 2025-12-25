@@ -46,7 +46,10 @@ public:
     using OnRequest = std::function<Response(const Request&)>;
 
     using Port = unsigned short;
-    enum Protocol { kTcpIpV4, kTcpIpV6 };
+    enum Protocol {
+        kTcpIpV4,
+        kTcpIpV6
+    };
 
     SimpleServer(OnRequest callback, Protocol protocol = kTcpIpV4);
     ~SimpleServer();

@@ -9,6 +9,10 @@ from chaotic.front import ref_resolver
 from chaotic.front import types
 
 
+def clear_source_location(child: types.Schema, _) -> None:
+    child.source_location_ = None
+
+
 def parse(path, input_, external_schemas, external_types, cpp_name_func):
     config = parser.ParserConfig(erase_prefix='')
     schema_parser = parser.SchemaParser(
@@ -18,6 +22,10 @@ def parse(path, input_, external_schemas, external_types, cpp_name_func):
     )
     schema_parser.parse_schema(path, input_)
     schemas = schema_parser.parsed_schemas()
+    for schema in schemas.schemas.values():
+        schema.visit_children(clear_source_location)
+        clear_source_location(schema, None)
+
     rr = ref_resolver.RefResolver()
     resolved_schemas = rr.sort_schemas(
         schemas,
@@ -51,7 +59,7 @@ def test_import(cpp_name_func, cpp_primitive_type):
             ref='vfull#/type1',
             indirect=False,
             self_ref=False,
-            schema=ext_schemas.schemas['vfull#/type1'],
+            schema_=ext_schemas.schemas['vfull#/type1'],
         ),
     }
     assert new_types == {
@@ -96,13 +104,13 @@ def test_duplicate_name(cpp_name_func):
         config=GeneratorConfig(
             namespaces={'vfull': '', 'vfull2': ''},
             include_dirs=None,
-            infile_to_name_func=cpp_name_func,  # noqa: COM812
+            infile_to_name_func=cpp_name_func,
         ),
     )
 
     with pytest.raises(
         BaseException,
-        match='Duplicate type name: ::type1, generated from vfull2#/type1 and vfull#/type1',  # noqa: COM812
+        match='Duplicate type name: ::type1, generated from vfull2#/type1 and vfull#/type1',
     ):
         gen.generate_types(
             resolved_schemas,

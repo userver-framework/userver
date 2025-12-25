@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 
+#include <userver/concurrent/variable.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/server/handlers/fallback_handlers.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
@@ -17,7 +18,9 @@ namespace server::http {
 
 struct HandlerInfo {
     HandlerInfo(engine::TaskProcessor& task_processor, const handlers::HttpHandlerBase& handler)
-        : task_processor(task_processor), handler(handler) {}
+        : task_processor(task_processor),
+          handler(handler)
+    {}
 
     engine::TaskProcessor& task_processor;
     const handlers::HttpHandlerBase& handler;
@@ -27,7 +30,9 @@ struct MatchRequestResult {
     enum class Status { kHandlerNotFound, kMethodNotAllowed, kOk };
 
     MatchRequestResult() = default;
-    explicit MatchRequestResult(const HandlerInfo& handler_info) : handler_info(&handler_info) {}
+    explicit MatchRequestResult(const HandlerInfo& handler_info)
+        : handler_info(&handler_info)
+    {}
 
     const HandlerInfo* handler_info = nullptr;
     size_t matched_path_length = 0;
@@ -42,7 +47,11 @@ public:
 
     void AddHandler(const handlers::HttpHandlerBase& handler, engine::TaskProcessor& task_processor);
 
-    using HandlerList = std::vector<utils::NotNull<const handlers::HttpHandlerBase*>>;
+    void SetRegistrationFinished();
+
+    bool IsRegistrationFinished() const;
+
+    using HandlerList = concurrent::Variable<std::vector<utils::NotNull<const handlers::HttpHandlerBase*>>>;
     const HandlerList& GetHandlers() const;
 
     const HandlerInfo* GetFallbackHandler(handlers::FallbackHandler) const;

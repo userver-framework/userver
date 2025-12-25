@@ -2,8 +2,13 @@
 
 #include <server/server_config.hpp>
 #include <userver/components/component.hpp>
+#include <userver/components/scope.hpp>
 #include <userver/components/statistics_storage.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
+
+#ifndef ARCADIA_ROOT
+#include "generated/src/server/component.yaml.hpp"  // Y_IGNORE
+#endif
 
 USERVER_NAMESPACE_BEGIN
 
@@ -12,7 +17,9 @@ namespace components {
 namespace {
 const storages::secdist::SecdistConfig& GetSecdist(const components::ComponentContext& component_context) {
     auto* component = component_context.FindComponentOptional<components::Secdist>();
-    if (component) return component->Get();
+    if (component) {
+        return component->Get();
+    }
 
     static const storages::secdist::SecdistConfig kEmpty;
     return kEmpty;
@@ -28,20 +35,18 @@ Server::Server(
           component_config.As<server::ServerConfig>(),
           GetSecdist(component_context),
           component_context
-      )) {
-    auto& statistics_storage = component_context.FindComponent<StatisticsStorage>().GetStorage();
-    server_statistics_holder_ = statistics_storage.RegisterWriter("server", [this](utils::statistics::Writer& writer) {
+      ))
+{
+    utils::statistics::RegisterWriterScope(component_context, "server", [this](utils::statistics::Writer& writer) {
         WriteStatistics(writer);
     });
-    handler_statistics_holder_ =
-        statistics_storage.RegisterWriter("http.handler.total", [this](utils::statistics::Writer& writer) {
-            return server_->WriteTotalHandlerStatistics(writer);
-        });
-}
+    server_->StartMonitorPort();
 
-Server::~Server() {
-    server_statistics_holder_.Unregister();
-    handler_statistics_holder_.Unregister();
+    utils::statistics::RegisterWriterScope(
+        component_context,
+        "http.handler.total",
+        [this](utils::statistics::Writer& writer) { return server_->WriteTotalHandlerStatistics(writer); }
+    );
 }
 
 void Server::OnAllComponentsLoaded() { server_->Start(); }
@@ -66,197 +71,7 @@ void Server::AddHandler(const server::handlers::HttpHandlerBase& handler, engine
 void Server::WriteStatistics(utils::statistics::Writer& writer) { server_->WriteMonitorData(writer); }
 
 yaml_config::Schema Server::GetStaticConfigSchema() {
-    return yaml_config::MergeSchemas<ComponentBase>(R"(
-type: object
-description: server schema
-additionalProperties: false
-properties:
-    logger_access:
-        type: string
-        description: set to logger name from components::Logging component to write access logs into it; do not set to avoid writing access logs
-    logger_access_tskv:
-        type: string
-        description: set to logger name from components::Logging component to write access logs in TSKV format into it; do not set to avoid writing access logs
-    max_response_size_in_flight:
-        type: integer
-        description: drop incomming requests if the handler allows throttling and the size of waiting for send responses in bytes is greater than this value
-    server-name:
-        type: string
-        description: value to send in HTTP Server header
-        defaultDescription: value from utils::GetUserverIdentifier()
-    listener:
-        type: object
-        description: describes the request processing socket
-        additionalProperties: false
-        properties: &server-listener-properties
-            address: &ports-address
-                type: string
-                description: IPv6 or IPv4 network interface to bind to
-                defaultDescription: "::"
-            port: &ports-port
-                type: integer
-                description: port to listen on
-                defaultDescription: 0
-            unix-socket: &ports-unix-socket
-                type: string
-                description: unix socket to listen on instead of listening on a port
-                defaultDescription: ''
-            unix-socket-permissions: &ports-unix-socket-permissions
-                type: string
-                description: unix socket file permissions
-                defaultDescription: '600'
-            max_connections:
-                type: integer
-                description: max connections count to keep
-                defaultDescription: 32768
-            task_processor:
-                type: string
-                description: task processor to process incoming requests
-            backlog:
-                type: integer
-                description: max count of new connections pending acceptance
-                defaultDescription: 1024
-            tls: &ports-tls
-                type: object
-                description: TLS settings
-                additionalProperties: false
-                properties:
-                    ca:
-                        type: array
-                        description: paths to TLS CAs
-                        items:
-                            type: string
-                            description: path to TLS CA
-                    cert:
-                        type: string
-                        description: path to TLS certificate chain
-                    private-key:
-                        type: string
-                        description: path to TLS certificate private key
-                    private-key-passphrase-name:
-                        type: string
-                        description: passphrase name located in secdist
-            ports:
-               description: settings of listener ports
-               type: array
-               items:
-                   type: object
-                   additionalProperties: false
-                   description: settings of listener port
-                   properties:
-                       address: *ports-address
-                       port: *ports-port
-                       unix-socket: *ports-unix-socket
-                       unix-socket-permissions: *ports-unix-socket-permissions
-                       tls: *ports-tls
-            handler-defaults:
-                type: object
-                description: handler defaults options
-                additionalProperties: false
-                properties:
-                    max_url_size:
-                        type: integer
-                        description: max path/URL size in bytes
-                    max_request_size:
-                        type: integer
-                        description: max size of the whole data in bytes
-                    max_headers_size:
-                        type: integer
-                        description: max headers size in bytes
-                    request_body_size_log_limit:
-                        type: integer
-                        description: trim the request to this size before logging
-                    request_headers_size_log_limit:
-                        type: integer
-                        description: trim request headers to this size before logging
-                    response_data_size_log_limit:
-                        type: integer
-                        description: trim responses to this size before logging
-                    parse_args_from_body:
-                        type: boolean
-                        description: optional field to parse request according to x-www-form-urlencoded rules and make parameters accessible as query parameters
-                    set_tracing_headers:
-                        type: boolean
-                        description: whether to set http tracing headers (X-YaTraceId, X-YaSpanId, X-RequestId)
-                        defaultDescription: true
-                    deadline_propagation_enabled:
-                        type: boolean
-                        description: |
-                            When `false`, disables deadline propagation by default in all HTTP handlers.
-                            Can be overridden by the corresponding option in server::handlers::HandlerBase.
-                        defaultDescription: true
-                    deadline_expired_status_code:
-                        type: integer
-                        description: the HTTP status code to return if the request deadline expires
-                        defaultDescription: 498
-                        minimum: 400
-                        maximum: 599
-                    enable_write_statistics:
-                        type: boolean
-                        description: whether to write handler statistics
-                        defaultDescription: true
-
-            connection:
-                type: object
-                description: connection options
-                additionalProperties: false
-                properties:
-                    in_buffer_size:
-                        type: integer
-                        description: "size of the buffer to preallocate for request receive: bigger values use more RAM and less CPU"
-                        defaultDescription: 32 * 1024
-                    requests_queue_size_threshold:
-                        type: integer
-                        description: drop requests from handlers that allow throttling if there's more pending requests than allowed by this value
-                        defaultDescription: 100
-                    keepalive_timeout:
-                        type: integer
-                        description: timeout in seconds to drop connection if there's not data received from it
-                        defaultDescription: 600
-                    stream_close_check_delay:
-                        type: integer
-                        description: delay in microseconds of the start of abort check routine
-                        defaultDescription: 20ms
-                    http-version:
-                        type: string
-                        description: HTTP protocol version - 1.1 or 2
-                        enum:
-                          - 1.1
-                          - 2
-                    http2-session:
-                        type: object
-                        description: settings of the HTTP/2.0 session
-                        additionalProperties: false
-                        properties:
-                            max_concurrent_streams:
-                                type: integer
-                                description: max number of concurrent open streams
-                                defaultDescription: 100
-                            max_frame_size:
-                                type: integer
-                                description: max size of the HTTP/2.0 frame
-                                defaultDescription: 16384
-                            initial_window_size:
-                                type: integer
-                                description: the initial window size of the server
-                                defaultDescription: 65536
-            shards:
-                type: integer
-                description: how many concurrent tasks harvest data from a single socket; do not set if not sure what it is doing
-    listener-monitor:
-        type: object
-        description: describes the special monitoring socket, used for getting statistics and processing utility requests that should succeed even is the main socket is under heavy pressure
-        additionalProperties: false
-        properties: *server-listener-properties
-    set-response-server-hostname:
-        type: boolean
-        description: set to true to add the `X-YaTaxi-Server-Hostname` header with instance name, set to false to not add the header
-        defaultDescription: false
-    middleware-pipeline-builder:
-        type: string
-        description: name of a component to build a server-wide middleware pipeline
-        defaultDescription: default-server-middleware-pipeline-builder
-)");
+    return yaml_config::MergeSchemasFromResource<ComponentBase>("src/server/component.yaml");
 }
 
 }  // namespace components

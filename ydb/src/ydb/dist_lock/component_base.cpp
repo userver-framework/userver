@@ -11,6 +11,11 @@
 
 #include <ydb/impl/dist_lock/semaphore_settings.hpp>
 
+// YDB headers leak `ARCADIA_ROOT` macro, so we use __has_include()
+#if __has_include("generated/src/ydb/dist_lock/component_base.yaml.hpp")
+#include "generated/src/ydb/dist_lock/component_base.yaml.hpp"  // Y_IGNORE
+#endif
+
 USERVER_NAMESPACE_BEGIN
 
 namespace ydb {
@@ -23,8 +28,9 @@ struct NodeSettings final {
 
 NodeSettings Parse(const yaml_config::YamlConfig& config, formats::parse::To<NodeSettings>) {
     NodeSettings result;
-    result.session_grace_period =
-        config["session-grace-period"].As<std::chrono::milliseconds>(result.session_grace_period);
+    result
+        .session_grace_period = config["session-grace-period"].As<std::chrono::milliseconds>(result.session_grace_period
+    );
     return result;
 }
 
@@ -76,7 +82,8 @@ DistLockComponentBase::DistLockComponentBase(
 )
     : components::ComponentBase(component_config, component_context),
       testsuite_tasks_(testsuite::GetTestsuiteTasks(component_context)),
-      testsuite_task_name_("distlock/" + component_config.Name()) {
+      testsuite_task_name_("distlock/" + component_config.Name())
+{
     const auto semaphore_name = component_config["semaphore-name"].As<std::string>();
     const auto database_settings = component_config["database-settings"];
     const auto database = database_settings["dbname"].As<std::string>();
@@ -91,8 +98,10 @@ DistLockComponentBase::DistLockComponentBase(
     }
 
     const auto task_processor_name = component_config["task-processor"].As<std::optional<std::string>>();
-    auto& task_processor = task_processor_name.has_value() ? component_context.GetTaskProcessor(*task_processor_name)
-                                                           : engine::current_task::GetTaskProcessor();
+    auto& task_processor =
+        task_processor_name.has_value()
+            ? component_context.GetTaskProcessor(*task_processor_name)
+            : engine::current_task::GetTaskProcessor();
 
     worker_.emplace(
         task_processor,
@@ -109,15 +118,13 @@ DistLockComponentBase::DistLockComponentBase(
         }
     );
 
-    auto& statistics_storage = component_context.FindComponent<components::StatisticsStorage>();
-    statistics_holder_ = statistics_storage.GetStorage().RegisterWriter(
+    utils::statistics::RegisterWriterScope(
+        component_context,
         "distlock",
         [this](utils::statistics::Writer& writer) { writer = *worker_; },
         {{"distlock_name", component_config.Name()}}
     );
 }
-
-DistLockComponentBase::~DistLockComponentBase() { statistics_holder_.Unregister(); }
 
 bool DistLockComponentBase::OwnsLock() const noexcept { return worker_->OwnsLock(); }
 
@@ -132,66 +139,7 @@ void DistLockComponentBase::Start() {
 void DistLockComponentBase::Stop() noexcept { worker_->Stop(); }
 
 yaml_config::Schema DistLockComponentBase::GetStaticConfigSchema() {
-    return yaml_config::MergeSchemas<components::ComponentBase>(R"(
-type: object
-description: YDB distlock component
-additionalProperties: false
-properties:
-    semaphore-name:
-        type: string
-        description: name of the semaphore within the coordination node
-    database-settings:
-        type: object
-        description: settings that might be used for a group of related distlock instances
-        additionalProperties: false
-        properties:
-            dbname:
-                type: string
-                description: the key of the database within ydb component (NOT the actual database path)
-            coordination-node:
-                type: string
-                description: name of the coordination node within the database
-    initial-setup:
-        type: boolean
-        description: if true, then create the coordination node and the semaphore unless they already exist
-        defaultDescription: true
-    task-processor:
-        type: string
-        description: the name of the TaskProcessor for running DoWork
-        defaultDescription: the default TaskProcessor, typically main-task-processor
-    node-settings:
-        type: object
-        description: settings for coordination node creation
-        additionalProperties: false
-        properties:
-            session-grace-period:
-                type: string
-                description: |
-                    the time after which the lock will be given to another host
-                    after a network failure; this timer starts
-                    on the coordination node conceptually at the same time
-                    as 'session-timeout' timer starts on the service instance
-    session-timeout:
-        type: string
-        description: for how long we will try to restore session after a network failure before dropping it
-        defaultDescription: 5s
-    restart-session-delay:
-        type: string
-        description: backoff before attempting to reconnect session after it returns "permanent failure"
-        defaultDescription: 1s
-    acquire-interval:
-        type: string
-        description: backoff before repeating a failed Acquire call
-        defaultDescription: 100ms
-    restart-delay:
-        type: string
-        description: backoff before calling DoWork again after it returns or throws
-        defaultDescription: 100ms
-    cancel-task-time-limit:
-        type: string
-        description: time, within which a cancelled DoWork is expected to finish
-        defaultDescription: 5s
-  )");
+    return yaml_config::MergeSchemasFromResource<components::ComponentBase>("src/ydb/dist_lock/component_base.yaml");
 }
 
 }  // namespace ydb

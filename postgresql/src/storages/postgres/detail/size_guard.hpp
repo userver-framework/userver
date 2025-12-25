@@ -41,13 +41,21 @@ struct SizeGuard {
     using ValueType = detail::GuardedValueType<T>;
     struct DontIncrement {};
 
-    explicit SizeGuard(SizeType& size) : size_{&size}, size_when_created_{++size} {}
+    explicit SizeGuard(SizeType& size)
+        : size_{&size},
+          size_when_created_{++size}
+    {}
 
     // A very ugly signature for a decrement-only guard
-    SizeGuard(SizeType& size, DontIncrement) : size_{&size}, size_when_created_{size} {}
+    SizeGuard(SizeType& size, DontIncrement)
+        : size_{&size},
+          size_when_created_{size}
+    {}
 
     SizeGuard(SizeGuard&& rhs) noexcept(std::is_nothrow_move_constructible<ValueType>::value)
-        : size_{rhs.size_}, size_when_created_{std::move(rhs.size_when_created_)} {
+        : size_{rhs.size_},
+          size_when_created_{std::move(rhs.size_when_created_)}
+    {
         rhs.Dismiss();
     }
 
@@ -75,7 +83,10 @@ struct SizeGuard<std::shared_ptr<std::atomic<T>>> {
 
     SizeGuard() = default;
 
-    explicit SizeGuard(SharedSize size) : size_{size}, size_when_created_{size ? ++(*size) : ValueType{}} {}
+    explicit SizeGuard(SharedSize size)
+        : size_{size},
+          size_when_created_{size ? ++(*size) : ValueType{}}
+    {}
     SizeGuard(SizeGuard&& rhs) noexcept
         : size_{std::move(rhs.size_)}, size_when_created_{std::move(rhs.size_when_created_)} {}
     ~SizeGuard() {

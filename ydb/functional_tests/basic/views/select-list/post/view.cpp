@@ -12,20 +12,25 @@
 
 namespace sample {
 
-formats::json::Value SelectListHandler::
-    HandleRequestJsonThrow(const server::http::HttpRequest&, const formats::json::Value&, server::request::RequestContext&)
-        const {
+formats::
+    json::
+        Value
+        SelectListHandler::
+            HandleRequestJsonThrow(const server::http::HttpRequest&, const formats::json::Value&, server::request::RequestContext&)
+                const {
     const ydb::OperationSettings query_params = {
         3,                                // retries
         std::chrono::milliseconds(1000),  // operation_timeout
         std::chrono::milliseconds(1000),  // cancel_after
         std::chrono::milliseconds(1100),  // client_timeout
-        ydb::TransactionMode::kStaleRO};
+        ydb::TransactionMode::kStaleRO
+    };
     static const ydb::Query kSelectQuery = {
         "--!syntax_v1\n"
         "SELECT AGGREGATE_LIST(channel) as channels, "
         "AGGREGATE_LIST(name) as names FROM events;",
-        ydb::Query::Name("select")};
+        ydb::Query::Name("select")
+    };
 
     auto response = Ydb().ExecuteDataQuery(query_params, kSelectQuery);
 

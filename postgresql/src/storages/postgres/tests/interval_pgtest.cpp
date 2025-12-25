@@ -124,10 +124,9 @@ UTEST_P(PostgreConnection, IntervalStored) {
 UTEST_P(PostgreConnection, ParamsStoreSample) {
     CheckConnection(GetConn());
 
-    UEXPECT_NO_THROW(
-        GetConn()->Execute("create temp table some_table(a integer, b integer, c "
-                           "integer, d integer, e integer, x integer)")
-    );
+    UEXPECT_NO_THROW(GetConn()
+                         ->Execute("create temp table some_table(a integer, b integer, c "
+                                   "integer, d integer, e integer, x integer)"));
 
     UEXPECT_NO_THROW(GetConn()->Execute(
         "insert into some_table(a, b, c, d, e, x) values ($1, $2, "

@@ -15,7 +15,9 @@ namespace {
 
 class Subscriber final {
 public:
-    Subscriber(int& x) : x_(x) {}
+    Subscriber(int& x)
+        : x_(x)
+    {}
 
     void OnEvent(int x) { x_ = x; }
 
@@ -125,15 +127,21 @@ enum class WeatherKind { kSunny, kRainy };
 
 class WeatherStorage final {
 public:
-    explicit WeatherStorage(WeatherKind value) : value_(value), channel_("weather") {}
+    explicit WeatherStorage(WeatherKind value)
+        : value_(value),
+          channel_("weather")
+    {}
 
     WeatherKind Get() const { return value_.load(); }
 
     concurrent::AsyncEventSource<WeatherKind>& GetSource() { return channel_; }
 
     template <typename Class>
-    concurrent::AsyncEventSubscriberScope
-    UpdateAndListen(Class* obj, std::string_view name, void (Class::*func)(WeatherKind)) {
+    concurrent::AsyncEventSubscriberScope UpdateAndListen(
+        Class* obj,
+        std::string_view name,
+        void (Class::*func)(WeatherKind)
+    ) {
         return channel_.DoUpdateAndListen(obj, name, func, [&] { (obj->*func)(Get()); });
     }
 
@@ -192,9 +200,11 @@ UTEST(AsyncEventChannel, AddListenerSample) {
     WeatherStorage weather_storage(WeatherKind::kSunny);
     std::vector<WeatherKind> recorded_weather;
 
-    concurrent::AsyncEventSubscriberScope recorder = weather_storage.GetSource().AddListener(
-        concurrent::FunctionId(&recorder), "recorder", [&](WeatherKind weather) { recorded_weather.push_back(weather); }
-    );
+    concurrent::AsyncEventSubscriberScope recorder =
+        weather_storage.GetSource()
+            .AddListener(concurrent::FunctionId(&recorder), "recorder", [&](WeatherKind weather) {
+                recorded_weather.push_back(weather);
+            });
 
     weather_storage.Set(WeatherKind::kRainy);
     weather_storage.Set(WeatherKind::kSunny);
@@ -232,7 +242,9 @@ UTEST(AsyncEventChannel, SendEventConcurrent) {
     std::atomic<bool> skip{false};
 
     auto sub = channel.AddListener(concurrent::FunctionId(&channel), "test", [&] {
-        if (skip) return;
+        if (skip) {
+            return;
+        }
 
         inside_callback.Send();
         EXPECT_TRUE(may_exit.WaitForEvent());

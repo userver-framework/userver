@@ -58,8 +58,10 @@ std::enable_if_t<common::kIsFormatValue<Value>, Value> GetAtPath(Value parent, c
 /// @throws TypeMismatchException if there is a non-object node in the middle of
 /// `path`
 template <typename ValueBuilder>
-std::enable_if_t<!common::kIsFormatValue<ValueBuilder>, ValueBuilder>
-GetAtPath(ValueBuilder& parent, std::vector<std::string>&& path) {
+std::enable_if_t<!common::kIsFormatValue<ValueBuilder>, ValueBuilder> GetAtPath(
+    ValueBuilder& parent,
+    std::vector<std::string>&& path
+) {
     return impl::GetAtPath(parent, std::move(path), path.size());
 }
 

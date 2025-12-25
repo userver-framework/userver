@@ -11,7 +11,9 @@ USERVER_NAMESPACE_BEGIN
 namespace engine {
 
 ConsumersManager::ConsumersManager(std::size_t consumers_count)
-    : consumers_count_(consumers_count), is_sleeping_(consumers_count, false) {}
+    : consumers_count_(consumers_count),
+      is_sleeping_(consumers_count, false)
+{}
 
 void ConsumersManager::NotifyNewTask() {
     const ConsumersState::State curr_state = state_.Get();

@@ -117,9 +117,8 @@ public:
     /// @tparam U protobuf message type
     template <typename T, typename U>
     void WriteField(T&& struct_field, int field_number, U& message_field) {
-        if constexpr (requires {
-                          WriteProtoField(*this, std::forward<T>(struct_field), field_number, message_field);
-                      }) {
+        if constexpr (requires { WriteProtoField(*this, std::forward<T>(struct_field), field_number, message_field); })
+        {
             WriteProtoField(*this, std::forward<T>(struct_field), field_number, message_field);
         } else {
             static_assert(
@@ -209,19 +208,18 @@ namespace proto_structs::io {
 
 /// @brief Determines compatability between protobuf/std scalar types.
 template <typename TStdType, typename TProtobufType>
-concept ScalarCompatibleWith = traits::ProtoScalar<TStdType> &&
-                               (std::is_same_v<std::remove_cv_t<TStdType>, std::remove_cv_t<TProtobufType>> ||
-                                impl::IntegerCompatibleWith<TStdType, TProtobufType> ||
-                                impl::StringCompatibleWith<TStdType, TProtobufType> ||
-                                impl::EnumCompatibleWith<TStdType, TProtobufType> ||
-                                impl::SizeTypeCompatibleWith<TStdType, TProtobufType>);
+concept ScalarCompatibleWith =
+    traits::ProtoScalar<TStdType> &&
+    (std::is_same_v<std::remove_cv_t<TStdType>, std::remove_cv_t<TProtobufType>> ||
+     impl::IntegerCompatibleWith<TStdType, TProtobufType> || impl::StringCompatibleWith<TStdType, TProtobufType> ||
+     impl::EnumCompatibleWith<TStdType, TProtobufType> || impl::SizeTypeCompatibleWith<TStdType, TProtobufType>);
 
 template <typename TStructField, typename TMessageField>
 requires ScalarCompatibleWith<TStructField, TMessageField>
 TStructField ReadProtoField(ReadContext& ctx, To<TStructField>, int field_number, const TMessageField& message_field) {
     if constexpr (std::is_same_v<std::size_t, TStructField>) {
-        if (message_field >= 0 &&
-            static_cast<std::uintmax_t>(message_field) <= std::numeric_limits<std::size_t>::max()) {
+        if (message_field >= 0 && static_cast<std::uintmax_t>(message_field) <= std::numeric_limits<std::size_t>::max())
+        {
             return static_cast<std::size_t>(message_field);
         } else {
             ctx.AddError(field_number, "value is out of range");

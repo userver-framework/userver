@@ -12,7 +12,10 @@ namespace engine::impl {
 template <auto TryStartWaiting>
 class AsyncFlatCombiningQueue::WaitStrategy final : public impl::WaitStrategy {
 public:
-    WaitStrategy(AsyncFlatCombiningQueue& queue, TaskContext& context) : queue_(queue), context_(context) {
+    WaitStrategy(AsyncFlatCombiningQueue& queue, TaskContext& context)
+        : queue_(queue),
+          context_(context)
+    {
         // No deadlines or cancellations are allowed, because else this task may
         // walk away and be destroyed, and the notification will be sent to a dead
         // task.
@@ -40,7 +43,9 @@ private:
     TaskContext& context_;
 };
 
-AsyncFlatCombiningQueue::Consumer::Consumer(AsyncFlatCombiningQueue& queue) : queue_(&queue) {
+AsyncFlatCombiningQueue::Consumer::Consumer(AsyncFlatCombiningQueue& queue)
+    : queue_(&queue)
+{
     UASSERT(!queue_->has_consumer_.exchange(true));
 }
 
@@ -94,7 +99,9 @@ void AsyncFlatCombiningQueue::WaitWhileEmpty(Consumer& consumer) noexcept {
 AsyncFlatCombiningQueue::NodeBase* AsyncFlatCombiningQueue::DoTryPop() noexcept {
     while (true) {
         auto* const node = queue_.TryPopBlocking();
-        if (!node) return nullptr;
+        if (!node) {
+            return nullptr;
+        }
 
         if (node == &start_consuming_notifier_node_) {
             // Another task is waiting in WaitAndStartConsuming.
@@ -136,7 +143,9 @@ void AsyncFlatCombiningQueue::Wait() noexcept {
     UASSERT(!has_waiter_.exchange(true));
     auto& current = engine::current_task::GetCurrentTaskContext();
     // Check before writing to avoid excessive CPU cache invalidation.
-    if (consuming_task_context_ != &current) consuming_task_context_ = &current;
+    if (consuming_task_context_ != &current) {
+        consuming_task_context_ = &current;
+    }
 
     WaitStrategy<TryStartWaiting> wait_strategy{*this, current};
     [[maybe_unused]] const auto wakeup_source = current.Sleep(wait_strategy, Deadline{});

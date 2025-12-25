@@ -7,7 +7,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client::middlewares::origin {
 
-Middleware::Middleware(Settings&& settings) : settings_(std::move(settings)) {}
+Middleware::Middleware(Settings&& settings)
+    : settings_(std::move(settings))
+{}
 
 void Middleware::PreStartCall(MiddlewareCallContext& context) const {
     if (settings_.user_agent) {

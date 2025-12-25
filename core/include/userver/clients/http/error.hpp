@@ -16,7 +16,10 @@ namespace clients::http {
 class BaseException : public std::exception {
 public:
     BaseException(std::string message, const LocalStats& stats, ErrorKind error_kind)
-        : message_(std::move(message)), stats_(stats), error_kind_(error_kind) {}
+        : message_(std::move(message)),
+          stats_(stats),
+          error_kind_(error_kind)
+    {}
     ~BaseException() override = default;
 
     const char* what() const noexcept override { return message_.c_str(); }

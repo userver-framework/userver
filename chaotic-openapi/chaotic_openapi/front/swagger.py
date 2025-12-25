@@ -1,6 +1,5 @@
 import enum
 from typing import Any
-from typing import TypeAlias
 
 import pydantic
 
@@ -30,7 +29,7 @@ class In(str, enum.Enum):
 # https://spec.openapis.org/oas/v2.0.html#parameter-object
 class Parameter(base_model.BaseModel):
     name: str
-    in_: In = pydantic.Field(alias='in')
+    in_: In = pydantic.Field(alias='in', strict=False)
     description: str = ''
     required: bool = False
 
@@ -83,7 +82,7 @@ class Header(base_model.BaseModel):
                 raise ValueError(errors.missing_field_msg('items'))
 
 
-Schema: TypeAlias = Any
+Schema = Any
 
 
 # https://spec.openapis.org/oas/v2.0.html#response-object
@@ -94,7 +93,7 @@ class Response(base_model.BaseModel):
     examples: dict[str, Any] = pydantic.Field(default_factory=dict)
 
 
-Responses: TypeAlias = dict[str | int, Response | Ref]
+Responses = dict[str | int, Response | Ref]
 
 
 class SecurityType(str, enum.Enum):
@@ -117,11 +116,11 @@ class OAuthFlow(str, enum.Enum):
 
 # https://spec.openapis.org/oas/v2.0.html#security-definitions-object
 class SecurityDef(base_model.BaseModel):
-    type: SecurityType
+    type: SecurityType = pydantic.Field(strict=False)
     description: str | None = None
     name: str | None = None
-    in_: SecurityIn | None = pydantic.Field(alias='in', default=None)
-    flow: OAuthFlow | None = None
+    in_: SecurityIn | None = pydantic.Field(alias='in', default=None, strict=False)
+    flow: OAuthFlow | None = pydantic.Field(default=None, strict=False)
     authorizationUrl: str | None = None
     tokenUrl: str | None = None
     scopes: dict[str, str] = pydantic.Field(default_factory=dict)
@@ -154,9 +153,9 @@ class SecurityDef(base_model.BaseModel):
 
 
 # https://spec.openapis.org/oas/v2.0.html#security-requirement-object
-Security: TypeAlias = dict[str, list[str]]
+Security = dict[str, list[str]]
 
-Parameters: TypeAlias = list[Parameter | Ref]
+Parameters = list[Parameter | Ref]
 
 
 # https://spec.openapis.org/oas/v2.0.html#operation-object
@@ -200,7 +199,7 @@ class Path(base_model.BaseModel):
     parameters: Parameters = pydantic.Field(default_factory=list)
 
 
-Paths: TypeAlias = dict[str, Path]
+Paths = dict[str, Path]
 
 
 # https://spec.openapis.org/oas/v2.0.html#schema

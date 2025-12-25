@@ -54,7 +54,7 @@ RETRYABLE_STATUS_CODES = [
 ]
 
 RETRYABLE_HTTP_STATUSES = sorted(
-    set(status for status, code in HTTP2_TO_GRPC.items() if code in RETRYABLE_STATUS_CODES)  # noqa: C401, COM812
+    {status for status, code in HTTP2_TO_GRPC.items() if code in RETRYABLE_STATUS_CODES},
 )
 
 # Length-Prefixed-Message: Compressed-Flag (1 byte) Message-Length (4 bytes) Message
@@ -225,7 +225,7 @@ async def test_grpc_client_converts_rst_stream_to_grpc_status(
                 http2.HeadersFrame([
                     (':status', '200'),
                     ('content-type', 'application/grpc'),
-                ])  # noqa: COM812
+                ]),
             )
         response.append(http2.RstStreamFrame(rst_stream_error_code))
 

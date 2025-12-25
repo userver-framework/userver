@@ -32,7 +32,9 @@ TskvPtr CreateFormatter(Format format) {
 
 }  // namespace
 
-LogExtraTskvFormatter::LogExtraTskvFormatter(logging::Format format) : formatter_(CreateFormatter(format)) {}
+LogExtraTskvFormatter::LogExtraTskvFormatter(logging::Format format)
+    : formatter_(CreateFormatter(format))
+{}
 
 LogExtraTskvFormatter::LogExtraTskvFormatter(LogExtraTskvFormatter&&) noexcept = default;
 

@@ -1,4 +1,4 @@
-boost@1.89
+boost
 c-ares
 ccache
 cctz

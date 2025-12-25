@@ -91,7 +91,7 @@ class CompilerBase:
     def extract_definition_names(self, filepath: str) -> list[str]:
         with open(filepath, 'r') as ifile:
             content = yaml.load(ifile, Loader=yaml.CLoader)
-        return list(set(self._extract_definition_names(content)) - set(['']))  # noqa: C405
+        return list(set(self._extract_definition_names(content)) - {''})
 
     def _extract_definition_names(self, content: Any) -> list[str]:
         if isinstance(content, dict):

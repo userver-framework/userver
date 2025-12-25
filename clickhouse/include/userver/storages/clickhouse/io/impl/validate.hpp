@@ -87,7 +87,9 @@ constexpr size_t FieldTypeFindMismatch(std::index_sequence<I...>) {
 
     size_t i = 0;
     for (const bool v : results) {
-        if (!v) return i;
+        if (!v) {
+            return i;
+        }
         ++i;
     }
 

@@ -9,7 +9,9 @@ USERVER_NAMESPACE_BEGIN
 namespace clients::http::impl {
 
 EasyWrapper::EasyWrapper(std::shared_ptr<curl::easy>&& easy, ClientCore& client)
-    : easy_(std::move(easy)), client_(client) {
+    : easy_(std::move(easy)),
+      client_(client)
+{
     client_.IncPending();
 }
 

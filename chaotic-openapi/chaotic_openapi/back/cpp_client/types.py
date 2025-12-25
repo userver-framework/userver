@@ -221,7 +221,7 @@ class ClientSpec:
                 continue
 
             for response in op.responses:
-                for _, body in response.body.items():  # noqa: PERF102
+                for body in response.body.values():
                     includes.update(body.declaration_includes())
                 for header in response.headers:
                     includes.update(header.declaration_includes())
@@ -234,7 +234,7 @@ class ClientSpec:
                 continue
 
             for response in op.responses:
-                for _, body in response.body.items():  # noqa: PERF102
+                for body in response.body.values():
                     includes.update(body.definition_includes())
         return sorted(includes)
 

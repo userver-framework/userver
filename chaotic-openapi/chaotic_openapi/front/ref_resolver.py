@@ -14,7 +14,7 @@ def normalize_ref(filepath: str, ref_: str) -> str:
         '{}/{}'.format(
             filepath.rsplit('/', 1)[0],
             ref_,
-        )  # noqa: COM812
+        ),
     )
 
 

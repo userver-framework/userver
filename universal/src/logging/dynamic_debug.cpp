@@ -52,7 +52,8 @@ void AddDynamicDebugLog(const std::string& location_relative, int line, EntrySta
 
     auto it_lower = all_locations.lower_bound({location_relative.c_str(), line});
     if (it_lower == all_locations.end() ||
-        std::strncmp(it_lower->path, location_relative.c_str(), location_relative.size()) != 0) {
+        std::strncmp(it_lower->path, location_relative.c_str(), location_relative.size()) != 0)
+    {
         ThrowUnknownDynamicLogLocation(location_relative, line);
     }
 
@@ -69,7 +70,9 @@ void AddDynamicDebugLog(const std::string& location_relative, int line, EntrySta
     } else {
         // Any line
         for (; it_lower != all_locations.end(); ++it_lower) {
-            if (std::strncmp(it_lower->path, location_relative.c_str(), location_relative.size()) != 0) break;
+            if (std::strncmp(it_lower->path, location_relative.c_str(), location_relative.size()) != 0) {
+                break;
+            }
             it_lower->state.store(state);
         }
     }

@@ -1,9 +1,11 @@
 #pragma once
 
-#include <userver/chaotic/convert.hpp>
-#include <userver/chaotic/io/userver/utils/strong_typedef.hpp>
+// Utilitary header for chaotic for a custom type serialization/parsing support
 
 #include <string>
+
+#include <userver/chaotic/convert.hpp>
+#include <userver/chaotic/io/userver/utils/strong_typedef.hpp>
 
 namespace crypto::base64 {
 

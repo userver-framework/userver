@@ -71,7 +71,9 @@ public:
 
     /// @name Concrete type constructors
     /// @{
-    ValueBuilder(std::nullptr_t) : ValueBuilder() {}
+    ValueBuilder(std::nullptr_t)
+        : ValueBuilder()
+    {}
     ValueBuilder(bool t);
     ValueBuilder(const char* str);
     ValueBuilder(char* str);
@@ -91,7 +93,9 @@ public:
         typename = std::enable_if_t<
             !std::is_same_v<std::decay_t<T>, ValueBuilder> && !std::is_same_v<std::decay_t<T>, Value> &&
             !std::is_same_v<std::decay_t<T>, std::string>>>
-    ValueBuilder(T&& t) : ValueBuilder(DoSerialize(std::forward<T>(t))) {}
+    ValueBuilder(T&& t)
+        : ValueBuilder(DoSerialize(std::forward<T>(t)))
+    {}
 
     /// @brief Access member by key for modification.
     /// @throw `TypeMismatchException` if not object or null value.

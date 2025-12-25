@@ -33,8 +33,10 @@ formats::json::Value MessageToJson(const google::protobuf::Message& message);
 
 /// @brief Returns formats::json::Value representation of protobuf message
 /// @throws formats::json::Exception
-formats::json::Value
-MessageToJson(const google::protobuf::Message& message, const google::protobuf::util::JsonPrintOptions& options);
+formats::json::Value MessageToJson(
+    const google::protobuf::Message& message,
+    const google::protobuf::util::JsonPrintOptions& options
+);
 
 /// @brief Returns Json-string representation of protobuf message
 /// @throws formats::json::Exception
@@ -42,8 +44,10 @@ std::string ToJsonString(const google::protobuf::Message& message);
 
 /// @brief Returns Json-string representation of protobuf message
 /// @throws formats::json::Exception
-std::string
-ToJsonString(const google::protobuf::Message& message, const google::protobuf::util::JsonPrintOptions& options);
+std::string ToJsonString(
+    const google::protobuf::Message& message,
+    const google::protobuf::util::JsonPrintOptions& options
+);
 
 /// @brief Parses Json to a protobuf message. Throws on unknown enum values and unknown fields by default.
 /// @throws formats::json::Exception on field type mismatch, unknown enum values and unknown fields.

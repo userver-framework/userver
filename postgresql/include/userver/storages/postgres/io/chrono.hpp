@@ -37,10 +37,11 @@ using IntervalType = std::chrono::microseconds;
 /// the DB side, see @ref pg_timestamp.
 ///
 /// @see @ref Now
-struct TimePointTz final : public USERVER_NAMESPACE::utils::StrongTypedef<
-                               detail::TimePointTzTag,
-                               TimePoint,
-                               USERVER_NAMESPACE::utils::StrongTypedefOps::kCompareTransparent> {
+struct TimePointTz final
+    : public USERVER_NAMESPACE::utils::StrongTypedef<
+          detail::TimePointTzTag,
+          TimePoint,
+          USERVER_NAMESPACE::utils::StrongTypedefOps::kCompareTransparent> {
     using StrongTypedef::StrongTypedef;
 
     /*implicit*/ operator TimePoint() const { return GetUnderlying(); }
@@ -59,10 +60,11 @@ std::ostream& operator<<(std::ostream&, TimePointTz);
 /// the DB side, see @ref pg_timestamp.
 ///
 /// @see @ref NowWithoutTz
-struct TimePointWithoutTz final : public USERVER_NAMESPACE::utils::StrongTypedef<
-                                      detail::TimePointWithoutTzTag,
-                                      TimePoint,
-                                      USERVER_NAMESPACE::utils::StrongTypedefOps::kCompareTransparent> {
+struct TimePointWithoutTz final
+    : public USERVER_NAMESPACE::utils::StrongTypedef<
+          detail::TimePointWithoutTzTag,
+          TimePoint,
+          USERVER_NAMESPACE::utils::StrongTypedefOps::kCompareTransparent> {
     using StrongTypedef::StrongTypedef;
 
     /*implicit*/ operator TimePoint() const { return GetUnderlying(); }
@@ -133,7 +135,9 @@ template <typename T>
 struct TimePointStrongTypedefFormatter {
     const T value;
 
-    explicit TimePointStrongTypedefFormatter(T val) : value{val} {}
+    explicit TimePointStrongTypedefFormatter(T val)
+        : value{val}
+    {}
 
     template <typename Buffer>
     void operator()(const UserTypes& types, Buffer& buf) const {
@@ -184,7 +188,9 @@ struct BufferFormatter<TimePoint> {
 
     const ValueType value;
 
-    explicit BufferFormatter(ValueType val) : value{val} {}
+    explicit BufferFormatter(ValueType val)
+        : value{val}
+    {}
 
     template <typename Buffer>
     void operator()(const UserTypes& types, Buffer& buf) const {
@@ -287,9 +293,8 @@ template <>
 struct std::hash<USERVER_NAMESPACE::storages::postgres::TimePointTz> {
     std::size_t operator()(const USERVER_NAMESPACE::storages::postgres::TimePointTz& v)  //
         const noexcept {
-        return std::hash<USERVER_NAMESPACE::storages::postgres::TimePoint::duration::rep>{}(
-            v.GetUnderlying().time_since_epoch().count()
-        );
+        return std::hash<USERVER_NAMESPACE::storages::postgres::TimePoint::duration::rep>{
+        }(v.GetUnderlying().time_since_epoch().count());
     }
 };
 
@@ -298,8 +303,7 @@ template <>
 struct std::hash<USERVER_NAMESPACE::storages::postgres::TimePointWithoutTz> {
     std::size_t operator()(const USERVER_NAMESPACE::storages::postgres::TimePointWithoutTz& v)  //
         const noexcept {
-        return std::hash<USERVER_NAMESPACE::storages::postgres::TimePoint::duration::rep>{}(
-            v.GetUnderlying().time_since_epoch().count()
-        );
+        return std::hash<USERVER_NAMESPACE::storages::postgres::TimePoint::duration::rep>{
+        }(v.GetUnderlying().time_since_epoch().count());
     }
 };

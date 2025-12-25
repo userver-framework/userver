@@ -100,6 +100,5 @@ json
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref scripts/docs/en/userver/stack.md |
-@ref scripts/docs/en/userver/caches.md ⇨
+⇦ @ref scripts/docs/en/userver/stack.md | @ref scripts/docs/en/userver/long_transactions.md ⇨
 @htmlonly </div> @endhtmlonly

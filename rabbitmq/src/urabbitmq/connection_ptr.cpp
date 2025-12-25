@@ -10,7 +10,9 @@ USERVER_NAMESPACE_BEGIN
 namespace urabbitmq {
 
 ConnectionPtr::ConnectionPtr(std::shared_ptr<ConnectionPool>&& pool, std::unique_ptr<Connection>&& conn)
-    : pool_{std::move(pool)}, conn_{std::move(conn)} {}
+    : pool_{std::move(pool)},
+      conn_{std::move(conn)}
+{}
 
 ConnectionPtr::~ConnectionPtr() { Release(); }
 

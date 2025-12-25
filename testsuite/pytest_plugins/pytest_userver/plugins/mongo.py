@@ -34,7 +34,7 @@ def userver_mongo_config(mongo_connection_info):
 
     def _patch_config(config_yaml, config_vars):
         components = config_yaml['components_manager']['components']
-        for _, params in components.items():  # noqa: PERF102
+        for params in components.values():
             uri = ''
 
             if params and 'dbconnection#fallback' in params:

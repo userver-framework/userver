@@ -26,14 +26,18 @@ bool IsInIntrusiveContainer(const Container& container, const Value& val) {
     return false;
 }
 
-using MemberHookConfig = boost::intrusive::
-    member_hook<impl::TaskContext, impl::TaskContext::WaitListHook, &impl::TaskContext::wait_list_hook>;
+using MemberHookConfig = boost::intrusive::member_hook<
+    impl::TaskContext,
+    impl::TaskContext::WaitListHook,
+    &impl::TaskContext::wait_list_hook>;
 
 }  // namespace
 
 struct WaitList::List
-    : public boost::intrusive::
-          make_list<impl::TaskContext, boost::intrusive::constant_time_size<false>, MemberHookConfig>::type {};
+    : public boost::intrusive::make_list<
+          impl::TaskContext,
+          boost::intrusive::constant_time_size<false>,
+          MemberHookConfig>::type {};
 
 // not implicitly noexcept on focal
 // NOLINTNEXTLINE(hicpp-use-equals-default,modernize-use-equals-default)
@@ -76,7 +80,9 @@ void WaitList::WakeupAll(Lock& lock) {
 
 void WaitList::Remove(Lock& lock, impl::TaskContext& context) noexcept {
     UASSERT(lock);
-    if (!context.wait_list_hook.is_linked()) return;
+    if (!context.wait_list_hook.is_linked()) {
+        return;
+    }
 
     const boost::intrusive_ptr<impl::TaskContext> ctx(&context, kAdopt);
     UASSERT_MSG(IsInIntrusiveContainer(*waiting_contexts_, context), "context belongs to other list");

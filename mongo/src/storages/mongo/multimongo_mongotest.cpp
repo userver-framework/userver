@@ -51,9 +51,13 @@ UTEST(MultiMongo, DynamicSecdistUpdate) {
                 EXPECT_TRUE(file_updated.WaitForEventFor(utest::kMaxTestWaitTime));
             }
 
-            if (updates_counter < 2) secdist_config = secdist_config_update;
+            if (updates_counter < 2) {
+                secdist_config = secdist_config_update;
+            }
             updates_counter++;
-            if (updates_counter == 2) updated_twice.Send();
+            if (updates_counter == 2) {
+                updated_twice.Send();
+            }
         };
 
         storages::secdist::SecdistConfig secdist_config;
@@ -74,7 +78,8 @@ UTEST(MultiMongo, DynamicSecdistUpdate) {
          false,
          std::nullopt,
          &engine::current_task::GetTaskProcessor(),
-         {}}};
+         {}}
+    };
     storages::secdist::Secdist secdist{{&provider, std::chrono::milliseconds(100)}};
     auto subscriber =
         secdist.UpdateAndListen(&storage, "test/multimongo_update_secdist", &SecdistConfigStorage::OnSecdistUpdate);
@@ -82,14 +87,19 @@ UTEST(MultiMongo, DynamicSecdistUpdate) {
 
     const auto dynamic_config = MakeDynamicConfig();
     mongo::MultiMongo multi_mongo(
-        "userver_multimongo_test", secdist, MakeTestPoolConfig(), &dns_resolver, dynamic_config.GetSource()
+        "userver_multimongo_test",
+        secdist,
+        MakeTestPoolConfig(),
+        &dns_resolver,
+        dynamic_config.GetSource()
     );
 
     UEXPECT_THROW(multi_mongo.AddPool("admin"), storages::mongo::InvalidConfigException);
     UEXPECT_THROW(multi_mongo.GetPool("admin"), storages::mongo::PoolNotFoundException);
 
     fs::blocking::RewriteFileContents(
-        temp_file.GetPath(), fmt::format(kSecdistUpdateJsonFormat, GetTestsuiteMongoUri("admin"))
+        temp_file.GetPath(),
+        fmt::format(kSecdistUpdateJsonFormat, GetTestsuiteMongoUri("admin"))
     );
     ASSERT_EQ(storage.updates_counter.load(), 1);
     storage.file_updated.Send();

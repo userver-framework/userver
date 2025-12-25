@@ -61,7 +61,11 @@ bool CheckAndSetupDeadline(
     }
 
     const USERVER_NAMESPACE::server::request::TaskInheritedData inherited_data{
-        service_name, method_name, std::chrono::steady_clock::now(), engine::Deadline::FromDuration(deadline_duration)};
+        service_name,
+        method_name,
+        std::chrono::steady_clock::now(),
+        engine::Deadline::FromDuration(deadline_duration)
+    };
     USERVER_NAMESPACE::server::request::kTaskInheritedData.Set(inherited_data);
 
     return true;
@@ -78,19 +82,26 @@ void Middleware::OnCallStart(MiddlewareCallContext& context) const {
             context.GetStatistics(utils::impl::InternalTag{}),
             context.GetInitialDynamicConfig(),
             context.GetStorageContext()
-        )) {
+        ))
+    {
         return context.SetError(grpc::Status{
-            grpc::StatusCode::DEADLINE_EXCEEDED, "Deadline propagation: Not enough time to handle this call"});
+            grpc::StatusCode::DEADLINE_EXCEEDED,
+            "Deadline propagation: Not enough time to handle this call"
+        });
     }
 }
 
-void Middleware::OnCallFinish(MiddlewareCallContext& context, const grpc::Status& status) const {
+void Middleware::PreSendStatus(MiddlewareCallContext& context, grpc::Status& status) const {
     const auto* const inherited_data = USERVER_NAMESPACE::server::request::kTaskInheritedData.GetOptional();
 
     // if !USERVER_DEADLINE_PROPAGATION_ENABLED, inherited_data must be nullptr
-    if (!inherited_data) return;
+    if (!inherited_data) {
+        return;
+    }
 
-    if (!inherited_data->deadline.IsReachable()) return;
+    if (!inherited_data->deadline.IsReachable()) {
+        return;
+    }
 
     const bool cancelled_by_deadline =
         engine::current_task::CancellationReason() == engine::TaskCancellationReason::kDeadline ||
@@ -109,7 +120,9 @@ void Middleware::OnCallFinish(MiddlewareCallContext& context, const grpc::Status
             status.error_message()
         );
         return context.SetError(grpc::Status{
-            grpc::StatusCode::DEADLINE_EXCEEDED, "Deadline specified by the client for this RPC was exceeded"});
+            grpc::StatusCode::DEADLINE_EXCEEDED,
+            "Deadline specified by the client for this RPC was exceeded"
+        });
     }
 }
 

@@ -70,12 +70,15 @@ TableClient::TableClient(
       default_settings_(std::move(operation_settings)),
       keep_in_query_cache_(settings.keep_in_query_cache),
       stats_(std::make_unique<impl::Stats>(
-          settings.by_database_timings_buckets ? utils::span{*settings.by_database_timings_buckets}
-                                               : impl::kDefaultPerDatabaseBounds,
-          settings.by_query_timings_buckets ? utils::span{*settings.by_query_timings_buckets}
-                                            : impl::kDefaultPerQueryBounds
+          settings.by_database_timings_buckets
+              ? utils::span{*settings.by_database_timings_buckets}
+              : impl::kDefaultPerDatabaseBounds,
+          settings.by_query_timings_buckets
+              ? utils::span{*settings.by_query_timings_buckets}
+              : impl::kDefaultPerQueryBounds
       )),
-      driver_(std::move(driver)) {
+      driver_(std::move(driver))
+{
     {
         NYdb::NTable::TSessionPoolSettings session_pool_settings;
         session_pool_settings.MaxActiveSessions(settings.max_pool_size)
@@ -151,11 +154,12 @@ void TableClient::BulkUpsert(
         "BulkUpsert",
         std::move(settings),
         std::move(query_settings),
-        [rows = std::move(rows)](
-            NYdb::NTable::TTableClient& table_client,
+        [rows = std::move(rows
+         )](NYdb::NTable::TTableClient& table_client,
             const std::string& full_path,
-            const BulkUpsertSettings& query_settings
-        ) { return table_client.BulkUpsert(impl::ToString(full_path), NYdb::TValue{rows}, query_settings); }
+            const BulkUpsertSettings& query_settings) {
+            return table_client.BulkUpsert(impl::ToString(full_path), NYdb::TValue{rows}, query_settings);
+        }
     );
 }
 
@@ -236,13 +240,17 @@ void TableClient::RemoveDirectory(const std::string& path, RemoveDirectorySettin
         /*settings=*/{},
         std::move(query_settings),
         [this](
-            NYdb::NTable::TTableClient&, const std::string& full_path, const RemoveDirectorySettings& query_settings
+            NYdb::NTable::TTableClient&,
+            const std::string& full_path,
+            const RemoveDirectorySettings& query_settings
         ) { return scheme_client_->RemoveDirectory(impl::ToString(full_path), query_settings); }
     );
 }
 
-NYdb::NScheme::TDescribePathResult
-TableClient::DescribePath(std::string_view path, DescribePathSettings query_settings) {
+NYdb::NScheme::TDescribePathResult TableClient::DescribePath(
+    std::string_view path,
+    DescribePathSettings query_settings
+) {
     return ExecuteWithPathImpl(
         path,
         "DescribePath",
@@ -254,8 +262,10 @@ TableClient::DescribePath(std::string_view path, DescribePathSettings query_sett
     );
 }
 
-NYdb::NTable::TDescribeTableResult
-TableClient::DescribeTable(std::string_view path, DescribeTableSettings query_settings) {
+NYdb::NTable::TDescribeTableResult TableClient::DescribeTable(
+    std::string_view path,
+    DescribeTableSettings query_settings
+) {
     return ExecuteWithPathImpl(
         path,
         "DescribeTable",
@@ -267,8 +277,10 @@ TableClient::DescribeTable(std::string_view path, DescribeTableSettings query_se
     );
 }
 
-NYdb::NScheme::TListDirectoryResult
-TableClient::ListDirectory(std::string_view path, ListDirectorySettings query_settings) {
+NYdb::NScheme::TListDirectoryResult TableClient::ListDirectory(
+    std::string_view path,
+    ListDirectorySettings query_settings
+) {
     return ExecuteWithPathImpl(
         path,
         "ListDirectory",
@@ -347,8 +359,8 @@ void TableClient::ExecuteSchemeQuery(const std::string& query) {
     auto retry_future = impl::RetryOperation(
         context,
         [query, settings = context.settings, deadline = context.deadline](NYdb::NTable::TSession session) {
-            const auto exec_settings =
-                impl::PrepareRequestSettings<NYdb::NTable::TExecSchemeQuerySettings>(settings, deadline);
+            const auto exec_settings = impl::PrepareRequestSettings<
+                NYdb::NTable::TExecSchemeQuerySettings>(settings, deadline);
             return session.ExecuteSchemeQuery(impl::ToString(query), exec_settings);
         }
     );
@@ -356,8 +368,11 @@ void TableClient::ExecuteSchemeQuery(const std::string& query) {
     impl::GetFutureValueChecked(std::move(retry_future), "ExecuteSchemeQuery", context);
 }
 
-ExecuteResponse
-TableClient::ExecuteDataQuery(OperationSettings settings, const Query& query, PreparedArgsBuilder&& builder) {
+ExecuteResponse TableClient::ExecuteDataQuery(
+    OperationSettings settings,
+    const Query& query,
+    PreparedArgsBuilder&& builder
+) {
     return ExecuteDataQuery(QuerySettings{}, std::move(settings), query, std::move(builder));
 }
 
@@ -386,8 +401,11 @@ ExecuteResponse TableClient::ExecuteDataQuery(
     return ExecuteResponse{impl::GetFutureValueChecked(std::move(future), "ExecuteDataQuery", context)};
 }
 
-ExecuteResponse
-TableClient::ExecuteQuery(OperationSettings settings, const Query& query, PreparedArgsBuilder&& builder) {
+ExecuteResponse TableClient::ExecuteQuery(
+    OperationSettings settings,
+    const Query& query,
+    PreparedArgsBuilder&& builder
+) {
     return ExecuteQuery(NYdb::NQuery::TExecuteQuerySettings{}, std::move(settings), query, std::move(builder));
 }
 
@@ -431,10 +449,12 @@ void DumpMetric(utils::statistics::Writer& writer, const TableClient& table_clie
     writer["pool"]["current-size"] =
         std::max(table_client.table_client_->GetCurrentPoolSize(), table_client.query_client_->GetCurrentPoolSize());
     writer["pool"]["active-sessions"] = std::max(
-        table_client.table_client_->GetActiveSessionCount(), table_client.query_client_->GetActiveSessionCount()
+        table_client.table_client_->GetActiveSessionCount(),
+        table_client.query_client_->GetActiveSessionCount()
     );
     writer["pool"]["max-size"] = std::max(
-        table_client.table_client_->GetActiveSessionsLimit(), table_client.query_client_->GetActiveSessionsLimit()
+        table_client.table_client_->GetActiveSessionsLimit(),
+        table_client.query_client_->GetActiveSessionsLimit()
     );
 }
 

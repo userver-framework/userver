@@ -1,4 +1,4 @@
-from chaotic_openapi.front import base_model  # noqa: I001
+from chaotic_openapi.front import base_model
 from chaotic_openapi.front import model
 import pytest
 
@@ -50,13 +50,13 @@ def test_openapi_body_schema(simple_parser):
                         content_type='application/json',
                         schema=types.Boolean(),
                         required=True,
-                    )  # noqa: COM812
+                    ),
                 ],
                 responses={},
                 security=[],
                 x_middlewares=base_model.XMiddlewares(tvm=True),
                 x_client_codegen=True,
-            )  # noqa: COM812
+            ),
         ],
     )
 
@@ -96,7 +96,7 @@ def test_openapi_security(simple_parser):
                 'get': {'responses': {}, 'security': {'api_key': [], 'oauth': ['read']}},
                 'post': {'responses': {}, 'security': {'api_key': [], 'oauth': ['write']}},
                 'put': {'responses': {}},
-            }  # noqa: COM812
+            },
         },
     }) == model.Service(
         name='test',
@@ -105,7 +105,7 @@ def test_openapi_security(simple_parser):
             '<inline>#/components/securitySchemes/api_key': model.ApiKeySecurity(
                 description='',
                 name='api_key',
-                in_=model.SecurityIn.header,  # noqa: COM812
+                in_=model.SecurityIn.header,
             ),
             '<inline>#/components/securitySchemes/oauth': model.OAuthSecurity(
                 description='',
@@ -253,7 +253,7 @@ def test_openapi_parameters(simple_parser):
                         },
                     },
                     'style': 'simple',
-                }  # noqa: COM812
+                },
             },
         },
         'paths': {
@@ -322,7 +322,7 @@ def test_openapi_parameters(simple_parser):
                 allowEmptyValue=False,
                 x_cpp_name=None,
                 x_query_log_mode_hide=False,
-            )  # noqa: COM812
+            ),
         },
         operations=[
             model.Operation(
@@ -364,7 +364,7 @@ def test_openapi_parameters(simple_parser):
                     ),
                     model.Parameter(
                         name='pamparam2',
-                        in_=model.In.query,
+                        in_=model.In.queryExplode,
                         description='override',
                         required=False,
                         schema=types.Array(items=types.Number()),
@@ -376,7 +376,7 @@ def test_openapi_parameters(simple_parser):
                         x_query_log_mode_hide=False,
                     ),
                 ],
-            )  # noqa: COM812
+            ),
         ],
     )
 

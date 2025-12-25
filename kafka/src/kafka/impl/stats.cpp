@@ -21,17 +21,15 @@ void DumpMetric(utils::statistics::Writer& writer, const Stats& stats, const std
         const utils::statistics::LabelView topic_label{kTopic, topic};
 
         writer["avg_ms_spent_time"].ValueWithLabels(
-            topic_stats->avg_ms_spent_time.GetStatsForPeriod().GetCurrent().average, {component_label, topic_label}
+            topic_stats->avg_ms_spent_time.GetStatsForPeriod().GetCurrent().average,
+            {component_label, topic_label}
         );
-        writer["messages_total"].ValueWithLabels(
-            topic_stats->messages_counts.messages_total.Load(), {component_label, topic_label}
-        );
-        writer["messages_success"].ValueWithLabels(
-            topic_stats->messages_counts.messages_success.Load(), {component_label, topic_label}
-        );
-        writer["messages_error"].ValueWithLabels(
-            topic_stats->messages_counts.messages_error.Load(), {component_label, topic_label}
-        );
+        writer["messages_total"]
+            .ValueWithLabels(topic_stats->messages_counts.messages_total.Load(), {component_label, topic_label});
+        writer["messages_success"]
+            .ValueWithLabels(topic_stats->messages_counts.messages_success.Load(), {component_label, topic_label});
+        writer["messages_error"]
+            .ValueWithLabels(topic_stats->messages_counts.messages_error.Load(), {component_label, topic_label});
     }
     writer["connections_error"].ValueWithLabels(stats.connections_error.Load(), component_label);
 }

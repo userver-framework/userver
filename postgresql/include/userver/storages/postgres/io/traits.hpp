@@ -60,8 +60,11 @@ struct FieldBuffer {
     const std::uint8_t* buffer = nullptr;
 
     std::string ToString() const { return {reinterpret_cast<const char*>(buffer), length}; }
-    constexpr FieldBuffer
-    GetSubBuffer(std::size_t offset, std::size_t size = npos, BufferCategory cat = BufferCategory::kKeepCategory) const;
+    constexpr FieldBuffer GetSubBuffer(
+        std::size_t offset,
+        std::size_t size = npos,
+        BufferCategory cat = BufferCategory::kKeepCategory
+    ) const;
 
     template <typename T>
     std::size_t Read(T&& value, BufferCategory cat = BufferCategory::kKeepCategory, std::size_t length = sizeof(T));
@@ -75,8 +78,11 @@ struct FieldBuffer {
 
     // Read 'raw' postgres buffer - first read the size, then read the value
     template <typename T>
-    std::size_t
-    ReadRaw(T&& value, const TypeBufferCategory& categories, BufferCategory cat = BufferCategory::kKeepCategory);
+    std::size_t ReadRaw(
+        T&& value,
+        const TypeBufferCategory& categories,
+        BufferCategory cat = BufferCategory::kKeepCategory
+    );
 };
 
 /// @brief Primary template for Postgre buffer parser.

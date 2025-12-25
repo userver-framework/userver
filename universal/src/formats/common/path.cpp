@@ -24,7 +24,9 @@ const std::array<std::string, kIndexCacheSize> kIndexCache = [] {
 }  // namespace
 
 void AppendPath(std::string& path, std::string_view key) {
-    if (!path.empty() && path.back() != '/') path += kPathSeparator;
+    if (!path.empty() && path.back() != '/') {
+        path += kPathSeparator;
+    }
     path += key;
 }
 
@@ -37,7 +39,9 @@ void AppendPath(std::string& path, std::size_t index) {
 }
 
 std::string MakeChildPath(std::string_view parent, std::string_view key) {
-    if (parent.empty() || parent == kPathRoot) return std::string{key};
+    if (parent.empty() || parent == kPathRoot) {
+        return std::string{key};
+    }
 
     std::string new_path{parent};
     AppendPath(new_path, key);
@@ -45,7 +49,9 @@ std::string MakeChildPath(std::string_view parent, std::string_view key) {
 }
 
 std::string MakeChildPath(std::string&& parent, std::string_view key) {
-    if (parent.empty() || parent == kPathRoot) return std::string{key};
+    if (parent.empty() || parent == kPathRoot) {
+        return std::string{key};
+    }
 
     AppendPath(parent, key);
     return std::move(parent);
@@ -53,7 +59,9 @@ std::string MakeChildPath(std::string&& parent, std::string_view key) {
 
 std::string MakeChildPath(std::string_view parent, std::size_t index) {
     std::string new_path;
-    if (!parent.empty() && parent != kPathRoot) new_path = parent;
+    if (!parent.empty() && parent != kPathRoot) {
+        new_path = parent;
+    }
 
     AppendPath(new_path, index);
     return new_path;
@@ -72,7 +80,9 @@ std::string GetIndexString(size_t index) { return fmt::format(FMT_COMPILE("[{}]"
 
 Path::Path() = default;
 
-Path::Path(std::string path) : path_(std::move(path)) {}
+Path::Path(std::string path)
+    : path_(std::move(path))
+{}
 
 bool Path::IsRoot() const { return path_.empty(); }
 

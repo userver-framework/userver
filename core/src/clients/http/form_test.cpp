@@ -111,15 +111,16 @@ UTEST(CurlFormTest, MultipartFileWithContentType) {
     clients::http::Form form;
     form.AddBuffer(kKey, kFileNameTxt, std::make_shared<std::string>(kTestData), kImageJpeg);
 
-    auto resp = http_client_ptr->CreateRequest()
-                    .post(http_server.GetBaseUrl(), std::move(form))
-                    .retry(1)
-                    .verify(true)
-                    .http_version(USERVER_NAMESPACE::http::HttpVersion::k11)
-                    .timeout(std::chrono::milliseconds(100))
-                    .perform();
+    auto resp =
+        http_client_ptr->CreateRequest()
+            .post(http_server.GetBaseUrl(), std::move(form))
+            .retry(1)
+            .verify(true)
+            .http_version(USERVER_NAMESPACE::http::HttpVersion::k11)
+            .timeout(std::chrono::milliseconds(100))
+            .perform();
 
-    EXPECT_EQ(resp->status_code(), clients::http::Status::OK);
+    EXPECT_EQ(resp->status_code(), clients::http::Status::kOk);
 }
 
 UTEST(CurlFormTest, FilesWithContentType) {
@@ -131,15 +132,16 @@ UTEST(CurlFormTest, FilesWithContentType) {
 
     form.AddBuffer(kKey2, kFileName2Bmp, std::make_shared<std::string>(kOtherTestData), kImageBmp);
 
-    auto resp = http_client_ptr->CreateRequest()
-                    .post(http_server.GetBaseUrl(), std::move(form))
-                    .retry(1)
-                    .verify(true)
-                    .http_version(USERVER_NAMESPACE::http::HttpVersion::k11)
-                    .timeout(std::chrono::milliseconds(100))
-                    .perform();
+    auto resp =
+        http_client_ptr->CreateRequest()
+            .post(http_server.GetBaseUrl(), std::move(form))
+            .retry(1)
+            .verify(true)
+            .http_version(USERVER_NAMESPACE::http::HttpVersion::k11)
+            .timeout(std::chrono::milliseconds(100))
+            .perform();
 
-    EXPECT_EQ(resp->status_code(), clients::http::Status::OK);
+    EXPECT_EQ(resp->status_code(), clients::http::Status::kOk);
 }
 
 UTEST(CurlFormTest, FormMovable) {
@@ -159,15 +161,16 @@ UTEST(CurlFormTest, FormMovable) {
     auto form = make_form();
     auto new_form = std::move(form);
 
-    auto resp = http_client_ptr->CreateRequest()
-                    .post(http_server.GetBaseUrl(), std::move(new_form))
-                    .retry(1)
-                    .verify(true)
-                    .http_version(USERVER_NAMESPACE::http::HttpVersion::k11)
-                    .timeout(std::chrono::milliseconds(100))
-                    .perform();
+    auto resp =
+        http_client_ptr->CreateRequest()
+            .post(http_server.GetBaseUrl(), std::move(new_form))
+            .retry(1)
+            .verify(true)
+            .http_version(USERVER_NAMESPACE::http::HttpVersion::k11)
+            .timeout(std::chrono::milliseconds(100))
+            .perform();
 
-    EXPECT_EQ(resp->status_code(), clients::http::Status::OK);
+    EXPECT_EQ(resp->status_code(), clients::http::Status::kOk);
 }
 
 USERVER_NAMESPACE_END

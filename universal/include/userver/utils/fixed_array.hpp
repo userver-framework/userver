@@ -109,8 +109,12 @@ auto GenerateFixedArray(std::size_t size, GeneratorFunc&& generator);
 
 template <class T>
 template <class... Args>
-FixedArray<T>::FixedArray(std::size_t size, Args&&... args) : size_(size) {
-    if (size_ == 0) return;
+FixedArray<T>::FixedArray(std::size_t size, Args&&... args)
+    : size_(size)
+{
+    if (size_ == 0) {
+        return;
+    }
     storage_ = std::allocator<T>{}.allocate(size_);
 
     auto* begin = data();
@@ -128,8 +132,12 @@ FixedArray<T>::FixedArray(std::size_t size, Args&&... args) : size_(size) {
 
 template <class T>
 template <class GeneratorFunc>
-FixedArray<T>::FixedArray(impl::InternalTag /*tag*/, std::size_t size, GeneratorFunc&& generator) : size_(size) {
-    if (size_ == 0) return;
+FixedArray<T>::FixedArray(impl::InternalTag /*tag*/, std::size_t size, GeneratorFunc&& generator)
+    : size_(size)
+{
+    if (size_ == 0) {
+        return;
+    }
     storage_ = std::allocator<T>{}.allocate(size_);
 
     auto* our_begin = begin();

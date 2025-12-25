@@ -15,7 +15,9 @@ namespace formats::json {
 
 class Exception : public std::exception {
 public:
-    explicit Exception(std::string msg) : msg_(std::move(msg)) {}
+    explicit Exception(std::string msg)
+        : msg_(std::move(msg))
+    {}
 
     const char* what() const noexcept final { return msg_.c_str(); }
 

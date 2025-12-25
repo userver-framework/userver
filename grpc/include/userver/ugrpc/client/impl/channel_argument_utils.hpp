@@ -11,8 +11,10 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client::impl {
 
-grpc::ChannelArguments
-BuildChannelArguments(const grpc::ChannelArguments& channel_args, const std::optional<std::string>& service_config);
+grpc::ChannelArguments BuildChannelArguments(
+    const grpc::ChannelArguments& channel_args,
+    const std::optional<std::string>& service_config
+);
 
 void SetHttpProxy(
     std::string& target,

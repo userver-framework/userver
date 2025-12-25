@@ -17,7 +17,9 @@ const std::string kFamStatusAffectedCount = "n";
 
 }  // namespace
 
-WriteResult::WriteResult(formats::bson::Document value) : value_(std::move(value)) {}
+WriteResult::WriteResult(formats::bson::Document value)
+    : value_(std::move(value))
+{}
 
 size_t WriteResult::InsertedCount() const {
     return value_["insertedCount"].As<size_t>(value_["nInserted"].As<size_t>(0));
@@ -89,7 +91,9 @@ std::unordered_map<size_t, formats::bson::Value> WriteResult::UpsertedIds() cons
 
 std::optional<formats::bson::Document> WriteResult::FoundDocument() const {
     auto doc = value_["value"];
-    if (!doc.IsDocument()) return {};
+    if (!doc.IsDocument()) {
+        return {};
+    }
     return doc.As<formats::bson::Document>();
 }
 
@@ -97,7 +101,9 @@ std::unordered_map<size_t, MongoError> WriteResult::ServerErrors() const {
     std::unordered_map<size_t, MongoError> errors;
 
     const auto& error_values = value_["writeErrors"];
-    if (error_values.IsMissing()) return errors;
+    if (error_values.IsMissing()) {
+        return errors;
+    }
 
     errors.reserve(error_values.GetSize());
     for (const auto& value : error_values) {
@@ -117,7 +123,9 @@ std::vector<MongoError> WriteResult::WriteConcernErrors() const {
     std::vector<MongoError> wc_errors;
 
     const auto& wc_error_values = value_["writeConcernErrors"];
-    if (wc_error_values.IsMissing()) return wc_errors;
+    if (wc_error_values.IsMissing()) {
+        return wc_errors;
+    }
 
     wc_errors.reserve(wc_error_values.GetSize());
     for (const auto& value : wc_error_values) {

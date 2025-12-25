@@ -24,7 +24,9 @@ namespace impl {
 
 template <typename T>
 struct MpscQueueNode final : public SinglyLinkedBaseHook {
-    explicit MpscQueueNode(T&& value) : value(std::move(value)) {}
+    explicit MpscQueueNode(T&& value)
+        : value(std::move(value))
+    {}
 
     T value;
 };
@@ -67,7 +69,9 @@ public:
     /// @cond
     // For internal use only
     explicit MpscQueue(std::size_t max_size, EmplaceEnabler /*unused*/)
-        : remaining_capacity_(max_size), remaining_capacity_control_(remaining_capacity_) {}
+        : remaining_capacity_(max_size),
+          remaining_capacity_control_(remaining_capacity_)
+    {}
 
     MpscQueue(MpscQueue&&) = delete;
     MpscQueue(const MpscQueue&) = delete;
@@ -121,7 +125,7 @@ private:
 
     bool Pop(ConsumerToken&, T&, engine::Deadline);
     bool PopNoblock(ConsumerToken&, T&);
-    bool DoPop(ConsumerToken&, T&);
+    bool DoPop(ConsumerToken&, T&, impl::IntrusiveMpscQueueImpl::PopMode);
 
     void MarkConsumerIsDead();
     void MarkProducerIsDead();
@@ -220,14 +224,16 @@ template <typename T>
 bool MpscQueue<T>::Pop(ConsumerToken& token, T& value, engine::Deadline deadline) {
     bool no_more_producers = false;
     const bool success = nonempty_event_.WaitUntil(deadline, [&] {
-        if (DoPop(token, value)) {
+        // kWeak is OK here, because if there is another push operation in process,
+        // they will notify us after pushing.
+        if (DoPop(token, value, impl::IntrusiveMpscQueueImpl::PopMode::kWeak)) {
             return true;
         }
         if (NoMoreProducers()) {
             // Producer might have pushed something in queue between .pop()
             // and !producer_is_created_and_dead_ check. Check twice to avoid
             // TOCTOU.
-            if (!DoPop(token, value)) {
+            if (!DoPop(token, value, impl::IntrusiveMpscQueueImpl::PopMode::kRarelyBlocking)) {
                 no_more_producers = true;
             }
             return true;
@@ -239,12 +245,18 @@ bool MpscQueue<T>::Pop(ConsumerToken& token, T& value, engine::Deadline deadline
 
 template <typename T>
 bool MpscQueue<T>::PopNoblock(ConsumerToken& token, T& value) {
-    return DoPop(token, value);
+    // kRarelyBlocking is required here, because with kWeak we sometimes would miss an item if another push
+    // is in process, and there is no guarantee that the user will retry PopNoblock.
+    //
+    // If there was a high-level consumer API that is not affected by kWeak (e.g. some batching API),
+    // then it could be used there.
+    // As it stands, it would be too bug-prone to provide weak guarantees in PopNoblock.
+    return DoPop(token, value, impl::IntrusiveMpscQueueImpl::PopMode::kRarelyBlocking);
 }
 
 template <typename T>
-bool MpscQueue<T>::DoPop(ConsumerToken& /*unused*/, T& value) {
-    if (const auto node = std::unique_ptr<Node>{queue_.TryPopWeak()}) {
+bool MpscQueue<T>::DoPop(ConsumerToken& /*unused*/, T& value, impl::IntrusiveMpscQueueImpl::PopMode pop_mode) {
+    if (const auto node = std::unique_ptr<Node>{queue_.TryPop(pop_mode)}) {
         value = std::move(node->value);
 
         --size_;

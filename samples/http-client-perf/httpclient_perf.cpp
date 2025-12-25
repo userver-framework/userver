@@ -99,7 +99,9 @@ std::vector<std::string> ReadUrls(const Config& config) {
     }
 
     std::string line;
-    while (std::getline(infile, line)) urls.emplace_back(std::move(line));
+    while (std::getline(infile, line)) {
+        urls.emplace_back(std::move(line));
+    }
 
     if (urls.empty()) {
         throw std::runtime_error("No URL in URL file!");
@@ -121,8 +123,12 @@ void Worker(WorkerContext& context) {
     LOG_DEBUG() << "Worker started";
     for (;;) {
         const uint32_t idx = context.counter++;
-        if (idx >= context.config.count) break;
-        if (idx % context.print_each_counter == 0) std::cerr << ".";
+        if (idx >= context.config.count) {
+            break;
+        }
+        if (idx % context.print_each_counter == 0) {
+            std::cerr << ".";
+        }
 
         const std::string& url = context.urls[idx % context.urls.size()];
 
@@ -136,10 +142,10 @@ void Worker(WorkerContext& context) {
             context.response_len += response->body().size();
             LOG_DEBUG() << "Got response body_size=" << response->body().size();
             const auto ts3 = std::chrono::system_clock::now();
-            LOG_INFO() << "timings create=" << std::chrono::duration_cast<std::chrono::microseconds>(ts2 - ts1).count()
-                       << "us "
-                       << "response=" << std::chrono::duration_cast<std::chrono::microseconds>(ts3 - ts2).count()
-                       << "us";
+            LOG_INFO()
+                << "timings create=" << std::chrono::duration_cast<std::chrono::microseconds>(ts2 - ts1).count()
+                << "us "
+                << "response=" << std::chrono::duration_cast<std::chrono::microseconds>(ts3 - ts2).count() << "us";
         } catch (const std::exception& e) {
             LOG_ERROR() << "Exception: " << e;
         } catch (...) {
@@ -155,7 +161,9 @@ void DoWork(const Config& config, const std::vector<std::string>& urls) {
     auto& tp = engine::current_task::GetTaskProcessor();
     http::StandaloneConfig standalone_config;
     standalone_config.multiplexing_enabled = config.multiplexing;
-    if (config.max_host_connections > 0) standalone_config.max_host_connections = config.max_host_connections;
+    if (config.max_host_connections > 0) {
+        standalone_config.max_host_connections = config.max_host_connections;
+    }
     auto http_client = http::CreateStandaloneHttpClient({"", config.io_threads}, standalone_config, tp);
     LOG_INFO() << "Client created";
 
@@ -176,8 +184,9 @@ void DoWork(const Config& config, const std::vector<std::string>& urls) {
     auto rps = config.count * 1000 / (std::chrono::duration_cast<std::chrono::milliseconds>(tp2 - tp1).count() + 1);
 
     std::cerr << std::endl;
-    LOG_CRITICAL() << "counter = " << worker_context.counter.load()
-                   << " sum response body size = " << worker_context.response_len << " average RPS = " << rps;
+    LOG_CRITICAL()
+        << "counter = " << worker_context.counter.load() << " sum response body size = " << worker_context.response_len
+        << " average RPS = " << rps;
 }
 
 }  // namespace
@@ -187,13 +196,17 @@ int main(int argc, const char* const argv[]) {
 
     const auto level = logging::LevelFromString(config.log_level);
     const logging::DefaultLoggerGuard guard{
-        config.logfile.empty() ? logging::MakeStderrLogger("default", logging::Format::kTskv, level)
-                               : logging::MakeFileLogger("default", config.logfile, logging::Format::kTskv, level)};
+        config.logfile.empty()
+            ? logging::MakeStderrLogger("default", logging::Format::kTskv, level)
+            : logging::MakeFileLogger("default", config.logfile, logging::Format::kTskv, level)
+    };
 
-    LOG_WARNING() << "Starting using requests=" << config.count << " coroutines=" << config.coroutines
-                  << " timeout=" << config.timeout_ms << "ms";
-    LOG_WARNING() << "multiplexing =" << (config.multiplexing ? "enabled" : "disabled")
-                  << " max_host_connections=" << config.max_host_connections;
+    LOG_WARNING()
+        << "Starting using requests=" << config.count << " coroutines=" << config.coroutines
+        << " timeout=" << config.timeout_ms << "ms";
+    LOG_WARNING()
+        << "multiplexing =" << (config.multiplexing ? "enabled" : "disabled")
+        << " max_host_connections=" << config.max_host_connections;
 
     const std::vector<std::string> urls = ReadUrls(config);
     engine::RunStandalone(config.worker_threads, [&]() { DoWork(config, urls); });

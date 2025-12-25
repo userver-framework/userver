@@ -63,7 +63,7 @@ def parse_enum(enum: descriptor.EnumDescriptor) -> gen_node.EnumNode:
     return gen_node.EnumNode(
         vanilla_name=type_mapping.parse_type_name(enum),
         proto_file=pathlib.Path(proto_file_name),
-        values=values,  # noqa: COM812
+        values=values,
     )
 
 
@@ -95,7 +95,7 @@ def _cut_enum_value_name(value_name: str, *, enum_name: str) -> str:
 def parse_message(
     message: descriptor.Descriptor,
     *,
-    plugin_options: options.PluginOptions,  # noqa: COM812
+    plugin_options: options.PluginOptions,
 ) -> gen_node.TypeNode | None:
     if _is_map_entry(message):
         return None
@@ -129,7 +129,7 @@ def parse_message(
                             taken_member_names=taken_member_names,
                             nested_types_to_generate=nested_types,
                             plugin_options=plugin_options,
-                        )  # noqa: COM812
+                        ),
                     )
                 continue
         fields.append(parse_field(field, plugin_options=plugin_options))
@@ -167,13 +167,13 @@ def _io_kind_write(field: descriptor.FieldDescriptor) -> io.WriteVanillaFieldKin
     if label == descriptor.FieldDescriptor.LABEL_REPEATED:
         return io.WriteVanillaFieldKind.VECTOR_MAP_MESSAGE
 
-    if type_kind == descriptor.FieldDescriptor.TYPE_STRING or type_kind == descriptor.FieldDescriptor.TYPE_BYTES:  # noqa: PLR1714
+    if type_kind in (descriptor.FieldDescriptor.TYPE_STRING, descriptor.FieldDescriptor.TYPE_BYTES):
         return io.WriteVanillaFieldKind.STRING
 
     if type_kind in type_mapping.PRIMITIVE_TYPES_TO_PROTOBUF_NAME or type_kind == descriptor.FieldDescriptor.TYPE_ENUM:
         return io.WriteVanillaFieldKind.OTHER
 
-    if type_kind == descriptor.FieldDescriptor.TYPE_MESSAGE or type_kind == descriptor.FieldDescriptor.TYPE_GROUP:  # noqa: PLR1714
+    if type_kind in (descriptor.FieldDescriptor.TYPE_MESSAGE, descriptor.FieldDescriptor.TYPE_GROUP):
         return io.WriteVanillaFieldKind.VECTOR_MAP_MESSAGE
 
     raise Exception('unreachable')
@@ -191,7 +191,7 @@ def _apply_options_to_field(
     field: descriptor.FieldDescriptor,
     struct_field: gen_node.StructField,
     *,
-    plugin_options: options.PluginOptions,  # noqa: COM812
+    plugin_options: options.PluginOptions,
 ) -> gen_node.StructField:
     message_type = _get_optional_message_type(field)
     if message_type:
@@ -307,7 +307,7 @@ def parse_oneof(
     oneof_field_short_name = names.escape_id(typing.cast(str, oneof.name))
     oneof_type_short_name = oneof_options.generated_type_name or _synthesize_oneof_type_name(
         oneof_field_short_name,
-        taken_member_names,  # noqa: COM812
+        taken_member_names,
     )
 
     oneof_type_name = names.make_nested_type_name(containing_type_name, oneof_type_short_name)
@@ -361,7 +361,7 @@ def _make_unique_member_name(base_name: str, taken_member_names: MutableSet[str]
 
 def _get_optional_message_type(field: descriptor.FieldDescriptor) -> descriptor.Descriptor | None:
     type_kind: int = field.type
-    if type_kind == descriptor.FieldDescriptor.TYPE_MESSAGE or type_kind == descriptor.FieldDescriptor.TYPE_GROUP:  # noqa: PLR1714
+    if type_kind in (descriptor.FieldDescriptor.TYPE_MESSAGE, descriptor.FieldDescriptor.TYPE_GROUP):
         # Details on groups:
         # https://protobuf.com/docs/descriptors#groups
         message_type: descriptor.Descriptor = field.message_type

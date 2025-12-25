@@ -19,7 +19,7 @@ async def test_no_proxy_target_by_file(
     taxi_config,
     grpc_mockserver_endpoint,
     cfg_enabled,
-    no_proxy_target,  # noqa: COM812
+    no_proxy_target,
 ):
     taxi_config.set_values({
         'EGRESS_GRPC_PROXY_ENABLED': cfg_enabled,

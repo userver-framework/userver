@@ -20,7 +20,8 @@ std::string Base64Encode(std::string_view data, Pad pad) {
     try {
         Base64Encoder encoder(new CryptoPP::StringSink(response));
         const CryptoPP::AlgorithmParameters params = CryptoPP::MakeParameters(CryptoPP::Name::Pad(), Pad::kWith == pad)(
-            CryptoPP::Name::InsertLineBreaks(), false
+            CryptoPP::Name::InsertLineBreaks(),
+            false
         );
         encoder.IsolatedInitialize(params);
         encoder.PutMessageEnd(reinterpret_cast<const byte*>(data.data()), data.size());

@@ -36,6 +36,29 @@ endif()
 
 add_library(${PROJECT_NAME}-internal STATIC ${SOURCES})
 
+list(
+    APPEND
+    EMBED_FILES
+    src/ugrpc/client/client_factory_component.yaml
+    src/ugrpc/client/common_component.yaml
+    src/ugrpc/client/middlewares/headers_propagator/component.yaml
+    src/ugrpc/client/middlewares/log/component.yaml
+    src/ugrpc/client/middlewares/origin/component.yaml
+    src/ugrpc/client/simple_client_component.yaml
+    src/ugrpc/server/middlewares/access_log/component.yaml
+    src/ugrpc/server/middlewares/congestion_control/component.yaml
+    src/ugrpc/server/middlewares/headers_propagator/component.yaml
+    src/ugrpc/server/middlewares/log/component.yaml
+    src/ugrpc/server/server_component.yaml
+    src/ugrpc/server/service_component_base.yaml
+)
+
+foreach(FILE ${EMBED_FILES})
+    string(MAKE_C_IDENTIFIER "${PROJECT_NAME}-internal-embed_${FILE}" EMBED_TARGET_NAME)
+    userver_embed_file(${EMBED_TARGET_NAME} FILEPATH "${FILE}" HPP_FILENAME "${FILE}")
+    target_link_libraries(${PROJECT_NAME}-internal PRIVATE "$<BUILD_INTERFACE:${EMBED_TARGET_NAME}>")
+endforeach()
+
 if("${gRPC_VERSION}" VERSION_LESS "1.66")
     target_compile_definitions(${PROJECT_NAME}-internal PRIVATE USERVER_IMPL_FEATURE_OLD_GRPC_NATIVE_LOGGING)
 endif()

@@ -33,7 +33,8 @@ public:
     /// @brief Creates oneof wrapper initializing @a index field.
     template <std::size_t Index, typename... TArgs>
     constexpr Oneof(std::in_place_index_t<Index> index, TArgs&&... args)
-        : storage_(std::variant<TFields...>(index, std::forward<TArgs>(args)...)) {}
+        : storage_(std::variant<TFields...>(index, std::forward<TArgs>(args)...))
+    {}
 
     /// @brief Returns zero-based index of the alternative held by the oneof.
     ///

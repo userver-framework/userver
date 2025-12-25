@@ -22,11 +22,9 @@ versions_js_path.write_text(versions_js_content, encoding='utf-8')
 versions_md_path = Path('scripts/docs/en/versions.md')
 versions_md_path.parent.mkdir(parents=True, exist_ok=True)
 
+versions_md_content_lines = (f'- [{ver}](docs/{ver}/index.html)' for ver in reversed(versions))
 versions_md_content = (
-    '\\page versions Versions\n\n'  # noqa: ISC003
-    + '- [trunk/develop](index.html)\n'
-    + '\n'.join(f'- [{ver}](docs/{ver}/index.html)' for ver in reversed(versions))
-    + '\n'
+    '\\page versions Versions\n\n- [trunk/develop](index.html)\n' + '\n'.join(versions_md_content_lines) + '\n'
 )
 versions_md_path.write_text(versions_md_content, encoding='utf-8')
 

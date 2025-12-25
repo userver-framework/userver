@@ -1,0 +1,12 @@
+type: object
+description: Component to limit too active requests, also known as CC.
+additionalProperties: false
+properties:
+    max-tokens:
+        type: number
+        description: max amount of tokens in the token bucket
+        default: 10
+    token-ratio:
+        type: number
+        description: retry count to successful responses ratio
+        default: 0.1

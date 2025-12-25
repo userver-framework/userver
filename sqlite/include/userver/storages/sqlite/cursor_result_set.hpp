@@ -36,7 +36,9 @@ private:
 
 template <typename T>
 CursorResultSet<T>::CursorResultSet(ResultSet&& result_set, size_t batch_size)
-    : result_set_{std::move(result_set)}, batch_size_{batch_size} {}
+    : result_set_{std::move(result_set)},
+      batch_size_{batch_size}
+{}
 
 template <typename T>
 CursorResultSet<T>::CursorResultSet(CursorResultSet<T>&& other) noexcept = default;

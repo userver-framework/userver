@@ -64,8 +64,10 @@ public:
     JsonReply FetchJson(const std::optional<Timestamp>& last_update, const std::vector<std::string>& fields_to_load);
 
 private:
-    formats::json::Value
-    FetchConfigs(const std::optional<Timestamp>& last_update, const std::vector<std::string>& fields_to_load);
+    formats::json::Value FetchConfigs(
+        const std::optional<Timestamp>& last_update,
+        const std::vector<std::string>& fields_to_load
+    );
 
     std::string FetchConfigsValues(std::string_view body);
 

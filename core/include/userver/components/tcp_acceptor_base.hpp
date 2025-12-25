@@ -16,28 +16,19 @@ struct ListenerConfig;
 
 namespace components {
 
-// clang-format off
-
 /// @ingroup userver_base_classes userver_components
 ///
 /// @brief Component for accepting incoming TCP connections.
 ///
-/// Each accepted socket is processed in a new coroutine by ProcessSocket of
-/// the derived class.
+/// Each accepted socket is processed in a new coroutine by ProcessSocket of the derived class.
 ///
-/// ## Static options:
-/// Name | Description | Default value
-/// ---- | ----------- | -------------
-/// port | port to listen on | -
-/// unix-socket | unix socket to listen on instead of listening on a port | ''
-/// task_processor | task processor to accept incoming connections | the 'default_task_processor' value from components::ManagerControllerComponent
-/// backlog | max count of new connections pending acceptance | 1024
-/// no_delay | whether to set the `TCP_NODELAY` option on incoming sockets | true
-/// sockets_task_processor | task processor to process accepted sockets | value of `task_processor`
+/// ## Static options of components::TcpAcceptorBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/tcp_acceptor_base.md
+///
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
 ///
 /// @see @ref scripts/docs/en/userver/tutorial/tcp_service.md
-
-// clang-format on
 class TcpAcceptorBase : public ComponentBase {
 public:
     TcpAcceptorBase(const ComponentConfig&, const ComponentContext&);
@@ -61,8 +52,8 @@ private:
 
     void KeepAccepting(engine::io::Socket& listen_sock);
 
-    void OnAllComponentsLoaded() final;
-    void OnAllComponentsAreStopping() final;
+    void Start();
+    void Stop() noexcept;
 
     struct SocketData {
         engine::io::Socket listen_sock;

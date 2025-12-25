@@ -12,7 +12,7 @@ async def test_send(service_binary):
             service_binary,
             '--port',
             str(server.getsockname()[1]),
-            stdin=asyncio.subprocess.PIPE,  # noqa: COM812
+            stdin=asyncio.subprocess.PIPE,
         )
 
         subprocess.stdin.write(b'PING\n')
@@ -41,12 +41,25 @@ async def test_listen(service_binary):
         '-l',
         '--port',
         str(port),
-        stdout=asyncio.subprocess.PIPE,  # noqa: COM812
+        stdout=asyncio.subprocess.PIPE,
     )
-    await asyncio.sleep(0.3)  # give time to open listening socket
 
-    with socket.socket(socket.AF_INET6, socket.SOCK_STREAM) as client:
-        client.connect(('localhost', port))
+    # try several times to make sure netcat has opened the tcp port
+    for i in range(1, 100):
+        try:
+            client = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
+            client.connect(('localhost', port))
+            break
+        except ConnectionRefusedError:
+            if client:
+                client.close()
+                client = None
+            await asyncio.sleep(0.3)
+            continue
+    else:
+        assert False, 'failed to connect to netcat'
+
+    try:
         client.setblocking(False)
 
         loop = asyncio.get_event_loop()
@@ -57,3 +70,5 @@ async def test_listen(service_binary):
 
         subprocess.terminate()
         await subprocess.wait()
+    finally:
+        client.close()

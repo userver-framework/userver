@@ -29,7 +29,11 @@ private:
 
 class UnixSocketSink final : public BaseSink {
 public:
-    explicit UnixSocketSink(std::string_view filename) : filename_{filename} { client_.connect(filename_); }
+    explicit UnixSocketSink(std::string_view filename)
+        : filename_{filename}
+    {
+        client_.connect(filename_);
+    }
 
     void Close();
 

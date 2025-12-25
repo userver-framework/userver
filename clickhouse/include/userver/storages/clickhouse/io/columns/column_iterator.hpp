@@ -86,7 +86,8 @@ private:
 
 template <typename ColumnType>
 ColumnIterator<ColumnType>::ColumnIterator(ColumnRef column)
-    : ColumnIterator{IteratorPosition::kBegin, std::move(column)} {}
+    : ColumnIterator{IteratorPosition::kBegin, std::move(column)}
+{}
 
 template <typename ColumnType>
 ColumnIterator<ColumnType> ColumnIterator<ColumnType>::End(ColumnRef column) {
@@ -95,7 +96,8 @@ ColumnIterator<ColumnType> ColumnIterator<ColumnType>::End(ColumnRef column) {
 
 template <typename ColumnType>
 ColumnIterator<ColumnType>::ColumnIterator(IteratorPosition iter_position, ColumnRef&& column)
-    : data_{data_holder{iter_position, std::move(column)}} {}
+    : data_{data_holder{iter_position, std::move(column)}}
+{}
 
 template <typename ColumnType>
 ColumnIterator<ColumnType> ColumnIterator<ColumnType>::operator++(int) {
@@ -133,7 +135,8 @@ bool ColumnIterator<ColumnType>::operator!=(const ColumnIterator<ColumnType>& ot
 
 template <typename ColumnType>
 ColumnIterator<ColumnType>::DataHolder::DataHolder(IteratorPosition iter_position, ColumnRef&& column)
-    : column_{std::move(column)} {
+    : column_{std::move(column)}
+{
     switch (iter_position) {
         case IteratorPosition::kBegin: {
             ind_ = 0;

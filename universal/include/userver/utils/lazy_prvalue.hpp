@@ -21,9 +21,13 @@ class LazyPrvalue final {
     static_assert(!std::is_reference_v<Func>);
 
 public:
-    constexpr explicit LazyPrvalue(const Func& func) : func_(func) {}
+    constexpr explicit LazyPrvalue(const Func& func)
+        : func_(func)
+    {}
 
-    constexpr explicit LazyPrvalue(Func&& func) : func_(std::move(func)) {}
+    constexpr explicit LazyPrvalue(Func&& func)
+        : func_(std::move(func))
+    {}
 
     LazyPrvalue(LazyPrvalue&&) = delete;
     LazyPrvalue& operator=(LazyPrvalue&&) = delete;

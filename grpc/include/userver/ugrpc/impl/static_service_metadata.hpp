@@ -6,7 +6,7 @@
 #include <userver/utils/span.hpp>
 #include <userver/utils/string_literal.hpp>
 
-#include <userver/ugrpc/impl/rpc_type.hpp>
+#include <userver/ugrpc/rpc_type.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -47,8 +47,10 @@ constexpr RpcType GetMethodType(const StaticServiceMetadata& metadata, std::size
     return metadata.methods[method_id].method_type;
 }
 
-std::optional<std::size_t>
-FindMethod(const ugrpc::impl::StaticServiceMetadata& metadata, std::string_view method_full_name);
+std::optional<std::size_t> FindMethod(
+    const ugrpc::impl::StaticServiceMetadata& metadata,
+    std::string_view method_full_name
+);
 
 std::optional<std::size_t> FindMethod(
     const ugrpc::impl::StaticServiceMetadata& metadata,

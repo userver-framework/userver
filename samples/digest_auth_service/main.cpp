@@ -2,7 +2,7 @@
 #include "user_info.hpp"
 
 #include <userver/clients/dns/component.hpp>
-#include <userver/clients/http/component.hpp>
+#include <userver/clients/http/component_list.hpp>
 #include <userver/components/minimal_server_component_list.hpp>
 #include <userver/server/handlers/auth/digest/auth_checker_settings_component.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
@@ -44,8 +44,7 @@ int main(int argc, const char* const argv[]) {
             .Append<samples::digest_auth::Hello>()
             .Append<samples::digest_auth::Hello>("handler-hello-proxy")
             .Append<components::TestsuiteSupport>()
-            .Append<components::HttpClientCore>()
-            .Append<components::HttpClient>()
+            .AppendComponentList(clients::http::ComponentList())
             .Append<server::handlers::TestsControl>()
             .Append<clients::dns::Component>()
             .Append<components::Secdist>()

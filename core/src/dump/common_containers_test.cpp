@@ -15,7 +15,9 @@ USERVER_NAMESPACE_BEGIN
 namespace {
 
 struct NonCopyable {
-    explicit NonCopyable(int value) : value(value) {}
+    explicit NonCopyable(int value)
+        : value(value)
+    {}
     NonCopyable(const NonCopyable&) = delete;
     NonCopyable(NonCopyable&&) = default;
 
@@ -98,7 +100,10 @@ TEST(DumpCommonContainers, UnorderedSet) {
 
 TEST(DumpCommonContainers, NestedContainers) {
     TestWriteReadCycle(std::vector<std::unordered_map<std::string, std::set<int>>>{
-        {{"abc", {1, 3}}, {"de", {2, 4, 5}}, {"", {}}}, {}, {{"ghij", {10}}}});
+        {{"abc", {1, 3}}, {"de", {2, 4, 5}}, {"", {}}},
+        {},
+        {{"ghij", {10}}}
+    });
 }
 
 TEST(DumpCommonContainers, Optional) {

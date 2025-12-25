@@ -8,6 +8,10 @@
 #include <ugrpc/impl/grpc_native_logging.hpp>
 #include <userver/ugrpc/server/server_component.hpp>
 
+#ifndef ARCADIA_ROOT
+#include "generated/src/ugrpc/client/common_component.yaml.hpp"  // Y_IGNORE
+#endif
+
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client {
@@ -50,7 +54,9 @@ CommonComponent::CommonComponent(const components::ComponentConfig& config, cons
       ),
       proxy_settings_{
           config["proxy-address"].As<std::string>(""),
-          config["servicemesh-settings"]["egress"]["disable_proxy"].As<std::unordered_set<std::string>>({})} {
+          config["servicemesh-settings"]["egress"]["disable_proxy"].As<std::unordered_set<std::string>>({})
+      }
+{
     ugrpc::impl::SetupNativeLogging();
     ugrpc::impl::UpdateNativeLogLevel(config["native-log-level"].As<logging::Level>(logging::Level::kError));
 }
@@ -58,52 +64,7 @@ CommonComponent::CommonComponent(const components::ComponentConfig& config, cons
 CommonComponent::~CommonComponent() = default;
 
 yaml_config::Schema CommonComponent::GetStaticConfigSchema() {
-    return yaml_config::MergeSchemas<components::ComponentBase>(R"(
-type: object
-description: Provides a ClientFactory in the component system
-additionalProperties: false
-properties:
-    blocking-task-processor:
-        type: string
-        description: the task processor for blocking channel creation
-    native-log-level:
-        type: string
-        description: min log level for the native gRPC library
-        defaultDescription: error
-        enum:
-          - debug
-          - info
-          - error
-    completion-queue-count:
-        type: integer
-        description: |
-            completion queue count to create. Should be ~2 times less than worker
-            threads for best RPS.
-        minimum: 1
-    proxy-address:
-        type: string
-        description: |
-            proxy server address. No proxy if address is empty
-            Example: localhost:84
-    servicemesh-settings:
-        type: object
-        description: service settings from separate file for service mesh integration
-        additionalProperties: false
-        properties:
-            egress:
-                type: object
-                description: egress settings
-                additionalProperties: false
-                properties:
-                    disable_proxy:
-                        description: list of addresses that should be accessed directly, bypassing proxy server
-                        type: array
-                        items:
-                            description: |
-                                address that should be accessed directly.
-                                Example: some.grpc.service.net:11080
-                            type: string
-)");
+    return yaml_config::MergeSchemasFromResource<components::ComponentBase>("src/ugrpc/client/common_component.yaml");
 }
 
 }  // namespace ugrpc::client

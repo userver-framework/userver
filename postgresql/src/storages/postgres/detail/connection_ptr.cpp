@@ -7,10 +7,14 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::postgres::detail {
 
-ConnectionPtr::ConnectionPtr(std::unique_ptr<Connection>&& conn) : conn_(std::move(conn)) {}
+ConnectionPtr::ConnectionPtr(std::unique_ptr<Connection>&& conn)
+    : conn_(std::move(conn))
+{}
 
 ConnectionPtr::ConnectionPtr(Connection* conn, std::shared_ptr<ConnectionPool>&& pool)
-    : pool_(std::move(pool)), conn_(conn) {
+    : pool_(std::move(pool)),
+      conn_(conn)
+{
     UASSERT_MSG(pool_, "This constructor requires non-empty parent pool");
 }
 
@@ -35,13 +39,17 @@ Connection& ConnectionPtr::operator*() const {
 Connection* ConnectionPtr::operator->() const noexcept { return conn_.get(); }
 
 const StatementStatsStorage* ConnectionPtr::GetStatementStatsStorage() const {
-    if (!pool_) return nullptr;
+    if (!pool_) {
+        return nullptr;
+    }
 
     return &pool_->GetStatementStatsStorage();
 }
 
 std::optional<dynamic_config::Source> ConnectionPtr::GetConfigSource() const {
-    if (!pool_) return std::nullopt;
+    if (!pool_) {
+        return std::nullopt;
+    }
     return {pool_->GetConfigSource()};
 }
 

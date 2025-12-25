@@ -4,7 +4,7 @@
 #include <userver/utest/using_namespace_userver.hpp>
 
 /// [Postgres service sample - component]
-#include <userver/clients/http/component.hpp>
+#include <userver/clients/http/component_list.hpp>
 #include <userver/components/component.hpp>
 #include <userver/components/minimal_server_component_list.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
@@ -42,7 +42,8 @@ namespace samples_postgres_service::pg {
 /// [Postgres service sample - component constructor]
 KeyValue::KeyValue(const components::ComponentConfig& config, const components::ComponentContext& context)
     : HttpHandlerBase(config, context),
-      pg_cluster_(context.FindComponent<components::Postgres>("key-value-database").GetCluster()) {}
+      pg_cluster_(context.FindComponent<components::Postgres>("key-value-database").GetCluster())
+{}
 /// [Postgres service sample - component constructor]
 
 /// [Postgres service sample - HandleRequestThrow]
@@ -62,15 +63,16 @@ std::string KeyValue::HandleRequest(server::http::HttpRequest& request, server::
             return DeleteValue(key);
         default:
             throw server::handlers::ClientError(server::handlers::ExternalBody{
-                fmt::format("Unsupported method {}", request.GetMethod())});
+                fmt::format("Unsupported method {}", request.GetMethod())
+            });
     }
 }
 /// [Postgres service sample - HandleRequestThrow]
 
 /// [Postgres service sample - GetValue]
 std::string KeyValue::GetValue(std::string_view key, const server::http::HttpRequest& request) const {
-    const storages::postgres::ResultSet res =
-        pg_cluster_->Execute(storages::postgres::ClusterHostType::kSlave, sql::kSelectValue, key);
+    const storages::postgres::ResultSet
+        res = pg_cluster_->Execute(storages::postgres::ClusterHostType::kSlave, sql::kSelectValue, key);
     if (res.IsEmpty()) {
         request.SetResponseStatus(server::http::HttpStatus::kNotFound);
         return {};
@@ -117,14 +119,14 @@ std::string KeyValue::DeleteValue(std::string_view key) const {
 
 /// [Postgres service sample - main]
 int main(int argc, char* argv[]) {
-    const auto component_list = components::MinimalServerComponentList()
-                                    .Append<samples_postgres_service::pg::KeyValue>()
-                                    .Append<components::Postgres>("key-value-database")
-                                    .Append<components::HttpClientCore>()
-                                    .Append<components::HttpClient>()
-                                    .Append<components::TestsuiteSupport>()
-                                    .Append<server::handlers::TestsControl>()
-                                    .Append<clients::dns::Component>();
+    const auto component_list =
+        components::MinimalServerComponentList()
+            .Append<samples_postgres_service::pg::KeyValue>()
+            .Append<components::Postgres>("key-value-database")
+            .AppendComponentList(clients::http::ComponentList())
+            .Append<components::TestsuiteSupport>()
+            .Append<server::handlers::TestsControl>()
+            .Append<clients::dns::Component>();
     return utils::DaemonMain(argc, argv, component_list);
 }
 /// [Postgres service sample - main]

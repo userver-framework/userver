@@ -20,7 +20,9 @@ class [[nodiscard]] RequestEvalSha final {
 public:
     using EvalShaResult = storages::redis::EvalShaResult<ReplyType>;
 
-    explicit RequestEvalSha(RequestEvalShaCommon&& request) : request_(std::move(request)) {}
+    explicit RequestEvalSha(RequestEvalShaCommon&& request)
+        : request_(std::move(request))
+    {}
 
     /// Wait for the request to finish on Redis server
     void Wait() { request_.Wait(); }
@@ -67,8 +69,12 @@ private:
     friend class RequestEvalSha;
 
     EvalShaResult() = default;
-    explicit EvalShaResult(bool no_script) : no_script_error_{no_script} {}
-    EvalShaResult(ReplyType&& reply) : reply_(std::move(reply)) {}
+    explicit EvalShaResult(bool no_script)
+        : no_script_error_{no_script}
+    {}
+    EvalShaResult(ReplyType&& reply)
+        : reply_(std::move(reply))
+    {}
     std::optional<ReplyType> reply_;
     bool no_script_error_ = false;
 };

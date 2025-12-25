@@ -11,11 +11,9 @@ DefaultCommandControls::DefaultCommandControls(
     CommandControlByHandlerMap handlers_command_control_src,
     CommandControlByQueryMap queries_command_control
 )
-    : data_(std::make_shared<Data>(
-          default_cmd_ctl_src,
-          std::move(handlers_command_control_src),
-          std::move(queries_command_control)
-      )) {}
+    : data_(std::make_shared<
+            Data>(default_cmd_ctl_src, std::move(handlers_command_control_src), std::move(queries_command_control)))
+{}
 
 CommandControl DefaultCommandControls::GetDefaultCmdCtl() const {
     UASSERT(data_);
@@ -28,15 +26,21 @@ void DefaultCommandControls::UpdateDefaultCmdCtl(
 ) {
     UASSERT(data_);
     {
-        if (source == detail::DefaultCommandControlSource::kGlobalConfig && data_->has_user_default_cc) return;
+        if (source == detail::DefaultCommandControlSource::kGlobalConfig && data_->has_user_default_cc) {
+            return;
+        }
         auto reader = data_->default_cmd_ctl.Read();
-        if (*reader == cmd_ctl) return;
+        if (*reader == cmd_ctl) {
+            return;
+        }
     }
     auto writer = data_->default_cmd_ctl.StartWrite();
     // source must be checked under lock to avoid races
     switch (source) {
         case detail::DefaultCommandControlSource::kGlobalConfig:
-            if (data_->has_user_default_cc) return;
+            if (data_->has_user_default_cc) {
+                return;
+            }
             break;
         case detail::DefaultCommandControlSource::kUser:
             data_->has_user_default_cc = true;
@@ -62,7 +66,9 @@ void DefaultCommandControls::UpdateHandlersCommandControl(CommandControlByHandle
     UASSERT(data_);
     {
         auto reader = data_->handlers_command_control.Read();
-        if (*reader == handlers_command_control) return;
+        if (*reader == handlers_command_control) {
+            return;
+        }
     }
     data_->handlers_command_control.Assign(std::move(handlers_command_control));
 }
@@ -71,7 +77,9 @@ void DefaultCommandControls::UpdateQueriesCommandControl(CommandControlByQueryMa
     UASSERT(data_);
     {
         auto reader = data_->queries_command_control.Read();
-        if (*reader == queries_command_control) return;
+        if (*reader == queries_command_control) {
+            return;
+        }
     }
     data_->queries_command_control.Assign(std::move(queries_command_control));
 }
@@ -83,7 +91,8 @@ DefaultCommandControls::Data::Data(
 )
     : default_cmd_ctl(default_cmd_ctl_src),
       handlers_command_control(std::move(handlers_command_control_src)),
-      queries_command_control(std::move(queries_command_control_src)) {}
+      queries_command_control(std::move(queries_command_control_src))
+{}
 
 }  // namespace storages::postgres
 

@@ -65,9 +65,16 @@ struct TransactionOptions {
     Mode mode = kReadWrite;
 
     constexpr TransactionOptions() = default;
-    constexpr explicit TransactionOptions(IsolationLevel lvl) : isolation_level{lvl} {}
-    constexpr TransactionOptions(IsolationLevel lvl, Mode m) : isolation_level{lvl}, mode{m} {}
-    constexpr explicit TransactionOptions(Mode m) : mode{m} {}
+    constexpr explicit TransactionOptions(IsolationLevel lvl)
+        : isolation_level{lvl}
+    {}
+    constexpr TransactionOptions(IsolationLevel lvl, Mode m)
+        : isolation_level{lvl},
+          mode{m}
+    {}
+    constexpr explicit TransactionOptions(Mode m)
+        : mode{m}
+    {}
 
     bool IsReadOnly() const { return mode & kReadOnly; }
 
@@ -124,7 +131,8 @@ struct CommandControl {
     )
         : network_timeout_ms(network_timeout_ms),
           statement_timeout_ms(statement_timeout_ms),
-          prepared_statements_enabled(prepared_statements_enabled) {}
+          prepared_statements_enabled(prepared_statements_enabled)
+    {}
 
     constexpr CommandControl WithExecuteTimeout(TimeoutDuration n) const noexcept { return {n, statement_timeout_ms}; }
 
@@ -146,8 +154,11 @@ using CommandControlByHandlerMap =
     USERVER_NAMESPACE::utils::impl::TransparentMap<std::string, CommandControlByMethodMap>;
 using CommandControlByQueryMap = USERVER_NAMESPACE::utils::impl::TransparentMap<std::string, CommandControl>;
 
-OptionalCommandControl
-GetHandlerOptionalCommandControl(const CommandControlByHandlerMap& map, std::string_view path, std::string_view method);
+OptionalCommandControl GetHandlerOptionalCommandControl(
+    const CommandControlByHandlerMap& map,
+    std::string_view path,
+    std::string_view method
+);
 
 OptionalCommandControl GetQueryOptionalCommandControl(const CommandControlByQueryMap& map, std::string_view query_name);
 
