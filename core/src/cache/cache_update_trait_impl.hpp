@@ -48,10 +48,6 @@ public:
 
     void StopPeriodicUpdates();
 
-    void AssertPeriodicUpdateStarted();
-
-    void AssertPeriodicUpdateStopped();
-
     void OnCacheModified();
 
     bool HasPreAssignCheck() const;

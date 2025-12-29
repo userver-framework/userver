@@ -60,10 +60,8 @@ less popular.
 
 There are tiers to differentiate technologies:
 
-* **Platinum Tier** - driver is known to be used in multiple high load critical
-  to uptime services in huge companies.
-* **Golden Tier** - driver that has not enough usage
-  feedback from huge companies. Still fine for production usage.
+* **Platinum Tier** - driver is known to be used in multiple high load critical to uptime services in huge companies.
+* **Golden Tier** - driver that has not enough usage feedback from huge companies. Still fine for production usage.
 * **Silver Tier** - early days of the driver. It passes all the tests and works
   fine, but more feedback/time required to become a Golden Tier driver. Fine
   for prototyping and production usage with some caution.
@@ -71,5 +69,5 @@ There are tiers to differentiate technologies:
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref scripts/docs/en/userver/libraries/grpc-reflection.md | @ref scripts/docs/en/userver/driver_guide.md ⇨
+⇦ @ref scripts/docs/en/userver/libraries/multi_index_lru.md | @ref scripts/docs/en/userver/driver_guide.md ⇨
 @htmlonly </div> @endhtmlonly

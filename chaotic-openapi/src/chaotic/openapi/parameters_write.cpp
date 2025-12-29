@@ -17,20 +17,24 @@ constexpr std::string_view kMask = "***";
 auto MaskQueryMultiArgs(const http::MultiArgs& args, ParameterSinkHttpClient::HiddenQueryArgNamesFunc func) {
     using Pair = std::pair<std::string_view, std::string_view>;
 
-    auto masked = args | boost::adaptors::transformed([&func](const auto& pair) {
-                      const auto& [name, value] = pair;
-                      if (func(name))
-                          return Pair(name, kMask);
-                      else
-                          return Pair(name, value);
-                  });
+    auto masked =
+        args | boost::adaptors::transformed([&func](const auto& pair) {
+            const auto& [name, value] = pair;
+            if (func(name)) {
+                return Pair(name, kMask);
+            } else {
+                return Pair(name, value);
+            }
+        });
     return utils::AsContainer<std::vector<Pair>>(std::move(masked));
 }
 
 }  // namespace
 
 ParameterSinkHttpClient::ParameterSinkHttpClient(clients::http::Request& request, std::string&& url_pattern)
-    : url_pattern_(std::move(url_pattern)), request_(request) {}
+    : url_pattern_(std::move(url_pattern)),
+      request_(request)
+{}
 
 void ParameterSinkHttpClient::SetCookie(std::string_view name, std::string&& value) {
     cookies_.emplace(name, std::move(value));

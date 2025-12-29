@@ -21,7 +21,9 @@ public:
     bool WaitReadable(engine::Deadline) override { std::abort(); }
 
     size_t ReadSome(void* buf, size_t len, engine::Deadline) override {
-        if (!len || buffer_.empty()) return 0;
+        if (!len || buffer_.empty()) {
+            return 0;
+        }
 
         auto chars_to_copy = utils::RandRange(std::min(len, buffer_.size())) + 1;
         std::copy(buffer_.begin(), buffer_.begin() + chars_to_copy, reinterpret_cast<char*>(buf));

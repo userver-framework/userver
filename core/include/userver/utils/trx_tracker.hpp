@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file
+/// @file userver/utils/trx_tracker.hpp
 /// @brief Tracking for heavy operations while having active transactions.
 
 #include <optional>
@@ -13,16 +13,16 @@ USERVER_NAMESPACE_BEGIN
 
 /// @brief Tracking for heavy operations while having active transactions.
 ///
-/// Some operations, like http requests, are heavy and can take
-/// too long during an incident. If they are called during an active
-/// database transaction, connection will be held for longer and
-/// connection pool will be exhausted. Transaction tracker prevents this
-/// by holding counter of active transactions in TaskLocalVariable
+/// Some operations, like HTTP requests, are heavy and can take too long during an incident. If they are called during
+/// an active database transaction, connection will be held for longer and connection pool will be exhausted.
+/// Transaction tracker prevents this by holding counter of active transactions in TaskLocalVariable
 /// and checking for active transactions in heavy operations.
 ///
 /// ## Example usage:
 ///
 /// @snippet utils/trx_tracker_test.cpp  Sample TransactionTracker usage
+///
+/// @see @ref scripts/docs/en/userver/long_transactions.md
 namespace utils::trx_tracker {
 
 namespace impl {
@@ -42,9 +42,8 @@ bool IsEnabled() noexcept;
 
 /// @brief Unique ID for every task.
 ///
-/// Sometimes transactions start and end in different coroutines.
-/// To prevent transaction from incrementing and decrementing different
-/// transaction counters, TransactionLock stores TaskId on Lock and
+/// Sometimes transactions start and end in different coroutines. To prevent transaction from incrementing and
+/// decrementing different transaction counters, TransactionLock stores TaskId on Lock and
 /// checks that stored TaskId is the same as current TaskId in Unlock.
 class TaskId final {
 public:
@@ -90,10 +89,10 @@ void CheckNoTransactions(std::string_view location);
 
 /// @brief Disable check for active transactions.
 ///
-/// To consciously call a heavy operation in active transaction,
-/// check can be disabled by creating an instance of this class.
-/// Checks will be disabled until every instance either has
-/// Reenable() method called or is destroyed.
+/// To consciously call a heavy operation in active transaction, check can be disabled by creating an instance of this
+/// class. Checks will be disabled until every instance either has Reenable() method called or is destroyed.
+///
+/// @snippet utils/trx_tracker_test.cpp Sample CheckDisabler usage
 class CheckDisabler final {
 public:
     /// @brief Disable check for active transactions.

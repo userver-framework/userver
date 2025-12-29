@@ -36,6 +36,7 @@ function(download_userver)
         ${ARG_VERSION}
         GIT_TAG
         ${ARG_GIT_TAG}
+        GIT_SHALLOW TRUE
         ${ARG_UNPARSED_ARGUMENTS}
     )
 endfunction()

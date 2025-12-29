@@ -11,6 +11,7 @@
 #include <userver/dynamic_config/fwd.hpp>
 #include <userver/storages/mongo/collection.hpp>
 #include <userver/storages/mongo/pool_config.hpp>
+#include <userver/storages/mongo/transaction.hpp>
 #include <userver/utils/statistics/fwd.hpp>
 #include <userver/utils/zstring_view.hpp>
 
@@ -54,6 +55,11 @@ public:
 
     /// @throws storages::mongo::MongoException if failed to connect to the mongo server.
     void Ping();
+
+    /// @brief Begin a new transaction
+    /// @return Transaction handle for executing operations within transaction context
+    /// @throws MongoException if transaction cannot be started
+    Transaction BeginTransaction() const;
 
     /// @cond
     // For internal use only

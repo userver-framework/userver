@@ -6,7 +6,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace clients::http {
 
-ConnectTo::ConnectTo(ConnectTo&& other) noexcept : value_(other.value_) { other.value_ = nullptr; }
+ConnectTo::ConnectTo(ConnectTo&& other) noexcept : value_(other.value_) {
+    other.value_ = nullptr;
+}
 
 ConnectTo::ConnectTo(const std::string& value) {
     if (!value.empty()) {

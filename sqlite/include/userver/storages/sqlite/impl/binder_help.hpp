@@ -19,7 +19,8 @@ public:
     template <typename T>
     static io::ParamsBinder UpdateRowAsParamsBindings(const Query& query, infra::ConnectionPtr& conn, const T& row) {
         static_assert(
-            std::is_aggregate_v<T> || boost::pfr::tuple_size_v<T> > 0, "T must be an aggregate type or tuple-like type"
+            std::is_aggregate_v<T> || boost::pfr::tuple_size_v<T> > 0,
+            "T must be an aggregate type or tuple-like type"
         );
         if constexpr (std::is_aggregate_v<T>) {
             return std::apply(

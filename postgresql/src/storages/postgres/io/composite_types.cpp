@@ -24,7 +24,7 @@ static_assert(traits::kHasParser<Record>);
 namespace detail {
 
 // here to force linkage
-void InitRecordParser() { ForceReference(CppToPg<Record>::init_); }
+void InitRecordParser() { ForceReference(CppToPg<Record>::init); }
 
 }  // namespace detail
 }  // namespace storages::postgres::io

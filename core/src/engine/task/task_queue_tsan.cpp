@@ -16,9 +16,14 @@ thread_local std::size_t tsan_queue_thread_index = 0;
 }  // namespace
 
 TaskQueueTSan::TaskQueueTSan(const TaskProcessorConfig& config)
-    : thread_pined_{utils::GenerateFixedArray(config.worker_threads, [&config](std::size_t /*index*/) {
-          return ThreadTSanItem{moodycamel::LightweightSemaphore{kSemaphoreInitialCount, config.spinning_iterations}};
-      })} {}
+    : thread_pined_{utils::GenerateFixedArray(
+          config.worker_threads,
+          [&config](std::size_t /*index*/) {
+              return ThreadTSanItem{moodycamel::LightweightSemaphore{kSemaphoreInitialCount, config.spinning_iterations}
+              };
+          }
+      )}
+{}
 
 void TaskQueueTSan::Push(boost::intrusive_ptr<impl::TaskContext>&& context) {
     UASSERT(context);

@@ -11,16 +11,22 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine::ev {
 
-ThreadPool::ThreadPool(ThreadPoolConfig config) : ThreadPool(std::move(config), false) {}
+ThreadPool::ThreadPool(ThreadPoolConfig config)
+    : ThreadPool(std::move(config), false)
+{}
 
 ThreadPool::ThreadPool(ThreadPoolConfig config, UseDefaultEvLoop)
-    : ThreadPool(std::move(config), !config.ev_default_loop_disabled) {}
+    : ThreadPool(std::move(config), !config.ev_default_loop_disabled)
+{}
 
-ThreadPool::ThreadPool(ThreadPoolConfig config, bool use_ev_default_loop) : use_ev_default_loop_(use_ev_default_loop) {
+ThreadPool::ThreadPool(ThreadPoolConfig config, bool use_ev_default_loop)
+    : use_ev_default_loop_(use_ev_default_loop)
+{
     threads_ = utils::GenerateFixedArray(config.threads, [&](std::size_t index) {
         const auto thread_name = fmt::format("{}_{}", config.thread_name, index);
-        return (use_ev_default_loop && index == 0) ? Thread(thread_name, Thread::kUseDefaultEvLoop)
-                                                   : Thread(thread_name);
+        return (use_ev_default_loop && index == 0)
+                   ? Thread(thread_name, Thread::kUseDefaultEvLoop)
+                   : Thread(thread_name);
     });
 
     default_controls_.controls = utils::GenerateFixedArray(threads_.size(), [this](std::size_t index) {

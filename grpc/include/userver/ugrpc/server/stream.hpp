@@ -44,19 +44,11 @@ public:
     /// @param response the next message to write
     /// @throws ugrpc::server::RpcError on an RPC error
     /// @throws std::exception (internal) on error from middlewares
-    virtual void Write(Response& response) = 0;
-
-    /// @brief Write the next outgoing message
-    /// @param response the next message to write
-    /// @param options the write options
-    /// @throws ugrpc::server::RpcError on an RPC error
-    /// @throws std::exception (internal) on error from middlewares
-    virtual void Write(Response& response, const grpc::WriteOptions& options) = 0;
-
-    /// @brief Write the next outgoing message
-    /// @param response the next message to write
-    /// @throws ugrpc::server::RpcError on an RPC error
-    /// @throws std::exception (internal) on error from middlewares
+    ///
+    /// This method uses move-only semantics for safety:
+    /// - Middlewares may modify responses during writes, making reuse dangerous
+    /// - After the call, `response` is in moved-from state and must not be reused
+    /// - Explicit std::move ensures ownership transfer and prevents accidental reuse
     virtual void Write(Response&& response) = 0;
 
     /// @brief Write the next outgoing message
@@ -64,6 +56,11 @@ public:
     /// @param options the write options
     /// @throws ugrpc::server::RpcError on an RPC error
     /// @throws std::exception (internal) on error from middlewares
+    ///
+    /// This method uses move-only semantics for safety:
+    /// - Middlewares may modify responses during writes, making reuse dangerous
+    /// - After the call, `response` is in moved-from state and must not be reused
+    /// - Explicit std::move ensures ownership transfer and prevents accidental reuse
     virtual void Write(Response&& response, const grpc::WriteOptions& options) = 0;
 };
 

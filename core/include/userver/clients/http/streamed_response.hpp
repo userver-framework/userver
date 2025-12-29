@@ -45,12 +45,13 @@ public:
 
     using Queue = concurrent::StringStreamQueue;
 
-    /// Read another HTTP response body part into 'output'.
-    /// Any previous data in 'output' is dropped.
+    /// Read another HTTP response body part into 'output'. Any previous data in 'output' is dropped.
+    /// @returns true if data was successfully received in 'output' before current task cancellation and 'deadline'.
+    ///
     /// @note The chunk size is not guaranteed to be exactly
     /// multipart/form-data chunk size or any other HTTP-related size
     /// @note may block if the chunk is not obtained yet.
-    bool ReadChunk(std::string& output, engine::Deadline);
+    bool ReadChunk(std::string& output, engine::Deadline deadline);
 
     /// @cond
     StreamedResponse(

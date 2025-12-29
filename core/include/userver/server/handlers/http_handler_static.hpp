@@ -12,8 +12,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::handlers {
 
-// clang-format off
-
 /// @ingroup userver_components userver_http_handlers
 ///
 /// @brief Handler that returns HTTP 200 if file exist and returns file data with mapped content/type.
@@ -32,23 +30,21 @@ namespace server::handlers {
 ///
 /// \ref userver_http_handlers "Userver HTTP Handlers".
 ///
-/// ## Static options:
-/// Inherits all the options from server::handlers::HttpHandlerBase and adds the
-/// following ones:
+/// ## Static options of server::handlers::HttpHandlerStatic :
+/// @include{doc} scripts/docs/en/components_schema/core/src/server/handlers/http_handler_static.md
 ///
-/// Name               | Description                                                                               | Default value
-/// ------------------ | ----------------------------------------------------------------------------------------- | -------------
-/// fs-cache-component | Name of the components::FsCache component                                                 | fs-cache-component
-/// expires            | Cache age in seconds                                                                      | 600
-/// directory-file     | File to return for directory requests. File name (not path) search in requested directory | "index.html"
-/// not-found-file     | File to return for missing files                                                          | "/404.html"
+/// Options inherited from @ref server::handlers::HttpHandlerBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/server/handlers/http_handler_base.md
+///
+/// Options inherited from @ref server::handlers::HandlerBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/server/handlers/handler_base.md
+///
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
 ///
 /// ## Example usage:
 ///
 /// @snippet samples/static_service/main.cpp Static service sample - main
-
-// clang-format on
-
 class HttpHandlerStatic final : public HttpHandlerBase {
 public:
     /// @ingroup userver_component_names

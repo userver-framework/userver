@@ -1,0 +1,10 @@
+type: object
+description: Http service headers propagator middleware
+additionalProperties: false
+properties:
+    headers:
+        type: array
+        description: array of headers to propagate
+        items:
+            type: string
+            description: header

@@ -53,8 +53,10 @@ void DoRegisterAuthCheckerFactory(std::string_view auth_type, AuthCheckerFactory
     GetAuthCheckerFactories().RegisterFactory(std::string{auth_type}, factory);
 }
 
-utils::UniqueRef<AuthCheckerFactoryBase>
-MakeAuthCheckerFactory(std::string_view auth_type, const components::ComponentContext& context) {
+utils::UniqueRef<AuthCheckerFactoryBase> MakeAuthCheckerFactory(
+    std::string_view auth_type,
+    const components::ComponentContext& context
+) {
     const auto factory_factory = GetAuthCheckerFactories().GetFactory(auth_type);
     return factory_factory(context);
 }

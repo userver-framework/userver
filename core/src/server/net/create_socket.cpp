@@ -22,8 +22,9 @@ engine::io::Socket CreateUnixSocket(const std::string& path, int backlog, boost:
     /* Use blocking API here, it is not critical as CreateUnixSocket() is called
      * on startup only */
 
-    if (fs::blocking::GetFileType(path) == boost::filesystem::file_type::socket_file)
+    if (fs::blocking::GetFileType(path) == boost::filesystem::file_type::socket_file) {
         fs::blocking::RemoveSingleFile(path);
+    }
 
     engine::io::Socket socket{addr.Domain(), engine::io::SocketType::kStream};
     socket.Bind(addr);
@@ -44,7 +45,7 @@ engine::io::Socket CreateIpv6Socket(const std::string& address, uint16_t port, i
 
     UASSERT(!addrs.empty());
 
-    if (addrs.size() > 1)
+    if (addrs.size() > 1) {
         throw std::runtime_error(fmt::format(
             "Address string '{}' designates multiple addresses, while only 1 "
             "address per listener is supported. The addresses are: {}\nYou can "
@@ -52,6 +53,7 @@ engine::io::Socket CreateIpv6Socket(const std::string& address, uint16_t port, i
             fmt::join(addrs, ", "),
             address
         ));
+    }
 
     auto& addr = addrs.front();
     engine::io::Socket socket{addr.Domain(), engine::io::SocketType::kStream};
@@ -61,10 +63,11 @@ engine::io::Socket CreateIpv6Socket(const std::string& address, uint16_t port, i
 }
 
 engine::io::Socket DoCreateSocket(const ListenerConfig& config, const PortConfig& port_config) {
-    if (port_config.unix_socket_path.empty())
+    if (port_config.unix_socket_path.empty()) {
         return CreateIpv6Socket(port_config.address, port_config.port, config.backlog);
-    else
+    } else {
         return CreateUnixSocket(port_config.unix_socket_path, config.backlog, port_config.unix_socket_perms);
+    }
 }
 
 }  // namespace

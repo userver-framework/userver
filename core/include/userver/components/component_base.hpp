@@ -70,6 +70,10 @@ protected:
 /// @deprecated use @ref components::ComponentBase instead.
 using LoggableComponentBase = ComponentBase;
 
+/// @see @ref components::LocateDependency
+template <typename T>
+struct WithType {};
+
 }  // namespace components
 
 USERVER_NAMESPACE_END

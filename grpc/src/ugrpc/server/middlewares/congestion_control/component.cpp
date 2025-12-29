@@ -12,6 +12,10 @@
 #include <userver/ugrpc/status_codes.hpp>
 #include <userver/utils/assert.hpp>
 
+#ifndef ARCADIA_ROOT
+#include "generated/src/ugrpc/server/middlewares/congestion_control/component.yaml.hpp"  // Y_IGNORE
+#endif
+
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::server::middlewares::congestion_control {
@@ -34,7 +38,8 @@ Component::Component(const components::ComponentConfig& config, const components
           context,
           USERVER_NAMESPACE::middlewares::MiddlewareDependencyBuilder()
               .InGroup<USERVER_NAMESPACE::middlewares::groups::Core>()
-      ) {
+      )
+{
     auto* cc_component = context.FindComponentOptional<USERVER_NAMESPACE::congestion_control::Component>();
 
     auto& server = context.FindComponent<ServerComponent>().GetServer();
@@ -48,8 +53,10 @@ Component::Component(const components::ComponentConfig& config, const components
     }
 }
 
-std::shared_ptr<const MiddlewareBase>
-Component::CreateMiddleware(const ugrpc::server::ServiceInfo&, const yaml_config::YamlConfig& middleware_config) const {
+std::shared_ptr<const MiddlewareBase> Component::CreateMiddleware(
+    const ugrpc::server::ServiceInfo&,
+    const yaml_config::YamlConfig& middleware_config
+) const {
     auto middleware = std::make_shared<Middleware>(middleware_config.As<Settings>(), rate_limit_);
     return middleware;
 }
@@ -72,16 +79,8 @@ void Component::SetLimit(std::optional<size_t> new_limit) {
 yaml_config::Schema Component::GetMiddlewareConfigSchema() const { return GetStaticConfigSchema(); }
 
 yaml_config::Schema Component::GetStaticConfigSchema() {
-    return yaml_config::MergeSchemas<MiddlewareFactoryComponentBase>(R"(
-type: object
-description: gRPC congestion control component
-additionalProperties: false
-properties:
-    grpc-status-code:
-        type: string
-        description: gRPC status code for ratelimited responses
-        defaultDescription: RESOURCE_EXHAUSTED
-)");
+    return yaml_config::MergeSchemasFromResource<
+        MiddlewareFactoryComponentBase>("src/ugrpc/server/middlewares/congestion_control/component.yaml");
 }
 
 }  // namespace ugrpc::server::middlewares::congestion_control

@@ -31,8 +31,11 @@ public:
     );
     ~ClusterSentinelImpl() override;
 
-    std::unordered_map<ServerId, size_t, ServerIdHasher>
-    GetAvailableServersWeighted(size_t shard_idx, bool with_master, const CommandControl& cc /*= {}*/) const override;
+    std::unordered_map<ServerId, size_t, ServerIdHasher> GetAvailableServersWeighted(
+        size_t shard_idx,
+        bool with_master,
+        const CommandControl& cc /*= {}*/
+    ) const override;
 
     void WaitConnectedDebug(bool allow_empty_slaves) override;
 

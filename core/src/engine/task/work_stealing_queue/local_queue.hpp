@@ -17,9 +17,8 @@ public:
     LocalQueue() = default;
 
     std::size_t GetSize() const noexcept {
-        return static_cast<std::size_t>(
-            std::max(static_cast<std::ptrdiff_t>(tail_.load() - head_.load()), std::ptrdiff_t{0})
-        );
+        return static_cast<
+            std::size_t>(std::max(static_cast<std::ptrdiff_t>(tail_.load() - head_.load()), std::ptrdiff_t{0}));
     }
 
     // For producer only

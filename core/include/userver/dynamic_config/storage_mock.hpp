@@ -37,7 +37,9 @@ public:
     /// @endcode
     template <typename VariableType, typename Value = VariableType>
     KeyValue(const Key<VariableType>& key, Value&& value)
-        : id_(impl::ConfigIdGetter::Get(key)), value_(Convert<VariableType>(std::forward<Value>(value))) {}
+        : id_(impl::ConfigIdGetter::Get(key)),
+          value_(Convert<VariableType>(std::forward<Value>(value)))
+    {}
 
     /// For internal use only
     impl::ConfigId GetId() const { return id_; }

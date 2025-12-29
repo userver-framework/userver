@@ -30,23 +30,18 @@ using MiddlewareRunnerComponentBase = USERVER_NAMESPACE::middlewares::RunnerComp
 
 }  // namespace impl
 
-// clang-format off
-
 /// @ingroup userver_components userver_base_classes
 ///
 /// @brief Base class for all the gRPC service components.
 ///
-/// ## Static options:
-/// Name | Description | Default value
-/// ---- | ----------- | -------------
-/// task-processor | the task processor to use for responses | taken from grpc-server.service-defaults
-/// disable-user-pipeline-middlewares | flag to disable `groups::User` middlewares from pipeline | false
-/// disable-all-pipeline-middlewares | flag to disable all middlewares from pipeline | false
-/// middlewares | middlewares names to use | `{}` (use server defaults)
-/// status-codes-log-level | gRPC status code string -> span log level map | {}
-
-// clang-format on
-
+/// ## Static options of ugrpc::server::ServiceComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/grpc/src/ugrpc/server/service_component_base.md
+///
+/// Options inherited from @ref middlewares::RunnerComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/middlewares/runner_component_base.md
+///
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
 class ServiceComponentBase : public impl::MiddlewareRunnerComponentBase {
 public:
     ServiceComponentBase(const components::ComponentConfig& config, const components::ComponentContext& context);
@@ -79,7 +74,9 @@ class ServiceComponentBase : public server::ServiceComponentBase, public Service
 
 public:
     ServiceComponentBase(const components::ComponentConfig& config, const components::ComponentContext& context)
-        : server::ServiceComponentBase(config, context), ServiceInterface() {
+        : server::ServiceComponentBase(config, context),
+          ServiceInterface()
+    {
         // At this point the derived class that implements ServiceInterface is not
         // constructed yet. We rely on the implementation detail that the methods of
         // ServiceInterface are never called right after RegisterService. Unless

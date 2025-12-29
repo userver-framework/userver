@@ -1,4 +1,4 @@
-import argparse  # noqa: I001
+import argparse
 import json
 import pprint
 

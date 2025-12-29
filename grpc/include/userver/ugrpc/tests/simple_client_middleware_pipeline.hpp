@@ -11,8 +11,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::tests {
 
-using SimpleClientMiddlewarePipeline = USERVER_NAMESPACE::middlewares::impl::
-    SimpleMiddlewarePipeline<ugrpc::client::MiddlewareBase, ugrpc::client::ClientInfo>;
+using SimpleClientMiddlewarePipeline = USERVER_NAMESPACE::middlewares::impl::SimpleMiddlewarePipeline<
+    ugrpc::client::MiddlewareBase,
+    ugrpc::client::ClientInfo>;
 
 }  // namespace ugrpc::tests
 

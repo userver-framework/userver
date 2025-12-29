@@ -18,8 +18,13 @@ public:
     using TimePoint = std::chrono::system_clock::time_point;
 
     constexpr TimePointTzBase() = default;
-    constexpr explicit TimePointTzBase(TimePoint tp) : tp_(tp) {}
-    constexpr TimePointTzBase(TimePoint tp, std::chrono::seconds tz_offset) : tp_(tp), tz_offset_(tz_offset) {}
+    constexpr explicit TimePointTzBase(TimePoint tp)
+        : tp_(tp)
+    {}
+    constexpr TimePointTzBase(TimePoint tp, std::chrono::seconds tz_offset)
+        : tp_(tp),
+          tz_offset_(tz_offset)
+    {}
     TimePointTzBase(const TimePointTzBase& other);
     TimePointTzBase(TimePointTzBase&& other) noexcept;
 

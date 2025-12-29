@@ -46,7 +46,9 @@ public:
     ///          means it is not correct in general to create timestamp from duration's `Seconds` and `Nanos` - use
     ///          specific constructor instead.
     constexpr Timestamp(const std::chrono::seconds& seconds, const std::chrono::nanoseconds& nanos)
-        : seconds_(seconds), nanos_(nanos) {
+        : seconds_(seconds),
+          nanos_(nanos)
+    {
         if (!IsValid(seconds_, nanos_)) {
             ThrowError(seconds_, nanos_);
         }
@@ -55,7 +57,9 @@ public:
     /// @brief Creates timestamp from duration @a since_epoch .
     /// @throws ValueError if @a since_epoch is outside the allowed range.
     constexpr explicit Timestamp(const Duration& since_epoch)
-        : seconds_(since_epoch.Seconds()), nanos_(since_epoch.Nanos()) {
+        : seconds_(since_epoch.Seconds()),
+          nanos_(since_epoch.Nanos())
+    {
         DurationToTimestamp(seconds_, nanos_);
 
         if (seconds_ < kMinSeconds || seconds_ > kMaxSeconds) {
@@ -82,7 +86,9 @@ public:
 
     /// @brief Creates timestamp from `std::chrono::system_clock::time_point`.
     /// @throws ValueError if @a time_point is outside the allowed range.
-    constexpr Timestamp(const TimePoint& time_point) : Timestamp(time_point.time_since_epoch()) {}
+    constexpr Timestamp(const TimePoint& time_point)
+        : Timestamp(time_point.time_since_epoch())
+    {}
 
     Timestamp(utils::impl::InternalTag, std::int64_t seconds, std::int32_t nanos);
 
@@ -150,8 +156,10 @@ public:
     }
 
     /// @brief Returns `true` if @a seconds and @a nanos represent a valid `google.protobuf.Timestamp` value.
-    [[nodiscard]] static constexpr bool
-    IsValid(const std::chrono::seconds& seconds, const std::chrono::nanoseconds& nanos) {
+    [[nodiscard]] static constexpr bool IsValid(
+        const std::chrono::seconds& seconds,
+        const std::chrono::nanoseconds& nanos
+    ) {
         if (seconds < kMinSeconds || seconds > kMaxSeconds) {
             return false;
         }

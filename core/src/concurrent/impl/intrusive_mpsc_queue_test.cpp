@@ -18,7 +18,9 @@ USERVER_NAMESPACE_BEGIN
 namespace {
 
 struct Node final : public concurrent::impl::SinglyLinkedBaseHook {
-    explicit Node(std::size_t x = 0) : x(x) {}
+    explicit Node(std::size_t x = 0)
+        : x(x)
+    {}
 
     std::size_t x{0};
 };
@@ -107,7 +109,9 @@ TEST(IntrusiveMpscQueue, StressTest) {
 
         while (true) {
             std::unique_ptr<Node> node(queue.TryPopWeak());
-            if (!node) continue;
+            if (!node) {
+                continue;
+            }
 
             if (node->x == kStopSignal) {
                 ++stop_signals_received;
@@ -144,7 +148,9 @@ TEST(IntrusiveMpscQueue, StressTestNodeReuse) {
     auto worker1 = std::async([&] {
         while (keep_running) {
             Node* node = queue1.TryPopWeak();
-            if (!node) continue;
+            if (!node) {
+                continue;
+            }
 
             EXPECT_EQ(node->x, 0);
             queue2.Push(*node);
@@ -154,7 +160,9 @@ TEST(IntrusiveMpscQueue, StressTestNodeReuse) {
     auto worker2 = std::async([&] {
         while (keep_running) {
             Node* node = queue2.TryPopWeak();
-            if (!node) continue;
+            if (!node) {
+                continue;
+            }
 
             EXPECT_EQ(node->x, 0);
             queue1.Push(*node);

@@ -28,7 +28,10 @@ std::string_view RemoveInternalSuffix(std::string_view key) noexcept {
 }  // namespace
 
 template <typename IterTraits>
-Iterator<IterTraits>::Iterator(const Iterator<IterTraits>& other) : container_(other.container_), it_(other.it_) {
+Iterator<IterTraits>::Iterator(const Iterator<IterTraits>& other)
+    : container_(other.container_),
+      it_(other.it_)
+{
     current_.reset();
 }
 
@@ -40,7 +43,9 @@ Iterator<IterTraits>::Iterator(Iterator<IterTraits>&& other) noexcept
 
 template <typename IterTraits>
 Iterator<IterTraits>& Iterator<IterTraits>::operator=(const Iterator<IterTraits>& other) {
-    if (this == &other) return *this;
+    if (this == &other) {
+        return *this;
+    }
 
     it_ = other.it_;
     container_ = other.container_;
@@ -79,7 +84,9 @@ std::string Iterator<IterTraits>::GetName() const {
 template <typename IterTraits>
 void Iterator<IterTraits>::UpdateValue() const {
     UASSERT(container_ != nullptr);
-    if (current_) return;
+    if (current_) {
+        return;
+    }
 
     if (it_.GetIteratorType() == formats::common::Type::kArray) {
         current_ = (*container_)[it_.GetIndex()];

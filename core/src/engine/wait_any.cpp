@@ -13,9 +13,13 @@ std::optional<std::size_t> DoWaitAny(utils::span<ContextAccessor*> targets, Dead
     bool none_valid = true;
 
     for (const auto& [idx, target] : utils::enumerate(targets)) {
-        if (!target) continue;
+        if (!target) {
+            continue;
+        }
         none_valid = false;
-        if (target->IsReady()) return idx;
+        if (target->IsReady()) {
+            return idx;
+        }
     }
 
     if (none_valid) {
@@ -27,11 +31,15 @@ std::optional<std::size_t> DoWaitAny(utils::span<ContextAccessor*> targets, Dead
     current.Sleep(wait_strategy, deadline);
 
     for (const auto& target : targets) {
-        if (target) target->AfterWait();
+        if (target) {
+            target->AfterWait();
+        }
     }
 
     for (const auto& [idx, target] : utils::enumerate(targets)) {
-        if (target && target->IsReady()) return idx;
+        if (target && target->IsReady()) {
+            return idx;
+        }
     }
 
     return std::nullopt;

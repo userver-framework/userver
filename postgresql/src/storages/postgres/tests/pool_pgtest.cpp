@@ -116,7 +116,9 @@ UTEST_P(PostgrePool, ConnectionPoolReachedMaxSize) {
 
     UASSERT_NO_THROW(conn = pool->Acquire(MakeDeadline())) << "Obtained connection from pool";
     UEXPECT_THROW(const pg::detail::ConnectionPtr conn2 = pool->Acquire(MakeDeadline()), pg::PoolError)
-        << "Pool reached max size";
+        << "Pool "
+           "reached "
+           "max size";
 
     CheckConnection(std::move(conn));
 }
@@ -357,7 +359,9 @@ UTEST_P(PostgrePool, ConnectionCleanup) {
         kCachePreparedStatements,
         {},
         storages::postgres::DefaultCommandControls(
-            pg::CommandControl{std::chrono::milliseconds{100}, std::chrono::seconds{1}}, {}, {}
+            pg::CommandControl{std::chrono::milliseconds{100}, std::chrono::seconds{1}},
+            {},
+            {}
         ),
         testsuite::PostgresControl{},
         error_injection::Settings{},
@@ -404,7 +408,9 @@ UTEST_P(PostgrePool, QueryCancel) {
         kCachePreparedStatements,
         {},
         storages::postgres::DefaultCommandControls(
-            pg::CommandControl{std::chrono::milliseconds{100}, std::chrono::milliseconds{10}}, {}, {}
+            pg::CommandControl{std::chrono::milliseconds{100}, std::chrono::milliseconds{10}},
+            {},
+            {}
         ),
         testsuite::PostgresControl{},
         error_injection::Settings{},
@@ -532,7 +538,8 @@ UTEST_P(PostgrePool, PreparedStatementsDisabledOverrideCommandControl) {
             pg::CommandControl{
                 std::chrono::milliseconds{100},
                 std::chrono::milliseconds{10},
-                pg::CommandControl::PreparedStatementsOptionOverride::kDisabled},
+                pg::CommandControl::PreparedStatementsOptionOverride::kDisabled
+            },
             {},
             {}
         ),
@@ -569,7 +576,8 @@ UTEST_P(PostgrePool, PreparedStatementsEnabledOverrideCommandControl) {
             pg::CommandControl{
                 std::chrono::milliseconds{100},
                 std::chrono::milliseconds{10},
-                pg::CommandControl::PreparedStatementsOptionOverride::kEnabled},
+                pg::CommandControl::PreparedStatementsOptionOverride::kEnabled
+            },
             {},
             {}
         ),
@@ -701,9 +709,10 @@ UTEST_P(PostgrePool, ForQueryQueueBeingNonTransactional) {
         EXPECT_ANY_THROW(result = query_queue.Collect(kDefaultCC.network_timeout_ms));
     }
 
-    const auto inserted_values = pool->Acquire(MakeDeadline())
-                                     ->Execute("SELECT id FROM qq_non_transactional_test")
-                                     .AsContainer<std::vector<int>>();
+    const auto inserted_values =
+        pool->Acquire(MakeDeadline())
+            ->Execute("SELECT id FROM qq_non_transactional_test")
+            .AsContainer<std::vector<int>>();
     ASSERT_EQ(inserted_values.size(), 1);
     EXPECT_EQ(inserted_values.front(), 1);
 }

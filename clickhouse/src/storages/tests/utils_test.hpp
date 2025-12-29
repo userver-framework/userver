@@ -17,15 +17,17 @@ class ClusterWrapper final {
 public:
     ClusterWrapper(
         bool use_compression = false,
-        const std::vector<storages::clickhouse::impl::EndpointSettings>& endpoints =
-            {{"localhost", GetClickhousePort()}}
+        const std::vector<storages::clickhouse::impl::EndpointSettings>& endpoints = {{"localhost", GetClickhousePort()}
+        }
     );
 
     storages::clickhouse::Cluster* operator->();
     storages::clickhouse::Cluster& operator*();
 
-    utils::statistics::Snapshot
-    GetStatistics(std::string prefix, std::vector<utils::statistics::Label> require_labels = {});
+    utils::statistics::Snapshot GetStatistics(
+        std::string prefix,
+        std::vector<utils::statistics::Label> require_labels = {}
+    );
 
 private:
     clients::dns::Resolver resolver_;

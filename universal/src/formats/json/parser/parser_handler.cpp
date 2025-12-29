@@ -4,9 +4,13 @@ USERVER_NAMESPACE_BEGIN
 
 namespace formats::json::parser {
 
-ParserHandler::ParserHandler(BaseParser& parser) : parser_(parser) {}
+ParserHandler::ParserHandler(BaseParser& parser)
+    : parser_(parser)
+{}
 
-ParserHandler::ParserHandler(ParserState& parser_state) : ParserHandler(parser_state.GetTopParser()) {}
+ParserHandler::ParserHandler(ParserState& parser_state)
+    : ParserHandler(parser_state.GetTopParser())
+{}
 
 bool ParserHandler::Null() {
     parser_.Null();

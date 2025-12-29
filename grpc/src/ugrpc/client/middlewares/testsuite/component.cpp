@@ -12,10 +12,13 @@ Component::Component(const components::ComponentConfig& config, const components
           context,
           USERVER_NAMESPACE::middlewares::MiddlewareDependencyBuilder()
               .InGroup<USERVER_NAMESPACE::middlewares::groups::PostCore>()
-      ) {}
+      )
+{}
 
-std::shared_ptr<const MiddlewareBase>
-Component::CreateMiddleware(const ClientInfo& info, const yaml_config::YamlConfig& /*middleware_config*/) const {
+std::shared_ptr<const MiddlewareBase> Component::CreateMiddleware(
+    const ClientInfo& info,
+    const yaml_config::YamlConfig& /*middleware_config*/
+) const {
     return std::make_shared<Middleware>(info.client_name);
 }
 

@@ -23,7 +23,9 @@ public:
     RelaxedCounter(const RelaxedCounter& other) noexcept : val_(other.Load()) {}
 
     RelaxedCounter& operator=(const RelaxedCounter& other) noexcept {
-        if (this == &other) return *this;
+        if (this == &other) {
+            return *this;
+        }
 
         Store(other.Load());
         return *this;

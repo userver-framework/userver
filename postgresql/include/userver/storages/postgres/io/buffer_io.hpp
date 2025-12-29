@@ -18,12 +18,13 @@ struct ParserRequiresTypeCategories : std::false_type {};
 template <typename T>
 struct ParserRequiresTypeCategories<
     T,
-    USERVER_NAMESPACE::utils::void_t<decltype(std::declval<T&>(
-    )(std::declval<const FieldBuffer&>(), std::declval<const TypeBufferCategory&>()))>> : std::true_type {};
+    USERVER_NAMESPACE::utils::void_t<
+        decltype(std::declval<T&>()(std::declval<const FieldBuffer&>(), std::declval<const TypeBufferCategory&>()))>>
+    : std::true_type {};
 
 template <typename T>
-inline constexpr bool kParserRequiresTypeCategories =
-    ParserRequiresTypeCategories<typename traits::IO<T>::ParserType>::value;
+inline constexpr bool
+    kParserRequiresTypeCategories = ParserRequiresTypeCategories<typename traits::IO<T>::ParserType>::value;
 
 #ifndef NDEBUG
 
@@ -76,7 +77,9 @@ void ReadBuffer(const FieldBuffer& buffer, T&& value) {
     );
     if (traits::kParserBufferCategory<BufferReader> != buffer.category) {
         throw InvalidParserCategory(
-            compiler::GetTypeName<ValueType>(), traits::kTypeBufferCategory<ValueType>, buffer.category
+            compiler::GetTypeName<ValueType>(),
+            traits::kTypeBufferCategory<ValueType>,
+            buffer.category
         );
     }
 
@@ -93,7 +96,9 @@ void ReadBuffer(const FieldBuffer& buffer, T&& value, const TypeBufferCategory& 
     using BufferReader = typename traits::IO<ValueType>::ParserType;
     if (traits::kParserBufferCategory<BufferReader> != buffer.category) {
         throw InvalidParserCategory(
-            compiler::GetTypeName<ValueType>(), traits::kTypeBufferCategory<ValueType>, buffer.category
+            compiler::GetTypeName<ValueType>(),
+            traits::kTypeBufferCategory<ValueType>,
+            buffer.category
         );
     }
 

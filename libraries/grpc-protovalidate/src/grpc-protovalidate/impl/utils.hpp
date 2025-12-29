@@ -9,8 +9,10 @@ USERVER_NAMESPACE_BEGIN
 
 namespace buf::validate {
 
-USERVER_NAMESPACE::logging::LogHelper&
-operator<<(USERVER_NAMESPACE::logging::LogHelper& lh, const Violation& violation);
+USERVER_NAMESPACE::logging::LogHelper& operator<<(
+    USERVER_NAMESPACE::logging::LogHelper& lh,
+    const Violation& violation
+);
 
 }  // namespace buf::validate
 

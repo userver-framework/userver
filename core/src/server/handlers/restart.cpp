@@ -15,7 +15,9 @@ constexpr std::chrono::seconds kDelayDefault{20};
 }  // namespace
 
 Restart::Restart(const components::ComponentConfig& config, const components::ComponentContext& context)
-    : HttpHandlerBase(config, context, true), health_{components::ComponentHealth::kOk} {}
+    : HttpHandlerBase(config, context, true),
+      health_{components::ComponentHealth::kOk}
+{}
 
 std::string Restart::HandleRequestThrow(const http::HttpRequest& request, request::RequestContext&) const {
     auto delay = kDelayDefault;
@@ -26,7 +28,9 @@ std::string Restart::HandleRequestThrow(const http::HttpRequest& request, reques
     health_ = components::ComponentHealth::kFatal;
     engine::DetachUnscopedUnsafe(engine::CriticalAsyncNoSpan([delay] {
         engine::InterruptibleSleepFor(std::chrono::seconds(delay));
-        if (engine::current_task::ShouldCancel()) return;
+        if (engine::current_task::ShouldCancel()) {
+            return;
+        }
         components::RequestStop();
     }));
 

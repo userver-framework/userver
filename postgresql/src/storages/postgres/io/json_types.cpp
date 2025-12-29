@@ -16,8 +16,8 @@ struct PgToCpp<PredefinedOids::kJson, formats::json::Value>
 namespace {
 
 const bool kReference = detail::ForceReference(
-    CppToPg<formats::json::Value>::init_,
-    PgToCpp<PredefinedOids::kJson, formats::json::Value>::init_
+    CppToPg<formats::json::Value>::init,
+    PgToCpp<PredefinedOids::kJson, formats::json::Value>::init
 );
 
 }  // namespace

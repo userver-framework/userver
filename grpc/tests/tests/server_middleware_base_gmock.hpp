@@ -10,26 +10,28 @@ namespace tests::server {
 
 class ServerMiddlewareBaseMock : public ugrpc::server::MiddlewareBase {
 public:
-    MOCK_METHOD(void, OnCallStart, (ugrpc::server::MiddlewareCallContext & context), (const, override));
-
-    MOCK_METHOD(
-        void,
-        PreSendMessage,
-        (ugrpc::server::MiddlewareCallContext & context, google::protobuf::Message&),
-        (const, override)
-    );
+    MOCK_METHOD(void, OnCallStart, (ugrpc::server::MiddlewareCallContext&), (const, override));
 
     MOCK_METHOD(
         void,
         PostRecvMessage,
-        (ugrpc::server::MiddlewareCallContext & context, google::protobuf::Message&),
+        (ugrpc::server::MiddlewareCallContext&, google::protobuf::Message&),
         (const, override)
     );
 
     MOCK_METHOD(
         void,
+        PreSendMessage,
+        (ugrpc::server::MiddlewareCallContext&, google::protobuf::Message&),
+        (const, override)
+    );
+
+    MOCK_METHOD(void, PreSendStatus, (ugrpc::server::MiddlewareCallContext&, grpc::Status&), (const, override));
+
+    MOCK_METHOD(
+        void,
         OnCallFinish,
-        (ugrpc::server::MiddlewareCallContext & context, const grpc::Status& status),
+        (ugrpc::server::MiddlewareCallContext&, const std::optional<grpc::Status>&),
         (const, override)
     );
 };

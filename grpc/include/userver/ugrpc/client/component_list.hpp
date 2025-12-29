@@ -31,6 +31,7 @@ components::ComponentList MinimalComponentList();
 /// * ugrpc::client::middlewares::deadline_propagation::Component
 /// * ugrpc::client::middlewares::log::Component
 /// * ugrpc::client::middlewares::headers_propagator::Component
+/// * ugrpc::client::middlewares::origin::Component
 components::ComponentList DefaultComponentList();
 
 }  // namespace ugrpc::client

@@ -20,7 +20,9 @@ AMQP::Connection CreateConnection(AmqpConnectionHandler& handler, engine::Deadli
 }  // namespace
 
 ConnectionLock::ConnectionLock(engine::Mutex& mutex, engine::Deadline deadline)
-    : mutex_{mutex}, owns_{mutex_.try_lock_until(deadline)} {
+    : mutex_{mutex},
+      owns_{mutex_.try_lock_until(deadline)}
+{
     if (!owns_) {
         throw std::runtime_error{"Failed to acquire a connection within specified deadline"};
     }
@@ -40,7 +42,8 @@ AmqpConnection::AmqpConnection(AmqpConnectionHandler& handler, size_t max_in_fli
       conn_{CreateConnection(handler_, deadline)},
       channel_{CreateChannel(deadline)},
       reliable_channel_{CreateChannel(deadline)},
-      waiters_sema_{max_in_flight_requests} {
+      waiters_sema_{max_in_flight_requests}
+{
     handler_.OnConnectionCreated(this, deadline);
 
     try {
@@ -108,7 +111,9 @@ void AmqpConnection::AwaitChannelCreated(AMQP::Channel& channel, engine::Deadlin
     deferred->Wait(deadline);
 }
 
-AmqpConnectionLocker::AmqpConnectionLocker(AmqpConnection& conn) : conn_{conn} {}
+AmqpConnectionLocker::AmqpConnectionLocker(AmqpConnection& conn)
+    : conn_{conn}
+{}
 
 ConnectionLock AmqpConnectionLocker::Lock(engine::Deadline deadline) { return conn_.Lock(deadline); }
 

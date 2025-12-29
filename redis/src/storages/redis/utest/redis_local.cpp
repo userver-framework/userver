@@ -15,7 +15,9 @@ public:
 
 }  // namespace impl
 
-RedisLocal::RedisLocal() : impl_{std::make_unique<impl::RedisLocalImpl>()} {}
+RedisLocal::RedisLocal()
+    : impl_{std::make_unique<impl::RedisLocalImpl>()}
+{}
 
 RedisLocal::~RedisLocal() = default;
 

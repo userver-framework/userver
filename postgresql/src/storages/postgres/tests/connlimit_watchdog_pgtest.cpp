@@ -64,28 +64,29 @@ constexpr std::string_view kRawInsert = R"(
 constexpr std::size_t kHostsCount = 10;
 
 pg::Transaction GetTransaction(pgd::ClusterImpl& cluster) {
-    static pg::CommandControl kCommandControl{std::chrono::seconds(2), std::chrono::seconds(2)};
-    return cluster.Begin({pg::ClusterHostType::kMaster}, {}, kCommandControl);
+    static pg::CommandControl command_control{std::chrono::seconds(2), std::chrono::seconds(2)};
+    return cluster.Begin({pg::ClusterHostType::kMaster}, {}, command_control);
 }
 
 constexpr size_t kReservedConn = 5;
 constexpr size_t kTestsuiteConnlimit = 100 - kReservedConn;
 
-enum class MigrationVersion { V1 = 0, V2 = 1, Count };
+enum class MigrationVersion { kV1 = 0, kV2 = 1, kCount };
 
 }  // namespace
 
 class Watchdog : public PostgreSQLBase {
 public:
     static_assert(
-        static_cast<int>(MigrationVersion::Count) == 2,
+        static_cast<int>(MigrationVersion::kCount) == 2,
         "It is very dangerous. You must add new tests for a new migration version!"
     );
 
     Watchdog()
         : cluster_(
               CreateClusterImpl(this->GetDsnListFromEnv(), this->GetTaskProcessor(), kHostsCount * 2, testsuite_tasks_)
-          ) {
+          )
+    {
         // Do the step of ConnlimitWatchdog to create the table.
         testsuite_tasks_.RunTask(kWatchdogTaskName);
 
@@ -94,16 +95,16 @@ public:
 
     std::size_t DoStepV1() {
         // This watchdog use the native host like the watchdog in ClusterImpl.
-        pg::ConnlimitWatchdog connlimit_watchdog_V1{cluster_, testsuite_tasks_, kShardNumber, [] {}};
-        connlimit_watchdog_V1.StepV1();
-        return connlimit_watchdog_V1.GetConnlimit();
+        pg::ConnlimitWatchdog connlimit_watchdog_v1{cluster_, testsuite_tasks_, kShardNumber, [] {}};
+        connlimit_watchdog_v1.StepV1();
+        return connlimit_watchdog_v1.GetConnlimit();
     }
 
     std::size_t DoStepV2() {
         // Use different host names to emulate different hosts.
-        pg::ConnlimitWatchdog connlimit_watchdog_V2{cluster_, testsuite_tasks_, kShardNumber, [] {}, "host2"};
-        connlimit_watchdog_V2.StepV2();
-        return connlimit_watchdog_V2.GetConnlimit();
+        pg::ConnlimitWatchdog connlimit_watchdog_v2{cluster_, testsuite_tasks_, kShardNumber, [] {}, "host2"};
+        connlimit_watchdog_v2.StepV2();
+        return connlimit_watchdog_v2.GetConnlimit();
     }
 
     pgd::ClusterImpl& GetCluster() { return cluster_; }
@@ -150,12 +151,12 @@ UTEST_F(Watchdog, AllPermutations) {
     EXPECT_EQ(kTestsuiteConnlimit, DoStepV1());
     EXPECT_EQ(kTestsuiteConnlimit / 2, DoStepV2());
 
-    std::vector<MigrationVersion> combinations{
-        MigrationVersion::V1, MigrationVersion::V1, MigrationVersion::V2, MigrationVersion::V2};
+    std::vector<MigrationVersion>
+        combinations{MigrationVersion::kV1, MigrationVersion::kV1, MigrationVersion::kV2, MigrationVersion::kV2};
     auto do_step = [this](MigrationVersion version) {
-        if (version == MigrationVersion::V1) {
+        if (version == MigrationVersion::kV1) {
             EXPECT_EQ(kTestsuiteConnlimit / 2, DoStepV1());
-        } else if (version == MigrationVersion::V2) {
+        } else if (version == MigrationVersion::kV2) {
             EXPECT_EQ(kTestsuiteConnlimit / 2, DoStepV2());
         } else {
             UINVARIANT(false, "Please provide the code for this version");

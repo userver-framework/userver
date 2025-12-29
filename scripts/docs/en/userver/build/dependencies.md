@@ -32,14 +32,15 @@ DEPS_FILE="https://raw.githubusercontent.com/userver-framework/userver/refs/head
 sudo apt install --allow-downgrades -y $(wget -q -O - ${DEPS_FILE})
 ```
 
-### Ubuntu 21.10 (Impish Indri)
+@anchor debian_13
+### Debian 13
 
-\b Dependencies: @ref scripts/docs/en/deps/ubuntu-21.10.md "third_party/userver/scripts/docs/en/deps/ubuntu-21.10.md"
+\b Dependencies: @ref scripts/docs/en/deps/debian-13.md "third_party/userver/scripts/docs/en/deps/debian-13.md"
 
 Dependencies can be installed via:
 
 ```bash
-DEPS_FILE="https://raw.githubusercontent.com/userver-framework/userver/refs/heads/develop/scripts/docs/en/deps/ubuntu-21.10.md" && \
+DEPS_FILE="https://raw.githubusercontent.com/userver-framework/userver/refs/heads/develop/scripts/docs/en/deps/debian-13.md" && \
 sudo apt install --allow-downgrades -y $(wget -q -O - ${DEPS_FILE})
 ```
 
@@ -55,20 +56,7 @@ DEPS_FILE="https://raw.githubusercontent.com/userver-framework/userver/refs/head
 sudo apt install --allow-downgrades -y $(wget -q -O - ${DEPS_FILE})
 ```
 
-@anchor debian_11
-### Debian 11
-
-\b Dependencies: @ref scripts/docs/en/deps/debian-11.md "third_party/userver/scripts/docs/en/deps/debian-11.md"
-
-Dependencies can be installed via:
-
-```bash
-DEPS_FILE="https://raw.githubusercontent.com/userver-framework/userver/refs/heads/develop/scripts/docs/en/deps/debian-11.md" && \
-sudo apt install --allow-downgrades -y $(wget -q -O - ${DEPS_FILE})
-```
-
-
-### Debian 11 32-bit
+### Debian 32-bit
 
 \b Dependencies are the same as above.
 

@@ -50,13 +50,13 @@ def test_openapi_body_schema(simple_parser):
                         content_type='application/json',
                         schema=types.Boolean(),
                         required=True,
-                    )
+                    ),
                 ],
                 responses={},
                 security=[],
                 x_middlewares=base_model.XMiddlewares(tvm=True),
                 x_client_codegen=True,
-            )
+            ),
         ],
     )
 
@@ -96,14 +96,16 @@ def test_openapi_security(simple_parser):
                 'get': {'responses': {}, 'security': {'api_key': [], 'oauth': ['read']}},
                 'post': {'responses': {}, 'security': {'api_key': [], 'oauth': ['write']}},
                 'put': {'responses': {}},
-            }
+            },
         },
     }) == model.Service(
         name='test',
         description='',
         security={
             '<inline>#/components/securitySchemes/api_key': model.ApiKeySecurity(
-                description='', name='api_key', in_=model.SecurityIn.header
+                description='',
+                name='api_key',
+                in_=model.SecurityIn.header,
             ),
             '<inline>#/components/securitySchemes/oauth': model.OAuthSecurity(
                 description='',
@@ -251,7 +253,7 @@ def test_openapi_parameters(simple_parser):
                         },
                     },
                     'style': 'simple',
-                }
+                },
             },
         },
         'paths': {
@@ -320,7 +322,7 @@ def test_openapi_parameters(simple_parser):
                 allowEmptyValue=False,
                 x_cpp_name=None,
                 x_query_log_mode_hide=False,
-            )
+            ),
         },
         operations=[
             model.Operation(
@@ -362,7 +364,7 @@ def test_openapi_parameters(simple_parser):
                     ),
                     model.Parameter(
                         name='pamparam2',
-                        in_=model.In.query,
+                        in_=model.In.queryExplode,
                         description='override',
                         required=False,
                         schema=types.Array(items=types.Number()),
@@ -374,7 +376,7 @@ def test_openapi_parameters(simple_parser):
                         x_query_log_mode_hide=False,
                     ),
                 ],
-            )
+            ),
         ],
     )
 

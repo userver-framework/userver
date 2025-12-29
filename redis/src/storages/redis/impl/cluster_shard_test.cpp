@@ -35,15 +35,16 @@ storages::redis::CommandControl MakeCC(
 
 }  // namespace
 
-class ClusterShardGetStatIndexTests : public ::testing::TestWithParam<std::tuple<
-                                          storages::redis::CommandControl,
-                                          size_t,  ///< attempt
-                                          bool,    ///< is_nearest_ping_server
-                                          size_t,  ///< prev_instance_idx
-                                          size_t,  ///< current
-                                          size_t,  ///< servers_count
-                                          size_t   ///< expected result
-                                          >> {};
+class ClusterShardGetStatIndexTests
+    : public ::testing::TestWithParam<std::tuple<
+          storages::redis::CommandControl,
+          size_t,  ///< attempt
+          bool,    ///< is_nearest_ping_server
+          size_t,  ///< prev_instance_idx
+          size_t,  ///< current
+          size_t,  ///< servers_count
+          size_t   ///< expected result
+          >> {};
 
 TEST_P(ClusterShardGetStatIndexTests, Base) {
     const auto cc = std::get<0>(GetParam());
@@ -56,7 +57,12 @@ TEST_P(ClusterShardGetStatIndexTests, Base) {
     EXPECT_EQ(
         expected_result,
         storages::redis::impl::GetStartIndex(
-            cc, attempt, is_nearest_ping_server, prev_instance_idx, current, servers_count
+            cc,
+            attempt,
+            is_nearest_ping_server,
+            prev_instance_idx,
+            current,
+            servers_count
         )
     );
 }

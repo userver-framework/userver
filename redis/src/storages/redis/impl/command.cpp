@@ -39,7 +39,8 @@ Command::Command(
       asking(asking),
       redirected(redirected),
       read_only(read_only),
-      name(ToLower(args.GetCommandName(0))) {
+      name(ToLower(args.GetCommandName(0)))
+{
     if constexpr (utils::impl::kEnableAssert) {
         original_span_debug = tracing::Span::CurrentSpanUnchecked();
     }

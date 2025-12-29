@@ -19,7 +19,9 @@ def wrap_error(model) -> None:
     try:
         Model(**model)
     except pydantic.ValidationError as exc:
-        raise errors.convert_error(full_filepath='filepath', schema_type='jsonschema', err=exc) from None
+        raise errors.convert_error(
+            full_filepath='filepath', infile_path='', schema_type='jsonschema', err=exc
+        ) from None
 
 
 def test_ok():

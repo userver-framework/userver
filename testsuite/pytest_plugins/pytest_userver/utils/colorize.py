@@ -115,7 +115,7 @@ class Colorizer:
             if 'body' not in row:
                 raise RuntimeError(
                     f'Response log record without "body" tag. Looks like in the C++ code the tracing::Span of a'
-                    f'request was moved out or corrupted. Link: {link}. Text: {text}. Other: {row}'
+                    f'request was moved out or corrupted. Link: {link}. Text: {text}. Other: {row}',
                 )
             if 'meta_code' in row:
                 status_code = row.pop('meta_code')
@@ -304,12 +304,13 @@ def colorize_main():
     else:
         stream = open(args.log, 'r')
 
-    if args.color == ColorArg.AUTO:
-        colors_enabled = sys.stdout.isatty()
-    elif args.color == ColorArg.ALWAYS:
-        colors_enabled = True
-    else:
-        colors_enabled = False
+    match args.color:
+        case ColorArg.AUTO:
+            colors_enabled = sys.stdout.isatty()
+        case ColorArg.ALWAYS:
+            colors_enabled = True
+        case _:
+            colors_enabled = False
 
     with contextlib.closing(stream):
         colorize(stream, verbose=args.verbose, colors_enabled=colors_enabled)

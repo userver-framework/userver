@@ -20,9 +20,15 @@ USERVER_NAMESPACE_BEGIN
 namespace {
 
 struct CheckedInt {
-    CheckedInt() : CheckedInt(42) {}
+    CheckedInt()
+        : CheckedInt(42)
+    {}
 
-    explicit CheckedInt(int x) : x(x) { UASSERT(x != 0); }
+    explicit CheckedInt(int x)
+        : x(x)
+    {
+        UASSERT(x != 0);
+    }
 
     ~CheckedInt() {
         CheckAlive();
@@ -58,7 +64,9 @@ UTEST_MT(IntrusiveStack, TortureTest, 12) {
     utils::FixedArray<CheckedInt> nodes(GetThreadCount() * 2);
 
     CheckedIntStack stack;
-    for (auto& node : nodes) stack.Push(node);
+    for (auto& node : nodes) {
+        stack.Push(node);
+    }
 
     std::atomic<bool> keep_running{true};
     std::vector<engine::TaskWithResult<void>> tasks;
@@ -91,7 +99,9 @@ UTEST_MT(IntrusiveStack, TortureTest, 12) {
 
     engine::SleepFor(50ms);
     keep_running = false;
-    for (auto& task : tasks) task.Get();
+    for (auto& task : tasks) {
+        task.Get();
+    }
 }
 
 USERVER_NAMESPACE_END

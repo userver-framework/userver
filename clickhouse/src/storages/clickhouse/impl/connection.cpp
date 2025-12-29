@@ -27,7 +27,9 @@ using NativeBlock = clickhouse_cpp::Block;
 constexpr std::chrono::milliseconds kDefaultExecuteTimeout{750};
 
 void AppendToBlock(NativeBlock& result, const NativeBlock& new_data) {
-    if (new_data.GetColumnCount() == 0) return;
+    if (new_data.GetColumnCount() == 0) {
+        return;
+    }
     if (result.GetRowCount() == 0) {
         result = new_data;
         return;
@@ -54,7 +56,10 @@ engine::Deadline GetDeadline(OptionalCommandControl optional_cc) {
 
 class Connection::ConnectionBrokenGuard final {
 public:
-    ConnectionBrokenGuard(bool& broken) : exceptions_on_enter_{std::uncaught_exceptions()}, broken_{broken} {
+    ConnectionBrokenGuard(bool& broken)
+        : exceptions_on_enter_{std::uncaught_exceptions()},
+          broken_{broken}
+    {
         UINVARIANT(!broken_, "Connection is broken");
     }
 
@@ -75,7 +80,8 @@ Connection::Connection(
     const AuthSettings& auth,
     const ConnectionSettings& connection_settings
 )
-    : client_{NativeClientFactory::Create(resolver, endpoint, auth, connection_settings)} {}
+    : client_{NativeClientFactory::Create(resolver, endpoint, auth, connection_settings)}
+{}
 
 ExecutionResult Connection::Execute(OptionalCommandControl optional_cc, const Query& query) {
     clickhouse_cpp::Query native_query{query.GetStatementView().c_str()};

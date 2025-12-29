@@ -36,8 +36,6 @@ class ThreadPools;
 
 namespace components {
 
-// clang-format off
-
 /// @ingroup userver_components
 ///
 /// @brief Valkey and Redis client component
@@ -55,20 +53,11 @@ namespace components {
 /// * @ref REDIS_SUBSCRIPTIONS_REBALANCE_MIN_INTERVAL_SECONDS
 /// * @ref REDIS_WAIT_CONNECTED
 ///
-/// ## Static options:
-/// Name | Description | Default value
-/// ---- | ----------- | -------------
-/// thread_pools.redis_thread_pool_size | thread count to serve Redis requests | -
-/// thread_pools.sentinel_thread_pool_size | thread count to serve sentinel requests. | -
-/// groups | array of redis clusters to work with excluding subscribers | -
-/// groups.[].config_name | key name in secdist with options for this cluster | -
-/// groups.[].db | name to refer to the cluster in components::Redis::GetClient() | -
-/// groups.[].sharding_strategy | one of RedisCluster, RedisStandalone, KeyShardCrc32, KeyShardTaximeterCrc32 or KeyShardGpsStorageDriver | "KeyShardTaximeterCrc32"
-/// groups.[].allow_reads_from_master | allows read requests from master instance | false
-/// subscribe_groups | array of redis clusters to work with in subscribe mode | -
-/// subscribe_groups.[].config_name | key name in secdist with options for this cluster | -
-/// subscribe_groups.[].db | name to refer to the cluster in components::Redis::GetSubscribeClient() | -
-/// subscribe_groups.[].sharding_strategy | either RedisCluster or KeyShardTaximeterCrc32 | "KeyShardTaximeterCrc32"
+/// ## Static options of components::Redis :
+/// @include{doc} scripts/docs/en/components_schema/redis/src/storages/redis/component.md
+///
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
 ///
 /// ## Static configuration example:
 ///
@@ -131,8 +120,6 @@ namespace components {
 /// 1. `"shards"` field is ignored, you can specify an empty array there;
 /// 2. `"sentinels"` field should contain some of the cluster nodes. They are
 ///    only used for topology discovery; it is not necessary to list all nodes.
-
-// clang-format on
 class Redis : public ComponentBase {
 public:
     Redis(const ComponentConfig& config, const ComponentContext& component_context);
@@ -143,12 +130,16 @@ public:
     /// @brief The default name of components::Redis
     static constexpr std::string_view kName = "redis";
 
-    std::shared_ptr<storages::redis::Client>
-    GetClient(const std::string& name, storages::redis::RedisWaitConnected wait_connected = {}) const;
+    std::shared_ptr<storages::redis::Client> GetClient(
+        const std::string& name,
+        storages::redis::RedisWaitConnected wait_connected = {}
+    ) const;
     [[deprecated("use GetClient()")]] std::shared_ptr<storages::redis::impl::Sentinel> Client(const std::string& name
     ) const;
-    std::shared_ptr<storages::redis::SubscribeClient>
-    GetSubscribeClient(const std::string& name, storages::redis::RedisWaitConnected wait_connected = {}) const;
+    std::shared_ptr<storages::redis::SubscribeClient> GetSubscribeClient(
+        const std::string& name,
+        storages::redis::RedisWaitConnected wait_connected = {}
+    ) const;
 
     static yaml_config::Schema GetStaticConfigSchema();
 

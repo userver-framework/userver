@@ -37,7 +37,8 @@ Connection::Connection(
       settings_{settings},
       statements_cache_{db_handler_, settings.conn_settings.max_prepared_cache_size},
       queries_stat_counter_{stat.queries},
-      transactions_stat_counter_{stat.transactions} {
+      transactions_stat_counter_{stat.transactions}
+{
     LOG_INFO() << "SQLite connection initialized.";
 }
 
@@ -60,7 +61,8 @@ void Connection::ExecutionStep(StatementBasePtr prepare_statement) const {
 
 void Connection::Begin(const settings::TransactionOptions& options) {
     if (options.isolation_level == settings::TransactionOptions::IsolationLevel::kReadUncommitted &&
-        !settings_.read_uncommitted) {
+        !settings_.read_uncommitted)
+    {
         ExecuteQuery(kStatementTransactionReadUncommittedIsolationLevel);
     }
     switch (options.mode) {

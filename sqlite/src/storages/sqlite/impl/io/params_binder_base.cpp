@@ -9,7 +9,8 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::sqlite::impl::io {
 
 ParamsBinderBase::ParamsBinderBase(const Query& query, infra::ConnectionPtr& conn)
-    : binds_impl_{conn->PrepareStatement(query)} {}
+    : binds_impl_{conn->PrepareStatement(query)}
+{}
 
 ParamsBinderBase::ParamsBinderBase(ParamsBinderBase&& other) noexcept : binds_impl_{std::move(other.binds_impl_)} {}
 

@@ -56,7 +56,7 @@ class JsonValueParser;
 /// @see @ref scripts/docs/en/userver/formats.md
 ///
 /// To iterate over `Value` as object use formats::common::Items.
-class Value final {
+class Value {
 public:
     struct IterTraits {
         using ValueType = formats::json::Value;
@@ -226,11 +226,14 @@ public:
     /// @throw MemberMissingException if `this->IsMissing()`.
     void CheckNotMissing() const;
 
-    /// @throw MemberMissingException if `*this` is not an array or null.
+    /// @throw TypeMismatchException if `*this` is not an array or null.
     void CheckArrayOrNull() const;
 
     /// @throw TypeMismatchException if `*this` is not a map or null.
     void CheckObjectOrNull() const;
+
+    /// @throw TypeMismatchException if `*this` is not an array.
+    void CheckArray() const;
 
     /// @throw TypeMismatchException if `*this` is not a map.
     void CheckObject() const;
@@ -238,7 +241,7 @@ public:
     /// @throw TypeMismatchException if `*this` is not a map, array or null.
     void CheckObjectOrArrayOrNull() const;
 
-    /// @throw TypeMismatchException if `*this` is not a map, array or null;
+    /// @throw TypeMismatchException if `*this` is not an array or null;
     /// `OutOfBoundsException` if `index >= this->GetSize()`.
     void CheckInBounds(std::size_t index) const;
 

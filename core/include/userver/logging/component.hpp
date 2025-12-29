@@ -34,21 +34,13 @@ namespace components {
 ///
 /// @brief %Logging component
 ///
-/// Allows to configure the default logger and/or additional loggers for your
-/// needs.
+/// Allows to configure the default logger and/or additional loggers for your needs.
 ///
-/// ## Static options:
-/// Name | Description | Default value
-/// ---- | ----------- | -------------
-/// `fs-task-processor` | task processor for disk I/O operations | engine::current_task::GetBlockingTaskProcessor()
-/// `loggers.<logger-name>.file_path` | path to the log file | -
-/// `loggers.<logger-name>.level` | log verbosity | `info`
-/// `loggers.<logger-name>.format` | log output format, one of `tskv`, `ltsv`, `json`, `json_yadeploy` | `tskv`
-/// `loggers.<logger-name>.flush_level` | messages of this and higher levels get flushed to the file immediately | `warning`
-/// `loggers.<logger-name>.message_queue_size` | the size of internal message queue, must be a power of 2 | 65536
-/// `loggers.<logger-name>.overflow_behavior` | message handling policy while the queue is full: `discard` drops messages, `block` waits until message gets into the queue | `discard`
-/// `loggers.<logger-name>.testsuite-capture` | if exists, setups additional TCP log sink for testing purposes | {}
-/// `loggers.<logger-name>.fs-task-processor` | task processor for disk I/O operations for this logger | top-level `fs-task-processor` option
+/// ## Static options of components::Logging :
+/// @include{doc} scripts/docs/en/components_schema/core/src/logging/component.md
+///
+/// Options inherited from @ref components::RawComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
 ///
 /// `default` logger is the one used for `LOG_*`.
 ///
@@ -76,12 +68,6 @@ namespace components {
 ///
 /// Customization of log formats beyond the ones listed above is not supported at the moment.
 ///
-/// ### testsuite-capture options:
-/// Name | Description | Default value
-/// ---- | ----------- | -------------
-/// `loggers.<logger-name>.testsuite-capture.host` | testsuite hostname, e.g. `localhost` | -
-/// `loggers.<logger-name>.testsuite-capture.host` | testsuite port | -
-///
 /// ## Static configuration examples:
 ///
 /// Writing logs to stderr:
@@ -97,7 +83,7 @@ namespace components {
 class Logging final : public RawComponentBase {
 public:
     /// @ingroup userver_component_names
-    /// @brief The default name of components::Logging component
+    /// @brief The default name of @ref components::Logging component
     static constexpr std::string_view kName = "logging";
 
     /// The component constructor

@@ -51,13 +51,8 @@ private:
     logging::TextLoggerPtr logger_access_;
     logging::TextLoggerPtr logger_access_tskv_;
 
-    // handler_infos_mutex_ is used for pushing handlers into handler_info_index_
-    // before server start. After start handler_info_index_ is read only and
-    // synchronization is not needed.
-    engine::Mutex handler_infos_mutex_;
     HandlerInfoIndex handler_info_index_;
 
-    std::atomic<bool> add_handler_disabled_;
     const bool is_monitor_;
     const std::string server_name_;
     NewRequestHook new_request_hook_;

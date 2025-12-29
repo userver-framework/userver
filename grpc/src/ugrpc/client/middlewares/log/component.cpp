@@ -6,6 +6,10 @@
 
 #include <ugrpc/client/middlewares/log/middleware.hpp>
 
+#ifndef ARCADIA_ROOT
+#include "generated/src/ugrpc/client/middlewares/log/component.yaml.hpp"  // Y_IGNORE
+#endif
+
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client::middlewares::log {
@@ -24,7 +28,8 @@ Component::Component(const components::ComponentConfig& config, const components
           context,
           USERVER_NAMESPACE::middlewares::MiddlewareDependencyBuilder()
               .InGroup<USERVER_NAMESPACE::middlewares::groups::Logging>()
-      ) {}
+      )
+{}
 
 Component::~Component() = default;
 
@@ -38,21 +43,8 @@ std::shared_ptr<const MiddlewareBase> Component::CreateMiddleware(
 yaml_config::Schema Component::GetMiddlewareConfigSchema() const { return GetStaticConfigSchema(); }
 
 yaml_config::Schema Component::GetStaticConfigSchema() {
-    return yaml_config::MergeSchemas<MiddlewareFactoryComponentBase>(R"(
-type: object
-description: gRPC service logger component
-additionalProperties: false
-properties:
-    log-level:
-        type: string
-        description: set log level threshold
-    msg-log-level:
-        type: string
-        description: set up logging level for request/response messages
-    msg-size-log-limit:
-        type: string
-        description: max message size to log, the rest will be truncated
-)");
+    return yaml_config::MergeSchemasFromResource<
+        MiddlewareFactoryComponentBase>("src/ugrpc/client/middlewares/log/component.yaml");
 }
 
 }  // namespace ugrpc::client::middlewares::log

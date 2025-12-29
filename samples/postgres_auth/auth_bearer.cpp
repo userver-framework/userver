@@ -13,7 +13,9 @@ public:
     using AuthCheckResult = server::handlers::auth::AuthCheckResult;
 
     AuthCheckerBearer(const AuthCache& auth_cache, std::vector<server::auth::UserScope> required_scopes)
-        : auth_cache_(auth_cache), required_scopes_(std::move(required_scopes)) {}
+        : auth_cache_(auth_cache),
+          required_scopes_(std::move(required_scopes))
+    {}
 
     [[nodiscard]] AuthCheckResult CheckAuth(
         const server::http::HttpRequest& request,
@@ -39,7 +41,8 @@ AuthCheckerBearer::AuthCheckResult AuthCheckerBearer::CheckAuth(
             AuthCheckResult::Status::kTokenNotFound,
             {},
             "Empty 'Authorization' header",
-            server::handlers::HandlerErrorCode::kUnauthorized};
+            server::handlers::HandlerErrorCode::kUnauthorized
+        };
     }
     /// [auth checker definition 1]
 
@@ -50,7 +53,8 @@ AuthCheckerBearer::AuthCheckResult AuthCheckerBearer::CheckAuth(
             AuthCheckResult::Status::kTokenNotFound,
             {},
             "'Authorization' header should have 'Bearer some-token' format",
-            server::handlers::HandlerErrorCode::kUnauthorized};
+            server::handlers::HandlerErrorCode::kUnauthorized
+        };
     }
     /// [auth checker definition 2]
 
@@ -81,7 +85,8 @@ AuthCheckerBearer::AuthCheckResult AuthCheckerBearer::CheckAuth(
 
 /// [auth checker factory definition]
 CheckerFactory::CheckerFactory(const components::ComponentContext& context)
-    : auth_cache_(context.FindComponent<AuthCache>()) {}
+    : auth_cache_(context.FindComponent<AuthCache>())
+{}
 
 server::handlers::auth::AuthCheckerBasePtr CheckerFactory::MakeAuthChecker(
     const server::handlers::auth::HandlerAuthConfig& auth_config

@@ -16,7 +16,9 @@ namespace storages::redis::impl {
 template <typename ReplyType>
 class TransactionSubrequestDataImpl final : public RequestDataBase<ReplyType> {
 public:
-    TransactionSubrequestDataImpl(engine::Future<ReplyType> future) : future_(std::move(future)) {}
+    TransactionSubrequestDataImpl(engine::Future<ReplyType> future)
+        : future_(std::move(future))
+    {}
 
     void Wait() override { ThrowIfNotReady("Wait() for"); }
 

@@ -24,7 +24,9 @@ public:
     Any() noexcept = default;
 
     /// @brief Creates wrapper initializing its underlying storage with @a proto_any.
-    Any(google::protobuf::Any proto_any) : storage_(std::move(proto_any)) {}
+    Any(google::protobuf::Any proto_any)
+        : storage_(std::move(proto_any))
+    {}
 
     /// @brief Creates `Any` holding @a obj.
     /// @tparam TStruct proto struct type

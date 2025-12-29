@@ -13,7 +13,10 @@ ClusterTopology::ClusterTopology(
     const std::shared_ptr<engine::ev::ThreadPool>& /*redis_thread_pool*/,
     const NodesStorage& nodes
 )
-    : infos_(std::move(infos)), version_(version), timestamp_(timestamp) {
+    : infos_(std::move(infos)),
+      version_(version),
+      timestamp_(timestamp)
+{
     {
         size_t all_instances_count = 0;
         for (const auto& info : infos_) {
@@ -21,7 +24,7 @@ ClusterTopology::ClusterTopology(
             all_instances_count += info.slaves.size() + 1;
         }
 
-        auto HostPortToString = [](const std::pair<std::string, int>& host_port) {
+        auto host_port_to_string = [](const std::pair<std::string, int>& host_port) {
             return host_port.first + ":" + std::to_string(host_port.second);
         };
         cluster_shards_.reserve(infos_.size());
@@ -32,13 +35,13 @@ ClusterTopology::ClusterTopology(
 
         for (const auto& info : infos_) {
             const auto current_shard = cluster_shards_.size();
-            const auto& master_host_port = HostPortToString(info.master.HostPort());
+            const auto& master_host_port = host_port_to_string(info.master.HostPort());
             /// Throws rcu::MissingKeyException on missing key in nodes
             std::shared_ptr<const RedisConnectionHolder> master = nodes[master_host_port];
             std::vector<std::shared_ptr<const RedisConnectionHolder>> replicas;
             replicas.reserve(info.slaves.size());
             for (const auto& replica : info.slaves) {
-                auto host_port = HostPortToString(replica.HostPort());
+                auto host_port = host_port_to_string(replica.HostPort());
                 /// Throws rcu::MissingKeyException on missing key in nodes
                 replicas.push_back(nodes[host_port]);
                 host_port_to_shard_[host_port] = current_shard;
@@ -87,7 +90,10 @@ std::string ClusterTopology::GetReadinessInfo() const {
         const auto master_ready = shard.IsReady(WaitConnectedMode::kMaster);
         const auto replica_ready = shard.IsReady(WaitConnectedMode::kSlave);
         fmt::format_to(
-            std::back_inserter(result), "{{master: {}, replicas: {}}},", master_ready, replica_ready
+            std::back_inserter(result),
+            "{{master: {}, replicas: {}}},",
+            master_ready,
+            replica_ready
 
         );
         at_least_one_is_fine = (at_least_one_is_fine || master_ready || replica_ready);
@@ -109,12 +115,18 @@ bool ClusterTopology::HasSameInfos(const ClusterShardHostInfos& infos) const {
     for (size_t i = 0; i < infos.size(); ++i) {
         const auto& l = infos_[i];
         const auto& r = infos[i];
-        if (l.master.HostPort() != r.master.HostPort()) return false;
-        if (l.slaves.size() != r.slaves.size()) return false;
+        if (l.master.HostPort() != r.master.HostPort()) {
+            return false;
+        }
+        if (l.slaves.size() != r.slaves.size()) {
+            return false;
+        }
         for (size_t j = 0; j < l.slaves.size(); ++j) {
             const auto& lslave = l.slaves[j];
             const auto& rslave = r.slaves[j];
-            if (lslave.HostPort() != rslave.HostPort()) return false;
+            if (lslave.HostPort() != rslave.HostPort()) {
+                return false;
+            }
         }
         if (l.slot_intervals != r.slot_intervals) {
             return false;
@@ -140,8 +152,11 @@ void ClusterTopology::GetStatistics(const MetricsSettings& settings, SentinelSta
     }
 }
 
-std::unordered_map<ServerId, size_t, ServerIdHasher>
-ClusterTopology::GetAvailableServersWeighted(size_t shard_idx, bool with_master, const CommandControl& cc) const {
+std::unordered_map<ServerId, size_t, ServerIdHasher> ClusterTopology::GetAvailableServersWeighted(
+    size_t shard_idx,
+    bool with_master,
+    const CommandControl& cc
+) const {
     if (shard_idx == kUnknownShard) {
         return super_shard_.GetAvailableServersWeighted(with_master, cc);
     }
@@ -150,7 +165,7 @@ ClusterTopology::GetAvailableServersWeighted(size_t shard_idx, bool with_master,
 
 const std::string& GetShardName(size_t shard_index) {
     static const size_t kMaxClusterShards = 500;
-    static const std::vector<std::string> names = [] {
+    static const std::vector<std::string> kNames = [] {
         std::vector<std::string> shard_names;
         shard_names.reserve(kMaxClusterShards);
         for (size_t i = 0; i < kMaxClusterShards; ++i) {
@@ -163,7 +178,7 @@ const std::string& GetShardName(size_t shard_index) {
         }
         return shard_names;
     }();
-    return names.at(shard_index);
+    return kNames.at(shard_index);
 }
 
 }  // namespace storages::redis::impl

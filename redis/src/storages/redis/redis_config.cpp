@@ -55,9 +55,11 @@ CommandControl Parse(const formats::json::Value& elem, formats::parse::To<Comman
         }
     }
     if (result.best_dc_count.has_value() && result.strategy.has_value() && (*result.best_dc_count > 1) &&
-        (*result.strategy != CommandControl::Strategy::kNearestServerPing)) {
-        LOG_WARNING() << "CommandControl.best_dc_count = " << *result.best_dc_count
-                      << ", but is ignored for the current strategy (" << static_cast<size_t>(*result.strategy) << ")";
+        (*result.strategy != CommandControl::Strategy::kNearestServerPing))
+    {
+        LOG_WARNING()
+            << "CommandControl.best_dc_count = " << *result.best_dc_count
+            << ", but is ignored for the current strategy (" << static_cast<size_t>(*result.strategy) << ")";
     }
     return result;
 }
@@ -78,8 +80,8 @@ CommandsBufferingSettings Parse(const formats::json::Value& elem, formats::parse
     CommandsBufferingSettings result;
     result.buffering_enabled = elem["buffering_enabled"].As<bool>();
     result.commands_buffering_threshold = elem["commands_buffering_threshold"].As<size_t>(0);
-    result.watch_command_timer_interval =
-        std::chrono::microseconds(elem["watch_command_timer_interval_us"].As<size_t>());
+    result.watch_command_timer_interval = std::chrono::microseconds(elem["watch_command_timer_interval_us"].As<size_t>()
+    );
     return result;
 }
 
@@ -121,7 +123,8 @@ Config Config::Parse(const dynamic_config::DocsMap& docs_map) {
     Into(result.default_command_control, docs_map.Get("REDIS_DEFAULT_COMMAND_CONTROL"));
     Into(result.subscriber_default_command_control, docs_map.Get("REDIS_SUBSCRIBER_DEFAULT_COMMAND_CONTROL"));
     Into(
-        result.subscriptions_rebalance_min_interval, docs_map.Get("REDIS_SUBSCRIPTIONS_REBALANCE_MIN_INTERVAL_SECONDS")
+        result.subscriptions_rebalance_min_interval,
+        docs_map.Get("REDIS_SUBSCRIPTIONS_REBALANCE_MIN_INTERVAL_SECONDS")
     );
     Into(result.redis_wait_connected, docs_map.Get("REDIS_WAIT_CONNECTED"));
     Into(result.commands_buffering_settings, docs_map.Get("REDIS_COMMANDS_BUFFERING_SETTINGS"));

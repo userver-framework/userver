@@ -20,7 +20,9 @@
 
 namespace samples {
 
-GreeterService::GreeterService(std::string prefix) : prefix_(std::move(prefix)) {}
+GreeterService::GreeterService(std::string prefix)
+    : prefix_(std::move(prefix))
+{}
 
 /// [server RPC handling]
 GreeterService::SayHelloResult GreeterService::SayHello(CallContext& /*context*/, api::GreetingRequest&& request) {
@@ -42,20 +44,22 @@ GreeterService::SayHelloResponseStreamResult GreeterService::SayHelloResponseStr
     SayHelloResponseStreamWriter& writer
 ) {
     std::string message = fmt::format("{}, {}", prefix_, request.name());
-    api::GreetingResponse response;
     constexpr auto kCountSend = 5;
     for (auto i = 0; i < kCountSend; ++i) {
+        api::GreetingResponse response;
         message.push_back('!');
         response.set_greeting(grpc::string(message));
-        writer.Write(response);
+        writer.Write(std::move(response));
     }
     return grpc::Status::OK;
 }
 /// [server RPC handling response_stream]
 
 /// [server RPC handling request_stream]
-GreeterService::SayHelloRequestStreamResult
-GreeterService::SayHelloRequestStream(CallContext& /*context*/, SayHelloRequestStreamReader& reader) {
+GreeterService::SayHelloRequestStreamResult GreeterService::SayHelloRequestStream(
+    CallContext& /*context*/,
+    SayHelloRequestStreamReader& reader
+) {
     std::string message{};
     api::GreetingRequest request;
     while (reader.Read(request)) {
@@ -68,15 +72,17 @@ GreeterService::SayHelloRequestStream(CallContext& /*context*/, SayHelloRequestS
 /// [server RPC handling request_stream]
 
 /// [server RPC handling streams]
-GreeterService::SayHelloStreamsResult
-GreeterService::SayHelloStreams(CallContext& /*context*/, SayHelloStreamsReaderWriter& stream) {
+GreeterService::SayHelloStreamsResult GreeterService::SayHelloStreams(
+    CallContext& /*context*/,
+    SayHelloStreamsReaderWriter& stream
+) {
     std::string message;
     api::GreetingRequest request;
-    api::GreetingResponse response;
     while (stream.Read(request)) {
+        api::GreetingResponse response;
         message.append(request.name());
         response.set_greeting(fmt::format("{}, {}", prefix_, message));
-        stream.Write(response);
+        stream.Write(std::move(response));
     }
     return grpc::Status::OK;
 }
@@ -87,7 +93,9 @@ GreeterServiceComponent::GreeterServiceComponent(
     const components::ComponentConfig& config,
     const components::ComponentContext& context
 )
-    : ugrpc::server::ServiceComponentBase(config, context), service_(config["greeting-prefix"].As<std::string>()) {
+    : ugrpc::server::ServiceComponentBase(config, context),
+      service_(config["greeting-prefix"].As<std::string>())
+{
     RegisterService(service_);
 }
 /// [component]

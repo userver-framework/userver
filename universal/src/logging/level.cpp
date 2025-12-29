@@ -69,10 +69,11 @@ std::string_view ToUpperCaseString(Level level) noexcept {
 }
 
 std::optional<Level> OptionalLevelFromString(const std::optional<std::string>& level_name) {
-    if (level_name)
+    if (level_name) {
         return LevelFromString(*level_name);
-    else
+    } else {
         return std::nullopt;
+    }
 }
 
 }  // namespace logging

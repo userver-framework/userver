@@ -7,14 +7,14 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace clients::http {
-class Client;
+class ClientCore;
 }  // namespace clients::http
 
 namespace clients::http::impl {
 
 class EasyWrapper final {
 public:
-    EasyWrapper(std::shared_ptr<curl::easy>&& easy, Client& client);
+    EasyWrapper(std::shared_ptr<curl::easy>&& easy, ClientCore& client);
 
     EasyWrapper(const EasyWrapper&) = delete;
     EasyWrapper(EasyWrapper&&) noexcept;
@@ -28,7 +28,7 @@ public:
 
 private:
     std::shared_ptr<curl::easy> easy_;
-    Client& client_;
+    ClientCore& client_;
 };
 
 }  // namespace clients::http::impl

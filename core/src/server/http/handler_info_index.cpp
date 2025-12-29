@@ -23,6 +23,10 @@ class HandlerInfoIndex::HandlerInfoIndexImpl final {
 public:
     void AddHandler(const handlers::HttpHandlerBase& handler, engine::TaskProcessor& task_processor);
 
+    void SetRegistrationFinished();
+
+    bool IsRegistrationFinished() const;
+
     const HandlerList& GetHandlers() const;
 
     MatchRequestResult MatchRequest(HttpMethod method, const std::string& path) const;
@@ -47,7 +51,18 @@ void HandlerInfoIndex::HandlerInfoIndexImpl::AddHandler(
     } else {
         wildcard_path_index_.AddHandler(handler, task_processor);
     }
-    handler_list_.emplace_back(&handler);
+
+    auto handler_list = handler_list_.Lock();
+    handler_list->emplace_back(&handler);
+}
+
+void HandlerInfoIndex::HandlerInfoIndexImpl::SetRegistrationFinished() {
+    fixed_path_index_.SetRegistrationFinished();
+    wildcard_path_index_.SetRegistrationFinished();
+}
+
+bool HandlerInfoIndex::HandlerInfoIndexImpl::IsRegistrationFinished() const {
+    return fixed_path_index_.IsRegistrationFinished() && wildcard_path_index_.IsRegistrationFinished();
 }
 
 const HandlerInfoIndex::HandlerList& HandlerInfoIndex::HandlerInfoIndexImpl::GetHandlers() const {
@@ -57,7 +72,9 @@ const HandlerInfoIndex::HandlerList& HandlerInfoIndex::HandlerInfoIndexImpl::Get
 MatchRequestResult HandlerInfoIndex::HandlerInfoIndexImpl::MatchRequest(HttpMethod method, const std::string& path)
     const {
     MatchRequestResult match_result;
-    if (fixed_path_index_.MatchRequest(method, path, match_result)) return match_result;
+    if (fixed_path_index_.MatchRequest(method, path, match_result)) {
+        return match_result;
+    }
 
     wildcard_path_index_.MatchRequest(method, path, match_result);
     return match_result;
@@ -70,20 +87,27 @@ void HandlerInfoIndex::HandlerInfoIndexImpl::SetFallbackHandler(
     const auto& fallback = std::get<handlers::FallbackHandler>(handler.GetConfig().path);
     const auto index = static_cast<size_t>(fallback);
     UASSERT(index <= handlers::kFallbackHandlerMax);
-    if (fallback_handlers_[index])
+    if (fallback_handlers_[index]) {
         throw std::runtime_error(fmt::format("fallback {} handler already registered", ToString(fallback)));
+    }
     fallback_handlers_[index].emplace(task_processor, handler);
-    handler_list_.emplace_back(&handler);
+
+    auto handler_list = handler_list_.Lock();
+    handler_list->emplace_back(&handler);
 }
 
 const HandlerInfo* HandlerInfoIndex::HandlerInfoIndexImpl::GetFallbackHandler(handlers::FallbackHandler fallback
 ) const {
     const auto index = static_cast<size_t>(fallback);
-    if (index > handlers::kFallbackHandlerMax || !fallback_handlers_[index]) return nullptr;
+    if (index > handlers::kFallbackHandlerMax || !fallback_handlers_[index]) {
+        return nullptr;
+    }
     return &fallback_handlers_[index].value();
 }
 
-HandlerInfoIndex::HandlerInfoIndex() : impl_(std::make_unique<HandlerInfoIndexImpl>()) {}
+HandlerInfoIndex::HandlerInfoIndex()
+    : impl_(std::make_unique<HandlerInfoIndexImpl>())
+{}
 
 HandlerInfoIndex::~HandlerInfoIndex() = default;
 
@@ -91,10 +115,15 @@ void HandlerInfoIndex::AddHandler(const handlers::HttpHandlerBase& handler, engi
     std::visit(
         utils::Overloaded{
             [&](const std::string&) { impl_->AddHandler(handler, task_processor); },
-            [&](handlers::FallbackHandler) { impl_->SetFallbackHandler(handler, task_processor); }},
+            [&](handlers::FallbackHandler) { impl_->SetFallbackHandler(handler, task_processor); }
+        },
         handler.GetConfig().path
     );
 }
+
+void HandlerInfoIndex::SetRegistrationFinished() { impl_->SetRegistrationFinished(); }
+
+bool HandlerInfoIndex::IsRegistrationFinished() const { return impl_->IsRegistrationFinished(); }
 
 const HandlerInfoIndex::HandlerList& HandlerInfoIndex::GetHandlers() const { return impl_->GetHandlers(); }
 

@@ -46,7 +46,9 @@ void BIO_set_shutdown(BIO* bio, int shutdown) { bio->shutdown = shutdown; }
 constexpr const char* kBioMethodName = "userver-socket";
 
 struct SocketBioData {
-    explicit SocketBioData(Socket&& socket) : socket(std::move(socket)) {
+    explicit SocketBioData(Socket&& socket)
+        : socket(std::move(socket))
+    {
         if (!this->socket) {
             throw TlsException("Cannot use an invalid socket for TLS");
         }
@@ -65,8 +67,12 @@ int SocketBioWriteEx(BIO* bio, const char* data, size_t len, size_t* bytes_writt
     try {
         *bytes_written = bio_data->socket.SendAll(data, len, bio_data->current_deadline);
         BIO_clear_retry_flags(bio);
-        if (bio_data->last_exception) bio_data->last_exception = {};
-        if (*bytes_written) return 1;  // success
+        if (bio_data->last_exception) {
+            bio_data->last_exception = {};
+        }
+        if (*bytes_written) {
+            return 1;  // success
+        }
     } catch (const engine::io::IoInterrupted& ex) {
         *bytes_written = ex.BytesTransferred();
         BIO_set_retry_write(bio);
@@ -85,8 +91,12 @@ int SocketBioReadEx(BIO* bio, char* data, size_t len, size_t* bytes_read) noexce
     try {
         *bytes_read = bio_data->socket.RecvSome(data, len, bio_data->current_deadline);
         BIO_clear_retry_flags(bio);
-        if (bio_data->last_exception) bio_data->last_exception = {};
-        if (*bytes_read) return 1;  // success
+        if (bio_data->last_exception) {
+            bio_data->last_exception = {};
+        }
+        if (*bytes_read) {
+            return 1;  // success
+        }
     } catch (const engine::io::IoInterrupted&) {
         BIO_set_retry_read(bio);
         bio_data->last_exception = std::current_exception();
@@ -113,12 +123,22 @@ int SocketBioCreate(BIO* bio) noexcept {
 const BIO_METHOD* GetSocketBioMethod() {
     static const auto kMethod = []() -> BioMethod {
         BioMethod method{BIO_meth_new(BIO_get_new_index() | BIO_TYPE_SOURCE_SINK, kBioMethodName)};
-        if (!method) return {};
-        if (1 != BIO_meth_set_write_ex(method.get(), &SocketBioWriteEx)) return {};
-        if (1 != BIO_meth_set_read_ex(method.get(), &SocketBioReadEx)) return {};
-        if (1 != BIO_meth_set_ctrl(method.get(), &SocketBioControl)) return {};
+        if (!method) {
+            return {};
+        }
+        if (1 != BIO_meth_set_write_ex(method.get(), &SocketBioWriteEx)) {
+            return {};
+        }
+        if (1 != BIO_meth_set_read_ex(method.get(), &SocketBioReadEx)) {
+            return {};
+        }
+        if (1 != BIO_meth_set_ctrl(method.get(), &SocketBioControl)) {
+            return {};
+        }
         // should be defined to prevent setting bio->init in BIO_new
-        if (1 != BIO_meth_set_create(method.get(), &SocketBioCreate)) return {};
+        if (1 != BIO_meth_set_create(method.get(), &SocketBioCreate)) {
+            return {};
+        }
         return method;
     }();
     return kMethod.get();
@@ -213,7 +233,10 @@ public:
 
 class TlsWrapper::Impl {
 public:
-    explicit Impl(Socket&& socket) : bio_data(std::move(socket)), read_accessor(*this) {}
+    explicit Impl(Socket&& socket)
+        : bio_data(std::move(socket)),
+          read_accessor(*this)
+    {}
 
     Impl(Impl&& other) noexcept
         : bio_data(std::move(other.bio_data)),
@@ -273,7 +296,9 @@ public:
     template <typename SslIoFunc>
     std::optional<size_t> PerformSslIoOptional(SslIoFunc&& io_func, void* buf, size_t len, const char* context) {
         UASSERT(ssl);
-        if (!len) return 0;
+        if (!len) {
+            return 0;
+        }
 
         char* const begin = static_cast<char*>(buf);
         char* const end = begin + len;
@@ -316,13 +341,15 @@ public:
         const char* context
     ) {
         UASSERT(ssl);
-        if (!len) return 0;
+        if (!len) {
+            return 0;
+        }
 
-            /* TODO
-            UASSERT_MSG(
-                ssl_usage_level == 0,
-                "You may not use SSL sockets concurrently from multiple coroutines");
-                */
+        /* TODO
+        UASSERT_MSG(
+            ssl_usage_level == 0,
+            "You may not use SSL sockets concurrently from multiple coroutines");
+            */
 #ifndef NDEBUG
         ssl_usage_level++;
         const utils::FastScopeGuard ssl_usage_guard([this]() noexcept { --ssl_usage_level; });
@@ -398,17 +425,23 @@ private:
     }
 };
 
-TlsWrapper::ReadContextAccessor::ReadContextAccessor(TlsWrapper::Impl& impl) : impl(impl) {}
+TlsWrapper::ReadContextAccessor::ReadContextAccessor(TlsWrapper::Impl& impl)
+    : impl(impl)
+{}
 
 bool TlsWrapper::ReadContextAccessor::IsReady() const noexcept {
     auto* ssl = impl.ssl.get();
-    if (!ssl || SSL_has_pending(ssl)) return true;
+    if (!ssl || SSL_has_pending(ssl)) {
+        return true;
+    }
     return GetSocketContextAccessor().IsReady();
 }
 
 engine::impl::EarlyWakeup TlsWrapper::ReadContextAccessor::TryAppendWaiter(engine::impl::TaskContext& waiter) {
     auto* ssl = impl.ssl.get();
-    if (!ssl || SSL_has_pending(ssl)) return engine::impl::EarlyWakeup{true};
+    if (!ssl || SSL_has_pending(ssl)) {
+        return engine::impl::EarlyWakeup{true};
+    }
 
     return GetSocketContextAccessor().TryAppendWaiter(waiter);
 }
@@ -427,7 +460,11 @@ engine::impl::ContextAccessor& TlsWrapper::ReadContextAccessor::GetSocketContext
     return *ca;
 }
 
-TlsWrapper::TlsWrapper(Socket&& socket) : impl_(std::move(socket)) { SetupContextAccessors(); }
+TlsWrapper::TlsWrapper(Socket&& socket)
+    : impl_(std::move(socket))
+{
+    SetupContextAccessors();
+}
 
 TlsWrapper TlsWrapper::StartTlsClient(Socket&& socket, const std::string& server_name, Deadline deadline) {
     TlsWrapper wrapper{std::move(socket)};
@@ -472,13 +509,17 @@ TlsWrapper TlsWrapper::StartTlsServer(Socket&& socket, const crypto::SslCtx& ctx
 
 TlsWrapper::~TlsWrapper() {
     UASSERT(impl_->ssl_usage_level == 0);
-    if (!IsValid()) return;
+    if (!IsValid()) {
+        return;
+    }
 
     // socket will not be reused, attempt unidirectional shutdown
     SSL_shutdown(impl_->ssl.get());
 }
 
-TlsWrapper::TlsWrapper(TlsWrapper&& other) noexcept : impl_(std::move(other.impl_)) { SetupContextAccessors(); }
+TlsWrapper::TlsWrapper(TlsWrapper&& other) noexcept : impl_(std::move(other.impl_)) {
+    SetupContextAccessors();
+}
 
 void TlsWrapper::SetupContextAccessors() {
     // Cannot use raw Socket's accessor as some data might be already read into
@@ -495,7 +536,13 @@ bool TlsWrapper::WaitReadable(Deadline deadline) {
     impl_->CheckAlive();
     char buf = 0;
     return impl_->PerformSslIo(
-        &SSL_peek_ex, &buf, 1, impl::TransferMode::kOnce, InterruptAction::kPass, deadline, "WaitReadable"
+        &SSL_peek_ex,
+        &buf,
+        1,
+        impl::TransferMode::kOnce,
+        InterruptAction::kPass,
+        deadline,
+        "WaitReadable"
     );
 }
 
@@ -506,16 +553,14 @@ bool TlsWrapper::WaitWriteable(Deadline deadline) {
 
 size_t TlsWrapper::RecvSome(void* buf, size_t len, Deadline deadline) {
     impl_->CheckAlive();
-    return impl_->PerformSslIo(
-        &SSL_read_ex, buf, len, impl::TransferMode::kOnce, InterruptAction::kPass, deadline, "RecvSome"
-    );
+    return impl_
+        ->PerformSslIo(&SSL_read_ex, buf, len, impl::TransferMode::kOnce, InterruptAction::kPass, deadline, "RecvSome");
 }
 
 size_t TlsWrapper::RecvAll(void* buf, size_t len, Deadline deadline) {
     impl_->CheckAlive();
-    return impl_->PerformSslIo(
-        &SSL_read_ex, buf, len, impl::TransferMode::kWhole, InterruptAction::kPass, deadline, "RecvAll"
-    );
+    return impl_
+        ->PerformSslIo(&SSL_read_ex, buf, len, impl::TransferMode::kWhole, InterruptAction::kPass, deadline, "RecvAll");
 }
 
 std::optional<size_t> TlsWrapper::RecvNoblock(void* buf, size_t len) {
@@ -548,7 +593,9 @@ size_t TlsWrapper::SendAll(const void* buf, size_t len, Deadline deadline) {
             if (it - fits_in_buf_begin >= 2) {
                 for (auto* ins_pos = buf; fits_in_buf_begin != it; ++fits_in_buf_begin) {
                     ins_pos = std::copy_n(
-                        static_cast<const std::byte*>(fits_in_buf_begin->data), fits_in_buf_begin->len, ins_pos
+                        static_cast<const std::byte*>(fits_in_buf_begin->data),
+                        fits_in_buf_begin->len,
+                        ins_pos
                     );
                 }
                 sent_bytes += SendAll(buf, kBufSize - remaining_cap, deadline);

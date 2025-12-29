@@ -33,8 +33,8 @@ std::string_view DoGetRealHostName() {
 }
 
 std::string_view GetRealHostNameView() {
-    static const std::string_view host_name_view = DoGetRealHostName();
-    return host_name_view;
+    static const std::string_view kHostNameView = DoGetRealHostName();
+    return kHostNameView;
 }
 
 // Cache real host name at static initialization time to avoid a syscall

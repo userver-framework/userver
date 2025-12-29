@@ -94,9 +94,10 @@ public:
     size_t Size() const;
 
 private:
-    static constexpr std::size_t kSize = compiler::SelectSize()  //
-                                             .For64Bit(16)
-                                             .For32Bit(8);
+    static constexpr std::size_t kSize =
+        compiler::SelectSize()  //
+            .For64Bit(16)
+            .For32Bit(8);
     static constexpr std::size_t kAlignment = alignof(void*);
     utils::FastPimpl<impl::JsonStringImpl, kSize, kAlignment, utils::kStrictMatch> impl_;
 };
@@ -125,8 +126,7 @@ template <>
 struct fmt::formatter<USERVER_NAMESPACE::formats::bson::Document> : public fmt::formatter<std::string_view> {
     template <typename FormatContext>
     auto format(const USERVER_NAMESPACE::formats::bson::Document& bson, FormatContext& ctx) USERVER_FMT_CONST {
-        return fmt::formatter<std::string_view>::format(
-            USERVER_NAMESPACE::formats::bson::ToRelaxedJsonString(bson).GetView(), ctx
-        );
+        return fmt::formatter<
+            std::string_view>::format(USERVER_NAMESPACE::formats::bson::ToRelaxedJsonString(bson).GetView(), ctx);
     }
 };

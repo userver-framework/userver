@@ -1,18 +1,16 @@
+from collections.abc import AsyncIterator
+from collections.abc import Callable
+from collections.abc import Collection
 import contextlib
 import dataclasses
 import functools
 import inspect
 import typing
 from typing import Any
-from typing import AsyncIterator
-from typing import Callable
-from typing import Collection
-from typing import Dict
 from typing import NoReturn
-from typing import Optional
+from typing import TypeAlias
 
 import google.protobuf.descriptor
-import google.protobuf.descriptor_pool
 import google.protobuf.message
 import grpc
 
@@ -22,18 +20,18 @@ import testsuite.utils.callinfo
 from ._mocked_errors import MockedError
 from ._reflection import _reflect_servicer
 
-Handler = Callable[[Any, grpc.aio.ServicerContext], Any]
-MockDecorator = Callable[[Handler], testsuite.utils.callinfo.AsyncCallQueue]
-AsyncExcAppend = Callable[[Exception], None]
+Handler: TypeAlias = Callable[[Any, grpc.aio.ServicerContext], Any]
+MockDecorator: TypeAlias = Callable[[Handler], testsuite.utils.callinfo.AsyncCallQueue]
+AsyncExcAppend: TypeAlias = Callable[[Exception], None]
 
 _ERROR_CODE_KEY = 'x-testsuite-error-code'
-_MethodDescriptor = google.protobuf.descriptor.MethodDescriptor
+_MethodDescriptor: TypeAlias = google.protobuf.descriptor.MethodDescriptor
 
 
 @dataclasses.dataclass
 class _ServiceMockState:
-    mocked_methods: Dict[str, Handler] = dataclasses.field(default_factory=dict)
-    asyncexc_append: Optional[AsyncExcAppend] = None
+    mocked_methods: dict[str, Handler] = dataclasses.field(default_factory=dict)
+    asyncexc_append: AsyncExcAppend | None = None
 
 
 class _ServiceMock:
@@ -84,7 +82,7 @@ class _ServiceMock:
 
         return decorator
 
-    def set_asyncexc_append(self, asyncexc_append: Optional[AsyncExcAppend]) -> None:
+    def set_asyncexc_append(self, asyncexc_append: AsyncExcAppend | None) -> None:
         self._state.asyncexc_append = asyncexc_append
 
 
@@ -96,8 +94,8 @@ async def _raise_unimplemented_error(
     if state.asyncexc_append is not None:
         state.asyncexc_append(
             testsuite.mockserver.exceptions.HandlerNotFoundError(
-                f"gRPC mockserver handler is not installed for '{_get_full_method_name(method_descriptor)}'."
-            )
+                f"gRPC mockserver handler is not installed for '{_get_full_method_name(method_descriptor)}'.",
+            ),
         )
     # This error is identical to the builtin pytest error.
     await context.abort(grpc.StatusCode.UNIMPLEMENTED, 'Method not found!')
@@ -204,7 +202,7 @@ def _check_is_valid_response(
         raise ValueError(
             f'In grpc_mockserver handler for {_get_full_method_name(method_descriptor)}: '
             'Expected a protobuf Message response, '
-            f'got: {response!r} ({type(response).__qualname__})'
+            f'got: {response!r} ({type(response).__qualname__})',
         )
     descriptor = type(response).DESCRIPTOR
     assert isinstance(descriptor, google.protobuf.descriptor.Descriptor)
@@ -212,7 +210,7 @@ def _check_is_valid_response(
         raise ValueError(
             f'In grpc_mockserver handler for {_get_full_method_name(method_descriptor)}: '
             f'Expected a response of type "{method_descriptor.output_type.full_name}", '
-            f'got: "{descriptor.full_name}"'
+            f'got: "{descriptor.full_name}"',
         )
     return response
 
@@ -225,7 +223,7 @@ def _check_response_is_asyncgen(
         raise ValueError(
             f'In grpc_mockserver handler for {_get_full_method_name(method_descriptor)}: '
             'Expected an async generator response for server streaming, '
-            f'got: {response_iterator!r} ({type(response_iterator).__qualname__})'
+            f'got: {response_iterator!r} ({type(response_iterator).__qualname__})',
         )
     return typing.cast(AsyncIterator, response_iterator)
 

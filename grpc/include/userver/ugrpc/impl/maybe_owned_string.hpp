@@ -14,14 +14,21 @@ public:
 
     MaybeOwnedString() = default;
 
-    explicit MaybeOwnedString(std::string&& string) : storage_(std::move(string)), view_(storage_) {}
+    explicit MaybeOwnedString(std::string&& string)
+        : storage_(std::move(string)),
+          view_(storage_)
+    {}
 
-    MaybeOwnedString(Ref, std::string_view string) : view_(string) {}
+    MaybeOwnedString(Ref, std::string_view string)
+        : view_(string)
+    {}
 
     MaybeOwnedString(MaybeOwnedString&& other) noexcept { *this = std::move(other); }
 
     MaybeOwnedString& operator=(MaybeOwnedString&& other) noexcept {
-        if (this == &other) return *this;
+        if (this == &other) {
+            return *this;
+        }
         if (other.view_.data() == other.storage_.data()) {
             storage_ = std::move(other.storage_);
             view_ = storage_;

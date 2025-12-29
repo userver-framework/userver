@@ -1,16 +1,10 @@
 _userver_module_begin(
-    NAME
-    zstd
-    DEBIAN_NAMES
-    libzstd-dev
-    FORMULA_NAMES
-    zstd
-    RPM_NAMES
-    libzstd-dev
-    PACMAN_NAMES
-    zstd
-
-    # TODO: CPM
+    NAME zstd
+    DEBIAN_NAMES libzstd-dev
+    FORMULA_NAMES zstd
+    RPM_NAMES libzstd-dev
+    PACMAN_NAMES zstd
+                 # TODO: CPM
 )
 
 _userver_module_find_include(NAMES zdict.h zstd.h zstd_errors.h PATH_SUFFIXES include)

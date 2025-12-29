@@ -68,7 +68,9 @@ public:
     static constexpr WaitMode kWaitMode = WaitMode::kSingleWaiter;
 
     // For internal use only.
-    explicit TaskWithResult(impl::TaskContextHolder&& context) : Task(std::move(context)) {}
+    explicit TaskWithResult(impl::TaskContextHolder&& context)
+        : Task(std::move(context))
+    {}
     /// @endcond
 
     Task AsTask() && {

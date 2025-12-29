@@ -25,7 +25,9 @@ constexpr USERVER_NAMESPACE::utils::TrivialBiMap kStringToSeverity = [](auto sel
 
 }  // namespace
 
-Message::Message(detail::ResultWrapperPtr res) : res_{res} {}
+Message::Message(detail::ResultWrapperPtr res)
+    : res_{res}
+{}
 
 std::string Message::GetMessage() const { return res_->GetErrorMessage(); }
 
@@ -49,7 +51,9 @@ logging::LogExtra Message::GetLogExtra() const { return res_->GetMessageLogExtra
 
 void Message::ThrowException() const {
     auto state = GetSqlState();
-    if (state == SqlState::kUnknownState) throw LogicError("Empty SQL state");
+    if (state == SqlState::kUnknownState) {
+        throw LogicError("Empty SQL state");
+    }
 
     auto msg_class = GetSqlStateClass(state);
     switch (msg_class) {

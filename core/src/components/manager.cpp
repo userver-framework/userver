@@ -12,11 +12,13 @@
 
 #include <components/component_context_impl.hpp>
 #include <components/manager_config.hpp>
+#include <engine/deadlock_detector.hpp>
 #include <engine/task/exception_hacks.hpp>
 #include <engine/task/task_processor.hpp>
 #include <engine/task/task_processor_pools.hpp>
 #include <userver/components/component_list.hpp>
 #include <userver/engine/async.hpp>
+#include <userver/engine/task/current_task.hpp>
 #include <userver/hostinfo/cpu_limit.hpp>
 #include <userver/logging/component.hpp>
 #include <userver/logging/log.hpp>
@@ -52,17 +54,21 @@ std::optional<size_t> GuessCpuLimit(const std::string& tp_name) {
     auto cpu = std::lround(*cpu_f);
     if (cpu > 0 && static_cast<unsigned int>(cpu) < hw_threads_estimate * 2) {
         // TODO: hack for https://st.yandex-team.ru/TAXICOMMON-2132
-        if (cpu < 3) cpu = 3;
+        if (cpu < 3) {
+            cpu = 3;
+        }
 
-        LOG_INFO() << "Using CPU limit from env CPU_LIMIT (" << cpu << ") for worker_threads "
-                   << "of task processor '" << tp_name << "', ignoring config value ";
+        LOG_INFO()
+            << "Using CPU limit from env CPU_LIMIT (" << cpu << ") for worker_threads "
+            << "of task processor '" << tp_name << "', ignoring config value ";
         return cpu;
     }
 
-    LOG_WARNING() << "CPU limit from env CPU_LIMIT (" << cpu_f
-                  << ") looks very different from the estimated number of "
-                     "hardware threads ("
-                  << hw_threads_estimate << "), worker_threads from the static config will be used";
+    LOG_WARNING()
+        << "CPU limit from env CPU_LIMIT (" << cpu_f
+        << ") looks very different from the estimated number of "
+           "hardware threads ("
+        << hw_threads_estimate << "), worker_threads from the static config will be used";
     return {};
 }
 
@@ -93,7 +99,8 @@ void ValidateConfigs(
 
     if (!validation_errors.empty()) {
         throw std::runtime_error(fmt::format(
-            "The following components have failed static config validation:\n\t{}", fmt::join(validation_errors, "\n\t")
+            "The following components have failed static config validation:\n\t{}",
+            fmt::join(validation_errors, "\n\t")
         ));
     }
 }
@@ -105,10 +112,13 @@ namespace components::impl {
 Manager::TaskProcessorsStorage::TaskProcessorsStorage(
     std::shared_ptr<engine::impl::TaskProcessorPools> task_processor_pools
 )
-    : task_processor_pools_(std::move(task_processor_pools)) {}
+    : task_processor_pools_(std::move(task_processor_pools))
+{}
 
 Manager::TaskProcessorsStorage::~TaskProcessorsStorage() {
-    if (task_processor_pools_) Reset();
+    if (task_processor_pools_) {
+        Reset();
+    }
 }
 
 void Manager::TaskProcessorsStorage::Reset() noexcept {
@@ -132,29 +142,25 @@ void Manager::TaskProcessorsStorage::Add(std::string name, std::unique_ptr<engin
 }
 
 void Manager::TaskProcessorsStorage::WaitForAllTasksBlocking() const noexcept {
-    const auto indicators = task_processors_map_ | boost::adaptors::map_values |
-                            boost::adaptors::transformed([](const auto& task_processor_ptr) -> const auto& {
-                                const engine::TaskProcessor& task_processor = *task_processor_ptr;
-                                return task_processor.GetTaskCounter();
-                            });
+    const auto indicators =
+        task_processors_map_ | boost::adaptors::map_values |
+        boost::adaptors::transformed([](const auto& task_processor_ptr) -> const auto& {
+            const engine::TaskProcessor& task_processor = *task_processor_ptr;
+            return task_processor.GetTaskCounter();
+        });
     while (engine::impl::TaskCounter::AnyMayHaveTasksAlive(indicators)) {
         std::this_thread::sleep_for(std::chrono::milliseconds{10});
     }
 }
 
-Manager::Manager(
-    std::unique_ptr<ManagerConfig>&& config,
-    std::chrono::steady_clock::time_point start_time,
-    const ComponentList& component_list
-)
+Manager::Manager(std::unique_ptr<ManagerConfig>&& config, std::chrono::steady_clock::time_point start_time)
     : config_(std::move(config)),
-      task_processors_storage_(
-          std::make_shared<engine::impl::TaskProcessorPools>(config_->coro_pool, config_->event_thread_pool)
-      ),
+      task_processors_storage_(std::make_shared<
+                               engine::impl::TaskProcessorPools>(config_->coro_pool, config_->event_thread_pool)),
       start_time_(start_time),
-      pre_load_duration_(
-          std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start_time_)
-      ) {
+      pre_load_duration_(std::chrono::duration_cast<
+                         std::chrono::milliseconds>(std::chrono::steady_clock::now() - start_time_))
+{
     LOG_INFO() << "Starting components manager";
 
     for (auto processor_config : config_->task_processors) {
@@ -165,8 +171,9 @@ Manager::Manager(
                     processor_config.worker_threads = *guess_cpu;
                 }
             } else {
-                LOG_ERROR() << "guess-cpu-limit is set for non-default task processor (" << processor_config.name
-                            << "), ignoring it";
+                LOG_ERROR()
+                    << "guess-cpu-limit is set for non-default task processor (" << processor_config.name
+                    << "), ignoring it";
             }
         }
         task_processors_storage_.Add(
@@ -188,7 +195,9 @@ Manager::Manager(
     UINVARIANT(
         fs_task_processor,
         utils::StrCat(
-            "Cannot find task processor with name '", config_->fs_task_processor, "', is fs_task_processor correct?"
+            "Cannot find task processor with name '",
+            config_->fs_task_processor,
+            "', is fs_task_processor correct?"
         )
     );
 
@@ -199,20 +208,36 @@ Manager::Manager(
     {
         // Call mlock() before component context creation as we should be done with
         // mlock before HTTP server starts and handles incoming requests
-        const auto debug_info_action = config_->mlock_debug_info ? engine::impl::DebugInfoAction::kLockInMemory
-                                                                 : engine::impl::DebugInfoAction::kLeaveAsIs;
+        const auto debug_info_action =
+            config_->mlock_debug_info
+                ? engine::impl::DebugInfoAction::kLockInMemory
+                : engine::impl::DebugInfoAction::kLeaveAsIs;
         engine::impl::MLockDebugInfo(debug_info_action);
     }
 
     default_task_processor_ = default_task_processor_it->second.get();
-    RunInCoro(*default_task_processor_, [this, &component_list]() { CreateComponentContext(component_list); });
+}
 
-    if (!config_->disable_phdr_cache) {
-        engine::impl::InitPhdrCache();
-    }
+engine::TaskWithResult<void> Manager::StartComponentSystem(const ComponentList& component_list, bool signal_on_stop) {
+    return engine::CriticalAsyncNoSpan(*default_task_processor_, [this, &component_list, signal_on_stop]() {
+        try {
+            CreateComponentContext(component_list);
+            if (!config_->disable_phdr_cache) {
+                engine::impl::InitPhdrCache();
+            }
+            LOG_INFO()
+                << "Started components manager. All the components have started "
+                   "successfully.";
+        } catch (const std::exception& e) {
+            LOG_ERROR() << "Failed to start component system (" << e << "). Cleaning up...";
 
-    LOG_INFO() << "Started components manager. All the components have started "
-                  "successfully.";
+            if (signal_on_stop && !engine::current_task::ShouldCancel()) {
+                // The main thread will catch SIGTERM and exit()
+                (void)kill(getpid(), SIGTERM);
+            }
+            throw;
+        }
+    });
 }
 
 Manager::~Manager() {
@@ -256,7 +281,9 @@ engine::TaskProcessor& Manager::GetTaskProcessor(std::string_view name) const {
 
 void Manager::OnSignal(int signum) {
     const std::shared_lock<std::shared_timed_mutex> lock(context_mutex_);
-    if (components_cleared_) return;
+    if (components_cleared_) {
+        return;
+    }
     if (signal_processor_) {
         signal_processor_->Get().Notify(signum, utils::impl::InternalTag{});
     }
@@ -308,6 +335,10 @@ void Manager::CreateComponentContext(const ComponentList& component_list) {
     component_context_ = std::make_unique<impl::ComponentContextImpl>(*this, std::move(loading_components));
 
     AddComponents(component_list);
+
+    LOG_INFO()
+        << "Started components manager. All the components have started "
+           "successfully.";
 }
 
 components::ComponentConfigMap Manager::MakeComponentConfigMap(const ComponentList& component_list) {
@@ -323,7 +354,8 @@ components::ComponentConfigMap Manager::MakeComponentConfigMap(const ComponentLi
 
     for (const auto& item : component_list) {
         if (component_config_map.count(item->GetComponentName()) == 0 &&
-            item->GetConfigFileMode() == ConfigFileMode::kNotRequired) {
+            item->GetConfigFileMode() == ConfigFileMode::kNotRequired)
+        {
             const auto& val = empty_configs_.emplace_back(item->GetComponentName());
             component_config_map.emplace(item->GetComponentName(), val);
         }
@@ -377,7 +409,9 @@ void Manager::AddComponents(const ComponentList& component_list) {
         /* Wait for all tasks to exit, but don't .Get() them - we've already caught
          * an exception, ignore the rest */
         for (auto& task : tasks) {
-            if (task.IsValid()) task.Wait();
+            if (task.IsValid()) {
+                task.Wait();
+            }
         }
 
         ClearComponents();
@@ -392,9 +426,10 @@ void Manager::AddComponents(const ComponentList& component_list) {
         );
     }
 
-    LOG_INFO() << "All components created. Constructors for all the components "
-                  "have completed. Preparing to run OnAllComponentsLoaded "
-                  "for each component.";
+    LOG_INFO()
+        << "All components created. Constructors for all the components "
+           "have completed. Preparing to run OnAllComponentsLoaded "
+           "for each component.";
 
     try {
         component_context_->OnAllComponentsLoaded();
@@ -427,8 +462,10 @@ void Manager::AddComponentImpl(
     LOG_DEBUG() << "Starting component " << name;
 
     auto* component = component_context_->AddComponent(name, config_it->second, adder);
-    if (auto* signal_processor = dynamic_cast<os_signals::ProcessorComponent*>(component))
+    if (auto* signal_processor = dynamic_cast<os_signals::ProcessorComponent*>(component)) {
+        const std::lock_guard<std::shared_timed_mutex> lock(context_mutex_);
         signal_processor_ = signal_processor;
+    }
     LOG_DEBUG() << "Started component " << name;
 }
 

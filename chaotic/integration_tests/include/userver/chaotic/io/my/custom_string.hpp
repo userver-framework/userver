@@ -8,7 +8,9 @@ namespace my {
 
 // Definition of a custom user structure
 struct CustomString final {
-    CustomString(const std::string& s) : s(s) {}
+    CustomString(const std::string& s)
+        : s(s)
+    {}
 
     std::string s;
 };

@@ -29,9 +29,9 @@ VALUES ($id_key, $name_key, $service_key, $channel_key, CurrentUtcTimestamp(), $
 
 namespace sample {
 
-formats::json::Value UpsertRowHandler::
-    HandleRequestJsonThrow(const server::http::HttpRequest&, const formats::json::Value& request, server::request::RequestContext&)
-        const {
+formats::json::Value
+UpsertRowHandler::HandleRequestJsonThrow(const server::http::HttpRequest&, const formats::json::Value& request, server::request::RequestContext&)
+    const {
     engine::SleepFor(std::chrono::milliseconds(10));
 
     auto trx = Ydb().Begin("trx", ydb::TransactionMode::kSerializableRW);

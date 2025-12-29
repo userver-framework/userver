@@ -3,7 +3,7 @@ implicit_optional = true
 disable_error_code = ["name-match", "arg-type"]
 
 [tool.ruff]
-target-version = "py312"
+target-version = "py310"
 line-length = 120
 
 [tool.ruff.format]
@@ -20,9 +20,15 @@ docstring-code-line-length = "dynamic"
 [tool.ruff.lint]
 preview = true
 select = [
-    "Q000",
-    "W291",
     "I",
+    "PYI026",
+    "PYI032",
+    "Q000",
+    "UP006",
+    "UP007",
+    "UP035",
+    "UP045",
+    "W291",
 ]
 ignore = []
 unfixable = []

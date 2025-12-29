@@ -56,7 +56,9 @@ UTEST_P_MT(GrpcChannels, TryWaitForConnected, 2) {
 
         // TryWaitForConnected should wait for the server to start and return 'true'
         EXPECT_TRUE(ugrpc::client::TryWaitForConnected(
-            client, engine::Deadline::FromDuration(utest::kMaxTestWaitTime), engine::current_task::GetTaskProcessor()
+            client,
+            engine::Deadline::FromDuration(utest::kMaxTestWaitTime),
+            engine::current_task::GetTaskProcessor()
         ));
 
         auto future = client.AsyncSayHello({});
@@ -67,7 +69,9 @@ UTEST_P_MT(GrpcChannels, TryWaitForConnected, 2) {
         // TryWaitForConnected should return immediately if the connection is
         // already alive
         EXPECT_TRUE(ugrpc::client::TryWaitForConnected(
-            client, engine::Deadline::FromDuration(kSmallTimeout), engine::current_task::GetTaskProcessor()
+            client,
+            engine::Deadline::FromDuration(kSmallTimeout),
+            engine::current_task::GetTaskProcessor()
         ));
     });
 

@@ -5,6 +5,10 @@
 
 #include <grpc-protovalidate/server/middleware.hpp>
 
+#ifndef ARCADIA_ROOT
+#include "generated/src/grpc-protovalidate/server/component.yaml.hpp"  // Y_IGNORE
+#endif
+
 USERVER_NAMESPACE_BEGIN
 
 namespace grpc_protovalidate::server {
@@ -46,35 +50,8 @@ std::shared_ptr<const ugrpc::server::MiddlewareBase> ValidatorComponent::CreateM
 yaml_config::Schema ValidatorComponent::GetMiddlewareConfigSchema() const { return GetStaticConfigSchema(); }
 
 yaml_config::Schema ValidatorComponent::GetStaticConfigSchema() {
-    return yaml_config::MergeSchemas<ugrpc::server::MiddlewareFactoryComponentBase>(R"(
-type: object
-description: gRPC request validator component
-additionalProperties: false
-properties:
-    fail-fast:
-        type: boolean
-        description: do not check remaining constraints after first error is encountered
-        defaultDescription: true
-    send-violations:
-        type: boolean
-        description: send found constraint violations in grpc::Status
-        defaultDescription: false
-    methods:
-        type: object
-        description: per-method middleware options overrides
-        properties: {}
-        additionalProperties:
-            type: object
-            description: method options
-            additionalProperties: false
-            properties:
-                fail-fast:
-                    type: boolean
-                    description: see 'fail-fast' global option
-                send-violations:
-                    type: boolean
-                    description: see 'send-violations' global option
-)");
+    return yaml_config::MergeSchemasFromResource<
+        ugrpc::server::MiddlewareFactoryComponentBase>("src/grpc-protovalidate/server/component.yaml");
 }
 
 }  // namespace grpc_protovalidate::server

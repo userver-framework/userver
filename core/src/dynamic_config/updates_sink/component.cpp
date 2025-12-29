@@ -20,7 +20,9 @@ DynamicConfigUpdatesSinkBase::DynamicConfigUpdatesSinkBase(
     const components::ComponentConfig& config,
     const components::ComponentContext& context
 )
-    : ComponentBase(config, context), used_by_(std::make_unique<UsedByInfo>()) {}
+    : ComponentBase(config, context),
+      used_by_(std::make_unique<UsedByInfo>())
+{}
 
 DynamicConfigUpdatesSinkBase::~DynamicConfigUpdatesSinkBase() = default;
 
@@ -43,11 +45,13 @@ void RegisterUpdater(
 
     if (component_name.empty()) {
         component_name = updater_component_name;
-    } else if (sink_component_name == components::DynamicConfig::kName && component_name == components::DynamicConfig::kName) {
-        throw std::runtime_error(
-            fmt::format("Please set dynamic-config.updates-enabled: true to signal "
-                        "that there is a dynamic config updater component")
-        );
+    } else if (sink_component_name == components::DynamicConfig::kName &&
+               component_name == components::DynamicConfig::kName)
+    {
+        throw std::runtime_error(fmt::format(
+            "Please set dynamic-config.updates-enabled: true to signal "
+            "that there is a dynamic config updater component"
+        ));
     } else {
         throw std::runtime_error(fmt::format(
             "updates sink '{}' can't be used by component '{}' "

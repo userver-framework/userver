@@ -20,5 +20,5 @@
 #include <userver/proto-structs/io/std/uint32_t.hpp>
 #include <userver/proto-structs/io/std/uint64_t.hpp>
 
-// For keyword types.
-#include <userver/proto-structs/io/std/scalar_conv.hpp>
+#include <userver/proto-structs/io/userver/proto_structs/unbreakable_dependency_cycle.hpp>
+#include <userver/proto-structs/io/userver/utils/box.hpp>

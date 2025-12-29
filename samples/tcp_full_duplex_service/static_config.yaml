@@ -51,6 +51,7 @@ components_manager:
             method: POST
             task_processor: main-task-processor
         http-client:
+        http-client-core:
             fs-task-processor: fs-task-processor
         dns-client:                     # Asynchronous DNS component
             fs-task-processor: fs-task-processor

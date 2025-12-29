@@ -4,9 +4,14 @@ additionalProperties: false
 properties:
     load-enabled:
         type: boolean
+        description: set to `false` to disable loading of the component
+        default: true
     fs-task-processor:
         type: string
-        description: task processor for disk I/O operations
+        description: |
+            Task processor for disk I/O operations.
+
+            Default: engine::current_task::GetBlockingTaskProcessor()
     hosts-file-path:
         type: string
         description: path to the `hosts` file

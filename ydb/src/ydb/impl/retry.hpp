@@ -51,7 +51,11 @@ public:
         const NYdb::NRetry::TRetryOperationSettings& retry_settings,
         Fn&& fn
     )
-        : client_{client}, retry_budget_{retry_budget}, retry_settings_{retry_settings}, fn_{std::move(fn)} {}
+        : client_{client},
+          retry_budget_{retry_budget},
+          retry_settings_{retry_settings},
+          fn_{std::move(fn)}
+    {}
 
     AsyncResultType Execute() {
         auto internal_retry_status = RetryOperation(
@@ -62,9 +66,10 @@ public:
             retry_settings_
         );
 
-        return internal_retry_status.Apply([handler = this->shared_from_this()](
-                                               const NYdb::TAsyncStatus& internal_async_status
-                                           ) { return handler->TransformInternalRetryStatus(internal_async_status); });
+        return internal_retry_status
+            .Apply([handler = this->shared_from_this()](const NYdb::TAsyncStatus& internal_async_status) {
+                return handler->TransformInternalRetryStatus(internal_async_status);
+            });
     }
 
 private:

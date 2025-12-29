@@ -3,8 +3,6 @@
 #include <chrono>
 #include <optional>
 
-#include <grpcpp/client_context.h>
-
 #include <userver/ugrpc/impl/async_method_invocation.hpp>
 
 USERVER_NAMESPACE_BEGIN

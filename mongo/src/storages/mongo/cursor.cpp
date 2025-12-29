@@ -6,7 +6,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::mongo {
 
-Cursor::Cursor(std::unique_ptr<impl::CursorImpl>&& impl) : impl_(std::move(impl)) {}
+Cursor::Cursor(std::unique_ptr<impl::CursorImpl>&& impl)
+    : impl_(std::move(impl))
+{}
 
 Cursor::~Cursor() = default;
 Cursor::Cursor(Cursor&&) noexcept = default;
@@ -24,8 +26,12 @@ Cursor::Iterator Cursor::begin() { return Iterator(this); }
 // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
 Cursor::Iterator Cursor::end() { return Iterator(nullptr); }
 
-Cursor::Iterator::Iterator(Cursor* cursor) : cursor_(cursor) {
-    if (cursor_ && !cursor_->impl_->IsValid()) cursor_ = nullptr;
+Cursor::Iterator::Iterator(Cursor* cursor)
+    : cursor_(cursor)
+{
+    if (cursor_ && !cursor_->impl_->IsValid()) {
+        cursor_ = nullptr;
+    }
 }
 
 Cursor::Iterator::DocHolder Cursor::Iterator::operator++(int) {
@@ -36,7 +42,9 @@ Cursor::Iterator::DocHolder Cursor::Iterator::operator++(int) {
 
 Cursor::Iterator& Cursor::Iterator::operator++() {
     cursor_->impl_->Next();
-    if (!cursor_->impl_->IsValid()) cursor_ = nullptr;
+    if (!cursor_->impl_->IsValid()) {
+        cursor_ = nullptr;
+    }
     return *this;
 }
 

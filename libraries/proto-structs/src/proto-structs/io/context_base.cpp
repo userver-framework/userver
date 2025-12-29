@@ -84,10 +84,8 @@ void ContextWithErrors<TError>::AddError(int field_number, std::string_view reas
 }
 
 template <typename TError>
-void ContextWithErrors<TError>::AddError(
-    const ::google::protobuf::FieldDescriptor& field_desc,
-    std::string_view reason
-) {
+void ContextWithErrors<
+    TError>::AddError(const ::google::protobuf::FieldDescriptor& field_desc, std::string_view reason) {
     AddError(GetCurrentPath(field_desc), reason);
 }
 

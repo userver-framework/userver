@@ -24,7 +24,8 @@ void RunStandalone(
     utils::function_ref<void()> payload
 ) {
     UINVARIANT(
-        !engine::current_task::IsTaskProcessorThread(), "RunStandalone must not be used alongside a running engine"
+        !engine::current_task::IsTaskProcessorThread(),
+        "RunStandalone must not be used alongside a running engine"
     );
     UINVARIANT(worker_threads != 0, "Unable to run anything using 0 threads");
     if (std::uncaught_exceptions() != 0) {
@@ -33,7 +34,10 @@ void RunStandalone(
     }
 
     auto task_processor_holder = engine::impl::TaskProcessorHolder::Make(
-        worker_threads, "coro-runner", config.queue_type, engine::impl::MakeTaskProcessorPools(config)
+        worker_threads,
+        "coro-runner",
+        config.queue_type,
+        engine::impl::MakeTaskProcessorPools(config)
     );
 
     engine::impl::RunOnTaskProcessorSync(*task_processor_holder, std::move(payload));

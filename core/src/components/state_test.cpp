@@ -23,7 +23,9 @@ public:
     static constexpr std::string_view kName = "component-1";
 
     Component1(const components::ComponentConfig& config, const components::ComponentContext& context)
-        : components::ComponentBase(config, context), state_{context} {}
+        : components::ComponentBase(config, context),
+          state_{context}
+    {}
 
     void OnAllComponentsLoaded() override { CheckTheComponents(state_, "Component1::OnAllComponentsLoaded()"); }
 
@@ -42,7 +44,9 @@ public:
     static constexpr std::string_view kName = "component-2";
 
     Component2(const components::ComponentConfig& config, const components::ComponentContext& context)
-        : components::ComponentBase(config, context), state_{context} {
+        : components::ComponentBase(config, context),
+          state_{context}
+    {
         context.FindComponent<Component1>();
     }
 
@@ -63,7 +67,9 @@ public:
     static constexpr std::string_view kName = "component-not-loaded";
 
     ComponentNotLoaded(const components::ComponentConfig& config, const components::ComponentContext& context)
-        : components::ComponentBase(config, context), state_{context} {
+        : components::ComponentBase(config, context),
+          state_{context}
+    {
         context.FindComponent<Component1>();
     }
 
@@ -84,7 +90,9 @@ public:
     static constexpr std::string_view kName = "component-3";
 
     Component3(const components::ComponentConfig& config, const components::ComponentContext& context)
-        : components::ComponentBase(config, context), state_{context} {
+        : components::ComponentBase(config, context),
+          state_{context}
+    {
         context.FindComponentOptional<Component2>();
         context.FindComponentOptional<ComponentNotLoaded>();
     }
@@ -111,7 +119,8 @@ void CheckTheComponents(components::State state, std::string_view where) {
         }
 
         for (auto dependency :
-             {Component1::kName, Component2::kName, Component3::kName, ComponentNotLoaded::kName, not_existing}) {
+             {Component1::kName, Component2::kName, Component3::kName, ComponentNotLoaded::kName, not_existing})
+        {
             EXPECT_FALSE(state.HasDependencyOn(Component1::kName, dependency)) << where;
             EXPECT_FALSE(deps.count(dependency)) << where;
         }

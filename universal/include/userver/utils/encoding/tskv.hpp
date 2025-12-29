@@ -157,8 +157,12 @@ USERVER_IMPL_FORCE_INLINE const char* AssumeAligned(const char* block) noexcept 
 constexpr auto MakeShuffleIndicesForRightShift() noexcept {
     constexpr std::size_t kShuffleWidth = 16;
     std::array<std::uint8_t, kShuffleWidth * 2> result{};
-    for (auto& item : result) item = 0xf0;
-    for (std::size_t i = 0; i < kShuffleWidth; ++i) result[i] = i;
+    for (auto& item : result) {
+        item = 0xf0;
+    }
+    for (std::size_t i = 0; i < kShuffleWidth; ++i) {
+        result[i] = i;
+    }
     return result;
 }
 
@@ -179,12 +183,14 @@ struct EncoderStd final {
         std::memcpy(destination, &cut_block, sizeof(cut_block));
     }
 
-    USERVER_IMPL_FORCE_INLINE static bool
-    MayNeedValueEscaping(Block block, std::size_t offset, std::size_t count) noexcept {
+    USERVER_IMPL_FORCE_INLINE static bool MayNeedValueEscaping(Block block, std::size_t offset, std::size_t count)
+        noexcept {
         char buffer[kBlockSize]{};
         std::memcpy(&buffer, &block, sizeof(block));
         for (const char c : std::string_view(buffer + offset, count)) {
-            if (c <= '\r' || c == '\\') return true;
+            if (c <= '\r' || c == '\\') {
+                return true;
+            }
         }
         return false;
     }
@@ -203,24 +209,23 @@ struct EncoderSse2 {
         return _mm_load_si128(reinterpret_cast<const Block*>(block));
     }
 
-    USERVER_IMPL_FORCE_INLINE static void
-    CopyBlock(Block block_contents, std::size_t offset, char* destination) noexcept {
+    USERVER_IMPL_FORCE_INLINE static void CopyBlock(Block block_contents, std::size_t offset, char* destination)
+        noexcept {
         alignas(kBlockSize * 2) char storage[kBlockSize * 2]{};
         _mm_store_si128(reinterpret_cast<Block*>(&storage), block_contents);
         const auto cut_block = _mm_loadu_si128(reinterpret_cast<__m128i_u*>(&storage[offset]));
         _mm_storeu_si128(reinterpret_cast<__m128i_u*>(destination), cut_block);
     }
 
-    USERVER_IMPL_FORCE_INLINE static bool
-    MayNeedValueEscaping(Block block, std::size_t offset, std::size_t count) noexcept {
+    USERVER_IMPL_FORCE_INLINE static bool MayNeedValueEscaping(Block block, std::size_t offset, std::size_t count)
+        noexcept {
         // 'char c' may need TSKV value escaping iff c <= '\r' || c == '\\'
         // 16 lower bits of the mask contain may-need-escaping flag per block's char
         const auto may_need_escaping_mask = _mm_movemask_epi8(
             _mm_or_si128(_mm_cmpgt_epi8(_mm_set1_epi8('\r' + 1), block), _mm_cmpeq_epi8(block, _mm_set1_epi8('\\')))
         );
-        return static_cast<std::uint32_t>(
-                   static_cast<std::uint32_t>(may_need_escaping_mask) >> offset << (32 - count)
-               ) != 0;
+        return static_cast<
+                   std::uint32_t>(static_cast<std::uint32_t>(may_need_escaping_mask) >> offset << (32 - count)) != 0;
     }
 };
 #endif
@@ -256,16 +261,16 @@ struct EncoderAvx2 final {
         _mm256_storeu_si256(reinterpret_cast<__m256i_u*>(destination), cut_block);
     }
 
-    USERVER_IMPL_FORCE_INLINE static bool
-    MayNeedValueEscaping(Block block, std::size_t offset, std::size_t count) noexcept {
+    USERVER_IMPL_FORCE_INLINE static bool MayNeedValueEscaping(Block block, std::size_t offset, std::size_t count)
+        noexcept {
         // 'char c' may need TSKV value escaping iff c <= '\r' || c == '\\'
         // 32 lower bits of the mask contain may-need-escaping flag per block's char
         const auto may_need_escaping_mask = _mm256_movemask_epi8(_mm256_or_si256(
-            _mm256_cmpgt_epi8(_mm256_set1_epi8('\r' + 1), block), _mm256_cmpeq_epi8(block, _mm256_set1_epi8('\\'))
+            _mm256_cmpgt_epi8(_mm256_set1_epi8('\r' + 1), block),
+            _mm256_cmpeq_epi8(block, _mm256_set1_epi8('\\'))
         ));
-        return static_cast<std::uint32_t>(
-                   static_cast<std::uint32_t>(may_need_escaping_mask) >> offset << (32 - count)
-               ) != 0;
+        return static_cast<
+                   std::uint32_t>(static_cast<std::uint32_t>(may_need_escaping_mask) >> offset << (32 - count)) != 0;
     }
 };
 #endif
@@ -308,8 +313,10 @@ USERVER_IMPL_FORCE_INLINE BufferPtr<Encoder> AppendBlock(
 
 // noinline to avoid code duplication for a cold path
 template <typename Encoder>
-[[nodiscard]] __attribute__((noinline)) BufferPtr<Encoder>
-EncodeValueEach(BufferPtr<Encoder> destination, std::string_view str) {
+[[nodiscard]] __attribute__((noinline)) BufferPtr<Encoder> EncodeValueEach(
+    BufferPtr<Encoder> destination,
+    std::string_view str
+) {
     for (const char c : str) {
         destination.current = encoding::EncodeTskv(destination.current, c, EncodeTskvMode::kValue);
     }
@@ -317,8 +324,12 @@ EncodeValueEach(BufferPtr<Encoder> destination, std::string_view str) {
 }
 
 template <typename Encoder>
-[[nodiscard]] USERVER_IMPL_FORCE_INLINE BufferPtr<Encoder>
-EncodeValueBlock(BufferPtr<Encoder> destination, const char* block, std::size_t offset, std::size_t count) {
+[[nodiscard]] USERVER_IMPL_FORCE_INLINE BufferPtr<Encoder> EncodeValueBlock(
+    BufferPtr<Encoder> destination,
+    const char* block,
+    std::size_t offset,
+    std::size_t count
+) {
     UASSERT(offset < Encoder::kBlockSize);
     UASSERT(offset + count <= Encoder::kBlockSize);
     block = AssumeAligned<Encoder::kBlockSize>(block);
@@ -336,9 +347,13 @@ EncodeValueBlock(BufferPtr<Encoder> destination, const char* block, std::size_t 
 
 // BufferPtr must be passed around by value to avoid aliasing issues.
 template <typename Encoder>
-[[nodiscard]] __attribute__((noinline)) BufferPtr<Encoder>
-EncodeValue(BufferPtr<Encoder> destination, std::string_view str) {
-    if (str.empty()) return destination;
+[[nodiscard]] __attribute__((noinline)) BufferPtr<Encoder> EncodeValue(
+    BufferPtr<Encoder> destination,
+    std::string_view str
+) {
+    if (str.empty()) {
+        return destination;
+    }
 
     const char* const first_block = AlignDown<Encoder::kBlockSize>(str.data());
     const auto first_block_offset = static_cast<std::size_t>(str.data() - first_block);
@@ -350,7 +365,8 @@ EncodeValue(BufferPtr<Encoder> destination, std::string_view str) {
 
     if (last_block != first_block) {
         for (const char* current_block = first_block + Encoder::kBlockSize; current_block < last_block;
-             current_block += Encoder::kBlockSize) {
+             current_block += Encoder::kBlockSize)
+        {
             destination = tskv::EncodeValueBlock(destination, current_block, 0, Encoder::kBlockSize);
         }
 
@@ -408,7 +424,9 @@ inline bool ShouldKeyBeEscaped(std::string_view key) noexcept {
             case '=':
                 return true;
             default:
-                if ('A' <= ch && ch <= 'Z') return true;
+                if ('A' <= ch && ch <= 'Z') {
+                    return true;
+                }
                 break;
         }
     }

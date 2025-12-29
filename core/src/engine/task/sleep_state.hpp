@@ -78,7 +78,8 @@ private:
     static constexpr SleepState Unpack(std::uint64_t value) noexcept {
         return SleepState{
             SleepState::Flags{SleepFlags{static_cast<std::uint32_t>(value)}},
-            SleepState::Epoch{static_cast<std::uint32_t>(value >> 32)}};
+            SleepState::Epoch{static_cast<std::uint32_t>(value >> 32)}
+        };
     }
 
     static_assert(std::atomic<std::uint64_t>::is_always_lock_free);

@@ -196,7 +196,9 @@ TEST(HeaderMap, CollisionsLongProbeDistance) {
         common_hash.emplace(hash);
 
         collisions_with_value.emplace_back(
-            std::piecewise_construct, std::forward_as_tuple(std::move(s)), std::forward_as_tuple(std::to_string(i))
+            std::piecewise_construct,
+            std::forward_as_tuple(std::move(s)),
+            std::forward_as_tuple(std::to_string(i))
         );
     }
 
@@ -341,7 +343,8 @@ TEST(HeaderMap, Iteration) {
     const std::array<std::pair<std::string, std::string>, 3> headers{
         std::pair<std::string, std::string>{"a", "1"},
         std::pair<std::string, std::string>{"b", "2"},
-        std::pair<std::string, std::string>{"c", "3"}};
+        std::pair<std::string, std::string>{"c", "3"}
+    };
 
     HeaderMap map{};
     for (const auto& [k, v] : headers) {
@@ -568,8 +571,7 @@ std::vector<std::string> GenerateCollisions(std::size_t count) {
     result.reserve(count);
 
     std::size_t len = 1;
-    for (; (1UL << len) < count; ++len)
-        ;
+    for (; (1UL << len) < count; ++len);
 
     for (std::size_t i = 0; i < count; ++i) {
         std::string s(len, '[');
@@ -665,7 +667,8 @@ constexpr std::string_view kDefaultHeaders[] = {
     USERVER_NAMESPACE::http::headers::kXTaxiEnvoyProxyDstVhost,
     USERVER_NAMESPACE::http::headers::kDate,
     USERVER_NAMESPACE::http::headers::kConnection,
-    USERVER_NAMESPACE::http::headers::kCookie};
+    USERVER_NAMESPACE::http::headers::kCookie
+};
 static_assert(std::size(kDefaultHeaders) == 16);
 
 constexpr std::string_view kAllUsedHeaders[] = {

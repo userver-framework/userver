@@ -35,7 +35,9 @@ void ListenerCtor(engine::io::Sockaddr& addr, engine::io::Socket& socket, IpVers
 
 }  // namespace
 
-TcpListener::TcpListener(IpVersion ipv) : socket{IpVersionToDomain(ipv), kType} {
+TcpListener::TcpListener(IpVersion ipv)
+    : socket{IpVersionToDomain(ipv), kType}
+{
     ListenerCtor(addr, socket, ipv);
     socket.Listen();
 }
@@ -52,7 +54,11 @@ std::pair<engine::io::Socket, engine::io::Socket> TcpListener::MakeSocketPair(en
     return socket_pair;
 }
 
-UdpListener::UdpListener(IpVersion ipv) : socket{IpVersionToDomain(ipv), kType} { ListenerCtor(addr, socket, ipv); }
+UdpListener::UdpListener(IpVersion ipv)
+    : socket{IpVersionToDomain(ipv), kType}
+{
+    ListenerCtor(addr, socket, ipv);
+}
 
 }  // namespace internal::net
 

@@ -9,7 +9,8 @@ and chaotic generates parsers, serializers and a client for you.
 
 First, define OpenAPI schema in one or multiple yaml files.
 
-```yaml
+```
+# yaml
 openapi: 3.0.0
 ...
 ```
@@ -55,7 +56,8 @@ Middleware's code can be executed before the request is sent to the server and a
 
 If you want to log every in/out client body, use `logging` middleware in static config:
 
-```yaml
+```
+# yaml
     test-client:
       middlewares:
         logging:
@@ -69,7 +71,8 @@ If you want to log every in/out client body, use `logging` middleware in static 
 Clients may fetch attempts and retries from dynamic config.
 Use `qos-{client_name}` middleware in static config (change "test-client" to your client name):
 
-```yaml
+```
+# yaml
     test-client:
       middlewares:
         qos-test-client: {}
@@ -87,7 +90,8 @@ auto component_list =
 
 HTTP proxy may be enabled using `proxy` middleware in static config:
 
-```yaml
+```
+# yaml
     test-client:
       middlewares:
         proxy:
@@ -99,7 +103,8 @@ HTTP proxy may be enabled using `proxy` middleware in static config:
 By default a client stops at the first redirect and interprets it as a response.
 If you want to follow redirects, use `follow-redirects` middleware:
 
-```yaml
+```
+# yaml
     test-client:
       middlewares:
         follow-redirects: {}

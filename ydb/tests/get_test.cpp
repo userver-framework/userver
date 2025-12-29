@@ -46,7 +46,7 @@ private:
 using TYdbRowGetTestCaseDeathTest = TYdbRowGetTestCase;
 
 ydb::Cursor GetCursor(ydb::TableClient& table_client) {
-    static const ydb::Query query{R"(
+    static const ydb::Query kQuery{R"(
     DECLARE $search_key AS Uint32;
 
     SELECT
@@ -58,7 +58,7 @@ ydb::Cursor GetCursor(ydb::TableClient& table_client) {
     auto builder = table_client.GetBuilder();
     builder.Add("$search_key", std::uint32_t{321});
 
-    auto response = table_client.ExecuteDataQuery(ydb::OperationSettings{}, query, std::move(builder));
+    auto response = table_client.ExecuteDataQuery(ydb::OperationSettings{}, kQuery, std::move(builder));
     auto cursor = response.GetSingleCursor();
     if (cursor.size() != 1) {
         throw std::runtime_error{"cursor size is not 1"};

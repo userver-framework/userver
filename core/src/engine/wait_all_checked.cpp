@@ -18,7 +18,9 @@ FutureStatus DoWaitAllChecked(utils::span<ContextAccessor*> targets, Deadline de
     while (true) {
         bool all_completed = true;
         for (auto& target : targets) {
-            if (!target) continue;
+            if (!target) {
+                continue;
+            }
 
             const bool is_ready = target->IsReady();
             if (is_ready) {
@@ -27,12 +29,16 @@ FutureStatus DoWaitAllChecked(utils::span<ContextAccessor*> targets, Deadline de
             }
             all_completed &= is_ready;
         }
-        if (all_completed) break;
+        if (all_completed) {
+            break;
+        }
 
         auto sleep_status = current.Sleep(wait_strategy, deadline);
 
         for (const auto& target : targets) {
-            if (target) target->AfterWait();
+            if (target) {
+                target->AfterWait();
+            }
         }
 
         switch (sleep_status) {

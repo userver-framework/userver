@@ -90,6 +90,8 @@ public:
     using ParseException = yaml_config::ParseException;
 
     YamlConfig() = default;
+    YamlConfig(const YamlConfig&) = default;
+    YamlConfig& operator=(const YamlConfig&) = default;
 
     /// YamlConfig = config + config_vars
     YamlConfig(formats::yaml::Value yaml, formats::yaml::Value config_vars, Mode mode = Mode::kSecure);
@@ -197,6 +199,8 @@ public:
     /// @deprecated Either use the current `YamlConfig` as a formats value, or use `.As<formats::json::Value>()`
     /// to get the correct treatment for `$vars`, `#fallback`, `#env` and `#file`.
     formats::yaml::Value GetRawYamlWithoutConfigVars() const;
+
+    formats::yaml::Value GetRawConfigVars() const;
 
 private:
     formats::yaml::Value yaml_;

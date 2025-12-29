@@ -11,7 +11,8 @@ USERVER_NAMESPACE_BEGIN
 namespace server::handlers {
 
 LegacyJsonErrorBuilder::LegacyJsonErrorBuilder(const CustomHandlerException& ex)
-    : LegacyJsonErrorBuilder(server::http::GetHttpStatus(ex), ex.what(), ex.GetExternalErrorBody(), ex.GetDetails()) {}
+    : LegacyJsonErrorBuilder(server::http::GetHttpStatus(ex), ex.what(), ex.GetExternalErrorBody(), ex.GetDetails())
+{}
 
 LegacyJsonErrorBuilder::LegacyJsonErrorBuilder(
     http::HttpStatus status,
@@ -23,7 +24,8 @@ LegacyJsonErrorBuilder::LegacyJsonErrorBuilder(
           std::move(internal_message),
           std::move(external_error_body),
           formats::json::Value{}
-      ) {}
+      )
+{}
 
 LegacyJsonErrorBuilder::LegacyJsonErrorBuilder(
     http::HttpStatus status,
@@ -31,7 +33,8 @@ LegacyJsonErrorBuilder::LegacyJsonErrorBuilder(
     std::string external_error_body,
     const formats::json::Value& details
 )
-    : internal_message_(std::move(internal_message)) {
+    : internal_message_(std::move(internal_message))
+{
     formats::json::ValueBuilder response_json(formats::json::Type::kObject);
 
     response_json["code"] = std::to_string(static_cast<int>(status));

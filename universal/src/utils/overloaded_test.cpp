@@ -38,9 +38,7 @@ TEST_P(OverloadedTestFixture, StdVisit) {
     std::visit(
         utils::Overloaded{
             [](const std::string& data) { EXPECT_EQ(data, "Farewell, Userver!"); },
-            [](const std::vector<int>& data) {
-                EXPECT_EQ(data, (std::vector<int>{1, 2, 3}));
-            },
+            [](const std::vector<int>& data) { EXPECT_EQ(data, (std::vector<int>{1, 2, 3})); },
         },
         std::as_const(data)
     );
@@ -64,17 +62,13 @@ TEST_P(OverloadedTestFixture, UtilsVisit) {
     utils::Visit(
         data,
         [](const std::string& data) { EXPECT_EQ(data, "Farewell, Userver!"); },
-        [](const std::vector<int>& data) {
-            EXPECT_EQ(data, (std::vector<int>{1, 2, 3}));
-        }
+        [](const std::vector<int>& data) { EXPECT_EQ(data, (std::vector<int>{1, 2, 3})); }
     );
 
     utils::Visit(
         std::move(data),
         [](std::string&& data) { EXPECT_EQ(data, "Farewell, Userver!"); },
-        [](std::vector<int>&& data) {
-            EXPECT_EQ(data, (std::vector<int>{1, 2, 3}));
-        }
+        [](std::vector<int>&& data) { EXPECT_EQ(data, (std::vector<int>{1, 2, 3})); }
     );
 }
 
@@ -129,9 +123,15 @@ TEST(OverloadedTest, NoCopying) {
         double real;
         double imag;
 
-        Complex() : real{}, imag{} {}
+        Complex()
+            : real{},
+              imag{}
+        {}
 
-        Complex(double r, double i) : real{r}, imag{i} {}
+        Complex(double r, double i)
+            : real{r},
+              imag{i}
+        {}
 
         Complex(const Complex&) = delete;
         Complex& operator=(const Complex&) = delete;

@@ -10,10 +10,12 @@ async def call(service_client):
 
 
 async def test_hello_base(service_client, mockserver, dynamic_config):
+    # /// [Functional test]
     @mockserver.handler('test/test')
     def test(request):
         assert request.query['name'] == 'john'
         return mockserver.make_response('"tost"')
+        # /// [Functional test]
 
     p = await call(service_client)
     assert p['http.request.max_resend_count'] == '1'

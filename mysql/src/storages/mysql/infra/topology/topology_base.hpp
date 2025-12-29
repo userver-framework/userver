@@ -26,8 +26,10 @@ class TopologyBase {
 public:
     virtual ~TopologyBase();
 
-    static std::unique_ptr<TopologyBase>
-    Create(clients::dns::Resolver& resolver, const std::vector<settings::PoolSettings>& pools_settings);
+    static std::unique_ptr<TopologyBase> Create(
+        clients::dns::Resolver& resolver,
+        const std::vector<settings::PoolSettings>& pools_settings
+    );
 
     Pool& SelectPool(ClusterHostType host_type) const;
 

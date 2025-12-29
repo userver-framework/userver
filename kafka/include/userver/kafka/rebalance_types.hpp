@@ -25,7 +25,10 @@ struct TopicPartitionView final {
     std::optional<std::uint64_t> offset;
 
     TopicPartitionView(utils::zstring_view topic, std::uint32_t partition_id, std::optional<std::uint64_t> offset)
-        : topic{topic}, partition_id{partition_id}, offset{offset} {}
+        : topic{topic},
+          partition_id{partition_id},
+          offset{offset}
+    {}
 };
 
 using TopicPartitionBatchView = utils::span<const TopicPartitionView>;

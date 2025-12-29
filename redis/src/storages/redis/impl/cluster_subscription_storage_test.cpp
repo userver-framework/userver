@@ -30,12 +30,16 @@ public:
             ASSERT_TRUE(cmd->control.force_server_id);
             const auto& host = cmd->control.force_server_id->GetDescription();
             cmds_.push_back(cmd);
-            if (host.size()) ssubscriptions_by_host_[host]++;
+            if (host.size()) {
+                ssubscriptions_by_host_[host]++;
+            }
         };
         auto sharded_unsubscribe_callback = [&](const std::string& /*channel*/, storages::redis::impl::CommandPtr cmd) {
             ASSERT_TRUE(cmd->control.force_server_id);
             const auto& host = cmd->control.force_server_id->GetDescription();
-            if (host.size()) ssubscriptions_by_host_[host]--;
+            if (host.size()) {
+                ssubscriptions_by_host_[host]--;
+            }
         };
 
         auto subscribe_callback = [&](size_t /*shard_idx*/, storages::redis::impl::CommandPtr cmd) {
@@ -44,12 +48,16 @@ public:
 
             cmds_.push_back(cmd);
 
-            if (host.size()) subscriptions_by_host_[host]++;
+            if (host.size()) {
+                subscriptions_by_host_[host]++;
+            }
         };
         auto unsubscribe_callback = [&](size_t /*shard_idx*/, storages::redis::impl::CommandPtr cmd) {
             ASSERT_TRUE(cmd->control.force_server_id);
             const auto& host = cmd->control.force_server_id->GetDescription();
-            if (host.size()) subscriptions_by_host_[host]--;
+            if (host.size()) {
+                subscriptions_by_host_[host]--;
+            }
         };
         storage_->SetSubscribeCallback(subscribe_callback);
         storage_->SetUnsubscribeCallback(unsubscribe_callback);
@@ -75,10 +83,12 @@ public:
         for (auto& cmd : cmds_) {
             const auto& [command, channel] = cmd->args.GetCommandAndChannel();
             storages::redis::ReplyData reply_data(storages::redis::ReplyData::Array{
-                storages::redis::ReplyData(command), storages::redis::ReplyData(channel), storages::redis::ReplyData(1)}
-            );
-            const storages::redis::ReplyPtr reply =
-                std::make_shared<storages::redis::Reply>(command, std::move(reply_data));
+                storages::redis::ReplyData(command),
+                storages::redis::ReplyData(channel),
+                storages::redis::ReplyData(1)
+            });
+            const storages::redis::ReplyPtr
+                reply = std::make_shared<storages::redis::Reply>(command, std::move(reply_data));
             reply->server_id = server_ids_[0];
             cmd->callback({}, reply);
         }

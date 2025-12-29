@@ -1,9 +1,11 @@
 #pragma once
 
-#include <boost/uuid/uuid.hpp>
-#include <boost/uuid/uuid_hash.hpp>
+// Utilitary header for chaotic for a custom type serialization/parsing support
 
 #include <userver/chaotic/convert/to.hpp>
+
+#include <boost/uuid/uuid.hpp>
+#include <boost/uuid/uuid_hash.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

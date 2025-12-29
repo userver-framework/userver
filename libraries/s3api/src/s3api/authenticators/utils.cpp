@@ -140,10 +140,13 @@ std::string MakeStringToSign(
             "versionId",
             "versioning",
             "versions",
-            "website"};
+            "website"
+        };
 
         // query
-        { signature << '/' + request.req.substr(0, request.req.find('?')); }
+        {
+            signature << '/' + request.req.substr(0, request.req.find('?'));
+        }
 
         if (auto pos = request.req.find('?'); pos != std::string::npos) {
             std::vector<std::string> subresources_strings;
@@ -184,8 +187,11 @@ std::string MakeSignature(const std::string& string_to_sign, const Secret& secre
     return crypto::hash::HmacSha1(secret_key.GetUnderlying(), string_to_sign, crypto::hash::OutputEncoding::kBase64);
 }
 
-std::string
-MakeHeaderAuthorization(const std::string& string_to_sign, const std::string& access_key, const Secret& secret_key) {
+std::string MakeHeaderAuthorization(
+    const std::string& string_to_sign,
+    const std::string& access_key,
+    const Secret& secret_key
+) {
     return "AWS " + access_key + ":" + MakeSignature(string_to_sign, secret_key);
 }
 

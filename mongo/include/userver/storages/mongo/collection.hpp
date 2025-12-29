@@ -92,8 +92,11 @@ public:
     /// @see options::ReturnNew
     /// @see options::Upsert
     template <typename... Options>
-    WriteResult
-    FindAndModify(formats::bson::Document query, const formats::bson::Document& update, Options&&... options);
+    WriteResult FindAndModify(
+        formats::bson::Document query,
+        const formats::bson::Document& update,
+        Options&&... options
+    );
 
     /// Atomically removes a single matching document
     template <typename... Options>
@@ -189,10 +192,13 @@ Cursor Collection::Find(formats::bson::Document filter, Options&&... options) co
 template <typename... Options>
 std::optional<formats::bson::Document> Collection::FindOne(formats::bson::Document filter, Options&&... options) const {
     static_assert(
-        !(std::is_same<std::decay_t<Options>, options::Limit>::value || ...), "Limit option cannot be used in FindOne"
+        !(std::is_same<std::decay_t<Options>, options::Limit>::value || ...),
+        "Limit option cannot be used in FindOne"
     );
     auto cursor = Find(std::move(filter), options::Limit{1}, std::forward<Options>(options)...);
-    if (cursor.begin() == cursor.end()) return {};
+    if (cursor.begin() == cursor.end()) {
+        return {};
+    }
     return *cursor.begin();
 }
 
@@ -211,24 +217,33 @@ WriteResult Collection::InsertMany(std::vector<formats::bson::Document> document
 }
 
 template <typename... Options>
-WriteResult
-Collection::ReplaceOne(formats::bson::Document selector, formats::bson::Document replacement, Options&&... options) {
+WriteResult Collection::ReplaceOne(
+    formats::bson::Document selector,
+    formats::bson::Document replacement,
+    Options&&... options
+) {
     operations::ReplaceOne replace_op(std::move(selector), std::move(replacement));
     (replace_op.SetOption(std::forward<Options>(options)), ...);
     return Execute(replace_op);
 }
 
 template <typename... Options>
-WriteResult
-Collection::UpdateOne(formats::bson::Document selector, formats::bson::Document update, Options&&... options) {
+WriteResult Collection::UpdateOne(
+    formats::bson::Document selector,
+    formats::bson::Document update,
+    Options&&... options
+) {
     operations::Update update_op(operations::Update::Mode::kSingle, std::move(selector), std::move(update));
     (update_op.SetOption(std::forward<Options>(options)), ...);
     return Execute(update_op);
 }
 
 template <typename... Options>
-WriteResult
-Collection::UpdateMany(formats::bson::Document selector, formats::bson::Document update, Options&&... options) {
+WriteResult Collection::UpdateMany(
+    formats::bson::Document selector,
+    formats::bson::Document update,
+    Options&&... options
+) {
     operations::Update update_op(operations::Update::Mode::kMulti, std::move(selector), std::move(update));
     (update_op.SetOption(std::forward<Options>(options)), ...);
     return Execute(update_op);
@@ -249,8 +264,11 @@ WriteResult Collection::DeleteMany(formats::bson::Document selector, Options&&..
 }
 
 template <typename... Options>
-WriteResult
-Collection::FindAndModify(formats::bson::Document query, const formats::bson::Document& update, Options&&... options) {
+WriteResult Collection::FindAndModify(
+    formats::bson::Document query,
+    const formats::bson::Document& update,
+    Options&&... options
+) {
     operations::FindAndModify fam_op(std::move(query), update);
     (fam_op.SetOption(std::forward<Options>(options)), ...);
     return Execute(fam_op);
@@ -299,8 +317,11 @@ std::vector<formats::bson::Value> Collection::Distinct(std::string field, Option
 }
 
 template <typename... Options>
-std::vector<formats::bson::Value>
-Collection::Distinct(std::string field, formats::bson::Document filter, Options&&... options) const {
+std::vector<formats::bson::Value> Collection::Distinct(
+    std::string field,
+    formats::bson::Document filter,
+    Options&&... options
+) const {
     operations::Distinct distinct_op(std::move(field), std::move(filter));
     (distinct_op.SetOption(std::forward<Options>(options)), ...);
     return Execute(distinct_op);

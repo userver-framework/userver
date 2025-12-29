@@ -9,7 +9,9 @@ namespace ugrpc::client::impl {
 
 class MiddlewarePipeline {
 public:
-    explicit MiddlewarePipeline(const Middlewares& middlewares) : middlewares_{middlewares} {}
+    explicit MiddlewarePipeline(const Middlewares& middlewares)
+        : middlewares_{middlewares}
+    {}
 
     void Run(const MiddlewareHooks& hooks, MiddlewareCallContext& context) const;
 

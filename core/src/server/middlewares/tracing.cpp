@@ -31,7 +31,10 @@ constexpr utils::StringLiteral kTracingUri = "uri";
 
 std::string GetHeadersLogString(const http::HttpResponse& response) {
     formats::json::ValueBuilder json_headers(formats::json::Type::kObject);
-    for (const auto& header_name : response.GetHeaderNames()) {
+    for (const auto& header_name : response.GetSystemHeaderNames()) {
+        json_headers[header_name] = response.GetHeader(header_name);
+    }
+    for (const auto& header_name : response.GetUserHeaderNames()) {
         json_headers[header_name] = response.GetHeader(header_name);
     }
     return formats::json::ToString(json_headers.ExtractValue());
@@ -60,19 +63,22 @@ void LogYandexHeaders(const http::HttpRequest& http_request) {
 }  // namespace
 
 Tracing::Tracing(const tracing::TracingManagerBase& tracing_manager, const handlers::HttpHandlerBase& handler)
-    : tracing_manager_{tracing_manager}, handler_{handler}, log_level_{handler_.GetLogLevel()} {}
+    : tracing_manager_{tracing_manager},
+      handler_{handler},
+      log_level_{handler_.GetLogLevel()}
+{}
 
 void Tracing::HandleRequest(http::HttpRequest& request, request::RequestContext& context) const {
     const auto meta_type = misc::CutTrailingSlash(request.GetRequestPath(), handler_.GetConfig().url_trailing_slash);
     auto span = MakeSpan(request, meta_type);
     LogYandexHeaders(request);
+    FillResponseWithTracingContext(span, request.GetHttpResponse());
 
     // This needs ConfigSnapshot, which is reset down the call chain in Next(),
     // so we prepare settings here
     const auto logging_settings = ParseLoggingSettings(context);
     const utils::FastScopeGuard guard{[this, &span, &logging_settings, &request, &context]() noexcept {
         try {
-            FillResponseWithTracingContext(span, request.GetHttpResponse());
             EnrichLogs(span, logging_settings, request, context);
         } catch (const std::exception& ex) {
             // Something went really wrong if our tracing threw itself.
@@ -80,8 +86,9 @@ void Tracing::HandleRequest(http::HttpRequest& request, request::RequestContext&
         } catch (...) {
             // Something went terribly wrong if our tracing threw non-std
             // exception itself.
-            LOG_ERROR() << "Failed to set tracing context for response due to an "
-                           "unknown exception (task cancellation?)";
+            LOG_ERROR()
+                << "Failed to set tracing context for response due to an "
+                   "unknown exception (task cancellation?)";
         }
     }};
 
@@ -142,8 +149,9 @@ void Tracing::EnrichLogs(
         const auto status_code = response.GetStatus();
         const auto& forced_log_level_opt = context.GetInternalContext().GetDPContext().GetForcedLogLevel();
         span.SetLogLevel(
-            forced_log_level_opt.has_value() ? *forced_log_level_opt
-                                             : handler_.GetLogLevelForResponseStatus(status_code)
+            forced_log_level_opt.has_value()
+                ? *forced_log_level_opt
+                : handler_.GetLogLevelForResponseStatus(status_code)
         );
         if (!span.ShouldLogDefault()) {
             return;
@@ -151,7 +159,9 @@ void Tracing::EnrichLogs(
 
         int response_code = static_cast<int>(status_code);
         span.AddTag(tracing::kHttpResponseStatusCode, response_code);
-        if (response_code >= 500) span.AddTag(tracing::kErrorFlag, true);
+        if (response_code >= 500) {
+            span.AddTag(tracing::kErrorFlag, true);
+        }
 
         if (logging_settings.need_log_response) {
             if (logging_settings.need_log_response_headers) {
@@ -170,10 +180,13 @@ void Tracing::EnrichLogs(
 
 TracingFactory::TracingFactory(const components::ComponentConfig& config, const components::ComponentContext& context)
     : HttpMiddlewareFactoryBase{config, context},
-      tracing_manager_{context.FindComponent<tracing::DefaultTracingManagerLocator>().GetTracingManager()} {}
+      tracing_manager_{context.FindComponent<tracing::DefaultTracingManagerLocator>().GetTracingManager()}
+{}
 
-std::unique_ptr<HttpMiddlewareBase>
-TracingFactory::Create(const handlers::HttpHandlerBase& handler, yaml_config::YamlConfig) const {
+std::unique_ptr<HttpMiddlewareBase> TracingFactory::Create(
+    const handlers::HttpHandlerBase& handler,
+    yaml_config::YamlConfig
+) const {
     return std::make_unique<Tracing>(tracing_manager_, handler);
 }
 

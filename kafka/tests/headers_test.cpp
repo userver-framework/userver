@@ -51,11 +51,11 @@ UTEST(HeadersTest, ReadHeadersCollect) {
 
     std::vector<kafka::OwningHeader> headers;
     {
-        const std::array kHeaders{kExpectedHeaders};
+        const std::array expected_headers{kExpectedHeaders};
         const kafka::impl::HeadersHolder holder{kExpectedHeaders};
 
         const kafka::HeadersReader reader{holder.GetHandle()};
-        EXPECT_EQ(reader.size(), kHeaders.size());
+        EXPECT_EQ(reader.size(), expected_headers.size());
         headers = std::vector<kafka::OwningHeader>(reader.begin(), reader.end());
     }
 

@@ -117,17 +117,19 @@ TEST(FormatsItems, Iterations) {
 TEST(FormatsItems, BoostRanges) {
     auto value = formats::json::FromString(R"({"key1": "v1", "key2": "v2"})");
     EXPECT_THAT(
-        Items(value) | boost::adaptors::transformed(
-                           // Must return by value since kv is temporary and stores key.
-                           [](auto kv) { return std::move(kv.key); }
-                       ),
+        Items(value) |
+            boost::adaptors::transformed(
+                // Must return by value since kv is temporary and stores key.
+                [](auto kv) { return std::move(kv.key); }
+            ),
         testing::UnorderedElementsAreArray({"key1", "key2"})
     );
     EXPECT_THAT(
-        Items(value) | boost::adaptors::transformed(
-                           // Can return by reference since kv only stores value&.
-                           [](auto kv) -> const auto& { return kv.value; }
-                       ),
+        Items(value) |
+            boost::adaptors::transformed(
+                // Can return by reference since kv only stores value&.
+                [](auto kv) -> const auto& { return kv.value; }
+            ),
         testing::UnorderedElementsAreArray(
             {formats::json::ValueBuilder{"v1"}.ExtractValue(), formats::json::ValueBuilder{"v2"}.ExtractValue()}
         )

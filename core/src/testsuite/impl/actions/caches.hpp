@@ -11,7 +11,9 @@ namespace testsuite::impl::actions {
 
 class CacheDumpsWrite final : public BaseTestsuiteAction {
 public:
-    explicit CacheDumpsWrite(components::TestsuiteSupport& testsuite_support) : testsuite_support_(testsuite_support) {}
+    explicit CacheDumpsWrite(components::TestsuiteSupport& testsuite_support)
+        : testsuite_support_(testsuite_support)
+    {}
 
     formats::json::Value Perform(const formats::json::Value& request_body) const override {
         const auto dumper_names = request_body["names"].As<std::vector<std::string>>();
@@ -25,7 +27,9 @@ private:
 
 class CacheDumpsRead final : public BaseTestsuiteAction {
 public:
-    explicit CacheDumpsRead(components::TestsuiteSupport& testsuite_support) : testsuite_support_(testsuite_support) {}
+    explicit CacheDumpsRead(components::TestsuiteSupport& testsuite_support)
+        : testsuite_support_(testsuite_support)
+    {}
 
     formats::json::Value Perform(const formats::json::Value& request_body) const override {
         const auto dumper_names = request_body["names"].As<std::vector<std::string>>();

@@ -54,7 +54,8 @@ ServiceConfigBuilder::PreparedMethodConfigs PrepareMethodConfigs(
                     //   config).
                     if (service_name.empty()) {
                         UINVARIANT(
-                            method_name.empty(), "If the 'service' field is empty, the 'method' field must be empty"
+                            method_name.empty(),
+                            "If the 'service' field is empty, the 'method' field must be empty"
                         );
                         if (!default_method_config.has_value()) {
                             default_method_config = Normalize(name, method_config);
@@ -64,7 +65,8 @@ ServiceConfigBuilder::PreparedMethodConfigs PrepareMethodConfigs(
 
                     if (metadata.service_full_name != service_name) {
                         throw std::runtime_error{
-                            fmt::format("Invalid MethodConfig: unknown service name {}", service_name)};
+                            fmt::format("Invalid MethodConfig: unknown service name {}", service_name)
+                        };
                     }
 
                     // - If the 'method' field is empty, this MethodConfig specifies the defaults
@@ -77,7 +79,8 @@ ServiceConfigBuilder::PreparedMethodConfigs PrepareMethodConfigs(
                     const auto method_id = FindMethod(metadata, service_name, method_name);
                     if (!method_id.has_value()) {
                         throw std::runtime_error{
-                            fmt::format("Invalid MethodConfig: unknown method name {}", method_name)};
+                            fmt::format("Invalid MethodConfig: unknown method name {}", method_name)
+                        };
                     }
 
                     const auto [_, inserted] = method_configs.try_emplace(*method_id, Normalize(name, method_config));
@@ -101,7 +104,8 @@ public:
         : metadata_{metadata},
           retry_config_{retry_config},
           prepared_method_configs_{prepared_method_configs},
-          client_qos_{client_qos} {}
+          client_qos_{client_qos}
+    {}
 
     bool HasMethodConfiguration(size_t method_id) {
         // method Qos exists and has non empty 'attempts' value
@@ -220,7 +224,8 @@ public:
         formats::json::ValueBuilder name{};
         for (const auto& method : methods) {
             UINVARIANT(
-                !service.empty() || method.empty(), "If the 'service' field is empty, the 'method' field must be empty"
+                !service.empty() || method.empty(),
+                "If the 'service' field is empty, the 'method' field must be empty"
             );
             name.PushBack(formats::json::MakeObject("service", service, "method", method));
         }
@@ -231,7 +236,8 @@ public:
 
     formats::json::Value Build() && {
         formats::json::ValueBuilder method_config_builder{
-            std::move(method_config_).value_or(formats::json::MakeObject())};
+            std::move(method_config_).value_or(formats::json::MakeObject())
+        };
 
         if (name_.has_value()) {
             impl::compat::SetName(method_config_builder, std::move(*name_));
@@ -257,7 +263,9 @@ ServiceConfigBuilder::ServiceConfigBuilder(
     const RetryConfig& retry_config,
     const std::optional<std::string>& static_service_config
 )
-    : metadata_{metadata}, retry_config_{retry_config} {
+    : metadata_{metadata},
+      retry_config_{retry_config}
+{
     if (static_service_config.has_value()) {
         static_service_config_ = formats::json::FromString(*static_service_config);
         prepared_method_configs_ = PrepareMethodConfigs(static_service_config_, metadata_);
@@ -279,7 +287,7 @@ formats::json::Value ServiceConfigBuilder::BuildMethodConfigArray(const ClientQo
 
     // push unary method configs AS IS
     for (const auto& [method_id, method_config] : prepared_method_configs_.method_configs) {
-        if (ugrpc::impl::RpcType::kUnary == GetMethodType(metadata_, method_id)) {
+        if (RpcType::kUnary == GetMethodType(metadata_, method_id)) {
             method_config_array.PushBack(method_config);
         }
     }
@@ -289,7 +297,7 @@ formats::json::Value ServiceConfigBuilder::BuildMethodConfigArray(const ClientQo
     std::vector<std::string_view> default_stream_methods;
 
     for (std::size_t method_id = 0; method_id < GetMethodsCount(metadata_); ++method_id) {
-        if (ugrpc::impl::RpcType::kUnary == GetMethodType(metadata_, method_id)) {
+        if (RpcType::kUnary == GetMethodType(metadata_, method_id)) {
             continue;
         }
 
@@ -328,7 +336,9 @@ ChannelArgumentsBuilder::ChannelArgumentsBuilder(
     const RetryConfig& retry_config,
     const ugrpc::impl::StaticServiceMetadata& metadata
 )
-    : channel_args_{channel_args}, service_config_builder_{metadata, retry_config, static_service_config} {}
+    : channel_args_{channel_args},
+      service_config_builder_{metadata, retry_config, static_service_config}
+{}
 
 grpc::ChannelArguments ChannelArgumentsBuilder::Build(const ClientQos& client_qos) const {
     const auto service_config = service_config_builder_.Build(client_qos);

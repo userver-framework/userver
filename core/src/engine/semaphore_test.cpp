@@ -82,8 +82,9 @@ UTEST(CancellableSemaphore, LockAndCancel) {
 UTEST(CancellableSemaphore, TryLockAndCancel) {
     engine::CancellableSemaphore s{1};
     std::shared_lock guard{s};
-    auto task =
-        engine::AsyncNoSpan([&s]() { [[maybe_unused]] auto tmp = s.try_lock_shared_for(utest::kMaxTestWaitTime); });
+    auto task = engine::AsyncNoSpan([&s]() {
+        [[maybe_unused]] auto tmp = s.try_lock_shared_for(utest::kMaxTestWaitTime);
+    });
 
     task.WaitFor(std::chrono::milliseconds(100));
     task.RequestCancel();
@@ -153,7 +154,8 @@ UTEST_MT(Semaphore, LocksUnlocksMtTorture, 4) {
         engine::AsyncNoSpan(multilocker),
         engine::AsyncNoSpan(multilocker),
         engine::AsyncNoSpan(multilocker),
-        engine::AsyncNoSpan(multilocker)};
+        engine::AsyncNoSpan(multilocker)
+    };
 
     const auto deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
     for (auto& t : tasks) {
@@ -206,7 +208,9 @@ UTEST_MT(Semaphore, LockPassing, 4) {
         for (size_t i = 0; i < GetThreadCount(); ++i) {
             tasks.push_back(engine::AsyncNoSpan(work));
         }
-        for (auto& task : tasks) task.Get();
+        for (auto& task : tasks) {
+            task.Get();
+        }
     }
 }
 
@@ -227,7 +231,9 @@ UTEST_MT(Semaphore, LockFastPathRace, 5) {
         }));
     }
 
-    for (auto& task : tasks) task.Get();
+    for (auto& task : tasks) {
+        task.Get();
+    }
 }
 
 UTEST(Semaphore, AllWaitersWakeUpWhenNeeded) {
@@ -236,7 +242,9 @@ UTEST(Semaphore, AllWaitersWakeUpWhenNeeded) {
     engine::Semaphore sem{kLocksCount};
 
     // Acquire locks 1-by-1. We'll then release them all at once.
-    for (std::size_t i = 0; i < kLocksCount; ++i) sem.lock_shared();
+    for (std::size_t i = 0; i < kLocksCount; ++i) {
+        sem.lock_shared();
+    }
 
     std::vector<engine::TaskWithResult<void>> tasks;
 
@@ -246,7 +254,9 @@ UTEST(Semaphore, AllWaitersWakeUpWhenNeeded) {
     for (std::size_t i = 0; i < kLocksCount; ++i) {
         tasks.push_back(engine::AsyncNoSpan([&] {
             const std::shared_lock lock(sem);
-            if (++locks_acquired == kLocksCount) all_locks_acquired.Send();
+            if (++locks_acquired == kLocksCount) {
+                all_locks_acquired.Send();
+            }
 
             // only release 'lock' on test shutdown
             engine::InterruptibleSleepUntil(engine::Deadline{});

@@ -28,7 +28,8 @@ As will be shown below, custom middlewares require additional actions to work: r
 
 If you don't want to disable userver middlewares, just take that config:
 
-```yaml
+```
+# yaml
 components_manager:
     components:
         grpc-server-middlewares-pipeline:
@@ -42,7 +43,8 @@ components_manager:
 
 You can enable or disable any middleware:
 
-```yaml
+```
+# yaml
 components_manager:
     components:
         grpc-server:

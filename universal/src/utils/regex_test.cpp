@@ -131,23 +131,23 @@ namespace {
 // Suppose that we want to split a text into words and also check that
 // the first letter of each sentence is capitalized.
 std::vector<std::string_view> SplitTextIntoWords(const std::string_view text) {
-    static const utils::regex word_regex("[a-zA-Z]+");
-    static const utils::regex punctuation_regex("[., ]*");
-    static const utils::regex capitalized_word_start_regex("^[A-Z]");
+    static const utils::regex kWordRegex("[a-zA-Z]+");
+    static const utils::regex kPunctuationRegex("[., ]*");
+    static const utils::regex kCapitalizedWordStartRegex("^[A-Z]");
 
     std::vector<std::string_view> words;
     utils::match_results word_match;
     auto remaining = text;
 
-    while (utils::regex_search(remaining, word_match, word_regex)) {
+    while (utils::regex_search(remaining, word_match, kWordRegex)) {
         const auto punctuation = word_match.prefix();
-        if (!utils::regex_match(punctuation, punctuation_regex)) {
+        if (!utils::regex_match(punctuation, kPunctuationRegex)) {
             throw std::invalid_argument(fmt::format("Invalid characters '{}'", punctuation));
         }
 
         const auto word = word_match[0];
         const bool should_be_capitalized = words.empty() || punctuation.find('.') != std::string_view::npos;
-        if (should_be_capitalized && !utils::regex_search(word, capitalized_word_start_regex)) {
+        if (should_be_capitalized && !utils::regex_search(word, kCapitalizedWordStartRegex)) {
             throw std::invalid_argument(fmt::format("Word '{}' should be capitalized", word));
         }
 
@@ -156,7 +156,7 @@ std::vector<std::string_view> SplitTextIntoWords(const std::string_view text) {
         remaining = word_match.suffix();
     }
 
-    if (!utils::regex_match(remaining, punctuation_regex)) {
+    if (!utils::regex_match(remaining, kPunctuationRegex)) {
         throw std::invalid_argument(fmt::format("Invalid characters '{}'", remaining));
     }
 
@@ -165,7 +165,8 @@ std::vector<std::string_view> SplitTextIntoWords(const std::string_view text) {
 
 TEST(Regex, SplitTextIntoWords) {
     EXPECT_THAT(
-        SplitTextIntoWords("Foo bar. Baz,  qux quux."), testing::ElementsAre("Foo", "bar", "Baz", "qux", "quux")
+        SplitTextIntoWords("Foo bar. Baz,  qux quux."),
+        testing::ElementsAre("Foo", "bar", "Baz", "qux", "quux")
     );
     UEXPECT_THROW_MSG(SplitTextIntoWords("Foo + bar"), std::invalid_argument, "Invalid characters ' + '");
     UEXPECT_THROW_MSG(SplitTextIntoWords("Foo bar. baz."), std::invalid_argument, "Word 'baz' should be capitalized");
@@ -260,7 +261,8 @@ TEST(RegexDeathTest, SearchEmptyResult) {
     EXPECT_EQ(matches.position(0), 0);
     EXPECT_EQ(matches.length(0), 0);
     EXPECT_UINVARIANT_FAILURE_MSG(
-        matches.position(1), "Trying to access position of capturing group 1, which is empty (missing), target=''"
+        matches.position(1),
+        "Trying to access position of capturing group 1, which is empty (missing), target=''"
     );
     EXPECT_EQ(matches.length(0), 0);
     EXPECT_EQ(matches.prefix(), "");

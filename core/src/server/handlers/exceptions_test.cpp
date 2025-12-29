@@ -40,8 +40,10 @@ TEST(CustomHandlerException, BuilderSample) {
 /// [Sample direct construction]
 TEST(CustomHandlerException, DirectSample) {
     auto exc = server::handlers::ClientError(
-        server::handlers::InternalMessage{"Spam detected, criterion: too many "
-                                          "repetitions (42, we only allow 10)"},
+        server::handlers::InternalMessage{
+            "Spam detected, criterion: too many "
+            "repetitions (42, we only allow 10)"
+        },
         server::handlers::ExternalBody{"Failed to post: spam detected"}
     );
 

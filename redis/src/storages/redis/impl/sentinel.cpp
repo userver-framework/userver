@@ -43,9 +43,13 @@ void OnSubscribeImpl(
     const Sentinel::UnsubscribeCallback& unsubscribe_callback,
     const ReplyPtr& reply
 ) {
-    if (!reply->data.IsArray()) return;
+    if (!reply->data.IsArray()) {
+        return;
+    }
     const auto& reply_array = reply->data.GetArray();
-    if (reply_array.size() != 3 || !reply_array[0].IsString()) return;
+    if (reply_array.size() != 3 || !reply_array[0].IsString()) {
+        return;
+    }
     if (!strcasecmp(reply_array[0].GetString().c_str(), subscribe_type.data())) {
         subscribe_callback(reply->server_id, reply_array[1].GetString(), reply_array[2].GetInt());
     } else if (!strcasecmp(reply_array[0].GetString().c_str(), unsubscribe_type.data())) {
@@ -75,14 +79,15 @@ Sentinel::Sentinel(
       thread_pools_(thread_pools),
       secdist_default_command_control_(command_control),
       testsuite_redis_control_(testsuite_redis_control),
-      is_in_cluster_mode_(key_shard_factory.IsClusterStrategy()) {
+      is_in_cluster_mode_(key_shard_factory.IsClusterStrategy())
+{
     config_default_command_control_.Set(std::make_shared<CommandControl>(secdist_default_command_control_));
 
     if (!thread_pools_) {
         throw std::runtime_error("can't create Sentinel with empty thread_pools");
     }
-    sentinel_thread_control_ =
-        std::make_unique<engine::ev::ThreadControl>(thread_pools_->GetSentinelThreadPool().NextThread());
+    sentinel_thread_control_ = std::make_unique<
+        engine::ev::ThreadControl>(thread_pools_->GetSentinelThreadPool().NextThread());
 
     UINVARIANT(
         !key_shard_factory.IsClusterStrategy() || database_index == 0,
@@ -151,7 +156,9 @@ std::shared_ptr<Sentinel> Sentinel::CreateSentinel(
 
     const std::vector<std::string>& shards = settings.shards;
     LOG_DEBUG() << "shards.size() = " << shards.size();
-    for (const std::string& shard : shards) LOG_DEBUG() << "shard:  name = " << shard;
+    for (const std::string& shard : shards) {
+        LOG_DEBUG() << "shard:  name = " << shard;
+    }
 
     std::vector<redis::ConnectionInfo> conns;
     conns.reserve(settings.sentinels.size());
@@ -202,13 +209,18 @@ void Sentinel::Stop() noexcept {
     UASSERT(!impl_);
 }
 
-std::unordered_map<ServerId, size_t, ServerIdHasher>
-Sentinel::GetAvailableServersWeighted(size_t shard_idx, bool with_master, const CommandControl& cc) const {
+std::unordered_map<ServerId, size_t, ServerIdHasher> Sentinel::GetAvailableServersWeighted(
+    size_t shard_idx,
+    bool with_master,
+    const CommandControl& cc
+) const {
     return impl_->GetAvailableServersWeighted(shard_idx, with_master, GetCommandControl(cc));
 }
 
 void Sentinel::AsyncCommand(CommandPtr command, bool master, size_t shard) {
-    if (!impl_) return;
+    if (!impl_) {
+        return;
+    }
     ThrowIfCancelled();
 
     command->log_extra.Extend("shard_group_name", shard_group_name_);
@@ -217,19 +229,22 @@ void Sentinel::AsyncCommand(CommandPtr command, bool master, size_t shard) {
         master = true;
     }
     if (command->control.force_shard_idx) {
-        if (IsInClusterMode()) throw InvalidArgumentException("force_shard_idx is not supported in RedisCluster mode");
-        if (shard != *command->control.force_shard_idx)
-
+        if (IsInClusterMode()) {
+            throw InvalidArgumentException("force_shard_idx is not supported in RedisCluster mode");
+        }
+        if (shard != *command->control.force_shard_idx) {
             throw InvalidArgumentException(
                 "shard index in argument differs from force_shard_idx in "
                 "command_control (" +
                 std::to_string(shard) + " != " + std::to_string(*command->control.force_shard_idx) + ')'
             );
+        }
     }
     CheckShardIdx(shard);
     try {
         impl_->AsyncCommand(
-            {command, master, shard, std::chrono::steady_clock::now()}, SentinelImplBase::kDefaultPrevInstanceIdx
+            {command, master, shard, std::chrono::steady_clock::now()},
+            SentinelImplBase::kDefaultPrevInstanceIdx
         );
     } catch (const std::exception& ex) {
         LOG_WARNING() << "exception in " << __func__ << " '" << ex.what() << "'";
@@ -237,7 +252,9 @@ void Sentinel::AsyncCommand(CommandPtr command, bool master, size_t shard) {
 }
 
 void Sentinel::AsyncCommand(CommandPtr command, const std::string& key, bool master) {
-    if (!impl_) return;
+    if (!impl_) {
+        return;
+    }
     ThrowIfCancelled();
 
     if (CommandControlImpl{command->control}.force_request_to_master) {
@@ -245,7 +262,9 @@ void Sentinel::AsyncCommand(CommandPtr command, const std::string& key, bool mas
     }
     size_t shard = 0;
     if (command->control.force_shard_idx) {
-        if (IsInClusterMode()) throw InvalidArgumentException("force_shard_idx is not supported in RedisCluster mode");
+        if (IsInClusterMode()) {
+            throw InvalidArgumentException("force_shard_idx is not supported in RedisCluster mode");
+        }
         shard = *command->control.force_shard_idx;
     } else {
         shard = impl_->ShardByKey(key);
@@ -254,7 +273,8 @@ void Sentinel::AsyncCommand(CommandPtr command, const std::string& key, bool mas
     CheckShardIdx(shard);
     try {
         impl_->AsyncCommand(
-            {command, master, shard, std::chrono::steady_clock::now()}, SentinelImplBase::kDefaultPrevInstanceIdx
+            {command, master, shard, std::chrono::steady_clock::now()},
+            SentinelImplBase::kDefaultPrevInstanceIdx
         );
     } catch (const std::exception& ex) {
         LOG_WARNING() << "exception in " << __func__ << " '" << ex.what() << "'";
@@ -314,7 +334,13 @@ void Sentinel::OnSsubscribeReply(
     ReplyPtr reply
 ) {
     OnSubscribeImpl(
-        "SMESSAGE", message_callback, "SSUBSCRIBE", subscribe_callback, "SUNSUBSCRIBE", unsubscribe_callback, reply
+        "SMESSAGE",
+        message_callback,
+        "SSUBSCRIBE",
+        subscribe_callback,
+        "SUNSUBSCRIBE",
+        unsubscribe_callback,
+        reply
     );
 }
 
@@ -325,7 +351,13 @@ void Sentinel::OnSubscribeReply(
     ReplyPtr reply
 ) {
     OnSubscribeImpl(
-        "MESSAGE", message_callback, "SUBSCRIBE", subscribe_callback, "UNSUBSCRIBE", unsubscribe_callback, reply
+        "MESSAGE",
+        message_callback,
+        "SUBSCRIBE",
+        subscribe_callback,
+        "UNSUBSCRIBE",
+        unsubscribe_callback,
+        reply
     );
 }
 
@@ -335,20 +367,30 @@ void Sentinel::OnPsubscribeReply(
     const UnsubscribeCallback& unsubscribe_callback,
     ReplyPtr reply
 ) {
-    if (!reply->data.IsArray()) return;
+    if (!reply->data.IsArray()) {
+        return;
+    }
     const auto& reply_array = reply->data.GetArray();
-    if (!reply_array[0].IsString()) return;
+    if (!reply_array[0].IsString()) {
+        return;
+    }
     if (!strcasecmp(reply_array[0].GetString().c_str(), "PSUBSCRIBE")) {
-        if (reply_array.size() == 3)
+        if (reply_array.size() == 3) {
             subscribe_callback(reply->server_id, reply_array[1].GetString(), reply_array[2].GetInt());
+        }
     } else if (!strcasecmp(reply_array[0].GetString().c_str(), "PUNSUBSCRIBE")) {
-        if (reply_array.size() == 3)
+        if (reply_array.size() == 3) {
             unsubscribe_callback(reply->server_id, reply_array[1].GetString(), reply_array[2].GetInt());
+        }
     } else if (!strcasecmp(reply_array[0].GetString().c_str(), "PMESSAGE")) {
-        if (reply_array.size() == 4)
+        if (reply_array.size() == 4) {
             pmessage_callback(
-                reply->server_id, reply_array[1].GetString(), reply_array[2].GetString(), reply_array[3].GetString()
+                reply->server_id,
+                reply_array[1].GetString(),
+                reply_array[2].GetString(),
+                reply_array[3].GetString()
             );
+        }
     }
 }
 
@@ -371,7 +413,9 @@ void Sentinel::UpdatePassword(const Password& password) { impl_->UpdatePassword(
 void Sentinel::SetConnectionInfo(std::vector<ConnectionInfo> info_array) {
     std::vector<ConnectionInfoInt> cii;
     cii.reserve(info_array.size());
-    for (const auto& ci : info_array) cii.emplace_back(ci);
+    for (const auto& ci : info_array) {
+        cii.emplace_back(ci);
+    }
 
     impl_->SetConnectionInfo(cii);
 }

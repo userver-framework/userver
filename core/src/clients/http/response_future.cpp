@@ -45,7 +45,8 @@ ResponseFuture::ResponseFuture(
     : future_(std::move(future)),
       deadline_(ComputeBaseDeadline(*request_state)),
       request_state_(std::move(request_state)),
-      cancellation_policy_(request_state_->GetCancellationPolicy()) {
+      cancellation_policy_(request_state_->GetCancellationPolicy())
+{
     const auto propagated_deadline = request_state_->GetDeadline();
     if (propagated_deadline < deadline_) {
         deadline_ = propagated_deadline;
@@ -60,7 +61,9 @@ ResponseFuture::ResponseFuture(ResponseFuture&& other) noexcept : cancellation_p
 }
 
 ResponseFuture& ResponseFuture::operator=(ResponseFuture&& other) noexcept {
-    if (&other == this) return *this;
+    if (&other == this) {
+        return *this;
+    }
     CancelOrDetach();
     future_ = std::move(other.future_);
     deadline_ = other.deadline_;

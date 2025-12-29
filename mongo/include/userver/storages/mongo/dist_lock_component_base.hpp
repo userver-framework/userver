@@ -13,15 +13,12 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::mongo {
 
-// clang-format off
-
 /// @ingroup userver_components userver_base_classes
 ///
 /// @brief Base class for mongo-based distlock worker components
 ///
 /// A component that implements a distlock with lock in Mongo. Inherit from
-/// DistLockComponentBase and implement DoWork(). Lock options are configured
-/// in static config.
+/// DistLockComponentBase and implement DoWork(). Lock options are configured in static config.
 ///
 /// Mongo might not perform well on a high load, so you might want to use
 /// postgres-based distlock storages::postgres::DistLockComponentBase instead.
@@ -32,8 +29,7 @@ namespace storages::mongo {
 /// engine::InterruptibleSleepFor(), engine::InterruptibleSleepUntil() and
 /// engine::current_task::CancellationPoint() check for task cancellation.
 /// Overridden DistLockComponentBase::DoWork must use the above functions to
-/// honour task cancellation and stop ASAP when
-/// it is cancelled.
+/// honour task cancellation and stop ASAP when it is cancelled.
 ///
 /// ## Static configuration example:
 ///
@@ -44,20 +40,13 @@ namespace storages::mongo {
 ///            lock-ttl: 10s
 /// ```
 ///
-/// ## Static options:
-/// name           | Description  | Default value
-/// -------------- | ------------ | -------------
-/// lockname       | name of the lock | --
-/// lock-ttl       | TTL of the lock; must be at least as long as the duration between subsequent cancellation checks, otherwise brain split is possible | --
-/// mongo-timeout  | timeout, must be less than lock-ttl / 2 | --
-/// restart-delay  | how much time to wait after failed task restart | 100ms
-/// task-processor | the name of the TaskProcessor for running DoWork | main-task-processor
-/// testsuite-support | Enable testsuite support | false
+/// ## Static options of storages::mongo::DistLockComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/mongo/src/storages/mongo/dist_lock_component_base.md
+///
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
 ///
 /// @see @ref scripts/docs/en/userver/periodics.md
-
-// clang-format on
-
 class DistLockComponentBase : public components::ComponentBase {
 public:
     DistLockComponentBase(
@@ -65,8 +54,6 @@ public:
         const components::ComponentContext&,
         storages::mongo::Collection
     );
-
-    ~DistLockComponentBase() override;
 
     dist_lock::DistLockedWorker& GetWorker();
 
@@ -120,9 +107,6 @@ protected:
 private:
     std::unique_ptr<dist_lock::DistLockedWorker> worker_;
     bool testsuite_enabled_{false};
-
-    // Subscriptions must be the last fields.
-    utils::statistics::Entry statistics_holder_;
 };
 
 }  // namespace storages::mongo

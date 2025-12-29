@@ -15,8 +15,8 @@ constexpr size_t kMaxSimultaneouslyConnectingClients{5};
 constexpr std::chrono::milliseconds kConnectTimeout{2000};
 
 constexpr std::chrono::seconds kMaintenanceInterval{2};
-constexpr std::chrono::seconds PoolUnavailableThreshold{60};
-static_assert(PoolUnavailableThreshold > kMaintenanceInterval);
+constexpr std::chrono::seconds kPoolUnavailableThreshold{60};
+static_assert(kPoolUnavailableThreshold > kMaintenanceInterval);
 
 const std::string kMaintenanceTaskName = "clickhouse_maintain";
 
@@ -30,7 +30,7 @@ bool PoolAvailabilityMonitor::IsAvailable() const {
 
     const auto now = Clock::now();
     return std::chrono::duration_cast<std::chrono::seconds>(now - last_successful_communication) <
-           PoolUnavailableThreshold;
+           kPoolUnavailableThreshold;
 }
 
 void PoolAvailabilityMonitor::AccountSuccess() noexcept { last_successful_communication_ = Clock::now(); }
@@ -51,10 +51,12 @@ struct PoolImpl::MaintenanceConnectionDeleter final {
 };
 
 PoolImpl::PoolImpl(clients::dns::Resolver& resolver, PoolSettings&& settings)
-    : drivers::impl::
-          ConnectionPoolBase<Connection, PoolImpl>{settings.max_pool_size, kMaxSimultaneouslyConnectingClients},
+    : drivers::impl::ConnectionPoolBase<
+          Connection,
+          PoolImpl>{settings.max_pool_size, kMaxSimultaneouslyConnectingClients},
       resolver_{resolver},
-      pool_settings_{std::move(settings)} {
+      pool_settings_{std::move(settings)}
+{
     try {
         Init(pool_settings_.initial_pool_size, kConnectTimeout);
     } catch (const std::exception&) {

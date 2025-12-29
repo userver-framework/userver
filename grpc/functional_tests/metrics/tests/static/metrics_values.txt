@@ -1,3 +1,4 @@
+alerts.grpc_client_qos_invalid_configuration:	GAUGE
 grpc.client.by-destination.abandoned-error: grpc_destination=samples.api.GreeterService/SayHello, grpc_destination_full=greeter/samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE
 grpc.client.by-destination.active: grpc_destination=samples.api.GreeterService/SayHello, grpc_destination_full=greeter/samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	GAUGE
 grpc.client.by-destination.cancelled-by-deadline-propagation: grpc_destination=samples.api.GreeterService/SayHello, grpc_destination_full=greeter/samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE

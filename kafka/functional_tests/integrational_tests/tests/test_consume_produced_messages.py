@@ -1,6 +1,3 @@
-from typing import Dict
-from typing import List
-
 from common import generate_messages_to_consume
 
 from utils import consume
@@ -45,8 +42,8 @@ async def test_many_producers_sync_one_consumer_many_topic(
 
     await service_client.enable_testpoints()
 
-    topics: List[str] = [TOPIC1, TOPIC2]
-    messages: Dict[str, List[Dict[str, str]]] = generate_messages_to_consume(
+    topics: list[str] = [TOPIC1, TOPIC2]
+    messages: dict[str, list[dict[str, str]]] = generate_messages_to_consume(
         topics=topics,
         cnt=15,
     )
@@ -78,13 +75,13 @@ async def test_many_producers_async_one_consumer_many_topic(
 
     await service_client.enable_testpoints()
 
-    topics: List[str] = [TOPIC1, TOPIC2]
-    messages: Dict[str, List[Dict[str, str]]] = generate_messages_to_consume(
+    topics: list[str] = [TOPIC1, TOPIC2]
+    messages: dict[str, list[dict[str, str]]] = generate_messages_to_consume(
         topics=topics,
         cnt=15,
     )
 
-    requests: List[Dict[str, str]] = []
+    requests: list[dict[str, str]] = []
     for topic in topics:
         for i, message in enumerate(messages[topic]):
             requests.append(

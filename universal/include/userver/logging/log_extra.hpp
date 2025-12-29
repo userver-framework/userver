@@ -139,7 +139,9 @@ public:
     template <typename Iterator>
     void ExtendRange(Iterator first, Iterator last, ExtendType extend_type = ExtendType::kNormal) {
         // NOTE: must replace existing rewritable values
-        for (Iterator it = first; it != last; ++it) Extend(*it, extend_type);
+        for (Iterator it = first; it != last; ++it) {
+            Extend(*it, extend_type);
+        }
     }
 
     /// @brief Marks specified value as frozen, all attempts to overwrite it will

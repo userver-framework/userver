@@ -86,7 +86,8 @@ public:
 
     template <typename RawFunction, typename RawArgsTuple>
     explicit WrappedCallImpl(RawFunction&& func, RawArgsTuple&& args)
-        : data_(std::in_place, std::forward<RawFunction>(func), std::forward<RawArgsTuple>(args)) {}
+        : data_(std::in_place, std::forward<RawFunction>(func), std::forward<RawArgsTuple>(args))
+    {}
 
     void Perform() override {
         UASSERT(data_);
@@ -117,7 +118,9 @@ private:
         template <typename RawFunction, typename RawArgsTuple>
         explicit Data(RawFunction&& func, RawArgsTuple&& args)
             // NOLINTNEXTLINE(clang-analyzer-cplusplus.Move)
-            : func(std::forward<RawFunction>(func)), args(std::forward<RawArgsTuple>(args)) {}
+            : func(std::forward<RawFunction>(func)),
+              args(std::forward<RawArgsTuple>(args))
+        {}
 
         Function func;
         std::tuple<Args...> args;
@@ -139,9 +142,9 @@ template <typename Function, typename... Args>
         "Passing C arrays to Async is forbidden. Use std::array instead"
     );
 
-    return *new (storage) WrappedCallImplType<Function, Args...>(
-        std::forward<Function>(f), std::forward_as_tuple(std::forward<Args>(args)...)
-    );
+    return *new (storage) WrappedCallImplType<
+        Function,
+        Args...>(std::forward<Function>(f), std::forward_as_tuple(std::forward<Args>(args)...));
 }
 
 }  // namespace utils::impl

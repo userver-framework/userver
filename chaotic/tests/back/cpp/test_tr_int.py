@@ -1,3 +1,5 @@
+import pytest
+
 from chaotic import error
 from chaotic.back.cpp import type_name
 from chaotic.back.cpp.types import CppIntEnum
@@ -16,14 +18,13 @@ def test_int(simple_gen, cpp_primitive_type):
 
 
 def test_wrong_type_x(simple_gen):
-    try:
+    with pytest.raises(error.BaseError) as exc:
         simple_gen({'type': 'integer', 'x-usrv-cpp-type': 1})
-        assert False
-    except error.BaseError as exc:
-        assert exc.full_filepath == 'vfull'
-        assert exc.infile_path == '/definitions/type'
-        assert exc.schema_type == 'jsonschema'
-        assert exc.msg == 'Non-string x- property "x-usrv-cpp-type"'
+
+    assert exc.value.full_filepath == 'vfull'
+    assert exc.value.infile_path == '/definitions/type'
+    assert exc.value.schema_type == 'jsonschema'
+    assert exc.value.msg == 'Non-string x- property "x-usrv-cpp-type"'
 
 
 def test_int_nullable(simple_gen, cpp_primitive_type):

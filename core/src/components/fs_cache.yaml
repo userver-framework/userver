@@ -1,0 +1,19 @@
+type: object
+description: component fs cache storage
+additionalProperties: false
+properties:
+    dir:
+        type: string
+        description: directory to cache files from
+        default: /var/www
+    update-period:
+        type: string
+        description: |
+            update period (0 - fill the cache only at startup)
+        default: 0
+    fs-task-processor:
+        type: string
+        description: |
+            Task processor to do filesystem operations
+
+            Default: engine::current_task::GetBlockingTaskProcessor()

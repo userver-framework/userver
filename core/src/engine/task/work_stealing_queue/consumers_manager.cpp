@@ -11,7 +11,9 @@ USERVER_NAMESPACE_BEGIN
 namespace engine {
 
 ConsumersManager::ConsumersManager(std::size_t consumers_count)
-    : consumers_count_(consumers_count), is_sleeping_(consumers_count, false) {}
+    : consumers_count_(consumers_count),
+      is_sleeping_(consumers_count, false)
+{}
 
 void ConsumersManager::NotifyNewTask() {
     const ConsumersState::State curr_state = state_.Get();
@@ -24,7 +26,7 @@ void ConsumersManager::NotifyNewTask() {
 }
 
 void ConsumersManager::NotifyWakeUp(Consumer* const consumer) {
-    const std::lock_guard lock_(mutex_);
+    const std::lock_guard lock(mutex_);
     if (!is_sleeping_[consumer->inner_index_]) {
         return;
     }
@@ -33,7 +35,7 @@ void ConsumersManager::NotifyWakeUp(Consumer* const consumer) {
 }
 
 void ConsumersManager::NotifySleep(Consumer* const consumer) {
-    const std::lock_guard lock_(mutex_);
+    const std::lock_guard lock(mutex_);
 
     if (is_sleeping_[consumer->inner_index_]) {
         return;
@@ -64,7 +66,7 @@ bool ConsumersManager::StopStealing() noexcept {
 void ConsumersManager::WakeUpOne() {
     Consumer* consumer = nullptr;
     {
-        const std::lock_guard lock_(mutex_);
+        const std::lock_guard lock(mutex_);
         while (!sleep_dq_.empty()) {
             Consumer* candidate = sleep_dq_.front();
             sleep_dq_.pop_front();
@@ -92,7 +94,7 @@ void ConsumersManager::WakeUpAll() {
     std::vector<Consumer*> consumers;
     consumers.reserve(consumers_count_);
     {
-        const std::lock_guard lock_(mutex_);
+        const std::lock_guard lock(mutex_);
         while (!sleep_dq_.empty()) {
             Consumer* consumer = sleep_dq_.front();
             sleep_dq_.pop_front();

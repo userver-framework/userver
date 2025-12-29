@@ -72,7 +72,10 @@ namespace impl {
 
 class JsonStringImpl {
 public:
-    JsonStringImpl(RawPtr<char>&& data, size_t size) : data_(std::move(data)), size_(size) {}
+    JsonStringImpl(RawPtr<char>&& data, size_t size)
+        : data_(std::move(data)),
+          size_(size)
+    {}
 
     [[nodiscard]] const char* Data() const { return data_.get(); }
     [[nodiscard]] size_t Size() const { return size_; }
@@ -160,7 +163,9 @@ JsonString ToArrayJsonString(const formats::bson::Value& array) {
 }
 #endif
 
-JsonString::JsonString(impl::JsonStringImpl&& impl) : impl_(std::move(impl)) {}
+JsonString::JsonString(impl::JsonStringImpl&& impl)
+    : impl_(std::move(impl))
+{}
 JsonString::~JsonString() = default;
 
 std::string JsonString::ToString() const { return {impl_->Data(), impl_->Size()}; }

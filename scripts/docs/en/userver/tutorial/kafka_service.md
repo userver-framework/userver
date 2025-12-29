@@ -22,7 +22,7 @@ handling HTTP requests:
 
 @snippet samples/kafka_service/src/producer_handler.hpp  Kafka service sample - producer component declaration
 
-Note that the component holds a reference to kafka::Producer - a client to the Kafka (its writer).
+Note that the component holds a reference to @ref kafka::Producer - a client to the Kafka (its writer).
 That client is thread safe, you can use it concurrently from different threads
 and tasks.
 
@@ -39,12 +39,12 @@ and asynchronously wait its delivery:
 
 @snippet samples/kafka_service/src/produce.cpp  Kafka service sample - produce
 
-Note that kafka::Producer::Send may throw kafka::SendException if message is not
+Note that @ref kafka::Producer::Send may throw @ref kafka::SendException if message is not
 correct or delivery timedout.
 
 kafka::SendException::IsRetryable method says whether it makes sense to retry the request.
 
-Also see kafka::Producer::SendAsync for more flexible message delivery scheduling.
+Also see @ref kafka::Producer::SendAsync for more flexible message delivery scheduling.
 
 ### Produce message on HTTP request
 
@@ -70,7 +70,7 @@ Here we create a base component that just starts and does its job:
 
 @snippet samples/kafka_service/src/consumer_handler.hpp  Kafka service sample - consumer component declaration
 
-Note that component holds a reference to kafka::ConsumerScope - a client to the Kafka (its reader).
+Note that component holds a reference to @ref kafka::ConsumerScope - a client to the Kafka (its reader).
 Consumer should be launched on the component start to asynchronously handle consumed messages.
 
 To use consumer in the program, include it with
@@ -188,7 +188,7 @@ Content-Length: 39
 
 ### Unit tests
 
-@warning There may be issues with environment settings, so read kafka::utest::KafkaCluster and [testsuite documentation](https://yandex.github.io/yandex-taxi-testsuite/kafka/) before write your own tests.
+@warning There may be issues with environment settings, so read @ref kafka::utest::KafkaCluster and [testsuite documentation](https://yandex.github.io/yandex-taxi-testsuite/kafka/) before write your own tests.
 
 To write unittest with Kafka environment, link your project
 with `userver::kafka-utest` target and call `userver_add_utest`
@@ -203,7 +203,7 @@ both from service code and from tests.
 
 To create producer and consumer instances
 in userver unit tests you
-can use kafka::utest::KafkaCluster fixture.
+can use @ref kafka::utest::KafkaCluster fixture.
 Inherit your testing class from it and
 use `UTEST_F` macros.
 
@@ -213,7 +213,7 @@ To test `kafka_sample::Produce` we can use such technique:
 
 @snippet samples/kafka_service/unittest/kafka_test.cpp  Kafka service sample - producer unit test
 
-To test `kafka_sample::Consume` use kafka::utest::KafkaCluster::SendMessages and kafka::utest::KafkaCluster::ReceiveMessages:
+To test `kafka_sample::Consume` use @ref kafka::utest::KafkaCluster::SendMessages and @ref kafka::utest::KafkaCluster::ReceiveMessages:
 
 @snippet samples/kafka_service/unittest/kafka_test.cpp  Kafka service sample - consumer unit test
 

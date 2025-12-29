@@ -1,8 +1,7 @@
 #include <userver/clients/dns/component.hpp>
-#include <userver/clients/http/component.hpp>
+#include <userver/clients/http/component_list.hpp>
 #include <userver/components/minimal_server_component_list.hpp>
-#include <userver/dynamic_config/client/component.hpp>
-#include <userver/dynamic_config/updater/component.hpp>
+#include <userver/dynamic_config/updater/component_list.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/server/handlers/ping.hpp>
 #include <userver/server/handlers/server_monitor.hpp>
@@ -84,17 +83,17 @@ public:
 };
 
 int main(int argc, char* argv[]) {
-    auto component_list = components::MinimalServerComponentList()
-                              .Append<components::TestsuiteSupport>()
-                              .Append<components::HttpClient>()
-                              .Append<clients::dns::Component>()
-                              .Append<server::handlers::ServerMonitor>()
-                              .Append<server::handlers::TestsControl>()
-                              .Append<components::DynamicConfigClientUpdater>()
-                              .Append<components::DynamicConfigClient>()
-                              .Append<HandlerHttp2>()
-                              .Append<HandlerHttp2Stream>()
-                              .Append<server::handlers::Ping>();
+    auto component_list =
+        components::MinimalServerComponentList()
+            .AppendComponentList(USERVER_NAMESPACE::dynamic_config::updater::ComponentList())
+            .Append<components::TestsuiteSupport>()
+            .AppendComponentList(clients::http::ComponentList())
+            .Append<clients::dns::Component>()
+            .Append<server::handlers::ServerMonitor>()
+            .Append<server::handlers::TestsControl>()
+            .Append<HandlerHttp2>()
+            .Append<HandlerHttp2Stream>()
+            .Append<server::handlers::Ping>();
 
     return utils::DaemonMain(argc, argv, component_list);
 }

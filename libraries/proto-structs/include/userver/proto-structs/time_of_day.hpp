@@ -58,7 +58,11 @@ public:
         const std::chrono::seconds& seconds,
         const std::chrono::nanoseconds& nanos = std::chrono::nanoseconds{0}
     )
-        : hours_(hours), minutes_(minutes), seconds_(seconds), nanos_(nanos) {
+        : hours_(hours),
+          minutes_(minutes),
+          seconds_(seconds),
+          nanos_(nanos)
+    {
         if (!IsValid(hours_, minutes_, seconds_, nanos_)) {
             ThrowError(hours_, minutes_, seconds_, nanos_);
         }
@@ -75,7 +79,8 @@ public:
               hms.minutes(),
               hms.seconds(),
               std::chrono::duration_cast<std::chrono::nanoseconds>(hms.subseconds())
-          ) {
+          )
+    {
         if (hms.is_negative()) {
             ThrowError("'std::chrono::hh_mm_ss' is negative");
         }

@@ -32,12 +32,14 @@ public:
     ParameterStore& operator=(ParameterStore&&) = default;
 
     /// @brief Adds a parameter to the end of the parameter list.
-    /// @note Currently only built-in/system types are supported.
+    /// @note Currently only enums and built-in/system types are supported.
     template <typename T>
     ParameterStore& PushBack(const T& param) {
         static_assert(
-            io::IsTypeMappedToSystem<T>() || io::IsTypeMappedToSystemArray<T>(),
-            "Currently only built-in types can be used in ParameterStore"
+            io::IsTypeMappedToSystem<T>() || io::IsTypeMappedToSystemArray<T>() ||
+                (std::is_enum_v<T> && io::traits::kIsMappedToPg<T> &&
+                 std::is_same_v<typename io::CppToPg<T>::Mapping, io::CppToUserPg<typename io::CppToPg<T>::Type>>),
+            "Currently only built-in and enum types can be used in ParameterStore"
         );
         data_.Write(kNoUserTypes, param);
         return *this;

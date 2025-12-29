@@ -7,7 +7,9 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::sqlite::impl {
 
 StatementsCache::StatementsCache(const NativeHandler& db_handler, std::size_t capacity)
-    : db_handler_{db_handler}, cache_(capacity) {
+    : db_handler_{db_handler},
+      cache_(capacity)
+{
     UASSERT(capacity > 0);
 }
 

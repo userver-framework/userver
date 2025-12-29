@@ -44,7 +44,9 @@ std::string strsignal(int signal_num) {
     }
 
 #ifdef SIGRTMIN
-    if (signal_num >= SIGRTMIN && signal_num <= SIGRTMAX) return "Real-time signal " + std::to_string(signal_num);
+    if (signal_num >= SIGRTMIN && signal_num <= SIGRTMAX) {
+        return "Real-time signal " + std::to_string(signal_num);
+    }
 #endif
 
     return "Signal " + std::to_string(signal_num);

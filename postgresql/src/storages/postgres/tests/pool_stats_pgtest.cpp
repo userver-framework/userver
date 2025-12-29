@@ -208,7 +208,7 @@ UTEST_F(PostgrePoolStats, RunTransactions) {
     }
 
     const auto query_exec_count = trx_count * (exec_count + /*begin-commit*/ 2);
-    const auto kDurationMin = pg::detail::SteadyClock::duration::min();
+    const auto duration_min = pg::detail::SteadyClock::duration::min();
     const auto& stats = pool->GetStatistics();
     EXPECT_GE(stats.connection.open_total, 1);
     EXPECT_EQ(stats.connection.drop_total, 0);
@@ -216,7 +216,7 @@ UTEST_F(PostgrePoolStats, RunTransactions) {
     EXPECT_EQ(stats.connection.used, 0);
     EXPECT_EQ(stats.connection.maximum, 10);
 
-    const auto prepared_stats = stats.connection.prepared_statements.GetStatsForPeriod(kDurationMin, true).GetCurrent();
+    const auto prepared_stats = stats.connection.prepared_statements.GetStatsForPeriod(duration_min, true).GetCurrent();
     EXPECT_GT(prepared_stats.average, 0);
     EXPECT_EQ(prepared_stats.minimum, prepared_stats.maximum);
 
@@ -231,8 +231,8 @@ UTEST_F(PostgrePoolStats, RunTransactions) {
     EXPECT_EQ(stats.connection.error_total, 0);
     EXPECT_EQ(stats.pool_exhaust_errors, 0);
     EXPECT_EQ(stats.queue_size_errors, 0);
-    EXPECT_EQ(stats.transaction.total_percentile.GetStatsForPeriod(kDurationMin, true).Count(), trx_count);
-    EXPECT_EQ(stats.transaction.busy_percentile.GetStatsForPeriod(kDurationMin, true).Count(), trx_count);
+    EXPECT_EQ(stats.transaction.total_percentile.GetStatsForPeriod(duration_min, true).Count(), trx_count);
+    EXPECT_EQ(stats.transaction.busy_percentile.GetStatsForPeriod(duration_min, true).Count(), trx_count);
 }
 
 UTEST_F(PostgrePoolStats, ConnUsed) {

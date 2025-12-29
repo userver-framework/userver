@@ -36,6 +36,7 @@ components_manager:
                     overflow_behavior: discard  # Drop logs if the system is too busy to write them down.
 
         http-client:
+        http-client-core:
             fs-task-processor: fs-task-processor
             user-agent: userver testsuite
 

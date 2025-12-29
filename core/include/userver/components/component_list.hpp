@@ -49,8 +49,10 @@ public:
 
     ConfigFileMode GetConfigFileMode() const { return config_file_mode_; }
 
-    virtual std::unique_ptr<RawComponentBase>
-    MakeComponent(const ComponentConfig& config, const ComponentContext& context) const = 0;
+    virtual std::unique_ptr<RawComponentBase> MakeComponent(
+        const ComponentConfig& config,
+        const ComponentContext& context
+    ) const = 0;
 
     virtual void ValidateStaticConfig(const ComponentConfig&, ValidationMode) const = 0;
 
@@ -72,7 +74,9 @@ public:
         " and the component definition should be visible at its registration"
     );
 
-    explicit ComponentAdder(std::string name) : ComponentAdderBase(std::move(name), kConfigFileMode<Component>) {}
+    explicit ComponentAdder(std::string name)
+        : ComponentAdderBase(std::move(name), kConfigFileMode<Component>)
+    {}
 
     std::unique_ptr<RawComponentBase> MakeComponent(const ComponentConfig& config, const ComponentContext& context)
         const override {

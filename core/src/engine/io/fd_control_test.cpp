@@ -20,8 +20,12 @@ class Pipe final {
 public:
     Pipe() { utils::CheckSyscall(::pipe(fd_), "creating pipe"); }
     ~Pipe() {
-        if (fd_[0] != -1) ::close(fd_[0]);
-        if (fd_[1] != -1) ::close(fd_[1]);
+        if (fd_[0] != -1) {
+            ::close(fd_[0]);
+        }
+        if (fd_[1] != -1) {
+            ::close(fd_[1]);
+        }
     }
 
     int ExtractIn() { return std::exchange(fd_[0], -1); }
@@ -168,7 +172,8 @@ UTEST(FdControl, PartialTransfer) {
 
     CheckedWrite(pipe.Out(), "test", 4);
     EXPECT_EQ(
-        4, read_dir.PerformIo(guard, &::read, buf.data(), buf.size(), io::impl::TransferMode::kPartial, {}, "reading")
+        4,
+        read_dir.PerformIo(guard, &::read, buf.data(), buf.size(), io::impl::TransferMode::kPartial, {}, "reading")
     );
 }
 

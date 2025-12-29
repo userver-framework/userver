@@ -113,8 +113,8 @@ TEST(MakeUrlWithPathArgs, MissingParameter) {
 }
 
 TEST(MakeUrlWithPathArgs, ExtraParameter) {
-    const auto result =
-        http::MakeUrlWithPathArgs("/api/v1/users/{user_id}", {{"user_id", "123"}, {"extra", "ignored"}});
+    const auto
+        result = http::MakeUrlWithPathArgs("/api/v1/users/{user_id}", {{"user_id", "123"}, {"extra", "ignored"}});
     EXPECT_TRUE(result.has_value());
     EXPECT_EQ("/api/v1/users/123", result.value());
 }
@@ -137,7 +137,9 @@ TEST(MakeUrlWithPathArgs, EmptyKey) {
 
 TEST(MakeUrlWithPathArgs, WithQueryArgs) {
     const auto result = http::MakeUrlWithPathArgs(
-        "/api/v1/users/{user_id}", {{"user_id", "123"}}, http::Args{{"filter", "active"}, {"sort", "name"}}
+        "/api/v1/users/{user_id}",
+        {{"user_id", "123"}},
+        http::Args{{"filter", "active"}, {"sort", "name"}}
     );
     EXPECT_TRUE(result.has_value());
     EXPECT_EQ("/api/v1/users/123?sort=name&filter=active", result.value());
@@ -157,7 +159,10 @@ TEST(MakeUrlWithPathArgs, WithQueryArgsAndMultiArgs) {
     const http::MultiArgs multi_args = {{"tag", "new"}, {"tag", "featured"}};
 
     const auto result = http::MakeUrlWithPathArgs(
-        "/api/v1/products/{category}", {{"category", "electronics"}}, http::Args{{"sort", "price"}}, multi_args
+        "/api/v1/products/{category}",
+        {{"category", "electronics"}},
+        http::Args{{"sort", "price"}},
+        multi_args
     );
     EXPECT_TRUE(result.has_value());
     EXPECT_EQ("/api/v1/products/electronics?sort=price&tag=new&tag=featured", result.value());
@@ -165,7 +170,9 @@ TEST(MakeUrlWithPathArgs, WithQueryArgsAndMultiArgs) {
 
 TEST(MakeUrlWithPathArgs, WithInitializerListQueryArgs) {
     const auto result = http::MakeUrlWithPathArgs(
-        "/api/v1/search/{term}", {{"term", "laptop"}}, {{"brand", "apple"}, {"price_max", "2000"}}
+        "/api/v1/search/{term}",
+        {{"term", "laptop"}},
+        {{"brand", "apple"}, {"price_max", "2000"}}
     );
     EXPECT_TRUE(result.has_value());
     EXPECT_EQ("/api/v1/search/laptop?brand=apple&price_max=2000", result.value());
@@ -192,7 +199,9 @@ TEST(MakeUrlWithPathArgs, WithQueryArgsEmptyQueryArgs) {
 
 TEST(MakeUrlWithPathArgs, WithSpecialCharsInQueryArgs) {
     const auto result = http::MakeUrlWithPathArgs(
-        "/api/v1/users/{user_id}", {{"user_id", "123"}}, http::Args{{"q", "special chars & symbols"}}
+        "/api/v1/users/{user_id}",
+        {{"user_id", "123"}},
+        http::Args{{"q", "special chars & symbols"}}
     );
     EXPECT_TRUE(result.has_value());
     EXPECT_EQ("/api/v1/users/123?q=special%20chars%20%26%20symbols", result.value());

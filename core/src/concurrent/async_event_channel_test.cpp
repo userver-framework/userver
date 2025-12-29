@@ -15,7 +15,9 @@ namespace {
 
 class Subscriber final {
 public:
-    Subscriber(int& x) : x_(x) {}
+    Subscriber(int& x)
+        : x_(x)
+    {}
 
     void OnEvent(int x) { x_ = x; }
 
@@ -125,15 +127,21 @@ enum class WeatherKind { kSunny, kRainy };
 
 class WeatherStorage final {
 public:
-    explicit WeatherStorage(WeatherKind value) : value_(value), channel_("weather") {}
+    explicit WeatherStorage(WeatherKind value)
+        : value_(value),
+          channel_("weather")
+    {}
 
     WeatherKind Get() const { return value_.load(); }
 
     concurrent::AsyncEventSource<WeatherKind>& GetSource() { return channel_; }
 
     template <typename Class>
-    concurrent::AsyncEventSubscriberScope
-    UpdateAndListen(Class* obj, std::string_view name, void (Class::*func)(WeatherKind)) {
+    concurrent::AsyncEventSubscriberScope UpdateAndListen(
+        Class* obj,
+        std::string_view name,
+        void (Class::*func)(WeatherKind)
+    ) {
         return channel_.DoUpdateAndListen(obj, name, func, [&] { (obj->*func)(Get()); });
     }
 
@@ -192,9 +200,11 @@ UTEST(AsyncEventChannel, AddListenerSample) {
     WeatherStorage weather_storage(WeatherKind::kSunny);
     std::vector<WeatherKind> recorded_weather;
 
-    concurrent::AsyncEventSubscriberScope recorder = weather_storage.GetSource().AddListener(
-        concurrent::FunctionId(&recorder), "recorder", [&](WeatherKind weather) { recorded_weather.push_back(weather); }
-    );
+    concurrent::AsyncEventSubscriberScope recorder =
+        weather_storage.GetSource()
+            .AddListener(concurrent::FunctionId(&recorder), "recorder", [&](WeatherKind weather) {
+                recorded_weather.push_back(weather);
+            });
 
     weather_storage.Set(WeatherKind::kRainy);
     weather_storage.Set(WeatherKind::kSunny);
@@ -229,8 +239,13 @@ UTEST(AsyncEventChannel, SendEventConcurrent) {
     concurrent::AsyncEventChannel<> channel("channel");
     engine::SingleConsumerEvent inside_callback;
     engine::SingleConsumerEvent may_exit;
+    std::atomic<bool> skip{false};
 
     auto sub = channel.AddListener(concurrent::FunctionId(&channel), "test", [&] {
+        if (skip) {
+            return;
+        }
+
         inside_callback.Send();
         EXPECT_TRUE(may_exit.WaitForEvent());
     });
@@ -242,7 +257,7 @@ UTEST(AsyncEventChannel, SendEventConcurrent) {
 
     EXPECT_TRUE(inside_callback.WaitForEvent());
 
-    sub.Unsubscribe();
+    skip = true;
 
     auto task1 = engine::AsyncNoSpan([&] { channel.SendEvent(); });
     auto task2 = engine::AsyncNoSpan([&] { channel.SendEvent(); });
@@ -255,6 +270,53 @@ UTEST(AsyncEventChannel, SendEventConcurrent) {
     may_exit.Send();
 
     first_task.Get();
+}
+
+UTEST(AsyncEventChannel, SendEventConcurrent2) {
+    concurrent::AsyncEventChannel<> channel("channel");
+    engine::SingleConsumerEvent inside_callback;
+    engine::SingleConsumerEvent may_exit;
+
+    auto sub = channel.AddListener(concurrent::FunctionId(&channel), "test", [&] {
+        inside_callback.Send();
+        EXPECT_TRUE(may_exit.WaitForEvent());
+    });
+
+    std::atomic<std::size_t> calls{0};
+    auto sub2 = channel.AddListener(concurrent::FunctionId(&may_exit), "test2", [&calls] { ++calls; });
+
+    auto first_task = engine::AsyncNoSpan([&] { channel.SendEvent(); });
+
+    EXPECT_TRUE(inside_callback.WaitForEvent());
+
+    auto may_exit_task = engine::AsyncNoSpan([&] { may_exit.Send(); });
+    sub.Unsubscribe();
+
+    auto task1 = engine::AsyncNoSpan([&] { channel.SendEvent(); });
+    auto task2 = engine::AsyncNoSpan([&] { channel.SendEvent(); });
+
+    first_task.Get();
+    task1.Get();
+    task2.Get();
+    EXPECT_EQ(calls.load(), 3);
+}
+
+UTEST(AsyncEventChannel, UnsibscribeWhileHandling) {
+    engine::SingleConsumerEvent started;
+    std::atomic<bool> unsubscribe_has_finished{false};
+    concurrent::AsyncEventChannel<> channel("channel");
+
+    auto sub = channel.AddListener(concurrent::FunctionId(&channel), "test", [&] {
+        started.Send();
+        engine::SleepFor(std::chrono::milliseconds(5));
+        EXPECT_FALSE(unsubscribe_has_finished);
+    });
+
+    auto send_task = engine::AsyncNoSpan([&] { channel.SendEvent(); });
+    (void)started.WaitForEvent();
+
+    sub.Unsubscribe();
+    unsubscribe_has_finished = true;
 }
 
 }  // namespace

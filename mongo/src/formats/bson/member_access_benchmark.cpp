@@ -110,7 +110,9 @@ void bson_path_first_access(benchmark::State& state) {
                  ["data"]
                      .As<std::string>() == "4");
         benchmark::DoNotOptimize(res);
-        if (!res) throw std::runtime_error("unexpected");
+        if (!res) {
+            throw std::runtime_error("unexpected");
+        }
     }
 }
 BENCHMARK(bson_path_first_access);

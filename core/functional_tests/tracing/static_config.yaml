@@ -7,6 +7,7 @@ components_manager:
             task_processor: main-task-processor
 
         http-client:
+        http-client-core:
             fs-task-processor: fs-task-processor
 
         dns-client:

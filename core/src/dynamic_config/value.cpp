@@ -64,7 +64,9 @@ void DocsMap::MergeMissing(const DocsMap& source) { docs_.insert(source.docs_.be
 
 std::unordered_set<std::string> DocsMap::GetNames() const {
     std::unordered_set<std::string> names;
-    for (const auto& [k, v] : docs_) names.insert(k);
+    for (const auto& [k, v] : docs_) {
+        names.insert(k);
+    }
     return names;
 }
 

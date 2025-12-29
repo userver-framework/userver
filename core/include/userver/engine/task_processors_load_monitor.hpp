@@ -11,24 +11,20 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine {
 
-// clang-format off
 /// @ingroup userver_components
 ///
 /// @brief Component to monitor CPU usage for every TaskProcessor present in
 /// the service, and dump per-thread stats into metrics.
 ///
-/// ## Static options:
-/// Inherits all the options from components::ComponentBase and adds the
-/// following ones:
+/// ## Static options of engine::TaskProcessorsLoadMonitor :
+/// @include{doc} scripts/docs/en/components_schema/core/src/engine/task_processors_load_monitor.md
 ///
-/// Name           | Description                                    | Default value
-/// -------------- | ---------------------------------------------- | ---------------------------------
-/// task-processor | name of the TaskProcessor to run monitoring on | default monitoring task processor
-// clang-format on
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
 class TaskProcessorsLoadMonitor final : public components::ComponentBase {
 public:
     /// @ingroup userver_component_names
-    /// @brief The default name of engine::TaskProcessorsLoadMonitor
+    /// @brief The default name of @ref engine::TaskProcessorsLoadMonitor
     static constexpr std::string_view kName{"task-processors-load-monitor"};
 
     TaskProcessorsLoadMonitor(const components::ComponentConfig& config, const components::ComponentContext& context);

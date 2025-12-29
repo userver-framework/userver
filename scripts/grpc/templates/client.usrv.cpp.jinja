@@ -22,13 +22,13 @@ inline constexpr std::array<USERVER_NAMESPACE::ugrpc::impl::MethodDescriptor, {{
     USERVER_NAMESPACE::ugrpc::impl::MethodDescriptor{
         "{{proto.package_prefix}}{{service.name}}/{{method.name}}",
 {% if method.client_streaming and method.server_streaming %}
-        USERVER_NAMESPACE::ugrpc::impl::RpcType::kBidiStreaming,
+        USERVER_NAMESPACE::ugrpc::RpcType::kBidiStreaming,
 {% elif method.client_streaming %}
-        USERVER_NAMESPACE::ugrpc::impl::RpcType::kClientStreaming,
+        USERVER_NAMESPACE::ugrpc::RpcType::kClientStreaming,
 {% elif method.server_streaming %}
-        USERVER_NAMESPACE::ugrpc::impl::RpcType::kServerStreaming,
+        USERVER_NAMESPACE::ugrpc::RpcType::kServerStreaming,
 {% else %}
-        USERVER_NAMESPACE::ugrpc::impl::RpcType::kUnary,
+        USERVER_NAMESPACE::ugrpc::RpcType::kUnary,
 {% endif %}
     },
 {% endfor %}
@@ -144,6 +144,10 @@ namespace structs {
 {{service.name}}Client::~{{service.name}}Client() = default;
 
 {%- set namespace_path = '::' + proto.namespace if proto.namespace | length > 0 else '' -%}
+const {{namespace_path}}::{{service.name}}Client& {{ service.name }}Client::GetProtobufClient() const { return *protobuf_client_; }
+
+{{namespace_path}}::{{service.name}}Client& {{ service.name }}Client::GetProtobufClient() { return *protobuf_client_; }
+
 {{service.name}}Client::{{service.name}}Client(
         USERVER_NAMESPACE::utils::SharedRef<{{namespace_path}}::{{service.name}}Client> protobuf_client)
     : protobuf_client_(std::move(protobuf_client)) {}

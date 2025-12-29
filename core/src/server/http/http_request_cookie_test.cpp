@@ -24,7 +24,9 @@ class HttpRequestCookies : public ::testing::TestWithParam<CookiesData> {};
 
 std::string PrintCookiesDataTestName(const ::testing::TestParamInfo<CookiesData>& data) {
     std::string res = data.param.name;
-    if (res.empty()) res = "_empty_";
+    if (res.empty()) {
+        res = "_empty_";
+    }
     return res;
 }
 
@@ -45,8 +47,8 @@ INSTANTIATE_UTEST_SUITE_P(
 UTEST_P(HttpRequestCookies, Test) {
     const auto& param = GetParam();
     bool parsed = false;
-    auto parser =
-        server::CreateTestParser([&param, &parsed](std::shared_ptr<server::http::HttpRequest>&& http_request) {
+    auto
+        parser = server::CreateTestParser([&param, &parsed](std::shared_ptr<server::http::HttpRequest>&& http_request) {
             parsed = true;
             EXPECT_EQ(http_request->CookieCount(), param.expected.size());
             for (const auto& [name, value] : param.expected) {
@@ -519,8 +521,8 @@ UTEST(HttpRequestCookiesHashDos, HashDos) {
 
     // 1 second for "good" code, 100 seconds for "bad" code
     // use 10 sec limit as a geometric mean to differentiate these cases
-    const auto kLimitTime = std::chrono::seconds(10);
-    EXPECT_LE(stop - start, kLimitTime);
+    const auto limit_time = std::chrono::seconds(10);
+    EXPECT_LE(stop - start, limit_time);
 }
 
 USERVER_NAMESPACE_END

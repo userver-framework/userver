@@ -93,14 +93,16 @@ inline constexpr bool kIsRange = IsDetected<impl::IsRange, T>;
 
 /// Returns true if T is an ordered or unordered map or multimap
 template <typename T>
-inline constexpr bool kIsMap =
-    IsDetected<impl::IsRange, T> && IsDetected<impl::KeyType, T> && IsDetected<impl::MappedType, T>;
+inline constexpr bool
+    kIsMap = IsDetected<impl::IsRange, T> && IsDetected<impl::KeyType, T> && IsDetected<impl::MappedType, T>;
 
 /// Returns true if T is a map (but not a multimap!)
 template <typename T>
-inline constexpr bool kIsUniqueMap = kIsMap<T> && IsDetected<
-                                                      impl::SubscriptOperatorResult,
-                                                      T>;  // no operator[] in multimaps
+inline constexpr bool kIsUniqueMap =
+    kIsMap<T> &&
+    IsDetected<
+        impl::SubscriptOperatorResult,
+        T>;  // no operator[] in multimaps
 
 template <typename T>
 using MapKeyType = DetectedType<impl::KeyType, T>;
@@ -127,8 +129,8 @@ template <typename T, typename U = T>
 inline constexpr bool kIsEqualityComparable = std::is_same_v<DetectedType<impl::EqualityComparisonResult, T, U>, bool>;
 
 template <typename T>
-inline constexpr bool kIsStdHashable =
-    std::is_same_v<DetectedType<impl::StdHashResult, T>, std::size_t> && kIsEqualityComparable<T>;
+inline constexpr bool
+    kIsStdHashable = std::is_same_v<DetectedType<impl::StdHashResult, T>, std::size_t> && kIsEqualityComparable<T>;
 
 /// @brief  Check if std::size is applicable to container
 template <typename T>

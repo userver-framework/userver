@@ -46,6 +46,7 @@ struct ValueTraits {
 
 /// A shorthand for calling ydb::ValueTraits<T>::Parse.
 template <typename T>
+// NOLINTNEXTLINE(readability-identifier-naming)
 inline constexpr auto Parse = [](NYdb::TValueParser& parser, const ParseContext& context) -> T {
     // Note: using a CPO instead of a global function to avoid ADL.
     // Customization should be performed using ValueTraits.
@@ -53,6 +54,7 @@ inline constexpr auto Parse = [](NYdb::TValueParser& parser, const ParseContext&
 };
 
 /// A shorthand for calling ydb::ValueTraits<T>::Write.
+// NOLINTNEXTLINE(readability-identifier-naming)
 inline constexpr auto Write = [](auto& builder, auto&& value) {
     // Note: using a CPO instead of a global function to avoid ADL.
     // Customization should be performed using ValueTraits.

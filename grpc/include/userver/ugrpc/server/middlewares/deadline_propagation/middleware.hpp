@@ -25,7 +25,7 @@ public:
 
     void OnCallStart(MiddlewareCallContext& context) const override;
 
-    void OnCallFinish(MiddlewareCallContext& context, const grpc::Status& status) const override;
+    void PreSendStatus(MiddlewareCallContext& context, grpc::Status& status) const override;
 };
 
 }  // namespace ugrpc::server::middlewares::deadline_propagation

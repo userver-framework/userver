@@ -3,7 +3,6 @@
 #include <fmt/format.h>
 
 #include <userver/cache/update_type.hpp>
-#include <userver/clients/http/component.hpp>
 #include <userver/components/component.hpp>
 #include <userver/dynamic_config/client/component.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
@@ -15,6 +14,10 @@
 #include <userver/utils/string_to_duration.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
+#ifndef ARCADIA_ROOT
+#include "generated/src/dynamic_config/updater/component.yaml.hpp"  // Y_IGNORE
+#endif
+
 USERVER_NAMESPACE_BEGIN
 
 namespace components {
@@ -23,8 +26,12 @@ namespace {
 
 std::optional<cache::AllowedUpdateTypes> ParseDeduplicateUpdateTypes(const yaml_config::YamlConfig& value) {
     const auto str = value.As<std::optional<std::string>>();
-    if (!str) return cache::AllowedUpdateTypes::kFullAndIncremental;
-    if (str == "none") return std::nullopt;
+    if (!str) {
+        return cache::AllowedUpdateTypes::kFullAndIncremental;
+    }
+    if (str == "none") {
+        return std::nullopt;
+    }
     return value.As<cache::AllowedUpdateTypes>();
 }
 
@@ -70,11 +77,8 @@ DynamicConfigClientUpdater::DynamicConfigClientUpdater(
       deduplicate_update_types_(ParseDeduplicateUpdateTypes(component_config["deduplicate-update-types"])),
       config_client_(component_context.FindComponent<components::DynamicConfigClient>().GetClient()),
       docs_map_defaults_(component_context.FindComponent<components::DynamicConfig>().GetDefaultDocsMap()),
-      docs_map_keys_(utils::AsContainer<DocsMapKeys>(docs_map_defaults_.GetNames())) {
-    StartPeriodicUpdates();
-}
-
-DynamicConfigClientUpdater::~DynamicConfigClientUpdater() { StopPeriodicUpdates(); }
+      docs_map_keys_(utils::AsContainer<DocsMapKeys>(docs_map_defaults_.GetNames()))
+{}
 
 void DynamicConfigClientUpdater::SetDisabledKillSwitchesToDefault(
     dynamic_config::DocsMap& docs_map,
@@ -146,7 +150,9 @@ std::vector<std::string> DynamicConfigClientUpdater::GetDocsMapKeysToFetch(
 }
 
 dynamic_config::AdditionalKeysToken DynamicConfigClientUpdater::SetAdditionalKeys(std::vector<std::string> keys) {
-    if (!load_only_my_values_ || keys.empty()) return dynamic_config::AdditionalKeysToken{nullptr};
+    if (!load_only_my_values_ || keys.empty()) {
+        return dynamic_config::AdditionalKeysToken{nullptr};
+    }
 
     auto keys_ptr = std::make_shared<std::vector<std::string>>(std::move(keys));
     {
@@ -280,33 +286,7 @@ bool DynamicConfigClientUpdater::IsDuplicate(cache::UpdateType update_type, cons
 }
 
 yaml_config::Schema DynamicConfigClientUpdater::GetStaticConfigSchema() {
-    return yaml_config::MergeSchemas<CachingComponentBase>(R"(
-type: object
-description: Component that does a periodic update of runtime configs.
-additionalProperties: false
-properties:
-    updates-sink:
-        type: string
-        description: components::DynamicConfigUpdatesSinkBase descendant to be used for storing received updates
-        defaultDescription: dynamic-config
-    store-enabled:
-        type: boolean
-        description: store the retrieved values into the updates sink component
-        defaultDescription: true
-    load-only-my-values:
-        type: boolean
-        description: request from the client only the values used by this service
-        defaultDescription: true
-    deduplicate-update-types:
-        type: string
-        description: config update types for best-effort deduplication
-        defaultDescription: full-and-incremental
-        enum:
-          - none
-          - only-full
-          - only-incremental
-          - full-and-incremental
-)");
+    return yaml_config::MergeSchemasFromResource<CachingComponentBase>("src/dynamic_config/updater/component.yaml");
 }
 
 }  // namespace components

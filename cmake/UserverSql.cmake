@@ -39,7 +39,11 @@ function(userver_add_sql_library TARGET)
 
     set(SQL_FILES)
     foreach(WILDCARD ${ARG_SQL_FILES})
-        file(GLOB_RECURSE FILES RELATIVE ${ARG_SOURCE_DIR} "${ARG_SOURCE_DIR}/${WILDCARD}")
+        file(
+            GLOB_RECURSE FILES
+            RELATIVE ${ARG_SOURCE_DIR}
+            "${ARG_SOURCE_DIR}/${WILDCARD}"
+        )
         list(APPEND SQL_FILES ${FILES})
     endforeach()
     list(TRANSFORM SQL_FILES PREPEND "${ARG_SOURCE_DIR}/")
@@ -57,9 +61,8 @@ function(userver_add_sql_library TARGET)
         OUTPUT ${output_files}
         COMMAND
             ${USERVER_SQL_PYTHON_BINARY} ${USERVER_SQL_SCRIPTS_PATH}/generator.py --namespace ${ARG_NAMESPACE}
-            --source-dir ${ARG_SOURCE_DIR} --output-dir ${ARG_OUTPUT_DIR}
-            --query-log-mode ${ARG_QUERY_LOG_MODE} --testsuite-output-dir
-            ${TESTSUITE_OUTPUT_DIR} ${SQL_FILES} ${CODEGEN}
+            --source-dir ${ARG_SOURCE_DIR} --output-dir ${ARG_OUTPUT_DIR} --query-log-mode ${ARG_QUERY_LOG_MODE}
+            --testsuite-output-dir ${TESTSUITE_OUTPUT_DIR} ${SQL_FILES} ${CODEGEN}
         DEPENDS ${SQL_FILES}
     )
     _userver_codegen_register_files("${output_files}")

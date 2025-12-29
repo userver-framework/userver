@@ -1,0 +1,8 @@
+type: object
+description: base class for grpc-server middleware
+additionalProperties: false
+properties:
+    enabled:
+        type: string
+        description: the flag to enable/disable middleware in the pipeline
+        default: true

@@ -78,20 +78,33 @@ __attribute__((noinline)) static void TestGdbPrinters() {
 
     value = MakeObject("a", "b", "c", 123, "d", false, "e", "", "f", MakeObject("key1", "value1", "key2", 987));
     TEST_EXPR(
-        'value', '{["a"] = "b", ["c"] = 123, ["d"] = false, ["e"] = "", ["f"] = {["key1"] = "value1", ["key2"] = 987}}'
+        'value',
+        '{["a"] = "b", ["c"] = 123, ["d"] = false, ["e"] = "", ["f"] = {["key1"] = "value1", ["key2"] = 987}}'
     );
 
     value = MakeObject(
-        "a", MakeArray(1, 2, 3, 4), "c", 123, "d", false, "e", "", "f", MakeObject("key1", "value1", "key2", 987)
+        "a",
+        MakeArray(1, 2, 3, 4),
+        "c",
+        123,
+        "d",
+        false,
+        "e",
+        "",
+        "f",
+        MakeObject("key1", "value1", "key2", 987)
     );
     TEST_EXPR(
         'value',
         '{["a"] = {1, 2, 3, 4}, ["c"] = 123, ["d"] = false, ["e"] = "", ["f"] = {["key1"] = "value1", ["key2"] = 987}}'
     );
 
-    value = formats::json::FromString(
-        R"({"a":[1,{},[]],"b":[true,false],"c":{"internal":{"subkey":2}},"i":-1,"u":1,"i64":-18446744073709551614,"u64":18446744073709551614,"d":0.4})"
-    );
+    value =
+        formats::
+            json::
+                FromString(
+                    R"({"a":[1,{},[]],"b":[true,false],"c":{"internal":{"subkey":2}},"i":-1,"u":1,"i64":-18446744073709551614,"u64":18446744073709551614,"d":0.4})"
+                );
     TEST_EXPR(
         'value',
         '{["a"] = {1, {}, []}, ["b"] = {true, false}, ["c"] = {["internal"] = {["subkey"] = 2}}, ["i"] = -1, ["u"] = 1, ["i64"] = -1.8446744073709552e+19, ["u64"] = 18446744073709551614, ["d"] = 0.40000000000000002}'

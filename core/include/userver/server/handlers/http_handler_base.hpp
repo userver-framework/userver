@@ -38,30 +38,23 @@ class HttpRequestStatistics;
 class HttpHandlerMethodStatistics;
 class HttpHandlerStatisticsScope;
 
-// clang-format off
-
 /// @ingroup userver_components userver_http_handlers userver_base_classes
 ///
-/// @brief Base class for all the
-/// \ref userver_http_handlers "Userver HTTP Handlers".
+/// @brief Base class for all the @ref userver_http_handlers "Userver HTTP Handlers".
 ///
-/// ## Static options:
-/// Inherits all the options from server::handlers::HandlerBase and adds the
-/// following ones:
+/// ## Static options of server::handlers::HttpHandlerBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/server/handlers/http_handler_base.md
 ///
-/// Name | Description | Default value
-/// ---- | ----------- | -------------
-/// log-level | overrides log level for this handle | `<no override>`
-/// status-codes-log-level | map of "status": log_level items to override span log level for specific status codes | {}
-/// middlewares.pipeline-builder | name of a component to build a middleware pipeline for this particular handler | default-handler-middleware-pipeline-builder
+/// Options inherited from @ref server::handlers::HandlerBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/server/handlers/handler_base.md
+///
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
 ///
 /// ## Example usage:
 ///
 /// @include samples/hello_service/src/hello_handler.hpp
 /// @include samples/hello_service/src/hello_handler.cpp
-
-// clang-format on
-
 class HttpHandlerBase : public HandlerBase {
 public:
     HttpHandlerBase(
@@ -104,11 +97,19 @@ public:
 
     /// Takes the exception and formats it into response, as specified by
     /// exception.
-    void HandleCustomHandlerException(const http::HttpRequest& request, const CustomHandlerException& ex) const;
+    void HandleCustomHandlerException(
+        const http::HttpRequest& request,
+        request::RequestContext& context,
+        const CustomHandlerException& ex
+    ) const;
 
     /// Takes the exception and formats it into response as an internal server
     /// error.
-    void HandleUnknownException(const http::HttpRequest& request, const std::exception& ex) const;
+    void HandleUnknownException(
+        const http::HttpRequest& request,
+        request::RequestContext& context,
+        const std::exception& ex
+    ) const;
 
     /// Helper function to log an unknown exception
     void LogUnknownException(const std::exception& ex, std::optional<logging::Level> log_level_override = {}) const;

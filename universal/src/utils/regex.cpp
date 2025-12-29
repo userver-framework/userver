@@ -17,7 +17,9 @@ namespace utils {
 
 class RegexErrorImpl : public RegexError {
 public:
-    explicit RegexErrorImpl(std::string message) : message_(std::move(message)) {}
+    explicit RegexErrorImpl(std::string message)
+        : message_(std::move(message))
+    {}
 
     const char* what() const noexcept override { return message_.c_str(); }
 
@@ -41,7 +43,9 @@ class regex::Impl {
 public:
     Impl() = default;
 
-    explicit Impl(std::string_view pattern) : regex_(std::make_shared<const re2::RE2>(pattern, MakeRE2Options())) {
+    explicit Impl(std::string_view pattern)
+        : regex_(std::make_shared<const re2::RE2>(pattern, MakeRE2Options()))
+    {
         if (regex_->ok()) {
             return;
         }
@@ -62,7 +66,9 @@ private:
 
 regex::regex() = default;
 
-regex::regex(std::string_view pattern) : impl_(pattern) {}
+regex::regex(std::string_view pattern)
+    : impl_(pattern)
+{}
 
 regex::regex(const regex&) = default;
 
@@ -120,7 +126,9 @@ std::size_t match_results::position(std::size_t sub) const {
     UINVARIANT(
         sub == 0 || !substr.empty(),
         fmt::format(
-            "Trying to access position of capturing group {}, which is empty (missing), target='{}'", sub, impl_->target
+            "Trying to access position of capturing group {}, which is empty (missing), target='{}'",
+            sub,
+            impl_->target
         )
     );
     return substr.data() - impl_->target.data();
@@ -147,9 +155,9 @@ bool regex_match(std::string_view str, const regex& pattern) { return re2::RE2::
 
 bool regex_match(std::string_view str, match_results& m, const regex& pattern) {
     m.impl_->Prepare(str, pattern);
-    const bool success = pattern.impl_->Get().Match(
-        str, 0, str.size(), re2::RE2::Anchor::ANCHOR_BOTH, m.impl_->groups.data(), m.impl_->groups.size()
-    );
+    const bool success =
+        pattern.impl_->Get()
+            .Match(str, 0, str.size(), re2::RE2::Anchor::ANCHOR_BOTH, m.impl_->groups.data(), m.impl_->groups.size());
     return success;
 }
 
@@ -159,9 +167,9 @@ bool regex_search(std::string_view str, const regex& pattern) {
 
 bool regex_search(std::string_view str, match_results& m, const regex& pattern) {
     m.impl_->Prepare(str, pattern);
-    const bool success = pattern.impl_->Get().Match(
-        str, 0, str.size(), re2::RE2::Anchor::UNANCHORED, m.impl_->groups.data(), m.impl_->groups.size()
-    );
+    const bool success =
+        pattern.impl_->Get()
+            .Match(str, 0, str.size(), re2::RE2::Anchor::UNANCHORED, m.impl_->groups.data(), m.impl_->groups.size());
     return success;
 }
 

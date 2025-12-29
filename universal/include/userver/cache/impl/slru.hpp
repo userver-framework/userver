@@ -88,13 +88,14 @@ private:
 };
 
 template <typename T, typename U, typename Hash, typename Equal>
-SlruBase<T, U, Hash, Equal>::SlruBase(
-    std::size_t probation_size,
-    std::size_t protected_size,
-    const Hash& hash,
-    const Equal& equal
-)
-    : probation_part_(probation_size, hash, equal), protected_part_(protected_size, hash, equal) {}
+SlruBase<
+    T,
+    U,
+    Hash,
+    Equal>::SlruBase(std::size_t probation_size, std::size_t protected_size, const Hash& hash, const Equal& equal)
+    : probation_part_(probation_size, hash, equal),
+      protected_part_(protected_size, hash, equal)
+{}
 
 template <typename T, typename U, typename Hash, typename Equal>
 bool SlruBase<T, U, Hash, Equal>::Put(const T& key, U value) {

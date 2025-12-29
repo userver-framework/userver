@@ -42,13 +42,14 @@ public:
 
     BatchSelectInsert(const components::ComponentConfig& config, const components::ComponentContext& context)
         : HttpHandlerJsonBase(config, context),
-          sqlite_client_(context.FindComponent<components::SQLite>("batch-database").GetClient()) {
+          sqlite_client_(context.FindComponent<components::SQLite>("batch-database").GetClient())
+    {
         sqlite_client_->Execute(storages::sqlite::OperationType::kReadWrite, db::sql::kCreateTable.data());
     }
 
     formats::json::Value
-    HandleRequestJsonThrow(const server::http::HttpRequest& request, const formats::json::Value& request_json, server::request::RequestContext&)
-        const final {
+    HandleRequestJsonThrow(const server::http::HttpRequest& request, const formats::json::Value& request_json, server::request::RequestContext&) const
+        final {
         request.GetHttpResponse().SetContentType(http::content_type::kApplicationJson);
         switch (request.GetMethod()) {
             case server::http::HttpMethod::kGet:
@@ -57,7 +58,8 @@ public:
                 return InsertValues(request_json);
             default:
                 throw server::handlers::ClientError(server::handlers::ExternalBody{
-                    fmt::format("Unsupported method {}", request.GetMethod())});
+                    fmt::format("Unsupported method {}", request.GetMethod())
+                });
         }
     }
 
@@ -71,12 +73,13 @@ private:
         }
 
         if (rows.size() > 1) {
-            sqlite_client_->ExecuteMany(
-                storages::sqlite::OperationType::kReadWrite, db::sql::kInsertKeyValue.data(), rows
-            );
+            sqlite_client_
+                ->ExecuteMany(storages::sqlite::OperationType::kReadWrite, db::sql::kInsertKeyValue.data(), rows);
         } else {
             sqlite_client_->ExecuteDecompose(
-                storages::sqlite::OperationType::kReadWrite, db::sql::kInsertKeyValue.data(), rows.back()
+                storages::sqlite::OperationType::kReadWrite,
+                db::sql::kInsertKeyValue.data(),
+                rows.back()
             );
         }
 

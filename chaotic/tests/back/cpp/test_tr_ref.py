@@ -5,6 +5,7 @@ from chaotic.back.cpp.types import CppRef
 from chaotic.back.cpp.types import CppStruct
 from chaotic.front import ref_resolver
 from chaotic.front.types import SchemaObject
+from chaotic.front.types import SourceLocation
 
 
 def test_simple_ref(clean, cpp_name_func, schema_parser):
@@ -47,6 +48,7 @@ def test_simple_ref(clean, cpp_name_func, schema_parser):
             orig_cpp_type=CppStruct(
                 raw_cpp_type=type_name.TypeName('::Type'),
                 json_schema=SchemaObject(
+                    source_location_=SourceLocation(filepath='vfull', location='/definitions/Type'),
                     additionalProperties=False,
                     properties={},
                 ),

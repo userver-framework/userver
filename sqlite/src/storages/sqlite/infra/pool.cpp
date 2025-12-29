@@ -22,8 +22,10 @@ constexpr std::chrono::milliseconds kConnectionSetupTimeout{2000};
 
 }  // namespace
 
-std::shared_ptr<Pool>
-Pool::Create(const settings::SQLiteSettings& settings, engine::TaskProcessor& blocking_task_processor) {
+std::shared_ptr<Pool> Pool::Create(
+    const settings::SQLiteSettings& settings,
+    engine::TaskProcessor& blocking_task_processor
+) {
     return std::make_shared<Pool>(settings, blocking_task_processor);
 }
 
@@ -42,7 +44,8 @@ Pool::Pool(const settings::SQLiteSettings& settings, engine::TaskProcessor& bloc
           impl::Connection,
           Pool>{settings.pool_settings.max_pool_size, kMaxSimultaneouslyConnectingClients},
       blocking_task_processor_{blocking_task_processor},
-      settings_{settings} {
+      settings_{settings}
+{
     try {
         Init(settings_.pool_settings.initial_pool_size, kConnectionSetupTimeout);
     } catch (const SQLiteException&) {

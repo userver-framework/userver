@@ -43,11 +43,20 @@ public:
 
     virtual RequestGeopos Geopos(std::string key, std::vector<std::string> members);
 
-    virtual RequestGeoradius
-    Georadius(std::string key, Longitude lon, Latitude lat, double radius, const GeoradiusOptions& georadius_options);
+    virtual RequestGeoradius Georadius(
+        std::string key,
+        Longitude lon,
+        Latitude lat,
+        double radius,
+        const GeoradiusOptions& georadius_options
+    );
 
-    virtual RequestGeosearch
-    Geosearch(std::string key, std::string member, double radius, const GeosearchOptions& geosearch_options);
+    virtual RequestGeosearch Geosearch(
+        std::string key,
+        std::string member,
+        double radius,
+        const GeosearchOptions& geosearch_options
+    );
 
     virtual RequestGeosearch Geosearch(
         std::string key,
@@ -57,8 +66,13 @@ public:
         const GeosearchOptions& geosearch_options
     );
 
-    virtual RequestGeosearch
-    Geosearch(std::string key, Longitude lon, Latitude lat, double radius, const GeosearchOptions& geosearch_options);
+    virtual RequestGeosearch Geosearch(
+        std::string key,
+        Longitude lon,
+        Latitude lat,
+        double radius,
+        const GeosearchOptions& geosearch_options
+    );
 
     virtual RequestGeosearch Geosearch(
         std::string key,
@@ -165,8 +179,11 @@ public:
 
     virtual RequestSetIfNotExistOrGet SetIfNotExistOrGet(std::string key, std::string value);
 
-    virtual RequestSetIfNotExistOrGet
-    SetIfNotExistOrGet(std::string key, std::string value, std::chrono::milliseconds ttl);
+    virtual RequestSetIfNotExistOrGet SetIfNotExistOrGet(
+        std::string key,
+        std::string value,
+        std::chrono::milliseconds ttl
+    );
 
     virtual RequestSetex Setex(std::string key, std::chrono::seconds seconds, std::string value);
 
@@ -196,8 +213,11 @@ public:
 
     virtual RequestZadd Zadd(std::string key, std::vector<std::pair<double, std::string>> scored_members);
 
-    virtual RequestZadd
-    Zadd(std::string key, std::vector<std::pair<double, std::string>> scored_members, const ZaddOptions& options);
+    virtual RequestZadd Zadd(
+        std::string key,
+        std::vector<std::pair<double, std::string>> scored_members,
+        const ZaddOptions& options
+    );
 
     virtual RequestZaddIncr ZaddIncr(std::string key, double score, std::string member);
 
@@ -215,21 +235,37 @@ public:
 
     virtual RequestZrangebyscore Zrangebyscore(std::string key, std::string min, std::string max);
 
-    virtual RequestZrangebyscore
-    Zrangebyscore(std::string key, double min, double max, const RangeOptions& range_options);
+    virtual RequestZrangebyscore Zrangebyscore(
+        std::string key,
+        double min,
+        double max,
+        const RangeOptions& range_options
+    );
 
-    virtual RequestZrangebyscore
-    Zrangebyscore(std::string key, std::string min, std::string max, const RangeOptions& range_options);
+    virtual RequestZrangebyscore Zrangebyscore(
+        std::string key,
+        std::string min,
+        std::string max,
+        const RangeOptions& range_options
+    );
 
     virtual RequestZrangebyscoreWithScores ZrangebyscoreWithScores(std::string key, double min, double max);
 
     virtual RequestZrangebyscoreWithScores ZrangebyscoreWithScores(std::string key, std::string min, std::string max);
 
-    virtual RequestZrangebyscoreWithScores
-    ZrangebyscoreWithScores(std::string key, double min, double max, const RangeOptions& range_options);
+    virtual RequestZrangebyscoreWithScores ZrangebyscoreWithScores(
+        std::string key,
+        double min,
+        double max,
+        const RangeOptions& range_options
+    );
 
-    virtual RequestZrangebyscoreWithScores
-    ZrangebyscoreWithScores(std::string key, std::string min, std::string max, const RangeOptions& range_options);
+    virtual RequestZrangebyscoreWithScores ZrangebyscoreWithScores(
+        std::string key,
+        std::string min,
+        std::string max,
+        const RangeOptions& range_options
+    );
 
     virtual RequestZrem Zrem(std::string key, std::string member);
 

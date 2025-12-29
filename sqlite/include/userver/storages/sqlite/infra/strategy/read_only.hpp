@@ -17,8 +17,10 @@ private:
     Pool& GetReadOnly() const final;
     Pool& GetReadWrite() const final;
 
-    PoolPtr
-    InitializeReadOnlyPoolReference(settings::SQLiteSettings settings, engine::TaskProcessor& blocking_task_processor);
+    PoolPtr InitializeReadOnlyPoolReference(
+        settings::SQLiteSettings settings,
+        engine::TaskProcessor& blocking_task_processor
+    );
 
     PoolPtr read_connection_pool_;
 };

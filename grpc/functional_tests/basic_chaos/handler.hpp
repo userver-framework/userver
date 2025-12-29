@@ -13,7 +13,9 @@ public:
     static constexpr std::string_view kName = "greeter-http-handler";
 
     GreeterHttpHandler(const components::ComponentConfig& config, const components::ComponentContext& context)
-        : HttpHandlerBase(config, context), grpc_greeter_client_(context.FindComponent<GreeterClient>()) {}
+        : HttpHandlerBase(config, context),
+          grpc_greeter_client_(context.FindComponent<GreeterClient>())
+    {}
 
     inline std::string HandleRequestThrow(const server::http::HttpRequest& request, server::request::RequestContext&)
         const override {

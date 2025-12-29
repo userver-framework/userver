@@ -57,7 +57,9 @@ CodeStatisticsSummary CodeStatistics::Snapshot::DumpMetricAndGetSummary(utils::s
     for (const auto& [idx, count] : utils::enumerate(codes_)) {
         const auto code = static_cast<grpc::StatusCode>(idx);
         summary.total_requests += count;
-        if (IsServerError(code)) summary.error_requests += count;
+        if (IsServerError(code)) {
+            summary.error_requests += count;
+        }
 
         if (count || IsZeroWritten(code)) {
             status_writer.ValueWithLabels(count, {"grpc_code", ugrpc::ToString(code)});

@@ -67,15 +67,23 @@ private:
 
 template <typename T>
 T ResultStore<T>::Retrieve() {
-    if (value_) return std::move(*value_);
-    if (exception_) std::rethrow_exception(exception_);
+    if (value_) {
+        return std::move(*value_);
+    }
+    if (exception_) {
+        std::rethrow_exception(exception_);
+    }
     throw std::logic_error("result store is not ready");
 }
 
 template <typename T>
 const T& ResultStore<T>::Get() const& {
-    if (value_) return *value_;
-    if (exception_) std::rethrow_exception(exception_);
+    if (value_) {
+        return *value_;
+    }
+    if (exception_) {
+        std::rethrow_exception(exception_);
+    }
     throw std::logic_error("result store is not ready");
 }
 
@@ -98,8 +106,12 @@ void ResultStore<T>::SetException(std::exception_ptr&& exception) noexcept {
 inline void ResultStore<void>::Retrieve() { Get(); }
 
 inline void ResultStore<void>::Get() const& {
-    if (has_value_) return;
-    if (exception_) std::rethrow_exception(exception_);
+    if (has_value_) {
+        return;
+    }
+    if (exception_) {
+        std::rethrow_exception(exception_);
+    }
     throw std::logic_error("result store is not ready");
 }
 

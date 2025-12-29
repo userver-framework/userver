@@ -1,6 +1,6 @@
 """`TypeReference` constants for common built-in C++ types."""
 
-from typing import Mapping
+from collections.abc import Mapping
 
 from proto_structs.models import type_ref
 

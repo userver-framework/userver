@@ -11,7 +11,10 @@ namespace {
 constexpr auto kWriterLock = std::numeric_limits<Semaphore::Counter>::max();
 }
 
-SharedMutex::SharedMutex() : semaphore_(kWriterLock), waiting_writers_count_(0) {}
+SharedMutex::SharedMutex()
+    : semaphore_(kWriterLock),
+      waiting_writers_count_(0)
+{}
 
 SharedMutex::~SharedMutex() { UASSERT(waiting_writers_count_ == 0); }
 
@@ -76,12 +79,16 @@ void SharedMutex::unlock_and_lock_shared() {
 }
 
 bool SharedMutex::try_lock_shared() {
-    if (HasWaitingWriter()) return false;
+    if (HasWaitingWriter()) {
+        return false;
+    }
     return semaphore_.try_lock_shared();
 }
 
 bool SharedMutex::try_lock_shared_until(Deadline deadline) {
-    if (!WaitForNoWaitingWriters(deadline)) return false;
+    if (!WaitForNoWaitingWriters(deadline)) {
+        return false;
+    }
 
     /* Same deliberate race, see comment in lock_shared() */
     return semaphore_.try_lock_shared_until(deadline);
@@ -91,7 +98,9 @@ bool SharedMutex::HasWaitingWriter() const noexcept { return waiting_writers_cou
 
 bool SharedMutex::WaitForNoWaitingWriters(Deadline deadline) {
     /* Fast path */
-    if (waiting_writers_count_ == 0) return true;
+    if (waiting_writers_count_ == 0) {
+        return true;
+    }
 
     std::unique_lock<Mutex> lock(waiting_writers_count_mutex_);
     return waiting_writers_count_cv_.WaitUntil(lock, deadline, [this] { return waiting_writers_count_ == 0; });

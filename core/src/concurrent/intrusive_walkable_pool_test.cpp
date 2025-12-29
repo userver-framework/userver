@@ -20,9 +20,15 @@ USERVER_NAMESPACE_BEGIN
 namespace {
 
 struct CheckedInt {
-    CheckedInt() : CheckedInt(42) {}
+    CheckedInt()
+        : CheckedInt(42)
+    {}
 
-    explicit CheckedInt(int x) : x(x) { UASSERT(x != 0); }
+    explicit CheckedInt(int x)
+        : x(x)
+    {
+        UASSERT(x != 0);
+    }
 
     ~CheckedInt() {
         CheckAlive();
@@ -107,7 +113,9 @@ UTEST_MT(IntrusiveWalkablePool, TortureTest, 4) {
 
     engine::SleepFor(50ms);
     keep_running = false;
-    for (auto& task : tasks) task.Get();
+    for (auto& task : tasks) {
+        task.Get();
+    }
 }
 
 USERVER_NAMESPACE_END

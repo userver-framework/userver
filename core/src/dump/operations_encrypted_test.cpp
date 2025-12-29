@@ -59,14 +59,18 @@ UTEST(DumpEncFile, Long) {
     auto scope_time = tracing::Span::CurrentSpan().CreateScopeTime("dump");
     dump::EncryptedWriter w(path, kTestKey, boost::filesystem::perms::owner_read, scope_time);
 
-    for (int i = 0; i < 256; i++) w.Write(i);
+    for (int i = 0; i < 256; i++) {
+        w.Write(i);
+    }
     UEXPECT_NO_THROW(w.Finish());
 
     auto size = boost::filesystem::file_size(path);
     EXPECT_EQ(size, 416);
 
     dump::EncryptedReader r(path, kTestKey);
-    for (int i = 0; i < 256; i++) EXPECT_EQ(r.Read<int32_t>(), i);
+    for (int i = 0; i < 256; i++) {
+        EXPECT_EQ(r.Read<int32_t>(), i);
+    }
 
     UEXPECT_THROW(r.Read<int32_t>(), dump::Error);
 

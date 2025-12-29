@@ -23,7 +23,8 @@ namespace server::http {
 
 inline constexpr std::string_view kSwitchingProtocolResponse{
     "HTTP/1.1 101 Switching Protocols\r\nConnection: Upgrade\r\nUpgrade: "
-    "h2c\r\n\r\n"};
+    "h2c\r\n\r\n"
+};
 
 // nghttp2_session_upgrade2 opens the stream with id=1 and we must use it.
 // See docs:

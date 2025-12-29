@@ -246,20 +246,20 @@ enum class SqlState : std::int64_t {
     //@}
     //@{
     /** @name Class 28 — Invalid Authorization Specification */
-    kInvalidAuthorizationSpecification =
-        static_cast<std::int64_t>(SqlStateClass::kInvalidAuthorizationSpecification),  //!< 28000
-    kInvalidPassword,                                                                  //!< 28P01
+    kInvalidAuthorizationSpecification = static_cast<std::int64_t>(SqlStateClass::kInvalidAuthorizationSpecification
+    ),                 //!< 28000
+    kInvalidPassword,  //!< 28P01
     //@}
     //@{
     /** @name Class 2B — Dependent Privilege Descriptors Still Exist */
-    kDependentPrivilegeDescriptorsStillExist =
-        static_cast<std::int64_t>(SqlStateClass::kDependentPrivilegeDescriptorsStillExist),  //!< 2B000
-    kDependentObjectsStillExist,                                                             //!< 2BP01
+    kDependentPrivilegeDescriptorsStillExist = static_cast<
+        std::int64_t>(SqlStateClass::kDependentPrivilegeDescriptorsStillExist),  //!< 2B000
+    kDependentObjectsStillExist,                                                 //!< 2BP01
     //@}
     //@{
     /** @name Class 2D — Invalid Transaction Termination */
-    kInvalidTransactionTermination =
-        static_cast<std::int64_t>(SqlStateClass::kInvalidTransactionTermination),  //!< 2D000
+    kInvalidTransactionTermination = static_cast<std::int64_t>(SqlStateClass::kInvalidTransactionTermination
+    ),  //!< 2D000
     //@}
     //@{
     /** @name Class 2F — SQL Routine Exception */
@@ -283,13 +283,13 @@ enum class SqlState : std::int64_t {
     //@}
     //@{
     /** @name Class 39 — External Routine Invocation Exception */
-    kExternalRoutineInvocationException =
-        static_cast<std::int64_t>(SqlStateClass::kExternalRoutineInvocationException),  //!< 39000
-    kInvalidSqlstateReturned,                                                           //!< 39001
-    kNullValueNotAllowedEx,                                                             //!< 39004
-    kTriggerProtocolViolated,                                                           //!< 39P01
-    kSrfProtocolViolated,                                                               //!< 39P02
-    kEventTriggerProtocolViolated,                                                      //!< 39P03
+    kExternalRoutineInvocationException = static_cast<std::int64_t>(SqlStateClass::kExternalRoutineInvocationException
+    ),                              //!< 39000
+    kInvalidSqlstateReturned,       //!< 39001
+    kNullValueNotAllowedEx,         //!< 39004
+    kTriggerProtocolViolated,       //!< 39P01
+    kSrfProtocolViolated,           //!< 39P02
+    kEventTriggerProtocolViolated,  //!< 39P03
     //@}
     //@{
     /** @name Class 3B — Savepoint Exception */
@@ -314,51 +314,51 @@ enum class SqlState : std::int64_t {
     //@}
     //@{
     /** @name Class 42 — Syntax Error or Access Rule Violation */
-    kSyntaxErrorOrAccessRuleViolation =
-        static_cast<std::int64_t>(SqlStateClass::kSyntaxErrorOrAccessRuleViolation),  //!< 42000
-    kSyntaxError,                                                                     //!< 42601
-    kInsufficientPrivilege,                                                           //!< 42501
-    kCannotCoerce,                                                                    //!< 42846
-    kGroupingError,                                                                   //!< 42803
-    kWindowingError,                                                                  //!< 42P20
-    kInvalidRecursion,                                                                //!< 42P19
-    kInvalidForeignKey,                                                               //!< 42830
-    kInvalidName,                                                                     //!< 42602
-    kNameTooLong,                                                                     //!< 42622
-    kReservedName,                                                                    //!< 42939
-    kDatatypeMismatch,                                                                //!< 42804
-    kIndeterminateDatatype,                                                           //!< 42P18
-    kCollationMismatch,                                                               //!< 42P21
-    kIndeterminateCollation,                                                          //!< 42P22
-    kWrongObjectType,                                                                 //!< 42809
-    kGeneratedAlways,                                                                 //!< 428C9
-    kUndefinedColumn,                                                                 //!< 42703
-    kUndefinedFunction,                                                               //!< 42883
-    kUndefinedTable,                                                                  //!< 42P01
-    kUndefinedParameter,                                                              //!< 42P02
-    kUndefinedObject,                                                                 //!< 42704
-    kDuplicateColumn,                                                                 //!< 42701
-    kDuplicateCursor,                                                                 //!< 42P03
-    kDuplicateDatabase,                                                               //!< 42P04
-    kDuplicateFunction,                                                               //!< 42723
-    kDuplicatePreparedStatement,                                                      //!< 42P05
-    kDuplicateSchema,                                                                 //!< 42P06
-    kDuplicateTable,                                                                  //!< 42P07
-    kDuplicateAlias,                                                                  //!< 42712
-    kDuplicateObject,                                                                 //!< 42710
-    kAmbiguousColumn,                                                                 //!< 42702
-    kAmbiguousFunction,                                                               //!< 42725
-    kAmbiguousParameter,                                                              //!< 42P08
-    kAmbiguousAlias,                                                                  //!< 42P09
-    kInvalidColumnReference,                                                          //!< 42P10
-    kInvalidColumnDefinition,                                                         //!< 42611
-    kInvalidCursorDefinition,                                                         //!< 42P11
-    kInvalidDatabaseDefinition,                                                       //!< 42P12
-    kInvalidFunctionDefinition,                                                       //!< 42P13
-    kInvalidPreparedStatementDefinition,                                              //!< 42P14
-    kInvalidSchemaDefinition,                                                         //!< 42P15
-    kInvalidTableDefinition,                                                          //!< 42P16
-    kInvalidObjectDefinition,                                                         //!< 42P17
+    kSyntaxErrorOrAccessRuleViolation = static_cast<std::int64_t>(SqlStateClass::kSyntaxErrorOrAccessRuleViolation
+    ),                                    //!< 42000
+    kSyntaxError,                         //!< 42601
+    kInsufficientPrivilege,               //!< 42501
+    kCannotCoerce,                        //!< 42846
+    kGroupingError,                       //!< 42803
+    kWindowingError,                      //!< 42P20
+    kInvalidRecursion,                    //!< 42P19
+    kInvalidForeignKey,                   //!< 42830
+    kInvalidName,                         //!< 42602
+    kNameTooLong,                         //!< 42622
+    kReservedName,                        //!< 42939
+    kDatatypeMismatch,                    //!< 42804
+    kIndeterminateDatatype,               //!< 42P18
+    kCollationMismatch,                   //!< 42P21
+    kIndeterminateCollation,              //!< 42P22
+    kWrongObjectType,                     //!< 42809
+    kGeneratedAlways,                     //!< 428C9
+    kUndefinedColumn,                     //!< 42703
+    kUndefinedFunction,                   //!< 42883
+    kUndefinedTable,                      //!< 42P01
+    kUndefinedParameter,                  //!< 42P02
+    kUndefinedObject,                     //!< 42704
+    kDuplicateColumn,                     //!< 42701
+    kDuplicateCursor,                     //!< 42P03
+    kDuplicateDatabase,                   //!< 42P04
+    kDuplicateFunction,                   //!< 42723
+    kDuplicatePreparedStatement,          //!< 42P05
+    kDuplicateSchema,                     //!< 42P06
+    kDuplicateTable,                      //!< 42P07
+    kDuplicateAlias,                      //!< 42712
+    kDuplicateObject,                     //!< 42710
+    kAmbiguousColumn,                     //!< 42702
+    kAmbiguousFunction,                   //!< 42725
+    kAmbiguousParameter,                  //!< 42P08
+    kAmbiguousAlias,                      //!< 42P09
+    kInvalidColumnReference,              //!< 42P10
+    kInvalidColumnDefinition,             //!< 42611
+    kInvalidCursorDefinition,             //!< 42P11
+    kInvalidDatabaseDefinition,           //!< 42P12
+    kInvalidFunctionDefinition,           //!< 42P13
+    kInvalidPreparedStatementDefinition,  //!< 42P14
+    kInvalidSchemaDefinition,             //!< 42P15
+    kInvalidTableDefinition,              //!< 42P16
+    kInvalidObjectDefinition,             //!< 42P17
     //@}
     //@{
     /** @name Class 44 — WITH CHECK OPTION Violation */

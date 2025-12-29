@@ -10,7 +10,9 @@ namespace storages::mysql {
 
 class CommandResultSet::Impl final {
 public:
-    Impl(impl::QueryResult&& result) : result_{std::move(result)} {}
+    Impl(impl::QueryResult&& result)
+        : result_{std::move(result)}
+    {}
     ~Impl() = default;
 
     Impl(const Impl& other) = delete;
@@ -42,7 +44,9 @@ private:
     impl::QueryResult result_;
 };
 
-CommandResultSet::CommandResultSet(impl::QueryResult&& mysql_result) : impl_{std::move(mysql_result)} {}
+CommandResultSet::CommandResultSet(impl::QueryResult&& mysql_result)
+    : impl_{std::move(mysql_result)}
+{}
 
 CommandResultSet::CommandResultSet(CommandResultSet&& other) noexcept = default;
 

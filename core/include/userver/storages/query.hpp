@@ -64,12 +64,17 @@ public:
 
     /// Constructor that omits dynamic initialization and relies on `statement` and `name` being string literals
     constexpr Query(utils::StringLiteral statement, NameLiteral name, LogMode log_mode)
-        : data_{StaticStrings{statement, name}}, log_mode_{log_mode} {}
+        : data_{StaticStrings{statement, name}},
+          log_mode_{log_mode}
+    {}
 
     Query(const char* statement, std::optional<Name> name = std::nullopt, LogMode log_mode = LogMode::kFull)
-        : Query(std::string{statement}, std::move(name), log_mode) {}
+        : Query(std::string{statement}, std::move(name), log_mode)
+    {}
     Query(std::string statement, std::optional<Name> name = std::nullopt, LogMode log_mode = LogMode::kFull)
-        : data_{DynamicStrings{std::move(statement), std::move(name)}}, log_mode_(log_mode) {}
+        : data_{DynamicStrings{std::move(statement), std::move(name)}},
+          log_mode_(log_mode)
+    {}
 
     /// @returns view to the query name that is alive as long as *this is alive
     std::optional<NameView> GetOptionalNameView() const noexcept;

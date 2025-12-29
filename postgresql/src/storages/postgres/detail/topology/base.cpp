@@ -32,7 +32,8 @@ TopologyBase::TopologyBase(
       default_cmd_ctls_(default_cmd_ctls),
       testsuite_pg_ctl_(testsuite_pg_ctl),
       ei_settings_(ei_settings),
-      metrics_(metrics) {}
+      metrics_(metrics)
+{}
 
 const DsnList& TopologyBase::GetDsnList() const { return dsns_; }
 

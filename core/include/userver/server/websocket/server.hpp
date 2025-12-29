@@ -108,7 +108,8 @@ public:
     template <typename ContiguousContainer>
     void SendBinary(const ContiguousContainer& message) {
         static_assert(
-            sizeof(typename ContiguousContainer::value_type) == 1, "SendBinary() should send either std::bytes or chars"
+            sizeof(typename ContiguousContainer::value_type) == 1,
+            "SendBinary() should send either std::bytes or chars"
         );
         DoSendBinary(utils::span(
             reinterpret_cast<const std::byte*>(message.data()),
@@ -127,8 +128,11 @@ protected:
     virtual void DoSendBinary(utils::span<const std::byte> message) = 0;
 };
 
-std::shared_ptr<WebSocketConnection>
-MakeWebSocket(std::unique_ptr<engine::io::RwBase>&& socket, engine::io::Sockaddr&& peer_name, const Config& config);
+std::shared_ptr<WebSocketConnection> MakeWebSocket(
+    std::unique_ptr<engine::io::RwBase>&& socket,
+    engine::io::Sockaddr&& peer_name,
+    const Config& config
+);
 
 }  // namespace server::websocket
 

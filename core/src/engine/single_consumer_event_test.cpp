@@ -52,7 +52,9 @@ UTEST(SingleConsumerEvent, WaitAndSend) {
 UTEST(SingleConsumerEvent, WaitAndSendDouble) {
     engine::SingleConsumerEvent event;
     auto task = engine::AsyncNoSpan([&event]() {
-        for (int i = 0; i < 2; i++) EXPECT_TRUE(event.WaitForEvent());
+        for (int i = 0; i < 2; i++) {
+            EXPECT_TRUE(event.WaitForEvent());
+        }
     });
 
     for (int i = 0; i < 2; i++) {
@@ -69,7 +71,9 @@ UTEST(SingleConsumerEvent, SendAndWait) {
     std::atomic<bool> is_event_sent{false};
 
     auto task = engine::AsyncNoSpan([&event, &is_event_sent]() {
-        while (!is_event_sent) engine::SleepFor(10ms);
+        while (!is_event_sent) {
+            engine::SleepFor(10ms);
+        }
         EXPECT_TRUE(event.WaitForEvent());
     });
 

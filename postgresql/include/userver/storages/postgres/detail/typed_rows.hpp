@@ -96,7 +96,9 @@ public:
 private:
     friend class TypedResultSet<T, ExtractionTag>;
 
-    ConstTypedRowIterator(detail::ResultWrapperPtr res, size_type row) : Row{std::move(res), row} {}
+    ConstTypedRowIterator(detail::ResultWrapperPtr res, size_type row)
+        : Row{std::move(res), row}
+    {}
     ConstTypedRowIterator& DoAdvance(difference_type distance) {
         this->Advance(distance * static_cast<int>(Direction));
         return *this;

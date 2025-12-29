@@ -18,7 +18,10 @@ HttpTestpointClient::HttpTestpointClient(
     const std::string& url,
     std::chrono::milliseconds timeout
 )
-    : http_client_(http_client), url_(url), timeout_(timeout) {}
+    : http_client_(http_client),
+      url_(url),
+      timeout_(timeout)
+{}
 
 HttpTestpointClient::~HttpTestpointClient() { Unregister(); }
 
@@ -38,11 +41,12 @@ void HttpTestpointClient::Execute(std::string_view name, const formats::json::Va
 
     LOG_INFO() << "Running testpoint " << name << ": " << data;
 
-    auto response = http_client_.CreateRequest()
-                        .post(url_, std::move(request_str))
-                        .headers({{http::headers::kContentType, http::content_type::kApplicationJson.ToString()}})
-                        .timeout(timeout_)
-                        .perform();
+    auto response =
+        http_client_.CreateRequest()
+            .post(url_, std::move(request_str))
+            .headers({{http::headers::kContentType, http::content_type::kApplicationJson.ToString()}})
+            .timeout(timeout_)
+            .perform();
     response->raise_for_status();
 
     auto doc = formats::json::FromString(response->body_view());

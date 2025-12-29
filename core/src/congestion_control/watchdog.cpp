@@ -15,13 +15,16 @@ const auto kThreadName = "cc-watchdog";
 }
 
 Watchdog::Watchdog()
-    : should_stop_(false), tp_(engine::current_task::GetTaskProcessor()), thread_([this] {
+    : should_stop_(false),
+      tp_(engine::current_task::GetTaskProcessor()),
+      thread_([this] {
           utils::SetCurrentThreadName(kThreadName);
           while (!should_stop_.load()) {
               Check();
               std::this_thread::sleep_for(std::chrono::seconds(1));
           }
-      }) {}
+      })
+{}
 
 Watchdog::~Watchdog() { Stop(); }
 

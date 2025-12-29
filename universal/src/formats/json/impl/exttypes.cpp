@@ -6,22 +6,26 @@ namespace formats::json::impl {
 Type GetExtendedType(const Value& val) {
     switch (val.GetType()) {
         case rapidjson::kNullType:
-            return nullValue;
+            return kNullValue;
         case rapidjson::kObjectType:
-            return objectValue;
+            return kObjectValue;
         case rapidjson::kArrayType:
-            return arrayValue;
+            return kArrayValue;
         case rapidjson::kStringType:
-            return stringValue;
+            return kStringValue;
         case rapidjson::kTrueType:
         case rapidjson::kFalseType:
-            return booleanValue;
+            return kBooleanValue;
         case rapidjson::kNumberType:
-            if (val.IsInt64()) return intValue;
-            if (val.IsUint64()) return uintValue;
-            return realValue;
+            if (val.IsInt64()) {
+                return kIntValue;
+            }
+            if (val.IsUint64()) {
+                return kUintValue;
+            }
+            return kRealValue;
     }
-    return errorValue;
+    return kErrorValue;
 }
 
 const char* NameForType(Type expected) {
@@ -30,15 +34,15 @@ const char* NameForType(Type expected) {
     case Type::type:   \
         return #type;
     switch (expected) {
-        RET_NAME(nullValue);
-        RET_NAME(intValue);
-        RET_NAME(uintValue);
-        RET_NAME(realValue);
-        RET_NAME(stringValue);
-        RET_NAME(booleanValue);
-        RET_NAME(arrayValue);
-        RET_NAME(objectValue);
-        RET_NAME(errorValue);
+        RET_NAME(kNullValue);
+        RET_NAME(kIntValue);
+        RET_NAME(kUintValue);
+        RET_NAME(kRealValue);
+        RET_NAME(kStringValue);
+        RET_NAME(kBooleanValue);
+        RET_NAME(kArrayValue);
+        RET_NAME(kObjectValue);
+        RET_NAME(kErrorValue);
     }
     return "ERROR";
 #undef RET_NAME

@@ -85,7 +85,9 @@ grpc::StatusCode Parse(std::string_view value, To<grpc::StatusCode>) {
     const auto result = ugrpc::kStatusCodesMap.TryFind(value);
     if (!result) {
         throw std::runtime_error(fmt::format(
-            "Invalid value of grpc::StatusCode: '{}' is not one of {}", value, ugrpc::kStatusCodesMap.DescribeSecond()
+            "Invalid value of grpc::StatusCode: '{}' is not one of {}",
+            value,
+            ugrpc::kStatusCodesMap.DescribeSecond()
         ));
     }
     return *result;

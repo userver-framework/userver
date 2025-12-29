@@ -12,7 +12,12 @@ AsyncEventSourceBase::~AsyncEventSourceBase() = default;
 
 }  // namespace impl
 
-FunctionId::FunctionId(void* ptr, const std::type_info& type) : ptr_(ptr), type_(&type) { UASSERT(ptr); }
+FunctionId::FunctionId(void* ptr, const std::type_info& type)
+    : ptr_(ptr),
+      type_(&type)
+{
+    UASSERT(ptr);
+}
 
 FunctionId::operator bool() const { return ptr_ != nullptr; }
 
@@ -21,7 +26,9 @@ bool FunctionId::operator==(const FunctionId& other) const { return ptr_ == othe
 std::size_t FunctionId::Hash::operator()(FunctionId id) const noexcept { return std::hash<void*>{}(id.ptr_); }
 
 AsyncEventSubscriberScope::AsyncEventSubscriberScope(impl::AsyncEventSourceBase& channel, FunctionId id)
-    : channel_(&channel), id_(id) {}
+    : channel_(&channel),
+      id_(id)
+{}
 
 AsyncEventSubscriberScope::AsyncEventSubscriberScope(AsyncEventSubscriberScope&& scope) noexcept
     : channel_(scope.channel_), id_(scope.id_) {

@@ -24,19 +24,12 @@ include(DownloadUsingCPM)
 include(SetupAbseil)
 
 cpmaddpackage(
-    NAME
-    clickhouse-cpp
-    VERSION
-    2.5.1
-    GIT_TAG
-    f606f9a3b27d54403ebc6f7b055f4110864fb97c
-    GITHUB_REPOSITORY
-    ClickHouse/clickhouse-cpp
+    NAME clickhouse-cpp
+    VERSION 2.5.1
+    GIT_TAG f606f9a3b27d54403ebc6f7b055f4110864fb97c
+    GITHUB_REPOSITORY ClickHouse/clickhouse-cpp
     SYSTEM
-    OPTIONS
-    "WITH_SYSTEM_ABSEIL ON"
-    "WITH_SYSTEM_LZ4 ON"
-    "DEBUG_DEPENDENCIES OFF"
+    OPTIONS "WITH_SYSTEM_ABSEIL ON" "WITH_SYSTEM_LZ4 ON" "DEBUG_DEPENDENCIES OFF"
 )
 
 if(NOT TARGET clickhouse-cpp-lib::clickhouse-cpp-lib)

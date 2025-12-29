@@ -43,8 +43,11 @@ Transaction Cluster::Begin(const TransactionOptions& options, OptionalCommandCon
     return Begin({}, options, cmd_ctl);
 }
 
-Transaction
-Cluster::Begin(ClusterHostTypeFlags flags, const TransactionOptions& options, OptionalCommandControl cmd_ctl) {
+Transaction Cluster::Begin(
+    ClusterHostTypeFlags flags,
+    const TransactionOptions& options,
+    OptionalCommandControl cmd_ctl
+) {
     return pimpl_->Begin(flags, options, GetHandlersCmdCtl(cmd_ctl));
 }
 

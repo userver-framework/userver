@@ -20,7 +20,9 @@ class SimpleRefcount {
 public:
     class [[nodiscard]] ReadLock {
     public:
-        explicit ReadLock(SimpleRefcount& refcount) : refcount_(refcount) {
+        explicit ReadLock(SimpleRefcount& refcount)
+            : refcount_(refcount)
+        {
             refcount_.counter_.fetch_add(1, std::memory_order_release);
         }
 

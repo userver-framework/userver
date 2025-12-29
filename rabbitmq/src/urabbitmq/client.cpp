@@ -18,7 +18,9 @@ std::shared_ptr<Client> Client::Create(clients::dns::Resolver& resolver, const C
     return std::make_shared<MakeSharedEnabler<Client>>(resolver, settings);
 }
 
-Client::Client(clients::dns::Resolver& resolver, const ClientSettings& settings) : impl_{resolver, settings} {}
+Client::Client(clients::dns::Resolver& resolver, const ClientSettings& settings)
+    : impl_{resolver, settings}
+{}
 
 Client::~Client() = default;
 

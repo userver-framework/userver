@@ -36,7 +36,9 @@ void WriteProtoMessageToDump(Writer& writer, const google::protobuf::MessageLite
 
 class DumpZeroCopyInputStream final : public google::protobuf::io::ZeroCopyInputStream {
 public:
-    explicit DumpZeroCopyInputStream(dump::Reader& reader) : reader_(reader) {}
+    explicit DumpZeroCopyInputStream(dump::Reader& reader)
+        : reader_(reader)
+    {}
 
     bool Next(const void** data, int* size) override {
         const auto buffer_view = dump::ReadUnsafeAtMost(reader_, kChunkSize);

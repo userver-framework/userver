@@ -15,7 +15,9 @@ USERVER_NAMESPACE_BEGIN
 namespace kafka::impl {
 
 template <class T, DeleterType<T> Deleter>
-HolderBase<T, Deleter>::HolderBase(T* data) : ptr_(data, Deleter) {}
+HolderBase<T, Deleter>::HolderBase(T* data)
+    : ptr_(data, Deleter)
+{}
 
 template <class T, DeleterType<T> Deleter>
 T* HolderBase<T, Deleter>::GetHandle() const noexcept {
@@ -52,14 +54,20 @@ template class HolderBase<rd_kafka_mock_cluster_t, &rd_kafka_mock_cluster_destro
 template class HolderBase<rd_kafka_t, &rd_kafka_destroy>;
 
 struct ConfHolder::Impl {
-    explicit Impl(rd_kafka_conf_t* conf) : conf(conf) {}
+    explicit Impl(rd_kafka_conf_t* conf)
+        : conf(conf)
+    {}
 
     HolderBase<rd_kafka_conf_s, &rd_kafka_conf_destroy> conf;
 };
 
-ConfHolder::ConfHolder(rd_kafka_conf_t* conf) : impl_(conf) {}
+ConfHolder::ConfHolder(rd_kafka_conf_t* conf)
+    : impl_(conf)
+{}
 
-ConfHolder::ConfHolder(const ConfHolder& other) : impl_(rd_kafka_conf_dup(other.GetHandle())) {}
+ConfHolder::ConfHolder(const ConfHolder& other)
+    : impl_(rd_kafka_conf_dup(other.GetHandle()))
+{}
 
 ConfHolder::~ConfHolder() = default;
 
@@ -76,14 +84,15 @@ struct KafkaClientHolder<TClientType>::Impl {
         : handle([conf = std::move(conf)]() mutable {
               ErrorBuffer err_buf;
 
-              const auto rd_kafka_client_type =
-                  TClientType == ClientType::kConsumer ? RD_KAFKA_CONSUMER : RD_KAFKA_PRODUCER;
+              const auto
+                  rd_kafka_client_type = TClientType == ClientType::kConsumer ? RD_KAFKA_CONSUMER : RD_KAFKA_PRODUCER;
 #if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 #endif
               HolderBase<rd_kafka_t, &rd_kafka_destroy> holder{
-                  rd_kafka_new(rd_kafka_client_type, conf.GetHandle(), err_buf.data(), err_buf.size())};
+                  rd_kafka_new(rd_kafka_client_type, conf.GetHandle(), err_buf.data(), err_buf.size())
+              };
 #if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic pop
 #endif
@@ -121,7 +130,8 @@ struct KafkaClientHolder<TClientType>::Impl {
                       return rd_kafka_queue_get_main(handle.GetHandle());
               }
               UINVARIANT(false, "Unexpected rd_kafka_type value");
-          }()) {
+          }())
+    {
     }
 
     HolderBase<rd_kafka_t, &rd_kafka_destroy> handle;
@@ -129,7 +139,9 @@ struct KafkaClientHolder<TClientType>::Impl {
 };
 
 template <ClientType TClientType>
-KafkaClientHolder<TClientType>::KafkaClientHolder(ConfHolder conf) : impl_(std::move(conf)) {}
+KafkaClientHolder<TClientType>::KafkaClientHolder(ConfHolder conf)
+    : impl_(std::move(conf))
+{}
 
 template <ClientType TClientType>
 KafkaClientHolder<TClientType>::~KafkaClientHolder() = default;
@@ -154,7 +166,10 @@ template class KafkaClientHolder<ClientType::kConsumer>;
 template class KafkaClientHolder<ClientType::kProducer>;
 
 struct MessageHolder::Impl {
-    explicit Impl(rd_kafka_event_t* event) : holder(event), message(rd_kafka_event_message_next(holder.GetHandle())) {}
+    explicit Impl(rd_kafka_event_t* event)
+        : holder(event),
+          message(rd_kafka_event_message_next(holder.GetHandle()))
+    {}
 
     Impl(Impl&& other) noexcept : holder(std::move(other.holder)), message(std::exchange(other.message, nullptr)) {}
 
@@ -162,7 +177,9 @@ struct MessageHolder::Impl {
     const rd_kafka_message_t* message;
 };
 
-MessageHolder::MessageHolder(rd_kafka_event_t* event) : impl_(event) {}
+MessageHolder::MessageHolder(rd_kafka_event_t* event)
+    : impl_(event)
+{}
 
 MessageHolder::MessageHolder(MessageHolder&& other) noexcept : impl_(std::move(other.impl_)) {}
 
@@ -173,7 +190,9 @@ const rd_kafka_message_s* MessageHolder::GetHandle() const noexcept { return imp
 const rd_kafka_message_s* MessageHolder::operator->() const noexcept { return impl_->message; }
 
 struct HeadersHolder::Impl {
-    explicit Impl(HeaderViews headers) : holder{rd_kafka_headers_new(headers.size())} {
+    explicit Impl(HeaderViews headers)
+        : holder{rd_kafka_headers_new(headers.size())}
+    {
         auto* handle = holder.GetHandle();
         for (const auto& header : headers) {
             const auto name = header.name;
@@ -186,7 +205,9 @@ struct HeadersHolder::Impl {
     HolderBase<rd_kafka_headers_t, &rd_kafka_headers_destroy> holder;
 };
 
-HeadersHolder::HeadersHolder(HeaderViews headers) : impl_{headers} {}
+HeadersHolder::HeadersHolder(HeaderViews headers)
+    : impl_{headers}
+{}
 
 rd_kafka_headers_t* HeadersHolder::GetHandle() const noexcept { return impl_->holder.GetHandle(); }
 

@@ -26,8 +26,10 @@ public:
     StatisticsStorage& operator=(const StatisticsStorage&) = delete;
     ~StatisticsStorage();
 
-    ServiceStatistics&
-    GetServiceStatistics(const StaticServiceMetadata& metadata, std::optional<std::string> client_name);
+    ServiceStatistics& GetServiceStatistics(
+        const StaticServiceMetadata& metadata,
+        std::optional<std::string> client_name
+    );
 
     MethodStatistics& GetGenericStatistics(std::string_view call_name, std::optional<std::string_view> client_name);
 

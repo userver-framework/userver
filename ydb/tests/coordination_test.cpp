@@ -93,13 +93,15 @@ UTEST_F(YdbCoordinationFixture, AcquireRelease) {
 
     {
         ASSERT_TRUE(session.AcquireSemaphore(
-            kSemaphoreName, NYdb::NCoordination::TAcquireSemaphoreSettings{}.Count(kSemaphoreLimit)
+            kSemaphoreName,
+            NYdb::NCoordination::TAcquireSemaphoreSettings{}.Count(kSemaphoreLimit)
         ));
 
         NYdb::NCoordination::TSemaphoreDescription desc1;
         UASSERT_NO_THROW(
             desc1 = session.DescribeSemaphore(
-                kSemaphoreName, NYdb::NCoordination::TDescribeSemaphoreSettings{}.IncludeOwners()
+                kSemaphoreName,
+                NYdb::NCoordination::TDescribeSemaphoreSettings{}.IncludeOwners()
             )
         );
         ASSERT_EQ(kSemaphoreName, desc1.GetName());
@@ -114,7 +116,8 @@ UTEST_F(YdbCoordinationFixture, AcquireRelease) {
         NYdb::NCoordination::TSemaphoreDescription desc2;
         UASSERT_NO_THROW(
             desc2 = session.DescribeSemaphore(
-                kSemaphoreName, NYdb::NCoordination::TDescribeSemaphoreSettings{}.IncludeOwners()
+                kSemaphoreName,
+                NYdb::NCoordination::TDescribeSemaphoreSettings{}.IncludeOwners()
             )
         );
         ASSERT_EQ(kSemaphoreName, desc2.GetName());
@@ -130,18 +133,21 @@ UTEST_F(YdbCoordinationFixture, Lock) {
     UASSERT_NO_THROW(session1.CreateSemaphore(kSemaphoreName, kSemaphoreLimit));
 
     ASSERT_TRUE(session1.AcquireSemaphore(
-        kSemaphoreName, NYdb::NCoordination::TAcquireSemaphoreSettings{}.Count(kSemaphoreLimit)
+        kSemaphoreName,
+        NYdb::NCoordination::TAcquireSemaphoreSettings{}.Count(kSemaphoreLimit)
     ));
 
     /// second acquire on session1 - nothing changed
     ASSERT_TRUE(session1.AcquireSemaphore(
-        kSemaphoreName, NYdb::NCoordination::TAcquireSemaphoreSettings{}.Count(kSemaphoreLimit)
+        kSemaphoreName,
+        NYdb::NCoordination::TAcquireSemaphoreSettings{}.Count(kSemaphoreLimit)
     ));
 
     auto task = engine::AsyncNoSpan([this] {
         auto session2 = StartSession(kCoordinationNode);
         ASSERT_TRUE(session2.AcquireSemaphore(
-            kSemaphoreName, NYdb::NCoordination::TAcquireSemaphoreSettings{}.Count(kSemaphoreLimit)
+            kSemaphoreName,
+            NYdb::NCoordination::TAcquireSemaphoreSettings{}.Count(kSemaphoreLimit)
         ));
         ASSERT_TRUE(session2.ReleaseSemaphore(kSemaphoreName));
     });

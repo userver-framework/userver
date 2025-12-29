@@ -51,7 +51,10 @@ public:
     struct ChannelName {
         ChannelName() = default;
         ChannelName(std::string channel, bool pattern, bool sharded)
-            : channel(std::move(channel)), pattern(pattern), sharded(sharded) {}
+            : channel(std::move(channel)),
+              pattern(pattern),
+              sharded(sharded)
+        {}
 
         std::string channel;
         bool pattern{false};
@@ -65,12 +68,21 @@ public:
     virtual void SetShardedSubscribeCallback(ShardedCommandCb) = 0;
     virtual void SetShardedUnsubscribeCallback(ShardedCommandCb) = 0;
 
-    virtual SubscriptionToken
-    Subscribe(const std::string& channel, Sentinel::UserMessageCallback cb, CommandControl control) = 0;
-    virtual SubscriptionToken
-    Psubscribe(const std::string& pattern, Sentinel::UserPmessageCallback cb, CommandControl control) = 0;
-    virtual SubscriptionToken
-    Ssubscribe(const std::string& pattern, Sentinel::UserMessageCallback cb, CommandControl control) = 0;
+    virtual SubscriptionToken Subscribe(
+        const std::string& channel,
+        Sentinel::UserMessageCallback cb,
+        CommandControl control
+    ) = 0;
+    virtual SubscriptionToken Psubscribe(
+        const std::string& pattern,
+        Sentinel::UserPmessageCallback cb,
+        CommandControl control
+    ) = 0;
+    virtual SubscriptionToken Ssubscribe(
+        const std::string& pattern,
+        Sentinel::UserMessageCallback cb,
+        CommandControl control
+    ) = 0;
 
     virtual void Unsubscribe(SubscriptionId subscription_id) = 0;
 
@@ -116,13 +128,16 @@ public:
 
     struct ShardChannelInfo {
         explicit ShardChannelInfo(size_t shard_idx, bool fake = false)
-            : fsm(fake ? nullptr : std::make_shared<shard_subscriber::Fsm>(shard_idx)) {}
+            : fsm(fake ? nullptr : std::make_shared<shard_subscriber::Fsm>(shard_idx))
+        {}
 
         FsmPtr fsm;
         PubsubChannelStatistics statistics;
 
         PubsubChannelStatistics GetStatistics() const {
-            if (!fsm) return {};
+            if (!fsm) {
+                return {};
+            }
             PubsubChannelStatistics stats(statistics);
             stats.server_id = fsm->GetCurrentServerId();
             stats.subscription_timestamp = fsm->GetCurrentServerTimePoint();
@@ -158,7 +173,9 @@ protected:
     class SubscriptionStorageImpl {
     public:
         SubscriptionStorageImpl(size_t shards_count, SubscriptionStorageBase& implemented)
-            : shards_count_(shards_count), implemented_(implemented) {}
+            : shards_count_(shards_count),
+              implemented_(implemented)
+        {}
         void Unsubscribe(SubscriptionId subscription_id);
 
         void ReadActions(FsmPtr fsm, const ChannelName& channel_name);
@@ -206,12 +223,21 @@ protected:
 
         void SetCommandControl(const CommandControl& control);
         void DoRebalance(size_t shard_idx, ServerWeights weights, const std::lock_guard<std::mutex>& /*held_lock*/);
-        SubscriptionToken
-        Subscribe(const std::string& channel, Sentinel::UserMessageCallback cb, CommandControl control);
-        SubscriptionToken
-        Ssubscribe(const std::string& channel, Sentinel::UserMessageCallback cb, CommandControl control);
-        SubscriptionToken
-        Psubscribe(const std::string& channel, Sentinel::UserPmessageCallback cb, CommandControl control);
+        SubscriptionToken Subscribe(
+            const std::string& channel,
+            Sentinel::UserMessageCallback cb,
+            CommandControl control
+        );
+        SubscriptionToken Ssubscribe(
+            const std::string& channel,
+            Sentinel::UserMessageCallback cb,
+            CommandControl control
+        );
+        SubscriptionToken Psubscribe(
+            const std::string& channel,
+            Sentinel::UserPmessageCallback cb,
+            CommandControl control
+        );
 
         SubscriptionId GetNextSubscriptionId(const std::lock_guard<std::mutex>& /*held_lock*/);
 

@@ -29,7 +29,9 @@ class ClickhouseColumn {
 public:
     using iterator = ColumnIterator<ColumnType>;
 
-    ClickhouseColumn(ColumnRef column) : column_{std::move(column)} {}
+    ClickhouseColumn(ColumnRef column)
+        : column_{std::move(column)}
+    {}
 
     iterator begin() const { return iterator{column_}; }
 

@@ -50,11 +50,11 @@ public:
 
     void OnCallStart(MiddlewareCallContext& context) const override;
 
-    void OnCallFinish(MiddlewareCallContext& context, const grpc::Status& status) const override;
-
     void PostRecvMessage(MiddlewareCallContext& context, google::protobuf::Message& request) const override;
 
     void PreSendMessage(MiddlewareCallContext& context, google::protobuf::Message& response) const override;
+
+    void OnCallFinish(MiddlewareCallContext& context, const std::optional<grpc::Status>& status) const override;
 
 private:
     Settings settings_;

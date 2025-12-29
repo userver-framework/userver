@@ -41,7 +41,9 @@ public:
     using ReplyType = typename RequestType::Reply;
     using GenF = std::function<std::optional<RequestType>(int)>;
 
-    explicit RedisRequestStrategy(GenF gen_callback) : gen_callback_(std::move(gen_callback)) {}
+    explicit RedisRequestStrategy(GenF gen_callback)
+        : gen_callback_(std::move(gen_callback))
+    {}
 
     RedisRequestStrategy(RedisRequestStrategy&& other) noexcept = default;
 
@@ -77,17 +79,20 @@ HedgedRedisRequest<RedisRequestType> MakeHedgedRedisRequestAsync(
     utils::hedging::HedgingSettings hedging_settings,
     Args... args
 ) {
-    auto gen_request = [redis, method, cc{std::move(cc)}, args_tuple{std::tuple(std::move(args)...)}](int try_count
-                       ) mutable -> std::optional<RedisRequestType> {
+    auto gen_request =
+        [redis, method, cc{std::move(cc)}, args_tuple{std::tuple(std::move(args)...)}](int try_count
+        ) mutable -> std::optional<RedisRequestType> {
         cc.retry_counter = try_count;
         cc.max_retries = 1;  ///< We do retries ourselves
 
         return std::apply(
-            [redis, method, cc](auto&&... args) { return (redis.get()->*method)(args..., cc); }, args_tuple
+            [redis, method, cc](auto&&... args) { return (redis.get()->*method)(args..., cc); },
+            args_tuple
         );
     };
     return utils::hedging::HedgeRequestAsync(
-        impl::RedisRequestStrategy<RedisRequestType>(std::move(gen_request)), hedging_settings
+        impl::RedisRequestStrategy<RedisRequestType>(std::move(gen_request)),
+        hedging_settings
     );
 }
 
@@ -105,17 +110,20 @@ std::optional<typename RedisRequestType::Reply> MakeHedgedRedisRequest(
     utils::hedging::HedgingSettings hedging_settings,
     Args... args
 ) {
-    auto gen_request = [redis, method, cc{std::move(cc)}, args_tuple{std::tuple(std::move(args)...)}](int try_count
-                       ) mutable -> std::optional<RedisRequestType> {
+    auto gen_request =
+        [redis, method, cc{std::move(cc)}, args_tuple{std::tuple(std::move(args)...)}](int try_count
+        ) mutable -> std::optional<RedisRequestType> {
         cc.retry_counter = try_count;
         cc.max_retries = 1;  ///< We do retries ourselves
 
         return std::apply(
-            [redis, method, cc](auto&&... args) { return (redis.get()->*method)(args..., cc); }, args_tuple
+            [redis, method, cc](auto&&... args) { return (redis.get()->*method)(args..., cc); },
+            args_tuple
         );
     };
     return utils::hedging::HedgeRequest(
-        impl::RedisRequestStrategy<RedisRequestType>(std::move(gen_request)), hedging_settings
+        impl::RedisRequestStrategy<RedisRequestType>(std::move(gen_request)),
+        hedging_settings
     );
 }
 
@@ -137,13 +145,14 @@ std::vector<std::optional<typename RedisRequestType::Reply>> MakeBulkHedgedRedis
     strategies.reserve(args.size());
 
     for (auto&& arg : args) {
-        auto gen_request = [redis, method, cc{std::move(cc)}, args_tuple{std::move(arg)}](int try_count
-                           ) mutable -> std::optional<RedisRequestType> {
+        auto gen_request = [redis, method, cc{std::move(cc)}, args_tuple{std::move(arg)}](int try_count) mutable
+            -> std::optional<RedisRequestType> {
             cc.retry_counter = try_count;
             cc.max_retries = 1;  ///< We do retries ourselves
 
             return std::apply(
-                [redis, method, cc](auto&&... args) { return (redis.get()->*method)(args..., cc); }, args_tuple
+                [redis, method, cc](auto&&... args) { return (redis.get()->*method)(args..., cc); },
+                args_tuple
             );
         };
         strategies.emplace_back(std::move(gen_request));
@@ -172,13 +181,14 @@ MakeBulkHedgedRedisRequestAsync(
     strategies.reserve(args.size());
 
     for (auto&& arg : args) {
-        auto gen_request = [redis, method, cc{std::move(cc)}, args_tuple{std::move(arg)}](int try_count
-                           ) mutable -> std::optional<RedisRequestType> {
+        auto gen_request = [redis, method, cc{std::move(cc)}, args_tuple{std::move(arg)}](int try_count) mutable
+            -> std::optional<RedisRequestType> {
             cc.retry_counter = try_count;
             cc.max_retries = 1;  ///< We do retries ourselves
 
             return std::apply(
-                [redis, method, cc](auto&&... args) { return (redis.get()->*method)(args..., cc); }, args_tuple
+                [redis, method, cc](auto&&... args) { return (redis.get()->*method)(args..., cc); },
+                args_tuple
             );
         };
         strategies.emplace_back(std::move(gen_request));

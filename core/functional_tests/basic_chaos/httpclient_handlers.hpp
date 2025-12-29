@@ -23,7 +23,9 @@ public:
     static constexpr std::string_view kName = "handler-chaos-httpclient";
 
     HttpClientHandler(const components::ComponentConfig& config, const components::ComponentContext& context)
-        : HttpHandlerBase(config, context), client_(context.FindComponent<components::HttpClient>().GetHttpClient()) {}
+        : HttpHandlerBase(config, context),
+          client_(context.FindComponent<components::HttpClient>().GetHttpClient())
+    {}
 
     std::string HandleRequestThrow(const server::http::HttpRequest& request, server::request::RequestContext&)
         const override {
@@ -39,8 +41,9 @@ public:
                 ? kDefaultTimeout
                 : std::chrono::milliseconds{utils::FromString<std::chrono::milliseconds::rep>(timeout_string)};
         const auto attempts = attempts_string.empty() ? short{1} : utils::FromString<short>(attempts_string);
-        const auto retry_network_errors = retry_network_errors_string.empty() ||
-                                          static_cast<bool>(utils::FromString<int>(retry_network_errors_string));
+        const auto retry_network_errors =
+            retry_network_errors_string.empty() ||
+            static_cast<bool>(utils::FromString<int>(retry_network_errors_string));
 
         if (type == "common") {
             auto url = fmt::format("http://localhost:{}/test", port);
@@ -65,7 +68,8 @@ public:
     StreamHandler(const components::ComponentConfig& config, const components::ComponentContext& context)
         : server::handlers::HttpHandlerBase(config, context),
           http_client_(context.FindComponent<components::HttpClient>().GetHttpClient()),
-          config_source_(context.FindComponent<components::DynamicConfig>().GetSource()) {}
+          config_source_(context.FindComponent<components::DynamicConfig>().GetSource())
+    {}
 
     /// [HandleStreamRequest]
     void HandleStreamRequest(

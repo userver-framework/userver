@@ -21,7 +21,9 @@ void MockWriter::Finish() {
 
 std::string MockWriter::Extract() && { return std::move(data_); }
 
-MockReader::MockReader(std::string data) : data_(std::move(data)) {}
+MockReader::MockReader(std::string data)
+    : data_(std::move(data))
+{}
 
 std::string_view MockReader::ReadRaw(std::size_t max_size) {
     UASSERT(pos_ <= data_.size());

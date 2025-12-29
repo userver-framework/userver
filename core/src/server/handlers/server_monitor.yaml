@@ -1,0 +1,23 @@
+type: object
+description: handler-server-monitor config
+additionalProperties: false
+properties:
+    common-labels:
+        type: object
+        description: |
+            A map of label name to label value. Items of the map are
+            added to each metric.
+        additionalProperties: true
+        properties: {}
+    format:
+        type: string
+        description: Default metrics format. Either static option or URL parameter
+            has to be provided.
+        enum:
+          - graphite
+          - prometheus
+          - prometheus-untyped
+          - json
+          - pretty
+          - solomon
+          - internal

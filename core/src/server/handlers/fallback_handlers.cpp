@@ -15,7 +15,7 @@ constexpr utils::TrivialBiMap kFallbackMap = [](auto selector) {
     return selector().Case("implicit-http-options", FallbackHandler::kImplicitOptions);
 };
 
-}
+}  // namespace
 
 std::string_view ToString(FallbackHandler fallback) {
     return kFallbackMap.TryFindBySecond(fallback).value_or(utils::StringLiteral{"unknown"});

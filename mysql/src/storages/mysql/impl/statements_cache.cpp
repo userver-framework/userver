@@ -11,7 +11,9 @@ constexpr std::chrono::milliseconds kDefaultStatementDeleteTimeout{200};
 }
 
 StatementsCache::StatementsCache(Connection& connection, std::size_t capacity)
-    : connection_{connection}, cache_{capacity} {
+    : connection_{connection},
+      cache_{capacity}
+{
     UASSERT(capacity > 0);
 }
 

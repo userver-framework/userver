@@ -5,13 +5,13 @@
 USERVER_NAMESPACE_BEGIN
 
 TEST(RetryBudget, base) {
-    const auto kMaxTokens = 10;
-    const auto kTokenRatio = 0.1f;
-    auto budget = utils::RetryBudget(utils::RetryBudgetSettings{kMaxTokens, kTokenRatio, true});
+    const auto max_tokens = 10;
+    const auto token_ratio = 0.1f;
+    auto budget = utils::RetryBudget(utils::RetryBudgetSettings{max_tokens, token_ratio, true});
 
     EXPECT_TRUE(budget.CanRetry());
 
-    for (size_t i = 0; i < kMaxTokens / 2 - 1; ++i) {
+    for (size_t i = 0; i < max_tokens / 2 - 1; ++i) {
         budget.AccountFail();
     }
     /// Still you can do retries
@@ -22,12 +22,12 @@ TEST(RetryBudget, base) {
 }
 
 TEST(RetryBudget, replenish) {
-    const auto kMaxTokens = 10;
-    const auto kTokenRatio = 0.1f;
-    auto budget = utils::RetryBudget(utils::RetryBudgetSettings{kMaxTokens, kTokenRatio, true});
+    const auto max_tokens = 10;
+    const auto token_ratio = 0.1f;
+    auto budget = utils::RetryBudget(utils::RetryBudgetSettings{max_tokens, token_ratio, true});
 
     /// Empty budget
-    for (size_t i = 0; i < kMaxTokens; ++i) {
+    for (size_t i = 0; i < max_tokens; ++i) {
         budget.AccountFail();
     }
     EXPECT_FALSE(budget.CanRetry());

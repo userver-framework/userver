@@ -29,7 +29,10 @@ protected:
     Field() = default;
 
     Field(detail::ResultWrapperPtr res, size_type row, size_type col)
-        : res_{std::move(res)}, row_index_{row}, field_index_{col} {}
+        : res_{std::move(res)},
+          row_index_{row},
+          field_index_{col}
+    {}
 
 private:
     detail::ResultWrapperPtr res_;

@@ -26,16 +26,16 @@ TEST(CommonFormats, Serialize) {
     const MyKeyValue obj = {"val", 1};
 
     // json
-    formats::json::ValueBuilder builderJson;
-    builderJson["example"] = obj;
-    auto json = builderJson.ExtractValue();
+    formats::json::ValueBuilder builder_json;
+    builder_json["example"] = obj;
+    auto json = builder_json.ExtractValue();
     EXPECT_EQ(json["example"]["field1"].As<std::string>(), "val");
     EXPECT_EQ(json["example"]["field2"].As<int>(), 1);
 
     // yaml
-    formats::yaml::ValueBuilder builderYaml;
-    builderYaml["example"] = obj;
-    auto yaml = builderYaml.ExtractValue();
+    formats::yaml::ValueBuilder builder_yaml;
+    builder_yaml["example"] = obj;
+    auto yaml = builder_yaml.ExtractValue();
     EXPECT_EQ(yaml["example"]["field1"].As<std::string>(), "val");
     EXPECT_EQ(yaml["example"]["field2"].As<int>(), 1);
 }

@@ -12,10 +12,16 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::mysql {
 
 struct StatementResultSet::Impl final {
-    Impl(impl::StatementFetcher&& fetcher, tracing::Span&& span) : fetcher{std::move(fetcher)}, span{std::move(span)} {}
+    Impl(impl::StatementFetcher&& fetcher, tracing::Span&& span)
+        : fetcher{std::move(fetcher)},
+          span{std::move(span)}
+    {}
 
     Impl(infra::ConnectionPtr&& connection, impl::StatementFetcher&& fetcher, tracing::Span&& span)
-        : owned_connection{std::move(connection)}, fetcher{std::move(fetcher)}, span{std::move(span)} {}
+        : owned_connection{std::move(connection)},
+          fetcher{std::move(fetcher)},
+          span{std::move(span)}
+    {}
 
     std::optional<infra::ConnectionPtr> owned_connection;
     impl::StatementFetcher fetcher;
@@ -23,14 +29,16 @@ struct StatementResultSet::Impl final {
 };
 
 StatementResultSet::StatementResultSet(impl::StatementFetcher&& fetcher, tracing::Span&& span)
-    : impl_{std::move(fetcher), std::move(span)} {}
+    : impl_{std::move(fetcher), std::move(span)}
+{}
 
 StatementResultSet::StatementResultSet(
     infra::ConnectionPtr&& connection,
     impl::StatementFetcher&& fetcher,
     tracing::Span&& span
 )
-    : impl_{std::move(connection), std::move(fetcher), std::move(span)} {}
+    : impl_{std::move(connection), std::move(fetcher), std::move(span)}
+{}
 
 StatementResultSet::~StatementResultSet() = default;
 

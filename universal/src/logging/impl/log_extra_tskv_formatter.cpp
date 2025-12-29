@@ -1,6 +1,5 @@
 #include <userver/logging/impl/log_extra_tskv_formatter.hpp>
 
-#include <iostream>
 #include <stdexcept>
 
 #include <boost/container/small_vector.hpp>
@@ -33,7 +32,9 @@ TskvPtr CreateFormatter(Format format) {
 
 }  // namespace
 
-LogExtraTskvFormatter::LogExtraTskvFormatter(logging::Format format) : formatter_(CreateFormatter(format)) {}
+LogExtraTskvFormatter::LogExtraTskvFormatter(logging::Format format)
+    : formatter_(CreateFormatter(format))
+{}
 
 LogExtraTskvFormatter::LogExtraTskvFormatter(LogExtraTskvFormatter&&) noexcept = default;
 

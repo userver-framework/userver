@@ -23,11 +23,21 @@ std::string ToString(WaitConnectedMode mode) {
 }
 
 WaitConnectedMode Parse(const std::string& str, formats::parse::To<WaitConnectedMode>) {
-    if (str == "no_wait") return WaitConnectedMode::kNoWait;
-    if (str == "master") return WaitConnectedMode::kMaster;
-    if (str == "slave") return WaitConnectedMode::kSlave;
-    if (str == "master_or_slave") return WaitConnectedMode::kMasterOrSlave;
-    if (str == "master_and_slave") return WaitConnectedMode::kMasterAndSlave;
+    if (str == "no_wait") {
+        return WaitConnectedMode::kNoWait;
+    }
+    if (str == "master") {
+        return WaitConnectedMode::kMaster;
+    }
+    if (str == "slave") {
+        return WaitConnectedMode::kSlave;
+    }
+    if (str == "master_or_slave") {
+        return WaitConnectedMode::kMasterOrSlave;
+    }
+    if (str == "master_and_slave") {
+        return WaitConnectedMode::kMasterAndSlave;
+    }
     throw std::runtime_error("can't parse WaitConnectedMode from '" + str + '\'');
 }
 

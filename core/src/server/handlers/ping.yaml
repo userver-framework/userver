@@ -1,0 +1,8 @@
+type: object
+description: ping handler config
+additionalProperties: false
+properties:
+    warmup-time-secs:
+        type: integer
+        description: time to server warmup, set to zero to disable the feature
+        default: 0

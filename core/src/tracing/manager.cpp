@@ -37,7 +37,7 @@ struct OTelTracingHeadersInheritedData final {
 };
 
 /// @see TracingHeadersInheritedData for details on the contents.
-engine::TaskInheritedVariable<OTelTracingHeadersInheritedData> kOTelTracingHeadersInheritedData;
+engine::TaskInheritedVariable<OTelTracingHeadersInheritedData> kOtelTracingHeadersInheritedData;
 
 /// @see TracingHeadersInheritedData for details on the contents.
 engine::TaskInheritedVariable<std::string> kB3TracingSampledInheritedData;
@@ -108,7 +108,7 @@ bool OpenTelemetryTryFillSpanBuilderFromRequest(
     }
 
     const auto& tracestate = request.GetHeader(opentelemetry::kTraceState);
-    kOTelTracingHeadersInheritedData.Set({
+    kOtelTracingHeadersInheritedData.Set({
         tracestate,
         std::string(data.trace_flags),
     });
@@ -117,7 +117,7 @@ bool OpenTelemetryTryFillSpanBuilderFromRequest(
 
 template <class T>
 void OpenTelemetryFillWithTracingContext(const tracing::Span& span, T& target, const logging::Level log_level) {
-    const auto* data = kOTelTracingHeadersInheritedData.GetOptional();
+    const auto* data = kOtelTracingHeadersInheritedData.GetOptional();
 
     std::string_view traceflags = kDefaultOtelTraceFlags;
     if (data) {
@@ -156,7 +156,9 @@ bool YandexTaxiTryFillSpanBuilderFromRequest(
     span_builder.SetParentSpanId(parent_span_id);
 
     const auto& parent_link = request.GetHeader(http::headers::kXYaRequestId);
-    if (!parent_link.empty()) span_builder.SetParentLink(parent_link);
+    if (!parent_link.empty()) {
+        span_builder.SetParentLink(parent_link);
+    }
 
     return true;
 }
@@ -219,7 +221,7 @@ bool TryFillSpanBuilderFromRequest(Format format, const server::http::HttpReques
     UINVARIANT(false, "Unexpected format of tracing headers");
 }
 
-void FillRequestWithTracingContext(Format format, const tracing::Span& span, clients::http::PluginRequest request) {
+void FillRequestWithTracingContext(Format format, const tracing::Span& span, clients::http::MiddlewareRequest request) {
     switch (format) {
         case Format::kYandexTaxi:
             YandexTaxiFillWithTracingContext(span, request);
@@ -279,7 +281,7 @@ bool GenericTracingManager::TryFillSpanBuilderFromRequest(
 
 void GenericTracingManager::FillRequestWithTracingContext(
     const tracing::Span& span,
-    clients::http::PluginRequest request
+    clients::http::MiddlewareRequest request
 ) const {
     for (auto format : kAllFormatsOrdered) {
         if (new_request_ & format) {

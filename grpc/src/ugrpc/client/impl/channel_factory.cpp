@@ -15,10 +15,15 @@ ChannelFactory::ChannelFactory(
     std::shared_ptr<grpc::ChannelCredentials> credentials,
     AuthType auth_type
 )
-    : blocking_task_processor_(blocking_task_processor), credentials_{std::move(credentials)}, auth_type_(auth_type) {}
+    : blocking_task_processor_(blocking_task_processor),
+      credentials_{std::move(credentials)},
+      auth_type_(auth_type)
+{}
 
-std::shared_ptr<grpc::Channel>
-ChannelFactory::CreateChannel(std::string_view target, const grpc::ChannelArguments& channel_args) const {
+std::shared_ptr<grpc::Channel> ChannelFactory::CreateChannel(
+    std::string_view target,
+    const grpc::ChannelArguments& channel_args
+) const {
     return engine::AsyncNoSpan(
                blocking_task_processor_,
                grpc::CreateCustomChannel,

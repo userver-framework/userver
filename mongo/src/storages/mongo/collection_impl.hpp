@@ -36,7 +36,7 @@ public:
     virtual void Execute(const operations::Drop&) = 0;
 
 protected:
-    CollectionImpl(std::string&& database_name, std::string&& collection_name);
+    CollectionImpl(std::string database_name, std::string collection_name);
 
     tracing::Span MakeSpan(std::string&& name) const;
 

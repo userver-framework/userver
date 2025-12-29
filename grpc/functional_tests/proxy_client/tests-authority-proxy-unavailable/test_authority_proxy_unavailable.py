@@ -30,7 +30,12 @@ async def test_authority_proxy_unavailable(service_client, mock_say_hello):
     ],
 )
 async def test_proxy_disabled_by_cfg(
-    service_client, mock_say_hello, taxi_config, grpc_mockserver_endpoint, disable_proxy, disable_target
+    service_client,
+    mock_say_hello,
+    taxi_config,
+    grpc_mockserver_endpoint,
+    disable_proxy,
+    disable_target,
 ):
     taxi_config.set_values({
         'EGRESS_GRPC_PROXY_ENABLED': not disable_proxy,

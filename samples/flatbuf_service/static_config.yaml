@@ -29,7 +29,8 @@ components_manager:
             task_processor: main-task-processor  # Run it on CPU bound task processor
 
         fbs-request:
-        http-client:                      # Component to do HTTP requests
+        http-client:
+        http-client-core:               # Component to do HTTP requests
             fs-task-processor: fs-task-processor
             user-agent: 'fbs-service 1.0'    # Set 'User-Agent' header to 'fbs-service 1.0'.
 

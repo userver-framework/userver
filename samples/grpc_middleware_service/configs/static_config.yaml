@@ -42,6 +42,11 @@ components_manager:
                 grpc-chaos-client:
                     enabled: true  # register the middleware in the pipeline
 
+# /// [grpc-client-origin]
+        grpc-client-origin:
+            user-agent: grpc-middleware-service
+# /// [grpc-client-origin]
+
 # /// [static config grpc-server-middlewares-pipeline]
         grpc-server-meta-filter:
             headers:

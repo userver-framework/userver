@@ -1,0 +1,20 @@
+type: object
+description: gRPC response validator component
+additionalProperties: false
+properties:
+    fail-fast:
+        type: boolean
+        description: do not check remaining constraints after first error is encountered
+        defaultDescription: true
+    methods:
+        type: object
+        description: per-method middleware options overrides
+        properties: {}
+        additionalProperties:
+            type: object
+            description: method options
+            additionalProperties: false
+            properties:
+                fail-fast:
+                    type: boolean
+                    description: see 'fail-fast' global option

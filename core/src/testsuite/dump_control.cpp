@@ -8,7 +8,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace testsuite {
 
-DumpControl::DumpControl(PeriodicsMode periodics_mode) : periodics_mode_(periodics_mode) {}
+DumpControl::DumpControl(PeriodicsMode periodics_mode)
+    : periodics_mode_(periodics_mode)
+{}
 
 DumpControl::PeriodicsMode DumpControl::GetPeriodicsMode() const { return periodics_mode_; }
 
@@ -44,7 +46,9 @@ dump::Dumper& DumpControl::FindDumper(const std::string& name) const {
 }
 
 DumperRegistrationHolder::DumperRegistrationHolder(DumpControl& control, dump::Dumper& dumper)
-    : control_(control), dumper_(dumper) {
+    : control_(control),
+      dumper_(dumper)
+{
     control_.RegisterDumper(dumper_);
 }
 

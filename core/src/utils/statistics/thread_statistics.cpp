@@ -39,7 +39,9 @@ ThreadCpuUsage GetCurrentThreadCpuUsage() {
 }  // namespace impl
 
 ThreadCpuStatsStorage::ThreadCpuStatsStorage(std::chrono::milliseconds collect_interval, std::size_t throttle)
-    : collect_interval_{collect_interval}, throttle_{throttle} {
+    : collect_interval_{collect_interval},
+      throttle_{throttle}
+{
     UASSERT(collect_interval_.count() > 0);
     UASSERT(throttle);
 }
@@ -77,9 +79,8 @@ void ThreadCpuStatsStorage::DoCollect() {
         const auto usage_pct = std::min(
             100L,
             // shouldn't be necessary, but won't hurt
-            std::max<long>(
-                0L, (usage.user + usage.system - last_usage_.user - last_usage_.system) * 100 / (now - last_ts_)
-            )
+            std::max<
+                long>(0L, (usage.user + usage.system - last_usage_.user - last_usage_.system) * 100 / (now - last_ts_))
         );
         current_load_pct_.store(static_cast<Percent>(usage_pct), std::memory_order_relaxed);
     }
@@ -109,10 +110,12 @@ public:
                     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
                     const_cast<std::thread&>(thread).native_handle(),
                     &cid
-                )) {
-                LOG_ERROR() << "pthread_getcpuclockid call failed unexpectedly, "
-                               "something went terribly wrong. CPU load collection "
-                               "will be a dummy no-op (always zero)";
+                ))
+            {
+                LOG_ERROR()
+                    << "pthread_getcpuclockid call failed unexpectedly, "
+                       "something went terribly wrong. CPU load collection "
+                       "will be a dummy no-op (always zero)";
                 failed_at_initialization_ = true;
             }
             threads_.push_back({cid, std::chrono::microseconds{0}});
@@ -137,8 +140,9 @@ public:
             if (last_ts_ == Clock::time_point{}) {
                 result.push_back(0);
             } else {
-                const auto current_usage_pct = (current_usage - last_usage) * 100 /
-                                               std::chrono::duration_cast<std::chrono::microseconds>(time_delta);
+                const auto current_usage_pct =
+                    (current_usage - last_usage) * 100 /
+                    std::chrono::duration_cast<std::chrono::microseconds>(time_delta);
                 using CurrentUsageType = decltype(current_usage_pct);
 
                 constexpr CurrentUsageType kMinAllowedUsage{0};
@@ -162,13 +166,15 @@ private:
     static std::chrono::microseconds GetThreadCpuUsage(clockid_t cid) {
         timespec ts{};
         if (clock_gettime(cid, &ts)) {
-            LOG_LIMITED_ERROR() << "clock_gettime call failed unexpectedly, something went terribly "
-                                   "wrong. CPU load for a given thread will be a dummy (zero)";
+            LOG_LIMITED_ERROR()
+                << "clock_gettime call failed unexpectedly, something went terribly "
+                   "wrong. CPU load for a given thread will be a dummy (zero)";
             return std::chrono::microseconds{0};
         }
 
         return std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::nanoseconds{
-            (static_cast<std::uint64_t>(ts.tv_sec) * 1'000'000'000 + static_cast<std::uint64_t>(ts.tv_nsec))});
+            (static_cast<std::uint64_t>(ts.tv_sec) * 1'000'000'000 + static_cast<std::uint64_t>(ts.tv_nsec))
+        });
     }
 
     using Clock = std::chrono::steady_clock;
@@ -181,7 +187,9 @@ private:
 #else
 class ThreadPoolCpuStatsStorage::Impl final {
 public:
-    Impl(const std::vector<std::thread>& threads) : threads_count_{threads.size()} {}
+    Impl(const std::vector<std::thread>& threads)
+        : threads_count_{threads.size()}
+    {}
 
     std::vector<Percent> Collect() const { return std::vector<Percent>(threads_count_, 0); }
 
@@ -190,7 +198,9 @@ private:
 };
 #endif
 
-ThreadPoolCpuStatsStorage::ThreadPoolCpuStatsStorage(const std::vector<std::thread>& threads) : impl_{threads} {}
+ThreadPoolCpuStatsStorage::ThreadPoolCpuStatsStorage(const std::vector<std::thread>& threads)
+    : impl_{threads}
+{}
 
 ThreadPoolCpuStatsStorage::~ThreadPoolCpuStatsStorage() = default;
 

@@ -14,9 +14,10 @@ void SetDeadline(
     const std::chrono::milliseconds& timeout,
     const engine::Deadline& deadline
 ) {
-    const auto effective_deadline = timeout < std::chrono::milliseconds::max()
-                                        ? std::min(engine::Deadline::FromDuration(timeout), deadline)
-                                        : deadline;
+    const auto effective_deadline =
+        timeout < std::chrono::milliseconds::max()
+            ? std::min(engine::Deadline::FromDuration(timeout), deadline)
+            : deadline;
     if (effective_deadline.IsReachable()) {
         client_context.set_deadline(effective_deadline);
     }
@@ -25,8 +26,10 @@ void SetDeadline(
 }  // namespace
 
 std::unique_ptr<grpc::ClientContext> CallOptionsAccessor::CreateClientContext(const CallOptions& call_options) {
-    auto client_context = call_options.client_context_factory_ ? call_options.client_context_factory_()
-                                                               : std::make_unique<grpc::ClientContext>();
+    auto client_context =
+        call_options.client_context_factory_
+            ? call_options.client_context_factory_()
+            : std::make_unique<grpc::ClientContext>();
     UINVARIANT(client_context, "ClientContext should be non nullptr");
 
     SetDeadline(*client_context, call_options.timeout_, call_options.deadline_);

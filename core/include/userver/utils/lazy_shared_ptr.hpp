@@ -41,7 +41,9 @@ public:
     /// @note If `other` has not been fetched yet, `this` will not fetch
     /// immediately, so `this` and `other` may end up pointing to different
     /// objects.
-    LazySharedPtr(const LazySharedPtr& other) : get_data_(other.get_data_) {
+    LazySharedPtr(const LazySharedPtr& other)
+        : get_data_(other.get_data_)
+    {
         if (other.shared_filled_.load()) {
             value_.store(other.shared_.Get());
             shared_ = other.shared_;

@@ -329,7 +329,9 @@ UTEST_MT(SharedTaskWithResult, MultithreadedGet, 4) {
         }));
     }
 
-    for (auto& task : tasks) task.Wait();
+    for (auto& task : tasks) {
+        task.Wait();
+    }
     /// [Sample SharedTaskWithResult usage]
 
     EXPECT_EQ(sum, 4);
@@ -353,7 +355,9 @@ UTEST_MT(SharedTaskWithResult, MultithreadedWait, 4) {
         }));
     }
 
-    for (auto& task : tasks) task.Wait();
+    for (auto& task : tasks) {
+        task.Wait();
+    }
 
     EXPECT_EQ(sum, 4);
 }

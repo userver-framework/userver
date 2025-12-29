@@ -51,7 +51,7 @@ Otherwise, there could be enough information to reproduce the problem.
   a `noexcept` function. See the trace for the place where that happened and add
   `try`+`catch` block in your sources, to catch and print the exception that
   is thrown.
-* Take a closer look at the utils::Async and engine::AsyncNoSpan usage in
+* Take a closer look at the utils::Async and @ref engine::AsyncNoSpan usage in
   your code. Captured by reference variables in lambdas should outlive the
   returned task.
 

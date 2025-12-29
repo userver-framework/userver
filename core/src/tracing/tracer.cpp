@@ -74,7 +74,9 @@ const std::string& Tracer::GetServiceName() const {
 }
 
 TracerCleanupScope::TracerCleanupScope()
-    : old_tracer_(Tracer::CopyCurrentTracer()), old_no_log_spans_(CopyNoLogSpans()) {}
+    : old_tracer_(Tracer::CopyCurrentTracer()),
+      old_no_log_spans_(CopyNoLogSpans())
+{}
 
 TracerCleanupScope::~TracerCleanupScope() {
     SetNoLogSpans(std::move(old_no_log_spans_));

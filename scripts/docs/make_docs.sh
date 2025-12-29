@@ -51,6 +51,12 @@ CMAKE_VERSION=$("$CMAKE_COMMAND" --version | grep -oP '\d+\.\d+')
 echo "Building target userver-codegen."
 "$CMAKE_COMMAND" --build "$BUILD_DIR" --target userver-codegen
 
+echo "Building target userver-gen-components-schema-docs."
+"$CMAKE_COMMAND" --build "$BUILD_DIR" --target userver-gen-components-schema-docs
+rm -rf scripts/docs/en/components_schema
+mkdir scripts/docs/en/components_schema
+cp -rf $BUILD_DIR/components-schema/* scripts/docs/en/components_schema/
+
 echo "Building target userver-gen-dynamic-configs-docs."
 "$CMAKE_COMMAND" --build "$BUILD_DIR" --target userver-gen-dynamic-configs-docs
 rm -rf scripts/docs/en/dynamic_configs

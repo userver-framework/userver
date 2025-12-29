@@ -209,7 +209,8 @@ UTEST(Converter, SolomonChildrenLabelEscaping) {
         result[R"~(label.value.#$/\ _{}2)~"]["field2"] = 6.67;
 
         utils::statistics::SolomonLabelValue(
-            result[R"~(overridden.label.#$/\ _{}'"value)~"], R"~(overridden.label.#$/\ _{}'"=name)~"
+            result[R"~(overridden.label.#$/\ _{}'"value)~"],
+            R"~(overridden.label.#$/\ _{}'"=name)~"
         );
         result[R"~(overridden.label.#$/\ _{}'"value)~"]["field3"] = 9999;
 

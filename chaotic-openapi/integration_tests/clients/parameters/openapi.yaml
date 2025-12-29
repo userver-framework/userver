@@ -21,6 +21,14 @@ paths:
                 required: false
                 schema:
                     type: string
+              - name: multiple
+                explode: true
+                in: query
+                required: false
+                schema:
+                    type: array
+                    items:
+                        type: string
             requestBody:
                 content:
                     application/json:

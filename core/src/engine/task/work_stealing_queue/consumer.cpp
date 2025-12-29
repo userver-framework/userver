@@ -50,7 +50,8 @@ Consumer::Consumer(WorkStealingTaskQueue& owner, ConsumersManager& consumers_man
       rnd_(utils::Rand()),
       steps_count_(rnd_()),
       global_queue_token_(owner_.global_queue_.CreateConsumerToken()),
-      background_queue_token_(owner.background_queue_.CreateConsumerToken()) {}
+      background_queue_token_(owner.background_queue_.CreateConsumerToken())
+{}
 
 void Consumer::Push(impl::TaskContext* ctx) {
     if (ctx && ctx->IsBackground()) {
@@ -85,8 +86,8 @@ bool Consumer::IsStopped() const noexcept { return consumers_manager_.IsStopped(
 
 void Consumer::EmptySurplusQueue(impl::TaskContext* extra) {
     // Pop all tasks from surplus queue
-    std::size_t free_tasks_count =
-        local_queue_surplus_.TryPopBulk(utils::span(steal_buffer_.data(), kConsumerStealBufferSize));
+    std::size_t
+        free_tasks_count = local_queue_surplus_.TryPopBulk(utils::span(steal_buffer_.data(), kConsumerStealBufferSize));
     steal_buffer_[free_tasks_count++] = extra;
 
     // First, we fill the local queue with the maximum number of tasks
@@ -95,25 +96,28 @@ void Consumer::EmptySurplusQueue(impl::TaskContext* extra) {
     // Second, we push the remaining tasks to the global queue
     if (pushed_shift < free_tasks_count) {
         owner_.global_queue_.PushBulk(
-            global_queue_token_, utils::span(steal_buffer_.data() + pushed_shift, free_tasks_count - pushed_shift)
+            global_queue_token_,
+            utils::span(steal_buffer_.data() + pushed_shift, free_tasks_count - pushed_shift)
         );
     }
 }
 
-impl::TaskContext*
-Consumer::StealFromAnotherConsumerOrGlobalQueue(const std::size_t attempts, std::size_t to_steal_count) {
+impl::TaskContext* Consumer::StealFromAnotherConsumerOrGlobalQueue(
+    const std::size_t attempts,
+    std::size_t to_steal_count
+) {
     std::size_t stealed_size = 0;
     for (std::size_t i = 0; i < attempts && to_steal_count > 0 && stealed_size == 0; ++i) {
         const std::size_t start_index = rnd_() % owner_.consumers_count_;
-        for (std::size_t shift = 0; shift < owner_.consumers_count_ && to_steal_count > 0 && stealed_size == 0;
-             ++shift) {
+        for (std::size_t shift = 0; shift < owner_.consumers_count_ && to_steal_count > 0 && stealed_size == 0; ++shift)
+        {
             const std::size_t index = (start_index + shift) % owner_.consumers_count_;
             Consumer* victim = &owner_.consumers_[index];
             if (victim == this) {
                 continue;
             }
-            const std::size_t tasks_count =
-                victim->Steal(utils::span(steal_buffer_.data() + stealed_size, to_steal_count));
+            const std::size_t
+                tasks_count = victim->Steal(utils::span(steal_buffer_.data() + stealed_size, to_steal_count));
             stealed_size += tasks_count;
             to_steal_count -= tasks_count;
         }
@@ -157,10 +161,10 @@ std::size_t Consumer::Steal(utils::span<impl::TaskContext*> buffer) {
 
     can_be_stealed_count = local_queue_surplus_.GetSize();
     return (
-        can_be_stealed_count ? local_queue_surplus_.TryPopBulk(
-                                   utils::span(buffer.data(), std::min(buffer.size(), (can_be_stealed_count + 1) / 2))
-                               )
-                             : 0
+        can_be_stealed_count
+            ? local_queue_surplus_
+                  .TryPopBulk(utils::span(buffer.data(), std::min(buffer.size(), (can_be_stealed_count + 1) / 2)))
+            : 0
     );
 }
 

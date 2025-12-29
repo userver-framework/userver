@@ -1,0 +1,22 @@
+type: object
+description: Component that manages clients::http::ClientWithMiddlewares.
+additionalProperties: false
+properties:
+    core-component:
+        type: string
+        description: name of components::HttpClientCore component to use
+        default: http-client-core
+    middlewares:
+        type: object
+        description: map of middlewares to apply. Middleware settings from components::HttpClient
+            override settings from @ref clients::http::MiddlewarePipelineComponent
+        properties: {}
+        additionalProperties:
+            type: object
+            description: middleware config
+            additionalProperties: false
+            properties:
+                enabled:
+                    type: boolean
+                    description: enable middleware
+

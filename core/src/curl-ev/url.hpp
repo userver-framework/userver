@@ -22,15 +22,16 @@
 #define IMPLEMENT_CURLU_PART_GET(FUNCTION_NAME, OPTION_NAME) IMPLEMENT_CURLU_PART_GET_F(FUNCTION_NAME, OPTION_NAME, 0)
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define IMPLEMENT_CURLU_PART_SET_F(FUNCTION_NAME, OPTION_NAME, FLAGS)                                     \
-    inline void FUNCTION_NAME(const char* part) {                                                         \
-        std::error_code ec;                                                                               \
-        FUNCTION_NAME(part, ec);                                                                          \
-        throw_error(ec, PP_STRINGIZE(FUNCTION_NAME));                                                     \
-    }                                                                                                     \
-    inline void FUNCTION_NAME(const char* part, std::error_code& ec) {                                    \
-        ec = std::error_code{                                                                             \
-            static_cast<errc::UrlErrorCode>(native::curl_url_set(url_.get(), OPTION_NAME, part, FLAGS))}; \
+#define IMPLEMENT_CURLU_PART_SET_F(FUNCTION_NAME, OPTION_NAME, FLAGS)                                   \
+    inline void FUNCTION_NAME(const char* part) {                                                       \
+        std::error_code ec;                                                                             \
+        FUNCTION_NAME(part, ec);                                                                        \
+        throw_error(ec, PP_STRINGIZE(FUNCTION_NAME));                                                   \
+    }                                                                                                   \
+    inline void FUNCTION_NAME(const char* part, std::error_code& ec) {                                  \
+        ec = std::error_code{                                                                           \
+            static_cast<errc::UrlErrorCode>(native::curl_url_set(url_.get(), OPTION_NAME, part, FLAGS)) \
+        };                                                                                              \
     }
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)

@@ -8,12 +8,11 @@ Mocks for the gRPC servers, a.k.a. `pytest_userver.grpc.
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Callable
 import contextlib
 import inspect
 from typing import Any
-from typing import Callable
-from typing import Dict
-from typing import Optional
+from typing import TypeAlias
 
 import grpc
 
@@ -26,9 +25,9 @@ from ._servicer_mock import _check_is_servicer_class
 from ._servicer_mock import _create_servicer_mock
 from ._servicer_mock import _ServiceMock
 
-Handler = Callable[[Any, grpc.aio.ServicerContext], Any]
-MockDecorator = Callable[[Handler], testsuite.utils.callinfo.AsyncCallQueue]
-AsyncExcAppend = Callable[[Exception], None]
+Handler: TypeAlias = Callable[[Any, grpc.aio.ServicerContext], Any]
+MockDecorator: TypeAlias = Callable[[Handler], testsuite.utils.callinfo.AsyncCallQueue]
+AsyncExcAppend: TypeAlias = Callable[[Exception], None]
 
 
 class MockserverSession:
@@ -58,8 +57,8 @@ class MockserverSession:
         """
         assert experimental
         self._server = server
-        self._auto_service_mocks: Dict[type, _ServiceMock] = {}
-        self._asyncexc_append: Optional[AsyncExcAppend] = None
+        self._auto_service_mocks: dict[type, _ServiceMock] = {}
+        self._asyncexc_append: AsyncExcAppend | None = None
 
     def _get_auto_service_mock(self, servicer_class: type, /) -> _ServiceMock:
         existing_mock = self._auto_service_mocks.get(servicer_class)
@@ -71,7 +70,7 @@ class MockserverSession:
         new_mock.add_to_server(self._server)
         return new_mock
 
-    def _set_asyncexc_append(self, asyncexc_append: Optional[AsyncExcAppend], /) -> None:
+    def _set_asyncexc_append(self, asyncexc_append: AsyncExcAppend | None, /) -> None:
         self._asyncexc_append = asyncexc_append
         for mock in self._auto_service_mocks.values():
             mock.set_asyncexc_append(asyncexc_append)
@@ -86,7 +85,7 @@ class MockserverSession:
             mock.reset_handlers()
 
     @contextlib.contextmanager
-    def asyncexc_append_scope(self, asyncexc_append: Optional[AsyncExcAppend], /):
+    def asyncexc_append_scope(self, asyncexc_append: AsyncExcAppend | None, /):
         """
         Sets testsuite's `asyncexc_append` for use in the returned scope.
         """

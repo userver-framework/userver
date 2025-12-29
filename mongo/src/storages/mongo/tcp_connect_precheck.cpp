@@ -24,7 +24,8 @@ struct InstanceState {
     // only used when failed
     utils::TokenBucket recovery_attempts{
         kRecoveryAttemptsLimit,
-        {1, utils::TokenBucket::Duration{kRecoveryPeriod} / kRecoveryAttemptsLimit}};
+        {1, utils::TokenBucket::Duration{kRecoveryPeriod} / kRecoveryAttemptsLimit}
+    };
 };
 
 using InstanceStatesMap = rcu::RcuMap<std::string, InstanceState>;
@@ -39,10 +40,14 @@ auto& GetInstanceStatesByHostAndPort() {
 HostConnectionState CheckTcpConnectionState(const char* host_and_port) {
     auto instance_state = GetInstanceStatesByHostAndPort().Get(host_and_port);
 
-    if (!instance_state || instance_state->failed_in_row < kRecentErrorThreshold) return HostConnectionState::kAlive;
+    if (!instance_state || instance_state->failed_in_row < kRecentErrorThreshold) {
+        return HostConnectionState::kAlive;
+    }
 
     // we're in recovery mode
-    if (instance_state->recovery_attempts.Obtain()) return HostConnectionState::kChecking;
+    if (instance_state->recovery_attempts.Obtain()) {
+        return HostConnectionState::kChecking;
+    }
 
     return HostConnectionState::kDead;
 }

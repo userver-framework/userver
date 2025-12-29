@@ -19,8 +19,10 @@ namespace utils::datetime {
 /// @brief Converts strings of the specified format starting with "%Y" to
 /// std::chrono::system_clock::time_point in UTC timezone and saturates on overflow.
 template <class Duration = std::chrono::system_clock::duration>
-std::chrono::time_point<std::chrono::system_clock, Duration>
-FromStringSaturating(const std::string& timestring, const std::string& format) {
+std::chrono::time_point<std::chrono::system_clock, Duration> FromStringSaturating(
+    const std::string& timestring,
+    const std::string& format
+) {
     using TimePoint = std::chrono::time_point<std::chrono::system_clock, Duration>;
 
     constexpr cctz::time_point<Days> kTaxiInfinity{DaysBetweenYears(1970, 10000)};
@@ -34,7 +36,8 @@ FromStringSaturating(const std::string& timestring, const std::string& format) {
 
     // manually cast to a coarser time_point
     if (std::chrono::time_point_cast<Days>(tp_seconds) >= kTaxiInfinity ||
-        tp_seconds > std::chrono::time_point_cast<decltype(tp_seconds)::duration>(TimePoint::max())) {
+        tp_seconds > std::chrono::time_point_cast<decltype(tp_seconds)::duration>(TimePoint::max()))
+    {
         return TimePoint::max();
     }
 

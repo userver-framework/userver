@@ -56,7 +56,8 @@ TEST(AssertMacros, ExpectThrowMsg) {
 
     // NOLINTNEXTLINE(hicpp-exception-baseclass)
     EXPECT_NONFATAL_FAILURE(
-        UEXPECT_THROW_MSG(throw 0, std::logic_error, "what"), "'throw 0' throws a non-std::exception"
+        UEXPECT_THROW_MSG(throw 0, std::logic_error, "what"),
+        "'throw 0' throws a non-std::exception"
     );
 }
 
@@ -127,11 +128,13 @@ TEST(AssertMacros, LocalVariables) {
 
 TEST(AssertMacros, UserMessage) {
     EXPECT_NONFATAL_FAILURE(
-        UEXPECT_THROW_MSG(throw std::runtime_error("what"), std::runtime_error, "foo") << "Blah", "Blah"
+        UEXPECT_THROW_MSG(throw std::runtime_error("what"), std::runtime_error, "foo") << "Blah",
+        "Blah"
     );
 
     EXPECT_NONFATAL_FAILURE(
-        UEXPECT_THROW_MSG(throw std::runtime_error("what"), std::logic_error, "what") << "Blah", "Blah"
+        UEXPECT_THROW_MSG(throw std::runtime_error("what"), std::logic_error, "what") << "Blah",
+        "Blah"
     );
 
     EXPECT_NONFATAL_FAILURE(UEXPECT_THROW_MSG(BarrelRoll(), std::runtime_error, "what") << "Blah", "Blah");
@@ -143,7 +146,8 @@ TEST(AssertMacros, TracefulException) {
     const logging::stacktrace_cache::StacktraceGuard guard(true);
 
     EXPECT_NONFATAL_FAILURE(
-        UEXPECT_THROW(DummyWrapperFunction(), std::runtime_error), Trim("with message 'what' and trace:\n 0# ")
+        UEXPECT_THROW(DummyWrapperFunction(), std::runtime_error),
+        Trim("with message 'what' and trace:\n 0# ")
     );
 
     EXPECT_NONFATAL_FAILURE(UEXPECT_THROW(DummyWrapperFunction(), std::runtime_error), "DummyTracedException");

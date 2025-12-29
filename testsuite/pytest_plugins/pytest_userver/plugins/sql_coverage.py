@@ -5,8 +5,6 @@ Plugin that imports the required fixtures for checking SQL/YQL coverage. See
 @ingroup userver_testsuite_fixtures
 """
 
-from typing import Set
-
 import pytest
 
 from . import coverage
@@ -27,7 +25,7 @@ def on_uncovered():
     @ingroup userver_testsuite_fixtures
     """
 
-    def _on_uncovered(uncovered_statements: Set[str]):
+    def _on_uncovered(uncovered_statements: set[str]):
         msg = f'Uncovered SQL/YQL statements: {uncovered_statements}'
         raise coverage.UncoveredError(msg)
 
@@ -39,10 +37,10 @@ class Coverage:
     Contains data about the current coverage of statements.
     """
 
-    def __init__(self, files: Set[str]):
-        self.covered_statements: Set[str] = set()
-        self.uncovered_statements: Set[str] = files
-        self.extra_covered_statements: Set[str] = set()
+    def __init__(self, files: set[str]):
+        self.covered_statements: set[str] = set()
+        self.uncovered_statements: set[str] = files
+        self.extra_covered_statements: set[str] = set()
 
     def cover(self, statement: str) -> None:
         if statement in self.uncovered_statements:
@@ -68,8 +66,8 @@ def sql_coverage(sql_files) -> Coverage:
     return Coverage(set(sql_files))
 
 
-@pytest.fixture(scope='function', autouse=True)
-async def sql_statement_hook(testpoint, sql_coverage):
+@pytest.fixture(autouse=True)
+def sql_statement_hook(testpoint, sql_coverage):
     """
     Hook that accepts requests from the testpoint with information on PostgreSQL statements coverage.
 
@@ -82,10 +80,10 @@ async def sql_statement_hook(testpoint, sql_coverage):
     def _hook(request):
         sql_coverage.cover(request['name'])
 
-    yield _hook
+    return _hook
 
 
-@pytest.fixture(scope='function', autouse=True)
+@pytest.fixture(autouse=True)
 async def yql_statement_hook(testpoint, sql_coverage):
     """
     Hook that accepts requests from the testpoint with information on YDB statements coverage.
@@ -99,7 +97,7 @@ async def yql_statement_hook(testpoint, sql_coverage):
     def _hook(request):
         sql_coverage.cover(request['name'])
 
-    yield _hook
+    return _hook
 
 
 @pytest.hookimpl(hookwrapper=True)

@@ -11,7 +11,7 @@ class RequestExecDataImpl final : public RequestDataBase<void> {
 public:
     RequestExecDataImpl(impl::Request&& request, std::vector<TransactionImpl::ResultPromise>&& result_promises);
 
-    void Wait() override;
+    void Wait() noexcept override;
 
     void Get(const std::string& request_description) override;
 

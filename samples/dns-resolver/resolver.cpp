@@ -71,7 +71,8 @@ int main(int argc, const char* const argv[]) {
     signal(SIGPIPE, SIG_IGN);
 
     const logging::DefaultLoggerGuard guard{
-        logging::MakeStderrLogger("default", logging::Format::kTskv, logging::LevelFromString(config.log_level))};
+        logging::MakeStderrLogger("default", logging::Format::kTskv, logging::LevelFromString(config.log_level))
+    };
 
     engine::RunStandalone(config.worker_threads, [&] {
         ::userver::static_config::DnsClient resolver_config;
@@ -80,9 +81,9 @@ int main(int argc, const char* const argv[]) {
         clients::dns::Resolver resolver{engine::current_task::GetBlockingTaskProcessor(), resolver_config};
         for (const auto& name : config.names) {
             try {
-                auto response = resolver.Resolve(
-                    name, engine::Deadline::FromDuration(std::chrono::milliseconds{config.timeout_ms})
-                );
+                auto response =
+                    resolver
+                        .Resolve(name, engine::Deadline::FromDuration(std::chrono::milliseconds{config.timeout_ms}));
                 std::cerr << "Got response for '" << name << "'\n";
                 for (const auto& addr : response) {
                     std::cerr << "  - " << addr.PrimaryAddressString() << '\n';

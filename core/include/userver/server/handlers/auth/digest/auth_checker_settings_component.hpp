@@ -18,18 +18,13 @@ namespace server::handlers::auth::digest {
 
 // clang-format off
 
-/// @brief Component that loads digest auth configuration settings from a
-/// static_config.yaml
-/// ## Static options:
+/// @brief Component that loads digest auth configuration settings from a static_config.yaml
 ///
-/// Name       | Description                                    | Default value
-/// ---------- | ---------------------------------------------- | -------------
-/// algorithm  | algorithm for hashing nonce                    | sha256
-/// domains    | list of URIs, that define the protection space | /
-/// qops       | list of supported qop-options. Use `auth` for authentication and `auth-in` for authentication with integrity protection | auth
-/// is-proxy   | indicates that the server is a proxy server. If set, the Proxy prefix is inserted into the header | false
-/// is-session | activate session algorithm (md5-sess, sha256-sess or sha512-sess) | false
-/// nonce-ttl  | ttl for nonce | 10s
+/// ## Static options of server::handlers::auth::digest::AuthCheckerSettingsComponent :
+/// @include{doc} scripts/docs/en/components_schema/core/src/server/handlers/auth/digest/auth_checker_settings_component.md
+///
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
 
 // clang-format on
 

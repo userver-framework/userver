@@ -26,9 +26,10 @@ UTEST_F(YdbScanTable, Simple) {
 UTEST_F(YdbScanTable, Diagnostics) {
     CreateTable("test_table", true);
 
-    auto scan_settings = ydb::ScanQuerySettings{}
-                             .CollectQueryStats(NYdb::NTable::ECollectQueryStatsMode::Full)
-                             .CollectFullDiagnostics(true);
+    auto scan_settings =
+        ydb::ScanQuerySettings{}
+            .CollectQueryStats(NYdb::NTable::ECollectQueryStatsMode::Full)
+            .CollectFullDiagnostics(true);
     auto results = GetTableClient().ExecuteScanQuery(
         std::move(scan_settings),
         /*settings=*/{},
@@ -45,7 +46,9 @@ UTEST_F(YdbScanTable, Diagnostics) {
     while (true) {
         result = results.GetNextResult();
         ASSERT_TRUE(result.has_value());
-        if (!result->HasResultSet()) break;
+        if (!result->HasResultSet()) {
+            break;
+        }
     }
 
     EXPECT_FALSE(result->HasResultSet());

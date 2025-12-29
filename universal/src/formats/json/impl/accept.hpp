@@ -56,11 +56,13 @@ public:
 
     StackCell(MemberIterator cur_it, MemberIterator end)
         : sub_range_(SubRange<MemberIterator>{cur_it, end}),
-          size_(static_cast<std::size_t>(std::distance(cur_it, end))) {}
+          size_(static_cast<std::size_t>(std::distance(cur_it, end)))
+    {}
 
     StackCell(ArrayIterator cur_it, ArrayIterator end)
         : sub_range_(SubRange<ArrayIterator>{cur_it, end}),
-          size_(static_cast<std::size_t>(std::distance(cur_it, end))) {}
+          size_(static_cast<std::size_t>(std::distance(cur_it, end)))
+    {}
 
     template <typename Func1, typename Func2>
     decltype(auto) Visit(Func1 accepts_member_sub_range, Func2 accepts_array_sub_range) const {

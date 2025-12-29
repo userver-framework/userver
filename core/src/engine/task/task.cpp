@@ -19,9 +19,13 @@ static_assert(!std::is_polymorphic_v<Task>, "Slicing is used by derived types, v
 
 Task::Task() { UASSERT(!IsValid()); }
 
-Task::Task(impl::TaskContextHolder&& context) : TaskBase(std::move(context)) {}
+Task::Task(impl::TaskContextHolder&& context)
+    : TaskBase(std::move(context))
+{}
 
-Task::Task(Task&& other) noexcept : TaskBase(static_cast<TaskBase&&>(other)) { UASSERT(!other.IsValid()); }
+Task::Task(Task&& other) noexcept : TaskBase(static_cast<TaskBase&&>(other)) {
+    UASSERT(!other.IsValid());
+}
 
 Task& Task::operator=(Task&& other) noexcept {
     Terminate(TaskCancellationReason::kAbandoned);

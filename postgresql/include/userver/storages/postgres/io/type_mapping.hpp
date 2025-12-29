@@ -40,8 +40,12 @@ inline bool ForceReference(const T&...) {
 }
 
 struct RegisterPredefinedOidParser {
-    static RegisterPredefinedOidParser
-    Register(PredefinedOids type_oid, PredefinedOids array_oid, BufferCategory category, std::string cpp_name);
+    static RegisterPredefinedOidParser Register(
+        PredefinedOids type_oid,
+        PredefinedOids array_oid,
+        BufferCategory category,
+        std::string cpp_name
+    );
 };
 
 // note: implementation is in user_types.cpp
@@ -67,7 +71,7 @@ struct CppToSystemPgImpl {
     // types that should not have one, e.g. char[N]. All parser checks will be
     // performed at runtime.
 
-    static const inline RegisterPredefinedOidParser init_ = RegisterPredefinedOidParser::Register(
+    static const inline RegisterPredefinedOidParser init = RegisterPredefinedOidParser::Register(
         type_oid,
         array_oid,
         io::traits::kTypeBufferCategory<T>,
@@ -75,11 +79,11 @@ struct CppToSystemPgImpl {
     );
 
     static constexpr Oid GetOid(const UserTypes&) {
-        ForceReference(init_);
+        ForceReference(init);
         return static_cast<Oid>(type_oid);
     }
     static constexpr Oid GetArrayOid(const UserTypes&) {
-        ForceReference(init_);
+        ForceReference(init);
         return static_cast<Oid>(array_oid);
     }
 };
@@ -88,8 +92,7 @@ template <typename T>
 struct CppToUserPgImpl;
 
 /// @brief Declare a mapping of a PostgreSQL predefined type oid to a C++ type.
-/// Available parsers will be marked after referencing the init_
-/// somewhere in the code.
+/// Available parsers will be marked after referencing the init somewhere in the code.
 template <PredefinedOids TypeOid, typename T>
 struct PgToCppPredefined {
     static constexpr auto type_oid = TypeOid;
@@ -101,7 +104,7 @@ struct PgToCppPredefined {
 
     // See above on parser presence checks.
 
-    static const inline RegisterPredefinedOidParser init_ = RegisterPredefinedOidParser::Register(
+    static const inline RegisterPredefinedOidParser init = RegisterPredefinedOidParser::Register(
         type_oid,
         array_oid,
         io::traits::kTypeBufferCategory<T>,

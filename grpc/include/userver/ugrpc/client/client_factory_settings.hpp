@@ -49,8 +49,10 @@ struct ClientFactorySettings final {
     ProxySettings proxy_settings;
 };
 
-std::shared_ptr<grpc::ChannelCredentials>
-GetClientCredentials(const ClientFactorySettings& client_factory_settings, const std::string& client_name);
+std::shared_ptr<grpc::ChannelCredentials> GetClientCredentials(
+    const ClientFactorySettings& client_factory_settings,
+    const std::string& client_name
+);
 
 }  // namespace ugrpc::client
 

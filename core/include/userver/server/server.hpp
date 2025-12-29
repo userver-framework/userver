@@ -53,6 +53,7 @@ public:
 
     const http::HttpRequestHandler& GetHttpRequestHandler(bool is_monitor = false) const;
 
+    void StartMonitorPort();
     void Start();
 
     void Stop();

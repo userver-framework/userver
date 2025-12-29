@@ -1,12 +1,12 @@
+from collections.abc import Mapping
 import dataclasses
 import inspect
-from typing import Mapping
-from typing import Tuple
+from typing import TypeAlias
 
 import google.protobuf.descriptor
 import google.protobuf.descriptor_pool
 
-_MethodDescriptor = google.protobuf.descriptor.MethodDescriptor
+_MethodDescriptor: TypeAlias = google.protobuf.descriptor.MethodDescriptor
 
 
 @dataclasses.dataclass(frozen=True)
@@ -49,11 +49,11 @@ def _reflect_stub(stub_class: type) -> Mapping[str, _MethodDescriptor]:
     return {python_method_name: _to_method_descriptor(raw_info) for python_method_name, raw_info in raw_infos}
 
 
-def _split_rpc_name(rpc_name: str) -> Tuple[str, str]:
+def _split_rpc_name(rpc_name: str) -> tuple[str, str]:
     normalized = rpc_name.removeprefix('/')
     results = normalized.split('/')
     if len(results) != 2:
         raise ValueError(
-            f'Invalid RPC name: "{rpc_name}". RPC name must be of the form "with.package.ServiceName/MethodName"'
+            f'Invalid RPC name: "{rpc_name}". RPC name must be of the form "with.package.ServiceName/MethodName"',
         )
     return results

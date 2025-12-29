@@ -12,7 +12,8 @@ USERVER_NAMESPACE_BEGIN
 namespace testsuite {
 
 ExceptionsHandlingMiddleware::ExceptionsHandlingMiddleware(const server::handlers::HttpHandlerBase& handler)
-    : handler_(handler) {}
+    : handler_(handler)
+{}
 
 void ExceptionsHandlingMiddleware::HandleRequest(
     server::http::HttpRequest& request,

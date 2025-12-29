@@ -43,7 +43,8 @@ private:
 
 HandlerDb::HandlerDb(const components::ComponentConfig& config, const components::ComponentContext& context)
     : server::handlers::HttpHandlerBase{config, context},
-      clickhouse_{context.FindComponent<components::ClickHouse>("clickhouse-database").GetCluster()} {}
+      clickhouse_{context.FindComponent<components::ClickHouse>("clickhouse-database").GetCluster()}
+{}
 
 std::string HandlerDb::HandleRequest(server::http::HttpRequest& request, server::request::RequestContext&) const {
     const auto& limit = request.GetArg("limit");
@@ -62,12 +63,13 @@ std::string HandlerDb::HandleRequest(server::http::HttpRequest& request, server:
 }  // namespace samples::clickhouse
 
 int main(int argc, char* argv[]) {
-    const auto components_list = components::MinimalServerComponentList()
-                                     .Append<samples::clickhouse::HandlerDb>()
-                                     .Append<components::ClickHouse>("clickhouse-database")
-                                     .Append<clients::dns::Component>()
-                                     .Append<components::Secdist>()
-                                     .Append<components::DefaultSecdistProvider>();
+    const auto components_list =
+        components::MinimalServerComponentList()
+            .Append<samples::clickhouse::HandlerDb>()
+            .Append<components::ClickHouse>("clickhouse-database")
+            .Append<clients::dns::Component>()
+            .Append<components::Secdist>()
+            .Append<components::DefaultSecdistProvider>();
 
     return utils::DaemonMain(argc, argv, components_list);
 }

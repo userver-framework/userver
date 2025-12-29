@@ -20,7 +20,9 @@ namespace {
 
 class WriterMetricConsumer final : public NMonitoring::IMetricConsumer {
 public:
-    explicit WriterMetricConsumer(utils::statistics::Writer& writer) : writer_(writer) {}
+    explicit WriterMetricConsumer(utils::statistics::Writer& writer)
+        : writer_(writer)
+    {}
 
     void OnStreamBegin() override {}
     void OnStreamEnd() override {}

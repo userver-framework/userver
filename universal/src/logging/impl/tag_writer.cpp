@@ -23,7 +23,9 @@ void ThrowInvalidEscapedTagKey(std::string_view key) {
 
 std::string_view TagKey::GetEscapedKey() const noexcept { return escaped_key_; }
 
-RuntimeTagKey::RuntimeTagKey(std::string_view unescaped_key) : unescaped_key_(unescaped_key) {}
+RuntimeTagKey::RuntimeTagKey(std::string_view unescaped_key)
+    : unescaped_key_(unescaped_key)
+{}
 
 std::string_view RuntimeTagKey::GetUnescapedKey() const noexcept { return unescaped_key_; }
 

@@ -3,18 +3,20 @@ include_guard(GLOBAL)
 cmake_policy(SET CMP0054 NEW)
 
 macro(_userver_module_begin)
-    set(options
-        CPM_DOWNLOAD_ONLY
-    )
+    set(options CPM_DOWNLOAD_ONLY)
     set(oneValueArgs # Target name, also used for package name by default
         NAME VERSION
     )
     set(multiValueArgs
-        DEBIAN_NAMES FORMULA_NAMES RPM_NAMES PACMAN_NAMES PKG_NAMES
+        DEBIAN_NAMES
+        FORMULA_NAMES
+        RPM_NAMES
+        PACMAN_NAMES
+        PKG_NAMES
         # For version detection of manually installed packages and unknown package managers.
-	PKG_CONFIG_NAMES
-	# For CPM options
-	CPM_NAME
+        PKG_CONFIG_NAMES
+        # For CPM options
+        CPM_NAME
         CPM_VERSION
         CPM_GITHUB_REPOSITORY
         CPM_URL
@@ -31,15 +33,13 @@ macro(_userver_module_begin)
     string(REPLACE "-" "_" ARG_CPM_NAME "${ARG_CPM_NAME}")
 
     if(ARG_CPM_NAME)
-        option(
-            USERVER_DOWNLOAD_PACKAGE_${ARG_CPM_NAME}
-            "Download and setup ${ARG_CPM_NAME} if no library of matching version was found"
-            ${USERVER_DOWNLOAD_PACKAGES}
+        option(USERVER_DOWNLOAD_PACKAGE_${ARG_CPM_NAME}
+               "Download and setup ${ARG_CPM_NAME} if no library of matching version was found"
+               ${USERVER_DOWNLOAD_PACKAGES}
         )
-        option(
-            USERVER_FORCE_DOWNLOAD_${ARG_CPM_NAME}
-            "Download ${ARG_CPM_NAME} even if there is an installed system package"
-            ${USERVER_FORCE_DOWNLOAD_PACKAGES}
+        option(USERVER_FORCE_DOWNLOAD_${ARG_CPM_NAME}
+               "Download ${ARG_CPM_NAME} even if there is an installed system package"
+               ${USERVER_FORCE_DOWNLOAD_PACKAGES}
         )
     endif()
 
@@ -104,13 +104,10 @@ endmacro()
 macro(_userver_module_find_part)
     # Also uses ARGs left over from _userver_find_module_begin
 
-    # TODO: return() doesn't work inside of macro
-    # if(USERVER_FORCE_DOWNLOAD_${ARG_CPM_NAME})
-    #     message(STATUS "Skipping ${ARG_CPM_NAME} system package search due to USERVER_FORCE_DOWNLOAD_${ARG_CPM_NAME}=TRUE")
-    #     return()
-    # endif()
+    # TODO: return() doesn't work inside of macro if(USERVER_FORCE_DOWNLOAD_${ARG_CPM_NAME}) message(STATUS "Skipping
+    # ${ARG_CPM_NAME} system package search due to USERVER_FORCE_DOWNLOAD_${ARG_CPM_NAME}=TRUE") return() endif()
 
-    set(options)
+    set(options OPTIONAL)
     set(oneValueArgs PART_TYPE)
     set(multiValueArgs NAMES PATHS PATH_SUFFIXES)
 
@@ -146,7 +143,10 @@ macro(_userver_module_find_part)
     else()
         message(FATAL_ERROR "Invalid PART_TYPE")
     endif()
-    list(APPEND "${variable}" "${${mangled_name}}")
+
+    if(${mangled_name} OR NOT ARG_OPTIONAL)
+        list(APPEND "${variable}" "${${mangled_name}}")
+    endif()
 
     unset(variable)
     unset(names_joined)
@@ -155,21 +155,21 @@ macro(_userver_module_find_part)
 endmacro()
 
 macro(_userver_module_find_library)
-    set(options)
+    set(options OPTIONAL)
     set(oneValueArgs)
     set(multiValueArgs NAMES PATHS PATH_SUFFIXES)
 
     cmake_parse_arguments(ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" "${ARGN}")
+    set(OPTIONAL_TO_PASS)
+    if(ARG_OPTIONAL)
+        set(OPTIONAL_TO_PASS OPTIONAL)
+    endif()
 
     _userver_module_find_part(
-        PART_TYPE
-        library
-        NAMES
-        ${ARG_NAMES}
-        PATHS
-        ${ARG_PATHS}
-        PATH_SUFFIXES
-        ${ARG_PATH_SUFFIXES}
+        PART_TYPE library ${OPTIONAL_TO_PASS}
+        NAMES ${ARG_NAMES}
+        PATHS ${ARG_PATHS}
+        PATH_SUFFIXES ${ARG_PATH_SUFFIXES}
     )
 endmacro()
 
@@ -181,14 +181,10 @@ macro(_userver_module_find_include)
     cmake_parse_arguments(ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" "${ARGN}")
 
     _userver_module_find_part(
-        PART_TYPE
-        path
-        NAMES
-        ${ARG_NAMES}
-        PATHS
-        ${ARG_PATHS}
-        PATH_SUFFIXES
-        ${ARG_PATH_SUFFIXES}
+        PART_TYPE path
+        NAMES ${ARG_NAMES}
+        PATHS ${ARG_PATHS}
+        PATH_SUFFIXES ${ARG_PATH_SUFFIXES}
     )
 endmacro()
 
@@ -200,14 +196,10 @@ macro(_userver_module_find_program)
     cmake_parse_arguments(ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" "${ARGN}")
 
     _userver_module_find_part(
-        PART_TYPE
-        program
-        NAMES
-        ${ARG_NAMES}
-        PATHS
-        ${ARG_PATHS}
-        PATH_SUFFIXES
-        ${ARG_PATH_SUFFIXES}
+        PART_TYPE program
+        NAMES ${ARG_NAMES}
+        PATHS ${ARG_PATHS}
+        PATH_SUFFIXES ${ARG_PATH_SUFFIXES}
     )
 endmacro()
 
@@ -379,11 +371,11 @@ macro(_userver_cpm_addpackage name)
         NAME ${name}
         VERSION ${ARG_CPM_VERSION}
         GITHUB_REPOSITORY ${ARG_CPM_GITHUB_REPOSITORY}
+        GIT_SHALLOW TRUE
         URL ${ARG_CPM_URL}
         OPTIONS ${ARG_CPM_OPTIONS}
         SOURCE_SUBDIR ${ARG_CPM_SOURCE_SUBDIR}
-        GIT_TAG ${ARG_CPM_GIT_TAG}
-        ${EXTRA_ARGS}
+        GIT_TAG ${ARG_CPM_GIT_TAG} ${EXTRA_ARGS}
     )
     if(NOT ARG_CPM_DOWNLOAD_ONLY)
         mark_targets_as_system("${${name}_SOURCE_DIR}")

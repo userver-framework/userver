@@ -1,5 +1,7 @@
 #pragma once
 
+// Utilitary header for chaotic for a custom type serialization/parsing support
+
 #include <userver/chaotic/convert.hpp>
 #include <userver/decimal64/decimal64.hpp>
 

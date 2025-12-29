@@ -57,8 +57,10 @@ int ToNativeCmsFlags(utils::Flags<CmsVerifier::Flags> flags) {
     return native;
 }
 
-std::unique_ptr<CMS_ContentInfo, decltype(&CMS_ContentInfo_free)>
-ReadCmsContent(BIO& from, CmsVerifier::InForm in_form) {
+std::unique_ptr<CMS_ContentInfo, decltype(&CMS_ContentInfo_free)> ReadCmsContent(
+    BIO& from,
+    CmsVerifier::InForm in_form
+) {
     using InForm = CmsVerifier::InForm;
 
     std::unique_ptr<CMS_ContentInfo, decltype(&CMS_ContentInfo_free)> cms{nullptr, CMS_ContentInfo_free};
@@ -92,16 +94,22 @@ ReadCmsContent(BIO& from, CmsVerifier::InForm in_form) {
 
 }  // namespace
 
-Verifier::Verifier(const std::string& name) : NamedAlgo(name) {}
+Verifier::Verifier(const std::string& name)
+    : NamedAlgo(name)
+{}
 Verifier::~Verifier() = default;
 
 ///
 /// None
 ///
 
-VerifierNone::VerifierNone() : Verifier("none") {}
+VerifierNone::VerifierNone()
+    : Verifier("none")
+{}
 void VerifierNone::Verify(std::initializer_list<std::string_view> /*data*/, std::string_view raw_signature) const {
-    if (!raw_signature.empty()) throw VerificationError("Signature is not empty");
+    if (!raw_signature.empty()) {
+        throw VerificationError("Signature is not empty");
+    }
 }
 
 ///
@@ -110,7 +118,9 @@ void VerifierNone::Verify(std::initializer_list<std::string_view> /*data*/, std:
 
 template <DigestSize Bits>
 HmacShaVerifier<Bits>::HmacShaVerifier(std::string secret)
-    : Verifier("HS" + EnumValueToString(Bits)), secret_(std::move(secret)) {}
+    : Verifier("HS" + EnumValueToString(Bits)),
+      secret_(std::move(secret))
+{}
 
 template <DigestSize Bits>
 HmacShaVerifier<Bits>::~HmacShaVerifier() {
@@ -153,7 +163,9 @@ template class HmacShaVerifier<DigestSize::k512>;
 
 template <DsaType Type, DigestSize Bits>
 DsaVerifier<Type, Bits>::DsaVerifier(PublicKey pubkey)
-    : Verifier(EnumValueToString(Type) + EnumValueToString(Bits)), pkey_(std::move(pubkey)) {
+    : Verifier(EnumValueToString(Type) + EnumValueToString(Bits)),
+      pkey_(std::move(pubkey))
+{
     Openssl::Init();
 
     if constexpr (Type == DsaType::kEc) {
@@ -171,7 +183,9 @@ DsaVerifier<Type, Bits>::DsaVerifier(PublicKey pubkey)
 }
 
 template <DsaType Type, DigestSize Bits>
-DsaVerifier<Type, Bits>::DsaVerifier(std::string_view key) : DsaVerifier{PublicKey::LoadFromString(key)} {}
+DsaVerifier<Type, Bits>::DsaVerifier(std::string_view key)
+    : DsaVerifier{PublicKey::LoadFromString(key)}
+{}
 
 template <DsaType Type, DigestSize Bits>
 void DsaVerifier<Type, Bits>::Verify(std::initializer_list<std::string_view> data, std::string_view raw_signature)
@@ -198,7 +212,9 @@ void DsaVerifier<Type, Bits>::Verify(std::initializer_list<std::string_view> dat
         verification_result = EVP_DigestVerifyFinal(ctx.Get(), der_signature.data(), der_signature.size());
     } else {
         verification_result = EVP_DigestVerifyFinal(
-            ctx.Get(), reinterpret_cast<const unsigned char*>(raw_signature.data()), raw_signature.size()
+            ctx.Get(),
+            reinterpret_cast<const unsigned char*>(raw_signature.data()),
+            raw_signature.size()
         );
     }
 
@@ -218,9 +234,8 @@ void DsaVerifier<Type, Bits>::VerifyDigest(std::string_view digest, std::string_
         throw VerificationError("Invalid digest size for " + Name() + " verifier");
     }
 
-    const std::unique_ptr<EVP_PKEY_CTX, decltype(&EVP_PKEY_CTX_free)> pkey_ctx(
-        EVP_PKEY_CTX_new(pkey_.GetNative(), nullptr), EVP_PKEY_CTX_free
-    );
+    const std::unique_ptr<EVP_PKEY_CTX, decltype(&EVP_PKEY_CTX_free)>
+        pkey_ctx(EVP_PKEY_CTX_new(pkey_.GetNative(), nullptr), EVP_PKEY_CTX_free);
     if (!pkey_ctx) {
         throw VerificationError(FormatSslError("Failed to verify digest: EVP_PKEY_CTX_new"));
     }
@@ -270,7 +285,10 @@ template class DsaVerifier<DsaType::kRsaPss, DigestSize::k256>;
 template class DsaVerifier<DsaType::kRsaPss, DigestSize::k384>;
 template class DsaVerifier<DsaType::kRsaPss, DigestSize::k512>;
 
-CmsVerifier::CmsVerifier(Certificate certificate) : NamedAlgo{"CMS"}, cert_{std::move(certificate)} {}
+CmsVerifier::CmsVerifier(Certificate certificate)
+    : NamedAlgo{"CMS"},
+      cert_{std::move(certificate)}
+{}
 
 CmsVerifier::~CmsVerifier() = default;
 
@@ -301,14 +319,16 @@ void CmsVerifier::Verify(std::initializer_list<std::string_view> data, utils::Fl
         throw VerificationError{FormatSslError("Failed to verify: sk_X509_push")};
     }
 
-    if (1 != CMS_verify(
-                 cms_content.get(),
-                 certs.get(),                                    //
-                 nullptr /* store */,                            //
-                 nullptr /* dcont, detached content that is */,  //
-                 nullptr /* out */,                              //
-                 native_flags
-             )) {
+    if (1 !=
+        CMS_verify(
+            cms_content.get(),
+            certs.get(),                                    //
+            nullptr /* store */,                            //
+            nullptr /* dcont, detached content that is */,  //
+            nullptr /* out */,                              //
+            native_flags
+        ))
+    {
         throw VerificationError{FormatSslError("Failed to verify: CMS_verify")};
     }
 }

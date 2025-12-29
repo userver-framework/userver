@@ -1,0 +1,11 @@
+type: object
+description: Helper component to configure logging
+additionalProperties: false
+properties:
+    limited-logging-enable:
+        type: boolean
+        description: set to true to make LOG_LIMITED drop repeated logs
+    limited-logging-interval:
+        type: string
+        description: utils::StringToDuration suitable duration string to group repeated
+            logs into one message

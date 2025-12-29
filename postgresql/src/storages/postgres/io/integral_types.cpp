@@ -23,15 +23,15 @@ struct PgToCpp<PredefinedOids::kCid, Oid> : detail::PgToCppPredefined<Predefined
 namespace {
 
 const bool kReference = detail::ForceReference(
-    CppToPg<Oid>::init_,
-    CppToPg<Smallint>::init_,
-    CppToPg<Integer>::init_,
-    CppToPg<Bigint>::init_,
-    CppToPg<bool>::init_,
-    PgToCpp<PredefinedOids::kOid, Oid>::init_,
-    PgToCpp<PredefinedOids::kTid, Oid>::init_,
-    PgToCpp<PredefinedOids::kXid, Oid>::init_,
-    PgToCpp<PredefinedOids::kCid, Oid>::init_
+    CppToPg<Oid>::init,
+    CppToPg<Smallint>::init,
+    CppToPg<Integer>::init,
+    CppToPg<Bigint>::init,
+    CppToPg<bool>::init,
+    PgToCpp<PredefinedOids::kOid, Oid>::init,
+    PgToCpp<PredefinedOids::kTid, Oid>::init,
+    PgToCpp<PredefinedOids::kXid, Oid>::init,
+    PgToCpp<PredefinedOids::kCid, Oid>::init
 );
 
 }  // namespace

@@ -38,7 +38,8 @@ public:
     )
         : server::handlers::auth::digest::AuthCheckerBase(digest_settings, std::move(realm), secdist_config),
           pg_cluster_(std::move(pg_cluster)),
-          nonce_ttl_(digest_settings.nonce_ttl) {}
+          nonce_ttl_(digest_settings.nonce_ttl)
+    {}
 
     std::optional<UserData> FetchUserData(const std::string& username) const override;
 
@@ -64,11 +65,17 @@ std::optional<UserData> AuthChecker::FetchUserData(const std::string& username) 
     const storages::postgres::ResultSet res =
         pg_cluster_->Execute(storages::postgres::ClusterHostType::kSlave, uservice_dynconf::sql::kSelectUser, username);
 
-    if (res.IsEmpty()) return std::nullopt;
+    if (res.IsEmpty()) {
+        return std::nullopt;
+    }
 
     auto user_db_info = res.AsSingleRow<UserDbInfo>(storages::postgres::kRowTag);
     return UserData{
-        HA1{user_db_info.ha1}, user_db_info.nonce, user_db_info.timestamp.GetUnderlying(), user_db_info.nonce_count};
+        HA1{user_db_info.ha1},
+        user_db_info.nonce,
+        user_db_info.timestamp.GetUnderlying(),
+        user_db_info.nonce_count
+    };
 }
 /// [auth checker definition 1]
 
@@ -104,11 +111,13 @@ void AuthChecker::PushUnnamedNonce(std::string nonce) const {
 
 /// [auth checker definition 4]
 std::optional<TimePoint> AuthChecker::GetUnnamedNonceCreationTime(const std::string& nonce) const {
-    auto res = pg_cluster_->Execute(
-        storages::postgres::ClusterHostType::kSlave, uservice_dynconf::sql::kSelectUnnamedNonce, nonce
-    );
+    auto res =
+        pg_cluster_
+            ->Execute(storages::postgres::ClusterHostType::kSlave, uservice_dynconf::sql::kSelectUnnamedNonce, nonce);
 
-    if (res.IsEmpty()) return std::nullopt;
+    if (res.IsEmpty()) {
+        return std::nullopt;
+    }
 
     return res.AsSingleRow<storages::postgres::TimePointTz>().GetUnderlying();
 }
@@ -116,36 +125,41 @@ std::optional<TimePoint> AuthChecker::GetUnnamedNonceCreationTime(const std::str
 
 /// [auth checker factory definition]
 CheckerFactory::CheckerFactory(const components::ComponentContext& context)
-    : digest_auth_settings_(
-          context.FindComponent<server::handlers::auth::digest::AuthCheckerSettingsComponent>().GetSettings()
-      ),
+    : digest_auth_settings_(context.FindComponent<server::handlers::auth::digest::AuthCheckerSettingsComponent>()
+                                .GetSettings()),
       secdist_(context.FindComponent<components::Secdist>().GetStorage()),
-      pg_cluster_(context.FindComponent<components::Postgres>("auth-database").GetCluster()) {}
+      pg_cluster_(context.FindComponent<components::Postgres>("auth-database").GetCluster())
+{}
 
 server::handlers::auth::AuthCheckerBasePtr CheckerFactory::MakeAuthChecker(
     const server::handlers::auth::HandlerAuthConfig& auth_config
 ) const {
-    return std::make_shared<AuthChecker>(
-        digest_auth_settings_, auth_config["realm"].As<std::string>({}), secdist_.Get(), pg_cluster_
-    );
+    return std::make_shared<
+        AuthChecker>(digest_auth_settings_, auth_config["realm"].As<std::string>({}), secdist_.Get(), pg_cluster_);
 }
 /// [auth checker factory definition]
 
 CheckerProxyFactory::CheckerProxyFactory(const components::ComponentContext& context)
-    : digest_auth_settings_(context
-                                .FindComponent<server::handlers::auth::digest::AuthCheckerSettingsComponent>(
-                                    "auth-digest-checker-settings-proxy"
-                                )
-                                .GetSettings()),
+    : digest_auth_settings_(
+          context
+              .FindComponent<server::handlers::auth::digest::AuthCheckerSettingsComponent>(
+                  "auth-"
+                  "digest-"
+                  "checker-"
+                  "settings-"
+                  "proxy"
+              )
+              .GetSettings()
+      ),
       secdist_(context.FindComponent<components::Secdist>().GetStorage()),
-      pg_cluster_(context.FindComponent<components::Postgres>("auth-database").GetCluster()) {}
+      pg_cluster_(context.FindComponent<components::Postgres>("auth-database").GetCluster())
+{}
 
 server::handlers::auth::AuthCheckerBasePtr CheckerProxyFactory::MakeAuthChecker(
     const server::handlers::auth::HandlerAuthConfig& auth_config
 ) const {
-    return std::make_shared<AuthChecker>(
-        digest_auth_settings_, auth_config["realm"].As<std::string>({}), secdist_.Get(), pg_cluster_
-    );
+    return std::make_shared<
+        AuthChecker>(digest_auth_settings_, auth_config["realm"].As<std::string>({}), secdist_.Get(), pg_cluster_);
 }
 
 }  // namespace samples::digest_auth

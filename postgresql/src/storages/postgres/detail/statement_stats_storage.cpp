@@ -14,7 +14,8 @@ constexpr size_t kDefaultEventsQueueSize = 1000;
 StatementStatsStorage::StatementStatsStorage(const StatementMetricsSettings& settings)
     : settings_{settings},
       enabled_{settings.max_statements != 0},
-      data_{CreateStorageData(settings.max_statements, kDefaultEventsQueueSize)} {
+      data_{CreateStorageData(settings.max_statements, kDefaultEventsQueueSize)}
+{
     data_.consumer_task = utils::Async("pg_stats_events_consumer", [this]() { ProcessEvents(); });
 }
 
@@ -29,7 +30,9 @@ void StatementStatsStorage::Account(
     std::size_t duration_ms,
     ExecutionResult result
 ) const {
-    if (!IsEnabled()) return;
+    if (!IsEnabled()) {
+        return;
+    }
 
     const auto producer = data_.events_queue->GetProducer();
 
@@ -38,7 +41,9 @@ void StatementStatsStorage::Account(
 }
 
 std::unordered_map<std::string, StatementStatistics> StatementStatsStorage::GetStatementsStats() const {
-    if (!IsEnabled()) return {};
+    if (!IsEnabled()) {
+        return {};
+    }
 
     auto locked_ptr = data_.stats->SharedLock();
     const auto& stats = *locked_ptr;
@@ -55,7 +60,9 @@ std::unordered_map<std::string, StatementStatistics> StatementStatsStorage::GetS
 
 void StatementStatsStorage::SetSettings(const StatementMetricsSettings& settings) {
     const auto settings_ptr = settings_.Read();
-    if (*settings_ptr == settings) return;
+    if (*settings_ptr == settings) {
+        return;
+    }
 
     const auto enabled = settings.max_statements != 0;
     if (enabled) {
@@ -120,16 +127,24 @@ void StatementStatsStorage::AccountEvent(EventPtr event_ptr) const {
     }
 }
 
-StatementStatsStorage::StorageData
-StatementStatsStorage::CreateStorageData(size_t max_map_size, size_t max_queue_size) {
+StatementStatsStorage::StorageData StatementStatsStorage::CreateStorageData(
+    size_t max_map_size,
+    size_t max_queue_size
+) {
     // We create storage and queue unconditionally, because
     // it gets complicated to process config updates otherwise
-    if (!max_map_size) max_map_size = 1;
+    if (!max_map_size) {
+        max_map_size = 1;
+    }
 
     auto queue_ptr = Queue::Create(max_queue_size);
 
     return StatementStatsStorage::StorageData{
-        std::make_unique<Storage>(max_map_size), queue_ptr, {}, queue_ptr->GetProducer()};
+        std::make_unique<Storage>(max_map_size),
+        queue_ptr,
+        {},
+        queue_ptr->GetProducer()
+    };
 }
 
 }  // namespace storages::postgres::detail

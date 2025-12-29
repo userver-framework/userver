@@ -38,8 +38,13 @@ ev::ThreadControl& GetEventThread();
 /// @endcond
 
 namespace impl {
+
 // For internal use only.
 void* GetRawCurrentTaskContext() noexcept;
+
+// For internal use only.
+bool IsCritical();
+
 }  // namespace impl
 
 }  // namespace current_task

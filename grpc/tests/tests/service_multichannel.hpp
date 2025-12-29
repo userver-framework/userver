@@ -12,9 +12,10 @@ namespace tests {
 /// depending on the UTEST_P parameter value.
 template <typename GrpcService>
 // NOLINTNEXTLINE(fuchsia-multiple-inheritance)
-class ServiceFixtureMultichannel : public ::testing::Test,
-                                   public testing::WithParamInterface<std::size_t>,
-                                   protected ugrpc::tests::ServiceBase {
+class ServiceFixtureMultichannel
+    : public ::testing::Test,
+      public testing::WithParamInterface<std::size_t>,
+      protected ugrpc::tests::ServiceBase {
 protected:
     ServiceFixtureMultichannel() {
         const auto channel_count = GetParam();

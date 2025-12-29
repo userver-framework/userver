@@ -34,7 +34,9 @@ private:
 };
 
 struct RedisClusterConnectionState : public RedisConnectionState {
-    RedisClusterConnectionState() : RedisConnectionState(InClusterMode{}) {}
+    RedisClusterConnectionState()
+        : RedisConnectionState(InClusterMode{})
+    {}
 };
 
 }  // namespace storages::redis::utest::impl

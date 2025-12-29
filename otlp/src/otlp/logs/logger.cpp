@@ -1,6 +1,7 @@
 #include "logger.hpp"
 
 #include <chrono>
+#include <cstdio>
 
 #include <fmt/format.h>
 
@@ -56,7 +57,8 @@ void AddAttribute(Item& item, std::string_view key, const Value& value) {
             [mutable_value](const logging::JsonString& x) {
                 const auto value = x.GetView();
                 mutable_value->set_string_value(value.data(), value.size());
-            }},
+            }
+        },
         value
     );
     UASSERT(attribute->has_value());
@@ -87,16 +89,16 @@ Formatter::Formatter(
     logging::LoggerPtr default_logger,
     Logger& logger
 )
-    : logger_(logger) {
+    : logger_(logger)
+{
     if (sink_type == SinkType::kOtlp || sink_type == SinkType::kBoth) {
         ::opentelemetry::proto::common::v1::KeyValue* kv_module = nullptr;
         if (log_class == logging::LogClass::kLog) {
             auto& log_record = item_.otlp.emplace<::opentelemetry::proto::logs::v1::LogRecord>();
             log_record.set_severity_text(grpc::string{logging::ToUpperCaseString(level)});
 
-            auto nanoseconds =
-                std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now().time_since_epoch()
-                );
+            auto nanoseconds = std::chrono::duration_cast<
+                std::chrono::nanoseconds>(std::chrono::system_clock::now().time_since_epoch());
             log_record.set_time_unix_nano(nanoseconds.count());
 
             kv_module = log_record.add_attributes();
@@ -107,7 +109,12 @@ Formatter::Formatter(
 
         kv_module->set_key("module");
         kv_module->mutable_value()->set_string_value(utils::StrCat<grpc::string>(
-            location.GetFunctionName(), " ( ", location.GetFileName(), ":", location.GetLineString(), " )"
+            location.GetFunctionName(),
+            " ( ",
+            location.GetFileName(),
+            ":",
+            location.GetLineString(),
+            " )"
         ));
     }
 
@@ -204,16 +211,17 @@ Logger::Logger(
 )
     : config_(std::move(config)),
       queue_(Queue::Create(config_.max_queue_size)),
-      queue_producer_(queue_->GetMultiProducer()) {
+      queue_producer_(queue_->GetMultiProducer())
+{
     SetLevel(config_.log_level);
-    std::cerr << "OTLP logger has started\n";
+    std::fputs("OTLP logger has started\n", stderr);
 
-    sender_task_ = engine::CriticalAsyncNoSpan([this,
-                                                consumer = queue_->GetConsumer(),
-                                                log_client = std::move(client),
-                                                trace_client = std::move(trace_client)]() mutable {
-        SendingLoop(consumer, log_client, trace_client);
-    });
+    sender_task_ = engine::CriticalAsyncNoSpan(
+        [this,
+         consumer = queue_->GetConsumer(),
+         log_client = std::move(client),
+         trace_client = std::move(trace_client)]() mutable { SendingLoop(consumer, log_client, trace_client); }
+    );
 }
 
 Logger::~Logger() { Stop(); }
@@ -250,8 +258,11 @@ void Logger::Log(logging::Level level, logging::impl::formatters::LoggerItemRef 
     }
 }
 
-logging::impl::formatters::BasePtr
-Logger::MakeFormatter(logging::Level level, logging::LogClass log_class, const utils::impl::SourceLocation& location) {
+logging::impl::formatters::BasePtr Logger::MakeFormatter(
+    logging::Level level,
+    logging::LogClass log_class,
+    const utils::impl::SourceLocation& location
+) {
     auto sink = log_class == logging::LogClass::kLog ? config_.logs_sink : config_.tracing_sink;
     return std::make_unique<Formatter>(level, log_class, location, sink, default_logger_, *this);
 }
@@ -288,7 +299,8 @@ void Logger::SendingLoop(Queue::Consumer& consumer, LogClient& log_client, Trace
                     [&scope_logs](const opentelemetry::proto::logs::v1::LogRecord& action) {
                         auto log_records = scope_logs->add_log_records();
                         *log_records = action;
-                    }},
+                    }
+                },
                 action
             );
         } while (consumer.Pop(action, deadline));
@@ -334,15 +346,13 @@ void Logger::DoLog(
 ) {
     try {
         auto response_future = client.AsyncExport(request);
-        // this will disable tracing, but not logging. One must disable
-        // logging middleware in grpc client factory configuration
-        response_future.GetContext().GetSpan().SetLogLevel(logging::Level::kNone);
         auto response = response_future.Get();
     } catch (const ugrpc::client::RpcCancelledError&) {
-        std::cerr << "Stopping OTLP sender task\n";
+        std::fputs("Stopping OTLP sender task\n", stderr);
         throw;
     } catch (const std::exception& e) {
-        std::cerr << "Failed to write down OTLP log(s): " << e.what() << typeid(e).name() << "\n";
+        const auto msg = fmt::format("Failed to write down OTLP log(s): {} {}\n", e.what(), typeid(e).name());
+        std::fputs(msg.c_str(), stderr);
     }
     // TODO: count exceptions
 }
@@ -353,22 +363,22 @@ void Logger::DoTrace(
 ) {
     try {
         auto response_future = trace_client.AsyncExport(request);
-        // this will disable tracing, but not logging. One must disable
-        // logging middleware in grpc client factory configuration
-        response_future.GetContext().GetSpan().SetLogLevel(logging::Level::kNone);
         auto response = response_future.Get();
     } catch (const ugrpc::client::RpcCancelledError&) {
-        std::cerr << "Stopping OTLP sender task\n";
+        std::fputs("Stopping OTLP sender task\n", stderr);
         throw;
     } catch (const std::exception& e) {
-        std::cerr << "Failed to write down OTLP trace(s): " << e.what() << typeid(e).name() << "\n";
+        const auto msg = fmt::format("Failed to write down OTLP trace(s): {} {}\n", e.what(), typeid(e).name());
+        std::fputs(msg.c_str(), stderr);
     }
     // TODO: count exceptions
 }
 
 std::string_view Logger::MapAttribute(std::string_view attr) const {
     for (const auto& [key, value] : config_.attributes_mapping) {
-        if (key == attr) return value;
+        if (key == attr) {
+            return value;
+        }
     }
     return attr;
 }

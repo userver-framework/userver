@@ -19,6 +19,7 @@
 
 #include <tests/unit_test_client.usrv.pb.hpp>
 #include <tests/unit_test_service.usrv.pb.hpp>
+#include <tests/unit_test_service_gmock.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -26,31 +27,23 @@ namespace {
 
 const grpc::Status kUnknownErrorStatus{
     grpc::StatusCode::UNKNOWN,
-    "The service method has exited unexpectedly, without providing a status"};
+    "The service method has exited unexpectedly, without providing a status"
+};
 
 const grpc::Status kUnimplementedStatus{grpc::StatusCode::UNIMPLEMENTED, "This method is unimplemented"};
-
-class UnitTestServiceMock : public sample::ugrpc::UnitTestServiceBase {
-public:
-    MOCK_METHOD(
-        SayHelloResult,
-        SayHello,
-        (ugrpc::server::CallContext& /*context*/, ::sample::ugrpc::GreetingRequest&& /*request*/),
-        (override)
-    );
-};
 
 struct Flags final {
     bool set_error{true};
 };
 
 // NOLINTNEXTLINE(fuchsia-multiple-inheritance)
-class ServerMiddlewareHooksUnaryTest : public tests::MiddlewaresFixture<
-                                           tests::server::ServerMiddlewareBaseMock,
-                                           ::testing::NiceMock<UnitTestServiceMock>,
-                                           sample::ugrpc::UnitTestServiceClient,
-                                           /*N=*/3>,
-                                       public testing::WithParamInterface<Flags> {
+class ServerMiddlewareHooksUnaryTest
+    : public tests::MiddlewaresFixture<
+          tests::server::ServerMiddlewareBaseMock,
+          ::testing::NiceMock<tests::UnitTestServiceGmock>,
+          sample::ugrpc::UnitTestServiceClient,
+          /*N=*/3>,
+      public testing::WithParamInterface<Flags> {
 protected:
     void SetSuccessHandler() {
         ON_CALL(Service(), SayHello).WillByDefault([](ugrpc::server::CallContext&, ::sample::ugrpc::GreetingRequest&&) {
@@ -209,8 +202,8 @@ UTEST_P(ServerMiddlewareHooksUnaryTest, ApplyTheLastErrorStatus) {
     SetSuccessHandler();
 
     // The order if OnCallFinish is reversed: M2 -> M1
-    ON_CALL(Middleware(2), OnCallFinish)
-        .WillByDefault([](ugrpc::server::MiddlewareCallContext& context, const grpc::Status& status) {
+    ON_CALL(Middleware(2), PreSendStatus)
+        .WillByDefault([](ugrpc::server::MiddlewareCallContext& context, grpc::Status& status) {
             EXPECT_TRUE(status.ok());
             if (GetParam().set_error) {
                 context.SetError(grpc::Status{kUnimplementedStatus});
@@ -218,8 +211,8 @@ UTEST_P(ServerMiddlewareHooksUnaryTest, ApplyTheLastErrorStatus) {
                 throw std::runtime_error("Something bad happened in OnCallFinish");
             }
         });
-    ON_CALL(Middleware(1), OnCallFinish)
-        .WillByDefault([](ugrpc::server::MiddlewareCallContext& context, const grpc::Status& status) {
+    ON_CALL(Middleware(1), PreSendStatus)
+        .WillByDefault([](ugrpc::server::MiddlewareCallContext& context, grpc::Status& status) {
             // That status must be from M2::OnCallFinish
             if (GetParam().set_error) {
                 EXPECT_EQ(status.error_code(), kUnimplementedStatus.error_code());
@@ -227,7 +220,8 @@ UTEST_P(ServerMiddlewareHooksUnaryTest, ApplyTheLastErrorStatus) {
             } else {
                 EXPECT_EQ(status.error_code(), grpc::StatusCode::UNKNOWN);
                 EXPECT_EQ(
-                    status.error_message(), "The service method has exited unexpectedly, without providing a status"
+                    status.error_message(),
+                    "The service method has exited unexpectedly, without providing a status"
                 );
             }
             context.SetError(grpc::Status{kUnknownErrorStatus});
@@ -235,13 +229,15 @@ UTEST_P(ServerMiddlewareHooksUnaryTest, ApplyTheLastErrorStatus) {
 
     EXPECT_CALL(Middleware(1), OnCallStart).Times(1);
     EXPECT_CALL(Middleware(1), PostRecvMessage).Times(1);
-    EXPECT_CALL(Middleware(1), PreSendMessage).Times(1);
+    EXPECT_CALL(Middleware(1), PreSendMessage).Times(0);
+    EXPECT_CALL(Middleware(1), PreSendStatus).Times(1);
     // OnCallStart of M1 is successfully => OnCallFinish must be called.
     EXPECT_CALL(Middleware(1), OnCallFinish).Times(1);
 
     EXPECT_CALL(Middleware(2), OnCallStart).Times(1);
     EXPECT_CALL(Middleware(2), PostRecvMessage).Times(1);
     EXPECT_CALL(Middleware(2), PreSendMessage).Times(1);
+    EXPECT_CALL(Middleware(2), PreSendStatus).Times(1);
     // OnCallStart of M2 is successfully => OnCallFinish must be called.
     EXPECT_CALL(Middleware(2), OnCallFinish).Times(1);
 
@@ -255,14 +251,14 @@ UTEST_P(ServerMiddlewareHooksUnaryTest, ThrowInHandler) {
     });
 
     // The order if OnCallFinish is reversed: M2 -> M1
-    ON_CALL(Middleware(2), OnCallFinish)
-        .WillByDefault([](ugrpc::server::MiddlewareCallContext& /*context*/, const grpc::Status& status) {
+    ON_CALL(Middleware(2), PreSendStatus)
+        .WillByDefault([](ugrpc::server::MiddlewareCallContext& /*context*/, grpc::Status& status) {
             EXPECT_TRUE(!status.ok());
             EXPECT_EQ(status.error_code(), grpc::StatusCode::UNAUTHENTICATED);
             EXPECT_EQ(status.error_message(), "fail :(");
         });
-    ON_CALL(Middleware(1), OnCallFinish)
-        .WillByDefault([](ugrpc::server::MiddlewareCallContext& /*context*/, const grpc::Status& status) {
+    ON_CALL(Middleware(1), PreSendStatus)
+        .WillByDefault([](ugrpc::server::MiddlewareCallContext& /*context*/, grpc::Status& status) {
             EXPECT_TRUE(!status.ok());
             EXPECT_EQ(status.error_code(), grpc::StatusCode::UNAUTHENTICATED);
             EXPECT_EQ(status.error_message(), "fail :(");
@@ -271,12 +267,14 @@ UTEST_P(ServerMiddlewareHooksUnaryTest, ThrowInHandler) {
     EXPECT_CALL(Middleware(1), OnCallStart).Times(1);
     EXPECT_CALL(Middleware(1), PostRecvMessage).Times(1);
     EXPECT_CALL(Middleware(1), PreSendMessage).Times(0);
+    EXPECT_CALL(Middleware(1), PreSendStatus).Times(1);
     // OnCallStart of M1 is successfully => OnCallFinish must be called.
     EXPECT_CALL(Middleware(1), OnCallFinish).Times(1);
 
     EXPECT_CALL(Middleware(2), OnCallStart).Times(1);
     EXPECT_CALL(Middleware(2), PostRecvMessage).Times(1);
     EXPECT_CALL(Middleware(2), PreSendMessage).Times(0);
+    EXPECT_CALL(Middleware(2), PreSendStatus).Times(1);
     // OnCallStart of M2 is successfully => OnCallFinish must be called.
     EXPECT_CALL(Middleware(2), OnCallFinish).Times(1);
 
@@ -292,21 +290,21 @@ UTEST_P(ServerMiddlewareHooksUnaryTest, DeadlinePropagation) {
     });
 
     // The order if OnCallFinish is reversed: M2 -> M1 -> M0
-    ON_CALL(Middleware(2), OnCallFinish)
-        .WillByDefault([](ugrpc::server::MiddlewareCallContext& /*context*/, const grpc::Status& status) {
+    ON_CALL(Middleware(2), PreSendStatus)
+        .WillByDefault([](ugrpc::server::MiddlewareCallContext& /*context*/, grpc::Status& status) {
             EXPECT_TRUE(status.ok());
             // We want to exceed a deadline for middleware 'grpc-server-deadline-propagation'
             engine::SleepFor(std::chrono::milliseconds{200});
         });
-    ON_CALL(Middleware(1), OnCallFinish)
-        .WillByDefault([](ugrpc::server::MiddlewareCallContext& context, const grpc::Status& status) {
+    ON_CALL(Middleware(1), PreSendStatus)
+        .WillByDefault([](ugrpc::server::MiddlewareCallContext& context, grpc::Status& status) {
             EXPECT_TRUE(status.ok());
             /// Here the status will be replaced by 'grpc-server-deadline-propagation' middleware
             const ugrpc::server::middlewares::deadline_propagation::Middleware deadline_propagation{};
-            deadline_propagation.OnCallFinish(context, status);
+            deadline_propagation.PreSendStatus(context, status);
         });
-    ON_CALL(Middleware(0), OnCallFinish)
-        .WillByDefault([](ugrpc::server::MiddlewareCallContext& /*context*/, const grpc::Status& status) {
+    ON_CALL(Middleware(0), PreSendStatus)
+        .WillByDefault([](ugrpc::server::MiddlewareCallContext& /*context*/, grpc::Status& status) {
             // Status from 'grpc-server-deadline-propagation' middleware
             EXPECT_TRUE(!status.ok());
             EXPECT_EQ(status.error_code(), grpc::StatusCode::DEADLINE_EXCEEDED);
@@ -317,12 +315,14 @@ UTEST_P(ServerMiddlewareHooksUnaryTest, DeadlinePropagation) {
     EXPECT_CALL(Middleware(1), OnCallStart).Times(1);
     EXPECT_CALL(Middleware(1), PostRecvMessage).Times(1);
     EXPECT_CALL(Middleware(1), PreSendMessage).Times(1);
+    EXPECT_CALL(Middleware(1), PreSendStatus).Times(1);
     // OnCallStart of M1 is successfully => OnCallFinish must be called.
     EXPECT_CALL(Middleware(1), OnCallFinish).Times(1);
 
     EXPECT_CALL(Middleware(2), OnCallStart).Times(1);
     EXPECT_CALL(Middleware(2), PostRecvMessage).Times(1);
     EXPECT_CALL(Middleware(2), PreSendMessage).Times(1);
+    EXPECT_CALL(Middleware(2), PreSendStatus).Times(1);
     // OnCallStart of M2 is successfully => OnCallFinish must be called.
     EXPECT_CALL(Middleware(2), OnCallFinish).Times(1);
 

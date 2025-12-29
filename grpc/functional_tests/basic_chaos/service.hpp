@@ -27,7 +27,9 @@ public:
     static constexpr std::string_view kName = "greeter-service";
 
     GreeterServiceComponent(const components::ComponentConfig& config, const components::ComponentContext& context)
-        : api::GreeterServiceBase::Component(config, context), prefix_(config["greeting-prefix"].As<std::string>()) {}
+        : api::GreeterServiceBase::Component(config, context),
+          prefix_(config["greeting-prefix"].As<std::string>())
+    {}
 
     inline SayHelloResult SayHello(CallContext& context, api::GreetingRequest&& request) final;
 
@@ -42,8 +44,10 @@ public:
 
     inline SayHelloStreamsResult SayHelloStreams(CallContext& context, SayHelloStreamsReaderWriter& stream) final;
 
-    inline SayHelloIndependentStreamsResult
-    SayHelloIndependentStreams(CallContext& context, SayHelloIndependentStreamsReaderWriter& stream) final;
+    inline SayHelloIndependentStreamsResult SayHelloIndependentStreams(
+        CallContext& context,
+        SayHelloIndependentStreamsReaderWriter& stream
+    ) final;
 
     inline static yaml_config::Schema GetStaticConfigSchema();
 
@@ -51,8 +55,10 @@ private:
     const std::string prefix_;
 };
 
-GreeterServiceComponent::SayHelloResult
-GreeterServiceComponent::SayHello(CallContext& /*context*/, api::GreetingRequest&& request) {
+GreeterServiceComponent::SayHelloResult GreeterServiceComponent::SayHello(
+    CallContext& /*context*/,
+    api::GreetingRequest&& request
+) {
     api::GreetingResponse response;
 
     if (request.name() == "test_payload_cancellation") {
@@ -73,20 +79,22 @@ GreeterServiceComponent::SayHelloResponseStreamResult GreeterServiceComponent::S
     SayHelloResponseStreamWriter& writer
 ) {
     std::string message = fmt::format("{}, {}", prefix_, request.name());
-    api::GreetingResponse response;
     constexpr auto kCountSend = 5;
     constexpr std::chrono::milliseconds kTimeInterval{200};
     for (auto i = 0; i < kCountSend; ++i) {
+        api::GreetingResponse response;
         message.push_back('!');
         response.set_greeting(grpc::string(message));
         engine::SleepFor(kTimeInterval);
-        writer.Write(response);
+        writer.Write(std::move(response));
     }
     return grpc::Status::OK;
 }
 
-GreeterServiceComponent::SayHelloRequestStreamResult
-GreeterServiceComponent::SayHelloRequestStream(CallContext& /*context*/, SayHelloRequestStreamReader& reader) {
+GreeterServiceComponent::SayHelloRequestStreamResult GreeterServiceComponent::SayHelloRequestStream(
+    CallContext& /*context*/,
+    SayHelloRequestStreamReader& reader
+) {
     std::string income_message;
     api::GreetingRequest request;
     while (reader.Read(request)) {
@@ -97,17 +105,19 @@ GreeterServiceComponent::SayHelloRequestStream(CallContext& /*context*/, SayHell
     return response;
 }
 
-GreeterServiceComponent::SayHelloStreamsResult
-GreeterServiceComponent::SayHelloStreams(CallContext& /*context*/, SayHelloStreamsReaderWriter& stream) {
+GreeterServiceComponent::SayHelloStreamsResult GreeterServiceComponent::SayHelloStreams(
+    CallContext& /*context*/,
+    SayHelloStreamsReaderWriter& stream
+) {
     constexpr std::chrono::milliseconds kTimeInterval{200};
     std::string income_message;
     api::GreetingRequest request;
-    api::GreetingResponse response;
     while (stream.Read(request)) {
+        api::GreetingResponse response;
         income_message.append(request.name());
         response.set_greeting(fmt::format("{}, {}", prefix_, income_message));
         engine::SleepFor(kTimeInterval);
-        stream.Write(response);
+        stream.Write(std::move(response));
     }
     return grpc::Status::OK;
 }
@@ -129,12 +139,12 @@ GreeterServiceComponent::SayHelloIndependentStreamsResult GreeterServiceComponen
     });
 
     auto write_task = engine::AsyncNoSpan([&stream, prefix = prefix_, &kTimeIntervalWrite] {
-        api::GreetingResponse response;
-        const std::array kNames = {
-            "Python", "C++", "linux", "userver", "grpc", "kernel", "developer", "core", "anonymous", "user"};
-        for (const auto& name : kNames) {
+        const std::array names =
+            {"Python", "C++", "linux", "userver", "grpc", "kernel", "developer", "core", "anonymous", "user"};
+        for (const auto& name : names) {
+            api::GreetingResponse response;
             response.set_greeting(fmt::format("{}, {}", prefix, name));
-            stream.Write(response);
+            stream.Write(std::move(response));
             engine::SleepFor(kTimeIntervalWrite);
         }
     });
@@ -144,7 +154,7 @@ GreeterServiceComponent::SayHelloIndependentStreamsResult GreeterServiceComponen
 
     api::GreetingResponse response;
     response.set_greeting(grpc::string(final_string));
-    stream.Write(response);
+    stream.Write(std::move(response));
     return grpc::Status::OK;
 }
 

@@ -12,7 +12,12 @@ UTEST(S3ClientTest, HappyPath) {
     EXPECT_CALL(
         *mock,
         PutObject(
-            std::string_view{"path/to/object"}, ::testing::_, ::testing::_, ::testing::_, ::testing::_, ::testing::_
+            std::string_view{"path/to/object"},
+            ::testing::_,
+            ::testing::_,
+            ::testing::_,
+            ::testing::_,
+            ::testing::_
         )
     )
         .Times(1)

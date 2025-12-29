@@ -55,8 +55,10 @@ formats::json::Value BuildMethodConfig(
     return method_config.ExtractValue();
 }
 
-formats::json::Value
-BuildDefaultMethodConfig(std::optional<google::protobuf::Duration> timeout, const formats::json::Value& retry_policy) {
+formats::json::Value BuildDefaultMethodConfig(
+    std::optional<google::protobuf::Duration> timeout,
+    const formats::json::Value& retry_policy
+) {
     // If the 'service' field is empty, the 'method' field must be empty, and
     //   this MethodConfig specifies the default for all methods (it's the default
     //   config).
@@ -100,15 +102,15 @@ UTEST(ServiceConfigBuilderTest, BuildEmpty) {
     const ugrpc::client::RetryConfig retry_config;
 
     {
-        const ugrpc::client::impl::compat::ServiceConfigBuilder service_config_builder{
-            metadata, retry_config, /*static_service_config=*/std::nullopt};
+        const ugrpc::client::impl::compat::ServiceConfigBuilder
+            service_config_builder{metadata, retry_config, /*static_service_config=*/std::nullopt};
         const auto service_config = service_config_builder.Build(ugrpc::client::ClientQos{});
         ASSERT_TRUE(service_config.IsNull());
     }
 
     {
-        const ugrpc::client::impl::compat::ServiceConfigBuilder service_config_builder{
-            metadata, retry_config, /*static_service_config=*/"{}"};
+        const ugrpc::client::impl::compat::ServiceConfigBuilder
+            service_config_builder{metadata, retry_config, /*static_service_config=*/"{}"};
         const auto service_config = service_config_builder.Build(ugrpc::client::ClientQos{});
         ASSERT_TRUE(service_config.IsObject() && service_config.IsEmpty());
     }
@@ -119,8 +121,8 @@ UTEST(ServiceConfigBuilderTest, Static) {
 
     const ugrpc::client::RetryConfig retry_config{/*attempts=*/2};
 
-    const ugrpc::client::impl::compat::ServiceConfigBuilder service_config_builder{
-        metadata, retry_config, /*static_service_config=*/std::nullopt};
+    const ugrpc::client::impl::compat::ServiceConfigBuilder
+        service_config_builder{metadata, retry_config, /*static_service_config=*/std::nullopt};
     const auto service_config = service_config_builder.Build(ugrpc::client::ClientQos{});
     LOG_DEBUG() << "service_config: " << service_config;
 
@@ -149,12 +151,12 @@ UTEST(ServiceConfigBuilderTest, Qos) {
     std::uint32_t max_attempts = 5;
     const auto retry_policy_json = BuildSimpleRetryPolicyConfig(max_attempts);
     const auto method_config_json = BuildDefaultMethodConfig(default_timeout, retry_policy_json);
-    const auto static_service_config =
-        formats::json::MakeObject("methodConfig", formats::json::MakeArray(method_config_json));
+    const auto
+        static_service_config = formats::json::MakeObject("methodConfig", formats::json::MakeArray(method_config_json));
     LOG_DEBUG() << "static_service_config: " << static_service_config;
 
-    const ugrpc::client::impl::compat::ServiceConfigBuilder service_config_builder{
-        metadata, retry_config, formats::json::ToString(static_service_config)};
+    const ugrpc::client::impl::compat::ServiceConfigBuilder
+        service_config_builder{metadata, retry_config, formats::json::ToString(static_service_config)};
 
     const ugrpc::client::Qos qos_default{/*attempts=*/2, /*timeout=*/std::nullopt};
     ugrpc::client::ClientQos client_qos;
@@ -195,12 +197,12 @@ UTEST(ServiceConfigBuilderTest, QosNoRetry) {
     std::uint32_t max_attempts = 5;
     const auto retry_policy_json = BuildSimpleRetryPolicyConfig(max_attempts);
     const auto method_config_json = BuildDefaultMethodConfig(default_timeout, retry_policy_json);
-    const auto static_service_config =
-        formats::json::MakeObject("methodConfig", formats::json::MakeArray(method_config_json));
+    const auto
+        static_service_config = formats::json::MakeObject("methodConfig", formats::json::MakeArray(method_config_json));
     LOG_DEBUG() << "static_service_config: " << static_service_config;
 
-    const ugrpc::client::impl::compat::ServiceConfigBuilder service_config_builder{
-        metadata, retry_config, formats::json::ToString(static_service_config)};
+    const ugrpc::client::impl::compat::ServiceConfigBuilder
+        service_config_builder{metadata, retry_config, formats::json::ToString(static_service_config)};
 
     const ugrpc::client::Qos qos_default{/*attempts=*/1, /*timeout=*/std::nullopt};
     ugrpc::client::ClientQos client_qos;
@@ -256,13 +258,16 @@ UTEST(ServiceConfigBuilderTest, Complex) {
     const auto static_service_config = formats::json::MakeObject(
         "methodConfig",
         formats::json::MakeArray(
-            method0_config_json, method2_config_json, method3_config_json, default_method_config_json
+            method0_config_json,
+            method2_config_json,
+            method3_config_json,
+            default_method_config_json
         )
     );
     LOG_DEBUG() << "static_service_config: " << static_service_config;
 
-    const ugrpc::client::impl::compat::ServiceConfigBuilder service_config_builder{
-        metadata, retry_config, formats::json::ToString(static_service_config)};
+    const ugrpc::client::impl::compat::ServiceConfigBuilder
+        service_config_builder{metadata, retry_config, formats::json::ToString(static_service_config)};
 
     const ugrpc::client::Qos qos0{/*attempts=*/2, /*timeout=*/std::nullopt};
     const ugrpc::client::Qos qos1{/*attempts=*/3, /*timeout=*/std::nullopt};

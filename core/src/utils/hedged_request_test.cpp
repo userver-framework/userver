@@ -28,7 +28,8 @@ struct TestFuture {
                   return reply;
               }
           )),
-          attempt(attempt) {}
+          attempt(attempt)
+    {}
     TestFuture(TestFuture&&) noexcept = default;
     std::string Get() { return task.Get(); }
     auto* TryGetContextAccessor() { return task.TryGetContextAccessor(); }
@@ -37,14 +38,14 @@ struct TestFuture {
     size_t attempt{0};
 };
 
-enum class Event { StartRequest, ProcessReply, Finish };
+enum class Event { kStartRequest, kProcessReply, kFinish };
 std::string_view ToString(Event event) {
     switch (event) {
-        case Event::StartRequest:
+        case Event::kStartRequest:
             return "StartRequest";
-        case Event::ProcessReply:
+        case Event::kProcessReply:
             return "ProcessReply";
-        case Event::Finish:
+        case Event::kFinish:
             return "Finish";
     }
     return "Invalid";
@@ -75,10 +76,12 @@ public:
     using ReplyType = std::string;
 
     TestStrategy(EventLog& event_log, AttemptProgram attempt_program)
-        : attempt_program(std::move(attempt_program)), event_log(event_log) {}
+        : attempt_program(std::move(attempt_program)),
+          event_log(event_log)
+    {}
 
     std::optional<RequestType> Create(size_t attempt) {
-        event_log.push_back({Event::StartRequest, attempt});
+        event_log.push_back({Event::kStartRequest, attempt});
         auto delay = kDefaultDelay;
         if (attempt_program.size() > attempt) {
             delay = attempt_program[attempt].delay;
@@ -88,16 +91,20 @@ public:
 
     std::optional<std::chrono::milliseconds> ProcessReply(RequestType&& request) {
         reply = std::move(request).Get();
-        event_log.push_back({Event::ProcessReply, request.attempt});
-        if (attempt_program.size() <= request.attempt) return std::nullopt;
+        event_log.push_back({Event::kProcessReply, request.attempt});
+        if (attempt_program.size() <= request.attempt) {
+            return std::nullopt;
+        }
         return attempt_program[request.attempt].process_reply_result;
     }
 
     std::optional<ReplyType> ExtractReply() { return reply; }
 
     void Finish(RequestType&& request) {
-        event_log.push_back({Event::Finish, request.attempt});
-        if (request.task.IsValid()) request.task.SyncCancel();
+        event_log.push_back({Event::kFinish, request.attempt});
+        if (request.task.IsValid()) {
+            request.task.SyncCancel();
+        }
     }
 
     std::optional<ReplyType> reply;
@@ -112,13 +119,13 @@ UTEST(HedgedRequest, Base) {
     /// make 3 consecutive requests with 10 ms delay. Get reply from first attempt
     /// and cancel all requests
     const EventLog expected_event_log = {
-        {Event::StartRequest, 0},
-        {Event::StartRequest, 1},
-        {Event::StartRequest, 2},
-        {Event::ProcessReply, 0},
-        {Event::Finish, 0},
-        {Event::Finish, 1},
-        {Event::Finish, 2},
+        {Event::kStartRequest, 0},
+        {Event::kStartRequest, 1},
+        {Event::kStartRequest, 2},
+        {Event::kProcessReply, 0},
+        {Event::kFinish, 0},
+        {Event::kFinish, 1},
+        {Event::kFinish, 2},
     };
     const utils::hedging::HedgingSettings settings{3, 10ms, 1000ms};
     EventLog event_log;
@@ -132,9 +139,9 @@ UTEST(HedgedRequest, DontStartIfGotResult) {
     /// Test we do not start additional requests if we got reply before
     /// hedging_delay elapsed
     const EventLog expected_event_log = {
-        {Event::StartRequest, 0},
-        {Event::ProcessReply, 0},
-        {Event::Finish, 0},
+        {Event::kStartRequest, 0},
+        {Event::kProcessReply, 0},
+        {Event::kFinish, 0},
     };
     const utils::hedging::HedgingSettings settings{3, 200ms, 1000ms};
     auto program = AttemptProgram{
@@ -151,11 +158,11 @@ UTEST(HedgedRequest, DontStartIfGotResult) {
 UTEST(HedgedRequest, SuccessfulHedging) {
     /// Test case when second attempt finish first
     const EventLog expected_event_log = {
-        {Event::StartRequest, 0},
-        {Event::StartRequest, 1},
-        {Event::ProcessReply, 1},
-        {Event::Finish, 0},
-        {Event::Finish, 1},
+        {Event::kStartRequest, 0},
+        {Event::kStartRequest, 1},
+        {Event::kProcessReply, 1},
+        {Event::kFinish, 0},
+        {Event::kFinish, 1},
     };
     const utils::hedging::HedgingSettings settings{2, 10ms, 1000ms};
     auto program = AttemptProgram{
@@ -176,12 +183,12 @@ UTEST(HedgedRequest, Timeout) {
     /// every request has 100ms timing.
     /// No ProcessReply
     const EventLog expected_event_log = {
-        {Event::StartRequest, 0},
-        {Event::StartRequest, 1},
-        {Event::StartRequest, 2},
-        {Event::Finish, 0},
-        {Event::Finish, 1},
-        {Event::Finish, 2},
+        {Event::kStartRequest, 0},
+        {Event::kStartRequest, 1},
+        {Event::kStartRequest, 2},
+        {Event::kFinish, 0},
+        {Event::kFinish, 1},
+        {Event::kFinish, 2},
     };
     const utils::hedging::HedgingSettings settings{3, 10ms, 50ms};
     auto program = AttemptProgram{
@@ -201,12 +208,12 @@ UTEST(HedgedRequest, Refuse) {
     /// Test case when first attempt return fast but strategy refuted to accept,
     /// so another request was made
     const EventLog expected_event_log = {
-        {Event::StartRequest, 0},
-        {Event::ProcessReply, 0},
-        {Event::StartRequest, 1},
-        {Event::ProcessReply, 1},
-        {Event::Finish, 0},
-        {Event::Finish, 1},
+        {Event::kStartRequest, 0},
+        {Event::kProcessReply, 0},
+        {Event::kStartRequest, 1},
+        {Event::kProcessReply, 1},
+        {Event::kFinish, 0},
+        {Event::kFinish, 1},
     };
     const utils::hedging::HedgingSettings settings{2, 200ms, 1000ms};
     auto program = AttemptProgram{

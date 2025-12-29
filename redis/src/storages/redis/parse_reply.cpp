@@ -93,8 +93,9 @@ ParseReplyDataArray(ReplyData&& array_data, const std::string& request_descripti
     return result;
 }
 
-std::vector<std::optional<std::string>>
-ParseReplyDataArray(ReplyData&& array_data, const std::string& request_description, To<std::vector<std::optional<std::string>>>) {
+std::
+    vector<std::optional<std::string>>
+    ParseReplyDataArray(ReplyData&& array_data, const std::string& request_description, To<std::vector<std::optional<std::string>>>) {
     const auto& array = array_data.GetArray();
     std::vector<std::optional<std::string>> result;
     result.reserve(array.size());
@@ -139,14 +140,16 @@ ParseReplyDataArray(ReplyData&& array_data, const std::string& request_descripti
         try {
             score = std::stod(score_elem);
         } catch (const std::exception& ex) {
-            throw ParseReplyException(std::string("Can't parse response to '")
-                                          .append(request_description)
-                                          .append("' request: can't parse score from '")
-                                          .append(score_elem)
-                                          .append("' array=")
-                                          .append(array_data.ToDebugString())
-                                          .append(": ")
-                                          .append(ex.what()));
+            throw ParseReplyException(
+                std::string("Can't parse response to '")
+                    .append(request_description)
+                    .append("' request: can't parse score from '")
+                    .append(score_elem)
+                    .append("' array=")
+                    .append(array_data.ToDebugString())
+                    .append(": ")
+                    .append(ex.what())
+            );
         }
 
         result.emplace_back(std::move(member_elem), score);
@@ -154,8 +157,7 @@ ParseReplyDataArray(ReplyData&& array_data, const std::string& request_descripti
     return result;
 }
 
-std::vector<GeoPoint>
-ParseReplyDataArray(ReplyData&& array_data, [[maybe_unused]] const std::string& request_description, To<std::vector<GeoPoint>>) {
+std::vector<GeoPoint> ParseReplyDataArray(ReplyData&& array_data, [[maybe_unused]] const std::string& request_description, To<std::vector<GeoPoint>>) {
     std::vector<GeoPoint> result;
 
     for (auto& elem : array_data.GetArray()) {
@@ -209,8 +211,9 @@ ParseReplyDataArray(ReplyData&& array_data, [[maybe_unused]] const std::string& 
     return result;
 }
 
-std::vector<std::optional<Point>>
-ParseReplyDataArray(ReplyData&& array_data, const std::string& request_description, To<std::vector<std::optional<Point>>>) {
+std::
+    vector<std::optional<Point>>
+    ParseReplyDataArray(ReplyData&& array_data, const std::string& request_description, To<std::vector<std::optional<Point>>>) {
     auto&& array = std::move(array_data).GetArray();
     std::vector<std::optional<Point>> result;
     result.reserve(array.size());
@@ -279,10 +282,11 @@ Parse(ReplyData&& reply_data, const std::string& request_description, To<std::ch
 HsetReply Parse(ReplyData&& reply_data, const std::string& request_description, To<HsetReply>) {
     reply_data.ExpectInt(request_description);
     auto result = reply_data.GetInt();
-    if (result < 0 || result > 1)
+    if (result < 0 || result > 1) {
         throw ParseReplyException(
             "Unexpected reply to '" + request_description + "' request: " + std::to_string(result)
         );
+    }
     return result ? HsetReply::kCreated : HsetReply::kUpdated;
 }
 
@@ -316,7 +320,9 @@ void Parse(ReplyData&& reply_data, const std::string& request_description, To<St
 }
 
 bool Parse(ReplyData&& reply_data, const std::string& request_description, To<std::optional<StatusOk>, bool>) {
-    if (reply_data.IsNil()) return false;
+    if (reply_data.IsNil()) {
+        return false;
+    }
     reply_data.ExpectStatusEqualTo(kOk, request_description);
     return true;
 }
@@ -326,7 +332,9 @@ void Parse(ReplyData&& reply_data, const std::string& request_description, To<St
 }
 
 SetReply Parse(ReplyData&& reply_data, const std::string& request_description, To<SetReply>) {
-    if (reply_data.IsNil()) return SetReply::kNotSet;
+    if (reply_data.IsNil()) {
+        return SetReply::kNotSet;
+    }
     reply_data.ExpectStatusEqualTo(kOk, request_description);
     return SetReply::kSet;
 }

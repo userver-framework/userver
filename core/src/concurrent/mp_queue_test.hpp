@@ -16,7 +16,11 @@ struct RefCountData final {
     // signed to allow for erroneous deletion to be detected.
     static inline std::atomic<std::int64_t> objects_count{0};
 
-    RefCountData(int value = 0) : val(value) { objects_count.fetch_add(1); }
+    RefCountData(int value = 0)
+        : val(value)
+    {
+        objects_count.fetch_add(1);
+    }
     ~RefCountData() { objects_count.fetch_sub(1); }
     // Non-copyable, non-movable
     RefCountData(const RefCountData&) = delete;
@@ -111,19 +115,19 @@ TYPED_UTEST_P(TypedQueueFixture, ConsumeMany) {
     auto consumer = queue->GetConsumer();
     auto producer = queue->GetProducer();
 
-    auto constexpr N = 100;
+    auto constexpr kN = 100;
 
-    for (int i = 0; i < N; i++) {
+    for (int i = 0; i < kN; i++) {
         auto value = this->Wrap(i);
         EXPECT_TRUE(producer.Push(std::move(value)));
         EXPECT_EQ(i + 1, queue->GetSizeApproximate());
     }
 
-    for (int i = 0; i < N; i++) {
+    for (int i = 0; i < kN; i++) {
         typename TypeParam::ValueType value;
         EXPECT_TRUE(consumer.Pop(value));
         EXPECT_EQ(i, this->Unwrap(value));
-        EXPECT_EQ(N - i - 1, queue->GetSizeApproximate());
+        EXPECT_EQ(kN - i - 1, queue->GetSizeApproximate());
     }
 }
 
@@ -213,15 +217,15 @@ TYPED_UTEST_P(TypedQueueFixture, Block) {
 }
 
 TYPED_UTEST_P(TypedQueueFixture, Noblock) {
-    engine::SingleConsumerEvent wait_consumer_event_;
+    engine::SingleConsumerEvent wait_consumer_event;
     auto queue = TypeParam::Create();
     queue->SetSoftMaxSize(2);
 
-    auto consumer_task = utils::Async("consumer", [consumer = queue->GetConsumer(), &wait_consumer_event_, this]() {
+    auto consumer_task = utils::Async("consumer", [consumer = queue->GetConsumer(), &wait_consumer_event, this]() {
         typename TypeParam::ValueType value{};
 
         EXPECT_FALSE(consumer.PopNoblock(value));
-        wait_consumer_event_.Send();
+        wait_consumer_event.Send();
 
         while (!consumer.PopNoblock(value)) {
             engine::Yield();
@@ -233,7 +237,7 @@ TYPED_UTEST_P(TypedQueueFixture, Noblock) {
     });
 
     // For consumer_task try to PopNoblock
-    [[maybe_unused]] auto result = wait_consumer_event_.WaitForEvent();
+    [[maybe_unused]] auto result = wait_consumer_event.WaitForEvent();
 
     {
         auto producer = queue->GetProducer();
@@ -249,7 +253,7 @@ TYPED_UTEST_P(TypedQueueFixture, Noblock) {
 }
 
 TYPED_UTEST_P(TypedQueueFixture, NotMovedValueOnFalse) {
-    const engine::SingleConsumerEvent wait_consumer_event_;
+    const engine::SingleConsumerEvent wait_consumer_event;
     auto queue = TypeParam::Create();
     queue->SetSoftMaxSize(2);
 

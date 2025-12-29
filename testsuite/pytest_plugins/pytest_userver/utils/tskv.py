@@ -1,8 +1,7 @@
 import re
-from typing import Dict
-from typing import Tuple
+from typing import TypeAlias
 
-TskvRow = Dict[str, str]
+TskvRow: TypeAlias = dict[str, str]
 
 
 _EQUALS_OR_BACKSLASH = re.compile('=|\\\\')
@@ -26,7 +25,7 @@ def _search_backslash(s: str, start: int) -> int:
     return s.find('\\', start)
 
 
-def _parse_pair(pair: str) -> Tuple[str, str]:
+def _parse_pair(pair: str) -> tuple[str, str]:
     search_fn = _search_equals_or_backslash
     key = None
     unescaped_part = ''

@@ -11,7 +11,8 @@ namespace storages::redis {
 RequestFailedException::RequestFailedException(const std::string& request_description, ReplyStatus status)
     : Exception(fmt::format("{} request failed with status '{}'", request_description, *kReplyStatusMap.TryFind(status))
       ),
-      status_(status) {}
+      status_(status)
+{}
 
 ReplyStatus RequestFailedException::GetStatus() const { return status_; }
 

@@ -34,14 +34,16 @@ public:
 
     Component(const components::ComponentConfig& config, const components::ComponentContext& context);
 
-    std::shared_ptr<const MiddlewareBase>
-    CreateMiddleware(const ClientInfo& info, const yaml_config::YamlConfig& middleware_config) const override;
+    std::shared_ptr<const MiddlewareBase> CreateMiddleware(
+        const ClientInfo& info,
+        const yaml_config::YamlConfig& middleware_config
+    ) const override;
 };
 
 }  // namespace ugrpc::client::middlewares::testsuite
 
 template <>
-inline constexpr auto components::kConfigFileMode<ugrpc::client::middlewares::testsuite::Component> =
-    ConfigFileMode::kNotRequired;
+inline constexpr auto
+    components::kConfigFileMode<ugrpc::client::middlewares::testsuite::Component> = ConfigFileMode::kNotRequired;
 
 USERVER_NAMESPACE_END

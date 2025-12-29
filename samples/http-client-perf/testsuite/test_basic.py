@@ -16,7 +16,11 @@ async def test_basic(service_binary, tmp_path, mockserver):
         return mockserver.make_response('OK')
 
     subprocess = await asyncio.create_subprocess_exec(
-        service_binary, '--url-file', urls_file, '--count', str(request_count)
+        service_binary,
+        '--url-file',
+        urls_file,
+        '--count',
+        str(request_count),
     )
     assert await subprocess.wait() == 0
 

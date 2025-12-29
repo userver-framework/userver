@@ -89,17 +89,20 @@ void LogExtra::Extend(InitializerList extra, ExtendType extend_type) {
 }
 
 void LogExtra::Extend(const LogExtra& extra) {
-    if (extra_->empty())
+    if (extra_->empty()) {
         extra_ = extra.extra_;
-    else
+    } else {
         ExtendRange(extra.extra_->begin(), extra.extra_->end());
+    }
 }
 
 void LogExtra::Extend(LogExtra&& extra) {
     if (extra_->empty()) {
         std::swap(extra_, extra.extra_);
     } else {
-        for (Map::value_type& pair : *extra.extra_) Extend(std::move(pair.first), std::move(pair.second));
+        for (Map::value_type& pair : *extra.extra_) {
+            Extend(std::move(pair.first), std::move(pair.second));
+        }
         extra.extra_->clear();
     }
 }
@@ -115,27 +118,37 @@ LogExtra LogExtra::Stacktrace() noexcept { return GetStacktrace({}); }
 LogExtra LogExtra::Stacktrace(logging::LoggerRef logger) noexcept { return GetStacktrace(logger, {}); }
 
 const std::pair<LogExtra::Key, LogExtra::ProtectedValue>* LogExtra::Find(std::string_view key) const {
-    for (const auto& it : *extra_)
-        if (it.first == key) return &it;
+    for (const auto& it : *extra_) {
+        if (it.first == key) {
+            return &it;
+        }
+    }
     return nullptr;
 }
 
 std::pair<LogExtra::Key, LogExtra::ProtectedValue>* LogExtra::Find(std::string_view key) {
-    for (auto& it : *extra_)
-        if (it.first == key) return &it;
+    for (auto& it : *extra_) {
+        if (it.first == key) {
+            return &it;
+        }
+    }
     return nullptr;
 }
 
 void LogExtra::SetFrozen(std::string_view key) {
     auto* it = Find(key);
-    if (!it) throw std::runtime_error(fmt::format("can't set frozen for non-existing key '{}'", key));
+    if (!it) {
+        throw std::runtime_error(fmt::format("can't set frozen for non-existing key '{}'", key));
+    }
     it->second.SetFrozen();
 }
 
 const LogExtra::Value& LogExtra::GetValue(std::string_view key) const {
     static const LogExtra::Value kEmpty{};
     const auto* it = Find(key);
-    if (!it) return kEmpty;
+    if (!it) {
+        return kEmpty;
+    }
     return it->second.GetValue();
 }
 
@@ -153,12 +166,15 @@ void LogExtra::Extend(std::string key, ProtectedValue protected_value, ExtendTyp
     if (!it) {
         extra_->emplace_back(
             std::move(key),
-            extend_type == ExtendType::kFrozen ? ProtectedValue(std::move(protected_value.GetValue()), true)
-                                               : std::move(protected_value)
+            extend_type == ExtendType::kFrozen
+                ? ProtectedValue(std::move(protected_value.GetValue()), true)
+                : std::move(protected_value)
         );
     } else {
-        it->second = extend_type == ExtendType::kFrozen ? ProtectedValue(std::move(protected_value.GetValue()), true)
-                                                        : std::move(protected_value);
+        it->second =
+            extend_type == ExtendType::kFrozen
+                ? ProtectedValue(std::move(protected_value.GetValue()), true)
+                : std::move(protected_value);
     }
 }
 
@@ -166,19 +182,28 @@ void LogExtra::Extend(Map::value_type extra, ExtendType extend_type) {
     Extend(std::move(extra.first), std::move(extra.second), extend_type);
 }
 
-LogExtra::ProtectedValue::ProtectedValue(Value value, bool frozen) : value_(std::move(value)), frozen_(frozen) {}
+LogExtra::ProtectedValue::ProtectedValue(Value value, bool frozen)
+    : value_(std::move(value)),
+      frozen_(frozen)
+{}
 
 LogExtra::ProtectedValue& LogExtra::ProtectedValue::operator=(const ProtectedValue& other) {
-    if (this == &other) return *this;
+    if (this == &other) {
+        return *this;
+    }
 
-    if (frozen_) return *this;
+    if (frozen_) {
+        return *this;
+    }
     value_ = other.GetValue();
     frozen_ = other.frozen_;
     return *this;
 }
 
 LogExtra::ProtectedValue& LogExtra::ProtectedValue::operator=(ProtectedValue&& other) noexcept {
-    if (frozen_) return *this;
+    if (frozen_) {
+        return *this;
+    }
     value_ = std::move(other.GetValue());
     frozen_ = other.frozen_;
     return *this;

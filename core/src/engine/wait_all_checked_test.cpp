@@ -193,7 +193,8 @@ UTEST(WaitAllChecked, DeadlineCancelledBefore) {
 UTEST(WaitAllChecked, DeadlineTimeoutUntil) {
     auto task = SlowSuccessfulTask();
     EXPECT_EQ(
-        engine::WaitAllCheckedUntil(std::chrono::steady_clock::now() + 10ms, task), engine::FutureStatus::kTimeout
+        engine::WaitAllCheckedUntil(std::chrono::steady_clock::now() + 10ms, task),
+        engine::FutureStatus::kTimeout
     );
 }
 

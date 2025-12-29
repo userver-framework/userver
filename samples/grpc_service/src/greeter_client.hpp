@@ -56,7 +56,9 @@ public:
     using Base = ugrpc::client::SimpleClientComponent<api::GreeterServiceClient>;
 
     GreeterClientComponent(const ::components::ComponentConfig& config, const ::components::ComponentContext& context)
-        : Base(config, context, kGreeterClientQos), client_wrapper_(GetClient()) {}
+        : Base(config, context, kGreeterClientQos),
+          client_wrapper_(GetClient())
+    {}
 
     using Base::GetClient;
 

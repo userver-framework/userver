@@ -18,8 +18,6 @@ struct DynamicDebugConfig;
 
 namespace components {
 
-// clang-format off
-
 /// @ingroup userver_components
 ///
 /// @brief Helper component to configure logging.
@@ -31,21 +29,19 @@ namespace components {
 /// * @ref USERVER_LOG_DYNAMIC_DEBUG
 /// * @ref USERVER_NO_LOG_SPANS
 ///
-/// ## Static options:
-/// Name | Description | Default value
-/// ---- | ----------- | -------------
-/// limited-logging-enable | set to true to make LOG_LIMITED drop repeated logs | -
-/// limited-logging-interval | utils::StringToDuration suitable duration string to group repeated logs into one message | -
+/// ## Static options of components::LoggingConfigurator :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/logging_configurator.md
+///
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
 ///
 /// ## Config example:
 ///
 /// @snippet components/common_component_list_test.cpp Sample logging configurator component config
-
-// clang-format on
 class LoggingConfigurator final : public RawComponentBase {
 public:
     /// @ingroup userver_component_names
-    /// @brief The default name of components::LoggingConfigurator component
+    /// @brief The default name of @ref components::LoggingConfigurator component
     static constexpr std::string_view kName = "logging-configurator";
 
     LoggingConfigurator(const ComponentConfig& config, const ComponentContext& context);

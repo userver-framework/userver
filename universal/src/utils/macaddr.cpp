@@ -68,7 +68,13 @@ Macaddr MacaddrFromString(const std::string& str) {
 std::string MacaddrToString(Macaddr macaddr) {
     const auto octets = macaddr.GetOctets();
     return fmt::sprintf(
-        "%02x:%02x:%02x:%02x:%02x:%02x", octets[0], octets[1], octets[2], octets[3], octets[4], octets[5]
+        "%02x:%02x:%02x:%02x:%02x:%02x",
+        octets[0],
+        octets[1],
+        octets[2],
+        octets[3],
+        octets[4],
+        octets[5]
     );
 }
 

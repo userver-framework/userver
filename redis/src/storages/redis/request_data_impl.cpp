@@ -6,7 +6,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::redis::impl {
 
-void Wait(impl::Request& request) {
+void Wait(impl::Request& request) noexcept {
     try {
         request.Get();
     } catch (const std::exception& ex) {

@@ -300,7 +300,9 @@ TYPED_TEST(Decimal64HalfRoundPolicy, Division) {
     EXPECT_EQ(Dec{-22} / Dec{-5}, Dec{4});
     EXPECT_EQ(Dec{-23} / Dec{-5}, Dec{5});
 
-    if constexpr (std::is_same_v<TypeParam, decimal64::HalfDownRoundPolicy> || std::is_same_v<TypeParam, decimal64::HalfEvenRoundPolicy>) {
+    if constexpr (std::is_same_v<TypeParam, decimal64::HalfDownRoundPolicy> ||
+                  std::is_same_v<TypeParam, decimal64::HalfEvenRoundPolicy>)
+    {
         EXPECT_EQ(Dec{25} / Dec{10}, Dec{2});
         EXPECT_EQ(Dec{-25} / Dec{10}, Dec{-2});
         EXPECT_EQ(Dec{25} / Dec{-10}, Dec{-2});

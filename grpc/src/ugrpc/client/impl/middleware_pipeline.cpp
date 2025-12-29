@@ -1,5 +1,7 @@
 #include <userver/ugrpc/client/impl/middleware_pipeline.hpp>
 
+#include <boost/range/adaptor/reversed.hpp>
+
 #include <userver/logging/log.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -8,8 +10,14 @@ namespace ugrpc::client::impl {
 
 void MiddlewarePipeline::Run(const MiddlewareHooks& hooks, MiddlewareCallContext& context) const {
     try {
-        for (const auto& m : middlewares_) {
-            hooks.Run(*m, context);
+        if (!hooks.Reverse()) {
+            for (const auto& m : middlewares_) {
+                hooks.Run(*m, context);
+            }
+        } else {
+            for (const auto& m : boost::adaptors::reverse(middlewares_)) {
+                hooks.Run(*m, context);
+            }
         }
     } catch (const std::exception& ex) {
         LOG_WARNING() << "Run middlewares failed: " << ex;

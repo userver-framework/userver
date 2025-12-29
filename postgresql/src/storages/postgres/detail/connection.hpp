@@ -212,19 +212,25 @@ public:
 
     //@{
     /** @name Command sending interface */
-    ResultSet
-    Execute(const Query& query, const detail::QueryParameters& = {}, OptionalCommandControl statement_cmd_ctl = {});
+    ResultSet Execute(
+        const Query& query,
+        const detail::QueryParameters& = {},
+        OptionalCommandControl statement_cmd_ctl = {}
+    );
 
     struct PreparedStatementMeta final {
-        std::string statement_name;
+        std::string meta_statement_name;
         ResultSet description;
     };
-    PreparedStatementMeta
-    PrepareStatement(const Query& query, const detail::QueryParameters& params, TimeoutDuration timeout);
+    PreparedStatementMeta PrepareStatement(
+        const Query& query,
+        const detail::QueryParameters& params,
+        TimeoutDuration timeout
+    );
 
     void AddIntoPipeline(
         CommandControl cc,
-        const std::string& prepared_statement_name,
+        const std::string& meta_statement_name,
         const detail::QueryParameters& params,
         const ResultSet& description,
         tracing::ScopeTime& scope
@@ -251,7 +257,7 @@ public:
     ResultSet Execute(CommandControl statement_cmd_ctl, const Query& query, const ParameterStore& store);
 
     StatementId PortalBind(
-        USERVER_NAMESPACE::utils::zstring_view statement,
+        const Query& query,
         const std::string& portal_name,
         const detail::QueryParameters& params,
         OptionalCommandControl

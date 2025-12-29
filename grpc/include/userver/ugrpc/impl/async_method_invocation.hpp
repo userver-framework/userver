@@ -20,8 +20,6 @@ public:
     /// @see EventBase::Notify
     void Notify(bool ok) noexcept override;
 
-    bool IsBusy() const noexcept;
-
     enum class WaitStatus {
         kOk,
         kError,
@@ -40,6 +38,10 @@ public:
     ///          information regarding readiness
     [[nodiscard]] WaitStatus WaitUntil(engine::Deadline deadline) noexcept;
 
+    /// @brief For use from coroutines
+    /// @return `bool ok` returned by `grpc::CompletionQueue::Next`, ignoring task cancellations.
+    [[nodiscard]] bool WaitNonCancellable() noexcept;
+
     /// @brief Checks if the asynchronous call has completed
     /// @return true if event returned from `grpc::CompletionQueue::Next`
     [[nodiscard]] bool IsReady() const noexcept;
@@ -48,12 +50,10 @@ public:
     // For internal use only.
     engine::impl::ContextAccessor* TryGetContextAccessor() noexcept;
     /// @endcond
-protected:
-    void WaitWhileBusy() noexcept;
 
 private:
+    bool enqueued_{false};
     bool ok_{false};
-    bool busy_{false};
     engine::SingleUseEvent event_;
 };
 

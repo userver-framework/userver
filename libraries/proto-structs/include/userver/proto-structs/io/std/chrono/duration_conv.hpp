@@ -21,7 +21,8 @@ std::chrono::duration<TRep, TPeriod> ReadProtoStruct(
     ReadContext& ctx,
     To<std::chrono::duration<TRep, TPeriod>>,
     const ::google::protobuf::Duration& msg
-) try {
+) try
+{
     using ChronoDuration = std::chrono::duration<TRep, TPeriod>;
     return Duration(::utils::impl::InternalTag{}, msg.seconds(), msg.nanos()).ToChronoDuration<ChronoDuration>();
 } catch (const ValueError& e) {
@@ -34,7 +35,8 @@ void WriteProtoStruct(
     WriteContext& ctx,
     const std::chrono::duration<TRep, TPeriod>& obj,
     ::google::protobuf::Duration& msg
-) try {
+) try
+{
     Duration duration{obj};
     msg.set_seconds(duration.Seconds().count());
     msg.set_nanos(static_cast<std::int32_t>(duration.Nanos().count()));

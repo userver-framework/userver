@@ -23,7 +23,9 @@ namespace impl {
 
 template <typename T, typename Equal>
 struct MutexDatum final {
-    explicit MutexDatum(size_t way_size, const Equal& equal = Equal{}) : set(way_size, {}, equal) {}
+    explicit MutexDatum(size_t way_size, const Equal& equal = Equal{})
+        : set(way_size, {}, equal)
+    {}
 
     ~MutexDatum() { UASSERT_MSG(set.empty(), "MutexDatum is destroyed while someone is holding the lock"); }
 
@@ -97,7 +99,9 @@ private:
 
 template <typename Key, typename Hash, typename Equal>
 MutexSet<Key, Hash, Equal>::MutexSet(size_t ways, size_t way_size, const Hash& hash, const Equal& equal)
-    : Hash(hash), mutex_data_(ways, way_size, utils::CachedHashKeyEqual<Equal>{equal}) {}
+    : Hash(hash),
+      mutex_data_(ways, way_size, utils::CachedHashKeyEqual<Equal>{equal})
+{}
 
 template <typename Key, typename Hash, typename Equal>
 ItemMutex<Key, Equal> MutexSet<Key, Hash, Equal>::GetMutexForKey(Key key) {
@@ -112,7 +116,10 @@ ItemMutex<Key, Equal> MutexSet<Key, Hash, Equal>::GetMutexForKey(Key key) {
 }
 
 template <typename Key, typename Equal>
-ItemMutex<Key, Equal>::ItemMutex(MutexDatum& md, HashAndKey&& key) : md_(md), key_(std::move(key)) {}
+ItemMutex<Key, Equal>::ItemMutex(MutexDatum& md, HashAndKey&& key)
+    : md_(md),
+      key_(std::move(key))
+{}
 
 template <typename Key, typename Equal>
 void ItemMutex<Key, Equal>::lock() {

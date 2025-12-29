@@ -1,0 +1,144 @@
+type: object
+description: Kafka consumer component
+additionalProperties: false
+properties:
+    group_id:
+        type: string
+        description: |
+            consumer group id.
+            Topic partition evenly distributed
+            between consumers with the same `group_id`
+    client_id:
+        type: string
+        description: |
+            Client identifier.
+            May be an arbitrary string.
+            Optional, but you should set this property on each instance
+            because it enables you to more easily correlate requests on the broker
+            with the client instance which made it,
+            which can be helpful in debugging and troubleshooting scenarios.
+        default: userver
+    topics:
+        type: array
+        description: list of topics consumer subscribes
+        items:
+            type: string
+            description: topic name
+    max_batch_size:
+        type: integer
+        description: maximum number of messages consumer waits for new messages before
+            calling a callback
+        default: 1
+    poll_timeout:
+        type: string
+        description: maximum amount of time consumer waits for new messages before
+            calling a callback
+        default: 1s
+    message_key_log_format:
+        type: string
+        enum:
+          - plaintext
+          - hex
+        description: |
+            Specifies the logging format for the message key.
+            - 'plaintext': logs the message key as-is.
+            - 'hex': logs the message key in hexadecimal format.
+        default: plaintext
+    max_callback_duration:
+        type: string
+        description: |
+            duration user callback must fit not to be kicked from the consumer group.
+            The duration must fit in [1ms; 86400000ms]
+        default: 5m
+    restart_after_failure_delay:
+        type: string
+        description: backoff consumer waits until restart after user-callback exception.
+        default: 10s
+    auto_offset_reset:
+        type: string
+        description: |
+            action to take when there is no
+            initial offset in offset store
+            or the desired offset is out of range:
+            `smallest`, `earliest`, `beginning` - automatically reset
+            the offset to the smallest offset
+            `largest`, `latest`, `end` - automatically reset
+            the offset to the largest offset,
+            `error` - trigger an error (ERR__AUTO_OFFSET_RESET).
+            Note: the policy applies iff there are not committed
+            offsets in topic
+        enum:
+          - smallest
+          - earliest
+          - beginning
+          - largest
+          - latest
+          - end
+          - error
+    env_pod_name:
+        type: string
+        description: |
+            if defined and `group_id` value contains
+            `{pod_name}` substring, the substring
+            is replaced with the value of the environment
+            variable `env_pod_name`
+        default: none
+    security_protocol:
+        type: string
+        description: protocol used to communicate with brokers
+        enum:
+          - PLAINTEXT
+          - SASL_SSL
+          - SASL_PLAINTEXT
+          - SSL
+    sasl_mechanisms:
+        type: string
+        description: |
+            SASL mechanism to use for authentication.
+            Must be set if `security_protocol` equals `SASL_SSL`
+        default: none
+        enum:
+          - PLAIN
+          - SCRAM-SHA-512
+    ssl_ca_location:
+        type: string
+        description: |
+            file or directory path to CA certificate(s) for verifying the broker's key.
+            Must be set if `security_protocol` equals `SASL_SSL` or `SSL`.
+            If set to `probe`, CA certificates are probed from the default certificates paths
+        default: none
+    topic_metadata_refresh_interval:
+        type: string
+        description: |
+            period of time at which
+            topic and broker metadata is refreshed
+            in order to discover any new brokers,
+            topics, partitions or partition leader changes
+        default: 5m
+    metadata_max_age:
+        type: string
+        description: |
+            metadata cache max age.
+            Recommended value is 3 times `topic_metadata_refresh_interval`
+        default: 15m
+    rd_kafka_custom_options:
+        type: object
+        description: |
+            a map of arbitrary `librdkafka` library configuration options.
+            Full list of options is available by link: https://github.com/confluentinc/librdkafka/blob/master/CONFIGURATION.md.
+            Note: This options is not guaranteed to be supported in userver-kafka, use it at your own risk
+        properties: {}
+        additionalProperties:
+            type: string
+            description: librdkafka option value
+        default: {}
+    debug_info_log_level:
+        type: string
+        description: |
+            log level for everything debug information
+        default: debug
+    operation_log_level:
+        type: string
+        description: |
+            log level for infos about ordinary actions
+        default: debug

@@ -12,28 +12,25 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::websocket {
 
-// clang-format off
-
 /// @ingroup userver_components userver_http_handlers userver_base_classes
 ///
 /// @brief Base class for WebSocket handler
 ///
-/// ## Static options:
-/// Inherits all the options from server::handlers::HandlerBase and adds the
-/// following ones:
+/// ## Static options of server::websocket::WebsocketHandlerBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/server/websocket/websocket_handler.md
 ///
-/// Name | Description | Default value
-/// ---- | ----------- | -------------
-/// log-level | overrides log level for this handle | `<no override>`
-/// status-codes-log-level | map of "status": log_level items to override span log level for specific status codes | {}
-/// max-remote-payload | max remote payload size | 65536
-/// fragment-size | max output fragment size | 65536
+/// Options inherited from @ref server::handlers::HttpHandlerBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/server/handlers/http_handler_base.md
+///
+/// Options inherited from @ref server::handlers::HandlerBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/server/handlers/handler_base.md
+///
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
 ///
 /// ## Example usage:
 ///
 /// @snippet samples/websocket_service/main.cpp Websocket service sample - component
-
-// clang-format on
 class WebsocketHandlerBase : public server::handlers::HttpHandlerBase {
 public:
     WebsocketHandlerBase(const components::ComponentConfig&, const components::ComponentContext&);

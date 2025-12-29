@@ -25,9 +25,8 @@ std::unordered_map<TKey, TValue, THash, TKeyEqual, TAllocator> ReadProtoField(
     int field_number,
     const ::google::protobuf::Map<TProtoKey, TProtoValue>& message_field
 ) {
-    return impl::ReadMap<std::unordered_map<TKey, TValue, THash, TKeyEqual, TAllocator>>(
-        ctx, field_number, message_field
-    );
+    return impl::ReadMap<
+        std::unordered_map<TKey, TValue, THash, TKeyEqual, TAllocator>>(ctx, field_number, message_field);
 }
 
 template <

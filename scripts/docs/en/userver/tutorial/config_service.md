@@ -10,7 +10,6 @@ An ability to change service behavior at runtime without restarting the service 
 
 * to control logging (@ref USERVER_NO_LOG_SPANS, @ref USERVER_LOG_REQUEST, @ref USERVER_LOG_REQUEST_HEADERS, @ref USERVER_LOG_REQUEST_HEADERS_WHITELIST)
 * to control RPS and deal with high loads (@ref HTTP_CLIENT_CONNECT_THROTTLE, @ref USERVER_RPS_CCONTROL, @ref USERVER_TASK_PROCESSOR_QOS)
-* to dynamically switch from one HTTP proxy to another or turn off proxying (@ref USERVER_HTTP_PROXY)
 * to write your own runtime dynamic configs:
   * to create experiments that could be adjusted or turned on/off without service restarts
   * to do whatever you like
@@ -28,8 +27,6 @@ In previous example we made a simple HTTP server with some dynamic configs set i
         http-retries: 5
         http-timeout: 20s
         service-name: configs-service
-        fallback-to-no-proxy: false    # On error do not attempt to retrieve configs 
-                                       # by bypassing proxy from USERVER_HTTP_PROXY dynamic config
 
     dynamic-config-client-updater:        # A component that periodically uses `dynamic-config-client` to retrieve new values
         update-interval: 5s            # Request for new configs every 5 seconds
@@ -131,8 +128,7 @@ $ curl -X POST -d '{}' 127.0.0.1:8083/configs/values | jq
     },
     "USERVER_TASK_PROCESSOR_PROFILER_DEBUG": {},
     "USERVER_LOG_REQUEST_HEADERS": true,
-    "USERVER_CANCEL_HANDLE_REQUEST_BY_DEADLINE": false,
-    "USERVER_HTTP_PROXY": ""
+    "USERVER_CANCEL_HANDLE_REQUEST_BY_DEADLINE": false
   },
   "updated_at": "2021-06-29T14:15:31.173239295+0000"
 }

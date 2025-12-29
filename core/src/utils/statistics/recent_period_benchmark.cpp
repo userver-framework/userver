@@ -16,15 +16,15 @@ using CoarseClock = utils::datetime::SteadyCoarseClock;
 template <typename Clock>
 using RecentPeriod = utils::statistics::RecentPeriod<Percentile, Percentile, Clock>;
 
-RecentPeriod<DefaultClock> gRecentPeriodDefaultClock{};
-RecentPeriod<CoarseClock> gRecentPeriodCoarseClock{};
+RecentPeriod<DefaultClock> recent_period_default_clock{};
+RecentPeriod<CoarseClock> recent_period_coarse_clock{};
 
 template <typename Clock>
 auto& GetRecentPeriod() {
     if constexpr (std::is_same_v<Clock, DefaultClock>) {
-        return gRecentPeriodDefaultClock;
+        return recent_period_default_clock;
     } else if constexpr (std::is_same_v<Clock, CoarseClock>) {
-        return gRecentPeriodCoarseClock;
+        return recent_period_coarse_clock;
     } else {
         static_assert(!sizeof(Clock));
     }

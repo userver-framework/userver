@@ -25,8 +25,8 @@ using AccumulatedDataByCollection = std::unordered_map<std::string, AccumulatedD
 AccumulatedData operator-(const AccumulatedData& lhs, const AccumulatedData& rhs) noexcept;
 bool operator<(const AccumulatedData& lhs, const AccumulatedData& rhs) noexcept;
 
-AccumulatedDataByCollection
-operator-(const AccumulatedDataByCollection& lhs, const AccumulatedDataByCollection& rhs) noexcept;
+AccumulatedDataByCollection operator-(const AccumulatedDataByCollection& lhs, const AccumulatedDataByCollection& rhs)
+    noexcept;
 
 class Sensor final : public congestion_control::v2::Sensor {
 public:

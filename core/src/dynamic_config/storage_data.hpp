@@ -28,11 +28,17 @@ public:
 
     DiffChannel& GetDiffChannel();
 
-    concurrent::AsyncEventSubscriberScope
-    DoUpdateAndListen(concurrent::FunctionId id, std::string_view name, SnapshotChannel::Function&& func);
+    concurrent::AsyncEventSubscriberScope DoUpdateAndListen(
+        concurrent::FunctionId id,
+        std::string_view name,
+        SnapshotChannel::Function&& func
+    );
 
-    concurrent::AsyncEventSubscriberScope
-    DoUpdateAndListen(concurrent::FunctionId id, std::string_view name, DiffChannel::Function&& func);
+    concurrent::AsyncEventSubscriberScope DoUpdateAndListen(
+        concurrent::FunctionId id,
+        std::string_view name,
+        DiffChannel::Function&& func
+    );
 
 private:
     Snapshot GetSnapshot() { return Snapshot{*this}; }

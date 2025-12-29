@@ -32,18 +32,26 @@ StatsCounters& GetCountersForTransaction(Stats& stats, const std::string& tx_nam
 
 }  // namespace
 
-StatsScope::StatsScope(Stats& stats, const Query& query) : StatsScope(GetCountersForQuery(stats, query)) {}
+StatsScope::StatsScope(Stats& stats, const Query& query)
+    : StatsScope(GetCountersForQuery(stats, query))
+{}
 
 StatsScope::StatsScope(TransactionTag, Stats& stats, const std::string& tx_name)
-    : StatsScope(GetCountersForTransaction(stats, tx_name)) {}
+    : StatsScope(GetCountersForTransaction(stats, tx_name))
+{}
 
-StatsScope::StatsScope(StatsCounters& stats) : stats_(stats), start_(utils::datetime::SteadyNow()) {}
+StatsScope::StatsScope(StatsCounters& stats)
+    : stats_(stats),
+      start_(utils::datetime::SteadyNow())
+{}
 
 StatsScope::StatsScope(StatsScope&& other) noexcept
     : stats_(other.stats_), start_(other.start_), is_active_(std::exchange(other.is_active_, false)) {}
 
 StatsScope::~StatsScope() {
-    if (!is_active_) return;
+    if (!is_active_) {
+        return;
+    }
 
     const auto end = utils::datetime::SteadyNow();
     const auto total_time = end - start_;

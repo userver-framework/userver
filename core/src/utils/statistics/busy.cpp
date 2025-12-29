@@ -37,7 +37,9 @@ private:
 };
 
 struct BusyStorage::Impl {
-    Impl(Duration epoch_duration, Duration history_period) : recent_period(epoch_duration, history_period) {}
+    Impl(Duration epoch_duration, Duration history_period)
+        : recent_period(epoch_duration, history_period)
+    {}
 
     RecentPeriod<BusyCounter, BusyResult, Timer> recent_period;
     std::atomic<Timer::time_point> start_work{Timer::time_point{}};
@@ -49,7 +51,8 @@ struct BusyStorage::Impl {
 };
 
 BusyStorage::BusyStorage(Duration epoch_duration, Duration history_period)
-    : pimpl_(std::make_unique<Impl>(epoch_duration, history_period)) {}
+    : pimpl_(std::make_unique<Impl>(epoch_duration, history_period))
+{}
 
 BusyStorage::~BusyStorage() { UASSERT_MSG(!IsAlreadyStarted(), "BusyStorage was not stopped before destruction"); }
 
@@ -60,7 +63,9 @@ double BusyStorage::GetCurrentLoad() const {
 
     const auto result = pimpl_->recent_period.GetStatsForPeriod(Timer::duration::min(), true);
     auto duration = result.Total();
-    if (duration.count() == 0) duration = pimpl_->recent_period.GetMaxDuration();
+    if (duration.count() == 0) {
+        duration = pimpl_->recent_period.GetMaxDuration();
+    }
 
     auto load_duration = result.Get() + std::min(current_load_duration, duration);
     return static_cast<double>(load_duration.count()) / duration.count();

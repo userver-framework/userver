@@ -4,6 +4,7 @@
 
 #include <cache/cache_dependencies.hpp>
 #include <cache/cache_update_trait_impl.hpp>
+#include <userver/components/scope.hpp>
 #include <userver/dump/helpers.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -14,12 +15,24 @@ CacheUpdateTrait::CacheUpdateTrait(
     const components::ComponentConfig& config,
     const components::ComponentContext& context
 )
-    : CacheUpdateTrait(CacheDependencies::Make(config, context)) {}
+    : CacheUpdateTrait(CacheDependencies::Make(config, context))
+{
+    context.RegisterScope(components::MakeScope([this] {
+        StartPeriodicUpdates();
+        return utils::FastScopeGuard([this]() noexcept { StopPeriodicUpdates(); });
+    }));
+}
 
 CacheUpdateTrait::CacheUpdateTrait(CacheDependencies&& dependencies)
-    : impl_(std::make_unique<Impl>(std::move(dependencies), *this)) {}
+    : impl_(std::make_unique<Impl>(std::move(dependencies), *this))
+{}
 
-CacheUpdateTrait::~CacheUpdateTrait() = default;
+CacheUpdateTrait::~CacheUpdateTrait()
+{
+    // In case of tests scope is not registered,
+    // and updates must be explicitly stopped here
+    StopPeriodicUpdates();
+}
 
 void CacheUpdateTrait::UpdateSyncDebug(UpdateType update_type) { impl_->UpdateSyncDebug(update_type); }
 
@@ -29,13 +42,19 @@ const std::string& CacheUpdateTrait::Name() const { return impl_->Name(); }
 
 AllowedUpdateTypes CacheUpdateTrait::GetAllowedUpdateTypes() const { return impl_->GetAllowedUpdateTypes(); }
 
-void CacheUpdateTrait::StartPeriodicUpdates(utils::Flags<Flag> flags) { impl_->StartPeriodicUpdates(flags); }
+void CacheUpdateTrait::EarlyStartPeriodicUpdates(utils::Flags<Flag> flags)
+{
+    impl_->StartPeriodicUpdates(flags);
+}
+
+void CacheUpdateTrait::EarlyStopPeriodicUpdates()
+{
+    impl_->StopPeriodicUpdates();
+}
+
+void CacheUpdateTrait::StartPeriodicUpdates() { impl_->StartPeriodicUpdates(GetStartFlags()); }
 
 void CacheUpdateTrait::StopPeriodicUpdates() { impl_->StopPeriodicUpdates(); }
-
-void CacheUpdateTrait::AssertPeriodicUpdateStarted() { impl_->AssertPeriodicUpdateStarted(); }
-
-void CacheUpdateTrait::AssertPeriodicUpdateStopped() { impl_->AssertPeriodicUpdateStopped(); }
 
 void CacheUpdateTrait::OnCacheModified() { impl_->OnCacheModified(); }
 
@@ -48,6 +67,8 @@ void CacheUpdateTrait::SetDataSizeStatistic(std::size_t size) noexcept { impl_->
 rcu::ReadablePtr<Config> CacheUpdateTrait::GetConfig() const { return impl_->GetConfig(); }
 
 engine::TaskProcessor& CacheUpdateTrait::GetCacheTaskProcessor() const { return impl_->GetCacheTaskProcessor(); }
+
+utils::Flags<CacheUpdateTrait::Flag> CacheUpdateTrait::GetStartFlags() const { return {}; }
 
 void CacheUpdateTrait::MarkAsExpired() {}
 

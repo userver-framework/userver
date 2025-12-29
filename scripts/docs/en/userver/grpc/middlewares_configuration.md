@@ -23,7 +23,8 @@ Then register these components in @ref components::ComponentList. See `sample::g
 
 The static yaml config of middleware. You must add middleware to the config `grpc-server-middlewares-pipeline`, otherwise the middleware will be disabled everywhere.
 
-```yaml
+```
+# yaml
         grpc-server-meta-filter:
             headers:
               - global-header
@@ -53,7 +54,8 @@ You can override a middleware config like overriding an `enabled` option.
 
 Example.
 
-```yaml
+```
+# yaml
         grpc-server-meta-filter:
             headers:
               - global-header

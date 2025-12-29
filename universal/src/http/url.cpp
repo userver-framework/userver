@@ -149,13 +149,17 @@ std::string MakeUrl(std::string_view path, const Args& query_args, MultiArgs que
     return MakeUrl(path, query_multiargs.begin(), query_multiargs.end());
 }
 
-std::string
-MakeUrl(std::string_view path, std::initializer_list<std::pair<std::string_view, std::string_view>> query_args) {
+std::string MakeUrl(
+    std::string_view path,
+    std::initializer_list<std::pair<std::string_view, std::string_view>> query_args
+) {
     return MakeUrl(path, query_args.begin(), query_args.end());
 }
 
-std::string
-MakeUrl(std::string_view path, const std::vector<std::pair<std::string_view, std::string_view>>& query_args) {
+std::string MakeUrl(
+    std::string_view path,
+    const std::vector<std::pair<std::string_view, std::string_view>>& query_args
+) {
     return MakeUrl(path, query_args.begin(), query_args.end());
 }
 
@@ -194,8 +198,11 @@ std::optional<std::string> MakeUrlWithPathArgs(std::string_view path_template, c
     }
 }
 
-std::optional<std::string>
-MakeUrlWithPathArgs(std::string_view path, const PathArgs& path_args, const Args& query_args) {
+std::optional<std::string> MakeUrlWithPathArgs(
+    std::string_view path,
+    const PathArgs& path_args,
+    const Args& query_args
+) {
     return MakeUrlWithPathArgsImpl(path, path_args, query_args.begin(), query_args.end());
 }
 
@@ -229,7 +236,9 @@ std::optional<std::string> MakeUrlWithPathArgs(
 
 std::string_view ExtractMetaTypeFromUrlView(std::string_view url) {
     auto pos = url.find(kQuerySeparator);
-    if (pos == std::string::npos) return url;
+    if (pos == std::string::npos) {
+        return url;
+    }
 
     return url.substr(0, pos);
 }

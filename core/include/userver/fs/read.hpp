@@ -3,39 +3,17 @@
 /// @file userver/fs/read.hpp
 /// @brief functions for asynchronous file read operations
 
-#include <memory>
 #include <string>
-#include <unordered_map>
 
 #include <userver/engine/task/task_processor_fwd.hpp>
-#include <userver/utils/flags.hpp>
+#include <userver/fs/file_info_with_data.hpp>
+#include <userver/fs/path_utils.hpp>
+#include <userver/fs/settings_read_file.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 /// @brief filesystem support
 namespace fs {
-
-/// @brief Struct file with load data
-struct FileInfoWithData {
-    std::string data;
-    std::string extension;
-};
-
-using FileInfoWithDataConstPtr = std::shared_ptr<const FileInfoWithData>;
-using FileInfoWithDataMap = std::unordered_map<std::string, FileInfoWithDataConstPtr>;
-
-enum class SettingsReadFile {
-    kNone = 0,
-    /// Skip hidden files,
-    kSkipHidden = 1 << 0,
-};
-
-/// @brief Returns relative path from full path
-/// @param path full path, must start with `dir`
-/// @param dir directory path to get relative path
-/// @note it does not access filesystem, the relative path is calculated
-/// lexically.
-std::string GetLexicallyRelative(std::string_view path, std::string_view dir);
 
 /// @brief Returns files from recursively traversed directory
 /// @param async_tp TaskProcessor for synchronous waiting
@@ -47,7 +25,7 @@ std::string GetLexicallyRelative(std::string_view path, std::string_view dir);
 FileInfoWithDataMap ReadRecursiveFilesInfoWithData(
     engine::TaskProcessor& async_tp,
     const std::string& path,
-    utils::Flags<SettingsReadFile> flags = {SettingsReadFile::kSkipHidden}
+    SettingReadFileFlags flags = {SettingsReadFile::kSkipHidden}
 );
 
 /// @brief Reads file contents asynchronously

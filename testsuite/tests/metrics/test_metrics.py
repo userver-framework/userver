@@ -1,5 +1,4 @@
 import math
-import typing
 
 import pytest
 from pytest_userver import metrics  # pylint: disable=import-error
@@ -283,9 +282,9 @@ def test_handmade_metrics_to_json():
 
 
 def _make_differ(
-    path: typing.Optional[str] = None,
-    prefix: typing.Optional[str] = None,
-    labels: typing.Optional[typing.Dict[str, str]] = None,
+    path: str | None = None,
+    prefix: str | None = None,
+    labels: dict[str, str] | None = None,
     diff_gauge: bool = False,
 ) -> pytest_userver.client.MetricsDiffer:
     # Note: private API, do not construct MetricsDiffer like this!

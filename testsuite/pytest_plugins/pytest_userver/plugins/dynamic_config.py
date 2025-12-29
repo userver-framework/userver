@@ -3,12 +3,11 @@ Supply dynamic configs for the service in testsuite.
 """
 
 # pylint: disable=redefined-outer-name
+from collections.abc import Callable
+from collections.abc import Iterable
 import dataclasses
 import json
 import pathlib
-from typing import Callable
-from typing import Iterable
-from typing import Optional
 
 import pytest
 
@@ -188,7 +187,7 @@ def config_service_defaults(
 
 @dataclasses.dataclass(frozen=False)
 class _ConfigDefaults:
-    snapshot: Optional[dynconf.ConfigValuesDict]
+    snapshot: dynconf.ConfigValuesDict | None
 
     async def update(self, client, dynamic_config) -> None:
         if self.snapshot is None:

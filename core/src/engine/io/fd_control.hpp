@@ -103,7 +103,9 @@ public:
 
 private:
     friend class FdControl;
-    explicit Direction(const ev::ThreadControl& control) : poller_(control) {}
+    explicit Direction(const ev::ThreadControl& control)
+        : poller_(control)
+    {}
 
     void Reset(int fd, Kind kind) { poller_.Reset(fd, kind); }
 
@@ -113,8 +115,13 @@ private:
     void Invalidate() { poller_.Invalidate(); }
 
     template <typename... Context>
-    ErrorMode
-    TryHandleError(int error_code, size_t processed_bytes, TransferMode mode, Deadline deadline, Context&... context);
+    ErrorMode TryHandleError(
+        int error_code,
+        size_t processed_bytes,
+        TransferMode mode,
+        Deadline deadline,
+        Context&... context
+    );
 
     FdPoller poller_;
 };
@@ -161,12 +168,12 @@ ErrorMode Direction::TryHandleError(
 ) {
     if (error_code == EINTR) {
         return ErrorMode::kProcessed;
-    } else if (
-        error_code == EWOULDBLOCK
+    } else if (error_code == EWOULDBLOCK
 #if EWOULDBLOCK != EAGAIN
-        || error_code == EAGAIN
+               || error_code == EAGAIN
 #endif
-    ) {
+    )
+    {
         if (processed_bytes != 0 && mode != TransferMode::kWhole) {
             return ErrorMode::kFatal;
         }
@@ -236,7 +243,9 @@ size_t Direction::PerformIoV(
                     break;
                 }
             }
-        } else if (!chunk_size || TryHandleError(errno, processed_bytes, mode, deadline, context...) == ErrorMode::kFatal) {
+        } else if (!chunk_size ||
+                   TryHandleError(errno, processed_bytes, mode, deadline, context...) == ErrorMode::kFatal)
+        {
             break;
         }
     } while (list_size != 0);

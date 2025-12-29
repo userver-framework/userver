@@ -50,11 +50,21 @@ void LogConfiguration(std::string_view component_name, const std::vector<std::st
 
 void LogValidateError(std::string_view middleware_name, const std::exception& e);
 
+yaml_config::Schema GetMiddlewareFactoryComponentBaseSchema();
+
+yaml_config::Schema GetRunnerComponentBaseSchema();
+
 }  // namespace impl
 
 /// @ingroup userver_base_classes
 ///
 /// @brief Base class for middleware factory component.
+///
+/// ## Static options of middlewares::MiddlewareFactoryComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/middlewares/factory_component_base.md
+///
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
 template <typename MiddlewareBaseType, typename HandlerInfo>
 class MiddlewareFactoryComponentBase : public impl::WithMiddlewareDependencyComponentBase {
 public:
@@ -67,7 +77,8 @@ public:
     )
         : impl::WithMiddlewareDependencyComponentBase(config, context),
           global_config_(config.As<formats::yaml::Value>()),
-          dependency_(std::move(builder).ExtractDependency(/*middleware_name=*/config.Name())) {}
+          dependency_(std::move(builder).ExtractDependency(/*middleware_name=*/config.Name()))
+    {}
 
     /// @brief Returns a middleware according to the component's settings.
     ///
@@ -75,25 +86,16 @@ public:
     /// @param middleware_config config for the middleware.
     ///
     /// @warning Don't store `info` by reference. `info` object will be dropped after the `CreateMiddleware` call.
-    virtual std::shared_ptr<const MiddlewareBase>
-    CreateMiddleware(const HandlerInfo& info, const yaml_config::YamlConfig& middleware_config) const = 0;
+    virtual std::shared_ptr<const MiddlewareBase> CreateMiddleware(
+        const HandlerInfo& info,
+        const yaml_config::YamlConfig& middleware_config
+    ) const = 0;
 
     /// @brief This method should return the schema of a middleware configuration.
     /// Always write `return GetStaticConfigSchema();` in this method.
     virtual yaml_config::Schema GetMiddlewareConfigSchema() const { return GetStaticConfigSchema(); }
 
-    static yaml_config::Schema GetStaticConfigSchema() {
-        return yaml_config::MergeSchemas<components::ComponentBase>(R"(
-type: object
-description: base class for grpc-server middleware
-additionalProperties: false
-properties:
-    enabled:
-        type: string
-        description: the flag to enable/disable middleware in the pipeline
-        defaultDescription: true
-)");
-    }
+    static yaml_config::Schema GetStaticConfigSchema() { return impl::GetMiddlewareFactoryComponentBaseSchema(); }
 
     /// @cond
     /// Only for internal use.
@@ -120,38 +122,18 @@ private:
 /// The Ordered list of middlewares `RunnerComponentBase` takes from Pipeline component.
 /// So, 'Pipeline' is responsible for the order of middlewares. `RunnerComponentBase` is responsible for creating
 /// middlewares and overriding configs.
+///
+/// ## Static options of middlewares::RunnerComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/middlewares/runner_component_base.md
+///
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
 template <typename MiddlewareBase, typename HandlerInfo>
-class RunnerComponentBase : public components::ComponentBase,
-                            public impl::PipelineCreatorInterface<MiddlewareBase, HandlerInfo> {
+class RunnerComponentBase
+    : public components::ComponentBase,
+      public impl::PipelineCreatorInterface<MiddlewareBase, HandlerInfo> {
 public:
-    static yaml_config::Schema GetStaticConfigSchema() {
-        return yaml_config::MergeSchemas<components::ComponentBase>(R"(
-type: object
-description: base class for all the gRPC service components
-additionalProperties: false
-properties:
-    disable-user-pipeline-middlewares:
-        type: boolean
-        description: flag to disable groups::User middlewares from pipeline
-        defaultDescription: false
-    disable-all-pipeline-middlewares:
-        type: boolean
-        description: flag to disable all middlewares from pipeline
-        defaultDescription: false
-    middlewares:
-        type: object
-        description: overloads of configs of middlewares per service
-        additionalProperties:
-            type: object
-            description: a middleware config
-            additionalProperties: true
-            properties:
-                enabled:
-                    type: boolean
-                    description: enable middleware in the list
-        properties: {}
-)");
-    }
+    static yaml_config::Schema GetStaticConfigSchema() { return impl::GetRunnerComponentBaseSchema(); }
 
 protected:
     using MiddlewareFactory = MiddlewareFactoryComponentBase<MiddlewareBase, HandlerInfo>;
@@ -196,15 +178,17 @@ RunnerComponentBase<MiddlewareBase, HandlerInfo>::RunnerComponentBase(
 
 /// @cond
 template <typename MiddlewareBase, typename HandlerInfo>
-std::vector<std::shared_ptr<const MiddlewareBase>> RunnerComponentBase<MiddlewareBase, HandlerInfo>::CreateMiddlewares(
-    const HandlerInfo& info
-) const {
+std::vector<std::shared_ptr<const MiddlewareBase>> RunnerComponentBase<
+    MiddlewareBase,
+    HandlerInfo>::CreateMiddlewares(const HandlerInfo& info) const {
     std::vector<std::shared_ptr<const MiddlewareBase>> middlewares{};
     middlewares.reserve(middleware_infos_.size());
     for (const auto& [factory, local_config] : middleware_infos_) {
         try {
             auto config = impl::ValidateAndMergeMiddlewareConfigs(
-                factory->GetGlobalConfig(utils::impl::InternalTag{}), local_config, factory->GetMiddlewareConfigSchema()
+                factory->GetGlobalConfig(utils::impl::InternalTag{}),
+                local_config,
+                factory->GetMiddlewareConfigSchema()
             );
             middlewares.push_back(factory->CreateMiddleware(info, config));
         } catch (const std::exception& e) {
@@ -231,11 +215,9 @@ public:
         const components::ComponentConfig& config,
         const components::ComponentContext& context
     )
-        : MiddlewareFactoryComponentBase<MiddlewareBase, HandlerInfo>(
-              config,
-              context,
-              middlewares::MiddlewareDependencyBuilder{Middleware::kDependency}
-          ) {}
+        : MiddlewareFactoryComponentBase<
+              MiddlewareBase,
+              HandlerInfo>(config, context, middlewares::MiddlewareDependencyBuilder{Middleware::kDependency}) {}
 
 private:
     std::shared_ptr<const MiddlewareBase> CreateMiddleware(const HandlerInfo&, const yaml_config::YamlConfig&)

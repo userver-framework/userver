@@ -9,12 +9,13 @@
 #include <userver/utils/daemon_run.hpp>
 
 int main(int argc, char* argv[]) {
-    const auto component_list = components::ComponentList()
-                                    .AppendComponentList(components::CommonComponentList())
-                                    .AppendComponentList(components::CommonServerComponentList())
-                                    .Append<components::Secdist>()
-                                    .Append<components::DefaultSecdistProvider>()
-                                    .Append<server::handlers::Ping>()
+    const auto component_list =
+        components::ComponentList()
+            .AppendComponentList(components::CommonComponentList())
+            .AppendComponentList(components::CommonServerComponentList())
+            .Append<components::Secdist>()
+            .Append<components::DefaultSecdistProvider>()
+            .Append<server::handlers::Ping>()
 
         // Put your handlers and components here
         ;

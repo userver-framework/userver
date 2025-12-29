@@ -6,6 +6,7 @@
 #include <cstddef>
 #include <string>
 
+#include <userver/engine/deadlock_detector_config.hpp>
 #include <userver/engine/task_queue_type.hpp>
 #include <userver/utils/function_ref.hpp>
 
@@ -23,6 +24,7 @@ struct TaskProcessorPoolsConfig final {
     bool ev_default_loop_disabled = false;
     bool is_stack_usage_monitor_enabled = true;
     TaskQueueType queue_type{TaskQueueType::kGlobalTaskQueue};
+    DeadlockDetector deadlock_detector{DeadlockDetector::kOff};
 };
 
 /// @brief Runs a payload in a temporary coroutine engine instance.

@@ -65,7 +65,9 @@ UTEST_F(GrpcClientWithServiceConfig, DefaultServiceConfig) {
     // It doesn't matter whether we connect or not - we only need the name
     // resolution process to execute.
     std::ignore = ugrpc::client::TryWaitForConnected(
-        client, engine::Deadline::FromDuration(std::chrono::milliseconds{50}), engine::current_task::GetTaskProcessor()
+        client,
+        engine::Deadline::FromDuration(std::chrono::milliseconds{50}),
+        engine::current_task::GetTaskProcessor()
     );
 
     // test that service_config was passed to gRPC Core

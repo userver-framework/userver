@@ -22,7 +22,8 @@ template <
 class LruMap final {
 public:
     explicit LruMap(size_t max_size, const Hash& hash = Hash(), const Equal& equal = Equal())
-        : impl_(max_size, hash, equal) {}
+        : impl_(max_size, hash, equal)
+    {}
 
     LruMap(LruMap&& lru) noexcept = default;
     LruMap(const LruMap& lru) = delete;
@@ -61,7 +62,9 @@ public:
     /// otherwise without modifying the cache.
     U GetOr(const T& key, const U& default_value) {
         auto* ptr = impl_.Get(key);
-        if (ptr) return *ptr;
+        if (ptr) {
+            return *ptr;
+        }
         return default_value;
     }
 

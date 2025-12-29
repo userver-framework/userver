@@ -55,8 +55,10 @@ public:
     /// Describe semaphore
     /// @warning Use `TDescribeSemaphoreSettings::OnChanged` callback with care,
     /// it will be executed on a non-coroutine thread
-    NYdb::NCoordination::TSemaphoreDescription
-    DescribeSemaphore(std::string_view name, const NYdb::NCoordination::TDescribeSemaphoreSettings& settings);
+    NYdb::NCoordination::TSemaphoreDescription DescribeSemaphore(
+        std::string_view name,
+        const NYdb::NCoordination::TDescribeSemaphoreSettings& settings
+    );
 
     /// Create semaphore
     void CreateSemaphore(std::string_view name, std::uint64_t limit);

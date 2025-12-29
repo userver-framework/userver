@@ -3,6 +3,7 @@
 /// @file userver/ugrpc/server/middlewares/base.hpp
 /// @brief @copybrief ugrpc::server::MiddlewareBase
 
+#include <optional>
 #include <string>
 
 #include <google/protobuf/message.h>
@@ -14,6 +15,7 @@
 #include <userver/middlewares/runner.hpp>
 #include <userver/utils/impl/internal_tag_fwd.hpp>
 
+#include <userver/ugrpc/rpc_type.hpp>
 #include <userver/ugrpc/server/call_context.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -43,7 +45,7 @@ class MiddlewareCallContext final : public CallContextBase {
 public:
     /// @cond
     // For internal use only
-    MiddlewareCallContext(utils::impl::InternalTag, impl::CallState& state);
+    MiddlewareCallContext(utils::impl::InternalTag, impl::CallState& state, grpc::Status& status);
     /// @endcond
 
     /// @brief Aborts the RPC, returning the specified status to the upstream client, see details below.
@@ -67,11 +69,8 @@ public:
     /// @snippet samples/grpc_middleware_service/src/middlewares/server/auth.cpp Middleware implementation
     void SetError(grpc::Status&& status) noexcept;
 
-    /// @returns Is a client-side streaming call
-    bool IsClientStreaming() const noexcept;
-
-    /// @returns Is a server-side streaming call
-    bool IsServerStreaming() const noexcept;
+    /// @returns RPC type
+    RpcType GetRpcType() const noexcept;
 
     /// @brief Get values extracted from dynamic_config. Snapshot will be
     /// deleted when the last middleware completes.
@@ -80,13 +79,10 @@ public:
     /// @cond
     // For internal use only.
     ugrpc::impl::RpcStatisticsScope& GetStatistics(utils::impl::InternalTag);
-
-    // For internal use only.
-    grpc::Status& GetStatus(utils::impl::InternalTag) { return status_; }
     /// @endcond
 
 private:
-    grpc::Status status_;
+    grpc::Status& status_;
 };
 
 /// @ingroup userver_base_classes userver_grpc_server_middlewares
@@ -121,14 +117,23 @@ public:
     ///  * stream: once per response message, that is, 0, 1, more times per Call (RPC).
     virtual void PreSendMessage(MiddlewareCallContext& context, google::protobuf::Message& response) const;
 
-    /// @brief This hook is invoked once per Call (RPC), after the handler function returns, but before the message is
-    /// sent to the upstream client.
+    /// @brief The function is invoked before sending the final status of the call.
     ///
-    /// All OnCallStart invoked in the reverse order relatively OnCallFinish. You can change grpc status and it will
-    /// apply for a rpc call.
+    /// PreSendStatus is called exactly once per Call (RPC), right before sending
+    /// the final gRPC status to the client. This allows middlewares to inspect
+    /// and potentially modify the status that will be sent to the client.
+    virtual void PreSendStatus(MiddlewareCallContext& context, grpc::Status& status) const;
+
+    /// @brief This hook is invoked once per Call (RPC), after the handler function
+    /// has finished execution and the final status is determined.
     ///
-    /// @warning If Handler (grpc method) returns !ok status, OnCallFinish won't be called.
-    virtual void OnCallFinish(MiddlewareCallContext& context, const grpc::Status& status) const;
+    /// OnCallFinish is called exactly once per Call (RPC), regardless of whether
+    /// the call succeeded or failed. It's the final middleware hook in the call chain.
+    /// This is useful for cleanup operations, logging, or metrics collection that should
+    /// happen after the RPC is completely processed.
+    /// @param context The middleware call context containing call information
+    /// @param status The final status of the call, if available
+    virtual void OnCallFinish(MiddlewareCallContext& context, const std::optional<grpc::Status>& status) const;
 };
 
 /// @ingroup userver_base_classes
@@ -140,6 +145,14 @@ public:
 ///
 /// @note If you are not going to use a static config, ugrpc::server::ServiceInfo and your middleware is default
 /// constructible, just use ugrpc::server::SimpleMiddlewareFactoryComponent.
+///
+/// ## Static options:
+///
+/// Options inherited from @ref middlewares::MiddlewareFactoryComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/middlewares/factory_component_base.md
+///
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
 ///
 /// ## Example:
 ///
@@ -158,9 +171,12 @@ using MiddlewareFactoryComponentBase =
 /// @brief The alias for a short-cut server middleware factory.
 ///
 /// ## Static options:
-/// Name | Description | Default value
-/// ---- | ----------- | -------------
-/// enabled | the flag to enable/disable middleware in the pipeline | true
+///
+/// Options inherited from @ref middlewares::MiddlewareFactoryComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/middlewares/factory_component_base.md
+///
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
 ///
 /// ## Example usage:
 ///

@@ -37,9 +37,13 @@ void EngineYield() {
 
 class Counter {
 public:
-    Counter(int value) : value_(value) {}
+    Counter(int value)
+        : value_(value)
+    {}
 
-    Counter() : Counter(0) {}
+    Counter()
+        : Counter(0)
+    {}
 
     void Flush() { value_ = 0; }
 
@@ -53,13 +57,13 @@ public:
     }
 
     static const Counter& Zero() {
-        static const Counter counter(0);
-        return counter;
+        static const Counter kCounter(0);
+        return kCounter;
     }
 
     static const Counter& One() {
-        static const Counter counter(1);
-        return counter;
+        static const Counter kCounter(1);
+        return kCounter;
     }
 
 private:
@@ -74,9 +78,9 @@ std::function<SimpleCacheValue(SimpleCacheKey)> UpdateNever() {
 }
 
 std::function<SimpleCacheValue(SimpleCacheKey)> UpdateValue(std::shared_ptr<Counter> counter, SimpleCacheValue value) {
-    return [counter_ = std::move(counter), value_ = std::move(value)](SimpleCacheKey) {
-        ++(*counter_);
-        return value_;
+    return [counter = std::move(counter), value = std::move(value)](SimpleCacheKey) {
+        ++(*counter);
+        return value;
     };
 }
 

@@ -41,7 +41,10 @@ UTEST_F(SQLiteTransactionsTest, Commit) {
     UEXPECT_NO_THROW(trx = client->Begin(OperationType::kReadWrite, {})) << "Begin default transaction";
     ExecutionResult exec_result;
     UEXPECT_NO_THROW(exec_result = trx.Execute("INSERT INTO test VALUES (1, 'first')").AsExecutionResult())
-        << "Insert row in transaction";
+        << "Insert "
+           "row in "
+           "transac"
+           "tion";
     EXPECT_EQ(1, exec_result.rows_affected);
     EXPECT_EQ(1, exec_result.last_insert_id);
     UEXPECT_NO_THROW(trx.Commit()) << "Commit transaction";

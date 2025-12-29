@@ -110,7 +110,8 @@ UTEST_F(YdbDistLockFixture, Lock) {
     session.CreateSemaphore(kSemaphoreName, ydb::impl::dist_lock::kSemaphoreLimit);
 
     session.AcquireSemaphore(
-        kSemaphoreName, NYdb::NCoordination::TAcquireSemaphoreSettings{}.Count(ydb::impl::dist_lock::kSemaphoreLimit)
+        kSemaphoreName,
+        NYdb::NCoordination::TAcquireSemaphoreSettings{}.Count(ydb::impl::dist_lock::kSemaphoreLimit)
     );
 
     engine::SingleConsumerEvent event;
@@ -135,7 +136,8 @@ UTEST_F(YdbDistLockFixture, SessionDestroy) {
     session->CreateSemaphore(kSemaphoreName, ydb::impl::dist_lock::kSemaphoreLimit);
 
     session->AcquireSemaphore(
-        kSemaphoreName, NYdb::NCoordination::TAcquireSemaphoreSettings{}.Count(ydb::impl::dist_lock::kSemaphoreLimit)
+        kSemaphoreName,
+        NYdb::NCoordination::TAcquireSemaphoreSettings{}.Count(ydb::impl::dist_lock::kSemaphoreLimit)
     );
 
     engine::SingleConsumerEvent event;

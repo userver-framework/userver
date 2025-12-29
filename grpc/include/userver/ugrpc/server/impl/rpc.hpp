@@ -1,18 +1,15 @@
 #pragma once
 
 #include <google/protobuf/message.h>
-#include <grpcpp/server_context.h>
 
 #include <userver/engine/single_waiting_task_mutex.hpp>
-#include <userver/engine/task/current_task.hpp>
+#include <userver/engine/task/cancel.hpp>
 #include <userver/utils/assert.hpp>
 
 #include <userver/ugrpc/server/exceptions.hpp>
 #include <userver/ugrpc/server/impl/async_methods.hpp>
-#include <userver/ugrpc/server/impl/call_kind.hpp>
 #include <userver/ugrpc/server/impl/call_state.hpp>
-#include <userver/ugrpc/server/stream.hpp>
-#include <userver/ugrpc/time_utils.hpp>
+#include <userver/ugrpc/server/impl/status_utils.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -21,7 +18,9 @@ namespace ugrpc::server::impl {
 /// @brief A non-typed base class for any gRPC call.
 class ResponderBase {
 protected:
-    ResponderBase(utils::impl::InternalTag, CallState& state) : state_(state) {}
+    ResponderBase(utils::impl::InternalTag, CallState& state)
+        : state_(state)
+    {}
 
     // Prevent ownership via pointer to base.
     ~ResponderBase() = default;
@@ -57,7 +56,6 @@ class Responder final : public ResponderBase, public CallTraits::StreamAdapter {
     using Request = typename CallTraits::Request;
     using Response = typename CallTraits::Response;
     using RawResponder = typename CallTraits::RawResponder;
-    static constexpr CallKind kCallKind = CallTraits::kCallKind;
 
 public:
     Responder(CallState& call_state, RawResponder& raw_responder);
@@ -66,7 +64,7 @@ public:
     Responder& operator=(Responder&&) = delete;
     ~Responder() override;
 
-    bool IsFinished() const { return is_finished_; }
+    bool IsInterrupted() const { return is_interrupted_; }
 
     /// @brief Await and read the next incoming message. Only makes sense for client-streaming RPCs.
     /// @param request where to put the request on success
@@ -84,11 +82,13 @@ public:
 
     /// @brief Complete the RPC with an error
     ///
+    /// Trims whitespaces from gRPC status messages before transmission.
+    ///
     /// `Finish` must not be called multiple times.
     ///
-    /// @param status error details
+    /// @param status error details. Whitespaces may be trimmed in the status message.
     /// @returns `true` if the status is going to the wire, `false` if the RPC is dead.
-    [[nodiscard]] bool FinishWithError(const grpc::Status& status);
+    [[nodiscard]] bool FinishWithError(grpc::Status& status);
 
     /// @brief Complete the RPC successfully, sending the given response message to the client.
     ///
@@ -110,22 +110,25 @@ public:
 private:
     RawResponder& raw_responder_;
     // Separate flags are required to be able to set them in parallel in Read and Write.
-    bool are_reads_done_{kCallKind == CallKind::kUnaryCall};
+    bool are_reads_done_{CallTraits::kRpcType == RpcType::kUnary};
+    bool is_interrupted_{false};
     bool is_finished_{false};
 };
 
 template <typename CallTraits>
 Responder<CallTraits>::Responder(CallState& state, RawResponder& raw_responder)
-    : ResponderBase(utils::impl::InternalTag{}, state), raw_responder_(raw_responder) {}
+    : ResponderBase(utils::impl::InternalTag{}, state),
+      raw_responder_(raw_responder)
+{}
 
 template <typename CallTraits>
 Responder<CallTraits>::~Responder() {
-    UASSERT(is_finished_ || engine::current_task::ShouldCancel());
+    UASSERT(is_finished_ || is_interrupted_ || engine::current_task::ShouldCancel());
 }
 
 template <typename CallTraits>
 bool Responder<CallTraits>::DoRead(Request& request) {
-    static_assert(impl::IsClientStreaming(kCallKind));
+    static_assert(!IsSingleRequestMethod(CallTraits::kRpcType));
     UINVARIANT(!are_reads_done_, "'Read' called while the stream is half-closed for reads");
 
     if (impl::Read(raw_responder_, request)) {
@@ -141,41 +144,41 @@ bool Responder<CallTraits>::DoRead(Request& request) {
 
 template <typename CallTraits>
 void Responder<CallTraits>::DoWrite(Response& response, const grpc::WriteOptions& options) {
-    static_assert(impl::IsServerStreaming(kCallKind));
-    UINVARIANT(!is_finished_, "'Write' called on a finished stream");
+    static_assert(!IsSingleResponseMethod(CallTraits::kRpcType));
+    UINVARIANT(!is_interrupted_, "'Write' called on an interrupted stream");
 
     if constexpr (std::is_base_of_v<google::protobuf::Message, Response>) {
         ApplyResponseHook(response);
     }
 
-    if constexpr (kCallKind == CallKind::kOutputStream) {
+    if constexpr (CallTraits::kRpcType == RpcType::kServerStreaming) {
         // For some reason, gRPC requires explicit 'SendInitialMetadata' in output streams.
         if (!are_reads_done_) {
             are_reads_done_ = true;
-            try {
-                impl::SendInitialMetadata(raw_responder_, GetCallName());
-            } catch (const RpcInterruptedError&) {
-                is_finished_ = true;
-                throw;
+            if (!impl::SendInitialMetadata(raw_responder_)) {
+                is_interrupted_ = true;
+                throw RpcInterruptedError(GetCallName(), "SendInitialMetadata");
             }
         }
     }
 
-    try {
-        impl::Write(raw_responder_, response, options, GetCallName());
-    } catch (const RpcInterruptedError&) {
-        is_finished_ = true;
-        throw;
+    if (!impl::Write(raw_responder_, response, options)) {
+        is_interrupted_ = true;
+        throw RpcInterruptedError(GetCallName(), "Write");
     }
 }
 
 template <typename CallTraits>
-[[nodiscard]] bool Responder<CallTraits>::FinishWithError(const grpc::Status& status) {
+[[nodiscard]] bool Responder<CallTraits>::FinishWithError(grpc::Status& status) {
     UASSERT(!status.ok());
     UINVARIANT(!is_finished_, "'FinishWithError' called on a finished stream");
     is_finished_ = true;
 
-    if constexpr (impl::IsServerStreaming(kCallKind)) {
+    // Trim whitespaces from gRPC status messages before transmission
+    // to ensure compliance with HTTP/2 RFC9113 8.2.1
+    impl::TrimStatusErrorMessage(status);
+
+    if constexpr (!IsSingleResponseMethod(CallTraits::kRpcType)) {
         return impl::Finish(raw_responder_, status);
     } else {
         return impl::FinishWithError(raw_responder_, status);
@@ -187,7 +190,7 @@ template <typename CallTraits>
     UINVARIANT(!is_finished_, "'Finish' called on a finished stream");
     is_finished_ = true;
 
-    if constexpr (impl::IsServerStreaming(kCallKind)) {
+    if constexpr (!IsSingleResponseMethod(CallTraits::kRpcType)) {
         // Don't buffer writes, optimize for ping-pong-style interaction.
         const grpc::WriteOptions write_options{};
 
@@ -199,7 +202,7 @@ template <typename CallTraits>
 
 template <typename CallTraits>
 [[nodiscard]] bool Responder<CallTraits>::Finish() {
-    static_assert(impl::IsServerStreaming(kCallKind));
+    static_assert(!IsSingleResponseMethod(CallTraits::kRpcType));
     UINVARIANT(!is_finished_, "'Finish' called on a finished stream");
     is_finished_ = true;
 

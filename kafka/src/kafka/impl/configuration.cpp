@@ -28,8 +28,9 @@ namespace {
 // https://docs.confluent.io/platform/current/clients/librdkafka/html/rdkafka_8h.html#a06ade2ca41f32eb82c6f7e3d4acbe19f
 void KafkaLogCallback(const rd_kafka_t*, int level, const char* facility, const char* message) noexcept {
     try {
-        LOG(impl::ConvertRdKafkaLogLevelToLoggingLevel(level))
-            << logging::LogExtra{{{"facility", facility}}} << message;
+        LOG(impl::ConvertRdKafkaLogLevelToLoggingLevel(level)
+        ) << logging::LogExtra{{{"facility", facility}}}
+          << message;
     } catch (const std::exception& e) {
         UASSERT_MSG(false, e.what());
     }
@@ -49,7 +50,10 @@ template <class SupportedList>
     const SupportedList& supported_options
 ) {
     throw std::runtime_error{fmt::format(
-        "Unsupported {} '{}'. Expected on of: [{}]", option, configured_option, fmt::join(supported_options, ", ")
+        "Unsupported {} '{}'. Expected on of: [{}]",
+        option,
+        configured_option,
+        fmt::join(supported_options, ", ")
     )};
 }
 
@@ -57,8 +61,8 @@ void VerifyComponentNamePrefix(const std::string& component_name, const std::str
     // producer's component should start with kafka-producer, consumer's - with
     // kafka-consumer
     if (component_name.rfind(expected_prefix) != 0) {
-        throw std::runtime_error{
-            fmt::format("Component '{}' doesn't start with '{}'", component_name, expected_prefix)};
+        throw std::runtime_error{fmt::format("Component '{}' doesn't start with '{}'", component_name, expected_prefix)
+        };
     }
 }
 
@@ -177,8 +181,9 @@ ProducerConfiguration Parse(const yaml_config::YamlConfig& config, formats::pars
     producer.security = config.As<SecurityConfiguration>();
     producer.rd_kafka_options = config["rd_kafka_custom_options"].As<RdKafkaOptions>({});
     producer.delivery_timeout = config["delivery_timeout"].As<std::chrono::milliseconds>(producer.delivery_timeout);
-    producer.queue_buffering_max =
-        config["queue_buffering_max"].As<std::chrono::milliseconds>(producer.queue_buffering_max);
+    producer
+        .queue_buffering_max = config["queue_buffering_max"].As<std::chrono::milliseconds>(producer.queue_buffering_max
+    );
     producer.enable_idempotence = config["enable_idempotence"].As<bool>(producer.enable_idempotence);
     producer.queue_buffering_max_messages =
         config["queue_buffering_max_messages"].As<std::uint32_t>(producer.queue_buffering_max_messages);
@@ -196,7 +201,9 @@ ProducerConfiguration Parse(const yaml_config::YamlConfig& config, formats::pars
 }
 
 Configuration::Configuration(const std::string& name, const ConsumerConfiguration& configuration, const Secret& secrets)
-    : name_(name), conf_(rd_kafka_conf_new()) {
+    : name_(name),
+      conf_(rd_kafka_conf_new())
+{
     VerifyComponentNamePrefix(name, "kafka-consumer");
 
     rd_kafka_conf_set_log_cb(conf_.GetHandle(), KafkaLogCallback);
@@ -208,7 +215,9 @@ Configuration::Configuration(const std::string& name, const ConsumerConfiguratio
 }
 
 Configuration::Configuration(const std::string& name, const ProducerConfiguration& configuration, const Secret& secrets)
-    : name_(name), conf_(rd_kafka_conf_new()) {
+    : name_(name),
+      conf_(rd_kafka_conf_new())
+{
     VerifyComponentNamePrefix(name, "kafka-producer");
 
     rd_kafka_conf_set_log_cb(conf_.GetHandle(), KafkaLogCallback);
@@ -232,7 +241,8 @@ std::string Configuration::GetOption(const char* option) const {
     std::string result_data(result_size, '\0');
     const auto get_result_status = rd_kafka_conf_get(conf_.GetHandle(), option, result_data.data(), &result_size);
     UINVARIANT(
-        RD_KAFKA_CONF_OK == get_result_status, fmt::format("Failed to retrieve configuration option {}", option)
+        RD_KAFKA_CONF_OK == get_result_status,
+        fmt::format("Failed to retrieve configuration option {}", option)
     );
 
     result_data.resize(result_data.size() - 1);

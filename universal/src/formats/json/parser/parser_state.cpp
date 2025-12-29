@@ -23,10 +23,11 @@ namespace formats::json::parser {
 namespace {
 
 std::string ToLimited(std::string_view sw) {
-    if (sw.size() > 128)
+    if (sw.size() > 128) {
         return std::string(sw.substr(0, 128)) + "... (truncated)";
-    else
+    } else {
         return std::string{sw};
+    }
 }
 
 }  // namespace
@@ -54,7 +55,9 @@ std::string ParserState::Impl::GetPath() const {
 
     for (const auto& item : stack) {
         const auto str = item.parser->GetPathItem();
-        if (str.empty()) continue;
+        if (str.empty()) {
+            continue;
+        }
 
         if (!result.empty()) {
             result += '.';
@@ -85,15 +88,16 @@ void ParserState::ProcessInput(std::string_view sw) {
                 throw InternalParseError("Symbols after end of document");
             }
 
-            if (stack.size() > kDepthParseLimit)
+            if (stack.size() > kDepthParseLimit) {
                 throw InternalParseError("Exceeded maximum allowed JSON depth of: " + std::to_string(kDepthParseLimit));
+            }
 
             UASSERT(stack.back().parser);
             ParserHandler handler(*stack.back().parser);
 
             pos = is.Tell();
-            static constexpr auto kParseFlags =
-                static_cast<rapidjson::ParseFlag>(rapidjson::kParseDefaultFlags | rapidjson::kParseFullPrecisionFlag);
+            static constexpr auto kParseFlags = static_cast<
+                rapidjson::ParseFlag>(rapidjson::kParseDefaultFlags | rapidjson::kParseFullPrecisionFlag);
             reader.IterativeParseNext<kParseFlags>(is, handler);
             if (reader.HasParseError()) {
                 throw ParseError{
@@ -118,7 +122,9 @@ void ParserState::ProcessInput(std::string_view sw) {
 
     if (is.Tell() != sw.size()) {
         throw ParseError(
-            is.Tell(), "", rapidjson::GetParseError_En(rapidjson::ParseErrorCode::kParseErrorDocumentRootNotSingular)
+            is.Tell(),
+            "",
+            rapidjson::GetParseError_En(rapidjson::ParseErrorCode::kParseErrorDocumentRootNotSingular)
         );
     }
 

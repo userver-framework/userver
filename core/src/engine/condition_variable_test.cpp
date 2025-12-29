@@ -13,12 +13,16 @@ namespace {
 
 class SpinEvent final {
 public:
-    SpinEvent() : is_pending_(false) {}
+    SpinEvent()
+        : is_pending_(false)
+    {}
 
     void Send() { is_pending_ = true; }
 
     void WaitForEvent() {
-        while (!is_pending_.exchange(false)) engine::Yield();
+        while (!is_pending_.exchange(false)) {
+            engine::Yield();
+        }
     }
 
 private:
@@ -65,13 +69,14 @@ UTEST_MT(ConditionVariable, SatisfyMultiple, 10) {
 
     std::vector<engine::TaskWithResult<void>> tasks;
     tasks.reserve(40);
-    for (int i = 0; i < 40; i++)
+    for (int i = 0; i < 40; i++) {
         tasks.push_back(engine::AsyncNoSpan([&] {
             for (int j = 0; j < 10; j++) {
                 std::unique_lock<engine::Mutex> lock(mutex);
                 EXPECT_TRUE(cv.Wait(lock, [&ok] { return ok; }));
             }
         }));
+    }
 
     engine::SleepFor(std::chrono::milliseconds(50));
 
@@ -81,7 +86,9 @@ UTEST_MT(ConditionVariable, SatisfyMultiple, 10) {
         cv.NotifyAll();
     }
 
-    for (auto& task : tasks) task.Get();
+    for (auto& task : tasks) {
+        task.Get();
+    }
 }
 
 UTEST(ConditionVariable, WaitStatus) {

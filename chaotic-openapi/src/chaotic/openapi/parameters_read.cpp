@@ -15,7 +15,8 @@ void SplitByDelimiter(std::string_view str, char delimiter, utils::function_ref<
                                                              return c == delimiter;
                                                          }));
          it != decltype(it){};
-         ++it) {
+         ++it)
+    {
         func(std::string{it->begin(), it->end()});
     }
 }
@@ -25,8 +26,12 @@ void SplitByDelimiter(std::string_view str, char delimiter, utils::function_ref<
 std::string FromStr(std::string&& str_value, parse::To<std::string>) { return std::move(str_value); }
 
 bool FromStr(std::string&& str_value, parse::To<bool>) {
-    if (str_value == "true") return true;
-    if (str_value == "false") return false;
+    if (str_value == "true") {
+        return true;
+    }
+    if (str_value == "false") {
+        return false;
+    }
     throw std::runtime_error("Unknown bool value: " + str_value);
 }
 

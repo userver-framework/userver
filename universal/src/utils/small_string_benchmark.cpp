@@ -15,7 +15,9 @@ constexpr size_t kArraySize = 1000;
 std::string GenerateString(size_t size) {
     const std::string_view chars{"0123456789"};
     std::string result;
-    for (size_t i = 0; i < size; i++) result += chars[i % 10];
+    for (size_t i = 0; i < size; i++) {
+        result += chars[i % 10];
+    }
     return Launder(std::move(result));
 }
 
@@ -41,9 +43,13 @@ static void SmallStringStdCopy(benchmark::State& state) {
     auto s = GenerateString(state.range(0));
     std::array<std::string, kArraySize> str;
     std::array<std::string, kArraySize> str2;
-    for (auto& x : str) x = s;
+    for (auto& x : str) {
+        x = s;
+    }
     for ([[maybe_unused]] auto _ : state) {
-        for (size_t i = 0; i < str.size(); i++) str2[i] = str[i];
+        for (size_t i = 0; i < str.size(); i++) {
+            str2[i] = str[i];
+        }
         state.PauseTiming();
         str2.fill({});
         state.ResumeTiming();
@@ -55,9 +61,13 @@ static void SmallStringSmallCopy(benchmark::State& state) {
     auto s = GenerateString(state.range(0));
     std::array<utils::SmallString<1000>, kArraySize> str;
     std::array<utils::SmallString<1000>, kArraySize> str2;
-    for (auto& x : str) x = s;
+    for (auto& x : str) {
+        x = s;
+    }
     for ([[maybe_unused]] auto _ : state) {
-        for (size_t i = 0; i < str.size(); i++) str2[i] = str[i];
+        for (size_t i = 0; i < str.size(); i++) {
+            str2[i] = str[i];
+        }
         state.PauseTiming();
         str2.fill({});
         state.ResumeTiming();
@@ -69,9 +79,13 @@ static void SmallStringStdMove(benchmark::State& state) {
     auto s = GenerateString(state.range(0));
     std::array<std::string, kArraySize> str;
     std::array<std::string, kArraySize> str2;
-    for (auto& x : str) x = s;
+    for (auto& x : str) {
+        x = s;
+    }
     for ([[maybe_unused]] auto _ : state) {
-        for (size_t i = 0; i < str.size(); i++) str2[i] = std::move(str[i]);
+        for (size_t i = 0; i < str.size(); i++) {
+            str2[i] = std::move(str[i]);
+        }
         state.PauseTiming();
         str2.fill({});
         state.ResumeTiming();
@@ -83,9 +97,13 @@ static void SmallStringSmallMove(benchmark::State& state) {
     auto s = GenerateString(state.range(0));
     std::array<utils::SmallString<1000>, kArraySize> str;
     std::array<utils::SmallString<1000>, kArraySize> str2;
-    for (auto& x : str) x = s;
+    for (auto& x : str) {
+        x = s;
+    }
     for ([[maybe_unused]] auto _ : state) {
-        for (size_t i = 0; i < str.size(); i++) str2[i] = std::move(str[i]);
+        for (size_t i = 0; i < str.size(); i++) {
+            str2[i] = std::move(str[i]);
+        }
         state.PauseTiming();
         str2.fill({});
         state.ResumeTiming();
@@ -97,13 +115,16 @@ static void SmallStringResizeAndOverwrite(benchmark::State& state) {
     auto s = GenerateString(state.range(0));
     std::array<utils::SmallString<1000>, kArraySize> str;
     std::array<utils::SmallString<1>, kArraySize> str2;
-    for (auto& x : str) x = s;
+    for (auto& x : str) {
+        x = s;
+    }
     for ([[maybe_unused]] auto _ : state) {
-        for (size_t i = 0; i < str.size(); i++)
+        for (size_t i = 0; i < str.size(); i++) {
             str2[i].resize_and_overwrite(str[i].size(), [&](char* data, size_t size) {
                 std::copy(str[i].data(), str[i].data() + str[i].size(), data);
                 return size;
             });
+        }
         state.PauseTiming();
         str2.fill({});
         state.ResumeTiming();
@@ -115,7 +136,9 @@ static void SmallStringResizeThenOverwrite(benchmark::State& state) {
     auto s = GenerateString(state.range(0));
     std::array<utils::SmallString<1000>, kArraySize> str;
     std::array<utils::SmallString<1>, kArraySize> str2;
-    for (auto& x : str) x = s;
+    for (auto& x : str) {
+        x = s;
+    }
     for ([[maybe_unused]] auto _ : state) {
         for (size_t i = 0; i < str.size(); i++) {
             str2[i].resize(str[i].size(), '\0');
@@ -132,7 +155,9 @@ static void SmallStringAppend(benchmark::State& state) {
     auto s = GenerateString(state.range(0));
     std::array<utils::SmallString<1000>, kArraySize> str;
     std::array<utils::SmallString<1>, kArraySize> str2;
-    for (auto& x : str) x = s;
+    for (auto& x : str) {
+        x = s;
+    }
     for ([[maybe_unused]] auto _ : state) {
         for (size_t i = 0; i < str.size(); i++) {
             str2[i].append(str[i]);

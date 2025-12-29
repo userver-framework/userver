@@ -87,11 +87,19 @@ void WriteToStream(std::chrono::system_clock::time_point tp, StringBuilder& sw) 
     WriteToStream(utils::datetime::UtcTimestring(tp, utils::datetime::kRfc3339Format), sw);
 }
 
-StringBuilder::ObjectGuard::ObjectGuard(StringBuilder& sw) : sw_(sw) { sw_.impl_->writer.StartObject(); }
+StringBuilder::ObjectGuard::ObjectGuard(StringBuilder& sw)
+    : sw_(sw)
+{
+    sw_.impl_->writer.StartObject();
+}
 
 StringBuilder::ObjectGuard::~ObjectGuard() { sw_.impl_->writer.EndObject(); }
 
-StringBuilder::ArrayGuard::ArrayGuard(StringBuilder& sw) : sw_(sw) { sw_.impl_->writer.StartArray(); }
+StringBuilder::ArrayGuard::ArrayGuard(StringBuilder& sw)
+    : sw_(sw)
+{
+    sw_.impl_->writer.StartArray();
+}
 
 StringBuilder::ArrayGuard::~ArrayGuard() { sw_.impl_->writer.EndArray(); }
 

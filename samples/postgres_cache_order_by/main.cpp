@@ -49,7 +49,8 @@ public:
     CacheHandler(const components::ComponentConfig& config, const components::ComponentContext& context)
         : HttpHandlerJsonBase(config, context),
           first_cache_{context.FindComponent<FirstCache>()},
-          last_cache_{context.FindComponent<LastCache>()} {}
+          last_cache_{context.FindComponent<LastCache>()}
+    {}
 
     formats::json::Value HandleRequestJsonThrow(
         const server::http::HttpRequest& request,
@@ -83,12 +84,13 @@ formats::json::Value CacheHandler::HandleRequestJsonThrow(
 }  // namespace pg::cache_order_by
 
 int main(int argc, char* argv[]) {
-    const auto component_list = components::MinimalServerComponentList()
-                                    .Append<pg::cache_order_by::CacheHandler>()
-                                    .Append<pg::cache_order_by::FirstCache>()
-                                    .Append<pg::cache_order_by::LastCache>()
-                                    .Append<components::Postgres>("key-value-database")
-                                    .Append<components::TestsuiteSupport>()
-                                    .Append<clients::dns::Component>();
+    const auto component_list =
+        components::MinimalServerComponentList()
+            .Append<pg::cache_order_by::CacheHandler>()
+            .Append<pg::cache_order_by::FirstCache>()
+            .Append<pg::cache_order_by::LastCache>()
+            .Append<components::Postgres>("key-value-database")
+            .Append<components::TestsuiteSupport>()
+            .Append<clients::dns::Component>();
     return utils::DaemonMain(argc, argv, component_list);
 }

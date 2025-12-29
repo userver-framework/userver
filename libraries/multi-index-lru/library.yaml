@@ -1,0 +1,9 @@
+project-name: userver-lib-multi-index-lru
+
+description: multi index lru cache
+
+maintainers:
+  - Common components
+
+libraries:
+  - userver-core

@@ -23,7 +23,9 @@ public:
     private:
         friend GlobalQueue;
         Token(moodycamel::ConsumerToken&& moodycamel_token, const std::size_t index)
-            : index_(index), moodycamel_token_(std::move(moodycamel_token)) {}
+            : index_(index),
+              moodycamel_token_(std::move(moodycamel_token))
+        {}
 
         const std::size_t index_;
         moodycamel::ConsumerToken moodycamel_token_;

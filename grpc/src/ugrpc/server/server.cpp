@@ -41,7 +41,8 @@ std::optional<int> ToOptionalInt(const std::string& str) {
     char* str_end{};
     const long result = strtol(str.c_str(), &str_end, 10);
     if (str_end == str.data() + str.size() && result >= std::numeric_limits<int>::min() &&
-        result <= std::numeric_limits<int>::max()) {
+        result <= std::numeric_limits<int>::max())
+    {
         return result;
     } else {
         return std::nullopt;
@@ -135,7 +136,9 @@ Server::Impl::Impl(
     utils::statistics::Storage& statistics_storage,
     dynamic_config::Source config_source
 )
-    : statistics_storage_(statistics_storage, ugrpc::impl::StatisticsDomain::kServer), config_source_(config_source) {
+    : statistics_storage_(statistics_storage, ugrpc::impl::StatisticsDomain::kServer),
+      config_source_(config_source)
+{
     LOG_INFO() << "Configuring the gRPC server";
     ugrpc::impl::SetupNativeLogging();
     ugrpc::impl::UpdateNativeLogLevel(config.native_log_level);
@@ -150,16 +153,21 @@ Server::Impl::Impl(
     AddChannelArguments(*server_builder_, config.channel_args);
     completion_queues_.emplace(config.completion_queue_num, *server_builder_);
 
-    if (config.unix_socket_path) AddListeningUnixSocket(*config.unix_socket_path, config.tls);
+    if (config.unix_socket_path) {
+        AddListeningUnixSocket(*config.unix_socket_path, config.tls);
+    }
 
-    if (config.port) AddListeningPort(*config.port, config.tls);
+    if (config.port) {
+        AddListeningPort(*config.port, config.tls);
+    }
 }
 
 Server::Impl::~Impl() {
     if (state_ == State::kActive) {
-        LOG_DEBUG() << "Stopping the gRPC server automatically. When using Server "
-                       "outside of ServerComponent, call Stop() explicitly to "
-                       "ensure that it is destroyed before services.";
+        LOG_DEBUG()
+            << "Stopping the gRPC server automatically. When using Server "
+               "outside of ServerComponent, call Stop() explicitly to "
+               "ensure that it is destroyed before services.";
         Stop();
     }
 }
@@ -297,8 +305,9 @@ std::uint64_t Server::Impl::GetTotalRequests() const { return statistics_storage
 std::shared_ptr<grpc::ServerCredentials> Server::Impl::BuildCredentials(const TlsConfig& tls_config) {
     if (tls_config.cert) {
         grpc::SslServerCredentialsOptions ssl_opts(
-            tls_config.ca.has_value() ? GRPC_SSL_REQUEST_AND_REQUIRE_CLIENT_CERTIFICATE_AND_VERIFY
-                                      : GRPC_SSL_DONT_REQUEST_CLIENT_CERTIFICATE
+            tls_config.ca.has_value()
+                ? GRPC_SSL_REQUEST_AND_REQUIRE_CLIENT_CERTIFICATE_AND_VERIFY
+                : GRPC_SSL_DONT_REQUEST_CLIENT_CERTIFICATE
         );
         if (tls_config.ca) {
             ssl_opts.pem_root_certs = tls_config.ca.value();
@@ -329,9 +338,10 @@ void Server::Impl::DoStart() {
         server_builder_->RegisterAsyncGenericService(&worker.GetService());
     }
 
-    server_ = engine::CriticalAsyncNoSpan(engine::current_task::GetBlockingTaskProcessor(), [this] {
-                  return server_builder_->BuildAndStart();
-              }).Get();
+    server_ =
+        engine::CriticalAsyncNoSpan(engine::current_task::GetBlockingTaskProcessor(), [this] {
+            return server_builder_->BuildAndStart();
+        }).Get();
     UINVARIANT(server_, "See grpcpp logs for details");
     server_builder_.reset();
 
@@ -354,7 +364,8 @@ Server::Server(
     utils::statistics::Storage& statistics_storage,
     dynamic_config::Source config_source
 )
-    : impl_(std::make_unique<Impl>(std::move(config), statistics_storage, config_source)) {}
+    : impl_(std::make_unique<Impl>(std::move(config), statistics_storage, config_source))
+{}
 
 Server::~Server() = default;
 

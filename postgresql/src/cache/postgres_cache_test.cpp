@@ -314,8 +314,10 @@ static_assert(MyCache6::kClusterHostTypeFlags == pg::ClusterHostType::kSlave);
 static_assert(MyCache7::kClusterHostTypeFlags == pg::ClusterHostType::kSlave);
 
 // Update() instantiation test
-[[maybe_unused]] void
-VerifyUpdateCompiles(const components::ComponentConfig& config, const components::ComponentContext& context) {
+[[maybe_unused]] void VerifyUpdateCompiles(
+    const components::ComponentConfig& config,
+    const components::ComponentContext& context
+) {
     const MyCache1 cache1{config, context};
     const MyCache2 cache2{config, context};
     const MyCache3 cache3{config, context};

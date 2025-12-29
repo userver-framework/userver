@@ -10,7 +10,9 @@ UTEST(DataPipeToEv, Basic) {
     namespace ev = engine::ev::impl;
     ev::DoubleBufferingState state;
 
-    { const ev::DoubleBufferingState::ProducerLock lock{state}; }
+    {
+        const ev::DoubleBufferingState::ProducerLock lock{state};
+    }
     EXPECT_TRUE(ev::DoubleBufferingState::ConsumerLock{state});
     EXPECT_FALSE(ev::DoubleBufferingState::ConsumerLock{state});
 }
@@ -30,8 +32,12 @@ UTEST(DataPipeToEv, Overwriting) {
     namespace ev = engine::ev::impl;
     ev::DoubleBufferingState state;
 
-    { const ev::DoubleBufferingState::ProducerLock lock{state}; }
-    { const ev::DoubleBufferingState::ProducerLock lock{state}; }
+    {
+        const ev::DoubleBufferingState::ProducerLock lock{state};
+    }
+    {
+        const ev::DoubleBufferingState::ProducerLock lock{state};
+    }
     EXPECT_TRUE(ev::DoubleBufferingState::ConsumerLock{state});
     EXPECT_FALSE(ev::DoubleBufferingState::ConsumerLock{state});
 }

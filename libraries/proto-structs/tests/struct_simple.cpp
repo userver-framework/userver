@@ -17,8 +17,10 @@ void WriteProtoStruct(ups::io::WriteContext&, const Empty&, messages::Empty&) {}
 Simple ReadProtoStruct(ups::io::ReadContext& ctx, ups::io::To<Simple>, const messages::Simple& msg) {
     return {
         .f1 = ups::io::impl::ReadField<std::int32_t>(
-            ctx, ups::io::impl::CreateFieldGetter(msg, messages::Simple::kF1FieldNumber, &messages::Simple::f1)
-        )};
+            ctx,
+            ups::io::impl::CreateFieldGetter(msg, messages::Simple::kF1FieldNumber, &messages::Simple::f1)
+        )
+    };
 }
 
 void WriteProtoStruct(ups::io::WriteContext& ctx, const Simple& obj, messages::Simple& msg) {
@@ -26,7 +28,10 @@ void WriteProtoStruct(ups::io::WriteContext& ctx, const Simple& obj, messages::S
         ctx,
         obj.f1,
         ups::io::impl::CreateFieldSetter(
-            msg, messages::Simple::kF1FieldNumber, &messages::Simple::set_f1, &messages::Simple::clear_f1
+            msg,
+            messages::Simple::kF1FieldNumber,
+            &messages::Simple::set_f1,
+            &messages::Simple::clear_f1
         )
     );
 }

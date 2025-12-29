@@ -19,7 +19,7 @@ See also:
 * Creating asynchronous gRPC clients and services;
 * Forwarding gRPC Core logs to userver logs;
 * Caching and reusing connections;
-* @ref scripts/docs/en/userver/grpc/grpc_retries.md;
+* @ref scripts/docs/en/userver/grpc/timeouts_retries.md;
 * Collection of metrics on driver usage;
 * Cancellation support;
 * Automatic authentication using middlewares;
@@ -53,7 +53,7 @@ In a component constructor, find @ref ugrpc::client::ClientFactoryComponent and 
 
 Client creation in an expensive operation! Either create them once at the server boot time or cache them. An automated
 solution for client creation and caching is the @ref ugrpc::client::SimpleClientComponent. It also allows to
-specify dynamic config for @ref ugrpc::client::ClientQos:
+specify dynamic config for @ref ugrpc::client::ClientQos :
 
 @snippet samples/grpc_service/src/greeter_client.hpp  component
 
@@ -168,12 +168,14 @@ Use @ref ugrpc::client::MiddlewareBase to implement new middlewares.
 
 #### List of standard client middlewares:
 
-1. `grpc-client-logging` with component ugrpc::client::middlewares::log::Component - logs requests and responses.
-2. `grpc-client-deadline-propagation` with component ugrpc::client::middlewares::deadline_propagation::Component - activates
-   @ref scripts/docs/en/userver/deadline_propagation.md.
-3. `grpc-client-baggage` with component ugrpc::client::middlewares::baggage::Component - passes request baggage to subrequests.
-4. `grpc-client-headers-propagator` with component ugrpc::client::middlewares::headers_propagator::Component - propagates headers.
-5. `grpc-client-middleware-testsuite` with component ugrpc::client::middlewares::testsuite::Component - supports testsuite errors thrown from the mockserver.
+1. `grpc-client-logging` with component @ref ugrpc::client::middlewares::log::Component - logs requests and responses.
+2. `grpc-client-deadline-propagation` with component @ref ugrpc::client::middlewares::deadline_propagation::Component - 
+   activates @ref scripts/docs/en/userver/deadline_propagation.md.
+3. `grpc-client-baggage` with component @ref ugrpc::client::middlewares::baggage::Component - passes request baggage to subrequests.
+4. `grpc-client-headers-propagator` with component @ref ugrpc::client::middlewares::headers_propagator::Component - propagates headers.
+5. `grpc-client-origin` with component @ref ugrpc::client::middlewares::origin::Component - sets `x-origin` metadata.
+6. `grpc-client-middleware-testsuite` with component @ref ugrpc::client::middlewares::testsuite::Component -
+   supports testsuite errors thrown from the mockserver.
 
 
 ## gRPC services
@@ -196,8 +198,6 @@ Each method receives:
 * A stream controller object, used to respond to the RPC
     * Also contains grpc::ClientContext from grpcpp library
 * A request (for single-request RPCs only)
-
-When using a server stream, always call `Finish` or `FinishWithError`. Otherwise the client will receive `UNKNOWN` error, which signifies an internal server error.
 
 Read the documentation on gRPC streams:
 * Single request, single response @ref ugrpc::server::Response
@@ -280,7 +280,8 @@ See native [docs about compression](https://github.com/grpc/grpc/blob/master/doc
 See docs for more information https://grpc.io/docs/guides/compression.
 
 Config example:
-```yaml
+```
+# yaml
         grpc-client-factory:
             channel-args:
                 grpc.default_compression_algorithm: 2 # GRPC_COMPRESS_GZIP

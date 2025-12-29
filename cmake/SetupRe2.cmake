@@ -18,18 +18,13 @@ endif()
 include(DownloadUsingCPM)
 
 cpmaddpackage(
-    NAME
-    re2
-    VERSION
-    2023-03-01 # newest version without abseil requirements
-    GIT_TAG
-    2023-03-01
-    GITHUB_REPOSITORY
-    google/re2
+    NAME re2
+    VERSION 2023-03-01 # newest version without abseil requirements
+    GIT_TAG 2023-03-01
+    GITHUB_REPOSITORY google/re2
+    GIT_SHALLOW TRUE
     SYSTEM
-    OPTIONS
-    "RE2_BUILD_TESTING OFF"
-    "RE2_USE_ICU ON"
+    OPTIONS "RE2_BUILD_TESTING OFF" "RE2_USE_ICU ON"
 )
 
 mark_targets_as_system("${re2_SOURCE_DIR}")

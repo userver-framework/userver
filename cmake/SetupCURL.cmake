@@ -33,7 +33,7 @@ if(NOT USERVER_FORCE_DOWNLOAD_CURL)
                 message(
                     FATAL_ERROR
                         "libcurl versions from 7.88.0 to 8.1.2 may crash on HTTP/2 "
-                        "requests and thus are unsupported, upgrade or turn on " "USERVER_DOWNLOAD_PACKAGE_CURL"
+                        "requests and thus are unsupported, upgrade or turn on USERVER_DOWNLOAD_PACKAGE_CURL"
                 )
             endif()
         else()
@@ -42,28 +42,26 @@ if(NOT USERVER_FORCE_DOWNLOAD_CURL)
     endif()
 endif()
 
-set(CURL_LTO_OPTION)
+set(CURL_EXTRA_OPTIONS)
 if(USERVER_LTO)
-    set(CURL_LTO_OPTION "CURL_LTO ON")
+    list(APPEND CURL_EXTRA_OPTIONS "CURL_LTO ON")
+endif()
+
+find_package(libnghttp2 REQUIRED)
+
+if(CPM_PACKAGE_libnghttp2_SOURCE_DIR)
+    list(APPEND CURL_EXTRA_OPTIONS "NGHTTP2_INCLUDE_DIR ${NGHTTP2_INCLUDE_DIR}" "NGHTTP2_LIBRARY ${NGHTTP2_LIBRARY}")
 endif()
 
 include(DownloadUsingCPM)
 cpmaddpackage(
-    NAME
-    curl
-    VERSION
-    7.81
-    GITHUB_REPOSITORY
-    curl/curl
-    GIT_TAG
-    curl-7_81_0
-    OPTIONS
-    "BUILD_CURL_EXE OFF"
-    "BUILD_SHARED_LIBS OFF"
-    "CURL_DISABLE_TESTS ON"
-    "CURL_DISABLE_LDAP ON"
-    "HAVE_DLOPEN TRUE"
-    ${CURL_LTO_OPTION}
+    NAME CURL
+    VERSION 7.81
+    GITHUB_REPOSITORY curl/curl
+    GIT_TAG curl-7_81_0
+    GIT_SHALLOW TRUE
+    OPTIONS "BUILD_CURL_EXE OFF" "BUILD_SHARED_LIBS OFF" "CURL_DISABLE_TESTS ON" "CURL_DISABLE_LDAP ON"
+            "HAVE_DLOPEN TRUE" "USE_NGHTTP2 TRUE" ${CURL_EXTRA_OPTIONS}
 )
 
 mark_targets_as_system("${CURL_SOURCE_DIR}")

@@ -19,32 +19,32 @@ set(TEMPLATE
 __asm__(
 #if defined(__APPLE__)
 \".const_data\\n\"
-\".global _@NAME@_start\\n\"
-\".global _@NAME@_end\\n\"
-\".global _@NAME@_size\\n\"
+\".global _@NAME_C_ESCAPED@_start\\n\"
+\".global _@NAME_C_ESCAPED@_end\\n\"
+\".global _@NAME_C_ESCAPED@_size\\n\"
 #else
 \".section .rodata\\n\"
 #endif
 \".balign 16\\n\"
-APPLE_PREFIX \"@NAME@_begin:\\n\"
+APPLE_PREFIX \"@NAME_C_ESCAPED@_begin:\\n\"
 R\"(
 .incbin \"${FILEPATH}\"
 )\"
 \".balign 1\\n\"
-APPLE_PREFIX \"@NAME@_end:\\n\"
+APPLE_PREFIX \"@NAME_C_ESCAPED@_end:\\n\"
 \".byte 0\\n\"
-APPLE_PREFIX \"@NAME@_size:\\n\"
-\".int \" APPLE_PREFIX \"@NAME@_end - \" APPLE_PREFIX \"@NAME@_begin\\n\"
+APPLE_PREFIX \"@NAME_C_ESCAPED@_size:\\n\"
+\".int \" APPLE_PREFIX \"@NAME_C_ESCAPED@_end - \" APPLE_PREFIX \"@NAME_C_ESCAPED@_begin\\n\"
 \".previous\\n\"
 );
 
-extern \"C\" const char @NAME@_begin[];
-extern \"C\" const char @NAME@_end;
-extern \"C\" const int @NAME@_size;
+extern \"C\" const char @NAME_C_ESCAPED@_begin[];
+extern \"C\" const char @NAME_C_ESCAPED@_end;
+extern \"C\" const int @NAME_C_ESCAPED@_size;
 
 
-__attribute__((constructor)) void @NAME@_call() {
-  ${NAMESPACE}::utils::RegisterResource(\"@NAME@\", std::string_view{@NAME@_begin, static_cast<size_t>(@NAME@_size)});
+inline __attribute__((constructor)) void @NAME_C_ESCAPED@_call() {
+  ${NAMESPACE}::utils::RegisterResource(\"@NAME@\", std::string_view{@NAME_C_ESCAPED@_begin, static_cast<size_t>(@NAME_C_ESCAPED@_size)});
 }
 "
 )

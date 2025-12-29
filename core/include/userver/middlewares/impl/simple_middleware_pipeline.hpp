@@ -14,7 +14,9 @@ public:
 
     SimpleMiddlewarePipeline() = default;
 
-    explicit SimpleMiddlewarePipeline(Middlewares&& middlewares) : middlewares_(std::move(middlewares)) {}
+    explicit SimpleMiddlewarePipeline(Middlewares&& middlewares)
+        : middlewares_(std::move(middlewares))
+    {}
 
     Middlewares CreateMiddlewares(const HandlerInfo& /*handler_info*/) const override { return middlewares_; }
 

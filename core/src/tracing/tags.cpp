@@ -72,6 +72,8 @@ const std::string kPeerAddress = "peer.address";
 
 const std::string kServerAddress = "server.address";
 
+const std::string kUserAgent = "useragent";
+
 }  // namespace tracing
 
 USERVER_NAMESPACE_END

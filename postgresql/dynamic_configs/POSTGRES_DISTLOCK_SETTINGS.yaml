@@ -1,0 +1,57 @@
+default: {}
+description: |
+    Configuration of periodic tasks executed with a distributed lock.
+    A dictionary where the keys are task names.
+    If hosts are specified in run_on_hosts, the task will switch to
+    any of them at the first opportunity and will keep running
+    there until a new preferred host is specified or a failover occurs due to
+    an error. By adjusting the timing settings,
+    you can override the lock acquisition policy.
+schema:
+    type: object
+    additionalProperties:
+        $ref: '#/definitions/TaskSettings'
+    definitions:
+        TaskSettings:
+            type: object
+            description: Periodic task policy settings
+            additionalProperties: false
+            properties:
+                run_on_hosts:
+                    description: |
+                        USE IsCancelAdvised() OR IT DOESNT WORK
+                        List of hosts on which the task
+                        is allowed to run. The task will start on
+                        any of the specified hosts—without
+                        prioritization.
+                    type: array
+                    x-usrv-cpp-type: std::unordered_set
+                    items:
+                        type: string
+                acquire_interval:
+                    description: |
+                        How often to try to acquire the lock.
+                    type: integer
+                    x-usrv-cpp-type: std::chrono::milliseconds
+                prolong_interval:
+                    description: |
+                        How often to attempt to renew
+                        the lock while holding it.
+                    type: integer
+                    x-usrv-cpp-type: std::chrono::milliseconds
+                lock_ttl:
+                    description: Duration of lock
+                    type: integer
+                    x-usrv-cpp-type: std::chrono::milliseconds
+                forced_stop_margin:
+                    description: |
+                        How long to allow the component to
+                        finish work when it cannot acquire the lock.
+                    type: integer
+                    x-usrv-cpp-type: std::chrono::milliseconds
+                worker_func_restart_delay:
+                    description: |
+                        Delay before attempting to restart a
+                        crashed component.
+                    type: integer
+                    x-usrv-cpp-type: std::chrono::milliseconds

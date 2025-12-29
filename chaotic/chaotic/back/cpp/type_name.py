@@ -1,8 +1,5 @@
-from typing import Union
-
-
 class TypeName:
-    def __init__(self, name: Union[str, list[str]]) -> None:
+    def __init__(self, name: str | list[str]) -> None:
         if isinstance(name, str):
             self._components = name.split('::')
         else:

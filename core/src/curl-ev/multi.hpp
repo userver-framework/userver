@@ -90,8 +90,8 @@ private:
 
     socket_info* GetSocketInfo(native::curl_socket_t);
 
-    static int
-    socket(native::CURL* native_easy, native::curl_socket_t s, int what, void* userp, void* socketp) noexcept;
+    static int socket(native::CURL* native_easy, native::curl_socket_t s, int what, void* userp, void* socketp)
+        noexcept;
     static int timer(native::CURLM* native_multi, long timeout_ms, void* userp) noexcept;
 
     class Impl;

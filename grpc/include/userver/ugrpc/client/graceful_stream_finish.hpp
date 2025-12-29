@@ -42,8 +42,8 @@ std::optional<std::size_t> ReadRemainingAndFinish(Reader<Response>& stream) noex
 template <typename Request, typename Response>
 std::optional<std::size_t> ReadRemainingAndFinish(ReaderWriter<Request, Response>& stream) noexcept {
     const bool writes_done_success = stream.WritesDone();
-    const std::optional<std::size_t> messages_remaining =
-        impl::ReadRemainingAndFinish<ReaderWriter<Request, Response>, Response>(stream);
+    const std::optional<std::size_t>
+        messages_remaining = impl::ReadRemainingAndFinish<ReaderWriter<Request, Response>, Response>(stream);
     return writes_done_success ? messages_remaining : std::nullopt;
 }
 

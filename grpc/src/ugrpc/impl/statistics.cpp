@@ -15,7 +15,9 @@ USERVER_NAMESPACE_BEGIN
 namespace ugrpc::impl {
 
 MethodStatistics::MethodStatistics(StatisticsDomain domain, utils::statistics::StripedRateCounter& global_started)
-    : domain_(domain), global_started_(global_started) {}
+    : domain_(domain),
+      global_started_(global_started)
+{}
 
 void MethodStatistics::AccountStarted() noexcept {
     ++started_;
@@ -65,18 +67,15 @@ void DumpMetric(utils::statistics::Writer& writer, const MethodStatisticsSnapsho
     }
 
     const auto network_errors_value = stats.network_errors;
-    // 'abandoned_errors' need not be accounted in eps or rps, because such
-    // requests also separately report the error that occurred during the
-    // automatic request termination.
     const auto abandoned_errors_value = stats.internal_errors;
     const auto deadline_cancelled_value = stats.deadline_cancelled;
     const auto cancelled_value = stats.cancelled;
     const auto started_renamed = stats.started_renamed;
 
     // 'total_requests' and 'error_requests' originally only count RPCs that
-    // finished with a status code. 'network_errors', 'deadline_cancelled' and
-    // 'cancelled' are RPCs that finished abruptly and didn't produce a status
-    // code. But these RPCs still need to be included in the totals.
+    // finished with a status code. 'network_errors', 'abandoned_errors', 'deadline_cancelled' and
+    // 'cancelled' are RPCs that finished abruptly and didn't produce a status code.
+    // But these RPCs still need to be included in the totals.
 
     // Network errors are not considered to be server errors, because either the
     // client is responsible for the server dropping the request (`TryCancel`,
@@ -84,6 +83,9 @@ void DumpMetric(utils::statistics::Writer& writer, const MethodStatisticsSnapsho
     // helpful for troubleshooting to say that there are issues not with the
     // uservice process itself, but with the infrastructure.
     total_requests += network_errors_value;
+
+    // 'abandoned_errors' occur on automatic request termination.
+    total_requests += abandoned_errors_value;
 
     // Deadline propagation is considered a client-side error: the client likely
     // caused the error by giving the server an insufficient deadline.
@@ -94,9 +96,9 @@ void DumpMetric(utils::statistics::Writer& writer, const MethodStatisticsSnapsho
     total_requests += cancelled_value;
 
     // "active" is not a rate metric. Also, beware of overflow
-    writer["active"] = static_cast<std::int64_t>(stats.started.value) -
-                       static_cast<std::int64_t>(started_renamed.value) -
-                       static_cast<std::int64_t>(total_requests.value);
+    writer["active"] =
+        static_cast<std::int64_t>(stats.started.value) - static_cast<std::int64_t>(started_renamed.value) -
+        static_cast<std::int64_t>(total_requests.value);
 
     writer["rps"] = total_requests;
     writer["eps"] = error_requests;
@@ -109,7 +111,9 @@ void DumpMetric(utils::statistics::Writer& writer, const MethodStatisticsSnapsho
     writer["cancelled-by-deadline-propagation"] = deadline_cancelled_value;
 }
 
-MethodStatisticsSnapshot::MethodStatisticsSnapshot(const StatisticsDomain domain) : domain(domain) {}
+MethodStatisticsSnapshot::MethodStatisticsSnapshot(const StatisticsDomain domain)
+    : domain(domain)
+{}
 
 MethodStatisticsSnapshot::MethodStatisticsSnapshot(const MethodStatistics& stats)
     : domain(stats.domain_),
@@ -120,7 +124,8 @@ MethodStatisticsSnapshot::MethodStatisticsSnapshot(const MethodStatistics& stats
       internal_errors(stats.internal_errors_.Load()),
       cancelled(stats.cancelled_.Load()),
       deadline_updated(stats.deadline_updated_.Load()),
-      deadline_cancelled(stats.deadline_cancelled_.Load()) {
+      deadline_cancelled(stats.deadline_cancelled_.Load())
+{
     // For the 'active' metric, it is important to load the 'started' value after
     // loading the 'started_renamed' and 'total_requests' values.
     // More details in DumpMetric for MethodStatisticsSnapshot
@@ -184,7 +189,9 @@ ServiceStatistics::ServiceStatistics(
     StatisticsDomain domain,
     utils::statistics::StripedRateCounter& global_started
 )
-    : metadata_(metadata), method_statistics_(GetMethodsCount(metadata), domain, global_started) {}
+    : metadata_(metadata),
+      method_statistics_(GetMethodsCount(metadata), domain, global_started)
+{}
 
 MethodStatistics& ServiceStatistics::GetMethodStatistics(std::size_t method_id) {
     return method_statistics_[method_id];
@@ -213,7 +220,11 @@ void ServiceStatistics::DumpAndCountTotal(
         const MethodStatisticsSnapshot snapshot{method_statistics_[i]};
         total.Add(snapshot);
         DumpMetricWithLabels(
-            writer, snapshot, client_name, method_descriptor.method_full_name, metadata_.service_full_name
+            writer,
+            snapshot,
+            client_name,
+            method_descriptor.method_full_name,
+            metadata_.service_full_name
         );
     }
 }

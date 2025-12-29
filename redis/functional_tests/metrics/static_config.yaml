@@ -20,6 +20,7 @@ components_manager:
         testsuite-support:
 
         http-client:
+        http-client-core:
             fs-task-processor: main-task-processor
         dns-client:
             fs-task-processor: fs-task-processor

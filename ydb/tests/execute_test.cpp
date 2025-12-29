@@ -403,11 +403,12 @@ TYPED_UTEST(YdbExecuteTpl, BulkUpsert) {
 UTEST_F(YdbExecute, ReadTable) {
     CreateTable("read_table", true);
 
-    auto settings = NYdb::NTable::TReadTableSettings{}
-                        .Ordered()
-                        .AppendColumns("key")
-                        .AppendColumns("value_str")
-                        .AppendColumns("value_int");
+    auto settings =
+        NYdb::NTable::TReadTableSettings{}
+            .Ordered()
+            .AppendColumns("key")
+            .AppendColumns("value_str")
+            .AppendColumns("value_int");
     auto results = GetTableClient().ReadTable("read_table", std::move(settings));
 
     auto cursor = results.GetNextResult();
@@ -420,7 +421,7 @@ UTEST_F(YdbExecute, ReadTable) {
 TYPED_UTEST(YdbExecuteTpl, IsQueryFromCache) {
     this->CreateTable("test_table", true);
 
-    const ydb::Query kSelectQuery{R"(
+    const ydb::Query select_query{R"(
     DECLARE $search_key AS String;
 
     SELECT key, value_str
@@ -434,7 +435,7 @@ TYPED_UTEST(YdbExecuteTpl, IsQueryFromCache) {
         auto params_builder = this->GetTableClient().GetBuilder();
         params_builder.Add("$search_key", std::string{"key1"});
 
-        auto response = this->ExecuteWithBasicStats(ydb::OperationSettings{}, kSelectQuery, std::move(params_builder));
+        auto response = this->ExecuteWithBasicStats(ydb::OperationSettings{}, select_query, std::move(params_builder));
         EXPECT_TRUE(0 == i || response.IsFromServerQueryCache());
         AssertArePreFilledRows(response.GetSingleCursor(), {1});
     }
@@ -446,7 +447,7 @@ UTEST_F(YdbExecute, TransactionIsQueryFromCache) {
     CreateTable("test_table", true);
     auto transaction = GetTableClient().Begin("test_transaction");
 
-    const ydb::Query kSelectQuery{R"(
+    const ydb::Query select_query{R"(
     DECLARE $search_key AS String;
 
     SELECT key, value_str
@@ -463,7 +464,7 @@ UTEST_F(YdbExecute, TransactionIsQueryFromCache) {
         auto params_builder = GetTableClient().GetBuilder();
         params_builder.Add("$search_key", std::string{"key1"});
 
-        auto response = transaction.Execute(query_settings, {}, kSelectQuery, std::move(params_builder));
+        auto response = transaction.Execute(query_settings, {}, select_query, std::move(params_builder));
         EXPECT_TRUE(0 == i || response.IsFromServerQueryCache());
         AssertArePreFilledRows(response.GetSingleCursor(), {1});
     }

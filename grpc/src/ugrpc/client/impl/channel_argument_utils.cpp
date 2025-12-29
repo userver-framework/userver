@@ -13,8 +13,10 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client::impl {
 
-grpc::ChannelArguments
-BuildChannelArguments(const grpc::ChannelArguments& channel_args, const std::optional<std::string>& service_config) {
+grpc::ChannelArguments BuildChannelArguments(
+    const grpc::ChannelArguments& channel_args,
+    const std::optional<std::string>& service_config
+) {
     if (!service_config.has_value()) {
         return channel_args;
     }
@@ -37,9 +39,8 @@ void SetHttpProxy(
             target = proxy_address;
             break;
         case AuthType::kSsl:
-            channel_args.SetString(
-                GRPC_ARG_HTTP_PROXY, ugrpc::impl::ToGrpcString(fmt::format("http://{}", proxy_address))
-            );
+            channel_args
+                .SetString(GRPC_ARG_HTTP_PROXY, ugrpc::impl::ToGrpcString(fmt::format("http://{}", proxy_address)));
             break;
     }
 }

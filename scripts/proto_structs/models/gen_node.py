@@ -9,7 +9,6 @@ import dataclasses
 import pathlib
 from typing import Final
 from typing import final
-from typing import Optional
 
 from typing_extensions import override
 
@@ -264,9 +263,9 @@ class StructField:
     #: C++ code for the field initializer, e.g. '', '{}' or '{5}'.
     initializer: Final[str]
     #: Low-level numeric ID of the field for serialization. Absent for fields of type "oneof".
-    number: Final[Optional[int]]
+    number: Final[int | None]
     #: If this struct field maps to oneof, lists the fields of the oneof type.
-    oneof_fields: Final[Optional[Sequence[StructField]]]
+    oneof_fields: Final[Sequence[StructField] | None]
     #: IoKind:
     io_kinds: Final[io.IoKind]
 
@@ -344,7 +343,8 @@ class EnumNode(TypeNode, names.HasVanillaName):
         yield includes.Include(path='cstdint', kind=includes.IncludeKind.FOR_HPP)
         yield includes.Include(path='limits', kind=includes.IncludeKind.FOR_HPP)
         yield includes.Include(
-            path=includes.proto_path_to_vanilla_pb_h(self.proto_file), kind=includes.IncludeKind.FOR_CPP
+            path=includes.proto_path_to_vanilla_pb_h(self.proto_file),
+            kind=includes.IncludeKind.FOR_CPP,
         )
 
     @property
@@ -395,7 +395,7 @@ class OneofNode(TypeNode):
 
 
 COMMON_ONEOF_INCLUDES: Sequence[includes.Include] = [
-    includes.Include(path='userver/proto-structs/impl/oneof_codegen.hpp', kind=includes.IncludeKind.FOR_HPP)
+    includes.Include(path='userver/proto-structs/impl/oneof_codegen.hpp', kind=includes.IncludeKind.FOR_HPP),
 ]
 
 

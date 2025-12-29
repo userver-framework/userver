@@ -11,7 +11,9 @@ ClientImpl::ClientImpl(
     const USERVER_NAMESPACE::chaotic::openapi::client::Config& config,
     USERVER_NAMESPACE::clients::http::Client& http_client
 )
-    : config_(config), http_client_(http_client) {}
+    : config_(config),
+      http_client_(http_client)
+{}
 
 USERVER_NAMESPACE::yaml_config::Schema ClientImpl::GetStaticConfigSchema() {
     std::string base_schema = R"(
@@ -56,9 +58,8 @@ properties:
 
     std::string combined_schema = base_schema + middlewares_yaml;
 
-    return USERVER_NAMESPACE::yaml_config::MergeSchemas<USERVER_NAMESPACE::components::LoggableComponentBase>(
-        combined_schema
-    );
+    return USERVER_NAMESPACE::yaml_config::MergeSchemas<
+        USERVER_NAMESPACE::components::LoggableComponentBase>(combined_schema);
 }
 
 testme_post::Response ClientImpl::TestmePost(
@@ -73,8 +74,8 @@ testme_post::Response ClientImpl::TestmePost(
     if (command_control) {
         auto it = middlewares_.find("timeout_retry");
         if (it != middlewares_.end() && (command_control.timeout.count() > 0 || command_control.attempts > 0)) {
-            auto timeout_retry =
-                std::dynamic_pointer_cast<USERVER_NAMESPACE::chaotic::openapi::TimeoutRetryMiddleware>(it->second);
+            auto timeout_retry = std::dynamic_pointer_cast<
+                USERVER_NAMESPACE::chaotic::openapi::TimeoutRetryMiddleware>(it->second);
             if (timeout_retry) {
                 timeout_retry->ApplyCommandControl(
                     command_control.timeout.count() > 0 ? command_control.timeout : config_.timeout,
@@ -85,8 +86,8 @@ testme_post::Response ClientImpl::TestmePost(
 
         it = middlewares_.find("follow_redirects");
         if (it != middlewares_.end() && command_control.follow_redirects) {
-            auto follow_redirects =
-                std::dynamic_pointer_cast<USERVER_NAMESPACE::chaotic::openapi::FollowRedirectsMiddleware>(it->second);
+            auto follow_redirects = std::dynamic_pointer_cast<
+                USERVER_NAMESPACE::chaotic::openapi::FollowRedirectsMiddleware>(it->second);
             if (follow_redirects) {
                 follow_redirects->ApplyFollowRedirects(*command_control.follow_redirects);
             }

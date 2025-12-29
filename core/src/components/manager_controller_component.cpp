@@ -63,15 +63,17 @@ ManagerControllerComponent::ManagerControllerComponent(
     const components::ComponentConfig&,
     const components::ComponentContext& context
 )
-    : components_manager_(context.GetManager(utils::impl::InternalTag{})) {
+    : components_manager_(context.GetManager(utils::impl::InternalTag{}))
+{
     auto& storage = context.FindComponent<components::StatisticsStorage>().GetStorage();
 
     auto config_source = context.FindComponent<DynamicConfig>().GetSource();
     config_subscription_ =
         config_source.UpdateAndListen(this, "engine_controller", &ManagerControllerComponent::OnConfigUpdate);
 
-    statistics_holder_ =
-        storage.RegisterWriter("engine", [this](utils::statistics::Writer& writer) { return WriteStatistics(writer); });
+    statistics_holder_ = storage.RegisterWriter("engine", [this](utils::statistics::Writer& writer) {
+        return WriteStatistics(writer);
+    });
 
     auto& logger_component = context.FindComponent<components::Logging>();
     for (const auto& [name, task_processor] : components_manager_.GetTaskProcessorsMap()) {
@@ -112,10 +114,10 @@ void ManagerControllerComponent::WriteStatistics(utils::statistics::Writer& writ
     }
 
     // misc
-    writer["uptime-seconds"] = std::chrono::duration_cast<std::chrono::seconds>(
-                                   std::chrono::steady_clock::now() - components_manager_.GetStartTime()
-    )
-                                   .count();
+    writer["uptime-seconds"] =
+        std::chrono::duration_cast<
+            std::chrono::seconds>(std::chrono::steady_clock::now() - components_manager_.GetStartTime())
+            .count();
     writer["load-ms"] =
         std::chrono::duration_cast<std::chrono::milliseconds>(components_manager_.GetLoadDuration()).count();
 
@@ -131,7 +133,9 @@ void ManagerControllerComponent::OnConfigUpdate(const dynamic_config::Snapshot& 
 
     for (const auto& [name, task_processor] : components_manager_.GetTaskProcessorsMap()) {
         auto profiler_cfg = utils::FindOrDefault(
-            profiler_config.extra, name, utils::FindOrDefault(profiler_config.extra, "default-task-processor")
+            profiler_config.extra,
+            name,
+            utils::FindOrDefault(profiler_config.extra, "default-task-processor")
         );
         // NOTE: find task processor by name, someday
         task_processor->SetSettings(config.default_service.default_task_processor, profiler_cfg);

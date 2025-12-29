@@ -59,8 +59,11 @@ public:
     /// @param options @ref ExecOptions settings
     /// @throws std::runtime_error if `use_path` is `true`, `executable_path` contains `/`
     /// and PATH not in environment variables
-    ChildProcess
-    Exec(const std::string& executable_path, const std::vector<std::string>& args, ExecOptions&& options = {});
+    ChildProcess Exec(
+        const std::string& executable_path,
+        const std::vector<std::string>& args,
+        ExecOptions&& options = {}
+    );
 
 private:
     ev::ThreadControl& thread_control_;

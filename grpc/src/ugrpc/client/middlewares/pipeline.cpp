@@ -17,6 +17,7 @@ MiddlewarePipelineComponent::MiddlewarePipelineComponent(
               {"grpc-client-baggage", {}},
               {"grpc-client-deadline-propagation", {}},
               {"grpc-client-headers-propagator", {}},
+              {"grpc-client-origin", {}},
           }}
       ) {}
 

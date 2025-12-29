@@ -30,8 +30,9 @@ namespace ugrpc::server::middlewares::congestion_control {
 
 // clang-format on
 
-class Component final : public MiddlewareFactoryComponentBase,
-                        public USERVER_NAMESPACE::server::congestion_control::Limitee {
+class Component final
+    : public MiddlewareFactoryComponentBase,
+      public USERVER_NAMESPACE::server::congestion_control::Limitee {
 public:
     /// @ingroup userver_component_names
     /// @brief The default name of ugrpc::server::middlewares::congestion_control::Component
@@ -52,7 +53,8 @@ public:
 
 private:
     std::shared_ptr<utils::TokenBucket> rate_limit_{
-        std::make_shared<utils::TokenBucket>(utils::TokenBucket::MakeUnbounded())};
+        std::make_shared<utils::TokenBucket>(utils::TokenBucket::MakeUnbounded())
+    };
 };
 
 }  // namespace ugrpc::server::middlewares::congestion_control
@@ -61,7 +63,7 @@ template <>
 inline constexpr bool components::kHasValidate<ugrpc::server::middlewares::congestion_control::Component> = true;
 
 template <>
-inline constexpr auto components::kConfigFileMode<ugrpc::server::middlewares::congestion_control::Component> =
-    ConfigFileMode::kNotRequired;
+inline constexpr auto components::kConfigFileMode<
+    ugrpc::server::middlewares::congestion_control::Component> = ConfigFileMode::kNotRequired;
 
 USERVER_NAMESPACE_END

@@ -13,7 +13,9 @@ static_assert(
 
 SharedTask::SharedTask() = default;
 
-SharedTask::SharedTask(impl::TaskContextHolder&& context) : TaskBase(std::move(context)) {}
+SharedTask::SharedTask(impl::TaskContextHolder&& context)
+    : TaskBase(std::move(context))
+{}
 
 SharedTask::~SharedTask() { DecrementSharedUsages(); }
 

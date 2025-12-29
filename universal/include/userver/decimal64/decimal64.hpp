@@ -119,9 +119,13 @@ static_assert(kMaxInt64 / 10 < kPowSeries10[kMaxDecimalDigits]);
 template <typename RoundPolicy>
 constexpr int64_t Div(int64_t nominator, int64_t denominator, bool extra_odd_quotient = false) {
     // RoundPolicies don't protect against arithmetic errors
-    if (denominator == 0) throw DivisionByZeroError();
+    if (denominator == 0) {
+        throw DivisionByZeroError();
+    }
     if (denominator == -1) {
-        if (nominator == kMinInt64) throw OutOfBoundsError();
+        if (nominator == kMinInt64) {
+            throw OutOfBoundsError();
+        }
         return -nominator;  // RoundPolicies behave badly for denominator == -1
     }
 
@@ -131,7 +135,9 @@ constexpr int64_t Div(int64_t nominator, int64_t denominator, bool extra_odd_quo
 // result = (value1 * value2) / divisor
 template <typename RoundPolicy>
 constexpr int64_t MulDiv(int64_t value1, int64_t value2, int64_t divisor) {
-    if (divisor == 0) throw DivisionByZeroError();
+    if (divisor == 0) {
+        throw DivisionByZeroError();
+    }
 
 #if __x86_64__ || __ppc64__ || __aarch64__
     using LongInt = __int128_t;
@@ -152,7 +158,9 @@ constexpr int64_t MulDiv(int64_t value1, int64_t value2, int64_t divisor) {
     const auto whole = prod / divisor;
     const auto rem = static_cast<int64_t>(prod % divisor);
 
-    if (whole <= kMinInt64 || whole >= kMaxInt64) throw OutOfBoundsError();
+    if (whole <= kMinInt64 || whole >= kMaxInt64) {
+        throw OutOfBoundsError();
+    }
 
     const auto whole64 = static_cast<int64_t>(whole);
     const bool extra_odd_quotient = whole64 % 2 != 0;
@@ -166,7 +174,9 @@ constexpr int Sign(int64_t value) { return (value > 0) - (value < 0); }
 
 // Needed because std::abs is not constexpr
 constexpr int64_t Abs(int64_t value) {
-    if (value == kMinInt64) throw OutOfBoundsError();
+    if (value == kMinInt64) {
+        throw OutOfBoundsError();
+    }
     return value >= 0 ? value : -value;
 }
 
@@ -206,7 +216,9 @@ constexpr int64_t ToInt64(Int value) {
     static_assert(sizeof(Int) <= sizeof(int64_t));
 
     if constexpr (sizeof(Int) == sizeof(int64_t)) {
-        if (value > kMaxInt64) throw OutOfBoundsError();
+        if (value > kMaxInt64) {
+            throw OutOfBoundsError();
+        }
     }
     return static_cast<int64_t>(value);
 }
@@ -264,8 +276,9 @@ public:
         const int64_t abs_b = impl::Abs(b);
         const int64_t half_b = abs_b / 2;
         const int64_t abs_remainder = abs_a % abs_b;
-        return (abs_b % 2 == 0 && abs_remainder == half_b) ? ((abs_a / abs_b) % 2 == 0) == extra_odd_quotient
-                                                           : abs_remainder > half_b;
+        return (abs_b % 2 == 0 && abs_remainder == half_b)
+                   ? ((abs_a / abs_b) % 2 == 0) == extra_odd_quotient
+                   : abs_remainder > half_b;
     }
 };
 
@@ -319,10 +332,14 @@ public:
     [[nodiscard]] static constexpr int64_t DivRounded(int64_t a, int64_t b, bool /*extra_odd_quotient*/) {
         const int64_t divisor_corr = impl::Abs(b / 2);
         if (a >= 0) {
-            if (impl::kMaxInt64 - a < divisor_corr) throw OutOfBoundsError();
+            if (impl::kMaxInt64 - a < divisor_corr) {
+                throw OutOfBoundsError();
+            }
             return (a + divisor_corr) / b;
         } else {
-            if (-(impl::kMinInt64 - a) < divisor_corr) throw OutOfBoundsError();
+            if (-(impl::kMinInt64 - a) < divisor_corr) {
+                throw OutOfBoundsError();
+            }
             return (a - divisor_corr) / b;
         }
     }
@@ -450,7 +467,9 @@ public:
 
     /// @brief Convert from an integer
     template <typename Int, impl::EnableIfInt<Int> = 0>
-    explicit constexpr Decimal(Int value) : Decimal(FromDecimal(Decimal<0>::FromUnbiased(impl::ToInt64(value)))) {}
+    explicit constexpr Decimal(Int value)
+        : Decimal(FromDecimal(Decimal<0>::FromUnbiased(impl::ToInt64(value))))
+    {}
 
     /// @brief Convert from a string
     ///
@@ -571,7 +590,9 @@ public:
     constexpr Decimal operator+() const { return *this; }
 
     constexpr Decimal operator-() const {
-        if (value_ == impl::kMinInt64) throw OutOfBoundsError();
+        if (value_ == impl::kMinInt64) {
+            throw OutOfBoundsError();
+        }
         return FromUnbiased(-value_);
     }
 
@@ -717,7 +738,9 @@ public:
 
     /// Rounds `this` to the nearest multiple of `base` according to `RoundPolicy`
     constexpr Decimal RoundToMultipleOf(Decimal base) const {
-        if (base < Decimal{0}) throw OutOfBoundsError();
+        if (base < Decimal{0}) {
+            throw OutOfBoundsError();
+        }
         return *this / base.AsUnbiased() * base.AsUnbiased();
     }
 
@@ -740,9 +763,9 @@ public:
         }
 
         constexpr int kCoef =
-            1 << (std::max(
-                std::numeric_limits<std::int64_t>::digits - std::numeric_limits<double>::digits - 3 * Prec, 0
-            ));
+            1
+            << (std::max(std::numeric_limits<std::int64_t>::digits - std::numeric_limits<double>::digits - 3 * Prec, 0)
+               );
 
         // divide the value into two parts (each no more than kLossLimit)
         const std::int64_t p1 = value_ / (kDecimalFactor * kCoef) * kCoef;
@@ -830,8 +853,8 @@ constexpr Decimal<Prec, RoundPolicy> FromUnpacked(int64_t before, int64_t after)
     UASSERT(((before >= 0) && (after >= 0)) || ((before <= 0) && (after <= 0)));
 
     int64_t result{};
-    if (__builtin_mul_overflow(before, Dec::kDecimalFactor, &result) ||
-        __builtin_add_overflow(result, after, &result)) {
+    if (__builtin_mul_overflow(before, Dec::kDecimalFactor, &result) || __builtin_add_overflow(result, after, &result))
+    {
         throw OutOfBoundsError();
     }
 
@@ -899,7 +922,8 @@ constexpr Decimal<Prec, RoundPolicy> FromUnpackedWithExponent(
     int64_t value = before;
 
     if (__builtin_mul_overflow(value, Pow10(original_precision), &value) ||
-        __builtin_add_overflow(value, after, &value)) {
+        __builtin_add_overflow(value, after, &value))
+    {
         throw OutOfBoundsError();
     }
 
@@ -961,7 +985,9 @@ template <typename CharT, typename Traits>
 class StringCharSequence {
 public:
     explicit constexpr StringCharSequence(std::basic_string_view<CharT, Traits> sv)
-        : current_(sv.begin()), end_(sv.end()) {}
+        : current_(sv.begin()),
+          end_(sv.end())
+    {}
 
     // on sequence end, returns '\0'
     constexpr CharT Get() { return current_ == end_ ? CharT{'\0'} : *current_++; }
@@ -976,7 +1002,9 @@ private:
 template <typename CharT, typename Traits>
 class StreamCharSequence {
 public:
-    explicit StreamCharSequence(std::basic_istream<CharT, Traits>& in) : in_(&in) {}
+    explicit StreamCharSequence(std::basic_istream<CharT, Traits>& in)
+        : in_(&in)
+    {}
 
     // on sequence end, returns '\0'
     CharT Get() {
@@ -1100,8 +1128,11 @@ enum class ParseState {
     kEnd
 };
 
-constexpr inline void
-StateToExpSign(std::optional<ParseErrorCode>& error, ParseState& state, utils::Flags<ParseOptions>& options) {
+constexpr inline void StateToExpSign(
+    std::optional<ParseErrorCode>& error,
+    ParseState& state,
+    utils::Flags<ParseOptions>& options
+) {
     if (!error && !(options & ParseOptions::kAllowExponent)) {
         error = ParseErrorCode::kExponentNotAllowed;
     }
@@ -1128,8 +1159,12 @@ template <typename CharSequence>
 
     while (state != ParseState::kEnd) {
         const auto c = input.Get();
-        if (c == '\0') break;
-        if (!error) ++position;
+        if (c == '\0') {
+            break;
+        }
+        if (!error) {
+            ++position;
+        }
 
         switch (state) {
             case ParseState::kSign:
@@ -1278,14 +1313,17 @@ template <typename CharSequence>
                     state = ParseState::kExpDigits;
                 } else {
                     state = ParseState::kEnd;
-                    if (!error) error = ParseErrorCode::kWrongChar;
+                    if (!error) {
+                        error = ParseErrorCode::kWrongChar;
+                    }
                 }
                 break;
 
             case ParseState::kExpDigits:
                 if (c >= '0' && c <= '9') {
                     if ((__builtin_mul_overflow(10, exponent, &exponent) ||
-                         __builtin_add_overflow(static_cast<int>(c - '0'), exponent, &exponent))) {
+                         __builtin_add_overflow(static_cast<int>(c - '0'), exponent, &exponent)))
+                    {
                         if (is_negative_exp && !(options & ParseOptions::kAllowRounding) && !error) {
                             error = ParseErrorCode::kRounding;  // keep reading digits
                         }
@@ -1302,7 +1340,7 @@ template <typename CharSequence>
                 UASSERT(false);
                 break;
         }  // switch state
-    }      // while has more chars & not end
+    }  // while has more chars & not end
 
     if (state == ParseState::kEnd) {
         input.Unget();
@@ -1315,7 +1353,9 @@ template <typename CharSequence>
 
             while (true) {
                 const auto c = input.Get();
-                if (c == '\0') break;
+                if (c == '\0') {
+                    break;
+                }
                 ++position;
                 if (!IsSpace(c)) {
                     error = ParseErrorCode::kTrailingJunk;
@@ -1331,7 +1371,8 @@ template <typename CharSequence>
     }
 
     if (!error && state == ParseState::kZerosAfterDec && !(options & ParseOptions::kAllowBoundaryDot) &&
-        after_digit_count == 0) {
+        after_digit_count == 0)
+    {
         error = ParseErrorCode::kBoundaryDot;
     }
 
@@ -1529,7 +1570,8 @@ std::basic_istream<CharT, Traits>& operator>>(std::basic_istream<CharT, Traits>&
         std::ws(is);
     }
     const auto result = impl::Parse<Prec, RoundPolicy>(
-        impl::StreamCharSequence(is), {impl::ParseOptions::kAllowTrailingJunk, impl::ParseOptions::kAllowExponent}
+        impl::StreamCharSequence(is),
+        {impl::ParseOptions::kAllowTrailingJunk, impl::ParseOptions::kAllowExponent}
     );
 
     if (result.error) {
@@ -1543,8 +1585,10 @@ std::basic_istream<CharT, Traits>& operator>>(std::basic_istream<CharT, Traits>&
 /// @brief Writes the `Decimal` to the `ostream`
 /// @see ToString
 template <typename CharT, typename Traits, int Prec, typename RoundPolicy>
-std::basic_ostream<CharT, Traits>&
-operator<<(std::basic_ostream<CharT, Traits>& os, const Decimal<Prec, RoundPolicy>& d) {
+std::basic_ostream<CharT, Traits>& operator<<(
+    std::basic_ostream<CharT, Traits>& os,
+    const Decimal<Prec, RoundPolicy>& d
+) {
     os << ToString(d);
     return os;
 }

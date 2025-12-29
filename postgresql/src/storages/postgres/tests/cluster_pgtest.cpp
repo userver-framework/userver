@@ -104,14 +104,16 @@ UTEST_F(PostgreCluster, ClusterSlaveRW) {
     UEXPECT_THROW(cluster.Begin(pg::ClusterHostType::kSlave, {}), pg::ClusterUnavailable);
     UEXPECT_THROW(cluster.Begin(pg::ClusterHostType::kSlave, pg::Transaction::RW), pg::ClusterUnavailable);
     UEXPECT_THROW(
-        cluster.Begin({pg::ClusterHostType::kSlave, pg::ClusterHostType::kRoundRobin}, {}), pg::ClusterUnavailable
+        cluster.Begin({pg::ClusterHostType::kSlave, pg::ClusterHostType::kRoundRobin}, {}),
+        pg::ClusterUnavailable
     );
     UEXPECT_THROW(
         cluster.Begin({pg::ClusterHostType::kSlave, pg::ClusterHostType::kRoundRobin}, pg::Transaction::RW),
         pg::ClusterUnavailable
     );
     UEXPECT_THROW(
-        cluster.Begin({pg::ClusterHostType::kSlave, pg::ClusterHostType::kNearest}, {}), pg::ClusterUnavailable
+        cluster.Begin({pg::ClusterHostType::kSlave, pg::ClusterHostType::kNearest}, {}),
+        pg::ClusterUnavailable
     );
     UEXPECT_THROW(
         cluster.Begin({pg::ClusterHostType::kSlave, pg::ClusterHostType::kNearest}, pg::Transaction::RW),
@@ -154,7 +156,8 @@ UTEST_F(PostgreCluster, ClusterAnyRW) {
         cluster.Begin({pg::ClusterHostType::kMaster, pg::ClusterHostType::kSlave, pg::ClusterHostType::kNearest}, {})
     );
     CheckRwTransaction(cluster.Begin(
-        {pg::ClusterHostType::kMaster, pg::ClusterHostType::kSlave, pg::ClusterHostType::kNearest}, pg::Transaction::RW
+        {pg::ClusterHostType::kMaster, pg::ClusterHostType::kSlave, pg::ClusterHostType::kNearest},
+        pg::Transaction::RW
     ));
 
     UEXPECT_THROW(
@@ -185,8 +188,8 @@ UTEST_F(PostgreCluster, ClusterSlaveRO) {
 
     CheckRoTransaction(cluster.Begin(pg::Transaction::RO));
     CheckRoTransaction(cluster.Begin(pg::ClusterHostType::kSlave, pg::Transaction::RO));
-    CheckRoTransaction(
-        cluster.Begin({pg::ClusterHostType::kSlave, pg::ClusterHostType::kRoundRobin}, pg::Transaction::RO)
+    CheckRoTransaction(cluster
+                           .Begin({pg::ClusterHostType::kSlave, pg::ClusterHostType::kRoundRobin}, pg::Transaction::RO)
     );
     CheckRoTransaction(cluster.Begin({pg::ClusterHostType::kSlave, pg::ClusterHostType::kNearest}, pg::Transaction::RO)
     );
@@ -224,7 +227,8 @@ UTEST_F(PostgreCluster, ClusterAnyRO) {
         pg::Transaction::RO
     ));
     CheckRoTransaction(cluster.Begin(
-        {pg::ClusterHostType::kSlave, pg::ClusterHostType::kMaster, pg::ClusterHostType::kNearest}, pg::Transaction::RO
+        {pg::ClusterHostType::kSlave, pg::ClusterHostType::kMaster, pg::ClusterHostType::kNearest},
+        pg::Transaction::RO
     ));
 
     UEXPECT_THROW(
@@ -263,7 +267,8 @@ UTEST_F(PostgreCluster, HostSelectionSingleQuery) {
     UEXPECT_THROW(cluster.Execute({pg::ClusterHostType::kRoundRobin}, "select 1"), pg::LogicError);
     UEXPECT_THROW(cluster.Execute({pg::ClusterHostType::kNearest}, "select 1"), pg::LogicError);
     UEXPECT_THROW(
-        cluster.Execute({pg::ClusterHostType::kNearest, pg::ClusterHostType::kRoundRobin}, "select 1"), pg::LogicError
+        cluster.Execute({pg::ClusterHostType::kNearest, pg::ClusterHostType::kRoundRobin}, "select 1"),
+        pg::LogicError
     );
 
     pg::ResultSet res{nullptr};
@@ -275,20 +280,23 @@ UTEST_F(PostgreCluster, HostSelectionSingleQuery) {
     EXPECT_EQ(1, res.Size());
     UEXPECT_NO_THROW(
         res = cluster.Execute(
-            {pg::ClusterHostType::kSlave, pg::ClusterHostType::kMaster, pg::ClusterHostType::kRoundRobin}, "select 1"
+            {pg::ClusterHostType::kSlave, pg::ClusterHostType::kMaster, pg::ClusterHostType::kRoundRobin},
+            "select 1"
         )
     );
     EXPECT_EQ(1, res.Size());
     UEXPECT_NO_THROW(
         res = cluster.Execute(
-            {pg::ClusterHostType::kSlave, pg::ClusterHostType::kMaster, pg::ClusterHostType::kNearest}, "select 1"
+            {pg::ClusterHostType::kSlave, pg::ClusterHostType::kMaster, pg::ClusterHostType::kNearest},
+            "select 1"
         )
     );
     EXPECT_EQ(1, res.Size());
 
     UEXPECT_THROW(
         cluster.Execute(
-            {pg::ClusterHostType::kSlave, pg::ClusterHostType::kRoundRobin, pg::ClusterHostType::kNearest}, "select 1"
+            {pg::ClusterHostType::kSlave, pg::ClusterHostType::kRoundRobin, pg::ClusterHostType::kNearest},
+            "select 1"
         ),
         pg::LogicError
     );
@@ -335,7 +343,8 @@ UTEST_F(PostgreCluster, TransactionTimeouts) {
     {
         static const std::string kTestTransactionName = "test-transaction-name";
         const pg::CommandControlByQueryMap ccq_map{
-            {kTestTransactionName, kTestCmdCtl.WithStatementTimeout(std::chrono::milliseconds{50})}};
+            {kTestTransactionName, kTestCmdCtl.WithStatementTimeout(std::chrono::milliseconds{50})}
+        };
         cluster.SetQueriesCommandControl(ccq_map);
         // Use timeout for custom transaction name
         auto trx = cluster.Begin(kTestTransactionName, pg::Transaction::RW);
@@ -458,7 +467,8 @@ UTEST_F(PostgreCluster, ListenNotify) {
     EXPECT_TRUE(ntf.payload && *ntf.payload == kNotifyPayload);
 
     UEXPECT_THROW(
-        scope.WaitNotify(engine::Deadline::FromDuration(std::chrono::milliseconds{50})), pg::ConnectionTimeoutError
+        scope.WaitNotify(engine::Deadline::FromDuration(std::chrono::milliseconds{50})),
+        pg::ConnectionTimeoutError
     );
 }
 

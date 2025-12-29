@@ -16,12 +16,12 @@ namespace {
 class UnitTestService final : public sample::ugrpc::UnitTestServiceBase {
 public:
     SayHelloResult SayHello(CallContext& context, sample::ugrpc::GreetingRequest&& request) override {
-        LOG_DEBUG() << request_counter_ << " request attempt: now=" << std::chrono::system_clock::now()
-                    << ", deadline=" << context.GetServerContext().deadline();
+        LOG_DEBUG()
+            << request_counter_ << " request attempt: now=" << std::chrono::system_clock::now()
+            << ", deadline=" << context.GetServerContext().deadline();
         if (++request_counter_ % 4) {
             engine::InterruptibleSleepFor(tests::kLongTimeout + tests::kShortTimeout);
-            EXPECT_TRUE(context.GetServerContext().IsCancelled());
-            // this status should not reach client because of 'perAttemptRecvTimeout'
+            // this status should not reach client because of timeout
             LOG_DEBUG() << request_counter_ << ": return ABORTED";
             return grpc::Status(grpc::StatusCode::ABORTED, "");
         }

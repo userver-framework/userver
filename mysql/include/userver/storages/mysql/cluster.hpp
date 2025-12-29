@@ -229,8 +229,11 @@ public:
   ///
   /// @snippet mysql/tests/cluster.cpp uMySQL usage sample - Cluster ExecuteCommand
     // clang-format on
-    CommandResultSet
-    ExecuteCommand(OptionalCommandControl command_control, ClusterHostType host_type, const Query& command) const;
+    CommandResultSet ExecuteCommand(
+        OptionalCommandControl command_control,
+        ClusterHostType host_type,
+        const Query& command
+    ) const;
 
     /// @brief Executes a statement with default deadline on a host of host_type,
     /// filling statements placeholders with `args...`, and returns a read-only
@@ -242,8 +245,12 @@ public:
     ///
     /// UINVARIANTs on params count mismatch, doesn't validate types.
     template <typename T, typename... Args>
-    CursorResultSet<T>
-    GetCursor(ClusterHostType host_type, std::size_t batch_size, const Query& query, const Args&... args) const;
+    CursorResultSet<T> GetCursor(
+        ClusterHostType host_type,
+        std::size_t batch_size,
+        const Query& query,
+        const Args&... args
+    ) const;
 
     // clang-format off
   /// @brief Executes a statement with provided CommandControl on
@@ -359,8 +366,12 @@ StatementResultSet Cluster::ExecuteBulkMapped(
 }
 
 template <typename T, typename... Args>
-CursorResultSet<T>
-Cluster::GetCursor(ClusterHostType host_type, std::size_t batch_size, const Query& query, const Args&... args) const {
+CursorResultSet<T> Cluster::GetCursor(
+    ClusterHostType host_type,
+    std::size_t batch_size,
+    const Query& query,
+    const Args&... args
+) const {
     return GetCursor<T>(std::nullopt, host_type, batch_size, query, args...);
 }
 

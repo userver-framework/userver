@@ -24,9 +24,9 @@ std::vector<std::string> BuildTopologySortOfMiddlewares(
             }
         }
         if (without_connections.empty()) {
-            throw std::runtime_error{fmt::format(
-                "There is a cycle in the graph. Nodes with a cycle: {}.", graph | boost::adaptors::map_keys
-            )};
+            throw std::runtime_error{
+                fmt::format("There is a cycle in the graph. Nodes with a cycle: {}.", graph | boost::adaptors::map_keys)
+            };
         }
         for (const auto& node_name : without_connections) {
             graph.erase(node_name);

@@ -1,7 +1,6 @@
 # pylint: disable=redefined-outer-name
 import pathlib
 import shutil
-import typing
 
 import pytest
 
@@ -31,7 +30,7 @@ def read_latest_dump(userver_dumps_root):
     @ingroup userver_testsuite_fixtures
     """
 
-    def read(dumper_name: str) -> typing.Optional[bytes]:
+    def read(dumper_name: str) -> bytes | None:
         specific_dir = userver_dumps_root.joinpath(dumper_name)
         if not specific_dir.is_dir():
             return None
