@@ -10,8 +10,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace components {
 
-// clang-format off
-
 /// @ingroup userver_components
 ///
 /// @brief Component that starts a clients::dynamic_config::Client client.
@@ -21,27 +19,19 @@ namespace components {
 ///
 /// The component must be configured in service config.
 ///
-/// ## Static options:
-/// Name | Description | Default value
-/// ---- | ----------- | -------------
-/// get-configs-overrides-for-service | send service-name field | true
-/// service-name | name of the service to send if the get-configs-overrides-for-service is true | -
-/// http-timeout | HTTP request timeout to the remote in utils::StringToDuration() suitable format | -
-/// http-retries | HTTP retries before reporting the request failure | -
-/// config-url | HTTP URL to request configs via POST request | -
-/// append-path-to-url | add default path '/configs/values' to 'config-url' | true
-/// configs-stage: stage name provided statically, can be overridden from file | -
-/// configs-stage-filepath: file to read stage name from, overrides static "configs-stage" if both are provided, expected format: json file with "env_name" property | -
+/// ## Static options of components::DynamicConfigClient :
+/// @include{doc} scripts/docs/en/components_schema/core/src/dynamic_config/client/component.md
+///
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
 ///
 /// ## Static configuration example:
 ///
 /// @snippet components/common_component_list_test.cpp  Sample dynamic configs client component config
-
-// clang-format on
 class DynamicConfigClient : public ComponentBase {
 public:
     /// @ingroup userver_component_names
-    /// @brief The default name of components::DynamicConfigClient
+    /// @brief The default name of @ref components::DynamicConfigClient
     static constexpr std::string_view kName = "dynamic-config-client";
 
     DynamicConfigClient(const ComponentConfig&, const ComponentContext&);

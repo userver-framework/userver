@@ -36,7 +36,9 @@ AuthCheckerFactories CreateAuthCheckerFactories(const components::ComponentConte
 }
 
 std::vector<AuthCheckerBasePtr> CreateAuthCheckers(const AuthCheckerFactories& factories, const HandlerConfig& config) {
-    if (!config.auth) return {};
+    if (!config.auth) {
+        return {};
+    }
 
     std::vector<AuthCheckerBasePtr> auth_checkers;
 
@@ -58,7 +60,9 @@ void CheckAuth(
     const http::HttpRequest& http_request,
     request::RequestContext& context
 ) {
-    if (auth_checkers.empty()) return;
+    if (auth_checkers.empty()) {
+        return;
+    }
 
     auth::AuthCheckResult check_result_first;
 

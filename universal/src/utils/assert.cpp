@@ -1,6 +1,6 @@
 #include <userver/utils/assert.hpp>
 
-#include <iostream>
+#include <cstdio>
 
 #include <fmt/format.h>
 #include <fmt/ostream.h>
@@ -63,7 +63,7 @@ bool dump_stacktrace_on_assert_failure = true;
         impl::dump_stacktrace_on_assert_failure ? boost::stacktrace::stacktrace() : boost::stacktrace::stacktrace(0, 0);
 
     // Use fmt::format to output the message without interleaving with other logs.
-    std::cerr << fmt::format("{}. Stacktrace:\n{}", message, boost::stacktrace::to_string(trace));
+    std::fputs(fmt::format("{}. Stacktrace:\n{}", message, boost::stacktrace::to_string(trace)).c_str(), stderr);
     std::abort();
 }
 

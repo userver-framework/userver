@@ -1,0 +1,11 @@
+type: object
+description: Base class for a component to configure server middlewares
+additionalProperties: false
+properties:
+    append:
+        type: array
+        items:
+            type: string
+            description: name of a middleware to append
+        description: list of middlewares to append by default
+        default: an empty list

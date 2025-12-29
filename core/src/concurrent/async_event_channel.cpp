@@ -16,7 +16,9 @@ void WaitForTask(std::string_view name, engine::TaskWithResult<void>& task) {
 
     while (true) {
         task.WaitFor(kSubscriberTimeout);
-        if (task.IsFinished()) break;
+        if (task.IsFinished()) {
+            break;
+        }
 
         LOG_ERROR() << "Subscriber " << name << " handles event for too long";
     }
@@ -34,16 +36,18 @@ void WaitForTask(std::string_view name, engine::TaskWithResult<void>& task) {
 
 void ReportNotSubscribed(std::string_view channel_name) noexcept {
     // RemoveListener is called from destructors, don't throw in production
-    LOG_ERROR() << "Trying to unregister a subscriber which is not registered "
-                   "for channel "
-                << channel_name << ". Stacktrace: " << logging::LogExtra::Stacktrace();
+    LOG_ERROR()
+        << "Trying to unregister a subscriber which is not registered "
+           "for channel "
+        << channel_name << ". Stacktrace: " << logging::LogExtra::Stacktrace();
     UASSERT_MSG(false, "Trying to unregister a subscriber which is not registered");
 }
 
 void ReportUnsubscribingAutomatically(std::string_view channel_name, std::string_view listener_name) noexcept {
-    LOG_DEBUG() << "Listener " << listener_name << " is unsubscribing automatically from channel " << channel_name
-                << ", which can invoke UB. Please call 'Unsubscribe' manually in "
-                   "destructors.";
+    LOG_DEBUG()
+        << "Listener " << listener_name << " is unsubscribing automatically from channel " << channel_name
+        << ", which can invoke UB. Please call 'Unsubscribe' manually in "
+           "destructors.";
 }
 
 void ReportErrorWhileUnsubscribing(
@@ -51,8 +55,9 @@ void ReportErrorWhileUnsubscribing(
     std::string_view listener_name,
     std::string_view error
 ) noexcept {
-    LOG_ERROR() << "Unhandled exception while listener " << listener_name
-                << " is unsubscribing automatically from channel " << channel_name << ": " << error;
+    LOG_ERROR()
+        << "Unhandled exception while listener " << listener_name << " is unsubscribing automatically from channel "
+        << channel_name << ": " << error;
 }
 
 std::string MakeAsyncChannelName(std::string_view base, std::string_view name) {

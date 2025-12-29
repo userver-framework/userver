@@ -13,7 +13,9 @@ USERVER_NAMESPACE_BEGIN
 namespace urabbitmq::impl::io {
 
 SocketReader::SocketReader(AmqpConnectionHandler& parent, engine::io::RwBase& socket)
-    : parent_{parent}, socket_{socket} {}
+    : parent_{parent},
+      socket_{socket}
+{}
 
 SocketReader::~SocketReader() { Stop(); }
 

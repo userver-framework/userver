@@ -11,7 +11,9 @@ namespace testsuite::impl::actions {
 
 class PeriodicTaskRun final : public BaseTestsuiteAction {
 public:
-    explicit PeriodicTaskRun(components::TestsuiteSupport& testsuite_support) : testsuite_support_(testsuite_support) {}
+    explicit PeriodicTaskRun(components::TestsuiteSupport& testsuite_support)
+        : testsuite_support_(testsuite_support)
+    {}
 
     formats::json::Value Perform(const formats::json::Value& request_body) const override {
         const auto task_name = request_body["name"].As<std::string>();
@@ -26,7 +28,8 @@ private:
 class PeriodicTaskSuspend final : public BaseTestsuiteAction {
 public:
     explicit PeriodicTaskSuspend(components::TestsuiteSupport& testsuite_support)
-        : testsuite_support_(testsuite_support) {}
+        : testsuite_support_(testsuite_support)
+    {}
 
     formats::json::Value Perform(const formats::json::Value& request_body) const override {
         const auto task_names = request_body["names"].As<std::unordered_set<std::string>>();

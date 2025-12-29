@@ -39,17 +39,23 @@ void FromJsonStringImpl(
 #if defined(ARCADIA_ROOT)
     // JSON utils use y_absl::string_view.
     const auto status = google::protobuf::util::JsonStringToMessage(
-        y_absl::string_view(json_string.data(), json_string.size()), &output, options
+        y_absl::string_view(json_string.data(), json_string.size()),
+        &output,
+        options
     );
 #elif GOOGLE_PROTOBUF_VERSION >= 4022000
     // JSON utils use absl::string_view.
     const auto status = google::protobuf::util::JsonStringToMessage(
-        absl::string_view(json_string.data(), json_string.size()), &output, options
+        absl::string_view(json_string.data(), json_string.size()),
+        &output,
+        options
     );
 #else
     // JSON utils use StringPiece.
     const auto status = google::protobuf::util::JsonStringToMessage(
-        google::protobuf::StringPiece(json_string.data(), json_string.size()), &output, options
+        google::protobuf::StringPiece(json_string.data(), json_string.size()),
+        &output,
+        options
     );
 #endif
 
@@ -71,8 +77,10 @@ formats::json::Value MessageToJson(const google::protobuf::Message& message) {
     return MessageToJson(message, impl::kDefaultJsonPrintOptions);
 }
 
-formats::json::Value
-MessageToJson(const google::protobuf::Message& message, const google::protobuf::util::JsonPrintOptions& options) {
+formats::json::Value MessageToJson(
+    const google::protobuf::Message& message,
+    const google::protobuf::util::JsonPrintOptions& options
+) {
     return formats::json::FromString(ToJsonString(message, options));
 }
 
@@ -80,8 +88,10 @@ std::string ToJsonString(const google::protobuf::Message& message) {
     return ToJsonString(message, impl::kDefaultJsonPrintOptions);
 }
 
-std::string
-ToJsonString(const google::protobuf::Message& message, const google::protobuf::util::JsonPrintOptions& options) {
+std::string ToJsonString(
+    const google::protobuf::Message& message,
+    const google::protobuf::util::JsonPrintOptions& options
+) {
     grpc::string result{};
 
     auto status = google::protobuf::util::MessageToJsonString(message, &result, options);
@@ -121,10 +131,12 @@ std::string GetName(const formats::json::Value::const_iterator& iter, const Type
 class ResultStackFrame final {
 public:
     explicit ResultStackFrame(const formats::json::Value& value)
-        : ResultStackFrame(ParseType(value), value.GetSize(), "") {}
+        : ResultStackFrame(ParseType(value), value.GetSize(), "")
+    {}
 
     ResultStackFrame(const formats::json::Value::const_iterator& iter, const Type previous_type)
-        : ResultStackFrame(ParseType(iter), iter->GetSize(), GetName(iter, previous_type)) {}
+        : ResultStackFrame(ParseType(iter), iter->GetSize(), GetName(iter, previous_type))
+    {}
 
     void SetStructField(std::string_view field_name, google::protobuf::Value&& field) {
         UINVARIANT(type_ == Type::kStruct, "invalid type");
@@ -159,7 +171,10 @@ public:
 
 private:
     ResultStackFrame(const Type type, std::size_t elements_await, std::string&& outer_field_name)
-        : type_(type), elements_await_(elements_await), outer_field_name_(outer_field_name) {
+        : type_(type),
+          elements_await_(elements_await),
+          outer_field_name_(outer_field_name)
+    {
         if (type == Type::kStruct) {
             value_.mutable_struct_value();
         } else {
@@ -178,7 +193,10 @@ class StackFrame {
 public:
     using Iterator = formats::json::Value::const_iterator;
 
-    StackFrame(Iterator begin, Iterator end) : cur_(begin), end_(end) {}
+    StackFrame(Iterator begin, Iterator end)
+        : cur_(begin),
+          end_(end)
+    {}
 
     bool IsTrivial() const { return !(cur_->IsObject() || cur_->IsArray()); }
 

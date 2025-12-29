@@ -11,7 +11,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace chaotic::openapi {
 
-ProxyMiddleware::ProxyMiddleware(std::string&& proxy_url) : proxy_url_(std::move(proxy_url)) {}
+ProxyMiddleware::ProxyMiddleware(std::string&& proxy_url)
+    : proxy_url_(std::move(proxy_url))
+{}
 
 void ProxyMiddleware::OnRequest(clients::http::Request& request) { request.proxy(proxy_url_); }
 

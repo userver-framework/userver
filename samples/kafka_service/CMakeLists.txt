@@ -34,7 +34,7 @@ userver_add_utest(NAME ${PROJECT_NAME}-unittest)
 # /// [Kafka service sample - kafka functional test cmake]
 userver_testsuite_add_simple(
     TEST_ENV "TESTSUITE_KAFKA_SERVER_START_TIMEOUT=120.0" "TESTSUITE_KAFKA_SERVER_HOST=[::1]"
-    "TESTSUITE_KAFKA_CUSTOM_TOPICS=test-topic-1:1,test-topic-2:1"
+             "TESTSUITE_KAFKA_CUSTOM_TOPICS=test-topic-1:1,test-topic-2:1"
 )
 
 # /// [Kafka service sample - kafka functional test cmake]

@@ -4,7 +4,7 @@
 #include <userver/utest/using_namespace_userver.hpp>
 
 /// [SQLite service sample - component]
-#include <userver/clients/http/component.hpp>
+#include <userver/clients/http/component_list.hpp>
 #include <userver/components/component.hpp>
 #include <userver/components/minimal_server_component_list.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
@@ -64,7 +64,8 @@ namespace samples_sqlite_service::sqlite {
 /// [SQLite service sample - component constructor]
 KeyValue::KeyValue(const components::ComponentConfig& config, const components::ComponentContext& context)
     : HttpHandlerBase(config, context),
-      sqlite_client_(context.FindComponent<components::SQLite>("key-value-database").GetClient()) {
+      sqlite_client_(context.FindComponent<components::SQLite>("key-value-database").GetClient())
+{
     sqlite_client_->Execute(storages::sqlite::OperationType::kReadWrite, kCreateTable.data());
 }
 /// [SQLite service sample - component constructor]
@@ -85,15 +86,17 @@ std::string KeyValue::HandleRequest(server::http::HttpRequest& request, server::
             return DeleteValue(key);
         default:
             throw server::handlers::ClientError(server::handlers::ExternalBody{
-                fmt::format("Unsupported method {}", request.GetMethod())});
+                fmt::format("Unsupported method {}", request.GetMethod())
+            });
     }
 }
 /// [SQLite service sample - HandleRequestThrow]
 
 /// [SQLite service sample - GetValue]
 std::string KeyValue::GetValue(std::string_view key, const server::http::HttpRequest& request) const {
-    auto res = sqlite_client_->Execute(storages::sqlite::OperationType::kReadOnly, kSelectValueByKey.data(), key)
-                   .AsOptionalSingleField<std::string>();
+    auto res =
+        sqlite_client_->Execute(storages::sqlite::OperationType::kReadOnly, kSelectValueByKey.data(), key)
+            .AsOptionalSingleField<std::string>();
     if (!res.has_value()) {
         request.SetResponseStatus(server::http::HttpStatus::kNotFound);
         return {};
@@ -139,13 +142,14 @@ std::string KeyValue::DeleteValue(std::string_view key) const {
 
 /// [SQLite service sample - main]
 int main(int argc, char* argv[]) {
-    const auto component_list = components::MinimalServerComponentList()
-                                    .Append<samples_sqlite_service::sqlite::KeyValue>()
-                                    .Append<components::SQLite>("key-value-database")
-                                    .Append<components::HttpClient>()
-                                    .Append<server::handlers::TestsControl>()
-                                    .Append<components::TestsuiteSupport>()
-                                    .Append<clients::dns::Component>();
+    const auto component_list =
+        components::MinimalServerComponentList()
+            .Append<samples_sqlite_service::sqlite::KeyValue>()
+            .Append<components::SQLite>("key-value-database")
+            .AppendComponentList(clients::http::ComponentList())
+            .Append<server::handlers::TestsControl>()
+            .Append<components::TestsuiteSupport>()
+            .Append<clients::dns::Component>();
     return utils::DaemonMain(argc, argv, component_list);
 }
 /// [SQLite service sample - main]

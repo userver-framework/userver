@@ -28,7 +28,9 @@ TimeoutDuration AdjustTimeout(TimeoutDuration timeout, bool& adjusted) {
     adjusted = false;
 
     const auto inherited_deadline = server::request::GetTaskInheritedDeadline();
-    if (!inherited_deadline.IsReachable()) return timeout;
+    if (!inherited_deadline.IsReachable()) {
+        return timeout;
+    }
 
     auto left = std::chrono::duration_cast<TimeoutDuration>(inherited_deadline.TimeLeft());
     if (left.count() < 0) {

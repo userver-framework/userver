@@ -64,7 +64,9 @@ public:
 };
 
 void UpdateStringPointers(bson_value_t& value, std::string* storage_ptr) {
-    if (!storage_ptr) return;
+    if (!storage_ptr) {
+        return;
+    }
     auto& str = *storage_ptr;
 
     if (value.value_type == BSON_TYPE_UTF8) {
@@ -88,8 +90,12 @@ void ForEachValue(const uint8_t* data, size_t length, const Path& path, Func&& f
 }
 
 bool operator==(const bson_value_t& lhs, const bson_value_t& rhs) {
-    if (lhs.value_type == BSON_TYPE_EOD || rhs.value_type == BSON_TYPE_EOD) return false;
-    if (lhs.value_type != rhs.value_type) return false;
+    if (lhs.value_type == BSON_TYPE_EOD || rhs.value_type == BSON_TYPE_EOD) {
+        return false;
+    }
+    if (lhs.value_type != rhs.value_type) {
+        return false;
+    }
 
     switch (lhs.value_type) {
         case BSON_TYPE_OID:
@@ -132,7 +138,9 @@ bool operator==(const bson_value_t& lhs, const bson_value_t& rhs) {
             return lhs.value.v_codewscope.code_len == rhs.value.v_codewscope.code_len &&
                    lhs.value.v_codewscope.scope_len == rhs.value.v_codewscope.scope_len &&
                    !std::memcmp(
-                       lhs.value.v_codewscope.code, rhs.value.v_codewscope.code, lhs.value.v_codewscope.code_len
+                       lhs.value.v_codewscope.code,
+                       rhs.value.v_codewscope.code,
+                       lhs.value.v_codewscope.code_len
                    ) &&
                    !std::memcmp(
                        lhs.value.v_codewscope.scope_data,
@@ -162,13 +170,22 @@ bool operator==(const bson_value_t& lhs, const bson_value_t& rhs) {
 
 class ValueImpl::EmplaceEnabler {};
 
-ValueImpl::ValueImpl() : bson_value_(kDefaultBsonValue) {}
+ValueImpl::ValueImpl()
+    : bson_value_(kDefaultBsonValue)
+{}
 
 ValueImpl::~ValueImpl() { delete parsed_value_.load(); }
 
-ValueImpl::ValueImpl(std::nullptr_t) : bson_value_(kDefaultBsonValue) { bson_value_.value_type = BSON_TYPE_NULL; }
+ValueImpl::ValueImpl(std::nullptr_t)
+    : bson_value_(kDefaultBsonValue)
+{
+    bson_value_.value_type = BSON_TYPE_NULL;
+}
 
-ValueImpl::ValueImpl(BsonHolder bson, DocumentKind kind) : storage_(std::move(bson)), bson_value_(kDefaultBsonValue) {
+ValueImpl::ValueImpl(BsonHolder bson, DocumentKind kind)
+    : storage_(std::move(bson)),
+      bson_value_(kDefaultBsonValue)
+{
     switch (kind) {
         case DocumentKind::kDocument:
             bson_value_.value_type = BSON_TYPE_DOCUMENT;
@@ -185,29 +202,41 @@ ValueImpl::ValueImpl(BsonHolder bson, DocumentKind kind) : storage_(std::move(bs
     bson_value_.value.v_doc.data_len = stored_bson->len;
 }
 
-ValueImpl::ValueImpl(bool value) : ValueImpl() {
+ValueImpl::ValueImpl(bool value)
+    : ValueImpl()
+{
     bson_value_.value_type = BSON_TYPE_BOOL;
     bson_value_.value.v_bool = value;
 }
 
-ValueImpl::ValueImpl(int32_t value) : ValueImpl() {
+ValueImpl::ValueImpl(int32_t value)
+    : ValueImpl()
+{
     bson_value_.value_type = BSON_TYPE_INT32;
     bson_value_.value.v_int32 = value;
 }
 
-ValueImpl::ValueImpl(int64_t value) : ValueImpl() {
+ValueImpl::ValueImpl(int64_t value)
+    : ValueImpl()
+{
     bson_value_.value_type = BSON_TYPE_INT64;
     bson_value_.value.v_int64 = value;
 }
 
-ValueImpl::ValueImpl(double value) : ValueImpl() {
+ValueImpl::ValueImpl(double value)
+    : ValueImpl()
+{
     bson_value_.value_type = BSON_TYPE_DOUBLE;
     bson_value_.value.v_double = value;
 }
 
-ValueImpl::ValueImpl(const char* value) : ValueImpl(std::string(value)) {}
+ValueImpl::ValueImpl(const char* value)
+    : ValueImpl(std::string(value))
+{}
 
-ValueImpl::ValueImpl(std::string value) : bson_value_(kDefaultBsonValue) {
+ValueImpl::ValueImpl(std::string value)
+    : bson_value_(kDefaultBsonValue)
+{
     if (!utils::text::IsUtf8(value)) {
         throw BsonException("BSON strings must be valid UTF-8");
     }
@@ -216,34 +245,53 @@ ValueImpl::ValueImpl(std::string value) : bson_value_(kDefaultBsonValue) {
     UpdateStringPointers(bson_value_, std::get_if<std::string>(&storage_));
 }
 
-ValueImpl::ValueImpl(const std::chrono::system_clock::time_point& value) : ValueImpl() {
-    const int64_t ms_since_epoch =
-        std::chrono::duration_cast<std::chrono::milliseconds>(value.time_since_epoch()).count();
+ValueImpl::ValueImpl(const std::chrono::system_clock::time_point& value)
+    : ValueImpl()
+{
+    const int64_t
+        ms_since_epoch = std::chrono::duration_cast<std::chrono::milliseconds>(value.time_since_epoch()).count();
     bson_value_.value_type = BSON_TYPE_DATE_TIME;
     bson_value_.value.v_datetime = ms_since_epoch;
 }
 
-ValueImpl::ValueImpl(const Oid& value) : ValueImpl() {
+ValueImpl::ValueImpl(const Oid& value)
+    : ValueImpl()
+{
     bson_value_.value_type = BSON_TYPE_OID;
     bson_value_.value.v_oid = *value.GetNative();
 }
 
-ValueImpl::ValueImpl(Binary value) : storage_(std::move(value).ToString()), bson_value_(kDefaultBsonValue) {
+ValueImpl::ValueImpl(Binary value)
+    : storage_(std::move(value).ToString()),
+      bson_value_(kDefaultBsonValue)
+{
     bson_value_.value_type = BSON_TYPE_BINARY;
     bson_value_.value.v_binary.subtype = BSON_SUBTYPE_BINARY;
     UpdateStringPointers(bson_value_, std::get_if<std::string>(&storage_));
 }
 
-ValueImpl::ValueImpl(const Decimal128& value) : ValueImpl() {
+ValueImpl::ValueImpl(const Decimal128& value)
+    : ValueImpl()
+{
     bson_value_.value_type = BSON_TYPE_DECIMAL128;
     bson_value_.value.v_decimal128 = *value.GetNative();
 }
 
-ValueImpl::ValueImpl(MinKey) : ValueImpl() { bson_value_.value_type = BSON_TYPE_MINKEY; }
+ValueImpl::ValueImpl(MinKey)
+    : ValueImpl()
+{
+    bson_value_.value_type = BSON_TYPE_MINKEY;
+}
 
-ValueImpl::ValueImpl(MaxKey) : ValueImpl() { bson_value_.value_type = BSON_TYPE_MAXKEY; }
+ValueImpl::ValueImpl(MaxKey)
+    : ValueImpl()
+{
+    bson_value_.value_type = BSON_TYPE_MAXKEY;
+}
 
-ValueImpl::ValueImpl(const Timestamp& value) : ValueImpl() {
+ValueImpl::ValueImpl(const Timestamp& value)
+    : ValueImpl()
+{
     bson_value_.value_type = BSON_TYPE_TIMESTAMP;
     bson_value_.value.v_timestamp.timestamp = value.GetTimestamp();
     bson_value_.value.v_timestamp.increment = value.GetIncrement();
@@ -260,7 +308,8 @@ ValueImpl::ValueImpl(
     : storage_(std::move(storage)),
       path_(path.MakeChildPath(index)),
       bson_value_(bson_value),
-      duplicate_fields_policy_(duplicate_fields_policy) {
+      duplicate_fields_policy_(duplicate_fields_policy)
+{
     UpdateStringPointers(bson_value_, std::get_if<std::string>(&storage_));
 }
 
@@ -275,14 +324,16 @@ ValueImpl::ValueImpl(
     : storage_(std::move(storage)),
       path_(path.MakeChildPath(key)),
       bson_value_(bson_value),
-      duplicate_fields_policy_(duplicate_fields_policy) {
+      duplicate_fields_policy_(duplicate_fields_policy)
+{
     UpdateStringPointers(bson_value_, std::get_if<std::string>(&storage_));
 }
 
 ValueImpl::ValueImpl(const ValueImpl& other)
     : storage_(other.storage_),
       bson_value_(other.bson_value_),
-      duplicate_fields_policy_(other.duplicate_fields_policy_) {
+      duplicate_fields_policy_(other.duplicate_fields_policy_)
+{
     const auto* parsed_ptr = other.parsed_value_.load();
     if (parsed_ptr) {
         auto deep_copy = std::visit(DeepCopyVisitor{}, *parsed_ptr);
@@ -296,14 +347,18 @@ ValueImpl::ValueImpl(const ValueImpl& other)
 ValueImpl::ValueImpl(ValueImpl&& other) noexcept { *this = std::move(other); }
 
 ValueImpl& ValueImpl::operator=(const ValueImpl& rhs) {
-    if (this == &rhs) return *this;
+    if (this == &rhs) {
+        return *this;
+    }
 
     ValueImpl tmp(rhs);
     return *this = std::move(tmp);
 }
 
 ValueImpl& ValueImpl::operator=(ValueImpl&& rhs) noexcept {
-    if (this == &rhs) return *this;
+    if (this == &rhs) {
+        return *this;
+    }
 
     storage_ = std::move(rhs.storage_);
     bson_value_ = rhs.bson_value_;
@@ -319,7 +374,9 @@ ValueImpl& ValueImpl::operator=(ValueImpl&& rhs) noexcept {
 bool ValueImpl::IsStorageOwner() const {
     class Visitor {
     public:
-        Visitor(const ValueImpl& value) : value_(value) {}
+        Visitor(const ValueImpl& value)
+            : value_(value)
+        {}
 
         bool operator()(std::nullptr_t) const { return true; }
 
@@ -353,11 +410,12 @@ ValueImplPtr ValueImpl::operator[](const std::string& name) {
         EnsureParsed();
         const auto& parsed_doc = std::get<ParsedDocument>(*parsed_value_.load());
         auto it = parsed_doc.find(name);
-        if (it != parsed_doc.end()) return it->second;
+        if (it != parsed_doc.end()) {
+            return it->second;
+        }
     }
-    return std::make_shared<ValueImpl>(
-        EmplaceEnabler{}, nullptr, path_, kDefaultBsonValue, duplicate_fields_policy_, name
-    );
+    return std::make_shared<
+        ValueImpl>(EmplaceEnabler{}, nullptr, path_, kDefaultBsonValue, duplicate_fields_policy_, name);
 }
 
 ValueImplPtr ValueImpl::operator[](uint32_t index) {
@@ -372,7 +430,9 @@ ValueImplPtr ValueImpl::operator[](uint32_t index) {
 }
 
 bool ValueImpl::HasMember(const std::string& name) {
-    if (IsMissing() || IsNull()) return false;
+    if (IsMissing() || IsNull()) {
+        return false;
+    }
 
     CheckIsDocument();
     EnsureParsed();
@@ -389,9 +449,8 @@ ValueImplPtr ValueImpl::GetOrInsert(const std::string& key) {
     return std::get<ParsedDocument>(*parsed_value_.load())
         .emplace(
             key,
-            std::make_shared<ValueImpl>(
-                EmplaceEnabler{}, nullptr, path_, kDefaultBsonValue, duplicate_fields_policy_, key
-            )
+            std::make_shared<
+                ValueImpl>(EmplaceEnabler{}, nullptr, path_, kDefaultBsonValue, duplicate_fields_policy_, key)
         )
         .first->second;
 }
@@ -407,14 +466,15 @@ void ValueImpl::Resize(uint32_t new_size) {
     const auto old_size = parsed_array.size();
     parsed_array.resize(new_size);
     for (auto size = old_size; size < new_size; ++size) {
-        parsed_array[size] = std::make_shared<ValueImpl>(
-            EmplaceEnabler{}, nullptr, path_, kDefaultBsonValue, duplicate_fields_policy_, size
-        );
+        parsed_array[size] = std::make_shared<
+            ValueImpl>(EmplaceEnabler{}, nullptr, path_, kDefaultBsonValue, duplicate_fields_policy_, size);
     }
 }
 
 void ValueImpl::PushBack(ValueImplPtr impl) {
-    if (IsMissing() || IsNull()) Resize(0);
+    if (IsMissing() || IsNull()) {
+        Resize(0);
+    }
     EnsureParsed();
     std::get<ParsedArray>(*parsed_value_.load()).push_back(std::move(impl));
 }
@@ -432,7 +492,9 @@ bool ValueImpl::IsEmpty() const {
         bool operator()(const ParsedDocument& doc) const { return doc.empty(); }
     };
 
-    if (IsNull()) return true;
+    if (IsNull()) {
+        return true;
+    }
     CheckIsDocumentOrArray();
 
     auto* parsed_ptr = parsed_value_.load();
@@ -452,7 +514,9 @@ uint32_t ValueImpl::GetSize() const {
         uint32_t operator()(const ParsedArray& array) const { return array.size(); }
     };
 
-    if (IsNull()) return 0;
+    if (IsNull()) {
+        return 0;
+    }
     CheckIsDocumentOrArray();
 
     auto* parsed_ptr = parsed_value_.load();
@@ -475,7 +539,9 @@ ValueImpl::Iterator ValueImpl::Begin() {
         ValueImpl::Iterator operator()(const ParsedArray& arr) const { return arr.cbegin(); }
         ValueImpl::Iterator operator()(const ParsedDocument& doc) const { return doc.cbegin(); }
     };
-    if (IsNull()) return {};
+    if (IsNull()) {
+        return {};
+    }
     CheckIsDocumentOrArray();
     EnsureParsed();
     return std::visit(Visitor{}, *parsed_value_.load());
@@ -487,7 +553,9 @@ ValueImpl::Iterator ValueImpl::End() {
         ValueImpl::Iterator operator()(const ParsedArray& arr) const { return arr.cend(); }
         ValueImpl::Iterator operator()(const ParsedDocument& doc) const { return doc.cend(); }
     };
-    if (IsNull()) return {};
+    if (IsNull()) {
+        return {};
+    }
     CheckIsDocumentOrArray();
     EnsureParsed();
     return std::visit(Visitor{}, *parsed_value_.load());
@@ -496,7 +564,9 @@ ValueImpl::Iterator ValueImpl::End() {
 ValueImpl::Iterator ValueImpl::Rbegin() {
     class Visitor {
     public:
-        Visitor(const Path& path) : path_(path) {}
+        Visitor(const Path& path)
+            : path_(path)
+        {}
 
         ValueImpl::Iterator operator()(const ParsedArray& arr) const { return arr.crbegin(); }
         ValueImpl::Iterator operator()(const ParsedDocument&) const {
@@ -506,7 +576,9 @@ ValueImpl::Iterator ValueImpl::Rbegin() {
     private:
         const Path& path_;
     };
-    if (IsNull()) return {};
+    if (IsNull()) {
+        return {};
+    }
     CheckNotMissing();
     EnsureParsed();
     return std::visit(Visitor{path_}, *parsed_value_.load());
@@ -515,7 +587,9 @@ ValueImpl::Iterator ValueImpl::Rbegin() {
 ValueImpl::Iterator ValueImpl::Rend() {
     class Visitor {
     public:
-        Visitor(const Path& path) : path_(path) {}
+        Visitor(const Path& path)
+            : path_(path)
+        {}
 
         ValueImpl::Iterator operator()(const ParsedArray& arr) const { return arr.crend(); }
         ValueImpl::Iterator operator()(const ParsedDocument&) const {
@@ -525,7 +599,9 @@ ValueImpl::Iterator ValueImpl::Rend() {
     private:
         const Path& path_;
     };
-    if (IsNull()) return {};
+    if (IsNull()) {
+        return {};
+    }
     CheckNotMissing();
     EnsureParsed();
     return std::visit(Visitor{path_}, *parsed_value_.load());
@@ -543,7 +619,9 @@ bool ValueImpl::IsString() const { return Type() == BSON_TYPE_UTF8; }
 
 void ValueImpl::EnsureParsed() {
     CheckNotMissing();
-    if (parsed_value_.load() != nullptr) return;
+    if (parsed_value_.load() != nullptr) {
+        return;
+    }
 
     switch (bson_value_.value_type) {
         case BSON_TYPE_EOD:
@@ -603,7 +681,12 @@ void ValueImpl::EnsureParsed() {
                         );
                     }
                     parsed_array.push_back(std::make_shared<ValueImpl>(
-                        EmplaceEnabler{}, storage_, path_, *iter_value, duplicate_fields_policy_, indexer.Index()
+                        EmplaceEnabler{},
+                        storage_,
+                        path_,
+                        *iter_value,
+                        duplicate_fields_policy_,
+                        indexer.Index()
                     ));
                     indexer.Advance();
                 }
@@ -627,7 +710,12 @@ void ValueImpl::EnsureParsed() {
                     auto [parsed_it, is_new] = parsed_doc.emplace(
                         std::string(key),
                         std::make_shared<ValueImpl>(
-                            EmplaceEnabler{}, storage_, path_, *iter_value, duplicate_fields_policy_, std::string(key)
+                            EmplaceEnabler{},
+                            storage_,
+                            path_,
+                            *iter_value,
+                            duplicate_fields_policy_,
+                            std::string(key)
                         )
                     );
                     if (!is_new) {
@@ -660,7 +748,9 @@ void ValueImpl::EnsureParsed() {
 
 void ValueImpl::SyncBsonValue() {
     // either primitive type or was never touched
-    if (parsed_value_.load() == nullptr) return;
+    if (parsed_value_.load() == nullptr) {
+        return;
+    }
 
     UASSERT(IsDocument() || IsArray());
 
@@ -674,30 +764,42 @@ void ValueImpl::SyncBsonValue() {
 bool ValueImpl::operator==(ValueImpl& rhs) {
     CheckNotMissing();
     rhs.CheckNotMissing();
-    if (Type() != rhs.Type()) return false;
+    if (Type() != rhs.Type()) {
+        return false;
+    }
 
     EnsureParsed();
     rhs.EnsureParsed();
 
     class Visitor {
     public:
-        explicit Visitor(const ValueImpl& rhs) : rhs_(*rhs.parsed_value_.load()) {}
+        explicit Visitor(const ValueImpl& rhs)
+            : rhs_(*rhs.parsed_value_.load())
+        {}
 
         bool operator()(const ParsedDocument& lhs_doc) const {
             const auto& rhs_doc = std::get<ParsedDocument>(rhs_);
-            if (lhs_doc.size() != rhs_doc.size()) return false;
+            if (lhs_doc.size() != rhs_doc.size()) {
+                return false;
+            }
             for (const auto& [k, v] : lhs_doc) {
                 auto rhs_it = rhs_doc.find(k);
-                if (rhs_it == rhs_doc.end() || *rhs_it->second != *v) return false;
+                if (rhs_it == rhs_doc.end() || *rhs_it->second != *v) {
+                    return false;
+                }
             }
             return true;
         }
 
         bool operator()(const ParsedArray& lhs_arr) const {
             const auto& rhs_arr = std::get<ParsedArray>(rhs_);
-            if (lhs_arr.size() != rhs_arr.size()) return false;
+            if (lhs_arr.size() != rhs_arr.size()) {
+                return false;
+            }
             for (size_t i = 0; i < lhs_arr.size(); ++i) {
-                if (*lhs_arr[i] != *rhs_arr[i]) return false;
+                if (*lhs_arr[i] != *rhs_arr[i]) {
+                    return false;
+                }
             }
             return true;
         }

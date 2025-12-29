@@ -37,9 +37,16 @@ struct TransactionOptions {
     LockingMode mode = LockingMode::kDeferred;
 
     constexpr TransactionOptions() = default;
-    constexpr explicit TransactionOptions(IsolationLevel lvl) : isolation_level{lvl} {}
-    constexpr TransactionOptions(IsolationLevel lvl, LockingMode m) : isolation_level{lvl}, mode{m} {}
-    constexpr explicit TransactionOptions(LockingMode m) : mode{m} {}
+    constexpr explicit TransactionOptions(IsolationLevel lvl)
+        : isolation_level{lvl}
+    {}
+    constexpr TransactionOptions(IsolationLevel lvl, LockingMode m)
+        : isolation_level{lvl},
+          mode{m}
+    {}
+    constexpr explicit TransactionOptions(LockingMode m)
+        : mode{m}
+    {}
 
     /// @brief Creates a TransactionOptions instance with deferred locking mode.
     static constexpr TransactionOptions Deferred() { return TransactionOptions{kDeferred}; }
@@ -68,8 +75,8 @@ struct ConnectionSettings {
     };
 
     /// Cache prepared statements or not
-    PreparedStatementOptions prepared_statements =
-        kDefaultPrepareStatement ? kCachePreparedStatements : kNoPreparedStatements;
+    PreparedStatementOptions
+        prepared_statements = kDefaultPrepareStatement ? kCachePreparedStatements : kNoPreparedStatements;
 
     /// Maximum number of prepared statements to cache
     std::size_t max_prepared_cache_size = kDefaultMaxPreparedCacheSize;

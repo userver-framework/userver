@@ -1,7 +1,6 @@
 """Adds forward declarations for types where needed."""
 
 from collections.abc import Sequence
-from typing import Dict
 
 from proto_structs.models import gen_node
 from proto_structs.models import type_ref
@@ -19,11 +18,11 @@ def add_forward_declarations(root_nodes: Sequence[gen_node.CodegenNode]) -> None
 class _ForwardDeclarationsResolver:
     def __init__(self, root_nodes: Sequence[gen_node.CodegenNode]) -> None:
         self._root_nodes = root_nodes
-        self._types_by_names: Dict[str, gen_node.TypeNode] = {
+        self._types_by_names: dict[str, gen_node.TypeNode] = {
             child.full_cpp_name(): child for node in root_nodes for child in gen_node.iter_type_nodes(node)
         }
         # As we walk through nodes, recursively, in the order of their definition, we will mark them as defined.
-        self._is_type_defined_so_far: Dict[gen_node.TypeNode, bool] = {
+        self._is_type_defined_so_far: dict[gen_node.TypeNode, bool] = {
             child: False for node in root_nodes for child in gen_node.iter_type_nodes(node)
         }
 

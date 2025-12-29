@@ -7,7 +7,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace urabbitmq {
 
-Channel::Channel(ConnectionPtr&& channel) : impl_{std::move(channel)} {}
+Channel::Channel(ConnectionPtr&& channel)
+    : impl_{std::move(channel)}
+{}
 
 Channel::~Channel() = default;
 
@@ -28,7 +30,9 @@ std::string Channel::Get(const Queue& queue, utils::Flags<Queue::Flags> flags, e
     return message;
 }
 
-ReliableChannel::ReliableChannel(ConnectionPtr&& channel) : impl_{std::move(channel)} {}
+ReliableChannel::ReliableChannel(ConnectionPtr&& channel)
+    : impl_{std::move(channel)}
+{}
 
 ReliableChannel::~ReliableChannel() = default;
 

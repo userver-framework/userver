@@ -1,0 +1,10 @@
+type: object
+description: gRPC service metadata fields (headers) propagator middleware component
+additionalProperties: false
+properties:
+    headers:
+        type: array
+        description: array of metadata fields(headers) to propagate
+        items:
+            type: string
+            description: header

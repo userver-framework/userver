@@ -102,7 +102,8 @@ DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends \
   sudo \
   python3-pip \
   locales \
-  kitware-archive-keyring
+  kitware-archive-keyring \
+  libsystemd-dev
 
 # Installing postgresql-server-dev-14 without dependencies
 #
@@ -117,10 +118,14 @@ rm -rf postgresql-server-dev-14* tmp_postgresql
 apt clean all
 
 # You could override those versions from command line
+export GRPC_VERSION=${GRPC_VERSION:=v1.54.3}
 export AMQP_VERSION=${AMQP_VERSION:=v4.3.18}
 export CLICKHOUSE_VERSION=${CLICKHOUSE_VERSION:=v2.5.1}
 export ROCKSDB_VERSION=${ROCKSDB_VERSION:=v8.9.1}
 export POSTGRESQL_VERSION=${POSTGRESQL_VERSION:=14}
+
+# Installing gRPC library from sources
+./ubuntu_install_grpc.sh
 
 # Installing amqp/rabbitmq client libraries from sources
 ./ubuntu_install_rabbitmq_dev.sh

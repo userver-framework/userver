@@ -22,7 +22,9 @@ TEST(FormatsJson, RapidjsonContiguousArrays) {
     using formats::json::impl::Value;
     Value json{rapidjson::kArrayType};
 
-    for (int i = 0; i < 1000; i++) json.PushBack(i, g_allocator);
+    for (int i = 0; i < 1000; i++) {
+        json.PushBack(i, g_allocator);
+    }
 
     Value* begin = &*json.Begin();
     for (int i = 0, size = json.Size(); i < size; i++) {
@@ -35,7 +37,9 @@ TEST(FormatsJson, RapidjsonContiguousMaps) {
     using formats::json::impl::Value;
     Value json{rapidjson::kObjectType};
 
-    for (int i = 0; i < 1000; i++) json.AddMember(Value{std::to_string(i), g_allocator}, Value{i}, g_allocator);
+    for (int i = 0; i < 1000; i++) {
+        json.AddMember(Value{std::to_string(i), g_allocator}, Value{i}, g_allocator);
+    }
 
     auto* begin = &*json.MemberBegin();
     for (int i = 0, size = json.MemberCount(); i < size; i++) {

@@ -55,8 +55,9 @@ TYPED_UTEST(RateCounterTest, Basic) {
 TYPED_UTEST(RateCounterTest, DumpMetric) {
     Storage storage;
     TypeParam rate_counter{Rate{10}};
-    const auto rate_counter_scope =
-        storage.RegisterWriter("test", [&rate_counter](Writer& writer) { writer = rate_counter; });
+    const auto rate_counter_scope = storage.RegisterWriter("test", [&rate_counter](Writer& writer) {
+        writer = rate_counter;
+    });
 
     EXPECT_EQ(Snapshot{storage}.SingleMetric("test").AsRate(), 10);
 

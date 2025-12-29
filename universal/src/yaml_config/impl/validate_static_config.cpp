@@ -51,9 +51,8 @@ void CheckType(const YamlConfig& value, const Schema& schema) {
 void ValidateEnum(const YamlConfig& enum_value, const Schema& schema) {
     CheckType(enum_value, schema);
     if (schema.enum_values->find(enum_value.As<std::string>()) == schema.enum_values->end()) {
-        std::vector<std::string> ordered_enum_values(
-            schema.enum_values.value().begin(), schema.enum_values.value().end()
-        );
+        std::vector<std::string>
+            ordered_enum_values(schema.enum_values.value().begin(), schema.enum_values.value().end());
         std::sort(ordered_enum_values.begin(), ordered_enum_values.end());
 
         throw std::runtime_error(fmt::format(

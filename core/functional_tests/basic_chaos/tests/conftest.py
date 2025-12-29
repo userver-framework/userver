@@ -44,11 +44,11 @@ def _userver_config_http_client(userver_config_http_client):
         userver_config_http_client(config_yaml, config_vars)
 
         components = config_yaml['components_manager']['components']
-        http_client = components['http-client']
+        http_client_core = components['http-client-core']
         # There are tests in this module that specifically want to force
-        # http-client timeouts.
-        http_client.pop('testsuite-timeout')
-        prefixes = http_client['testsuite-allowed-url-prefixes']
+        # http-client-core timeouts.
+        http_client_core.pop('testsuite-timeout')
+        prefixes = http_client_core['testsuite-allowed-url-prefixes']
         # HACK: we'd like to write 'for_client_gate_port' here, but it has to
         # have 'module' scope. So we just allow the tests to go anywhere.
         prefixes.append('http://localhost')

@@ -324,11 +324,13 @@ TEST(Decimal64Exponent, Zero) {
 }
 
 namespace {
-std::optional<decimal64::impl::ParseErrorCode>
-ParseError(std::string input, std::initializer_list<decimal64::impl::ParseOptions> options) {
-    return decimal64::impl::Parse<4, decimal64::DefRoundPolicy>(
-               decimal64::impl::StringCharSequence(std::string_view{input}), options
-    )
+std::optional<decimal64::impl::ParseErrorCode> ParseError(
+    std::string input,
+    std::initializer_list<decimal64::impl::ParseOptions> options
+) {
+    return decimal64::impl::Parse<
+               4,
+               decimal64::DefRoundPolicy>(decimal64::impl::StringCharSequence(std::string_view{input}), options)
         .error;
 };
 
@@ -386,11 +388,25 @@ TEST(Decimal64Exponent, MaxSize) {
     EXPECT_EQ(Dec4::FromStringPermissive("0.00000000000000002e20"), Dec4{"2000"});
     EXPECT_EQ(Dec4::FromStringPermissive("0.0000000000000000002e17"), Dec4{0});
     EXPECT_EQ(
-        ParseError("10000000000000000e-19", kOptions), decimal64::impl::ParseErrorCode::kOverflow
-    );  // limitation of the current implementation. Truth result is 0.001
+        ParseError("10000000000000000e-19", kOptions),
+        decimal64::impl::ParseErrorCode::kOverflow
+    );  // limitation
+        // of the
+        // current
+        // implementation.
+        // Truth
+        // result is
+        // 0.001
     EXPECT_EQ(
-        ParseError("-10000000000000000e-19", kOptions), decimal64::impl::ParseErrorCode::kOverflow
-    );  // limitation of the current implementation. Truth result is -0.001
+        ParseError("-10000000000000000e-19", kOptions),
+        decimal64::impl::ParseErrorCode::kOverflow
+    );  // limitation
+        // of the
+        // current
+        // implementation.
+        // Truth
+        // result is
+        // -0.001
 }
 
 USERVER_NAMESPACE_END

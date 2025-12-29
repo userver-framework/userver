@@ -140,8 +140,11 @@ public:
 private:
     using EventSource = concurrent::AsyncEventSource<const SecdistConfig&>;
 
-    concurrent::AsyncEventSubscriberScope
-    DoUpdateAndListen(concurrent::FunctionId id, std::string_view name, EventSource::Function&& func);
+    concurrent::AsyncEventSubscriberScope DoUpdateAndListen(
+        concurrent::FunctionId id,
+        std::string_view name,
+        EventSource::Function&& func
+    );
 
     class Impl;
     utils::FastPimpl<Impl, 1280, 16> impl_;

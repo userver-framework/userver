@@ -9,7 +9,6 @@ import dataclasses
 import enum
 import itertools
 import pathlib
-from typing import Optional
 
 from typing_extensions import override
 
@@ -145,10 +144,10 @@ class BuiltinType(TypeReference, names.HasCppNameImpl):
         yield from includes.io_includes_by_full_name(self.full_cpp_name(), prefix=prefix)
 
 
-_hardcoded_userver_namespace: Optional[str] = None
+_hardcoded_userver_namespace: str | None = None
 
 
-def set_hardcoded_userver_namespace(namespace: Optional[str]) -> None:
+def set_hardcoded_userver_namespace(namespace: str | None) -> None:
     global _hardcoded_userver_namespace
     _hardcoded_userver_namespace = namespace
 
@@ -195,7 +194,8 @@ class UserverCodegenType(TypeReference, names.HasCppNameImpl):
             kind=includes.IncludeKind.FOR_HPP,
         )
         yield includes.Include(
-            path=includes.proto_path_to_vanilla_pb_h(self._proto_file), kind=includes.IncludeKind.FOR_CPP
+            path=includes.proto_path_to_vanilla_pb_h(self._proto_file),
+            kind=includes.IncludeKind.FOR_CPP,
         )
 
 

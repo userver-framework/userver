@@ -32,6 +32,9 @@ public:
     /// @returns the `ServerContext` used for this RPC
     grpc::ServerContext& GetServerContext();
 
+    /// @overload
+    const grpc::ServerContext& GetServerContext() const;
+
     /// @brief Name of the RPC in the format `full.path.ServiceName/MethodName`
     std::string_view GetCallName() const;
 

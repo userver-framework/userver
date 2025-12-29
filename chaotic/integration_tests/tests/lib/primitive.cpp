@@ -25,7 +25,9 @@ TEST(Primitive, NoValidatorSerializer) {
 }
 
 struct MyInt {
-    MyInt(std::int32_t value) : value(value) {}
+    MyInt(std::int32_t value)
+        : value(value)
+    {}
 
     std::int32_t value;
 };
@@ -52,11 +54,7 @@ TEST(Primitive, WrongType) {
     try {
         const std::string x = kJson["foo"].As<String>();
     } catch (const std::exception& e) {
-        EXPECT_EQ(
-            std::string(e.what()),
-            "Error at path 'foo': Wrong type. Expected: stringValue, actual: "
-            "intValue"
-        );
+        EXPECT_EQ(std::string(e.what()), "Error at path 'foo': Wrong type. Expected: kStringValue, actual: kIntValue");
     }
 }
 

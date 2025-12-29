@@ -35,7 +35,9 @@ std::string FormatTimePoint(std::chrono::system_clock::time_point value) {
 
 }  // namespace
 
-InlineObjectBuilder::InlineObjectBuilder() : json_(VersionedValuePtr::Create(::rapidjson::Type::kObjectType)) {}
+InlineObjectBuilder::InlineObjectBuilder()
+    : json_(VersionedValuePtr::Create(::rapidjson::Type::kObjectType))
+{}
 
 formats::json::Value InlineObjectBuilder::DoBuild() { return formats::json::Value(std::move(json_)); }
 
@@ -91,7 +93,9 @@ void InlineObjectBuilder::Append(std::string_view key, const formats::json::Valu
     json_->AddMember(WrapStringView(key), impl::Value(value.GetNative(), g_allocator), g_allocator);
 }
 
-InlineArrayBuilder::InlineArrayBuilder() : json_(VersionedValuePtr::Create(::rapidjson::Type::kArrayType)) {}
+InlineArrayBuilder::InlineArrayBuilder()
+    : json_(VersionedValuePtr::Create(::rapidjson::Type::kArrayType))
+{}
 
 formats::json::Value InlineArrayBuilder::Build() { return formats::json::Value(std::move(json_)); }
 

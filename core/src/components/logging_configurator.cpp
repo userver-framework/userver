@@ -15,15 +15,18 @@
 
 #include <dynamic_config/variables/USERVER_NO_LOG_SPANS.hpp>
 
+#ifndef ARCADIA_ROOT
+#include "generated/src/components/logging_configurator.yaml.hpp"  // Y_IGNORE
+#endif
+
 USERVER_NAMESPACE_BEGIN
 
 namespace components {
 
 namespace {
 
-const dynamic_config::Key<logging::DynamicDebugConfig> kDynamicDebugConfig{
-    "USERVER_LOG_DYNAMIC_DEBUG",
-    dynamic_config::DefaultAsJsonString{R"(
+const dynamic_config::Key<logging::DynamicDebugConfig>
+    kDynamicDebugConfig{"USERVER_LOG_DYNAMIC_DEBUG", dynamic_config::DefaultAsJsonString{R"(
   {
     "force-disabled": [],
     "force-enabled": []
@@ -35,12 +38,17 @@ alerts::Source kDynamicDebugInvalidLocation{"dynamic_debug_invalid_location"};
 }  // namespace
 
 LoggingConfigurator::LoggingConfigurator(const ComponentConfig& config, const ComponentContext& context)
-    : metrics_storage_(context.FindComponent<components::StatisticsStorage>().GetMetricsStorage()) {
+    : metrics_storage_(context.FindComponent<components::StatisticsStorage>().GetMetricsStorage())
+{
     logging::impl::SetLogLimitedEnable(config["limited-logging-enable"].As<bool>());
     logging::impl::SetLogLimitedInterval(config["limited-logging-interval"].As<std::chrono::milliseconds>());
 
     config_subscription_ = context.FindComponent<components::DynamicConfig>().GetSource().UpdateAndListen(
-        this, kName, &LoggingConfigurator::OnConfigUpdate, ::dynamic_config::USERVER_NO_LOG_SPANS, kDynamicDebugConfig
+        this,
+        kName,
+        &LoggingConfigurator::OnConfigUpdate,
+        ::dynamic_config::USERVER_NO_LOG_SPANS,
+        kDynamicDebugConfig
     );
 }
 
@@ -93,18 +101,7 @@ void LoggingConfigurator::OnConfigUpdate(const dynamic_config::Snapshot& config)
 }
 
 yaml_config::Schema LoggingConfigurator::GetStaticConfigSchema() {
-    return yaml_config::MergeSchemas<RawComponentBase>(R"(
-type: object
-description: Helper component to configure logging
-additionalProperties: false
-properties:
-    limited-logging-enable:
-        type: boolean
-        description: set to true to make LOG_LIMITED drop repeated logs
-    limited-logging-interval:
-        type: string
-        description: utils::StringToDuration suitable duration string to group repeated logs into one message
-)");
+    return yaml_config::MergeSchemasFromResource<RawComponentBase>("src/components/logging_configurator.yaml");
 }
 
 }  // namespace components

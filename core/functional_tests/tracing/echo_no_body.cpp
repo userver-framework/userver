@@ -2,6 +2,7 @@
 
 #include <userver/clients/dns/component.hpp>
 #include <userver/clients/http/component.hpp>
+#include <userver/clients/http/component_list.hpp>
 #include <userver/components/component.hpp>
 #include <userver/components/minimal_server_component_list.hpp>
 #include <userver/http/url.hpp>
@@ -20,7 +21,8 @@ public:
     EchoNoBody(const components::ComponentConfig& config, const components::ComponentContext& context)
         : HttpHandlerBase(config, context),
           echo_url_{config["echo-url"].As<std::string>()},
-          http_client_(context.FindComponent<components::HttpClient>().GetHttpClient()) {}
+          http_client_(context.FindComponent<components::HttpClient>().GetHttpClient())
+    {}
 
     std::string HandleRequestThrow(const server::http::HttpRequest&, server::request::RequestContext&) const override {
         auto response = http_client_.CreateRequest().get(echo_url_).retry(2).timeout(std::chrono::seconds{5}).perform();
@@ -46,11 +48,12 @@ private:
 };
 
 int main(int argc, char* argv[]) {
-    const auto component_list = components::MinimalServerComponentList()
-                                    .Append<EchoNoBody>()
-                                    .Append<components::TestsuiteSupport>()
-                                    .Append<server::handlers::TestsControl>()
-                                    .Append<clients::dns::Component>()
-                                    .Append<components::HttpClient>();
+    const auto component_list =
+        components::MinimalServerComponentList()
+            .Append<EchoNoBody>()
+            .Append<components::TestsuiteSupport>()
+            .Append<server::handlers::TestsControl>()
+            .Append<clients::dns::Component>()
+            .AppendComponentList(clients::http::ComponentList());
     return utils::DaemonMain(argc, argv, component_list);
 }

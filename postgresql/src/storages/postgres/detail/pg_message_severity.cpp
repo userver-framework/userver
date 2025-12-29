@@ -18,11 +18,15 @@ std::string_view GetMachineReadableSeverity(const PGresult* result) {
     }
 
     const char* severity_field = PQresultErrorField(result, PG_DIAG_SEVERITY_NONLOCALIZED);
-    if (severity_field) return severity_field;
+    if (severity_field) {
+        return severity_field;
+    }
 
     LOG_TRACE() << "Nonlocalized severity unavailable";
     severity_field = PQresultErrorField(result, PG_DIAG_SEVERITY);
-    if (severity_field) return severity_field;
+    if (severity_field) {
+        return severity_field;
+    }
 
     LOG_DEBUG() << "Result has no severity (not an error/notice?)";
     return {};

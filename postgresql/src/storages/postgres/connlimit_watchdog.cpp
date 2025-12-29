@@ -29,7 +29,8 @@ ConnlimitWatchdog::ConnlimitWatchdog(
       on_new_connlimit_(std::move(on_new_connlimit)),
       testsuite_tasks_(testsuite_tasks),
       shard_number_(shard_number),
-      host_name_(std::move(host_name)) {}
+      host_name_(std::move(host_name))
+{}
 
 void ConnlimitWatchdog::Start() {
     try {
@@ -54,9 +55,10 @@ void ConnlimitWatchdog::Start() {
 
     if (testsuite_tasks_.IsEnabled()) {
         connlimit_ = kTestsuiteConnlimit;
-        testsuite_tasks_.RegisterTask(
-            fmt::format("connlimit_watchdog_{}_{}", cluster_.GetDbName(), shard_number_), [this] { StepV1(); }
-        );
+        testsuite_tasks_
+            .RegisterTask(fmt::format("connlimit_watchdog_{}_{}", cluster_.GetDbName(), shard_number_), [this] {
+                StepV1();
+            });
     } else {
         periodic_.Start(
             "connlimit_watchdog",
@@ -71,18 +73,20 @@ void ConnlimitWatchdog::StepV1() {
     try {
         auto trx = cluster_.Begin({ClusterHostType::kMaster}, {}, kCommandControl);
 
-        auto max_connections1 = USERVER_NAMESPACE::utils::FromString<ssize_t>(
-            trx.Execute("SHOW max_connections;").AsSingleRow<std::string>()
-        );
+        auto max_connections1 = USERVER_NAMESPACE::utils::FromString<
+            ssize_t>(trx.Execute("SHOW max_connections;").AsSingleRow<std::string>());
         auto max_connections2 =
             trx.Execute("SELECT rolconnlimit FROM pg_roles WHERE rolname = current_user").AsSingleRow<ssize_t>();
-        if (max_connections2 < 0) max_connections2 = max_connections1;
+        if (max_connections2 < 0) {
+            max_connections2 = max_connections1;
+        }
         size_t max_connections = std::min(max_connections1, max_connections2);
 
-        if (max_connections > kReservedConn)
+        if (max_connections > kReservedConn) {
             max_connections -= kReservedConn;
-        else
+        } else {
             max_connections = 1;
+        }
 
         trx.Execute(
             "INSERT INTO u_clients (hostname, updated, max_connections) VALUES "
@@ -92,18 +96,23 @@ void ConnlimitWatchdog::StepV1() {
             hostname,
             static_cast<int>(GetConnlimit())
         );
-        auto instances = trx.Execute(
-                                "SELECT count(*) FROM u_clients WHERE updated >= "
-                                "NOW() - make_interval(secs => 15)"
-        )
-                             .AsSingleRow<int>();
-        if (instances == 0) instances = 1;
+        auto instances =
+            trx.Execute(
+                   "SELECT count(*) FROM u_clients WHERE updated >= "
+                   "NOW() - make_interval(secs => 15)"
+            )
+                .AsSingleRow<int>();
+        if (instances == 0) {
+            instances = 1;
+        }
 
         auto connlimit = max_connections / instances;
-        if (connlimit == 0) connlimit = 1;
-        LOG((connlimit_ == connlimit) ? logging::Level::kDebug : logging::Level::kWarning)
-            << "max_connections = " << max_connections << ", instances = " << instances
-            << ", connlimit = " << connlimit;
+        if (connlimit == 0) {
+            connlimit = 1;
+        }
+        LOG((connlimit_ == connlimit) ? logging::Level::kDebug : logging::Level::kWarning
+        ) << "max_connections = "
+          << max_connections << ", instances = " << instances << ", connlimit = " << connlimit;
         connlimit_ = connlimit;
 
         trx.Commit();
@@ -129,18 +138,20 @@ void ConnlimitWatchdog::StepV2() {
     try {
         auto trx = cluster_.Begin({ClusterHostType::kMaster}, {}, kCommandControl);
 
-        auto max_connections1 = USERVER_NAMESPACE::utils::FromString<ssize_t>(
-            trx.Execute("SHOW max_connections;").AsSingleRow<std::string>()
-        );
+        auto max_connections1 = USERVER_NAMESPACE::utils::FromString<
+            ssize_t>(trx.Execute("SHOW max_connections;").AsSingleRow<std::string>());
         auto max_connections2 =
             trx.Execute("SELECT rolconnlimit FROM pg_roles WHERE rolname = current_user").AsSingleRow<ssize_t>();
-        if (max_connections2 < 0) max_connections2 = max_connections1;
+        if (max_connections2 < 0) {
+            max_connections2 = max_connections1;
+        }
         size_t max_connections = std::min(max_connections1, max_connections2);
 
-        if (max_connections > kReservedConn)
+        if (max_connections > kReservedConn) {
             max_connections -= kReservedConn;
-        else
+        } else {
             max_connections = 1;
+        }
 
         trx.Execute(
             R"(
@@ -151,18 +162,23 @@ void ConnlimitWatchdog::StepV2() {
             static_cast<int>(GetConnlimit())
         );
 
-        auto instances =
-            trx.Execute(
-                   R"(SELECT count(*) FROM u_clients WHERE updated >= NOW() - make_interval(secs => 15) AND (cur_user = current_user OR cur_user is NULL))"
-            )
-                .AsSingleRow<int>();
-        if (instances == 0) instances = 1;
+        auto
+            instances =
+                trx.Execute(
+                       R"(SELECT count(*) FROM u_clients WHERE updated >= NOW() - make_interval(secs => 15) AND (cur_user = current_user OR cur_user is NULL))"
+                )
+                    .AsSingleRow<int>();
+        if (instances == 0) {
+            instances = 1;
+        }
 
         auto connlimit = max_connections / instances;
-        if (connlimit == 0) connlimit = 1;
-        LOG((connlimit_ == connlimit) ? logging::Level::kDebug : logging::Level::kWarning)
-            << "max_connections = " << max_connections << ", instances = " << instances
-            << ", connlimit = " << connlimit;
+        if (connlimit == 0) {
+            connlimit = 1;
+        }
+        LOG((connlimit_ == connlimit) ? logging::Level::kDebug : logging::Level::kWarning
+        ) << "max_connections = "
+          << max_connections << ", instances = " << instances << ", connlimit = " << connlimit;
         connlimit_ = connlimit;
 
         trx.Commit();

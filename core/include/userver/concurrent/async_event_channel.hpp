@@ -13,6 +13,7 @@
 
 #include <userver/concurrent/async_event_source.hpp>
 #include <userver/concurrent/variable.hpp>
+#include <userver/engine/semaphore.hpp>
 #include <userver/engine/shared_mutex.hpp>
 #include <userver/engine/task/cancel.hpp>
 #include <userver/engine/task/task_with_result.hpp>
@@ -55,7 +56,9 @@ void CheckDataUsedByCallbackHasNotBeenDestroyedBeforeUnsubscribing(
     std::string_view channel_name,
     std::string_view listener_name
 ) noexcept {
-    if (!on_listener_removal) return;
+    if (!on_listener_removal) {
+        return;
+    }
     try {
         on_listener_removal(listener_func);
     } catch (const std::exception& e) {
@@ -81,7 +84,10 @@ public:
 
     /// @brief The primary constructor
     /// @param name used for diagnostic purposes and is also accessible with Name
-    explicit AsyncEventChannel(std::string_view name) : name_(name), data_(ListenersData{{}, {}}) {}
+    explicit AsyncEventChannel(std::string_view name)
+        : name_(name),
+          data_(ListenersData{{}, {}})
+    {}
 
     /// @brief The constructor with `AsyncEventSubscriberScope` usage checking.
     ///
@@ -102,7 +108,9 @@ public:
     ///
     /// @see impl::CheckDataUsedByCallbackHasNotBeenDestroyedBeforeUnsubscribing
     AsyncEventChannel(std::string_view name, OnRemoveCallback on_listener_removal)
-        : name_(name), data_(ListenersData{{}, std::move(on_listener_removal)}) {}
+        : name_(name),
+          data_(ListenersData{{}, std::move(on_listener_removal)})
+    {}
 
     /// @brief For use in `UpdateAndListen` of specific event channels
     ///
@@ -116,8 +124,12 @@ public:
     ///
     /// @see AsyncEventSource::AddListener
     template <typename UpdaterFunc>
-    AsyncEventSubscriberScope
-    DoUpdateAndListen(FunctionId id, std::string_view name, Function&& func, UpdaterFunc&& updater) {
+    AsyncEventSubscriberScope DoUpdateAndListen(
+        FunctionId id,
+        std::string_view name,
+        Function&& func,
+        UpdaterFunc&& updater
+    ) {
         const std::shared_lock lock(event_mutex_);
         std::forward<UpdaterFunc>(updater)();
         return DoAddListener(id, name, std::move(func));
@@ -125,8 +137,12 @@ public:
 
     /// @overload
     template <typename Class, typename UpdaterFunc>
-    AsyncEventSubscriberScope
-    DoUpdateAndListen(Class* obj, std::string_view name, void (Class::*func)(Args...), UpdaterFunc&& updater) {
+    AsyncEventSubscriberScope DoUpdateAndListen(
+        Class* obj,
+        std::string_view name,
+        void (Class::*func)(Args...),
+        UpdaterFunc&& updater
+    ) {
         return DoUpdateAndListen(
             FunctionId(obj),
             name,
@@ -175,7 +191,12 @@ public:
             for (const auto& [_, listener] : listeners) {
                 tasks.push_back(Task{
                     listener,  // an intentional copy
-                    utils::Async(listener->task_name, [&, &callback = listener->callback, lock] { callback(args...); }),
+                    utils::Async(
+                        listener->task_name,
+                        [&, &callback = listener->callback, lock, sema_lock = std::shared_lock(listener->sema)] {
+                            callback(args...);
+                        }
+                    ),
                 });
             }
         }
@@ -191,9 +212,19 @@ public:
 
 private:
     struct Listener final {
+        // 'sema' with data_.Lock() are used to synchronize removal 'Listener' from ListenersData::listeners
+        mutable engine::Semaphore sema;
+
         std::string name;
         Function callback;
         std::string task_name;
+
+        Listener(std::string name, Function callback, std::string task_name)
+            : sema(1),
+              name(std::move(name)),
+              callback(std::move(callback)),
+              task_name(std::move(task_name))
+        {}
     };
 
     struct ListenersData final {
@@ -218,9 +249,14 @@ private:
             }
 
             listener = iter->second;
+
             on_listener_removal = data->on_listener_removal;
 
             listeners.erase(iter);
+
+            // Lock and unlock sema under data_.Lock(),
+            // now we're sure that SendEvent() will not trigger listener->callback()
+            (void)std::shared_lock(listener->sema);
         }
         // Unlock data_ here to be able to (un)subscribe to *this in listener->callback (in debug)
         // without deadlock
@@ -233,7 +269,10 @@ private:
             if constexpr (impl::kCheckSubscriptionUB) {
                 // Fake listener call to check
                 impl::CheckDataUsedByCallbackHasNotBeenDestroyedBeforeUnsubscribing(
-                    on_listener_removal, listener->callback, name_, listener->name
+                    on_listener_removal,
+                    listener->callback,
+                    name_,
+                    listener->name
                 );
             }
         }
@@ -246,9 +285,12 @@ private:
         auto& listeners = data->listeners;
         auto task_name = impl::MakeAsyncChannelName(name_, name);
         const auto [iterator, success] = listeners.emplace(
-            id, std::make_shared<const Listener>(Listener{std::string{name}, std::move(func), std::move(task_name)})
+            id,
+            std::make_shared<const Listener>(std::string{name}, std::move(func), std::move(task_name))
         );
-        if (!success) impl::ReportAlreadySubscribed(Name(), name);
+        if (!success) {
+            impl::ReportAlreadySubscribed(Name(), name);
+        }
         return AsyncEventSubscriberScope(utils::impl::InternalTag{}, *this, id);
     }
 

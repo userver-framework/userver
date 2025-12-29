@@ -17,7 +17,10 @@ namespace server::http::impl {
 
 struct PathItem final {
     PathItem() = default;
-    PathItem(size_t index, std::string name) : index(index), name(std::move(name)) {}
+    PathItem(size_t index, std::string name)
+        : index(index),
+          name(std::move(name))
+    {}
 
     size_t index{0};
     std::string name;
@@ -31,7 +34,9 @@ public:
             const handlers::HttpHandlerBase& handler,
             std::vector<PathItem> wildcards
         )
-            : handler_info(task_processor, handler), wildcards(std::move(wildcards)) {}
+            : handler_info(task_processor, handler),
+              wildcards(std::move(wildcards))
+        {}
 
         HandlerInfo handler_info;
         std::vector<PathItem> wildcards;

@@ -57,7 +57,8 @@ ConnectRateLimiter::ConnectRateLimiter()
       global_https_(utils::TokenBucket::MakeUnbounded()),
       per_host_limit_(-1UL),
       per_host_rate_(utils::TokenBucket::Duration::zero()),
-      by_host_(kByHostThrottleLruSize) {
+      by_host_(kByHostThrottleLruSize)
+{
     static_assert(decltype(per_host_limit_)::is_always_lock_free, "limit type is not lock-free atomic");
     static_assert(decltype(per_host_rate_)::is_always_lock_free, "rate type is not lock-free atomic");
 }
@@ -89,7 +90,9 @@ void ConnectRateLimiter::Check(const char* url_str, std::error_code& ec) {
 
         auto locked = by_host_.UniqueLock();
         auto* local_throttle = locked->Emplace(
-            factors.host_ptr.get(), current_per_host_limit, utils::TokenBucket::RefillPolicy{1, current_per_host_rate}
+            factors.host_ptr.get(),
+            current_per_host_limit,
+            utils::TokenBucket::RefillPolicy{1, current_per_host_rate}
         );
 
         local_throttle->SetMaxSize(current_per_host_limit);
@@ -102,9 +105,10 @@ void ConnectRateLimiter::Check(const char* url_str, std::error_code& ec) {
         return;
     }
 
-    auto& global_token_bucket = (factors.scheme_ptr && utils::StrIcaseEqual{}(factors.scheme_ptr.get(), kHttpsScheme))
-                                    ? global_https_
-                                    : global_http_;
+    auto& global_token_bucket =
+        (factors.scheme_ptr && utils::StrIcaseEqual{}(factors.scheme_ptr.get(), kHttpsScheme))
+            ? global_https_
+            : global_http_;
 
     may_acquire = global_token_bucket.Obtain();
     if (!may_acquire) {

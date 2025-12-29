@@ -44,8 +44,10 @@ public:
         return CreateResponse(request.field());
     }
 
-    CheckConstraintsStreamingResult
-    CheckConstraintsStreaming(CallContext&, CheckConstraintsStreamingReaderWriter& stream) override {
+    CheckConstraintsStreamingResult CheckConstraintsStreaming(
+        CallContext&,
+        CheckConstraintsStreamingReaderWriter& stream
+    ) override {
         types::ConstrainedRequest request;
         while (stream.Read(request)) {
             stream.Write(CreateResponse(request.field()));
@@ -61,8 +63,9 @@ public:
     }
 };
 
-class GrpcClientValidatorTest : public ugrpc::tests::ServiceFixtureBase,
-                                public testing::WithParamInterface<grpc_protovalidate::client::Settings> {
+class GrpcClientValidatorTest
+    : public ugrpc::tests::ServiceFixtureBase,
+      public testing::WithParamInterface<grpc_protovalidate::client::Settings> {
 public:
     GrpcClientValidatorTest() {
         SetClientMiddlewares({std::make_shared<grpc_protovalidate::client::Middleware>(GetParam())});
@@ -87,7 +90,8 @@ INSTANTIATE_UTEST_SUITE_P(
                 {
                     {"types.UnitTestService/CheckConstraintsUnary", {.fail_fast = false}},
                     {"/UnknownMethod", {.fail_fast = true}},
-                }},
+                }
+        },
         grpc_protovalidate::client::Settings{
             .global =
                 {
@@ -97,7 +101,8 @@ INSTANTIATE_UTEST_SUITE_P(
                 {
                     {"types.UnitTestService/CheckConstraintsUnary", {.fail_fast = false}},
                     {"/UnknownMethod", {.fail_fast = true}},
-                }}
+                }
+        }
     )
 );
 
@@ -125,7 +130,9 @@ UTEST_P_MT(GrpcClientValidatorTest, AllValid, 2) {
     auto write_task = engine::AsyncNoSpan([&stream, &requests] {
         for (const auto& request : requests) {
             const bool success = stream.Write(request);
-            if (!success) return false;
+            if (!success) {
+                return false;
+            }
         }
 
         return stream.WritesDone();
@@ -176,7 +183,9 @@ UTEST_P_MT(GrpcClientValidatorTest, AllInvalid, 2) {
     auto write_task = engine::AsyncNoSpan([&stream, &requests] {
         for (const auto& request : requests) {
             const bool success = stream.Write(request);
-            if (!success) return false;
+            if (!success) {
+                return false;
+            }
         }
 
         return stream.WritesDone();

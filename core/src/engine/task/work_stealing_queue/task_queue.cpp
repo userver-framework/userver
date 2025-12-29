@@ -20,7 +20,8 @@ WorkStealingTaskQueue::WorkStealingTaskQueue(const TaskProcessorConfig& config)
       global_queue_(consumers_count_),
       background_queue_(consumers_count_),
       consumers_(config.worker_threads, *this, consumers_manager_),
-      consumers_manager_(consumers_count_) {
+      consumers_manager_(consumers_count_)
+{
     for (size_t i = 0; i < consumers_count_; ++i) {
         consumers_[i].SetIndex(i);
     }
@@ -34,7 +35,8 @@ void WorkStealingTaskQueue::Push(boost::intrusive_ptr<impl::TaskContext>&& conte
 boost::intrusive_ptr<impl::TaskContext> WorkStealingTaskQueue::PopBlocking() {
     boost::intrusive_ptr<impl::TaskContext> context{
         DoPopBlocking(),
-        /* add_ref= */ false};
+        /* add_ref= */ false
+    };
     if (!context) {
         DoPush(nullptr);
     }

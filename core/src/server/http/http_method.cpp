@@ -1,5 +1,7 @@
 #include <userver/server/http/http_method.hpp>
 
+#include <userver/yaml_config/yaml_config.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace server::http {
@@ -36,32 +38,48 @@ HttpMethod HttpMethodFromString(std::string_view method_str) {
     if (method_str.size() >= 3) {
         switch (method_str[0]) {
             case 'D':
-                if (method_str == strings.kDelete) result = HttpMethod::kDelete;
+                if (method_str == strings.kDelete) {
+                    result = HttpMethod::kDelete;
+                }
                 break;
             case 'G':
-                if (method_str == strings.kGet) result = HttpMethod::kGet;
+                if (method_str == strings.kGet) {
+                    result = HttpMethod::kGet;
+                }
                 break;
             case 'H':
-                if (method_str == strings.kHead) result = HttpMethod::kHead;
+                if (method_str == strings.kHead) {
+                    result = HttpMethod::kHead;
+                }
                 break;
             case 'P':
                 switch (method_str[1]) {
                     case 'A':
-                        if (method_str == strings.kPatch) result = HttpMethod::kPatch;
+                        if (method_str == strings.kPatch) {
+                            result = HttpMethod::kPatch;
+                        }
                         break;
                     case 'O':
-                        if (method_str == strings.kPost) result = HttpMethod::kPost;
+                        if (method_str == strings.kPost) {
+                            result = HttpMethod::kPost;
+                        }
                         break;
                     case 'U':
-                        if (method_str == strings.kPut) result = HttpMethod::kPut;
+                        if (method_str == strings.kPut) {
+                            result = HttpMethod::kPut;
+                        }
                         break;
                 }
                 break;
             case 'C':
-                if (method_str == strings.kConnect) result = HttpMethod::kConnect;
+                if (method_str == strings.kConnect) {
+                    result = HttpMethod::kConnect;
+                }
                 break;
             case 'O':
-                if (method_str == strings.kOptions) result = HttpMethod::kOptions;
+                if (method_str == strings.kOptions) {
+                    result = HttpMethod::kOptions;
+                }
                 break;
         }
     }
@@ -71,6 +89,11 @@ HttpMethod HttpMethodFromString(std::string_view method_str) {
     }
 
     return result;
+}
+
+HttpMethod Parse(const yaml_config::YamlConfig& value, formats::parse::To<HttpMethod>)
+{
+    return HttpMethodFromString(value.As<std::string>());
 }
 
 const std::string& ToString(HttpMethod method) noexcept {

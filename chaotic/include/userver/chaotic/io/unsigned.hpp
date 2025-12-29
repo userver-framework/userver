@@ -1,12 +1,14 @@
 #pragma once
 
-#include <cstddef>
+// Utilitary header for chaotic for a custom type serialization/parsing support
 
-#include <fmt/format.h>
+#include <cstddef>
 
 #include <userver/chaotic/convert/to.hpp>
 #include <userver/chaotic/io/std/uint32_t.hpp>
 #include <userver/utils/numeric_cast.hpp>
+
+#include <fmt/format.h>
 
 USERVER_NAMESPACE_BEGIN
 

@@ -51,7 +51,10 @@ public:
 
     std::optional<USERVER_NAMESPACE::testsuite::PeriodicTaskRegistrationHolder> registration_holder;
 
-    Impl() : settings(std::chrono::seconds(1)), suspend_state(SuspendState::kRunning) {}
+    Impl()
+        : settings(std::chrono::seconds(1)),
+          suspend_state(SuspendState::kRunning)
+    {}
 
     void DoStart();
     void Run();
@@ -72,9 +75,13 @@ bool PeriodicTask::Settings::operator!=(const Settings& other) const noexcept {
     return TieSettings(*this) != TieSettings(other);
 }
 
-PeriodicTask::PeriodicTask() : impl_() {}
+PeriodicTask::PeriodicTask()
+    : impl_()
+{}
 
-PeriodicTask::PeriodicTask(std::string name, Settings settings, Callback callback) : impl_() {
+PeriodicTask::PeriodicTask(std::string name, Settings settings, Callback callback)
+    : impl_()
+{
     impl_->name = std::move(name);
     impl_->is_name_set = true;
     impl_->callback = std::move(callback);
@@ -190,7 +197,9 @@ void PeriodicTask::Impl::Run() {
         auto period = l_settings->period;
         const auto exception_period = l_settings->exception_period.value_or(period);
 
-        if (!no_exception) period = exception_period;
+        if (!no_exception) {
+            period = exception_period;
+        }
 
         std::chrono::steady_clock::time_point start;
         if (l_settings->flags & Flags::kStrong) {
@@ -207,7 +216,9 @@ void PeriodicTask::Impl::Run() {
             const auto l_settings = settings.Read();
             period = l_settings->period;
             const auto exception_period = l_settings->exception_period.value_or(period);
-            if (!no_exception) period = exception_period;
+            if (!no_exception) {
+                period = exception_period;
+            }
         }
     }
 }
@@ -252,12 +263,13 @@ bool PeriodicTask::Impl::StepDebug(bool preserve_span) {
 
 std::chrono::milliseconds PeriodicTask::Impl::MutatePeriod(std::chrono::milliseconds period) {
     auto settings_ptr = settings.Read();
-    if (!(settings_ptr->flags & Flags::kChaotic)) return period;
+    if (!(settings_ptr->flags & Flags::kChaotic)) {
+        return period;
+    }
 
     if (!mutate_period_random) {
-        mutate_period_random.emplace(
-            utils::WithDefaultRandom(std::uniform_int_distribution<std::minstd_rand::result_type>{})
-        );
+        mutate_period_random
+            .emplace(utils::WithDefaultRandom(std::uniform_int_distribution<std::minstd_rand::result_type>{}));
     }
 
     const auto jitter = settings_ptr->distribution;

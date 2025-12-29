@@ -34,8 +34,11 @@ public:
     /// @param fs_task_processor The `engine::TaskProcessor` to use for the blocking fs operations
     /// after the prefix
     /// @throws std::runtime_error
-    static TempFile
-    Create(std::string_view parent_path, std::string_view name_prefix, engine::TaskProcessor& fs_task_processor);
+    static TempFile Create(
+        std::string_view parent_path,
+        std::string_view name_prefix,
+        engine::TaskProcessor& fs_task_processor
+    );
 
     TempFile() = delete;
     TempFile(TempFile&& other) noexcept = default;

@@ -9,7 +9,9 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::odbc::detail {
 
 ConnectionPtr::ConnectionPtr(std::shared_ptr<Pool>&& pool, std::unique_ptr<Connection>&& connection)
-    : pool_{std::move(pool)}, conn_{std::move(connection)} {}
+    : pool_{std::move(pool)},
+      conn_{std::move(connection)}
+{}
 
 ConnectionPtr::~ConnectionPtr() { Reset(nullptr, nullptr); }
 
@@ -38,7 +40,9 @@ void ConnectionPtr::Reset(std::unique_ptr<Connection> conn, std::shared_ptr<Pool
 }
 
 void ConnectionPtr::Release() {
-    if (!pool_) return;
+    if (!pool_) {
+        return;
+    }
 
     if (conn_) {
         pool_->Release(std::move(conn_));

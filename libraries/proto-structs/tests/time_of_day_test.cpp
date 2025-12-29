@@ -32,10 +32,12 @@ TEST(TimeOfDayTest, IsValid) {
     EXPECT_THROW([[maybe_unused]] auto val = TimeOfDay(-1h, 0min, 0s, 0ns), ValueError);
     EXPECT_THROW([[maybe_unused]] auto val = TimeOfDay(std::chrono::hh_mm_ss{25h + 30min + 123ns}), ValueError);
     EXPECT_THROW(
-        [[maybe_unused]] auto val = TimeOfDay(std::chrono::hh_mm_ss<std::chrono::minutes>{24h + 1min}), ValueError
+        [[maybe_unused]] auto val = TimeOfDay(std::chrono::hh_mm_ss<std::chrono::minutes>{24h + 1min}),
+        ValueError
     );
     EXPECT_THROW(
-        [[maybe_unused]] auto val = TimeOfDay(std::chrono::duration_cast<std::chrono::milliseconds>(48h)), ValueError
+        [[maybe_unused]] auto val = TimeOfDay(std::chrono::duration_cast<std::chrono::milliseconds>(48h)),
+        ValueError
     );
     EXPECT_THROW([[maybe_unused]] auto val = TimeOfDay(OverflowingDuration::max()), ValueError);
     EXPECT_THROW(
@@ -130,8 +132,8 @@ TEST(TimeOfDayTest, Conversions) {
     EXPECT_EQ(t.Seconds(), 3s);
     EXPECT_EQ(t.Nanos(), 0ns);
 
-    auto point =
-        std::chrono::time_point_cast<std::chrono::system_clock::duration>(std::chrono::sys_days{2025y / 6 / 3});
+    auto point = std::chrono::time_point_cast<std::chrono::system_clock::duration>(std::chrono::sys_days{2025y / 6 / 3}
+    );
     point += 22h + 0min + 13s + 555ms;
     t = TimeOfDay{point};
 

@@ -41,7 +41,8 @@ ProxyService::ProxyService(const components::ComponentConfig& config, const comp
     : ugrpc::server::GenericServiceBase::Component(config, context),
       client_(context
                   .FindComponent<ugrpc::client::SimpleClientComponent<ugrpc::client::GenericClient>>("generic-client")
-                  .GetClient()) {}
+                  .GetClient())
+{}
 
 ProxyService::GenericResult ProxyService::Handle(GenericCallContext& context, GenericReaderWriter& stream) {
     // In this example we proxy any unary RPC to client_, adding some metadata.

@@ -37,12 +37,15 @@ UTEST_F(KafkaServiceTest, Consume) {
             test_topic1,
             "test-key-1",
             "test-msg-1",
-            /*partition=*/0},
+            /*partition=*/0
+        },
         kafka::utest::Message{
             test_topic2,
             "test-key-2",
             "test-msg-2",
-            /*partition=*/0}};
+            /*partition=*/0
+        }
+    };
 
     SendMessages(test_messages);
 

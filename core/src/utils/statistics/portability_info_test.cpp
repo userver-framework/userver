@@ -16,8 +16,9 @@ namespace utils::statistics {
 
 UTEST(MetricsPortabilityInfo, Inf) {
     Storage storage;
-    auto holder =
-        storage.RegisterWriter("a.inf", [](Writer& writer) { writer = std::numeric_limits<double>::infinity(); });
+    auto holder = storage.RegisterWriter("a.inf", [](Writer& writer) {
+        writer = std::numeric_limits<double>::infinity();
+    });
 
     auto warnings = GetPortabilityWarnings(storage, {});
 
@@ -30,8 +31,9 @@ UTEST(MetricsPortabilityInfo, Inf) {
 
 UTEST(MetricsPortabilityInfo, NanQuiet) {
     Storage storage;
-    auto holder =
-        storage.RegisterWriter("a.nan", [](Writer& writer) { writer = std::numeric_limits<double>::quiet_NaN(); });
+    auto holder = storage.RegisterWriter("a.nan", [](Writer& writer) {
+        writer = std::numeric_limits<double>::quiet_NaN();
+    });
 
     auto warnings = GetPortabilityWarnings(storage, {});
 
@@ -44,8 +46,9 @@ UTEST(MetricsPortabilityInfo, NanQuiet) {
 
 UTEST(MetricsPortabilityInfo, NanSignaling) {
     Storage storage;
-    auto holder =
-        storage.RegisterWriter("a.nan", [](Writer& writer) { writer = std::numeric_limits<double>::signaling_NaN(); });
+    auto holder = storage.RegisterWriter("a.nan", [](Writer& writer) {
+        writer = std::numeric_limits<double>::signaling_NaN();
+    });
 
     auto warnings = GetPortabilityWarnings(storage, {});
 

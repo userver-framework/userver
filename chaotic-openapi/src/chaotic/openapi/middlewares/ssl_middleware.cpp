@@ -11,7 +11,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace chaotic::openapi {
 
-SslMiddleware::SslMiddleware(crypto::Certificate&& cert) : cert_(std::move(cert)) {}
+SslMiddleware::SslMiddleware(crypto::Certificate&& cert)
+    : cert_(std::move(cert))
+{}
 
 void SslMiddleware::OnRequest(clients::http::Request& request) { request.ca(cert_); }
 

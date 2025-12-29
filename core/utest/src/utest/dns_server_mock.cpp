@@ -36,7 +36,11 @@ constexpr uint16_t kNameBackref = 0xC00C;  // always the same for single questio
 
 class DnsMessageWriter {
 public:
-    explicit DnsMessageWriter(char* buffer, size_t size) : buffer_{buffer}, size_{size}, pos_{buffer_} {}
+    explicit DnsMessageWriter(char* buffer, size_t size)
+        : buffer_{buffer},
+          size_{size},
+          pos_{buffer_}
+    {}
 
     size_t CurrentPosition() const { return pos_ - buffer_; }
 
@@ -161,7 +165,9 @@ auto ParseMessage(const char* data, size_t size) noexcept {
 
     const char* pos = data + 12;
     while (*pos && static_cast<size_t>(pos - data) < size) {
-        if (!query.name.empty()) query.name += '.';
+        if (!query.name.empty()) {
+            query.name += '.';
+        }
 
         const char len = *pos;
         ++pos;
@@ -226,7 +232,8 @@ DnsServerMock::DnsServerMock(DnsHandler handler)
     // NOLINTNEXTLINE(cppcoreguidelines-slicing)
     : listener_(std::make_shared<internal::net::UdpListener>()),
       handler_{std::move(handler)},
-      receiver_task_{engine::AsyncNoSpan([this] { ProcessRequests(); })} {}
+      receiver_task_{engine::AsyncNoSpan([this] { ProcessRequests(); })}
+{}
 
 std::string DnsServerMock::GetServerAddress() const { return fmt::to_string(listener_->addr); }
 
@@ -249,8 +256,8 @@ void DnsServerMock::ProcessRequests() {
             response_size = UpdateForServFail(buffer.data(), recv_result.bytes_received);
         }
         UASSERT(response_size);
-        const auto sent_bytes =
-            listener_->socket.SendAllTo(recv_result.src_addr, buffer.data(), response_size, iter_deadline);
+        const auto
+            sent_bytes = listener_->socket.SendAllTo(recv_result.src_addr, buffer.data(), response_size, iter_deadline);
         UASSERT(sent_bytes == response_size);
     }
 }

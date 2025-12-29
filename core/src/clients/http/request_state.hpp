@@ -7,11 +7,11 @@
 #include <string>
 #include <system_error>
 
+#include <clients/http/middlewares/pipeline.hpp>
 #include <userver/clients/dns/resolver_fwd.hpp>
 #include <userver/clients/http/config.hpp>
 #include <userver/clients/http/error.hpp>
 #include <userver/clients/http/form.hpp>
-#include <userver/clients/http/plugin.hpp>
 #include <userver/clients/http/request.hpp>
 #include <userver/clients/http/response_future.hpp>
 #include <userver/concurrent/queue.hpp>
@@ -25,6 +25,7 @@
 #include <userver/tracing/manager.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/tracing/tags.hpp>
+#include <userver/utils/impl/wait_token_storage.hpp>
 #include <userver/utils/not_null.hpp>
 #include <userver/utils/zstring_view.hpp>
 
@@ -50,7 +51,6 @@ public:
         RequestStats&& req_stats,
         const std::shared_ptr<DestinationStatistics>& dest_stats,
         clients::dns::Resolver* resolver,
-        const std::vector<utils::NotNull<clients::http::Plugin*>>& plugins,
         const tracing::TracingManagerBase& tracing_manager
     );
     ~RequestState();
@@ -137,7 +137,7 @@ public:
     std::shared_ptr<Response> response() const { return response_; }
     std::shared_ptr<Response> response_move() { return std::move(response_); }
 
-    void SetPluginsList(const std::vector<utils::NotNull<Plugin*>>& plugins);
+    void SetMiddlewaresList(const std::vector<utils::NotNull<MiddlewareBase*>>& middlewares);
     void SetLoggedUrl(std::string url);
     void SetUrlTemplate(std::string url_template);
     void SetMethod(clients::http::HttpMethod method);
@@ -146,10 +146,12 @@ public:
 
     void SetTracingManager(const tracing::TracingManagerBase&);
 
+    void SetWaitToken(utils::impl::WaitTokenStorageLock&&);
+
     /// true if proxy was set using proxy method
     bool IsProxySet() const;
 
-    PluginRequest GetEditableRequestInstance();
+    MiddlewareRequest GetEditableRequestInstance();
 
 private:
     /// final callback that calls user callback and set value in promise
@@ -196,6 +198,8 @@ private:
 
     void ResolveTargetAddress(clients::dns::Resolver& resolver);
 
+    // should be the first member to prevent HttpClient destruction before destruction of RequestState fields
+    utils::impl::WaitTokenStorageLock wait_token_;
     /// curl handler wrapper
     impl::EasyWrapper easy_;
     RequestStats stats_;
@@ -250,10 +254,12 @@ private:
 
     clients::dns::Resolver* resolver_{nullptr};
     std::optional<std::string> proxy_url_;
-    impl::PluginPipeline plugin_pipeline_;
+    MiddlewaresPipeline middlewares_pipeline_;
 
     struct StreamData {
-        StreamData(Queue::Producer&& queue_producer) : queue_producer(std::move(queue_producer)) {}
+        StreamData(Queue::Producer&& queue_producer)
+            : queue_producer(std::move(queue_producer))
+        {}
 
         Queue::Producer queue_producer;
         std::atomic<bool> headers_promise_set{false};

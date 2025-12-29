@@ -55,7 +55,8 @@ public:
     GrpcDeadlinePropagation()
         : client_deadline_(engine::Deadline::FromDuration(tests::kShortTimeout)),
           long_deadline_(engine::Deadline::FromDuration(tests::kLongTimeout)),
-          client_(MakeClient<ClientType>()) {
+          client_(MakeClient<ClientType>())
+    {
         tests::InitTaskInheritedDeadline(client_deadline_);
     }
 

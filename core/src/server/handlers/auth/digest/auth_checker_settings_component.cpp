@@ -9,6 +9,10 @@
 #include <userver/utils/async.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
+#ifndef ARCADIA_ROOT
+#include "generated/src/server/handlers/auth/digest/auth_checker_settings_component.yaml.hpp"  // Y_IGNORE
+#endif
+
 USERVER_NAMESPACE_BEGIN
 
 namespace server::handlers::auth::digest {
@@ -47,40 +51,8 @@ AuthCheckerSettingsComponent::~AuthCheckerSettingsComponent() = default;
 const AuthCheckerSettings& AuthCheckerSettingsComponent::GetSettings() const { return settings_; }
 
 yaml_config::Schema AuthCheckerSettingsComponent::GetStaticConfigSchema() {
-    return yaml_config::MergeSchemas<components::ComponentBase>(R"(
-type: object
-description: settings for digest authentication
-additionalProperties: false
-properties:
-    algorithm:
-      type: string
-      description: algorithm for hashing nonce
-    domains:
-      type: array
-      description: domains for use
-      defaultDescription: /
-      items:
-          type: string
-          description: domain name
-    qops:
-      type: array
-      description: qop-options
-      items:
-          type: string
-          description: qop name
-    is-proxy:
-      type: boolean
-      description: if set, the Proxy prefix is inserted into the header
-      defaultDescription: false
-    is-session:
-      type: boolean
-      description: enable sessions
-      defaultDescription: false
-    nonce-ttl:
-        type: string
-        description: ttl for nonce
-        defaultDescription: 10s
-)");
+    return yaml_config::MergeSchemasFromResource<
+        components::ComponentBase>("src/server/handlers/auth/digest/auth_checker_settings_component.yaml");
 }
 
 }  // namespace server::handlers::auth::digest

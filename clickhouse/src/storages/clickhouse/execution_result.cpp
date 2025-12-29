@@ -6,7 +6,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::clickhouse {
 
-ExecutionResult::ExecutionResult(impl::BlockWrapperPtr block) : block_{std::move(block)} {}
+ExecutionResult::ExecutionResult(impl::BlockWrapperPtr block)
+    : block_{std::move(block)}
+{}
 
 ExecutionResult::ExecutionResult(ExecutionResult&&) noexcept = default;
 

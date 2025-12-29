@@ -24,7 +24,9 @@ Oid::Oid(std::string_view hex_encoded) {
     bson_oid_init_from_string(&oid_, hex_encoded.data());
 }
 
-Oid::Oid(const bson_oid_t& oid) : oid_(oid) {}
+Oid::Oid(const bson_oid_t& oid)
+    : oid_(oid)
+{}
 
 Oid Oid::MakeMinimalFor(std::chrono::system_clock::time_point time) {
     bson_oid_t boid{};
@@ -90,7 +92,9 @@ Decimal128::Decimal128(const std::string& value) {
     }
 }
 
-Decimal128::Decimal128(const bson_decimal128_t& decimal) : decimal_(decimal) {}
+Decimal128::Decimal128(const bson_decimal128_t& decimal)
+    : decimal_(decimal)
+{}
 
 std::string Decimal128::ToString() const {
     std::string result(BSON_DECIMAL128_STRING, '\0');
@@ -119,7 +123,10 @@ bool Decimal128::operator!=(const Decimal128& rhs) const { return !(*this == rhs
 
 Timestamp::Timestamp() = default;
 
-Timestamp::Timestamp(uint32_t timestamp, uint32_t increment) : timestamp_(timestamp), increment_(increment) {}
+Timestamp::Timestamp(uint32_t timestamp, uint32_t increment)
+    : timestamp_(timestamp),
+      increment_(increment)
+{}
 
 time_t Timestamp::GetTimestamp() const { return timestamp_; }
 

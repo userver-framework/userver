@@ -2,8 +2,6 @@
 import dataclasses
 import itertools
 from typing import Any
-from typing import Optional
-from typing import Union
 
 from chaotic import cpp_keywords
 from chaotic.back.cpp import type_name
@@ -15,9 +13,9 @@ USERVER_COLONCOLON = 'userver::'
 @dataclasses.dataclass
 class CppType:
     raw_cpp_type: type_name.TypeName
-    json_schema: Optional[types.Schema]
+    json_schema: types.Schema | None
     nullable: bool  # TODO: maybe move into  field?
-    user_cpp_type: Optional[str]
+    user_cpp_type: str | None
 
     _only_json_reason = ''
 
@@ -27,16 +25,44 @@ class CppType:
         return id(self)
 
     def is_isomorphic(self, other: 'CppType') -> bool:
-        assert self.json_schema is not None
-        left = dataclasses.asdict(self.json_schema)
-        left.pop('description', None)
-        left['x_properties'].pop('description', None)
-        assert other.json_schema is not None
-        right = dataclasses.asdict(other.json_schema)
-        right.pop('description', None)
-        right['x_properties'].pop('description', None)
+        if self == other:
+            return True
 
-        return left == right
+        assert self.json_schema is not None
+        assert other.json_schema is not None
+        left = self.json_schema.model_dump()
+        right = other.json_schema.model_dump()
+        return self._is_isomorphic_dicts(left, right)
+
+    @staticmethod
+    def _is_isomorphic_dicts(left: dict, right: dict) -> bool:
+        left.pop('source_location_', None)
+        right.pop('source_location_', None)
+        left.pop('description', None)
+        right.pop('description', None)
+        if 'x_properties' in left:
+            left['x_properties'].pop('description', None)
+        if 'x_properties' in right:
+            right['x_properties'].pop('description', None)
+
+        if left.keys() != right.keys():
+            return False
+
+        for prop in left:
+            p1 = left[prop]
+            p2 = right[prop]
+
+            if isinstance(p1, CppType) and isinstance(p2, CppType):
+                if not p1.is_isomorphic(p2):
+                    return False
+            elif isinstance(p1, dict) and isinstance(p2, dict):
+                if not CppType._is_isomorphic_dicts(p1, p2):
+                    return False
+            else:
+                if p1 != p2:
+                    return False
+
+        return True
 
     def without_json_schema(self) -> 'CppType':
         return dataclasses.replace(self, json_schema=None)
@@ -120,8 +146,8 @@ class CppType:
     def cpp_comment(self) -> str:
         assert self.json_schema
 
-        kwargs = self.json_schema.x_properties
-        description = (kwargs.get('title', '') + '\n' + kwargs.get('description', '')).strip()
+        schema = self.json_schema
+        description = ((schema.title or '') + '\n' + (schema.description or '')).strip()
         if description:
             return '// ' + description.replace('\n', '\n//')
         else:
@@ -206,13 +232,13 @@ def camel_to_snake_case(string: str) -> str:
 
 @dataclasses.dataclass
 class CppPrimitiveValidator:
-    min: Union[Optional[int], float] = None
-    max: Union[Optional[int], float] = None
-    exclusiveMin: Union[Optional[int], float] = None
-    exclusiveMax: Union[Optional[int], float] = None
-    minLength: Optional[int] = None
-    maxLength: Optional[int] = None
-    pattern: Optional[str] = None
+    min: int | float | None = None
+    max: int | float | None = None
+    exclusiveMin: int | float | None = None
+    exclusiveMax: int | float | None = None
+    minLength: int | None = None
+    maxLength: int | None = None
+    pattern: str | None = None
 
     namespace: str = ''
     prefix: str = ''
@@ -237,7 +263,7 @@ class CppPrimitiveValidator:
 # boolean, integer, number, string
 @dataclasses.dataclass
 class CppPrimitiveType(CppType):
-    default: Optional[Any] = None
+    default: Any = None
     validators: CppPrimitiveValidator = dataclasses.field(
         default_factory=CppPrimitiveValidator,
     )
@@ -320,7 +346,7 @@ class CppPrimitiveType(CppType):
 
 @dataclasses.dataclass
 class CppStringWithFormat(CppType):
-    default: Optional[Any] = None
+    default: Any = None
     format_cpp_type: str = ''
 
     KNOWN_X_PROPERTIES = [
@@ -384,7 +410,7 @@ class CppRef(CppType):
     orig_cpp_type: CppType
     indirect: bool
     self_ref: bool
-    cpp_name: Optional[str] = None
+    cpp_name: str | None = None
 
     KNOWN_X_PROPERTIES = ['x-usrv-cpp-indirect', 'x-taxi-cpp-indirect']
 
@@ -496,7 +522,7 @@ class CppStringEnumItem:
 class CppStringEnum(CppType):
     name: str
     enums: list[CppStringEnumItem]
-    default: Optional[EnumItemName]
+    default: EnumItemName | None
 
     __hash__ = CppType.__hash__
 
@@ -526,8 +552,8 @@ class CppStringEnum(CppType):
 @dataclasses.dataclass
 class CppStructPrimitiveField:
     raw_cpp_type: str
-    user_cpp_type: Optional[str] = None
-    default: Optional[Any] = None  # the type already checked at front stage
+    user_cpp_type: str | None = None
+    default: Any = None  # the type already checked at front stage
 
 
 @dataclasses.dataclass
@@ -545,7 +571,7 @@ class CppStructField:
         else:
             return self
 
-    def _default(self) -> Optional[str]:
+    def _default(self) -> str | None:
         return getattr(self.schema, 'default', None)
 
     def _get_default(self) -> str:
@@ -610,7 +636,7 @@ class CppStructField:
 class CppStruct(CppType):
     fields: dict[str, CppStructField]
     # 'None' means 'do not generate extra member'
-    extra_type: Union[CppType, bool, None] = False
+    extra_type: CppType | bool | None = False
     autodiscover_default_dict: bool = False
     strict_parsing: bool = True
 
@@ -630,7 +656,7 @@ class CppStruct(CppType):
             self.extra_type = self.fields['__default__'].schema
             self.fields['__default__'].required = False
 
-    def without_json_schema(self) -> 'CppType':
+    def without_json_schema(self) -> CppType:
         tmp = super().without_json_schema()
         assert isinstance(tmp, CppStruct)
 
@@ -739,8 +765,8 @@ class CppStruct(CppType):
 
 @dataclasses.dataclass
 class CppArrayValidator:
-    minItems: Optional[int] = None
-    maxItems: Optional[int] = None
+    minItems: int | None = None
+    maxItems: int | None = None
 
     def is_none(self) -> bool:
         return self == CppArrayValidator()
@@ -920,7 +946,7 @@ class CppVariantWithDiscriminator(CppType):
 
     def parser_type(self, ns: str, name: str) -> str:
         variants_list = []
-        for _, variant in self.variants.items():
+        for variant in self.variants.values():
             variants_list.append(variant.parser_type(ns, name))
         variants = ', '.join(variants_list)
 

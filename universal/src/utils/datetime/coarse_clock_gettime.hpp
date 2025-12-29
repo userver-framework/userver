@@ -28,9 +28,8 @@ TimePoint CoarseNow() noexcept {
     ::timespec tp;
     const auto res = ::clock_gettime(static_cast<clockid_t>(Flag), &tp);
     UASSERT_MSG(res == 0, "Must always succeed");
-    return TimePoint{std::chrono::duration_cast<typename TimePoint::duration>(
-        std::chrono::seconds(tp.tv_sec) + std::chrono::nanoseconds(tp.tv_nsec)
-    )};
+    return TimePoint{std::chrono::duration_cast<
+        typename TimePoint::duration>(std::chrono::seconds(tp.tv_sec) + std::chrono::nanoseconds(tp.tv_nsec))};
 }
 
 template <typename Duration, int Flag>
@@ -42,9 +41,8 @@ Duration CoarseResolution() noexcept {
         ::timespec tp;
         const auto res = ::clock_getres(static_cast<clockid_t>(Flag), &tp);
         UASSERT_MSG(res == 0, "Must always succeed");
-        return std::chrono::duration_cast<Duration>(
-            std::chrono::seconds(tp.tv_sec) + std::chrono::nanoseconds(tp.tv_nsec)
-        );
+        return std::chrono::duration_cast<
+            Duration>(std::chrono::seconds(tp.tv_sec) + std::chrono::nanoseconds(tp.tv_nsec));
     }();
 
     return kCachedResolution;

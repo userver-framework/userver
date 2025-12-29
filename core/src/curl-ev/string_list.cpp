@@ -12,7 +12,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace curl {
 
-string_list::Elem::Elem(std::string new_value) : value(std::move(new_value)) {
+string_list::Elem::Elem(std::string new_value)
+    : value(std::move(new_value))
+{
     list_node.data = value.data();
     list_node.next = nullptr;
 }
@@ -20,7 +22,9 @@ string_list::Elem::Elem(std::string new_value) : value(std::move(new_value)) {
 void string_list::add(std::string str) {
     native::curl_slist* prev = list_elements_.empty() ? nullptr : &list_elements_.back().list_node;
     auto& last = list_elements_.emplace_back(std::move(str));
-    if (prev) prev->next = &last.list_node;
+    if (prev) {
+        prev->next = &last.list_node;
+    }
 }
 
 void string_list::clear() noexcept { list_elements_.clear(); }

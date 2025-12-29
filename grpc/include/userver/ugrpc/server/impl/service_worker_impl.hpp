@@ -55,7 +55,9 @@ void ParseGenericCallName(
 template <typename GrpcppService>
 struct ServiceData final {
     ServiceData(ServiceInternals&& internals, const ugrpc::impl::StaticServiceMetadata& metadata)
-        : internals(std::move(internals)), metadata(metadata) {}
+        : internals(std::move(internals)),
+          metadata(metadata)
+    {}
 
     ~ServiceData() { wait_tokens.WaitForAllTokens(); }
 
@@ -64,7 +66,8 @@ struct ServiceData final {
     AsyncService<GrpcppService> async_service{GetMethodsCount(metadata)};
     utils::impl::WaitTokenStorage wait_tokens;
     ugrpc::impl::ServiceStatistics& service_statistics{
-        internals.statistics_storage.GetServiceStatistics(metadata, std::nullopt)};
+        internals.statistics_storage.GetServiceStatistics(metadata, std::nullopt)
+    };
 };
 
 /// Per-gRPC-method data
@@ -76,9 +79,9 @@ struct MethodData final {
     typename CallTraits::ServiceBase& service;
     const typename CallTraits::ServiceMethod service_method;
 
-    std::string_view call_name{GetMethodFullName(service_data.metadata, method_id)};
+    utils::StringLiteral call_name{ugrpc::impl::GetMethodFullName(service_data.metadata, method_id)};
     // Remove name of the service and slash
-    std::string_view method_name{GetMethodName(service_data.metadata, method_id)};
+    utils::StringLiteral method_name{ugrpc::impl::GetMethodName(service_data.metadata, method_id)};
     ugrpc::impl::MethodStatistics& statistics{service_data.service_statistics.GetMethodStatistics(method_id)};
 };
 
@@ -86,7 +89,9 @@ template <typename GrpcppService, typename CallTraits>
 class CallData final {
 public:
     explicit CallData(const MethodData<GrpcppService, CallTraits>& method_data)
-        : wait_token_(method_data.service_data.wait_tokens.GetToken()), method_data_(method_data) {
+        : wait_token_(method_data.service_data.wait_tokens.GetToken()),
+          method_data_(method_data)
+    {
         UASSERT(method_data.method_id < GetMethodsCount(method_data.service_data.metadata));
     }
 
@@ -102,6 +107,7 @@ public:
 
         auto& queue = method_data_.service_data.internals.completion_queues.GetQueue(method_data_.queue_id);
 
+        ugrpc::impl::AsyncMethodInvocation request_call_invocation;
         // the request for an incoming RPC must be performed synchronously
         method_data_.service_data.async_service.template RequestCall<CallTraits>(
             method_data_.method_id,
@@ -110,14 +116,14 @@ public:
             raw_responder_,
             queue,
             queue,
-            request_call_.GetCompletionTag()
+            request_call_invocation.GetCompletionTag()
         );
 
         // Note: we ignore task cancellations here. Even if notify_when_done has
         // already cancelled this RPC, we want to:
         // 1. listen to further RPCs for the same method
         // 2. handle this RPC correctly, including metrics, logs, etc.
-        if (!request_call_.WaitNonCancellable()) {
+        if (!request_call_invocation.WaitNonCancellable()) {
             // the CompletionQueue is shutting down
 
             // Do not wait for notify_when_done. When queue is shutting down, it will
@@ -142,7 +148,8 @@ public:
 
     static void ListenAsync(const MethodData<GrpcppService, CallTraits>& method_data) {
         engine::DetachUnscopedUnsafe(engine::CriticalAsyncNoSpan(
-            method_data.service_data.internals.task_processor, utils::LazyPrvalue([&] { return CallData(method_data); })
+            method_data.service_data.internals.task_processor,
+            utils::LazyPrvalue([&] { return CallData(method_data); })
         ));
     }
 
@@ -162,6 +169,7 @@ private:
         CallProcessor<CallTraits> call_processor{
             CallParams{
                 context_,
+                CallTraits::kRpcType,
                 call_name,
                 service_name,
                 method_name,
@@ -190,7 +198,6 @@ private:
     typename CallTraits::RawContext context_{};
     InitialRequest initial_request_{};
     RawResponder raw_responder_{&context_};
-    ugrpc::impl::AsyncMethodInvocation request_call_;
     std::optional<tracing::InPlaceSpan> span_storage_{};
 };
 
@@ -198,9 +205,9 @@ template <typename GrpcppService, typename Service, typename... ServiceMethods>
 void StartServing(ServiceData<GrpcppService>& service_data, Service& service, ServiceMethods... service_methods) {
     for (std::size_t queue_id = 0; queue_id < service_data.internals.completion_queues.GetSize(); ++queue_id) {
         std::size_t method_id = 0;
-        (CallData<GrpcppService, CallTraits<ServiceMethods>>::ListenAsync(
-             {service_data, queue_id, method_id++, service, service_methods}
-         ),
+        (CallData<
+             GrpcppService,
+             CallTraits<ServiceMethods>>::ListenAsync({service_data, queue_id, method_id++, service, service_methods}),
          ...);
     }
 }
@@ -215,9 +222,11 @@ public:
         Service& service,
         ServiceMethods... service_methods
     )
-        : service_data_(std::move(internals), std::move(metadata)), start_([this, &service, service_methods...] {
+        : service_data_(std::move(internals), std::move(metadata)),
+          start_([this, &service, service_methods...] {
               impl::StartServing(service_data_, service, service_methods...);
-          }) {}
+          })
+    {}
 
     grpc::Service& GetService() override { return service_data_.async_service; }
 

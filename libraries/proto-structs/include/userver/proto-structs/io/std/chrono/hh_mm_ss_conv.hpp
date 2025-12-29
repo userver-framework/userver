@@ -17,8 +17,12 @@ USERVER_NAMESPACE_BEGIN
 namespace proto_structs::io {
 
 template <typename TDuration>
-std::chrono::hh_mm_ss<TDuration>
-ReadProtoStruct(ReadContext& ctx, To<std::chrono::hh_mm_ss<TDuration>>, const ::google::type::TimeOfDay& msg) try {
+std::chrono::hh_mm_ss<TDuration> ReadProtoStruct(
+    ReadContext& ctx,
+    To<std::chrono::hh_mm_ss<TDuration>>,
+    const ::google::type::TimeOfDay& msg
+) try
+{
     // note that `google.type.TimeOfDay` allows 60 for seconds (for leap-seconds) in most general case, however this
     // will not be expected by most users (which will expect hms <= 24h), so we prefer to fail on such values
     if (msg.seconds() == 60) {
@@ -39,7 +43,8 @@ void WriteProtoStruct(
     WriteContext& ctx,
     const std::chrono::hh_mm_ss<TDuration>& obj,
     ::google::type::TimeOfDay& msg
-) try {
+) try
+{
     TimeOfDay time_of_day(obj);
     msg.set_hours(static_cast<int32_t>(time_of_day.Hours().count()));
     msg.set_minutes(static_cast<int32_t>(time_of_day.Minutes().count()));

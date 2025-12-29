@@ -8,14 +8,13 @@ import json
 import pathlib
 import re
 from typing import Any
-from typing import Dict
-from typing import Optional
+from typing import TypeAlias
 from typing import TypeVar
 
 import dataclasses_json
 
-ShortName = str
-FullName = str
+ShortName: TypeAlias = str
+FullName: TypeAlias = str
 
 _SHORT_NAME_REGEX = re.compile(r'^[a-zA-Z_]\w*$')
 _FULL_NAME_REGEX = re.compile(r'^[a-zA-Z_]\w*(\.[a-zA-Z_]\w*)*$')
@@ -45,7 +44,7 @@ class OneofOptions(ModelBase):
     """Options that apply to oneof definition."""
 
     #: Overrides the generated name of the C++ class to represent oneof.
-    generated_type_name: Optional[ShortName] = None
+    generated_type_name: ShortName | None = None
 
     def __post_init__(self) -> None:
         if self.generated_type_name is not None and not _SHORT_NAME_REGEX.match(self.generated_type_name):
@@ -65,16 +64,16 @@ class PluginOptions(dataclasses_json.DataClassJsonMixin):
     """Options root."""
 
     #: Proto file path (as in `import`) `full/file/name.proto` -> options.
-    file_options: Dict[str, FileOptions] = dataclasses.field(default_factory=dict)
+    file_options: dict[str, FileOptions] = dataclasses.field(default_factory=dict)
 
     #: Full message name in format `full.package.Message.SubMessage` -> options.
-    message_options: Dict[FullName, MessageOptions] = dataclasses.field(default_factory=dict)
+    message_options: dict[FullName, MessageOptions] = dataclasses.field(default_factory=dict)
 
     #: Full oneof name in format `full.package.Message.Submessage.oneof_name` -> options.
-    oneof_options: Dict[FullName, OneofOptions] = dataclasses.field(default_factory=dict)
+    oneof_options: dict[FullName, OneofOptions] = dataclasses.field(default_factory=dict)
 
     #: Full field name in format `full.package.Message.SubMessage.field` -> options.
-    field_options: Dict[FullName, FieldOptions] = dataclasses.field(default_factory=dict)
+    field_options: dict[FullName, FieldOptions] = dataclasses.field(default_factory=dict)
 
     def __post_init__(self) -> None:
         for keys in (self.message_options.keys(), self.oneof_options.keys(), self.field_options.keys()):
@@ -98,11 +97,11 @@ _DEFAULT_PLUGIN_OPTIONS = PluginOptions(
 )
 
 
-def _merge_dicts_recursively(*, into: Dict[str, Any], overrides: Dict[str, Any]) -> None:
+def _merge_dicts_recursively(*, into: dict[str, Any], overrides: dict[str, Any]) -> None:
     for key, value in overrides.items():
         if key in into and isinstance(into[key], dict) and isinstance(value, dict):
-            sub_into: Dict[str, Any] = into[key]
-            sub_overrides: Dict[str, Any] = value
+            sub_into: dict[str, Any] = into[key]
+            sub_overrides: dict[str, Any] = value
             _merge_dicts_recursively(into=sub_into, overrides=sub_overrides)
         else:
             into[key] = value
@@ -114,13 +113,13 @@ T = TypeVar('T', bound=dataclasses_json.DataClassJsonMixin)
 def merge_models(base: T, *, overrides: T) -> T:
     """Merge two pydantic models recursively."""
     assert base.__class__ == overrides.__class__
-    merged: Dict[str, Any] = base.to_dict()  # pyright: ignore
-    overrides_dict: Dict[str, Any] = overrides.to_dict()  # pyright: ignore
+    merged: dict[str, Any] = base.to_dict()  # pyright: ignore
+    overrides_dict: dict[str, Any] = overrides.to_dict()  # pyright: ignore
     _merge_dicts_recursively(into=merged, overrides=overrides_dict)
     return base.__class__.from_dict(merged)  # pyright: ignore
 
 
-def load_plugin_options(file_path: Optional[pathlib.Path]) -> PluginOptions:
+def load_plugin_options(file_path: pathlib.Path | None) -> PluginOptions:
     """Load `PluginOptions` from file."""
     if not file_path:
         return _DEFAULT_PLUGIN_OPTIONS

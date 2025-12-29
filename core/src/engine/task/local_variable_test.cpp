@@ -16,7 +16,9 @@ namespace {
 class LogStringGuard final {
 public:
     LogStringGuard(std::string& destination, std::string source)
-        : destination_(destination), source_(std::move(source)) {}
+        : destination_(destination),
+          source_(std::move(source))
+    {}
 
     ~LogStringGuard() { destination_ += source_; }
 
@@ -150,7 +152,9 @@ namespace {
 
 class WaitingInDestructorVariable final {
 public:
-    explicit WaitingInDestructorVariable(engine::SingleUseEvent& event) : event_(event) {}
+    explicit WaitingInDestructorVariable(engine::SingleUseEvent& event)
+        : event_(event)
+    {}
 
     ~WaitingInDestructorVariable() { event_.WaitNonCancellable(); }
 

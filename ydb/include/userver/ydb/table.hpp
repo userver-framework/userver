@@ -164,8 +164,12 @@ public:
     ScanQueryResults ExecuteScanQuery(const Query& query, Args&&... args);
 
     template <typename... Args>
-    ScanQueryResults
-    ExecuteScanQuery(ScanQuerySettings&& scan_settings, OperationSettings settings, const Query& query, Args&&... args);
+    ScanQueryResults ExecuteScanQuery(
+        ScanQuerySettings&& scan_settings,
+        OperationSettings settings,
+        const Query& query,
+        Args&&... args
+    );
 
     ScanQueryResults ExecuteScanQuery(
         ScanQuerySettings&& scan_settings,
@@ -298,7 +302,10 @@ ScanQueryResults TableClient::ExecuteScanQuery(
     Args&&... args
 ) {
     return ExecuteScanQuery(
-        std::move(scan_settings), std::move(settings), query, MakeBuilder(std::forward<Args>(args)...)
+        std::move(scan_settings),
+        std::move(settings),
+        query,
+        MakeBuilder(std::forward<Args>(args)...)
     );
 }
 

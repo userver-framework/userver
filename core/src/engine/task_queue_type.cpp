@@ -12,6 +12,7 @@ TaskQueueType Parse(const yaml_config::YamlConfig& value, formats::parse::To<Tas
         return selector()
             .Case(TaskQueueType::kGlobalTaskQueue, "global-task-queue")
             .Case(TaskQueueType::kWorkStealingTaskQueue, "work-stealing-task-queue")
+            .Case(TaskQueueType::kPullPinTaskQueue, "pull-pin-task-queue")
             // We do not allow selection from configs of kTSanTaskQueue
             // .Case(TaskQueueType::kTSanTaskQueue, "tsan-task-queue")
             ;

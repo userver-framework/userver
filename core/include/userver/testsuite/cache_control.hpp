@@ -182,8 +182,11 @@ CacheControl& FindCacheControl(const components::ComponentContext& context);
 /// *after* all FindComponent calls. This ensures that reset will first be
 /// called for dependencies, then for dependent components.
 template <typename Component>
-CacheResetRegistration
-RegisterCache(const components::ComponentContext& context, Component* self, void (Component::*reset_method)()) {
+CacheResetRegistration RegisterCache(
+    const components::ComponentContext& context,
+    Component* self,
+    void (Component::*reset_method)()
+) {
     auto& cc = testsuite::FindCacheControl(context);
     return cc.RegisterCache(self, components::GetCurrentComponentName(context), reset_method);
 }
@@ -203,10 +206,14 @@ template <typename Component>
 
 /// @cond
 template <typename Component>
-CacheResetRegistration
-CacheControl::RegisterCache(Component* self, std::string_view name, void (Component::*reset_method)()) {
+CacheResetRegistration CacheControl::RegisterCache(
+    Component* self,
+    std::string_view name,
+    void (Component::*reset_method)()
+) {
     static_assert(
-        std::is_base_of_v<components::RawComponentBase, Component>, "CacheControl can only be used with components"
+        std::is_base_of_v<components::RawComponentBase, Component>,
+        "CacheControl can only be used with components"
     );
     UASSERT(self);
     UASSERT(reset_method);

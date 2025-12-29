@@ -19,8 +19,10 @@ namespace sample {
 
 namespace {
 
-NYdb::NFederatedTopic::TFederatedReadSessionSettings
-ConstructReadSessionSettings(const std::string& consumer_name, const std::vector<std::string>& topics) {
+NYdb::NFederatedTopic::TFederatedReadSessionSettings ConstructReadSessionSettings(
+    const std::string& consumer_name,
+    const std::vector<std::string>& topics
+) {
     NYdb::NFederatedTopic::TFederatedReadSessionSettings read_session_settings;
     read_session_settings.ConsumerName(ydb::impl::ToString(consumer_name));
     for (const auto& topic_path : topics) {
@@ -34,7 +36,9 @@ public:
     using TReadSessionEvent = NYdb::NFederatedTopic::TReadSessionEvent;
     using TSessionClosedEvent = NYdb::NFederatedTopic::TSessionClosedEvent;
 
-    explicit SessionReadTask(ydb::FederatedTopicReadSession&& read_session) : read_session_(std::move(read_session)) {}
+    explicit SessionReadTask(ydb::FederatedTopicReadSession&& read_session)
+        : read_session_(std::move(read_session))
+    {}
 
     ~SessionReadTask() {
         if (!session_closed_) {
@@ -73,27 +77,28 @@ private:
                     //
                 },
                 [](TReadSessionEvent::TStartPartitionSessionEvent& e) {
-                    LOG_DEBUG() << "Starting partition session [TopicPath="
-                                << e.GetFederatedPartitionSession()->GetTopicPath()
-                                << ", PartitionId=" << e.GetFederatedPartitionSession()->GetPartitionId() << "]";
+                    LOG_DEBUG()
+                        << "Starting partition session [TopicPath=" << e.GetFederatedPartitionSession()->GetTopicPath()
+                        << ", PartitionId=" << e.GetFederatedPartitionSession()->GetPartitionId() << "]";
                     e.Confirm();  // partition assigned
                 },
                 [](TReadSessionEvent::TStopPartitionSessionEvent& e) {
-                    LOG_DEBUG() << "Stopping partition session [TopicPath="
-                                << e.GetFederatedPartitionSession()->GetTopicPath()
-                                << ", PartitionId=" << e.GetFederatedPartitionSession()->GetPartitionId() << "]";
+                    LOG_DEBUG()
+                        << "Stopping partition session [TopicPath=" << e.GetFederatedPartitionSession()->GetTopicPath()
+                        << ", PartitionId=" << e.GetFederatedPartitionSession()->GetPartitionId() << "]";
                     e.Confirm();  // partition revoked
                 },
                 [](TReadSessionEvent::TEndPartitionSessionEvent& e) {
-                    LOG_DEBUG() << "End partition session [TopicPath="
-                                << e.GetFederatedPartitionSession()->GetTopicPath()
-                                << ", PartitionId=" << e.GetFederatedPartitionSession()->GetPartitionId() << "]";
+                    LOG_DEBUG()
+                        << "End partition session [TopicPath=" << e.GetFederatedPartitionSession()->GetTopicPath()
+                        << ", PartitionId=" << e.GetFederatedPartitionSession()->GetPartitionId() << "]";
                 },
                 [](TReadSessionEvent::TPartitionSessionClosedEvent& e) {
-                    if (TReadSessionEvent::TPartitionSessionClosedEvent::EReason::StopConfirmedByUser !=
-                        e.GetReason()) {
-                        LOG_WARNING() << "Unexpected PartitionSessionClosedEvent [Reason="
-                                      << utils::UnderlyingValue(e.GetReason()) << "]";
+                    if (TReadSessionEvent::TPartitionSessionClosedEvent::EReason::StopConfirmedByUser != e.GetReason())
+                    {
+                        LOG_WARNING()
+                            << "Unexpected PartitionSessionClosedEvent [Reason="
+                            << utils::UnderlyingValue(e.GetReason()) << "]";
                         // partition lost
                     }
                 },
@@ -146,7 +151,8 @@ public:
     )
         : topic_client_{std::move(topic_client)},
           read_session_settings_{read_session_settings},
-          restart_session_delay_{restart_session_delay} {}
+          restart_session_delay_{restart_session_delay}
+    {}
 
     void Run() {
         while (!engine::current_task::ShouldCancel()) {

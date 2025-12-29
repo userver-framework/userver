@@ -5,7 +5,8 @@ USERVER_NAMESPACE_BEGIN
 namespace drivers::impl {
 
 PoolWaitLimitExceededError::PoolWaitLimitExceededError()
-    : std::runtime_error{"Connection pool acquisition wait limit exceeded"} {}
+    : std::runtime_error{"Connection pool acquisition wait limit exceeded"}
+{}
 
 }  // namespace drivers::impl
 

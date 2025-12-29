@@ -34,8 +34,8 @@ UTEST(Int64, InsertSelect) {
         "(value Int64)"
     );
 
-    const DataWithInts insert_data{
-        {std::numeric_limits<int64_t>::min(), -1, 0, 1, std::numeric_limits<int64_t>::max()}};
+    const DataWithInts insert_data{{std::numeric_limits<int64_t>::min(), -1, 0, 1, std::numeric_limits<int64_t>::max()}
+    };
     cluster->Insert("tmp_table", {"value"}, insert_data);
 
     const auto select_data = cluster->Execute("SELECT * from tmp_table").As<DataWithInts>();

@@ -10,7 +10,8 @@ USERVER_NAMESPACE_BEGIN
 namespace utils::statistics {
 
 HistogramAggregator::HistogramAggregator(utils::span<const double> upper_bounds)
-    : buckets_(std::make_unique<impl::histogram::Bucket[]>(upper_bounds.size() + 1)) {
+    : buckets_(std::make_unique<impl::histogram::Bucket[]>(upper_bounds.size() + 1))
+{
     impl::histogram::CopyBounds(buckets_.get(), upper_bounds);
 }
 

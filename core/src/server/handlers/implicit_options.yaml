@@ -1,0 +1,21 @@
+type: object
+description: handler-implicit-http-options config
+additionalProperties: false
+properties:
+    auth_checkers:
+        type: object
+        description: |
+            server::handlers::auth::HandlerAuthConfig authorization config
+
+            Default: auth checker testing is disabled
+        additionalProperties: false
+        properties:
+            type:
+                type: string
+                description: auth type
+            types:
+                type: array
+                description: list of auth types
+                items:
+                    type: string
+                    description: auth type

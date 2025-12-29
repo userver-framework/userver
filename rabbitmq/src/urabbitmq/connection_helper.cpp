@@ -40,13 +40,19 @@ impl::ResponseAwaiter ConnectionHelper::BindQueue(
     });
 }
 
-impl::ResponseAwaiter
-ConnectionHelper::RemoveExchange(const ConnectionPtr& connection, const Exchange& exchange, engine::Deadline deadline) {
+impl::ResponseAwaiter ConnectionHelper::RemoveExchange(
+    const ConnectionPtr& connection,
+    const Exchange& exchange,
+    engine::Deadline deadline
+) {
     return WithSpan("remove_exchange", [&] { return connection->GetChannel().RemoveExchange(exchange, deadline); });
 }
 
-impl::ResponseAwaiter
-ConnectionHelper::RemoveQueue(const ConnectionPtr& connection, const Queue& queue, engine::Deadline deadline) {
+impl::ResponseAwaiter ConnectionHelper::RemoveQueue(
+    const ConnectionPtr& connection,
+    const Queue& queue,
+    engine::Deadline deadline
+) {
     return WithSpan("remove_queue", [&] { return connection->GetChannel().RemoveQueue(queue, deadline); });
 }
 

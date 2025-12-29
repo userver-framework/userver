@@ -7,24 +7,25 @@ USERVER_NAMESPACE_BEGIN
 TEST(MultipartFormDataParser, ContentType) {
     namespace sh = server::http;
     EXPECT_TRUE(sh::IsMultipartFormDataContentType("multipart/form-data"));
-    EXPECT_TRUE(
-        sh::IsMultipartFormDataContentType("multipart/form-data; "
-                                           "boundary=------------------------8099aaf9723cd601")
-    );
+    EXPECT_TRUE(sh::IsMultipartFormDataContentType(
+        "multipart/form-data; "
+        "boundary=------------------------8099aaf9723cd601"
+    ));
     EXPECT_FALSE(sh::IsMultipartFormDataContentType("multipart/form-data-bad"));
-    EXPECT_FALSE(
-        sh::IsMultipartFormDataContentType("multipart/form-data-bad; "
-                                           "boundary=------------------------8099aaf9723cd601")
-    );
+    EXPECT_FALSE(sh::IsMultipartFormDataContentType(
+        "multipart/form-data-bad; "
+        "boundary=------------------------8099aaf9723cd601"
+    ));
 }
 
 void DoParseOkTest(const std::string& content_type, const std::string& body, std::optional<bool> strict_cr_lf = {}) {
     namespace sh = server::http;
     sh::FormDataArgs form_data_args;
-    if (strict_cr_lf)
+    if (strict_cr_lf) {
         ASSERT_TRUE(ParseMultipartFormData(content_type, body, form_data_args, *strict_cr_lf));
-    else
+    } else {
         ASSERT_TRUE(ParseMultipartFormData(content_type, body, form_data_args));
+    }
     EXPECT_EQ(form_data_args.size(), 2);
 
     sh::FormDataArg arg_text;
@@ -47,10 +48,12 @@ void DoParseOkTest(const std::string& content_type, const std::string& body, std
 
     auto file1_files = std::vector{arg_file_html, arg_file_txt};
     ASSERT_EQ(form_data_args["file1"].size(), file1_files.size());
-    EXPECT_EQ(form_data_args["file1"][0], file1_files[0]) << "parsed {" << form_data_args["file1"][0].ToDebugString()
-                                                          << "} instead of {" << file1_files[0].ToDebugString() << '}';
-    EXPECT_EQ(form_data_args["file1"][1], file1_files[1]) << "parsed {" << form_data_args["file1"][1].ToDebugString()
-                                                          << "} instead of {" << file1_files[1].ToDebugString() << '}';
+    EXPECT_EQ(form_data_args["file1"][0], file1_files[0])
+        << "parsed {" << form_data_args["file1"][0].ToDebugString() << "} instead of {"
+        << file1_files[0].ToDebugString() << '}';
+    EXPECT_EQ(form_data_args["file1"][1], file1_files[1])
+        << "parsed {" << form_data_args["file1"][1].ToDebugString() << "} instead of {"
+        << file1_files[1].ToDebugString() << '}';
     EXPECT_EQ(form_data_args["file1"], file1_files);
 }
 

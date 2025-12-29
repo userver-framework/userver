@@ -17,7 +17,9 @@ namespace ydb {
 
 namespace impl {
 
-ParseState::ParseState(const NYdb::TResultSet& result_set) : parser(result_set) {}
+ParseState::ParseState(const NYdb::TResultSet& result_set)
+    : parser(result_set)
+{}
 
 }  // namespace impl
 
@@ -52,7 +54,9 @@ void Row::ConsumedColumnsCheck(std::size_t column_index) {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-CursorIterator::CursorIterator(Cursor& cursor) : parse_state_(&*cursor.parse_state_) {}
+CursorIterator::CursorIterator(Cursor& cursor)
+    : parse_state_(&*cursor.parse_state_)
+{}
 
 Row CursorIterator::operator*() const {
     UASSERT(parse_state_ != nullptr);
@@ -74,7 +78,9 @@ bool CursorIterator::operator==(const std::default_sentinel_t&) const noexcept {
 ////////////////////////////////////////////////////////////////////////////////
 
 Cursor::Cursor(const NYdb::TResultSet& result_set)
-    : truncated_(result_set.Truncated()), parse_state_(utils::MakeUniqueRef<impl::ParseState>(result_set)) {}
+    : truncated_(result_set.Truncated()),
+      parse_state_(utils::MakeUniqueRef<impl::ParseState>(result_set))
+{}
 
 size_t Cursor::ColumnsCount() const { return parse_state_->parser.ColumnsCount(); }
 
@@ -119,10 +125,14 @@ std::optional<NYdb::NTable::TQueryStats> GetStats(const TQueryResult& query_resu
 }  // namespace
 
 ExecuteResponse::ExecuteResponse(NYdb::NTable::TDataQueryResult&& query_result)
-    : query_stats_(GetStats(query_result)), result_sets_(std::move(query_result).ExtractResultSets()) {}
+    : query_stats_(GetStats(query_result)),
+      result_sets_(std::move(query_result).ExtractResultSets())
+{}
 
 ExecuteResponse::ExecuteResponse(NYdb::NQuery::TExecuteQueryResult&& query_result)
-    : query_stats_(GetStats(query_result)), result_sets_(std::move(query_result).GetResultSets()) {}
+    : query_stats_(GetStats(query_result)),
+      result_sets_(std::move(query_result).GetResultSets())
+{}
 
 std::size_t ExecuteResponse::GetCursorCount() const { return result_sets_.size(); }
 
@@ -149,10 +159,14 @@ Cursor ExecuteResponse::GetSingleCursor() const {
 const std::optional<NYdb::NTable::TQueryStats>& ExecuteResponse::GetQueryStats() const noexcept { return query_stats_; }
 
 bool ExecuteResponse::IsFromServerQueryCache() const noexcept {
-    if (!query_stats_) return false;
+    if (!query_stats_) {
+        return false;
+    }
     // TProtoAccessor is half-private API, this access was "blessed" by YDB devs.
     const auto& stats_raw = NYdb::TProtoAccessor::GetProto(*query_stats_);
-    if (!stats_raw.has_compilation()) return false;
+    if (!stats_raw.has_compilation()) {
+        return false;
+    }
     return stats_raw.compilation().from_cache();
 }
 
@@ -164,12 +178,16 @@ void ExecuteResponse::EnsureResultSetsNotEmpty() const {
 
 ///////////////////////////////////////////////////////////////////////
 
-ReadTableResults::ReadTableResults(NYdb::NTable::TTablePartIterator iterator) : iterator_{std::move(iterator)} {}
+ReadTableResults::ReadTableResults(NYdb::NTable::TTablePartIterator iterator)
+    : iterator_{std::move(iterator)}
+{}
 
 std::optional<Cursor> ReadTableResults::GetNextResult() {
     auto status = impl::GetFutureValueUnchecked(iterator_.ReadNext());
     if (!status.IsSuccess()) {
-        if (status.EOS()) return std::nullopt;
+        if (status.EOS()) {
+            return std::nullopt;
+        }
         throw YdbResponseError("ReadNext", std::move(status));
     }
 
@@ -177,12 +195,16 @@ std::optional<Cursor> ReadTableResults::GetNextResult() {
     return Cursor{res};
 }
 
-ScanQueryResults::ScanQueryResults(TScanQueryPartIterator iterator) : iterator_{std::move(iterator)} {}
+ScanQueryResults::ScanQueryResults(TScanQueryPartIterator iterator)
+    : iterator_{std::move(iterator)}
+{}
 
 std::optional<ScanQueryResults::TScanQueryPart> ScanQueryResults::GetNextResult() {
     auto status = impl::GetFutureValueUnchecked(iterator_.ReadNext());
     if (!status.IsSuccess()) {
-        if (status.EOS()) return std::nullopt;
+        if (status.EOS()) {
+            return std::nullopt;
+        }
         throw YdbResponseError("ReadNext", std::move(status));
     }
 

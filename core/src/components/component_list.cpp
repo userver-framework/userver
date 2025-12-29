@@ -11,7 +11,9 @@ namespace components {
 namespace impl {
 
 ComponentAdderBase::ComponentAdderBase(std::string name, ConfigFileMode config_file_mode)
-    : name_(std::move(name)), config_file_mode_{config_file_mode} {}
+    : name_(std::move(name)),
+      config_file_mode_{config_file_mode}
+{}
 
 ComponentAdderBase::~ComponentAdderBase() = default;
 }  // namespace impl

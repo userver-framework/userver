@@ -54,8 +54,10 @@ const std::string kProgram = "test";
 const std::string kTestProgram = kPath + "/" + kProgram;
 constexpr std::string_view kLogFilePart = "log_closeexec_test_";
 
-std::optional<std::string>
-GetEnvironmentInsideExec(engine::subprocess::ProcessStarter& starter, const std::string& variable_name) {
+std::optional<std::string> GetEnvironmentInsideExec(
+    engine::subprocess::ProcessStarter& starter,
+    const std::string& variable_name
+) {
     auto stdout_file = fs::TempFile::Create(engine::current_task::GetTaskProcessor());
 
     const engine::subprocess::EnvironmentVariablesScope scope{};

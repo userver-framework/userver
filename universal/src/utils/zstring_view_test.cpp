@@ -1,5 +1,9 @@
 #include <userver/utils/zstring_view.hpp>
 
+#ifdef __cpp_concepts
+#include <concepts>
+#endif
+
 #include <type_traits>
 
 #include <gtest/gtest.h>
@@ -14,6 +18,15 @@ static_assert(std::is_trivially_copy_assignable_v<utils::zstring_view>);
 static_assert(!std::is_assignable_v<utils::zstring_view, std::string_view>);
 
 static_assert(std::is_assignable_v<std::string_view, utils::zstring_view>);
+
+#ifdef __cpp_concepts
+template <typename T>
+concept SuffixRemovable = requires(T t) { t.remove_suffix(10); };
+
+static_assert(std::swappable<utils::zstring_view>);
+static_assert(!std::swappable_with<utils::zstring_view, std::string_view>);
+static_assert(!SuffixRemovable<utils::zstring_view>);
+#endif
 
 TEST(ZstringView, UnsafeMake) {
     static constexpr utils::zstring_view kShortString = "short";
@@ -40,4 +53,15 @@ TEST(ZstringView, UnsafeMake) {
     static_assert(kLongString == utils::zstring_view::UnsafeMake(kLongString.c_str(), kLongString.size()));
 }
 
+TEST(ZstringView, Swap) {
+    constexpr utils::zstring_view kShortString = "short";
+    constexpr utils::zstring_view kLongString = "some long long long long long long long long long string";
+
+    auto v1 = kShortString;
+    auto v2 = kLongString;
+    v1.swap(v2);
+
+    EXPECT_EQ(v1, kLongString);
+    EXPECT_EQ(v2, kShortString);
+}
 USERVER_NAMESPACE_END

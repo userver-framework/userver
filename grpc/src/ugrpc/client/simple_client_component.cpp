@@ -6,35 +6,17 @@
 
 #include <userver/ugrpc/client/client_factory_component.hpp>
 
+#ifndef ARCADIA_ROOT
+#include "generated/src/ugrpc/client/simple_client_component.yaml.hpp"  // Y_IGNORE
+#endif
+
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client::impl {
 
 yaml_config::Schema SimpleClientComponentAny::GetStaticConfigSchema() {
-    return yaml_config::MergeSchemas<components::ComponentBase>(R"(
-type: object
-description: Provides a ClientFactory in the component system
-additionalProperties: false
-properties:
-    endpoint:
-        type: string
-        description: URL of the gRPC service
-    client-name:
-        type: string
-        description: name of the gRPC server we talk to, for diagnostics
-    factory-component:
-        type: string
-        description: ClientFactoryComponent name to use for client creation
-    dedicated-channel-counts:
-        type: object
-        description: a map of rpc method names to channel counts. Used for high-load methods
-        defaultDescription: '{}'
-        additionalProperties:
-            type: integer
-            description: number of channels for this method
-            minimum: 1
-        properties: {}
-)");
+    return yaml_config::MergeSchemasFromResource<
+        components::ComponentBase>("src/ugrpc/client/simple_client_component.yaml");
 }
 
 ClientFactory& SimpleClientComponentAny::FindFactory(
@@ -54,6 +36,8 @@ ClientSettings SimpleClientComponentAny::MakeClientSettings(
     ClientSettings client_settings;
     client_settings.client_name = config["client-name"].As<std::string>(config.Name());
     client_settings.endpoint = config["endpoint"].As<std::string>();
+    client_settings
+        .destination_prefix_in_metrics = config["destination-prefix-in-metrics"].As<std::optional<std::string>>();
     client_settings.client_qos = client_qos;
     client_settings.dedicated_methods_config =
         config["dedicated-channel-counts"].As<DedicatedMethodsConfig>(client_settings.dedicated_methods_config);

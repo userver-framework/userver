@@ -82,8 +82,9 @@ public:
         socklen_t addrlen = src_addr_.Capacity();
         const auto ret = ::recvfrom(fd, buf, len, 0, src_addr_.Data(), &addrlen);
         if (ret != -1 && addrlen > src_addr_.Capacity()) {
-            throw IoException() << "Peer address does not fit into AddrStorage, family=" << src_addr_.Data()->sa_family
-                                << ", addrlen=" << addrlen;
+            throw IoException()
+                << "Peer address does not fit into AddrStorage, family=" << src_addr_.Data()->sa_family
+                << ", addrlen=" << addrlen;
         }
         return ret;
     }
@@ -96,7 +97,9 @@ private:
 
 class SendToWrapper {
 public:
-    SendToWrapper(const Sockaddr& dest_addr) : dest_addr_(dest_addr) {}
+    SendToWrapper(const Sockaddr& dest_addr)
+        : dest_addr_(dest_addr)
+    {}
 
     [[nodiscard]] ssize_t operator()(int fd, const void* buf, size_t len) const {
         return ::sendto(
@@ -129,12 +132,18 @@ void FillIoSendData(const IoData* data, struct iovec* dst, std::size_t count) {
 
 }  // namespace
 
-Socket::Socket(AddrDomain domain, SocketType type) : domain_(domain), fd_control_(MakeSocket(domain, type)) {
+Socket::Socket(AddrDomain domain, SocketType type)
+    : domain_(domain),
+      fd_control_(MakeSocket(domain, type))
+{
     SetReadableContextAccessor(fd_control_->Read().TryGetContextAccessor());
     SetWritableContextAccessor(fd_control_->Write().TryGetContextAccessor());
 }
 
-Socket::Socket(int fd, AddrDomain domain) : domain_(domain), fd_control_(impl::FdControl::Adopt(fd)) {
+Socket::Socket(int fd, AddrDomain domain)
+    : domain_(domain),
+      fd_control_(impl::FdControl::Adopt(fd))
+{
     SetReadableContextAccessor(fd_control_->Read().TryGetContextAccessor());
     SetWritableContextAccessor(fd_control_->Write().TryGetContextAccessor());
 // MAC_COMPAT: no socket domain access on mac
@@ -206,23 +215,22 @@ void Socket::Bind(const Sockaddr& addr) {
 #ifdef SO_REUSEPORT
         SetOption(SOL_SOCKET, SO_REUSEPORT, 1);
 #else
-        LOG_ERROR() << "SO_REUSEPORT is not defined, you may experience problems "
-                       "with multithreaded listeners";
+        LOG_ERROR()
+            << "SO_REUSEPORT is not defined, you may experience problems "
+               "with multithreaded listeners";
 #endif
     }
 
-    utils::CheckSyscallCustomException<IoSystemError>(
-        ::bind(Fd(), addr.Data(), addr.Size()), "binding a socket, fd={}, addr={}", Fd(), addr
-    );
+    utils::CheckSyscallCustomException<
+        IoSystemError>(::bind(Fd(), addr.Data(), addr.Size()), "binding a socket, fd={}, addr={}", Fd(), addr);
 }
 
 // NOLINTNEXTLINE(readability-make-member-function-const)
 void Socket::Listen(int backlog) {
     UASSERT(IsValid());
 
-    utils::CheckSyscallCustomException<IoSystemError>(
-        ::listen(Fd(), backlog), "listening on a socket, fd={}, backlog={}", Fd(), backlog
-    );
+    utils::CheckSyscallCustomException<
+        IoSystemError>(::listen(Fd(), backlog), "listening on a socket, fd={}, backlog={}", Fd(), backlog);
 }
 
 bool Socket::WaitReadable(Deadline deadline) {
@@ -242,9 +250,8 @@ size_t Socket::RecvSome(void* buf, size_t len, Deadline deadline) {
     auto& dir = fd_control_->Read();
     dir.ResetReady();
     impl::Direction::SingleUserGuard guard(dir);
-    return dir.PerformIo(
-        guard, &RecvWrapper, buf, len, impl::TransferMode::kOnce, deadline, "RecvSome from ", peername_
-    );
+    return dir
+        .PerformIo(guard, &RecvWrapper, buf, len, impl::TransferMode::kOnce, deadline, "RecvSome from ", peername_);
 }
 
 size_t Socket::RecvAll(void* buf, size_t len, Deadline deadline) {
@@ -254,9 +261,8 @@ size_t Socket::RecvAll(void* buf, size_t len, Deadline deadline) {
     auto& dir = fd_control_->Read();
     dir.ResetReady();
     impl::Direction::SingleUserGuard guard(dir);
-    return dir.PerformIo(
-        guard, &RecvWrapper, buf, len, impl::TransferMode::kWhole, deadline, "RecvAll from ", peername_
-    );
+    return dir
+        .PerformIo(guard, &RecvWrapper, buf, len, impl::TransferMode::kWhole, deadline, "RecvAll from ", peername_);
 }
 
 std::optional<size_t> Socket::RecvNoblock(void* buf, size_t len) {
@@ -267,9 +273,9 @@ std::optional<size_t> Socket::RecvNoblock(void* buf, size_t len) {
     dir.ResetReady();
     const impl::Direction::SingleUserGuard guard(dir);
     const auto bytes_read = RecvWrapper(fd_control_->Fd(), buf, len);
-    if (bytes_read >= 0)
+    if (bytes_read >= 0) {
         return {bytes_read};
-    else if (
+    } else if (
 #if EAGAIN != EWOULDBLOCK
         EWOULDBLOCK == errno
 #else

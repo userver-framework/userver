@@ -43,10 +43,11 @@ struct HasFixedDimensionsImpl {
 }  // namespace detail
 
 template <typename T>
-struct HasFixedDimensions : std::conditional_t<
-                                kIsFixedSizeContainer<T>,
-                                detail::HasFixedDimensionsImpl<T>,
-                                BoolConstant<!kIsCompatibleContainer<T>>>::type {};
+struct HasFixedDimensions
+    : std::conditional_t<
+          kIsFixedSizeContainer<T>,
+          detail::HasFixedDimensionsImpl<T>,
+          BoolConstant<!kIsCompatibleContainer<T>>>::type {};
 
 template <typename Container>
 inline constexpr bool kHasFixedDimensions = HasFixedDimensions<Container>::value;
@@ -94,10 +95,11 @@ constexpr std::array<T, sizeof...(Values)> MakeArray(const std::integer_sequence
 }
 
 template <typename T>
-struct FixedDimensions : std::conditional_t<
-                             kIsFixedSizeContainer<T>,
-                             detail::FixedDimensionsImpl<T>,
-                             detail::FixedDimensionsNonContainer<T>> {};
+struct FixedDimensions
+    : std::conditional_t<
+          kIsFixedSizeContainer<T>,
+          detail::FixedDimensionsImpl<T>,
+          detail::FixedDimensionsNonContainer<T>> {};
 
 }  // namespace traits
 
@@ -474,7 +476,10 @@ public:
     using const_iterator_type = typename Container::const_iterator;
 
     ContainerChunk(const_iterator_type begin, std::size_t size)
-        : begin_{begin}, end_{std::next(begin, size)}, size_{size} {}
+        : begin_{begin},
+          end_{std::next(begin, size)},
+          size_{size}
+    {}
 
     std::size_t size() const { return size_; }
     bool empty() const { return begin_ == end_; }
@@ -509,7 +514,8 @@ public:
             : container_{container},
               chunk_size_{chunk_elements},
               tail_size_{static_cast<size_t>(std::distance(current, container_.end()))},
-              current_{current} {}
+              current_{current}
+        {}
 
         bool operator==(const ChunkIterator& rhs) const { return current_ == rhs.current_; }
 
@@ -542,7 +548,9 @@ public:
     };
 
     ContainerSplitter(const Container& container, std::size_t chunk_elements)
-        : container_{container}, chunk_size_{chunk_elements} {}
+        : container_{container},
+          chunk_size_{chunk_elements}
+    {}
 
     std::size_t size() const {
         auto sz = container_.size();
@@ -636,7 +644,9 @@ template <typename Container>
 class ContainerByColumnsSplitter final {
 public:
     ContainerByColumnsSplitter(const Container& container, std::size_t chunk_elements)
-        : container_{container}, chunk_elements_{chunk_elements} {}
+        : container_{container},
+          chunk_elements_{chunk_elements}
+    {}
 
     template <typename Fn>
     void Perform(const Fn& fn) {
@@ -651,7 +661,9 @@ private:
 template <typename Container>
 class ContainerByColumnsDecomposer final {
 public:
-    ContainerByColumnsDecomposer(const Container& container) : container_(container) {}
+    ContainerByColumnsDecomposer(const Container& container)
+        : container_(container)
+    {}
 
     template <typename Fn>
     auto Perform(const Fn& fn) {
@@ -679,8 +691,10 @@ detail::ContainerSplitter<Container> SplitContainer(const Container& container, 
 }
 
 template <typename Container>
-detail::ContainerByColumnsSplitter<Container>
-SplitContainerByColumns(const Container& container, std::size_t chunk_elements) {
+detail::ContainerByColumnsSplitter<Container> SplitContainerByColumns(
+    const Container& container,
+    std::size_t chunk_elements
+) {
     return {container, chunk_elements};
 }
 

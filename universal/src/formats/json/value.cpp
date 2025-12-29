@@ -47,7 +47,8 @@ template <typename T>
 auto CheckedNotTooNegative(T x, const Value& value) {
     if (x <= -1) {
         throw ConversionException(
-            "Cannot convert to unsigned value from negative value = " + std::to_string(x), value.GetPath()
+            "Cannot convert to unsigned value from negative value = " + std::to_string(x),
+            value.GetPath()
         );
     }
     return x;
@@ -85,7 +86,8 @@ impl::Value MakeJsonStringViewValue(std::string_view view) { return impl::Value(
 Value::Value()
     : holder_{impl::VersionedValuePtr::Create(::rapidjson::Type::kNullType)},
       root_ptr_for_path_{holder_.Get()},
-      value_ptr_{holder_.Get()} {}
+      value_ptr_{holder_.Get()}
+{}
 
 Value::Value(Value&& other) noexcept
     : holder_{std::move(other.holder_)},
@@ -119,7 +121,8 @@ Value::Value(
       root_ptr_for_path_(const_cast<impl::Value*>(root_ptr_for_path)),
       // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
       value_ptr_(const_cast<impl::Value*>(value_ptr)),
-      depth_(depth) {}
+      depth_(depth)
+{}
 
 Value::Value(
     EmplaceEnabler,
@@ -127,7 +130,10 @@ Value::Value(
     impl::Value* root_ptr_for_path,
     LazyDetachedPath&& lazy_detached_path
 )
-    : holder_(root), root_ptr_for_path_(root_ptr_for_path), lazy_detached_path_(std::move(lazy_detached_path)) {}
+    : holder_(root),
+      root_ptr_for_path_(root_ptr_for_path),
+      lazy_detached_path_(std::move(lazy_detached_path))
+{}
 
 Value Value::operator[](std::string_view key) const {
     if (!IsMissing()) {
@@ -203,9 +209,13 @@ bool Value::IsNull() const noexcept { return !IsMissing() && (!holder_ || GetNat
 bool Value::IsBool() const noexcept { return !IsMissing() && GetNative().IsBool(); }
 
 bool Value::IsInt() const noexcept {
-    if (IsMissing()) return false;
+    if (IsMissing()) {
+        return false;
+    }
     const auto& native = GetNative();
-    if (native.IsInt()) return true;
+    if (native.IsInt()) {
+        return true;
+    }
     if (native.IsDouble()) {
         return IsNonOverflowingIntegral<int>(native.GetDouble());
     }
@@ -213,9 +223,13 @@ bool Value::IsInt() const noexcept {
 }
 
 bool Value::IsInt64() const noexcept {
-    if (IsMissing()) return false;
+    if (IsMissing()) {
+        return false;
+    }
     const auto& native = GetNative();
-    if (native.IsInt64()) return true;
+    if (native.IsInt64()) {
+        return true;
+    }
     if (native.IsDouble()) {
         return IsNonOverflowingIntegral<int64_t>(native.GetDouble());
     }
@@ -223,9 +237,13 @@ bool Value::IsInt64() const noexcept {
 }
 
 bool Value::IsUInt() const noexcept {
-    if (IsMissing()) return false;
+    if (IsMissing()) {
+        return false;
+    }
     const auto& native = GetNative();
-    if (native.IsUint()) return true;
+    if (native.IsUint()) {
+        return true;
+    }
     if (native.IsDouble()) {
         return IsNonOverflowingIntegral<unsigned int>(native.GetDouble());
     }
@@ -233,9 +251,13 @@ bool Value::IsUInt() const noexcept {
 }
 
 bool Value::IsUInt64() const noexcept {
-    if (IsMissing()) return false;
+    if (IsMissing()) {
+        return false;
+    }
     const auto& native = GetNative();
-    if (native.IsUint64()) return true;
+    if (native.IsUint64()) {
+        return true;
+    }
     if (native.IsDouble()) {
         return IsNonOverflowingIntegral<uint64_t>(native.GetDouble());
     }
@@ -244,6 +266,8 @@ bool Value::IsUInt64() const noexcept {
 
 bool Value::IsDouble() const noexcept { return !IsMissing() && GetNative().IsNumber(); }
 
+bool Value::IsNumber() const noexcept { return !IsMissing() && GetNative().IsNumber(); }
+
 bool Value::IsString() const noexcept { return !IsMissing() && GetNative().IsString(); }
 bool Value::IsArray() const noexcept { return !IsMissing() && GetNative().IsArray(); }
 bool Value::IsObject() const noexcept { return !IsMissing() && GetNative().IsObject(); }
@@ -251,116 +275,198 @@ bool Value::IsObject() const noexcept { return !IsMissing() && GetNative().IsObj
 bool Parse(const Value& value, parse::To<bool>) {
     value.CheckNotMissing();
     const auto& native = value.GetNative();
-    if (native.IsTrue()) return true;
-    if (native.IsFalse()) return false;
-    throw TypeMismatchException(value.GetExtendedType(), impl::booleanValue, value.GetPath());
+    if (native.IsTrue()) {
+        return true;
+    }
+    if (native.IsFalse()) {
+        return false;
+    }
+    throw TypeMismatchException(value.GetExtendedType(), impl::kBooleanValue, value.GetPath());
 }
 
 double Parse(const Value& value, parse::To<double>) {
     value.CheckNotMissing();
     const auto& native = value.GetNative();
-    if (native.IsDouble()) return native.GetDouble();
-    if (native.IsInt64()) return static_cast<double>(native.GetInt64());
-    if (native.IsUint64()) return static_cast<double>(native.GetUint64());
-    throw TypeMismatchException(value.GetExtendedType(), impl::realValue, value.GetPath());
+    if (native.IsDouble()) {
+        return native.GetDouble();
+    }
+    if (native.IsInt64()) {
+        return static_cast<double>(native.GetInt64());
+    }
+    if (native.IsUint64()) {
+        return static_cast<double>(native.GetUint64());
+    }
+    throw TypeMismatchException(value.GetExtendedType(), impl::kRealValue, value.GetPath());
 }
 
 std::int64_t Parse(const Value& value, parse::To<std::int64_t>) {
     value.CheckNotMissing();
     const auto& native = value.GetNative();
-    if (native.IsInt64()) return native.GetInt64();
+    if (native.IsInt64()) {
+        return native.GetInt64();
+    }
     if (native.IsDouble()) {
         const double val = native.GetDouble();
-        if (IsNonOverflowingIntegral<int64_t>(val)) return static_cast<int64_t>(val);
+        if (IsNonOverflowingIntegral<int64_t>(val)) {
+            return static_cast<int64_t>(val);
+        }
     }
-    throw TypeMismatchException(value.GetExtendedType(), impl::intValue, value.GetPath());
+    throw TypeMismatchException(value.GetExtendedType(), impl::kIntValue, value.GetPath());
 }
 
 std::uint64_t Parse(const Value& value, parse::To<std::uint64_t>) {
     value.CheckNotMissing();
     const auto& native = value.GetNative();
-    if (native.IsUint64()) return native.GetUint64();
+    if (native.IsUint64()) {
+        return native.GetUint64();
+    }
     if (native.IsDouble()) {
         const double val = native.GetDouble();
-        if (IsNonOverflowingIntegral<uint64_t>(val)) return static_cast<uint64_t>(val);
+        if (IsNonOverflowingIntegral<uint64_t>(val)) {
+            return static_cast<uint64_t>(val);
+        }
     }
-    throw TypeMismatchException(value.GetExtendedType(), impl::uintValue, value.GetPath());
+    throw TypeMismatchException(value.GetExtendedType(), impl::kUintValue, value.GetPath());
 }
 
 std::string Parse(const Value& value, parse::To<std::string>) {
     value.CheckNotMissing();
     const auto& native = value.GetNative();
-    if (native.IsString()) return {native.GetString(), native.GetStringLength()};
-    throw TypeMismatchException(value.GetExtendedType(), impl::stringValue, value.GetPath());
+    if (native.IsString()) {
+        return {native.GetString(), native.GetStringLength()};
+    }
+    throw TypeMismatchException(value.GetExtendedType(), impl::kStringValue, value.GetPath());
 }
 
 template <>
 bool Value::ConvertTo<bool>() const {
-    if (IsMissing()) return false;
+    if (IsMissing()) {
+        return false;
+    }
     const auto& native = GetNative();
-    if (native.IsNull() || native.IsFalse()) return false;
-    if (native.IsTrue()) return true;
-    if (native.IsInt64()) return GetNative().GetInt64() != 0;
-    if (native.IsUint64()) return GetNative().GetUint64() != 0;
-    if (native.IsDouble()) return std::fabs(native.GetDouble()) > std::numeric_limits<double>::epsilon();
-    if (native.IsString()) return GetNative().GetStringLength() != 0;
-    if (native.IsArray()) return native.Size() != 0;
-    if (native.IsObject()) return native.MemberCount() != 0;
+    if (native.IsNull() || native.IsFalse()) {
+        return false;
+    }
+    if (native.IsTrue()) {
+        return true;
+    }
+    if (native.IsInt64()) {
+        return GetNative().GetInt64() != 0;
+    }
+    if (native.IsUint64()) {
+        return GetNative().GetUint64() != 0;
+    }
+    if (native.IsDouble()) {
+        return std::fabs(native.GetDouble()) > std::numeric_limits<double>::epsilon();
+    }
+    if (native.IsString()) {
+        return GetNative().GetStringLength() != 0;
+    }
+    if (native.IsArray()) {
+        return native.Size() != 0;
+    }
+    if (native.IsObject()) {
+        return native.MemberCount() != 0;
+    }
 
-    throw TypeMismatchException(GetExtendedType(), impl::booleanValue, GetPath());
+    throw TypeMismatchException(GetExtendedType(), impl::kBooleanValue, GetPath());
 }
 
 template <>
 int64_t Value::ConvertTo<int64_t>() const {
-    if (IsMissing()) return false;
+    if (IsMissing()) {
+        return false;
+    }
     const auto& native = GetNative();
-    if (native.IsNull() || native.IsFalse()) return 0;
-    if (native.IsTrue()) return 1;
-    if (native.IsInt64()) return native.GetInt64();
-    if (native.IsUint64()) return native.GetUint64();
-    if (native.IsDouble()) return static_cast<int64_t>(native.GetDouble());
+    if (native.IsNull() || native.IsFalse()) {
+        return 0;
+    }
+    if (native.IsTrue()) {
+        return 1;
+    }
+    if (native.IsInt64()) {
+        return native.GetInt64();
+    }
+    if (native.IsUint64()) {
+        return native.GetUint64();
+    }
+    if (native.IsDouble()) {
+        return static_cast<int64_t>(native.GetDouble());
+    }
 
-    throw TypeMismatchException(GetExtendedType(), impl::intValue, GetPath());
+    throw TypeMismatchException(GetExtendedType(), impl::kIntValue, GetPath());
 }
 
 template <>
 uint64_t Value::ConvertTo<uint64_t>() const {
-    if (IsMissing()) return false;
+    if (IsMissing()) {
+        return false;
+    }
     const auto& native = GetNative();
-    if (native.IsNull() || native.IsFalse()) return 0;
-    if (native.IsTrue()) return 1;
-    if (native.IsInt64()) return static_cast<uint64_t>(CheckedNotTooNegative(native.GetInt64(), *this));
-    if (native.IsUint64()) return native.GetUint64();
-    if (native.IsDouble()) return static_cast<uint64_t>(CheckedNotTooNegative(native.GetDouble(), *this));
+    if (native.IsNull() || native.IsFalse()) {
+        return 0;
+    }
+    if (native.IsTrue()) {
+        return 1;
+    }
+    if (native.IsInt64()) {
+        return static_cast<uint64_t>(CheckedNotTooNegative(native.GetInt64(), *this));
+    }
+    if (native.IsUint64()) {
+        return native.GetUint64();
+    }
+    if (native.IsDouble()) {
+        return static_cast<uint64_t>(CheckedNotTooNegative(native.GetDouble(), *this));
+    }
 
-    throw TypeMismatchException(GetExtendedType(), impl::uintValue, GetPath());
+    throw TypeMismatchException(GetExtendedType(), impl::kUintValue, GetPath());
 }
 
 template <>
 double Value::ConvertTo<double>() const {
-    if (!IsMissing() && IsDouble()) return As<double>();
+    if (!IsMissing() && IsDouble()) {
+        return As<double>();
+    }
     return ConvertTo<int64_t>();
 }
 
 template <>
 std::string Value::ConvertTo<std::string>() const {
-    if (IsMissing()) return {};
+    if (IsMissing()) {
+        return {};
+    }
     const auto& native = GetNative();
-    if (native.IsNull()) return {};
-    if (native.IsString()) return As<std::string>();
+    if (native.IsNull()) {
+        return {};
+    }
+    if (native.IsString()) {
+        return As<std::string>();
+    }
 
-    if (native.IsTrue()) return "true";
-    if (native.IsFalse()) return "false";
+    if (native.IsTrue()) {
+        return "true";
+    }
+    if (native.IsFalse()) {
+        return "false";
+    }
 
-    if (native.IsInt64()) return std::to_string(native.GetInt64());
-    if (native.IsUint64()) return std::to_string(native.GetUint64());
-    if (native.IsDouble()) return std::to_string(native.GetDouble());
+    if (native.IsInt64()) {
+        return std::to_string(native.GetInt64());
+    }
+    if (native.IsUint64()) {
+        return std::to_string(native.GetUint64());
+    }
+    if (native.IsDouble()) {
+        return std::to_string(native.GetDouble());
+    }
 
-    throw TypeMismatchException(GetExtendedType(), impl::stringValue, GetPath());
+    throw TypeMismatchException(GetExtendedType(), impl::kStringValue, GetPath());
 }
 
 bool Value::HasMember(std::string_view key) const {
-    if (IsMissing()) return false;
+    if (IsMissing()) {
+        return false;
+    }
     CheckObjectOrNull();
     return IsObject() && GetNative().HasMember(impl::Value(::rapidjson::StringRef(key.data(), key.size())));
 }
@@ -420,31 +526,31 @@ void Value::CheckNotMissing() const {
 
 void Value::CheckArrayOrNull() const {
     if (!IsNull() && !IsArray()) {
-        throw TypeMismatchException(GetExtendedType(), impl::arrayValue, GetPath());
+        throw TypeMismatchException(GetExtendedType(), impl::kArrayValue, GetPath());
     }
 }
 
 void Value::CheckObjectOrNull() const {
     if (!IsNull() && !IsObject()) {
-        throw TypeMismatchException(GetExtendedType(), impl::objectValue, GetPath());
+        throw TypeMismatchException(GetExtendedType(), impl::kObjectValue, GetPath());
     }
 }
 
 void Value::CheckArray() const {
     if (!IsArray()) {
-        throw TypeMismatchException(GetExtendedType(), impl::arrayValue, GetPath());
+        throw TypeMismatchException(GetExtendedType(), impl::kArrayValue, GetPath());
     }
 }
 
 void Value::CheckObject() const {
     if (!IsObject()) {
-        throw TypeMismatchException(GetExtendedType(), impl::objectValue, GetPath());
+        throw TypeMismatchException(GetExtendedType(), impl::kObjectValue, GetPath());
     }
 }
 
 void Value::CheckObjectOrArrayOrNull() const {
     if (!IsNull() && !IsObject() && !IsArray()) {
-        throw TypeMismatchException(GetExtendedType(), impl::objectValue, GetPath());
+        throw TypeMismatchException(GetExtendedType(), impl::kObjectValue, GetPath());
     }
 }
 
@@ -458,7 +564,10 @@ void Value::CheckInBounds(std::size_t index) const {
 Value::LazyDetachedPath::LazyDetachedPath() noexcept = default;
 
 Value::LazyDetachedPath::LazyDetachedPath(impl::Value* parent_value_ptr, int parent_depth, std::string_view key)
-    : parent_value_ptr_{parent_value_ptr}, parent_depth_{parent_depth}, virtual_path_{key} {}
+    : parent_value_ptr_{parent_value_ptr},
+      parent_depth_{parent_depth},
+      virtual_path_{key}
+{}
 
 Value::LazyDetachedPath::LazyDetachedPath(const LazyDetachedPath&) = default;
 

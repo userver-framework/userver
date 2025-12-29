@@ -132,13 +132,17 @@ std::enable_if_t<kIsReadable<T> && kIsReadable<U>, std::pair<T, U>> Read(Reader&
 template <typename T>
 std::enable_if_t<kIsWritable<T>> Write(Writer& writer, const std::optional<T>& value) {
     writer.Write(value.has_value());
-    if (value) writer.Write(*value);
+    if (value) {
+        writer.Write(*value);
+    }
 }
 
 /// @brief `std::optional` deserialization support
 template <typename T>
 std::enable_if_t<kIsReadable<T>, std::optional<T>> Read(Reader& reader, To<std::optional<T>>) {
-    if (!reader.Read<bool>()) return std::nullopt;
+    if (!reader.Read<bool>()) {
+        return std::nullopt;
+    }
     return impl::ReadLazyPrvalue<T>(reader);
 }
 
@@ -184,13 +188,17 @@ Read(Reader& reader, To<utils::StrongTypedef<Tag, T, Ops>>) {
 template <typename T>
 std::enable_if_t<kIsWritable<T>> Write(Writer& writer, const std::unique_ptr<T>& ptr) {
     writer.Write(static_cast<bool>(ptr));
-    if (ptr) writer.Write(*ptr);
+    if (ptr) {
+        writer.Write(*ptr);
+    }
 }
 
 /// @brief `std::unique_ptr` deserialization support
 template <typename T>
 std::enable_if_t<kIsReadable<T>, std::unique_ptr<T>> Read(Reader& reader, To<std::unique_ptr<T>>) {
-    if (!reader.Read<bool>()) return {};
+    if (!reader.Read<bool>()) {
+        return {};
+    }
     return std::make_unique<T>(impl::ReadLazyPrvalue<T>(reader));
 }
 
@@ -200,7 +208,9 @@ std::enable_if_t<kIsReadable<T>, std::unique_ptr<T>> Read(Reader& reader, To<std
 template <typename T>
 std::enable_if_t<kIsWritable<T>> Write(Writer& writer, const std::shared_ptr<T>& ptr) {
     writer.Write(static_cast<bool>(ptr));
-    if (ptr) writer.Write(*ptr);
+    if (ptr) {
+        writer.Write(*ptr);
+    }
 }
 
 /// @brief `std::shared_ptr` deserialization support
@@ -208,7 +218,9 @@ std::enable_if_t<kIsWritable<T>> Write(Writer& writer, const std::shared_ptr<T>&
 /// the same object, they will point to its distinct copies after loading a dump
 template <typename T>
 std::enable_if_t<kIsReadable<T>, std::shared_ptr<T>> Read(Reader& reader, To<std::shared_ptr<T>>) {
-    if (!reader.Read<bool>()) return {};
+    if (!reader.Read<bool>()) {
+        return {};
+    }
     return std::make_shared<T>(impl::ReadLazyPrvalue<T>(reader));
 }
 

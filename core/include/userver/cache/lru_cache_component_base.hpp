@@ -24,7 +24,7 @@ namespace cache {
 
 namespace impl {
 
-utils::statistics::Entry RegisterOnStatisticsStorage(
+void RegisterOnStatisticsStorage(
     const components::ComponentContext& context,
     const std::string& name,
     std::function<void(utils::statistics::Writer&)> func
@@ -37,8 +37,6 @@ bool IsDumpSupportEnabled(const components::ComponentConfig& config);
 yaml_config::Schema GetLruCacheComponentBaseSchema();
 
 }  // namespace impl
-
-// clang-format off
 
 /// @ingroup userver_components userver_base_classes
 ///
@@ -53,14 +51,11 @@ yaml_config::Schema GetLruCacheComponentBaseSchema();
 /// ## LruCacheComponent Dynamic config
 /// * @ref USERVER_LRU_CACHES
 ///
-/// ## Static options:
-/// Name | Description | Default value
-/// ---- | ----------- | -------------
-/// size | max amount of items to store in cache | --
-/// ways | number of ways for associative cache | --
-/// lifetime | TTL for cache entries (0 is unlimited) | 0
-/// background-update | enables asynchronous updates for expiring values | false
-/// config-settings | enables dynamic reconfiguration with CacheConfigSet | true
+/// ## Static options of cache::LruCacheComponent :
+/// @include{doc} scripts/docs/en/components_schema/core/src/cache/lru_cache_component_base.md
+///
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
 ///
 /// ## Example usage:
 ///
@@ -71,8 +66,6 @@ yaml_config::Schema GetLruCacheComponentBaseSchema();
 ///
 /// ## Example config:
 /// @snippet cache/lru_cache_component_base_test.cpp  Sample lru cache component config
-
-// clang-format on
 template <typename Key, typename Value, typename Hash = std::hash<Key>, typename Equal = std::equal_to<Key>>
 // NOLINTNEXTLINE(fuchsia-multiple-inheritance)
 class LruCacheComponent : public components::ComponentBase, private dump::DumpableEntity {
@@ -114,20 +107,21 @@ private:
 
     // Subscriptions must be the last fields.
     concurrent::AsyncEventSubscriberScope config_subscription_;
-    utils::statistics::Entry statistics_holder_;
     testsuite::CacheResetRegistration reset_registration_;
     // See the comment above before adding a new field.
 };
 
 template <typename Key, typename Value, typename Hash, typename Equal>
-LruCacheComponent<Key, Value, Hash, Equal>::LruCacheComponent(
-    const components::ComponentConfig& config,
-    const components::ComponentContext& context
-)
+LruCacheComponent<
+    Key,
+    Value,
+    Hash,
+    Equal>::LruCacheComponent(const components::ComponentConfig& config, const components::ComponentContext& context)
     : ComponentBase(config, context),
       name_(components::GetCurrentComponentName(context)),
       static_config_(config),
-      cache_(std::make_shared<Cache>(static_config_.ways, static_config_.GetWaySize())) {
+      cache_(std::make_shared<Cache>(static_config_.ways, static_config_.GetWaySize()))
+{
     if (impl::IsDumpSupportEnabled(config)) {
         dumper_ = std::make_shared<dump::Dumper>(config, context, static_cast<dump::DumpableEntity&>(*this));
         cache_->SetDumper(dumper_);
@@ -138,20 +132,19 @@ LruCacheComponent<Key, Value, Hash, Equal>::LruCacheComponent(
     cache_->SetBackgroundUpdate(static_config_.config.background_update);
 
     if (static_config_.use_dynamic_config) {
-        LOG_INFO() << "Dynamic LRU cache config is enabled, subscribing on "
-                      "dynamic-config updates, cache="
-                   << name_;
+        LOG_INFO()
+            << "Dynamic LRU cache config is enabled, subscribing on "
+               "dynamic-config updates, cache="
+            << name_;
 
-        config_subscription_ = impl::FindDynamicConfigSource(context).UpdateAndListen(
-            this, "cache." + name_, &LruCacheComponent::OnConfigUpdate
-        );
+        config_subscription_ =
+            impl::FindDynamicConfigSource(context)
+                .UpdateAndListen(this, "cache." + name_, &LruCacheComponent::OnConfigUpdate);
     } else {
         LOG_INFO() << "Dynamic LRU cache config is disabled, cache=" << name_;
     }
 
-    statistics_holder_ = impl::RegisterOnStatisticsStorage(context, name_, [this](utils::statistics::Writer& writer) {
-        writer = *cache_;
-    });
+    impl::RegisterOnStatisticsStorage(context, name_, [this](utils::statistics::Writer& writer) { writer = *cache_; });
 
     reset_registration_ = testsuite::RegisterCache(context, this, &LruCacheComponent::DropCache);
 }
@@ -159,7 +152,6 @@ LruCacheComponent<Key, Value, Hash, Equal>::LruCacheComponent(
 template <typename Key, typename Value, typename Hash, typename Equal>
 LruCacheComponent<Key, Value, Hash, Equal>::~LruCacheComponent() {
     reset_registration_.Unregister();
-    statistics_holder_.Unregister();
     config_subscription_.Unsubscribe();
 
     if (dumper_) {
@@ -168,8 +160,11 @@ LruCacheComponent<Key, Value, Hash, Equal>::~LruCacheComponent() {
 }
 
 template <typename Key, typename Value, typename Hash, typename Equal>
-typename LruCacheComponent<Key, Value, Hash, Equal>::CacheWrapper LruCacheComponent<Key, Value, Hash, Equal>::GetCache(
-) {
+typename LruCacheComponent<Key, Value, Hash, Equal>::CacheWrapper LruCacheComponent<
+    Key,
+    Value,
+    Hash,
+    Equal>::GetCache() {
     return CacheWrapper(cache_, [this](const Key& key) { return GetByKey(key); });
 }
 

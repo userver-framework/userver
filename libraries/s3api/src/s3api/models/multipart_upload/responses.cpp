@@ -14,12 +14,17 @@ namespace {
 
 pugi::xml_node GetRequiredChildNode(const pugi::xml_document& doc, const char* child_name) {
     auto child = doc.child(child_name);
-    if (!child) throw ResponseParsingError(fmt::format("document is missing root child node '{}'", child_name));
+    if (!child) {
+        throw ResponseParsingError(fmt::format("document is missing root child node '{}'", child_name));
+    }
     return child;
 }
 
-std::optional<std::string_view>
-ExtractChildValue(const pugi::xml_node& node, const char* child_name, bool is_empty_allowed = true) {
+std::optional<std::string_view> ExtractChildValue(
+    const pugi::xml_node& node,
+    const char* child_name,
+    bool is_empty_allowed = true
+) {
     const auto child = node.child(child_name);
     auto result = (!child.empty() ? std::make_optional<std::string_view>(child.child_value()) : std::nullopt);
     if (!is_empty_allowed && result && result->empty()) {
@@ -39,15 +44,22 @@ std::string_view ExtractRequiredChildValue(const pugi::xml_node& node, const cha
 }
 
 bool ToBoolean(const std::optional<std::string_view>& maybe_str) {
-    if (maybe_str.value_or("false") != "true") return false;
+    if (maybe_str.value_or("false") != "true") {
+        return false;
+    }
     return true;
 }
 
 template <typename T>
-std::enable_if_t<std::is_integral_v<T>, std::optional<T>>
-ExtractChildValueAsIntegral(const pugi::xml_node& node, const char* child_name) try {
+std::enable_if_t<std::is_integral_v<T>, std::optional<T>> ExtractChildValueAsIntegral(
+    const pugi::xml_node& node,
+    const char* child_name
+) try
+{
     const auto maybe_str = ExtractChildValue(node, child_name, false);
-    if (!maybe_str) return std::nullopt;
+    if (!maybe_str) {
+        return std::nullopt;
+    }
 
     return USERVER_NAMESPACE::utils::FromString<T>(*maybe_str);
 
@@ -58,8 +70,10 @@ ExtractChildValueAsIntegral(const pugi::xml_node& node, const char* child_name) 
 }
 
 template <typename T>
-std::enable_if_t<std::is_integral_v<T>, T>
-ExtractRequiredChildValueAsIntegral(const pugi::xml_node& node, const char* child_name) {
+std::enable_if_t<std::is_integral_v<T>, T> ExtractRequiredChildValueAsIntegral(
+    const pugi::xml_node& node,
+    const char* child_name
+) {
     const auto maybe_value = ExtractChildValueAsIntegral<T>(node, child_name);
     if (!maybe_value) {
         throw ResponseParsingError(
@@ -78,8 +92,8 @@ constexpr auto kExtractChildValueAsULong = ExtractChildValueAsIntegral<unsigned 
 InitiateMultipartUploadResult InitiateMultipartUploadResult::Parse(utils::zstring_view http_s3_respose_body) {
     InitiateMultipartUploadResult result;
     pugi::xml_document xml;
-    const pugi::xml_parse_result parse_result =
-        xml.load_string(http_s3_respose_body.c_str(), pugi::parse_default | pugi::parse_escapes);
+    const pugi::xml_parse_result
+        parse_result = xml.load_string(http_s3_respose_body.c_str(), pugi::parse_default | pugi::parse_escapes);
     if (parse_result.status != pugi::status_ok) {
         throw ResponseParsingError(parse_result.description());
     }
@@ -93,8 +107,8 @@ InitiateMultipartUploadResult InitiateMultipartUploadResult::Parse(utils::zstrin
 CompleteMultipartUploadResult CompleteMultipartUploadResult::Parse(utils::zstring_view http_s3_respose_body) {
     CompleteMultipartUploadResult result;
     pugi::xml_document xml;
-    const pugi::xml_parse_result parse_result =
-        xml.load_string(http_s3_respose_body.c_str(), pugi::parse_default | pugi::parse_escapes);
+    const pugi::xml_parse_result
+        parse_result = xml.load_string(http_s3_respose_body.c_str(), pugi::parse_default | pugi::parse_escapes);
     if (parse_result.status != pugi::status_ok) {
         throw ResponseParsingError(parse_result.description());
     }
@@ -108,8 +122,8 @@ CompleteMultipartUploadResult CompleteMultipartUploadResult::Parse(utils::zstrin
 ListMultipartUploadsResult ListMultipartUploadsResult::Parse(utils::zstring_view http_s3_respose_body) {
     ListMultipartUploadsResult result;
     pugi::xml_document xml;
-    const pugi::xml_parse_result parse_result =
-        xml.load_string(http_s3_respose_body.c_str(), pugi::parse_default | pugi::parse_escapes);
+    const pugi::xml_parse_result
+        parse_result = xml.load_string(http_s3_respose_body.c_str(), pugi::parse_default | pugi::parse_escapes);
     if (parse_result.status != pugi::status_ok) {
         throw ResponseParsingError(parse_result.description());
     }
@@ -147,8 +161,8 @@ ListMultipartUploadsResult ListMultipartUploadsResult::Parse(utils::zstring_view
 ListPartsResult ListPartsResult::Parse(utils::zstring_view http_s3_respose_body) {
     ListPartsResult result;
     pugi::xml_document xml;
-    const pugi::xml_parse_result parse_result =
-        xml.load_string(http_s3_respose_body.c_str(), pugi::parse_default | pugi::parse_escapes);
+    const pugi::xml_parse_result
+        parse_result = xml.load_string(http_s3_respose_body.c_str(), pugi::parse_default | pugi::parse_escapes);
     if (parse_result.status != pugi::status_ok) {
         throw ResponseParsingError(parse_result.description());
     }

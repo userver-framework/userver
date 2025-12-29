@@ -5,6 +5,10 @@
 #include <userver/tracing/tracer.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
+#ifndef ARCADIA_ROOT
+#include "generated/src/tracing/component.yaml.hpp"  // Y_IGNORE
+#endif
+
 USERVER_NAMESPACE_BEGIN
 
 namespace components {
@@ -39,20 +43,7 @@ Tracer::Tracer(const ComponentConfig& config, const ComponentContext& context) {
 }
 
 yaml_config::Schema Tracer::GetStaticConfigSchema() {
-    return yaml_config::MergeSchemas<RawComponentBase>(R"(
-type: object
-description: Component that initializes the request tracing facilities.
-additionalProperties: false
-properties:
-    service-name:
-        type: string
-        description: name of the service to write in traces
-        defaultDescription: ''
-    tracer:
-        type: string
-        description: type of the tracer to trace, currently supported only 'native'
-        defaultDescription: 'native'
-)");
+    return yaml_config::MergeSchemasFromResource<RawComponentBase>("src/tracing/component.yaml");
 }
 
 }  // namespace components

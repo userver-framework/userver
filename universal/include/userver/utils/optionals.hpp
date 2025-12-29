@@ -24,7 +24,9 @@ std::string ToString(const std::optional<T>& from) {
 /// A polyfill for C++23 monadic operations for `std::optional`.
 template <typename T, typename Func>
 auto OptionalTransform(T&& opt, Func func) -> std::optional<decltype(std::move(func)(*std::forward<T>(opt)))> {
-    if (opt) return std::move(func)(*std::forward<T>(opt));
+    if (opt) {
+        return std::move(func)(*std::forward<T>(opt));
+    }
     return std::nullopt;
 }
 

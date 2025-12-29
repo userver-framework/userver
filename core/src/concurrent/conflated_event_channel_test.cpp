@@ -10,7 +10,9 @@ USERVER_NAMESPACE_BEGIN
 namespace {
 
 struct Subscriber final {
-    Subscriber() : sem(1) {
+    Subscriber()
+        : sem(1)
+    {
         sem.lock_shared();  // To set semaphore 0 at start
     }
 

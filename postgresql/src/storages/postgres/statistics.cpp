@@ -41,7 +41,8 @@ void DumpMetric(USERVER_NAMESPACE::utils::statistics::Writer& writer, const Inst
         errors.ValueWithLabels(stats.transaction.error_execute_total, {kPostgresqlError, "query-exec"});
         errors.ValueWithLabels(stats.transaction.execute_timeout, {kPostgresqlError, "query-timeout"});
         errors.ValueWithLabels(
-            stats.transaction.duplicate_prepared_statements, {kPostgresqlError, "duplicate-prepared-statement"}
+            stats.transaction.duplicate_prepared_statements,
+            {kPostgresqlError, "duplicate-prepared-statement"}
         );
         errors.ValueWithLabels(stats.connection.error_total, {kPostgresqlError, "connection"});
         errors.ValueWithLabels(stats.pool_exhaust_errors, {kPostgresqlError, "pool"});

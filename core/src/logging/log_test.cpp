@@ -159,10 +159,11 @@ TEST_F(LoggingTest, Format) {
     const auto should_not_log =
         __builtin_expect(
             USERVER_IMPL_DYNAMIC_DEBUG_ENTRY().ShouldNotLog(
-                (USERVER_NAMESPACE::logging::GetDefaultLogger()), ((USERVER_NAMESPACE::logging::Level::kError))
+                (USERVER_NAMESPACE::logging::GetDefaultLogger()),
+                ((USERVER_NAMESPACE::logging::Level::kError))
             ),
-            static_cast<int>(USERVER_NAMESPACE::logging::Level::kError) <
-                static_cast<int>(USERVER_NAMESPACE::logging::Level::kInfo)
+            static_cast<int>(USERVER_NAMESPACE::logging::Level::kError
+            ) < static_cast<int>(USERVER_NAMESPACE::logging::Level::kInfo)
         )
             ? true
             : false;
@@ -237,7 +238,9 @@ TEST_F(LoggingTest, AddingCustomFormatting) {
         bool first = true;
         out << "Items: ";
         for (const auto& item : list) {
-            if (!first) out << "; ";
+            if (!first) {
+                out << "; ";
+            }
             out << item.foo << ":" << item.bar;
             first = false;
         }

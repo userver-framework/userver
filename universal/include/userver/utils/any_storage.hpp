@@ -139,7 +139,8 @@ any_storage::impl::Offset AnyStorage<StorageTag>::CalcOffset() noexcept {
 
 template <typename StorageTag>
 AnyStorage<StorageTag>::AnyStorage()
-    : raw_data_(new std::byte[CalcOffset() + sizeof(AllocRecord) * any_storage::impl::count<StorageTag>]) {
+    : raw_data_(new std::byte[CalcOffset() + sizeof(AllocRecord) * any_storage::impl::count<StorageTag>])
+{
     static_assert(std::is_trivial_v<AllocRecord>);
 
     // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
@@ -169,7 +170,9 @@ void AnyStorage<StorageTag>::Destroy() noexcept {
     auto records = GetRecords();
     for (std::size_t i = 0; i < any_storage::impl::count<StorageTag>; i++) {
         auto& record = records[i];
-        if (record.deleter) record.deleter(&raw_data_[record.offset]);
+        if (record.deleter) {
+            record.deleter(&raw_data_[record.offset]);
+        }
     }
 }
 
@@ -177,7 +180,9 @@ template <typename StorageTag>
 template <typename Data>
 Data& AnyStorage<StorageTag>::Set(const AnyStorageDataTag<StorageTag, Data> tag, Data data) {
     auto number = tag.number_;
-    if (!GetRecords()[number].deleter) return Emplace(tag, std::move(data));
+    if (!GetRecords()[number].deleter) {
+        return Emplace(tag, std::move(data));
+    }
 
     auto offset = tag.offset_;
     return *reinterpret_cast<Data*>(&raw_data_[offset]) = std::move(data);
@@ -188,7 +193,9 @@ template <typename Data, typename... Args>
 Data& AnyStorage<StorageTag>::Emplace(const AnyStorageDataTag<StorageTag, Data>& tag, Args&&... args) {
     auto number = tag.number_;
     auto& record = GetRecords()[number];
-    if (record.deleter) record.deleter(&raw_data_[tag.offset_]);
+    if (record.deleter) {
+        record.deleter(&raw_data_[tag.offset_]);
+    }
 
     auto offset = tag.offset_;
     auto ptr = new (&raw_data_[offset]) Data(std::forward<Args>(args)...);
@@ -200,7 +207,9 @@ template <typename StorageTag>
 template <typename Data>
 Data& AnyStorage<StorageTag>::Get(const AnyStorageDataTag<StorageTag, Data>& tag) {
     auto ptr = GetOptional(tag);
-    if (ptr) return *ptr;
+    if (ptr) {
+        return *ptr;
+    }
     throw std::runtime_error("No data");
 }
 
@@ -216,7 +225,9 @@ template <typename Data>
 Data* AnyStorage<StorageTag>::GetOptional(const AnyStorageDataTag<StorageTag, Data>& tag) noexcept {
     auto number = tag.number_;
     auto offset = tag.offset_;
-    if (!GetRecords()[number].deleter) return nullptr;
+    if (!GetRecords()[number].deleter) {
+        return nullptr;
+    }
     return reinterpret_cast<Data*>(&raw_data_[offset]);
 }
 

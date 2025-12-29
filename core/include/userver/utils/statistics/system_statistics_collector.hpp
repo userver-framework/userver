@@ -8,14 +8,11 @@
 #include <userver/concurrent/variable.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/utils/periodic_task.hpp>
-#include <userver/utils/statistics/entry.hpp>
 #include <utils/statistics/system_statistics.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace components {
-
-// clang-format off
 
 /// @ingroup userver_components
 ///
@@ -23,29 +20,22 @@ namespace components {
 ///
 /// Periodically queries resource usage info and reports is as a set of metrics.
 ///
-/// ## Static options:
-/// Name | Description | Default value
-/// ---- | ----------- | -------------
-/// fs-task-processor | Task processor to use for statistics gathering | engine::current_task::GetBlockingTaskProcessor()
-/// with-nginx | Whether to collect and report nginx processes statistics | false
+/// ## Static options of components::SystemStatisticsCollector :
+/// @include{doc} scripts/docs/en/components_schema/core/src/utils/statistics/system_statistics_collector.md
 ///
-/// Note that `with-nginx` is a relatively expensive option as it requires full
-/// process list scan.
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
 ///
 /// ## Static configuration example:
 ///
 /// @snippet components/common_component_list_test.cpp  Sample system statistics component config
-
-// clang-format on
-
 class SystemStatisticsCollector final : public ComponentBase {
 public:
     /// @ingroup userver_component_names
-    /// @brief The default name of components::SystemStatisticsCollector
+    /// @brief The default name of @ref components::SystemStatisticsCollector
     static constexpr std::string_view kName = "system-statistics-collector";
 
     SystemStatisticsCollector(const ComponentConfig&, const ComponentContext&);
-    ~SystemStatisticsCollector() override;
 
     static yaml_config::Schema GetStaticConfigSchema();
 
@@ -61,7 +51,6 @@ private:
 
     const bool with_nginx_;
     engine::TaskProcessor& fs_task_processor_;
-    utils::statistics::Entry statistics_holder_;
     concurrent::Variable<Data> data_;
     utils::PeriodicTask periodic_;
 };

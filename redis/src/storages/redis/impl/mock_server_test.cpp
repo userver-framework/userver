@@ -19,7 +19,9 @@ const std::string kCrlf = "\r\n";
 
 }  // namespace
 
-MockRedisServerBase::MockRedisServerBase(int port) : acceptor_(io_service_) {
+MockRedisServerBase::MockRedisServerBase(int port)
+    : acceptor_(io_service_)
+{
     acceptor_.open(io::ip::tcp::v4());
     const boost::asio::ip::tcp::acceptor::reuse_address option(true);
     acceptor_.set_option(option);
@@ -47,7 +49,9 @@ int MockRedisServerBase::GetPort() const { return acceptor_.local_endpoint().por
 
 void MockRedisServerBase::Stop() {
     io_service_.stop();
-    if (thread_.joinable()) thread_.join();
+    if (thread_.joinable()) {
+        thread_.join();
+    }
 }
 
 void MockRedisServerBase::SendReply(ConnectionPtr connection, const std::string& reply) {
@@ -62,7 +66,9 @@ std::string MockRedisServerBase::ReplyDataToRedisProto(const storages::redis::Re
             return '$' + std::to_string(reply_data.GetString().size()) + kCrlf + reply_data.GetString() + kCrlf;
         case storages::redis::ReplyData::Type::kArray: {
             std::string res = '*' + std::to_string(reply_data.GetArray().size()) + kCrlf;
-            for (const auto& elem : reply_data.GetArray()) res += ReplyDataToRedisProto(elem);
+            for (const auto& elem : reply_data.GetArray()) {
+                res += ReplyDataToRedisProto(elem);
+            }
             return res;
         }
         case storages::redis::ReplyData::Type::kInteger:
@@ -80,8 +86,8 @@ std::string MockRedisServerBase::ReplyDataToRedisProto(const storages::redis::Re
 
 void MockRedisServerBase::Accept() {
     auto connection = std::make_shared<Connection>(io_service_);
-    connection->reader =
-        std::unique_ptr<redisReader, decltype(&redisReaderFree)>(redisReaderCreate(), &redisReaderFree);
+    connection
+        ->reader = std::unique_ptr<redisReader, decltype(&redisReaderFree)>(redisReaderCreate(), &redisReaderFree);
     acceptor_.async_accept(connection->socket, [connection, this](auto item) {
         OnAccept(connection, std::move(item));
         Accept();
@@ -109,14 +115,14 @@ void MockRedisServerBase::OnRead(ConnectionPtr connection, boost::system::error_
     }
 
     auto ret = redisReaderFeed(connection->reader.get(), connection->data.data(), count);
-    if (ret != REDIS_OK)
+    if (ret != REDIS_OK) {
         throw std::runtime_error("redisReaderFeed() returned error: " + std::string(connection->reader->errstr));
+    }
 
     void* hiredis_reply = nullptr;
     while (redisReaderGetReply(connection->reader.get(), &hiredis_reply) == REDIS_OK && hiredis_reply) {
-        auto reply = std::make_shared<storages::redis::Reply>(
-            "", static_cast<redisReply*>(hiredis_reply), storages::redis::ReplyStatus::kOk
-        );
+        auto reply = std::make_shared<
+            storages::redis::Reply>("", static_cast<redisReply*>(hiredis_reply), storages::redis::ReplyStatus::kOk);
         LOG_DEBUG() << "command: " << reply->data.ToDebugString();
 
         OnCommand(connection, reply);
@@ -138,8 +144,10 @@ void MockRedisServerBase::DoRead(ConnectionPtr connection) {
 
 MockRedisServer::~MockRedisServer() { Stop(); }
 
-MockRedisServer::HandlerPtr
-MockRedisServer::RegisterHandlerWithConstReply(const std::string& command, storages::redis::ReplyData reply_data) {
+MockRedisServer::HandlerPtr MockRedisServer::RegisterHandlerWithConstReply(
+    const std::string& command,
+    storages::redis::ReplyData reply_data
+) {
     return RegisterHandlerWithConstReply(command, {}, std::move(reply_data));
 }
 
@@ -170,7 +178,9 @@ MockRedisServer::HandlerPtr MockRedisServer::RegisterStatusReplyHandler(
     std::string reply
 ) {
     return RegisterHandlerWithConstReply(
-        command, args_prefix, storages::redis::ReplyData::CreateStatus(std::move(reply))
+        command,
+        args_prefix,
+        storages::redis::ReplyData::CreateStatus(std::move(reply))
     );
 }
 
@@ -184,7 +194,9 @@ MockRedisServer::HandlerPtr MockRedisServer::RegisterErrorReplyHandler(
     std::string reply
 ) {
     return RegisterHandlerWithConstReply(
-        command, args_prefix, storages::redis::ReplyData::CreateError(std::move(reply))
+        command,
+        args_prefix,
+        storages::redis::ReplyData::CreateError(std::move(reply))
     );
 }
 
@@ -192,8 +204,10 @@ MockRedisServer::HandlerPtr MockRedisServer::RegisterNilReplyHandler(const std::
     return RegisterHandlerWithConstReply(command, storages::redis::ReplyData::CreateNil());
 }
 
-MockRedisServer::HandlerPtr
-MockRedisServer::RegisterNilReplyHandler(const std::string& command, const std::vector<std::string>& args_prefix) {
+MockRedisServer::HandlerPtr MockRedisServer::RegisterNilReplyHandler(
+    const std::string& command,
+    const std::vector<std::string>& args_prefix
+) {
     return RegisterHandlerWithConstReply(command, args_prefix, storages::redis::ReplyData::CreateNil());
 }
 
@@ -215,13 +229,16 @@ MockRedisServer::HandlerPtr MockRedisServer::RegisterSentinelMastersHandler(cons
             {"port"},
             {std::to_string(master.port)},
             {"flags"},
-            {fmt::to_string(fmt::join(master.flags, ","))}});
+            {fmt::to_string(fmt::join(master.flags, ","))}
+        });
     }
     return RegisterHandlerWithConstReply("SENTINEL", {"MASTERS"}, std::move(reply_data));
 }
 
-MockRedisServer::HandlerPtr
-MockRedisServer::RegisterSentinelSlavesHandler(const std::string& master_name, const std::vector<SlaveInfo>& slaves) {
+MockRedisServer::HandlerPtr MockRedisServer::RegisterSentinelSlavesHandler(
+    const std::string& master_name,
+    const std::vector<SlaveInfo>& slaves
+) {
     std::vector<storages::redis::ReplyData> reply_data;
     reply_data.reserve(slaves.size());
     for (const auto& slave : slaves) {
@@ -236,13 +253,16 @@ MockRedisServer::RegisterSentinelSlavesHandler(const std::string& master_name, c
             {"flags"},
             {fmt::to_string(fmt::join(slave.flags, ","))},
             {"master-link-status"},
-            {slave.master_link_status}});
+            {slave.master_link_status}
+        });
     }
     return RegisterHandlerWithConstReply("SENTINEL", {"SLAVES", master_name}, std::move(reply_data));
 }
 
-MockRedisServer::HandlerPtr
-MockRedisServer::RegisterClusterNodes(const std::vector<MasterInfo>& masters, const std::vector<SlaveInfo>& slaves) {
+MockRedisServer::HandlerPtr MockRedisServer::RegisterClusterNodes(
+    const std::vector<MasterInfo>& masters,
+    const std::vector<SlaveInfo>& slaves
+) {
     constexpr unsigned short kCommunicationPortIgnored = 16379;
     std::string nodes_reply_data;
     for (const auto& master : masters) {
@@ -268,7 +288,8 @@ MockRedisServer::RegisterClusterNodes(const std::vector<MasterInfo>& masters, co
             utils::numeric_cast<int>(i * slots_chunk_size),
             utils::numeric_cast<int>(i + 1 == masters.size() ? kSlotsCount - 1 : (i + 1) * slots_chunk_size),
             storages::redis::ReplyData::Array{masters[i].ip, masters[i].port},
-            storages::redis::ReplyData::Array{slaves[i].ip, slaves[i].port}});
+            storages::redis::ReplyData::Array{slaves[i].ip, slaves[i].port}
+        });
     }
     RegisterHandlerWithConstReply("CLUSTER", {"SLOTS"}, {std::move(slots_reply_data)});
     return handler;
@@ -319,13 +340,18 @@ void MockRedisServer::AddHandlerFunc(HandlerNode& root, const std::vector<std::s
     node->handler = std::move(handler);
 }
 
-const MockRedisServer::HandlerFunc&
-MockRedisServer::GetHandlerFunc(const HandlerNode& node, const std::vector<std::string>& args, size_t arg_idx) {
+const MockRedisServer::HandlerFunc& MockRedisServer::GetHandlerFunc(
+    const HandlerNode& node,
+    const std::vector<std::string>& args,
+    size_t arg_idx
+) {
     if (arg_idx < args.size()) {
         auto it = node.next_arg.find(args[arg_idx]);
         if (it != node.next_arg.end()) {
             const auto& handler = GetHandlerFunc(it->second, args, arg_idx + 1);
-            if (handler) return handler;
+            if (handler) {
+                return handler;
+            }
         }
     }
     return node.handler;
@@ -368,10 +394,15 @@ MockRedisServer::CommonMasterSlaveInfo::CommonMasterSlaveInfo(
     int port,
     std::vector<std::string> flags
 )
-    : name(std::move(name)), ip(std::move(ip)), port(port), flags(std::move(flags)) {}
+    : name(std::move(name)),
+      ip(std::move(ip)),
+      port(port),
+      flags(std::move(flags))
+{}
 
 MockRedisServer::MasterInfo::MasterInfo(std::string name, std::string ip, int port, std::vector<std::string> flags)
-    : CommonMasterSlaveInfo(std::move(name), std::move(ip), port, flags) {
+    : CommonMasterSlaveInfo(std::move(name), std::move(ip), port, flags)
+{
     flags.emplace_back("master");
 }
 
@@ -383,7 +414,8 @@ MockRedisServer::SlaveInfo::SlaveInfo(
     std::string master_link_status
 )
     : CommonMasterSlaveInfo(std::move(name), std::move(ip), port, flags),
-      master_link_status(std::move(master_link_status)) {
+      master_link_status(std::move(master_link_status))
+{
     flags.emplace_back("slave");
 }
 

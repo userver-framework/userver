@@ -60,7 +60,10 @@ std::chrono::year_month_day ToYearMonthDay(const google::type::Date& grpc_date) 
         throw DateConversionError("grpc_date is invalid");
     }
     return {
-        std::chrono::year(grpc_date.year()), std::chrono::month(grpc_date.month()), std::chrono::day(grpc_date.day())};
+        std::chrono::year(grpc_date.year()),
+        std::chrono::month(grpc_date.month()),
+        std::chrono::day(grpc_date.day())
+    };
 }
 
 #endif
@@ -106,9 +109,8 @@ bool IsValid(const google::protobuf::Duration& grpc_duration) {
 namespace formats::parse {
 
 google::protobuf::Timestamp Parse(const formats::json::Value& json, formats::parse::To<google::protobuf::Timestamp>) {
-    return ugrpc::ToProtoTimestamp(
-        json.As<std::chrono::time_point<std::chrono::system_clock, std::chrono::microseconds>>()
-    );
+    return ugrpc::ToProtoTimestamp(json.As<
+                                   std::chrono::time_point<std::chrono::system_clock, std::chrono::microseconds>>());
 }
 
 google::type::Date Parse(const formats::json::Value& json, formats::parse::To<google::type::Date>) {
@@ -124,8 +126,9 @@ formats::json::Value Serialize(const google::protobuf::Timestamp& value, formats
         throw ugrpc::TimestampConversionError("grpc_ts is invalid");
     }
 
-    const auto seconds =
-        std::chrono::time_point<std::chrono::system_clock, std::chrono::seconds>{std::chrono::seconds{value.seconds()}};
+    const auto seconds = std::chrono::time_point<std::chrono::system_clock, std::chrono::seconds>{
+        std::chrono::seconds{value.seconds()}
+    };
     std::string result = fmt::format("{:%FT%T}.{:0>9}", fmt::gmtime(seconds.time_since_epoch().count()), value.nanos());
 
     while (result.back() == '0') {

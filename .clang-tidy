@@ -77,6 +77,7 @@ Checks:
   ,-misc-no-recursion\
   ,-misc-unconventional-assign-operator\
   ,-misc-use-anonymous-namespace\
+  ,-misc-override-with-different-visibility\
   ,-modernize-avoid-c-arrays\
   ,-modernize-pass-by-value\
   ,-modernize-return-braced-init-list\
@@ -171,6 +172,10 @@ CheckOptions:
   - key: readability-identifier-naming.StaticConstantCase
     value: CamelCase
   - key: readability-identifier-naming.StaticConstantPrefix
+    value: k
+  - key: readability-identifier-naming.EnumConstantCase
+    value: CamelCase
+  - key: readability-identifier-naming.EnumConstantPrefix
     value: k
   - key: readability-identifier-naming.MacroDefinitionCase
     value: UPPER_CASE

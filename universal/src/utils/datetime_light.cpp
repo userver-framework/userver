@@ -25,8 +25,8 @@ constexpr std::int64_t kMaxDotNetTicks = 3155378975999999999L;
 // https://msdn.microsoft.com/en-us/library/z2xf7zzk(v=vs.110).aspx
 // python:
 // (datetime.datetime(1970, 1, 1) - datetime.datetime(1, 1, 1)).total_seconds()
-constexpr std::int64_t k100NanosecondsIntervalsBetweenDotNetAndPosixTimeStart =
-    62135596800L * 10000000L;  // sec to 100nanosec
+constexpr std::int64_t k100NanosecondsIntervalsBetweenDotNetAndPosixTimeStart = 62135596800L * 10000000L;  // sec to
+                                                                                                           // 100nanosec
 constexpr std::int64_t kNanosecondsIs100Nanoseconds = 100;
 
 const cctz::time_zone& GetLocalTimezone() {
@@ -42,15 +42,8 @@ DateParseError::DateParseError(const std::string& timestring)
 TimezoneLookupError::TimezoneLookupError(const std::string& tzname)
     : std::runtime_error("Can't load time zone: " + tzname) {}
 
-bool IsTimeBetween(
-    int hour,
-    int min,
-    int hour_from,
-    int min_from,
-    int hour_to,
-    int min_to,
-    bool include_time_to
-) noexcept {
+bool IsTimeBetween(int hour, int min, int hour_from, int min_from, int hour_to, int min_to, bool include_time_to)
+    noexcept {
     const bool greater_that_time_from = hour > hour_from || (hour == hour_from && min >= min_from);
 
     const bool lower_than_time_to =
@@ -89,8 +82,11 @@ std::string LocalTimezoneTimestring(time_t timestamp, const std::string& format)
     return LocalTimezoneTimestring(tp, format);
 }
 
-std::optional<std::chrono::system_clock::time_point>
-OptionalStringtime(const std::string& timestring, const cctz::time_zone& timezone, const std::string& format) {
+std::optional<std::chrono::system_clock::time_point> OptionalStringtime(
+    const std::string& timestring,
+    const cctz::time_zone& timezone,
+    const std::string& format
+) {
     std::chrono::system_clock::time_point tp;
     if (cctz::parse(format, timestring, timezone, &tp)) {
         return tp;
@@ -102,8 +98,10 @@ std::optional<std::chrono::system_clock::time_point> OptionalStringtime(const st
     return OptionalStringtime(timestring, cctz::utc_time_zone(), kDefaultFormat);
 }
 
-std::chrono::system_clock::time_point
-LocalTimezoneStringtime(const std::string& timestring, const std::string& format) {
+std::chrono::system_clock::time_point LocalTimezoneStringtime(
+    const std::string& timestring,
+    const std::string& format
+) {
     const auto optional_tp = OptionalStringtime(timestring, GetLocalTimezone(), format);
     if (!optional_tp) {
         throw DateParseError(timestring);
@@ -121,10 +119,13 @@ std::chrono::system_clock::time_point UtcStringtime(const std::string& timestrin
 
 std::chrono::system_clock::time_point Stringtime(const std::string& timestring) { return UtcStringtime(timestring); }
 
-std::chrono::system_clock::time_point
-DoGuessStringtime(const std::string& timestring, const cctz::time_zone& timezone) {
+std::chrono::system_clock::time_point DoGuessStringtime(
+    const std::string& timestring,
+    const cctz::time_zone& timezone
+) {
     static const std::array<std::string, 3> kFormats{
-        {"%Y-%m-%dT%H:%M:%E*S%Ez", "%Y-%m-%dT%H:%M:%E*S%z", "%Y-%m-%dT%H:%M:%E*SZ"}};
+        {"%Y-%m-%dT%H:%M:%E*S%Ez", "%Y-%m-%dT%H:%M:%E*S%z", "%Y-%m-%dT%H:%M:%E*SZ"}
+    };
     for (const auto& format : kFormats) {
         const auto optional_tp = OptionalStringtime(timestring, timezone, format);
         if (optional_tp) {
@@ -146,11 +147,13 @@ std::uint32_t ParseDayTime(const std::string& str) {
     // Supported day time formats
     // hh:mm:ss
     // hh:mm
-    if ((str.size() != 5 && str.size() != 8))
+    if ((str.size() != 5 && str.size() != 8)) {
         throw std::invalid_argument(std::string("Failed to parse time from ") + str);
+    }
 
-    if (str[2] != ':' || (str.size() == 8 && str[5] != ':'))
+    if (str[2] != ':' || (str.size() == 8 && str[5] != ':')) {
         throw std::invalid_argument(std::string("Failed to parse time from ") + str);
+    }
     std::uint8_t hours = 0;
     std::uint8_t minutes = 0;
     std::uint8_t seconds = 0;
@@ -158,15 +161,17 @@ std::uint32_t ParseDayTime(const std::string& str) {
     try {
         hours = utils::numeric_cast<std::uint8_t>(utils::FromString<int>(std::string_view{str}.substr(0, 2)));
         minutes = utils::numeric_cast<std::uint8_t>(utils::FromString<int>(std::string_view{str}.substr(3, 2)));
-        if (str.size() == 8)
+        if (str.size() == 8) {
             seconds = utils::numeric_cast<std::uint8_t>(utils::FromString<int>(std::string_view{str}.substr(6, 2)));
+        }
 
     } catch (const std::exception& ex) {
         throw std::invalid_argument(std::string("Failed to parse time from ") + str);
     }
 
-    if (hours > 23 || minutes > 59 || seconds > 59)
+    if (hours > 23 || minutes > 59 || seconds > 59) {
         throw std::invalid_argument(std::string("Failed to parse time from ") + str);
+    }
 
     return seconds + 60 * minutes + 3600 * hours;
 }
@@ -203,14 +208,18 @@ std::string TimestampToString(const time_t timestamp) {
 }
 
 std::int64_t TimePointToTicks(const std::chrono::system_clock::time_point& tp) noexcept {
-    if (tp == std::chrono::system_clock::time_point::max()) return kMaxDotNetTicks;
+    if (tp == std::chrono::system_clock::time_point::max()) {
+        return kMaxDotNetTicks;
+    }
     return k100NanosecondsIntervalsBetweenDotNetAndPosixTimeStart +
            std::chrono::duration_cast<std::chrono::nanoseconds>(tp.time_since_epoch()).count() /
                kNanosecondsIs100Nanoseconds;
 }
 
 std::chrono::system_clock::time_point TicksToTimePoint(std::int64_t ticks) noexcept {
-    if (ticks == kMaxDotNetTicks) return std::chrono::system_clock::time_point::max();
+    if (ticks == kMaxDotNetTicks) {
+        return std::chrono::system_clock::time_point::max();
+    }
     return std::chrono::system_clock::time_point(
         std::chrono::duration_cast<std::chrono::system_clock::time_point::duration>(std::chrono::nanoseconds(
             (ticks - k100NanosecondsIntervalsBetweenDotNetAndPosixTimeStart) * kNanosecondsIs100Nanoseconds

@@ -9,9 +9,9 @@ from conan.tools.cmake import cmake_layout
 from conan.tools.cmake import CMakeDeps
 from conan.tools.cmake import CMakeToolchain
 from conan.tools.files import copy
-from conan.tools.files import load
+from conan.tools.files import export_conandata_patches
+from conan.tools.files import get
 from conan.tools.scm import Git
-from conan.tools.system import package_manager
 
 required_conan_version = '>=2.8.0'  # pylint: disable=invalid-name
 
@@ -20,7 +20,7 @@ class UserverConan(ConanFile):
     name = 'userver'
     description = 'The C++ Asynchronous Framework'
     topics = ('framework', 'coroutines', 'asynchronous')
-    url = 'https://github.com/userver-framework/userver'
+    url = 'https://github.com/conan-io/conan-center-index'
     homepage = 'https://userver.tech/'
     license = 'Apache-2.0'
     package_type = 'static-library'
@@ -46,10 +46,6 @@ class UserverConan(ConanFile):
         'with_s3api': [True, False],
         'with_grpc_reflection': [True, False],
         'with_grpc_protovalidate': [True, False],
-        'namespace': ['ANY'],
-        'namespace_begin': ['ANY'],
-        'namespace_end': ['ANY'],
-        'python_path': ['ANY'],
     }
 
     default_options = {
@@ -72,10 +68,6 @@ class UserverConan(ConanFile):
         'with_s3api': True,
         'with_grpc_reflection': True,
         'with_grpc_protovalidate': False,
-        'namespace': 'userver',
-        'namespace_begin': 'namespace userver {',
-        'namespace_end': '}',
-        'python_path': 'python3',
         'mongo-c-driver/*:with_sasl': 'cyrus',
         'grpc/*:php_plugin': False,
         'grpc/*:node_plugin': False,
@@ -91,24 +83,26 @@ class UserverConan(ConanFile):
         're2/*:with_icu': True,
     }
 
+    def source(self):
+        known_version = (self.conan_data or {}).get('sources', {}).get(self.version)
+        if known_version:
+            get(self, **known_version, strip_root=True)
+        else:
+            # Running from develop branch, do nothing
+            pass
+
     def export_sources(self):
-        git = Git(self)
-        tracked_sources = git.included_files()
-        # To speed up copying, we take only the root folders
-        tracked_sources = set(f.split('/')[0] for f in tracked_sources)
-        for i in tracked_sources:
-            copy(self, f'{i}*', self.recipe_folder, self.export_sources_folder)
-
-    def set_version(self):
-        content = load(
-            self,
-            os.path.join(
-                os.path.dirname(os.path.realpath(__file__)),
-                'version.txt',
-            ),
-        )
-
-        self.version = content.strip()  # pylint: disable=attribute-defined-outside-init
+        known_version = (self.conan_data or {}).get('sources', {}).get(self.version)
+        if known_version:
+            export_conandata_patches(self)
+        else:
+            # Running from develop branch, no patches
+            git = Git(self)
+            tracked_sources = git.included_files()
+            # To speed up copying, we take only the root folders
+            tracked_sources = {f.split('/')[0] for f in tracked_sources}
+            for i in tracked_sources:
+                copy(self, f'{i}*', self.recipe_folder, self.export_sources_folder)
 
     def layout(self):
         cmake_layout(self)
@@ -157,7 +151,7 @@ class UserverConan(ConanFile):
             self.requires('cyrus-sasl/2.1.28')
         if self.options.with_mongodb:
             self.requires(
-                'mongo-c-driver/1.28.0',
+                'mongo-c-driver/1.30.3',
                 transitive_headers=True,
                 transitive_libs=True,
             )
@@ -203,45 +197,43 @@ class UserverConan(ConanFile):
 
     def generate(self):
         tool_ch = CMakeToolchain(self)
-        tool_ch.variables['CMAKE_FIND_DEBUG_MODE'] = False
+        tool_ch.cache_variables['CMAKE_FIND_DEBUG_MODE'] = False
 
-        tool_ch.variables['USERVER_CONAN'] = True
-        tool_ch.variables['USERVER_INSTALL'] = True
-        tool_ch.variables['USERVER_DOWNLOAD_PACKAGES'] = True
-        tool_ch.variables['USERVER_FEATURE_DWCAS'] = True
-        tool_ch.variables['USERVER_NAMESPACE'] = self.options.namespace
-        tool_ch.variables['USERVER_NAMESPACE_BEGIN'] = self.options.namespace_begin
-        tool_ch.variables['USERVER_NAMESPACE_END'] = self.options.namespace_end
-        tool_ch.variables['USERVER_PYTHON_PATH'] = self.options.python_path
+        tool_ch.cache_variables['USERVER_CONAN'] = True
+        tool_ch.cache_variables['USERVER_INSTALL'] = True
+        tool_ch.cache_variables['USERVER_DOWNLOAD_PACKAGES'] = True
+        tool_ch.cache_variables['USERVER_FEATURE_DWCAS'] = True
 
-        tool_ch.variables['USERVER_LTO'] = self.options.lto
-        tool_ch.variables['USERVER_FEATURE_JEMALLOC'] = self.options.with_jemalloc
-        tool_ch.variables['USERVER_FEATURE_MONGODB'] = self.options.with_mongodb
-        tool_ch.variables['USERVER_FEATURE_POSTGRESQL'] = self.options.with_postgresql
-        tool_ch.variables['USERVER_FEATURE_PATCH_LIBPQ'] = self.options.with_postgresql_extra
-        tool_ch.variables['USERVER_FEATURE_REDIS'] = self.options.with_redis
-        tool_ch.variables['USERVER_FEATURE_REDIS_TLS'] = self.options.with_redis_tls
-        tool_ch.variables['USERVER_FEATURE_GRPC'] = self.options.with_grpc
-        tool_ch.variables['USERVER_FEATURE_CLICKHOUSE'] = self.options.with_clickhouse
-        tool_ch.variables['USERVER_FEATURE_RABBITMQ'] = self.options.with_rabbitmq
-        tool_ch.variables['USERVER_FEATURE_UTEST'] = self.options.with_utest
-        tool_ch.variables['USERVER_FEATURE_TESTSUITE'] = self.options.with_utest
-        tool_ch.variables['USERVER_FEATURE_KAFKA'] = self.options.with_kafka
-        tool_ch.variables['USERVER_FEATURE_OTLP'] = self.options.with_otlp
-        tool_ch.variables['USERVER_FEATURE_SQLITE'] = self.options.with_sqlite
-        tool_ch.variables['USERVER_FEATURE_EASY'] = self.options.with_easy
-        tool_ch.variables['USERVER_FEATURE_S3API'] = self.options.with_s3api
-        tool_ch.variables['USERVER_FEATURE_GRPC_REFLECTION'] = self.options.with_grpc_reflection
-        tool_ch.variables['USERVER_FEATURE_GRPC_PROTOVALIDATE'] = self.options.with_grpc_protovalidate
+        tool_ch.cache_variables['USERVER_LTO'] = self.options.lto
+        tool_ch.cache_variables['USERVER_FEATURE_JEMALLOC'] = self.options.with_jemalloc
+        tool_ch.cache_variables['USERVER_FEATURE_MONGODB'] = self.options.with_mongodb
+        tool_ch.cache_variables['USERVER_FEATURE_POSTGRESQL'] = self.options.with_postgresql
+        tool_ch.cache_variables['USERVER_FEATURE_PATCH_LIBPQ'] = self.options.with_postgresql_extra
+        tool_ch.cache_variables['USERVER_FEATURE_REDIS'] = self.options.with_redis
+        tool_ch.cache_variables['USERVER_FEATURE_REDIS_TLS'] = self.options.with_redis_tls
+        tool_ch.cache_variables['USERVER_FEATURE_GRPC'] = self.options.with_grpc
+        tool_ch.cache_variables['USERVER_FEATURE_CLICKHOUSE'] = self.options.with_clickhouse
+        tool_ch.cache_variables['USERVER_FEATURE_RABBITMQ'] = self.options.with_rabbitmq
+        tool_ch.cache_variables['USERVER_FEATURE_UTEST'] = self.options.with_utest
+        tool_ch.cache_variables['USERVER_FEATURE_TESTSUITE'] = self.options.with_utest
+        tool_ch.cache_variables['USERVER_FEATURE_KAFKA'] = self.options.with_kafka
+        tool_ch.cache_variables['USERVER_FEATURE_OTLP'] = self.options.with_otlp
+        tool_ch.cache_variables['USERVER_FEATURE_SQLITE'] = self.options.with_sqlite
+        tool_ch.cache_variables['USERVER_FEATURE_EASY'] = self.options.with_easy
+        tool_ch.cache_variables['USERVER_FEATURE_S3API'] = self.options.with_s3api
+        tool_ch.cache_variables['USERVER_FEATURE_GRPC_REFLECTION'] = self.options.with_grpc_reflection
+        tool_ch.cache_variables['USERVER_FEATURE_GRPC_PROTOVALIDATE'] = self.options.with_grpc_protovalidate
 
         if self.options.with_grpc:
-            tool_ch.variables['USERVER_GOOGLE_COMMON_PROTOS'] = (
+            tool_ch.cache_variables['USERVER_GOOGLE_COMMON_PROTOS'] = (
                 self.dependencies['googleapis'].cpp_info.components['google_rpc_status_proto'].resdirs[0]
             )
 
         if self.options.with_otlp:
-            tool_ch.variables['USERVER_OPENTELEMETRY_PROTO'] = self.dependencies['opentelemetry-proto'].conf_info.get(
-                'user.opentelemetry-proto:proto_root'
+            tool_ch.cache_variables['USERVER_OPENTELEMETRY_PROTO'] = self.dependencies[
+                'opentelemetry-proto'
+            ].conf_info.get(
+                'user.opentelemetry-proto:proto_root',
             )
 
         tool_ch.generate()
@@ -251,9 +243,9 @@ class UserverConan(ConanFile):
     def build(self):
         # pg_config is required to build psycopg2 from source without system package.
         # However, this approach fails on later stage, when venv for tests is built.
-        # libpq = self.dependencies["libpq"]
-        # if libpq:
-        #     os.environ["PATH"] = os.environ["PATH"] + ":" + libpq.package_folder+ "/bin"
+        libpq = self.dependencies['libpq']
+        if libpq:
+            os.environ['PATH'] = os.environ['PATH'] + ':' + libpq.package_folder + '/bin'
 
         cmake = CMake(self)
         cmake.configure()
@@ -267,12 +259,3 @@ class UserverConan(ConanFile):
         # https://docs.conan.io/2/examples/tools/cmake/cmake_toolchain/use_package_config_cmake.html
         self.cpp_info.set_property('cmake_find_mode', 'none')
         self.cpp_info.builddirs.append(os.path.join('lib', 'cmake', 'userver'))
-
-    def system_requirements(self):
-        if self.options.with_postgresql:
-            # pg_config is required to build psycopg2 python module from source at
-            # testsuite venv creation during functional testing of user code.
-            package_manager.Apt(self).install(['libpq-dev'])
-            package_manager.Yum(self).install(['libpq-devel'])
-            package_manager.PacMan(self).install(['libpq-dev'])
-            package_manager.Zypper(self).install(['libpq-devel'])

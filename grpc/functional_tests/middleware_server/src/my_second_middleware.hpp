@@ -24,7 +24,8 @@ public:
 
     MySecondMiddlewareComponent(const components::ComponentConfig& config, const components::ComponentContext& ctx)
         : ugrpc::server::MiddlewareFactoryComponentBase(config, ctx),
-          middleware_(std::make_shared<MySecondMiddleware>()) {}
+          middleware_(std::make_shared<MySecondMiddleware>())
+    {}
 
     std::shared_ptr<const ugrpc::server::MiddlewareBase> CreateMiddleware(
         const ugrpc::server::ServiceInfo&,

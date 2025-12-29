@@ -15,17 +15,16 @@ namespace pg = storages::postgres;
 class Standalone : public PostgreSQLBase {};
 
 UTEST_F(Standalone, Smoke) {
-    const pg::detail::topology::Standalone sa(
-        GetTaskProcessor(),
-        GetDsnListFromEnv(),
-        nullptr,
-        pg::TopologySettings{utest::kMaxTestWaitTime},
-        pg::ConnectionSettings{},
-        GetTestCmdCtls(),
-        testsuite::PostgresControl{},
-        error_injection::Settings{},
-        std::make_shared<utils::statistics::MetricsStorage>()
-    );
+    const pg::detail::topology::Standalone
+        sa(GetTaskProcessor(),
+           GetDsnListFromEnv(),
+           nullptr,
+           pg::TopologySettings{utest::kMaxTestWaitTime},
+           pg::ConnectionSettings{},
+           GetTestCmdCtls(),
+           testsuite::PostgresControl{},
+           error_injection::Settings{},
+           std::make_shared<utils::statistics::MetricsStorage>());
 
     auto hosts = sa.GetDsnIndicesByType();
     EXPECT_EQ(1, hosts->count(pg::ClusterHostType::kMaster));

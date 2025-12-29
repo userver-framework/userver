@@ -52,7 +52,9 @@ std::enable_if_t<meta::kIsUniqueMap<T>, Value> Serialize(const T& value, To<Valu
 /// std::optional serialization
 template <typename T, typename Value>
 Value Serialize(const std::optional<T>& value, To<Value>) {
-    if (!value) return {};
+    if (!value) {
+        return {};
+    }
 
     return typename Value::Builder(*value).ExtractValue();
 }

@@ -45,7 +45,9 @@ public:
     ///         outside the allowed range: `[-315'576'000'000, 315'576'000'000]` for @a seconds and
     ///         `[-999'999'999, 999'999'999]` for @a nanos.
     constexpr Duration(const std::chrono::seconds& seconds, const std::chrono::nanoseconds& nanos)
-        : seconds_(seconds), nanos_(nanos) {
+        : seconds_(seconds),
+          nanos_(nanos)
+    {
         if (!IsValid(seconds_, nanos_)) {
             ThrowError(seconds_, nanos_);
         }
@@ -175,8 +177,10 @@ public:
     }
 
     /// Returns `true` if @a seconds and @a nanos represent a valid `google.protobuf.Duration` value.
-    [[nodiscard]] static constexpr bool
-    IsValid(const std::chrono::seconds& seconds, const std::chrono::nanoseconds& nanos) noexcept {
+    [[nodiscard]] static constexpr bool IsValid(
+        const std::chrono::seconds& seconds,
+        const std::chrono::nanoseconds& nanos
+    ) noexcept {
         if (seconds < kMinSeconds || seconds > kMaxSeconds) {
             return false;
         }

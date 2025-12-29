@@ -11,7 +11,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace chaotic::openapi {
 
-FollowRedirectsMiddleware::FollowRedirectsMiddleware(bool follow_redirects) : follow_redirects_(follow_redirects) {}
+FollowRedirectsMiddleware::FollowRedirectsMiddleware(bool follow_redirects)
+    : follow_redirects_(follow_redirects)
+{}
 
 void FollowRedirectsMiddleware::OnRequest(clients::http::Request& request) {
     request.follow_redirects(follow_redirects_);

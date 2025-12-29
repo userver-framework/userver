@@ -19,6 +19,7 @@ inline constexpr std::size_t kDefaultDebugStringLimit = 1024;
 /// - Fields marked with `[debug_redact]` option are hidden (`DebugString` only does so since Protobuf v30).
 /// - When the character limit is reached, serialization stops immediately (`DebugString` still wastes CPU on
 /// serializing the entire message regardless).
+/// - When truncated, the string ends with `...(truncated)` marker to indicate that the output was cut off.
 ///
 /// @param message The protobuf message to convert.
 /// @param limit Maximum size of the resulting string.
@@ -47,9 +48,11 @@ std::string ToUnlimitedDebugString(const google::protobuf::Message& message);
 
 /// @brief Get error details from `grpc::Status` for logging with size limit.
 /// @param status The `grpc::Status` to extract details from.
-/// @param max_size Maximum size of the resulting string.
+/// @param max_size Maximum size of the error details part.
 /// Avoid setting this to very large values as it may cause OOM (Out of Memory) issues.
-/// @returns String representation of error details, truncated if necessary.
+/// @returns String representation of error details, formatted as "code: {code}, error message: {message}\nerror
+/// details:\n{details}". The error details part may be truncated if it exceeds max_size, in which case it ends with
+/// `...(truncated)` marker.
 ///
 /// @warning This is a debug representation of protobuf that is unstable and should only be used for diagnostics.
 /// The order of keys in maps is unstable; the format itself can change even within a single run.

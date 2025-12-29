@@ -34,8 +34,8 @@ TEST(Deadline, Passed) {
 }
 
 TEST(DeadlineTest, Overflow) {
-    const auto duration =
-        engine::Deadline::TimePoint::max() - engine::Deadline::Clock::now() + engine::Deadline::Duration{1};
+    const auto
+        duration = engine::Deadline::TimePoint::max() - engine::Deadline::Clock::now() + engine::Deadline::Duration{1};
     EXPECT_LT(duration, engine::Deadline::Duration::max());
     EXPECT_FALSE(engine::Deadline::FromDuration(duration).IsReachable());
 }

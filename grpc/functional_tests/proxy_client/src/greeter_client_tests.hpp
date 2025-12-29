@@ -25,7 +25,8 @@ public:
     static constexpr std::string_view kName = "greeter-client";
 
     GreeterClientComponent(const components::ComponentConfig& config, const components::ComponentContext& context)
-        : ClientComponent(config, context, kGreeterClientQos) {}
+        : ClientComponent(config, context, kGreeterClientQos)
+    {}
 };
 
 class GreeterClientTestComponent final : public components::ComponentBase {
@@ -35,7 +36,8 @@ public:
     GreeterClientTestComponent(const components::ComponentConfig& config, const components::ComponentContext& context)
         : components::ComponentBase(config, context),
           client_(context.FindComponent<GreeterClientComponent>().GetClient()),
-          src_(context.FindComponent<components::DynamicConfig>().GetSource()) {
+          src_(context.FindComponent<components::DynamicConfig>().GetSource())
+    {
         auto& tasks = testsuite::GetTestsuiteTasks(context);
 
         tasks.RegisterTask("call-say-hello", [this] { SayHello(); });

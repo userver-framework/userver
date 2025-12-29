@@ -8,9 +8,13 @@ USERVER_NAMESPACE_BEGIN
 
 namespace decimal64 {
 
-OutOfBoundsError::OutOfBoundsError() : DecimalError("Out of bounds in Decimal arithmetic") {}
+OutOfBoundsError::OutOfBoundsError()
+    : DecimalError("Out of bounds in Decimal arithmetic")
+{}
 
-DivisionByZeroError::DivisionByZeroError() : DecimalError("Decimal divided by zero") {}
+DivisionByZeroError::DivisionByZeroError()
+    : DecimalError("Decimal divided by zero")
+{}
 
 namespace impl {
 
@@ -129,7 +133,11 @@ std::string ToString(int64_t before, int64_t after, int precision, const FormatO
 
     if (after || (format_options.is_fixed && precision)) {
         fmt::format_to(
-            std::back_inserter(result), FMT_COMPILE("{}{:0{}}"), format_options.decimal_point, Abs(after), precision
+            std::back_inserter(result),
+            FMT_COMPILE("{}{:0{}}"),
+            format_options.decimal_point,
+            Abs(after),
+            precision
         );
     }
     return result;

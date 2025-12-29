@@ -41,7 +41,9 @@ public:
     constexpr FunctionId() = default;
 
     template <typename Class>
-    explicit FunctionId(Class* obj) : FunctionId(obj, typeid(Class)) {}
+    explicit FunctionId(Class* obj)
+        : FunctionId(obj, typeid(Class))
+    {}
 
     explicit operator bool() const;
 
@@ -83,7 +85,8 @@ public:
     // For internal use only.
     template <typename... Args>
     AsyncEventSubscriberScope(utils::impl::InternalTag, AsyncEventSource<Args...>& channel, FunctionId id)
-        : AsyncEventSubscriberScope(static_cast<impl::AsyncEventSourceBase&>(channel), id) {}
+        : AsyncEventSubscriberScope(static_cast<impl::AsyncEventSourceBase&>(channel), id)
+    {}
     /// @endcond
 
 private:

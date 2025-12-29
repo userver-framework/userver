@@ -5,9 +5,6 @@ from collections.abc import Iterable
 import dataclasses
 import enum
 import pathlib
-from typing import Dict
-from typing import List
-from typing import Optional
 
 from proto_structs.bundles import includes_bundles
 from proto_structs.models import names
@@ -41,7 +38,7 @@ class HasCppIncludes(abc.ABC):
         raise NotImplementedError()
 
 
-def sorted_includes(entity: HasCppIncludes, *, current_hpp: Optional[str] = None) -> Dict[IncludeKind, List[str]]:
+def sorted_includes(entity: HasCppIncludes, *, current_hpp: str | None = None) -> dict[IncludeKind, list[str]]:
     """Returns a ready-to-use list of C++ includes required for rendering this and nested C++ entities."""
     includes_set = set(entity.collect_includes())
     if current_hpp:
@@ -76,7 +73,7 @@ def proto_path_to_vanilla_pb_h(path: pathlib.Path) -> str:
     return str(path.with_suffix('.pb.h'))
 
 
-def io_includes_by_full_name(name: str, *, prefix: str) -> List[Include]:
+def io_includes_by_full_name(name: str, *, prefix: str) -> list[Include]:
     """Returns includes for IO."""
 
     name = names.to_snake_case(name)

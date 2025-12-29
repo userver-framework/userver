@@ -80,7 +80,9 @@ void CheckExactValues(int bits) {
         auto json = formats::json::FromString(json_str);
         auto dval = json["value"].As<double>();
         auto ival = static_cast<int64_t>(dval);
-        if (ival != value) throw TestIncorrectValueException("test");
+        if (ival != value) {
+            throw TestIncorrectValueException("test");
+        }
     }
 }
 
@@ -234,7 +236,7 @@ TEST(FormatsJson, ExceptionMessages) {
         auto _ [[maybe_unused]] = json["foo"]["bar"].As<int64_t>();
     } catch (const formats::json::TypeMismatchException& ex) {
         EXPECT_EQ(ex.GetPath(), "foo.bar");
-        EXPECT_EQ(ex.GetMessageWithoutPath(), "Wrong type. Expected: intValue, actual: stringValue");
+        EXPECT_EQ(ex.GetMessageWithoutPath(), "Wrong type. Expected: kIntValue, actual: kStringValue");
     }
 }
 

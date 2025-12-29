@@ -24,9 +24,13 @@ bool GenericWaitList::GetSignalOrAppend(boost::intrusive_ptr<TaskContext>&& cont
         waiters_,  //
         [&context](WaitListLight& ws) { return ws.GetSignalOrAppend(std::move(context)); },
         [&context](WaitListAndSignal& ws) {
-            if (ws.signal.load()) return true;
+            if (ws.signal.load()) {
+                return true;
+            }
             WaitList::Lock lock{ws.wl};
-            if (ws.signal.load()) return true;
+            if (ws.signal.load()) {
+                return true;
+            }
             ws.wl.Append(lock, std::move(context));
             return false;
         }
@@ -50,9 +54,13 @@ void GenericWaitList::SetSignalAndWakeupAll() {
         waiters_,  //
         [](WaitListLight& ws) { ws.SetSignalAndWakeupOne(); },
         [](WaitListAndSignal& ws) {
-            if (ws.signal.load()) return;
+            if (ws.signal.load()) {
+                return;
+            }
             WaitList::Lock lock{ws.wl};
-            if (ws.signal.load()) return;
+            if (ws.signal.load()) {
+                return;
+            }
             // seq_cst is important for the "Append-Check-Wakeup" sequence.
             ws.signal.store(true, std::memory_order_seq_cst);
             ws.wl.WakeupAll(lock);

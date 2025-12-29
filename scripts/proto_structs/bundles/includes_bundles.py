@@ -1,8 +1,8 @@
 """Sets of includes that are in C++ bundles."""
 
+from collections.abc import Set
 import functools
 import re
-from typing import Set
 
 from proto_structs.bundles import resources
 

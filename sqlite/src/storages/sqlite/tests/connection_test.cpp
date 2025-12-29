@@ -35,13 +35,15 @@ UTEST_F(SQLiteConnectionTest, CreateOpen) {
     settings.db_path = GetTestDbPath("test.db");
     settings.create_file = true;
 
-    UEXPECT_NO_THROW(CreateClient(settings)) << "Connect to a non-existent database, but the file will be created "
-                                                "automatically";
+    UEXPECT_NO_THROW(CreateClient(settings)
+    ) << "Connect to a non-existent database, but the file will be created "
+         "automatically";
 
     // Try to open existing database
     settings.create_file = false;
-    UEXPECT_NO_THROW(CreateClient(settings)) << "Connect to a existent database, but the file will be created "
-                                                "automatically";
+    UEXPECT_NO_THROW(CreateClient(settings)
+    ) << "Connect to a existent database, but the file will be created "
+         "automatically";
 }
 
 UTEST_F(SQLiteConnectionTest, InMemory) {

@@ -10,6 +10,10 @@
 #include <userver/logging/log.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
+#ifndef ARCADIA_ROOT
+#include "generated/src/server/handlers/dynamic_debug_log.yaml.hpp"  // Y_IGNORE
+#endif
+
 USERVER_NAMESPACE_BEGIN
 
 namespace server::handlers {
@@ -80,7 +84,8 @@ std::string ProcessDelete(const http::HttpRequest& request, request::RequestCont
 }  // namespace
 
 DynamicDebugLog::DynamicDebugLog(const components::ComponentConfig& config, const components::ComponentContext& context)
-    : HttpHandlerBase(config, context, /*is_monitor = */ true) {}
+    : HttpHandlerBase(config, context, /*is_monitor = */ true)
+{}
 
 std::string DynamicDebugLog::HandleRequestThrow(const http::HttpRequest& request, request::RequestContext& context)
     const {
@@ -97,12 +102,7 @@ std::string DynamicDebugLog::HandleRequestThrow(const http::HttpRequest& request
 }
 
 yaml_config::Schema DynamicDebugLog::GetStaticConfigSchema() {
-    return yaml_config::MergeSchemas<HttpHandlerBase>(R"(
-type: object
-description: Handler to show/hide logs at the specific file:line
-additionalProperties: false
-properties: {}
-)");
+    return yaml_config::MergeSchemasFromResource<HttpHandlerBase>("src/server/handlers/dynamic_debug_log.yaml");
 }
 
 }  // namespace server::handlers

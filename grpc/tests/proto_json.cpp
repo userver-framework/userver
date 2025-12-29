@@ -157,11 +157,11 @@ UTEST(ProtoJson, JsonToProtobufStruct) {
     const auto json = MakeTestStructJson();
     const auto json_as_protobuf_struct = json.As<google::protobuf::Struct>();
     const auto gt_protobuf_struct = MakeTestStruct();
-    EXPECT_TRUE(google::protobuf::util::MessageDifferencer::Equals(json_as_protobuf_struct, gt_protobuf_struct))
-        << "Expected:\n"
-        << gt_protobuf_struct.Utf8DebugString()  //
-        << "\nActual:\n"
-        << json_as_protobuf_struct.Utf8DebugString();
+    EXPECT_TRUE(google::protobuf::util::MessageDifferencer::Equals(json_as_protobuf_struct, gt_protobuf_struct)
+    ) << "Expected:\n"
+      << gt_protobuf_struct.Utf8DebugString()  //
+      << "\nActual:\n"
+      << json_as_protobuf_struct.Utf8DebugString();
 }
 
 UTEST(ProtoJson, ProtobufValueToJson) {
@@ -174,17 +174,18 @@ UTEST(ProtoJson, JsonToProtobufValue) {
     const auto json = MakeTestValueJson();
     const auto json_as_protobuf_value = json.As<google::protobuf::Value>();
     const auto gt_protobuf_value = MakeTestValue();
-    EXPECT_TRUE(google::protobuf::util::MessageDifferencer::Equals(json_as_protobuf_value, gt_protobuf_value))
-        << "Expected:\n"
-        << gt_protobuf_value.Utf8DebugString()  //
-        << "\nActual:\n"
-        << json_as_protobuf_value.Utf8DebugString();
+    EXPECT_TRUE(google::protobuf::util::MessageDifferencer::Equals(json_as_protobuf_value, gt_protobuf_value)
+    ) << "Expected:\n"
+      << gt_protobuf_value.Utf8DebugString()  //
+      << "\nActual:\n"
+      << json_as_protobuf_value.Utf8DebugString();
 }
 
 UTEST(ProtoJson, ProtobufListValueToJson) {
     if constexpr (GOOGLE_PROTOBUF_VERSION < 4022000) {
-        GTEST_SKIP() << "Somehow, an extra \"values\":[] appears in the resulting JSON. "
-                        "This is clearly a bug in MessageToJsonString.";
+        GTEST_SKIP()
+            << "Somehow, an extra \"values\":[] appears in the resulting JSON. "
+               "This is clearly a bug in MessageToJsonString.";
     }
     const auto protobuf_list_value = MakeTestListValue();
     const auto protobuf_list_value_as_json = formats::json::ValueBuilder{protobuf_list_value}.ExtractValue();
@@ -195,11 +196,11 @@ UTEST(ProtoJson, JsonToProtobufListValue) {
     const auto json = MakeTestListValueJson();
     const auto json_as_protobuf_list_value = json.As<google::protobuf::ListValue>();
     const auto gt_protobuf_list_value = MakeTestListValue();
-    EXPECT_TRUE(google::protobuf::util::MessageDifferencer::Equals(json_as_protobuf_list_value, gt_protobuf_list_value))
-        << "Expected:\n"
-        << gt_protobuf_list_value.Utf8DebugString()  //
-        << "\nActual:\n"
-        << json_as_protobuf_list_value.Utf8DebugString();
+    EXPECT_TRUE(google::protobuf::util::MessageDifferencer::Equals(json_as_protobuf_list_value, gt_protobuf_list_value)
+    ) << "Expected:\n"
+      << gt_protobuf_list_value.Utf8DebugString()  //
+      << "\nActual:\n"
+      << json_as_protobuf_list_value.Utf8DebugString();
 }
 
 USERVER_NAMESPACE_END

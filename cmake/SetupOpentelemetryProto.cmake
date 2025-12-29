@@ -7,12 +7,10 @@ set(USERVER_OPENTELEMETRY_PROTO
 if(NOT USERVER_OPENTELEMETRY_PROTO)
     include(DownloadUsingCPM)
     cpmaddpackage(
-        NAME
-        opentelemetry_proto
-        GITHUB_REPOSITORY
-        open-telemetry/opentelemetry-proto
-        VERSION
-        1.3.2
+        NAME opentelemetry_proto
+        GITHUB_REPOSITORY open-telemetry/opentelemetry-proto
+        GIT_SHALLOW TRUE
+        VERSION 1.3.2
         DOWNLOAD_ONLY
     )
 else()

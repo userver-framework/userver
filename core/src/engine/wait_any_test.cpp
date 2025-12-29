@@ -24,7 +24,9 @@ UTEST(WaitAny, VectorTasks) {
     for (size_t i = 0; i < task_count; i++) {
         tasks.push_back(engine::AsyncNoSpan([&finished_counter, i] {
             const size_t order = (i + task_count - task_order_shift) % task_count;
-            while (finished_counter < order) engine::Yield();
+            while (finished_counter < order) {
+                engine::Yield();
+            }
             return i;
         }));
     }
@@ -64,7 +66,9 @@ UTEST(WaitAny, Cancelled) {
         auto task_idx_opt = engine::WaitAny(tasks);
         ASSERT_EQ(task_idx_opt, std::nullopt);
     });
-    while (!started.load()) engine::Yield();
+    while (!started.load()) {
+        engine::Yield();
+    }
 
     task.SyncCancel();
 }
@@ -150,10 +154,11 @@ UTEST(WaitAny, DistinctTypes) {
         ASSERT_NE(task_idx_opt, std::nullopt);
         ASSERT_TRUE(*task_idx_opt == 0 || *task_idx_opt == 1);
         mask |= 1 << *task_idx_opt;
-        if (*task_idx_opt == 0)
+        if (*task_idx_opt == 0) {
             EXPECT_EQ(task0.Get(), 1);
-        else
+        } else {
             EXPECT_EQ(task1.Get(), std::string{"abc"});
+        }
     }
     EXPECT_EQ(mask, 3);
 }
@@ -178,7 +183,9 @@ UTEST(WaitAny, Throwing) {
     std::vector<engine::TaskWithResult<void>> tasks;
     for (size_t i = 0; i < task_count; i++) {
         tasks.push_back(engine::AsyncNoSpan([i] {
-            if (i == 1) throw std::runtime_error("test");
+            if (i == 1) {
+                throw std::runtime_error("test");
+            }
             for (;;) {
                 engine::Yield();
                 engine::current_task::CancellationPoint();

@@ -19,7 +19,9 @@ DeadlineSignal::DeadlineSignal(const DeadlineSignal& other) noexcept
     : value_(other.value_.load(std::memory_order_relaxed)) {}
 
 DeadlineSignal& DeadlineSignal::operator=(const DeadlineSignal& other) noexcept {
-    if (this == &other) return *this;
+    if (this == &other) {
+        return *this;
+    }
     value_.store(other.value_.load(std::memory_order_relaxed), std::memory_order_relaxed);
     return *this;
 }
@@ -42,7 +44,9 @@ void MarkTaskInheritedDeadlineExpired() noexcept {
     }
 }
 
-DeadlinePropagationBlocker::DeadlinePropagationBlocker() : old_value_(GetTaskInheritedDataOrDefault()) {
+DeadlinePropagationBlocker::DeadlinePropagationBlocker()
+    : old_value_(GetTaskInheritedDataOrDefault())
+{
     if (old_value_.deadline.IsReachable()) {
         auto patched = old_value_;
         patched.deadline = {};

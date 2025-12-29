@@ -3,7 +3,7 @@ import asyncio
 import enum
 import gzip
 import logging
-import typing
+from typing import Any
 
 from aiohttp import client_exceptions as exceptions
 import pytest
@@ -43,13 +43,13 @@ class ErrorType(enum.Enum):
 def _call(modified_service_client, gate):
     async def _call(
         htype: str = 'common',
-        data: typing.Any = None,
+        data: Any = None,
         timeout: float = DEFAULT_TIMEOUT,
         testsuite_skip_prepare: bool = False,
-        headers: typing.Optional[typing.Dict[str, str]] = None,
-        args: typing.Dict[str, str] = {},
+        headers: dict[str, str] | None = None,
+        args: dict[str, str] | None = None,
         url: str = '/chaos/httpserver',
-    ) -> typing.Union[http.ClientResponse, ErrorType]:
+    ) -> http.ClientResponse | ErrorType:
         try:
             if not data:
                 data = DEFAULT_DATA
@@ -59,7 +59,7 @@ def _call(modified_service_client, gate):
                 url,
                 headers=headers,
                 timeout=timeout,
-                params={'type': htype, **args},
+                params={'type': htype, **(args or {})},
                 data=data,
                 testsuite_skip_prepare=testsuite_skip_prepare,
             )
@@ -133,7 +133,7 @@ async def test_ok_compressed_gzip(call):
     response = await call(
         htype='echo',
         headers={'content-encoding': 'gzip'},
-        data=gzip.compress('abcd'.encode()),
+        data=gzip.compress(b'abcd'),
         testsuite_skip_prepare=True,
     )
     assert response.status == 200
@@ -144,7 +144,7 @@ async def test_ok_compressed_gzip_args(call):
     response = await call(
         htype='echo-and-check-args',
         headers={'content-encoding': 'gzip'},
-        data=gzip.compress('abcd'.encode()),
+        data=gzip.compress(b'abcd'),
         testsuite_skip_prepare=True,
         args={'srv': 'mt-dev', 'lang': 'en-ru'},
     )
@@ -156,7 +156,7 @@ async def test_ok_compressed_gzip_body_args(call):
     response = await call(
         htype='echo-and-check-args',
         headers={'content-encoding': 'gzip'},
-        data=gzip.compress('lang=en-ru'.encode()),
+        data=gzip.compress(b'lang=en-ru'),
         testsuite_skip_prepare=True,
         args={'srv': 'mt-dev'},
         url='/chaos/httpserver-parse-body-args',
@@ -169,7 +169,7 @@ async def test_ok_compressed_zstd(call):
     response = await call(
         htype='echo',
         headers={'content-encoding': 'zstd'},
-        data=zstd.compress('abcdefgh'.encode()),
+        data=zstd.compress(b'abcdefgh'),
         testsuite_skip_prepare=True,
     )
     assert response.status == 200
@@ -180,7 +180,7 @@ async def test_ok_compressed_zstd_args(call):
     response = await call(
         htype='echo-and-check-args',
         headers={'content-encoding': 'zstd'},
-        data=zstd.compress('abcdefgh'.encode()),
+        data=zstd.compress(b'abcdefgh'),
         testsuite_skip_prepare=True,
         args={'srv': 'mt-dev', 'lang': 'en-ru'},
     )
@@ -192,7 +192,7 @@ async def test_ok_compressed_zstd_body_args(call):
     response = await call(
         htype='echo-and-check-args',
         headers={'content-encoding': 'zstd'},
-        data=zstd.compress('lang=en-ru'.encode()),
+        data=zstd.compress(b'lang=en-ru'),
         testsuite_skip_prepare=True,
         args={'srv': 'mt-dev'},
         url='/chaos/httpserver-parse-body-args',
@@ -277,7 +277,7 @@ async def test_partial_request(call, gate, check_restore):
             testsuite_skip_prepare=True,
         )
         if response == ErrorType.DISCONNECT:
-            fail = fail + 1
+            fail += 1
         elif isinstance(response, http.ClientResponse):
             success = True
             break

@@ -44,6 +44,9 @@ components_manager:
 
 4. Thats it. Reflection component will start automatically and expose every gRPC entity in your service.
 
+
+----------
+
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref scripts/docs/en/userver/libraries/s3api.md | @ref scripts/docs/en/userver/development/stability.md ⇨
+⇦ @ref scripts/docs/en/userver/libraries/s3api.md | @ref scripts/docs/en/userver/libraries/multi_index_lru.md ⇨
 @htmlonly </div> @endhtmlonly

@@ -29,6 +29,10 @@
 
 #include <dynamic_config/storage_data.hpp>
 
+#ifndef ARCADIA_ROOT
+#include "generated/src/dynamic_config/storage/component.yaml.hpp"  // Y_IGNORE
+#endif
+
 USERVER_NAMESPACE_BEGIN
 
 namespace components {
@@ -46,7 +50,9 @@ struct DynamicConfigStatistics final {
 
 bool AreCacheDumpsEnabled(const components::ComponentContext& context) {
     auto* const testsuite_support = context.FindComponentOptional<components::TestsuiteSupport>();
-    if (!testsuite_support) return true;
+    if (!testsuite_support) {
+        return true;
+    }
     return testsuite_support->GetDumpControl().GetPeriodicsMode() == testsuite::DumpControl::PeriodicsMode::kEnabled;
 }
 
@@ -101,9 +107,6 @@ private:
     mutable engine::Mutex loaded_mutex_;
     mutable engine::ConditionVariable loaded_cv_;
     DynamicConfigStatistics stats_;
-
-    // Must be the last field
-    utils::statistics::Entry statistics_holder_;
 };
 
 DynamicConfig::Impl::Impl(const ComponentConfig& config, const ComponentContext& context)
@@ -111,13 +114,14 @@ DynamicConfig::Impl::Impl(const ComponentConfig& config, const ComponentContext&
       fs_cache_path_(config["fs-cache-path"].As<std::string>({})),
       fs_task_processor_(GetFsTaskProcessor(config, context)),
       updates_enabled_(config["updates-enabled"].As<bool>(false)),
-      fs_write_enabled_(AreCacheDumpsEnabled(context)) {
+      fs_write_enabled_(AreCacheDumpsEnabled(context))
+{
     ReadFallback(config);
     ReadFsCache();
 
-    statistics_holder_ = context.FindComponent<components::StatisticsStorage>().GetStorage().RegisterWriter(
-        "dynamic-config", [this](auto& writer) { WriteStatistics(writer); }
-    );
+    utils::statistics::RegisterWriterScope(context, "dynamic-config", [this](auto& writer) {
+        WriteStatistics(writer);
+    });
 }
 
 dynamic_config::Source DynamicConfig::Impl::GetSource() {
@@ -130,7 +134,9 @@ const dynamic_config::DocsMap& DynamicConfig::Impl::GetDefaultDocsMap() const { 
 bool DynamicConfig::Impl::AreUpdatesEnabled() const { return updates_enabled_; }
 
 void DynamicConfig::Impl::WaitUntilLoaded() {
-    if (Has()) return;
+    if (Has()) {
+        return;
+    }
 
     LOG_TRACE() << "Wait started";
     std::unique_lock lock(loaded_mutex_);
@@ -138,7 +144,9 @@ void DynamicConfig::Impl::WaitUntilLoaded() {
         const auto res = loaded_cv_.WaitFor(lock, kWaitInterval);
         if (res == engine::CvStatus::kTimeout) {
             std::string_view fs_note = " Last error while reading config from FS: ";
-            if (fs_loading_error_msg_.empty()) fs_note = {};
+            if (fs_loading_error_msg_.empty()) {
+                fs_note = {};
+            }
             LOG_WARNING() << "Waiting for the config load." << fs_note << fs_loading_error_msg_;
         }
     }
@@ -190,8 +198,9 @@ void DynamicConfig::Impl::DoSetConfig(const dynamic_config::DocsMap& value) {
     auto config = ParseConfig(value);
 
     if (!value.GetConfigsExpectedToBeUsed(utils::impl::InternalTag{}).empty()) {
-        LOG_INFO() << "Some configs expected to be used are actually not needed: "
-                   << value.GetConfigsExpectedToBeUsed(utils::impl::InternalTag{});
+        LOG_INFO()
+            << "Some configs expected to be used are actually not needed: "
+            << value.GetConfigsExpectedToBeUsed(utils::impl::InternalTag{});
     }
 
     auto after_assign_hook = [&] {
@@ -216,10 +225,13 @@ ComponentHealth DynamicConfig::Impl::GetComponentHealth() const {
 }
 
 void DynamicConfig::Impl::OnLoadingCancelled() {
-    if (Has()) return;
+    if (Has()) {
+        return;
+    }
 
-    LOG_WARNING() << "Components load was cancelled before DynamicConfig was "
-                     "loaded. Please see previous logs for the failure reason";
+    LOG_WARNING()
+        << "Components load was cancelled before DynamicConfig was "
+           "loaded. Please see previous logs for the failure reason";
     {
         const std::lock_guard lock(loaded_mutex_);
         config_load_cancelled_ = true;
@@ -263,14 +275,17 @@ void DynamicConfig::Impl::ReadFallback(const ComponentConfig& config) {
 }
 
 void DynamicConfig::Impl::ReadFsCache() {
-    if (fs_cache_path_.empty()) return;
+    if (fs_cache_path_.empty()) {
+        return;
+    }
 
     const tracing::Span span("dynamic_config_fs_cache_read");
     try {
         if (!fs::FileExists(fs_task_processor_, fs_cache_path_)) {
             fs_loading_error_msg_ = "No cache file found";
-            LOG_WARNING() << "No filesystem cache for dynamic config found, waiting "
-                             "until the updater fetches fresh configs";
+            LOG_WARNING()
+                << "No filesystem cache for dynamic config found, waiting "
+                   "until the updater fetches fresh configs";
             return;
         }
         const auto contents = fs::ReadFileContents(fs_task_processor_, fs_cache_path_);
@@ -294,7 +309,9 @@ void DynamicConfig::Impl::ReadFsCache() {
 }
 
 void DynamicConfig::Impl::WriteFsCache(const dynamic_config::DocsMap& docs_map) {
-    if (fs_cache_path_.empty() || !fs_write_enabled_) return;
+    if (fs_cache_path_.empty() || !fs_write_enabled_) {
+        return;
+    }
 
     const tracing::Span span("dynamic_config_fs_cache_write");
     try {
@@ -318,8 +335,8 @@ void DynamicConfig::Impl::WriteStatistics(utils::statistics::Writer& writer) con
 DynamicConfig::NoblockSubscriber::NoblockSubscriber(DynamicConfig& config_component) noexcept
     : config_component_(config_component) {}
 
-concurrent::AsyncEventSource<const dynamic_config::Snapshot&>& DynamicConfig::NoblockSubscriber::GetEventSource(
-) noexcept {
+concurrent::AsyncEventSource<const dynamic_config::Snapshot&>& DynamicConfig::NoblockSubscriber::GetEventSource()
+    noexcept {
     return config_component_.impl_->GetChannel();
 }
 
@@ -328,7 +345,9 @@ concurrent::AsyncEventSource<const dynamic_config::Diff&>& DynamicConfig::Nobloc
 }
 
 DynamicConfig::DynamicConfig(const ComponentConfig& config, const ComponentContext& context)
-    : DynamicConfigUpdatesSinkBase(config, context), impl_(std::make_unique<Impl>(config, context)) {
+    : DynamicConfigUpdatesSinkBase(config, context),
+      impl_(std::make_unique<Impl>(config, context))
+{
     if (!impl_->AreUpdatesEnabled()) {
         dynamic_config::impl::RegisterUpdater(*this, kName, kName);
         SetConfig(kName, impl_->GetDefaultDocsMap());
@@ -358,35 +377,19 @@ void DynamicConfig::NotifyLoadingFailed(std::string_view updater, std::string_vi
 }
 
 yaml_config::Schema DynamicConfig::GetStaticConfigSchema() {
-    return yaml_config::MergeSchemas<ComponentBase>(R"(
-type: object
-description: Component that stores the runtime config.
-additionalProperties: false
-properties:
-    updates-enabled:
-        type: boolean
-        description: should be set to 'true' if there is an updater component
-        defaultDescription: false
-    defaults:
-        type: object
-        description: optional values for configs that override the defaults specified in dynamic_config::Key definitions
-        defaultDescription: values from dynamic_config::Key definitions are used
-        properties: {}
-        additionalProperties: true
-    defaults-path:
-        type: string
-        description: optional file with config values that override the defaults specified in dynamic_config::Key definitions
-        defaultDescription: values from dynamic_config::Key definitions are used
-    fs-cache-path:
-        type: string
-        description: path to the file to read and dump a config cache; set to empty string to disable reading and dumping configs to FS
-        defaultDescription: no fs cache
-    fs-task-processor:
-        type: string
-        description: name of the task processor to run the blocking file write operations
-        defaultDescription: engine::current_task::GetBlockingTaskProcessor()
-)");
+    return yaml_config::MergeSchemasFromResource<ComponentBase>("src/dynamic_config/storage/component.yaml");
 }
+
+/// [LocateDependency example]
+dynamic_config::Source LocateDependency(
+    const components::WithType<dynamic_config::Source>&,
+    const components::ComponentConfig&,
+    const components::ComponentContext& context
+)
+{
+    return context.FindComponent<components::DynamicConfig>().GetSource();
+}
+/// [LocateDependency example]
 
 }  // namespace components
 

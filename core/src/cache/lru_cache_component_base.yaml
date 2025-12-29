@@ -1,0 +1,22 @@
+type: object
+description: Base class for LRU-cache components
+additionalProperties: false
+properties:
+    size:
+        type: integer
+        description: max amount of items to store in cache
+    ways:
+        type: integer
+        description: number of ways for associative cache
+    lifetime:
+        type: string
+        description: TTL for cache entries (0 is unlimited)
+        default: 0
+    background-update:
+        type: boolean
+        description: enables asynchronous updates for expiring values
+        default: false
+    config-settings:
+        type: boolean
+        description: enables dynamic reconfiguration with CacheConfigSet
+        default: true

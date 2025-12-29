@@ -14,11 +14,11 @@ def test_generic_error(simple_parse):
 def test_unknown_field(simple_parse):
     with pytest.raises(ParserError) as exc:
         simple_parse({'type': 'integer', 'unknown_field': '1'})
-    assert exc.value.infile_path == '/definitions/type/unknown_field'
+    assert exc.value.infile_path == '/definitions/type'
     assert exc.value.msg == (
         'Unknown field: "unknown_field", known fields: '
-        '["default", "deprecated", "enum", "exclusiveMaximum", "exclusiveMinimum", '
-        '"format", "maximum", "minimum", "nullable", "type"]'
+        "['default', 'deprecated', 'description', 'enum', 'example', 'exclusiveMaximum', 'exclusiveMinimum', "
+        "'format', 'maximum', 'minimum', 'nullable', 'title', 'type']"
     )
 
 

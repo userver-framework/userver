@@ -18,7 +18,8 @@ public:
     static inline const std::string kDefaultAnswer = "OK!";
 
     HttpServerHandler(const components::ComponentConfig& config, const components::ComponentContext& context)
-        : HttpHandlerBase(config, context) {}
+        : HttpHandlerBase(config, context)
+    {}
 
     std::string HandleRequestThrow(const server::http::HttpRequest& request, server::request::RequestContext&)
         const override {
@@ -51,8 +52,12 @@ public:
 
         if (type == "echo-and-check-args") {
             UASSERT_MSG(!request.IsBodyCompressed(), "Body was not decompressed by userver");
-            if (request.GetArg("srv") != "mt-dev") throw std::runtime_error("Failed arg 'srv'");
-            if (request.GetArg("lang") != "en-ru") throw std::runtime_error("Failed arg 'lang'");
+            if (request.GetArg("srv") != "mt-dev") {
+                throw std::runtime_error("Failed arg 'srv'");
+            }
+            if (request.GetArg("lang") != "en-ru") {
+                throw std::runtime_error("Failed arg 'lang'");
+            }
             return request.RequestBody();
         }
 

@@ -14,9 +14,8 @@ UTEST_F(RedisClientTest, HedgedRequest) {
     client->Set(testkey, testvalue, cc).Get();
 
     const utils::hedging::HedgingSettings settings;
-    auto response_opt = storages::redis::MakeHedgedRedisRequest<storages::redis::RequestGet>(
-        client, &storages::redis::Client::Get, cc, settings, testkey
-    );
+    auto response_opt = storages::redis::MakeHedgedRedisRequest<
+        storages::redis::RequestGet>(client, &storages::redis::Client::Get, cc, settings, testkey);
     EXPECT_TRUE(response_opt.has_value());
     EXPECT_EQ(response_opt, testvalue);
 }
@@ -29,9 +28,8 @@ UTEST_F(RedisClientTest, HedgedRequestAsync) {
     client->Set(testkey, testvalue, cc).Get();
 
     const utils::hedging::HedgingSettings settings;
-    auto request = storages::redis::MakeHedgedRedisRequestAsync<storages::redis::RequestGet>(
-        client, &storages::redis::Client::Get, cc, settings, testkey
-    );
+    auto request = storages::redis::MakeHedgedRedisRequestAsync<
+        storages::redis::RequestGet>(client, &storages::redis::Client::Get, cc, settings, testkey);
     auto response_opt = request.Get();
     EXPECT_TRUE(response_opt.has_value());
     EXPECT_EQ(response_opt, testvalue);
@@ -54,9 +52,8 @@ UTEST_F(RedisClientTest, HedgedRequestBulk) {
     }
 
     const utils::hedging::HedgingSettings settings;
-    auto response = storages::redis::MakeBulkHedgedRedisRequest<storages::redis::RequestGet>(
-        client, &storages::redis::Client::Get, cc, settings, args
-    );
+    auto response = storages::redis::MakeBulkHedgedRedisRequest<
+        storages::redis::RequestGet>(client, &storages::redis::Client::Get, cc, settings, args);
     ASSERT_EQ(response.size(), args.size());
     for (size_t i = 0; i < 10; ++i) {
         EXPECT_EQ(response[i], testvalue + std::to_string(i));
@@ -80,9 +77,8 @@ UTEST_F(RedisClientTest, HedgedRequestBulkAsync) {
     }
 
     const utils::hedging::HedgingSettings settings;
-    auto future = storages::redis::MakeBulkHedgedRedisRequestAsync<storages::redis::RequestGet>(
-        client, &storages::redis::Client::Get, cc, settings, args
-    );
+    auto future = storages::redis::MakeBulkHedgedRedisRequestAsync<
+        storages::redis::RequestGet>(client, &storages::redis::Client::Get, cc, settings, args);
     auto response = future.Get();
     ASSERT_EQ(response.size(), args.size());
     for (size_t i = 0; i < 10; ++i) {

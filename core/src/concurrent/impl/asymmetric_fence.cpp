@@ -92,8 +92,10 @@ void AsymmetricThreadFenceHeavy() noexcept {
 
 void AsymmetricThreadFenceForceRegisterThread() noexcept {
     if (__builtin_expect(thread_registration_status == MembarrierRegistrationStatus::kNotCheckedYet, false)) {
-        thread_registration_status = TryRegisterThread() ? MembarrierRegistrationStatus::kRegistered
-                                                         : MembarrierRegistrationStatus::kUnsupported;
+        thread_registration_status =
+            TryRegisterThread()
+                ? MembarrierRegistrationStatus::kRegistered
+                : MembarrierRegistrationStatus::kUnsupported;
     }
 }
 

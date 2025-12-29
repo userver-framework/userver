@@ -5,6 +5,10 @@
 #include <userver/tracing/span_builder.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
+#ifndef ARCADIA_ROOT
+#include "generated/src/tracing/manager_component.yaml.hpp"  // Y_IGNORE
+#endif
+
 USERVER_NAMESPACE_BEGIN
 
 namespace tracing {
@@ -56,35 +60,13 @@ DefaultTracingManagerLocator::DefaultTracingManagerLocator(
 )
     : components::ComponentBase(config, context),
       default_manager_(config["incoming-format"].As<FlagsFormat>(), config["new-requests-format"].As<FlagsFormat>()),
-      tracing_manager_(GetTracingManagerFromConfig(default_manager_, config, context)) {}
+      tracing_manager_(GetTracingManagerFromConfig(default_manager_, config, context))
+{}
 
 const TracingManagerBase& DefaultTracingManagerLocator::GetTracingManager() const { return tracing_manager_; }
 
 yaml_config::Schema DefaultTracingManagerLocator::GetStaticConfigSchema() {
-    return yaml_config::MergeSchemas<components::ComponentBase>(R"(
-type: object
-description: component for finding actual tracing manager
-additionalProperties: false
-properties:
-    component-name:
-        type: string
-        description: tracing manager component's name
-    incoming-format:
-        type: array
-        description: Incoming tracing data formats
-        items: &format_items
-            type: string
-            description: tracing formats
-            enum:
-              - b3-alternative
-              - yandex
-              - taxi
-              - opentelemetry
-    new-requests-format:
-        type: array
-        description: Send tracing data in those formats
-        items: *format_items
-)");
+    return yaml_config::MergeSchemasFromResource<components::ComponentBase>("src/tracing/manager_component.yaml");
 }
 
 }  // namespace tracing

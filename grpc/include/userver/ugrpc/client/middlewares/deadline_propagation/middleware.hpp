@@ -17,8 +17,9 @@ public:
     static constexpr std::string_view kName = "grpc-client-deadline-propagation";
 
     /// @brief dependency of this middleware. Core group.
-    static inline const auto kDependency = USERVER_NAMESPACE::middlewares::MiddlewareDependencyBuilder()
-                                               .InGroup<USERVER_NAMESPACE::middlewares::groups::Core>();
+    static inline const auto kDependency =
+        USERVER_NAMESPACE::middlewares::MiddlewareDependencyBuilder()
+            .InGroup<USERVER_NAMESPACE::middlewares::groups::Core>();
 
     Middleware() = default;
 

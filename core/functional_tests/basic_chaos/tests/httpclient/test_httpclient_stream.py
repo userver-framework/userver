@@ -121,3 +121,24 @@ async def test_network_failure(call, gate, mockserver):
     response = await call()
     assert response.status == 200
     assert mock.times_called > 1
+
+
+async def test_required_headers(call, gate, mockserver):
+    @mockserver.handler('/test')
+    async def mock(request):
+        return mockserver.make_response('OK!')
+
+    required_headers = ['X-YaRequestId', 'X-YaSpanId', 'X-YaTraceId']
+
+    response = await call()
+    assert response.status == 200
+    assert all(key in response.headers for key in required_headers)
+
+    await gate.stop_accepting()
+    await gate.sockets_close()  # close keepalive connections
+    assert gate.connections_count() == 0
+
+    response = await call()
+    assert response.status == 500
+    assert all(key in response.headers for key in required_headers)
+    assert gate.connections_count() == 0

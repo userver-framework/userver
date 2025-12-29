@@ -1,7 +1,5 @@
 import enum
 from typing import Any
-from typing import Optional
-from typing import Union
 
 import pydantic
 
@@ -10,9 +8,9 @@ from . import errors
 
 
 class Info(base_model.BaseModel):
-    description: Optional[str] = None
-    title: Optional[str] = None
-    version: Optional[str] = None
+    description: str | None = None
+    title: str | None = None
+    version: str | None = None
 
 
 # https://spec.openapis.org/oas/v2.0.html#reference-object
@@ -31,7 +29,7 @@ class In(str, enum.Enum):
 # https://spec.openapis.org/oas/v2.0.html#parameter-object
 class Parameter(base_model.BaseModel):
     name: str
-    in_: In = pydantic.Field(alias='in')
+    in_: In = pydantic.Field(alias='in', strict=False)
     description: str = ''
     required: bool = False
 
@@ -39,16 +37,16 @@ class Parameter(base_model.BaseModel):
     schema_: Any = pydantic.Field(alias='schema', default=None)
 
     # in != body
-    type: Optional[str] = None
-    format: Optional[str] = None
+    type: str | None = None
+    format: str | None = None
     allowEmptyValue: bool = False
-    items: Optional[dict] = None
-    collectionFormat: Optional[str] = None
+    items: dict | None = None
+    collectionFormat: str | None = None
     default: Any = None
 
     # TODO: validators
 
-    x_cpp_name: Optional[str] = pydantic.Field(
+    x_cpp_name: str | None = pydantic.Field(
         default=None,
         validation_alias=pydantic.AliasChoices('x-taxi-cpp-name', 'x-usrv-cpp-name'),
     )
@@ -67,11 +65,11 @@ class Parameter(base_model.BaseModel):
 
 # https://spec.openapis.org/oas/v2.0.html#header-object
 class Header(base_model.BaseModel):
-    description: Optional[str] = None
+    description: str | None = None
     type: str
-    format: Optional[str] = None
-    items: Optional[dict] = None
-    collectionFormat: Optional[str] = None
+    format: str | None = None
+    items: dict | None = None
+    collectionFormat: str | None = None
     default: Any = None
 
     # TODO: validators
@@ -95,7 +93,7 @@ class Response(base_model.BaseModel):
     examples: dict[str, Any] = pydantic.Field(default_factory=dict)
 
 
-Responses = dict[Union[str, int], Union[Response, Ref]]
+Responses = dict[str | int, Response | Ref]
 
 
 class SecurityType(str, enum.Enum):
@@ -118,62 +116,64 @@ class OAuthFlow(str, enum.Enum):
 
 # https://spec.openapis.org/oas/v2.0.html#security-definitions-object
 class SecurityDef(base_model.BaseModel):
-    type: SecurityType
-    description: Optional[str] = None
-    name: Optional[str] = None
-    in_: Optional[SecurityIn] = pydantic.Field(alias='in', default=None)
-    flow: Optional[OAuthFlow] = None
-    authorizationUrl: Optional[str] = None
-    tokenUrl: Optional[str] = None
+    type: SecurityType = pydantic.Field(strict=False)
+    description: str | None = None
+    name: str | None = None
+    in_: SecurityIn | None = pydantic.Field(alias='in', default=None, strict=False)
+    flow: OAuthFlow | None = pydantic.Field(default=None, strict=False)
+    authorizationUrl: str | None = None
+    tokenUrl: str | None = None
     scopes: dict[str, str] = pydantic.Field(default_factory=dict)
 
     def model_post_init(self, context: Any, /) -> None:
-        if self.type == SecurityType.apiKey:
-            if not self.name:
-                raise ValueError(errors.missing_field_msg('name'))
-            if not self.in_:
-                raise ValueError(errors.missing_field_msg('in'))
-        elif self.type == SecurityType.oauth2:
-            if not self.flow:
-                raise ValueError(errors.missing_field_msg('flow'))
-            if self.flow == OAuthFlow.implicit:
-                if not self.authorizationUrl:
-                    raise ValueError(errors.missing_field_msg('authorizationUrl'))
-            elif self.flow == OAuthFlow.password:
-                if not self.tokenUrl:
-                    raise ValueError(errors.missing_field_msg('tokenUrl'))
-            elif self.flow == OAuthFlow.application:
-                if not self.tokenUrl:
-                    raise ValueError(errors.missing_field_msg('tokenUrl'))
-            elif self.flow == OAuthFlow.accessCode:
-                if not self.tokenUrl:
-                    raise ValueError(errors.missing_field_msg('tokenUrl'))
-                if not self.authorizationUrl:
-                    raise ValueError(errors.missing_field_msg('authorizationUrl'))
+        match self.type:
+            case SecurityType.apiKey:
+                if not self.name:
+                    raise ValueError(errors.missing_field_msg('name'))
+                if not self.in_:
+                    raise ValueError(errors.missing_field_msg('in'))
+            case SecurityType.oauth2:
+                match self.flow:
+                    case None:
+                        raise ValueError(errors.missing_field_msg('flow'))
+                    case OAuthFlow.implicit:
+                        if not self.authorizationUrl:
+                            raise ValueError(errors.missing_field_msg('authorizationUrl'))
+                    case OAuthFlow.password:
+                        if not self.tokenUrl:
+                            raise ValueError(errors.missing_field_msg('tokenUrl'))
+                    case OAuthFlow.application:
+                        if not self.tokenUrl:
+                            raise ValueError(errors.missing_field_msg('tokenUrl'))
+                    case OAuthFlow.accessCode:
+                        if not self.tokenUrl:
+                            raise ValueError(errors.missing_field_msg('tokenUrl'))
+                        if not self.authorizationUrl:
+                            raise ValueError(errors.missing_field_msg('authorizationUrl'))
 
 
 # https://spec.openapis.org/oas/v2.0.html#security-requirement-object
 Security = dict[str, list[str]]
 
-Parameters = list[Union[Parameter, Ref]]
+Parameters = list[Parameter | Ref]
 
 
 # https://spec.openapis.org/oas/v2.0.html#operation-object
 class Operation(base_model.BaseModel):
-    tags: Optional[list[str]] = None
-    summary: Optional[str] = None
+    tags: list[str] | None = None
+    summary: str | None = None
     description: str = ''
-    externalDocs: Optional[dict] = None
-    operationId: Optional[str] = None
+    externalDocs: dict | None = None
+    operationId: str | None = None
     consumes: list[str] = pydantic.Field(default_factory=list)
     produces: list[str] = pydantic.Field(default_factory=list)
     parameters: Parameters = pydantic.Field(default_factory=list)
     responses: Responses
     schemes: list[str] = pydantic.Field(default_factory=list)
     deprecated: bool = False
-    security: Optional[Security] = None
+    security: Security | None = None
 
-    x_taxi_middlewares: Optional[base_model.XMiddlewares] = pydantic.Field(
+    x_taxi_middlewares: base_model.XMiddlewares | None = pydantic.Field(
         default=None,
         validation_alias=pydantic.AliasChoices('x-taxi-middlewares', 'x-usrv-middlewares'),
     )
@@ -189,13 +189,13 @@ class Operation(base_model.BaseModel):
 
 # https://spec.openapis.org/oas/v2.0.html#paths-object
 class Path(base_model.BaseModel):
-    get: Optional[Operation] = None
-    post: Optional[Operation] = None
-    put: Optional[Operation] = None
-    delete: Optional[Operation] = None
-    options: Optional[Operation] = None
-    head: Optional[Operation] = None
-    patch: Optional[Operation] = None
+    get: Operation | None = None
+    post: Operation | None = None
+    put: Operation | None = None
+    delete: Operation | None = None
+    options: Operation | None = None
+    head: Operation | None = None
+    patch: Operation | None = None
     parameters: Parameters = pydantic.Field(default_factory=list)
 
 
@@ -205,8 +205,8 @@ Paths = dict[str, Path]
 # https://spec.openapis.org/oas/v2.0.html#schema
 class Swagger(base_model.BaseModel):
     swagger: str = '2.0'
-    info: Optional[Info] = None
-    host: Optional[str] = None
+    info: Info | None = None
+    host: str | None = None
     basePath: str = ''
     schemes: list[str] = pydantic.Field(default_factory=list)
     consumes: list[str] = pydantic.Field(default_factory=list)
@@ -218,7 +218,7 @@ class Swagger(base_model.BaseModel):
     securityDefinitions: dict[str, SecurityDef] = pydantic.Field(default_factory=dict)
     security: Security = pydantic.Field(default_factory=dict)
 
-    def validate_security(self, security: Optional[Security]) -> None:
+    def validate_security(self, security: Security | None) -> None:
         if not security:
             return
 

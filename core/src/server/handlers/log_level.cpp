@@ -22,7 +22,8 @@ constexpr utils::StringLiteral kReset = "reset";
 LogLevel::LogLevel(const components::ComponentConfig& config, const components::ComponentContext& context)
     : HttpHandlerBase(config, context, /*is_monitor = */ true),
       logging_component_(context.FindComponent<components::Logging>()),
-      data_(Data{logging::GetDefaultLoggerLevel(), {}}) {}
+      data_(Data{logging::GetDefaultLoggerLevel(), {}})
+{}
 
 std::string LogLevel::HandleRequestThrow(const http::HttpRequest& request, request::RequestContext& context) const {
     switch (request.GetMethod()) {

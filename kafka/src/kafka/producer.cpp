@@ -90,7 +90,8 @@ Producer::Producer(
           impl::Configuration{name, configuration, secrets},
           configuration.debug_info_log_level,
           configuration.operation_log_level
-      ) {}
+      )
+{}
 
 Producer::~Producer() {
     utils::Async(producer_task_processor_, "producer_shutdown", [this] {
@@ -154,8 +155,8 @@ void Producer::SendImpl(
         SendToTestPoint(name_, topic_name, key, message, partition, headers_copy, "::started");
     }
 
-    const impl::DeliveryResult delivery_result =
-        producer_->Send(topic_name, key, message, partition, std::move(headers_holder));
+    const impl::DeliveryResult
+        delivery_result = producer_->Send(topic_name, key, message, partition, std::move(headers_holder));
     if (!delivery_result.IsSuccess()) {
         ThrowSendError(delivery_result);
     }

@@ -165,7 +165,8 @@ std::vector<std::string_view> SplitTextIntoWords(const std::string_view text) {
 
 TEST(Regex, SplitTextIntoWords) {
     EXPECT_THAT(
-        SplitTextIntoWords("Foo bar. Baz,  qux quux."), testing::ElementsAre("Foo", "bar", "Baz", "qux", "quux")
+        SplitTextIntoWords("Foo bar. Baz,  qux quux."),
+        testing::ElementsAre("Foo", "bar", "Baz", "qux", "quux")
     );
     UEXPECT_THROW_MSG(SplitTextIntoWords("Foo + bar"), std::invalid_argument, "Invalid characters ' + '");
     UEXPECT_THROW_MSG(SplitTextIntoWords("Foo bar. baz."), std::invalid_argument, "Word 'baz' should be capitalized");
@@ -260,7 +261,8 @@ TEST(RegexDeathTest, SearchEmptyResult) {
     EXPECT_EQ(matches.position(0), 0);
     EXPECT_EQ(matches.length(0), 0);
     EXPECT_UINVARIANT_FAILURE_MSG(
-        matches.position(1), "Trying to access position of capturing group 1, which is empty (missing), target=''"
+        matches.position(1),
+        "Trying to access position of capturing group 1, which is empty (missing), target=''"
     );
     EXPECT_EQ(matches.length(0), 0);
     EXPECT_EQ(matches.prefix(), "");

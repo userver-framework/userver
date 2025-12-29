@@ -12,16 +12,23 @@ USERVER_NAMESPACE_BEGIN
 namespace chaotic::openapi {
 
 LoggingMiddleware::LoggingMiddleware(logging::Level request_level, logging::Level response_level, size_t body_log_limit)
-    : request_level_(request_level), response_level_(response_level), body_log_limit_(body_log_limit) {}
+    : request_level_(request_level),
+      response_level_(response_level),
+      body_log_limit_(body_log_limit)
+{}
 
 void LoggingMiddleware::OnRequest(clients::http::Request& request) {
-    LOG(request_level_) << "Request body: " << utils::log::ToLimitedUtf8(request.GetData(), body_log_limit_)
-                        << USERVER_NAMESPACE::logging::LogExtra{{"http_url", request.GetUrl()}};
+    LOG(request_level_
+    ) << "Request body: "
+      << utils::log::ToLimitedUtf8(request.GetData(), body_log_limit_)
+      << USERVER_NAMESPACE::logging::LogExtra{{"http_url", request.GetUrl()}};
 }
 
 void LoggingMiddleware::OnResponse(clients::http::Response& response) {
-    LOG(response_level_) << "Response body: " << utils::log::ToLimitedUtf8(response.body_view(), body_log_limit_)
-                         << USERVER_NAMESPACE::logging::LogExtra{{"meta_code", response.status_code()}};
+    LOG(response_level_
+    ) << "Response body: "
+      << utils::log::ToLimitedUtf8(response.body_view(), body_log_limit_)
+      << USERVER_NAMESPACE::logging::LogExtra{{"meta_code", response.status_code()}};
 }
 
 std::string LoggingMiddleware::GetStaticConfigSchemaStr() {
@@ -51,9 +58,8 @@ properties:
 std::shared_ptr<client::Middleware> LoggingMiddlewareFactory::Create(const yaml_config::YamlConfig& config) {
     const auto log_request_level = logging::LevelFromString(config["request_level"].As<std::string>("debug"));
     const auto log_response_level = logging::LevelFromString(config["response_level"].As<std::string>("debug"));
-    return std::make_shared<LoggingMiddleware>(
-        log_request_level, log_response_level, config["body_limit"].As<size_t>(1024)
-    );
+    return std::make_shared<
+        LoggingMiddleware>(log_request_level, log_response_level, config["body_limit"].As<size_t>(1024));
 }
 
 std::string LoggingMiddlewareFactory::GetStaticConfigSchemaStr() {

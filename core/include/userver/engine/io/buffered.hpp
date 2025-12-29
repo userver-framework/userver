@@ -77,9 +77,10 @@ private:
 
     ReadableBasePtr source_;
 
-    constexpr static std::size_t kBufferSize = compiler::SelectSize()  //
-                                                   .For64Bit(40)
-                                                   .For32Bit(20);
+    constexpr static std::size_t kBufferSize =
+        compiler::SelectSize()  //
+            .For64Bit(40)
+            .For32Bit(20);
     constexpr static std::size_t kBufferAlignment = alignof(void*);
     utils::FastPimpl<impl::Buffer, kBufferSize, kBufferAlignment, true> buffer_;
 };

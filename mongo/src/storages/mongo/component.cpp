@@ -12,6 +12,11 @@
 
 #include <storages/mongo/mongo_secdist.hpp>
 
+#ifndef ARCADIA_ROOT
+#include "generated/src/storages/mongo/component.yaml.hpp"        // Y_IGNORE
+#include "generated/src/storages/mongo/component_multi.yaml.hpp"  // Y_IGNORE
+#endif
+
 USERVER_NAMESPACE_BEGIN
 
 namespace components {
@@ -27,7 +32,9 @@ auto ParsePoolConfig(const ComponentConfig& config) {
 
 }  // namespace
 
-Mongo::Mongo(const ComponentConfig& config, const ComponentContext& context) : ComponentBase(config, context) {
+Mongo::Mongo(const ComponentConfig& config, const ComponentContext& context)
+    : ComponentBase(config, context)
+{
     auto dbalias = config["dbalias"].As<std::string>("");
 
     std::string connection_string;
@@ -45,9 +52,8 @@ Mongo::Mongo(const ComponentConfig& config, const ComponentContext& context) : C
     const auto pool_config = ParsePoolConfig(config);
     auto config_source = context.FindComponent<DynamicConfig>().GetSource();
 
-    pool_ = std::make_shared<storages::mongo::Pool>(
-        config.Name(), connection_string, pool_config, dns_resolver, config_source
-    );
+    pool_ = std::make_shared<
+        storages::mongo::Pool>(config.Name(), connection_string, pool_config, dns_resolver, config_source);
 
     if (!dbalias_.empty()) {
         secdist_subscriber_ = secdist->UpdateAndListen(this, dbalias_, &Mongo::OnSecdistUpdate);
@@ -57,7 +63,8 @@ Mongo::Mongo(const ComponentConfig& config, const ComponentContext& context) : C
 
     auto section_name = config.Name();
     if (boost::algorithm::starts_with(section_name, kStandardMongoPrefix) &&
-        section_name.size() != kStandardMongoPrefix.size()) {
+        section_name.size() != kStandardMongoPrefix.size())
+    {
         section_name = section_name.substr(kStandardMongoPrefix.size());
     }
     statistics_holder_ = statistics_storage.GetStorage().RegisterWriter(
@@ -83,22 +90,7 @@ void Mongo::OnSecdistUpdate(const storages::secdist::SecdistConfig& config) {
 }
 
 yaml_config::Schema Mongo::GetStaticConfigSchema() {
-    return yaml_config::MergeSchemas<MultiMongo>(R"(
-type: object
-description: MongoDB client component
-additionalProperties: false
-properties:
-    dbalias:
-        type: string
-        description: name of the database in secdist config (if available)
-    dbconnection:
-        type: string
-        description: connection string (used if no dbalias specified)
-    maintenance_period:
-        type: string
-        description: pool maintenance period (idle connections pruning etc.)
-        defaultDescription: 15s
-)");
+    return yaml_config::MergeSchemasFromResource<MultiMongo>("src/storages/mongo/component.yaml");
 }
 
 MultiMongo::MultiMongo(const ComponentConfig& config, const ComponentContext& context)
@@ -109,11 +101,14 @@ MultiMongo::MultiMongo(const ComponentConfig& config, const ComponentContext& co
           ParsePoolConfig(config),
           clients::dns::GetResolverPtr(config, context),
           context.FindComponent<DynamicConfig>().GetSource()
-      ) {
+      )
+{
     auto& statistics_storage = context.FindComponent<components::StatisticsStorage>();
-    statistics_holder_ = statistics_storage.GetStorage().RegisterWriter(
-        multi_mongo_.GetName(), [this](utils::statistics::Writer& writer) { writer = multi_mongo_; }
-    );
+    statistics_holder_ =
+        statistics_storage.GetStorage()
+            .RegisterWriter(multi_mongo_.GetName(), [this](utils::statistics::Writer& writer) {
+                writer = multi_mongo_;
+            });
 }
 
 MultiMongo::~MultiMongo() { statistics_holder_.Unregister(); }
@@ -127,79 +122,7 @@ bool MultiMongo::RemovePool(const std::string& dbalias) { return multi_mongo_.Re
 storages::mongo::MultiMongo::PoolSet MultiMongo::NewPoolSet() { return multi_mongo_.NewPoolSet(); }
 
 yaml_config::Schema MultiMongo::GetStaticConfigSchema() {
-    return yaml_config::MergeSchemas<ComponentBase>(R"(
-type: object
-description: Dynamically configurable MongoDB client component
-additionalProperties: false
-properties:
-    appname:
-        type: string
-        description: application name for the DB server
-        defaultDescription: userver
-    conn_timeout:
-        type: string
-        description: connection timeout
-        defaultDescription: 2s
-    so_timeout:
-        type: string
-        description: socket timeout
-        defaultDescription: 10s
-    queue_timeout:
-        type: string
-        description: max connection queue wait time
-        defaultDescription: 1s
-    initial_size:
-        type: string
-        description: number of connections created initially (per database)
-        defaultDescription: 16
-    max_size:
-        type: integer
-        description: limit for total connections number (per database)
-        defaultDescription: 128
-    idle_limit:
-        type: integer
-        description: limit for idle connections number (per database)
-        defaultDescription: 64
-    connecting_limit:
-        type: integer
-        description: limit for establishing connections number (per database)
-        defaultDescription: 8
-    local_threshold:
-        type: string
-        description: latency window for instance selection
-        defaultDescription: mongodb default
-    max_replication_lag:
-        type: string
-        description: replication lag limit for usable secondaries, min. 90s
-    stats_verbosity:
-        type: string
-        description: changes the granularity of reported metrics
-        defaultDescription: 'terse'
-        enum:
-          - terse
-          - full
-          - none
-    dns_resolver:
-        type: string
-        description: server hostname resolver type (getaddrinfo or async)
-        defaultDescription: 'async'
-        enum:
-          - getaddrinfo
-          - async
-    congestion_control:
-        description: congestion control settings
-        type: object
-        additionalProperties: false
-        properties:
-            fake-mode:
-                type: boolean
-                description: whether CC limiter is actually working
-                defaultDescription: false
-            enabled:
-                type: boolean
-                description: whether CC is enabled for the database
-                defaultDescription: true
-)");
+    return yaml_config::MergeSchemasFromResource<ComponentBase>("src/storages/mongo/component_multi.yaml");
 }
 
 }  // namespace components

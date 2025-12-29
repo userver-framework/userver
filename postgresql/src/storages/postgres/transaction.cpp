@@ -19,7 +19,8 @@ Transaction::Transaction(
     OptionalCommandControl trx_cmd_ctl,
     detail::SteadyClock::time_point trx_start_time
 )
-    : conn_{std::move(conn)} {
+    : conn_{std::move(conn)}
+{
     if (conn_) {
         conn_->Begin(options, trx_start_time, trx_cmd_ctl);
         trx_lock_.Lock();
@@ -32,27 +33,35 @@ Transaction::Transaction(Transaction&&) noexcept = default;
 
 Transaction::~Transaction() {
     if (conn_ && conn_->IsInTransaction()) {
-        LOG_INFO() << "Transaction handle is destroyed without an explicit "
-                      "commit or rollback, rolling back automatically";
+        LOG_INFO()
+            << "Transaction handle is destroyed without an explicit "
+               "commit or rollback, rolling back automatically";
         try {
             conn_->Rollback();
         } catch (const std::exception& e) {
-            LOG_LIMITED_ERROR() << "Exception when rolling back an abandoned transaction in "
-                                   "destructor: "
-                                << e;
+            LOG_LIMITED_ERROR()
+                << "Exception when rolling back an abandoned transaction in "
+                   "destructor: "
+                << e;
         }
     }
 }
 
 Transaction& Transaction::operator=(Transaction&& rhs) noexcept = default;
 
-ResultSet
-Transaction::Execute(OptionalCommandControl statement_cmd_ctl, const Query& query, const ParameterStore& store) {
+ResultSet Transaction::Execute(
+    OptionalCommandControl statement_cmd_ctl,
+    const Query& query,
+    const ParameterStore& store
+) {
     return DoExecute(query, detail::QueryParameters{store.GetInternalData()}, statement_cmd_ctl);
 }
 
-Portal
-Transaction::MakePortal(OptionalCommandControl statement_cmd_ctl, const Query& query, const ParameterStore& store) {
+Portal Transaction::MakePortal(
+    OptionalCommandControl statement_cmd_ctl,
+    const Query& query,
+    const ParameterStore& store
+) {
     return MakePortal(PortalName{}, query, detail::QueryParameters{store.GetInternalData()}, statement_cmd_ctl);
 }
 
@@ -69,7 +78,9 @@ ResultSet Transaction::DoExecute(
         statement_cmd_ctl = conn_->GetQueryCmdCtl(query.GetOptionalNameView());
     }
     auto source = conn_.GetConfigSource();
-    if (source) CheckDeadlineIsExpired(source->GetSnapshot());
+    if (source) {
+        CheckDeadlineIsExpired(source->GetSnapshot());
+    }
 
     detail::StatementStats stats{query, conn_};
     try {
@@ -100,7 +111,8 @@ Portal Transaction::MakePortal(
             PortalName{USERVER_NAMESPACE::utils::generators::GenerateUuid()},
             query,
             params,
-            std::move(statement_cmd_ctl)};
+            std::move(statement_cmd_ctl)
+        };
     }
     return Portal{conn_.get(), portal_name, query, params, std::move(statement_cmd_ctl)};
 }
@@ -121,8 +133,9 @@ void Transaction::Commit() {
                 formats::json::MakeObject("trx_name", name_),
                 [this](const formats::json::Value& data) {
                     if (data["trx_should_fail"].As<bool>()) {
-                        LOG_WARNING() << "Doing Rollback instead of commit "
-                                         "due to Testpoint response";
+                        LOG_WARNING()
+                            << "Doing Rollback instead of commit "
+                               "due to Testpoint response";
                         conn_->Rollback();
                         throw TransactionForceRollback();
                     }
@@ -159,12 +172,16 @@ const UserTypes& Transaction::GetConnectionUserTypes() const {
 }
 
 OptionalCommandControl Transaction::GetConnTransactionCommandControlDebug() const {
-    if (!conn_) return std::nullopt;
+    if (!conn_) {
+        return std::nullopt;
+    }
     return conn_->GetTransactionCommandControl();
 }
 
 TimeoutDuration Transaction::GetConnStatementTimeoutDebug() const {
-    if (!conn_) return TimeoutDuration::zero();
+    if (!conn_) {
+        return TimeoutDuration::zero();
+    }
     return conn_->GetStatementTimeout();
 }
 

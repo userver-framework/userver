@@ -13,7 +13,9 @@ USERVER_NAMESPACE_BEGIN
 template <typename T>
 class AtomicSharedPtr {
 public:
-    explicit AtomicSharedPtr(std::shared_ptr<const T> new_value) : storage_(std::move(new_value)) {}
+    explicit AtomicSharedPtr(std::shared_ptr<const T> new_value)
+        : storage_(std::move(new_value))
+    {}
 
     AtomicSharedPtr(AtomicSharedPtr&&) = delete;
     AtomicSharedPtr& operator=(AtomicSharedPtr&&) = delete;
@@ -47,15 +49,16 @@ void AtomicSharedPtrContention(benchmark::State& state) {
 
         std::vector<engine::TaskWithResult<void>> tasks;
         tasks.reserve(state.range(0) - 2);
-        for (int i = 0; i < state.range(0) - 2; i++)
+        for (int i = 0; i < state.range(0) - 2; i++) {
             tasks.push_back(engine::AsyncNoSpan([&]() {
                 while (run) {
                     auto snapshot_ptr = ptr.Load();
                     benchmark::DoNotOptimize(*snapshot_ptr);
                 }
             }));
+        }
 
-        if (state.range(1))
+        if (state.range(1)) {
             tasks.push_back(engine::AsyncNoSpan([&]() {
                 size_t i = 0;
                 while (run) {
@@ -65,6 +68,7 @@ void AtomicSharedPtrContention(benchmark::State& state) {
                     engine::SleepFor(std::chrono::milliseconds{10});
                 }
             }));
+        }
 
         for ([[maybe_unused]] auto _ : state) {
             auto snapshot_ptr = ptr.Load();

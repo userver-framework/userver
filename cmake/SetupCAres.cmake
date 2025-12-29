@@ -16,19 +16,12 @@ endif()
 
 include(DownloadUsingCPM)
 cpmaddpackage(
-    NAME
-    c-ares
-    VERSION
-    1.19.0
-    GITHUB_REPOSITORY
-    c-ares/c-ares
-    GIT_TAG
-    cares-1_19_0
-    OPTIONS
-    "CARES_INSTALL OFF"
-    "CARES_BUILD_TOOLS OFF"
-    "CARES_SHARED OFF"
-    "CARES_STATIC ON"
+    NAME c-ares
+    VERSION 1.19.0
+    GITHUB_REPOSITORY c-ares/c-ares
+    GIT_TAG cares-1_19_0
+    GIT_SHALLOW TRUE
+    OPTIONS "CARES_INSTALL OFF" "CARES_BUILD_TOOLS OFF" "CARES_SHARED OFF" "CARES_STATIC ON"
 )
 
 set(c-ares_FOUND TRUE)

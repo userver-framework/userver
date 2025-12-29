@@ -17,6 +17,7 @@ There are default middlewares:
  - @ref ugrpc::client::middlewares::deadline_propagation::Component
  - @ref ugrpc::client::middlewares::baggage::Component
  - @ref ugrpc::client::middlewares::headers_propagator::Component
+ - @ref ugrpc::client::middlewares::origin::Component
  - @ref ugrpc::client::middlewares::testsuite::Component (used only in testsuite)
 
 If you add these middlewares to the @ref components::ComponentList, these middlewares will be enabled by default. 

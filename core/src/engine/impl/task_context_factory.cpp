@@ -13,8 +13,8 @@ static_assert(kTaskContextAlignment >= alignof(TaskContext));
 static_assert(sizeof(TaskContext) % kTaskContextAlignment == 0);
 
 TaskContext& PlacementNewTaskContext(std::byte* storage, TaskConfig config, utils::impl::WrappedCallBase& payload) {
-    return *new (storage)
-        TaskContext{config.task_processor, config.importance, config.wait_mode, config.deadline, payload};
+    return *new (storage
+    ) TaskContext{config.task_processor, config.importance, config.wait_mode, config.deadline, payload};
 }
 
 std::byte* AllocateFusedTaskContext(std::size_t total_size) {

@@ -1,0 +1,33 @@
+type: object
+description: ClickHouse client component
+additionalProperties: false
+properties:
+    secdist_alias:
+        type: string
+        description: |
+            Name of the key in secdist config.
+
+            Default: '<components name>'
+    initial_pool_size:
+        type: integer
+        description: number of connections created initially
+        default: 5
+    max_pool_size:
+        type: integer
+        description: maximum number of created connections
+        default: 10
+    queue_timeout:
+        type: string
+        description: client waiting for a free connection time limit
+        default: 1s
+    use_secure_connection:
+        type: boolean
+        description: whether to use TLS for connections
+        default: true
+    compression:
+        type: string
+        description: compression method to use
+        default: none
+        enum:
+          - none
+          - lz4

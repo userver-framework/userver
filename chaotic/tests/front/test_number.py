@@ -47,7 +47,7 @@ def test_number_minmax_exclusive(simple_parse):
 def test_number_extra_enum(simple_parse):
     with pytest.raises(ParserError) as exc:
         simple_parse({'type': 'number', 'enum': [1.0]})
-    assert exc.value.infile_path == '/definitions/type/enum'
+    assert exc.value.infile_path == '/definitions/type'
     assert 'Unknown field: "enum"' in exc.value.msg
 
 
@@ -76,7 +76,7 @@ def test_integer_min_max_number(simple_parse):
     with pytest.raises(ParserError) as exc:
         simple_parse({'type': 'integer', 'minimum': 1.1})
     assert exc.value.infile_path == '/definitions/type/minimum'
-    assert exc.value.msg == 'field "minimum" has wrong type'
+    assert exc.value.msg == 'Integer type is expected, 1.1 is found'
 
 
 def test_integer_enum(simple_parse):
@@ -89,12 +89,12 @@ def test_integer_enum(simple_parse):
 def test_integer_enum_wrong_type(simple_parse):
     with pytest.raises(ParserError) as exc:
         simple_parse({'type': 'integer', 'enum': ['1']})
-    assert exc.value.infile_path == '/definitions/type/enum'
-    assert exc.value.msg == 'field "enum" contains non-integers (1)'
+    assert exc.value.infile_path == '/definitions/type/enum/0'
+    assert exc.value.msg == 'Integer type is expected, 1 is found'
 
 
 def test_integer_min_wrong_str(simple_parse):
     with pytest.raises(ParserError) as exc:
         simple_parse({'type': 'integer', 'minimum': '1'})
     assert exc.value.infile_path == '/definitions/type/minimum'
-    assert exc.value.msg == 'field "minimum" has wrong type'
+    assert exc.value.msg == 'Integer type is expected, 1 is found'

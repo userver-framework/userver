@@ -40,8 +40,12 @@ inline bool ForceReference(const T&...) {
 }
 
 struct RegisterPredefinedOidParser {
-    static RegisterPredefinedOidParser
-    Register(PredefinedOids type_oid, PredefinedOids array_oid, BufferCategory category, std::string cpp_name);
+    static RegisterPredefinedOidParser Register(
+        PredefinedOids type_oid,
+        PredefinedOids array_oid,
+        BufferCategory category,
+        std::string cpp_name
+    );
 };
 
 // note: implementation is in user_types.cpp

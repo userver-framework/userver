@@ -1,6 +1,3 @@
-from typing import List
-from typing import Tuple
-
 import grpc
 import http2
 import pytest
@@ -57,7 +54,7 @@ RETRYABLE_STATUS_CODES = [
 ]
 
 RETRYABLE_HTTP_STATUSES = sorted(
-    set(status for status, code in HTTP2_TO_GRPC.items() if code in RETRYABLE_STATUS_CODES)
+    {status for status, code in HTTP2_TO_GRPC.items() if code in RETRYABLE_STATUS_CODES},
 )
 
 # Length-Prefixed-Message: Compressed-Flag (1 byte) Message-Length (4 bytes) Message
@@ -65,7 +62,7 @@ EMPTY_PROTO_MESSAGE = b'\x00' + b'\x00\x00\x00\x00'
 
 
 async def test_success_response(service_client, grpc_server: http2.GrpcServer) -> None:
-    def _response_factory() -> List[http2.Frame]:
+    def _response_factory() -> list[http2.Frame]:
         # https://grpc.github.io/grpc/core/md_doc__p_r_o_t_o_c_o_l-_h_t_t_p2.html
         # Basic response is:
         # - Response-Headers (HEADERS frame): HTTP-status Content-Type
@@ -100,11 +97,11 @@ async def test_grpc_client_ignores_any_http_status_when_grpc_status_exists(
     http_status: int,
     grpc_status_code: grpc.StatusCode,
 ) -> None:
-    def _response_factory() -> List[http2.Frame]:
+    def _response_factory() -> list[http2.Frame]:
         # https://grpc.github.io/grpc/core/md_doc__p_r_o_t_o_c_o_l-_h_t_t_p2.html
         # Trailers-Only is only HEADERS http2 frame (with END_STREAM flag)
 
-        headers: List[Tuple[str, str]] = [
+        headers: list[tuple[str, str]] = [
             (':status', str(http_status)),
             ('content-type', 'application/grpc'),
             ('grpc-status', utils.status_to_str(grpc_status_code)),
@@ -126,11 +123,11 @@ async def test_grpc_client_synthesizes_grpc_status_from_http_status(
     grpc_server: http2.GrpcServer,
     http_status: int,
 ) -> None:
-    def _response_factory() -> List[http2.Frame]:
+    def _response_factory() -> list[http2.Frame]:
         # https://grpc.github.io/grpc/core/md_doc__p_r_o_t_o_c_o_l-_h_t_t_p2.html
         # Trailers-Only is only HEADERS http2 frame (with END_STREAM flag)
 
-        headers: List[Tuple[str, str]] = [
+        headers: list[tuple[str, str]] = [
             (':status', str(http_status)),
             ('content-type', 'application/grpc'),
         ]
@@ -154,14 +151,14 @@ async def test_grpc_client_retries_trailers_only_with_grpc_status(
 ) -> None:
     attempts = 0
 
-    def _response_factory() -> List[http2.Frame]:
+    def _response_factory() -> list[http2.Frame]:
         # https://grpc.github.io/grpc/core/md_doc__p_r_o_t_o_c_o_l-_h_t_t_p2.html
         # Trailers-Only is only HEADERS http2 frame (with END_STREAM flag)
 
         nonlocal attempts
         attempts += 1
 
-        headers: List[Tuple[str, str]] = [
+        headers: list[tuple[str, str]] = [
             (':status', '200'),
             ('content-type', 'application/grpc'),
             ('grpc-status', utils.status_to_str(grpc_status_code)),
@@ -187,14 +184,14 @@ async def test_grpc_client_retries_trailers_only_with_retryable_http_status(
 ) -> None:
     attempts = 0
 
-    def _response_factory() -> List[http2.Frame]:
+    def _response_factory() -> list[http2.Frame]:
         # https://grpc.github.io/grpc/core/md_doc__p_r_o_t_o_c_o_l-_h_t_t_p2.html
         # Trailers-Only is only HEADERS http2 frame (with END_STREAM flag)
 
         nonlocal attempts
         attempts += 1
 
-        headers: List[Tuple[str, str]] = [
+        headers: list[tuple[str, str]] = [
             (':status', str(http_status)),
             ('content-type', 'application/grpc'),
         ]
@@ -218,17 +215,17 @@ async def test_grpc_client_converts_rst_stream_to_grpc_status(
     rst_stream_error_code: http2.errors.ErrorCodes,
     send_response_headers: bool,
 ) -> None:
-    def _response_factory() -> List[http2.Frame]:
+    def _response_factory() -> list[http2.Frame]:
         # https://grpc.github.io/grpc/core/md_doc__p_r_o_t_o_c_o_l-_h_t_t_p2.html
         # Trailers-Only is only HEADERS http2 frame (with END_STREAM flag)
 
-        response: List[http2.Frame] = []
+        response: list[http2.Frame] = []
         if send_response_headers:
             response.append(
                 http2.HeadersFrame([
                     (':status', '200'),
                     ('content-type', 'application/grpc'),
-                ])
+                ]),
             )
         response.append(http2.RstStreamFrame(rst_stream_error_code))
 
@@ -253,7 +250,7 @@ async def test_grpc_client_retries_rst_stream_refused_stream(
 
     attempts = 0
 
-    def _response_factory() -> List[http2.Frame]:
+    def _response_factory() -> list[http2.Frame]:
         # https://grpc.github.io/grpc/core/md_doc__p_r_o_t_o_c_o_l-_h_t_t_p2.html
         # Trailers-Only is only HEADERS http2 frame (with END_STREAM flag)
 

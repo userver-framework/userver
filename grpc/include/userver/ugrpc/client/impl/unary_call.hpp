@@ -7,6 +7,7 @@
 #include <userver/engine/sleep.hpp>
 #include <userver/server/request/task_inherited_data.hpp>
 #include <userver/tracing/tags.hpp>
+#include <userver/utils/fast_scope_guard.hpp>
 #include <userver/utils/impl/internal_tag.hpp>
 
 #include <userver/ugrpc/client/call_context.hpp>
@@ -35,10 +36,11 @@ public:
 
     UnaryCall(CallParams&& params, PrepareUnaryCall&& prepare_unary_call, const Request& request)
         : call_options_{std::move(params.call_options)},
-          state_{std::move(params), CallKind::kUnaryCall},
+          state_{std::move(params)},
           context_{utils::impl::InternalTag{}, state_},
           prepare_unary_call_{std::move(prepare_unary_call)},
-          request_{request} {}
+          request_{request}
+    {}
 
     ~UnaryCall() = default;
 
@@ -51,6 +53,9 @@ public:
     void Perform() { CallWithRetries(); }
 
     Response&& ExtractResponse() {
+        if (inherited_deadline_reached_) {
+            USERVER_NAMESPACE::server::request::MarkTaskInheritedDeadlineExpired();
+        }
         if (interrupted_) {
             throw RpcInterruptedError(state_.GetCallName(), "UnaryCall");
         }
@@ -69,8 +74,8 @@ private:
     void CallWithRetries() {
         const utils::FastScopeGuard commit_state_guard([this]() noexcept { state_.Commit(); });
 
-        const auto deadline =
-            std::min(call_options_.GetDeadline(), USERVER_NAMESPACE::server::request::GetTaskInheritedDeadline());
+        const auto inherited_deadline = USERVER_NAMESPACE::server::request::GetTaskInheritedDeadline();
+        const auto deadline = std::min(call_options_.GetDeadline(), inherited_deadline);
         const int max_attempts = call_options_.GetAttempts();
         state_.GetSpan().AddTag(tracing::kMaxAttempts, max_attempts);
 
@@ -108,6 +113,9 @@ private:
 
             const auto delay = retry_backoff.NextAttemptDelay();
             if (deadline.IsReachable() && deadline.TimeLeft() <= delay) {
+                if (deadline == inherited_deadline) {
+                    inherited_deadline_reached_ = true;
+                }
                 OnDone(status_);
                 return;
             }
@@ -155,10 +163,15 @@ private:
         return AttemptCompletionStatus::kOk;
     }
 
-    void RunStartCallHooks() { impl::RunMiddlewarePipeline(state_, StartCallHooks(ToBaseMessage(&request_))); }
+    void RunStartCallHooks() {
+        impl::RunMiddlewarePipeline(state_, MiddlewareHooks::StartCallHooks(ToBaseMessage(&request_)));
+    }
 
     void RunFinishHooks(const grpc::Status& status) {
-        impl::RunMiddlewarePipeline(state_, FinishHooks(status, ToBaseMessage(&response_)));
+        impl::RunMiddlewarePipeline(
+            state_,
+            MiddlewareHooks::FinishHooks(status, status.ok() ? ToBaseMessage(&response_) : nullptr)
+        );
     }
 
     void OnDone(const grpc::Status& status) {
@@ -203,6 +216,7 @@ private:
     grpc::Status status_;
     bool done_{false};
     bool interrupted_{false};
+    bool inherited_deadline_reached_{false};
 
     std::atomic<bool> abandoned_{false};
 };

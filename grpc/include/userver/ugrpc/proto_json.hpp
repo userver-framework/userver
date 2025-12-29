@@ -29,12 +29,16 @@ void FromJsonStringImpl(
 
 /// @brief Returns formats::json::Value representation of protobuf message
 /// @throws formats::json::Exception
+/// @warning This function is **deprecated** and will be removed, use @ref protobuf::json::MessageToJson .
 formats::json::Value MessageToJson(const google::protobuf::Message& message);
 
 /// @brief Returns formats::json::Value representation of protobuf message
 /// @throws formats::json::Exception
-formats::json::Value
-MessageToJson(const google::protobuf::Message& message, const google::protobuf::util::JsonPrintOptions& options);
+/// @warning This function is **deprecated** and will be removed, use @ref protobuf::json::MessageToJson .
+formats::json::Value MessageToJson(
+    const google::protobuf::Message& message,
+    const google::protobuf::util::JsonPrintOptions& options
+);
 
 /// @brief Returns Json-string representation of protobuf message
 /// @throws formats::json::Exception
@@ -42,11 +46,14 @@ std::string ToJsonString(const google::protobuf::Message& message);
 
 /// @brief Returns Json-string representation of protobuf message
 /// @throws formats::json::Exception
-std::string
-ToJsonString(const google::protobuf::Message& message, const google::protobuf::util::JsonPrintOptions& options);
+std::string ToJsonString(
+    const google::protobuf::Message& message,
+    const google::protobuf::util::JsonPrintOptions& options
+);
 
 /// @brief Parses Json to a protobuf message. Throws on unknown enum values and unknown fields by default.
 /// @throws formats::json::Exception on field type mismatch, unknown enum values and unknown fields.
+/// @warning This function is **deprecated** and will be removed, use @ref protobuf::json::JsonToMessage .
 template <typename Message>
 Message JsonToMessage(const formats::json::Value& json) {
     Message message;
@@ -56,6 +63,7 @@ Message JsonToMessage(const formats::json::Value& json) {
 
 /// @brief Parses Json to a protobuf message. Throws on unknown enum values.
 /// @throws formats::json::Exception on field type mismatch and unknown enum values.
+/// @warning This function is **deprecated** and will be removed, use @ref protobuf::json::JsonToMessage .
 template <typename Message>
 Message JsonToMessage(const formats::json::Value& json, const google::protobuf::util::JsonParseOptions& options) {
     Message message;

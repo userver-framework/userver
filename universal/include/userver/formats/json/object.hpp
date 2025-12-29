@@ -23,10 +23,18 @@ public:
     Object();
 
     /// @throw TypeMismatchException if @a value is not an object
-    explicit Object(const Value& value) : Value(value) { CheckObject(); }
+    explicit Object(const Value& value)
+        : Value(value)
+    {
+        CheckObject();
+    }
 
     /// @throw TypeMismatchException if @a value is not an object
-    explicit Object(Value&& value) : Value(std::move(value)) { CheckObject(); }
+    explicit Object(Value&& value)
+        : Value(std::move(value))
+    {
+        CheckObject();
+    }
 
     /// @brief Creates object extracting value from the @a builder.
     /// @throw TypeMismatchException if extracted value is not an object.

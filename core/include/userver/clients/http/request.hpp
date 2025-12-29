@@ -9,20 +9,25 @@
 
 #include <userver/clients/dns/resolver_fwd.hpp>
 #include <userver/clients/http/error.hpp>
-#include <userver/clients/http/plugin.hpp>
 #include <userver/clients/http/response.hpp>
 #include <userver/clients/http/response_future.hpp>
 #include <userver/concurrent/queue.hpp>
 #include <userver/crypto/certificate.hpp>
 #include <userver/crypto/private_key.hpp>
 #include <userver/http/http_version.hpp>
+#include <userver/utils/impl/internal_tag_fwd.hpp>
 #include <userver/utils/impl/source_location.hpp>
+#include <userver/utils/not_null.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace tracing {
 class TracingManagerBase;
 }  // namespace tracing
+
+namespace utils::impl {
+class WaitTokenStorageLock;
+}  // namespace utils::impl
 
 /// HTTP client helpers
 namespace clients::http {
@@ -35,6 +40,7 @@ struct DeadlinePropagationConfig;
 class RequestStats;
 class DestinationStatistics;
 struct TestsuiteConfig;
+class MiddlewareBase;
 
 namespace impl {
 class EasyWrapper;
@@ -91,7 +97,6 @@ public:
         RequestStats&& req_stats,
         const std::shared_ptr<DestinationStatistics>& dest_stats,
         clients::dns::Resolver* resolver,
-        const std::vector<utils::NotNull<clients::http::Plugin*>>& plugins,
         const tracing::TracingManagerBase& tracing_manager
     );
     /// @endcond
@@ -193,11 +198,19 @@ public:
     Request headers(const std::initializer_list<std::pair<utils::zstring_view, utils::zstring_view>>& headers) &&;
 
     /// Sets http auth type to use.
-    Request&
-    http_auth_type(HttpAuthType value, bool auth_only, utils::zstring_view user, utils::zstring_view password) &;
+    Request& http_auth_type(
+        HttpAuthType value,
+        bool auth_only,
+        utils::zstring_view user,
+        utils::zstring_view password
+    ) &;
     /// @overload
-    Request
-    http_auth_type(HttpAuthType value, bool auth_only, utils::zstring_view user, utils::zstring_view password) &&;
+    Request http_auth_type(
+        HttpAuthType value,
+        bool auth_only,
+        utils::zstring_view user,
+        utils::zstring_view password
+    ) &&;
 
     /// Set proxy headers for request
     Request& proxy_headers(const Headers& headers) &;
@@ -320,8 +333,8 @@ public:
         return *this;
     }
 
-    /// Override list of plugins from @ref components::HttpClient for specific request
-    Request& SetPluginsList(const std::vector<utils::NotNull<Plugin*>>& plugins) &;
+    /// Override list of middlewares from @ref components::HttpClient for specific request
+    Request& SetMiddlewaresList(const std::vector<utils::NotNull<MiddlewareBase*>>& middlewares) &;
 
     /// Override log URL. Useful for "there's a secret in the query".
     /// @warning The query might be logged by other intermediate HTTP agents (nginx, L7 balancer, etc.).
@@ -350,6 +363,8 @@ public:
 
     // Set deadline propagation settings. For internal use only.
     void SetDeadlinePropagationConfig(const DeadlinePropagationConfig& deadline_propagation_config) &;
+
+    void SetWaitToken(utils::impl::InternalTag, utils::impl::WaitTokenStorageLock&&);
     /// @endcond
 
     /// Disable auto-decoding of received replies. Useful to proxy replies 'as is'.
@@ -366,7 +381,7 @@ public:
 
     /// Perform request asynchronously.
     ///
-    /// Works well with engine::WaitAny, engine::WaitAnyFor, and engine::WaitUntil functions:
+    /// Works well with @ref engine::WaitAny(), @ref engine::WaitAnyFor(), and @ref engine::WaitUntil() functions:
     /// @snippet src/clients/http/client_wait_test.cpp HTTP Client - waitany
     ///
     /// Request object could be reused after retrieval of data from ResponseFuture, all the setup holds:

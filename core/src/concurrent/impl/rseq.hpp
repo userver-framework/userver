@@ -41,15 +41,16 @@ __attribute__((constructor)) inline std::size_t GetRseqArraySize() noexcept {
 
         rseq_register_current_thread();
 
-        rseq_array_size = rseq_available(RSEQ_AVAILABLE_QUERY_LIBC)
-                              // libc owns rseq. It automatically registers rseq at
-                              // that start of each thread.
-                              ? std::thread::hardware_concurrency()
+        rseq_array_size =
+            rseq_available(RSEQ_AVAILABLE_QUERY_LIBC)
+                // libc owns rseq. It automatically registers rseq at
+                // that start of each thread.
+                ? std::thread::hardware_concurrency()
 
-                              // Either rseq is unavailable, or it is unsupported by
-                              // libc, in which case rseq initialization can be
-                              // thread-unsafe in the presence of coroutines.
-                              : kRseqArraySizeDisabled;
+                // Either rseq is unavailable, or it is unsupported by
+                // libc, in which case rseq initialization can be
+                // thread-unsafe in the presence of coroutines.
+                : kRseqArraySizeDisabled;
     }
 
     return rseq_array_size;

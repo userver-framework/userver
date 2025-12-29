@@ -46,7 +46,9 @@ private:
 template <typename ConnectionProvider>
 class SQLiteCompositeFixture : public SQLiteFixture {
 public:
-    SQLiteCompositeFixture() : connection_provider_(std::make_unique<ConnectionProvider>()) {}
+    SQLiteCompositeFixture()
+        : connection_provider_(std::make_unique<ConnectionProvider>())
+    {}
 
     ~SQLiteCompositeFixture() override = default;
 
@@ -107,8 +109,9 @@ public:
 
 // Parametrized tests fixture
 template <typename ConnectionProvider, typename T>
-class SQLiteParametrizedFixture : public SQLiteCompositeFixture<ConnectionProvider>,
-                                  public ::testing::WithParamInterface<T> {};
+class SQLiteParametrizedFixture
+    : public SQLiteCompositeFixture<ConnectionProvider>,
+      public ::testing::WithParamInterface<T> {};
 
 }  // namespace storages::sqlite::tests
 

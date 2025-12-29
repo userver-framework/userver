@@ -1,0 +1,9 @@
+type: object
+description: base component. Don't use it for application components, use ComponentBase
+    instead
+additionalProperties: false
+properties:
+    load-enabled:
+        type: boolean
+        description: set to `false` to disable loading of the component
+        default: true

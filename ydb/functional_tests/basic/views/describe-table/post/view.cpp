@@ -10,9 +10,11 @@
 
 namespace sample {
 
-formats::json::Value DescribeTableHandler::
-    HandleRequestJsonThrow(const server::http::HttpRequest&, const formats::json::Value& request_json, server::request::RequestContext&)
-        const {
+formats::json::
+    Value
+    DescribeTableHandler::
+        HandleRequestJsonThrow(const server::http::HttpRequest&, const formats::json::Value& request_json, server::request::RequestContext&)
+            const {
     auto response = Ydb().DescribeTable(request_json["path"].As<std::string>());
     const auto& key_columns = response.GetTableDescription().GetPrimaryKeyColumns();
 

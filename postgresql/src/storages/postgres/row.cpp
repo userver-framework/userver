@@ -76,13 +76,17 @@ Row::const_reverse_iterator Row::crbegin() const { return {res_, row_index_, Siz
 Row::const_reverse_iterator Row::crend() const { return {res_, row_index_, ResultSet::npos}; }
 
 Row::reference Row::operator[](size_type index) const {
-    if (index >= Size()) throw FieldIndexOutOfBounds{index};
+    if (index >= Size()) {
+        throw FieldIndexOutOfBounds{index};
+    }
     return {res_, row_index_, index};
 }
 
 Row::reference Row::operator[](USERVER_NAMESPACE::utils::zstring_view name) const {
     auto idx = IndexOfName(name);
-    if (idx == ResultSet::npos) throw FieldNameDoesntExist{name};
+    if (idx == ResultSet::npos) {
+        throw FieldNameDoesntExist{name};
+    }
     return (*this)[idx];
 }
 bool Row::IsValid() const { return res_ && row_index_ <= res_->RowCount(); }
@@ -91,7 +95,9 @@ int Row::Compare(const Row& rhs) const { return Distance(rhs); }
 
 std::ptrdiff_t Row::Distance(const Row& rhs) const {
     // Invalid iterators are equal
-    if (!IsValid() && !rhs.IsValid()) return 0;
+    if (!IsValid() && !rhs.IsValid()) {
+        return 0;
+    }
     UASSERT_MSG(res_ == rhs.res_, "Cannot compare iterators in different result sets");
     return row_index_ - rhs.row_index_;
 }

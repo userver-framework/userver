@@ -66,34 +66,31 @@ include(DownloadUsingCPM)
 set(USERVER_GPRC_BUILD_FROM_SOURCE ON)
 
 cpmaddpackage(
-    NAME
-    gRPC
-    VERSION
-    1.59.1
-    GITHUB_REPOSITORY
-    grpc/grpc
+    NAME gRPC
+    VERSION 1.59.1
+    GITHUB_REPOSITORY grpc/grpc
+    GIT_SHALLOW TRUE
     SYSTEM
     PATCHES grpc_pr_36805.patch
-    OPTIONS
-    "BUILD_SHARED_LIBS OFF"
-    "CARES_BUILD_TOOLS OFF"
-    "RE2_BUILD_TESTING OFF"
-    "OPENSSL_NO_ASM ON"
-    "gRPC_BUILD_TESTS OFF"
-    "gRPC_BUILD_GRPC_NODE_PLUGIN OFF"
-    "gRPC_BUILD_GRPC_OBJECTIVE_C_PLUGIN OFF"
-    "gRPC_BUILD_GRPC_PHP_PLUGIN OFF"
-    "gRPC_BUILD_GRPC_RUBY_PLUGIN OFF"
-    "gRPC_BUILD_GRPC_CSHARP_PLUGIN OFF"
-    "gRPC_ZLIB_PROVIDER package"
-    "gRPC_CARES_PROVIDER package"
-    "gRPC_RE2_PROVIDER package"
-    "gRPC_SSL_PROVIDER package"
-    "gRPC_PROTOBUF_PROVIDER package"
-    "gRPC_BENCHMARK_PROVIDER none"
-    "gRPC_ABSL_PROVIDER package"
-    "gRPC_CARES_LIBRARIES c-ares::cares"
-    "gRPC_INSTALL OFF"
+    OPTIONS "BUILD_SHARED_LIBS OFF"
+            "CARES_BUILD_TOOLS OFF"
+            "RE2_BUILD_TESTING OFF"
+            "OPENSSL_NO_ASM ON"
+            "gRPC_BUILD_TESTS OFF"
+            "gRPC_BUILD_GRPC_NODE_PLUGIN OFF"
+            "gRPC_BUILD_GRPC_OBJECTIVE_C_PLUGIN OFF"
+            "gRPC_BUILD_GRPC_PHP_PLUGIN OFF"
+            "gRPC_BUILD_GRPC_RUBY_PLUGIN OFF"
+            "gRPC_BUILD_GRPC_CSHARP_PLUGIN OFF"
+            "gRPC_ZLIB_PROVIDER package"
+            "gRPC_CARES_PROVIDER package"
+            "gRPC_RE2_PROVIDER package"
+            "gRPC_SSL_PROVIDER package"
+            "gRPC_PROTOBUF_PROVIDER package"
+            "gRPC_BENCHMARK_PROVIDER none"
+            "gRPC_ABSL_PROVIDER package"
+            "gRPC_CARES_LIBRARIES c-ares::cares"
+            "gRPC_INSTALL OFF"
 )
 
 set(gRPC_VERSION "${CPM_PACKAGE_gRPC_VERSION}")

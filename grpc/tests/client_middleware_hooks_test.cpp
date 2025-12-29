@@ -6,32 +6,18 @@
 #include <tests/middlewares_fixture.hpp>
 #include <tests/unit_test_client.usrv.pb.hpp>
 #include <tests/unit_test_service.usrv.pb.hpp>
+#include <tests/unit_test_service_gmock.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace {
 
-class UnitTestServiceMock : public sample::ugrpc::UnitTestServiceBase {
-public:
-    MOCK_METHOD(SayHelloResult, SayHello, (CallContext&, sample::ugrpc::GreetingRequest&&), (override));
-
-    MOCK_METHOD(
-        ReadManyResult,
-        ReadMany,
-        (CallContext&, sample::ugrpc::StreamGreetingRequest&&, ReadManyWriter&),
-        (override)
-    );
-
-    MOCK_METHOD(WriteManyResult, WriteMany, (CallContext&, WriteManyReader&), (override));
-
-    MOCK_METHOD(ChatResult, Chat, (CallContext&, ChatReaderWriter&), (override));
-};
-
-class ClientMiddlewaresHooksTest : public tests::MiddlewaresFixture<
-                                       tests::client::ClientMiddlewareBaseMock,
-                                       ::testing::NiceMock<UnitTestServiceMock>,
-                                       sample::ugrpc::UnitTestServiceClient,
-                                       /*N=*/1> {
+class ClientMiddlewaresHooksTest
+    : public tests::MiddlewaresFixture<
+          tests::client::ClientMiddlewareBaseMock,
+          ::testing::NiceMock<tests::UnitTestServiceGmock>,
+          sample::ugrpc::UnitTestServiceClient,
+          /*N=*/1> {
 public:
     using CallContext = ugrpc::server::CallContext;
 
@@ -41,14 +27,14 @@ public:
     using StreamRequest = sample::ugrpc::StreamGreetingRequest;
     using StreamResponse = sample::ugrpc::StreamGreetingResponse;
 
-    using UnaryResult = UnitTestServiceMock::SayHelloResult;
-    using ServerStreamingResult = UnitTestServiceMock::ReadManyResult;
-    using ClientStreamingResult = UnitTestServiceMock::WriteManyResult;
-    using BidirectionalStreamingResult = UnitTestServiceMock::ChatResult;
+    using UnaryResult = tests::UnitTestServiceGmock::SayHelloResult;
+    using ServerStreamingResult = tests::UnitTestServiceGmock::ReadManyResult;
+    using ClientStreamingResult = tests::UnitTestServiceGmock::WriteManyResult;
+    using BidirectionalStreamingResult = tests::UnitTestServiceGmock::ChatResult;
 
-    using Writer = UnitTestServiceMock::ReadManyWriter;
-    using Reader = UnitTestServiceMock::WriteManyReader;
-    using ReaderWriter = UnitTestServiceMock::ChatReaderWriter;
+    using Writer = tests::UnitTestServiceGmock::ReadManyWriter;
+    using Reader = tests::UnitTestServiceGmock::WriteManyReader;
+    using ReaderWriter = tests::UnitTestServiceGmock::ChatReaderWriter;
 
 protected:
     using UnaryCallback = std::function<UnaryResult(CallContext&, Request&&)>;
@@ -76,11 +62,12 @@ protected:
 
     void SetHappyPathServerStreaming() {
         SetServerStreaming([](CallContext&, StreamRequest&& request, Writer& writer) -> ServerStreamingResult {
-            StreamResponse response;
-            response.set_name("Hello again " + request.name());
+            const std::string response_name = "Hello again " + request.name();
             for (int i = 0; i < request.number(); ++i) {
+                StreamResponse response;
+                response.set_name(response_name);
                 response.set_number(i);
-                writer.Write(response);
+                writer.Write(std::move(response));
             }
 
             return grpc::Status::OK;
@@ -106,14 +93,14 @@ protected:
     void SetHappyPathBidirectionalStreaming() {
         SetBidirectionalStreaming([](CallContext&, ReaderWriter& stream) -> BidirectionalStreamingResult {
             StreamRequest request;
-            StreamResponse response;
 
             int count = 0;
             while (stream.Read(request)) {
+                StreamResponse response;
                 ++count;
                 response.set_number(count);
                 response.set_name("Hello " + request.name());
-                stream.Write(response);
+                stream.Write(std::move(response));
             }
             return grpc::Status::OK;
         });
@@ -680,7 +667,7 @@ UTEST_F(ClientMiddlewaresHooksTest, BadStatusServerStreaming) {
     SetServerStreaming([&wait_read](CallContext&, StreamRequest&& request, Writer& writer) -> ServerStreamingResult {
         StreamResponse response;
         response.set_name("Hello again " + request.name());
-        writer.Write(response);
+        writer.Write(std::move(response));
 
         wait_read.Wait();
 
@@ -715,7 +702,7 @@ UTEST_F(ClientMiddlewaresHooksTest, BadStatusBidirectionalStreaming) {
         StreamResponse response;
         response.set_number(0);
         response.set_name("Hello " + request.name());
-        stream.Write(response);
+        stream.Write(std::move(response));
 
         wait_read.Wait();
 

@@ -357,7 +357,8 @@ UTEST(Socket, DomainMismatch) {
 
     UEXPECT_THROW(unix_socket.Connect(listener.addr, test_deadline), io::AddrException);
     UEXPECT_THROW(
-        [[maybe_unused]] auto ret = unix_socket.SendAllTo(listener.addr, "1", 1, test_deadline), io::AddrException
+        [[maybe_unused]] auto ret = unix_socket.SendAllTo(listener.addr, "1", 1, test_deadline),
+        io::AddrException
     );
 }
 

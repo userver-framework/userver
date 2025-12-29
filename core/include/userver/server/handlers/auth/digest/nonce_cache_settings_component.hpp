@@ -26,12 +26,15 @@ struct NonceCacheSettings {
 // clang-format off
 
 /// @brief Component that loads nonce cache settings from a static_config.yaml
-/// ## Static options:
 ///
-/// Name   | Description                           | Default value
-/// ------ | --------------------------------------| -------------
-/// size   | max amount of items to store in cache | -
-/// ways   | number of ways for associative cache  | -
+/// ## Static options of server::handlers::auth::digest::NonceCacheSettingsComponent :
+/// @include{doc} scripts/docs/en/components_schema/core/src/server/handlers/auth/digest/nonce_cache_settings_component.md
+///
+/// Options inherited from @ref server::handlers::auth::digest::AuthCheckerSettingsComponent :
+/// @include{doc} scripts/docs/en/components_schema/core/src/server/handlers/auth/digest/auth_checker_settings_component.md
+///
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
 
 // clang-format on
 

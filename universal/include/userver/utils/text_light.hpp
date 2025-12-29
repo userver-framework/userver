@@ -145,6 +145,9 @@ bool IsCString(std::string_view text) noexcept;
 /// convert CamelCase to snake_case(underscore)
 std::string CamelCaseToSnake(std::string_view camel);
 
+/// convert snake_case or SCREAMING_SNAKE_CASE to CamelCase
+std::string SnakeCaseToCamel(std::string_view snake);
+
 }  // namespace utils::text
 
 USERVER_NAMESPACE_END

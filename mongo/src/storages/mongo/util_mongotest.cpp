@@ -75,7 +75,8 @@ storages::mongo::PoolConfig MakeTestPoolConfig() {
 MongoPoolFixture::MongoPoolFixture()
     : default_resolver_(MakeDnsResolver()),
       dynamic_config_storage_(MakeDynamicConfig()),
-      default_pool_(MakePool({}, {})) {}
+      default_pool_(MakePool({}, {}))
+{}
 
 MongoPoolFixture::~MongoPoolFixture() {
     const engine::TaskCancellationBlocker block_cancels;
@@ -99,12 +100,18 @@ storages::mongo::Pool MongoPoolFixture::MakePool(
     std::optional<storages::mongo::PoolConfig> config,
     std::optional<clients::dns::Resolver*> dns_resolver
 ) {
-    if (!db_name) db_name.emplace(kTestDatabaseDefaultName);
-    if (!config) config.emplace(MakeTestPoolConfig());
-    if (!dns_resolver) dns_resolver.emplace(&default_resolver_);
+    if (!db_name) {
+        db_name.emplace(kTestDatabaseDefaultName);
+    }
+    if (!config) {
+        config.emplace(MakeTestPoolConfig());
+    }
+    if (!dns_resolver) {
+        dns_resolver.emplace(&default_resolver_);
+    }
     used_db_names_.insert(*db_name);
-    storages::mongo::Pool pool{
-        *db_name, GetTestsuiteMongoUri(*db_name), *config, *dns_resolver, dynamic_config_storage_.GetSource()};
+    storages::mongo::Pool
+        pool{*db_name, GetTestsuiteMongoUri(*db_name), *config, *dns_resolver, dynamic_config_storage_.GetSource()};
     return pool;
 }
 

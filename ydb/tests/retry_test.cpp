@@ -45,7 +45,9 @@ inline NThreading::TFuture<NYdb::TStatus> MakeStatusFuture(NYdb::EStatus status)
 class TestOperationResults final : public NYdb::TStatus {
 public:
     TestOperationResults(NYdb::TStatus&& status, const std::string& data)
-        : NYdb::TStatus(std::move(status)), data_(data) {}
+        : NYdb::TStatus(std::move(status)),
+          data_(data)
+    {}
 
     TestOperationResults(TestOperationResults&&) = default;
 
@@ -62,8 +64,8 @@ UTEST_F(RetryOperationFixture, HandleOfInheritorsOfTStatus) {
     const auto res = RetryOperationSync(
         /*retries=*/0,
         [&data](NYdb::NTable::TSession) {
-            return NThreading::MakeFuture<TestOperationResults>(TestOperationResults{
-                NYdb::TStatus{kSuccess, NYdb::NIssue::TIssues{}}, data});
+            return NThreading::MakeFuture<
+                TestOperationResults>(TestOperationResults{NYdb::TStatus{kSuccess, NYdb::NIssue::TIssues{}}, data});
         }
     );
     ASSERT_EQ(res.GetData(), data);

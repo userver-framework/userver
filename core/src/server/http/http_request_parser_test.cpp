@@ -11,11 +11,11 @@ constexpr std::string_view kHttpRequestSmall = "GET / HTTP/1.1\r\n\r\n";
 
 constexpr std::string_view kHttpRequestOriginUrl = "GET /foo/bar?query1=value1&query2=value2 HTTP/1.1\r\n\r\n";
 
-constexpr std::string_view kFullHttpRequestOriginUrl =
-    "GET http://www.example.org/foo/bar?query1=value1&query2=value2 HTTP/1.1\r\n\r\n";
+constexpr std::string_view
+    kFullHttpRequestOriginUrl = "GET http://www.example.org/foo/bar?query1=value1&query2=value2 HTTP/1.1\r\n\r\n";
 
-constexpr std::string_view kHttpRequestAbsoluteUrl =
-    "GET http://www.example.org/pub/WWW/TheProject.html HTTP/1.1\r\n\r\n";
+constexpr std::string_view
+    kHttpRequestAbsoluteUrl = "GET http://www.example.org/pub/WWW/TheProject.html HTTP/1.1\r\n\r\n";
 
 constexpr std::string_view kHttpRequestHeadersSimple =
     "GET / HTTP/1.1\r\n"

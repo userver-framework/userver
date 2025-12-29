@@ -1,82 +1,20 @@
 import collections
+from collections.abc import Callable
 import dataclasses
 import enum
 import typing
 from typing import Any
-from typing import Callable
-from typing import Optional
-from typing import TypeVar
-from typing import Union
+
+import pydantic
 
 from chaotic import error
+from . import base_model
 
 
 class FieldError(Exception):
     def __init__(self, field: str, msg: str) -> None:
         self.field = field
         self.msg = msg
-
-
-def is_ignored_prefix(arg: str) -> bool:
-    if arg.startswith('x-'):
-        return True
-    if arg in ('description', 'example', 'title'):
-        return True
-    return False
-
-
-def smart_fields(cls: type) -> type:
-    orig_init = cls.__init__  # type: ignore
-
-    def __init__(self, **kwargs) -> None:
-        known_fields = {field.name for field in dataclasses.fields(self) if field.init}
-        ignored = {}
-
-        # 1. for known pattern x-* field just ignore it
-        # 2. for unknown field raise an exception with a specific text
-        for arg in kwargs:
-            if arg not in known_fields:
-                if is_ignored_prefix(arg):
-                    ignored[arg] = kwargs[arg]
-                else:
-                    raise FieldError(
-                        arg,
-                        f'Unknown field: "{arg}", known fields: ["' + '", "'.join(sorted(known_fields)) + '"]',
-                    )
-
-        for ignore in ignored:
-            kwargs.pop(ignore)
-
-        orig_init(self, **kwargs)
-        self.x_properties = ignored
-
-    cls.__init__ = __init__  # type: ignore
-    return cls
-
-
-def validate_type(field_name: str, value, type_) -> None:
-    try:
-        pytype = type_.__origin__
-    except AttributeError:
-        pytype = type_
-    # pylint: disable=protected-access
-    if isinstance(pytype, typing._SpecialForm):
-        try:
-            pytype = type_.__args__
-        except AttributeError:
-            pytype = type_
-
-    try:
-        if not isinstance(value, pytype):
-            # TODO: better text
-            # raise FieldError(field_name, f'{value} is not {pytype}')
-            raise FieldError(
-                field_name,
-                f'field "{field_name}" has wrong type',
-            )
-    except TypeError:
-        # TODO: type=list[str]
-        pass
 
 
 @dataclasses.dataclass(frozen=True)
@@ -90,23 +28,26 @@ class SourceLocation:
         return f'{self.filepath}#{self.location}'
 
 
-@dataclasses.dataclass
-class Base:
-    def __post_init__(self) -> None:
-        for field in dataclasses.fields(self):
-            validate_type(field.name, getattr(self, field.name), field.type)
+class Schema(base_model.BaseModel):
+    title: str = ''
+    description: str | None = ''
+    example: Any = ''
 
-
-_OptionalBool = TypeVar('_OptionalBool', bool, Optional[bool])
-_OptionalStr = TypeVar('_OptionalStr', str, Optional[str])
-
-
-@dataclasses.dataclass
-class Schema(Base):
-    x_properties: dict[str, Any] = dataclasses.field(
-        init=False,
-        default_factory=dict,
+    source_location_: SourceLocation | None = pydantic.Field(
+        exclude=True,
+        default=None,
     )
+
+    @classmethod
+    def model_userver_tags(cls) -> list[str]:
+        return [
+            'x-usrv-cpp-typedef-tag',
+            'x-taxi-cpp-typedef-tag',
+            'x-usrv-cpp-type',
+            'x-taxi-cpp-type',
+            'x-usrv-cpp-name',
+            'x-taxi-cpp-name',
+        ]
 
     def visit_children(self, cb: Callable[['Schema', 'Schema'], None]) -> None:
         pass
@@ -115,7 +56,8 @@ class Schema(Base):
         return id(self)
 
     def source_location(self) -> SourceLocation:
-        return self._source_location  # type: ignore
+        assert self.source_location_
+        return self.source_location_
 
     def delete_x_property(self, name: str) -> None:
         if name in self.x_properties:
@@ -124,15 +66,15 @@ class Schema(Base):
     def get_x_property_str(
         self,
         name: str,
-        default: _OptionalStr = None,
-    ) -> _OptionalStr:
+        default: str | None = None,
+    ) -> str | None:
         return self._get_x_property_typed(name, default, str, 'string')
 
     def get_x_property_bool(
         self,
         name: str,
-        default: _OptionalBool = None,
-    ) -> _OptionalBool:
+        default: bool | None = None,
+    ) -> bool | None:
         return self._get_x_property_typed(name, default, bool, 'boolean')
 
     def _get_x_property_typed(
@@ -160,24 +102,22 @@ class Schema(Base):
 _NOT_IMPL = Schema()
 
 
-@dataclasses.dataclass
 class Ref(Schema):
     ref: str  # type: ignore
     indirect: bool
     self_ref: bool
-    schema: Schema = _NOT_IMPL
+    schema_: Schema = _NOT_IMPL
 
-    def __post_init__(self):
+    def model_post_init(self, context: Any):
+        super().model_post_init(context)
         assert self.ref.find('/../') == -1, self.ref
 
     __hash__ = Schema.__hash__
 
 
-@smart_fields
-@dataclasses.dataclass
 class Boolean(Schema):
     type: str = 'boolean'
-    default: Optional[bool] = None
+    default: bool | None = None
     nullable: bool = False
     deprecated: bool = False
 
@@ -205,23 +145,21 @@ INTEGER_FORMAT_TO_FORMAT = {
 }
 
 
-@smart_fields
-@dataclasses.dataclass
 class Integer(Schema):
     type: str = 'integer'
-    default: Optional[int] = None
+    default: int | None = None
     nullable: bool = False
-    minimum: Optional[int] = None
-    maximum: Optional[int] = None
-    exclusiveMinimum: Optional[int] = None
-    exclusiveMaximum: Optional[int] = None
+    minimum: int | None = None
+    maximum: int | None = None
+    exclusiveMinimum: int | bool | None = None
+    exclusiveMaximum: int | bool | None = None
     # TODO: multipleOf
-    enum: Optional[list[int]] = None
-    format: Optional[IntegerFormat] = None
+    enum: list[int] | None = None
+    format: IntegerFormat | None = None
     deprecated: bool = False
 
-    def __post_init__(self) -> None:
-        super().__post_init__()
+    def model_post_init(self, context: Any) -> None:
+        super().model_post_init(context)
         if self.enum:
             for item in self.enum:
                 if not isinstance(item, int):
@@ -233,17 +171,15 @@ class Integer(Schema):
     __hash__ = Schema.__hash__
 
 
-@smart_fields
-@dataclasses.dataclass
 class Number(Schema):
     type: str = 'number'
-    default: Optional[Union[float, int]] = None
+    default: float | int | None = None
     nullable: bool = False
-    minimum: Optional[Union[float, int]] = None
-    maximum: Optional[Union[float, int]] = None
-    exclusiveMinimum: Optional[Union[float, int]] = None
-    exclusiveMaximum: Optional[Union[float, int]] = None
-    format: Optional[str] = None
+    minimum: float | int | None = None
+    maximum: float | int | None = None
+    exclusiveMinimum: float | int | bool | None = None
+    exclusiveMaximum: float | int | bool | None = None
+    format: str | None = None
     deprecated: bool = False
     # TODO: multipleOf
 
@@ -280,21 +216,19 @@ STRING_FORMAT_TO_FORMAT = {
 }
 
 
-@smart_fields
-@dataclasses.dataclass
 class String(Schema):
     type: str = 'string'
-    default: Optional[str] = None
+    default: str | None = None
     nullable: bool = False
-    enum: Optional[list[str]] = None
-    pattern: Optional[str] = None
-    format: Optional[StringFormat] = None
-    minLength: Optional[int] = None
-    maxLength: Optional[int] = None
+    enum: list[str] | None = None
+    pattern: str | None = None
+    format: StringFormat | None = None
+    minLength: int | None = None
+    maxLength: int | None = None
     deprecated: bool = False
 
-    def __post_init__(self) -> None:
-        super().__post_init__()
+    def model_post_init(self, context: Any) -> None:
+        super().model_post_init(context)
         if self.enum:
             for item in self.enum:
                 if not isinstance(item, str):
@@ -306,16 +240,21 @@ class String(Schema):
     __hash__ = Schema.__hash__
 
 
-@smart_fields
-@dataclasses.dataclass
 class Array(Schema):
     # validated in SchemaParser._parse_array()
     items: Schema
     type: str = 'array'
     nullable: bool = False
-    minItems: Optional[int] = None
-    maxItems: Optional[int] = None
+    minItems: int | None = None
+    maxItems: int | None = None
     deprecated: bool = False
+
+    @classmethod
+    def model_userver_tags(cls) -> list[str]:
+        return Schema.model_userver_tags() + [
+            'x-taxi-cpp-container',
+            'x-usrv-cpp-container',
+        ]
 
     def visit_children(self, cb: Callable[[Schema, Schema], None]) -> None:
         cb(self.items, self)
@@ -324,27 +263,28 @@ class Array(Schema):
     __hash__ = Schema.__hash__
 
 
-@smart_fields
-@dataclasses.dataclass
-class SchemaObjectRaw:
-    type: str
-    additionalProperties: Any
-    properties: Optional[dict] = None
-    required: Optional[list[str]] = None
+class SchemaObject(Schema):
+    type_: str = pydantic.Field(alias='type', default='object')
+    additionalProperties: Schema | bool
+    properties: dict[str, Schema]
+    required: list[str] | None = None
     nullable: bool = False
     deprecated: bool = False
 
+    @classmethod
+    def model_userver_tags(cls) -> list[str]:
+        return Schema.model_userver_tags() + [
+            'x-taxi-cpp-extra-member',
+            'x-usrv-cpp-extra-member',
+            'x-taxi-strict-parsing',
+            'x-usrv-strict-parsing',
+            'x-taxi-cpp-extra-type',
+            'x-usrv-cpp-extra-type',
+            'x-taxi-additional-properties-true-reason',
+        ]
 
-@smart_fields
-@dataclasses.dataclass
-class SchemaObject(Schema):
-    additionalProperties: Union[Schema, bool]
-    properties: dict[str, Schema]
-    required: Optional[list[str]] = None
-    nullable: bool = False
-
-    def __post_init__(self) -> None:
-        super().__post_init__()
+    def model_post_init(self, context: Any) -> None:
+        super().model_post_init(context)
         if self.required:
             for name in self.required:
                 if name not in self.properties:
@@ -365,11 +305,14 @@ class SchemaObject(Schema):
     __hash__ = Schema.__hash__
 
 
-@smart_fields
-@dataclasses.dataclass
 class AllOf(Schema):
     allOf: list[Schema]  # type: ignore
     nullable: bool = False
+
+    def model_post_init(self, context: Any) -> None:
+        super().model_post_init(context)
+        if not self.allOf:
+            raise FieldError('allOf', 'Empty allOf')
 
     def visit_children(self, cb: Callable[[Schema, Schema], None]) -> None:
         for parent in self.allOf:
@@ -379,23 +322,14 @@ class AllOf(Schema):
     __hash__ = Schema.__hash__
 
 
-@smart_fields
-@dataclasses.dataclass
-class AllOfRaw:
-    allOf: list  # type:ignore
-    nullable: bool = False
-    deprecated: bool = False
-
-    def __post_init__(self) -> None:
-        if not self.allOf:
-            raise FieldError('allOf', 'Empty allOf')
-
-
-@smart_fields
-@dataclasses.dataclass
 class OneOfWithoutDiscriminator(Schema):
     oneOf: list[Schema]  # type:ignore
     nullable: bool = False
+
+    def model_post_init(self, context: Any) -> None:
+        super().model_post_init(context)
+        if not self.oneOf:
+            raise FieldError('oneOf', 'Empty oneOf')
 
     def visit_children(self, cb: Callable[[Schema, Schema], None]) -> None:
         for variant in self.oneOf:
@@ -410,11 +344,10 @@ class MappingType(enum.Enum):
     INT = 1
 
 
-@dataclasses.dataclass
-class DiscMapping:
+class DiscMapping(base_model.BaseModel):
     # only one list must be not none
-    str_values: Optional[list[list[str]]] = None
-    int_values: Optional[list[list[int]]] = None
+    str_values: list[list[str]] | None = None
+    int_values: list[list[int]] | None = None
 
     def append(self, value: list):
         if self.str_values is not None:
@@ -449,13 +382,16 @@ class DiscMapping:
         return self.str_values is not None
 
 
-@smart_fields
-@dataclasses.dataclass
 class OneOfWithDiscriminator(Schema):
     oneOf: list[Ref]  # type:ignore
-    discriminator_property: Optional[str] = None
-    mapping: DiscMapping = dataclasses.field(default_factory=DiscMapping)
+    discriminator_property: str | None = None
+    mapping: DiscMapping = pydantic.Field(default_factory=DiscMapping)
     nullable: bool = False
+
+    def model_post_init(self, context: Any) -> None:
+        super().model_post_init(context)
+        if not self.oneOf:
+            raise FieldError('oneOf', 'Empty oneOf')
 
     def visit_children(self, cb: Callable[[Schema, Schema], None]) -> None:
         for variant in self.oneOf:
@@ -465,24 +401,9 @@ class OneOfWithDiscriminator(Schema):
     __hash__ = Schema.__hash__
 
 
-@smart_fields
-@dataclasses.dataclass
-class OneOfDiscriminatorRaw:
+class OneOfDiscriminatorRaw(base_model.BaseModel):
     propertyName: str  # type:ignore
-    mapping: Optional[dict[str, str]] = None
-
-
-@smart_fields
-@dataclasses.dataclass
-class OneOfRaw:
-    oneOf: list  # type:ignore
-    discriminator: Optional[dict] = None
-    nullable: bool = False
-    deprecated: bool = False
-
-    def __post_init__(self) -> None:
-        if not self.oneOf:
-            raise FieldError('oneOf', 'Empty oneOf')
+    mapping: dict[str | int, str] | None = None
 
 
 @dataclasses.dataclass

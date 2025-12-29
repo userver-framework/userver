@@ -19,7 +19,9 @@ constexpr utils::StringLiteral kNull = "null";
 
 }  // namespace
 
-JsonString::JsonString(const formats::json::Value& value) : json_{ToString(value)} {
+JsonString::JsonString(const formats::json::Value& value)
+    : json_{ToString(value)}
+{
     // ToString builds one line string with RapidJson
     UASSERT(json_.find_first_of("\n\r") == std::string::npos);
 }
@@ -37,7 +39,8 @@ JsonString::JsonString(std::string json) noexcept : json_{std::move(json)} {
     // 1. To avoid additional escaping in TSKV format
     // 2. To ensure a single line log in JSON format
     json_.erase(
-        std::remove_if(json_.begin(), json_.end(), [](auto ch) { return ch == '\n' || ch == '\r'; }), json_.end()
+        std::remove_if(json_.begin(), json_.end(), [](auto ch) { return ch == '\n' || ch == '\r'; }),
+        json_.end()
     );
 }
 

@@ -86,12 +86,16 @@ void SingleConsumerEventPingPong(benchmark::State& state) {
         auto companion = engine::AsyncNoSpan([&] {
             while (true) {
                 ping->Send();
-                if (!pong->WaitForEvent()) return;
+                if (!pong->WaitForEvent()) {
+                    return;
+                }
             }
         });
 
         for ([[maybe_unused]] auto _ : state) {
-            if (!ping->WaitForEvent()) return;
+            if (!ping->WaitForEvent()) {
+                return;
+            }
             pong->Send();
         }
 

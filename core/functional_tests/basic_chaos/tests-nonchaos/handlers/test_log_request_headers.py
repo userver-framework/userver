@@ -1,5 +1,3 @@
-import json
-
 import pytest
 
 DEFAULT_TESTSUITE_HEADERS = frozenset([
@@ -15,7 +13,7 @@ DEFAULT_TESTSUITE_HEADERS = frozenset([
 @pytest.mark.parametrize(
     'headers, headers_whitelist, expected_logged_headers',
     [
-        (  #
+        (
             {'secret_header': 'secret'},
             [],
             {'secret_header': '***'},
@@ -28,7 +26,7 @@ DEFAULT_TESTSUITE_HEADERS = frozenset([
         (
             {'long_header': 'A' * 1000},  # default limit is 512
             ['long_header'],
-            {'HEADERS-DID-NOT-FIT-IN-SIZE-LIMIT': True},
+            {},
         ),
     ],
 )
@@ -64,7 +62,11 @@ async def test_log_request_headers(
 
     request_headers_raw = logs[0]['request_headers']
 
-    request_headers = json.loads(request_headers_raw)
+    request_headers = {}
+    for header_pair in request_headers_raw.split('\n'):
+        if ': ' in header_pair:
+            key, val = header_pair.split(': ', 1)
+            request_headers[key] = val
 
     request_headers = {
         header_name: header_value
@@ -88,7 +90,7 @@ def _contains_ordered_substrings(string, expected_ordered_substrings):
 @pytest.mark.parametrize(
     'headers, headers_whitelist, expected_ordered_substrings',
     [
-        (  #
+        (
             {'d_header': 'd_value', 'c_header': 'c_value', 'a_header': 'a_value', 'b_header': 'b_value'},
             ['a_header', 'c_header'],
             # Whitelisted headers go first (sorted by header name), "secret" headers go second (sorted by header name).

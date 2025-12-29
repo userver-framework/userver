@@ -21,7 +21,8 @@ HttpMiddlewareFactoryBase::HttpMiddlewareFactoryBase(
     const components::ComponentConfig& config,
     const components::ComponentContext& context
 )
-    : components::ComponentBase{config, context} {}
+    : components::ComponentBase{config, context}
+{}
 
 std::unique_ptr<HttpMiddlewareBase> HttpMiddlewareFactoryBase::CreateChecked(
     const handlers::HttpHandlerBase& handler,

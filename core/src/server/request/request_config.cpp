@@ -17,8 +17,8 @@ HttpRequestConfig Parse(const yaml_config::YamlConfig& value, formats::parse::To
 
     conf.max_headers_size = value["max_headers_size"].As<size_t>(conf.max_headers_size);
 
-    conf.request_body_size_log_limit =
-        value["request_body_size_log_limit"].As<size_t>(conf.request_body_size_log_limit);
+    conf.request_body_size_log_limit = value["request_body_size_log_limit"].As<size_t>(conf.request_body_size_log_limit
+    );
 
     conf.request_headers_size_log_limit =
         value["request_headers_size_log_limit"].As<size_t>(conf.request_headers_size_log_limit);
@@ -30,8 +30,8 @@ HttpRequestConfig Parse(const yaml_config::YamlConfig& value, formats::parse::To
 
     conf.set_tracing_headers = value["set_tracing_headers"].As<bool>(conf.set_tracing_headers);
 
-    conf.deadline_propagation_enabled =
-        value["deadline_propagation_enabled"].As<bool>(conf.deadline_propagation_enabled);
+    conf.deadline_propagation_enabled = value["deadline_propagation_enabled"].As<bool>(conf.deadline_propagation_enabled
+    );
 
     conf.deadline_expired_status_code =
         value["deadline_expired_status_code"].As<http::HttpStatus>(conf.deadline_expired_status_code);

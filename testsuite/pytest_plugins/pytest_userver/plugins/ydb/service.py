@@ -1,7 +1,6 @@
 import dataclasses
 import os
 import pathlib
-import typing
 
 from testsuite.environment import service
 from testsuite.environment import utils
@@ -30,8 +29,8 @@ class ServiceSettings:
 def create_ydb_service(
     service_name: str,
     working_dir: str,
-    settings: typing.Optional[ServiceSettings] = None,
-    env: typing.Optional[typing.Dict[str, str]] = None,
+    settings: ServiceSettings | None = None,
+    env: dict[str, str] | None = None,
 ):
     if settings is None:
         settings = get_service_settings()

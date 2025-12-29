@@ -17,29 +17,23 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client {
 
-// clang-format off
-
 /// @ingroup userver_components
 ///
 /// @brief Contains common machinery that's required for all ugrpc clients
 ///
-/// ## Static options:
+/// ## Static options of ugrpc::client::CommonComponent :
+/// @include{doc} scripts/docs/en/components_schema/grpc/src/ugrpc/client/common_component.md
+///
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
+///
 /// The component name for static config is `"grpc-client-common"`.
 ///
-/// Name | Description | Default value
-/// ---- | ----------- | -------------
-/// blocking-task-processor | the task processor for blocking channel creation | -
-/// native-log-level | min log level for the native gRPC library | 'error'
-/// proxy-address | proxy server address | ''
-/// servicemesh-settings | settings for service mesh integration | -
-///
 /// @see ugrpc::client::ClientFactoryComponent
-
-// clang-format on
 class CommonComponent final : public components::ComponentBase {
 public:
     /// @ingroup userver_component_names
-    /// @brief The default name of ugrpc::client::CommonComponent
+    /// @brief The default name of @ref ugrpc::client::CommonComponent
     static constexpr std::string_view kName = "grpc-client-common";
 
     CommonComponent(const components::ComponentConfig& config, const components::ComponentContext& context);

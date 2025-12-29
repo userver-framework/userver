@@ -70,7 +70,8 @@ private:
 
 KeyValue::KeyValue(const components::ComponentConfig& config, const components::ComponentContext& context)
     : server::handlers::HttpHandlerBase{config, context},
-      clickhouse_client_{context.FindComponent<components::ClickHouse>("clickhouse-database").GetCluster()} {}
+      clickhouse_client_{context.FindComponent<components::ClickHouse>("clickhouse-database").GetCluster()}
+{}
 
 std::string KeyValue::HandleRequestThrow(const server::http::HttpRequest& request, server::request::RequestContext&)
     const {
@@ -88,13 +89,15 @@ std::string KeyValue::HandleRequestThrow(const server::http::HttpRequest& reques
             return DeleteValue(key);
         default:
             throw server::handlers::ClientError{
-                server::handlers::ExternalBody{fmt::format("Unsupported method {}", request.GetMethod())}};
+                server::handlers::ExternalBody{fmt::format("Unsupported method {}", request.GetMethod())}
+            };
     }
 }
 
 std::string KeyValue::GetValue(std::string_view key, const server::http::HttpRequest& request) const {
-    const auto result = clickhouse_client_->Execute(cc_, "SELECT key, value FROM kv WHERE key = {}", key)
-                            .AsContainer<std::vector<KeyValueRow>>();
+    const auto result =
+        clickhouse_client_->Execute(cc_, "SELECT key, value FROM kv WHERE key = {}", key)
+            .AsContainer<std::vector<KeyValueRow>>();
     if (result.size() != 1) {
         request.SetResponseStatus(server::http::HttpStatus::kNotFound);
         return {};
@@ -124,7 +127,10 @@ std::string KeyValue::DeleteValue(std::string_view key) const {
 
 formats::json::Value Serialize(const PairOfUuids& value, formats::serialize::To<formats::json::Value>) {
     return formats::json::MakeObject(
-        "uuid_mismatched", utils::ToString(value.uuid_mismatched), "uuid_correct", utils::ToString(value.uuid_correct)
+        "uuid_mismatched",
+        utils::ToString(value.uuid_mismatched),
+        "uuid_correct",
+        utils::ToString(value.uuid_correct)
     );
 }
 
@@ -142,11 +148,12 @@ public:
 
     UuidsHandler(const components::ComponentConfig& config, const components::ComponentContext& context)
         : server::handlers::HttpHandlerJsonBase{config, context},
-          clickhouse_client_{context.FindComponent<components::ClickHouse>("clickhouse-database").GetCluster()} {}
+          clickhouse_client_{context.FindComponent<components::ClickHouse>("clickhouse-database").GetCluster()}
+    {}
 
     formats::json::Value
-    HandleRequestJsonThrow(const server::http::HttpRequest& request, const formats::json::Value& request_json, server::request::RequestContext&)
-        const override {
+    HandleRequestJsonThrow(const server::http::HttpRequest& request, const formats::json::Value& request_json, server::request::RequestContext&) const
+        override {
         switch (request.GetMethod()) {
             case server::http::HttpMethod::kPost:
                 return PostValue(request_json);
@@ -154,7 +161,8 @@ public:
                 return GetValues();
             default:
                 throw server::handlers::ClientError{
-                    server::handlers::ExternalBody{fmt::format("Unsupported method {}", request.GetMethod())}};
+                    server::handlers::ExternalBody{fmt::format("Unsupported method {}", request.GetMethod())}
+                };
         }
     }
 
@@ -181,13 +189,14 @@ private:
 }  // namespace chaos
 
 int main(int argc, char* argv[]) {
-    const auto component_list = components::MinimalServerComponentList()
-                                    .Append<chaos::KeyValue>()
-                                    .Append<chaos::UuidsHandler>()
-                                    .Append<components::Secdist>()
-                                    .Append<components::DefaultSecdistProvider>()
-                                    .Append<clients::dns::Component>()
-                                    .Append<components::ClickHouse>("clickhouse-database");
+    const auto component_list =
+        components::MinimalServerComponentList()
+            .Append<chaos::KeyValue>()
+            .Append<chaos::UuidsHandler>()
+            .Append<components::Secdist>()
+            .Append<components::DefaultSecdistProvider>()
+            .Append<clients::dns::Component>()
+            .Append<components::ClickHouse>("clickhouse-database");
 
     return utils::DaemonMain(argc, argv, component_list);
 }

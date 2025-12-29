@@ -20,8 +20,6 @@ public:
     /// @see EventBase::Notify
     void Notify(bool ok) noexcept override;
 
-    bool IsBusy() const noexcept;
-
     enum class WaitStatus {
         kOk,
         kError,
@@ -52,12 +50,10 @@ public:
     // For internal use only.
     engine::impl::ContextAccessor* TryGetContextAccessor() noexcept;
     /// @endcond
-protected:
-    void WaitWhileBusy() noexcept;
 
 private:
+    bool enqueued_{false};
     bool ok_{false};
-    bool busy_{false};
     engine::SingleUseEvent event_;
 };
 

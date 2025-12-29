@@ -43,7 +43,11 @@ HeaderMap::HeaderMap(std::initializer_list<std::pair<std::string_view, std::stri
     }
 }
 
-HeaderMap::HeaderMap(std::size_t capacity) : HeaderMap{} { reserve(capacity); }
+HeaderMap::HeaderMap(std::size_t capacity)
+    : HeaderMap{}
+{
+    reserve(capacity);
+}
 
 HeaderMap::~HeaderMap() = default;
 
@@ -119,7 +123,9 @@ void HeaderMap::insert(std::pair<std::string, std::string>&& kvp) {
 
 void HeaderMap::insert_or_assign(std::string key, std::string value) {
     impl_->InsertOrModify(
-        header_map::MaybeOwnedKey{key}, std::move(value), header_map::Map::InsertOrModifyOccupiedAction::kReplace
+        header_map::MaybeOwnedKey{key},
+        std::move(value),
+        header_map::Map::InsertOrModifyOccupiedAction::kReplace
     );
 }
 
@@ -129,7 +135,9 @@ void HeaderMap::insert_or_assign(const PredefinedHeader& key, std::string value)
 
 void HeaderMap::InsertOrAppend(std::string key, std::string value) {
     impl_->InsertOrModify(
-        header_map::MaybeOwnedKey{key}, std::move(value), header_map::Map::InsertOrModifyOccupiedAction::kAppend
+        header_map::MaybeOwnedKey{key},
+        std::move(value),
+        header_map::Map::InsertOrModifyOccupiedAction::kAppend
     );
 }
 
@@ -190,7 +198,9 @@ void HeaderMap::OutputInHttpFormat(HeadersString& buffer) const { impl_->OutputI
 // ----------------------------------------------------------------------------
 
 HeaderMap::Iterator::Iterator() = default;
-HeaderMap::Iterator::Iterator(UnderlyingIterator it) : it_{it} {}
+HeaderMap::Iterator::Iterator(UnderlyingIterator it)
+    : it_{it}
+{}
 HeaderMap::Iterator::~Iterator() = default;
 
 HeaderMap::Iterator::Iterator(const HeaderMap::Iterator& other) = default;
@@ -233,7 +243,9 @@ bool HeaderMap::Iterator::operator==(const ConstIterator& other) const { return 
 // ------------------------------- ConstIterator -------------------------------
 
 HeaderMap::ConstIterator::ConstIterator() = default;
-HeaderMap::ConstIterator::ConstIterator(UnderlyingIterator it) : it_{it} {}
+HeaderMap::ConstIterator::ConstIterator(UnderlyingIterator it)
+    : it_{it}
+{}
 HeaderMap::ConstIterator::~ConstIterator() = default;
 
 HeaderMap::ConstIterator::ConstIterator(const ConstIterator& other) = default;

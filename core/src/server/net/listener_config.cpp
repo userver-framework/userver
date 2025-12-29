@@ -17,8 +17,9 @@ namespace server::net {
 namespace {
 int ParseOctal(std::string_view s) {
     int value{};
-    if (std::from_chars(s.data(), s.data() + s.size(), value, 8).ec != std::errc{})
+    if (std::from_chars(s.data(), s.data() + s.size(), value, 8).ec != std::errc{}) {
         throw std::runtime_error(fmt::format("not an octal string: {}", s));
+    }
     return value;
 }
 }  // namespace
@@ -29,16 +30,18 @@ PortConfig Parse(const yaml_config::YamlConfig& value, formats::parse::To<PortCo
     config.port = value["port"].As<uint16_t>(0);
     config.address = value["address"].As<std::string>("::");
     config.unix_socket_path = value["unix-socket"].As<std::string>("");
-    config.unix_socket_perms =
-        static_cast<boost::filesystem::perms>(ParseOctal(value["unix-socket-permissions"].As<std::string>("600")));
+    config.unix_socket_perms = static_cast<
+        boost::filesystem::perms>(ParseOctal(value["unix-socket-permissions"].As<std::string>("600")));
 
-    if (config.port != 0 && !config.unix_socket_path.empty())
+    if (config.port != 0 && !config.unix_socket_path.empty()) {
         throw std::runtime_error(
             "Both 'port' and 'unix-socket' fields are set, only single field may "
             "be set at a time"
         );
-    if (config.port == 0 && config.unix_socket_path.empty())
+    }
+    if (config.port == 0 && config.unix_socket_path.empty()) {
         throw std::runtime_error("Either non-zero 'port' or non-empty 'unix-socket' fields must be set");
+    }
 
     auto cert_path = value["tls"]["cert"].As<std::string>({});
     auto pkey_path = value["tls"]["private-key"].As<std::string>({});

@@ -22,7 +22,9 @@ namespace impl {
 template <typename Result, typename ReplyType>
 class MockRequestData final : public RequestDataBase<ReplyType> {
 public:
-    explicit MockRequestData(ReplyType&& reply) : reply_(std::move(reply)) {}
+    explicit MockRequestData(ReplyType&& reply)
+        : reply_(std::move(reply))
+    {}
 
     void Wait() override {}
 
@@ -90,20 +92,28 @@ public:
     using ReplyElem = typename ScanReplyElem<TScanTag>::type;
 
     template <typename Data>
-    explicit MockRequestScanData(const Data& data) : MockRequestScanData(data.begin(), data.end()) {}
+    explicit MockRequestScanData(const Data& data)
+        : MockRequestScanData(data.begin(), data.end())
+    {}
 
     template <typename It>
-    explicit MockRequestScanData(It begin, It end) : data_(begin, end) {}
+    explicit MockRequestScanData(It begin, It end)
+        : data_(begin, end)
+    {}
 
     ReplyElem Get() override {
-        if (Eof()) throw RequestScan::GetAfterEofException("Trying to Get() after eof");
+        if (Eof()) {
+            throw RequestScan::GetAfterEofException("Trying to Get() after eof");
+        }
         auto result = std::move(data_.front());
         data_.pop_front();
         return result;
     }
 
     ReplyElem& Current() override {
-        if (Eof()) throw RequestScan::GetAfterEofException("Trying to call Current() after eof");
+        if (Eof()) {
+            throw RequestScan::GetAfterEofException("Trying to call Current() after eof");
+        }
         return data_.front();
     }
 
@@ -125,9 +135,8 @@ struct ReplyTypeHelper<storages::redis::Request<Result, ReplyType>> {
 
 template <typename Request>
 Request CreateMockRequest(typename Request::Reply reply) {
-    return Request(
-        std::make_unique<impl::MockRequestData<typename Request::Result, typename Request::Reply>>(std::move(reply))
-    );
+    return Request(std::make_unique<
+                   impl::MockRequestData<typename Request::Result, typename Request::Reply>>(std::move(reply)));
 }
 
 template <typename Request>

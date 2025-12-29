@@ -38,7 +38,8 @@ public:
         std::string&& realm,
         const SecdistConfig& secdist_config
     )
-        : AuthStandaloneCheckerBase(digest_settings, std::move(realm), secdist_config, kWays, kWaySize) {}
+        : AuthStandaloneCheckerBase(digest_settings, std::move(realm), secdist_config, kWays, kWaySize)
+    {}
 
     std::optional<HA1> GetHA1(std::string_view) const override { return kValidHA1; }
 };
@@ -88,7 +89,8 @@ public:
               "auth",                              // qop
               "00000001",                          // nc
               "auth-param"                         // authparam
-          }) {
+          })
+    {
         client_context = correct_client_context;
     }
 

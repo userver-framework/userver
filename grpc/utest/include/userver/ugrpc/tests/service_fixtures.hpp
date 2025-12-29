@@ -19,8 +19,10 @@ namespace ugrpc::tests {
 class ServiceFixtureBase : protected ServiceBase, public ::testing::Test {
 protected:
     /// @returns the statistics of the server and clients.
-    utils::statistics::Snapshot
-    GetStatistics(std::string prefix, std::vector<utils::statistics::Label> require_labels = {});
+    utils::statistics::Snapshot GetStatistics(
+        std::string prefix,
+        std::vector<utils::statistics::Label> require_labels = {}
+    );
 };
 
 /// @see @ref ugrpc::tests::Service
@@ -31,8 +33,10 @@ protected:
     using Service<GrpcService>::Service;
 
     /// @returns the statistics of the server and clients.
-    utils::statistics::Snapshot
-    GetStatistics(std::string prefix, std::vector<utils::statistics::Label> require_labels = {}) {
+    utils::statistics::Snapshot GetStatistics(
+        std::string prefix,
+        std::vector<utils::statistics::Label> require_labels = {}
+    ) {
         return utils::statistics::Snapshot{this->GetStatisticsStorage(), std::move(prefix), std::move(require_labels)};
     }
 };

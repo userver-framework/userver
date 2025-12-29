@@ -14,8 +14,11 @@ RequestAppend MockTransactionImplBase::Append(std::string /*key*/, std::string /
     AbortWithStacktrace("Redis method not mocked");
 }
 
-RequestBitop
-MockTransactionImplBase::Bitop(BitOperation /*op*/, std::string /*dest_key*/, std::vector<std::string> /*src_keys*/) {
+RequestBitop MockTransactionImplBase::Bitop(
+    BitOperation /*op*/,
+    std::string /*dest_key*/,
+    std::vector<std::string> /*src_keys*/
+) {
     AbortWithStacktrace("Redis method not mocked");
 }
 
@@ -45,8 +48,11 @@ RequestExpire MockTransactionImplBase::Expire(std::string /*key*/, std::chrono::
     AbortWithStacktrace("Redis method not mocked");
 }
 
-RequestExpire
-MockTransactionImplBase::Expire(std::string /*key*/, std::chrono::seconds /*ttl*/, ExpireOptions /*option*/) {
+RequestExpire MockTransactionImplBase::Expire(
+    std::string /*key*/,
+    std::chrono::seconds /*ttl*/,
+    ExpireOptions /*option*/
+) {
     AbortWithStacktrace("Redis method not mocked");
 }
 
@@ -140,8 +146,11 @@ RequestHincrby MockTransactionImplBase::Hincrby(std::string /*key*/, std::string
     AbortWithStacktrace("Redis method not mocked");
 }
 
-RequestHincrbyfloat
-MockTransactionImplBase::Hincrbyfloat(std::string /*key*/, std::string /*field*/, double /*increment*/) {
+RequestHincrbyfloat MockTransactionImplBase::Hincrbyfloat(
+    std::string /*key*/,
+    std::string /*field*/,
+    double /*increment*/
+) {
     AbortWithStacktrace("Redis method not mocked");
 }
 
@@ -153,8 +162,10 @@ RequestHmget MockTransactionImplBase::Hmget(std::string /*key*/, std::vector<std
     AbortWithStacktrace("Redis method not mocked");
 }
 
-RequestHmset
-MockTransactionImplBase::Hmset(std::string /*key*/, std::vector<std::pair<std::string, std::string>> /*field_values*/) {
+RequestHmset MockTransactionImplBase::Hmset(
+    std::string /*key*/,
+    std::vector<std::pair<std::string, std::string>> /*field_values*/
+) {
     AbortWithStacktrace("Redis method not mocked");
 }
 
@@ -266,8 +277,11 @@ RequestSetIfExist MockTransactionImplBase::SetIfExist(std::string /*key*/, std::
     AbortWithStacktrace("Redis method not mocked");
 }
 
-RequestSetIfExist
-MockTransactionImplBase::SetIfExist(std::string /*key*/, std::string /*value*/, std::chrono::milliseconds /*ttl*/) {
+RequestSetIfExist MockTransactionImplBase::SetIfExist(
+    std::string /*key*/,
+    std::string /*value*/,
+    std::chrono::milliseconds /*ttl*/
+) {
     AbortWithStacktrace("Redis method not mocked");
 }
 
@@ -275,8 +289,11 @@ RequestSetIfNotExist MockTransactionImplBase::SetIfNotExist(std::string /*key*/,
     AbortWithStacktrace("Redis method not mocked");
 }
 
-RequestSetIfNotExist
-MockTransactionImplBase::SetIfNotExist(std::string /*key*/, std::string /*value*/, std::chrono::milliseconds /*ttl*/) {
+RequestSetIfNotExist MockTransactionImplBase::SetIfNotExist(
+    std::string /*key*/,
+    std::string /*value*/,
+    std::chrono::milliseconds /*ttl*/
+) {
     AbortWithStacktrace("Redis method not mocked");
 }
 
@@ -284,13 +301,19 @@ RequestSetIfNotExistOrGet MockTransactionImplBase::SetIfNotExistOrGet(std::strin
     AbortWithStacktrace("Redis method not mocked");
 }
 
-RequestSetIfNotExistOrGet MockTransactionImplBase::
-    SetIfNotExistOrGet(std::string /*key*/, std::string /*value*/, std::chrono::milliseconds /*ttl*/) {
+RequestSetIfNotExistOrGet MockTransactionImplBase::SetIfNotExistOrGet(
+    std::string /*key*/,
+    std::string /*value*/,
+    std::chrono::milliseconds /*ttl*/
+) {
     AbortWithStacktrace("Redis method not mocked");
 }
 
-RequestSetex
-MockTransactionImplBase::Setex(std::string /*key*/, std::chrono::seconds /*seconds*/, std::string /*value*/) {
+RequestSetex MockTransactionImplBase::Setex(
+    std::string /*key*/,
+    std::chrono::seconds /*seconds*/,
+    std::string /*value*/
+) {
     AbortWithStacktrace("Redis method not mocked");
 }
 
@@ -330,13 +353,19 @@ RequestZadd MockTransactionImplBase::Zadd(std::string /*key*/, double /*score*/,
     AbortWithStacktrace("Redis method not mocked");
 }
 
-RequestZadd MockTransactionImplBase::
-    Zadd(std::string /*key*/, double /*score*/, std::string /*member*/, const ZaddOptions& /*options*/) {
+RequestZadd MockTransactionImplBase::Zadd(
+    std::string /*key*/,
+    double /*score*/,
+    std::string /*member*/,
+    const ZaddOptions& /*options*/
+) {
     AbortWithStacktrace("Redis method not mocked");
 }
 
-RequestZadd
-MockTransactionImplBase::Zadd(std::string /*key*/, std::vector<std::pair<double, std::string>> /*scored_members*/) {
+RequestZadd MockTransactionImplBase::Zadd(
+    std::string /*key*/,
+    std::vector<std::pair<double, std::string>> /*scored_members*/
+) {
     AbortWithStacktrace("Redis method not mocked");
 }
 
@@ -352,8 +381,11 @@ RequestZaddIncr MockTransactionImplBase::ZaddIncr(std::string /*key*/, double /*
     AbortWithStacktrace("Redis method not mocked");
 }
 
-RequestZaddIncrExisting
-MockTransactionImplBase::ZaddIncrExisting(std::string /*key*/, double /*score*/, std::string /*member*/) {
+RequestZaddIncrExisting MockTransactionImplBase::ZaddIncrExisting(
+    std::string /*key*/,
+    double /*score*/,
+    std::string /*member*/
+) {
     AbortWithStacktrace("Redis method not mocked");
 }
 
@@ -367,8 +399,11 @@ RequestZrange MockTransactionImplBase::Zrange(std::string /*key*/, int64_t /*sta
     AbortWithStacktrace("Redis method not mocked");
 }
 
-RequestZrangeWithScores
-MockTransactionImplBase::ZrangeWithScores(std::string /*key*/, int64_t /*start*/, int64_t /*stop*/) {
+RequestZrangeWithScores MockTransactionImplBase::ZrangeWithScores(
+    std::string /*key*/,
+    int64_t /*start*/,
+    int64_t /*stop*/
+) {
     AbortWithStacktrace("Redis method not mocked");
 }
 
@@ -376,13 +411,20 @@ RequestZrangebyscore MockTransactionImplBase::Zrangebyscore(std::string /*key*/,
     AbortWithStacktrace("Redis method not mocked");
 }
 
-RequestZrangebyscore
-MockTransactionImplBase::Zrangebyscore(std::string /*key*/, std::string /*min*/, std::string /*max*/) {
+RequestZrangebyscore MockTransactionImplBase::Zrangebyscore(
+    std::string /*key*/,
+    std::string /*min*/,
+    std::string /*max*/
+) {
     AbortWithStacktrace("Redis method not mocked");
 }
 
-RequestZrangebyscore MockTransactionImplBase::
-    Zrangebyscore(std::string /*key*/, double /*min*/, double /*max*/, const RangeOptions& /*range_options*/) {
+RequestZrangebyscore MockTransactionImplBase::Zrangebyscore(
+    std::string /*key*/,
+    double /*min*/,
+    double /*max*/,
+    const RangeOptions& /*range_options*/
+) {
     AbortWithStacktrace("Redis method not mocked");
 }
 
@@ -395,13 +437,19 @@ RequestZrangebyscore MockTransactionImplBase::Zrangebyscore(
     AbortWithStacktrace("Redis method not mocked");
 }
 
-RequestZrangebyscoreWithScores
-MockTransactionImplBase::ZrangebyscoreWithScores(std::string /*key*/, double /*min*/, double /*max*/) {
+RequestZrangebyscoreWithScores MockTransactionImplBase::ZrangebyscoreWithScores(
+    std::string /*key*/,
+    double /*min*/,
+    double /*max*/
+) {
     AbortWithStacktrace("Redis method not mocked");
 }
 
-RequestZrangebyscoreWithScores
-MockTransactionImplBase::ZrangebyscoreWithScores(std::string /*key*/, std::string /*min*/, std::string /*max*/) {
+RequestZrangebyscoreWithScores MockTransactionImplBase::ZrangebyscoreWithScores(
+    std::string /*key*/,
+    std::string /*min*/,
+    std::string /*max*/
+) {
     AbortWithStacktrace("Redis method not mocked");
 }
 
@@ -431,8 +479,11 @@ RequestZrem MockTransactionImplBase::Zrem(std::string /*key*/, std::vector<std::
     AbortWithStacktrace("Redis method not mocked");
 }
 
-RequestZremrangebyrank
-MockTransactionImplBase::Zremrangebyrank(std::string /*key*/, int64_t /*start*/, int64_t /*stop*/) {
+RequestZremrangebyrank MockTransactionImplBase::Zremrangebyrank(
+    std::string /*key*/,
+    int64_t /*start*/,
+    int64_t /*stop*/
+) {
     AbortWithStacktrace("Redis method not mocked");
 }
 
@@ -440,8 +491,11 @@ RequestZremrangebyscore MockTransactionImplBase::Zremrangebyscore(std::string /*
     AbortWithStacktrace("Redis method not mocked");
 }
 
-RequestZremrangebyscore
-MockTransactionImplBase::Zremrangebyscore(std::string /*key*/, std::string /*min*/, std::string /*max*/) {
+RequestZremrangebyscore MockTransactionImplBase::Zremrangebyscore(
+    std::string /*key*/,
+    std::string /*min*/,
+    std::string /*max*/
+) {
     AbortWithStacktrace("Redis method not mocked");
 }
 

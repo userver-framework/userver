@@ -4,7 +4,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace chaotic::openapi::client {
 
-ExceptionWithStatusCode::ExceptionWithStatusCode(int status_code) : status_code_(status_code) {}
+ExceptionWithStatusCode::ExceptionWithStatusCode(int status_code)
+    : status_code_(status_code)
+{}
 
 ExceptionWithStatusCode::~ExceptionWithStatusCode() = default;
 
@@ -16,7 +18,9 @@ void ExceptionWithStatusCode::SetHeaders(std::unordered_map<std::string, std::st
 
 std::string ExceptionWithStatusCode::GetHeader(const std::string& name) const { return headers_.at(name); }
 
-HttpException::HttpException(clients::http::ErrorKind error_kind) : error_kind_(error_kind) {}
+HttpException::HttpException(clients::http::ErrorKind error_kind)
+    : error_kind_(error_kind)
+{}
 
 HttpException::~HttpException() = default;
 

@@ -15,6 +15,10 @@
 
 USERVER_NAMESPACE_BEGIN
 
+namespace engine {
+class TracePlugin;
+}
+
 namespace tracing {
 
 class SpanBuilder;
@@ -296,7 +300,9 @@ private:
         static OptionalDeleter DoNotDelete() noexcept;
 
     private:
-        explicit OptionalDeleter(bool do_delete) : do_delete_(do_delete) {}
+        explicit OptionalDeleter(bool do_delete)
+            : do_delete_(do_delete)
+        {}
 
         const bool do_delete_;
     };
@@ -304,6 +310,7 @@ private:
     friend class SpanBuilder;
     friend class TagScope;
     friend class InPlaceSpan;
+    friend class engine::TracePlugin;
 
     explicit Span(std::unique_ptr<Impl, OptionalDeleter>&& pimpl);
 

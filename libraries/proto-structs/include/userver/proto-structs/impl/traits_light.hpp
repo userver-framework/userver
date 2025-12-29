@@ -10,8 +10,9 @@ template <template <typename...> typename Template, typename... TArgs>
 void InheritsFromInstantiationImpl(const volatile Template<TArgs...>&) {}
 
 template <template <typename...> typename Template, typename T>
-inline constexpr bool kInheritsFromInstantiation =
-    !std::is_reference_v<T> && requires(T derived) { traits::InheritsFromInstantiationImpl<Template>(derived); };
+inline constexpr bool kInheritsFromInstantiation = !std::is_reference_v<T> && requires(T derived) {
+    traits::InheritsFromInstantiationImpl<Template>(derived);
+};
 
 }  // namespace proto_structs::impl::traits
 

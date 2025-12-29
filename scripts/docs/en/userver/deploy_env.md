@@ -407,7 +407,7 @@ components:
           load-enabled: false
 
       # A sidecar doesn't want detailed HTTP client statistics
-      http-client:
+      http-client-core:
           destination-metrics-auto-max-size: 0
           pool-statistics-disable: true
           threads: 1

@@ -12,7 +12,8 @@ SpanBuilder::SpanBuilder(std::string name, const utils::impl::SourceLocation& lo
     : pimpl_(
           AllocateImpl(std::move(name), GetParentSpanImpl(), ReferenceType::kChild, location),
           Span::OptionalDeleter{Span::OptionalDeleter::ShouldDelete()}
-      ) {
+      )
+{
     // 1. If we AttachToCoroStack() in Build(), then any logs will not be attached to the trace for now.
     // 2. If we AttachToCoroStack() here, then logs may get attached to a "non-existent" span
     //    (logs will get `trace_id` that will change before Build()).
@@ -36,7 +37,9 @@ void SpanBuilder::AddTagFrozen(std::string key, logging::LogExtra::Value value) 
 }
 
 void SpanBuilder::AddNonInheritableTag(std::string key, logging::LogExtra::Value value) {
-    if (!pimpl_->log_extra_local_) pimpl_->log_extra_local_.emplace();
+    if (!pimpl_->log_extra_local_) {
+        pimpl_->log_extra_local_.emplace();
+    }
     pimpl_->log_extra_local_->Extend(std::move(key), std::move(value));
 }
 

@@ -28,8 +28,12 @@ std::vector<std::string> ParseTypes(const yaml_config::YamlConfig& value) {
         ));
     }
 
-    if (types_opt) return std::move(*types_opt);
-    if (type_opt) return {std::move(*type_opt)};
+    if (types_opt) {
+        return std::move(*types_opt);
+    }
+    if (type_opt) {
+        return {std::move(*type_opt)};
+    }
     throw yaml_config::ParseException(fmt::format(
         "invalid handler auth config: none of fields '{}' "
         "and '{}' was found",
@@ -41,7 +45,9 @@ std::vector<std::string> ParseTypes(const yaml_config::YamlConfig& value) {
 }  // namespace
 
 HandlerAuthConfig::HandlerAuthConfig(yaml_config::YamlConfig value)
-    : yaml_config::YamlConfig(std::move(value)), types_(ParseTypes(*this)) {
+    : yaml_config::YamlConfig(std::move(value)),
+      types_(ParseTypes(*this))
+{
     if (types_.empty()) {
         throw yaml_config::ParseException("types list is empty in handler auth config");
     }

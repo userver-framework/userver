@@ -79,7 +79,7 @@ TEST(Array, FromObjectShouldThrow) {
     UEXPECT_THROW_MSG(
         json.As<Arr>(),
         formats::json::TypeMismatchException,
-        "Error at path '/': Wrong type. Expected: arrayValue, actual: objectValue"
+        "Error at path '/': Wrong type. Expected: kArrayValue, actual: kObjectValue"
     );
 }
 

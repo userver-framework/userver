@@ -16,7 +16,8 @@ Connection::Connection(
     : handler_{resolver, endpoint, auth_settings, secure, stats, deadline},
       connection_{handler_, max_in_flight_requests, deadline},
       channel_{connection_},
-      reliable_channel_{connection_} {}
+      reliable_channel_{connection_}
+{}
 
 Connection::~Connection() = default;
 

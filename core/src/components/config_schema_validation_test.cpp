@@ -15,7 +15,8 @@ namespace {
 
 void ValidateExampleCacheConfig(const formats::yaml::Value& static_config) {
     yaml_config::impl::Validate(
-        yaml_config::YamlConfig(static_config["example-cache"], {}), ExampleCacheComponent::GetStaticConfigSchema()
+        yaml_config::YamlConfig(static_config["example-cache"], {}),
+        ExampleCacheComponent::GetStaticConfigSchema()
     );
 }
 

@@ -129,9 +129,8 @@ struct ConnStateStatistic {
 void DumpMetric(utils::statistics::Writer& writer, const ConnStateStatistic& stats) {
     for (size_t i = 0; i <= static_cast<int>(Redis::State::kDisconnectError); ++i) {
         const auto state = static_cast<Redis::State>(i);
-        writer["cluster_states"].ValueWithLabels(
-            stats.Get(state), {"redis_instance_state", impl::StateToString(state)}
-        );
+        writer["cluster_states"]
+            .ValueWithLabels(stats.Get(state), {"redis_instance_state", impl::StateToString(state)});
     }
 }
 
@@ -143,7 +142,9 @@ std::chrono::milliseconds MillisecondsSinceEpoch() {
 
 Statistics::Statistics() {
     command_timings_percentile.reserve(std::size(kCommandTypes));
-    for (const auto& cmd : kCommandTypes) command_timings_percentile.try_emplace(cmd);
+    for (const auto& cmd : kCommandTypes) {
+        command_timings_percentile.try_emplace(cmd);
+    }
 }
 
 void Statistics::AccountStateChanged(RedisState new_state) {
@@ -210,12 +211,10 @@ void DumpMetric(utils::statistics::Writer& writer, const InstanceStatistics& sta
     }
 
     for (size_t i = 0; i < kReplyStatusMap.size(); ++i) {
-        writer["errors"].ValueWithLabels(
-            stats.error_count[i].Load().value, {"redis_error", ToString(static_cast<ReplyStatus>(i))}
-        );
-        writer["errors.v2"].ValueWithLabels(
-            stats.error_count[i].Load(), {"redis_error", ToString(static_cast<ReplyStatus>(i))}
-        );
+        writer["errors"]
+            .ValueWithLabels(stats.error_count[i].Load().value, {"redis_error", ToString(static_cast<ReplyStatus>(i))});
+        writer["errors.v2"]
+            .ValueWithLabels(stats.error_count[i].Load(), {"redis_error", ToString(static_cast<ReplyStatus>(i))});
     }
 
     if (real_instance) {
@@ -226,13 +225,15 @@ void DumpMetric(utils::statistics::Writer& writer, const InstanceStatistics& sta
         for (size_t i = 0; i <= static_cast<int>(Redis::State::kDisconnectError); ++i) {
             const auto state = static_cast<Redis::State>(i);
             writer["state"].ValueWithLabels(
-                static_cast<int>(stats.state == state), {"redis_instance_state", impl::StateToString(state)}
+                static_cast<int>(stats.state == state),
+                {"redis_instance_state", impl::StateToString(state)}
             );
         }
 
-        const long long session_time_ms = stats.state == impl::Redis::State::kConnected
-                                              ? (impl::MillisecondsSinceEpoch() - stats.session_start_time).count()
-                                              : 0;
+        const long long session_time_ms =
+            stats.state == impl::Redis::State::kConnected
+                ? (impl::MillisecondsSinceEpoch() - stats.session_start_time).count()
+                : 0;
         writer["session-time-ms"] = session_time_ms;
     }
 }

@@ -12,7 +12,8 @@ namespace kafka_sample {
 /// [Kafka service sample - consumer usage]
 ConsumerHandler::ConsumerHandler(const components::ComponentConfig& config, const components::ComponentContext& context)
     : components::ComponentBase{config, context},
-      consumer_{context.FindComponent<kafka::ConsumerComponent>().GetConsumer()} {
+      consumer_{context.FindComponent<kafka::ConsumerComponent>().GetConsumer()}
+{
     consumer_.Start([this](kafka::MessageBatchView messages) {
         Consume(messages);
         consumer_.AsyncCommit();

@@ -27,6 +27,12 @@ struct DistLockSettings {
 
     /// Delay before failed worker_func restart
     std::chrono::milliseconds worker_func_restart_delay{100};
+
+    /// Defaults to `true` and is updated from dynamic config.
+    /// When switched to `false`, @ref dist_lock::DistLockedWorker will not start any new distributed lock acquisition
+    /// attempts. If a `DoWork` invocation is already running under the lock, it is allowed to finish without forced
+    /// cancellation. In this case @ref dist_lock::DistLockedWorker::IsCancelAdvised returns `true`.
+    bool is_enabled{true};
 };
 
 /// Distributed lock waiting mode

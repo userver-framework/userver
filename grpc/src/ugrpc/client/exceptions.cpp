@@ -10,25 +10,31 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client {
 
-BaseError::BaseError(std::string message) : message_(std::move(message)) {}
+BaseError::BaseError(std::string message)
+    : message_(std::move(message))
+{}
 
 const char* BaseError::what() const noexcept { return message_.c_str(); }
 
 RpcError::RpcError(std::string_view call_name, std::string_view additional_info)
-    : BaseError(fmt::format("'{}' failed: {}", call_name, additional_info)) {}
+    : BaseError(fmt::format("'{}' failed: {}", call_name, additional_info))
+{}
 
 ErrorWithStatus::ErrorWithStatus(std::string_view call_name, grpc::Status&& status)
     : RpcError(
           call_name,
           fmt::format("code={}, message='{}'", ugrpc::ToString(status.error_code()), status.error_message())
       ),
-      status_(std::move(status)) {}
+      status_(std::move(status))
+{}
 
 RpcInterruptedError::RpcInterruptedError(std::string_view call_name, std::string_view stage)
-    : RpcError(call_name, fmt::format("interrupted at {}", stage)) {}
+    : RpcError(call_name, fmt::format("interrupted at {}", stage))
+{}
 
 RpcCancelledError::RpcCancelledError(std::string_view call_name, std::string_view stage)
-    : RpcError(call_name, fmt::format("cancelled at {}", stage)) {}
+    : RpcError(call_name, fmt::format("cancelled at {}", stage))
+{}
 
 const grpc::Status& ErrorWithStatus::GetStatus() const noexcept { return status_; }
 

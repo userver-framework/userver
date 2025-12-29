@@ -61,14 +61,18 @@ public:
         return response;
     }
 
-    ReadManyResult
-    ReadMany(CallContext& context, sample::ugrpc::StreamGreetingRequest&& request, ReadManyWriter& writer) override {
+    ReadManyResult ReadMany(
+        CallContext& context,
+        sample::ugrpc::StreamGreetingRequest&& request,
+        ReadManyWriter& writer
+    ) override {
         CheckServerContext(context.GetServerContext());
-        sample::ugrpc::StreamGreetingResponse response;
-        response.set_name("Hello again " + request.name());
+        const std::string response_name = "Hello again " + request.name();
         for (int i = 0; i < request.number(); ++i) {
+            sample::ugrpc::StreamGreetingResponse response;
+            response.set_name(response_name);
             response.set_number(i);
-            writer.Write(response);
+            writer.Write(std::move(response));
         }
         return grpc::Status::OK;
     }
@@ -89,13 +93,13 @@ public:
     ChatResult Chat(CallContext& context, ChatReaderWriter& stream) override {
         CheckServerContext(context.GetServerContext());
         sample::ugrpc::StreamGreetingRequest request;
-        sample::ugrpc::StreamGreetingResponse response;
         int count = 0;
         while (stream.Read(request)) {
+            sample::ugrpc::StreamGreetingResponse response;
             ++count;
             response.set_number(count);
             response.set_name("Hello " + request.name());
-            stream.Write(response);
+            stream.Write(std::move(response));
         }
         return grpc::Status::OK;
     }
@@ -111,8 +115,8 @@ ugrpc::client::CallOptions PrepareCallOptions() {
     return call_options;
 }
 
-void CheckClientContext(const grpc::ClientContext& context) {
-    const auto& metadata = context.GetServerTrailingMetadata();
+void CheckClientContext(const grpc::ClientContext& client_context) {
+    const auto& metadata = client_context.GetServerTrailingMetadata();
     const auto iter = metadata.find("resp_header");
     ASSERT_NE(iter, metadata.end());
     EXPECT_EQ(iter->second, "value");
@@ -351,7 +355,9 @@ UTEST_P_MT(GrpcClientMultichannelTest, MultiThreadedClientTest, 4) {
     engine::SleepFor(50ms);
 
     keep_running = false;
-    for (auto& task : tasks) task.Get();
+    for (auto& task : tasks) {
+        task.Get();
+    }
 }
 
 INSTANTIATE_UTEST_SUITE_P(Basic, GrpcClientMultichannelTest, testing::Values(std::size_t{1}, std::size_t{4}));
@@ -360,9 +366,11 @@ namespace {
 
 class WriteAndFinishService final : public sample::ugrpc::UnitTestServiceBase {
 public:
-    ReadManyResult
-    ReadMany(CallContext& /*context*/, sample::ugrpc::StreamGreetingRequest&& request, ReadManyWriter& /*writer*/)
-        override {
+    ReadManyResult ReadMany(
+        CallContext& /*context*/,
+        sample::ugrpc::StreamGreetingRequest&& request,
+        ReadManyWriter& /*writer*/
+    ) override {
         sample::ugrpc::StreamGreetingResponse response;
         response.set_number(kNumber);
         response.set_name("Hello " + request.name());

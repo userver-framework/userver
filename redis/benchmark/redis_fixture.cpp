@@ -52,8 +52,8 @@ const USERVER_NAMESPACE::secdist::RedisSettings& GetTestsuiteRedisSettings() {
 
 void Redis::RunStandalone(std::function<void()> payload) {
     engine::RunStandalone(kMainWorkerThreads, [&] {
-        auto thread_pools =
-            std::make_shared<storages::redis::impl::ThreadPools>(kSentinelThreadPoolSize, kRedisThreadPoolSize);
+        auto thread_pools = std::make_shared<
+            storages::redis::impl::ThreadPools>(kSentinelThreadPoolSize, kRedisThreadPoolSize);
         dynamic_config::StorageMock config;
 
         sentinel_ = storages::redis::impl::Sentinel::CreateSentinel(

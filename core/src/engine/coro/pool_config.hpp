@@ -1,7 +1,6 @@
 #pragma once
 
-#include <string>
-
+#include <userver/engine/deadlock_detector_config.hpp>
 #include <userver/formats/yaml.hpp>
 #include <userver/yaml_config/yaml_config.hpp>
 
@@ -15,6 +14,7 @@ struct PoolConfig {
     std::size_t stack_size = 256 * 1024ULL;
     std::size_t local_cache_size = 8;
     bool is_stack_usage_monitor_enabled = true;
+    DeadlockDetector deadlock_detector{DeadlockDetector::kOff};
 };
 
 PoolConfig Parse(const yaml_config::YamlConfig& value, formats::parse::To<PoolConfig>);

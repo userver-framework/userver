@@ -13,7 +13,10 @@ ClusterTopology::ClusterTopology(
     const std::shared_ptr<engine::ev::ThreadPool>& /*redis_thread_pool*/,
     const NodesStorage& nodes
 )
-    : infos_(std::move(infos)), version_(version), timestamp_(timestamp) {
+    : infos_(std::move(infos)),
+      version_(version),
+      timestamp_(timestamp)
+{
     {
         size_t all_instances_count = 0;
         for (const auto& info : infos_) {
@@ -87,7 +90,10 @@ std::string ClusterTopology::GetReadinessInfo() const {
         const auto master_ready = shard.IsReady(WaitConnectedMode::kMaster);
         const auto replica_ready = shard.IsReady(WaitConnectedMode::kSlave);
         fmt::format_to(
-            std::back_inserter(result), "{{master: {}, replicas: {}}},", master_ready, replica_ready
+            std::back_inserter(result),
+            "{{master: {}, replicas: {}}},",
+            master_ready,
+            replica_ready
 
         );
         at_least_one_is_fine = (at_least_one_is_fine || master_ready || replica_ready);
@@ -109,12 +115,18 @@ bool ClusterTopology::HasSameInfos(const ClusterShardHostInfos& infos) const {
     for (size_t i = 0; i < infos.size(); ++i) {
         const auto& l = infos_[i];
         const auto& r = infos[i];
-        if (l.master.HostPort() != r.master.HostPort()) return false;
-        if (l.slaves.size() != r.slaves.size()) return false;
+        if (l.master.HostPort() != r.master.HostPort()) {
+            return false;
+        }
+        if (l.slaves.size() != r.slaves.size()) {
+            return false;
+        }
         for (size_t j = 0; j < l.slaves.size(); ++j) {
             const auto& lslave = l.slaves[j];
             const auto& rslave = r.slaves[j];
-            if (lslave.HostPort() != rslave.HostPort()) return false;
+            if (lslave.HostPort() != rslave.HostPort()) {
+                return false;
+            }
         }
         if (l.slot_intervals != r.slot_intervals) {
             return false;
@@ -140,8 +152,11 @@ void ClusterTopology::GetStatistics(const MetricsSettings& settings, SentinelSta
     }
 }
 
-std::unordered_map<ServerId, size_t, ServerIdHasher>
-ClusterTopology::GetAvailableServersWeighted(size_t shard_idx, bool with_master, const CommandControl& cc) const {
+std::unordered_map<ServerId, size_t, ServerIdHasher> ClusterTopology::GetAvailableServersWeighted(
+    size_t shard_idx,
+    bool with_master,
+    const CommandControl& cc
+) const {
     if (shard_idx == kUnknownShard) {
         return super_shard_.GetAvailableServersWeighted(with_master, cc);
     }

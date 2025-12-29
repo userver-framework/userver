@@ -6,9 +6,13 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::redis {
 
-TtlReply::TtlReply(int64_t value) : value_(value) {}
+TtlReply::TtlReply(int64_t value)
+    : value_(value)
+{}
 
-TtlReply::TtlReply(TtlReplyValue value) : value_(static_cast<int64_t>(value)) {}
+TtlReply::TtlReply(TtlReplyValue value)
+    : value_(static_cast<int64_t>(value))
+{}
 
 TtlReply TtlReply::Parse(ReplyData&& reply_data, const std::string& request_description) {
     reply_data.ExpectInt(request_description);
@@ -20,7 +24,9 @@ bool TtlReply::KeyExists() const { return value_ != static_cast<int64_t>(kKeyDoe
 bool TtlReply::KeyHasExpiration() const { return value_ >= 0; }
 
 std::chrono::seconds TtlReply::GetExpire() const {
-    if (!KeyHasExpiration()) throw KeyHasNoExpirationException("key has no associated expire or does not exist");
+    if (!KeyHasExpiration()) {
+        throw KeyHasNoExpirationException("key has no associated expire or does not exist");
+    }
     return std::chrono::seconds{value_};
 }
 

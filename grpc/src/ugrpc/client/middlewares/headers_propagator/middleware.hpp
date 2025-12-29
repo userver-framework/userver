@@ -15,13 +15,13 @@ struct Settings final {
 
 /// @brief middleware for propagate headers from @ref server::request::GetPropagatedHeaders to the gRPC server.
 ///
-/// Headers from @ref server::request::GetPropagatedHeaders and from static config ('skip-headers') are casted to
-/// lowercase during comparison and then they are propagated in lowercase (the requirement of gRPC metadata).
+/// Headers from @ref server::request::GetPropagatedHeaders and from static config ('skip-headers') are cast to
+/// lowercase during comparison, and then they are propagated in lowercase (the requirement of gRPC metadata).
 ///
 /// Middleware propagates all headers in lowercase mode.
 class Middleware final : public MiddlewareBase {
 public:
-    Middleware(Settings&&);
+    explicit Middleware(Settings&&);
 
     void PreStartCall(MiddlewareCallContext&) const override;
 

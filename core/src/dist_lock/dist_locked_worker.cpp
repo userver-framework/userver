@@ -28,7 +28,8 @@ DistLockedWorker::DistLockedWorker(
           impl::Locker::kDefaultRetryMode,
           locker_log_level
       )),
-      task_processor_(task_processor) {}
+      task_processor_(task_processor)
+{}
 
 DistLockedWorker::~DistLockedWorker() {
     UASSERT_MSG(!IsRunning(), "Stop() was not called");
@@ -68,7 +69,9 @@ void DistLockedWorker::Stop() {
     LOG_INFO() << "Stopping DistLockedWorker " << Name();
 
     const std::lock_guard<engine::Mutex> lock(locker_task_mutex_);
-    if (locker_task_.IsValid()) locker_task_.RequestCancel();
+    if (locker_task_.IsValid()) {
+        locker_task_.RequestCancel();
+    }
     impl::GetTask(locker_task_, impl::LockerName(Name()), "cancel and wait in DistLockedWorker::Stop()");
 
     LOG_INFO() << "Stopped DistLocked Worker " << Name();
@@ -80,6 +83,8 @@ bool DistLockedWorker::IsRunning() const {
 }
 
 bool DistLockedWorker::OwnsLock() const noexcept { return locker_ptr_->OwnsLock(); }
+
+bool DistLockedWorker::IsCancelAdvised() const { return !locker_ptr_->GetSettings().is_enabled; }
 
 std::optional<std::chrono::steady_clock::duration> DistLockedWorker::GetLockedDuration() const {
     return locker_ptr_->GetLockedDuration();

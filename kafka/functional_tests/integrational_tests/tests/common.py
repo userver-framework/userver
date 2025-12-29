@@ -1,12 +1,8 @@
-from typing import Dict
-from typing import List
-
-
 def generate_messages_to_consume(
-    topics: List[str],
+    topics: list[str],
     cnt: int,
-) -> Dict[str, List[Dict[str, str]]]:
-    messages: Dict[str, List[Dict[str, str]]] = {}
+) -> dict[str, list[dict[str, str]]]:
+    messages: dict[str, list[dict[str, str]]] = {}
     for topic in topics:
         messages[topic] = [
             {

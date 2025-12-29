@@ -6,9 +6,13 @@ USERVER_NAMESPACE_BEGIN
 
 namespace formats::json {
 
-Object::Object() : Value(ValueBuilder{common::Type::kObject}.ExtractValue()) {}
+Object::Object()
+    : Value(ValueBuilder{common::Type::kObject}.ExtractValue())
+{}
 
-Object::Object(ValueBuilder&& builder) : Object(std::move(builder).ExtractValue()) {}
+Object::Object(ValueBuilder&& builder)
+    : Object(std::move(builder).ExtractValue())
+{}
 
 }  // namespace formats::json
 

@@ -26,9 +26,12 @@ userver is split into multiple CMake libraries.
 | `userver::rabbitmq`        | `USERVER_FEATURE_RABBITMQ`                        | `rabbitmq`            | @ref rabbitmq_driver                                      |
 | `userver::mysql`           | `USERVER_FEATURE_MYSQL`                           | `mysql`               | @ref scripts/docs/en/userver/mysql/mysql_driver.md        |
 | `userver::rocks`           | `USERVER_FEATURE_ROCKS`                           | `rocks`               | TODO                                                      |
+| `userver::sqlite`          | `USERVER_FEATURE_SQLITE`                          | `sqlite`              | @ref scripts/docs/en/userver/sqlite/sqlite_driver.md      |
+| `userver::odbc`            | `USERVER_FEATURE_ODBC`                            | `odbc`                | @ref scripts/docs/en/userver/odbc.md                      |
 | `userver::ydb`             | `USERVER_FEATURE_YDB`                             | `ydb`                 | @ref scripts/docs/en/userver/ydb.md                       |
 | `userver::otlp`            | `USERVER_FEATURE_OTLP`                            | `otlp`                | @ref opentelemetry "OpenTelemetry Protocol"               |
 | `userver::s3api`           | `USERVER_FEATURE_S3API`                           | `s3api`               | @ref scripts/docs/en/userver/libraries/s3api.md           |
+| `userver::multi_index_lru` | `USERVER_FEATURE_MULTI_INDEX_LRU`                 | `multi_index_lru`     | @ref scripts/docs/en/userver/libraries/multi_index_lru.md |
 | `userver::easy`            | `USERVER_FEATURE_EASY`                            | `easy`                | @ref scripts/docs/en/userver/libraries/easy.md            |
 | `userver::grpc-reflection` | `USERVER_FEATURE_GRPC_REFLECTION`                 | `grpc-reflection`     | @ref scripts/docs/en/userver/libraries/grpc-reflection.md |
 
@@ -77,10 +80,15 @@ The exact format of setting cmake options varies depending on the method of buil
 | `USERVER_FEATURE_RABBITMQ`        | Provide asynchronous driver for RabbitMQ (AMQP 0-9-1)                             | `${USERVER_BUILD_ALL_COMPONENTS}`                           |
 | `USERVER_FEATURE_MYSQL`           | Provide asynchronous driver for MySQL/MariaDB                                     | `${USERVER_BUILD_ALL_COMPONENTS}`                           |
 | `USERVER_FEATURE_ROCKS`           | Provide asynchronous driver for RocksDB                                           | `${USERVER_BUILD_ALL_COMPONENTS}`                           |
+| `USERVER_FEATURE_SQLITE`          | Provide asynchronous driver for SQLite                                            | `${USERVER_BUILD_ALL_COMPONENTS}`                           |
+| `USERVER_FEATURE_ODBC`            | Provide asynchronous driver for ODBC                                              | `${USERVER_BUILD_ALL_COMPONENTS}`                           |
 | `USERVER_FEATURE_YDB`             | Provide asynchronous driver for YDB                                               | `${USERVER_BUILD_ALL_COMPONENTS}` AND C++ standard >= 20    |
 | `USERVER_FEATURE_OTLP`            | Provide Logger for OpenTelemetry protocol                                         | `${USERVER_BUILD_ALL_COMPONENTS}`                           |
 | `USERVER_FEATURE_GRPC_REFLECTION` | Provide reflection service for gRPC                                               | `${USERVER_BUILD_ALL_COMPONENTS}`                           |
 | `USERVER_FEATURE_S3API`           | Provide S3 client for gRPC                                                        | `${USERVER_BUILD_ALL_COMPONENTS}`                           |
+| `USERVER_FEATURE_EASY`            | Provide library for easy prototyping                                              | `${USERVER_BUILD_ALL_COMPONENTS}`                           |
+| `USERVER_FEATURE_MULTI_INDEX_LRU` | Provide library for Multi Index LRU containers                                    | `${USERVER_BUILD_ALL_COMPONENTS}`                           |
+
 
 ### CMake options for building everything
 
@@ -159,36 +167,39 @@ The exact format of setting cmake options varies depending on the method of buil
 
 ### CMake options for various compilation modes
 
-| Option                                  | Description                                                                                                 | Default                                                     |
-|-----------------------------------------|-------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------|
-| `USERVER_CHECK_PACKAGE_VERSIONS`        | Check package versions                                                                                      | `ON`                                                        |
-| `USERVER_SANITIZE`                      | Build with sanitizers. Combine values via 'val1 val2'. Available: `addr`, `mem`, `ub`, and [thread][tsan]   | (no sanitizers)                                             |
-| `USERVER_SANITIZE_BLACKLIST`            | Path to file that is passed to the -fsanitize-blacklist option                                              | (no blacklist)                                              |
-| `USERVER_USE_LD`                        | Linker to use, e.g. `gold` or `lld`                                                                         | `lld` for Clang, system linker otherwise (typically GNU ld) |
-| `USERVER_USE_STATIC_LIBS`               | Tries to find all dependencies as static libraries                                                          | `ON` for `Clang` not older than `14` version                |
-| `USERVER_USE_CCACHE`                    | Use ccache if present, disable for benchmarking build times                                                 | `ON`                                                        |
-| `USERVER_LTO`                           | Use link time optimizations (SEE NOTE BELOW)                                                                | `OFF`                                                       |
-| `USERVER_LTO_CACHE`                     | Use LTO cache if present, disable for benchmarking build times                                              | `ON`                                                        |
-| `USERVER_LTO_CACHE_DIR`                 | LTO cache directory                                                                                         | `${CMAKE_CURRENT_BINARY_DIR}/.ltocache`                     |
-| `USERVER_LTO_CACHE_SIZE_MB`             | LTO cache size limit in MB                                                                                  | `6000`                                                      |
-| `USERVER_DEBUG_INFO_COMPRESSION`        | Linker and compiler debug info compression algorithm (z, zstd, none, auto)                                  | `auto`                                                        |
-| `USERVER_PGO_GENERATE`                  | Generate PGO profile                                                                                        | `OFF`                                                       |
-| `USERVER_PGO_USE`                       | Path to PGO profile file                                                                                    | (no path)                                                   |
-| `USERVER_COMPILATION_TIME_TRACE`        | Generate Clang compilation time trace                                                                       | `OFF`                                                       |
-| `USERVER_NO_WERROR`                     | Do not treat warnings as errors                                                                             | `ON`                                                        |
-| `USERVER_FEATURE_ERASE_LOG_WITH_LEVEL`  | Logs of this and below levels are removed from binary. Possible values: trace, info, debug, warning, error  | `OFF`                                                       |
-| `USERVER_PIP_USE_SYSTEM_PACKAGES`       | Use system python packages inside venv. Useful for Docker, CI and other controlled environments             | `OFF`                                                       |
-| `USERVER_PIP_OPTIONS`                   | Options for all pip calls. Useful for passing `--no-index` option to prevent network usage                  | (no options)                                                |
-| `USERVER_INSTALL`                       | Build userver for further installation                                                                      | `OFF`                                                       |
-| `USERVER_INSTALL_MULTIPACKAGE`          | Whether create per-component packages                                                       | `OFF`                                                       |
-| `USERVER_CONAN`                         | Build userver using Conan packages                                                                          | `ON` if build is launched from Conan, `OFF` otherwise       |
-| `USERVER_CHAOTIC_FORMAT`                | Whether to format generated code if FORMAT option is missing                                                | `ON`                                                        |
+| Option                                 | Description                                                                                                | Default                                                     |
+|----------------------------------------|------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------|
+| `USERVER_CHECK_PACKAGE_VERSIONS`       | Check package versions                                                                                     | `ON`                                                        |
+| `USERVER_SANITIZE`                     | Build with sanitizers. Combine values via 'val1 val2'. Available: `addr`, `mem`, `ub`, and [thread][tsan]  | (no sanitizers)                                             |
+| `USERVER_SANITIZE_BLACKLIST`           | Path to file that is passed to the -fsanitize-blacklist option                                             | (no blacklist)                                              |
+| `USERVER_USE_LD`                       | Linker to use, e.g. `gold` or `lld`                                                                        | `lld` for Clang, system linker otherwise (typically GNU ld) |
+| `USERVER_USE_STATIC_LIBS`              | Tries to find all dependencies as static libraries                                                         | `ON` for `Clang` not older than `14` version                |
+| `USERVER_USE_CCACHE`                   | Use ccache if present, disable for benchmarking build times                                                | `ON`                                                        |
+| `USERVER_LTO`                          | Use link time optimizations (SEE NOTE BELOW)                                                               | `OFF`                                                       |
+| `USERVER_LTO_CACHE`                    | Use LTO cache if present, disable for benchmarking build times                                             | `ON`                                                        |
+| `USERVER_LTO_CACHE_DIR`                | LTO cache directory                                                                                        | `${CMAKE_CURRENT_BINARY_DIR}/.ltocache`                     |
+| `USERVER_LTO_CACHE_SIZE_MB`            | LTO cache size limit in MB                                                                                 | `6000`                                                      |
+| `USERVER_DEBUG_INFO_COMPRESSION`       | Linker and compiler debug info compression algorithm (z, zstd, none, auto)                                 | `auto`                                                      |
+| `USERVER_PGO_GENERATE`                 | Generate PGO profile                                                                                       | `OFF`                                                       |
+| `USERVER_PGO_USE`                      | Path to PGO profile file                                                                                   | (no path)                                                   |
+| `USERVER_COMPILATION_TIME_TRACE`       | Generate Clang compilation time trace                                                                      | `OFF`                                                       |
+| `USERVER_NO_WERROR`                    | Do not treat warnings as errors                                                                            | `ON`                                                        |
+| `USERVER_FEATURE_ERASE_LOG_WITH_LEVEL` | Logs of this and below levels are removed from binary. Possible values: trace, info, debug, warning, error | `OFF`                                                       |
+| `USERVER_PIP_USE_SYSTEM_PACKAGES`      | Use system python packages inside venv. Useful for Docker, CI and other controlled environments            | `OFF`                                                       |
+| `USERVER_PIP_OPTIONS`                  | Options for all pip calls. Useful for passing `--no-index` option to prevent network usage                 | (no options)                                                |
+| `USERVER_INSTALL`                      | Build userver for further installation                                                                     | `OFF`                                                       |
+| `USERVER_INSTALL_MULTIPACKAGE`         | Whether create per-component packages                                                                      | `OFF`                                                       |
+| `USERVER_CONAN`                        | Build userver using Conan packages                                                                         | `ON` if build is launched from Conan, `OFF` otherwise       |
+| `USERVER_CHAOTIC_FORMAT`               | Whether to format generated code if FORMAT option is missing                                               | `ON`                                                        |
 
-@warning Using LTO can lead to [some problems](https://github.com/userver-framework/userver/issues/242). We don't recommend using `USERVER_LTO`.
+@warning Using LTO can lead to [some problems](https://github.com/userver-framework/userver/issues/242). We don't
+         recommend using `USERVER_LTO` or consider using thread pinning schedulers (see @ref engine::TaskQueueType
+         for a list of queues and `task-processor-queue` static config option of
+         @ref components::ManagerControllerComponent for a ways to choose a queue).
 
 [tsan]: https://github.com/userver-framework/userver/blob/develop/cmake/tsan.suppressions.txt
 
-### CMake options for static linking
+## Static linking
 
 It is possible to build userver based services with libraries statically linked in.
 
@@ -204,6 +215,21 @@ With the option, CMake tries to find all dependencies as static libraries (and d
 Some dependencies usually should be build from source for statically linked executable:
 1. `Curl`. Use `USERVER_FORCE_DOWNLOAD_CURL=ON` to download and build Curl from source.
 2. `cctz`, `yaml-cpp`, `fmt` often have no static libraries in their packages, so they should be build from source and installed in your host system (for instance, in `/usr/local`).
+
+## PGO (clang)
+
+PGO compilation consists of 2 compilation stages: profile collecting and compilation with PGO.
+You can use PGO compilation doing the following steps:
+
+1) configure userver AND your service with cmake option `-DUSERVER_PGO_GENERATE=ON`, compile the service;
+2) run the resulting binary under the production-like workload to collect profile;
+3) run llvm-profdata to convert profraw profile data format into profdata:
+   ```sh
+   llvm-profdata merge -output=code.profdata default.profraw
+   ```
+4) configure userver AND your service with cmake option `-DUSERVER_PGO_USE=<path_to_profdata>`, compile the service.
+
+The resulting binary should be 2-15% faster than without PGO, depending on the code and workload.
 
 ----------
 

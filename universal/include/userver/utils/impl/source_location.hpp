@@ -26,8 +26,11 @@ public:
     }
 
     // Mainly intended for interfacing with external libraries.
-    static constexpr SourceLocation
-    Custom(std::uint_least32_t line, std::string_view file_name, std::string_view function_name) noexcept {
+    static constexpr SourceLocation Custom(
+        std::uint_least32_t line,
+        std::string_view file_name,
+        std::string_view function_name
+    ) noexcept {
         return SourceLocation{line, file_name, function_name};
     }
 

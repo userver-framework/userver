@@ -6,7 +6,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace formats::json::impl {
 
-VersionedValuePtr::Data::Data(Document&& doc) : Data(static_cast<Value&&>(doc)) {
+VersionedValuePtr::Data::Data(Document&& doc)
+    : Data(static_cast<Value&&>(doc))
+{
     static_assert(
         // NOLINTNEXTLINE(misc-redundant-expression)
         std::is_same_v<::rapidjson::CrtAllocator, Value::AllocatorType> &&

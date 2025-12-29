@@ -140,7 +140,8 @@ private:
             [[maybe_unused]] const auto p = field_value_printer.release();
         } else {
             throw std::runtime_error{
-                fmt::format("Failed to register field value printer for field: '{}'", field.full_name())};
+                fmt::format("Failed to register field value printer for field: '{}'", field.full_name())
+            };
         }
     }
 

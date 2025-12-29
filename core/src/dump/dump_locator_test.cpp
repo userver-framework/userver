@@ -49,7 +49,8 @@ std::vector<std::string> UnrelatedFileNames() {
         "foo.tmp",
         "2015-03-22T090000.000000Z-v-5",
         "2015-03-22T090000.000000Z-v-5.tmp",
-        "2015-03-22T090000.000000Z-5.tmp"};
+        "2015-03-22T090000.000000Z-5.tmp"
+    };
 }
 
 template <typename Container, typename Range>

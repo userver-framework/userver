@@ -10,14 +10,18 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils {
 
-IgnoreSignalScope::IgnoreSignalScope(int signal) : signal_(signal) {
+IgnoreSignalScope::IgnoreSignalScope(int signal)
+    : signal_(signal)
+{
     struct sigaction action {};
     memset(&action, 0, sizeof(action));
     // SIG_IGN might be a macro
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
     action.sa_handler = SIG_IGN;
     utils::CheckSyscall(
-        sigaction(signal_, &action, &old_action_), "setting ignore handler for {}", utils::strsignal(signal_)
+        sigaction(signal_, &action, &old_action_),
+        "setting ignore handler for {}",
+        utils::strsignal(signal_)
     );
 }
 

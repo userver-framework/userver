@@ -93,8 +93,8 @@ void AddEdgesForGroup(Graph& graph, const MiddlewareDependency& dep) {
 
 template <typename Group>
 void AddEdgesGroup(Graph& graph) {
-    const MiddlewareDependency dep =
-        middlewares::MiddlewareDependencyBuilder{Group::kDependency}.ExtractGroupDependency(Group::kName);
+    const MiddlewareDependency
+        dep = middlewares::MiddlewareDependencyBuilder{Group::kDependency}.ExtractGroupDependency(Group::kName);
     AddEdgesForGroup<Group>(graph, dep);
 }
 
@@ -127,7 +127,9 @@ std::unordered_map<std::string, std::vector<std::string>> Graph::Reverse() {
                 UINVARIANT(
                     edge.type != DependencyType::kStrong,
                     fmt::format(
-                        "There is a strong connect from '{}' to '{}'. But the last is missing.", edge.from, edge.to
+                        "There is a strong connect from '{}' to '{}'. But the last is missing.",
+                        edge.from,
+                        edge.to
                     )
                 );
                 // We can handle the weak connection => not panic

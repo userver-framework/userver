@@ -58,9 +58,8 @@ public:
     }
 
     auto Elements() const {
-        return utils::span<const std::intptr_t>(
-                   array_.GetBase(), array_.GetBase() + GetRseqArraySizeUnsafe() * kStride
-               ) |
+        return utils::span<
+                   const std::intptr_t>(array_.GetBase(), array_.GetBase() + GetRseqArraySizeUnsafe() * kStride) |
                boost::adaptors::strided(kStride);
     }
 

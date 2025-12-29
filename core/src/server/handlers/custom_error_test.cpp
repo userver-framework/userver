@@ -136,7 +136,8 @@ TYPED_TEST(CustomHandlerExceptionTest, CustomCode) {
           HandlerErrorCode::kTooManyRequests,
           HandlerErrorCode::kServerSideError,
           HandlerErrorCode::kBadGateway,
-          HandlerErrorCode::kConflictState}) {
+          HandlerErrorCode::kConflictState})
+    {
         try {
             // Custom code, messages defaulted
             throw ErrorType(code);

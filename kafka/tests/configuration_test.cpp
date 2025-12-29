@@ -32,10 +32,12 @@ UTEST_F(ConfigurationTest, Producer) {
     );
     EXPECT_EQ(configuration->GetOption("security.protocol"), "plaintext");
     EXPECT_EQ(
-        configuration->GetOption("delivery.timeout.ms"), std::to_string(default_producer.delivery_timeout.count())
+        configuration->GetOption("delivery.timeout.ms"),
+        std::to_string(default_producer.delivery_timeout.count())
     );
     EXPECT_EQ(
-        configuration->GetOption("queue.buffering.max.ms"), std::to_string(default_producer.queue_buffering_max.count())
+        configuration->GetOption("queue.buffering.max.ms"),
+        std::to_string(default_producer.queue_buffering_max.count())
     );
     EXPECT_EQ(configuration->GetOption("enable.idempotence"), default_producer.enable_idempotence ? "true" : "false");
     EXPECT_EQ(
@@ -48,11 +50,13 @@ UTEST_F(ConfigurationTest, Producer) {
     );
     EXPECT_EQ(configuration->GetOption("message.max.bytes"), std::to_string(default_producer.message_max_bytes));
     EXPECT_EQ(
-        configuration->GetOption("message.send.max.retries"), std::to_string(default_producer.message_send_max_retries)
+        configuration->GetOption("message.send.max.retries"),
+        std::to_string(default_producer.message_send_max_retries)
     );
     EXPECT_EQ(configuration->GetOption("retry.backoff.ms"), std::to_string(default_producer.retry_backoff.count()));
     EXPECT_EQ(
-        configuration->GetOption("retry.backoff.max.ms"), std::to_string(default_producer.retry_backoff_max.count())
+        configuration->GetOption("retry.backoff.max.ms"),
+        std::to_string(default_producer.retry_backoff_max.count())
     );
 }
 
@@ -281,7 +285,9 @@ UTEST_F(ConfigurationTest, ConsumerResolveGroupId) {
 
     const engine::subprocess::EnvironmentVariablesScope scope{};
     engine::subprocess::SetEnvironmentVariable(
-        "ENVIRONMENT_VARIABLE_NAME", "pod-example-com", engine::subprocess::Overwrite::kAllowed
+        "ENVIRONMENT_VARIABLE_NAME",
+        "pod-example-com",
+        engine::subprocess::Overwrite::kAllowed
     );
 
     std::optional<kafka::impl::Configuration> configuration;
@@ -321,22 +327,28 @@ UTEST_F_DEATH(ConfigurationDeathTest, ContradictorySecurityConfiguration) {
     std::optional<kafka::impl::Configuration> configuration;
 #ifdef NDEBUG
     UEXPECT_THROW(
-        configuration.emplace(MakeProducerConfiguration("kafka-producer", sasl_ssl, secrets_none)), std::exception
+        configuration.emplace(MakeProducerConfiguration("kafka-producer", sasl_ssl, secrets_none)),
+        std::exception
     );
     UEXPECT_THROW(
-        configuration.emplace(MakeProducerConfiguration("kafka-producer", sasl_ssl, secrets_ssl)), std::exception
+        configuration.emplace(MakeProducerConfiguration("kafka-producer", sasl_ssl, secrets_ssl)),
+        std::exception
     );
     UEXPECT_THROW(
-        configuration.emplace(MakeProducerConfiguration("kafka-producer", sasl_plaintext, secrets_none)), std::exception
+        configuration.emplace(MakeProducerConfiguration("kafka-producer", sasl_plaintext, secrets_none)),
+        std::exception
     );
     UEXPECT_THROW(
-        configuration.emplace(MakeProducerConfiguration("kafka-producer", sasl_plaintext, secrets_ssl)), std::exception
+        configuration.emplace(MakeProducerConfiguration("kafka-producer", sasl_plaintext, secrets_ssl)),
+        std::exception
     );
     UEXPECT_THROW(
-        configuration.emplace(MakeConsumerConfiguration("kafka-consumer", ssl, secrets_none)), std::exception
+        configuration.emplace(MakeConsumerConfiguration("kafka-consumer", ssl, secrets_none)),
+        std::exception
     );
     UEXPECT_THROW(
-        configuration.emplace(MakeConsumerConfiguration("kafka-consumer", ssl, secrets_sasl)), std::exception
+        configuration.emplace(MakeConsumerConfiguration("kafka-consumer", ssl, secrets_sasl)),
+        std::exception
     );
 #else
     UEXPECT_DEATH(
@@ -371,7 +383,8 @@ UTEST_F_DEATH(ConfigurationDeathTest, ContradictorySecurityConfiguration) {
 UTEST_F(ConfigurationTest, BrokerSecrets) {
     const auto make_kafka_settings = [](formats::json::Value component_settings) {
         return formats::json::MakeObject(
-            "kafka_settings", formats::json::MakeObject("kafka-client", std::move(component_settings))
+            "kafka_settings",
+            formats::json::MakeObject("kafka-client", std::move(component_settings))
         );
     };
 
@@ -444,7 +457,8 @@ UTEST_F(ConfigurationTest, BrokerSecrets) {
             "/etc/ssl/client.key"
         );
         EXPECT_EQ(
-            std::get<kafka::impl::Secret::SslCredentials>(secret->credentials).ssl_key_password->GetUnderlying(), "pass"
+            std::get<kafka::impl::Secret::SslCredentials>(secret->credentials).ssl_key_password->GetUnderlying(),
+            "pass"
         );
     }
     {

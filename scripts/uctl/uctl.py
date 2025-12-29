@@ -6,7 +6,6 @@ import json
 import os
 import subprocess
 import sys
-import typing
 
 import requests
 import yaml
@@ -25,9 +24,9 @@ class Client:
         self,
         path: str,
         method: str,
-        params: typing.Optional[typing.Dict[str, str]] = None,
-        headers: typing.Optional[typing.Dict[str, str]] = None,
-        body: typing.Optional[str] = None,
+        params: dict[str, str] | None = None,
+        headers: dict[str, str] | None = None,
+        body: str | None = None,
     ) -> str:
         call = getattr(requests, method)
         response = call(
@@ -191,7 +190,7 @@ class Client:
         with open(config_vars_path, 'r') as ifile:
             self.config_vars = yaml.safe_load(ifile)
 
-    def config_yaml_read(self, path: typing.List[str]) -> str:
+    def config_yaml_read(self, path: list[str]) -> str:
         data = self.config_yaml
         while len(path) > 1:
             data = data[path[0]]
@@ -252,7 +251,7 @@ def guess_config_yaml() -> str:
         return ''
 
 
-def parse_args(args: typing.List[str]):
+def parse_args(args: list[str]):
     parser = argparse.ArgumentParser()
     parser.add_argument(
         '--config',
@@ -419,7 +418,7 @@ def parse_args(args: typing.List[str]):
     return opts
 
 
-def run(argv: typing.List[str]) -> None:
+def run(argv: list[str]) -> None:
     # pylint: disable=W0718
     args = parse_args(argv)
     if not hasattr(args, 'func'):

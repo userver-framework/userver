@@ -72,8 +72,10 @@ public:
 
     explicit Shard(Options options);
 
-    std::unordered_map<ServerId, size_t, ServerIdHasher>
-    GetAvailableServersWeighted(bool with_master, const CommandControl& command_control = {}) const;
+    std::unordered_map<ServerId, size_t, ServerIdHasher> GetAvailableServersWeighted(
+        bool with_master,
+        const CommandControl& command_control = {}
+    ) const;
 
     std::vector<ServerId> GetAllInstancesServerId() const;
 
@@ -103,10 +105,16 @@ public:
     void SetRetryBudgetSettings(const utils::RetryBudgetSettings& replication_monitoring_settings);
 
 private:
-    std::vector<unsigned char>
-    GetAvailableServers(const CommandControl& command_control, bool with_masters, bool with_slaves) const;
-    std::vector<unsigned char>
-    GetNearestServersPing(const CommandControl& command_control, bool with_masters, bool with_slaves) const;
+    std::vector<unsigned char> GetAvailableServers(
+        const CommandControl& command_control,
+        bool with_masters,
+        bool with_slaves
+    ) const;
+    std::vector<unsigned char> GetNearestServersPing(
+        const CommandControl& command_control,
+        bool with_masters,
+        bool with_slaves
+    ) const;
 
     std::vector<ConnectionInfoInt> GetConnectionInfosToCreate() const;
     bool UpdateCleanWaitQueue(std::vector<ConnectionStatus>&& add_clean_wait);

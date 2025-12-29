@@ -83,7 +83,7 @@ public:
 private:
     class Impl;
 
-    utils::FastPimpl<Impl, 96, alignof(void*)> impl_;
+    utils::FastPimpl<Impl, 104, alignof(void*)> impl_;
 };
 
 template <typename Rep, typename Period>

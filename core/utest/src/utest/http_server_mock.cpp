@@ -145,8 +145,9 @@ int HttpConnection::DoOnMessageComplete() {
             for (const auto& value : query_values) {
                 auto eq_pos = value.find('=');
                 EXPECT_NE(std::string::npos, eq_pos) << "Bad query: " << query;
-                if (eq_pos != std::string::npos)
+                if (eq_pos != std::string::npos) {
                     http_request_.query.emplace(value.substr(0, eq_pos), value.substr(eq_pos + 1));
+                }
             }
         }
     }
@@ -176,12 +177,16 @@ llhttp_settings_t HttpConnection::MakeHttpParserSettings() {
 
 llhttp_settings_t HttpConnection::kParserSettings = HttpConnection::MakeHttpParserSettings();
 
-HttpConnection::HttpConnection(HttpServerMock& owner) : owner_(owner) {
+HttpConnection::HttpConnection(HttpServerMock& owner)
+    : owner_(owner)
+{
     llhttp_init(&parser_, HTTP_REQUEST, &kParserSettings);
     parser_.data = this;
 }
 
-HttpConnection::HttpConnection(const HttpConnection& other) : HttpConnection(other.owner_) {}
+HttpConnection::HttpConnection(const HttpConnection& other)
+    : HttpConnection(other.owner_)
+{}
 
 SimpleServer::Response HttpConnection::operator()(const SimpleServer::Request& request) {
     auto size = request.size();
@@ -220,7 +225,9 @@ void HttpConnection::Reset() {
 }
 
 HttpServerMock::HttpServerMock(HttpHandler http_handler, SimpleServer::Protocol protocol)
-    : http_handler_(std::move(http_handler)), server_(HttpConnection(*this), protocol) {}
+    : http_handler_(std::move(http_handler)),
+      server_(HttpConnection(*this), protocol)
+{}
 
 std::string HttpServerMock::GetBaseUrl() const { return server_.GetBaseUrl(); }
 

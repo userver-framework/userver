@@ -231,12 +231,14 @@ TEST(TestTrimUtf8Truncated, TrimTruncatedEnding) {
         auto test_view_str = test_str;
         auto test_view = std::string_view{test_view_str};
 
-        UEXPECT_NO_THROW(utils::text::utf8::TrimTruncatedEnding(test_str))
-            << "hex(test_str_orig): " << ToHex(test_str_orig);
+        UEXPECT_NO_THROW(utils::text::utf8::TrimTruncatedEnding(test_str)
+        ) << "hex(test_str_orig): "
+          << ToHex(test_str_orig);
         EXPECT_EQ(test_str, expected) << "hex(test_str_orig): " << ToHex(test_str_orig);
 
-        UEXPECT_NO_THROW(utils::text::utf8::TrimViewTruncatedEnding(test_view))
-            << "hex(test_str_orig): " << ToHex(test_str_orig);
+        UEXPECT_NO_THROW(utils::text::utf8::TrimViewTruncatedEnding(test_view)
+        ) << "hex(test_str_orig): "
+          << ToHex(test_str_orig);
         EXPECT_EQ(test_view, std::string_view{expected}) << "hex(test_str_orig): " << ToHex(test_str_orig);
 
         // have to check, that TrimViewTruncatedEnding
@@ -280,6 +282,20 @@ TEST(TextUtils, CamelCaseToSnake) {
     EXPECT_STREQ("a_b_c_d", CamelCaseToSnake("ABCD").c_str());
     EXPECT_STREQ("__a", CamelCaseToSnake("_A").c_str());
     EXPECT_STREQ(" _ab_f/_bcd_e-_kq_ ", CamelCaseToSnake(" AbF/BcdE-Kq_ ").c_str());
+}
+
+TEST(TextUtils, SnakeCaseToCamel) {
+    using utils::text::SnakeCaseToCamel;
+
+    EXPECT_EQ("", SnakeCaseToCamel(""));
+    EXPECT_EQ("A", SnakeCaseToCamel("a"));
+    EXPECT_EQ("_", SnakeCaseToCamel("_"));
+    EXPECT_EQ("-", SnakeCaseToCamel("-"));
+    EXPECT_EQ("ABCD", SnakeCaseToCamel("a_b_c_d"));
+    EXPECT_EQ("FooBar", SnakeCaseToCamel("foo_bar"));
+    EXPECT_EQ("FooBar", SnakeCaseToCamel("FOO_BAR"));
+    EXPECT_EQ("_A", SnakeCaseToCamel("__A"));
+    EXPECT_EQ(" AbF/BcdE-Kq ", SnakeCaseToCamel(" _AB_F/_BCD_E-_KQ_ "));
 }
 
 TEST(CheckTextTest, Ascii) {
@@ -340,38 +356,39 @@ TEST(CheckIsCString, IsCString) {
 }
 
 TEST(GetTextPosByCodePointPosTakePrefixRemovePrefix, Utf8) {
-    const auto& do_check = [](const std::string_view text,    //
-                              const std::size_t count,        //
-                              const std::size_t text_pos,     //
-                              const std::string_view prefix,  //
-                              const std::string_view suffix) {
-        using utils::text::utf8::GetTextPosByCodePointPos;
-        ASSERT_EQ(text_pos, GetTextPosByCodePointPos(text, count));
+    const auto& do_check =
+        [](const std::string_view text,    //
+           const std::size_t count,        //
+           const std::size_t text_pos,     //
+           const std::string_view prefix,  //
+           const std::string_view suffix) {
+            using utils::text::utf8::GetTextPosByCodePointPos;
+            ASSERT_EQ(text_pos, GetTextPosByCodePointPos(text, count));
 
-        {
-            auto temp = std::string{text};
-            utils::text::utf8::TakePrefix(temp, count);
-            ASSERT_EQ(prefix, temp);
-        }
+            {
+                auto temp = std::string{text};
+                utils::text::utf8::TakePrefix(temp, count);
+                ASSERT_EQ(prefix, temp);
+            }
 
-        {
-            auto temp = text;
-            utils::text::utf8::TakeViewPrefix(temp, count);
-            ASSERT_EQ(prefix, temp);
-        }
+            {
+                auto temp = text;
+                utils::text::utf8::TakeViewPrefix(temp, count);
+                ASSERT_EQ(prefix, temp);
+            }
 
-        {
-            auto temp = std::string{text};
-            utils::text::utf8::RemovePrefix(temp, count);
-            ASSERT_EQ(suffix, temp);
-        }
+            {
+                auto temp = std::string{text};
+                utils::text::utf8::RemovePrefix(temp, count);
+                ASSERT_EQ(suffix, temp);
+            }
 
-        {
-            auto temp = text;
-            utils::text::utf8::RemoveViewPrefix(temp, count);
-            ASSERT_EQ(suffix, temp);
-        }
-    };
+            {
+                auto temp = text;
+                utils::text::utf8::RemoveViewPrefix(temp, count);
+                ASSERT_EQ(suffix, temp);
+            }
+        };
 
     // NOLINTNEXTLINE(readability-redundant-string-init)
     constexpr std::string_view kEmptyText{""};

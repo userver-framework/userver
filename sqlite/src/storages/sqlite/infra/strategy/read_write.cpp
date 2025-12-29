@@ -14,7 +14,8 @@ ReadWriteStrategy::ReadWriteStrategy(
     engine::TaskProcessor& blocking_task_processor
 )
     : write_connection_pool_{InitializeReadWritePoolReference(settings, blocking_task_processor)},
-      read_connection_pool_{InitializeReadOnlyPoolReference(settings, blocking_task_processor)} {}
+      read_connection_pool_{InitializeReadOnlyPoolReference(settings, blocking_task_processor)}
+{}
 
 ReadWriteStrategy::~ReadWriteStrategy() = default;
 
@@ -29,8 +30,8 @@ PoolPtr ReadWriteStrategy::InitializeReadOnlyPoolReference(
     settings.read_mode = settings::SQLiteSettings::ReadMode::kReadOnly;  // coercively set read
                                                                          // only mode
     PoolPtr read_connection_pool;
-    engine::TaskWithResult<void> init_task =
-        engine::AsyncNoSpan([&read_connection_pool, &blocking_task_processor, &settings]() {
+    engine::TaskWithResult<void>
+        init_task = engine::AsyncNoSpan([&read_connection_pool, &blocking_task_processor, &settings]() {
             read_connection_pool = Pool::Create(settings, blocking_task_processor);
         });
     init_task.Get();
@@ -46,8 +47,8 @@ PoolPtr ReadWriteStrategy::InitializeReadWritePoolReference(
     settings.pool_settings.initial_pool_size = 1;
     settings.pool_settings.max_pool_size = 1;
     PoolPtr write_connection_pool;
-    engine::TaskWithResult<void> init_task =
-        engine::AsyncNoSpan([&write_connection_pool, &blocking_task_processor, &settings]() {
+    engine::TaskWithResult<void>
+        init_task = engine::AsyncNoSpan([&write_connection_pool, &blocking_task_processor, &settings]() {
             write_connection_pool = Pool::Create(settings, blocking_task_processor);
         });
     init_task.Get();
@@ -74,7 +75,8 @@ void ReadWriteStrategy::WriteStatistics(utils::statistics::Writer& writer) const
         &write_queries_stat,
         &read_queries_stat,
         nullptr,
-        &transactions_stat};
+        &transactions_stat
+    };
     writer.ValueWithLabels(instance_stat, {});
 }
 

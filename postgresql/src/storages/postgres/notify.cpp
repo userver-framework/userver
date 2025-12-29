@@ -13,7 +13,10 @@ struct NotifyScope::Impl {
     OptionalCommandControl cmd_ctl;
 
     Impl(detail::ConnectionPtr conn, std::string_view channel, OptionalCommandControl cmd_ctl)
-        : conn{std::move(conn)}, channel{channel}, cmd_ctl{cmd_ctl} {
+        : conn{std::move(conn)},
+          channel{channel},
+          cmd_ctl{cmd_ctl}
+    {
         Listen();
     }
 
@@ -38,7 +41,9 @@ private:
     }
 
     void Unlisten() {
-        if (!conn) return;
+        if (!conn) {
+            return;
+        }
         try {
             LOG_DEBUG() << "Stop listening on channel '" << channel << "'";
             conn->Unlisten(channel, cmd_ctl);
@@ -51,7 +56,8 @@ private:
 };
 
 NotifyScope::NotifyScope(detail::ConnectionPtr conn, std::string_view channel, OptionalCommandControl cmd_ctl)
-    : pimpl_{std::move(conn), channel, cmd_ctl} {}
+    : pimpl_{std::move(conn), channel, cmd_ctl}
+{}
 
 NotifyScope::~NotifyScope() = default;
 

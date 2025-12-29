@@ -20,7 +20,8 @@ formats::json::Value SelectRowsHandler::
         std::chrono::milliseconds(1000),  // operation_timeout
         std::chrono::milliseconds(1000),  // cancel_after
         std::chrono::milliseconds(1100),  // client_timeout
-        ydb::TransactionMode::kStaleRO};
+        ydb::TransactionMode::kStaleRO
+    };
     static const ydb::Query kSelectQuery = {
         "--!syntax_v1\n"
         "DECLARE $service_key AS String;"

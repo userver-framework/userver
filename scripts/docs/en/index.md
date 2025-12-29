@@ -133,6 +133,8 @@ and make sure that it builds and passes tests.
 * @ref scripts/docs/en/userver/deadline_propagation.md
 * @ref scripts/docs/en/userver/congestion_control.md
 * @ref scripts/docs/en/userver/stack.md
+* @ref scripts/docs/en/userver/dump_coroutines.md
+* @ref scripts/docs/en/userver/long_transactions.md
 
 
 ## Caches
@@ -175,6 +177,10 @@ and make sure that it builds and passes tests.
 * @ref scripts/docs/en/userver/sqlite/design_and_details.md
 
 
+## ODBC
+* @ref scripts/docs/en/userver/odbc.md
+
+
 ## Non relational databases
 * @ref scripts/docs/en/userver/mongodb.md
 * @ref scripts/docs/en/userver/redis.md
@@ -184,6 +190,7 @@ and make sure that it builds and passes tests.
 * @ref scripts/docs/en/userver/libraries/easy.md
 * @ref scripts/docs/en/userver/libraries/s3api.md
 * @ref scripts/docs/en/userver/libraries/grpc-reflection.md
+* @ref scripts/docs/en/userver/libraries/multi_index_lru.md
 
 ## Opensource
 * @ref scripts/docs/en/userver/development/stability.md

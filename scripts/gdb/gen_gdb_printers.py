@@ -51,7 +51,7 @@ __asm__(
     ".pushsection \\".debug_gdb_scripts\\", \\"MS\\",@progbits,1\\n"
     ".ascii \\"\\\\4gdb.inlined-script.{protection_macro}\\\\n\\"\\n"'''
 
-bottom_matter = f"""
+bottom_matter = """
     ".byte 0\\n"
     ".popsection\\n");
 

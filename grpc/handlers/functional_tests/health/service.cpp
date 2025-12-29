@@ -16,9 +16,10 @@
 #include <userver/ugrpc/server/service_component_base.hpp>
 
 int main(int argc, char* argv[]) {
-    const auto component_list = components::MinimalServerComponentList()
-                                    .AppendComponentList(ugrpc::server::MinimalComponentList())
-                                    .Append<congestion_control::Component>()
-                                    .Append<ugrpc::server::HealthComponent>();
+    const auto component_list =
+        components::MinimalServerComponentList()
+            .AppendComponentList(ugrpc::server::MinimalComponentList())
+            .Append<congestion_control::Component>()
+            .Append<ugrpc::server::HealthComponent>();
     return utils::DaemonMain(argc, argv, component_list);
 }

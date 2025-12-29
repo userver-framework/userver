@@ -12,12 +12,12 @@
 #include <userver/tracing/in_place_span.hpp>
 
 #include <userver/ugrpc/client/fwd.hpp>
-#include <userver/ugrpc/client/impl/call_kind.hpp>
 #include <userver/ugrpc/client/impl/middleware_pipeline.hpp>
 #include <userver/ugrpc/client/impl/stub_handle.hpp>
 #include <userver/ugrpc/impl/async_method_invocation.hpp>
 #include <userver/ugrpc/impl/maybe_owned_string.hpp>
 #include <userver/ugrpc/impl/statistics_scope.hpp>
+#include <userver/ugrpc/rpc_type.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -37,7 +37,7 @@ struct RpcConfigValues final {
 
 class CallState {
 public:
-    CallState(CallParams&&, CallKind);
+    explicit CallState(CallParams&& params);
 
     ~CallState() noexcept = default;
 
@@ -52,9 +52,11 @@ public:
 
     grpc::ClientContext& GetClientContext() noexcept;
 
+    std::string_view GetClientName() const noexcept;
+
     std::string_view GetCallName() const noexcept;
 
-    std::string_view GetClientName() const noexcept;
+    RpcType GetRpcType() const noexcept;
 
     tracing::Span& GetSpan() noexcept;
 
@@ -65,8 +67,6 @@ public:
     const MiddlewarePipeline& GetMiddlewarePipeline() const noexcept;
 
     const testsuite::GrpcControl& GetTestsuiteControl() const noexcept;
-
-    CallKind GetCallKind() const noexcept;
 
     void ResetSpan() noexcept;
 
@@ -88,7 +88,10 @@ private:
     std::unique_ptr<grpc::ClientContext> client_context_;
 
     std::string client_name_;
+
     ugrpc::impl::MaybeOwnedString call_name_;
+
+    RpcType rpc_type_{};
 
     bool is_deadline_propagated_{false};
 
@@ -104,8 +107,6 @@ private:
 
     const testsuite::GrpcControl& testsuite_grpc_;
 
-    CallKind call_kind_{};
-
     grpc::Status status_;
 
     std::atomic<bool> committed_{false};
@@ -113,7 +114,7 @@ private:
 
 class StreamingCallState final : public CallState {
 public:
-    StreamingCallState(CallParams&& params, CallKind call_kind);
+    explicit StreamingCallState(CallParams&& params);
 
     ~StreamingCallState() noexcept;
 

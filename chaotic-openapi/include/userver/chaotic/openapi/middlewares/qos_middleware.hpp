@@ -47,12 +47,11 @@ private:
 };
 
 template <ConfigKey& Key>
-QosMiddlewareFactory<Key>::QosMiddlewareFactory(
-    const components::ComponentConfig& config,
-    const components::ComponentContext& context
-)
+QosMiddlewareFactory<
+    Key>::QosMiddlewareFactory(const components::ComponentConfig& config, const components::ComponentContext& context)
     : client::MiddlewareFactory(config, context),
-      config_source_(context.FindComponent<components::DynamicConfig>().GetSource()) {}
+      config_source_(context.FindComponent<components::DynamicConfig>().GetSource())
+{}
 
 template <ConfigKey& Key>
 std::shared_ptr<client::Middleware> QosMiddlewareFactory<Key>::Create(const yaml_config::YamlConfig&) {
@@ -69,6 +68,6 @@ std::string QosMiddlewareFactory<Key>::GetStaticConfigSchemaStr() {
 USERVER_NAMESPACE_END
 
 template <USERVER_NAMESPACE::chaotic::openapi::ConfigKey& Key>
-inline constexpr auto
-    USERVER_NAMESPACE::components::kConfigFileMode<USERVER_NAMESPACE::chaotic::openapi::QosMiddlewareFactory<Key>> =
-        USERVER_NAMESPACE::components::ConfigFileMode::kNotRequired;
+inline constexpr auto USERVER_NAMESPACE::components::kConfigFileMode<
+    USERVER_NAMESPACE::chaotic::openapi::QosMiddlewareFactory<Key>> =
+    USERVER_NAMESPACE::components::ConfigFileMode::kNotRequired;

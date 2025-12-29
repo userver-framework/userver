@@ -16,7 +16,8 @@ HelloMongo::HelloMongo(
     const userver::components::ComponentContext& component_context
 )
     : HttpHandlerBase(config, component_context),
-      mongo_pool_(component_context.FindComponent<userver::components::Mongo>("mongo-db-1").GetPool()) {}
+      mongo_pool_(component_context.FindComponent<userver::components::Mongo>("mongo-db-1").GetPool())
+{}
 
 std::string HelloMongo::
     HandleRequestThrow(const userver::server::http::HttpRequest& request, userver::server::request::RequestContext&)
@@ -29,7 +30,9 @@ std::string HelloMongo::
     if (!name.empty()) {
         auto users = mongo_pool_->GetCollection("hello_users");
         const auto result = users.FindAndModify(
-            MakeDoc(kNameArg, name), MakeDoc("$inc", MakeDoc("count", 1)), userver::storages::mongo::options::Upsert{}
+            MakeDoc(kNameArg, name),
+            MakeDoc("$inc", MakeDoc("count", 1)),
+            userver::storages::mongo::options::Upsert{}
         );
 
         if (result.ModifiedCount() > 0) {

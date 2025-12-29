@@ -69,8 +69,8 @@ public:
     /// @overload
     [[nodiscard]] bool try_lock_until(Deadline deadline);
 
-    /// Locks the mutex for shared ownership. Blocks current task if the
-    /// mutex is locked by another task for reading or writing.
+    /// Locks the mutex for shared access. Blocks the current task if the mutex
+    /// is already locked by another task for writing or if there are writers waiting.
     ///
     /// @note The method waits for the mutex even if the current task is cancelled.
     void lock_shared();
@@ -82,6 +82,9 @@ public:
     /// any specific order (e.g. FIFO) is incorrect and should be fixed.
     void unlock_shared();
 
+    /// Atomically converts the ownership from exclusive to shared.
+    ///
+    /// @note Does not block.
     void unlock_and_lock_shared();
 
     /// Tries to lock the mutex for shared ownership without blocking the

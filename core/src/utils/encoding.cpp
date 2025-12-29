@@ -33,7 +33,9 @@ template <class T>
 }  // namespace
 
 Converter::Impl::Impl(std::string&& enc_from, std::string&& enc_to)
-    : enc_from_(std::move(enc_from)), enc_to_(std::move(enc_to)) {}
+    : enc_from_(std::move(enc_from)),
+      enc_to_(std::move(enc_to))
+{}
 
 Converter::Impl::~Impl() {
     iconv_t cd = kIconvEmpty;
@@ -44,7 +46,9 @@ Converter::Impl::~Impl() {
 
 Converter::Impl::IconvHandle Converter::Impl::Pop() const {
     iconv_t cd = kIconvEmpty;
-    if (pool_.pop(cd)) return IconvHandle{cd};
+    if (pool_.pop(cd)) {
+        return IconvHandle{cd};
+    }
 
     errno = 0;
     cd = ::iconv_open(enc_to_.c_str(), enc_from_.c_str());
@@ -63,7 +67,9 @@ void Converter::Impl::Push(IconvHandle&& handle) const {
     }
 }
 
-Converter::Converter(std::string enc_from, std::string enc_to) : impl_(std::move(enc_from), std::move(enc_to)) {}
+Converter::Converter(std::string enc_from, std::string enc_to)
+    : impl_(std::move(enc_from), std::move(enc_to))
+{}
 
 Converter::~Converter() = default;
 
@@ -73,7 +79,9 @@ bool Converter::Convert(const char* data, size_t size, std::vector<char>& out) c
 
     auto iconv_handle = impl_.Pop();
     for (size_t out_buf_size = size; out_buf_size <= size * kCoefLimit; out_buf_size *= kCoef) {
-        if (!Reset(iconv_handle)) return false;
+        if (!Reset(iconv_handle)) {
+            return false;
+        }
 
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
         char* pin = const_cast<char*>(data);  // it really will not change

@@ -1,0 +1,139 @@
+#!/usr/bin/python3
+
+import argparse
+import os
+import pathlib
+import re
+import subprocess
+import sys
+
+
+BINDIR = pathlib.Path(__file__).parent
+FEATURES = [
+    'mongo',
+    'postgresql',
+    'grpc',
+]
+TEMPLATE_ON_REGEX = re.compile(r'.* ([a-z]+) template on.*')
+TEMPLATE_CURRENT_REGEX = re.compile(r'(.*) (//|#) ([a-z]+) template current$')
+
+
+def is_system_installed() -> bool:
+    return BINDIR.name == 'bin'
+
+
+def template_path() -> pathlib.Path:
+    if is_system_installed():
+        return BINDIR / '..' / 'share' / 'userver' / 'service_template'
+    return BINDIR / '..' / 'service_template'
+
+
+def version_file_path() -> pathlib.Path:
+    if is_system_installed():
+        return BINDIR / '..' / 'share' / 'userver' / 'version.txt'
+    return BINDIR / '..' / 'version.txt'
+
+
+def get_userver_version() -> str:
+    version_path = version_file_path()
+    return version_path.read_text().strip()
+
+
+def get_devcontainer_version(userver_version: str) -> str:
+    if userver_version.endswith('-rc'):
+        return 'latest'
+    return f'v{userver_version}'
+
+
+def patch_devcontainer_version(service_path: pathlib.Path) -> None:
+    devcontainer_path = service_path / '.devcontainer' / 'devcontainer.json'
+
+    userver_version = get_userver_version()
+    devcontainer_version = get_devcontainer_version(userver_version)
+
+    content = devcontainer_path.read_text()
+    content = re.sub(r'"(ghcr\.io/[^"]+)"', rf'"\1:{devcontainer_version}"', content)
+    devcontainer_path.write_text(content)
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description='Create new C++ userver-based service')
+    for feature in FEATURES:
+        parser.add_argument(f'--{feature}', action='store_true')
+    parser.add_argument('service_path', type=pathlib.Path)
+    return parser.parse_args()
+
+
+def service_name(service_path: pathlib.Path) -> str:
+    return service_path.resolve().name.replace('-', '_')
+
+
+def handle_file(src: pathlib.Path, dst: pathlib.Path, args) -> bool:
+    orig_text = src.read_text()
+    text = []
+    skip = False
+    for line in orig_text.splitlines():
+        line = line.replace('service_template', service_name(args.service_path))
+        match_on = TEMPLATE_ON_REGEX.match(line)
+        match_current = TEMPLATE_CURRENT_REGEX.match(line)
+        if match_on:
+            feature = match_on.group(1)
+            assert feature in FEATURES, f'{feature} not in {FEATURES}'
+            skip = not getattr(args, feature)
+        elif 'template off' in line:
+            skip = False
+        elif match_current:
+            feature = match_current.group(3)
+            assert feature in FEATURES, f'{feature} not in {FEATURES}'
+            if getattr(args, feature):
+                text.append(match_current.group(1))
+        else:
+            if not skip:
+                text.append(line)
+    if text:
+        dst.write_text('\n'.join(text))
+        dst.chmod(src.lstat().st_mode)
+        return True
+    return False
+
+
+def copy_tree(src: pathlib.Path, dst: pathlib.Path, args) -> None:
+    for root, _, files in os.walk(src):
+        dst_root = dst / pathlib.Path(root).relative_to(src)
+        dst_root.mkdir(parents=True, exist_ok=True)
+        dst_root_is_empty = True
+
+        for file in files:
+            src_filepath = pathlib.Path(root) / file
+            dst_filepath = dst_root / file
+            if handle_file(src_filepath, dst_filepath, args):
+                dst_root_is_empty = False
+
+        if dst_root_is_empty:
+            dst_root.rmdir()
+
+
+def run_ruff(src: pathlib.Path) -> None:
+    try:
+        subprocess.check_call(['ruff', 'format', str(src)])
+    except BaseException as exc:
+        print(f'Warning: Failed to run ruff ({exc}), skipping.', file=sys.stderr)
+
+
+def check_dst_non_existing(service_path: pathlib.Path):
+    if service_path.exists():
+        print(f'Error: {service_path} directory already exists.', file=sys.stderr)
+        sys.exit(1)
+
+
+def main() -> None:
+    args = parse_args()
+    check_dst_non_existing(args.service_path)
+    copy_tree(template_path(), args.service_path, args)
+    patch_devcontainer_version(args.service_path)
+    run_ruff(args.service_path)
+
+
+if __name__ == '__main__':
+    main()

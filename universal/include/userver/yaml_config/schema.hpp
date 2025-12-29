@@ -6,6 +6,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <unordered_set>
 #include <variant>
@@ -86,6 +87,7 @@ formats::yaml::Value Serialize(const Schema& schema, formats::serialize::To<form
 namespace impl {
 
 Schema SchemaFromString(const std::string& yaml_string);
+Schema SchemaFromResource(std::string_view resource_name);
 
 }  // namespace impl
 

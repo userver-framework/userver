@@ -20,7 +20,9 @@ namespace server::http {
 namespace {
 
 void StripDuplicateStartingSlashes(std::string& s) {
-    if (s.empty() || s[0] != '/') return;
+    if (s.empty() || s[0] != '/') {
+        return;
+    }
 
     size_t non_slash_pos = s.find_first_not_of('/');
     if (non_slash_pos == std::string::npos) {
@@ -48,7 +50,10 @@ HttpRequestConstructor::HttpRequestConstructor(
     request::ResponseDataAccounter& data_accounter,
     engine::io::Sockaddr remote_address
 )
-    : config_(config), handler_info_index_(handler_info_index), builder_(data_accounter) {
+    : config_(config),
+      handler_info_index_(handler_info_index),
+      builder_(data_accounter)
+{
     builder_.SetRemoteAddress(std::move(remote_address));
 }
 
@@ -75,7 +80,8 @@ void HttpRequestConstructor::ParseUrl() {
             url_.size(),
             builder_.GetRef().GetMethod() == HttpMethod::kConnect,
             &parsed_url_pimpl_->parsed_url
-        )) {
+        ))
+    {
         SetStatus(Status::kParseUrlError);
         throw std::runtime_error("error in http_parser_parse_url() for url '" + url_ + '\'');
     }
@@ -100,9 +106,12 @@ void HttpRequestConstructor::ParseUrl() {
     builder_.SetPathArgs(std::move(match_result.args_from_path));
 
     if (!handler_info && request.GetMethod() == HttpMethod::kOptions &&
-        match_result.status == MatchRequestResult::Status::kMethodNotAllowed) {
+        match_result.status == MatchRequestResult::Status::kMethodNotAllowed)
+    {
         handler_info = handler_info_index_.GetFallbackHandler(handlers::FallbackHandler::kImplicitOptions);
-        if (handler_info) match_result.status = MatchRequestResult::Status::kOk;
+        if (handler_info) {
+            match_result.status = MatchRequestResult::Status::kOk;
+        }
     }
 
     if (handler_info) {
@@ -111,7 +120,9 @@ void HttpRequestConstructor::ParseUrl() {
         config_.max_request_size = handler_config.request_config.max_request_size;
         config_.max_headers_size = handler_config.request_config.max_headers_size;
         config_.parse_args_from_body = handler_config.request_config.parse_args_from_body;
-        if (handler_config.decompress_request) config_.decompress_request = true;
+        if (handler_config.decompress_request) {
+            config_.decompress_request = true;
+        }
 
         builder_.SetTaskProcessor(handler_info->task_processor);
         builder_.SetHttpHandler(handler_info->handler);
@@ -194,8 +205,9 @@ void HttpRequestConstructor::FinalizeImpl() {
     try {
         ParseArgs(*parsed_url_pimpl_);
         if (config_.parse_args_from_body) {
-            if (!config_.decompress_request || !request.IsBodyCompressed())
+            if (!config_.decompress_request || !request.IsBodyCompressed()) {
                 ParseArgs(request.RequestBody().data(), request.RequestBody().size());
+            }
         }
     } catch (const std::exception& ex) {
         LOG_WARNING() << "can't parse args: " << ex;
@@ -242,7 +254,8 @@ void HttpRequestConstructor::AddHeader() {
     } catch (const USERVER_NAMESPACE::http::headers::HeaderMap::TooManyHeadersException&) {
         SetStatus(Status::kHeadersTooLarge);
         utils::LogErrorAndThrow(fmt::format(
-            "HeaderMap reached its maximum capacity, already contains {} headers", builder_.GetRef().GetHeaders().size()
+            "HeaderMap reached its maximum capacity, already contains {} headers",
+            builder_.GetRef().GetHeaders().size()
         ));
     }
     header_field_.clear();

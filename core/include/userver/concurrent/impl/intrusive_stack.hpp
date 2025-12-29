@@ -52,7 +52,9 @@ public:
         NodeTaggedPtr expected = stack_head_.load();
         while (true) {
             T* const expected_ptr = expected.GetDataPtr();
-            if (!expected_ptr) return nullptr;
+            if (!expected_ptr) {
+                return nullptr;
+            }
             const NodeTaggedPtr desired(GetNext(*expected_ptr).load(), expected.GetNextTag());
             if (stack_head_.compare_exchange_weak(expected, desired)) {
                 // 'relaxed' is OK, because popping a node must happen-before pushing it

@@ -94,11 +94,14 @@ using FooItem = std::string;
 class FooProcessor final {
 public:
     explicit FooProcessor(std::size_t max_size)
-        : queue_(Queue::Create(max_size)), queue_producer_(queue_->GetMultiProducer()) {
+        : queue_(Queue::Create(max_size)),
+          queue_producer_(queue_->GetMultiProducer())
+    {
         // There is no use for a Span in a task that lives until the service stops.
         // The task should be Critical, because the whole service (not just a single request) depends on it.
-        consumer_task_ =
-            engine::CriticalAsyncNoSpan([&, consumer = queue_->GetConsumer()] { ConsumerTaskLoop(consumer); });
+        consumer_task_ = engine::CriticalAsyncNoSpan([&, consumer = queue_->GetConsumer()] {
+            ConsumerTaskLoop(consumer);
+        });
     }
 
     ~FooProcessor() {
@@ -136,7 +139,9 @@ private:
         while (consumer.Pop(item)) {
             // [optional] On task cancellation, don't keep processing the remaining elements,
             // just destroy them.
-            if (engine::current_task::ShouldCancel()) break;
+            if (engine::current_task::ShouldCancel()) {
+                break;
+            }
 
             try {
                 // You might want to measure the time it takes to process an item.
@@ -168,8 +173,9 @@ void FooProcessor::DoProcess(const FooItem& item) { foo_items.push_back(item); }
 }  // namespace
 
 UTEST(MpscQueue, ProcessingRemainingItemsSample) {
-    ASSERT_EQ(GetThreadCount(), 1) << "In this test we can observe the exact moments of task switching, because there "
-                                      "is a single TaskProcessor thread. We also don't need protecting 'foo_items'";
+    ASSERT_EQ(GetThreadCount(), 1)
+        << "In this test we can observe the exact moments of task switching, because there "
+           "is a single TaskProcessor thread. We also don't need protecting 'foo_items'";
     foo_items.clear();
 
     {
@@ -180,7 +186,8 @@ UTEST(MpscQueue, ProcessingRemainingItemsSample) {
 
         processor.ProcessAsync("c");
         EXPECT_THAT(foo_items, testing::ElementsAre("a", "b"))
-            << "At Push the current (parent) task should yield to the consumer task, until it processes some items";
+            << "At Push the current (parent) task should yield to "
+               "the consumer task, until it processes some items";
 
         engine::Yield();
         EXPECT_THAT(foo_items, testing::ElementsAre("a", "b", "c"));
@@ -188,16 +195,19 @@ UTEST(MpscQueue, ProcessingRemainingItemsSample) {
         processor.ProcessAsync("d");
         processor.ProcessAsync("e");
         EXPECT_THAT(foo_items, testing::ElementsAre("a", "b", "c"))
-            << "Again, the consumer task has not had the chance to run and process the new items yet";
+            << "Again, the consumer task has not had the "
+               "chance to run and process the new items yet";
     }
 
     EXPECT_THAT(foo_items, testing::ElementsAre("a", "b", "c", "d", "e"))
-        << "FooProcessor's destructor should await processing of the remaining items";
+        << "FooProcessor's destructor should await "
+           "processing of the remaining items";
 }
 
 UTEST(MpscQueue, ProcessingRemainingItemsCancelled) {
-    ASSERT_EQ(GetThreadCount(), 1) << "In this test we can observe the exact moments of task switching, because there "
-                                      "is a single TaskProcessor thread. We also don't need protecting 'foo_items'";
+    ASSERT_EQ(GetThreadCount(), 1)
+        << "In this test we can observe the exact moments of task switching, because there "
+           "is a single TaskProcessor thread. We also don't need protecting 'foo_items'";
     foo_items.clear();
 
     {

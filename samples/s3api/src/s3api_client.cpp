@@ -18,7 +18,8 @@ S3ApiSampleComponent::S3ApiSampleComponent(
     const components::ComponentContext& context
 )
     : LoggableComponentBase(config, context),
-      http_client_(context.FindComponent<::components::HttpClient>().GetHttpClient()) {
+      http_client_(context.FindComponent<::components::HttpClient>().GetHttpClient())
+{
     auto my_client = GetClient();
     DoVeryImportantThingsInS3(std::move(my_client));
 }
@@ -35,7 +36,10 @@ s3api::ClientPtr S3ApiSampleComponent::GetClient() {
 
     // Create connection object
     auto s3_connection = s3api::MakeS3Connection(
-        http_client_, s3api::S3ConnectionType::kHttps, "s3-some-site.awsornot.com", connection_cfg
+        http_client_,
+        s3api::S3ConnectionType::kHttps,
+        "s3-some-site.awsornot.com",
+        connection_cfg
     );
 
     // Create authorizer.

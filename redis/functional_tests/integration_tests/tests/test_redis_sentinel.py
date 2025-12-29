@@ -1,7 +1,8 @@
 import asyncio
 
+import pytest_userver.utils.sync as sync
+
 KEYS_SEQ_LEN = 10  # enough sequential keys to test all shards
-FAILOVER_DEADLINE_SEC = 30  # maximum time allowed to finish failover
 
 
 async def test_happy_path(service_client):
@@ -47,12 +48,10 @@ async def test_failover(service_client, redis_sentinel):
     redis_sentinel.sentinel_failover('test_master1')
 
     # Wait for failover to happen
-    for i in range(FAILOVER_DEADLINE_SEC):
-        write_ok = await _check_write_all_shards(service_client, 'failover_{i}_', 'xyz')
-        if write_ok:
-            break
-        await asyncio.sleep(1)
-    assert write_ok
+    async def is_ready():
+        return await _check_write_all_shards(service_client, 'failover_{i}_', 'xyz')
+
+    await sync.wait(is_ready)
 
     # Now that one of the replicas has become the master,
     # check reading from the remaining replica

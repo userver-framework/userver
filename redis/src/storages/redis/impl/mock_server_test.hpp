@@ -35,7 +35,9 @@ class MockRedisServerBase {
 public:
     struct Connection {
         template <class IoService>
-        Connection(IoService& ios) : socket(ios) {}
+        Connection(IoService& ios)
+            : socket(ios)
+        {}
 
         io::ip::tcp::socket socket;
         std::array<char, 1024> data{};
@@ -84,7 +86,10 @@ private:
 
 class MockRedisServer : public MockRedisServerBase {
 public:
-    explicit MockRedisServer(std::string description) : MockRedisServerBase(0), description_(std::move(description)) {
+    explicit MockRedisServer(std::string description)
+        : MockRedisServerBase(0),
+          description_(std::move(description))
+    {
         UASSERT(!description_.empty());
     }
     ~MockRedisServer() override;
@@ -150,8 +155,11 @@ private:
 
     static void AddHandlerFunc(HandlerNode& root, const std::vector<std::string>& args, HandlerFunc handler);
 
-    static const HandlerFunc&
-    GetHandlerFunc(const HandlerNode& node, const std::vector<std::string>& args, size_t arg_idx = 0);
+    static const HandlerFunc& GetHandlerFunc(
+        const HandlerNode& node,
+        const std::vector<std::string>& args,
+        size_t arg_idx = 0
+    );
 
     HandlerPtr DoRegisterTimeoutHandler(
         const std::string& command,
@@ -180,7 +188,9 @@ MockRedisServer::HandlerPtr MockRedisServer::RegisterTimeoutHandler(
     const std::chrono::duration<Rep, Period>& duration
 ) {
     return DoRegisterTimeoutHandler(
-        command, args_prefix, std::chrono::duration_cast<std::chrono::milliseconds>(duration)
+        command,
+        args_prefix,
+        std::chrono::duration_cast<std::chrono::milliseconds>(duration)
     );
 }
 
@@ -234,7 +244,9 @@ bool MockRedisServer::Handler::WaitForFirstReply(const std::chrono::duration<Rep
 
 template <typename Rep, typename Period>
 bool MockRedisServer::WaitForFirstPingReply(const std::chrono::duration<Rep, Period>& duration) const {
-    if (!ping_handler_) throw std::runtime_error("Ping handler not found for server " + description_);
+    if (!ping_handler_) {
+        throw std::runtime_error("Ping handler not found for server " + description_);
+    }
     return ping_handler_->WaitForFirstReply(duration);
 }
 

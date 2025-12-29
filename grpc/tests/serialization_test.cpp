@@ -118,7 +118,9 @@ false,true,"line",-1812281629.0818615]
 )";
 
 struct Param {
-    explicit Param(std::string test_name, std::string_view json) : test_name(test_name) {
+    explicit Param(std::string test_name, std::string_view json)
+        : test_name(test_name)
+    {
         if (json.empty()) {
             to_cast = formats::json::Value();
         } else {

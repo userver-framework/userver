@@ -15,9 +15,19 @@ USERVER_NAMESPACE_BEGIN
 namespace {
 
 struct CountGuard {
-    CountGuard(std::atomic<int>& count) : count_(count) { count_++; }
-    CountGuard(CountGuard&& other) noexcept : count_(other.count_) { count_++; }
-    CountGuard(const CountGuard& other) : count_(other.count_) { count_++; }
+    CountGuard(std::atomic<int>& count)
+        : count_(count)
+    {
+        count_++;
+    }
+    CountGuard(CountGuard&& other) noexcept : count_(other.count_) {
+        count_++;
+    }
+    CountGuard(const CountGuard& other)
+        : count_(other.count_)
+    {
+        count_++;
+    }
 
     ~CountGuard() { count_--; }
 
@@ -59,8 +69,7 @@ struct CountingConstructions {
     CountingConstructions(CountingConstructions&&) noexcept { ++constructions; }
     CountingConstructions(const CountingConstructions&) { ++constructions; }
 
-    void operator()() const { /*noop*/
-    }
+    void operator()() const { /*noop*/ }
 
     CountingConstructions& operator=(CountingConstructions&&) = default;
     CountingConstructions& operator=(const CountingConstructions&) = default;
@@ -228,7 +237,9 @@ UTEST(Async, WithDeadlineDetach) {
     });
     UEXPECT_NO_THROW(task.Get());
     EXPECT_TRUE(started.load());
-    while (!finished) engine::Yield();
+    while (!finished) {
+        engine::Yield();
+    }
 }
 
 UTEST(Async, Critical) {
@@ -287,7 +298,9 @@ UTEST_MT(Async, CancelNotifyRace, 4) {
 
     static constexpr auto delay = [] {
         compiler::RelaxCpu relax;
-        for (int i = 0; i < 50; ++i) relax();
+        for (int i = 0; i < 50; ++i) {
+            relax();
+        }
     };
 
     while (!test_deadline.IsReached()) {

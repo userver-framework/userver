@@ -13,11 +13,9 @@ import string
 import subprocess
 import types
 from typing import Any
-from typing import Callable
-from typing import List
-from typing import Mapping
-from typing import Optional
-from typing import Union
+from collections.abc import Callable
+from collections.abc import Mapping
+from typing import TypeAlias
 
 import pytest
 import yaml
@@ -46,9 +44,10 @@ USERVER_CONFIG_HOOKS = [
     'userver_config_testsuite',
     'userver_config_secdist',
     'userver_config_testsuite_middleware',
+    'userver_config_deadlock_detector',
 ]
 
-ServiceConfigPatch = Callable[[dict, dict], None]
+ServiceConfigPatch: TypeAlias = Callable[[dict, dict], None]
 
 
 # @cond
@@ -161,7 +160,7 @@ def db_dump_schema_path(service_binary, service_tmpdir) -> pathlib.Path:
 
 
 @pytest.fixture(scope='session')
-def service_config_vars_path(pytestconfig) -> Optional[pathlib.Path]:
+def service_config_vars_path(pytestconfig) -> pathlib.Path | None:
     """
     Returns the path to config_vars.yaml file set by command line
     `--service-config-vars` option.
@@ -175,7 +174,7 @@ def service_config_vars_path(pytestconfig) -> Optional[pathlib.Path]:
 
 
 @pytest.fixture(scope='session')
-def service_secdist_path(pytestconfig) -> Optional[pathlib.Path]:
+def service_secdist_path(pytestconfig) -> pathlib.Path | None:
     """
     Returns the path to secure_data.json file set by command line
     `--service-secdist` option.
@@ -461,7 +460,7 @@ def userver_config_substitutions(_service_config_substitution_vars) -> ServiceCo
     @ingroup userver_testsuite_fixtures
     """
 
-    def _substitute(key, value, parent: Union[list, dict]) -> None:
+    def _substitute(key, value, parent: list | dict) -> None:
         if isinstance(value, str):
             parent[key] = string.Template(value).safe_substitute(_service_config_substitution_vars)
         elif isinstance(value, dict):
@@ -505,7 +504,7 @@ def userver_config_http_server(service_port, monitor_port) -> ServiceConfigPatch
 
 
 @pytest.fixture(scope='session')
-def allowed_url_prefixes_extra() -> List[str]:
+def allowed_url_prefixes_extra() -> list[str]:
     """
     By default, userver HTTP client is only allowed to talk to mockserver
     when running in testsuite. This makes tests repeatable and encapsulated.
@@ -526,26 +525,28 @@ def userver_config_http_client(
 ) -> ServiceConfigPatch:
     """
     Returns a function that adjusts the static configuration file for testsuite.
-    Sets increased timeout and limits allowed URLs for `http-client` component.
+    Sets increased timeout and limits allowed URLs for `http-client-core` component.
 
     @ingroup userver_testsuite_fixtures
     """
 
-    def patch_config(config, config_vars):
+    def patch_config(config, config_vars) -> None:
         components: dict = config['components_manager']['components']
-        if not {'http-client', 'testsuite-support'}.issubset(
+        if not {'http-client-core', 'testsuite-support'}.issubset(
             components.keys(),
         ):
             return
-        http_client = components['http-client'] or {}
-        http_client['testsuite-enabled'] = True
-        http_client['testsuite-timeout'] = '10s'
+        if components['http-client-core'] is None:
+            components['http-client-core'] = {}
+        http_client_core = components['http-client-core']
+        http_client_core['testsuite-enabled'] = True
+        http_client_core['testsuite-timeout'] = '10s'
 
         allowed_urls = [mockserver_info.base_url]
         if mockserver_ssl_info:
             allowed_urls.append(mockserver_ssl_info.base_url)
         allowed_urls += allowed_url_prefixes_extra
-        http_client['testsuite-allowed-url-prefixes'] = allowed_urls
+        http_client_core['testsuite-allowed-url-prefixes'] = allowed_urls
 
     return patch_config
 
@@ -660,7 +661,9 @@ def userver_config_testsuite(pytestconfig, mockserver_info) -> ServiceConfigPatc
         components: dict = config['components_manager']['components']
         if 'testsuite-support' not in components:
             return
-        testsuite_support = components['testsuite-support'] or {}
+        if components['testsuite-support'] is None:
+            components['testsuite-support'] = {}
+        testsuite_support = components['testsuite-support']
         testsuite_support['testsuite-increased-timeout'] = '30s'
         testsuite_support['testsuite-grpc-is-tls-enabled'] = False
         _set_postgresql_options(testsuite_support)
@@ -737,3 +740,34 @@ def userver_config_testsuite_middleware(userver_testsuite_middleware_enabled: bo
 def userver_testsuite_middleware_enabled() -> bool:
     """Whether testsuite middleware is enabled."""
     return True
+
+
+@pytest.fixture(scope='session')
+def userver_config_deadlock_detector(userver_deadlock_detector_mode: str) -> ServiceConfigPatch:
+    """
+    Returns a function that adjusts the static configuration file for testsuite.
+    Sets the `deadlock_detector` parameter of the `coro_pool` component to the value of
+    @ref pytest_userver.plugins.config.userver_deadlock_detector_mode "userver_deadlock_detector_mode"
+    fixture.
+
+    @ingroup userver_testsuite_fixtures
+    """
+
+    def patch_config(config_yaml, config_vars):
+        coro_pool = config_yaml['components_manager'].setdefault('coro_pool', {})
+        coro_pool['deadlock_detector'] = userver_deadlock_detector_mode
+
+    return patch_config
+
+
+@pytest.fixture(scope='session')
+def userver_deadlock_detector_mode() -> str:
+    """
+    Returns Deadlock detector mode for testsuite.
+    Override this fixture to modify the deadlock detector settings.
+    By default, it operates in `detect-only` mode. For a full list of available options, refer to the
+    `coro_pool.deadlock_detector` parameter in the `components::ManagerControllerComponent`.
+
+    @ingroup userver_testsuite_fixtures
+    """
+    return 'detect-only'

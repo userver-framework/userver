@@ -37,6 +37,7 @@ class Manager;
 /// coro_pool.stack_size | size of a single coroutine stack @ref scripts/docs/en/userver/stack.md | 256 * 1024
 /// coro_pool.local_cache_size | local coroutine cache size per thread | 32
 /// coro_pool.stack_usage_monitor_enabled | whether stack usage is accounted and warnings about too high stack usage are logged @ref scripts/docs/en/userver/stack.md | true
+/// coro_pool.deadlock_detector | Coroutines deadlock detection mode. `disabled` disables deadlock detection. `enabled` allows deadlock detection alongs with stacktraces collection. `detect-only` allows only deadlock detection. Deadlock detection could slow down the service. | disabled
 /// event_thread_pool.threads | number of threads to process low level IO system calls (number of ev loops to start in libev) | 2
 /// event_thread_pool.thread_name | set OS thread name to this value | 'event-worker'
 /// components | dictionary of "component name": "options" | -
@@ -50,6 +51,8 @@ class Manager;
 /// userver_experiments.*NAME* | whether to enable certain userver experiments; these are gradually enabled by userver team, for internal use only | false
 /// graceful_shutdown_interval | at shutdown, first hang for this duration with /ping 5xx to give the balancer a chance to redirect new requests to other hosts | 0s
 /// enable_trx_tracker | Enable checking of heavy operations (like http calls) while having active database transactions. | true
+/// enable_component_load_tracing | whether trace all components coroutines during boot, and dump alive coroutines stacktraces on slow boot. Can slow down service startup. | false
+/// component_load_print_interval | how often to print "still loading components: ..." log message during startup | 10s
 ///
 /// ## Static task_processor options:
 /// Name | Description | Default value
@@ -59,7 +62,7 @@ class Manager;
 /// worker_threads | threads count for the task processor | -
 /// os-scheduling | OS scheduling mode for the task processor threads. 'idle' sets the lowest priority. 'low-priority' sets the priority below 'normal' but higher than 'idle'. | normal
 /// spinning-iterations | tunes the number of spin-wait iterations in case of an empty task queue before threads go to sleep | 1000
-/// task-processor-queue | Task queue mode for the task processor. `global-task-queue` default task queue. `work-stealing-task-queue` experimental with potentially better scalability than `global-task-queue`. | global-task-queue
+/// task-processor-queue | Task queue mode for the task processor. `global-task-queue` default task queue. `work-stealing-task-queue` experimental with potentially better scalability than `global-task-queue`. 'pull-pin-task-queue' - experimental queue where each task gets pinned to a thread-specific queue and is executed only in that thread. See also @ref engine::TaskQueueType | global-task-queue
 /// task-trace | optional dictionary of tracing options | empty (disabled)
 /// task-trace.every | set N to trace each Nth task | 1000
 /// task-trace.max-context-switch-count | set upper limit of context switches to trace for a single task | 1000
@@ -89,7 +92,6 @@ private:
     void OnConfigUpdate(const dynamic_config::Snapshot& cfg);
 
     const components::impl::Manager& components_manager_;
-    utils::statistics::Entry statistics_holder_;
     concurrent::AsyncEventSubscriberScope config_subscription_;
 };
 

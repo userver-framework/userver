@@ -1,7 +1,7 @@
 #include <userver/logging/component.hpp>
 
 #include <chrono>
-#include <iostream>
+#include <cstdio>
 #include <stdexcept>
 
 #include <fmt/chrono.h>
@@ -28,6 +28,10 @@
 #include <logging/tp_logger.hpp>
 #include <logging/tp_logger_utils.hpp>
 
+#ifndef ARCADIA_ROOT
+#include "generated/src/logging/component.yaml.hpp"  // Y_IGNORE
+#endif
+
 USERVER_NAMESPACE_BEGIN
 
 namespace components {
@@ -48,10 +52,14 @@ void ReportReopeningErrorAndThrow(
     const std::vector<std::string_view>& failed_loggers,
     const std::string& result_messages
 ) {
-    std::cerr << fmt::format(
-        "[{:%Y-%m-%d %H:%M:%S %Z}] loggers [{}] failed to reopen the log file: logs are getting lost now",
-        std::chrono::system_clock::now(),
-        fmt::join(failed_loggers, ", ")
+    std::fputs(
+        fmt::format(
+            "[{:%Y-%m-%d %H:%M:%S %Z}] loggers [{}] failed to reopen the log file: logs are getting lost now",
+            std::chrono::system_clock::now(),
+            fmt::join(failed_loggers, ", ")
+        )
+            .c_str(),
+        stderr
     );
 
     throw std::runtime_error("ReopenAll errors: " + result_messages);
@@ -115,8 +123,9 @@ void Logging::Init(const ComponentConfig& config, const ComponentContext& contex
         }
 
         logger->StartConsumerTask(
-            logger_config.fs_task_processor ? context.GetTaskProcessor(*logger_config.fs_task_processor)
-                                            : fs_task_processor_,
+            logger_config.fs_task_processor
+                ? context.GetTaskProcessor(*logger_config.fs_task_processor)
+                : fs_task_processor_,
             logger_config.message_queue_size,
             logger_config.queue_overflow_behavior
         );
@@ -130,16 +139,18 @@ void Logging::Init(const ComponentConfig& config, const ComponentContext& contex
     flush_task_.Start(
         "log_flusher",
         utils::PeriodicTask::Settings(
-            std::chrono::duration_cast<std::chrono::milliseconds>(kDefaultFlushInterval), {}, logging::Level::kTrace
+            std::chrono::duration_cast<std::chrono::milliseconds>(kDefaultFlushInterval),
+            {},
+            logging::Level::kTrace
         ),
         [this] { FlushLogs(); }
     );
 
     auto* const statistics_storage = context.FindComponentOptional<components::StatisticsStorage>();
     if (statistics_storage) {
-        statistics_holder_ = statistics_storage->GetStorage().RegisterWriter(
-            "logger", [this](utils::statistics::Writer& writer) { return WriteStatistics(writer); }
-        );
+        utils::statistics::RegisterWriterScope(context, "logger", [this](utils::statistics::Writer& writer) {
+            return WriteStatistics(writer);
+        });
     }
 }
 
@@ -171,7 +182,9 @@ logging::LoggerPtr Logging::GetLogger(const std::string& name) {
     auto it = loggers_.find(name);
     if (it == loggers_.end()) {
         auto logger = extra_loggers_.Get(name);
-        if (logger) return *logger;
+        if (logger) {
+            return *logger;
+        }
 
         throw std::runtime_error("logger '" + name + "' not found");
     }
@@ -181,7 +194,9 @@ logging::LoggerPtr Logging::GetLogger(const std::string& name) {
 logging::TextLoggerPtr Logging::GetTextLogger(const std::string& name) {
     auto logger = GetLogger(name);
     auto text_logger = std::dynamic_pointer_cast<logging::impl::TextLogger>(logger);
-    if (!text_logger) throw std::runtime_error(fmt::format("Invalid logger '{}' type, not a text logger", name));
+    if (!text_logger) {
+        throw std::runtime_error(fmt::format("Invalid logger '{}' type, not a text logger", name));
+    }
     return text_logger;
 }
 
@@ -265,73 +280,7 @@ void Logging::FlushLogs() {
 }
 
 yaml_config::Schema Logging::GetStaticConfigSchema() {
-    return yaml_config::MergeSchemas<RawComponentBase>(R"(
-type: object
-description: Logging component
-additionalProperties: false
-properties:
-    fs-task-processor:
-        type: string
-        description: task processor for disk I/O operations
-        defaultDescription: engine::current_task::GetBlockingTaskProcessor()
-    loggers:
-        type: object
-        description: logger options
-        properties: {}
-        additionalProperties:
-            type: object
-            description: logger options
-            additionalProperties: false
-            properties:
-                file_path:
-                    type: string
-                    description: path to the log file
-                level:
-                    type: string
-                    description: log verbosity
-                    defaultDescription: info
-                format:
-                    type: string
-                    description: log output format
-                    defaultDescription: tskv
-                    enum:
-                      - tskv
-                      - ltsv
-                      - raw
-                      - json
-                      - json_yadeploy
-                flush_level:
-                    type: string
-                    description: messages of this and higher levels get flushed to the file immediately
-                    defaultDescription: warning
-                message_queue_size:
-                    type: integer
-                    description: the size of internal message queue, must be a power of 2
-                    defaultDescription: 65536
-                overflow_behavior:
-                    type: string
-                    description: "message handling policy while the queue is full: `discard` drops messages, `block` waits until message gets into the queue"
-                    defaultDescription: discard
-                    enum:
-                      - discard
-                      - block
-                fs-task-processor:
-                    type: string
-                    description: task processor for disk I/O operations for this logger
-                    defaultDescription: fs-task-processor of the logger component
-                testsuite-capture:
-                    type: object
-                    description: if exists, setups additional TCP log sink for testing purposes
-                    defaultDescription: "{}"
-                    additionalProperties: false
-                    properties:
-                        host:
-                            type: string
-                            description: testsuite hostname, e.g. localhost
-                        port:
-                            type: integer
-                            description: testsuite port
-)");
+    return yaml_config::MergeSchemasFromResource<RawComponentBase>("src/logging/component.yaml");
 }
 
 }  // namespace components

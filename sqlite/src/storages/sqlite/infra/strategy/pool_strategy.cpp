@@ -15,8 +15,10 @@ namespace storages::sqlite::infra::strategy {
 
 PoolStrategyBase::~PoolStrategyBase() = default;
 
-std::unique_ptr<PoolStrategyBase>
-PoolStrategyBase::Create(const settings::SQLiteSettings& settings, engine::TaskProcessor& blocking_task_processor) {
+std::unique_ptr<PoolStrategyBase> PoolStrategyBase::Create(
+    const settings::SQLiteSettings& settings,
+    engine::TaskProcessor& blocking_task_processor
+) {
     if (settings.read_mode == settings::SQLiteSettings::ReadMode::kReadOnly) {
         // many readers and null writers in one time
         return std::make_unique<ReadOnlyStrategy>(settings, blocking_task_processor);

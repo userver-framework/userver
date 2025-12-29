@@ -11,7 +11,7 @@ USERVER_NAMESPACE_BEGIN
 namespace ugrpc::server::impl {
 
 std::unique_lock<engine::SingleWaitingTaskMutex> ResponderBase::TakeMutexIfBidirectional() {
-    if (state_.call_kind == impl::CallKind::kBidirectionalStream) {
+    if (RpcType::kBidiStreaming == state_.rpc_type) {
         // In stream -> stream RPCs, Recv and Send hooks will naturally run in parallel.
         // However, this can cause data races when:
         // * accessing StorageContext;
@@ -31,11 +31,10 @@ std::unique_lock<engine::SingleWaitingTaskMutex> ResponderBase::TakeMutexIfBidir
 
 void ResponderBase::ApplyRequestHook(google::protobuf::Message& request) {
     auto lock = TakeMutexIfBidirectional();
-    MiddlewareCallContext middleware_call_context{utils::impl::InternalTag{}, state_};
-
+    grpc::Status status;
+    MiddlewareCallContext middleware_call_context{utils::impl::InternalTag{}, state_, status};
     for (const auto& middleware : state_.middlewares) {
         middleware->PostRecvMessage(middleware_call_context, request);
-        auto& status = middleware_call_context.GetStatus(utils::impl::InternalTag{});
         if (!status.ok()) {
             throw impl::MiddlewareRpcInterruptionError(std::move(status));
         }
@@ -44,11 +43,10 @@ void ResponderBase::ApplyRequestHook(google::protobuf::Message& request) {
 
 void ResponderBase::ApplyResponseHook(google::protobuf::Message& response) {
     auto lock = TakeMutexIfBidirectional();
-    MiddlewareCallContext middleware_call_context{utils::impl::InternalTag{}, state_};
-
+    grpc::Status status;
+    MiddlewareCallContext middleware_call_context{utils::impl::InternalTag{}, state_, status};
     for (const auto& middleware : boost::adaptors::reverse(state_.middlewares)) {
         middleware->PreSendMessage(middleware_call_context, response);
-        auto& status = middleware_call_context.GetStatus(utils::impl::InternalTag{});
         if (!status.ok()) {
             throw impl::MiddlewareRpcInterruptionError(std::move(status));
         }

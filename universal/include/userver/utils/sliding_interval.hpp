@@ -27,7 +27,11 @@ template <typename T>
 class SlidingInterval final {
 public:
     /// @brief Create a SlidingInterval of `window_size` values
-    explicit SlidingInterval(std::size_t window_size) : buckets_(window_size) { UASSERT(this->buckets_.size() > 0); }
+    explicit SlidingInterval(std::size_t window_size)
+        : buckets_(window_size)
+    {
+        UASSERT(this->buckets_.size() > 0);
+    }
 
     /// @brief replaces the oldest value in interval with `value`, i.e slides the
     /// interval.

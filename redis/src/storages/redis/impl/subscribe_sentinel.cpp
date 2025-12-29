@@ -64,7 +64,8 @@ SubscribeSentinel::SubscribeSentinel(
           kSubscriptionDatabaseIndex
 
       ),
-      storage_(CreateSubscriptionStorage(thread_pools, shards, is_cluster_mode)) {
+      storage_(CreateSubscriptionStorage(thread_pools, shards, is_cluster_mode))
+{
     InitStorage();
 }
 
@@ -88,7 +89,9 @@ std::shared_ptr<SubscribeSentinel> SubscribeSentinel::Create(
 
     const std::vector<std::string>& shards = settings.shards;
     LOG_DEBUG() << "shards.size() = " << shards.size();
-    for (const std::string& shard : shards) LOG_DEBUG() << "shard:  name = " << shard;
+    for (const std::string& shard : shards) {
+        LOG_DEBUG() << "shard:  name = " << shard;
+    }
 
     KeyShardFactory keys_shard_factory{sharding_strategy};
     auto is_cluster_mode = keys_shard_factory.IsClusterStrategy();
@@ -110,8 +113,9 @@ std::shared_ptr<SubscribeSentinel> SubscribeSentinel::Create(
     LOG_DEBUG() << "redis command_control: " << command_control.ToString();
 
     if (settings.database_index != kSubscriptionDatabaseIndex) {
-        LOG_WARNING() << "`database index` has no effect on susbscriptions. Publishing on database "
-                      << settings.database_index << " will be heard by a subscribers on all other databases.";
+        LOG_WARNING()
+            << "`database index` has no effect on susbscriptions. Publishing on database " << settings.database_index
+            << " will be heard by a subscribers on all other databases.";
     }
 
     auto subscribe_sentinel = std::make_shared<SubscribeSentinel>(

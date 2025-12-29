@@ -26,6 +26,8 @@ namespace utils {
 template <class T>
 class OptionalRef {
 public:
+    using value_type = T;
+
     static_assert(!std::is_reference<T>::value, "Do not use a reference for T");
 
     constexpr OptionalRef() noexcept = default;
@@ -81,6 +83,15 @@ public:
         return *data_;
     }
 
+    template <typename U>
+    constexpr T value_or(U&& default_value) const {
+        if (!has_value()) {
+            return std::forward<U>(default_value);
+        }
+
+        return *data_;
+    }
+
 private:
     template <class Optional>
     static T* GetPointer(Optional& other) noexcept {
@@ -103,7 +114,9 @@ private:
 
 template <class T, class U>
 constexpr bool operator==(OptionalRef<T> lhs, OptionalRef<U> rhs) noexcept {
-    if (!lhs || !rhs) return !lhs && !rhs;
+    if (!lhs || !rhs) {
+        return !lhs && !rhs;
+    }
     return *lhs == *rhs;
 }
 

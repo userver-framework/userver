@@ -18,7 +18,9 @@ struct BufferParserBase {
     using ValueType = T;
 
     ValueType& value;
-    explicit BufferParserBase(ValueType& v) : value{v} {
+    explicit BufferParserBase(ValueType& v)
+        : value{v}
+    {
         using PgMapping = CppToPg<ValueType>;
         if constexpr (ShouldInitMapping<PgMapping>{}) {
             ForceReference(PgMapping::init);
@@ -31,7 +33,9 @@ struct BufferParserBase<T&&> {
     using ValueType = T;
 
     ValueType value;
-    explicit BufferParserBase(ValueType&& v) : value{std::move(v)} {
+    explicit BufferParserBase(ValueType&& v)
+        : value{std::move(v)}
+    {
         using PgMapping = CppToPg<ValueType>;
         if constexpr (ShouldInitMapping<PgMapping>{}) {
             ForceReference(PgMapping::init);
@@ -43,7 +47,9 @@ template <typename T>
 struct BufferFormatterBase {
     using ValueType = T;
     const ValueType& value;
-    explicit BufferFormatterBase(const ValueType& v) : value{v} {}
+    explicit BufferFormatterBase(const ValueType& v)
+        : value{v}
+    {}
 };
 
 }  // namespace storages::postgres::io::detail

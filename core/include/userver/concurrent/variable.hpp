@@ -18,8 +18,14 @@ class LockedPtr final {
 public:
     using Mutex = typename Lock::mutex_type;
 
-    LockedPtr(Mutex& mutex, Data& data) : lock_(mutex), data_(data) {}
-    LockedPtr(Lock&& lock, Data& data) : lock_(std::move(lock)), data_(data) {}
+    LockedPtr(Mutex& mutex, Data& data)
+        : lock_(mutex),
+          data_(data)
+    {}
+    LockedPtr(Lock&& lock, Data& data)
+        : lock_(std::move(lock)),
+          data_(data)
+    {}
 
     Data& operator*() & { return data_; }
     const Data& operator*() const& { return data_; }
@@ -58,7 +64,9 @@ template <typename Data, typename Mutex = engine::Mutex>
 class Variable final {
 public:
     template <typename... Arg>
-    Variable(Arg&&... arg) : data_(std::forward<Arg>(arg)...) {}
+    Variable(Arg&&... arg)
+        : data_(std::forward<Arg>(arg)...)
+    {}
 
     LockedPtr<std::unique_lock<Mutex>, Data> UniqueLock() { return {mutex_, data_}; }
 

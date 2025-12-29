@@ -74,7 +74,8 @@ EvpMdCtx::EvpMdCtx()
 #else
           EVP_MD_CTX_create()
 #endif
-      ) {
+      )
+{
     if (!ctx_) {
         throw CryptoException(FormatSslError("Failed to create EVP_MD_CTX"));
     }

@@ -27,7 +27,9 @@ private:
 
 class OpentracingSpan : public Span {
 protected:
-    OpentracingSpan() : opentracing_logger_(MakeNamedStreamLogger("openstracing", logging::Format::kTskv)) {
+    OpentracingSpan()
+        : opentracing_logger_(MakeNamedStreamLogger("openstracing", logging::Format::kTskv))
+    {
         tracing::Tracer::SetTracer(tracing::Tracer("service-test-name", opentracing_logger_.logger));
 
         // Discard logs
@@ -44,19 +46,26 @@ protected:
         EXPECT_TRUE(tag.HasMember("type"));
     }
 
-    static void
-    CheckTagTypeAndValue(const formats::json::Value& tag, const std::string& type, const std::string& value) {
+    static void CheckTagTypeAndValue(
+        const formats::json::Value& tag,
+        const std::string& type,
+        const std::string& value
+    ) {
         EXPECT_EQ(type, tag["type"].As<std::string>());
         EXPECT_EQ(value, tag["value"].As<std::string>());
     }
 
     static formats::json::Value GetTagsJson(const std::string& log_output) {
         auto tags_start = log_output.find("tags=");
-        if (tags_start == std::string::npos) return {};
+        if (tags_start == std::string::npos) {
+            return {};
+        }
         tags_start += 5;
         auto tags_str = log_output.substr(tags_start);
         const auto tags_end = tags_str.find(']');
-        if (tags_end == std::string::npos) return {};
+        if (tags_end == std::string::npos) {
+            return {};
+        }
         return formats::json::FromString(tags_str.substr(0, tags_end + 1));
     }
 
@@ -85,23 +94,24 @@ UTEST_F(Span, LogFormat) {
     // is an implementation detail, but it makes this test possible. If the order
     // or content of tags change, this test should be fixed to reflect the
     // changes.
-    constexpr std::string_view kExpectedPattern = R"(tskv\t)"
-                                                  R"(timestamp=\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}\t)"
-                                                  R"(level=[A-Z]+\t)"
-                                                  R"(module=[\w\d ():./]+\t)"
-                                                  R"(trace_id=[0-9a-f]+\t)"
-                                                  R"(span_id=[0-9a-f]+\t)"
-                                                  R"(parent_id=[0-9a-f]+\t)"
-                                                  R"(link=[0-9a-f]+\t)"
-                                                  R"(stopwatch_name=span_name\t)"
-                                                  R"(total_time=\d+(\.\d+)?\t)"
-                                                  R"(span_ref_type=child\t)"
-                                                  R"(stopwatch_units=ms\t)"
-                                                  R"(start_timestamp=\d+(\.\d+)?\t)"
-                                                  R"(my_timer_time=\d+(\.\d+)?\t)"
-                                                  R"(my_tag_key=my_tag_value\t)"
-                                                  R"(span_kind=internal\t)"
-                                                  R"(text=\n)";
+    constexpr std::string_view kExpectedPattern =
+        R"(tskv\t)"
+        R"(timestamp=\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}\t)"
+        R"(level=[A-Z]+\t)"
+        R"(module=[\w\d ():./]+\t)"
+        R"(trace_id=[0-9a-f]+\t)"
+        R"(span_id=[0-9a-f]+\t)"
+        R"(parent_id=[0-9a-f]+\t)"
+        R"(link=[0-9a-f]+\t)"
+        R"(stopwatch_name=span_name\t)"
+        R"(total_time=\d+(\.\d+)?\t)"
+        R"(span_ref_type=child\t)"
+        R"(stopwatch_units=ms\t)"
+        R"(start_timestamp=\d+(\.\d+)?\t)"
+        R"(my_timer_time=\d+(\.\d+)?\t)"
+        R"(my_tag_key=my_tag_value\t)"
+        R"(span_kind=internal\t)"
+        R"(text=\n)";
     const tracing::Span parent("parent_span_name");
     {
         tracing::Span span("span_name");
@@ -128,9 +138,10 @@ UTEST_F(Span, LogBufferSize) {
     span.AddTag("useragent", "what is that?");
     span.AddTag("battery_type", "AAAAA");
 
-    LOG_ERROR() << "An exception occurred in 'my-glorious-http-handler-name' "
-                   "handler, we found this unacceptable thing and just couldn't "
-                   "really continue";
+    LOG_ERROR()
+        << "An exception occurred in 'my-glorious-http-handler-name' "
+           "handler, we found this unacceptable thing and just couldn't "
+           "really continue";
     logging::LogFlush();
 
     EXPECT_LE(GetStreamString().size(), logging::kInitialLogBufferSize)
@@ -270,15 +281,18 @@ UTEST_F(Span, ScopeTimeDoesntOverrideTotalTime) {
 
     const auto parse_timing = [](const std::string& str, std::string_view name) -> std::optional<double> {
         auto start_pos = str.find(name);
-        if (start_pos == std::string::npos) return std::nullopt;
+        if (start_pos == std::string::npos) {
+            return std::nullopt;
+        }
         start_pos += name.size() + 1 /* '=' sign */;
 
         const auto finish_pos = str.find('\t', start_pos);
 
-        if (finish_pos != std::string::npos)
+        if (finish_pos != std::string::npos) {
             return std::stod(str.substr(start_pos, finish_pos - start_pos));
-        else
+        } else {
             return std::stod(str.substr(start_pos));
+        }
     };
 
     logging::LogFlush();
@@ -797,7 +811,10 @@ UTEST_F(Span, OnlyUpstreamSpanIsEnabled) {
     const tracing::Span upstream_span{"upstream_span"};
 
     auto handler_span_no_log = tracing::Span::MakeSpan(
-        "handler_span", upstream_span.GetTraceId(), upstream_span.GetSpanId(), "1234567890-link"
+        "handler_span",
+        upstream_span.GetTraceId(),
+        upstream_span.GetSpanId(),
+        "1234567890-link"
     );
     handler_span_no_log.SetLogLevel(logging::Level::kTrace);
 
@@ -828,7 +845,8 @@ UTEST_F(Span, OnlyUpstreamSpanIsEnabled) {
     EXPECT_THAT(
         GetStreamString(),
         testing::AllOf(
-            HasSubstr("link=" + std::string{span_no_log2.GetLink()}), Not(HasSubstr(upstream_span.GetLink()))
+            HasSubstr("link=" + std::string{span_no_log2.GetLink()}),
+            Not(HasSubstr(upstream_span.GetLink()))
         )
     );
 
@@ -917,8 +935,8 @@ UTEST_F(Span, IsCompatibleWithOpentelemetry) {
 
     static constexpr std::string_view kFlags = "01";
 
-    const auto otel_header =
-        tracing::opentelemetry::BuildTraceParentHeader(span.GetTraceId(), span.GetSpanId(), kFlags);
+    const auto
+        otel_header = tracing::opentelemetry::BuildTraceParentHeader(span.GetTraceId(), span.GetSpanId(), kFlags);
     ASSERT_TRUE(otel_header.has_value()) << otel_header.error();
 
     const auto otel_data = tracing::opentelemetry::ExtractTraceParentDataView(otel_header.value());

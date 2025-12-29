@@ -41,7 +41,9 @@ public:
         using pointer = void;
 
         /// @cond
-        explicit Iterator(RawIterator it) : it_(std::move(it)) {}
+        explicit Iterator(RawIterator it)
+            : it_(std::move(it))
+        {}
         /// @endcond
 
         Iterator(const Iterator& other) = default;
@@ -82,7 +84,9 @@ public:
     using const_iterator = Iterator<true>;
 
     /// @cond
-    explicit ItemsWrapper(Value&& value) : value_(static_cast<Value&&>(value)) {}
+    explicit ItemsWrapper(Value&& value)
+        : value_(static_cast<Value&&>(value))
+    {}
     /// @endcond
 
     iterator begin() { return iterator(value_.begin()); }

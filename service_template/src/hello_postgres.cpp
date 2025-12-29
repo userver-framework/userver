@@ -12,7 +12,8 @@ HelloPostgres::HelloPostgres(
     const userver::components::ComponentContext& component_context
 )
     : HttpHandlerBase(config, component_context),
-      pg_cluster_(component_context.FindComponent<userver::components::Postgres>("postgres-db-1").GetCluster()) {}
+      pg_cluster_(component_context.FindComponent<userver::components::Postgres>("postgres-db-1").GetCluster())
+{}
 
 std::string HelloPostgres::
     HandleRequestThrow(const userver::server::http::HttpRequest& request, userver::server::request::RequestContext&)

@@ -54,7 +54,9 @@ public:
     static PrivateKey LoadFromString(std::string_view key);
 
 private:
-    explicit PrivateKey(std::shared_ptr<NativeType> pkey) : pkey_(std::move(pkey)) {}
+    explicit PrivateKey(std::shared_ptr<NativeType> pkey)
+        : pkey_(std::move(pkey))
+    {}
 
     std::shared_ptr<NativeType> pkey_{};
 };

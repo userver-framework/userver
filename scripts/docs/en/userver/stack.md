@@ -44,5 +44,5 @@ export USERVER_ENABLE_STACK_USAGE_MONITOR=0
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
 ⇦ @ref scripts/docs/en/userver/congestion_control.md |
-@ref scripts/docs/en/userver/caches.md ⇨
+@ref scripts/docs/en/userver/dump_coroutines.md ⇨
 @htmlonly </div> @endhtmlonly

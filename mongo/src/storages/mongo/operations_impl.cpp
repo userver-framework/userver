@@ -32,7 +32,9 @@ void AppendComment(
     bool& has_comment_option,
     const options::Comment& comment
 ) {
-    if (comment.Value().empty()) return;
+    if (comment.Value().empty()) {
+        return;
+    }
 
     UASSERT(!has_comment_option);
     has_comment_option = true;

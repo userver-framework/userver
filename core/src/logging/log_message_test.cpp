@@ -37,8 +37,9 @@ void CheckModulePath(std::string_view message, std::string_view expected) {
     ASSERT_NE(std::string::npos, module_pos) << "no module logged";
     auto path_pos = message.find(std::string{expected} + ':', module_pos);
     auto delim_pos = message.find('\t', module_pos);
-    ASSERT_LT(path_pos, delim_pos) << "module mismatch, expected path '" << expected << "', found '"
-                                   << message.substr(module_pos, delim_pos - module_pos) << '\'';
+    ASSERT_LT(path_pos, delim_pos)
+        << "module mismatch, expected path '" << expected << "', found '"
+        << message.substr(module_pos, delim_pos - module_pos) << '\'';
 }
 
 struct CountingStruct {
@@ -78,18 +79,20 @@ TEST_F(LoggingTest, LogFormat) {
     // is an implementation detail, but it makes this test possible. If the order
     // or content of tags change, this test should be fixed to reflect the
     // changes.
-    constexpr std::string_view kExpectedPattern = R"(tskv\t)"
-                                                  R"(timestamp=\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}\t)"
-                                                  R"(level=[A-Z]+\t)"
-                                                  R"(module=[\w\d ():./]+\t)"
-                                                  R"(foo=bar\t)"
-                                                  R"(text=test\n)";
+    constexpr std::string_view kExpectedPattern =
+        R"(tskv\t)"
+        R"(timestamp=\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}\t)"
+        R"(level=[A-Z]+\t)"
+        R"(module=[\w\d ():./]+\t)"
+        R"(foo=bar\t)"
+        R"(text=test\n)";
     LOG_CRITICAL() << "test" << logging::LogExtra{{"foo", "bar"}};
     logging::LogFlush();
     EXPECT_TRUE(utils::regex_match(GetStreamString(), utils::regex(kExpectedPattern))) << GetStreamString();
 
     EXPECT_THAT(GetStreamString(), testing::Not(testing::HasSubstr(" ( /")))
-        << "Path shortening for logs stopped working.";
+        << "Path shortening for logs stopped "
+           "working.";
 }
 
 TEST_F(LoggingLtsvTest, LogFormatLtsv) {
@@ -97,11 +100,12 @@ TEST_F(LoggingLtsvTest, LogFormatLtsv) {
     // is an implementation detail, but it makes this test possible. If the order
     // or content of tags change, this test should be fixed to reflect the
     // changes.
-    constexpr std::string_view kExpectedPattern = R"(timestamp:\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}\t)"
-                                                  R"(level:[A-Z]+\t)"
-                                                  R"(module:[-_\w\d ():./]+\t)"
-                                                  R"(foo:bar\t)"
-                                                  R"(text:test\n)";
+    constexpr std::string_view kExpectedPattern =
+        R"(timestamp:\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}\t)"
+        R"(level:[A-Z]+\t)"
+        R"(module:[-_\w\d ():./]+\t)"
+        R"(foo:bar\t)"
+        R"(text:test\n)";
     LOG_CRITICAL() << "test" << logging::LogExtra{{"foo", "bar"}};
     logging::LogFlush();
     EXPECT_TRUE(utils::regex_match(GetStreamString(), utils::regex(kExpectedPattern))) << GetStreamString();
@@ -112,15 +116,17 @@ TEST_F(LoggingRawTest, LogFormat) {
     // is an implementation detail, but it makes this test possible. If the order
     // or content of tags change, this test should be fixed to reflect the
     // changes.
-    constexpr std::string_view kExpectedPattern = R"(tskv\t)"
-                                                  R"(foo=bar\t)"
-                                                  R"(text=test\n)";
+    constexpr std::string_view kExpectedPattern =
+        R"(tskv\t)"
+        R"(foo=bar\t)"
+        R"(text=test\n)";
     LOG_CRITICAL() << "test" << logging::LogExtra{{"foo", "bar"}};
     logging::LogFlush();
     EXPECT_TRUE(utils::regex_match(GetStreamString(), utils::regex(kExpectedPattern))) << GetStreamString();
 
     EXPECT_THAT(GetStreamString(), testing::Not(testing::HasSubstr(" ( /")))
-        << "Path shortening for logs stopped working.";
+        << "Path shortening for logs stopped "
+           "working.";
 }
 
 TEST_F(LoggingTest, MemLoggerLogFormat) {
@@ -193,7 +199,8 @@ TEST_F(LoggingTest, TracefulExceptionDebug) {
     LOG_CRITICAL() << utils::TracefulException("traceful exception");
 
     EXPECT_THAT(GetStreamString(), testing::HasSubstr("traceful exception"))
-        << "traceful exception is missing its message";
+        << "traceful exception is missing its "
+           "message";
     EXPECT_THAT(GetStreamString(), testing::HasSubstr("\tstacktrace=")) << "traceful exception is missing its trace";
 }
 
@@ -220,38 +227,45 @@ TEST_F(LoggingTest, AttachedException) {
 
 TEST_F(LoggingTest, IfExpressionWithoutBraces) {
     const bool true_flag = true;
-    if (true_flag)
+    if (true_flag) {
         LOG(logging::Level::kNone) << "test";
-    else
+    } else {
         FAIL() << "Logging affected the else statement";
+    }
 
     {
         bool passed = false;
-        if (true_flag)
+        if (true_flag) {
             LOG_LIMITED_CRITICAL() << (passed = true);
-        else
+        } else {
             FAIL() << "Logging affected the else statement";
+        }
         EXPECT_TRUE(passed);
     }
 
     {
         bool passed = false;
-        if (!true_flag)
+        if (!true_flag) {
             LOG_LIMITED_CRITICAL() << "test";
-        else
+        } else {
             passed = true;
+        }
         EXPECT_TRUE(passed);
     }
 
     {
         bool passed = false;
-        if (true_flag) LOG_LIMITED_CRITICAL() << (passed = true);
+        if (true_flag) {
+            LOG_LIMITED_CRITICAL() << (passed = true);
+        }
         EXPECT_TRUE(passed);
     }
 
     {
         bool passed = true;
-        if (!true_flag) LOG_LIMITED_CRITICAL() << (passed = false);
+        if (!true_flag) {
+            LOG_LIMITED_CRITICAL() << (passed = false);
+        }
         EXPECT_TRUE(passed);
     }
 }
@@ -272,12 +286,11 @@ TEST_F(LoggingTest, ExternalModulePath) {
     static constexpr std::string_view kPath = "/somewhere_else/src/test.cpp";
 
     {
-        const logging::LogHelper a(
-            logging::GetDefaultLogger(),
-            logging::Level::kCritical,
-            logging::LogClass::kLog,
-            utils::impl::SourceLocation::Custom(__LINE__, kPath, __func__)
-        );
+        const logging::LogHelper
+            a(logging::GetDefaultLogger(),
+              logging::Level::kCritical,
+              logging::LogClass::kLog,
+              utils::impl::SourceLocation::Custom(__LINE__, kPath, __func__));
     }
     logging::LogFlush();
 
@@ -323,12 +336,11 @@ TEST_F(LoggingTest, PartialPrefixModulePath) {
     static const std::string kPath = kRealPath.substr(0, kRealPath.find('/', 1) + 1) + "somewhere_else/src/test.cpp";
 
     {
-        const logging::LogHelper a(
-            logging::GetDefaultLogger(),
-            logging::Level::kCritical,
-            logging::LogClass::kLog,
-            utils::impl::SourceLocation::Custom(__LINE__, kPath, __func__)
-        );
+        const logging::LogHelper
+            a(logging::GetDefaultLogger(),
+              logging::Level::kCritical,
+              logging::LogClass::kLog,
+              utils::impl::SourceLocation::Custom(__LINE__, kPath, __func__));
     }
     logging::LogFlush();
 
@@ -464,8 +476,8 @@ TEST_F(LoggingTest, ImmediateRangeOverflow) {
 }
 
 TEST_F(LoggingTest, NestedRangeOverflow) {
-    const std::vector<std::vector<std::string>> range{
-        {"1", "2", "3"}, {std::string(100000, 'A'), "4", "5"}, {"6", "7"}};
+    const std::vector<std::vector<std::string>>
+        range{{"1", "2", "3"}, {std::string(100000, 'A'), "4", "5"}, {"6", "7"}};
 
     LOG_CRITICAL() << range;
     EXPECT_THAT(LoggedText(), testing::HasSubstr(R"([["1", "2", "3"], ["AAA)"));
@@ -570,9 +582,8 @@ TEST_F(LoggingTest, Noexceptness) {
 
         EXPECT_TRUE(noexcept(logging::LogHelper(logging::LoggerPtr{}, logging::Level::kCritical)));
 
-        EXPECT_TRUE(noexcept(std::declval<const logging::impl::StaticLogEntry&>().ShouldNotLog(
-            logging::GetDefaultLogger(), logging::Level::kInfo
-        )));
+        EXPECT_TRUE(noexcept(std::declval<const logging::impl::StaticLogEntry&>()
+                                 .ShouldNotLog(logging::GetDefaultLogger(), logging::Level::kInfo)));
 
         EXPECT_TRUE(noexcept(USERVER_IMPL_LOG_TO(logging::GetNullLogger(), logging::Level::kInfo)));
 

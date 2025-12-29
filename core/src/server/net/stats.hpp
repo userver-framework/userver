@@ -33,7 +33,8 @@ struct ParserStatsAggregation final {
           streams_parse_error(stats.http2_stats.streams_parse_error.Load()),
           streams_close(stats.http2_stats.streams_close.Load()),
           reset_streams(stats.http2_stats.reset_streams.Load()),
-          goaway(stats.http2_stats.goaway.Load()) {}
+          goaway(stats.http2_stats.goaway.Load())
+    {}
 
     ParserStatsAggregation& operator+=(const ParserStatsAggregation& other) {
         parsing_request_count += other.parsing_request_count;
@@ -76,7 +77,8 @@ struct StatsAggregation final {
           connections_closed{stats.connections_closed.Load()},
           parser_stats{stats.parser_stats},
           active_request_count{stats.active_request_count.NonNegativeRead()},
-          requests_processed_count{stats.requests_processed_count.Load()} {}
+          requests_processed_count{stats.requests_processed_count.Load()}
+    {}
 
     StatsAggregation& operator+=(const StatsAggregation& other) {
         active_connections += other.active_connections;

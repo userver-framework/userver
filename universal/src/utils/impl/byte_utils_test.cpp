@@ -315,9 +315,9 @@ void TestCaseInsensitiveEqual() {
         for (std::size_t len = 1; len <= kAllPossibleBytesString.size(); ++len) {
             for (std::size_t start = 0; start < kAllPossibleBytesString.size(); ++start) {
                 const auto lhs = std::string_view{all_possible_bytes_three_times}.substr(start, len);
-                const auto rhs = std::string_view{all_possible_bytes_three_times}.substr(
-                    start + kAllPossibleBytesString.size(), len
-                );
+                const auto rhs =
+                    std::string_view{all_possible_bytes_three_times}
+                        .substr(start + kAllPossibleBytesString.size(), len);
                 ASSERT_TRUE(cmp(lhs, rhs));
             }
         }

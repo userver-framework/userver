@@ -46,12 +46,13 @@ using DnsClient = ComponentList;
 }  // namespace
 
 TEST_F(DnsClient, InvalidComponentConfig) {
-    auto component_list = components::ComponentList()
-                              .Append<clients::dns::Component>()
-                              .Append<components::Logging>()
-                              .Append<components::Tracer>()
-                              .Append<components::StatisticsStorage>()
-                              .Append<os_signals::ProcessorComponent>();
+    auto component_list =
+        components::ComponentList()
+            .Append<clients::dns::Component>()
+            .Append<components::Logging>()
+            .Append<components::Tracer>()
+            .Append<components::StatisticsStorage>()
+            .Append<os_signals::ProcessorComponent>();
     UEXPECT_THROW_MSG(
         components::RunOnce(components::InMemoryConfig{kStaticConfig}, component_list),
         std::runtime_error,

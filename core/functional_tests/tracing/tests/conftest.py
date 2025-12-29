@@ -1,6 +1,5 @@
-import asyncio
-
 import pytest
+import pytest_userver.utils.sync as sync
 
 pytest_plugins = ['pytest_userver.plugins.core']
 
@@ -46,7 +45,7 @@ def _userver_service_client_options(userver_service_client_options):
     return userver_service_client_options
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture
 async def assert_ids_in_file(service_client, jaeger_logs_path):
     with open(jaeger_logs_path, 'w') as jaeger_file:
         jaeger_file.truncate(0)
@@ -67,7 +66,6 @@ async def assert_ids_in_file(service_client, jaeger_logs_path):
     records = capture.select(trace_id=trace_id)
     assert len(records) >= 1, capture.select()
 
-    retries = 100
     required_data = {
         f'\ttrace_id={trace_id}',
         'service_name=http-tracing-test',
@@ -81,7 +79,10 @@ async def assert_ids_in_file(service_client, jaeger_logs_path):
         '}]',
     }
 
-    for _ in range(retries):
+    probable_lines = []
+
+    async def check_ready() -> None:
+        nonlocal probable_lines
         probable_lines = []
         with open(jaeger_logs_path, 'r') as jaeger_file:
             for line in reversed(jaeger_file.read().split('\n')):
@@ -90,8 +91,11 @@ async def assert_ids_in_file(service_client, jaeger_logs_path):
 
                 if all(substr in line for substr in required_data):
                     return
+        raise sync.NotReady()
 
-        await asyncio.sleep(0.5)
-    assert False, (
-        f'Missing substrings {required_data} in opentracing file for trace id {trace_id}. Lines:\n {probable_lines}'
-    )
+    try:
+        await sync.wait_until(check_ready)
+    except TimeoutError:
+        assert False, (
+            f'Missing substrings {required_data} in opentracing file for trace id {trace_id}. Lines:\n {probable_lines}'
+        )

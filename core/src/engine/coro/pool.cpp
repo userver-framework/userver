@@ -6,6 +6,7 @@
 
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/debugging.hpp>
 
 #include <utils/sys_info.hpp>
 
@@ -14,12 +15,17 @@ USERVER_NAMESPACE_BEGIN
 namespace engine::coro {
 
 namespace {
-bool IsStackUsageMonitorEnabled() {
+bool IsStackUsageMonitorDisabled() {
     // NOLINTNEXTLINE(concurrency-mt-unsafe)
     auto* enable = std::getenv("USERVER_ENABLE_STACK_USAGE_MONITOR");
-    if (!enable) return true;
-    if (std::string_view(enable) == "0") return false;
-    return true;
+    if (enable && std::string_view(enable) == "0") {
+        LOG_WARNING() << "Stack usage monitor is explicitly disabled via USERVER_ENABLE_STACK_USAGE_MONITOR env var";
+        return true;
+    } else if (utils::IsDebuggerPresent()) {
+        LOG_WARNING() << "Detected attached debugger. Stack usage monitor is disabled";
+        return true;
+    }
+    return false;
 }
 }  // namespace
 
@@ -32,13 +38,12 @@ Pool::Pool(PoolConfig config, Executor executor)
       initial_coroutines_(config_.initial_size),
       used_coroutines_(config_.max_size),
       idle_coroutines_num_(config_.initial_size),
-      total_coroutines_num_(0) {
+      total_coroutines_num_(0)
+{
     UASSERT(local_coroutine_move_size_ <= config_.local_cache_size);
     const moodycamel::ProducerToken token(initial_coroutines_);
 
-    if (!IsStackUsageMonitorEnabled()) {
-        LOG_WARNING() << "Stack usage monitor is explicitly disabled via USERVER_ENABLE_STACK_USAGE_MONITOR env var";
-    } else if (config_.is_stack_usage_monitor_enabled) {
+    if (!IsStackUsageMonitorDisabled() && config_.is_stack_usage_monitor_enabled) {
         stack_usage_monitor_.Start();
     }
 
@@ -151,9 +156,10 @@ Pool::Coroutine Pool::CreateCoroutine(bool quiet) {
             // hitting vm.max_map_count limit, not from the actual memory limit.
             // See `stack_context::allocate` in
             // boost/context/posix/protected_fixedsize_stack.hpp
-            LOG_ERROR() << "Failed to allocate a coroutine (ENOMEM), current "
-                           "coroutines count: "
-                        << total_coroutines_num_.load() << "; are you hitting the vm.max_map_count limit?";
+            LOG_ERROR()
+                << "Failed to allocate a coroutine (ENOMEM), current "
+                   "coroutines count: "
+                << total_coroutines_num_.load() << "; are you hitting the vm.max_map_count limit?";
         }
 
         throw;
@@ -163,12 +169,18 @@ Pool::Coroutine Pool::CreateCoroutine(bool quiet) {
 void Pool::OnCoroutineDestruction() noexcept { --total_coroutines_num_; }
 
 bool Pool::TryPopulateLocalCache() {
-    if (local_coroutine_move_size_ == 0) return false;
+    if (local_coroutine_move_size_ == 0) {
+        return false;
+    }
 
     const std::size_t dequeued_num = used_coroutines_.try_dequeue_bulk(
-        GetUsedPoolToken<moodycamel::ConsumerToken>(), std::back_inserter(local_coro_buffer), local_coroutine_move_size_
+        GetUsedPoolToken<moodycamel::ConsumerToken>(),
+        std::back_inserter(local_coro_buffer),
+        local_coroutine_move_size_
     );
-    if (dequeued_num == 0) return false;
+    if (dequeued_num == 0) {
+        return false;
+    }
 
     idle_coroutines_num_.fetch_sub(dequeued_num);
     return true;
@@ -227,7 +239,9 @@ Pool::CoroutinePtr::CoroutinePtr(Pool::Coroutine&& coro, Pool& pool) noexcept : 
 
 Pool::CoroutinePtr::~CoroutinePtr() {
     UASSERT(pool_);
-    if (coro_) pool_->OnCoroutineDestruction();
+    if (coro_) {
+        pool_->OnCoroutineDestruction();
+    }
 }
 
 Pool::Coroutine& Pool::CoroutinePtr::Get() noexcept {

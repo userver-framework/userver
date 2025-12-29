@@ -2,7 +2,6 @@ import collections
 import dataclasses
 import os
 import pathlib
-from typing import Optional
 
 import jinja2
 
@@ -54,7 +53,7 @@ def open_namespace(new_ns: str) -> str:
         res = ''
         for namespace in new_ns.split('::'):
             if namespace:
-                res = res + f'namespace {namespace} {{'
+                res += f'namespace {namespace} {{'
         return res
     else:
         return ''
@@ -170,14 +169,14 @@ class OneToOneFileRenderer:
 
         def visitor(
             schema: types.Schema,
-            _parent: Optional[types.Schema],
+            _parent: types.Schema | None,
         ) -> None:
             if not isinstance(schema, types.Ref):
                 return
 
             filepath = self.filepath_wo_ext(
                 self._vfilepath_to_relfilepath(
-                    schema.schema.source_location().filepath,
+                    schema.schema_.source_location().filepath,
                 ),
             )
             if filepath != ignore_filepath_wo_ext:
@@ -200,7 +199,7 @@ class OneToOneFileRenderer:
         self,
         types: dict[str, cpp_types.CppType],
         local_pair_header=True,
-        pair_header: Optional[str] = None,
+        pair_header: str | None = None,
     ) -> list[CppOutput]:
         files: dict[str, dict[str, cpp_types.CppType]] = collections.defaultdict(dict)
 

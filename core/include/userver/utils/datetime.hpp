@@ -51,8 +51,11 @@ std::string Timestring(
 /// @snippet utils/datetime_test.cpp  Stringtime example
 /// @see kRfc3339Format, kTaximeterFormat, kStartOfTheEpoch,
 /// kDefaultDriverTimezone, kDefaultTimezone, kDefaultFormat, kIsoFormat
-std::chrono::system_clock::time_point
-Stringtime(const std::string& timestring, const std::string& timezone, const std::string& format = kDefaultFormat);
+std::chrono::system_clock::time_point Stringtime(
+    const std::string& timestring,
+    const std::string& timezone,
+    const std::string& format = kDefaultFormat
+);
 
 /// @brief Extracts time point from a string, guessing the format
 /// @throws utils::datetime::DateParseError

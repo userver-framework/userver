@@ -3,6 +3,7 @@
 #include <google/protobuf/text_format.h>
 #include <boost/container/small_vector.hpp>
 
+#include <userver/utils/algo.hpp>
 #include <userver/utils/meta_light.hpp>
 #include <userver/utils/numeric_cast.hpp>
 
@@ -17,22 +18,30 @@ namespace ugrpc {
 
 namespace {
 
+constexpr std::string_view kTruncateMarker = "...(truncated)";
+constexpr std::string_view kEmptyMarker = "<EMPTY>";
+constexpr std::string_view kNewLine = "\n";
+
 class [[maybe_unused]] LimitingOutputStream final : public google::protobuf::io::ZeroCopyOutputStream {
 public:
     class LimitReachedException final : public std::exception {};
 
     explicit LimitingOutputStream(google::protobuf::io::ArrayOutputStream& output_stream)
-        : output_stream_{output_stream} {}
+        : output_stream_{output_stream}
+    {}
 
     /*
-      Throw `LimitReachedException` on limit reached
+      Might throw `LimitReachedException` on limit reached
     */
     bool Next(void** data, int* size) override {
         if (!output_stream_.Next(data, size)) {
             limit_reached_ = true;
+#if defined(ARCADIA_ROOT) || GOOGLE_PROTOBUF_VERSION >= 6031002
             // This requires TextFormat internals to be exception-safe, see
             // https://github.com/protocolbuffers/protobuf/commit/be875d0aaf37dbe6948717ea621278e75e89c9c7
             throw LimitReachedException{};
+#endif
+            return false;
         }
         return true;
     }
@@ -44,6 +53,8 @@ public:
     }
 
     int64_t ByteCount() const override { return output_stream_.ByteCount(); }
+
+    bool LimitReached() const { return limit_reached_; }
 
 private:
     google::protobuf::io::ArrayOutputStream& output_stream_;
@@ -72,26 +83,40 @@ void Print(const google::protobuf::Message& message, google::protobuf::io::ZeroC
 }  // namespace
 
 std::string ToLimitedDebugString(const google::protobuf::Message& message, std::size_t limit) {
+    if (limit == 0) {
+        return std::string{kTruncateMarker};
+    }
+
     boost::container::small_vector<char, 1024> output_buffer{limit, boost::container::default_init};
     google::protobuf::io::ArrayOutputStream output_stream{output_buffer.data(), utils::numeric_cast<int>(limit)};
 
-#if defined(ARCADIA_ROOT) || GOOGLE_PROTOBUF_VERSION >= 6031002
-    // Throw `LimitReachedException` on limit reached to stop printing immediately, otherwise TextFormat will continue
-    // to walk the whole message and apply noop printing.
     LimitingOutputStream limiting_output_stream{output_stream};
     try {
         ugrpc::Print(message, limiting_output_stream);
     } catch (const LimitingOutputStream::LimitReachedException& /*ex*/) {
-        // Buffer limit has been reached.
+        // When using a protobuf version with exception-safe TextFormat, LimitingOutputStream throws
+        // `LimitReachedException` if limit is reached to stop printing immediately, otherwise TextFormat will continue
+        // to walk the whole message and apply noop printing.
     }
-#else
-    // For old protobuf, we cannot apply hard limits when printing messages, because its TextFormat is not
-    // exception-safe. https://github.com/protocolbuffers/protobuf/commit/be875d0aaf37dbe6948717ea621278e75e89c9c7
-    ugrpc::Print(message, output_stream);
-#endif
-    std::string returned_str = std::string{output_buffer.data(), static_cast<std::size_t>(output_stream.ByteCount())};
-    if (returned_str.empty() && limit >= 7) return "<EMPTY>";
-    return returned_str;
+
+    std::string_view
+        truncated_str = std::string_view{output_buffer.data(), static_cast<std::size_t>(output_stream.ByteCount())};
+    UASSERT(truncated_str.size() <= limit);
+
+    if (truncated_str.empty()) {
+        return std::string{kEmptyMarker};
+    }
+
+    if (limiting_output_stream.LimitReached()) {
+        if (truncated_str.size() <= kTruncateMarker.size() + kNewLine.size()) {
+            return std::string{kTruncateMarker};
+        }
+
+        truncated_str.remove_suffix(kTruncateMarker.size() + kNewLine.size());
+        return utils::StrCat(truncated_str, kNewLine, kTruncateMarker);
+    }
+
+    return std::string{truncated_str};
 }
 
 std::string ToUnlimitedDebugString(const google::protobuf::Message& message) {
@@ -99,7 +124,9 @@ std::string ToUnlimitedDebugString(const google::protobuf::Message& message) {
     google::protobuf::io::StringOutputStream output_stream(&result);
     ugrpc::Print(message, output_stream);
     std::string returned_str = std::string(result);
-    if (returned_str.empty()) return "<EMPTY>";
+    if (returned_str.empty()) {
+        return std::string{kEmptyMarker};
+    }
     return returned_str;
 }
 

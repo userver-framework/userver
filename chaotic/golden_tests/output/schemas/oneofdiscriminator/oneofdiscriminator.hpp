@@ -92,11 +92,10 @@ USERVER_NAMESPACE::formats::json::Value
 Serialize(const ::ns::D& value, USERVER_NAMESPACE::formats::serialize::To<USERVER_NAMESPACE::formats::json::Value>);
 
 struct IntegerOneOfDiscriminator {
-    [[maybe_unused]] static constexpr USERVER_NAMESPACE::chaotic::OneOfIntegerSettings kFoo_Settings = {
-        "version",
-        USERVER_NAMESPACE::utils::TrivialSet([](auto selector) {
-            return selector().template Type<int64_t>().Case(42).Case(52);
-        })};
+    [[maybe_unused]] static constexpr USERVER_NAMESPACE::chaotic::OneOfIntegerSettings kFoo_Settings =
+        {"version", USERVER_NAMESPACE::utils::TrivialSet([](auto selector) {
+             return selector().template Type<int64_t>().Case(42).Case(52);
+         })};
 
     using Foo = std::variant<::ns::C, ::ns::D>;
 
@@ -105,8 +104,10 @@ struct IntegerOneOfDiscriminator {
 
 bool operator==(const ::ns::IntegerOneOfDiscriminator& lhs, const ::ns::IntegerOneOfDiscriminator& rhs);
 
-USERVER_NAMESPACE::logging::LogHelper&
-operator<<(USERVER_NAMESPACE::logging::LogHelper& lh, const ::ns::IntegerOneOfDiscriminator& value);
+USERVER_NAMESPACE::logging::LogHelper& operator<<(
+    USERVER_NAMESPACE::logging::LogHelper& lh,
+    const ::ns::IntegerOneOfDiscriminator& value
+);
 
 IntegerOneOfDiscriminator
 Parse(USERVER_NAMESPACE::formats::json::Value json, USERVER_NAMESPACE::formats::parse::To<::ns::IntegerOneOfDiscriminator>);
@@ -117,15 +118,17 @@ Parse(USERVER_NAMESPACE::formats::json::Value json, USERVER_NAMESPACE::formats::
 /* Parse(USERVER_NAMESPACE::yaml_config::Value, To<::ns::IntegerOneOfDiscriminator>) was not generated:
  * ::ns::IntegerOneOfDiscriminator::Foo has JSON-specific field "extra" */
 
-USERVER_NAMESPACE::formats::json::Value
-Serialize(const ::ns::IntegerOneOfDiscriminator& value, USERVER_NAMESPACE::formats::serialize::To<USERVER_NAMESPACE::formats::json::Value>);
+USERVER_NAMESPACE::
+    formats::
+        json::
+            Value
+            Serialize(const ::ns::IntegerOneOfDiscriminator& value, USERVER_NAMESPACE::formats::serialize::To<USERVER_NAMESPACE::formats::json::Value>);
 
 struct OneOfDiscriminator {
-    [[maybe_unused]] static constexpr USERVER_NAMESPACE::chaotic::OneOfStringSettings kFoo_Settings = {
-        "type",
-        USERVER_NAMESPACE::utils::TrivialSet([](auto selector) {
-            return selector().template Type<std::string_view>().Case("aaa").Case("bbb");
-        })};
+    [[maybe_unused]] static constexpr USERVER_NAMESPACE::chaotic::OneOfStringSettings kFoo_Settings =
+        {"type", USERVER_NAMESPACE::utils::TrivialSet([](auto selector) {
+             return selector().template Type<std::string_view>().Case("aaa").Case("bbb");
+         })};
 
     using Foo = std::variant<::ns::A, ::ns::B>;
 
@@ -134,8 +137,10 @@ struct OneOfDiscriminator {
 
 bool operator==(const ::ns::OneOfDiscriminator& lhs, const ::ns::OneOfDiscriminator& rhs);
 
-USERVER_NAMESPACE::logging::LogHelper&
-operator<<(USERVER_NAMESPACE::logging::LogHelper& lh, const ::ns::OneOfDiscriminator& value);
+USERVER_NAMESPACE::logging::LogHelper& operator<<(
+    USERVER_NAMESPACE::logging::LogHelper& lh,
+    const ::ns::OneOfDiscriminator& value
+);
 
 OneOfDiscriminator
 Parse(USERVER_NAMESPACE::formats::json::Value json, USERVER_NAMESPACE::formats::parse::To<::ns::OneOfDiscriminator>);
@@ -146,7 +151,10 @@ Parse(USERVER_NAMESPACE::formats::json::Value json, USERVER_NAMESPACE::formats::
 /* Parse(USERVER_NAMESPACE::yaml_config::Value, To<::ns::OneOfDiscriminator>) was not generated:
  * ::ns::OneOfDiscriminator::Foo has JSON-specific field "extra" */
 
-USERVER_NAMESPACE::formats::json::Value
-Serialize(const ::ns::OneOfDiscriminator& value, USERVER_NAMESPACE::formats::serialize::To<USERVER_NAMESPACE::formats::json::Value>);
+USERVER_NAMESPACE::
+    formats::
+        json::
+            Value
+            Serialize(const ::ns::OneOfDiscriminator& value, USERVER_NAMESPACE::formats::serialize::To<USERVER_NAMESPACE::formats::json::Value>);
 
 }  // namespace ns

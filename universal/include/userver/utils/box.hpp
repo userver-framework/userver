@@ -56,7 +56,9 @@ public:
     /// Allocate a default-constructed value.
     // Would like to use SFINAE here, but std::optional<Box> requests tests for
     // default construction eagerly, which errors out for a forward-declared T.
-    Box() : data_(std::make_unique<T>()) {}
+    Box()
+        : data_(std::make_unique<T>())
+    {}
 
     /// Allocate a `T`, copying or moving @a arg.
     template <
@@ -73,7 +75,9 @@ public:
                 U&&,
                 T>(),
             int> = 0>
-    /*implicit*/ Box(U&& arg) : data_(std::make_unique<T>(std::forward<U>(arg))) {}
+    /*implicit*/ Box(U&& arg)
+        : data_(std::make_unique<T>(std::forward<U>(arg)))
+    {}
 
     /// Allocate the value, emplacing it with the given @a args.
     template <
@@ -88,7 +92,9 @@ public:
                 T,
                 Args&&...>(),
             int> = 0>
-    explicit Box(Args&&... args) : data_(std::make_unique<T>(std::forward<Args>(args)...)) {}
+    explicit Box(Args&&... args)
+        : data_(std::make_unique<T>(std::forward<Args>(args)...))
+    {}
 
     /// Allocate the value as constructed by the given @a factory.
     /// Allows to save an extra move of the contained value.
@@ -100,7 +106,9 @@ public:
     Box(Box&& other) noexcept = default;
     Box& operator=(Box&& other) noexcept = default;
 
-    Box(const Box& other) : data_(std::make_unique<T>(*other)) {}
+    Box(const Box& other)
+        : data_(std::make_unique<T>(*other))
+    {}
 
     Box& operator=(const Box& other) {
         *this = Box{other};
@@ -158,7 +166,9 @@ private:
     struct EmplaceFactory final {};
 
     template <typename Factory>
-    explicit Box(EmplaceFactory, Factory&& factory) : data_(new T(std::forward<Factory>(factory)())) {}
+    explicit Box(EmplaceFactory, Factory&& factory)
+        : data_(new T(std::forward<Factory>(factory)()))
+    {}
 
     T* Get() noexcept {
         UASSERT_MSG(data_, "Accessing a moved-from Box");

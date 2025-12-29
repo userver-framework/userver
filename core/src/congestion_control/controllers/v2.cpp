@@ -16,12 +16,19 @@ constexpr std::chrono::seconds kStepPeriod{1};
 void DumpMetric(utils::statistics::Writer& writer, const Stats& stats) {
     writer["is-enabled"] = stats.is_enabled ? 1 : 0;
     writer["is-fake-mode"] = stats.is_fake_mode ? 1 : 0;
-    if (stats.current_limit) writer["current-limit"] = stats.current_limit;
+    if (stats.current_limit) {
+        writer["current-limit"] = stats.current_limit;
+    }
     writer["enabled-seconds"] = stats.enabled_epochs;
 }
 
 Controller::Controller(const std::string& name, Sensor& sensor, Limiter& limiter, Stats& stats, const Config& config)
-    : name_(name), sensor_(sensor), limiter_(limiter), stats_(stats), config_(config) {}
+    : name_(name),
+      sensor_(sensor),
+      limiter_(limiter),
+      stats_(stats),
+      config_(config)
+{}
 
 void Controller::Start() {
     if (config_.enabled) {
@@ -35,12 +42,13 @@ void Controller::Start() {
 void Controller::Stop() { periodic_.Stop(); }
 
 std::string_view Controller::LogFakeMode() const {
-    if (config_.fake_mode)
+    if (config_.fake_mode) {
         return " (fake mode)";
-    else if (!enabled_)
+    } else if (!enabled_) {
         return " (disabled via config or experiment)";
-    else
+    } else {
         return "";
+    }
 }
 
 void Controller::Step() {
@@ -56,23 +64,27 @@ void Controller::Step() {
     }
 
     if (limit.load_limit) {
-        LOG_ERROR() << fmt::format(
-                           "Congestion Control {} is active, sensor ({}), limiter ({})",
-                           name_,
-                           limit_with_details.sensor_details.value_or("none"),
-                           limit_with_details.limit.ToLogString()
-                       )
-                    << LogFakeMode();
+        LOG_ERROR()
+            << fmt::format(
+                   "Congestion Control {} is active, sensor ({}), limiter ({})",
+                   name_,
+                   limit_with_details.sensor_details.value_or("none"),
+                   limit_with_details.limit.ToLogString()
+               )
+            << LogFakeMode();
     } else {
-        LOG_TRACE() << fmt::format(
-                           "Congestion Control {} is not active, sensor ({})",
-                           name_,
-                           limit_with_details.sensor_details.value_or("none")
-                       )
-                    << LogFakeMode();
+        LOG_TRACE()
+            << fmt::format(
+                   "Congestion Control {} is not active, sensor ({})",
+                   name_,
+                   limit_with_details.sensor_details.value_or("none")
+               )
+            << LogFakeMode();
     }
 
-    if (limit.load_limit.has_value()) stats_.enabled_epochs++;
+    if (limit.load_limit.has_value()) {
+        stats_.enabled_epochs++;
+    }
     stats_.current_limit = limit.load_limit.value_or(0);
     stats_.is_enabled = limit.load_limit.has_value();
     stats_.is_fake_mode = config_.fake_mode || !enabled_;

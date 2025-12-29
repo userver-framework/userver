@@ -23,7 +23,8 @@ UTEST(Libmariadb, CONC622) {
             endpoint_info,
             auth_settings,
             connection_settings,
-            engine::Deadline::FromDuration(std::chrono::milliseconds{200})};
+            engine::Deadline::FromDuration(std::chrono::milliseconds{200})
+        };
     };
 
     EXPECT_THROW(try_connect(), MySQLException);

@@ -11,9 +11,8 @@ namespace ydb::impl {
 namespace {
 
 std::chrono::milliseconds DeadlineToTimeout(engine::Deadline deadline) {
-    const auto timeout = std::chrono::duration_cast<std::chrono::milliseconds>(
-        deadline.IsReachable() ? deadline.TimeLeft() : engine::Deadline::Duration::max()
-    );
+    const auto timeout = std::chrono::duration_cast<
+        std::chrono::milliseconds>(deadline.IsReachable() ? deadline.TimeLeft() : engine::Deadline::Duration::max());
     if (timeout <= std::chrono::milliseconds::zero()) {
         throw DeadlineExceededError("deadline exceeded before the query");
     }

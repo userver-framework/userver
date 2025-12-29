@@ -44,7 +44,8 @@ constexpr auto* GetIf(Root&& root, Head&& head, Tail&&... tail) {
                     : nullptr;
     } else {
         return utils::GetIf(
-            std::invoke(std::forward<Head>(head), std::forward<Root>(root)), std::forward<Tail>(tail)...
+            std::invoke(std::forward<Head>(head), std::forward<Root>(root)),
+            std::forward<Tail>(tail)...
         );
     }
 }

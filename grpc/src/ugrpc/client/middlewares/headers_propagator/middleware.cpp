@@ -7,7 +7,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client::middlewares::headers_propagator {
 
-Middleware::Middleware(Settings&& settings) : settings_(std::move(settings)) {}
+Middleware::Middleware(Settings&& settings)
+    : settings_(std::move(settings))
+{}
 
 void Middleware::PreStartCall(MiddlewareCallContext& context) const {
     auto& client_context = context.GetClientContext();

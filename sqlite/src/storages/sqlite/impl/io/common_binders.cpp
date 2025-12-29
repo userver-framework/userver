@@ -84,9 +84,9 @@ void FreestandingBind(
     // TODO: What precision we want here?
     std::int64_t nanos{};
     binds.Extract(pos, nanos);
-    val.Get() = std::chrono::system_clock::time_point(
-        std::chrono::duration_cast<std::chrono::system_clock::duration>(std::chrono::nanoseconds(nanos))
-    );
+    val.Get() =
+        std::chrono::system_clock::time_point(std::chrono::duration_cast<
+                                              std::chrono::system_clock::duration>(std::chrono::nanoseconds(nanos)));
 }
 
 void FreestandingBind(OutputBindingsFwd& binds, std::size_t pos, ExplicitRef<boost::uuids::uuid> val) {

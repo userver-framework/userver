@@ -82,11 +82,15 @@ std::string QuoteOptionValue(const char* value) {
     for (const char* p = value; *p; ++p) {
         if (*p == ' ' || *p == '\'' || *p == '\\') {
             needs_quoting = true;
-            if (*p != ' ') ++len_with_escapes;
+            if (*p != ' ') {
+                ++len_with_escapes;
+            }
         }
         ++len_with_escapes;
     }
-    if (!needs_quoting) return {value, len_with_escapes};
+    if (!needs_quoting) {
+        return {value, len_with_escapes};
+    }
 
     std::string quoted;
     quoted.reserve(len_with_escapes + 2);
@@ -111,7 +115,9 @@ Dsn MakeDsn(const T& values) {
     for (const auto& [key, value] : values) {
         result += key + '=' + QuoteOptionValue(value.c_str()) + ' ';
     }
-    if (!result.empty()) result.pop_back();
+    if (!result.empty()) {
+        result.pop_back();
+    }
     return Dsn{result};
 }
 
@@ -131,7 +137,9 @@ DsnList SplitByHost(const Dsn& dsn) {
     DsnList res;
     if (hosts.empty()) {
         // default host, just return the options string
-        if (ports.size() > 1) throw InvalidDSN{DsnMaskPassword(dsn), "Invalid port options count"};
+        if (ports.size() > 1) {
+            throw InvalidDSN{DsnMaskPassword(dsn), "Invalid port options count"};
+        }
         if (!ports.empty()) {
             options << " port=" << ports.front();
         }
@@ -163,10 +171,14 @@ std::string MakeDsnNick(const Dsn& dsn, bool escape) {
     const auto hap = ParseDSNOptions(dsn, [&opt_dict](PQconninfoOption* opt) { opt_dict[opt->keyword] = opt->val; });
 
     const auto& hosts = hap.hosts;
-    if (!hosts.empty()) opt_dict["host"] = hosts.front();
+    if (!hosts.empty()) {
+        opt_dict["host"] = hosts.front();
+    }
 
     const auto& ports = hap.ports;
-    if (!ports.empty()) opt_dict["port"] = ports.front();
+    if (!ports.empty()) {
+        opt_dict["port"] = ports.front();
+    }
 
     std::string dsn_str;
     std::array<const char*, 4> keys = {"user", "host", "port", "dbname"};
@@ -186,7 +198,9 @@ std::string MakeDsnNick(const Dsn& dsn, bool escape) {
     if (escape) {
         dsn_str.erase(
             std::remove_if(
-                dsn_str.begin(), dsn_str.end(), [](char c) { return !std::isalpha(c) && !std::isdigit(c) && c != '_'; }
+                dsn_str.begin(),
+                dsn_str.end(),
+                [](char c) { return !std::isalpha(c) && !std::isdigit(c) && c != '_'; }
             ),
             dsn_str.end()
         );
@@ -203,7 +217,9 @@ DsnOptions OptionsFromDsn(const Dsn& dsn) {
         }
     });
     options.host = hap.hosts.empty() ? kPostgreSQLDefaultHost : hap.hosts.front();
-    if (!hap.ports.empty()) options.port = hap.ports.front();
+    if (!hap.ports.empty()) {
+        options.port = hap.ports.front();
+    }
     return options;
 }
 
@@ -256,9 +272,8 @@ std::string DsnMaskPassword(const Dsn& dsn) {
         //   |                            # or
         //   \S+                          # a sequence without spaces
         // )
-        static const USERVER_NAMESPACE::utils::regex kOptionRe(
-            R"~((\bpassword\s*=\s*)(?:(?:'(?:(?:\\['\\])|[^'])+')|\S+))~"
-        );
+        static const USERVER_NAMESPACE::utils::regex
+            kOptionRe(R"~((\bpassword\s*=\s*)(?:(?:'(?:(?:\\['\\])|[^'])+')|\S+))~");
         auto masked = regex_replace(dsn.GetUnderlying(), kOptionRe, option_replace);
         return masked;
     }
@@ -267,7 +282,10 @@ std::string DsnMaskPassword(const Dsn& dsn) {
 std::string EscapeHostName(const std::string& hostname, char escape_char) {
     auto escaped = hostname;
     std::replace_if(
-        escaped.begin(), escaped.end(), [](char c) { return !std::isalpha(c) && !std::isdigit(c); }, escape_char
+        escaped.begin(),
+        escaped.end(),
+        [](char c) { return !std::isalpha(c) && !std::isdigit(c); },
+        escape_char
     );
     return escaped;
 }
@@ -282,23 +300,30 @@ Dsn ResolveDsnHostaddrs(const Dsn& dsn, clients::dns::Resolver& resolver, engine
         values.emplace_back(opt->keyword, opt->val);
     });
 
-    if (has_addrs || hap.hosts.empty()) return dsn;
+    if (has_addrs || hap.hosts.empty()) {
+        return dsn;
+    }
 
-    if (hap.ports.size() > 1 && hap.ports.size() != hap.hosts.size())
+    if (hap.ports.size() > 1 && hap.ports.size() != hap.hosts.size()) {
         throw InvalidDSN{DsnMaskPassword(dsn), "Invalid port options count"};
+    }
 
     std::vector<std::string> names;
     std::vector<std::string> ports;
     std::vector<std::string> addrs;
 
-    if (hap.ports.size() == 1) std::swap(ports, hap.ports);
+    if (hap.ports.size() == 1) {
+        std::swap(ports, hap.ports);
+    }
 
     for (size_t i = 0; i < hap.hosts.size(); ++i) {
         try {
             for (const auto& addr : resolver.Resolve(hap.hosts[i], deadline)) {
                 names.push_back(hap.hosts[i]);
                 addrs.push_back(addr.PrimaryAddressString());
-                if (!hap.ports.empty()) ports.push_back(hap.ports[i]);
+                if (!hap.ports.empty()) {
+                    ports.push_back(hap.ports[i]);
+                }
             }
         } catch (const clients::dns::NotResolvedException& ex) {
             LOG_LIMITED_WARNING() << "Could not resolve " << hap.hosts[i] << ex;
@@ -311,7 +336,9 @@ Dsn ResolveDsnHostaddrs(const Dsn& dsn, clients::dns::Resolver& resolver, engine
 
     values.emplace_back("host", JoinDsnValues(names));
     values.emplace_back("hostaddr", JoinDsnValues(addrs));
-    if (!ports.empty()) values.emplace_back("port", JoinDsnValues(ports));
+    if (!ports.empty()) {
+        values.emplace_back("port", JoinDsnValues(ports));
+    }
 
     return MakeDsn(values);
 }

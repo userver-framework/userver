@@ -80,9 +80,8 @@ protected:
 
         driver_ = std::make_shared<ydb::impl::Driver>(database, driver_settings);
 
-        table_client_ = std::make_shared<ydb::TableClient>(
-            table_settings, query_params, dynamic_config::GetDefaultSource(), driver_
-        );
+        table_client_ = std::make_shared<
+            ydb::TableClient>(table_settings, query_params, dynamic_config::GetDefaultSource(), driver_);
 
         topic_client_ = std::make_shared<ydb::TopicClient>(driver_, ydb::impl::TopicSettings{});
 

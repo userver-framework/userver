@@ -18,7 +18,9 @@ void AppendArrayFilters(formats::bson::impl::BsonBuilder& builder, const options
 
 }  // namespace
 
-InsertOne::InsertOne(formats::bson::Document document) : impl_(std::move(document)) {}
+InsertOne::InsertOne(formats::bson::Document document)
+    : impl_(std::move(document))
+{}
 
 InsertOne::~InsertOne() = default;
 
@@ -28,7 +30,8 @@ InsertOne& InsertOne::operator=(const InsertOne&) = default;
 InsertOne& InsertOne::operator=(InsertOne&&) noexcept = default;
 
 ReplaceOne::ReplaceOne(formats::bson::Document selector, formats::bson::Document replacement)
-    : impl_(std::move(selector), std::move(replacement)) {}
+    : impl_(std::move(selector), std::move(replacement))
+{}
 
 ReplaceOne::~ReplaceOne() = default;
 
@@ -40,7 +43,8 @@ ReplaceOne& ReplaceOne::operator=(ReplaceOne&&) noexcept = default;
 void ReplaceOne::SetOption(options::Upsert) { impl::AppendUpsert(impl::EnsureBuilder(impl_->options)); }
 
 Update::Update(Mode mode, formats::bson::Document selector, formats::bson::Document update)
-    : impl_(mode, std::move(selector), std::move(update)) {}
+    : impl_(mode, std::move(selector), std::move(update))
+{}
 
 Update::~Update() = default;
 
@@ -57,7 +61,9 @@ void Update::SetOption(const options::ArrayFilters& filters) {
 
 void Update::SetOption(const options::Hint& hint) { impl::AppendHint(impl::EnsureBuilder(impl_->options), hint); }
 
-Delete::Delete(Mode mode, formats::bson::Document selector) : impl_(mode, std::move(selector)) {}
+Delete::Delete(Mode mode, formats::bson::Document selector)
+    : impl_(mode, std::move(selector))
+{}
 
 Delete::~Delete() = default;
 

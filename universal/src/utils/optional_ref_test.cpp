@@ -13,6 +13,8 @@ bool TestImplicitConversion(utils::OptionalRef<TestImplicit>) { return true; }
 TEST(OptionalRef, Constructions) {
     using utils::OptionalRef;
 
+    static_assert(std::is_same_v<typename OptionalRef<int>::value_type, int>);
+
     static_assert(std::is_constructible_v<OptionalRef<int>, int&>);
     static_assert(std::is_constructible_v<OptionalRef<const int>, int&>);
     static_assert(std::is_constructible_v<OptionalRef<const int>, const int&>);
@@ -150,12 +152,36 @@ TEST(OptionalRef, Methods) {
     EXPECT_TRUE(a1.has_value());
 
     EXPECT_EQ(*a1, a1_val);
+    EXPECT_EQ(a1.value_or(a1_val + 1), a1_val);
     EXPECT_EQ(a1.value(), a1_val);
 
     const utils::OptionalRef<int> def;
     EXPECT_FALSE(def);
     EXPECT_FALSE(def.has_value());
+    EXPECT_EQ(def.value_or(1), 1);
     EXPECT_THROW(def.value(), std::bad_optional_access);
+}
+
+TEST(OptionalRef, ValueOr) {
+    struct TestMove {
+        enum ObjectOrigin : std::uint8_t { kConstructed, kCopyConstructed, kMoveConstructed };
+        ObjectOrigin origin{kConstructed};
+        TestMove() = default;
+        TestMove(const TestMove&)
+            : origin(kCopyConstructed)
+        {}
+        TestMove(TestMove&&) noexcept
+            : origin(kMoveConstructed)
+        {}
+        TestMove& operator=(const TestMove&) = delete;
+        TestMove& operator=(TestMove&&) = delete;
+    };
+
+    const utils::OptionalRef<TestMove> opt;
+    EXPECT_FALSE(opt.has_value());
+    const TestMove default_value = opt.value_or(TestMove{});
+    EXPECT_EQ(default_value.origin, TestMove::kMoveConstructed);
+    EXPECT_FALSE(opt.has_value());
 }
 
 TEST(OptionalRef, ArrowOperator) {

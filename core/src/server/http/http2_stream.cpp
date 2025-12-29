@@ -32,7 +32,9 @@ Stream::Stream(
     engine::io::Sockaddr remote_address,
     Id id
 )
-    : constructor_(config, handler_info_index, data_accounter, remote_address), id_(id) {
+    : constructor_(config, handler_info_index, data_accounter, remote_address),
+      id_(id)
+{
     constructor_.SetHttpMajor(2);
     constructor_.SetHttpMinor(0);
     nghttp2_provider_.read_callback = NgHttp2ReadCallback;
@@ -54,7 +56,9 @@ bool Stream::IsStreaming() const { return is_streaming_; }
 void Stream::SetStreaming(bool streaming) { is_streaming_ = streaming; }
 
 bool Stream::CheckUrlComplete() {
-    if (url_complete_) return true;
+    if (url_complete_) {
+        return true;
+    }
     try {
         constructor_.ParseUrl();
     } catch (const std::exception& e) {
@@ -66,7 +70,9 @@ bool Stream::CheckUrlComplete() {
 }
 
 void Stream::PushChunk(std::string&& chunk) {
-    if (chunk.empty()) return;
+    if (chunk.empty()) {
+        return;
+    }
     chunks_.push_back(std::move(chunk));
 }
 
@@ -76,8 +82,8 @@ ssize_t Stream::GetMaxSize(std::size_t max_len, std::uint32_t* flags) {
         *flags |= NGHTTP2_DATA_FLAG_EOF;
         return 0;
     }
-    const std::size_t total =
-        std::accumulate(chunks_.begin(), chunks_.end(), std::size_t{0}, [](std::size_t size, const auto& str) {
+    const std::size_t
+        total = std::accumulate(chunks_.begin(), chunks_.end(), std::size_t{0}, [](std::size_t size, const auto& str) {
             return size + str.size();
         });
     if (total == 0 && stream.is_streaming_ && !stream.is_end_) {
@@ -121,8 +127,8 @@ void Stream::Send(engine::io::Socket& socket, std::string_view data_frame_header
     }
     UASSERT(!parts.empty());
     [[maybe_unused]] const auto res = socket.SendAll(parts.data(), parts.size(), {});
-    const auto send_parts_count =
-        pos_in_first_chunk_ == 0 ? parts.size() - 1 : parts.size() - 2;  // data_frame_header doesn't matter
+    const auto send_parts_count = pos_in_first_chunk_ == 0 ? parts.size() - 1 : parts.size() - 2;  // data_frame_header
+                                                                                                   // doesn't matter
     chunks_.erase(chunks_.begin(), chunks_.begin() + send_parts_count);
 }
 

@@ -53,8 +53,10 @@ class HttpMiddlewareFactoryBase : public components::ComponentBase {
 public:
     HttpMiddlewareFactoryBase(const components::ComponentConfig&, const components::ComponentContext&);
 
-    std::unique_ptr<HttpMiddlewareBase>
-    CreateChecked(const handlers::HttpHandlerBase& handler, yaml_config::YamlConfig middleware_config) const;
+    std::unique_ptr<HttpMiddlewareBase> CreateChecked(
+        const handlers::HttpHandlerBase& handler,
+        yaml_config::YamlConfig middleware_config
+    ) const;
 
 protected:
     /// @brief This method should return the schema of a middleware configuration,
@@ -62,8 +64,10 @@ protected:
     virtual yaml_config::Schema GetMiddlewareConfigSchema() const { return yaml_config::Schema::EmptyObject(); }
 
     /// @brief Override this method to create an instance of a middleware
-    virtual std::unique_ptr<HttpMiddlewareBase>
-    Create(const handlers::HttpHandlerBase&, yaml_config::YamlConfig middleware_config) const = 0;
+    virtual std::unique_ptr<HttpMiddlewareBase> Create(
+        const handlers::HttpHandlerBase&,
+        yaml_config::YamlConfig middleware_config
+    ) const = 0;
 };
 
 /// @ingroup userver_middlewares
@@ -90,7 +94,7 @@ template <typename Middleware>
 inline constexpr bool components::kHasValidate<server::middlewares::SimpleHttpMiddlewareFactory<Middleware>> = true;
 
 template <typename Middleware>
-inline constexpr auto components::kConfigFileMode<server::middlewares::SimpleHttpMiddlewareFactory<Middleware>> =
-    ConfigFileMode::kNotRequired;
+inline constexpr auto components::kConfigFileMode<
+    server::middlewares::SimpleHttpMiddlewareFactory<Middleware>> = ConfigFileMode::kNotRequired;
 
 USERVER_NAMESPACE_END

@@ -8,7 +8,9 @@ USERVER_NAMESPACE_BEGIN
 namespace engine::ev {
 
 IoWatcher::IoWatcher(ThreadControl& thread_control)
-    : watcher_read_(thread_control, this), watcher_write_(thread_control, this) {}
+    : watcher_read_(thread_control, this),
+      watcher_write_(thread_control, this)
+{}
 
 IoWatcher::~IoWatcher() {
     Cancel();
@@ -32,7 +34,9 @@ void IoWatcher::ReadAsync(Callback cb) {
         const std::lock_guard<std::mutex> lock(mutex_);
         swap(cb, cb_read_);
     }
-    if (cb) throw std::logic_error("Called ReadAsync() while another read wait is already pending");
+    if (cb) {
+        throw std::logic_error("Called ReadAsync() while another read wait is already pending");
+    }
 
     watcher_read_.Init(&IoWatcher::OnEventRead, fd_, EV_READ);
     watcher_read_.StartAsync();
@@ -43,7 +47,9 @@ void IoWatcher::WriteAsync(Callback cb) {
         const std::lock_guard<std::mutex> lock(mutex_);
         swap(cb, cb_write_);
     }
-    if (cb) throw std::logic_error("Called WriteAsync() while another write wait is already pending");
+    if (cb) {
+        throw std::logic_error("Called WriteAsync() while another write wait is already pending");
+    }
 
     watcher_write_.Init(&IoWatcher::OnEventWrite, fd_, EV_WRITE);
     watcher_write_.StartAsync();
@@ -120,7 +126,9 @@ void IoWatcher::CancelSingle(Watcher<ev_io>& watcher, Callback& cb) {
 void IoWatcher::CloseFd() {
     if (fd_ != -1) {
         const int rc = close(fd_);
-        if (rc) LOG_ERROR() << "close(2) failed: " << std::error_code(errno, std::generic_category());
+        if (rc) {
+            LOG_ERROR() << "close(2) failed: " << std::error_code(errno, std::generic_category());
+        }
         fd_ = -1;
     }
 }

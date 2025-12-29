@@ -51,14 +51,23 @@ public:
 
     DefaultDict() = default;
 
-    DefaultDict(init_list contents) : dict_(contents.begin(), contents.end()) {}
+    DefaultDict(init_list contents)
+        : dict_(contents.begin(), contents.end())
+    {}
 
-    DefaultDict(DictType dict) : dict_(std::move(dict)) {}
+    DefaultDict(DictType dict)
+        : dict_(std::move(dict))
+    {}
 
     DefaultDict(std::string name, init_list contents)
-        : name_(std::move(name)), dict_(contents.begin(), contents.end()) {}
+        : name_(std::move(name)),
+          dict_(contents.begin(), contents.end())
+    {}
 
-    DefaultDict(std::string name, DictType dict) : name_(std::move(name)), dict_(std::move(dict)) {}
+    DefaultDict(std::string name, DictType dict)
+        : name_(std::move(name)),
+          dict_(std::move(dict))
+    {}
 
     /// Returns true if *this has a utils::kDefaultDictDefaultName key,
     /// otherwise returns false.
@@ -117,7 +126,9 @@ public:
         auto it = utils::impl::FindTransparent(dict_, key);
         if (it == dict_.end()) {
             it = utils::impl::FindTransparent(dict_, kDefaultDictDefaultName);
-            if (it == dict_.end()) return std::nullopt;
+            if (it == dict_.end()) {
+                return std::nullopt;
+            }
         }
 
         return it->second;

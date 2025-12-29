@@ -22,16 +22,19 @@ AND created > $created_key;
     ydb::Query::Name("select"),
 };
 
-formats::json::Value SelectRowsHandler::
-    HandleRequestJsonThrow(const server::http::HttpRequest&, const formats::json::Value& request_json, server::request::RequestContext&)
-        const {
+formats::json::
+    Value
+    SelectRowsHandler::
+        HandleRequestJsonThrow(const server::http::HttpRequest&, const formats::json::Value& request_json, server::request::RequestContext&)
+            const {
     const ydb::OperationSettings query_params = {
         3,                                // retries
         std::chrono::milliseconds(1000),  // operation_timeout
         std::chrono::milliseconds(1000),  // cancel_after
         std::chrono::milliseconds(1100),  // client_timeout
         ydb::TransactionMode::kStaleRO,
-        std::chrono::milliseconds(4999)};
+        std::chrono::milliseconds(4999)
+    };
 
     auto response = Ydb().ExecuteDataQuery(
         query_params,

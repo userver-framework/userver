@@ -77,7 +77,9 @@ UTEST(RequestsMultipleContentTypes, MultipartFormData) {
     auto request = http_client_ptr->CreateRequest();
 
     client::SerializeRequest(
-        {client::RequestBodyMultipartFormData{"filename", "file\ncontent"}}, http_server.GetBaseUrl(), request
+        {client::RequestBodyMultipartFormData{"filename", "file\ncontent"}},
+        http_server.GetBaseUrl(),
+        request
     );
 
     auto response = request.perform();

@@ -138,18 +138,21 @@ struct AnyMovable::Holder final : public HolderBase {
         return std::unique_ptr<HolderBase, HolderDeleter>{
             // intended raw ctor call, sometimes casts
             // NOLINTNEXTLINE(google-readability-casting)
-            new Holder{{&Deleter}, ValueType(std::forward<Args>(args)...)}};
+            new Holder{{&Deleter}, ValueType(std::forward<Args>(args)...)}
+        };
     }
 
     static ValueType* GetIf(const AnyMovable* any) noexcept {
-        return (any && any->content_ && any->content_->deleter == &Deleter) ? &static_cast<Holder&>(*any->content_).held
-                                                                            : nullptr;
+        return (any && any->content_ && any->content_->deleter == &Deleter)
+                   ? &static_cast<Holder&>(*any->content_).held
+                   : nullptr;
     }
 };
 
 template <typename ValueType, typename>
 AnyMovable::AnyMovable(ValueType&& value)
-    : content_(Holder<std::decay_t<ValueType>>::Make(std::forward<ValueType>(value))) {
+    : content_(Holder<std::decay_t<ValueType>>::Make(std::forward<ValueType>(value)))
+{
     static_assert(
         !std::is_same_v<AnyMovable*, std::decay_t<ValueType>> &&
             !std::is_same_v<const AnyMovable*, std::decay_t<ValueType>>,
@@ -160,11 +163,13 @@ AnyMovable::AnyMovable(ValueType&& value)
 
 template <typename ValueType, typename... Args>
 AnyMovable::AnyMovable(std::in_place_type_t<ValueType> /*tag*/, Args&&... args)
-    : content_(Holder<ValueType>::Make(std::forward<Args>(args)...)) {}
+    : content_(Holder<ValueType>::Make(std::forward<Args>(args)...))
+{}
 
 template <typename ValueType, typename Item, typename... Args>
 AnyMovable::AnyMovable(std::in_place_type_t<ValueType> /*tag*/, std::initializer_list<Item> list, Args&&... args)
-    : content_(Holder<ValueType>::Make(list, std::forward<Args>(args)...)) {}
+    : content_(Holder<ValueType>::Make(list, std::forward<Args>(args)...))
+{}
 
 template <typename ValueType>
 AnyMovable& AnyMovable::operator=(ValueType&& rhs) {
@@ -200,7 +205,9 @@ template <typename ValueType>
 ValueType AnyCast(AnyMovable& operand) {
     using NonRef = std::remove_cv_t<std::remove_reference_t<ValueType>>;
     auto* result = AnyCast<NonRef>(&operand);
-    if (!result) throw BadAnyMovableCast();
+    if (!result) {
+        throw BadAnyMovableCast();
+    }
     return static_cast<ValueType>(*result);
 }
 
@@ -210,7 +217,9 @@ template <typename ValueType>
 ValueType AnyCast(const AnyMovable& operand) {
     using NonRef = std::remove_cv_t<std::remove_reference_t<ValueType>>;
     auto* result = AnyCast<NonRef>(&operand);
-    if (!result) throw BadAnyMovableCast();
+    if (!result) {
+        throw BadAnyMovableCast();
+    }
     return static_cast<ValueType>(*result);
 }
 
@@ -218,7 +227,9 @@ template <typename ValueType>
 ValueType AnyCast(AnyMovable&& operand) {
     using NonRef = std::remove_cv_t<std::remove_reference_t<ValueType>>;
     auto* result = AnyCast<NonRef>(&operand);
-    if (!result) throw BadAnyMovableCast();
+    if (!result) {
+        throw BadAnyMovableCast();
+    }
     return static_cast<ValueType>(std::move(*result));
 }
 

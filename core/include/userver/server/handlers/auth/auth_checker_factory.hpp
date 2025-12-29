@@ -30,8 +30,10 @@ using AuthCheckerFactoryFactory = utils::UniqueRef<AuthCheckerFactoryBase> (*)(c
 
 void DoRegisterAuthCheckerFactory(std::string_view auth_type, AuthCheckerFactoryFactory factory);
 
-utils::UniqueRef<AuthCheckerFactoryBase>
-MakeAuthCheckerFactory(std::string_view auth_type, const components::ComponentContext& context);
+utils::UniqueRef<AuthCheckerFactoryBase> MakeAuthCheckerFactory(
+    std::string_view auth_type,
+    const components::ComponentContext& context
+);
 
 std::vector<std::string> GetAllAuthTypes();
 

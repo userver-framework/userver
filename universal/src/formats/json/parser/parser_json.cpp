@@ -32,60 +32,84 @@ JsonValueParser::JsonValueParser() = default;
 JsonValueParser::~JsonValueParser() = default;
 
 void JsonValueParser::Null() {
-    if (!impl_->raw_value.Null()) Throw(Expected());
+    if (!impl_->raw_value.Null()) {
+        Throw(Expected());
+    }
     MaybePopSelf();
 }
 
 void JsonValueParser::Bool(bool value) {
-    if (!impl_->raw_value.Bool(value)) Throw(Expected());
+    if (!impl_->raw_value.Bool(value)) {
+        Throw(Expected());
+    }
     MaybePopSelf();
 }
 
 void JsonValueParser::Int64(int64_t value) {
-    if (!impl_->raw_value.Int64(value)) Throw(Expected());
+    if (!impl_->raw_value.Int64(value)) {
+        Throw(Expected());
+    }
     MaybePopSelf();
 }
 
 void JsonValueParser::Uint64(uint64_t value) {
-    if (!impl_->raw_value.Uint64(value)) Throw(Expected());
+    if (!impl_->raw_value.Uint64(value)) {
+        Throw(Expected());
+    }
     MaybePopSelf();
 }
 
 void JsonValueParser::Double(double value) {
-    if (!impl_->raw_value.Double(value)) Throw(Expected());
+    if (!impl_->raw_value.Double(value)) {
+        Throw(Expected());
+    }
     MaybePopSelf();
 }
 
 void JsonValueParser::String(std::string_view sw) {
-    if (!impl_->raw_value.String(sw.data(), sw.size(), true)) Throw(Expected());
+    if (!impl_->raw_value.String(sw.data(), sw.size(), true)) {
+        Throw(Expected());
+    }
     MaybePopSelf();
 }
 
 void JsonValueParser::StartObject() {
-    if (!impl_->raw_value.StartObject()) Throw(Expected());
-    if (impl_->level++ > kDepthParseLimit)
+    if (!impl_->raw_value.StartObject()) {
+        Throw(Expected());
+    }
+    if (impl_->level++ > kDepthParseLimit) {
         throw InternalParseError("Exceeded maximum allowed JSON depth of: " + std::to_string(kDepthParseLimit));
+    }
 }
 
 void JsonValueParser::Key(std::string_view key) {
-    if (!impl_->raw_value.Key(key.data(), key.size(), true)) Throw(Expected());
+    if (!impl_->raw_value.Key(key.data(), key.size(), true)) {
+        Throw(Expected());
+    }
 }
 
 void JsonValueParser::EndObject(size_t members) {
-    if (!impl_->raw_value.EndObject(members)) Throw(Expected());
+    if (!impl_->raw_value.EndObject(members)) {
+        Throw(Expected());
+    }
 
     impl_->level--;
     MaybePopSelf();
 }
 
 void JsonValueParser::StartArray() {
-    if (!impl_->raw_value.StartArray()) Throw(Expected());
-    if (impl_->level++ > kDepthParseLimit)
+    if (!impl_->raw_value.StartArray()) {
+        Throw(Expected());
+    }
+    if (impl_->level++ > kDepthParseLimit) {
         throw InternalParseError("Exceeded maximum allowed JSON depth of: " + std::to_string(kDepthParseLimit));
+    }
 }
 
 void JsonValueParser::EndArray(size_t members) {
-    if (!impl_->raw_value.EndArray(members)) Throw(Expected());
+    if (!impl_->raw_value.EndArray(members)) {
+        Throw(Expected());
+    }
 
     impl_->level--;
     MaybePopSelf();

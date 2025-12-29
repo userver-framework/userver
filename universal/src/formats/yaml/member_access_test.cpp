@@ -30,7 +30,9 @@ struct MemberAccess<formats::yaml::Value> : public ::testing::Test {
         "Value iterators are not assignable"
     );
 
-    inline MemberAccess() : doc(formats::yaml::FromString(kDoc)) {}
+    inline MemberAccess()
+        : doc(formats::yaml::FromString(kDoc))
+    {}
     formats::yaml::Value doc;
 
     using ValueBuilder = formats::yaml::ValueBuilder;

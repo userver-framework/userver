@@ -10,10 +10,14 @@ USERVER_NAMESPACE_BEGIN
 namespace dynamic_config {
 
 ConfigDefault::ConfigDefault(std::string_view name, DefaultAsJsonString default_json)
-    : name(name), default_json(default_json.json_string) {}
+    : name(name),
+      default_json(default_json.json_string)
+{}
 
 struct Snapshot::Impl final {
-    explicit Impl(const impl::StorageData& storage) : data_ptr(storage.Read()) {}
+    explicit Impl(const impl::StorageData& storage)
+        : data_ptr(storage.Read())
+    {}
 
     rcu::ReadablePtr<impl::SnapshotData> data_ptr;
 };
@@ -28,7 +32,9 @@ Snapshot& Snapshot::operator=(Snapshot&&) noexcept = default;
 
 Snapshot::~Snapshot() = default;
 
-Snapshot::Snapshot(const impl::StorageData& storage) : impl_(storage) {}
+Snapshot::Snapshot(const impl::StorageData& storage)
+    : impl_(storage)
+{}
 
 const impl::SnapshotData& Snapshot::GetData() const { return *impl_->data_ptr; }
 

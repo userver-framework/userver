@@ -53,9 +53,9 @@ def test_response(translate_single_schema):
                                 validators=cpp_types.CppPrimitiveValidator(),
                             ),
                         },
-                    )
+                    ),
                 ],
-            )
+            ),
         ],
     )
 
@@ -71,9 +71,9 @@ def test_response_ref(translate_single_schema):
                         '200': {
                             '$ref': '#/components/responses/Response200',
                         },
-                    }
-                }
-            }
+                    },
+                },
+            },
         },
         'components': {
             'responses': {
@@ -115,8 +115,8 @@ def test_response_ref(translate_single_schema):
                                 validators=cpp_types.CppPrimitiveValidator(),
                             ),
                         },
-                    )
+                    ),
                 ],
-            )
+            ),
         ],
     )

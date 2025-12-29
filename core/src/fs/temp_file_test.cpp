@@ -24,7 +24,9 @@ UTEST_F(FsTempFileWithLog, TempFileDestructorWithException) {
         {
             // Create temp file in temporaty directory
             const auto file = fs::TempFile::Create(
-                parent_dir, "TempFileDestructorWithException", engine::current_task::GetTaskProcessor()
+                parent_dir,
+                "TempFileDestructorWithException",
+                engine::current_task::GetTaskProcessor()
             );
 
             const auto dir_status = boost::filesystem::status(parent_dir);

@@ -25,38 +25,18 @@ namespace impl {
 class Driver;
 }  // namespace impl
 
-// clang-format off
-
 /// @ingroup userver_components
 ///
 /// @brief YDB client component
 ///
-/// Provides access to ydb::TableClient, ydb::TopicClient, ydb::FederatedTopicClient, ydb::CoordinationClient.
+/// Provides access to @ref ydb::TableClient, @ref ydb::TopicClient, @ref ydb::FederatedTopicClient,
+/// @ref ydb::CoordinationClient.
 ///
-/// ## Static options:
-/// Name | Description | Default value
-/// ---- | ----------- | -------------
-/// `credentials-provider` | name of credentials provider component | -
-/// `operation-settings.retries` | default retries count for an operation | 3
-/// `operation-settings.operation-timeout` | default operation timeout in utils::StringToDuration() format | 1s
-/// `operation-settings.cancel-after` | cancel operation after specified string in utils::StringToDuration() format | 1s
-/// `operation-settings.client-timeout` | default client timeout in utils::StringToDuration() format | 1s
-/// `operation-settings.get-session-timeout` | default session timeout in milliseconds | 5s
-/// `databases.<dbname>.endpoint` | gRPC endpoint URL, e.g. grpc://localhost:1234 | -
-/// `databases.<dbname>.database` | full database path, e.g. /ru/service/production/database | -
-/// `databases.<dbname>.credentials` | credentials config passed to credentials provider component | -
-/// `databases.<dbname>.min_pool_size` | minimum pool size for database with name `<dbname>` | 10
-/// `databases.<dbname>.max_pool_size` | maximum pool size for database with name `<dbname>` | 50
-/// `databases.<dbname>.get_session_retry_limit` | retries count to get session, every attempt with a get-session-timeout | 5
-/// `databases.<dbname>.keep-in-query-cache` | whether to use query cache | true
-/// `databases.<dbname>.prefer_local_dc` | prefer making requests to local DataCenter | false
-/// `databases.<dbname>.aliases` | list of alias names for this database | []
-/// `databases.<dbname>.sync_start` | fail on boot time if YDB is not accessible | true
-/// `databases.<dbname>.by-database-timings-buckets-ms` | histogram bounds for by-database timing metrics | 40 buckets with +20% increment per step
-/// `databases.<dbname>.by-query-timings-buckets-ms` | histogram bounds for by-query timing metrics | 15 buckets with +100% increment per step
-
-// clang-format on
-
+/// ## Static options of ydb::YdbComponent :
+/// @include{doc} scripts/docs/en/components_schema/ydb/src/ydb/component.md
+///
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
 class YdbComponent final : public components::ComponentBase {
 public:
     /// @ingroup userver_component_names

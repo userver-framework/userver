@@ -10,7 +10,8 @@ USERVER_NAMESPACE_BEGIN
 namespace testsuite::impl::actions {
 
 LogFlush::LogFlush(const components::ComponentContext& component_context)
-    : logging_component_(component_context.FindComponent<components::Logging>()) {}
+    : logging_component_(component_context.FindComponent<components::Logging>())
+{}
 
 formats::json::Value LogFlush::Perform(const formats::json::Value& request_body) const {
     const auto logger_name = request_body["logger_name"].As<std::string>("default");

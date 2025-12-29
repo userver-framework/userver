@@ -15,7 +15,8 @@ public:
           ),
           secondary_task_processor_(
               engine::impl::TaskProcessorHolder::Make(1, "secondary", engine::TaskQueueType::kGlobalTaskQueue, pools_)
-          ) {}
+          )
+    {}
 
     auto& GetMain() { return *main_task_processor_; }
     auto& GetSecondary() { return *secondary_task_processor_; }

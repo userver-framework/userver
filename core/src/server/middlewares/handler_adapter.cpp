@@ -31,7 +31,6 @@ constexpr utils::StringLiteral kTracingTypeRequest = "request";
 constexpr utils::StringLiteral kTracingBody = "body";
 constexpr utils::StringLiteral kTracingUri = "uri";
 
-constexpr utils::StringLiteral kUserAgentTag = "useragent";
 constexpr utils::StringLiteral kAcceptLanguageTag = "acceptlang";
 
 std::string GetHeadersLogString(
@@ -39,52 +38,41 @@ std::string GetHeadersLogString(
     const handlers::HeadersWhitelist& headers_whitelist,
     size_t response_data_size_log_limit
 ) {
+    constexpr std::string_view kTruncateSuffix = "...(truncated, total {} bytes)";
+    constexpr size_t kMaxTruncateSuffixSize = kTruncateSuffix.size() + std::numeric_limits<size_t>::digits10;
+
     // Sort to prevent flaky headers reordering, appearing and disappearing for different requests.
     using HeaderRef = utils::NotNull<const http::HttpRequest::HeadersMap::const_iterator::value_type*>;
-    boost::container::small_vector<HeaderRef, 32> sorted_headers;
+    using IsValueHidden = bool;
+
+    boost::container::small_vector<std::pair<HeaderRef, IsValueHidden>, 32> sorted_headers;
     sorted_headers.reserve(request.GetHeaders().size());
+    size_t max_result_size = 0;
+
     for (const auto& header : request.GetHeaders()) {
-        sorted_headers.emplace_back(header);
+        max_result_size += header.first.size() + header.second.size() + 3;
+        sorted_headers.emplace_back(header, headers_whitelist.find(header.first) == headers_whitelist.end());
     }
-    std::sort(sorted_headers.begin(), sorted_headers.end(), [](HeaderRef lhs, HeaderRef rhs) {
-        return lhs->first < rhs->first;
+    std::sort(sorted_headers.begin(), sorted_headers.end(), [](const auto& lhs, const auto& rhs) {
+        return std::tie(lhs.second, *lhs.first) < std::tie(rhs.second, *rhs.first);
     });
 
-    formats::json::StringBuilder sb{};
-    {
-        const formats::json::StringBuilder::ObjectGuard guard{sb};
-        bool some_headers_did_not_fit = false;
+    std::string result;
+    result.reserve(std::min(max_result_size, response_data_size_log_limit + kMaxTruncateSuffixSize));
 
-        auto write_header = [&](std::string_view header_name, std::string_view header_value) {
-            if (sb.GetStringView().size() + header_name.size() + header_value.size() <= response_data_size_log_limit) {
-                sb.Key(header_name);
-                sb.WriteString(header_value);
-            } else {
-                some_headers_did_not_fit = true;
-            }
-        };
-
-        // First, output the visible headers
-        for (const auto header_ref : sorted_headers) {
-            const auto& [header_name, header_value] = *header_ref;
-            if (headers_whitelist.find(header_name) != headers_whitelist.end()) {
-                write_header(header_name, header_value);
-            }
+    for (const auto& [header_ref, header_hide] : sorted_headers) {
+        const auto& [header_name, header_value] = *header_ref;
+        const auto& header_log_value = header_hide ? "***" : header_value;
+        if (result.size() + header_name.size() + header_log_value.size() + 3 > response_data_size_log_limit) {
+            result += fmt::format(kTruncateSuffix, max_result_size);
+            break;
         }
-
-        for (const auto header_ref : sorted_headers) {
-            const auto& [header_name, header_value] = *header_ref;
-            if (headers_whitelist.find(header_name) == headers_whitelist.end()) {
-                write_header(header_name, "***");
-            }
-        }
-
-        if (some_headers_did_not_fit) {
-            sb.Key("HEADERS-DID-NOT-FIT-IN-SIZE-LIMIT");
-            sb.WriteBool(true);
+        for (auto header_part : std::array<std::string_view, 4>{header_name, ": ", header_log_value, "\n"}) {
+            result += header_part;
         }
     }
-    return sb.GetString();
+
+    return result;
 }
 
 logging::LogExtra GetHeadersLogExtra(
@@ -97,7 +85,8 @@ logging::LogExtra GetHeadersLogExtra(
 
     if (need_log_request_headers) {
         headers_log_extra.Extend(
-            "request_headers", GetHeadersLogString(http_request, headers_whitelist, request_headers_size_log_limit)
+            "request_headers",
+            GetHeadersLogString(http_request, headers_whitelist, request_headers_size_log_limit)
         );
     }
 
@@ -108,7 +97,7 @@ logging::LogExtra GetHeadersLogExtra(
 
     const auto& user_agent = http_request.GetHeader(USERVER_NAMESPACE::http::headers::kUserAgent);
     if (!user_agent.empty()) {
-        headers_log_extra.Extend(std::string{kUserAgentTag}, user_agent);
+        headers_log_extra.Extend(std::string{tracing::kUserAgent}, user_agent);
     }
     const auto& accept_language = http_request.GetHeader(USERVER_NAMESPACE::http::headers::kAcceptLanguage);
     if (!accept_language.empty()) {
@@ -120,7 +109,9 @@ logging::LogExtra GetHeadersLogExtra(
 
 }  // namespace
 
-HandlerAdapter::HandlerAdapter(const handlers::HttpHandlerBase& handler) : handler_{handler} {}
+HandlerAdapter::HandlerAdapter(const handlers::HttpHandlerBase& handler)
+    : handler_{handler}
+{}
 
 void HandlerAdapter::HandleRequest(http::HttpRequest& request, request::RequestContext& context) const {
     {
@@ -150,8 +141,8 @@ void HandlerAdapter::LogRequest(const http::HttpRequest& request, request::Reque
 
         const auto& header_whitelist = config_snapshot[::dynamic_config::USERVER_LOG_REQUEST_HEADERS_WHITELIST];
 
-        const std::string_view meta_type =
-            misc::CutTrailingSlash(request.GetRequestPath(), handler_.GetConfig().url_trailing_slash);
+        const std::string_view
+            meta_type = misc::CutTrailingSlash(request.GetRequestPath(), handler_.GetConfig().url_trailing_slash);
 
         logging::LogExtra log_extra{
             {tracing::kHttpMetaType, meta_type},
@@ -162,7 +153,10 @@ void HandlerAdapter::LogRequest(const http::HttpRequest& request, request::Reque
             {tracing::kHttpMethod, request.GetMethodStr()},
         };
         log_extra.Extend(GetHeadersLogExtra(
-            need_log_request_headers, request, header_whitelist, handler_.GetConfig().request_headers_size_log_limit
+            need_log_request_headers,
+            request,
+            header_whitelist,
+            handler_.GetConfig().request_headers_size_log_limit
         ));
 
         LOG_INFO("start handling {} {}", request.GetMethodStr(), meta_type) << log_extra;

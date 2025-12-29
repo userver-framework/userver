@@ -34,7 +34,9 @@ const ApiKeysSet& GetApiKeysByType(const AuthCheckerSettings& settings, const st
 
 bool IsApiKeyAllowed(const std::string& api_key, const ApiKeysSet& allowed_keys) {
     for (const auto& allowed_key : allowed_keys) {
-        if (crypto::algorithm::AreStringsEqualConstTime(api_key, allowed_key)) return true;
+        if (crypto::algorithm::AreStringsEqualConstTime(api_key, allowed_key)) {
+            return true;
+        }
     }
     return false;
 }
@@ -46,7 +48,9 @@ AuthCheckerApiKey::AuthCheckerApiKey(const HandlerAuthConfig& auth_config, const
     const auto apikey_type = auth_config[kApiKeyType].As<std::optional<std::string>>();
     if (apikey_type) {
         const auto& keys_set = GetApiKeysByType(settings, *apikey_type);
-        for (auto method : http::kHandlerMethods) keys_by_method_[static_cast<int>(method)] = &keys_set;
+        for (auto method : http::kHandlerMethods) {
+            keys_by_method_[static_cast<int>(method)] = &keys_set;
+        }
     }
     const auto apikey_type_by_method = auth_config[kApiKeyTypeByMethod].As<std::optional<ApiKeyTypeByMethodSettings>>();
     if (apikey_type_by_method) {
@@ -68,15 +72,19 @@ AuthCheckerApiKey::AuthCheckerApiKey(const HandlerAuthConfig& auth_config, const
         return AuthCheckResult{
             AuthCheckResult::Status::kOk,
             fmt::format(
-                "apikey_type is not set for '{}' '{}' requests", request.GetMethodStr(), request.GetRequestPath()
-            )};
+                "apikey_type is not set for '{}' '{}' requests",
+                request.GetMethodStr(),
+                request.GetRequestPath()
+            )
+        };
     }
 
     const auto& request_apikey = request.GetHeader(USERVER_NAMESPACE::http::headers::kApiKey);
     if (request_apikey.empty()) {
         return AuthCheckResult{
             AuthCheckResult::Status::kTokenNotFound,
-            "missing or empty " + std::string(USERVER_NAMESPACE::http::headers::kApiKey) + " header"};
+            "missing or empty " + std::string(USERVER_NAMESPACE::http::headers::kApiKey) + " header"
+        };
     }
 
     if (IsApiKeyAllowed(request_apikey, *allowed_keys)) {
@@ -86,13 +94,15 @@ AuthCheckerApiKey::AuthCheckerApiKey(const HandlerAuthConfig& auth_config, const
 
     return AuthCheckResult{
         AuthCheckResult::Status::kForbidden,
-        "no valid apikey found in " + std::string(USERVER_NAMESPACE::http::headers::kApiKey) + " header"};
+        "no valid apikey found in " + std::string(USERVER_NAMESPACE::http::headers::kApiKey) + " header"
+    };
 }
 
 const ApiKeysSet* AuthCheckerApiKey::GetApiKeysForRequest(const http::HttpRequest& request) const {
     auto method_idx = static_cast<size_t>(request.GetMethod());
-    if (method_idx >= keys_by_method_.size())
+    if (method_idx >= keys_by_method_.size()) {
         throw std::runtime_error("method " + request.GetMethodStr() + " is not supported in AuthCheckerApiKey");
+    }
     return keys_by_method_[method_idx];
 }
 

@@ -1,9 +1,12 @@
 # Functions for running testsuite tests.
 #
-# Provides: - USERVER_FEATURE_TESTSUITE option - userver_testsuite_requirements function that returns a list of
-# requirements files needed to run userver testsuite - userver_testsuite_add function that registers a directory with
-# testsuite tests in ctest. Note that userver testsuite requires some arguments, they should be passed manually using
-# PYTEST_ARGS - userver_testsuite_add_simple that automatically detects and fills in some PYTEST_ARGS
+# Provides:
+#
+# * USERVER_FEATURE_TESTSUITE option
+# * userver_testsuite_requirements function that returns a list of requirements files needed to run userver testsuite
+# * userver_testsuite_add function that registers a directory with testsuite tests in ctest. Note that userver testsuite
+#   requires some arguments, they should be passed manually using PYTEST_ARGS
+# * userver_testsuite_add_simple that automatically detects and fills in some PYTEST_ARGS
 #
 # Implementation note: public functions here should be usable even without a direct include of this script, so the
 # functions should not rely on non-cache variables being present.
@@ -264,9 +267,13 @@ function(userver_testsuite_add)
 endfunction()
 
 # Tries to search service files in some standard places. Should be invoked from the service's CMakeLists.txt Supports
-# the following file structure (and a few others): - configs/config.yaml - configs/config_vars.[testsuite|tests].yaml
-# [optional] - configs/dynamic_config_fallback.json [optional] - configs/[secdist|secure_data].json [optional] -
-# [testsuite|tests]/conftest.py
+# the following file structure (and a few others):
+#
+# * configs/config.yaml
+# * configs/config_vars.[testsuite|tests].yaml [optional]
+# * configs/dynamic_config_fallback.json [optional]
+# * configs/[secdist|secure_data].json [optional]
+# * [testsuite|tests]/conftest.py
 function(userver_testsuite_add_simple)
     set(oneValueArgs
         SERVICE_TARGET
@@ -417,31 +424,19 @@ function(userver_testsuite_add_simple)
     endif()
 
     userver_testsuite_add(
-        SERVICE_TARGET
-        "${ARG_SERVICE_TARGET}"
-        TEST_SUFFIX
-        "${ARG_TEST_SUFFIX}"
-        WORKING_DIRECTORY
-        "${ARG_WORKING_DIRECTORY}"
-        PYTHON_BINARY
-        "${ARG_PYTHON_BINARY}"
-        PRETTY_LOGS
-        "${ARG_PRETTY_LOGS}"
+        SERVICE_TARGET "${ARG_SERVICE_TARGET}"
+        TEST_SUFFIX "${ARG_TEST_SUFFIX}"
+        WORKING_DIRECTORY "${ARG_WORKING_DIRECTORY}"
+        PYTHON_BINARY "${ARG_PYTHON_BINARY}"
+        PRETTY_LOGS "${ARG_PRETTY_LOGS}"
         PYTEST_ARGS
-        "--service-config=${config_path}"
-        "--service-source-dir=${CMAKE_CURRENT_SOURCE_DIR}"
-        "--service-binary=${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}"
-        "${DUMP_CONFIG_OPTION}"
-        ${pytest_additional_args}
-        ${ARG_PYTEST_ARGS}
-        REQUIREMENTS
-        ${ARG_REQUIREMENTS}
-        PYTHONPATH
-        ${ARG_PYTHONPATH}
-        TEST_ENV
-        ${ARG_TEST_ENV}
-        SQL_LIBRARY
-        ${ARG_SQL_LIBRARY}
+            "--service-config=${config_path}" "--service-source-dir=${CMAKE_CURRENT_SOURCE_DIR}"
+            "--service-binary=${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}" "${DUMP_CONFIG_OPTION}"
+            ${pytest_additional_args} ${ARG_PYTEST_ARGS}
+        REQUIREMENTS ${ARG_REQUIREMENTS}
+        PYTHONPATH ${ARG_PYTHONPATH}
+        TEST_ENV ${ARG_TEST_ENV}
+        SQL_LIBRARY ${ARG_SQL_LIBRARY}
     )
 endfunction()
 
@@ -497,17 +492,11 @@ function(userver_add_ubench_test)
     endif()
 
     userver_add_utest(
-        NAME
-        "${ARG_NAME}"
-        DATABASES
-        ${ARG_DATABASES}
-        TEST_ENV
-        ${ARG_TEST_ENV}
-        TEST_ARGS
-        --benchmark_min_time=${BENCHMARK_MIN_TIME}
-        --benchmark_color=no
-        DISABLE_GTEST_XML_OUTPUT
-        ON
+        NAME "${ARG_NAME}"
+        DATABASES ${ARG_DATABASES}
+        TEST_ENV ${ARG_TEST_ENV}
+        TEST_ARGS --benchmark_min_time=${BENCHMARK_MIN_TIME} --benchmark_color=no
+        DISABLE_GTEST_XML_OUTPUT ON
     )
 endfunction()
 

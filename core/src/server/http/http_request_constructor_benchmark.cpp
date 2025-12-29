@@ -11,9 +11,13 @@ void HttpRequestConstructorUrlDecode(benchmark::State& state) {
     const std::string tmp = "1";
     std::string input;
 
-    for (int64_t i = 0; i < state.range(0); i++) input += tmp;
+    for (int64_t i = 0; i < state.range(0); i++) {
+        input += tmp;
+    }
 
-    for ([[maybe_unused]] auto _ : state) benchmark::DoNotOptimize(USERVER_NAMESPACE::http::parser::UrlDecode(input));
+    for ([[maybe_unused]] auto _ : state) {
+        benchmark::DoNotOptimize(USERVER_NAMESPACE::http::parser::UrlDecode(input));
+    }
 }
 }  // namespace
 BENCHMARK(HttpRequestConstructorUrlDecode)->RangeMultiplier(2)->Range(1, 1024);

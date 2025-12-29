@@ -39,7 +39,8 @@ template <class Stub, class Request, class Response>
 class PrepareUnaryCallProxy {
 public:
     explicit PrepareUnaryCallProxy(PrepareUnaryCall<Stub, Request, Response> prepare_async_method)
-        : prepare_async_method_{prepare_async_method} {}
+        : prepare_async_method_{prepare_async_method}
+    {}
 
     template <typename... Args>
     decltype(auto) operator()(Args&&... args) const {
@@ -54,23 +55,23 @@ template <typename Stub, class Request, class Response>
 PrepareUnaryCallProxy(PrepareUnaryCall<Stub, Request, Response>) -> PrepareUnaryCallProxy<Stub, Request, Response>;
 
 using GenericPrepareUnaryCall = std::unique_ptr<grpc::ClientAsyncResponseReader<
-    grpc::
-        ByteBuffer>> (grpc::
-                          GenericStub::*)(grpc::ClientContext*, const grpc::string&, const grpc::ByteBuffer&, grpc::CompletionQueue*);
+    grpc::ByteBuffer>> (grpc::GenericStub::*)(grpc::ClientContext*, const grpc::string&, const grpc::ByteBuffer&, grpc::CompletionQueue*);
 
 template <>
 class PrepareUnaryCallProxy<grpc::GenericStub, grpc::ByteBuffer, grpc::ByteBuffer> {
 public:
     PrepareUnaryCallProxy(GenericPrepareUnaryCall prepare_async_method, grpc::string method_name)
-        : prepare_async_method_{prepare_async_method}, method_name_{std::move(method_name)} {}
+        : prepare_async_method_{prepare_async_method},
+          method_name_{std::move(method_name)}
+    {}
 
     decltype(auto) operator()(
         StubHandle& stub_handle,
-        grpc::ClientContext* context,
+        grpc::ClientContext* client_context,
         const grpc::ByteBuffer& request,
         grpc::CompletionQueue* cq
     ) const {
-        return impl::PrepareCall(prepare_async_method_, stub_handle, context, method_name_, request, cq);
+        return impl::PrepareCall(prepare_async_method_, stub_handle, client_context, method_name_, request, cq);
     }
 
 private:
@@ -79,7 +80,7 @@ private:
 };
 
 PrepareUnaryCallProxy(GenericPrepareUnaryCall, const grpc::string&)
-    ->PrepareUnaryCallProxy<grpc::GenericStub, grpc::ByteBuffer, grpc::ByteBuffer>;
+    -> PrepareUnaryCallProxy<grpc::GenericStub, grpc::ByteBuffer, grpc::ByteBuffer>;
 
 }  // namespace ugrpc::client::impl
 

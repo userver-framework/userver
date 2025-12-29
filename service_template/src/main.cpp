@@ -1,5 +1,5 @@
 #include <userver/clients/dns/component.hpp>
-#include <userver/clients/http/component.hpp>
+#include <userver/clients/http/component_list.hpp>
 #include <userver/components/component.hpp>
 #include <userver/components/component_list.hpp>
 #include <userver/components/minimal_server_component_list.hpp>
@@ -20,25 +20,26 @@
 #include <hello_postgres.hpp>  // postgresql template current
 
 int main(int argc, char* argv[]) {
-    auto component_list = userver::components::MinimalServerComponentList()
-                              .Append<userver::server::handlers::Ping>()
-                              .Append<userver::components::TestsuiteSupport>()
-                              .Append<userver::components::HttpClient>()
-                              .Append<userver::clients::dns::Component>()
-                              .Append<userver::server::handlers::TestsControl>()
-                              .Append<userver::congestion_control::Component>()
-                              .Append<service_template::Hello>()
-                              // postgresql template on
-                              .Append<userver::components::Postgres>("postgres-db-1")
-                              .Append<service_template::HelloPostgres>()
-                              // postgresql template off
-                              // mongo template on
-                              .Append<userver::components::Mongo>("mongo-db-1")
-                              .Append<service_template::HelloMongo>()
-                              // mongo template off
-                              // grpc template on
-                              .AppendComponentList(userver::ugrpc::server::MinimalComponentList())
-                              .Append<service_template::HelloGrpc>()
+    auto component_list =
+        userver::components::MinimalServerComponentList()
+            .Append<userver::server::handlers::Ping>()
+            .Append<userver::components::TestsuiteSupport>()
+            .AppendComponentList(userver::clients::http::ComponentList())
+            .Append<userver::clients::dns::Component>()
+            .Append<userver::server::handlers::TestsControl>()
+            .Append<userver::congestion_control::Component>()
+            .Append<service_template::Hello>()
+            // postgresql template on
+            .Append<userver::components::Postgres>("postgres-db-1")
+            .Append<service_template::HelloPostgres>()
+            // postgresql template off
+            // mongo template on
+            .Append<userver::components::Mongo>("mongo-db-1")
+            .Append<service_template::HelloMongo>()
+            // mongo template off
+            // grpc template on
+            .AppendComponentList(userver::ugrpc::server::MinimalComponentList())
+            .Append<service_template::HelloGrpc>()
         // grpc template off
         ;
 

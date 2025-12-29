@@ -361,7 +361,8 @@ TYPED_UTEST_MT(MpMcQueueFixture, MultiConsumerToken, kProducersCount + kConsumer
     auto producer_tasks = utils::GenerateFixedArray(kProducersCount, [&](std::size_t producer_id) {
         return engine::AsyncNoSpan([&, producer_id] {
             for (const auto message :
-                 boost::irange<Message>(kMessageCount * producer_id, kMessageCount * (producer_id + 1))) {
+                 boost::irange<Message>(kMessageCount * producer_id, kMessageCount * (producer_id + 1)))
+            {
                 ASSERT_TRUE(producer.Push(Message{message}));
             }
         });
@@ -374,7 +375,9 @@ TYPED_UTEST_MT(MpMcQueueFixture, MultiConsumerToken, kProducersCount + kConsumer
             while (consumer.Pop(message)) {
                 const auto [_, new_message] = received_messages.insert(message);
                 EXPECT_TRUE(new_message) << "Duplicate message " << message;
-                if (!new_message) break;
+                if (!new_message) {
+                    break;
+                }
             }
             return received_messages;
         });

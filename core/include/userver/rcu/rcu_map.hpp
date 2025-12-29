@@ -303,44 +303,60 @@ const typename RcuMap<K, V, RcuMapTraits>::ValuePtr RcuMap<K, V, RcuMapTraits>::
         auto txn = rcu_.StartWrite();
         auto insertion_result = txn->emplace(key, std::make_shared<V>());
         value = insertion_result.first->second;
-        if (insertion_result.second) txn.Commit();
+        if (insertion_result.second) {
+            txn.Commit();
+        }
     }
     return value;
 }
 
 template <typename K, typename V, typename RcuMapTraits>
-typename RcuMap<K, V, RcuMapTraits>::InsertReturnType
-RcuMap<K, V, RcuMapTraits>::Insert(const K& key, typename RcuMap<K, V, RcuMapTraits>::ValuePtr value) {
+typename RcuMap<K, V, RcuMapTraits>::InsertReturnType RcuMap<
+    K,
+    V,
+    RcuMapTraits>::Insert(const K& key, typename RcuMap<K, V, RcuMapTraits>::ValuePtr value) {
     InsertReturnType result{Get(key), false};
-    if (result.value) return result;
+    if (result.value) {
+        return result;
+    }
 
     return DoInsert(key, std::move(value));
 }
 
 template <typename K, typename V, typename RcuMapTraits>
 template <typename... Args>
-typename RcuMap<K, V, RcuMapTraits>::InsertReturnType
-RcuMap<K, V, RcuMapTraits>::Emplace(const K& key, Args&&... args) {
+typename RcuMap<K, V, RcuMapTraits>::InsertReturnType RcuMap<
+    K,
+    V,
+    RcuMapTraits>::Emplace(const K& key, Args&&... args) {
     InsertReturnType result{Get(key), false};
-    if (result.value) return result;
+    if (result.value) {
+        return result;
+    }
 
     return DoInsert(key, std::make_shared<V>(std::forward<Args>(args)...));
 }
 
 template <typename K, typename V, typename RcuMapTraits>
-typename RcuMap<K, V, RcuMapTraits>::InsertReturnType
-RcuMap<K, V, RcuMapTraits>::DoInsert(const K& key, typename RcuMap<K, V, RcuMapTraits>::ValuePtr value) {
+typename RcuMap<K, V, RcuMapTraits>::InsertReturnType RcuMap<
+    K,
+    V,
+    RcuMapTraits>::DoInsert(const K& key, typename RcuMap<K, V, RcuMapTraits>::ValuePtr value) {
     auto txn = rcu_.StartWrite();
     auto insertion_result = txn->emplace(key, std::move(value));
     InsertReturnType result{insertion_result.first->second, insertion_result.second};
-    if (result.inserted) txn.Commit();
+    if (result.inserted) {
+        txn.Commit();
+    }
     return result;
 }
 
 template <typename K, typename V, typename RcuMapTraits>
 template <typename... Args>
-typename RcuMap<K, V, RcuMapTraits>::InsertReturnType
-RcuMap<K, V, RcuMapTraits>::TryEmplace(const K& key, Args&&... args) {
+typename RcuMap<K, V, RcuMapTraits>::InsertReturnType RcuMap<
+    K,
+    V,
+    RcuMapTraits>::TryEmplace(const K& key, Args&&... args) {
     InsertReturnType result{Get(key), false};
     if (!result.value) {
         auto txn = rcu_.StartWrite();
@@ -370,7 +386,9 @@ template <typename K, typename V, typename RcuMapTraits>
 const typename RcuMap<K, V, RcuMapTraits>::ValuePtr RcuMap<K, V, RcuMapTraits>::Get(const K& key) {
     auto snapshot = rcu_.Read();
     auto it = snapshot->find(key);
-    if (it == snapshot->end()) return {};
+    if (it == snapshot->end()) {
+        return {};
+    }
     return it->second;
 }
 
@@ -391,7 +409,9 @@ typename RcuMap<K, V, RcuMapTraits>::ValuePtr RcuMap<K, V, RcuMapTraits>::Pop(co
     auto value = Get(key);
     if (value) {
         auto txn = rcu_.StartWrite();
-        if (txn->erase(key)) txn.Commit();
+        if (txn->erase(key)) {
+            txn.Commit();
+        }
     }
     return value;
 }
@@ -417,11 +437,14 @@ typename RcuMap<K, V, RcuMapTraits>::Snapshot RcuMap<K, V, RcuMapTraits>::GetSna
 }
 
 template <typename Key, typename Value, typename IterValue, typename RcuMapTraits>
-RcuMapIterator<Key, Value, IterValue, RcuMapTraits>::RcuMapIterator(
-    ReadablePtr<MapType, RcuTraits>&& ptr,
-    typename MapType::const_iterator iter
-)
-    : ptr_(std::move(ptr)), it_(iter) {
+RcuMapIterator<
+    Key,
+    Value,
+    IterValue,
+    RcuMapTraits>::RcuMapIterator(ReadablePtr<MapType, RcuTraits>&& ptr, typename MapType::const_iterator iter)
+    : ptr_(std::move(ptr)),
+      it_(iter)
+{
     UpdateCurrent();
 }
 

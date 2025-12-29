@@ -38,7 +38,8 @@ Standalone::Standalone(
           std::vector<DsnIndex>{0},
           DsnIndex{0},
       }),
-      dsn_stats_(GetDsnList().size()) {
+      dsn_stats_(GetDsnList().size())
+{
     UASSERT(GetDsnList().size() == 1);
 }
 

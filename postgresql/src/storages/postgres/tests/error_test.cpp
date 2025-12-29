@@ -45,7 +45,8 @@ TEST(PostgreError, SqlStateSqlStatementNotYetComplete) {
     // Class 03 — SQL Statement Not Yet Complete
     EXPECT_EQ(pg::SqlState::kSqlStatementNotYetComplete, pg::SqlStateFromString("03000"));
     EXPECT_EQ(
-        pg::SqlStateClass::kSqlStatementNotYetComplete, pg::GetSqlStateClass(pg::SqlState::kSqlStatementNotYetComplete)
+        pg::SqlStateClass::kSqlStatementNotYetComplete,
+        pg::GetSqlStateClass(pg::SqlState::kSqlStatementNotYetComplete)
     );
 }
 
@@ -69,7 +70,8 @@ TEST(PostgreError, SqlStateConnectionException) {
     );
     EXPECT_EQ(pg::SqlState::kTransactionResolutionUnknown, pg::SqlStateFromString("08007"));
     EXPECT_EQ(
-        pg::SqlStateClass::kConnectionException, pg::GetSqlStateClass(pg::SqlState::kTransactionResolutionUnknown)
+        pg::SqlStateClass::kConnectionException,
+        pg::GetSqlStateClass(pg::SqlState::kTransactionResolutionUnknown)
     );
     EXPECT_EQ(pg::SqlState::kProtocolViolation, pg::SqlStateFromString("08P01"));
     EXPECT_EQ(pg::SqlStateClass::kConnectionException, pg::GetSqlStateClass(pg::SqlState::kProtocolViolation));
@@ -79,7 +81,8 @@ TEST(PostgreError, SqlStateTriggeredActionException) {
     // Class 09 — Triggered Action Exception
     EXPECT_EQ(pg::SqlState::kTriggeredActionException, pg::SqlStateFromString("09000"));
     EXPECT_EQ(
-        pg::SqlStateClass::kTriggeredActionException, pg::GetSqlStateClass(pg::SqlState::kTriggeredActionException)
+        pg::SqlStateClass::kTriggeredActionException,
+        pg::GetSqlStateClass(pg::SqlState::kTriggeredActionException)
     );
 }
 
@@ -118,7 +121,8 @@ TEST(PostgreError, SqlStateInvalidRoleSpecification) {
     // Class 0P — Invalid Role Specification
     EXPECT_EQ(pg::SqlState::kInvalidRoleSpecification, pg::SqlStateFromString("0P000"));
     EXPECT_EQ(
-        pg::SqlStateClass::kInvalidRoleSpecification, pg::GetSqlStateClass(pg::SqlState::kInvalidRoleSpecification)
+        pg::SqlStateClass::kInvalidRoleSpecification,
+        pg::GetSqlStateClass(pg::SqlState::kInvalidRoleSpecification)
     );
 }
 
@@ -171,13 +175,15 @@ TEST(PostgreError, SqlStateDataException) {
     EXPECT_EQ(pg::SqlStateClass::kDataException, pg::GetSqlStateClass(pg::SqlState::kInvalidArgumentForNtileFunction));
     EXPECT_EQ(pg::SqlState::kInvalidArgumentForNthValueFunction, pg::SqlStateFromString("22016"));
     EXPECT_EQ(
-        pg::SqlStateClass::kDataException, pg::GetSqlStateClass(pg::SqlState::kInvalidArgumentForNthValueFunction)
+        pg::SqlStateClass::kDataException,
+        pg::GetSqlStateClass(pg::SqlState::kInvalidArgumentForNthValueFunction)
     );
     EXPECT_EQ(pg::SqlState::kInvalidArgumentForPowerFunction, pg::SqlStateFromString("2201F"));
     EXPECT_EQ(pg::SqlStateClass::kDataException, pg::GetSqlStateClass(pg::SqlState::kInvalidArgumentForPowerFunction));
     EXPECT_EQ(pg::SqlState::kInvalidArgumentForWidthBucketFunction, pg::SqlStateFromString("2201G"));
     EXPECT_EQ(
-        pg::SqlStateClass::kDataException, pg::GetSqlStateClass(pg::SqlState::kInvalidArgumentForWidthBucketFunction)
+        pg::SqlStateClass::kDataException,
+        pg::GetSqlStateClass(pg::SqlState::kInvalidArgumentForWidthBucketFunction)
     );
     EXPECT_EQ(pg::SqlState::kInvalidCharacterValueForCast, pg::SqlStateFromString("22018"));
     EXPECT_EQ(pg::SqlStateClass::kDataException, pg::GetSqlStateClass(pg::SqlState::kInvalidCharacterValueForCast));
@@ -203,7 +209,8 @@ TEST(PostgreError, SqlStateDataException) {
     EXPECT_EQ(pg::SqlStateClass::kDataException, pg::GetSqlStateClass(pg::SqlState::kInvalidRowCountInLimitClause));
     EXPECT_EQ(pg::SqlState::kInvalidRowCountInResultOffsetClause, pg::SqlStateFromString("2201X"));
     EXPECT_EQ(
-        pg::SqlStateClass::kDataException, pg::GetSqlStateClass(pg::SqlState::kInvalidRowCountInResultOffsetClause)
+        pg::SqlStateClass::kDataException,
+        pg::GetSqlStateClass(pg::SqlState::kInvalidRowCountInResultOffsetClause)
     );
     EXPECT_EQ(pg::SqlState::kInvalidTablesampleArgument, pg::SqlStateFromString("2202H"));
     EXPECT_EQ(pg::SqlStateClass::kDataException, pg::GetSqlStateClass(pg::SqlState::kInvalidTablesampleArgument));
@@ -304,7 +311,8 @@ TEST(PostgreError, SqlStateIntegrityConstraintViolation) {
     EXPECT_EQ(pg::SqlStateClass::kIntegrityConstraintViolation, pg::GetSqlStateClass(pg::SqlState::kNotNullViolation));
     EXPECT_EQ(pg::SqlState::kForeignKeyViolation, pg::SqlStateFromString("23503"));
     EXPECT_EQ(
-        pg::SqlStateClass::kIntegrityConstraintViolation, pg::GetSqlStateClass(pg::SqlState::kForeignKeyViolation)
+        pg::SqlStateClass::kIntegrityConstraintViolation,
+        pg::GetSqlStateClass(pg::SqlState::kForeignKeyViolation)
     );
     EXPECT_EQ(pg::SqlState::kUniqueViolation, pg::SqlStateFromString("23505"));
     EXPECT_EQ(pg::SqlStateClass::kIntegrityConstraintViolation, pg::GetSqlStateClass(pg::SqlState::kUniqueViolation));
@@ -312,7 +320,8 @@ TEST(PostgreError, SqlStateIntegrityConstraintViolation) {
     EXPECT_EQ(pg::SqlStateClass::kIntegrityConstraintViolation, pg::GetSqlStateClass(pg::SqlState::kCheckViolation));
     EXPECT_EQ(pg::SqlState::kExclusionViolation, pg::SqlStateFromString("23P01"));
     EXPECT_EQ(
-        pg::SqlStateClass::kIntegrityConstraintViolation, pg::GetSqlStateClass(pg::SqlState::kExclusionViolation)
+        pg::SqlStateClass::kIntegrityConstraintViolation,
+        pg::GetSqlStateClass(pg::SqlState::kExclusionViolation)
     );
 }
 
@@ -326,13 +335,15 @@ TEST(PostgreError, SqlStateInvalidTransactionState) {
     // Class 25 — Invalid Transaction State
     EXPECT_EQ(pg::SqlState::kInvalidTransactionState, pg::SqlStateFromString("25000"));
     EXPECT_EQ(
-        pg::SqlStateClass::kInvalidTransactionState, pg::GetSqlStateClass(pg::SqlState::kInvalidTransactionState)
+        pg::SqlStateClass::kInvalidTransactionState,
+        pg::GetSqlStateClass(pg::SqlState::kInvalidTransactionState)
     );
     EXPECT_EQ(pg::SqlState::kActiveSqlTransaction, pg::SqlStateFromString("25001"));
     EXPECT_EQ(pg::SqlStateClass::kInvalidTransactionState, pg::GetSqlStateClass(pg::SqlState::kActiveSqlTransaction));
     EXPECT_EQ(pg::SqlState::kBranchTransactionAlreadyActive, pg::SqlStateFromString("25002"));
     EXPECT_EQ(
-        pg::SqlStateClass::kInvalidTransactionState, pg::GetSqlStateClass(pg::SqlState::kBranchTransactionAlreadyActive)
+        pg::SqlStateClass::kInvalidTransactionState,
+        pg::GetSqlStateClass(pg::SqlState::kBranchTransactionAlreadyActive)
     );
     EXPECT_EQ(pg::SqlState::kHeldCursorRequiresSameIsolationLevel, pg::SqlStateFromString("25008"));
     EXPECT_EQ(
@@ -376,7 +387,8 @@ TEST(PostgreError, SqlStateInvalidSqlStatementName) {
     // Class 26 — Invalid SQL Statement Name
     EXPECT_EQ(pg::SqlState::kInvalidSqlStatementName, pg::SqlStateFromString("26000"));
     EXPECT_EQ(
-        pg::SqlStateClass::kInvalidSqlStatementName, pg::GetSqlStateClass(pg::SqlState::kInvalidSqlStatementName)
+        pg::SqlStateClass::kInvalidSqlStatementName,
+        pg::GetSqlStateClass(pg::SqlState::kInvalidSqlStatementName)
     );
 }
 
@@ -398,7 +410,8 @@ TEST(PostgreError, SqlStateInvalidAuthorizationSpecification) {
     );
     EXPECT_EQ(pg::SqlState::kInvalidPassword, pg::SqlStateFromString("28P01"));
     EXPECT_EQ(
-        pg::SqlStateClass::kInvalidAuthorizationSpecification, pg::GetSqlStateClass(pg::SqlState::kInvalidPassword)
+        pg::SqlStateClass::kInvalidAuthorizationSpecification,
+        pg::GetSqlStateClass(pg::SqlState::kInvalidPassword)
     );
 }
 
@@ -431,15 +444,18 @@ TEST(PostgreError, SqlStateSqlRoutineException) {
     EXPECT_EQ(pg::SqlStateClass::kSqlRoutineException, pg::GetSqlStateClass(pg::SqlState::kSqlRoutineException));
     EXPECT_EQ(pg::SqlState::kFunctionExecutedNoReturnStatement, pg::SqlStateFromString("2F005"));
     EXPECT_EQ(
-        pg::SqlStateClass::kSqlRoutineException, pg::GetSqlStateClass(pg::SqlState::kFunctionExecutedNoReturnStatement)
+        pg::SqlStateClass::kSqlRoutineException,
+        pg::GetSqlStateClass(pg::SqlState::kFunctionExecutedNoReturnStatement)
     );
     EXPECT_EQ(pg::SqlState::kModifyingSqlDataNotPermitted, pg::SqlStateFromString("2F002"));
     EXPECT_EQ(
-        pg::SqlStateClass::kSqlRoutineException, pg::GetSqlStateClass(pg::SqlState::kModifyingSqlDataNotPermitted)
+        pg::SqlStateClass::kSqlRoutineException,
+        pg::GetSqlStateClass(pg::SqlState::kModifyingSqlDataNotPermitted)
     );
     EXPECT_EQ(pg::SqlState::kProhibitedSqlStatementAttempted, pg::SqlStateFromString("2F003"));
     EXPECT_EQ(
-        pg::SqlStateClass::kSqlRoutineException, pg::GetSqlStateClass(pg::SqlState::kProhibitedSqlStatementAttempted)
+        pg::SqlStateClass::kSqlRoutineException,
+        pg::GetSqlStateClass(pg::SqlState::kProhibitedSqlStatementAttempted)
     );
     EXPECT_EQ(pg::SqlState::kReadingSqlDataNotPermitted, pg::SqlStateFromString("2F004"));
     EXPECT_EQ(pg::SqlStateClass::kSqlRoutineException, pg::GetSqlStateClass(pg::SqlState::kReadingSqlDataNotPermitted));
@@ -455,11 +471,13 @@ TEST(PostgreError, SqlStateExternalRoutineException) {
     // Class 38 — External Routine Exception
     EXPECT_EQ(pg::SqlState::kExternalRoutineException, pg::SqlStateFromString("38000"));
     EXPECT_EQ(
-        pg::SqlStateClass::kExternalRoutineException, pg::GetSqlStateClass(pg::SqlState::kExternalRoutineException)
+        pg::SqlStateClass::kExternalRoutineException,
+        pg::GetSqlStateClass(pg::SqlState::kExternalRoutineException)
     );
     EXPECT_EQ(pg::SqlState::kContainingSqlNotPermitted, pg::SqlStateFromString("38001"));
     EXPECT_EQ(
-        pg::SqlStateClass::kExternalRoutineException, pg::GetSqlStateClass(pg::SqlState::kContainingSqlNotPermitted)
+        pg::SqlStateClass::kExternalRoutineException,
+        pg::GetSqlStateClass(pg::SqlState::kContainingSqlNotPermitted)
     );
     EXPECT_EQ(pg::SqlState::kModifyingSqlDataNotPermittedEx, pg::SqlStateFromString("38002"));
     EXPECT_EQ(
@@ -473,7 +491,8 @@ TEST(PostgreError, SqlStateExternalRoutineException) {
     );
     EXPECT_EQ(pg::SqlState::kReadingSqlDataNotPermittedEx, pg::SqlStateFromString("38004"));
     EXPECT_EQ(
-        pg::SqlStateClass::kExternalRoutineException, pg::GetSqlStateClass(pg::SqlState::kReadingSqlDataNotPermittedEx)
+        pg::SqlStateClass::kExternalRoutineException,
+        pg::GetSqlStateClass(pg::SqlState::kReadingSqlDataNotPermittedEx)
     );
 }
 
@@ -501,7 +520,8 @@ TEST(PostgreError, SqlStateExternalRoutineInvocationException) {
     );
     EXPECT_EQ(pg::SqlState::kSrfProtocolViolated, pg::SqlStateFromString("39P02"));
     EXPECT_EQ(
-        pg::SqlStateClass::kExternalRoutineInvocationException, pg::GetSqlStateClass(pg::SqlState::kSrfProtocolViolated)
+        pg::SqlStateClass::kExternalRoutineInvocationException,
+        pg::GetSqlStateClass(pg::SqlState::kSrfProtocolViolated)
     );
     EXPECT_EQ(pg::SqlState::kEventTriggerProtocolViolated, pg::SqlStateFromString("39P03"));
     EXPECT_EQ(
@@ -516,7 +536,8 @@ TEST(PostgreError, SqlStateSavepointException) {
     EXPECT_EQ(pg::SqlStateClass::kSavepointException, pg::GetSqlStateClass(pg::SqlState::kSavepointException));
     EXPECT_EQ(pg::SqlState::kInvalidSavepointSpecification, pg::SqlStateFromString("3B001"));
     EXPECT_EQ(
-        pg::SqlStateClass::kSavepointException, pg::GetSqlStateClass(pg::SqlState::kInvalidSavepointSpecification)
+        pg::SqlStateClass::kSavepointException,
+        pg::GetSqlStateClass(pg::SqlState::kInvalidSavepointSpecification)
     );
 }
 
@@ -560,7 +581,8 @@ TEST(PostgreError, SqlStateSyntaxErrorOrAccessRuleViolation) {
     EXPECT_EQ(pg::SqlStateClass::kSyntaxErrorOrAccessRuleViolation, pg::GetSqlStateClass(pg::SqlState::kSyntaxError));
     EXPECT_EQ(pg::SqlState::kInsufficientPrivilege, pg::SqlStateFromString("42501"));
     EXPECT_EQ(
-        pg::SqlStateClass::kSyntaxErrorOrAccessRuleViolation, pg::GetSqlStateClass(pg::SqlState::kInsufficientPrivilege)
+        pg::SqlStateClass::kSyntaxErrorOrAccessRuleViolation,
+        pg::GetSqlStateClass(pg::SqlState::kInsufficientPrivilege)
     );
     EXPECT_EQ(pg::SqlState::kCannotCoerce, pg::SqlStateFromString("42846"));
     EXPECT_EQ(pg::SqlStateClass::kSyntaxErrorOrAccessRuleViolation, pg::GetSqlStateClass(pg::SqlState::kCannotCoerce));
@@ -568,15 +590,18 @@ TEST(PostgreError, SqlStateSyntaxErrorOrAccessRuleViolation) {
     EXPECT_EQ(pg::SqlStateClass::kSyntaxErrorOrAccessRuleViolation, pg::GetSqlStateClass(pg::SqlState::kGroupingError));
     EXPECT_EQ(pg::SqlState::kWindowingError, pg::SqlStateFromString("42P20"));
     EXPECT_EQ(
-        pg::SqlStateClass::kSyntaxErrorOrAccessRuleViolation, pg::GetSqlStateClass(pg::SqlState::kWindowingError)
+        pg::SqlStateClass::kSyntaxErrorOrAccessRuleViolation,
+        pg::GetSqlStateClass(pg::SqlState::kWindowingError)
     );
     EXPECT_EQ(pg::SqlState::kInvalidRecursion, pg::SqlStateFromString("42P19"));
     EXPECT_EQ(
-        pg::SqlStateClass::kSyntaxErrorOrAccessRuleViolation, pg::GetSqlStateClass(pg::SqlState::kInvalidRecursion)
+        pg::SqlStateClass::kSyntaxErrorOrAccessRuleViolation,
+        pg::GetSqlStateClass(pg::SqlState::kInvalidRecursion)
     );
     EXPECT_EQ(pg::SqlState::kInvalidForeignKey, pg::SqlStateFromString("42830"));
     EXPECT_EQ(
-        pg::SqlStateClass::kSyntaxErrorOrAccessRuleViolation, pg::GetSqlStateClass(pg::SqlState::kInvalidForeignKey)
+        pg::SqlStateClass::kSyntaxErrorOrAccessRuleViolation,
+        pg::GetSqlStateClass(pg::SqlState::kInvalidForeignKey)
     );
     EXPECT_EQ(pg::SqlState::kInvalidName, pg::SqlStateFromString("42602"));
     EXPECT_EQ(pg::SqlStateClass::kSyntaxErrorOrAccessRuleViolation, pg::GetSqlStateClass(pg::SqlState::kInvalidName));
@@ -586,15 +611,18 @@ TEST(PostgreError, SqlStateSyntaxErrorOrAccessRuleViolation) {
     EXPECT_EQ(pg::SqlStateClass::kSyntaxErrorOrAccessRuleViolation, pg::GetSqlStateClass(pg::SqlState::kReservedName));
     EXPECT_EQ(pg::SqlState::kDatatypeMismatch, pg::SqlStateFromString("42804"));
     EXPECT_EQ(
-        pg::SqlStateClass::kSyntaxErrorOrAccessRuleViolation, pg::GetSqlStateClass(pg::SqlState::kDatatypeMismatch)
+        pg::SqlStateClass::kSyntaxErrorOrAccessRuleViolation,
+        pg::GetSqlStateClass(pg::SqlState::kDatatypeMismatch)
     );
     EXPECT_EQ(pg::SqlState::kIndeterminateDatatype, pg::SqlStateFromString("42P18"));
     EXPECT_EQ(
-        pg::SqlStateClass::kSyntaxErrorOrAccessRuleViolation, pg::GetSqlStateClass(pg::SqlState::kIndeterminateDatatype)
+        pg::SqlStateClass::kSyntaxErrorOrAccessRuleViolation,
+        pg::GetSqlStateClass(pg::SqlState::kIndeterminateDatatype)
     );
     EXPECT_EQ(pg::SqlState::kCollationMismatch, pg::SqlStateFromString("42P21"));
     EXPECT_EQ(
-        pg::SqlStateClass::kSyntaxErrorOrAccessRuleViolation, pg::GetSqlStateClass(pg::SqlState::kCollationMismatch)
+        pg::SqlStateClass::kSyntaxErrorOrAccessRuleViolation,
+        pg::GetSqlStateClass(pg::SqlState::kCollationMismatch)
     );
     EXPECT_EQ(pg::SqlState::kIndeterminateCollation, pg::SqlStateFromString("42P22"));
     EXPECT_EQ(
@@ -603,47 +631,58 @@ TEST(PostgreError, SqlStateSyntaxErrorOrAccessRuleViolation) {
     );
     EXPECT_EQ(pg::SqlState::kWrongObjectType, pg::SqlStateFromString("42809"));
     EXPECT_EQ(
-        pg::SqlStateClass::kSyntaxErrorOrAccessRuleViolation, pg::GetSqlStateClass(pg::SqlState::kWrongObjectType)
+        pg::SqlStateClass::kSyntaxErrorOrAccessRuleViolation,
+        pg::GetSqlStateClass(pg::SqlState::kWrongObjectType)
     );
     EXPECT_EQ(pg::SqlState::kGeneratedAlways, pg::SqlStateFromString("428C9"));
     EXPECT_EQ(
-        pg::SqlStateClass::kSyntaxErrorOrAccessRuleViolation, pg::GetSqlStateClass(pg::SqlState::kGeneratedAlways)
+        pg::SqlStateClass::kSyntaxErrorOrAccessRuleViolation,
+        pg::GetSqlStateClass(pg::SqlState::kGeneratedAlways)
     );
     EXPECT_EQ(pg::SqlState::kUndefinedColumn, pg::SqlStateFromString("42703"));
     EXPECT_EQ(
-        pg::SqlStateClass::kSyntaxErrorOrAccessRuleViolation, pg::GetSqlStateClass(pg::SqlState::kUndefinedColumn)
+        pg::SqlStateClass::kSyntaxErrorOrAccessRuleViolation,
+        pg::GetSqlStateClass(pg::SqlState::kUndefinedColumn)
     );
     EXPECT_EQ(pg::SqlState::kUndefinedFunction, pg::SqlStateFromString("42883"));
     EXPECT_EQ(
-        pg::SqlStateClass::kSyntaxErrorOrAccessRuleViolation, pg::GetSqlStateClass(pg::SqlState::kUndefinedFunction)
+        pg::SqlStateClass::kSyntaxErrorOrAccessRuleViolation,
+        pg::GetSqlStateClass(pg::SqlState::kUndefinedFunction)
     );
     EXPECT_EQ(pg::SqlState::kUndefinedTable, pg::SqlStateFromString("42P01"));
     EXPECT_EQ(
-        pg::SqlStateClass::kSyntaxErrorOrAccessRuleViolation, pg::GetSqlStateClass(pg::SqlState::kUndefinedTable)
+        pg::SqlStateClass::kSyntaxErrorOrAccessRuleViolation,
+        pg::GetSqlStateClass(pg::SqlState::kUndefinedTable)
     );
     EXPECT_EQ(pg::SqlState::kUndefinedParameter, pg::SqlStateFromString("42P02"));
     EXPECT_EQ(
-        pg::SqlStateClass::kSyntaxErrorOrAccessRuleViolation, pg::GetSqlStateClass(pg::SqlState::kUndefinedParameter)
+        pg::SqlStateClass::kSyntaxErrorOrAccessRuleViolation,
+        pg::GetSqlStateClass(pg::SqlState::kUndefinedParameter)
     );
     EXPECT_EQ(pg::SqlState::kUndefinedObject, pg::SqlStateFromString("42704"));
     EXPECT_EQ(
-        pg::SqlStateClass::kSyntaxErrorOrAccessRuleViolation, pg::GetSqlStateClass(pg::SqlState::kUndefinedObject)
+        pg::SqlStateClass::kSyntaxErrorOrAccessRuleViolation,
+        pg::GetSqlStateClass(pg::SqlState::kUndefinedObject)
     );
     EXPECT_EQ(pg::SqlState::kDuplicateColumn, pg::SqlStateFromString("42701"));
     EXPECT_EQ(
-        pg::SqlStateClass::kSyntaxErrorOrAccessRuleViolation, pg::GetSqlStateClass(pg::SqlState::kDuplicateColumn)
+        pg::SqlStateClass::kSyntaxErrorOrAccessRuleViolation,
+        pg::GetSqlStateClass(pg::SqlState::kDuplicateColumn)
     );
     EXPECT_EQ(pg::SqlState::kDuplicateCursor, pg::SqlStateFromString("42P03"));
     EXPECT_EQ(
-        pg::SqlStateClass::kSyntaxErrorOrAccessRuleViolation, pg::GetSqlStateClass(pg::SqlState::kDuplicateCursor)
+        pg::SqlStateClass::kSyntaxErrorOrAccessRuleViolation,
+        pg::GetSqlStateClass(pg::SqlState::kDuplicateCursor)
     );
     EXPECT_EQ(pg::SqlState::kDuplicateDatabase, pg::SqlStateFromString("42P04"));
     EXPECT_EQ(
-        pg::SqlStateClass::kSyntaxErrorOrAccessRuleViolation, pg::GetSqlStateClass(pg::SqlState::kDuplicateDatabase)
+        pg::SqlStateClass::kSyntaxErrorOrAccessRuleViolation,
+        pg::GetSqlStateClass(pg::SqlState::kDuplicateDatabase)
     );
     EXPECT_EQ(pg::SqlState::kDuplicateFunction, pg::SqlStateFromString("42723"));
     EXPECT_EQ(
-        pg::SqlStateClass::kSyntaxErrorOrAccessRuleViolation, pg::GetSqlStateClass(pg::SqlState::kDuplicateFunction)
+        pg::SqlStateClass::kSyntaxErrorOrAccessRuleViolation,
+        pg::GetSqlStateClass(pg::SqlState::kDuplicateFunction)
     );
     EXPECT_EQ(pg::SqlState::kDuplicatePreparedStatement, pg::SqlStateFromString("42P05"));
     EXPECT_EQ(
@@ -652,35 +691,43 @@ TEST(PostgreError, SqlStateSyntaxErrorOrAccessRuleViolation) {
     );
     EXPECT_EQ(pg::SqlState::kDuplicateSchema, pg::SqlStateFromString("42P06"));
     EXPECT_EQ(
-        pg::SqlStateClass::kSyntaxErrorOrAccessRuleViolation, pg::GetSqlStateClass(pg::SqlState::kDuplicateSchema)
+        pg::SqlStateClass::kSyntaxErrorOrAccessRuleViolation,
+        pg::GetSqlStateClass(pg::SqlState::kDuplicateSchema)
     );
     EXPECT_EQ(pg::SqlState::kDuplicateTable, pg::SqlStateFromString("42P07"));
     EXPECT_EQ(
-        pg::SqlStateClass::kSyntaxErrorOrAccessRuleViolation, pg::GetSqlStateClass(pg::SqlState::kDuplicateTable)
+        pg::SqlStateClass::kSyntaxErrorOrAccessRuleViolation,
+        pg::GetSqlStateClass(pg::SqlState::kDuplicateTable)
     );
     EXPECT_EQ(pg::SqlState::kDuplicateAlias, pg::SqlStateFromString("42712"));
     EXPECT_EQ(
-        pg::SqlStateClass::kSyntaxErrorOrAccessRuleViolation, pg::GetSqlStateClass(pg::SqlState::kDuplicateAlias)
+        pg::SqlStateClass::kSyntaxErrorOrAccessRuleViolation,
+        pg::GetSqlStateClass(pg::SqlState::kDuplicateAlias)
     );
     EXPECT_EQ(pg::SqlState::kDuplicateObject, pg::SqlStateFromString("42710"));
     EXPECT_EQ(
-        pg::SqlStateClass::kSyntaxErrorOrAccessRuleViolation, pg::GetSqlStateClass(pg::SqlState::kDuplicateObject)
+        pg::SqlStateClass::kSyntaxErrorOrAccessRuleViolation,
+        pg::GetSqlStateClass(pg::SqlState::kDuplicateObject)
     );
     EXPECT_EQ(pg::SqlState::kAmbiguousColumn, pg::SqlStateFromString("42702"));
     EXPECT_EQ(
-        pg::SqlStateClass::kSyntaxErrorOrAccessRuleViolation, pg::GetSqlStateClass(pg::SqlState::kAmbiguousColumn)
+        pg::SqlStateClass::kSyntaxErrorOrAccessRuleViolation,
+        pg::GetSqlStateClass(pg::SqlState::kAmbiguousColumn)
     );
     EXPECT_EQ(pg::SqlState::kAmbiguousFunction, pg::SqlStateFromString("42725"));
     EXPECT_EQ(
-        pg::SqlStateClass::kSyntaxErrorOrAccessRuleViolation, pg::GetSqlStateClass(pg::SqlState::kAmbiguousFunction)
+        pg::SqlStateClass::kSyntaxErrorOrAccessRuleViolation,
+        pg::GetSqlStateClass(pg::SqlState::kAmbiguousFunction)
     );
     EXPECT_EQ(pg::SqlState::kAmbiguousParameter, pg::SqlStateFromString("42P08"));
     EXPECT_EQ(
-        pg::SqlStateClass::kSyntaxErrorOrAccessRuleViolation, pg::GetSqlStateClass(pg::SqlState::kAmbiguousParameter)
+        pg::SqlStateClass::kSyntaxErrorOrAccessRuleViolation,
+        pg::GetSqlStateClass(pg::SqlState::kAmbiguousParameter)
     );
     EXPECT_EQ(pg::SqlState::kAmbiguousAlias, pg::SqlStateFromString("42P09"));
     EXPECT_EQ(
-        pg::SqlStateClass::kSyntaxErrorOrAccessRuleViolation, pg::GetSqlStateClass(pg::SqlState::kAmbiguousAlias)
+        pg::SqlStateClass::kSyntaxErrorOrAccessRuleViolation,
+        pg::GetSqlStateClass(pg::SqlState::kAmbiguousAlias)
     );
     EXPECT_EQ(pg::SqlState::kInvalidColumnReference, pg::SqlStateFromString("42P10"));
     EXPECT_EQ(
@@ -733,7 +780,8 @@ TEST(PostgreError, SqlStateWithCheckOptionViolation) {
     // Class 44 — WITH CHECK OPTION Violation
     EXPECT_EQ(pg::SqlState::kWithCheckOptionViolation, pg::SqlStateFromString("44000"));
     EXPECT_EQ(
-        pg::SqlStateClass::kWithCheckOptionViolation, pg::GetSqlStateClass(pg::SqlState::kWithCheckOptionViolation)
+        pg::SqlStateClass::kWithCheckOptionViolation,
+        pg::GetSqlStateClass(pg::SqlState::kWithCheckOptionViolation)
     );
 }
 
@@ -749,7 +797,8 @@ TEST(PostgreError, SqlStateInsufficientResources) {
     EXPECT_EQ(pg::SqlStateClass::kInsufficientResources, pg::GetSqlStateClass(pg::SqlState::kTooManyConnections));
     EXPECT_EQ(pg::SqlState::kConfigurationLimitExceeded, pg::SqlStateFromString("53400"));
     EXPECT_EQ(
-        pg::SqlStateClass::kInsufficientResources, pg::GetSqlStateClass(pg::SqlState::kConfigurationLimitExceeded)
+        pg::SqlStateClass::kInsufficientResources,
+        pg::GetSqlStateClass(pg::SqlState::kConfigurationLimitExceeded)
     );
 }
 
@@ -776,13 +825,15 @@ TEST(PostgreError, SqlStateObjectNotInPrerequisiteState) {
     EXPECT_EQ(pg::SqlStateClass::kObjectNotInPrerequisiteState, pg::GetSqlStateClass(pg::SqlState::kObjectInUse));
     EXPECT_EQ(pg::SqlState::kCantChangeRuntimeParam, pg::SqlStateFromString("55P02"));
     EXPECT_EQ(
-        pg::SqlStateClass::kObjectNotInPrerequisiteState, pg::GetSqlStateClass(pg::SqlState::kCantChangeRuntimeParam)
+        pg::SqlStateClass::kObjectNotInPrerequisiteState,
+        pg::GetSqlStateClass(pg::SqlState::kCantChangeRuntimeParam)
     );
     EXPECT_EQ(pg::SqlState::kLockNotAvailable, pg::SqlStateFromString("55P03"));
     EXPECT_EQ(pg::SqlStateClass::kObjectNotInPrerequisiteState, pg::GetSqlStateClass(pg::SqlState::kLockNotAvailable));
     EXPECT_EQ(pg::SqlState::kUnsafeNewEnumValueUsage, pg::SqlStateFromString("55P04"));
     EXPECT_EQ(
-        pg::SqlStateClass::kObjectNotInPrerequisiteState, pg::GetSqlStateClass(pg::SqlState::kUnsafeNewEnumValueUsage)
+        pg::SqlStateClass::kObjectNotInPrerequisiteState,
+        pg::GetSqlStateClass(pg::SqlState::kUnsafeNewEnumValueUsage)
     );
 }
 

@@ -143,8 +143,10 @@ public:
     /// @param topic The name of the topic.
     /// @param timeout The optional timeout for the operation.
     /// @returns A vector of partition IDs for the given topic.
-    std::vector<std::uint32_t>
-    GetPartitionIds(utils::zstring_view topic, std::optional<std::chrono::milliseconds> timeout = std::nullopt) const;
+    std::vector<std::uint32_t> GetPartitionIds(
+        utils::zstring_view topic,
+        std::optional<std::chrono::milliseconds> timeout = std::nullopt
+    ) const;
 
     /// @brief Sets the rebalance callback for a consumer.
     /// @warning The rebalance callback must be set before calling ConsumerScope::Start or after calling

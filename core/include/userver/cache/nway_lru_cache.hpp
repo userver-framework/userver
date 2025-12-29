@@ -74,7 +74,9 @@ private:
         Way(Way&& other) noexcept : cache(std::move(other.cache)) {}
 
         // max_size is not used, will be reset by Resize() in NWayLRU::NWayLRU
-        Way(const Hash& hash, const Equal& equal) : cache(1, hash, equal) {}
+        Way(const Hash& hash, const Equal& equal)
+            : cache(1, hash, equal)
+        {}
 
         mutable engine::Mutex mutex;
         LruMap<T, U, Hash, Equal> cache;
@@ -91,12 +93,20 @@ private:
 
 template <typename T, typename U, typename Hash, typename Eq>
 NWayLRU<T, U, Hash, Eq>::NWayLRU(size_t ways, size_t way_size, const Hash& hash, const Eq& equal)
-    : caches_(), hash_fn_(hash) {
+    : caches_(),
+      hash_fn_(hash)
+{
     caches_.reserve(ways);
-    for (size_t i = 0; i < ways; ++i) caches_.emplace_back(hash, equal);
-    if (ways == 0) throw std::logic_error("Ways must be positive");
+    for (size_t i = 0; i < ways; ++i) {
+        caches_.emplace_back(hash, equal);
+    }
+    if (ways == 0) {
+        throw std::logic_error("Ways must be positive");
+    }
 
-    for (auto& way : caches_) way.cache.SetMaxSize(way_size);
+    for (auto& way : caches_) {
+        way.cache.SetMaxSize(way_size);
+    }
 }
 
 template <typename T, typename U, typename Hash, typename Eq>
@@ -117,7 +127,9 @@ std::optional<U> NWayLRU<T, U, Hash, Eq>::Get(const T& key, Validator validator)
     auto* value = way.cache.Get(key);
 
     if (value) {
-        if (validator(*value)) return *value;
+        if (validator(*value)) {
+            return *value;
+        }
         way.cache.Erase(key);
     }
 

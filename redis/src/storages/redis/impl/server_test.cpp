@@ -42,7 +42,9 @@ void PeriodicCheck(Predicate predicate) {
 template <typename Predicate>
 void PeriodicWait(Predicate predicate) {
     for (int i = 0; i < kWaitRetries; i++) {
-        if (predicate()) break;
+        if (predicate()) {
+            break;
+        }
         std::this_thread::sleep_for(kWaitPeriod);
     }
     EXPECT_TRUE(predicate());
@@ -84,7 +86,12 @@ struct MockSentinelServers {
 
     void CreateSentinelClientAndWait(const secdist::RedisSettings& settings) {
         auto sentinel_client = storages::redis::impl::Sentinel::CreateSentinel(
-            thread_pool, settings, "test_shard_group_name", dynamic_config::GetDefaultSource(), "test_client_name", {""}
+            thread_pool,
+            settings,
+            "test_shard_group_name",
+            dynamic_config::GetDefaultSource(),
+            "test_client_name",
+            {""}
         );
         sentinel_client->WaitConnectedDebug(std::empty(slaves));
     }
@@ -104,17 +111,24 @@ struct MockSentinelServers {
         auto dynconf = dynamic_config::GetDefaultSource();
         using storages::redis::impl::SubscribeSentinel;
         auto subscribe_sentinel = SubscribeSentinel::Create(
-            thread_pool, settings, "test_shard_group_name", dynconf, "test_client_name", {""}, cc, redis_control
+            thread_pool,
+            settings,
+            "test_shard_group_name",
+            dynconf,
+            "test_client_name",
+            {""},
+            cc,
+            redis_control
         );
         subscribe_sentinel->WaitConnectedDebug(std::empty(slaves));
 
-        std::shared_ptr<storages::redis::SubscribeClient> client =
-            std::make_shared<storages::redis::SubscribeClientImpl>(std::move(subscribe_sentinel));
+        std::shared_ptr<storages::redis::SubscribeClient>
+            client = std::make_shared<storages::redis::SubscribeClientImpl>(std::move(subscribe_sentinel));
 
-        storages::redis::SubscriptionToken::OnMessageCb callback = [](const std::string& channel,
-                                                                      const std::string& message) {
-            EXPECT_TRUE(false) << "Should not be called. Channel = " << channel << ", message = " << message;
-        };
+        storages::redis::SubscriptionToken::OnMessageCb callback =
+            [](const std::string& channel, const std::string& message) {
+                EXPECT_TRUE(false) << "Should not be called. Channel = " << channel << ", message = " << message;
+            };
         auto subscription = client->Subscribe("channel_name", std::move(callback));
 
         for (auto& handler : subscribe_handlers) {
@@ -134,8 +148,8 @@ struct MockSentinelServers {
         MockRedisServer{"sentinel1"},
         MockRedisServer{"sentinel2"},
     };
-    std::shared_ptr<storages::redis::impl::ThreadPools> thread_pool =
-        std::make_shared<storages::redis::impl::ThreadPools>(1, kRedisThreadCount);
+    std::shared_ptr<storages::redis::impl::ThreadPools>
+        thread_pool = std::make_shared<storages::redis::impl::ThreadPools>(1, kRedisThreadCount);
 };
 
 }  // namespace
@@ -528,7 +542,8 @@ TEST_P(RedisDisconnectingReplies, X) {
     PeriodicWait([&] { return IsConnected(*redis); });
 
     auto cmd = storages::redis::impl::PrepareCommand(
-        {"GET", "123"}, [](const storages::redis::impl::CommandPtr&, storages::redis::ReplyPtr) {}
+        {"GET", "123"},
+        [](const storages::redis::impl::CommandPtr&, storages::redis::ReplyPtr) {}
     );
     redis->AsyncCommand(cmd);
 

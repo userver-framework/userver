@@ -21,6 +21,8 @@ extern const grpc::string kHostname;
 
 extern const grpc::string kCongestionControlRatelimitReason;
 
+extern const grpc::string kXOrigin;
+
 extern const grpc::string kXTestsuiteErrorCode;
 extern const grpc::string kXTestsuiteClientName;
 

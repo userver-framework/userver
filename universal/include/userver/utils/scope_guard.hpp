@@ -30,7 +30,9 @@ public:
     using Callback = std::function<void()>;
 
     explicit ScopeGuard(Callback callback)
-        : callback_(std::move(callback)), exceptions_on_enter_(std::uncaught_exceptions()) {}
+        : callback_(std::move(callback)),
+          exceptions_on_enter_(std::uncaught_exceptions())
+    {}
 
     ScopeGuard(const ScopeGuard&) = delete;
     ScopeGuard(ScopeGuard&&) = delete;
@@ -39,7 +41,9 @@ public:
     ScopeGuard& operator=(ScopeGuard&&) = delete;
 
     ~ScopeGuard() noexcept(false) {
-        if (!callback_) return;
+        if (!callback_) {
+            return;
+        }
 
         if (std::uncaught_exceptions() != exceptions_on_enter_) {
             // keep all exceptions inside the destructor to avoid std::terminate

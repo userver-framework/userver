@@ -8,9 +8,10 @@ namespace storages::sqlite::settings {
 
 ConnectionSettings ConnectionSettings::Create(const components::ComponentConfig& config) {
     ConnectionSettings settings{};
-    settings.prepared_statements = config["persistent-prepared-statements"].As<bool>(kDefaultPrepareStatement)
-                                       ? storages::sqlite::settings::ConnectionSettings::kCachePreparedStatements
-                                       : storages::sqlite::settings::ConnectionSettings::kNoPreparedStatements;
+    settings.prepared_statements =
+        config["persistent-prepared-statements"].As<bool>(kDefaultPrepareStatement)
+            ? storages::sqlite::settings::ConnectionSettings::kCachePreparedStatements
+            : storages::sqlite::settings::ConnectionSettings::kNoPreparedStatements;
     settings.max_prepared_cache_size = config["max_prepared_cache_size"].As<std::size_t>(kDefaultMaxPreparedCacheSize);
     return settings;
 }

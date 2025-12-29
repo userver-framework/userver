@@ -19,7 +19,9 @@ namespace {
 
 class FlagClearer {
 public:
-    FlagClearer(std::atomic<bool>& flag) : flag_(flag) {}
+    FlagClearer(std::atomic<bool>& flag)
+        : flag_(flag)
+    {}
     ~FlagClearer() { flag_.store(false); }
 
 private:
@@ -28,7 +30,9 @@ private:
 
 }  // namespace
 
-TestsuiteTasks::TestsuiteTasks(bool is_enabled) : is_enabled_(is_enabled) {}
+TestsuiteTasks::TestsuiteTasks(bool is_enabled)
+    : is_enabled_(is_enabled)
+{}
 
 TestsuiteTasks::~TestsuiteTasks() { CheckNoRunningTasks(); }
 
@@ -112,7 +116,9 @@ void TestsuiteTasks::StopSpawnedTask(const std::string& task_id) {
         locked->erase(task_id);
     }
 
-    if (is_finished) spawned->task.Get();
+    if (is_finished) {
+        spawned->task.Get();
+    }
 }
 
 std::shared_ptr<TestsuiteTasks::Entry> TestsuiteTasks::GetEntryFor(const std::string& name) {

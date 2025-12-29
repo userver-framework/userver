@@ -22,7 +22,9 @@ boost::stacktrace::stacktrace CollectTrace(TracefulException::TraceMode trace_mo
 }  // namespace
 
 struct TracefulExceptionBase::Impl final {
-    explicit Impl(TraceMode trace_mode) : stacktrace(CollectTrace(trace_mode)) {}
+    explicit Impl(TraceMode trace_mode)
+        : stacktrace(CollectTrace(trace_mode))
+    {}
 
     MemoryBuffer message_buffer;
     boost::stacktrace::stacktrace stacktrace;
@@ -49,14 +51,20 @@ const TracefulExceptionBase::MemoryBuffer& TracefulExceptionBase::MessageBuffer(
 
 const boost::stacktrace::stacktrace& TracefulExceptionBase::Trace() const noexcept { return impl_->stacktrace; }
 
-TracefulExceptionBase::TracefulExceptionBase() : TracefulExceptionBase(TraceMode::kAlways) {}
+TracefulExceptionBase::TracefulExceptionBase()
+    : TracefulExceptionBase(TraceMode::kAlways)
+{}
 
-TracefulExceptionBase::TracefulExceptionBase(std::string_view what) : TracefulExceptionBase(TraceMode::kAlways) {
+TracefulExceptionBase::TracefulExceptionBase(std::string_view what)
+    : TracefulExceptionBase(TraceMode::kAlways)
+{
     fmt::format_to(std::back_inserter(impl_->message_buffer), FMT_COMPILE("{}"), what);
     EnsureNullTerminated();
 }
 
-TracefulExceptionBase::TracefulExceptionBase(TraceMode trace_mode) : impl_(trace_mode) {}
+TracefulExceptionBase::TracefulExceptionBase(TraceMode trace_mode)
+    : impl_(trace_mode)
+{}
 
 TracefulExceptionBase::MemoryBuffer& TracefulExceptionBase::GetMessageBuffer() { return impl_->message_buffer; }
 

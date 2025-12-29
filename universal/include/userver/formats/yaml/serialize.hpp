@@ -30,6 +30,10 @@ namespace blocking {
 formats::yaml::Value FromFile(const std::string& path);
 }  // namespace blocking
 
+namespace impl {
+formats::yaml::Value FromStringAllowRepeatedKeys(const std::string& doc);
+}  // namespace impl
+
 }  // namespace formats::yaml
 
 USERVER_NAMESPACE_END

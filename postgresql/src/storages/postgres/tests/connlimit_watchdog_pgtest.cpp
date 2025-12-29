@@ -71,21 +71,22 @@ pg::Transaction GetTransaction(pgd::ClusterImpl& cluster) {
 constexpr size_t kReservedConn = 5;
 constexpr size_t kTestsuiteConnlimit = 100 - kReservedConn;
 
-enum class MigrationVersion { V1 = 0, V2 = 1, Count };
+enum class MigrationVersion { kV1 = 0, kV2 = 1, kCount };
 
 }  // namespace
 
 class Watchdog : public PostgreSQLBase {
 public:
     static_assert(
-        static_cast<int>(MigrationVersion::Count) == 2,
+        static_cast<int>(MigrationVersion::kCount) == 2,
         "It is very dangerous. You must add new tests for a new migration version!"
     );
 
     Watchdog()
         : cluster_(
               CreateClusterImpl(this->GetDsnListFromEnv(), this->GetTaskProcessor(), kHostsCount * 2, testsuite_tasks_)
-          ) {
+          )
+    {
         // Do the step of ConnlimitWatchdog to create the table.
         testsuite_tasks_.RunTask(kWatchdogTaskName);
 
@@ -150,12 +151,12 @@ UTEST_F(Watchdog, AllPermutations) {
     EXPECT_EQ(kTestsuiteConnlimit, DoStepV1());
     EXPECT_EQ(kTestsuiteConnlimit / 2, DoStepV2());
 
-    std::vector<MigrationVersion> combinations{
-        MigrationVersion::V1, MigrationVersion::V1, MigrationVersion::V2, MigrationVersion::V2};
+    std::vector<MigrationVersion>
+        combinations{MigrationVersion::kV1, MigrationVersion::kV1, MigrationVersion::kV2, MigrationVersion::kV2};
     auto do_step = [this](MigrationVersion version) {
-        if (version == MigrationVersion::V1) {
+        if (version == MigrationVersion::kV1) {
             EXPECT_EQ(kTestsuiteConnlimit / 2, DoStepV1());
-        } else if (version == MigrationVersion::V2) {
+        } else if (version == MigrationVersion::kV2) {
             EXPECT_EQ(kTestsuiteConnlimit / 2, DoStepV2());
         } else {
             UINVARIANT(false, "Please provide the code for this version");

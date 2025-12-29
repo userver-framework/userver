@@ -47,11 +47,13 @@ void Pool::WriteStatistics(utils::statistics::Writer& writer) const {
 }
 
 Pool::Pool(clients::dns::Resolver& resolver, const settings::PoolSettings& pool_settings)
-    : drivers::impl::
-          ConnectionPoolBase<impl::Connection, Pool>{pool_settings.max_pool_size, kMaxSimultaneouslyConnectingClients},
+    : drivers::impl::ConnectionPoolBase<
+          impl::Connection,
+          Pool>{pool_settings.max_pool_size, kMaxSimultaneouslyConnectingClients},
       resolver_{resolver},
       settings_{pool_settings},
-      monitor_{*this} {
+      monitor_{*this}
+{
     try {
         Init(settings_.initial_pool_size, kConnectionSetupTimeout);
     } catch (const std::exception&) {
@@ -63,7 +65,11 @@ Pool::Pool(clients::dns::Resolver& resolver, const settings::PoolSettings& pool_
 Pool::ConnectionUniquePtr Pool::DoCreateConnection(engine::Deadline deadline) {
     try {
         auto connection_ptr = std::make_unique<impl::Connection>(
-            resolver_, settings_.endpoint_info, settings_.auth_settings, settings_.connection_settings, deadline
+            resolver_,
+            settings_.endpoint_info,
+            settings_.auth_settings,
+            settings_.connection_settings,
+            deadline
         );
         monitor_.AccountSuccess();
 
@@ -100,8 +106,8 @@ void Pool::RunPinger() {
         // To not touch given_away_semaphore accidentally
         DoRelease(ConnectionUniquePtr{connection});
     };
-    const std::unique_ptr<impl::Connection, decltype(pinger_connection_deleter)> pinger_connection{
-        connection_ptr.release(), pinger_connection_deleter};
+    const std::unique_ptr<impl::Connection, decltype(pinger_connection_deleter)>
+        pinger_connection{connection_ptr.release(), pinger_connection_deleter};
 
     try {
         pinger_connection->Ping(engine::Deadline::FromDuration(kPingTimeout));
@@ -111,7 +117,9 @@ void Pool::RunPinger() {
     }
 }
 
-Pool::PoolMonitor::PoolMonitor(Pool& pool) : pool_{pool} {}
+Pool::PoolMonitor::PoolMonitor(Pool& pool)
+    : pool_{pool}
+{}
 
 Pool::PoolMonitor::~PoolMonitor() { Stop(); }
 

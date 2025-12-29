@@ -46,7 +46,9 @@ public:
     std::string GetSubject() const;
 
 private:
-    explicit Certificate(std::shared_ptr<NativeType> cert) : cert_(std::move(cert)) {}
+    explicit Certificate(std::shared_ptr<NativeType> cert)
+        : cert_(std::move(cert))
+    {}
 
     std::shared_ptr<NativeType> cert_;
 };

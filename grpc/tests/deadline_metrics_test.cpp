@@ -88,7 +88,8 @@ public:
 
     utils::statistics::Rate GetServerStatistic(const std::string& path) {
         const auto statistics = GetStatistics(
-            "grpc.server.by-destination", {{"grpc_destination", "sample.ugrpc.UnitTestService/SayHello"}}
+            "grpc.server.by-destination",
+            {{"grpc_destination", "sample.ugrpc.UnitTestService/SayHello"}}
         );
 
         return statistics.SingleMetric(path).AsRate();
@@ -96,7 +97,8 @@ public:
 
     utils::statistics::Rate GetClientStatistic(const std::string& path) {
         const auto statistics = GetStatistics(
-            "grpc.client.by-destination", {{"grpc_destination", "sample.ugrpc.UnitTestService/SayHello"}}
+            "grpc.client.by-destination",
+            {{"grpc_destination", "sample.ugrpc.UnitTestService/SayHello"}}
         );
 
         return statistics.SingleMetric(path).AsRate();

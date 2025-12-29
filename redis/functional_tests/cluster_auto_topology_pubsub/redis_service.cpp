@@ -8,11 +8,10 @@
 #include <fmt/format.h>
 
 #include <userver/clients/dns/component.hpp>
-#include <userver/clients/http/component.hpp>
+#include <userver/clients/http/component_list.hpp>
 #include <userver/components/component.hpp>
 #include <userver/components/minimal_server_component_list.hpp>
-#include <userver/dynamic_config/client/component.hpp>
-#include <userver/dynamic_config/updater/component.hpp>
+#include <userver/dynamic_config/updater/component_list.hpp>
 #include <userver/formats/json/serialize.hpp>
 #include <userver/formats/json/value.hpp>
 #include <userver/formats/serialize/common_containers.hpp>
@@ -71,9 +70,12 @@ private:
 ReadStoreReturn::ReadStoreReturn(const components::ComponentConfig& config, const components::ComponentContext& context)
     : server::handlers::HttpHandlerBase(config, context),
       redis_client_{
-          context.FindComponent<components::Redis>("key-value-database").GetClient(config["db"].As<std::string>())},
-      redis_subscribe_client_{context.FindComponent<components::Redis>("key-value-database")
-                                  .GetSubscribeClient("redis-cluster-subscribe")} {
+          context.FindComponent<components::Redis>("key-value-database").GetClient(config["db"].As<std::string>())
+      },
+      redis_subscribe_client_{
+          context.FindComponent<components::Redis>("key-value-database").GetSubscribeClient("redis-cluster-subscribe")
+      }
+{
     auto callback = [this](const auto& channel_name, const auto& data) {
         UASSERT(engine::current_task::IsTaskProcessorThread());
         auto locked = accumulated_data_with_queue_.Lock();
@@ -92,19 +94,28 @@ ReadStoreReturn::ReadStoreReturn(const components::ComponentConfig& config, cons
     const utils::PeriodicTask::Settings settings(std::chrono::milliseconds(1000));
     publisher_task_.Start("publisher", settings, [this] {
         redis_client_->Publish(
-            "periodic_publish", "42", storages::redis::CommandControl(), storages::redis::PubShard::kRoundRobin
+            "periodic_publish",
+            "42",
+            storages::redis::CommandControl(),
+            storages::redis::PubShard::kRoundRobin
         );
     });
 }
 
 ReadStoreReturn::~ReadStoreReturn() {
     publisher_task_.Stop();
-    for (auto& token : tokens_) token.Unsubscribe();
-    for (auto& token : sharded_tokens_) token.Unsubscribe();
+    for (auto& token : tokens_) {
+        token.Unsubscribe();
+    }
+    for (auto& token : sharded_tokens_) {
+        token.Unsubscribe();
+    }
 }
 
-std::string ReadStoreReturn::
-    HandleRequestThrow(const server::http::HttpRequest& request, server::request::RequestContext& /*context*/) const {
+std::string ReadStoreReturn::HandleRequestThrow(
+    const server::http::HttpRequest& request,
+    server::request::RequestContext& /*context*/
+) const {
     switch (request.GetMethod()) {
         case server::http::HttpMethod::kGet:
             return Get(request);
@@ -112,7 +123,8 @@ std::string ReadStoreReturn::
             return Delete();
         default:
             throw server::handlers::ClientError(server::handlers::ExternalBody{
-                fmt::format("Unsupported method {}", request.GetMethod())});
+                fmt::format("Unsupported method {}", request.GetMethod())
+            });
     }
 }
 
@@ -187,16 +199,16 @@ std::string ReadStoreReturn::Delete() const {
 }  // namespace chaos
 
 int main(int argc, char* argv[]) {
-    const auto component_list = components::MinimalServerComponentList()
-                                    .Append<chaos::ReadStoreReturn>("handler-cluster")
-                                    .Append<components::HttpClient>()
-                                    .Append<components::Secdist>()
-                                    .Append<components::DefaultSecdistProvider>()
-                                    .Append<components::Redis>("key-value-database")
-                                    .Append<components::TestsuiteSupport>()
-                                    .Append<server::handlers::TestsControl>()
-                                    .Append<components::DynamicConfigClient>()
-                                    .Append<components::DynamicConfigClientUpdater>()
-                                    .Append<clients::dns::Component>();
+    const auto component_list =
+        components::MinimalServerComponentList()
+            .AppendComponentList(USERVER_NAMESPACE::dynamic_config::updater::ComponentList())
+            .Append<chaos::ReadStoreReturn>("handler-cluster")
+            .AppendComponentList(clients::http::ComponentList())
+            .Append<components::Secdist>()
+            .Append<components::DefaultSecdistProvider>()
+            .Append<components::Redis>("key-value-database")
+            .Append<components::TestsuiteSupport>()
+            .Append<server::handlers::TestsControl>()
+            .Append<clients::dns::Component>();
     return utils::DaemonMain(argc, argv, component_list);
 }

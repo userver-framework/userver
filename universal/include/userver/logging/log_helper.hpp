@@ -261,10 +261,11 @@ LogHelper& operator<<(LogHelper& lh, T* value) {
 
 template <typename T>
 LogHelper& operator<<(LogHelper& lh, const std::optional<T>& value) {
-    if (value)
+    if (value) {
         lh << *value;
-    else
+    } else {
         lh << "(none)";
+    }
     return lh;
 }
 

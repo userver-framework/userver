@@ -223,7 +223,8 @@ UTEST_P(PostgreConnection, LoadUserTypes) {
     EXPECT_NE(0, user_types.FindOid(kRangeOverDomainName));
 
     EXPECT_NE(0, io::CppToPg<pgtest::Composite>::GetOid(user_types))
-        << "The type has been created in the database and can be mapped";
+        << "The type has been created in the database and "
+           "can be mapped";
 
     auto enum_oid = user_types.FindOid(kEnumName);
     auto name = user_types.FindName(enum_oid);
@@ -277,15 +278,18 @@ UTEST_P(PostgreConnection, LoadUserTypes) {
     {
         // misc domains
         CheckDomainExpectations(
-            GetConn(), "create domain __pgtest.int_dom as integer not null", "select 1::__pgtest.int_dom"
+            GetConn(),
+            "create domain __pgtest.int_dom as integer not null",
+            "select 1::__pgtest.int_dom"
         );
-        UEXPECT_NO_THROW(
-            GetConn()->Execute("create temp table int_dom_table("
-                               "v __pgtest.int_dom)")
-        );
+        UEXPECT_NO_THROW(GetConn()
+                             ->Execute("create temp table int_dom_table("
+                                       "v __pgtest.int_dom)"));
         UEXPECT_NO_THROW(GetConn()->Execute("insert into int_dom_table(v) values ($1)", 100500));
         CheckDomainExpectations(
-            GetConn(), "create domain __pgtest.real_dom as real not null", "select 1::__pgtest.real_dom"
+            GetConn(),
+            "create domain __pgtest.real_dom as real not null",
+            "select 1::__pgtest.real_dom"
         );
         CheckDomainExpectations(
             GetConn(),
@@ -314,9 +318,8 @@ UTEST_P(PostgreConnection, UserDefinedRange) {
     GetConn()->Execute("select '[00:00:01, 00:00:02]'::__pgtest.timerange");
     pg::ResultSet res{nullptr};
     UEXPECT_NO_THROW(
-        res = GetConn()->Execute(
-            "select $1", TimeRange{Seconds{std::chrono::seconds{1}}, Seconds{std::chrono::seconds{2}}}
-        )
+        res = GetConn()
+                  ->Execute("select $1", TimeRange{Seconds{std::chrono::seconds{1}}, Seconds{std::chrono::seconds{2}}})
     );
     BoundedTimeRange tr{};
     UEXPECT_NO_THROW(tr = res.AsSingleRow<BoundedTimeRange>());

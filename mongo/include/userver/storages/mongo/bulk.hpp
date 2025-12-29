@@ -11,6 +11,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::mongo::impl::cdriver {
 class CDriverCollectionImpl;
+class CDriverTransactionCollectionImpl;
 }  // namespace storages::mongo::impl::cdriver
 
 namespace storages::mongo::operations {
@@ -71,6 +72,7 @@ public:
 
 private:
     friend class storages::mongo::impl::cdriver::CDriverCollectionImpl;
+    friend class storages::mongo::impl::cdriver::CDriverTransactionCollectionImpl;
 
     class Impl;
     static constexpr size_t kSize = 56;

@@ -13,8 +13,8 @@ public:
     static constexpr std::string_view kName = "grpc-server-auth";
 
     // 'Auth' is a group for auth authentication. See middlewares groups for more information.
-    static inline const auto kDependency =
-        middlewares::MiddlewareDependencyBuilder().InGroup<middlewares::groups::Auth>();
+    static inline const auto
+        kDependency = middlewares::MiddlewareDependencyBuilder().InGroup<middlewares::groups::Auth>();
 
     Middleware();
 

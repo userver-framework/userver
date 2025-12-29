@@ -11,7 +11,9 @@ struct Widget::Impl {  // Implementation to hide
     Ugly payload;  // Something ugly from "third_party_ugly.hpp"
 };
 
-Widget::Widget() : pimpl_(Impl{/*some initializers*/}) {}
+Widget::Widget()
+    : pimpl_(Impl{/*some initializers*/})
+{}
 
 Widget::Widget(Widget&& other) noexcept = default;
 Widget::Widget(const Widget& other) = default;

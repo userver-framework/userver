@@ -37,8 +37,10 @@ public:
     using HttpMiddlewareFactoryBase::HttpMiddlewareFactoryBase;
 
 private:
-    std::unique_ptr<server::middlewares::HttpMiddlewareBase>
-    Create(const server::handlers::HttpHandlerBase&, yaml_config::YamlConfig) const override {
+    std::unique_ptr<server::middlewares::HttpMiddlewareBase> Create(
+        const server::handlers::HttpHandlerBase&,
+        yaml_config::YamlConfig
+    ) const override {
         return std::make_unique<NoopMiddleware>();
     }
 };
@@ -74,7 +76,8 @@ public:
     static constexpr std::string_view kName{"handler-middleware"};
 
     SomeHandlerMiddleware(const server::handlers::HttpHandlerBase&, yaml_config::YamlConfig middleware_config)
-        : header_value_{middleware_config["header-value"].As<std::string>()} {}
+        : header_value_{middleware_config["header-value"].As<std::string>()}
+    {}
 
 private:
     void HandleRequest(server::http::HttpRequest& request, server::request::RequestContext& context) const override {
@@ -85,8 +88,9 @@ private:
         // default userver-provided exceptions handling middleware. If this is
         // undesirable, the middleware should be earlier in the pipeline, or the
         // default exceptions handling behavior could be overridden.
-        const utils::ScopeGuard set_header_scope{
-            [this, &request] { request.GetHttpResponse().SetHeader(kCustomHandlerHeader, header_value_); }};
+        const utils::ScopeGuard set_header_scope{[this, &request] {
+            request.GetHttpResponse().SetHeader(kCustomHandlerHeader, header_value_);
+        }};
 
         Next(request, context);
     }
@@ -105,8 +109,10 @@ public:
     using HttpMiddlewareFactoryBase::HttpMiddlewareFactoryBase;
 
 private:
-    std::unique_ptr<server::middlewares::HttpMiddlewareBase>
-    Create(const server::handlers::HttpHandlerBase& handler, yaml_config::YamlConfig middleware_config) const override {
+    std::unique_ptr<server::middlewares::HttpMiddlewareBase> Create(
+        const server::handlers::HttpHandlerBase& handler,
+        yaml_config::YamlConfig middleware_config
+    ) const override {
         return std::make_unique<SomeHandlerMiddleware>(handler, std::move(middleware_config));
     }
 

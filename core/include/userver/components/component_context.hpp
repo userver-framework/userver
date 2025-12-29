@@ -59,6 +59,11 @@ public:
     explicit ComponentsLoadCancelledException(std::string_view message);
 };
 
+namespace impl {
+class ScopeBase;
+}
+using ScopePtr = std::unique_ptr<impl::ScopeBase>;
+
 /// @brief Class to retrieve other components.
 ///
 /// Only the const member functions of this class are meant for usage in
@@ -152,13 +157,23 @@ public:
     /// as an `std::string` if needed.
     std::string_view GetComponentName() const;
 
+    /// @brief Registers a functor to register some resource that will be
+    /// called after the component is succesfully created (including all
+    /// class descendants). The functor must return a RAII-style handle object
+    /// that unregisters the previously registered resource. The returned handle's
+    /// destructor is called just before the component destructor is called.
+    ///
+    /// @note callback is not called if the component is not created OR
+    /// any previously registered callback throws an exception.
+    /// @note if you don't have an existing RAII-ish class, but still want
+    /// to do a cleanup, you might want to use @ref utils::FastScopeGuard
+    /// to wrap the cleanup function.
+    void RegisterScope(ScopePtr) const;
+
     /// @cond
     // For internal use only.
-    ComponentContext(
-        utils::impl::InternalTag,
-        impl::ComponentContextImpl& impl,
-        impl::ComponentInfo& component_info
-    ) noexcept;
+    ComponentContext(utils::impl::InternalTag, impl::ComponentContextImpl& impl, impl::ComponentInfo& component_info)
+        noexcept;
 
     // For internal use only.
     impl::ComponentContextImpl& GetImpl(utils::impl::InternalTag) const;
@@ -191,8 +206,11 @@ private:
 
     [[noreturn]] void ThrowNonRegisteredComponent(std::string_view name, std::string_view type) const;
 
-    [[noreturn]] void
-    ThrowComponentTypeMismatch(std::string_view name, std::string_view type, RawComponentBase* component) const;
+    [[noreturn]] void ThrowComponentTypeMismatch(
+        std::string_view name,
+        std::string_view type,
+        RawComponentBase* component
+    ) const;
 
     RawComponentBase* DoFindComponent(std::string_view name) const;
 

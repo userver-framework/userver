@@ -17,33 +17,20 @@ namespace otlp {
 
 class Logger;
 
-// clang-format off
-
 /// @ingroup userver_components
 ///
 /// @brief Component to configure logging via OTLP collector.
 ///
-/// ## Static options:
-/// Name | Description | Default value
-/// ---- | ----------- | -------------
-/// endpoint | URI of otel collector (e.g. 127.0.0.1:4317). This endpoint is used both for logs and traces. If you want separate endpoints, then use below options. | -
-/// logs-endpoint | URI of otel collector (gRPC). This endpoint is used only for logs. | -
-/// tracing-endpoint | URI of otel collector (gRPC). This endpoint is used only for traces. | -
-/// client-factory-name | Name of the grpc client factory | -
-/// max-queue-size | Maximum async queue size | 65535
-/// max-batch-delay | Maximum batch delay | 100ms
-/// service-name | Service name | unknown_service
-/// attributes | Extra attributes for OTLP, object of key/value strings | -
-/// sinks | List of sinks | -
-/// sinks.logs | sink for logs (default|otlp|both) | otlp
-/// sinks.tracing | sink for tracing (default|otlp|both) | otlp
+/// ## Static options of otlp::LoggerComponent :
+/// @include{doc} scripts/docs/en/components_schema/otlp/src/otlp/logs/component.md
+///
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
 ///
 /// Possible sink values:
 /// * `otlp`: OTLP exporter
 /// * `default`: _default_ logger from the `logging` component
 /// * `both`: _default_ logger and OTLP exporter
-
-// clang-format on
 class LoggerComponent final : public components::RawComponentBase {
 public:
     /// @ingroup userver_component_names

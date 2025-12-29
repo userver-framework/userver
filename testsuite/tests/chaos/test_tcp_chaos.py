@@ -51,10 +51,22 @@ async def _assert_connection_dead(sock: AsyncioSocket) -> None:
 class Server:
     def __init__(self, sock: AsyncioSocket):
         self._sock = sock
+        self._sockets = []
 
     async def accept(self) -> AsyncioSocket:
+        logger.debug(f'Accepting connections on {self._sock.getsockname()}')
         server_connection, _ = await self._sock.accept()
+        self._sockets.append(server_connection)
+        logger.debug(f'Accepted a connection on {server_connection.getsockname()}')
         return server_connection
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc_value, traceback):
+        for sock in self._sockets:
+            sock.close()
+        self._sock.close()
 
     def get_port(self) -> int:
         return self._sock.getsockname()[1]
@@ -65,13 +77,20 @@ async def _make_client(
     gate: chaos.TcpGate,
     asyncio_socket: AsyncioSocketsFactory,
 ):
+    # collect all produced sockets to properly close them during teardown
+    sockets = []
+
     async def make_client():
         sock = asyncio_socket.tcp()
         sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+        sockets.append(sock)
         await sock.connect(gate.get_sockname_for_clients())
         return sock
 
-    return make_client
+    yield make_client
+
+    for sock in sockets:
+        sock.close()
 
 
 @pytest.fixture(name='tcp_server')
@@ -80,11 +99,11 @@ async def _server(asyncio_socket: AsyncioSocketsFactory):
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     sock.bind(('localhost', 0))
     sock.listen()
-    yield Server(sock)
-    sock.close()
+    async with Server(sock) as server:
+        yield server
 
 
-@pytest.fixture(name='gate', scope='function')
+@pytest.fixture(name='gate')
 async def _gate(tcp_server):
     gate_config = chaos.GateRoute(
         name='tcp proxy',
@@ -95,20 +114,17 @@ async def _gate(tcp_server):
         yield proxy
 
 
-@pytest.fixture(name='tcp_client', scope='function')
+@pytest.fixture(name='tcp_client')
 async def _client(make_client):
-    sock = await make_client()
-    yield sock
-    sock.close()
+    yield await make_client()
 
 
-@pytest.fixture(name='server_connection', scope='function')
-async def _server_connection(tcp_server, gate):
+@pytest.fixture(name='server_connection')
+async def _server_connection(tcp_server, gate, tcp_client):
     sock = await tcp_server.accept()
     await gate.wait_for_connections(count=1)
     assert gate.connections_count() >= 1
-    yield sock
-    sock.close()
+    return sock
 
 
 async def test_basic(tcp_client, gate, server_connection):
@@ -118,6 +134,14 @@ async def test_basic(tcp_client, gate, server_connection):
     assert gate.connections_count() == 1
     await gate.sockets_close()
     assert gate.connections_count() == 0
+
+
+async def test_gate(gate):
+    pass
+
+
+async def test_server_connection(server_connection):
+    pass
 
 
 async def test_to_client_noop(tcp_client, gate, server_connection):

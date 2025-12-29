@@ -29,7 +29,10 @@ struct Enumerator {
     Enum enumerator;
     std::string_view literal;
 
-    constexpr Enumerator(Enum en, std::string_view lit) : enumerator{en}, literal{lit} {}
+    constexpr Enumerator(Enum en, std::string_view lit)
+        : enumerator{en},
+          literal{lit}
+    {}
 };
 
 }  // namespace detail
@@ -158,12 +161,16 @@ public:
     static constexpr std::size_t size = enumerators.size();
     static constexpr EnumType GetEnumerator(StringType literal) {
         auto enumerator = enumerators.TryFind(literal);
-        if (enumerator.has_value()) return *enumerator;
+        if (enumerator.has_value()) {
+            return *enumerator;
+        }
         throw InvalidEnumerationLiteral{compiler::GetTypeName<EnumType>(), std::string{literal.data(), literal.size()}};
     }
     static constexpr StringType GetLiteral(EnumType enumerator) {
         auto literal = enumerators.TryFind(enumerator);
-        if (literal.has_value()) return *literal;
+        if (literal.has_value()) {
+            return *literal;
+        }
         throw InvalidEnumerationValue{enumerator};
     }
 };
@@ -220,8 +227,8 @@ template <typename>
 auto HasParseImpl(...) -> std::false_type;
 
 template <typename Enum>
-auto HasParseImpl(int)
-    -> decltype(Parse(std::declval<std::string_view>(), std::declval<formats::parse::To<Enum>>()), std::true_type{});
+auto HasParseImpl(int
+) -> decltype(Parse(std::declval<std::string_view>(), std::declval<formats::parse::To<Enum>>()), std::true_type{});
 
 template <typename Enum>
 struct HasParse : decltype(storages::postgres::io::detail::HasParseImpl<Enum>(0)) {};
@@ -249,9 +256,8 @@ struct ParserBufferCategory<io::detail::EnumParser<T>>
     : std::integral_constant<BufferCategory, BufferCategory::kPlainBuffer> {};
 
 template <typename T>
-struct Output<
-    T,
-    std::enable_if_t<std::is_enum<T>() && !detail::kCustomFormatterDefined<T> && IsMappedToUserType<T>()>> {
+struct
+    Output<T, std::enable_if_t<std::is_enum<T>() && !detail::kCustomFormatterDefined<T> && IsMappedToUserType<T>()>> {
     using type = io::detail::EnumFormatter<T>;
 };
 

@@ -1,7 +1,5 @@
+from collections.abc import Generator
 import dataclasses
-from typing import Generator
-from typing import Optional
-from typing import Union
 
 from chaotic import cpp_names
 from chaotic import error
@@ -79,7 +77,7 @@ class Parameter:
 @dataclasses.dataclass
 class Body:
     content_type: str
-    schema: Optional[cpp_types.CppType]
+    schema: cpp_types.CppType | None
 
     def cpp_name(self) -> str:
         return 'RequestBody' + cpp_names.camel_case(
@@ -119,7 +117,7 @@ def map_method(method: str) -> str:
 class Operation:
     method: str
     path: str
-    operation_id: Union[str, None]
+    operation_id: str | None
 
     description: str = ''
     parameters: list[Parameter] = dataclasses.field(default_factory=list)
@@ -223,7 +221,7 @@ class ClientSpec:
                 continue
 
             for response in op.responses:
-                for _, body in response.body.items():
+                for body in response.body.values():
                     includes.update(body.declaration_includes())
                 for header in response.headers:
                     includes.update(header.declaration_includes())
@@ -236,7 +234,7 @@ class ClientSpec:
                 continue
 
             for response in op.responses:
-                for _, body in response.body.items():
+                for body in response.body.values():
                     includes.update(body.definition_includes())
         return sorted(includes)
 

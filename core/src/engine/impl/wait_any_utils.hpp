@@ -16,11 +16,15 @@ namespace engine::impl {
 class WaitAnyWaitStrategy final : public WaitStrategy {
 public:
     WaitAnyWaitStrategy(utils::span<ContextAccessor*> targets, TaskContext& waiter)
-        : waiter_(waiter), targets_(targets) {}
+        : waiter_(waiter),
+          targets_(targets)
+    {}
 
     EarlyWakeup SetupWakeups() override {
         for (auto*& target : targets_) {
-            if (!target) continue;
+            if (!target) {
+                continue;
+            }
 
             utils::FastScopeGuard disable_wakeups([&]() noexcept {
                 DoDisableWakeups(utils::span{targets_.data(), &target});
@@ -44,7 +48,9 @@ public:
 private:
     void DoDisableWakeups(utils::span<ContextAccessor*> targets) const noexcept {
         for (auto* const target : targets) {
-            if (!target) continue;
+            if (!target) {
+                continue;
+            }
             target->RemoveWaiter(waiter_);
         }
     }

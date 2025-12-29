@@ -10,7 +10,9 @@ namespace {
 using NativeType = clickhouse::impl::clickhouse_cpp::ColumnUInt8;
 }
 
-UInt8Column::UInt8Column(ColumnRef column) : ClickhouseColumn{impl::GetTypedColumn<UInt8Column, NativeType>(column)} {}
+UInt8Column::UInt8Column(ColumnRef column)
+    : ClickhouseColumn{impl::GetTypedColumn<UInt8Column, NativeType>(column)}
+{}
 
 template <>
 UInt8Column::cpp_type ColumnIterator<UInt8Column>::DataHolder::Get() const {

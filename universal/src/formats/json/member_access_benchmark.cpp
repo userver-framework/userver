@@ -58,7 +58,9 @@ void JsonPathShort(benchmark::State& state) {
     for ([[maybe_unused]] auto _ : state) {
         const auto res = (json["short"].As<std::string>() == "1");
         benchmark::DoNotOptimize(res);
-        if (!res) throw std::runtime_error("unexpected");
+        if (!res) {
+            throw std::runtime_error("unexpected");
+        }
     }
 }
 BENCHMARK(JsonPathShort);
@@ -69,7 +71,9 @@ void JsonPathLong(benchmark::State& state) {
     for ([[maybe_unused]] auto _ : state) {
         const auto res = (json["long_long_long_long_path"].As<std::string>() == "2");
         benchmark::DoNotOptimize(res);
-        if (!res) throw std::runtime_error("unexpected");
+        if (!res) {
+            throw std::runtime_error("unexpected");
+        }
     }
 }
 BENCHMARK(JsonPathLong);
@@ -82,7 +86,9 @@ void JsonPathDeeplyNested(benchmark::State& state) {
             (json["long"]["deeply"]["deeply"]["nested"]["json"]["value"]["with"]["some"]["data"].As<std::string>() ==
              "3");
         benchmark::DoNotOptimize(res);
-        if (!res) throw std::runtime_error("unexpected");
+        if (!res) {
+            throw std::runtime_error("unexpected");
+        }
     }
 }
 BENCHMARK(JsonPathDeeplyNested);
@@ -93,17 +99,23 @@ void JsonPathLongAndDeeplyNested(benchmark::State& state) {
     for ([[maybe_unused]] auto _ : state) {
         const auto res =
             (json["nested_long_long_long_long_path"]["deeply"]["deeply"]["nested"]["json"]["value"]["with"]["some"]
-                 ["data"]
+                 ["da"
+                  "t"
+                  "a"]
                      .As<std::string>() == "4");
         benchmark::DoNotOptimize(res);
-        if (!res) throw std::runtime_error("unexpected");
+        if (!res) {
+            throw std::runtime_error("unexpected");
+        }
     }
 }
 BENCHMARK(JsonPathLongAndDeeplyNested);
 
 formats::json::ValueBuilder Build(size_t count) {
     formats::json::ValueBuilder builder;
-    for (size_t i = 0; i < count; i++) builder[std::to_string(i)] = i;
+    for (size_t i = 0; i < count; i++) {
+        builder[std::to_string(i)] = i;
+    }
     return builder;
 }
 
@@ -145,7 +157,9 @@ void JsonObjectFromUnordered(benchmark::State& state) {
     const auto size = state.range(0);
 
     std::unordered_map<std::string, int> map;
-    for (int i = 0; i < size; i++) map[std::to_string(i)] = i;
+    for (int i = 0; i < size; i++) {
+        map[std::to_string(i)] = i;
+    }
 
     for ([[maybe_unused]] auto _ : state) {
         benchmark::DoNotOptimize(formats::json::ValueBuilder(map));
@@ -158,7 +172,9 @@ void JsonObjectFromUnorderedStrongTypedef(benchmark::State& state) {
 
     using MyString = utils::StrongTypedef<class Tag, std::string>;
     std::unordered_map<MyString, int> map;
-    for (int i = 0; i < size; i++) map[MyString{std::to_string(i)}] = i;
+    for (int i = 0; i < size; i++) {
+        map[MyString{std::to_string(i)}] = i;
+    }
 
     for ([[maybe_unused]] auto _ : state) {
         benchmark::DoNotOptimize(formats::json::ValueBuilder(map));

@@ -17,7 +17,9 @@ namespace storages::redis {
 
 ReplyData::ReplyData(const redisReply* reply) {
     UASSERT(data_.index() == utils::UnderlyingValue(Type::kNoReply));
-    if (!reply) return;
+    if (!reply) {
+        return;
+    }
 
     switch (reply->type) {
         case REDIS_REPLY_STRING:
@@ -51,11 +53,17 @@ ReplyData::ReplyData(const redisReply* reply) {
     }
 }
 
-ReplyData::ReplyData(Array&& array) : data_(std::move(array)) {}
+ReplyData::ReplyData(Array&& array)
+    : data_(std::move(array))
+{}
 
-ReplyData::ReplyData(std::string s) : data_(String(std::move(s))) {}
+ReplyData::ReplyData(std::string s)
+    : data_(String(std::move(s)))
+{}
 
-ReplyData::ReplyData(int value) : data_(Integer{value}) {}
+ReplyData::ReplyData(int value)
+    : data_(Integer{value})
+{}
 
 ReplyData ReplyData::CreateError(std::string&& error_msg) {
     ReplyData data;
@@ -99,7 +107,9 @@ std::string ReplyData::ToDebugString() const {
             const auto& array = GetArray();
             os << "[";
             for (size_t i = 0; i < array.size(); i++) {
-                if (i) os << ", ";
+                if (i) {
+                    os << ", ";
+                }
                 os << array[i].ToDebugString();
             }
             os << "]";
@@ -111,11 +121,17 @@ std::string ReplyData::ToDebugString() const {
 }
 
 ReplyData::MovableKeyValues ReplyData::GetMovableKeyValues() {
-    if (!IsArray())
+    if (!IsArray()) {
         throw ParseReplyException("Incorrect ReplyData type: expected kArray, found " + TypeToString(GetType()));
-    if (GetArray().size() & 1) throw ParseReplyException("Array size is odd: " + std::to_string(GetArray().size()));
-    for (const auto& elem : GetArray())
-        if (!elem.IsString()) throw ParseReplyException("Non-string element (" + elem.GetTypeString() + ')');
+    }
+    if (GetArray().size() & 1) {
+        throw ParseReplyException("Array size is odd: " + std::to_string(GetArray().size()));
+    }
+    for (const auto& elem : GetArray()) {
+        if (!elem.IsString()) {
+            throw ParseReplyException("Non-string element (" + elem.GetTypeString() + ')');
+        }
+    }
     return ReplyData::MovableKeyValues(GetArray());
 }
 
@@ -148,7 +164,9 @@ std::size_t ReplyData::GetSize() const noexcept {
             return 1;
 
         case Type::kArray:
-            for (const auto& data : GetArray()) sum += data.GetSize();
+            for (const auto& data : GetArray()) {
+                sum += data.GetSize();
+            }
             return sum;
 
         case Type::kInteger:
@@ -171,8 +189,12 @@ bool ReplyData::IsUnusableInstanceError() const {
     if (IsError()) {
         const auto& msg = GetError();
 
-        if (boost::starts_with(msg.c_str(), "MASTERDOWN ")) return true;
-        if (boost::starts_with(msg.c_str(), "LOADING ")) return true;
+        if (boost::starts_with(msg.c_str(), "MASTERDOWN ")) {
+            return true;
+        }
+        if (boost::starts_with(msg.c_str(), "LOADING ")) {
+            return true;
+        }
     }
 
     return false;
@@ -182,7 +204,9 @@ bool ReplyData::IsReadonlyError() const {
     if (IsError()) {
         const auto& msg = GetError();
 
-        if (boost::starts_with(msg.c_str(), "READONLY ")) return true;
+        if (boost::starts_with(msg.c_str(), "READONLY ")) {
+            return true;
+        }
     }
 
     return false;
@@ -192,14 +216,18 @@ bool ReplyData::IsUnknownCommandError() const {
     if (IsError()) {
         const auto& msg = GetError();
 
-        if (boost::starts_with(msg.c_str(), "ERR unknown command ")) return true;
+        if (boost::starts_with(msg.c_str(), "ERR unknown command ")) {
+            return true;
+        }
     }
 
     return false;
 }
 
 void ReplyData::ExpectType(ReplyData::Type type, const std::string& request_description) const {
-    if (GetType() != type) ThrowUnexpectedReplyType(type, request_description);
+    if (GetType() != type) {
+        ThrowUnexpectedReplyType(type, request_description);
+    }
 }
 
 void ReplyData::ExpectString(const std::string& request_description) const {
@@ -246,11 +274,16 @@ void ReplyData::ExpectError(const std::string& request_description) const {
 }
 
 Reply::Reply(std::string command, ReplyData&& reply_data, ReplyStatus reply_status)
-    : cmd(std::move(command)), data(std::move(reply_data)), status(reply_status) {
+    : cmd(std::move(command)),
+      data(std::move(reply_data)),
+      status(reply_status)
+{
     UASSERT_MSG(
         !IsOk() || !data.IsError(),
         fmt::format(
-            "For command '{}' the ReplyData contains error='{}' that mismatch Reply status kOk", cmd, data.GetError()
+            "For command '{}' the ReplyData contains error='{}' that mismatch Reply status kOk",
+            cmd,
+            data.GetError()
         )
     );
 }

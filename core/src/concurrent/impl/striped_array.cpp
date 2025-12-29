@@ -13,7 +13,9 @@ USERVER_NAMESPACE_BEGIN
 namespace concurrent::impl {
 
 struct StripedArrayNode final {
-    explicit StripedArrayNode(std::intptr_t* array) : array(array) {}
+    explicit StripedArrayNode(std::intptr_t* array)
+        : array(array)
+    {}
 
     SinglyLinkedHook<StripedArrayNode> hook{};
     std::intptr_t* const array;
@@ -74,7 +76,10 @@ void ReleaseStripedArrayNode(StripedArrayNode& node) noexcept {
 
 }  // namespace
 
-StripedArray::StripedArray() : node_(AcquireStripedArrayNode()), array_(node_.array) {
+StripedArray::StripedArray()
+    : node_(AcquireStripedArrayNode()),
+      array_(node_.array)
+{
     const auto elements_view = Elements();
     // This will induce some cache line flushing for neighbor StripedArray's.
     // Suppose that StripedArray's are not created very often.

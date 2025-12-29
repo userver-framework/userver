@@ -34,11 +34,23 @@ def s3_mock(mockserver, s3_mock_storage):
             return mock_impl.get_object(request)
 
         if request.method == 'PUT':
+            if 'uploadId' in request.query:
+                if 'partNumber' in request.query:
+                    return mock_impl.upload_part(request)
+                return mockserver.make_response('Unknown or unsupported method', 404)
             if request.headers.get('x-amz-copy-source', None):
                 return mock_impl.copy_object(request)
             return mock_impl.put_object(request)
 
+        if request.method == 'POST':
+            if 'uploadId' in request.query:
+                return mock_impl.complete_multipart_upload(request)
+            if 'uploads' in request.query:
+                return mock_impl.create_multipart_upload(request)
+
         if request.method == 'DELETE':
+            if 'uploadId' in request.query:
+                return mock_impl.abort_multipart_upload(request)
             return mock_impl.delete_object(request)
 
         if request.method == 'HEAD':

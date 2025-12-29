@@ -71,7 +71,9 @@ struct SimpleTaskData final {
         LOG_DEBUG() << "SimpleTaskData::Run";
         cv.NotifyOne();
 
-        if (throw_exception) throw std::runtime_error("error_msg");
+        if (throw_exception) {
+            throw std::runtime_error("error_msg");
+        }
     }
 
     Count GetCount() const { return count; }
@@ -148,7 +150,9 @@ UTEST(PeriodicTask, Strong) {
 
     const auto start = std::chrono::steady_clock::now();
     utils::PeriodicTask task(
-        "task", utils::PeriodicTask::Settings(period, utils::PeriodicTask::Flags::kStrong), simple.GetTaskFunction()
+        "task",
+        utils::PeriodicTask::Settings(period, utils::PeriodicTask::Flags::kStrong),
+        simple.GetTaskFunction()
     );
     EXPECT_TRUE(simple.WaitFor(simple.sleep * n * kSlowRatio, [&] { return simple.GetCount() > n; }));
     const auto finish = std::chrono::steady_clock::now();

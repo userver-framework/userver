@@ -64,7 +64,7 @@ async def _gate_ready(_gate_started, greeter_mock):
 
     await _gate_started.sockets_close()
 
-    yield _gate_started
+    return _gate_started
 
 
 # [grpc_mockserver_endpoint example]

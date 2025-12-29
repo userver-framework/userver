@@ -33,7 +33,8 @@ inline std::shared_ptr<request::RequestParser> CreateTestParser(
         /*.decompress_request = */ false,
         /* set_tracing_headers = */ true,
         /* deadline_propagation_enabled = */ true,
-        /* deadline_expired_status_code = */ http::HttpStatus{498}};
+        /* deadline_expired_status_code = */ http::HttpStatus{498}
+    };
     static server::net::ParserStats test_stats;
     static server::request::ResponseDataAccounter test_accounter;
     static const server::net::Http2SessionConfig kHttp2Config;
@@ -49,7 +50,12 @@ inline std::shared_ptr<request::RequestParser> CreateTestParser(
         );
     } else {
         return std::make_shared<server::http::HttpRequestParser>(
-            kTestHandlerInfoIndex, kTestRequestConfig, std::move(cb), test_stats, test_accounter, engine::io::Sockaddr{}
+            kTestHandlerInfoIndex,
+            kTestRequestConfig,
+            std::move(cb),
+            test_stats,
+            test_accounter,
+            engine::io::Sockaddr{}
         );
     }
 }

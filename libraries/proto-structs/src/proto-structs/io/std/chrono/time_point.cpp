@@ -13,7 +13,8 @@ std::chrono::time_point<std::chrono::system_clock> ReadProtoStruct(
     ReadContext& ctx,
     To<std::chrono::time_point<std::chrono::system_clock>>,
     const ::google::protobuf::Timestamp& msg
-) try {
+) try
+{
     return Timestamp(utils::impl::InternalTag{}, msg.seconds(), msg.nanos()).ToTimePoint();
 } catch (const ValueError& e) {
     ctx.AddError(e.what());
@@ -24,7 +25,8 @@ void WriteProtoStruct(
     WriteContext& ctx,
     const std::chrono::time_point<std::chrono::system_clock>& obj,
     ::google::protobuf::Timestamp& msg
-) try {
+) try
+{
     Timestamp ts{obj};
     msg.set_seconds(ts.Seconds().count());
     msg.set_nanos(static_cast<std::int32_t>(ts.Nanos().count()));

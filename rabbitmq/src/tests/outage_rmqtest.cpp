@@ -35,8 +35,8 @@ UTEST(ClusterOutage, AllNodesDead) {
 
 UTEST(ClusterOutage, HasAliveNodes) {
     auto resolver = CreateResolver();
-    const auto settings =
-        GetSettings({{"unresolved", 5672}, {"localhost", GetRabbitMqPort()}, {"another_unresolved", 5672}});
+    const auto
+        settings = GetSettings({{"unresolved", 5672}, {"localhost", GetRabbitMqPort()}, {"another_unresolved", 5672}});
 
     // Client is created successfully
     auto client = urabbitmq::Client::Create(resolver, settings);

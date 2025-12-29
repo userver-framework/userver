@@ -55,7 +55,9 @@ void RunPrepared(benchmark::State& state) {
 }
 
 struct FutureStdSetGet {
-    FutureStdSetGet() : future(promise.get_future()) {
+    FutureStdSetGet()
+        : future(promise.get_future())
+    {
         producer = std::thread([&] {
             producer_ready.Send();
             consumer_ready.Wait();
@@ -79,7 +81,9 @@ struct FutureStdSetGet {
 };
 
 struct FutureCoroSetGet {
-    FutureCoroSetGet() : future(promise.get_future()) {
+    FutureCoroSetGet()
+        : future(promise.get_future())
+    {
         producer = engine::AsyncNoSpan([&] {
             producer_ready.Send();
             const bool status = consumer_ready.WaitForEvent();

@@ -1,6 +1,6 @@
 ## S3 API
 
-**Quality:** @ref QUALITY_TIERS "Silver Tier".
+**Quality:** @ref QUALITY_TIERS "Platinum Tier".
 
 ## Introduction
 
@@ -18,8 +18,7 @@ See also:
 
 ## Usage and testing
 
-* @ref scripts/docs/en/userver/tutorial/s3api.md shows hot to create, use and test
-  client
+* @ref scripts/docs/en/userver/tutorial/s3api.md shows hot to create, use and test client
 
 ----------
 

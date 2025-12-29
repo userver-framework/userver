@@ -3,7 +3,7 @@
 #include <vector>
 
 #include <userver/clients/dns/component.hpp>
-#include <userver/clients/http/component.hpp>
+#include <userver/clients/http/component_list.hpp>
 #include <userver/components/component_context.hpp>
 #include <userver/components/minimal_server_component_list.hpp>
 #include <userver/concurrent/variable.hpp>
@@ -26,7 +26,8 @@ public:
 
     ChaosProducer(const components::ComponentConfig& config, const components::ComponentContext& context)
         : components::LoggableComponentBase{config, context},
-          rabbit_client_{context.FindComponent<components::RabbitMQ>("chaos-rabbit").GetClient()} {
+          rabbit_client_{context.FindComponent<components::RabbitMQ>("chaos-rabbit").GetClient()}
+    {
         const auto setup_deadline = engine::Deadline::FromDuration(kDefaultOperationTimeout);
 
         auto admin_channel = rabbit_client_->GetAdminChannel(setup_deadline);
@@ -49,14 +50,16 @@ public:
 
     void PublishReliable(const urabbitmq::Envelope& envelope) const {
         rabbit_client_->PublishReliable(
-            exchange_, routing_key_, envelope, engine::Deadline::FromDuration(kDefaultOperationTimeout)
+            exchange_,
+            routing_key_,
+            envelope,
+            engine::Deadline::FromDuration(kDefaultOperationTimeout)
         );
     }
 
     void PublishUnreliable(const urabbitmq::Envelope& envelope) const {
-        rabbit_client_->Publish(
-            exchange_, routing_key_, envelope, engine::Deadline::FromDuration(kDefaultOperationTimeout)
-        );
+        rabbit_client_
+            ->Publish(exchange_, routing_key_, envelope, engine::Deadline::FromDuration(kDefaultOperationTimeout));
     }
 
 private:
@@ -74,7 +77,9 @@ public:
     static constexpr std::string_view kName{"chaos-consumer"};
 
     ChaosConsumer(const components::ComponentConfig& config, const components::ComponentContext& context)
-        : components::ComponentBase{config, context}, consumer_{config, context, messages_} {
+        : components::ComponentBase{config, context},
+          consumer_{config, context, messages_}
+    {
         Start();
     }
 
@@ -114,7 +119,8 @@ private:
         )
             : urabbitmq::
                   ConsumerBase{context.FindComponent<components::RabbitMQ>(config["rabbit_name"].As<std::string>()).GetClient(), ParseSettings(config)},
-              messages_{messages} {}
+              messages_{messages}
+        {}
 
     protected:
         void Process(urabbitmq::ConsumedMessage msg) override {
@@ -144,7 +150,8 @@ public:
     ChaosHandler(const components::ComponentConfig& config, const components::ComponentContext& context)
         : server::handlers::HttpHandlerBase{config, context},
           producer_{context.FindComponent<ChaosProducer>()},
-          consumer_{context.FindComponent<ChaosConsumer>()} {}
+          consumer_{context.FindComponent<ChaosConsumer>()}
+    {}
 
     std::string HandleRequestThrow(const server::http::HttpRequest& request, server::request::RequestContext&)
         const override {
@@ -159,7 +166,8 @@ public:
                 return HandleDelete();
             default:
                 throw server::handlers::ClientError{
-                    server::handlers::ExternalBody{fmt::format("Unsupported method {}", request.GetMethod())}};
+                    server::handlers::ExternalBody{fmt::format("Unsupported method {}", request.GetMethod())}
+                };
         }
     }
 
@@ -203,7 +211,8 @@ private:
             consumer_.Stop();
         } else {
             throw server::handlers::ClientError{
-                server::handlers::ExternalBody{fmt::format("Unknown action '{}'", action)}};
+                server::handlers::ExternalBody{fmt::format("Unknown action '{}'", action)}
+            };
         }
 
         return {};
@@ -238,19 +247,20 @@ private:
 }  // namespace chaos
 
 int main(int argc, char* argv[]) {
-    const auto component_list = components::MinimalServerComponentList()
-                                    .Append<components::RabbitMQ>("chaos-rabbit")
-                                    .Append<chaos::ChaosProducer>()
-                                    .Append<chaos::ChaosConsumer>()
-                                    .Append<chaos::ChaosHandler>()
-                                    //
-                                    .Append<clients::dns::Component>()
-                                    .Append<components::Secdist>()
-                                    .Append<components::DefaultSecdistProvider>()
-                                    //
-                                    .Append<server::handlers::TestsControl>()
-                                    .Append<components::TestsuiteSupport>()
-                                    .Append<components::HttpClient>();
+    const auto component_list =
+        components::MinimalServerComponentList()
+            .Append<components::RabbitMQ>("chaos-rabbit")
+            .Append<chaos::ChaosProducer>()
+            .Append<chaos::ChaosConsumer>()
+            .Append<chaos::ChaosHandler>()
+            //
+            .Append<clients::dns::Component>()
+            .Append<components::Secdist>()
+            .Append<components::DefaultSecdistProvider>()
+            //
+            .Append<server::handlers::TestsControl>()
+            .Append<components::TestsuiteSupport>()
+            .AppendComponentList(clients::http::ComponentList());
 
     return utils::DaemonMain(argc, argv, component_list);
 }

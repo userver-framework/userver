@@ -23,12 +23,15 @@ struct Portal::Impl {
         const detail::QueryParameters& params,
         OptionalCommandControl cmd_ctl
     )
-        : conn{conn}, cmd_ctl{std::move(cmd_ctl)}, name{name} {
+        : conn{conn},
+          cmd_ctl{std::move(cmd_ctl)},
+          name{name}
+    {
         if (conn) {
             if (!cmd_ctl) {
                 cmd_ctl = conn->GetQueryCmdCtl(query.GetOptionalNameView());
             }
-            Bind(query.GetStatementView(), params);
+            Bind(query, params);
         }
     }
 
@@ -48,8 +51,8 @@ struct Portal::Impl {
         swap(done, rhs.done);
     }
 
-    void Bind(USERVER_NAMESPACE::utils::zstring_view statement, const detail::QueryParameters& params) {
-        statement_id = conn->PortalBind(statement, name.GetUnderlying(), params, cmd_ctl);
+    void Bind(const Query& query, const detail::QueryParameters& params) {
+        statement_id = conn->PortalBind(query, name.GetUnderlying(), params, cmd_ctl);
     }
 
     ResultSet Fetch(std::uint32_t n_rows) {
@@ -76,7 +79,8 @@ Portal::Portal(
     const detail::QueryParameters& params,
     OptionalCommandControl cmd_ctl
 )
-    : pimpl_(conn, PortalName{}, query, params, std::move(cmd_ctl)) {}
+    : pimpl_(conn, PortalName{}, query, params, std::move(cmd_ctl))
+{}
 
 Portal::Portal(
     detail::Connection* conn,
@@ -85,7 +89,8 @@ Portal::Portal(
     const detail::QueryParameters& params,
     OptionalCommandControl cmd_ctl
 )
-    : pimpl_(conn, name, query, params, std::move(cmd_ctl)) {}
+    : pimpl_(conn, name, query, params, std::move(cmd_ctl))
+{}
 
 Portal::Portal(Portal&&) noexcept = default;
 Portal::~Portal() = default;

@@ -10,12 +10,13 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::middlewares {
 
-HandlerMetrics::HandlerMetrics(const handlers::HttpHandlerBase& handler) : handler_{handler} {}
+HandlerMetrics::HandlerMetrics(const handlers::HttpHandlerBase& handler)
+    : handler_{handler}
+{}
 
 void HandlerMetrics::HandleRequest(http::HttpRequest& request, request::RequestContext& context) const {
-    handlers::HttpHandlerStatisticsScope stats_scope(
-        handler_.GetHandlerStatistics(), request.GetMethod(), request.GetHttpResponse()
-    );
+    handlers::HttpHandlerStatisticsScope
+        stats_scope(handler_.GetHandlerStatistics(), request.GetMethod(), request.GetHttpResponse());
 
     const utils::FastScopeGuard dp_cancelled_scope{[&stats_scope, &context]() noexcept {
         if (context.GetInternalContext().GetDPContext().IsCancelledByDeadline()) {

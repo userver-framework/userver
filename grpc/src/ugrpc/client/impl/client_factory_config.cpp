@@ -35,8 +35,8 @@ grpc::SslCredentialsOptions MakeCredentialsOptions(const yaml_config::YamlConfig
 grpc::ChannelArguments MakeChannelArgs(const yaml_config::YamlConfig& channel_args) {
     grpc::ChannelArguments args;
     if (!channel_args.IsMissing()) {
-        LOG_INFO() << "Set client ChannelArguments: "
-                   << formats::yaml::ToString(channel_args.As<formats::yaml::Value>());
+        LOG_INFO()
+            << "Set client ChannelArguments: " << formats::yaml::ToString(channel_args.As<formats::yaml::Value>());
         for (const auto& [key, value] : Items(channel_args)) {
             if (value.IsInt64()) {
                 args.SetInt(ugrpc::impl::ToGrpcString(key), value.As<int>());
@@ -57,11 +57,9 @@ ClientFactoryConfig Parse(const yaml_config::YamlConfig& value, formats::parse::
         config.ssl_credentials_options = MakeCredentialsOptions(value["ssl-credentials-options"]);
     }
     config.retry_config = value["retry-config"].As<RetryConfig>();
-    LOG_INFO() << "RetryConfig: attempts=" << config.retry_config.attempts;
     config.channel_args = MakeChannelArgs(value["channel-args"]);
     config.default_service_config = value["default-service-config"].As<std::optional<std::string>>();
     config.channel_count = value["channel-count"].As<std::size_t>(config.channel_count);
-    LOG_INFO() << "ChannelCount: " << config.channel_count;
     return config;
 }
 

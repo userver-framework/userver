@@ -77,9 +77,7 @@ following fields:
 @snippet samples/http_caching/main.cpp  HTTP caching sample - component
 
 To create a non @ref scripts/docs/en/userver/lru_cache.md "LRU cache" cache you have to
-derive from components::CachingComponentBase, call
-CacheUpdateTrait::StartPeriodicUpdates() at the component constructor and
-CacheUpdateTrait::StopPeriodicUpdates() at the destructor:
+derive from components::CachingComponentBase.
 
 @snippet samples/http_caching/main.cpp  HTTP caching sample - constructor destructor
 

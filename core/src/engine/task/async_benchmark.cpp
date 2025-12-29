@@ -30,8 +30,11 @@ void AsyncComparisonsStdThread(benchmark::State& state) {
 }
 BENCHMARK(AsyncComparisonsStdThread);
 
+template <engine::TaskQueueType Scheduler>
 void AsyncComparisonsCoro(benchmark::State& state) {
-    engine::RunStandalone(state.range(0), [&] {
+    engine::TaskProcessorPoolsConfig config{};
+    config.queue_type = Scheduler;
+    engine::RunStandalone(state.range(0), config, [&] {
         std::uint64_t constructed_joined_count = 0;
         for ([[maybe_unused]] auto _ : state) {
             engine::AsyncNoSpan([] {}).Wait();
@@ -40,19 +43,39 @@ void AsyncComparisonsCoro(benchmark::State& state) {
         benchmark::DoNotOptimize(constructed_joined_count);
     });
 }
-BENCHMARK(AsyncComparisonsCoro)->RangeMultiplier(2)->Range(1, 32);
 
+void AsyncComparisonsCoroDefault(benchmark::State& state) {
+    AsyncComparisonsCoro<engine::TaskQueueType::kGlobalTaskQueue>(state);
+}
+BENCHMARK(AsyncComparisonsCoroDefault)->RangeMultiplier(2)->Range(1, 32);
+
+void AsyncComparisonsCoroPullPin(benchmark::State& state) {
+    AsyncComparisonsCoro<engine::TaskQueueType::kPullPinTaskQueue>(state);
+}
+BENCHMARK(AsyncComparisonsCoroPullPin)->RangeMultiplier(2)->Range(1, 32);
+
+template <engine::TaskQueueType Scheduler>
 void WrapCallSingle(benchmark::State& state) {
-    engine::RunStandalone([&] {
+    engine::TaskProcessorPoolsConfig config{};
+    config.queue_type = Scheduler;
+    engine::RunStandalone(1, config, [&] {
         for ([[maybe_unused]] auto _ : state) {
             WrappedSpanCall(utils::impl::SpanLazyPrvalue(""), []() {});
         }
     });
 }
-BENCHMARK(WrapCallSingle);
 
+void WrapCallSingleDefault(benchmark::State& state) { WrapCallSingle<engine::TaskQueueType::kGlobalTaskQueue>(state); }
+BENCHMARK(WrapCallSingleDefault);
+
+void WrapCallSinglePullPin(benchmark::State& state) { WrapCallSingle<engine::TaskQueueType::kPullPinTaskQueue>(state); }
+BENCHMARK(WrapCallSinglePullPin);
+
+template <engine::TaskQueueType Scheduler>
 void WrapCallMultiple(benchmark::State& state) {
-    engine::RunStandalone([&] {
+    engine::TaskProcessorPoolsConfig config{};
+    config.queue_type = Scheduler;
+    engine::RunStandalone(1, config, [&] {
         constexpr std::size_t kInMemoryInstancesCount = 100;
         utils::FixedArray<std::optional<WrappedSpanCall>> calls{kInMemoryInstancesCount};
 
@@ -66,10 +89,22 @@ void WrapCallMultiple(benchmark::State& state) {
         }
     });
 }
-BENCHMARK(WrapCallMultiple);
 
+void WrapCallMultipleDefault(benchmark::State& state) {
+    WrapCallMultiple<engine::TaskQueueType::kGlobalTaskQueue>(state);
+}
+BENCHMARK(WrapCallMultipleDefault);
+
+void WrapCallMultiplePullPin(benchmark::State& state) {
+    WrapCallMultiple<engine::TaskQueueType::kPullPinTaskQueue>(state);
+}
+BENCHMARK(WrapCallMultiplePullPin);
+
+template <engine::TaskQueueType Scheduler>
 void WrapCallAndPerform(benchmark::State& state) {
-    engine::RunStandalone([&] {
+    engine::TaskProcessorPoolsConfig config{};
+    config.queue_type = Scheduler;
+    engine::RunStandalone(1, config, [&] {
         for ([[maybe_unused]] auto _ : state) {
             WrappedSpanCall wrapped_call{utils::impl::SpanLazyPrvalue(""), []() {}};
             {
@@ -81,10 +116,22 @@ void WrapCallAndPerform(benchmark::State& state) {
         }
     });
 }
-BENCHMARK(WrapCallAndPerform);
 
+void WrapCallAndPerformDefault(benchmark::State& state) {
+    WrapCallAndPerform<engine::TaskQueueType::kGlobalTaskQueue>(state);
+}
+BENCHMARK(WrapCallAndPerformDefault);
+
+void WrapCallAndPerformPullPin(benchmark::State& state) {
+    WrapCallAndPerform<engine::TaskQueueType::kPullPinTaskQueue>(state);
+}
+BENCHMARK(WrapCallAndPerformPullPin);
+
+template <engine::TaskQueueType Scheduler>
 void AsyncComparisonsCoroSpanned(benchmark::State& state) {
-    engine::RunStandalone(state.range(0), [&] {
+    engine::TaskProcessorPoolsConfig config{};
+    config.queue_type = Scheduler;
+    engine::RunStandalone(state.range(0), config, [&] {
         std::uint64_t constructed_joined_count = 0;
         for ([[maybe_unused]] auto _ : state) {
             utils::Async("", [] {}).Wait();
@@ -93,6 +140,15 @@ void AsyncComparisonsCoroSpanned(benchmark::State& state) {
         benchmark::DoNotOptimize(constructed_joined_count);
     });
 }
-BENCHMARK(AsyncComparisonsCoroSpanned)->RangeMultiplier(2)->Range(1, 32);
+
+void AsyncComparisonsCoroSpannedDefault(benchmark::State& state) {
+    AsyncComparisonsCoroSpanned<engine::TaskQueueType::kGlobalTaskQueue>(state);
+}
+BENCHMARK(AsyncComparisonsCoroSpannedDefault)->RangeMultiplier(2)->Range(1, 32);
+
+void AsyncComparisonsCoroSpannedPullPin(benchmark::State& state) {
+    AsyncComparisonsCoroSpanned<engine::TaskQueueType::kPullPinTaskQueue>(state);
+}
+BENCHMARK(AsyncComparisonsCoroSpannedPullPin)->RangeMultiplier(2)->Range(1, 32);
 
 USERVER_NAMESPACE_END

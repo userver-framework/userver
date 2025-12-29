@@ -14,7 +14,9 @@ auto constexpr kInitTimeout = std::chrono::milliseconds{1000};
 }  // namespace
 
 Pool::Pool(const std::string& dsn, std::size_t max_pool_size, std::size_t max_simultaneously_connecting_clients)
-    : ConnectionPoolBase<Connection, Pool>(max_pool_size, max_simultaneously_connecting_clients), dsn_(dsn) {
+    : ConnectionPoolBase<Connection, Pool>(max_pool_size, max_simultaneously_connecting_clients),
+      dsn_(dsn)
+{
     try {
         Init(0, kInitTimeout);
     } catch (const Error& odbc_err) {

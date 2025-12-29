@@ -28,10 +28,18 @@ public:
     Array();
 
     /// @throw TypeMismatchException if @a value is not an array
-    explicit Array(const Value& value) : Value(value) { CheckArray(); }
+    explicit Array(const Value& value)
+        : Value(value)
+    {
+        CheckArray();
+    }
 
     /// @throw TypeMismatchException if @a value is not an array
-    explicit Array(Value&& value) : Value(std::move(value)) { CheckArray(); }
+    explicit Array(Value&& value)
+        : Value(std::move(value))
+    {
+        CheckArray();
+    }
 
     /// @brief Creates array extracting value from the @a builder.
     /// @throw TypeMismatchException if extracted value is not an array.

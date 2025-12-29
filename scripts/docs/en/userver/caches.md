@@ -11,17 +11,16 @@ in the background and do not block users from working with the cache.
 As a result, the user usually works with slightly outdated data, but at the same
 time always has an instant access to some version of the data.
 
-Caches usually inherit from components::CachingComponentBase or
-cache::LruCacheComponent. Sections below describe the features of
-components::CachingComponentBase. For information on cache::LruCacheComponent
+Caches usually inherit from @ref components::CachingComponentBase or
+@ref cache::LruCacheComponent. Sections below describe the features of
+@ref components::CachingComponentBase. For information on @ref cache::LruCacheComponent
 refer to @ref scripts/docs/en/userver/lru_cache.md.
 
 
 ## Update Modes
 
 Caches have two update modes:
-* Full update. In this mode, the cache requests its full state from an external
-  resource.
+* Full update. In this mode, the cache requests its full state from an external resource.
 * Incremental update. In this mode, the cache requests changes since the last
   Full update, patching its current state.
 
@@ -59,8 +58,7 @@ yaml
 `update-interval` is the time interval between the `Update` calls.
 In particular this means:
 - `Update` is not called concurrently
-- Only with `update-jitter: 0s` and `is-strong-period: true` updates follow a
-  strict schedule.
+- Only with `update-jitter: 0s` and `is-strong-period: true` updates follow a strict schedule.
 
 `full-update-interval` is the minimum interval between `full` updates in
 `full-and-incremental` cache. With each update, the cache checks if 
@@ -159,16 +157,16 @@ cluster increases, which is why the consumed by caches CPU fraction increases.
 **The second option**. Add context switching. If you call
 engine::Yield() every 1-2ms, then the framework engine has time to execute the
 other ready for execution coroutines and the queue of ready coroutines does not
-grow to undesirable values. To simplify working with engine::Yield, it is
-recommended to use utils::CpuRelax rather than calling engine::Yield() manually.
+grow to undesirable values. To simplify working with @ref engine::Yield, it is
+recommended to use utils::CpuRelax rather than calling @ref engine::Yield() manually.
 
 ## Specializations for DB
 
 Caches over DB are caching components that use a trait structure as a
 template argument for customization. Such components are:
 
-- components::MongoCache
-- components::PostgreCache
+- @ref components::MongoCache
+- @ref components::PostgreCache
 
 A typical case of cache usage consists of trait structure definition:
 
@@ -183,7 +181,7 @@ The DB caches are simple to use and quite poverfull.
 ## Writing a cache
 
 To write your own cache using only the components::CachingComponentBase base
-class, you need to override the cache::CacheUpdateTrait::Update,
+class, you need to override the @ref cache::CacheUpdateTrait::Update,
 implement Full and Incremental updates. In Update(), don't forget to put down
 metrics for the `stats_scope` object, describing how many objects were read,
 how many parsing errors there were, and how many elements are in the final cache.
@@ -229,5 +227,5 @@ Each cache automatically collects metrics. See
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref scripts/docs/en/userver/congestion_control.md | @ref scripts/docs/en/userver/cache_dumps.md ⇨
+⇦ @ref scripts/docs/en/userver/long_transactions.md | @ref scripts/docs/en/userver/cache_dumps.md ⇨
 @htmlonly </div> @endhtmlonly

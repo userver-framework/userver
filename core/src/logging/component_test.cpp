@@ -61,7 +61,8 @@ public:
 
     TwoLoggersComponent(const components::ComponentConfig& config, const components::ComponentContext& context)
         : components::ComponentBase(config, context),
-          custom_logger_(context.FindComponent<components::Logging>().GetLogger("custom")) {
+          custom_logger_(context.FindComponent<components::Logging>().GetLogger("custom"))
+    {
         LOG_INFO() << "constructor default";
         LOG_INFO_TO(custom_logger_) << "constructor custom";
     }
@@ -128,7 +129,8 @@ TEST_F(ComponentList, CustomLogger) {
     fs::blocking::RewriteFileContents(config_path, kTwoLoggersConfig);
 
     fs::blocking::RewriteFileContents(
-        config_vars_path, fmt::format(kTwoLoggersConfigVars, default_logger_path, custom_logger_path)
+        config_vars_path,
+        fmt::format(kTwoLoggersConfigVars, default_logger_path, custom_logger_path)
     );
 
     UASSERT_NO_THROW(components::RunOnce(config_path, config_vars_path, std::nullopt, MakeTwoLoggersComponentList()));

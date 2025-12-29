@@ -10,12 +10,17 @@ USERVER_NAMESPACE_BEGIN
 namespace engine::io {
 
 TerminatorNotFoundException::TerminatorNotFoundException()
-    : IoException("EOF encountered before terminator could be found") {}
+    : IoException("EOF encountered before terminator could be found")
+{}
 
-BufferedReader::BufferedReader(ReadableBasePtr source) : source_(std::move(source)) {}
+BufferedReader::BufferedReader(ReadableBasePtr source)
+    : source_(std::move(source))
+{}
 
 BufferedReader::BufferedReader(ReadableBasePtr source, size_t buffer_size)
-    : source_(std::move(source)), buffer_(buffer_size) {}
+    : source_(std::move(source)),
+      buffer_(buffer_size)
+{}
 
 BufferedReader::~BufferedReader() = default;
 
@@ -38,7 +43,9 @@ std::string BufferedReader::ReadAll(size_t num_bytes, Deadline deadline) {
     if (buffer_->AvailableReadBytes() < num_bytes) {
         buffer_->Reserve(num_bytes - buffer_->AvailableReadBytes());
         while (buffer_->AvailableReadBytes() < num_bytes) {
-            if (!FillBuffer(deadline)) break;
+            if (!FillBuffer(deadline)) {
+                break;
+            }
         }
     }
     std::string result(buffer_->ReadPtr(), std::min(num_bytes, buffer_->AvailableReadBytes()));
@@ -48,7 +55,9 @@ std::string BufferedReader::ReadAll(size_t num_bytes, Deadline deadline) {
 
 std::string BufferedReader::ReadLine(Deadline deadline) {
     static const auto kPred = [](int c) { return c == '\n' || c == '\r' || c == EOF; };
-    while (kPred(Peek(deadline))) Getc(deadline);
+    while (kPred(Peek(deadline))) {
+        Getc(deadline);
+    }
     auto result = ReadUntil(kPred, deadline);
     boost::algorithm::trim_right_if(result, kPred);
     return result;
@@ -69,7 +78,9 @@ std::string BufferedReader::ReadUntil(utils::function_ref<bool(int) const> pred,
 
         if (!found) {
             buffer_->Reserve(1);
-            if (!FillBuffer(deadline)) break;
+            if (!FillBuffer(deadline)) {
+                break;
+            }
         }
     }
     if (!found && !pred(EOF)) {
@@ -83,7 +94,9 @@ std::string BufferedReader::ReadUntil(utils::function_ref<bool(int) const> pred,
 
 int BufferedReader::Getc(Deadline deadline) {
     const int result = Peek(deadline);
-    if (result != EOF) buffer_->ReportRead(1);
+    if (result != EOF) {
+        buffer_->ReportRead(1);
+    }
     return result;
 }
 
@@ -103,7 +116,9 @@ void BufferedReader::Discard(size_t num_bytes, Deadline deadline) {
         while (discarded_bytes < num_bytes) {
             buffer_->Reserve(1);
             auto read_bytes = FillBuffer(deadline);
-            if (!read_bytes) break;
+            if (!read_bytes) {
+                break;
+            }
 
             auto bytes_to_skip = std::min(read_bytes, num_bytes - discarded_bytes);
             buffer_->ReportRead(bytes_to_skip);

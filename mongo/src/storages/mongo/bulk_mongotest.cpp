@@ -184,7 +184,9 @@ UTEST_F(Bulk, Update) {
     {
         auto bulk = coll.MakeUnorderedBulk(mongo::options::SuppressServerExceptions{});
         bulk.UpdateOne(
-            bson::MakeDoc("y", 2), bson::MakeDoc("$setOnInsert", bson::MakeDoc("_id", 1)), mongo::options::Upsert{}
+            bson::MakeDoc("y", 2),
+            bson::MakeDoc("$setOnInsert", bson::MakeDoc("_id", 1)),
+            mongo::options::Upsert{}
         );
         bulk.UpdateOne(bson::MakeDoc("_id", 2), bson::MakeDoc("$set", bson::MakeDoc("x", 2)), mongo::options::Upsert{});
         bulk.UpdateMany({}, bson::MakeDoc("$inc", bson::MakeDoc("x", 1)));
@@ -251,7 +253,9 @@ UTEST_F(Bulk, Delete) {
     {
         std::vector<formats::bson::Document> docs;
         docs.reserve(10);
-        for (int i = 0; i < 10; ++i) docs.push_back(bson::MakeDoc("x", i));
+        for (int i = 0; i < 10; ++i) {
+            docs.push_back(bson::MakeDoc("x", i));
+        }
         coll.InsertMany(std::move(docs));
     }
 

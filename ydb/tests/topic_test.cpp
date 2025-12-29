@@ -96,9 +96,8 @@ ydb::TopicReadSession YdbTopicReadSessionWithDataHandler<ydb::TopicReadSession>:
     NYdb::NTopic::TReadSessionSettings read_session_settings;
     read_session_settings.AppendTopics(ydb::impl::ToString(topic_path));
     read_session_settings.ConsumerName(ydb::impl::ToString(consumer_name));
-    read_session_settings.EventHandlers_.SimpleDataHandlers(
-        [handler = std::move(data_handler)](const auto&) { handler(); }, commit_data_events
-    );
+    read_session_settings.EventHandlers_
+        .SimpleDataHandlers([handler = std::move(data_handler)](const auto&) { handler(); }, commit_data_events);
     return GetTopicClient().CreateReadSession(read_session_settings);
 }
 
@@ -113,9 +112,8 @@ YdbTopicReadSessionWithDataHandler<ydb::FederatedTopicReadSession>::CreateReadSe
     NYdb::NFederatedTopic::TFederatedReadSessionSettings read_session_settings;
     read_session_settings.AppendTopics(ydb::impl::ToString(topic_path));
     read_session_settings.ConsumerName(ydb::impl::ToString(consumer_name));
-    read_session_settings.FederatedEventHandlers_.SimpleDataHandlers(
-        [handler = std::move(data_handler)](const auto&) { handler(); }, commit_data_events
-    );
+    read_session_settings.FederatedEventHandlers_
+        .SimpleDataHandlers([handler = std::move(data_handler)](const auto&) { handler(); }, commit_data_events);
 
     return GetFederatedTopicClient().CreateReadSession(read_session_settings);
 }
@@ -148,7 +146,10 @@ TYPED_UTEST(YdbTopicReadSessionWithDataHandler, CommitDataEventsPersistence) {
     auto read_all = [&](bool commit_data_event) {
         std::atomic<size_t> data_events_count = 0;
         TypeParam session = this->CreateReadSessionWithDataHandler(
-            kTopicPath, kConsumerName, [&data_events_count]() { data_events_count++; }, commit_data_event
+            kTopicPath,
+            kConsumerName,
+            [&data_events_count]() { data_events_count++; },
+            commit_data_event
         );
 
         auto task = engine::AsyncNoSpan([&session] {
@@ -204,7 +205,8 @@ UTEST_F(YdbTopicFixture, TopicReadSessionGetEvents) {
                     [](NYdb::NTopic::TReadSessionEvent::TStopPartitionSessionEvent& e) { e.Confirm(); },
                     []([[maybe_unused]] auto& e) {
                         // do nothing
-                    }},
+                    }
+                },
                 event
             );
         }

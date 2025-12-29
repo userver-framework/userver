@@ -18,7 +18,7 @@
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define PG_PROTOCOL_MAJOR(v) ((v) >> 16)
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define PG_PROTOCOL_MINOR(v) ((v)&0x0000ffff)
+#define PG_PROTOCOL_MINOR(v) ((v) & 0x0000ffff)
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define PG_PROTOCOL(m, n) (((m) << 16) | (n))
 
@@ -79,7 +79,9 @@ USERVER_IMPL_DISABLE_MSAN CancelPacket MakeCancelPacket(const PGcancel& cn) noex
 }  // namespace
 
 USERVER_IMPL_DISABLE_MSAN void Cancel(PGcancel* cn, engine::Deadline deadline) {
-    if (!cn) return;
+    if (!cn) {
+        return;
+    }
 
     engine::io::Sockaddr addr;
     memcpy(addr.Data(), &cn->raddr, std::min<size_t>(sizeof(cn->raddr), addr.Size()));
@@ -90,7 +92,9 @@ USERVER_IMPL_DISABLE_MSAN void Cancel(PGcancel* cn, engine::Deadline deadline) {
 
     CancelPacket cp = MakeCancelPacket(*cn);
     auto ret = tmp_sock.SendAll(&cp, sizeof(cp), deadline);
-    if (ret != sizeof(cp)) throw CommandError("SendAll()");
+    if (ret != sizeof(cp)) {
+        throw CommandError("SendAll()");
+    }
 
     /*
      * Comment from libpq's sources, fe-connect.c, inside internal_cancel():

@@ -17,10 +17,14 @@ constexpr std::chrono::milliseconds kConnectionAcquisitionTimeout{1000};
 constexpr std::chrono::seconds kMonitorInterval{1};
 
 template <typename OnMessage>
-std::unique_ptr<ConsumerBaseImpl>
-CreateAndStartConsumerImpl(ClientImpl& client_impl, const ConsumerSettings& settings, OnMessage&& on_message) {
+std::unique_ptr<ConsumerBaseImpl> CreateAndStartConsumerImpl(
+    ClientImpl& client_impl,
+    const ConsumerSettings& settings,
+    OnMessage&& on_message
+) {
     auto impl = std::make_unique<ConsumerBaseImpl>(
-        client_impl.GetConnection(engine::Deadline::FromDuration(kConnectionAcquisitionTimeout)), settings
+        client_impl.GetConnection(engine::Deadline::FromDuration(kConnectionAcquisitionTimeout)),
+        settings
     );
     impl->Start(std::forward<OnMessage>(on_message));
 
@@ -30,7 +34,10 @@ CreateAndStartConsumerImpl(ClientImpl& client_impl, const ConsumerSettings& sett
 }  // namespace
 
 ConsumerBase::ConsumerBase(std::shared_ptr<Client> client, const ConsumerSettings& settings)
-    : client_{std::move(client)}, settings_{settings}, impl_{nullptr} {
+    : client_{std::move(client)},
+      settings_{settings},
+      impl_{nullptr}
+{
     UASSERT(client_);
 }
 
@@ -54,8 +61,8 @@ void ConsumerBase::Start() {
 
     monitor_.Start(fmt::format("{}_consumer_monitor", settings_.queue.GetUnderlying()), {kMonitorInterval}, [this] {
         if (impl_ == nullptr || impl_->IsBroken()) {
-            LOG_WARNING() << "Consumer for queue '" << settings_.queue.GetUnderlying()
-                          << "' is broken, trying to restart";
+            LOG_WARNING()
+                << "Consumer for queue '" << settings_.queue.GetUnderlying() << "' is broken, trying to restart";
             try {
                 // TODO : there is a subtle problem with this:
                 // we might set up all the consumers over the same host if some

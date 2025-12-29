@@ -22,11 +22,8 @@ template <typename RawStream>
 class [[nodiscard]] StreamReadFuture {
 public:
     /// @cond
-    StreamReadFuture(
-        impl::StreamingCallState& state,
-        RawStream& stream,
-        const google::protobuf::Message* recv_message
-    ) noexcept;
+    StreamReadFuture(impl::StreamingCallState& state, RawStream& stream, const google::protobuf::Message* recv_message)
+        noexcept;
     /// @endcond
 
     StreamReadFuture(StreamReadFuture&& other) noexcept;
@@ -69,11 +66,16 @@ StreamReadFuture<RawStream>::StreamReadFuture(
 template <typename RawStream>
 StreamReadFuture<RawStream>::StreamReadFuture(StreamReadFuture&& other) noexcept
     // state_ == nullptr signals that *this is empty. Other fields may remain garbage in `other`.
-    : state_{std::exchange(other.state_, nullptr)}, stream_{other.stream_}, recv_message_{other.recv_message_} {}
+    : state_{std::exchange(other.state_, nullptr)},
+      stream_{other.stream_},
+      recv_message_{other.recv_message_}
+{}
 
 template <typename RawStream>
 StreamReadFuture<RawStream>& StreamReadFuture<RawStream>::operator=(StreamReadFuture&& other) noexcept {
-    if (this == &other) return *this;
+    if (this == &other) {
+        return *this;
+    }
     [[maybe_unused]] auto for_destruction = std::move(*this);
     // state_ == nullptr signals that *this is empty. Other fields may remain garbage in `other`.
     state_ = std::exchange(other.state_, nullptr);
@@ -95,20 +97,21 @@ bool StreamReadFuture<RawStream>::Get() {
     UINVARIANT(state_, "'Get' must be called only once");
     const impl::StreamingCallState::AsyncMethodInvocationGuard guard(*state_);
     auto* const state = std::exchange(state_, nullptr);
-    const auto result = impl::WaitAndTryCancelIfNeeded(state->GetAsyncMethodInvocation(), state->GetClientContext());
-    if (result == ugrpc::impl::AsyncMethodInvocation::WaitStatus::kCancelled) {
+    const auto
+        wait_status = impl::WaitAndTryCancelIfNeeded(state->GetAsyncMethodInvocation(), state->GetClientContext());
+    if (wait_status == ugrpc::impl::AsyncMethodInvocation::WaitStatus::kCancelled) {
         state->GetStatsScope().OnCancelled();
         state->GetStatsScope().Flush();
-    } else if (result == ugrpc::impl::AsyncMethodInvocation::WaitStatus::kError) {
+    } else if (wait_status == ugrpc::impl::AsyncMethodInvocation::WaitStatus::kError) {
         // Finish can only be called once all the data is read, otherwise the
         // underlying gRPC driver hangs.
         impl::Finish(*stream_, *state, /*final_response=*/nullptr, /*throw_on_error=*/true);
     } else {
         if (recv_message_) {
-            RunMiddlewarePipeline(*state, impl::RecvMessageHooks(*recv_message_));
+            RunMiddlewarePipeline(*state, impl::MiddlewareHooks::RecvMessageHooks(*recv_message_));
         }
     }
-    return result == ugrpc::impl::AsyncMethodInvocation::WaitStatus::kOk;
+    return wait_status == ugrpc::impl::AsyncMethodInvocation::WaitStatus::kOk;
 }
 
 template <typename RawStream>

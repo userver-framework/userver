@@ -74,10 +74,14 @@ TEST(KeyShardTaximeterCrc32, Multithreads) {
             }
 
             const std::scoped_lock guard(mutex);
-            for (size_t i = 0; i < kShards; ++i) counts[i] += tcounts[i];
+            for (size_t i = 0; i < kShards; ++i) {
+                counts[i] += tcounts[i];
+            }
         });
     }
-    for (auto& thread : threads) thread.join();
+    for (auto& thread : threads) {
+        thread.join();
+    }
 
     EXPECT_EQ(kCount, counts[key_shard.ShardByKey(kKey)]);
 }

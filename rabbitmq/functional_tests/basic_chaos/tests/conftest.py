@@ -1,5 +1,4 @@
 import json
-import typing
 
 import pytest
 from pytest_userver import chaos
@@ -8,7 +7,7 @@ pytest_plugins = ['pytest_userver.plugins.rabbitmq']
 
 
 @pytest.fixture(scope='session', name='gate_settings')
-def rabbitmq_gate_settings() -> typing.Tuple[str, int]:
+def rabbitmq_gate_settings() -> tuple[str, int]:
     return ('localhost', 17329)
 
 
@@ -51,4 +50,4 @@ async def _gate_ready(service_client, _gate):
     _gate.start_accepting()
 
     await _gate.wait_for_connections(timeout=5.0)
-    yield _gate
+    return _gate

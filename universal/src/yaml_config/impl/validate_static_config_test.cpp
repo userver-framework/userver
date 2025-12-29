@@ -29,7 +29,7 @@ incorrect_filed_name:
     UEXPECT_THROW_MSG(
         formats::yaml::FromString(schema).As<yaml_config::Schema>(),
         std::runtime_error,
-        "Schema field name must be one of ['type', 'description', "
+        "Schema field name must be one of ['type', 'description', 'default', "
         "'defaultDescription', 'additionalProperties', 'properties', 'items', "
         "'enum', 'minimum', 'maximum', 'minItems', 'maxItems'], but "
         "'incorrect_filed_name' was given. "
@@ -486,10 +486,14 @@ maximum: 20
     UEXPECT_NO_THROW(Validate("15", schema));
     UEXPECT_NO_THROW(Validate("20", schema));
     UEXPECT_THROW_MSG(
-        Validate("9", schema), std::runtime_error, "Expected integer at path '/' to be >= 10 (actual: 9)"
+        Validate("9", schema),
+        std::runtime_error,
+        "Expected integer at path '/' to be >= 10 (actual: 9)"
     );
     UEXPECT_THROW_MSG(
-        Validate("21", schema), std::runtime_error, "Expected integer at path '/' to be <= 20 (actual: 21)"
+        Validate("21", schema),
+        std::runtime_error,
+        "Expected integer at path '/' to be <= 20 (actual: 21)"
     );
     UEXPECT_THROW_MSG(Validate("15.5", schema), std::runtime_error, "Value '15.5' of field '/' must be integer");
     UEXPECT_THROW_MSG(Validate("What", schema), std::runtime_error, "Value 'What' of field '/' must be integer");
@@ -509,10 +513,14 @@ maximum: 19.5
     UEXPECT_NO_THROW(Validate("19.4", schema));
     UEXPECT_NO_THROW(Validate("19.5", schema));
     UEXPECT_THROW_MSG(
-        Validate("10.4", schema), std::runtime_error, "Expected number at path '/' to be >= 10.5 (actual: 10.4)"
+        Validate("10.4", schema),
+        std::runtime_error,
+        "Expected number at path '/' to be >= 10.5 (actual: 10.4)"
     );
     UEXPECT_THROW_MSG(
-        Validate("19.6", schema), std::runtime_error, "Expected number at path '/' to be <= 19.5 (actual: 19.6)"
+        Validate("19.6", schema),
+        std::runtime_error,
+        "Expected number at path '/' to be <= 19.5 (actual: 19.6)"
     );
     UEXPECT_THROW_MSG(Validate("What", schema), std::runtime_error, "Value 'What' of field '/' must be number");
 }

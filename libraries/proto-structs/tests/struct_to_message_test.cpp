@@ -36,7 +36,8 @@ TEST(StructToMessage, Scalar) {
             .f8 = "test1",
             .f9 = "test2",
             .f10 = structs::TestEnum::kValue1,
-            .f11 = 987};
+            .f11 = 987
+        };
 
         auto msg = StructToMessage(obj);
         CheckScalarEqual(obj, msg);
@@ -91,8 +92,11 @@ TEST(StructToMessage, WellKnownStd) {
             .f1 = TimePoint{std::chrono::milliseconds{123'456'789}},
             .f2 = std::chrono::milliseconds{987'654'321},
             .f3 = {std::chrono::year{2025}, std::chrono::month{8}, std::chrono::day{27}},
-            .f4 = std::chrono::hh_mm_ss<std::chrono::microseconds>{
-                std::chrono::minutes(65) + std::chrono::seconds{13} + std::chrono::microseconds{123'456}}};
+            .f4 =
+                std::chrono::hh_mm_ss<std::chrono::microseconds>{
+                    std::chrono::minutes(65) + std::chrono::seconds{13} + std::chrono::microseconds{123'456}
+                }
+        };
 
         auto msg = StructToMessage(obj);
 
@@ -180,12 +184,15 @@ TEST(StructToMessage, WellKnownUsrv) {
             .f4 = std::chrono::year_month_day{std::chrono::year{2025}, std::chrono::month{8}, std::chrono::day{27}},
             .f5 =
                 std::chrono::hh_mm_ss<std::chrono::microseconds>{
-                    std::chrono::minutes(65) + std::chrono::seconds{13} + std::chrono::microseconds{123'456}},
+                    std::chrono::minutes(65) + std::chrono::seconds{13} + std::chrono::microseconds{123'456}
+                },
             .f6 =
                 utils::datetime::TimeOfDay<std::chrono::microseconds>{
                     std::chrono::hours{23} + std::chrono::minutes{59} + std::chrono::seconds{59} +
-                    std::chrono::microseconds{999'999}},
-            .f7 = decimal64::Decimal<3>{"123.456"}};
+                    std::chrono::microseconds{999'999}
+                },
+            .f7 = decimal64::Decimal<3>{"123.456"}
+        };
         messages::Simple any_payload;
 
         auto msg = StructToMessage(obj);
@@ -232,8 +239,8 @@ TEST(StructToMessage, WellKnownUsrv) {
 
 TEST(StructToMessage, Optional) {
     {
-        structs::Optional obj = {
-            .f1 = 1001, .f2 = "test", .f3 = structs::TestEnum::kValue1, .f4 = structs::Simple{.f1 = 10}};
+        structs::Optional obj =
+            {.f1 = 1001, .f2 = "test", .f3 = structs::TestEnum::kValue1, .f4 = structs::Simple{.f1 = 10}};
 
         auto msg = StructToMessage(obj);
         CheckOptionalEqual(obj, msg);
@@ -271,7 +278,8 @@ TEST(StructToMessage, Repeated) {
             structs::TestEnum::kValue1,
             structs::TestEnum::kUnspecified,
             structs::TestEnum::kValue2,
-            static_cast<structs::TestEnum>(1001)};
+            static_cast<structs::TestEnum>(1001)
+        };
         obj.f4 = {{.f1 = 1000}, {.f1 = 1001}};
 
         auto msg = StructToMessage(obj);
@@ -422,10 +430,12 @@ TEST(StructToMessage, Strong) {
         obj.f2 = structs::Strong::F2Strong{"hello"};
         obj.f3 = {
             structs::Strong::F3Strong{structs::TestEnum::kValue1},
-            structs::Strong::F3Strong{structs::TestEnum::kValue2}};
+            structs::Strong::F3Strong{structs::TestEnum::kValue2}
+        };
         obj.f4 = {
             {1, structs::Strong::F4Strong(structs::Simple{.f1 = 3})},
-            {2, structs::Strong::F4Strong(structs::Simple{.f1 = 4})}};
+            {2, structs::Strong::F4Strong(structs::Simple{.f1 = 4})}
+        };
         obj.test_oneof.Set<0>(structs::Strong::F5Strong{std::chrono::nanoseconds{-123'456'789'987'654'321}});
 
         auto msg = StructToMessage(obj);
@@ -442,7 +452,8 @@ TEST(StructToMessage, Strong) {
         obj.f1 = structs::Strong::F1Strong{1};
         obj.f4 = {
             {100, structs::Strong::F4Strong(structs::Simple{.f1 = 2})},
-            {200, structs::Strong::F4Strong(structs::Simple{.f1 = 3})}};
+            {200, structs::Strong::F4Strong(structs::Simple{.f1 = 3})}
+        };
         msg.set_f1(1001);
         msg.add_f3(messages::TestEnum::TEST_ENUM_VALUE2);
 

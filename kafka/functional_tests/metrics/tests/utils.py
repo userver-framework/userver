@@ -1,6 +1,4 @@
-from typing import Awaitable
-from typing import Dict
-from typing import List
+from collections.abc import Awaitable
 
 CONSUME_BASE_ROUTE = '/consume'
 PRODUCE_ROUTE = '/produce'
@@ -10,7 +8,7 @@ def make_producer_request_body(
     topic: str,
     key: str,
     message: str,
-) -> Dict[str, str]:
+) -> dict[str, str]:
     return {
         'producer': 'kafka-producer',
         'topic': topic,
@@ -52,7 +50,7 @@ async def produce(
 async def consume(
     service_client,
     topic: str,
-) -> Dict[str, List[Dict[str, str]]]:
+) -> dict[str, list[dict[str, str]]]:
     response = await service_client.post(f'{CONSUME_BASE_ROUTE}/{topic}')
 
     assert response.status_code == 200

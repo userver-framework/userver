@@ -10,13 +10,8 @@ const grpc::Status kUnimplementedStatus{grpc::StatusCode::UNIMPLEMENTED, "This m
 
 const grpc::Status kUnknownErrorStatus{
     grpc::StatusCode::UNKNOWN,
-    "The service method has exited unexpectedly, without providing a status"};
-
-void CheckInvocationSucceeded(bool ok, std::string_view call_name, std::string_view stage) {
-    if (!ok) {
-        throw RpcInterruptedError(call_name, stage);
-    }
-}
+    "The service method has exited unexpectedly, without providing a status"
+};
 
 }  // namespace ugrpc::server::impl
 

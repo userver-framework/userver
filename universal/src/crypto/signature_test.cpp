@@ -277,13 +277,13 @@ TEST(Crypto, SignatureCMSSignVerify) {
     using Verifier = crypto::CmsVerifier;
     using VFlags = Verifier::Flags;
 
-    const Signer signer{
-        crypto::Certificate::LoadFromString(kSomeCert), crypto::PrivateKey::LoadFromString(kSomePrivKey)};
+    const Signer
+        signer{crypto::Certificate::LoadFromString(kSomeCert), crypto::PrivateKey::LoadFromString(kSomePrivKey)};
     const Verifier verifier{crypto::Certificate::LoadFromString(kSomeCert)};
 
     const auto sign_and_verify = [signer, verifier](Signer::OutForm out_form, Verifier::InForm in_form) {
-        const auto signed_data =
-            signer.Sign({"test data"}, {SFlags::kNoCerts, SFlags::kBinary, SFlags::kText}, out_form);
+        const auto
+            signed_data = signer.Sign({"test data"}, {SFlags::kNoCerts, SFlags::kBinary, SFlags::kText}, out_form);
         verifier.Verify({signed_data}, {VFlags::kNoSignerCertVerify}, in_form);
     };
     EXPECT_NO_THROW(sign_and_verify(Signer::OutForm::kSMime, Verifier::InForm::kSMime));
@@ -311,11 +311,14 @@ TEST(Crypto, SignatureCMSVerify) {
         "bpgPRI6wObUCzijWnQ3XeIzEHxYUsB4rh1V6E9aQu5hoMSee+f56f2PNgZBnpYcSKOIho38/"
         "3pVtOqn49Y+p2Jq+"
         "jT0dbrCHghRYp2oLvn1NLfzDIFp8SQQPGGywHkzOrBCl1KHCS9puDKR53oNef8s+"
-        "nUytFyYNUslSbMqW"};
+        "nUytFyYNUslSbMqW"
+    };
     const auto signed_data = crypto::base64::Base64Decode(kSignedDataBase64);
 
     EXPECT_NO_THROW(verifier.Verify(
-        {signed_data}, {crypto::CmsVerifier::Flags::kNoSignerCertVerify}, crypto::CmsVerifier::InForm::kDer
+        {signed_data},
+        {crypto::CmsVerifier::Flags::kNoSignerCertVerify},
+        crypto::CmsVerifier::InForm::kDer
     ));
 }
 

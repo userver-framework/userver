@@ -7,7 +7,11 @@ chaos tests; see
 @ingroup userver_testsuite
 """
 
+from __future__ import annotations
+
 import asyncio
+from collections.abc import Callable
+from collections.abc import Coroutine
 import dataclasses
 import functools
 import io
@@ -16,7 +20,8 @@ import random
 import re
 import socket
 import time
-import typing
+from typing import Any
+from typing import TypeAlias
 
 import pytest
 
@@ -60,13 +65,10 @@ MAX_DELAY = 60.0
 logger = logging.getLogger(__name__)
 
 
-Address = typing.Tuple[str, int]
-EvLoop = typing.Any
-Socket = socket.socket
-Interceptor = typing.Callable[
-    [EvLoop, Socket, Socket],
-    typing.Coroutine[typing.Any, typing.Any, None],
-]
+Address: TypeAlias = tuple[str, int]
+EvLoop: TypeAlias = Any
+Socket: TypeAlias = socket.socket
+Interceptor: TypeAlias = Callable[[EvLoop, Socket, Socket], Coroutine[Any, Any, None]]
 
 
 class GateException(Exception):
@@ -174,7 +176,7 @@ class _InterceptBpsLimit:
 
 class _InterceptTimeLimit:
     def __init__(self, timeout: float, jitter: float):
-        self._sockets: typing.Dict[Socket, float] = {}
+        self._sockets: dict[Socket, float] = {}
         assert timeout >= 0.0
         self._timeout = timeout
         assert jitter >= 0.0
@@ -223,7 +225,7 @@ class _InterceptConcatPackets:
     def __init__(self, packet_size: int):
         assert packet_size >= 0
         self._packet_size = packet_size
-        self._expire_at: typing.Optional[float] = None
+        self._expire_at: float | None = None
         self._buf = io.BytesIO()
 
     async def __call__(
@@ -254,7 +256,7 @@ class _InterceptConcatPackets:
 
 
 class _InterceptBytesLimit:
-    def __init__(self, bytes_limit: int, gate: 'BaseGate'):
+    def __init__(self, bytes_limit: int, gate: BaseGate):
         assert bytes_limit >= 0
         self._bytes_limit = bytes_limit
         self._bytes_remain = self._bytes_limit
@@ -301,7 +303,7 @@ class _InterceptSubstitute:
         await loop.sock_sendall(socket_to, data)
 
 
-async def _cancel_and_join(task: typing.Optional[asyncio.Task]) -> None:
+async def _cancel_and_join(task: asyncio.Task | None) -> None:
     if not task or task.cancelled():
         return
 
@@ -409,7 +411,7 @@ class _SocketsPaired:
         self,
         proxy_name: str,
         loop: EvLoop,
-        client: typing.Union[socket.socket, _UdpDemuxSocketMock],
+        client: socket.socket | _UdpDemuxSocketMock,
         server: socket.socket,
         to_server_intercept: Interceptor,
         to_client_intercept: Interceptor,
@@ -455,7 +457,7 @@ class _SocketsPaired:
                 task.result()
         except GateInterceptException as exc:
             logger.info('In "%s": %s', self._proxy_name, exc)
-        except socket.error as exc:
+        except OSError as exc:
             logger.error('Exception in "%s": %s', self._proxy_name, exc)
         except Exception:
             logger.exception('interceptor failed')
@@ -468,7 +470,7 @@ class _SocketsPaired:
             for sock in self._server, self._client:
                 try:
                     sock.close()
-                except socket.error:
+                except OSError:
                     logger.exception('Exception in "%s" on closing %s:', self._proxy_name, sock)
 
 
@@ -499,7 +501,7 @@ class BaseGate:
 
     _NOT_IMPLEMENTED_MESSAGE = 'Do not use BaseGate itself, use one of specializations TcpGate or UdpGate'
 
-    def __init__(self, route: GateRoute, loop: typing.Optional[EvLoop] = None) -> None:
+    def __init__(self, route: GateRoute, loop: EvLoop | None = None) -> None:
         self._route = route
         if loop is None:
             loop = asyncio.get_running_loop()
@@ -508,19 +510,19 @@ class BaseGate:
         self._to_server_intercept: Interceptor = _intercept_ok
         self._to_client_intercept: Interceptor = _intercept_ok
 
-        self._accept_sockets: typing.List[socket.socket] = []
-        self._accept_tasks: typing.List[asyncio.Task[None]] = []
+        self._accept_sockets: list[socket.socket] = []
+        self._accept_tasks: list[asyncio.Task[None]] = []
 
-        self._sockets: typing.Set[_SocketsPaired] = set()
+        self._sockets: set[_SocketsPaired] = set()
 
-    async def __aenter__(self) -> 'BaseGate':
+    async def __aenter__(self) -> BaseGate:
         self.start()
         return self
 
     async def __aexit__(self, exc_type, exc_value, traceback) -> None:
         await self.stop()
 
-    def _create_accepting_sockets(self) -> typing.List[Socket]:
+    def _create_accepting_sockets(self) -> list[Socket]:
         raise NotImplementedError(self._NOT_IMPLEMENTED_MESSAGE)
 
     def start(self):
@@ -590,7 +592,7 @@ class BaseGate:
     async def sockets_close(
         self,
         *,
-        count: typing.Optional[int] = None,
+        count: int | None = None,
     ) -> None:
         """Close all the connection going through the gate"""
         for x in list(self._sockets)[0:count]:
@@ -845,7 +847,7 @@ class TcpGate(BaseGate):
     @see @ref scripts/docs/en/userver/chaos_testing.md
     """
 
-    def __init__(self, route: GateRoute, loop: typing.Optional[EvLoop] = None) -> None:
+    def __init__(self, route: GateRoute, loop: EvLoop | None = None) -> None:
         self._connected_event = asyncio.Event()
         super().__init__(route, loop)
 
@@ -881,8 +883,8 @@ class TcpGate(BaseGate):
             )
             self._connected_event.clear()
 
-    def _create_accepting_sockets(self) -> typing.List[Socket]:
-        res: typing.List[Socket] = []
+    def _create_accepting_sockets(self) -> list[Socket]:
+        res: list[Socket] = []
         for addr in socket.getaddrinfo(
             self._route.host_for_client,
             self._route.port_for_client,
@@ -952,8 +954,8 @@ class UdpGate(BaseGate):
     @see @ref scripts/docs/en/userver/chaos_testing.md
     """
 
-    def __init__(self, route: GateRoute, loop: typing.Optional[EvLoop] = None):
-        self._clients: typing.Set[_UdpDemuxSocketMock] = set()
+    def __init__(self, route: GateRoute, loop: EvLoop | None = None):
+        self._clients: set[_UdpDemuxSocketMock] = set()
         super().__init__(route, loop)
 
     def is_connected(self) -> bool:
@@ -963,8 +965,8 @@ class UdpGate(BaseGate):
         """
         return len(self._sockets) > 0
 
-    def _create_accepting_sockets(self) -> typing.List[Socket]:
-        res: typing.List[Socket] = []
+    def _create_accepting_sockets(self) -> list[Socket]:
+        res: list[Socket] = []
         for addr in socket.getaddrinfo(
             self._route.host_for_client,
             self._route.port_for_client,
@@ -1003,7 +1005,7 @@ class UdpGate(BaseGate):
         while True:
             data, addr = await sock.recvfrom(RECV_MAX_SIZE, timeout=60.0)
 
-            client: typing.Optional[_UdpDemuxSocketMock] = None
+            client: _UdpDemuxSocketMock | None = None
             for known_clients in self._clients:
                 if addr == known_clients.peer_address:
                     client = known_clients

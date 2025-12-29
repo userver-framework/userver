@@ -35,8 +35,8 @@ class ConnectionImpl {
 public:
     struct PreparedStatementInfo {
         Connection::StatementId id{};
-        std::string statement;
-        std::string statement_name;
+        Query query;
+        std::string meta_statement_name;
         ResultSet description{nullptr};
     };
 
@@ -79,14 +79,20 @@ public:
 
     Connection::Statistics GetStatsAndReset();
 
-    ResultSet
-    ExecuteCommand(const Query& query, const detail::QueryParameters& params, OptionalCommandControl statement_cmd_ctl);
+    ResultSet ExecuteCommand(
+        const Query& query,
+        const detail::QueryParameters& params,
+        OptionalCommandControl statement_cmd_ctl
+    );
 
-    const PreparedStatementInfo&
-    PrepareStatement(const Query& query, const detail::QueryParameters& params, TimeoutDuration timeout);
+    const PreparedStatementInfo& PrepareStatement(
+        const Query& query,
+        const detail::QueryParameters& params,
+        TimeoutDuration timeout
+    );
     void AddIntoPipeline(
         CommandControl cc,
-        const std::string& prepared_statement_name,
+        const std::string& meta_statement_name,
         const detail::QueryParameters& params,
         const ResultSet& description,
         tracing::ScopeTime& scope
@@ -105,7 +111,7 @@ public:
     void Finish();
 
     Connection::StatementId PortalBind(
-        USERVER_NAMESPACE::utils::zstring_view statement,
+        const Query& query,
         const std::string& portal_name,
         const detail::QueryParameters& params,
         OptionalCommandControl statement_cmd_ctl
@@ -160,7 +166,7 @@ private:
     void SetStatementTimeout(OptionalCommandControl cmd_ctl);
 
     const PreparedStatementInfo& DoPrepareStatement(
-        USERVER_NAMESPACE::utils::zstring_view statement,
+        const Query& query,
         const detail::QueryParameters& params,
         engine::Deadline deadline,
         tracing::Span& span,
@@ -208,7 +214,6 @@ private:
 
     template <typename Counter>
     ResultSet WaitResult(
-        USERVER_NAMESPACE::utils::zstring_view statement,
         engine::Deadline deadline,
         TimeoutDuration network_timeout,
         Counter& counter,

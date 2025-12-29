@@ -1,0 +1,73 @@
+type: object
+description: Dynamically configurable MongoDB client component
+additionalProperties: false
+properties:
+    appname:
+        type: string
+        description: application name for the DB server
+        default: userver
+    conn_timeout:
+        type: string
+        description: connection timeout
+        default: 2s
+    so_timeout:
+        type: string
+        description: socket timeout
+        default: 10s
+    queue_timeout:
+        type: string
+        description: max connection queue wait time
+        default: 1s
+    initial_size:
+        type: string
+        description: number of connections created initially (per database)
+        default: 16
+    max_size:
+        type: integer
+        description: limit for total connections number (per database)
+        default: 128
+    idle_limit:
+        type: integer
+        description: limit for idle connections number (per database)
+        default: 64
+    connecting_limit:
+        type: integer
+        description: limit for establishing connections number (per database)
+        default: 8
+    local_threshold:
+        type: string
+        description: |
+            Latency window for instance selection.
+
+            Default: mongodb default
+    max_replication_lag:
+        type: string
+        description: replication lag limit for usable secondaries, min. 90s
+    stats_verbosity:
+        type: string
+        description: changes the granularity of reported metrics
+        default: 'terse'
+        enum:
+          - terse
+          - full
+          - none
+    dns_resolver:
+        type: string
+        description: server hostname resolver type (getaddrinfo or async)
+        default: 'async'
+        enum:
+          - getaddrinfo
+          - async
+    congestion_control:
+        description: congestion control settings
+        type: object
+        additionalProperties: false
+        properties:
+            fake-mode:
+                type: boolean
+                description: whether CC limiter is actually working
+                default: false
+            enabled:
+                type: boolean
+                description: whether CC is enabled for the database
+                default: true

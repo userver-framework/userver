@@ -6,9 +6,6 @@
 from collections.abc import Iterable
 import dataclasses
 from typing import Any
-from typing import List
-from typing import Optional
-from typing import Union
 
 from proto_schema_parser import ast
 
@@ -20,7 +17,7 @@ from proto_structs.models import type_overrides
 from proto_structs.models import type_ref_consts
 
 
-def collect(*, file_ast: ast.File, plugin_options: Optional[Any]) -> List[str]:
+def collect(*, file_ast: ast.File, plugin_options: Any | None) -> list[str]:
     """
     Recursively collect all includes that will be present in the generated structs hpp or cpp file.
     Includes to other structs or vanilla protobuf files are NOT accounted for.
@@ -28,7 +25,7 @@ def collect(*, file_ast: ast.File, plugin_options: Optional[Any]) -> List[str]:
     The result is always sorted.
     """
     parsed_options = options.PluginOptions(**plugin_options) if plugin_options else options.PluginOptions()
-    includes_set = set(include.path for include in collect_file(file_ast, plugin_options=parsed_options))
+    includes_set = {include.path for include in collect_file(file_ast, plugin_options=parsed_options)}
     includes_set.difference_update(includes_bundles.bundle_hpp())
     includes_set.difference_update(includes_bundles.bundle_cpp())
     return sorted(includes_set)
@@ -42,7 +39,7 @@ class FileContext:
 
 
 def collect_file(file: ast.File, /, *, plugin_options: options.PluginOptions) -> Iterable[includes.Include]:
-    package: Optional[str] = None
+    package: str | None = None
     for element in file.file_elements:
         if isinstance(element, ast.Package):
             assert package is None
@@ -63,7 +60,7 @@ def collect_enum(enum: ast.Enum, /, *, context: FileContext) -> Iterable[include
     yield includes.Include(path='limits', kind=includes.IncludeKind.FOR_HPP)
 
 
-def collect_message(message: Union[ast.Message, ast.Group], /, *, context: FileContext) -> Iterable[includes.Include]:
+def collect_message(message: ast.Message | ast.Group, /, *, context: FileContext) -> Iterable[includes.Include]:
     yield from gen_node.COMMON_STRUCT_INCLUDES
 
     for element in message.elements:
@@ -94,7 +91,8 @@ def _collect_field_type(proto_type_name: str, /, *, context: FileContext) -> Ite
         return
 
     if override := type_overrides.get_type_override(
-        proto_type_name=proto_type_name, plugin_options=context.plugin_options
+        proto_type_name=proto_type_name,
+        plugin_options=context.plugin_options,
     ):
         yield from override.collect_includes()
         return
@@ -102,7 +100,8 @@ def _collect_field_type(proto_type_name: str, /, *, context: FileContext) -> Ite
     # For protobuf modules that define well-known types, they may refer to them without package.
     if context.package in _WELL_KNOWN_PACKAGES:
         if override := type_overrides.get_type_override(
-            proto_type_name=f'{context.package}.{proto_type_name}', plugin_options=context.plugin_options
+            proto_type_name=f'{context.package}.{proto_type_name}',
+            plugin_options=context.plugin_options,
         ):
             yield from override.collect_includes()
             return

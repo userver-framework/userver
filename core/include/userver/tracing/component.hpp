@@ -10,8 +10,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace components {
 
-// clang-format off
-
 /// @ingroup userver_components
 ///
 /// @brief Component that initializes the request tracing facilities.
@@ -20,21 +18,19 @@ namespace components {
 ///
 /// The component must be configured in service config.
 ///
-/// ## Static options:
-/// Name | Description | Default value
-/// ---- | ----------- | -------------
-/// service-name | name of the service to write in traces | ''
-/// tracer | type of the tracer to trace, currently supported only 'native' | 'native'
+/// ## Static options of components::Tracer :
+/// @include{doc} scripts/docs/en/components_schema/core/src/tracing/component.md
+///
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
 ///
 /// ## Static configuration example:
 ///
 /// @snippet components/common_component_list_test.cpp  Sample tracer component config
-
-// clang-format on
 class Tracer final : public RawComponentBase {
 public:
     /// @ingroup userver_component_names
-    /// @brief The default name of components::Tracer
+    /// @brief The default name of @ref components::Tracer
     static constexpr std::string_view kName = "tracer";
 
     Tracer(const ComponentConfig& config, const ComponentContext& context);

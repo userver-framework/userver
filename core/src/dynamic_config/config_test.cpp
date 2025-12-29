@@ -35,9 +35,8 @@ SampleStructConfig Parse(const formats::json::Value& value, formats::parse::To<S
     };
 }
 
-const dynamic_config::Key<SampleStructConfig> kSampleStructConfig{
-    "SAMPLE_STRUCT_CONFIG",
-    dynamic_config::DefaultAsJsonString{R"(
+const dynamic_config::Key<SampleStructConfig>
+    kSampleStructConfig{"SAMPLE_STRUCT_CONFIG", dynamic_config::DefaultAsJsonString{R"(
   {
     "is_foo_enabled": false,
     "bar_period_ms": 42000
@@ -133,7 +132,9 @@ UTEST(DynamicConfig, TheOldWay) {
 
 class DummyClient final {
 public:
-    explicit DummyClient(dynamic_config::Source config) : config_(config) {}
+    explicit DummyClient(dynamic_config::Source config)
+        : config_(config)
+    {}
 
     void DoStuff() {
         const auto snapshot = config_.GetSnapshot();
@@ -268,10 +269,10 @@ private:
 }
 
 UTEST(DynamicConfig, SingleSubscription) {
-    const std::vector<dynamic_config::KeyValue> vars1{
-        {kDummyConfig, {0, "bar"}}, {kIntConfig, 1}, {kBoolConfig, false}};
-    const std::vector<dynamic_config::KeyValue> vars2{
-        {kDummyConfig, {0, "foo"}}, {kIntConfig, 2}, {kBoolConfig, false}};
+    const std::vector<dynamic_config::KeyValue>
+        vars1{{kDummyConfig, {0, "bar"}}, {kIntConfig, 1}, {kBoolConfig, false}};
+    const std::vector<dynamic_config::KeyValue>
+        vars2{{kDummyConfig, {0, "foo"}}, {kIntConfig, 2}, {kBoolConfig, false}};
     const std::vector<dynamic_config::KeyValue> vars3{{kDummyConfig, {1, "foo"}}, {kIntConfig, 2}, {kBoolConfig, true}};
 
     dynamic_config::StorageMock storage;
@@ -338,14 +339,12 @@ UTEST(DynamicConfig, GetEventChannel) {
     EXPECT_EQ(subscribers[2].GetCounter(), 2);
 
     auto& main_channel = source.GetEventChannel();
-    scopes[3] = main_channel.AddListener(
-        concurrent::FunctionId(&subscribers[3]),
-        "",
-        [&](const dynamic_config::Snapshot& snapshot) {
-            subscribers[3].OnConfigUpdate(snapshot);
-            subscribers[3].OnConfigUpdate(snapshot);
-        }
-    );
+    scopes[3] =
+        main_channel
+            .AddListener(concurrent::FunctionId(&subscribers[3]), "", [&](const dynamic_config::Snapshot& snapshot) {
+                subscribers[3].OnConfigUpdate(snapshot);
+                subscribers[3].OnConfigUpdate(snapshot);
+            });
 
     storage.Extend(vars3);
     EXPECT_EQ(subscribers[0].GetCounter(), 3);
@@ -424,7 +423,9 @@ class ConfigSubscriber final {
 public:
     /*! [Custom subscription for dynamic config update] */
     void OnConfigUpdate(const dynamic_config::Diff& diff_data) {
-        if (!diff_data.previous) return;
+        if (!diff_data.previous) {
+            return;
+        }
 
         const auto& previous = *diff_data.previous;
         const auto& current = diff_data.current;
@@ -520,7 +521,9 @@ UTEST(DynamicConfig, DeadlockOnSubscribeInCallback) {
 UTEST(DynamicConfig, DeadlockOnSubscribeInSendEvent) {
     struct LocalSubscriber {
         void OnConfigUpdate(const dynamic_config::Snapshot&) {
-            if (cb) cb();
+            if (cb) {
+                cb();
+            }
         }
 
         std::function<void()> cb;
@@ -548,7 +551,9 @@ UTEST(DynamicConfig, DeadlockOnSubscribeInSendEvent) {
 UTEST(DynamicConfig, DeadlockOnSubscribeInSendEventDiff) {
     struct LocalSubscriber {
         void OnDiffUpdate(const dynamic_config::Diff&) {
-            if (cb) cb();
+            if (cb) {
+                cb();
+            }
         }
 
         std::function<void()> cb;

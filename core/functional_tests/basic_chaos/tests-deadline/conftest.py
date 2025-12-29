@@ -14,9 +14,9 @@ def _userver_config_http_client(userver_config_http_client):
         userver_config_http_client(config_yaml, config_vars)
 
         components = config_yaml['components_manager']['components']
-        http_client = components['http-client']
+        http_client_core = components['http-client-core']
         # There are tests in this module that specifically want to force
-        # http-client timeouts.
-        http_client.pop('testsuite-timeout')
+        # http-client-core timeouts.
+        http_client_core.pop('testsuite-timeout')
 
     return patch_config

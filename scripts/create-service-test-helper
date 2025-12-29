@@ -10,7 +10,7 @@ CMAKE_OPTS=$1
 shift
 
 rm -rf "${BINARY_DIR}/new-service"
-"${USERVER}/scripts/userver-create-service" $* "${BINARY_DIR}/new-service"
+"${USERVER}/scripts/userver-create-service.py" $* "${BINARY_DIR}/new-service"
 cd "${BINARY_DIR}/new-service"
 mkdir third_party
 ln -s "${USERVER}" third_party/userver
