@@ -12,6 +12,8 @@ from conan.tools.cmake import CMakeToolchain
 from conan.tools.files import copy
 from conan.tools.files import export_conandata_patches
 from conan.tools.files import get
+from conan.tools.files import load
+from conan.tools.system import package_manager
 from conan.tools.scm import Git
 
 required_conan_version = '>=2.8.0'  # pylint: disable=invalid-name
@@ -84,6 +86,17 @@ class UserverConan(ConanFile):
         're2/*:with_icu': True,
     }
 
+    def set_version(self):
+        content = load(
+            self,
+            os.path.join(
+                os.path.dirname(os.path.realpath(__file__)),
+                'version.txt',
+            ),
+        )
+        hotfix_version = "1-dev"
+        self.version = content.strip() + f".{hotfix_version}"  # pylint: disable=attribute-defined-outside-init
+
     def source(self):
         known_version = (self.conan_data or {}).get('sources', {}).get(self.version)
         if known_version:
@@ -104,18 +117,6 @@ class UserverConan(ConanFile):
             tracked_sources = {f.split('/')[0] for f in tracked_sources}
             for i in tracked_sources:
                 copy(self, f'{i}*', self.recipe_folder, self.export_sources_folder)
-
-    #def set_version(self):
-    #    content = load(
-    #        self,
-    #        os.path.join(
-    #            os.path.dirname(os.path.realpath(__file__)),
-    #            'version.txt',
-    #        ),
-    #    )
-
-    #    hotfix_version = 1
-    #    self.version = content.strip() + f".{hotfix_version}"  # pylint: disable=attribute-defined-outside-init
 
     def layout(self):
         cmake_layout(self)
