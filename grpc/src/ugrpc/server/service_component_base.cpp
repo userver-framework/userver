@@ -61,12 +61,6 @@ void ServiceComponentBase::RegisterService(GenericServiceBase& service) {
 }
 
 yaml_config::Schema ServiceComponentBase::GetStaticConfigSchema() {
-    /*
-        server-name:
-        type: string
-        description: the name of the server to use
-        defaultDescription: grpc-server
-     */
     return yaml_config::MergeSchemasFromResource<
         impl::MiddlewareRunnerComponentBase>("src/ugrpc/server/service_component_base.yaml");
 }
