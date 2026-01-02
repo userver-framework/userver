@@ -56,6 +56,7 @@ components_manager:
         # /// [monitor - config.yaml]
 
         http-client:
+        http-client-core:
             fs-task-processor: fs-task-processor
             user-agent: userver testsuite
         dns-client:                     # Asynchronous DNS component

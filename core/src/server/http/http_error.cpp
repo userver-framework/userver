@@ -33,7 +33,9 @@ HttpStatus GetHttpStatus(handlers::HandlerErrorCode code) noexcept {
     if (const auto status = kCustomHandlerStatusToHttp.TryFind(code)) {
         return *status;
     }
-    if (code < handlers::HandlerErrorCode::kServerSideError) return HttpStatus::kBadRequest;
+    if (code < handlers::HandlerErrorCode::kServerSideError) {
+        return HttpStatus::kBadRequest;
+    }
     return HttpStatus::kInternalServerError;
 }
 

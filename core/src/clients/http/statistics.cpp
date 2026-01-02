@@ -18,13 +18,19 @@ namespace {
 
 template <typename T, typename U>
 T SumToMean(T sum, U count) {
-    if (count == 0) return 0;
+    if (count == 0) {
+        return 0;
+    }
     return sum / static_cast<T>(count);
 }
 
 }  // namespace
 
-RequestStats::RequestStats(Statistics& stats) : stats_(&stats) { stats_->easy_handles_++; }
+RequestStats::RequestStats(Statistics& stats)
+    : stats_(&stats)
+{
+    stats_->easy_handles_++;
+}
 
 RequestStats::~RequestStats() {
     if (stats_) {
@@ -40,14 +46,18 @@ void RequestStats::FinishOk(int code, unsigned int attempts) noexcept {
     UASSERT(stats_);
     stats_->AccountError(Statistics::ErrorGroup::kOk);
     stats_->AccountStatus(code);
-    if (attempts > 1) stats_->retries_ += utils::statistics::Rate{attempts - 1};
+    if (attempts > 1) {
+        stats_->retries_ += utils::statistics::Rate{attempts - 1};
+    }
     StoreTiming();
 }
 
 void RequestStats::FinishEc(std::error_code ec, unsigned int attempts) noexcept {
     UASSERT(stats_);
     stats_->AccountError(Statistics::ErrorCodeToGroup(ec));
-    if (attempts > 1) stats_->retries_ += utils::statistics::Rate{attempts - 1};
+    if (attempts > 1) {
+        stats_->retries_ += utils::statistics::Rate{attempts - 1};
+    }
     StoreTiming();
 }
 
@@ -174,15 +184,16 @@ void DumpMetric(utils::statistics::Writer& writer, const InstanceStatistics& sta
     writer = DestinationStatisticsView{stats};
 
     writer["last-time-to-start-us"] = SumToMean(stats.last_time_to_start_us, stats.instances_aggregated);
-    writer["event-loop-load"][utils::statistics::DurationToString(utils::statistics::kDefaultMaxPeriod)] =
-        SumToMean(stats.multi.current_load, stats.instances_aggregated);
+    writer["event-loop-load"][utils::statistics::DurationToString(utils::statistics::kDefaultMaxPeriod
+    )] = SumToMean(stats.multi.current_load, stats.instances_aggregated);
 
     // Destinations may reuse sockets from other destination,
     // it is very unjust to account active/closed sockets
     writer["sockets"]["close"] = stats.multi.socket_close;
     writer["sockets"]["throttled"] = stats.multi.socket_ratelimit;
-    writer["sockets"]["active"] =
-        utils::statistics::Rate{stats.multi.socket_open.value - stats.multi.socket_close.value};
+    writer["sockets"]["active"] = utils::statistics::Rate{
+        stats.multi.socket_open.value - stats.multi.socket_close.value
+    };
 }
 
 void DumpMetric(utils::statistics::Writer& writer, const PoolStatistics& stats) {
@@ -202,8 +213,11 @@ InstanceStatistics::InstanceStatistics(const Statistics& other)
       retries(other.retries_.Load()),
       timeout_updated_by_deadline(other.timeout_updated_by_deadline_.Load()),
       cancelled_by_deadline(other.cancelled_by_deadline_.Load()),
-      reply_status(other.reply_status_) {
-    for (size_t i = 0; i < error_count.size(); i++) error_count[i] = other.error_count_[i].Load();
+      reply_status(other.reply_status_)
+{
+    for (size_t i = 0; i < error_count.size(); i++) {
+        error_count[i] = other.error_count_[i].Load();
+    }
     multi.socket_open = other.socket_open_.Load();
 }
 
@@ -212,7 +226,9 @@ uint64_t InstanceStatistics::GetNotOkErrorCount() const {
 
     for (size_t i = 0; i < Statistics::kErrorGroupCount; i++) {
         auto error_group = static_cast<Statistics::ErrorGroup>(i);
-        if (error_group == ErrorGroup::kOk) continue;
+        if (error_group == ErrorGroup::kOk) {
+            continue;
+        }
 
         result += error_count[i].value;
     }

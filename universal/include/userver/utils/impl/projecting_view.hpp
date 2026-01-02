@@ -25,15 +25,20 @@ template <class BaseIterator, class Projection>
 class ProjectingIterator : Projection {
 public:
     using iterator_category = std::forward_iterator_tag;
-    using value_type =
-        std::decay_t<std::invoke_result_t<Projection, typename std::iterator_traits<BaseIterator>::value_type&>>;
+    using value_type = std::decay_t<
+        std::invoke_result_t<Projection, typename std::iterator_traits<BaseIterator>::value_type&>>;
     using difference_type = typename std::iterator_traits<BaseIterator>::difference_type;
     using reference = value_type&;
     using pointer = value_type*;
 
     ProjectingIterator() = default;
-    explicit ProjectingIterator(BaseIterator it) : it_(std::move(it)) {}
-    ProjectingIterator(BaseIterator it, Projection proj) : Projection(std::move(proj)), it_(std::move(it)) {}
+    explicit ProjectingIterator(BaseIterator it)
+        : it_(std::move(it))
+    {}
+    ProjectingIterator(BaseIterator it, Projection proj)
+        : Projection(std::move(proj)),
+          it_(std::move(it))
+    {}
     ProjectingIterator(const ProjectingIterator&) = default;
     ProjectingIterator(ProjectingIterator&&) noexcept = default;
     ProjectingIterator& operator=(const ProjectingIterator&) = default;
@@ -73,12 +78,16 @@ public:
 
     auto cbegin() const {
         return ProjectingIterator<BaseConstIterator, Projection>{
-            container_.cbegin(), static_cast<const Projection&>(*this)};
+            container_.cbegin(),
+            static_cast<const Projection&>(*this)
+        };
     }
 
     auto cend() const {
         return ProjectingIterator<BaseConstIterator, Projection>{
-            container_.cend(), static_cast<const Projection&>(*this)};
+            container_.cend(),
+            static_cast<const Projection&>(*this)
+        };
     }
 
     auto begin() {

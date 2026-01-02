@@ -20,7 +20,9 @@ public:
 template <typename T>
 class SubscriberSink final : public Subscriber<T> {
 public:
-    SubscriberSink(T& data) : data_(data) {}
+    SubscriberSink(T& data)
+        : data_(data)
+    {}
 
     void OnSend(T&& value) override { data_ = std::move(value); }
 
@@ -31,7 +33,9 @@ private:
 template <typename T>
 class SubscriberSinkOptional final : public Subscriber<T>, public Subscriber<std::optional<T>> {
 public:
-    SubscriberSinkOptional(std::optional<T>& data) : data_(data) {}
+    SubscriberSinkOptional(std::optional<T>& data)
+        : data_(data)
+    {}
 
     void OnSend(T&& value) override { data_ = std::move(value); }
 
@@ -146,7 +150,9 @@ public:
 protected:
     void SetResult(T&& value) {
         parser_state_->PopMe(*this);
-        if (subscriber_) subscriber_->OnSend(std::move(value));
+        if (subscriber_) {
+            subscriber_->OnSend(std::move(value));
+        }
     }
 
 private:

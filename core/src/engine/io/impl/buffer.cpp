@@ -18,18 +18,28 @@ constexpr size_t RoundedSize(size_t size) {
 
 }  // namespace
 
-Buffer::Buffer() : Buffer(kDefaultBufferSize) {}
+Buffer::Buffer()
+    : Buffer(kDefaultBufferSize)
+{}
 
 Buffer::Buffer(size_t initial_size)
-    : data_(RoundedSize(initial_size)), read_ptr_(data_.data()), write_ptr_(read_ptr_) {}
+    : data_(RoundedSize(initial_size)),
+      read_ptr_(data_.data()),
+      write_ptr_(read_ptr_)
+{}
 
 Buffer::Buffer(const Buffer& other)
-    : data_(RoundedSize(other.AvailableReadBytes())), read_ptr_(other.read_ptr_), write_ptr_(other.write_ptr_) {
+    : data_(RoundedSize(other.AvailableReadBytes())),
+      read_ptr_(other.read_ptr_),
+      write_ptr_(other.write_ptr_)
+{
     Rebase();
 }
 
 Buffer& Buffer::operator=(const Buffer& rhs) {
-    if (this == &rhs) return *this;
+    if (this == &rhs) {
+        return *this;
+    }
 
     write_ptr_ = read_ptr_;  // clear
     Reserve(rhs.AvailableReadBytes());
@@ -46,7 +56,9 @@ const char* Buffer::ReadPtr() const { return read_ptr_; }
 void Buffer::ReportRead(size_t num_bytes) {
     UASSERT(num_bytes <= AvailableReadBytes());
     read_ptr_ += num_bytes;
-    if (num_bytes && !AvailableReadBytes()) Rebase();
+    if (num_bytes && !AvailableReadBytes()) {
+        Rebase();
+    }
 }
 
 size_t Buffer::AvailableWriteBytes() const { return write_ptr_ ? data_.data() + data_.size() - write_ptr_ : 0; }
@@ -55,7 +67,9 @@ void Buffer::Reserve(size_t num_bytes) {
     if (num_bytes + AvailableReadBytes() > data_.size()) {
         Reallocate(num_bytes + AvailableReadBytes());
     }
-    if (num_bytes > AvailableReadBytes() + AvailableWriteBytes()) Rebase();
+    if (num_bytes > AvailableReadBytes() + AvailableWriteBytes()) {
+        Rebase();
+    }
 }
 
 char* Buffer::WritePtr() { return write_ptr_; }

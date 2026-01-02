@@ -15,13 +15,16 @@ constexpr std::string_view kNotMocked{"Redis method is not mocked"};
 }
 
 MockClientBase::MockClientBase()
-    : mock_transaction_impl_creator_(std::make_unique<MockTransactionImplCreator<MockTransactionImplBase>>()) {}
+    : mock_transaction_impl_creator_(std::make_unique<MockTransactionImplCreator<MockTransactionImplBase>>())
+{}
 
 MockClientBase::MockClientBase(
     std::shared_ptr<MockTransactionImplCreatorBase> mock_transaction_impl_creator,
     std::optional<size_t> force_shard_idx
 )
-    : mock_transaction_impl_creator_(std::move(mock_transaction_impl_creator)), force_shard_idx_(force_shard_idx) {}
+    : mock_transaction_impl_creator_(std::move(mock_transaction_impl_creator)),
+      force_shard_idx_(force_shard_idx)
+{}
 
 MockClientBase::~MockClientBase() = default;
 
@@ -35,8 +38,11 @@ size_t MockClientBase::ShardByKey(const std::string& /*key*/) const { return 0; 
 
 // redis commands:
 
-RequestAppend
-MockClientBase::Append(std::string /*key*/, std::string /*value*/, const CommandControl& /*command_control*/) {
+RequestAppend MockClientBase::Append(
+    std::string /*key*/,
+    std::string /*value*/,
+    const CommandControl& /*command_control*/
+) {
     AbortWithStacktrace(kNotMocked);
 }
 
@@ -100,8 +106,11 @@ RequestGenericCommon MockClientBase::GenericCommon(
     AbortWithStacktrace(kNotMocked);
 }
 
-RequestScriptLoad
-MockClientBase::ScriptLoad(std::string /*script*/, size_t /*shard*/, const CommandControl& /*command_control*/) {
+RequestScriptLoad MockClientBase::ScriptLoad(
+    std::string /*script*/,
+    size_t /*shard*/,
+    const CommandControl& /*command_control*/
+) {
     AbortWithStacktrace(kNotMocked);
 }
 
@@ -113,8 +122,11 @@ RequestExists MockClientBase::Exists(std::vector<std::string> /*keys*/, const Co
     AbortWithStacktrace(kNotMocked);
 }
 
-RequestExpire
-MockClientBase::Expire(std::string /*key*/, std::chrono::seconds /*ttl*/, const CommandControl& /*command_control*/) {
+RequestExpire MockClientBase::Expire(
+    std::string /*key*/,
+    std::chrono::seconds /*ttl*/,
+    const CommandControl& /*command_control*/
+) {
     AbortWithStacktrace(kNotMocked);
 }
 
@@ -127,18 +139,27 @@ RequestExpire MockClientBase::Expire(
     AbortWithStacktrace(kNotMocked);
 }
 
-RequestGeoadd
-MockClientBase::Geoadd(std::string /*key*/, GeoaddArg /*point_member*/, const CommandControl& /*command_control*/) {
+RequestGeoadd MockClientBase::Geoadd(
+    std::string /*key*/,
+    GeoaddArg /*point_member*/,
+    const CommandControl& /*command_control*/
+) {
     AbortWithStacktrace(kNotMocked);
 }
 
-RequestGeoadd MockClientBase::
-    Geoadd(std::string /*key*/, std::vector<GeoaddArg> /*point_members*/, const CommandControl& /*command_control*/) {
+RequestGeoadd MockClientBase::Geoadd(
+    std::string /*key*/,
+    std::vector<GeoaddArg> /*point_members*/,
+    const CommandControl& /*command_control*/
+) {
     AbortWithStacktrace(kNotMocked);
 }
 
-RequestGeopos MockClientBase::
-    Geopos(std::string /*key*/, std::vector<std::string> /*members*/, const CommandControl& /*command_control*/) {
+RequestGeopos MockClientBase::Geopos(
+    std::string /*key*/,
+    std::vector<std::string> /*members*/,
+    const CommandControl& /*command_control*/
+) {
     AbortWithStacktrace(kNotMocked);
 }
 
@@ -201,28 +222,43 @@ RequestGet MockClientBase::Get(std::string /*key*/, const CommandControl& /*comm
     AbortWithStacktrace(kNotMocked);
 }
 
-RequestGetset
-MockClientBase::Getset(std::string /*key*/, std::string /*value*/, const CommandControl& /*command_control*/) {
+RequestGetset MockClientBase::Getset(
+    std::string /*key*/,
+    std::string /*value*/,
+    const CommandControl& /*command_control*/
+) {
     AbortWithStacktrace(kNotMocked);
 }
 
-RequestHdel
-MockClientBase::Hdel(std::string /*key*/, std::string /*field*/, const CommandControl& /*command_control*/) {
+RequestHdel MockClientBase::Hdel(
+    std::string /*key*/,
+    std::string /*field*/,
+    const CommandControl& /*command_control*/
+) {
     AbortWithStacktrace(kNotMocked);
 }
 
-RequestHdel MockClientBase::
-    Hdel(std::string /*key*/, std::vector<std::string> /*fields*/, const CommandControl& /*command_control*/) {
+RequestHdel MockClientBase::Hdel(
+    std::string /*key*/,
+    std::vector<std::string> /*fields*/,
+    const CommandControl& /*command_control*/
+) {
     AbortWithStacktrace(kNotMocked);
 }
 
-RequestHexists
-MockClientBase::Hexists(std::string /*key*/, std::string /*field*/, const CommandControl& /*command_control*/) {
+RequestHexists MockClientBase::Hexists(
+    std::string /*key*/,
+    std::string /*field*/,
+    const CommandControl& /*command_control*/
+) {
     AbortWithStacktrace(kNotMocked);
 }
 
-RequestHget
-MockClientBase::Hget(std::string /*key*/, std::string /*field*/, const CommandControl& /*command_control*/) {
+RequestHget MockClientBase::Hget(
+    std::string /*key*/,
+    std::string /*field*/,
+    const CommandControl& /*command_control*/
+) {
     AbortWithStacktrace(kNotMocked);
 }
 
@@ -256,8 +292,11 @@ RequestHlen MockClientBase::Hlen(std::string /*key*/, const CommandControl& /*co
     AbortWithStacktrace(kNotMocked);
 }
 
-RequestHmget MockClientBase::
-    Hmget(std::string /*key*/, std::vector<std::string> /*fields*/, const CommandControl& /*command_control*/) {
+RequestHmget MockClientBase::Hmget(
+    std::string /*key*/,
+    std::vector<std::string> /*fields*/,
+    const CommandControl& /*command_control*/
+) {
     AbortWithStacktrace(kNotMocked);
 }
 
@@ -277,8 +316,12 @@ ScanRequest<ScanTag::kHscan> MockClientBase::Hscan(
     AbortWithStacktrace(kNotMocked);
 }
 
-RequestHset MockClientBase::
-    Hset(std::string /*key*/, std::string /*field*/, std::string /*value*/, const CommandControl& /*command_control*/) {
+RequestHset MockClientBase::Hset(
+    std::string /*key*/,
+    std::string /*field*/,
+    std::string /*value*/,
+    const CommandControl& /*command_control*/
+) {
     AbortWithStacktrace(kNotMocked);
 }
 
@@ -299,13 +342,19 @@ RequestIncr MockClientBase::Incr(std::string /*key*/, const CommandControl& /*co
     AbortWithStacktrace(kNotMocked);
 }
 
-RequestKeys
-MockClientBase::Keys(std::string /*keys_pattern*/, size_t /*shard*/, const CommandControl& /*command_control*/) {
+RequestKeys MockClientBase::Keys(
+    std::string /*keys_pattern*/,
+    size_t /*shard*/,
+    const CommandControl& /*command_control*/
+) {
     AbortWithStacktrace(kNotMocked);
 }
 
-RequestLindex
-MockClientBase::Lindex(std::string /*key*/, int64_t /*index*/, const CommandControl& /*command_control*/) {
+RequestLindex MockClientBase::Lindex(
+    std::string /*key*/,
+    int64_t /*index*/,
+    const CommandControl& /*command_control*/
+) {
     AbortWithStacktrace(kNotMocked);
 }
 
@@ -317,33 +366,54 @@ RequestLpop MockClientBase::Lpop(std::string /*key*/, const CommandControl& /*co
     AbortWithStacktrace(kNotMocked);
 }
 
-RequestLpush
-MockClientBase::Lpush(std::string /*key*/, std::string /*value*/, const CommandControl& /*command_control*/) {
+RequestLpush MockClientBase::Lpush(
+    std::string /*key*/,
+    std::string /*value*/,
+    const CommandControl& /*command_control*/
+) {
     AbortWithStacktrace(kNotMocked);
 }
 
-RequestLpush MockClientBase::
-    Lpush(std::string /*key*/, std::vector<std::string> /*values*/, const CommandControl& /*command_control*/) {
+RequestLpush MockClientBase::Lpush(
+    std::string /*key*/,
+    std::vector<std::string> /*values*/,
+    const CommandControl& /*command_control*/
+) {
     AbortWithStacktrace(kNotMocked);
 }
 
-RequestLpushx
-MockClientBase::Lpushx(std::string /*key*/, std::string /*element*/, const CommandControl& /*command_control*/) {
+RequestLpushx MockClientBase::Lpushx(
+    std::string /*key*/,
+    std::string /*element*/,
+    const CommandControl& /*command_control*/
+) {
     AbortWithStacktrace(kNotMocked);
 }
 
-RequestLrange MockClientBase::
-    Lrange(std::string /*key*/, int64_t /*start*/, int64_t /*stop*/, const CommandControl& /*command_control*/) {
+RequestLrange MockClientBase::Lrange(
+    std::string /*key*/,
+    int64_t /*start*/,
+    int64_t /*stop*/,
+    const CommandControl& /*command_control*/
+) {
     AbortWithStacktrace(kNotMocked);
 }
 
-RequestLrem MockClientBase::
-    Lrem(std::string /*key*/, int64_t /*count*/, std::string /*element*/, const CommandControl& /*command_control*/) {
+RequestLrem MockClientBase::Lrem(
+    std::string /*key*/,
+    int64_t /*count*/,
+    std::string /*element*/,
+    const CommandControl& /*command_control*/
+) {
     AbortWithStacktrace(kNotMocked);
 }
 
-RequestLtrim MockClientBase::
-    Ltrim(std::string /*key*/, int64_t /*start*/, int64_t /*stop*/, const CommandControl& /*command_control*/) {
+RequestLtrim MockClientBase::Ltrim(
+    std::string /*key*/,
+    int64_t /*start*/,
+    int64_t /*stop*/,
+    const CommandControl& /*command_control*/
+) {
     AbortWithStacktrace(kNotMocked);
 }
 
@@ -351,8 +421,10 @@ RequestMget MockClientBase::Mget(std::vector<std::string> /*keys*/, const Comman
     AbortWithStacktrace(kNotMocked);
 }
 
-RequestMset MockClientBase::
-    Mset(std::vector<std::pair<std::string, std::string>> /*key_values*/, const CommandControl& /*command_control*/) {
+RequestMset MockClientBase::Mset(
+    std::vector<std::pair<std::string, std::string>> /*key_values*/,
+    const CommandControl& /*command_control*/
+) {
     AbortWithStacktrace(kNotMocked);
 }
 
@@ -360,8 +432,11 @@ RequestPersist MockClientBase::Persist(std::string /*key*/, const CommandControl
     AbortWithStacktrace(kNotMocked);
 }
 
-RequestPexpire MockClientBase::
-    Pexpire(std::string /*key*/, std::chrono::milliseconds /*ttl*/, const CommandControl& /*command_control*/) {
+RequestPexpire MockClientBase::Pexpire(
+    std::string /*key*/,
+    std::chrono::milliseconds /*ttl*/,
+    const CommandControl& /*command_control*/
+) {
     AbortWithStacktrace(kNotMocked);
 }
 
@@ -369,8 +444,11 @@ RequestPing MockClientBase::Ping(size_t /*shard*/, const CommandControl& /*comma
     AbortWithStacktrace(kNotMocked);
 }
 
-RequestPingMessage
-MockClientBase::Ping(size_t /*shard*/, std::string /*message*/, const CommandControl& /*command_control*/) {
+RequestPingMessage MockClientBase::Ping(
+    size_t /*shard*/,
+    std::string /*message*/,
+    const CommandControl& /*command_control*/
+) {
     AbortWithStacktrace(kNotMocked);
 }
 
@@ -383,13 +461,19 @@ void MockClientBase::Publish(
     AbortWithStacktrace(kNotMocked);
 }
 
-void MockClientBase::
-    Spublish(std::string /*channel*/, std::string /*message*/, const CommandControl& /*command_control*/) {
+void MockClientBase::Spublish(
+    std::string /*channel*/,
+    std::string /*message*/,
+    const CommandControl& /*command_control*/
+) {
     AbortWithStacktrace(kNotMocked);
 }
 
-RequestRename
-MockClientBase::Rename(std::string /*key*/, std::string /*new_key*/, const CommandControl& /*command_control*/) {
+RequestRename MockClientBase::Rename(
+    std::string /*key*/,
+    std::string /*new_key*/,
+    const CommandControl& /*command_control*/
+) {
     AbortWithStacktrace(kNotMocked);
 }
 
@@ -397,33 +481,51 @@ RequestRpop MockClientBase::Rpop(std::string /*key*/, const CommandControl& /*co
     AbortWithStacktrace(kNotMocked);
 }
 
-RequestRpush
-MockClientBase::Rpush(std::string /*key*/, std::string /*value*/, const CommandControl& /*command_control*/) {
+RequestRpush MockClientBase::Rpush(
+    std::string /*key*/,
+    std::string /*value*/,
+    const CommandControl& /*command_control*/
+) {
     AbortWithStacktrace(kNotMocked);
 }
 
-RequestRpush MockClientBase::
-    Rpush(std::string /*key*/, std::vector<std::string> /*values*/, const CommandControl& /*command_control*/) {
+RequestRpush MockClientBase::Rpush(
+    std::string /*key*/,
+    std::vector<std::string> /*values*/,
+    const CommandControl& /*command_control*/
+) {
     AbortWithStacktrace(kNotMocked);
 }
 
-RequestRpushx
-MockClientBase::Rpushx(std::string /*key*/, std::string /*element*/, const CommandControl& /*command_control*/) {
+RequestRpushx MockClientBase::Rpushx(
+    std::string /*key*/,
+    std::string /*element*/,
+    const CommandControl& /*command_control*/
+) {
     AbortWithStacktrace(kNotMocked);
 }
 
-RequestSadd
-MockClientBase::Sadd(std::string /*key*/, std::string /*member*/, const CommandControl& /*command_control*/) {
+RequestSadd MockClientBase::Sadd(
+    std::string /*key*/,
+    std::string /*member*/,
+    const CommandControl& /*command_control*/
+) {
     AbortWithStacktrace(kNotMocked);
 }
 
-RequestSadd MockClientBase::
-    Sadd(std::string /*key*/, std::vector<std::string> /*members*/, const CommandControl& /*command_control*/) {
+RequestSadd MockClientBase::Sadd(
+    std::string /*key*/,
+    std::vector<std::string> /*members*/,
+    const CommandControl& /*command_control*/
+) {
     AbortWithStacktrace(kNotMocked);
 }
 
-ScanRequest<ScanTag::kScan>
-MockClientBase::Scan(size_t /*shard*/, ScanOptions /*options*/, const CommandControl& /*command_control*/) {
+ScanRequest<ScanTag::kScan> MockClientBase::Scan(
+    size_t /*shard*/,
+    ScanOptions /*options*/,
+    const CommandControl& /*command_control*/
+) {
     AbortWithStacktrace(kNotMocked);
 }
 
@@ -435,16 +537,20 @@ RequestSet MockClientBase::Set(std::string /*key*/, std::string /*value*/, const
     AbortWithStacktrace(kNotMocked);
 }
 
-RequestSet MockClientBase::
-    Set(std::string /*key*/,
-        std::string /*value*/,
-        std::chrono::milliseconds /*ttl*/,
-        const CommandControl& /*command_control*/) {
+RequestSet MockClientBase::Set(
+    std::string /*key*/,
+    std::string /*value*/,
+    std::chrono::milliseconds /*ttl*/,
+    const CommandControl& /*command_control*/
+) {
     AbortWithStacktrace(kNotMocked);
 }
 
-RequestSetIfExist
-MockClientBase::SetIfExist(std::string /*key*/, std::string /*value*/, const CommandControl& /*command_control*/) {
+RequestSetIfExist MockClientBase::SetIfExist(
+    std::string /*key*/,
+    std::string /*value*/,
+    const CommandControl& /*command_control*/
+) {
     AbortWithStacktrace(kNotMocked);
 }
 
@@ -457,8 +563,11 @@ RequestSetIfExist MockClientBase::SetIfExist(
     AbortWithStacktrace(kNotMocked);
 }
 
-RequestSetIfNotExist
-MockClientBase::SetIfNotExist(std::string /*key*/, std::string /*value*/, const CommandControl& /*command_control*/) {
+RequestSetIfNotExist MockClientBase::SetIfNotExist(
+    std::string /*key*/,
+    std::string /*value*/,
+    const CommandControl& /*command_control*/
+) {
     AbortWithStacktrace(kNotMocked);
 }
 
@@ -471,8 +580,11 @@ RequestSetIfNotExist MockClientBase::SetIfNotExist(
     AbortWithStacktrace(kNotMocked);
 }
 
-RequestSetIfNotExistOrGet MockClientBase::
-    SetIfNotExistOrGet(std::string /*key*/, std::string /*value*/, const CommandControl& /*command_control*/) {
+RequestSetIfNotExistOrGet MockClientBase::SetIfNotExistOrGet(
+    std::string /*key*/,
+    std::string /*value*/,
+    const CommandControl& /*command_control*/
+) {
     AbortWithStacktrace(kNotMocked);
 }
 
@@ -494,8 +606,11 @@ RequestSetex MockClientBase::Setex(
     AbortWithStacktrace(kNotMocked);
 }
 
-RequestSismember
-MockClientBase::Sismember(std::string /*key*/, std::string /*member*/, const CommandControl& /*command_control*/) {
+RequestSismember MockClientBase::Sismember(
+    std::string /*key*/,
+    std::string /*member*/,
+    const CommandControl& /*command_control*/
+) {
     AbortWithStacktrace(kNotMocked);
 }
 
@@ -507,18 +622,27 @@ RequestSrandmember MockClientBase::Srandmember(std::string /*key*/, const Comman
     AbortWithStacktrace(kNotMocked);
 }
 
-RequestSrandmembers
-MockClientBase::Srandmembers(std::string /*key*/, int64_t /*count*/, const CommandControl& /*command_control*/) {
+RequestSrandmembers MockClientBase::Srandmembers(
+    std::string /*key*/,
+    int64_t /*count*/,
+    const CommandControl& /*command_control*/
+) {
     AbortWithStacktrace(kNotMocked);
 }
 
-RequestSrem
-MockClientBase::Srem(std::string /*key*/, std::string /*member*/, const CommandControl& /*command_control*/) {
+RequestSrem MockClientBase::Srem(
+    std::string /*key*/,
+    std::string /*member*/,
+    const CommandControl& /*command_control*/
+) {
     AbortWithStacktrace(kNotMocked);
 }
 
-RequestSrem MockClientBase::
-    Srem(std::string /*key*/, std::vector<std::string> /*members*/, const CommandControl& /*command_control*/) {
+RequestSrem MockClientBase::Srem(
+    std::string /*key*/,
+    std::vector<std::string> /*members*/,
+    const CommandControl& /*command_control*/
+) {
     AbortWithStacktrace(kNotMocked);
 }
 
@@ -546,8 +670,12 @@ RequestType MockClientBase::Type(std::string /*key*/, const CommandControl& /*co
     AbortWithStacktrace(kNotMocked);
 }
 
-RequestZadd MockClientBase::
-    Zadd(std::string /*key*/, double /*score*/, std::string /*member*/, const CommandControl& /*command_control*/) {
+RequestZadd MockClientBase::Zadd(
+    std::string /*key*/,
+    double /*score*/,
+    std::string /*member*/,
+    const CommandControl& /*command_control*/
+) {
     AbortWithStacktrace(kNotMocked);
 }
 
@@ -578,8 +706,12 @@ RequestZadd MockClientBase::Zadd(
     AbortWithStacktrace(kNotMocked);
 }
 
-RequestZaddIncr MockClientBase::
-    ZaddIncr(std::string /*key*/, double /*score*/, std::string /*member*/, const CommandControl& /*command_control*/) {
+RequestZaddIncr MockClientBase::ZaddIncr(
+    std::string /*key*/,
+    double /*score*/,
+    std::string /*member*/,
+    const CommandControl& /*command_control*/
+) {
     AbortWithStacktrace(kNotMocked);
 }
 
@@ -596,13 +728,21 @@ RequestZcard MockClientBase::Zcard(std::string /*key*/, const CommandControl& /*
     AbortWithStacktrace(kNotMocked);
 }
 
-RequestZcount
-MockClientBase::Zcount(std::string /*key*/, double /*min*/, double /*max*/, const CommandControl& /*command_control*/) {
+RequestZcount MockClientBase::Zcount(
+    std::string /*key*/,
+    double /*min*/,
+    double /*max*/,
+    const CommandControl& /*command_control*/
+) {
     AbortWithStacktrace(kNotMocked);
 }
 
-RequestZrange MockClientBase::
-    Zrange(std::string /*key*/, int64_t /*start*/, int64_t /*stop*/, const CommandControl& /*command_control*/) {
+RequestZrange MockClientBase::Zrange(
+    std::string /*key*/,
+    int64_t /*start*/,
+    int64_t /*stop*/,
+    const CommandControl& /*command_control*/
+) {
     AbortWithStacktrace(kNotMocked);
 }
 
@@ -615,8 +755,12 @@ RequestZrangeWithScores MockClientBase::ZrangeWithScores(
     AbortWithStacktrace(kNotMocked);
 }
 
-RequestZrangebyscore MockClientBase::
-    Zrangebyscore(std::string /*key*/, double /*min*/, double /*max*/, const CommandControl& /*command_control*/) {
+RequestZrangebyscore MockClientBase::Zrangebyscore(
+    std::string /*key*/,
+    double /*min*/,
+    double /*max*/,
+    const CommandControl& /*command_control*/
+) {
     AbortWithStacktrace(kNotMocked);
 }
 
@@ -687,13 +831,19 @@ RequestZrangebyscoreWithScores MockClientBase::ZrangebyscoreWithScores(
     AbortWithStacktrace(kNotMocked);
 }
 
-RequestZrem
-MockClientBase::Zrem(std::string /*key*/, std::string /*member*/, const CommandControl& /*command_control*/) {
+RequestZrem MockClientBase::Zrem(
+    std::string /*key*/,
+    std::string /*member*/,
+    const CommandControl& /*command_control*/
+) {
     AbortWithStacktrace(kNotMocked);
 }
 
-RequestZrem MockClientBase::
-    Zrem(std::string /*key*/, std::vector<std::string> /*members*/, const CommandControl& /*command_control*/) {
+RequestZrem MockClientBase::Zrem(
+    std::string /*key*/,
+    std::vector<std::string> /*members*/,
+    const CommandControl& /*command_control*/
+) {
     AbortWithStacktrace(kNotMocked);
 }
 
@@ -706,8 +856,12 @@ RequestZremrangebyrank MockClientBase::Zremrangebyrank(
     AbortWithStacktrace(kNotMocked);
 }
 
-RequestZremrangebyscore MockClientBase::
-    Zremrangebyscore(std::string /*key*/, double /*min*/, double /*max*/, const CommandControl& /*command_control*/) {
+RequestZremrangebyscore MockClientBase::Zremrangebyscore(
+    std::string /*key*/,
+    double /*min*/,
+    double /*max*/,
+    const CommandControl& /*command_control*/
+) {
     AbortWithStacktrace(kNotMocked);
 }
 
@@ -728,8 +882,11 @@ ScanRequest<ScanTag::kZscan> MockClientBase::Zscan(
     AbortWithStacktrace(kNotMocked);
 }
 
-RequestZscore
-MockClientBase::Zscore(std::string /*key*/, std::string /*member*/, const CommandControl& /*command_control*/) {
+RequestZscore MockClientBase::Zscore(
+    std::string /*key*/,
+    std::string /*member*/,
+    const CommandControl& /*command_control*/
+) {
     AbortWithStacktrace(kNotMocked);
 }
 

@@ -28,8 +28,10 @@ public:
 
     static yaml_config::Schema GetStaticConfigSchema();
 
-    std::shared_ptr<const MiddlewareBase>
-    CreateMiddleware(const ugrpc::client::ClientInfo&, const yaml_config::YamlConfig& middleware_config) const override;
+    std::shared_ptr<const MiddlewareBase> CreateMiddleware(
+        const ugrpc::client::ClientInfo&,
+        const yaml_config::YamlConfig& middleware_config
+    ) const override;
 };
 /// [gRPC middleware sample]
 

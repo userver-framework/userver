@@ -40,6 +40,7 @@ components_manager:
         congestion-control:
 
         http-client:
+        http-client-core:
             load-enabled: $is_testing
             fs-task-processor: fs-task-processor
 

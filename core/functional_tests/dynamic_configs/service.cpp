@@ -23,11 +23,10 @@ public:
 
     DynamicConfigForwarder(const components::ComponentConfig& config, const components::ComponentContext& context)
         : components::ComponentBase(config, context),
-          config_subscription_(context.FindComponent<components::DynamicConfig>().GetSource().UpdateAndListen(
-              this,
-              kName,
-              &DynamicConfigForwarder::OnConfigUpdate
-          )){};
+          config_subscription_(context.FindComponent<components::DynamicConfig>()
+                                   .GetSource()
+                                   .UpdateAndListen(this, kName, &DynamicConfigForwarder::OnConfigUpdate))
+    {};
 
 private:
     void OnConfigUpdate(const dynamic_config::Snapshot& config) {
@@ -42,10 +41,11 @@ private:
 }  // namespace functional_tests
 
 int main(int argc, const char* const argv[]) {
-    const auto component_list = components::ComponentList()
-                                    .AppendComponentList(components::CommonComponentList())
-                                    .AppendComponentList(components::CommonServerComponentList())
-                                    .Append<functional_tests::DynamicConfigForwarder>()
-                                    .Append<server::handlers::Ping>();
+    const auto component_list =
+        components::ComponentList()
+            .AppendComponentList(components::CommonComponentList())
+            .AppendComponentList(components::CommonServerComponentList())
+            .Append<functional_tests::DynamicConfigForwarder>()
+            .Append<server::handlers::Ping>();
     return utils::DaemonMain(argc, argv, component_list);
 }

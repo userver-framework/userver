@@ -54,6 +54,8 @@ extern const std::string kDatabaseStatementDescription;
 extern const std::string kPeerAddress;
 extern const std::string kServerAddress;
 
+extern const std::string kUserAgent;
+
 }  // namespace tracing
 
 USERVER_NAMESPACE_END

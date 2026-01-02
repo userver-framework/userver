@@ -156,8 +156,10 @@ struct InstanceStatisticsNonatomic : InstanceStatisticsNonatomicBase {
     InstanceStatisticsNonatomic(InstanceStatisticsNonatomic&&) = default;
     InstanceStatisticsNonatomic& operator=(InstanceStatisticsNonatomic&&) = default;
 
-    InstanceStatisticsNonatomic&
-    Add(const InstanceStatistics& stats, const decltype(InstanceStatistics::topology)& topology_stats) {
+    InstanceStatisticsNonatomic& Add(
+        const InstanceStatistics& stats,
+        const decltype(InstanceStatistics::topology)& topology_stats
+    ) {
         connection.open_total = stats.connection.open_total;
         connection.drop_total = stats.connection.drop_total;
         connection.active = stats.connection.active;

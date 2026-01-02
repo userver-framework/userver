@@ -65,6 +65,7 @@ components_manager:
                     overflow_behavior: discard  # Drop logs if the system is too busy to write them down.
 
         http-client:
+        http-client-core:
             load-enabled: $is_testing
             fs-task-processor: fs-task-processor
 

@@ -14,8 +14,11 @@
 
 USERVER_NAMESPACE_BEGIN
 
-inline std::shared_ptr<logging::impl::TpLogger>
-MakeSocketLogger(const std::string& logger_name, std::string filename, logging::Format format) {
+inline std::shared_ptr<logging::impl::TpLogger> MakeSocketLogger(
+    const std::string& logger_name,
+    std::string filename,
+    logging::Format format
+) {
     auto sink = std::make_unique<logging::impl::UnixSocketSink>(std::move(filename));
     return MakeLoggerFromSink(logger_name, std::move(sink), format);
 }
@@ -40,7 +43,8 @@ protected:
         : socket_file_(fs::blocking::TempFile::Create()),
           socket_(engine::io::AddrDomain::kUnix, engine::io::SocketType::kStream),
           messages_(MessagesQueue::Create()),
-          messages_consumer_(messages_->GetConsumer()) {
+          messages_consumer_(messages_->GetConsumer())
+    {
         SetUpSocketFile();
         SetUpLogger();
         StartServer();
@@ -58,7 +62,9 @@ private:
 
         while (!engine::current_task::ShouldCancel()) {
             const auto bytes_received = connection.RecvSome(buffer.data(), buffer.size(), {});
-            if (bytes_received == 0) break;
+            if (bytes_received == 0) {
+                break;
+            }
 
             const bool success = producer.Push(buffer.substr(0, bytes_received));
             UINVARIANT(success, "Failed to push a message");

@@ -34,15 +34,17 @@ void CreateDumps(
 }
 
 void CreateDump(std::string_view contents, const Config& config) {
-    const auto dump_stats = dump::DumpLocator{config}.RegisterNewDump(
-        std::chrono::time_point_cast<TimePoint::duration>(utils::datetime::Now())
-    );
+    const auto dump_stats =
+        dump::DumpLocator{config}
+            .RegisterNewDump(std::chrono::time_point_cast<TimePoint::duration>(utils::datetime::Now()));
     fs::blocking::RewriteFileContents(dump_stats.full_path, contents);
 }
 
 std::set<std::string> FilenamesInDirectory(const fs::blocking::TempDirectory& dump_root, std::string_view dumper_name) {
     const auto full_directory = boost::filesystem::path{dump_root.GetPath()} / std::string{dumper_name};
-    if (!boost::filesystem::exists(full_directory)) return {};
+    if (!boost::filesystem::exists(full_directory)) {
+        return {};
+    }
 
     std::set<std::string> result;
     for (const auto& file : boost::filesystem::directory_iterator{full_directory}) {

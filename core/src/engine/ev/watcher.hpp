@@ -131,7 +131,9 @@ Watcher<EvType>::~Watcher() {
 
 template <typename EvType>
 void Watcher<EvType>::Stop() noexcept {
-    if (!IsActive()) return;
+    if (!IsActive()) {
+        return;
+    }
     RunInBoundEvLoopSync([this]() noexcept { StopImpl(); });
     static_assert(noexcept(StopImpl()), "Stop() is called from destructor and it should be noexcept");
 }
@@ -148,7 +150,8 @@ auto Watcher<EvType>::StopWithinEvCallback() noexcept {
     UASSERT(thread_control_.IsInEvThread());
     StopImpl();
     static_assert(
-        noexcept(StopImpl()), "StopWithinEvCallback() is called from noexcept functions and should be noexcept"
+        noexcept(StopImpl()),
+        "StopWithinEvCallback() is called from noexcept functions and should be noexcept"
     );
     return guard;
 }
@@ -160,7 +163,9 @@ void Watcher<EvType>::StartAsync() noexcept {
 
 template <typename EvType>
 void Watcher<EvType>::StopAsync() noexcept {
-    if (!IsActive()) return;
+    if (!IsActive()) {
+        return;
+    }
     PushAsyncOp(AsyncOpType::kStop);
 }
 

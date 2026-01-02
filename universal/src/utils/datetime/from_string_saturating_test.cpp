@@ -24,7 +24,8 @@ std::chrono::system_clock::time_point GetDateTimePlatformSpecificBigValue() {
 
 TEST(FromStringSaturation, Rfc3339) {
     EXPECT_EQ(
-        utils::datetime::FromRfc3339StringSaturating("9999-12-31T00:00:00+0000"), GetDateTimePlatformSpecificBigValue()
+        utils::datetime::FromRfc3339StringSaturating("9999-12-31T00:00:00+0000"),
+        GetDateTimePlatformSpecificBigValue()
     );
     /// [FromStringSaturation]
     EXPECT_EQ(
@@ -53,7 +54,8 @@ TEST(FromStringSaturation, MicroSeconds) {
 TEST(FromStringSaturation, NotSupported) {
     constexpr auto bad_format = "%Y-%m-%dT%H:%M:%S.%f";
     EXPECT_THROW(
-        utils::datetime::FromStringSaturating("2023-06-06T15:23:19.231934", bad_format), utils::datetime::DateParseError
+        utils::datetime::FromStringSaturating("2023-06-06T15:23:19.231934", bad_format),
+        utils::datetime::DateParseError
     );
 }
 
@@ -78,17 +80,20 @@ TEST(FromStringSaturation, Formats) {
     EXPECT_EQ(utils::datetime::FromStringSaturating("9999-12-31", "%Y-%m-%d"), GetDateTimePlatformSpecificBigValue());
 
     EXPECT_EQ(
-        utils::datetime::FromStringSaturating("10000-01-01", "%Y-%m-%d"), std::chrono::system_clock::time_point::max()
+        utils::datetime::FromStringSaturating("10000-01-01", "%Y-%m-%d"),
+        std::chrono::system_clock::time_point::max()
     );
 
     EXPECT_EQ(
-        utils::datetime::FromStringSaturating("01-01-10000", "%d-%m-%Y"), std::chrono::system_clock::time_point::max()
+        utils::datetime::FromStringSaturating("01-01-10000", "%d-%m-%Y"),
+        std::chrono::system_clock::time_point::max()
     );
 }
 
 TEST(FromStringSaturation, Invalid) {
     EXPECT_THROW(
-        utils::datetime::FromStringSaturating("12345", utils::datetime::kDefaultFormat), utils::datetime::DateParseError
+        utils::datetime::FromStringSaturating("12345", utils::datetime::kDefaultFormat),
+        utils::datetime::DateParseError
     );
     EXPECT_THROW(
         utils::datetime::FromStringSaturating("99999-ABCDEF", utils::datetime::kDefaultFormat),
@@ -115,8 +120,8 @@ TEST(FromStringSaturation, kRfc3339Format) {
 TEST(FromStringSaturation, kTaximeterFormat) {
     /// [kTaximeterFormat]
     const auto exp = utils::datetime::FromStringSaturating("2014-03-17 02:47:07.000000", "%Y-%m-%d %H:%M:%E*S");
-    const auto tp =
-        utils::datetime::FromStringSaturating("2014-03-17T02:47:07.000000Z", utils::datetime::kTaximeterFormat);
+    const auto
+        tp = utils::datetime::FromStringSaturating("2014-03-17T02:47:07.000000Z", utils::datetime::kTaximeterFormat);
     EXPECT_EQ(tp, exp);
     /// [kTaximeterFormat]
 }
@@ -124,8 +129,8 @@ TEST(FromStringSaturation, kTaximeterFormat) {
 TEST(FromStringSaturation, kDefaultFormat) {
     /// [kDefaultFormat]
     const auto exp = utils::datetime::FromStringSaturating("2014-03-17 02:47:07.000000", "%Y-%m-%d %H:%M:%E*S");
-    const auto tp =
-        utils::datetime::FromStringSaturating("2014-03-17T02:47:07.000000+0000", utils::datetime::kDefaultFormat);
+    const auto
+        tp = utils::datetime::FromStringSaturating("2014-03-17T02:47:07.000000+0000", utils::datetime::kDefaultFormat);
     EXPECT_EQ(tp, exp);
     /// [kDefaultFormat]
 }

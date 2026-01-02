@@ -13,19 +13,15 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::rocks {
 
-// clang-format off
-
 /// @ingroup userver_components
 ///
 /// @brief RocksDB client component.
-/// ## Static options:
-/// Name                               | Description                                      | Default value
-/// ---------------------------------- | ------------------------------------------------ | ---------------
-/// task-processor                     | name of the task processor to run the blocking file operations | -
-/// db-path                            | path to database file                            | -
-
-// clang-format on
-
+///
+/// ## Static options of storages::rocks::Component :
+/// @include{doc} scripts/docs/en/components_schema/rocks/src/storages/rocks/component.md
+///
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
 class Component : public components::ComponentBase {
 public:
     Component(const components::ComponentConfig&, const components::ComponentContext&);

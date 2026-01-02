@@ -24,7 +24,8 @@ constexpr utils::TrivialBiMap kLogFormats = [](auto selector) {
 Format FormatFromString(std::string_view format_str) {
     const auto result = kLogFormats.TryFindByFirst(format_str);
     UINVARIANT(
-        result, fmt::format("Unknown logging format '{}' (must be one of {})", format_str, kLogFormats.DescribeFirst())
+        result,
+        fmt::format("Unknown logging format '{}' (must be one of {})", format_str, kLogFormats.DescribeFirst())
     );
     return *result;
 }

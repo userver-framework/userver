@@ -1,7 +1,9 @@
 import asyncio
+from collections.abc import Awaitable
 import socket
 import time
 import typing
+from typing import Any
 import uuid
 
 import pytest
@@ -46,7 +48,7 @@ class UdpServer:
         return addr
 
 
-@pytest.fixture(name='udp_server', scope='function')
+@pytest.fixture(name='udp_server')
 async def _server(make_socket):
     sock = make_socket()
     sock.bind(('127.0.0.1', 0))
@@ -56,7 +58,7 @@ async def _server(make_socket):
         sock.close()
 
 
-@pytest.fixture(name='gate', scope='function')
+@pytest.fixture(name='gate')
 async def _gate(udp_server):
     gate_config = chaos.GateRoute(
         name='udp proxy',
@@ -69,7 +71,7 @@ async def _gate(udp_server):
 
 class Client(typing.NamedTuple):
     sock: AsyncioSocket
-    addr_at_server: typing.Any
+    addr_at_server: Any
 
 
 @pytest.fixture(name='make_socket')
@@ -82,7 +84,7 @@ def _make_socket(asyncio_socket: AsyncioSocketsFactory):
 
 @pytest.fixture(name='udp_client_factory')
 async def _client_factory(gate, udp_server: UdpServer, make_socket):
-    client_sockets: typing.List[socket.socket] = []
+    client_sockets: list[socket.socket] = []
 
     async def _client_factory_impl():
         sock = make_socket()
@@ -181,7 +183,7 @@ async def test_to_server_parallel_udp_message(udp_server, udp_client_factory):
 
     messages_count = 100
 
-    tasks: typing.List[typing.Awaitable] = []
+    tasks: list[Awaitable] = []
     for i in range(messages_count):
         tasks.append(
             udp_client.sock.sendall(b'message' + i.to_bytes(1, 'big')),
@@ -189,7 +191,7 @@ async def test_to_server_parallel_udp_message(udp_server, udp_client_factory):
 
     await asyncio.gather(*tasks)
 
-    res: typing.List[bool] = [False] * messages_count
+    res: list[bool] = [False] * messages_count
     for _ in range(messages_count):
         message = await udp_server.sock.recv(RECV_MAX_SIZE)
         assert message[:7] == b'message'

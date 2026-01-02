@@ -8,16 +8,21 @@ USERVER_NAMESPACE_BEGIN
 
 namespace dynamic_config {
 
-StorageMock::StorageMock() : storage_(new impl::StorageData{}) {}
+StorageMock::StorageMock()
+    : storage_(new impl::StorageData{})
+{}
 
 StorageMock::StorageMock(std::initializer_list<KeyValue> config_variables)
-    : storage_(new impl::StorageData{impl::SnapshotData{config_variables}}) {}
+    : storage_(new impl::StorageData{impl::SnapshotData{config_variables}})
+{}
 
 StorageMock::StorageMock(const std::vector<KeyValue>& config_variables)
-    : storage_(new impl::StorageData{impl::SnapshotData{config_variables}}) {}
+    : storage_(new impl::StorageData{impl::SnapshotData{config_variables}})
+{}
 
 StorageMock::StorageMock(const DocsMap& defaults, const std::vector<KeyValue>& overrides)
-    : storage_(new impl::StorageData{impl::SnapshotData{defaults, overrides}}) {}
+    : storage_(new impl::StorageData{impl::SnapshotData{defaults, overrides}})
+{}
 
 StorageMock::StorageMock(StorageMock&&) noexcept = default;
 

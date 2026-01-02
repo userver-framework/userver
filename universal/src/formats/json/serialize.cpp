@@ -81,7 +81,9 @@ void CheckKeyUniqueness(const impl::Value* root) {
             while (!stack.back().HasMoreElements()) {
                 depth--;
                 stack.pop_back();
-                if (stack.empty()) return;
+                if (stack.empty()) {
+                    return;
+                }
             }
         }
 
@@ -104,7 +106,10 @@ std::string MakeParseErrorMessage(std::string_view doc, std::size_t offset, rapi
     const std::size_t column = offset > from_pos ? offset - from_pos : offset + 1;
 
     return fmt::format(
-        "JSON parse error at line {} column {}: {}", line, column, rapidjson::GetParseError_En(error_code)
+        "JSON parse error at line {} column {}: {}",
+        line,
+        column,
+        rapidjson::GetParseError_En(error_code)
     );
 }
 

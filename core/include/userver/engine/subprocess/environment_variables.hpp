@@ -18,7 +18,9 @@ public:
     using Map = std::unordered_map<std::string, std::string>;
 
     /// Constructs a wrapper from a map.
-    explicit EnvironmentVariablesUpdate(Map vars) : vars_(std::move(vars)) {}
+    explicit EnvironmentVariablesUpdate(Map vars)
+        : vars_(std::move(vars))
+    {}
 
     /// Returns a non const iterator to the beginning.
     auto begin() { return vars_.begin(); }

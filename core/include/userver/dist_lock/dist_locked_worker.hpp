@@ -87,6 +87,9 @@ public:
     /// Returns lock acquisition statistics.
     const Statistics& GetStatistics() const;
 
+    /// Returns `true` when it is advised to cancel the task.
+    bool IsCancelAdvised() const;
+
 private:
     engine::TaskProcessor& GetTaskProcessor() const noexcept;
 

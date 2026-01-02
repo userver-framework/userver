@@ -42,7 +42,7 @@ struct PgToCpp<PredefinedOids::kTimestamptz, TimePoint>
 
 namespace {
 
-const bool kReference = detail::ForceReference(PgToCpp<PredefinedOids::kTimestamptz, TimePoint>::init_);
+const bool kReference = detail::ForceReference(PgToCpp<PredefinedOids::kTimestamptz, TimePoint>::init);
 
 }  // namespace
 }  // namespace io

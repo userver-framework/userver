@@ -33,7 +33,8 @@ class NormalDataBase : public DataBase {
 protected:
     template <typename Derived>
     NormalDataBase(std::in_place_type_t<Derived>, Key /*key*/)
-        : DataBase([](DataBase& base) noexcept { delete &static_cast<Derived&>(base); }) {}
+        : DataBase([](DataBase& base) noexcept { delete &static_cast<Derived&>(base); })
+    {}
 };
 
 class InheritedDataBase : public DataBase {
@@ -51,7 +52,8 @@ protected:
                   delete &static_cast<Derived&>(base);
               }
           }),
-          key_(key) {}
+          key_(key)
+    {}
 
 private:
     std::atomic<std::size_t> ref_counter_{1};
@@ -68,7 +70,9 @@ class DataImpl final : public ConditionalDataBase<Kind> {
 public:
     template <typename... Args>
     explicit DataImpl(Key key, Args&&... args)
-        : Base(std::in_place_type<DataImpl>, key), variable_(std::forward<Args>(args)...) {}
+        : Base(std::in_place_type<DataImpl>, key),
+          variable_(std::forward<Args>(args)...)
+    {}
 
     T& Get() noexcept { return variable_; }
 
@@ -114,14 +118,18 @@ public:
     template <typename T, VariableKind Kind>
     T* GetOptional(Key key) noexcept {
         DataBase* const data = GetGeneric(key);
-        if (!data) return nullptr;
+        if (!data) {
+            return nullptr;
+        }
         return &static_cast<DataImpl<T, Kind>&>(*data).Get();
     }
 
     template <typename T, VariableKind Kind>
     T& Get(Key key) {
         T* const result = GetOptional<T, Kind>(key);
-        if (!result) ReportVariableNotSet(typeid(T));
+        if (!result) {
+            ReportVariableNotSet(typeid(T));
+        }
         return *result;
     }
 
@@ -130,7 +138,9 @@ public:
         DataBase* const old_data = GetGeneric(key);
         const bool has_existing_variable = old_data != nullptr;
         auto& result = DoEmplace<T, Kind>(key, has_existing_variable, std::forward<Args>(args)...);
-        if (old_data) old_data->DeleteSelf();
+        if (old_data) {
+            old_data->DeleteSelf();
+        }
         return result;
     }
 

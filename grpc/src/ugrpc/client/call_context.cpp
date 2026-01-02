@@ -16,8 +16,6 @@ std::string_view CallContext::GetClientName() const noexcept { return state_.Get
 
 std::string_view CallContext::GetCallName() const noexcept { return state_.GetCallName(); }
 
-tracing::Span& CallContext::GetSpan() noexcept { return state_.GetSpan(); }
-
 }  // namespace ugrpc::client
 
 USERVER_NAMESPACE_END

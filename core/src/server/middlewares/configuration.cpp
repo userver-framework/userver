@@ -16,6 +16,10 @@
 #include <server/middlewares/rate_limit.hpp>
 #include <server/middlewares/tracing.hpp>
 
+#ifndef ARCADIA_ROOT
+#include "generated/src/server/middlewares/configuration.yaml.hpp"  // Y_IGNORE
+#endif
+
 USERVER_NAMESPACE_BEGIN
 
 namespace server::middlewares {
@@ -25,16 +29,15 @@ MiddlewaresList DefaultPipeline() {
     return {
         // Metrics should go before everything else, basically.
         std::string{builtin::kHandlerMetrics},
-        // Tracing should go before UnknownExceptionsHandlingMiddleware because it
-        // adds some headers, which otherwise might be cleared
-        std::string{builtin::kTracing},
-        // Ditto
-        std::string{builtin::kSetAcceptEncoding},
 
         // Every exception caught here is transformed into Http500 without
         // context.
         // All middlewares except for the most obscure ones should go below.
         std::string{builtin::kUnknownExceptionsHandling},
+
+        // Setting headers middlewares should be before terminating middlewares to set headers for errors
+        std::string{builtin::kTracing},
+        std::string{builtin::kSetAcceptEncoding},
 
         // Should be self-explanatory
         std::string{builtin::kRateLimit},
@@ -81,31 +84,23 @@ components::ComponentList MinimalMiddlewareComponents() {
 }
 
 PipelineBuilder::PipelineBuilder(const components::ComponentConfig& config, const components::ComponentContext& context)
-    : components::ComponentBase{config, context}, middlewares_to_append_{config["append"].As<MiddlewaresList>({})} {}
+    : components::ComponentBase{config, context},
+      middlewares_to_append_{config["append"].As<MiddlewaresList>({})}
+{}
 
 const MiddlewaresList& PipelineBuilder::GetMiddlewaresToAppend() const { return middlewares_to_append_; }
 
 yaml_config::Schema PipelineBuilder::GetStaticConfigSchema() {
-    return yaml_config::MergeSchemas<components::ComponentBase>(R"(
-type: object
-description: Base class for a component to configure server middlewares
-additionalProperties: false
-properties:
-    append:
-        type: array
-        items:
-            type: string
-            description: name of a middleware to append
-        description: list of middlewares to append by default
-        defaultDescription: an empty list
-)");
+    return yaml_config::MergeSchemasFromResource<components::ComponentBase>("src/server/middlewares/configuration.yaml"
+    );
 }
 
 HandlerPipelineBuilder::HandlerPipelineBuilder(
     const components::ComponentConfig& config,
     const components::ComponentContext& context
 )
-    : components::ComponentBase{config, context} {}
+    : components::ComponentBase{config, context}
+{}
 
 }  // namespace server::middlewares
 

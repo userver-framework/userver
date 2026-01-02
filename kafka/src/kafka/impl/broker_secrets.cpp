@@ -15,7 +15,8 @@ Secret Parse(const formats::json::Value& doc, formats::parse::To<Secret>) {
             Secret::SaslCredentials{
                 doc["username"].As<Secret::SecretType>(),
                 doc["password"].As<Secret::SecretType>(),
-            }};
+            }
+        };
     } else if (doc.HasMember("ssl_certificate_location")) {
         return Secret{
             std::move(brokers),
@@ -23,7 +24,8 @@ Secret Parse(const formats::json::Value& doc, formats::parse::To<Secret>) {
                 doc["ssl_certificate_location"].As<Secret::SecretType>(),
                 doc["ssl_key_location"].As<Secret::SecretType>(),
                 doc["ssl_key_password"].As<std::optional<Secret::SecretType>>(),
-            }};
+            }
+        };
     } else {
         return Secret{std::move(brokers)};
     }

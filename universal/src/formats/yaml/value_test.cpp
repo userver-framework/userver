@@ -12,7 +12,7 @@ USERVER_NAMESPACE_BEGIN
 
 template <>
 struct Parsing<formats::yaml::Value> : public ::testing::Test {
-    constexpr static auto FromString = formats::yaml::FromString;
+    constexpr static auto kFromString = formats::yaml::FromString;
     using ParseException = formats::yaml::Value::ParseException;
 };
 
@@ -127,13 +127,8 @@ TEST(FormatsYaml, NodesTags) {
   )");
 
     for (auto scalar_field :
-         {"field_int",
-          "field_string",
-          "field_bool",
-          "field_array",
-          "field_obj",
-          "field_array_json",
-          "field_obj_json"}) {
+         {"field_int", "field_string", "field_bool", "field_array", "field_obj", "field_array_json", "field_obj_json"})
+    {
         EXPECT_EQ(yaml[scalar_field].GetTag(), "?") << "Field: " << scalar_field;
     }
 

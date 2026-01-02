@@ -10,7 +10,9 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::sqlite::infra {
 
 ConnectionPtr::ConnectionPtr(std::shared_ptr<Pool>&& pool, std::unique_ptr<impl::Connection>&& connection)
-    : pool_{std::move(pool)}, conn_{std::move(connection)} {}
+    : pool_{std::move(pool)},
+      conn_{std::move(connection)}
+{}
 
 ConnectionPtr::~ConnectionPtr() { Reset(nullptr, nullptr); }
 
@@ -39,7 +41,9 @@ void ConnectionPtr::Reset(std::unique_ptr<impl::Connection> conn, std::shared_pt
 }
 
 void ConnectionPtr::Release() {
-    if (!pool_) return;
+    if (!pool_) {
+        return;
+    }
 
     pool_->Release(std::move(conn_));
 }

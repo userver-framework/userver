@@ -28,9 +28,9 @@ struct PreCore final {
 /// @details There are:
 ///
 /// gRPC-server:
-/// ugrpc::server::middlewares::log::Component.
+/// * @ref ugrpc::server::middlewares::log::Component.
 /// gRPC-client:
-/// ugrpc::client::middlewares::log::Component.
+/// * @ref ugrpc::client::middlewares::log::Component.
 struct Logging final {
     static constexpr std::string_view kName = "logging";
     static inline const auto kDependency = middlewares::MiddlewareDependencyBuilder().After<PreCore>();
@@ -51,10 +51,10 @@ struct Auth final {
 /// @details There are:
 ///
 /// gRPC-server:
-/// * ugrpc::server::middlewares::congestion_control::Component
-/// * ugrpc::server::middlewares::deadline_propagation::Component
+/// * @ref ugrpc::server::middlewares::congestion_control::Component
+/// * @ref ugrpc::server::middlewares::deadline_propagation::Component
 /// gRPC-client:
-/// * ugrpc::client::middlewares::deadline_propagation::Component
+/// * @ref ugrpc::client::middlewares::deadline_propagation::Component
 struct Core final {
     static constexpr std::string_view kName = "core";
     static inline const auto kDependency = middlewares::MiddlewareDependencyBuilder().After<Auth>();
@@ -67,7 +67,7 @@ struct Core final {
 /// @details There are:
 ///
 /// gRPC-client:
-/// * ugrpc::client::middlewares::testsuite::Component
+/// * @ref ugrpc::client::middlewares::testsuite::Component
 struct PostCore final {
     static constexpr std::string_view kName = "post-core";
     static inline const auto kDependency = middlewares::MiddlewareDependencyBuilder().After<Core>();
@@ -80,10 +80,12 @@ struct PostCore final {
 /// @details There are:
 ///
 /// gRPC-server:
-/// * ugrpc::server::middlewares::baggage::Component
-/// * ugrpc::server::middlewares::headers_propagator::Component
+/// * @ref ugrpc::server::middlewares::baggage::Component
+/// * @ref ugrpc::server::middlewares::headers_propagator::Component
 /// gRPC-client:
-/// * ugrpc::client::middlewares::baggage::Component
+/// * @ref ugrpc::client::middlewares::baggage::Component
+/// * @ref ugrpc::client::middlewares::headers_propagator::Component
+/// * @ref ugrpc::client::middlewares::origin::Component
 struct User final {
     static constexpr std::string_view kName = "user";
     static inline const auto kDependency = middlewares::MiddlewareDependencyBuilder().After<PostCore>();

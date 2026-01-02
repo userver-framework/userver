@@ -11,7 +11,9 @@ namespace {
 
 }  // namespace
 
-MetaFilter::MetaFilter(MiddlewareConfig&& config) : headers_(std::move(config.headers)) {}
+MetaFilter::MetaFilter(MiddlewareConfig&& config)
+    : headers_(std::move(config.headers))
+{}
 
 void MetaFilter::OnCallStart(ugrpc::server::MiddlewareCallContext& context) const {
     const auto& metadata = context.GetServerContext().client_metadata();

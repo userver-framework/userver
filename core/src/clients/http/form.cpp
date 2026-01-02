@@ -6,7 +6,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace clients::http {
 
-Form::Form() : impl_(std::make_unique<curl::form>()) {}
+Form::Form()
+    : impl_(std::make_unique<curl::form>())
+{}
 Form::~Form() = default;
 Form::Form(Form&&) noexcept = default;
 Form& Form::operator=(Form&&) noexcept = default;

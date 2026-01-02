@@ -22,6 +22,7 @@ components_manager:
                 port: $monitor-port
                 task_processor: monitor-task-processor
         http-client:
+        http-client-core:
             load-enabled: $testsuite-enabled
             fs-task-processor: fs-task-processor
         dns-client:

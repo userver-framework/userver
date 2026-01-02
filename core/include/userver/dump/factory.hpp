@@ -19,8 +19,10 @@ public:
     virtual std::unique_ptr<Writer> CreateWriter(std::string full_path, tracing::ScopeTime& scope) = 0;
 };
 
-std::unique_ptr<dump::OperationsFactory>
-CreateOperationsFactory(const Config& config, const components::ComponentContext& context);
+std::unique_ptr<dump::OperationsFactory> CreateOperationsFactory(
+    const Config& config,
+    const components::ComponentContext& context
+);
 
 std::unique_ptr<dump::OperationsFactory> CreateDefaultOperationsFactory(const Config& config);
 

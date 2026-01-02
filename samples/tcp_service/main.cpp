@@ -14,7 +14,9 @@ public:
 
     // Component is valid after construction and is able to accept requests
     Hello(const components::ComponentConfig& config, const components::ComponentContext& context)
-        : TcpAcceptorBase(config, context), greeting_(config["greeting"].As<std::string>("hi")) {}
+        : TcpAcceptorBase(config, context),
+          greeting_(config["greeting"].As<std::string>("hi"))
+    {}
 
     void ProcessSocket(engine::io::Socket&& sock) override;
 

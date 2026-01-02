@@ -47,15 +47,23 @@ public:
     /// status_code
     Status status_code() const;
     /// check status code
-    bool IsOk() const { return status_code() == Status::OK; }
+    bool IsOk() const { return status_code() == Status::kOk; }
     bool IsError() const { return static_cast<uint16_t>(status_code()) >= 400; }
 
     static void RaiseForStatus(int code, const LocalStats& stats);
+    static void RaiseForStatus(int code, const LocalStats& stats, std::string_view message);
 
-    void raise_for_status() const;
+    /// @brief Configuration whether to include the response body in the exception in @ref raise_for_status.
+    enum class RaiseIncludeBody : std::uint8_t { kNo = 0, kYes = 1 };
 
-    /// returns statistics on request execution like count of opened sockets,
-    /// connect time...
+    /// @brief Raise an exception depending on the response status.
+    ///        The body of the response may be included in the exception depending on the @param include_body.
+    ///
+    /// @throws HttpClientException for statuses [400; 500)
+    /// @throws HttpServerException for statuses [500; 600)
+    void raise_for_status(RaiseIncludeBody include_body = RaiseIncludeBody::kNo) const;
+
+    /// returns statistics on request execution like count of opened sockets, connect time...
     LocalStats GetStats() const;
 
     void SetStats(const LocalStats& stats) { stats_ = stats; }
@@ -65,7 +73,7 @@ private:
     Headers headers_;
     CookiesMap cookies_;
     std::string response_;
-    Status status_code_{Status::Invalid};
+    Status status_code_{Status::kInvalid};
     LocalStats stats_;
 };
 

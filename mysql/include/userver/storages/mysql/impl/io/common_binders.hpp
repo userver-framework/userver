@@ -18,7 +18,9 @@ namespace storages::mysql::impl::io {
 template <typename T>
 class ExplicitRef final {
 public:
-    explicit ExplicitRef(T& ref) : ref_{ref} {}
+    explicit ExplicitRef(T& ref)
+        : ref_{ref}
+    {}
     explicit ExplicitRef(T&& ref) = delete;
 
     T& Get() { return ref_; }
@@ -32,7 +34,9 @@ class ExplicitCRef final {
 public:
     static_assert(!std::is_const_v<T>);
 
-    explicit ExplicitCRef(const T& ref) : ref_{ref} {}
+    explicit ExplicitCRef(const T& ref)
+        : ref_{ref}
+    {}
     explicit ExplicitCRef(T&& ref) = delete;
 
     const T& Get() const { return ref_; }

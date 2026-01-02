@@ -1,0 +1,7 @@
+type: object
+description: Helper component that manages common configuration for userver dumps.
+additionalProperties: false
+properties:
+    dump-root:
+        type: string
+        description: Components store dumps in subdirectories of this directory

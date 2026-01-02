@@ -56,8 +56,10 @@ public:
     ) const;
 
     /// @brief Retrieves the partition IDs for the specified topic.
-    std::vector<std::uint32_t>
-    GetPartitionIds(utils::zstring_view topic, std::optional<std::chrono::milliseconds> timeout = std::nullopt) const;
+    std::vector<std::uint32_t> GetPartitionIds(
+        utils::zstring_view topic,
+        std::optional<std::chrono::milliseconds> timeout = std::nullopt
+    ) const;
 
     /// @brief Seeks the partition ID for the specified \b topic to a given \b offset .
     void Seek(
@@ -133,10 +135,8 @@ private:
     bool RevokePartitions(const rd_kafka_topic_partition_list_s* partitions);
 
     /// @brief Calls user's rebalance callback if it is set.
-    void CallUserRebalanceCallback(
-        const rd_kafka_topic_partition_list_s* partitions,
-        RebalanceEventType event_type
-    ) noexcept;
+    void CallUserRebalanceCallback(const rd_kafka_topic_partition_list_s* partitions, RebalanceEventType event_type)
+        noexcept;
 
     /// @brief Seeks the partition ID for the specified \b topic to a given \b offset .
     void SeekToOffset(

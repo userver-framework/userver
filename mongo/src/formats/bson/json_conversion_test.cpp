@@ -279,7 +279,8 @@ TEST(Convert, PrimitiveFromJson) {
     }
 
     EXPECT_THROW(
-        fj::ValueBuilder(std::numeric_limits<uint64_t>::max()).ExtractValue().ConvertTo<fb::Value>(), fb::BsonException
+        fj::ValueBuilder(std::numeric_limits<uint64_t>::max()).ExtractValue().ConvertTo<fb::Value>(),
+        fb::BsonException
     );
 }
 

@@ -18,7 +18,7 @@ public:
         return true;
     }
 
-    void FillRequestWithTracingContext(const tracing::Span&, clients::http::PluginRequest) const override {
+    void FillRequestWithTracingContext(const tracing::Span&, clients::http::MiddlewareRequest) const override {
         ++fill_request_counter_;
     }
 
@@ -66,11 +66,12 @@ UTEST(TracingManagerBase, TracingManagerCorrectCallsPerRequest) {
     const std::string data{};
 
     const MockTracingManager tracing_manager;
-    const auto response = http_client.CreateRequest()
-                              .post(url, data)
-                              .timeout(std::chrono::seconds(1))
-                              .SetTracingManager(tracing_manager)
-                              .perform();
+    const auto response =
+        http_client.CreateRequest()
+            .post(url, data)
+            .timeout(std::chrono::seconds(1))
+            .SetTracingManager(tracing_manager)
+            .perform();
 
     EXPECT_TRUE(response->IsOk());
     EXPECT_EQ(tracing_manager.GetCreateNewSpanCounter(), 0);

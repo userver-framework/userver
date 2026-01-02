@@ -188,7 +188,9 @@ TEST(AnyMovable, MoveConstructors) {
 
 TEST(AnyMovable, InPlace) {
     struct NonMovable final {
-        explicit NonMovable(int a, int b, int c) : value(a + b + c) {}
+        explicit NonMovable(int a, int b, int c)
+            : value(a + b + c)
+        {}
 
         NonMovable& operator=(NonMovable&&) = delete;
 

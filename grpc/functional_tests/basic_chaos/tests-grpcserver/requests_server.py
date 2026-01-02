@@ -3,7 +3,7 @@ import logging
 
 import grpc
 
-import samples.greeter_pb2 as greeter_pb2  # noqa: E402, E501
+import samples.greeter_pb2 as greeter_pb2
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +15,7 @@ ALL_CASES = [
     'say_hello_indept_streams',
 ]
 
-OK_RETRIES_COUNT = 5
+OK_RETRIES_COUNT = 10
 
 
 async def _say_hello(grpc_client, gate):

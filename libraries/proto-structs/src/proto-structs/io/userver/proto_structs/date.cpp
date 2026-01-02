@@ -8,7 +8,8 @@
 
 namespace proto_structs::io {
 
-Date ReadProtoStruct(ReadContext& ctx, To<Date>, const ::google::type::Date& msg) try {
+Date ReadProtoStruct(ReadContext& ctx, To<Date>, const ::google::type::Date& msg) try
+{
     return Date(utils::impl::InternalTag{}, msg.year(), msg.month(), msg.day());
 } catch (const ValueError& e) {
     ctx.AddError(e.what());

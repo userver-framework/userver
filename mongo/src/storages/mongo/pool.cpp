@@ -4,6 +4,7 @@
 #include <storages/mongo/cdriver/pool_impl.hpp>
 #include <storages/mongo/database.hpp>
 #include <storages/mongo/stats_serialize.hpp>
+#include <storages/mongo/transaction_impl.hpp>
 #include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -31,7 +32,8 @@ Pool::Pool(
           ValidateConfig(pool_config, id),
           dns_resolver,
           config_source
-      )) {}
+      ))
+{}
 
 Pool::Pool(Pool&&) noexcept = default;
 
@@ -48,13 +50,17 @@ bool Pool::HasCollection(utils::zstring_view name) const {
 }
 
 Collection Pool::GetCollection(std::string name) const {
-    return Collection(
-        std::make_shared<impl::cdriver::CDriverCollectionImpl>(impl_, impl_->DefaultDatabaseName(), std::move(name))
-    );
+    return Collection(std::make_shared<
+                      impl::cdriver::CDriverCollectionImpl>(impl_, impl_->DefaultDatabaseName(), std::move(name)));
 }
 
 std::vector<std::string> Pool::ListCollectionNames() const {
     return impl::Database(impl_, impl_->DefaultDatabaseName()).ListCollectionNames();
+}
+
+Transaction Pool::BeginTransaction() const {
+    auto transaction_impl = std::make_unique<impl::TransactionImpl>(impl_);
+    return Transaction{std::move(transaction_impl)};
 }
 
 void DumpMetric(utils::statistics::Writer& writer, const Pool& pool) {

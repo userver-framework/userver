@@ -24,14 +24,16 @@ OneOf Parse(USERVER_NAMESPACE::yaml_config::Value json, USERVER_NAMESPACE::forma
     return Parse<USERVER_NAMESPACE::yaml_config::Value>(json, to);
 }
 
-USERVER_NAMESPACE::formats::json::Value
-Serialize([[maybe_unused]] const ::ns::OneOf& value, USERVER_NAMESPACE::formats::serialize::To<USERVER_NAMESPACE::formats::json::Value>) {
+USERVER_NAMESPACE::formats::
+    json::
+        Value
+        Serialize([[maybe_unused]] const ::ns::OneOf& value, USERVER_NAMESPACE::formats::serialize::To<USERVER_NAMESPACE::formats::json::Value>) {
     USERVER_NAMESPACE::formats::json::ValueBuilder vb = USERVER_NAMESPACE::formats::common::Type::kObject;
 
     if (value.foo) {
-        vb["foo"] = USERVER_NAMESPACE::chaotic::
-            Variant<USERVER_NAMESPACE::chaotic::Primitive<int>, USERVER_NAMESPACE::chaotic::Primitive<std::string>>{
-                *value.foo};
+        vb["foo"] = USERVER_NAMESPACE::chaotic::Variant<
+            USERVER_NAMESPACE::chaotic::Primitive<int>,
+            USERVER_NAMESPACE::chaotic::Primitive<std::string>>{*value.foo};
     }
 
     return vb.ExtractValue();

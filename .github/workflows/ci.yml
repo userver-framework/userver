@@ -104,11 +104,11 @@ jobs:
         runs-on: ${{matrix.os}}
 
         steps:
-          - uses: actions/checkout@v5
+          - uses: actions/checkout@v6
 
           - name: Restore cached directories
             id: restore-cache
-            uses: actions/cache/restore@v4
+            uses: actions/cache/restore@v5
             with:
                 path: |
                     ${{env.CCACHE_DIR}}
@@ -125,14 +125,7 @@ jobs:
                 sudo mount -t tmpfs -o size=2048M tmpfs "/mnt/ramdisk/$USER"
 
           - name: Free disk space
-            run: |
-                df -h
-                # See https://stackoverflow.com/questions/75536771/github-runner-out-of-disk-space-after-building-docker-image
-                sudo rm -rf /usr/share/dotnet /usr/local/lib/android /usr/lib/php* /opt/ghc \
-                    /usr/local/share/powershell /usr/share/swift /usr/local/.ghcup \
-                    /opt/hostedtoolcache/CodeQL || true
-                sudo docker image prune --all --force
-                df -h
+            run: ./scripts/githubci_free_space.sh
 
           - name: Add confluentinc repositories
             if: matrix.os != 'ubuntu-24.04'
@@ -227,7 +220,7 @@ jobs:
                 cmake --build . -j $(nproc)
 
           - name: Save cached directories
-            uses: actions/cache/save@v4
+            uses: actions/cache/save@v5
             with:
                 path: |
                     ${{env.CCACHE_DIR}}
@@ -246,6 +239,13 @@ jobs:
                 echo "UBSAN_OPTIONS=${UBSAN_OPTIONS} ASAN_OPTIONS=${ASAN_OPTIONS}"
                 cd build_debug
                 ./universal/userver-universal-unittest ${{matrix.tests-flags}}
+
+          - name: Run tests (libraries)
+            run: |
+                cd build_debug
+                mkdir libraries || :
+                cd libraries
+                ctest -V
 
           - name: Run tests (core)
             run: |

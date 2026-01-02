@@ -12,11 +12,17 @@ namespace formats::yaml {
 
 template <typename IterTraits>
 Iterator<IterTraits>::Iterator(const typename IterTraits::native_iter& iter, int index, const formats::yaml::Path& path)
-    : iter_pimpl_(iter), path_(path), index_(index) {}
+    : iter_pimpl_(iter),
+      path_(path),
+      index_(index)
+{}
 
 template <typename IterTraits>
 Iterator<IterTraits>::Iterator(const Iterator<IterTraits>& other)
-    : iter_pimpl_(other.iter_pimpl_), path_(other.path_), index_(other.index_) {}
+    : iter_pimpl_(other.iter_pimpl_),
+      path_(other.path_),
+      index_(other.index_)
+{}
 
 template <typename IterTraits>
 Iterator<IterTraits>::Iterator(Iterator<IterTraits>&& other) noexcept
@@ -24,7 +30,9 @@ Iterator<IterTraits>::Iterator(Iterator<IterTraits>&& other) noexcept
 
 template <typename IterTraits>
 Iterator<IterTraits>& Iterator<IterTraits>::operator=(const Iterator<IterTraits>& other) {
-    if (this == &other) return *this;
+    if (this == &other) {
+        return *this;
+    }
 
     iter_pimpl_ = other.iter_pimpl_;
     path_ = other.path_;
@@ -114,7 +122,9 @@ Type Iterator<IterTraits>::GetIteratorType() const {
 
 template <typename IterTraits>
 void Iterator<IterTraits>::UpdateValue() const {
-    if (current_) return;
+    if (current_) {
+        return;
+    }
 
     if (index_ == -1) {
         current_.emplace(typename value_type::EmplaceEnabler{}, (*iter_pimpl_)->second, path_, GetName());

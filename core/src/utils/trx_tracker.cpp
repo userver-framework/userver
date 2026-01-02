@@ -91,7 +91,9 @@ GlobalEnabler::~GlobalEnabler() {
 
 bool IsEnabled() noexcept { return trx_tracker_enabled; }
 
-TaskId::TaskId() : created_thread_id_{std::this_thread::get_id()} {
+TaskId::TaskId()
+    : created_thread_id_{std::this_thread::get_id()}
+{
     auto counter_scope{local_task_counter.Use()};
     thread_local_counter_ = (*counter_scope)++;
 }

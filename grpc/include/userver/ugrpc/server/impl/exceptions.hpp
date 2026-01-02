@@ -14,7 +14,9 @@ class BaseInternalRpcError : public std::exception {};
 /// @brief Middleware interruption
 class MiddlewareRpcInterruptionError : public BaseInternalRpcError {
 public:
-    explicit MiddlewareRpcInterruptionError(grpc::Status&& status) : status_(std::move(status)) {}
+    explicit MiddlewareRpcInterruptionError(grpc::Status&& status)
+        : status_(std::move(status))
+    {}
 
     grpc::Status&& ExtractStatus() { return std::move(status_); }
 

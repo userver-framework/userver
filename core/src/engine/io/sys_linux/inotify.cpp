@@ -58,7 +58,9 @@ logging::LogHelper& operator<<(logging::LogHelper& lh, const Event& event) noexc
     return lh;
 }
 
-Inotify::Inotify() : fd_(engine::current_task::GetEventThread()) {
+Inotify::Inotify()
+    : fd_(engine::current_task::GetEventThread())
+{
     fd_.Reset(inotify_init(), FdPoller::Kind::kRead);
     UASSERT(fd_.GetFd() != -1);
 }
@@ -72,7 +74,8 @@ Inotify::~Inotify() {
 
 void Inotify::AddWatch(const std::string& path, EventTypeMask flags) {
     auto wd = utils::CheckSyscall(
-        inotify_add_watch(fd_.GetFd(), path.c_str(), static_cast<int>(flags.GetValue())), "inotify_add_watch"
+        inotify_add_watch(fd_.GetFd(), path.c_str(), static_cast<int>(flags.GetValue())),
+        "inotify_add_watch"
     );
 
     path_to_wd_[path] = wd;
@@ -95,7 +98,9 @@ std::optional<Event> Inotify::Poll(engine::Deadline deadline) {
     }
 
     auto kind = fd_.Wait(deadline);
-    if (!kind) return {};
+    if (!kind) {
+        return {};
+    }
 
     Dispatch();
 
@@ -116,8 +121,8 @@ void Inotify::Dispatch() {
     const auto* event = reinterpret_cast<const inotify_event*>(buff);
     for (ssize_t pos = 0; pos < len; pos += sizeof(inotify_event) + event->len) {
         event = reinterpret_cast<inotify_event*>(buff + pos);
-        std::string path =
-            event->len ? (wd_to_path_[event->wd] + '/' + std::string{event->name}) : wd_to_path_[event->wd];
+        std::string
+            path = event->len ? (wd_to_path_[event->wd] + '/' + std::string{event->name}) : wd_to_path_[event->wd];
         pending_events_.push(Event{std::move(path), EventTypeMask(static_cast<EventType>(event->mask))});
     }
 }

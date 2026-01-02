@@ -16,6 +16,26 @@ utils::statistics::Rate GetTriggers() { return utils::trx_tracker::GetStatistics
 
 using TrxTrackerFixture = utest::LogCaptureFixture<>;
 
+class FakeTransaction {
+public:
+    FakeTransaction() { lock_.Lock(); }
+
+    void Commit() { lock_.Unlock(); }
+
+private:
+    utils::trx_tracker::TransactionLock lock_{};
+};
+
+class FakeCluster {
+public:
+    FakeTransaction Begin() { return {}; }
+};
+
+class FakeClient {
+public:
+    void SomeHandle(int) { utils::trx_tracker::CheckNoTransactions(); }
+};
+
 }  // namespace
 
 UTEST_F(TrxTrackerFixture, AssertInTransaction) {
@@ -187,6 +207,27 @@ UTEST(TrxTracker, CopyAssignmentSelf) {
     utils::trx_tracker::CheckNoTransactions();
 
     EXPECT_EQ(GetTriggers(), 1);
+}
+
+UTEST(TrxTracker, CheckDisablerSample) {
+    utils::trx_tracker::ResetStatistics();
+    const utils::trx_tracker::impl::GlobalEnabler enabler;
+
+    FakeCluster cluster;
+    FakeClient client;
+    int request = 42;
+
+    /// [Sample CheckDisabler usage]
+    auto trx = cluster.Begin();
+    {
+        utils::trx_tracker::CheckDisabler disabler;
+        client.SomeHandle(request);  // calls utils::trx_tracker::CheckNoTransactions()
+    }
+
+    trx.Commit();
+    /// [Sample CheckDisabler usage]
+
+    EXPECT_EQ(GetTriggers(), 0);
 }
 
 UTEST(TrxTracker, AssertWithDisabler) {

@@ -96,9 +96,8 @@ UTEST_MT(TpLogger, SerializesSinkOperations, 4) {
     });
 
     engine::SleepFor(std::chrono::milliseconds{100});
-    logger.StartConsumerTask(
-        engine::current_task::GetTaskProcessor(), 1 << 8, logging::QueueOverflowBehavior::kDiscard
-    );
+    logger
+        .StartConsumerTask(engine::current_task::GetTaskProcessor(), 1 << 8, logging::QueueOverflowBehavior::kDiscard);
 
     engine::SleepFor(std::chrono::milliseconds{100});
     logger.StopConsumerTask();
@@ -106,9 +105,15 @@ UTEST_MT(TpLogger, SerializesSinkOperations, 4) {
     engine::SleepFor(std::chrono::milliseconds{100});
     keep_running = false;
 
-    for (auto& task : writer_tasks) task.get();
-    for (auto& task : flush_tasks) task.get();
-    for (auto& task : reopen_tasks) task.Get();
+    for (auto& task : writer_tasks) {
+        task.get();
+    }
+    for (auto& task : flush_tasks) {
+        task.get();
+    }
+    for (auto& task : reopen_tasks) {
+        task.Get();
+    }
 
     dynamic_cast<NonThreadSafeSink&>(*logger.GetSinks().at(0)).CheckOperationsWerePerformed();
 

@@ -63,7 +63,9 @@ struct convert<USERVER_NAMESPACE::impl::StringViewOrSomeFake> {
     static Node encode(ConversionType rhs) { return Node(std::string{rhs}); }
 
     static bool decode(const Node& node, ConversionType& rhs) {
-        if (!node.IsScalar()) return false;
+        if (!node.IsScalar()) {
+            return false;
+        }
         rhs = node.Scalar();
         return true;
     }

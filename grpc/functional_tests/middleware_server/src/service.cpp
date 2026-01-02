@@ -10,8 +10,10 @@
 
 namespace functional_tests {
 
-GreeterServiceComponent::SayHelloResult
-GreeterServiceComponent::SayHello(CallContext& /*context*/, samples::api::GreetingRequest&& request) {
+GreeterServiceComponent::SayHelloResult GreeterServiceComponent::SayHello(
+    CallContext& /*context*/,
+    samples::api::GreetingRequest&& request
+) {
     samples::api::GreetingResponse response;
     response.set_greeting(fmt::format("Hello, {}!", request.name()));
     return response;
@@ -23,20 +25,22 @@ GreeterServiceComponent::SayHelloResponseStreamResult GreeterServiceComponent::S
     SayHelloResponseStreamWriter& writer
 ) {
     std::string message = fmt::format("{}, {}", "Hello", request.name());
-    samples::api::GreetingResponse response;
     constexpr auto kCountSend = 5;
     constexpr std::chrono::milliseconds kTimeInterval{200};
     for (auto i = 0; i < kCountSend; ++i) {
+        samples::api::GreetingResponse response;
         message.push_back('!');
         response.set_greeting(grpc::string(message));
         engine::SleepFor(kTimeInterval);
-        writer.Write(response);
+        writer.Write(std::move(response));
     }
     return grpc::Status::OK;
 }
 
-GreeterServiceComponent::SayHelloRequestStreamResult
-GreeterServiceComponent::SayHelloRequestStream(CallContext& /*context*/, SayHelloRequestStreamReader& reader) {
+GreeterServiceComponent::SayHelloRequestStreamResult GreeterServiceComponent::SayHelloRequestStream(
+    CallContext& /*context*/,
+    SayHelloRequestStreamReader& reader
+) {
     std::string income_message;
     samples::api::GreetingRequest request;
     while (reader.Read(request)) {
@@ -47,17 +51,19 @@ GreeterServiceComponent::SayHelloRequestStream(CallContext& /*context*/, SayHell
     return response;
 }
 
-GreeterServiceComponent::SayHelloStreamsResult
-GreeterServiceComponent::SayHelloStreams(CallContext& /*context*/, SayHelloStreamsReaderWriter& stream) {
+GreeterServiceComponent::SayHelloStreamsResult GreeterServiceComponent::SayHelloStreams(
+    CallContext& /*context*/,
+    SayHelloStreamsReaderWriter& stream
+) {
     constexpr std::chrono::milliseconds kTimeInterval{200};
     std::string income_message;
     samples::api::GreetingRequest request;
-    samples::api::GreetingResponse response;
     while (stream.Read(request)) {
+        samples::api::GreetingResponse response;
         income_message.append(request.name());
         response.set_greeting(fmt::format("{}, {}", "Hello", income_message));
         engine::SleepFor(kTimeInterval);
-        stream.Write(response);
+        stream.Write(std::move(response));
     }
     return grpc::Status::OK;
 }

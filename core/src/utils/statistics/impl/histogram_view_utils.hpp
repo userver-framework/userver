@@ -86,14 +86,17 @@ inline bool HasSameBoundsAndValues(HistogramView lhs, HistogramView rhs) {
 
 class MutableView final {
 public:
-    explicit MutableView(Bucket* buckets) noexcept : buckets_(buckets) { UASSERT(buckets); }
+    explicit MutableView(Bucket* buckets) noexcept : buckets_(buckets) {
+        UASSERT(buckets);
+    }
 
     /*implicit*/ operator HistogramView() const noexcept { return Access::MakeView(buckets_); }
 
     template <typename InputRange>
     void SetBounds(const InputRange& upper_bounds) const {
         UINVARIANT(
-            std::all_of(upper_bounds.begin(), upper_bounds.end(), IsBoundPositive), "Histogram bounds must be positive"
+            std::all_of(upper_bounds.begin(), upper_bounds.end(), IsBoundPositive),
+            "Histogram bounds must be positive"
         );
         UINVARIANT(std::is_sorted(upper_bounds.begin(), upper_bounds.end()), "Histogram bounds must be sorted");
         UINVARIANT(

@@ -1,9 +1,9 @@
 import asyncio
 
+import pytest_userver.utils.sync as sync
 import redis
 
 KEYS_SEQ_LEN = 10  # enough sequential keys to test all shards
-FAILOVER_DEADLINE_SEC = 30  # maximum time allowed to finish failover
 
 
 async def test_happy_path(service_client):
@@ -32,12 +32,11 @@ async def _check_write_all_shards(service_client, key_prefix, value):
 
 
 async def _wait_for_replicas_and_masters_negotiation(service_client, key, value):
-    for _ in range(FAILOVER_DEADLINE_SEC):
-        write_ok = await _check_write_all_shards(service_client, key, value)
-        if write_ok:
-            break
-        await asyncio.sleep(1)
-    assert write_ok
+    async def check_ready():
+        if not await _check_write_all_shards(service_client, key, value):
+            raise sync.NotReady()
+
+    await sync.wait_until(check_ready)
 
 
 async def _check_read_all_shards(service_client, key_prefix, value):
@@ -75,17 +74,17 @@ async def test_failover(service_client, redis_cluster_store):
     await _assert_read_all_shards(service_client, 'hf_key1', 'abc')
 
     # Replica may be syncing, use some retries
-    for _ in range(FAILOVER_DEADLINE_SEC):
-        read_ok = await _check_read_all_shards(service_client, 'hf_key2', 'cde')
-        if read_ok:
-            break
-        await asyncio.sleep(1)
-    assert read_ok
+    async def check_ready():
+        if not await _check_read_all_shards(service_client, 'hf_key2', 'cde'):
+            raise sync.NotReady()
+
+    await sync.wait_until(check_ready)
 
     # Failover master back where it was and make sure it gets there
     assert redis_cluster_store.cluster_failover(target_node=primary)
     await _wait_for_replicas_and_masters_negotiation(service_client, 'hf_key3', 'xyz')
-    for _ in range(FAILOVER_DEADLINE_SEC):
+
+    async def check_ready():
         try:
             redis_cluster_store.flushall(target_nodes=redis.cluster.RedisCluster.PRIMARIES)
             redis_cluster_store.wait(1, 10, target_nodes=redis.cluster.RedisCluster.PRIMARIES)
@@ -94,4 +93,6 @@ async def test_failover(service_client, redis_cluster_store):
             redis_cluster_store.close()
             redis_cluster_store.nodes_manager.reset()
             redis_cluster_store.nodes_manager.initialize()
-            await asyncio.sleep(1)
+            raise sync.NotReady()
+
+    await sync.wait_until(check_ready)

@@ -1,0 +1,12 @@
+type: object
+description: gRPC service headers propagator component
+additionalProperties: false
+properties:
+    skip-headers:
+        type: object
+        description: map from metadata fields (headers) to whether it should be skipped
+        default: {}
+        additionalProperties:
+            type: boolean
+            description: true - disable header
+        properties: {}

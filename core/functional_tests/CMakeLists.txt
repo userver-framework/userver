@@ -5,6 +5,12 @@ add_custom_target(${PROJECT_NAME})
 add_subdirectory(basic_chaos)
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-basic-chaos)
 
+add_subdirectory(dump_coroutines)
+add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-dump-coroutines)
+
+add_subdirectory(early_monitor_port_open)
+add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-early-monitor-port-open)
+
 add_subdirectory(dynamic_configs)
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-dynamic-configs)
 
@@ -25,6 +31,12 @@ add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-metrics)
 
 add_subdirectory(static_service)
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-static-service)
+
+add_subdirectory(slow_start)
+add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-slow-start)
+
+add_subdirectory(signal_during_boot)
+add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-signal-during-boot)
 
 add_subdirectory(tracing)
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-tracing)

@@ -24,8 +24,11 @@ utils::expected<TraceParentDataView, USERVER_NAMESPACE::utils::StringLiteral> Ex
     std::string_view trace_parent
 ) noexcept;
 
-utils::expected<std::string, std::string>
-BuildTraceParentHeader(std::string_view trace_id, std::string_view span_id, std::string_view trace_flags);
+utils::expected<std::string, std::string> BuildTraceParentHeader(
+    std::string_view trace_id,
+    std::string_view span_id,
+    std::string_view trace_flags
+);
 
 }  // namespace tracing::opentelemetry
 

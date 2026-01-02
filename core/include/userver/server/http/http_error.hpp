@@ -40,7 +40,9 @@ public:
     /// @snippet server/handlers/exceptions_test.cpp  Sample construction HTTP
     template <typename... Args>
     CustomHandlerException(handlers::HandlerErrorCode error_code, HttpStatus http_status, Args&&... args)
-        : handlers::CustomHandlerException(error_code, std::forward<Args>(args)...), http_status_(http_status) {}
+        : handlers::CustomHandlerException(error_code, std::forward<Args>(args)...),
+          http_status_(http_status)
+    {}
 
     HttpStatus GetHttpStatus() const { return http_status_; }
 

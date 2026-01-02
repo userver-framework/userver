@@ -23,7 +23,9 @@ template <>
 struct BufferFormatter<const char*> {
     const char* value;
 
-    explicit BufferFormatter(const char* val) : value{val} {}
+    explicit BufferFormatter(const char* val)
+        : value{val}
+    {}
 
     template <typename Buffer>
     void operator()(const UserTypes&, Buffer& buf) const {
@@ -50,7 +52,9 @@ struct BufferFormatter<char[N]> {
     using CharFormatter = BufferFormatter<const char*>;
     const char* value;
 
-    explicit BufferFormatter(const char* val) : value{val} {}
+    explicit BufferFormatter(const char* val)
+        : value{val}
+    {}
 
     template <typename Buffer>
     void operator()(const UserTypes&, Buffer& buf) const {
@@ -67,7 +71,9 @@ struct BufferFormatter<std::string> {
     using CharFormatter = BufferFormatter<const char*>;
     const std::string& value;
 
-    explicit BufferFormatter(const std::string& val) : value{val} {}
+    explicit BufferFormatter(const std::string& val)
+        : value{val}
+    {}
     template <typename Buffer>
     void operator()(const UserTypes&, Buffer& buf) const {
         CharFormatter::WriteN(buf, value.data(), value.size());
@@ -78,7 +84,9 @@ template <>
 struct BufferParser<std::string> {
     std::string& value;
 
-    explicit BufferParser(std::string& val) : value{val} {}
+    explicit BufferParser(std::string& val)
+        : value{val}
+    {}
 
     void operator()(const FieldBuffer& buffer);
 };
@@ -118,7 +126,9 @@ template <>
 struct BufferFormatter<char> {
     char value;
 
-    explicit BufferFormatter(char val) : value{val} {}
+    explicit BufferFormatter(char val)
+        : value{val}
+    {}
     template <typename Buffer>
     void operator()(const UserTypes&, Buffer& buf) const {
         buf.push_back(value);
@@ -129,7 +139,9 @@ template <>
 struct BufferParser<char> {
     char& value;
 
-    explicit BufferParser(char& val) : value{val} {}
+    explicit BufferParser(char& val)
+        : value{val}
+    {}
 
     void operator()(const FieldBuffer& buffer) {
         if (buffer.length != 1) {

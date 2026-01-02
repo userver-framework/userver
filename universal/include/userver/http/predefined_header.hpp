@@ -168,7 +168,10 @@ class Map;
 class PredefinedHeader final {
 public:
     explicit constexpr PredefinedHeader(utils::StringLiteral name)
-        : name_{name}, hash_{impl::UnsafeConstexprHasher{}(name)}, header_index_{impl::GetHeaderIndexForLookup(name)} {}
+        : name_{name},
+          hash_{impl::UnsafeConstexprHasher{}(name)},
+          header_index_{impl::GetHeaderIndexForLookup(name)}
+    {}
 
     constexpr operator utils::StringLiteral() const { return name_; }
 

@@ -47,15 +47,12 @@ TEST(StrIcases, HashIsRandomlySeeded) {
 TEST(StrIcases, CompareEqual) {
     EXPECT_TRUE(utils::StrIcaseEqual{}(kLowercaseChars, kUppercaseChars));
     EXPECT_TRUE(utils::StrIcaseEqual{}(kUppercaseChars, kLowercaseChars));
-    EXPECT_TRUE(utils::StrIcaseEqual{}(
-        std::string_view{"abcdefghijklmnopqrstuvwxyz"}, std::string_view{"aBcDefGhijklmnoPqrstuvwxyz"}
-    ));
-    EXPECT_TRUE(utils::StrIcaseEqual{}(
-        std::string_view{"abcdefghijklmnopqrstuvwxyz"}, std::string_view{"AbCdEFgHIJKLMNOpQRSTUVWXYZ"}
-    ));
-    EXPECT_TRUE(utils::StrIcaseEqual{}(
-        std::string_view{"0123456789abcdefghijklmnopqrstuvwXYZ"},
-        std::string_view{"0123456789AbCdEFgHIJKLMNOpQRSTUVWxyz"}
+    EXPECT_TRUE(utils::StrIcaseEqual{
+    }(std::string_view{"abcdefghijklmnopqrstuvwxyz"}, std::string_view{"aBcDefGhijklmnoPqrstuvwxyz"}));
+    EXPECT_TRUE(utils::StrIcaseEqual{
+    }(std::string_view{"abcdefghijklmnopqrstuvwxyz"}, std::string_view{"AbCdEFgHIJKLMNOpQRSTUVWXYZ"}));
+    EXPECT_TRUE(utils::StrIcaseEqual{
+    }(std::string_view{"0123456789abcdefghijklmnopqrstuvwXYZ"}, std::string_view{"0123456789AbCdEFgHIJKLMNOpQRSTUVWxyz"}
     ));
 
     EXPECT_FALSE(utils::StrIcaseEqual{}(std::string_view("\0", 1), std::string_view("\32", 1)));
@@ -76,12 +73,10 @@ TEST(StrIcases, CompareLess) {
     EXPECT_FALSE(utils::StrIcaseLess{}(kUppercaseChars, kLowercaseChars));
     EXPECT_FALSE(utils::StrIcaseLess{}(kLowercaseChars, kUppercaseChars));
 
-    EXPECT_FALSE(utils::StrIcaseLess{}(
-        std::string_view{"abcdefghijklmnopqrstuvwxyz"}, std::string_view{"aBcDefGhijklmnoPqrstuvwxyz"}
-    ));
-    EXPECT_FALSE(utils::StrIcaseLess{}(
-        std::string_view{"abcdefghijklmnopqrstuvwxyz"}, std::string_view{"AbCdEFgHIJKLMNOpQRSTUVWXYZ"}
-    ));
+    EXPECT_FALSE(utils::StrIcaseLess{
+    }(std::string_view{"abcdefghijklmnopqrstuvwxyz"}, std::string_view{"aBcDefGhijklmnoPqrstuvwxyz"}));
+    EXPECT_FALSE(utils::StrIcaseLess{
+    }(std::string_view{"abcdefghijklmnopqrstuvwxyz"}, std::string_view{"AbCdEFgHIJKLMNOpQRSTUVWXYZ"}));
 
     EXPECT_TRUE(utils::StrIcaseLess{}(std::string_view("WARNIN"), std::string_view("warning")));
     EXPECT_TRUE(utils::StrIcaseLess{}(std::string_view("warnin"), std::string_view("WARNING")));
@@ -110,7 +105,9 @@ TEST(StrIcases, CompareLessMany) {
     for (size_t i = 0; i < 26; i++) {
         char c1 = result[i * 2];
         char c2 = result[i * 2 + 1];
-        if (c2 < c1) std::swap(c1, c2);
+        if (c2 < c1) {
+            std::swap(c1, c2);
+        }
         EXPECT_EQ(c1, char('A' + i)) << c1 << ' ' << c2 << ' ' << result;
         EXPECT_EQ(c2, char('a' + i)) << c1 << ' ' << c2 << ' ' << result;
     }
@@ -153,7 +150,9 @@ TEST(StrIcases, CompareLessNonAlpha) {
     for (size_t i = 0; i < 26; i++) {
         char c1 = result[i * 2 + 7];
         char c2 = result[i * 2 + 8];
-        if (c2 < c1) std::swap(c1, c2);
+        if (c2 < c1) {
+            std::swap(c1, c2);
+        }
         ASSERT_EQ(c1, char('A' + i)) << c1 << ' ' << c2 << ' ' << result;
         ASSERT_EQ(c2, char('a' + i)) << c1 << ' ' << c2 << ' ' << result;
     }

@@ -5,7 +5,6 @@
 
 #include <grpcpp/client_context.h>
 
-#include <userver/tracing/span.hpp>
 #include <userver/utils/impl/internal_tag_fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -32,9 +31,6 @@ public:
 
     /// @returns RPC name
     std::string_view GetCallName() const noexcept;
-
-    /// @returns RPC span
-    tracing::Span& GetSpan() noexcept;
 
 private:
     impl::CallState& state_;

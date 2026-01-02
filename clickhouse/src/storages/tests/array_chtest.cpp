@@ -62,13 +62,14 @@ UTEST(Array, Works) {
 
 UTEST(Array, IterationWorks) {
     ClusterWrapper cluster{};
-    auto res = cluster
-                   ->Execute(
-                       "SELECT c.number, arrayMap(x->toString(x), range(0, "
-                       "c.number)) FROM "
-                       "system.numbers c LIMIT 10"
-                   )
-                   .AsRows<DataOfArrays>();
+    auto res =
+        cluster
+            ->Execute(
+                "SELECT c.number, arrayMap(x->toString(x), range(0, "
+                "c.number)) FROM "
+                "system.numbers c LIMIT 10"
+            )
+            .AsRows<DataOfArrays>();
     size_t ind = 0;
     for (auto it = res.begin(); it != res.end(); it++, ++ind) {
         ASSERT_EQ(it->value, ind);

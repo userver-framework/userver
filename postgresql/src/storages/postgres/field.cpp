@@ -40,7 +40,9 @@ int Field::Compare(const Field& rhs) const { return Distance(rhs); }
 
 std::ptrdiff_t Field::Distance(const Field& rhs) const {
     // Invalid iterators are equal
-    if (!IsValid() && !rhs.IsValid()) return 0;
+    if (!IsValid() && !rhs.IsValid()) {
+        return 0;
+    }
     UASSERT_MSG(res_ == rhs.res_, "Cannot compare iterators in different result sets");
     UASSERT_MSG(row_index_ == rhs.row_index_, "Cannot compare field iterators in different data rows");
     return field_index_ - rhs.field_index_;

@@ -1,0 +1,37 @@
+type: object
+description: Component that stores the runtime config.
+additionalProperties: false
+properties:
+    updates-enabled:
+        type: boolean
+        description: should be set to 'true' if there is an updater component
+        default: false
+    defaults:
+        type: object
+        description: |
+            Optional values for configs that override the defaults specified
+            in dynamic_config::Key definitions
+
+            Default: values from dynamic_config::Key definitions are used
+        properties: {}
+        additionalProperties: true
+    defaults-path:
+        type: string
+        description: |
+            Optional file with config values that override the defaults specified
+            in dynamic_config::Key definitions.
+
+            Default: values from dynamic_config::Key definitions are used
+    fs-cache-path:
+        type: string
+        description: |
+            Path to the file to read and dump a config cache; set to empty
+            string to disable reading and dumping configs to FS.
+
+            Default: no fs cache
+    fs-task-processor:
+        type: string
+        description: |
+            Name of the task processor to run the blocking file write operations.
+
+            Default: engine::current_task::GetBlockingTaskProcessor()

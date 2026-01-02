@@ -11,7 +11,8 @@ USERVER_NAMESPACE_BEGIN
 namespace proto_structs {
 
 Timestamp::Timestamp(utils::impl::InternalTag, std::int64_t seconds, std::int32_t nanos)
-    : Timestamp(std::chrono::seconds{seconds}, std::chrono::nanoseconds{nanos}) {}
+    : Timestamp(std::chrono::seconds{seconds}, std::chrono::nanoseconds{nanos})
+{}
 
 void Timestamp::ThrowError(const std::chrono::seconds& seconds, const std::chrono::nanoseconds& nanos) {
     throw ValueError(fmt::format("Timestamp '{}s.{}ns' is invalid or out of range", seconds.count(), nanos.count()));

@@ -150,13 +150,13 @@ TEST(Enumerate, TestNoCopyLValue) {
 }
 
 TEST(Enumerate, TestNoCopyRValue) {
-    auto FuncReturnContainer = []() {
+    auto func_return_container = []() {
         ContainerThrowsOnCopy container;
         return container;
     };
 
     try {
-        for (const auto [pos, elem] : utils::enumerate(FuncReturnContainer())) {
+        for (const auto [pos, elem] : utils::enumerate(func_return_container())) {
             std::ignore = pos;
             std::ignore = elem;
             FAIL() << "container should be empty";

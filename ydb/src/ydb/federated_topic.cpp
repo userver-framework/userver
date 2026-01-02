@@ -11,15 +11,17 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ydb {
 
-FederatedTopicReadSession::FederatedTopicReadSession(
-    std::shared_ptr<NYdb::NFederatedTopic::IFederatedReadSession> read_session
-)
-    : read_session_(std::move(read_session)) {
+FederatedTopicReadSession::FederatedTopicReadSession(std::shared_ptr<
+                                                     NYdb::NFederatedTopic::IFederatedReadSession> read_session)
+    : read_session_(std::move(read_session))
+{
     UASSERT(read_session_);
 }
 
-std::vector<NYdb::NFederatedTopic::TReadSessionEvent::TEvent>
-FederatedTopicReadSession::GetEvents(std::optional<std::size_t> max_events_count, size_t max_size_bytes) {
+std::vector<NYdb::NFederatedTopic::TReadSessionEvent::TEvent> FederatedTopicReadSession::GetEvents(
+    std::optional<std::size_t> max_events_count,
+    size_t max_size_bytes
+) {
     impl::GetFutureValue(read_session_->WaitEvent());
     return read_session_->GetEvents(false, max_events_count, max_size_bytes);
 }
@@ -34,7 +36,9 @@ FederatedTopicClient::FederatedTopicClient(
     std::shared_ptr<impl::Driver> driver,
     [[maybe_unused]] impl::TopicSettings settings
 )
-    : driver_{std::move(driver)}, topic_client_{driver_->GetNativeDriver()} {}
+    : driver_{std::move(driver)},
+      topic_client_{driver_->GetNativeDriver()}
+{}
 
 FederatedTopicClient::~FederatedTopicClient() = default;
 

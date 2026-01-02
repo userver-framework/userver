@@ -168,11 +168,15 @@ private:
 
 // ========================== Implementation follows ==========================
 
-constexpr DefaultAsJsonString::DefaultAsJsonString(std::string_view json_string) : json_string(json_string) {}
+constexpr DefaultAsJsonString::DefaultAsJsonString(std::string_view json_string)
+    : json_string(json_string)
+{}
 
 template <typename T>
 ConfigDefault::ConfigDefault(std::string_view name, const T& value)
-    : name(name), default_json(impl::ToJsonString(value)) {}
+    : name(name),
+      default_json(impl::ToJsonString(value))
+{}
 
 template <typename Variable>
 Key<Variable>::Key(std::string_view name, const VariableType& default_value)
@@ -182,7 +186,8 @@ Key<Variable>::Key(std::string_view name, const VariableType& default_value)
               return impl::DocsMapGet(docs_map, name).template As<VariableType>();
           },
           impl::ValueToDocsMapString(name, default_value)
-      )) {}
+      ))
+{}
 
 template <typename Variable>
 Key<Variable>::Key(std::string_view name, DefaultAsJsonString default_json)
@@ -192,7 +197,8 @@ Key<Variable>::Key(std::string_view name, DefaultAsJsonString default_json)
               return impl::DocsMapGet(docs_map, name).template As<VariableType>();
           },
           impl::SingleToDocsMapString(name, default_json.json_string)
-      )) {}
+      ))
+{}
 
 template <typename Variable>
 Key<Variable>::Key(std::string_view name, JsonParser parser, DefaultAsJsonString default_json)
@@ -202,7 +208,8 @@ Key<Variable>::Key(std::string_view name, JsonParser parser, DefaultAsJsonString
               return parser(impl::DocsMapGet(docs_map, name));
           },
           impl::SingleToDocsMapString(name, default_json.json_string)
-      )) {}
+      ))
+{}
 
 template <typename Variable>
 template <std::size_t N>
@@ -211,15 +218,13 @@ Key<Variable>::Key(DocsMapParser parser, const ConfigDefault (&default_json_map)
           std::string{},
           [parser](const DocsMap& docs_map) -> std::any { return parser(docs_map); },
           impl::MultipleToDocsMapString(default_json_map, N)
-      )) {}
+      ))
+{}
 
 template <typename Variable>
 Key<Variable>::Key(ConstantConfig /*tag*/, VariableType value)
-    : id_(impl::Register(
-          std::string{},
-          [value = std::move(value)](const DocsMap& /*unused*/) { return value; },
-          "{}"
-      )) {}
+    : id_(impl::Register(std::string{}, [value = std::move(value)](const DocsMap& /*unused*/) { return value; }, "{}"))
+{}
 
 template <typename Variable>
 Key<Variable>::Key(impl::InternalTag, std::string_view name)
@@ -229,7 +234,8 @@ Key<Variable>::Key(impl::InternalTag, std::string_view name)
               return impl::DocsMapGet(docs_map, name).template As<VariableType>();
           },
           "{}"
-      )) {}
+      ))
+{}
 
 template <typename Variable>
 Key<Variable>::Key(impl::InternalTag, DocsMapParser parser)
@@ -237,7 +243,8 @@ Key<Variable>::Key(impl::InternalTag, DocsMapParser parser)
           std::string{},
           [parser](const DocsMap& docs_map) -> std::any { return parser(docs_map); },
           "{}"
-      )) {}
+      ))
+{}
 
 template <typename VariableType>
 std::string_view Key<VariableType>::GetName() const noexcept {

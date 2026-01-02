@@ -34,11 +34,11 @@ UTEST(ExecutionResult, BatchInsert) {
     TmpTable table{"ID INT NOT NULL"};
 
     std::vector<std::int32_t> ids{1, 2, 3, 4, 5, 6, 7};
-    const auto res = cluster
-                         ->ExecuteBulkMapped<DbRow>(
-                             ClusterHostType::kPrimary, table.FormatWithTableName("INSERT INTO {} VALUES(?)"), ids
-                         )
-                         .AsExecutionResult();
+    const auto res =
+        cluster
+            ->ExecuteBulkMapped<
+                DbRow>(ClusterHostType::kPrimary, table.FormatWithTableName("INSERT INTO {} VALUES(?)"), ids)
+            .AsExecutionResult();
 
     EXPECT_EQ(res.rows_affected, 7);
     EXPECT_EQ(res.last_insert_id, 0);
@@ -50,14 +50,15 @@ UTEST(ExecutionResult, SingleUpdate) {
     EXPECT_EQ(insert_res.rows_affected, 1);
     EXPECT_EQ(insert_res.last_insert_id, 1);
 
-    const auto update_res = table
-                                .DefaultExecute(
-                                    "INSERT INTO {} VALUES(?, ?) "
-                                    "ON DUPLICATE KEY UPDATE Value = VALUES(Value);",
-                                    1,
-                                    "other text"
-                                )
-                                .AsExecutionResult();
+    const auto update_res =
+        table
+            .DefaultExecute(
+                "INSERT INTO {} VALUES(?, ?) "
+                "ON DUPLICATE KEY UPDATE Value = VALUES(Value);",
+                1,
+                "other text"
+            )
+            .AsExecutionResult();
     // The REPLACE statement first deletes the record with the same primary key
     // and then inserts the new record. This function returns the number of
     // deleted records in addition to the number of inserted records.
@@ -65,14 +66,15 @@ UTEST(ExecutionResult, SingleUpdate) {
     EXPECT_EQ(update_res.rows_affected, 2);
     EXPECT_EQ(update_res.last_insert_id, 1);
 
-    const auto no_update_res = table
-                                   .DefaultExecute(
-                                       "INSERT INTO {} VALUES(?, ?) "
-                                       "ON DUPLICATE KEY UPDATE Value = VALUES(Value);",
-                                       1,
-                                       "other text"
-                                   )
-                                   .AsExecutionResult();
+    const auto no_update_res =
+        table
+            .DefaultExecute(
+                "INSERT INTO {} VALUES(?, ?) "
+                "ON DUPLICATE KEY UPDATE Value = VALUES(Value);",
+                1,
+                "other text"
+            )
+            .AsExecutionResult();
     // When using UPDATE, MariaDB will not update columns where the new value is
     // the same as the old value. This creates the possibility that
     // mysql_stmt_affected_rows() may not actually equal the number of rows
@@ -103,7 +105,9 @@ UTEST(ExecutionResult, BatchUpdate) {
     const auto insert_res =
         cluster
             ->ExecuteBulk(
-                ClusterHostType::kPrimary, table.FormatWithTableName("INSERT INTO {}(Value) VALUES(?)"), values
+                ClusterHostType::kPrimary,
+                table.FormatWithTableName("INSERT INTO {}(Value) VALUES(?)"),
+                values
             )
             .AsExecutionResult();
     EXPECT_EQ(insert_res.rows_affected, kRowsCount);
@@ -114,12 +118,13 @@ UTEST(ExecutionResult, BatchUpdate) {
 
     const storages::mysql::Query upsert_query{
         table.FormatWithTableName("INSERT INTO {} VALUES(?, ?) "
-                                  "ON DUPLICATE KEY UPDATE Value = VALUES(Value);")};
+                                  "ON DUPLICATE KEY UPDATE Value = VALUES(Value);")
+    };
 
     auto db_rows = table.DefaultExecute("SELECT Id, Value FROM {}").AsVector<DbRowIdValue>();
 
-    const auto no_update_res =
-        cluster->ExecuteBulk(ClusterHostType::kPrimary, upsert_query, db_rows).AsExecutionResult();
+    const auto
+        no_update_res = cluster->ExecuteBulk(ClusterHostType::kPrimary, upsert_query, db_rows).AsExecutionResult();
     EXPECT_EQ(no_update_res.rows_affected, 0);
     EXPECT_EQ(no_update_res.last_insert_id, 0);
 

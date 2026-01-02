@@ -11,7 +11,9 @@ namespace components {
 namespace impl {
 
 ComponentAdderBase::ComponentAdderBase(std::string name, ConfigFileMode config_file_mode)
-    : name_(std::move(name)), config_file_mode_{config_file_mode} {}
+    : name_(std::move(name)),
+      config_file_mode_{config_file_mode}
+{}
 
 ComponentAdderBase::~ComponentAdderBase() = default;
 }  // namespace impl
@@ -40,7 +42,10 @@ yaml_config::Schema ComponentList::GetStaticConfigSchema() const {
 
 ComponentList& ComponentList::Append(impl::ComponentAdderPtr&& added) & {
     auto [it, ok] = adders_.insert(std::move(added));
-    UINVARIANT(ok, fmt::format("Attempt to add a duplicate component '{}'", added->GetComponentName()));
+    if (!ok) {
+        // Append is typically called from main(), throwing an exception would std::terminate.
+        utils::AbortWithStacktrace(fmt::format("Attempt to add a duplicate component '{}'", added->GetComponentName()));
+    }
     return *this;
 }
 

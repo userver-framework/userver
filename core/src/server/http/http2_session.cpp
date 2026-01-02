@@ -55,7 +55,8 @@ Http2Session::Http2Session(
       remote_address_(remote_address),
       socket_(socket),
       streaming_queue_(impl::Http2StreamEventQueue::Create()),
-      streaming_consumer_(streaming_queue_->GetConsumer()) {
+      streaming_consumer_(streaming_queue_->GetConsumer())
+{
     UASSERT(streaming_queue_);
     UASSERT(streaming_event_.IsAutoReset());
 
@@ -80,7 +81,8 @@ Http2Session::Http2Session(
     std::array<nghttp2_settings_entry, 3> settings{
         nghttp2_settings_entry{NGHTTP2_SETTINGS_MAX_CONCURRENT_STREAMS, config.max_concurrent_streams},
         nghttp2_settings_entry{NGHTTP2_SETTINGS_MAX_FRAME_SIZE, config.max_frame_size},
-        nghttp2_settings_entry{NGHTTP2_SETTINGS_INITIAL_WINDOW_SIZE, config.initial_window_size}};
+        nghttp2_settings_entry{NGHTTP2_SETTINGS_INITIAL_WINDOW_SIZE, config.initial_window_size}
+    };
 
     auto rv = nghttp2_submit_settings(session_.get(), NGHTTP2_FLAG_NONE, settings.data(), settings.size());
     ThrowIfErr(rv, "Error when submit settings");
@@ -278,8 +280,8 @@ void Http2Session::RemoveStream(Stream& stream) {
 }
 
 Stream& Http2Session::GetStreamChecked(Stream::Id id) {
-    auto* stream =
-        static_cast<Stream*>(nghttp2_session_get_stream_user_data(session_.get(), static_cast<std::int32_t>(id)));
+    auto* stream = static_cast<
+        Stream*>(nghttp2_session_get_stream_user_data(session_.get(), static_cast<std::int32_t>(id)));
     if (stream == nullptr) {
         throw std::runtime_error{fmt::format("The stream {} does not exist", id)};
     }
@@ -290,14 +292,17 @@ void Http2Session::SubmitRstStream(Stream::Id id) {
     IncStat(stats_.http2_stats.reset_streams);
     UASSERT(id != Stream::Id{0});
     const auto res = nghttp2_submit_rst_stream(
-        session_.get(), NGHTTP2_FLAG_NONE, static_cast<std::int32_t>(id), NGHTTP2_INTERNAL_ERROR
+        session_.get(),
+        NGHTTP2_FLAG_NONE,
+        static_cast<std::int32_t>(id),
+        NGHTTP2_INTERNAL_ERROR
     );
     UASSERT(res == 0);
 }
 
 bool Http2Session::Parse(std::string_view req) {
-    const int readlen =
-        nghttp2_session_mem_recv(session_.get(), reinterpret_cast<const uint8_t*>(req.data()), req.size());
+    const int
+        readlen = nghttp2_session_mem_recv(session_.get(), reinterpret_cast<const uint8_t*>(req.data()), req.size());
     if (readlen < 0) {
         LOG_LIMITED_ERROR() << fmt::format("Error in Parse: {}", nghttp2_strerror(readlen));
         return false;
@@ -315,7 +320,11 @@ bool Http2Session::Parse(std::string_view req) {
 void Http2Session::UpgradeToHttp2(std::string_view client_magic) {
     const auto settings_payload = crypto::base64::Base64UrlDecode(client_magic);
     const auto rv = nghttp2_session_upgrade2(
-        session_.get(), reinterpret_cast<const uint8_t*>(settings_payload.data()), settings_payload.size(), 0, nullptr
+        session_.get(),
+        reinterpret_cast<const uint8_t*>(settings_payload.data()),
+        settings_payload.size(),
+        0,
+        nullptr
     );
     ThrowIfErr(rv, "Error during upgrade");
     RegisterStream(kStreamIdAfterUpgradeResponse);

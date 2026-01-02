@@ -4,7 +4,10 @@ USERVER_NAMESPACE_BEGIN
 
 namespace chaotic::openapi {
 
-QosMiddleware::QosMiddleware(dynamic_config::Source source, ConfigKey& key) : source_(std::move(source)), key_(key) {}
+QosMiddleware::QosMiddleware(dynamic_config::Source source, ConfigKey& key)
+    : source_(std::move(source)),
+      key_(key)
+{}
 
 void QosMiddleware::OnRequest(clients::http::Request& request) {
     const auto& url = request.GetUrl();

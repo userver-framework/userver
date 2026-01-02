@@ -41,13 +41,19 @@ bool IsHeaderMatchingName(std::string_view header, std::string_view name) {
            (header[name.size()] == ':' || header[name.size()] == ';');
 }
 
-std::optional<std::string_view>
-FindHeaderByNameImpl(const std::shared_ptr<string_list>& headers, std::string_view name) {
-    if (!headers) return std::nullopt;
+std::optional<std::string_view> FindHeaderByNameImpl(
+    const std::shared_ptr<string_list>& headers,
+    std::string_view name
+) {
+    if (!headers) {
+        return std::nullopt;
+    }
     auto result = headers->FindIf([name](std::string_view header) { return IsHeaderMatchingName(header, name); });
     if (result) {
         result->remove_prefix(name.size() + 1);
-        while (!result->empty() && result->front() == ' ') result->remove_prefix(1);
+        while (!result->empty() && result->front() == ' ') {
+            result->remove_prefix(1);
+        }
     }
     return result;
 }
@@ -72,7 +78,9 @@ bool AddHeaderDoSkip(
     easy::DuplicateHeaderAction action
 ) {
     if (action == easy::DuplicateHeaderAction::kSkip && headers) {
-        if (FindHeaderByNameImpl(headers, name)) return true;
+        if (FindHeaderByNameImpl(headers, name)) {
+            return true;
+        }
     }
 
     return false;
@@ -86,10 +94,13 @@ bool AddHeaderDoReplace(
 ) {
     if (action == easy::DuplicateHeaderAction::kReplace && headers) {
         const bool replaced = headers->ReplaceFirstIf(
-            [name](std::string_view header) { return IsHeaderMatchingName(header, name); }, buf.data()
+            [name](std::string_view header) { return IsHeaderMatchingName(header, name); },
+            buf.data()
         );
 
-        if (replaced) return true;
+        if (replaced) {
+            return true;
+        }
     }
 
     return false;
@@ -100,7 +111,10 @@ bool AddHeaderDoReplace(
 using BusyMarker = utils::statistics::BusyMarker;
 
 easy::easy(native::CURL* easy_handle, multi* multi_handle)
-    : handle_(easy_handle), multi_(multi_handle), construct_ts_(std::chrono::steady_clock::now()) {
+    : handle_(easy_handle),
+      multi_(multi_handle),
+      construct_ts_(std::chrono::steady_clock::now())
+{
     UASSERT(handle_);
     set_private(this);
 }
@@ -148,11 +162,10 @@ void easy::async_perform(handler_type handler) {
     LOG_TRACE() << "easy::async_perform start " << this;
     const size_t request_num = ++request_counter_;
     if (multi_) {
-        multi_->GetThreadControl().RunInEvLoopAsync(
-            [self = shared_from_this(), this, handler = std::move(handler), request_num]() mutable {
+        multi_->GetThreadControl()
+            .RunInEvLoopAsync([self = shared_from_this(), this, handler = std::move(handler), request_num]() mutable {
                 return do_ev_async_perform(std::move(handler), request_num);
-            }
-        );
+            });
     } else {
         throw std::runtime_error("no multi!");
     }
@@ -211,7 +224,9 @@ void easy::do_ev_cancel(size_t request_num) {
     // RunInEvLoopAsync(do_ev_async_perform) and RunInEvLoopSync(do_ev_cancel) are
     // not synchronized. So we need to count last cancelled request to prevent its
     // execution in do_ev_async_perform().
-    if (cancelled_request_max_ < request_num) cancelled_request_max_ = request_num;
+    if (cancelled_request_max_ < request_num) {
+        cancelled_request_max_ = request_num;
+    }
     if (multi_registered_) {
         const BusyMarker busy(multi_->Statistics().get_busy_storage());
 
@@ -226,10 +241,18 @@ void easy::reset() {
     orig_url_str_.clear();
     std::string{}.swap(post_fields_);  // forced memory freeing
     form_.reset();
-    if (headers_) headers_->clear();
-    if (proxy_headers_) proxy_headers_->clear();
-    if (http200_aliases_) http200_aliases_->clear();
-    if (resolved_hosts_) resolved_hosts_->clear();
+    if (headers_) {
+        headers_->clear();
+    }
+    if (proxy_headers_) {
+        proxy_headers_->clear();
+    }
+    if (http200_aliases_) {
+        http200_aliases_->clear();
+    }
+    if (resolved_hosts_) {
+        resolved_hosts_->clear();
+    }
     share_.reset();
     retries_count_ = 0;
     sockets_opened_ = 0;
@@ -271,9 +294,15 @@ void easy::set_source(std::shared_ptr<std::istream> source) {
 void easy::set_source(std::shared_ptr<std::istream> source, std::error_code& ec) {
     source_ = std::move(source);
     set_read_function(&easy::read_function, ec);
-    if (!ec) set_read_data(this, ec);
-    if (!ec) set_seek_function(&easy::seek_function, ec);
-    if (!ec) set_seek_data(this, ec);
+    if (!ec) {
+        set_read_data(this, ec);
+    }
+    if (!ec) {
+        set_seek_function(&easy::seek_function, ec);
+    }
+    if (!ec) {
+        set_seek_data(this, ec);
+    }
 }
 
 void easy::set_sink(std::string* sink) {
@@ -287,7 +316,9 @@ size_t easy::header_function(void*, size_t size, size_t nmemb, void*) { return s
 void easy::set_sink(std::string* sink, std::error_code& ec) {
     sink_ = sink;
     set_write_function(&easy::write_function);
-    if (!ec) set_write_data(this);
+    if (!ec) {
+        set_write_data(this);
+    }
 }
 
 void easy::unset_progress_callback() {
@@ -312,9 +343,8 @@ void easy::set_url(std::string url_str) {
 void easy::set_url(std::string&& url_str, std::error_code& ec) {
     url_.SetAbsoluteUrl(url_str.c_str(), ec);
     if (!ec) {
-        ec = static_cast<errc::EasyErrorCode>(
-            native::curl_easy_setopt(handle_, native::CURLOPT_CURLU, url_.native_handle())
-        );
+        ec = static_cast<
+            errc::EasyErrorCode>(native::curl_easy_setopt(handle_, native::CURLOPT_CURLU, url_.native_handle()));
         UASSERT(!ec);
     }
 
@@ -337,11 +367,12 @@ void easy::set_post_fields(std::string&& post_fields) {
 
 void easy::set_post_fields(std::string&& post_fields, std::error_code& ec) {
     post_fields_ = std::move(post_fields);
-    ec = std::error_code{static_cast<errc::EasyErrorCode>(
-        native::curl_easy_setopt(handle_, native::CURLOPT_POSTFIELDS, post_fields_.c_str())
-    )};
+    ec = std::error_code{static_cast<
+        errc::EasyErrorCode>(native::curl_easy_setopt(handle_, native::CURLOPT_POSTFIELDS, post_fields_.c_str()))};
 
-    if (!ec) set_post_field_size_large(static_cast<native::curl_off_t>(post_fields_.length()), ec);
+    if (!ec) {
+        set_post_field_size_large(static_cast<native::curl_off_t>(post_fields_.length()), ec);
+    }
 }
 
 void easy::set_http_post(std::unique_ptr<form> form) {
@@ -354,12 +385,12 @@ void easy::set_http_post(std::unique_ptr<form> form, std::error_code& ec) {
     form_ = std::move(form);
 
     if (form_) {
-        ec = std::error_code{static_cast<errc::EasyErrorCode>(
-            native::curl_easy_setopt(handle_, native::CURLOPT_HTTPPOST, form_->native_handle())
-        )};
+        ec = std::error_code{static_cast<
+            errc::EasyErrorCode>(native::curl_easy_setopt(handle_, native::CURLOPT_HTTPPOST, form_->native_handle()))};
     } else {
         ec = std::error_code{
-            static_cast<errc::EasyErrorCode>(native::curl_easy_setopt(handle_, native::CURLOPT_HTTPPOST, NULL))};
+            static_cast<errc::EasyErrorCode>(native::curl_easy_setopt(handle_, native::CURLOPT_HTTPPOST, NULL))
+        };
     }
 }
 
@@ -425,9 +456,8 @@ void easy::add_header(const char* header, std::error_code& ec) {
     }
 
     headers_->add(header);
-    ec = std::error_code{static_cast<errc::EasyErrorCode>(
-        native::curl_easy_setopt(handle_, native::CURLOPT_HTTPHEADER, headers_->native_handle())
-    )};
+    ec = std::error_code{static_cast<
+        errc::EasyErrorCode>(native::curl_easy_setopt(handle_, native::CURLOPT_HTTPHEADER, headers_->native_handle()))};
 }
 
 void easy::add_header(const std::string& header) { add_header(header.c_str()); }
@@ -449,7 +479,8 @@ void easy::set_headers(std::shared_ptr<string_list> headers, std::error_code& ec
         )};
     } else {
         ec = std::error_code{
-            static_cast<errc::EasyErrorCode>(native::curl_easy_setopt(handle_, native::CURLOPT_HTTPHEADER, NULL))};
+            static_cast<errc::EasyErrorCode>(native::curl_easy_setopt(handle_, native::CURLOPT_HTTPHEADER, NULL))
+        };
     }
 }
 
@@ -527,8 +558,8 @@ void easy::set_http200_aliases(std::shared_ptr<string_list> http200_aliases, std
         )};
     } else {
         ec = std::error_code{
-            static_cast<errc::EasyErrorCode>(native::curl_easy_setopt(handle_, native::CURLOPT_HTTP200ALIASES, nullptr)
-            )};
+            static_cast<errc::EasyErrorCode>(native::curl_easy_setopt(handle_, native::CURLOPT_HTTP200ALIASES, nullptr))
+        };
     }
 }
 
@@ -553,7 +584,8 @@ void easy::add_resolve(const std::string& host, const std::string& port, const s
                 return std::string_view{entry}.substr(host_port_view.size()) == host_port_view;
             },
             std::move(host_port_addr)
-        )) {
+        ))
+    {
         UASSERT_MSG(!host_port_addr.empty(), "ReplaceFirstIf moved the string out, when it shouldn't have done so.");
         resolved_hosts_->add(std::move(host_port_addr));
     }
@@ -578,7 +610,8 @@ void easy::set_resolves(std::shared_ptr<string_list> resolved_hosts, std::error_
         )};
     } else {
         ec = std::error_code{
-            static_cast<errc::EasyErrorCode>(native::curl_easy_setopt(handle_, native::CURLOPT_RESOLVE, NULL))};
+            static_cast<errc::EasyErrorCode>(native::curl_easy_setopt(handle_, native::CURLOPT_RESOLVE, NULL))
+        };
     }
 }
 
@@ -592,12 +625,12 @@ void easy::set_share(std::shared_ptr<share> share, std::error_code& ec) {
     share_ = std::move(share);
 
     if (share) {
-        ec = std::error_code{static_cast<errc::EasyErrorCode>(
-            native::curl_easy_setopt(handle_, native::CURLOPT_SHARE, share_->native_handle())
-        )};
+        ec = std::error_code{static_cast<
+            errc::EasyErrorCode>(native::curl_easy_setopt(handle_, native::CURLOPT_SHARE, share_->native_handle()))};
     } else {
         ec = std::error_code{
-            static_cast<errc::EasyErrorCode>(native::curl_easy_setopt(handle_, native::CURLOPT_SHARE, NULL))};
+            static_cast<errc::EasyErrorCode>(native::curl_easy_setopt(handle_, native::CURLOPT_SHARE, NULL))
+        };
     }
 }
 
@@ -657,7 +690,9 @@ native::curl_socket_t easy::open_tcp_socket(native::curl_sockaddr* address) {
         LOG_ERROR() << "socket(2) failed with error: " << utils::strerror(old_errno);
         return CURL_SOCKET_BAD;
     }
-    if (multi_) multi_->BindEasySocket(*this, fd);
+    if (multi_) {
+        multi_->BindEasySocket(*this, fd);
+    }
     return fd;
 }
 
@@ -685,7 +720,9 @@ size_t easy::read_function(void* ptr, size_t size, size_t nmemb, void* userdata)
     easy* self = static_cast<easy*>(userdata);
     const size_t actual_size = size * nmemb;
 
-    if (!self->source_) return CURL_READFUNC_ABORT;
+    if (!self->source_) {
+        return CURL_READFUNC_ABORT;
+    }
 
     if (self->source_->eof()) {
         return 0;
@@ -750,8 +787,11 @@ int easy::xferinfo_function(
     }
 }
 
-native::curl_socket_t
-easy::opensocket(void* clientp, native::curlsocktype purpose, struct native::curl_sockaddr* address) noexcept {
+native::curl_socket_t easy::opensocket(
+    void* clientp,
+    native::curlsocktype purpose,
+    struct native::curl_sockaddr* address
+) noexcept {
     easy* self = static_cast<easy*>(clientp);
     multi* multi_handle = self->multi_;
     native::curl_socket_t s = -1;

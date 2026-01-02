@@ -25,16 +25,10 @@ public:
 template <typename CallTraits>
 class WriterAdapter : public Writer<typename CallTraits::Response> {
 public:
-    void Write(typename CallTraits::Response& response) final { Write(response, grpc::WriteOptions{}); }
-
-    void Write(typename CallTraits::Response& response, const grpc::WriteOptions& options) override {
-        static_cast<Responder<CallTraits>&>(*this).DoWrite(response, options);
-    }
-
-    void Write(typename CallTraits::Response&& response) final { Write(response, grpc::WriteOptions{}); }
+    void Write(typename CallTraits::Response&& response) final { Write(std::move(response), grpc::WriteOptions{}); }
 
     void Write(typename CallTraits::Response&& response, const grpc::WriteOptions& options) override {
-        Write(response, options);
+        static_cast<Responder<CallTraits>&>(*this).DoWrite(response, options);
     }
 };
 
@@ -45,16 +39,10 @@ public:
         return static_cast<Responder<CallTraits>&>(*this).DoRead(request);
     }
 
-    void Write(typename CallTraits::Response& response) final { Write(response, grpc::WriteOptions{}); }
-
-    void Write(typename CallTraits::Response& response, const grpc::WriteOptions& options) override {
-        static_cast<Responder<CallTraits>&>(*this).DoWrite(response, options);
-    }
-
-    void Write(typename CallTraits::Response&& response) final { Write(response, grpc::WriteOptions{}); }
+    void Write(typename CallTraits::Response&& response) final { Write(std::move(response), grpc::WriteOptions{}); }
 
     void Write(typename CallTraits::Response&& response, const grpc::WriteOptions& options) override {
-        Write(response, options);
+        static_cast<Responder<CallTraits>&>(*this).DoWrite(response, options);
     }
 };
 

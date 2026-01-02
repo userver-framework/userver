@@ -1,9 +1,6 @@
 import asyncio.streams as streams
+from collections.abc import Callable
 import dataclasses
-from typing import Callable
-from typing import List
-from typing import Optional
-from typing import Tuple
 
 import h2.config as config
 import h2.connection as connection
@@ -17,7 +14,7 @@ class Frame:
 
 @dataclasses.dataclass(frozen=True)
 class HeadersFrame(Frame):
-    headers: List[Tuple[str, str]]
+    headers: list[tuple[str, str]]
     end_stream: bool = False
 
 
@@ -33,8 +30,8 @@ class RstStreamFrame(Frame):
 
 @dataclasses.dataclass
 class GrpcServer:
-    response_factory: Optional[Callable[[], List[Frame]]] = None
-    endpoint: Optional[str] = None
+    response_factory: Callable[[], list[Frame]] | None = None
+    endpoint: str | None = None
 
     async def __call__(self, reader: streams.StreamReader, writer: streams.StreamWriter) -> None:
         conn = connection.H2Connection(config=config.H2Configuration(client_side=False))

@@ -37,7 +37,9 @@ SchemaValidationException::SchemaValidationException(
     std::string_view path,
     std::string_view schema_path
 )
-    : ExceptionWithPath(msg, path), schema_path_(schema_path) {}
+    : ExceptionWithPath(msg, path),
+      schema_path_(schema_path)
+{}
 
 std::string_view SchemaValidationException::GetSchemaPath() const noexcept { return schema_path_; }
 
@@ -124,7 +126,9 @@ struct Schema::Impl final {
     impl::SchemaDocument schema_document;
 };
 
-Schema::Schema(const Value& doc) : impl_(Impl{impl::SchemaDocument{doc.GetNative()}}) {}
+Schema::Schema(const Value& doc)
+    : impl_(Impl{impl::SchemaDocument{doc.GetNative()}})
+{}
 
 Schema::~Schema() noexcept = default;
 

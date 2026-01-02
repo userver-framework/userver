@@ -1,6 +1,7 @@
 import asyncio
 
 import pytest
+import pytest_userver.utils.sync as sync
 
 
 async def _check_that_restores(client, gate):
@@ -11,13 +12,11 @@ async def _check_that_restores(client, gate):
 
     assert gate.connections_count() >= 1
 
-    for _ in range(10):
+    async def is_ready():
         res = await client.delete('/chaos?key=foo')
-        if res.status == 200:
-            return
-        await asyncio.sleep(1)
+        return res.status == 200
 
-    assert False, 'Bad results after connection restore'
+    await sync.wait(is_ready)
 
 
 async def _check_crud(client):

@@ -4,7 +4,6 @@ Plugin that imports the required fixtures to start the broker.
 
 import logging
 import os
-from typing import List
 
 import pytest
 
@@ -34,7 +33,7 @@ def _patched_bootstrap_servers_internal() -> BootstrapServers:
 
 
 @pytest.fixture(scope='session')
-def kafka_components() -> List[str]:
+def kafka_components() -> list[str]:
     """
     Should contain manually listed names of kafka producer and consumer
     components.

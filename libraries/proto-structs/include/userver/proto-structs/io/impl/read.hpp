@@ -36,7 +36,9 @@ std::optional<TField> ReadFieldWithGetter(
 
     if (getter.HasValue()) {
         result = impl::ReadFieldWithGetter(
-            ctx, proto_structs::io::To<TField>{}, static_cast<const FieldGetter<TMessage, TReturn>&>(getter)
+            ctx,
+            proto_structs::io::To<TField>{},
+            static_cast<const FieldGetter<TMessage, TReturn>&>(getter)
         );
     }
 

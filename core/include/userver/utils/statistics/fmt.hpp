@@ -35,7 +35,8 @@ struct fmt::formatter<USERVER_NAMESPACE::utils::statistics::Label>
     template <typename FormatContext>
     auto format(const USERVER_NAMESPACE::utils::statistics::Label& value, FormatContext& ctx) const {
         return formatter<USERVER_NAMESPACE::utils::statistics::LabelView>::format(
-            USERVER_NAMESPACE::utils::statistics::LabelView{value}, ctx
+            USERVER_NAMESPACE::utils::statistics::LabelView{value},
+            ctx
         );
     }
 };
@@ -99,7 +100,8 @@ public:
             [&](std::int64_t x) { return int_format_.format(x, ctx); },
             [&](USERVER_NAMESPACE::utils::statistics::Rate x) { return rate_format_.format(x.value, ctx); },
             [&](double x) { return float_format_.format(x, ctx); },
-            [&](USERVER_NAMESPACE::utils::statistics::HistogramView x) { return histogram_format_.format(x, ctx); }});
+            [&](USERVER_NAMESPACE::utils::statistics::HistogramView x) { return histogram_format_.format(x, ctx); }
+        });
     }
 
 private:

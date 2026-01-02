@@ -120,6 +120,7 @@ std::string OidPrettyPrint(Oid oid);
  *       - InvalidInputBufferSize
  *       - InvalidParserCategory
  *       - InvalidTupleSizeRequested
+ *       - NarrowingOverflow
  *       - NonSingleColumnResultSet
  *       - NonSingleRowResultSet
  *       - NoBinaryParser
@@ -200,7 +201,10 @@ class RuntimeError : public Error {
 template <typename Base>
 class ServerError : public Base {
 public:
-    explicit ServerError(const Message& msg) : Base(msg.GetMessage()), msg_{msg} {}
+    explicit ServerError(const Message& msg)
+        : Base(msg.GetMessage()),
+          msg_{msg}
+    {}
 
     const Message& GetServerMessage() const { return msg_; }
 
@@ -659,7 +663,8 @@ public:
               field_index,
               field_name,
               compiler::GetTypeName<T>()
-          )) {}
+          ))
+    {}
 };
 
 /// @brief A value of a non-nullable type requested to be set null.
@@ -732,6 +737,13 @@ public:
 class FieldTupleMismatch : public ResultSetError {
 public:
     FieldTupleMismatch(std::size_t field_count, std::size_t tuple_size);
+};
+
+/// @brief A binary buffer contains a numeric value that does not fit
+/// into a given C++ value type.
+class NarrowingOverflow : public ResultSetError {
+public:
+    using ResultSetError::ResultSetError;
 };
 
 //@}
@@ -835,7 +847,8 @@ public:
               "Invalid enumeration value '{}' for enum type '{}'",
               USERVER_NAMESPACE::utils::UnderlyingValue(val),
               compiler::GetTypeName<Enum>()
-          )) {}
+          ))
+    {}
 };
 //@}
 

@@ -12,17 +12,24 @@ namespace utils {
 
 namespace impl {
 
-[[noreturn]] void
-ThrowFromStringException(std::string_view message, std::string_view input, std::type_index result_type) {
-    throw std::runtime_error(fmt::format(
-        R"(utils::FromString error: "{}" while converting "{}" to {})",
-        message,
-        input,
-        compiler::GetTypeName(result_type)
-    ));
+void ThrowFromStringException(FromStringErrorCode code, std::string_view input, const std::type_info& result_type) {
+    throw FromStringException(
+        code,
+        fmt::format(
+            R"(utils::FromString error: "{}" while converting "{}" to {})",
+            ToString(code),
+            input,
+            compiler::GetTypeName(result_type)
+        )
+    );
 }
 
 }  // namespace impl
+
+FromStringException::FromStringException(FromStringErrorCode code, const std::string& what)
+    : std::runtime_error(what),
+      code_(code)
+{}
 
 std::int64_t FromHexString(std::string_view str) {
     std::int64_t result{};

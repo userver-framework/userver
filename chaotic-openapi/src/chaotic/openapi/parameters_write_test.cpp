@@ -62,9 +62,11 @@ UTEST(OpenapiParameters, QueryExplode) {
     ParameterSinkMock sink;
     EXPECT_CALL(sink, SetMultiQuery(std::string_view{"test"}, (std::vector<std::string>{"foo", "bar"})));
 
-    co::WriteParameter<co::ArrayParameter<co::In::kQueryExplode, kTest, ',', std::string>>(
-        std::vector<std::string>{"foo", "bar"}, sink
-    );
+    co::WriteParameter<co::ArrayParameter<
+        co::In::kQueryExplode,
+        kTest,
+        ',',
+        std::string>>(std::vector<std::string>{"foo", "bar"}, sink);
 }
 
 UTEST(OpenapiParameters, QueryExplodeInteger) {
@@ -79,9 +81,12 @@ UTEST(OpenapiParameters, QueryExplodeUser) {
     EXPECT_CALL(sink, SetMultiQuery(std::string_view{"test"}, (std::vector<std::string>{"1.2", "3.4"})));
 
     using Decimal = decimal64::Decimal<10>;
-    co::WriteParameter<co::ArrayParameter<co::In::kQueryExplode, kTest, ',', std::string, Decimal>>(
-        std::vector<Decimal>{Decimal{"1.2"}, Decimal{"3.4"}}, sink
-    );
+    co::WriteParameter<co::ArrayParameter<
+        co::In::kQueryExplode,
+        kTest,
+        ',',
+        std::string,
+        Decimal>>(std::vector<Decimal>{Decimal{"1.2"}, Decimal{"3.4"}}, sink);
 }
 
 UTEST(OpenapiParameters, CookieArray) {
@@ -103,9 +108,8 @@ UTEST(OpenapiParameters, QueryArrayOfUserTypes) {
     EXPECT_CALL(sink, SetQuery(std::string_view{"test"}, std::string{"1.1,2.2"}));
 
     using Decimal = decimal64::Decimal<10>;
-    co::WriteParameter<co::ArrayParameter<co::In::kQuery, kTest, ',', std::string, Decimal>>(
-        {Decimal{"1.1"}, Decimal{"2.2"}}, sink
-    );
+    co::WriteParameter<
+        co::ArrayParameter<co::In::kQuery, kTest, ',', std::string, Decimal>>({Decimal{"1.1"}, Decimal{"2.2"}}, sink);
 }
 
 UTEST(OpenapiParameters, UserType) {
@@ -160,7 +164,8 @@ UTEST(OpenapiParameters, SinkHttpClient) {
 
         EXPECT_EQ(request.path, "/foo4");
         EXPECT_EQ(
-            request.query, (std::multimap<std::string, std::string>{{"var1", "foo"}, {"var1", "bar"}, {"var2", "foo1"}})
+            request.query,
+            (std::multimap<std::string, std::string>{{"var1", "foo"}, {"var1", "bar"}, {"var2", "foo1"}})
         );
         EXPECT_EQ(request.headers.at(kName), "foo2");
         EXPECT_EQ(request.headers.at(kCookie), "name=foo3");
@@ -171,9 +176,11 @@ UTEST(OpenapiParameters, SinkHttpClient) {
 
     co::ParameterSinkHttpClient sink(request, http_server.GetBaseUrl() + "/{name}");
 
-    co::WriteParameter<co::ArrayParameter<co::In::kQueryExplode, kVar1, ',', std::string>>(
-        std::vector<std::string>{"foo", "bar"}, sink
-    );
+    co::WriteParameter<co::ArrayParameter<
+        co::In::kQueryExplode,
+        kVar1,
+        ',',
+        std::string>>(std::vector<std::string>{"foo", "bar"}, sink);
     co::WriteParameter<co::TrivialParameter<co::In::kQuery, kVar2, std::string>>("foo1", sink);
 
     co::WriteParameter<co::TrivialParameter<co::In::kHeader, kName, std::string>>("foo2", sink);

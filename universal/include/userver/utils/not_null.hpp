@@ -20,32 +20,46 @@ namespace utils {
 template <typename T>
 class NotNull {
     static_assert(!std::is_reference_v<T>, "NotNull does not work with references");
-    static_assert(!std::is_const_v<T>);
+    static_assert(!std::is_const_v<T>, "NotNull does not work with const T");
 
 public:
     constexpr explicit NotNull() = delete;
 
-    constexpr explicit NotNull(const T& u) : ptr_(u) { UASSERT_MSG(ptr_, "Trying to construct NotNull from null"); }
+    constexpr explicit NotNull(const T& u)
+        : ptr_(u)
+    {
+        UASSERT_MSG(ptr_, "Trying to construct NotNull from null");
+    }
 
-    constexpr explicit NotNull(T&& u) : ptr_(std::move(u)) {
+    constexpr explicit NotNull(T&& u)
+        : ptr_(std::move(u))
+    {
         UASSERT_MSG(ptr_, "Trying to construct NotNull from null");
     }
 
     template <typename U, typename = std::enable_if_t<std::is_convertible_v<U, T>>>
-    constexpr explicit NotNull(U&& u) : ptr_(std::forward<U>(u)) {
+    constexpr explicit NotNull(U&& u)
+        : ptr_(std::forward<U>(u))
+    {
         UASSERT_MSG(ptr_, "Trying to construct NotNull from null");
     }
 
     template <typename U, typename = std::enable_if_t<std::is_convertible_v<U*, T>>>
-    constexpr /*implicit*/ NotNull(U& u) : ptr_(std::addressof(u)) {}
+    constexpr /*implicit*/ NotNull(U& u)
+        : ptr_(std::addressof(u))
+    {}
 
     template <typename U, typename = std::enable_if_t<std::is_convertible_v<U, T>>>
-    constexpr NotNull(const NotNull<U>& other) : ptr_(other.GetBase()) {
+    constexpr NotNull(const NotNull<U>& other)
+        : ptr_(other.GetBase())
+    {
         UASSERT_MSG(ptr_, "Trying to construct NotNull from null (moved-from) NotNull");
     }
 
     template <typename U, typename = std::enable_if_t<std::is_convertible_v<U, T>>>
-    constexpr NotNull(NotNull<U>&& other) : ptr_(std::move(other).GetBase()) {
+    constexpr NotNull(NotNull<U>&& other)
+        : ptr_(std::move(other).GetBase())
+    {
         UASSERT_MSG(ptr_, "Trying to construct NotNull from null (moved-from) NotNull");
     }
 
@@ -126,8 +140,8 @@ template <typename T>
 struct std::hash<USERVER_NAMESPACE::utils::NotNull<T>> : public std::hash<T> {
     using std::hash<T>::hash;
 
-    auto operator()(const USERVER_NAMESPACE::utils::NotNull<T>& value) const
-        noexcept(std::is_nothrow_invocable_v<const std::hash<T>&, const T&>) {
+    auto operator()(const USERVER_NAMESPACE::utils::NotNull<T>& value
+    ) const noexcept(std::is_nothrow_invocable_v<const std::hash<T>&, const T&>) {
         return this->std::hash<T>::operator()(value.GetBase());
     }
 };

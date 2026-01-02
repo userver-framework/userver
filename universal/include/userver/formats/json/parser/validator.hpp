@@ -15,7 +15,9 @@ public:
 template <typename T, typename F>
 class Validator final : public BaseValidator<T> {
 public:
-    explicit Validator(F f) : f_(std::move(f)) {}
+    explicit Validator(F f)
+        : f_(std::move(f))
+    {}
 
     void operator()(const T& t) const override { f_(t); }
 

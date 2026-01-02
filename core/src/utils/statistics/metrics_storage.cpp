@@ -56,7 +56,9 @@ void RegisterMetricInfo(const MetricKey& key, MetricFactory factory) {
 
 }  // namespace impl
 
-MetricsStorage::MetricsStorage() : metrics_(impl::InstantiateMetrics()) {}
+MetricsStorage::MetricsStorage()
+    : metrics_(impl::InstantiateMetrics())
+{}
 
 std::vector<Entry> MetricsStorage::RegisterIn(Storage& statistics_storage) {
     std::vector<Entry> holders;

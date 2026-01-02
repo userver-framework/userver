@@ -17,7 +17,9 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::redis::impl {
 
 SubscriptionToken::SubscriptionToken(SubscriptionStorageBase& storage, SubscriptionId subscription_id)
-    : storage_(storage), subscription_id_(subscription_id) {}
+    : storage_(storage),
+      subscription_id_(subscription_id)
+{}
 
 SubscriptionToken::SubscriptionToken(SubscriptionToken&& token) noexcept
     : storage_(token.storage_), subscription_id_(token.subscription_id_) {
@@ -43,11 +45,14 @@ void SubscriptionToken::Unsubscribe() {
 SubscriptionToken::~SubscriptionToken() { Unsubscribe(); }
 
 SubscriptionStorageBase::RebalanceState::RebalanceState(size_t shard_idx, ServerWeights l_weights)
-    : shard_idx(shard_idx), weights(std::move(l_weights)) {
+    : shard_idx(shard_idx),
+      weights(std::move(l_weights))
+{
     for (const auto& weight_item : weights) {
         sum_weights += weight_item.second;
-        LOG_DEBUG() << "rebalance shard=" << shard_idx << " server_id=" << weight_item.first.GetId()
-                    << " weight=" << weight_item.second;
+        LOG_DEBUG()
+            << "rebalance shard=" << shard_idx << " server_id=" << weight_item.first.GetId()
+            << " weight=" << weight_item.second;
     }
 }
 
@@ -58,7 +63,9 @@ void SubscriptionStorageBase::SubscriptionStorageImpl<CallbackMap, PcallbackMap>
     const std::lock_guard<std::mutex>& /*held_lock*/
 ) {
     RebalanceState state(shard_idx, weights);
-    if (!state.sum_weights) return;
+    if (!state.sum_weights) {
+        return;
+    }
 
     if (!callback_map.empty() || !pattern_callback_map.empty()) {
         LOG_INFO() << "Start rebalance for shard " << shard_idx;
@@ -94,9 +101,9 @@ void SubscriptionStorageBase::SubscriptionStorageImpl<CallbackMap, PcallbackMap>
 }
 
 template <typename CallbackMap, typename PcallbackMap>
-void SubscriptionStorageBase::SubscriptionStorageImpl<CallbackMap, PcallbackMap>::RebalanceMoveSubscriptions(
-    RebalanceState& state
-) {
+void SubscriptionStorageBase::SubscriptionStorageImpl<
+    CallbackMap,
+    PcallbackMap>::RebalanceMoveSubscriptions(RebalanceState& state) {
     auto shard_idx = state.shard_idx;
     auto& subscriptions_by_server = state.subscriptions_by_server;
     auto& needs = state.need_subscription_count;
@@ -113,14 +120,17 @@ void SubscriptionStorageBase::SubscriptionStorageImpl<CallbackMap, PcallbackMap>
                 auto channel_name = std::move(subscriptions.back().first);
                 auto fsm = std::move(subscriptions.back().second);
                 subscriptions.pop_back();
-                while (subscriptions_by_server[needs_iter->first].size() >= needs_iter->second) ++needs_iter;
+                while (subscriptions_by_server[needs_iter->first].size() >= needs_iter->second) {
+                    ++needs_iter;
+                }
 
                 const auto& new_server_id = needs_iter->first;
 
-                LOG_INFO() << "move subscription on '" << channel_name.channel
-                           << "' from server_id=" << fsm->GetCurrentServerId().GetId() << " ("
-                           << fsm->GetCurrentServerId().GetDescription() << ") to server_id=" << new_server_id.GetId()
-                           << " (" << new_server_id.GetDescription() << "), shard_idx=" << shard_idx;
+                LOG_INFO()
+                    << "move subscription on '" << channel_name.channel
+                    << "' from server_id=" << fsm->GetCurrentServerId().GetId() << " ("
+                    << fsm->GetCurrentServerId().GetDescription() << ") to server_id=" << new_server_id.GetId() << " ("
+                    << new_server_id.GetDescription() << "), shard_idx=" << shard_idx;
 
                 shard_subscriber::Event event;
                 event.type = shard_subscriber::Event::Type::kRebalanceRequested;
@@ -135,14 +145,15 @@ void SubscriptionStorageBase::SubscriptionStorageImpl<CallbackMap, PcallbackMap>
 }
 
 template <typename CallbackMap, typename PcallbackMap>
-size_t SubscriptionStorageBase::SubscriptionStorageImpl<CallbackMap, PcallbackMap>::
-    GetChannelsCountApprox(const std::lock_guard<std::mutex>& /*held_lock*/) const {
+size_t SubscriptionStorageBase::SubscriptionStorageImpl<
+    CallbackMap,
+    PcallbackMap>::GetChannelsCountApprox(const std::lock_guard<std::mutex>& /*held_lock*/) const {
     return callback_map.size() + pattern_callback_map.size() + sharded_callback_map.size();
 }
 
 template <typename CallbackMap, typename PcallbackMap>
-RawPubsubClusterStatistics SubscriptionStorageBase::SubscriptionStorageImpl<CallbackMap, PcallbackMap>::GetStatistics(
-) const {
+RawPubsubClusterStatistics SubscriptionStorageBase::SubscriptionStorageImpl<CallbackMap, PcallbackMap>::GetStatistics()
+    const {
     RawPubsubClusterStatistics cluster_stats;
 
     const std::lock_guard lock{mutex};
@@ -153,10 +164,9 @@ RawPubsubClusterStatistics SubscriptionStorageBase::SubscriptionStorageImpl<Call
 }
 
 template <typename CallbackMap, typename PcallbackMap>
-PubsubShardStatistics SubscriptionStorageBase::SubscriptionStorageImpl<CallbackMap, PcallbackMap>::GetShardStatistics(
-    size_t shard_idx,
-    const std::lock_guard<std::mutex>& held_lock
-) const {
+PubsubShardStatistics SubscriptionStorageBase::SubscriptionStorageImpl<
+    CallbackMap,
+    PcallbackMap>::GetShardStatistics(size_t shard_idx, const std::lock_guard<std::mutex>& held_lock) const {
     PubsubShardStatistics shard_stats;
     shard_stats.shard_name = implemented_.GetShardName(shard_idx);
     shard_stats.by_channel.reserve(GetChannelsCountApprox(held_lock));
@@ -166,43 +176,54 @@ PubsubShardStatistics SubscriptionStorageBase::SubscriptionStorageImpl<CallbackM
         const auto& info = channel_info.GetInfo(shard_idx);
 
         const auto& name = channel_item.first;
-        if (info.fsm) shard_stats.by_channel.emplace(name, info.GetStatistics());
+        if (info.fsm) {
+            shard_stats.by_channel.emplace(name, info.GetStatistics());
+        }
     }
     for (const auto& pattern_item : pattern_callback_map) {
         const auto& pattern_info = pattern_item.second;
         const auto& info = pattern_info.GetInfo(shard_idx);
 
         const auto& name = pattern_item.first;
-        if (info.fsm) shard_stats.by_channel.emplace(name, info.GetStatistics());
+        if (info.fsm) {
+            shard_stats.by_channel.emplace(name, info.GetStatistics());
+        }
     }
     for (const auto& pattern_item : sharded_callback_map) {
         const auto& pattern_info = pattern_item.second;
         const auto& info = pattern_info.GetInfo(shard_idx);
 
         const auto& name = pattern_item.first;
-        if (info.fsm) shard_stats.by_channel.emplace(name, info.GetStatistics());
+        if (info.fsm) {
+            shard_stats.by_channel.emplace(name, info.GetStatistics());
+        }
     }
     return shard_stats;
 }
 
 template <typename CallbackMap, typename PcallbackMap>
-void SubscriptionStorageBase::SubscriptionStorageImpl<CallbackMap, PcallbackMap>::Unsubscribe(
-    SubscriptionId subscription_id
-) {
+void SubscriptionStorageBase::SubscriptionStorageImpl<
+    CallbackMap,
+    PcallbackMap>::Unsubscribe(SubscriptionId subscription_id) {
     constexpr bool kNotSharded = false;
     constexpr bool kSharded = true;
-    if (DoUnsubscribe(callback_map, subscription_id, kNotSharded)) return;
-    if (DoUnsubscribe(pattern_callback_map, subscription_id, kNotSharded)) return;
-    if (DoUnsubscribe(sharded_callback_map, subscription_id, kSharded)) return;
+    if (DoUnsubscribe(callback_map, subscription_id, kNotSharded)) {
+        return;
+    }
+    if (DoUnsubscribe(pattern_callback_map, subscription_id, kNotSharded)) {
+        return;
+    }
+    if (DoUnsubscribe(sharded_callback_map, subscription_id, kSharded)) {
+        return;
+    }
 
     LOG_ERROR() << "Unsubscribe called with invalid subscription_id: " << subscription_id;
 }
 
 template <typename CallbackMap, typename PcallbackMap>
-void SubscriptionStorageBase::SubscriptionStorageImpl<CallbackMap, PcallbackMap>::ReadActions(
-    FsmPtr fsm,
-    const ChannelName& channel_name
-) {
+void SubscriptionStorageBase::SubscriptionStorageImpl<
+    CallbackMap,
+    PcallbackMap>::ReadActions(FsmPtr fsm, const ChannelName& channel_name) {
     UASSERT(fsm);
     const auto actions = fsm->PopAllPendingActions();
     for (const auto& action : actions) {
@@ -211,11 +232,9 @@ void SubscriptionStorageBase::SubscriptionStorageImpl<CallbackMap, PcallbackMap>
 }
 
 template <typename CallbackMap, typename PcallbackMap>
-void SubscriptionStorageBase::SubscriptionStorageImpl<CallbackMap, PcallbackMap>::HandleChannelAction(
-    FsmPtr fsm,
-    shard_subscriber::Action action,
-    const ChannelName& channel_name
-) {
+void SubscriptionStorageBase::SubscriptionStorageImpl<
+    CallbackMap,
+    PcallbackMap>::HandleChannelAction(FsmPtr fsm, shard_subscriber::Action action, const ChannelName& channel_name) {
     UASSERT(fsm);
     CommandPtr cmd;
     const std::weak_ptr<shard_subscriber::Fsm> weak_fsm = fsm;
@@ -238,29 +257,32 @@ void SubscriptionStorageBase::SubscriptionStorageImpl<CallbackMap, PcallbackMap>
             };
             cmd = PrepareSubscribeCommand(channel_name, std::move(subscribe_cb), shard);
             cmd->control.force_server_id = action.server_id;
-            if (channel_name.sharded)
+            if (channel_name.sharded) {
                 sharded_subscribe_callback(channel_name.channel, cmd);
-            else
+            } else {
                 subscribe_callback(fsm->GetShard(), cmd);
+            }
             break;
         }
 
         case shard_subscriber::Action::Type::kUnsubscribe:
             cmd = PrepareUnsubscribeCommand(channel_name);
             cmd->control.force_server_id = action.server_id;
-            if (channel_name.sharded)
+            if (channel_name.sharded) {
                 sharded_unsubscribe_callback(channel_name.channel, cmd);
-            else
+            } else {
                 unsubscribe_callback(fsm->GetShard(), cmd);
+            }
             break;
 
         case shard_subscriber::Action::Type::kDeleteFsm:
-            if (channel_name.sharded)
+            if (channel_name.sharded) {
                 DeleteChannel(sharded_callback_map, channel_name, fsm);
-            else if (channel_name.pattern)
+            } else if (channel_name.pattern) {
                 DeleteChannel(pattern_callback_map, channel_name, fsm);
-            else
+            } else {
                 DeleteChannel(callback_map, channel_name, fsm);
+            }
             break;
     }
 }
@@ -284,11 +306,9 @@ void SubscriptionStorageBase::SubscriptionStorageImpl<CallbackMap, PcallbackMap>
 
 template <typename CallbackMap, typename PcallbackMap>
 template <class Map>
-void SubscriptionStorageBase::SubscriptionStorageImpl<CallbackMap, PcallbackMap>::DeleteChannel(
-    Map& callback_map,
-    const ChannelName& channel_name,
-    const FsmPtr& fsm
-) {
+void SubscriptionStorageBase::SubscriptionStorageImpl<
+    CallbackMap,
+    PcallbackMap>::DeleteChannel(Map& callback_map, const ChannelName& channel_name, const FsmPtr& fsm) {
     UASSERT(fsm);
     const auto& channel = channel_name.channel;
     auto it = callback_map.find(channel);
@@ -297,9 +317,10 @@ void SubscriptionStorageBase::SubscriptionStorageImpl<CallbackMap, PcallbackMap>
         return;
     }
     if (!it->second.callbacks.empty()) {
-        LOG_ERROR() << "got DeleteChannel request but callbacks map is not empty "
-                       "for channel="
-                    << channel;
+        LOG_ERROR()
+            << "got DeleteChannel request but callbacks map is not empty "
+               "for channel="
+            << channel;
 
         shard_subscriber::Event event;
         event.type = shard_subscriber::Event::Type::kSubscribeRequested;
@@ -315,11 +336,9 @@ void SubscriptionStorageBase::SubscriptionStorageImpl<CallbackMap, PcallbackMap>
 
 template <typename CallbackMap, typename PcallbackMap>
 template <class Map>
-bool SubscriptionStorageBase::SubscriptionStorageImpl<CallbackMap, PcallbackMap>::DoUnsubscribe(
-    Map& callback_map,
-    SubscriptionId subscription_id,
-    bool sharded
-) {
+bool SubscriptionStorageBase::SubscriptionStorageImpl<
+    CallbackMap,
+    PcallbackMap>::DoUnsubscribe(Map& callback_map, SubscriptionId subscription_id, bool sharded) {
     const std::lock_guard<std::mutex> lock(mutex);
     for (auto& it1 : callback_map) {
         const auto& key = it1.first;
@@ -340,7 +359,9 @@ bool SubscriptionStorageBase::SubscriptionStorageImpl<CallbackMap, PcallbackMap>
 
                     for (size_t i = 0; i < shards_count_; ++i) {
                         auto& fsm = m.GetInfo(i).fsm;
-                        if (!fsm) continue;
+                        if (!fsm) {
+                            continue;
+                        }
                         fsm->OnEvent(event);
 
                         ReadActions(fsm, channel_name);
@@ -355,21 +376,22 @@ bool SubscriptionStorageBase::SubscriptionStorageImpl<CallbackMap, PcallbackMap>
 }
 
 template <typename CallbackMap, typename PcallbackMap>
-CommandPtr SubscriptionStorageBase::SubscriptionStorageImpl<CallbackMap, PcallbackMap>::PrepareUnsubscribeCommand(
-    const ChannelName& channel_name
-) {
-    const auto* command_name = channel_name.sharded   ? "SUNSUBSCRIBE"
-                               : channel_name.pattern ? "PUNSUBSCRIBE"
-                                                      : "UNSUBSCRIBE";
+CommandPtr SubscriptionStorageBase::SubscriptionStorageImpl<
+    CallbackMap,
+    PcallbackMap>::PrepareUnsubscribeCommand(const ChannelName& channel_name) {
+    const auto* command_name =
+        channel_name.sharded ? "SUNSUBSCRIBE"
+        : channel_name.pattern
+            ? "PUNSUBSCRIBE"
+            : "UNSUBSCRIBE";
     const auto& channel = channel_name.channel;
     return PrepareCommand(CmdArgs{command_name, channel}, ReplyCallback{}, common_command_control_);
 }
 
 template <typename CallbackMap, typename PcallbackMap>
-shard_subscriber::Event::Type
-SubscriptionStorageBase::SubscriptionStorageImpl<CallbackMap, PcallbackMap>::EventTypeFromSubscriberEvent(
-    SubscriberEvent event
-) {
+shard_subscriber::Event::Type SubscriptionStorageBase::SubscriptionStorageImpl<
+    CallbackMap,
+    PcallbackMap>::EventTypeFromSubscriberEvent(SubscriberEvent event) {
     switch (event) {
         case SubscriberEvent::kSubscriberConnected:
             return shard_subscriber::Event::Type::kSubscribeReplyOk;
@@ -381,21 +403,24 @@ SubscriptionStorageBase::SubscriptionStorageImpl<CallbackMap, PcallbackMap>::Eve
 }
 
 template <typename CallbackMap, typename PcallbackMap>
-CommandPtr SubscriptionStorageBase::SubscriptionStorageImpl<CallbackMap, PcallbackMap>::PrepareSubscribeCommand(
-    const ChannelName& channel_name,
-    SubscribeCb cb,
-    size_t shard_idx
-) {
-    const auto message_callback = [this, shard_idx](
-                                      ServerId server_id, const std::string& channel, const std::string& message
-                                  ) { OnMessage(server_id, channel, message, shard_idx); };
+CommandPtr SubscriptionStorageBase::SubscriptionStorageImpl<
+    CallbackMap,
+    PcallbackMap>::PrepareSubscribeCommand(const ChannelName& channel_name, SubscribeCb cb, size_t shard_idx) {
+    const auto message_callback =
+        [this, shard_idx](ServerId server_id, const std::string& channel, const std::string& message) {
+            OnMessage(server_id, channel, message, shard_idx);
+        };
     const auto pmessage_callback =
         [this, shard_idx](
-            ServerId server_id, const std::string& pattern, const std::string& channel, const std::string& message
+            ServerId server_id,
+            const std::string& pattern,
+            const std::string& channel,
+            const std::string& message
         ) { OnPmessage(server_id, pattern, channel, message, shard_idx); };
-    const auto smessage_callback = [this, shard_idx](
-                                       ServerId server_id, const std::string& channel, const std::string& message
-                                   ) { OnSmessage(server_id, channel, message, shard_idx); };
+    const auto smessage_callback =
+        [this, shard_idx](ServerId server_id, const std::string& channel, const std::string& message) {
+            OnSmessage(server_id, channel, message, shard_idx);
+        };
     const auto subscribe_callback = [cb](ServerId server_id, const std::string& /*channel*/, size_t response) {
         cb(server_id, response > 0 ? SubscriberEvent::kSubscriberConnected : SubscriberEvent::kSubscriberDisconnected);
     };
@@ -538,18 +563,17 @@ void SubscriptionStorageBase::SubscriptionStorageImpl<CallbackMap, PcallbackMap>
 void SubscriptionStorageBase::ShardChannelInfo::AccountMessage(ServerId server_id, size_t message_size) {
     UASSERT(fsm);
     auto current_server_id = fsm->GetCurrentServerId();
-    if (current_server_id == server_id)
+    if (current_server_id == server_id) {
         statistics.AccountMessage(message_size);
-    else {
+    } else {
         // TODO: better handling in https://st.yandex-team.ru/TAXICOMMON-604
-        LOG_LIMITED_ERROR() << "Alien message got on SUBSCRIBE, fsm=" << fsm.get()
-                            << ", origin server_id = " << server_id.GetId()
-                            << ", server = " << server_id.GetDescription()
-                            << ", current server_id = " << current_server_id.GetId()
-                            << ", current server = " << current_server_id.GetDescription()
-                            << ". Possible while rebalancing. If these messages are "
-                               "regular, it is a bug in PUBSUB "
-                               "client implementation.";
+        LOG_LIMITED_ERROR()
+            << "Alien message got on SUBSCRIBE, fsm=" << fsm.get() << ", origin server_id = " << server_id.GetId()
+            << ", server = " << server_id.GetDescription() << ", current server_id = " << current_server_id.GetId()
+            << ", current server = " << current_server_id.GetDescription()
+            << ". Possible while rebalancing. If these messages are "
+               "regular, it is a bug in PUBSUB "
+               "client implementation.";
 
         statistics.AccountAlienMessage();
     }
@@ -562,9 +586,9 @@ void SubscriptionStorageBase::ShardChannelInfo::AccountDiscardedByOverflow(size_
 // logically better as non-static func
 // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
 template <typename CallbackMap, typename PcallbackMap>
-void SubscriptionStorageBase::SubscriptionStorageImpl<CallbackMap, PcallbackMap>::RebalanceCalculateNeedCount(
-    RebalanceState& state
-) {
+void SubscriptionStorageBase::SubscriptionStorageImpl<
+    CallbackMap,
+    PcallbackMap>::RebalanceCalculateNeedCount(RebalanceState& state) {
     auto& weights = state.weights;
     auto& needs = state.need_subscription_count;
     const auto total_connections = state.total_connections;
@@ -579,13 +603,19 @@ void SubscriptionStorageBase::SubscriptionStorageImpl<CallbackMap, PcallbackMap>
         /// Modifying weight??
         weight = total_connections * weight % sum_weights;
         rem_sum_weights += weight;
-        if (rem < need) throw std::logic_error("something went wrong (rem < need)");
+        if (rem < need) {
+            throw std::logic_error("something went wrong (rem < need)");
+        }
         rem -= need;
     }
-    if (rem > weights.size()) throw std::logic_error("incorrect rem count (rem > size)");
+    if (rem > weights.size()) {
+        throw std::logic_error("incorrect rem count (rem > size)");
+    }
 
     for (; rem; --rem) {
-        if (!rem_sum_weights) throw std::logic_error("incorrect rem_sum_weights");
+        if (!rem_sum_weights) {
+            throw std::logic_error("incorrect rem_sum_weights");
+        }
         size_t current = utils::RandRange(rem_sum_weights);
         for (auto& server_id_weight : weights) {
             const auto& server_id = server_id_weight.first;
@@ -622,27 +652,24 @@ void SubscriptionStorageBase::SubscriptionStorageImpl<CallbackMap, PcallbackMap>
             continue;
         }
         ++total_connections;
-        subscriptions_by_server[fsm->GetCurrentServerId()].emplace_back(
-            ChannelName(channel_item.first, pattern, sharded), fsm
-        );
+        subscriptions_by_server[fsm->GetCurrentServerId()]
+            .emplace_back(ChannelName(channel_item.first, pattern, sharded), fsm);
     }
 }
 
 template <typename CallbackMap, typename PcallbackMap>
-void SubscriptionStorageBase::SubscriptionStorageImpl<CallbackMap, PcallbackMap>::SetCommandControl(
-    const CommandControl& control
-) {
+void SubscriptionStorageBase::SubscriptionStorageImpl<
+    CallbackMap,
+    PcallbackMap>::SetCommandControl(const CommandControl& control) {
     const std::lock_guard<std::mutex> lock{mutex};
     common_command_control_ = control;
     common_command_control_.max_retries = 1;
 }
 
 template <typename CallbackMap, typename PcallbackMap>
-SubscriptionToken SubscriptionStorageBase::SubscriptionStorageImpl<CallbackMap, PcallbackMap>::Subscribe(
-    const std::string& channel,
-    Sentinel::UserMessageCallback cb,
-    CommandControl control
-) {
+SubscriptionToken SubscriptionStorageBase::SubscriptionStorageImpl<
+    CallbackMap,
+    PcallbackMap>::Subscribe(const std::string& channel, Sentinel::UserMessageCallback cb, CommandControl control) {
     size_t id = 0;
     {
         const std::lock_guard<std::mutex> lock{mutex};
@@ -655,11 +682,9 @@ SubscriptionToken SubscriptionStorageBase::SubscriptionStorageImpl<CallbackMap, 
 }
 
 template <typename CallbackMap, typename PcallbackMap>
-SubscriptionToken SubscriptionStorageBase::SubscriptionStorageImpl<CallbackMap, PcallbackMap>::Ssubscribe(
-    const std::string& channel,
-    Sentinel::UserMessageCallback cb,
-    CommandControl control
-) {
+SubscriptionToken SubscriptionStorageBase::SubscriptionStorageImpl<
+    CallbackMap,
+    PcallbackMap>::Ssubscribe(const std::string& channel, Sentinel::UserMessageCallback cb, CommandControl control) {
     size_t id = 0;
     {
         const std::lock_guard<std::mutex> lock{mutex};
@@ -672,11 +697,9 @@ SubscriptionToken SubscriptionStorageBase::SubscriptionStorageImpl<CallbackMap, 
 }
 
 template <typename CallbackMap, typename PcallbackMap>
-SubscriptionToken SubscriptionStorageBase::SubscriptionStorageImpl<CallbackMap, PcallbackMap>::Psubscribe(
-    const std::string& channel,
-    Sentinel::UserPmessageCallback cb,
-    CommandControl control
-) {
+SubscriptionToken SubscriptionStorageBase::SubscriptionStorageImpl<
+    CallbackMap,
+    PcallbackMap>::Psubscribe(const std::string& channel, Sentinel::UserPmessageCallback cb, CommandControl control) {
     size_t id = 0;
     {
         const std::lock_guard<std::mutex> lock{mutex};
@@ -689,15 +712,16 @@ SubscriptionToken SubscriptionStorageBase::SubscriptionStorageImpl<CallbackMap, 
 }
 
 template <typename CallbackMap, typename PcallbackMap>
-SubscriptionId SubscriptionStorageBase::SubscriptionStorageImpl<CallbackMap, PcallbackMap>::
-    GetNextSubscriptionId(const std::lock_guard<std::mutex>& /*held_lock*/) {
+SubscriptionId SubscriptionStorageBase::SubscriptionStorageImpl<
+    CallbackMap,
+    PcallbackMap>::GetNextSubscriptionId(const std::lock_guard<std::mutex>& /*held_lock*/) {
     return next_subscription_id_++;
 }
 
 template <typename CallbackMap, typename PcallbackMap>
-const CommandControl& SubscriptionStorageBase::SubscriptionStorageImpl<CallbackMap, PcallbackMap>::GetCommandControl(
-    const ChannelName& channel_name
-) const {
+const CommandControl& SubscriptionStorageBase::SubscriptionStorageImpl<
+    CallbackMap,
+    PcallbackMap>::GetCommandControl(const ChannelName& channel_name) const {
     if (channel_name.sharded) {
         return sharded_callback_map.at(channel_name.channel).control;
     } else if (channel_name.pattern) {
@@ -708,8 +732,9 @@ const CommandControl& SubscriptionStorageBase::SubscriptionStorageImpl<CallbackM
 }
 
 /// Explicit instantiation
-template class SubscriptionStorageBase::
-    SubscriptionStorageImpl<ClusterSubscriptionStorage::CallbackMap, ClusterSubscriptionStorage::PcallbackMap>;
+template class SubscriptionStorageBase::SubscriptionStorageImpl<
+    ClusterSubscriptionStorage::CallbackMap,
+    ClusterSubscriptionStorage::PcallbackMap>;
 
 SubscriptionStorage::SubscriptionStorage(
     const std::shared_ptr<ThreadPools>& thread_pools,
@@ -720,12 +745,13 @@ SubscriptionStorage::SubscriptionStorage(
     : storage_impl_(shards_count, *this),
       shard_names_(std::move(shard_names)),
       is_cluster_mode_(is_cluster_mode),
-      shard_rotate_counter_(utils::RandRange(shards_count)) {
+      shard_rotate_counter_(utils::RandRange(shards_count))
+{
     UINVARIANT(!is_cluster_mode_, "Internal logic error with cluster mode setup");
     for (size_t shard_idx = 0; shard_idx < shards_count; shard_idx++) {
-        rebalance_schedulers_.emplace_back(
-            std::make_unique<SubscriptionRebalanceScheduler>(thread_pools->GetSentinelThreadPool(), *this, shard_idx)
-        );
+        rebalance_schedulers_
+            .emplace_back(std::make_unique<
+                          SubscriptionRebalanceScheduler>(thread_pools->GetSentinelThreadPool(), *this, shard_idx));
     }
 }
 
@@ -737,7 +763,8 @@ SubscriptionStorage::SubscriptionStorage(
     : storage_impl_(shards_count, *this),
       shard_names_(std::move(shard_names)),
       is_cluster_mode_(is_cluster_mode),
-      shard_rotate_counter_(utils::RandRange(shards_count)) {
+      shard_rotate_counter_(utils::RandRange(shards_count))
+{
     UINVARIANT(!is_cluster_mode_, "Internal logic error with cluster mode setup");
 }
 
@@ -755,18 +782,27 @@ void SubscriptionStorage::SetShardedUnsubscribeCallback(ShardedCommandCb cb) {
     storage_impl_.sharded_unsubscribe_callback = std::move(cb);
 }
 
-SubscriptionToken
-SubscriptionStorage::Subscribe(const std::string& channel, Sentinel::UserMessageCallback cb, CommandControl control) {
+SubscriptionToken SubscriptionStorage::Subscribe(
+    const std::string& channel,
+    Sentinel::UserMessageCallback cb,
+    CommandControl control
+) {
     return storage_impl_.Subscribe(channel, std::move(cb), std::move(control));
 }
 
-SubscriptionToken SubscriptionStorage::
-    Ssubscribe(const std::string& /*channel*/, Sentinel::UserMessageCallback /*cb*/, CommandControl /*control*/) {
+SubscriptionToken SubscriptionStorage::Ssubscribe(
+    const std::string& /*channel*/,
+    Sentinel::UserMessageCallback /*cb*/,
+    CommandControl /*control*/
+) {
     throw std::runtime_error("Ssubscribe does not work in non cluster redis");
 }
 
-SubscriptionToken
-SubscriptionStorage::Psubscribe(const std::string& pattern, Sentinel::UserPmessageCallback cb, CommandControl control) {
+SubscriptionToken SubscriptionStorage::Psubscribe(
+    const std::string& pattern,
+    Sentinel::UserPmessageCallback cb,
+    CommandControl control
+) {
     return storage_impl_.Psubscribe(pattern, std::move(cb), std::move(control));
 }
 
@@ -776,13 +812,17 @@ void SubscriptionStorage::Stop() {
     storage_impl_.ClearCallbackMaps();
 
     // rebalance_schedulers_ are accessed concurrently, do not clear() them here.
-    for (auto& scheduler : rebalance_schedulers_) scheduler->Stop();
+    for (auto& scheduler : rebalance_schedulers_) {
+        scheduler->Stop();
+    }
 }
 
 void SubscriptionStorage::SetCommandControl(const CommandControl& control) { storage_impl_.SetCommandControl(control); }
 
 void SubscriptionStorage::SetRebalanceMinInterval(std::chrono::milliseconds interval) {
-    for (auto& scheduler : rebalance_schedulers_) scheduler->SetRebalanceMinInterval(interval);
+    for (auto& scheduler : rebalance_schedulers_) {
+        scheduler->SetRebalanceMinInterval(interval);
+    }
 }
 
 void SubscriptionStorage::RequestRebalance(size_t shard_idx, ServerWeights weights) {
@@ -792,11 +832,12 @@ void SubscriptionStorage::RequestRebalance(size_t shard_idx, ServerWeights weigh
 void SubscriptionStorage::DoRebalance(size_t shard_idx, ServerWeights weights) {
     /// Rebalances subscriptions between instances of shard
     const std::lock_guard lock{storage_impl_.mutex};
-    if (shard_idx >= storage_impl_.GetShardsCount(lock))
+    if (shard_idx >= storage_impl_.GetShardsCount(lock)) {
         throw std::runtime_error(
             "requested rebalance for non-existing shard (" + std::to_string(shard_idx) +
             " >= " + std::to_string(storage_impl_.GetShardsCount(lock)) + ')'
         );
+    }
 
     storage_impl_.DoRebalance(shard_idx, std::move(weights), lock);
 }
@@ -838,11 +879,15 @@ void SubscriptionStorage::SubscribeImpl(
         for (size_t i = 0; i < shards_count; ++i) {
             const bool fake = is_cluster_mode_ && i != selected_shard_idx;
             infos.emplace_back(i, fake);
-            if (!fake) storage_impl_.ReadActions(infos.back().fsm, channel_name);
+            if (!fake) {
+                storage_impl_.ReadActions(infos.back().fsm, channel_name);
+            }
         }
     } else {
         for (auto& info : infos) {
-            if (!info.fsm) continue;
+            if (!info.fsm) {
+                continue;
+            }
             shard_subscriber::Event event;
             event.type = shard_subscriber::Event::Type::kSubscribeRequested;
             info.fsm->OnEvent(event);
@@ -890,11 +935,15 @@ void SubscriptionStorage::PsubscribeImpl(
         for (size_t i = 0; i < shards_count; ++i) {
             const bool fake = is_cluster_mode_ && i != selected_shard_idx;
             infos.emplace_back(i, fake);
-            if (!fake) storage_impl_.ReadActions(infos.back().fsm, channel_name);
+            if (!fake) {
+                storage_impl_.ReadActions(infos.back().fsm, channel_name);
+            }
         }
     } else {
         for (auto& info : infos) {
-            if (!info.fsm) continue;
+            if (!info.fsm) {
+                continue;
+            }
             shard_subscriber::Event event;
             event.type = shard_subscriber::Event::Type::kSubscribeRequested;
             info.fsm->OnEvent(event);

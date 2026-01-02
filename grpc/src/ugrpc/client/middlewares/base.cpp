@@ -22,7 +22,9 @@ MiddlewareBase::MiddlewareBase() = default;
 
 MiddlewareBase::~MiddlewareBase() = default;
 
-MiddlewareCallContext::MiddlewareCallContext(impl::CallState& state) : state_(state) {}
+MiddlewareCallContext::MiddlewareCallContext(impl::CallState& state)
+    : state_(state)
+{}
 
 grpc::ClientContext& MiddlewareCallContext::GetClientContext() noexcept { return state_.GetClientContext(); }
 
@@ -30,11 +32,9 @@ std::string_view MiddlewareCallContext::GetClientName() const noexcept { return 
 
 std::string_view MiddlewareCallContext::GetCallName() const noexcept { return state_.GetCallName(); }
 
+RpcType MiddlewareCallContext::GetRpcType() const noexcept { return state_.GetRpcType(); }
+
 tracing::Span& MiddlewareCallContext::GetSpan() noexcept { return state_.GetSpan(); }
-
-bool MiddlewareCallContext::IsClientStreaming() const noexcept { return impl::IsClientStreaming(state_.GetCallKind()); }
-
-bool MiddlewareCallContext::IsServerStreaming() const noexcept { return impl::IsServerStreaming(state_.GetCallKind()); }
 
 impl::CallState& MiddlewareCallContext::GetState(utils::impl::InternalTag) { return state_; }
 

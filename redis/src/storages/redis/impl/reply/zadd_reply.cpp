@@ -7,7 +7,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::redis::impl {
 
-ZaddReply::ZaddReply(size_t value) : value_(value) {}
+ZaddReply::ZaddReply(size_t value)
+    : value_(value)
+{}
 
 ZaddReply ZaddReply::Parse(ReplyData&& reply_data, const std::string& request_description) {
     reply_data.ExpectInt(request_description);

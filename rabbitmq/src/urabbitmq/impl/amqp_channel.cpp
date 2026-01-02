@@ -39,22 +39,42 @@ AMQP::ExchangeType Convert(urabbitmq::Exchange::Type type) {
 
 int Convert(utils::Flags<Queue::Flags> flags) {
     int result = 0;
-    if (flags & Queue::Flags::kPassive) result |= AMQP::passive;
-    if (flags & Queue::Flags::kDurable) result |= AMQP::durable;
-    if (flags & Queue::Flags::kExclusive) result |= AMQP::exclusive;
-    if (flags & Queue::Flags::kAutoDelete) result |= AMQP::autodelete;
-    if (flags & Queue::Flags::kNoAck) result |= AMQP::noack;
+    if (flags & Queue::Flags::kPassive) {
+        result |= AMQP::passive;
+    }
+    if (flags & Queue::Flags::kDurable) {
+        result |= AMQP::durable;
+    }
+    if (flags & Queue::Flags::kExclusive) {
+        result |= AMQP::exclusive;
+    }
+    if (flags & Queue::Flags::kAutoDelete) {
+        result |= AMQP::autodelete;
+    }
+    if (flags & Queue::Flags::kNoAck) {
+        result |= AMQP::noack;
+    }
 
     return result;
 }
 
 int Convert(utils::Flags<Exchange::Flags> flags) {
     int result = 0;
-    if (flags & Exchange::Flags::kPassive) result |= AMQP::passive;
-    if (flags & Exchange::Flags::kDurable) result |= AMQP::durable;
-    if (flags & Exchange::Flags::kAutoDelete) result |= AMQP::autodelete;
-    if (flags & Exchange::Flags::kInternal) result |= AMQP::internal;
-    if (flags & Exchange::Flags::kNoWait) result |= AMQP::nowait;
+    if (flags & Exchange::Flags::kPassive) {
+        result |= AMQP::passive;
+    }
+    if (flags & Exchange::Flags::kDurable) {
+        result |= AMQP::durable;
+    }
+    if (flags & Exchange::Flags::kAutoDelete) {
+        result |= AMQP::autodelete;
+    }
+    if (flags & Exchange::Flags::kInternal) {
+        result |= AMQP::internal;
+    }
+    if (flags & Exchange::Flags::kNoWait) {
+        result |= AMQP::nowait;
+    }
 
     return result;
 }
@@ -63,7 +83,9 @@ AMQP::Table CreateHeaders() {
     UASSERT(engine::current_task::IsTaskProcessorThread());
 
     auto* span = tracing::Span::CurrentSpanUnchecked();
-    if (span == nullptr) return {};
+    if (span == nullptr) {
+        return {};
+    }
 
     AMQP::Table headers;
     headers["u-trace-id"] = std::string{span->GetTraceId()};
@@ -74,7 +96,9 @@ AMQP::Table CreateHeaders() {
 
 }  // namespace
 
-AmqpChannel::AmqpChannel(AmqpConnection& conn) : conn_{conn} {}
+AmqpChannel::AmqpChannel(AmqpConnection& conn)
+    : conn_{conn}
+{}
 
 AmqpChannel::~AmqpChannel() = default;
 
@@ -88,16 +112,18 @@ ResponseAwaiter AmqpChannel::DeclareExchange(
 
     {
         auto channel = conn_.GetChannel(deadline);
-        awaiter.GetWrapper()->Wrap(
-            channel->declareExchange(exchange.GetUnderlying(), Convert(exchangeType), Convert(flags))
-        );
+        awaiter.GetWrapper()
+            ->Wrap(channel->declareExchange(exchange.GetUnderlying(), Convert(exchangeType), Convert(flags)));
     }
 
     return awaiter;
 }
 
-ResponseAwaiter
-AmqpChannel::DeclareQueue(const Queue& queue, utils::Flags<Queue::Flags> flags, engine::Deadline deadline) {
+ResponseAwaiter AmqpChannel::DeclareQueue(
+    const Queue& queue,
+    utils::Flags<Queue::Flags> flags,
+    engine::Deadline deadline
+) {
     auto awaiter = conn_.GetAwaiter(deadline);
 
     {
@@ -236,7 +262,9 @@ void AmqpChannel::CancelConsumer(const std::optional<std::string>& consumer_tag)
 
 void AmqpChannel::AccountMessageConsumed() { conn_.GetStatistics().AccountMessageConsumed(); }
 
-AmqpReliableChannel::AmqpReliableChannel(AmqpConnection& conn) : conn_{conn} {}
+AmqpReliableChannel::AmqpReliableChannel(AmqpConnection& conn)
+    : conn_{conn}
+{}
 
 AmqpReliableChannel::~AmqpReliableChannel() = default;
 

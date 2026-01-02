@@ -1,6 +1,5 @@
 import contextlib
 import dataclasses
-import typing
 
 import pytest
 from pytest_userver import metrics  # pylint: disable=import-error
@@ -10,7 +9,7 @@ from pytest_userver import metrics  # pylint: disable=import-error
 @dataclasses.dataclass
 class MetricsDiff:
     before: metrics.MetricsSnapshot
-    after: typing.Optional[metrics.MetricsSnapshot]
+    after: metrics.MetricsSnapshot | None
 
     def value_at(self, **kwargs):
         return self.after.value_at(**kwargs) - self.before.value_at(**kwargs)

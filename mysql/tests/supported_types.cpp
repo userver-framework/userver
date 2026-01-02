@@ -145,8 +145,8 @@ UTEST(AllSupportedTypes, NotNull) {
 
     cluster->ExecuteDecompose(ClusterHostType::kPrimary, insert_query, row_to_insert);
 
-    const auto db_row =
-        cluster->Execute(ClusterHostType::kPrimary, select_query).AsSingleRow<AllSupportedTypesNotNull>();
+    const auto
+        db_row = cluster->Execute(ClusterHostType::kPrimary, select_query).AsSingleRow<AllSupportedTypesNotNull>();
 
     EXPECT_EQ(row_to_insert.uint8, db_row.uint8);
     EXPECT_EQ(row_to_insert.int8, db_row.int8);
@@ -175,8 +175,8 @@ UTEST(AllSupportedTypes, NullableWithNulls) {
     AllSupportedTypesNullable row_to_insert{};
     cluster->ExecuteDecompose(ClusterHostType::kPrimary, insert_query, row_to_insert);
 
-    const auto db_row =
-        cluster->Execute(ClusterHostType::kPrimary, select_query).AsSingleRow<AllSupportedTypesNullable>();
+    const auto
+        db_row = cluster->Execute(ClusterHostType::kPrimary, select_query).AsSingleRow<AllSupportedTypesNullable>();
 
     boost::pfr::for_each_field(db_row, [](const auto& f) { EXPECT_FALSE(f.has_value()); });
 }
@@ -207,8 +207,8 @@ UTEST(AllSupportedTypes, NullableWithValues) {
     };
     cluster->ExecuteDecompose(ClusterHostType::kPrimary, insert_query, row_to_insert);
 
-    const auto db_row =
-        cluster->Execute(ClusterHostType::kPrimary, select_query).AsSingleRow<AllSupportedTypesNullable>();
+    const auto
+        db_row = cluster->Execute(ClusterHostType::kPrimary, select_query).AsSingleRow<AllSupportedTypesNullable>();
 
     boost::pfr::for_each_field(db_row, [](const auto& f) { EXPECT_TRUE(f.has_value()); });
 }

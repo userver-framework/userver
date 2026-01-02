@@ -162,14 +162,15 @@ struct EntryStorage final {
 // * ShouldLog() calls and related `if` statements and runtime checks
 // * SourceLocation info
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define USERVER_IMPL_ERASE_LOG                                                   \
-    true ? logging::impl::Noop{}                                                 \
-         : USERVER_NAMESPACE::logging::LogHelper(                                \
-               USERVER_NAMESPACE::logging::GetDefaultLogger(),                   \
-               USERVER_NAMESPACE::logging::Level::kTrace,                        \
-               USERVER_NAMESPACE::utils::impl::SourceLocation::Custom(0, {}, {}) \
-           )                                                                     \
-               .AsLvalue()
+#define USERVER_IMPL_ERASE_LOG                                                  \
+    true                                                                        \
+        ? logging::impl::Noop{}                                                 \
+        : USERVER_NAMESPACE::logging::LogHelper(                                \
+              USERVER_NAMESPACE::logging::GetDefaultLogger(),                   \
+              USERVER_NAMESPACE::logging::Level::kTrace,                        \
+              USERVER_NAMESPACE::utils::impl::SourceLocation::Custom(0, {}, {}) \
+          )                                                                     \
+              .AsLvalue()
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define USERVER_IMPL_LOGS_TRACE_ERASER(X) USERVER_IMPL_ERASE_LOG
@@ -230,7 +231,7 @@ struct EntryStorage final {
 #define USERVER_IMPL_DYNAMIC_DEBUG_ENTRY                                                                 \
     []() noexcept -> const USERVER_NAMESPACE::logging::impl::StaticLogEntry& {                           \
         struct NameHolder {                                                                              \
-            static constexpr const char* Get() noexcept { return USERVER_FILEPATH.data(); }              \
+            static constexpr const char* Get() noexcept { return USERVER_FILEPATH.c_str(); }             \
         };                                                                                               \
         const auto& entry = USERVER_NAMESPACE::logging::impl::EntryStorage<NameHolder, __LINE__>::entry; \
         return entry;                                                                                    \
@@ -338,7 +339,8 @@ struct EntryStorage final {
                  thread_local USERVER_NAMESPACE::logging::impl::RateLimitData rl_data; \
                  return rl_data;                                                       \
              }(),                                                                      \
-             (lvl)};                                                                   \
+             (lvl)                                                                     \
+         };                                                                            \
          log_limited_to_rl.ShouldLog();                                                \
          log_limited_to_rl.SetShouldNotLog())                                          \
     LOG_TO((logger), log_limited_to_rl.GetLevel(), __VA_ARGS__) << log_limited_to_rl

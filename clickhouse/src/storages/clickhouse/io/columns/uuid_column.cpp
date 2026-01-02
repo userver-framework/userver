@@ -77,7 +77,8 @@ static_assert(
 );
 
 MismatchedEndiannessUuidColumn::MismatchedEndiannessUuidColumn(ColumnRef column)
-    : ClickhouseColumn{impl::GetTypedColumn<MismatchedEndiannessUuidColumn, NativeType>(column)} {}
+    : ClickhouseColumn{impl::GetTypedColumn<MismatchedEndiannessUuidColumn, NativeType>(column)}
+{}
 
 template <>
 MismatchedEndiannessUuidColumn::cpp_type ColumnIterator<MismatchedEndiannessUuidColumn>::DataHolder::Get() const {
@@ -91,7 +92,8 @@ ColumnRef MismatchedEndiannessUuidColumn::Serialize(const container_type& from) 
 }
 
 UuidRfc4122Column::UuidRfc4122Column(ColumnRef column)
-    : ClickhouseColumn{impl::GetTypedColumn<UuidRfc4122Column, NativeType>(column)} {}
+    : ClickhouseColumn{impl::GetTypedColumn<UuidRfc4122Column, NativeType>(column)}
+{}
 
 template <>
 UuidRfc4122Column::cpp_type ColumnIterator<UuidRfc4122Column>::DataHolder::Get() const {

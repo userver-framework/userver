@@ -70,8 +70,10 @@ std::string_view GetDescription(const buf::validate::Violation& violation) {
 
 namespace buf::validate {
 
-USERVER_NAMESPACE::logging::LogHelper&
-operator<<(USERVER_NAMESPACE::logging::LogHelper& lh, const Violation& violation) {
+USERVER_NAMESPACE::logging::LogHelper& operator<<(
+    USERVER_NAMESPACE::logging::LogHelper& lh,
+    const Violation& violation
+) {
     lh << fmt::format(
         "field={}, rule={}, description='{}'{}",
         GetFieldName(violation),

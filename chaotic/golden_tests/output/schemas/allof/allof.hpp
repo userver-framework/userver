@@ -42,14 +42,20 @@ bool operator==(const ::ns::AllOf::Foo& lhs, const ::ns::AllOf::Foo& rhs);
 
 bool operator==(const ::ns::AllOf& lhs, const ::ns::AllOf& rhs);
 
-USERVER_NAMESPACE::logging::LogHelper&
-operator<<(USERVER_NAMESPACE::logging::LogHelper& lh, const ::ns::AllOf::Foo__P0& value);
+USERVER_NAMESPACE::logging::LogHelper& operator<<(
+    USERVER_NAMESPACE::logging::LogHelper& lh,
+    const ::ns::AllOf::Foo__P0& value
+);
 
-USERVER_NAMESPACE::logging::LogHelper&
-operator<<(USERVER_NAMESPACE::logging::LogHelper& lh, const ::ns::AllOf::Foo__P1& value);
+USERVER_NAMESPACE::logging::LogHelper& operator<<(
+    USERVER_NAMESPACE::logging::LogHelper& lh,
+    const ::ns::AllOf::Foo__P1& value
+);
 
-USERVER_NAMESPACE::logging::LogHelper&
-operator<<(USERVER_NAMESPACE::logging::LogHelper& lh, const ::ns::AllOf::Foo& value);
+USERVER_NAMESPACE::logging::LogHelper& operator<<(
+    USERVER_NAMESPACE::logging::LogHelper& lh,
+    const ::ns::AllOf::Foo& value
+);
 
 USERVER_NAMESPACE::logging::LogHelper& operator<<(USERVER_NAMESPACE::logging::LogHelper& lh, const ::ns::AllOf& value);
 

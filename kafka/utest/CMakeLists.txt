@@ -3,7 +3,8 @@ project(userver-kafka-utest)
 file(GLOB_RECURSE KAFKA_LIB_UTEST_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp ${CMAKE_CURRENT_SOURCE_DIR}/*.hpp)
 
 add_library(${PROJECT_NAME} STATIC ${KAFKA_LIB_UTEST_SOURCES})
-target_link_libraries(${PROJECT_NAME}
+target_link_libraries(
+    ${PROJECT_NAME}
     PUBLIC userver::kafka userver::utest
     PRIVATE RdKafka::rdkafka
 )

@@ -28,7 +28,9 @@ public:
 
     /// @cond
     // For internal use only.
-    explicit PreparedArgsBuilder(NYdb::TParamsBuilder&& builder) : builder_(std::move(builder)) {}
+    explicit PreparedArgsBuilder(NYdb::TParamsBuilder&& builder)
+        : builder_(std::move(builder))
+    {}
 
     // For internal use only.
     template <typename... NamesValues>

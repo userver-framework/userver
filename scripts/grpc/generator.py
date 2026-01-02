@@ -11,6 +11,9 @@ For each `path/X.proto` file that contains gRPC services, we generate
 `{client,handler}.usrv.pb.{hpp,cpp}.jinja` templates.
 """
 
+from __future__ import annotations
+
+from collections.abc import Iterable
 import dataclasses
 import enum
 import itertools
@@ -18,10 +21,6 @@ import json
 import os
 import sys
 from typing import Any
-from typing import Dict
-from typing import Iterable
-from typing import Optional
-from typing import Tuple
 
 from google.protobuf.compiler import plugin_pb2 as plugin
 import google.protobuf.descriptor_pb2 as descriptor
@@ -55,8 +54,8 @@ class Params:
     structs: bool
 
     @classmethod
-    def parse(cls, data: str) -> 'Params':
-        json_data: Dict[Any, Any] = {}
+    def parse(cls, data: str) -> Params:
+        json_data: dict[Any, Any] = {}
         if data:
             json_data.update(json.loads(data))
 
@@ -109,7 +108,7 @@ class _CodeGenerator:
             self._generate_code_empty()
 
     def _generate_code_with_service(self) -> None:
-        data: Dict[str, Any] = {
+        data: dict[str, Any] = {
             'source_file': self.proto_file.name,
             'source_file_without_ext': self._proto_file_stem(),
             'package_prefix': _to_package_prefix(self.proto_file.package),
@@ -137,7 +136,7 @@ class _CodeGenerator:
             )
             file.content = _AUTOGEN_EMPTY_HEADER
 
-    def _iter_src_files(self) -> Iterable[Tuple[str, str]]:
+    def _iter_src_files(self) -> Iterable[tuple[str, str]]:
         if self.mode.is_service():
             src_files = ['service']
         elif self.mode.is_client():
@@ -170,10 +169,10 @@ def generate(
 
     response = plugin.CodeGeneratorResponse()
     if hasattr(response, 'FEATURE_PROTO3_OPTIONAL'):
-        setattr(
+        setattr(  # noqa: B010
             response,
             'supported_features',
-            getattr(response, 'FEATURE_PROTO3_OPTIONAL'),
+            getattr(response, 'FEATURE_PROTO3_OPTIONAL'),  # noqa: B009
         )
 
     jinja_env = jinja2.Environment(
@@ -204,7 +203,7 @@ def generate(
 
 
 def main(
-    loader: Optional[jinja2.BaseLoader] = None,
+    loader: jinja2.BaseLoader | None = None,
     mode: Mode = Mode.Both,
     skip_files_wo_service: bool = True,
 ) -> None:

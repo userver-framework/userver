@@ -16,10 +16,14 @@ namespace ugrpc::server::middlewares::headers_propagator {
 ///
 /// @brief Component for gRPC server headers_propagator
 ///
-/// ## Static options:
-/// Name | Description | Default value
-/// ---- | ----------- | -------------
-/// headers | array of metadata fields (headers) to propagate | empty
+/// ## Static options of ugrpc::server::middlewares::headers_propagator::Component :
+/// @include{doc} scripts/docs/en/components_schema/grpc/src/ugrpc/server/middlewares/headers_propagator/component.md
+///
+/// Options inherited from @ref middlewares::MiddlewareFactoryComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/middlewares/factory_component_base.md
+///
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
 ///
 /// @see @ref scripts/docs/en/userver/grpc/server_middlewares.md
 class Component final : public MiddlewareFactoryComponentBase {
@@ -46,7 +50,7 @@ template <>
 inline constexpr bool components::kHasValidate<ugrpc::server::middlewares::headers_propagator::Component> = true;
 
 template <>
-inline constexpr auto components::kConfigFileMode<ugrpc::server::middlewares::headers_propagator::Component> =
-    ConfigFileMode::kNotRequired;
+inline constexpr auto components::kConfigFileMode<
+    ugrpc::server::middlewares::headers_propagator::Component> = ConfigFileMode::kNotRequired;
 
 USERVER_NAMESPACE_END

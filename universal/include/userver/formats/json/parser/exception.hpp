@@ -17,7 +17,8 @@ class BaseError : public formats::json::Exception {
 class ParseError : public BaseError {
 public:
     ParseError(size_t pos, std::string_view path, std::string what)
-        : BaseError(fmt::format("Parse error at pos {}, path '{}': {}", pos, path, what)) {}
+        : BaseError(fmt::format("Parse error at pos {}, path '{}': {}", pos, path, what))
+    {}
 };
 
 class InternalParseError : public BaseError {

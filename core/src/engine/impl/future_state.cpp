@@ -19,7 +19,9 @@ FutureStateBase::~FutureStateBase() = default;
 bool FutureStateBase::IsReady() const noexcept { return finish_waiters_->IsSignaled(); }
 
 FutureStatus FutureStateBase::WaitUntil(Deadline deadline) {
-    if (IsReady()) return FutureStatus::kReady;
+    if (IsReady()) {
+        return FutureStatus::kReady;
+    }
 
     auto& context = current_task::GetCurrentTaskContext();
 

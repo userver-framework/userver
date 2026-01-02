@@ -10,15 +10,19 @@ USERVER_NAMESPACE_BEGIN
 namespace ugrpc::tests {
 
 StandaloneClientFactory::StandaloneClientFactory(client::ClientFactorySettings&& client_factory_settings)
-    : client_factory_{
+    : metrics_storage_{},
+      metrics_storage_registration_(metrics_storage_.RegisterIn(statistics_storage_)),
+      client_factory_{
           std::move(client_factory_settings),
           engine::current_task::GetTaskProcessor(),
           simple_client_middleware_pipeline_,
           completion_queues_,
           client_statistics_storage_,
+          metrics_storage_,
           testsuite_control_,
           config_storage_.GetSource(),
-      } {}
+      }
+{}
 
 std::uint16_t GetFreeIpv6Port() {
     engine::io::Socket socket{engine::io::AddrDomain::kInet6, engine::io::SocketType::kStream};

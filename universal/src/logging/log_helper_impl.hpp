@@ -26,12 +26,8 @@ struct LogHelper::InternalTag final {};
 
 class LogHelper::Impl final {
 public:
-    explicit Impl(
-        LoggerRef logger,
-        Level level,
-        LogClass log_class,
-        const utils::impl::SourceLocation& location
-    ) noexcept;
+    explicit Impl(LoggerRef logger, Level level, LogClass log_class, const utils::impl::SourceLocation& location)
+        noexcept;
 
     void AddText(std::string_view text);
 
@@ -58,7 +54,9 @@ private:
         using char_type = std::streambuf::char_type;
         using int_type = std::streambuf::int_type;
 
-        explicit BufferStd(Impl& impl) : impl_{impl} {}
+        explicit BufferStd(Impl& impl)
+            : impl_{impl}
+        {}
 
     private:
         int_type overflow(int_type c) override;
@@ -71,11 +69,16 @@ private:
         BufferStd sbuf;
         std::ostream ostr;
 
-        explicit LazyInitedStream(Impl& impl) : sbuf{impl}, ostr(&sbuf) {}
+        explicit LazyInitedStream(Impl& impl)
+            : sbuf{impl},
+              ostr(&sbuf)
+        {}
     };
 
     LazyInitedStream& GetLazyInitedStream() {
-        if (!lazy_stream_) lazy_stream_.emplace(*this);
+        if (!lazy_stream_) {
+            lazy_stream_.emplace(*this);
+        }
         return *lazy_stream_;
     }
 

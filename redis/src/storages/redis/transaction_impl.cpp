@@ -19,7 +19,10 @@ RequestExec CreateExecRequest(impl::Request&& request, std::vector<TransactionIm
 }  // namespace
 
 TransactionImpl::TransactionImpl(std::shared_ptr<ClientImpl> client, CheckShards check_shards)
-    : client_(std::move(client)), check_shards_(check_shards), cmd_args_({"MULTI"}) {}
+    : client_(std::move(client)),
+      check_shards_(check_shards),
+      cmd_args_({"MULTI"})
+{}
 
 RequestExec TransactionImpl::Exec(const CommandControl& command_control) {
     if (!shard_) {
@@ -36,7 +39,11 @@ RequestExec TransactionImpl::Exec(const CommandControl& command_control) {
     master_ = false;
     return CreateExecRequest(
         client_->MakeRequest(
-            std::move(cmd_args_), *shard_, master, client_->GetCommandControl(command_control), replies_to_skip
+            std::move(cmd_args_),
+            *shard_,
+            master,
+            client_->GetCommandControl(command_control),
+            replies_to_skip
         ),
         std::move(result_promises_)
     );
@@ -129,7 +136,13 @@ RequestGeoradius TransactionImpl::Georadius(
 ) {
     UpdateShard(key);
     return AddCmd<RequestGeoradius>(
-        "georadius_ro", false, std::move(key), lon.GetUnderlying(), lat.GetUnderlying(), radius, georadius_options
+        "georadius_ro",
+        false,
+        std::move(key),
+        lon.GetUnderlying(),
+        lat.GetUnderlying(),
+        radius,
+        georadius_options
     );
 }
 
@@ -141,7 +154,14 @@ RequestGeosearch TransactionImpl::Geosearch(
 ) {
     UpdateShard(key);
     return AddCmd<RequestGeosearch>(
-        "geosearch", false, std::move(key), "FROMMEMBER", std::move(member), "BYRADIUS", radius, geosearch_options
+        "geosearch",
+        false,
+        std::move(key),
+        "FROMMEMBER",
+        std::move(member),
+        "BYRADIUS",
+        radius,
+        geosearch_options
     );
 }
 
@@ -451,12 +471,14 @@ RequestSetIfNotExistOrGet TransactionImpl::SetIfNotExistOrGet(std::string key, s
     return AddCmd<RequestSetIfNotExistOrGet>("set", true, std::move(key), std::move(value), "NX", "GET");
 }
 
-RequestSetIfNotExistOrGet
-TransactionImpl::SetIfNotExistOrGet(std::string key, std::string value, std::chrono::milliseconds ttl) {
+RequestSetIfNotExistOrGet TransactionImpl::SetIfNotExistOrGet(
+    std::string key,
+    std::string value,
+    std::chrono::milliseconds ttl
+) {
     UpdateShard(key);
-    return AddCmd<RequestSetIfNotExistOrGet>(
-        "set", true, std::move(key), std::move(value), "PX", ttl.count(), "NX", "GET"
-    );
+    return AddCmd<
+        RequestSetIfNotExistOrGet>("set", true, std::move(key), std::move(value), "PX", ttl.count(), "NX", "GET");
 }
 
 RequestSetex TransactionImpl::Setex(std::string key, std::chrono::seconds seconds, std::string value) {
@@ -579,44 +601,61 @@ RequestZrangebyscore TransactionImpl::Zrangebyscore(std::string key, std::string
     return AddCmd<RequestZrangebyscore>("zrangebyscore", false, std::move(key), std::move(min), std::move(max));
 }
 
-RequestZrangebyscore
-TransactionImpl::Zrangebyscore(std::string key, double min, double max, const RangeOptions& range_options) {
+RequestZrangebyscore TransactionImpl::Zrangebyscore(
+    std::string key,
+    double min,
+    double max,
+    const RangeOptions& range_options
+) {
     UpdateShard(key);
     return AddCmd<RequestZrangebyscore>("zrangebyscore", false, std::move(key), min, max, range_options);
 }
 
-RequestZrangebyscore
-TransactionImpl::Zrangebyscore(std::string key, std::string min, std::string max, const RangeOptions& range_options) {
+RequestZrangebyscore TransactionImpl::Zrangebyscore(
+    std::string key,
+    std::string min,
+    std::string max,
+    const RangeOptions& range_options
+) {
     UpdateShard(key);
-    return AddCmd<RequestZrangebyscore>(
-        "zrangebyscore", false, std::move(key), std::move(min), std::move(max), range_options
-    );
+    return AddCmd<
+        RequestZrangebyscore>("zrangebyscore", false, std::move(key), std::move(min), std::move(max), range_options);
 }
 
 RequestZrangebyscoreWithScores TransactionImpl::ZrangebyscoreWithScores(std::string key, double min, double max) {
     UpdateShard(key);
     RangeScoreOptions range_score_options{{true}, {}};
-    return AddCmd<RequestZrangebyscoreWithScores>(
-        "zrangebyscore", false, std::move(key), min, max, range_score_options
-    );
+    return AddCmd<
+        RequestZrangebyscoreWithScores>("zrangebyscore", false, std::move(key), min, max, range_score_options);
 }
 
-RequestZrangebyscoreWithScores
-TransactionImpl::ZrangebyscoreWithScores(std::string key, std::string min, std::string max) {
+RequestZrangebyscoreWithScores TransactionImpl::ZrangebyscoreWithScores(
+    std::string key,
+    std::string min,
+    std::string max
+) {
     UpdateShard(key);
     RangeScoreOptions range_score_options{{true}, {}};
     return AddCmd<RequestZrangebyscoreWithScores>(
-        "zrangebyscore", false, std::move(key), std::move(min), std::move(max), range_score_options
+        "zrangebyscore",
+        false,
+        std::move(key),
+        std::move(min),
+        std::move(max),
+        range_score_options
     );
 }
 
-RequestZrangebyscoreWithScores
-TransactionImpl::ZrangebyscoreWithScores(std::string key, double min, double max, const RangeOptions& range_options) {
+RequestZrangebyscoreWithScores TransactionImpl::ZrangebyscoreWithScores(
+    std::string key,
+    double min,
+    double max,
+    const RangeOptions& range_options
+) {
     UpdateShard(key);
     RangeScoreOptions range_score_options{{true}, range_options};
-    return AddCmd<RequestZrangebyscoreWithScores>(
-        "zrangebyscore", false, std::move(key), min, max, range_score_options
-    );
+    return AddCmd<
+        RequestZrangebyscoreWithScores>("zrangebyscore", false, std::move(key), min, max, range_score_options);
 }
 
 RequestZrangebyscoreWithScores TransactionImpl::ZrangebyscoreWithScores(
@@ -628,7 +667,12 @@ RequestZrangebyscoreWithScores TransactionImpl::ZrangebyscoreWithScores(
     UpdateShard(key);
     RangeScoreOptions range_score_options{{true}, range_options};
     return AddCmd<RequestZrangebyscoreWithScores>(
-        "zrangebyscore", false, std::move(key), std::move(min), std::move(max), range_score_options
+        "zrangebyscore",
+        false,
+        std::move(key),
+        std::move(min),
+        std::move(max),
+        range_score_options
     );
 }
 
@@ -704,9 +748,8 @@ void TransactionImpl::UpdateShard(size_t shard) {
 template <typename Result, typename ReplyType>
 Request<Result, ReplyType> TransactionImpl::DoAddCmd(To<Request<Result, ReplyType>> to) {
     engine::Promise<ReplyType> promise;
-    Request<Result, ReplyType> request(
-        std::make_unique<impl::TransactionSubrequestDataImpl<ReplyType>>(promise.get_future())
-    );
+    Request<Result, ReplyType>
+        request(std::make_unique<impl::TransactionSubrequestDataImpl<ReplyType>>(promise.get_future()));
     result_promises_.emplace_back(std::move(promise), to);
     return request;
 }

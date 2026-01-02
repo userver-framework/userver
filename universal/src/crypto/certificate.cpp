@@ -24,7 +24,9 @@ constexpr std::string_view kBeginMarker = "-----BEGIN CERTIFICATE-----";
 constexpr std::string_view kEndMarker = "-----END CERTIFICATE-----";
 
 std::optional<std::string> Certificate::GetPemString() const {
-    if (!cert_) return {};
+    if (!cert_) {
+        return {};
+    }
 
     auto membio = MakeBioMemoryBuffer();
     if (1 != PEM_write_bio_X509(membio.get(), GetNative())) {

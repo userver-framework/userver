@@ -45,7 +45,8 @@ template <typename Address, typename = std::enable_if_t<kIsAddressType<Address>>
 NetworkBase<Address> NetworkFromString(const std::string& str) {
     const auto throw_exception = []() {
         throw std::invalid_argument(fmt::format(
-            "Error while converting {} to string", std::is_same_v<Address, AddressV4> ? "NetworkV4" : "NetworkV6"
+            "Error while converting {} to string",
+            std::is_same_v<Address, AddressV4> ? "NetworkV4" : "NetworkV6"
         ));
     };
     auto pos = str.find_first_of('/');
@@ -56,7 +57,7 @@ NetworkBase<Address> NetworkFromString(const std::string& str) {
     if (end != std::string::npos) {
         throw_exception();
     }
-    const auto addr = AddressFromString<Address::AddressSize>(str.substr(0, pos));
+    const auto addr = AddressFromString<Address::kAddressSize>(str.substr(0, pos));
     const int prefix_len = utils::FromString<int>(str.substr(pos + 1));
     if (prefix_len < 0 || prefix_len > NetworkBase<Address>::kMaximumPrefixLength) {
         throw_exception();
@@ -105,16 +106,25 @@ InetNetwork InetNetworkFromCidrNetwork(const T& network) {
     return InetNetwork(
         std::move(inet_bytes),
         network.GetPrefixLength(),
-        std::is_same_v<T, NetworkV4> ? InetNetwork::AddressFamily::IPv4 : InetNetwork::AddressFamily::IPv6
+        std::is_same_v<T, NetworkV4> ? InetNetwork::AddressFamily::kIPv4 : InetNetwork::AddressFamily::kIPv6
     );
 }
 
-InetNetwork::InetNetwork() : prefix_length_(32), address_family_(AddressFamily::IPv4) { bytes_.resize(4); }
+InetNetwork::InetNetwork()
+    : prefix_length_(32),
+      address_family_(AddressFamily::kIPv4)
+{
+    bytes_.resize(4);
+}
 
 InetNetwork::InetNetwork(std::vector<unsigned char>&& bytes, unsigned char prefix_length, AddressFamily address_family)
-    : bytes_(std::move(bytes)), prefix_length_(prefix_length), address_family_(address_family) {
-    if (!(bytes_.size() == 4 && prefix_length_ <= 32 && address_family_ == AddressFamily::IPv4) &&
-        !(bytes_.size() == 16 && prefix_length_ <= 128 && address_family_ == AddressFamily::IPv6)) {
+    : bytes_(std::move(bytes)),
+      prefix_length_(prefix_length),
+      address_family_(address_family)
+{
+    if (!(bytes_.size() == 4 && prefix_length_ <= 32 && address_family_ == AddressFamily::kIPv4) &&
+        !(bytes_.size() == 16 && prefix_length_ <= 128 && address_family_ == AddressFamily::kIPv6))
+    {
         throw std::invalid_argument("Invalid IP address format");
     }
 }

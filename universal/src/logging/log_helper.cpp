@@ -1,10 +1,11 @@
 #include <userver/logging/log_helper.hpp>
 
-#include <iostream>
+#include <cstdio>
 #include <memory>
-#include <typeinfo>
+#include <ostream>
 
 #include <fmt/compile.h>
+#include <boost/config.hpp>
 #include <boost/container/small_vector.hpp>
 #include <boost/exception/diagnostic_information.hpp>
 
@@ -80,7 +81,9 @@ public:
     // the object state must be completely torn down.
     static void Push(std::unique_ptr<T> obj) noexcept {
         auto pool = local_storage_pool.Use();
-        if (pool->IsFull()) return;
+        if (pool->IsFull()) {
+            return;
+        }
 
         // disarm dtor, transfer ownership (noexcept)
         std::unique_ptr<Storage> raw(reinterpret_cast<Storage*>(obj.release()));
@@ -107,13 +110,15 @@ constexpr bool NeedsQuoteEscaping(char c) { return c == '\"' || c == '\\'; }
 
 }  // namespace
 
-LogHelper::LogHelper(
-    LoggerRef logger,
-    Level level,
-    LogClass log_class,
-    const utils::impl::SourceLocation& location
-) noexcept
-    : pimpl_(ThreadLocalMemPool<Impl>::Pop(logger, level, log_class, location)) {
+LogHelper::LogHelper(LoggerRef logger, Level level, LogClass log_class, const utils::impl::SourceLocation& location)
+    noexcept {
+    try {
+        pimpl_ = ThreadLocalMemPool<Impl>::Pop(logger, level, log_class, location);
+    } catch (...) {
+        InternalLoggingError("Failed to create an implementation instance. Logger is non-functional");
+        return;
+    }
+
     try {
         logger.PrependCommonTags(GetTagWriter());
     } catch (...) {
@@ -130,15 +135,24 @@ LogHelper::LogHelper(
     : LogHelper(logger ? *logger : logging::GetNullLogger(), level, log_class, location) {}
 
 LogHelper::~LogHelper() {
+    if (BOOST_UNLIKELY(pimpl_ == nullptr)) {
+        return;
+    }
     DoLog();
     ThreadLocalMemPool<Impl>::Push(std::move(pimpl_));
 }
 
 constexpr size_t kSizeLimit = 10000;
 
-bool LogHelper::IsLimitReached() const noexcept { return pimpl_->GetTextSize() >= kSizeLimit; }
+bool LogHelper::IsLimitReached() const noexcept {
+    if (BOOST_UNLIKELY(pimpl_ == nullptr)) {
+        return true;
+    }
+    return pimpl_->GetTextSize() >= kSizeLimit;
+}
 
 void LogHelper::DoLog() noexcept {
+    UASSERT(pimpl_ != nullptr);
     try {
         pimpl_->Finish();
     } catch (...) {
@@ -147,13 +161,19 @@ void LogHelper::DoLog() noexcept {
 }
 
 void LogHelper::InternalLoggingError(std::string_view message) noexcept {
+    std::string exc_info;
     try {
-        std::cerr << "LogHelper: " << message << ". " << boost::current_exception_diagnostic_information() << '\n';
+        exc_info = boost::current_exception_diagnostic_information();
+        // Use fmt::format to output the message without interleaving with other logs.
+        std::fputs(fmt::format("LogHelper: {}. {}\n", message, exc_info).c_str(), stderr);
     } catch (...) {
         // ignore
+        exc_info = "unknown";  // fits into SSO
     }
-    pimpl_->MarkAsBroken();
-    UASSERT_MSG(false, message);
+    if (BOOST_LIKELY(pimpl_ != nullptr)) {
+        pimpl_->MarkAsBroken();
+    }
+    UASSERT_MSG(false, fmt::format("{}: {}", message, exc_info));
 }
 
 impl::TagWriter LogHelper::GetTagWriter() { return impl::TagWriter{*this}; }
@@ -262,43 +282,70 @@ LogHelper& LogHelper::operator<<(LogExtra&& extra) noexcept {
 }
 
 LogHelper& LogHelper::PutTag(std::string_view key, const LogExtra::Value& value) noexcept {
+    if (BOOST_UNLIKELY(pimpl_ == nullptr)) {
+        return *this;
+    }
     try {
         pimpl_->AddTag(key, value);
     } catch (...) {
-        InternalLoggingError("Failed to extend log with LogExtra&&");
+        InternalLoggingError("Failed to extend log with Value");
     }
     return *this;
 }
 
 LogHelper& LogHelper::PutSwTag(std::string_view key, std::string_view value) noexcept {
+    if (BOOST_UNLIKELY(pimpl_ == nullptr)) {
+        return *this;
+    }
     try {
         pimpl_->AddTag(key, value);
     } catch (...) {
-        InternalLoggingError("Failed to extend log with LogExtra&&");
+        InternalLoggingError("Failed to extend log with std::string_view");
     }
     return *this;
 }
 
 void LogHelper::PutFloatingPoint(float value) {
+    if (BOOST_UNLIKELY(pimpl_ == nullptr)) {
+        return;
+    }
     fmt::format_to(fmt::appender(pimpl_->GetBufferForRawValuePart()), FMT_COMPILE("{}"), value);
 }
 void LogHelper::PutFloatingPoint(double value) {
+    if (BOOST_UNLIKELY(pimpl_ == nullptr)) {
+        return;
+    }
     fmt::format_to(fmt::appender(pimpl_->GetBufferForRawValuePart()), FMT_COMPILE("{}"), value);
 }
 void LogHelper::PutFloatingPoint(long double value) {
+    if (BOOST_UNLIKELY(pimpl_ == nullptr)) {
+        return;
+    }
     fmt::format_to(fmt::appender(pimpl_->GetBufferForRawValuePart()), FMT_COMPILE("{}"), value);
 }
 void LogHelper::PutUnsigned(unsigned long long value) {
+    if (BOOST_UNLIKELY(pimpl_ == nullptr)) {
+        return;
+    }
     fmt::format_to(fmt::appender(pimpl_->GetBufferForRawValuePart()), FMT_COMPILE("{}"), value);
 }
 void LogHelper::PutSigned(long long value) {
+    if (BOOST_UNLIKELY(pimpl_ == nullptr)) {
+        return;
+    }
     fmt::format_to(fmt::appender(pimpl_->GetBufferForRawValuePart()), FMT_COMPILE("{}"), value);
 }
 void LogHelper::PutBoolean(bool value) {
+    if (BOOST_UNLIKELY(pimpl_ == nullptr)) {
+        return;
+    }
     fmt::format_to(fmt::appender(pimpl_->GetBufferForRawValuePart()), FMT_COMPILE("{}"), value);
 }
 
 LogHelper& LogHelper::operator<<(Hex hex) noexcept {
+    if (BOOST_UNLIKELY(pimpl_ == nullptr)) {
+        return *this;
+    }
     try {
         fmt::format_to(fmt::appender(pimpl_->GetBufferForRawValuePart()), FMT_COMPILE("0x{:016X}"), hex.value);
     } catch (...) {
@@ -308,6 +355,9 @@ LogHelper& LogHelper::operator<<(Hex hex) noexcept {
 }
 
 LogHelper& LogHelper::operator<<(HexShort hex) noexcept {
+    if (BOOST_UNLIKELY(pimpl_ == nullptr)) {
+        return *this;
+    }
     try {
         fmt::format_to(fmt::appender(pimpl_->GetBufferForRawValuePart()), FMT_COMPILE("{:X}"), hex.value);
     } catch (...) {
@@ -325,11 +375,24 @@ LogHelper& LogHelper::operator<<(Quoted value) noexcept {
     return *this;
 }
 
-void LogHelper::Put(std::string_view value) { pimpl_->AddText(value); }
+void LogHelper::Put(std::string_view value) {
+    if (BOOST_UNLIKELY(pimpl_ == nullptr)) {
+        return;
+    }
+    pimpl_->AddText(value);
+}
 
-void LogHelper::Put(char value) { pimpl_->AddText(std::string_view(&value, 1)); }
+void LogHelper::Put(char value) {
+    if (BOOST_UNLIKELY(pimpl_ == nullptr)) {
+        return;
+    }
+    pimpl_->AddText(std::string_view(&value, 1));
+}
 
 void LogHelper::PutRaw(std::string_view value_needs_no_escaping) {
+    if (BOOST_UNLIKELY(pimpl_ == nullptr)) {
+        return;
+    }
     pimpl_->GetBufferForRawValuePart().append(value_needs_no_escaping);
 }
 
@@ -358,6 +421,10 @@ void LogHelper::PutException(const std::exception& ex) {
 }
 
 void LogHelper::PutQuoted(std::string_view value) {
+    if (BOOST_UNLIKELY(pimpl_ == nullptr)) {
+        return;
+    }
+
     constexpr size_t kQuotesSize = 2;
 
     const auto old_message_size = pimpl_->GetTextSize();
@@ -371,7 +438,9 @@ void LogHelper::PutQuoted(std::string_view value) {
         const size_t escaped_size = needs_escaping ? 2 : 1;
 
         used_size += escaped_size;
-        if (used_size > allowed_size) break;
+        if (used_size > allowed_size) {
+            break;
+        }
 
         if (needs_escaping) {
             Put('\\');
@@ -387,6 +456,9 @@ void LogHelper::PutQuoted(std::string_view value) {
 }
 
 void LogHelper::VFormat(fmt::string_view fmt, fmt::format_args args) noexcept {
+    if (BOOST_UNLIKELY(pimpl_ == nullptr)) {
+        return;
+    }
     try {
         fmt::vformat_to(fmt::appender(pimpl_->GetBufferForRawValuePart()), fmt, args);
     } catch (...) {
@@ -394,9 +466,20 @@ void LogHelper::VFormat(fmt::string_view fmt, fmt::format_args args) noexcept {
     }
 }
 
-std::ostream& LogHelper::Stream() { return pimpl_->Stream(); }
+std::ostream& LogHelper::Stream() {
+    if (BOOST_UNLIKELY(pimpl_ == nullptr)) {
+        static std::ostream null_stream(nullptr);
+        return null_stream;
+    }
+    return pimpl_->Stream();
+}
 
-void LogHelper::FlushStream() { pimpl_->Stream().flush(); }
+void LogHelper::FlushStream() {
+    if (BOOST_UNLIKELY(pimpl_ == nullptr)) {
+        return;
+    }
+    pimpl_->Stream().flush();
+}
 
 LogHelper& operator<<(LogHelper& lh, std::chrono::system_clock::time_point tp) {
     lh << utils::datetime::UtcTimestring(tp);

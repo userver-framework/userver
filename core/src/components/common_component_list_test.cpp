@@ -85,7 +85,22 @@ components_manager:
 # /// [Sample testsuite support component config]
 # /// [Sample http client component config]
 # yaml
+    http-client-middleware-pipeline:
+      middlewares:
+        # http-client-middleware-enabled:
+        #  enabled: true
+        http-client-middleware-disabled:
+          enabled: false
+        http-client-middleware-override:
+          enabled: false
     http-client:
+      core-component: http-client-core
+      middlewares:
+        # http-client-middleware-override:
+        #   enabled: true
+        # http-client-middleware-additional:
+        #   enabled: true
+    http-client-core:
       pool-statistics-disable: false
       thread-name-prefix: http-client
       threads: 2
@@ -121,7 +136,6 @@ components_manager:
       http-retries: 5
       config-url: http://localhost:8083/
       configs-stage: $configs_stage
-      fallback-to-no-proxy: false
 # /// [Sample dynamic configs client component config]
 # /// [Sample dynamic config client updater component config]
 # yaml
@@ -179,6 +193,8 @@ components_manager:
       fs-task-processor: fs-task-processor
 # /// [Sample dynamic config component config]
     http-client-statistics:
+      core-component: http-client-statistics-core
+    http-client-statistics-core:
       fs-task-processor: fs-task-processor
 # /// [Sample system statistics component config]
 # yaml
@@ -197,7 +213,8 @@ TEST_F(ComponentList, Common) {
     const std::string config_vars_path = temp_root.GetPath() + "/config_vars.json";
 
     fs::blocking::RewriteFileContents(
-        dynamic_config_cache_path, formats::json::ToString(dynamic_config::impl::GetDefaultDocsMap().AsJson())
+        dynamic_config_cache_path,
+        formats::json::ToString(dynamic_config::impl::GetDefaultDocsMap().AsJson())
     );
 
     fs::blocking::RewriteFileContents(
@@ -222,7 +239,8 @@ TEST_F(ComponentList, ValidationWithConfigVars) {
     const std::string config_vars_path = temp_root.GetPath() + "/config_vars.json";
 
     fs::blocking::RewriteFileContents(
-        dynamic_config_cache_path, formats::json::ToString(dynamic_config::impl::GetDefaultDocsMap().AsJson())
+        dynamic_config_cache_path,
+        formats::json::ToString(dynamic_config::impl::GetDefaultDocsMap().AsJson())
     );
 
     fs::blocking::RewriteFileContents(

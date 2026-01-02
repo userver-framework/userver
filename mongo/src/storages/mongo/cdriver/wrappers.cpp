@@ -33,13 +33,16 @@ void GlobalInitializer::LogInitWarningsOnce() {
     static std::once_flag once_flag;
     std::call_once(once_flag, [] {
 #if !MONGOC_CHECK_VERSION(1, 26, 0)
-        LOG_WARNING() << "Cannot use coro-friendly usleep in mongo driver, "
-                         "link against newer mongo-c-driver to fix";
+        LOG_WARNING()
+            << "Cannot use coro-friendly usleep in mongo driver, "
+               "link against newer mongo-c-driver to fix";
 #endif
     });
 }
 
-ReadPrefsPtr::ReadPrefsPtr(mongoc_read_mode_t read_mode) : read_prefs_(mongoc_read_prefs_new(read_mode)) {}
+ReadPrefsPtr::ReadPrefsPtr(mongoc_read_mode_t read_mode)
+    : read_prefs_(mongoc_read_prefs_new(read_mode))
+{}
 
 ReadPrefsPtr::~ReadPrefsPtr() { Reset(); }
 
@@ -48,7 +51,9 @@ ReadPrefsPtr::ReadPrefsPtr(const ReadPrefsPtr& other) { *this = other; }
 ReadPrefsPtr::ReadPrefsPtr(ReadPrefsPtr&& other) noexcept { *this = std::move(other); }
 
 ReadPrefsPtr& ReadPrefsPtr::operator=(const ReadPrefsPtr& rhs) {
-    if (this == &rhs) return *this;
+    if (this == &rhs) {
+        return *this;
+    }
 
     Reset();
     read_prefs_ = mongoc_read_prefs_copy(rhs.read_prefs_);

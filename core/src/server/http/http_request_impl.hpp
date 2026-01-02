@@ -24,7 +24,8 @@ struct HttpRequest::Impl {
           path_args_by_name_index(impl::kZeroAllocationBucketCount, request_args.hash_function()),
           headers(impl::kBucketCount),
           cookies(impl::kZeroAllocationBucketCount, request_args.hash_function()),
-          response(http_request, data_accounter, start_time, cookies.hash_function()) {}
+          response(http_request, data_accounter, start_time, cookies.hash_function())
+    {}
 
     std::chrono::steady_clock::time_point start_time;
     std::chrono::steady_clock::time_point task_create_time;

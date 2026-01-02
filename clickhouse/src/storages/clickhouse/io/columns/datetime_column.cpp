@@ -13,7 +13,8 @@ using NativeType = clickhouse::impl::clickhouse_cpp::ColumnDateTime;
 }
 
 DateTimeColumn::DateTimeColumn(ColumnRef column)
-    : ClickhouseColumn{impl::GetTypedColumn<DateTimeColumn, NativeType>(column)} {}
+    : ClickhouseColumn{impl::GetTypedColumn<DateTimeColumn, NativeType>(column)}
+{}
 
 template <>
 DateTimeColumn::cpp_type ColumnIterator<DateTimeColumn>::DataHolder::Get() const {

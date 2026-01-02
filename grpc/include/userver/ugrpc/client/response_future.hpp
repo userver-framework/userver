@@ -66,11 +66,11 @@ public:
         impl::PrepareUnaryCallProxy<Stub, Request, Response>&& prepare_unary_call,
         const Request& request
     )
-        : impl_{std::make_unique<impl::AsyncUnaryCallAdapter<Stub, Request, Response>>(
-              std::move(params),
-              std::move(prepare_unary_call),
-              request
-          )} {}
+        : impl_{std::make_unique<impl::AsyncUnaryCallAdapter<
+              Stub,
+              Request,
+              Response>>(std::move(params), std::move(prepare_unary_call), request)}
+    {}
 
     // For internal use only.
     engine::impl::ContextAccessor* TryGetContextAccessor() noexcept { return impl_->TryGetContextAccessor(); }

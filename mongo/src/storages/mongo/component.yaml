@@ -1,0 +1,14 @@
+type: object
+description: MongoDB client component
+additionalProperties: false
+properties:
+    dbalias:
+        type: string
+        description: name of the database in secdist config (if available)
+    dbconnection:
+        type: string
+        description: connection string (used if no dbalias specified)
+    maintenance_period:
+        type: string
+        description: pool maintenance period (idle connections pruning etc.)
+        default: 15s

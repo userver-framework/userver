@@ -9,6 +9,10 @@
 
 #include <userver/urabbitmq/client.hpp>
 
+#ifndef ARCADIA_ROOT
+#include "generated/src/urabbitmq/component.yaml.hpp"  // Y_IGNORE
+#endif
+
 USERVER_NAMESPACE_BEGIN
 
 namespace components {
@@ -22,7 +26,9 @@ std::string GetSecdistAlias(const components::ComponentConfig& config) {
 }  // namespace
 
 RabbitMQ::RabbitMQ(const ComponentConfig& config, const ComponentContext& context)
-    : ComponentBase{config, context}, dns_{context.FindComponent<clients::dns::Component>()} {
+    : ComponentBase{config, context},
+      dns_{context.FindComponent<clients::dns::Component>()}
+{
     const auto& secdist = context.FindComponent<Secdist>().Get();
     const auto& settings_multi = secdist.Get<urabbitmq::RabbitEndpointsMulti>();
     const auto& endpoints = settings_multi.Get(GetSecdistAlias(config));
@@ -31,10 +37,11 @@ RabbitMQ::RabbitMQ(const ComponentConfig& config, const ComponentContext& contex
     client_ = urabbitmq::Client::Create(dns_.GetResolver(), settings);
 
     auto& statistics_storage = context.FindComponent<components::StatisticsStorage>();
-    statistics_holder_ = statistics_storage.GetStorage().RegisterWriter(
-        "rabbitmq." + config.Name(),
-        [this](utils::statistics::Writer& writer) { return client_->WriteStatistics(writer); }
-    );
+    statistics_holder_ =
+        statistics_storage.GetStorage()
+            .RegisterWriter("rabbitmq." + config.Name(), [this](utils::statistics::Writer& writer) {
+                return client_->WriteStatistics(writer);
+            });
 }
 
 RabbitMQ::~RabbitMQ() { statistics_holder_.Unregister(); }
@@ -42,34 +49,7 @@ RabbitMQ::~RabbitMQ() { statistics_holder_.Unregister(); }
 std::shared_ptr<urabbitmq::Client> RabbitMQ::GetClient() const { return client_; }
 
 yaml_config::Schema RabbitMQ::GetStaticConfigSchema() {
-    return yaml_config::MergeSchemas<ComponentBase>(R"(
-# yaml
-type: object
-description: RabbitMQ client component
-additionalProperties: false
-properties:
-    secdist_alias:
-        type: string
-        description: name of the key in secdist config
-    min_pool_size:
-        type: integer
-        description: minimum connections pool size (per host)
-        defaultDescription: 5
-    max_pool_size:
-        type: integer
-        description: |
-          maximum connections pool size (per host, consumers excluded)
-        defaultDescription: 10
-    max_in_flight_requests:
-        type: integer
-        description: |
-          per-connection limit for requests awaiting response from the broker
-        defaultDescription: 5
-    use_secure_connection:
-        type: boolean
-        description: whether to use TLS for connections
-        defaultDescription: true
-)");
+    return yaml_config::MergeSchemasFromResource<ComponentBase>("src/urabbitmq/component.yaml");
 }
 
 }  // namespace components

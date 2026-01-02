@@ -67,14 +67,17 @@ public:
 };
 
 template <typename T>
-NullableColumn<T>::NullableColumn(ColumnRef column) : ClickhouseColumn<NullableColumn>{std::move(column)} {}
+NullableColumn<T>::NullableColumn(ColumnRef column)
+    : ClickhouseColumn<NullableColumn>{std::move(column)}
+{}
 
 template <typename T>
 NullableColumn<T>::NullableDataHolder::NullableDataHolder(
     typename ColumnIterator<NullableColumn<T>>::IteratorPosition iter_position,
     ColumnRef&& column
 )
-    : NullableDataHolder(iter_position, ExtractNullableMeta(column)) {}
+    : NullableDataHolder(iter_position, ExtractNullableMeta(column))
+{}
 
 template <typename T>
 NullableColumn<T>::NullableDataHolder::NullableDataHolder(
@@ -82,7 +85,8 @@ NullableColumn<T>::NullableDataHolder::NullableDataHolder(
     NullableColumnMeta&& meta
 )
     : nulls_{iter_position == decltype(iter_position)::kEnd ? UInt8Column{meta.nulls}.end() : UInt8Column{meta.nulls}.begin()},
-      inner_{iter_position == decltype(iter_position)::kEnd ? T{meta.inner}.end() : T{meta.inner}.begin()} {}
+      inner_{iter_position == decltype(iter_position)::kEnd ? T{meta.inner}.end() : T{meta.inner}.begin()}
+{}
 
 template <typename T>
 typename NullableColumn<T>::NullableDataHolder NullableColumn<T>::NullableDataHolder::operator++(int) {

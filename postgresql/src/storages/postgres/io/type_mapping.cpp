@@ -22,7 +22,9 @@ namespace {
 
 struct PredefinedOidsPair {
     PredefinedOidsPair(PredefinedOids l_first, PredefinedOids l_second)
-        : first(std::min(l_first, l_second)), second(std::max(l_first, l_second)) {}
+        : first(std::min(l_first, l_second)),
+          second(std::max(l_first, l_second))
+    {}
 
     PredefinedOids first;
     PredefinedOids second;
@@ -46,7 +48,9 @@ public:
     bool HasParser(PredefinedOids oid) const { return registered_oids_.find(oid) != registered_oids_.end(); }
 
     bool AreMappedToSameType(PredefinedOids first, PredefinedOids second) const {
-        if (first == second) return true;
+        if (first == second) {
+            return true;
+        }
         return shared_parser_oids_.find(PredefinedOidsPair{first, second}) != shared_parser_oids_.end();
     }
 
@@ -72,22 +76,22 @@ private:
 };
 
 auto& Registry() {
-    static auto registry_ = [] {
+    static auto registry = [] {
         ParserOidsRegistry registry;
         registry.Add("void", PredefinedOids::kVoid);
         return registry;
     }();
-    return registry_;
+    return registry;
 }
 
 auto& ArrayToElement() {
-    static std::unordered_map<PredefinedOids, PredefinedOids> element_by_array_;
-    return element_by_array_;
+    static std::unordered_map<PredefinedOids, PredefinedOids> element_by_array;
+    return element_by_array;
 }
 
 TypeBufferCategory& TypeCategories() {
-    static TypeBufferCategory cats_{{static_cast<Oid>(PredefinedOids::kVoid), BufferCategory::kVoid}};
-    return cats_;
+    static TypeBufferCategory cats{{static_cast<Oid>(PredefinedOids::kVoid), BufferCategory::kVoid}};
+    return cats;
 }
 
 constexpr USERVER_NAMESPACE::utils::TrivialBiMap kBufferCategoryToString = [](auto selector) {

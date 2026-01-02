@@ -23,7 +23,9 @@ public:
 
 private:
     Client(engine::io::Socket&& socket, SimpleServer::OnRequest f)
-        : socket_{std::move(socket)}, callback_{std::move(f)} {}
+        : socket_{std::move(socket)},
+          callback_{std::move(f)}
+    {}
 
     [[nodiscard]] bool NeedsMoreReading() const { return (resp_.command == SimpleServer::Response::kTryReadMore); }
 
@@ -76,9 +78,9 @@ std::size_t Client::ReadSome() {
     previously_received_ = incoming_data_.size();
     incoming_data_.resize(previously_received_ + kReadBufferChunkSize);
 
-    auto received = socket_.RecvSome(
-        incoming_data_.data() + previously_received_, incoming_data_.size() - previously_received_, {}
-    );
+    auto received =
+        socket_
+            .RecvSome(incoming_data_.data() + previously_received_, incoming_data_.size() - previously_received_, {});
 
     if (!received) {
         LOG_TRACE() << "Remote peer shut down the connection";
@@ -129,7 +131,8 @@ private:
 
 SimpleServer::Impl::Impl(OnRequest callback, Protocol protocol)
     : callback_{std::move(callback)},
-      listener_{protocol == Protocol::kTcpIpV6 ? internal::net::IpVersion::kV6 : internal::net::IpVersion::kV4} {
+      listener_{protocol == Protocol::kTcpIpV6 ? internal::net::IpVersion::kV6 : internal::net::IpVersion::kV4}
+{
     EXPECT_TRUE(callback_) << "SimpleServer must be started with a request callback";
 
     StartPortListening();
@@ -152,7 +155,8 @@ void SimpleServer::Impl::StartPortListening() {
 }
 
 SimpleServer::SimpleServer(OnRequest callback, Protocol protocol)
-    : pimpl_{std::make_unique<Impl>(std::move(callback), protocol)} {}
+    : pimpl_{std::make_unique<Impl>(std::move(callback), protocol)}
+{}
 
 SimpleServer::~SimpleServer() = default;
 

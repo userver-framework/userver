@@ -10,6 +10,10 @@
 #include <userver/ugrpc/server/middlewares/access_log/component.hpp>
 #include <userver/ugrpc/status_codes.hpp>
 
+#ifndef ARCADIA_ROOT
+#include "generated/src/ugrpc/server/middlewares/log/component.yaml.hpp"  // Y_IGNORE
+#endif
+
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::server::middlewares::log {
@@ -33,50 +37,22 @@ Component::Component(const components::ComponentConfig& config, const components
           USERVER_NAMESPACE::middlewares::MiddlewareDependencyBuilder()
               .InGroup<USERVER_NAMESPACE::middlewares::groups::Logging>()
               .After<access_log::Component>(USERVER_NAMESPACE::middlewares::DependencyType::kWeak)
-      ) {}
+      )
+{}
 /// [middleware InGroup]
 
-std::shared_ptr<const MiddlewareBase>
-Component::CreateMiddleware(const ugrpc::server::ServiceInfo&, const yaml_config::YamlConfig& middleware_config) const {
+std::shared_ptr<const MiddlewareBase> Component::CreateMiddleware(
+    const ugrpc::server::ServiceInfo&,
+    const yaml_config::YamlConfig& middleware_config
+) const {
     return std::make_shared<Middleware>(middleware_config.As<Settings>());
 }
 
 yaml_config::Schema Component::GetMiddlewareConfigSchema() const { return GetStaticConfigSchema(); }
 
 yaml_config::Schema Component::GetStaticConfigSchema() {
-    return yaml_config::MergeSchemas<MiddlewareFactoryComponentBase>(R"(
-type: object
-description: gRPC service logger component
-additionalProperties: false
-properties:
-    log-level:
-        type: string
-        description: set log level threshold
-    msg-log-level:
-        type: string
-        description: set up logging level for request/response messages
-    msg-size-log-limit:
-        type: string
-        description: max message size to log, the rest will be truncated
-    local-log-level:
-        type: string
-        description: local log level of the span for user-provided handler
-    status-codes-log-level:
-        type: object
-        properties: {}
-        additionalProperties:
-            type: string
-            description: log level
-        description: |
-            gRPC status code string -> log level map.
-            Allows overriding the log level for the response for individual statuses.
-            See grpcpp StatusCode documentation for the list of possible values:
-            https://grpc.github.io/grpc/cpp/namespacegrpc.html#aff1730578c90160528f6a8d67ef5c43b
-
-            Example:
-              -  FAILED_PRECONDITION: info
-
-)");
+    return yaml_config::MergeSchemasFromResource<
+        MiddlewareFactoryComponentBase>("src/ugrpc/server/middlewares/log/component.yaml");
 }
 
 }  // namespace ugrpc::server::middlewares::log

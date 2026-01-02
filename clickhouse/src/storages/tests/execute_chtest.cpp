@@ -11,7 +11,8 @@ namespace {
 const storages::clickhouse::Query common_query{
     "SELECT c.number, randomString(10), c.number as t, NOW64(9) "
     "FROM "
-    "numbers(0, 10000) c "};
+    "numbers(0, 10000) c "
+};
 }
 
 /// [Sample CppToClickhouse specialization]
@@ -94,11 +95,14 @@ UTEST(Execute, IterationMovesFromUnderlying) {
     const size_t limit = 10;
     const storages::clickhouse::Query q{
         "SELECT c.number, repeat(toString(c.number), 100), toUInt64(1), NOW64(9) "
-        "FROM system.numbers c LIMIT 10"};
+        "FROM system.numbers c LIMIT 10"
+    };
 
     std::vector<std::string> expected;
     expected.reserve(limit);
-    for (size_t i = 0; i < limit; ++i) expected.emplace_back(100, '0' + i);
+    for (size_t i = 0; i < limit; ++i) {
+        expected.emplace_back(100, '0' + i);
+    }
 
     auto ch_res = cluster->Execute(q);
     ASSERT_EQ(ch_res.GetRowsCount(), limit);

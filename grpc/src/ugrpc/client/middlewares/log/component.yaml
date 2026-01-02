@@ -1,0 +1,16 @@
+type: object
+description: gRPC service logger component
+additionalProperties: false
+properties:
+    log-level:
+        type: string
+        description: set log level threshold
+        default: debug
+    msg-log-level:
+        type: string
+        description: set up logging level for request/response messages
+        default: debug
+    msg-size-log-limit:
+        type: string
+        description: max message size to log, the rest will be truncated
+        default: 512

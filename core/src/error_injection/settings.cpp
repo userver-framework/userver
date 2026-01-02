@@ -15,17 +15,21 @@ Verdict Parse(const yaml_config::YamlConfig& yaml, formats::parse::To<Verdict>) 
     const auto value = yaml.As<std::string>();
     static constexpr utils::TrivialBiMap kValues = [](auto selector) {
         return selector()
-            .Case("timeout", Verdict::Timeout)
-            .Case("error", Verdict::Error)
-            .Case("max-delay", Verdict::MaxDelay)
-            .Case("random-delay", Verdict::RandomDelay);
+            .Case("timeout", Verdict::kTimeout)
+            .Case("error", Verdict::kError)
+            .Case("max-delay", Verdict::kMaxDelay)
+            .Case("random-delay", Verdict::kRandomDelay);
     };
 
     auto v = kValues.TryFind(value);
-    if (v) return *v;
+    if (v) {
+        return *v;
+    }
 
     throw std::runtime_error(fmt::format(
-        "Can't parse error_injection::Verdict from '{}'. Expecting one of: {}", value, kValues.DescribeFirst()
+        "Can't parse error_injection::Verdict from '{}'. Expecting one of: {}",
+        value,
+        kValues.DescribeFirst()
     ));
 }
 

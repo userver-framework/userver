@@ -100,8 +100,8 @@ public:
         : components::ComponentBase(config, context) {
         // Task tracing is set up by ManagerControllerComponent.
         // It may not work in constructors of components that don't depend on it.
-        [[maybe_unused]] const auto& manager_controller_component =
-            context.FindComponent<components::ManagerControllerComponent>();
+        [[maybe_unused]] const auto&
+            manager_controller_component = context.FindComponent<components::ManagerControllerComponent>();
 
         // Task tracing is guaranteed to work for this task.
         utils::Async(std::string{kName}, [] { engine::Yield(); }).Get();
@@ -159,7 +159,8 @@ TEST_F(ServerMinimalComponentList, DISABLED_TraceStacktraces) {
     const std::string logs_path = GetTempRoot() + "/tracing_st_log.txt";
 
     fs::blocking::RewriteFileContents(
-        GetConfigVarsPath(), fmt::format(kConfigVarsTemplate, logs_path, GetServerPort())
+        GetConfigVarsPath(),
+        fmt::format(kConfigVarsTemplate, logs_path, GetServerPort())
     );
 
     components::RunOnce(
@@ -188,7 +189,8 @@ TEST_F(ServerMinimalComponentList, InvalidDynamicConfigParam) {
     const auto logs_path = GetTempRoot() + "/log.txt";
 
     fs::blocking::RewriteFileContents(
-        GetConfigVarsPath(), fmt::format(kConfigVarsTemplate, GetServerPort(), logs_path)
+        GetConfigVarsPath(),
+        fmt::format(kConfigVarsTemplate, GetServerPort(), logs_path)
     );
 
     // This is a golden test that shows how exactly dynamic config parsing failure
@@ -196,7 +198,7 @@ TEST_F(ServerMinimalComponentList, InvalidDynamicConfigParam) {
     const auto expected_exception_message = fmt::format(
         "Cannot start component dynamic-config: {} while parsing dynamic config "
         "USERVER_LOG_DYNAMIC_DEBUG. Error at path "
-        "'USERVER_LOG_DYNAMIC_DEBUG.force-enabled': Wrong type. Expected: arrayValue, actual: intValue",
+        "'USERVER_LOG_DYNAMIC_DEBUG.force-enabled': Wrong type. Expected: kArrayValue, actual: kIntValue",
         // NOTE: GetTypeName(typeid(T)) for old compilers.
         compiler::GetTypeName(typeid(formats::json::TypeMismatchException))
     );

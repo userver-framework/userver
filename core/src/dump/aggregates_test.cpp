@@ -43,7 +43,9 @@ bool operator==(const Single<T>& lhs, const Single<T>& rhs) {
 
 class NonAggregate {
 public:
-    explicit NonAggregate(int foo) : foo_(foo) {}
+    explicit NonAggregate(int foo)
+        : foo_(foo)
+    {}
 
     int GetFoo() const { return foo_; }
 

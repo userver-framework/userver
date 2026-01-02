@@ -39,7 +39,9 @@ void IntegralParser<std::int32_t>::Uint64(std::uint64_t i) { this->SetResult(uti
 
 void IntegralParser<std::int32_t>::Double(double value) {
     auto v = DoubleToInt<std::int32_t>(value);
-    if (!v) this->Throw("double");
+    if (!v) {
+        this->Throw("double");
+    }
     this->SetResult(*std::move(v));
 }
 
@@ -49,7 +51,9 @@ void IntegralParser<std::int64_t>::Uint64(std::uint64_t i) { this->SetResult(uti
 
 void IntegralParser<std::int64_t>::Double(double value) {
     auto v = DoubleToInt<std::int64_t>(value);
-    if (!v) this->Throw("double");
+    if (!v) {
+        this->Throw("double");
+    }
     this->SetResult(*std::move(v));
 }
 

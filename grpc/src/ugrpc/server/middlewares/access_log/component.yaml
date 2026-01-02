@@ -1,0 +1,7 @@
+type: object
+description: gRPC server access log middleware
+additionalProperties: false
+properties:
+    access-tskv-logger:
+        type: string
+        description: 'name of "access-tskv.log" logger, must have "format: raw"'

@@ -13,7 +13,8 @@ using NativeType = clickhouse::impl::clickhouse_cpp::ColumnString;
 }
 
 StringColumn::StringColumn(ColumnRef column)
-    : ClickhouseColumn{impl::GetTypedColumn<StringColumn, NativeType>(column)} {}
+    : ClickhouseColumn{impl::GetTypedColumn<StringColumn, NativeType>(column)}
+{}
 
 template <>
 StringColumn::cpp_type ColumnIterator<StringColumn>::DataHolder::Get() const {

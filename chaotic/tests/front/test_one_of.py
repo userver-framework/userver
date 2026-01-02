@@ -13,7 +13,7 @@ from chaotic.front.types import String
 
 
 @pytest.fixture(name='parse_after_refs')
-def _parse_after_refs(schema_parser):
+def _parse_after_refs(schema_parser, clear_source_location):
     def func(input_: dict):
         parser = schema_parser
         parser.parse_schema(
@@ -70,6 +70,11 @@ def _parse_after_refs(schema_parser):
             },
         )
         parser.parse_schema('/definitions/type', input_)
+
+        for schema in parser.parsed_schemas().schemas.values():
+            schema.visit_children(clear_source_location)
+            clear_source_location(schema, None)
+
         return parser.parsed_schemas().schemas
 
     return func
@@ -144,8 +149,8 @@ def test_wo_discriminator_nullable(simple_parse):
 def test_wo_discriminator_nullable_wrong_type(simple_parse):
     with pytest.raises(ParserError) as exc:
         simple_parse({'oneOf': [{'type': 'integer'}], 'nullable': 1})
-    assert exc.value.infile_path == '/definitions/type/oneOf/nullable'
-    assert exc.value.msg == 'field "nullable" has wrong type'
+    assert exc.value.infile_path == '/definitions/type/nullable'
+    assert exc.value.msg == 'Boolean type is expected, 1 is found'
 
 
 def test_wd_no_ref_or_object(simple_parse):
@@ -321,7 +326,7 @@ def test_wd_non_uniform_mapping(parse_after_refs):
             },
         })
     assert exc.value.infile_path == '/definitions/type/discriminator/mapping'
-    assert exc.value.msg.startswith('Not uniform mapping')
+    assert exc.value.msg == "Not uniform mapping: use the same type for keys: dict_keys([42, '42'])"
 
 
 def test_wd_ok_with_mapping_missing_ref(parse_after_refs):
@@ -373,7 +378,7 @@ def test_wd_invalidtype_mapping_value(parse_after_refs):
             },
         })
     assert exc.value.infile_path == '/definitions/type/discriminator/mapping/t1'
-    assert exc.value.msg == 'Not a string in mapping'
+    assert exc.value.msg == 'String type is expected, 1 is found'
 
 
 def test_wd_extra_field(simple_parse):
@@ -388,8 +393,8 @@ def test_wd_extra_field(simple_parse):
             ],
             'discriminator': {'foo': 1, 'propertyName': 'foo'},
         })
-    assert exc.value.infile_path == '/definitions/type/discriminator/foo'
-    assert exc.value.msg == ('Unknown field: "foo", known fields: ["mapping", "propertyName"]')
+    assert exc.value.infile_path == '/definitions/type/discriminator'
+    assert exc.value.msg == ("Unknown field: \"foo\", known fields: ['mapping', 'propertyName']")
 
 
 def test_wd_nullable(parse_after_refs):

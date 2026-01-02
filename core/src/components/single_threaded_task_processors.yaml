@@ -1,0 +1,43 @@
+type: object
+description: single-threaded-task-processors config
+additionalProperties: false
+properties:
+    guess-cpu-limit:
+        type: boolean
+        description: .
+        default: false
+    worker_threads:
+        type: integer
+        description: .
+        default: 6
+    thread_name:
+        type: string
+        description: .
+    os-scheduling:
+        type: string
+        description: |
+            OS scheduling mode for the task processor threads.
+            `idle` sets the lowest priority.
+            `low-priority` sets the priority below `normal` but
+            higher than `idle`.
+        default: normal
+        enum:
+          - normal
+          - low-priority
+          - idle
+    task-trace:
+        type: object
+        description: .
+        additionalProperties: false
+        properties:
+            every:
+                type: integer
+                description: .
+                default: 1000
+            max-context-switch-count:
+                type: integer
+                description: .
+                default: 0
+            logger:
+                type: string
+                description: .

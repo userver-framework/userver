@@ -22,7 +22,10 @@ protected:
 
     Row() = default;
 
-    Row(detail::ResultWrapperPtr res, size_type row_index) : res_{std::move(res)}, row_index_(row_index) {}
+    Row(detail::ResultWrapperPtr res, size_type row_index)
+        : res_{std::move(res)},
+          row_index_(row_index)
+    {}
 
 private:
     detail::ResultWrapperPtr res_;

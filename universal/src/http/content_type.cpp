@@ -53,7 +53,9 @@ int ParseQuality(std::string_view param_value, std::string_view full_string) {
 
     if (!param_value.empty() && param_value.size() <= kFullPrecisionLength) {
         if (param_value[0] == '0') {
-            if (param_value.size() == 1) return 0;
+            if (param_value.size() == 1) {
+                return 0;
+            }
             if (param_value[1] == '.') {
                 // FIXME: replace with from_chars
                 int quality = 0;
@@ -84,7 +86,9 @@ int ParseQuality(std::string_view param_value, std::string_view full_string) {
 
 }  // namespace
 
-ContentType::ContentType(std::string_view unparsed) : quality_(kMaxQuality) {
+ContentType::ContentType(std::string_view unparsed)
+    : quality_(kMaxQuality)
+{
     const auto full_string = unparsed;
 
     auto delim_pos = unparsed.find('/');
@@ -100,7 +104,8 @@ ContentType::ContentType(std::string_view unparsed) : quality_(kMaxQuality) {
     delim_pos = unparsed.find(';');
     subtype_ = std::string(RtrimOws(unparsed.substr(0, delim_pos)));
     if (subtype_.empty() || subtype_.find_first_of(kTypeTokenInvalidChars) != std::string::npos ||
-        (type_ == kTokenAny && subtype_ != kTokenAny)) {
+        (type_ == kTokenAny && subtype_ != kTokenAny))
+    {
         throw MalformedContentType(fmt::format("Invalid media subtype in content type: '{}'", full_string));
     }
 
@@ -148,9 +153,13 @@ ContentType::ContentType(std::string_view unparsed) : quality_(kMaxQuality) {
     BuildStringRepresentation();
 }
 
-ContentType::ContentType(const std::string& media_range) : ContentType(std::string_view{media_range}) {}
+ContentType::ContentType(const std::string& media_range)
+    : ContentType(std::string_view{media_range})
+{}
 
-ContentType::ContentType(const char* media_range) : ContentType(std::string_view{media_range}) {}
+ContentType::ContentType(const char* media_range)
+    : ContentType(std::string_view{media_range})
+{}
 
 std::string ContentType::MediaType() const { return fmt::format(FMT_COMPILE("{}/{}"), TypeToken(), SubtypeToken()); }
 
@@ -211,12 +220,20 @@ bool operator!=(const ContentType& lhs, const ContentType& rhs) { return !(lhs =
 bool operator<(const ContentType& lhs, const ContentType& rhs) {
     const utils::StrIcaseCompareThreeWay icase_cmp{};
     // */* has the lowest priority
-    if (lhs.TypeToken() == kTokenAny) return rhs.TypeToken() != kTokenAny;
-    if (rhs.TypeToken() == kTokenAny) return false;
+    if (lhs.TypeToken() == kTokenAny) {
+        return rhs.TypeToken() != kTokenAny;
+    }
+    if (rhs.TypeToken() == kTokenAny) {
+        return false;
+    }
 
     // type/* has lower priority than any specific type
-    if (lhs.SubtypeToken() == kTokenAny) return rhs.SubtypeToken() != kTokenAny;
-    if (rhs.SubtypeToken() == kTokenAny) return false;
+    if (lhs.SubtypeToken() == kTokenAny) {
+        return rhs.SubtypeToken() != kTokenAny;
+    }
+    if (rhs.SubtypeToken() == kTokenAny) {
+        return false;
+    }
 
     const auto type_token_cmp_result = icase_cmp(lhs.TypeToken(), rhs.TypeToken());
     if (type_token_cmp_result == 0) {
@@ -229,7 +246,9 @@ bool operator<(const ContentType& lhs, const ContentType& rhs) {
                 }
                 return true;
             }
-            if (!rhs.HasExplicitCharset()) return false;
+            if (!rhs.HasExplicitCharset()) {
+                return false;
+            }
 
             const auto charset_cmp_result = icase_cmp(lhs.Charset(), rhs.Charset());
             if (charset_cmp_result == 0) {

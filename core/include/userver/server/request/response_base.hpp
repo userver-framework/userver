@@ -123,7 +123,10 @@ private:
     class Guard final {
     public:
         Guard(ResponseDataAccounter& accounter, std::chrono::steady_clock::time_point create_time, size_t size)
-            : accounter_(accounter), create_time_(create_time), size_(size) {
+            : accounter_(accounter),
+              create_time_(create_time),
+              size_(size)
+        {
             accounter_.StartRequest(size_, create_time_);
         }
 

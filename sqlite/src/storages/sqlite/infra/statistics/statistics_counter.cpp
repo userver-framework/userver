@@ -4,7 +4,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite::infra::statistics {
 
-QueryStatCounter::QueryStatCounter(PoolQueriesStatistics& stats) : queries_stats_{stats} {}
+QueryStatCounter::QueryStatCounter(PoolQueriesStatistics& stats)
+    : queries_stats_{stats}
+{}
 
 QueryStatCounter::~QueryStatCounter() = default;
 
@@ -22,7 +24,9 @@ void QueryStatCounter::AccountQueryCompleted() noexcept {
 
 void QueryStatCounter::AccountQueryFailed() noexcept { ++queries_stats_.error; }
 
-TransactionStatCounter::TransactionStatCounter(PoolTransactionsStatistics& stats) : transactions_stats_{stats} {}
+TransactionStatCounter::TransactionStatCounter(PoolTransactionsStatistics& stats)
+    : transactions_stats_{stats}
+{}
 
 TransactionStatCounter::~TransactionStatCounter() = default;
 
@@ -34,9 +38,8 @@ void TransactionStatCounter::AccountTransactionStart() noexcept {
 void TransactionStatCounter::AccountTransactionCommit() noexcept {
     auto now = utils::datetime::SteadyClock::now();
     ++transactions_stats_.commit;
-    transactions_stats_.timings.Account(
-        std::chrono::duration_cast<std::chrono::milliseconds>(now - exec_begin_time_).count()
-    );
+    transactions_stats_.timings
+        .Account(std::chrono::duration_cast<std::chrono::milliseconds>(now - exec_begin_time_).count());
 }
 
 void TransactionStatCounter::AccountTransactionRollback() noexcept { ++transactions_stats_.rollback; }

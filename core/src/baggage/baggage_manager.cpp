@@ -9,14 +9,20 @@
 #include <userver/utils/assert.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
+#ifndef ARCADIA_ROOT
+#include "generated/src/baggage/baggage_manager.yaml.hpp"  // Y_IGNORE
+#endif
+
 USERVER_NAMESPACE_BEGIN
 
 namespace baggage {
 
 namespace {
 
-std::unordered_set<std::string>
-ChooseCurrentAllowedKeys(const Baggage* current_baggage, const dynamic_config::Source& config_source) {
+std::unordered_set<std::string> ChooseCurrentAllowedKeys(
+    const Baggage* current_baggage,
+    const dynamic_config::Source& config_source
+) {
     if (current_baggage != nullptr) {
         return current_baggage->GetAllowedKeys();
     }
@@ -32,20 +38,18 @@ BaggageManagerComponent::BaggageManagerComponent(
     const components::ComponentContext& context
 )
     : components::ComponentBase(config, context),
-      baggage_manager_(context.FindComponent<components::DynamicConfig>().GetSource()) {}
+      baggage_manager_(context.FindComponent<components::DynamicConfig>().GetSource())
+{}
 
 BaggageManager& BaggageManagerComponent::GetManager() { return baggage_manager_; }
 
 yaml_config::Schema BaggageManagerComponent::GetStaticConfigSchema() {
-    return yaml_config::MergeSchemas<ComponentBase>(R"(
-type: object
-description: Component for interaction with Baggage header.
-additionalProperties: false
-properties: {}
-)");
+    return yaml_config::MergeSchemasFromResource<ComponentBase>("src/baggage/baggage_manager.yaml");
 }
 
-BaggageManager::BaggageManager(const dynamic_config::Source& config_source) : config_source_(config_source) {}
+BaggageManager::BaggageManager(const dynamic_config::Source& config_source)
+    : config_source_(config_source)
+{}
 
 /// @brief Returns if baggage is enabled
 bool BaggageManager::IsEnabled() const { return config_source_.GetCopy(::dynamic_config::USERVER_BAGGAGE_ENABLED); }
@@ -56,8 +60,10 @@ void BaggageManager::AddEntry(std::string key, std::string value, BaggagePropert
     }
     const auto* current_baggage = TryGetBaggage();
 
-    auto baggage = current_baggage ? std::move(*current_baggage)
-                                   : Baggage("", ChooseCurrentAllowedKeys(current_baggage, config_source_));
+    auto baggage =
+        current_baggage
+            ? std::move(*current_baggage)
+            : Baggage("", ChooseCurrentAllowedKeys(current_baggage, config_source_));
 
     baggage.AddEntry(std::move(key), std::move(value), std::move(properties));
     kInheritedBaggage.Set(std::move(baggage));

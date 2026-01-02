@@ -145,7 +145,8 @@ UTEST_F(SQLiteCommonResultSetTest, FailureExecute) {
     // Insert unexpected fields (datatype mismatch)
     {
         UEXPECT_THROW(
-            client->Execute(storages::sqlite::OperationType::kReadOnly, kDatatypeMismatchInsert.data()), SQLiteException
+            client->Execute(storages::sqlite::OperationType::kReadOnly, kDatatypeMismatchInsert.data()),
+            SQLiteException
         );
     }
 }

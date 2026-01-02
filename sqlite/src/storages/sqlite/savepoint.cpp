@@ -21,7 +21,8 @@ std::string Savepoint::PrepareString(const std::string& str) {
 }
 
 Savepoint::Savepoint(std::shared_ptr<infra::ConnectionPtr> connection, std::string name)
-    : connection_{std::move(connection)} {
+    : connection_{std::move(connection)}
+{
     if (connection_ && connection_->IsValid()) {
         name_ = PrepareString(name);
         (*connection_)->Save(name_);
@@ -34,8 +35,9 @@ Savepoint& Savepoint::operator=(Savepoint&&) noexcept = default;
 
 Savepoint::~Savepoint() {
     if (connection_ && connection_->IsValid()) {
-        LOG_INFO() << "Savepoint handle is destroyed without an explicit "
-                      "release or rollback_to, rolling back automatically";
+        LOG_INFO()
+            << "Savepoint handle is destroyed without an explicit "
+               "release or rollback_to, rolling back automatically";
         try {
             RollbackTo();
             Release();

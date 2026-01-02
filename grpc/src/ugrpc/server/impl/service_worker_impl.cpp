@@ -27,7 +27,8 @@ void ParseGenericCallName(
     std::string_view& method_name
 ) {
     UINVARIANT(
-        !generic_call_name.empty() && generic_call_name[0] == '/', "Generic service call name must start with a '/'"
+        !generic_call_name.empty() && generic_call_name[0] == '/',
+        "Generic service call name must start with a '/'"
     );
     generic_call_name.remove_prefix(1);
     const auto slash_pos = generic_call_name.find('/');

@@ -35,16 +35,22 @@ public:
         sample::ugrpc::StreamGreetingRequest&& request,
         ReadManyWriter& writer
     ) override {
-        sample::ugrpc::StreamGreetingResponse response;
-        response.set_name("One " + request.name());
-        // NOLINTNEXTLINE(clang-analyzer-optin.cplusplus.UninitializedObject)
-        writer.Write(response);
-        response.set_name("Two " + request.name());
-        // NOLINTNEXTLINE(clang-analyzer-optin.cplusplus.UninitializedObject)
-        writer.Write(response);
-        response.set_name("Three " + request.name());
-        // NOLINTNEXTLINE(clang-analyzer-optin.cplusplus.UninitializedObject)
-        writer.Write(response);
+        {
+            sample::ugrpc::StreamGreetingResponse response;
+            response.set_name("One " + request.name());
+            // NOLINTNEXTLINE(clang-analyzer-optin.cplusplus.UninitializedObject)
+            writer.Write(std::move(response));
+        }
+        {
+            sample::ugrpc::StreamGreetingResponse response;
+            response.set_name("Two " + request.name());
+            writer.Write(std::move(response));
+        }
+        {
+            sample::ugrpc::StreamGreetingResponse response;
+            response.set_name("Three " + request.name());
+            writer.Write(std::move(response));
+        }
 
         tests::WaitUntilRpcDeadlineService();
         return grpc::Status::OK;
@@ -72,8 +78,6 @@ public:
     ChatResult Chat(CallContext& /*context*/, ChatReaderWriter& stream) override {
         std::vector<sample::ugrpc::StreamGreetingRequest> requests(3);
 
-        sample::ugrpc::StreamGreetingResponse response;
-
         for (auto& it : requests) {
             if (!stream.Read(it)) {
                 // It is deadline from client side
@@ -81,15 +85,24 @@ public:
             }
         }
 
-        response.set_name("One " + requests[0].name());
-        UEXPECT_NO_THROW(stream.Write(response));
-        response.set_name("Two " + requests[1].name());
-        UEXPECT_NO_THROW(stream.Write(response));
+        {
+            sample::ugrpc::StreamGreetingResponse response;
+            response.set_name("One " + requests[0].name());
+            UEXPECT_NO_THROW(stream.Write(std::move(response)));
+        }
+        {
+            sample::ugrpc::StreamGreetingResponse response;
+            response.set_name("Two " + requests[1].name());
+            UEXPECT_NO_THROW(stream.Write(std::move(response)));
+        }
 
         tests::WaitUntilRpcDeadlineService();
 
-        response.set_name("Three " + requests[0].name());
-        UEXPECT_THROW(stream.Write(response), ugrpc::server::RpcInterruptedError);
+        {
+            sample::ugrpc::StreamGreetingResponse response;
+            response.set_name("Three " + requests[0].name());
+            UEXPECT_THROW(stream.Write(std::move(response)), ugrpc::server::RpcInterruptedError);
+        }
         return grpc::Status::OK;
     }
 };

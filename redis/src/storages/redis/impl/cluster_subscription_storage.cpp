@@ -55,15 +55,18 @@ ClusterSubscriptionStorage::ClusterSubscriptionStorage(
     const std::shared_ptr<ThreadPools>& thread_pools,
     size_t shards_count
 )
-    : storage_impl_(shards_count, *this), thread_pools_(thread_pools) {
+    : storage_impl_(shards_count, *this),
+      thread_pools_(thread_pools)
+{
     /// TODO: support multiple shards for ssubscribe
-    rebalance_scheduler_ = std::make_unique<SubscriptionRebalanceScheduler>(
-        thread_pools->GetSentinelThreadPool(), *this, ClusterTopology::kUnknownShard
-    );
+    rebalance_scheduler_ = std::make_unique<
+        SubscriptionRebalanceScheduler>(thread_pools->GetSentinelThreadPool(), *this, ClusterTopology::kUnknownShard);
 }
 
 ClusterSubscriptionStorage::ClusterSubscriptionStorage(size_t shards_count)
-    : storage_impl_(shards_count, *this), thread_pools_(nullptr) {}
+    : storage_impl_(shards_count, *this),
+      thread_pools_(nullptr)
+{}
 
 ClusterSubscriptionStorage::~ClusterSubscriptionStorage() = default;
 
@@ -123,7 +126,9 @@ RawPubsubClusterStatistics ClusterSubscriptionStorage::GetStatistics() const {
     /// We need only one shard's stats because GetShardStatistics() for ClusterSubscriptionStorage returns shared stats
     /// for all real shards.
     const std::lock_guard lock{storage_impl_.mutex};
-    if (storage_impl_.GetShardsCount(lock) > 0) ret.by_shard.push_back(storage_impl_.GetShardStatistics(0, lock));
+    if (storage_impl_.GetShardsCount(lock) > 0) {
+        ret.by_shard.push_back(storage_impl_.GetShardStatistics(0, lock));
+    }
     return ret;
 }
 
@@ -168,9 +173,8 @@ void ClusterSubscriptionStorage::SsubscribeImpl(
     SubscriptionId id
 ) {
     const ChannelName channel_name(channel, /*pattern=*/false, /*sharded=*/true);
-    SubscribeImplImpl<ChannelInfo>(
-        storage_impl_, storage_impl_.sharded_callback_map, channel_name, std::move(cb), control, id
-    );
+    SubscribeImplImpl<
+        ChannelInfo>(storage_impl_, storage_impl_.sharded_callback_map, channel_name, std::move(cb), control, id);
 }
 
 void ClusterSubscriptionStorage::PsubscribeImpl(
@@ -180,9 +184,8 @@ void ClusterSubscriptionStorage::PsubscribeImpl(
     SubscriptionId id
 ) {
     const ChannelName channel_name(pattern, /*pattern=*/true, /*sharded=*/false);
-    SubscribeImplImpl<PChannelInfo>(
-        storage_impl_, storage_impl_.pattern_callback_map, channel_name, std::move(cb), control, id
-    );
+    SubscribeImplImpl<
+        PChannelInfo>(storage_impl_, storage_impl_.pattern_callback_map, channel_name, std::move(cb), control, id);
 }
 
 const std::string& ClusterSubscriptionStorage::GetShardName(size_t shard_idx) const {

@@ -83,9 +83,12 @@ UTEST(NetResolver, Smoke) {
     Mock mock{[](const Mock::DnsQuery& query) -> Mock::DnsAnswerVector {
         if (query.type == Mock::RecordType::kA && (query.name == "yandex.ru" || query.name == "v4.yandex.ru")) {
             return {{query.type, kV4Sockaddr1, 13}, {query.type, kV4Sockaddr2, 42}};
-        } else if (query.type == Mock::RecordType::kAAAA && (query.name == "yandex.ru" || query.name == "v6.yandex.ru")) {
+        } else if (query.type == Mock::RecordType::kAAAA && (query.name == "yandex.ru" || query.name == "v6.yandex.ru"))
+        {
             return {{query.type, kV6Sockaddr, 1337}};
-        } else if ((query.type == Mock::RecordType::kAAAA && query.name == "v4.yandex.ru") || (query.type == Mock::RecordType::kA && query.name == "v6.yandex.ru")) {
+        } else if ((query.type == Mock::RecordType::kAAAA && query.name == "v4.yandex.ru") ||
+                   (query.type == Mock::RecordType::kA && query.name == "v6.yandex.ru"))
+        {
             return {};
         }
         throw std::exception{};
@@ -131,7 +134,11 @@ UTEST(NetResolver, NetworkTimeout) {
     const Mock mock([](const auto&) -> Mock::DnsAnswerVector { throw Mock::NoAnswer{}; });
 
     auto resolver = clients::dns::NetResolver{
-        engine::current_task::GetTaskProcessor(), std::chrono::milliseconds{100}, 1, {mock.GetServerAddress()}};
+        engine::current_task::GetTaskProcessor(),
+        std::chrono::milliseconds{100},
+        1,
+        {mock.GetServerAddress()}
+    };
 
     auto future = resolver.Resolve("test");
     ASSERT_EQ(future.wait_for(utest::kMaxTestWaitTime), engine::FutureStatus::kReady);
@@ -145,7 +152,8 @@ UTEST(NetResolver, Cname) {
                 return {
                     {Mock::RecordType::kCname, "yandex.ru", 0},
                     {query.type, kV4Sockaddr1, 9},
-                    {query.type, kV4Sockaddr2, 8}};
+                    {query.type, kV4Sockaddr2, 8}
+                };
             } else if (query.type == Mock::RecordType::kAAAA) {
                 return {{Mock::RecordType::kCname, "yandex.ru", 0}, {query.type, kV6Sockaddr, 7}};
             }

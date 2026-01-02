@@ -59,7 +59,10 @@ def main():
         help='Path to the directory with tests',
     )
     parser.add_argument(
-        '--working-dir', type=pathlib.Path, required=True, help='Path to the working directory (build dir)'
+        '--working-dir',
+        type=pathlib.Path,
+        required=True,
+        help='Path to the working directory (build dir)',
     )
     parser.add_argument(
         '--python-path',

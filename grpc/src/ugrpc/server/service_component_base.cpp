@@ -16,6 +16,10 @@
 #include <userver/ugrpc/server/server_component.hpp>
 #include <userver/ugrpc/server/service_base.hpp>
 
+#ifndef ARCADIA_ROOT
+#include "generated/src/ugrpc/server/service_component_base.yaml.hpp"  // Y_IGNORE
+#endif
+
 USERVER_NAMESPACE_BEGIN
 
 namespace {
@@ -38,7 +42,8 @@ ServiceComponentBase::ServiceComponentBase(
     : impl::MiddlewareRunnerComponentBase(config, context, MiddlewarePipelineComponent::kName),
       server_(context.FindComponent<ServerComponent>(GetServerName(config))),
       config_(server_.ParseServiceConfig(config, context)),
-      info_(ServiceInfo{config.Name()}) {
+      info_(ServiceInfo{config.Name()})
+{
     config_.middlewares = CreateMiddlewares(*info_);
 }
 
@@ -56,34 +61,8 @@ void ServiceComponentBase::RegisterService(GenericServiceBase& service) {
 }
 
 yaml_config::Schema ServiceComponentBase::GetStaticConfigSchema() {
-    return yaml_config::MergeSchemas<impl::MiddlewareRunnerComponentBase>(R"(
-type: object
-description: base class for all the gRPC service components
-additionalProperties: false
-properties:
-    task-processor:
-        type: string
-        description: the task processor to use for responses
-        defaultDescription: uses grpc-server.service-defaults.task-processor
-    server-name:
-        type: string
-        description: the name of the server to use
-        defaultDescription: grpc-server
-    status-codes-log-level:
-        type: object
-        properties: {}
-        additionalProperties:
-            type: string
-            description: log level
-        description: |
-            gRPC status code string -> log level map.
-            Allows overriding the log level for the span for individual statuses.
-            See grpcpp StatusCode documentation for the list of possible values:
-            https://grpc.github.io/grpc/cpp/namespacegrpc.html#aff1730578c90160528f6a8d67ef5c43b
-
-            Example:
-              -  FAILED_PRECONDITION: info
-)");
+    return yaml_config::MergeSchemasFromResource<
+        impl::MiddlewareRunnerComponentBase>("src/ugrpc/server/service_component_base.yaml");
 }
 
 }  // namespace ugrpc::server

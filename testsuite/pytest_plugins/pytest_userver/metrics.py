@@ -6,13 +6,18 @@ testsuite; see
 @ingroup userver_testsuite
 """
 
+from __future__ import annotations
+
+from collections.abc import Mapping
+from collections.abc import Set
 import dataclasses
 import enum
 import itertools
 import json
 import math
 import random
-import typing
+from typing import Any
+from typing import TypeAlias
 
 
 # @cond
@@ -42,8 +47,8 @@ class Histogram:
     Normally obtained from MetricsSnapshot
     """
 
-    bounds: typing.List[float]
-    buckets: typing.List[int]
+    bounds: list[float]
+    buckets: list[int]
     inf: int
 
     def count(self) -> int:
@@ -63,13 +68,13 @@ class Histogram:
     # @endcond
 
 
-MetricValue = typing.Union[float, Histogram]
+MetricValue: TypeAlias = float | Histogram
 
 
 @dataclasses.dataclass(frozen=True)
 class Metric:
     """
-    Metric type that contains the `labels: typing.Dict[str, str]` and
+    Metric type that contains the `labels: dict[str, str]` and
     `value: int`.
 
     The type is hashable and comparable:
@@ -78,7 +83,7 @@ class Metric:
     @ingroup userver_testsuite
     """
 
-    labels: typing.Dict[str, str]
+    labels: dict[str, str]
     value: MetricValue
 
     # @cond
@@ -86,7 +91,7 @@ class Metric:
     _type: MetricType = MetricType.UNSPECIFIED
     # @endcond
 
-    def __eq__(self, other: typing.Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         if not isinstance(other, Metric):
             return NotImplemented
         return self.labels == other.labels and self.value == other.value and _type_eq(self._type, other._type)
@@ -97,7 +102,7 @@ class Metric:
     # @cond
     def __post_init__(self):
         if isinstance(self.value, Histogram):
-            assert self._type == MetricType.HIST_RATE or self._type == MetricType.UNSPECIFIED
+            assert self._type in (MetricType.HIST_RATE, MetricType.UNSPECIFIED)
         else:
             assert self._type is not MetricType.HIST_RATE
 
@@ -125,17 +130,17 @@ class _MetricsJSONEncoder(json.JSONEncoder):
 class MetricsSnapshot:
     """
     Snapshot of captured metrics that mimics the dict interface. Metrics have
-    the 'Dict[str(path), Set[Metric]]' format.
+    the 'dict[str(path), Set[Metric]]' format.
 
     @snippet samples/testsuite-support/tests/test_metrics.py metrics labels
 
     @ingroup userver_testsuite
     """
 
-    def __init__(self, values: typing.Mapping[str, typing.Set[Metric]]):
+    def __init__(self, values: Mapping[str, Set[Metric]]):
         self._values = values
 
-    def __getitem__(self, path: str) -> typing.Set[Metric]:
+    def __getitem__(self, path: str) -> Set[Metric]:
         """Returns a list of metrics by specified path"""
         return self._values[path]
 
@@ -189,9 +194,9 @@ class MetricsSnapshot:
     def value_at(
         self,
         path: str,
-        labels: typing.Optional[typing.Dict] = None,
+        labels: dict[str, str] | None = None,
         *,
-        default: typing.Optional[MetricValue] = None,
+        default: MetricValue | None = None,
     ) -> MetricValue:
         """
         Returns a single metric value at specified path. If a dict of labels
@@ -219,8 +224,8 @@ class MetricsSnapshot:
     def metrics_at(
         self,
         path: str,
-        require_labels: typing.Optional[typing.Dict] = None,
-    ) -> typing.List[Metric]:
+        require_labels: dict[str, str] | None = None,
+    ) -> list[Metric]:
         """
         Metrics path must exactly equal the given `path`.
         A required subset of labels is specified by `require_labels`
@@ -262,7 +267,7 @@ class MetricsSnapshot:
     def has_metrics_at(
         self,
         path: str,
-        require_labels: typing.Optional[typing.Dict] = None,
+        require_labels: dict[str, str] | None = None,
     ) -> bool:
         # metrics_with_labels returns list, and pythonic way to check if list
         # is empty is like this:
@@ -270,7 +275,7 @@ class MetricsSnapshot:
 
     def assert_equals(
         self,
-        other: typing.Mapping[str, typing.Set[Metric]],
+        other: Mapping[str, Set[Metric]],
         *,
         ignore_zeros: bool = False,
     ) -> None:
@@ -317,7 +322,7 @@ class MetricsSnapshot:
         return '\n'.join(itertools.chain(*data_for_every_path))
 
     @staticmethod
-    def from_json(json_str: str) -> 'MetricsSnapshot':
+    def from_json(json_str: str) -> MetricsSnapshot:
         """
         Construct MetricsSnapshot from a JSON string
         """
@@ -346,10 +351,10 @@ class MetricsSnapshot:
 
 
 def _type_eq(lhs: MetricType, rhs: MetricType) -> bool:
-    return lhs == rhs or lhs == MetricType.UNSPECIFIED or rhs == MetricType.UNSPECIFIED
+    return lhs == rhs or lhs == MetricType.UNSPECIFIED or rhs == MetricType.UNSPECIFIED  # noqa: PLR1714
 
 
-def _get_labels_tuple(metric: Metric) -> typing.Tuple:
+def _get_labels_tuple(metric: Metric) -> tuple[tuple[str, str], ...]:
     """Returns labels as a tuple of sorted items"""
     return tuple(sorted(metric.labels.items()))
 
@@ -357,7 +362,9 @@ def _get_labels_tuple(metric: Metric) -> typing.Tuple:
 def _do_compute_percentile(hist: Histogram, percent: float) -> float:
     # This implementation is O(hist.count()), which is less than perfect.
     # So far, this was not a big enough pain to rewrite it.
-    value_lists = [[bound] * bucket for (bucket, bound) in zip(hist.buckets, hist.bounds)] + [[math.inf] * hist.inf]
+    value_lists = [[bound] * bucket for (bucket, bound) in zip(hist.buckets, hist.bounds, strict=True)] + [
+        [math.inf] * hist.inf
+    ]
     values = [item for sublist in value_lists for item in sublist]
 
     # Implementation taken from:
@@ -374,7 +381,7 @@ def _do_compute_percentile(hist: Histogram, percent: float) -> float:
     return part1 + part2
 
 
-def _parse_metric_value(value: typing.Any) -> MetricValue:
+def _parse_metric_value(value: Any) -> MetricValue:
     if isinstance(value, dict):
         return Histogram(
             bounds=value['bounds'],
@@ -389,16 +396,16 @@ def _parse_metric_value(value: typing.Any) -> MetricValue:
         raise Exception(f'Failed to parse metric value from {value!r}')
 
 
-_FlattenedSnapshot = typing.Set[typing.Tuple[str, Metric]]
+_FlattenedSnapshot: TypeAlias = Set[tuple[str, Metric]]
 
 
 def _flatten_snapshot(values, ignore_zeros: bool) -> _FlattenedSnapshot:
-    return set(
+    return {
         (path, metric)
         for path, metrics in values.items()
         for metric in metrics
         if metric.value != 0 or not ignore_zeros
-    )
+    }
 
 
 def _diff_metric_snapshots(

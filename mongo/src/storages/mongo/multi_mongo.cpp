@@ -13,14 +13,19 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::mongo {
 
-MultiMongo::PoolSet::PoolSet(MultiMongo& target) : target_(&target), pool_map_ptr_(std::make_shared<PoolMap>()) {}
+MultiMongo::PoolSet::PoolSet(MultiMongo& target)
+    : target_(&target),
+      pool_map_ptr_(std::make_shared<PoolMap>())
+{}
 
 MultiMongo::PoolSet::PoolSet(const PoolSet& other) { *this = other; }
 
 MultiMongo::PoolSet::PoolSet(PoolSet&&) noexcept = default;
 
 MultiMongo::PoolSet& MultiMongo::PoolSet::operator=(const PoolSet& rhs) {
-    if (this == &rhs) return *this;
+    if (this == &rhs) {
+        return *this;
+    }
 
     target_ = rhs.target_;
     pool_map_ptr_ = std::make_shared<PoolMap>(*rhs.pool_map_ptr_);
@@ -39,8 +44,8 @@ void MultiMongo::PoolSet::AddPool(std::string dbalias) {
 
     if (!pool_ptr) {
         auto pool_config = target_->pool_config_;
-        const auto pool_settings =
-            target_->config_source_.GetSnapshot(::dynamic_config::MONGO_CONNECTION_POOL_SETTINGS);
+        const auto pool_settings = target_->config_source_.GetSnapshot(::dynamic_config::MONGO_CONNECTION_POOL_SETTINGS
+        );
         const auto new_pool_settings = pool_settings->GetOptional(target_->name_);
         if (new_pool_settings.has_value()) {
             PoolSettings ps;
@@ -85,7 +90,8 @@ MultiMongo::MultiMongo(
       secdist_(secdist),
       config_source_(config_source),
       pool_config_(std::move(pool_config)),
-      dns_resolver_(dns_resolver) {
+      dns_resolver_(dns_resolver)
+{
     config_subscriber_ = config_source_.UpdateAndListen(this, "multi_mongo", &MultiMongo::OnConfigUpdate);
     secdist_subscriber_ = secdist.UpdateAndListen(this, "multi_mongo", &MultiMongo::OnSecdistUpdate);
 }
@@ -106,7 +112,9 @@ void MultiMongo::AddPool(std::string dbalias) {
 }
 
 bool MultiMongo::RemovePool(const std::string& dbalias) {
-    if (!FindPool(dbalias)) return false;
+    if (!FindPool(dbalias)) {
+        return false;
+    }
 
     auto set = NewPoolSet();
     set.AddExistingPools();
@@ -148,7 +156,9 @@ void MultiMongo::OnConfigUpdate(const dynamic_config::Snapshot& config) {
 storages::mongo::PoolPtr MultiMongo::FindPool(const std::string& dbalias) const {
     const auto pool_map = pool_map_.Read();
     const auto it = pool_map->find(dbalias);
-    if (it == pool_map->end()) return {};
+    if (it == pool_map->end()) {
+        return {};
+    }
     return it->second;
 }
 

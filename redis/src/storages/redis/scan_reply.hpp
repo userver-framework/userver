@@ -24,7 +24,9 @@ public:
         friend class ScanReplyTmpl;
 
     private:
-        explicit Cursor(uint64_t value) : value_(value) {}
+        explicit Cursor(uint64_t value)
+            : value_(value)
+        {}
 
         uint64_t value_{0};
     };
@@ -36,7 +38,10 @@ public:
     std::vector<ReplyElem>& GetKeys() { return keys_; }
 
 private:
-    ScanReplyTmpl(Cursor cursor, std::vector<ReplyElem> keys) : cursor_(cursor), keys_(std::move(keys)) {}
+    ScanReplyTmpl(Cursor cursor, std::vector<ReplyElem> keys)
+        : cursor_(cursor),
+          keys_(std::move(keys))
+    {}
 
     Cursor cursor_;
     std::vector<ReplyElem> keys_;

@@ -17,10 +17,15 @@ using IteratorDirection = common::IteratorDirection;
 
 template <typename ValueType, IteratorDirection Direction>
 Iterator<ValueType, Direction>::Iterator(impl::ValueImpl& iterable, NativeIter it)
-    : iterable_(&iterable), it_(std::move(it)) {}
+    : iterable_(&iterable),
+      it_(std::move(it))
+{}
 
 template <typename ValueType, IteratorDirection Direction>
-Iterator<ValueType, Direction>::Iterator(const Iterator& other) : iterable_(other.iterable_), it_(other.it_) {}
+Iterator<ValueType, Direction>::Iterator(const Iterator& other)
+    : iterable_(other.iterable_),
+      it_(other.it_)
+{}
 
 template <typename ValueType, IteratorDirection Direction>
 Iterator<ValueType, Direction>::Iterator(Iterator&& other) noexcept
@@ -28,7 +33,9 @@ Iterator<ValueType, Direction>::Iterator(Iterator&& other) noexcept
 
 template <typename ValueType, IteratorDirection Direction>
 Iterator<ValueType, Direction>& Iterator<ValueType, Direction>::operator=(const Iterator& other) {
-    if (this == &other) return *this;
+    if (this == &other) {
+        return *this;
+    }
 
     iterable_ = other.iterable_;
     it_ = other.it_;
@@ -83,7 +90,9 @@ template <typename ValueType, IteratorDirection Direction>
 std::string Iterator<ValueType, Direction>::GetNameImpl() const {
     class Visitor {
     public:
-        Visitor(const impl::ValueImpl& iterable) : iterable_(iterable) {}
+        Visitor(const impl::ValueImpl& iterable)
+            : iterable_(iterable)
+        {}
 
         std::string operator()(impl::ParsedArray::const_iterator) const {
             throw TypeMismatchException(BSON_TYPE_ARRAY, BSON_TYPE_DOCUMENT, iterable_.GetPath());
@@ -105,7 +114,9 @@ template <typename ValueType, IteratorDirection Direction>
 uint32_t Iterator<ValueType, Direction>::GetIndex() const {
     class Visitor {
     public:
-        Visitor(impl::ValueImpl& iterable) : iterable_(iterable) {}
+        Visitor(impl::ValueImpl& iterable)
+            : iterable_(iterable)
+        {}
 
         uint32_t operator()(impl::ParsedArray::const_iterator it) const {
             return it - std::get<impl::ParsedArray::const_iterator>(iterable_.Begin());
@@ -127,7 +138,9 @@ uint32_t Iterator<ValueType, Direction>::GetIndex() const {
 
 template <typename ValueType, IteratorDirection Direction>
 void Iterator<ValueType, Direction>::UpdateValue() const {
-    if (current_) return;
+    if (current_) {
+        return;
+    }
 
     class Visitor {
     public:

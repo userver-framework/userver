@@ -24,7 +24,9 @@ public:
     using RequestMessage = proto_structs::traits::CompatibleMessageType<Request>;
     using ProtobufMessageReader = ugrpc::server::Reader<RequestMessage>;
 
-    explicit Reader(ProtobufMessageReader& reader) : reader_{reader} {}
+    explicit Reader(ProtobufMessageReader& reader)
+        : reader_{reader}
+    {}
 
     /// @brief Await and read the next incoming message.
     ///
@@ -57,24 +59,35 @@ public:
     using ResponseMessage = proto_structs::traits::CompatibleMessageType<Response>;
     using ProtobufMessageWriter = ugrpc::server::Writer<ResponseMessage>;
 
-    explicit Writer(ProtobufMessageWriter& writer) : writer_{writer} {}
+    explicit Writer(ProtobufMessageWriter& writer)
+        : writer_{writer}
+    {}
 
     /// @{
     /// @brief Write the next outgoing message.
+    /// @note This version may move some fields from the request.
     ///
     /// Convert response to corresponding protobuf message and pass it to @ref ugrpc::server::Writer::Write.
     ///
     /// @see @ref ugrpc::server::Writer::Write method for details.
-    void Write(Response& response) { writer_.Write(proto_structs::StructToMessage(response)); }
-
-    void Write(Response& response, const grpc::WriteOptions& options) {
-        writer_.Write(proto_structs::StructToMessage(response), options);
-    }
-
     void Write(Response&& response) { writer_.Write(proto_structs::StructToMessage(std::move(response))); }
 
     void Write(Response&& response, const grpc::WriteOptions& options) {
         writer_.Write(proto_structs::StructToMessage(std::move(response)), options);
+    }
+    /// @}
+
+    /// @{
+    /// @brief Write the next outgoing message.
+    /// @note This version preserves the original request object by copying necessary data.
+    ///
+    /// Convert response to corresponding protobuf message and pass it to @ref ugrpc::server::Writer::Write.
+    ///
+    /// @see @ref ugrpc::server::Writer::Write method for details.
+    void WriteCopy(const Response& response) { writer_.Write(proto_structs::StructToMessage(response)); }
+
+    void WriteCopy(const Response& response, const grpc::WriteOptions& options) {
+        writer_.Write(proto_structs::StructToMessage(response), options);
     }
     /// @}
 
@@ -98,11 +111,14 @@ private:
 template <typename Request, typename Response>
 class ReaderWriter : public Reader<Request>, public Writer<Response> {
 public:
-    using ProtobufMessageReaderWriter = ugrpc::server::
-        ReaderWriter<typename Reader<Request>::RequestMessage, typename Writer<Response>::ResponseMessage>;
+    using ProtobufMessageReaderWriter = ugrpc::server::ReaderWriter<
+        typename Reader<Request>::RequestMessage,
+        typename Writer<Response>::ResponseMessage>;
 
     explicit ReaderWriter(ProtobufMessageReaderWriter& reader_writer)
-        : Reader<Request>{reader_writer}, Writer<Response>{reader_writer} {}
+        : Reader<Request>{reader_writer},
+          Writer<Response>{reader_writer}
+    {}
 };
 
 }  // namespace grpc_proto_structs::server

@@ -18,7 +18,9 @@ const ValidationSettings& Settings::Get(std::string_view method_name) const {
     return it != per_method.end() ? it->second : global;
 }
 
-Middleware::Middleware(const Settings& settings) : settings_(settings) {}
+Middleware::Middleware(const Settings& settings)
+    : settings_(settings)
+{}
 
 Middleware::~Middleware() = default;
 

@@ -218,51 +218,78 @@ Here we say that all client middlewares are located in these groups.
 
 @dot
 digraph Pipeline {
-  node [shape=box];
   compound=true;
   fixedsize=true;
-  rankdir=LR;
-  tooltip = "You didn't hit the arrow with the cursor :-)";
-  labeljust = "l";
-  labelloc = "t";
+  rankdir=TB;
+  labelloc="t";
+  label="grpc-client-middlewares-pipeline\nfrom the start to the end";
+  center=true;
+  shape=box;
+  node [shape=box];
 
   subgraph cluster_User {
-    shape=box;
-    label = "User";
-    center=true;
-    rankdir=LR;
+    label="";
+    node [shape=box, width=2.0];
 
-    Baggage [label = "grpc-client-baggage", shape=box, width=2.0];
-    HeadersPropagator [label = "grpc-client-headers-propagator", shape=box, width=2.0];
-    Testsuite [label = "grpc-client-testsuite", shape=box, width=2.0];
+    node_User [label="User", penwidth=0, height=0, width=1];
+    Baggage [label="grpc-client-baggage"];
+    HeadersPropagator [label="grpc-client-headers-propagator"];
+    Origin [label="grpc-client-origin"];
 
-    Baggage -> HeadersPropagator -> Testsuite;
+    node_User -> Baggage [style=invis, minlen=0];
+    node_User -> HeadersPropagator [style=invis, minlen=0];
+    node_User -> Origin [style=invis, minlen=0];
+  }
+
+  subgraph cluster_PostCore {
+    label="";
+    node [shape=box, width=2.0];
+
+    node_PostCore [label="PostCore", penwidth=0, height=0, width=1];
+    Testsuite [label="grpc-client-middleware-testsuite"];
+
+    node_PostCore -> Testsuite [style=invis, minlen=0];
   }
 
   subgraph cluster_Core {
-    shape=box;
-    label = "Core";
-    center=true;
-    rankdir=LR;
+    label="";
+    node [shape=box, width=2.0];
 
-    DeadlinePropagation [label = "grpc-client-deadline-propagation", shape=box, width=2.0];
+    node_Core [label="Core", penwidth=0, height=0, width=1];
+    DeadlinePropagation [label="grpc-client-deadline-propagation"];
+
+    node_Core -> DeadlinePropagation [style=invis, minlen=0];
+  }
+
+  subgraph cluster_Auth {
+    label="";
+    node [shape=box, width=2.0];
+
+    node_Auth [label="Auth", penwidth=0, height=0, width=1];
   }
 
   subgraph cluster_Logging {
-    shape=box;
-    label = "Logging";
-    center=true;
+    label="";
+    node [shape=box, width=2.0];
 
-    Logging [label = "grpc-client-logging", shape=box, width=2.0];
+    node_Logging [label="Logging", penwidth=0, height=0, width=1];
+    Logging [label="grpc-client-logging"];
+
+    node_Logging -> Logging [style=invis, minlen=0];
   }
 
-  PreCore [label = "PreCore", shape=box, width=2.0];
-  Auth [label = "Auth", shape=box, width=2.0];
-  PostCore [label = "PostCore", shape=box, width=2.0];
+  subgraph cluster_PreCore {
+    label="";
+    node [shape=box, width=2.0];
 
-  PreCore -> Logging -> Auth -> DeadlinePropagation -> PostCore -> Baggage;
+    node_PreCore [label="PreCore", penwidth=0, height=0, width=1];
+  }
 
-  Pipeline[label = "grpc-client-middlewares-pipeline\n from the start to the end", shape=plaintext, rank="main"];
+  node_PreCore -> node_Logging [ltail=cluster_PreCore, lhead=cluster_Logging];
+  node_Logging -> node_Auth [ltail=cluster_Logging, lhead=cluster_Auth];
+  node_Auth -> node_Core [ltail=cluster_Auth, lhead=cluster_Core];
+  node_Core -> node_PostCore [ltail=cluster_Core, lhead=cluster_PostCore];
+  node_PostCore -> node_User [ltail=cluster_PostCore, lhead=cluster_User];
 }
 @enddot
 

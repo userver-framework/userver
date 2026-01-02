@@ -77,8 +77,12 @@ public:
     constexpr bool operator==(const Deadline& r) const noexcept { return value_ == r.value_; }
 
     constexpr bool operator<(const Deadline& r) const noexcept {
-        if (!IsReachable()) return false;
-        if (!r.IsReachable()) return true;
+        if (!IsReachable()) {
+            return false;
+        }
+        if (!r.IsReachable()) {
+            return true;
+        }
         return value_ < r.value_;
     }
 

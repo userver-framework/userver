@@ -15,7 +15,8 @@ Component::Component(
       client_(
           USERVER_NAMESPACE::chaotic::openapi::client::ParseConfig(config, ClientImpl::kDefaultBaseUrl),
           context.FindComponent<USERVER_NAMESPACE::components::HttpClient>().GetHttpClient()
-      ) {
+      )
+{
     if (config.HasMember("middlewares")) {
         const auto& mw_config = config["middlewares"];
         const auto& registry = USERVER_NAMESPACE::chaotic::openapi::client::MiddlewareRegistry::Instance();

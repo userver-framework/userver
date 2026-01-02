@@ -272,12 +272,16 @@ bool CancellableSemaphore::try_lock_shared_until(std::chrono::time_point<Clock, 
 }
 
 template <typename Rep, typename Period>
-SemaphoreLock::SemaphoreLock(Semaphore& sem, std::chrono::duration<Rep, Period> duration) : sem_(&sem) {
+SemaphoreLock::SemaphoreLock(Semaphore& sem, std::chrono::duration<Rep, Period> duration)
+    : sem_(&sem)
+{
     TryLockFor(duration);
 }
 
 template <typename Clock, typename Duration>
-SemaphoreLock::SemaphoreLock(Semaphore& sem, std::chrono::time_point<Clock, Duration> until) : sem_(&sem) {
+SemaphoreLock::SemaphoreLock(Semaphore& sem, std::chrono::time_point<Clock, Duration> until)
+    : sem_(&sem)
+{
     TryLockUntil(until);
 }
 

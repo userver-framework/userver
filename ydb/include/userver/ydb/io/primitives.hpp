@@ -37,11 +37,15 @@ template <typename PrimitiveTrait>
 struct PrimitiveTraits {
     static typename PrimitiveTrait::Type Parse(NYdb::TValueParser& parser, const ParseContext& context);
 
-    static void
-    Write(NYdb::TValueBuilderBase<NYdb::TValueBuilder>& builder, const typename PrimitiveTrait::Type& value);
+    static void Write(
+        NYdb::TValueBuilderBase<NYdb::TValueBuilder>& builder,
+        const typename PrimitiveTrait::Type& value
+    );
 
-    static void
-    Write(NYdb::TValueBuilderBase<NYdb::TParamValueBuilder>& builder, const typename PrimitiveTrait::Type& value);
+    static void Write(
+        NYdb::TValueBuilderBase<NYdb::TParamValueBuilder>& builder,
+        const typename PrimitiveTrait::Type& value
+    );
 
     static NYdb::TType MakeType();
 };

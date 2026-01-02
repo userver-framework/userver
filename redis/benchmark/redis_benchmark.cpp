@@ -56,7 +56,9 @@ BENCHMARK_DEFINE_TEMPLATE_F(Redis, PipelineGrind)(benchmark::State& state) {
             requests.push_back(request_generator(state));
         }
 
-        for (; !requests.empty(); requests.pop_front()) requests.front().Get();
+        for (; !requests.empty(); requests.pop_front()) {
+            requests.front().Get();
+        }
 
         const auto stats = GetSentinel()->GetStatistics({});
         const auto total = stats.GetShardGroupTotalStatistics();

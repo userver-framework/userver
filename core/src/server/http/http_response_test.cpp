@@ -26,7 +26,9 @@ UTEST(HttpResponse, Smoke) {
 
     auto [server, client] = internal::net::TcpListener{}.MakeSocketPair(test_deadline);
     auto send_task = engine::AsyncNoSpan(
-        [](auto&& response, auto&& socket) { response.SendResponse(socket); }, std::ref(response), std::move(server)
+        [](auto&& response, auto&& socket) { response.SendResponse(socket); },
+        std::ref(response),
+        std::move(server)
     );
 
     std::vector<char> buffer(4096, '\0');
@@ -62,7 +64,9 @@ UTEST(HttpResponse, AccounterLifetimeIfSent) {
 
     auto [server, client] = internal::net::TcpListener{}.MakeSocketPair(test_deadline);
     auto send_task = engine::AsyncNoSpan(
-        [](auto&& response, auto&& socket) { response.SendResponse(socket); }, std::ref(response), std::move(server)
+        [](auto&& response, auto&& socket) { response.SendResponse(socket); },
+        std::ref(response),
+        std::move(server)
     );
 
     std::string buffer(4096, '\0');
@@ -89,7 +93,9 @@ UTEST_P(HttpResponseBody, ForbiddenBody) {
 
     auto [server, client] = internal::net::TcpListener{}.MakeSocketPair(test_deadline);
     auto send_task = engine::AsyncNoSpan(
-        [](auto&& response, auto&& socket) { response.SendResponse(socket); }, std::ref(response), std::move(server)
+        [](auto&& response, auto&& socket) { response.SendResponse(socket); },
+        std::ref(response),
+        std::move(server)
     );
 
     std::vector<char> buffer(4096, '\0');

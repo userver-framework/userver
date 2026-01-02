@@ -1,11 +1,11 @@
-import asyncio
-import datetime
+import pytest_userver.utils.sync as sync
 
 
 async def wait_for_daemon_stop(_global_daemon_store):
-    deadline = datetime.datetime.now() + datetime.timedelta(seconds=10)
-    while datetime.datetime.now() < deadline and _global_daemon_store.has_running_daemons():
-        await asyncio.sleep(0.05)
+    def is_ready():
+        return not _global_daemon_store.has_running_daemons()
+
+    await sync.wait(is_ready)
 
     assert not _global_daemon_store.has_running_daemons(), 'Daemon has not stopped'
     await _global_daemon_store.aclose()

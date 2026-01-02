@@ -60,7 +60,9 @@ public:
     static PublicKey LoadECFromComponents(CurveTypeView curve, CoordinateView x, CoordinateView y);
 
 private:
-    explicit PublicKey(std::shared_ptr<NativeType> pkey) : pkey_(std::move(pkey)) {}
+    explicit PublicKey(std::shared_ptr<NativeType> pkey)
+        : pkey_(std::move(pkey))
+    {}
 
     std::shared_ptr<NativeType> pkey_;
 };

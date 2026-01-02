@@ -9,7 +9,10 @@ USERVER_NAMESPACE_BEGIN
 namespace congestion_control {
 
 Controller::Controller(std::string name, dynamic_config::Source config_source)
-    : name_(std::move(name)), config_source_(config_source), is_enabled_(true) {}
+    : name_(std::move(name)),
+      config_source_(config_source),
+      is_enabled_(true)
+{}
 
 bool Controller::IsOverloadedNow(const Sensor::Data& data, const Policy& policy) const {
     // Use on/off limits for anti-flap
@@ -50,7 +53,9 @@ size_t Controller::CalcNewLimit(const Sensor::Data& data, const Policy& policy) 
     // might fail to immediately affect sensor's levels
     //
     auto current_load = *state_.current_limit;
-    if (current_load == 0) current_load = 1;
+    if (current_load == 0) {
+        current_load = 1;
+    }
 
     if (state_.is_overloaded) {
         return std::max<std::size_t>(
@@ -100,8 +105,8 @@ void Controller::Feed(const Sensor::Data& data) {
             state_.current_limit = CalcNewLimit(data, policy);
 
             stats_.overload_pressure++;
-            stats_.last_overload_pressure =
-                std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now().time_since_epoch());
+            stats_.last_overload_pressure = std::chrono::duration_cast<
+                std::chrono::seconds>(std::chrono::steady_clock::now().time_since_epoch());
             stats_.current_state = 4;
         } else {
             if (state_.times_wo_overload > policy.overload_off_seconds) {
@@ -124,7 +129,8 @@ void Controller::Feed(const Sensor::Data& data) {
             }
         } else {
             if (state_.times_with_overload > policy.overload_on_seconds ||
-                IsThresholdReached(data, policy.load_limit_crit_percent)) {
+                IsThresholdReached(data, policy.load_limit_crit_percent))
+            {
                 state_.is_overloaded = true;
             }
 
@@ -133,11 +139,14 @@ void Controller::Feed(const Sensor::Data& data) {
         }
     }
 
-    if (!state_.is_overloaded && state_.times_wo_overload > policy.no_limit_seconds)
+    if (!state_.is_overloaded && state_.times_wo_overload > policy.no_limit_seconds) {
         state_.current_limit = std::nullopt;
+    }
 
-    auto log_level = state_.is_overloaded ? logging::Level::kError
-                                          : (state_.current_limit ? logging::Level::kWarning : logging::Level::kInfo);
+    auto log_level =
+        state_.is_overloaded
+            ? logging::Level::kError
+            : (state_.current_limit ? logging::Level::kWarning : logging::Level::kInfo);
     std::string log_suffix;
 
     if (!is_enabled_) {
@@ -146,8 +155,12 @@ void Controller::Feed(const Sensor::Data& data) {
     }
 
     if (old_overloaded || state_.is_overloaded) {
-        if (!old_overloaded) LOG(log_level) << "congestion_control '" << name_ << "' is activated";
-        if (!state_.is_overloaded) LOG(log_level) << "congestion_control '" << name_ << "' is deactivated";
+        if (!old_overloaded) {
+            LOG(log_level) << "congestion_control '" << name_ << "' is activated";
+        }
+        if (!state_.is_overloaded) {
+            LOG(log_level) << "congestion_control '" << name_ << "' is deactivated";
+        }
     }
 
     auto load_prc = data.GetLoadPercent();
@@ -158,28 +171,31 @@ void Controller::Feed(const Sensor::Data& data) {
     // - CC was enabled recently
     if (log_level > logging::Level::kInfo || load_prc > 0.01 || state_.current_limit) {
         auto load_prc_str = fmt::format(" ({:.2f}%)", load_prc);
-        LOG(log_level) << "congestion control '" << name_ << "' state: input load=" << data.current_load
-                       << " input overloads=" << data.overload_events_count << load_prc_str
-                       << " => is_overloaded=" << state_.is_overloaded << " current_limit=" << state_.current_limit
-                       << " times_w=" << state_.times_with_overload << " times_wo=" << state_.times_wo_overload
-                       << " max_up_delta=" << state_.max_up_delta << log_suffix;
+        LOG(log_level
+        ) << "congestion control '"
+          << name_ << "' state: input load=" << data.current_load << " input overloads=" << data.overload_events_count
+          << load_prc_str << " => is_overloaded=" << state_.is_overloaded << " current_limit=" << state_.current_limit
+          << " times_w=" << state_.times_with_overload << " times_wo=" << state_.times_wo_overload
+          << " max_up_delta=" << state_.max_up_delta << log_suffix;
     }
     limit_.load_limit = state_.current_limit;
     limit_.current_load = data.current_load;
 }
 
 Limit Controller::GetLimit() const {
-    if (is_enabled_.load())
+    if (is_enabled_.load()) {
         return GetLimitRaw();
-    else
+    } else {
         return {};
+    }
 }
 
 Limit Controller::GetLimitRaw() const { return limit_; }
 
 void Controller::SetEnabled(bool enabled) {
-    if (enabled != is_enabled_)
+    if (enabled != is_enabled_) {
         LOG_WARNING() << "congestion control for '" << name_ << "' is " << (enabled ? "enabled" : "disabled");
+    }
     is_enabled_ = enabled;
 }
 

@@ -21,7 +21,11 @@ namespace concurrent {
 template <typename T>
 class LazyValue final {
 public:
-    explicit LazyValue(std::function<T()> f) : f_(std::move(f)) { UASSERT(f_); }
+    explicit LazyValue(std::function<T()> f)
+        : f_(std::move(f))
+    {
+        UASSERT(f_);
+    }
 
     /// @brief Get an already calculated result or calculate it.
     ///        It is guaranteed that `f` is called exactly once.
@@ -41,7 +45,9 @@ private:
 
 template <typename T>
 const T& LazyValue<T>::operator()() {
-    if (finished_) return result_.Get();
+    if (finished_) {
+        return result_.Get();
+    }
 
     auto old = started_.exchange(true);
     if (!old) {
@@ -62,7 +68,9 @@ const T& LazyValue<T>::operator()() {
     } else {
         std::unique_lock lock(m_finished_);
         auto rc = cv_finished_.Wait(lock, [this]() { return finished_.load(); });
-        if (!rc) throw engine::WaitInterruptedException(engine::current_task::CancellationReason());
+        if (!rc) {
+            throw engine::WaitInterruptedException(engine::current_task::CancellationReason());
+        }
     }
 
     return result_.Get();

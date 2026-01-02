@@ -22,14 +22,14 @@ namespace ugrpc::server::middlewares::log {
 /// @warning Logs are currently written with log level `debug` by default, which typically means that they are not
 /// written in production. See details below.
 ///
-/// ## Static options:
-/// Name | Description | Default value
-/// ---- | ----------- | -------------
-/// log-level | log level threshold | debug
-/// msg-log-level | logging level to use for request and response messages themselves | debug
-/// msg-size-log-limit | max message size to log, the rest will be truncated | 512
-/// local-log-level | local log level of the span for user-provided handler | debug
-/// status-codes-log-level | gRPC status code string -> response log level map | {}
+/// ## Static options of ugrpc::server::middlewares::log::Component :
+/// @include{doc} scripts/docs/en/components_schema/grpc/src/ugrpc/server/middlewares/log/component.md
+///
+/// Options inherited from @ref middlewares::MiddlewareFactoryComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/middlewares/factory_component_base.md
+///
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
 ///
 /// ## Static configuration example:
 ///
@@ -62,7 +62,7 @@ template <>
 inline constexpr bool components::kHasValidate<ugrpc::server::middlewares::log::Component> = true;
 
 template <>
-inline constexpr auto components::kConfigFileMode<ugrpc::server::middlewares::log::Component> =
-    ConfigFileMode::kNotRequired;
+inline constexpr auto
+    components::kConfigFileMode<ugrpc::server::middlewares::log::Component> = ConfigFileMode::kNotRequired;
 
 USERVER_NAMESPACE_END

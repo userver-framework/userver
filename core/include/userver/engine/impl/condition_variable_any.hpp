@@ -38,11 +38,8 @@ private:
 
 template <typename MutexType>
 template <typename Predicate>
-bool ConditionVariableAny<MutexType>::WaitUntil(
-    std::unique_lock<MutexType>& lock,
-    Deadline deadline,
-    Predicate&& predicate
-) {
+bool ConditionVariableAny<
+    MutexType>::WaitUntil(std::unique_lock<MutexType>& lock, Deadline deadline, Predicate&& predicate) {
     bool predicate_result = predicate();
     auto status = CvStatus::kNoTimeout;
     while (!predicate_result && status == CvStatus::kNoTimeout) {

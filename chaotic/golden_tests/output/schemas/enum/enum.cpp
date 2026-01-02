@@ -8,8 +8,10 @@ namespace ns {
 
 bool operator==(const ::ns::Enum& lhs, const ::ns::Enum& rhs) { return lhs.foo == rhs.foo && true; }
 
-USERVER_NAMESPACE::logging::LogHelper&
-operator<<(USERVER_NAMESPACE::logging::LogHelper& lh, const ::ns::Enum::Foo& value) {
+USERVER_NAMESPACE::logging::LogHelper& operator<<(
+    USERVER_NAMESPACE::logging::LogHelper& lh,
+    const ::ns::Enum::Foo& value
+) {
     return lh << ToString(value);
 }
 
@@ -17,8 +19,10 @@ USERVER_NAMESPACE::logging::LogHelper& operator<<(USERVER_NAMESPACE::logging::Lo
     return lh << ToString(USERVER_NAMESPACE::formats::json::ValueBuilder(value).ExtractValue());
 }
 
-Enum::Foo
-Parse(USERVER_NAMESPACE::formats::json::Value json, USERVER_NAMESPACE::formats::parse::To<::ns::Enum::Foo> to) {
+Enum::Foo Parse(
+    USERVER_NAMESPACE::formats::json::Value json,
+    USERVER_NAMESPACE::formats::parse::To<::ns::Enum::Foo> to
+) {
     return Parse<USERVER_NAMESPACE::formats::json::Value>(json, to);
 }
 
@@ -26,8 +30,10 @@ Enum Parse(USERVER_NAMESPACE::formats::json::Value json, USERVER_NAMESPACE::form
     return Parse<USERVER_NAMESPACE::formats::json::Value>(json, to);
 }
 
-Enum::Foo
-Parse(USERVER_NAMESPACE::formats::yaml::Value json, USERVER_NAMESPACE::formats::parse::To<::ns::Enum::Foo> to) {
+Enum::Foo Parse(
+    USERVER_NAMESPACE::formats::yaml::Value json,
+    USERVER_NAMESPACE::formats::parse::To<::ns::Enum::Foo> to
+) {
     return Parse<USERVER_NAMESPACE::formats::yaml::Value>(json, to);
 }
 
@@ -55,13 +61,16 @@ Enum Parse(USERVER_NAMESPACE::yaml_config::Value json, USERVER_NAMESPACE::format
     return FromString(value, to);
 }
 
-USERVER_NAMESPACE::formats::json::Value
-Serialize(const ::ns::Enum::Foo& value, USERVER_NAMESPACE::formats::serialize::To<USERVER_NAMESPACE::formats::json::Value>) {
+USERVER_NAMESPACE::formats::json::
+    Value
+    Serialize(const ::ns::Enum::Foo& value, USERVER_NAMESPACE::formats::serialize::To<USERVER_NAMESPACE::formats::json::Value>) {
     return USERVER_NAMESPACE::formats::json::ValueBuilder(ToString(value)).ExtractValue();
 }
 
-USERVER_NAMESPACE::formats::json::Value
-Serialize([[maybe_unused]] const ::ns::Enum& value, USERVER_NAMESPACE::formats::serialize::To<USERVER_NAMESPACE::formats::json::Value>) {
+USERVER_NAMESPACE::formats::
+    json::
+        Value
+        Serialize([[maybe_unused]] const ::ns::Enum& value, USERVER_NAMESPACE::formats::serialize::To<USERVER_NAMESPACE::formats::json::Value>) {
     USERVER_NAMESPACE::formats::json::ValueBuilder vb = USERVER_NAMESPACE::formats::common::Type::kObject;
 
     if (value.foo) {
@@ -81,7 +90,7 @@ std::string ToString(::ns::Enum::Foo value) {
 
 }  // namespace ns
 
-fmt::format_context::iterator
-fmt::formatter<::ns::Enum::Foo>::format(const ::ns::Enum::Foo& value, fmt::format_context& ctx) const {
+fmt::format_context::iterator fmt::formatter<
+    ::ns::Enum::Foo>::format(const ::ns::Enum::Foo& value, fmt::format_context& ctx) const {
     return fmt::format_to(ctx.out(), "{}", ToString(value));
 }

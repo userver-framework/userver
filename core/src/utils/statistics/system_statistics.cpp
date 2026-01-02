@@ -32,7 +32,9 @@ namespace {
 #ifdef __linux__
 template <typename T>
 void MergeSingleStat(std::optional<T>& to, std::optional<T> from) {
-    if (!from) return;
+    if (!from) {
+        return;
+    }
     if (to) {
         *to += *from;
     } else {
@@ -100,8 +102,9 @@ void ParseProcStat(std::string_view data, SystemStats& stats) {
                 UASSERT(utime_ticks != -1);
                 {
                     const auto total_ticks = utime_ticks + get_current_value();
-                    stats.cpu_time_sec = int64_t{total_ticks / kTicksPerSecond} +
-                                         static_cast<double>(total_ticks % kTicksPerSecond) / kTicksPerSecond;
+                    stats.cpu_time_sec =
+                        int64_t{total_ticks / kTicksPerSecond} +
+                        static_cast<double>(total_ticks % kTicksPerSecond) / kTicksPerSecond;
                 }
                 break;
 
@@ -126,7 +129,9 @@ void ParseProcStatIo(std::string_view data, SystemStats& stats) {
         auto next_newline_pos = std::min(data.find('\n', pos), data.size());
 
         const auto parse_if_matches = [=](std::optional<std::int64_t>& field, std::string_view header) {
-            if (data.substr(pos, header.size()) != header) return;
+            if (data.substr(pos, header.size()) != header) {
+                return;
+            }
 
             auto value_pos = pos + header.size();
             UASSERT(value_pos < next_newline_pos);
@@ -181,9 +186,15 @@ SystemStats GetSystemStatisticsByExeNameFromProc(std::string_view name) {
     SystemStats cumulative;
     for (; !ec && it != boost::filesystem::directory_iterator{}; it.increment(ec)) {
         const auto directory_entry_status = it->status(ec);
-        if (ec) continue;
-        if (!boost::filesystem::is_directory(directory_entry_status)) continue;
-        if (!IsAllDigits(it->path().filename())) continue;
+        if (ec) {
+            continue;
+        }
+        if (!boost::filesystem::is_directory(directory_entry_status)) {
+            continue;
+        }
+        if (!IsAllDigits(it->path().filename())) {
+            continue;
+        }
 
         std::string stat_data;
         try {
@@ -195,7 +206,8 @@ SystemStats GetSystemStatisticsByExeNameFromProc(std::string_view name) {
         auto exe_symlink = it->path() / "exe";
 
         if (IsProcStatMatchesName(stat_data, name) ||
-            boost::filesystem::read_symlink(exe_symlink, ec).filename().native() == name) {
+            boost::filesystem::read_symlink(exe_symlink, ec).filename().native() == name)
+        {
             Merge(cumulative, GetSystemStatisticsByProcPath(it->path().native()));
         }
     }
@@ -211,8 +223,12 @@ utils::statistics::impl::SystemStats GetSelfSystemStatisticsFromKernel() {
         struct mach_task_basic_info basic_info {};
         mach_msg_type_number_t info_count = MACH_TASK_BASIC_INFO_COUNT;
         if (::task_info(
-                mach_task_self(), MACH_TASK_BASIC_INFO, reinterpret_cast<task_info_t>(&basic_info), &info_count
-            ) == KERN_SUCCESS) {
+                mach_task_self(),
+                MACH_TASK_BASIC_INFO,
+                reinterpret_cast<task_info_t>(&basic_info),
+                &info_count
+            ) == KERN_SUCCESS)
+        {
             stats.rss_kb = basic_info.resident_size / 1024;
         }
     }
@@ -246,7 +262,9 @@ utils::statistics::impl::SystemStats GetSelfSystemStatisticsFromKernel() {
 
 void DumpMetric(Writer& writer, const SystemStats& stats) {
     const auto put_field = [&writer](std::string_view name, const auto& value) {
-        if (value) writer[name] = *value;
+        if (value) {
+            writer[name] = *value;
+        }
     };
     put_field("cpu_time_sec", stats.cpu_time_sec);
     put_field("rss_kb", stats.rss_kb);

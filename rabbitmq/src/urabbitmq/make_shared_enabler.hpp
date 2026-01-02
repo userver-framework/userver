@@ -10,7 +10,9 @@ template <class Base>
 class MakeSharedEnabler final : public Base {
 public:
     template <typename... Args>
-    MakeSharedEnabler(Args&&... args) : Base{std::forward<Args>(args)...} {}
+    MakeSharedEnabler(Args&&... args)
+        : Base{std::forward<Args>(args)...}
+    {}
 };
 
 }  // namespace urabbitmq

@@ -37,6 +37,7 @@ struct Statistics final {
     UpdateStatistics full_update;
     UpdateStatistics incremental_update;
     std::atomic<std::size_t> documents_current_count{0};
+    std::atomic<bool> is_first_sync_update_complete{false};  // Success or failure does not matter here.
 };
 
 void DumpMetric(utils::statistics::Writer& writer, const Statistics& stats);

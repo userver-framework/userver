@@ -79,6 +79,7 @@ components_manager:
             environment-secrets-key: SECDIST_CONFIG
 
         http-client:
+        http-client-core:
             fs-task-processor: main-task-processor
 
         tests-control:

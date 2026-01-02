@@ -21,7 +21,11 @@ StatusCode Parse(const Value& value, formats::parse::To<StatusCode>) {
     const auto integer = value.template As<IntType>();
     if (integer < kMinCode || integer > kMaxCode) {
         throw typename Value::Exception(fmt::format(
-            "StatusCode value {} out of [{}..{}] range at '{}'", integer, kMinCode, kMaxCode, value.GetPath()
+            "StatusCode value {} out of [{}..{}] range at '{}'",
+            integer,
+            kMinCode,
+            kMaxCode,
+            value.GetPath()
         ));
     }
 

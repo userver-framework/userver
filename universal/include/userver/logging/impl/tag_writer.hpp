@@ -69,8 +69,9 @@ private:
 
 constexpr bool DoesTagNeedEscaping(std::string_view key) noexcept {
     for (const char c : key) {
-        const bool needs_no_escaping_in_all_formats = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
-                                                      (c >= '0' && c <= '9') || c == '_' || c == '-' || c == '/';
+        const bool needs_no_escaping_in_all_formats =
+            (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_' || c == '-' ||
+            c == '/';
         if (!needs_no_escaping_in_all_formats) {
             return true;
         }
@@ -79,7 +80,9 @@ constexpr bool DoesTagNeedEscaping(std::string_view key) noexcept {
 }
 
 template <typename StringType, typename Enabled>
-USERVER_IMPL_CONSTEVAL TagKey::TagKey(const StringType& escaped_key) : escaped_key_(escaped_key) {
+USERVER_IMPL_CONSTEVAL TagKey::TagKey(const StringType& escaped_key)
+    : escaped_key_(escaped_key)
+{
     if (DoesTagNeedEscaping(escaped_key_)) {
         ThrowInvalidEscapedTagKey(escaped_key_);
     }

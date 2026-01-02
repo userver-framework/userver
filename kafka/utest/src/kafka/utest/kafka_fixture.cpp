@@ -44,7 +44,8 @@ public:
     MockCluster()
         : conf_(CreateConfiguredConf()),
           handle_(rd_kafka_new(RD_KAFKA_PRODUCER, conf_.GetHandle(), nullptr, sizeof(nullptr))),
-          mock_cluster_(rd_kafka_mock_cluster_new(handle_.GetHandle(), /*broker_cnt=*/1)) {
+          mock_cluster_(rd_kafka_mock_cluster_new(handle_.GetHandle(), /*broker_cnt=*/1))
+    {
         UINVARIANT(handle_.GetHandle(), "Failed to create fake producer");
         UINVARIANT(mock_cluster_.GetHandle(), "Failed to get mock cluster handle");
         conf_.ForgetUnderlyingConf();
@@ -73,7 +74,9 @@ bool operator==(const Message& lhs, const Message& rhs) {
            std::tie(rhs.topic, rhs.key, rhs.payload, rhs.partition);
 }
 
-KafkaCluster::KafkaCluster() : bootstrap_servers_{rd_kafka_mock_cluster_bootstraps(mock_->GetMockCluster())} {
+KafkaCluster::KafkaCluster()
+    : bootstrap_servers_{rd_kafka_mock_cluster_bootstraps(mock_->GetMockCluster())}
+{
     UINVARIANT(!bootstrap_servers_.empty(), "Empty bootstrap_servers");
 }
 
@@ -84,10 +87,14 @@ KafkaCluster::~KafkaCluster() = default;
 std::string KafkaCluster::GenerateTopic(std::uint32_t partition_cnt) {
     std::string topic = fmt::format("tt-{}", kTopicsCount.fetch_add(1));
     const auto err = rd_kafka_mock_topic_create(
-        mock_->GetMockCluster(), topic.c_str(), utils::numeric_cast<int>(partition_cnt), /*replication_factor=*/1
+        mock_->GetMockCluster(),
+        topic.c_str(),
+        utils::numeric_cast<int>(partition_cnt),
+        /*replication_factor=*/1
     );
     UINVARIANT(
-        err == RD_KAFKA_RESP_ERR_NO_ERROR, fmt::format("Failed to create topic '{}': {}", topic, rd_kafka_err2str(err))
+        err == RD_KAFKA_RESP_ERR_NO_ERROR,
+        fmt::format("Failed to create topic '{}': {}", topic, rd_kafka_err2str(err))
     );
 
     return topic;
@@ -124,7 +131,8 @@ Producer KafkaCluster::MakeProducer(const std::string& name, impl::ProducerConfi
         name,
         engine::current_task::GetTaskProcessor(),
         PatchDeliveryTimeout(std::move(configuration)),
-        MakeSecrets(bootstrap_servers_)};
+        MakeSecrets(bootstrap_servers_)
+    };
 }
 
 std::deque<Producer> KafkaCluster::MakeProducers(
@@ -152,9 +160,9 @@ void KafkaCluster::SendMessages(utils::span<const Message> messages) {
             header_views.push_back(HeaderView{header.GetName(), header.GetValue()});
         }
 
-        results.emplace_back(
-            producer.SendAsync(message.topic, message.key, message.payload, message.partition, header_views)
-        );
+        results
+            .emplace_back(producer
+                              .SendAsync(message.topic, message.key, message.payload, message.partition, header_views));
     }
 
     engine::WaitAllChecked(results);
@@ -177,7 +185,8 @@ impl::Consumer KafkaCluster::MakeConsumer(
         engine::current_task::GetTaskProcessor(),
         configuration,
         MakeSecrets(bootstrap_servers_),
-        std::move(params)};
+        std::move(params)
+    };
 }
 
 std::vector<Message> KafkaCluster::ReceiveMessages(
@@ -199,32 +208,34 @@ std::vector<Message> KafkaCluster::ReceiveMessages(
     std::vector<Message> received_messages;
 
     engine::SingleUseEvent event;
-    consumer_scope.Start([&received_messages,
-                          expected_messages_count,
-                          &event,
-                          &consumer_scope,
-                          &user_callback,
-                          commit = commit_after_receive](MessageBatchView messages) {
-        for (const auto& message : messages) {
-            auto reader = message.GetHeaders();
-            received_messages.emplace_back(kafka::utest::Message{
-                message.GetTopic(),
-                std::string{message.GetKey()},
-                std::string{message.GetPayload()},
-                message.GetPartition(),
-                std::vector<kafka::OwningHeader>{reader.begin(), reader.end()}});
-        }
-        if (user_callback) {
-            (*user_callback)(messages);
-        }
-        if (commit) {
-            consumer_scope.AsyncCommit();
-        }
+    consumer_scope
+        .Start([&received_messages,
+                expected_messages_count,
+                &event,
+                &consumer_scope,
+                &user_callback,
+                commit = commit_after_receive](MessageBatchView messages) {
+            for (const auto& message : messages) {
+                auto reader = message.GetHeaders();
+                received_messages.emplace_back(kafka::utest::Message{
+                    message.GetTopic(),
+                    std::string{message.GetKey()},
+                    std::string{message.GetPayload()},
+                    message.GetPartition(),
+                    std::vector<kafka::OwningHeader>{reader.begin(), reader.end()}
+                });
+            }
+            if (user_callback) {
+                (*user_callback)(messages);
+            }
+            if (commit) {
+                consumer_scope.AsyncCommit();
+            }
 
-        if (received_messages.size() == expected_messages_count) {
-            event.Send();
-        }
-    });
+            if (received_messages.size() == expected_messages_count) {
+                event.Send();
+            }
+        });
 
     event.Wait();
 

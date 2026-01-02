@@ -28,10 +28,11 @@ public:
 
 /// [Hello service sample - main]
 int main(int argc, char* argv[]) {
-    const auto component_list = components::MinimalServerComponentList()
-                                    .Append<samples::hello::Hello>()
-                                    .Append<components::DefaultSecdistProvider>()
-                                    .Append<components::Secdist>();
+    const auto component_list =
+        components::MinimalServerComponentList()
+            .Append<samples::hello::Hello>()
+            .Append<components::DefaultSecdistProvider>()
+            .Append<components::Secdist>();
     return utils::DaemonMain(argc, argv, component_list);
 }
 /// [Hello service sample - main]

@@ -2,9 +2,9 @@
 
 #include <stdexcept>
 
-#include <fmt/format.h>
-
 #include <userver/formats/json/value.hpp>
+
+#include <fmt/format.h>
 
 USERVER_NAMESPACE_BEGIN
 

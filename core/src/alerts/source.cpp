@@ -10,12 +10,16 @@ namespace impl {
 bool SourceData::IsExpired() const { return stop_timepoint.load() < std::chrono::steady_clock::now(); }
 
 void DumpMetric(utils::statistics::Writer& writer, const SourceData& m) {
-    if (m.IsExpired()) m.fired = false;
+    if (m.IsExpired()) {
+        m.fired = false;
+    }
     writer = m.fired;
 }
 }  // namespace impl
 
-Source::Source(std::string_view name) : tag_(fmt::format("alerts.{}", name)) {}
+Source::Source(std::string_view name)
+    : tag_(fmt::format("alerts.{}", name))
+{}
 
 void Source::FireAlert(utils::statistics::MetricsStorage& storage, std::chrono::seconds duration) const {
     auto& metric = storage.GetMetric(tag_);

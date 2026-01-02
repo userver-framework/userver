@@ -21,7 +21,11 @@ USERVER_NAMESPACE_BEGIN
 
 namespace proto_structs::tests {
 
-enum TestEnum { kValue0 = 0, kValue1 = 1, kValue2 = 2 };
+enum TestEnum {
+    kValue0 = 0,
+    kValue1 = 1,
+    kValue2 = 2
+};
 
 using RawOneof = proto_structs::Oneof<int32_t, int32_t, std::string, TestEnum, structs::Simple>;
 

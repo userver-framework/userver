@@ -12,7 +12,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace logging::impl {
 
-TcpSocketClient::TcpSocketClient(std::vector<engine::io::Sockaddr> addrs) : addrs_(std::move(addrs)) {}
+TcpSocketClient::TcpSocketClient(std::vector<engine::io::Sockaddr> addrs)
+    : addrs_(std::move(addrs))
+{}
 
 void TcpSocketClient::Connect() {
     Close();
@@ -50,7 +52,9 @@ bool TcpSocketClient::IsConnected() { return socket_.Fd() != -1; }
 
 TcpSocketClient::~TcpSocketClient() { socket_.Close(); }
 
-TcpSocketSink::TcpSocketSink(std::vector<engine::io::Sockaddr> addr) : client_{std::move(addr)} {}
+TcpSocketSink::TcpSocketSink(std::vector<engine::io::Sockaddr> addr)
+    : client_{std::move(addr)}
+{}
 
 void TcpSocketSink::Close() {
     const std::lock_guard lock{mutex_};

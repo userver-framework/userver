@@ -5,13 +5,15 @@
 #include <fmt/compile.h>
 #include <fmt/format.h>
 
-#include <logging/timestamp.hpp>
+#include <userver/logging/impl/timestamp.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace logging::impl::formatters {
 
-Json::Json(Level level, Format format, const utils::impl::SourceLocation& location) : format_(format) {
+Json::Json(Level level, Format format, const utils::impl::SourceLocation& location)
+    : format_(format)
+{
     const auto now = std::chrono::system_clock::now();
 
     object_.emplace(sb_);

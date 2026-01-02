@@ -15,14 +15,18 @@ namespace {
 
 constexpr bool IsReservedLabelName(std::string_view name) {
     for (const auto& banned_name : impl::solomon::kReservedLabelNames) {
-        if (name == banned_name) return true;
+        if (name == banned_name) {
+            return true;
+        }
     }
     return false;
 }
 
 class SolomonJsonBuilder final : public utils::statistics::BaseFormatBuilder {
 public:
-    explicit SolomonJsonBuilder(formats::json::StringBuilder& builder) : builder_{builder} {}
+    explicit SolomonJsonBuilder(formats::json::StringBuilder& builder)
+        : builder_{builder}
+    {}
 
     void HandleMetric(std::string_view path, utils::statistics::LabelsSpan labels, const MetricValue& value) override {
         const formats::json::StringBuilder::ObjectGuard guard{builder_};
@@ -32,10 +36,10 @@ public:
             [&, this](HistogramView x) {
                 builder_.Key("hist");
                 if (x.GetBucketCount() > impl::solomon::kMaxHistogramBuckets) {
-                    LOG_LIMITED_ERROR() << "Histogram at '" << path << "' has " << x.GetBucketCount()
-                                        << " buckets, which is more than the maximum of "
-                                        << impl::solomon::kMaxHistogramBuckets
-                                        << " that Solomon allows. Skipping the metric";
+                    LOG_LIMITED_ERROR()
+                        << "Histogram at '" << path << "' has " << x.GetBucketCount()
+                        << " buckets, which is more than the maximum of " << impl::solomon::kMaxHistogramBuckets
+                        << " that Solomon allows. Skipping the metric";
                     UASSERT(false);
                     return;
                 }
@@ -88,32 +92,33 @@ private:
 
             const bool is_reserved = IsReservedLabelName(name);
             if (is_reserved) {
-                LOG_LIMITED_ERROR() << "Label '" << name
-                                    << "': this name is reserved and cannot be used in "
-                                       "Solomon service metrics, skipping";
+                LOG_LIMITED_ERROR()
+                    << "Label '" << name
+                    << "': this name is reserved and cannot be used in "
+                       "Solomon service metrics, skipping";
                 UASSERT(false);
                 continue;
             }
 
             if (written_labels >= impl::solomon::kMaxLabels) {
-                LOG_LIMITED_ERROR() << "Label '" << label.Name()
-                                    << "' exceeds labels limit for Solomon; will be discarded";
+                LOG_LIMITED_ERROR()
+                    << "Label '" << label.Name() << "' exceeds labels limit for Solomon; will be discarded";
                 UASSERT(false);
                 continue;
             }
 
             if (name.size() > impl::solomon::kMaxLabelNameLen) {
-                LOG_LIMITED_WARNING() << "Label '" << name << "': name is longer than "
-                                      << impl::solomon::kMaxLabelNameLen
-                                      << " chars allowed in Solomon; will be truncated";
+                LOG_LIMITED_WARNING()
+                    << "Label '" << name << "': name is longer than " << impl::solomon::kMaxLabelNameLen
+                    << " chars allowed in Solomon; will be truncated";
             }
             builder_.Key(name.substr(0, impl::solomon::kMaxLabelNameLen));
 
             const auto value = label.Value();
             if (value.size() > impl::solomon::kMaxLabelValueLen) {
-                LOG_LIMITED_WARNING() << "Label's '" << name << "': value '" << value << "' is longer than "
-                                      << impl::solomon::kMaxLabelValueLen
-                                      << " chars allowed in Solomon; will be truncated";
+                LOG_LIMITED_WARNING()
+                    << "Label's '" << name << "': value '" << value << "' is longer than "
+                    << impl::solomon::kMaxLabelValueLen << " chars allowed in Solomon; will be truncated";
             }
             builder_.WriteString(value.substr(0, impl::solomon::kMaxLabelValueLen));
 

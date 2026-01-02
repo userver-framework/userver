@@ -20,7 +20,7 @@ def cpp_name_func():
 @pytest.fixture
 def simple_gen(simple_parse, clean, cpp_name_func):
     def func(input_: dict):
-        schemas = simple_parse(input_)
+        schemas = simple_parse(input_, clear=False)
         gen = Generator(
             config=GeneratorConfig(namespaces={'vfull': ''}, include_dirs=None, infile_to_name_func=cpp_name_func),
         )

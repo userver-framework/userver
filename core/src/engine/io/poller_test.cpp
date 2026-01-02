@@ -188,13 +188,16 @@ UTEST(Poller, ReadWriteMultipleTorture) {
     for (unsigned i = 0; i < kRepetitions; ++i) {
         auto task = engine::AsyncNoSpan([&]() {
             Poller poller;
-            for (auto& pipe : pipes) poller.Add(pipe.In(), Poller::Event::kRead);
+            for (auto& pipe : pipes) {
+                poller.Add(pipe.In(), Poller::Event::kRead);
+            }
 
             Poller::Event event{};
 
             for (unsigned i = 0; i < std::size(pipes); ++i) {
                 ASSERT_EQ(
-                    poller.NextEvent(event, engine::Deadline::FromDuration(kReadTimeout)), Poller::Status::kSuccess
+                    poller.NextEvent(event, engine::Deadline::FromDuration(kReadTimeout)),
+                    Poller::Status::kSuccess
                 );
                 EXPECT_EQ(event.type, Poller::Event::kRead);
 
@@ -208,7 +211,9 @@ UTEST(Poller, ReadWriteMultipleTorture) {
         });
 
         engine::Yield();
-        for (auto& pipe : pipes) WriteOne(pipe.Out());
+        for (auto& pipe : pipes) {
+            WriteOne(pipe.Out());
+        }
         task.Get();
 
         for (unsigned i = 0; i < std::size(pipes_read_from); ++i) {

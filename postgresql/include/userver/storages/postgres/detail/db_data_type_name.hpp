@@ -11,7 +11,9 @@ namespace storages::postgres::utils {
 /// Doesn't do any checks (yet).
 constexpr std::pair<std::string_view, std::string_view> ParseDBName(std::string_view db_name) {
     const std::size_t pos = db_name.find('.');
-    if (pos == std::string_view::npos) return {{}, db_name};
+    if (pos == std::string_view::npos) {
+        return {{}, db_name};
+    }
     return {db_name.substr(0, pos), db_name.substr(pos + 1)};
 }
 

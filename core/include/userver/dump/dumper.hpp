@@ -55,7 +55,6 @@ enum class UpdateType {
     kAlreadyUpToDate,
 };
 
-// clang-format off
 /// @brief Manages dumps of a cache-like component
 ///
 /// The class is thread-safe.
@@ -74,23 +73,16 @@ enum class UpdateType {
 /// ## Dumper Dynamic config
 /// * @ref USERVER_DUMPS
 ///
-/// ## Static config
-/// Name | Type | Description | Default value
-/// ---- | ---- | ----------- | -------------
-/// `enable` | `boolean` | Whether this `Dumper` should actually read and write dumps | (required)
-/// `world-readable` | `boolean` | If `true`, dumps are created with access `0444`, otherwise with access `0400` | (required)
-/// `format-version` | `integer` | Allows to ignore dumps written with an obsolete `format-version` | (required)
-/// `max-age` | optional `string` (duration) | Overdue dumps are ignored | null
-/// `max-count` | optional `integer` | Old dumps over the limit are removed from disk | `1`
-/// `min-interval` | `string` (duration) | `WriteDumpAsync` calls performed in a fast succession are ignored | `0s`
-/// `fs-task-processor` | `string` | `TaskProcessor` for blocking disk IO | engine::current_task::GetBlockingTaskProcessor()
-/// `encrypted` | `boolean` | Whether to encrypt the dump | `false`
+/// ## Static config of @ref dump::Dumper :
+/// @include{doc} scripts/docs/en/components_schema/core/src/dump/dumper.md
+///
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
 ///
 /// ## Sample usage
 /// @snippet core/src/dump/dumper_test.cpp  Sample Dumper usage
 ///
 /// @see components::DumpConfigurator
-// clang-format on
 class Dumper final {
 public:
     /// @brief The primary constructor for when `Dumper` is stored in a component

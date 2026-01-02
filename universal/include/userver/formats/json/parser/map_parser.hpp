@@ -11,7 +11,9 @@ class MapParser final : public TypedParser<Map>, public Subscriber<typename Map:
 public:
     using Value = typename Map::mapped_type;
 
-    explicit MapParser(ValueParser& value_parser) : value_parser_(value_parser) {}
+    explicit MapParser(ValueParser& value_parser)
+        : value_parser_(value_parser)
+    {}
 
     void Reset() override { this->state_ = State::kStart; }
 
@@ -27,7 +29,9 @@ public:
     }
 
     void Key(std::string_view key) override {
-        if (state_ != State::kInside) this->Throw("object");
+        if (state_ != State::kInside) {
+            this->Throw("object");
+        }
 
         key_ = key;
         this->value_parser_.Reset();

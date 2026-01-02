@@ -15,15 +15,16 @@
 #include "greeter_service.hpp"
 
 int main(int argc, const char* const argv[]) {
-    const auto component_list = components::MinimalServerComponentList()
-                                    .Append<server::handlers::ServerMonitor>()
-                                    .Append<congestion_control::Component>()
-                                    .Append<components::TestsuiteSupport>()
-                                    .AppendComponentList(ugrpc::server::DefaultComponentList())
-                                    .AppendComponentList(ugrpc::client::DefaultComponentList())
-                                    .Append<ugrpc::client::ClientFactoryComponent>()
-                                    .Append<functional_tests::GreeterClient>()
-                                    .Append<functional_tests::GreeterServiceComponent>();
+    const auto component_list =
+        components::MinimalServerComponentList()
+            .Append<server::handlers::ServerMonitor>()
+            .Append<congestion_control::Component>()
+            .Append<components::TestsuiteSupport>()
+            .AppendComponentList(ugrpc::server::DefaultComponentList())
+            .AppendComponentList(ugrpc::client::DefaultComponentList())
+            .Append<ugrpc::client::ClientFactoryComponent>()
+            .Append<functional_tests::GreeterClient>()
+            .Append<functional_tests::GreeterServiceComponent>();
 
     return utils::DaemonMain(argc, argv, component_list);
 }

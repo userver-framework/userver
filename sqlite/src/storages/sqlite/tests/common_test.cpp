@@ -25,13 +25,14 @@ UTEST_F(SQLiteCommonTest, ReadWrite) {
     ClientPtr client;
     UEXPECT_NO_THROW(client = CreateClient(settings));
     UEXPECT_NO_THROW(client->Execute(
-        storages::sqlite::OperationType::kReadWrite, "CREATE TABLE test (id INTEGER PRIMARY KEY, value TEXT)"
+        storages::sqlite::OperationType::kReadWrite,
+        "CREATE TABLE test (id INTEGER PRIMARY KEY, value TEXT)"
     ));
-    UEXPECT_NO_THROW(
-        client->Execute(storages::sqlite::OperationType::kReadWrite, "INSERT INTO test VALUES (1, 'first') ")
+    UEXPECT_NO_THROW(client
+                         ->Execute(storages::sqlite::OperationType::kReadWrite, "INSERT INTO test VALUES (1, 'first') ")
     );
-    UEXPECT_NO_THROW(
-        client->Execute(storages::sqlite::OperationType::kReadWrite, "INSERT INTO test VALUES (2, 'second')")
+    UEXPECT_NO_THROW(client
+                         ->Execute(storages::sqlite::OperationType::kReadWrite, "INSERT INTO test VALUES (2, 'second')")
     );
     UEXPECT_THROW(
         client->Execute(storages::sqlite::OperationType::kReadOnly, "INSERT INTO test VALUES (3, 'third')"),
@@ -46,12 +47,10 @@ UTEST_F(SQLiteCommonTest, ReadWrite) {
         client->Execute(storages::sqlite::OperationType::kReadWrite, "INSERT INTO test VALUES (3, 'third') RETURNING *")
             .AsVector<RowTuple>()
     ));
-    UEXPECT_NO_THROW(
-        (client->Execute(storages::sqlite::OperationType::kReadOnly, "SELECT * FROM test").AsVector<RowTuple>())
-    );
-    UEXPECT_NO_THROW(
-        (client->Execute(storages::sqlite::OperationType::kReadWrite, "SELECT * FROM test").AsVector<RowTuple>())
-    );
+    UEXPECT_NO_THROW((client->Execute(storages::sqlite::OperationType::kReadOnly, "SELECT * FROM test")
+                          .AsVector<RowTuple>()));
+    UEXPECT_NO_THROW((client->Execute(storages::sqlite::OperationType::kReadWrite, "SELECT * FROM test")
+                          .AsVector<RowTuple>()));
 }
 
 UTEST_F(SQLiteCommonTest, ReadOnly) {
@@ -60,11 +59,13 @@ UTEST_F(SQLiteCommonTest, ReadOnly) {
         settings.db_path = GetTestDbPath("test.db");
         settings.create_file = true;
         ClientPtr client;
-        UEXPECT_NO_THROW(client = CreateClient(settings)) << "Connect to a non-existent database, but the file will be "
-                                                             "created "
-                                                             "automatically";
+        UEXPECT_NO_THROW(client = CreateClient(settings))
+            << "Connect to a non-existent database, but the file will be "
+               "created "
+               "automatically";
         UEXPECT_NO_THROW(client->Execute(
-            storages::sqlite::OperationType::kReadWrite, "CREATE TABLE test (id INTEGER PRIMARY KEY, value TEXT)"
+            storages::sqlite::OperationType::kReadWrite,
+            "CREATE TABLE test (id INTEGER PRIMARY KEY, value TEXT)"
         ));
         UEXPECT_NO_THROW(
             client->Execute(storages::sqlite::OperationType::kReadWrite, "INSERT INTO test VALUES (1, 'first')")
@@ -92,12 +93,10 @@ UTEST_F(SQLiteCommonTest, ReadOnly) {
              .AsVector<RowTuple>()),
         SQLiteException
     );
-    UEXPECT_NO_THROW(
-        (client->Execute(storages::sqlite::OperationType::kReadOnly, "SELECT * FROM test").AsVector<RowTuple>())
-    );
-    UEXPECT_NO_THROW(
-        (client->Execute(storages::sqlite::OperationType::kReadWrite, "SELECT * FROM test").AsVector<RowTuple>())
-    );
+    UEXPECT_NO_THROW((client->Execute(storages::sqlite::OperationType::kReadOnly, "SELECT * FROM test")
+                          .AsVector<RowTuple>()));
+    UEXPECT_NO_THROW((client->Execute(storages::sqlite::OperationType::kReadWrite, "SELECT * FROM test")
+                          .AsVector<RowTuple>()));
 }
 
 }  // namespace storages::sqlite::tests

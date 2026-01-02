@@ -22,34 +22,21 @@ class TestsuiteTasks;
 
 namespace components {
 
-// clang-format off
-
 /// @ingroup userver_components
 ///
 /// @brief Testsuite support component
 ///
 /// Provides additional functionality for testing, e.g. forced cache updates.
 ///
-/// ## Static options:
-/// Name | Description | Default value
-/// ---- | ----------- | -------------
-/// testsuite-periodic-update-enabled | whether caches update periodically | true
-/// testsuite-pg-execute-timeout | execute timeout override for postgres | -
-/// testsuite-pg-statement-timeout | statement timeout override for postgres | -
-/// testsuite-pg-readonly-master-expected | mutes readonly master detection warning | false
-/// testsuite-redis-timeout-connect | minimum connection timeout for redis | -
-/// testsuite-redis-timeout-single | minimum single shard timeout for redis | -
-/// testsuite-redis-timeout-all | minimum command timeout for redis | -
-/// testsuite-tasks-enabled | enable testsuite tasks facility | false
-/// testsuite-increased-timeout | increase timeouts for connections, statement executions, RPC timeouts to avoid timeouts happening in testing environments, where the hardware differs from production. Overrides postgres, redis and grpc timeouts if these are missing | 0ms
-/// cache-update-execution |  If 'sequential' the caches are updated by testsuite sequentially in the order for cache component registration, which makes sense if service has components that push value into a cache component. If 'concurrent' the caches are updated concurrently with respect to the cache component dependencies. | concurrent
+/// ## Static options of components::TestsuiteSupport :
+/// @include{doc} scripts/docs/en/components_schema/core/src/testsuite/testsuite_support.md
+///
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
 ///
 /// ## Static configuration example:
 ///
 /// @snippet components/common_component_list_test.cpp  Sample testsuite support component config
-
-// clang-format on
-
 class TestsuiteSupport final : public components::RawComponentBase {
 public:
     /// @ingroup userver_component_names

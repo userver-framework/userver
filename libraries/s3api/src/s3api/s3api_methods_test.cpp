@@ -66,7 +66,8 @@ TEST(S3ApiMethods, CreateMultipartUpload) {
             {USERVER_NAMESPACE::http::headers::kContentType, "application/binary"},
             {USERVER_NAMESPACE::http::headers::kContentDisposition, "attachment; filename=\"some_file.bin\""},
             {USERVER_NAMESPACE::http::headers::kContentLanguage, "ru-RU"},
-            {USERVER_NAMESPACE::http::headers::kContentEncoding, "gzip"}};
+            {USERVER_NAMESPACE::http::headers::kContentEncoding, "gzip"}
+        };
         EXPECT_EQ(expected_headers, result.headers);
     }
     {
@@ -222,8 +223,8 @@ TEST(S3ApiMethods, ListParts) {
         EXPECT_EQ(result.bucket, "some-bucket");
         EXPECT_EQ(result.method, clients::http::HttpMethod::kGet);
 
-        const auto requested_query_params =
-            utils::text::SplitIntoStringViewVector(http::ExtractQueryView(result.req), "&");
+        const auto
+            requested_query_params = utils::text::SplitIntoStringViewVector(http::ExtractQueryView(result.req), "&");
         EXPECT_EQ(
             std::unordered_set<std::string_view>({"uploadId=some_id", "max-parts=10", "part-number-marker=11"}),
             std::unordered_set<std::string_view>(requested_query_params.begin(), requested_query_params.end())

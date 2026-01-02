@@ -20,7 +20,8 @@ public:
 
     GreeterClientTestComponent(const components::ComponentConfig& config, const components::ComponentContext& context)
         : components::ComponentBase(config, context),
-          client_(context.FindComponent<ClientComponent>("greeter-client").GetClient()) {
+          client_(context.FindComponent<ClientComponent>("greeter-client").GetClient())
+    {
         auto& tasks = testsuite::GetTestsuiteTasks(context);
 
         tasks.RegisterTask("call-say-hello", [this] { SayHello(); });

@@ -7,7 +7,7 @@
 #include <fmt/format.h>
 
 #include <userver/clients/dns/component.hpp>
-#include <userver/clients/http/component.hpp>
+#include <userver/clients/http/component_list.hpp>
 #include <userver/components/component.hpp>
 #include <userver/components/minimal_server_component_list.hpp>
 #include <userver/concurrent/variable.hpp>
@@ -57,12 +57,15 @@ ReadStoreReturn::ReadStoreReturn(const components::ComponentConfig& config, cons
     : server::handlers::HttpHandlerBase(config, context),
       redis_client_{context.FindComponent<components::Redis>("key-value-database")
                         .GetSubscribeClient(config["db"].As<std::string>())},
-      token_with_queue_(Subscribe()) {}
+      token_with_queue_(Subscribe())
+{}
 
 ReadStoreReturn::~ReadStoreReturn() { token_with_queue_.Unsubscribe(); }
 
-std::string ReadStoreReturn::
-    HandleRequestThrow(const server::http::HttpRequest& request, server::request::RequestContext& /*context*/) const {
+std::string ReadStoreReturn::HandleRequestThrow(
+    const server::http::HttpRequest& request,
+    server::request::RequestContext& /*context*/
+) const {
     switch (request.GetMethod()) {
         case server::http::HttpMethod::kGet:
             return Get();
@@ -72,7 +75,8 @@ std::string ReadStoreReturn::
             return Update();
         default:
             throw server::handlers::ClientError(server::handlers::ExternalBody{
-                fmt::format("Unsupported method {}", request.GetMethod())});
+                fmt::format("Unsupported method {}", request.GetMethod())
+            });
     }
 }
 
@@ -150,15 +154,20 @@ ManySubscriptions::ManySubscriptions(
 )
     : server::handlers::HttpHandlerBase(config, context),
       redis_client_{context.FindComponent<components::Redis>("key-value-database")
-                        .GetSubscribeClient(config["db"].As<std::string>())} {}
+                        .GetSubscribeClient(config["db"].As<std::string>())}
+{}
 
 ManySubscriptions::~ManySubscriptions() {
     auto tokens = tokens_.Lock();
-    for (auto& token : *tokens) token.Unsubscribe();
+    for (auto& token : *tokens) {
+        token.Unsubscribe();
+    }
 }
 
-std::string ManySubscriptions::
-    HandleRequestThrow(const server::http::HttpRequest& request, server::request::RequestContext& /*context*/) const {
+std::string ManySubscriptions::HandleRequestThrow(
+    const server::http::HttpRequest& request,
+    server::request::RequestContext& /*context*/
+) const {
     constexpr size_t kRequestsCount = 1000;
     const bool allow_reads_from_master = request.GetArg("allow_reads_from_master") == "true";
     LOG_DEBUG() << "allow_reads_from_master: " << allow_reads_from_master;
@@ -171,7 +180,9 @@ std::string ManySubscriptions::
             ClearTokens(*tokens);
             for (size_t i = 0; i < kRequestsCount; ++i) {
                 tokens->push_back(redis_client_->Ssubscribe(
-                    "channelname{fixshard}@" + std::to_string(i), [](const auto&, const auto& /*data*/) {}, cc
+                    "channelname{fixshard}@" + std::to_string(i),
+                    [](const auto&, const auto& /*data*/) {},
+                    cc
                 ));
             }
             break;
@@ -183,7 +194,8 @@ std::string ManySubscriptions::
         }
         default:
             throw server::handlers::ClientError(server::handlers::ExternalBody{
-                fmt::format("Unsupported method {}", request.GetMethod())});
+                fmt::format("Unsupported method {}", request.GetMethod())
+            });
     }
     return "ok";
 }
@@ -203,18 +215,19 @@ properties:
 }  // namespace chaos
 
 int main(int argc, char* argv[]) {
-    const auto component_list = components::MinimalServerComponentList()
-                                    .Append<chaos::ReadStoreReturn>("handler-cluster")
-                                    .Append<chaos::ReadStoreReturn>("handler-sentinel")
-                                    .Append<chaos::ReadStoreReturn>("handler-sentinel-with-master")
-                                    .Append<chaos::ReadStoreReturn>("handler-standalone")
-                                    .Append<chaos::ManySubscriptions>("handler-many-subscriptions")
-                                    .Append<components::HttpClient>()
-                                    .Append<components::Secdist>()
-                                    .Append<components::DefaultSecdistProvider>()
-                                    .Append<components::Redis>("key-value-database")
-                                    .Append<components::TestsuiteSupport>()
-                                    .Append<server::handlers::TestsControl>()
-                                    .Append<clients::dns::Component>();
+    const auto component_list =
+        components::MinimalServerComponentList()
+            .Append<chaos::ReadStoreReturn>("handler-cluster")
+            .Append<chaos::ReadStoreReturn>("handler-sentinel")
+            .Append<chaos::ReadStoreReturn>("handler-sentinel-with-master")
+            .Append<chaos::ReadStoreReturn>("handler-standalone")
+            .Append<chaos::ManySubscriptions>("handler-many-subscriptions")
+            .AppendComponentList(clients::http::ComponentList())
+            .Append<components::Secdist>()
+            .Append<components::DefaultSecdistProvider>()
+            .Append<components::Redis>("key-value-database")
+            .Append<components::TestsuiteSupport>()
+            .Append<server::handlers::TestsControl>()
+            .Append<clients::dns::Component>();
     return utils::DaemonMain(argc, argv, component_list);
 }

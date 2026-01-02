@@ -1,0 +1,99 @@
+type: object
+description: SQLite client component
+additionalProperties: false
+properties:
+    fs-task-processor:
+        type: string
+        description: |
+            Name of the task processor to handle the blocking file operations
+
+            Default: engine::current_task::GetBlockingTaskProcessor()
+    db-path:
+        type: string
+        description: path to the database file or `::memory::` for in-memory mode
+    create_file:
+        type: boolean
+        description: create the database file if it does not exist at the specified
+            path
+        default: true
+    is_read_only:
+        type: boolean
+        description: open the database in read-only mode
+        default: false
+    shared_cache:
+        type: boolean
+        description: enable shared in-memory cache for the database
+        default: false
+    read_uncommitted:
+        type: boolean
+        description: allow reading uncommitted data (requires shared_cache)
+        default: false
+    journal_mode:
+        type: string
+        description: mode for database journaling
+        default: wal
+        enum:
+          - delete
+          - truncate
+          - persist
+          - memory
+          - wal
+          - false
+    busy_timeout:
+        type: integer
+        description: timeout duration (in milliseconds) to wait when the database
+            is busy
+        default: 5000
+    foreign_keys:
+        type: boolean
+        description: enable enforcement of foreign key constraints
+        default: true
+    synchronous:
+        type: string
+        description: set the level of synchronization to ensure data durability
+        default: normal
+        enum:
+          - extra
+          - full
+          - normal
+          - false
+    cache_size:
+        type: integer
+        description: maximum cache size, specified in number of pages or in kibibytes
+            (negative value)
+        default: -2000
+    journal_size_limit:
+        type: integer
+        description: limit the size of rollback-journal and WAL files (in bytes)
+        default: 67108864
+    mmap_size:
+        type: integer
+        description: maximum number of bytes allocated for memory-mapped I/O
+        default: 30000000000
+    page_size:
+        type: integer
+        description: size of a database page (in bytes)
+        default: 4096
+    temp_store:
+        type: string
+        description: storage location for temporary tables and indexes
+        default: memory
+        enum:
+          - memory
+          - file
+    persistent-prepared-statements:
+        type: boolean
+        description: cache prepared statements for reuse
+        default: true
+    max_prepared_cache_size:
+        type: integer
+        description: maximum number of prepared statements to cache
+        default: 200
+    initial_read_only_pool_size:
+        type: integer
+        description: initial size of the read-only connection pool
+        default: 5
+    max_read_only_pool_size:
+        type: integer
+        description: maximum size of the read-only connection pool
+        default: 10

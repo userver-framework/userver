@@ -4,6 +4,7 @@
 #include <userver/yaml_config/merge_schemas.hpp>
 
 #include <userver/clients/http/component.hpp>
+#include <userver/clients/http/component_list.hpp>
 #include <userver/components/component_context.hpp>
 
 #include <userver/clients/dns/component.hpp>
@@ -24,7 +25,8 @@ public:
     ActionClient(const components::ComponentConfig& config, const components::ComponentContext& context)
         : ComponentBase{config, context},
           service_url_(config["service-url"].As<std::string>()),
-          http_client_(context.FindComponent<components::HttpClient>().GetHttpClient()) {}
+          http_client_(context.FindComponent<components::HttpClient>().GetHttpClient())
+    {}
 
     auto CreateHttpRequest(std::string action) const {
         return http_client_.CreateRequest().url(service_url_).post().data(std::move(action)).perform();
@@ -51,7 +53,9 @@ private:
 /// [ActionDep]
 class ActionDep {
 public:
-    explicit ActionDep(const components::ComponentContext& config) : component_{config.FindComponent<ActionClient>()} {}
+    explicit ActionDep(const components::ComponentContext& config)
+        : component_{config.FindComponent<ActionClient>()}
+    {}
     auto CreateActionRequest(std::string action) const { return component_.CreateHttpRequest(std::move(action)); }
 
     static void RegisterOn(easy::HttpBase& app) {
@@ -71,13 +75,16 @@ class MyHandler final : public server::handlers::HttpHandlerBase {
 public:
     MyHandler(const components::ComponentConfig& config, const components::ComponentContext& component_context)
         : HttpHandlerBase(config, component_context),
-          deps_(component_context.FindComponent<DepsComponent>().GetDependencies()) {}
+          deps_(component_context.FindComponent<DepsComponent>().GetDependencies())
+    {}
 
     std::string HandleRequestThrow(const server::http::HttpRequest& request, server::request::RequestContext&)
         const override {
         const auto& action = request.GetArg("action");
         deps_.pg().Execute(
-            storages::postgres::ClusterHostType::kMaster, "INSERT INTO events_table(action) VALUES($1)", action
+            storages::postgres::ClusterHostType::kMaster,
+            "INSERT INTO events_table(action) VALUES($1)",
+            action
         );
         return deps_.CreateActionRequest(action)->body();
     }
@@ -87,14 +94,15 @@ private:
 };
 
 int main(int argc, char* argv[]) {
-    auto component_list = components::MinimalServerComponentList()
-                              .Append<components::TestsuiteSupport>()
-                              .Append<components::HttpClient>()
-                              .Append<clients::dns::Component>()
-                              .Append<ActionClient>()
-                              .Append<DepsComponent>()
-                              .Append<components::Postgres>("postgres")
-                              .Append<MyHandler>("/log-POST");
+    auto component_list =
+        components::MinimalServerComponentList()
+            .Append<components::TestsuiteSupport>()
+            .AppendComponentList(clients::http::ComponentList())
+            .Append<clients::dns::Component>()
+            .Append<ActionClient>()
+            .Append<DepsComponent>()
+            .Append<components::Postgres>("postgres")
+            .Append<MyHandler>("/log-POST");
 
     return utils::DaemonMain(argc, argv, component_list);
 }

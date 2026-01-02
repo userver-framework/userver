@@ -1,11 +1,5 @@
 #include <userver/ugrpc/server/impl/call_processor.hpp>
 
-#include <chrono>
-
-#include <boost/container/flat_map.hpp>
-
-#include <userver/logging/impl/logger_base.hpp>
-#include <userver/logging/log.hpp>
 #include <userver/tracing/opentelemetry.hpp>
 #include <userver/tracing/tags.hpp>
 #include <userver/utils/algo.hpp>
@@ -21,27 +15,6 @@ USERVER_NAMESPACE_BEGIN
 namespace ugrpc::server::impl {
 
 namespace {
-
-void ReportFinishSuccess(const grpc::Status& status, CallState& state) noexcept {
-    try {
-        const auto status_code = status.error_code();
-        state.statistics_scope.OnExplicitFinish(status_code);
-
-        auto& span = state.GetSpan();
-        span.AddNonInheritableTag(tracing::kGrpcCode, ugrpc::ToString(status_code));
-        if (!status.ok()) {
-            span.AddNonInheritableTag(tracing::kErrorFlag, true);
-            span.AddNonInheritableTag(tracing::kErrorMessage, status.error_message());
-            const auto default_error_log_level =
-                IsServerError(status.error_code()) ? logging::Level::kError : logging::Level::kWarning;
-            const auto error_log_level =
-                utils::FindOrDefault(state.status_codes_log_level, status.error_code(), default_error_log_level);
-            span.SetLogLevel(error_log_level);
-        }
-    } catch (const std::exception& ex) {
-        LOG_ERROR() << "Error in ReportFinishSuccess: " << ex;
-    }
-}
 
 logging::Level AdjustLogLevelForCancellations(logging::Level level) {
     return engine::current_task::ShouldCancel() ? std::min(level, logging::Level::kWarning) : level;
@@ -72,9 +45,8 @@ void SetupSpan(
             span_holder.emplace(std::string{span_name}, utils::impl::SourceLocation::Current());
         } else {
             auto data = std::move(extraction_result).value();
-            span_holder.emplace(
-                std::string{span_name}, data.trace_id, data.span_id, utils::impl::SourceLocation::Current()
-            );
+            span_holder
+                .emplace(std::string{span_name}, data.trace_id, data.span_id, utils::impl::SourceLocation::Current());
         }
     } else if (const auto* const trace_id = utils::FindOrNullptr(client_metadata, ugrpc::impl::kXYaTraceId)) {
         const auto* const parent_span_id = utils::FindOrNullptr(client_metadata, ugrpc::impl::kXYaSpanId);
@@ -100,39 +72,8 @@ void SetupSpan(
     span.AddNonInheritableTag(tracing::kRpcMethod, std::string{method_name});
 }
 
-grpc::Status ReportHandlerError(const std::exception& ex, CallState& state) noexcept {
-    try {
-        auto& span = state.GetSpan();
-        const auto log_level = AdjustLogLevelForCancellations(logging::Level::kError);
-        LOG(log_level) << "Uncaught exception in '" << state.call_name << "': " << ex;
-        span.AddNonInheritableTag(tracing::kErrorFlag, true);
-        span.AddNonInheritableTag(tracing::kErrorMessage, ex.what());
-        span.SetLogLevel(log_level);
-        return kUnknownErrorStatus;
-    } catch (const std::exception& new_ex) {
-        LOG_ERROR() << "Error in ReportHandlerError: " << new_ex;
-        return grpc::Status{grpc::StatusCode::INTERNAL, ""};
-    }
-}
-
-void ReportRpcInterruptedError(CallState& state) noexcept {
-    try {
-        // RPC interruption leads to asynchronous task cancellation by RpcFinishedEvent,
-        // so the task either is already cancelled, or is going to be cancelled.
-        LOG_WARNING() << "RPC interrupted in '" << state.call_name
-                      << "'. The previously logged cancellation or network exception, if any, is likely caused by it.";
-        state.statistics_scope.OnNetworkError();
-        auto& span = state.GetSpan();
-        span.AddNonInheritableTag(tracing::kErrorMessage, "RPC interrupted");
-        span.AddNonInheritableTag(tracing::kErrorFlag, true);
-        span.SetLogLevel(logging::Level::kWarning);
-    } catch (const std::exception& ex) {
-        LOG_ERROR() << "Error in ReportRpcInterruptedError: " << ex;
-    }
-}
-
-grpc::Status
-ReportCustomError(const USERVER_NAMESPACE::server::handlers::CustomHandlerException& ex, CallState& state) noexcept {
+grpc::Status ReportCustomError(const USERVER_NAMESPACE::server::handlers::CustomHandlerException& ex, CallState& state)
+    noexcept {
     try {
         grpc::Status status{CustomStatusToGrpc(ex.GetCode()), ex.GetExternalErrorBody()};
 
@@ -151,11 +92,49 @@ ReportCustomError(const USERVER_NAMESPACE::server::handlers::CustomHandlerExcept
     }
 }
 
-void CheckFinishStatus(bool finish_op_succeeded, const grpc::Status& status, CallState& state) noexcept {
-    if (finish_op_succeeded) {
-        ReportFinishSuccess(status, state);
-    } else {
-        ReportRpcInterruptedError(state);
+grpc::Status ReportHandlerError(const std::exception& ex, CallState& state) noexcept {
+    try {
+        auto& span = state.GetSpan();
+        const auto log_level = AdjustLogLevelForCancellations(logging::Level::kError);
+        LOG(log_level) << "Uncaught exception in '" << state.call_name << "': " << ex;
+        span.AddNonInheritableTag(tracing::kErrorFlag, true);
+        span.AddNonInheritableTag(tracing::kErrorMessage, ex.what());
+        span.SetLogLevel(log_level);
+        return kUnknownErrorStatus;
+    } catch (const std::exception& new_ex) {
+        LOG_ERROR() << "Error in ReportHandlerError: " << new_ex;
+        return grpc::Status{grpc::StatusCode::INTERNAL, ""};
+    }
+}
+
+void ReportFinished(const grpc::Status& status, CallState& state) noexcept {
+    try {
+        state.statistics_scope.OnExplicitFinish(status.error_code());
+        auto& span = state.GetSpan();
+        span.AddNonInheritableTag(tracing::kGrpcCode, ugrpc::ToString(status.error_code()));
+        if (!status.ok()) {
+            span.AddNonInheritableTag(tracing::kErrorFlag, true);
+            span.AddNonInheritableTag(tracing::kErrorMessage, status.error_message());
+            const auto default_error_log_level =
+                IsServerError(status.error_code()) ? logging::Level::kError : logging::Level::kWarning;
+            const auto error_log_level =
+                utils::FindOrDefault(state.status_codes_log_level, status.error_code(), default_error_log_level);
+            span.SetLogLevel(error_log_level);
+        }
+    } catch (const std::exception& ex) {
+        LOG_ERROR() << "Error in ReportFinished: " << ex;
+    }
+}
+
+void ReportInterrupted(CallState& state) noexcept {
+    try {
+        state.statistics_scope.OnNetworkError();
+        auto& span = state.GetSpan();
+        span.AddNonInheritableTag(tracing::kErrorFlag, true);
+        span.AddNonInheritableTag(tracing::kErrorMessage, "RPC interrupted");
+        span.SetLogLevel(logging::Level::kWarning);
+    } catch (const std::exception& ex) {
+        LOG_ERROR() << "Error in ReportInterrupted: " << ex;
     }
 }
 

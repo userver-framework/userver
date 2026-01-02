@@ -1,13 +1,13 @@
 import collections
+from collections.abc import Generator
 import contextlib
 import dataclasses
 import os
 import re
 from typing import Any
-from typing import Generator
 from typing import NoReturn
-from typing import Optional
-from typing import Union
+
+import pydantic
 
 from chaotic import error
 from chaotic.front import ref
@@ -32,6 +32,54 @@ class ParserState:
 
 class ParserError(error.BaseError):
     pass
+
+
+ERROR_MESSAGES = {
+    'extra_forbidden': 'Extra fields are forbidden ({input})',
+    'missing': 'Required field "{field}" is missing',
+    'string_type': 'String type is expected, {input} is found',
+    'bool_type': 'Boolean type is expected, {input} is found',
+    'int_type': 'Integer type is expected, {input} is found',
+}
+
+
+def missing_field_msg(field: str) -> str:
+    return ERROR_MESSAGES['missing'].format(field=field)
+
+
+def convert_error(
+    full_filepath: str,
+    infile_path: str,
+    schema_type: str,
+    err: pydantic.ValidationError,
+) -> ParserError:
+    assert len(err.errors()) >= 1
+
+    # show only the first error
+    error = err.errors()[0]
+
+    if len(error['loc']) > 0:
+        # the last location is the missing field name
+        field = error['loc'][-1]
+    else:
+        field = ''
+
+    if error['type'] in ERROR_MESSAGES:
+        msg = ERROR_MESSAGES[error['type']].format(**error, field=field)
+    else:
+        msg = error['msg']
+
+    if infile_path:
+        infile_path = infile_path + '/' + '/'.join(map(str, error['loc']))
+    else:
+        infile_path = '/'.join(map(str, error['loc']))
+
+    return ParserError(
+        full_filepath=full_filepath,
+        infile_path=infile_path,
+        schema_type=schema_type,
+        msg=msg,
+    )
 
 
 class SchemaParser:
@@ -66,17 +114,16 @@ class SchemaParser:
                 self._raise(f'Duplicate path: {path}')
             self._state.schemas[path] = data
 
-    def _parse_schema(self, input__: dict) -> Union[types.Schema, types.Ref]:
+    def _parse_schema(self, input__: dict) -> types.Schema | types.Ref:
         data = self.do_parse_schema(input__)
         source_location = types.SourceLocation(
             filepath=self.full_vfilepath,
             location=self._state.infile_path,
         )
-        # pylint: disable=protected-access
-        data._source_location = source_location  # type: ignore
+        data.source_location_ = source_location
         return data
 
-    def do_parse_schema(self, input__: dict) -> Union[types.Schema, types.Ref]:
+    def do_parse_schema(self, input__: dict) -> types.Schema | types.Ref:
         if 'type' in input__:
             return self._parse_type(input__['type'], input__)
         elif '$ref' in input__:
@@ -89,7 +136,8 @@ class SchemaParser:
             self._raise('"type" is missing')
 
     def _parse_allof(self, variants: list, input__: dict) -> types.AllOf:
-        raw = types.AllOfRaw(**input__)
+        fields = input__.copy()
+        fields.pop('allOf')
 
         variables: list[types.Schema] = []
         with self._path_enter('allOf') as _:
@@ -99,28 +147,26 @@ class SchemaParser:
                     if not isinstance(type_, (types.SchemaObject, types.Ref)):
                         self._raise(f'Non-object type in allOf: {type_.type}')  # type: ignore
                     variables.append(type_)
-        obj = types.AllOf(allOf=variables)
-        obj.x_properties = raw.x_properties  # type: ignore
+        obj = types.AllOf(allOf=variables, **fields)
         return obj
 
     def _parse_oneof(self, variants: list, input__: dict) -> types.Schema:
-        raw = types.OneOfRaw(**input__)
-
         variables = []
         discriminator = input__.get('discriminator')
-        with self._path_enter('oneOf') as _:
-            if not discriminator:
-                # oneOf w/o discriminator
+        if not discriminator:
+            # oneOf w/o discriminator
+            fields = input__.copy()
+            fields.pop('oneOf')
+            with self._path_enter('oneOf') as _:
                 for i, variant in enumerate(variants):
                     with self._path_enter(str(i)) as _:
                         type_ = self._parse_schema(variant)
                         variables.append(type_)
-                obj = types.OneOfWithoutDiscriminator(
-                    oneOf=variables,
-                    nullable=raw.nullable,
-                )
-                obj.x_properties = raw.x_properties  # type:ignore
-                return obj
+            obj = types.OneOfWithoutDiscriminator(
+                oneOf=variables,
+                **fields,
+            )
+            return obj
 
         return self._parse_oneof_w_discriminator(variants, input__)
 
@@ -247,6 +293,8 @@ class SchemaParser:
             self._raise(exc.msg)
         except ParserError:
             raise
+        except pydantic.ValidationError as exc:
+            raise convert_error(self.full_filepath, self._state.infile_path, 'jsonschema', exc) from None
         except Exception as exc:  # pylint: disable=broad-exception-caught
             self._raise(str(exc))
         else:
@@ -283,43 +331,44 @@ class SchemaParser:
             return types.Array(items=items, **input_)
 
     def _parse_object(self, input_: dict) -> types.SchemaObject:
-        fake = types.SchemaObjectRaw(**input_)
-
+        fields = input_.copy()
+        new_props = {}
         with self._path_enter('properties') as _:
-            new_props = {}
-            if fake.properties:
-                for prop in fake.properties:
-                    with self._path_enter(prop) as _:
-                        value = self._parse_schema(fake.properties[prop])
-                        new_props[prop] = value
+            for prop, raw_value in fields.get('properties', {}).items():
+                with self._path_enter(prop) as _:
+                    value = self._parse_schema(raw_value)
+                    new_props[prop] = value
+        fields.pop('properties', None)
 
         add_props: bool | types.Schema | types.Ref
         with self._path_enter('additionalProperties') as _:
-            if isinstance(fake.additionalProperties, bool):
-                add_props = fake.additionalProperties
+            additional_properties = fields.get('additionalProperties', False)
+            if isinstance(additional_properties, bool):
+                add_props = additional_properties
             else:
-                add_props = self._parse_schema(fake.additionalProperties)
+                add_props = self._parse_schema(additional_properties)
+        fields.pop('additionalProperties', None)
 
         obj = types.SchemaObject(
             additionalProperties=add_props,
-            required=fake.required,
             properties=new_props,
+            **fields,
         )
-        obj.x_properties = fake.x_properties  # type: ignore
         return obj
 
     def _parse_boolean(self, input_: dict) -> types.Boolean:
         return types.Boolean(**input_)
 
     def _parse_int(self, input_: dict) -> types.Integer:
-        format_str = input_.pop('format', None)
+        fields = input_.copy()
+        format_str = fields.pop('format', None)
 
-        fmt: Optional[types.IntegerFormat]
+        fmt: types.IntegerFormat | None
         if format_str:
             fmt = types.IntegerFormat.from_string(format_str)
         else:
             fmt = None
-        return types.Integer(**input_, format=fmt)
+        return types.Integer(**fields, format=fmt)
 
     def _parse_number(self, input_: dict) -> types.Number:
         number = types.Number(**input_)
@@ -328,13 +377,14 @@ class SchemaParser:
         return number
 
     def _parse_string(self, input_: dict) -> types.String:
-        format_str = input_.pop('format', None)
-        fmt: Optional[types.StringFormat]
+        fields = input_.copy()
+        format_str = fields.pop('format', None)
+        fmt: types.StringFormat | None
         if format_str:
             fmt = types.StringFormat.from_string(format_str)
         else:
             fmt = None
-        return types.String(**input_, format=fmt)
+        return types.String(**fields, format=fmt)
 
     def _parse_file(self, input_: dict) -> types.String:
         if not self._config.allow_file:
@@ -374,9 +424,8 @@ class SchemaParser:
 
         fields = set(input_.keys())
         fields.remove('$ref')
-        if 'description' in fields:
-            # description is explicitly allowed in $ref
-            fields.remove('description')
+        # description is explicitly allowed in $ref
+        fields.discard('description')
 
         if 'x-usrv-cpp-indirect' in fields:
             indirect = True

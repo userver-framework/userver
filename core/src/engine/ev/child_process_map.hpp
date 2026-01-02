@@ -11,7 +11,9 @@ namespace engine::ev {
 
 struct ChildProcessMapValue {
     explicit ChildProcessMapValue(engine::Promise<subprocess::ChildProcessStatus> status_promise)
-        : start_time(std::chrono::steady_clock::now()), status_promise(std::move(status_promise)) {}
+        : start_time(std::chrono::steady_clock::now()),
+          status_promise(std::move(status_promise))
+    {}
 
     std::chrono::steady_clock::time_point start_time;
     engine::Promise<subprocess::ChildProcessStatus> status_promise;

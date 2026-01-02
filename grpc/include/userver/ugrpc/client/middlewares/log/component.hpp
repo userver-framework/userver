@@ -12,8 +12,6 @@ USERVER_NAMESPACE_BEGIN
 /// @see @ref ugrpc::client::middlewares::log::Component
 namespace ugrpc::client::middlewares::log {
 
-struct Settings;
-
 /// @ingroup userver_components
 ///
 /// @brief Component for gRPC client logging
@@ -24,12 +22,11 @@ struct Settings;
 /// @warning Logs are currently written with log level `debug` by default, which typically means that they are not
 /// written in production. See details below.
 ///
-/// ## Static options:
-/// Name | Description | Default value
-/// ---- | ----------- | -------------
-/// log-level | log level threshold | debug
-/// msg-log-level | logging level to use for request and response messages themselves | debug
-/// msg-size-log-limit | max message size to log, the rest will be truncated | 512
+/// ## Static options of ugrpc::client::middlewares::log::Component:
+/// @include{doc} scripts/docs/en/components_schema/grpc/src/ugrpc/client/middlewares/log/component.md
+///
+/// Options inherited from @ref middlewares::MiddlewareFactoryComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/middlewares/factory_component_base.md
 ///
 /// ## Static configuration example:
 ///
@@ -38,11 +35,10 @@ struct Settings;
 /// In this example, we enable logs for gRPC clients in production.
 ///
 /// @see @ref scripts/docs/en/userver/grpc/client_middlewares.md
-
 class Component final : public MiddlewareFactoryComponentBase {
 public:
     /// @ingroup userver_component_names
-    /// @brief The default name of ugrpc::client::middlewares::log::Component.
+    /// @brief The default name of @ref ugrpc::client::middlewares::log::Component.
     static constexpr std::string_view kName = "grpc-client-logging";
 
     Component(const components::ComponentConfig& config, const components::ComponentContext& context);
@@ -53,8 +49,10 @@ public:
 
     yaml_config::Schema GetMiddlewareConfigSchema() const override;
 
-    std::shared_ptr<const MiddlewareBase>
-    CreateMiddleware(const ugrpc::client::ClientInfo&, const yaml_config::YamlConfig& middleware_config) const override;
+    std::shared_ptr<const MiddlewareBase> CreateMiddleware(
+        const ugrpc::client::ClientInfo&,
+        const yaml_config::YamlConfig& middleware_config
+    ) const override;
 };
 
 }  // namespace ugrpc::client::middlewares::log
@@ -63,7 +61,7 @@ template <>
 inline constexpr bool components::kHasValidate<ugrpc::client::middlewares::log::Component> = true;
 
 template <>
-inline constexpr auto components::kConfigFileMode<ugrpc::client::middlewares::log::Component> =
-    ConfigFileMode::kNotRequired;
+inline constexpr auto
+    components::kConfigFileMode<ugrpc::client::middlewares::log::Component> = ConfigFileMode::kNotRequired;
 
 USERVER_NAMESPACE_END

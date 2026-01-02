@@ -16,21 +16,27 @@ const std::string kRequestContextKeyUserAuthInfo = "auth::user_info";
 }  // namespace
 
 UserAuthInfo::UserAuthInfo(UserId default_id, UserEnv env, UserProvider provider)
-    : default_id_{default_id}, ids_{default_id}, user_env_(env), user_provider_(provider) {}
+    : default_id_{default_id},
+      ids_{default_id},
+      user_env_(env),
+      user_provider_(provider)
+{}
 
 UserAuthInfo::UserAuthInfo(UserId default_id, Ticket user_ticket, UserEnv env, UserProvider provider)
     : default_id_{default_id},
       ids_{default_id},
       user_ticket_{std::move(user_ticket)},
       user_env_(env),
-      user_provider_(provider) {}
+      user_provider_(provider)
+{}
 
 UserAuthInfo::UserAuthInfo(UserId default_id, UserIds ids, UserScopes scopes, UserEnv env, UserProvider provider)
     : default_id_(default_id),
       ids_(std::move(ids)),
       scopes_(std::move(scopes)),
       user_env_(env),
-      user_provider_(provider) {}
+      user_provider_(provider)
+{}
 
 UserAuthInfo::UserAuthInfo(
     UserId default_id,
@@ -45,7 +51,8 @@ UserAuthInfo::UserAuthInfo(
       scopes_(std::move(scopes)),
       user_ticket_{std::move(user_ticket)},
       user_env_(env),
-      user_provider_(provider) {}
+      user_provider_(provider)
+{}
 
 UserId UserAuthInfo::GetDefaultUserId() const { return default_id_; }
 

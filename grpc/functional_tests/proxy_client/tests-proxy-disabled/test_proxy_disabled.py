@@ -14,7 +14,12 @@ import samples.greeter_pb2_grpc as greeter_services
     [False, True],
 )
 async def test_proxy_disabled_by_env(
-    service_client, grpc_mockserver, taxi_config, grpc_mockserver_endpoint, cfg_enabled, no_proxy_target
+    service_client,
+    grpc_mockserver,
+    taxi_config,
+    grpc_mockserver_endpoint,
+    cfg_enabled,
+    no_proxy_target,
 ):
     taxi_config.set_values({
         'EGRESS_GRPC_PROXY_ENABLED': cfg_enabled,

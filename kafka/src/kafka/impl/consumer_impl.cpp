@@ -79,7 +79,8 @@ struct Message::MessageData final {
     explicit MessageData(impl::MessageHolder message_holder)
         : message(std::move(message_holder)),
           topic(rd_kafka_topic_name(message->rkt)),
-          timestamp(RetrieveTimestamp(message)) {}
+          timestamp(RetrieveTimestamp(message))
+    {}
 
     MessageData(MessageData&& other) noexcept = default;
 
@@ -89,7 +90,9 @@ struct Message::MessageData final {
     std::optional<std::chrono::milliseconds> timestamp;
 };
 
-Message::Message(impl::MessageHolder&& message) : data_(std::move(message)) {}
+Message::Message(impl::MessageHolder&& message)
+    : data_(std::move(message))
+{}
 
 Message::Message(Message&&) noexcept = default;
 
@@ -169,8 +172,8 @@ void PrintTopicPartitionsList(
         return;
     }
 
-    const utils::span<const rd_kafka_topic_partition_t> topic_partitions{
-        list->elems, list->elems + static_cast<std::size_t>(list->cnt)};
+    const utils::span<const rd_kafka_topic_partition_t>
+        topic_partitions{list->elems, list->elems + static_cast<std::size_t>(list->cnt)};
     for (const auto& topic_partition : topic_partitions) {
         if (skip_invalid_offsets && topic_partition.offset == RD_KAFKA_OFFSET_INVALID) {
             /// @note `librdkafka` does not sets offsets for partitions that were
@@ -226,7 +229,8 @@ bool ConsumerImpl::AssignPartitions(const rd_kafka_topic_partition_list_t* parti
             const ErrorHolder assign_err{rd_kafka_incremental_assign(consumer_.GetHandle(), partitions)};
             if (assign_err) {
                 LOG_ERROR(
-                    "Failed to incrementally assign partitions: {}", rd_kafka_error_string(assign_err.GetHandle())
+                    "Failed to incrementally assign partitions: {}",
+                    rd_kafka_error_string(assign_err.GetHandle())
                 );
                 return false;
             }
@@ -264,7 +268,8 @@ bool ConsumerImpl::RevokePartitions(const rd_kafka_topic_partition_list_t* parti
             const ErrorHolder revocation_err{rd_kafka_incremental_unassign(consumer_.GetHandle(), partitions)};
             if (revocation_err) {
                 LOG_ERROR(
-                    "Failed to incrementally revoke partitions: {}", rd_kafka_error_string(revocation_err.GetHandle())
+                    "Failed to incrementally revoke partitions: {}",
+                    rd_kafka_error_string(revocation_err.GetHandle())
                 );
                 return false;
             }
@@ -290,14 +295,16 @@ void ConsumerImpl::ErrorCallback(rd_kafka_resp_err_t error, const char* reason, 
     ) << fmt::format("Error {} occurred because of '{}': {}", static_cast<int>(error), reason, rd_kafka_err2str(error));
 
     if (error == RD_KAFKA_RESP_ERR__RESOLVE || error == RD_KAFKA_RESP_ERR__TRANSPORT ||
-        error == RD_KAFKA_RESP_ERR__AUTHENTICATION || error == RD_KAFKA_RESP_ERR__ALL_BROKERS_DOWN) {
+        error == RD_KAFKA_RESP_ERR__AUTHENTICATION || error == RD_KAFKA_RESP_ERR__ALL_BROKERS_DOWN)
+    {
         ++stats_.connections_error;
     }
 }
 
 void ConsumerImpl::LogCallback(const char* facility, const char* message, int log_level) {
-    LOG(ConvertRdKafkaLogLevelToLoggingLevel(log_level))
-        << logging::LogExtra{{{"kafka_callback", "log_callback"}, {"facility", facility}}} << message;
+    LOG(ConvertRdKafkaLogLevelToLoggingLevel(log_level)
+    ) << logging::LogExtra{{{"kafka_callback", "log_callback"}, {"facility", facility}}}
+      << message;
 }
 
 void ConsumerImpl::RebalanceCallback(rd_kafka_resp_err_t err, const rd_kafka_topic_partition_list_t* partitions) {
@@ -334,15 +341,16 @@ void ConsumerImpl::RebalanceCallback(rd_kafka_resp_err_t err, const rd_kafka_top
 void ConsumerImpl::CallUserRebalanceCallback(
     const rd_kafka_topic_partition_list_s* partitions,
     RebalanceEventType event_type
-) noexcept try {
+) noexcept try
+{
     tracing::Span span{"kafka_user_rebalance_callback"};
 
     if (!rebalance_callback_ || partitions == nullptr || partitions->cnt <= 0) {
         return;
     }
 
-    utils::span<const rd_kafka_topic_partition_t> kafka_topic_partitions{
-        partitions->elems, partitions->elems + static_cast<std::size_t>(partitions->cnt)};
+    utils::span<const rd_kafka_topic_partition_t>
+        kafka_topic_partitions{partitions->elems, partitions->elems + static_cast<std::size_t>(partitions->cnt)};
     std::vector<TopicPartitionView> topic_partitions;
     topic_partitions.reserve(kafka_topic_partitions.size());
 
@@ -363,7 +371,9 @@ void ConsumerImpl::CallUserRebalanceCallback(
         }
 
         topic_partitions.emplace_back(
-            topic_partition.topic, static_cast<std::uint32_t>(topic_partition.partition), partition_offset
+            topic_partition.topic,
+            static_cast<std::uint32_t>(topic_partition.partition),
+            partition_offset
         );
     }
 
@@ -418,7 +428,8 @@ ConsumerImpl::ConsumerImpl(
       execution_params_(execution_params),
       rebalance_callback_(rebalance_callback_opt),
       stats_(stats),
-      consumer_(conf) {}
+      consumer_(conf)
+{}
 
 const Stats& ConsumerImpl::GetStats() const { return stats_; }
 
@@ -430,8 +441,8 @@ void ConsumerImpl::StartConsuming() {
         rd_kafka_topic_partition_list_add(topic_partitions_list.GetHandle(), topic.c_str(), RD_KAFKA_PARTITION_UA);
     }
 
-    LOG(execution_params_.operation_log_level)
-        << fmt::format("Consumer is subscribing to topics: [{}]", fmt::join(topics_, ", "));
+    LOG(execution_params_.operation_log_level
+    ) << fmt::format("Consumer is subscribing to topics: [{}]", fmt::join(topics_, ", "));
     // Only initiates subscribe process
     auto err = rd_kafka_subscribe(consumer_.GetHandle(), topic_partitions_list.GetHandle());
     if (err != RD_KAFKA_RESP_ERR_NO_ERROR) {
@@ -486,15 +497,18 @@ OffsetRange ConsumerImpl::GetOffsetRange(
         throw OffsetRangeException{fmt::format("Failed to get offsets: {}", rd_kafka_err2str(err)), topic, partition};
     }
     if (low_offset == RD_KAFKA_OFFSET_INVALID || high_offset == RD_KAFKA_OFFSET_INVALID || low_offset < 0 ||
-        high_offset < 0) {
+        high_offset < 0)
+    {
         throw OffsetRangeException{"Failed to get offsets: invalid offset.", topic, partition};
     }
 
     return {static_cast<std::uint64_t>(low_offset), static_cast<std::uint64_t>(high_offset)};
 }
 
-std::vector<std::uint32_t>
-ConsumerImpl::GetPartitionIds(utils::zstring_view topic, std::optional<std::chrono::milliseconds> timeout) const {
+std::vector<std::uint32_t> ConsumerImpl::GetPartitionIds(
+    utils::zstring_view topic,
+    std::optional<std::chrono::milliseconds> timeout
+) const {
     const MetadataHolder metadata{[this, &topic, &timeout] {
         const rd_kafka_metadata_t* raw_metadata{nullptr};
         const TopicHolder topic_holder{rd_kafka_topic_new(consumer_.GetHandle(), topic.c_str(), nullptr)};
@@ -518,18 +532,18 @@ ConsumerImpl::GetPartitionIds(utils::zstring_view topic, std::optional<std::chro
         return raw_metadata;
     }()};
 
-    const utils::span<const rd_kafka_metadata_topic> topics{
-        metadata->topics, static_cast<std::size_t>(metadata->topic_cnt)};
-    const auto* topic_it =
-        std::find_if(topics.begin(), topics.end(), [&topic](const rd_kafka_metadata_topic& topic_raw) {
+    const utils::span<const rd_kafka_metadata_topic>
+        topics{metadata->topics, static_cast<std::size_t>(metadata->topic_cnt)};
+    const auto*
+        topic_it = std::find_if(topics.begin(), topics.end(), [&topic](const rd_kafka_metadata_topic& topic_raw) {
             return topic == topic_raw.topic;
         });
     if (topic_it == topics.end()) {
         throw TopicNotFoundException{fmt::format("Failed to find topic: {}", topic)};
     }
 
-    const utils::span<const rd_kafka_metadata_partition> partitions{
-        topic_it->partitions, static_cast<std::size_t>(topic_it->partition_cnt)};
+    const utils::span<const rd_kafka_metadata_partition>
+        partitions{topic_it->partitions, static_cast<std::size_t>(topic_it->partition_cnt)};
     std::vector<std::uint32_t> partition_ids;
     partition_ids.reserve(partitions.size());
 
@@ -557,7 +571,9 @@ void ConsumerImpl::DispatchEvent(const EventHolder& event_holder) {
         } break;
         case RD_KAFKA_EVENT_ERROR:
             ErrorCallback(
-                rd_kafka_event_error(event), rd_kafka_event_error_string(event), rd_kafka_event_error_is_fatal(event)
+                rd_kafka_event_error(event),
+                rd_kafka_event_error_string(event),
+                rd_kafka_event_error_is_fatal(event)
             );
             break;
         case RD_KAFKA_EVENT_LOG: {
@@ -612,8 +628,8 @@ std::optional<Message> ConsumerImpl::PollMessage(engine::Deadline deadline) {
         const auto time_left_ms = ToRdKafkaTimeout(deadline);
         LOG(execution_params_.debug_info_log_level) << fmt::format("Polling message for {}ms", time_left_ms);
         if (EventHolder event = PollEvent()) {
-            LOG(execution_params_.debug_info_log_level)
-                << fmt::format("Polled {} event", ToString(rd_kafka_event_type(event.GetHandle())));
+            LOG(execution_params_.debug_info_log_level
+            ) << fmt::format("Polled {} event", ToString(rd_kafka_event_type(event.GetHandle())));
 
             if (IsMessageEvent(event)) {
                 return TakeEventMessage(std::move(event));
@@ -622,7 +638,8 @@ std::optional<Message> ConsumerImpl::PollMessage(engine::Deadline deadline) {
             }
         } else {
             LOG(execution_params_.debug_info_log_level) << fmt::format(
-                "No sufficient messages are available, suspending consumer execution for at most {}ms", time_left_ms
+                "No sufficient messages are available, suspending consumer execution for at most {}ms",
+                time_left_ms
             );
 
             if (!queue_became_non_empty_event_.WaitForEventUntil(deadline)) {
@@ -664,8 +681,11 @@ void ConsumerImpl::AccountPolledMessageStat(const Message& polled_message) {
     const auto message_timestamp = polled_message.GetTimestamp();
     if (message_timestamp) {
         const auto take_time = std::chrono::system_clock::now().time_since_epoch();
-        const auto ms_duration =
+        auto ms_duration =
             std::chrono::duration_cast<std::chrono::milliseconds>(take_time - message_timestamp.value()).count();
+        if (ms_duration < 0) {
+            ms_duration = 0;
+        }
         topic_stats->avg_ms_spent_time.GetCurrentCounter().Account(ms_duration);
     } else {
         LOG_WARNING(
@@ -724,17 +744,24 @@ void ConsumerImpl::SeekToOffset(
     // Here, `rd_kafka_queue_poll` call is required to activate the assign operation
     // Namely, after `rd_kafka_assign` called, poll must be called to process the operation
     // and assignment take effect
-    { EventHolder event{rd_kafka_queue_poll(consumer_.GetQueue(), ToRdKafkaTimeout(deadline))}; }
+    {
+        EventHolder event{rd_kafka_queue_poll(consumer_.GetQueue(), ToRdKafkaTimeout(deadline))};
+    }
 
     TopicPartitionsListHolder topic_partitions_list{rd_kafka_topic_partition_list_new(1)};
     rd_kafka_topic_partition_t* part = rd_kafka_topic_partition_list_add(
-        topic_partitions_list.GetHandle(), topic.c_str(), static_cast<std::int32_t>(partition_id)
+        topic_partitions_list.GetHandle(),
+        topic.c_str(),
+        static_cast<std::int32_t>(partition_id)
     );
     part->offset = offset;
 
     PrintTopicPartitionsList(topic_partitions_list.GetHandle(), [](const rd_kafka_topic_partition_t& partition) {
         return fmt::format(
-            "Partition {} for topic '{}' seeking to offset: {}", partition.partition, partition.topic, partition.offset
+            "Partition {} for topic '{}' seeking to offset: {}",
+            partition.partition,
+            partition.topic,
+            partition.offset
         );
     });
 

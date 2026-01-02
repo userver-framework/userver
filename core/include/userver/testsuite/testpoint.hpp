@@ -103,7 +103,10 @@ USERVER_NAMESPACE_END
         if (!USERVER_NAMESPACE::testsuite::impl::IsTestpointEnabled(userver_impl_tp_name)) break;   \
                                                                                                     \
         USERVER_NAMESPACE::testsuite::impl::ExecuteTestpointBlocking(                               \
-            userver_impl_tp_name, json, callback, task_processor                                    \
+            userver_impl_tp_name,                                                                   \
+            json,                                                                                   \
+            callback,                                                                               \
+            task_processor                                                                          \
         );                                                                                          \
     } while (false)
 

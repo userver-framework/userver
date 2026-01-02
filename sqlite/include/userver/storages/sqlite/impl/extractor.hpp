@@ -15,7 +15,9 @@ namespace storages::sqlite::impl {
 template <typename T, typename ExtractionTag>
 class TypedExtractor final : public impl::ExtractorBase {
 public:
-    explicit TypedExtractor(impl::ResultWrapper& result_wrapper) : binder_{result_wrapper} {}
+    explicit TypedExtractor(impl::ResultWrapper& result_wrapper)
+        : binder_{result_wrapper}
+    {}
 
     ~TypedExtractor() final = default;
 

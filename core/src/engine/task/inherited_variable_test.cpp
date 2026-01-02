@@ -142,9 +142,9 @@ UTEST(TaskInheritedVariable, Overwrite) {
 
 UTEST(TaskInheritedVariable, SameObjectIsInherited) {
     kStringVariable.Set("foo");
-    const auto* const kParentVariablePtr = &kStringVariable.Get();
+    const auto* const parent_variable_ptr = &kStringVariable.Get();
 
-    utils::Async("subtask", [&] { EXPECT_EQ(&kStringVariable.Get(), kParentVariablePtr); }).Get();
+    utils::Async("subtask", [&] { EXPECT_EQ(&kStringVariable.Get(), parent_variable_ptr); }).Get();
 }
 
 UTEST_MT(TaskInheritedVariable, VariablesAfterParentTaskDeath, 4) {
@@ -193,8 +193,12 @@ UTEST_MT(TaskInheritedVariable, VariablesAfterParentTaskDeath, 4) {
     assigned_a.Send();
 
     engine::SharedTaskWithResult<void>* tasks[3] = {&task_a, &task_b, &task_c};
-    for (auto* task : tasks) task->Wait();
-    for (auto* task : tasks) task->Get();
+    for (auto* task : tasks) {
+        task->Wait();
+    }
+    for (auto* task : tasks) {
+        task->Get();
+    }
 }
 
 USERVER_NAMESPACE_END

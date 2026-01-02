@@ -54,7 +54,7 @@ template <>
 inline constexpr bool components::kHasValidate<grpc_protovalidate::server::ValidatorComponent> = true;
 
 template <>
-inline constexpr auto components::kConfigFileMode<grpc_protovalidate::server::ValidatorComponent> =
-    ConfigFileMode::kNotRequired;
+inline constexpr auto
+    components::kConfigFileMode<grpc_protovalidate::server::ValidatorComponent> = ConfigFileMode::kNotRequired;
 
 USERVER_NAMESPACE_END

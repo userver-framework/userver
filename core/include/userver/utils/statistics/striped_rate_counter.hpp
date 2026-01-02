@@ -36,12 +36,16 @@ public:
 
     explicit StripedRateCounter(Rate desired) { Add(desired); }
 
-    explicit StripedRateCounter(Rate::ValueType desired) : StripedRateCounter(Rate{desired}) {}
+    explicit StripedRateCounter(Rate::ValueType desired)
+        : StripedRateCounter(Rate{desired})
+    {}
 
     StripedRateCounter(const StripedRateCounter& other) { val_.Add(other.LoadImpl()); }
 
     StripedRateCounter& operator=(const StripedRateCounter& other) noexcept {
-        if (this == &other) return *this;
+        if (this == &other) {
+            return *this;
+        }
 
         offset_ = other.LoadImpl() - val_.Read();
         return *this;

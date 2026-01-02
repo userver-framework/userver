@@ -23,9 +23,9 @@ public:
 private:
     void HandleRequest(http::HttpRequest& request, request::RequestContext& context) const override;
 
-    bool CheckRateLimit(const http::HttpRequest& request) const;
+    bool CheckRateLimit(const http::HttpRequest& request, request::RequestContext& context) const;
 
-    void FailProcessingAndSetResponse(const http::HttpRequest& request) const;
+    void FailProcessingAndSetResponse(const http::HttpRequest& request, request::RequestContext& context) const;
 
     mutable utils::TokenBucket rate_limit_;
     handlers::HttpHandlerStatistics& statistics_;

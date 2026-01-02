@@ -7,9 +7,10 @@ UTEST(AdminChannel, DeclareRemoveExchange) {
     auto channel = client->GetAdminChannel(client.GetDeadline());
     urabbitmq::Exchange exchange{"some_exchange"};
 
-    const auto declare_exchange = [&client, &exchange](
-                                      urabbitmq::AdminChannel& channel, urabbitmq::Exchange::Type type
-                                  ) { channel.DeclareExchange(exchange, type, {}, client.GetDeadline()); };
+    const auto declare_exchange =
+        [&client, &exchange](urabbitmq::AdminChannel& channel, urabbitmq::Exchange::Type type) {
+            channel.DeclareExchange(exchange, type, {}, client.GetDeadline());
+        };
     declare_exchange(channel, urabbitmq::Exchange::Type::kFanOut);
     // 406 PRECONDITION_FAILED
     EXPECT_ANY_THROW(declare_exchange(channel, urabbitmq::Exchange::Type::kDirect));
@@ -28,9 +29,10 @@ UTEST(AdminChannel, DeclareRemoveQueue) {
     auto channel = client->GetAdminChannel(client.GetDeadline());
     urabbitmq::Queue queue{"some_queue"};
 
-    const auto declare_queue = [&client, &queue](
-                                   urabbitmq::AdminChannel& channel, utils::Flags<urabbitmq::Queue::Flags> flags
-                               ) { channel.DeclareQueue(queue, flags, client.GetDeadline()); };
+    const auto declare_queue =
+        [&client, &queue](urabbitmq::AdminChannel& channel, utils::Flags<urabbitmq::Queue::Flags> flags) {
+            channel.DeclareQueue(queue, flags, client.GetDeadline());
+        };
     declare_queue(channel, urabbitmq::Queue::Flags::kDurable);
     // 406 PRECONDITION_FAILED
     EXPECT_ANY_THROW(declare_queue(channel, urabbitmq::Queue::Flags::kNone));

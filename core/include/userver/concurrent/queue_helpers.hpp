@@ -50,7 +50,9 @@ public:
     }
 
     ~Producer() {
-        if (queue_) queue_->MarkProducerIsDead();
+        if (queue_) {
+            queue_->MarkProducerIsDead();
+        }
     }
 
     /// Push an element into queue. May wait asynchronously if the queue is full.
@@ -73,7 +75,9 @@ public:
     }
 
     void Reset() && noexcept {
-        if (queue_) queue_->MarkProducerIsDead();
+        if (queue_) {
+            queue_->MarkProducerIsDead();
+        }
         queue_.reset();
         [[maybe_unused]] ProducerToken for_destruction = std::move(token_);
     }
@@ -84,7 +88,9 @@ public:
     /// @cond
     // For internal use only
     Producer(std::shared_ptr<QueueType> queue, EmplaceEnablerType /*unused*/)
-        : queue_(std::move(queue)), token_(queue_->queue_) {}
+        : queue_(std::move(queue)),
+          token_(queue_->queue_)
+    {}
     /// @endcond
 
 private:
@@ -118,7 +124,9 @@ public:
     }
 
     ~Consumer() {
-        if (queue_) queue_->MarkConsumerIsDead();
+        if (queue_) {
+            queue_->MarkConsumerIsDead();
+        }
     }
 
     /// @brief Pop an element from queue.
@@ -145,7 +153,9 @@ public:
     }
 
     void Reset() && {
-        if (queue_) queue_->MarkConsumerIsDead();
+        if (queue_) {
+            queue_->MarkConsumerIsDead();
+        }
         queue_.reset();
         [[maybe_unused]] ConsumerToken for_destruction = std::move(token_);
     }
@@ -156,7 +166,9 @@ public:
     /// @cond
     // For internal use only
     Consumer(std::shared_ptr<QueueType> queue, EmplaceEnablerType /*unused*/)
-        : queue_(std::move(queue)), token_(queue_->queue_) {}
+        : queue_(std::move(queue)),
+          token_(queue_->queue_)
+    {}
     /// @endcond
 
 private:

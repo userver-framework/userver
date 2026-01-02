@@ -56,7 +56,9 @@ logging::Level ToLogLevel(::gpr_log_severity severity) noexcept {
 void LogFunction(::gpr_log_func_args* args) noexcept {
     UASSERT(args);
     const auto lvl = ToLogLevel(args->severity);
-    if (!logging::ShouldLog(lvl)) return;
+    if (!logging::ShouldLog(lvl)) {
+        return;
+    }
 
     auto& logger = logging::GetDefaultLogger();
     const auto location = utils::impl::SourceLocation::Custom(args->line, args->file, "");
@@ -98,7 +100,9 @@ void SetupNativeLogging() {
     class AbslLogSink final : public absl::LogSink {
         void Send(const absl::LogEntry& entry) override {
             const auto lvl = ToLogLevel(entry.log_severity());
-            if (!logging::ShouldLog(lvl)) return;
+            if (!logging::ShouldLog(lvl)) {
+                return;
+            }
 
             auto& logger = logging::GetDefaultLogger();
             const auto location = utils::impl::SourceLocation::Custom(entry.source_line(), entry.source_filename(), "");

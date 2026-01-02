@@ -35,7 +35,6 @@ private:
 }  // namespace storages::secdist
 
 namespace components {
-// clang-format off
 
 /// @ingroup userver_components
 ///
@@ -43,22 +42,15 @@ namespace components {
 ///
 /// The component must be configured in service config.
 ///
-/// ## Static options:
-/// Name | Description | Default value
-/// ---- | ----------- | -------------
-/// config | path to the config file with data | ''
-/// inline | inline data | -
-/// format | config format, one of `json`, `yaml`, `yaml_config` | 'json'
-/// missing-ok | do not terminate components load if no file found by the config option | false
-/// environment-secrets-key | name of environment variable from which to load additional data | -
-/// blocking-task-processor | name of task processor for background blocking operations | engine::current_task::GetBlockingTaskProcessor()
-
-// clang-format on
-
+/// ## Static options of components::DefaultSecdistProvider :
+/// @include{doc} scripts/docs/en/components_schema/core/src/storages/secdist/provider_component.md
+///
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
 class DefaultSecdistProvider final : public ComponentBase, public storages::secdist::SecdistProvider {
 public:
     /// @ingroup userver_component_names
-    /// @brief The default name of components::DefaultSecdistProvider
+    /// @brief The default name of @ref components::DefaultSecdistProvider
     static constexpr std::string_view kName = "default-secdist-provider";
 
     DefaultSecdistProvider(const ComponentConfig&, const ComponentContext&);

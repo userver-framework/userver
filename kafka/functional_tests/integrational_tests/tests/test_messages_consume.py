@@ -1,6 +1,3 @@
-from typing import Dict
-from typing import List
-
 from common import generate_messages_to_consume
 
 from utils import consume
@@ -45,7 +42,7 @@ async def test_consume_many_messages_many_topics(
     await service_client.enable_testpoints()
 
     topics = [TOPIC1, TOPIC2]
-    messages: Dict[str, List[Dict[str, str]]] = generate_messages_to_consume(
+    messages: dict[str, list[dict[str, str]]] = generate_messages_to_consume(
         topics=topics,
         cnt=15,
     )

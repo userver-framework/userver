@@ -20,7 +20,9 @@ public:
     using ProtobufResponse = proto_structs::traits::CompatibleMessageType<StructsResponse>;
     using ProtobufReader = ugrpc::client::Reader<ProtobufResponse>;
 
-    explicit Reader(ProtobufReader&& reader) : reader_{std::move(reader)} {}
+    explicit Reader(ProtobufReader&& reader)
+        : reader_{std::move(reader)}
+    {}
 
     Reader(Reader&&) = default;
     Reader& operator=(Reader&&) = default;
@@ -63,33 +65,39 @@ public:
 
     using ProtobufWriter = ugrpc::client::Writer<ProtobufRequest, ProtobufResponse>;
 
-    explicit Writer(ProtobufWriter&& writer) : writer_{std::move(writer)} {}
+    explicit Writer(ProtobufWriter&& writer)
+        : writer_{std::move(writer)}
+    {}
 
     Writer(Writer&&) = default;
     Writer& operator=(Writer&&) = default;
 
-    /// @brief Write the next outgoing message
-    [[nodiscard]] bool Write(const StructsRequest& request) {
-        return writer_.Write(proto_structs::StructToMessage(request));
-    }
-
-    /// @brief Write the next outgoing message
+    /// @brief Write the next outgoing message.
+    /// @note This version may move some fields from the request.
     [[nodiscard]] bool Write(StructsRequest&& request) {
         return writer_.Write(proto_structs::StructToMessage(std::move(request)));
     }
 
-    /// @brief Write the next outgoing message and check result
-    void WriteAndCheck(const StructsRequest& request) {
-        writer_.WriteAndCheck(proto_structs::StructToMessage(request));
+    /// @brief Write the next outgoing message.
+    /// @note This version preserves the original request object by copying necessary data.
+    [[nodiscard]] bool WriteCopy(const StructsRequest& request) {
+        return writer_.Write(proto_structs::StructToMessage(request));
     }
 
-    /// @brief Write the next outgoing message and check result
+    /// @brief Write the next outgoing message and check result.
+    /// @note This version may move some fields from the request.
     void WriteAndCheck(StructsRequest&& request) {
         writer_.WriteAndCheck(proto_structs::StructToMessage(std::move(request)));
     }
 
+    /// @brief Write the next outgoing message and check result.
+    /// @note This version preserves the original request object by copying necessary data.
+    void WriteCopyAndCheck(const StructsRequest& request) {
+        writer_.WriteAndCheck(proto_structs::StructToMessage(request));
+    }
+
     /// @brief Complete the RPC successfully
-    StructsResponse Finish() { return writer_.Finish(); }
+    StructsResponse Finish() { return proto_structs::MessageToStruct<StructsResponse>(writer_.Finish()); }
 
     /// @brief Get call context, useful e.g. for accessing metadata.
     ugrpc::client::CallContext& GetContext() { return writer_.GetContext(); }
@@ -110,7 +118,9 @@ public:
 
     using ProtobufReaderWriter = ugrpc::client::ReaderWriter<ProtobufRequest, ProtobufResponse>;
 
-    explicit ReaderWriter(ProtobufReaderWriter&& reader_writer) : reader_writer_{std::move(reader_writer)} {}
+    explicit ReaderWriter(ProtobufReaderWriter&& reader_writer)
+        : reader_writer_{std::move(reader_writer)}
+    {}
 
     ReaderWriter(ReaderWriter&&) = default;
     ReaderWriter& operator=(ReaderWriter&&) = default;

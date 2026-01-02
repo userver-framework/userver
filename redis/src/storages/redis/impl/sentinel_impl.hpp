@@ -51,14 +51,21 @@ public:
 
         SentinelCommand() = default;
         SentinelCommand(CommandPtr command, bool master, size_t shard, std::chrono::steady_clock::time_point start)
-            : command(command), master(master), shard(shard), start(start) {}
+            : command(command),
+              master(master),
+              shard(shard),
+              start(start)
+        {}
     };
 
     SentinelImplBase() = default;
     virtual ~SentinelImplBase() = default;
 
-    virtual std::unordered_map<ServerId, size_t, ServerIdHasher>
-    GetAvailableServersWeighted(size_t shard_idx, bool with_master, const CommandControl& cc) const = 0;
+    virtual std::unordered_map<ServerId, size_t, ServerIdHasher> GetAvailableServersWeighted(
+        size_t shard_idx,
+        bool with_master,
+        const CommandControl& cc
+    ) const = 0;
 
     virtual void WaitConnectedDebug(bool allow_empty_slaves) = 0;
 
@@ -107,8 +114,11 @@ public:
     );
     ~SentinelImpl() override;
 
-    std::unordered_map<ServerId, size_t, ServerIdHasher>
-    GetAvailableServersWeighted(size_t shard_idx, bool with_master, const CommandControl& cc) const override;
+    std::unordered_map<ServerId, size_t, ServerIdHasher> GetAvailableServersWeighted(
+        size_t shard_idx,
+        bool with_master,
+        const CommandControl& cc
+    ) const override;
 
     void WaitConnectedDebug(bool allow_empty_slaves) override;
 

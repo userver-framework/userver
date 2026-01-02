@@ -17,6 +17,7 @@
 #include <components/component_context_component_info.hpp>
 #include <components/manager.hpp>
 #include <components/manager_config.hpp>
+#include <engine/task/task_processor.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -26,8 +27,6 @@ namespace {
 
 const std::string kOnAllComponentsLoadedRootName = "all_components_loaded";
 const std::string kClearComponentsRootName = "clear_components";
-
-const std::chrono::seconds kPrintAddingComponentsPeriod{10};
 
 }  // namespace
 
@@ -39,7 +38,9 @@ ComponentContextImpl::LoadingComponentScope::LoadingComponentScope(
     ComponentContextImpl& context,
     ComponentInfo& component
 )
-    : context_(context), component_(component) {
+    : context_(context),
+      component_(component)
+{
     auto data = context_.shared_data_.Lock();
     data->loading_components.insert(component_);
 }
@@ -53,7 +54,9 @@ ComponentContextImpl::SearchingComponentScope::SearchingComponentScope(
     const ComponentContextImpl& context,
     ComponentInfo& component
 )
-    : context_(context), component_(component) {
+    : context_(context),
+      component_(component)
+{
     auto data = context_.shared_data_.Lock();
     data->searching_components.insert(component_);
 }
@@ -72,13 +75,21 @@ auto& ComponentContextImpl::GetComponentInfo(Self& self, std::string_view compon
 }
 
 ComponentContextImpl::ComponentContextImpl(const Manager& manager, std::vector<std::string>&& loading_component_names)
-    : manager_(manager) {
+    : manager_(manager),
+      trace_plugin_(engine::current_task::GetTaskProcessor().GetWorkerCount())
+{
     UASSERT(std::is_sorted(loading_component_names.begin(), loading_component_names.end()));
     UASSERT(
         std::unique(loading_component_names.begin(), loading_component_names.end()) == loading_component_names.end()
     );
 
     components_.reserve(loading_component_names.size());
+
+    if (manager.GetConfig().enable_component_load_tracing) {
+        LOG_WARNING() << "Component loading tracing is enabled";
+        auto& tp = engine::current_task::GetTaskProcessor();
+        tp.RegisterPlugin(trace_plugin_);
+    }
 
     for (auto& component_name : loading_component_names) {
         auto [_, success] = components_.emplace(std::move(component_name));
@@ -96,8 +107,9 @@ RawComponentBase* ComponentContextImpl::AddComponent(
     auto& component_info = GetComponentInfo(*this, name);
     const LoadingComponentScope loading_component_scope(*this, component_info);
 
-    if (component_info.GetComponent())
+    if (component_info.GetComponent()) {
         throw std::runtime_error("trying to add component " + std::string{name} + " multiple times");
+    }
 
     // Put `context` on heap to detect use-after-free consistently.
     const auto context = std::make_unique<ComponentContext>(utils::impl::InternalTag{}, *this, component_info);
@@ -108,9 +120,10 @@ RawComponentBase* ComponentContextImpl::AddComponent(
     if (component) {
         // Call the following command on logs to get the component dependencies:
         // sed -n 's/^.*component deps: \(.*\)$/\1/p'
-        LOG_TRACE() << "component deps: "
-                    << fmt::format("\"{0}\" [label=\"{0}\n{1}\"]; ", name, compiler::GetTypeName(typeid(*component)))
-                    << component_info.GetDependencies();
+        LOG_TRACE()
+            << "component deps: "
+            << fmt::format("\"{0}\" [label=\"{0}\n{1}\"]; ", name, compiler::GetTypeName(typeid(*component)))
+            << component_info.GetDependencies();
     }
     return component;
 }
@@ -155,6 +168,11 @@ void ComponentContextImpl::OnAllComponentsAreStopping() {
 }
 
 void ComponentContextImpl::ClearComponents() {
+    if (components_.empty()) {
+        // Already cleared
+        return;
+    }
+
     StopPrintAddingComponentsTask();
     const tracing::Span span(kClearComponentsRootName);
     OnAllComponentsAreStopping();
@@ -169,6 +187,7 @@ void ComponentContextImpl::ClearComponents() {
          false}
     );
 
+    components_.clear();
     LOG_INFO() << "Stopped all components";
 }
 
@@ -180,8 +199,11 @@ const Manager& ComponentContextImpl::GetManager() const { return manager_; }
 
 void ComponentContextImpl::CancelComponentsLoad() {
     CancelComponentLifetimeStageSwitching();
-    if (components_load_cancelled_.test_and_set()) return;
+    if (components_load_cancelled_.test_and_set()) {
+        return;
+    }
     for (auto& component_info : components_) {
+        LOG_DEBUG() << "Call OnLoadingCancelled() for component '" << component_info->GetName() << "'";
         component_info->OnLoadingCancelled();
     }
 }
@@ -331,22 +353,23 @@ void ComponentContextImpl::ProcessSingleComponentLifetimeStageSwitching(
     LOG_DEBUG() << "Preparing to call " << params.stage_switch_handler_name << " for component " << name;
 
     auto wait_cb = [&](ComponentInfo& other_component_info) {
-        auto dependency_from =
-            (params.dependency_type == DependencyType::kNormal ? name : other_component_info.GetName());
-        auto dependency_to =
-            (params.dependency_type == DependencyType::kInverted ? name : other_component_info.GetName());
         if (other_component_info.GetStage() != params.next_stage) {
-            LOG_DEBUG() << "Cannot call " << params.stage_switch_handler_name << " for component '" << name << "' yet. "
-                        << "Component '" << dependency_from << "' is waiting for '" << dependency_to
-                        << "' component to complete its " << params.stage_switch_handler_name << " call.";
+            LOG_DEBUG(
+                "Cannot call {} for component '{}' yet, waiting for component '{}' to complete its {} call.",
+                params.stage_switch_handler_name,
+                name,
+                other_component_info.GetName(),
+                params.stage_switch_handler_name
+            );
             other_component_info.WaitStage(params.next_stage, params.stage_switch_handler_name);
         }
     };
     try {
-        if (params.dependency_type == DependencyType::kNormal)
+        if (params.dependency_type == DependencyType::kNormal) {
             component_info.ForEachItDependsOn(wait_cb);
-        else
+        } else {
             component_info.ForEachDependsOnIt(wait_cb);
+        }
 
         LOG_DEBUG() << "Call " << params.stage_switch_handler_name << " for component '" << name << "'";
         (component_info.*params.stage_switch_handler)();
@@ -392,7 +415,9 @@ void ComponentContextImpl::ProcessAllComponentLifetimeStageSwitchings(ComponentL
         }
 
         for (auto& task_item : tasks) {
-            if (task_item.second.IsValid()) task_item.second.Wait();
+            if (task_item.second.IsValid()) {
+                task_item.second.Wait();
+            }
         }
 
         throw;
@@ -414,8 +439,9 @@ RawComponentBase* ComponentContextImpl::DoFindComponent(std::string_view name, C
         return component;
     }
 
-    LOG_DEBUG() << "Component '" << name << "' is not loaded yet, component '" << current_component.GetName()
-                << "' is waiting for it to load";
+    LOG_DEBUG()
+        << "Component '" << name << "' is not loaded yet, component '" << current_component.GetName()
+        << "' is waiting for it to load";
 
     const SearchingComponentScope finder(*this, current_component);
 
@@ -425,7 +451,9 @@ RawComponentBase* ComponentContextImpl::DoFindComponent(std::string_view name, C
 void ComponentContextImpl::AddDependency(ComponentInfo& dependency, ComponentInfo& current_component) {
     auto data = shared_data_.Lock();
 
-    if (current_component.CheckItDependsOn(dependency)) return;
+    if (current_component.CheckItDependsOn(dependency)) {
+        return;
+    }
 
     LOG_DEBUG() << "Resolving dependency " << current_component.GetName() << " -> " << dependency.GetName();
     CheckForDependencyCycle(current_component, dependency, *data);
@@ -445,11 +473,14 @@ bool ComponentContextImpl::FindDependencyPathDfs(
     bool found = (&current == &target);
 
     current.ForEachDependsOnIt([&](ComponentInfo& dependent) {
-        if (!found && !handled.count(dependent))
+        if (!found && !handled.count(dependent)) {
             found = FindDependencyPathDfs(dependent, target, handled, dependency_path, data);
+        }
     });
 
-    if (found && dependency_path) dependency_path->push_back(current);
+    if (found && dependency_path) {
+        dependency_path->push_back(current);
+    }
 
     return found;
 }
@@ -478,8 +509,9 @@ void ComponentContextImpl::CheckForDependencyCycle(
 
     if (FindDependencyPathDfs(new_dependency_from, new_dependency_to, handled, &dependency_chain, data)) {
         dependency_chain.push_back(new_dependency_to);
-        LOG_ERROR() << "Found circular dependency between components: " << JoinNamesFromInfo(dependency_chain, " -> ");
-        throw std::runtime_error("circular components dependency");
+        auto msg = JoinNamesFromInfo(dependency_chain, " -> ");
+        LOG_ERROR() << "Found circular dependency between components: " << msg;
+        throw std::runtime_error("circular components dependency: " + msg);
     }
 }
 
@@ -500,10 +532,13 @@ void ComponentContextImpl::StartPrintAddingComponentsTask() {
         for (;;) {
             {
                 auto data = shared_data_.UniqueLock();
-                print_adding_components_cv_.WaitFor(data.GetLock(), kPrintAddingComponentsPeriod, [&data]() {
-                    return data->print_adding_components_stopped;
-                });
-                if (data->print_adding_components_stopped) return;
+                print_adding_components_cv_
+                    .WaitFor(data.GetLock(), manager_.GetConfig().component_load_print_interval, [&data]() {
+                        return data->print_adding_components_stopped;
+                    });
+                if (data->print_adding_components_stopped) {
+                    return;
+                }
             }
             PrintAddingComponents();
         }
@@ -518,6 +553,10 @@ void ComponentContextImpl::StopPrintAddingComponentsTask() {
     }
     print_adding_components_cv_.NotifyAll();
     print_adding_components_task_ = {};
+
+    auto& tp = engine::current_task::GetTaskProcessor();
+    tp.UnregisterPlugin(trace_plugin_);
+    trace_plugin_.Clear();
 }
 
 void ComponentContextImpl::PrintAddingComponents() const {
@@ -529,11 +568,16 @@ void ComponentContextImpl::PrintAddingComponents() const {
         adding_components.reserve(data->loading_components.size());
         for (const auto& component : data->loading_components) {
             adding_components.push_back(component);
-            if (data->searching_components.count(component) == 0) busy_components.push_back(component);
+            if (data->searching_components.count(component) == 0) {
+                busy_components.push_back(component);
+            }
         }
     }
-    LOG_INFO() << "still adding components, busy: [" << JoinNamesFromInfo(busy_components, ", ") << "], loading: ["
-               << JoinNamesFromInfo(adding_components, ", ") << ']';
+    LOG_INFO()
+        << "still adding components, busy: [" << JoinNamesFromInfo(busy_components, ", ") << "], loading: ["
+        << JoinNamesFromInfo(adding_components, ", ") << ']';
+
+    trace_plugin_.PrintStacksByComponentNames(ExtractNamesFromInfo(busy_components));
 }
 
 }  // namespace components::impl

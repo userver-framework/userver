@@ -10,9 +10,11 @@
 #include <fmt/format.h>
 
 #include <userver/cache/cache_update_trait.hpp>
+#include <userver/cache/data_provider.hpp>
 #include <userver/cache/exceptions.hpp>
 #include <userver/compiler/demangle.hpp>
 #include <userver/components/component_base.hpp>
+#include <userver/components/component_context.hpp>
 #include <userver/components/component_fwd.hpp>
 #include <userver/concurrent/async_event_channel.hpp>
 #include <userver/dump/helpers.hpp>
@@ -30,16 +32,12 @@ USERVER_NAMESPACE_BEGIN
 
 namespace components {
 
-// clang-format off
-
 /// @ingroup userver_components userver_base_classes
 ///
 /// @brief Base class for caching components
 ///
 /// Provides facilities for creating periodically updated caches.
-/// You need to override cache::CacheUpdateTrait::Update
-/// then call cache::CacheUpdateTrait::StartPeriodicUpdates after setup
-/// and cache::CacheUpdateTrait::StopPeriodicUpdates before teardown.
+/// You need to override cache::CacheUpdateTrait::Update.
 /// You can also override cache::CachingComponentBase::PreAssignCheck and set
 /// has-pre-assign-check: true in the static config to enable check.
 ///
@@ -52,30 +50,11 @@ namespace components {
 /// * @ref USERVER_CACHES
 /// * @ref USERVER_DUMPS
 ///
-/// ## Static options:
+/// ## Static options of components::CachingComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/cache/caching_component_base.md
 ///
-/// Name | Description | Default value
-/// ---- | ----------- | -------------
-/// update-types | specifies whether incremental and/or full updates will be used | see below
-/// update-interval | (*required*) interval between Update invocations | --
-/// update-jitter | max. amount of time by which update-interval may be adjusted for requests dispersal | update_interval / 10
-/// full-update-interval | interval between full updates | --
-/// full-update-jitter | max. amount of time by which full-update-interval may be adjusted for requests dispersal | full-update-interval / 10
-/// updates-enabled | if false, cache updates are disabled (except for the first one if !first-update-fail-ok) | true
-/// first-update-fail-ok | whether first update failure is non-fatal; see also @ref MayReturnNull | false
-/// task-processor | the name of the TaskProcessor for running DoWork | main-task-processor
-/// config-settings | enables dynamic reconfiguration with CacheConfigSet | true
-/// exception-interval | Used instead of `update-interval` in case of exception | update_interval
-/// additional-cleanup-interval | how often to run background RCU garbage collector | 10 seconds
-/// is-strong-period | whether to include Update execution time in update-interval | false
-/// testsuite-force-periodic-update | override testsuite-periodic-update-enabled in TestsuiteSupport component config | --
-/// failed-updates-before-expiration | the number of consecutive failed updates for data expiration | --
-/// has-pre-assign-check | enables the check before changing the value in the cache, by default it is the check that the new value is not empty | false
-/// alert-on-failing-to-update-times | fire an alert if the cache update failed specified amount of times in a row. If zero - alerts are disabled. Value from dynamic config takes priority over static | 0
-/// safe-data-lifetime | enables awaiting data destructors in the component's destructor. Can be set to `false` if the stored data does not refer to the component and its dependencies. | true
-/// dump.* | Manages cache behavior after dump load | -
-/// dump.first-update-mode | Behavior of update after successful load from dump. See info on modes below | skip
-/// dump.first-update-type | Update type after successful load from dump (`full`, `incremental` or `incremental-then-async-full`) | full
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
 ///
 /// ### Update types
 ///  * `full-and-incremental`: both `update-interval` and `full-update-interval`
@@ -86,7 +65,12 @@ namespace components {
 ///    will be triggered each `update-interval` (adjusted by jitter).
 ///  * `only-incremental`: only `update-interval` must be specified. UpdateType::kFull is triggered
 ///    on the first update, afterwards UpdateType::kIncremental will be triggered
-///    each `update-interval` (adjusted by jitter).
+///    each `update-interval` (adjusted by jitter). Warning: use carefully.
+///    If the cache loses any data, it is lost until service restart (in the worst case). If possible,
+///    use `full-and-incremental` with rare full updates, and completely avoid `only-incremental`.
+///    Also you have to explicitly remove outdated items from the cache container, otherwise
+///    the cache might grow indefinitely and eventually will lead to OOM.
+///    If not sure, just use `full-and-incremental`.
 ///
 /// ### Avoiding memory leaks
 ///
@@ -97,7 +81,8 @@ namespace components {
 /// * size of database: 1000 objects
 /// * removal rate: 30 objects per minute (0.5 objects per second)
 ///
-/// Let's say we allow 20% extra garbage objects in cache in addition to the actual objects from the database. In this case we need:
+/// Let's say we allow 20% extra garbage objects in cache in addition to the actual objects from the database. In this
+/// case we need:
 ///
 /// full-update-interval = (size-of-database * 20% / removal-rate) = 400s
 ///
@@ -126,11 +111,11 @@ namespace components {
 ///
 /// Further customizes the behavior of @ref dump::Dumper "cache dumps".
 ///
-/// Mode          | Description
-/// ------------- | -----------
-/// `skip`        | after successful load from dump, do nothing
-/// `required`    | make a synchronous update of type `first-update-type`, stop the service on failure
-/// `best-effort` | make a synchronous update of type `first-update-type`, keep working and use data from dump on failure
+/// Mode        | Description
+/// ----------- | -----------
+/// skip        | after successful load from dump, do nothing
+/// required    | make a synchronous update of type `first-update-type`, stop the service on failure
+/// best-effort | make a synchronous update of type `first-update-type`, keep working and use data from dump on failure
 ///
 /// ### testsuite-force-periodic-update
 ///  use it to enable periodic cache update for a component in testsuite environment
@@ -145,12 +130,9 @@ namespace components {
 ///
 /// @see @ref scripts/docs/en/userver/caches.md. pytest_userver.client.Client.invalidate_caches()
 /// for a function to force cache update from testsuite.
-
-// clang-format on
-
 template <typename T>
 // NOLINTNEXTLINE(fuchsia-multiple-inheritance)
-class CachingComponentBase : public ComponentBase, protected cache::CacheUpdateTrait {
+class CachingComponentBase : public ComponentBase, public cache::DataProvider<T>, protected cache::CacheUpdateTrait {
 public:
     CachingComponentBase(const ComponentConfig& config, const ComponentContext&);
     ~CachingComponentBase() override;
@@ -165,7 +147,7 @@ public:
     /// returns `true`.
     /// @throws cache::EmptyCacheError if the contents are `nullptr`, and
     /// `MayReturnNull` returns `false` (which is the default behavior).
-    utils::SharedReadablePtr<T> Get() const;
+    utils::SharedReadablePtr<T> Get() const final;
 
     /// @return cache contents. May be nullptr regardless of `MayReturnNull`.
     utils::SharedReadablePtr<T> GetUnsafe() const;
@@ -173,23 +155,34 @@ public:
     /// Subscribes to cache updates using a member function. Also immediately
     /// invokes the function with the current cache contents.
     template <class Class>
-    concurrent::AsyncEventSubscriberScope
-    UpdateAndListen(Class* obj, std::string name, void (Class::*func)(const std::shared_ptr<const T>&));
+    concurrent::AsyncEventSubscriberScope UpdateAndListen(
+        Class* obj,
+        std::string name,
+        void (Class::*func)(const std::shared_ptr<const T>&)
+    );
 
     concurrent::AsyncEventChannel<const std::shared_ptr<const T>&>& GetEventChannel();
 
     static yaml_config::Schema GetStaticConfigSchema();
 
 protected:
-    /// Sets the new value of cache. As a result the Get() member function starts
-    /// returning the value passed into this function after the Update() finishes.
+    /// Sets the new value of cache. As a result the `Get()` member function starts
+    /// returning the value passed into this function after the `Update()` finishes.
     ///
-    /// @warning Do not forget to update cache::UpdateStatisticsScope, otherwise
+    /// @warning Do not forget to update @ref cache::UpdateStatisticsScope, otherwise
     /// the behavior is undefined.
     void Set(std::unique_ptr<const T> value_ptr);
 
     /// @overload
     void Set(T&& value);
+
+    /// Attach the value of cache. As a result the `Get()` member function starts returning the value passed into
+    /// this function after the `Update()` finishes. Does not take over into sole ownership. Do not use unless
+    /// absolutely necessary. The object must be strictly thread-safe.
+    ///
+    /// @warning Do not forget to update @ref cache::UpdateStatisticsScope, otherwise
+    /// the behavior is undefined.
+    void Attach(const std::shared_ptr<const T>& value_ptr);
 
     /// @overload Set()
     template <typename... Args>
@@ -214,8 +207,6 @@ protected:
     virtual void PreAssignCheck(const T* old_value_ptr, const T* new_value_ptr) const;
 
 private:
-    void OnAllComponentsLoaded() final;
-
     void Cleanup() final;
 
     void MarkAsExpired() final;
@@ -234,12 +225,16 @@ template <typename T>
 CachingComponentBase<T>::CachingComponentBase(const ComponentConfig& config, const ComponentContext& context)
     : ComponentBase(config, context),
       cache::CacheUpdateTrait(config, context),
-      event_channel_(components::GetCurrentComponentName(context), [this](const auto& function) {
-          const auto ptr = cache_.ReadCopy();
-          if (ptr) function(ptr);
-      }) {
-    const auto initial_config = GetConfig();
-}
+      event_channel_(
+          components::GetCurrentComponentName(context),
+          [this](const auto& function) {
+              const auto ptr = cache_.ReadCopy();
+              if (ptr) {
+                  function(ptr);
+              }
+          }
+      )
+{}
 
 template <typename T>
 CachingComponentBase<T>::~CachingComponentBase() {
@@ -261,11 +256,8 @@ utils::SharedReadablePtr<T> CachingComponentBase<T>::Get() const {
 
 template <typename T>
 template <typename Class>
-concurrent::AsyncEventSubscriberScope CachingComponentBase<T>::UpdateAndListen(
-    Class* obj,
-    std::string name,
-    void (Class::*func)(const std::shared_ptr<const T>&)
-) {
+concurrent::AsyncEventSubscriberScope CachingComponentBase<
+    T>::UpdateAndListen(Class* obj, std::string name, void (Class::*func)(const std::shared_ptr<const T>&)) {
     return event_channel_.DoUpdateAndListen(obj, std::move(name), func, [&] {
         auto ptr = Get();  // TODO: extra ref
         (obj->*func)(ptr);
@@ -284,8 +276,16 @@ utils::SharedReadablePtr<T> CachingComponentBase<T>::GetUnsafe() const {
 
 template <typename T>
 void CachingComponentBase<T>::Set(std::unique_ptr<const T> value_ptr) {
-    const std::shared_ptr<const T> new_value = TransformNewValue(std::move(value_ptr));
+    Attach(TransformNewValue(std::move(value_ptr)));
+}
 
+template <typename T>
+void CachingComponentBase<T>::Set(T&& value) {
+    Emplace(std::move(value));
+}
+
+template <typename T>
+void CachingComponentBase<T>::Attach(const std::shared_ptr<const T>& new_value) {
     if (HasPreAssignCheck()) {
         auto old_value = cache_.Read();
         PreAssignCheck(old_value->get(), new_value.get());
@@ -294,11 +294,6 @@ void CachingComponentBase<T>::Set(std::unique_ptr<const T> value_ptr) {
     cache_.Assign(new_value);
     event_channel_.SendEvent(new_value);
     OnCacheModified();
-}
-
-template <typename T>
-void CachingComponentBase<T>::Set(T&& value) {
-    Emplace(std::move(value));
 }
 
 template <typename T>
@@ -320,7 +315,9 @@ bool CachingComponentBase<T>::MayReturnNull() const {
 template <typename T>
 void CachingComponentBase<T>::GetAndWrite(dump::Writer& writer) const {
     const auto contents = GetUnsafe();
-    if (!contents) throw cache::EmptyCacheError(Name());
+    if (!contents) {
+        throw cache::EmptyCacheError(Name());
+    }
     WriteContents(writer, *contents);
 }
 
@@ -352,11 +349,6 @@ std::unique_ptr<const T> CachingComponentBase<T>::ReadContents(dump::Reader& rea
     } else {
         dump::ThrowDumpUnimplemented(Name());
     }
-}
-
-template <typename T>
-void CachingComponentBase<T>::OnAllComponentsLoaded() {
-    AssertPeriodicUpdateStarted();
 }
 
 template <typename T>
@@ -418,11 +410,13 @@ std::shared_ptr<const T> CachingComponentBase<T>::TransformNewValue(std::unique_
             std::default_delete<const T>{}(raw_ptr);
         };
         return std::shared_ptr<const T>(
-            new_value.release(), impl::MakeAsyncDeleter<T>(GetCacheTaskProcessor(), std::move(deleter_with_token))
+            new_value.release(),
+            impl::MakeAsyncDeleter<T>(GetCacheTaskProcessor(), std::move(deleter_with_token))
         );
     } else {
         return std::shared_ptr<const T>(
-            new_value.release(), impl::MakeAsyncDeleter<T>(GetCacheTaskProcessor(), std::default_delete<const T>{})
+            new_value.release(),
+            impl::MakeAsyncDeleter<T>(GetCacheTaskProcessor(), std::default_delete<const T>{})
         );
     }
 }

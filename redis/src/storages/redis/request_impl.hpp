@@ -12,9 +12,8 @@ namespace storages::redis {
 
 template <typename Request>
 Request CreateRequest(impl::Request&& request) {
-    return Request(
-        std::make_unique<RequestDataImpl<typename Request::Result, typename Request::Reply>>(std::move(request))
-    );
+    return Request(std::make_unique<
+                   RequestDataImpl<typename Request::Result, typename Request::Reply>>(std::move(request)));
 }
 
 template <typename Request>
@@ -32,9 +31,8 @@ Request CreateAggregateRequest(std::vector<impl::Request>&& requests) {
 
 template <typename Request>
 Request CreateDummyRequest(ReplyPtr reply) {
-    return Request(
-        std::make_unique<DummyRequestDataImpl<typename Request::Result, typename Request::Reply>>(std::move(reply))
-    );
+    return Request(std::make_unique<
+                   DummyRequestDataImpl<typename Request::Result, typename Request::Reply>>(std::move(reply)));
 }
 
 }  // namespace storages::redis

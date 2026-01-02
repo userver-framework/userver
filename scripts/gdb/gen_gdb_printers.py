@@ -34,7 +34,7 @@ namespace impl {{
 template <typename T>
 class VerySpecialUniqueClassForUserverNamespaceDetection {{}};
 template class VerySpecialUniqueClassForUserverNamespaceDetection<void>;
-static VerySpecialUniqueClassForUserverNamespaceDetection<void> userver_namespace_detection_mark [[maybe_unused]] {{}};
+static VerySpecialUniqueClassForUserverNamespaceDetection<void> userver_namespace_detection_mark __attribute__((used)) {{}};
 }}
 USERVER_NAMESPACE_END
 
@@ -51,7 +51,7 @@ __asm__(
     ".pushsection \\".debug_gdb_scripts\\", \\"MS\\",@progbits,1\\n"
     ".ascii \\"\\\\4gdb.inlined-script.{protection_macro}\\\\n\\"\\n"'''
 
-bottom_matter = f"""
+bottom_matter = """
     ".byte 0\\n"
     ".popsection\\n");
 

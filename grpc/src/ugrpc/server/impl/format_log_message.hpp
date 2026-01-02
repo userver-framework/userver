@@ -1,13 +1,15 @@
 #pragma once
 
-#include <google/protobuf/message.h>
+#include <chrono>
+#include <map>
+#include <optional>
+#include <string_view>
+
+#include <grpcpp/support/status_code_enum.h>
 #include <grpcpp/support/string_ref.h>
 
-#include <userver/dynamic_config/snapshot.hpp>
 #include <userver/logging/impl/log_extra_tskv_formatter.hpp>
-#include <userver/logging/impl/logger_base.hpp>
 #include <userver/logging/log_extra.hpp>
-#include <userver/ugrpc/status_codes.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -18,7 +20,7 @@ logging::impl::LogExtraTskvFormatter FormatLogMessage(
     std::string_view peer,
     std::chrono::system_clock::time_point start_time,
     std::string_view call_name,
-    grpc::StatusCode code,
+    std::optional<grpc::StatusCode> code,
     const logging::LogExtra* log_extra
 );
 

@@ -6,9 +6,14 @@
 #include <string>
 
 #include <fmt/core.h>
+#include <userver/formats/parse/to.hpp>
 #include <userver/utils/fmt_compat.hpp>
 
 USERVER_NAMESPACE_BEGIN
+
+namespace yaml_config {
+class YamlConfig;
+}
 
 namespace server::http {
 
@@ -30,6 +35,8 @@ const std::string& ToString(HttpMethod method) noexcept;
 
 /// @brief Convert HTTP method string to enum value
 HttpMethod HttpMethodFromString(std::string_view method_str);
+
+HttpMethod Parse(const yaml_config::YamlConfig& value, formats::parse::To<HttpMethod>);
 
 }  // namespace server::http
 

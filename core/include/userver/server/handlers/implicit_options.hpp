@@ -23,7 +23,6 @@ using AuthCheckerBasePtr = std::shared_ptr<AuthCheckerBase>;
 
 namespace server::handlers {
 
-// clang-format off
 /// @ingroup userver_components userver_http_handlers
 ///
 /// @brief A "magical" handler that will respond to OPTIONS HTTP method for any
@@ -48,24 +47,24 @@ namespace server::handlers {
 /// * `OK` if the check succeeds
 /// * an unspecified error message if the check fails
 ///
-/// ## Static options
+/// ## Static options of server::handlers::ImplicitOptions :
+/// @include{doc} scripts/docs/en/components_schema/core/src/server/handlers/implicit_options.md
 ///
-/// The component has no service configuration except the
-/// @ref userver_http_handlers "common handler options".
-/// and adds the following ones:
+/// Options inherited from @ref server::handlers::HttpHandlerBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/server/handlers/http_handler_base.md
 ///
-/// Name | Description | Default value
-/// ---- | ----------- | -------------
-/// auth | server::handlers::auth::HandlerAuthConfig authorization config | auth checker testing is disabled
+/// Options inherited from @ref server::handlers::HandlerBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/server/handlers/handler_base.md
+///
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
 ///
 /// ## Static configuration example:
 ///
 /// @snippet components/common_server_component_list_test.cpp  Sample handler implicit http options component config
 ///
 /// ## Scheme
-/// Provide an optional query parameter `body` to get the bodies of all the
-/// in-flight requests.
-// clang-format on
+/// Provide an optional query parameter `body` to get the bodies of all the in-flight requests.
 class ImplicitOptions /*non-final*/ : public HttpHandlerBase {
 public:
     /// @ingroup userver_component_names

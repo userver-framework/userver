@@ -12,7 +12,8 @@ ExclusiveReadWriteStrategy::ExclusiveReadWriteStrategy(
     const settings::SQLiteSettings& settings,
     engine::TaskProcessor& blocking_task_processor
 )
-    : read_write_connection_pool_{InitializeReadWritePoolReference(settings, blocking_task_processor)} {}
+    : read_write_connection_pool_{InitializeReadWritePoolReference(settings, blocking_task_processor)}
+{}
 
 ExclusiveReadWriteStrategy::~ExclusiveReadWriteStrategy() = default;
 
@@ -29,8 +30,8 @@ PoolPtr ExclusiveReadWriteStrategy::InitializeReadWritePoolReference(
     settings.pool_settings.max_pool_size = 1;
 
     PoolPtr write_connection_pool;
-    engine::TaskWithResult<void> init_task =
-        engine::AsyncNoSpan([&write_connection_pool, &blocking_task_processor, &settings]() {
+    engine::TaskWithResult<void>
+        init_task = engine::AsyncNoSpan([&write_connection_pool, &blocking_task_processor, &settings]() {
             write_connection_pool = Pool::Create(settings, blocking_task_processor);
         });
     init_task.Get();
@@ -51,7 +52,8 @@ void ExclusiveReadWriteStrategy::WriteStatistics(utils::statistics::Writer& writ
         &read_write_connections_stat,
         &read_write_queries_stat,
         &read_write_queries_stat,
-        &read_write_transactions_stat};
+        &read_write_transactions_stat
+    };
     writer.ValueWithLabels(instance_stat, {});
 }
 

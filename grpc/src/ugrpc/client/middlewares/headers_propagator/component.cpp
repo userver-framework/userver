@@ -6,6 +6,10 @@
 
 #include <ugrpc/client/middlewares/headers_propagator/middleware.hpp>
 
+#ifndef ARCADIA_ROOT
+#include "generated/src/ugrpc/client/middlewares/headers_propagator/component.yaml.hpp"  // Y_IGNORE
+#endif
+
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client::middlewares::headers_propagator {
@@ -21,7 +25,8 @@ Settings Parse(const yaml_config::YamlConfig& config, formats::parse::To<Setting
 }
 
 Component::Component(const components::ComponentConfig& config, const components::ComponentContext& context)
-    : MiddlewareFactoryComponentBase(config, context) {}
+    : MiddlewareFactoryComponentBase(config, context)
+{}
 
 Component::~Component() = default;
 
@@ -35,20 +40,8 @@ std::shared_ptr<const MiddlewareBase> Component::CreateMiddleware(
 yaml_config::Schema Component::GetMiddlewareConfigSchema() const { return GetStaticConfigSchema(); }
 
 yaml_config::Schema Component::GetStaticConfigSchema() {
-    return yaml_config::MergeSchemas<MiddlewareFactoryComponentBase>(R"(
-type: object
-description: gRPC service headers propagator component
-additionalProperties: false
-properties:
-    skip-headers:
-        type: object
-        description: map from metadata fields (headers) to whether it should be skipped
-        defaultDescription: '{}'
-        additionalProperties:
-            type: boolean
-            description: true - disable header
-        properties: {}
-)");
+    return yaml_config::MergeSchemasFromResource<
+        MiddlewareFactoryComponentBase>("src/ugrpc/client/middlewares/headers_propagator/component.yaml");
 }
 
 }  // namespace ugrpc::client::middlewares::headers_propagator

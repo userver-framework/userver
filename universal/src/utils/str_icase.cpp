@@ -33,7 +33,9 @@ HashSeed GenerateHashSeed() {
 
 }  // namespace
 
-StrIcaseHash::StrIcaseHash() : StrIcaseHash(GenerateHashSeed()) {}
+StrIcaseHash::StrIcaseHash()
+    : StrIcaseHash(GenerateHashSeed())
+{}
 
 StrIcaseHash::StrIcaseHash(HashSeed seed) noexcept : seed_{seed} {}
 
@@ -45,7 +47,9 @@ std::size_t StrIcaseHash::operator()(std::string_view s) const& noexcept {
     return impl::CaseInsensitiveSipHasher{seed_.k0, seed_.k1}(s);
 }
 
-StrCaseHash::StrCaseHash() : StrCaseHash(GenerateHashSeed()) {}
+StrCaseHash::StrCaseHash()
+    : StrCaseHash(GenerateHashSeed())
+{}
 
 StrCaseHash::StrCaseHash(HashSeed seed) noexcept : seed_{seed} {}
 
@@ -63,15 +67,25 @@ int StrIcaseCompareThreeWay::operator()(std::string_view lhs, std::string_view r
         unsigned char a = lhs[i];
         unsigned char b = rhs[i];
 
-        if (a == b) continue;
-        if ('A' <= a && a <= 'Z') a |= kUppercaseToLowerMask;
-        if ('A' <= b && b <= 'Z') b |= kUppercaseToLowerMask;
-        if (a == b) continue;
+        if (a == b) {
+            continue;
+        }
+        if ('A' <= a && a <= 'Z') {
+            a |= kUppercaseToLowerMask;
+        }
+        if ('A' <= b && b <= 'Z') {
+            b |= kUppercaseToLowerMask;
+        }
+        if (a == b) {
+            continue;
+        }
 
         return static_cast<int>(a) - static_cast<int>(b);
     }
 
-    if (lhs.size() != rhs.size()) return lhs.size() < rhs.size() ? -1 : 1;
+    if (lhs.size() != rhs.size()) {
+        return lhs.size() < rhs.size() ? -1 : 1;
+    }
     return 0;
 }
 

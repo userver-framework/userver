@@ -1,3 +1,7 @@
+# Duplicate gRPC's option definition here, otherwise it will always resolve to OFF, because gRPC is not yet configured
+# at this point.
+option(USERVER_DOWNLOAD_PACKAGE_GRPC "Download and setup gRPC" ${USERVER_DOWNLOAD_PACKAGES})
+
 option(USERVER_DOWNLOAD_PACKAGE_PROTOBUF "Download and setup Protobuf" ${USERVER_DOWNLOAD_PACKAGE_GRPC})
 option(USERVER_FORCE_DOWNLOAD_PROTOBUF "Download Protobuf even if there is an installed system package"
        ${USERVER_FORCE_DOWNLOAD_PACKAGES}
@@ -9,9 +13,10 @@ function(_userver_set_protobuf_version_category)
        OR Protobuf_VERSION VERSION_GREATER_EQUAL 30.0.0
     )
         set_property(GLOBAL PROPERTY userver_protobuf_version_category 6)
-    elseif(Protobuf_VERSION VERSION_GREATER_EQUAL 5.26.0
-       AND Protobuf_VERSION VERSION_LESS 6.0.0
-       OR Protobuf_VERSION VERSION_GREATER_EQUAL 26.0.0
+    elseif(
+        Protobuf_VERSION VERSION_GREATER_EQUAL 5.26.0
+        AND Protobuf_VERSION VERSION_LESS 6.0.0
+        OR Protobuf_VERSION VERSION_GREATER_EQUAL 26.0.0
     )
         set_property(GLOBAL PROPERTY userver_protobuf_version_category 5)
     elseif(
@@ -57,7 +62,11 @@ if(NOT USERVER_FORCE_DOWNLOAD_PROTOBUF)
 
     if(Protobuf_FOUND)
         _userver_set_protobuf_version_category()
-        set(PROTOBUF_PROTOC "${Protobuf_PROTOC_EXECUTABLE}")
+        if (Protobuf_PROTOC_EXECUTABLE)
+            set(PROTOBUF_PROTOC "${Protobuf_PROTOC_EXECUTABLE}")
+        elseif (TARGET protobuf::protoc)  # Newer protobuf versions outside Conan dropped additional cmake variable.
+            set(PROTOBUF_PROTOC $<TARGET_FILE:protobuf::protoc>)
+        endif()
         return()
     endif()
 endif()
@@ -66,22 +75,16 @@ include(DownloadUsingCPM)
 include(SetupAbseil)
 
 cpmaddpackage(
-    NAME
-    Protobuf
-    VERSION
-    4.24.4
-    GITHUB_REPOSITORY
-    protocolbuffers/protobuf
+    NAME Protobuf
+    VERSION 4.24.4
+    GITHUB_REPOSITORY protocolbuffers/protobuf
+    GIT_SHALLOW TRUE
     SYSTEM
-    OPTIONS
-    "protobuf_BUILD_SHARED_LIBS OFF"
-    "protobuf_BUILD_TESTS OFF"
-    "protobuf_INSTALL OFF"
-    "protobuf_MSVC_STATIC_RUNTIME OFF"
-    "protobuf_ABSL_PROVIDER package"
+    OPTIONS "protobuf_BUILD_SHARED_LIBS OFF" "protobuf_BUILD_TESTS OFF" "protobuf_INSTALL OFF"
+            "protobuf_MSVC_STATIC_RUNTIME OFF" "protobuf_ABSL_PROVIDER package"
 )
 
-set(Protobuf_VERSION "${CPM_PACKAGE_Protobuf_VERSION}")
+set(Protobuf_VERSION "${CPM_PACKAGE_Protobuf_VERSION}" CACHE INTERNAL "")
 set(Protobuf_FOUND TRUE)
 set(PROTOBUF_INCLUDE_DIRS "${Protobuf_SOURCE_DIR}/src")
 set(Protobuf_INCLUDE_DIR "${Protobuf_SOURCE_DIR}/src")

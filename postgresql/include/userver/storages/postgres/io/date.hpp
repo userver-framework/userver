@@ -39,7 +39,9 @@ template <>
 struct BufferFormatter<Date> {
     const Date value;
 
-    explicit BufferFormatter(Date value) : value{value} {}
+    explicit BufferFormatter(Date value)
+        : value{value}
+    {}
 
     template <typename Buffer>
     void operator()(const UserTypes& types, Buffer& buffer) {

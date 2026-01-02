@@ -36,7 +36,9 @@ BENCHMARK(RunInEvLoopBenchmark);
             auto task = engine::AsyncNoSpan([] { engine::Yield(); });
             task.WaitFor(20ms);
 
-            if (!task.IsFinished()) abort();
+            if (!task.IsFinished()) {
+                abort();
+            }
         }
     });
 }

@@ -21,15 +21,15 @@ namespace ugrpc::client {
 /// You must register your client middleware in this component.
 /// Use middlewares::MiddlewareDependencyBuilder to set a dependency of your middleware from others.
 ///
-/// ## Static options:
-/// Name | Description | Default value
-/// ---- | ----------- | -------------
-/// middlewares | middlewares names and configs to use | `{}`
+/// ## Static options of ugrpc::client::MiddlewarePipelineComponent :
+/// @include{doc} scripts/docs/en/components_schema/core/src/middlewares/pipeline.md
+///
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
 ///
 /// ## Static config example
 ///
 /// @snippet samples/grpc_middleware_service/configs/static_config.yaml static config grpc-auth-client
-
 class MiddlewarePipelineComponent final : public USERVER_NAMESPACE::middlewares::impl::AnyMiddlewarePipelineComponent {
 public:
     /// @ingroup userver_component_names
@@ -55,7 +55,7 @@ template <>
 inline constexpr bool components::kHasValidate<ugrpc::client::MiddlewarePipelineComponent> = true;
 
 template <>
-inline constexpr auto components::kConfigFileMode<ugrpc::client::MiddlewarePipelineComponent> =
-    ConfigFileMode::kNotRequired;
+inline constexpr auto
+    components::kConfigFileMode<ugrpc::client::MiddlewarePipelineComponent> = ConfigFileMode::kNotRequired;
 
 USERVER_NAMESPACE_END

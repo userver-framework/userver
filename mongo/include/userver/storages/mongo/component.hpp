@@ -13,8 +13,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace components {
 
-// clang-format off
-
 /// @ingroup userver_components
 ///
 /// @brief MongoDB client component
@@ -47,24 +45,14 @@ namespace components {
 /// ```
 /// You must specify one of `dbalias` or `dbconnection`.
 ///
-/// ## Static options:
-/// Name | Description | Default value
-/// ---- | ----------- | -------------
-/// dbalias | name of the database in secdist config (if available) | --
-/// dbconnection | connection string (used if no dbalias specified) | --
-/// appname | application name for the DB server | userver
-/// conn_timeout | connection timeout | 2s
-/// so_timeout | socket timeout | 10s
-/// queue_timeout | max connection queue wait time | 1s
-/// initial_size | number of connections created initially | 16
-/// max_size | limit for total connections number | 128
-/// idle_limit | limit for idle connections number | 64
-/// connecting_limit | limit for establishing connections number | 8
-/// local_threshold | latency window for instance selection | mongodb default
-/// max_replication_lag | replication lag limit for usable secondaries, min. 90s | -
-/// maintenance_period | pool maintenance period (idle connections pruning etc.) | 15s
-/// stats_verbosity | changes the granularity of reported metrics | 'terse'
-/// dns_resolver | server hostname resolver type (getaddrinfo or async) | 'async'
+/// ## Static options of components::Mongo :
+/// @include{doc} scripts/docs/en/components_schema/mongo/src/storages/mongo/component.md
+///
+/// Options inherited from @ref components::MultiMongo
+/// @include{doc} scripts/docs/en/components_schema/mongo/src/storages/mongo/component_multi.md
+///
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
 ///
 /// `stats_verbosity` accepts one of the following values:
 /// Value | Description
@@ -94,9 +82,6 @@ namespace components {
 ///   }
 /// }
 /// @endcode
-
-// clang-format on
-
 class Mongo : public ComponentBase {
 public:
     /// Component constructor
@@ -123,8 +108,6 @@ private:
 
 template <>
 inline constexpr bool kHasValidate<Mongo> = true;
-
-// clang-format off
 
 /// @ingroup userver_components
 ///
@@ -156,20 +139,7 @@ inline constexpr bool kHasValidate<Mongo> = true;
 /// ```
 ///
 /// ## Static options:
-/// Name | Description | Default value
-/// ---- | ----------- | -------------
-/// appname | application name for the DB server | userver
-/// conn_timeout | connection timeout | 2s
-/// so_timeout | socket timeout | 10s
-/// queue_timeout | max connection queue wait time | 1s
-/// initial_size | number of connections created initially (per database) | 16
-/// max_size | limit for total connections number (per database) | 128
-/// idle_limit | limit for idle connections number (per database) | 64
-/// connecting_limit | limit for establishing connections number (per database) | 8
-/// local_threshold | latency window for instance selection | mongodb default
-/// max_replication_lag | replication lag limit for usable secondaries, min. 90s | -
-/// stats_verbosity | changes the granularity of reported metrics | 'terse'
-/// dns_resolver | server hostname resolver type (getaddrinfo or async) | 'async'
+/// @include{doc} scripts/docs/en/components_schema/mongo/src/storages/mongo/component_multi.md
 ///
 /// `stats_verbosity` accepts one of the following values:
 /// Value | Description
@@ -179,9 +149,6 @@ inline constexpr bool kHasValidate<Mongo> = true;
 ///
 /// Note that if the components::Secdist component has `update-period` other
 /// than 0, then new connections are created or gracefully closed as the secdist configuration change to new value.
-
-// clang-format on
-
 class MultiMongo : public ComponentBase {
 public:
     /// @ingroup userver_component_names

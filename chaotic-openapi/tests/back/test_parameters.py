@@ -28,41 +28,28 @@ def test_parameters(translate_single_schema):
             },
         },
     }
-    assert translate_single_schema(schema) == types.ClientSpec(
-        client_name='test',
-        cpp_namespace='test_namespace',
-        dynamic_config='',
-        operations=[
-            types.Operation(
-                method='GET',
-                path='/',
-                operation_id=None,
-                parameters=[
-                    types.Parameter(
-                        description='parameter description',
-                        raw_name='param',
-                        cpp_name='param',
-                        cpp_type=cpp_types.CppPrimitiveType(
-                            raw_cpp_type=type_name.TypeName('int'),
-                            user_cpp_type=None,
-                            nullable=True,
-                            json_schema=chaotic_types.Integer(
-                                type='integer',
-                            ),
-                            validators=cpp_types.CppPrimitiveValidator(
-                                prefix='Parameter0', namespace='::test_namespace::root_::get'
-                            ),
-                        ),
-                        parser='openapi::TrivialParameter<openapi::In::kQuery, kparam, int, int>',
-                        required=False,
-                        query_log_mode_hide=False,
-                    )
-                ],
-                request_bodies=[],
-                responses=[],
-            )
-        ],
-    )
+    assert translate_single_schema(schema).operations[0].parameters == [
+        types.Parameter(
+            description='parameter description',
+            raw_name='param',
+            cpp_name='param',
+            cpp_type=cpp_types.CppPrimitiveType(
+                raw_cpp_type=type_name.TypeName('int'),
+                user_cpp_type=None,
+                nullable=True,
+                json_schema=chaotic_types.Integer(
+                    type='integer',
+                ),
+                validators=cpp_types.CppPrimitiveValidator(
+                    prefix='Parameter0',
+                    namespace='::test_namespace::root_::get',
+                ),
+            ),
+            parser='openapi::TrivialParameter<openapi::In::kQuery, kparam, int, int>',
+            required=False,
+            query_log_mode_hide=False,
+        ),
+    ]
 
 
 def test_parameters_ref(translate_single_schema):
@@ -91,44 +78,31 @@ def test_parameters_ref(translate_single_schema):
                         'type': 'integer',
                     },
                 },
-            }
+            },
         },
     }
-    assert translate_single_schema(schema) == types.ClientSpec(
-        client_name='test',
-        cpp_namespace='test_namespace',
-        dynamic_config='',
-        operations=[
-            types.Operation(
-                method='GET',
-                path='/',
-                operation_id=None,
-                parameters=[
-                    types.Parameter(
-                        description='parameter description',
-                        raw_name='param',
-                        cpp_name='param',
-                        cpp_type=cpp_types.CppPrimitiveType(
-                            raw_cpp_type=type_name.TypeName('int'),
-                            user_cpp_type=None,
-                            nullable=True,
-                            json_schema=chaotic_types.Integer(
-                                type='integer',
-                            ),
-                            validators=cpp_types.CppPrimitiveValidator(
-                                prefix='ParameterParameter', namespace='::test_namespace'
-                            ),
-                        ),
-                        parser='openapi::TrivialParameter<openapi::In::kQuery, kparam, int, int>',
-                        required=False,
-                        query_log_mode_hide=False,
-                    )
-                ],
-                request_bodies=[],
-                responses=[],
-            )
-        ],
-    )
+    assert translate_single_schema(schema).operations[0].parameters == [
+        types.Parameter(
+            description='parameter description',
+            raw_name='param',
+            cpp_name='param',
+            cpp_type=cpp_types.CppPrimitiveType(
+                raw_cpp_type=type_name.TypeName('int'),
+                user_cpp_type=None,
+                nullable=True,
+                json_schema=chaotic_types.Integer(
+                    type='integer',
+                ),
+                validators=cpp_types.CppPrimitiveValidator(
+                    prefix='ParameterParameter',
+                    namespace='::test_namespace',
+                ),
+            ),
+            parser='openapi::TrivialParameter<openapi::In::kQuery, kparam, int, int>',
+            required=False,
+            query_log_mode_hide=False,
+        ),
+    ]
 
 
 def test_parameters_schemas_ref(translate_single_schema):
@@ -157,7 +131,7 @@ def test_parameters_schemas_ref(translate_single_schema):
                 'Parameter': {
                     'type': 'integer',
                 },
-            }
+            },
         },
     }
     assert translate_single_schema(schema) == types.ClientSpec(
@@ -182,7 +156,7 @@ def test_parameters_schemas_ref(translate_single_schema):
                                 ref='<inline>#/components/schemas/Parameter',
                                 indirect=False,
                                 self_ref=False,
-                                schema=chaotic_types.Integer(
+                                schema_=chaotic_types.Integer(
                                     type='integer',
                                 ),
                             ),
@@ -204,11 +178,11 @@ def test_parameters_schemas_ref(translate_single_schema):
                         parser='openapi::TrivialParameter<openapi::In::kQuery, kparam, int, int>',
                         required=False,
                         query_log_mode_hide=False,
-                    )
+                    ),
                 ],
                 request_bodies=[],
                 responses=[],
-            )
+            ),
         ],
         internal_schemas={
             '::test_namespace::root_::get::Parameter0': cpp_types.CppRef(
@@ -217,7 +191,7 @@ def test_parameters_schemas_ref(translate_single_schema):
                     ref='<inline>#/components/schemas/Parameter',
                     indirect=False,
                     self_ref=False,
-                    schema=chaotic_types.Integer(
+                    schema_=chaotic_types.Integer(
                         type='integer',
                         default=None,
                         nullable=False,
@@ -262,7 +236,7 @@ def test_parameters_schemas_ref(translate_single_schema):
                 indirect=False,
                 self_ref=False,
                 cpp_name=None,
-            )
+            ),
         },
         schemas={
             '::test_namespace::Parameter': cpp_types.CppPrimitiveType(
@@ -318,3 +292,30 @@ Error:
 Unsupported parameter type for parameter "param"
 ==============================================================="""
     )
+
+
+def test_dash_in_name(translate_single_schema):
+    schema = {
+        'openapi': '3.0.0',
+        'info': {'title': '', 'version': '1.0'},
+        'paths': {
+            '/{a-b-c}': {
+                'get': {
+                    'parameters': [
+                        {
+                            'in': 'path',
+                            'name': 'a-b-c',
+                            'description': 'parameter description',
+                            'schema': {
+                                'type': 'integer',
+                            },
+                        },
+                    ],
+                    'responses': {},
+                },
+            },
+        },
+    }
+    spec = translate_single_schema(schema)
+    assert spec.operations[0].parameters[0].raw_name == 'a_b_c'
+    assert spec.operations[0].path == '/{a_b_c}'

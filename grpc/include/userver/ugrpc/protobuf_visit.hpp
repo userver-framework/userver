@@ -28,8 +28,8 @@ namespace ugrpc {
 
 using MessageVisitCallback = utils::function_ref<void(google::protobuf::Message&)>;
 
-using FieldVisitCallback =
-    utils::function_ref<void(google::protobuf::Message&, const google::protobuf::FieldDescriptor&)>;
+using FieldVisitCallback = utils::function_ref<
+    void(google::protobuf::Message&, const google::protobuf::FieldDescriptor&)>;
 
 /// @brief Execute a callback for all non-empty fields of the message.
 void VisitFields(google::protobuf::Message& message, FieldVisitCallback callback);
@@ -61,8 +61,10 @@ DescriptorList GetNestedMessageDescriptors(const google::protobuf::Descriptor& d
 const google::protobuf::Descriptor* FindGeneratedMessage(std::string_view name);
 
 /// @brief Find the field of a generated type by name.
-const google::protobuf::FieldDescriptor*
-FindField(const google::protobuf::Descriptor* descriptor, std::string_view field);
+const google::protobuf::FieldDescriptor* FindField(
+    const google::protobuf::Descriptor* descriptor,
+    std::string_view field
+);
 
 /// @brief Base class for @ref BaseVisitor.
 /// Constructs and manages the descriptor graph to collect the data about the messages
@@ -128,7 +130,9 @@ public:
     const DescriptorSet& GetCompiled(utils::impl::InternalTag) const;
 
 protected:
-    explicit VisitorCompiler(LockBehavior lock_behavior) : lock_behavior_(lock_behavior) {}
+    explicit VisitorCompiler(LockBehavior lock_behavior)
+        : lock_behavior_(lock_behavior)
+    {}
 
     // Disallow destruction via pointer to base
     ~VisitorCompiler() = default;
@@ -195,7 +199,9 @@ public:
     }
 
 protected:
-    explicit BaseVisitor(LockBehavior lock_behavior) : VisitorCompiler(lock_behavior) {}
+    explicit BaseVisitor(LockBehavior lock_behavior)
+        : VisitorCompiler(lock_behavior)
+    {}
 
     // Disallow destruction via pointer to base
     ~BaseVisitor() = default;
@@ -213,7 +219,9 @@ private:
 
         // Recurse into nested messages
         const auto it = GetFieldsWithSelectedChildren().find(message.GetDescriptor());
-        if (it == GetFieldsWithSelectedChildren().end()) return;
+        if (it == GetFieldsWithSelectedChildren().end()) {
+            return;
+        }
 
         const FieldDescriptorSet& fields = it->second;
         for (const google::protobuf::FieldDescriptor* field : fields) {

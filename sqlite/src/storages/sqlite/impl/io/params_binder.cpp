@@ -4,7 +4,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite::impl::io {
 
-ParamsBinder::ParamsBinder(const Query& query, infra::ConnectionPtr& conn) : ParamsBinderBase{query, conn} {}
+ParamsBinder::ParamsBinder(const Query& query, infra::ConnectionPtr& conn)
+    : ParamsBinderBase{query, conn}
+{}
 
 ParamsBinder::~ParamsBinder() = default;
 

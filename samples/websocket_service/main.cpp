@@ -18,11 +18,15 @@ public:
     void Handle(server::websocket::WebSocketConnection& chat, server::request::RequestContext&) const override {
         server::websocket::Message message;
         while (!engine::current_task::ShouldCancel()) {
-            chat.Recv(message);               // throws on closed/dropped connection
-            if (message.close_status) break;  // explicit close if any
-            chat.Send(std::move(message));    // throws on closed/dropped connection
+            chat.Recv(message);  // throws on closed/dropped connection
+            if (message.close_status) {
+                break;  // explicit close if any
+            }
+            chat.Send(std::move(message));  // throws on closed/dropped connection
         }
-        if (message.close_status) chat.Close(*message.close_status);
+        if (message.close_status) {
+            chat.Close(*message.close_status);
+        }
     }
 };
 
@@ -31,8 +35,8 @@ public:
 
 /// [Websocket service sample - main]
 int main(int argc, char* argv[]) {
-    const auto component_list =
-        components::MinimalServerComponentList().Append<samples::websocket::WebsocketsHandler>();
+    const auto
+        component_list = components::MinimalServerComponentList().Append<samples::websocket::WebsocketsHandler>();
     return utils::DaemonMain(argc, argv, component_list);
 }
 /// [Websocket service sample - main]

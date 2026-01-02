@@ -31,18 +31,24 @@ private:
 };
 
 utils::AnyMovable& RequestContext::Impl::SetUserAnyData(utils::AnyMovable&& data) {
-    if (user_data_.HasValue()) throw std::runtime_error("UserData is already stored in RequestContext");
+    if (user_data_.HasValue()) {
+        throw std::runtime_error("UserData is already stored in RequestContext");
+    }
     user_data_ = std::move(data);
     return user_data_;
 }
 
 utils::AnyMovable& RequestContext::Impl::GetUserAnyData() {
-    if (!user_data_.HasValue()) throw std::runtime_error("No data stored in RequestContext");
+    if (!user_data_.HasValue()) {
+        throw std::runtime_error("No data stored in RequestContext");
+    }
     return user_data_;
 }
 
 utils::AnyMovable* RequestContext::Impl::GetUserAnyDataOptional() {
-    if (!user_data_.HasValue()) return nullptr;
+    if (!user_data_.HasValue()) {
+        return nullptr;
+    }
     return &user_data_;
 }
 
@@ -70,7 +76,9 @@ utils::AnyMovable* RequestContext::Impl::GetAnyDataOptional(std::string_view nam
 
 void RequestContext::Impl::EraseAnyData(std::string_view name) {
     auto it = utils::impl::FindTransparent(named_datum_, name);
-    if (it == named_datum_.end()) return;
+    if (it == named_datum_.end()) {
+        return;
+    }
     named_datum_.erase(it);
 }
 

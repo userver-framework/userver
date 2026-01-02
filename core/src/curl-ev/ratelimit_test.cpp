@@ -167,7 +167,9 @@ TEST(CurlConnectRateLimiter, Multithread) {
         workers.push_back(std::async(
             std::launch::async,
             [worker_idx, &has_started, &urls](curl::ConnectRateLimiter& limiter) -> std::pair<size_t, size_t> {
-                while (!has_started) std::this_thread::yield();
+                while (!has_started) {
+                    std::this_thread::yield();
+                }
 
                 size_t acquired_ours = 0;
                 size_t acquired_theirs = 0;

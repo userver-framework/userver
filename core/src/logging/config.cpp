@@ -41,8 +41,8 @@ LoggerConfig Parse(const yaml_config::YamlConfig& value, formats::parse::To<Logg
 
     config.message_queue_size = value["message_queue_size"].As<size_t>(config.message_queue_size);
 
-    config.queue_overflow_behavior =
-        value["overflow_behavior"].As<QueueOverflowBehavior>(config.queue_overflow_behavior);
+    config.queue_overflow_behavior = value["overflow_behavior"].As<QueueOverflowBehavior>(config.queue_overflow_behavior
+    );
 
     config.fs_task_processor = value["fs-task-processor"].As<std::optional<std::string>>();
 

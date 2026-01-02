@@ -42,8 +42,8 @@ TEST(DateTest, IsValid) {
     EXPECT_THROW(Date(utils::datetime::Date{10000, 1, 1}), ValueError);
     EXPECT_THROW(Date(utils::impl::InternalTag{}, 2025, 0, 10), ValueError);
     EXPECT_THROW(
-        Date(std::chrono::time_point_cast<std::chrono::days>(std::chrono::system_clock::time_point{
-            std::chrono::years(9000 /* +epoch */)})),
+        Date(std::chrono::time_point_cast<
+             std::chrono::days>(std::chrono::system_clock::time_point{std::chrono::years(9000 /* +epoch */)})),
         ValueError
     );
     EXPECT_THAT(
@@ -129,7 +129,8 @@ TEST(DateTest, Conversions) {
     EXPECT_EQ(static_cast<std::chrono::year>(d), 2019y);
     EXPECT_EQ(d.ToChronoSysDays(), static_cast<std::chrono::sys_days>(2019y / std::chrono::May / 28d));
     EXPECT_EQ(
-        static_cast<std::chrono::sys_days>(d), static_cast<std::chrono::sys_days>(2019y / std::chrono::May / 28d)
+        static_cast<std::chrono::sys_days>(d),
+        static_cast<std::chrono::sys_days>(2019y / std::chrono::May / 28d)
     );
 
     d = 2019y / std::chrono::May;
@@ -175,7 +176,8 @@ TEST(DateTest, Conversions) {
     EXPECT_EQ(d.ToChronoYear(), 2019y);
     EXPECT_EQ(d.ToChronoSysDays(), static_cast<std::chrono::sys_days>(2019y / std::chrono::January / 1d));
     EXPECT_EQ(
-        static_cast<std::chrono::sys_days>(d), static_cast<std::chrono::sys_days>(2019y / std::chrono::January / 1d)
+        static_cast<std::chrono::sys_days>(d),
+        static_cast<std::chrono::sys_days>(2019y / std::chrono::January / 1d)
     );
 
     d = utils::datetime::Date(2019, 5, 28);
@@ -192,7 +194,8 @@ TEST(DateTest, Conversions) {
     EXPECT_EQ(d.ToChronoYear(), 2019y);
     EXPECT_EQ(d.ToChronoSysDays(), static_cast<std::chrono::sys_days>(2019y / std::chrono::May / 28d));
     EXPECT_EQ(
-        static_cast<std::chrono::sys_days>(d), static_cast<std::chrono::sys_days>(2019y / std::chrono::May / 28d)
+        static_cast<std::chrono::sys_days>(d),
+        static_cast<std::chrono::sys_days>(2019y / std::chrono::May / 28d)
     );
 
     d = static_cast<std::chrono::sys_days>(2019y / std::chrono::May / 28d);
@@ -209,7 +212,8 @@ TEST(DateTest, Conversions) {
     EXPECT_EQ(d.ToChronoYear(), 2019y);
     EXPECT_EQ(d.ToChronoSysDays(), static_cast<std::chrono::sys_days>(2019y / std::chrono::May / 28d));
     EXPECT_EQ(
-        static_cast<std::chrono::sys_days>(d), static_cast<std::chrono::sys_days>(2019y / std::chrono::May / 28d)
+        static_cast<std::chrono::sys_days>(d),
+        static_cast<std::chrono::sys_days>(2019y / std::chrono::May / 28d)
     );
 
     d = Date{utils::impl::InternalTag{}, 2019, 5, 28};
@@ -237,7 +241,8 @@ TEST(DateTest, Conversions) {
     EXPECT_EQ(static_cast<std::chrono::year>(d), 2019y);
     EXPECT_EQ(d.ToChronoSysDays(), static_cast<std::chrono::sys_days>(2019y / std::chrono::May / 28d));
     EXPECT_EQ(
-        static_cast<std::chrono::sys_days>(d), static_cast<std::chrono::sys_days>(2019y / std::chrono::May / 28d)
+        static_cast<std::chrono::sys_days>(d),
+        static_cast<std::chrono::sys_days>(2019y / std::chrono::May / 28d)
     );
 }
 

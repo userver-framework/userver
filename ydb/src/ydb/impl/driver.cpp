@@ -19,13 +19,15 @@ Driver::Driver(std::string dbname, impl::DriverSettings settings)
     : dbname_(std::move(dbname)),
       dbpath_(settings.database),
       native_metrics_(std::make_unique<NMonitoring::TMetricRegistry>(NMonitoring::TLabels{})),
-      retry_budget_(utils::RetryBudgetSettings{}) {
+      retry_budget_(utils::RetryBudgetSettings{})
+{
     NYdb::TDriverConfig driver_config;
     driver_config.SetEndpoint(settings.endpoint.data())
         .SetDatabase(settings.database.data())
         .SetBalancingPolicy(
-            settings.prefer_local_dc ? NYdb::EBalancingPolicy::UsePreferableLocation
-                                     : NYdb::EBalancingPolicy::UseAllNodes
+            settings.prefer_local_dc
+                ? NYdb::EBalancingPolicy::UsePreferableLocation
+                : NYdb::EBalancingPolicy::UseAllNodes
         );
 
     if (settings.secure_connection_cert.has_value()) {

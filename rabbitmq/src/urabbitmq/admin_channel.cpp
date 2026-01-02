@@ -7,7 +7,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace urabbitmq {
 
-AdminChannel::AdminChannel(ConnectionPtr&& channel) : impl_{std::move(channel)} {}
+AdminChannel::AdminChannel(ConnectionPtr&& channel)
+    : impl_{std::move(channel)}
+{}
 
 AdminChannel::~AdminChannel() = default;
 

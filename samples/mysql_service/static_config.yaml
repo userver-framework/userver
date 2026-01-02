@@ -12,6 +12,7 @@ components_manager:
             max_pool_size: 15
 # /// [MySQL service sample - static config]
         http-client:
+        http-client-core:
             fs-task-processor: fs-task-processor
             user-agent: userver testsuite
 

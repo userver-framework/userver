@@ -10,7 +10,10 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::mysql {
 
 Transaction::Transaction(infra::ConnectionPtr&& connection, engine::Deadline deadline)
-    : connection_{std::move(connection)}, deadline_{deadline}, span_{impl::tracing::kTransactionSpan} {
+    : connection_{std::move(connection)},
+      deadline_{deadline},
+      span_{impl::tracing::kTransactionSpan}
+{
     (*connection_)->ExecuteQuery("BEGIN", deadline);
     trx_lock_.Lock();
 }
@@ -58,7 +61,8 @@ StatementResultSet Transaction::DoExecute(const Query& query, impl::io::ParamsBi
                 /* TODO : deadline? */ deadline_,
                 std::nullopt
             ),
-        std::move(execute_span)};
+        std::move(execute_span)
+    };
 }
 
 void Transaction::AssertValid() const {

@@ -17,8 +17,12 @@ class Pipe final {
 public:
     Pipe() { utils::CheckSyscall(::pipe(fd_), "creating pipe"); }
     ~Pipe() {
-        if (fd_[0] != -1) ::close(fd_[0]);
-        if (fd_[1] != -1) ::close(fd_[1]);
+        if (fd_[0] != -1) {
+            ::close(fd_[0]);
+        }
+        if (fd_[1] != -1) {
+            ::close(fd_[1]);
+        }
     }
 
     int GetIn() { return fd_[0]; }

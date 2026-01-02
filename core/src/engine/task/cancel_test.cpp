@@ -23,7 +23,9 @@ UTEST(Cancel, UnwindWorksInDtorSubtask) {
     class DetachingRaii final {
     public:
         DetachingRaii(engine::SingleConsumerEvent& detach_event, engine::TaskWithResult<void>& detached_task)
-            : detach_event_(detach_event), detached_task_(detached_task) {}
+            : detach_event_(detach_event),
+              detached_task_(detached_task)
+        {}
 
         ~DetachingRaii() {
             detached_task_ = engine::AsyncNoSpan([] {
@@ -264,8 +266,9 @@ UTEST(Cancel, DeadlinePropagationNotChildToParent) {
     const auto deadline = engine::Deadline::FromDuration(kSmallDuration);
     engine::Promise<int> promise;
 
-    auto child_task =
-        engine::CriticalAsyncNoSpan(deadline, [&, future = promise.get_future()]() mutable { return future.get(); });
+    auto child_task = engine::CriticalAsyncNoSpan(deadline, [&, future = promise.get_future()]() mutable {
+        return future.get();
+    });
 
     // Deadline set for a child task does not affect the parent task directly.
     // However, it is expected that the child task will signal the failure in some
@@ -299,7 +302,9 @@ UTEST(Cancel, CancellationTokenDtorNoWait) {
         return kTaskResult;
     });
 
-    { const engine::TaskCancellationToken token{task}; }
+    {
+        const engine::TaskCancellationToken token{task};
+    }
     // destroying token neither waits for task, nor
     // cancels the task
     EXPECT_EQ(engine::TaskCancellationReason::kNone, task.CancellationReason());

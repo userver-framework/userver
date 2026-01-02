@@ -25,7 +25,9 @@ namespace impl {
 
 constexpr bool HasUppercaseAscii(std::string_view value) noexcept {
     for (auto c : value) {
-        if ('A' <= c && c <= 'Z') return true;
+        if ('A' <= c && c <= 'Z') {
+            return true;
+        }
     }
 
     return false;
@@ -98,7 +100,9 @@ public:
 #if defined(__clang__)
         __builtin_assume(size_ != kInvalidSize);
 #elif defined(__GNUC__)
-        if (size_ == kInvalidSize) __builtin_unreachable();
+        if (size_ == kInvalidSize) {
+            __builtin_unreachable();
+        }
 #endif
     }
 
@@ -285,7 +289,8 @@ public:
             fmt::format("String literal '{}' in utils::Switch*::Case() should be in lower case", first)
         );
         if (!state_.IsFound() && state_.GetKey().size() == first.size() &&
-            impl::ICaseEqualLowercase(first, state_.GetKey())) {
+            impl::ICaseEqualLowercase(first, state_.GetKey()))
+        {
             state_.SetValue(second);
         }
         return *this;
@@ -313,7 +318,8 @@ public:
             fmt::format("String literal '{}' in utils::Switch*::Case() should be in lower case", first)
         );
         if (!state_.IsFound() && state_.GetKey().size() == first.size() &&
-            impl::ICaseEqualLowercase(first, state_.GetKey())) {
+            impl::ICaseEqualLowercase(first, state_.GetKey()))
+        {
             state_.SetValue(Found{0});
         }
         return *this;
@@ -341,7 +347,8 @@ public:
             fmt::format("String literal '{}' in utils::Switch*::Case() should be in lower case", second)
         );
         if (!state_.IsFound() && state_.GetKey().size() == second.size() &&
-            impl::ICaseEqualLowercase(second, state_.GetKey())) {
+            impl::ICaseEqualLowercase(second, state_.GetKey()))
+        {
             state_.SetValue(first);
         }
         return *this;
@@ -533,7 +540,9 @@ private:
 template <typename First, typename Second>
 class CaseGetValuesByIndex final {
 public:
-    explicit constexpr CaseGetValuesByIndex(std::size_t search_index) : index_(search_index + 1) {}
+    explicit constexpr CaseGetValuesByIndex(std::size_t search_index)
+        : index_(search_index + 1)
+    {}
 
     constexpr CaseGetValuesByIndex& Case(First first, Second second) noexcept {
         if (index_ == 0) {
@@ -607,7 +616,8 @@ public:
 
     constexpr CaseFirstIndexerICase& Case(First first) noexcept {
         if (!state_.IsFound() && state_.GetKey().size() == first.size() &&
-            impl::ICaseEqualLowercase(first, state_.GetKey())) {
+            impl::ICaseEqualLowercase(first, state_.GetKey()))
+        {
             state_.SetValue(index_);
         }
         ++index_;
@@ -799,7 +809,10 @@ public:
         using iterator_category = std::input_iterator_tag;
         using difference_type = std::ptrdiff_t;
 
-        explicit constexpr Iterator(const TrivialBiMap& map, std::size_t position) : map_{map}, position_{position} {}
+        explicit constexpr Iterator(const TrivialBiMap& map, std::size_t position)
+            : map_{map},
+              position_{position}
+        {}
 
         constexpr bool operator==(Iterator other) const { return position_ == other.position_; }
 
@@ -915,7 +928,9 @@ auto ParseFromValueString(const Value& value, TrivialBiMap<BuilderFunc> map) {
 
     const auto string = value.template As<std::string>();
     const auto parsed = map.TryFind(string);
-    if (parsed) return *parsed;
+    if (parsed) {
+        return *parsed;
+    }
 
     using Exception = std::conditional_t<std::is_void_v<ExceptionType>, typename Value::Exception, ExceptionType>;
 
@@ -936,7 +951,9 @@ namespace impl {
 template <typename Enum, typename BuilderFunc>
 std::string_view EnumToStringView(Enum value, TrivialBiMap<BuilderFunc> map) {
     static_assert(std::is_enum_v<Enum>);
-    if (const auto string = map.TryFind(value)) return *string;
+    if (const auto string = map.TryFind(value)) {
+        return *string;
+    }
 
     UINVARIANT(
         false,

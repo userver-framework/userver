@@ -26,9 +26,8 @@ std::shared_ptr<ConnectionPool> ConnectionPool::Create(
     bool use_secure_connection,
     statistics::ConnectionStatistics& stats
 ) {
-    return std::make_shared<ConnectionPool>(
-        resolver, endpoint_info, auth_settings, pool_settings, use_secure_connection, stats
-    );
+    return std::make_shared<
+        ConnectionPool>(resolver, endpoint_info, auth_settings, pool_settings, use_secure_connection, stats);
 }
 
 ConnectionPool::ConnectionPool(
@@ -47,7 +46,8 @@ ConnectionPool::ConnectionPool(
       auth_settings_{auth_settings},
       pool_settings_{pool_settings},
       use_secure_connection_{use_secure_connection},
-      stats_{stats} {
+      stats_{stats}
+{
     try {
         Init(pool_settings_.min_pool_size, kConnectionSetupTimeout);
     } catch (const impl::ConnectionSetupError& ex) {

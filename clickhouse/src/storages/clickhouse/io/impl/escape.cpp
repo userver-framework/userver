@@ -69,7 +69,9 @@ std::string Escape(std::string_view source) {
     result.reserve(source.size() + 2);
 
     result.push_back('\'');
-    for (auto c : source) EscapeSymbol(result, c);
+    for (auto c : source) {
+        EscapeSymbol(result, c);
+    }
     result.push_back('\'');
 
     return result;
@@ -81,7 +83,8 @@ std::string Escape(const boost::uuids::uuid& uuid) {
 
 std::string Escape(std::chrono::system_clock::time_point source) {
     return fmt::format(
-        "toDateTime({})", std::chrono::duration_cast<std::chrono::seconds>(source.time_since_epoch()).count()
+        "toDateTime({})",
+        std::chrono::duration_cast<std::chrono::seconds>(source.time_since_epoch()).count()
     );
 }
 

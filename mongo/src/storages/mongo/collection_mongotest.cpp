@@ -100,8 +100,9 @@ UTEST_F(Collection, Read) {
         EXPECT_NO_THROW(cursor.SetBatchSize(0)) << "Setting to 0 should be fine";
         EXPECT_TRUE(cursor);
         EXPECT_TRUE(cursor.HasMore());
-        for ([[maybe_unused]] const auto& doc : cursor)
+        for ([[maybe_unused]] const auto& doc : cursor) {
             ;  // exhaust
+        }
         EXPECT_FALSE(cursor);
         EXPECT_FALSE(cursor.HasMore());
         for ([[maybe_unused]] const auto& doc : cursor) {
@@ -115,8 +116,9 @@ UTEST_F(Collection, Read) {
 
         EXPECT_TRUE(cursor);
         EXPECT_TRUE(cursor.HasMore());
-        for ([[maybe_unused]] const auto& doc : cursor)
+        for ([[maybe_unused]] const auto& doc : cursor) {
             ;  // exhaust
+        }
         EXPECT_FALSE(cursor);
         EXPECT_FALSE(cursor.HasMore());
         for ([[maybe_unused]] const auto& doc : cursor) {
@@ -130,8 +132,9 @@ UTEST_F(Collection, Read) {
 
         EXPECT_TRUE(cursor);
         EXPECT_TRUE(cursor.HasMore());
-        for ([[maybe_unused]] const auto& doc : cursor)
+        for ([[maybe_unused]] const auto& doc : cursor) {
             ;  // exhaust
+        }
         EXPECT_FALSE(cursor);
         EXPECT_FALSE(cursor.HasMore());
         for ([[maybe_unused]] const auto& doc : cursor) {
@@ -252,7 +255,8 @@ UTEST_F(Collection, Update) {
     coll.InsertOne(bson::MakeDoc("_id", 1));
     UEXPECT_THROW(coll.UpdateOne(bson::MakeDoc("_id", 1), bson::MakeDoc("x", 1)), mongo::InvalidQueryArgumentException);
     UEXPECT_THROW(
-        coll.UpdateMany(bson::MakeDoc("_id", 1), bson::MakeDoc("x", 1)), mongo::InvalidQueryArgumentException
+        coll.UpdateMany(bson::MakeDoc("_id", 1), bson::MakeDoc("x", 1)),
+        mongo::InvalidQueryArgumentException
     );
 
     UpdateOneDoc(coll);
@@ -277,7 +281,9 @@ UTEST_F(Collection, Update) {
     }
     {
         auto result = coll.UpdateOne(
-            bson::MakeDoc("_id", 2), bson::MakeDoc("$set", bson::MakeDoc("x", 20)), mongo::options::Upsert{}
+            bson::MakeDoc("_id", 2),
+            bson::MakeDoc("$set", bson::MakeDoc("x", 20)),
+            mongo::options::Upsert{}
         );
         EXPECT_EQ(0, result.MatchedCount());
         EXPECT_EQ(0, result.ModifiedCount());
@@ -299,7 +305,9 @@ UTEST_F(Collection, Update) {
     }
     {
         auto result = coll.UpdateMany(
-            bson::MakeDoc("_id", 3), bson::MakeDoc("$set", bson::MakeDoc("x", 30)), mongo::options::Upsert{}
+            bson::MakeDoc("_id", 3),
+            bson::MakeDoc("$set", bson::MakeDoc("x", 30)),
+            mongo::options::Upsert{}
         );
         EXPECT_EQ(0, result.MatchedCount());
         EXPECT_EQ(0, result.ModifiedCount());
@@ -328,7 +336,9 @@ UTEST_F(Collection, Delete) {
     {
         std::vector<formats::bson::Document> docs;
         docs.reserve(10);
-        for (int i = 0; i < 10; ++i) docs.push_back(bson::MakeDoc("x", i));
+        for (int i = 0; i < 10; ++i) {
+            docs.push_back(bson::MakeDoc("x", i));
+        }
         coll.InsertMany(std::move(docs));
     }
 
@@ -392,7 +402,10 @@ UTEST_F(Collection, FindAndModify) {
     }
     {
         auto result = coll.FindAndModify(
-            bson::MakeDoc("_id", 3), bson::MakeDoc("x", 30), mongo::options::Upsert{}, mongo::options::ReturnNew{}
+            bson::MakeDoc("_id", 3),
+            bson::MakeDoc("x", 30),
+            mongo::options::Upsert{},
+            mongo::options::ReturnNew{}
         );
         EXPECT_EQ(0, result.MatchedCount());
         EXPECT_EQ(0, result.ModifiedCount());
@@ -426,7 +439,9 @@ UTEST_F(Collection, FindAndModify) {
     }
     {
         auto result = coll.FindAndModify(
-            bson::MakeDoc("_id", 1), bson::MakeDoc("$inc", bson::MakeDoc("x", 2)), mongo::options::ReturnNew{}
+            bson::MakeDoc("_id", 1),
+            bson::MakeDoc("$inc", bson::MakeDoc("x", 2)),
+            mongo::options::ReturnNew{}
         );
         EXPECT_EQ(1, result.MatchedCount());
         EXPECT_EQ(1, result.ModifiedCount());
@@ -726,14 +741,15 @@ UTEST_F(Collection, Distinct) {
 
         bool has_string = false, has_int = false, has_double = false, has_bool = false;
         for (const auto& value : result) {
-            if (value.IsString())
+            if (value.IsString()) {
                 has_string = true;
-            else if (value.IsInt32())
+            } else if (value.IsInt32()) {
                 has_int = true;
-            else if (value.IsDouble())
+            } else if (value.IsDouble()) {
                 has_double = true;
-            else if (value.IsBool())
+            } else if (value.IsBool()) {
                 has_bool = true;
+            }
         }
 
         EXPECT_TRUE(has_string);
@@ -818,8 +834,8 @@ UTEST_F(Collection, Distinct) {
         );
 
         UEXPECT_NO_THROW({
-            const auto result =
-                coll.Distinct("category", mongo::options::MaxServerTime(std::chrono::milliseconds(5000)));
+            const auto
+                result = coll.Distinct("category", mongo::options::MaxServerTime(std::chrono::milliseconds(5000)));
             EXPECT_EQ(2, result.size());
         });
     }

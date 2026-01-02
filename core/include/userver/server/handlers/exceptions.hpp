@@ -241,11 +241,13 @@ public:
     /// @snippet server/handlers/exceptions_test.cpp  Sample custom error builder
     template <typename... Args>
     CustomHandlerException(HandlerErrorCode handler_code, Args&&... args)
-        : CustomHandlerException(impl::CustomHandlerExceptionData{handler_code, std::forward<Args>(args)...}) {}
+        : CustomHandlerException(impl::CustomHandlerExceptionData{handler_code, std::forward<Args>(args)...})
+    {}
 
     /// @overload
     explicit CustomHandlerException(HandlerErrorCode handler_code)
-        : CustomHandlerException(impl::CustomHandlerExceptionData{handler_code}) {}
+        : CustomHandlerException(impl::CustomHandlerExceptionData{handler_code})
+    {}
 
     /// @deprecated Use the variadic constructor above instead.
     CustomHandlerException(
@@ -262,20 +264,23 @@ public:
               std::move(internal_message),
               handler_code,
               std::move(headers),
-              std::move(details)}) {}
+              std::move(details)
+          })
+    {}
 
     /// @deprecated Use the variadic constructor above instead.
     template <typename MessageBuilder, typename = std::enable_if_t<impl::kIsMessageBuilder<MessageBuilder>>>
     CustomHandlerException(MessageBuilder&& builder, HandlerErrorCode handler_code)
-        : CustomHandlerException(impl::CustomHandlerExceptionData{std::forward<MessageBuilder>(builder), handler_code}
-          ) {}
+        : CustomHandlerException(impl::CustomHandlerExceptionData{std::forward<MessageBuilder>(builder), handler_code})
+    {}
 
     /// @cond
     explicit CustomHandlerException(impl::CustomHandlerExceptionData&& data)
         : runtime_error(
               data.internal_message.empty() ? std::string{GetCodeDescription(data.handler_code)} : data.internal_message
           ),
-          data_(std::move(data)) {
+          data_(std::move(data))
+    {
         UASSERT_MSG(
             data_.details.IsNull() || data_.details.IsObject(),
             "The details JSON value must be either null or an object"
@@ -313,7 +318,9 @@ public:
 
     /// @see CustomHandlerException::CustomHandlerException for allowed args
     template <typename... Args>
-    explicit ExceptionWithCode(Args&&... args) : CustomHandlerException(kDefaultCode, std::forward<Args>(args)...) {}
+    explicit ExceptionWithCode(Args&&... args)
+        : CustomHandlerException(kDefaultCode, std::forward<Args>(args)...)
+    {}
 };
 
 /// Exception class for situations when request preconditions have failed.

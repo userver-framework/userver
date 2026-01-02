@@ -11,6 +11,7 @@
 #include <userver/server/http/http_request.hpp>
 
 #include <userver/components/component.hpp>
+#include <userver/components/scope.hpp>
 #include <userver/components/statistics_storage.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
 #include <userver/engine/deadline.hpp>
@@ -37,6 +38,10 @@
 #include <userver/utils/scope_guard.hpp>
 #include <userver/utils/text_light.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
+
+#ifndef ARCADIA_ROOT
+#include "generated/src/server/handlers/http_handler_base.yaml.hpp"  // Y_IGNORE
+#endif
 
 USERVER_NAMESPACE_BEGIN
 
@@ -70,20 +75,6 @@ void SetFormattedErrorResponse(http::HttpResponse& http_response, FormattedError
     }
 }
 
-void SetFormattedErrorResponse(
-    server::http::ResponseBodyStream& response_body_stream,
-    FormattedErrorData&& formatted_error,
-    engine::Deadline deadline
-) {
-    if (formatted_error.content_type) {
-        response_body_stream.SetHeader(
-            USERVER_NAMESPACE::http::headers::kContentType, std::move(formatted_error.content_type->ToString())
-        );
-    }
-    response_body_stream.SetEndOfHeaders();
-    response_body_stream.PushBodyChunk(std::move(formatted_error.external_body), deadline);
-}
-
 std::unordered_map<int, logging::Level> ParseStatusCodesLogLevel(
     const std::unordered_map<std::string, std::string>& codes
 ) {
@@ -107,7 +98,8 @@ void ValidateMiddlewaresConfiguration(
         const auto [_, inserted] = unique_names.emplace(middleware_name);
         if (!inserted) {
             throw std::runtime_error{
-                fmt::format("Middleware '{}' is present more than once in the pipeline", middleware_name)};
+                fmt::format("Middleware '{}' is present more than once in the pipeline", middleware_name)
+            };
         }
     }
 
@@ -143,26 +135,36 @@ HttpHandlerBase::HttpHandlerBase(
       allowed_methods_(InitAllowedMethods(GetConfig())),
       handler_name_(config.Name()),
       log_level_(config["log-level"].As<std::optional<logging::Level>>()),
-      log_level_for_status_codes_(ParseStatusCodesLogLevel(
-          config["status-codes-log-level"].As<std::unordered_map<std::string, std::string>>({})
-      )),
+      log_level_for_status_codes_(ParseStatusCodesLogLevel(config["status-codes-log-level"]
+                                                               .As<std::unordered_map<std::string, std::string>>({}))),
       handler_statistics_(std::make_unique<HttpHandlerStatistics>()),
       request_statistics_(std::make_unique<HttpRequestStatistics>()),
-      is_body_streamed_(config["response-body-stream"].As<bool>(false)) {
+      is_body_streamed_(config["response-body-stream"].As<bool>(false))
+{
     if (allowed_methods_.empty()) {
         LOG_WARNING() << "empty allowed methods list in " << config.Name();
     }
 
-    auto& server_component = context.FindComponent<components::Server>();
+    auto& server = context.FindComponent<components::Server>().GetServer();
 
-    engine::TaskProcessor& task_processor = GetConfig().task_processor
-                                                ? context.GetTaskProcessor(*GetConfig().task_processor)
-                                                : engine::current_task::GetTaskProcessor();
-    try {
-        server_component.AddHandler(*this, task_processor);
-    } catch (const std::exception& ex) {
-        throw std::runtime_error(std::string("can't add handler to server: ") + ex.what());
-    }
+    engine::TaskProcessor& task_processor =
+        GetConfig().task_processor
+            ? context.GetTaskProcessor(*GetConfig().task_processor)
+            : engine::current_task::GetTaskProcessor();
+
+    // Postpone handler registration as a request handling requires
+    // HandleRequest() implementation, which is available only after
+    // the descendant constructor.
+    context.RegisterScope(components::MakeScope([this, &server, &task_processor] {
+        try {
+            server.AddHandler(*this, task_processor);
+
+            // Note: no need to call RemoveHandler on scope exit,
+            // PortInfo::Stop() automatically removes all handlers
+        } catch (const std::exception& ex) {
+            throw std::runtime_error(std::string("can't add handler to server: ") + ex.what());
+        }
+    }));
 
     BuildMiddlewarePipeline(config, context);
 
@@ -177,7 +179,8 @@ HttpHandlerBase::HttpHandlerBase(
                     labels.emplace_back("http_path", utils::graphite::EscapeName(path));
                     return std::string{"http"};
                 },
-                [](FallbackHandler fallback) { return fmt::format("http.by-fallback.{}", ToString(fallback)); }},
+                [](FallbackHandler fallback) { return fmt::format("http.by-fallback.{}", ToString(fallback)); }
+            },
             GetConfig().path
         );
 
@@ -194,59 +197,22 @@ HttpHandlerBase::HttpHandlerBase(
         );
     }
 
-    set_response_server_hostname_ = GetConfig().set_response_server_hostname.value_or(
-        server_component.GetServer().GetConfig().set_response_server_hostname
-    );
+    set_response_server_hostname_ =
+        GetConfig().set_response_server_hostname.value_or(server.GetConfig().set_response_server_hostname);
 }
 
 HttpHandlerBase::~HttpHandlerBase() { statistics_holder_.Unregister(); }
 
 void HttpHandlerBase::HandleRequestStream(http::HttpRequest& http_request, request::RequestContext& context) const {
-    auto& response = http_request.GetHttpResponse();
-    const utils::ScopeGuard scope([&response] { response.SetHeadersEnd(); });
+    auto& http_response = http_request.GetHttpResponse();
+    server::http::ResponseBodyStream response_body_stream(http_response.GetBodyProducer(), http_response);
 
-    server::http::ResponseBodyStream response_body_stream{response.GetBodyProducer(), response};
-
-    // Just in case HandleStreamRequest() throws an exception.
-    // Though it can be changed in HandleStreamRequest().
-    response_body_stream.SetStatusCode(500);
-
-    try {
-        HandleStreamRequest(http_request, context, response_body_stream);
-    } catch (const CustomHandlerException& e) {
-        response_body_stream.SetStatusCode(http::GetHttpStatus(e));
-
-        for (const auto& [name, value] : e.GetExtraHeaders()) {
-            response_body_stream.SetHeader(name, value);
-        }
-        if (e.IsExternalErrorBodyFormatted()) {
-            response_body_stream.SetEndOfHeaders();
-            response_body_stream.PushBodyChunk(std::string{e.GetExternalErrorBody()}, engine::Deadline());
-        } else {
-            auto formatted_error = GetFormattedExternalErrorBody(e);
-            SetFormattedErrorResponse(response_body_stream, std::move(formatted_error), engine::Deadline());
-        }
-    } catch (const std::exception& e) {
-        if (engine::current_task::ShouldCancel()) {
-            LOG_WARNING() << "request task cancelled, exception in '" << HandlerName()
-                          << "' handler in handle_request: " << e;
-            response_body_stream.SetStatusCode(http::HttpStatus::kClientClosedRequest);
-        } else {
-            LOG_ERROR() << "exception in '" << HandlerName() << "' handler in handle_request: " << e;
-            response_body_stream.SetStatusCode(500);
-            SetFormattedErrorResponse(
-                response,
-                GetFormattedExternalErrorBody({
-                    HandlerErrorCode::kServerSideError,
-                    ExternalBody{response.GetData()},
-                })
-            );
-        }
-    }
+    HandleStreamRequest(http_request, context, response_body_stream);
 }
 
 void HttpHandlerBase::HandleHttpRequest(http::HttpRequest& http_request, request::RequestContext& context) const {
     auto& response = http_request.GetHttpResponse();
+    response.SetSystemHeadersEnd();
 
     // Don't hold the config snapshot for too long, especially with streaming.
     context.GetInternalContext().ResetConfigSnapshot();
@@ -264,6 +230,7 @@ void HttpHandlerBase::PrepareAndHandleRequest(http::HttpRequest& http_request, r
     auto& response = http_request.GetHttpResponse();
 
     context.GetInternalContext().SetConfigSnapshot(config_source_.GetSnapshot());
+    SetResponseServerHostname(response);
     try {
         UASSERT(first_middleware_);
         first_middleware_->HandleRequest(http_request, context);
@@ -277,7 +244,6 @@ void HttpHandlerBase::PrepareAndHandleRequest(http::HttpRequest& http_request, r
         response.SetStatus(http::HttpStatus::kInternalServerError);
     }
 
-    SetResponseServerHostname(response);
     response.SetHeadersEnd();
 }
 
@@ -315,7 +281,12 @@ void HttpHandlerBase::ReportMalformedRequest(http::HttpRequest& http_request) co
 
         SetFormattedErrorResponse(
             response,
-            GetFormattedExternalErrorBody({HandlerErrorCode::kRequestParseError, ExternalBody{response.GetData()}})
+            GetFormattedExternalErrorBody(http::CustomHandlerException{
+                HandlerErrorCode::kRequestParseError,
+                // Response status and body is expected to have been set prior to ReportMalformedRequest call.
+                response.GetStatus(),
+                ExternalBody{response.GetData()},
+            })
         );
     } catch (const std::exception& ex) {
         LOG_ERROR() << "unable to handle ready request: " << ex;
@@ -333,10 +304,16 @@ HttpRequestStatistics& HttpHandlerBase::GetRequestStatistics() const { return *r
 logging::Level HttpHandlerBase::GetLogLevelForResponseStatus(http::HttpStatus status) const {
     const auto status_code = static_cast<int>(status);
     const auto* const level = utils::FindOrNullptr(log_level_for_status_codes_, status_code);
-    if (level) return *level;
+    if (level) {
+        return *level;
+    }
 
-    if (status_code >= 400 && status_code <= 499) return logging::Level::kWarning;
-    if (status_code >= 500 && status_code <= 599) return logging::Level::kError;
+    if (status_code >= 400 && status_code <= 499) {
+        return logging::Level::kWarning;
+    }
+    if (status_code >= 500 && status_code <= 599) {
+        return logging::Level::kError;
+    }
     return logging::Level::kInfo;
 }
 
@@ -414,8 +391,11 @@ std::string HttpHandlerBase::GetUrlForLoggingChecked(const http::HttpRequest& re
     }
 }
 
-void HttpHandlerBase::HandleCustomHandlerException(const http::HttpRequest& request, const CustomHandlerException& ex)
-    const {
+void HttpHandlerBase::HandleCustomHandlerException(
+    const http::HttpRequest& request,
+    request::RequestContext&,
+    const CustomHandlerException& ex
+) const {
     auto http_status = http::GetHttpStatus(ex);
     const auto level = GetLogLevelForResponseStatus(http_status);
     LOG(level) << "custom handler exception in '" << HandlerName() << "' handler: msg=" << ex;
@@ -432,7 +412,11 @@ void HttpHandlerBase::HandleCustomHandlerException(const http::HttpRequest& requ
     }
 }
 
-void HttpHandlerBase::HandleUnknownException(const http::HttpRequest& request, const std::exception& ex) const {
+void HttpHandlerBase::HandleUnknownException(
+    const http::HttpRequest& request,
+    request::RequestContext&,
+    const std::exception& ex
+) const {
     LogUnknownException(ex);
 
     auto& response = request.GetHttpResponse();
@@ -452,8 +436,9 @@ void HttpHandlerBase::HandleUnknownException(const http::HttpRequest& request, c
 
 void HttpHandlerBase::LogUnknownException(const std::exception& ex, std::optional<logging::Level> log_level) const {
     if (engine::current_task::ShouldCancel()) {
-        LOG(log_level.value_or(logging::Level::kWarning))
-            << "request task cancelled, exception in '" << HandlerName() << "' handler: " << ex;
+        LOG(log_level.value_or(logging::Level::kWarning)
+        ) << "request task cancelled, exception in '"
+          << HandlerName() << "' handler: " << ex;
     } else {
         LOG(log_level.value_or(logging::Level::kError)) << "exception in '" << HandlerName() << "' handler: " << ex;
     }
@@ -494,26 +479,27 @@ void HttpHandlerBase::BuildMiddlewarePipeline(
             "It seems that you are building your ComponentList from scratch, "
             "append DefaultMiddlewareComponents() from "
             "userver/server/middlewares/configuration.hpp to it via "
-            "AppendComponentList()"};
+            "AppendComponentList()"
+        };
     }
 
     const auto middlewares_config = config["middlewares"];
 
-    const auto& handler_pipeline_builder = context.FindComponent<middlewares::HandlerPipelineBuilder>(
-        middlewares_config[kMiddlePipelineBuilderKey].As<std::string>(middlewares::HandlerPipelineBuilder::kName)
-    );
-    const auto handler_middlewares = handler_pipeline_builder.BuildPipeline(
-        context.FindComponent<components::Server>().GetServer().GetCommonMiddlewares()
-    );
+    const auto& handler_pipeline_builder = context.FindComponent<
+        middlewares::HandlerPipelineBuilder>(middlewares_config[kMiddlePipelineBuilderKey]
+                                                 .As<std::string>(middlewares::HandlerPipelineBuilder::kName));
+    const auto handler_middlewares =
+        handler_pipeline_builder
+            .BuildPipeline(context.FindComponent<components::Server>().GetServer().GetCommonMiddlewares());
 
     ValidateMiddlewaresConfiguration(middlewares_config, handler_middlewares);
 
-    auto* next_middleware_ptr_{&first_middleware_};
-    const auto add_middleware = [this, &middlewares_config, &context, &next_middleware_ptr_](std::string_view name) {
-        *next_middleware_ptr_ = context.FindComponent<middlewares::HttpMiddlewareFactoryBase>(name).CreateChecked(
-            *this, middlewares_config[name]
-        );
-        next_middleware_ptr_ = &(*next_middleware_ptr_)->next_;
+    auto* next_middleware_ptr{&first_middleware_};
+    const auto add_middleware = [this, &middlewares_config, &context, &next_middleware_ptr](std::string_view name) {
+        *next_middleware_ptr =
+            context.FindComponent<middlewares::HttpMiddlewareFactoryBase>(name)
+                .CreateChecked(*this, middlewares_config[name]);
+        next_middleware_ptr = &(*next_middleware_ptr)->next_;
     };
 
     for (const auto& middleware_name : handler_middlewares) {
@@ -521,40 +507,13 @@ void HttpHandlerBase::BuildMiddlewarePipeline(
     }
 
     // Finalize the pipeline
-    { add_middleware(middlewares::HandlerAdapterFactory::kName); }
+    {
+        add_middleware(middlewares::HandlerAdapterFactory::kName);
+    }
 }
 
 yaml_config::Schema HttpHandlerBase::GetStaticConfigSchema() {
-    return yaml_config::MergeSchemas<HandlerBase>(R"(
-type: object
-description: Base class for all the userver HTTP handlers
-additionalProperties: false
-properties:
-    log-level:
-        type: string
-        description: overrides log level for this handle
-        defaultDescription: <no override>
-    status-codes-log-level:
-        type: object
-        properties: {}
-        additionalProperties:
-            type: string
-            description: log level
-        description: HTTP status code -> log level map
-    middlewares:
-        type: object
-        properties:
-            pipeline-builder:
-                type: string
-                description: name of a component to build a middleware pipeline for this particular handler
-                defaultDescription: default-handler-middleware-pipeline-builder
-        additionalProperties:
-            type: object
-            properties: {}
-            additionalProperties: true
-            description: per-middleware configuration
-        description: middleware name -> middleware configuration map
-)");
+    return yaml_config::MergeSchemasFromResource<HandlerBase>("src/server/handlers/http_handler_base.yaml");
 }
 
 }  // namespace server::handlers

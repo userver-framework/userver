@@ -42,7 +42,10 @@ public:
         const std::optional<std::chrono::month>& month,
         const std::optional<std::chrono::day>& day
     )
-        : year_(year), month_(month), day_(day) {
+        : year_(year),
+          month_(month),
+          day_(day)
+    {
         if (!IsValid(year_, month_, day_)) {
             ThrowError(YearNum(), MonthNum(), DayNum(), "invalid or out of range");
         }
@@ -50,27 +53,39 @@ public:
 
     /// @brief Creates full date.
     /// @throws ValueError if @a ymd is not valid or outside the allowed range.
-    constexpr Date(const std::chrono::year_month_day& ymd) : Date(ymd.year(), ymd.month(), ymd.day()) {}
+    constexpr Date(const std::chrono::year_month_day& ymd)
+        : Date(ymd.year(), ymd.month(), ymd.day())
+    {}
 
     /// @brief Creates date without a day.
     /// @throws ValueError if @a ym is not valid or outside the allowed range.
-    constexpr Date(const std::chrono::year_month& ym) : Date(ym.year(), ym.month(), std::nullopt) {}
+    constexpr Date(const std::chrono::year_month& ym)
+        : Date(ym.year(), ym.month(), std::nullopt)
+    {}
 
     /// @brief Creates date without a year.
     /// @throws ValueError if @a md is not valid.
-    constexpr Date(const std::chrono::month_day& md) : Date(std::nullopt, md.month(), md.day()) {}
+    constexpr Date(const std::chrono::month_day& md)
+        : Date(std::nullopt, md.month(), md.day())
+    {}
 
     /// @brief Creates date holding only year.
     /// @throws ValueError if @a year is outside the allowed range.
-    constexpr Date(const std::chrono::year& year) : Date(year, std::nullopt, std::nullopt) {}
+    constexpr Date(const std::chrono::year& year)
+        : Date(year, std::nullopt, std::nullopt)
+    {}
 
     /// @brief Creates full date.
     /// @throws ValueError if @a date is outside the allowed range.
-    constexpr Date(const utils::datetime::Date& date) : Date(std::chrono::year_month_day{date.GetSysDays()}) {}
+    constexpr Date(const utils::datetime::Date& date)
+        : Date(std::chrono::year_month_day{date.GetSysDays()})
+    {}
 
     /// @brief Creates full date from `std::chrono::sys_days`.
     /// @throws ValueError if @a sys_days is outside the allowed range.
-    constexpr Date(const std::chrono::sys_days& sys_days) : Date(std::chrono::year_month_day{sys_days}) {}
+    constexpr Date(const std::chrono::sys_days& sys_days)
+        : Date(std::chrono::year_month_day{sys_days})
+    {}
 
     Date(utils::impl::InternalTag, std::int32_t year, std::int32_t month, std::int32_t day);
 
@@ -147,7 +162,8 @@ public:
     [[nodiscard]] constexpr std::chrono::sys_days ToChronoSysDays() const {
         if (HasYear()) {
             return static_cast<std::chrono::sys_days>(std::chrono::year_month_day{
-                *year_ / month_.value_or(std::chrono::January) / day_.value_or(std::chrono::day{1})});
+                *year_ / month_.value_or(std::chrono::January) / day_.value_or(std::chrono::day{1})
+            });
         } else {
             ThrowError(YearNum(), MonthNum(), DayNum(), "year should be set");
         }
@@ -158,7 +174,10 @@ public:
     [[nodiscard]] utils::datetime::Date ToUserverDate() const {
         if (HasYearMonthDay()) {
             return utils::datetime::Date{
-                static_cast<int>(YearNum()), static_cast<int>(MonthNum()), static_cast<int>(DayNum())};
+                static_cast<int>(YearNum()),
+                static_cast<int>(MonthNum()),
+                static_cast<int>(DayNum())
+            };
         } else {
             ThrowError(YearNum(), MonthNum(), DayNum(), "all date components should be set");
         }
@@ -246,8 +265,12 @@ public:
         }
     }
 
-    [[nodiscard]] static bool
-    IsValid(utils::impl::InternalTag, std::int32_t year_num, std::int32_t month_num, std::int32_t day_num) noexcept;
+    [[nodiscard]] static bool IsValid(
+        utils::impl::InternalTag,
+        std::int32_t year_num,
+        std::int32_t month_num,
+        std::int32_t day_num
+    ) noexcept;
 
 private:
     [[noreturn]] static void ThrowError(std::int32_t year, std::int32_t month, std::int32_t day, const char* reason);

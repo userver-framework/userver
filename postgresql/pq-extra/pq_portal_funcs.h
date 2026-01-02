@@ -22,11 +22,16 @@ extern "C" {
  * @return              1 if the message was sent, 0 in case of error, please
  *                      check PQerrorMessage for error message
  */
-extern int PQXSendPortalBind(PGconn* conn, const char* stmt_name,
-                             const char* portal_name, int n_params,
-                             const char* const* param_values,
-                             const int* param_lengths, const int* param_formats,
-                             int result_format);
+extern int PQXSendPortalBind(
+    PGconn* conn,
+    const char* stmt_name,
+    const char* portal_name,
+    int n_params,
+    const char* const* param_values,
+    const int* param_lengths,
+    const int* param_formats,
+    int result_format
+);
 
 /**
  * Send an execute portal message to PostgreSQL server
@@ -37,8 +42,7 @@ extern int PQXSendPortalBind(PGconn* conn, const char* stmt_name,
  * @return            1 if the message was sent, 0 in case of error, please
  *                    check PQerrorMessage for error message
  */
-extern int PQXSendPortalExecute(PGconn* conn, const char* portal_name,
-                                int n_rows);
+extern int PQXSendPortalExecute(PGconn* conn, const char* portal_name, int n_rows);
 
 #ifdef __cplusplus
 }

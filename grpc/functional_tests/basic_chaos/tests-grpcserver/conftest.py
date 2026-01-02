@@ -40,7 +40,7 @@ async def _gate_ready(service_client, _gate_started):
     await _gate_started.to_client_pass()
     _gate_started.start_accepting()
 
-    yield _gate_started
+    return _gate_started
 
 
 @pytest.fixture

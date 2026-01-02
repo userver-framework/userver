@@ -1,6 +1,5 @@
-import asyncio
-
 import pytest
+import pytest_userver.utils.sync as sync
 import redis
 
 # Some messages may be lost (it's a Redis limitation)
@@ -17,7 +16,8 @@ def _get_url(redis_type):
 
 async def _validate_pubsub(redis_db, service_client, msg, redis_type):
     url = _get_url(redis_type)
-    for _ in range(REQUESTS_RETRIES):
+
+    async def check_ready():
         redis_db.publish(INPUT_CHANNEL_NAME, msg)
 
         response = await service_client.get(url)
@@ -30,9 +30,13 @@ async def _validate_pubsub(redis_db, service_client, msg, redis_type):
             await service_client.delete(url)
             return True
 
-        await asyncio.sleep(REQUESTS_RELAX_TIME)
+        raise sync.NotReady()
 
-    return False
+    try:
+        await sync.wait_until(check_ready)
+        return True
+    except AssertionError:
+        return False
 
 
 @pytest.mark.parametrize('db_name', ['sentinel', 'sentinel-with-master'])

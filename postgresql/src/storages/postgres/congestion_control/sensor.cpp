@@ -6,7 +6,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::postgres::cc {
 
-Sensor::Sensor(detail::ConnectionPool& pool) : pool_(pool) {}
+Sensor::Sensor(detail::ConnectionPool& pool)
+    : pool_(pool)
+{}
 
 Sensor::Data Sensor::GetCurrent() {
     const auto& stats = pool_.GetStatistics();
@@ -17,7 +19,9 @@ Sensor::Data Sensor::GetCurrent() {
     auto new_total = stats.transaction.total;
     auto diff_total = new_total - last_total_queries_;
     last_total_queries_ = new_total;
-    if (diff_total == 0) diff_total = 1;
+    if (diff_total == 0) {
+        diff_total = 1;
+    }
 
     auto timeout_rate = static_cast<double>(diff_timeouts) / diff_total;
     LOG_DEBUG() << "timeout rate = " << timeout_rate;

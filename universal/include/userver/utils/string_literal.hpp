@@ -12,7 +12,6 @@
 
 #include <userver/compiler/impl/constexpr.hpp>
 #include <userver/formats/serialize/to.hpp>
-#include <userver/utils/assert.hpp>
 #include <userver/utils/zstring_view.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -38,6 +37,9 @@ public:
         : zstring_view{literal} {
         // data()[size()] == '\0' is guaranteed by std::string_view that calls std::strlen(literal)
     }
+
+    void swap(zstring_view&) = delete;  // loses guarantee on lifetime because zstring_view may refer to non-literal
+    void swap(StringLiteral& other) noexcept { zstring_view::swap(other); }
 
     /// Constructs a StringLiteral from a pointer and size.
     /// @warning `str[len]` should be '\0' and `str` should point to compile time literal.

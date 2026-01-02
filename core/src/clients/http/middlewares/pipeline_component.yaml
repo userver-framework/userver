@@ -1,0 +1,16 @@
+type: object
+description: Component that provides common http client middlewares
+additionalProperties: false
+properties:
+    middlewares:
+        type: object
+        description: map of common HTTP client middlewares
+        properties: {}
+        additionalProperties:
+            type: object
+            description: middleware config
+            additionalProperties: false
+            properties:
+                enabled:
+                    type: boolean
+                    description: enable middleware

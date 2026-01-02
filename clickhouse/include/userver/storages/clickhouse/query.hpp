@@ -26,7 +26,9 @@ Query WithArgs(const Query& query, const Args&... args) {
     // we should throw on params count mismatch
     // TODO : https://st.yandex-team.ru/TAXICOMMON-5066
     return Query{
-        fmt::format(fmt::runtime(query.GetStatementView()), io::impl::Escape(args)...), query.GetOptionalName()};
+        fmt::format(fmt::runtime(query.GetStatementView()), io::impl::Escape(args)...),
+        query.GetOptionalName()
+    };
 }
 
 }  // namespace impl

@@ -121,13 +121,13 @@ private:
 };
 
 template <class Connection, class Derived>
-ConnectionPoolBase<Connection, Derived>::ConnectionPoolBase(
-    std::size_t max_pool_size,
-    std::size_t max_simultaneously_connecting_clients
-)
+ConnectionPoolBase<
+    Connection,
+    Derived>::ConnectionPoolBase(std::size_t max_pool_size, std::size_t max_simultaneously_connecting_clients)
     : given_away_semaphore_{max_pool_size},
       connecting_semaphore_{max_simultaneously_connecting_clients},
-      queue_{max_pool_size} {}
+      queue_{max_pool_size}
+{}
 
 template <class Connection, class Derived>
 ConnectionPoolBase<Connection, Derived>::~ConnectionPoolBase() {
@@ -141,10 +141,9 @@ ConnectionPoolBase<Connection, Derived>::~ConnectionPoolBase() {
 }
 
 template <class Connection, class Derived>
-void ConnectionPoolBase<Connection, Derived>::Init(
-    std::size_t initial_size,
-    std::chrono::milliseconds connection_setup_timeout
-) {
+void ConnectionPoolBase<
+    Connection,
+    Derived>::Init(std::size_t initial_size, std::chrono::milliseconds connection_setup_timeout) {
     UASSERT_MSG(!initialized_, "Calling Init multiple times is a API misuse");
     // We mark the pool as initialized even if this method throws, because
     // this `initialized_` field is here just to ensure correct API usage,
@@ -177,8 +176,9 @@ void ConnectionPoolBase<Connection, Derived>::Reset() {
 }
 
 template <class Connection, class Derived>
-typename ConnectionPoolBase<Connection, Derived>::ConnectionHolder
-ConnectionPoolBase<Connection, Derived>::AcquireConnection(engine::Deadline deadline) {
+typename ConnectionPoolBase<Connection, Derived>::ConnectionHolder ConnectionPoolBase<
+    Connection,
+    Derived>::AcquireConnection(engine::Deadline deadline) {
     EnsureInitialized();
 
     auto connection_ptr = Pop(deadline);
@@ -207,11 +207,9 @@ const Derived& ConnectionPoolBase<Connection, Derived>::AsDerived() const noexce
 }
 
 template <class Connection, class Derived>
-typename ConnectionPoolBase<Connection, Derived>::ConnectionUniquePtr
-ConnectionPoolBase<Connection, Derived>::CreateConnection(
-    const engine::SemaphoreLock& connecting_lock,
-    engine::Deadline deadline
-) {
+typename ConnectionPoolBase<Connection, Derived>::ConnectionUniquePtr ConnectionPoolBase<
+    Connection,
+    Derived>::CreateConnection(const engine::SemaphoreLock& connecting_lock, engine::Deadline deadline) {
     EnsureInitialized();
 
     UASSERT(connecting_lock.OwnsLock());
@@ -224,9 +222,9 @@ ConnectionPoolBase<Connection, Derived>::CreateConnection(
 }
 
 template <class Connection, class Derived>
-typename ConnectionPoolBase<Connection, Derived>::ConnectionUniquePtr ConnectionPoolBase<Connection, Derived>::Pop(
-    engine::Deadline deadline
-) {
+typename ConnectionPoolBase<Connection, Derived>::ConnectionUniquePtr ConnectionPoolBase<
+    Connection,
+    Derived>::Pop(engine::Deadline deadline) {
     EnsureInitialized();
 
     engine::SemaphoreLock given_away_lock{given_away_semaphore_, deadline};
@@ -258,8 +256,9 @@ typename ConnectionPoolBase<Connection, Derived>::ConnectionUniquePtr Connection
 }
 
 template <class Connection, class Derived>
-typename ConnectionPoolBase<Connection, Derived>::ConnectionUniquePtr ConnectionPoolBase<Connection, Derived>::TryPop(
-) {
+typename ConnectionPoolBase<Connection, Derived>::ConnectionUniquePtr ConnectionPoolBase<
+    Connection,
+    Derived>::TryPop() {
     EnsureInitialized();
 
     ConnectionRawPtr connection_ptr{nullptr};

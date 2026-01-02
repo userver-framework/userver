@@ -45,6 +45,7 @@ components_manager:
         # /// [Kafka service sample - producer static config]
 
         http-client:
+        http-client-core:
             fs-task-processor: main-task-processor
 
         testsuite-support:

@@ -82,7 +82,9 @@ template <typename PlainException>
 class ExceptionWithAttachedTrace final : public PlainException, public TracefulExceptionBase {
 public:
     explicit ExceptionWithAttachedTrace(const PlainException& ex)
-        : PlainException(ex), TracefulExceptionBase(ex.what()) {}
+        : PlainException(ex),
+          TracefulExceptionBase(ex.what())
+    {}
 };
 
 template <typename Exception>

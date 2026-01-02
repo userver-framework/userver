@@ -52,6 +52,9 @@ schema:
                 recent-errors-threshold:
                     type: integer
                     minimum: 1
+                    description: The limit for failed connection attempts in a 15-second
+                        period. If this limit is exceeded, the framework stops creating
+                        new connections until the number of errors does not drop down.
                 ignore-unused-query-params:
                     type: boolean
                     default: false

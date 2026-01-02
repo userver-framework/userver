@@ -73,7 +73,9 @@ CvStatus ConditionVariableAny<MutexType>::WaitUntil(std::unique_lock<MutexType>&
     }
     // re-lock the mutex after it's been released in SetupWakeups()
     // lock.owns_lock() can occur on an immediate cancellation
-    if (!lock) lock.lock();
+    if (!lock) {
+        lock.lock();
+    }
 
     switch (wakeup_source) {
         case TaskContext::WakeupSource::kCancelRequest:

@@ -22,7 +22,8 @@ CommandControl Parse(const formats::json::Value& elem, formats::parse::To<Comman
                 throw InvalidConfig{
                     "Invalid network_timeout_ms `" + std::to_string(result.network_timeout_ms.count()) +
                     "` in postgres CommandControl. The timeout must be "
-                    "greater than 0."};
+                    "greater than 0."
+                };
             }
         } else if (name == "statement_timeout_ms") {
             const auto ms = std::chrono::milliseconds{val.As<std::int64_t>()};
@@ -31,12 +32,14 @@ CommandControl Parse(const formats::json::Value& elem, formats::parse::To<Comman
                 throw InvalidConfig{
                     "Invalid statement_timeout_ms `" + std::to_string(result.statement_timeout_ms.count()) +
                     "` in postgres CommandControl. The timeout must be "
-                    "greater than 0."};
+                    "greater than 0."
+                };
             }
         } else if (name == "prepared_statements_enabled") {
-            result.prepared_statements_enabled = val.As<bool>()
-                                                     ? CommandControl::PreparedStatementsOptionOverride::kEnabled
-                                                     : CommandControl::PreparedStatementsOptionOverride::kDisabled;
+            result.prepared_statements_enabled =
+                val.As<bool>()
+                    ? CommandControl::PreparedStatementsOptionOverride::kEnabled
+                    : CommandControl::PreparedStatementsOptionOverride::kDisabled;
         } else {
             LOG_WARNING() << "Unknown parameter " << name << " in PostgreSQL config";
         }
@@ -49,41 +52,48 @@ namespace {
 template <typename ConfigType>
 ConnectionSettings::StatementLogMode ParseStatementLogMode(const ConfigType& config) {
     auto mode = config.template As<std::string>("show");
-    if (mode == "hide") return ConnectionSettings::kLogSkip;
-    if (mode == "show") return ConnectionSettings::kLog;
+    if (mode == "hide") {
+        return ConnectionSettings::kLogSkip;
+    }
+    if (mode == "show") {
+        return ConnectionSettings::kLog;
+    }
     throw std::runtime_error("Unknown statement log mode: " + mode);
 }
 
 template <typename ConfigType>
 ConnectionSettings ParseConnectionSettings(const ConfigType& config) {
     ConnectionSettings settings{};
-    settings.prepared_statements = config["persistent-prepared-statements"].template As<bool>(true)
-                                       ? ConnectionSettings::kCachePreparedStatements
-                                       : ConnectionSettings::kNoPreparedStatements;
+    settings.prepared_statements =
+        config["persistent-prepared-statements"].template As<bool>(true)
+            ? ConnectionSettings::kCachePreparedStatements
+            : ConnectionSettings::kNoPreparedStatements;
     settings.statement_log_mode = ParseStatementLogMode(config["statement-log-mode"]);
-    settings.user_types = config["user-types-enabled"].template As<bool>(true)
-                              ? config["check-user-types"].template As<bool>(false)
-                                    ? ConnectionSettings::kUserTypesEnforced
-                                    : ConnectionSettings::kUserTypesEnabled
-                              : ConnectionSettings::kPredefinedTypesOnly;
+    settings.user_types =
+        config["user-types-enabled"].template As<bool>(true)
+            ? config["check-user-types"].template As<bool>(false)
+                  ? ConnectionSettings::kUserTypesEnforced
+                  : ConnectionSettings::kUserTypesEnabled
+            : ConnectionSettings::kPredefinedTypesOnly;
     // TODO: use hyphens in config keys, TAXICOMMON-5606
-    settings.max_prepared_cache_size = config["max-prepared-cache-size"].template As<size_t>(
-        config["max_prepared_cache_size"].template As<size_t>(kDefaultMaxPreparedCacheSize)
-    );
-    settings.ignore_unused_query_params = config["ignore-unused-query-params"].template As<bool>(
-                                              config["ignore_unused_query_params"].template As<bool>(false)
-                                          )
-                                              ? ConnectionSettings::kIgnoreUnused
-                                              : ConnectionSettings::kCheckUnused;
+    settings.max_prepared_cache_size =
+        config["max-prepared-cache-size"]
+            .template As<size_t>(config["max_prepared_cache_size"].template As<size_t>(kDefaultMaxPreparedCacheSize));
+    settings.ignore_unused_query_params =
+        config["ignore-unused-query-params"]
+                .template As<bool>(config["ignore_unused_query_params"].template As<bool>(false))
+            ? ConnectionSettings::kIgnoreUnused
+            : ConnectionSettings::kCheckUnused;
 
     settings.recent_errors_threshold =
         config["recent-errors-threshold"].template As<size_t>(settings.recent_errors_threshold);
 
     settings.max_ttl = config["max-ttl-sec"].template As<std::optional<std::chrono::seconds>>();
 
-    settings.discard_on_connect = config["discard-all-on-connect"].template As<bool>(true)
-                                      ? ConnectionSettings::kDiscardAll
-                                      : ConnectionSettings::kDiscardNone;
+    settings.discard_on_connect =
+        config["discard-all-on-connect"].template As<bool>(true)
+            ? ConnectionSettings::kDiscardAll
+            : ConnectionSettings::kDiscardNone;
     settings.deadline_propagation_enabled = config["deadline-propagation-enabled"].template As<bool>(true);
 
     return settings;
@@ -113,11 +123,13 @@ ConnectionSettingsDynamic Parse(const formats::json::Value& config, formats::par
         }
     }
     if (const auto max_prepared_cache_size = config["max-prepared-cache-size"].As<std::optional<std::size_t>>();
-        max_prepared_cache_size) {
+        max_prepared_cache_size)
+    {
         settings.max_prepared_cache_size = *max_prepared_cache_size;
     }
     if (const auto recent_errors_threshold = config["recent-errors-threshold"].As<std::optional<std::size_t>>();
-        recent_errors_threshold) {
+        recent_errors_threshold)
+    {
         settings.recent_errors_threshold = *recent_errors_threshold;
     }
     if (const auto ignore = config["ignore-unused-query-params"].As<std::optional<bool>>(); ignore) {
@@ -156,8 +168,12 @@ Settings ParsePoolSettings(const ConfigType& config) {
     result.max_queue_size = GetField(config, "max_queue_size", result.max_queue_size);
     result.connecting_limit = GetField(config, "connecting_limit", result.connecting_limit);
 
-    if (result.max_size == 0) throw InvalidConfig{"max_pool_size must be greater than 0"};
-    if (result.max_size < result.min_size) throw InvalidConfig{"max_pool_size cannot be less than min_pool_size"};
+    if (result.max_size == 0) {
+        throw InvalidConfig{"max_pool_size must be greater than 0"};
+    }
+    if (result.max_size < result.min_size) {
+        throw InvalidConfig{"max_pool_size cannot be less than min_pool_size"};
+    }
 
     return result;
 }
@@ -179,8 +195,9 @@ TopologySettings Parse(const formats::json::Value& config, formats::parse::To<To
         config["max_replication_lag_ms"].template As<std::chrono::milliseconds>(result.max_replication_lag);
     result.disabled_replicas = config["disabled_replicas"].template As<decltype(result.disabled_replicas)>({});
 
-    if (result.max_replication_lag < std::chrono::milliseconds{0})
+    if (result.max_replication_lag < std::chrono::milliseconds{0}) {
         throw InvalidConfig{"max_replication_lag cannot be less than 0"};
+    }
 
     return result;
 }

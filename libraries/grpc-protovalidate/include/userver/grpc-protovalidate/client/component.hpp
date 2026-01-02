@@ -39,8 +39,10 @@ public:
 
     yaml_config::Schema GetMiddlewareConfigSchema() const override;
 
-    std::shared_ptr<const ugrpc::client::MiddlewareBase>
-    CreateMiddleware(const ugrpc::client::ClientInfo&, const yaml_config::YamlConfig& middleware_config) const override;
+    std::shared_ptr<const ugrpc::client::MiddlewareBase> CreateMiddleware(
+        const ugrpc::client::ClientInfo&,
+        const yaml_config::YamlConfig& middleware_config
+    ) const override;
 };
 
 }  // namespace grpc_protovalidate::client
@@ -49,7 +51,7 @@ template <>
 inline constexpr bool components::kHasValidate<grpc_protovalidate::client::ValidatorComponent> = true;
 
 template <>
-inline constexpr auto components::kConfigFileMode<grpc_protovalidate::client::ValidatorComponent> =
-    ConfigFileMode::kNotRequired;
+inline constexpr auto
+    components::kConfigFileMode<grpc_protovalidate::client::ValidatorComponent> = ConfigFileMode::kNotRequired;
 
 USERVER_NAMESPACE_END

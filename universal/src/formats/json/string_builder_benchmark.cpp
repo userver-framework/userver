@@ -14,12 +14,16 @@ Value Build(int level) {
         builder.PushBack("abc");
         builder.PushBack(123);
         builder.PushBack(Value());
-        if (level > 0) builder.PushBack(Build(level - 1));
+        if (level > 0) {
+            builder.PushBack(Build(level - 1));
+        }
     } else {
         builder["key"] = "abc";
         builder["other-key"] = 123;
         builder["super-key"] = Value();
-        if (level > 0) builder["object"] = Build(level - 1);
+        if (level > 0) {
+            builder["object"] = Build(level - 1);
+        }
     }
 
     return builder.ExtractValue();
@@ -40,7 +44,9 @@ void Write(int level, StringBuilder& sw) {
         sw.WriteString("abc");
         sw.WriteInt64(123);
         sw.WriteNull();
-        if (level > 0) Write(level - 1, sw);
+        if (level > 0) {
+            Write(level - 1, sw);
+        }
     } else {
         const StringBuilder::ObjectGuard guard(sw);
 

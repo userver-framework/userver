@@ -53,7 +53,9 @@ public:
 
         if (it == values_.end()) {
             values_.emplace_back(
-                std::piecewise_construct, std::forward_as_tuple(std::move(key)), std::forward_as_tuple(std::move(value))
+                std::piecewise_construct,
+                std::forward_as_tuple(std::move(key)),
+                std::forward_as_tuple(std::move(value))
             );
             it = --values_.end();
             inserted = true;
@@ -90,7 +92,9 @@ using StdUnorderedMap = std::unordered_map<std::string, std::string, Transparent
 template <typename Map>
 class MapProxyBase {
 public:
-    MapProxyBase(Map& map) : map_{map} {}
+    MapProxyBase(Map& map)
+        : map_{map}
+    {}
     ~MapProxyBase() = default;
 
     void Reserve(std::size_t capacity) { map_.reserve(capacity); }
@@ -209,7 +213,8 @@ constexpr http::headers::PredefinedHeader kArbitraryHeaders[] = {
     http::headers::PredefinedHeader{"b402e92d73c74bfcbfcf37b7a8f822d1"},
     http::headers::PredefinedHeader{"b4d453e134b945038ee6cac9a28b8243"},
     http::headers::PredefinedHeader{"14451de4db27482d97188b66cffb6ed9"},
-    http::headers::PredefinedHeader{"0e0837f863054190842de4db37e47f8e"}};
+    http::headers::PredefinedHeader{"0e0837f863054190842de4db37e47f8e"}
+};
 
 constexpr http::headers::PredefinedHeader kAllUsedHeaders[] = {
     http::headers::kContentType,

@@ -56,10 +56,14 @@ constexpr Traits::Size kNoneIndex = std::numeric_limits<Traits::Size>::max();
 }  // namespace
 
 inline Pos::Pos(Traits::Size entries_index, Traits::HashValue hash, Traits::HeaderIndex header_index)
-    : entries_index_{entries_index}, hash_{hash}, header_index_{header_index} {}
+    : entries_index_{entries_index},
+      hash_{hash},
+      header_index_{header_index}
+{}
 
 inline Pos::Pos(std::size_t entries_index, Traits::HashValue hash, Traits::HeaderIndex header_index)
-    : Pos{static_cast<Traits::Size>(entries_index), hash, header_index} {
+    : Pos{static_cast<Traits::Size>(entries_index), hash, header_index}
+{
     UASSERT(entries_index < Traits::kMaxSize);
 }
 
@@ -99,16 +103,18 @@ private:
     };
 
     template <class P>
-    static constexpr bool kLayoutCompatible = std::is_standard_layout_v<P> &&                     //
-                                              sizeof(P) == sizeof(MyPair) &&                      //
-                                              OffsetOf<P>::kFirst == OffsetOf<MyPair>::kFirst &&  //
-                                              OffsetOf<P>::kSecond == OffsetOf<MyPair>::kSecond;
+    static constexpr bool kLayoutCompatible =
+        std::is_standard_layout_v<P> &&                     //
+        sizeof(P) == sizeof(MyPair) &&                      //
+        OffsetOf<P>::kFirst == OffsetOf<MyPair>::kFirst &&  //
+        OffsetOf<P>::kSecond == OffsetOf<MyPair>::kSecond;
 
 public:
     // Whether pair<const K, V> and pair<K, V> are layout-compatible. If they are,
     // then it is safe to store them in a union and read from either.
-    static constexpr bool value = std::is_standard_layout<MyPair>() && OffsetOf<MyPair>::kFirst == 0 &&
-                                  kLayoutCompatible<std::pair<K, V>> && kLayoutCompatible<std::pair<const K, V>>;
+    static constexpr bool value =
+        std::is_standard_layout<MyPair>() && OffsetOf<MyPair>::kFirst == 0 && kLayoutCompatible<std::pair<K, V>> &&
+        kLayoutCompatible<std::pair<const K, V>>;
 };
 static_assert(IsLayoutCompatible<std::string, std::string>::value);
 #endif
@@ -161,9 +167,17 @@ MapEntry::Slot::Slot() {}
 // NOLINTNEXTLINE(hicpp-use-equals-default,modernize-use-equals-default)
 MapEntry::Slot::~Slot() { static_assert(std::is_standard_layout_v<Slot>); }
 
-MaybeOwnedKey::MaybeOwnedKey(std::string& key) : key_{key}, key_str_if_exists_{&key} {}
-MaybeOwnedKey::MaybeOwnedKey(const PredefinedHeader& key) : MaybeOwnedKey{std::string_view{key}} {}
-MaybeOwnedKey::MaybeOwnedKey(std::string_view key) : key_{key}, key_str_if_exists_{nullptr} {}
+MaybeOwnedKey::MaybeOwnedKey(std::string& key)
+    : key_{key},
+      key_str_if_exists_{&key}
+{}
+MaybeOwnedKey::MaybeOwnedKey(const PredefinedHeader& key)
+    : MaybeOwnedKey{std::string_view{key}}
+{}
+MaybeOwnedKey::MaybeOwnedKey(std::string_view key)
+    : key_{key},
+      key_str_if_exists_{nullptr}
+{}
 
 std::string_view MaybeOwnedKey::GetValue() const { return key_; }
 
@@ -389,9 +403,8 @@ inline Map::FindResult Map::DoFind(std::string_view key, Traits::HashValue hash,
             return ProbingAction::kStop;
         } else if (positions_[idx].GetHash() == hash &&
                    (header_index == positions_[idx].GetHeaderIndex() ||
-                    AreValuesICaseEqual(
-                        entries_[positions_[idx].GetEntriesIndex()].Get().first,
-                        key))) {
+                    AreValuesICaseEqual(entries_[positions_[idx].GetEntriesIndex()].Get().first, key)))
+        {
             res = FindResult{static_cast<Traits::Size>(idx), positions_[idx].GetEntriesIndex()};
             return ProbingAction::kStop;
         }
@@ -403,13 +416,19 @@ inline Map::FindResult Map::DoFind(std::string_view key, Traits::HashValue hash,
     return res;
 }
 
-Map::Iterator
-Map::InsertOrModify(MaybeOwnedKey key, std::string&& value, InsertOrModifyOccupiedAction occupied_action) {
+Map::Iterator Map::InsertOrModify(
+    MaybeOwnedKey key,
+    std::string&& value,
+    InsertOrModifyOccupiedAction occupied_action
+) {
     return DoInsertOrModify(key, HashKey(key.GetValue()), std::move(value), occupied_action);
 }
 
-Map::Iterator
-Map::InsertOrModify(const PredefinedHeader& header, std::string&& value, InsertOrModifyOccupiedAction occupied_action) {
+Map::Iterator Map::InsertOrModify(
+    const PredefinedHeader& header,
+    std::string&& value,
+    InsertOrModifyOccupiedAction occupied_action
+) {
     return DoInsertOrModify(MaybeOwnedKey{header}, HashKey(header), std::move(value), occupied_action);
 }
 
@@ -475,40 +494,41 @@ Map::Iterator Map::DoInsertOrModify(
         };
 
     std::size_t dist = 0;
-    auto inserter = [this,
-                     key,
-                     hash,
-                     &value,  // comment for cleaner formatting
-                     &perform_occupied,
-                     &perform_robinhood,
-                     &perform_vacant,
-                     &dist](std::size_t positions_idx) mutable {
-        if (positions_[positions_idx].IsSome()) {
-            const auto their_dist = ProbeDistance(mask_, positions_[positions_idx].GetHash(), positions_idx);
+    auto inserter =
+        [this,
+         key,
+         hash,
+         &value,  // comment for cleaner formatting
+         &perform_occupied,
+         &perform_robinhood,
+         &perform_vacant,
+         &dist](std::size_t positions_idx) mutable {
+            if (positions_[positions_idx].IsSome()) {
+                const auto their_dist = ProbeDistance(mask_, positions_[positions_idx].GetHash(), positions_idx);
 
-            if (dist > their_dist) {
-                perform_robinhood(dist, positions_idx, std::move(key).ExtractValue(), std::move(value));
+                if (dist > their_dist) {
+                    perform_robinhood(dist, positions_idx, std::move(key).ExtractValue(), std::move(value));
 
-                return ProbingAction::kStop;
-            } else if (positions_[positions_idx].GetHash() == hash &&
-                 AreValuesICaseEqual(
-                     entries_[positions_[positions_idx].GetEntriesIndex()]
-                         .Get()
-                         .first,
-                     key.GetValue())) {
-                perform_occupied(positions_[positions_idx].GetEntriesIndex(), std::move(value));
+                    return ProbingAction::kStop;
+                } else if (positions_[positions_idx].GetHash() == hash &&
+                           AreValuesICaseEqual(
+                               entries_[positions_[positions_idx].GetEntriesIndex()].Get().first,
+                               key.GetValue()
+                           ))
+                {
+                    perform_occupied(positions_[positions_idx].GetEntriesIndex(), std::move(value));
+
+                    return ProbingAction::kStop;
+                }
+            } else {
+                perform_vacant(dist, positions_idx, std::move(key).ExtractValue(), std::move(value));
 
                 return ProbingAction::kStop;
             }
-        } else {
-            perform_vacant(dist, positions_idx, std::move(key).ExtractValue(), std::move(value));
 
-            return ProbingAction::kStop;
-        }
-
-        ++dist;
-        return ProbingAction::kContinue;
-    };
+            ++dist;
+            return ProbingAction::kContinue;
+        };
 
     const auto resulting_positions_idx = ProbeLoop(DesiredPos(mask_, hash), inserter);
     return ToReverseIterator(entries_.begin() + positions_[resulting_positions_idx].GetEntriesIndex());

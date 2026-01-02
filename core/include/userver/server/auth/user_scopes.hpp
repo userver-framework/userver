@@ -13,7 +13,9 @@ namespace server::auth {
 
 class UserScope final {
 public:
-    explicit UserScope(std::string value) : value_(std::move(value)) {}
+    explicit UserScope(std::string value)
+        : value_(std::move(value))
+    {}
 
     const std::string& GetValue() const { return value_; }
 

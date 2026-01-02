@@ -75,21 +75,24 @@ DecimalWrapper::DecimalWrapper(const Decimal64<Prec, Policy>& decimal)
     : source_{const_cast<Decimal64<Prec, Policy>*>(&decimal)},
       // this constructor takes const reference, that means we are binding
       // for input
-      get_value_cb_{GetValueCb<Decimal64<Prec, Policy>>} {}
+      get_value_cb_{GetValueCb<Decimal64<Prec, Policy>>}
+{}
 
 template <int Prec, typename Policy>
 DecimalWrapper::DecimalWrapper(Decimal64<Prec, Policy>& decimal)
     : source_{&decimal},
       // this constructor takes non-const reference, that means we are binding
       // for output
-      restore_cb_{RestoreCb<Decimal64<Prec, Policy>>} {}
+      restore_cb_{RestoreCb<Decimal64<Prec, Policy>>}
+{}
 
 template <int Prec, typename Policy>
 DecimalWrapper::DecimalWrapper(std::optional<Decimal64<Prec, Policy>>& opt_decimal)
     : source_{&opt_decimal},
       // this constructor takes non-const reference, that means we are binding
       // for output optional
-      restore_cb_{RestoreOptionalCb<Decimal64<Prec, Policy>>} {}
+      restore_cb_{RestoreOptionalCb<Decimal64<Prec, Policy>>}
+{}
 
 void FreestandingBind(OutputBindingsFwd& binds, std::size_t pos, io::DecimalWrapper& val);
 void FreestandingBind(OutputBindingsFwd& binds, std::size_t pos, std::optional<io::DecimalWrapper>& val);

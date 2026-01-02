@@ -54,8 +54,9 @@ struct To {};
 std::vector<std::string>
 ParseReplyDataArray(ReplyData&& array_data, const std::string& request_description, To<std::vector<std::string>>);
 
-std::vector<std::optional<std::string>>
-ParseReplyDataArray(ReplyData&& array_data, const std::string& request_description, To<std::vector<std::optional<std::string>>>);
+std::
+    vector<std::optional<std::string>>
+    ParseReplyDataArray(ReplyData&& array_data, const std::string& request_description, To<std::vector<std::optional<std::string>>>);
 
 std::vector<std::pair<std::string, std::string>>
 ParseReplyDataArray(ReplyData&& array_data, const std::string& request_description, To<std::vector<std::pair<std::string, std::string>>>);
@@ -66,8 +67,9 @@ ParseReplyDataArray(ReplyData&& array_data, const std::string& request_descripti
 std::vector<GeoPoint>
 ParseReplyDataArray(ReplyData&& array_data, const std::string& request_description, To<std::vector<GeoPoint>>);
 
-std::vector<std::optional<Point>>
-ParseReplyDataArray(ReplyData&& array_data, const std::string& request_description, To<std::vector<std::optional<Point>>>);
+std::
+    vector<std::optional<Point>>
+    ParseReplyDataArray(ReplyData&& array_data, const std::string& request_description, To<std::vector<std::optional<Point>>>);
 
 std::string Parse(ReplyData&& reply_data, const std::string& request_description, To<std::string>);
 
@@ -120,7 +122,9 @@ std::vector<T> Parse(ReplyData&& reply_data, const std::string& request_descript
 
 template <typename T>
 std::optional<T> Parse(ReplyData&& reply_data, const std::string& request_description, To<std::optional<T>>) {
-    if (impl::IsNil(reply_data)) return std::nullopt;
+    if (impl::IsNil(reply_data)) {
+        return std::nullopt;
+    }
     return Parse(std::move(reply_data), request_description, To<T>{});
 }
 

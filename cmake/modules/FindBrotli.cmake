@@ -1,12 +1,8 @@
 _userver_module_begin(
-    NAME
-    Brotli
-    DEBIAN_NAMES
-    libbrotli-dev
-    FORMULA_NAMES
-    brotli
-    PACMAN_NAMES
-    brotli
+    NAME Brotli
+    DEBIAN_NAMES libbrotli-dev
+    FORMULA_NAMES brotli
+    PACMAN_NAMES brotli
 )
 
 _userver_module_find_include(NAMES brotli/decode.h)
@@ -20,7 +16,7 @@ _userver_module_find_library(NAMES brotlienc)
 _userver_module_end()
 
 if(NOT TARGET brotlidec)
-    # Ubuntu 25.04 has no `brotlidec` 
+    # Ubuntu 25.04 has no `brotlidec`
     add_library(Brotli::dec ALIAS Brotli)
     add_library(Brotli::enc ALIAS Brotli)
 else()
@@ -31,4 +27,3 @@ else()
         add_library(Brotli::enc ALIAS brotlienc)
     endif()
 endif()
-

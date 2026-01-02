@@ -8,18 +8,20 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::impl {
 
-AsyncMethodInvocation::~AsyncMethodInvocation() { WaitWhileBusy(); }
+AsyncMethodInvocation::~AsyncMethodInvocation() {
+    if (enqueued_) {
+        event_.WaitNonCancellable();
+    }
+}
 
 void AsyncMethodInvocation::Notify(bool ok) noexcept {
     ok_ = ok;
     event_.Send();
 }
 
-bool AsyncMethodInvocation::IsBusy() const noexcept { return busy_; }
-
 void* AsyncMethodInvocation::GetCompletionTag() noexcept {
-    UASSERT(!busy_);
-    busy_ = true;
+    UASSERT(!enqueued_);
+    enqueued_ = true;
     return static_cast<EventBase*>(this);
 }
 
@@ -40,7 +42,6 @@ AsyncMethodInvocation::WaitStatus AsyncMethodInvocation::WaitUntil(engine::Deadl
             return WaitStatus::kDeadline;
         }
         case engine::FutureStatus::kReady: {
-            busy_ = false;
             return ok_ ? WaitStatus::kOk : WaitStatus::kError;
         }
     }
@@ -48,18 +49,16 @@ AsyncMethodInvocation::WaitStatus AsyncMethodInvocation::WaitUntil(engine::Deadl
     utils::AbortWithStacktrace("should be unreachable");
 }
 
+bool AsyncMethodInvocation::WaitNonCancellable() noexcept {
+    event_.WaitNonCancellable();
+    return ok_;
+}
+
 engine::impl::ContextAccessor* AsyncMethodInvocation::TryGetContextAccessor() noexcept {
     return event_.TryGetContextAccessor();
 }
 
 bool AsyncMethodInvocation::IsReady() const noexcept { return event_.IsReady(); }
-
-void AsyncMethodInvocation::WaitWhileBusy() noexcept {
-    if (busy_) {
-        event_.WaitNonCancellable();
-    }
-    busy_ = false;
-}
 
 }  // namespace ugrpc::impl
 

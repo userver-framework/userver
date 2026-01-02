@@ -39,14 +39,16 @@ std::string ConvertEcSignature(const std::string& der_signature, DigestSize dige
     siglen = ((siglen + CHAR_BIT - 1) / CHAR_BIT) * 2;
 
     std::string converted_signature(siglen, '\0');
-    if (siglen != CryptoPP::DSAConvertSignatureFormat(
-                      reinterpret_cast<unsigned char*>(converted_signature.data()),
-                      converted_signature.size(),
-                      CryptoPP::DSASignatureFormat::DSA_P1363,
-                      reinterpret_cast<const unsigned char*>(der_signature.data()),
-                      der_signature.size(),
-                      CryptoPP::DSASignatureFormat::DSA_DER
-                  )) {
+    if (siglen !=
+        CryptoPP::DSAConvertSignatureFormat(
+            reinterpret_cast<unsigned char*>(converted_signature.data()),
+            converted_signature.size(),
+            CryptoPP::DSASignatureFormat::DSA_P1363,
+            reinterpret_cast<const unsigned char*>(der_signature.data()),
+            der_signature.size(),
+            CryptoPP::DSASignatureFormat::DSA_DER
+        ))
+    {
         throw SignError("Failed to sign: signature format conversion failed");
     }
     return converted_signature;
@@ -98,14 +100,18 @@ void OutputCmsContent(BIO& to, CMS_ContentInfo& cms, CmsSigner::OutForm out_form
 
 }  // namespace
 
-Signer::Signer(const std::string& name) : NamedAlgo(name) {}
+Signer::Signer(const std::string& name)
+    : NamedAlgo(name)
+{}
 Signer::~Signer() = default;
 
 ///
 /// None
 ///
 
-SignerNone::SignerNone() : Signer("none") {}
+SignerNone::SignerNone()
+    : Signer("none")
+{}
 std::string SignerNone::Sign(std::initializer_list<std::string_view> /*data*/) const { return {}; }
 
 ///
@@ -114,7 +120,9 @@ std::string SignerNone::Sign(std::initializer_list<std::string_view> /*data*/) c
 
 template <DigestSize Bits>
 HmacShaSigner<Bits>::HmacShaSigner(std::string secret)
-    : Signer("HS" + EnumValueToString(Bits)), secret_(std::move(secret)) {}
+    : Signer("HS" + EnumValueToString(Bits)),
+      secret_(std::move(secret))
+{}
 
 template <DigestSize Bits>
 HmacShaSigner<Bits>::~HmacShaSigner() {
@@ -148,7 +156,9 @@ template class HmacShaSigner<DigestSize::k512>;
 
 template <DsaType Type, DigestSize Bits>
 DsaSigner<Type, Bits>::DsaSigner(const std::string& key, const std::string& password)
-    : Signer(EnumValueToString(Type) + EnumValueToString(Bits)), pkey_(PrivateKey::LoadFromString(key, password)) {
+    : Signer(EnumValueToString(Type) + EnumValueToString(Bits)),
+      pkey_(PrivateKey::LoadFromString(key, password))
+{
     Openssl::Init();
 
     if constexpr (Type == DsaType::kEc) {
@@ -211,9 +221,8 @@ std::string DsaSigner<Type, Bits>::SignDigest(std::string_view digest) const {
         throw SignError("Invalid digest size for " + Name() + " signer");
     }
 
-    const std::unique_ptr<EVP_PKEY_CTX, decltype(&EVP_PKEY_CTX_free)> pkey_ctx(
-        EVP_PKEY_CTX_new(pkey_.GetNative(), nullptr), EVP_PKEY_CTX_free
-    );
+    const std::unique_ptr<EVP_PKEY_CTX, decltype(&EVP_PKEY_CTX_free)>
+        pkey_ctx(EVP_PKEY_CTX_new(pkey_.GetNative(), nullptr), EVP_PKEY_CTX_free);
     if (!pkey_ctx) {
         throw SignError(FormatSslError("Failed to sign digest: EVP_PKEY_CTX_new"));
     }
@@ -225,20 +234,28 @@ std::string DsaSigner<Type, Bits>::SignDigest(std::string_view digest) const {
     }
 
     size_t siglen = 0;
-    if (1 != EVP_PKEY_sign(
-                 pkey_ctx.get(), nullptr, &siglen, reinterpret_cast<const unsigned char*>(digest.data()), digest.size()
-             )) {
+    if (1 !=
+        EVP_PKEY_sign(
+            pkey_ctx.get(),
+            nullptr,
+            &siglen,
+            reinterpret_cast<const unsigned char*>(digest.data()),
+            digest.size()
+        ))
+    {
         throw SignError(FormatSslError("Failed to sign digest: EVP_PKEY_sign (size check)"));
     }
 
     std::string signature(siglen, '\0');
-    if (1 != EVP_PKEY_sign(
-                 pkey_ctx.get(),
-                 reinterpret_cast<unsigned char*>(signature.data()),
-                 &siglen,
-                 reinterpret_cast<const unsigned char*>(digest.data()),
-                 digest.size()
-             )) {
+    if (1 !=
+        EVP_PKEY_sign(
+            pkey_ctx.get(),
+            reinterpret_cast<unsigned char*>(signature.data()),
+            &siglen,
+            reinterpret_cast<const unsigned char*>(digest.data()),
+            digest.size()
+        ))
+    {
         throw SignError(FormatSslError("Failed to sign digest: EVP_PKEY_sign"));
     }
     signature.resize(siglen);
@@ -264,7 +281,10 @@ template class DsaSigner<DsaType::kRsaPss, DigestSize::k384>;
 template class DsaSigner<DsaType::kRsaPss, DigestSize::k512>;
 
 CmsSigner::CmsSigner(Certificate certificate, PrivateKey pkey)
-    : NamedAlgo{"CMS"}, cert_{std::move(certificate)}, pkey_{std::move(pkey)} {}
+    : NamedAlgo{"CMS"},
+      cert_{std::move(certificate)},
+      pkey_{std::move(pkey)}
+{}
 
 CmsSigner::~CmsSigner() = default;
 
@@ -279,7 +299,9 @@ std::string CmsSigner::Sign(std::initializer_list<std::string_view> data, utils:
     }
 
     const std::unique_ptr<CMS_ContentInfo, decltype(&CMS_ContentInfo_free)> cms_content{
-        CMS_sign(cert_.GetNative(), pkey_.GetNative(), nullptr, bio_data.get(), native_flags), CMS_ContentInfo_free};
+        CMS_sign(cert_.GetNative(), pkey_.GetNative(), nullptr, bio_data.get(), native_flags),
+        CMS_ContentInfo_free
+    };
     if (!cms_content) {
         throw SignError{FormatSslError("Failed to sign: CMS_sign")};
     }

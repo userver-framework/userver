@@ -27,7 +27,8 @@ tracing::Span PrepareExecutionSpan(const std::string& scope, const std::string& 
 }  // namespace
 
 Pool::Pool(clients::dns::Resolver& resolver, PoolSettings&& settings)
-    : impl_{std::make_shared<impl::PoolImpl>(resolver, std::move(settings))} {
+    : impl_{std::make_shared<impl::PoolImpl>(resolver, std::move(settings))}
+{
     impl_->StartMaintenance();
 }
 

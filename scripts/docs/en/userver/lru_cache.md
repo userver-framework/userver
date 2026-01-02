@@ -6,7 +6,7 @@ There are also expirable LRU caches that drop expired records and may prolong
 record lifetime on usage.
 
 To implement those caches userver provides a base component class 
-cache::LruCacheComponent that manages an instance of cache::ExpirableLruCache.
+@ref cache::LruCacheComponent that manages an instance of @ref cache::ExpirableLruCache.
 
 ## Typical use cases
 
@@ -24,34 +24,33 @@ intervals. Examples:
 
 ## Usage
 
-Using cache::LruCacheComponent is quite straightforward. Write a component that
-derives from it:
+Using @ref cache::LruCacheComponent is quite straightforward. Write a component that derives from it:
 
 @snippet cache/lru_cache_component_base_test.hpp  Sample lru cache component
 
 After that, get the component using the 
 components::ComponentContext::FindComponent() and call
-cache::LruCacheComponent::GetCache(). Use the returned cache::LruCacheWrapper.
+cache::LruCacheComponent::GetCache(). Use the returned @ref cache::LruCacheWrapper.
 
 ## Low level primitives
 
-cache::LruCacheComponent should be your choice by default for implementing
+LruCacheWrappercache::LruCacheComponent should be your choice by default for implementing
 all the LRU caches. However, in some cases there is a need to avoid using the
 @ref scripts/docs/en/userver/component_system.md "component system", or to avoid
 synchronization, or to control the expiration logic more precisely.
 
 Here's a brief introduction into LRU types:
-* Concurrency-safe expirable component cache::LruCacheComponent. Call
-  cache::LruCacheComponent::GetCache() to get a cache::LruCacheWrapper that
+* Concurrency-safe expirable component @ref cache::LruCacheComponent. Call
+  cache::LruCacheComponent::GetCache() to get a @ref cache::LruCacheWrapper that
   provides actual interface to work with the cache.
-* Concurrency-safe expirable cache::LruCacheWrapper is a smart pointer that
-  provides simplified interface to the cache::ExpirableLruCache.
-* Concurrency-safe expirable container cache::ExpirableLruCache with precise
+* Concurrency-safe expirable @ref cache::LruCacheWrapper is a smart pointer that
+  provides simplified interface to the @ref cache::ExpirableLruCache.
+* Concurrency-safe expirable container @ref cache::ExpirableLruCache with precise
   control over the expiration logic.
-* Concurrency-safe non-expirable container cache::NWayLRU.
-* Non-expirable container cache::LruMap that provides the same concurrency
+* Concurrency-safe non-expirable container @ref cache::NWayLRU.
+* Non-expirable container @ref cache::LruMap that provides the same concurrency
   guarantees as the standard library containers.
-* Non-expirable cache::LruSet that provides the same concurrency guarantees as
+* Non-expirable @ref cache::LruSet that provides the same concurrency guarantees as
   the standard library containers.
 
 

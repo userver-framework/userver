@@ -46,6 +46,9 @@ components_manager:
             # Nothing
 # /// [Sample grpc server congestion control middleware component config]
 
+        grpc-client-origin:
+            user-agent: basic-chaos-service
+
         grpc-client-middlewares-pipeline:
         grpc-server-middlewares-pipeline:
             middlewares:
@@ -89,6 +92,7 @@ components_manager:
             task_processor: main-task-processor
 
         http-client:
+        http-client-core:
             fs-task-processor: main-task-processor
         dns-client:
             fs-task-processor: fs-task-processor

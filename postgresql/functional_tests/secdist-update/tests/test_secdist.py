@@ -44,7 +44,7 @@ def break_secdist(service_tmpdir) -> str:
 
 @pytest.fixture(scope='session')
 def broken_secdist(service_tmpdir):
-    yield break_secdist(service_tmpdir)
+    return break_secdist(service_tmpdir)
 
 
 @pytest.fixture(scope='session')

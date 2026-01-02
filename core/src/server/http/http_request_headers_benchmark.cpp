@@ -29,7 +29,9 @@ void HttpRequestHeadersInsert(benchmark::State& state) {
     for ([[maybe_unused]] auto _ : state) {
         server::http::HttpRequest::HeadersMap map;
 
-        for (int i = 0; i < state.range(0); i++) map[kHeadersArray[i]] = "1";
+        for (int i = 0; i < state.range(0); i++) {
+            map[kHeadersArray[i]] = "1";
+        }
 
         benchmark::DoNotOptimize(map);
     }
@@ -37,11 +39,15 @@ void HttpRequestHeadersInsert(benchmark::State& state) {
 
 void HttpRequestHeadersGet(benchmark::State& state) {
     server::http::HttpRequest::HeadersMap map;
-    for (const auto& header : kHeadersArray) map[header] = "1";
+    for (const auto& header : kHeadersArray) {
+        map[header] = "1";
+    }
 
     std::size_t i = 0;
     for ([[maybe_unused]] auto _ : state) {
-        if (++i == kHeadersCount) i = 0;
+        if (++i == kHeadersCount) {
+            i = 0;
+        }
         benchmark::DoNotOptimize(map.find(kHeadersArray[i]));
     }
 }

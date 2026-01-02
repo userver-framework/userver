@@ -38,7 +38,9 @@ public:
     // `WaitList::Lock + WakeupOne/WakeupAll`.
     class WaitersScopeCounter final {
     public:
-        explicit WaitersScopeCounter(WaitList& list) noexcept : impl_(list) { ++impl_.sleepies_; }
+        explicit WaitersScopeCounter(WaitList& list) noexcept : impl_(list) {
+            ++impl_.sleepies_;
+        }
         ~WaitersScopeCounter() { --impl_.sleepies_; }
 
     private:

@@ -19,7 +19,9 @@ public:
 
     constexpr /*implicit*/ TaggedPtr(std::nullptr_t) noexcept : impl_(0) {}
 
-    TaggedPtr(T* ptr, Tag tag) : impl_(reinterpret_cast<std::uintptr_t>(ptr) | (std::uint64_t{tag} << kTagShift)) {
+    TaggedPtr(T* ptr, Tag tag)
+        : impl_(reinterpret_cast<std::uintptr_t>(ptr) | (std::uint64_t{tag} << kTagShift))
+    {
         UASSERT(!(reinterpret_cast<std::uintptr_t>(ptr) & 0xffff'0000'0000'0000));
     }
 

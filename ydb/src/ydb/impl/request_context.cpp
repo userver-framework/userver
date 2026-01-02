@@ -24,8 +24,10 @@ tracing::Span MakeSpan(
     tracing::Span* custom_parent_span,
     utils::impl::SourceLocation location
 ) {
-    auto span = custom_parent_span ? custom_parent_span->CreateChild("ydb_query", location)
-                                   : tracing::Span("ydb_query", location);
+    auto span =
+        custom_parent_span
+            ? custom_parent_span->CreateChild("ydb_query", location)
+            : tracing::Span("ydb_query", location);
 
     settings.trace_id = span.GetTraceId();
 
@@ -106,9 +108,13 @@ void PrepareSettings(
 
     const auto& cc_map = config_snapshot[::dynamic_config::YDB_QUERIES_COMMAND_CONTROL];
 
-    if (!query.GetOptionalNameView()) return;
+    if (!query.GetOptionalNameView()) {
+        return;
+    }
     auto it = cc_map.extra.find(std::string{*query.GetOptionalNameView()});  // TODO: avoid tmp string construction
-    if (it == cc_map.extra.end()) return;
+    if (it == cc_map.extra.end()) {
+        return;
+    }
 
     auto& cc = it->second;
 
@@ -116,18 +122,28 @@ void PrepareSettings(
         UASSERT(*cc.attempts > 0);
         os.retries = *cc.attempts - 1;
     }
-    if (cc.operation_timeout_ms) os.operation_timeout_ms = cc.operation_timeout_ms.value();
-    if (cc.cancel_after_ms) os.cancel_after_ms = cc.cancel_after_ms.value();
-    if (cc.client_timeout_ms) os.client_timeout_ms = cc.client_timeout_ms.value();
-    if (cc.get_session_timeout_ms) os.get_session_timeout_ms = cc.get_session_timeout_ms.value();
+    if (cc.operation_timeout_ms) {
+        os.operation_timeout_ms = cc.operation_timeout_ms.value();
+    }
+    if (cc.cancel_after_ms) {
+        os.cancel_after_ms = cc.cancel_after_ms.value();
+    }
+    if (cc.client_timeout_ms) {
+        os.client_timeout_ms = cc.client_timeout_ms.value();
+    }
+    if (cc.get_session_timeout_ms) {
+        os.get_session_timeout_ms = cc.get_session_timeout_ms.value();
+    }
 }
 
 engine::Deadline GetDeadline(tracing::Span& span, const dynamic_config::Snapshot& config_snapshot) {
     if (config_snapshot[::dynamic_config::YDB_DEADLINE_PROPAGATION_VERSION] !=
-        impl::kDeadlinePropagationExperimentVersion) {
-        LOG_DEBUG() << "Wrong DP experiment version, config="
-                    << config_snapshot[::dynamic_config::YDB_DEADLINE_PROPAGATION_VERSION]
-                    << ", experiment=" << impl::kDeadlinePropagationExperimentVersion;
+        impl::kDeadlinePropagationExperimentVersion)
+    {
+        LOG_DEBUG()
+            << "Wrong DP experiment version, config="
+            << config_snapshot[::dynamic_config::YDB_DEADLINE_PROPAGATION_VERSION]
+            << ", experiment=" << impl::kDeadlinePropagationExperimentVersion;
         return {};
     }
 
@@ -163,11 +179,12 @@ RequestContext::RequestContext(
       stats_scope(*table_client.stats_, query),
       config_snapshot(table_client.config_source_.GetSnapshot()),
       // Note: comma operator is used to insert code between initializations.
-      span(
-          (PrepareSettings(query, config_snapshot, this->settings, is_streaming, table_client.default_settings_),
-           MakeSpan(query, this->settings, custom_parent_span, location))
-      ),
-      deadline(GetDeadline(span, config_snapshot)) {}
+      span((
+          PrepareSettings(query, config_snapshot, this->settings, is_streaming, table_client.default_settings_),
+          MakeSpan(query, this->settings, custom_parent_span, location)
+      )),
+      deadline(GetDeadline(span, config_snapshot))
+{}
 
 void RequestContext::HandleError(const NYdb::TStatus& status) {
     if (engine::current_task::ShouldCancel()) {

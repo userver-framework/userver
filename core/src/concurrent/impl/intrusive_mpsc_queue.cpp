@@ -54,12 +54,12 @@ bool IntrusiveMpscQueueImpl::PushIfEmpty(NodeRef node) noexcept {
 }
 
 IntrusiveMpscQueueImpl::NodePtr IntrusiveMpscQueueImpl::TryPopBlocking() noexcept {
-    return DoTryPop(PopMode::kRarelyBlocking);
+    return TryPop(PopMode::kRarelyBlocking);
 }
 
-IntrusiveMpscQueueImpl::NodePtr IntrusiveMpscQueueImpl::TryPopWeak() noexcept { return DoTryPop(PopMode::kWeak); }
+IntrusiveMpscQueueImpl::NodePtr IntrusiveMpscQueueImpl::TryPopWeak() noexcept { return TryPop(PopMode::kWeak); }
 
-IntrusiveMpscQueueImpl::NodePtr IntrusiveMpscQueueImpl::DoTryPop(PopMode mode) noexcept {
+IntrusiveMpscQueueImpl::NodePtr IntrusiveMpscQueueImpl::TryPop(PopMode mode) noexcept {
     UASSERT_MSG(!is_consuming_.exchange(true), "Multiple concurrent consumers detected");
     const utils::FastScopeGuard guard([this]() noexcept {
         UASSERT_MSG(is_consuming_.exchange(false), "Multiple concurrent consumers detected");
@@ -105,7 +105,8 @@ IntrusiveMpscQueueImpl::NodePtr IntrusiveMpscQueueImpl::DoTryPop(PopMode mode) n
     // hard to correct both head_ and tail_ in Push).
     NodeRef head = head_->load(std::memory_order_acquire);
     if (head == tail &&
-        head_->compare_exchange_strong(head, stub_, std::memory_order_release, std::memory_order_relaxed)) {
+        head_->compare_exchange_strong(head, stub_, std::memory_order_release, std::memory_order_relaxed))
+    {
         tail_ = stub_;
         UASSERT(GetNext(tail).load(std::memory_order_relaxed) == nullptr);
         return tail;

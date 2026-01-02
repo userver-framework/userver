@@ -63,7 +63,9 @@ void HttpHeadersSerializationInplace(benchmark::State& state) {
 
         if (kHeaders.find(USERVER_NAMESPACE::http::headers::kContentLength) == kHeaders.end()) {
             server::http::impl::OutputHeader(
-                os, USERVER_NAMESPACE::http::headers::kContentLength, fmt::format(FMT_COMPILE("{}"), 1024)
+                os,
+                USERVER_NAMESPACE::http::headers::kContentLength,
+                fmt::format(FMT_COMPILE("{}"), 1024)
             );
         }
 
@@ -129,7 +131,7 @@ void HttpResponseSetHeaderBenchmark(benchmark::State& state) {
         response.SetHeader(Headers::kAcceptEncoding, "gzip, identity");
         response.SetHeader(Headers::kConnection, "keep-alive");
         response.SetHeader(Headers::kContentLength, "13");
-        if (!response.ClearHeaders()) {
+        if (!response.ClearUserHeaders()) {
             std::abort();
         }
     }

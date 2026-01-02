@@ -38,13 +38,18 @@ std::string ToString(ClusterHostTypeFlags flags) {
     for (const auto role : {
              ClusterHostType::kMaster,
              ClusterHostType::kSlave,
-         }) {
+         })
+    {
         if (flags & role) {
-            if (!result.empty()) result += '|';
+            if (!result.empty()) {
+                result += '|';
+            }
             result += ToStringRaw(role);
         }
     }
-    if (result.empty()) result = ToStringRaw(ClusterHostType::kNone);
+    if (result.empty()) {
+        result = ToStringRaw(ClusterHostType::kNone);
+    }
     return result;
 }
 

@@ -4,7 +4,9 @@
 
 namespace my {
 
-CustomObject::CustomObject(const ns::CustomObject& obj) : foo(obj.foo) {}
+CustomObject::CustomObject(const ns::CustomObject& obj)
+    : foo(obj.foo)
+{}
 
 ns::CustomObject Convert(const CustomObject& value, USERVER_NAMESPACE::chaotic::convert::To<ns::CustomObject>) {
     ns::CustomObject obj;

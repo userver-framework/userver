@@ -38,9 +38,8 @@ class TimestampConversionError : public std::overflow_error {
 ///
 /// @throws TimestampConversionError if the value is not valid according to @c IsValid.
 template <class Duration>
-google::protobuf::Timestamp ToProtoTimestamp(
-    const std::chrono::time_point<std::chrono::system_clock, Duration>& system_tp
-) {
+google::protobuf::Timestamp ToProtoTimestamp(const std::chrono::time_point<std::chrono::system_clock, Duration>&
+                                                 system_tp) {
     const auto seconds = std::chrono::duration_cast<std::chrono::seconds>(system_tp.time_since_epoch());
     const auto nanos = std::chrono::duration_cast<std::chrono::nanoseconds>(system_tp.time_since_epoch() - seconds);
 
@@ -70,9 +69,10 @@ std::chrono::time_point<std::chrono::system_clock, Duration> ToTimePoint(const g
         throw TimestampConversionError("grpc_ts does not fit the output type");
     }
 
-    return std::chrono::time_point<std::chrono::system_clock, Duration>(std::chrono::duration_cast<Duration>(
-        seconds + std::chrono::duration_cast<Duration>(std::chrono::nanoseconds(grpc_ts.nanos()))
-    ));
+    return std::chrono::time_point<
+        std::chrono::system_clock,
+        Duration>(std::chrono::duration_cast<
+                  Duration>(seconds + std::chrono::duration_cast<Duration>(std::chrono::nanoseconds(grpc_ts.nanos()))));
 }
 
 /// @brief Returns current (possibly, mocked) timestamp as a @c google::protobuf::Timestamp.
@@ -162,9 +162,8 @@ Duration ToDuration(const google::protobuf::Duration& grpc_duration) {
     if (seconds >= std::chrono::duration_cast<std::chrono::seconds>(Duration::max())) {
         throw DurationConversionError("grpc_duration does not fit the output type");
     }
-    return std::chrono::duration_cast<Duration>(
-        seconds + std::chrono::duration_cast<Duration>(std::chrono::nanoseconds(grpc_duration.nanos()))
-    );
+    return std::chrono::duration_cast<
+        Duration>(seconds + std::chrono::duration_cast<Duration>(std::chrono::nanoseconds(grpc_duration.nanos())));
 }
 
 /// @brief Creates @c google::protobuf::Duration from @c std::chrono::duration.

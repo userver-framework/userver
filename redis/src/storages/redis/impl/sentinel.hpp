@@ -156,11 +156,11 @@ public:
     void UpdatePassword(const Password& password);
 
     using UserMessageCallback = std::function<Outcome(const std::string& channel, const std::string& message)>;
-    using UserPmessageCallback =
-        std::function<Outcome(const std::string& pattern, const std::string& channel, const std::string& message)>;
+    using UserPmessageCallback = std::function<
+        Outcome(const std::string& pattern, const std::string& channel, const std::string& message)>;
 
-    using MessageCallback =
-        std::function<void(ServerId server_id, const std::string& channel, const std::string& message)>;
+    using MessageCallback = std::function<
+        void(ServerId server_id, const std::string& channel, const std::string& message)>;
     using PmessageCallback = std::function<
         void(ServerId server_id, const std::string& pattern, const std::string& channel, const std::string& message)>;
     using SubscribeCallback = std::function<void(ServerId, const std::string& channel, size_t count)>;
@@ -172,8 +172,11 @@ public:
 protected:
     void Stop() noexcept;
 
-    std::unordered_map<ServerId, size_t, ServerIdHasher>
-    GetAvailableServersWeighted(size_t shard_idx, bool with_master, const CommandControl& cc = {}) const;
+    std::unordered_map<ServerId, size_t, ServerIdHasher> GetAvailableServersWeighted(
+        size_t shard_idx,
+        bool with_master,
+        const CommandControl& cc = {}
+    ) const;
 
 public:
     static void OnSsubscribeReply(

@@ -24,7 +24,9 @@ public:
     using reference = value_type;
     //@}
 
-    explicit ResultSet(std::shared_ptr<detail::ResultWrapper> pimpl) : pimpl_{std::move(pimpl)} {}
+    explicit ResultSet(std::shared_ptr<detail::ResultWrapper> pimpl)
+        : pimpl_{std::move(pimpl)}
+    {}
 
     /// @brief Get the number of columns in the result set
     size_type FieldCount() const;

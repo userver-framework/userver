@@ -81,8 +81,12 @@ public:
         const GeoradiusOptions& georadius_options
     ) = 0;
 
-    virtual RequestGeosearch
-    Geosearch(std::string key, std::string member, double radius, const GeosearchOptions& geosearch_options) = 0;
+    virtual RequestGeosearch Geosearch(
+        std::string key,
+        std::string member,
+        double radius,
+        const GeosearchOptions& geosearch_options
+    ) = 0;
 
     virtual RequestGeosearch Geosearch(
         std::string key,
@@ -205,8 +209,11 @@ public:
 
     virtual RequestSetIfNotExistOrGet SetIfNotExistOrGet(std::string key, std::string value) = 0;
 
-    virtual RequestSetIfNotExistOrGet
-    SetIfNotExistOrGet(std::string key, std::string value, std::chrono::milliseconds ttl) = 0;
+    virtual RequestSetIfNotExistOrGet SetIfNotExistOrGet(
+        std::string key,
+        std::string value,
+        std::chrono::milliseconds ttl
+    ) = 0;
 
     virtual RequestSetex Setex(std::string key, std::chrono::seconds seconds, std::string value) = 0;
 
@@ -236,8 +243,11 @@ public:
 
     virtual RequestZadd Zadd(std::string key, std::vector<std::pair<double, std::string>> scored_members) = 0;
 
-    virtual RequestZadd
-    Zadd(std::string key, std::vector<std::pair<double, std::string>> scored_members, const ZaddOptions& options) = 0;
+    virtual RequestZadd Zadd(
+        std::string key,
+        std::vector<std::pair<double, std::string>> scored_members,
+        const ZaddOptions& options
+    ) = 0;
 
     virtual RequestZaddIncr ZaddIncr(std::string key, double score, std::string member) = 0;
 
@@ -255,22 +265,41 @@ public:
 
     virtual RequestZrangebyscore Zrangebyscore(std::string key, std::string min, std::string max) = 0;
 
-    virtual RequestZrangebyscore
-    Zrangebyscore(std::string key, double min, double max, const RangeOptions& range_options) = 0;
+    virtual RequestZrangebyscore Zrangebyscore(
+        std::string key,
+        double min,
+        double max,
+        const RangeOptions& range_options
+    ) = 0;
 
-    virtual RequestZrangebyscore
-    Zrangebyscore(std::string key, std::string min, std::string max, const RangeOptions& range_options) = 0;
+    virtual RequestZrangebyscore Zrangebyscore(
+        std::string key,
+        std::string min,
+        std::string max,
+        const RangeOptions& range_options
+    ) = 0;
 
     virtual RequestZrangebyscoreWithScores ZrangebyscoreWithScores(std::string key, double min, double max) = 0;
 
-    virtual RequestZrangebyscoreWithScores
-    ZrangebyscoreWithScores(std::string key, std::string min, std::string max) = 0;
+    virtual RequestZrangebyscoreWithScores ZrangebyscoreWithScores(
+        std::string key,
+        std::string min,
+        std::string max
+    ) = 0;
 
-    virtual RequestZrangebyscoreWithScores
-    ZrangebyscoreWithScores(std::string key, double min, double max, const RangeOptions& range_options) = 0;
+    virtual RequestZrangebyscoreWithScores ZrangebyscoreWithScores(
+        std::string key,
+        double min,
+        double max,
+        const RangeOptions& range_options
+    ) = 0;
 
-    virtual RequestZrangebyscoreWithScores
-    ZrangebyscoreWithScores(std::string key, std::string min, std::string max, const RangeOptions& range_options) = 0;
+    virtual RequestZrangebyscoreWithScores ZrangebyscoreWithScores(
+        std::string key,
+        std::string min,
+        std::string max,
+        const RangeOptions& range_options
+    ) = 0;
 
     virtual RequestZrem Zrem(std::string key, std::string member) = 0;
 

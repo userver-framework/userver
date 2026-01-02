@@ -36,7 +36,8 @@ TagScope::TagScope(
 )
     : parent_(parent),
       new_tags_begin_index_(parent_.pimpl_->log_extra_inheritable_.extra_->size()),
-      new_tags_end_index_(new_tags_begin_index_) {
+      new_tags_end_index_(new_tags_begin_index_)
+{
     AddTag(
         std::move(key),
         logging::LogExtra::ProtectedValue(std::move(value), extend_type == logging::LogExtra::ExtendType::kFrozen)
@@ -48,7 +49,8 @@ TagScope::TagScope(logging::LogExtra&& extra) : tracing::TagScope(Span::CurrentS
 TagScope::TagScope(Span& parent, logging::LogExtra&& extra)
     : parent_(parent),
       new_tags_begin_index_(parent_.pimpl_->log_extra_inheritable_.extra_->size()),
-      new_tags_end_index_(new_tags_begin_index_) {
+      new_tags_end_index_(new_tags_begin_index_)
+{
     for (auto& [key, value] : *extra.extra_) {
         AddTag(std::move(key), std::move(value));
     }
@@ -56,9 +58,8 @@ TagScope::TagScope(Span& parent, logging::LogExtra&& extra)
 
 TagScope::~TagScope() {
     auto new_tags_begin = parent_.pimpl_->log_extra_inheritable_.extra_->begin() + new_tags_begin_index_;
-    parent_.pimpl_->log_extra_inheritable_.extra_->erase(
-        new_tags_begin, new_tags_begin + (new_tags_end_index_ - new_tags_begin_index_)
-    );
+    parent_.pimpl_->log_extra_inheritable_.extra_
+        ->erase(new_tags_begin, new_tags_begin + (new_tags_end_index_ - new_tags_begin_index_));
 
     for (auto& [tag_index, previous_value] : previous_values_) {
         auto it = parent_.pimpl_->log_extra_inheritable_.extra_->begin() + tag_index;

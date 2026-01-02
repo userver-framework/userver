@@ -254,6 +254,13 @@ public:
     );
 
     MOCK_METHOD(
+        void,
+        Spublish,
+        (std::string channel, std::string message, const CommandControl& command_control),
+        (override)
+    );
+
+    MOCK_METHOD(
         RequestRename,
         Rename,
         (std::string key, std::string new_key, const CommandControl& command_control),

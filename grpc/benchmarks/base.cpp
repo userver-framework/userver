@@ -10,6 +10,7 @@
 #include <userver/logging/format.hpp>
 #include <userver/logging/impl/logger_base.hpp>
 #include <userver/logging/level.hpp>
+#include <userver/logging/null_logger.hpp>
 #include <userver/ugrpc/tests/service.hpp>
 #include <userver/utils/algo.hpp>
 #include <userver/utils/fixed_array.hpp>
@@ -43,11 +44,12 @@ public:
         sample::ugrpc::StreamGreetingRequest&& request,
         ReadManyWriter& writer
     ) override {
-        sample::ugrpc::StreamGreetingResponse response;
-        response.set_name("Hello again " + request.name());
+        const std::string response_name = "Hello again " + request.name();
         for (int i = 0; i < request.number(); ++i) {
+            sample::ugrpc::StreamGreetingResponse response;
+            response.set_name(response_name);
             response.set_number(i);
-            writer.Write(response);
+            writer.Write(std::move(response));
         }
         return grpc::Status::OK;
     }
@@ -66,13 +68,13 @@ public:
 
     ChatResult Chat(CallContext& /*context*/, ChatReaderWriter& stream) override {
         sample::ugrpc::StreamGreetingRequest request;
-        sample::ugrpc::StreamGreetingResponse response;
         int count = 0;
         while (stream.Read(request)) {
             ++count;
+            sample::ugrpc::StreamGreetingResponse response;
             response.set_number(count);
             response.set_name("Hello " + request.name());
-            stream.Write(response);
+            stream.Write(std::move(response));
         }
         return grpc::Status::OK;
     }
@@ -136,17 +138,10 @@ void NewClientRepeated(GrpcClientTest& client_factory) {
     }
 }
 
-class NoopLogger : public logging::impl::TextLogger {
-public:
-    NoopLogger() noexcept : TextLogger(logging::Format::kRaw) { SetLevel(logging::Level::kInfo); }
-    void Log(logging::Level, logging::impl::formatters::LoggerItemRef) override {}
-    void Flush() override {}
-};
-
 }  // namespace
 
 void UnaryRPC(benchmark::State& state) {
-    const logging::DefaultLoggerGuard logger_guard{std::make_shared<NoopLogger>()};
+    const logging::DefaultLoggerGuard logger_guard{logging::impl::MakeNoopLoggerForTests()};
 
     engine::RunStandalone(state.range(0), [&] {
         GrpcClientTest client_factory;
@@ -161,7 +156,7 @@ void UnaryRPC(benchmark::State& state) {
 BENCHMARK(UnaryRPC)->DenseRange(1, 4)->Unit(benchmark::kMicrosecond);
 
 void UnaryRPCWithLogging(benchmark::State& state) {
-    const logging::DefaultLoggerGuard logger_guard{std::make_shared<NoopLogger>()};
+    const logging::DefaultLoggerGuard logger_guard{logging::impl::MakeNoopLoggerForTests()};
 
     engine::RunStandalone(state.range(0), [&] {
         GrpcClientTestWithLogging client_factory;

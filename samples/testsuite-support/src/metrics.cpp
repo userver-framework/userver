@@ -16,7 +16,8 @@ const utils::statistics::MetricTag<std::atomic<int>> kFooMetric{"sample-metrics.
 
 Metrics::Metrics(const components::ComponentConfig& config, const components::ComponentContext& context)
     : server::handlers::HttpHandlerJsonBase(config, context),
-      metrics_(context.FindComponent<components::StatisticsStorage>().GetMetricsStorage()) {}
+      metrics_(context.FindComponent<components::StatisticsStorage>().GetMetricsStorage())
+{}
 
 formats::json::Value Metrics::HandleRequestJsonThrow(
     [[maybe_unused]] const server::http::HttpRequest& request,

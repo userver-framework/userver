@@ -56,9 +56,10 @@ std::optional<std::chrono::system_clock::time_point> ParseTime(const std::string
     try {
         return utils::datetime::Stringtime(timestring, timezone, kTimeFormat);
     } catch (const utils::datetime::DateParseError& err) {
-        LOG_LIMITED_DEBUG() << "Error while parsing cookie time, attempting to "
-                               "parse using obsolete format: "
-                            << err;
+        LOG_LIMITED_DEBUG()
+            << "Error while parsing cookie time, attempting to "
+               "parse using obsolete format: "
+            << err;
     } catch (const utils::datetime::TimezoneLookupError& err) {
         LOG_WARNING() << "Error while parsing cookie timezone: " << err;
         return std::nullopt;
@@ -115,14 +116,17 @@ std::optional<Cookie> ParseSingleCookie(std::string_view data) {
     std::optional<Cookie> cookie;
 
     auto cookie_main = GetCookieKeyValueOpt(data);
-    if (!cookie_main.has_value()) return cookie;
+    if (!cookie_main.has_value()) {
+        return cookie;
+    }
 
     data.remove_prefix(cookie_main->shift);
     try {
         cookie.emplace(cookie_main->key, std::move(cookie_main->value).value_or(std::string{}));
     } catch (const std::runtime_error& parse_error) {
-        LOG_WARNING() << "Cookie with name '" << cookie_main->key
-                      << "' will be skipped because of validation error: " << parse_error;
+        LOG_WARNING()
+            << "Cookie with name '" << cookie_main->key
+            << "' will be skipped because of validation error: " << parse_error;
         return cookie;
     }
 
@@ -225,7 +229,9 @@ private:
 };
 
 Cookie::CookieData::CookieData(std::string&& name, std::string&& value)
-    : name_(std::move(name)), value_(std::move(value)) {
+    : name_(std::move(name)),
+      value_(std::move(value))
+{
     ValidateName();
     ValidateValue();
 }
@@ -280,9 +286,10 @@ void Cookie::CookieData::AppendToString(USERVER_NAMESPACE::http::headers::Header
 
     const std::size_t old_size = os.size();
 
-    std::size_t new_size = old_size + name_.size() + value_.size() + domain_.size() + path_.size() + same_site_.size() +
-                           kEquals.size() + kDomain.size() + kPath.size() + kExpires.size() + kMaxAge.size() +
-                           kSecure.size() + kSameSite.size() + kHttpOnly.size();
+    std::size_t new_size =
+        old_size + name_.size() + value_.size() + domain_.size() + path_.size() + same_site_.size() + kEquals.size() +
+        kDomain.size() + kPath.size() + kExpires.size() + kMaxAge.size() + kSecure.size() + kSameSite.size() +
+        kHttpOnly.size();
     std::string time_string{};
     std::string age_string{};
     if (expires_.has_value()) {
@@ -337,13 +344,21 @@ void Cookie::CookieData::AppendToString(USERVER_NAMESPACE::http::headers::Header
 void Cookie::CookieData::ValidateName() const {
     static constexpr auto kBadNameChars = []() {
         std::array<bool, 256> res{};  // Zero initializes
-        for (int i = 0; i < 32; i++) res[i] = true;
-        for (int i = 127; i < 256; i++) res[i] = true;
-        for (const unsigned char c : "()<>@,;:\\\"/[]?={} \t") res[c] = true;
+        for (int i = 0; i < 32; i++) {
+            res[i] = true;
+        }
+        for (int i = 127; i < 256; i++) {
+            res[i] = true;
+        }
+        for (const unsigned char c : "()<>@,;:\\\"/[]?={} \t") {
+            res[c] = true;
+        }
         return res;
     }();
 
-    if (name_.empty()) throw std::runtime_error("Empty cookie name");
+    if (name_.empty()) {
+        throw std::runtime_error("Empty cookie name");
+    }
 
     for (const char c : name_) {
         auto code = static_cast<uint8_t>(c);
@@ -357,8 +372,12 @@ void Cookie::CookieData::ValidateValue() const {
     // `cookie-value` from https://tools.ietf.org/html/rfc6265#section-4.1.1
     static constexpr auto kBadValueChars = []() {
         std::array<bool, 256> res{};  // Zero initializes
-        for (int i = 0; i <= 32; i++) res[i] = true;
-        for (int i = 127; i < 256; i++) res[i] = true;
+        for (int i = 0; i <= 32; i++) {
+            res[i] = true;
+        }
+        for (int i = 127; i < 256; i++) {
+            res[i] = true;
+        }
         res[0x22] = true;  // `"`
         res[0x2C] = true;  // `,`
         res[0x3B] = true;  // `;`
@@ -367,7 +386,9 @@ void Cookie::CookieData::ValidateValue() const {
     }();
 
     std::string_view value(value_);
-    if (value.size() > 1 && value.front() == '"' && value.back() == '"') value = value.substr(1, value.size() - 2);
+    if (value.size() > 1 && value.front() == '"' && value.back() == '"') {
+        value = value.substr(1, value.size() - 2);
+    }
 
     for (const char c : value) {
         auto code = static_cast<uint8_t>(c);
@@ -380,7 +401,8 @@ void Cookie::CookieData::ValidateValue() const {
 std::optional<Cookie> Cookie::FromString(std::string_view cookie) { return ParseSingleCookie(cookie); }
 
 Cookie::Cookie(std::string name, std::string value)
-    : data_(std::make_unique<CookieData>(std::move(name), std::move(value))) {}
+    : data_(std::make_unique<CookieData>(std::move(name), std::move(value)))
+{}
 
 Cookie::Cookie(Cookie&& cookie) noexcept = default;
 
@@ -391,7 +413,9 @@ Cookie::Cookie(const Cookie& cookie) { *this = cookie; }
 Cookie& Cookie::operator=(Cookie&&) noexcept = default;
 
 Cookie& Cookie::operator=(const Cookie& cookie) {
-    if (this == &cookie) return *this;
+    if (this == &cookie) {
+        return *this;
+    }
 
     data_ = std::make_unique<CookieData>(*cookie.data_);
     return *this;

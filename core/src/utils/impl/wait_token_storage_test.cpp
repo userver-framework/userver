@@ -78,7 +78,9 @@ UTEST_MT(WaitTokenStorage, MultipleTokens, 4) {
         }));
     }
 
-    for (auto& task : launcher_tasks) task.Get();
+    for (auto& task : launcher_tasks) {
+        task.Get();
+    }
     EXPECT_EQ(wts.AliveTokensApprox(), kTaskCount);
     allowed_to_finish_lock.unlock();
 
@@ -129,7 +131,9 @@ UTEST(WaitTokenStorage, AcquireTokenWhileWaiting) {
         // WaitForAllTokens is waiting for us at this point, but we need to launch
         // another task and acquire another token
         const auto another_token = wts.GetToken();
-        { [[maybe_unused]] auto for_disposal = std::move(token); }
+        {
+            [[maybe_unused]] auto for_disposal = std::move(token);
+        }
 
         engine::SleepFor(10ms);
     });

@@ -26,7 +26,9 @@ struct TableMeta final {
     TmpTable table;
 
 private:
-    TableMeta() : table{"Id INT NOT NULL, Value TEXT NOT NULL"} {}
+    TableMeta()
+        : table{"Id INT NOT NULL, Value TEXT NOT NULL"}
+    {}
 };
 
 }  // namespace

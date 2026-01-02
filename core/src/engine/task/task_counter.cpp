@@ -33,7 +33,9 @@ TaskCounter::CoroToken::CoroToken(TaskCounter& counter) noexcept : counter_(&cou
 }
 
 TaskCounter::CoroToken::~CoroToken() {
-    if (counter_) counter_->Increment(LocalCounterId::kStopped);
+    if (counter_) {
+        counter_->Increment(LocalCounterId::kStopped);
+    }
 }
 
 TaskCounter::CoroToken::CoroToken(TaskCounter::CoroToken&& other) noexcept
@@ -50,7 +52,9 @@ TaskCounter::RunningToken::RunningToken(TaskCounter& counter) noexcept : counter
 
 TaskCounter::RunningToken::~RunningToken() { counter_.Increment(LocalCounterId::kStoppedRunning); }
 
-TaskCounter::TaskCounter(std::size_t thread_count) : local_counters_(thread_count) {}
+TaskCounter::TaskCounter(std::size_t thread_count)
+    : local_counters_(thread_count)
+{}
 
 TaskCounter::~TaskCounter() { UASSERT(!MayHaveTasksAlive()); }
 
@@ -134,6 +138,11 @@ void TaskCounter::Increment(GlobalCounterId id) noexcept { global_counters_[stat
 void SetLocalTaskCounterData(TaskCounter& counter, std::size_t thread_id) {
     auto local_data = local_task_counter_data.Use();
     *local_data = {&counter, thread_id};
+}
+
+std::size_t GetCurrentWorkerId() noexcept {
+    auto local_data = local_task_counter_data.Use();
+    return local_data->task_processor_thread_index;
 }
 
 }  // namespace engine::impl

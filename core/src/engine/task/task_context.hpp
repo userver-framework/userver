@@ -2,8 +2,6 @@
 
 #include <atomic>
 #include <cstdint>
-#include <memory>
-#include <vector>
 
 #include <ev.h>
 #include <boost/intrusive/list_hook.hpp>
@@ -18,6 +16,7 @@
 #include <engine/task/task_counter.hpp>
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/future_status.hpp>
+#include <userver/engine/impl/actor.hpp>
 #include <userver/engine/impl/context_accessor.hpp>
 #include <userver/engine/impl/detached_tasks_sync_block.hpp>
 #include <userver/engine/impl/task_local_storage.hpp>
@@ -63,7 +62,7 @@ protected:
     ~WaitStrategy() = default;
 };
 
-class TaskContext final : public ContextAccessor {
+class TaskContext final : public ContextAccessor, public deadlock_detector::Actor {
 public:
     struct NoEpoch {};
     using TaskPipe = coro::Pool::TaskPipe;
@@ -189,6 +188,10 @@ public:
 
     CountedCoroutinePtr& GetCoroutinePtr() noexcept;
 
+    bool WasStartedAsCritical() const;
+
+    utils::StringLiteral GetActorType() const override;
+
 private:
     class YieldReasonGuard;
     class LocalStorageGuard;
@@ -201,7 +204,6 @@ private:
 
     static WakeupSource GetPrimaryWakeupSource(SleepState::Flags sleep_flags);
 
-    bool WasStartedAsCritical() const;
     void SetState(Task::State);
 
     void Schedule();

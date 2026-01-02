@@ -7,7 +7,9 @@ USERVER_NAMESPACE_BEGIN
 namespace logging::impl {
 
 BufferedFileSink::BufferedFileSink(const std::string& filename)
-    : filename_{filename}, file_(OpenFile<fs::blocking::CFile>(filename)) {
+    : filename_{filename},
+      file_(OpenFile<fs::blocking::CFile>(filename))
+{
     if (file_.GetSize() > 0) {
         file_.Write("\n");
     }
@@ -30,11 +32,15 @@ void BufferedFileSink::Flush() {
     }
 }
 
-BufferedFileSink::BufferedFileSink(fs::blocking::CFile&& file) : file_(std::move(file)) {}
+BufferedFileSink::BufferedFileSink(fs::blocking::CFile&& file)
+    : file_(std::move(file))
+{}
 
 fs::blocking::CFile& BufferedFileSink::GetFile() { return file_; }
 
-BufferedUnownedFileSink::BufferedUnownedFileSink(std::FILE* c_file) : BufferedFileSink{fs::blocking::CFile(c_file)} {}
+BufferedUnownedFileSink::BufferedUnownedFileSink(std::FILE* c_file)
+    : BufferedFileSink{fs::blocking::CFile(c_file)}
+{}
 
 void BufferedUnownedFileSink::Flush() {}
 

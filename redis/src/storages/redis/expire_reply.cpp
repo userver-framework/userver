@@ -20,7 +20,9 @@ ExpireReply::ExpireReply(int64_t value) {
     }
 }
 
-ExpireReply::ExpireReply(ExpireReplyValue value) : value_(value) {}
+ExpireReply::ExpireReply(ExpireReplyValue value)
+    : value_(value)
+{}
 
 ExpireReply ExpireReply::Parse(ReplyData&& reply_data, const std::string& request_description) {
     reply_data.ExpectInt(request_description);

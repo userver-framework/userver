@@ -144,7 +144,8 @@ TEST(SmallString, InvalidOpReturnValue) {
     utils::SmallString<4> small_str("abcd");
     ASSERT_DEBUG_DEATH(
         small_str.resize_and_overwrite(
-            16, [&]([[maybe_unused]] char* data, [[maybe_unused]] std::size_t size) { return 20; }
+            16,
+            [&]([[maybe_unused]] char* data, [[maybe_unused]] std::size_t size) { return 20; }
         ),
         ""
     );
@@ -179,14 +180,18 @@ TEST(SmallString, FormatTo) {
 
 TEST(SmallString, Iterator) {
     utils::SmallString<3> str("12345");
-    for (auto& c : str) c++;
+    for (auto& c : str) {
+        c++;
+    }
     EXPECT_EQ(str, "23456");
 }
 
 TEST(SmallString, ConstsIterator) {
     const utils::SmallString<3> str("12345");
     std::string s;
-    for (const auto& c : str) s += c;
+    for (const auto& c : str) {
+        s += c;
+    }
     EXPECT_EQ(s, "12345");
 }
 

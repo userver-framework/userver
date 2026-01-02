@@ -59,6 +59,8 @@ components_manager:
         grpc-client-logging:
         grpc-client-deadline-propagation:
         grpc-client-baggage:
+        grpc-client-origin:
+            user-agent: metrics-service
 
     default_task_processor: main-task-processor
 

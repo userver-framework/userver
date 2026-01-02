@@ -22,7 +22,7 @@ RUN \
     rabbitmq-server \
     redis-server \
     clang-16 lld-16 llvm-16 clang-format-16 libclang-rt-16-dev\
-    clang-14 lld-14 llvm clang-format \
+    clang-14 lld-14 llvm clang-format-18 \
     g++-10 gcc-10 \
     g++-11 gcc-11 \
     g++-13 gcc-13 \
@@ -30,7 +30,8 @@ RUN \
   pip3 install pep8 && \
   apt clean all && \
   curl -fsSL https://raw.githubusercontent.com/pressly/goose/master/install.sh | sh && \
-  curl -sSL https://install.ydb.tech/cli | bash -s -- -i/usr/local -n
+  curl -sSL https://install.ydb.tech/cli | bash -s -- -i/usr/local -n && \
+  update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-18 100
 
 EXPOSE 8080-8100
 EXPOSE 15672

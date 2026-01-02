@@ -16,7 +16,8 @@ struct GetHostsRequest {
         : sentinel_shard(sentinel_shard),
           command({"SENTINEL", "MASTERS"}),
           master(true),
-          password(std::move(password)) {
+          password(std::move(password))
+    {
         UASSERT(command.GetCommandCount() == 1);
         UASSERT_MSG(
             fmt::to_string(command.begin()->GetJoinedArgs(";")) == "SENTINEL;MASTERS",
@@ -29,7 +30,8 @@ struct GetHostsRequest {
         : sentinel_shard(sentinel_shard),
           command({"SENTINEL", "SLAVES", std::move(shard_name)}),
           master(false),
-          password(std::move(password)) {
+          password(std::move(password))
+    {
         UASSERT(command.GetCommandCount() == 1);
     }
 
@@ -40,8 +42,8 @@ struct GetHostsRequest {
     Password password;
 };
 
-using ProcessGetHostsRequestCb =
-    std::function<void(const ConnInfoByShard& info, size_t requests_sent, size_t responses_parsed)>;
+using ProcessGetHostsRequestCb = std::function<
+    void(const ConnInfoByShard& info, size_t requests_sent, size_t responses_parsed)>;
 
 void ProcessGetHostsRequest(GetHostsRequest request, ProcessGetHostsRequestCb callback);
 
@@ -83,7 +85,8 @@ struct GetClusterHostsRequest {
         : sentinel_shard(sentinel_shard),
           command({"CLUSTER", "SLOTS"}),
           password(std::move(password)),
-          shard_group_name(std::move(shard_group_name)) {}
+          shard_group_name(std::move(shard_group_name))
+    {}
 
     Shard& sentinel_shard;
     CmdArgs command;
@@ -96,7 +99,10 @@ struct SlotInterval {
     size_t slot_min;
     size_t slot_max;
 
-    SlotInterval(size_t slot_min, size_t slot_max) : slot_min(slot_min), slot_max(slot_max) {}
+    SlotInterval(size_t slot_min, size_t slot_max)
+        : slot_min(slot_min),
+          slot_max(slot_max)
+    {}
 
     bool operator<(const SlotInterval& r) const { return slot_min < r.slot_min; }
     bool operator==(const SlotInterval& r) const { return slot_min == r.slot_min && slot_max == r.slot_max; }
@@ -176,8 +182,11 @@ enum class ClusterSlotsResponseStatus {
     kNonCluster,
 };
 
-ClusterSlotsResponseStatus
-ParseClusterSlotsResponse(const ReplyPtr& reply, ClusterSlotsResponse& res, const std::string& shard_group_name);
+ClusterSlotsResponseStatus ParseClusterSlotsResponse(
+    const ReplyPtr& reply,
+    ClusterSlotsResponse& res,
+    const std::string& shard_group_name
+);
 
 }  // namespace storages::redis::impl
 

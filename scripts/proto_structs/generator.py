@@ -8,9 +8,6 @@ import pathlib
 import sys
 import typing
 from typing import Any
-from typing import Dict
-from typing import List
-from typing import Optional
 
 from google.protobuf import descriptor
 from google.protobuf import descriptor_pool
@@ -36,7 +33,7 @@ class Params(options.ModelBase):
     """
 
     #: Absolute path to the file with the JSON containing detailed options, see `models/options.py`.
-    opts_file: Optional[pathlib.Path] = None
+    opts_file: pathlib.Path | None = None
 
 
 class _CodeGenerator:
@@ -70,11 +67,11 @@ class _CodeGenerator:
         except Exception:
             raise Exception(
                 f'userver proto structs codegen failed for file: {self.file_descriptor.name} '
-                '(see details in the exception above)'
+                '(see details in the exception above)',
             )
 
     @staticmethod
-    def _make_jinja_data(file_node: gen_node.File) -> Dict[str, Any]:
+    def _make_jinja_data(file_node: gen_node.File) -> dict[str, Any]:
         includes_dict = includes.sorted_includes(file_node, current_hpp=str(file_node.gen_path(ext='hpp')))
 
         return {
@@ -96,10 +93,10 @@ def generate(loader: jinja2.BaseLoader) -> None:
 
     response = plugin_pb2.CodeGeneratorResponse()  # pyright: ignore
     if hasattr(response, 'FEATURE_PROTO3_OPTIONAL'):  # pyright: ignore
-        setattr(
+        setattr(  # noqa: B010
             response,  # pyright: ignore
             'supported_features',
-            getattr(response, 'FEATURE_PROTO3_OPTIONAL'),  # pyright: ignore
+            getattr(response, 'FEATURE_PROTO3_OPTIONAL'),  # pyright: ignore  # noqa: B009
         )
 
     jinja_env = jinja2.Environment(
@@ -112,7 +109,7 @@ def generate(loader: jinja2.BaseLoader) -> None:
 
     pool = descriptor_pool.DescriptorPool()
 
-    files: List[str] = []
+    files: list[str] = []
     # pylint: disable=no-member
     for proto_file in request.proto_file:  # pyright: ignore
         pool.Add(proto_file)  # pyright: ignore
@@ -124,7 +121,7 @@ def generate(loader: jinja2.BaseLoader) -> None:
     except Exception:
         raise Exception(
             f'userver proto structs codegen failed to parse options for files: {", ".join(files)} '
-            '(see details in the exception above)'
+            '(see details in the exception above)',
         )
 
     # pylint: disable=no-member
@@ -139,7 +136,7 @@ def generate(loader: jinja2.BaseLoader) -> None:
     sys.stdout.buffer.write(response.SerializeToString())  # pyright: ignore
 
 
-def main(loader: Optional[jinja2.BaseLoader] = None) -> None:
+def main(loader: jinja2.BaseLoader | None = None) -> None:
     if loader is None:
         loader = jinja2.FileSystemLoader(pathlib.Path(__file__).resolve().parent / 'templates')
 

@@ -51,7 +51,11 @@ private:
 /// @snippet utils/statistics/busy_test.cpp  busy sample
 class BusyMarker final {
 public:
-    BusyMarker(BusyStorage& storage) : storage_(storage) { storage_.StartWork(); }
+    BusyMarker(BusyStorage& storage)
+        : storage_(storage)
+    {
+        storage_.StartWork();
+    }
 
     BusyMarker(const BusyMarker&) = delete;
     BusyMarker& operator=(const BusyMarker&) = delete;

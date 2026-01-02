@@ -27,7 +27,9 @@ using MiddlewareFlags = utils::Flags<MiddlewareFlag>;
 
 class Middleware final : public ugrpc::server::MiddlewareBase {
 public:
-    Middleware(MiddlewareFlag settings) : settings_(settings) {}
+    Middleware(MiddlewareFlag settings)
+        : settings_(settings)
+    {}
 
     void PostRecvMessage(ugrpc::server::MiddlewareCallContext& context, google::protobuf::Message&) const override {
         if (settings_ == MiddlewareFlag::kErrorInRequestHook) {
@@ -37,9 +39,8 @@ public:
 
     void PreSendMessage(ugrpc::server::MiddlewareCallContext& context, google::protobuf::Message&) const override {
         if (settings_ == MiddlewareFlag::kErrorInResponseHook) {
-            return context.SetError(
-                ::grpc::Status(::grpc::StatusCode::OUT_OF_RANGE, "Out of range error in response hook")
-            );
+            return context
+                .SetError(::grpc::Status(::grpc::StatusCode::OUT_OF_RANGE, "Out of range error in response hook"));
         }
     }
 
@@ -48,8 +49,9 @@ private:
 };
 
 // NOLINTNEXTLINE(fuchsia-multiple-inheritance)
-class MockMessengerServiceFixture : public ugrpc::tests::ServiceFixtureBase,
-                                    public testing::WithParamInterface<MiddlewareFlags> {
+class MockMessengerServiceFixture
+    : public ugrpc::tests::ServiceFixtureBase,
+      public testing::WithParamInterface<MiddlewareFlags> {
 protected:
     MockMessengerServiceFixture() {
         SetServerMiddlewares({std::make_shared<Middleware>(static_cast<MiddlewareFlag>(GetParam().GetValue()))});

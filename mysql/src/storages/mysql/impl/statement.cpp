@@ -20,7 +20,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::mysql::impl {
 
-Statement::NativeStatementDeleter::NativeStatementDeleter(Connection* connection) : connection_{connection} {
+Statement::NativeStatementDeleter::NativeStatementDeleter(Connection* connection)
+    : connection_{connection}
+{
     UASSERT(connection_);
 }
 
@@ -30,16 +32,20 @@ void Statement::NativeStatementDeleter::operator()(MYSQL_STMT* statement) const 
     try {
         NativeInterface{connection_->GetSocket(), deadline_}.StatementClose(statement);
     } catch (const std::exception& ex) {
-        LOG_WARNING() << "Failed to correctly dispose a prepared statement, it "
-                         "might get leaked server-side. Error: "
-                      << ex.what();
+        LOG_WARNING()
+            << "Failed to correctly dispose a prepared statement, it "
+               "might get leaked server-side. Error: "
+            << ex.what();
     }
 }
 
 void Statement::NativeStatementDeleter::SetDeadline(engine::Deadline deadline) { deadline_ = deadline; }
 
 Statement::Statement(Connection& connection, std::string statement, engine::Deadline deadline)
-    : statement_{std::move(statement)}, connection_{&connection}, native_statement_{CreateStatement(deadline)} {}
+    : statement_{std::move(statement)},
+      connection_{&connection},
+      native_statement_{CreateStatement(deadline)}
+{}
 
 Statement::~Statement() = default;
 
@@ -53,7 +59,9 @@ StatementFetcher Statement::Execute(io::ParamsBinderBase& params, engine::Deadli
 
     if (err != 0) {
         throw MySQLStatementException{
-            mysql_stmt_errno(native_statement_.get()), GetNativeError("Failed to execute a prepared statement")};
+            mysql_stmt_errno(native_statement_.get()),
+            GetNativeError("Failed to execute a prepared statement")
+        };
     }
 
     return StatementFetcher{*this};
@@ -68,7 +76,9 @@ void Statement::StoreResult(engine::Deadline deadline) {
         }
 
         throw MySQLStatementException{
-            mysql_stmt_errno(native_statement_.get()), GetNativeError("Failed to fetch a prepared statement result")};
+            mysql_stmt_errno(native_statement_.get()),
+            GetNativeError("Failed to fetch a prepared statement result")
+        };
     }
 }
 
@@ -76,7 +86,9 @@ bool Statement::FetchResultRow(bindings::OutputBindings& binds, bool apply_binds
     if (!binds.Empty() && apply_binds) {
         if (mysql_stmt_bind_result(native_statement_.get(), binds.GetBindsArray()) != 0) {
             throw MySQLStatementException{
-                mysql_stmt_errno(native_statement_.get()), GetNativeError("Failed to perform result binding")};
+                mysql_stmt_errno(native_statement_.get()),
+                GetNativeError("Failed to perform result binding")
+            };
         }
     }
 
@@ -91,7 +103,9 @@ bool Statement::FetchResultRow(bindings::OutputBindings& binds, bool apply_binds
             // MYSQL_DATA_TRUNCATED is what we get with the way we bind strings,
             // it's ok. Other errors are not ok tho.
             throw MySQLStatementException{
-                mysql_stmt_errno(native_statement_.get()), GetNativeError("Failed to fetch statement result row")};
+                mysql_stmt_errno(native_statement_.get()),
+                GetNativeError("Failed to fetch statement result row")
+            };
         }
     }
 
@@ -119,12 +133,14 @@ bool Statement::FetchResultRow(bindings::OutputBindings& binds, bool apply_binds
 }
 
 void Statement::Reset(engine::Deadline deadline) {
-    const my_bool err =
-        NativeInterface{connection_->GetSocket(), deadline}.StatementFreeResult(native_statement_.get());
+    const my_bool err = NativeInterface{connection_->GetSocket(), deadline}.StatementFreeResult(native_statement_.get()
+    );
 
     if (err != 0) {
         throw MySQLStatementException{
-            mysql_stmt_errno(native_statement_.get()), GetNativeError("Failed to free a prepared statement result")};
+            mysql_stmt_errno(native_statement_.get()),
+            GetNativeError("Failed to free a prepared statement result")
+        };
     }
 
     // TODO : we probably need to reset the statement when cursor processing
@@ -155,7 +171,8 @@ void Statement::UpdateParamsBindings(io::ParamsBinderBase& params) {
         if (auto rows_count = params.GetRowsCount(); rows_count > 1) {
             const auto& server_info = connection_->GetServerInfo();
             if (server_info.server_type != metadata::ServerInfo::Type::kMariaDB ||
-                server_info.server_version < metadata::SemVer{10, 2, 6}) {
+                server_info.server_version < metadata::SemVer{10, 2, 6})
+            {
                 throw std::logic_error{"Batch insert requires MariaDB 10.2.6 or later"};
             }
 
@@ -203,12 +220,13 @@ void Statement::SetDestructionDeadline(engine::Deadline deadline) {
 const std::string& Statement::GetStatementText() const { return statement_; }
 
 Statement::NativeStatementPtr Statement::CreateStatement(engine::Deadline deadline) {
-    NativeStatementPtr statement_ptr{
-        mysql_stmt_init(&connection_->GetNativeHandler()), NativeStatementDeleter(connection_)};
+    NativeStatementPtr
+        statement_ptr{mysql_stmt_init(&connection_->GetNativeHandler()), NativeStatementDeleter(connection_)};
     if (!statement_ptr) {
         throw MySQLStatementException{
             mysql_errno(&connection_->GetNativeHandler()),
-            connection_->GetNativeError("Failed to initialize a prepared statement")};
+            connection_->GetNativeError("Failed to initialize a prepared statement")
+        };
     }
 
     PrepareStatement(statement_ptr, deadline);
@@ -219,13 +237,15 @@ Statement::NativeStatementPtr Statement::CreateStatement(engine::Deadline deadli
 void Statement::PrepareStatement(NativeStatementPtr& native_statement, engine::Deadline deadline) {
     native_statement.get_deleter().SetDeadline(deadline);
 
-    const int err = NativeInterface{connection_->GetSocket(), deadline}.StatementPrepare(
-        native_statement.get(), statement_.data(), statement_.length()
-    );
+    const int err =
+        NativeInterface{connection_->GetSocket(), deadline}
+            .StatementPrepare(native_statement.get(), statement_.data(), statement_.length());
 
     if (err != 0) {
         throw MySQLStatementException{
-            mysql_stmt_errno(native_statement.get()), GetNativeError("Failed to initialize a prepared statement")};
+            mysql_stmt_errno(native_statement.get()),
+            GetNativeError("Failed to initialize a prepared statement")
+        };
     }
 }
 
@@ -239,7 +259,9 @@ std::string Statement::GetNativeError(std::string_view prefix) const {
     );
 }
 
-StatementFetcher::StatementFetcher(Statement& statement) : statement_{&statement} {
+StatementFetcher::StatementFetcher(Statement& statement)
+    : statement_{&statement}
+{
     UASSERT(statement_->native_statement_);
 }
 

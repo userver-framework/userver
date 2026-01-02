@@ -6,14 +6,19 @@ namespace {
 
 using MockRedisServerArray = std::vector<std::unique_ptr<MockRedisServer>>;
 
-MockRedisServerArray
-InitServerArray(size_t size, const std::string& description, std::optional<int> magic_value_add = {}) {
+MockRedisServerArray InitServerArray(
+    size_t size,
+    const std::string& description,
+    std::optional<int> magic_value_add = {}
+) {
     MockRedisServerArray servers;
     for (size_t i = 0; i < size; i++) {
         servers.emplace_back(std::make_unique<MockRedisServer>(description + '-' + std::to_string(i)));
         auto& server = *servers.back();
         server.RegisterPingHandler();
-        if (magic_value_add) server.RegisterHandlerWithConstReply("GET", *magic_value_add + i);
+        if (magic_value_add) {
+            server.RegisterHandlerWithConstReply("GET", *magic_value_add + i);
+        }
         LOG_DEBUG() << description << '[' << i << "].port=" << server.GetPort();
     }
     return servers;
@@ -30,7 +35,8 @@ ClusterTest::ClusterTest(
 )
     : masters_(InitServerArray(master_count, "masters", magic_value_add_master)),
       slaves_(InitServerArray(master_count, "slaves", magic_value_add_slave)),
-      thread_pools_(std::make_shared<storages::redis::impl::ThreadPools>(1, redis_thread_count)) {
+      thread_pools_(std::make_shared<storages::redis::impl::ThreadPools>(1, redis_thread_count))
+{
     UASSERT(key_shard.IsClusterStrategy());
     InitClusterSentinelServers();
     CreateSentinelClient(std::move(key_shard));
@@ -38,10 +44,14 @@ ClusterTest::ClusterTest(
 
 void ClusterTest::InitClusterSentinelServers() {
     std::vector<MockRedisServer::MasterInfo> master_infos;
-    for (const auto& master : masters_) master_infos.emplace_back(redis_name_, kLocalhost, master->GetPort());
+    for (const auto& master : masters_) {
+        master_infos.emplace_back(redis_name_, kLocalhost, master->GetPort());
+    }
 
     std::vector<MockRedisServer::SlaveInfo> slave_infos;
-    for (const auto& slave : slaves_) slave_infos.emplace_back(redis_name_, kLocalhost, slave->GetPort());
+    for (const auto& slave : slaves_) {
+        slave_infos.emplace_back(redis_name_, kLocalhost, slave->GetPort());
+    }
 
     for (const auto& slave : slaves_) {
         slave->RegisterClusterNodes(master_infos, slave_infos);
@@ -63,7 +73,9 @@ void ClusterTest::CreateSentinelClient(storages::redis::impl::KeyShardFactory ke
         settings.sentinels.emplace_back(kLocalhost, master->GetPort());
         settings.shards.emplace_back(redis_name_ + std::to_string(settings.sentinels.size() - 1));
     }
-    for (const auto& slave : slaves_) settings.sentinels.emplace_back(kLocalhost, slave->GetPort());
+    for (const auto& slave : slaves_) {
+        settings.sentinels.emplace_back(kLocalhost, slave->GetPort());
+    }
 
     sentinel_client_ = storages::redis::impl::Sentinel::CreateSentinel(
         thread_pools_,
@@ -95,7 +107,8 @@ SentinelTest::SentinelTest(
     : masters_(InitServerArray(master_count, "masters", magic_value_add_master)),
       slaves_(InitServerArray(slave_count, "slaves", magic_value_add_slave)),
       sentinels_(InitServerArray(sentinel_count, "sentinels")),
-      thread_pools_(std::make_shared<storages::redis::impl::ThreadPools>(1, redis_thread_count)) {
+      thread_pools_(std::make_shared<storages::redis::impl::ThreadPools>(1, redis_thread_count))
+{
     UASSERT_MSG(!key_shard.IsClusterStrategy(), "Use SentinelTest");
     InitSentinelServers();
     CreateSentinelClient(std::move(key_shard));
@@ -103,7 +116,9 @@ SentinelTest::SentinelTest(
 
 void SentinelTest::InitSentinelServers() {
     std::vector<MockRedisServer::SlaveInfo> slave_infos;
-    for (const auto& slave : slaves_) slave_infos.emplace_back(redis_name_, kLocalhost, slave->GetPort());
+    for (const auto& slave : slaves_) {
+        slave_infos.emplace_back(redis_name_, kLocalhost, slave->GetPort());
+    }
     for (auto& sentinel : sentinels_) {
         sentinel->RegisterSentinelMastersHandler({{redis_name_, kLocalhost, Master().GetPort()}});
         sentinel->RegisterSentinelSlavesHandler(redis_name_, slave_infos);
@@ -114,7 +129,9 @@ void SentinelTest::CreateSentinelClient(storages::redis::impl::KeyShardFactory k
     secdist::RedisSettings settings;
     UASSERT(!key_shard.IsClusterStrategy());
     settings.shards = {redis_name_};
-    for (const auto& sentinel : sentinels_) settings.sentinels.emplace_back(kLocalhost, sentinel->GetPort());
+    for (const auto& sentinel : sentinels_) {
+        settings.sentinels.emplace_back(kLocalhost, sentinel->GetPort());
+    }
 
     sentinel_client_ = storages::redis::impl::Sentinel::CreateSentinel(
         thread_pools_,
@@ -144,7 +161,8 @@ SentinelShardTest::SentinelShardTest(
       masters_(InitServerArray(shard_count, "masters", magic_value_add_master)),
       slaves_(InitServerArray(shard_count, "slaves", magic_value_add_slave)),
       sentinels_(InitServerArray(sentinel_count, "sentinels")),
-      thread_pools_(std::make_shared<storages::redis::impl::ThreadPools>(1, redis_thread_count)) {
+      thread_pools_(std::make_shared<storages::redis::impl::ThreadPools>(1, redis_thread_count))
+{
     InitSentinelServers(shard_count);
     CreateSentinelClient(std::move(key_shard));
 }
@@ -167,7 +185,8 @@ void SentinelShardTest::InitSentinelServers(size_t shard_count) {
         sentinel->RegisterSentinelMastersHandler(master_infos);
         for (size_t shard_idx = 0; shard_idx < shard_count; shard_idx++) {
             sentinel->RegisterSentinelSlavesHandler(
-                redis_names_.at(shard_idx), {{redis_names_.at(shard_idx), kLocalhost, Slave(shard_idx).GetPort()}}
+                redis_names_.at(shard_idx),
+                {{redis_names_.at(shard_idx), kLocalhost, Slave(shard_idx).GetPort()}}
             );
         }
     }
@@ -176,7 +195,9 @@ void SentinelShardTest::InitSentinelServers(size_t shard_count) {
 void SentinelShardTest::CreateSentinelClient(storages::redis::impl::KeyShardFactory key_shard) {
     secdist::RedisSettings settings;
     settings.shards = redis_names_;
-    for (const auto& sentinel : sentinels_) settings.sentinels.emplace_back(kLocalhost, sentinel->GetPort());
+    for (const auto& sentinel : sentinels_) {
+        settings.sentinels.emplace_back(kLocalhost, sentinel->GetPort());
+    }
 
     sentinel_client_ = storages::redis::impl::Sentinel::CreateSentinel(
         thread_pools_,

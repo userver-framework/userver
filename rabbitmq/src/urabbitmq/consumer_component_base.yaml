@@ -1,0 +1,14 @@
+type: object
+description: RabbitMQ consumer component
+additionalProperties: false
+properties:
+    rabbit_name:
+        type: string
+        description: name of the RabbitMQ component to use
+    queue:
+        type: string
+        description: a queue to consume from
+    prefetch_count:
+        type: integer
+        description: prefetch_count for the consumer, limits the amount of in-flight
+            messages

@@ -229,7 +229,9 @@ FutureStatus Future<T>::wait_until(Deadline deadline) const {
 }
 
 template <typename T>
-Future<T>::Future(std::shared_ptr<impl::FutureState<T>> state) : state_(std::move(state)) {
+Future<T>::Future(std::shared_ptr<impl::FutureState<T>> state)
+    : state_(std::move(state))
+{
     CheckValid();
     state_->OnFutureCreated();
 }
@@ -242,12 +244,18 @@ void Future<T>::CheckValid() const {
 }
 
 template <typename T>
-Promise<T>::Promise() : state_(std::make_shared<impl::FutureState<T>>()) {}
+Promise<T>::Promise()
+    : state_(std::make_shared<impl::FutureState<T>>())
+{}
 
 template <typename T>
 Promise<T>& Promise<T>::operator=(Promise<T>&& other) noexcept {
-    if (this == &other) return *this;
-    { [[maybe_unused]] const auto for_destruction = std::move(*this); }
+    if (this == &other) {
+        return *this;
+    }
+    {
+        [[maybe_unused]] const auto for_destruction = std::move(*this);
+    }
     state_ = std::move(other.state_);
     return *this;
 }
@@ -283,11 +291,17 @@ void Promise<T>::set_exception(std::exception_ptr ex) {
     state_->SetException(std::move(ex));
 }
 
-inline Promise<void>::Promise() : state_(std::make_shared<impl::FutureState<void>>()) {}
+inline Promise<void>::Promise()
+    : state_(std::make_shared<impl::FutureState<void>>())
+{}
 
 inline Promise<void>& Promise<void>::operator=(Promise<void>&& other) noexcept {
-    if (this == &other) return *this;
-    { [[maybe_unused]] const auto for_destruction = std::move(*this); }
+    if (this == &other) {
+        return *this;
+    }
+    {
+        [[maybe_unused]] const auto for_destruction = std::move(*this);
+    }
     state_ = std::move(other.state_);
     return *this;
 }

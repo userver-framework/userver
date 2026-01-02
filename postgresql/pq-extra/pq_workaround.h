@@ -18,11 +18,16 @@ extern int PQXisBusy(PGconn* conn, const PGresult* description);
 /// for prepared statements. The description doesn't change, hence no need to do
 /// that unconditionally. See
 /// https://www.postgresql.org/message-id/82c438b4-d91c-9009-65fc-593124d5a277%40yandex.ru
-extern int PQXsendQueryPrepared(PGconn* conn, const char* stmt_name, int n_params,
-                                const char* const* param_values,
-                                const int* param_lengths,
-                                const int* param_formats, int result_format,
-                                PGresult* description);
+extern int PQXsendQueryPrepared(
+    PGconn* conn,
+    const char* stmt_name,
+    int n_params,
+    const char* const* param_values,
+    const int* param_lengths,
+    const int* param_formats,
+    int result_format,
+    PGresult* description
+);
 
 extern int PQXpipelinePutSync(PGconn* conn);
 

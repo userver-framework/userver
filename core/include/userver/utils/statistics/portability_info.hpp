@@ -73,8 +73,10 @@ formats::json::Value Serialize(const PortabilityWarnings& info, formats::seriali
 
 /// Output portability info for `statistics`.
 /// @see @ref scripts/docs/en/userver/functional_testing.md
-PortabilityWarnings
-GetPortabilityWarnings(const utils::statistics::Storage& statistics, const utils::statistics::Request& request);
+PortabilityWarnings GetPortabilityWarnings(
+    const utils::statistics::Storage& statistics,
+    const utils::statistics::Request& request
+);
 
 }  // namespace utils::statistics
 

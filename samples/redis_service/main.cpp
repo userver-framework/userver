@@ -59,7 +59,8 @@ namespace samples::redis {
 KeyValue::KeyValue(const components::ComponentConfig& config, const components::ComponentContext& context)
     : server::handlers::HttpHandlerBase(config, context),
       redis_client_{context.FindComponent<components::Redis>("key-value-database").GetClient("taxi-tmp")},
-      redis_cc_{std::chrono::seconds{15}, std::chrono::seconds{60}, 4} {}
+      redis_cc_{std::chrono::seconds{15}, std::chrono::seconds{60}, 4}
+{}
 /// [Redis service sample - component constructor]
 
 /// [Redis service sample - HandleRequestThrow]
@@ -80,7 +81,8 @@ std::string KeyValue::HandleRequest(server::http::HttpRequest& request, server::
             return DeleteValue(key);
         default:
             throw server::handlers::ClientError(server::handlers::ExternalBody{
-                fmt::format("Unsupported method {}", request.GetMethod())});
+                fmt::format("Unsupported method {}", request.GetMethod())
+            });
     }
 }
 /// [Redis service sample - HandleRequestThrow]
@@ -119,7 +121,8 @@ std::string KeyValue::DeleteValue(std::string_view key) const {
 
 EvalSha::EvalSha(const components::ComponentConfig& config, const components::ComponentContext& context)
     : server::handlers::HttpHandlerBase(config, context),
-      redis_client_{context.FindComponent<components::Redis>("key-value-database").GetClient("taxi-tmp")} {}
+      redis_client_{context.FindComponent<components::Redis>("key-value-database").GetClient("taxi-tmp")}
+{}
 
 std::string EvalSha::HandleRequest(server::http::HttpRequest& request, server::request::RequestContext&) const {
     const auto& command = request.GetArg("command");
@@ -136,7 +139,8 @@ std::string EvalSha::HandleRequest(server::http::HttpRequest& request, server::r
         return ScriptLoad(request);
     }
     throw server::handlers::ClientError(server::handlers::ExternalBody{
-        "Invalid 'command' query argument: must be 'evalsha' or 'scriptload'"});
+        "Invalid 'command' query argument: must be 'evalsha' or 'scriptload'"
+    });
 }
 
 std::string EvalSha::EvalShaRequest(const server::http::HttpRequest& request) const {
@@ -180,14 +184,15 @@ std::string EvalSha::ScriptLoad(const server::http::HttpRequest& request) const 
 
 /// [Redis service sample - main]
 int main(int argc, char* argv[]) {
-    const auto component_list = components::MinimalServerComponentList()
-                                    .Append<samples::redis::KeyValue>()
-                                    .Append<samples::redis::EvalSha>()
-                                    .Append<components::Secdist>()
-                                    .Append<components::DefaultSecdistProvider>()
-                                    .Append<components::Redis>("key-value-database")
-                                    .Append<components::TestsuiteSupport>()
-                                    .Append<clients::dns::Component>();
+    const auto component_list =
+        components::MinimalServerComponentList()
+            .Append<samples::redis::KeyValue>()
+            .Append<samples::redis::EvalSha>()
+            .Append<components::Secdist>()
+            .Append<components::DefaultSecdistProvider>()
+            .Append<components::Redis>("key-value-database")
+            .Append<components::TestsuiteSupport>()
+            .Append<clients::dns::Component>();
     return utils::DaemonMain(argc, argv, component_list);
 }
 /// [Redis service sample - main]

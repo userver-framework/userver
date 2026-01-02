@@ -11,11 +11,17 @@ namespace {
 
 ResolverType ParseDnsResolver(const components::ComponentConfig& config, ResolverType default_type) {
     auto dns_resolver = config["dns_resolver"];
-    if (dns_resolver.IsMissing()) return default_type;
+    if (dns_resolver.IsMissing()) {
+        return default_type;
+    }
 
     auto str = dns_resolver.As<std::string>();
-    if (str == "getaddrinfo") return ResolverType::kGetaddrinfo;
-    if (str == "async") return ResolverType::kAsync;
+    if (str == "getaddrinfo") {
+        return ResolverType::kGetaddrinfo;
+    }
+    if (str == "async") {
+        return ResolverType::kAsync;
+    }
 
     throw InvalidConfigException{"Invalid value '" + str + "' for dns_resolver"};
 }

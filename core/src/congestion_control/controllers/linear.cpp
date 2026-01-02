@@ -37,7 +37,8 @@ LinearController::LinearController(
       config_(config),
       current_load_(kCurrentLoadEpochs),
       config_source_(config_source),
-      config_getter_(std::move(config_getter)) {}
+      config_getter_(std::move(config_getter))
+{}
 
 Controller::LimitWithDetails LinearController::Update(const Sensor::Data& current) {
     if (current.objects.empty()) {
@@ -54,7 +55,8 @@ Controller::LimitWithDetails LinearController::Update(const Sensor::Data& curren
         (config.use_separate_stats
              ? current.objects
              : std::unordered_map<std::string, Sensor::SingleObjectData>{
-                   {Sensor::SingleObjectData::kCommonObjectName, MergeIntoSingleObjectData(current.objects)}});
+                   {Sensor::SingleObjectData::kCommonObjectName, MergeIntoSingleObjectData(current.objects)}
+               });
 
     for (const auto& [object_name, object_stats] : objects) {
         auto rate = object_stats.GetRate();
@@ -79,10 +81,10 @@ Controller::LimitWithDetails LinearController::Update(const Sensor::Data& curren
             cc_details = sensor_string;
         }
 
-        LOG_DEBUG() << "CC mongo:"
-                    << " sensor=(" << sensor_string << ") divisor=" << divisor
-                    << " short_timings_.GetMinimal()=" << short_timings.GetMinimal()
-                    << " long_timings_.GetSmoothed()=" << long_timings.GetSmoothed();
+        LOG_DEBUG()
+            << "CC mongo:"
+            << " sensor=(" << sensor_string << ") divisor=" << divisor << " short_timings_.GetMinimal()="
+            << short_timings.GetMinimal() << " long_timings_.GetSmoothed()=" << long_timings.GetSmoothed();
 
         if (object_stats.total < config.min_qps && !current_limit_) {
             // Too little QPS, timings avg data is VERY noisy, EPS is noisy

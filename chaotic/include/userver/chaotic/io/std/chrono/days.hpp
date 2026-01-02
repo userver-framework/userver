@@ -1,5 +1,7 @@
 #pragma once
 
+// Utilitary header for chaotic for a custom type serialization/parsing support
+
 #include <chrono>
 
 #include <userver/chaotic/convert.hpp>

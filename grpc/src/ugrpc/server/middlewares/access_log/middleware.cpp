@@ -13,7 +13,7 @@ namespace {
 
 void WriteAccessLog(
     MiddlewareCallContext& context,
-    const grpc::Status& status,
+    const std::optional<grpc::Status>& status,
     logging::TextLoggerRef access_tskv_logger
 ) noexcept {
     try {
@@ -30,7 +30,7 @@ void WriteAccessLog(
                     server_context.peer(),
                     context.GetSpan().GetStartSystemTime(),
                     context.GetCallName(),
-                    status.error_code(),
+                    status.has_value() ? std::make_optional(status->error_code()) : std::nullopt,
                     log_extra
                 )
                     .ExtractTextLogItem()
@@ -43,9 +43,11 @@ void WriteAccessLog(
 
 }  // namespace
 
-Middleware::Middleware(Settings&& settings) : logger_(std::move(settings.access_tskv_logger)) {}
+Middleware::Middleware(Settings&& settings)
+    : logger_(std::move(settings.access_tskv_logger))
+{}
 
-void Middleware::OnCallFinish(MiddlewareCallContext& context, const grpc::Status& status) const {
+void Middleware::OnCallFinish(MiddlewareCallContext& context, const std::optional<grpc::Status>& status) const {
     WriteAccessLog(context, status, *logger_);
 }
 

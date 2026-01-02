@@ -49,7 +49,10 @@ public:
 #endif
 #endif
     template <typename Void = void, typename = std::enable_if_t<std::is_const_v<T> && std::is_void_v<Void>>>
-    constexpr /*implicit*/ span(std::initializer_list<value_type> il) : begin_(il.begin()), end_(il.end()) {}
+    constexpr /*implicit*/ span(std::initializer_list<value_type> il)
+        : begin_(il.begin()),
+          end_(il.end())
+    {}
 #if defined(__GNUC__) && !defined(__clang__)
 #if __GNUC__ >= 9
 #pragma GCC diagnostic pop

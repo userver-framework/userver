@@ -8,7 +8,8 @@
 
 namespace proto_structs::io {
 
-Timestamp ReadProtoStruct(ReadContext& ctx, To<Timestamp>, const ::google::protobuf::Timestamp& msg) try {
+Timestamp ReadProtoStruct(ReadContext& ctx, To<Timestamp>, const ::google::protobuf::Timestamp& msg) try
+{
     return Timestamp(utils::impl::InternalTag{}, msg.seconds(), msg.nanos());
 } catch (const ValueError& e) {
     ctx.AddError(e.what());

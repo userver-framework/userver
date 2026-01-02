@@ -1,5 +1,4 @@
 from typing import Any
-from typing import Optional
 
 import pytest
 
@@ -21,8 +20,16 @@ def schema_parser():
 
 
 @pytest.fixture
-def simple_parse():
-    def func(input_: dict):
+def clear_source_location():
+    def func(child: Schema, _) -> None:
+        child.source_location_ = None
+
+    return func
+
+
+@pytest.fixture
+def simple_parse(clear_source_location):
+    def func(input_: dict, clear=True):
         config = parser.ParserConfig(erase_prefix='')
         schema_parser = parser.SchemaParser(
             config=config,
@@ -30,7 +37,12 @@ def simple_parse():
             full_vfilepath='vfull',
         )
         schema_parser.parse_schema('/definitions/type', input_)
-        return schema_parser.parsed_schemas()
+        parsed = schema_parser.parsed_schemas()
+        if clear:
+            for schema in parsed.schemas.values():
+                schema.visit_children(clear_source_location)
+                clear_source_location(schema, None)
+        return parsed
 
     return func
 
@@ -42,8 +54,8 @@ def cpp_primitive_type():
     def create(
         validators: CppPrimitiveValidator,
         raw_cpp_type_str: str,
-        user_cpp_type: Optional[str] = None,
-        json_schema: Optional[Schema] = None,
+        user_cpp_type: str | None = None,
+        json_schema: Schema | None = None,
         nullable: bool = False,
         default: Any = None,
     ):

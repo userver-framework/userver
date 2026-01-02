@@ -36,7 +36,9 @@ std::string Decompress(std::string_view compressed, size_t max_size) {
         decompressed.insert(decompressed.end(), buf, buf + stream.gcount());
     }
 
-    if (stream.bad()) throw DecompressionError("failed to decompress gzip'ed data");
+    if (stream.bad()) {
+        throw DecompressionError("failed to decompress gzip'ed data");
+    }
 
     return decompressed;
 }

@@ -15,7 +15,7 @@ public:
 
 template <typename T>
 class RedisClientScanTest : public RedisClientTest {
-    static constexpr ScanTag Tag = T::value;
+    static constexpr ScanTag kTag = T::value;
     using Match = storages::redis::ScanOptionsGeneric::Match;
     using Count = storages::redis::ScanOptionsGeneric::Count;
 
@@ -28,24 +28,26 @@ public:
         std::vector<std::string> expected;
         const utils::regex rgx(pattern_cpp);
         utils::match_results match;
-        for (int i = 0; i < N; i++) {
+        for (int i = 0; i < kN; i++) {
             auto key = "key:" + std::to_string(i);
-            if (utils::regex_match(key, match, rgx)) expected.emplace_back(key);
+            if (utils::regex_match(key, match, rgx)) {
+                expected.emplace_back(key);
+            }
         }
         std::sort(expected.begin(), expected.end());
         return expected;
     }
 
 private:
-    static constexpr int N = 1000;
+    static constexpr int kN = 1000;
     static const std::string pattern;
     static const std::string pattern_cpp;
 
     static auto GetScanOptions() {
         static Match match(pattern);
         static Count count(10);
-        static const storages::redis::ScanOptionsGeneric options(match, count);
-        return options;
+        static const storages::redis::ScanOptionsGeneric kOptions(match, count);
+        return kOptions;
     }
 };
 
@@ -58,7 +60,9 @@ template <>
 void RedisClientScanTest<ScanType<ScanTag::kScan>>::SetUp() {
     RedisClientTest::SetUp();
     auto client = GetClient();
-    for (int i = 0; i < N; i++) client->Set("key:" + std::to_string(i), "value", {}).Get();
+    for (int i = 0; i < kN; i++) {
+        client->Set("key:" + std::to_string(i), "value", {}).Get();
+    }
 }
 
 template <>
@@ -73,7 +77,9 @@ template <>
 void RedisClientScanTest<ScanType<ScanTag::kHscan>>::SetUp() {
     RedisClientTest::SetUp();
     auto client = GetClient();
-    for (int i = 0; i < N; i++) client->Hset("key", "key:" + std::to_string(i), "value", {}).Get();
+    for (int i = 0; i < kN; i++) {
+        client->Hset("key", "key:" + std::to_string(i), "value", {}).Get();
+    }
 }
 
 template <>
@@ -95,7 +101,9 @@ template <>
 void RedisClientScanTest<ScanType<ScanTag::kSscan>>::SetUp() {
     RedisClientTest::SetUp();
     auto client = GetClient();
-    for (int i = 0; i < N; i++) client->Sadd("key", "key:" + std::to_string(i), {}).Get();
+    for (int i = 0; i < kN; i++) {
+        client->Sadd("key", "key:" + std::to_string(i), {}).Get();
+    }
 }
 
 template <>
@@ -110,7 +118,9 @@ template <>
 void RedisClientScanTest<ScanType<ScanTag::kZscan>>::SetUp() {
     RedisClientTest::SetUp();
     auto client = GetClient();
-    for (int i = 0; i < N; i++) client->Zadd("key", i, "key:" + std::to_string(i), {}).Get();
+    for (int i = 0; i < kN; i++) {
+        client->Zadd("key", i, "key:" + std::to_string(i), {}).Get();
+    }
 }
 
 template <>
@@ -125,8 +135,11 @@ std::vector<std::string> RedisClientScanTest<ScanType<ScanTag::kZscan>>::GetActu
 
 }  // namespace
 
-using ScanTypes = testing::
-    Types<ScanType<ScanTag::kScan>, ScanType<ScanTag::kHscan>, ScanType<ScanTag::kSscan>, ScanType<ScanTag::kZscan>>;
+using ScanTypes = testing::Types<
+    ScanType<ScanTag::kScan>,
+    ScanType<ScanTag::kHscan>,
+    ScanType<ScanTag::kSscan>,
+    ScanType<ScanTag::kZscan>>;
 TYPED_UTEST_SUITE(RedisClientScanTest, ScanTypes);
 
 TYPED_UTEST(RedisClientScanTest, Scan) {

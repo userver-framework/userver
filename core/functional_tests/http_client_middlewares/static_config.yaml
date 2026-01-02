@@ -1,0 +1,53 @@
+components_manager:
+    components:
+        http-client-add-header:
+            key: additional-header
+            value: header-value
+        handler-echo:
+            echo-url: $echo-url
+            path: /echo
+            method: GET
+            task_processor: main-task-processor
+        handler-echo-detach:
+            echo-url: $echo-url
+            path: /echo-detach
+            method: GET
+            task_processor: main-task-processor
+
+        http-client-middleware-pipeline:
+            middlewares:
+                http-client-add-header:
+                    enabled: true
+        http-client:
+        http-client-core:
+            fs-task-processor: fs-task-processor
+
+        dns-client:
+            fs-task-processor: fs-task-processor
+
+        testsuite-support:
+        tests-control:
+            # Some options from server::handlers::HttpHandlerBase
+            path: /tests/{action}
+            method: POST
+            task_processor: main-task-processor
+
+        server:
+            listener:
+                port: 8089
+                task_processor: main-task-processor
+        logging:
+            fs-task-processor: fs-task-processor
+            loggers:
+                default:
+                    file_path: '@stderr'
+                    level: info
+
+    task_processors:
+        main-task-processor:
+            worker_threads: 4
+
+        fs-task-processor:
+            worker_threads: 4
+
+    default_task_processor: main-task-processor

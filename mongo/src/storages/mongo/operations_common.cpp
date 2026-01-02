@@ -44,8 +44,9 @@ cdriver::WriteConcernPtr MakeCDriverWriteConcern(options::WriteConcern::Level le
 
 cdriver::WriteConcernPtr MakeCDriverWriteConcern(const options::WriteConcern& wc_option) {
     if (wc_option.NodesCount() > static_cast<std::size_t>(std::numeric_limits<std::int32_t>::max())) {
-        throw InvalidQueryArgumentException("Value ")
-            << wc_option.NodesCount() << " of write concern nodes count is too high";
+        throw InvalidQueryArgumentException("Value "
+        ) << wc_option.NodesCount()
+          << " of write concern nodes count is too high";
     }
     auto timeout_ms = wc_option.Timeout().count();
 

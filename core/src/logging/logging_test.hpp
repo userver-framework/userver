@@ -30,8 +30,11 @@ private:
     std::ostringstream ostream_;
 };
 
-inline std::shared_ptr<logging::impl::TpLogger>
-MakeLoggerFromSink(const std::string& logger_name, logging::impl::SinkPtr sink_ptr, logging::Format format) {
+inline std::shared_ptr<logging::impl::TpLogger> MakeLoggerFromSink(
+    const std::string& logger_name,
+    logging::impl::SinkPtr sink_ptr,
+    logging::Format format
+) {
     auto logger = std::make_shared<logging::impl::TpLogger>(format, logger_name);
     logger->AddSink(std::move(sink_ptr));
     return logger;
@@ -78,7 +81,9 @@ using DefaultLoggerFixture = utest::DefaultLoggerFixture< ::testing::Test>;
 class LoggingTestBase : public DefaultLoggerFixture {
 protected:
     explicit LoggingTestBase(logging::Format format)
-        : format_(format), stream_logger_(MakeNamedStreamLogger("test-stream-logger", format_)) {}
+        : format_(format),
+          stream_logger_(MakeNamedStreamLogger("test-stream-logger", format_))
+    {}
 
     std::string LoggedText() const {
         logging::LogFlush();
@@ -113,22 +118,38 @@ private:
 
 class LoggingTest : public LoggingTestBase {
 protected:
-    LoggingTest() : LoggingTestBase(logging::Format::kTskv) { SetDefaultLogger(GetStreamLogger()); }
+    LoggingTest()
+        : LoggingTestBase(logging::Format::kTskv)
+    {
+        SetDefaultLogger(GetStreamLogger());
+    }
 };
 
 class LoggingLtsvTest : public LoggingTestBase {
 protected:
-    LoggingLtsvTest() : LoggingTestBase(logging::Format::kLtsv) { SetDefaultLogger(GetStreamLogger()); }
+    LoggingLtsvTest()
+        : LoggingTestBase(logging::Format::kLtsv)
+    {
+        SetDefaultLogger(GetStreamLogger());
+    }
 };
 
 class LoggingJsonTest : public LoggingTestBase {
 protected:
-    LoggingJsonTest() : LoggingTestBase(logging::Format::kJson) { SetDefaultLogger(GetStreamLogger()); }
+    LoggingJsonTest()
+        : LoggingTestBase(logging::Format::kJson)
+    {
+        SetDefaultLogger(GetStreamLogger());
+    }
 };
 
 class LoggingRawTest : public LoggingTestBase {
 protected:
-    LoggingRawTest() : LoggingTestBase(logging::Format::kRaw) { SetDefaultLogger(GetStreamLogger()); }
+    LoggingRawTest()
+        : LoggingTestBase(logging::Format::kRaw)
+    {
+        SetDefaultLogger(GetStreamLogger());
+    }
 };
 
 USERVER_NAMESPACE_END

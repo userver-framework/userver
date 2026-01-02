@@ -35,7 +35,9 @@ constexpr bool operator!=(const CachedHash<T>& x, const CachedHash<T>& y) {
 template <class Equal, class = std::enable_if_t<!std::is_final_v<Equal>>>
 class CachedHashKeyEqual : private Equal {
 public:
-    explicit constexpr CachedHashKeyEqual(const Equal& eq) : Equal(eq) {}
+    explicit constexpr CachedHashKeyEqual(const Equal& eq)
+        : Equal(eq)
+    {}
 
     template <class T>
     constexpr bool operator()(const CachedHash<T>& x, const CachedHash<T>& y) const {
@@ -46,7 +48,9 @@ public:
 template <class Equal>
 class CachedHashKeyEqual<Equal, std::false_type> {
 public:
-    explicit constexpr CachedHashKeyEqual(const Equal& eq) : equality_(eq) {}
+    explicit constexpr CachedHashKeyEqual(const Equal& eq)
+        : equality_(eq)
+    {}
 
     template <class T>
     constexpr bool operator()(const CachedHash<T>& x, const CachedHash<T>& y) const {

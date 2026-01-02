@@ -18,15 +18,11 @@ endif()
 
 include(DownloadUsingCPM)
 cpmaddpackage(
-    NAME
-    Brotli
-    VERSION
-    ${USERVER_BROTLI_VERSION}
-    GITHUB_REPOSITORY
-    google/brotli
-    OPTIONS
-    "BROTLI_DISABLE_TESTS TRUE"
-    "BUILD_SHARED_LIBS OFF"
+    NAME Brotli
+    VERSION ${USERVER_BROTLI_VERSION}
+    GITHUB_REPOSITORY google/brotli
+    GIT_SHALLOW TRUE
+    OPTIONS "BROTLI_DISABLE_TESTS TRUE" "BUILD_SHARED_LIBS OFF"
 )
 
 set(Brotli_FOUND TRUE)
