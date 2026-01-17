@@ -64,21 +64,50 @@ using add_seq_index_t = typename add_seq_index<IndexList>::type;
 template <typename Value, typename IndexSpecifierList, typename Allocator = std::allocator<Value>>
 class Container {
 public:
-    explicit Container(size_t max_size)
-        : max_size_(max_size)
+    explicit Container(std::size_t max_size)
+        : max_size_(max_size), buffer_size_(0)
+    {}
+
+    // for 2Q-caching, "buffer_size" argument represents size of FIFO buffer
+    // total cache size is sum of max_size and buffer_size
+    explicit Container(std::size_t max_size, std::size_t buffer_size)
+        : max_size_(max_size), buffer_size_(buffer_size)
     {}
 
     template <typename... Args>
     bool emplace(Args&&... args) {
-        auto& seq_index = container_.template get<0>();
-        auto result = seq_index.emplace_front(std::forward<Args>(args)...);
+        if (buffer_size_ == 0) {
+            return emplace_to_container(std::forward<Args>(args)...);
+        } else {
+            auto& seq_index = container_.template get<0>();
+            auto& buffer_seq_index = fifo_buffer_.template get<0>();
 
-        if (!result.second) {
-            seq_index.relocate(seq_index.begin(), result.first);
-        } else if (seq_index.size() > max_size_) {
-            seq_index.pop_back();
+            auto args_tuple = std::make_tuple(std::forward<Args>(args)...);
+            
+            auto result = std::apply([&](auto&&... args) {
+                return seq_index.emplace_front(std::forward<decltype(args)>(args)...);
+            }, args_tuple);
+            
+            auto buffer_result = std::apply([&](auto&&... args) {
+                return buffer_seq_index.emplace_front(std::forward<decltype(args)>(args)...);
+            }, args_tuple);
+
+            if (!buffer_result.second && result.second) {
+                buffer_seq_index.erase(buffer_result.first);
+            } else if (!result.second) {
+                buffer_seq_index.erase(buffer_result.first);
+                seq_index.relocate(seq_index.begin(), result.first);
+                if (seq_index.size() > max_size_) {
+                    seq_index.pop_back();
+                }
+            } else {
+                seq_index.erase(result.first);
+                if (buffer_seq_index.size() > buffer_size_) {
+                    buffer_seq_index.pop_back();
+                }
+            }
+            return buffer_result.second || result.second;
         }
-        return result.second;
     }
 
     bool insert(const Value& value) { return emplace(value); }
@@ -88,30 +117,39 @@ public:
     template <typename Tag, typename Key>
     auto find(const Key& key) {
         auto& primary_index = container_.template get<Tag>();
+        auto& primary_buffer_index = fifo_buffer_.template get<Tag>();
         auto it = primary_index.find(key);
 
         if (it != primary_index.end()) {
             auto& seq_index = container_.template get<0>();
             auto seq_it = container_.template project<0>(it);
             seq_index.relocate(seq_index.begin(), seq_it);
+            return it;
+        } else {
+            auto buffer_it = primary_buffer_index.find(key);
+            if (buffer_it != primary_buffer_index.end()) {
+                this->insert(*buffer_it);
+                return primary_index.find(key);
+            }
         }
 
-        return it;
+        return primary_index.end();
     }
 
     template <typename Tag, typename Key>
     bool contains(const Key& key) {
-        return this->template find<Tag, Key>(key) != container_.template get<Tag>().end();
+        return (this->template find<Tag, Key>(key) != container_.template get<Tag>().end());
     }
 
     template <typename Tag, typename Key>
     bool erase(const Key& key) {
-        return container_.template get<Tag>().erase(key) > 0;
+        return (container_.template get<Tag>().erase(key) > 0) ||
+               (fifo_buffer_.template get<Tag>().erase(key) > 0);
     }
 
-    std::size_t size() const { return container_.size(); }
-    bool empty() const { return container_.empty(); }
-    std::size_t capacity() const { return max_size_; }
+    std::size_t size() const { return container_.size() + fifo_buffer_.size(); }
+    bool empty() const { return container_.empty() && fifo_buffer_.empty(); }
+    std::size_t capacity() const { return max_size_ + buffer_size_; }
 
     void set_capacity(std::size_t new_capacity) {
         max_size_ = new_capacity;
@@ -121,7 +159,7 @@ public:
         }
     }
 
-    void clear() { container_.clear(); }
+    void clear() { container_.clear(); fifo_buffer_.clear(); }
 
     template <typename Tag>
     auto end() {
@@ -132,9 +170,27 @@ private:
     using ExtendedIndexSpecifierList = impl::add_seq_index_t<IndexSpecifierList>;
 
     using BoostContainer = boost::multi_index::multi_index_container<Value, ExtendedIndexSpecifierList, Allocator>;
-
+    // using BoostList = boost::multi_index::multi_index_container<
+    //                                                 Value, 
+    //                                                 boost::multi_index::indexed_by<boost::multi_index::sequenced<>>, 
+    //                                                 Allocator>;
     BoostContainer container_;
+    BoostContainer fifo_buffer_;
     std::size_t max_size_;
+    std::size_t buffer_size_;
+
+    template <typename... Args>
+    bool emplace_to_container(Args&&... args) {
+        auto& seq_index = container_.template get<0>();
+        auto result = seq_index.emplace_front(std::forward<Args>(args)...);
+
+        if (!result.second) {
+            seq_index.relocate(seq_index.begin(), result.first);
+        } else if (seq_index.size() > max_size_) {
+            seq_index.pop_back();
+        }
+        return result.second;
+    }
 };
 }  // namespace multi_index_lru
 
