@@ -147,6 +147,31 @@ TEST_F(ProductsTest, ProductEviction) {
     EXPECT_EQ(cache.find<NameTag>("Mouse"), cache.end<NameTag>());
 }
 
+TEST_F(ProductsTest, 2QCashingBasic) {
+    ProductCache cache(2, 2); 
+    // container size = 2
+    // buffer size = 2
+
+    cache.emplace(Product{"A1", "Laptop", 999.99});
+    cache.emplace(Product{"A2", "Mouse", 29.99});
+
+    cache.find<SkuTag>("A1");
+    cache.find<SkuTag>("A2");
+    // A1 and A2 move to the container
+
+    for (int i = 3; i < 100; ++i) {
+        cache.emplace(Product{"A" + std::to_string(i), "product_" + std::to_string(i), i});
+    }
+
+    EXPECT_TRUE((cache.contains<SkuTag, std::string>("A1"))); 
+    EXPECT_TRUE((cache.contains<SkuTag, std::string>("A2")));  // in the container
+
+    EXPECT_TRUE((cache.contains<SkuTag, std::string>("A98")));
+    EXPECT_TRUE((cache.contains<SkuTag, std::string>("A99"))); // in the buffer
+
+    EXPECT_FALSE((cache.contains<SkuTag, std::string>("A3"))); // ousted
+}
+
 TEST(Snippet, SimpleUsage) {
     struct MyValueT {
         std::string key;

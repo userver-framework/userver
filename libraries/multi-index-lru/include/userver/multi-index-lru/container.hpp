@@ -97,7 +97,7 @@ public:
                     buffer_seq_index.pop_back();
                 }
             }
-            
+            return buffer_result.second || result.second;
         }
     }
 
@@ -129,9 +129,7 @@ public:
 
     template <typename Tag, typename Key>
     bool contains(const Key& key) {
-        auto it = this->template find<Tag, Key>(key);
-        return (it != container_.template get<Tag>().end()) ||
-               (it != fifo_buffer_.template get<Tag>().end());
+        return (this->template find<Tag, Key>(key) != container_.template get<Tag>().end());
     }
 
     template <typename Tag, typename Key>
