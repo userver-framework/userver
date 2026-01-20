@@ -306,7 +306,7 @@ void ServerImpl::WriteTotalHandlerStatistics(utils::statistics::Writer& writer) 
         UASSERT(main_port_info_.request_handler);
         const auto& handlers = main_port_info_.request_handler->GetHandlerInfoIndex().GetHandlers().Lock();
 
-        for (const auto handler_ptr : *handlers) {
+        for (const auto& handler_ptr : *handlers) {
             for (const auto method : handler_ptr->GetAllowedMethods()) {
                 total.Add(handlers::HttpHandlerStatisticsSnapshot{handler_ptr->GetHandlerStatistics().GetByMethod(method
                 )});
