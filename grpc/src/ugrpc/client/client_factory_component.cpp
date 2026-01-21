@@ -7,6 +7,7 @@
 #include <userver/logging/log.hpp>
 #include <userver/storages/secdist/component.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
+#include <userver/ugrpc/client/external_credentials_provider.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
 #include <userver/ugrpc/client/common_component.hpp>
@@ -83,6 +84,20 @@ ClientFactoryComponent::ClientFactoryComponent(
     if (!testsuite_grpc.IsTlsEnabled() && client_factory_config.auth_type == AuthType::kSsl) {
         LOG_INFO() << "Disabling TLS/SSL dues to testsuite config for gRPC";
         client_factory_config.auth_type = AuthType::kInsecure;
+    }
+
+    if (auto* external_credentials_provider = context.FindComponentOptional<ExternalCredentialsProvider>();
+        external_credentials_provider) {
+        LOG_INFO() << "Requesting external SSL credentials options for gRPC";
+        if (auto ssl_credentials_options = external_credentials_provider->GetSslCredentialsOptions();
+            ssl_credentials_options.has_value()) {
+            LOG_INFO() << "Using external SSL credentials options for gRPC";
+            client_factory_config.ssl_credentials_options = std::move(ssl_credentials_options.value());
+            if (testsuite_grpc.IsTlsEnabled()) {
+                LOG_INFO() << "gRPC SSL is turned on, because external credentials are provided";
+                client_factory_config.auth_type = AuthType::kSsl;
+            }
+        }
     }
 
     auto credentials = MakeCredentials(client_factory_config.auth_type, client_factory_config.ssl_credentials_options);
