@@ -41,7 +41,9 @@ jobs:
                     os: ubuntu-24.04
                     info: clang-18 + debug + sanitize addr+ub
                     id: ubuntu24_clang18_debug_sanitize-addr-ub
-                    tests-flags: ''
+                      # Sanitizer consumes too much virtual memory and Subprocess tests fail with:
+                      # "Error while fork: Cannot allocate memory" (std::system_error)
+                    tests-flags: '--gtest_filter=-Subprocess.*'
                     tests-env: ''
 
                   - cmake-flags: >-
