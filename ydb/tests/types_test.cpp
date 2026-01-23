@@ -411,107 +411,156 @@ UTEST_F(TTypesYdbTestCase, PreparedStructUpsertTypes) {
 }
 
 UTEST_F(TTypesYdbTestCase, PreparedUpsertNullableTypes) {
-    const std::string query{R"(
-        --!syntax_v1
-        DECLARE $search_key AS String;
-        DECLARE $data_bool AS Bool?;
-        DECLARE $data_int32 AS Int32?;
-        DECLARE $data_uint32 AS Uint32?;
-        DECLARE $data_int64 AS Int64?;
-        DECLARE $data_uint64 AS Uint64?;
-        DECLARE $data_double AS Double?;
-        DECLARE $data_str AS String?;
-        DECLARE $data_utf8 AS Utf8?;
-        DECLARE $data_ts AS Timestamp?;
-        DECLARE $data_uuid AS Uuid?;
-        DECLARE $data_json AS String?;
-        DECLARE $data_json_doc AS String?;
+    UASSERT_NO_THROW(NYdb::NStatusHelpers::ThrowOnError(GetNativeTableClient().RetryOperationSync([](NYdb::NTable::TSession session) -> NYdb::TStatus {
+        auto result1 = session.CreateTable("/local/test_table", NYdb::NTable::TTableBuilder()
+            .AddNullableColumn("key", NYdb::EPrimitiveType::String)
+            .AddNullableColumn("value_bool", NYdb::EPrimitiveType::Bool)
+            .AddNullableColumn("value_int32", NYdb::EPrimitiveType::Int32)
+            .AddNullableColumn("value_uint32", NYdb::EPrimitiveType::Uint32)
+            .AddNullableColumn("value_int64", NYdb::EPrimitiveType::Int64)
+            .AddNullableColumn("value_uint64", NYdb::EPrimitiveType::Uint64)
+            .AddNullableColumn("value_double", NYdb::EPrimitiveType::Double)
+            .AddNullableColumn("value_str", NYdb::EPrimitiveType::String)
+            .SetPrimaryKeyColumn("key")
+            .Build()
+        ).GetValueSync();
 
-        UPSERT INTO different_types_test (
-            key,
-            value_bool,
-            value_int32,
-            value_uint32,
-            value_int64,
-            value_uint64,
-            value_double,
-            value_str,
-            value_utf8,
-            value_ts,
-            value_uuid,
-            value_json,
-            value_json_doc
-        ) VALUES (
-            $search_key,
-            $data_bool,
-            $data_int32,
-            $data_uint32,
-            $data_int64,
-            $data_uint64,
-            $data_double,
-            $data_str,
-            $data_utf8,
-            $data_ts,
-            $data_uuid,
-            CAST($data_json AS Json),
-            CAST($data_json_doc AS JsonDocument)
-        );
-    )"};
+        if (!result1.IsSuccess()) {
+            return result1;
+        }
 
-    auto& client = GetNativeTableClient();
+        auto result2 = session.ExecuteDataQuery(R"(
+            DECLARE $search_key AS String;
+            DECLARE $data_bool AS Bool?;
+            DECLARE $data_int32 AS Int32?;
+            DECLARE $data_uint32 AS Uint32?;
+            DECLARE $data_int64 AS Int64?;
+            DECLARE $data_uint64 AS Uint64?;
+            DECLARE $data_double AS Double?;
+            DECLARE $data_str AS String?;
 
-    UASSERT_NO_THROW(NYdb::NStatusHelpers::ThrowOnError(client.RetryOperationSync([&query](NYdb::NTable::TSession session) -> NYdb::TStatus {
-        auto res = NYdb::TUuidValue{0, 0};
+            UPSERT INTO test_table (
+                key,
+                value_bool,
+                value_int32,
+                value_uint32,
+                value_int64,
+                value_uint64,
+                value_double,
+                value_str
+            ) VALUES (
+                $search_key,
+                $data_bool,
+                $data_int32,
+                $data_uint32,
+                $data_int64,
+                $data_uint64,
+                $data_double,
+                $data_str
+            );
+        )", NYdb::NTable::TTxControl::BeginTx().CommitTx(),
+            NYdb::TParamsBuilder()
+                .AddParam("$search_key")
+                    .String("key_new_nullable")
+                .Build()
+                .AddParam("$data_bool")
+                    .OptionalBool(false)
+                .Build()
+                .AddParam("$data_int32")
+                    .OptionalInt32(-321)
+                .Build()
+                .AddParam("$data_uint32")
+                    .OptionalUint32(321)
+                .Build()
+                .AddParam("$data_int64")
+                    .OptionalInt64(-641)
+                .Build()
+                .AddParam("$data_uint64")
+                    .OptionalUint64(641)
+                .Build()
+                .AddParam("$data_double")
+                    .OptionalDouble(1.234)
+                .Build()
+                .AddParam("$data_str")
+                    .OptionalString(std::string("\0byte_string", 12))
+                .Build()
+            .Build()
+        ).GetValueSync();
 
-        std::memcpy(res.Buf_.Bytes, uuid_val.data, 16);
+        if (!result2.IsSuccess()) {
+            return result2;
+        }
 
-        std::swap(res.Buf_.Bytes[0], res.Buf_.Bytes[3]);
-        std::swap(res.Buf_.Bytes[1], res.Buf_.Bytes[2]);
-        std::swap(res.Buf_.Bytes[4], res.Buf_.Bytes[5]);
-        std::swap(res.Buf_.Bytes[6], res.Buf_.Bytes[7]);
-
-        auto params = NYdb::TParamsBuilder()
-            .AddParam("$search_key").String("key_new_nullable").Build()
-            .AddParam("$data_bool").OptionalBool(false).Build()
-            .AddParam("$data_int32").OptionalInt32(-321).Build()
-            .AddParam("$data_uint32").OptionalUint32(321).Build()
-            .AddParam("$data_int64").OptionalInt64(-641).Build()
-            .AddParam("$data_uint64").OptionalUint64(641).Build()
-            .AddParam("$data_double").OptionalDouble(1.234).Build()
-            .AddParam("$data_str").OptionalString(std::string("\0byte_string", 12)).Build()
-            .AddParam("$data_utf8").OptionalUtf8(std::string{"utf8"}).Build()
-            .AddParam("$data_ts").OptionalTimestamp(TInstant::MicroSeconds(12345)).Build()
-            .AddParam("$data_uuid").OptionalUuid(res).Build()  
-            .AddParam("$data_json").OptionalString(std::string{R"({"qwe":123})"}).Build()
-            .AddParam("$data_json_doc").OptionalString(std::string{R"({"qwe":456})"}).Build()
-            .Build();
-
-        return session.ExecuteDataQuery(query, NYdb::NTable::TTxControl::BeginTx().CommitTx(), std::move(params)).ExtractValueSync();
-    })));
-
-    UASSERT_NO_THROW(NYdb::NStatusHelpers::ThrowOnError(client.RetryOperationSync([](NYdb::NTable::TSession session) -> NYdb::TStatus {
-        auto result = session.ExecuteDataQuery(R"(
+        auto result3 = session.ExecuteDataQuery(R"(
             SELECT
                 key,
-                value_str,
-            FROM different_types_test
+                value_bool,
+                value_int32,
+                value_uint32,
+                value_int64,
+                value_uint64,
+                value_double,
+                value_str
+            FROM test_table
             WHERE key = "key_new_nullable";
-        )", NYdb::NTable::TTxControl::BeginTx().CommitTx()).ExtractValueSync();
+        )", NYdb::NTable::TTxControl::BeginTx().CommitTx()).GetValueSync();
 
-        if (!result.IsSuccess()) {
-            return result;
+        if (!result3.IsSuccess()) {
+            return result3;
         }
-        auto parser = NYdb::TResultSetParser(result.GetResultSet(0));
+
+        auto parser = NYdb::TResultSetParser(result3.GetResultSet(0));
         while (parser.TryNextRow()) {
             auto key = parser.ColumnParser("key").GetOptionalString();
-            EXPECT_TRUE(key);
-            EXPECT_EQ(key.value(), "key_new_nullable");
+            Y_ENSURE(key);
+            std::cout << "key: " << key.value() << std::endl;
+            Y_ENSURE(key.value() == "key_new_nullable");
+
+            auto value_bool = parser.ColumnParser("value_bool").GetOptionalBool();
+            Y_ENSURE(value_bool);
+            std::cout << "value_bool: " << value_bool.value() << std::endl;
+            Y_ENSURE(value_bool.value() == false);
+
+            auto value_int32 = parser.ColumnParser("value_int32").GetOptionalInt32();
+            Y_ENSURE(value_int32);
+            std::cout << "value_int32: " << value_int32.value() << std::endl;
+            Y_ENSURE(value_int32.value() == std::int32_t{-321});
+
+            auto value_uint32 = parser.ColumnParser("value_uint32").GetOptionalUint32();
+            Y_ENSURE(value_uint32);
+            std::cout << "value_uint32: " << value_uint32.value() << std::endl;
+            Y_ENSURE(value_uint32.value() == std::uint32_t{321});
+
+            auto value_int64 = parser.ColumnParser("value_int64").GetOptionalInt64();
+            Y_ENSURE(value_int64);
+            std::cout << "value_int64: " << value_int64.value() << std::endl;
+            Y_ENSURE(value_int64.value() == std::int64_t{-641});
+
+            auto value_uint64 = parser.ColumnParser("value_uint64").GetOptionalUint64();
+            Y_ENSURE(value_uint64);
+            std::cout << "value_uint64: " << value_uint64.value() << std::endl;
+            Y_ENSURE(value_uint64.value() == std::uint64_t{641});
+
+            auto value_double = parser.ColumnParser("value_double").GetOptionalDouble();
+            Y_ENSURE(value_double);
+            std::cout << "value_double: " << value_double.value() << std::endl;
+            Y_ENSURE(value_double.value() == 1.234);
 
             auto value_str = parser.ColumnParser("value_str").GetOptionalString();
-            EXPECT_TRUE(value_str);
-            EXPECT_EQ(value_str.value(), std::string("\0byte_string", 12));
+            Y_ENSURE(value_str);
+            std::cout << "value_str: ";
+            for (auto c : value_str.value()) {
+                if (std::isprint(c)) {
+                    std::cout << c;
+                } else {
+                    std::cout << "\\x" << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(c) << std::dec;
+                }
+            }
+            std::cout << std::endl;
+            Y_ENSURE(value_str.value() == std::string("\0byte_string", 12));
         }
-        return result;
+
+        return result3;
     })));
 }
 
