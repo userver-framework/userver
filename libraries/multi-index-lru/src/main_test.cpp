@@ -7,7 +7,6 @@
 #include <boost/multi_index/hashed_index.hpp>
 #include <boost/multi_index/member.hpp>
 #include <boost/multi_index/ordered_index.hpp>
-#include <boost/multi_index/hashed_index.hpp>
 #include <boost/multi_index/identity.hpp>
 
 USERVER_NAMESPACE_BEGIN
