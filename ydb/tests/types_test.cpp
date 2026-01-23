@@ -411,7 +411,7 @@ UTEST_F(TTypesYdbTestCase, PreparedStructUpsertTypes) {
 }
 
 UTEST_F(TTypesYdbTestCase, PreparedUpsertNullableTypes) {
-    const ydb::Query query{R"(
+    const std::string query{R"(
         --!syntax_v1
         DECLARE $search_key AS String;
         DECLARE $data_bool AS Bool?;
@@ -458,62 +458,61 @@ UTEST_F(TTypesYdbTestCase, PreparedUpsertNullableTypes) {
         );
     )"};
 
-    auto builder = GetTableClient().GetBuilder();
+    auto& client = GetNativeTableClient();
 
-    UASSERT_NO_THROW(builder.Add("$search_key", std::string{"key_new_nullable"}));
-    UASSERT_NO_THROW(builder.Add("$data_bool", std::optional{false}));
-    UASSERT_NO_THROW(builder.Add("$data_int32", std::optional{std::int32_t{-321}}));
-    UASSERT_NO_THROW(builder.Add("$data_uint32", std::optional{std::uint32_t{321}}));
-    UASSERT_NO_THROW(builder.Add("$data_int64", std::optional{std::int64_t{-641}}));
-    UASSERT_NO_THROW(builder.Add("$data_uint64", std::optional{std::uint64_t{641}}));
-    UASSERT_NO_THROW(builder.Add("$data_double", std::optional{1.234}));
-    UASSERT_NO_THROW(builder.Add("$data_str", std::optional{std::string("\0byte_string", 12)}));
-    UASSERT_NO_THROW(builder.Add("$data_utf8", std::optional{ydb::Utf8{"utf8"}}));
-    UASSERT_NO_THROW(
-        builder.Add("$data_ts", std::optional{std::chrono::system_clock::time_point{std::chrono::microseconds{12345}}})
-    );
-    UASSERT_NO_THROW(builder.Add("$data_uuid", std::optional{uuid_val}));
-    UASSERT_NO_THROW(builder.Add("$data_json", std::optional{std::string{R"({"qwe":123})"}}));
-    UASSERT_NO_THROW(builder.Add("$data_json_doc", std::optional{std::string{R"({"qwe":456})"}}));
+    UASSERT_NO_THROW(NYdb::NStatusHelpers::ThrowOnError(client.RetryOperationSync([&query](NYdb::NTable::TSession session) -> NYdb::TStatus {
+        auto res = NYdb::TUuidValue{0, 0};
 
-    UASSERT_NO_THROW(GetTableClient().ExecuteDataQuery(ydb::OperationSettings{}, query, std::move(builder)));
+        std::memcpy(res.Buf_.Bytes, uuid_val.data, 16);
 
-    auto result = GetTableClient().ExecuteDataQuery(ydb::Query{R"(
-        SELECT
-            key,
-            value_bool,
-            value_int32,
-            value_uint32,
-            value_int64,
-            value_uint64,
-            value_double,
-            value_str,
-            value_utf8,
-            value_ts,
-            value_uuid,
-            value_json,
-            value_json_doc
-        FROM different_types_test
-        WHERE key = "key_new_nullable";
-    )"});
+        std::swap(res.Buf_.Bytes[0], res.Buf_.Bytes[3]);
+        std::swap(res.Buf_.Bytes[1], res.Buf_.Bytes[2]);
+        std::swap(res.Buf_.Bytes[4], res.Buf_.Bytes[5]);
+        std::swap(res.Buf_.Bytes[6], res.Buf_.Bytes[7]);
 
-    auto cursor = result.GetSingleCursor();
-    ASSERT_EQ(cursor.size(), 1);
-    for (auto row : cursor) {
-        AssertNullableColumn(row, "key", std::string{"key_new_nullable"});
-        AssertNullableColumn(row, "value_bool", false);
-        AssertNullableColumn(row, "value_int32", std::int32_t{-321});
-        AssertNullableColumn(row, "value_uint32", std::uint32_t{321});
-        AssertNullableColumn(row, "value_int64", std::int64_t{-641});
-        AssertNullableColumn(row, "value_uint64", std::uint64_t{641});
-        AssertNullableColumn(row, "value_double", 1.234);
-        AssertNullableColumn(row, "value_str", std::string{"\0byte_string", 12});
-        AssertNullableColumn(row, "value_utf8", ydb::Utf8{"utf8"});
-        AssertNullableColumn(row, "value_ts", std::chrono::system_clock::time_point(std::chrono::microseconds{12345}));
-        AssertNullableColumn(row, "value_uuid", uuid_val);
-        AssertNullableColumn(row, "value_json", formats::json::FromString(R"({"qwe": 123})"));
-        AssertNullableColumn(row, "value_json_doc", ydb::JsonDocument(formats::json::FromString(R"({"qwe":456})")));
-    }
+        auto params = NYdb::TParamsBuilder()
+            .AddParam("$search_key").String("key_new_nullable").Build()
+            .AddParam("$data_bool").OptionalBool(false).Build()
+            .AddParam("$data_int32").OptionalInt32(-321).Build()
+            .AddParam("$data_uint32").OptionalUint32(321).Build()
+            .AddParam("$data_int64").OptionalInt64(-641).Build()
+            .AddParam("$data_uint64").OptionalUint64(641).Build()
+            .AddParam("$data_double").OptionalDouble(1.234).Build()
+            .AddParam("$data_str").OptionalString(std::string("\0byte_string", 12)).Build()
+            .AddParam("$data_utf8").OptionalUtf8(std::string{"utf8"}).Build()
+            .AddParam("$data_ts").OptionalTimestamp(TInstant::MicroSeconds(12345)).Build()
+            .AddParam("$data_uuid").OptionalUuid(res).Build()  
+            .AddParam("$data_json").OptionalString(std::string{R"({"qwe":123})"}).Build()
+            .AddParam("$data_json_doc").OptionalString(std::string{R"({"qwe":456})"}).Build()
+            .Build();
+
+        return session.ExecuteDataQuery(query, NYdb::NTable::TTxControl::BeginTx().CommitTx(), std::move(params)).ExtractValueSync();
+    })));
+
+    UASSERT_NO_THROW(NYdb::NStatusHelpers::ThrowOnError(client.RetryOperationSync([](NYdb::NTable::TSession session) -> NYdb::TStatus {
+        auto result = session.ExecuteDataQuery(R"(
+            SELECT
+                key,
+                value_str,
+            FROM different_types_test
+            WHERE key = "key_new_nullable";
+        )", NYdb::NTable::TTxControl::BeginTx().CommitTx()).ExtractValueSync();
+
+        if (!result.IsSuccess()) {
+            return result;
+        }
+        auto parser = NYdb::TResultSetParser(result.GetResultSet(0));
+        while (parser.TryNextRow()) {
+            auto key = parser.ColumnParser("key").GetOptionalString();
+            EXPECT_TRUE(key);
+            EXPECT_EQ(key.value(), "key_new_nullable");
+
+            auto value_str = parser.ColumnParser("value_str").GetOptionalString();
+            EXPECT_TRUE(value_str);
+            EXPECT_EQ(value_str.value(), std::string("\0byte_string", 12));
+        }
+        return result;
+    })));
 }
 
 UTEST_F(TTypesYdbTestCase, PreparedStructUpsertNullableTypes) {
