@@ -19,6 +19,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace {
 
+#define BENCHMARK_THREAD_ARGS ->Arg(2)->Arg(3)->Arg(4)->Arg(6)->Arg(8)->Arg(12)->Arg(16)->Arg(32)
+
 using Waiter = bool (*)(engine::SingleConsumerEvent&);
 
 constexpr Waiter kEndless = [](engine::SingleConsumerEvent& event) { return event.WaitForEvent(); };
@@ -73,10 +75,10 @@ void SingleConsumerEvent(benchmark::State& state, Waiter waiter) {
     });
 }
 
-BENCHMARK_CAPTURE(SingleConsumerEvent, Endless, kEndless)->Apply(&ThreadsArg);
-BENCHMARK_CAPTURE(SingleConsumerEvent, Successful, kSuccessful)->Apply(&ThreadsArg);
-BENCHMARK_CAPTURE(SingleConsumerEvent, Contended, kContended)->Apply(&ThreadsArg);
-BENCHMARK_CAPTURE(SingleConsumerEvent, Failed, kFailed)->Apply(&ThreadsArg);
+BENCHMARK_CAPTURE(SingleConsumerEvent, Endless, kEndless) BENCHMARK_THREAD_ARGS;
+BENCHMARK_CAPTURE(SingleConsumerEvent, Successful, kEndless) BENCHMARK_THREAD_ARGS;
+BENCHMARK_CAPTURE(SingleConsumerEvent, Contended, kEndless) BENCHMARK_THREAD_ARGS;
+BENCHMARK_CAPTURE(SingleConsumerEvent, Failed, kEndless) BENCHMARK_THREAD_ARGS;
 
 void SingleConsumerEventPingPong(benchmark::State& state) {
     engine::RunStandalone(2, [&] {
