@@ -31,7 +31,6 @@ std::vector<std::string> Split(std::string_view str, std::string_view sep, Split
     // FP, m_Size does not change
     // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
     boost::algorithm::split(result, str, boost::algorithm::is_any_of(sep), boost_token_compress_mode);
-
     return result;
 }
 
