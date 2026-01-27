@@ -1,0 +1,17 @@
+type: object
+description: tests-control config
+additionalProperties: false
+properties:
+    testpoint-url:
+        type: string
+        description: an URL that should be notified in the TESTPOINT_CALLBACK and
+            TESTPOINT_CALLBACK_NONCORO macros
+    skip-unregistered-testpoints:
+        type: boolean
+        description: do not send testpoints data for paths that were not registered
+            by `testpoint-url`
+        default: false
+    testpoint-timeout:
+        type: string
+        description: timeout to use while working with testpoint-url
+        default: 1s

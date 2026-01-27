@@ -20,7 +20,9 @@ BsonBuilder::BsonBuilder() = default;
 BsonBuilder::BsonBuilder(const ValueImpl& value) {
     class Visitor {
     public:
-        Visitor(BsonBuilder& builder) : builder_(builder) {}
+        Visitor(BsonBuilder& builder)
+            : builder_(builder)
+        {}
 
         void operator()(const ParsedDocument& doc) const {
             for (const auto& [key, elem] : doc) {
@@ -113,8 +115,11 @@ BsonBuilder& BsonBuilder::Append(std::string_view key, std::string_view value) {
     return *this;
 }
 
-BsonBuilder& BsonBuilder::Append(std::string_view key, std::chrono::system_clock::time_point value) {
-    int64_t ms_since_epoch = std::chrono::duration_cast<std::chrono::milliseconds>(value.time_since_epoch()).count();
+BsonBuilder& BsonBuilder::Append(
+    std::string_view key,
+    std::chrono::time_point<std::chrono::system_clock, std::chrono::milliseconds> value
+) {
+    const int64_t ms_since_epoch = value.time_since_epoch().count();
     bson_append_date_time(bson_->Get(), key.data(), key.size(), ms_since_epoch);
     return *this;
 }
@@ -163,7 +168,11 @@ BsonBuilder& BsonBuilder::Append(std::string_view key, const bson_t* sub_bson) {
 void BsonBuilder::AppendInto(bson_t* dest, std::string_view key, const ValueImpl& value) {
     class Visitor {
     public:
-        Visitor(BsonBuilder& builder, bson_t* dest, std::string_view key) : builder_(builder), dest_(dest), key_(key) {}
+        Visitor(BsonBuilder& builder, bson_t* dest, std::string_view key)
+            : builder_(builder),
+              dest_(dest),
+              key_(key)
+        {}
 
         void operator()(const ParsedDocument& doc) const {
             SubdocBson subdoc_bson(dest_, key_.data(), key_.size());
@@ -186,7 +195,9 @@ void BsonBuilder::AppendInto(bson_t* dest, std::string_view key, const ValueImpl
         bson_t* dest_;
         std::string_view key_;
     };
-    if (value.IsMissing()) return;
+    if (value.IsMissing()) {
+        return;
+    }
 
     const auto* parsed_ptr = value.parsed_value_.load();
     if (!parsed_ptr) {

@@ -42,7 +42,7 @@ auto MakeContexts() {
 
 }  // namespace
 
-void wait_list_insertion(benchmark::State& state) {
+void WaitListInsertion(benchmark::State& state) {
     engine::RunStandalone([&] {
         std::size_t i = 0;
         WaitList wl;
@@ -69,9 +69,9 @@ void wait_list_insertion(benchmark::State& state) {
         }
     });
 }
-BENCHMARK(wait_list_insertion)->Iterations(kIterationsCount);
+BENCHMARK(WaitListInsertion)->Iterations(kIterationsCount);
 
-void wait_list_removal(benchmark::State& state) {
+void WaitListRemoval(benchmark::State& state) {
     engine::RunStandalone([&] {
         WaitList wl;
 
@@ -104,18 +104,18 @@ void wait_list_removal(benchmark::State& state) {
         }
     });
 }
-BENCHMARK(wait_list_removal)->Iterations(kIterationsCount);
+BENCHMARK(WaitListRemoval)->Iterations(kIterationsCount);
 
-void wait_list_add_remove_contention(benchmark::State& state) {
+void WaitListAddRemoveContention(benchmark::State& state) {
     engine::RunStandalone(state.range(0), [&] {
         std::atomic<bool> run{true};
         WaitList wl;
 
         std::vector<engine::TaskWithResult<void>> tasks;
         tasks.reserve(state.range(0) - 1);
-        for (int i = 0; i < state.range(0) - 1; i++)
+        for (int i = 0; i < state.range(0) - 1; i++) {
             tasks.push_back(engine::AsyncNoSpan([&]() {
-                boost::intrusive_ptr<TaskContext> ctx = MakeContext();
+                const boost::intrusive_ptr<TaskContext> ctx = MakeContext();
                 while (run) {
                     {
                         WaitList::Lock guard{wl};
@@ -125,8 +125,9 @@ void wait_list_add_remove_contention(benchmark::State& state) {
                     wl.Remove(guard, *ctx);
                 }
             }));
+        }
 
-        boost::intrusive_ptr<TaskContext> ctx = MakeContext();
+        const boost::intrusive_ptr<TaskContext> ctx = MakeContext();
         for ([[maybe_unused]] auto _ : state) {
             {
                 WaitList::Lock guard{wl};
@@ -139,16 +140,16 @@ void wait_list_add_remove_contention(benchmark::State& state) {
         run = false;
     });
 }
-BENCHMARK(wait_list_add_remove_contention)->RangeMultiplier(2)->Range(1, 2)->UseRealTime();
+BENCHMARK(WaitListAddRemoveContention)->RangeMultiplier(2)->Range(1, 2)->UseRealTime();
 
-void wait_list_add_remove_contention_unbalanced(benchmark::State& state) {
+void WaitListAddRemoveContentionUnbalanced(benchmark::State& state) {
     engine::RunStandalone(state.range(0), [&] {
         std::atomic<bool> run{true};
         WaitList wl;
 
         std::vector<engine::TaskWithResult<void>> tasks;
         tasks.reserve(state.range(0) - 1);
-        for (int i = 0; i < state.range(0) - 1; i++)
+        for (int i = 0; i < state.range(0) - 1; i++) {
             tasks.push_back(engine::AsyncNoSpan([&]() {
                 auto contexts = MakeContexts();
                 while (run) {
@@ -162,6 +163,7 @@ void wait_list_add_remove_contention_unbalanced(benchmark::State& state) {
                     }
                 }
             }));
+        }
 
         auto contexts = MakeContexts();
         for ([[maybe_unused]] auto _ : state) {
@@ -189,7 +191,7 @@ void wait_list_add_remove_contention_unbalanced(benchmark::State& state) {
 // threads an opportunity to work on the WaitList. On top of it, for a benchmark
 // iteration to complete, the rare ownership switch is required to have occurred
 // A LOT of times (once per TaskContext).
-BENCHMARK(wait_list_add_remove_contention_unbalanced)
+BENCHMARK(WaitListAddRemoveContentionUnbalanced)
     ->RangeMultiplier(2)
     ->Range(1, 1)
     ->Unit(benchmark::kMillisecond)

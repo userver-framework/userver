@@ -9,18 +9,20 @@
 #include <userver/yaml_config/merge_schemas.hpp>
 #include <userver/yaml_config/schema.hpp>
 
+#ifndef ARCADIA_ROOT
+#include "generated/src/cache/lru_cache_component_base.yaml.hpp"  // Y_IGNORE
+#endif
+
 USERVER_NAMESPACE_BEGIN
 
 namespace cache::impl {
 
-utils::statistics::Entry RegisterOnStatisticsStorage(
+void RegisterOnStatisticsStorage(
     const components::ComponentContext& context,
     const std::string& name,
     std::function<void(utils::statistics::Writer&)> func
 ) {
-    return context.FindComponent<components::StatisticsStorage>().GetStorage().RegisterWriter(
-        "cache", std::move(func), {{"cache_name", name}}
-    );
+    utils::statistics::RegisterWriterScope(context, "cache", std::move(func), {{"cache_name", name}});
 }
 
 dynamic_config::Source FindDynamicConfigSource(const components::ComponentContext& context) {
@@ -44,30 +46,7 @@ bool IsDumpSupportEnabled(const components::ComponentConfig& config) {
 }
 
 yaml_config::Schema GetLruCacheComponentBaseSchema() {
-    return yaml_config::MergeSchemas<dump::Dumper>(R"(
-type: object
-description: Base class for LRU-cache components
-additionalProperties: false
-properties:
-    size:
-        type: integer
-        description: max amount of items to store in cache
-    ways:
-        type: integer
-        description: number of ways for associative cache
-    lifetime:
-        type: string
-        description: TTL for cache entries (0 is unlimited)
-        defaultDescription: 0
-    background-update:
-        type: boolean
-        description: enables asynchronous updates for expiring values
-        defaultDescription: false
-    config-settings:
-        type: boolean
-        description: enables dynamic reconfiguration with CacheConfigSet
-        defaultDescription: true
-)");
+    return yaml_config::MergeSchemasFromResource<dump::Dumper>("src/cache/lru_cache_component_base.yaml");
 }
 
 }  // namespace cache::impl

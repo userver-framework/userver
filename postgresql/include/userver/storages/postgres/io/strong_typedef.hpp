@@ -43,8 +43,11 @@ namespace traits {
 // e.g. TimePointTz
 template <typename Tag, typename T, USERVER_NAMESPACE::utils::StrongTypedefOps Ops, typename Enable>
 inline constexpr bool kIsStrongTypedefDirectlyMapped =
+    // NOLINTNEXTLINE(google-readability-casting)
     kIsMappedToUserType<USERVER_NAMESPACE::utils::StrongTypedef<Tag, T, Ops, Enable>> ||
+    // NOLINTNEXTLINE(google-readability-casting)
     kIsMappedToSystemType<USERVER_NAMESPACE::utils::StrongTypedef<Tag, T, Ops, Enable>> ||
+    // NOLINTNEXTLINE(google-readability-casting)
     kIsMappedToArray<USERVER_NAMESPACE::utils::StrongTypedef<Tag, T, Ops, Enable>>;
 
 template <typename Tag, typename T, USERVER_NAMESPACE::utils::StrongTypedefOps Ops, typename Enable>

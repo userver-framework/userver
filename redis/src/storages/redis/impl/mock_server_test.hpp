@@ -13,8 +13,8 @@
 #include <userver/logging/log.hpp>
 
 #include <storages/redis/impl/redis.hpp>
-#include <userver/storages/redis/impl/base.hpp>
-#include <userver/storages/redis/impl/reply.hpp>
+#include <userver/storages/redis/base.hpp>
+#include <userver/storages/redis/reply.hpp>
 
 #ifdef __clang__
 #pragma clang diagnostic push
@@ -25,66 +25,85 @@
 #pragma clang diagnostic pop
 #endif
 
+#include <boost/version.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace io = boost::asio;
 
 class MockRedisServerBase {
 public:
+    struct Connection {
+        template <class IoService>
+        Connection(IoService& ios)
+            : socket(ios)
+        {}
+
+        io::ip::tcp::socket socket;
+        std::array<char, 1024> data{};
+        std::unique_ptr<redisReader, decltype(&redisReaderFree)> reader{nullptr, &redisReaderFree};
+    };
+    using ConnectionPtr = std::shared_ptr<Connection>;
+
     explicit MockRedisServerBase(int port = 0);
     virtual ~MockRedisServerBase();
 
-    void SendReplyOk(const std::string& reply);
-    void SendReplyError(const std::string& reply);
-    void SendReplyData(const redis::ReplyData& reply_data);
+    void SendReplyOk(ConnectionPtr connection, const std::string& reply);
+    void SendReplyError(ConnectionPtr connection, const std::string& reply);
+    void SendReplyData(ConnectionPtr connection, const storages::redis::ReplyData& reply_data);
     int GetPort() const;
 
 protected:
     void Stop();
 
-    virtual void OnConnected() {}
+    virtual void OnConnected(ConnectionPtr /*connection*/) {}
 
-    virtual void OnDisconnected() {}
+    virtual void OnDisconnected(ConnectionPtr /*connection*/) {}
 
-    virtual void OnCommand(std::shared_ptr<redis::Reply> cmd) {
+    virtual void OnCommand(ConnectionPtr /*connection*/, std::shared_ptr<storages::redis::Reply> cmd) {
         LOG_DEBUG() << "Got command: " << cmd->data.ToDebugString();
     }
-
-    void SendReply(const std::string& reply);
     void Accept();
 
 private:
-    static std::string ReplyDataToRedisProto(const redis::ReplyData& reply_data);
+    static std::string ReplyDataToRedisProto(const storages::redis::ReplyData& reply_data);
     void Work();
-    void OnAccept(boost::system::error_code ec);
-    void OnRead(boost::system::error_code ec, size_t count);
-    void DoRead();
 
+    void OnAccept(ConnectionPtr connection, boost::system::error_code ec);
+    void OnRead(ConnectionPtr connection, boost::system::error_code ec, size_t count);
+    void DoRead(ConnectionPtr connection);
+
+    void SendReply(ConnectionPtr connection, const std::string& reply);
+
+#if BOOST_VERSION >= 107400
+    io::io_context io_service_;
+#else
     io::io_service io_service_;
+#endif
     io::ip::tcp::acceptor acceptor_;
     std::thread thread_;
-
-    io::ip::tcp::socket socket_;
-    std::array<char, 1024> data_{};
-    std::unique_ptr<redisReader, decltype(&redisReaderFree)> reader_;
 };
 
 class MockRedisServer : public MockRedisServerBase {
 public:
-    explicit MockRedisServer(std::string description = {})
-        : MockRedisServerBase(0), description_(std::move(description)) {}
+    explicit MockRedisServer(std::string description)
+        : MockRedisServerBase(0),
+          description_(std::move(description))
+    {
+        UASSERT(!description_.empty());
+    }
     ~MockRedisServer() override;
 
-    using HandlerFunc = std::function<void(const std::vector<std::string>&)>;
+    using HandlerFunc = std::function<void(ConnectionPtr, const std::vector<std::string>&)>;
 
     class Handler;
     using HandlerPtr = std::shared_ptr<Handler>;
 
-    HandlerPtr RegisterHandlerWithConstReply(const std::string& command, redis::ReplyData reply_data);
+    HandlerPtr RegisterHandlerWithConstReply(const std::string& command, storages::redis::ReplyData reply_data);
     HandlerPtr RegisterHandlerWithConstReply(
         const std::string& command,
         const std::vector<std::string>& args_prefix,
-        redis::ReplyData reply_data
+        storages::redis::ReplyData reply_data
     );
     HandlerPtr RegisterStatusReplyHandler(const std::string& command, std::string reply);
     HandlerPtr RegisterStatusReplyHandler(
@@ -116,12 +135,13 @@ public:
 
     HandlerPtr RegisterSentinelMastersHandler(const std::vector<MasterInfo>& masters);
     HandlerPtr RegisterSentinelSlavesHandler(const std::string& master_name, const std::vector<SlaveInfo>& slaves);
+    HandlerPtr RegisterClusterNodes(const std::vector<MasterInfo>& masters, const std::vector<SlaveInfo>& slaves);
 
     template <typename Rep, typename Period>
     bool WaitForFirstPingReply(const std::chrono::duration<Rep, Period>& duration) const;
 
 protected:
-    void OnCommand(std::shared_ptr<redis::Reply> cmd) override;
+    void OnCommand(ConnectionPtr connection, std::shared_ptr<storages::redis::Reply> cmd) override;
 
 private:
     struct CommonMasterSlaveInfo;
@@ -135,8 +155,11 @@ private:
 
     static void AddHandlerFunc(HandlerNode& root, const std::vector<std::string>& args, HandlerFunc handler);
 
-    static const HandlerFunc&
-    GetHandlerFunc(const HandlerNode& node, const std::vector<std::string>& args, size_t arg_idx = 0);
+    static const HandlerFunc& GetHandlerFunc(
+        const HandlerNode& node,
+        const std::vector<std::string>& args,
+        size_t arg_idx = 0
+    );
 
     HandlerPtr DoRegisterTimeoutHandler(
         const std::string& command,
@@ -144,7 +167,7 @@ private:
         const std::chrono::milliseconds& duration
     );
 
-    std::string description_;
+    const std::string description_;
     std::mutex mutex_;
     std::unordered_map<std::string, HandlerNode> handlers_;
     HandlerPtr ping_handler_;
@@ -165,7 +188,9 @@ MockRedisServer::HandlerPtr MockRedisServer::RegisterTimeoutHandler(
     const std::chrono::duration<Rep, Period>& duration
 ) {
     return DoRegisterTimeoutHandler(
-        command, args_prefix, std::chrono::duration_cast<std::chrono::milliseconds>(duration)
+        command,
+        args_prefix,
+        std::chrono::duration_cast<std::chrono::milliseconds>(duration)
     );
 }
 
@@ -219,7 +244,9 @@ bool MockRedisServer::Handler::WaitForFirstReply(const std::chrono::duration<Rep
 
 template <typename Rep, typename Period>
 bool MockRedisServer::WaitForFirstPingReply(const std::chrono::duration<Rep, Period>& duration) const {
-    if (!ping_handler_) throw std::runtime_error("Ping handler not found for server " + description_);
+    if (!ping_handler_) {
+        throw std::runtime_error("Ping handler not found for server " + description_);
+    }
     return ping_handler_->WaitForFirstReply(duration);
 }
 

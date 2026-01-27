@@ -53,27 +53,19 @@ async def _client_metrics(service_client, monitor_client):
 async def test_deadline_ok(call, client_metrics, slow_mock, timeout, deadline):
     async with client_metrics:
         response = await call(
-            headers={DP_TIMEOUT_MS: str(deadline)}, timeout=timeout,
+            headers={DP_TIMEOUT_MS: str(deadline)},
+            timeout=timeout,
         )
         assert response.status == 200
         assert response.text == 'OK!'
 
     assert client_metrics.value_at('cancelled-by-deadline', VERSION) == 0
-    assert (
-        client_metrics.value_at('errors', {'http_error': 'ok', **VERSION}) == 1
-    )
-    assert (
-        client_metrics.value_at('errors', {'http_error': 'timeout', **VERSION})
-        == 0
-    )
+    assert client_metrics.value_at('errors', {'http_error': 'ok', **VERSION}) == 1
+    assert client_metrics.value_at('errors', {'http_error': 'timeout', **VERSION}) == 0
 
 
 def get_handler_exception_logs(capture):
-    return [
-        log
-        for log in capture.select()
-        if log['text'].startswith("exception in 'handler-chaos-httpclient'")
-    ]
+    return [log for log in capture.select() if log['text'].startswith("exception in 'handler-chaos-httpclient'")]
 
 
 @pytest.mark.parametrize(
@@ -100,24 +92,63 @@ async def test_timeout_expired(
             assert response.text == ''
 
     assert client_metrics.value_at('cancelled-by-deadline', VERSION) == 0
-    assert (
-        client_metrics.value_at('errors', {'http_error': 'ok', **VERSION}) == 0
-    )
+    assert client_metrics.value_at('errors', {'http_error': 'ok', **VERSION}) == 0
     # Client metrics are counted per attempt.
-    assert (
-        client_metrics.value_at('errors', {'http_error': 'timeout', **VERSION})
-        == attempts
-    )
+    assert client_metrics.value_at('errors', {'http_error': 'timeout', **VERSION}) == attempts
 
-    logs = capture.select(stopwatch_name='external')
+    logs = capture.select(stopwatch_name='GET localhost')
     assert len(logs) == 1
     assert logs[0]['error'] == '1'
-    assert logs[0]['attempts'] == str(attempts)
-    assert logs[0]['max_attempts'] == str(attempts)
+    assert logs[0]['http.request.resend_count'] == str(attempts)
+    assert logs[0]['http.request.max_resend_count'] == str(attempts)
     assert logs[0].get('cancelled_by_deadline', '0') == '0'
     assert logs[0]['error_msg'] == 'Timeout was reached'
     assert logs[0]['timeout_ms'] == str(timeout)
     assert logs[0]['propagated_timeout_ms'] == str(timeout)
+
+    logs = get_handler_exception_logs(capture)
+    assert len(logs) == 1
+    assert 'clients::http::TimeoutException' in logs[0]['text']
+
+
+@pytest.mark.parametrize(
+    'timeout,deadline,reuse_attempts',
+    [(100, 2000, 2), (100, 2000, 3), (200, 2000, 2)],
+)
+async def test_timeout_expired_with_reuse(
+    service_client,
+    call,
+    client_metrics,
+    slow_mock,
+    timeout,
+    deadline,
+    reuse_attempts,
+):
+    async with service_client.capture_logs(log_level='INFO') as capture:
+        async with client_metrics:
+            response = await call(
+                headers={DP_TIMEOUT_MS: str(deadline)},
+                timeout=timeout,
+                reuse_attempts=reuse_attempts,
+            )
+            assert response.status == 500
+            assert response.text == ''
+
+    assert client_metrics.value_at('cancelled-by-deadline', VERSION) == 0
+    assert client_metrics.value_at('errors', {'http_error': 'ok', **VERSION}) == 0
+    assert client_metrics.value_at('errors', {'http_error': 'timeout', **VERSION}) == reuse_attempts
+
+    logs = capture.select(stopwatch_name='GET localhost')
+    assert len(logs) == reuse_attempts
+    for i in range(reuse_attempts):
+        log = logs[i]
+        assert log['error'] == '1'
+        assert log['http.request.resend_count'] == '1'
+        assert log['http.request.max_resend_count'] == '1'
+        assert log.get('cancelled_by_deadline', '0') == '0'
+        assert log['error_msg'] == 'Timeout was reached'
+        assert log['timeout_ms'] == str(timeout)
+        assert log['propagated_timeout_ms'] == str(timeout)
 
     logs = get_handler_exception_logs(capture)
     assert len(logs) == 1
@@ -163,12 +194,11 @@ async def test_deadline_expired(
 
     # There might have been >1 attempts, but only 1 of them was cancelled.
     assert client_metrics.value_at('cancelled-by-deadline', VERSION) == 1
-    assert (
-        client_metrics.value_at('errors', {'http_error': 'ok', **VERSION}) == 0
-    )
+    assert client_metrics.value_at('errors', {'http_error': 'ok', **VERSION}) == 0
 
     timed_out = client_metrics.value_at(
-        'errors', {'http_error': 'timeout', **VERSION},
+        'errors',
+        {'http_error': 'timeout', **VERSION},
     )
     if deadline == 215:
         # See the note on the corresponding 'deadline' parameter above.
@@ -177,14 +207,69 @@ async def test_deadline_expired(
         # Client metrics are counted per attempt.
         assert timed_out == attempts
 
-    logs = capture.select(stopwatch_name='external')
+    logs = capture.select(stopwatch_name='GET localhost')
     assert len(logs) == 1
     assert logs[0]['error'] == '1'
-    assert logs[0]['max_attempts'] == str(attempts)
+    assert logs[0]['http.request.max_resend_count'] == str(attempts)
     assert logs[0]['cancelled_by_deadline'] == '1'
     assert logs[0]['error_msg'] == 'Timeout was reached'
     assert logs[0]['timeout_ms'] == str(timeout)
     assert 0 <= int(logs[0]['propagated_timeout_ms']) <= deadline
+
+    logs = get_handler_exception_logs(capture)
+    assert len(logs) == 1
+    assert 'clients::http::CancelException' in logs[0]['text']
+
+
+@pytest.mark.parametrize(
+    'timeout,deadline,reuse_attempts',
+    [
+        (400, 100, 2),
+        (200, 100, 3),
+    ],
+)
+async def test_deadline_expired_with_reuse(
+    service_client,
+    call,
+    client_metrics,
+    slow_mock,
+    timeout,
+    deadline,
+    reuse_attempts,
+):
+    async with service_client.capture_logs(log_level='INFO') as capture:
+        async with client_metrics:
+            response = await call(
+                headers={DP_TIMEOUT_MS: str(deadline)},
+                timeout=timeout,
+                reuse_attempts=reuse_attempts,
+            )
+            assert response.status == 504
+            assert response.text == 'Deadline expired'
+
+            # With the given test parameters all subsequent "reuse" requests are immidiately exprired.
+            # So, we do not need to wait for the last "reuse" request completion
+
+    assert client_metrics.value_at('cancelled-by-deadline', VERSION) == reuse_attempts
+    assert client_metrics.value_at('errors', {'http_error': 'ok', **VERSION}) == 0
+    # With the given test parameters timeout happens only on the first request.
+    # All subsequent "reuse" requests are immidiately exprired
+    assert client_metrics.value_at('errors', {'http_error': 'timeout', **VERSION}) == 1
+
+    logs = capture.select(stopwatch_name='GET localhost')
+    assert len(logs) == reuse_attempts
+    for i in range(reuse_attempts):
+        log = logs[i]
+        assert log['error'] == '1'
+        assert log['http.request.max_resend_count'] == '1'
+        assert log['cancelled_by_deadline'] == '1'
+        if i == 0:
+            # With the given test parameters timeout happens only on the first request.
+            # All subsequent requests are immidiately exprired
+            assert log['error_msg'] == 'Timeout was reached'
+        else:
+            assert log.get('error_msg') is None
+        assert log['timeout_ms'] == str(timeout)
 
     logs = get_handler_exception_logs(capture)
     assert len(logs) == 1
@@ -200,18 +285,24 @@ def _fake_deadline_expired_mock(mockserver):
         # against the passed deadline and decided that we definitely will not
         # be able to respond in time.
         return mockserver.make_response(
-            status=504, headers={DP_DEADLINE_EXPIRED: '1'},
+            status=504,
+            headers={DP_DEADLINE_EXPIRED: '1'},
         )
 
     return mock
 
 
 async def test_fake_deadline_expired_with_exception(
-    service_client, call, fake_deadline_expired_mock, mockserver,
+    service_client,
+    call,
+    fake_deadline_expired_mock,
+    mockserver,
 ):
     async with service_client.capture_logs() as capture:
         response = await call(
-            headers={DP_TIMEOUT_MS: '300'}, timeout=500, attempts=3,
+            headers={DP_TIMEOUT_MS: '300'},
+            timeout=500,
+            attempts=3,
         )
         assert response.status == 504
         assert response.text == 'Deadline expired'
@@ -225,7 +316,7 @@ async def test_fake_deadline_expired_with_exception(
     deadline_warning = warnings[1]
 
     assert exception_warning['text'].startswith(
-        f'exception in \'handler-chaos-httpclient\' handler: Timeout happened (deadline propagation), '
+        f"exception in 'handler-chaos-httpclient' handler: Timeout happened (deadline propagation), "
         f'url: {mockserver.url("test")}',
     )
 
@@ -234,12 +325,17 @@ async def test_fake_deadline_expired_with_exception(
 
 
 async def test_fake_deadline_expired(
-    service_client, call, client_metrics, fake_deadline_expired_mock,
+    service_client,
+    call,
+    client_metrics,
+    fake_deadline_expired_mock,
 ):
     async with service_client.capture_logs() as capture:
         async with client_metrics:
             response = await call(
-                headers={DP_TIMEOUT_MS: '300'}, timeout=500, attempts=3,
+                headers={DP_TIMEOUT_MS: '300'},
+                timeout=500,
+                attempts=3,
             )
             assert response.status == 504
             assert response.text == 'Deadline expired'
@@ -247,19 +343,14 @@ async def test_fake_deadline_expired(
     assert fake_deadline_expired_mock.times_called == 1
 
     assert client_metrics.value_at('cancelled-by-deadline', VERSION) == 1
-    assert (
-        client_metrics.value_at('errors', {'http_error': 'ok', **VERSION}) == 0
-    )
-    assert (
-        client_metrics.value_at('errors', {'http_error': 'timeout', **VERSION})
-        == 1
-    )
+    assert client_metrics.value_at('errors', {'http_error': 'ok', **VERSION}) == 0
+    assert client_metrics.value_at('errors', {'http_error': 'timeout', **VERSION}) == 1
 
-    logs = capture.select(stopwatch_name='external')
+    logs = capture.select(stopwatch_name='GET localhost')
     assert len(logs) == 1
     assert logs[0]['error'] == '1'
-    assert logs[0]['attempts'] == '1'
-    assert logs[0]['max_attempts'] == '3'
+    assert logs[0]['http.request.resend_count'] == '1'
+    assert logs[0]['http.request.max_resend_count'] == '3'
     assert logs[0]['cancelled_by_deadline'] == '1'
     assert logs[0]['error_msg'] == 'Timeout was reached'
     assert logs[0]['timeout_ms'] == '500'
@@ -271,10 +362,14 @@ async def test_fake_deadline_expired(
 
 
 @pytest.mark.parametrize(
-    'retry_network_errors,retries_performed', [(True, 3), (False, 1)],
+    'retry_network_errors,retries_performed',
+    [(True, 3), (False, 1)],
 )
 async def test_dp_timeout_not_retried(
-    call, fake_deadline_expired_mock, retry_network_errors, retries_performed,
+    call,
+    fake_deadline_expired_mock,
+    retry_network_errors,
+    retries_performed,
 ):
     # If the called service (fake_deadline_expired_mock in this case) returns
     # DP_DEADLINE_EXPIRED header, and our service did not spend the rest of its

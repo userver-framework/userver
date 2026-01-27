@@ -13,9 +13,10 @@ public:
 
     BsonUpsertingHandler(const components::ComponentConfig& config, const components::ComponentContext& context)
         : HttpHandlerBase(config, context),
-          ydb_client_(context.FindComponent<ydb::YdbComponent>().GetTableClient("sampledb")) {}
+          ydb_client_(context.FindComponent<ydb::YdbComponent>().GetTableClient("sampledb"))
+    {}
 
-    std::string HandleRequestThrow(const server::http::HttpRequest& request, server::request::RequestContext& context)
+    std::string HandleRequest(server::http::HttpRequest& request, server::request::RequestContext& context)
         const override;
 
 private:

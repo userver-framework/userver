@@ -14,7 +14,7 @@ static const std::string kLargeString(1024 * 1024, 'A');
 
 using Buffer = engine::io::impl::Buffer;
 
-TEST(Buffer, Ctor) { Buffer buffer; }
+TEST(Buffer, Ctor) { const Buffer buffer; }
 
 TEST(Buffer, Reserve) {
     Buffer buffer(0);

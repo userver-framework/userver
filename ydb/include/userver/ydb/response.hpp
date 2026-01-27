@@ -1,5 +1,6 @@
 #pragma once
 
+#include <ydb-cpp-sdk/client/query/fwd.h>
 #include <ydb-cpp-sdk/client/result/result.h>
 #include <ydb-cpp-sdk/client/table/table.h>
 
@@ -16,17 +17,6 @@
 #include <userver/ydb/io/primitives.hpp>
 #include <userver/ydb/io/traits.hpp>
 #include <userver/ydb/types.hpp>
-
-namespace NYdb {
-class TResultSetParser;
-class TResultSet;
-class TValueParser;
-
-namespace NTable {
-class TDataQueryResult;
-class TTablePartIterator;
-}  // namespace NTable
-}  // namespace NYdb
 
 USERVER_NAMESPACE_BEGIN
 
@@ -165,6 +155,7 @@ class ExecuteResponse final {
 public:
     /// @cond
     explicit ExecuteResponse(NYdb::NTable::TDataQueryResult&& query_result);
+    explicit ExecuteResponse(NYdb::NQuery::TExecuteQueryResult&& query_result);
     /// @endcond
 
     ExecuteResponse(const ExecuteResponse&) = delete;

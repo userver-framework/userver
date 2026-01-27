@@ -27,9 +27,10 @@ using TypeIdentity = typename TypeIdentityImpl<T>::type;
 
 /// A polyfill for std::span from C++20
 template <typename T>
-class span final {
+class span final {  // NOLINT(readability-identifier-naming)
 public:
     using iterator = T*;
+    using value_type = std::remove_cv_t<T>;
 
     constexpr span() noexcept : span(nullptr, nullptr) {}
 
@@ -40,6 +41,23 @@ public:
     constexpr span(T* begin, std::size_t size) noexcept : begin_(begin), end_(begin + size) {
         UASSERT(begin != nullptr || size == 0);
     }
+
+#if defined(__GNUC__) && !defined(__clang__)
+#if __GNUC__ >= 9
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Winit-list-lifetime"
+#endif
+#endif
+    template <typename Void = void, typename = std::enable_if_t<std::is_const_v<T> && std::is_void_v<Void>>>
+    constexpr /*implicit*/ span(std::initializer_list<value_type> il)
+        : begin_(il.begin()),
+          end_(il.end())
+    {}
+#if defined(__GNUC__) && !defined(__clang__)
+#if __GNUC__ >= 9
+#pragma GCC diagnostic pop
+#endif
+#endif
 
     template <
         typename Container,
@@ -102,15 +120,14 @@ span(Container&& cont) -> span<std::remove_reference_t<decltype(*std::begin(cont
 
 /// A polyfill for std::as_bytes from C++20
 template <typename T>
-span<const std::byte> as_bytes(span<T> s) noexcept {
+span<const std::byte> as_bytes(span<T> s) noexcept {  // NOLINT(readability-identifier-naming)
     const auto* const data = reinterpret_cast<const std::byte*>(s.data());
     return {data, data + s.size() * sizeof(T)};
 }
 
 /// A polyfill for std::as_writable_bytes from C++20
-template <typename T>
-span<std::byte> as_writable_bytes(span<T> s) noexcept {
-    static_assert(!std::is_const_v<T>);
+template <typename T, typename = std::enable_if_t<!std::is_const_v<T>>>
+span<std::byte> as_writable_bytes(span<T> s) noexcept {  // NOLINT(readability-identifier-naming)
     auto* const data = reinterpret_cast<std::byte*>(s.data());
     return {data, data + s.size() * sizeof(T)};
 }

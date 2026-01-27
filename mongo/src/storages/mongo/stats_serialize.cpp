@@ -146,7 +146,8 @@ void DumpMetric(utils::statistics::Writer& writer, const PoolStatistics& pool_st
     for (const auto& [coll_name, coll_stats] : pool_stats.collections) {
         UASSERT(coll_stats);
         writer.ValueWithLabels(
-            FormattedCollectionStatistics{*coll_stats, verbosity, pool_overall}, {"mongo_collection", coll_name}
+            FormattedCollectionStatistics{*coll_stats, verbosity, pool_overall},
+            {"mongo_collection", coll_name}
         );
     }
 

@@ -11,37 +11,36 @@
 #include <userver/components/component_fwd.hpp>
 #include <userver/dynamic_config/source.hpp>
 #include <userver/rcu/rcu.hpp>
-#include <userver/storages/redis/impl/base.hpp>
-#include <userver/storages/redis/impl/wait_connected_mode.hpp>
+#include <userver/storages/redis/base.hpp>
+#include <userver/storages/redis/fwd.hpp>
+#include <userver/storages/redis/wait_connected_mode.hpp>
+#include <userver/storages/secdist/secdist.hpp>
 #include <userver/testsuite/redis_control.hpp>
 #include <userver/utils/statistics/entry.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
-class Sentinel;
-class ThreadPools;
-}  // namespace redis
-
 /// Components, clients and helpers for different databases and storages
 namespace storages {}
 
-/// Redis client
+/// Valkey and Redis client and helpers
 namespace storages::redis {
-class Client;
-class SubscribeClient;
+
 class SubscribeClientImpl;
+
+namespace impl {
+class Sentinel;
+class ThreadPools;
+}  // namespace impl
 }  // namespace storages::redis
 
 namespace components {
 
-// clang-format off
-
 /// @ingroup userver_components
 ///
-/// @brief Redis client component
+/// @brief Valkey and Redis client component
 ///
-/// Provides access to a redis cluster.
+/// Provides access to a valkey or redis cluster.
 ///
 /// ## Dynamic options:
 /// * @ref REDIS_COMMANDS_BUFFERING_SETTINGS
@@ -54,20 +53,11 @@ namespace components {
 /// * @ref REDIS_SUBSCRIPTIONS_REBALANCE_MIN_INTERVAL_SECONDS
 /// * @ref REDIS_WAIT_CONNECTED
 ///
-/// ## Static options:
-/// Name | Description | Default value
-/// ---- | ----------- | -------------
-/// thread_pools.redis_thread_pool_size | thread count to serve Redis requests | -
-/// thread_pools.sentinel_thread_pool_size | thread count to serve sentinel requests. | -
-/// groups | array of redis clusters to work with excluding subscribers | -
-/// groups.[].config_name | key name in secdist with options for this cluster | -
-/// groups.[].db | name to refer to the cluster in components::Redis::GetClient() | -
-/// groups.[].sharding_strategy | one of RedisCluster, KeyShardCrc32, KeyShardTaximeterCrc32 or KeyShardGpsStorageDriver | "KeyShardTaximeterCrc32"
-/// groups.[].allow_reads_from_master | allows read requests from master instance | false
-/// subscribe_groups | array of redis clusters to work with in subscribe mode | -
-/// subscribe_groups.[].config_name | key name in secdist with options for this cluster | -
-/// subscribe_groups.[].db | name to refer to the cluster in components::Redis::GetSubscribeClient() | -
-/// subscribe_groups.[].sharding_strategy | either RedisCluster or KeyShardTaximeterCrc32 | "KeyShardTaximeterCrc32"
+/// ## Static options of components::Redis :
+/// @include{doc} scripts/docs/en/components_schema/redis/src/storages/redis/component.md
+///
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
 ///
 /// ## Static configuration example:
 ///
@@ -98,6 +88,8 @@ namespace components {
 ///   "redis_settings": {
 ///     "some_name_of_your_database": {
 ///       "password": "the_password_of_your_database",
+///       "sentinel_password": "the_password_for_sentinels_if_any",
+///       "secure_connection": false,
 ///       "sentinels": [
 ///         {"host": "the_host1_of_your_database", "port": 11564}
 ///       ],
@@ -109,10 +101,16 @@ namespace components {
 /// }
 /// @endcode
 ///
-/// ## Cluster Redis setup
+/// For an example of Secdist setup for standalone, sentinel and cluster testsuite configurations see the snippet:
 ///
-/// Redis cluster is the new recommended way of setting up Redis servers
-/// with improved stability.
+/// @snippet redis/functional_tests/integration_tests/tests/conftest.py  Sample pytest redis configuration
+///
+/// Note that if the components::Secdist component has `update-period` other
+/// than 0, then new connections are created or gracefully closed as the secdist configuration change to new value.
+///
+/// ## Cluster Valkey or Cluster Redis setup
+///
+/// Valkey/Redis cluster is the new recommended way of setting up key-value datastores with improved stability.
 ///
 /// To start, set `sharding_strategy: RedisCluster` in the static config
 /// as shown above.
@@ -122,8 +120,6 @@ namespace components {
 /// 1. `"shards"` field is ignored, you can specify an empty array there;
 /// 2. `"sentinels"` field should contain some of the cluster nodes. They are
 ///    only used for topology discovery; it is not necessary to list all nodes.
-
-// clang-format on
 class Redis : public ComponentBase {
 public:
     Redis(const ComponentConfig& config, const ComponentContext& component_context);
@@ -134,16 +130,22 @@ public:
     /// @brief The default name of components::Redis
     static constexpr std::string_view kName = "redis";
 
-    std::shared_ptr<storages::redis::Client>
-    GetClient(const std::string& name, USERVER_NAMESPACE::redis::RedisWaitConnected wait_connected = {}) const;
-    [[deprecated("use GetClient()")]] std::shared_ptr<redis::Sentinel> Client(const std::string& name) const;
-    std::shared_ptr<storages::redis::SubscribeClient>
-    GetSubscribeClient(const std::string& name, USERVER_NAMESPACE::redis::RedisWaitConnected wait_connected = {}) const;
+    std::shared_ptr<storages::redis::Client> GetClient(
+        const std::string& name,
+        storages::redis::RedisWaitConnected wait_connected = {}
+    ) const;
+    [[deprecated("use GetClient()")]] std::shared_ptr<storages::redis::impl::Sentinel> Client(const std::string& name
+    ) const;
+    std::shared_ptr<storages::redis::SubscribeClient> GetSubscribeClient(
+        const std::string& name,
+        storages::redis::RedisWaitConnected wait_connected = {}
+    ) const;
 
     static yaml_config::Schema GetStaticConfigSchema();
 
 private:
     void OnConfigUpdate(const dynamic_config::Snapshot& cfg);
+    void OnSecdistUpdate(const storages::secdist::SecdistConfig& cfg);
 
     void Connect(
         const ComponentConfig& config,
@@ -154,20 +156,21 @@ private:
     void WriteStatistics(utils::statistics::Writer& writer);
     void WriteStatisticsPubsub(utils::statistics::Writer& writer);
 
-    std::shared_ptr<redis::ThreadPools> thread_pools_;
-    std::unordered_map<std::string, std::shared_ptr<redis::Sentinel>> sentinels_;
+    std::shared_ptr<storages::redis::impl::ThreadPools> thread_pools_;
+    std::unordered_map<std::string, std::shared_ptr<storages::redis::impl::Sentinel>> sentinels_;
     std::unordered_map<std::string, std::shared_ptr<storages::redis::Client>> clients_;
     std::unordered_map<std::string, std::shared_ptr<storages::redis::SubscribeClientImpl>> subscribe_clients_;
 
     dynamic_config::Source config_;
     concurrent::AsyncEventSubscriberScope config_subscription_;
+    concurrent::AsyncEventSubscriberScope secdist_subscription_;
 
     utils::statistics::Entry statistics_holder_;
     utils::statistics::Entry subscribe_statistics_holder_;
 
-    redis::MetricsSettings::StaticSettings static_metrics_settings_;
-    rcu::Variable<redis::MetricsSettings> metrics_settings_;
-    rcu::Variable<redis::PubsubMetricsSettings> pubsub_metrics_settings_;
+    storages::redis::MetricsSettings::StaticSettings static_metrics_settings_;
+    rcu::Variable<storages::redis::MetricsSettings> metrics_settings_;
+    rcu::Variable<storages::redis::PubsubMetricsSettings> pubsub_metrics_settings_;
 };
 
 template <>

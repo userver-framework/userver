@@ -6,9 +6,9 @@
 namespace sample {
 
 formats::json::Value UpsertRowHandler::
-    HandleRequestJsonThrow(const server::http::HttpRequest& httpRequest, const formats::json::Value& request, server::request::RequestContext&)
+    HandleRequestJsonThrow(const server::http::HttpRequest& http_request, const formats::json::Value& request, server::request::RequestContext&)
         const {
-    httpRequest.GetHttpResponse().SetContentType(http::content_type::kApplicationJson);
+    http_request.GetHttpResponse().SetContentType(http::content_type::kApplicationJson);
     static const ydb::Query kUpsertQuery{
         R"(
 --!syntax_v1
@@ -21,7 +21,8 @@ DECLARE $state_key AS Json?;
 UPSERT INTO events (id, name, service, channel, created, state)
 VALUES ($id_key, $name_key, $service_key, $channel_key, CurrentUtcTimestamp(), $state_key);
       )",
-        ydb::Query::Name{"upsert-row"},
+        ydb::Query::NameLiteral{"upsert-row"},
+        ydb::Query::LogMode::kNameOnly,
     };
 
     auto response = Ydb().ExecuteDataQuery(

@@ -5,13 +5,14 @@
 #include <deque>
 #include <vector>
 
+#include <userver/kafka/headers.hpp>
 #include <userver/kafka/impl/broker_secrets.hpp>
 #include <userver/kafka/impl/configuration.hpp>
 #include <userver/kafka/impl/consumer.hpp>
 #include <userver/kafka/producer.hpp>
 #include <userver/utest/utest.hpp>
+#include <userver/utils/box.hpp>
 #include <userver/utils/span.hpp>
-
 USERVER_NAMESPACE_BEGIN
 
 namespace kafka::utest {
@@ -23,7 +24,8 @@ struct Message {
     std::string topic;
     std::string key;
     std::string payload;
-    std::optional<std::uint32_t> partition;
+    std::optional<std::uint32_t> partition{};
+    std::vector<OwningHeader> headers{};
 };
 
 bool operator==(const Message& lhs, const Message& rhs);
@@ -60,13 +62,14 @@ public:
     /// To use custom delivery timeout in test, pass `configuration` argument to
     /// MakeProducer.
     static constexpr const std::chrono::milliseconds kDefaultTestProducerTimeout{
-        USERVER_NAMESPACE::utest::kMaxTestWaitTime / 2};
+        USERVER_NAMESPACE::utest::kMaxTestWaitTime / 2
+    };
 
     KafkaCluster();
 
-    ~KafkaCluster() override = default;
+    ~KafkaCluster() override;
 
-    std::string GenerateTopic();
+    std::string GenerateTopic(std::uint32_t partition_cnt = 1);
 
     std::vector<std::string> GenerateTopics(std::size_t count);
 
@@ -86,7 +89,7 @@ public:
 
     std::deque<Producer> MakeProducers(
         std::size_t count,
-        std::function<std::string(std::size_t)> nameGenerator,
+        std::function<std::string(std::size_t)> name_generator,
         impl::ProducerConfiguration configuration = {}
     );
 
@@ -109,15 +112,24 @@ public:
         std::optional<std::function<void(MessageBatchView)>> user_callback = {}
     );
 
+    /// @brief The same as previous, but working with consumer_scope passed to function.
+    std::vector<Message> ReceiveMessages(
+        ConsumerScope& consumer,
+        std::size_t expected_messages_count,
+        bool commit_after_receive = true,
+        std::optional<std::function<void(MessageBatchView)>> user_callback = {}
+    );
+
 private:
     impl::Secret AddBootstrapServers(impl::Secret secrets) const;
+    std::string InitBootstrapServers();
 
 private:
-    std::atomic<std::size_t> topics_count_{0};
-
+    static std::atomic<std::size_t> kTopicsCount;
+    class MockCluster;
+    utils::Box<MockCluster> mock_;
     const std::string bootstrap_servers_;
 };
-
 }  // namespace kafka::utest
 
 USERVER_NAMESPACE_END

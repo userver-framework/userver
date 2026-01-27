@@ -11,21 +11,15 @@ USERVER_NAMESPACE_BEGIN
 
 namespace components {
 
-// clang-format off
-
 /// @ingroup userver_components
 ///
 /// @brief Component for storing files in memory
-/// ## Static options:
 ///
-/// Name              | Description                                          | Default value
-/// ----------------- | ---------------------------------------------------- | -------------
-/// dir               | directory to cache files from                        | /var/www
-/// update-period     | Update period (0 - fill the cache only at startup)   | 0
-/// fs-task-processor | task processor to do filesystem operations           | fs-task-processor
-
-// clang-format on
-
+/// ## Static options of components::FsCache :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/fs_cache.md
+///
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
 class FsCache final : public components::ComponentBase {
 public:
     using Client = fs::FsCacheClient;

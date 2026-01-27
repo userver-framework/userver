@@ -23,7 +23,13 @@ namespace storages::postgres::detail::topology {
 class TopologyBase {
 public:
     using DsnIndex = size_t;
-    using DsnIndices = std::vector<DsnIndex>;
+    struct DsnIndices final {
+        // all alive indices
+        std::vector<DsnIndex> indices{};
+
+        // index with lowest rrt
+        std::optional<DsnIndex> nearest{};
+    };
     using DsnIndicesByType = std::unordered_map<ClusterHostType, DsnIndices, ClusterHostTypeHash>;
 
     TopologyBase(
@@ -34,7 +40,8 @@ public:
         const ConnectionSettings& conn_settings,
         const DefaultCommandControls& default_cmd_ctls,
         const testsuite::PostgresControl& testsuite_pg_ctl,
-        error_injection::Settings ei_settings
+        error_injection::Settings ei_settings,
+        USERVER_NAMESPACE::utils::statistics::MetricsStoragePtr metrics
     );
 
     virtual ~TopologyBase() = default;
@@ -66,6 +73,7 @@ private:
     const DefaultCommandControls default_cmd_ctls_;
     const testsuite::PostgresControl testsuite_pg_ctl_;
     const error_injection::Settings ei_settings_;
+    USERVER_NAMESPACE::utils::statistics::MetricsStoragePtr metrics_;
 };
 
 }  // namespace storages::postgres::detail::topology

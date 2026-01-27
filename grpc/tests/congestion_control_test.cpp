@@ -15,41 +15,83 @@ namespace {
 
 class UnitTestService final : public sample::ugrpc::UnitTestServiceBase {
 public:
-    void SayHello(SayHelloCall& call, sample::ugrpc::GreetingRequest&& request) override {
+    SayHelloResult SayHello(CallContext& /*context*/, sample::ugrpc::GreetingRequest&& request) override {
         sample::ugrpc::GreetingResponse response;
         response.set_name("Hello " + request.name());
-        call.Finish(response);
+        return response;
     }
 };
 
-class CongestionControlTest : public ugrpc::tests::ServiceFixtureBase {
-protected:
-    CongestionControlTest() {
-        auto congestion_control_middleware =
-            std::make_shared<ugrpc::server::middlewares::congestion_control::Middleware>();
-        congestion_control_middleware->SetLimit(0);
-        SetServerMiddlewares({congestion_control_middleware});
-
-        RegisterService(service_);
-        StartServer();
-    }
+class CongestionControlTest
+    : public ugrpc::tests::ServiceWithClientFixture<UnitTestService, sample::ugrpc::UnitTestServiceClient> {
+public:
+    CongestionControlTest()
+        : ugrpc::tests::ServiceWithClientFixture<UnitTestService, sample::ugrpc::UnitTestServiceClient>(
+              ugrpc::server::ServerConfig{},
+              ugrpc::server::Middlewares{MakeMiddleware()},
+              ugrpc::client::Middlewares{}
+          )
+    {}
 
 private:
-    UnitTestService service_;
+    std::shared_ptr<ugrpc::server::middlewares::congestion_control::Middleware> MakeMiddleware() {
+        std::shared_ptr<utils::TokenBucket>
+            rate_limit = std::make_shared<utils::TokenBucket>(utils::TokenBucket::MakeUnbounded());
+        rate_limit->SetMaxSize(0);
+        return std::make_shared<ugrpc::server::middlewares::congestion_control::Middleware>(
+            ugrpc::server::middlewares::congestion_control::Settings{},
+            rate_limit
+        );
+    }
+};
+
+class CongestionControlCustomCodeTest
+    : public ugrpc::tests::ServiceWithClientFixture<UnitTestService, sample::ugrpc::UnitTestServiceClient> {
+public:
+    CongestionControlCustomCodeTest()
+        : ugrpc::tests::ServiceWithClientFixture<UnitTestService, sample::ugrpc::UnitTestServiceClient>(
+              ugrpc::server::ServerConfig{},
+              ugrpc::server::Middlewares{MakeMiddleware()},
+              ugrpc::client::Middlewares{}
+          )
+    {}
+
+private:
+    std::shared_ptr<ugrpc::server::middlewares::congestion_control::Middleware> MakeMiddleware() {
+        std::shared_ptr<utils::TokenBucket>
+            rate_limit = std::make_shared<utils::TokenBucket>(utils::TokenBucket::MakeUnbounded());
+        rate_limit->SetMaxSize(0);
+        return std::make_shared<ugrpc::server::middlewares::congestion_control::Middleware>(
+            ugrpc::server::middlewares::congestion_control::Settings{grpc::StatusCode::INTERNAL},
+            rate_limit
+        );
+    }
 };
 
 }  // namespace
 
 UTEST_F(CongestionControlTest, Basic) {
-    const auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
-
     sample::ugrpc::GreetingRequest out;
     out.set_name("userver");
-    auto call = client.SayHello(out);
+    auto future = GetClient().AsyncSayHello(out);
 
-    UEXPECT_THROW(call.Finish(), ugrpc::client::ResourceExhaustedError);
+    UEXPECT_THROW(future.Get(), ugrpc::client::ResourceExhaustedError);
 
-    const auto& metadata = call.GetContext().GetServerInitialMetadata();
+    const auto& metadata = future.GetContext().GetClientContext().GetServerInitialMetadata();
+    ASSERT_EQ(
+        ugrpc::impl::kCongestionControlRatelimitReason,
+        utils::FindOrDefault(metadata, ugrpc::impl::kXYaTaxiRatelimitReason)
+    );
+}
+
+UTEST_F(CongestionControlCustomCodeTest, CustomCode) {
+    sample::ugrpc::GreetingRequest out;
+    out.set_name("userver");
+    auto future = GetClient().AsyncSayHello(out);
+
+    UEXPECT_THROW(future.Get(), ugrpc::client::InternalError);
+
+    const auto& metadata = future.GetContext().GetClientContext().GetServerInitialMetadata();
     ASSERT_EQ(
         ugrpc::impl::kCongestionControlRatelimitReason,
         utils::FindOrDefault(metadata, ugrpc::impl::kXYaTaxiRatelimitReason)

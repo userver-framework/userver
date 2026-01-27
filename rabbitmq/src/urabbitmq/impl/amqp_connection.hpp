@@ -33,7 +33,10 @@ private:
 template <typename Channel>
 class LockedChannelProxy final {
 public:
-    LockedChannelProxy(Channel& channel, ConnectionLock&& lock) : channel_{channel}, lock_{std::move(lock)} {}
+    LockedChannelProxy(Channel& channel, ConnectionLock&& lock)
+        : channel_{channel},
+          lock_{std::move(lock)}
+    {}
     ~LockedChannelProxy() = default;
 
     LockedChannelProxy(const LockedChannelProxy& other) = delete;

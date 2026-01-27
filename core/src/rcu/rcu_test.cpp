@@ -19,10 +19,10 @@ using X = std::pair<int, int>;
 
 }  // namespace
 
-UTEST(Rcu, Ctr) { rcu::Variable<X> ptr; }
+UTEST(Rcu, Ctr) { const rcu::Variable<X> ptr; }
 
 UTEST(Rcu, ReadInit) {
-    rcu::Variable<X> ptr(1, 2);
+    const rcu::Variable<X> ptr(1, 2);
 
     auto reader = ptr.Read();
     EXPECT_EQ(std::make_pair(1, 2), *reader);
@@ -103,7 +103,9 @@ UTEST(Rcu, ReadCommitted) {
 template <typename Tag>
 struct Counted {
     Counted() { counter++; }
-    Counted(const Counted&) : Counted() {}
+    Counted(const Counted&)
+        : Counted()
+    {}
     Counted(Counted&&) = delete;
 
     ~Counted() { counter--; }
@@ -217,7 +219,10 @@ UTEST(Rcu, ReadablePtrMoveAssign) {
 
 UTEST(Rcu, NoCopy) {
     struct X {
-        X(int x_, bool y_) : x(x_), y(y_) {}
+        X(int x, bool y)
+            : x(x),
+              y(y)
+        {}
 
         X(X&&) = default;
         X(const X&) = delete;
@@ -397,7 +402,9 @@ namespace {
 struct CleaningUpInt final {
     std::uint64_t value;
 
-    explicit CleaningUpInt(std::uint64_t value) : value(value) {}
+    explicit CleaningUpInt(std::uint64_t value)
+        : value(value)
+    {}
     ~CleaningUpInt() { value = 0; }
 };
 
@@ -422,7 +429,7 @@ UTEST_MT(Rcu, TortureTest, kTotalTasks) {
         tasks.push_back(engine::AsyncNoSpan([&] {
             while (keep_running) {
                 {
-                    std::lock_guard lock(ping_pong_mutex);
+                    const std::lock_guard lock(ping_pong_mutex);
                     // copy a ptr created by another thread
                     ptr = rcu::ReadablePtr{ptr};
                     ASSERT_GT(ptr->value, 0);
@@ -487,7 +494,9 @@ namespace {
 
 class DestructionTracker final {
 public:
-    explicit DestructionTracker(std::atomic<bool>& destroyed) : destroyed_(destroyed) {}
+    explicit DestructionTracker(std::atomic<bool>& destroyed)
+        : destroyed_(destroyed)
+    {}
 
     ~DestructionTracker() { destroyed_.store(true); }
 
@@ -544,12 +553,12 @@ UTEST_MT(Rcu, Core, 3) {
 
         // reader task
         tasks.push_back(engine::AsyncNoSpan([&] {
-            auto* t_ptr_ = &non_null;
+            auto* t_ptr = &non_null;
             // mimics storing current_ address into a hazard pointer
-            hazard_pointer.store(t_ptr_, std::memory_order_seq_cst);
+            hazard_pointer.store(t_ptr, std::memory_order_seq_cst);
 
             // mimics checking if the previously read current_ is still current
-            if (t_ptr_ == is_old_value_current.load()) {
+            if (t_ptr == is_old_value_current.load()) {
                 // success - check that "the object is alive"
                 EXPECT_EQ(old_value, 42);
             }
@@ -567,12 +576,14 @@ UTEST_MT(Rcu, Core, 3) {
             }
         }));
 
-        for (auto& task : tasks) task.Get();
+        for (auto& task : tasks) {
+            task.Get();
+        }
     }
 }
 
 TEST(Rcu, StdMutexInit) {
-    rcu::Variable<X, rcu::BlockingRcuTraits> ptr(1, 2);
+    const rcu::Variable<X, rcu::BlockingRcuTraits> ptr(1, 2);
     auto reader = ptr.Read();
     EXPECT_EQ(std::make_pair(1, 2), *reader);
 }
@@ -588,6 +599,14 @@ TEST(Rcu, StdMutexChangeRead) {
 
     auto reader = ptr.Read();
     EXPECT_EQ(std::make_pair(3, 2), *reader);
+}
+
+TEST(Rcu, StdMutexWrite) {
+    std::thread new_thread{[] {
+        rcu::Variable<int, rcu::BlockingRcuTraits> v;
+        v.Assign(42);
+    }};
+    new_thread.join();
 }
 
 TEST(Rcu, StdMutexConcurrentWrites) {
@@ -622,7 +641,9 @@ namespace {
 
 struct ThrowsOnZero final {
     explicit ThrowsOnZero(int x) {
-        if (x == 0) throw std::runtime_error("Zero");
+        if (x == 0) {
+            throw std::runtime_error("Zero");
+        }
     }
 };
 

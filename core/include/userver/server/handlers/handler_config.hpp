@@ -28,7 +28,7 @@ enum class UrlTrailingSlashOption {
 
 struct HandlerConfig {
     std::variant<std::string, FallbackHandler> path;
-    std::string task_processor;
+    std::optional<std::string> task_processor;
     std::string method;
     request::HttpRequestConfig request_config{};
     size_t request_body_size_log_limit{0};
@@ -44,6 +44,7 @@ struct HandlerConfig {
     std::optional<bool> set_response_server_hostname;
     bool set_tracing_headers{true};
     bool deadline_propagation_enabled{true};
+    bool enable_write_statistics{true};
     http::HttpStatus deadline_expired_status_code{498};
 };
 

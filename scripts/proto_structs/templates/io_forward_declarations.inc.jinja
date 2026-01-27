@@ -1,0 +1,76 @@
+{% import "utils.inc.jinja" as utils %}
+
+{% macro render_gen_node(node, context) %}
+{% if node.kind == "namespace" %}
+{{ do_render_namespace(node) -}}
+{% elif node.kind == "struct" %}
+{{ do_render_struct(node, context) -}}
+{% elif node.kind == "oneof" %}
+{{ do_render_oneof(node, context) -}}
+{% endif %}
+{% endmacro %}
+
+{% macro do_render_namespace(namespace) %}
+
+{% call utils.optional_namespace(namespace.short_name) %}
+{% for child in namespace.children %}
+{{ render_gen_node(child, namespace) -}}
+{% endfor %}
+
+{% endcall %}  {#- optional namespace -#}
+{% endmacro %}
+
+{% macro do_render_struct(node, context) %}
+
+// ---------- IO for {{ node.full_cpp_name() }} ----------
+{{ do_render_read(node, context) -}}
+{{ do_render_write_const_ref(node, context) -}}
+{{ do_render_write_rvalue(node, context) -}}
+{% for nested in node.nested_types %}
+{{ render_gen_node(nested, context) -}}
+{% endfor %}
+{% endmacro %}
+
+{% macro do_render_read(type_node, context) %}
+
+{{ type_node.contextual_cpp_name(context=context) }} ReadProtoStruct(
+{% filter indent(width=4, first=True) %}
+USERVER_NAMESPACE::proto_structs::io::ReadContext&,
+USERVER_NAMESPACE::proto_structs::io::To<{{ type_node.contextual_cpp_name(context=context) }}>,
+const ::{{ type_node.vanilla_full_name_fwd }}&
+{% endfilter %}
+);
+{% endmacro %}
+
+{% macro do_render_write_const_ref(type_node, context) %}
+
+void WriteProtoStruct(
+{% filter indent(width=4, first=True) %}
+USERVER_NAMESPACE::proto_structs::io::WriteContext&,
+const {{ type_node.contextual_cpp_name(context=context) }}&,
+::{{ type_node.vanilla_full_name_fwd }}&
+{% endfilter %}
+);
+{% endmacro %}
+
+{% macro do_render_write_rvalue(type_node, context) %}
+
+void WriteProtoStruct(
+{% filter indent(width=4, first=True) %}
+USERVER_NAMESPACE::proto_structs::io::WriteContext&,
+{{ type_node.contextual_cpp_name(context=context) }}&&,
+::{{ type_node.vanilla_full_name_fwd }}&
+{% endfilter %}
+);
+{% endmacro %}
+
+{% macro do_render_oneof(oneof, context) %}
+
+// ---------- IO for {{ oneof.full_cpp_name() }} ----------
+
+{% set oneof_type_name = oneof.contextual_cpp_name(context=context) %}
+{% for field in oneof.fields %}
+{% set field_type_name = field.field_type.contextual_cpp_name(context=context) %}
+UPROTO_ONEOF_DEFINE_FIELD_FUNCTIONS({{ oneof_type_name }}, {{ field_type_name }}, {{ field.short_name }})
+{% endfor %} {#- for field -#}
+{% endmacro %}

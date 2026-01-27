@@ -4,36 +4,35 @@
 
 #include <userver/engine/single_use_event.hpp>
 #include <userver/engine/task/cancel.hpp>
-#include <userver/ugrpc/impl/async_method_invocation.hpp>
+
+#include <userver/ugrpc/impl/event_base.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::server::impl {
 
-class RpcFinishedEvent final : public ugrpc::impl::EventBase {
+class RpcDoneEvent final : public ugrpc::impl::EventBase {
 public:
-    RpcFinishedEvent(engine::TaskCancellationToken cancellation_token, grpc::ServerContext& server_ctx) noexcept;
+    RpcDoneEvent(engine::TaskCancellationToken cancellation_token, const grpc::ServerContext& server_context) noexcept;
 
-    RpcFinishedEvent(const RpcFinishedEvent&) = delete;
-    RpcFinishedEvent& operator=(const RpcFinishedEvent&) = delete;
-    RpcFinishedEvent(RpcFinishedEvent&&) = delete;
-    RpcFinishedEvent& operator=(RpcFinishedEvent&&) = delete;
+    RpcDoneEvent(const RpcDoneEvent&) = delete;
+    RpcDoneEvent& operator=(const RpcDoneEvent&) = delete;
+    RpcDoneEvent(RpcDoneEvent&&) = delete;
+    RpcDoneEvent& operator=(RpcDoneEvent&&) = delete;
 
-    void* GetTag() noexcept;
+    void* GetCompletionTag() noexcept;
 
     /// @see EventBase::Notify
     void Notify(bool ok) noexcept override;
 
     /// @brief For use from coroutines
-    void Wait() noexcept;
+    void WaitNonCancellable() noexcept;
 
 private:
     engine::TaskCancellationToken cancellation_token_;
-    grpc::ServerContext& server_ctx_;
+    const grpc::ServerContext& server_context_;
     engine::SingleUseEvent event_;
 };
-
-ugrpc::impl::AsyncMethodInvocation::WaitStatus Wait(ugrpc::impl::AsyncMethodInvocation& async);
 
 }  // namespace ugrpc::server::impl
 

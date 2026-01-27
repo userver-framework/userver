@@ -27,7 +27,8 @@ UTEST(PreparedStatement, InvalidStatement) {
     ClusterWrapper cluster{};
 
     UEXPECT_THROW(
-        cluster->Execute(ClusterHostType::kPrimary, "SELECT * FROM this_table_doesnt_exist"), MySQLStatementException
+        cluster->Execute(ClusterHostType::kPrimary, "SELECT * FROM this_table_doesnt_exist"),
+        MySQLStatementException
     );
 }
 

@@ -12,11 +12,11 @@ public:
 
     DynamicConfig(const components::ComponentConfig&, const components::ComponentContext&);
 
-    std::string HandleRequestThrow(const server::http::HttpRequest& request, server::request::RequestContext& context)
+    std::string HandleRequest(server::http::HttpRequest& request, server::request::RequestContext& context)
         const override;
 
 private:
-    dynamic_config::Source config_source_;
+    USERVER_NAMESPACE::dynamic_config::Source config_source_;
 };
 
 }  // namespace tests::handlers

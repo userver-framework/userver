@@ -14,7 +14,8 @@ DnsClientControl::DnsClientControl(
     const components::ComponentContext& context
 )
     : HttpHandlerBase{config, context, /*is_monitor=*/true},
-      resolver_{&context.FindComponent<clients::dns::Component>().GetResolver()} {}
+      resolver_{&context.FindComponent<clients::dns::Component>().GetResolver()}
+{}
 
 std::string DnsClientControl::HandleRequestThrow(const http::HttpRequest& request, request::RequestContext&) const {
     UASSERT(resolver_);

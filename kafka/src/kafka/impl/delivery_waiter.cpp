@@ -5,7 +5,9 @@ USERVER_NAMESPACE_BEGIN
 namespace kafka::impl {
 
 DeliveryResult::DeliveryResult(rd_kafka_resp_err_t message_error, std::optional<rd_kafka_msg_status_t> message_status)
-    : message_error_(message_error), message_status_(message_status) {}
+    : message_error_(message_error),
+      message_status_(message_status)
+{}
 
 bool DeliveryResult::IsSuccess() const {
     return message_error_ == RD_KAFKA_RESP_ERR_NO_ERROR &&

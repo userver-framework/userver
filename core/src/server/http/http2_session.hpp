@@ -23,7 +23,8 @@ namespace server::http {
 
 inline constexpr std::string_view kSwitchingProtocolResponse{
     "HTTP/1.1 101 Switching Protocols\r\nConnection: Upgrade\r\nUpgrade: "
-    "h2c\r\n\r\n"};
+    "h2c\r\n\r\n"
+};
 
 // nghttp2_session_upgrade2 opens the stream with id=1 and we must use it.
 // See docs:
@@ -34,7 +35,7 @@ class HttpRequestParser;
 
 class Http2Session final : public request::RequestParser {
 public:
-    using OnNewRequestCb = std::function<void(std::shared_ptr<request::RequestBase>&&)>;
+    using OnNewRequestCb = std::function<void(std::shared_ptr<http::HttpRequest>&&)>;
 
     Http2Session(
         const HandlerInfoIndex& handler_info_index,

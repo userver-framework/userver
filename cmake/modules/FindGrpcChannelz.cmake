@@ -6,12 +6,8 @@ _userver_module_begin(
     PKG_CONFIG_NAMES grpc++
 )
 
-_userver_module_find_include(
-    NAMES grpc/grpc.h
-)
+_userver_module_find_include(NAMES grpc/grpc.h)
 
-_userver_module_find_library(
-    NAMES grpcpp_channelz
-)
+_userver_module_find_library(NAMES grpcpp_channelz)
 
 _userver_module_end()

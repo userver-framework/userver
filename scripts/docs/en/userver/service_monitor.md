@@ -1,32 +1,33 @@
-# Service Statistics and Metrics (Prometheus/Graphite/...)
+# Retrieveing Service Statistics and Metrics (Prometheus/Graphite/...) and Default Metrics Description
 
-If your service has a server::handlers::ServerMonitor configured, then you may
+If your service has a @ref server::handlers::ServerMonitor configured, then you may
 get the service statistics and metrics.
 
 To produce metrics in declarative style refer to the docs of the
-utils::statistics::MetricTag; to register your metrics writer on per component
-basis refer to the docs of utils::statistics::Storage. To test metrics refer to
+@ref utils::statistics::MetricTag; to register your metrics writer on per component
+basis refer to the docs of @ref utils::statistics::Writer. To test metrics refer to
 the @ref TESTSUITE_METRICS_TESTING "testsuite metrics testing".
+
+For information how to write your own metric see @ref scripts/docs/en/userver/metrics.md
 
 
 ## Commands
 
-server::handlers::ServerMonitor has a REST API. Full description could be found
-at server::handlers::ServerMonitor.
+@ref server::handlers::ServerMonitor has a REST API. Full description could be found
+at @ref server::handlers::ServerMonitor.
 
 The simplest way to experiment with metrics is to start a sample by running
 `make start-userver-samples-production_service` from the build directory and
 make some requests from another terminal window, for example
 `curl http://localhost:8086/service/monitor?format=prometheus`.
 
-Note that the server::handlers::ServerMonitor handler lives at the separate
+Note that the @ref server::handlers::ServerMonitor handler lives at the separate
 `components.server.listener-monitor` address, so you have to request them using the
 `listener-monitor` credentials. See @ref scripts/docs/en/userver/tutorial/production_service.md
-for more info on configuration and ideas on how to change the
-`/service/monitor` handle path.
+for more info on configuration and ideas on how to change the `/service/monitor` handle path.
 
 @note `prefix` and `path` parameters may refuse to work if one of the functions
-  from userver/utils/statistics/metadata.hpp was used on a node that forms the
+  from @ref userver/utils/statistics/metadata.hpp was used on a node that forms the
   path.
 
 
@@ -73,7 +74,7 @@ engine.load-ms 160 1665765043
 ### Metrics Description
 
 The amount of metrics depends on components count, threads count,
-utils::statistics::MetricTag usage and configuration options.
+@ref utils::statistics::MetricTag usage and configuration options.
 ```
 bash
 $ curl http://localhost:8086/service/monitor?format=pretty | sort
@@ -87,35 +88,34 @@ metric-path: label1=value1, label2=value2 METRIC_TYPE value
 @include core/functional_tests/metrics/tests/static/metrics_values.txt
 
 
-With components::Postgres, some components::PostgreCache and some
-storages::postgres::DistLockComponentBase the following additional metrics
-appear:
+With @ref components::Postgres, some @ref components::PostgreCache and some
+@ref storages::postgres::DistLockComponentBase the following additional metrics appear:
 
 @include postgresql/functional_tests/metrics/tests/static/metrics_values.txt
 
 
-With components::Mongo and some storages::mongo::DistLockComponentBase the
+With components::Mongo and some @ref storages::mongo::DistLockComponentBase the
 following additional metrics appear:
 
 @include mongo/functional_tests/metrics/tests/static/metrics_values.txt
 
 
-With components::Redis the following additional metrics appear:
+With @ref components::Redis the following additional metrics appear:
 
 @include redis/functional_tests/metrics/tests/static/metrics_values.txt
 
 
-With components::ClickHouse the following additional metrics appear:
+With @ref components::ClickHouse the following additional metrics appear:
 
 @include clickhouse/functional_tests/metrics/tests/static/metrics_values.txt
 
 
-With components::RabbitMQ the following additional metrics appear:
+With @ref components::RabbitMQ the following additional metrics appear:
 
 @include rabbitmq/functional_tests/metrics/tests/static/metrics_values.txt
 
 
-With grpc client and server the following additional metrics appear:
+With gRPC client and server the following additional metrics appear:
 
 @include grpc/functional_tests/metrics/tests/static/metrics_values.txt
 
@@ -123,6 +123,6 @@ With grpc client and server the following additional metrics appear:
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref scripts/docs/en/userver/requests_in_flight.md | @ref scripts/docs/en/userver/memory_profile_running_service.md ⇨
+⇦ @ref scripts/docs/en/userver/metrics.md | @ref scripts/docs/en/userver/memory_profile_running_service.md ⇨
 @htmlonly </div> @endhtmlonly
 

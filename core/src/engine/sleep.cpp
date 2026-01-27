@@ -24,15 +24,17 @@ public:
 
 void InterruptibleSleepUntil(Deadline deadline) {
     auto& current = current_task::GetCurrentTaskContext();
-    const utils::FastScopeGuard reset_background([&current, previous_background_flag = current.IsBackground()](
-                                                 ) noexcept { current.SetBackground(previous_background_flag); });
+    const utils::FastScopeGuard
+        reset_background([&current, previous_background_flag = current.IsBackground()]() noexcept {
+            current.SetBackground(previous_background_flag);
+        });
     current.SetBackground(true);
     impl::CommonSleepWaitStrategy wait_manager{};
     current.Sleep(wait_manager, deadline);
 }
 
 void SleepUntil(Deadline deadline) {
-    TaskCancellationBlocker block_cancel;
+    const TaskCancellationBlocker block_cancel;
     InterruptibleSleepUntil(deadline);
 }
 

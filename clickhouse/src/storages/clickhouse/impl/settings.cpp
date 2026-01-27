@@ -11,6 +11,7 @@
 #include <boost/range/adaptor/map.hpp>
 
 #include <fmt/format.h>
+#include <fmt/ranges.h>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -18,8 +19,9 @@ namespace storages::clickhouse::impl {
 
 namespace {
 ConnectionSettings::ConnectionMode GetConnectionMode(bool use_secure_connection) {
-    return use_secure_connection ? ConnectionSettings::ConnectionMode::kSecure
-                                 : ConnectionSettings::ConnectionMode::kNonSecure;
+    return use_secure_connection
+               ? ConnectionSettings::ConnectionMode::kSecure
+               : ConnectionSettings::ConnectionMode::kNonSecure;
 }
 
 std::vector<std::string> ParseHosts(const formats::json::Value& doc) {
@@ -51,11 +53,13 @@ AuthSettings::AuthSettings() = default;
 AuthSettings::AuthSettings(const formats::json::Value& doc)
     : user{doc["user"].As<std::string>()},
       password{doc["password"].As<std::string>()},
-      database{doc["dbname"].As<std::string>()} {}
+      database{doc["dbname"].As<std::string>()}
+{}
 
 ConnectionSettings::ConnectionSettings(const components::ComponentConfig& config)
     : connection_mode{GetConnectionMode(config["use_secure_connection"].As<bool>(true))},
-      compression_method{config["compression"].As<CompressionMethod>(CompressionMethod::kNone)} {}
+      compression_method{config["compression"].As<CompressionMethod>(CompressionMethod::kNone)}
+{}
 
 PoolSettings::PoolSettings(
     const components::ComponentConfig& config,
@@ -67,7 +71,8 @@ PoolSettings::PoolSettings(
       queue_timeout{config["queue_timeout"].As<std::chrono::milliseconds>(std::chrono::milliseconds{200})},
       endpoint_settings{endpoint},
       auth_settings{auth},
-      connection_settings{config} {}
+      connection_settings{config}
+{}
 
 ClickhouseSettings::ClickhouseSettings() = default;
 

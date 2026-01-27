@@ -26,6 +26,13 @@ Schema MergeSchemas(const std::string& yaml_string) {
     return schema;
 }
 
+template <typename ParentComponent>
+Schema MergeSchemasFromResource(std::string_view resource_name) {
+    auto schema = impl::SchemaFromResource(resource_name);
+    impl::Merge(schema, ParentComponent::GetStaticConfigSchema());
+    return schema;
+}
+
 }  // namespace yaml_config
 
 USERVER_NAMESPACE_END

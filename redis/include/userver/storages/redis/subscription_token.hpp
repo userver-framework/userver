@@ -9,12 +9,9 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
-struct CommandControl;
-class SubscribeSentinel;
-}  // namespace redis
-
 namespace storages::redis {
+
+struct CommandControl;
 
 namespace impl {
 
@@ -45,8 +42,8 @@ public:
 class [[nodiscard]] SubscriptionToken final {
 public:
     using OnMessageCb = std::function<void(const std::string& channel, const std::string& message)>;
-    using OnPmessageCb =
-        std::function<void(const std::string& pattern, const std::string& channel, const std::string& message)>;
+    using OnPmessageCb = std::function<
+        void(const std::string& pattern, const std::string& channel, const std::string& message)>;
 
     SubscriptionToken();
     SubscriptionToken(SubscriptionToken&&) noexcept;

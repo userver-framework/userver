@@ -25,7 +25,7 @@ public:
 private:
     void HandleRequest(http::HttpRequest& request, request::RequestContext& context) const override;
 
-    bool DecompressRequestBody(http::HttpRequest& request) const;
+    bool DecompressRequestBody(http::HttpRequest& request, request::RequestContext& context) const;
 
     const bool decompress_request_;
     const std::size_t max_request_size_;

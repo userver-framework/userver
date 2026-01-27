@@ -12,6 +12,7 @@
 
 #include <userver/compiler/select.hpp>
 #include <userver/logging/fwd.hpp>
+#include <userver/logging/json_string.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -30,15 +31,51 @@ class LogHelper;
 
 namespace impl {
 class TagWriter;
+class LogExtraTskvFormatter;
+
+struct JsonStringViewForInitializerList {
+    JsonStringViewForInitializerList() = delete;
+    /*implicit*/ JsonStringViewForInitializerList(const JsonString& json) noexcept : json_str{&json} {}
+    /*implicit*/ JsonStringViewForInitializerList(const formats::json::Value& json) noexcept : json_value{&json} {}
+
+    const JsonString* const json_str{nullptr};
+    const formats::json::Value* const json_value{nullptr};
+};
+
 }  // namespace impl
 
 /// Extra tskv fields storage
 class LogExtra final {
 public:
-    using Value =
-        std::variant<std::string, int, long, long long, unsigned int, unsigned long, unsigned long long, float, double>;
+    using Value = std::variant<
+        std::string,
+        int,
+        bool,
+        long,
+        long long,
+        unsigned int,
+        unsigned long,
+        unsigned long long,
+        float,
+        double,
+        JsonString>;
     using Key = std::string;
     using Pair = std::pair<Key, Value>;
+
+    using ValueView = std::variant<
+        std::string_view,
+        int,
+        bool,
+        long,
+        long long,
+        unsigned int,
+        unsigned long,
+        unsigned long long,
+        float,
+        double,
+        impl::JsonStringViewForInitializerList>;
+    // std::initializer_list does not allow moving out values, so we use views to avoid copying data into it.
+    using InitializerList = std::initializer_list<std::pair<std::string_view, ValueView>>;
 
     /// Specifies replacement policy for newly added values
     enum class ExtendType {
@@ -61,7 +98,7 @@ public:
     LogExtra& operator=(const LogExtra&);
 
     /// Constructs LogExtra containing an initial batch of key-value pairs
-    LogExtra(std::initializer_list<Pair> initial, ExtendType extend_type = ExtendType::kNormal);
+    LogExtra(InitializerList initial, ExtendType extend_type = ExtendType::kNormal);
 
     /// Adds a single key-value pair
     void Extend(std::string key, Value value, ExtendType extend_type = ExtendType::kNormal);
@@ -70,7 +107,7 @@ public:
     void Extend(Pair extra, ExtendType extend_type = ExtendType::kNormal);
 
     /// Adds a batch of key-value pairs
-    void Extend(std::initializer_list<Pair> extra, ExtendType extend_type = ExtendType::kNormal);
+    void Extend(InitializerList extra, ExtendType extend_type = ExtendType::kNormal);
 
     /// @brief Merges contents of other LogExtra with existing key-value pairs
     /// preserving freeze states
@@ -102,13 +139,17 @@ public:
     template <typename Iterator>
     void ExtendRange(Iterator first, Iterator last, ExtendType extend_type = ExtendType::kNormal) {
         // NOTE: must replace existing rewritable values
-        for (Iterator it = first; it != last; ++it) Extend(*it, extend_type);
+        for (Iterator it = first; it != last; ++it) {
+            Extend(*it, extend_type);
+        }
     }
 
     /// @brief Marks specified value as frozen, all attempts to overwrite it will
     /// be silently ignored.
-    void SetFrozen(const std::string& key);
+    void SetFrozen(std::string_view key);
 
+    friend class LogHelper;
+    friend class impl::LogExtraTskvFormatter;
     friend class impl::TagWriter;
     friend class tracing::Span;
     friend class tracing::TagScope;

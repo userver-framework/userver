@@ -61,7 +61,7 @@ UTEST_P(PostgreConnection, InternalIntervalRoundtrip) {
         std::string str;
         io::detail::Interval expected;
     };
-    Interval intervals[]{
+    const Interval intervals[]{
         {"1 sec", {0, 0, 1000000}},
         {"1.01 sec", {0, 0, 1010000}},
         {"1 day", {0, 1, 0}},
@@ -124,10 +124,9 @@ UTEST_P(PostgreConnection, IntervalStored) {
 UTEST_P(PostgreConnection, ParamsStoreSample) {
     CheckConnection(GetConn());
 
-    UEXPECT_NO_THROW(
-        GetConn()->Execute("create temp table some_table(a integer, b integer, c "
-                           "integer, d integer, e integer, x integer)")
-    );
+    UEXPECT_NO_THROW(GetConn()
+                         ->Execute("create temp table some_table(a integer, b integer, c "
+                                   "integer, d integer, e integer, x integer)"));
 
     UEXPECT_NO_THROW(GetConn()->Execute(
         "insert into some_table(a, b, c, d, e, x) values ($1, $2, "

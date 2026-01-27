@@ -28,13 +28,19 @@ struct Token {
 
 Token GetToken(char* str) {
     // skip whitespace
-    while (*str && utils::text::IsAsciiSpace(*str)) ++str;
-    if (!*str) return {};
+    while (*str && utils::text::IsAsciiSpace(*str)) {
+        ++str;
+    }
+    if (!*str) {
+        return {};
+    }
 
     Token token{str};
 
     // find token end
-    while (*str && !utils::text::IsAsciiSpace(*str)) ++str;
+    while (*str && !utils::text::IsAsciiSpace(*str)) {
+        ++str;
+    }
     token.length = str - token.data;
     return token;
 }
@@ -60,9 +66,12 @@ FileResolver::FileResolver(
 )
     : fs_task_processor_(fs_task_processor),
       path_(std::move(path)),
-      update_task_("file-resolver-updater", utils::PeriodicTask::Settings{update_interval, {}}, [this] {
-          ReloadHosts();
-      }) {
+      update_task_(
+          "file-resolver-updater",
+          utils::PeriodicTask::Settings{update_interval, {}},
+          [this] { ReloadHosts(); }
+      )
+{
     ReloadHosts();
 }
 
@@ -90,14 +99,18 @@ void FileResolver::ReloadHosts() {
 
             // parse address
             auto token = GetToken(line.data());
-            if (token.IsEmpty()) continue;
+            if (token.IsEmpty()) {
+                continue;
+            }
             // use the fact that it is followed by whitespace (or by nothing)
             // to zero-terminate in-place
             token.data[token.length] = '\0';
             ++token.length;
             auto addr = TryParseAddr(token.data);
             LOG_TRACE() << "Parsed address " << addr;
-            if (addr.Domain() == engine::io::AddrDomain::kUnspecified) continue;
+            if (addr.Domain() == engine::io::AddrDomain::kUnspecified) {
+                continue;
+            }
 
             // parse aliases and bind them
             token = GetToken(token.data + token.length);
@@ -109,7 +122,9 @@ void FileResolver::ReloadHosts() {
             }
         }
 
-        for (auto& [_, addrs] : new_hosts) impl::SortAddrs(addrs);
+        for (auto& [_, addrs] : new_hosts) {
+            impl::SortAddrs(addrs);
+        }
         LOG_DEBUG() << "Loaded static hosts mapping with " << new_hosts.size() << " names";
         hosts_.Assign(std::move(new_hosts));
     }).Get();

@@ -23,11 +23,10 @@ public:
     UuidV7Generator(utils::RandomBase& rng)
         : random_generator_(
               &rng,
-              boost::uniform_int<std::uint64_t>(
-                  std::numeric_limits<std::uint64_t>::min(),
-                  std::numeric_limits<std::uint64_t>::max()
-              )
-          ) {}
+              boost::uniform_int<
+                  std::uint64_t>(std::numeric_limits<std::uint64_t>::min(), std::numeric_limits<std::uint64_t>::max())
+          )
+    {}
 
     boost::uuids::uuid operator()() {
         boost::uuids::uuid uuid{};
@@ -72,10 +71,11 @@ public:
             // https://datatracker.ietf.org/doc/html/rfc9562#monotonicity_counters
             uuid.data[6] &= 0xF7;
 
-            sequence_counter_ = (static_cast<std::uint32_t>(uuid.data[6] & 0x0F) << 18) +
-                                (static_cast<std::uint32_t>(uuid.data[7]) << 10) +
-                                (static_cast<std::uint32_t>(uuid.data[8] & 0x3F) << 4) +
-                                (static_cast<std::uint32_t>(uuid.data[9]) >> 4);
+            sequence_counter_ =
+                (static_cast<std::uint32_t>(uuid.data[6] & 0x0F) << 18) +
+                (static_cast<std::uint32_t>(uuid.data[7]) << 10) +
+                (static_cast<std::uint32_t>(uuid.data[8] & 0x3F) << 4) +
+                (static_cast<std::uint32_t>(uuid.data[9]) >> 4);
             previous_timestamp_ = current_timestamp;
         }
 
@@ -112,9 +112,8 @@ private:
     }
 
     static std::uint64_t CurrentUnixTimestamp() {
-        return std::chrono::duration_cast<std::chrono::milliseconds>(
-                   utils::datetime::WallCoarseClock::now().time_since_epoch()
-        )
+        return std::chrono::duration_cast<
+                   std::chrono::milliseconds>(utils::datetime::WallCoarseClock::now().time_since_epoch())
             .count();
     }
 
@@ -149,9 +148,8 @@ std::chrono::system_clock::time_point utils::ExtractTimestampFromUuidV7(boost::u
         (static_cast<std::int64_t>(uuid.data[4]) << 8) + static_cast<std::int64_t>(uuid.data[5])
     );
 
-    return std::chrono::system_clock::time_point(
-        std::chrono::duration_cast<std::chrono::system_clock::time_point::duration>(timestamp)
-    );
+    return std::chrono::system_clock::time_point(std::chrono::duration_cast<
+                                                 std::chrono::system_clock::time_point::duration>(timestamp));
 }
 
 USERVER_NAMESPACE_END

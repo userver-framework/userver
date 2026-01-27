@@ -4,7 +4,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace os_signals {
 
-ProcessorMock::ProcessorMock(engine::TaskProcessor& task_processor) : manager_(task_processor) {}
+ProcessorMock::ProcessorMock(engine::TaskProcessor& task_processor)
+    : manager_(task_processor)
+{}
 
 Processor& ProcessorMock::Get() { return manager_; }
 

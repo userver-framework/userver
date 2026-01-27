@@ -1,13 +1,12 @@
 #pragma once
 
-#include "allof_fwd.hpp"
-
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <userver/chaotic/type_bundle_hpp.hpp>
 #include <userver/formats/json/value.hpp>
 
-#include <userver/chaotic/type_bundle_hpp.hpp>
+#include "allof_fwd.hpp"
 
 namespace ns {
 
@@ -24,61 +23,63 @@ struct AllOf {
         USERVER_NAMESPACE::formats::json::Value extra;
     };
 
-    struct Foo : public ns::AllOf::Foo__P0, public ns::AllOf::Foo__P1 {
+    struct Foo : public AllOf::Foo__P0, public AllOf::Foo__P1 {
         Foo() = default;
 
-        Foo(ns::AllOf::Foo__P0&& a0, ns::AllOf::Foo__P1&& a1)
-            : ns::AllOf::Foo__P0(std::move(a0)), ns::AllOf::Foo__P1(std::move(a1)) {}
+        Foo(AllOf::Foo__P0&& a0, AllOf::Foo__P1&& a1) : AllOf::Foo__P0(std::move(a0)), AllOf::Foo__P1(std::move(a1)) {}
     };
 
-    std::optional<ns::AllOf::Foo> foo{};
+    std::optional<::ns::AllOf::Foo> foo{};
 };
 
-bool operator==(const ns::AllOf::Foo__P0& lhs, const ns::AllOf::Foo__P0& rhs);
+bool operator==(const AllOf::Foo__P0& lhs, const AllOf::Foo__P0& rhs);
 
-bool operator==(const ns::AllOf::Foo__P1& lhs, const ns::AllOf::Foo__P1& rhs);
+bool operator==(const AllOf::Foo__P1& lhs, const AllOf::Foo__P1& rhs);
 
-bool operator==(const ns::AllOf::Foo& lhs, const ns::AllOf::Foo& rhs);
+bool operator==(const AllOf::Foo& lhs, const AllOf::Foo& rhs);
 
-bool operator==(const ns::AllOf& lhs, const ns::AllOf& rhs);
+bool operator==(const AllOf& lhs, const AllOf& rhs);
 
-USERVER_NAMESPACE::logging::LogHelper&
-operator<<(USERVER_NAMESPACE::logging::LogHelper& lh, const ns::AllOf::Foo__P0& value);
+USERVER_NAMESPACE::logging::LogHelper& operator<<(
+    USERVER_NAMESPACE::logging::LogHelper& lh,
+    const AllOf::Foo__P0& value
+);
 
-USERVER_NAMESPACE::logging::LogHelper&
-operator<<(USERVER_NAMESPACE::logging::LogHelper& lh, const ns::AllOf::Foo__P1& value);
+USERVER_NAMESPACE::logging::LogHelper& operator<<(
+    USERVER_NAMESPACE::logging::LogHelper& lh,
+    const AllOf::Foo__P1& value
+);
 
-USERVER_NAMESPACE::logging::LogHelper&
-operator<<(USERVER_NAMESPACE::logging::LogHelper& lh, const ns::AllOf::Foo& value);
+USERVER_NAMESPACE::logging::LogHelper& operator<<(USERVER_NAMESPACE::logging::LogHelper& lh, const AllOf::Foo& value);
 
-USERVER_NAMESPACE::logging::LogHelper& operator<<(USERVER_NAMESPACE::logging::LogHelper& lh, const ns::AllOf& value);
+USERVER_NAMESPACE::logging::LogHelper& operator<<(USERVER_NAMESPACE::logging::LogHelper& lh, const AllOf& value);
 
 AllOf::Foo__P0
-Parse(USERVER_NAMESPACE::formats::json::Value json, USERVER_NAMESPACE::formats::parse::To<ns::AllOf::Foo__P0>);
+Parse(USERVER_NAMESPACE::formats::json::Value json, USERVER_NAMESPACE::formats::parse::To<AllOf::Foo__P0>);
 
 AllOf::Foo__P1
-Parse(USERVER_NAMESPACE::formats::json::Value json, USERVER_NAMESPACE::formats::parse::To<ns::AllOf::Foo__P1>);
+Parse(USERVER_NAMESPACE::formats::json::Value json, USERVER_NAMESPACE::formats::parse::To<AllOf::Foo__P1>);
 
-AllOf::Foo Parse(USERVER_NAMESPACE::formats::json::Value json, USERVER_NAMESPACE::formats::parse::To<ns::AllOf::Foo>);
+AllOf::Foo Parse(USERVER_NAMESPACE::formats::json::Value json, USERVER_NAMESPACE::formats::parse::To<AllOf::Foo>);
 
-AllOf Parse(USERVER_NAMESPACE::formats::json::Value json, USERVER_NAMESPACE::formats::parse::To<ns::AllOf>);
+AllOf Parse(USERVER_NAMESPACE::formats::json::Value json, USERVER_NAMESPACE::formats::parse::To<AllOf>);
 
-/* Parse(USERVER_NAMESPACE::formats::yaml::Value, To<ns::AllOf>) was not generated: ns::AllOf::Foo__P0 has JSON-specific
+/* Parse(USERVER_NAMESPACE::formats::yaml::Value, To<AllOf>) was not generated: ::ns::AllOf::Foo__P0 has JSON-specific
  * field "extra" */
 
-/* Parse(USERVER_NAMESPACE::yaml_config::Value, To<ns::AllOf>) was not generated: ns::AllOf::Foo__P0 has JSON-specific
+/* Parse(USERVER_NAMESPACE::yaml_config::Value, To<AllOf>) was not generated: ::ns::AllOf::Foo__P0 has JSON-specific
  * field "extra" */
 
 USERVER_NAMESPACE::formats::json::Value
-Serialize(const ns::AllOf::Foo__P0& value, USERVER_NAMESPACE::formats::serialize::To<USERVER_NAMESPACE::formats::json::Value>);
+Serialize(const AllOf::Foo__P0& value, USERVER_NAMESPACE::formats::serialize::To<USERVER_NAMESPACE::formats::json::Value>);
 
 USERVER_NAMESPACE::formats::json::Value
-Serialize(const ns::AllOf::Foo__P1& value, USERVER_NAMESPACE::formats::serialize::To<USERVER_NAMESPACE::formats::json::Value>);
+Serialize(const AllOf::Foo__P1& value, USERVER_NAMESPACE::formats::serialize::To<USERVER_NAMESPACE::formats::json::Value>);
 
 USERVER_NAMESPACE::formats::json::Value
-Serialize(const ns::AllOf::Foo& value, USERVER_NAMESPACE::formats::serialize::To<USERVER_NAMESPACE::formats::json::Value>);
+Serialize(const AllOf::Foo& value, USERVER_NAMESPACE::formats::serialize::To<USERVER_NAMESPACE::formats::json::Value>);
 
 USERVER_NAMESPACE::formats::json::Value
-Serialize(const ns::AllOf& value, USERVER_NAMESPACE::formats::serialize::To<USERVER_NAMESPACE::formats::json::Value>);
+Serialize(const AllOf& value, USERVER_NAMESPACE::formats::serialize::To<USERVER_NAMESPACE::formats::json::Value>);
 
 }  // namespace ns

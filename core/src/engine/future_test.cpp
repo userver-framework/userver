@@ -269,7 +269,7 @@ TYPED_UTEST(Future, Cancel) {
             EXPECT_EQ(engine::FutureStatus::kCancelled, f.wait_until(GetDeadline()));
             UEXPECT_THROW(f.get(), engine::WaitInterruptedException);
 
-            engine::TaskCancellationBlocker block_cancel;
+            const engine::TaskCancellationBlocker block_cancel;
             EXPECT_EQ(engine::FutureStatus::kTimeout, f.wait_for(kWaitPeriod));
             EXPECT_EQ(engine::FutureStatus::kTimeout, f.wait_until(GetTimePoint()));
             EXPECT_EQ(engine::FutureStatus::kTimeout, f.wait_until(GetDeadline()));

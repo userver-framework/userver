@@ -300,14 +300,14 @@ public:
 
     static void UTestTryMakeBaggageProperty() {
         // check parsing property without value
-        std::string property_str = "property";
+        const std::string property_str = "property";
         auto property = UTestBaggage::TryMakeBaggageEntryProperty(property_str);
         ASSERT_EQ(property->ToString(), "property");
         ASSERT_EQ(property->GetKey(), "property");
         ASSERT_EQ(property->GetValue(), std::nullopt);
 
         // check parsing property with value
-        std::string property_with_value_str = "propertyKey=propertyValue";
+        const std::string property_with_value_str = "propertyKey=propertyValue";
         auto property_with_value = UTestBaggage::TryMakeBaggageEntryProperty(property_with_value_str);
         ASSERT_EQ(property_with_value->ToString(), "propertyKey=propertyValue");
         ASSERT_EQ(property_with_value->GetKey(), "propertyKey");

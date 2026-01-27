@@ -7,7 +7,9 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::mysql::infra::topology {
 
 Standalone::Standalone(clients::dns::Resolver& resolver, const std::vector<settings::PoolSettings>& pools_settings)
-    : TopologyBase{resolver, pools_settings}, pool_{InitializePoolReference()} {}
+    : TopologyBase{resolver, pools_settings},
+      pool_{InitializePoolReference()}
+{}
 
 Standalone::~Standalone() = default;
 

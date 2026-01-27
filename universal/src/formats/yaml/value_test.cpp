@@ -12,7 +12,7 @@ USERVER_NAMESPACE_BEGIN
 
 template <>
 struct Parsing<formats::yaml::Value> : public ::testing::Test {
-    constexpr static auto FromString = formats::yaml::FromString;
+    constexpr static auto kFromString = formats::yaml::FromString;
     using ParseException = formats::yaml::Value::ParseException;
 };
 
@@ -27,7 +27,7 @@ TEST(FormatsYaml, NullAsDefaulted) {
 
     EXPECT_EQ(yaml["nulled"].As<int>(42), 42);
 
-    std::vector<int> value{4, 2};
+    const std::vector<int> value{4, 2};
     EXPECT_EQ(yaml["nulled"].As<std::vector<int>>(value), value);
 }
 
@@ -35,7 +35,7 @@ TEST(FormatsYaml, ExampleUsage) {
     /// [Sample formats::yaml::Value usage]
     // #include <userver/formats/yaml.hpp>
 
-    formats::yaml::Value yaml = formats::yaml::FromString(R"(
+    const formats::yaml::Value yaml = formats::yaml::FromString(R"(
   key1: 1
   key2:
       key3: "val"
@@ -65,7 +65,7 @@ MyKeyValue Parse(const formats::yaml::Value& yaml, formats::parse::To<MyKeyValue
 }
 
 TEST(FormatsYaml, ExampleUsageMyStruct) {
-    formats::yaml::Value yaml = formats::yaml::FromString(R"(
+    const formats::yaml::Value yaml = formats::yaml::FromString(R"(
     my_value:
       field1: "one"
       field2: 1
@@ -98,7 +98,7 @@ TEST(FormatsYaml, UserDefinedLiterals) {
 }
 
 TEST(FormatsYaml, NodesTags) {
-    formats::yaml::Value yaml = formats::yaml::FromString(R"(
+    const formats::yaml::Value yaml = formats::yaml::FromString(R"(
 # Indenting matters
 %TAG !example! tag:example,2024:
 
@@ -127,13 +127,8 @@ TEST(FormatsYaml, NodesTags) {
   )");
 
     for (auto scalar_field :
-         {"field_int",
-          "field_string",
-          "field_bool",
-          "field_array",
-          "field_obj",
-          "field_array_json",
-          "field_obj_json"}) {
+         {"field_int", "field_string", "field_bool", "field_array", "field_obj", "field_array_json", "field_obj_json"})
+    {
         EXPECT_EQ(yaml[scalar_field].GetTag(), "?") << "Field: " << scalar_field;
     }
 

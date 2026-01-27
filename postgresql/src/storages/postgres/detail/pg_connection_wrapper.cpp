@@ -36,6 +36,24 @@ auto PQXsendQueryPrepared(PGconn* conn, const char* stmtName, int nParams, const
 #include <userver/storages/postgres/io/traits.hpp>
 #include <userver/storages/postgres/message.hpp>
 
+#if !defined(USERVER_NO_LIBPQ_PATCHES)
+static_assert(
+    USERVER_LIBPQ_VERSION / 10000 == PG_VERSION_NUM / 10000,
+    "\n\n"
+    "======================================================================\n"
+    "Versions of postgres and libpq have diverged, check the output of cmake configure.\n"
+    "Either:\n"
+    "  a) set USERVER_FEATURE_PATCH_LIBPQ to OFF\n"
+    "     https://userver.tech/d5/d3d/md_en_2userver_2build_2options.html#cmake_options\n"
+    "  b) install libpq of the same version as postgres server\n"
+    "     and pass USERVER_PG_INCLUDE_DIR and USERVER_PG_LIBRARY_DIR cmake options to userver\n"
+    "     https://userver.tech/de/db9/md_en_2userver_2build_2dependencies.html#autotoc_md183\n"
+    "  c) build using the provided Docker containers or Conan\n"
+    "     https://userver.tech/de/dab/md_en_2userver_2build_2build.html#postgres_deps_versions\n"
+    "======================================================================\n"
+);
+#endif
+
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage): uses file/line info
 #define PGCW_LOG_TRACE() LOG_TRACE() << log_extra_
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage): uses file/line info
@@ -104,6 +122,10 @@ const char* MsgForStatus(ConnStatusType status) {
         case CONNECTION_ALLOCATED:
             return "PQstatus: Waiting for connection attempt to be started";
 #endif
+#if USERVER_LIBPQ_VERSION >= 180000
+        case CONNECTION_AUTHENTICATING:
+            return "PQstatus: Waiting for connection authentification to complete";
+#endif
     }
 
     UINVARIANT(false, "Unhandled ConnStatusType");
@@ -119,7 +141,7 @@ void NoticeReceiver(void* conn_wrapper_ptr, PGresult const* pg_res) {
 }
 
 struct Openssl {
-    static void Init() noexcept { [[maybe_unused]] static Openssl lock; }
+    static void Init() noexcept { [[maybe_unused]] static const Openssl kLock; }
 
 private:
     Openssl() {
@@ -141,14 +163,15 @@ PGConnectionWrapper::PGConnectionWrapper(
       bg_task_storage_{bts},
       log_extra_{{tracing::kDatabaseType, tracing::kDatabasePostgresType}, {"pg_conn_id", id}},
       pool_size_lock_{std::move(pool_size_lock)},
-      last_use_{std::chrono::steady_clock::now()} {
+      last_use_{std::chrono::steady_clock::now()}
+{
     Openssl::Init();
 }
 
 PGConnectionWrapper::~PGConnectionWrapper() { bg_task_storage_.Detach(Close()); }
 
 template <typename ExceptionType>
-void PGConnectionWrapper::CheckError(const std::string& cmd, int pg_dispatch_result) {
+void PGConnectionWrapper::CheckError(USERVER_NAMESPACE::utils::zstring_view cmd, int pg_dispatch_result) {
     static constexpr std::string_view kCheckConnectionQuota =
         ". It may be useful to check the user's connection quota in the cloud "
         "or the server configuration";
@@ -156,9 +179,10 @@ void PGConnectionWrapper::CheckError(const std::string& cmd, int pg_dispatch_res
     if (pg_dispatch_result == 0) {
         HandleSocketPostClose();
         auto* msg = PQerrorMessage(conn_);
-        PGCW_LOG_WARNING() << "libpq " << cmd << " error: " << msg
-                           << (std::is_base_of_v<ConnectionError, ExceptionType> ? kCheckConnectionQuota : "");
-        throw ExceptionType(cmd + " execution error: " + msg);
+        PGCW_LOG_WARNING()
+            << "libpq " << cmd << " error: " << msg
+            << (std::is_base_of_v<ConnectionError, ExceptionType> ? kCheckConnectionQuota : "");
+        throw ExceptionType(fmt::format("{} execution error: {}", cmd, msg));
     }
 }
 
@@ -202,7 +226,9 @@ int PGConnectionWrapper::GetServerVersion() const { return PQserverVersion(conn_
 
 std::string_view PGConnectionWrapper::GetParameterStatus(const char* name) const {
     const char* value = PQparameterStatus(conn_, name);
-    if (!value) return {};
+    if (!value) {
+        return {};
+    }
     return value;
 }
 
@@ -226,16 +252,17 @@ engine::Task PGConnectionWrapper::Close() {
 
             if (tmp_conn != nullptr) {
                 if (is_broken) {
-                    int pq_fd = PQsocket(tmp_conn);
+                    const int pq_fd = PQsocket(tmp_conn);
                     if (fd != -1 && pq_fd != -1 && fd != pq_fd) {
                         LOG_LIMITED_ERROR() << "fd from socket != fd from PQsocket (" << fd << " != " << pq_fd << ')';
                     }
                     if (pq_fd >= 0) {
-                        int res = shutdown(pq_fd, SHUT_RDWR);
+                        const int res = shutdown(pq_fd, SHUT_RDWR);
                         if (res < 0) {
                             auto old_errno = errno;
-                            LOG_WARNING() << "error while shutdown() socket (" << old_errno
-                                          << "): " << USERVER_NAMESPACE::utils::strerror(old_errno);
+                            LOG_WARNING()
+                                << "error while shutdown() socket (" << old_errno
+                                << "): " << USERVER_NAMESPACE::utils::strerror(old_errno);
                         }
                     }
                 }
@@ -286,8 +313,8 @@ void PGConnectionWrapper::AsyncConnect(const Dsn& dsn, Deadline deadline, tracin
 
 void PGConnectionWrapper::StartAsyncConnect(const Dsn& dsn) {
     if (conn_) {
-        PGCW_LOG_LIMITED_ERROR() << "Attempt to connect a connection that is already connected"
-                                 << logging::LogExtra::Stacktrace();
+        PGCW_LOG_LIMITED_ERROR()
+            << "Attempt to connect a connection that is already connected" << logging::LogExtra::Stacktrace();
         throw ConnectionFailed{dsn, "Already connected"};
     }
 
@@ -332,9 +359,10 @@ void PGConnectionWrapper::WaitConnectionFinish(Deadline deadline, const Dsn& dsn
                     if (engine::current_task::ShouldCancel()) {
                         throw ConnectionInterrupted("Task cancelled while polling connection for reading");
                     }
-                    PGCW_LOG_LIMITED_WARNING() << "Timeout while polling PostgreSQL connection "
-                                                  "socket for reading, timeout was "
-                                               << timeout.count() << "ms";
+                    PGCW_LOG_LIMITED_WARNING()
+                        << "Timeout while polling PostgreSQL connection "
+                           "socket for reading, timeout was "
+                        << timeout.count() << "ms";
                     throw ConnectionTimeoutError("Timed out while polling connection for reading");
                 }
                 break;
@@ -343,9 +371,10 @@ void PGConnectionWrapper::WaitConnectionFinish(Deadline deadline, const Dsn& dsn
                     if (engine::current_task::ShouldCancel()) {
                         throw ConnectionInterrupted("Task cancelled while polling connection for writing");
                     }
-                    PGCW_LOG_LIMITED_WARNING() << "Timeout while polling PostgreSQL connection "
-                                                  "socket for writing, timeout was "
-                                               << timeout.count() << "ms";
+                    PGCW_LOG_LIMITED_WARNING()
+                        << "Timeout while polling PostgreSQL connection "
+                           "socket for writing, timeout was "
+                        << timeout.count() << "ms";
                     throw ConnectionTimeoutError("Timed out while polling connection for writing");
                 }
                 break;
@@ -422,7 +451,9 @@ void PGConnectionWrapper::RefreshSocket(const Dsn& dsn) {
         PGCW_LOG_LIMITED_ERROR() << "Invalid PostgreSQL socket " << fd;
         throw ConnectionFailed{dsn, "Invalid socket handle"};
     }
-    if (fd == socket_.Fd()) return;
+    if (fd == socket_.Fd()) {
+        return;
+    }
 
     if (socket_.IsValid()) {
         auto old_fd = std::move(socket_).Release();
@@ -432,12 +463,16 @@ void PGConnectionWrapper::RefreshSocket(const Dsn& dsn) {
 }
 
 bool PGConnectionWrapper::WaitSocketReadable(Deadline deadline) {
-    if (!socket_.IsValid()) return false;
+    if (!socket_.IsValid()) {
+        return false;
+    }
     return socket_.WaitReadable(deadline);
 }
 
 bool PGConnectionWrapper::WaitSocketWriteable(Deadline deadline) {
-    if (!socket_.IsValid()) return false;
+    if (!socket_.IsValid()) {
+        return false;
+    }
     return socket_.WaitWriteable(deadline);
 }
 
@@ -477,8 +512,9 @@ bool PGConnectionWrapper::TryConsumeInput(Deadline deadline, const PGresult* des
     while (PQXisBusy(conn_, description)) {
         HandleSocketPostClose();
         if (!WaitSocketReadable(deadline)) {
-            LOG_DEBUG() << "Socket " << socket_.Fd() << " has not become readable in TryConsumeInput due to "
-                        << (socket_.IsValid() ? "timeout" : "closed fd");
+            LOG_DEBUG()
+                << "Socket " << socket_.Fd() << " has not become readable in TryConsumeInput due to "
+                << (socket_.IsValid() ? "timeout" : "closed fd");
             return false;
         }
         CheckError<CommandError>("PQconsumeInput", PQconsumeInput(conn_));
@@ -523,9 +559,9 @@ ResultSet PGConnectionWrapper::WaitResult(Deadline deadline, tracing::ScopeTime&
             auto next_handle = MakeResultHandle(pg_res);
 #if LIBPQ_HAS_PIPELINING
             const auto status = PQresultStatus(pg_res);
-            if (status == PGRES_PIPELINE_SYNC)
+            if (status == PGRES_PIPELINE_SYNC) {
                 HandlePipelineSync();
-            else if (status != PGRES_PIPELINE_ABORTED)
+            } else if (status != PGRES_PIPELINE_ABORTED)
 #endif
                 handle = std::move(next_handle);
         }
@@ -534,7 +570,9 @@ ResultSet PGConnectionWrapper::WaitResult(Deadline deadline, tracing::ScopeTime&
         // this counter.
         if (++null_res_counter > 2) {
             MarkAsBroken();
-            if (!handle) throw RuntimeError{"Empty result"};
+            if (!handle) {
+                throw RuntimeError{"Empty result"};
+            }
             pipeline_sync_counter_ = 0;
         }
     } while (IsSyncingPipeline() && PQstatus(conn_) != CONNECTION_BAD);
@@ -554,7 +592,9 @@ Notification PGConnectionWrapper::WaitNotify(Deadline deadline) {
     }
     Notification result;
     result.channel = notify->relname;
-    if (*notify->extra) result.payload = notify->extra;
+    if (*notify->extra) {
+        result.payload = notify->extra;
+    }
 
     return result;
 }
@@ -644,12 +684,13 @@ void PGConnectionWrapper::DiscardInput(Deadline deadline) {
     } while (IsSyncingPipeline() && PQstatus(conn_) != CONNECTION_BAD);
 }
 
-void PGConnectionWrapper::FillSpanTags(tracing::Span& span, const CommandControl& cc) const {
+void PGConnectionWrapper::FillSpanTags(tracing::Span& span, const CommandControl& cc, std::string&& execute_tag_key)
+    const {
     // With inheritable tags, they would end up being duplicated in current Span
     // and in log_extra_ (passed by PGCW_LOG_ macros).
     span.AddNonInheritableTags(log_extra_);
-    span.AddTag("network_timeout_ms", cc.execute.count());
-    span.AddTag("statement_timeout_ms", cc.statement.count());
+    span.AddTag(std::move(execute_tag_key), cc.network_timeout_ms.count());
+    span.AddTag("statement_timeout_ms", cc.statement_timeout_ms.count());
 }
 
 PGresult* PGConnectionWrapper::ReadResult(Deadline deadline, const PGresult* description) {
@@ -680,27 +721,30 @@ ResultSet PGConnectionWrapper::MakeResult(ResultHandle&& handle) {
         case PGRES_COPY_IN:
         case PGRES_COPY_OUT:
         case PGRES_COPY_BOTH:
-            PGCW_LOG_LIMITED_ERROR() << "PostgreSQL COPY command invoked which is not implemented"
-                                     << logging::LogExtra::Stacktrace();
+            PGCW_LOG_LIMITED_ERROR()
+                << "PostgreSQL COPY command invoked which is not implemented" << logging::LogExtra::Stacktrace();
             CloseWithError(NotImplemented{"Copy is not implemented"});
         case PGRES_BAD_RESPONSE:
             CloseWithError(ConnectionError{"Failed to parse server response"});
         case PGRES_NONFATAL_ERROR: {
-            Message msg{wrapper};
+            const Message msg{wrapper};
             switch (msg.GetSeverity()) {
                 case Message::Severity::kDebug:
-                    PGCW_LOG_DEBUG() << "Postgres " << msg.GetSeverityString() << " message: " << msg.GetMessage()
-                                     << msg.GetLogExtra();
+                    PGCW_LOG_DEBUG()
+                        << "Postgres " << msg.GetSeverityString() << " message: " << msg.GetMessage()
+                        << msg.GetLogExtra();
                     break;
                 case Message::Severity::kLog:
                 case Message::Severity::kInfo:
                 case Message::Severity::kNotice:
-                    PGCW_LOG_INFO() << "Postgres " << msg.GetSeverityString() << " message: " << msg.GetMessage()
-                                    << msg.GetLogExtra();
+                    PGCW_LOG_INFO()
+                        << "Postgres " << msg.GetSeverityString() << " message: " << msg.GetMessage()
+                        << msg.GetLogExtra();
                     break;
                 case Message::Severity::kWarning:
-                    PGCW_LOG_LIMITED_WARNING() << "Postgres " << msg.GetSeverityString()
-                                               << " message: " << msg.GetMessage() << msg.GetLogExtra();
+                    PGCW_LOG_LIMITED_WARNING()
+                        << "Postgres " << msg.GetSeverityString() << " message: " << msg.GetMessage()
+                        << msg.GetLogExtra();
                     break;
                 case Message::Severity::kError:
                 case Message::Severity::kFatal:
@@ -713,7 +757,7 @@ ResultSet PGConnectionWrapper::MakeResult(ResultHandle&& handle) {
             break;
         }
         case PGRES_FATAL_ERROR: {
-            Message msg{wrapper};
+            const Message msg{wrapper};
             if (!IsWhitelistedState(msg.GetSqlState())) {
                 PGCW_LOG_LIMITED_ERROR() << "Fatal error occurred: " << msg.GetMessage() << msg.GetLogExtra();
             } else {
@@ -743,7 +787,7 @@ ResultSet PGConnectionWrapper::MakeResult(ResultHandle&& handle) {
     return ResultSet{wrapper};
 }
 
-void PGConnectionWrapper::SendQuery(const std::string& statement, tracing::ScopeTime& scope) {
+void PGConnectionWrapper::SendQuery(USERVER_NAMESPACE::utils::zstring_view statement, tracing::ScopeTime& scope) {
     scope.Reset(scopes::kLibpqSendQueryParams);
     CheckError<CommandError>(
         "PQsendQueryParams",
@@ -753,7 +797,7 @@ void PGConnectionWrapper::SendQuery(const std::string& statement, tracing::Scope
 }
 
 void PGConnectionWrapper::SendQuery(
-    const std::string& statement,
+    USERVER_NAMESPACE::utils::zstring_view statement,
     const QueryParameters& params,
     tracing::ScopeTime& scope
 ) {
@@ -779,8 +823,8 @@ void PGConnectionWrapper::SendQuery(
 }
 
 void PGConnectionWrapper::SendPrepare(
-    const std::string& name,
-    const std::string& statement,
+    USERVER_NAMESPACE::utils::zstring_view name,
+    USERVER_NAMESPACE::utils::zstring_view statement,
     const QueryParameters& params,
     tracing::ScopeTime& scope
 ) {
@@ -796,14 +840,14 @@ void PGConnectionWrapper::SendPrepare(
     UpdateLastUse();
 }
 
-void PGConnectionWrapper::SendDescribePrepared(const std::string& name, tracing::ScopeTime& scope) {
+void PGConnectionWrapper::SendDescribePrepared(USERVER_NAMESPACE::utils::zstring_view name, tracing::ScopeTime& scope) {
     scope.Reset(scopes::kLibpqSendDescribePrepared);
     CheckError<CommandError>("PQsendDescribePrepared", PQsendDescribePrepared(conn_, name.c_str()));
     UpdateLastUse();
 }
 
 void PGConnectionWrapper::SendPreparedQuery(
-    const std::string& name,
+    USERVER_NAMESPACE::utils::zstring_view name,
     const QueryParameters& params,
     tracing::ScopeTime& scope,
     PGresult* description
@@ -834,7 +878,13 @@ void PGConnectionWrapper::SendPreparedQuery(
         CheckError<CommandError>(
             "PQsendQueryPrepared",
             PQsendQueryPrepared(
-                conn_, name.c_str(), size, param_values, param_lengths, param_formats, io::kPgBinaryDataFormat
+                conn_,
+                name.c_str(),
+                size,
+                param_values,
+                param_lengths,
+                param_formats,
+                io::kPgBinaryDataFormat
             )
         );
     }
@@ -843,8 +893,8 @@ void PGConnectionWrapper::SendPreparedQuery(
 
 #ifndef USERVER_NO_LIBPQ_PATCHES
 void PGConnectionWrapper::SendPortalBind(
-    const std::string& statement_name,
-    const std::string& portal_name,
+    USERVER_NAMESPACE::utils::zstring_view statement_name,
+    USERVER_NAMESPACE::utils::zstring_view portal_name,
     const QueryParameters& params,
     tracing::ScopeTime& scope
 ) {
@@ -882,7 +932,7 @@ void PGConnectionWrapper::SendPortalBind(
 }
 
 void PGConnectionWrapper::SendPortalExecute(
-    const std::string& portal_name,
+    USERVER_NAMESPACE::utils::zstring_view portal_name,
     std::uint32_t n_rows,
     tracing::ScopeTime& scope
 ) {
@@ -892,11 +942,12 @@ void PGConnectionWrapper::SendPortalExecute(
 }
 #else
 void PGConnectionWrapper::
-    SendPortalBind(const std::string&, const std::string&, const QueryParameters&, tracing::ScopeTime&) {
+    SendPortalBind(USERVER_NAMESPACE::utils::zstring_view, USERVER_NAMESPACE::utils::zstring_view, const QueryParameters&, tracing::ScopeTime&) {
     UINVARIANT(false, "Portals are disabled by CMake option USERVER_FEATURE_PATCH_LIBPQ");
 }
 
-void PGConnectionWrapper::SendPortalExecute(const std::string&, std::uint32_t, tracing::ScopeTime&) {
+void PGConnectionWrapper::
+    SendPortalExecute(USERVER_NAMESPACE::utils::zstring_view, std::uint32_t, tracing::ScopeTime&) {
     UINVARIANT(false, "Portals are disabled by CMake option USERVER_FEATURE_PATCH_LIBPQ");
 }
 

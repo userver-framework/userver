@@ -1,0 +1,27 @@
+default: {"__default__": {"enable-monitoring": false, "forbid-requests-to-syncing-replicas": false}}
+description: |
+    Dynamic config that controls the monitoring settings for synchronizing replicas.
+
+    Dictionary keys can be either the **database name** (not the component name!)
+    or `__default__`. The latter configuration is applied for every non-matching
+    Redis database/sentinel of the service.
+schema:
+    type: object
+    description: settings for each database in service
+    properties:
+        __default__:
+            '$ref': '#/definitions/BaseSettings'
+    additionalProperties:
+        '$ref': '#/definitions/BaseSettings'
+    definitions:
+        BaseSettings:
+            type: object
+            additionalProperties: false
+            properties:
+                enable-monitoring:
+                    type: boolean
+                forbid-requests-to-syncing-replicas:
+                    type: boolean
+            required:
+              - enable-monitoring
+              - forbid-requests-to-syncing-replicas

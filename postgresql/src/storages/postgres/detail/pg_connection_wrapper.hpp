@@ -82,32 +82,32 @@ public:
     [[nodiscard]] engine::Task Cancel();
 
     /// @brief Wrapper for PQsendQuery
-    void SendQuery(const std::string& statement, tracing::ScopeTime&);
+    void SendQuery(USERVER_NAMESPACE::utils::zstring_view statement, tracing::ScopeTime&);
 
     /// @brief Wrapper for PQsendQueryParams
-    void SendQuery(const std::string& statement, const QueryParameters& params, tracing::ScopeTime&);
+    void
+    SendQuery(USERVER_NAMESPACE::utils::zstring_view statement, const QueryParameters& params, tracing::ScopeTime&);
 
     /// @brief Wrapper for PQsendPrepare
-    void
-    SendPrepare(const std::string& name, const std::string& statement, const QueryParameters& params, tracing::ScopeTime&);
+    void SendPrepare(USERVER_NAMESPACE::utils::zstring_view name, USERVER_NAMESPACE::utils::zstring_view statement, const QueryParameters& params, tracing::ScopeTime&);
 
     /// @brief Wrapper for PQsendDescribePrepared
-    void SendDescribePrepared(const std::string& name, tracing::ScopeTime&);
+    void SendDescribePrepared(USERVER_NAMESPACE::utils::zstring_view name, tracing::ScopeTime&);
 
     /// @brief Wrapper for PQsendQueryPrepared
     void SendPreparedQuery(
-        const std::string& name,
+        USERVER_NAMESPACE::utils::zstring_view name,
         const QueryParameters& params,
         tracing::ScopeTime&,
         PGresult* description
     );
 
     /// @brief Wrapper for PQXSendPortalBind
-    void
-    SendPortalBind(const std::string& statement_name, const std::string& portal_name, const QueryParameters& params, tracing::ScopeTime&);
+    void SendPortalBind(USERVER_NAMESPACE::utils::zstring_view statement_name, USERVER_NAMESPACE::utils::zstring_view portal_name, const QueryParameters& params, tracing::ScopeTime&);
 
     /// @brief Wrapper for PQXSendPortalExecute
-    void SendPortalExecute(const std::string& portal_name, std::uint32_t n_rows, tracing::ScopeTime&);
+    void
+    SendPortalExecute(USERVER_NAMESPACE::utils::zstring_view portal_name, std::uint32_t n_rows, tracing::ScopeTime&);
 
     /// @brief Wait for query result
     /// Will return result or throw an exception
@@ -129,7 +129,8 @@ public:
     bool TryConsumeInput(Deadline deadline, const PGresult* description);
 
     /// @brief Fills current span with connection info
-    void FillSpanTags(tracing::Span&, const CommandControl& cc) const;
+    void FillSpanTags(tracing::Span&, const CommandControl& cc, std::string&& execute_tag_key = "network_timeout_ms")
+        const;
 
     /// Logs a server-originated notice
     void LogNotice(const PGresult*) const;
@@ -172,7 +173,7 @@ private:
     ResultSet MakeResult(ResultHandle&& handle);
 
     template <typename ExceptionType>
-    void CheckError(const std::string& cmd, int pg_dispatch_result);
+    void CheckError(USERVER_NAMESPACE::utils::zstring_view cmd, int pg_dispatch_result);
 
     void HandleSocketPostClose();
 

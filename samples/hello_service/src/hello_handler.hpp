@@ -16,8 +16,7 @@ public:
     // Component is valid after construction and is able to accept requests
     using HttpHandlerBase::HttpHandlerBase;
 
-    std::string HandleRequestThrow(const server::http::HttpRequest& request, server::request::RequestContext&)
-        const override;
+    std::string HandleRequest(server::http::HttpRequest& request, server::request::RequestContext&) const override;
 };
 
 }  // namespace samples::hello

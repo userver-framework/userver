@@ -18,7 +18,7 @@ USERVER_NAMESPACE_BEGIN
 
 using namespace std::chrono_literals;
 
-TEST(Task, Ctr) { engine::Task task; }
+TEST(Task, Ctr) { const engine::Task task; }
 
 UTEST(Task, Wait) {
     auto task = engine::AsyncNoSpan([] {});
@@ -46,12 +46,13 @@ UTEST(Task, EarlyCancel) {
 
 UTEST(Task, EarlyCancelResourceCleanup) {
     auto shared = std::make_shared<int>(1);
-    std::weak_ptr<int> weak = shared;
+    const std::weak_ptr<int> weak = shared;
 
     // Unlike `engine::TaskWithResult` the `engine::Task` frees resources on
     // finish
-    engine::Task task =
-        engine::AsyncNoSpan([shared = std::move(shared)] { ADD_FAILURE() << "Cancelled task has started"; });
+    engine::Task task = engine::AsyncNoSpan([shared = std::move(shared)] {
+        ADD_FAILURE() << "Cancelled task has started";
+    });
 
     task.RequestCancel();
     task.WaitFor(100ms);
@@ -237,7 +238,9 @@ UTEST(Task, CancelWaiting) {
         UEXPECT_THROW(subtask.Wait(), engine::WaitInterruptedException);
     });
 
-    while (!is_subtask_started) engine::Yield();
+    while (!is_subtask_started) {
+        engine::Yield();
+    }
 }
 
 UTEST(Task, GetInvalidatesTask) {
@@ -258,8 +261,9 @@ UTEST_MT(Task, MultiWait, 4) {
     const auto test_deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
 
     engine::SingleConsumerEvent event;
-    auto shared_task =
-        engine::SharedAsyncNoSpan([&event, test_deadline] { EXPECT_TRUE(event.WaitForEventUntil(test_deadline)); });
+    auto shared_task = engine::SharedAsyncNoSpan([&event, test_deadline] {
+        EXPECT_TRUE(event.WaitForEventUntil(test_deadline));
+    });
 
     engine::Mutex mutex;
     engine::ConditionVariable cv;
@@ -269,7 +273,7 @@ UTEST_MT(Task, MultiWait, 4) {
     for (size_t i = 0; i < kWaitingTasksCount; ++i) {
         tasks.push_back(engine::AsyncNoSpan([&shared_task, &mutex, &cv, &tasks_started, test_deadline]() {
             {
-                std::unique_lock<engine::Mutex> lock{mutex};
+                const std::lock_guard<engine::Mutex> lock{mutex};
                 tasks_started++;
                 cv.NotifyOne();
             }
@@ -282,15 +286,18 @@ UTEST_MT(Task, MultiWait, 4) {
     ASSERT_TRUE(cv.WaitUntil(lock, test_deadline, [&tasks_started] { return tasks_started == kWaitingTasksCount; }));
     event.Send();
 
-    for (auto& task : tasks) task.Get();
+    for (auto& task : tasks) {
+        task.Get();
+    }
 }
 
 TEST(Task, CoroStackSizeSet) {
     engine::TaskProcessorPoolsConfig config{};
     config.coro_stack_size = 256 * 1024 + 123;
     engine::RunStandalone(1, config, []() {
-        const auto expected_stack_size = 256 * 1024 + /* The size should be rounded up to the page size */
-                                         utils::sys_info::GetPageSize();
+        const auto expected_stack_size =
+            256 * 1024 + /* The size should be rounded up to the page size */
+            utils::sys_info::GetPageSize();
         ASSERT_EQ(engine::current_task::GetStackSize(), expected_stack_size);
     });
 }

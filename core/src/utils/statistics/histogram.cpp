@@ -38,6 +38,12 @@ static_assert(kMaxBPlusBounds >= 50, "B+ tree should fit the largest recommended
 // For demonstration purposes only. Fix the constant if the assert fails.
 static_assert(kMaxBPlusBounds == 80);
 
+static_assert(
+    concurrent::impl::kDestructiveInterferenceSize >= sizeof(utils::statistics::impl::histogram::Bucket),
+    "Bucket overgrown the size of interference size. For efficiency reasons make sure that Bucket::sum and "
+    "Bucket::count reside in the same cache line."
+);
+
 namespace impl::histogram {
 
 struct alignas(sizeof(float) * kBlockSize) BoundsBlock final {
@@ -60,8 +66,8 @@ namespace {
 USERVER_IMPL_ALWAYS_INLINE_SIMD std::size_t LeastGreaterEqualIndex(const BoundsBlock& block, float value) noexcept {
 #if defined(__AVX2__)
     static constexpr int kLessEqual = 2;
-    const auto mask =
-        _mm256_movemask_ps(_mm256_cmp_ps(_mm256_set1_ps(value), _mm256_load_ps(&block.data[0]), kLessEqual));
+    const auto
+        mask = _mm256_movemask_ps(_mm256_cmp_ps(_mm256_set1_ps(value), _mm256_load_ps(&block.data[0]), kLessEqual));
 #elif defined(__SSE2__)
     const auto mask1 = _mm_movemask_ps(_mm_cmple_ps(_mm_set1_ps(value), _mm_load_ps(&block.data[0])));
     const auto mask2 = _mm_movemask_ps(_mm_cmple_ps(_mm_set1_ps(value), _mm_load_ps(&block.data[4])));
@@ -78,7 +84,9 @@ USERVER_IMPL_ALWAYS_INLINE_SIMD std::size_t LeastGreaterEqualIndex(const BoundsB
 }  // namespace
 
 void Histogram::UpdateBounds() {
-    if (bucket_count_ > kMaxBPlusBounds) return;
+    if (bucket_count_ > kMaxBPlusBounds) {
+        return;
+    }
 
     const auto upper_bounds = impl::histogram::Access::Bounds(GetView());
     for (const auto bound : upper_bounds) {
@@ -102,14 +110,16 @@ void Histogram::UpdateBounds() {
 
 Histogram::Histogram(utils::span<const double> upper_bounds)
     : buckets_(std::make_unique<impl::histogram::Bucket[]>(upper_bounds.size() + 1)),
-      bucket_count_(upper_bounds.size()) {
+      bucket_count_(upper_bounds.size())
+{
     impl::histogram::CopyBounds(buckets_.get(), upper_bounds);
     UpdateBounds();
 }
 
 Histogram::Histogram(HistogramView other)
     : buckets_(std::make_unique<impl::histogram::Bucket[]>(other.GetBucketCount() + 1)),
-      bucket_count_(other.GetBucketCount()) {
+      bucket_count_(other.GetBucketCount())
+{
     impl::histogram::CopyBoundsAndValues(buckets_.get(), other);
     UpdateBounds();
 }
@@ -118,7 +128,9 @@ Histogram::Histogram(Histogram&& other) noexcept = default;
 
 Histogram& Histogram::operator=(Histogram&& other) noexcept = default;
 
-Histogram::Histogram(const Histogram& other) : Histogram(other.GetView()) {}
+Histogram::Histogram(const Histogram& other)
+    : Histogram(other.GetView())
+{}
 
 Histogram& Histogram::operator=(const Histogram& other) {
     *this = Histogram{other};
@@ -144,6 +156,7 @@ void Histogram::Account(double value, std::uint64_t count) noexcept {
     const auto bucket_index = pre_bucket_index + 1 > bucket_count_ ? 0 : pre_bucket_index + 1;
     auto& bucket = buckets_[bucket_index];
     bucket.counter.fetch_add(count, std::memory_order_relaxed);
+    impl::histogram::AddAtomic(bucket.sum, value * count);
 }
 
 void ResetMetric(Histogram& histogram) noexcept { impl::histogram::ResetMetric(histogram.buckets_.get()); }

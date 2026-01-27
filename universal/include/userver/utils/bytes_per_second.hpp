@@ -12,7 +12,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils {
 
-/// @ingroup userver_universal userver_containers
+/// @ingroup userver_universal
 ///
 /// @brief Data type that represents `bytes per second` unit
 enum class BytesPerSecond : long long {};
@@ -29,7 +29,7 @@ BytesPerSecond StringToBytesPerSecond(const std::string& data);
 
 template <class Value>
 BytesPerSecond Parse(const Value& v, formats::parse::To<BytesPerSecond>) {
-    return StringToBytesPerSecond(v.template As<std::string>());
+    return utils::StringToBytesPerSecond(v.template As<std::string>());
 }
 
 }  // namespace utils

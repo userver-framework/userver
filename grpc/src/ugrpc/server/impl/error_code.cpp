@@ -11,6 +11,7 @@ grpc::StatusCode CustomStatusToGrpc(USERVER_NAMESPACE::server::handlers::Handler
     switch (code) {
         case HCode::kUnknownError:
             return Code::UNKNOWN;
+        case HCode::kClientError:
         case HCode::kRequestParseError:
         case HCode::kNotAcceptable:
         case HCode::kUnsupportedMediaType:

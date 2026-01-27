@@ -27,7 +27,7 @@ TEST(JsonValueBuilder, ExampleUsage) {
     formats::json::ValueBuilder builder;
     builder["key1"] = 1;
     builder["key2"]["key3"] = "val";
-    formats::json::Value json = builder.ExtractValue();
+    const formats::json::Value json = builder.ExtractValue();
 
     ASSERT_EQ(json["key1"].As<int>(), 1);
     ASSERT_EQ(json["key2"]["key3"].As<std::string>(), "val");
@@ -37,7 +37,7 @@ TEST(JsonValueBuilder, ExampleUsage) {
 TEST(JsonValueBuilder, ValueString) {
     formats::json::ValueBuilder builder;
     builder = "abc";
-    formats::json::Value json = builder.ExtractValue();
+    const formats::json::Value json = builder.ExtractValue();
 
     ASSERT_EQ(json.As<std::string>(), "abc");
     ASSERT_THROW(json.As<int>(), formats::json::TypeMismatchException);
@@ -46,7 +46,7 @@ TEST(JsonValueBuilder, ValueString) {
 TEST(JsonValueBuilder, ValueEmptyString) {
     formats::json::ValueBuilder builder;
     builder = "";
-    formats::json::Value json = builder.ExtractValue();
+    const formats::json::Value json = builder.ExtractValue();
 
     ASSERT_EQ(json.As<std::string>(), "");
     ASSERT_THROW(json.As<std::vector<std::string>>(), formats::json::TypeMismatchException);
@@ -55,7 +55,7 @@ TEST(JsonValueBuilder, ValueEmptyString) {
 TEST(JsonValueBuilder, ValueNumber) {
     formats::json::ValueBuilder builder;
     builder = 321;
-    formats::json::Value json = builder.ExtractValue();
+    const formats::json::Value json = builder.ExtractValue();
 
     ASSERT_EQ(json.As<int>(), 321);
     ASSERT_THROW(json.As<bool>(), formats::json::TypeMismatchException);
@@ -64,7 +64,7 @@ TEST(JsonValueBuilder, ValueNumber) {
 TEST(JsonValueBuilder, ValueTrue) {
     formats::json::ValueBuilder builder;
     builder = true;
-    formats::json::Value json = builder.ExtractValue();
+    const formats::json::Value json = builder.ExtractValue();
 
     ASSERT_EQ(json.As<bool>(), true);
     ASSERT_THROW(json.As<int>(), formats::json::TypeMismatchException);
@@ -72,7 +72,7 @@ TEST(JsonValueBuilder, ValueTrue) {
 
 TEST(JsonValueBuilder, ValueFalse) {
     formats::json::ValueBuilder builder = false;
-    formats::json::Value json = builder.ExtractValue();
+    const formats::json::Value json = builder.ExtractValue();
 
     ASSERT_EQ(json.As<bool>(), false);
     ASSERT_THROW(json.As<int>(), formats::json::TypeMismatchException);
@@ -81,14 +81,14 @@ TEST(JsonValueBuilder, ValueFalse) {
 TEST(JsonValueBuilder, ValueNull) {
     formats::json::ValueBuilder builder;
     builder = std::optional<int>{};
-    formats::json::Value json = builder.ExtractValue();
+    const formats::json::Value json = builder.ExtractValue();
 
     ASSERT_EQ(json.As<std::optional<int>>(), std::nullopt);
     ASSERT_EQ(json.As<std::optional<std::vector<std::string>>>(), std::nullopt);
     ASSERT_THROW(json.As<int>(), formats::json::TypeMismatchException);
 
     formats::json::ValueBuilder builder_def;
-    formats::json::Value json_def = builder_def.ExtractValue();
+    const formats::json::Value json_def = builder_def.ExtractValue();
 
     ASSERT_EQ(json_def.As<std::optional<std::string>>(), std::nullopt);
 }
@@ -111,7 +111,7 @@ formats::json::Value Serialize(const MyKeyValue& data, formats::serialize::To<fo
 }
 
 TEST(JsonValueBuilder, ExampleCustomization) {
-    MyKeyValue object = {"val", 1};
+    const MyKeyValue object = {"val", 1};
     formats::json::ValueBuilder builder;
     builder["example"] = object;
     auto json = builder.ExtractValue();

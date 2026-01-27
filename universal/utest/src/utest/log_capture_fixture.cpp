@@ -19,9 +19,9 @@ namespace {}  // namespace
 
 namespace impl {
 
-class ToStringLogger : public logging::impl::LoggerBase {
+class ToStringLogger : public logging::impl::TextLogger {
 public:
-    ToStringLogger(logging::Format format) : logging::impl::LoggerBase(format) {
+    ToStringLogger(logging::Format format) : logging::impl::TextLogger(format) {
         UINVARIANT(
             format == logging::Format::kTskv || format == logging::Format::kRaw,
             "Parsing for this logging::Format is not supported"
@@ -29,9 +29,11 @@ public:
         logging::impl::LoggerBase::SetLevel(logging::Level::kInfo);
     }
 
-    void Log(logging::Level level, std::string_view str) override {
+    void Log(logging::Level level, logging::impl::formatters::LoggerItemRef item) override {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
+        auto& str = static_cast<logging::impl::TextLogItem&>(item);
         const std::lock_guard lock{mutex_};
-        records_.push_back(LogRecord{utils::impl::InternalTag{}, level, std::string{str}});
+        records_.push_back(LogRecord{utils::impl::InternalTag{}, level, std::string{str.log_line}});
     }
 
     std::vector<LogRecord> GetAll() const {
@@ -96,7 +98,9 @@ const std::string& LogRecord::GetLogRaw() const { return log_raw_; }
 logging::Level LogRecord::GetLevel() const { return level_; }
 
 LogRecord::LogRecord(utils::impl::InternalTag, logging::Level level, std::string&& log_raw)
-    : level_(level), log_raw_(std::move(log_raw)) {
+    : level_(level),
+      log_raw_(std::move(log_raw))
+{
     utils::encoding::TskvParser parser{log_raw_};
 
     const auto on_invalid_record = [&] {
@@ -135,21 +139,22 @@ std::ostream& operator<<(std::ostream& os, const std::vector<LogRecord>& data) {
 
 LogRecord GetSingleLog(utils::span<const LogRecord> log, const utils::impl::SourceLocation& source_location) {
     if (log.size() != 1) {
-        std::string msg =
-            fmt::format("There are {} log records instead of 1 at {}:\n", log.size(), ToString(source_location));
+        std::string
+            msg = fmt::format("There are {} log records instead of 1 at {}:\n", log.size(), ToString(source_location));
         for (const auto& record : log) {
             msg += record.GetLogRaw();
         }
         throw NotSingleLogError(msg);
     }
-    auto single_record = std::move(log[0]);
+    auto single_record = log[0];
     return single_record;
 }
 
 LogCaptureLogger::LogCaptureLogger(logging::Format format)
-    : logger_(utils::MakeSharedRef<impl::ToStringLogger>(format)) {}
+    : logger_(utils::MakeSharedRef<impl::ToStringLogger>(format))
+{}
 
-logging::LoggerPtr LogCaptureLogger::GetLogger() const { return logger_.GetBase(); }
+logging::TextLoggerPtr LogCaptureLogger::GetLogger() const { return logger_.GetBase(); }
 
 std::vector<LogRecord> LogCaptureLogger::GetAll() const { return logger_->GetAll(); }
 

@@ -90,7 +90,7 @@ public:
     explicit LogCaptureLogger(logging::Format format = logging::Format::kRaw);
 
     /// @returns the mocked logger.
-    logging::LoggerPtr GetLogger() const;
+    logging::TextLoggerPtr GetLogger() const;
 
     /// @returns all collected logs.
     /// @see @ref GetSingleLog

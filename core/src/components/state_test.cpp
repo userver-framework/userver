@@ -1,7 +1,6 @@
 #include <userver/utest/utest.hpp>
 
 #include <components/component_list_test.hpp>
-#include <userver/alerts/component.hpp>
 #include <userver/components/component_base.hpp>
 #include <userver/components/component_context.hpp>
 #include <userver/components/run.hpp>
@@ -24,7 +23,9 @@ public:
     static constexpr std::string_view kName = "component-1";
 
     Component1(const components::ComponentConfig& config, const components::ComponentContext& context)
-        : components::ComponentBase(config, context), state_{context} {}
+        : components::ComponentBase(config, context),
+          state_{context}
+    {}
 
     void OnAllComponentsLoaded() override { CheckTheComponents(state_, "Component1::OnAllComponentsLoaded()"); }
 
@@ -43,7 +44,9 @@ public:
     static constexpr std::string_view kName = "component-2";
 
     Component2(const components::ComponentConfig& config, const components::ComponentContext& context)
-        : components::ComponentBase(config, context), state_{context} {
+        : components::ComponentBase(config, context),
+          state_{context}
+    {
         context.FindComponent<Component1>();
     }
 
@@ -64,7 +67,9 @@ public:
     static constexpr std::string_view kName = "component-not-loaded";
 
     ComponentNotLoaded(const components::ComponentConfig& config, const components::ComponentContext& context)
-        : components::ComponentBase(config, context), state_{context} {
+        : components::ComponentBase(config, context),
+          state_{context}
+    {
         context.FindComponent<Component1>();
     }
 
@@ -85,7 +90,9 @@ public:
     static constexpr std::string_view kName = "component-3";
 
     Component3(const components::ComponentConfig& config, const components::ComponentContext& context)
-        : components::ComponentBase(config, context), state_{context} {
+        : components::ComponentBase(config, context),
+          state_{context}
+    {
         context.FindComponentOptional<Component2>();
         context.FindComponentOptional<ComponentNotLoaded>();
     }
@@ -112,7 +119,8 @@ void CheckTheComponents(components::State state, std::string_view where) {
         }
 
         for (auto dependency :
-             {Component1::kName, Component2::kName, Component3::kName, ComponentNotLoaded::kName, not_existing}) {
+             {Component1::kName, Component2::kName, Component3::kName, ComponentNotLoaded::kName, not_existing})
+        {
             EXPECT_FALSE(state.HasDependencyOn(Component1::kName, dependency)) << where;
             EXPECT_FALSE(deps.count(dependency)) << where;
         }
@@ -172,6 +180,7 @@ components_manager:
   event_thread_pool:
     threads: 1
   default_task_processor: main-task-processor
+  fs_task_processor: main-task-processor
   task_processors:
     main-task-processor:
       worker_threads: 1
@@ -195,8 +204,7 @@ components::ComponentList MakeComponentList() {
         .Append<Component2>()
         .Append<Component1>()
         .Append<ComponentNotLoaded>()
-        .Append<Component3>()
-        .Append<alerts::StorageComponent>();
+        .Append<Component3>();
 }
 
 }  // namespace

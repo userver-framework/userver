@@ -40,13 +40,19 @@ impl::ResponseAwaiter ConnectionHelper::BindQueue(
     });
 }
 
-impl::ResponseAwaiter
-ConnectionHelper::RemoveExchange(const ConnectionPtr& connection, const Exchange& exchange, engine::Deadline deadline) {
+impl::ResponseAwaiter ConnectionHelper::RemoveExchange(
+    const ConnectionPtr& connection,
+    const Exchange& exchange,
+    engine::Deadline deadline
+) {
     return WithSpan("remove_exchange", [&] { return connection->GetChannel().RemoveExchange(exchange, deadline); });
 }
 
-impl::ResponseAwaiter
-ConnectionHelper::RemoveQueue(const ConnectionPtr& connection, const Queue& queue, engine::Deadline deadline) {
+impl::ResponseAwaiter ConnectionHelper::RemoveQueue(
+    const ConnectionPtr& connection,
+    const Queue& queue,
+    engine::Deadline deadline
+) {
     return WithSpan("remove_queue", [&] { return connection->GetChannel().RemoveQueue(queue, deadline); });
 }
 
@@ -64,24 +70,22 @@ void ConnectionHelper::Publish(
     const ConnectionPtr& connection,
     const Exchange& exchange,
     const std::string& routing_key,
-    const std::string& message,
-    MessageType type,
+    const Envelope& envelope,
     engine::Deadline deadline
 ) {
     tracing::Span span{"publish"};
-    connection->GetChannel().Publish(exchange, routing_key, message, type, deadline);
+    connection->GetChannel().Publish(exchange, routing_key, envelope, deadline);
 }
 
 impl::ResponseAwaiter ConnectionHelper::PublishReliable(
     const ConnectionPtr& connection,
     const Exchange& exchange,
     const std::string& routing_key,
-    const std::string& message,
-    MessageType type,
+    const Envelope& envelope,
     engine::Deadline deadline
 ) {
     return WithSpan("reliable_publish", [&] {
-        return connection->GetReliableChannel().Publish(exchange, routing_key, message, type, deadline);
+        return connection->GetReliableChannel().Publish(exchange, routing_key, envelope, deadline);
     });
 }
 

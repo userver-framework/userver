@@ -63,25 +63,25 @@ TYPED_TEST(Decimal64Round, FromFloatInexactLimits) {
 
 TYPED_TEST(Decimal64Round, ToDouble) {
     {
-        double dob = 134079827203791.55;
+        const double dob = 134079827203791.55;
         auto dec = Dec2(fmt::to_string(dob));
         EXPECT_EQ(dob, dec.ToDoubleInexact());
     }
 
     {
-        double dob = 4174801208242952;
+        const double dob = 4174801208242952;
         auto dec = Dec2(fmt::to_string(dob));
         EXPECT_EQ(dob, dec.ToDoubleInexact());
     }
 
     {
-        double dob = 331716630467646.8;
+        const double dob = 331716630467646.8;
         auto dec = Dec4(fmt::to_string(dob));
         EXPECT_EQ(dob, dec.ToDoubleInexact());
     }
 
     {
-        double dob = 564448964690768.6;
+        const double dob = 564448964690768.6;
         auto dec = Dec4(fmt::to_string(dob));
         EXPECT_EQ(dob, dec.ToDoubleInexact());
     }
@@ -161,9 +161,9 @@ TEST(Decimal64, OperationsWithSign) { EXPECT_EQ(Dec4{0}, Dec4{"0.0001"} + Dec4{"
 TEST(Decimal64, MoneyExample) {
     using Money = decimal64::Decimal<4>;
 
-    Money jpy_10k_to_rub{"5970.77"};
-    Money value_rub{"10.00"};
-    Money value_jpy = value_rub * jpy_10k_to_rub / Money{"10000.00"};
+    const Money jpy_10k_to_rub{"5970.77"};
+    const Money value_rub{"10.00"};
+    const Money value_jpy = value_rub * jpy_10k_to_rub / Money{"10000.00"};
     EXPECT_EQ(decimal64::ToString(value_jpy), "5.9708");
 }
 
@@ -217,7 +217,7 @@ TEST(Decimal64, DivisionByZero) {
     EXPECT_THROW(Dec4{1} / 0, decimal64::DivisionByZeroError);
 }
 
-#ifdef __cpp_lib_three_way_comparison
+#ifdef USERVER_IMPL_HAS_THREE_WAY_COMPARISON
 TEST(Decimal64, ThreeWayComparison) {
     EXPECT_EQ(Dec4{1} <=> Dec4{1}, 1 <=> 1);
     EXPECT_EQ(Dec4{1} <=> Dec4{2}, 1 <=> 2);
@@ -300,7 +300,9 @@ TYPED_TEST(Decimal64HalfRoundPolicy, Division) {
     EXPECT_EQ(Dec{-22} / Dec{-5}, Dec{4});
     EXPECT_EQ(Dec{-23} / Dec{-5}, Dec{5});
 
-    if constexpr (std::is_same_v<TypeParam, decimal64::HalfDownRoundPolicy> || std::is_same_v<TypeParam, decimal64::HalfEvenRoundPolicy>) {
+    if constexpr (std::is_same_v<TypeParam, decimal64::HalfDownRoundPolicy> ||
+                  std::is_same_v<TypeParam, decimal64::HalfEvenRoundPolicy>)
+    {
         EXPECT_EQ(Dec{25} / Dec{10}, Dec{2});
         EXPECT_EQ(Dec{-25} / Dec{10}, Dec{-2});
         EXPECT_EQ(Dec{25} / Dec{-10}, Dec{-2});

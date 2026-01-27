@@ -241,19 +241,19 @@ TEST(Convert, PrimitiveToJson) {
     EXPECT_THAT(fb::Binary("some_binary_data"), JsonPrimitiveToStringMatcherFromBsonMatcher());
 
     {
-        fb::Timestamp value(1554138241, 1);
+        const fb::Timestamp value(1554138241, 1);
         auto b = fb::ValueBuilder(value).ExtractValue();
         auto j = fj::ValueBuilder(value.GetTimestamp()).ExtractValue();
         EXPECT_EQ(b.ConvertTo<fj::Value>(), j);
     }
     {
-        fb::MinKey value;
+        const fb::MinKey value;
         auto b = fb::ValueBuilder(value).ExtractValue();
         auto j = fj::MakeObject("$minKey", 1);
         EXPECT_EQ(b.ConvertTo<fj::Value>(), j);
     }
     {
-        fb::MaxKey value;
+        const fb::MaxKey value;
         auto b = fb::ValueBuilder(value).ExtractValue();
         auto j = fj::MakeObject("$maxKey", 1);
         EXPECT_EQ(b.ConvertTo<fj::Value>(), j);
@@ -279,7 +279,8 @@ TEST(Convert, PrimitiveFromJson) {
     }
 
     EXPECT_THROW(
-        fj::ValueBuilder(std::numeric_limits<uint64_t>::max()).ExtractValue().ConvertTo<fb::Value>(), fb::BsonException
+        fj::ValueBuilder(std::numeric_limits<uint64_t>::max()).ExtractValue().ConvertTo<fb::Value>(),
+        fb::BsonException
     );
 }
 

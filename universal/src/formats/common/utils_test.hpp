@@ -69,7 +69,7 @@ TYPED_TEST_P(FormatsGetAtPathValue, Empty) {
     using ValueBuilder = typename TypeParam::Builder;
     ValueBuilder origin;
     origin["key1"]["key2"]["key3"] = 1;
-    Value result = origin.ExtractValue();
+    const Value result = origin.ExtractValue();
     const std::vector<std::string> path{};
     ASSERT_EQ(formats::common::GetAtPath(result, path), result);
 }
@@ -79,8 +79,8 @@ TYPED_TEST_P(FormatsGetAtPathValue, NonObjectElemOnPath) {
     using ValueBuilder = typename TypeParam::Builder;
     ValueBuilder origin;
     origin["key1"] = 1;
-    Value origin_value = origin.ExtractValue();
-    std::vector<std::string> path = {"key1", "key2"};
+    const Value origin_value = origin.ExtractValue();
+    const std::vector<std::string> path = {"key1", "key2"};
     // possible false positive because of conditional in catch?
     // NOLINTNEXTLINE(misc-throw-by-value-catch-by-reference)
     ASSERT_THROW(formats::common::GetAtPath(origin_value, std::move(path)), typename TestFixture::Exception);
@@ -91,7 +91,7 @@ TYPED_TEST_P(FormatsGetAtPathValue, One) {
     using ValueBuilder = typename TypeParam::Builder;
     ValueBuilder origin;
     origin["key1"]["key2"]["key3"] = 1;
-    Value result = origin.ExtractValue();
+    const Value result = origin.ExtractValue();
     const std::vector<std::string> path{"key1"};
     ASSERT_EQ(formats::common::GetAtPath(result, path), result["key1"]);
 }
@@ -102,7 +102,7 @@ TYPED_TEST_P(FormatsGetAtPathValue, Odd) {
     ValueBuilder builder;
     ValueBuilder new_elem = 2;
     builder["key1"]["key2"]["key3"] = new_elem;
-    Value result = builder.ExtractValue();
+    const Value result = builder.ExtractValue();
     const std::vector<std::string> path{"key1", "key2", "key3"};
     ASSERT_EQ(formats::common::GetAtPath(result, path), new_elem.ExtractValue());
 }
@@ -112,7 +112,7 @@ TYPED_TEST_P(FormatsGetAtPathValue, Even) {
     using ValueBuilder = typename TypeParam::Builder;
     ValueBuilder builder;
     builder["key1"]["key2"]["key3"] = 1;
-    Value result = builder.ExtractValue();
+    const Value result = builder.ExtractValue();
     const std::vector<std::string> path{"key1", "key2"};
     ASSERT_EQ(formats::common::GetAtPath(result, path), result["key1"]["key2"]);
 }

@@ -21,7 +21,7 @@ namespace {
 //////// Generic cases for benchmarking
 
 template <typename Mutex>
-void generic_lock(benchmark::State& state) {
+void GenericLock(benchmark::State& state) {
     constexpr std::size_t kMutexCount = 256;
     std::size_t i = 0;
     Mutex mutexes[kMutexCount];
@@ -45,7 +45,7 @@ void generic_lock(benchmark::State& state) {
 }
 
 template <typename Mutex>
-void generic_unlock(benchmark::State& state) {
+void GenericUnlock(benchmark::State& state) {
     constexpr std::size_t kMutexCount = 256;
     std::size_t i = 0;
     Mutex mutexes[kMutexCount];
@@ -73,7 +73,7 @@ void generic_unlock(benchmark::State& state) {
 }
 
 template <typename Mutex>
-void generic_contention(benchmark::State& state) {
+void GenericContention(benchmark::State& state) {
     std::atomic<std::size_t> lock_unlock_count{0};
     concurrent::impl::InterferenceShield<Mutex> m;
 
@@ -96,7 +96,7 @@ void generic_contention(benchmark::State& state) {
 }
 
 template <typename Mutex>
-void generic_contention_with_payload(benchmark::State& state) {
+void GenericContentionWithPayload(benchmark::State& state) {
     std::atomic<std::uint64_t> lock_unlock_count{0};
     concurrent::impl::InterferenceShield<Mutex> m;
 
@@ -127,64 +127,62 @@ void generic_contention_with_payload(benchmark::State& state) {
 // avoid any side-effects (RunStandalone spawns additional std::threads and uses
 // some synchronization primitives).
 
-void mutex_coro_lock(benchmark::State& state) {
-    engine::RunStandalone([&] { generic_lock<engine::Mutex>(state); });
+void MutexCoroLock(benchmark::State& state) {
+    engine::RunStandalone([&] { GenericLock<engine::Mutex>(state); });
 }
 
-void mutex_std_lock(benchmark::State& state) { generic_lock<std::mutex>(state); }
+void MutexStdLock(benchmark::State& state) { GenericLock<std::mutex>(state); }
 
-void single_waiting_task_mutex_lock(benchmark::State& state) {
-    engine::RunStandalone([&] { generic_lock<engine::SingleWaitingTaskMutex>(state); });
+void SingleWaitingTaskMutexLock(benchmark::State& state) {
+    engine::RunStandalone([&] { GenericLock<engine::SingleWaitingTaskMutex>(state); });
 }
 
-void mutex_coro_unlock(benchmark::State& state) {
-    engine::RunStandalone([&] { generic_unlock<engine::Mutex>(state); });
+void MutexCoroUnlock(benchmark::State& state) {
+    engine::RunStandalone([&] { GenericUnlock<engine::Mutex>(state); });
 }
 
-void mutex_std_unlock(benchmark::State& state) { generic_lock<std::mutex>(state); }
+void MutexStdUnlock(benchmark::State& state) { GenericLock<std::mutex>(state); }
 
-void single_waiting_task_mutex_unlock(benchmark::State& state) {
-    engine::RunStandalone([&] { generic_unlock<engine::SingleWaitingTaskMutex>(state); });
+void SingleWaitingTaskMutexUnlock(benchmark::State& state) {
+    engine::RunStandalone([&] { GenericUnlock<engine::SingleWaitingTaskMutex>(state); });
 }
 
-void mutex_coro_contention(benchmark::State& state) {
-    engine::RunStandalone(state.range(0), [&] { generic_contention<engine::Mutex>(state); });
+void MutexCoroContention(benchmark::State& state) {
+    engine::RunStandalone(state.range(0), [&] { GenericContention<engine::Mutex>(state); });
 }
 
-void mutex_std_contention(benchmark::State& state) { generic_contention<std::mutex>(state); }
+void MutexStdContention(benchmark::State& state) { GenericContention<std::mutex>(state); }
 
-void single_waiting_task_mutex_contention(benchmark::State& state) {
-    engine::RunStandalone(state.range(0), [&] { generic_contention<engine::SingleWaitingTaskMutex>(state); });
+void SingleWaitingTaskMutexContention(benchmark::State& state) {
+    engine::RunStandalone(state.range(0), [&] { GenericContention<engine::SingleWaitingTaskMutex>(state); });
 }
 
-void mutex_coro_contention_with_payload(benchmark::State& state) {
-    engine::RunStandalone(state.range(0), [&] { generic_contention_with_payload<engine::Mutex>(state); });
+void MutexCoroContentionWithPayload(benchmark::State& state) {
+    engine::RunStandalone(state.range(0), [&] { GenericContentionWithPayload<engine::Mutex>(state); });
 }
 
-void mutex_std_contention_with_payload(benchmark::State& state) { generic_contention_with_payload<std::mutex>(state); }
+void MutexStdContentionWithPayload(benchmark::State& state) { GenericContentionWithPayload<std::mutex>(state); }
 
-void single_waiting_task_mutex_contention_with_payload(benchmark::State& state) {
-    engine::RunStandalone(state.range(0), [&] {
-        generic_contention_with_payload<engine::SingleWaitingTaskMutex>(state);
-    });
+void SingleWaitingTaskMutexContentionWithPayload(benchmark::State& state) {
+    engine::RunStandalone(state.range(0), [&] { GenericContentionWithPayload<engine::SingleWaitingTaskMutex>(state); });
 }
 
 }  // namespace
 
-BENCHMARK(mutex_coro_lock);
-BENCHMARK(mutex_std_lock);
-BENCHMARK(single_waiting_task_mutex_lock);
+BENCHMARK(MutexCoroLock);
+BENCHMARK(MutexStdLock);
+BENCHMARK(SingleWaitingTaskMutexLock);
 
-BENCHMARK(mutex_coro_unlock);
-BENCHMARK(mutex_std_unlock);
-BENCHMARK(single_waiting_task_mutex_unlock);
+BENCHMARK(MutexCoroUnlock);
+BENCHMARK(MutexStdUnlock);
+BENCHMARK(SingleWaitingTaskMutexUnlock);
 
-BENCHMARK(mutex_coro_contention)->RangeMultiplier(2)->Range(1, 32);
-BENCHMARK(mutex_std_contention)->RangeMultiplier(2)->Range(1, 32);
-BENCHMARK(single_waiting_task_mutex_contention)->Range(1, 2);
+BENCHMARK(MutexCoroContention)->RangeMultiplier(2)->Range(1, 32);
+BENCHMARK(MutexStdContention)->RangeMultiplier(2)->Range(1, 32);
+BENCHMARK(SingleWaitingTaskMutexContention)->Range(1, 2);
 
-BENCHMARK(mutex_coro_contention_with_payload)->RangeMultiplier(2)->Range(1, 32);
-BENCHMARK(mutex_std_contention_with_payload)->RangeMultiplier(2)->Range(1, 32);
-BENCHMARK(single_waiting_task_mutex_contention_with_payload)->Range(1, 2);
+BENCHMARK(MutexCoroContentionWithPayload)->RangeMultiplier(2)->Range(1, 32);
+BENCHMARK(MutexStdContentionWithPayload)->RangeMultiplier(2)->Range(1, 32);
+BENCHMARK(SingleWaitingTaskMutexContentionWithPayload)->Range(1, 2);
 
 USERVER_NAMESPACE_END

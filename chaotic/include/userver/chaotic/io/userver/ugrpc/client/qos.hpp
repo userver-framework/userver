@@ -1,5 +1,7 @@
 #pragma once
 
+// Utilitary header for chaotic for a custom type serialization/parsing support
+
 #include <userver/chaotic/convert/to.hpp>
 #include <userver/ugrpc/client/qos.hpp>
 
@@ -10,6 +12,7 @@ namespace ugrpc::client {
 template <typename T>
 Qos Convert(const T& value, chaotic::convert::To<Qos>) {
     Qos result;
+    result.attempts = value.attempts;
     result.timeout = value.timeout_ms;
     return result;
 }
@@ -17,6 +20,7 @@ Qos Convert(const T& value, chaotic::convert::To<Qos>) {
 template <typename T>
 T Convert(const Qos& value, chaotic::convert::To<T>) {
     T result;
+    result.attempts = value.attempts;
     result.timeout_ms = value.timeout;
     return result;
 }

@@ -1,0 +1,59 @@
+#include <gtest/gtest.h>
+
+#include <ostream>
+#include <string>
+
+#include <fmt/format.h>
+
+#include <userver/protobuf/json/convert.hpp>
+#include <userver/utest/assert_macros.hpp>
+
+#include "utils.hpp"
+
+USERVER_NAMESPACE_BEGIN
+
+namespace protobuf::json::tests {
+
+struct OneofToJsonSuccessTestParam {
+    OneofMessageData input = {};
+    std::string expected_json = {};
+    PrintOptions options = {};
+};
+
+void PrintTo(const OneofToJsonSuccessTestParam& param, std::ostream* os) {
+    *os << fmt::format(
+        "{{ input = {{.field1={}, .field2={}}} }}",
+        (param.input.field1 ? std::to_string(param.input.field1.value()) : "nullopt"),
+        param.input.field2.value_or("nullopt")
+    );
+}
+
+class OneofToJsonSuccessTest : public ::testing::TestWithParam<OneofToJsonSuccessTestParam> {};
+
+INSTANTIATE_TEST_SUITE_P(
+    ,
+    OneofToJsonSuccessTest,
+    ::testing::Values(
+        OneofToJsonSuccessTestParam{OneofMessageData{}, R"({})"},
+        OneofToJsonSuccessTestParam{OneofMessageData{.field1 = 10}, R"({"field1":10})"},
+        OneofToJsonSuccessTestParam{OneofMessageData{.field2 = "hello"}, R"({"field2":"hello"})"}
+    )
+);
+
+TEST_P(OneofToJsonSuccessTest, Test) {
+    const auto& param = GetParam();
+
+    auto input = PrepareTestData(param.input);
+    formats::json::Value json, expected_json, sample_json;
+
+    UASSERT_NO_THROW((json = MessageToJson(input, param.options)));
+    UASSERT_NO_THROW((expected_json = PrepareJsonTestData(param.expected_json)));
+    UASSERT_NO_THROW((sample_json = CreateSampleJson(input, param.options)));
+
+    EXPECT_EQ(json, expected_json);
+    EXPECT_EQ(expected_json, sample_json);
+}
+
+}  // namespace protobuf::json::tests
+
+USERVER_NAMESPACE_END

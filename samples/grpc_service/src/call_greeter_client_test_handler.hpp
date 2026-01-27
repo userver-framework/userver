@@ -10,26 +10,26 @@
 
 namespace samples {
 
-// Our Python tests use HTTP for all the samples, so we add an HTTP handler,
-// through which we test both the client side and the server side.
+// To demonstrate the possibility to use gRPC clients separately from gRPC handlers,
+// we use a simple HTTP handler.
 class CallGreeterClientTestHandler final : public server::handlers::HttpHandlerBase {
 public:
     static constexpr std::string_view kName = "greeter-http-handler";
 
     CallGreeterClientTestHandler(const components::ComponentConfig& config, const components::ComponentContext& context)
         : HttpHandlerBase(config, context),
-          grpc_greeter_client_(context.FindComponent<GreeterClientComponent>().GetClient()) {}
+          grpc_greeter_client_(context.FindComponent<GreeterClientComponent>().GetClientWrapper())
+    {}
 
-    std::string HandleRequestThrow(const server::http::HttpRequest& request, server::request::RequestContext&)
-        const override {
+    std::string HandleRequest(server::http::HttpRequest& request, server::request::RequestContext&) const override {
         const auto& arg_case = request.GetArg("case");
         request.GetHttpResponse().SetContentType(http::content_type::kTextPlain);
 
         if (arg_case == "say_hello") {
             return grpc_greeter_client_.SayHello(request.RequestBody());
         } else if (arg_case == "say_hello_response_stream") {
-            std::string response =
-                utils::text::Join(grpc_greeter_client_.SayHelloResponseStream(request.RequestBody()), "\n");
+            std::string
+                response = utils::text::Join(grpc_greeter_client_.SayHelloResponseStream(request.RequestBody()), "\n");
             response.append("\n");
             return response;
         } else if (arg_case == "say_hello_request_stream") {

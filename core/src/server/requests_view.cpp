@@ -12,19 +12,22 @@ const auto kDequeuePollPeriod = std::chrono::milliseconds(100);
 
 namespace server {
 
-RequestsView::RequestsView() : queue_(std::make_shared<Queue>()), job_requests(kDequeueBulkSize) {}
+RequestsView::RequestsView()
+    : queue_(std::make_shared<Queue>()),
+      job_requests_(kDequeueBulkSize)
+{}
 
 RequestsView::~RequestsView() { StopBackgroundWorker(); }
 
-std::vector<std::shared_ptr<request::RequestBase>> RequestsView::GetAllRequests() {
-    std::vector<std::shared_ptr<request::RequestBase>> result;
+std::vector<std::shared_ptr<http::HttpRequest>> RequestsView::GetAllRequests() {
+    std::vector<std::shared_ptr<http::HttpRequest>> result;
 
     // Move all to-be-deleted items into delete_list
     // to avoid deletion under mutex.
     std::list<RequestWPtr> delete_list;
 
     {
-        std::lock_guard<engine::Mutex> lock(requests_in_flight_mutex_);
+        const std::lock_guard<engine::Mutex> lock(requests_in_flight_mutex_);
         result.reserve(requests_in_flight_.size());
 
         for (auto it = requests_in_flight_.begin(); it != requests_in_flight_.end();) {
@@ -54,7 +57,7 @@ void RequestsView::GarbageCollect() {
     // to avoid deletion under mutex.
     std::list<RequestWPtr> delete_list;
 
-    std::lock_guard<engine::Mutex> lock(requests_in_flight_mutex_);
+    const std::lock_guard<engine::Mutex> lock(requests_in_flight_mutex_);
     for (auto it = requests_in_flight_.begin(); it != requests_in_flight_.end();) {
         if (!it->expired()) {
             ++it;
@@ -67,12 +70,16 @@ void RequestsView::GarbageCollect() {
 }
 
 void RequestsView::HandleQueue() {
-    std::lock_guard<engine::Mutex> lock(requests_in_flight_mutex_);
+    const std::lock_guard<engine::Mutex> lock(requests_in_flight_mutex_);
     for (;;) {
-        const auto count = queue_->try_dequeue_bulk(job_requests.begin(), job_requests.size());
-        if (count == 0) break;
+        const auto count = queue_->try_dequeue_bulk(job_requests_.begin(), job_requests_.size());
+        if (count == 0) {
+            break;
+        }
 
-        for (size_t i = 0; i < count; ++i) requests_in_flight_.push_back(std::move(job_requests[i]));
+        for (size_t i = 0; i < count; ++i) {
+            requests_in_flight_.push_back(std::move(job_requests_[i]));
+        }
     }
 }
 

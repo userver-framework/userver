@@ -55,9 +55,9 @@ TEST(PostgreIO, Numeric) {
         auto fb = pg::test::MakeFieldBuffer(buffer);
         Numeric tgt{0};
         UEXPECT_NO_THROW(io::ReadBuffer(fb, tgt));
-        EXPECT_EQ(0, src.compare(tgt)) << "Number written to the buffer "
-                                       << std::setprecision(std::numeric_limits<Numeric>::digits10) << src
-                                       << " is expected to be equal to number read from buffer " << tgt;
+        EXPECT_EQ(0, src.compare(tgt))
+            << "Number written to the buffer " << std::setprecision(std::numeric_limits<Numeric>::digits10) << src
+            << " is expected to be equal to number read from buffer " << tgt;
     }
 }
 
@@ -67,7 +67,7 @@ TEST_P(PostgreNumericIO, ParseString) {
     auto str_rep = GetParam();
     auto str_buf = io::detail::StringToNumericBuffer(str_rep);
     EXPECT_FALSE(str_buf.empty());
-    Numeric num{str_rep.c_str()};
+    const Numeric num{str_rep.c_str()};
     auto fb = pg::test::MakeFieldBuffer(str_buf);
     Numeric tgt;
     UEXPECT_NO_THROW(io::ReadBuffer(fb, tgt));
@@ -111,7 +111,7 @@ UTEST_P(PostgreConnection, NumericRoundtrip) {
 
     EXPECT_EQ(io::BufferCategory::kPlainBuffer, io::GetBufferCategory(io::PredefinedOids::kNumeric));
 
-    std::vector<Numeric> test_values{
+    const std::vector<Numeric> test_values{
         Numeric{"0"},
         Numeric{"0.0"},
         Numeric{"0.01"},
@@ -121,7 +121,8 @@ UTEST_P(PostgreConnection, NumericRoundtrip) {
         Numeric{"10000"},
         Numeric{"99999999"},
         Numeric{"-100500"},
-        Numeric{"3.14159265358979323846"}};
+        Numeric{"3.14159265358979323846"}
+    };
 
     for (auto n : test_values) {
         UEXPECT_NO_THROW(res = GetConn()->Execute("select $1", n));
@@ -153,8 +154,9 @@ TEST_P(PostgreDecimalIO, BufferIO) {
 
     fb = pg::test::MakeFieldBuffer(buffer_str2);
     auto parsed_str = pg::io::detail::NumericBufferToString(fb);
-    EXPECT_EQ(expected_str, parsed_str) << "The number string parsed out of the binary buffer is equal to the "
-                                           "original";
+    EXPECT_EQ(expected_str, parsed_str)
+        << "The number string parsed out of the binary buffer is equal to the "
+           "original";
 }
 
 std::string TestDescription(const ::testing::TestParamInfo<DecIOTestData>& info) {
@@ -199,7 +201,7 @@ UTEST_P(PostgreConnection, DecimalRoundtrip) {
 
     EXPECT_EQ(io::BufferCategory::kPlainBuffer, io::GetBufferCategory(io::PredefinedOids::kNumeric));
 
-    std::vector<Decimal> test_values{
+    const std::vector<Decimal> test_values{
         Decimal{"0"},
         Decimal{"0.0"},
         Decimal{"-1.0"},
@@ -218,7 +220,8 @@ UTEST_P(PostgreConnection, DecimalRoundtrip) {
         Decimal{"99999999"},
         Decimal{"9999999"},
         Decimal{"-100500"},
-        Decimal{"3.1415926535"}};
+        Decimal{"3.1415926535"}
+    };
 
     for (auto n : test_values) {
         UEXPECT_NO_THROW(res = GetConn()->Execute("select $1", n));
@@ -240,6 +243,24 @@ UTEST_P(PostgreConnection, DecimalStored) {
     UEXPECT_NO_THROW(res[0][0].To(decimal));
     EXPECT_EQ(decimal, expected);
 }
+
+// Following tests abort in debug
+#ifdef NDEBUG
+UTEST_P(PostgreConnection, DecimalTypeParseExceptionReadability) {
+    {
+        auto result = GetConn()->Execute("SELECT 4.0::numeric");
+        EXPECT_EQ(result[0][0].GetTypeOid(), 1700);  // 1700 == numeric
+        UEXPECT_THROW_MSG(
+            result[0][0].As<double>(),
+            storages::postgres::InvalidInputBufferSize,
+            "Error while reading field #0 'numeric' "
+            "which database type is 'numeric' (oid: 1700) as a C++ type 'double'. Refer to the 'Supported data types' "
+            "in the documentation to make sure that the database type is actually representable as a C++ type "
+            "'double'. Error details: Buffer size 10 is invalid for a floating point value type"
+        );
+    }
+}
+#endif
 
 }  // namespace
 

@@ -8,10 +8,13 @@ USERVER_NAMESPACE_BEGIN
 
 namespace tracing {
 
-ScopeTime::ScopeTime() : ScopeTime(tracing::Span::CurrentSpan().GetTimeStorage(utils::impl::InternalTag{})) {}
+ScopeTime::ScopeTime()
+    : ScopeTime(tracing::Span::CurrentSpan().GetTimeStorage(utils::impl::InternalTag{}))
+{}
 
 ScopeTime::ScopeTime(std::string scope_name)
-    : ScopeTime(tracing::Span::CurrentSpan().GetTimeStorage(utils::impl::InternalTag{}), std::move(scope_name)) {}
+    : ScopeTime(tracing::Span::CurrentSpan().GetTimeStorage(utils::impl::InternalTag{}), std::move(scope_name))
+{}
 
 std::optional<ScopeTime> ScopeTime::CreateOptionalScopeTime() {
     if (tracing::Span::CurrentSpanUnchecked()) {
@@ -29,14 +32,22 @@ std::optional<ScopeTime> ScopeTime::CreateOptionalScopeTime(std::string_view nam
     return std::nullopt;
 }
 
-ScopeTime::ScopeTime(impl::TimeStorage& ts) : ts_(ts) {}
+ScopeTime::ScopeTime(impl::TimeStorage& ts)
+    : ts_(ts)
+{}
 
-ScopeTime::ScopeTime(impl::TimeStorage& ts, std::string scope_name) : ScopeTime(ts) { Reset(std::move(scope_name)); }
+ScopeTime::ScopeTime(impl::TimeStorage& ts, std::string scope_name)
+    : ScopeTime(ts)
+{
+    Reset(std::move(scope_name));
+}
 
 ScopeTime::~ScopeTime() { Reset(); }
 
 ScopeTime::Duration ScopeTime::Reset() {
-    if (scope_name_.empty()) return ScopeTime::Duration(0);
+    if (scope_name_.empty()) {
+        return ScopeTime::Duration(0);
+    }
 
     const auto duration = std::chrono::steady_clock::now() - start_;
     ts_.PushLap(scope_name_, duration);
@@ -54,7 +65,9 @@ ScopeTime::Duration ScopeTime::Reset(std::string scope_name) {
 void ScopeTime::Discard() { scope_name_.clear(); }
 
 ScopeTime::Duration ScopeTime::DurationSinceReset() const {
-    if (scope_name_.empty()) return ScopeTime::Duration{0};
+    if (scope_name_.empty()) {
+        return ScopeTime::Duration{0};
+    }
     return std::chrono::steady_clock::now() - start_;
 }
 

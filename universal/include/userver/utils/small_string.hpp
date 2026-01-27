@@ -27,6 +27,8 @@ class SmallString final {
     using Container = boost::container::small_vector<char, N>;
 
 public:
+    using value_type = char;
+
     /// @brief Create empty string.
     SmallString() = default;
 
@@ -47,6 +49,16 @@ public:
 
     /// @brief Assign the value of other string to this string.
     SmallString& operator=(SmallString&&) noexcept = default;
+
+    SmallString& operator+=(std::string_view sv) {
+        append(sv);
+        return *this;
+    }
+
+    SmallString& operator+=(char c) {
+        push_back(c);
+        return *this;
+    }
 
     /// @brief Convert string to a std::string_view.
     operator std::string_view() const;
@@ -88,6 +100,10 @@ public:
     /// fill new chars with %c.
     void resize(std::size_t n, char c);
 
+    /// @brief Resize the string. If its length is increased,
+    /// fill new chars with \0.
+    void resize(std::size_t n);
+
     /// @brief Resize the string. Use op to write into the string and replace a
     /// sequence of characters
     template <class Operation>
@@ -126,6 +142,13 @@ public:
     /// @brief Append contents of a string_view to the string.
     void append(std::string_view str);
 
+    /// @brief Append contents of a begin...end to the string.
+    void append(const char* begin, const char* end);
+
+    /// @brief Inserts elements from range [begin, end) before pos.
+    template <class InputIt>
+    void insert(const_iterator pos, InputIt begin, InputIt end);
+
     /// @brief Remove the last character from the string.
     void pop_back();
 
@@ -134,7 +157,9 @@ private:
 };
 
 template <std::size_t N>
-SmallString<N>::SmallString(std::string_view sv) : data_(sv.begin(), sv.end()) {}
+SmallString<N>::SmallString(std::string_view sv)
+    : data_(sv.begin(), sv.end())
+{}
 
 template <std::size_t N>
 SmallString<N>::operator std::string_view() const {
@@ -179,13 +204,17 @@ char& SmallString<N>::operator[](std::size_t pos) {
 
 template <std::size_t N>
 const char& SmallString<N>::at(std::size_t pos) const {
-    if (size() <= pos) throw std::out_of_range("at");
+    if (size() <= pos) {
+        throw std::out_of_range("at");
+    }
     return data_[pos];
 }
 
 template <std::size_t N>
 char& SmallString<N>::at(std::size_t pos) {
-    if (size() <= pos) throw std::out_of_range("at");
+    if (size() <= pos) {
+        throw std::out_of_range("at");
+    }
     return data_[pos];
 }
 
@@ -256,8 +285,19 @@ void SmallString<N>::push_back(char c) {
 
 template <std::size_t N>
 void SmallString<N>::append(std::string_view str) {
-    std::size_t old_size = data_.size();
+    const std::size_t old_size = data_.size();
     data_.insert(data_.begin() + old_size, str.begin(), str.end());
+}
+
+template <std::size_t N>
+void SmallString<N>::append(const char* begin, const char* end) {
+    append(std::string_view{begin, static_cast<std::size_t>(end - begin)});
+}
+
+template <std::size_t N>
+template <class InputIt>
+void SmallString<N>::insert(SmallString::const_iterator pos, InputIt begin, InputIt end) {
+    data_.insert(pos, begin, end);
 }
 
 template <std::size_t N>
@@ -268,6 +308,11 @@ void SmallString<N>::pop_back() {
 template <std::size_t N>
 void SmallString<N>::resize(std::size_t n, char c) {
     data_.resize(n, c);
+}
+
+template <std::size_t N>
+void SmallString<N>::resize(std::size_t n) {
+    resize(n, '\0');
 }
 
 template <std::size_t N>

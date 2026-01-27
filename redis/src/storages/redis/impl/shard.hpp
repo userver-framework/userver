@@ -14,7 +14,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis::impl {
 
 class ConnectionInfoInt {
 public:
@@ -28,12 +28,16 @@ public:
 
     void SetPassword(Password);
 
+    void SetDatabaseIndex(size_t index);
+    size_t DatabaseIndex() const;
+
     bool IsReadOnly() const;
     void SetReadOnly(bool);
 
     void SetConnectionSecurity(ConnectionSecurity value);
     ConnectionSecurity GetConnectionSecurity() const;
 
+    /// Returns address as string like "host:port"
     const std::string& Fulltext() const;
 
     void Connect(Redis&) const;
@@ -51,6 +55,7 @@ bool operator<(const ConnectionInfoInt&, const ConnectionInfoInt&);
 using ConnInfoMap = std::map<std::string, std::vector<ConnectionInfoInt>>;
 
 struct ConnectionStatus {
+    std::unique_ptr<Statistics> statistics;
     ConnectionInfoInt info;
     std::shared_ptr<Redis> instance;
 };
@@ -69,8 +74,10 @@ public:
 
     explicit Shard(Options options);
 
-    std::unordered_map<ServerId, size_t, ServerIdHasher>
-    GetAvailableServersWeighted(bool with_master, const CommandControl& command_control = {}) const;
+    std::unordered_map<ServerId, size_t, ServerIdHasher> GetAvailableServersWeighted(
+        bool with_master,
+        const CommandControl& command_control = {}
+    ) const;
 
     std::vector<ServerId> GetAllInstancesServerId() const;
 
@@ -81,6 +88,7 @@ public:
         bool may_fallback_to_any,
         size_t skip_idx,
         bool read_only,
+        bool consider_ping,
         size_t* pinstance_idx
     );
     void Clean();
@@ -92,7 +100,6 @@ public:
     size_t InstancesSize() const;
     const std::string& ShardName() const;
     boost::signals2::signal<void(ServerId, Redis::State)>& SignalInstanceStateChange();
-    boost::signals2::signal<void()>& SignalNotInClusterMode();
     boost::signals2::signal<void(ServerId, bool)>& SignalInstanceReady();
 
     void SetCommandsBufferingSettings(CommandsBufferingSettings commands_buffering_settings);
@@ -100,10 +107,16 @@ public:
     void SetRetryBudgetSettings(const utils::RetryBudgetSettings& replication_monitoring_settings);
 
 private:
-    std::vector<unsigned char>
-    GetAvailableServers(const CommandControl& command_control, bool with_masters, bool with_slaves) const;
-    std::vector<unsigned char>
-    GetNearestServersPing(const CommandControl& command_control, bool with_masters, bool with_slaves) const;
+    std::vector<unsigned char> GetAvailableServers(
+        const CommandControl& command_control,
+        bool with_masters,
+        bool with_slaves
+    ) const;
+    std::vector<unsigned char> GetNearestServersPing(
+        const CommandControl& command_control,
+        bool with_masters,
+        bool with_slaves
+    ) const;
 
     std::vector<ConnectionInfoInt> GetConnectionInfosToCreate() const;
     bool UpdateCleanWaitQueue(std::vector<ConnectionStatus>&& add_clean_wait);
@@ -133,6 +146,6 @@ private:
     const bool cluster_mode_ = false;
 };
 
-}  // namespace redis
+}  // namespace storages::redis::impl
 
 USERVER_NAMESPACE_END

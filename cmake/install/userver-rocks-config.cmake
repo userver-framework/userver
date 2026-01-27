@@ -1,13 +1,11 @@
 include_guard(GLOBAL)
 
 if(userver_rocks_FOUND)
-  return()
+    return()
 endif()
 
-find_package(userver REQUIRED COMPONENTS
-  core
-)
+find_package(userver REQUIRED COMPONENTS core)
 
-include("${USERVER_CMAKE_DIR}/FindRocksDB.cmake")
+find_package(RocksDB REQUIRED)
 
 set(userver_rocks_FOUND TRUE)

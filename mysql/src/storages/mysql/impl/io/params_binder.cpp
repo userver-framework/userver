@@ -6,7 +6,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::mysql::impl::io {
 
-ParamsBinder::ParamsBinder(std::size_t size) : ParamsBinderBase{size} {}
+ParamsBinder::ParamsBinder(std::size_t size)
+    : ParamsBinderBase{size}
+{}
 
 ParamsBinder::~ParamsBinder() = default;
 

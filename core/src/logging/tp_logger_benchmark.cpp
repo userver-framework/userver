@@ -8,14 +8,17 @@
 #include <userver/logging/logger.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/utils/fast_scope_guard.hpp>
-#include <utils/gbench_auxilary.hpp>
+#include <utils/gbench_auxiliary.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace {
 
-std::shared_ptr<logging::impl::TpLogger>
-MakeLoggerFromSink(const std::string& logger_name, logging::impl::SinkPtr sink_ptr, logging::Format format) {
+std::shared_ptr<logging::impl::TpLogger> MakeLoggerFromSink(
+    const std::string& logger_name,
+    logging::impl::SinkPtr sink_ptr,
+    logging::Format format
+) {
     auto logger = std::make_unique<logging::impl::TpLogger>(format, logger_name);
     logger->AddSink(std::move(sink_ptr));
     return logger;
@@ -33,7 +36,9 @@ protected:
 
     auto StartAsyncLoggerScope() {
         tp_logger_->StartConsumerTask(
-            engine::current_task::GetTaskProcessor(), 1 << 30, logging::QueueOverflowBehavior::kDiscard
+            engine::current_task::GetTaskProcessor(),
+            1 << 30,
+            logging::QueueOverflowBehavior::kDiscard
         );
         return utils::FastScopeGuard([this]() noexcept { tp_logger_->StopConsumerTask(); });
     }

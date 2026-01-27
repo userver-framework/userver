@@ -41,22 +41,21 @@ To enable Streaming API in your handler:
 ```cpp
   #include <userver/server/http/http_response_body_stream_fwd.hpp>
   ...
-    void HandleStreamRequest(const server::http::HttpRequest&,
+    void HandleStreamRequest(server::http::HttpRequest&,
                              server::request::RequestContext&,
                              server::http::ResponseBodyStream&) const override;
 ```
 
 2) Enable Streaming API in static config:
-```yaml
+```
+# yaml
 components_manager:
     components:
         handler-stream-api:
             response-body-stream: true
 ```
 
-3) Set dynamic config @ref USERVER_HANDLER_STREAM_API_ENABLED.
-
-4) Write your handler code:
+3) Write your handler code:
 
 @snippet core/functional_tests/basic_chaos/httpclient_handlers.hpp HandleStreamRequest
 

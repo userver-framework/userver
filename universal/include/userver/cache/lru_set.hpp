@@ -12,11 +12,15 @@ namespace cache {
 /// @ingroup userver_universal userver_containers
 ///
 /// LRU set, thread safety matches Standard Library thread safety
-template <typename T, typename Hash = std::hash<T>, typename Equal = std::equal_to<T>>
+template <
+    typename T,
+    typename Hash = std::hash<impl::StringToStringView<T>>,
+    typename Equal = std::equal_to<impl::StringToStringView<T>>>
 class LruSet final {
 public:
     explicit LruSet(size_t max_size, const Hash& hash = Hash(), const Equal& equal = Equal())
-        : impl_(max_size, hash, equal) {}
+        : impl_(max_size, hash, equal)
+    {}
 
     LruSet(LruSet&& lru) noexcept = default;
     LruSet(const LruSet& lru) = delete;

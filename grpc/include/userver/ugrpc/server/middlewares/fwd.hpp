@@ -15,7 +15,7 @@ class MiddlewareBase;
 class MiddlewareCallContext;
 
 /// @brief A chain of middlewares
-using Middlewares = std::vector<std::shared_ptr<MiddlewareBase>>;
+using Middlewares = std::vector<std::shared_ptr<const MiddlewareBase>>;
 
 }  // namespace ugrpc::server
 

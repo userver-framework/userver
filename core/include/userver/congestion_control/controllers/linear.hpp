@@ -14,6 +14,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace congestion_control::v2 {
 
+constexpr std::size_t kShortTimingsEpochs = 3;
+constexpr std::size_t kLongTimingsEpochs = 30;
+
 class LinearController final : public Controller {
 public:
     using StaticConfig = Controller::Config;
@@ -28,13 +31,16 @@ public:
         std::function<v2::Config(const dynamic_config::Snapshot&)> config_getter
     );
 
-    Limit Update(const Sensor::Data& current) override;
+    LimitWithDetails Update(const Sensor::Data& current) override;
 
 private:
+    struct SeparateTimings {
+        utils::SlidingInterval<int64_t> long_timings{kLongTimingsEpochs};
+        utils::SlidingInterval<int64_t> short_timings{kShortTimingsEpochs};
+    };
     StaticConfig config_;
     utils::SlidingInterval<int64_t> current_load_;
-    utils::SlidingInterval<int64_t> long_timings_;
-    utils::SlidingInterval<int64_t> short_timings_;
+    std::unordered_map<std::string, SeparateTimings> separate_timings_;
     std::optional<std::size_t> current_limit_;
     std::size_t epochs_passed_{0};
 

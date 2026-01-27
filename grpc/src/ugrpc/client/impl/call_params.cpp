@@ -5,6 +5,13 @@
 #include <userver/ugrpc/client/client_qos.hpp>
 #include <userver/ugrpc/client/exceptions.hpp>
 #include <userver/utils/algo.hpp>
+#include <userver/utils/assert.hpp>
+#include <userver/utils/numeric_cast.hpp>
+
+#include <userver/ugrpc/client/impl/client_data.hpp>
+
+#include <ugrpc/client/impl/compat/retry_policy.hpp>
+#include <ugrpc/impl/rpc_metadata.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -21,112 +28,144 @@ void CheckValidCallName(std::string_view call_name) {
     );
 }
 
-// gRPC is known to behave badly when dealing with huge deadlines.
-//
-// "timeout = 1 year ought to be enough for anybody"
-//
-// Still, sometimes people set timeouts of many years to mean infinity.
-// We'll support that use case and consider such timeouts infinite.
-constexpr std::chrono::hours kMaxSafeDeadline{24 * 365};
-
-void SetTimeout(
-    grpc::ClientContext& context,
-    std::optional<std::chrono::milliseconds> timeout,
-    const testsuite::GrpcControl& testsuite_control
-) {
-    if (timeout && *timeout <= kMaxSafeDeadline) {
-        context.set_deadline(std::chrono::system_clock::now() + testsuite_control.MakeTimeout(*timeout));
-    } else {
-        context.set_deadline(std::chrono::system_clock::time_point::max());
+void SetAttempts(CallOptions& call_options, const Qos& qos, const RetryConfig& retry_config) {
+    if (0 == call_options.GetAttempts()) {
+        call_options.SetAttempts(qos.attempts.value_or(retry_config.attempts));
     }
 }
 
-// Order of timeout application, from highest to lowest priority:
-// 1. Qos passed as a parameter at the RPC creation
-// 2. manual client_context manipulation by the user
-// 3. GRPC_CLIENT_QOS dynamic config
-void ApplyQosConfigs(
-    const ClientData& client_data,
-    grpc::ClientContext& client_context,
-    const Qos& user_qos,
-    std::string_view call_name
+void SetTimeout(CallOptions& call_options, const Qos& qos, const testsuite::GrpcControl& testsuite_grpc) {
+    if (std::chrono::milliseconds::max() == call_options.GetTimeout() && qos.timeout.has_value()) {
+        call_options.SetTimeout(testsuite_grpc.MakeTimeout(*qos.timeout));
+    }
+}
+
+void SetTimeoutStreaming(
+    CallOptions& call_options,
+    const Qos& qos,
+    const RetryConfig& retry_config,
+    const testsuite::GrpcControl& testsuite_grpc
 ) {
-    if (user_qos.timeout) {
-        // Consider the explicit Qos parameter the highest-priority source.
-        // TODO there is no way to override other sources by setting this timeout
-        // to infinity (we treat it as "not set")
-        SetTimeout(client_context, user_qos.timeout, client_data.GetTestsuiteControl());
-        return;
-    }
+    SetTimeout(call_options, qos, testsuite_grpc);
 
-    if (client_context.deadline() != std::chrono::system_clock::time_point::max()) {
-        // Deadline has already been set in client_context by the user. Consider it
-        // a high-priority source.
-        return;
+    // if timeout is set, reset it to TotalTimeout, because of grpc-core retries
+    const auto timeout = call_options.GetTimeout();
+    if (std::chrono::milliseconds::max() != timeout) {
+        const auto attempts = qos.attempts.value_or(retry_config.attempts);
+        UINVARIANT(0 < attempts, "Qos/RetryConfig attempts value must be greater than 0");
+        const auto total_timeout = compat::CalculateTotalTimeout(timeout, utils::numeric_cast<std::uint32_t>(attempts));
+        call_options.SetTimeout(total_timeout);
     }
+}
 
-    if (const auto* const config_key = client_data.GetClientQos()) {
-        const auto config = client_data.GetConfigSnapshot();
-        if (const auto dynamic_qos = config[*config_key].GetOptional(call_name)) {
-            SetTimeout(client_context, dynamic_qos->timeout, client_data.GetTestsuiteControl());
-        }
-    }
+void ApplyRetryConfiguration(
+    CallOptions& call_options,
+    const Qos& qos,
+    const RetryConfig& retry_config,
+    const testsuite::GrpcControl& testsuite_grpc
+) {
+    SetAttempts(call_options, qos, retry_config);
+    SetTimeout(call_options, qos, testsuite_grpc);
+}
+
+void ApplyRetryConfigurationStreaming(
+    CallOptions& call_options,
+    const Qos& qos,
+    const RetryConfig& retry_config,
+    const testsuite::GrpcControl& testsuite_grpc
+) {
+    // we use grpc-core retries for streaming-methods,
+    // so CallOption attempts do not work, no need to set them
+
+    SetTimeoutStreaming(call_options, qos, retry_config, testsuite_grpc);
 }
 
 }  // namespace
 
-CallParams CreateCallParams(
-    const ClientData& client_data,
-    std::size_t method_id,
-    std::unique_ptr<grpc::ClientContext> client_context,
-    const Qos& qos
-) {
+CallParams CreateCallParams(const ClientData& client_data, std::size_t method_id, CallOptions&& call_options) {
     const auto& metadata = client_data.GetMetadata();
-    const auto call_name = metadata.method_full_names[method_id];
+    const auto call_name = GetMethodFullName(metadata, method_id);
 
     if (engine::current_task::ShouldCancel()) {
         throw RpcCancelledError(call_name, "RPC construction");
     }
 
-    ApplyQosConfigs(client_data, *client_context, qos, call_name);
+    auto stub = client_data.NextStub(method_id);
+
+    const auto qos = stub.GetClientQos().methods.GetOptional(call_name).value_or(Qos{});
+    ApplyRetryConfiguration(call_options, qos, client_data.GetRetryConfig(), client_data.GetTestsuiteControl());
+    if (RpcType::kUnary == GetMethodType(metadata, method_id)) {
+        ApplyRetryConfiguration(call_options, qos, client_data.GetRetryConfig(), client_data.GetTestsuiteControl());
+    } else {
+        ApplyRetryConfigurationStreaming(
+            call_options,
+            qos,
+            client_data.GetRetryConfig(),
+            client_data.GetTestsuiteControl()
+        );
+    }
 
     return CallParams{
-        client_data.GetClientName(),  //
+        client_data.GetClientName(),
         client_data.NextQueue(),
         client_data.GetConfigSnapshot(),
+        client_data.GetEndpoint(),
+        GetMethodType(metadata, method_id),
         {ugrpc::impl::MaybeOwnedString::Ref{}, call_name},
-        std::move(client_context),
-        client_data.GetStatistics(method_id),
+        metadata.service_full_name,
+        GetMethodName(metadata, method_id),
+        std::move(call_options),
+        std::move(stub),
         client_data.GetMiddlewares(),
+        client_data.GetStatistics(method_id),
+        client_data.GetTestsuiteControl(),
     };
 }
 
 CallParams CreateGenericCallParams(
     const ClientData& client_data,
     std::string_view call_name,
-    std::unique_ptr<grpc::ClientContext> client_context,
-    const Qos& qos,
-    std::optional<std::string_view> metrics_call_name
+    CallOptions&& call_options,
+    GenericOptions&& generic_options
 ) {
     CheckValidCallName(call_name);
-    if (metrics_call_name) {
-        CheckValidCallName(*metrics_call_name);
+    if (generic_options.metrics_call_name.has_value()) {
+        CheckValidCallName(*generic_options.metrics_call_name);
     }
 
     if (engine::current_task::ShouldCancel()) {
         throw RpcCancelledError(call_name, "RPC construction");
     }
 
-    ApplyQosConfigs(client_data, *client_context, qos, call_name);
+    UINVARIANT(!client_data.GetClientQos(), "Client QOS configs are unsupported for generic services");
+
+    // Для общего случая разбираем call_name вручную
+    auto slash_pos = call_name.find('/');
+    std::string_view service_name;
+    std::string_view method_name;
+
+    if (slash_pos != std::string_view::npos) {
+        service_name = call_name.substr(0, slash_pos);
+        method_name = call_name.substr(slash_pos + 1);
+    } else {
+        service_name = std::string_view{client_data.GetMetadata().service_full_name};
+        method_name = call_name;
+    }
 
     return CallParams{
-        client_data.GetClientName(),  //
+        client_data.GetClientName(),
         client_data.NextQueue(),
         client_data.GetConfigSnapshot(),
+        client_data.GetEndpoint(),
+        RpcType::kUnary,
         ugrpc::impl::MaybeOwnedString{std::string{call_name}},
-        std::move(client_context),
-        client_data.GetGenericStatistics(metrics_call_name.value_or(call_name)),
+        service_name,
+        method_name,
+        std::move(call_options),
+        client_data.NextStub(),
         client_data.GetMiddlewares(),
+        client_data.GetGenericStatistics(generic_options.metrics_call_name.value_or(call_name)),
+        client_data.GetTestsuiteControl(),
     };
 }
 

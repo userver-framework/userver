@@ -12,6 +12,7 @@
 
 #include <fmt/format.h>
 
+#include <userver/compiler/impl/three_way_comparison.hpp>
 #include <userver/utils/fmt_compat.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -22,7 +23,7 @@ class LogHelper;
 
 namespace utils::datetime {
 
-/// @ingroup userver_universal userver_containers
+/// @ingroup userver_universal
 ///
 /// @brief A simple implementation of a "time since midnight" datatype.
 ///
@@ -69,7 +70,6 @@ namespace utils::datetime {
 /// %M two-digit zero-padded minutes
 /// %S two-digit zero-padded seconds
 /// %% literal %
-
 template <typename Duration>
 class TimeOfDay;
 
@@ -87,7 +87,7 @@ public:
     //@{
     /** @name Comparison operators */
 
-#ifdef __cpp_lib_three_way_comparison
+#ifdef USERVER_IMPL_HAS_THREE_WAY_COMPARISON
     constexpr auto operator<=>(const TimeOfDay&) const = default;
 #else
     constexpr bool operator==(const TimeOfDay&) const;
@@ -102,7 +102,10 @@ public:
     //@{
     /** @name Accessors */
     /// @return Hours since midnight
-    constexpr std::chrono::hours Hours() const noexcept;
+    constexpr std::chrono::hours Hours() const noexcept {
+        return std::chrono::duration_cast<std::chrono::hours>(since_midnight_);
+    }
+
     /// @return Minutes since midnight + Hours
     constexpr std::chrono::minutes Minutes() const noexcept;
     /// @return Seconds since midnight + Hours + Minutes
@@ -149,8 +152,8 @@ logging::LogHelper& operator<<(logging::LogHelper& lh, TimeOfDay<Duration> value
 
 namespace detail {
 template <typename Rep, typename Period>
-inline constexpr std::chrono::duration<Rep, Period> kTwentyFourHours =
-    std::chrono::duration_cast<std::chrono::duration<Rep, Period>>(std::chrono::hours{24});
+inline constexpr std::chrono::duration<Rep, Period>
+    kTwentyFourHours = std::chrono::duration_cast<std::chrono::duration<Rep, Period>>(std::chrono::hours{24});
 
 template <typename Rep, typename Period, typename ORep = Rep, typename OPeriod = Period>
 constexpr std::chrono::duration<Rep, Period> NormalizeTimeOfDay(std::chrono::duration<ORep, OPeriod> d) {
@@ -241,21 +244,24 @@ public:
         for (auto c : str) {
             switch (c) {
                 case ':':
-                    if (position_ >= kSeconds)
+                    if (position_ >= kSeconds) {
                         throw std::runtime_error{fmt::format("Extra colon in TimeOfDay string `{}`", str)};
+                    }
                     AssignCurrentPosition(str);
                     position_ = static_cast<TimePart>(position_ + 1);
                     break;
                 case '.':
-                    if (position_ != kSeconds)
+                    if (position_ != kSeconds) {
                         throw std::runtime_error{fmt::format("Unexpected decimal point in TimeOfDay string `{}`", str)};
+                    }
                     AssignCurrentPosition(str);
                     position_ = static_cast<TimePart>(position_ + 1);
                     break;
                 default:
-                    if (!std::isdigit(c))
-                        throw std::runtime_error{
-                            fmt::format("Unexpected character {} in TimeOfDay string `{}`", c, str)};
+                    if (!std::isdigit(c)) {
+                        throw std::runtime_error{fmt::format("Unexpected character {} in TimeOfDay string `{}`", c, str)
+                        };
+                    }
                     if (position_ == kOverflow) {
                         continue;
                     } else if (position_ == kSubseconds) {
@@ -272,12 +278,13 @@ public:
                     break;
             }
         }
-        if (position_ == kHour)
+        if (position_ == kHour) {
             throw std::runtime_error{fmt::format(
                 "Expected to have at least minutes after hours in "
                 "TimeOfDay string `{}`",
                 str
             )};
+        }
         AssignCurrentPosition(str);
 
         auto sum = hours_ + minutes_ + seconds_ + subseconds_;
@@ -288,40 +295,54 @@ public:
     }
 
 private:
-    enum TimePart { kHour, kMinutes, kSeconds, kSubseconds, kOverflow };
+    enum TimePart {
+        kHour,
+        kMinutes,
+        kSeconds,
+        kSubseconds,
+        kOverflow
+    };
 
     void AssignCurrentPosition(std::string_view str) {
         switch (position_) {
             case kHour: {
-                if (digit_count_ < 1)
+                if (digit_count_ < 1) {
                     throw std::runtime_error{fmt::format("Not enough digits for hours in TimeOfDay string `{}`", str)};
-                if (current_number_ > 24)
+                }
+                if (current_number_ > 24) {
                     throw std::runtime_error{fmt::format("Invalid value for hours in TimeOfDay string `{}`", str)};
+                }
                 hours_ = std::chrono::hours{current_number_};
                 break;
             }
             case kMinutes: {
-                if (digit_count_ != 2)
-                    throw std::runtime_error{
-                        fmt::format("Not enough digits for minutes in TimeOfDay string `{}`", str)};
-                if (current_number_ > 59)
+                if (digit_count_ != 2) {
+                    throw std::runtime_error{fmt::format("Not enough digits for minutes in TimeOfDay string `{}`", str)
+                    };
+                }
+                if (current_number_ > 59) {
                     throw std::runtime_error{fmt::format("Invalid value for minutes in TimeOfDay string `{}`", str)};
+                }
                 minutes_ = std::chrono::minutes{current_number_};
                 break;
             }
             case kSeconds: {
-                if (digit_count_ != 2)
-                    throw std::runtime_error{
-                        fmt::format("Not enough digits for seconds in TimeOfDay string `{}`", str)};
-                if (current_number_ > 59)
+                if (digit_count_ != 2) {
+                    throw std::runtime_error{fmt::format("Not enough digits for seconds in TimeOfDay string `{}`", str)
+                    };
+                }
+                if (current_number_ > 59) {
                     throw std::runtime_error{fmt::format("Invalid value for seconds in TimeOfDay string `{}`", str)};
+                }
                 seconds_ = std::chrono::seconds{current_number_};
                 break;
             }
             case kSubseconds: {
-                if (digit_count_ < 1)
+                if (digit_count_ < 1) {
                     throw std::runtime_error{
-                        fmt::format("Not enough digits for subseconds in TimeOfDay string `{}`", str)};
+                        fmt::format("Not enough digits for subseconds in TimeOfDay string `{}`", str)
+                    };
+                }
                 if constexpr (kHasSubseconds<Period>) {
                     // TODO check digit count and adjust if needed
                     if (digit_count_ < kDecimalPositions<Period>) {
@@ -370,17 +391,20 @@ inline constexpr std::string_view kSubsecondsPreformat<std::nano> = ".{:0>#9d}";
 // Default format for formatting is HH:MM:SS
 template <typename Ratio>
 inline constexpr std::array<std::string_view, 5> kDefaultFormat{
-    {kLongHourFormat, ":", kMinutesFormat, ":", kSecondsFormat}};
+    {kLongHourFormat, ":", kMinutesFormat, ":", kSecondsFormat}
+};
 
 // Default format for formatting with minutes resolution is HH:MM
 template <>
 inline constexpr std::array<std::string_view, 3> kDefaultFormat<std::ratio<60, 1>>{
-    {kLongHourFormat, ":", kMinutesFormat}};
+    {kLongHourFormat, ":", kMinutesFormat}
+};
 
 // Default format for formatting with hours resolution is HH:MM
 template <>
 inline constexpr std::array<std::string_view, 3> kDefaultFormat<std::ratio<3600, 1>>{
-    {kLongHourFormat, ":", kMinutesFormat}};
+    {kLongHourFormat, ":", kMinutesFormat}
+};
 
 }  // namespace detail
 
@@ -395,9 +419,10 @@ constexpr TimeOfDay<std::chrono::duration<Rep, Period>>::TimeOfDay(std::chrono::
 
 template <typename Rep, typename Period>
 constexpr TimeOfDay<std::chrono::duration<Rep, Period>>::TimeOfDay(std::string_view str)
-    : since_midnight_{detail::TimeOfDayParser<Rep, Period>{}(str)} {}
+    : since_midnight_{detail::TimeOfDayParser<Rep, Period>{}(str)}
+{}
 
-#ifndef __cpp_lib_three_way_comparison
+#ifndef USERVER_IMPL_HAS_THREE_WAY_COMPARISON
 template <typename Rep, typename Period>
 constexpr bool TimeOfDay<std::chrono::duration<Rep, Period>>::operator==(const TimeOfDay& rhs) const {
     return since_midnight_ == rhs.since_midnight_;
@@ -430,11 +455,6 @@ constexpr bool TimeOfDay<std::chrono::duration<Rep, Period>>::operator>=(const T
 #endif
 
 template <typename Rep, typename Period>
-constexpr std::chrono::hours TimeOfDay<std::chrono::duration<Rep, Period>>::Hours() const noexcept {
-    return std::chrono::duration_cast<std::chrono::hours>(since_midnight_);
-}
-
-template <typename Rep, typename Period>
 constexpr std::chrono::minutes TimeOfDay<std::chrono::duration<Rep, Period>>::Minutes() const noexcept {
     if constexpr (detail::kHasMinutes<Period>) {
         return std::chrono::duration_cast<std::chrono::minutes>(since_midnight_) -
@@ -448,17 +468,16 @@ template <typename Rep, typename Period>
 constexpr std::chrono::seconds TimeOfDay<std::chrono::duration<Rep, Period>>::Seconds() const noexcept {
     if constexpr (detail::kHasSeconds<Period>) {
         return std::chrono::duration_cast<std::chrono::seconds>(since_midnight_) -
-               std::chrono::duration_cast<std::chrono::seconds>(
-                   std::chrono::duration_cast<std::chrono::minutes>(since_midnight_)
-               );
+               std::chrono::duration_cast<
+                   std::chrono::seconds>(std::chrono::duration_cast<std::chrono::minutes>(since_midnight_));
     } else {
         return std::chrono::seconds{0};
     }
 }
 
 template <typename Rep, typename Period>
-constexpr typename TimeOfDay<std::chrono::duration<Rep, Period>>::DurationType
-TimeOfDay<std::chrono::duration<Rep, Period>>::Subseconds() const noexcept {
+constexpr typename TimeOfDay<std::chrono::duration<Rep, Period>>::DurationType TimeOfDay<
+    std::chrono::duration<Rep, Period>>::Subseconds() const noexcept {
     if constexpr (detail::kHasSubseconds<Period>) {
         return since_midnight_ - std::chrono::duration_cast<std::chrono::seconds>(since_midnight_);
     } else {
@@ -467,18 +486,18 @@ TimeOfDay<std::chrono::duration<Rep, Period>>::Subseconds() const noexcept {
 }
 
 template <typename Rep, typename Period>
-constexpr typename TimeOfDay<std::chrono::duration<Rep, Period>>::DurationType
-TimeOfDay<std::chrono::duration<Rep, Period>>::SinceMidnight() const noexcept {
+constexpr typename TimeOfDay<std::chrono::duration<Rep, Period>>::DurationType TimeOfDay<
+    std::chrono::duration<Rep, Period>>::SinceMidnight() const noexcept {
     return since_midnight_;
 }
 
 template <typename Rep, typename Period>
-constexpr TimeOfDay<std::chrono::duration<Rep, Period>> TimeOfDay<std::chrono::duration<Rep, Period>>::FromHHMMInt(
-    int hh_mm
-) {
+constexpr TimeOfDay<std::chrono::duration<Rep, Period>> TimeOfDay<
+    std::chrono::duration<Rep, Period>>::FromHHMMInt(int hh_mm) {
     auto mm = hh_mm % 100;
-    if (mm >= 60)
+    if (mm >= 60) {
         throw std::runtime_error{fmt::format("Invalid value for minutes {} in int representation {}", mm, hh_mm)};
+    }
     return TimeOfDay{std::chrono::minutes{hh_mm / 100 * 60 + mm}};
 }
 
@@ -500,13 +519,13 @@ class formatter<USERVER_NAMESPACE::utils::datetime::TimeOfDay<Duration>> {
     /// for use in representation
     static constexpr auto kSubsecondsFormat = USERVER_NAMESPACE::utils::datetime::detail::kSubsecondsFormat;
 
-    static constexpr auto kSubsecondsPreformat =
-        USERVER_NAMESPACE::utils::datetime::detail::kSubsecondsPreformat<typename Duration::period>;
+    static constexpr auto kSubsecondsPreformat = USERVER_NAMESPACE::utils::datetime::detail::kSubsecondsPreformat<
+        typename Duration::period>;
 
     static constexpr std::string_view kLiteralPercent = "%";
 
-    static constexpr auto kDefaultFormat =
-        USERVER_NAMESPACE::utils::datetime::detail::kDefaultFormat<typename Duration::period>;
+    static constexpr auto
+        kDefaultFormat = USERVER_NAMESPACE::utils::datetime::detail::kDefaultFormat<typename Duration::period>;
 
     constexpr std::string_view GetFormatForKey(char key) {
         // TODO Check if time part already seen
@@ -587,7 +606,8 @@ public:
         // Number of decimal positions (min 1) + point + null terminator
         constexpr std::size_t buffer_size =
             std::max(
-                USERVER_NAMESPACE::utils::datetime::detail::kDecimalPositions<typename Duration::period>, std::size_t{1}
+                USERVER_NAMESPACE::utils::datetime::detail::kDecimalPositions<typename Duration::period>,
+                std::size_t{1}
             ) +
             2;
         char subseconds[buffer_size];
@@ -597,7 +617,9 @@ public:
             subseconds[buffer_size - 1] = 0;
             if (truncate_trailing_subseconds_) {
                 // Truncate trailing zeros
-                for (auto last = buffer_size - 2; last > 0 && subseconds[last] == '0'; --last) subseconds[last] = 0;
+                for (auto last = buffer_size - 2; last > 0 && subseconds[last] == '0'; --last) {
+                    subseconds[last] = 0;
+                }
             }
         }
 

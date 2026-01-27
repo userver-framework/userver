@@ -42,21 +42,28 @@ public:
 
     ResponseAwaiter DeclareQueue(const Queue& queue, utils::Flags<Queue::Flags> flags, engine::Deadline deadline);
 
-    ResponseAwaiter
-    BindQueue(const Exchange& exchange, const Queue& queue, const std::string& routing_key, engine::Deadline deadline);
+    ResponseAwaiter BindQueue(
+        const Exchange& exchange,
+        const Queue& queue,
+        const std::string& routing_key,
+        engine::Deadline deadline
+    );
 
     ResponseAwaiter RemoveExchange(const Exchange& exchange, engine::Deadline deadline);
 
     ResponseAwaiter RemoveQueue(const Queue& queue, engine::Deadline deadline);
 
-    ResponseAwaiter
-    Get(const Queue& queue, utils::Flags<Queue::Flags> flags, std::string& message, engine::Deadline deadline);
+    ResponseAwaiter Get(
+        const Queue& queue,
+        utils::Flags<Queue::Flags> flags,
+        std::string& message,
+        engine::Deadline deadline
+    );
 
     void Publish(
         const Exchange& exchange,
         const std::string& routing_key,
-        const std::string& message,
-        MessageType type,
+        const Envelope& envelope,
         engine::Deadline deadline
     );
 
@@ -95,8 +102,7 @@ public:
     ResponseAwaiter Publish(
         const Exchange& exchange,
         const std::string& routing_key,
-        const std::string& message,
-        MessageType type,
+        const Envelope& envelope,
         engine::Deadline deadline
     );
 

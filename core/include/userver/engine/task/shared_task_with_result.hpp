@@ -91,7 +91,9 @@ public:
     static constexpr WaitMode kWaitMode = WaitMode::kMultipleWaiters;
 
     // For internal use only.
-    explicit SharedTaskWithResult(impl::TaskContextHolder&& context) : SharedTask(std::move(context)) {}
+    explicit SharedTaskWithResult(impl::TaskContextHolder&& context)
+        : SharedTask(std::move(context))
+    {}
     /// @endcond
 };
 

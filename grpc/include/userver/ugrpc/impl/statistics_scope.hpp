@@ -1,6 +1,5 @@
 #pragma once
 
-#include <atomic>
 #include <chrono>
 #include <optional>
 
@@ -20,17 +19,19 @@ public:
 
     ~RpcStatisticsScope();
 
-    void OnExplicitFinish(grpc::StatusCode code);
+    void OnExplicitFinish(grpc::StatusCode code) noexcept;
 
-    void OnCancelledByDeadlinePropagation();
+    void OnCancelledByDeadlinePropagation() noexcept;
 
-    void OnDeadlinePropagated();
+    void OnDeadlinePropagated() noexcept;
 
-    void OnCancelled();
+    void OnCancelled() noexcept;
 
-    void OnNetworkError();
+    void OnNetworkError() noexcept;
 
-    void Flush();
+    void SetFinishTime(std::chrono::steady_clock::time_point finish_time) noexcept;
+
+    void Flush() noexcept;
 
     // Not thread-safe with respect to Flush.
     void RedirectTo(MethodStatistics& statistics);
@@ -56,13 +57,13 @@ private:
         kCancelled = 4,
     };
 
-    void AccountTiming();
+    void AccountTiming() noexcept;
 
     utils::NotNull<MethodStatistics*> statistics_;
     std::optional<std::chrono::steady_clock::time_point> start_time_;
+    std::optional<std::chrono::steady_clock::time_point> finish_time_;
     FinishKind finish_kind_{FinishKind::kAutomatic};
     grpc::StatusCode finish_code_{};
-    std::atomic<bool> is_cancelled_{false};
     bool is_deadline_propagated_{false};
 };
 

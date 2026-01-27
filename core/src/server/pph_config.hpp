@@ -3,6 +3,7 @@
 #include <string>
 #include <unordered_map>
 
+#include <userver/logging/log.hpp>
 #include <userver/utils/strong_typedef.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -14,7 +15,8 @@ public:
     using Passphrase = utils::NonLoggable<class PassphraseT, std::string>;
 
     explicit PassphraseConfig(const formats::json::Value& doc)
-        : passphrases_(doc["passphrases"].As<std::unordered_map<std::string, Passphrase>>({})) {}
+        : passphrases_(doc["passphrases"].As<std::unordered_map<std::string, Passphrase>>({}))
+    {}
 
     Passphrase GetPassphrase(const std::string& name) const {
         auto it = passphrases_.find(name);

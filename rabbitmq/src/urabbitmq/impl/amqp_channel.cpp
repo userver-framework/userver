@@ -39,22 +39,42 @@ AMQP::ExchangeType Convert(urabbitmq::Exchange::Type type) {
 
 int Convert(utils::Flags<Queue::Flags> flags) {
     int result = 0;
-    if (flags & Queue::Flags::kPassive) result |= AMQP::passive;
-    if (flags & Queue::Flags::kDurable) result |= AMQP::durable;
-    if (flags & Queue::Flags::kExclusive) result |= AMQP::exclusive;
-    if (flags & Queue::Flags::kAutoDelete) result |= AMQP::autodelete;
-    if (flags & Queue::Flags::kNoAck) result |= AMQP::noack;
+    if (flags & Queue::Flags::kPassive) {
+        result |= AMQP::passive;
+    }
+    if (flags & Queue::Flags::kDurable) {
+        result |= AMQP::durable;
+    }
+    if (flags & Queue::Flags::kExclusive) {
+        result |= AMQP::exclusive;
+    }
+    if (flags & Queue::Flags::kAutoDelete) {
+        result |= AMQP::autodelete;
+    }
+    if (flags & Queue::Flags::kNoAck) {
+        result |= AMQP::noack;
+    }
 
     return result;
 }
 
 int Convert(utils::Flags<Exchange::Flags> flags) {
     int result = 0;
-    if (flags & Exchange::Flags::kPassive) result |= AMQP::passive;
-    if (flags & Exchange::Flags::kDurable) result |= AMQP::durable;
-    if (flags & Exchange::Flags::kAutoDelete) result |= AMQP::autodelete;
-    if (flags & Exchange::Flags::kInternal) result |= AMQP::internal;
-    if (flags & Exchange::Flags::kNoWait) result |= AMQP::nowait;
+    if (flags & Exchange::Flags::kPassive) {
+        result |= AMQP::passive;
+    }
+    if (flags & Exchange::Flags::kDurable) {
+        result |= AMQP::durable;
+    }
+    if (flags & Exchange::Flags::kAutoDelete) {
+        result |= AMQP::autodelete;
+    }
+    if (flags & Exchange::Flags::kInternal) {
+        result |= AMQP::internal;
+    }
+    if (flags & Exchange::Flags::kNoWait) {
+        result |= AMQP::nowait;
+    }
 
     return result;
 }
@@ -63,18 +83,22 @@ AMQP::Table CreateHeaders() {
     UASSERT(engine::current_task::IsTaskProcessorThread());
 
     auto* span = tracing::Span::CurrentSpanUnchecked();
-    if (span == nullptr) return {};
+    if (span == nullptr) {
+        return {};
+    }
 
     AMQP::Table headers;
-    headers["u-trace-id"] = span->GetTraceId();
-    headers["u-parent-span-id"] = span->GetSpanId();
+    headers["u-trace-id"] = std::string{span->GetTraceId()};
+    headers["u-parent-span-id"] = std::string{span->GetSpanId()};
 
     return headers;
 }
 
 }  // namespace
 
-AmqpChannel::AmqpChannel(AmqpConnection& conn) : conn_{conn} {}
+AmqpChannel::AmqpChannel(AmqpConnection& conn)
+    : conn_{conn}
+{}
 
 AmqpChannel::~AmqpChannel() = default;
 
@@ -88,16 +112,18 @@ ResponseAwaiter AmqpChannel::DeclareExchange(
 
     {
         auto channel = conn_.GetChannel(deadline);
-        awaiter.GetWrapper()->Wrap(
-            channel->declareExchange(exchange.GetUnderlying(), Convert(exchangeType), Convert(flags))
-        );
+        awaiter.GetWrapper()
+            ->Wrap(channel->declareExchange(exchange.GetUnderlying(), Convert(exchangeType), Convert(flags)));
     }
 
     return awaiter;
 }
 
-ResponseAwaiter
-AmqpChannel::DeclareQueue(const Queue& queue, utils::Flags<Queue::Flags> flags, engine::Deadline deadline) {
+ResponseAwaiter AmqpChannel::DeclareQueue(
+    const Queue& queue,
+    utils::Flags<Queue::Flags> flags,
+    engine::Deadline deadline
+) {
     auto awaiter = conn_.GetAwaiter(deadline);
 
     {
@@ -165,13 +191,18 @@ ResponseAwaiter AmqpChannel::Get(
 void AmqpChannel::Publish(
     const Exchange& exchange,
     const std::string& routing_key,
-    const std::string& message,
-    MessageType type,
+    const Envelope& envelope,
     engine::Deadline deadline
 ) {
-    AMQP::Envelope envelope{message.data(), message.size()};
-    envelope.setPersistent(type == MessageType::kPersistent);
-    envelope.setHeaders(CreateHeaders());
+    AMQP::Envelope native_envelope{envelope.message.data(), envelope.message.size()};
+    native_envelope.setPersistent(envelope.type == MessageType::kPersistent);
+    native_envelope.setHeaders(CreateHeaders());
+    if (envelope.reply_to.has_value()) {
+        native_envelope.setReplyTo(envelope.reply_to.value().c_str());
+    }
+    if (envelope.correlation_id.has_value()) {
+        native_envelope.setCorrelationID(envelope.correlation_id.value().c_str());
+    }
 
     {
         auto channel = conn_.GetChannel(deadline);
@@ -179,7 +210,7 @@ void AmqpChannel::Publish(
         // We don't care about the result here,
         // even thought publish() could fail synchronously (connection breakage,
         // channel breakage)
-        channel->publish(exchange.GetUnderlying(), routing_key, envelope);
+        channel->publish(exchange.GetUnderlying(), routing_key, native_envelope);
     }
 
     // We don't account publish here, because there's no way to ensure success
@@ -231,27 +262,37 @@ void AmqpChannel::CancelConsumer(const std::optional<std::string>& consumer_tag)
 
 void AmqpChannel::AccountMessageConsumed() { conn_.GetStatistics().AccountMessageConsumed(); }
 
-AmqpReliableChannel::AmqpReliableChannel(AmqpConnection& conn) : conn_{conn} {}
+AmqpReliableChannel::AmqpReliableChannel(AmqpConnection& conn)
+    : conn_{conn}
+{}
 
 AmqpReliableChannel::~AmqpReliableChannel() = default;
 
 ResponseAwaiter AmqpReliableChannel::Publish(
     const Exchange& exchange,
     const std::string& routing_key,
-    const std::string& message,
-    MessageType type,
+    const Envelope& envelope,
     engine::Deadline deadline
 ) {
-    AMQP::Envelope envelope{message.data(), message.size()};
-    envelope.setPersistent(type == MessageType::kPersistent);
-    envelope.setHeaders(CreateHeaders());
+    AMQP::Envelope native_envelope{envelope.message.data(), envelope.message.size()};
+    native_envelope.setPersistent(envelope.type == MessageType::kPersistent);
+    if (envelope.reply_to.has_value()) {
+        native_envelope.setReplyTo(envelope.reply_to.value().c_str());
+    }
+    if (envelope.correlation_id.has_value()) {
+        native_envelope.setCorrelationID(envelope.correlation_id.value().c_str());
+    }
+    if (envelope.expiration.has_value()) {
+        native_envelope.setExpiration(std::to_string(envelope.expiration.value().count()));
+    }
+    native_envelope.setHeaders(CreateHeaders());
 
     auto awaiter = conn_.GetAwaiter(deadline);
 
     {
         auto reliable = conn_.GetReliableChannel(deadline);
 
-        reliable->publish(exchange.GetUnderlying(), routing_key, envelope)
+        reliable->publish(exchange.GetUnderlying(), routing_key, native_envelope)
             .onAck([this, deferred = awaiter.GetWrapper()] {
                 AccountMessagePublished();
                 deferred->Ok();

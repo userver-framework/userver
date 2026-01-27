@@ -1,21 +1,24 @@
 import collections
+from collections.abc import Generator
 import contextlib
 import dataclasses
 import os
-from typing import Dict
-from typing import Generator
-from typing import List
+import re
+from typing import Any
 from typing import NoReturn
-from typing import Optional
-from typing import Union
+
+import pydantic
 
 from chaotic import error
+from chaotic.front import ref
 from chaotic.front import types
 
 
 @dataclasses.dataclass(frozen=True)
 class ParserConfig:
     erase_prefix: str
+    # Allow type: file
+    allow_file: bool = False
 
 
 @dataclasses.dataclass
@@ -23,7 +26,7 @@ class ParserState:
     # Current location in file
     infile_path: str
 
-    schemas: Dict[str, types.Schema]
+    schemas: dict[str, types.Schema]
     schema_type: str = 'jsonschema'
 
 
@@ -31,9 +34,61 @@ class ParserError(error.BaseError):
     pass
 
 
+ERROR_MESSAGES = {
+    'extra_forbidden': 'Extra fields are forbidden ({input})',
+    'missing': 'Required field "{field}" is missing',
+    'string_type': 'String type is expected, {input} is found',
+    'bool_type': 'Boolean type is expected, {input} is found',
+    'int_type': 'Integer type is expected, {input} is found',
+}
+
+
+def missing_field_msg(field: str) -> str:
+    return ERROR_MESSAGES['missing'].format(field=field)
+
+
+def convert_error(
+    full_filepath: str,
+    infile_path: str,
+    schema_type: str,
+    err: pydantic.ValidationError,
+) -> ParserError:
+    assert len(err.errors()) >= 1
+
+    # show only the first error
+    error = err.errors()[0]
+
+    if len(error['loc']) > 0:
+        # the last location is the missing field name
+        field = error['loc'][-1]
+    else:
+        field = ''
+
+    if error['type'] in ERROR_MESSAGES:
+        msg = ERROR_MESSAGES[error['type']].format(**error, field=field)
+    else:
+        msg = error['msg']
+
+    if infile_path:
+        infile_path = infile_path + '/' + '/'.join(map(str, error['loc']))
+    else:
+        infile_path = '/'.join(map(str, error['loc']))
+
+    return ParserError(
+        full_filepath=full_filepath,
+        infile_path=infile_path,
+        schema_type=schema_type,
+        msg=msg,
+    )
+
+
 class SchemaParser:
     def __init__(
-        self, *, config: ParserConfig, full_filepath: str, full_vfilepath: str,
+        self,
+        *,
+        config: ParserConfig,
+        full_filepath: str,
+        full_vfilepath: str,
     ) -> None:
         self._config = config
         # Full filepath on real filesystem
@@ -59,16 +114,16 @@ class SchemaParser:
                 self._raise(f'Duplicate path: {path}')
             self._state.schemas[path] = data
 
-    def _parse_schema(self, input__: dict) -> Union[types.Schema, types.Ref]:
+    def _parse_schema(self, input__: dict) -> types.Schema | types.Ref:
         data = self.do_parse_schema(input__)
         source_location = types.SourceLocation(
-            filepath=self.full_vfilepath, location=self._state.infile_path,
+            filepath=self.full_vfilepath,
+            location=self._state.infile_path,
         )
-        # pylint: disable=protected-access
-        data._source_location = source_location  # type: ignore
+        data.source_location_ = source_location
         return data
 
-    def do_parse_schema(self, input__: dict) -> Union[types.Schema, types.Ref]:
+    def do_parse_schema(self, input__: dict) -> types.Schema | types.Ref:
         if 'type' in input__:
             return self._parse_type(input__['type'], input__)
         elif '$ref' in input__:
@@ -81,9 +136,10 @@ class SchemaParser:
             self._raise('"type" is missing')
 
     def _parse_allof(self, variants: list, input__: dict) -> types.AllOf:
-        raw = types.AllOfRaw(**input__)
+        fields = input__.copy()
+        fields.pop('allOf')
 
-        variables: List[types.Schema] = []
+        variables: list[types.Schema] = []
         with self._path_enter('allOf') as _:
             for i, variant in enumerate(variants):
                 with self._path_enter(str(i)) as _:
@@ -91,37 +147,43 @@ class SchemaParser:
                     if not isinstance(type_, (types.SchemaObject, types.Ref)):
                         self._raise(f'Non-object type in allOf: {type_.type}')  # type: ignore
                     variables.append(type_)
-        obj = types.AllOf(allOf=variables)
-        obj.x_properties = raw.x_properties  # type: ignore
+        obj = types.AllOf(allOf=variables, **fields)
         return obj
 
     def _parse_oneof(self, variants: list, input__: dict) -> types.Schema:
-        raw = types.OneOfRaw(**input__)
-
         variables = []
         discriminator = input__.get('discriminator')
-        with self._path_enter('oneOf') as _:
-            if not discriminator:
-                # oneOf w/o discriminator
+        if not discriminator:
+            # oneOf w/o discriminator
+            fields = input__.copy()
+            fields.pop('oneOf')
+            with self._path_enter('oneOf') as _:
                 for i, variant in enumerate(variants):
                     with self._path_enter(str(i)) as _:
                         type_ = self._parse_schema(variant)
                         variables.append(type_)
-                obj = types.OneOfWithoutDiscriminator(oneOf=variables)
-                obj.x_properties = raw.x_properties  # type:ignore
-                return obj
+            obj = types.OneOfWithoutDiscriminator(
+                oneOf=variables,
+                **fields,
+            )
+            return obj
 
         return self._parse_oneof_w_discriminator(variants, input__)
 
     def _parse_oneof_i(
-        self, variant: dict, discriminator_property: str,
+        self,
+        variant: dict,
+        discriminator_property: str,
     ) -> types.Ref:
         type_ = self._parse_schema(variant)
         if not isinstance(type_, types.Ref):
             self._raise('Not a $ref in oneOf with discriminator')
 
         assert self._state
-        dest_type = self._state.schemas.get(type_.ref)
+        dest_type: Any = type_
+        while isinstance(dest_type, types.Ref):
+            dest_type = self._state.schemas.get(dest_type.ref)
+
         # TODO: fix in TAXICOMMON-8910
         #
         # if not dest_type:
@@ -131,7 +193,7 @@ class SchemaParser:
         #     )
         if dest_type:
             if not isinstance(dest_type, types.SchemaObject):
-                self._raise('oneOf $ref to non-object')
+                self._raise(f'oneOf $ref to non-object ({type(dest_type).__name__})')
             if discriminator_property not in (dest_type.properties or {}):
                 self._raise(
                     f'No discriminator property "{discriminator_property}"',
@@ -140,24 +202,37 @@ class SchemaParser:
         return type_
 
     def _parse_oneof_disc_mapping(
-        self, user_mapping: dict, variables: List[types.Ref],
-    ) -> List[List[str]]:
-        idx_mapping = collections.defaultdict(list)
+        self,
+        user_mapping: dict,
+        variables: list[types.Ref],
+    ) -> types.DiscMapping:
         with self._path_enter('discriminator/mapping') as _:
+            idx_mapping = collections.defaultdict(list)
+
+            mapping = types.DiscMapping()
+            if all([isinstance(key, str) for key in user_mapping.keys()]):
+                mapping.enable_str()
+            elif all([isinstance(key, int) for key in user_mapping.keys()]):
+                mapping.enable_int()
+            else:
+                self._raise(f'Not uniform mapping: use the same type for keys: {user_mapping.keys()}')
+
             for key, value in user_mapping.items():
-                with self._path_enter(key) as _:
+                with self._path_enter(str(key)) as _:
                     if not isinstance(value, str):
                         self._raise('Not a string in mapping')
                     abs_ref = self._make_abs_ref(value)
+
                     idx_mapping[abs_ref].append(key)
 
-            mapping = []
-            for ref in variables:
-                assert isinstance(ref, types.Ref)
-                abs_refs = idx_mapping.pop(ref.ref, None)
-                if not abs_refs:
-                    self._raise(f'Missing $ref in mapping: {ref.ref}')
-                mapping.append(abs_refs)
+            for ref_ in variables:
+                assert isinstance(ref_, types.Ref)
+                map_value = idx_mapping.pop(ref_.ref, None)
+                if map_value is None:
+                    self._raise(f'Missing $ref in mapping: {ref_.ref}')
+
+                mapping.append(map_value)
+
             if idx_mapping:
                 self._raise(
                     f'$ref(s) outside of oneOf: {list(idx_mapping.keys())}',
@@ -165,19 +240,22 @@ class SchemaParser:
         return mapping
 
     def _parse_oneof_w_discriminator(
-        self, variants: list, input_: dict,
+        self,
+        variants: list,
+        input_: dict,
     ) -> types.OneOfWithDiscriminator:
         with self._path_enter('discriminator') as _:
             types.OneOfDiscriminatorRaw(**input_['discriminator'])
 
         discriminator_property = input_['discriminator']['propertyName']
 
-        variables: List[types.Ref] = []
+        variables: list[types.Ref] = []
         with self._path_enter('oneOf') as _:
             for i, variant in enumerate(variants):
                 with self._path_enter(str(i)) as _:
                     type_ = self._parse_oneof_i(
-                        variant, discriminator_property,
+                        variant,
+                        discriminator_property,
                     )
                     variables.append(type_)
 
@@ -185,11 +263,12 @@ class SchemaParser:
         if user_mapping is not None:
             mapping = self._parse_oneof_disc_mapping(user_mapping, variables)
         else:
-            mapping = [[ref.ref.split('/')[-1]] for ref in variables]
+            mapping = types.DiscMapping(str_values=[[ref_.ref.split('/')[-1]] for ref_ in variables], int_values=None)
         obj = types.OneOfWithDiscriminator(
             oneOf=variables,
             discriminator_property=discriminator_property,
             mapping=mapping,
+            nullable=input_.get('nullable', False),
         )
 
         del input_['discriminator']
@@ -205,7 +284,6 @@ class SchemaParser:
         if self._state.infile_path:
             self._state.infile_path += '/'
         self._state.infile_path += path_component
-        # print(f'enter => {self._state.infile_path}')
 
         try:
             yield
@@ -215,8 +293,10 @@ class SchemaParser:
             self._raise(exc.msg)
         except ParserError:
             raise
+        except pydantic.ValidationError as exc:
+            raise convert_error(self.full_filepath, self._state.infile_path, 'jsonschema', exc) from None
         except Exception as exc:  # pylint: disable=broad-exception-caught
-            self._raise(exc.__repr__())
+            self._raise(str(exc))
         else:
             self._state.infile_path = old
 
@@ -251,43 +331,44 @@ class SchemaParser:
             return types.Array(items=items, **input_)
 
     def _parse_object(self, input_: dict) -> types.SchemaObject:
-        fake = types.SchemaObjectRaw(**input_)
-
+        fields = input_.copy()
+        new_props = {}
         with self._path_enter('properties') as _:
-            new_props = {}
-            if fake.properties:
-                for prop in fake.properties:
-                    with self._path_enter(prop) as _:
-                        value = self._parse_schema(fake.properties[prop])
-                        new_props[prop] = value
+            for prop, raw_value in fields.get('properties', {}).items():
+                with self._path_enter(prop) as _:
+                    value = self._parse_schema(raw_value)
+                    new_props[prop] = value
+        fields.pop('properties', None)
 
         add_props: bool | types.Schema | types.Ref
         with self._path_enter('additionalProperties') as _:
-            if isinstance(fake.additionalProperties, bool):
-                add_props = fake.additionalProperties
+            additional_properties = fields.get('additionalProperties', False)
+            if isinstance(additional_properties, bool):
+                add_props = additional_properties
             else:
-                add_props = self._parse_schema(fake.additionalProperties)
+                add_props = self._parse_schema(additional_properties)
+        fields.pop('additionalProperties', None)
 
         obj = types.SchemaObject(
             additionalProperties=add_props,
-            required=fake.required,
             properties=new_props,
+            **fields,
         )
-        obj.x_properties = fake.x_properties  # type: ignore
         return obj
 
     def _parse_boolean(self, input_: dict) -> types.Boolean:
         return types.Boolean(**input_)
 
     def _parse_int(self, input_: dict) -> types.Integer:
-        format_str = input_.pop('format', None)
+        fields = input_.copy()
+        format_str = fields.pop('format', None)
 
-        fmt: Optional[types.IntegerFormat]
+        fmt: types.IntegerFormat | None
         if format_str:
             fmt = types.IntegerFormat.from_string(format_str)
         else:
             fmt = None
-        return types.Integer(**input_, format=fmt)
+        return types.Integer(**fields, format=fmt)
 
     def _parse_number(self, input_: dict) -> types.Number:
         number = types.Number(**input_)
@@ -296,35 +377,55 @@ class SchemaParser:
         return number
 
     def _parse_string(self, input_: dict) -> types.String:
-        format_str = input_.pop('format', None)
-        fmt: Optional[types.StringFormat]
+        fields = input_.copy()
+        format_str = fields.pop('format', None)
+        fmt: types.StringFormat | None
         if format_str:
             fmt = types.StringFormat.from_string(format_str)
         else:
             fmt = None
-        return types.String(**input_, format=fmt)
+        return types.String(**fields, format=fmt)
 
-    def _make_abs_ref(self, ref: str) -> str:
+    def _parse_file(self, input_: dict) -> types.String:
+        if not self._config.allow_file:
+            with self._path_enter('type') as _:
+                self._raise('"file" type is not allowed')
+
+        return self._parse_string(input_)
+
+    REF_SHRINK_RE = re.compile('/[^/]+/\\.\\./')
+    REF_SHRINK_DOT_RE = re.compile('/\\./')
+
+    @staticmethod
+    def _normalize_ref(ref_: str) -> str:
+        ref_ = '/' + ref_  # for regex simplicity
+
+        while SchemaParser.REF_SHRINK_RE.search(ref_):
+            ref_ = re.sub(SchemaParser.REF_SHRINK_RE, '/', ref_)
+        while SchemaParser.REF_SHRINK_DOT_RE.search(ref_):
+            ref_ = re.sub(SchemaParser.REF_SHRINK_DOT_RE, '/', ref_)
+
+        return ref_[1:]
+
+    def _make_abs_ref(self, ref_: str) -> str:
         assert self._state
 
-        if ref.startswith('#'):
+        if not ref.Ref(ref_).file:
             # Local $ref
-            return self.full_vfilepath + ref
+            return self.full_vfilepath + ref_
         else:
             my_ref = '/'.join(self.full_vfilepath.split('/')[:-1])
-            file, infile = ref.split('#')
-            out_file = os.path.join(my_ref, file)
-            # print(f'ref: {out_file} # {infile}')
-            return out_file + '#' + infile
+            reference = ref.Ref(ref_)
+            out_file = self._normalize_ref(os.path.join(my_ref, reference.file))
+            return out_file + '#' + reference.fragment
 
-    def _parse_ref(self, ref: str, input_: dict) -> types.Ref:
+    def _parse_ref(self, ref_: str, input_: dict) -> types.Ref:
         assert self._state
 
         fields = set(input_.keys())
         fields.remove('$ref')
-        if 'description' in fields:
-            # description is explicitly allowed in $ref
-            fields.remove('description')
+        # description is explicitly allowed in $ref
+        fields.discard('description')
 
         if 'x-usrv-cpp-indirect' in fields:
             indirect = True
@@ -342,13 +443,15 @@ class SchemaParser:
             self._raise(f'Unknown field(s) {list(fields)}')
 
         with self._path_enter('$ref') as _:
-            abs_ref = self._make_abs_ref(ref)
+            abs_ref = self._make_abs_ref(ref_)
             ref_value = types.Ref(
-                ref=abs_ref, indirect=indirect, self_ref=False,
+                ref=abs_ref,
+                indirect=indirect,
+                self_ref=False,
             )
 
-            del input_['$ref']
-            ref_value.x_properties = input_
+            ref_value.x_properties = input_.copy()
+            del ref_value.x_properties['$ref']
 
             return ref_value
 
@@ -363,6 +466,7 @@ TYPE_PARSERS = {
     'integer': SchemaParser._parse_int,
     'number': SchemaParser._parse_number,
     'string': SchemaParser._parse_string,
+    'file': SchemaParser._parse_file,
     'array': SchemaParser._parse_array,
     'object': SchemaParser._parse_object,
 }

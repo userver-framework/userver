@@ -12,7 +12,6 @@
 #include <userver/server/request/task_inherited_data.hpp>
 #include <userver/utils/text.hpp>
 
-#include <storages/mongo/dynamic_config.hpp>
 #include <userver/storages/mongo/pool_config.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -76,7 +75,8 @@ storages::mongo::PoolConfig MakeTestPoolConfig() {
 MongoPoolFixture::MongoPoolFixture()
     : default_resolver_(MakeDnsResolver()),
       dynamic_config_storage_(MakeDynamicConfig()),
-      default_pool_(MakePool({}, {})) {}
+      default_pool_(MakePool({}, {}))
+{}
 
 MongoPoolFixture::~MongoPoolFixture() {
     const engine::TaskCancellationBlocker block_cancels;
@@ -93,20 +93,25 @@ MongoPoolFixture::~MongoPoolFixture() {
     }
 }
 
-storages::mongo::Pool MongoPoolFixture::GetDefaultPool() { return default_pool_; }
+storages::mongo::Pool& MongoPoolFixture::GetDefaultPool() { return default_pool_; }
 
 storages::mongo::Pool MongoPoolFixture::MakePool(
     std::optional<std::string> db_name,
     std::optional<storages::mongo::PoolConfig> config,
     std::optional<clients::dns::Resolver*> dns_resolver
 ) {
-    if (!db_name) db_name.emplace(kTestDatabaseDefaultName);
-    if (!config) config.emplace(MakeTestPoolConfig());
-    if (!dns_resolver) dns_resolver.emplace(&default_resolver_);
+    if (!db_name) {
+        db_name.emplace(kTestDatabaseDefaultName);
+    }
+    if (!config) {
+        config.emplace(MakeTestPoolConfig());
+    }
+    if (!dns_resolver) {
+        dns_resolver.emplace(&default_resolver_);
+    }
     used_db_names_.insert(*db_name);
-    storages::mongo::Pool pool{
-        *db_name, GetTestsuiteMongoUri(*db_name), *config, *dns_resolver, dynamic_config_storage_.GetSource()};
-    pool.Start();
+    storages::mongo::Pool
+        pool{*db_name, GetTestsuiteMongoUri(*db_name), *config, *dns_resolver, dynamic_config_storage_.GetSource()};
     return pool;
 }
 

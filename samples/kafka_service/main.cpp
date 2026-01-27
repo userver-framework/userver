@@ -4,7 +4,7 @@
 #include <userver/kafka/producer_component.hpp>
 
 #include <userver/clients/dns/component.hpp>
-#include <userver/clients/http/component.hpp>
+#include <userver/clients/http/component_list.hpp>
 
 #include <userver/server/handlers/tests_control.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
@@ -19,17 +19,18 @@
 
 /// [Kafka service sample - main]
 int main(int argc, char* argv[]) {
-    const auto components_list = components::MinimalServerComponentList()
-                                     .Append<kafka_sample::ConsumerHandler>()
-                                     .Append<kafka_sample::ProducerHandler>()
-                                     .Append<kafka::ConsumerComponent>("kafka-consumer")
-                                     .Append<kafka::ProducerComponent>("kafka-producer")
-                                     .Append<components::TestsuiteSupport>()
-                                     .Append<components::Secdist>()
-                                     .Append<components::DefaultSecdistProvider>()
-                                     .Append<components::HttpClient>()
-                                     .Append<clients::dns::Component>()
-                                     .Append<server::handlers::TestsControl>();
+    const auto components_list =
+        components::MinimalServerComponentList()
+            .Append<kafka_sample::ConsumerHandler>()
+            .Append<kafka_sample::ProducerHandler>()
+            .Append<kafka::ConsumerComponent>("kafka-consumer")
+            .Append<kafka::ProducerComponent>("kafka-producer")
+            .Append<components::TestsuiteSupport>()
+            .Append<components::Secdist>()
+            .Append<components::DefaultSecdistProvider>()
+            .AppendComponentList(clients::http::ComponentList())
+            .Append<clients::dns::Component>()
+            .Append<server::handlers::TestsControl>();
 
     return utils::DaemonMain(argc, argv, components_list);
 }

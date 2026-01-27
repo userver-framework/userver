@@ -24,16 +24,18 @@ namespace {
 const pg::UserTypes types;
 
 template <typename Duration>
-std::string
-FormatToTZ(const std::chrono::time_point<std::chrono::system_clock, Duration>& tp, const cctz::time_zone& tz) {
-    static const std::string ts_format_tz = "%Y-%m-%d %H:%M:%E*S%Ez";
-    return cctz::format(ts_format_tz, tp, tz);
+std::string FormatToTZ(
+    const std::chrono::time_point<std::chrono::system_clock, Duration>& tp,
+    const cctz::time_zone& tz
+) {
+    static const std::string kTsFormatTz = "%Y-%m-%d %H:%M:%E*S%Ez";
+    return cctz::format(kTsFormatTz, tp, tz);
 }
 
 template <typename Duration>
 std::string FormatToUtc(const std::chrono::time_point<std::chrono::system_clock, Duration>& tp) {
-    static const auto utc = cctz::utc_time_zone();
-    return FormatToTZ(tp, utc);
+    static const auto kUtc = cctz::utc_time_zone();
+    return FormatToTZ(tp, kUtc);
 }
 
 template <typename Duration>
@@ -42,10 +44,10 @@ std::string FormatToLocal(const std::chrono::time_point<std::chrono::system_cloc
 }
 
 pg::TimePoint ParseUTC(const ::std::string& value) {
-    static const auto utc = cctz::utc_time_zone();
-    static const std::string ts_format_tz = "%Y-%m-%d %H:%M:%E*S%Ez";
+    static const auto kUtc = cctz::utc_time_zone();
+    static const std::string kTsFormatTz = "%Y-%m-%d %H:%M:%E*S%Ez";
     pg::TimePoint tp;
-    cctz::parse(ts_format_tz, value, utc, &tp);
+    cctz::parse(kTsFormatTz, value, kUtc, &tp);
     return tp;
 }
 
@@ -65,15 +67,17 @@ pg::TimePoint ParseUTC(const ::std::string& value) {
 TEST(PostgreIO, Chrono) {
     // postgres only supports microsecond resolution
     const pg::TimePointWithoutTz now{
-        std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::system_clock::now())};
+        std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::system_clock::now())
+    };
     pg::test::Buffer buffer;
     UEXPECT_NO_THROW(io::WriteBuffer(types, buffer, now));
     auto fb = pg::test::MakeFieldBuffer(buffer);
     pg::TimePointWithoutTz tgt;
     UEXPECT_NO_THROW(io::ReadBuffer(fb, tgt));
-    EXPECT_EQ(now, tgt) << "Parse buffer " << std::string{buffer.begin(), buffer.end()}
-                        << ", expected: " << now.GetUnderlying().time_since_epoch().count()
-                        << ", got: " << tgt.GetUnderlying().time_since_epoch().count();
+    EXPECT_EQ(now, tgt)
+        << "Parse buffer " << std::string{buffer.begin(), buffer.end()}
+        << ", expected: " << now.GetUnderlying().time_since_epoch().count()
+        << ", got: " << tgt.GetUnderlying().time_since_epoch().count();
 }
 
 TEST(PostgreIO, ChronoTz) {
@@ -160,8 +164,8 @@ UTEST_P(PostgreConnection, ChronoTzConversions) {
     INSERT INTO tz_conversion_sample(with_tz, without_tz) VALUES($1, $2)
     RETURNING with_tz, without_tz
   )";
-    // ERROR! Types missmatch and are implicitly converted:
-    // * TimePointWithoutTz is converted on the DB side and TZ substracted.
+    // ERROR! Types mismatch and are implicitly converted:
+    // * TimePointWithoutTz is converted on the DB side and TZ subtracted.
     // * TimePointTz is converted on the DB side and TZ added.
     const auto res = connection->Execute(kInsertQuery, pg::TimePointWithoutTz{now}, pg::TimePointTz{now});
 
@@ -193,7 +197,9 @@ UTEST_P(PostgreConnection, ChronoTzConversions) {
 // RAII class to set TZ environment variable. Not for use with threads.
 class TemporaryTZ {
 public:
-    TemporaryTZ(const std::string& tz) : current_tz_{tz} {
+    TemporaryTZ(const std::string& tz)
+        : current_tz_{tz}
+    {
         // NOLINTNEXTLINE(concurrency-mt-unsafe)
         auto* env = std::getenv("TZ");
         if (env) {
@@ -223,15 +229,16 @@ private:
 };
 
 void CheckInTimezone(pg::detail::ConnectionPtr& conn, const std::string& tz_name = {}) {
-    TemporaryTZ tmp_tz{tz_name};
+    const TemporaryTZ tmp_tz{tz_name};
     auto tz = cctz::local_time_zone();
     if (!tz_name.empty()) {
         ASSERT_TRUE(cctz::load_time_zone(tz_name, &tz)) << "cctz load time zone " << tz_name;
-        UASSERT_NO_THROW(conn->SetParameter("TimeZone", tz_name, pg::detail::Connection::ParameterScope::kSession))
-            << "Set timezone for Postgres " << tmp_tz;
+        UASSERT_NO_THROW(conn->SetParameter("TimeZone", tz_name, pg::detail::Connection::ParameterScope::kSession)
+        ) << "Set timezone for Postgres "
+          << tmp_tz;
     }  // Else use local timezone
 
-    std::vector<pg::TimePoint> timepoints{
+    const std::vector<pg::TimePoint> timepoints{
         pg::ClockType::now(),
         ParseUTC("2018-01-01 10:00:00+00"),  // Some time in winter
         ParseUTC("2018-07-01 10:00:00+00")   // Some time in summer, for DST timezones
@@ -262,15 +269,17 @@ void CheckInTimezone(pg::detail::ConnectionPtr& conn, const std::string& tz_name
             pg::TimePointWithoutTz tp_utc;
             pg::TimePointTz tp_curr_tz;
             r.To(fmt, tp, tptz, tp_curr_tz, tp_utc, tz_setting);
-            EXPECT_TRUE(EqualToMicroseconds(tp.GetUnderlying(), tptz.GetUnderlying()))
-                << "Should be seen equal locally. " << tmp_tz;
-            EXPECT_TRUE(EqualToMicroseconds(tp_curr_tz.GetUnderlying(), tptz.GetUnderlying()))
-                << "Should be seen equal locally. " << tmp_tz;
-            ADD_FAILURE() << fmt << ": According to server timestamp without time zone "
-                          << FormatToLocal(tp.GetUnderlying()) << " is different from timestamp with time zone "
-                          << FormatToLocal(tptz.GetUnderlying()) << " Timestamp with tz at " << tz_setting << " = "
-                          << FormatToLocal(tp_curr_tz.GetUnderlying()) << ", at UTC "
-                          << FormatToLocal(tp_utc.GetUnderlying()) << " " << tmp_tz;
+            EXPECT_TRUE(EqualToMicroseconds(tp.GetUnderlying(), tptz.GetUnderlying())
+            ) << "Should be seen equal locally. "
+              << tmp_tz;
+            EXPECT_TRUE(EqualToMicroseconds(tp_curr_tz.GetUnderlying(), tptz.GetUnderlying())
+            ) << "Should be seen equal locally. "
+              << tmp_tz;
+            ADD_FAILURE()
+                << fmt << ": According to server timestamp without time zone " << FormatToLocal(tp.GetUnderlying())
+                << " is different from timestamp with time zone " << FormatToLocal(tptz.GetUnderlying())
+                << " Timestamp with tz at " << tz_setting << " = " << FormatToLocal(tp_curr_tz.GetUnderlying())
+                << ", at UTC " << FormatToLocal(tp_utc.GetUnderlying()) << " " << tmp_tz;
         }
         UEXPECT_NO_THROW(conn->Execute("delete from tstest"));
     }
@@ -286,9 +295,8 @@ UTEST_P(PostgreConnection, Timestamp) {
     pg::TimePointTz tptz;
 
     UEXPECT_NO_THROW(
-        res = GetConn()->Execute(
-            "select $1::timestamp, $2::timestamptz", pg::TimePointWithoutTz{now}, pg::TimePointTz{now}
-        )
+        res = GetConn()
+                  ->Execute("select $1::timestamp, $2::timestamptz", pg::TimePointWithoutTz{now}, pg::TimePointTz{now})
     );
 
     UEXPECT_NO_THROW(res.Front().To(tp, tptz));
@@ -331,7 +339,7 @@ UTEST_P(PostgreConnection, TimestampTz) {
     CheckConnection(GetConn());
     // Make sure we use a time zone different from UTC and MSK
     const std::string tz_name = "Asia/Yekaterinburg";
-    TemporaryTZ tmp_tz{tz_name};
+    const TemporaryTZ tmp_tz{tz_name};
     UASSERT_NO_THROW(GetConn()->SetParameter("TimeZone", tz_name, pg::detail::Connection::ParameterScope::kSession));
 
     pg::TimePointTz now{std::chrono::system_clock::now()};
@@ -378,7 +386,8 @@ UTEST_P(PostgreConnection, TimestampStored) {
     auto now = std::chrono::system_clock::now();
     UEXPECT_NO_THROW(
         res = GetConn()->Execute(
-            "select $1, $2", pg::ParameterStore{}.PushBack(pg::TimePointWithoutTz{now}).PushBack(pg::TimePointTz{now})
+            "select $1, $2",
+            pg::ParameterStore{}.PushBack(pg::TimePointWithoutTz{now}).PushBack(pg::TimePointTz{now})
         )
     );
 

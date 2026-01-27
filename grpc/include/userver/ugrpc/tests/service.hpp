@@ -10,11 +10,15 @@
 #include <userver/dynamic_config/snapshot.hpp>
 #include <userver/dynamic_config/storage_mock.hpp>
 #include <userver/dynamic_config/test_helpers.hpp>
+#include <userver/testsuite/grpc_control.hpp>
+#include <userver/utils/statistics/metrics_storage.hpp>
 #include <userver/utils/statistics/storage.hpp>
 
 #include <userver/ugrpc/client/client_factory.hpp>
+#include <userver/ugrpc/impl/statistics_storage.hpp>
 #include <userver/ugrpc/server/server.hpp>
 #include <userver/ugrpc/server/service_base.hpp>
+#include <userver/ugrpc/tests/simple_client_middleware_pipeline.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -64,7 +68,7 @@ public:
     void SetServerMiddlewares(server::Middlewares middlewares);
 
     /// Client middlewares can be modified before the first RegisterService call.
-    void SetClientMiddlewareFactories(client::MiddlewareFactories middleware_factories);
+    void SetClientMiddlewares(client::Middlewares middlewares);
 
     /// Modifies the internal dynamic configs storage. It is used by the server
     /// and clients, and is accessible through @ref GetConfigSource.
@@ -89,11 +93,13 @@ private:
     server::ServiceConfig MakeServiceConfig();
 
     utils::statistics::Storage statistics_storage_;
+    utils::statistics::MetricsStorage metrics_storage_;
+    std::vector<utils::statistics::Entry> metrics_storage_registration_;
     dynamic_config::StorageMock config_storage_;
     std::optional<std::string> unix_socket_path_;
     server::Server server_;
     server::Middlewares server_middlewares_;
-    client::MiddlewareFactories client_middleware_factories_;
+    SimpleClientMiddlewarePipeline simple_client_middleware_pipeline_;
     bool middlewares_change_allowed_{true};
     testsuite::GrpcControl testsuite_;
     std::optional<std::string> endpoint_;
@@ -105,7 +111,7 @@ private:
 server::Middlewares GetDefaultServerMiddlewares();
 
 /// @brief return list of default client middleware factories for tests
-client::MiddlewareFactories GetDefaultClientMiddlewareFactories();
+client::Middlewares GetDefaultClientMiddlewares();
 
 /// @brief Sets up a mini gRPC server using a single service implementation.
 /// @see @ref ugrpc::tests::ServiceBase
@@ -113,19 +119,42 @@ template <typename GrpcService>
 class Service : public ServiceBase {
 public:
     /// Default-constructs the service.
-    Service() : Service(std::in_place) {}
+    Service()
+        : Service(std::in_place)
+    {}
 
     /// Passes @a args to the service.
     template <typename... Args>
     explicit Service(std::in_place_t, Args&&... args)
-        : Service(server::ServerConfig{}, std::in_place, std::forward<Args>(args)...) {}
+        : Service(server::ServerConfig{}, std::in_place, std::forward<Args>(args)...)
+    {}
 
-    /// Passes @a args to the service.
+    /// Passes @a args to the service, @a server_config to @ref ServiceBase::ServiceBase.
     template <typename... Args>
-    Service(server::ServerConfig&& server_config, std::in_place_t = std::in_place, Args&&... args)
-        : ServiceBase(std::move(server_config)), service_(std::forward<Args>(args)...) {
-        SetServerMiddlewares(GetDefaultServerMiddlewares());
-        SetClientMiddlewareFactories(GetDefaultClientMiddlewareFactories());
+    explicit Service(server::ServerConfig&& server_config, std::in_place_t = std::in_place, Args&&... args)
+        : Service(
+              std::move(server_config),
+              GetDefaultServerMiddlewares(),
+              GetDefaultClientMiddlewares(),
+              std::in_place,
+              std::forward<Args>(args)...
+          )
+    {}
+
+    /// Passes @a args to the service, @a server_config to @ref ServiceBase::ServiceBase, sets custom middlewares.
+    template <typename... Args>
+    Service(
+        server::ServerConfig&& server_config,
+        server::Middlewares server_middlewares,
+        client::Middlewares client_middlewares,
+        std::in_place_t = std::in_place,
+        Args&&... args
+    )
+        : ServiceBase(std::move(server_config)),
+          service_(std::forward<Args>(args)...)
+    {
+        SetServerMiddlewares(std::move(server_middlewares));
+        SetClientMiddlewares(std::move(client_middlewares));
         RegisterService(service_);
         StartServer();
     }

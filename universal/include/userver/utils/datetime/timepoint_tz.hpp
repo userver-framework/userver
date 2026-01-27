@@ -18,8 +18,13 @@ public:
     using TimePoint = std::chrono::system_clock::time_point;
 
     constexpr TimePointTzBase() = default;
-    constexpr explicit TimePointTzBase(TimePoint tp) : tp_(tp) {}
-    constexpr TimePointTzBase(TimePoint tp, std::chrono::seconds tz_offset) : tp_(tp), tz_offset_(tz_offset) {}
+    constexpr explicit TimePointTzBase(TimePoint tp)
+        : tp_(tp)
+    {}
+    constexpr TimePointTzBase(TimePoint tp, std::chrono::seconds tz_offset)
+        : tp_(tp),
+          tz_offset_(tz_offset)
+    {}
     TimePointTzBase(const TimePointTzBase& other);
     TimePointTzBase(TimePointTzBase&& other) noexcept;
 
@@ -58,6 +63,15 @@ bool operator>(const TimePointTzBase::TimePoint& lhs, const TimePointTzBase& rhs
 bool operator<=(const TimePointTzBase::TimePoint& lhs, const TimePointTzBase& rhs);
 
 bool operator>=(const TimePointTzBase::TimePoint& lhs, const TimePointTzBase& rhs);
+
+/// Timepoint with timezone parsed in kFractionFormat
+class TimePointTzFraction final : public TimePointTzBase {
+    using TimePointTzBase::TimePointTzBase;
+
+    explicit TimePointTzFraction(const std::string& timestring);
+};
+
+logging::LogHelper& operator<<(logging::LogHelper& os, const TimePointTzFraction& v);
 
 /// Timepoint with timezone parsed in kRfc3339Format
 class TimePointTz final : public TimePointTzBase {

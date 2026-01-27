@@ -2,12 +2,11 @@
 
 #include <vector>
 
+#include <userver/chaotic/validators.hpp>
 #include <userver/formats/json/value.hpp>
 #include <userver/formats/parse/common_containers.hpp>
 #include <userver/formats/parse/to.hpp>
 #include <userver/utils/meta.hpp>
-
-#include <userver/chaotic/validators.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -20,11 +19,15 @@ struct Array final {
 
 template <typename Value, typename ItemType, typename UserType, typename... Validators>
 UserType Parse(const Value& value, formats::parse::To<Array<ItemType, UserType, Validators...>>) {
+    value.CheckNotMissing();
+    value.CheckArrayOrNull();
+
     UserType arr;
-    auto inserter = std::inserter(arr, arr.end());
     if constexpr (meta::kIsReservable<UserType>) {
         arr.reserve(value.GetSize());
     }
+    // Note: call arr.end() *after* reserve() as the latter may invalidate end()
+    auto inserter = std::inserter(arr, arr.end());
     for (const auto& item : value) {
         *inserter = item.template As<ItemType>();
         ++inserter;
@@ -38,6 +41,9 @@ UserType Parse(const Value& value, formats::parse::To<Array<ItemType, UserType, 
 template <typename Value, typename ItemType, typename... Validators>
 std::vector<formats::common::ParseType<Value, ItemType>>
 Parse(const Value& value, formats::parse::To<Array<ItemType, std::vector<formats::common::ParseType<Value, ItemType>>, Validators...>>) {
+    value.CheckNotMissing();
+    value.CheckArrayOrNull();
+
     std::vector<formats::common::ParseType<Value, ItemType>> arr;
     arr.reserve(value.GetSize());
     for (const auto& item : value) {

@@ -4,7 +4,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis::impl {
 
 struct CommandControlImpl {
 public:
@@ -26,6 +26,10 @@ public:
 
     /// How many nearest DCs to use, 0 for no limit
     std::size_t best_dc_count{0};
+
+    /// Consider ping to nodes in instance selection (true if not specified).
+    /// Make the load on the database evenly distributed, but this may increase timings
+    bool consider_ping{true};
 
     /// Server latency limit
     std::chrono::milliseconds max_ping_latency{0};
@@ -49,6 +53,6 @@ public:
     ServerId force_server_id;
 };
 
-}  // namespace redis
+}  // namespace storages::redis::impl
 
 USERVER_NAMESPACE_END

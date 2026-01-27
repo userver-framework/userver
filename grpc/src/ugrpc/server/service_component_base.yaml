@@ -1,0 +1,22 @@
+type: object
+description: base class for all the gRPC service components
+additionalProperties: false
+properties:
+    task-processor:
+        type: string
+        description: the task processor to use for responses
+        default: uses grpc-server.service-defaults.task-processor
+    status-codes-log-level:
+        type: object
+        properties: {}
+        additionalProperties:
+            type: string
+            description: log level
+        description: |-
+            gRPC status code string -> log level map.
+            Allows overriding the log level for the span for individual statuses.
+            See grpcpp StatusCode documentation for the list of possible values:
+            https://grpc.github.io/grpc/cpp/namespacegrpc.html#aff1730578c90160528f6a8d67ef5c43b
+
+            Example:
+              -  FAILED_PRECONDITION: info

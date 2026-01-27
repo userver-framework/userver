@@ -37,17 +37,17 @@ struct DummyEntity final : public dump::DumpableEntity {
     static constexpr std::string_view kName = "dummy";
 
     void GetAndWrite(dump::Writer& writer) const override {
-        std::unique_lock lock(check_no_data_race_mutex, std::try_to_lock);
+        const std::unique_lock lock(check_no_data_race_mutex, std::try_to_lock);
         ASSERT_TRUE(lock.owns_lock());
 
-        std::lock_guard write_lock(write_mutex);
+        const std::lock_guard write_lock(write_mutex);
 
         writer.Write(value);
         ++write_count;
     }
 
     void ReadAndSet(dump::Reader& reader) override {
-        std::unique_lock lock(check_no_data_race_mutex, std::try_to_lock);
+        const std::unique_lock lock(check_no_data_race_mutex, std::try_to_lock);
         ASSERT_TRUE(lock.owns_lock());
 
         value = reader.Read<int>();
@@ -76,12 +76,15 @@ struct DumperFixtureConfig final {
 
 class DumperFixture : public ::testing::Test {
 protected:
-    DumperFixture() : DumperFixture(DumperFixtureConfig{}) {}
+    DumperFixture()
+        : DumperFixture(DumperFixtureConfig{})
+    {}
 
     explicit DumperFixture(DumperFixtureConfig config)
         : root_(fs::blocking::TempDirectory::Create()),
           config_(dump::ConfigFromYaml(kConfig, root_, DummyEntity::kName)),
-          control_(config.periodics_mode) {}
+          control_(config.periodics_mode)
+    {}
 
     dump::Dumper MakeDumper() {
         return dump::Dumper{
@@ -105,7 +108,7 @@ private:
     dump::Config config_;
     testsuite::DumpControl control_;
     utils::statistics::Storage statistics_storage_;
-    dynamic_config::StorageMock config_storage_{{dump::kConfigSet, {}}};
+    dynamic_config::StorageMock config_storage_{{::dynamic_config::USERVER_DUMPS, {}}};
     DummyEntity dumpable_;
 };
 
@@ -156,7 +159,8 @@ UTEST_F_MT(DumperFixture, ThreadSafety, kUpdatersCount + kWritersCount + kReader
         tasks.push_back(utils::Async("updater", [&, i] {
             while (keep_running) {
                 dumper.OnUpdateCompleted(
-                    get_now(), i == 0 ? dump::UpdateType::kModified : dump::UpdateType::kAlreadyUpToDate
+                    get_now(),
+                    i == 0 ? dump::UpdateType::kModified : dump::UpdateType::kAlreadyUpToDate
                 );
                 engine::Yield();
             }
@@ -190,7 +194,7 @@ UTEST_F(DumperFixture, OnUpdateCompletedIsAsync) {
     utils::datetime::MockNowSet({});
 
     {
-        std::lock_guard lock(GetDumpable().write_mutex);
+        const std::lock_guard lock(GetDumpable().write_mutex);
 
         // Async write operation will wait for 'write_mutex', but the method
         // should return instantly
@@ -285,7 +289,8 @@ protected:
               DumperFixtureConfig config;
               config.periodics_mode = testsuite::DumpControl::PeriodicsMode::kDisabled;
               return config;
-          }()) {}
+          }())
+    {}
 };
 
 }  // namespace
@@ -350,7 +355,9 @@ public:
     static constexpr std::string_view kName = "component-with-dumps";
 
     SampleComponentWithDumps(const components::ComponentConfig& config, const components::ComponentContext& context)
-        : ComponentBase(config, context), dumper_(config, context, *this) {
+        : ComponentBase(config, context),
+          dumper_(config, context, *this)
+    {
         dumper_.ReadDump();
     }
 
@@ -361,7 +368,9 @@ public:
     }
 
     std::string Get(const std::string& key) {
-        if (auto existing_value = data_.Get(key)) return *existing_value;
+        if (auto existing_value = data_.Get(key)) {
+            return *existing_value;
+        }
 
         auto value = key + "foo";
         data_.Emplace(key, value);

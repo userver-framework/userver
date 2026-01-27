@@ -6,21 +6,21 @@ USERVER_NAMESPACE_BEGIN
 
 namespace {
 
-struct data_t {
+struct DataT {
     const char* const name;
     const char* const data;
     const unsigned long long ethalon;
 };
 
-inline std::string PrintToString(const data_t& d) { return d.name; }
+inline std::string PrintToString(const DataT& d) { return d.name; }
 
-using TestData = std::initializer_list<data_t>;
+using TestData = std::initializer_list<DataT>;
 
 }  // namespace
 
 ////////////////////////////////////////////////////////////////////////////////
 
-class StringToBytesPerSecond : public ::testing::TestWithParam<data_t> {};
+class StringToBytesPerSecond : public ::testing::TestWithParam<DataT> {};
 
 INSTANTIATE_TEST_SUITE_P(
     /*no prefix*/,

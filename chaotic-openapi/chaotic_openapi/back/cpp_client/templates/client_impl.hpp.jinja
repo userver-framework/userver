@@ -1,0 +1,62 @@
+#pragma once
+
+#include <clients/{{ name }}/client.hpp>
+
+
+#include <userver/chaotic/openapi/client/config.hpp>
+#include <userver/chaotic/openapi/middlewares/manager.hpp>
+#include <userver/components/component_config.hpp>
+#include <userver/yaml_config/schema.hpp>
+
+{% if tvm_hack %}
+#undef USERVER_TVM2_HTTP_CLIENT
+{% endif %}
+#include <userver/clients/http/client.hpp>
+{% if tvm_hack %}
+#define USERVER_TVM2_HTTP_CLIENT
+{% endif %}
+
+namespace {{ namespace }} {
+
+class ClientImpl final : public Client {
+public:
+  // API
+
+{% for op in operations %}
+  {% if op.client_generate %}
+    {{ op.cpp_namespace() }}::Response {{ op.cpp_method_name() }}(
+      {%- if not op.empty_request() -%}
+          const {{ op.cpp_namespace() }}::Request& request ,
+      {%- endif %}
+          const USERVER_NAMESPACE::chaotic::openapi::client::CommandControl& command_control = {}
+    ) override;
+  {% endif %}
+{% endfor %}
+
+  // end of API
+
+  static constexpr std::string_view kName = "{{ name }}";
+  static constexpr std::string_view kDefaultBaseUrl = "{{ base_url }}";
+
+  ClientImpl(const USERVER_NAMESPACE::chaotic::openapi::client::Config& config,
+             USERVER_NAMESPACE::clients::http::Client& http_client);
+             
+  static USERVER_NAMESPACE::yaml_config::Schema GetStaticConfigSchema();
+
+  void RegisterMiddleware(std::shared_ptr<USERVER_NAMESPACE::chaotic::openapi::client::Middleware> middleware) {
+    middleware_manager_.RegisterMiddleware(middleware);
+  }
+
+  void SetCoreMiddlewares(std::optional<std::vector<USERVER_NAMESPACE::utils::NotNull<USERVER_NAMESPACE::clients::http::MiddlewareBase*>>> core_middlewares) {
+    core_middlewares_ = std::move(core_middlewares);
+  }
+
+private:
+  USERVER_NAMESPACE::chaotic::openapi::client::Config config_;
+  USERVER_NAMESPACE::clients::http::Client& http_client_;
+  USERVER_NAMESPACE::chaotic::openapi::MiddlewareManager middleware_manager_;
+  std::unordered_map<std::string, std::shared_ptr<USERVER_NAMESPACE::chaotic::openapi::client::Middleware>> middlewares_;
+  std::optional<std::vector<USERVER_NAMESPACE::utils::NotNull<USERVER_NAMESPACE::clients::http::MiddlewareBase*>>> core_middlewares_;
+};
+
+}

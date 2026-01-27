@@ -23,6 +23,7 @@
 #include <userver/storages/postgres/io/chrono.hpp>
 
 #include <userver/compiler/demangle.hpp>
+#include <userver/engine/sleep.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/utils/assert.hpp>
@@ -35,17 +36,15 @@ USERVER_NAMESPACE_BEGIN
 
 namespace components {
 
-// clang-format off
-
 /// @page pg_cache Caching Component for PostgreSQL
 ///
 /// A typical components::PostgreCache usage consists of trait definition:
 ///
-/// @snippet cache/postgres_cache_test.cpp Pg Cache Policy Trivial
+/// @snippet postgresql/src/cache/postgres_cache_test.cpp Pg Cache Policy Trivial
 ///
 /// and registration of the component in components::ComponentList:
 ///
-/// @snippet cache/postgres_cache_test.cpp  Pg Cache Trivial Usage
+/// @snippet postgresql/src/cache/postgres_cache_test.cpp  Pg Cache Trivial Usage
 ///
 /// See @ref scripts/docs/en/userver/caches.md for introduction into caches.
 ///
@@ -57,15 +56,16 @@ namespace components {
 ///
 /// Optionally the operation timeouts for cache loading can be specified.
 ///
-/// ### Avoiding memory leaks
-/// components::CachingComponentBase
+/// For avoiding "memory leaks", see the respective section
+/// in @ref components::CachingComponentBase.
 ///
-/// Name | Description | Default value
-/// ---- | ----------- | -------------
-/// full-update-op-timeout | timeout for a full update | 1m
-/// incremental-update-op-timeout | timeout for an incremental update | 1s
-/// update-correction | incremental update window adjustment | - (0 for caches with defined GetLastKnownUpdated)
-/// chunk-size | number of rows to request from PostgreSQL via portals, 0 to fetch all rows in one request without portals | 1000
+/// @include{doc} scripts/docs/en/components_schema/postgresql/src/cache/base_postgres_cache.md
+///
+/// Options inherited from @ref components::CachingComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/cache/caching_component_base.md
+///
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
 ///
 /// @section pg_cc_cache_policy Cache policy
 ///
@@ -91,8 +91,20 @@ namespace components {
 ///
 /// @snippet cache/postgres_cache_test.cpp Pg Cache Policy Custom Updated Example
 ///
+/// Cache can also store only subset of data. For example for the database that is is defined in the following way:
+///
+/// @include samples/postgres_cache_order_by/schemas/postgresql/key_value.sql
+///
+/// it is possible to create a cache that stores only the latest `value`:
+///
+/// @snippet samples/postgres_cache_order_by/main.cpp  Last pg cache
+///
 /// In case one provides a custom CacheContainer within Policy, it is notified
 /// of Update completion via its public member function OnWritesDone, if any.
+/// Custom CacheContainer must provide size method and insert_or_assign method
+/// similar to std::unordered_map's one or CacheInsertOrAssign function similar
+/// to one defined in namespace utils::impl::projected_set (i.e. used for
+/// utils::ProjectedUnorderedSet).
 /// See the following code snippet for an example of usage:
 ///
 /// @snippet cache/postgres_cache_test.cpp Pg Cache Policy Custom Container With Write Notification Example
@@ -111,19 +123,17 @@ namespace components {
 /// ⇦ @ref scripts/docs/en/userver/cache_dumps.md | @ref scripts/docs/en/userver/lru_cache.md ⇨
 /// @htmlonly </div> @endhtmlonly
 
-// clang-format on
-
 namespace pg_cache::detail {
 
 template <typename T>
 using ValueType = typename T::ValueType;
 template <typename T>
-inline constexpr bool kHasValueType = meta::kIsDetected<ValueType, T>;
+inline constexpr bool kHasValueType = meta::IsDetected<ValueType, T>;
 
 template <typename T>
 using RawValueTypeImpl = typename T::RawValueType;
 template <typename T>
-inline constexpr bool kHasRawValueType = meta::kIsDetected<RawValueTypeImpl, T>;
+inline constexpr bool kHasRawValueType = meta::IsDetected<RawValueTypeImpl, T>;
 template <typename T>
 using RawValueType = meta::DetectedOr<ValueType<T>, RawValueTypeImpl, T>;
 
@@ -140,44 +150,77 @@ auto ExtractValue(RawValueType<PostgreCachePolicy>&& raw) {
 template <typename T>
 using HasNameImpl = std::enable_if_t<!std::string_view{T::kName}.empty()>;
 template <typename T>
-inline constexpr bool kHasName = meta::kIsDetected<HasNameImpl, T>;
+inline constexpr bool kHasName = meta::IsDetected<HasNameImpl, T>;
 
 // Component query in policy
 template <typename T>
 using HasQueryImpl = decltype(T::kQuery);
 template <typename T>
-inline constexpr bool kHasQuery = meta::kIsDetected<HasQueryImpl, T>;
+inline constexpr bool kHasQuery = meta::IsDetected<HasQueryImpl, T>;
 
 // Component GetQuery in policy
 template <typename T>
 using HasGetQueryImpl = decltype(T::GetQuery());
 template <typename T>
-inline constexpr bool kHasGetQuery = meta::kIsDetected<HasGetQueryImpl, T>;
+inline constexpr bool kHasGetQuery = meta::IsDetected<HasGetQueryImpl, T>;
 
 // Component kWhere in policy
 template <typename T>
 using HasWhere = decltype(T::kWhere);
 template <typename T>
-inline constexpr bool kHasWhere = meta::kIsDetected<HasWhere, T>;
+inline constexpr bool kHasWhere = meta::IsDetected<HasWhere, T>;
+
+// Component kOrderBy in policy
+template <typename T>
+using HasOrderBy = decltype(T::kOrderBy);
+template <typename T>
+inline constexpr bool kHasOrderBy = meta::IsDetected<HasOrderBy, T>;
 
 // Update field
 template <typename T>
 using HasUpdatedField = decltype(T::kUpdatedField);
 template <typename T>
-inline constexpr bool kHasUpdatedField = meta::kIsDetected<HasUpdatedField, T>;
+inline constexpr bool kHasUpdatedField = meta::IsDetected<HasUpdatedField, T>;
 
 template <typename T>
 using WantIncrementalUpdates = std::enable_if_t<!std::string_view{T::kUpdatedField}.empty()>;
 template <typename T>
-inline constexpr bool kWantIncrementalUpdates = meta::kIsDetected<WantIncrementalUpdates, T>;
+inline constexpr bool kWantIncrementalUpdates = meta::IsDetected<WantIncrementalUpdates, T>;
 
 // Key member in policy
 template <typename T>
 using KeyMemberTypeImpl = std::decay_t<std::invoke_result_t<decltype(T::kKeyMember), ValueType<T>>>;
 template <typename T>
-inline constexpr bool kHasKeyMember = meta::kIsDetected<KeyMemberTypeImpl, T>;
+inline constexpr bool kHasKeyMember = meta::IsDetected<KeyMemberTypeImpl, T>;
 template <typename T>
 using KeyMemberType = meta::DetectedType<KeyMemberTypeImpl, T>;
+
+// size method in custom container in policy
+template <typename T>
+using SizeMethodInvokeResultImpl = decltype(std::declval<T>().size());
+template <typename T>
+inline constexpr bool kHasSizeMethod =
+    meta::IsDetected<SizeMethodInvokeResultImpl, T> &&
+    std::is_convertible_v<SizeMethodInvokeResultImpl<T>, std::size_t>;
+
+// insert_or_assign method in custom container in policy
+template <typename T>
+using InsertOrAssignMethodInvokeResultImpl =
+    decltype(std::declval<typename T::CacheContainer>()
+                 .insert_or_assign(std::declval<KeyMemberTypeImpl<T>>(), std::declval<ValueType<T>>()));
+template <typename T>
+inline constexpr bool kHasInsertOrAssignMethod = meta::IsDetected<InsertOrAssignMethodInvokeResultImpl, T>;
+
+// CacheInsertOrAssign function for custom container in policy
+template <typename T>
+using CacheInsertOrAssignFunctionInvokeResultImpl = decltype(CacheInsertOrAssign(
+    std::declval<typename T::CacheContainer&>(),
+    std::declval<ValueType<T>>(),
+    std::declval<KeyMemberTypeImpl<T>>()
+));
+template <typename T>
+inline constexpr bool
+    kHasCacheInsertOrAssignFunction = meta::IsDetected<CacheInsertOrAssignFunctionInvokeResultImpl, T>;
 
 // Data container for cache
 template <typename T, typename = USERVER_NAMESPACE::utils::void_t<>>
@@ -192,6 +235,13 @@ struct DataCacheContainer {
 
 template <typename T>
 struct DataCacheContainer<T, USERVER_NAMESPACE::utils::void_t<typename T::CacheContainer>> {
+    static_assert(kHasSizeMethod<typename T::CacheContainer>, "Custom CacheContainer must provide `size` method");
+    static_assert(
+        kHasInsertOrAssignMethod<T> || kHasCacheInsertOrAssignFunction<T>,
+        "Custom CacheContainer must provide `insert_or_assign`  method similar to std::unordered_map's "
+        "one or CacheInsertOrAssign function"
+    );
+
     using type = typename T::CacheContainer;
 };
 
@@ -205,8 +255,11 @@ inline constexpr bool kIsContainerCopiedByElement =
     meta::kIsInstantiationOf<std::unordered_map, T> || meta::kIsInstantiationOf<std::map, T>;
 
 template <typename T>
-std::unique_ptr<T>
-CopyContainer(const T& container, [[maybe_unused]] std::size_t cpu_relax_iterations, tracing::ScopeTime& scope) {
+std::unique_ptr<T> CopyContainer(
+    const T& container,
+    [[maybe_unused]] std::size_t cpu_relax_iterations,
+    tracing::ScopeTime& scope
+) {
     if constexpr (kIsContainerCopiedByElement<T>) {
         auto copy = std::make_unique<T>();
         if constexpr (meta::kIsReservable<T>) {
@@ -238,7 +291,7 @@ using HasOnWritesDoneImpl = decltype(std::declval<T&>().OnWritesDone());
 
 template <typename T>
 void OnWritesDone(T& container) {
-    if constexpr (meta::kIsDetected<HasOnWritesDoneImpl, T>) {
+    if constexpr (meta::IsDetected<HasOnWritesDoneImpl, T>) {
         container.OnWritesDone();
     }
 }
@@ -247,12 +300,12 @@ template <typename T>
 using HasCustomUpdatedImpl = decltype(T::GetLastKnownUpdated(std::declval<DataCacheContainerType<T>>()));
 
 template <typename T>
-inline constexpr bool kHasCustomUpdated = meta::kIsDetected<HasCustomUpdatedImpl, T>;
+inline constexpr bool kHasCustomUpdated = meta::IsDetected<HasCustomUpdatedImpl, T>;
 
 template <typename T>
 using UpdatedFieldTypeImpl = typename T::UpdatedFieldType;
 template <typename T>
-inline constexpr bool kHasUpdatedFieldType = meta::kIsDetected<UpdatedFieldTypeImpl, T>;
+inline constexpr bool kHasUpdatedFieldType = meta::IsDetected<UpdatedFieldTypeImpl, T>;
 template <typename T>
 using UpdatedFieldType = meta::DetectedOr<storages::postgres::TimePointTz, UpdatedFieldTypeImpl, T>;
 
@@ -293,7 +346,7 @@ using HasClusterHostTypeImpl = decltype(T::kClusterHostType);
 
 template <typename T>
 constexpr storages::postgres::ClusterHostTypeFlags ClusterHostType() {
-    if constexpr (meta::kIsDetected<HasClusterHostTypeImpl, T>) {
+    if constexpr (meta::IsDetected<HasClusterHostTypeImpl, T>) {
         return T::kClusterHostType;
     } else {
         return storages::postgres::ClusterHostType::kSlave;
@@ -306,7 +359,7 @@ using HasMayReturnNull = decltype(T::kMayReturnNull);
 
 template <typename T>
 constexpr bool MayReturnNull() {
-    if constexpr (meta::kIsDetected<HasMayReturnNull, T>) {
+    if constexpr (meta::IsDetected<HasMayReturnNull, T>) {
         return T::kMayReturnNull;
     } else {
         return false;
@@ -370,6 +423,7 @@ inline constexpr std::string_view kFetchStage = "fetch";
 inline constexpr std::string_view kParseStage = "parse";
 
 inline constexpr std::size_t kDefaultChunkSize = 1000;
+inline constexpr std::chrono::milliseconds kDefaultSleepBetweenChunks{0};
 }  // namespace pg_cache::detail
 
 /// @ingroup userver_components
@@ -395,7 +449,6 @@ public:
     constexpr static auto kName = PolicyType::kName;
 
     PostgreCache(const ComponentConfig&, const ComponentContext&);
-    ~PostgreCache() override;
 
     static yaml_config::Schema GetStaticConfigSchema();
 
@@ -423,6 +476,9 @@ private:
 
     static storages::postgres::Query GetAllQuery();
     static storages::postgres::Query GetDeltaQuery();
+    static std::string GetWhereClause();
+    static std::string GetDeltaWhereClause();
+    static std::string GetOrderByClause();
 
     std::chrono::milliseconds ParseCorrection(const ComponentConfig& config);
 
@@ -432,6 +488,7 @@ private:
     const std::chrono::milliseconds full_update_timeout_;
     const std::chrono::milliseconds incremental_update_timeout_;
     const std::size_t chunk_size_;
+    const std::chrono::milliseconds sleep_between_chunks_;
     std::size_t cpu_relax_iterations_parse_{0};
     std::size_t cpu_relax_iterations_copy_{0};
 };
@@ -444,11 +501,17 @@ PostgreCache<PostgreCachePolicy>::PostgreCache(const ComponentConfig& config, co
     : BaseType{config, context},
       correction_{ParseCorrection(config)},
       full_update_timeout_{
-          config["full-update-op-timeout"].As<std::chrono::milliseconds>(pg_cache::detail::kDefaultFullUpdateTimeout)},
-      incremental_update_timeout_{config["incremental-update-op-timeout"].As<std::chrono::milliseconds>(
-          pg_cache::detail::kDefaultIncrementalUpdateTimeout
-      )},
-      chunk_size_{config["chunk-size"].As<size_t>(pg_cache::detail::kDefaultChunkSize)} {
+          config["full-update-op-timeout"].As<std::chrono::milliseconds>(pg_cache::detail::kDefaultFullUpdateTimeout)
+      },
+      incremental_update_timeout_{
+          config["incremental-update-op-timeout"]
+              .As<std::chrono::milliseconds>(pg_cache::detail::kDefaultIncrementalUpdateTimeout)
+      },
+      chunk_size_{config["chunk-size"].As<size_t>(pg_cache::detail::kDefaultChunkSize)},
+      sleep_between_chunks_{
+          config["sleep-between-chunks"].As<std::chrono::milliseconds>(pg_cache::detail::kDefaultSleepBetweenChunks)
+      }
+{
     UINVARIANT(
         !chunk_size_ || storages::postgres::Portal::IsSupportedByDriver(),
         "Either set 'chunk-size' to 0, or enable PostgreSQL portals by building "
@@ -481,44 +544,56 @@ PostgreCache<PostgreCachePolicy>::PostgreCache(const ComponentConfig& config, co
         clusters_[i] = pg_cluster_comp.GetClusterForShard(i);
     }
 
-    LOG_INFO() << "Cache " << kName << " full update query `" << GetAllQuery().Statement()
-               << "` incremental update query `" << GetDeltaQuery().Statement() << "`";
-
-    this->StartPeriodicUpdates();
+    LOG_INFO()
+        << "Cache " << kName << " full update query `" << GetAllQuery().GetStatementView()
+        << "` incremental update query `" << GetDeltaQuery().GetStatementView() << "`";
 }
 
 template <typename PostgreCachePolicy>
-PostgreCache<PostgreCachePolicy>::~PostgreCache() {
-    this->StopPeriodicUpdates();
+std::string PostgreCache<PostgreCachePolicy>::GetWhereClause() {
+    if constexpr (pg_cache::detail::kHasWhere<PostgreCachePolicy>) {
+        return fmt::format(FMT_COMPILE("where {}"), PostgreCachePolicy::kWhere);
+    } else {
+        return "";
+    }
+}
+
+template <typename PostgreCachePolicy>
+std::string PostgreCache<PostgreCachePolicy>::GetDeltaWhereClause() {
+    if constexpr (pg_cache::detail::kHasWhere<PostgreCachePolicy>) {
+        return fmt::format(
+            FMT_COMPILE("where ({}) and {} >= $1"),
+            PostgreCachePolicy::kWhere,
+            PostgreCachePolicy::kUpdatedField
+        );
+    } else {
+        return fmt::format(FMT_COMPILE("where {} >= $1"), PostgreCachePolicy::kUpdatedField);
+    }
+}
+
+template <typename PostgreCachePolicy>
+std::string PostgreCache<PostgreCachePolicy>::GetOrderByClause() {
+    if constexpr (pg_cache::detail::kHasOrderBy<PostgreCachePolicy>) {
+        return fmt::format(FMT_COMPILE("order by {}"), PostgreCachePolicy::kOrderBy);
+    } else {
+        return "";
+    }
 }
 
 template <typename PostgreCachePolicy>
 storages::postgres::Query PostgreCache<PostgreCachePolicy>::GetAllQuery() {
-    storages::postgres::Query query = PolicyCheckerType::GetQuery();
-    if constexpr (pg_cache::detail::kHasWhere<PostgreCachePolicy>) {
-        return {fmt::format("{} where {}", query.Statement(), PostgreCachePolicy::kWhere), query.GetName()};
-    } else {
-        return query;
-    }
+    const storages::postgres::Query query = PolicyCheckerType::GetQuery();
+    return fmt::format("{} {} {}", query.GetStatementView(), GetWhereClause(), GetOrderByClause());
 }
 
 template <typename PostgreCachePolicy>
 storages::postgres::Query PostgreCache<PostgreCachePolicy>::GetDeltaQuery() {
     if constexpr (kIncrementalUpdates) {
-        storages::postgres::Query query = PolicyCheckerType::GetQuery();
-
-        if constexpr (pg_cache::detail::kHasWhere<PostgreCachePolicy>) {
-            return {
-                fmt::format(
-                    "{} where ({}) and {} >= $1",
-                    query.Statement(),
-                    PostgreCachePolicy::kWhere,
-                    PolicyType::kUpdatedField
-                ),
-                query.GetName()};
-        } else {
-            return {fmt::format("{} where {} >= $1", query.Statement(), PolicyType::kUpdatedField), query.GetName()};
-        }
+        const storages::postgres::Query query = PolicyCheckerType::GetQuery();
+        return storages::postgres::Query{
+            fmt::format("{} {} {}", query.GetStatementView(), GetDeltaWhereClause(), GetOrderByClause()),
+            query.GetOptionalName(),
+        };
     } else {
         return GetAllQuery();
     }
@@ -528,7 +603,8 @@ template <typename PostgreCachePolicy>
 std::chrono::milliseconds PostgreCache<PostgreCachePolicy>::ParseCorrection(const ComponentConfig& config) {
     static constexpr std::string_view kUpdateCorrection = "update-correction";
     if (pg_cache::detail::kHasCustomUpdated<PostgreCachePolicy> ||
-        this->GetAllowedUpdateTypes() == cache::AllowedUpdateTypes::kOnlyFull) {
+        this->GetAllowedUpdateTypes() == cache::AllowedUpdateTypes::kOnlyFull)
+    {
         return config[kUpdateCorrection].As<std::chrono::milliseconds>(0);
     } else {
         return config[kUpdateCorrection].As<std::chrono::milliseconds>();
@@ -559,8 +635,8 @@ void PostgreCache<PostgreCachePolicy>::Update(
         type = cache::UpdateType::kFull;
     }
     const auto query = (type == cache::UpdateType::kFull) ? GetAllQuery() : GetDeltaQuery();
-    const std::chrono::milliseconds timeout =
-        (type == cache::UpdateType::kFull) ? full_update_timeout_ : incremental_update_timeout_;
+    const std::chrono::milliseconds
+        timeout = (type == cache::UpdateType::kFull) ? full_update_timeout_ : incremental_update_timeout_;
 
     // COPY current cached data
     auto scope = tracing::Span::CurrentSpan().CreateScopeTime(std::string{pg_cache::detail::kCopyStage});
@@ -587,21 +663,26 @@ void PostgreCache<PostgreCachePolicy>::Update(
                 scope.Reset(std::string{pg_cache::detail::kParseStage});
                 CacheResults(res, data_cache, stats_scope, scope);
                 changes += res.Size();
+                if (sleep_between_chunks_.count() > 0) {
+                    engine::InterruptibleSleepFor(sleep_between_chunks_);
+                }
             }
             trx.Commit();
         } else {
-            bool has_parameter = query.Statement().find('$') != std::string::npos;
-            auto res = has_parameter ? cluster->Execute(
-                                           kClusterHostTypeFlags,
-                                           pg::CommandControl{timeout, pg_cache::detail::kStatementTimeoutOff},
-                                           query,
-                                           GetLastUpdated(last_update, *data_cache)
-                                       )
-                                     : cluster->Execute(
-                                           kClusterHostTypeFlags,
-                                           pg::CommandControl{timeout, pg_cache::detail::kStatementTimeoutOff},
-                                           query
-                                       );
+            const bool has_parameter = query.GetStatementView().find('$') != std::string::npos;
+            auto res =
+                has_parameter
+                    ? cluster->Execute(
+                          kClusterHostTypeFlags,
+                          pg::CommandControl{timeout, pg_cache::detail::kStatementTimeoutOff},
+                          query,
+                          GetLastUpdated(last_update, *data_cache)
+                      )
+                    : cluster->Execute(
+                          kClusterHostTypeFlags,
+                          pg::CommandControl{timeout, pg_cache::detail::kStatementTimeoutOff},
+                          query
+                      );
             stats_scope.IncreaseDocumentsReadCount(res.Size());
 
             scope.Reset(std::string{pg_cache::detail::kParseStage});
@@ -616,12 +697,12 @@ void PostgreCache<PostgreCachePolicy>::Update(
         if (old_size > 0) {
             const auto elapsed_copy = scope.ElapsedTotal(std::string{pg_cache::detail::kCopyStage});
             if (elapsed_copy > pg_cache::detail::kCpuRelaxThreshold) {
-                cpu_relax_iterations_copy_ = static_cast<std::size_t>(
-                    static_cast<double>(old_size) / (elapsed_copy / pg_cache::detail::kCpuRelaxInterval)
-                );
-                LOG_TRACE() << "Elapsed time for copying " << kName << " " << elapsed_copy.count() << " for " << changes
-                            << " data items is over threshold. Will relax CPU every " << cpu_relax_iterations_parse_
-                            << " iterations";
+                cpu_relax_iterations_copy_ = static_cast<
+                    std::size_t>(static_cast<double>(old_size) / (elapsed_copy / pg_cache::detail::kCpuRelaxInterval));
+                LOG_TRACE()
+                    << "Elapsed time for copying " << kName << " " << elapsed_copy.count() << " for " << changes
+                    << " data items is over threshold. Will relax CPU every " << cpu_relax_iterations_parse_
+                    << " iterations";
             }
         }
     }
@@ -629,12 +710,12 @@ void PostgreCache<PostgreCachePolicy>::Update(
     if (changes > 0) {
         const auto elapsed_parse = scope.ElapsedTotal(std::string{pg_cache::detail::kParseStage});
         if (elapsed_parse > pg_cache::detail::kCpuRelaxThreshold) {
-            cpu_relax_iterations_parse_ = static_cast<std::size_t>(
-                static_cast<double>(changes) / (elapsed_parse / pg_cache::detail::kCpuRelaxInterval)
-            );
-            LOG_TRACE() << "Elapsed time for parsing " << kName << " " << elapsed_parse.count() << " for " << changes
-                        << " data items is over threshold. Will relax CPU every " << cpu_relax_iterations_parse_
-                        << " iterations";
+            cpu_relax_iterations_parse_ = static_cast<
+                std::size_t>(static_cast<double>(changes) / (elapsed_parse / pg_cache::detail::kCpuRelaxInterval));
+            LOG_TRACE()
+                << "Elapsed time for parsing " << kName << " " << elapsed_parse.count() << " for " << changes
+                << " data items is over threshold. Will relax CPU every " << cpu_relax_iterations_parse_
+                << " iterations";
         }
     }
     if (changes > 0 || type == cache::UpdateType::kFull) {
@@ -666,19 +747,22 @@ void PostgreCache<PostgreCachePolicy>::CacheResults(
         try {
             using pg_cache::detail::CacheInsertOrAssign;
             CacheInsertOrAssign(
-                *data_cache, pg_cache::detail::ExtractValue<PostgreCachePolicy>(*p), PostgreCachePolicy::kKeyMember
+                *data_cache,
+                pg_cache::detail::ExtractValue<PostgreCachePolicy>(*p),
+                PostgreCachePolicy::kKeyMember
             );
         } catch (const std::exception& e) {
             stats_scope.IncreaseDocumentsParseFailures(1);
-            LOG_ERROR() << "Error parsing data row in cache '" << kName << "' to '"
-                        << compiler::GetTypeName<ValueType>() << "': " << e.what();
+            LOG_ERROR()
+                << "Error parsing data row in cache '" << kName << "' to '" << compiler::GetTypeName<ValueType>()
+                << "': " << e.what();
         }
     }
 }
 
 template <typename PostgreCachePolicy>
-typename PostgreCache<PostgreCachePolicy>::CachedData
-PostgreCache<PostgreCachePolicy>::GetDataSnapshot(cache::UpdateType type, tracing::ScopeTime& scope) {
+typename PostgreCache<PostgreCachePolicy>::CachedData PostgreCache<
+    PostgreCachePolicy>::GetDataSnapshot(cache::UpdateType type, tracing::ScopeTime& scope) {
     if (type == cache::UpdateType::kIncremental) {
         auto data = this->Get();
         if (data) {

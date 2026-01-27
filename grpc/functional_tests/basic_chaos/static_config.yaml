@@ -9,40 +9,54 @@ components_manager:
                     file_path: '@stderr'
                     level: debug
                     overflow_behavior: discard
+                grpc-access-tskv:
+                    file_path: $access-tskv-log-path
+                    level: info
+                    overflow_behavior: discard
 
         # gRPC server and service
         grpc-server:
             port: 8091
             service-defaults:
                 task-processor: main-task-processor
-                middlewares:
-                  - grpc-server-logging
-                  - grpc-server-baggage
-                  - grpc-server-congestion-control
-# /// [Sample grpc server logging middleware component config]
+
+        # /// [grpc server access log]
+        grpc-server-access-log:
+            access-tskv-logger: grpc-access-tskv
+            # /// [grpc server access log]
+
+            # /// [Sample grpc server logging middleware component config]
         grpc-server-logging:
-            msg-size-log-limit: 10
-# /// [Sample grpc server logging middleware component config]
+            msg-log-level: info
+            msg-size-log-limit: 512
+            # /// [Sample grpc server logging middleware component config]
 
-# /// [Sample grpc server deadline propagation middleware component config]
+            # /// [Sample grpc server deadline propagation middleware component config]
         grpc-server-deadline-propagation:
-            # Nothing
-# /// [Sample grpc server deadline propagation middleware component config]
+        # Nothing
+        # /// [Sample grpc server deadline propagation middleware component config]
 
-# /// [Sample grpc server baggage middleware component config]
+        # /// [Sample grpc server baggage middleware component config]
         grpc-server-baggage:
-            # Nothing
-# /// [Sample grpc server baggage middleware component config]
+        # Nothing
+        # /// [Sample grpc server baggage middleware component config]
 
-# /// [Sample grpc server congestion control middleware component config]
+        # /// [Sample grpc server congestion control middleware component config]
         grpc-server-congestion-control:
-            # Nothing
-# /// [Sample grpc server congestion control middleware component config]
+        # Nothing
+        # /// [Sample grpc server congestion control middleware component config]
 
-# /// [Sample grpc server field-mask middleware component config]
-        grpc-server-field-mask:
-            metadata-field-name: field-mask
-# /// [Sample grpc server field-mask middleware component config]
+        grpc-client-origin:
+            user-agent: basic-chaos-service
+
+        grpc-client-middlewares-pipeline:
+        grpc-server-middlewares-pipeline:
+            middlewares:
+                grpc-server-headers-propagator:
+                    enabled: false
+                grpc-server-deadline-propagation:
+                    enabled: false
+
         greeter-service:
             greeting-prefix: Hello
 
@@ -51,8 +65,8 @@ components_manager:
             blocking-task-processor: grpc-blocking-task-processor
         grpc-client-factory:
             middlewares:
-              - grpc-client-logging
-              - grpc-client-baggage
+                grpc-client-deadline-propagation:
+                    enabled: false
             channel-args: {}
         greeter-client:
             endpoint: '[::]:8081'
@@ -78,6 +92,7 @@ components_manager:
             task_processor: main-task-processor
 
         http-client:
+        http-client-core:
             fs-task-processor: main-task-processor
         dns-client:
             fs-task-processor: fs-task-processor
@@ -92,22 +107,21 @@ components_manager:
             testpoint-timeout: 10s
             throttling_enabled: false
 
-# /// [Sample grpc client logging middleware component config]
+        # /// [Sample grpc client logging middleware component config]
         grpc-client-logging:
-            log-level: debug
+            msg-log-level: info
             msg-size-log-limit: 512
-# /// [Sample grpc client logging middleware component config]
+            # /// [Sample grpc client logging middleware component config]
 
-# /// [Sample grpc client deadline propagation middleware component config]        
+            # /// [Sample grpc client deadline propagation middleware component config]
         grpc-client-deadline-propagation:
-            # Nothing
-# /// [Sample grpc client deadline propagation middleware component config]
+        # Nothing
+        # /// [Sample grpc client deadline propagation middleware component config]
 
-# /// [Sample grpc client baggage middleware component config]
+        # /// [Sample grpc client baggage middleware component config]
         grpc-client-baggage:
-            # Nothing
-# /// [Sample grpc client baggage middleware component config]
-
+        # Nothing
+    # /// [Sample grpc client baggage middleware component config]
 
     default_task_processor: main-task-processor
 
@@ -115,7 +129,7 @@ components_manager:
         grpc-blocking-task-processor:  # For blocking gRPC channel creation
             thread_name: grpc-worker
             worker_threads: 2
-        main-task-processor:           # For non-blocking operations
+        main-task-processor:  # For non-blocking operations
             worker_threads: 4
-        fs-task-processor:             # For blocking filesystem operations
+        fs-task-processor:  # For blocking filesystem operations
             worker_threads: 2

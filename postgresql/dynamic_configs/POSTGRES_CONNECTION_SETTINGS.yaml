@@ -1,0 +1,82 @@
+default: {}
+description: |
+    Dynamic config that controls settings for newly created connections of
+    PostgreSQL driver.
+
+    Dictionary keys can be either the value of `name_alias` static configuration option of the PostgreSQL component
+    (**not database name!**) or `__default__`. The latter configuration is applied for every non-matching
+    PostgreSQL component of the service.
+
+    Take note that it overrides the static configuration values of the service!
+schema:
+    type: object
+    example: |
+        {
+            "__default__": {
+                "persistent-prepared-statements": true,
+                "user-types-enabled": true,
+                "check-user-types": false,
+                "max-prepared-cache-size": 5000,
+                "ignore-unused-query-params": false,
+                "recent-errors-threshold": 2
+            }
+        }
+    properties:
+        __default__:
+            $ref: "#/definitions/ConnectionSettings"
+    additionalProperties:
+        $ref: "#/definitions/ConnectionSettings"
+    definitions:
+        ConnectionSettings:
+            type: object
+            additionalProperties: false
+            properties:
+                persistent-prepared-statements:
+                    type: boolean
+                    default: true
+                    description: Cache prepared statements or not.
+                user-types-enabled:
+                    type: boolean
+                    default: true
+                    description: Allows usage of user-defined types.
+                check-user-types:
+                    type: boolean
+                    default: false
+                    description: Check on startup that all user types have been loaded.
+                max-prepared-cache-size:
+                    type: integer
+                    minimum: 1
+                    default: 5000
+                    x-usrv-cpp-type: std::size_t
+                    description: Prepared statements cache size limit.
+                recent-errors-threshold:
+                    type: integer
+                    minimum: 1
+                    description: The limit for failed connection attempts in a 15-second
+                        period. If this limit is exceeded, the framework stops creating
+                        new connections until the number of errors does not drop down.
+                ignore-unused-query-params:
+                    type: boolean
+                    default: false
+                    description: Disable check for not-NULL query params that are
+                        not used in query.
+                max-ttl-sec:
+                    type: integer
+                    minimum: 1
+                    x-usrv-cpp-type: std::chrono::seconds
+                    description: The maximum lifetime of the connection (in seconds)
+                        after which it will be closed. The actual lifetime will be
+                        chosen randomly within range [max-ttl/2, max-ttl]. By default,
+                        connections live forever.
+                discard-all-on-connect:
+                    type: boolean
+                    default: true
+                    description: Execute DISCARD ALL query after establishing a new
+                        connection, which may be useful when using a connection pooler
+                        in session mode.
+                deadline-propagation-enabled:
+                    type: boolean
+                    default: true
+                    description: Whether statement timeout is affected by deadline
+                        propagation
+

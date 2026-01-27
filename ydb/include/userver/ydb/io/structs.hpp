@@ -20,6 +20,7 @@
 
 #include <userver/ydb/exceptions.hpp>
 #include <userver/ydb/impl/cast.hpp>
+#include <userver/ydb/io/generic_optional.hpp>
 #include <userver/ydb/io/traits.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -85,7 +86,7 @@ StructMemberNames(CustomMemberName (&&)[N]) -> StructMemberNames<N>;
 /// For extra fields on C++ side, parsing throws ydb::ParseError.
 /// For extra fields on YDB side, parsing throws ydb::ParseError.
 template <typename T>
-constexpr auto kStructMemberNames = impl::DetectStructMemberNames<T>();
+inline constexpr auto kStructMemberNames = impl::DetectStructMemberNames<T>();
 
 namespace impl {
 
@@ -198,6 +199,12 @@ struct ValueTraits<T, std::enable_if_t<!std::is_same_v<decltype(kStructMemberNam
     }
 };
 
+template <typename T>
+struct ValueTraits<
+    std::optional<T>,
+    std::enable_if_t<!std::is_same_v<decltype(kStructMemberNames<T>), const impl::NotStruct>>>
+    : impl::GenericOptionalValueTraits<T> {};
+
 namespace impl {
 
 template <typename T>
@@ -222,7 +229,8 @@ struct StructRowParser final {
         UASSERT(columns_count >= kFieldsCount);
         if (columns_count != kFieldsCount) {
             throw ParseError(fmt::format(
-                "Unexpected extra columns while parsing row to '{}' struct type", compiler::GetTypeName<T>()
+                "Unexpected extra columns while parsing row to '{}' struct type",
+                compiler::GetTypeName<T>()
             ));
         }
 
@@ -234,11 +242,11 @@ struct StructRowParser final {
     }
 
     template <std::size_t... Indices>
-    static T
-    ParseRowImpl(NYdb::TResultSetParser& parser, const std::unique_ptr<std::size_t[]>& cpp_to_ydb_mapping, std::index_sequence<Indices...>) {
+    static T ParseRowImpl(NYdb::TResultSetParser& parser, const std::unique_ptr<std::size_t[]>& cpp_to_ydb_mapping, std::index_sequence<Indices...>) {
         return T{
             Parse<boost::pfr::tuple_element_t<Indices, T>>(
-                parser.ColumnParser(cpp_to_ydb_mapping[Indices]), ParseContext{/*column_name=*/kFieldNames[Indices]}
+                parser.ColumnParser(cpp_to_ydb_mapping[Indices]),
+                ParseContext{/*column_name=*/kFieldNames[Indices]}
             )...,
         };
     }

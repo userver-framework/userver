@@ -4,15 +4,15 @@
 /// @brief Utilities for visiting the fields of protobufs
 
 #include <mutex>
-#include <shared_mutex>
 #include <string_view>
 #include <vector>
 
 #include <google/protobuf/message.h>
 
+#include <userver/engine/shared_mutex.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/function_ref.hpp>
-#include <userver/utils/impl/internal_tag.hpp>
+#include <userver/utils/impl/internal_tag_fwd.hpp>
 #include <userver/utils/span.hpp>
 
 namespace google::protobuf {
@@ -28,8 +28,8 @@ namespace ugrpc {
 
 using MessageVisitCallback = utils::function_ref<void(google::protobuf::Message&)>;
 
-using FieldVisitCallback =
-    utils::function_ref<void(google::protobuf::Message&, const google::protobuf::FieldDescriptor&)>;
+using FieldVisitCallback = utils::function_ref<
+    void(google::protobuf::Message&, const google::protobuf::FieldDescriptor&)>;
 
 /// @brief Execute a callback for all non-empty fields of the message.
 void VisitFields(google::protobuf::Message& message, FieldVisitCallback callback);
@@ -61,8 +61,10 @@ DescriptorList GetNestedMessageDescriptors(const google::protobuf::Descriptor& d
 const google::protobuf::Descriptor* FindGeneratedMessage(std::string_view name);
 
 /// @brief Find the field of a generated type by name.
-const google::protobuf::FieldDescriptor*
-FindField(const google::protobuf::Descriptor* descriptor, std::string_view field);
+const google::protobuf::FieldDescriptor* FindField(
+    const google::protobuf::Descriptor* descriptor,
+    std::string_view field
+);
 
 /// @brief Base class for @ref BaseVisitor.
 /// Constructs and manages the descriptor graph to collect the data about the messages
@@ -99,7 +101,7 @@ public:
 
     /// @brief Efficiently checks if the message contains any selected structures.
     ///
-    /// You may want to call this before @ref Visit and @ref VisitRecursive
+    /// You may want to call this before @ref BaseVisitor::Visit and @ref BaseVisitor::VisitRecursive
     /// to avoid a copy of the message beforehand if you require one.
     bool ContainsSelected(const google::protobuf::Descriptor* descriptor);
 
@@ -116,30 +118,30 @@ public:
     using FieldDescriptorSet = std::unordered_set<const google::protobuf::FieldDescriptor*>;
 
     /// Only for internal use.
-    const Dependencies& GetFieldsWithSelectedChildren(utils::impl::InternalTag) const {
-        return fields_with_selected_children_;
-    }
+    const Dependencies& GetFieldsWithSelectedChildren(utils::impl::InternalTag) const;
 
     /// Only for internal use.
-    const Dependencies& GetReverseEdges(utils::impl::InternalTag) const { return reverse_edges_; }
+    const Dependencies& GetReverseEdges(utils::impl::InternalTag) const;
 
     /// Only for internal use.
-    const DescriptorSet& GetPropagated(utils::impl::InternalTag) const { return propagated_; }
+    const DescriptorSet& GetPropagated(utils::impl::InternalTag) const;
 
     /// Only for internal use.
-    const DescriptorSet& GetCompiled(utils::impl::InternalTag) const { return compiled_; }
+    const DescriptorSet& GetCompiled(utils::impl::InternalTag) const;
 
 protected:
-    explicit VisitorCompiler(LockBehavior lock_behavior) : lock_behavior_(lock_behavior) {}
+    explicit VisitorCompiler(LockBehavior lock_behavior)
+        : lock_behavior_(lock_behavior)
+    {}
 
     // Disallow destruction via pointer to base
     ~VisitorCompiler() = default;
 
     /// @brief Lock the visitor for read
-    std::shared_lock<std::shared_mutex> LockRead();
+    std::shared_lock<engine::SharedMutex> LockRead();
 
     /// @brief Lock the visitor for write
-    std::unique_lock<std::shared_mutex> LockWrite();
+    std::unique_lock<engine::SharedMutex> LockWrite();
 
     const Dependencies& GetFieldsWithSelectedChildren() const { return fields_with_selected_children_; }
     /// @endcond
@@ -157,7 +159,7 @@ private:
     /// @brief Propagate the selection information upwards
     void PropagateSelected(const google::protobuf::Descriptor* descriptor);
 
-    std::shared_mutex mutex_;
+    engine::SharedMutex mutex_;
     const LockBehavior lock_behavior_;
 
     Dependencies fields_with_selected_children_;
@@ -179,7 +181,7 @@ public:
         // Compile if not yet compiled
         Compile(message.GetDescriptor());
 
-        std::shared_lock read_lock = LockRead();
+        const std::shared_lock read_lock = LockRead();
         DoVisit(message, callback);
     }
 
@@ -192,12 +194,14 @@ public:
         Compile(message.GetDescriptor());
 
         constexpr int kMaxRecursionLimit = 100;
-        std::shared_lock read_lock = LockRead();
+        const std::shared_lock read_lock = LockRead();
         VisitRecursiveImpl(message, callback, kMaxRecursionLimit);
     }
 
 protected:
-    explicit BaseVisitor(LockBehavior lock_behavior) : VisitorCompiler(lock_behavior) {}
+    explicit BaseVisitor(LockBehavior lock_behavior)
+        : VisitorCompiler(lock_behavior)
+    {}
 
     // Disallow destruction via pointer to base
     ~BaseVisitor() = default;
@@ -215,7 +219,9 @@ private:
 
         // Recurse into nested messages
         const auto it = GetFieldsWithSelectedChildren().find(message.GetDescriptor());
-        if (it == GetFieldsWithSelectedChildren().end()) return;
+        if (it == GetFieldsWithSelectedChildren().end()) {
+            return;
+        }
 
         const FieldDescriptorSet& fields = it->second;
         for (const google::protobuf::FieldDescriptor* field : fields) {
@@ -237,9 +243,10 @@ private:
 ///
 /// @warning You should not construct this at runtime as it performs significant
 /// computations in the constructor to precompile the visitors.
-/// You should create this ones at start-up.
+/// You should create these at start-up.
 ///
-/// Example usage: @snippet grpc/src/ugrpc/impl/protobuf_utils.cpp
+/// Example usage:
+/// @snippet grpc/tests/protobuf_visit_test.cpp fields visitor
 class FieldsVisitor final : public BaseVisitor<FieldVisitCallback> {
 public:
     using Selector = utils::function_ref<bool(const google::protobuf::FieldDescriptor& field)>;
@@ -266,7 +273,7 @@ public:
 
     /// @cond
     /// Only for internal use.
-    const Dependencies& GetSelectedFields(utils::impl::InternalTag) const { return selected_fields_; }
+    const Dependencies& GetSelectedFields(utils::impl::InternalTag) const;
     /// @endcond
 
 private:
@@ -319,7 +326,7 @@ public:
 
     /// @cond
     /// Only for internal use.
-    const DescriptorSet& GetSelectedMessages(utils::impl::InternalTag) const { return selected_messages_; }
+    const DescriptorSet& GetSelectedMessages(utils::impl::InternalTag) const;
     /// @endcond
 
 private:

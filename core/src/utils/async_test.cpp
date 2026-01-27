@@ -100,7 +100,9 @@ UTEST(UtilsAsync, AsyncBackground) {
     EXPECT_EQ(async_request_processor.WaitAndGetAggregate(), 10);
 }
 
-AsyncRequestProcessor::AsyncRequestProcessor() : task_processor_(engine::current_task::GetTaskProcessor()) {}
+AsyncRequestProcessor::AsyncRequestProcessor()
+    : task_processor_(engine::current_task::GetTaskProcessor())
+{}
 
 /// [AsyncBackground FooAsync]
 void AsyncRequestProcessor::FooAsync(Request&& request) {

@@ -2,8 +2,8 @@
 
 #include <stdexcept>
 
-#include <userver/utils/datetime.hpp>
 #include <userver/utils/mock_now.hpp>
+#include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -35,13 +35,16 @@ TokenBucket::TokenBucket() noexcept
     static_assert(decltype(TokenBucket::last_update_)::is_always_lock_free);
 }
 
-TokenBucket::TokenBucket(size_t max_size, RefillPolicy policy) : TokenBucket() {
+TokenBucket::TokenBucket(size_t max_size, RefillPolicy policy)
+    : TokenBucket()
+{
     SetMaxSize(max_size);
     SetRefillPolicy(policy);
 }
 
 TokenBucket::TokenBucket(size_t max_size, Duration single_token_update_interval)
-    : TokenBucket(max_size, RefillPolicy{1, single_token_update_interval}) {}
+    : TokenBucket(max_size, RefillPolicy{1, single_token_update_interval})
+{}
 
 TokenBucket TokenBucket::MakeUnbounded() noexcept { return TokenBucket{-1UL, kInstantRefillPolicy}; }
 
@@ -110,6 +113,7 @@ bool TokenBucket::Obtain() { return ObtainAll(1); }
 bool TokenBucket::ObtainAll(size_t count) {
     if (max_size_ < count) {
         // not satisfiable
+        obtain_failed_.Add(statistics::Rate{count});
         return false;
     }
 
@@ -122,24 +126,30 @@ bool TokenBucket::ObtainAll(size_t count) {
 
     auto expected = tokens_.load();
     do {
-        if (expected < count) return false;
+        if (expected < count) {
+            obtain_failed_.Add(statistics::Rate{count});
+            return false;
+        }
     } while (!tokens_.compare_exchange_strong(expected, expected - count));
 
     return true;
 }
 
 double TokenBucket::GetRatePs(Duration update_interval) {
-    if (update_interval.count())
+    if (update_interval.count()) {
         return 1.0 / update_interval.count() / Duration::period::num * Duration::period::den;
-    else
+    } else {
         return 0;
+    }
 }
 
 void TokenBucket::Update() {
     const auto max_size = max_size_.load();
     const auto token_update_amount = token_refill_amount_.load();
     const auto token_update_interval = token_refill_interval_.load();
-    if (max_size == 0 || token_update_amount == 0 || token_update_interval.count() == 0) return;
+    if (max_size == 0 || token_update_amount == 0 || token_update_interval.count() == 0) {
+        return;
+    }
 
     const auto update_tp = last_update_.load();
     const auto now = utils::datetime::MockSteadyNow();
@@ -147,10 +157,14 @@ void TokenBucket::Update() {
         last_update_ = now;  // overflow
         return;
     }
-    if (now == update_tp) return;
+    if (now == update_tp) {
+        return;
+    }
 
     auto update_ticks = (now - update_tp) / token_update_interval;
-    if (update_ticks == 0) return;
+    if (update_ticks == 0) {
+        return;
+    }
 
     const auto tokens = tokens_.load();
 
@@ -175,6 +189,12 @@ void TokenBucket::Update() {
         // Someone has updated the counter just now.
         // Do not retry as there is no token updates yet.
     }
+}
+
+void DumpMetric(statistics::Writer& writer, const TokenBucket& bucket) {
+    const static std::string kObtainFailed = "obtain_failed";
+
+    writer[kObtainFailed] = bucket.obtain_failed_.Load();
 }
 
 }  // namespace utils

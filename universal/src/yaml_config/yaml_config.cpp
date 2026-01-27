@@ -7,6 +7,7 @@
 #include <userver/formats/json/value.hpp>
 #include <userver/formats/json/value_builder.hpp>
 #include <userver/formats/yaml/serialize.hpp>
+#include <userver/formats/yaml/value_builder.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/string_to_duration.hpp>
 #include <userver/utils/text_light.hpp>
@@ -18,7 +19,9 @@ namespace yaml_config {
 namespace {
 
 bool IsSubstitution(const formats::yaml::Value& value) {
-    if (!value.IsString()) return false;
+    if (!value.IsString()) {
+        return false;
+    }
     const auto& str = value.As<std::string>();
     return !str.empty() && str.front() == '$';
 }
@@ -33,8 +36,8 @@ std::string GetFallbackName(std::string_view str) { return std::string{str} + "#
 
 template <typename Field>
 YamlConfig MakeMissingConfig(const YamlConfig& config, Field field) {
-    const auto path = formats::common::MakeChildPath(config.GetPath(), field);
-    return {formats::yaml::Value()[path], {}};
+    auto path = formats::common::MakeChildPath(config.GetPath(), field);
+    return {formats::yaml::Value()[std::move(path)], {}};
 }
 
 void AssertEnvMode(YamlConfig::Mode mode) {
@@ -66,7 +69,8 @@ std::optional<formats::yaml::Value> GetFromEnvImpl(const formats::yaml::Value& e
     // NOLINTNEXTLINE(concurrency-mt-unsafe)
     const auto* env_value = std::getenv(env_name.As<std::string>().c_str());
     if (env_value) {
-        return formats::yaml::FromString(env_value);
+        formats::yaml::ValueBuilder builder{env_value};
+        return builder.ExtractValue();
     }
 
     return {};
@@ -94,6 +98,7 @@ std::optional<YamlConfig> GetSharpCommandValue(
     const auto env_name = yaml[GetEnvName(key)];
     auto env_value = GetFromEnvImpl(env_name, mode);
     if (env_value) {
+        env_value = env_value->CloneWithReplacedPath(yaml[key].GetPath());
         // Strip substitutions off to disallow nested substitutions
         return YamlConfig{std::move(*env_value), {}, YamlConfig::Mode::kSecure};
     }
@@ -101,6 +106,7 @@ std::optional<YamlConfig> GetSharpCommandValue(
     const auto file_name = yaml[GetFileName(key)];
     auto file_value = GetFromFileImpl(file_name, mode);
     if (file_value) {
+        file_value = file_value->CloneWithReplacedPath(yaml[key].GetPath());
         // Strip substitutions off to disallow nested substitutions
         return YamlConfig{std::move(*file_value), {}, YamlConfig::Mode::kSecure};
     }
@@ -110,7 +116,11 @@ std::optional<YamlConfig> GetSharpCommandValue(
         if (yaml.HasMember(fallback_name)) {
             LOG_INFO() << "using fallback value for '" << key << '\'';
             // Strip substitutions off to disallow nested substitutions
-            return YamlConfig{yaml[fallback_name], {}, YamlConfig::Mode::kSecure};
+            return YamlConfig{
+                yaml[fallback_name].CloneWithReplacedPath(yaml[key].GetPath()),
+                {},
+                YamlConfig::Mode::kSecure
+            };
         }
     }
 
@@ -130,6 +140,7 @@ std::optional<YamlConfig> GetYamlConfig(
         const auto var_name = GetSubstitutionVarName(value);
         auto var_data = config_vars[var_name];
         if (!var_data.IsMissing()) {
+            var_data = var_data.CloneWithReplacedPath(value.GetPath());
             // Strip substitutions off to disallow nested substitutions
             return YamlConfig{std::move(var_data), {}, YamlConfig::Mode::kSecure};
         }
@@ -141,7 +152,11 @@ std::optional<YamlConfig> GetYamlConfig(
             /*met_substitution*/ false
         );
         if (res) {
-            return std::move(*res);
+            return YamlConfig{
+                res->GetRawYamlWithoutConfigVars().CloneWithReplacedPath(value.GetPath()),
+                {},
+                YamlConfig::Mode::kSecure,
+            };
         }
     }
 
@@ -160,13 +175,15 @@ std::optional<YamlConfig> GetYamlConfig(
 }  // namespace
 
 YamlConfig::YamlConfig(formats::yaml::Value yaml, formats::yaml::Value config_vars, Mode mode)
-    : yaml_(std::move(yaml)), config_vars_(std::move(config_vars)), mode_(mode) {}
-
-const formats::yaml::Value& YamlConfig::Yaml() const { return yaml_; }
+    : yaml_(std::move(yaml)),
+      config_vars_(std::move(config_vars)),
+      mode_(mode)
+{}
 
 YamlConfig YamlConfig::operator[](std::string_view key) const {
     if (utils::text::EndsWith(key, "#env") || utils::text::EndsWith(key, "#file") ||
-        utils::text::EndsWith(key, "#fallback")) {
+        utils::text::EndsWith(key, "#fallback"))
+    {
         UASSERT_MSG(false, "Do not use names ending on #env, #file and #fallback");
         return MakeMissingConfig(*this, key);
     }
@@ -187,6 +204,7 @@ YamlConfig YamlConfig::operator[](size_t index) const {
 
         auto var_data = config_vars_[var_name];
         if (!var_data.IsMissing()) {
+            var_data = var_data.CloneWithReplacedPath(value.GetPath());
             // Strip substitutions off to disallow nested substitutions
             return YamlConfig{std::move(var_data), {}, Mode::kSecure};
         }
@@ -198,11 +216,15 @@ YamlConfig YamlConfig::operator[](size_t index) const {
             /*met_substitution*/ false
         );
         if (res) {
-            return std::move(*res);
+            return YamlConfig{
+                res->GetRawYamlWithoutConfigVars().CloneWithReplacedPath(value.GetPath()),
+                {},
+                YamlConfig::Mode::kSecure,
+            };
         }
 
         // Avoid parsing $substitution as a string
-        return MakeMissingConfig(*this, index);
+        return MakeMissingConfig(*this, index)[value.As<std::string>()];
     }
 
     return {std::move(value), config_vars_};
@@ -252,6 +274,10 @@ YamlConfig::const_iterator YamlConfig::begin() const { return const_iterator{*th
 
 YamlConfig::const_iterator YamlConfig::end() const { return const_iterator{*this, yaml_.end()}; }
 
+formats::yaml::Value YamlConfig::GetRawYamlWithoutConfigVars() const { return yaml_; }
+
+formats::yaml::Value YamlConfig::GetRawConfigVars() const { return config_vars_; }
+
 bool Parse(const YamlConfig& value, formats::parse::To<bool>) { return value.yaml_.As<bool>(); }
 
 int64_t Parse(const YamlConfig& value, formats::parse::To<int64_t>) { return value.yaml_.As<int64_t>(); }
@@ -289,6 +315,27 @@ std::chrono::milliseconds Parse(const YamlConfig& value, formats::parse::To<std:
 
 formats::json::Value Parse(const YamlConfig& value, formats::parse::To<formats::json::Value>) {
     return formats::common::PerformMinimalFormatConversion<formats::json::Value>(value);
+}
+
+formats::yaml::Value Parse(const YamlConfig& value, formats::parse::To<formats::yaml::Value>) {
+    if (value.IsMissing()) {
+        throw YamlConfig::Exception(fmt::format(
+            "Failed to convert value at '{}' from {} to {}: missing value",
+            value.GetPath(),
+            compiler::GetTypeName<YamlConfig>(),
+            compiler::GetTypeName<formats::yaml::Value>()
+        ));
+    }
+    formats::common::ConversionStack<YamlConfig, formats::yaml::ValueBuilder> conversion_stack{value};
+    while (!conversion_stack.IsParsed()) {
+        const auto& from = conversion_stack.GetNextFrom();
+        if (from.IsArray() || from.IsObject()) {
+            conversion_stack.EnterItems();
+        } else {
+            conversion_stack.SetCurrent(from.yaml_);
+        }
+    }
+    return std::move(conversion_stack).GetParsed().ExtractValue();
 }
 
 }  // namespace yaml_config

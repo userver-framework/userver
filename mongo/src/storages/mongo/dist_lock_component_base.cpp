@@ -8,6 +8,10 @@
 #include <userver/utils/statistics/writer.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
+#ifndef ARCADIA_ROOT
+#include "generated/src/storages/mongo/dist_lock_component_base.yaml.hpp"  // Y_IGNORE
+#endif
+
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::mongo {
@@ -25,7 +29,9 @@ DistLockComponentBase::DistLockComponentBase(
     auto optional_restart_delay = component_config["restart-delay"].As<std::optional<std::chrono::milliseconds>>();
     const auto prolong_ratio = 10;
 
-    if (mongo_timeout >= ttl / 2) throw std::runtime_error("mongo-timeout must be less than lock-ttl / 2");
+    if (mongo_timeout >= ttl / 2) {
+        throw std::runtime_error("mongo-timeout must be less than lock-ttl / 2");
+    }
 
     dist_lock::DistLockSettings settings{ttl / prolong_ratio, ttl / prolong_ratio, ttl, mongo_timeout};
     if (optional_restart_delay) {
@@ -51,8 +57,8 @@ DistLockComponentBase::DistLockComponentBase(
         task_processor
     );
 
-    auto& statistics_storage = component_context.FindComponent<components::StatisticsStorage>();
-    statistics_holder_ = statistics_storage.GetStorage().RegisterWriter(
+    utils::statistics::RegisterWriterScope(
+        component_context,
         "distlock",
         [this](utils::statistics::Writer& writer) { writer = *worker_; },
         {{"distlock_name", component_config.Name()}}
@@ -68,47 +74,22 @@ DistLockComponentBase::DistLockComponentBase(
     }
 }
 
-DistLockComponentBase::~DistLockComponentBase() { statistics_holder_.Unregister(); }
-
 dist_lock::DistLockedWorker& DistLockComponentBase::GetWorker() { return *worker_; }
 
-bool DistLockComponentBase::OwnsLock() const noexcept { return worker_->OwnsLock(); }
+bool DistLockComponentBase::OwnsLock() const noexcept { return worker_->OwnsLock() || testsuite_enabled_; }
 
 void DistLockComponentBase::Start() {
-    if (testsuite_enabled_) return;
+    if (testsuite_enabled_) {
+        return;
+    }
     worker_->Start();
 }
 
 void DistLockComponentBase::Stop() { worker_->Stop(); }
 
 yaml_config::Schema DistLockComponentBase::GetStaticConfigSchema() {
-    return yaml_config::MergeSchemas<components::ComponentBase>(R"(
-type: object
-description: Base class for mongo-based distlock worker components
-additionalProperties: false
-properties:
-    lockname:
-        type: string
-        description: name of the lock
-    lock-ttl:
-        type: string
-        description: TTL of the lock; must be at least as long as the duration between subsequent cancellation checks, otherwise brain split is possible
-    mongo-timeout:
-        type: string
-        description: timeout, must be at least 2*lock-ttl
-    restart-delay:
-        type: string
-        description: how much time to wait after failed task restart
-        defaultDescription: 100ms
-    task-processor:
-        type: string
-        description: the name of the TaskProcessor for running DoWork
-        defaultDescription: main-task-processor
-    testsuite-support:
-        type: boolean
-        description: Enable testsuite support
-        defaultDescription: false
-)");
+    return yaml_config::MergeSchemasFromResource<
+        components::ComponentBase>("src/storages/mongo/dist_lock_component_base.yaml");
 }
 
 }  // namespace storages::mongo

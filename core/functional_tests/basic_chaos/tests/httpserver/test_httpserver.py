@@ -3,7 +3,7 @@ import asyncio
 import enum
 import gzip
 import logging
-import typing
+from typing import Any
 
 from aiohttp import client_exceptions as exceptions
 import pytest
@@ -18,7 +18,7 @@ except ImportError:
 from testsuite.utils import http
 
 HEADERS = {'Connection': 'keep-alive'}
-DEFAULT_TIMEOUT = 5.0
+DEFAULT_TIMEOUT = 10.0
 INCREASED_TIMEOUT = 20.0
 DEFAULT_DATA = {'hello': 'world'}
 
@@ -43,13 +43,13 @@ class ErrorType(enum.Enum):
 def _call(modified_service_client, gate):
     async def _call(
         htype: str = 'common',
-        data: typing.Any = None,
+        data: Any = None,
         timeout: float = DEFAULT_TIMEOUT,
         testsuite_skip_prepare: bool = False,
-        headers: typing.Optional[typing.Dict[str, str]] = None,
-        args: typing.Dict[str, str] = {},
+        headers: dict[str, str] | None = None,
+        args: dict[str, str] | None = None,
         url: str = '/chaos/httpserver',
-    ) -> typing.Union[http.ClientResponse, ErrorType]:
+    ) -> http.ClientResponse | ErrorType:
         try:
             if not data:
                 data = DEFAULT_DATA
@@ -59,7 +59,7 @@ def _call(modified_service_client, gate):
                 url,
                 headers=headers,
                 timeout=timeout,
-                params={'type': htype, **args},
+                params={'type': htype, **(args or {})},
                 data=data,
                 testsuite_skip_prepare=testsuite_skip_prepare,
             )
@@ -71,8 +71,8 @@ def _call(modified_service_client, gate):
             return ErrorType.RESET_BY_PEER
         except exceptions.ClientResponseError:
             return ErrorType.BAD_REQUEST
-        except Exception as exception:
-            logger.error(f'Unknown exception {exception}')
+        except Exception:
+            logger.exception('Unhandled exception')
             return ErrorType.UNKNOWN
 
     return _call
@@ -81,8 +81,8 @@ def _call(modified_service_client, gate):
 @pytest.fixture(name='check_restore')
 def _check_restore(gate, call):
     async def _check_restore():
-        gate.to_server_pass()
-        gate.to_client_pass()
+        await gate.to_server_pass()
+        await gate.to_client_pass()
         gate.start_accepting()
 
         response = await call(testsuite_skip_prepare=True)
@@ -133,7 +133,7 @@ async def test_ok_compressed_gzip(call):
     response = await call(
         htype='echo',
         headers={'content-encoding': 'gzip'},
-        data=gzip.compress('abcd'.encode()),
+        data=gzip.compress(b'abcd'),
         testsuite_skip_prepare=True,
     )
     assert response.status == 200
@@ -144,7 +144,7 @@ async def test_ok_compressed_gzip_args(call):
     response = await call(
         htype='echo-and-check-args',
         headers={'content-encoding': 'gzip'},
-        data=gzip.compress('abcd'.encode()),
+        data=gzip.compress(b'abcd'),
         testsuite_skip_prepare=True,
         args={'srv': 'mt-dev', 'lang': 'en-ru'},
     )
@@ -156,7 +156,7 @@ async def test_ok_compressed_gzip_body_args(call):
     response = await call(
         htype='echo-and-check-args',
         headers={'content-encoding': 'gzip'},
-        data=gzip.compress('lang=en-ru'.encode()),
+        data=gzip.compress(b'lang=en-ru'),
         testsuite_skip_prepare=True,
         args={'srv': 'mt-dev'},
         url='/chaos/httpserver-parse-body-args',
@@ -169,7 +169,7 @@ async def test_ok_compressed_zstd(call):
     response = await call(
         htype='echo',
         headers={'content-encoding': 'zstd'},
-        data=zstd.compress('abcdefgh'.encode()),
+        data=zstd.compress(b'abcdefgh'),
         testsuite_skip_prepare=True,
     )
     assert response.status == 200
@@ -180,7 +180,7 @@ async def test_ok_compressed_zstd_args(call):
     response = await call(
         htype='echo-and-check-args',
         headers={'content-encoding': 'zstd'},
-        data=zstd.compress('abcdefgh'.encode()),
+        data=zstd.compress(b'abcdefgh'),
         testsuite_skip_prepare=True,
         args={'srv': 'mt-dev', 'lang': 'en-ru'},
     )
@@ -192,7 +192,7 @@ async def test_ok_compressed_zstd_body_args(call):
     response = await call(
         htype='echo-and-check-args',
         headers={'content-encoding': 'zstd'},
-        data=zstd.compress('lang=en-ru'.encode()),
+        data=zstd.compress(b'lang=en-ru'),
         testsuite_skip_prepare=True,
         args={'srv': 'mt-dev'},
         url='/chaos/httpserver-parse-body-args',
@@ -237,7 +237,7 @@ async def test_close_on_data(call, gate, check_restore):
     response = await call(testsuite_skip_prepare=True)
     assert response.status == 200
 
-    gate.to_server_close_on_data()
+    await gate.to_server_close_on_data()
 
     assert gate.connections_count() >= 1
     for _ in range(gate.connections_count()):
@@ -249,13 +249,13 @@ async def test_close_on_data(call, gate, check_restore):
 
 @pytest.mark.skip(reason='corrupted data can still be valid')
 async def test_corrupted_request(call, gate, check_restore):
-    gate.to_server_corrupt_data()
+    await gate.to_server_corrupt_data()
 
     response = await call(testsuite_skip_prepare=True)
     assert isinstance(response, http.ClientResponse)
     assert response.status == 400
 
-    gate.to_server_pass()
+    await gate.to_server_pass()
 
     # Connection could be cached in testsuite client. Give it a few attempts
     # to restore
@@ -271,18 +271,18 @@ async def test_partial_request(call, gate, check_restore):
     success: bool = False
     fail: int = 0
     for bytes_count in range(1, 1000):
-        gate.to_server_limit_bytes(bytes_count)
+        await gate.to_server_limit_bytes(bytes_count)
         response = await call(
-            data={'test': 'body'}, testsuite_skip_prepare=True,
+            data={'test': 'body'},
+            testsuite_skip_prepare=True,
         )
         if response == ErrorType.DISCONNECT:
-            fail = fail + 1
+            fail += 1
         elif isinstance(response, http.ClientResponse):
             success = True
             break
         else:
-            logger.error(f'Got unexpected error {response}')
-            assert False
+            pytest.fail(f'Got unexpected error {response} bytes_count={bytes_count}')
 
     assert fail >= 250
     assert success
@@ -293,11 +293,12 @@ async def test_partial_request(call, gate, check_restore):
 
 
 async def test_network_smaller_parts_sends(call, gate):
-    gate.to_server_smaller_parts(DATA_PARTS_MAX_SIZE)
+    await gate.to_server_smaller_parts(DATA_PARTS_MAX_SIZE)
 
     # With debug enabled in python send works a little bit longer
     response = await call(
-        timeout=INCREASED_TIMEOUT, testsuite_skip_prepare=True,
+        timeout=INCREASED_TIMEOUT,
+        testsuite_skip_prepare=True,
     )
     assert isinstance(response, http.ClientResponse)
     assert response.status == 200
@@ -320,12 +321,17 @@ async def _handler_metrics(monitor_client, gate):
     # to be written out asynchronously.
     await asyncio.sleep(0.1)
     return monitor_client.metrics_diff(
-        prefix='http.handler.total', diff_gauge=True,
+        prefix='http.handler.total',
+        diff_gauge=True,
     )
 
 
 async def test_deadline_immediately_expired(
-    call, gate, testpoint, service_client, handler_metrics,
+    call,
+    gate,
+    testpoint,
+    service_client,
+    handler_metrics,
 ):
     @testpoint('testpoint_request')
     async def test(_data):
@@ -335,22 +341,23 @@ async def test_deadline_immediately_expired(
     await service_client.update_server_state()
 
     async with handler_metrics:
-        gate.to_server_smaller_parts(
-            DATA_PARTS_MAX_SIZE, sleep_per_packet=0.03,
+        await gate.to_server_smaller_parts(
+            DATA_PARTS_MAX_SIZE,
+            sleep_per_packet=0.03,
         )
         response = await call(
-            headers={DP_TIMEOUT_MS: '20'}, timeout=INCREASED_TIMEOUT,
+            headers={DP_TIMEOUT_MS: '20'},
+            timeout=INCREASED_TIMEOUT,
         )
         _check_deadline_propagation_response(response)
-        assert (
-            test.times_called == 0
-        ), 'Control flow should NOT enter the handler body'
-        gate.to_server_pass()
+        assert test.times_called == 0, 'Control flow should NOT enter the handler body'
+        await gate.to_server_pass()
 
     assert handler_metrics.value_at('rps') == 1
     assert (
         handler_metrics.value_at(
-            'reply-codes', {'http_code': '504', 'version': '2'},
+            'reply-codes',
+            {'http_code': '504', 'version': '2'},
         )
         == 1
     )

@@ -43,10 +43,11 @@ struct HasFixedDimensionsImpl {
 }  // namespace detail
 
 template <typename T>
-struct HasFixedDimensions : std::conditional_t<
-                                kIsFixedSizeContainer<T>,
-                                detail::HasFixedDimensionsImpl<T>,
-                                BoolConstant<!kIsCompatibleContainer<T>>>::type {};
+struct HasFixedDimensions
+    : std::conditional_t<
+          kIsFixedSizeContainer<T>,
+          detail::HasFixedDimensionsImpl<T>,
+          BoolConstant<!kIsCompatibleContainer<T>>>::type {};
 
 template <typename Container>
 inline constexpr bool kHasFixedDimensions = HasFixedDimensions<Container>::value;
@@ -94,10 +95,11 @@ constexpr std::array<T, sizeof...(Values)> MakeArray(const std::integer_sequence
 }
 
 template <typename T>
-struct FixedDimensions : std::conditional_t<
-                             kIsFixedSizeContainer<T>,
-                             detail::FixedDimensionsImpl<T>,
-                             detail::FixedDimensionsNonContainer<T>> {};
+struct FixedDimensions
+    : std::conditional_t<
+          kIsFixedSizeContainer<T>,
+          detail::FixedDimensionsImpl<T>,
+          detail::FixedDimensionsNonContainer<T>> {};
 
 }  // namespace traits
 
@@ -107,7 +109,7 @@ template <typename Element>
 inline bool ForceInitElementMapping() {
     // composite types can be parsed without an explicit mapping
     if constexpr (io::traits::kIsMappedToPg<Element> || !io::traits::kIsCompositeType<Element>) {
-        return ForceReference(CppToPg<Element>::init_);
+        return ForceReference(CppToPg<Element>::init);
     } else {
         return true;
     }
@@ -205,8 +207,8 @@ private:
         return std::inserter(value, value.end());
     }
 
-    template <typename T, std::size_t n>
-    auto GetInserter(std::array<T, n>& array) {
+    template <typename T, std::size_t N>
+    auto GetInserter(std::array<T, N>& array) {
         return array.begin();
     }
 
@@ -351,7 +353,7 @@ private:
         if (*dim != element.size()) {
             throw InvalidDimensions{*dim, element.size()};
         }
-        for (bool sub : element) {
+        for (const bool sub : element) {
             io::WriteRawBinary(types, buffer, sub);
         }
     }
@@ -474,7 +476,10 @@ public:
     using const_iterator_type = typename Container::const_iterator;
 
     ContainerChunk(const_iterator_type begin, std::size_t size)
-        : begin_{begin}, end_{std::next(begin, size)}, size_{size} {}
+        : begin_{begin},
+          end_{std::next(begin, size)},
+          size_{size}
+    {}
 
     std::size_t size() const { return size_; }
     bool empty() const { return begin_ == end_; }
@@ -509,7 +514,8 @@ public:
             : container_{container},
               chunk_size_{chunk_elements},
               tail_size_{static_cast<size_t>(std::distance(current, container_.end()))},
-              current_{current} {}
+              current_{current}
+        {}
 
         bool operator==(const ChunkIterator& rhs) const { return current_ == rhs.current_; }
 
@@ -542,7 +548,9 @@ public:
     };
 
     ContainerSplitter(const Container& container, std::size_t chunk_elements)
-        : container_{container}, chunk_size_{chunk_elements} {}
+        : container_{container},
+          chunk_size_{chunk_elements}
+    {}
 
     std::size_t size() const {
         auto sz = container_.size();
@@ -605,12 +613,40 @@ private:
     }
 };
 
+template <
+    typename Container,
+    typename Seq = std::make_index_sequence<boost::pfr::tuple_size_v<typename Container::value_type>>>
+struct ColumnsDecomposerHelper;
+
+template <typename Container, std::size_t... Indexes>
+struct ColumnsDecomposerHelper<Container, std::index_sequence<Indexes...>> final {
+    static_assert(sizeof...(Indexes) > 0, "The aggregate having 0 fields doesn't make sense");
+
+    template <std::size_t Index>
+    struct FieldProjection {
+        using RowType = typename Container::value_type;
+        using FieldType = boost::pfr::tuple_element_t<Index, typename Container::value_type>;
+
+        const FieldType& operator()(const RowType& value) const noexcept { return boost::pfr::get<Index>(value); }
+    };
+
+    template <std::size_t Index>
+    using FieldView = USERVER_NAMESPACE::utils::impl::ProjectingView<const Container, FieldProjection<Index>>;
+
+    template <typename Fn>
+    static auto Perform(const Container& container, const Fn& fn) {
+        return fn(FieldView<Indexes>{container}...);
+    }
+};
+
 /// Utility class to iterate chunks of input array in column-wise way
 template <typename Container>
 class ContainerByColumnsSplitter final {
 public:
     ContainerByColumnsSplitter(const Container& container, std::size_t chunk_elements)
-        : container_{container}, chunk_elements_{chunk_elements} {}
+        : container_{container},
+          chunk_elements_{chunk_elements}
+    {}
 
     template <typename Fn>
     void Perform(const Fn& fn) {
@@ -620,6 +656,22 @@ public:
 private:
     const Container& container_;
     const std::size_t chunk_elements_;
+};
+
+template <typename Container>
+class ContainerByColumnsDecomposer final {
+public:
+    ContainerByColumnsDecomposer(const Container& container)
+        : container_(container)
+    {}
+
+    template <typename Fn>
+    auto Perform(const Fn& fn) {
+        return ColumnsDecomposerHelper<Container>::Perform(container_, fn);
+    }
+
+private:
+    const Container& container_;
 };
 
 }  // namespace detail
@@ -639,9 +691,16 @@ detail::ContainerSplitter<Container> SplitContainer(const Container& container, 
 }
 
 template <typename Container>
-detail::ContainerByColumnsSplitter<Container>
-SplitContainerByColumns(const Container& container, std::size_t chunk_elements) {
+detail::ContainerByColumnsSplitter<Container> SplitContainerByColumns(
+    const Container& container,
+    std::size_t chunk_elements
+) {
     return {container, chunk_elements};
+}
+
+template <typename Container>
+detail::ContainerByColumnsDecomposer<Container> DecomposeContainerByColumns(const Container& container) {
+    return {container};
 }
 
 }  // namespace storages::postgres::io

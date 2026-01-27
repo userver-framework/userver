@@ -14,34 +14,29 @@ USERVER_NAMESPACE_BEGIN
 
 namespace congestion_control {
 
-// clang-format off
+class Controller;
 
 /// @ingroup userver_components
 ///
 /// @brief Component to limit too active requests, also known as CC.
 ///
-/// ## Dynamic config
+/// ## congestion_control::Component Dynamic config
 /// * @ref USERVER_RPS_CCONTROL
 /// * @ref USERVER_RPS_CCONTROL_ENABLED
 ///
-/// ## Static options:
-/// Name | Description | Default value
-/// ---- | ----------- | -------------
-/// fake-mode | if set, an actual throttling is skipped, but FSM is still working and producing informational logs | false
-/// min-cpu | force fake-mode if the current cpu number is less than the specified value | 1
-/// only-rtc | if set to true and hostinfo::IsInRtc() returns false then forces the fake-mode | true
-/// status-code | HTTP status code for ratelimited responses | 429
+/// ## Static options of congestion_control::Component :
+/// @include{doc} scripts/docs/en/components_schema/core/src/congestion_control/component.md
+///
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
 ///
 /// ## Static configuration example:
 ///
 /// @snippet components/common_server_component_list_test.cpp  Sample congestion control component config
-
-// clang-format on
-
 class Component final : public components::ComponentBase {
 public:
     /// @ingroup userver_component_names
-    /// @brief The default name of congestion_control::Component component
+    /// @brief The default name of @ref congestion_control::Component component
     static constexpr std::string_view kName = "congestion-control";
 
     Component(const components::ComponentConfig&, const components::ComponentContext&);
@@ -52,6 +47,7 @@ public:
 
     server::congestion_control::Limiter& GetServerLimiter();
     server::congestion_control::Sensor& GetServerSensor();
+    const congestion_control::Controller& GetServerController() const;
 
 private:
     void OnConfigUpdate(const dynamic_config::Snapshot& cfg);

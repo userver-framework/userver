@@ -29,7 +29,9 @@ SecdistConfig::SecdistConfig() = default;
 
 SecdistConfig::SecdistConfig(const SecdistConfig::Settings& settings) {
     // if we don't want to read secdist, then we don't need to initialize
-    if (GetConfigFactories().empty()) return;
+    if (GetConfigFactories().empty()) {
+        return;
+    }
 
     Init(settings.provider->Get());
 }
@@ -73,10 +75,11 @@ public:
 
     bool IsPeriodicUpdateEnabled() const;
 
-    void EnsurePeriodicUpdateEnabled(const std::string& msg) const;
-
-    concurrent::AsyncEventSubscriberScope
-    DoUpdateAndListen(concurrent::FunctionId id, std::string_view name, EventSource::Function&& func);
+    concurrent::AsyncEventSubscriberScope DoUpdateAndListen(
+        concurrent::FunctionId id,
+        std::string_view name,
+        EventSource::Function&& func
+    );
 
 private:
     void StartUpdateTask();
@@ -90,10 +93,15 @@ private:
 };
 
 Secdist::Impl::Impl(SecdistConfig::Settings settings)
-    : settings_(std::move(settings)), channel_("secdist", [this](auto& function) {
-          const auto snapshot = dynamic_secdist_config_.Read();
-          function(*snapshot);
-      }) {
+    : settings_(std::move(settings)),
+      channel_(
+          "secdist",
+          [this](const auto& function) {
+              const auto snapshot = dynamic_secdist_config_.Read();
+              function(*snapshot);
+          }
+      )
+{
     dynamic_secdist_config_.Assign(storages::secdist::SecdistConfig(settings_));
 
     if (IsPeriodicUpdateEnabled()) {
@@ -104,7 +112,9 @@ Secdist::Impl::Impl(SecdistConfig::Settings settings)
 }
 
 Secdist::Impl::~Impl() {
-    if (IsPeriodicUpdateEnabled()) update_task_.Stop();
+    if (IsPeriodicUpdateEnabled()) {
+        update_task_.Stop();
+    }
 }
 
 const SecdistConfig& Secdist::Impl::Get() const { return secdist_config_; }
@@ -115,20 +125,16 @@ bool Secdist::Impl::IsPeriodicUpdateEnabled() const {
     return settings_.update_period != std::chrono::milliseconds::zero();
 }
 
-concurrent::AsyncEventSubscriberScope
-Secdist::Impl::DoUpdateAndListen(concurrent::FunctionId id, std::string_view name, EventSource::Function&& func) {
-    EnsurePeriodicUpdateEnabled("Secdist update must be enabled to subscribe on it");
+concurrent::AsyncEventSubscriberScope Secdist::Impl::DoUpdateAndListen(
+    concurrent::FunctionId id,
+    std::string_view name,
+    EventSource::Function&& func
+) {
     auto func_copy = func;
     return channel_.DoUpdateAndListen(id, name, std::move(func), [&] {
         const auto snapshot = GetSnapshot();
         func_copy(*snapshot);
     });
-}
-
-void Secdist::Impl::EnsurePeriodicUpdateEnabled(const std::string& msg) const {
-    if (!IsPeriodicUpdateEnabled()) {
-        throw SecdistError(msg);
-    }
 }
 
 void Secdist::Impl::StartUpdateTask() {
@@ -145,7 +151,9 @@ void Secdist::Impl::StartUpdateTask() {
     });
 }
 
-Secdist::Secdist(SecdistConfig::Settings settings) : impl_(std::move(settings)) {}
+Secdist::Secdist(SecdistConfig::Settings settings)
+    : impl_(std::move(settings))
+{}
 
 Secdist::~Secdist() = default;
 
@@ -155,8 +163,11 @@ rcu::ReadablePtr<SecdistConfig> Secdist::GetSnapshot() const { return impl_->Get
 
 bool Secdist::IsPeriodicUpdateEnabled() const { return impl_->IsPeriodicUpdateEnabled(); }
 
-concurrent::AsyncEventSubscriberScope
-Secdist::DoUpdateAndListen(concurrent::FunctionId id, std::string_view name, EventSource::Function&& func) {
+concurrent::AsyncEventSubscriberScope Secdist::DoUpdateAndListen(
+    concurrent::FunctionId id,
+    std::string_view name,
+    EventSource::Function&& func
+) {
     return impl_->DoUpdateAndListen(id, name, std::move(func));
 }
 

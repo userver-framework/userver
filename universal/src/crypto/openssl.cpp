@@ -45,10 +45,11 @@ void LockingCallback(int mode, int n, const char*, int) noexcept {
         abort();
     }
 
-    if (mode & CRYPTO_LOCK)
+    if (mode & CRYPTO_LOCK) {
         mutexes[n].lock();
-    else
+    } else {
         mutexes[n].unlock();
+    }
 }
 #endif
 
@@ -84,7 +85,7 @@ Openssl::Openssl() noexcept {
     TrySetDefaultEngineRdrand();
 }
 
-void Openssl::Init() noexcept { [[maybe_unused]] static Openssl lock; }
+void Openssl::Init() noexcept { [[maybe_unused]] static const Openssl kLock; }
 
 }  // namespace crypto
 

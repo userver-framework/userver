@@ -46,6 +46,28 @@ public:
     );
 
     MOCK_METHOD(
+        std::optional<std::string>,
+        GetPartialObject,
+        (std::string_view path,
+         std::string_view range,
+         std::optional<std::string> version,
+         HeadersDataResponse* headers_data,
+         const HeaderDataRequest& headers_request),
+        (const, override)
+    );
+
+    MOCK_METHOD(
+        std::string,
+        TryGetPartialObject,
+        (std::string_view path,
+         std::string_view range,
+         std::optional<std::string> version,
+         HeadersDataResponse* headers_data,
+         const HeaderDataRequest& headers_request),
+        (const, override)
+    );
+
+    MOCK_METHOD(
         std::string,
         CopyObject,
         (std::string_view key_from, std::string_view bucket_to, std::string_view key_to, const std::optional<Meta>& meta
@@ -102,6 +124,48 @@ public:
     MOCK_METHOD(std::vector<ObjectMeta>, ListBucketContentsParsed, (std::string_view path_prefix), (const, override));
 
     MOCK_METHOD(std::vector<std::string>, ListBucketDirectories, (std::string_view path_prefix), (const, override));
+
+    MOCK_METHOD(
+        multipart_upload::InitiateMultipartUploadResult,
+        CreateMultipartUpload,
+        (const multipart_upload::CreateMultipartUploadRequest& request),
+        (const, override)
+    );
+
+    MOCK_METHOD(
+        multipart_upload::UploadPartResult,
+        UploadPart,
+        (const multipart_upload::UploadPartRequest& request),
+        (const, override)
+    );
+
+    MOCK_METHOD(
+        multipart_upload::CompleteMultipartUploadResult,
+        CompleteMultipartUpload,
+        (const multipart_upload::CompleteMultipartUploadRequest& request),
+        (const, override)
+    );
+
+    MOCK_METHOD(
+        void,
+        AbortMultipartUpload,
+        (const multipart_upload::AbortMultipartUploadRequest& request),
+        (const, override)
+    );
+
+    MOCK_METHOD(
+        multipart_upload::ListPartsResult,
+        ListParts,
+        (const multipart_upload::ListPartsRequest& request),
+        (const, override)
+    );
+
+    MOCK_METHOD(
+        multipart_upload::ListMultipartUploadsResult,
+        ListMultipartUploads,
+        (const multipart_upload::ListMultipartUploadsRequest& request),
+        (const, override)
+    );
 
     MOCK_METHOD(void, UpdateConfig, (ConnectionCfg && config), (override));
 

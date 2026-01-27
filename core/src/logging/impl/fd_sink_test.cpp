@@ -50,7 +50,7 @@ UTEST(FdSink, PipeSinkLogStringView) {
         auto sink = logging::impl::FdSink{fs::blocking::FileDescriptor::AdoptFd(fd_pipe.writer.Release())};
 
         const char* message = "BIG MESSAGE NO DATA";
-        std::string_view message_str{message, 11};
+        const std::string_view message_str{message, 11};
         EXPECT_NO_THROW(sink.Log({message_str, logging::Level::kWarning}));
     }
     read_task.Get();

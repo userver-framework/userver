@@ -3,13 +3,12 @@
 #include <atomic>
 #include <chrono>
 #include <string>
-#include <unordered_set>
 
 #include <fmt/format.h>
 
 #include <boost/filesystem/operations.hpp>
 
-#include <userver/alerts/component.hpp>
+#include <userver/alerts/source.hpp>
 #include <userver/compiler/demangle.hpp>
 #include <userver/components/component.hpp>
 #include <userver/components/statistics_storage.hpp>
@@ -17,6 +16,7 @@
 #include <userver/dynamic_config/storage_mock.hpp>
 #include <userver/engine/condition_variable.hpp>
 #include <userver/engine/mutex.hpp>
+#include <userver/formats/json/serialize.hpp>
 #include <userver/fs/read.hpp>
 #include <userver/fs/write.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
@@ -29,6 +29,10 @@
 
 #include <dynamic_config/storage_data.hpp>
 
+#ifndef ARCADIA_ROOT
+#include "generated/src/dynamic_config/storage/component.yaml.hpp"  // Y_IGNORE
+#endif
+
 USERVER_NAMESPACE_BEGIN
 
 namespace components {
@@ -37,6 +41,8 @@ namespace {
 
 constexpr std::chrono::seconds kWaitInterval(5);
 
+const alerts::Source kConfigParseErrorAlert("config_parse_error");
+
 struct DynamicConfigStatistics final {
     std::atomic<bool> was_last_parse_successful{true};
     utils::statistics::RateCounter parse_errors;
@@ -44,7 +50,9 @@ struct DynamicConfigStatistics final {
 
 bool AreCacheDumpsEnabled(const components::ComponentContext& context) {
     auto* const testsuite_support = context.FindComponentOptional<components::TestsuiteSupport>();
-    if (!testsuite_support) return true;
+    if (!testsuite_support) {
+        return true;
+    }
     return testsuite_support->GetDumpControl().GetPeriodicsMode() == testsuite::DumpControl::PeriodicsMode::kEnabled;
 }
 
@@ -56,6 +64,8 @@ public:
 
     dynamic_config::Source GetSource();
     auto& GetChannel() { return cache_.GetChannel(); }
+
+    auto& GetDiffChannel() { return cache_.GetDiffChannel(); }
 
     const dynamic_config::DocsMap& GetDefaultDocsMap() const;
     bool AreUpdatesEnabled() const;
@@ -81,9 +91,9 @@ private:
 
     void WriteStatistics(utils::statistics::Writer& writer) const;
 
-    alerts::Storage& alert_storage_;
+    utils::statistics::MetricsStoragePtr metrics_storage_;
     const std::string fs_cache_path_;
-    engine::TaskProcessor* fs_task_processor_;
+    engine::TaskProcessor& fs_task_processor_;
 
     dynamic_config::impl::StorageData cache_;
     std::string fs_loading_error_msg_;
@@ -97,30 +107,21 @@ private:
     mutable engine::Mutex loaded_mutex_;
     mutable engine::ConditionVariable loaded_cv_;
     DynamicConfigStatistics stats_;
-
-    // Must be the last field
-    utils::statistics::Entry statistics_holder_;
 };
 
 DynamicConfig::Impl::Impl(const ComponentConfig& config, const ComponentContext& context)
-    : alert_storage_(context.FindComponent<alerts::StorageComponent>().GetStorage()),
+    : metrics_storage_(context.FindComponent<components::StatisticsStorage>().GetMetricsStorage()),
       fs_cache_path_(config["fs-cache-path"].As<std::string>({})),
-      fs_task_processor_([&] {
-          const auto name = config["fs-task-processor"].As<std::optional<std::string>>();
-          return name ? &context.GetTaskProcessor(*name) : nullptr;
-      }()),
+      fs_task_processor_(GetFsTaskProcessor(config, context)),
       updates_enabled_(config["updates-enabled"].As<bool>(false)),
-      fs_write_enabled_(AreCacheDumpsEnabled(context)) {
-    if (!fs_cache_path_.empty() && !fs_task_processor_) {
-        throw std::logic_error("fs-task-processor must be set if there is fs-cache-path");
-    }
-
+      fs_write_enabled_(AreCacheDumpsEnabled(context))
+{
     ReadFallback(config);
     ReadFsCache();
 
-    statistics_holder_ = context.FindComponent<components::StatisticsStorage>().GetStorage().RegisterWriter(
-        "dynamic-config", [this](auto& writer) { WriteStatistics(writer); }
-    );
+    utils::statistics::RegisterWriterScope(context, "dynamic-config", [this](auto& writer) {
+        WriteStatistics(writer);
+    });
 }
 
 dynamic_config::Source DynamicConfig::Impl::GetSource() {
@@ -133,7 +134,9 @@ const dynamic_config::DocsMap& DynamicConfig::Impl::GetDefaultDocsMap() const { 
 bool DynamicConfig::Impl::AreUpdatesEnabled() const { return updates_enabled_; }
 
 void DynamicConfig::Impl::WaitUntilLoaded() {
-    if (Has()) return;
+    if (Has()) {
+        return;
+    }
 
     LOG_TRACE() << "Wait started";
     std::unique_lock lock(loaded_mutex_);
@@ -141,7 +144,9 @@ void DynamicConfig::Impl::WaitUntilLoaded() {
         const auto res = loaded_cv_.WaitFor(lock, kWaitInterval);
         if (res == engine::CvStatus::kTimeout) {
             std::string_view fs_note = " Last error while reading config from FS: ";
-            if (fs_loading_error_msg_.empty()) fs_note = {};
+            if (fs_loading_error_msg_.empty()) {
+                fs_note = {};
+            }
             LOG_WARNING() << "Waiting for the config load." << fs_note << fs_loading_error_msg_;
         }
     }
@@ -179,14 +184,12 @@ dynamic_config::impl::SnapshotData DynamicConfig::Impl::ParseConfig(const dynami
     try {
         dynamic_config::impl::SnapshotData config(value, {});
         stats_.was_last_parse_successful = true;
-        alert_storage_.StopAlertNow("config_parse_error");
+        kConfigParseErrorAlert.StopAlertNow(*metrics_storage_);
         return config;
     } catch (const dynamic_config::ConfigParseError& e) {
         stats_.was_last_parse_successful = false;
         ++stats_.parse_errors;
-        alert_storage_.FireAlert(
-            "config_parse_error", std::string("Failed to parse dynamic config. ") + e.what(), alerts::kInfinity
-        );
+        kConfigParseErrorAlert.FireAlert(*metrics_storage_);
         throw;
     }
 }
@@ -195,8 +198,9 @@ void DynamicConfig::Impl::DoSetConfig(const dynamic_config::DocsMap& value) {
     auto config = ParseConfig(value);
 
     if (!value.GetConfigsExpectedToBeUsed(utils::impl::InternalTag{}).empty()) {
-        LOG_INFO() << "Some configs expected to be used are actually not needed: "
-                   << value.GetConfigsExpectedToBeUsed(utils::impl::InternalTag{});
+        LOG_INFO()
+            << "Some configs expected to be used are actually not needed: "
+            << value.GetConfigsExpectedToBeUsed(utils::impl::InternalTag{});
     }
 
     auto after_assign_hook = [&] {
@@ -221,10 +225,13 @@ ComponentHealth DynamicConfig::Impl::GetComponentHealth() const {
 }
 
 void DynamicConfig::Impl::OnLoadingCancelled() {
-    if (Has()) return;
+    if (Has()) {
+        return;
+    }
 
-    LOG_WARNING() << "Components load was cancelled before DynamicConfig was "
-                     "loaded. Please see previous logs for the failure reason";
+    LOG_WARNING()
+        << "Components load was cancelled before DynamicConfig was "
+           "loaded. Please see previous logs for the failure reason";
     {
         const std::lock_guard lock(loaded_mutex_);
         config_load_cancelled_ = true;
@@ -249,16 +256,9 @@ void DynamicConfig::Impl::ReadFallback(const ComponentConfig& config) {
     }
 
     if (default_overrides_path) {
-        if (!fs_task_processor_) {
-            throw std::runtime_error(
-                "dynamic-config.defaults-path option requires specifying "
-                "dynamic-config.fs-task-processor"
-            );
-        }
-
         const tracing::Span span("dynamic_config_fallback_read");
         try {
-            const auto fallback_contents = fs::ReadFileContents(*fs_task_processor_, *default_overrides_path);
+            const auto fallback_contents = fs::ReadFileContents(fs_task_processor_, *default_overrides_path);
             fallback_config_.Parse(fallback_contents, true);
         } catch (const std::exception& ex) {
             throw std::runtime_error(
@@ -275,17 +275,20 @@ void DynamicConfig::Impl::ReadFallback(const ComponentConfig& config) {
 }
 
 void DynamicConfig::Impl::ReadFsCache() {
-    if (fs_cache_path_.empty()) return;
+    if (fs_cache_path_.empty()) {
+        return;
+    }
 
     const tracing::Span span("dynamic_config_fs_cache_read");
     try {
-        if (!fs::FileExists(*fs_task_processor_, fs_cache_path_)) {
+        if (!fs::FileExists(fs_task_processor_, fs_cache_path_)) {
             fs_loading_error_msg_ = "No cache file found";
-            LOG_WARNING() << "No filesystem cache for dynamic config found, waiting "
-                             "until the updater fetches fresh configs";
+            LOG_WARNING()
+                << "No filesystem cache for dynamic config found, waiting "
+                   "until the updater fetches fresh configs";
             return;
         }
-        const auto contents = fs::ReadFileContents(*fs_task_processor_, fs_cache_path_);
+        const auto contents = fs::ReadFileContents(fs_task_processor_, fs_cache_path_);
 
         dynamic_config::DocsMap docs_map;
         docs_map.Parse(contents, /*empty_ok=*/true);
@@ -306,15 +309,17 @@ void DynamicConfig::Impl::ReadFsCache() {
 }
 
 void DynamicConfig::Impl::WriteFsCache(const dynamic_config::DocsMap& docs_map) {
-    if (fs_cache_path_.empty() || !fs_write_enabled_) return;
+    if (fs_cache_path_.empty() || !fs_write_enabled_) {
+        return;
+    }
 
     const tracing::Span span("dynamic_config_fs_cache_write");
     try {
         const auto contents = formats::json::ToString(docs_map.AsJson());
         using perms = boost::filesystem::perms;
         auto mode = perms::owner_read | perms::owner_write | perms::group_read | perms::others_read;
-        fs::CreateDirectories(*fs_task_processor_, boost::filesystem::path(fs_cache_path_).parent_path().string());
-        fs::RewriteFileContentsAtomically(*fs_task_processor_, fs_cache_path_, contents, mode);
+        fs::CreateDirectories(fs_task_processor_, boost::filesystem::path(fs_cache_path_).parent_path().string());
+        fs::RewriteFileContentsAtomically(fs_task_processor_, fs_cache_path_, contents, mode);
 
         LOG_INFO() << "Successfully wrote dynamic_config from FS cache";
     } catch (const std::exception& e) {
@@ -330,13 +335,19 @@ void DynamicConfig::Impl::WriteStatistics(utils::statistics::Writer& writer) con
 DynamicConfig::NoblockSubscriber::NoblockSubscriber(DynamicConfig& config_component) noexcept
     : config_component_(config_component) {}
 
-concurrent::AsyncEventSource<const dynamic_config::Snapshot&>& DynamicConfig::NoblockSubscriber::GetEventSource(
-) noexcept {
+concurrent::AsyncEventSource<const dynamic_config::Snapshot&>& DynamicConfig::NoblockSubscriber::GetEventSource()
+    noexcept {
     return config_component_.impl_->GetChannel();
 }
 
+concurrent::AsyncEventSource<const dynamic_config::Diff&>& DynamicConfig::NoblockSubscriber::GetDiffSource() noexcept {
+    return config_component_.impl_->GetDiffChannel();
+}
+
 DynamicConfig::DynamicConfig(const ComponentConfig& config, const ComponentContext& context)
-    : DynamicConfigUpdatesSinkBase(config, context), impl_(std::make_unique<Impl>(config, context)) {
+    : DynamicConfigUpdatesSinkBase(config, context),
+      impl_(std::make_unique<Impl>(config, context))
+{
     if (!impl_->AreUpdatesEnabled()) {
         dynamic_config::impl::RegisterUpdater(*this, kName, kName);
         SetConfig(kName, impl_->GetDefaultDocsMap());
@@ -366,35 +377,19 @@ void DynamicConfig::NotifyLoadingFailed(std::string_view updater, std::string_vi
 }
 
 yaml_config::Schema DynamicConfig::GetStaticConfigSchema() {
-    return yaml_config::MergeSchemas<ComponentBase>(R"(
-type: object
-description: Component that stores the runtime config.
-additionalProperties: false
-properties:
-    updates-enabled:
-        type: boolean
-        description: should be set to 'true' if there is an updater component
-        defaultDescription: false
-    defaults:
-        type: object
-        description: optional values for configs that override the defaults specified in dynamic_config::Key definitions
-        defaultDescription: values from dynamic_config::Key definitions are used
-        properties: {}
-        additionalProperties: true
-    defaults-path:
-        type: string
-        description: optional file with config values that override the defaults specified in dynamic_config::Key definitions
-        defaultDescription: values from dynamic_config::Key definitions are used
-    fs-cache-path:
-        type: string
-        description: path to the file to read and dump a config cache; set to empty string to disable reading and dumping configs to FS
-        defaultDescription: no fs cache
-    fs-task-processor:
-        type: string
-        description: name of the task processor to run the blocking file write operations
-        defaultDescription: required if defaults-path or fs-cache-path is specified
-)");
+    return yaml_config::MergeSchemasFromResource<ComponentBase>("src/dynamic_config/storage/component.yaml");
 }
+
+/// [LocateDependency example]
+dynamic_config::Source LocateDependency(
+    const components::WithType<dynamic_config::Source>&,
+    const components::ComponentConfig&,
+    const components::ComponentContext& context
+)
+{
+    return context.FindComponent<components::DynamicConfig>().GetSource();
+}
+/// [LocateDependency example]
 
 }  // namespace components
 

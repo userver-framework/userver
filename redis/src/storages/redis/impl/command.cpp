@@ -8,10 +8,20 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis::impl {
+
+namespace {
+std::string ToLower(std::string_view str) {
+    std::string result;
+    result.resize(str.size());
+    std::transform(str.begin(), str.end(), result.begin(), [](unsigned char c) { return std::tolower(c); });
+    return result;
+}
+
+}  // namespace
 
 Command::Command(
-    CmdArgs&& _args,
+    CmdArgs&& l_args,
     ReplyCallback callback,
     CommandControl control,
     int counter,
@@ -20,7 +30,7 @@ Command::Command(
     bool redirected,
     bool read_only
 )
-    : args(std::move(_args)),
+    : args(std::move(l_args)),
       callback(std::move(callback)),
       log_extra(PrepareLogExtra()),
       control(control),
@@ -28,32 +38,22 @@ Command::Command(
       counter(counter),
       asking(asking),
       redirected(redirected),
-      read_only(read_only) {
-    UASSERT_MSG(!args.args.empty() && !args.args.front().empty(), "Empty command make no sense");
-    if (!args.args.empty() && !args.args.front().empty()) {
-        name = args.args.front().front();
-        std::transform(name.begin(), name.end(), name.begin(), [](unsigned char c) { return std::tolower(c); });
-    }
+      read_only(read_only),
+      name(ToLower(args.GetCommandName(0)))
+{
     if constexpr (utils::impl::kEnableAssert) {
         original_span_debug = tracing::Span::CurrentSpanUnchecked();
     }
-}
-
-ReplyCallback Command::Callback() const {
-    auto self = shared_from_this();
-    return [self](const CommandPtr& cmd, ReplyPtr reply) {
-        if (self->callback) self->callback(cmd, std::move(reply));
-    };
 }
 
 logging::LogExtra Command::PrepareLogExtra() {
     const auto* span = tracing::Span::CurrentSpanUnchecked();
     if (span) {
         return {
-            {"trace_id", span->GetTraceId()},
-            {"parent_id", span->GetParentId()},
-            {"span_id", span->GetSpanId()},
-            {"link", span->GetLink()},
+            {"trace_id", std::string{span->GetTraceId()}},
+            {"parent_id", std::string{span->GetParentId()}},
+            {"span_id", std::string{span->GetSpanId()}},
+            {"link", std::string{span->GetLink()}},
         };
     } else {
         // Non-user requests (e.g. PING)
@@ -97,6 +97,6 @@ CommandPtr PrepareCommand(
     );
 }
 
-}  // namespace redis
+}  // namespace storages::redis::impl
 
 USERVER_NAMESPACE_END

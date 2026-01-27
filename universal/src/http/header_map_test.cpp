@@ -42,6 +42,93 @@ TEST(HeaderMap, Basic) {
     EXPECT_EQ(map.find(key), map.end());
 }
 
+TEST(HeaderMap, Construct) {
+    {
+        HeaderMap map{
+            {"key", "value"},
+        };
+
+        EXPECT_EQ(map.size(), 1);
+    }
+    {
+        HeaderMap map{
+            {std::string_view{"key"}, "value"},
+        };
+
+        EXPECT_EQ(map.size(), 1);
+    }
+    {
+        HeaderMap map{
+            {std::string_view{"key"}, std::string_view{"value"}},
+        };
+
+        EXPECT_EQ(map.size(), 1);
+    }
+    {
+        HeaderMap map{
+            {utils::zstring_view{"key"}, "value"},
+        };
+
+        EXPECT_EQ(map.size(), 1);
+    }
+    {
+        HeaderMap map{
+            {utils::zstring_view{"key"}, std::string_view{"value"}},
+        };
+
+        EXPECT_EQ(map.size(), 1);
+    }
+    {
+        HeaderMap map{
+            {utils::zstring_view{"key"}, utils::zstring_view{"value"}},
+        };
+
+        EXPECT_EQ(map.size(), 1);
+    }
+    {
+        HeaderMap map{
+            {std::string{"key"}, "value"},
+        };
+
+        EXPECT_EQ(map.size(), 1);
+    }
+    {
+        HeaderMap map{
+            {std::string{"key"}, std::string_view{"value"}},
+        };
+
+        EXPECT_EQ(map.size(), 1);
+    }
+    {
+        HeaderMap map{
+            {std::string{"key"}, std::string{"value"}},
+        };
+
+        EXPECT_EQ(map.size(), 1);
+    }
+    {
+        HeaderMap map{
+            {PredefinedHeader{"key_of_predefined_header"}, "value"},
+        };
+
+        EXPECT_EQ(map.size(), 1);
+    }
+    {
+        HeaderMap map{
+            {PredefinedHeader{"key_of_predefined_header"}, std::string_view{"value"}},
+        };
+
+        EXPECT_EQ(map.size(), 1);
+    }
+    {
+        HeaderMap map{
+            {PredefinedHeader{"key_of_predefined_header"}, std::string{"value"}},
+        };
+
+        EXPECT_EQ(map.size(), 1);
+    }
+}
+
 TEST(HeaderMap, Collision) {
     const auto [first_key, second_key] = []() -> std::pair<std::string, std::string> {
         const auto hasher = impl::UnsafeConstexprHasher{};
@@ -109,7 +196,9 @@ TEST(HeaderMap, CollisionsLongProbeDistance) {
         common_hash.emplace(hash);
 
         collisions_with_value.emplace_back(
-            std::piecewise_construct, std::forward_as_tuple(std::move(s)), std::forward_as_tuple(std::to_string(i))
+            std::piecewise_construct,
+            std::forward_as_tuple(std::move(s)),
+            std::forward_as_tuple(std::to_string(i))
         );
     }
 
@@ -254,7 +343,8 @@ TEST(HeaderMap, Iteration) {
     const std::array<std::pair<std::string, std::string>, 3> headers{
         std::pair<std::string, std::string>{"a", "1"},
         std::pair<std::string, std::string>{"b", "2"},
-        std::pair<std::string, std::string>{"c", "3"}};
+        std::pair<std::string, std::string>{"c", "3"}
+    };
 
     HeaderMap map{};
     for (const auto& [k, v] : headers) {
@@ -481,8 +571,7 @@ std::vector<std::string> GenerateCollisions(std::size_t count) {
     result.reserve(count);
 
     std::size_t len = 1;
-    for (; (1UL << len) < count; ++len)
-        ;
+    for (; (1UL << len) < count; ++len);
 
     for (std::size_t i = 0; i < count; ++i) {
         std::string s(len, '[');
@@ -578,7 +667,8 @@ constexpr std::string_view kDefaultHeaders[] = {
     USERVER_NAMESPACE::http::headers::kXTaxiEnvoyProxyDstVhost,
     USERVER_NAMESPACE::http::headers::kDate,
     USERVER_NAMESPACE::http::headers::kConnection,
-    USERVER_NAMESPACE::http::headers::kCookie};
+    USERVER_NAMESPACE::http::headers::kCookie
+};
 static_assert(std::size(kDefaultHeaders) == 16);
 
 constexpr std::string_view kAllUsedHeaders[] = {

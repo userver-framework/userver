@@ -3,7 +3,9 @@
 /// @file userver/baggage/fwd.hpp
 /// @brief Forward declarations of baggage and baggage helpers classes
 
+#include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace baggage {

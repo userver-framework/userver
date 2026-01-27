@@ -19,7 +19,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace curl {
 
-class string_list {
+class string_list {  // NOLINT(readability-identifier-naming)
 public:
     string_list() = default;
     string_list(const string_list&) = delete;
@@ -42,7 +42,9 @@ public:
     std::optional<std::string_view> FindIf(const Pred& pred) const {
         for (const auto& list_elem : list_elements_) {
             const auto& value = list_elem.value;
-            if (pred(value)) return value;
+            if (pred(value)) {
+                return value;
+            }
         }
         return std::nullopt;
     }

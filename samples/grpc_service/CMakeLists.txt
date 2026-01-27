@@ -2,13 +2,16 @@ cmake_minimum_required(VERSION 3.14)
 project(userver-samples-grpc_service CXX)
 
 # /// [ugrpc]
-find_package(userver COMPONENTS grpc REQUIRED)
+find_package(
+    userver
+    COMPONENTS grpc
+    REQUIRED
+)
 
-add_library(${PROJECT_NAME}_objs OBJECT
-    # Note: it's nonsense to have the same client and service in the same executable.
+add_library(
+    ${PROJECT_NAME}_objs OBJECT # Note: it's nonsense to have the same client and service in the same executable.
     # For test and demonstration purposes only.
-    src/greeter_client.cpp
-    src/greeter_service.cpp
+    src/greeter_client.cpp src/greeter_service.cpp
 )
 target_link_libraries(${PROJECT_NAME}_objs PUBLIC userver::grpc)
 target_include_directories(${PROJECT_NAME}_objs PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
@@ -24,11 +27,7 @@ target_link_libraries(${PROJECT_NAME} ${PROJECT_NAME}_objs)
 
 # /// [gtest]
 add_executable(${PROJECT_NAME}-unittest unittests/greeter_service_test.cpp)
-target_link_libraries(${PROJECT_NAME}-unittest
-    ${PROJECT_NAME}_objs
-    userver::utest
-    userver::grpc-utest
-)
+target_link_libraries(${PROJECT_NAME}-unittest ${PROJECT_NAME}_objs userver::utest userver::grpc-utest)
 add_google_tests(${PROJECT_NAME}-unittest)
 # /// [gtest]
 

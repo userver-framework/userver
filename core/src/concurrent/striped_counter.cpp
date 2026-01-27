@@ -35,9 +35,11 @@ void StripedCounter::Add(std::uintptr_t value) noexcept {
         return;
     }
 
-    const auto ret =
-        rseq_load_add_store__ptr(RSEQ_MO_RELAXED, RSEQ_PERCPU_CPU_ID, &impl_->counters[cpu_id], value, cpu_id);
-    if (rseq_likely(!ret)) return;
+    const auto
+        ret = rseq_load_add_store__ptr(RSEQ_MO_RELAXED, RSEQ_PERCPU_CPU_ID, &impl_->counters[cpu_id], value, cpu_id);
+    if (rseq_likely(!ret)) {
+        return;
+    }
 
     impl_->fallback.fetch_add(value, std::memory_order_relaxed);
 }

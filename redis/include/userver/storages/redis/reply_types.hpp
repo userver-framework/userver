@@ -1,11 +1,14 @@
 #pragma once
 
+/// @file
+/// @brief Definitions of structures representing different Redis replies.
+
 #include <string>
 #include <vector>
 
-#include <userver/storages/redis/impl/base.hpp>
-#include <userver/storages/redis/impl/reply/expire_reply.hpp>
-#include <userver/storages/redis/impl/reply/ttl_reply.hpp>
+#include <userver/storages/redis/base.hpp>
+#include <userver/storages/redis/expire_reply.hpp>
+#include <userver/storages/redis/ttl_reply.hpp>
 #include <userver/utils/void_t.hpp>
 
 #include <userver/storages/redis/key_type.hpp>
@@ -15,8 +18,6 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::redis {
-
-using ExpireReply = USERVER_NAMESPACE::redis::ExpireReply;
 
 enum class HsetReply { kCreated, kUpdated };
 
@@ -36,7 +37,11 @@ struct GeoPoint final {
     GeoPoint() = default;
 
     GeoPoint(std::string member, std::optional<double> dist, std::optional<uint64_t> hash, std::optional<Point> point)
-        : member(std::move(member)), dist(dist), hash(hash), point(point) {}
+        : member(std::move(member)),
+          dist(dist),
+          hash(hash),
+          point(point)
+    {}
 
     bool operator==(const GeoPoint& rhs) const {
         return std::tie(member, dist, hash, point) == std::tie(rhs.member, rhs.dist, rhs.hash, rhs.point);
@@ -45,12 +50,19 @@ struct GeoPoint final {
     bool operator!=(const GeoPoint& rhs) const { return !(*this == rhs); }
 };
 
+/// @brief Data type that holds `member` and `score`.
+///
+/// Sample usage:
+/// @snippet redis/src/storages/redis/client_scan_redistest.cpp  Sample Zscan usage
 struct MemberScore final {
     std::string member;
     double score{0.0};
 
     MemberScore() = default;
-    MemberScore(std::string member, double score) : member(std::move(member)), score(score) {}
+    MemberScore(std::string member, double score)
+        : member(std::move(member)),
+          score(score)
+    {}
 
     operator std::pair<std::string, double>() const& { return {member, score}; }
 
@@ -95,8 +107,6 @@ enum class SetReply { kSet, kNotSet };
 enum class StatusOk { kOk };
 
 enum class StatusPong { kPong };
-
-using TtlReply = USERVER_NAMESPACE::redis::TtlReply;
 
 }  // namespace storages::redis
 

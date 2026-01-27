@@ -6,27 +6,27 @@
 #include <userver/logging/impl/tag_writer.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/logging/logger.hpp>
+#include <userver/logging/null_logger.hpp>
 
-#include <utils/gbench_auxilary.hpp>
+#include <utils/gbench_auxiliary.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace {
 
-class NoopLogger : public logging::impl::LoggerBase {
+class PrependedTagLogger final : public logging::impl::TextLogger {
 public:
-    NoopLogger() noexcept : LoggerBase(logging::Format::kRaw) { SetLevel(logging::Level::kInfo); }
-    void Log(logging::Level, std::string_view) override {}
-    void Flush() override {}
-};
+    PrependedTagLogger() noexcept : TextLogger(logging::Format::kRaw) {
+        SetLevel(logging::Level::kInfo);
+    }
 
-class PrependedTagLogger final : public NoopLogger {
-public:
+    void Log(logging::Level, logging::impl::formatters::LoggerItemRef) override {}
+
     void PrependCommonTags(logging::impl::TagWriter writer) const override {
         writer.PutTag("aaaaaaaaaaaaaaaaaa", "value");
         writer.PutTag("bbbbbbbbbb", 42);
         writer.PutTag("ccccccccccccccccccccccc", 42.0);
-        writer.PutTag("dddddddddddddddd", std::chrono::milliseconds{42});
+        writer.PutTag("dddddddddddddddd", 42LL);
         writer.PutTag("eeeeeeeee", true);
         writer.PutTag("ffffffffffffffffffffff", "foo");
         writer.PutTag("gggggggggggggggggggg", "bar");
@@ -37,7 +37,7 @@ public:
 };
 
 class LogHelperBenchmark : public benchmark::Fixture {
-    void SetUp(const benchmark::State&) override { guard_.emplace(std::make_shared<NoopLogger>()); }
+    void SetUp(const benchmark::State&) override { guard_.emplace(logging::impl::MakeNoopLoggerForTests()); }
 
     void TearDown(const benchmark::State&) override { guard_.reset(); }
 
@@ -91,14 +91,14 @@ BENCHMARK_DEFINE_F(LogHelperBenchmark, LogCheck)(benchmark::State& state) {
 BENCHMARK_REGISTER_F(LogHelperBenchmark, LogCheck);
 
 struct StreamedStruct {
-    int64_t intVal;
-    std::string stringVal;
+    int64_t int_val;
+    std::string string_val;
 };
 
 std::ostream& operator<<(std::ostream& os, const StreamedStruct& value) {
-    std::ostream::sentry s(os);
+    const std::ostream::sentry s(os);
     if (s) {
-        os << value.intVal << " " << value.stringVal;
+        os << value.int_val << " " << value.string_val;
     }
     return os;
 }

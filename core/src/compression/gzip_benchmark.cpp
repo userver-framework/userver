@@ -15,7 +15,7 @@ std::string GenerateRandomData(std::size_t size) {
 
     std::string output;
     for (std::size_t ind = 0; ind < size; ++ind) {
-        char rand_char = 'a' + static_cast<char>(dist(random_device));
+        const char rand_char = 'a' + static_cast<char>(dist(random_device));
         output.push_back(rand_char);
     }
 
@@ -27,14 +27,14 @@ static void GzipDecompress(benchmark::State& state) {
 
     for ([[maybe_unused]] auto _ : state) {
         state.PauseTiming();
-        const auto kSize = state.range(0);
-        auto data = GenerateRandomData(kSize);
+        const auto size = state.range(0);
+        auto data = GenerateRandomData(size);
 
         namespace bio = boost::iostreams;
 
         bio::filtering_istream stream;
         stream.push(bio::gzip_compressor());
-        stream.push(bio::array_source(data.data(), kSize));
+        stream.push(bio::array_source(data.data(), size));
 
         std::string compressed;
 

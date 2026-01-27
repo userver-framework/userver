@@ -7,8 +7,12 @@
 
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/single_consumer_event.hpp>
+#include <userver/kafka/impl/consumer_params.hpp>
 #include <userver/kafka/impl/holders.hpp>
 #include <userver/kafka/message.hpp>
+#include <userver/kafka/offset_range.hpp>
+#include <userver/kafka/rebalance_types.hpp>
+#include <userver/utils/zstring_view.hpp>
 
 #include <kafka/impl/holders_aliases.hpp>
 
@@ -27,7 +31,14 @@ class ConsumerImpl final {
     using MessageBatch = std::vector<Message>;
 
 public:
-    ConsumerImpl(const std::string& name, const ConfHolder& conf, const std::vector<std::string>& topics, Stats& stats);
+    ConsumerImpl(
+        const std::string& name,
+        const ConfHolder& conf,
+        const std::vector<std::string>& topics,
+        const ConsumerExecutionParams& execution_params,
+        const std::optional<ConsumerRebalanceCallback>& rebalance_callback_opt,
+        Stats& stats
+    );
 
     const Stats& GetStats() const;
 
@@ -36,6 +47,34 @@ public:
 
     /// @brief Schedules the commitment task.
     void AsyncCommit();
+
+    /// @brief Retrieves the low and high offsets for the specified topic and partition.
+    OffsetRange GetOffsetRange(
+        utils::zstring_view topic,
+        std::uint32_t partition,
+        std::optional<std::chrono::milliseconds> timeout = std::nullopt
+    ) const;
+
+    /// @brief Retrieves the partition IDs for the specified topic.
+    std::vector<std::uint32_t> GetPartitionIds(
+        utils::zstring_view topic,
+        std::optional<std::chrono::milliseconds> timeout = std::nullopt
+    ) const;
+
+    /// @brief Seeks the partition ID for the specified \b topic to a given \b offset .
+    void Seek(
+        utils::zstring_view topic,
+        std::uint32_t partition_id,
+        std::uint64_t offset,
+        std::chrono::milliseconds timeout
+    ) const;
+
+    /// @brief Seeks the partition ID for the specified \b topic to the beginning offset .
+    void SeekToBeginning(utils::zstring_view topic, std::uint32_t partition_id, std::chrono::milliseconds timeout)
+        const;
+
+    /// @brief Seeks the partition ID for the specified \b topic to the end offset .
+    void SeekToEnd(utils::zstring_view topic, std::uint32_t partition_id, std::chrono::milliseconds timeout) const;
 
     /// @brief Effectively calls `PollMessage` until `deadline` is reached
     /// and no more than `max_batch_size` messages polled.
@@ -55,10 +94,10 @@ public:
     /// @warning May throw in testsuite because calls testpoints
     void StopConsuming();
 
-private:
     /// @brief Schedules the `topics_` subscription.
-    void StartConsuming(const std::vector<std::string>& topics);
+    void StartConsuming();
 
+private:
     /// @brief Try to poll the message until `deadline` is reached.
     /// If no message polled until the deadline, returns
     /// `std::nullopt`.
@@ -88,10 +127,24 @@ private:
 
     /// @brief Assigns (subscribes) the `partitions` list to the current
     /// consumer.
-    void AssignPartitions(const rd_kafka_topic_partition_list_s* partitions);
+    /// @return Returns true if partitions have been successfully assigned.
+    bool AssignPartitions(const rd_kafka_topic_partition_list_s* partitions);
 
     /// @brief Revokes `partitions` from the current consumer.
-    void RevokePartitions(const rd_kafka_topic_partition_list_s* partitions);
+    /// @return Returns true if partitions have been successfully revoked.
+    bool RevokePartitions(const rd_kafka_topic_partition_list_s* partitions);
+
+    /// @brief Calls user's rebalance callback if it is set.
+    void CallUserRebalanceCallback(const rd_kafka_topic_partition_list_s* partitions, RebalanceEventType event_type)
+        noexcept;
+
+    /// @brief Seeks the partition ID for the specified \b topic to a given \b offset .
+    void SeekToOffset(
+        utils::zstring_view topic,
+        std::uint32_t partition_id,
+        std::int64_t offset,
+        std::chrono::milliseconds timeout
+    ) const;
 
     /// @brief Callback which is called after succeeded/failed commit.
     /// Currently, used for logging purposes.
@@ -103,6 +156,9 @@ private:
 
 private:
     const std::string& name_;
+    const std::vector<std::string> topics_;
+    const ConsumerExecutionParams execution_params_;
+    const std::optional<ConsumerRebalanceCallback>& rebalance_callback_;
     Stats& stats_;
 
     engine::SingleConsumerEvent queue_became_non_empty_event_;

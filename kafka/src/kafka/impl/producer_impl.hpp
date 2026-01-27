@@ -7,6 +7,7 @@
 #include <librdkafka/rdkafka.h>
 
 #include <userver/kafka/impl/stats.hpp>
+#include <userver/logging/level.hpp>
 #include <userver/utils/periodic_task.hpp>
 
 #include <kafka/impl/concurrent_event_waiter.hpp>
@@ -21,17 +22,22 @@ class Configuration;
 
 class ProducerImpl final {
 public:
-    explicit ProducerImpl(Configuration&& configuration);
+    explicit ProducerImpl(
+        Configuration&& configuration,
+        const logging::Level debug_info_log_level,
+        const logging::Level operation_log_level
+    );
 
     const Stats& GetStats() const;
 
     /// @brief Send the message and waits for its delivery.
     /// While waiting handles other messages delivery reports, errors and logs.
     [[nodiscard]] DeliveryResult Send(
-        const std::string& topic_name,
+        utils::zstring_view topic_name,
         std::string_view key,
         std::string_view message,
-        std::optional<std::uint32_t> partition
+        std::optional<std::uint32_t> partition,
+        HeadersHolder headers
     ) const;
 
     /// @brief Waits until scheduled messages are delivered for
@@ -45,13 +51,14 @@ public:
     void EventCallback();
 
 private:
-    /// @brief Shedules the message delivery.
+    /// @brief Schedules the message delivery.
     /// @returns the future for delivery result, which must be awaited.
     [[nodiscard]] engine::Future<DeliveryResult> ScheduleMessageDelivery(
-        const std::string& topic_name,
+        utils::zstring_view topic_name,
         std::string_view key,
         std::string_view message,
-        std::optional<std::uint32_t> partition
+        std::optional<std::uint32_t> partition,
+        HeadersHolder headers
     ) const;
 
     /// @brief Poll a delivery or error event from producer's queue.
@@ -79,20 +86,21 @@ private:
     /// @brief Callback called on each succeeded/failed message delivery.
     /// @param message represents the delivered (or not) message. Its `_private`
     /// field contains and `opaque` argument, which was passed to
-    /// `rd_kafka_producev`, i.e. the Promise which must be setted to notify
+    /// `rd_kafka_producev`, i.e. the Promise which must be set to notify
     /// waiter about the delivery.
     void DeliveryReportCallback(const rd_kafka_message_s* message) const;
 
 private:
     const std::chrono::milliseconds delivery_timeout_;
+    const logging::Level debug_info_log_level_;
+    const logging::Level operation_log_level_;
 
     mutable Stats stats_;
 
     ConcurrentEventWaiters waiters_;
     ProducerHolder producer_;
 
-    /// If no messages are send, some errors may occure and we want to log them
-    /// anyway.
+    /// If no messages are send, some errors may occurred and we want to log them anyway.
     utils::PeriodicTask log_events_handler_;
 };
 

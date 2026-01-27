@@ -46,6 +46,8 @@ public:
 private:
     std::string_view ReadRaw(std::size_t max_size) override;
 
+    void BackUp(std::size_t size) override;
+
     fs::blocking::CFile file_;
     std::string path_;
     std::string curr_chunk_;

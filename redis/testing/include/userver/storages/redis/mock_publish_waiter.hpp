@@ -38,15 +38,18 @@ public:
         T&& matcher,
         size_t times_called = 1
     )
-        : debug_channel_name_(std::move(debug_channel_name)) {
+        : debug_channel_name_(std::move(debug_channel_name))
+    {
         UINVARIANT(times_called > 0, "times_called must be > 0");
 
         using ::testing::_;
         EXPECT_CALL(redis_mock, Publish(std::forward<T>(matcher), _, _, _))
             .Times(times_called)
-            .WillRepeatedly([this, times_called](auto&& channel, auto&&...) {
-                LOG_DEBUG() << "Redis mock received message to channel: " << channel
-                            << "; Called time: " << times_called_.load() + 1;
+            .WillRepeatedly([this, times_called](auto&& channel, auto&& message, auto&&...) {
+                LOG_DEBUG()
+                    << "Redis mock received message to channel: " << channel
+                    << "; Called time: " << times_called_.load() + 1;
+                published_messages_.push_back(message);
                 if ((times_called_.fetch_add(1) + 1) == times_called) {
                     on_received_.Send();
                 }
@@ -54,14 +57,19 @@ public:
     }
 
     void Wait() {
-        EXPECT_TRUE(on_received_.WaitForEventFor(std::chrono::seconds{30}))
-            << "Failed to detect publishing to channel " << debug_channel_name_ << " within 30 seconds";
+        EXPECT_TRUE(on_received_.WaitForEventFor(std::chrono::seconds{30})
+        ) << "Failed to detect publishing to channel "
+          << debug_channel_name_ << " within 30 seconds";
     }
+
+    const std::string& GetPublishedMessage(size_t index) const { return published_messages_.at(index); }
+    size_t GetPublishedMessagesCount() const { return published_messages_.size(); }
 
 private:
     engine::SingleConsumerEvent on_received_;
     std::string debug_channel_name_;
     std::atomic<size_t> times_called_{0};
+    std::vector<std::string> published_messages_;
 };
 
 }  // namespace storages::redis

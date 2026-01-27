@@ -6,6 +6,7 @@
 #include <vector>
 
 #include <userver/storages/postgres/database_fwd.hpp>
+#include <userver/storages/postgres/dsn.hpp>
 #include <userver/storages/postgres/options.hpp>
 #include <userver/storages/postgres/postgres_fwd.hpp>
 
@@ -30,6 +31,8 @@ public:
 
     /// Get total shard count
     size_t GetShardCount() const { return clusters_.size(); }
+
+    void UpdateClusterDescription(const std::vector<DsnList>&);
 
 private:
     friend class components::Postgres;

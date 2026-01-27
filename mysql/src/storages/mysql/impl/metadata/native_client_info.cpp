@@ -11,7 +11,9 @@ NativeClientInfo NativeClientInfo::Get() {
 }
 
 NativeClientInfo::NativeClientInfo(const char* client_version, std::uint64_t client_version_id)
-    : client_version{client_version}, client_version_id{client_version_id} {}
+    : client_version{client_version},
+      client_version_id{client_version_id}
+{}
 
 }  // namespace storages::mysql::impl::metadata
 

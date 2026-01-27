@@ -1,11 +1,10 @@
 #pragma once
 
-#include <userver/formats/json/value.hpp>
-#include <userver/formats/parse/to.hpp>
-
 #include <userver/chaotic/convert.hpp>
 #include <userver/chaotic/convert/to.hpp>
 #include <userver/chaotic/exception.hpp>
+#include <userver/formats/json/value.hpp>
+#include <userver/formats/parse/to.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -28,8 +27,8 @@ UserType Parse(const Value& value, formats::parse::To<WithType<RawType, UserType
 
 template <typename Value, typename RawType, typename UserType>
 Value Serialize(const WithType<RawType, UserType>& ps, formats::serialize::To<Value>) {
-    return typename Value::Builder{RawType{Convert(ps.value, convert::To<std::decay_t<decltype(RawType::value)>>())}}
-        .ExtractValue();
+    return typename Value::Builder{RawType{Convert(ps.value, convert::To<std::decay_t<decltype(RawType::value)>>())}
+    }.ExtractValue();
 }
 
 }  // namespace chaotic

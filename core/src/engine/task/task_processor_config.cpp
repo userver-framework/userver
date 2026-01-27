@@ -45,16 +45,6 @@ OsScheduling Parse(const yaml_config::YamlConfig& value, formats::parse::To<OsSc
     return utils::ParseFromValueString(value, kMap);
 }
 
-TaskQueueType Parse(const yaml_config::YamlConfig& value, formats::parse::To<TaskQueueType>) {
-    static constexpr utils::TrivialBiMap kMap([](auto selector) {
-        return selector()
-            .Case(TaskQueueType::kGlobalTaskQueue, "global-task-queue")
-            .Case(TaskQueueType::kWorkStealingTaskQueue, "work-stealing-task-queue");
-    });
-
-    return utils::ParseFromValueString(value, kMap);
-}
-
 TaskProcessorConfig Parse(const yaml_config::YamlConfig& value, formats::parse::To<TaskProcessorConfig>) {
     TaskProcessorConfig config;
     config.should_guess_cpu_limit = value["guess-cpu-limit"].As<bool>(config.should_guess_cpu_limit);
@@ -71,6 +61,8 @@ TaskProcessorConfig Parse(const yaml_config::YamlConfig& value, formats::parse::
         config.task_trace_logger_name = task_trace["logger"].As<std::string>();
     }
 
+    config.trace_coroutines = value["trace-coroutines"].As<bool>(config.trace_coroutines);
+
     return config;
 }
 
@@ -79,32 +71,6 @@ void TaskProcessorConfig::SetName(const std::string& new_name) {
     if (thread_name.empty()) {
         thread_name = GenerateWorkerThreadName(name);
     }
-}
-
-using OverloadAction = TaskProcessorSettings::OverloadAction;
-
-/// [sample enum parser]
-OverloadAction Parse(const formats::json::Value& value, formats::parse::To<OverloadAction>) {
-    static constexpr utils::TrivialBiMap kMap([](auto selector) {
-        return selector().Case(OverloadAction::kCancel, "cancel").Case(OverloadAction::kIgnore, "ignore");
-    });
-
-    return utils::ParseFromValueString(value, kMap);
-}
-/// [sample enum parser]
-
-TaskProcessorSettings Parse(const formats::json::Value& value, formats::parse::To<TaskProcessorSettings>) {
-    engine::TaskProcessorSettings settings;
-
-    const auto overload_doc = value["wait_queue_overload"];
-
-    settings.wait_queue_time_limit = std::chrono::microseconds(overload_doc["time_limit_us"].As<std::int64_t>());
-    settings.wait_queue_length_limit = overload_doc["length_limit"].As<std::int64_t>();
-    settings.sensor_wait_queue_time_limit =
-        std::chrono::microseconds(overload_doc["sensor_time_limit_us"].As<std::int64_t>(3000));
-    settings.overload_action = overload_doc["action"].As<OverloadAction>(OverloadAction::kIgnore);
-
-    return settings;
 }
 
 }  // namespace engine

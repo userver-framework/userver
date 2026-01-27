@@ -10,6 +10,7 @@ namespace rcu {
 struct DefaultRcuTraits;
 struct SyncRcuTraits;
 struct BlockingRcuTraits;
+struct ExclusiveRcuTraits;
 
 template <typename Key>
 struct DefaultRcuMapTraits;

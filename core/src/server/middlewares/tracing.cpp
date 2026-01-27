@@ -15,7 +15,9 @@
 #include <userver/tracing/manager_component.hpp>
 #include <userver/tracing/span_builder.hpp>
 #include <userver/tracing/tags.hpp>
+#include <userver/utils/algo.hpp>
 #include <userver/utils/fast_scope_guard.hpp>
+#include <userver/utils/string_literal.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -23,16 +25,25 @@ namespace server::middlewares {
 
 namespace {
 
-const std::string kTracingTypeResponse = "response";
-const std::string kTracingBody = "body";
-const std::string kTracingUri = "uri";
+constexpr utils::StringLiteral kTracingTypeResponse = "response";
+constexpr utils::StringLiteral kTracingBody = "body";
+constexpr utils::StringLiteral kTracingUri = "uri";
 
 std::string GetHeadersLogString(const http::HttpResponse& response) {
-    formats::json::ValueBuilder json_headers(formats::json::Type::kObject);
-    for (const auto& header_name : response.GetHeaderNames()) {
-        json_headers[header_name] = response.GetHeader(header_name);
+    std::string result;
+    auto write_header = [&](std::string_view header_name, std::string_view header_value) {
+        for (auto header_part : std::array<std::string_view, 4>{header_name, ": ", header_value, "\n"}) {
+            result += header_part;
+        }
+    };
+
+    for (const auto& header_name : response.GetSystemHeaderNames()) {
+        write_header(header_name, response.GetHeader(header_name));
     }
-    return formats::json::ToString(json_headers.ExtractValue());
+    for (const auto& header_name : response.GetUserHeaderNames()) {
+        write_header(header_name, response.GetHeader(header_name));
+    }
+    return result;
 }
 
 void LogYandexHeaders(const http::HttpRequest& http_request) {
@@ -58,19 +69,22 @@ void LogYandexHeaders(const http::HttpRequest& http_request) {
 }  // namespace
 
 Tracing::Tracing(const tracing::TracingManagerBase& tracing_manager, const handlers::HttpHandlerBase& handler)
-    : tracing_manager_{tracing_manager}, handler_{handler}, log_level_{handler_.GetLogLevel()} {}
+    : tracing_manager_{tracing_manager},
+      handler_{handler},
+      log_level_{handler_.GetLogLevel()}
+{}
 
 void Tracing::HandleRequest(http::HttpRequest& request, request::RequestContext& context) const {
     const auto meta_type = misc::CutTrailingSlash(request.GetRequestPath(), handler_.GetConfig().url_trailing_slash);
     auto span = MakeSpan(request, meta_type);
     LogYandexHeaders(request);
+    FillResponseWithTracingContext(span, request.GetHttpResponse());
 
     // This needs ConfigSnapshot, which is reset down the call chain in Next(),
     // so we prepare settings here
     const auto logging_settings = ParseLoggingSettings(context);
     const utils::FastScopeGuard guard{[this, &span, &logging_settings, &request, &context]() noexcept {
         try {
-            FillResponseWithTracingContext(span, request.GetHttpResponse());
             EnrichLogs(span, logging_settings, request, context);
         } catch (const std::exception& ex) {
             // Something went really wrong if our tracing threw itself.
@@ -78,8 +92,9 @@ void Tracing::HandleRequest(http::HttpRequest& request, request::RequestContext&
         } catch (...) {
             // Something went terribly wrong if our tracing threw non-std
             // exception itself.
-            LOG_ERROR() << "Failed to set tracing context for response due to an "
-                           "unknown exception (task cancellation?)";
+            LOG_ERROR()
+                << "Failed to set tracing context for response due to an "
+                   "unknown exception (task cancellation?)";
         }
     }};
 
@@ -87,15 +102,28 @@ void Tracing::HandleRequest(http::HttpRequest& request, request::RequestContext&
 }
 
 tracing::Span Tracing::MakeSpan(const http::HttpRequest& http_request, std::string_view meta_type) const {
-    tracing::SpanBuilder span_builder(fmt::format("http/{}", handler_.HandlerName()));
+    const auto* handler_path = std::get_if<std::string>(&handler_.GetConfig().path);
+    std::string span_name;
+
+    if (handler_path != nullptr) {
+        span_name = utils::StrCat(http_request.GetMethodStr(), " ", *handler_path);
+    } else {
+        span_name = utils::StrCat(http_request.GetMethodStr(), " ", handler_.HandlerName());
+    }
+
+    tracing::SpanBuilder span_builder(std::move(span_name));
     tracing_manager_.TryFillSpanBuilderFromRequest(http_request, span_builder);
     auto span = std::move(span_builder).Build();
 
     span.SetLocalLogLevel(log_level_);
 
+    if (handler_path != nullptr) {
+        span.AddNonInheritableTag(tracing::kHttpRoute, *handler_path);
+    }
     span.AddNonInheritableTag(tracing::kHttpMetaType, std::string{meta_type});
-    span.AddNonInheritableTag(tracing::kType, kTracingTypeResponse);
-    span.AddNonInheritableTag(tracing::kHttpMethod, http_request.GetMethodStr());
+    span.AddNonInheritableTag(tracing::kType, std::string{kTracingTypeResponse});
+    span.AddNonInheritableTag(tracing::kSpanKind, tracing::kSpanKindServer);
+    span.AddNonInheritableTag(tracing::kHttpRequestMethod, std::string{http_request.GetMethodStr()});
 
     return span;
 }
@@ -109,7 +137,10 @@ void Tracing::FillResponseWithTracingContext(const tracing::Span& span, http::Ht
 Tracing::LoggingSettings Tracing::ParseLoggingSettings(request::RequestContext& context) const {
     const auto& config_snapshot = context.GetInternalContext().GetConfigSnapshot();
 
-    return {config_snapshot[handlers::kLogRequest], config_snapshot[handlers::kLogRequestHeaders]};
+    return {
+        config_snapshot[::dynamic_config::USERVER_LOG_REQUEST],
+        config_snapshot[::dynamic_config::USERVER_LOG_REQUEST_HEADERS],
+    };
 }
 
 void Tracing::EnrichLogs(
@@ -124,26 +155,30 @@ void Tracing::EnrichLogs(
         const auto status_code = response.GetStatus();
         const auto& forced_log_level_opt = context.GetInternalContext().GetDPContext().GetForcedLogLevel();
         span.SetLogLevel(
-            forced_log_level_opt.has_value() ? *forced_log_level_opt
-                                             : handler_.GetLogLevelForResponseStatus(status_code)
+            forced_log_level_opt.has_value()
+                ? *forced_log_level_opt
+                : handler_.GetLogLevelForResponseStatus(status_code)
         );
         if (!span.ShouldLogDefault()) {
             return;
         }
 
         int response_code = static_cast<int>(status_code);
-        span.AddTag(tracing::kHttpStatusCode, response_code);
-        if (response_code >= 500) span.AddTag(tracing::kErrorFlag, true);
+        span.AddTag(tracing::kHttpResponseStatusCode, response_code);
+        if (response_code >= 500) {
+            span.AddTag(tracing::kErrorFlag, true);
+        }
 
         if (logging_settings.need_log_response) {
             if (logging_settings.need_log_response_headers) {
                 span.AddNonInheritableTag("response_headers", GetHeadersLogString(response));
             }
             span.AddNonInheritableTag(
-                kTracingBody, handler_.GetResponseDataForLoggingChecked(request, context, response.GetData())
+                std::string{kTracingBody},
+                handler_.GetResponseDataForLoggingChecked(request, context, response.GetData())
             );
         }
-        span.AddNonInheritableTag(kTracingUri, request.GetUrl());
+        span.AddNonInheritableTag(std::string{kTracingUri}, handler_.GetUrlForLoggingChecked(request, context));
     } catch (const std::exception& ex) {
         LOG_ERROR() << "can't finalize request processing: " << ex;
     }
@@ -151,10 +186,13 @@ void Tracing::EnrichLogs(
 
 TracingFactory::TracingFactory(const components::ComponentConfig& config, const components::ComponentContext& context)
     : HttpMiddlewareFactoryBase{config, context},
-      tracing_manager_{context.FindComponent<tracing::DefaultTracingManagerLocator>().GetTracingManager()} {}
+      tracing_manager_{context.FindComponent<tracing::DefaultTracingManagerLocator>().GetTracingManager()}
+{}
 
-std::unique_ptr<HttpMiddlewareBase>
-TracingFactory::Create(const handlers::HttpHandlerBase& handler, yaml_config::YamlConfig) const {
+std::unique_ptr<HttpMiddlewareBase> TracingFactory::Create(
+    const handlers::HttpHandlerBase& handler,
+    yaml_config::YamlConfig
+) const {
     return std::make_unique<Tracing>(tracing_manager_, handler);
 }
 

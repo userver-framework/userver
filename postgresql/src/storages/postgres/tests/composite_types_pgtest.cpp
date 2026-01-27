@@ -3,6 +3,12 @@
 
 #include <userver/storages/postgres/io/bitstring.hpp>
 
+// intentionally declared in global namespace
+struct PairForUnknownBufferCategoryExceptionReadabilityTest {
+    int x;
+    int y;
+};
+
 USERVER_NAMESPACE_BEGIN
 
 namespace pg = storages::postgres;
@@ -82,24 +88,30 @@ struct FooBarWithOptionalFields {
 using FooBarOpt = std::optional<FooBar>;
 
 class FooClass {
-    int i{};
-    std::string s;
-    double d{};
-    std::vector<int> a;
-    std::vector<std::string> v;
+    int i_{};
+    std::string s_;
+    double d_{};
+    std::vector<int> a_;
+    std::vector<std::string> v_;
 
 public:
     FooClass() = default;
-    explicit FooClass(int x) : i(x), s(std::to_string(x)), d(x), a{i}, v{s} {}
+    explicit FooClass(int x)
+        : i_(x),
+          s_(std::to_string(x)),
+          d_(x),
+          a_{i_},
+          v_{s_}
+    {}
 
     // Only non-const version of Introspect() is used by the uPostgres driver
-    auto Introspect() { return std::tie(i, s, d, a, v); }
+    auto Introspect() { return std::tie(i_, s_, d_, a_, v_); }
 
-    auto GetI() const { return i; }
-    auto GetS() const { return s; }
-    auto GetD() const { return d; }
-    auto GetA() const { return a; }
-    auto GetV() const { return v; }
+    auto GetI() const { return i_; }
+    auto GetS() const { return s_; }
+    auto GetD() const { return d_; }
+    auto GetA() const { return a_; }
+    auto GetV() const { return v_; }
 };
 
 using FooTuple = std::tuple<int, std::string, double, std::vector<int>, std::vector<std::string>>;
@@ -144,9 +156,13 @@ struct NoUserMappingBunch {
 
     bool operator==(const NoUserMappingBunch& rhs) const { return elements == rhs.elements; }
     bool operator==(const BunchOfFoo& rhs) const {
-        if (elements.size() != rhs.foobars.size()) return false;
+        if (elements.size() != rhs.foobars.size()) {
+            return false;
+        }
         for (size_t i = 0; i < elements.size(); ++i) {
-            if (!(elements[i] == rhs.foobars[i])) return false;
+            if (!(elements[i] == rhs.foobars[i])) {
+                return false;
+            }
         }
         return true;
     }
@@ -172,6 +188,17 @@ struct WithUnorderedSet {
 struct User {
     int id{};
     std::bitset<4> status{};
+};
+
+struct ZoneSettingsV1 {
+    bool repeat_requests_enabled;
+    std::chrono::seconds order_update_period;  // intentionally missmatch with DB type
+};
+
+struct ZoneIntegrationSettingsV1 {
+    ZoneSettingsV1 technical_settings;
+    bool enabled;
+    int x;
 };
 
 }  // namespace pgtest
@@ -237,6 +264,16 @@ struct CppToUserPg<pgtest::WithUnorderedSet> {
 template <>
 struct CppToUserPg<pgtest::User> {
     static constexpr DBTypeName postgres_name = "__pgtest.user";
+};
+
+template <>
+struct CppToUserPg<pgtest::ZoneSettingsV1> {
+    static constexpr DBTypeName postgres_name = "__pgtest.zones_settings_v1";
+};
+
+template <>
+struct CppToUserPg<pgtest::ZoneIntegrationSettingsV1> {
+    static constexpr DBTypeName postgres_name = "__pgtest.zones_integration_settings_v1";
 };
 
 }  // namespace storages::postgres::io
@@ -353,9 +390,9 @@ UTEST_P(PostgreConnection, CompositeTypeRoundtrip) {
 
     // Using a mapped type only for reading
     UEXPECT_NO_THROW(res = GetConn()->Execute("select $1 as foo", fb));
-    UEXPECT_NO_THROW(res.AsContainer<std::vector<pgtest::NoUseInWrite>>())
-        << "A type that is not used for writing query parameter buffers must be "
-           "available for reading";
+    UEXPECT_NO_THROW(res.AsContainer<std::vector<pgtest::NoUseInWrite>>()
+    ) << "A type that is not used for writing query parameter buffers must be "
+         "available for reading";
 
     UEXPECT_NO_THROW(GetConn()->Execute(kDropTestSchema)) << "Drop schema";
 }
@@ -530,9 +567,9 @@ UTEST_P(PostgreConnection, CompositeTypeRoundtripAsRecord) {
 
     // Using a mapped type only for reading
     UEXPECT_NO_THROW(res = GetConn()->Execute("SELECT ROW($1.*) AS record", fb));
-    UEXPECT_NO_THROW(res.AsContainer<std::vector<pgtest::NoUseInWrite>>())
-        << "A type that is not used for writing query parameter buffers must be "
-           "available for reading";
+    UEXPECT_NO_THROW(res.AsContainer<std::vector<pgtest::NoUseInWrite>>()
+    ) << "A type that is not used for writing query parameter buffers must be "
+         "available for reading";
 
     UEXPECT_NO_THROW(GetConn()->Execute(kDropTestSchema)) << "Drop schema";
 }
@@ -572,10 +609,12 @@ UTEST_P(PostgreConnection, VariableRecordTypes) {
 
     pg::ResultSet res{nullptr};
     UEXPECT_NO_THROW(
-        res = GetConn()->Execute("WITH test AS (SELECT unnest(ARRAY[1, 2]) a)"
-                                 "SELECT CASE WHEN a = 1 THEN ROW(42)"
-                                 "WHEN a = 2 THEN ROW('str'::text) "
-                                 "END FROM test")
+        res = GetConn()->Execute(
+            "WITH test AS (SELECT unnest(ARRAY[1, 2]) a)"
+            "SELECT CASE WHEN a = 1 THEN ROW(42)"
+            "WHEN a = 2 THEN ROW('str'::text) "
+            "END FROM test"
+        )
     );
     ASSERT_EQ(2, res.Size());
 
@@ -699,14 +738,14 @@ UTEST_P(PostgreConnection, CompositeTypeParseExceptionReadability) {
       )
     )~"));
 
-        const auto searchQuery = storages::Query(R"(
+        const auto search_query = storages::Query(R"(
       SELECT id, status
       FROM __pgtest.user
       WHERE id = $1.id and status = $1.status;
     )");
 
         UEXPECT_THROW_MSG(
-            GetConn()->Execute(searchQuery, pgtest::User{1, 2}),
+            GetConn()->Execute(search_query, pgtest::User{1, 2}),
             storages::postgres::UserTypeError,
             fmt::format(
                 "Type '__pgtest.user' was not created in database and "
@@ -734,7 +773,7 @@ UTEST_P(PostgreConnection, CompositeTypeParseExceptionReadability) {
       )
     )~"));
 
-        const auto searchQuery = storages::Query(R"(
+        const auto search_query = storages::Query(R"(
       SELECT id, status
       FROM __pgtest.user_table
       WHERE id = $1.id and status = $1.status;
@@ -744,7 +783,7 @@ UTEST_P(PostgreConnection, CompositeTypeParseExceptionReadability) {
         UASSERT_NO_THROW(GetConn()->ReloadUserTypes());
 
         UEXPECT_THROW_MSG(
-            GetConn()->Execute(searchQuery, pgtest::User{1, 2}),
+            GetConn()->Execute(search_query, pgtest::User{1, 2}),
             storages::postgres::UserTypeError,
             "Type mismatch for '__pgtest.user' field 'status'. In database the "
             "type is 'bit' (oid: 1560), user supplied type is 'varbit' (oid: "
@@ -792,7 +831,147 @@ UTEST_P(PostgreConnection, CompositeTypeParseExceptionReadability) {
             "'__pgtest.no_cpp_type' (oid: "
         );
     }
+    {
+        UEXPECT_NO_THROW(GetConn()->Execute(
+            "create type __pgtest.zones_settings_v1 as (x1 BOOLEAN, "
+            "x2 BIGINT"  // intentionally missmatch with C++ type
+            ")"
+        ));
+        UEXPECT_NO_THROW(GetConn()
+                             ->Execute("create type __pgtest.zones_integration_settings_v1 as "
+                                       "(x1 __pgtest.zones_settings_v1, x2 BOOLEAN, x3 INT)"));
+
+        // Auto reload doesn't work for outgoing types
+        UASSERT_NO_THROW(GetConn()->ReloadUserTypes());
+
+// Following test aborts in debug
+#ifdef NDEBUG
+        auto res = GetConn()->Execute("SELECT ROW(true, 1)::__pgtest.zones_settings_v1");
+        UEXPECT_THROW_MSG(
+            res[0][0].As<pgtest::ZoneSettingsV1>(),
+            storages::postgres::InvalidInputBufferSize,
+            fmt::format(
+                " as a C++ type '{0}'. Refer to the 'Supported data types' in the documentation to make sure that "
+                "the database type is actually representable as a C++ type '{0}'. Error details: "
+                "Attempt to read 4 bytes more than was sent by server,\n"
+                "\twhile reading from database to C++ type '{1}' (field #1 of a composite C++ type '{0}')",
+                compiler::GetTypeName<pgtest::ZoneSettingsV1>(),
+                compiler::GetTypeName<std::chrono::seconds>()
+            )
+        );
+#endif
+        UEXPECT_THROW_MSG(
+            GetConn()->Execute("SELECT $1::__pgtest.zones_settings_v1", pgtest::ZoneSettingsV1{true, {}}),
+            storages::postgres::UserTypeError,
+            "Type mismatch for '__pgtest.zones_settings_v1' field 'x2'. In database the type is 'int8' (oid: 20), "
+            "user supplied type is 'interval' (oid: "
+        );
+
+// Following test aborts in debug
+#ifdef NDEBUG
+        res = GetConn()->Execute(
+            "SELECT ROW(ROW(true, 1)::__pgtest.zones_settings_v1, true, 3)::__pgtest.zones_integration_settings_v1"
+        );
+        UEXPECT_THROW_MSG(
+            res[0][0].As<pgtest::ZoneIntegrationSettingsV1>(),
+            storages::postgres::InvalidInputBufferSize,
+            fmt::format(
+                " as a C++ type '{0}'. Refer to the 'Supported data types' in the documentation to make sure that "
+                "the database type is actually representable as a C++ type '{0}'. Error details: "
+                "Attempt to read 4 bytes more than was sent by server,\n"
+                "\twhile reading from database to C++ type '{1}' (field #1 of a composite C++ type '{2}'),\n"
+                "\twhile reading from database to C++ type '{2}' (field #0 of a composite C++ type '{0}')",
+                compiler::GetTypeName<pgtest::ZoneIntegrationSettingsV1>(),
+                compiler::GetTypeName<std::chrono::seconds>(),
+                compiler::GetTypeName<pgtest::ZoneSettingsV1>()
+            )
+        );
+#endif
+        UEXPECT_THROW_MSG(
+            GetConn()->Execute(
+                "SELECT $1::__pgtest.zones_integration_settings_v1",
+                pgtest::ZoneIntegrationSettingsV1{{}, true, 3}
+            ),
+            storages::postgres::UserTypeError,
+            "Type mismatch for '__pgtest.zones_settings_v1' field 'x2'. In database the type is 'int8' (oid: 20), "
+            "user supplied type is 'interval' (oid: "
+        );
+    }
 }
+
+// Following tests abort in debug
+#ifdef NDEBUG
+
+UTEST_P(PostgreConnection, InvalidInputBufferSizeExceptionReadability) {
+    CheckConnection(GetConn());
+    ASSERT_FALSE(GetConn()->IsReadOnly()) << "Expect a read-write connection";
+    UASSERT_NO_THROW(GetConn()->Execute(kDropTestSchema)) << "Drop schema";
+    UASSERT_NO_THROW(GetConn()->Execute(kCreateTestSchema)) << "Create schema";
+
+    {
+        UEXPECT_NO_THROW(GetConn()->Execute(R"~(
+          CREATE TABLE __pgtest.numeric_problem (
+                user_id serial NOT NULL PRIMARY KEY,
+                timestamp bigint,
+                balance_increment numeric,
+                description varchar(50)
+          )
+        )~"));
+        UEXPECT_NO_THROW(GetConn()->Execute(R"~(
+          INSERT INTO __pgtest.numeric_problem(user_id, timestamp, balance_increment, description)
+          VALUES ('1', 123, 2.0, 'nope'),
+                 ('42', 1234, 4.0, 'nope 2')
+        )~"));
+
+        UEXPECT_NO_THROW(GetConn()->Execute(R"~(
+            create or replace function the_function(
+              user_id_ varchar(50)
+            ) returns table(
+                time_stamp bigint,
+                balance_inc numeric,
+                description_ varchar(50)
+            ) as $$
+            begin
+             return query
+                   select timestamp, balance_increment, description
+                   from __pgtest.numeric_problem h
+                   where h.user_id = user_id_::integer
+                   order by h.timestamp;
+            end;
+            $$ language plpgsql;
+        )~"));
+
+        struct TransactionInfo final {
+            long long timestamp;
+            double balance_increment;
+            std::string description;
+        };
+
+        auto result = GetConn()->Execute("SELECT time_stamp, balance_inc, description_ FROM the_function('42')");
+        const auto set = result.AsSetOf<TransactionInfo>(storages::postgres::kRowTag);
+        UEXPECT_THROW_MSG(
+            set[0],
+            storages::postgres::InvalidInputBufferSize,
+            "Error while reading field #1 'balance_inc' "
+            "which database type is 'numeric' (oid: 1700) as a C++ type 'double'. Refer to the 'Supported data types' "
+            "in the documentation to make sure that the database type is actually representable as a C++ type "
+            "'double'. Error details: Buffer size 10 is invalid for a floating point value type"
+        );
+    }
+}
+
+UTEST_P(PostgreConnection, UnknownBufferCategoryExceptionReadability) {
+    auto result = GetConn()->Execute("SELECT ROW('fat & (rat | cat)'::tsquery, 1)");
+    UEXPECT_THROW_MSG(
+        result[0][0].As<PairForUnknownBufferCategoryExceptionReadabilityTest>(),
+        storages::postgres::UnknownBufferCategory,
+        "Database type is 'tsquery' (oid: 3615) and it is not representable as a C++ type 'int' within a C++ composite "
+        "'PairForUnknownBufferCategoryExceptionReadabilityTest'. Refer to the 'Supported data types' in the "
+        "documentation to find a proper C++ type."
+    );
+}
+
+#endif
 
 }  // namespace
 

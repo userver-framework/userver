@@ -6,17 +6,13 @@
 #include <memory>
 #include <string>
 
+#include <userver/storages/redis/base.hpp>
 #include <userver/storages/redis/client_fwd.hpp>
-#include <userver/storages/redis/impl/base.hpp>
-#include <userver/storages/redis/impl/wait_connected_mode.hpp>
+#include <userver/storages/redis/wait_connected_mode.hpp>
 
 #include <userver/storages/redis/subscription_token.hpp>
 
 USERVER_NAMESPACE_BEGIN
-
-namespace redis {
-class SubscribeSentinel;
-}  // namespace redis
 
 namespace storages::redis {
 
@@ -46,7 +42,7 @@ public:
     virtual SubscriptionToken Subscribe(
         std::string channel,
         SubscriptionToken::OnMessageCb on_message_cb,
-        const USERVER_NAMESPACE::redis::CommandControl& command_control
+        const CommandControl& command_control
     ) = 0;
 
     SubscriptionToken Subscribe(std::string channel, SubscriptionToken::OnMessageCb on_message_cb) {
@@ -56,7 +52,7 @@ public:
     virtual SubscriptionToken Psubscribe(
         std::string pattern,
         SubscriptionToken::OnPmessageCb on_pmessage_cb,
-        const USERVER_NAMESPACE::redis::CommandControl& command_control
+        const CommandControl& command_control
     ) = 0;
 
     virtual size_t ShardsCount() const = 0;
@@ -69,7 +65,7 @@ public:
     virtual SubscriptionToken Ssubscribe(
         std::string channel,
         SubscriptionToken::OnMessageCb on_message_cb,
-        const USERVER_NAMESPACE::redis::CommandControl& command_control
+        const CommandControl& command_control
     ) = 0;
 
     SubscriptionToken Ssubscribe(std::string channel, SubscriptionToken::OnMessageCb on_message_cb) {

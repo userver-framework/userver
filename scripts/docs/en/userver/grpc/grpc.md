@@ -1,0 +1,479 @@
+# gRPC
+
+**Quality:** @ref QUALITY_TIERS "Platinum Tier".
+
+## Introduction
+
+🐙 **userver** provides a gRPC driver as `userver-grpc` library. It uses ```namespace ugrpc::client``` and ```namespace ugrpc::server```.
+
+The driver wraps `grpcpp` in the userver asynchronous interface.
+
+See also:
+* @ref scripts/docs/en/userver/tutorial/grpc_service.md
+* [Official gRPC documentation](https://grpc.io/docs/languages/cpp/)
+* [grpcpp reference](https://grpc.github.io/grpc/cpp/index.html)
+* [grpc-core reference](https://grpc.github.io/grpc/core/index.html)
+
+## Capabilities
+
+* Creating asynchronous gRPC clients and services;
+* Forwarding gRPC Core logs to userver logs;
+* Caching and reusing connections;
+* @ref scripts/docs/en/userver/grpc/timeouts_retries.md;
+* Collection of metrics on driver usage;
+* Cancellation support;
+* Automatic authentication using middlewares;
+* @ref scripts/docs/en/userver/deadline_propagation.md .
+
+## Installation
+
+Generate and link a library from `.proto` schemas and link to it in your `CMakeLists.txt`:
+
+@snippet samples/grpc_service/CMakeLists.txt  add_grpc_library
+
+`userver_add_grpc_library` will link `userver::grpc` transitively and will generate the usual `.pb.h + .pb.cc` files.
+For service definitions, it will additionally generate asynchronous interfaces `foo_client.usrv.pb.hpp` and
+`foo_service.usrv.pb.hpp`.
+
+To create gRPC clients in your microservice, register the provided @ref ugrpc::client::ClientFactoryComponent and add
+the corresponding component section to the static config.
+
+To create gRPC services in your microservice, register the provided @ref ugrpc::server::ServerComponent and add the
+corresponding component section to the static config.
+
+See @ref scripts/docs/en/userver/tutorial/grpc_service.md for a tutorial.
+
+
+## gRPC clients
+
+### Client creation
+
+In a component constructor, find @ref ugrpc::client::ClientFactoryComponent and store a reference to its
+@ref ugrpc::client::ClientFactory. Using it, you can create gRPC clients of code-generated `YourServiceClient` types.
+
+Client creation in an expensive operation! Either create them once at the server boot time or cache them. An automated
+solution for client creation and caching is the @ref ugrpc::client::SimpleClientComponent. It also allows to
+specify dynamic config for @ref ugrpc::client::ClientQos :
+
+@snippet samples/grpc_service/src/greeter_client.hpp  component
+
+
+### Client usage
+
+Typical steps include:
+* Filling a `std::unique_ptr<grpc::ClientContext>` with request settings
+    * gRPC documentation recommends using `set_deadline` for each RPC
+    * Fill the authentication metadata as necessary
+* Stream creation by calling a client method
+* Operations on the stream
+* Depending on the RPC kind, it is necessary to call `Finish` or `Read` until it returns `false`
+  (otherwise the connection will close abruptly)
+
+Read the documentation on gRPC streams:
+* Single request, single response @ref ugrpc::client::ResponseFuture
+* Single request, response stream @ref ugrpc::client::Reader
+* Request stream, single response @ref ugrpc::client::Writer
+* Request stream, response stream @ref ugrpc::client::ReaderWriter
+
+On errors, exceptions from @ref userver/ugrpc/client/exceptions.hpp are thrown. It is recommended to catch them outside
+the entire stream interaction. You can catch exceptions for
+[specific gRPC error codes](https://grpc.github.io/grpc/core/md_doc_statuscodes.html) or all at once.
+
+### Working with metadata
+
+gRPC metadata allows you to send additional information along with requests and responses. Metadata consists of
+key-value pairs that are transmitted as HTTP/2 headers.
+
+#### Client-side metadata handling
+
+##### Sending request metadata
+
+To send metadata with a request, use @ref ugrpc::client::CallOptions and its
+@ref ugrpc::client::CallOptions::AddMetadata method:
+
+@snippet grpc/tests/metadata_test.cpp client_write_metadata
+
+##### Receiving response metadata
+
+Response metadata can be accessed through the @ref ugrpc::client::CallContext obtained from
+@ref ugrpc::client::ResponseFuture or stream objects:
+
+* **Reading initial metadata** - metadata sent by the server at the beginning of the response
+
+@snippet grpc/tests/metadata_test.cpp client_read_initial_metadata
+
+* **Reading trailing metadata** - metadata sent by the server at the end of the response
+
+@snippet grpc/tests/metadata_test.cpp client_read_trailing_metadata
+
+#### Server-side metadata handling
+
+##### Reading client metadata
+
+The server can read metadata sent by the client:
+
+@snippet grpc/tests/metadata_test.cpp server_read_client_metadata
+
+##### Sending response metadata
+
+The server can send two types of metadata back to the client:
+
+* **Initial metadata** - sent at the beginning of the response
+
+@snippet grpc/tests/metadata_test.cpp server_write_initial_metadata
+
+* **Trailing metadata** - sent at the end of the response
+
+@snippet grpc/tests/metadata_test.cpp server_write_trailing_metadata
+
+@anchor grpc_ssl_authentication
+### TLS / SSL
+
+May be enabled for gRPC client via @ref ugrpc::client::ClientFactoryComponent static config option:
+
+```
+# yaml
+components_manager:
+    components:
+        grpc-client-factory:
+            auth-type: ssl
+            ssl-credentials-options:
+                pem-root-certs:  /path/to/server/cert
+                pem-private-key: /path/to/private/key
+                pem-cert-chain:  /path/to/cert/chain
+```
+
+Available `auth-type` values are:
+
+- `insecure` (default)
+- `ssl`
+
+Default (system) authentication keys are used by default. To change that provide the `ssl-credentials-options` static
+config options with the following options:
+
+* `pem-root-certs` - a path to file containing the PEM encoding of the server root certificates
+* `pem-private-key` - a path to file containing the PEM encoding of the client's private key
+* `pem-cert-chain` - The path to file containing the PEM encoding of the client's certificate chain
+
+SSL has to be disabled in tests, because it requires the server to have a public domain name, which it does not in tests.
+In testsuite, SSL in gRPC clients is disabled automatically.
+
+
+### Client middlewares
+
+Main page: @ref scripts/docs/en/userver/grpc/client_middlewares.md.
+
+Client behaviour can be modified with a middleware. Middleware code is executed before or after the client code.
+Use @ref ugrpc::client::MiddlewareBase to implement new middlewares.
+
+#### List of standard client middlewares:
+
+1. `grpc-client-logging` with component @ref ugrpc::client::middlewares::log::Component - logs requests and responses.
+2. `grpc-client-deadline-propagation` with component @ref ugrpc::client::middlewares::deadline_propagation::Component -
+   activates @ref scripts/docs/en/userver/deadline_propagation.md.
+3. `grpc-client-baggage` with component @ref ugrpc::client::middlewares::baggage::Component - passes request baggage to subrequests.
+4. `grpc-client-headers-propagator` with component @ref ugrpc::client::middlewares::headers_propagator::Component - propagates headers.
+5. `grpc-client-origin` with component @ref ugrpc::client::middlewares::origin::Component - sets `x-origin` metadata.
+6. `grpc-client-middleware-testsuite` with component @ref ugrpc::client::middlewares::testsuite::Component -
+   supports testsuite errors thrown from the mockserver.
+
+
+## gRPC services
+
+### Service creation
+
+A service implementation is a class derived from a code-generated `YourServiceBase` interface class. Each service
+method from the schema corresponds to a method of the interface class. If you don't override some of the methods,
+`UNIMPLEMENTED` error code will be reported for those.
+
+To register your service:
+* Create a component that derives from @ref ugrpc::server::ServiceComponentBase
+* Store your service implementation instance inside the component
+* Call @ref ugrpc::server::ServiceComponentBase::RegisterService in the component's constructor
+* Don't forget to register your service component.
+
+### Service method handling
+
+Each method receives:
+* A stream controller object, used to respond to the RPC
+    * Also contains grpc::ClientContext from grpcpp library
+* A request (for single-request RPCs only)
+
+Read the documentation on gRPC streams:
+* Single request, single response @ref ugrpc::server::Response
+* Request stream, single response @ref ugrpc::server::Reader + @ref ugrpc::server::Result
+* Single request, response stream @ref ugrpc::server::Writer + @ref ugrpc::server::StreamingResult
+* Request stream, response stream @ref ugrpc::server::ReaderWriter + @ref ugrpc::server::StreamingResult
+
+On connection errors, exceptions from userver/ugrpc/server/exceptions.hpp are thrown. It is recommended not to catch
+them, leading to RPC interruption. You can catch exceptions for
+[specific gRPC error codes](https://grpc.github.io/grpc/core/md_doc_statuscodes.html) or all at once.
+
+### TLS / SSL
+
+TLS for gRPC server may be enabled via:
+
+```
+# yaml
+components_manager:
+    components:
+        grpc-server:
+            tls:
+                key: /path/to/private.key
+                cert: /path/to/cert.crt
+                # remove if you don't force client cert verification
+                ca: /path/to/ca.crt
+```
+
+SSL has to be disabled in tests, because it
+requires the server to have a public domain name, which it does not in tests.
+In testsuite, SSL in gRPC server can be disabled manually using @ref SERVICE_CONFIG_HOOKS "config hooks".
+
+
+### Custom server credentials
+
+By default, gRPC server uses `grpc::InsecureServerCredentials`. To pass a custom credentials:
+
+1. Do not pass `grpc-server.port` in the static config
+2. Create a custom component, e.g. `GrpcServerConfigurator`
+3. `context.FindComponent<ugrpc::server::ServerComponent>().GetServer()`
+4. Call @ref ugrpc::server::Server::WithServerBuilder "WithServerBuilder"
+   method on the returned @ref ugrpc::server::Server "server"
+5. Inside the callback, call `grpc::ServerBuilder::AddListeningPort`,
+   passing it your custom credentials
+    * Look into grpc++ documentation and into
+      `<grpcpp/security/server_credentials.h>` for available credentials
+    * SSL credentials are `grpc::SslServerCredentials`
+
+### Server middlewares
+
+Main page: @ref scripts/docs/en/userver/grpc/server_middlewares.md.
+
+Use ugrpc::server::MiddlewareBase to implement new middlewares.
+
+#### List of standard server middlewares:
+
+  1. `grpc-server-logging` with component ugrpc::server::middlewares::log::Component - logs requests.
+  2. `grpc-server-deadline-propagation` with component ugrpc::server::middlewares::deadline_propagation::Component - activates
+  @ref scripts/docs/en/userver/deadline_propagation.md.
+  3. `grpc-server-congestion-control` with component ugrpc::server::middlewares::congestion_control::Component - limits requests.
+  See Congestion Control section of @ref scripts/docs/en/userver/tutorial/production_service.md.
+  4. `grpc-server-baggage` with component ugrpc::server::middlewares::baggage::Component - passes request baggage to subrequests.
+  5. `grpc-server-headers-propagator` with component ugrpc::server::middlewares::headers_propagator::Component - propagates headers.
+
+## gRPC compression
+
+Userver doesn't compress messages by default. You can enable compression using the `channel-args` option on a client and a server.
+See static options of @ref ugrpc::server::ServerComponent and @ref ugrpc::client::ClientFactoryComponent components.
+See [gRPC channel arguments docs](https://grpc.github.io/grpc/core/group__grpc__arg__keys.html): `GRPC_COMPRESSION_CHANNEL_DEFAULT_ALGORITHM` and `GRPC_COMPRESSION_CHANNEL_DEFAULT_LEVEL`.
+
+See native [docs about compression](https://github.com/grpc/grpc/blob/master/doc/compression.md#compression-levels-and-algorithms).
+
+### Key notes from the native gRPC documentation
+
+  1. When a compression level is not specified for either the channel or the message, the default channel level none is considered: data MUST NOT be compressed.
+  2. You can set a compression **algorithm** and a compression **level** on the server side.
+  3. On client side, one can set a compression **algorithm**.
+  4. `GRPC_COMPRESS_LEVEL_LOW` mapping to "gzip -3" and `GRPC_COMPRESS_LEVEL_HIGH` mapping to "gzip -9".
+
+@note If you enable compress on the server side and a client doesn't support a compression, the server won't compress messages.
+See docs for more information https://grpc.io/docs/guides/compression.
+
+Config example:
+```
+# yaml
+        grpc-client-factory:
+            channel-args:
+                grpc.default_compression_algorithm: 2 # GRPC_COMPRESS_GZIP
+        grpc-server:
+            channel-args:
+                grpc.default_compression_algorithm: 2 # GRPC_COMPRESS_GZIP
+                grpc.default_compression_level: 1 # GRPC_COMPRESS_LEVEL_LOW
+```
+
+## gRPC Logs
+
+Each gRPC call generates a span ( `tracing::Span` ) containing tags which are inherited by all child logs.
+
+Additionally, if logging is activated, a separate log is generated for every gRPC request-response in `grpc-server-logging` and `grpc-client-logging` middlewares.
+
+gRPC logs are listed below.
+
+### Client log tags
+
+Middleware component name          | Key                    | Value
+---------------------------------- |----------------------- | ------------------------
+builtin                            | `error`                | error flag, `true`
+builtin                            | `grpc_code`            | error code  `grpc::StatusCode`, [list](https://grpc.github.io/grpc/core/md_doc_statuscodes.html)
+builtin                            | `error_msg`            | error message
+`grpc-client-logging`              | `meta_type`            | call name
+`grpc-client-logging`              | `grpc_type`            | `request` or `response`
+`grpc-client-logging`              | `body`                 | logged message body
+`grpc-client-deadline-propagation` | `deadline_updated`     | error flag, `true`
+`grpc-client-deadline-propagation` | `timeout_ms`           | amount of time before request deadline
+
+### Server log tags
+
+Middleware component name          | Key         | Value
+---------------------------------- |------------ | --------------------------
+builtin                            | `error`     | error flag `true`
+builtin                            | `error_msg` | error message
+`grpc-server-logging`              | `meta_type` | call name
+`grpc-server-logging`              | `body`      | logged message body
+`grpc-server-logging`              | `type`      | `request` or `response`
+`grpc-server-logging`              | `grpc_type` | `request` or `response`
+`grpc-server-deadline-propagation` | `received_deadline_ms` | deadline
+`grpc-server-deadline-propagation` | `cancelled_by_deadline` | `true` or `false`
+`grpc-server-congestion-control`   | `limit` | rate limit when request is throttled (tokens per second)
+`grpc-server-congestion-control`   | `service/method` | method name when request is throttled
+`grpc-server-baggage`              | `Got baggage header: ` | baggage header
+
+### Hiding fields in request-response logs
+
+The gRPC driver provides log fields hiding in request-response logs. You need to do the following:
+
+1) Add [userver/field_options.proto](https://github.com/userver-framework/userver/blob/develop/grpc/proto/userver/field_options.proto) to your service. Generate a library from this proto file and link against it in your `CMakeLists.txt`.
+
+2) Import userver/field_options.proto in your proto file.
+
+3) Use `[debug_redact = true]` opposite to the filds that you want to hide. In the following example the fields `password` and `secret_code` will be hidden in the logs:
+
+```proto
+message Creds {
+  string login = 1;
+  string password = 2 [debug_redact = true];
+  string secret_code = 3 [debug_redact = true];
+}
+```
+
+### grpc-core logs
+
+grpc-core is a lower level library, its logs are forwarded to the userver default logger. In this process only error
+level logs get through from grpc-core to the userver default logger if the default settings are used. However, the
+default settings can be overridden and more verbose logging can be achieved.
+
+To do this you need to change the value of `native-log-level` in the static config file in the components `grpc-client-common` and `grpc-server`:
+
+```
+grpc-server:
+    native-log-level: debug
+```
+
+There are 3 possible logging levels: `error`, `info`, `debug`.
+If logging level is set in several components then the most verbose logging level is used.
+
+
+@anchor grpc_generic_api
+## Generic API
+
+gRPC generic API allows to call and accept RPCs with dynamic service and method names.
+The other side will see this as a normal RPC, it does not need to use generic API.
+
+Intended mainly for use in proxies. Metadata can be used to proxy the request without parsing it.
+
+See details in:
+
+* @ref ugrpc::client::GenericClient ;
+* @ref ugrpc::server::GenericServiceBase .
+
+Full example showing the usage of both:
+
+* @ref grpc-generic-proxy/src/proxy_service.hpp
+* @ref grpc-generic-proxy/src/proxy_service.cpp
+* @ref grpc-generic-proxy/main.cpp
+* @ref grpc-generic-proxy/static_config.yaml
+* @ref grpc-generic-proxy/config_vars.yaml
+* @ref grpc-generic-proxy/CMakeLists.txt
+
+Based on:
+
+* grpcpp [generic stub](https://grpc.github.io/grpc/cpp/grpcpp_2generic_2generic__stub_8h.html);
+* grpcpp [generic service](https://grpc.github.io/grpc/cpp/grpcpp_2generic_2async__generic__service_8h.html).
+
+
+## Metrics
+
+* Client metrics are put inside `grpc.client.by-destination`
+* Server metrics are put inside `grpc.server.by-destination`
+* Client-wide totals are currently NOT computed
+* Server-wide totals are put inside `grpc.server.total`
+
+Each metric has the following labels:
+
+* `grpc_service` - fully qualified grpc (proto) service name
+* `grpc_method` - fully qualified grpc method name
+* `grpc_destination` = `grpc_service/grpc_method`
+* `grpc_destination_full` = `destination_prefix_in_metrics/grpc_service/grpc_method` (only for client metrics, if not explicitly specified in client settings `destination_prefix_in_metrics` = `client(client_name)`)
+
+These are the metrics provided for each gRPC method:
+
+* `timings.1min` — time from RPC start to finish (`utils::statistics::Percentile`)
+* `status` with label `grpc_code=STATUS_CODE_NAME` — RPCs that finished
+  with specified status codes, one metric per gRPC status. Zero `status`
+  metrics are omitted, except for `OK` and `UNKNOWN` metrics, which are always
+  written.
+* Metrics for RPCs that finished abruptly without a status:
+   * `cancelled` — RPCs that were interrupted due to task cancellation.
+     (Not to be confused with RPCs finished with `CANCELLED` status.)
+     Server-side, this means that the client dropped the RPC or called
+     `TryCancel`. Client-side, this likely means that either the parent
+     handler was interrupted, or the RPC was dropped as unnecessary.
+     See ugrpc::client::RpcCancelledError and
+     ugrpc::server::RpcInterruptedError.
+   * `cancelled-by-deadline-propagation` — RPCs, the handling of which was
+     interrupted because the deadline specified in the request was reached.
+     (Available for both server and client-side.)
+     See also @ref scripts/docs/en/userver/deadline_propagation.md "userver deadline propagation"
+   * `network-error` — other RPCs that finished abruptly without a status,
+     see ugrpc::client::RpcInterruptedError and
+     ugrpc::server::RpcInterruptedError.
+* `abandoned-error` — RPCs that we forgot to `Finish`
+  A client code drops an RPC object and don't wait of a response from a server OR is a bug in `ugrpc` usage.
+* `deadline-propagated` — RPCs, for which deadline was specified.
+  See also @ref scripts/docs/en/userver/deadline_propagation.md "userver deadline propagation".
+* `rps` — requests per second:
+  ```
+  sum(status) + network-error + cancelled + cancelled-by-deadline-propagation
+  ```
+* `eps` — server errors per second
+  ```
+  sum(status if is_error(status))
+  ```
+  The status codes to be considered server errors are chosen according to
+  [OpenTelemetry recommendations](https://opentelemetry.io/docs/specs/semconv/rpc/grpc/#grpc-status)
+   * `UNKNOWN`
+   * `DATA_LOSS`
+   * `UNIMPLEMENTED`
+   * `INTERNAL`
+   * `UNAVAILABLE`
+   * Note: `network-error` is not accounted in `eps`, because either the client
+     is responsible for the server dropping the request (`TryCancel`, deadline),
+     or it is truly a network error, in which case it's typically helpful
+     for troubleshooting to say that there are issues not with the uservice
+     process itself, but with the infrastructure
+* `active` — The number of currently active RPCs (created and not finished)
+
+@ref grpc/functional_tests/metrics/tests/static/metrics_values.txt "An example of userver gRPC metrics".
+
+
+## Unit tests and benchmarks
+
+* @ref scripts/docs/en/userver/tutorial/grpc_service.md shows how to test
+  userver gRPC services and clients in gtest
+* @ref ugrpc::tests::Service and ugrpc::tests::ServiceBase can be used
+  to benchmark userver gRPC services and clients, as well as create more
+  complex gtest tests with multiple services and perhaps databases.
+
+----------
+
+@htmlonly <div class="bottom-nav"> @endhtmlonly
+⇦ @ref scripts/docs/en/userver/gdb_debugging.md | @ref scripts/docs/en/userver/grpc/timeouts_retries.md ⇨
+@htmlonly </div> @endhtmlonly
+
+@example grpc-generic-proxy/src/proxy_service.hpp
+@example grpc-generic-proxy/src/proxy_service.cpp
+@example grpc-generic-proxy/main.cpp
+@example grpc-generic-proxy/static_config.yaml
+@example grpc-generic-proxy/config_vars.yaml
+@example grpc-generic-proxy/CMakeLists.txt
+@example grpc/functional_tests/metrics/tests/static/metrics_values.txt

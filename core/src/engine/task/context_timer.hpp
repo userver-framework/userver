@@ -29,8 +29,11 @@ public:
 
     /// Asynchronously starts the timer with cancel request.
     /// Prolongs lifetime of the context until Finalize().
-    void
-    StartCancel(boost::intrusive_ptr<TaskContext> context, ev::TimerThreadControl& thread_control, Deadline deadline);
+    void StartCancel(
+        boost::intrusive_ptr<TaskContext> context,
+        ev::TimerThreadControl& thread_control,
+        Deadline deadline
+    );
 
     /// Asynchronously starts the timer with wakeup request.
     void StartWakeup(

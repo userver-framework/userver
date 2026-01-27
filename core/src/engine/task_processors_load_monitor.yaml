@@ -1,0 +1,9 @@
+type: object
+description: task-processors-load-monitor config
+additionalProperties: false
+properties:
+    task-processor:
+        type: string
+        description: name of the TaskProcessor to run monitoring on
+        default: |
+            task_processor of ServerMonitor or none, if ServerMonitor is absent

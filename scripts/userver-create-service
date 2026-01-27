@@ -1,0 +1,2 @@
+#!/bin/sh
+./userver-create-service.py "$@"

@@ -22,7 +22,7 @@ enum class RdKafkaLogLevel {
 
 }  // namespace
 
-logging::Level convertRdKafkaLogLevelToLoggingLevel(int log_level) noexcept {
+logging::Level ConvertRdKafkaLogLevelToLoggingLevel(int log_level) noexcept {
     const auto rd_kafka_log_level = static_cast<RdKafkaLogLevel>(log_level);
 
     switch (rd_kafka_log_level) {

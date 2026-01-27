@@ -145,9 +145,8 @@ struct BufferFormatter<
 };
 
 template <typename ByteContainer>
-struct BufferFormatter<
-    postgres::ByteaWrapper<ByteContainer>,
-    traits::EnableIfByteaCompatible<std::decay_t<ByteContainer>>>
+struct
+    BufferFormatter<postgres::ByteaWrapper<ByteContainer>, traits::EnableIfByteaCompatible<std::decay_t<ByteContainer>>>
     : detail::BufferFormatterBase<postgres::ByteaWrapper<ByteContainer>> {
     using BaseType = detail::BufferFormatterBase<postgres::ByteaWrapper<ByteContainer>>;
     using BaseType::BaseType;

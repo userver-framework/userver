@@ -5,6 +5,7 @@
 
 #include <functional>
 #include <iosfwd>
+#include <string>
 #include <type_traits>
 #include <utility>
 
@@ -13,10 +14,19 @@
 
 #include <boost/functional/hash_fwd.hpp>
 
+#include <userver/compiler/impl/three_way_comparison.hpp>
 #include <userver/formats/common/meta.hpp>
 #include <userver/utils/meta.hpp>
+#include <userver/utils/strong_typedef_fwd.hpp>
 #include <userver/utils/underlying_value.hpp>
 #include <userver/utils/void_t.hpp>
+
+namespace testing {
+
+template <typename T>
+std::string PrintToString(const T& value);
+
+}  // namespace testing
 
 USERVER_NAMESPACE_BEGIN
 
@@ -26,16 +36,6 @@ class LogHelper;  // Forward declaration
 
 namespace utils {
 
-enum class StrongTypedefOps {
-    kNoCompare = 0,  /// Forbid all comparisons for StrongTypedef
-
-    kCompareStrong = 1,           /// Allow comparing two StrongTypedef<Tag, T>
-    kCompareTransparentOnly = 2,  /// Allow comparing StrongTypedef<Tag, T> and T
-    kCompareTransparent = 3,      /// Allow both of the above
-
-    kNonLoggable = 4,  /// Forbid logging and serializing for StrongTypedef
-};
-
 constexpr bool operator&(StrongTypedefOps op, StrongTypedefOps mask) noexcept {
     return utils::UnderlyingValue(op) & utils::UnderlyingValue(mask);
 }
@@ -43,44 +43,6 @@ constexpr bool operator&(StrongTypedefOps op, StrongTypedefOps mask) noexcept {
 constexpr auto operator|(StrongTypedefOps op1, StrongTypedefOps op2) noexcept {
     return StrongTypedefOps{utils::UnderlyingValue(op1) | utils::UnderlyingValue(op2)};
 }
-
-/// @ingroup userver_universal userver_containers
-///
-/// @brief Strong typedef for a type T.
-///
-/// Typical usage:
-/// @code
-///   using MyString = utils::StrongTypedef<class MyStringTag, std::string>;
-/// @endcode
-///
-/// Or:
-/// @code
-///   struct MyString final : utils::StrongTypedef<MyString, std::string> {
-///     using StrongTypedef::StrongTypedef;
-///   };
-/// @endcode
-///
-/// Has all the:
-/// * comparison (see "Operators" below)
-/// * hashing
-/// * streaming operators
-/// * optimizaed logging for LOG_XXX()
-///
-/// If used with container-like type also has common STL functions:
-/// * begin()
-/// * end()
-/// * cbegin()
-/// * cend()
-/// * size()
-/// * empty()
-/// * clear()
-/// * operator[]
-///
-/// Operators:
-///   You can customize the operators that are available by passing the third
-///   argument of type StrongTypedefOps. See its docs for more info.
-template <class Tag, class T, StrongTypedefOps Ops = StrongTypedefOps::kCompareStrong, class /*Enable*/ = void>
-class StrongTypedef;  // Forward declaration
 
 // Helpers
 namespace impl::strong_typedef {
@@ -118,12 +80,6 @@ constexpr void CheckTransparentCompare() {
         "Comparing this StrongTypedef to a raw value is forbidden"
     );
 }
-
-struct StrongTypedefTag {};
-
-template <typename T>
-using IsStrongTypedef =
-    std::conjunction<std::is_base_of<StrongTypedefTag, T>, std::is_convertible<T&, StrongTypedefTag&>>;
 
 template <class T>
 const auto& UnwrapIfStrongTypedef(const T& value) {
@@ -171,8 +127,41 @@ constexpr bool IsStrongToStrongConversion() noexcept {
 
 }  // namespace impl::strong_typedef
 
-using impl::strong_typedef::IsStrongTypedef;
-
+/// @ingroup userver_universal userver_containers
+///
+/// @brief Strong typedef for a type T.
+///
+/// Typical usage:
+/// @code
+///   using MyString = utils::StrongTypedef<class MyStringTag, std::string>;
+/// @endcode
+///
+/// Or:
+/// @code
+///   struct MyString final : utils::StrongTypedef<MyString, std::string> {
+///     using StrongTypedef::StrongTypedef;
+///   };
+/// @endcode
+///
+/// Has all the:
+/// * comparison (see "Operators" below)
+/// * hashing
+/// * streaming operators
+/// * optimizaed logging for LOG_XXX()
+///
+/// If used with container-like type also has common STL functions:
+/// * begin()
+/// * end()
+/// * cbegin()
+/// * cend()
+/// * size()
+/// * empty()
+/// * clear()
+/// * operator[]
+///
+/// Operators:
+///   You can customize the operators that are available by passing the third
+///   argument of type StrongTypedefOps. See its docs for more info.
 template <class Tag, class T, StrongTypedefOps Ops, class /*Enable*/>
 class StrongTypedef : public impl::strong_typedef::StrongTypedefTag {
     static_assert(!std::is_reference<T>::value);
@@ -192,11 +181,14 @@ public:
     StrongTypedef& operator=(const StrongTypedef&) = default;
     StrongTypedef& operator=(StrongTypedef&&) noexcept = default;
 
-    constexpr StrongTypedef(impl::strong_typedef::InitializerList<T> lst) : data_(lst) {}
+    constexpr StrongTypedef(impl::strong_typedef::InitializerList<T> lst)
+        : data_(lst)
+    {}
 
     template <typename... Args, typename = std::enable_if_t<std::is_constructible_v<T, Args...>>>
     explicit constexpr StrongTypedef(Args&&... args) noexcept(noexcept(T(std::forward<Args>(args)...)))
-        : data_(std::forward<Args>(args)...) {
+        : data_(std::forward<Args>(args)...)
+    {
         using impl::strong_typedef::IsStrongToStrongConversion;
         static_assert(
             !IsStrongToStrongConversion<StrongTypedef, Args...>(),
@@ -277,8 +269,8 @@ private:
             int> /*Enable*/                                                                           \
         = 0>                                                                                          \
     constexpr auto operator OPERATOR(const T& lhs, const U& rhs)                                      \
-        ->decltype(impl::strong_typedef::UnwrapIfStrongTypedef(lhs)                                   \
-                       OPERATOR impl::strong_typedef::UnwrapIfStrongTypedef(rhs)) {                   \
+        ->decltype(impl::strong_typedef::UnwrapIfStrongTypedef(lhs                                    \
+        ) OPERATOR impl::strong_typedef::UnwrapIfStrongTypedef(rhs)) {                                \
         if constexpr (impl::strong_typedef::IsStrongTypedef<T>{}) {                                   \
             if constexpr (impl::strong_typedef::IsStrongTypedef<U>{}) {                               \
                 impl::strong_typedef::CheckStrongCompare<T, U>();                                     \
@@ -300,7 +292,7 @@ UTILS_STRONG_TYPEDEF_REL_OP(>)
 UTILS_STRONG_TYPEDEF_REL_OP(<=)
 UTILS_STRONG_TYPEDEF_REL_OP(>=)
 
-#if __cpp_lib_three_way_comparison >= 201907L
+#ifdef USERVER_IMPL_HAS_THREE_WAY_COMPARISON
 UTILS_STRONG_TYPEDEF_REL_OP(<=>)
 #endif
 
@@ -331,7 +323,7 @@ constexpr T UnderlyingValue(StrongTypedef<Tag, T, Ops>&& v) noexcept {
     return std::move(v).GetUnderlying();
 }
 
-constexpr bool IsStrongTypedefLoggable(StrongTypedefOps Ops) { return !(Ops & StrongTypedefOps::kNonLoggable); }
+constexpr bool IsStrongTypedefLoggable(StrongTypedefOps ops) { return !(ops & StrongTypedefOps::kNonLoggable); }
 
 // Serialization
 
@@ -368,7 +360,7 @@ std::string ToString(const StrongTypedef<Tag, T, Ops>& object) {
 template <typename Tag, typename T, StrongTypedefOps Ops, std::enable_if_t<std::is_floating_point_v<T>, bool> = true>
 std::string ToString(const StrongTypedef<Tag, T, Ops>& object) {
     impl::strong_typedef::CheckIfAllowsLogging<StrongTypedef<Tag, std::string, Ops>>();
-    return fmt::format("{}", object.GetUnderlying());
+    return fmt::to_string(object.GetUnderlying());
 }
 
 // Explicit casting
@@ -399,8 +391,14 @@ constexpr Target StrongCast(StrongTypedef<Tag, T, Ops, Enable>&& src) {
 }
 
 template <class Tag, class T, StrongTypedefOps Ops>
-std::size_t hash_value(const StrongTypedef<Tag, T, Ops>& v) {
+std::size_t hash_value(const StrongTypedef<Tag, T, Ops>& v) {  // NOLINT(readability-identifier-naming)
     return boost::hash<T>{}(v.GetUnderlying());
+}
+
+/// gtest formatter for utils::StrongTypedef
+template <class Tag, class T, StrongTypedefOps Ops>
+void PrintTo(const StrongTypedef<Tag, T, Ops>& v, std::ostream* os) {
+    *os << testing::PrintToString(v.GetUnderlying());
 }
 
 /// A StrongTypedef for data that MUST NOT be logged or outputted in some other
@@ -417,8 +415,8 @@ USERVER_NAMESPACE_END
 // std::hash support
 template <class Tag, class T, USERVER_NAMESPACE::utils::StrongTypedefOps Ops>
 struct std::hash<USERVER_NAMESPACE::utils::StrongTypedef<Tag, T, Ops>> : std::hash<T> {
-    std::size_t operator()(const USERVER_NAMESPACE::utils::StrongTypedef<Tag, T, Ops>& v) const
-        noexcept(noexcept(std::declval<const std::hash<T>>()(std::declval<const T&>()))) {
+    std::size_t operator()(const USERVER_NAMESPACE::utils::StrongTypedef<Tag, T, Ops>& v
+    ) const noexcept(noexcept(std::declval<const std::hash<T>>()(std::declval<const T&>()))) {
         return std::hash<T>::operator()(v.GetUnderlying());
     }
 };

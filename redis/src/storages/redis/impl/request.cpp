@@ -1,9 +1,9 @@
-#include <userver/storages/redis/impl/request.hpp>
+#include <storages/redis/impl/request.hpp>
 
 #include <userver/tracing/in_place_span.hpp>
 
 #include <userver/storages/redis/exception.hpp>
-#include <userver/storages/redis/impl/reply.hpp>
+#include <userver/storages/redis/reply.hpp>
 
 #include <storages/redis/impl/command.hpp>
 #include <storages/redis/impl/sentinel.hpp>
@@ -12,13 +12,17 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis::impl {
 
 namespace {
 
 class ReplyState {
 public:
-    explicit ReplyState(std::string&& span_name) : span_(std::move(span_name)) { span_.Get().DetachFromCoroStack(); }
+    explicit ReplyState(std::string&& span_name)
+        : span_(std::move(span_name))
+    {
+        span_.Get().DetachFromCoroStack();
+    }
 
     ~ReplyState() {
         if (!executed_) {
@@ -40,15 +44,15 @@ private:
 };
 
 std::string MakeSpanName(const CmdArgs& cmd_args) {
-    if (cmd_args.args.empty() || cmd_args.args.front().empty()) {
+    if (cmd_args.GetCommandCount() == 0) {
         return "redis_unknown";
     }
 
-    if (cmd_args.args.size() > 1) {
+    if (cmd_args.GetCommandCount() > 1) {
         return "redis_multi";
     }
 
-    return "redis_" + cmd_args.args.front().front();
+    return "redis_" + cmd_args.GetCommandName(0);
 }
 
 }  // namespace
@@ -89,8 +93,9 @@ CommandPtr Request::PrepareRequest(CmdArgs&& args, const CommandControl& command
         std::move(args),
         [state_ptr = std::move(state_ptr)](const CommandPtr&, ReplyPtr reply) mutable {
             if (!state_ptr) {
-                LOG_LIMITED_WARNING() << "redis::Command keeps running after "
-                                         "triggering the callback initially";
+                LOG_LIMITED_WARNING()
+                    << "redis::Command keeps running after "
+                       "triggering the callback initially";
                 return;
             }
 
@@ -98,7 +103,9 @@ CommandPtr Request::PrepareRequest(CmdArgs&& args, const CommandControl& command
 
             if (state_ptr->GetRepliesToSkip() != 0) {
                 state_ptr->SetRepliesToSkip(state_ptr->GetRepliesToSkip() - 1);
-                if (reply->data.IsStatus()) return;
+                if (reply->data.IsStatus()) {
+                    return;
+                }
             }
 
             reply->FillSpanTags(state_ptr->Span());
@@ -128,6 +135,6 @@ ReplyPtr Request::Get() {
 
 engine::impl::ContextAccessor* Request::TryGetContextAccessor() noexcept { return future_.TryGetContextAccessor(); }
 
-}  // namespace redis
+}  // namespace storages::redis::impl
 
 USERVER_NAMESPACE_END

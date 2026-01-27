@@ -28,7 +28,8 @@ DistLockedWorker::DistLockedWorker(
           impl::Locker::kDefaultRetryMode,
           locker_log_level
       )),
-      task_processor_(task_processor) {}
+      task_processor_(task_processor)
+{}
 
 DistLockedWorker::~DistLockedWorker() {
     UASSERT_MSG(!IsRunning(), "Stop() was not called");
@@ -48,7 +49,7 @@ void DistLockedWorker::UpdateSettings(const DistLockSettings& settings) { locker
 void DistLockedWorker::Start() {
     LOG_INFO() << "Starting DistLockedWorker " << Name();
 
-    std::lock_guard<engine::Mutex> lock(locker_task_mutex_);
+    const std::lock_guard<engine::Mutex> lock(locker_task_mutex_);
     locker_task_ = locker_ptr_->RunAsync(GetTaskProcessor(), impl::LockerMode::kWorker, DistLockWaitingMode::kWait);
 
     LOG_INFO() << "Started DistLockedWorker " << Name();
@@ -57,7 +58,7 @@ void DistLockedWorker::Start() {
 void DistLockedWorker::RunOnce() {
     LOG_INFO() << "Running DistLockedWorker once " << Name();
 
-    std::lock_guard<engine::Mutex> lock(locker_task_mutex_);
+    const std::lock_guard<engine::Mutex> lock(locker_task_mutex_);
     locker_task_ = locker_ptr_->RunAsync(GetTaskProcessor(), impl::LockerMode::kOneshot, DistLockWaitingMode::kWait);
     locker_task_.Get();
 
@@ -67,19 +68,23 @@ void DistLockedWorker::RunOnce() {
 void DistLockedWorker::Stop() {
     LOG_INFO() << "Stopping DistLockedWorker " << Name();
 
-    std::lock_guard<engine::Mutex> lock(locker_task_mutex_);
-    if (locker_task_.IsValid()) locker_task_.RequestCancel();
+    const std::lock_guard<engine::Mutex> lock(locker_task_mutex_);
+    if (locker_task_.IsValid()) {
+        locker_task_.RequestCancel();
+    }
     impl::GetTask(locker_task_, impl::LockerName(Name()), "cancel and wait in DistLockedWorker::Stop()");
 
     LOG_INFO() << "Stopped DistLocked Worker " << Name();
 }
 
 bool DistLockedWorker::IsRunning() const {
-    std::lock_guard<engine::Mutex> lock(locker_task_mutex_);
+    const std::lock_guard<engine::Mutex> lock(locker_task_mutex_);
     return locker_task_.IsValid();
 }
 
 bool DistLockedWorker::OwnsLock() const noexcept { return locker_ptr_->OwnsLock(); }
+
+bool DistLockedWorker::IsCancelAdvised() const { return !locker_ptr_->GetSettings().is_enabled; }
 
 std::optional<std::chrono::steady_clock::duration> DistLockedWorker::GetLockedDuration() const {
     return locker_ptr_->GetLockedDuration();

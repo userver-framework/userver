@@ -12,7 +12,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::redis::bench {
 
-using SentinelPtr = std::shared_ptr<USERVER_NAMESPACE::redis::Sentinel>;
+using SentinelPtr = std::shared_ptr<storages::redis::impl::Sentinel>;
 
 class Redis : public benchmark::Fixture {
 protected:

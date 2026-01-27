@@ -17,8 +17,12 @@ class Pipe final {
 public:
     Pipe() { utils::CheckSyscall(::pipe(fd_), "creating pipe"); }
     ~Pipe() {
-        if (fd_[0] != -1) ::close(fd_[0]);
-        if (fd_[1] != -1) ::close(fd_[1]);
+        if (fd_[0] != -1) {
+            ::close(fd_[0]);
+        }
+        if (fd_[1] != -1) {
+            ::close(fd_[1]);
+        }
     }
 
     int GetIn() { return fd_[0]; }
@@ -34,7 +38,7 @@ namespace ev = engine::ev;
 
 }  // namespace
 
-void watcher_async_start(benchmark::State& state) {
+void WatcherAsyncStart(benchmark::State& state) {
     engine::RunStandalone([&]() {
         Pipe pipe;
         ev::Watcher<ev_io> watcher{engine::current_task::GetEventThread(), &pipe};
@@ -46,9 +50,9 @@ void watcher_async_start(benchmark::State& state) {
         }
     });
 }
-BENCHMARK(watcher_async_start);
+BENCHMARK(WatcherAsyncStart);
 
-void watcher_async_start_multiple(benchmark::State& state) {
+void WatcherAsyncStartMultiple(benchmark::State& state) {
     engine::RunStandalone([&]() {
         static constexpr unsigned kPipes = 8;
         Pipe pipes[kPipes];
@@ -68,6 +72,6 @@ void watcher_async_start_multiple(benchmark::State& state) {
         }
     });
 }
-BENCHMARK(watcher_async_start_multiple);
+BENCHMARK(WatcherAsyncStartMultiple);
 
 USERVER_NAMESPACE_END

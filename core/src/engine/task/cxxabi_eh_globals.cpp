@@ -21,7 +21,9 @@ abi::__cxa_eh_globals* GetGlobals() throw() {
     auto* globals = &tls_globals;
 
     auto* context = current_task::GetCurrentTaskContextUnchecked();
-    if (context) globals = context->GetEhGlobals();
+    if (context) {
+        globals = context->GetEhGlobals();
+    }
 
     return reinterpret_cast<abi::__cxa_eh_globals*>(globals);
 }

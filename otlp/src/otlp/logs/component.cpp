@@ -19,22 +19,52 @@
 
 #include <opentelemetry/proto/collector/logs/v1/logs_service_client.usrv.pb.hpp>
 
+#ifndef ARCADIA_ROOT
+#include "generated/src/otlp/logs/component.yaml.hpp"  // Y_IGNORE
+#endif
+
 USERVER_NAMESPACE_BEGIN
 
 namespace otlp {
 
 LoggerComponent::LoggerComponent(const components::ComponentConfig& config, const components::ComponentContext& context)
-    : old_logger_(logging::GetDefaultLogger()) {
-    auto& client_factory = context.FindComponent<ugrpc::client::ClientFactoryComponent>().GetFactory();
+    : old_logger_(logging::GetDefaultLogger())
+{
+    auto client_factory_name = config["client-factory-name"].As<std::string>();
 
-    auto endpoint = config["endpoint"].As<std::string>();
-    auto client = client_factory.MakeClient<opentelemetry::proto::collector::logs::v1::LogsServiceClient>(
-        "otlp-logger", endpoint
-    );
+    auto&
+        client_factory = context.FindComponent<ugrpc::client::ClientFactoryComponent>(client_factory_name).GetFactory();
 
-    auto trace_client = client_factory.MakeClient<opentelemetry::proto::collector::trace::v1::TraceServiceClient>(
-        "otlp-tracer", endpoint
-    );
+    std::string logs_endpoint;
+    std::string tracing_endpoint;
+
+    auto endpoint_cfg = config["endpoint"];
+    auto logs_endpoint_cfg = config["logs-endpoint"];
+    auto tracing_endpoint_cfg = config["tracing-endpoint"];
+
+    auto is_present = [](auto&& x) { return !(x.IsMissing() || x.IsNull()); };
+
+    if (is_present(endpoint_cfg)) {
+        // we have one endpoint
+        if (is_present(logs_endpoint_cfg)) {
+            throw std::runtime_error(R"("endpoint" option is incompatible with "logs-endpoint")");
+        }
+        if (is_present(tracing_endpoint_cfg)) {
+            throw std::runtime_error(R"("endpoint" option is incompatible with "tracing-endpoint")");
+        }
+
+        logs_endpoint = endpoint_cfg.As<std::string>();
+        tracing_endpoint = endpoint_cfg.As<std::string>();
+    } else {
+        logs_endpoint = logs_endpoint_cfg.As<std::string>();
+        tracing_endpoint = tracing_endpoint_cfg.As<std::string>();
+    }
+
+    auto client = client_factory.MakeClient<
+        opentelemetry::proto::collector::logs::v1::LogsServiceClient>("otlp-logger", logs_endpoint);
+
+    auto trace_client = client_factory.MakeClient<
+        opentelemetry::proto::collector::trace::v1::TraceServiceClient>("otlp-tracer", tracing_endpoint);
 
     LoggerConfig logger_config;
     logger_config.max_queue_size = config["max-queue-size"].As<size_t>(65535);
@@ -42,8 +72,8 @@ LoggerComponent::LoggerComponent(const components::ComponentConfig& config, cons
     logger_config.service_name = config["service-name"].As<std::string>("unknown_service");
     logger_config.log_level = config["log-level"].As<USERVER_NAMESPACE::logging::Level>();
     logger_config.extra_attributes = config["extra-attributes"].As<std::unordered_map<std::string, std::string>>({});
-    logger_config.attributes_mapping =
-        config["attributes-mapping"].As<std::unordered_map<std::string, std::string>>({});
+    logger_config.attributes_mapping = config["attributes-mapping"].As<std::unordered_map<std::string, std::string>>({}
+    );
     logger_config.logs_sink = config["sinks"]["logs"].As<SinkType>(SinkType::kOtlp);
     logger_config.tracing_sink = config["sinks"]["tracing"].As<SinkType>(SinkType::kOtlp);
 
@@ -75,7 +105,7 @@ LoggerComponent::LoggerComponent(const components::ComponentConfig& config, cons
         }
     }
 
-    logger_->SetDefaultLogger(default_logger);
+    logger_->SetDefaultLogger(std::move(default_logger));
 
     logging::impl::SetDefaultLoggerRef(*logger_);
     old_logger_.ForwardTo(&*logger_);
@@ -100,59 +130,7 @@ LoggerComponent::~LoggerComponent() {
 }
 
 yaml_config::Schema LoggerComponent::GetStaticConfigSchema() {
-    return yaml_config::MergeSchemas<components::RawComponentBase>(R"(
-type: object
-description: >
-    OpenTelemetry logger component
-additionalProperties: false
-properties:
-    endpoint:
-        type: string
-        description: >
-            Hostname:port of otel collector (gRPC).
-    log-level:
-        type: string
-        description: log level
-    max-queue-size:
-        type: integer
-        description: max async queue size
-    max-batch-delay:
-        type: string
-        description: max delay between send batches (e.g. 100ms or 1s)
-    service-name:
-        type: string
-        description: service name
-    sinks:
-        type: object
-        description: sinks to send logs/traces to
-        additionalProperties: false
-        properties:
-            logs:
-                type: string
-                enum: [otlp, default, both]
-                description: logs sink
-                defaultDescription: otlp
-            tracing:
-                type: string
-                enum: [otlp, default, both]
-                description: tracing sink
-                defaultDescription: otlp
-    attributes-mapping:
-        type: object
-        description: rename rules for OTLP attributes
-        properties: {}
-        additionalProperties:
-            type: string
-            description: new attribute name
-    extra-attributes:
-        type: object
-        description: extra OTLP attributes
-        properties: {}
-        additionalProperties:
-            type: string
-            description: attribute value
-
-)");
+    return yaml_config::MergeSchemasFromResource<components::RawComponentBase>("src/otlp/logs/component.yaml");
 }
 
 }  // namespace otlp

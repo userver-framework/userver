@@ -10,16 +10,21 @@
 #include <userver/storages/mongo/mongo_error.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/tracing/tags.hpp>
+#include <userver/utils/algo.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/impl/userver_experiments.hpp>
 #include <userver/utils/text.hpp>
 
 #include <formats/bson/wrappers.hpp>
 #include <storages/mongo/cdriver/cursor_impl.hpp>
+#include <storages/mongo/cdriver/find_and_modify.hpp>
 #include <storages/mongo/cdriver/pool_impl.hpp>
 #include <storages/mongo/cdriver/wrappers.hpp>
 #include <storages/mongo/operations_common.hpp>
 #include <storages/mongo/operations_impl.hpp>
+
+#include <dynamic_config/variables/MONGO_DEFAULT_MAX_TIME_MS.hpp>
+#include <dynamic_config/variables/USERVER_DEADLINE_PROPAGATION_ENABLED.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -40,79 +45,40 @@ private:
     formats::bson::impl::UninitializedBson bson_;
 };
 
-std::optional<std::string> GetCurrentSpanLink() {
+std::optional<std::string_view> GetCurrentSpanLink() {
     auto* span = tracing::Span::CurrentSpanUnchecked();
-    if (span) return span->GetLink();
+    if (span) {
+        return span->GetLink();
+    }
     return std::nullopt;
 }
 
 void SetLinkComment(formats::bson::impl::BsonBuilder& builder, bool& has_comment_option) {
     auto link = GetCurrentSpanLink();
-    if (link) operations::AppendComment(builder, has_comment_option, options::Comment("link=" + *link));
-}
-
-impl::cdriver::FindAndModifyOptsPtr CopyFindAndModifyOptions(const impl::cdriver::FindAndModifyOptsPtr& options) {
-    impl::cdriver::FindAndModifyOptsPtr result(mongoc_find_and_modify_opts_new());
-
-    {
-        formats::bson::impl::UninitializedBson tmp_bson;
-        mongoc_find_and_modify_opts_get_sort(options.get(), tmp_bson.Get());
-        if (!mongoc_find_and_modify_opts_set_sort(result.get(), tmp_bson.Get()))
-            throw MongoException("Cannot set 'sort'");
+    if (link) {
+        operations::AppendComment(builder, has_comment_option, options::Comment(utils::StrCat("link=", *link)));
     }
-
-    auto flags = mongoc_find_and_modify_opts_get_flags(options.get());
-    if (!mongoc_find_and_modify_opts_set_flags(result.get(), flags)) throw MongoException("Cannot set 'flags'");
-
-    if (!(flags & MONGOC_FIND_AND_MODIFY_REMOVE)) {
-        formats::bson::impl::UninitializedBson tmp_bson;
-        mongoc_find_and_modify_opts_get_update(options.get(), tmp_bson.Get());
-        if (!mongoc_find_and_modify_opts_set_update(result.get(), tmp_bson.Get()))
-            throw MongoException("Cannot set 'update'");
-    }
-
-    {
-        formats::bson::impl::UninitializedBson tmp_bson;
-        mongoc_find_and_modify_opts_get_fields(options.get(), tmp_bson.Get());
-        if (!mongoc_find_and_modify_opts_set_fields(result.get(), tmp_bson.Get()))
-            throw MongoException("Cannot set 'fields'");
-    }
-
-    {
-        auto bypass_document_validation = mongoc_find_and_modify_opts_get_bypass_document_validation(options.get());
-        if (!mongoc_find_and_modify_opts_set_bypass_document_validation(result.get(), bypass_document_validation))
-            throw MongoException("Cannot set 'bypass_document_validation'");
-    }
-
-    {
-        auto max_time_ms = mongoc_find_and_modify_opts_get_max_time_ms(options.get());
-        if (!mongoc_find_and_modify_opts_set_max_time_ms(result.get(), max_time_ms))
-            throw MongoException("Cannot set 'max_time_ms'");
-    }
-
-    {
-        formats::bson::impl::UninitializedBson tmp_bson;
-        mongoc_find_and_modify_opts_get_extra(options.get(), tmp_bson.Get());
-        if (!mongoc_find_and_modify_opts_append(result.get(), tmp_bson.Get()))
-            throw MongoException("Cannot set 'extra'");
-    }
-
-    return result;
 }
 
 std::optional<std::chrono::milliseconds> GetDeadlineTimeLeft(const dynamic_config::Snapshot& config) {
-    if (!config[kDeadlinePropagationEnabled]) return std::nullopt;
+    if (!config[::dynamic_config::USERVER_DEADLINE_PROPAGATION_ENABLED]) {
+        return std::nullopt;
+    }
 
     const auto inherited_deadline = server::request::GetTaskInheritedDeadline();
-    if (!inherited_deadline.IsReachable()) return std::nullopt;
+    if (!inherited_deadline.IsReachable()) {
+        return std::nullopt;
+    }
 
-    const auto inherited_timeout =
-        std::chrono::duration_cast<std::chrono::milliseconds>(inherited_deadline.TimeLeftApprox());
+    const auto
+        inherited_timeout = std::chrono::duration_cast<std::chrono::milliseconds>(inherited_deadline.TimeLeftApprox());
     return inherited_timeout;
 }
 
-std::chrono::milliseconds
-ComputeAdjustedMaxServerTime(std::chrono::milliseconds user_max_server_time, const RequestContext& context) {
+std::chrono::milliseconds ComputeAdjustedMaxServerTime(
+    std::chrono::milliseconds user_max_server_time,
+    const RequestContext& context
+) {
     auto max_server_time = user_max_server_time;
     try {
         operations::VerifyMaxServerTime(max_server_time);
@@ -122,7 +88,7 @@ ComputeAdjustedMaxServerTime(std::chrono::milliseconds user_max_server_time, con
     }
 
     if (max_server_time == operations::kNoMaxServerTime) {
-        max_server_time = context.dynamic_config[kDefaultMaxTime];
+        max_server_time = context.dynamic_config[::dynamic_config::MONGO_DEFAULT_MAX_TIME_MS];
     }
 
     if (auto inherited_deadline = context.inherited_deadline) {
@@ -145,7 +111,9 @@ void SetMaxServerTime(
     const RequestContext& context
 ) {
     max_server_time = ComputeAdjustedMaxServerTime(max_server_time, context);
-    if (max_server_time == operations::kNoMaxServerTime) return;
+    if (max_server_time == operations::kNoMaxServerTime) {
+        return;
+    }
 
     constexpr std::string_view kOptionName = "maxTimeMS";
     impl::EnsureBuilder(builder).Append(kOptionName, max_server_time.count());
@@ -157,7 +125,9 @@ void SetMaxServerTime(
     const RequestContext& context
 ) {
     max_server_time = ComputeAdjustedMaxServerTime(max_server_time, context);
-    if (max_server_time == operations::kNoMaxServerTime) return;
+    if (max_server_time == operations::kNoMaxServerTime) {
+        return;
+    }
 
     if (!mongoc_find_and_modify_opts_set_max_time_ms(&options, max_server_time.count())) {
         throw MongoException("Cannot set max server time");
@@ -173,7 +143,8 @@ CDriverCollectionImpl::CDriverCollectionImpl(
 )
     : CollectionImpl(std::move(database_name), std::move(collection_name)),
       pool_impl_(std::move(pool_impl)),
-      statistics_(pool_impl_->GetStatistics().collections[GetCollectionName()]) {
+      statistics_(pool_impl_->GetStatistics().collections[GetCollectionName()])
+{
     UASSERT(dynamic_cast<cdriver::CDriverPoolImpl*>(pool_impl_.get()));
 }
 
@@ -186,40 +157,14 @@ size_t CDriverCollectionImpl::Execute(const operations::Count& operation) const 
     MongoError error;
     stats::OperationStopwatch stopwatch(std::move(context.stats));
     const bson_t* native_filter_bson_ptr = operation.impl_->filter.GetBson().get();
-    int64_t count = -1;
-    if (operation.impl_->use_new_count) {
-        count = mongoc_collection_count_documents(
-            context.collection.get(),
-            native_filter_bson_ptr,
-            impl::GetNative(operation.impl_->options),
-            operation.impl_->read_prefs.Get(),
-            nullptr,
-            error.GetNative()
-        );
-    } else {
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"  // i know
-#else
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
-        count = mongoc_collection_count_with_opts(
-            context.collection.get(),
-            MONGOC_QUERY_NONE,
-            native_filter_bson_ptr,  //
-            0,
-            0,  // skip and limit are set in options
-            impl::GetNative(operation.impl_->options),
-            operation.impl_->read_prefs.Get(),
-            error.GetNative()
-        );
-#ifdef __clang__
-#pragma clang diagnostic pop
-#else
-#pragma GCC diagnostic pop
-#endif
-    }
+    int64_t count = mongoc_collection_count_documents(
+        context.collection.get(),
+        native_filter_bson_ptr,
+        impl::GetNative(operation.impl_->options),
+        operation.impl_->read_prefs.Get(),
+        nullptr,
+        error.GetNative()
+    );
     if (count < 0) {
         stopwatch.AccountError(error.GetKind());
         error.Throw("Error counting documents");
@@ -257,15 +202,78 @@ Cursor CDriverCollectionImpl::Execute(const operations::Find& operation) const {
     auto options = operation.impl_->options;
     SetMaxServerTime(options, operation.impl_->max_server_time, context);
     bool has_comment_option = operation.impl_->has_comment_option;
-    if (!has_comment_option) SetLinkComment(impl::EnsureBuilder(options), has_comment_option);
+    if (!has_comment_option) {
+        SetLinkComment(impl::EnsureBuilder(options), has_comment_option);
+    }
 
     const bson_t* native_filter_bson_ptr = operation.impl_->filter.GetBson().get();
     impl::cdriver::CursorPtr cdriver_cursor(mongoc_collection_find_with_opts(
-        context.collection.get(), native_filter_bson_ptr, impl::GetNative(options), operation.impl_->read_prefs.Get()
+        context.collection.get(),
+        native_filter_bson_ptr,
+        impl::GetNative(options),
+        operation.impl_->read_prefs.Get()
     ));
     return Cursor(std::make_unique<impl::cdriver::CDriverCursorImpl>(
-        std::move(context.client), std::move(cdriver_cursor), std::move(context.stats)
+        std::move(context.client),
+        std::move(cdriver_cursor),
+        std::move(context.stats)
     ));
+}
+
+std::vector<formats::bson::Value> CDriverCollectionImpl::Execute(const operations::Distinct& operation) const {
+    auto context = MakeRequestContext("mongo_distinct", operation);
+
+    auto options = operation.impl_->options;
+    SetMaxServerTime(options, operation.impl_->max_server_time, context);
+    bool has_comment_option = operation.impl_->has_comment_option;
+    if (!has_comment_option) {
+        SetLinkComment(impl::EnsureBuilder(options), has_comment_option);
+    }
+
+    MongoError error;
+    stats::OperationStopwatch stopwatch(std::move(context.stats));
+
+    formats::bson::impl::BsonBuilder command_builder;
+    command_builder.Append("distinct", GetCollectionName());
+    command_builder.Append("key", operation.impl_->field);
+
+    if (operation.impl_->filter.has_value()) {
+        command_builder.Append("query", operation.impl_->filter.value());
+    }
+
+    auto command_bson = command_builder.Extract();
+    const bson_t* native_command_bson_ptr = command_bson.get();
+
+    formats::bson::impl::UninitializedBson result_bson;
+    if (!mongoc_collection_read_command_with_opts(
+            context.collection.get(),
+            native_command_bson_ptr,
+            operation.impl_->read_prefs.Get(),
+            impl::GetNative(options),
+            result_bson.Get(),
+            error.GetNative()
+        ))
+    {
+        stopwatch.AccountError(error.GetKind());
+        error.Throw("Error executing distinct operation");
+    }
+
+    stopwatch.AccountSuccess();
+
+    auto result_doc = formats::bson::Document(result_bson.Extract());
+    auto values_field = result_doc["values"];
+    if (!values_field.IsArray()) {
+        throw MongoException("Distinct operation result is not an array");
+    }
+
+    std::vector<formats::bson::Value> distinct_values;
+    distinct_values.reserve(values_field.GetSize());
+
+    for (auto& value : values_field) {
+        distinct_values.push_back(std::move(value));
+    }
+
+    return distinct_values;
 }
 
 WriteResult CDriverCollectionImpl::Execute(const operations::InsertOne& operation) {
@@ -281,7 +289,8 @@ WriteResult CDriverCollectionImpl::Execute(const operations::InsertOne& operatio
             impl::GetNative(operation.impl_->options),
             write_result.GetNative(),
             error.GetNative()
-        )) {
+        ))
+    {
         stopwatch.AccountSuccess();
     } else {
         stopwatch.AccountError(error.GetKind());
@@ -293,7 +302,9 @@ WriteResult CDriverCollectionImpl::Execute(const operations::InsertOne& operatio
 }
 
 WriteResult CDriverCollectionImpl::Execute(const operations::InsertMany& operation) {
-    if (operation.impl_->documents.empty()) return {};
+    if (operation.impl_->documents.empty()) {
+        return {};
+    }
 
     auto context = MakeRequestContext("mongo_insert_many", operation);
 
@@ -317,7 +328,8 @@ WriteResult CDriverCollectionImpl::Execute(const operations::InsertMany& operati
             impl::GetNative(operation.impl_->options),
             write_result.GetNative(),
             error.GetNative()
-        )) {
+        ))
+    {
         stopwatch.AccountSuccess();
     } else {
         stopwatch.AccountError(error.GetKind());
@@ -343,7 +355,8 @@ WriteResult CDriverCollectionImpl::Execute(const operations::ReplaceOne& operati
             impl::GetNative(operation.impl_->options),
             write_result.GetNative(),
             error.GetNative()
-        )) {
+        ))
+    {
         stopwatch.AccountSuccess();
     } else {
         stopwatch.AccountError(error.GetKind());
@@ -464,7 +477,8 @@ WriteResult CDriverCollectionImpl::Execute(const operations::FindAndModify& oper
                 options.get(),
                 write_result.GetNative(),
                 error.GetNative()
-            )) {
+            ))
+        {
             stopwatch.AccountSuccess();
         } else {
             auto error_kind = error.GetKind();
@@ -490,8 +504,13 @@ WriteResult CDriverCollectionImpl::Execute(const operations::FindAndRemove& oper
     stats::OperationStopwatch stopwatch(std::move(context.stats));
     const bson_t* native_fam_bson_ptr = operation.impl_->query.GetBson().get();
     if (mongoc_collection_find_and_modify_with_opts(
-            context.collection.get(), native_fam_bson_ptr, options.get(), write_result.GetNative(), error.GetNative()
-        )) {
+            context.collection.get(),
+            native_fam_bson_ptr,
+            options.get(),
+            write_result.GetNative(),
+            error.GetNative()
+        ))
+    {
         stopwatch.AccountSuccess();
     } else {
         stopwatch.AccountError(error.GetKind());
@@ -501,7 +520,9 @@ WriteResult CDriverCollectionImpl::Execute(const operations::FindAndRemove& oper
 }
 
 WriteResult CDriverCollectionImpl::Execute(operations::Bulk&& operation) {
-    if (operation.IsEmpty()) return {};
+    if (operation.IsEmpty()) {
+        return {};
+    }
 
     auto context = MakeRequestContext("mongo_bulk", operation);
 
@@ -531,7 +552,9 @@ Cursor CDriverCollectionImpl::Execute(const operations::Aggregate& operation) {
     auto options = operation.impl_->options;
     SetMaxServerTime(options, operation.impl_->max_server_time, context);
     bool has_comment_option = operation.impl_->has_comment_option;
-    if (!has_comment_option) SetLinkComment(impl::EnsureBuilder(options), has_comment_option);
+    if (!has_comment_option) {
+        SetLinkComment(impl::EnsureBuilder(options), has_comment_option);
+    }
 
     auto pipeline_doc = operation.impl_->pipeline.GetInternalArrayDocument();
     const bson_t* native_pipeline_bson_ptr = pipeline_doc.GetBson().get();
@@ -543,7 +566,9 @@ Cursor CDriverCollectionImpl::Execute(const operations::Aggregate& operation) {
         operation.impl_->read_prefs.Get()
     ));
     return Cursor(std::make_unique<impl::cdriver::CDriverCursorImpl>(
-        std::move(context.client), std::move(cdriver_cursor), std::move(context.stats)
+        std::move(context.client),
+        std::move(cdriver_cursor),
+        std::move(context.stats)
     ));
 }
 
@@ -553,8 +578,11 @@ void CDriverCollectionImpl::Execute(const operations::Drop& operation) {
     MongoError error;
     stats::OperationStopwatch stopwatch(std::move(context.stats));
     if (mongoc_collection_drop_with_opts(
-            context.collection.get(), impl::GetNative(operation.impl_->options), error.GetNative()
-        )) {
+            context.collection.get(),
+            impl::GetNative(operation.impl_->options),
+            error.GetNative()
+        ))
+    {
         stopwatch.AccountSuccess();
     } else {
         stopwatch.AccountError(error.GetKind());
@@ -600,9 +628,8 @@ RequestContext CDriverCollectionImpl::MakeRequestContext(std::string&& span_name
     }
 
     auto client = GetClient(*stats);
-    cdriver::CollectionPtr collection(
-        mongoc_client_get_collection(client.get(), GetDatabaseName().c_str(), GetCollectionName().c_str())
-    );
+    cdriver::CollectionPtr
+        collection(mongoc_client_get_collection(client.get(), GetDatabaseName().c_str(), GetCollectionName().c_str()));
 
     return RequestContext{
         std::move(stats),

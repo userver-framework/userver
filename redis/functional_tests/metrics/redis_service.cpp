@@ -8,7 +8,7 @@
 #include <fmt/format.h>
 
 #include <userver/clients/dns/component.hpp>
-#include <userver/clients/http/component.hpp>
+#include <userver/clients/http/component_list.hpp>
 #include <userver/components/component.hpp>
 #include <userver/components/minimal_server_component_list.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
@@ -45,27 +45,30 @@ private:
     storages::redis::SubscribeClientPtr subscribe_client_;
     storages::redis::SubscriptionToken subscription_token_;
     storages::redis::CommandControl redis_cc_{};
-    std::atomic_int values_posted{0};
+    std::atomic_int values_posted_{0};
 };
 
 KeyValue::KeyValue(const components::ComponentConfig& config, const components::ComponentContext& context)
     : server::handlers::HttpHandlerBase(config, context),
       redis_client_{context.FindComponent<components::Redis>("key-value-database").GetClient("metrics_test")},
       subscribe_client_{
-          context.FindComponent<components::Redis>("key-value-database").GetSubscribeClient("metrics_test")} {
+          context.FindComponent<components::Redis>("key-value-database").GetSubscribeClient("metrics_test")
+      }
+{
     redis_cc_.force_request_to_master = true;
     subscription_token_ =
         subscribe_client_->Subscribe(kPostChannel, [&](const std::string& channel, const std::string& message) {
             LOG_INFO() << channel << ": " << message;
-            ++values_posted;
+            ++values_posted_;
         });
 }
 
 KeyValue::~KeyValue() { subscription_token_.Unsubscribe(); }
 
-std::string
-KeyValue::HandleRequestThrow(const server::http::HttpRequest& request, server::request::RequestContext& /*context*/)
-    const {
+std::string KeyValue::HandleRequestThrow(
+    const server::http::HttpRequest& request,
+    server::request::RequestContext& /*context*/
+) const {
     const auto& key = request.GetArg("key");
     if (key.empty()) {
         throw server::handlers::ClientError(server::handlers::ExternalBody{"No 'key' query argument"});
@@ -80,7 +83,8 @@ KeyValue::HandleRequestThrow(const server::http::HttpRequest& request, server::r
             return DeleteValue(key);
         default:
             throw server::handlers::ClientError(server::handlers::ExternalBody{
-                fmt::format("Unsupported method {}", request.GetMethod())});
+                fmt::format("Unsupported method {}", request.GetMethod())
+            });
     }
 }
 
@@ -115,15 +119,16 @@ std::string KeyValue::DeleteValue(std::string_view key) const {
 }  // namespace chaos
 
 int main(int argc, char* argv[]) {
-    const auto component_list = components::MinimalServerComponentList()
-                                    .Append<server::handlers::ServerMonitor>()
-                                    .Append<chaos::KeyValue>()
-                                    .Append<components::Secdist>()
-                                    .Append<components::DefaultSecdistProvider>()
-                                    .Append<components::Redis>("key-value-database")
-                                    .Append<components::TestsuiteSupport>()
-                                    .Append<components::HttpClient>()
-                                    .Append<clients::dns::Component>()
-                                    .Append<server::handlers::TestsControl>();
+    const auto component_list =
+        components::MinimalServerComponentList()
+            .Append<server::handlers::ServerMonitor>()
+            .Append<chaos::KeyValue>()
+            .Append<components::Secdist>()
+            .Append<components::DefaultSecdistProvider>()
+            .Append<components::Redis>("key-value-database")
+            .Append<components::TestsuiteSupport>()
+            .AppendComponentList(clients::http::ComponentList())
+            .Append<clients::dns::Component>()
+            .Append<server::handlers::TestsControl>();
     return utils::DaemonMain(argc, argv, component_list);
 }

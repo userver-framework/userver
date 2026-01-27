@@ -14,18 +14,20 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::redis {
 
-/// Atomic sequence of commands (https://redis.io/topics/transactions).
-/// Please note that Redis transaction implements isolation, but not
+/// @brief Atomic sequence of Redis commands (https://redis.io/topics/transactions), that is usually retrieved from
+/// storages::redis::Client::Multi().
+///
+/// @note Redis transaction implements isolation, but not
 /// all-or-nothing semantics (IOW a subcommand may fail, but the following
 /// subcommands will succeed).
-/// Methods will add commands to the `Transaction` object.
-/// For each added command a future-like object will be returned.
-/// You can get the result of each transaction's subcommand by calling `Get()`
-/// method for these objects.
-/// Commands will be sent to a server after calling `Exec()` that returns
-/// `RequestExec` object.
+///
+/// Membef functions add commands to the `Transaction` object. For each added command a future-like object is returned.
+/// You can get the result of each transaction's subcommand by calling `Get()` method for these objects.
+/// Commands are be sent to a server after calling `Exec()` that returns `RequestExec` object.
 /// You should not call `Get()` method in a future-like subcommand's object
 /// before calling `Get()` method on `RequestExec` object.
+///
+/// @snippet redis/src/storages/redis/client_redistest.cpp  redis transaction sample
 class Transaction {
 public:
     enum class CheckShards { kNo, kSame };
@@ -35,8 +37,7 @@ public:
     /// Finish current atomic sequence of commands and send it to a server.
     /// Returns 'future-like' request object.
     /// The data will not be set for the future-like objects for subcommands if
-    /// `Get()` method of the returned object is not called or redis did not
-    /// return an array with command responses.
+    /// `Get()` method of the returned object is not called or redis did not return an array with command responses.
     /// In the last case `Get()` will throw a corresponding exception.
     virtual RequestExec Exec(const CommandControl& command_control) = 0;
 
@@ -64,9 +65,13 @@ public:
 
     virtual RequestExpire Expire(std::string key, std::chrono::seconds ttl) = 0;
 
+    virtual RequestExpire Expire(std::string key, std::chrono::seconds ttl, ExpireOptions options) = 0;
+
     virtual RequestGeoadd Geoadd(std::string key, GeoaddArg point_member) = 0;
 
     virtual RequestGeoadd Geoadd(std::string key, std::vector<GeoaddArg> point_members) = 0;
+
+    virtual RequestGeopos Geopos(std::string key, std::vector<std::string> members) = 0;
 
     virtual RequestGeoradius Georadius(
         std::string key,
@@ -76,8 +81,12 @@ public:
         const GeoradiusOptions& georadius_options
     ) = 0;
 
-    virtual RequestGeosearch
-    Geosearch(std::string key, std::string member, double radius, const GeosearchOptions& geosearch_options) = 0;
+    virtual RequestGeosearch Geosearch(
+        std::string key,
+        std::string member,
+        double radius,
+        const GeosearchOptions& geosearch_options
+    ) = 0;
 
     virtual RequestGeosearch Geosearch(
         std::string key,
@@ -198,6 +207,14 @@ public:
 
     virtual RequestSetIfNotExist SetIfNotExist(std::string key, std::string value, std::chrono::milliseconds ttl) = 0;
 
+    virtual RequestSetIfNotExistOrGet SetIfNotExistOrGet(std::string key, std::string value) = 0;
+
+    virtual RequestSetIfNotExistOrGet SetIfNotExistOrGet(
+        std::string key,
+        std::string value,
+        std::chrono::milliseconds ttl
+    ) = 0;
+
     virtual RequestSetex Setex(std::string key, std::chrono::seconds seconds, std::string value) = 0;
 
     virtual RequestSismember Sismember(std::string key, std::string member) = 0;
@@ -226,8 +243,11 @@ public:
 
     virtual RequestZadd Zadd(std::string key, std::vector<std::pair<double, std::string>> scored_members) = 0;
 
-    virtual RequestZadd
-    Zadd(std::string key, std::vector<std::pair<double, std::string>> scored_members, const ZaddOptions& options) = 0;
+    virtual RequestZadd Zadd(
+        std::string key,
+        std::vector<std::pair<double, std::string>> scored_members,
+        const ZaddOptions& options
+    ) = 0;
 
     virtual RequestZaddIncr ZaddIncr(std::string key, double score, std::string member) = 0;
 
@@ -245,22 +265,41 @@ public:
 
     virtual RequestZrangebyscore Zrangebyscore(std::string key, std::string min, std::string max) = 0;
 
-    virtual RequestZrangebyscore
-    Zrangebyscore(std::string key, double min, double max, const RangeOptions& range_options) = 0;
+    virtual RequestZrangebyscore Zrangebyscore(
+        std::string key,
+        double min,
+        double max,
+        const RangeOptions& range_options
+    ) = 0;
 
-    virtual RequestZrangebyscore
-    Zrangebyscore(std::string key, std::string min, std::string max, const RangeOptions& range_options) = 0;
+    virtual RequestZrangebyscore Zrangebyscore(
+        std::string key,
+        std::string min,
+        std::string max,
+        const RangeOptions& range_options
+    ) = 0;
 
     virtual RequestZrangebyscoreWithScores ZrangebyscoreWithScores(std::string key, double min, double max) = 0;
 
-    virtual RequestZrangebyscoreWithScores
-    ZrangebyscoreWithScores(std::string key, std::string min, std::string max) = 0;
+    virtual RequestZrangebyscoreWithScores ZrangebyscoreWithScores(
+        std::string key,
+        std::string min,
+        std::string max
+    ) = 0;
 
-    virtual RequestZrangebyscoreWithScores
-    ZrangebyscoreWithScores(std::string key, double min, double max, const RangeOptions& range_options) = 0;
+    virtual RequestZrangebyscoreWithScores ZrangebyscoreWithScores(
+        std::string key,
+        double min,
+        double max,
+        const RangeOptions& range_options
+    ) = 0;
 
-    virtual RequestZrangebyscoreWithScores
-    ZrangebyscoreWithScores(std::string key, std::string min, std::string max, const RangeOptions& range_options) = 0;
+    virtual RequestZrangebyscoreWithScores ZrangebyscoreWithScores(
+        std::string key,
+        std::string min,
+        std::string max,
+        const RangeOptions& range_options
+    ) = 0;
 
     virtual RequestZrem Zrem(std::string key, std::string member) = 0;
 
@@ -279,14 +318,14 @@ public:
 
 using TransactionPtr = std::unique_ptr<Transaction>;
 
-class EmptyTransactionException : public USERVER_NAMESPACE::redis::Exception {
+class EmptyTransactionException : public Exception {
 public:
-    using USERVER_NAMESPACE::redis::Exception::Exception;
+    using Exception::Exception;
 };
 
-class NotStartedTransactionException : public USERVER_NAMESPACE::redis::Exception {
+class NotStartedTransactionException : public Exception {
 public:
-    using USERVER_NAMESPACE::redis::Exception::Exception;
+    using Exception::Exception;
 };
 
 }  // namespace storages::redis

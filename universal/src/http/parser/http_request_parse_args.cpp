@@ -65,14 +65,21 @@ void ParseAndConsumeArgs(std::string_view args, ArgsConsumer handler) {
                 const char* value_begin = key_end + 1;
                 const char* value_end = ptr;
                 if (key_begin < key_end && value_begin <= value_end) {
-                    std::string_view key(key_begin, key_end - key_begin);
-                    std::string_view value(value_begin, value_end - value_begin);
+                    const std::string_view key(key_begin, key_end - key_begin);
+                    const std::string_view value(value_begin, value_end - value_begin);
                     handler(
                         USERVER_NAMESPACE::http::parser::UrlDecode(key),
                         USERVER_NAMESPACE::http::parser::UrlDecode(value)
                     );
                 }
+            } else {
+                key_end = ptr;
+                const std::string_view key(key_begin, key_end - key_begin);
+                if (!key.empty()) {
+                    handler(USERVER_NAMESPACE::http::parser::UrlDecode(key), "");
+                }
             }
+
             parse_key = true;
             key_begin = ptr + 1;
             continue;

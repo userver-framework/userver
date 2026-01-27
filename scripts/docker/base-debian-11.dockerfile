@@ -24,7 +24,6 @@ RUN apt-get install -y --allow-unauthenticated \
 	libboost-program-options1.74-dev \
 	libboost-filesystem1.74-dev \
 	libboost-locale1.74-dev \
-	libboost-regex1.74-dev \
 	libboost-iostreams1.74-dev \
 	libev-dev \
 	zlib1g-dev \

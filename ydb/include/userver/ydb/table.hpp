@@ -1,5 +1,7 @@
 #pragma once
 
+#include <ydb-cpp-sdk/client/query/client.h>
+#include <ydb-cpp-sdk/client/query/query.h>
 #include <ydb-cpp-sdk/client/table/table.h>
 
 #include <userver/dynamic_config/source.hpp>
@@ -35,7 +37,23 @@ struct RequestContext;
 enum class IsStreaming : bool {};
 }  // namespace impl
 
+using DescribePathSettings = NYdb::NScheme::TDescribePathSettings;
+using ListDirectorySettings = NYdb::NScheme::TListDirectorySettings;
+using MakeDirectorySettings = NYdb::NScheme::TMakeDirectorySettings;
+using RemoveDirectorySettings = NYdb::NScheme::TRemoveDirectorySettings;
+
+using BulkUpsertSettings = NYdb::NTable::TBulkUpsertSettings;
+using CreateTableSettings = NYdb::NTable::TCreateTableSettings;
+using DescribeTableSettings = NYdb::NTable::TDescribeTableSettings;
+using DropTableSettings = NYdb::NTable::TDropTableSettings;
 using ScanQuerySettings = NYdb::NTable::TStreamExecScanQuerySettings;
+
+/// @brief A dynamic transaction name for @see TableClient::Begin.
+///
+/// @warning Make sure that transaction name has low cardinality.
+/// If transaction name is unique for every call, per-transaction metrics will overflow metrics quota,
+/// and metrics will become unusable.
+using DynamicTransactionName = utils::StrongTypedef<struct DynamicTransactionNameTag, std::string>;
 
 class TableClient final {
 public:
@@ -54,15 +72,19 @@ public:
     /// Query for creating/deleting tables
     void ExecuteSchemeQuery(const std::string& query);
 
-    void MakeDirectory(const std::string& path);
-    void RemoveDirectory(const std::string& path);
+    void MakeDirectory(const std::string& path, MakeDirectorySettings query_settings = {});
+    void RemoveDirectory(const std::string& path, RemoveDirectorySettings query_settings = {});
 
-    NYdb::NScheme::TDescribePathResult DescribePath(std::string_view path);
-    NYdb::NScheme::TListDirectoryResult ListDirectory(std::string_view path);
+    NYdb::NScheme::TDescribePathResult DescribePath(std::string_view path, DescribePathSettings query_settings = {});
+    NYdb::NScheme::TListDirectoryResult ListDirectory(std::string_view path, ListDirectorySettings query_settings = {});
 
-    NYdb::NTable::TDescribeTableResult DescribeTable(std::string_view path);
-    void CreateTable(std::string_view path, NYdb::NTable::TTableDescription&& table_desc);
-    void DropTable(std::string_view path);
+    NYdb::NTable::TDescribeTableResult DescribeTable(std::string_view path, DescribeTableSettings query_settings = {});
+    void CreateTable(
+        std::string_view path,
+        NYdb::NTable::TTableDescription&& table_desc,
+        CreateTableSettings query_settings = {}
+    );
+    void DropTable(std::string_view path, DropTableSettings query_settings = {});
 
     /// @name Data queries execution
     /// Execute a single data query outside of transactions. Query parameters are
@@ -74,6 +96,9 @@ public:
     ///
     /// Use ydb::PreparedArgsBuilder for storing a generic buffer of query params
     /// if needed.
+    ///
+    /// It is convinient to keep YQL queries in separate files, see @ref scripts/docs/en/userver/sql_files.md
+    /// for more info.
     ///
     /// @{
     template <typename... Args>
@@ -98,16 +123,26 @@ public:
     /// @see ydb::Transaction
     ///
     /// @{
-    Transaction Begin(std::string transaction_name, OperationSettings settings = {});
+    Transaction Begin(utils::StringLiteral transaction_name, OperationSettings settings = {});
 
-    Transaction Begin(std::string transaction_name, TransactionMode tx_mode);
+    /// @warning Make sure that `transaction_name` has low cardinality.
+    /// If `transaction_name` is unique for every call, per-transaction metrics will overflow metrics quota,
+    /// and metrics will become unusable.
+    Transaction Begin(DynamicTransactionName transaction_name, OperationSettings settings = {});
+
+    Transaction Begin(utils::StringLiteral transaction_name, TransactionMode tx_mode);
     /// @}
 
     /// Builder for storing dynamic query params.
     PreparedArgsBuilder GetBuilder() const;
 
     /// Efficiently write large ranges of table data.
-    void BulkUpsert(std::string_view table, NYdb::TValue&& rows, OperationSettings settings = {});
+    void BulkUpsert(
+        std::string_view table,
+        NYdb::TValue&& rows,
+        OperationSettings settings = {},
+        BulkUpsertSettings query_settings = {}
+    );
 
     /// Efficiently write large ranges of table data.
     /// The passed range of structs is serialized to TValue.
@@ -129,11 +164,46 @@ public:
     ScanQueryResults ExecuteScanQuery(const Query& query, Args&&... args);
 
     template <typename... Args>
-    ScanQueryResults
-    ExecuteScanQuery(ScanQuerySettings&& scan_settings, OperationSettings settings, const Query& query, Args&&... args);
+    ScanQueryResults ExecuteScanQuery(
+        ScanQuerySettings&& scan_settings,
+        OperationSettings settings,
+        const Query& query,
+        Args&&... args
+    );
 
     ScanQueryResults ExecuteScanQuery(
         ScanQuerySettings&& scan_settings,
+        OperationSettings settings,
+        const Query& query,
+        PreparedArgsBuilder&& builder
+    );
+    /// @}
+
+    /// @name Queries execution (using YDB Query SDK)
+    /// Execute a single query outside of transactions. Query parameters are
+    /// passed in `Args` as "string key - value" pairs:
+    ///
+    /// @code
+    /// client.ExecuteQuery(query, "name1", value1, "name2", value2, ...);
+    /// @endcode
+    ///
+    /// Use ydb::PreparedArgsBuilder for storing a generic buffer of query params
+    /// if needed.
+    ///
+    /// If both exec_settings and settings args are passed,
+    /// exec_settings.client_timeout_ms and exec_settings.trace_id are ignored
+    /// and are overwritten by settings.client_timeout_ms and settings.trace_id.
+    /// @{
+    template <typename... Args>
+    ExecuteResponse ExecuteQuery(const Query& query, Args&&... args);
+
+    template <typename... Args>
+    ExecuteResponse ExecuteQuery(OperationSettings settings, const Query& query, Args&&... args);
+
+    ExecuteResponse ExecuteQuery(OperationSettings settings, const Query& query, PreparedArgsBuilder&& builder);
+
+    ExecuteResponse ExecuteQuery(
+        NYdb::NQuery::TExecuteQuerySettings&& exec_settings,
         OperationSettings settings,
         const Query& query,
         PreparedArgsBuilder&& builder
@@ -145,11 +215,15 @@ public:
     friend void DumpMetric(utils::statistics::Writer& writer, const TableClient& table_client);
     /// @endcond
 
-    /// Get native table client
+    /// Get native table or query client
     /// @warning Use with care! Facilities from
     /// `<core/include/userver/drivers/subscribable_futures.hpp>` can help with
     /// non-blocking wait operations.
+    /// @{
     NYdb::NTable::TTableClient& GetNativeTableClient();
+
+    NYdb::NQuery::TQueryClient& GetNativeQueryClient();
+    /// @}
 
     utils::RetryBudget& GetRetryBudget();
 
@@ -172,11 +246,12 @@ private:
     //       (TTableClient&, const std::string& full_path, const Settings&)
     //       -> NThreading::TFuture<T>
     // ExecuteSchemeQueryImpl -> T
-    template <typename Settings, typename Func>
+    template <typename QuerySettings, typename Func>
     auto ExecuteWithPathImpl(
         std::string_view path,
         std::string_view operation_name,
-        OperationSettings&& settings,
+        OperationSettings settings,
+        QuerySettings&& query_settings,
         Func&& func
     );
 
@@ -187,6 +262,7 @@ private:
     std::shared_ptr<impl::Driver> driver_;
     std::unique_ptr<NYdb::NScheme::TSchemeClient> scheme_client_;
     std::unique_ptr<NYdb::NTable::TTableClient> table_client_;
+    std::unique_ptr<NYdb::NQuery::TQueryClient> query_client_;
 };
 
 template <typename... Args>
@@ -226,8 +302,21 @@ ScanQueryResults TableClient::ExecuteScanQuery(
     Args&&... args
 ) {
     return ExecuteScanQuery(
-        std::move(scan_settings), std::move(settings), query, MakeBuilder(std::forward<Args>(args)...)
+        std::move(scan_settings),
+        std::move(settings),
+        query,
+        MakeBuilder(std::forward<Args>(args)...)
     );
+}
+
+template <typename... Args>
+ExecuteResponse TableClient::ExecuteQuery(const Query& query, Args&&... args) {
+    return ExecuteQuery(OperationSettings{}, query, MakeBuilder(std::forward<Args>(args)...));
+}
+
+template <typename... Args>
+ExecuteResponse TableClient::ExecuteQuery(OperationSettings settings, const Query& query, Args&&... args) {
+    return ExecuteQuery(settings, query, MakeBuilder(std::forward<Args>(args)...));
 }
 
 }  // namespace ydb

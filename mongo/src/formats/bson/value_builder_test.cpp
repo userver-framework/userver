@@ -427,7 +427,7 @@ TEST(BsonValueBuilder, ExampleUsage) {
     formats::bson::ValueBuilder builder;
     builder["key1"] = 1;
     builder["key2"]["key3"] = "val";
-    formats::bson::Value bson = builder.ExtractValue();
+    const formats::bson::Value bson = builder.ExtractValue();
 
     ASSERT_EQ(bson["key1"].As<int>(), 1);
     ASSERT_EQ(bson["key2"]["key3"].As<std::string>(), "val");
@@ -452,7 +452,7 @@ formats::bson::Value Serialize(const MyKeyValue& data, formats::serialize::To<fo
 }
 
 TEST(BsonValueBuilder, ExampleCustomization) {
-    MyKeyValue object = {"val", 1};
+    const MyKeyValue object = {"val", 1};
     formats::bson::ValueBuilder builder;
     builder["example"] = object;
     auto bson = builder.ExtractValue();

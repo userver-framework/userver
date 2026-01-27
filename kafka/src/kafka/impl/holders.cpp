@@ -4,6 +4,7 @@
 
 #include <fmt/format.h>
 #include <librdkafka/rdkafka.h>
+#include <librdkafka/rdkafka_mock.h>
 
 #include <userver/utils/assert.hpp>
 
@@ -14,7 +15,9 @@ USERVER_NAMESPACE_BEGIN
 namespace kafka::impl {
 
 template <class T, DeleterType<T> Deleter>
-HolderBase<T, Deleter>::HolderBase(T* data) : ptr_(data, Deleter) {}
+HolderBase<T, Deleter>::HolderBase(T* data)
+    : ptr_(data, Deleter)
+{}
 
 template <class T, DeleterType<T> Deleter>
 T* HolderBase<T, Deleter>::GetHandle() const noexcept {
@@ -37,7 +40,7 @@ void HolderBase<T, Deleter>::reset() noexcept {
 }
 
 template <class T, DeleterType<T> Deleter>
-T* HolderBase<T, Deleter>::release() noexcept {
+T* HolderBase<T, Deleter>::Release() noexcept {
     return ptr_.release();
 }
 
@@ -45,16 +48,26 @@ template class HolderBase<rd_kafka_error_t, &rd_kafka_error_destroy>;
 template class HolderBase<rd_kafka_event_t, &rd_kafka_event_destroy>;
 template class HolderBase<rd_kafka_queue_t, &rd_kafka_queue_destroy>;
 template class HolderBase<rd_kafka_topic_partition_list_t, &rd_kafka_topic_partition_list_destroy>;
+template class HolderBase<const rd_kafka_metadata_t, &rd_kafka_metadata_destroy>;
+template class HolderBase<rd_kafka_topic_t, &rd_kafka_topic_destroy>;
+template class HolderBase<rd_kafka_mock_cluster_t, &rd_kafka_mock_cluster_destroy>;
+template class HolderBase<rd_kafka_t, &rd_kafka_destroy>;
 
 struct ConfHolder::Impl {
-    explicit Impl(rd_kafka_conf_t* conf) : conf(conf) {}
+    explicit Impl(rd_kafka_conf_t* conf)
+        : conf(conf)
+    {}
 
     HolderBase<rd_kafka_conf_s, &rd_kafka_conf_destroy> conf;
 };
 
-ConfHolder::ConfHolder(rd_kafka_conf_t* conf) : impl_(conf) {}
+ConfHolder::ConfHolder(rd_kafka_conf_t* conf)
+    : impl_(conf)
+{}
 
-ConfHolder::ConfHolder(const ConfHolder& other) : impl_(rd_kafka_conf_dup(other.GetHandle())) {}
+ConfHolder::ConfHolder(const ConfHolder& other)
+    : impl_(rd_kafka_conf_dup(other.GetHandle()))
+{}
 
 ConfHolder::~ConfHolder() = default;
 
@@ -65,23 +78,30 @@ rd_kafka_conf_t* ConfHolder::GetHandle() const noexcept { return impl_->conf.Get
 
 void ConfHolder::ForgetUnderlyingConf() noexcept { [[maybe_unused]] auto _ = impl_->conf.ptr_.release(); }
 
-template <ClientType client_type>
-struct KafkaClientHolder<client_type>::Impl {
+template <ClientType TClientType>
+struct KafkaClientHolder<TClientType>::Impl {
     explicit Impl(ConfHolder conf)
         : handle([conf = std::move(conf)]() mutable {
               ErrorBuffer err_buf;
 
-              const auto rd_kafka_client_type =
-                  client_type == ClientType::kConsumer ? RD_KAFKA_CONSUMER : RD_KAFKA_PRODUCER;
-
+              const auto
+                  rd_kafka_client_type = TClientType == ClientType::kConsumer ? RD_KAFKA_CONSUMER : RD_KAFKA_PRODUCER;
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#endif
               HolderBase<rd_kafka_t, &rd_kafka_destroy> holder{
-                  rd_kafka_new(rd_kafka_client_type, conf.GetHandle(), err_buf.data(), err_buf.size())};
+                  rd_kafka_new(rd_kafka_client_type, conf.GetHandle(), err_buf.data(), err_buf.size())
+              };
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
               if (!holder) {
                   /// @note `librdkafka` takes ownership on conf iff
                   /// `rd_kafka_new` succeeds
 
                   const auto type_str = [] {
-                      switch (client_type) {
+                      switch (TClientType) {
                           case ClientType::kConsumer:
                               return "consumer";
                           case ClientType::kProducer:
@@ -95,7 +115,7 @@ struct KafkaClientHolder<client_type>::Impl {
 
               conf.ForgetUnderlyingConf();
 
-              if (client_type == ClientType::kConsumer) {
+              if (TClientType == ClientType::kConsumer) {
                   /// Redirects main queue to consumer's queue.
                   rd_kafka_poll_set_consumer(holder.GetHandle());
               }
@@ -103,37 +123,41 @@ struct KafkaClientHolder<client_type>::Impl {
               return holder;
           }()),
           queue([this] {
-              switch (client_type) {
+              switch (TClientType) {
                   case ClientType::kConsumer:
                       return rd_kafka_queue_get_consumer(handle.GetHandle());
                   case ClientType::kProducer:
                       return rd_kafka_queue_get_main(handle.GetHandle());
               }
               UINVARIANT(false, "Unexpected rd_kafka_type value");
-          }()) {}
+          }())
+    {
+    }
 
     HolderBase<rd_kafka_t, &rd_kafka_destroy> handle;
     HolderBase<rd_kafka_queue_t, &rd_kafka_queue_destroy> queue;
 };
 
-template <ClientType client_type>
-KafkaClientHolder<client_type>::KafkaClientHolder(ConfHolder conf) : impl_(std::move(conf)) {}
+template <ClientType TClientType>
+KafkaClientHolder<TClientType>::KafkaClientHolder(ConfHolder conf)
+    : impl_(std::move(conf))
+{}
 
-template <ClientType client_type>
-KafkaClientHolder<client_type>::~KafkaClientHolder() = default;
+template <ClientType TClientType>
+KafkaClientHolder<TClientType>::~KafkaClientHolder() = default;
 
-template <ClientType client_type>
-rd_kafka_t* KafkaClientHolder<client_type>::GetHandle() const noexcept {
+template <ClientType TClientType>
+rd_kafka_t* KafkaClientHolder<TClientType>::GetHandle() const noexcept {
     return impl_->handle.GetHandle();
 }
 
-template <ClientType client_type>
-rd_kafka_queue_t* KafkaClientHolder<client_type>::GetQueue() const noexcept {
+template <ClientType TClientType>
+rd_kafka_queue_t* KafkaClientHolder<TClientType>::GetQueue() const noexcept {
     return impl_->queue.GetHandle();
 }
 
-template <ClientType client_type>
-void KafkaClientHolder<client_type>::reset() noexcept {
+template <ClientType TClientType>
+void KafkaClientHolder<TClientType>::reset() noexcept {
     impl_->queue.reset();
     impl_->handle.reset();
 }
@@ -142,7 +166,10 @@ template class KafkaClientHolder<ClientType::kConsumer>;
 template class KafkaClientHolder<ClientType::kProducer>;
 
 struct MessageHolder::Impl {
-    explicit Impl(rd_kafka_event_t* event) : holder(event), message(rd_kafka_event_message_next(holder.GetHandle())) {}
+    explicit Impl(rd_kafka_event_t* event)
+        : holder(event),
+          message(rd_kafka_event_message_next(holder.GetHandle()))
+    {}
 
     Impl(Impl&& other) noexcept : holder(std::move(other.holder)), message(std::exchange(other.message, nullptr)) {}
 
@@ -150,7 +177,9 @@ struct MessageHolder::Impl {
     const rd_kafka_message_t* message;
 };
 
-MessageHolder::MessageHolder(rd_kafka_event_t* event) : impl_(event) {}
+MessageHolder::MessageHolder(rd_kafka_event_t* event)
+    : impl_(event)
+{}
 
 MessageHolder::MessageHolder(MessageHolder&& other) noexcept : impl_(std::move(other.impl_)) {}
 
@@ -159,6 +188,34 @@ MessageHolder::~MessageHolder() = default;
 const rd_kafka_message_s* MessageHolder::GetHandle() const noexcept { return impl_->message; }
 
 const rd_kafka_message_s* MessageHolder::operator->() const noexcept { return impl_->message; }
+
+struct HeadersHolder::Impl {
+    explicit Impl(HeaderViews headers)
+        : holder{rd_kafka_headers_new(headers.size())}
+    {
+        auto* handle = holder.GetHandle();
+        for (const auto& header : headers) {
+            const auto name = header.name;
+            const auto value = header.value;
+
+            rd_kafka_header_add(handle, name.c_str(), name.size(), value.data(), value.size());
+        }
+    }
+
+    HolderBase<rd_kafka_headers_t, &rd_kafka_headers_destroy> holder;
+};
+
+HeadersHolder::HeadersHolder(HeaderViews headers)
+    : impl_{headers}
+{}
+
+rd_kafka_headers_t* HeadersHolder::GetHandle() const noexcept { return impl_->holder.GetHandle(); }
+
+rd_kafka_headers_t* HeadersHolder::release() noexcept { return impl_->holder.Release(); }
+
+HeadersHolder::HeadersHolder(HeadersHolder&& other) noexcept = default;
+
+HeadersHolder::~HeadersHolder() = default;
 
 }  // namespace kafka::impl
 

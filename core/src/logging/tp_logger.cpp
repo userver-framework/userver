@@ -45,7 +45,10 @@ struct TpLogger::ActionVisitor final {
     }
 };
 
-TpLogger::TpLogger(Format format, std::string logger_name) : LoggerBase(format), logger_name_(std::move(logger_name)) {
+TpLogger::TpLogger(Format format, std::string logger_name)
+    : impl::TextLogger(format),
+      logger_name_(std::move(logger_name))
+{
     SetLevel(logging::Level::kInfo);
 }
 
@@ -74,8 +77,9 @@ void TpLogger::StartConsumerTask(
         queue_consumer_ = {};
     });
 
-    consuming_task_ =
-        engine::CriticalAsyncNoSpan(task_processor, [this, guard = std::move(exit_async_guard)] { ProcessingLoop(); });
+    consuming_task_ = engine::CriticalAsyncNoSpan(task_processor, [this, guard = std::move(exit_async_guard)] {
+        ProcessingLoop();
+    });
 }
 
 TpLogger::~TpLogger() {
@@ -125,7 +129,10 @@ void TpLogger::Flush() {
 
 impl::LogStatistics& TpLogger::GetStatistics() noexcept { return stats_; }
 
-void TpLogger::Log(Level level, std::string_view msg) {
+void TpLogger::Log(Level level, impl::formatters::LoggerItemRef item) {
+    UASSERT(dynamic_cast<impl::TextLogItem*>(&item));
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
+    auto& msg = static_cast<impl::TextLogItem&>(item);
     ++stats_.by_level[static_cast<std::size_t>(level)];
 
     if (GetSinks().empty()) {
@@ -139,7 +146,7 @@ void TpLogger::Log(Level level, std::string_view msg) {
         produced_->fetch_add(1);
 
         try {
-            Push(impl::async::Log{level, std::string{msg}});
+            Push(impl::async::Log{level, std::string{msg.log_line}});
         } catch (const std::exception&) {
             // failed to construct a Log action or a node in Push
             produced_->fetch_sub(1);
@@ -150,9 +157,9 @@ void TpLogger::Log(Level level, std::string_view msg) {
     }
 }
 
-void TpLogger::PrependCommonTags(TagWriter writer) const { impl::default_::PrependCommonTags(writer); }
+void TpLogger::PrependCommonTags(TagWriter writer) const { impl::PrependCommonTags(writer, GetLevel()); }
 
-bool TpLogger::DoShouldLog(Level level) const noexcept { return impl::default_::DoShouldLog(level); }
+bool TpLogger::DoShouldLog(Level level) const noexcept { return impl::DoShouldLog(level); }
 
 void TpLogger::AddSink(impl::SinkPtr&& sink) {
     UASSERT(sink);
@@ -253,7 +260,9 @@ void TpLogger::AccountLogConsumed() noexcept {
 void TpLogger::ConsumeNode(concurrent::impl::SinglyLinkedBaseHook& node) noexcept {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
     auto& action_node = static_cast<impl::async::ActionNode&>(node);
-    if (&action_node == &stop_node_) return;
+    if (&action_node == &stop_node_) {
+        return;
+    }
 
     BackendPerform(std::move(action_node.action));
     delete &action_node;
@@ -305,8 +314,8 @@ void TpLogger::BackendReopen(ReopenMode reopen_mode) const {
         } catch (const std::exception& e) {
             result_messages += e.what();
             result_messages += "; ";
-            LOG_ERROR() << "Exception on log reopen in sink #" << index << " of logger '" << GetLoggerName()
-                        << "': " << e;
+            LOG_ERROR()
+                << "Exception on log reopen in sink #" << index << " of logger '" << GetLoggerName() << "': " << e;
         }
     }
     if (!result_messages.empty()) {

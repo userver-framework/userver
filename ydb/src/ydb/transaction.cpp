@@ -32,6 +32,7 @@ Transaction::Transaction(
       rollback_settings_(std::move(rollback_settings)) {
     span_.DetachFromCoroStack();
     span_.AddTag("transaction_name", name_);
+    trx_lock_.Lock();
 }
 
 Transaction::~Transaction() {
@@ -67,7 +68,7 @@ void Transaction::Commit(OperationSettings settings) {
     EnsureActive();
 
     static const Query kQuery{"", Query::Name{"Commit"}};
-    impl::RequestContext context{table_client_, kQuery, settings, impl::IsStreaming{false}, &span_};
+    impl::RequestContext context{table_client_, kQuery, std::move(settings), impl::IsStreaming{false}, &span_};
 
     if (!name_.empty()) {
         TESTPOINT_CALLBACK(
@@ -75,8 +76,9 @@ void Transaction::Commit(OperationSettings settings) {
             formats::json::MakeObject("trx_name", name_),
             [this](const formats::json::Value& data) {
                 if (data["trx_should_fail"].As<bool>()) {
-                    LOG_WARNING() << "Doing Rollback instead of commit "
-                                     "due to Testpoint response";
+                    LOG_WARNING()
+                        << "Doing Rollback instead of commit "
+                           "due to Testpoint response";
                     ydb_tx_.Rollback();
                     throw TransactionForceRollback();
                 }
@@ -84,17 +86,21 @@ void Transaction::Commit(OperationSettings settings) {
         );
     }
 
-    const auto commit_settings =
-        impl::PrepareRequestSettings<NYdb::NTable::TCommitTxSettings>(settings, context.deadline);
+    const auto commit_settings = impl::PrepareRequestSettings<
+        NYdb::NTable::TCommitTxSettings>(context.settings, context.deadline);
 
     auto error_guard = ErrorGuard();
 
     impl::GetFutureValueChecked(
-        ydb_tx_.Commit(commit_settings), "Commit", table_client_.driver_->GetRetryBudget(), context
+        ydb_tx_.Commit(commit_settings),
+        "Commit",
+        table_client_.driver_->GetRetryBudget(),
+        context
     );
 
     error_guard.Release();
     is_active_ = false;
+    trx_lock_.Unlock();
 }
 
 void Transaction::Rollback() {
@@ -102,16 +108,21 @@ void Transaction::Rollback() {
 
     static const Query kQuery{"", Query::Name{"Rollback"}};
     auto settings = rollback_settings_;
-    impl::RequestContext context{table_client_, kQuery, settings, impl::IsStreaming{false}, &span_};
+    impl::RequestContext context{table_client_, kQuery, std::move(settings), impl::IsStreaming{false}, &span_};
 
-    const auto rollback_settings =
-        impl::PrepareRequestSettings<NYdb::NTable::TRollbackTxSettings>(settings, context.deadline);
+    const auto rollback_settings = impl::PrepareRequestSettings<
+        NYdb::NTable::TRollbackTxSettings>(context.settings, context.deadline);
 
     [[maybe_unused]] auto error_guard = ErrorGuard();
 
     impl::GetFutureValueChecked(
-        ydb_tx_.Rollback(rollback_settings), "Rollback", table_client_.driver_->GetRetryBudget(), context
+        ydb_tx_.Rollback(rollback_settings),
+        "Rollback",
+        table_client_.driver_->GetRetryBudget(),
+        context
     );
+
+    trx_lock_.Unlock();
 
     // Successful rollback is still a transaction error for logs and stats.
 }
@@ -138,25 +149,28 @@ ExecuteResponse Transaction::Execute(
 ) {
     EnsureActive();
 
-    impl::RequestContext context{table_client_, query, settings, impl::IsStreaming{false}, &span_};
+    impl::RequestContext context{table_client_, query, std::move(settings), impl::IsStreaming{false}, &span_};
     auto internal_params = std::move(builder).Build();
 
     auto exec_settings = table_client_.ToExecQuerySettings(query_settings);
-    impl::ApplyToRequestSettings(exec_settings, settings, context.deadline);
+    impl::ApplyToRequestSettings(exec_settings, context.settings, context.deadline);
 
     // Must go after PrepareExecuteSettings, because an exception from there
     // leaves the transaction active.
     auto error_guard = ErrorGuard();
 
     auto execute_fut = ydb_tx_.GetSession().ExecuteDataQuery(
-        impl::ToString(query.Statement()),
+        impl::ToString(query.GetStatementView()),
         NYdb::NTable::TTxControl::Tx(ydb_tx_),
         std::move(internal_params),
         exec_settings
     );
 
     auto status = impl::GetFutureValueChecked(
-        std::move(execute_fut), "Transaction::Execute", table_client_.driver_->GetRetryBudget(), context
+        std::move(execute_fut),
+        "Transaction::Execute",
+        table_client_.driver_->GetRetryBudget(),
+        context
     );
 
     error_guard.Release();

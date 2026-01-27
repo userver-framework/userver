@@ -36,6 +36,8 @@ std::string_view ReadUnsafeAtMost(Reader& reader, std::size_t max_size) {
     return result;
 }
 
+void BackUpReadUnsafe(Reader& reader, std::size_t size) { reader.BackUp(size); }
+
 }  // namespace dump
 
 USERVER_NAMESPACE_END

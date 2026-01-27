@@ -35,7 +35,7 @@ TYPED_UTEST_P(Mutex, LockUnlockDouble) {
 TYPED_UTEST_P(Mutex, WaitAndCancel) {
     TypeParam mutex;
     std::unique_lock lock(mutex);
-    auto task = engine::AsyncNoSpan([&mutex]() { std::lock_guard lock(mutex); });
+    auto task = engine::AsyncNoSpan([&mutex]() { const std::lock_guard lock(mutex); });
 
     task.WaitFor(std::chrono::milliseconds(50));
     EXPECT_FALSE(task.IsFinished());
@@ -68,8 +68,9 @@ TYPED_UTEST_P(Mutex, TryLock) {
                      return !!std::unique_lock<TypeParam>(mutex, std::chrono::system_clock::now());
                  }).Get());
 
-    auto long_waiter =
-        engine::AsyncNoSpan([&mutex] { return !!std::unique_lock<TypeParam>(mutex, utest::kMaxTestWaitTime); });
+    auto long_waiter = engine::AsyncNoSpan([&mutex] {
+        return !!std::unique_lock<TypeParam>(mutex, utest::kMaxTestWaitTime);
+    });
     engine::Yield();
     EXPECT_FALSE(long_waiter.IsFinished());
     lock.unlock();
@@ -98,7 +99,9 @@ TYPED_UTEST_P_MT(Mutex, LockPassing, kThreads) {
         for (size_t i = 0; i < worker_count; ++i) {
             tasks.push_back(engine::AsyncNoSpan(work));
         }
-        for (auto& task : tasks) task.Get();
+        for (auto& task : tasks) {
+            task.Get();
+        }
     }
 }
 
@@ -150,12 +153,31 @@ UTEST(Mutex, SampleMutex) {
     constexpr std::string_view kTestData = "Test Data";
 
     {
-        std::lock_guard<engine::Mutex> lock(mutex);
+        const std::lock_guard<engine::Mutex> lock(mutex);
         // accessing data under a mutex
         const auto x = kTestData;
         ASSERT_EQ(kTestData, x);
     }
     /// [Sample engine::Mutex usage]
+}
+
+UTEST_DEATH(MutexDeathTest, SelfDeadlock) {
+    engine::Mutex mutex;
+
+    std::lock_guard lock1{mutex};
+
+    EXPECT_FALSE(mutex.try_lock());
+
+#ifdef NDEBUG
+    UEXPECT_THROW(mutex.lock(), utils::InvariantError);
+#else
+    UEXPECT_DEATH(
+        mutex.lock(),
+        "Assertion 'owner_.load\\(\\) != &current' failed: engine::mutex self deadlock detected! Current coroutine "
+        "tried "
+        "to lock a mutex while holding the same mutex."
+    );
+#endif
 }
 
 REGISTER_TYPED_UTEST_SUITE_P(

@@ -17,8 +17,8 @@ constexpr const char* kStatisticsNameCurrentDocumentsCount = "current-documents-
 
 template <typename Clock, typename Duration>
 std::int64_t TimeStampToMillisecondsFromNow(std::chrono::time_point<Clock, Duration> time) {
-    const auto diff =
-        (std::is_same_v<Clock, std::chrono::steady_clock> ? utils::datetime::SteadyNow() : Clock::now()) - time;
+    const auto
+        diff = (std::is_same_v<Clock, std::chrono::steady_clock> ? utils::datetime::SteadyNow() : Clock::now()) - time;
     return std::chrono::duration_cast<std::chrono::milliseconds>(diff).count();
 }
 
@@ -76,6 +76,10 @@ void DumpMetric(utils::statistics::Writer& writer, const UpdateStatistics& stats
 }
 
 void DumpMetric(utils::statistics::Writer& writer, const Statistics& stats) {
+    if (!stats.is_first_sync_update_complete) {
+        return;
+    }
+
     const auto& full = stats.full_update;
     const auto& incremental = stats.incremental_update;
     UpdateStatistics any;
@@ -90,10 +94,11 @@ void DumpMetric(utils::statistics::Writer& writer, const Statistics& stats) {
 
 }  // namespace impl
 
-UpdateStatisticsScope::UpdateStatisticsScope(impl::Statistics& stats, cache::UpdateType type)
+UpdateStatisticsScope::UpdateStatisticsScope(utils::impl::InternalTag, impl::Statistics& stats, cache::UpdateType type)
     : stats_(stats),
       update_stats_(type == cache::UpdateType::kIncremental ? stats.incremental_update : stats.full_update),
-      update_start_time_(utils::datetime::SteadyNow()) {
+      update_start_time_(utils::datetime::SteadyNow())
+{
     update_stats_.last_update_start_time = update_start_time_;
     ++update_stats_.update_attempt_count;
 }
@@ -113,7 +118,7 @@ void UpdateStatisticsScope::Finish(std::size_t total_documents_count) {
 
 void UpdateStatisticsScope::FinishNoChanges() {
     ++update_stats_.update_no_changes_count;
-    DoFinish(impl::UpdateState::kSuccess);
+    DoFinish(impl::UpdateState::kNoChanges);
 }
 
 void UpdateStatisticsScope::FinishWithError() {
@@ -133,14 +138,21 @@ void UpdateStatisticsScope::DoFinish(impl::UpdateState new_state) {
     UASSERT(new_state != impl::UpdateState::kNotFinished);
     // TODO Some production caches call Finish multiple times. We should fix those
     //  and add an UASSERT here.
-    if (state_ != impl::UpdateState::kNotFinished) return;
+    if (state_ != impl::UpdateState::kNotFinished) {
+        return;
+    }
 
     const auto update_stop_time = utils::datetime::SteadyNow();
-    if (new_state == impl::UpdateState::kSuccess) {
-        update_stats_.last_successful_update_start_time = update_start_time_;
+    switch (new_state) {
+        case impl::UpdateState::kSuccess:
+        case impl::UpdateState::kNoChanges:
+            update_stats_.last_successful_update_start_time = update_start_time_;
+            break;
+        default:
+            break;
     }
-    update_stats_.last_update_duration =
-        std::chrono::duration_cast<std::chrono::milliseconds>(update_stop_time - update_start_time_);
+    update_stats_.last_update_duration = std::chrono::duration_cast<
+        std::chrono::milliseconds>(update_stop_time - update_start_time_);
 
     state_ = new_state;
 }

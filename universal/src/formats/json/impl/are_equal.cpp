@@ -96,7 +96,9 @@ bool AreNotEqualObjectsThin(const Value* lhs, const Value* rhs, ParallelTraverse
             break;
         }
 
-        if (j == size) return true;
+        if (j == size) {
+            return true;
+        }
     }
 
     return false;

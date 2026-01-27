@@ -19,6 +19,10 @@ namespace formats::yaml {
 
 class ValueBuilder;
 
+namespace impl {
+formats::yaml::Value FromStringAllowRepeatedKeys(const std::string& doc);
+}  // namespace impl
+
 /// @ingroup userver_universal userver_containers userver_formats
 ///
 /// @brief Non-mutable YAML value representation.
@@ -31,6 +35,8 @@ class ValueBuilder;
 /// @snippet formats/yaml/value_test.cpp  Sample formats::yaml::Value usage
 ///
 /// @see @ref scripts/docs/en/userver/formats.md
+///
+/// To iterate over `Value` as object use formats::common::Items.
 class Value final {
 public:
     struct IterTraits {
@@ -251,6 +257,8 @@ public:
     Value(EmplaceEnabler, const YAML::Node& value, const formats::yaml::Path& path, std::string_view key);
 
     Value(EmplaceEnabler, const YAML::Node& value, const formats::yaml::Path& path, size_t index);
+
+    Value CloneWithReplacedPath(std::string&& new_path) const;
     /// @endcond
 
 private:
@@ -287,6 +295,7 @@ private:
     friend formats::yaml::Value FromString(const std::string&);
     friend formats::yaml::Value FromStream(std::istream&);
     friend void Serialize(const formats::yaml::Value&, std::ostream&);
+    friend formats::yaml::Value impl::FromStringAllowRepeatedKeys(const std::string& doc);
 };
 
 template <typename T>
@@ -341,7 +350,7 @@ using formats::common::Items;
 /// 'using namespace ABC' may contradict code style of your company.
 namespace formats::literals {
 
-yaml::Value operator"" _yaml(const char* str, std::size_t len);
+yaml::Value operator""_yaml(const char* str, std::size_t len);
 
 }  // namespace formats::literals
 

@@ -5,9 +5,9 @@
 
 #include <storages/redis/client_impl.hpp>
 #include <userver/engine/run_standalone.hpp>
-#include <userver/storages/redis/impl/base.hpp>
+#include <userver/storages/redis/base.hpp>
 #include <userver/utils/rand.hpp>
-#include <utils/gbench_auxilary.hpp>
+#include <utils/gbench_auxiliary.hpp>
 
 #include "redis_fixture.hpp"
 
@@ -15,7 +15,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::redis::bench {
 
-using USERVER_NAMESPACE::redis::CommandControl;
+using USERVER_NAMESPACE::storages::redis::CommandControl;
 
 namespace {
 
@@ -56,10 +56,12 @@ BENCHMARK_DEFINE_TEMPLATE_F(Redis, PipelineGrind)(benchmark::State& state) {
             requests.push_back(request_generator(state));
         }
 
-        for (; !requests.empty(); requests.pop_front()) requests.front().Get();
+        for (; !requests.empty(); requests.pop_front()) {
+            requests.front().Get();
+        }
 
         const auto stats = GetSentinel()->GetStatistics({});
-        const auto total = stats.GetShardGroupTotalStatistics();
+        const auto total = stats->GetShardGroupTotalStatistics();
         const auto& timings = total.timings_percentile;
         for (auto p : {95, 99, 100}) {
             state.counters["p" + std::to_string(p)] = timings.GetPercentile(p);

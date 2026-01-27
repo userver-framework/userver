@@ -3,13 +3,15 @@
 /// @file userver/ugrpc/server/stream.hpp
 /// @brief Server streaming interfaces
 
+#include <grpcpp/server_context.h>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::server {
 
 /// @brief Interface to read client's requests.
 ///
-/// This class is not thread-safe
+/// This class is not thread-safe.
 ///
 /// If any method throws, further methods must not be called on the same stream.
 template <class Request>
@@ -28,7 +30,7 @@ public:
 
 /// @brief Interface to write server's responses.
 ///
-/// This class is not thread-safe
+/// This class is not thread-safe.
 ///
 /// If any method throws, further methods must not be called on the same stream.
 template <class Response>
@@ -41,17 +43,28 @@ public:
     /// @brief Write the next outgoing message
     /// @param response the next message to write
     /// @throws ugrpc::server::RpcError on an RPC error
-    virtual void Write(Response& response) = 0;
+    /// @throws std::exception (internal) on error from middlewares
+    ///
+    /// This method uses move-only semantics for safety:
+    /// - Middlewares may modify responses during writes, making reuse dangerous
+    /// - After the call, `response` is in moved-from state and must not be reused
+    /// - Explicit std::move ensures ownership transfer and prevents accidental reuse
+    virtual void Write(Response&& response) = 0;
 
     /// @brief Write the next outgoing message
     /// @param response the next message to write
+    /// @param options the write options
     /// @throws ugrpc::server::RpcError on an RPC error
-    virtual void Write(Response&& response) = 0;
+    /// @throws std::exception (internal) on error from middlewares
+    ///
+    /// This method uses move-only semantics for safety:
+    /// - Middlewares may modify responses during writes, making reuse dangerous
+    /// - After the call, `response` is in moved-from state and must not be reused
+    /// - Explicit std::move ensures ownership transfer and prevents accidental reuse
+    virtual void Write(Response&& response, const grpc::WriteOptions& options) = 0;
 };
 
 /// @brief Interface to both read and write messages.
-///
-/// This class is not thread-safe
 ///
 /// If any method throws, further methods must not be called on the same stream.
 ///

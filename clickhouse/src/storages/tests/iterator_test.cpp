@@ -40,8 +40,7 @@ struct IteratorDefaultConstructorInstantiator final {
 
     columns::Float32Column,  //
     columns::Float64Column   //
-    >
-    validator{};
+    > validator{};
 
 }  // namespace
 
@@ -50,8 +49,10 @@ USERVER_NAMESPACE_BEGIN
 namespace {
 class IteratorTester final {
 public:
-    static void
-    CheckCurrentValue(columns::ColumnIterator<columns::StringColumn>& iterator, std::optional<std::string> value) {
+    static void CheckCurrentValue(
+        columns::ColumnIterator<columns::StringColumn>& iterator,
+        std::optional<std::string> value
+    ) {
         EXPECT_EQ(io::IteratorsTester::GetCurrentValue(iterator), value);
     }
 };
@@ -61,8 +62,9 @@ TEST(StringIterator, ResetsCurrentValue) {
     std::string first_string(100, 'a');
     std::string second_string(100, 'b');
 
-    columns::StringColumn column{
-        std::make_shared<clickhouse_cpp::ColumnString>(std::vector{first_string, second_string})};
+    const columns::StringColumn column{
+        std::make_shared<clickhouse_cpp::ColumnString>(std::vector{first_string, second_string})
+    };
     ASSERT_EQ(column.Size(), 2);
 
     auto current = column.begin();

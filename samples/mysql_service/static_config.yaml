@@ -10,8 +10,10 @@ components_manager:
         sample-sql-component:
             initial_pool_size: 3
             max_pool_size: 15
+            use_secure_connection: false
 # /// [MySQL service sample - static config]
         http-client:
+        http-client-core:
             fs-task-processor: fs-task-processor
             user-agent: userver testsuite
 
@@ -26,8 +28,6 @@ components_manager:
 
         testsuite-support:
 
-        secdist:
-            provider: default-secdist-provider
         default-secdist-provider: # Component that stores configuration of hosts and passwords
             config: /etc/mysql_service/secure_data.json  # Values are supposed to be stored in this file
             missing-ok: true                             # ... but if the file is missing it is still ok

@@ -4,7 +4,6 @@
 
 #include <fmt/format.h>
 
-#include <userver/baggage/baggage_settings.hpp>
 #include <userver/http/parser/http_request_parse_args.hpp>
 #include <userver/http/url.hpp>
 #include <userver/logging/log.hpp>
@@ -21,7 +20,9 @@ const int kHeaderLengthLimit = 8192;
 }  // namespace
 
 BaggageEntryProperty::BaggageEntryProperty(std::string_view key, std::optional<std::string_view> value)
-    : key_(std::move(key)), value_(std::move(value)) {}
+    : key_(std::move(key)),
+      value_(std::move(value))
+{}
 
 std::string BaggageEntryProperty::ToString() const {
     if (value_) {
@@ -39,7 +40,10 @@ std::optional<std::string> BaggageEntryProperty::GetValue() const {
 std::string BaggageEntryProperty::GetKey() const { return http::parser::UrlDecode(key_); }
 
 BaggageEntry::BaggageEntry(std::string_view key, std::string_view value, std::vector<BaggageEntryProperty> properties)
-    : key_(std::move(key)), value_(std::move(value)), properties_(std::move(properties)) {}
+    : key_(std::move(key)),
+      value_(std::move(value)),
+      properties_(std::move(properties))
+{}
 
 std::string BaggageEntry::ToString() const {
     std::string entry = std::string(key_) + "=" + std::string(value_);
@@ -106,7 +110,9 @@ const BaggageEntry& Baggage::GetEntry(const std::string& key) const {
 }
 
 Baggage::Baggage(std::string header, std::unordered_set<std::string> allowed_keys)
-    : header_value_(std::move(header)), allowed_keys_(std::move(allowed_keys)) {
+    : header_value_(std::move(header)),
+      allowed_keys_(std::move(allowed_keys))
+{
     header_value_.erase(
         std::remove_if(header_value_.begin(), header_value_.end(), [](unsigned char x) { return std::isspace(x); }),
         header_value_.end()
@@ -252,8 +258,8 @@ std::optional<BaggageEntry> Baggage::TryMakeBaggageEntry(std::string_view entry)
     std::string_view key{entry};
     auto entry_delimiter = entry.find('=');
     if (entry_delimiter == std::string::npos) {
-        LOG_LIMITED_WARNING() << "Can't find '=' between key and value in Baggage header. Entry: "
-                              << std::string(entry);
+        LOG_LIMITED_WARNING()
+            << "Can't find '=' between key and value in Baggage header. Entry: " << std::string(entry);
         return std::nullopt;
     }
     key.remove_suffix(entry.size() - entry_delimiter);
@@ -305,7 +311,7 @@ std::optional<BaggageEntry> Baggage::TryMakeBaggageEntry(std::string_view entry)
             }
         }
     }
-    return std::make_optional<BaggageEntry>({key, value, properties});
+    return std::make_optional<BaggageEntry>({key, value, std::move(properties)});
 }
 
 std::optional<BaggageEntryProperty> Baggage::TryMakeBaggageEntryProperty(std::string_view property) {
@@ -315,7 +321,8 @@ std::optional<BaggageEntryProperty> Baggage::TryMakeBaggageEntryProperty(std::st
     }
 
     if (std::find_if(property.begin(), property.end(), [](unsigned char x) { return std::isspace(x); }) !=
-        property.end()) {
+        property.end())
+    {
         LOG_LIMITED_WARNING() << "Property contains spaces";
         return std::nullopt;
     }

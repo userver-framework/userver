@@ -9,6 +9,7 @@
 #include <userver/cache/cache_config.hpp>
 #include <userver/cache/cache_update_trait.hpp>
 #include <userver/components/component_context.hpp>
+#include <userver/components/state.hpp>
 #include <userver/concurrent/variable.hpp>
 #include <userver/dynamic_config/updater/component.hpp>
 #include <userver/engine/shared_mutex.hpp>
@@ -71,7 +72,10 @@ public:
 
 struct CacheControl::Impl final {
     Impl(impl::PeriodicUpdatesMode mode, ExecPolicy policy, std::optional<components::State> components_state)
-        : periodic_updates_mode(mode), execution_policy(policy), state(components_state) {
+        : periodic_updates_mode(mode),
+          execution_policy(policy),
+          state(components_state)
+    {
         UASSERT(execution_policy == ExecPolicy::kSequential || components_state);
     }
 
@@ -91,10 +95,12 @@ struct CacheControl::Impl final {
 };
 
 CacheControl::CacheControl(impl::PeriodicUpdatesMode mode, UnitTests)
-    : impl_(std::make_unique<Impl>(mode, ExecPolicy::kSequential, std::nullopt)) {}
+    : impl_(std::make_unique<Impl>(mode, ExecPolicy::kSequential, std::nullopt))
+{}
 
 CacheControl::CacheControl(impl::PeriodicUpdatesMode mode, ExecPolicy execution_policy, components::State state)
-    : impl_(std::make_unique<Impl>(mode, execution_policy, state)) {}
+    : impl_(std::make_unique<Impl>(mode, execution_policy, state))
+{}
 
 CacheControl::~CacheControl() = default;
 
@@ -233,7 +239,7 @@ void CacheControl::DoResetCachesConcurrently(
     }
 
     {
-        const std::unique_lock lock{tasks_init_mutex};
+        const std::lock_guard lock{tasks_init_mutex};
         for (std::size_t i = 0; i < async_jobs.size(); ++i) {
             async_jobs[i].task = engine::SharedAsyncNoSpan(
                 [i, &async_jobs, &tasks_init_mutex, &force_incremental_names, update_type, state] {
@@ -285,14 +291,18 @@ CacheResetRegistration::CacheResetRegistration(
     CacheControl& cache_control,
     CacheControl::CacheInfoIterator cache_info_iterator
 )
-    : cache_control_(&cache_control), cache_info_iterator_(std::move(cache_info_iterator)) {}
+    : cache_control_(&cache_control),
+      cache_info_iterator_(std::move(cache_info_iterator))
+{}
 
 CacheResetRegistration::CacheResetRegistration(CacheResetRegistration&& other) noexcept
     : cache_control_(std::exchange(other.cache_control_, nullptr)),
       cache_info_iterator_(std::move(other.cache_info_iterator_)) {}
 
 CacheResetRegistration& CacheResetRegistration::operator=(CacheResetRegistration&& other) noexcept {
-    if (&other == this) return *this;
+    if (&other == this) {
+        return *this;
+    }
     Unregister();
     cache_control_ = std::exchange(other.cache_control_, nullptr);
     cache_info_iterator_ = std::move(other.cache_info_iterator_);

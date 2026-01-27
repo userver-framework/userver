@@ -11,6 +11,7 @@
 #include <userver/logging/log.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
 #include <userver/utils/algo.hpp>
+#include <userver/utils/trivial_map.hpp>
 #include <userver/utils/underlying_value.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -20,8 +21,10 @@ namespace storages::postgres::io {
 namespace {
 
 struct PredefinedOidsPair {
-    PredefinedOidsPair(PredefinedOids first_, PredefinedOids second_)
-        : first(std::min(first_, second_)), second(std::max(first_, second_)) {}
+    PredefinedOidsPair(PredefinedOids l_first, PredefinedOids l_second)
+        : first(std::min(l_first, l_second)),
+          second(std::max(l_first, l_second))
+    {}
 
     PredefinedOids first;
     PredefinedOids second;
@@ -45,7 +48,9 @@ public:
     bool HasParser(PredefinedOids oid) const { return registered_oids_.find(oid) != registered_oids_.end(); }
 
     bool AreMappedToSameType(PredefinedOids first, PredefinedOids second) const {
-        if (first == second) return true;
+        if (first == second) {
+            return true;
+        }
         return shared_parser_oids_.find(PredefinedOidsPair{first, second}) != shared_parser_oids_.end();
     }
 
@@ -71,39 +76,40 @@ private:
 };
 
 auto& Registry() {
-    static auto registry_ = [] {
+    static auto registry = [] {
         ParserOidsRegistry registry;
         registry.Add("void", PredefinedOids::kVoid);
         return registry;
     }();
-    return registry_;
+    return registry;
 }
 
 auto& ArrayToElement() {
-    static std::unordered_map<PredefinedOids, PredefinedOids> element_by_array_;
-    return element_by_array_;
+    static std::unordered_map<PredefinedOids, PredefinedOids> element_by_array;
+    return element_by_array;
 }
 
 TypeBufferCategory& TypeCategories() {
-    static TypeBufferCategory cats_{{static_cast<Oid>(PredefinedOids::kVoid), BufferCategory::kVoid}};
-    return cats_;
+    static TypeBufferCategory cats{{static_cast<Oid>(PredefinedOids::kVoid), BufferCategory::kVoid}};
+    return cats;
 }
 
-const std::unordered_map<BufferCategory, std::string, BufferCategoryHash> kBufferCategoryToString{
-    {BufferCategory::kKeepCategory, "parent buffer category"},
-    {BufferCategory::kNoParser, "no parser"},
-    {BufferCategory::kVoid, "void result"},
-    {BufferCategory::kPlainBuffer, "plain buffer"},
-    {BufferCategory::kArrayBuffer, "array buffer"},
-    {BufferCategory::kCompositeBuffer, "composite buffer"},
-    {BufferCategory::kRangeBuffer, "range buffer"},
+constexpr USERVER_NAMESPACE::utils::TrivialBiMap kBufferCategoryToString = [](auto selector) {
+    return selector()
+        .Case(BufferCategory::kKeepCategory, "parent buffer category")
+        .Case(BufferCategory::kNoParser, "no parser")
+        .Case(BufferCategory::kVoid, "void result")
+        .Case(BufferCategory::kPlainBuffer, "plain buffer")
+        .Case(BufferCategory::kArrayBuffer, "array buffer")
+        .Case(BufferCategory::kCompositeBuffer, "composite buffer")
+        .Case(BufferCategory::kRangeBuffer, "range buffer");
 };
 
 }  // namespace
 
-const std::string& ToString(BufferCategory val) {
-    if (auto f = kBufferCategoryToString.find(val); f != kBufferCategoryToString.end()) {
-        return f->second;
+std::string_view ToString(BufferCategory val) {
+    if (auto opt_value = kBufferCategoryToString.TryFindByFirst(val)) {
+        return *opt_value;
     }
     throw LogicError(fmt::format("Invalid buffer category value {}", USERVER_NAMESPACE::utils::UnderlyingValue(val)));
 }

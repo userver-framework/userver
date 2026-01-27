@@ -5,6 +5,7 @@
 
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/fs/read.hpp>
+#include <userver/logging/log.hpp>
 #include <userver/rcu/rcu_map.hpp>
 #include <userver/utils/async.hpp>
 #include <userver/utils/periodic_task.hpp>
@@ -17,10 +18,11 @@ std::string GetNormalizeDirectory(std::string_view dir) {
     auto slice = dir.size();
     // NOLINTNEXTLINE(modernize-loop-convert)
     for (auto it = dir.rbegin(); it != dir.rend(); ++it) {
-        if (*it == '/')
+        if (*it == '/') {
             --slice;
-        else
+        } else {
             break;
+        }
     }
     return std::string{dir.data(), slice};
 }
@@ -41,7 +43,10 @@ bool IsFilepathHidden(const std::string& path) {
 #endif  // __linux__
 
 FsCacheClient::FsCacheClient(std::string_view dir, std::chrono::milliseconds update_period, engine::TaskProcessor& tp)
-    : dir_(GetNormalizeDirectory(dir)), update_period_(update_period), tp_(tp) {
+    : dir_(GetNormalizeDirectory(dir)),
+      update_period_(update_period),
+      tp_(tp)
+{
     UpdateCache();
 
     if (update_period_ == std::chrono::milliseconds(0)) {
@@ -70,7 +75,9 @@ void FsCacheClient::InotifyWork() {
     while (!engine::current_task::ShouldCancel()) {
         auto event = inotify.Poll({});
         LOG_INFO() << event;
-        if (!event) return;
+        if (!event) {
+            return;
+        }
 
         if (event->mask & sys_linux::EventType::kMovedFrom || event->mask & sys_linux::EventType::kDelete) {
             if (!(event->mask & sys_linux::EventType::kIsDir)) {
@@ -81,7 +88,8 @@ void FsCacheClient::InotifyWork() {
         }
 
         if (event->mask & sys_linux::EventType::kMovedTo || event->mask & sys_linux::EventType::kCreate ||
-            event->mask & sys_linux::EventType::kModify) {
+            event->mask & sys_linux::EventType::kModify)
+        {
             if (!(event->mask & sys_linux::EventType::kIsDir)) {
                 HandleCreate(event->path);
             } else {
@@ -99,7 +107,9 @@ void FsCacheClient::HandleDeleteDirectory(engine::io::sys_linux::Inotify& inotif
 }
 
 void FsCacheClient::HandleCreate(const std::string& path) {
-    if (IsFilepathHidden(path)) return;
+    if (IsFilepathHidden(path)) {
+        return;
+    }
 
     FileInfoWithData info{};
     info.extension = boost::filesystem::path(path).extension().string();
@@ -138,7 +148,9 @@ void FsCacheClient::HandleCreateDirectoryBlocking(engine::io::sys_linux::Inotify
 FileInfoWithDataConstPtr FsCacheClient::TryGetFile(std::string_view path) const {
     LOG_DEBUG() << "Find file " << path;
     auto snap = data_.GetSnapshot();
-    if (auto it = snap.find(std::string{path}); it != snap.end()) return it->second;
+    if (auto it = snap.find(std::string{path}); it != snap.end()) {
+        return it->second;
+    }
     return nullptr;
 }
 

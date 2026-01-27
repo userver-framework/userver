@@ -1,0 +1,4 @@
+type: object
+description: Component that keeps a utils::statistics::Storage storage for metrics.
+additionalProperties: false
+properties: {}

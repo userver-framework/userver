@@ -82,9 +82,8 @@ UTEST_P(PostgreConnection, JsonStored) {
     auto expected = formats::json::FromString(kJsonText);
 
     UEXPECT_NO_THROW(
-        res = GetConn()->Execute(
-            "select $1, $2", pg::ParameterStore{}.PushBack(expected).PushBack(pg::PlainJson{expected})
-        )
+        res = GetConn()
+                  ->Execute("select $1, $2", pg::ParameterStore{}.PushBack(expected).PushBack(pg::PlainJson{expected}))
     );
     UEXPECT_NO_THROW(res[0][0].To(json));
     EXPECT_EQ(expected, json);

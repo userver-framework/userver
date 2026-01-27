@@ -50,13 +50,18 @@ std::string ToString(ClusterHostTypeFlags flags) {
           ClusterHostType::kSyncSlave,
           ClusterHostType::kSlave,
           ClusterHostType::kRoundRobin,
-          ClusterHostType::kNearest}) {
+          ClusterHostType::kNearest})
+    {
         if (flags & role) {
-            if (!result.empty()) result += '|';
+            if (!result.empty()) {
+                result += '|';
+            }
             result += ToStringRaw(role);
         }
     }
-    if (result.empty()) result = ToStringRaw(ClusterHostType::kNone);
+    if (result.empty()) {
+        result = ToStringRaw(ClusterHostType::kNone);
+    }
     return result;
 }
 

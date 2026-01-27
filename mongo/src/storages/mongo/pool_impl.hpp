@@ -18,10 +18,9 @@ namespace storages::mongo::impl {
 
 class PoolImpl {
 public:
+    PoolImpl(PoolImpl&&) = delete;
+    PoolImpl& operator=(PoolImpl&&) = delete;
     virtual ~PoolImpl() = default;
-
-    void Start();
-    void Stop();
 
     const std::string& Id() const;
     const stats::PoolStatistics& GetStatistics() const;
@@ -41,8 +40,14 @@ public:
 
     virtual void SetPoolSettings(const PoolSettings& pool_settings) = 0;
 
+    // Cannot be called in parallel
+    virtual void SetConnectionString(const std::string& connection_string) = 0;
+
 protected:
     PoolImpl(std::string&& id, const PoolConfig& static_config, dynamic_config::Source config_source);
+
+    void Start();
+    void Stop() noexcept;
 
 private:
     void OnConfigUpdate(const dynamic_config::Snapshot& config);

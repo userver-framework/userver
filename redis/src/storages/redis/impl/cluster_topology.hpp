@@ -8,15 +8,14 @@
 #include <vector>
 
 #include <userver/rcu/rcu_map.hpp>
-#include <userver/storages/redis/impl/base.hpp>
+#include <userver/storages/redis/base.hpp>
 
 #include <storages/redis/impl/cluster_shard.hpp>
-#include <storages/redis/impl/sentinel_impl.hpp>
 #include <storages/redis/impl/sentinel_query.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis::impl {
 
 template <typename K>
 struct StdMutexRcuMapTraits : rcu::DefaultRcuMapTraits<K> {
@@ -29,19 +28,18 @@ using NodesStorage = rcu::RcuMap<std::string, RedisConnectionHolder, StdMutexRcu
 
 class ClusterTopology {
 public:
-    static constexpr auto kUnknownShard = SentinelImplBase::kUnknownShard;
+    static constexpr auto kUnknownShard = SentinelImpl::kUnknownShard;
 
     ClusterTopology() = default;
     ClusterTopology(ClusterTopology&&) = default;
-    ClusterTopology(const ClusterTopology&) = default;
+    ClusterTopology(const ClusterTopology&) = delete;
     ClusterTopology& operator=(ClusterTopology&&) = default;
-    ClusterTopology& operator=(const ClusterTopology&) = default;
+    ClusterTopology& operator=(const ClusterTopology&) = delete;
 
     ClusterTopology(
         size_t version,
         std::chrono::steady_clock::time_point timestamp,
         ClusterShardHostInfos infos,
-        Password password,
         const std::shared_ptr<engine::ev::ThreadPool>& redis_thread_pool,
         const NodesStorage& nodes
     );
@@ -71,22 +69,28 @@ public:
     }
 
     bool IsReady(WaitConnectedMode mode) const;
+    std::string GetReadinessInfo() const;
 
     bool HasSameInfos(const ClusterShardHostInfos& infos) const;
 
     const ClusterShardHostInfos& GetShardInfos() const { return infos_; }
     size_t GetVersion() const { return version_; }
-    size_t GetShardsCount() const { return cluster_shards_.size(); }
+    size_t GetShardsCount() const {
+        UASSERT(!cluster_shards_.empty());
+        return cluster_shards_.size();
+    }
     std::chrono::steady_clock::time_point GetTimestamp() const { return timestamp_; }
 
     void GetStatistics(const MetricsSettings& settings, SentinelStatistics& stats) const;
 
-    std::unordered_map<ServerId, size_t, ServerIdHasher>
-    GetAvailableServersWeighted(size_t shard_idx, bool with_master, const CommandControl& cc) const;
+    std::unordered_map<ServerId, size_t, ServerIdHasher> GetAvailableServersWeighted(
+        size_t shard_idx,
+        bool with_master,
+        const CommandControl& cc
+    ) const;
 
 private:
     ClusterShardHostInfos infos_;
-    Password password_;
     std::array<uint16_t, kClusterHashSlots> slot_to_shard_{};
 
     /// Special "Shard" containing all instances of cluster, master - is 0-shard
@@ -100,6 +104,6 @@ private:
 
 const std::string& GetShardName(size_t shard_index);
 
-}  // namespace redis
+}  // namespace storages::redis::impl
 
 USERVER_NAMESPACE_END

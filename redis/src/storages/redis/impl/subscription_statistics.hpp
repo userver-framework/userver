@@ -6,13 +6,13 @@
 #include <unordered_map>
 #include <vector>
 
-#include <userver/storages/redis/impl/base.hpp>
+#include <userver/storages/redis/base.hpp>
 #include <userver/utils/statistics/rate.hpp>
 #include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis::impl {
 
 struct PubsubChannelStatistics {
     std::chrono::steady_clock::time_point subscription_timestamp;
@@ -52,7 +52,9 @@ struct RawPubsubClusterStatistics {
 };
 
 struct PubsubClusterStatistics {
-    PubsubClusterStatistics(const PubsubMetricsSettings& settings) : settings(settings) {}
+    PubsubClusterStatistics(const PubsubMetricsSettings& settings)
+        : settings(settings)
+    {}
 
     const PubsubMetricsSettings& settings;
     std::unordered_map<std::string, PubsubShardStatistics> by_shard;
@@ -60,7 +62,9 @@ struct PubsubClusterStatistics {
     PubsubShardStatistics SumByShards() const {
         PubsubShardStatistics sum;
         for (const auto& shard : by_shard) {
-            for (const auto& it : shard.second.by_channel) sum.by_channel[it.first] += it.second;
+            for (const auto& it : shard.second.by_channel) {
+                sum.by_channel[it.first] += it.second;
+            }
         }
         return sum;
     }
@@ -72,6 +76,6 @@ void DumpMetric(utils::statistics::Writer& writer, const PubsubShardStatistics& 
 
 void DumpMetric(utils::statistics::Writer& writer, const PubsubClusterStatistics& stats);
 
-}  // namespace redis
+}  // namespace storages::redis::impl
 
 USERVER_NAMESPACE_END

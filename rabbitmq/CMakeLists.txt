@@ -1,28 +1,29 @@
 project(userver-rabbitmq CXX)
 
-if (USERVER_CONAN)
-  find_package(amqpcpp)
+if(USERVER_CONAN)
+    find_package(amqpcpp REQUIRED)
 else()
-  include(SetupAmqpCPP)
+    include(SetupAmqpCPP)
 endif()
 
-userver_module(rabbitmq
+userver_module(
+    rabbitmq
     SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}"
     LINK_LIBRARIES_PRIVATE amqpcpp
-
     DBTEST_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*_rmqtest.cpp"
     DBTEST_DATABASES rabbitmq
+    DEPENDS core
+    EMBED_FILES src/urabbitmq/component.yaml src/urabbitmq/consumer_component_base.yaml
 )
 
 _userver_directory_install(
     COMPONENT rabbitmq
-    FILES "${USERVER_ROOT_DIR}/cmake/SetupAmqpCPP.cmake"
-    DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/userver"
+    FILES "${USERVER_ROOT_DIR}/cmake/modules/Findamqpcpp.cmake"
+    DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/userver/modules"
 )
 
-if (USERVER_IS_THE_ROOT_PROJECT)
-  set_tests_properties(${PROJECT_NAME}-dbtest PROPERTIES ENVIRONMENT
-          "TESTSUITE_RABBITMQ_SERVER_START_TIMEOUT=120.0")
+if(USERVER_BUILD_TESTS)
+    set_tests_properties(${PROJECT_NAME}-dbtest PROPERTIES ENVIRONMENT "TESTSUITE_RABBITMQ_SERVER_START_TIMEOUT=120.0")
 
-  add_subdirectory(functional_tests)
+    add_subdirectory(functional_tests)
 endif()

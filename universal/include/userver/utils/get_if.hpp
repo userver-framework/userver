@@ -20,7 +20,7 @@ template <typename T>
 using IsPointerLike = decltype(std::declval<T&>() ? std::addressof(*std::declval<T&&>()) : nullptr);
 
 template <typename T>
-inline constexpr bool kIsPointerLike = meta::kIsDetected<IsPointerLike, T>;
+inline constexpr bool kIsPointerLike = meta::IsDetected<IsPointerLike, T>;
 
 }  // namespace impl
 
@@ -44,7 +44,8 @@ constexpr auto* GetIf(Root&& root, Head&& head, Tail&&... tail) {
                     : nullptr;
     } else {
         return utils::GetIf(
-            std::invoke(std::forward<Head>(head), std::forward<Root>(root)), std::forward<Tail>(tail)...
+            std::invoke(std::forward<Head>(head), std::forward<Root>(root)),
+            std::forward<Tail>(tail)...
         );
     }
 }

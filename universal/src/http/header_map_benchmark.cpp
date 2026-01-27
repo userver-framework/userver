@@ -4,6 +4,8 @@
 #include <vector>
 
 #include <userver/http/header_map.hpp>
+#include <userver/utils/fixed_array.hpp>
+#include <userver/utils/string_literal.hpp>
 
 #include <userver/internal/http/header_map_tests_helper.hpp>
 
@@ -142,7 +144,9 @@ void HeaderMapEraseBenchmark(benchmark::State& state) {
         return;
     }
 
-    std::vector<http::headers::PredefinedHeader> predefined_headers{headers.begin(), headers.end()};
+    const auto predefined_headers = utils::GenerateFixedArray(headers.size(), [&headers](std::size_t i) {
+        return http::headers::PredefinedHeader{utils::StringLiteral::UnsafeMake(headers[i].data(), headers[i].size())};
+    });
     for ([[maybe_unused]] auto _ : state) {
         auto map = initial_map;
         for (const auto& h : predefined_headers) {

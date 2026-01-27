@@ -1,0 +1,61 @@
+openapi: 3.0.0
+info:
+    title: test-object client
+    version: '1.0'
+
+paths:
+    /test1:
+        post:
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                foo:
+                                    type: string
+                            additionalProperties: false
+                    multipart/form-data:
+                        schema:
+                            type: object
+                            properties:
+                                filename:
+                                    type: string
+                                content:
+                                    type: string
+                            additionalProperties: false
+                    application/x-www-form-urlencoded:
+                        schema:
+                            type: object
+                            required:
+                              - name
+                              - age
+                            properties:
+                                name:
+                                    type: string
+                                password:
+                                    type: string
+                                age:
+                                    type: integer
+                                salary:
+                                    type: number
+                                is_smoking:
+                                    type: boolean
+                            additionalProperties: false
+                    application/octet-stream:
+                        schema:
+                            type: string
+            responses:
+                '200':
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    bar:
+                                        type: string
+                                additionalProperties: false
+                        application/octet-stream:
+                            schema:
+                                type: string

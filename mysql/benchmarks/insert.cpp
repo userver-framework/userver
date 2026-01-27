@@ -29,7 +29,9 @@ void insert_retrieve(benchmark::State& state) {
             state.ResumeTiming();
 
             cluster->ExecuteBulk(
-                ClusterHostType::kPrimary, table.FormatWithTableName("INSERT INTO {} VALUES(?, ?)"), rows_to_insert
+                ClusterHostType::kPrimary,
+                table.FormatWithTableName("INSERT INTO {} VALUES(?, ?)"),
+                rows_to_insert
             );
 
             const auto db_rows = table.DefaultExecute("SELECT Id, Value FROM {}").AsVector<Row>();
@@ -80,7 +82,8 @@ void batch_insert(benchmark::State& state) {
                 cluster,
                 "a INT NOT NULL, b INT NOT NULL, c INT NOT NULL, d INT NOT NULL, "
                 "e INT NOT NULL, f INT NOT NULL, g INT NOT NULL, h INT NOT NULL, "
-                "j INT NOT NULL, k INT NOT NULL"};
+                "j INT NOT NULL, k INT NOT NULL"
+            };
             const storages::mysql::Query query{
                 table.FormatWithTableName("INSERT INTO {} VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"),
             };

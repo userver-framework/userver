@@ -53,7 +53,7 @@ public:
     /// @cond
     MultiMongo(
         std::string name,
-        const storages::secdist::Secdist& secdist,
+        storages::secdist::Secdist& secdist,
         storages::mongo::PoolConfig pool_config,
         clients::dns::Resolver* dns_resolver,
         dynamic_config::Source config_source
@@ -89,6 +89,8 @@ public:
 private:
     void OnConfigUpdate(const dynamic_config::Snapshot& config);
 
+    void OnSecdistUpdate(const storages::secdist::SecdistConfig& secdist);
+
     storages::mongo::PoolPtr FindPool(const std::string& dbalias) const;
 
     const std::string name_;
@@ -97,8 +99,10 @@ private:
     const storages::mongo::PoolConfig pool_config_;
     clients::dns::Resolver* dns_resolver_;
     rcu::Variable<PoolMap> pool_map_;
-    // config_subscriber_ must be the last field.
+
+    // Subscriptions (config_subscriber_ and secdist_subscriber_) must be the last fields.
     concurrent::AsyncEventSubscriberScope config_subscriber_;
+    concurrent::AsyncEventSubscriberScope secdist_subscriber_;
 };
 
 }  // namespace storages::mongo

@@ -58,10 +58,12 @@ Parse(USERVER_NAMESPACE::formats::json::Value json, USERVER_NAMESPACE::formats::
 }  // namespace
 
 TEST(OneOfWithDiscriminator, Simple) {
-    static constexpr chaotic::OneOfSettings kSettings{
-        "type", utils::TrivialSet([](auto selector) {
+    static constexpr chaotic::OneOfStringSettings kSettings{
+        "type",
+        utils::TrivialSet([](auto selector) {
             return selector().Case("ObjectIntWithDiscriminator").Case("ObjectStringWithDiscriminator");
-        })};
+        })
+    };
 
     using OneOfWithDiscriminator =
         chaotic::OneOfWithDiscriminator<&kSettings, ObjectIntWithDiscriminator, ObjectStringWithDiscriminator>;
@@ -80,14 +82,17 @@ TEST(OneOfWithDiscriminator, Simple) {
 }
 
 TEST(OneOfWithDiscriminator, RepeatedTypes) {
-    static constexpr chaotic::OneOfSettings kSettings{"type", utils::TrivialSet([](auto selector) {
-                                                          return selector()
-                                                              .Case("ObjectIntWithDiscriminator")
-                                                              .Case("ObjectIntWithDiscriminator")
-                                                              .Case("ObjectStringWithDiscriminator")
-                                                              .Case("ObjectIntWithDiscriminator")
-                                                              .Case("ObjectStringWithDiscriminator");
-                                                      })};
+    static constexpr chaotic::OneOfStringSettings kSettings{
+        "type",
+        utils::TrivialSet([](auto selector) {
+            return selector()
+                .Case("ObjectIntWithDiscriminator")
+                .Case("ObjectIntWithDiscriminator")
+                .Case("ObjectStringWithDiscriminator")
+                .Case("ObjectIntWithDiscriminator")
+                .Case("ObjectStringWithDiscriminator");
+        })
+    };
 
     using OneOfWithDiscriminator = chaotic::OneOfWithDiscriminator<
         &kSettings,
@@ -109,10 +114,12 @@ TEST(OneOfWithDiscriminator, RepeatedTypes) {
 }
 
 TEST(OneOfWithDiscriminator, ParseError) {
-    static constexpr chaotic::OneOfSettings kSettings{
-        "type", utils::TrivialSet([](auto selector) {
+    static constexpr chaotic::OneOfStringSettings kSettings{
+        "type",
+        utils::TrivialSet([](auto selector) {
             return selector().Case("ObjectIntWithDiscriminator").Case("ObjectStringWithDiscriminator");
-        })};
+        })
+    };
 
     using OneOfWithDiscriminator =
         chaotic::OneOfWithDiscriminator<&kSettings, ObjectIntWithDiscriminator, ObjectStringWithDiscriminator>;

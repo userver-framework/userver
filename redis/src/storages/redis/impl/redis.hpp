@@ -9,16 +9,16 @@
 #include <engine/ev/thread_pool.hpp>
 #include <userver/utils/retry_budget.hpp>
 
-#include <userver/storages/redis/impl/base.hpp>
-#include <userver/storages/redis/impl/redis_state.hpp>
-#include <userver/storages/redis/impl/request.hpp>
-#include <userver/storages/redis/impl/types.hpp>
+#include <storages/redis/impl/request.hpp>
+#include <userver/storages/redis/base.hpp>
+#include <userver/storages/redis/fwd.hpp>
+#include <userver/storages/redis/redis_state.hpp>
 
 #include "redis_creation_settings.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis::impl {
 
 class Statistics;
 
@@ -26,12 +26,22 @@ class Redis {
 public:
     using State = RedisState;
 
-    Redis(const std::shared_ptr<engine::ev::ThreadPool>& thread_pool, const RedisCreationSettings& redis_settings);
+    Redis(
+        const std::shared_ptr<engine::ev::ThreadPool>& thread_pool,
+        const RedisCreationSettings& redis_settings,
+        const std::string& shard_group_name,
+        Statistics& external_statistics
+    );
     ~Redis();
 
     Redis(Redis&& o) = delete;
 
-    void Connect(const ConnectionInfo::HostVector& host_addrs, int port, const Password& password);
+    void Connect(
+        const ConnectionInfo::HostVector& host_addrs,
+        int port,
+        const Password& password,
+        std::size_t database_index
+    );
 
     bool AsyncCommand(const CommandPtr& command);
     size_t GetRunningCommands() const;
@@ -53,8 +63,6 @@ public:
 
     // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
     boost::signals2::signal<void(State)> signal_state_change;
-    // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
-    boost::signals2::signal<void()> signal_not_in_cluster_mode;
 
 private:
     class RedisImpl;
@@ -69,6 +77,6 @@ double ToEvDuration(const std::chrono::duration<Rep, Period>& duration) {
 
 std::string_view StateToString(RedisState state);
 
-}  // namespace redis
+}  // namespace storages::redis::impl
 
 USERVER_NAMESPACE_END

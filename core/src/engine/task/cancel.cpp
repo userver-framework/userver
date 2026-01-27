@@ -22,7 +22,9 @@ void Unwind() {
     auto& ctx = current_task::GetCurrentTaskContext();
     UASSERT(ctx.GetState() == Task::State::kRunning);
 
-    if (std::uncaught_exceptions()) return;
+    if (std::uncaught_exceptions()) {
+        return;
+    }
 
     if (ctx.SetCancellable(false)) {
         LOG_TRACE() << "Cancelling current task" << logging::LogExtra::Stacktrace();
@@ -50,17 +52,23 @@ bool ShouldCancel() noexcept {
 TaskCancellationReason CancellationReason() noexcept { return GetCurrentTaskContext().CancellationReason(); }
 
 void CancellationPoint() {
-    if (current_task::ShouldCancel()) Unwind();
+    if (current_task::ShouldCancel()) {
+        Unwind();
+    }
 }
 
 void SetDeadline(Deadline deadline) { GetCurrentTaskContext().SetCancelDeadline(deadline); }
 
 TaskCancellationToken GetCancellationToken() { return TaskCancellationToken(GetCurrentTaskContext()); }
 
+void RequestCancel() { return GetCurrentTaskContext().RequestCancel(TaskCancellationReason::kUserRequest); }
+
 }  // namespace current_task
 
 TaskCancellationBlocker::TaskCancellationBlocker()
-    : context_(current_task::GetCurrentTaskContext()), was_allowed_(context_.SetCancellable(false)) {}
+    : context_(current_task::GetCurrentTaskContext()),
+      was_allowed_(context_.SetCancellable(false))
+{}
 
 TaskCancellationBlocker::~TaskCancellationBlocker() {
     UASSERT(context_.IsCurrent());
@@ -77,21 +85,26 @@ std::string_view ToString(TaskCancellationReason reason) noexcept {
             return "Task deadline reached";
         case TaskCancellationReason::kOverload:
             return "Task processor overload";
+        case TaskCancellationReason::kOOM:
+            return "Not enough memory";
         case TaskCancellationReason::kAbandoned:
             return "Task destructor is called before the payload finished execution";
         case TaskCancellationReason::kShutdown:
             return "Task processor shutdown";
     }
 
-    utils::impl::AbortWithStacktrace(fmt::format("Garbage task cancellation reason: {}", utils::UnderlyingValue(reason))
-    );
+    utils::AbortWithStacktrace(fmt::format("Garbage task cancellation reason: {}", utils::UnderlyingValue(reason)));
 }
 
 TaskCancellationToken::TaskCancellationToken() noexcept = default;
 
 TaskCancellationToken::TaskCancellationToken(impl::TaskContext& context) noexcept : context_(&context) {}
 
-TaskCancellationToken::TaskCancellationToken(Task& task) : context_(task.pimpl_->context) { UASSERT(context_); }
+TaskCancellationToken::TaskCancellationToken(Task& task)
+    : context_(task.pimpl_->context)
+{
+    UASSERT(context_);
+}
 
 // clang-tidy insists on defaulting this,
 // gcc complains about exception-specification mismatch with '= default'
@@ -115,6 +128,16 @@ TaskCancellationToken::~TaskCancellationToken() = default;
 void TaskCancellationToken::RequestCancel() {
     UASSERT(context_);
     context_->RequestCancel(TaskCancellationReason::kUserRequest);
+}
+
+TaskCancellationReason TaskCancellationToken::CancellationReason() const noexcept {
+    UASSERT(context_);
+    return context_->CancellationReason();
+}
+
+bool TaskCancellationToken::IsCancelRequested() const noexcept {
+    UASSERT(context_);
+    return context_->IsCancelRequested();
 }
 
 bool TaskCancellationToken::IsValid() const noexcept { return !!context_; }

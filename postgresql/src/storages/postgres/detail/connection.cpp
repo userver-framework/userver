@@ -26,12 +26,15 @@ std::unique_ptr<Connection> Connection::Connect(
     const DefaultCommandControls& default_cmd_ctls,
     const testsuite::PostgresControl& testsuite_pg_ctl,
     const error_injection::Settings& ei_settings,
-    engine::SemaphoreLock&& size_lock
+    engine::SemaphoreLock&& size_lock,
+    USERVER_NAMESPACE::utils::statistics::MetricsStoragePtr metrics
 ) {
+    // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
     std::unique_ptr<Connection> conn(new Connection());
 
-    const auto deadline =
-        engine::Deadline::FromDuration(std::max(kMinConnectTimeout, default_cmd_ctls.GetDefaultCmdCtl().execute));
+    const auto deadline = engine::Deadline::FromDuration(
+        std::max(kMinConnectTimeout, default_cmd_ctls.GetDefaultCmdCtl().network_timeout_ms)
+    );
     conn->pimpl_ = std::make_unique<ConnectionImpl>(
         bg_task_processor,
         bg_task_storage,
@@ -40,7 +43,8 @@ std::unique_ptr<Connection> Connection::Connect(
         default_cmd_ctls,
         testsuite_pg_ctl,
         ei_settings,
-        std::move(size_lock)
+        std::move(size_lock),
+        std::move(metrics)
     );
     if (resolver) {
         try {
@@ -65,7 +69,7 @@ bool Connection::IsReadOnly() const { return pimpl_->IsReadOnly(); }
 
 void Connection::RefreshReplicaState(engine::Deadline deadline) const { pimpl_->RefreshReplicaState(deadline); }
 
-ConnectionSettings const& Connection::GetSettings() const { return pimpl_->GetSettings(); }
+const ConnectionSettings& Connection::GetSettings() const { return pimpl_->GetSettings(); }
 
 ConnectionState Connection::GetState() const { return pimpl_->GetConnectionState(); }
 
@@ -115,21 +119,24 @@ ResultSet Connection::Execute(
     return pimpl_->ExecuteCommand(query, params, std::move(statement_cmd_ctl));
 }
 
-Connection::PreparedStatementMeta
-Connection::PrepareStatement(const Query& query, const detail::QueryParameters& params, TimeoutDuration timeout) {
+Connection::PreparedStatementMeta Connection::PrepareStatement(
+    const Query& query,
+    const detail::QueryParameters& params,
+    TimeoutDuration timeout
+) {
     const auto& statement_info = pimpl_->PrepareStatement(query, params, timeout);
 
-    return {statement_info.statement_name, statement_info.description};
+    return {statement_info.meta_statement_name, statement_info.description};
 }
 
 void Connection::AddIntoPipeline(
     CommandControl cc,
-    const std::string& prepared_statement_name,
+    const std::string& meta_statement_name,
     const detail::QueryParameters& params,
     const ResultSet& description,
     tracing::ScopeTime& scope
 ) {
-    pimpl_->AddIntoPipeline(cc, prepared_statement_name, params, description, scope);
+    pimpl_->AddIntoPipeline(cc, meta_statement_name, params, description, scope);
 }
 
 std::vector<ResultSet> Connection::GatherPipeline(TimeoutDuration timeout, const std::vector<ResultSet>& descriptions) {
@@ -145,12 +152,12 @@ ResultSet Connection::Execute(CommandControl statement_cmd_ctl, const Query& que
 }
 
 Connection::StatementId Connection::PortalBind(
-    const std::string& statement,
+    const Query& query,
     const std::string& portal_name,
     const detail::QueryParameters& params,
     OptionalCommandControl statement_cmd_ctl
 ) {
-    return pimpl_->PortalBind(statement, portal_name, params, std::move(statement_cmd_ctl));
+    return pimpl_->PortalBind(query, portal_name, params, std::move(statement_cmd_ctl));
 }
 
 ResultSet Connection::PortalExecute(
@@ -188,7 +195,7 @@ void Connection::Ping() { pimpl_->Ping(); }
 
 void Connection::MarkAsBroken() { pimpl_->MarkAsBroken(); }
 
-OptionalCommandControl Connection::GetQueryCmdCtl(const std::optional<Query::Name>& query_name) const {
+OptionalCommandControl Connection::GetQueryCmdCtl(std::optional<Query::NameView> query_name) const {
     return pimpl_->GetNamedQueryCommandControl(query_name);
 }
 

@@ -10,13 +10,15 @@ USERVER_NAMESPACE_BEGIN
 namespace {
 
 struct Subscriber final {
-    Subscriber() : sem(1) {
+    Subscriber()
+        : sem(1)
+    {
         sem.lock_shared();  // To set semaphore 0 at start
     }
 
     void OnEvent() {
         sem.unlock_shared();
-        std::lock_guard<engine::Mutex> lock(mutex);
+        const std::lock_guard<engine::Mutex> lock(mutex);
         times_called++;
     }
 
@@ -57,7 +59,7 @@ UTEST(ConflatedEventChannel, PublishMany) {
     EXPECT_EQ(subscriber.times_called, 0);
 
     {
-        std::lock_guard<engine::Mutex> lock(subscriber.mutex);
+        const std::lock_guard<engine::Mutex> lock(subscriber.mutex);
 
         // E1 calls 'OnEvent' asynchronously, which increments 'sem' and starts
         // waiting for 'mutex'. If 'SendEvent' was synchronous, a deadlock would
@@ -79,7 +81,7 @@ UTEST(ConflatedEventChannel, PublishMany) {
 
     // Same as above, but events are sent manually
     {
-        std::lock_guard<engine::Mutex> lock(subscriber.mutex);
+        const std::lock_guard<engine::Mutex> lock(subscriber.mutex);
         conflated_channel.SendEvent();
         subscriber.sem.lock_shared();
         conflated_channel.SendEvent();
@@ -111,7 +113,7 @@ UTEST(ConflatedEventChannel, PublishFromManyChannels) {
     EXPECT_EQ(subscriber.times_called, 2);
 
     {
-        std::lock_guard<engine::Mutex> lock(subscriber.mutex);
+        const std::lock_guard<engine::Mutex> lock(subscriber.mutex);
         channel1.SendEvent();
         subscriber.sem.lock_shared();
         channel2.SendEvent();

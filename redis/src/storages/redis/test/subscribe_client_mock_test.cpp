@@ -6,23 +6,23 @@ namespace storages::redis::test {
 
 /// Here, we test that our Mock is correct
 TEST(MockSubscribeClientTest, Basic) {
-    std::shared_ptr<MockSubscribeClient> client_mock = std::make_shared<MockSubscribeClient>();
+    const std::shared_ptr<MockSubscribeClient> client_mock = std::make_shared<MockSubscribeClient>();
 
     using testing::_;
 
     {
-        testing::InSequence seq;
+        const testing::InSequence seq;
         EXPECT_CALL(*client_mock, Subscribe("test_subscribe", _, _))
             .Times(1)
-            .WillRepeatedly([](std::string,
-                               SubscriptionToken::OnMessageCb,
-                               const USERVER_NAMESPACE::redis::CommandControl&) { return SubscriptionToken{}; });
+            .WillRepeatedly([](std::string, SubscriptionToken::OnMessageCb, const CommandControl&) {
+                return SubscriptionToken{};
+            });
 
         EXPECT_CALL(*client_mock, Psubscribe("test_psubscribe", _, _))
             .Times(1)
-            .WillRepeatedly([](std::string,
-                               SubscriptionToken::OnPmessageCb,
-                               const USERVER_NAMESPACE::redis::CommandControl&) { return SubscriptionToken{}; });
+            .WillRepeatedly([](std::string, SubscriptionToken::OnPmessageCb, const CommandControl&) {
+                return SubscriptionToken{};
+            });
     }
     // check that wrong calls aren't there
     EXPECT_CALL(*client_mock, Subscribe("test_psubscribe", _, _)).Times(0);

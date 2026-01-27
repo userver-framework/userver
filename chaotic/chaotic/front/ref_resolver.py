@@ -1,9 +1,5 @@
 import collections
 from typing import Any
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Set
 
 from chaotic import error
 from chaotic.front import types
@@ -13,9 +9,9 @@ class ResolverError(Exception):
     pass
 
 
-def sort_dfs(nodes: Set[str], edges: Dict[str, List[str]]) -> List[str]:
+def sort_dfs(nodes: set[str], edges: dict[str, list[str]]) -> list[str]:
     visited = set()
-    visiting: List[str] = []
+    visiting: list[str] = []
     sorted_nodes = []
 
     def do_node(node: str):
@@ -54,7 +50,8 @@ class RefResolver:
         name = ''
 
         def visitor(
-            local_schema: types.Schema, parent: Optional[types.Schema],
+            local_schema: types.Schema,
+            parent: types.Schema | None,
         ) -> None:
             if not isinstance(local_schema, types.Ref):
                 return
@@ -73,15 +70,11 @@ class RefResolver:
                         cur_node = ref
                         is_external = True
                     else:
-                        known = '\n'.join([
-                            f'- {v}' for v in schemas.schemas.keys()
-                        ])
-                        known += '\n'.join([
-                            f'- {v}' for v in external_schemas.schemas.keys()
-                        ])
+                        known = '\n'.join([f'- {v}' for v in schemas.schemas.keys()])
+                        if external_schemas.schemas:
+                            known += '\n' + '\n'.join([f'- {v}' for v in external_schemas.schemas.keys()])
                         raise Exception(
-                            f'$ref to unknown type "{cur_node.ref}", '
-                            f'known refs:\n{known}',
+                            f'$ref to unknown type "{cur_node.ref}", known refs:\n{known}',
                         )
                 else:
                     cur_node = schemas.schemas[cur_node.ref]
@@ -90,7 +83,7 @@ class RefResolver:
                     # an exception will be raised later in sort_dfs()
                     break
                 seen.add(cur_node)
-            local_schema.schema = cur_node
+            local_schema.schema_ = cur_node
             if indirect:
                 local_schema.indirect = indirect
 
@@ -115,7 +108,6 @@ class RefResolver:
             )
             if not indirect:
                 if not is_external:
-                    # print(f'add {name} -> {local_schema.ref}')
                     edges[name].append(local_schema.ref)
             else:
                 # skip indirect link
@@ -150,12 +142,15 @@ class RefResolver:
                 yield ref
             for key, value in data.items():
                 yield from cls._search_refs(
-                    value, inside_items=(key == 'items'),
+                    value,
+                    inside_items=(key == 'items'),
                 )
 
     def sort_json_types(
-        self, types: Dict[str, Any], erase_path_prefix: str = '',
-    ) -> Dict[str, Any]:
+        self,
+        types: dict[str, Any],
+        erase_path_prefix: str = '',
+    ) -> dict[str, Any]:
         """
         Sorts not-yet-parsed schemas. Required for correct allOf/oneOf parsing.
         """

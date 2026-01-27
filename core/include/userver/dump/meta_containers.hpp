@@ -10,6 +10,7 @@
 #include <vector>
 
 #include <userver/dump/meta.hpp>
+#include <userver/utils/meta.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -52,8 +53,9 @@ using InsertResult = decltype(dump::Insert(std::declval<T&>(), std::declval<meta
 
 /// Check if a range is a container
 template <typename T>
-inline constexpr bool kIsContainer = meta::kIsRange<T> && std::is_default_constructible_v<T> && meta::kIsSizable<T> &&
-                                     meta::kIsDetected<impl::InsertResult, T>;
+inline constexpr bool kIsContainer =
+    meta::kIsRange<T> && std::is_default_constructible_v<T> && meta::kIsSizable<T> &&
+    meta::IsDetected<impl::InsertResult, T>;
 
 }  // namespace dump
 

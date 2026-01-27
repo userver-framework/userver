@@ -10,7 +10,6 @@
 
 #include <userver/dynamic_config/source.hpp>
 #include <userver/logging/level.hpp>
-#include <userver/utils/statistics/entry.hpp>
 #include <userver/utils/token_bucket.hpp>
 
 #include <userver/server/handlers/exceptions.hpp>
@@ -19,7 +18,6 @@
 #include <userver/server/http/http_request.hpp>
 #include <userver/server/http/http_response.hpp>
 #include <userver/server/http/http_response_body_stream_fwd.hpp>
-#include <userver/server/request/request_base.hpp>
 // Not needed here, but a lot of code depends on it being included transitively
 #include <userver/tracing/span.hpp>
 
@@ -39,30 +37,23 @@ class HttpRequestStatistics;
 class HttpHandlerMethodStatistics;
 class HttpHandlerStatisticsScope;
 
-// clang-format off
-
 /// @ingroup userver_components userver_http_handlers userver_base_classes
 ///
-/// @brief Base class for all the
-/// \ref userver_http_handlers "Userver HTTP Handlers".
+/// @brief Base class for all the @ref userver_http_handlers "Userver HTTP Handlers".
 ///
-/// ## Static options:
-/// Inherits all the options from server::handlers::HandlerBase and adds the
-/// following ones:
+/// ## Static options of server::handlers::HttpHandlerBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/server/handlers/http_handler_base.md
 ///
-/// Name | Description | Default value
-/// ---- | ----------- | -------------
-/// log-level | overrides log level for this handle | <no override>
-/// status-codes-log-level | map of "status": log_level items to override span log level for specific status codes | {}
-/// middlewares.pipeline-builder | name of a component to build a middleware pipeline for this particular handler | default-handler-middleware-pipeline-builder
+/// Options inherited from @ref server::handlers::HandlerBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/server/handlers/handler_base.md
+///
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
 ///
 /// ## Example usage:
 ///
 /// @include samples/hello_service/src/hello_handler.hpp
 /// @include samples/hello_service/src/hello_handler.cpp
-
-// clang-format on
-
 class HttpHandlerBase : public HandlerBase {
 public:
     HttpHandlerBase(
@@ -73,9 +64,9 @@ public:
 
     ~HttpHandlerBase() override;
 
-    void HandleRequest(request::RequestBase& request, request::RequestContext& context) const override;
+    void PrepareAndHandleRequest(http::HttpRequest& request, request::RequestContext& context) const override;
 
-    void ReportMalformedRequest(request::RequestBase& request) const final;
+    void ReportMalformedRequest(http::HttpRequest& request) const final;
 
     virtual const std::string& HandlerName() const;
 
@@ -101,13 +92,23 @@ public:
         const std::string& response_data
     ) const;
 
+    std::string GetUrlForLoggingChecked(const http::HttpRequest& request, request::RequestContext& context) const;
+
     /// Takes the exception and formats it into response, as specified by
     /// exception.
-    void HandleCustomHandlerException(const http::HttpRequest& request, const CustomHandlerException& ex) const;
+    void HandleCustomHandlerException(
+        const http::HttpRequest& request,
+        request::RequestContext& context,
+        const CustomHandlerException& ex
+    ) const;
 
     /// Takes the exception and formats it into response as an internal server
     /// error.
-    void HandleUnknownException(const http::HttpRequest& request, const std::exception& ex) const;
+    void HandleUnknownException(
+        const http::HttpRequest& request,
+        request::RequestContext& context,
+        const std::exception& ex
+    ) const;
 
     /// Helper function to log an unknown exception
     void LogUnknownException(const std::exception& ex, std::optional<logging::Level> log_level_override = {}) const;
@@ -120,11 +121,14 @@ public:
 protected:
     [[noreturn]] void ThrowUnsupportedHttpMethod(const http::HttpRequest& request) const;
 
+    /// Same as `HandleRequest`.
+    virtual std::string HandleRequestThrow(const http::HttpRequest& request, request::RequestContext& context) const;
+
     /// The core method for HTTP request handling.
     /// `request` arg contains HTTP headers, full body, etc.
     /// The method should return response body.
     /// @note It is used only if IsStreamed() returned `false`.
-    virtual std::string HandleRequestThrow(const http::HttpRequest& request, request::RequestContext& context) const;
+    virtual std::string HandleRequest(http::HttpRequest& request, request::RequestContext& context) const;
 
     /// The core method for HTTP request handling.
     /// `request` arg contains HTTP headers, full body, etc.
@@ -138,16 +142,21 @@ protected:
     ///    in memory.
     /// @note It is used only if IsStreamed() returned `true`.
     virtual void
-    HandleStreamRequest(const server::http::HttpRequest&, server::request::RequestContext&, server::http::ResponseBodyStream&)
+    HandleStreamRequest(server::http::HttpRequest&, server::request::RequestContext&, server::http::ResponseBodyStream&)
         const;
 
     /// If IsStreamed() returns `true`, call HandleStreamRequest()
-    /// for request handling, HandleRequestThrow() is not called.
-    /// If it returns `false`, HandleRequestThrow() is called instead,
+    /// for request handling, HandleRequest() is not called.
+    /// If it returns `false`, HandleRequest() is called instead,
     /// and HandleStreamRequest() is not called.
     /// @note The default implementation returns the cached value of
     /// "response-body-streamed" value from static config.
     virtual bool IsStreamed() const { return is_body_streamed_; }
+
+    /// Override it if you need a custom streamed logic based on request and context.
+    /// @note The default implementation returns the cached value of
+    /// "response-body-streamed" value from static config.
+    virtual bool IsStreamed(const http::HttpRequest&, server::request::RequestContext&) const { return IsStreamed(); }
 
     /// Override it to show per HTTP-method statistics besides statistics for all
     /// methods
@@ -171,6 +180,9 @@ protected:
         const std::string& response_data
     ) const;
 
+    /// Override it if you need a custom request url logging.
+    virtual std::string GetUrlForLogging(const http::HttpRequest& request, request::RequestContext& context) const;
+
     /// For internal use. You don't need to override it. This method is overridden
     /// in format-specific base handlers.
     virtual void ParseRequestData(const http::HttpRequest&, request::RequestContext&) const {}
@@ -183,7 +195,7 @@ private:
 
     void HandleHttpRequest(http::HttpRequest& request, request::RequestContext& context) const;
 
-    void HandleRequestStream(const http::HttpRequest& http_request, request::RequestContext& context) const;
+    void HandleRequestStream(http::HttpRequest& http_request, request::RequestContext& context) const;
 
     std::string GetRequestBodyForLoggingChecked(
         const http::HttpRequest& request,
@@ -201,7 +213,6 @@ private:
     const dynamic_config::Source config_source_;
     const std::vector<http::HttpMethod> allowed_methods_;
     const std::string handler_name_;
-    utils::statistics::Entry statistics_holder_;
     std::optional<logging::Level> log_level_;
     std::unordered_map<int, logging::Level> log_level_for_status_codes_;
 

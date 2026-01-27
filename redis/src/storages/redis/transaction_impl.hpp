@@ -3,11 +3,12 @@
 #include <string>
 #include <vector>
 
-#include <userver/storages/redis/impl/base.hpp>
-
 #include <userver/engine/future.hpp>
+#include <userver/storages/redis/base.hpp>
 #include <userver/storages/redis/client.hpp>
 #include <userver/storages/redis/transaction.hpp>
+
+#include <storages/redis/impl/cmd_args.hpp>
 
 #include "request_data_impl.hpp"
 
@@ -27,7 +28,8 @@ public:
     public:
         template <typename Result, typename ReplyType>
         ResultPromise(engine::Promise<ReplyType>&& promise, To<Request<Result, ReplyType>>)
-            : impl_(std::make_unique<ResultPromiseImpl<Result, ReplyType>>(std::move(promise))) {}
+            : impl_(std::make_unique<ResultPromiseImpl<Result, ReplyType>>(std::move(promise)))
+        {}
         ResultPromise(ResultPromise&& other) = default;
 
         void ProcessReply(ReplyData&& reply_data, const std::string& request_description) {
@@ -45,7 +47,9 @@ public:
         template <typename Result, typename ReplyType>
         class ResultPromiseImpl : public ResultPromiseImplBase {
         public:
-            ResultPromiseImpl(engine::Promise<ReplyType>&& promise) : promise_(std::move(promise)) {}
+            ResultPromiseImpl(engine::Promise<ReplyType>&& promise)
+                : promise_(std::move(promise))
+            {}
 
             void ProcessReply(ReplyData&& reply_data, const std::string& request_description) override {
                 try {
@@ -91,9 +95,13 @@ public:
 
     RequestExpire Expire(std::string key, std::chrono::seconds ttl) override;
 
+    RequestExpire Expire(std::string key, std::chrono::seconds ttl, ExpireOptions options) override;
+
     RequestGeoadd Geoadd(std::string key, GeoaddArg point_member) override;
 
     RequestGeoadd Geoadd(std::string key, std::vector<GeoaddArg> point_members) override;
+
+    RequestGeopos Geopos(std::string key, std::vector<std::string> members) override;
 
     RequestGeoradius Georadius(
         std::string key,
@@ -103,8 +111,12 @@ public:
         const GeoradiusOptions& georadius_options
     ) override;
 
-    RequestGeosearch
-    Geosearch(std::string key, std::string member, double radius, const GeosearchOptions& geosearch_options) override;
+    RequestGeosearch Geosearch(
+        std::string key,
+        std::string member,
+        double radius,
+        const GeosearchOptions& geosearch_options
+    ) override;
 
     RequestGeosearch Geosearch(
         std::string key,
@@ -225,6 +237,11 @@ public:
 
     RequestSetIfNotExist SetIfNotExist(std::string key, std::string value, std::chrono::milliseconds ttl) override;
 
+    RequestSetIfNotExistOrGet SetIfNotExistOrGet(std::string key, std::string value) override;
+
+    RequestSetIfNotExistOrGet SetIfNotExistOrGet(std::string key, std::string value, std::chrono::milliseconds ttl)
+        override;
+
     RequestSetex Setex(std::string key, std::chrono::seconds seconds, std::string value) override;
 
     RequestSismember Sismember(std::string key, std::string member) override;
@@ -278,15 +295,23 @@ public:
     RequestZrangebyscore Zrangebyscore(std::string key, double min, double max, const RangeOptions& range_options)
         override;
 
-    RequestZrangebyscore
-    Zrangebyscore(std::string key, std::string min, std::string max, const RangeOptions& range_options) override;
+    RequestZrangebyscore Zrangebyscore(
+        std::string key,
+        std::string min,
+        std::string max,
+        const RangeOptions& range_options
+    ) override;
 
     RequestZrangebyscoreWithScores ZrangebyscoreWithScores(std::string key, double min, double max) override;
 
     RequestZrangebyscoreWithScores ZrangebyscoreWithScores(std::string key, std::string min, std::string max) override;
 
-    RequestZrangebyscoreWithScores
-    ZrangebyscoreWithScores(std::string key, double min, double max, const RangeOptions& range_options) override;
+    RequestZrangebyscoreWithScores ZrangebyscoreWithScores(
+        std::string key,
+        double min,
+        double max,
+        const RangeOptions& range_options
+    ) override;
 
     RequestZrangebyscoreWithScores ZrangebyscoreWithScores(
         std::string key,
@@ -327,7 +352,7 @@ private:
     std::optional<size_t> shard_;
 
     bool master_{};
-    USERVER_NAMESPACE::redis::CmdArgs cmd_args_;
+    impl::CmdArgs cmd_args_;
     std::vector<ResultPromise> result_promises_;
 };
 

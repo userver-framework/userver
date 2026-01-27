@@ -12,7 +12,11 @@ namespace formats::json::parser {
 template <typename Item, typename ItemParser, typename Array = std::vector<Item>>
 class ArrayParser final : public TypedParser<Array>, public Subscriber<Item> {
 public:
-    explicit ArrayParser(ItemParser& item_parser) : item_parser_(item_parser) { this->item_parser_.Subscribe(*this); }
+    explicit ArrayParser(ItemParser& item_parser)
+        : item_parser_(item_parser)
+    {
+        this->item_parser_.Subscribe(*this);
+    }
 
     void Reset() override {
         index_ = 0;

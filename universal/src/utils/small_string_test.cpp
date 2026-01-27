@@ -69,6 +69,24 @@ TEST(SmallString, Append) {
     EXPECT_EQ(str, "abcdabcd");
 }
 
+TEST(SmallString, AppendCharChar) {
+    utils::SmallString<2> str("a");
+    const char* other = "foobar";
+
+    str.append(other + 3, other + 6);
+    EXPECT_EQ(str, "abar");
+    str.append(other, other + 3);
+    EXPECT_EQ(str, "abarfoo");
+}
+
+TEST(SmallString, Insert) {
+    constexpr std::string_view data{"ab"};
+
+    utils::SmallString<3> str("c");
+    str.insert(str.begin(), data.begin(), data.end());
+    EXPECT_EQ(str, "abc");
+}
+
 TEST(SmallString, SizeCapacity) {
     utils::SmallString<10> str("abcd");
     str.resize(3, '1');
@@ -126,7 +144,8 @@ TEST(SmallString, InvalidOpReturnValue) {
     utils::SmallString<4> small_str("abcd");
     ASSERT_DEBUG_DEATH(
         small_str.resize_and_overwrite(
-            16, [&]([[maybe_unused]] char* data, [[maybe_unused]] std::size_t size) { return 20; }
+            16,
+            [&]([[maybe_unused]] char* data, [[maybe_unused]] std::size_t size) { return 20; }
         ),
         ""
     );
@@ -143,7 +162,7 @@ TEST(SmallString, Assign) {
 }
 
 TEST(SmallString, Log) {
-    utils::SmallString<10> str("abcd");
+    const utils::SmallString<10> str("abcd");
     LOG_INFO() << str;
 }
 
@@ -153,16 +172,26 @@ TEST(SmallString, Format) {
     EXPECT_EQ("abcd1234", fmt::format("{}{}", str1, str2));
 }
 
+TEST(SmallString, FormatTo) {
+    utils::SmallString<6> str("abc");
+    fmt::format_to(std::back_inserter(str), "d={}", 1);
+    EXPECT_EQ("abcd=1", str);
+}
+
 TEST(SmallString, Iterator) {
     utils::SmallString<3> str("12345");
-    for (auto& c : str) c++;
+    for (auto& c : str) {
+        c++;
+    }
     EXPECT_EQ(str, "23456");
 }
 
 TEST(SmallString, ConstsIterator) {
     const utils::SmallString<3> str("12345");
     std::string s;
-    for (const auto& c : str) s += c;
+    for (const auto& c : str) {
+        s += c;
+    }
     EXPECT_EQ(s, "12345");
 }
 
@@ -177,11 +206,11 @@ TEST(SmallString, ParseJson) {
 }
 
 TEST(SmallString, SerializeJson) {
-    utils::SmallString<3> str("abcd");
+    const utils::SmallString<3> str("abcd");
     auto j = formats::json::ValueBuilder{str}.ExtractValue();
     EXPECT_EQ(j.As<std::string>(), str);
 
-    utils::SmallString<5> str2("abcd");
+    const utils::SmallString<5> str2("abcd");
     auto j2 = formats::json::ValueBuilder{str2}.ExtractValue();
     EXPECT_EQ(j2.As<std::string>(), str2);
 }
@@ -199,7 +228,7 @@ TEST(SmallString, Indexing) {
     utils::SmallString<3> str("abcd");
     str[2] = 'x';
     EXPECT_EQ(str, "abxd");
-    char c = str[2];
+    const char c = str[2];
     EXPECT_EQ(c, 'x');
 
     const auto& s = str;

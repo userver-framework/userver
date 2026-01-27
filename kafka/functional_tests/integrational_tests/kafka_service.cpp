@@ -2,8 +2,6 @@
 #include <sstream>
 #include <unordered_map>
 
-#include <fmt/format.h>
-
 #include <userver/utest/using_namespace_userver.hpp>
 
 #include <userver/components/component_config.hpp>
@@ -12,9 +10,10 @@
 #include <userver/components/minimal_server_component_list.hpp>
 
 #include <userver/clients/dns/component.hpp>
-#include <userver/clients/http/component.hpp>
+#include <userver/clients/http/component_list.hpp>
 #include <userver/concurrent/variable.hpp>
 #include <userver/engine/wait_all_checked.hpp>
+#include <userver/formats/json/serialize.hpp>
 #include <userver/formats/json/serialize_container.hpp>
 #include <userver/formats/json/value.hpp>
 #include <userver/formats/json/value_builder.hpp>
@@ -182,7 +181,8 @@ HandlerKafkaConsumer::HandlerKafkaConsumer(
     const components::ComponentContext& context
 )
     : server::handlers::HttpHandlerJsonBase(config, context),
-      consumer_(context.FindComponent<kafka::ConsumerComponent>("kafka-consumer").GetConsumer()) {
+      consumer_(context.FindComponent<kafka::ConsumerComponent>("kafka-consumer").GetConsumer())
+{
     consumer_.Start([this](kafka::MessageBatchView messages) {
         Consume(messages);
         consumer_.AsyncCommit();
@@ -203,14 +203,14 @@ formats::json::Value HandlerKafkaConsumer::HandleRequestJsonThrow(
 }
 
 std::vector<formats::json::Value> HandlerKafkaConsumer::ReleaseMessages(const std::string& topic) const {
-    auto thisMessages = messages_by_topic_.Lock();
+    auto this_messages = messages_by_topic_.Lock();
 
     if (topic.empty()) {
-        LOG_WARNING() << "Consuming messages from all topics!";
+        LOG_WARNING("Consuming messages from all topics!");
 
         std::vector<formats::json::Value> consumed_messages;
-        for (auto&& topic_messages : *thisMessages) {
-            LOG_WARNING() << "Clearing topic: " << topic_messages.first;
+        for (auto&& topic_messages : *this_messages) {
+            LOG_WARNING("Clearing topic: {}", topic_messages.first);
             auto& messages = topic_messages.second;
             consumed_messages.reserve(consumed_messages.size() + messages.size());
             std::move(
@@ -221,17 +221,17 @@ std::vector<formats::json::Value> HandlerKafkaConsumer::ReleaseMessages(const st
             messages.clear();
         }
 
-        thisMessages->clear();
+        this_messages->clear();
 
         return consumed_messages;
     }
 
-    const auto topic_messages_it = thisMessages->find(topic);
-    if (topic_messages_it == thisMessages->end()) {
+    const auto topic_messages_it = this_messages->find(topic);
+    if (topic_messages_it == this_messages->end()) {
         return {};
     }
 
-    DumpCurrentConsumed(*thisMessages, topic);
+    DumpCurrentConsumed(*this_messages, topic);
 
     std::vector<formats::json::Value> consumed_messages;
     topic_messages_it->second.swap(consumed_messages);
@@ -240,26 +240,25 @@ std::vector<formats::json::Value> HandlerKafkaConsumer::ReleaseMessages(const st
 }
 
 void HandlerKafkaConsumer::Consume(kafka::MessageBatchView messages) {
-    auto thisMessages = messages_by_topic_.Lock();
+    auto this_messages = messages_by_topic_.Lock();
 
     for (const auto& message : messages) {
         if (!message.GetTimestamp().has_value()) {
             continue;
         }
 
-        (*thisMessages)[message.GetTopic()].emplace_back(
-            Serialize(message, formats::serialize::To<formats::json::Value>{})
-        );
+        (*this_messages)[message.GetTopic()]
+            .emplace_back(Serialize(message, formats::serialize::To<formats::json::Value>{}));
     }
 
-    DumpCurrentConsumed(*thisMessages);
+    DumpCurrentConsumed(*this_messages);
 }
 
 void HandlerKafkaConsumer::DumpCurrentConsumed(
     const MessagesByTopic& messages_by_topic,
     const std::optional<std::string>& topic
 ) const {
-    LOG_DEBUG() << fmt::format("Messages of {}:\n", topic.value_or("all topics"));
+    LOG_DEBUG("Messages of {}:\n", topic.value_or("all topics"));
 
     const auto format_topic_messages = [](const std::string& topic, const MessagesByTopic::mapped_type& messages) {
         std::stringstream ss;
@@ -327,7 +326,7 @@ formats::json::Value HandlerKafkaProducers::HandleRequestJsonThrow(
 
         return builder.ExtractValue();
     } catch (...) {
-        LOG_ERROR() << "Caught unknown exception when producing";
+        LOG_ERROR("Caught unknown exception when producing");
         request.SetResponseStatus(server::http::HttpStatus::kInternalServerError);
 
         return formats::json::FromString(kErrorUnknown);
@@ -402,9 +401,10 @@ formats::json::Value HandlerKafkaProducers::HandleMultiProducersRequest(
         const auto* producer = producers.at(i);
         auto message = request_json[i].As<RequestMessage>();
 
-        send_tasks.emplace_back(
-            producer->SendAsync(std::move(message.topic), std::move(message.key), std::move(message.payload))
-        );
+        send_tasks
+            .emplace_back(producer
+                              ->SendAsync(std::move(message.topic), std::move(message.key), std::move(message.payload))
+            );
     }
 
     engine::WaitAllChecked(send_tasks);
@@ -414,18 +414,19 @@ formats::json::Value HandlerKafkaProducers::HandleMultiProducersRequest(
 }  // namespace functional_tests
 
 int main(int argc, char* argv[]) {
-    const auto components_list = components::MinimalServerComponentList()
-                                     .Append<kafka::ConsumerComponent>("kafka-consumer")
-                                     .Append<kafka::ProducerComponent>("kafka-producer-first")
-                                     .Append<kafka::ProducerComponent>("kafka-producer-second")
-                                     .Append<components::TestsuiteSupport>()
-                                     .Append<components::Secdist>()
-                                     .Append<components::DefaultSecdistProvider>()
-                                     .Append<components::HttpClient>()
-                                     .Append<clients::dns::Component>()
-                                     .Append<server::handlers::TestsControl>()
-                                     .Append<functional_tests::HandlerKafkaConsumer>()
-                                     .Append<functional_tests::HandlerKafkaProducers>();
+    const auto components_list =
+        components::MinimalServerComponentList()
+            .Append<kafka::ConsumerComponent>("kafka-consumer")
+            .Append<kafka::ProducerComponent>("kafka-producer-first")
+            .Append<kafka::ProducerComponent>("kafka-producer-second")
+            .Append<components::TestsuiteSupport>()
+            .Append<components::Secdist>()
+            .Append<components::DefaultSecdistProvider>()
+            .AppendComponentList(clients::http::ComponentList())
+            .Append<clients::dns::Component>()
+            .Append<server::handlers::TestsControl>()
+            .Append<functional_tests::HandlerKafkaConsumer>()
+            .Append<functional_tests::HandlerKafkaProducers>();
 
     return utils::DaemonMain(argc, argv, components_list);
 }

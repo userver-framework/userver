@@ -1,6 +1,7 @@
 #include <userver/ugrpc/client/client_factory.hpp>
 
 #include <userver/ugrpc/client/impl/client_data.hpp>
+#include <userver/ugrpc/client/impl/client_data_accessor.hpp>
 #include <userver/utest/utest.hpp>
 
 #include <tests/service_multichannel.hpp>
@@ -13,8 +14,9 @@ using GrpcClientMultichannel = tests::ServiceFixtureMultichannel<sample::ugrpc::
 
 UTEST_P(GrpcClientMultichannel, ChannelsCount) {
     auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
-    auto& data = ugrpc::client::impl::GetClientData(client);
-    ASSERT_EQ(data.GetChannelToken().GetChannelCount(), GetParam());
+    const auto& data = ugrpc::client::impl::ClientDataAccessor::GetClientData(client);
+    const auto stub_state = data.GetStubState();
+    ASSERT_EQ(stub_state->stubs.Size(), GetParam());
 }
 
 INSTANTIATE_UTEST_SUITE_P(/*no prefix*/, GrpcClientMultichannel, testing::Values(std::size_t{1}, std::size_t{4}));

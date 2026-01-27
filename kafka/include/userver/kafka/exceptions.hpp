@@ -1,6 +1,8 @@
 #pragma once
 
+#include <cstdint>
 #include <stdexcept>
+#include <string_view>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -29,7 +31,8 @@ class DeliveryTimeoutException final : public SendException {
     static constexpr const char* kWhat{
         "Message is not delivered after `delivery_timeout` milliseconds. Hint: "
         "Adjust `delivery_timeout` and `queue_buffering_*` options or manually "
-        "retry the send request."};
+        "retry the send request."
+    };
 
 public:
     DeliveryTimeoutException();
@@ -39,7 +42,8 @@ class QueueFullException final : public SendException {
     static constexpr const char* kWhat{
         "The sending queue is full - send request cannot be scheduled. Hint: "
         "Manually retry the error or increase `queue_buffering_max_messages` "
-        "and/or `queue_buffering_max_kbytes` config option."};
+        "and/or `queue_buffering_max_kbytes` config option."
+    };
 
 public:
     QueueFullException();
@@ -48,7 +52,8 @@ public:
 class MessageTooLargeException final : public SendException {
     static constexpr const char* kWhat{
         "Message size exceeds configured limit. Hint: increase "
-        "`message_max_bytes` config option."};
+        "`message_max_bytes` config option."
+    };
 
 public:
     MessageTooLargeException();
@@ -66,6 +71,70 @@ class UnknownPartitionException final : public SendException {
 
 public:
     UnknownPartitionException();
+};
+
+/// @brief Exception thrown when there is an error retrieving the offset range.
+class OffsetRangeException : public std::runtime_error {
+public:
+    using std::runtime_error::runtime_error;
+
+public:
+    OffsetRangeException(std::string_view what, std::string_view topic, std::uint32_t partition);
+};
+
+class OffsetRangeTimeoutException final : public OffsetRangeException {
+    static constexpr const char* kWhat = "Timeout while fetching offsets.";
+
+public:
+    OffsetRangeTimeoutException(std::string_view topic, std::uint32_t partition);
+};
+
+class TopicNotFoundException final : public std::runtime_error {
+public:
+    using std::runtime_error::runtime_error;
+};
+
+/// @brief Exception thrown when fetching metadata.
+class GetMetadataException : public std::runtime_error {
+public:
+    using std::runtime_error::runtime_error;
+
+public:
+    GetMetadataException(std::string_view what, std::string_view topic);
+};
+
+class GetMetadataTimeoutException final : public GetMetadataException {
+    static constexpr const char* kWhat = "Timeout while getting metadata.";
+
+public:
+    GetMetadataTimeoutException(std::string_view topic);
+};
+
+/// @brief Exception thrown when parsing consumed messages headers.
+/// @ref Message::GetHeaders
+class ParseHeadersException final : std::runtime_error {
+    static constexpr const char* kWhat = "Failed to parse headers";
+
+public:
+    ParseHeadersException(std::string_view error);
+};
+
+/// @brief Exception thrown when Seek* process failed.
+/// @ref ConsumerScope::Seek
+/// @ref ConsumerScope::SeekToBeginning
+/// @ref ConsumerScope::SeekToEnd
+class SeekException final : public std::runtime_error {
+public:
+    using std::runtime_error::runtime_error;
+};
+
+/// @brief Exception thrown when Seek* arguments are invalid.
+/// @ref ConsumerScope::Seek
+/// @ref ConsumerScope::SeekToBeginning
+/// @ref ConsumerScope::SeekToEnd
+class SeekInvalidArgumentException final : public std::invalid_argument {
+public:
+    using std::invalid_argument::invalid_argument;
 };
 
 }  // namespace kafka

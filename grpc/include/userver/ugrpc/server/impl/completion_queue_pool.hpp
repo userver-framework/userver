@@ -20,11 +20,6 @@ public:
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
         return static_cast<grpc::ServerCompletionQueue&>(CompletionQueuePoolBase::GetQueue(idx));
     }
-
-    grpc::ServerCompletionQueue& NextQueue() {
-        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
-        return static_cast<grpc::ServerCompletionQueue&>(CompletionQueuePoolBase::NextQueue());
-    }
 };
 
 }  // namespace ugrpc::server::impl

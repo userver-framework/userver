@@ -1,141 +1,126 @@
+import pytest
+
 from chaotic import error
 from chaotic.back.cpp import type_name
 from chaotic.back.cpp.types import CppIntEnum
-from chaotic.back.cpp.types import CppPrimitiveType
+from chaotic.back.cpp.types import CppIntEnumItem
 from chaotic.back.cpp.types import CppPrimitiveValidator
+from chaotic.front.types import Schema
 
 
-def test_int(simple_gen):
+def test_int(simple_gen, cpp_primitive_type):
     types = simple_gen({'type': 'integer'})
     assert types == {
-        '/definitions/type': CppPrimitiveType(
-            raw_cpp_type=type_name.TypeName('int'),
-            user_cpp_type=None,
-            json_schema=None,
-            nullable=False,
-            validators=CppPrimitiveValidator(prefix='/definitions/type'),
+        '::type': cpp_primitive_type(
+            validators=CppPrimitiveValidator(prefix='type'),
+            raw_cpp_type_str='int',
         ),
     }
 
 
 def test_wrong_type_x(simple_gen):
-    try:
+    with pytest.raises(error.BaseError) as exc:
         simple_gen({'type': 'integer', 'x-usrv-cpp-type': 1})
-        assert False
-    except error.BaseError as exc:
-        assert exc.full_filepath == 'vfull'
-        assert exc.infile_path == '/definitions/type'
-        assert exc.schema_type == 'jsonschema'
-        assert exc.msg == 'Non-string x- property "x-usrv-cpp-type"'
+
+    assert exc.value.full_filepath == 'vfull'
+    assert exc.value.infile_path == '/definitions/type'
+    assert exc.value.schema_type == 'jsonschema'
+    assert exc.value.msg == 'Non-string x- property "x-usrv-cpp-type"'
 
 
-def test_int_nullable(simple_gen):
+def test_int_nullable(simple_gen, cpp_primitive_type):
     types = simple_gen({'type': 'integer', 'nullable': True})
     assert types == {
-        '/definitions/type': CppPrimitiveType(
-            raw_cpp_type=type_name.TypeName('int'),
-            user_cpp_type=None,
-            json_schema=None,
+        '::type': cpp_primitive_type(
+            validators=CppPrimitiveValidator(prefix='type'),
+            raw_cpp_type_str='int',
             nullable=True,
-            validators=CppPrimitiveValidator(prefix='/definitions/type'),
         ),
     }
 
 
-def test_int_cpp_type(simple_gen):
+def test_int_cpp_type(simple_gen, cpp_primitive_type):
     types = simple_gen({'type': 'integer', 'x-usrv-cpp-type': 'X'})
     assert types == {
-        '/definitions/type': CppPrimitiveType(
-            raw_cpp_type=type_name.TypeName('int'),
+        '::type': cpp_primitive_type(
+            validators=CppPrimitiveValidator(prefix='type'),
+            raw_cpp_type_str='int',
             user_cpp_type='X',
-            json_schema=None,
-            nullable=False,
-            validators=CppPrimitiveValidator(prefix='/definitions/type'),
         ),
     }
 
 
-def test_int_default(simple_gen):
+def test_int_default(simple_gen, cpp_primitive_type):
     types = simple_gen({'type': 'integer', 'default': 42})
     assert types == {
-        '/definitions/type': CppPrimitiveType(
-            raw_cpp_type=type_name.TypeName('int'),
-            user_cpp_type=None,
+        '::type': cpp_primitive_type(
+            validators=CppPrimitiveValidator(prefix='type'),
+            raw_cpp_type_str='int',
             default=42,
-            json_schema=None,
-            nullable=False,
-            validators=CppPrimitiveValidator(prefix='/definitions/type'),
         ),
     }
 
 
-def test_int_min(simple_gen):
+def test_int_min(simple_gen, cpp_primitive_type):
     types = simple_gen({'type': 'integer', 'minimum': 1})
     assert types == {
-        '/definitions/type': CppPrimitiveType(
-            raw_cpp_type=type_name.TypeName('int'),
-            user_cpp_type=None,
-            json_schema=None,
-            nullable=False,
+        '::type': cpp_primitive_type(
             validators=CppPrimitiveValidator(
-                min=1, prefix='/definitions/type',
+                min=1,
+                prefix='type',
             ),
+            raw_cpp_type_str='int',
         ),
     }
 
 
-def test_int_min_max(simple_gen):
+def test_int_min_max(simple_gen, cpp_primitive_type):
     types = simple_gen({'type': 'integer', 'minimum': 1, 'maximum': 10})
     assert types == {
-        '/definitions/type': CppPrimitiveType(
-            raw_cpp_type=type_name.TypeName('int'),
-            user_cpp_type=None,
-            json_schema=None,
+        '::type': cpp_primitive_type(
             validators=CppPrimitiveValidator(
-                min=1, max=10, prefix='/definitions/type',
+                min=1,
+                max=10,
+                prefix='type',
             ),
-            nullable=False,
+            raw_cpp_type_str='int',
         ),
     }
 
 
-def test_int_min_max_exclusive(simple_gen):
+def test_int_min_max_exclusive(simple_gen, cpp_primitive_type):
     types = simple_gen({
         'type': 'integer',
         'exclusiveMinimum': 1,
         'exclusiveMaximum': 10,
     })
     assert types == {
-        '/definitions/type': CppPrimitiveType(
-            raw_cpp_type=type_name.TypeName('int'),
-            user_cpp_type=None,
-            json_schema=None,
+        '::type': cpp_primitive_type(
             validators=CppPrimitiveValidator(
-                exclusiveMin=1, exclusiveMax=10, prefix='/definitions/type',
+                exclusiveMin=1,
+                exclusiveMax=10,
+                prefix='type',
             ),
-            nullable=False,
+            raw_cpp_type_str='int',
         ),
     }
 
 
-def test_int_min_max_exclusive_false(simple_gen):
+def test_int_min_max_exclusive_false(simple_gen, cpp_primitive_type):
     types = simple_gen({
         'type': 'integer',
         'exclusiveMinimum': False,
         'exclusiveMaximum': False,
     })
     assert types == {
-        '/definitions/type': CppPrimitiveType(
-            raw_cpp_type=type_name.TypeName('int'),
-            user_cpp_type=None,
-            json_schema=None,
-            validators=CppPrimitiveValidator(prefix='/definitions/type'),
-            nullable=False,
+        '::type': cpp_primitive_type(
+            validators=CppPrimitiveValidator(prefix='type'),
+            raw_cpp_type_str='int',
         ),
     }
 
 
-def test_int_min_max_exclusive_legacy(simple_gen):
+def test_int_min_max_exclusive_legacy(simple_gen, cpp_primitive_type):
     types = simple_gen({
         'type': 'integer',
         'exclusiveMinimum': True,
@@ -144,53 +129,56 @@ def test_int_min_max_exclusive_legacy(simple_gen):
         'maximum': 10,
     })
     assert types == {
-        '/definitions/type': CppPrimitiveType(
-            raw_cpp_type=type_name.TypeName('int'),
-            user_cpp_type=None,
-            json_schema=None,
+        '::type': cpp_primitive_type(
             validators=CppPrimitiveValidator(
-                exclusiveMin=2, exclusiveMax=10, prefix='/definitions/type',
+                exclusiveMin=2,
+                exclusiveMax=10,
+                prefix='type',
             ),
-            nullable=False,
+            raw_cpp_type_str='int',
         ),
     }
 
 
-def test_int_format_int32(simple_gen):
+def test_int_format_int32(simple_gen, cpp_primitive_type):
     types = simple_gen({'type': 'integer', 'format': 'int32'})
     assert types == {
-        '/definitions/type': CppPrimitiveType(
-            raw_cpp_type=type_name.TypeName('std::int32_t'),
-            user_cpp_type=None,
-            json_schema=None,
-            nullable=False,
-            validators=CppPrimitiveValidator(prefix='/definitions/type'),
+        '::type': cpp_primitive_type(
+            validators=CppPrimitiveValidator(prefix='type'),
+            raw_cpp_type_str='std::int32_t',
         ),
     }
 
 
-def test_int_format_int64(simple_gen):
+def test_int_format_int64(simple_gen, cpp_primitive_type):
     types = simple_gen({'type': 'integer', 'format': 'int64'})
     assert types == {
-        '/definitions/type': CppPrimitiveType(
-            raw_cpp_type=type_name.TypeName('std::int64_t'),
-            user_cpp_type=None,
-            json_schema=None,
-            nullable=False,
-            validators=CppPrimitiveValidator(prefix='/definitions/type'),
+        '::type': cpp_primitive_type(
+            validators=CppPrimitiveValidator(prefix='type'),
+            raw_cpp_type_str='std::int64_t',
         ),
     }
 
 
 def test_int_enum(simple_gen):
-    types = simple_gen({'type': 'integer', 'enum': [1, 2, 3]})
+    types = simple_gen({
+        'type': 'integer',
+        'enum': [0, 1, 2, 3, 5],
+        'x-enum-varnames': ['CamelCase', 'snake_case', 'UPPER', 'lower'],
+    })
     assert types == {
-        '/definitions/type': CppIntEnum(
-            raw_cpp_type=type_name.TypeName('/definitions/type'),
+        '::type': CppIntEnum(
+            raw_cpp_type=type_name.TypeName('::type'),
             user_cpp_type=None,
-            name='/definitions/type',
-            json_schema=None,
+            name='::type',
+            json_schema=Schema(),
             nullable=False,
-            enums=[1, 2, 3],
+            enums=[
+                CppIntEnumItem(value=0, raw_name='CamelCase', cpp_name='CamelCase'),
+                CppIntEnumItem(value=1, raw_name='snake_case', cpp_name='SnakeCase'),
+                CppIntEnumItem(value=2, raw_name='UPPER', cpp_name='Upper'),
+                CppIntEnumItem(value=3, raw_name='lower', cpp_name='Lower'),
+                CppIntEnumItem(value=5, raw_name='5', cpp_name='5'),
+            ],
         ),
     }

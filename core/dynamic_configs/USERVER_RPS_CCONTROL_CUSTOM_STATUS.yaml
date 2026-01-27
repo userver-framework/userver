@@ -1,0 +1,16 @@
+default: {}
+description: ''
+schema:
+    type: object
+    additionalProperties: false
+    properties:
+        initial-status-code:
+            type: integer
+            default: 429
+            minimum: 300
+            maximum: 599
+        max-time-ms:
+            type: integer
+            default: 10000
+            x-usrv-cpp-type: std::chrono::milliseconds
+            minimum: 1

@@ -57,8 +57,8 @@ ParsedRecords ParseTskv(std::string_view in) {
 
         std::vector<std::pair<std::string, std::string>> tags;
 
-        const auto status =
-            utils::encoding::TskvReadRecord(parser, [&](const std::string& key, const std::string& value) {
+        const auto
+            status = utils::encoding::TskvReadRecord(parser, [&](const std::string& key, const std::string& value) {
                 tags.emplace_back(key, value);
                 return true;
             });
@@ -94,13 +94,14 @@ bool operator==(const Incomplete& lhs, const Incomplete& rhs) { return lhs.data 
 [[maybe_unused]] void PrintTo(const Incomplete& value, std::ostream* out) { *out << value.data; }
 
 [[maybe_unused]] void PrintTo(const SingleParsedRecord& value, std::ostream* out) {
-    *out << utils::Visit(
-                value,
-                [](const Record&) { return "Record"; },
-                [](const Junk&) { return "Junk"; },
-                [](const Incomplete&) { return "Incomplete"; }
-            )
-         << "(";
+    *out
+        << utils::Visit(
+               value,
+               [](const Record&) { return "Record"; },
+               [](const Junk&) { return "Junk"; },
+               [](const Incomplete&) { return "Incomplete"; }
+           )
+        << "(";
     std::visit([out](const auto& value) { PrintTo(value, out); }, value);
     *out << ")";
 }

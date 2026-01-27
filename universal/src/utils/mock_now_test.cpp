@@ -1,4 +1,4 @@
-#include <userver/utils/datetime.hpp>
+#include <userver/utils/datetime_light.hpp>
 #include <userver/utils/mock_now.hpp>
 
 #include <userver/utest/assert_macros.hpp>
@@ -27,15 +27,15 @@ private:
 using utils::datetime::MockNowSet;
 
 TEST(MockNow, Timer) {
-    using utils::datetime::Stringtime;
+    using utils::datetime::UtcStringtime;
 
-    utils::datetime::MockNowSet(Stringtime("2000-01-01T00:00:00+0000"));
+    utils::datetime::MockNowSet(UtcStringtime("2000-01-01T00:00:00+0000"));
     Timer timer;
 
     utils::datetime::MockSleep(9001s);  // does NOT sleep, just sets the new time
     EXPECT_EQ(timer.NextLoop(), 9001s);
 
-    utils::datetime::MockNowSet(Stringtime("2000-01-02T00:00:00+0000"));
+    utils::datetime::MockNowSet(UtcStringtime("2000-01-02T00:00:00+0000"));
     EXPECT_EQ(timer.NextLoop(), 24h - 9001s);
 }
 /// [Mocked time sample]
@@ -47,30 +47,42 @@ TEST(MockSteadyNow, StdStdSeqAlwaysValid) {
 }
 
 TEST(MockSteadyNow, StdMockedSeqAlwaysValid) {
-    using utils::datetime::Stringtime;
+    using utils::datetime::UtcStringtime;
 
     UEXPECT_NO_THROW(utils::datetime::MockNowUnset());
     UEXPECT_NO_THROW(utils::datetime::MockSteadyNow());
-    UEXPECT_NO_THROW(MockNowSet(Stringtime("1900-01-01T00:00:00+0000")));
+    UEXPECT_NO_THROW(MockNowSet(UtcStringtime("1900-01-01T00:00:00+0000")));
     UEXPECT_NO_THROW(utils::datetime::MockSteadyNow());
 }
 
 TEST(MockSteadyNow, MockedStdSeqAlwaysValid) {
-    using utils::datetime::Stringtime;
+    using utils::datetime::UtcStringtime;
 
-    UEXPECT_NO_THROW(MockNowSet(Stringtime("2050-01-01T00:00:00+0000")));
+    UEXPECT_NO_THROW(MockNowSet(UtcStringtime("2050-01-01T00:00:00+0000")));
     UEXPECT_NO_THROW(utils::datetime::MockSteadyNow());
     UEXPECT_NO_THROW(utils::datetime::MockNowUnset());
     UEXPECT_NO_THROW(utils::datetime::MockSteadyNow());
 }
 
 TEST(MockSteadyNow, MockedValidSeq) {
-    using utils::datetime::Stringtime;
+    using utils::datetime::UtcStringtime;
 
-    UEXPECT_NO_THROW(MockNowSet(Stringtime("2000-01-01T00:00:00+0000")));
+    UEXPECT_NO_THROW(MockNowSet(UtcStringtime("2000-01-01T00:00:00+0000")));
     UEXPECT_NO_THROW(utils::datetime::MockSteadyNow());
-    UEXPECT_NO_THROW(MockNowSet(Stringtime("2000-01-02T00:00:00+0000")));
+    UEXPECT_NO_THROW(MockNowSet(UtcStringtime("2000-01-02T00:00:00+0000")));
     UEXPECT_NO_THROW(utils::datetime::MockSteadyNow());
+}
+
+TEST(MockWallCoarseNow, Simple) {
+    using utils::datetime::UtcStringtime;
+
+    const auto tp = UtcStringtime("2000-01-01T00:00:00+0000");
+    EXPECT_NE(tp, utils::datetime::MockWallCoarseNow());
+    EXPECT_NE(tp, utils::datetime::WallCoarseNow());
+    UEXPECT_NO_THROW(MockNowSet(tp));
+    EXPECT_EQ(tp, utils::datetime::MockWallCoarseNow());
+    EXPECT_EQ(tp, utils::datetime::WallCoarseNow());
+    UEXPECT_NO_THROW(utils::datetime::MockNowUnset());
 }
 
 }  // namespace

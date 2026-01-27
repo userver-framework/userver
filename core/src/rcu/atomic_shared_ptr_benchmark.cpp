@@ -13,7 +13,9 @@ USERVER_NAMESPACE_BEGIN
 template <typename T>
 class AtomicSharedPtr {
 public:
-    explicit AtomicSharedPtr(std::shared_ptr<const T> new_value) : storage_(std::move(new_value)) {}
+    explicit AtomicSharedPtr(std::shared_ptr<const T> new_value)
+        : storage_(std::move(new_value))
+    {}
 
     AtomicSharedPtr(AtomicSharedPtr&&) = delete;
     AtomicSharedPtr& operator=(AtomicSharedPtr&&) = delete;
@@ -28,9 +30,9 @@ private:
     std::shared_ptr<const T> storage_;
 };
 
-void atomic_shared_ptr_read(benchmark::State& state) {
+void AtomicSharedPtrRead(benchmark::State& state) {
     engine::RunStandalone([&] {
-        AtomicSharedPtr<int> ptr(std::make_unique<int>(1));
+        const AtomicSharedPtr<int> ptr(std::make_unique<int>(1));
 
         for ([[maybe_unused]] auto _ : state) {
             auto snapshot_ptr = ptr.Load();
@@ -38,24 +40,25 @@ void atomic_shared_ptr_read(benchmark::State& state) {
         }
     });
 }
-BENCHMARK(atomic_shared_ptr_read);
+BENCHMARK(AtomicSharedPtrRead);
 
-void atomic_shared_ptr_contention(benchmark::State& state) {
+void AtomicSharedPtrContention(benchmark::State& state) {
     engine::RunStandalone(state.range(0), [&] {
         std::atomic<bool> run{true};
         AtomicSharedPtr<std::unordered_map<int, int>> ptr{std::make_shared<std::unordered_map<int, int>>()};
 
         std::vector<engine::TaskWithResult<void>> tasks;
         tasks.reserve(state.range(0) - 2);
-        for (int i = 0; i < state.range(0) - 2; i++)
+        for (int i = 0; i < state.range(0) - 2; i++) {
             tasks.push_back(engine::AsyncNoSpan([&]() {
                 while (run) {
                     auto snapshot_ptr = ptr.Load();
                     benchmark::DoNotOptimize(*snapshot_ptr);
                 }
             }));
+        }
 
-        if (state.range(1))
+        if (state.range(1)) {
             tasks.push_back(engine::AsyncNoSpan([&]() {
                 size_t i = 0;
                 while (run) {
@@ -65,6 +68,7 @@ void atomic_shared_ptr_contention(benchmark::State& state) {
                     engine::SleepFor(std::chrono::milliseconds{10});
                 }
             }));
+        }
 
         for ([[maybe_unused]] auto _ : state) {
             auto snapshot_ptr = ptr.Load();
@@ -74,6 +78,6 @@ void atomic_shared_ptr_contention(benchmark::State& state) {
         run = false;
     });
 }
-BENCHMARK(atomic_shared_ptr_contention)->RangeMultiplier(2)->Ranges({{2, 32}, {false, true}});
+BENCHMARK(AtomicSharedPtrContention)->RangeMultiplier(2)->Ranges({{2, 32}, {false, true}});
 
 USERVER_NAMESPACE_END

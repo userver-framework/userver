@@ -1,5 +1,6 @@
 #include "config.hpp"
 
+#include <userver/formats/json/serialize.hpp>
 #include <userver/formats/json/value.hpp>
 #include <userver/formats/parse/common_containers.hpp>
 #include <userver/utils/retry_budget.hpp>
@@ -38,8 +39,9 @@ TableSettings ParseTableSettings(const yaml_config::YamlConfig& dbconfig, const 
 
     result.min_pool_size = dbconfig["min_pool_size"].As<std::uint32_t>(result.min_pool_size);
     result.max_pool_size = dbconfig["max_pool_size"].As<std::uint32_t>(result.max_pool_size);
-    result.get_session_retry_limit =
-        dbconfig["get_session_retry_limit"].As<std::uint32_t>(result.get_session_retry_limit);
+    result
+        .get_session_retry_limit = dbconfig["get_session_retry_limit"].As<std::uint32_t>(result.get_session_retry_limit
+    );
     result.keep_in_query_cache = dbconfig["keep-in-query-cache"].As<bool>(result.keep_in_query_cache);
 
     result.sync_start = dbconfig["sync_start"].As<bool>(result.sync_start);
@@ -68,6 +70,9 @@ DriverSettings ParseDriverSettings(
     result.endpoint = MergeWithSecdist(dbsecdist.endpoint, std::move(config_endpoint), dbconfig, "endpoint");
     result.database = MergeWithSecdist(dbsecdist.database, std::move(config_database), dbconfig, "database");
     result.oauth_token = dbsecdist.oauth_token;
+    result.secure_connection_cert = dbsecdist.secure_connection_cert;
+    result.user = dbsecdist.user;
+    result.password = dbsecdist.password;
     if (dbsecdist.iam_jwt_params.has_value()) {
         result.iam_jwt_params = formats::json::ToString(dbsecdist.iam_jwt_params.value());
     }
@@ -79,23 +84,10 @@ DriverSettings ParseDriverSettings(
 
 using OptMs = std::optional<std::chrono::milliseconds>;
 
-ConfigCommandControl Parse(const formats::json::Value& config, formats::parse::To<ConfigCommandControl>) {
-    return ConfigCommandControl{
-        config["attempts"].As<std::optional<int>>(),
-        config["operation-timeout-ms"].As<OptMs>(),
-        config["cancel-after-ms"].As<OptMs>(),
-        config["client-timeout-ms"].As<OptMs>(),
-        config["get-session-timeout-ms"].As<OptMs>(),
-    };
-}
-
-const dynamic_config::Key<std::unordered_map<std::string, ConfigCommandControl>>
-    kQueryCommandControl("YDB_QUERIES_COMMAND_CONTROL", dynamic_config::DefaultAsJsonString("{}"));
-
-const dynamic_config::Key<int> kDeadlinePropagationVersion("YDB_DEADLINE_PROPAGATION_VERSION", 1);
-
-const dynamic_config::Key<std::unordered_map<std::string, utils::RetryBudgetSettings>>
-    kRetryBudgetSettings("YDB_RETRY_BUDGET", dynamic_config::DefaultAsJsonString("{}"));
+const dynamic_config::Key<std::unordered_map<std::string, utils::RetryBudgetSettings>> kRetryBudgetSettings(
+    "YDB_RETRY_BUDGET",
+    dynamic_config::DefaultAsJsonString("{}")
+);
 
 }  // namespace ydb::impl
 

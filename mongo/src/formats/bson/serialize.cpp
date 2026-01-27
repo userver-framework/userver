@@ -72,7 +72,10 @@ namespace impl {
 
 class JsonStringImpl {
 public:
-    JsonStringImpl(RawPtr<char>&& data, size_t size) : data_(std::move(data)), size_(size) {}
+    JsonStringImpl(RawPtr<char>&& data, size_t size)
+        : data_(std::move(data)),
+          size_(size)
+    {}
 
     [[nodiscard]] const char* Data() const { return data_.get(); }
     [[nodiscard]] size_t Size() const { return size_; }
@@ -108,7 +111,7 @@ impl::BsonHolder DoParseJsonString(std::string_view json) {
 }
 
 char FirstNonWhitespace(std::string_view str) {
-    for (char c : str) {
+    for (const char c : str) {
         if (!utils::text::IsAsciiSpace(c)) {
             return c;
         }
@@ -142,6 +145,15 @@ JsonString ToRelaxedJsonString(const formats::bson::Document& doc) {
     return ApplyConversionToString(doc.GetBson(), &bson_as_relaxed_extended_json);
 }
 
+#if BSON_CHECK_VERSION(1, 29, 0)
+JsonString ToLegacyJsonString(const formats::bson::Document& doc) {
+    return ApplyConversionToString(doc.GetBson(), &bson_as_legacy_extended_json);
+}
+
+JsonString ToArrayJsonString(const formats::bson::Value& array) {
+    return ApplyConversionToString(array.GetInternalArrayDocument().GetBson(), &bson_array_as_legacy_extended_json);
+}
+#else
 JsonString ToLegacyJsonString(const formats::bson::Document& doc) {
     return ApplyConversionToString(doc.GetBson(), &bson_as_json);
 }
@@ -149,8 +161,11 @@ JsonString ToLegacyJsonString(const formats::bson::Document& doc) {
 JsonString ToArrayJsonString(const formats::bson::Value& array) {
     return ApplyConversionToString(array.GetInternalArrayDocument().GetBson(), &bson_array_as_json);
 }
+#endif
 
-JsonString::JsonString(impl::JsonStringImpl&& impl) : impl_(std::move(impl)) {}
+JsonString::JsonString(impl::JsonStringImpl&& impl)
+    : impl_(std::move(impl))
+{}
 JsonString::~JsonString() = default;
 
 std::string JsonString::ToString() const { return {impl_->Data(), impl_->Size()}; }

@@ -14,11 +14,16 @@ namespace cache {
 ///
 /// LRU key value storage (LRU cache), thread safety matches Standard Library
 /// thread safety
-template <typename T, typename U, typename Hash = std::hash<T>, typename Equal = std::equal_to<T>>
+template <
+    typename T,
+    typename U,
+    typename Hash = std::hash<impl::StringToStringView<T>>,
+    typename Equal = std::equal_to<impl::StringToStringView<T>>>
 class LruMap final {
 public:
     explicit LruMap(size_t max_size, const Hash& hash = Hash(), const Equal& equal = Equal())
-        : impl_(max_size, hash, equal) {}
+        : impl_(max_size, hash, equal)
+    {}
 
     LruMap(LruMap&& lru) noexcept = default;
     LruMap(const LruMap& lru) = delete;
@@ -45,11 +50,21 @@ public:
     /// @warning Returned pointer may be freed on the next map access!
     U* Get(const T& key) { return impl_.Get(key); }
 
+    /// Returns pointer to value if the key is in LRU and updates its usage;
+    /// returns nullptr otherwise.
+    /// @warning Returned pointer may be freed on the next map access!
+    template <class Key>
+    U* GetTransparent(const Key& key) {
+        return impl_.GetTransparent(key);
+    }
+
     /// Returns value by key and updates its usage; returns default_value
     /// otherwise without modifying the cache.
     U GetOr(const T& key, const U& default_value) {
         auto* ptr = impl_.Get(key);
-        if (ptr) return *ptr;
+        if (ptr) {
+            return *ptr;
+        }
         return default_value;
     }
 

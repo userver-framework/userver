@@ -3,7 +3,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis::impl {
 
 class ClusterSubscriptionStorage : public SubscriptionStorageBase {
 public:
@@ -32,7 +32,6 @@ public:
     void SetRebalanceMinInterval(std::chrono::milliseconds interval) override;
     void RequestRebalance(size_t shard_idx, ServerWeights weights) override;
     void DoRebalance(size_t shard_idx, ServerWeights weights) override;
-    void SwitchToNonClusterMode() override;
     void SetShardsCount(size_t shards_count) override;
     const std::string& GetShardName(size_t shard_idx) const override;
 
@@ -58,7 +57,9 @@ protected:
 
 private:
     struct ChannelInfo {
-        explicit ChannelInfo(size_t shard_idx) : info(shard_idx) {}
+        explicit ChannelInfo(size_t shard_idx)
+            : info(shard_idx)
+        {}
 
         std::unordered_map<SubscriptionId, Sentinel::UserMessageCallback> callbacks;
         CommandControl control;
@@ -70,7 +71,9 @@ private:
         ShardChannelInfo& GetInfo(size_t /*shard_idx*/) { return info; }
     };
     struct PChannelInfo {
-        explicit PChannelInfo(size_t shard_idx) : info(shard_idx) {}
+        explicit PChannelInfo(size_t shard_idx)
+            : info(shard_idx)
+        {}
         std::unordered_map<SubscriptionId, Sentinel::UserPmessageCallback> callbacks;
         CommandControl control;
         // shard -> Fsm
@@ -91,6 +94,6 @@ private:
     std::unique_ptr<SubscriptionRebalanceScheduler> rebalance_scheduler_;
 };
 
-}  // namespace redis
+}  // namespace storages::redis::impl
 
 USERVER_NAMESPACE_END

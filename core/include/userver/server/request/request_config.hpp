@@ -14,6 +14,9 @@ struct HttpRequestConfig {
     std::size_t max_url_size = 8192;
     std::size_t max_request_size = 1024 * 1024;
     std::size_t max_headers_size = 65536;
+    std::size_t request_body_size_log_limit = 512;
+    std::size_t request_headers_size_log_limit = 512;
+    std::size_t response_data_size_log_limit = 512;
     bool parse_args_from_body = false;
     bool testing_mode = false;
     bool decompress_request = false;

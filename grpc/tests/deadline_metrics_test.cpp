@@ -12,10 +12,8 @@
 #include <userver/utest/assert_macros.hpp>
 #include <userver/utest/utest.hpp>
 
-#include <ugrpc/client/impl/client_configs.hpp>
-#include <ugrpc/server/impl/server_configs.hpp>
-#include <ugrpc/server/middlewares/deadline_propagation/middleware.hpp>
 #include <userver/ugrpc/client/exceptions.hpp>
+#include <userver/ugrpc/server/middlewares/deadline_propagation/middleware.hpp>
 
 #include <tests/messages.pb.h>
 #include <tests/deadline_helpers.hpp>
@@ -23,26 +21,27 @@
 #include <tests/unit_test_service.usrv.pb.hpp>
 #include <userver/ugrpc/tests/service_fixtures.hpp>
 
+#include <dynamic_config/variables/USERVER_GRPC_CLIENT_ENABLE_DEADLINE_PROPAGATION.hpp>
+#include <dynamic_config/variables/USERVER_GRPC_SERVER_CANCEL_TASK_BY_DEADLINE.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace {
-
-using ClientType = sample::ugrpc::UnitTestServiceClient;
 
 constexpr auto kDeadlinePropagated = "deadline-propagated";
 constexpr auto kCancelledByDp = "cancelled-by-deadline-propagation";
 
 class UnitTestDeadlineStatsService final : public sample::ugrpc::UnitTestServiceBase {
 public:
-    void SayHello(SayHelloCall& call, sample::ugrpc::GreetingRequest&& request) override {
+    SayHelloResult SayHello(CallContext& /*context*/, sample::ugrpc::GreetingRequest&& request) override {
         sample::ugrpc::GreetingResponse response;
         response.set_name("Hello " + request.name());
 
         if (wait_deadline_) {
-            tests::WaitUntilRpcDeadline(call);
+            tests::WaitUntilRpcDeadlineService();
         }
 
-        call.Finish(response);
+        return response;
     }
 
     void SetWaitDeadline(bool value) { wait_deadline_ = value; }
@@ -51,12 +50,15 @@ private:
     bool wait_deadline_{false};
 };
 
-class DeadlineStatsTests : public ugrpc::tests::ServiceFixture<UnitTestDeadlineStatsService> {
+class DeadlineStatsTests
+    : public ugrpc::tests::ServiceWithClientFixture<
+          UnitTestDeadlineStatsService,
+          sample::ugrpc::UnitTestServiceClient> {
 public:
     DeadlineStatsTests() {
         ExtendDynamicConfig({
-            {ugrpc::client::impl::kEnforceClientTaskDeadline, true},
-            {ugrpc::server::impl::kServerCancelTaskByDeadline, true},
+            {::dynamic_config::USERVER_GRPC_CLIENT_ENABLE_DEADLINE_PROPAGATION, true},
+            {::dynamic_config::USERVER_GRPC_SERVER_CANCEL_TASK_BY_DEADLINE, true},
         });
     }
 
@@ -64,17 +66,14 @@ public:
 
     void BeFast() { GetService().SetWaitDeadline(false); }
 
-    bool ExecuteRequest(bool need_deadline) {
+    bool PerformRequest(bool set_deadline) {
         sample::ugrpc::GreetingRequest request;
         sample::ugrpc::GreetingResponse response;
         request.set_name("abacaba");
 
-        auto client = MakeClient<ClientType>();
-
-        auto context = tests::GetContext(need_deadline);
-        auto call = client.SayHello(request, std::move(context));
+        auto call_options = tests::MakeCallOptions(set_deadline);
         try {
-            response = call.Finish();
+            response = GetClient().SayHello(request, std::move(call_options));
             EXPECT_EQ(response.name(), "Hello abacaba");
             return true;
         } catch (const ugrpc::client::DeadlineExceededError& /*exception*/) {
@@ -82,11 +81,14 @@ public:
         }
     }
 
-    void DisableClientDp() { ExtendDynamicConfig({{ugrpc::client::impl::kEnforceClientTaskDeadline, false}}); }
+    void DisableClientDp() {
+        ExtendDynamicConfig({{::dynamic_config::USERVER_GRPC_CLIENT_ENABLE_DEADLINE_PROPAGATION, false}});
+    }
 
     utils::statistics::Rate GetServerStatistic(const std::string& path) {
         const auto statistics = GetStatistics(
-            "grpc.server.by-destination", {{"grpc_destination", "sample.ugrpc.UnitTestService/SayHello"}}
+            "grpc.server.by-destination",
+            {{"grpc_destination", "sample.ugrpc.UnitTestService/SayHello"}}
         );
 
         return statistics.SingleMetric(path).AsRate();
@@ -94,7 +96,8 @@ public:
 
     utils::statistics::Rate GetClientStatistic(const std::string& path) {
         const auto statistics = GetStatistics(
-            "grpc.client.by-destination", {{"grpc_destination", "sample.ugrpc.UnitTestService/SayHello"}}
+            "grpc.client.by-destination",
+            {{"grpc_destination", "sample.ugrpc.UnitTestService/SayHello"}}
         );
 
         return statistics.SingleMetric(path).AsRate();
@@ -108,7 +111,7 @@ UTEST_F(DeadlineStatsTests, ServerDeadlineUpdated) {
 
     // Requests with deadline
     for (std::size_t i = 0; i < kRequestCount; ++i) {
-        EXPECT_TRUE(ExecuteRequest(true));
+        EXPECT_TRUE(PerformRequest(true));
     }
 
     // Make sure that server metrics are written
@@ -122,7 +125,7 @@ UTEST_F(DeadlineStatsTests, ServerDeadlineNotUpdatedWithoutDeadline) {
 
     // Requests without deadline, default deadline is used
     for (std::size_t i = 0; i < kRequestCount; ++i) {
-        EXPECT_TRUE(ExecuteRequest(false));
+        EXPECT_TRUE(PerformRequest(false));
     }
 
     // Make sure that server metrics are written
@@ -135,23 +138,26 @@ UTEST_F(DeadlineStatsTests, ClientDeadlineUpdated) {
     size_t expected_value{0};
 
     // TaskInheritedData has set up. Deadline will be propagated
-    tests::InitTaskInheritedDeadline();
+    tests::InitTaskInheritedDeadline(engine::Deadline::FromDuration(tests::kLongTimeout));
 
     // Enabled be default
     // Requests with deadline
     // TaskInheritedData less than context deadline and replace it
-    EXPECT_TRUE(ExecuteRequest(true));
-    EXPECT_TRUE(ExecuteRequest(true));
-    EXPECT_TRUE(ExecuteRequest(true));
+    EXPECT_TRUE(PerformRequest(true));
+    EXPECT_TRUE(PerformRequest(true));
+    EXPECT_TRUE(PerformRequest(true));
 
     expected_value += 3;
     EXPECT_EQ(GetClientStatistic(kDeadlinePropagated), expected_value);
 
+    // reset TaskInheritedDeadline, set once is too short for many requests
+    tests::InitTaskInheritedDeadline(engine::Deadline::FromDuration(tests::kLongTimeout));
+
     // Requests without deadline
     // TaskInheritedData will be set as deadline
-    EXPECT_TRUE(ExecuteRequest(false));
-    EXPECT_TRUE(ExecuteRequest(false));
-    EXPECT_TRUE(ExecuteRequest(false));
+    EXPECT_TRUE(PerformRequest(false));
+    EXPECT_TRUE(PerformRequest(false));
+    EXPECT_TRUE(PerformRequest(false));
 
     expected_value += 3;
     EXPECT_EQ(GetClientStatistic(kDeadlinePropagated), expected_value);
@@ -164,9 +170,9 @@ UTEST_F(DeadlineStatsTests, ClientDeadlineNotUpdated) {
     tests::InitTaskInheritedDeadline(engine::Deadline::FromDuration(tests::kLongTimeout * 2));
 
     // Requests with deadline. Deadline will not be replaced
-    EXPECT_TRUE(ExecuteRequest(true));
-    EXPECT_TRUE(ExecuteRequest(true));
-    EXPECT_TRUE(ExecuteRequest(true));
+    EXPECT_TRUE(PerformRequest(true));
+    EXPECT_TRUE(PerformRequest(true));
+    EXPECT_TRUE(PerformRequest(true));
 
     EXPECT_EQ(GetClientStatistic(kDeadlinePropagated), kExpected);
 
@@ -174,16 +180,16 @@ UTEST_F(DeadlineStatsTests, ClientDeadlineNotUpdated) {
     const server::request::DeadlinePropagationBlocker dp_blocker;
 
     // Requests with deadline
-    EXPECT_TRUE(ExecuteRequest(true));
-    EXPECT_TRUE(ExecuteRequest(true));
-    EXPECT_TRUE(ExecuteRequest(true));
+    EXPECT_TRUE(PerformRequest(true));
+    EXPECT_TRUE(PerformRequest(true));
+    EXPECT_TRUE(PerformRequest(true));
 
     EXPECT_EQ(GetClientStatistic(kDeadlinePropagated), kExpected);
 
     // Requests without deadline
-    EXPECT_TRUE(ExecuteRequest(false));
-    EXPECT_TRUE(ExecuteRequest(false));
-    EXPECT_TRUE(ExecuteRequest(false));
+    EXPECT_TRUE(PerformRequest(false));
+    EXPECT_TRUE(PerformRequest(false));
+    EXPECT_TRUE(PerformRequest(false));
 
     EXPECT_EQ(GetClientStatistic(kDeadlinePropagated), kExpected);
 }
@@ -194,11 +200,11 @@ UTEST_F(DeadlineStatsTests, ClientDeadlineCancelled) {
     // Server will wait for deadline before answer
     BeSlow();
 
-    // TaskInheritedData has set up, but DP disabled
+    // TaskInheritedData has set up
     tests::InitTaskInheritedDeadline();
 
     // Requests with deadline
-    EXPECT_FALSE(ExecuteRequest(true));
+    EXPECT_FALSE(PerformRequest(true));
 
     EXPECT_EQ(GetClientStatistic(kCancelledByDp), kExpected);
 }
@@ -213,7 +219,7 @@ UTEST_F(DeadlineStatsTests, ClientDeadlineCancelledNotByDp) {
     // due to deadline propagation
 
     // Requests with deadline
-    EXPECT_FALSE(ExecuteRequest(true));
+    EXPECT_FALSE(PerformRequest(true));
 
     EXPECT_EQ(GetClientStatistic(kCancelledByDp), kExpected);
 }
@@ -228,15 +234,15 @@ UTEST_F(DeadlineStatsTests, DisabledClientDeadlineUpdated) {
 
     // Requests with deadline
     // TaskInheritedData ignored
-    EXPECT_TRUE(ExecuteRequest(true));
-    EXPECT_TRUE(ExecuteRequest(true));
-    EXPECT_TRUE(ExecuteRequest(true));
+    EXPECT_TRUE(PerformRequest(true));
+    EXPECT_TRUE(PerformRequest(true));
+    EXPECT_TRUE(PerformRequest(true));
 
     // Requests without deadline
     // TaskInheritedData ignored
-    EXPECT_TRUE(ExecuteRequest(false));
-    EXPECT_TRUE(ExecuteRequest(false));
-    EXPECT_TRUE(ExecuteRequest(false));
+    EXPECT_TRUE(PerformRequest(false));
+    EXPECT_TRUE(PerformRequest(false));
+    EXPECT_TRUE(PerformRequest(false));
 
     EXPECT_EQ(GetClientStatistic(kDeadlinePropagated), kExpected);
 }
@@ -252,7 +258,7 @@ UTEST_F(DeadlineStatsTests, DisabledClientDeadlineCancelled) {
     tests::InitTaskInheritedDeadline();
 
     // Failed by deadline. But not due to deadline propagation
-    EXPECT_FALSE(ExecuteRequest(true));
+    EXPECT_FALSE(PerformRequest(true));
 
     EXPECT_EQ(GetClientStatistic(kCancelledByDp), kExpected);
 }

@@ -1,17 +1,27 @@
 #include <userver/components/manager_controller_component.hpp>
 
-#include <components/manager_config.hpp>
-#include <components/manager_controller_component_config.hpp>
+#include <components/manager.hpp>
 #include <engine/task/task_processor.hpp>
 #include <engine/task/task_processor_pools.hpp>
 #include <userver/components/statistics_storage.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
 #include <userver/dynamic_config/value.hpp>
 #include <userver/logging/component.hpp>
+#include <userver/utils/algo.hpp>
+#include <userver/utils/trx_tracker.hpp>
 
-#include <components/manager.hpp>
+#include <dynamic_config/variables/USERVER_TASK_PROCESSOR_QOS.hpp>
 
 USERVER_NAMESPACE_BEGIN
+
+namespace {
+
+void WriteRateAndLegacyMetrics(utils::statistics::Writer&& writer, utils::statistics::Rate metric) {
+    writer = metric.value;
+    writer["v2"] = metric;
+}
+
+}  // namespace
 
 namespace engine {
 
@@ -21,30 +31,25 @@ void DumpMetric(utils::statistics::Writer& writer, const engine::TaskProcessor& 
     const auto destroyed = counter.GetDestroyedTasks();
     const auto created = counter.GetCreatedTasks();
     const auto stopped = counter.GetStoppedTasks();
-    const auto started = counter.GetStartedTasks();
 
-    // TODO report RATE metrics
     if (auto tasks = writer["tasks"]) {
-        tasks["created"] = created.value;
-        tasks["alive"] = created.value - std::min(destroyed, created).value;
-        tasks["running"] = started.value - std::min(stopped, started).value;
-        tasks["queued"] = task_processor.GetTaskQueueSize();
-        tasks["finished"] = stopped.value;
-        tasks["cancelled"] = counter.GetCancelledTasks().value;
-        tasks["cancelled_overload"] = counter.GetCancelledTasksOverload().value;
+        WriteRateAndLegacyMetrics(tasks["created"], created);
+        tasks["alive"] = (created - std::min(destroyed, created)).value;
+        tasks["running"] = counter.GetRunningTasks();
+        tasks["queued"] = GetQueueSize(task_processor);
+        WriteRateAndLegacyMetrics(tasks["finished"], stopped);
+        WriteRateAndLegacyMetrics(tasks["cancelled"], counter.GetCancelledTasks());
+        WriteRateAndLegacyMetrics(tasks["cancelled_overload"], counter.GetCancelledTasksOverload());
     }
 
-    writer["errors"].ValueWithLabels(
-        counter.GetTasksOverload().value, {{"task_processor_error", "wait_queue_overload"}}
-    );
+    writer["errors"].ValueWithLabels(counter.GetTasksOverload(), {{"task_processor_error", "wait_queue_overload"}});
 
     if (auto context_switch = writer["context_switch"]) {
-        context_switch["slow"] = counter.GetTaskSwitchSlow().value;
-        context_switch["fast"] = counter.GetTaskSwitchFast().value;
-        context_switch["spurious_wakeups"] = counter.GetSpuriousWakeups().value;
+        WriteRateAndLegacyMetrics(context_switch["slow"], counter.GetTasksStartedRunning());
+        WriteRateAndLegacyMetrics(context_switch["spurious_wakeups"], counter.GetSpuriousWakeups());
 
-        context_switch["overloaded"] = counter.GetTasksOverloadSensor().value;
-        context_switch["no_overloaded"] = counter.GetTasksNoOverloadSensor().value;
+        WriteRateAndLegacyMetrics(context_switch["overloaded"], counter.GetTasksOverloadSensor());
+        WriteRateAndLegacyMetrics(context_switch["no_overloaded"], counter.GetTasksNoOverloadSensor());
     }
 
     writer["worker-threads"] = task_processor.GetWorkerCount();
@@ -58,15 +63,15 @@ ManagerControllerComponent::ManagerControllerComponent(
     const components::ComponentConfig&,
     const components::ComponentContext& context
 )
-    : components_manager_(context.GetManager()) {
-    auto& storage = context.FindComponent<components::StatisticsStorage>().GetStorage();
-
+    : components_manager_(context.GetManager(utils::impl::InternalTag{}))
+{
     auto config_source = context.FindComponent<DynamicConfig>().GetSource();
     config_subscription_ =
         config_source.UpdateAndListen(this, "engine_controller", &ManagerControllerComponent::OnConfigUpdate);
 
-    statistics_holder_ =
-        storage.RegisterWriter("engine", [this](utils::statistics::Writer& writer) { return WriteStatistics(writer); });
+    utils::statistics::RegisterWriterScope(context, "engine", [this](utils::statistics::Writer& writer) {
+        return WriteStatistics(writer);
+    });
 
     auto& logger_component = context.FindComponent<components::Logging>();
     for (const auto& [name, task_processor] : components_manager_.GetTaskProcessorsMap()) {
@@ -78,10 +83,7 @@ ManagerControllerComponent::ManagerControllerComponent(
     }
 }
 
-ManagerControllerComponent::~ManagerControllerComponent() {
-    statistics_holder_.Unregister();
-    config_subscription_.Unsubscribe();
-}
+ManagerControllerComponent::~ManagerControllerComponent() { config_subscription_.Unsubscribe(); }
 
 void ManagerControllerComponent::WriteStatistics(utils::statistics::Writer& writer) {
     // task processors
@@ -107,24 +109,31 @@ void ManagerControllerComponent::WriteStatistics(utils::statistics::Writer& writ
     }
 
     // misc
-    writer["uptime-seconds"] = std::chrono::duration_cast<std::chrono::seconds>(
-                                   std::chrono::steady_clock::now() - components_manager_.GetStartTime()
-    )
-                                   .count();
+    writer["uptime-seconds"] =
+        std::chrono::duration_cast<
+            std::chrono::seconds>(std::chrono::steady_clock::now() - components_manager_.GetStartTime())
+            .count();
     writer["load-ms"] =
         std::chrono::duration_cast<std::chrono::milliseconds>(components_manager_.GetLoadDuration()).count();
+
+    writer["pre-load-ms"] =
+        std::chrono::duration_cast<std::chrono::milliseconds>(components_manager_.GetPreLoadDuration()).count();
+
+    writer["heavy-operations-in-transactions"] = utils::trx_tracker::GetStatistics().triggers;
 }
 
 void ManagerControllerComponent::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
-    auto config = cfg[kManagerControllerDynamicConfig];
+    auto config = cfg[::dynamic_config::USERVER_TASK_PROCESSOR_QOS];
+    const auto& profiler_config = cfg[::dynamic_config::USERVER_TASK_PROCESSOR_PROFILER_DEBUG];
 
     for (const auto& [name, task_processor] : components_manager_.GetTaskProcessorsMap()) {
-        auto it = config.settings.find(name);
-        if (it != config.settings.end()) {
-            task_processor->SetSettings(it->second);
-        } else {
-            task_processor->SetSettings(config.default_settings);
-        }
+        auto profiler_cfg = utils::FindOrDefault(
+            profiler_config.extra,
+            name,
+            utils::FindOrDefault(profiler_config.extra, "default-task-processor")
+        );
+        // NOTE: find task processor by name, someday
+        task_processor->SetSettings(config.default_service.default_task_processor, profiler_cfg);
     }
 }
 

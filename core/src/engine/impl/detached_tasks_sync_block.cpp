@@ -6,6 +6,7 @@
 #include <engine/task/task_base_impl.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/impl/wait_token_storage.hpp>
+#include <userver/utils/not_null.hpp>
 
 #include <concurrent/intrusive_walkable_pool.hpp>
 #include <engine/task/task_context.hpp>
@@ -15,22 +16,28 @@ USERVER_NAMESPACE_BEGIN
 namespace engine::impl {
 
 struct DetachedTasksSyncBlock::Token final {
-    explicit Token(DetachedTasksSyncBlock& owner) : owner(owner) {}
-
-    DetachedTasksSyncBlock& owner;
+    explicit Token(DetachedTasksSyncBlock& owner)
+        : owner(owner)
+    {}
 
     concurrent::impl::IntrusiveWalkablePoolHook<Token> pool_hook{};
+
+    utils::NotNull<DetachedTasksSyncBlock*> owner;
 
     // For cancellations
     std::atomic<TaskContext*> task{nullptr};
 
     // For waiting for a cancelled task
-    utils::impl::WaitTokenStorage::Token wait_token{};
+    utils::impl::WaitTokenStorageLock wait_token{};
 };
 
 struct DetachedTasksSyncBlock::Impl final {
     std::optional<utils::impl::WaitTokenStorage> wait_tokens{};
-    concurrent::impl::IntrusiveWalkablePool<Token, concurrent::impl::MemberHook<&Token::pool_hook>> cancel_tokens{};
+    concurrent::impl::IntrusiveWalkablePool<  //
+        Token,
+        concurrent::impl::MemberHook<&Token::pool_hook>,
+        offsetof(Token, pool_hook)>
+        cancel_tokens{};
     std::atomic<TaskCancellationReason> cancel_new_tasks{TaskCancellationReason::kNone};
 };
 
@@ -75,7 +82,7 @@ void DetachedTasksSyncBlock::Dispose(Token& token) noexcept {
         );
     }
     [[maybe_unused]] const auto wait_token = std::move(token.wait_token);
-    token.owner.impl_->cancel_tokens.Release(token);
+    token.owner->impl_->cancel_tokens.Release(token);
 }
 
 void DetachedTasksSyncBlock::RequestCancellation(TaskCancellationReason reason) noexcept {
@@ -85,7 +92,7 @@ void DetachedTasksSyncBlock::RequestCancellation(TaskCancellationReason reason) 
         auto* const context_ptr = token.task.exchange(nullptr);
 
         if (context_ptr != nullptr) {
-            boost::intrusive_ptr<TaskContext> context(
+            const boost::intrusive_ptr<TaskContext> context(
                 context_ptr,
                 /*add_ref=*/false
             );
@@ -106,7 +113,9 @@ void DetachedTasksSyncBlock::WaitAllTasksCompleteDebug() noexcept {
 
 std::int64_t DetachedTasksSyncBlock::ActiveTasksApprox() const noexcept {
     UASSERT_MSG(impl_->wait_tokens, "Task count is only available for StopMode::kCancelAndWait");
-    if (!impl_->wait_tokens) return 0;
+    if (!impl_->wait_tokens) {
+        return 0;
+    }
 
     return impl_->wait_tokens->AliveTokensApprox();
 }

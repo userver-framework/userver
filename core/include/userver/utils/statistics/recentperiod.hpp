@@ -4,6 +4,7 @@
 #include <chrono>
 #include <type_traits>
 
+#include <userver/utils/assert.hpp>
 #include <userver/utils/datetime.hpp>
 #include <userver/utils/fixed_array.hpp>
 #include <userver/utils/statistics/fwd.hpp>
@@ -42,7 +43,10 @@ public:
         : epoch_duration_(epoch_duration),
           max_duration_(max_duration),
           epoch_index_(0),
-          items_(GetSizeForDuration(epoch_duration, max_duration)) {}
+          items_(GetSizeForDuration(epoch_duration, max_duration))
+    {
+        UINVARIANT(Duration::zero() < epoch_duration_, "epoch_duration should be greater than 0");
+    }
 
     Counter& GetCurrentCounter() { return items_[GetCurrentIndex()].counter; }
 
@@ -65,23 +69,29 @@ public:
         }
 
         Result result{};
-        Duration now = Timer::now().time_since_epoch();
-        Duration current_epoch = GetEpochForDuration(now);
-        Duration start_epoch = current_epoch - duration;
-        Duration first_epoch_duration = now - current_epoch;
+        const Duration now = Timer::now().time_since_epoch();
+        const Duration current_epoch = GetEpochForDuration(now);
+        const Duration start_epoch = current_epoch - duration;
+        const Duration first_epoch_duration = now - current_epoch;
         std::size_t index = epoch_index_.load();
 
         for (std::size_t i = 0; i < items_.size(); i++, index = (index + items_.size() - 1) % items_.size()) {
-            Duration epoch = items_[index].epoch;
+            const Duration epoch = items_[index].epoch;
 
-            if (epoch > current_epoch) continue;
-            if (epoch == current_epoch && !with_current_epoch) continue;
-            if (epoch < start_epoch) break;
+            if (epoch > current_epoch) {
+                continue;
+            }
+            if (epoch == current_epoch && !with_current_epoch) {
+                continue;
+            }
+            if (epoch < start_epoch) {
+                break;
+            }
 
             if constexpr (kUseAddFunction) {
-                Duration this_epoch_duration = (i == 0) ? first_epoch_duration : epoch_duration_;
+                const Duration this_epoch_duration = (i == 0) ? first_epoch_duration : epoch_duration_;
 
-                Duration before_this_epoch_duration = epoch - start_epoch;
+                const Duration before_this_epoch_duration = epoch - start_epoch;
                 result.Add(items_[index].counter, this_epoch_duration, before_this_epoch_duration);
             } else {
                 result += items_[index].counter;
@@ -99,24 +109,26 @@ public:
 
     void Reset() {
         for (auto& item : items_) {
-            item.Reset();
+            item.Reset(Duration::min());
         }
     }
 
 private:
     size_t GetCurrentIndex() const {
         while (true) {
-            Duration now = Timer::now().time_since_epoch();
-            Duration epoch = GetEpochForDuration(now);
+            const Duration now = Timer::now().time_since_epoch();
+            const Duration epoch = GetEpochForDuration(now);
             std::size_t index = epoch_index_.load();
-            Duration bucket_epoch = items_[index].epoch.load();
+            const Duration bucket_epoch = items_[index].epoch.load();
 
-            if (epoch != bucket_epoch) {
-                std::size_t new_index = (index + 1) % items_.size();
+            // Second condition allows non-monotonic timeline (that is common for tests)
+            // but still forbids race (rewrite of fresh bucket by sleeped after L113 thread)
+            if (epoch > bucket_epoch || epoch + max_duration_ < bucket_epoch) {
+                const std::size_t new_index = (index + 1) % items_.size();
 
                 if (epoch_index_.compare_exchange_weak(index, new_index)) {
                     items_[new_index].epoch = epoch;
-                    items_[(new_index + 1) % items_.size()].Reset();
+                    items_[(new_index + 1) % items_.size()].Reset(epoch + epoch_duration_);
                     return new_index;
                 }
             } else {
@@ -127,7 +139,9 @@ private:
 
     std::size_t GetPreviousIndex(int epochs_ago) {
         int index = static_cast<int>(GetCurrentIndex()) - epochs_ago;
-        while (index < 0) index += items_.size();
+        while (index < 0) {
+            index += items_.size();
+        }
         return index % items_.size();
     }
 
@@ -147,10 +161,10 @@ private:
         std::atomic<Duration> epoch;
         Counter counter;
 
-        EpochBucket() { Reset(); }
+        EpochBucket() { Reset(Duration::min()); }
 
-        void Reset() {
-            epoch = Duration::min();
+        void Reset(Duration epoch_duration) {
+            epoch = epoch_duration;
             if constexpr (kUseReset) {
                 counter.Reset();
             } else {

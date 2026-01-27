@@ -13,7 +13,10 @@
 
 #include <userver/s3api/authenticators/access_key.hpp>
 #include <userver/s3api/authenticators/interface.hpp>
+#include <userver/s3api/models/errors.hpp>
 #include <userver/s3api/models/fwd.hpp>
+#include <userver/s3api/models/multipart_upload/requests.hpp>
+#include <userver/s3api/models/multipart_upload/responses.hpp>
 #include <userver/s3api/models/s3api_connection_type.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -24,20 +27,8 @@ class Client;
 
 /// @brief Top namespace for S3 library.
 ///
-/// For more information see @ref s3_library.
+/// For more information see @ref scripts/docs/en/userver/libraries/s3api.md .
 namespace s3api {
-
-class AuthHeaderConflictError : public std::runtime_error {
-    using runtime_error::runtime_error;
-};
-
-class NoBucketError : public std::runtime_error {
-    using runtime_error::runtime_error;
-};
-
-class ListBucketError : public std::runtime_error {
-    using runtime_error::runtime_error;
-};
 
 /// Connection settings - retries, timeouts, and so on
 struct ConnectionCfg {
@@ -46,7 +37,10 @@ struct ConnectionCfg {
         int s3retries = 1,
         std::optional<std::string> proxy = {}
     )
-        : timeout(s3timeout), retries(s3retries), proxy(proxy) {}
+        : timeout(s3timeout),
+          retries(s3retries),
+          proxy(proxy)
+    {}
 
     std::chrono::milliseconds timeout{1000};
     int retries = 1;
@@ -74,6 +68,8 @@ std::shared_ptr<S3Connection> MakeS3Connection(
     const ConnectionCfg& params
 );
 
+/// @ingroup userver_clients
+///
 /// Main interface for the S3 api
 class Client {
 public:
@@ -84,7 +80,9 @@ public:
     struct HeaderDataRequest {
         HeaderDataRequest() {}
         HeaderDataRequest(std::optional<std::unordered_set<std::string>> headers, bool need_meta)
-            : headers(std::move(headers)), need_meta(need_meta) {}
+            : headers(std::move(headers)),
+              need_meta(need_meta)
+        {}
         std::optional<std::unordered_set<std::string>> headers{std::nullopt};
         bool need_meta{true};
     };
@@ -100,6 +98,8 @@ public:
     };
 
     virtual ~Client() = default;
+
+    // NOLINTBEGIN(google-default-arguments)
 
     virtual std::string PutObject(
         std::string_view path,
@@ -126,6 +126,22 @@ public:
         const HeaderDataRequest& headers_request = HeaderDataRequest()
     ) const = 0;
 
+    virtual std::optional<std::string> GetPartialObject(
+        std::string_view path,
+        std::string_view range,
+        std::optional<std::string> version = std::nullopt,
+        HeadersDataResponse* headers_data = nullptr,
+        const HeaderDataRequest& headers_request = HeaderDataRequest()
+    ) const = 0;
+
+    virtual std::string TryGetPartialObject(
+        std::string_view path,
+        std::string_view range,
+        std::optional<std::string> version = std::nullopt,
+        HeadersDataResponse* headers_data = nullptr,
+        const HeaderDataRequest& headers_request = HeaderDataRequest()
+    ) const = 0;
+
     virtual std::string CopyObject(
         std::string_view key_from,
         std::string_view bucket_to,
@@ -133,11 +149,16 @@ public:
         const std::optional<Meta>& meta = std::nullopt
     ) = 0;
 
-    virtual std::string
-    CopyObject(std::string_view key_from, std::string_view key_to, const std::optional<Meta>& meta = std::nullopt) = 0;
+    virtual std::string CopyObject(
+        std::string_view key_from,
+        std::string_view key_to,
+        const std::optional<Meta>& meta = std::nullopt
+    ) = 0;
 
-    virtual std::optional<HeadersDataResponse>
-    GetObjectHead(std::string_view path, const HeaderDataRequest& request = HeaderDataRequest()) const = 0;
+    virtual std::optional<HeadersDataResponse> GetObjectHead(
+        std::string_view path,
+        const HeaderDataRequest& request = HeaderDataRequest()
+    ) const = 0;
 
     virtual std::string GenerateDownloadUrl(std::string_view path, time_t expires, bool use_ssl = false) const = 0;
 
@@ -166,11 +187,50 @@ public:
 
     virtual std::vector<std::string> ListBucketDirectories(std::string_view path_prefix) const = 0;
 
-    // TODO: See if we can get rid of it
-    // TODO: Or rename it as UpdateConnectionConfig
+    /// @brief Initiate a multipart upload sequence
+    /// Performs a CreateMultipartUpload S3 Action.
+    /// Returns result with `upload ID` which is used to associate all of the parts in the specific multipart upload.
+    /// You specify this `upload ID` in each of your subsequent upload part requests
+    /// For details see https://docs.aws.amazon.com/AmazonS3/latest/API/API_CreateMultipartUpload.html
+    virtual multipart_upload::InitiateMultipartUploadResult CreateMultipartUpload(
+        const multipart_upload::CreateMultipartUploadRequest& request
+    ) const = 0;
+
+    /// @brief Upload a part in a multipart upload sequence.
+    /// Performs an UploadPart S3 Action.
+    /// Returns ETag value which you must include in the subsequent request to complete the multipart upload.
+    /// For details see https://docs.aws.amazon.com/AmazonS3/latest/API/API_UploadPart.html
+    virtual multipart_upload::UploadPartResult UploadPart(const multipart_upload::UploadPartRequest& request) const = 0;
+
+    /// @brief Complete a multipart upload by assembling previously uploaded parts.
+    /// Performs a CompleteMultipartUpload S3 Action.
+    /// For details see https://docs.aws.amazon.com/AmazonS3/latest/API/API_CompleteMultipartUpload.html
+    virtual multipart_upload::CompleteMultipartUploadResult CompleteMultipartUpload(
+        const multipart_upload::CompleteMultipartUploadRequest& request
+    ) const = 0;
+
+    /// @brief Abort a multipart upload sequence.
+    /// Performs an AbortMultipartUpload S3 Action.
+    /// For details see https://docs.aws.amazon.com/AmazonS3/latest/API/API_AbortMultipartUpload.html
+    virtual void AbortMultipartUpload(const multipart_upload::AbortMultipartUploadRequest& request) const = 0;
+
+    /// @brief List the parts that have been uploaded for a specific multipart upload.
+    /// Performs a ListParts S3 Action.
+    /// For details see https://docs.aws.amazon.com/AmazonS3/latest/API/API_ListParts.html
+    virtual multipart_upload::ListPartsResult ListParts(const multipart_upload::ListPartsRequest& request) const = 0;
+
+    /// @brief List in-progress multipart uploads in a bucket
+    /// Performs a ListMultipartUploads S3 Action.
+    /// For details see https://docs.aws.amazon.com/AmazonS3/latest/API/API_ListMultipartUploads.html
+    virtual multipart_upload::ListMultipartUploadsResult ListMultipartUploads(
+        const multipart_upload::ListMultipartUploadsRequest& request
+    ) const = 0;
+
     virtual void UpdateConfig(ConnectionCfg&& config) = 0;
 
     virtual std::string_view GetBucketName() const = 0;
+
+    // NOLINTEND(google-default-arguments)
 };
 
 using ClientPtr = std::shared_ptr<Client>;

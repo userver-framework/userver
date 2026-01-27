@@ -20,7 +20,6 @@ class Cluster;
 
 namespace storages::mysql {
 
-// clang-format off
 /// @ingroup userver_components
 ///
 /// @brief MySQL/MariaDB client component
@@ -44,13 +43,11 @@ namespace storages::mysql {
 /// primary detection and always considers the first host in `hosts` list
 /// an only primary node in the cluster.
 ///
-/// ## Static options (more to come)
-/// Name                     | Description                                 | Default value
-/// -------------------------|---------------------------------------------|---------------
-/// initial_pool_size        | initial connection pool size (per host)     | 5
-/// max_pool_size            | maximum connection pool size (per host)     | 10
+/// ## Static options of storages::mysql::Component :
+/// @include{doc} scripts/docs/en/components_schema/mysql/src/storages/mysql/component.md
 ///
-// clang-format on
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
 class Component final : public components::ComponentBase {
 public:
     /// Component constructor

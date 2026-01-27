@@ -6,6 +6,7 @@
 #include <mongoc/mongoc.h>
 
 #include <userver/storages/mongo/exception.hpp>
+#include <userver/utils/string_literal.hpp>
 
 #include <formats/bson/wrappers.hpp>
 
@@ -43,8 +44,9 @@ cdriver::WriteConcernPtr MakeCDriverWriteConcern(options::WriteConcern::Level le
 
 cdriver::WriteConcernPtr MakeCDriverWriteConcern(const options::WriteConcern& wc_option) {
     if (wc_option.NodesCount() > static_cast<std::size_t>(std::numeric_limits<std::int32_t>::max())) {
-        throw InvalidQueryArgumentException("Value ")
-            << wc_option.NodesCount() << " of write concern nodes count is too high";
+        throw InvalidQueryArgumentException("Value "
+        ) << wc_option.NodesCount()
+          << " of write concern nodes count is too high";
     }
     auto timeout_ms = wc_option.Timeout().count();
 
@@ -70,8 +72,13 @@ cdriver::WriteConcernPtr MakeCDriverWriteConcern(const options::WriteConcern& wc
 }
 
 void AppendUpsert(formats::bson::impl::BsonBuilder& builder) {
-    static const std::string kOptionName = "upsert";
+    static constexpr utils::StringLiteral kOptionName = "upsert";
     builder.Append(kOptionName, true);
+}
+
+void AppendHint(formats::bson::impl::BsonBuilder& builder, const options::Hint& hint) {
+    static constexpr utils::StringLiteral kOptionName = "hint";
+    builder.Append(kOptionName, hint.Value());
 }
 
 }  // namespace storages::mongo::impl

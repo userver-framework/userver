@@ -1,5 +1,7 @@
 #pragma once
 
+// Utilitary header for chaotic for a custom type serialization/parsing support
+
 #include <userver/chaotic/convert/to.hpp>
 #include <userver/utils/default_dict.hpp>
 #include <userver/utils/meta.hpp>
@@ -14,7 +16,9 @@ DefaultDict<T> Convert(const U& value, chaotic::convert::To<DefaultDict<T>>) {
     auto dict = DefaultDict<T>{{extra.begin(), extra.end()}};
 
     if constexpr (meta::kIsOptional<decltype(value.__default__)>) {
-        if (value.__default__) dict.SetDefault(*value.__default__);
+        if (value.__default__) {
+            dict.SetDefault(*value.__default__);
+        }
     } else {
         dict.SetDefault(value.__default__);
     }
@@ -26,7 +30,9 @@ template <typename T, typename U>
 U Convert(const DefaultDict<T>& value, chaotic::convert::To<U>) {
     U u;
     u.extra = {value.begin(), value.end()};
-    if (value.HasDefaultValue()) u.__default__ = value.GetDefaultValue();
+    if (value.HasDefaultValue()) {
+        u.__default__ = value.GetDefaultValue();
+    }
     return u;
 }
 

@@ -7,6 +7,9 @@
 
 #include <userver/components/component_base.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
+#include <userver/middlewares/runner.hpp>
+#include <userver/utils/box.hpp>
+#include <userver/yaml_config/fwd.hpp>
 
 #include <userver/ugrpc/server/middlewares/fwd.hpp>
 #include <userver/ugrpc/server/service_base.hpp>
@@ -17,24 +20,33 @@ namespace ugrpc::server {
 
 class ServerComponent;
 class GenericServiceBase;
+class MiddlewareBase;
+struct ServiceInfo;
 
-// clang-format off
+namespace impl {
+
+/// @brief The interface for a `ServerComponentBase` component. So, `ServerComponentBase` runs with middlewares.
+using MiddlewareRunnerComponentBase = USERVER_NAMESPACE::middlewares::RunnerComponentBase<MiddlewareBase, ServiceInfo>;
+
+}  // namespace impl
 
 /// @ingroup userver_components userver_base_classes
 ///
 /// @brief Base class for all the gRPC service components.
 ///
-/// ## Static options:
-/// Name | Description | Default value
-/// ---- | ----------- | -------------
-/// task-processor | the task processor to use for responses | taken from grpc-server.service-defaults
-/// middlewares | middleware component names to use for each RPC call, can be empty array ([]) | taken from grpc-server.service-defaults
-
-// clang-format on
-
-class ServiceComponentBase : public components::ComponentBase {
+/// ## Static options of ugrpc::server::ServiceComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/grpc/src/ugrpc/server/service_component_base.md
+///
+/// Options inherited from @ref middlewares::RunnerComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/middlewares/runner_component_base.md
+///
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
+class ServiceComponentBase : public impl::MiddlewareRunnerComponentBase {
 public:
     ServiceComponentBase(const components::ComponentConfig& config, const components::ComponentContext& context);
+
+    ~ServiceComponentBase() override;
 
     static yaml_config::Schema GetStaticConfigSchema();
 
@@ -50,6 +62,7 @@ private:
     ServerComponent& server_;
     ServiceConfig config_;
     std::atomic<bool> registered_{false};
+    utils::Box<ServiceInfo> info_;
 };
 
 namespace impl {
@@ -61,7 +74,9 @@ class ServiceComponentBase : public server::ServiceComponentBase, public Service
 
 public:
     ServiceComponentBase(const components::ComponentConfig& config, const components::ComponentContext& context)
-        : server::ServiceComponentBase(config, context), ServiceInterface() {
+        : server::ServiceComponentBase(config, context),
+          ServiceInterface()
+    {
         // At this point the derived class that implements ServiceInterface is not
         // constructed yet. We rely on the implementation detail that the methods of
         // ServiceInterface are never called right after RegisterService. Unless

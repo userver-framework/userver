@@ -36,22 +36,24 @@ std::chrono::milliseconds GetMongoCacheUpdateCorrection(const ComponentConfig&);
 
 }
 
-// clang-format off
-
 /// @ingroup userver_components
 ///
 /// @brief %Base class for all caches polling mongo collection
 ///
 /// You have to provide a traits class in order to use this.
 ///
-/// ### Avoiding memory leaks
-/// See components::CachingComponentBase
+/// For avoiding "memory leaks", see the respective section
+/// in @ref components::CachingComponentBase.
 ///
-/// ## Static options:
-/// All options of CachingComponentBase and
-/// Name | Description | Default value
-/// ---- | ----------- | -------------
-/// update-correction | adjusts incremental updates window to overlap with previous update | 0
+/// ## Static options of components::MongoCache :
+///
+/// @include{doc} scripts/docs/en/components_schema/mongo/src/cache/base_mongo_cache.md
+///
+/// Options inherited from @ref components::CachingComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/cache/caching_component_base.md
+///
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
 ///
 /// ## Traits example:
 /// All fields below (except for function overrides) are mandatory.
@@ -115,9 +117,6 @@ std::chrono::milliseconds GetMongoCacheUpdateCorrection(const ComponentConfig&);
 ///   using MongoCollectionsComponent = components::MongoCollections;
 /// };
 /// ```
-
-// clang-format on
-
 template <class MongoCacheTraits>
 class MongoCache : public CachingComponentBase<typename MongoCacheTraits::DataType> {
     using CollectionsType = mongo_cache::impl::CollectionsType<decltype(MongoCacheTraits::kMongoCollectionsField)>;
@@ -126,8 +125,6 @@ public:
     static constexpr std::string_view kName = MongoCacheTraits::kName;
 
     MongoCache(const ComponentConfig&, const ComponentContext&);
-
-    ~MongoCache();
 
     static yaml_config::Schema GetStaticConfigSchema();
 
@@ -165,33 +162,28 @@ MongoCache<MongoCacheTraits>::MongoCache(const ComponentConfig& config, const Co
       mongo_collections_(context.FindComponent<typename MongoCacheTraits::MongoCollectionsComponent>()
                              .template GetCollectionForLibrary<CollectionsType>()),
       mongo_collection_(std::addressof(mongo_collections_.get()->*MongoCacheTraits::kMongoCollectionsField)),
-      correction_(impl::GetMongoCacheUpdateCorrection(config)) {
+      correction_(impl::GetMongoCacheUpdateCorrection(config))
+{
     [[maybe_unused]] mongo_cache::impl::CheckTraits<MongoCacheTraits> check_traits;
 
     if (CachingComponentBase<typename MongoCacheTraits::DataType>::GetAllowedUpdateTypes() ==
             cache::AllowedUpdateTypes::kFullAndIncremental &&
         !mongo_cache::impl::kHasUpdateFieldName<MongoCacheTraits> &&
-        !mongo_cache::impl::kHasFindOperation<MongoCacheTraits>) {
+        !mongo_cache::impl::kHasFindOperation<MongoCacheTraits>)
+    {
         throw std::logic_error(fmt::format(
             "Incremental update support is requested in config but no update field "
             "name is specified in traits of '{}' cache",
-            components::GetCurrentComponentName(config)
+            components::GetCurrentComponentName(context)
         ));
     }
     if (correction_.count() < 0) {
         throw std::logic_error(fmt::format(
             "Refusing to set forward (negative) update correction requested in "
             "config for '{}' cache",
-            components::GetCurrentComponentName(config)
+            components::GetCurrentComponentName(context)
         ));
     }
-
-    this->StartPeriodicUpdates();
-}
-
-template <class MongoCacheTraits>
-MongoCache<MongoCacheTraits>::~MongoCache() {
-    this->StopPeriodicUpdates();
 }
 
 template <class MongoCacheTraits>
@@ -236,22 +228,25 @@ void MongoCache<MongoCacheTraits>::Update(
             if (type == cache::UpdateType::kIncremental || new_cache->count(key) == 0) {
                 (*new_cache)[key] = std::move(object);
             } else {
-                LOG_LIMITED_ERROR() << "Found duplicate key for 2 items in cache " << MongoCacheTraits::kName
-                                    << ", key=" << key;
+                LOG_LIMITED_ERROR()
+                    << "Found duplicate key for 2 items in cache " << MongoCacheTraits::kName << ", key=" << key;
             }
         } catch (const std::exception& e) {
-            LOG_LIMITED_ERROR() << "Failed to deserialize cache item of cache " << MongoCacheTraits::kName
-                                << ", _id=" << doc["_id"].template ConvertTo<std::string>() << ", what(): " << e;
+            LOG_LIMITED_ERROR()
+                << "Failed to deserialize cache item of cache " << MongoCacheTraits::kName
+                << ", _id=" << doc["_id"].template ConvertTo<std::string>() << ", what(): " << e;
             stats_scope.IncreaseDocumentsParseFailures(1);
 
-            if (!MongoCacheTraits::kAreInvalidDocumentsSkipped) throw;
+            if (!MongoCacheTraits::kAreInvalidDocumentsSkipped) {
+                throw;
+            }
         }
     }
 
     const auto elapsed_time = scope.ElapsedTotal(kFetchAndParseStage);
     if (elapsed_time > kCpuRelaxThreshold) {
-        cpu_relax_iterations_ =
-            static_cast<std::size_t>(static_cast<double>(doc_count) / (elapsed_time / kCpuRelaxInterval));
+        cpu_relax_iterations_ = static_cast<
+            std::size_t>(static_cast<double>(doc_count) / (elapsed_time / kCpuRelaxInterval));
         LOG_TRACE() << fmt::format(
             "Elapsed time for updating {} {} for {} data items is over threshold. "
             "Will relax CPU every {} iterations",
@@ -299,8 +294,8 @@ storages::mongo::operations::Find MongoCache<MongoCacheTraits>::GetFindOperation
             bson::ValueBuilder query_builder(bson::ValueBuilder::Type::kObject);
             if constexpr (mongo_cache::impl::kHasUpdateFieldName<MongoCacheTraits>) {
                 if (type == cache::UpdateType::kIncremental) {
-                    query_builder[MongoCacheTraits::kMongoUpdateFieldName] =
-                        bson::MakeDoc("$gt", last_update - correction);
+                    query_builder
+                        [MongoCacheTraits::kMongoUpdateFieldName] = bson::MakeDoc("$gt", last_update - correction);
                 }
             }
             return sm::operations::Find(query_builder.ExtractValue());
@@ -332,9 +327,8 @@ std::string GetMongoCacheSchema();
 
 template <class MongoCacheTraits>
 yaml_config::Schema MongoCache<MongoCacheTraits>::GetStaticConfigSchema() {
-    return yaml_config::MergeSchemas<CachingComponentBase<typename MongoCacheTraits::DataType>>(
-        impl::GetMongoCacheSchema()
-    );
+    return yaml_config::MergeSchemas<
+        CachingComponentBase<typename MongoCacheTraits::DataType>>(impl::GetMongoCacheSchema());
 }
 
 }  // namespace components

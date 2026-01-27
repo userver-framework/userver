@@ -8,16 +8,16 @@ namespace storages::redis {
 
 template <typename Item>
 SubscriptionQueue<Item>::SubscriptionQueue(
-    USERVER_NAMESPACE::redis::SubscribeSentinel& subscribe_sentinel,
+    impl::SubscribeSentinel& subscribe_sentinel,
     std::string channel,
-    const USERVER_NAMESPACE::redis::CommandControl& command_control
+    const CommandControl& command_control
 )
     : queue_(Queue::Create()),
       producer_(queue_->GetProducer()),
       consumer_(queue_->GetConsumer()),
-      token_(std::make_unique<USERVER_NAMESPACE::redis::SubscriptionToken>(
-          GetSubscriptionToken(subscribe_sentinel, std::move(channel), command_control)
-      )) {}
+      token_(std::make_unique<
+             impl::SubscriptionToken>(GetSubscriptionToken(subscribe_sentinel, std::move(channel), command_control)))
+{}
 
 template <typename Item>
 SubscriptionQueue<Item>::~SubscriptionQueue() {
@@ -41,11 +41,11 @@ void SubscriptionQueue<Item>::Unsubscribe() {
 
 template <typename Item>
 template <typename T>
-std::enable_if_t<std::is_same<T, ChannelSubscriptionQueueItem>::value, USERVER_NAMESPACE::redis::SubscriptionToken>
+std::enable_if_t<std::is_same<T, ChannelSubscriptionQueueItem>::value, impl::SubscriptionToken>
 SubscriptionQueue<Item>::GetSubscriptionToken(
-    USERVER_NAMESPACE::redis::SubscribeSentinel& subscribe_sentinel,
+    impl::SubscribeSentinel& subscribe_sentinel,
     std::string channel,
-    const USERVER_NAMESPACE::redis::CommandControl& command_control
+    const CommandControl& command_control
 ) {
     return subscribe_sentinel.Subscribe(
         channel,
@@ -54,9 +54,9 @@ SubscriptionQueue<Item>::GetSubscriptionToken(
             if (!producer_.PushNoblock(Item(message))) {
                 // Use SubscriptionQueue::SetMaxLength() or
                 // SubscriptionToken::SetMaxQueueLength() if limit is too low
-                LOG_ERROR() << "failed to push message '" << message << "' from channel '" << channel
-                            << "' into subscription queue due to overflow (max length=" << queue_->GetSoftMaxSize()
-                            << ')';
+                LOG_ERROR()
+                    << "failed to push message '" << message << "' from channel '" << channel
+                    << "' into subscription queue due to overflow (max length=" << queue_->GetSoftMaxSize() << ')';
                 // either this line
                 result = Outcome::kOverflowDiscarded;
             }
@@ -69,11 +69,11 @@ SubscriptionQueue<Item>::GetSubscriptionToken(
 
 template <typename Item>
 template <typename T>
-std::enable_if_t<std::is_same<T, PatternSubscriptionQueueItem>::value, USERVER_NAMESPACE::redis::SubscriptionToken>
+std::enable_if_t<std::is_same<T, PatternSubscriptionQueueItem>::value, impl::SubscriptionToken>
 SubscriptionQueue<Item>::GetSubscriptionToken(
-    USERVER_NAMESPACE::redis::SubscribeSentinel& subscribe_sentinel,
+    impl::SubscribeSentinel& subscribe_sentinel,
     std::string pattern,
-    const USERVER_NAMESPACE::redis::CommandControl& command_control
+    const CommandControl& command_control
 ) {
     return subscribe_sentinel.Psubscribe(
         pattern,
@@ -82,10 +82,10 @@ SubscriptionQueue<Item>::GetSubscriptionToken(
             if (!producer_.PushNoblock(Item(channel, message))) {
                 // Use SubscriptionQueue::SetMaxLength() or
                 // SubscriptionToken::SetMaxQueueLength() if limit is too low
-                LOG_ERROR() << "failed to push pmessage '" << message << "' from channel '" << channel
-                            << "' from pattern '" << pattern
-                            << "' into subscription queue due to overflow (max length=" << queue_->GetSoftMaxSize()
-                            << ')';
+                LOG_ERROR()
+                    << "failed to push pmessage '" << message << "' from channel '" << channel << "' from pattern '"
+                    << pattern << "' into subscription queue due to overflow (max length=" << queue_->GetSoftMaxSize()
+                    << ')';
                 // either this line
                 result = Outcome::kOverflowDiscarded;
             }
@@ -98,11 +98,11 @@ SubscriptionQueue<Item>::GetSubscriptionToken(
 
 template <typename Item>
 template <typename T>
-std::enable_if_t<std::is_same<T, ShardedSubscriptionQueueItem>::value, USERVER_NAMESPACE::redis::SubscriptionToken>
+std::enable_if_t<std::is_same<T, ShardedSubscriptionQueueItem>::value, impl::SubscriptionToken>
 SubscriptionQueue<Item>::GetSubscriptionToken(
-    USERVER_NAMESPACE::redis::SubscribeSentinel& subscribe_sentinel,
+    impl::SubscribeSentinel& subscribe_sentinel,
     std::string channel,
-    const USERVER_NAMESPACE::redis::CommandControl& command_control
+    const CommandControl& command_control
 ) {
     return subscribe_sentinel.Ssubscribe(
         channel,
@@ -111,9 +111,9 @@ SubscriptionQueue<Item>::GetSubscriptionToken(
             if (!producer_.PushNoblock(Item(message))) {
                 // Use SubscriptionQueue::SetMaxLength() or
                 // SubscriptionToken::SetMaxQueueLength() if limit is too low
-                LOG_ERROR() << "failed to push message '" << message << "' from channel '" << channel
-                            << "' into subscription queue due to overflow (max length=" << queue_->GetSoftMaxSize()
-                            << ')';
+                LOG_ERROR()
+                    << "failed to push message '" << message << "' from channel '" << channel
+                    << "' into subscription queue due to overflow (max length=" << queue_->GetSoftMaxSize() << ')';
                 // either this line
                 result = Outcome::kOverflowDiscarded;
             }

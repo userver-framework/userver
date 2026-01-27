@@ -47,7 +47,9 @@ private:
 template <typename Derived>
 class SingleShotAsyncPayload : public AsyncPayloadBase {
 public:
-    SingleShotAsyncPayload() : AsyncPayloadBase(&PerformAndReleaseImpl) {
+    SingleShotAsyncPayload()
+        : AsyncPayloadBase(&PerformAndReleaseImpl)
+    {
         static_assert(std::is_base_of_v<SingleShotAsyncPayload, Derived>);
     }
 

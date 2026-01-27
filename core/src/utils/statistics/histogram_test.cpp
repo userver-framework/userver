@@ -4,6 +4,7 @@
 
 #include <boost/range/irange.hpp>
 
+#include <userver/formats/json/serialize.hpp>
 #include <userver/utest/utest.hpp>
 #include <userver/utils/algo.hpp>
 #include <userver/utils/enumerate.hpp>
@@ -90,10 +91,11 @@ UTEST(StatisticsHistogram, Sample) {
     /// [sample]
     utils::statistics::Storage storage;
 
-    utils::statistics::Histogram histogram{std::vector<double>{1.5, 5, 42, 60}};
+    utils::statistics::Histogram histogram{{1.5, 5, 42, 60}};
 
-    auto statistics_holder =
-        storage.RegisterWriter("test", [&](utils::statistics::Writer& writer) { writer = histogram; });
+    auto statistics_holder = storage.RegisterWriter("test", [&](utils::statistics::Writer& writer) {
+        writer = histogram;
+    });
 
     histogram.Account(10);
     histogram.Account(1.2);
@@ -137,6 +139,18 @@ UTEST(StatisticsHistogram, Reset) {
     ResetMetric(histogram);
     const utils::statistics::Histogram zero_histogram{Bounds()};
     EXPECT_EQ(histogram.GetView(), zero_histogram.GetView());
+}
+
+UTEST(StatisticsHistogram, Sum) {
+    utils::statistics::Histogram histogram{Bounds()};
+    AccountSome(histogram);
+
+    EXPECT_EQ(histogram.GetView().GetSumAt(0), 1.2);
+    EXPECT_EQ(histogram.GetView().GetSumAt(1), 1.8);
+    EXPECT_EQ(histogram.GetView().GetSumAt(2), 10 + 30 * 4);
+    EXPECT_EQ(histogram.GetView().GetSumAt(3), 0.0);
+    EXPECT_EQ(histogram.GetView().GetSumAtInf(), 100);
+    EXPECT_EQ(histogram.GetView().GetTotalSum(), 1.2 + 1.8 + 10 + 30 * 4 + 100);
 }
 
 UTEST(StatisticsHistogram, ZeroBuckets) {
@@ -184,16 +198,20 @@ UTEST(StatisticsHistogram, BucketNarrowing) {
 
 UTEST_DEATH(StatisticsHistogramDeathTest, InvalidBuckets) {
     EXPECT_UINVARIANT_FAILURE_MSG(
-        (utils::statistics::Histogram{std::vector<double>{10, 5, 3}}), "Histogram bounds must be sorted"
+        (utils::statistics::Histogram{std::vector<double>{10, 5, 3}}),
+        "Histogram bounds must be sorted"
     );
     EXPECT_UINVARIANT_FAILURE_MSG(
-        (utils::statistics::Histogram{std::vector<double>{5, 5}}), "Histogram bounds must not contain duplicates"
+        (utils::statistics::Histogram{std::vector<double>{5, 5}}),
+        "Histogram bounds must not contain duplicates"
     );
     EXPECT_UINVARIANT_FAILURE_MSG(
-        utils::statistics::Histogram{std::vector<double>{-5}}, "Histogram bounds must be positive"
+        utils::statistics::Histogram{std::vector<double>{-5}},
+        "Histogram bounds must be positive"
     );
     EXPECT_UINVARIANT_FAILURE_MSG(
-        utils::statistics::Histogram{std::vector<double>{0}}, "Histogram bounds must be positive"
+        utils::statistics::Histogram{std::vector<double>{0}},
+        "Histogram bounds must be positive"
     );
     EXPECT_UINVARIANT_FAILURE_MSG(
         utils::statistics::Histogram{std::vector<double>{std::numeric_limits<double>::quiet_NaN()}},
@@ -207,7 +225,9 @@ UTEST_DEATH(StatisticsHistogramDeathTest, InvalidBuckets) {
 
 class StatisticsHistogramMetricTag : public testing::Test {
 protected:
-    StatisticsHistogramMetricTag() : metrics_storage_holder_(metrics_storage_.RegisterIn(storage_)) {}
+    StatisticsHistogramMetricTag()
+        : metrics_storage_holder_(metrics_storage_.RegisterIn(storage_))
+    {}
 
     utils::statistics::Storage& GetStorage() { return storage_; }
 
@@ -226,9 +246,8 @@ void AssertAccounted10(utils::statistics::HistogramView histogram) {
 }
 
 /// [metric tag]
-utils::statistics::MetricTag<utils::statistics::Histogram> kRuntimeHistogramMetric{
-    "histogram_metric_sample_runtime",
-    Bounds()};
+utils::statistics::MetricTag<utils::statistics::Histogram>
+    kRuntimeHistogramMetric{"histogram_metric_sample_runtime", Bounds()};
 
 void AccountHistogram(utils::statistics::MetricsStorage& metrics_storage) {
     metrics_storage.GetMetric(kRuntimeHistogramMetric).Account(10);
@@ -244,8 +263,9 @@ class StatisticsHistogramFormat : public testing::Test {
 protected:
     StatisticsHistogramFormat() {
         AccountSome(histogram_);
-        statistics_holder_ =
-            storage_.RegisterWriter("test", [&](utils::statistics::Writer& writer) { writer = histogram_; });
+        statistics_holder_ = storage_.RegisterWriter("test", [&](utils::statistics::Writer& writer) {
+            writer = histogram_;
+        });
     }
 
     const utils::statistics::Storage& GetStorage() const { return storage_; }
@@ -266,7 +286,8 @@ UTEST_F(StatisticsHistogramFormat, JsonFormat) {
       "value": {
         "bounds": [1.5, 5.0, 42.0, 60.0],
         "buckets": [1, 1, 5, 0],
-        "inf": 1
+        "inf": 1,
+        "sum":233.0
       },
       "labels": {},
       "type": "HIST_RATE"
@@ -278,7 +299,8 @@ UTEST_F(StatisticsHistogramFormat, JsonFormat) {
 
 UTEST_F(StatisticsHistogramFormat, PrettyFormat) {
     EXPECT_EQ(
-        utils::statistics::ToPrettyFormat(GetStorage()), "test:\tHIST_RATE\t[1.5]=1,[5]=1,[42]=5,[60]=0,[inf]=1\n"
+        utils::statistics::ToPrettyFormat(GetStorage()),
+        "test:\tHIST_RATE\t[1.5]=1,[5]=1,[42]=5,[60]=0,[inf]=1\n"
     );
 }
 
@@ -290,6 +312,7 @@ test_bucket{le="42"} 7
 test_bucket{le="60"} 7
 test_bucket{le="+Inf"} 8
 test_count{} 8
+test_sum{} 233
 )";
     EXPECT_EQ(utils::statistics::ToPrometheusFormat(GetStorage()), expected);
 }
@@ -302,6 +325,7 @@ test_bucket{le="42"} 7
 test_bucket{le="60"} 7
 test_bucket{le="+Inf"} 8
 test_count{} 8
+test_sum{} 233
 )";
     EXPECT_EQ(utils::statistics::ToPrometheusFormatUntyped(GetStorage()), expected);
 }
@@ -321,6 +345,7 @@ test_bucket{le="42",custom_label_1="1",custom_label_2="2"} 7
 test_bucket{le="60",custom_label_1="1",custom_label_2="2"} 7
 test_bucket{le="+Inf",custom_label_1="1",custom_label_2="2"} 8
 test_count{custom_label_1="1",custom_label_2="2"} 8
+test_sum{custom_label_1="1",custom_label_2="2"} 233
 )";
     EXPECT_EQ(utils::statistics::ToPrometheusFormat(storage), expected);
 }
@@ -331,8 +356,10 @@ UTEST_F_DEATH(StatisticsHistogramFormatDeathTest, Graphite) {
 }
 
 UTEST_F(StatisticsHistogramFormat, SolomonFormat) {
+    // Solomon does not understand 'sum'
     EXPECT_EQ(
-        formats::json::FromString(utils::statistics::ToSolomonFormat(GetStorage(), {})), formats::json::FromString(R"(
+        formats::json::FromString(utils::statistics::ToSolomonFormat(GetStorage(), {})),
+        formats::json::FromString(R"(
 {
   "metrics": [
     {

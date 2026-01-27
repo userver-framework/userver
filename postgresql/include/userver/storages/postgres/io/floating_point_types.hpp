@@ -49,17 +49,20 @@ template <typename T>
 struct FloatingPointBinaryParser : BufferParserBase<T> {
     using BaseType = BufferParserBase<T>;
     using BaseType::BaseType;
+    using ValueType = typename BaseType::ValueType;
 
     void operator()(const FieldBuffer& buf) {
         switch (buf.length) {
             case 4:
-                this->value = FloatingPointBySizeParser<4>::ParseBuffer(buf);
+                this->value = NumericCast<ValueType>(FloatingPointBySizeParser<4>::ParseBuffer(buf));
                 break;
             case 8:
-                this->value = FloatingPointBySizeParser<8>::ParseBuffer(buf);
+                this->value = NumericCast<ValueType>(FloatingPointBySizeParser<8>::ParseBuffer(buf));
                 break;
             default:
-                throw InvalidInputBufferSize{buf.length, "for a floating point value type"};
+                throw InvalidInputBufferSize{
+                    fmt::format("Buffer size {} is invalid for a floating point value type", buf.length)
+                };
         }
     }
 };
@@ -69,7 +72,9 @@ struct FloatingPointBinaryFormatter {
     static constexpr std::size_t size = sizeof(T);
     T value;
 
-    explicit FloatingPointBinaryFormatter(T val) : value{val} {}
+    explicit FloatingPointBinaryFormatter(T val)
+        : value{val}
+    {}
 
     template <typename Buffer>
     void operator()(const UserTypes& types, Buffer& buf) const {
@@ -85,11 +90,15 @@ struct FloatingPointBinaryFormatter {
 /** @name 4 byte floating point */
 template <>
 struct BufferParser<float> : detail::FloatingPointBinaryParser<float> {
-    explicit BufferParser(float& val) : FloatingPointBinaryParser(val) {}
+    explicit BufferParser(float& val)
+        : FloatingPointBinaryParser(val)
+    {}
 };
 template <>
 struct BufferFormatter<float> : detail::FloatingPointBinaryFormatter<float> {
-    explicit BufferFormatter(float val) : FloatingPointBinaryFormatter(val) {}
+    explicit BufferFormatter(float val)
+        : FloatingPointBinaryFormatter(val)
+    {}
 };
 //@}
 
@@ -97,11 +106,15 @@ struct BufferFormatter<float> : detail::FloatingPointBinaryFormatter<float> {
 /** @name 8 byte floating point */
 template <>
 struct BufferParser<double> : detail::FloatingPointBinaryParser<double> {
-    explicit BufferParser(double& val) : FloatingPointBinaryParser(val) {}
+    explicit BufferParser(double& val)
+        : FloatingPointBinaryParser(val)
+    {}
 };
 template <>
 struct BufferFormatter<double> : detail::FloatingPointBinaryFormatter<double> {
-    explicit BufferFormatter(double val) : FloatingPointBinaryFormatter(val) {}
+    explicit BufferFormatter(double val)
+        : FloatingPointBinaryFormatter(val)
+    {}
 };
 //@}
 

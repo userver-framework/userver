@@ -13,3 +13,12 @@ add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-basic-server)
 
 add_subdirectory(middleware_server)
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-middleware-server)
+
+add_subdirectory(middleware_client)
+add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-middleware-client)
+
+add_subdirectory(lowlevel)
+add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-lowlevel)
+
+add_subdirectory(error_status)
+add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-error-status)

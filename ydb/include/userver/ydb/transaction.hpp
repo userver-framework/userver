@@ -3,6 +3,7 @@
 #include <string>
 
 #include <userver/tracing/span.hpp>
+#include <userver/utils/trx_tracker.hpp>
 
 #include <userver/ydb/builder.hpp>
 #include <userver/ydb/exceptions.hpp>
@@ -87,6 +88,7 @@ private:
     NYdb::NTable::TTransaction ydb_tx_;
     OperationSettings rollback_settings_;
     bool is_active_{true};
+    utils::trx_tracker::TransactionLock trx_lock_;
 };
 
 template <typename... Args>

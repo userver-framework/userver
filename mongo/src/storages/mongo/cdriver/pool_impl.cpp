@@ -12,9 +12,11 @@
 #include <userver/formats/bson.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/server/request/task_inherited_data.hpp>
+#include <userver/testsuite/testpoint.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/tracing/tags.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/fast_scope_guard.hpp>
 #include <userver/utils/impl/userver_experiments.hpp>
 #include <userver/utils/traceful_exception.hpp>
 
@@ -23,10 +25,14 @@
 #include <userver/storages/mongo/exception.hpp>
 #include <userver/storages/mongo/mongo_error.hpp>
 
+#include <dynamic_config/variables/USERVER_DEADLINE_PROPAGATION_ENABLED.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::mongo::impl::cdriver {
 namespace {
+
+using RealMilliseconds = std::chrono::duration<double, std::milli>;
 
 [[maybe_unused]] void MongocCoroFrieldlyUsleep(int64_t usec, void*) noexcept {
     UASSERT(usec >= 0);
@@ -37,8 +43,6 @@ namespace {
         ::usleep(usec);
     }
 }
-
-utils::impl::UserverExperiment kServerSelectionTimeoutExperiment{"mongo-server-selection-timeout"};
 
 const std::string kMaintenanceTaskName = "mongo_maintenance";
 constexpr size_t kIdleConnectionDropRate = 1;
@@ -72,13 +76,17 @@ UriPtr MakeUri(const std::string& pool_id, const std::string& uri_string, const 
         throw InvalidConfigException("Bad MongoDB uri for pool '") << pool_id << "': " << parse_error.Message();
     }
     mongoc_uri_set_option_as_int32(
-        uri.get(), MONGOC_URI_CONNECTTIMEOUTMS, CheckedDurationMs(config.conn_timeout, MONGOC_URI_CONNECTTIMEOUTMS)
+        uri.get(),
+        MONGOC_URI_CONNECTTIMEOUTMS,
+        CheckedDurationMs(config.conn_timeout, MONGOC_URI_CONNECTTIMEOUTMS)
     );
-    if (kServerSelectionTimeoutExperiment.IsEnabled()) {
+    if (utils::impl::kServerSelectionTimeoutExperiment.IsEnabled()) {
         mongoc_uri_set_option_as_int32(uri.get(), MONGOC_URI_SERVERSELECTIONTIMEOUTMS, 3000);
     }
     mongoc_uri_set_option_as_int32(
-        uri.get(), MONGOC_URI_SOCKETTIMEOUTMS, CheckedDurationMs(config.so_timeout, MONGOC_URI_SOCKETTIMEOUTMS)
+        uri.get(),
+        MONGOC_URI_SOCKETTIMEOUTMS,
+        CheckedDurationMs(config.so_timeout, MONGOC_URI_SOCKETTIMEOUTMS)
     );
     if (config.local_threshold) {
         mongoc_uri_set_option_as_int32(
@@ -90,8 +98,9 @@ UriPtr MakeUri(const std::string& pool_id, const std::string& uri_string, const 
     if (config.max_replication_lag) {
         const auto max_repl_lag_sec = std::chrono::duration_cast<std::chrono::seconds>(*config.max_replication_lag);
         if (max_repl_lag_sec.count() < MONGOC_SMALLEST_MAX_STALENESS_SECONDS) {
-            throw InvalidConfigException("Invalid max replication lag ")
-                << max_repl_lag_sec.count() << "s, must be at least " << MONGOC_SMALLEST_MAX_STALENESS_SECONDS << 's';
+            throw InvalidConfigException("Invalid max replication lag "
+            ) << max_repl_lag_sec.count()
+              << "s, must be at least " << MONGOC_SMALLEST_MAX_STALENESS_SECONDS << 's';
         }
         mongoc_uri_set_option_as_int32(
             uri.get(),
@@ -127,7 +136,9 @@ mongoc_ssl_opt_t MakeSslOpt(const mongoc_uri_t* uri) {
 }
 
 std::string MakeQueueDeadlineMessage(std::optional<engine::Deadline::Duration> inherited_timeout) {
-    if (!inherited_timeout) return {};
+    if (!inherited_timeout) {
+        return {};
+    }
     return fmt::format(
         "Queue timeout set by deadline propagation: {}. ",
         std::chrono::duration_cast<std::chrono::milliseconds>(*inherited_timeout)
@@ -158,33 +169,50 @@ stats::ConnStats& GetStats(void* stats_ptr) {
     return *reinterpret_cast<stats::ConnStats*>(stats_ptr);
 }
 
-void CommandSuccessed(const mongoc_apm_command_succeeded_t* event) {
+void CommandSucceeded(const mongoc_apm_command_succeeded_t* event) {
     auto& stats = GetStats(mongoc_apm_command_succeeded_get_context(event));
-    stats.event_stats_.sucess += utils::statistics::Rate{1};
+    stats.event_stats.success += utils::statistics::Rate{1};
 }
 
 void CommandFailed(const mongoc_apm_command_failed_t* event) {
     auto& stats = GetStats(mongoc_apm_command_failed_get_context(event));
-    stats.event_stats_.failed += utils::statistics::Rate{1};
+    stats.event_stats.failed += utils::statistics::Rate{1};
 }
 
-void HearbeatStarted(const mongoc_apm_server_heartbeat_started_t* event) {
+void HeartbeatStarted(const mongoc_apm_server_heartbeat_started_t* event) {
     auto& stats = GetStats(mongoc_apm_server_heartbeat_started_get_context(event));
-    ++stats.apm_stats_->heartbeats.start;
+    ++stats.apm_stats->heartbeats.start;
     LOG_LIMITED_DEBUG() << mongoc_apm_server_heartbeat_started_get_host(event)->host_and_port << " heartbeat started";
+    stats.apm_stats->heartbeats.hb_started = std::chrono::steady_clock::now();
+}
+
+void HeartbeatFinished(stats::ConnStats& stats) {
+    auto* span = tracing::Span::CurrentSpanUnchecked();
+    if (span) {
+        auto diff = std::chrono::duration_cast<
+            RealMilliseconds>(std::chrono::steady_clock::now() - stats.apm_stats->heartbeats.hb_started);
+        span->AddTag("heartbeat_time", diff.count());
+    }
 }
 
 void HeartbeatSuccess(const mongoc_apm_server_heartbeat_succeeded_t* event) {
     auto& stats = GetStats(mongoc_apm_server_heartbeat_succeeded_get_context(event));
-    ++stats.apm_stats_->heartbeats.success;
-    LOG_LIMITED_DEBUG() << mongoc_apm_server_heartbeat_succeeded_get_host(event)->host_and_port
-                        << " heartbeat succeeded";
+    ++stats.apm_stats->heartbeats.success;
+    LOG_LIMITED_DEBUG()
+        << mongoc_apm_server_heartbeat_succeeded_get_host(event)->host_and_port << " heartbeat succeeded";
+    HeartbeatFinished(stats);
 }
 
-void HearbeatFailed(const mongoc_apm_server_heartbeat_failed_t* event) {
+void HeartbeatFailed(const mongoc_apm_server_heartbeat_failed_t* event) {
     auto& stats = GetStats(mongoc_apm_server_heartbeat_failed_get_context(event));
-    ++stats.apm_stats_->heartbeats.failed;
-    LOG_LIMITED_WARNING() << mongoc_apm_server_heartbeat_failed_get_host(event)->host_and_port << " heartbeat failed";
+    ++stats.apm_stats->heartbeats.failed;
+
+    MongoError error;
+    mongoc_apm_server_heartbeat_failed_get_error(event, error.GetNative());
+    LOG_LIMITED_WARNING()
+        << mongoc_apm_server_heartbeat_failed_get_host(event)->host_and_port
+        << " heartbeat failed with error: " << error.Message();
+    HeartbeatFinished(stats);
 }
 
 std::string CreateTopologyChangeMessage(const mongoc_apm_topology_changed_t* event) {
@@ -194,6 +222,11 @@ std::string CreateTopologyChangeMessage(const mongoc_apm_topology_changed_t* eve
     mongoc_server_description_t** prev_sds = mongoc_topology_description_get_servers(prev_td, &nprev_server_desc);
     std::size_t nnew_server_desc{0};
     mongoc_server_description_t** new_sds = mongoc_topology_description_get_servers(new_td, &nnew_server_desc);
+
+    const utils::FastScopeGuard server_descriptions_guard{[&]() noexcept {
+        mongoc_server_descriptions_destroy_all(prev_sds, nprev_server_desc);
+        mongoc_server_descriptions_destroy_all(new_sds, nnew_server_desc);
+    }};
 
     std::string topology_msg{fmt::format(
         "Topology changed: {} -> {}",
@@ -226,6 +259,7 @@ std::string CreateTopologyChangeMessage(const mongoc_apm_topology_changed_t* eve
     }
 
     mongoc_read_prefs_t* prefs = mongoc_read_prefs_new(MONGOC_READ_SECONDARY);
+    const utils::FastScopeGuard prefs_guard{[&prefs]() noexcept { mongoc_read_prefs_destroy(prefs); }};
 
 #if MONGOC_CHECK_VERSION(1, 17, 0)
     if (mongoc_topology_description_has_readable_server(new_td, prefs)) {
@@ -247,16 +281,12 @@ std::string CreateTopologyChangeMessage(const mongoc_apm_topology_changed_t* eve
         topology_msg.append("Primary UNAVAILABLE");
     }
 
-    mongoc_read_prefs_destroy(prefs);
-    mongoc_server_descriptions_destroy_all(prev_sds, nprev_server_desc);
-    mongoc_server_descriptions_destroy_all(new_sds, nnew_server_desc);
-
     return topology_msg;
 }
 
 void TopologyChanged(const mongoc_apm_topology_changed_t* event) {
     auto& stats = GetStats(mongoc_apm_topology_changed_get_context(event));
-    ++stats.apm_stats_->topology.changed;
+    ++stats.apm_stats->topology.changed;
 
     LOG_INFO() << CreateTopologyChangeMessage(event);
 }
@@ -267,6 +297,20 @@ void TopologyOpening(const mongoc_apm_topology_opening_t*) {
 
 void TopologyClosed(const mongoc_apm_topology_closed_t*) {
     LOG_DEBUG() << "The driver stops monitoring a server topology and destroys it";
+}
+
+void CreateGlobalInitializer() {
+    // Initialize static variable, and wait not on std::mutex, but on engine::Mutex.
+    // Otherwise, CPU will burn.
+    static engine::Mutex mutex;
+    const std::lock_guard lock(mutex);
+
+    static std::optional<GlobalInitializer> init_mongoc;
+    engine::CriticalAsyncNoSpan(engine::current_task::GetBlockingTaskProcessor(), [] {
+        if (!init_mongoc) {
+            init_mongoc.emplace();
+        }
+    }).Get();
 }
 
 }  // namespace
@@ -280,31 +324,33 @@ CDriverPoolImpl::CDriverPoolImpl(
 )
     : PoolImpl(std::move(id), config, config_source),
       app_name_(config.app_name),
-      init_data_{dns_resolver, {}},
+      init_data_{dns_resolver, {}, {}},
       max_size_(config.pool_settings.max_size),
       idle_limit_(config.pool_settings.idle_limit),
       queue_timeout_(config.queue_timeout),
       size_(0),
       in_use_semaphore_(config.pool_settings.max_size),
       connecting_semaphore_(config.pool_settings.connecting_limit),
+      pool_config_(config),
       // FP?: pointer magic in boost.lockfree
       // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
       queue_(config.pool_settings.max_size) {
-    static const GlobalInitializer kInitMongoc;
+    CreateGlobalInitializer();
     GlobalInitializer::LogInitWarningsOnce();
 
-    uri_ = MakeUri(Id(), uri_string, config);
-    const char* uri_database = mongoc_uri_get_database(uri_.get());
+    SetConnectionString(uri_string);
+    auto uri = uri_.Read();
+    const char* uri_database = mongoc_uri_get_database(&**uri);
     if (!uri_database) {
         throw InvalidConfigException("MongoDB uri for pool '") << Id() << "' must include database name";
     }
     default_database_ = uri_database;
 
-    init_data_.ssl_opt = MakeSslOpt(uri_.get());
+    init_data_.ssl_opt = MakeSslOpt(&**uri);
 
     std::size_t i = 0;
     try {
-        tracing::Span span("mongo_prepopulate");
+        const tracing::Span span("mongo_prepopulate");
         LOG_INFO() << "Creating " << config.pool_settings.initial_size << " mongo connections";
         for (; i < config.pool_settings.initial_size; ++i) {
             engine::SemaphoreLock lock(in_use_semaphore_);
@@ -321,15 +367,18 @@ CDriverPoolImpl::CDriverPoolImpl(
         );
     }
 
-    maintenance_task_.Start(
-        kMaintenanceTaskName,
-        {config.maintenance_period, {utils::PeriodicTask::Flags::kStrong}},
-        [this] { DoMaintenance(); }
-    );
+    maintenance_task_
+        .Start(kMaintenanceTaskName, {config.maintenance_period, {utils::PeriodicTask::Flags::kStrong}}, [this] {
+            DoMaintenance();
+        });
+
+    Start();  // Must be the last line in the constructor
 }
 
 CDriverPoolImpl::~CDriverPoolImpl() {
-    tracing::Span span("mongo_destroy");
+    Stop();  // Must be the first line in the destructor
+
+    const tracing::Span span("mongo_destroy");
     maintenance_task_.Stop();
 }
 
@@ -360,14 +409,30 @@ void CDriverPoolImpl::SetPoolSettings(const PoolSettings& pool_settings) {
     connecting_semaphore_.SetCapacity(pool_settings.connecting_limit);
 }
 
+void CDriverPoolImpl::SetConnectionString(const std::string& connection_string) {
+    if (orig_connection_string_ == connection_string) {
+        // not changed
+        return;
+    }
+    orig_connection_string_ = connection_string;
+    LOG_WARNING()
+        << "New connection string for " << Id() << " found in secdist, all old sockets will be eventually closed";
+
+    // sync: store uri_ before epoch_
+    uri_.Assign(MakeUri(Id(), connection_string, pool_config_));
+    epoch_++;
+
+    TESTPOINT("mongo-new-connection-string", {});
+}
+
 void CDriverPoolImpl::Ping() {
-    static const char* kPingDatabase = "admin";
+    static const char* ping_database = "admin";
     static const auto kPingCommand = formats::bson::MakeDoc("ping", 1);
     static const ReadPrefsPtr kPingReadPrefs(MONGOC_READ_NEAREST);
 
     tracing::Span span("mongo_ping");
     span.AddTag(tracing::kDatabaseType, tracing::kDatabaseMongoType);
-    span.AddTag(tracing::kDatabaseInstance, kPingDatabase);
+    span.AddTag(tracing::kDatabaseInstance, ping_database);
 
     // Do not mess with error stats
     auto conn = Acquire();
@@ -376,8 +441,14 @@ void CDriverPoolImpl::Ping() {
     stats::OperationStopwatch ping_sw(GetStatistics().pool->ping, "ping");
     const bson_t* native_cmd_bson_ptr = kPingCommand.GetBson().get();
     if (!mongoc_client_command_simple(
-            conn.get(), kPingDatabase, native_cmd_bson_ptr, kPingReadPrefs.Get(), nullptr, error.GetNative()
-        )) {
+            conn.get(),
+            ping_database,
+            native_cmd_bson_ptr,
+            kPingReadPrefs.Get(),
+            nullptr,
+            error.GetNative()
+        ))
+    {
         ping_sw.AccountError(error.GetKind());
         error.Throw("Ping failed");
     }
@@ -397,15 +468,16 @@ CDriverPoolImpl::ConnPtr CDriverPoolImpl::Pop() {
     std::optional<engine::Deadline::Duration> inherited_timeout{};
 
     const auto dynamic_config = GetConfig();
-    if (dynamic_config[kDeadlinePropagationEnabled]) {
+    if (dynamic_config[::dynamic_config::USERVER_DEADLINE_PROPAGATION_ENABLED]) {
         HandleCancellations(queue_deadline, inherited_timeout);
     }
 
     engine::SemaphoreLock in_use_lock(in_use_semaphore_, queue_deadline);
     if (!in_use_lock) {
         ++GetStatistics().pool->overload;
-        throw PoolOverloadException("Mongo pool '") << Id() << "' has reached size limit: " << max_size_.load() << ". "
-                                                    << MakeQueueDeadlineMessage(inherited_timeout);
+        throw PoolOverloadException("Mongo pool '"
+        ) << Id()
+          << "' has reached size limit: " << max_size_.load() << ". " << MakeQueueDeadlineMessage(inherited_timeout);
     }
 
     auto conn = TryGetIdle();
@@ -418,8 +490,9 @@ CDriverPoolImpl::ConnPtr CDriverPoolImpl::Pop() {
         if (!conn) {
             if (!connecting_lock) {
                 ++GetStatistics().pool->overload;
-                throw PoolOverloadException("Mongo pool '") << Id() << "' has too many establishing connections. "
-                                                            << MakeQueueDeadlineMessage(inherited_timeout);
+                throw PoolOverloadException("Mongo pool '"
+                ) << Id()
+                  << "' has too many establishing connections. " << MakeQueueDeadlineMessage(inherited_timeout);
             }
             conn = Create();
         }
@@ -440,6 +513,9 @@ void CDriverPoolImpl::Push(ConnPtr conn) noexcept {
          */
         Drop(std::move(conn));
         UASSERT(!conn);
+    } else if (conn->GetEpoch() != epoch_) {
+        Drop(std::move(conn));
+        UASSERT(!conn);
     }
     if (conn && !queue_.enqueue(std::move(conn))) {
         --size_;
@@ -450,7 +526,9 @@ void CDriverPoolImpl::Push(ConnPtr conn) noexcept {
 }
 
 void CDriverPoolImpl::Drop(ConnPtr conn) noexcept {
-    if (!conn) return;
+    if (!conn) {
+        return;
+    }
 
     --size_;
     ++GetStatistics().pool->closed;
@@ -458,28 +536,33 @@ void CDriverPoolImpl::Drop(ConnPtr conn) noexcept {
 
 CDriverPoolImpl::ConnPtr CDriverPoolImpl::TryGetIdle() {
     ConnPtr conn{};
-    if (queue_.try_dequeue(conn)) return conn;
+    if (queue_.try_dequeue(conn)) {
+        return conn;
+    }
     return nullptr;
 }
 
 CDriverPoolImpl::ConnPtr CDriverPoolImpl::Create() {
     // "admin" is an internal mongodb database and always exists/accessible
-    static const char* kPingDatabase = "admin";
+    static const char* ping_database = "admin";
     static const auto kPingCommand = formats::bson::MakeDoc("ping", 1);
     static const ReadPrefsPtr kPingReadPrefs(MONGOC_READ_NEAREST);
 
     LOG_DEBUG() << "Creating mongo connection";
 
-    ConnPtr conn = std::make_unique<Connection>(mongoc_client_new_from_uri(uri_.get()), &apm_stats_);
+    auto epoch = epoch_.load();  // sync: load epoch_ before uri_
+    auto uri = uri_.Read();
+
+    ConnPtr conn = std::make_unique<Connection>(mongoc_client_new_from_uri(&**uri), &apm_stats_, epoch);
 
     // Set command monitoring events to get command durations.
     {
         mongoc_apm_callbacks_t* cbs = mongoc_apm_callbacks_new();
-        mongoc_apm_set_command_succeeded_cb(cbs, CommandSuccessed);
+        mongoc_apm_set_command_succeeded_cb(cbs, CommandSucceeded);
         mongoc_apm_set_command_failed_cb(cbs, CommandFailed);
-        mongoc_apm_set_server_heartbeat_started_cb(cbs, HearbeatStarted);
+        mongoc_apm_set_server_heartbeat_started_cb(cbs, HeartbeatStarted);
         mongoc_apm_set_server_heartbeat_succeeded_cb(cbs, HeartbeatSuccess);
-        mongoc_apm_set_server_heartbeat_failed_cb(cbs, HearbeatFailed);
+        mongoc_apm_set_server_heartbeat_failed_cb(cbs, HeartbeatFailed);
         mongoc_apm_set_topology_changed_cb(cbs, TopologyChanged);
         mongoc_apm_set_topology_opening_cb(cbs, TopologyOpening);
         mongoc_apm_set_topology_closed_cb(cbs, TopologyClosed);
@@ -492,8 +575,9 @@ CDriverPoolImpl::ConnPtr CDriverPoolImpl::Create() {
 #if MONGOC_CHECK_VERSION(1, 26, 0)
     mongoc_client_set_usleep_impl(conn->GetNativePtr(), &MongocCoroFrieldlyUsleep, nullptr);
 #else
-    LOG_LIMITED_WARNING() << "Cannot use coro-friendly usleep in mongo driver, "
-                             "link against newer mongo-c-driver to fix";
+    LOG_LIMITED_WARNING()
+        << "Cannot use coro-friendly usleep in mongo driver, "
+           "link against newer mongo-c-driver to fix";
 #endif
 
     if (!app_name_.empty()) {
@@ -506,8 +590,14 @@ CDriverPoolImpl::ConnPtr CDriverPoolImpl::Create() {
     stats::OperationStopwatch ping_sw(GetStatistics().pool->ping, "ping");
     const bson_t* native_cmd_bson_ptr = kPingCommand.GetBson().get();
     if (!mongoc_client_command_simple(
-            conn->GetNativePtr(), kPingDatabase, native_cmd_bson_ptr, kPingReadPrefs.Get(), nullptr, error.GetNative()
-        )) {
+            conn->GetNativePtr(),
+            ping_database,
+            native_cmd_bson_ptr,
+            kPingReadPrefs.Get(),
+            nullptr,
+            error.GetNative()
+        ))
+    {
         ping_sw.AccountError(error.GetKind());
         error.Throw("Couldn't create a connection in mongo pool '" + Id() + '\'');
     }
@@ -520,8 +610,8 @@ CDriverPoolImpl::ConnPtr CDriverPoolImpl::Create() {
 
 void CDriverPoolImpl::DoMaintenance() {
     LOG_DEBUG() << "Starting mongo pool '" << Id() << "' maintenance";
-    for (auto idle_drop_left = kIdleConnectionDropRate; idle_drop_left && size_.load() > idle_limit_;
-         --idle_drop_left) {
+    for (auto idle_drop_left = kIdleConnectionDropRate; idle_drop_left && size_.load() > idle_limit_; --idle_drop_left)
+    {
         LOG_TRACE() << "Trying to drop idle connection";
         Drop(TryGetIdle());
     }

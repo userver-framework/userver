@@ -1,15 +1,15 @@
+import pytest
+
 from chaotic.front.parser import ParserError
 from chaotic.front.types import AllOf
 from chaotic.front.types import SchemaObject
 
 
 def test_of_none(simple_parse):
-    try:
+    with pytest.raises(ParserError) as exc:
         simple_parse({'allOf': []})
-        assert False
-    except ParserError as exc:
-        assert exc.infile_path == '/definitions/type/allOf'
-        assert exc.msg == 'Empty allOf'
+    assert exc.value.infile_path == '/definitions/type/allOf'
+    assert exc.value.msg == 'Empty allOf'
 
 
 # stupid, but valid
@@ -52,9 +52,7 @@ def test_2_empty(simple_parse):
 
 
 def test_non_object(simple_parse):
-    try:
+    with pytest.raises(ParserError) as exc:
         simple_parse({'allOf': [{'type': 'integer'}]})
-        assert False
-    except ParserError as exc:
-        assert exc.infile_path == '/definitions/type/allOf/0'
-        assert exc.msg == 'Non-object type in allOf: integer'
+    assert exc.value.infile_path == '/definitions/type/allOf/0'
+    assert exc.value.msg == 'Non-object type in allOf: integer'

@@ -1,13 +1,11 @@
 include_guard(GLOBAL)
 
 if(userver_rabbitmq_FOUND)
-  return()
+    return()
 endif()
 
-find_package(userver REQUIRED COMPONENTS
-    core
-)
+find_package(userver REQUIRED COMPONENTS core)
 
-include("${USERVER_CMAKE_DIR}/SetupAmqpCPP.cmake")
+find_package(amqpcpp REQUIRED)
 
 set(userver_rabbitmq_FOUND TRUE)

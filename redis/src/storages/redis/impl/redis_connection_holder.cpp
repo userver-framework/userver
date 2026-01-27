@@ -2,39 +2,76 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis::impl {
+
+class RedisConnectionHolder::EmplaceEnabler {};
 
 RedisConnectionHolder::RedisConnectionHolder(
+    EmplaceEnabler,
     const engine::ev::ThreadControl& sentinel_thread_control,
     const std::shared_ptr<engine::ev::ThreadPool>& redis_thread_pool,
+    const std::string& shard_group_name,
     const std::string& host,
     uint16_t port,
     Password password,
+    std::size_t database_index,
     CommandsBufferingSettings buffering_settings,
     ReplicationMonitoringSettings replication_monitoring_settings,
-    utils::RetryBudgetSettings retry_budget_settings
+    utils::RetryBudgetSettings retry_budget_settings,
+    redis::RedisCreationSettings redis_creation_settings
 )
     : commands_buffering_settings_(std::move(buffering_settings)),
       replication_monitoring_settings_(std::move(replication_monitoring_settings)),
       retry_budget_settings_(std::move(retry_budget_settings)),
       ev_thread_(sentinel_thread_control),
       redis_thread_pool_(redis_thread_pool),
+      shard_group_name_(shard_group_name),
       host_(host),
       port_(port),
       password_(std::move(password)),
-      connection_check_timer_(
-          ev_thread_,
-          [this] { EnsureConnected(); },
-          kCheckRedisConnectedInterval
-      ) {
-    // https://github.com/boostorg/signals2/issues/59
-    // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDelete)
-    CreateConnection();
-    ev_thread_.RunInEvLoopAsync([this] { connection_check_timer_.Start(); });
-}
+      database_index_(database_index),
+      connection_check_timer_(ev_thread_, [this] { EnsureConnected(); }, kCheckRedisConnectedInterval),
+      redis_creation_settings_(redis_creation_settings)
+{}
 
 RedisConnectionHolder::~RedisConnectionHolder() {
     ev_thread_.RunInEvLoopBlocking([this] { connection_check_timer_.Stop(); });
+}
+
+std::shared_ptr<RedisConnectionHolder> RedisConnectionHolder::Create(
+    const engine::ev::ThreadControl& sentinel_thread_control,
+    const std::shared_ptr<engine::ev::ThreadPool>& redis_thread_pool,
+    const std::string& shard_group_name,
+    const std::string& host,
+    uint16_t port,
+    Password password,
+    std::size_t database_index,
+    CommandsBufferingSettings buffering_settings,
+    ReplicationMonitoringSettings replication_monitoring_settings,
+    utils::RetryBudgetSettings retry_budget_settings,
+    redis::RedisCreationSettings redis_creation_settings
+) {
+    auto holder = std::make_shared<RedisConnectionHolder>(
+        EmplaceEnabler{},
+        sentinel_thread_control,
+        redis_thread_pool,
+        shard_group_name,
+        host,
+        port,
+        std::move(password),
+        database_index,
+        std::move(buffering_settings),
+        std::move(replication_monitoring_settings),
+        std::move(retry_budget_settings),
+        std::move(redis_creation_settings)
+    );
+
+    // https://github.com/boostorg/signals2/issues/59
+    // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDelete)
+    holder->CreateConnection();
+    holder->ev_thread_.RunInEvLoopAsync([holder] { holder->connection_check_timer_.Start(); });
+
+    return holder;
 }
 
 std::shared_ptr<Redis> RedisConnectionHolder::Get() const { return redis_.ReadCopy(); }
@@ -50,14 +87,14 @@ void RedisConnectionHolder::EnsureConnected() {
 }
 
 void RedisConnectionHolder::CreateConnection() {
-    RedisCreationSettings settings;
-    /// Here we allow read from replicas possibly stale data.
-    /// This does not affect connections to masters
-    settings.send_readonly = true;
-    auto instance = std::make_shared<Redis>(redis_thread_pool_, settings);
+    auto instance = std::make_shared<
+        Redis>(redis_thread_pool_, redis_creation_settings_, shard_group_name_, statistics_);
+    UASSERT(weak_from_this().lock());
     instance->signal_state_change.connect([weak_ptr{weak_from_this()}](Redis::State state) {
         const auto ptr = weak_ptr.lock();
-        if (!ptr) return;
+        if (!ptr) {
+            return;
+        }
 
         ptr->signal_state_change(state);
     });
@@ -77,7 +114,7 @@ void RedisConnectionHolder::CreateConnection() {
         instance->SetRetryBudgetSettings(*settings_ptr);
     }
 
-    instance->Connect({host_}, port_, password_);
+    instance->Connect({host_}, port_, password_, database_index_);
     redis_.Assign(std::move(instance));
 }
 
@@ -104,6 +141,6 @@ Redis::State RedisConnectionHolder::GetState() const {
     return ptr->get()->GetState();
 }
 
-}  // namespace redis
+}  // namespace storages::redis::impl
 
 USERVER_NAMESPACE_END

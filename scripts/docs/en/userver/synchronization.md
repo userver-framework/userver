@@ -77,16 +77,20 @@ See also engine::WaitAllChecked and engine::GetAll for a way to wait for all
 of the asynchronous operations, rethrowing exceptions immediately.
 
 
+@anchor concurrent_queues
 ### concurrent::MpscQueue and friends
 
-For long-living tasks it is convenient to use message queues.
-In `concurrent::MpscQueue`, writers (one or more) can write data to the queue, and on the other hand, a reader can read what is written. The order of objects written by different writers is not defined.
+userver provides coroutine-friendly concurrent queues. Basic usage example:
 
 @snippet concurrent/mpsc_queue_test.cpp  Sample concurrent::MpscQueue usage
 
-If the queue with unread data is destroyed, all unprocessed items will be released correctly.
+Consumers wait in for elements in @ref concurrent::Consumer::Pop "Pop". If you set max size for the queue @ref concurrent::GenericQueue::Create "at creation" or @ref concurrent::GenericQueue::SetSoftMaxSize "dynamically", then producers will also wait for non-fullness in @ref concurrent::Producer::Push "Push". There are also @ref concurrent::Producer::PushNoblock "PushNoblock" and @ref concurrent::Consumer::PopNoblock "PopNoblock" that can be called outside of coroutines and used for communicating between coroutine and non-coroutine (typically, driver) threads.
 
-Use `concurrent::MpscQueue` by default.
+@warning For @ref concurrent::GenericQueue::GetProducer "GetProducer" and @ref concurrent::GenericQueue::GetConsumer "GetConsumer", each individual `Producer` and `Consumer` can only be used from 1 thread! Typical use cases involve an unlimited number of producer threads (e.g. when pushing from an HTTP handler). Use @ref concurrent::GenericQueue::GetMultiProducer "GetMultiProducer" and @ref concurrent::GenericQueue::GetMultiConsumer "GetMultiConsumer" (if needed) for those cases instead of creating producers and consumers on the fly.
+
+#### Choosing the right type of concurrent queue
+
+Use `concurrent::MpscQueue` by default: it guarantees FIFO order and allows multiple producers.
 
 If there is only a single producing task, these can be used instead for higher performance:
 
@@ -97,6 +101,28 @@ If reordering of the elements is acceptable, these can be used instead for highe
 
 * `concurrent::NonFifoMpscQueue`
 * `concurrent::NonFifoMpmcQueue`
+
+@warning `NonFifo` queue variants can lead to high latencies for some elements. These queues are suitable for long-running background operations, as well as various kinds of logs, metrics and monitorings, but not for batching requests on which clients are actively waiting.
+
+Consider setting max size on the queue (@ref concurrent::MpscQueue::Create "at creation" or @ref concurrent::MpscQueue::SetSoftMaxSize "dynamically") to start dropping elements in case of overload and avoid OOM issues.
+
+On the other hand, if you really mean it, you can use `Unbounded` queue variants that are slightly faster:
+
+* `concurrent::UnboundedSpscQueue`
+* `concurrent::UnboundedSpmcQueue`
+* `concurrent::UnboundedNonFifoMpscQueue`
+
+#### Using queue closing mechanic to process all the remaining items during shutdown
+
+When all @ref concurrent::Producer "producers" of a queue are destroyed, and all the remaining elements are consumed, the queue becomes "closed for reads", and @ref concurrent::Consumer::Pop "Pop" starts returning `false`.
+
+This mechanic can be used to process all the remaining items during shutdown. Here is an example of how you can organize the queue processing correctly:
+
+@snippet concurrent/mpsc_queue_test.cpp  close sample
+
+#### Using queue closing mechanic to stop the producers
+
+Similarly, when all @ref concurrent::Consumer "consumers" of a queue are destroyed, the queue becomes "closed for writes", and @ref concurrent::Producer::Push "Push" starts returning `false`. This mechanic can be useful for temporary queues to propagate essentially cancellation of an operation, e.g. when a connection is closed, and it is useless to compute further responses.
 
 
 ### std::atomic

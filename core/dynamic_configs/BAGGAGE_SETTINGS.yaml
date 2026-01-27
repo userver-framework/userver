@@ -1,0 +1,13 @@
+default: {"allowed_keys": []}
+description: ''
+schema:
+    type: object
+    additionalProperties: false
+    properties:
+        allowed_keys:
+            type: array
+            items:
+                type: string
+            x-taxi-cpp-type: std::unordered_set
+    required:
+      - allowed_keys

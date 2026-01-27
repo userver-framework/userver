@@ -1,4 +1,4 @@
-#include <userver/ugrpc/client/generic.hpp>
+#include <userver/ugrpc/client/generic_client.hpp>
 
 #include <cstdint>
 
@@ -19,10 +19,10 @@ constexpr std::string_view kSayHelloCallName = "sample.ugrpc.UnitTestService/Say
 
 class UnitTestService final : public sample::ugrpc::UnitTestServiceBase {
 public:
-    void SayHello(SayHelloCall& call, sample::ugrpc::GreetingRequest&& request) override {
+    SayHelloResult SayHello(CallContext& /*context*/, sample::ugrpc::GreetingRequest&& request) override {
         sample::ugrpc::GreetingResponse response;
         response.set_name("Hello " + request.name());
-        call.Finish(response);
+        return response;
     }
 };
 
@@ -39,12 +39,12 @@ sample::ugrpc::GreetingResponse PerformGenericUnaryCall(ugrpc::tests::ServiceBas
     sample::ugrpc::GreetingRequest request;
     request.set_name("generic");
 
-    auto rpc = client.UnaryCall(call_name, ugrpc::SerializeToByteBuffer(request));
+    auto future = client.AsyncUnaryCall(call_name, ugrpc::SerializeToByteBuffer(request));
 
-    auto response_bytes = rpc.Finish();
+    auto response_bytes = future.Get();
     sample::ugrpc::GreetingResponse response;
     if (!ugrpc::ParseFromByteBuffer(std::move(response_bytes), response)) {
-        throw ugrpc::client::RpcError(rpc.GetCallName(), "Failed to parse response");
+        throw ugrpc::client::RpcError(future.GetContext().GetCallName(), "Failed to parse response");
     }
 
     return response;
@@ -64,14 +64,17 @@ UTEST_F(GenericClientTest, MetricsRealUnsafe) {
     sample::ugrpc::GreetingRequest request;
     request.set_name("generic");
 
-    ugrpc::client::GenericOptions options;
-    options.metrics_call_name = std::nullopt;
+    ugrpc::client::GenericOptions generic_options;
+    generic_options.metrics_call_name = std::nullopt;
 
-    auto rpc = client.UnaryCall(
-        kSayHelloCallName, ugrpc::SerializeToByteBuffer(request), std::make_unique<grpc::ClientContext>(), options
+    auto future = client.AsyncUnaryCall(
+        kSayHelloCallName,
+        ugrpc::SerializeToByteBuffer(request),
+        ugrpc::client::CallOptions{},
+        generic_options
     );
-    EXPECT_EQ(rpc.GetCallName(), kSayHelloCallName);
-    rpc.Finish();
+    EXPECT_EQ(future.GetContext().GetCallName(), kSayHelloCallName);
+    future.Get();
 
     const auto stats = GetStatistics(
         "grpc.client.by-destination",
@@ -96,19 +99,38 @@ UTEST_F(GenericClientTest, MetricsDefaultCallNameIsFake) {
 
 namespace {
 
-using GenericClientLoggingTest = utest::LogCaptureFixture<ugrpc::tests::ServiceFixture<UnitTestService>>;
+template <typename ServiceType>
+class WithClientLogMiddleware : public ugrpc::tests::ServiceFixture<ServiceType> {
+public:
+    WithClientLogMiddleware()
+        : ugrpc::tests::ServiceFixture<ServiceType>(
+              {},
+              {},
+              {
+                  std::make_shared<
+                      ugrpc::client::middlewares::log::Middleware>(ugrpc::client::middlewares::log::Settings{}),
+              }
+          ) {}
+};
+
+using GenericClientLoggingTest = utest::LogCaptureFixture<WithClientLogMiddleware<UnitTestService>>;
 
 }  // namespace
 
 UTEST_F(GenericClientLoggingTest, Logs) {
     PerformGenericUnaryCall(*this);
 
-    const auto span_log = GetSingleLog(
-        GetLogCapture().Filter("", {{{std::string_view("stopwatch_name"), std::string_view("external_grpc")}}})
-    );
-    EXPECT_EQ(span_log.GetTagOptional("stopwatch_name"), "external_grpc/sample.ugrpc.UnitTestService/SayHello")
-        << span_log;
-    EXPECT_EQ(span_log.GetTagOptional("grpc_code"), "OK") << span_log;
+    const auto span_log = utest::GetSingleLog(GetLogCapture().Filter(
+        "",
+        {{{std::string_view("stopwatch_name"), kSayHelloCallName},
+          {std::string_view("span_kind"), std::string_view("client")}}}
+    ));
+    EXPECT_EQ(span_log.GetTagOptional("stopwatch_name"), kSayHelloCallName) << span_log;
+    EXPECT_EQ(span_log.GetTagOptional("rpc.system"), "grpc") << span_log;
+    EXPECT_EQ(span_log.GetTagOptional("rpc.service"), "sample.ugrpc.UnitTestService") << span_log;
+    EXPECT_EQ(span_log.GetTagOptional("rpc.method"), "SayHello") << span_log;
+    EXPECT_EQ(span_log.GetTagOptional("server.address"), "localhost") << span_log;
+    EXPECT_EQ(span_log.GetTagOptional(tracing::kGrpcCode), "OK") << span_log;
 }
 
 USERVER_NAMESPACE_END

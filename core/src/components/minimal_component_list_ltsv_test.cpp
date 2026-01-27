@@ -6,7 +6,6 @@
 #include <userver/components/run.hpp>
 #include <userver/fs/blocking/read.hpp>
 #include <userver/fs/blocking/temp_directory.hpp>
-#include <userver/fs/blocking/write.hpp>
 
 #include <components/component_list_test.hpp>
 #include <userver/utest/utest.hpp>
@@ -15,21 +14,23 @@ USERVER_NAMESPACE_BEGIN
 
 namespace {
 
-constexpr std::string_view kConfigVarsTemplate = R"(
-  logger_file_path: {0}
+constexpr std::string_view kConfigPatch = R"(
+components_manager:
+    components:
+        logging:
+            loggers:
+                default:
+                    file_path: {0}
 )";
 
 }  // namespace
 
 TEST_F(ComponentList, MinimalLtsvLogs) {
     const auto temp_root = fs::blocking::TempDirectory::Create();
-    const std::string config_vars_path = temp_root.GetPath() + "/config_vars.json";
     const std::string logs_path = temp_root.GetPath() + "/log.txt";
-    const std::string static_config = std::string{tests::kMinimalStaticConfig} + config_vars_path + '\n';
 
-    fs::blocking::RewriteFileContents(config_vars_path, fmt::format(kConfigVarsTemplate, logs_path));
-
-    components::RunOnce(components::InMemoryConfig{static_config}, components::MinimalComponentList());
+    const auto config = tests::MergeYaml(tests::kMinimalStaticConfig, fmt::format(kConfigPatch, logs_path));
+    components::RunOnce(components::InMemoryConfig{config}, components::MinimalComponentList());
 
     logging::LogFlush();
 

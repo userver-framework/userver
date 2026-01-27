@@ -4,11 +4,11 @@
 #include <gmock/gmock.h>
 
 #include <components/component_list_test.hpp>
-#include <userver/alerts/component.hpp>
 #include <userver/components/component.hpp>
 #include <userver/components/component_base.hpp>
 #include <userver/components/component_list.hpp>
 #include <userver/components/run.hpp>
+#include <userver/components/statistics_storage.hpp>
 #include <userver/fs/blocking/read.hpp>
 #include <userver/fs/blocking/temp_directory.hpp>
 #include <userver/fs/blocking/write.hpp>
@@ -27,6 +27,7 @@ components_manager:
     initial_size: 50
     max_size: 500
   default_task_processor: main-task-processor
+  fs_task_processor: main-task-processor
   event_thread_pool:
     threads: 1
   task_processors:
@@ -60,7 +61,8 @@ public:
 
     TwoLoggersComponent(const components::ComponentConfig& config, const components::ComponentContext& context)
         : components::ComponentBase(config, context),
-          custom_logger_(context.FindComponent<components::Logging>().GetLogger("custom")) {
+          custom_logger_(context.FindComponent<components::Logging>().GetLogger("custom"))
+    {
         LOG_INFO() << "constructor default";
         LOG_INFO_TO(custom_logger_) << "constructor custom";
     }
@@ -80,6 +82,7 @@ components_manager:
     initial_size: 50
     max_size: 500
   default_task_processor: main-task-processor
+  fs_task_processor: main-task-processor
   event_thread_pool:
     threads: 1
   task_processors:
@@ -110,8 +113,8 @@ components::ComponentList MakeTwoLoggersComponentList() {
         .Append<os_signals::ProcessorComponent>()
         .Append<components::Logging>()
         .Append<components::Tracer>()
-        .Append<TwoLoggersComponent>()
-        .Append<alerts::StorageComponent>();
+        .Append<components::StatisticsStorage>()
+        .Append<TwoLoggersComponent>();
 }
 
 }  // namespace
@@ -126,7 +129,8 @@ TEST_F(ComponentList, CustomLogger) {
     fs::blocking::RewriteFileContents(config_path, kTwoLoggersConfig);
 
     fs::blocking::RewriteFileContents(
-        config_vars_path, fmt::format(kTwoLoggersConfigVars, default_logger_path, custom_logger_path)
+        config_vars_path,
+        fmt::format(kTwoLoggersConfigVars, default_logger_path, custom_logger_path)
     );
 
     UASSERT_NO_THROW(components::RunOnce(config_path, config_vars_path, std::nullopt, MakeTwoLoggersComponentList()));

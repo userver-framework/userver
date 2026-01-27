@@ -1,14 +1,17 @@
 #include <server/net/connection.hpp>
+#include <server/net/http2_connection.hpp>
+
+#include <type_traits>
 
 #include <fmt/format.h>
 
 #include <server/handlers/http_handler_base_statistics.hpp>
-#include <server/http/http_request_impl.hpp>
 #include <server/http/request_handler_base.hpp>
 #include <server/net/create_socket.hpp>
-#include <userver/clients/http/client.hpp>
+#include <userver/clients/http/client_core.hpp>
 #include <userver/engine/io/sockaddr.hpp>
 #include <userver/engine/sleep.hpp>
+#include <userver/server/http/http_request.hpp>
 
 #include <userver/utest/http_client.hpp>
 #include <userver/utest/utest.hpp>
@@ -25,15 +28,13 @@ class TestHttprequestHandler : public server::http::RequestHandlerBase {
 public:
     enum class Behaviors { kNoop, kHang };
 
-    explicit TestHttprequestHandler(Behaviors behavior = Behaviors::kNoop) : behavior_(behavior) {}
+    explicit TestHttprequestHandler(Behaviors behavior = Behaviors::kNoop)
+        : behavior_(behavior)
+    {}
 
-    engine::TaskWithResult<void> StartRequestTask(std::shared_ptr<server::request::RequestBase> request
+    engine::TaskWithResult<void> StartRequestTask(std::shared_ptr<server::http::HttpRequest> http_request
     ) const override {
-        UASSERT(request);
-
-        auto& http_request = dynamic_cast<server::http::HttpRequestImpl&>(*request);
-        static server::handlers::HttpRequestStatistics statistics;
-        http_request.SetHttpHandlerStatistics(statistics);
+        UASSERT(http_request);
 
         switch (behavior_) {
             case Behaviors::kNoop:
@@ -51,15 +52,15 @@ public:
 
     const server::http::HandlerInfoIndex& GetHandlerInfoIndex() const override { return handler_info_index_; }
 
-    const logging::LoggerPtr& LoggerAccess() const noexcept override { return no_logger_; };
-    const logging::LoggerPtr& LoggerAccessTskv() const noexcept override { return no_logger_; };
+    const logging::TextLoggerPtr& LoggerAccess() const noexcept override { return no_logger_; };
+    const logging::TextLoggerPtr& LoggerAccessTskv() const noexcept override { return no_logger_; };
 
     // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
     mutable std::atomic<std::size_t> asyncs_finished{0};
 
 private:
     const Behaviors behavior_;
-    logging::LoggerPtr no_logger_;
+    logging::TextLoggerPtr no_logger_;
     server::http::HandlerInfoIndex handler_info_index_;
 };
 
@@ -78,11 +79,12 @@ clients::http::ResponseFuture CreateRequest(
     USERVER_NAMESPACE::http::HttpVersion http_ver = USERVER_NAMESPACE::http::HttpVersion::k11,
     ConnectionHeader header = ConnectionHeader::kKeepAlive
 ) {
-    auto ret = http_client.CreateRequest()
-                   .http_version(http_ver)
-                   .get(HttpConnectionUriFromSocket(request_socket))
-                   .retry(1)
-                   .timeout(std::chrono::milliseconds(100));
+    auto ret =
+        http_client.CreateRequest()
+            .http_version(http_ver)
+            .get(HttpConnectionUriFromSocket(request_socket))
+            .retry(1)
+            .timeout(std::chrono::milliseconds(100));
     if (header == ConnectionHeader::kClose) {
         ret.headers({{"Connection", "close"}});
     }
@@ -95,24 +97,33 @@ net::ListenerConfig CreateConfig(
     net::ListenerConfig config;
     config.handler_defaults = server::request::HttpRequestConfig{};
     config.connection_config.http_version = http_ver;
+    config.ports.emplace_back(net::PortConfig{});
     return config;
 }
 
+template <typename ConnectionType>
+USERVER_NAMESPACE::http::HttpVersion HttpVersion() {
+    if constexpr (std::is_same_v<ConnectionType, net::Http2Connection>) {
+        return USERVER_NAMESPACE::http::HttpVersion::k2;
+    }
+    return USERVER_NAMESPACE::http::HttpVersion::k11;
+}
+
 // The param tells which http protocol to use.
-class ServerNetConnection : public testing::TestWithParam<USERVER_NAMESPACE::http::HttpVersion> {};
+template <typename T>
+class ServerNetConnection : public ::testing::Test {};
+
+using ConnectionTypes = ::testing::Types<net::Connection, net::Http2Connection>;
 
 }  // namespace
 
-INSTANTIATE_UTEST_SUITE_P(
-    /*no prefix*/,
-    ServerNetConnection,
-    ::testing::Values(USERVER_NAMESPACE::http::HttpVersion::k11, USERVER_NAMESPACE::http::HttpVersion::k2)
-);
+TYPED_UTEST_SUITE(ServerNetConnection, ConnectionTypes);
 
-UTEST_P(ServerNetConnection, EarlyCancel) {
-    const auto http_ver = GetParam();
+TYPED_UTEST(ServerNetConnection, EarlyCancel) {
+    using ConnectionType = TypeParam;
+    const auto http_ver = HttpVersion<ConnectionType>();
     net::ListenerConfig config = CreateConfig(http_ver);
-    auto request_socket = net::CreateSocket(config);
+    auto request_socket = net::CreateSocket(config, config.ports[0]);
 
     auto http_client_ptr = utest::CreateHttpClient();
     auto request = CreateRequest(*http_client_ptr, request_socket, http_ver, ConnectionHeader::kKeepAlive);
@@ -124,7 +135,7 @@ UTEST_P(ServerNetConnection, EarlyCancel) {
     TestHttprequestHandler handler;
 
     auto task = engine::AsyncNoSpan([&] {
-        net::Connection connection(
+        ConnectionType connection(
             config.connection_config,
             config.handler_defaults,
             std::make_unique<engine::io::Socket>(std::move(peer)),
@@ -142,15 +153,17 @@ UTEST_P(ServerNetConnection, EarlyCancel) {
     task.RequestCancel();
     task.WaitFor(utest::kMaxTestWaitTime);
     EXPECT_TRUE(task.IsFinished());
-    UEXPECT_THROW(request.Get(), std::exception) << "Looks like the `socket_listener_` task was started (the "
-                                                    "request "
-                                                    "was received and processed). Too bad: the test tested nothing";
+    UEXPECT_THROW(request.Get(), std::exception)
+        << "Looks like the `socket_listener_` task was started (the "
+           "request "
+           "was received and processed). Too bad: the test tested nothing";
 }
 
-UTEST_P(ServerNetConnection, EarlyTimeout) {
-    const auto http_ver = GetParam();
+TYPED_UTEST(ServerNetConnection, EarlyTimeout) {
+    using ConnectionType = TypeParam;
+    const auto http_ver = HttpVersion<ConnectionType>();
     net::ListenerConfig config = CreateConfig(http_ver);
-    auto request_socket = net::CreateSocket(config);
+    auto request_socket = net::CreateSocket(config, config.ports[0]);
 
     auto http_client_ptr = utest::CreateHttpClient();
     auto res = CreateRequest(*http_client_ptr, request_socket, http_ver, ConnectionHeader::kKeepAlive);
@@ -164,7 +177,7 @@ UTEST_P(ServerNetConnection, EarlyTimeout) {
     UEXPECT_THROW(res.Get(), clients::http::TimeoutException);
 
     auto task = engine::AsyncNoSpan([&] {
-        net::Connection connection(
+        ConnectionType connection(
             config.connection_config,
             config.handler_defaults,
             std::make_unique<engine::io::Socket>(std::move(peer)),
@@ -180,10 +193,11 @@ UTEST_P(ServerNetConnection, EarlyTimeout) {
     EXPECT_TRUE(task.IsFinished());
 }
 
-UTEST_P(ServerNetConnection, TimeoutWithTaskCancellation) {
-    const auto http_ver = GetParam();
+TYPED_UTEST(ServerNetConnection, TimeoutWithTaskCancellation) {
+    using ConnectionType = TypeParam;
+    const auto http_ver = HttpVersion<ConnectionType>();
     net::ListenerConfig config = CreateConfig(http_ver);
-    auto request_socket = net::CreateSocket(config);
+    auto request_socket = net::CreateSocket(config, config.ports[0]);
 
     auto http_client_ptr = utest::CreateHttpClient();
     auto res = CreateRequest(*http_client_ptr, request_socket, http_ver, ConnectionHeader::kKeepAlive);
@@ -195,7 +209,7 @@ UTEST_P(ServerNetConnection, TimeoutWithTaskCancellation) {
     TestHttprequestHandler handler{TestHttprequestHandler::Behaviors::kHang};
 
     auto task = engine::AsyncNoSpan([&] {
-        net::Connection connection(
+        ConnectionType connection(
             config.connection_config,
             config.handler_defaults,
             std::make_unique<engine::io::Socket>(std::move(peer)),
@@ -214,10 +228,11 @@ UTEST_P(ServerNetConnection, TimeoutWithTaskCancellation) {
     UEXPECT_THROW(res.Get(), clients::http::TimeoutException);
 }
 
-UTEST_P(ServerNetConnection, EarlyTeardown) {
-    const auto http_ver = GetParam();
+TYPED_UTEST(ServerNetConnection, EarlyTeardown) {
+    using ConnectionType = TypeParam;
+    const auto http_ver = HttpVersion<ConnectionType>();
     net::ListenerConfig config = CreateConfig(http_ver);
-    auto request_socket = net::CreateSocket(config);
+    auto request_socket = net::CreateSocket(config, config.ports[0]);
 
     auto http_client_ptr = utest::CreateHttpClient();
     auto res = CreateRequest(*http_client_ptr, request_socket, http_ver, ConnectionHeader::kClose);
@@ -232,10 +247,11 @@ UTEST_P(ServerNetConnection, EarlyTeardown) {
     http_client_ptr.reset();
 }
 
-UTEST_P(ServerNetConnection, RemoteClosed) {
-    const auto http_ver = GetParam();
+TYPED_UTEST(ServerNetConnection, RemoteClosed) {
+    using ConnectionType = TypeParam;
+    const auto http_ver = HttpVersion<ConnectionType>();
     net::ListenerConfig config = CreateConfig(http_ver);
-    auto request_socket = net::CreateSocket(config);
+    auto request_socket = net::CreateSocket(config, config.ports[0]);
 
     auto http_client_ptr = utest::CreateHttpClient();
     auto request = CreateRequest(*http_client_ptr, request_socket, http_ver, ConnectionHeader::kClose);
@@ -247,7 +263,7 @@ UTEST_P(ServerNetConnection, RemoteClosed) {
     TestHttprequestHandler handler;
 
     auto task = engine::AsyncNoSpan([&] {
-        net::Connection connection(
+        ConnectionType connection(
             config.connection_config,
             config.handler_defaults,
             std::make_unique<engine::io::Socket>(std::move(peer)),
@@ -266,12 +282,13 @@ UTEST_P(ServerNetConnection, RemoteClosed) {
     EXPECT_TRUE(task.IsFinished());
 }
 
-UTEST_P(ServerNetConnection, KeepAlive) {
-    const auto http_ver = GetParam();
+TYPED_UTEST(ServerNetConnection, KeepAlive) {
+    using ConnectionType = TypeParam;
+    const auto http_ver = HttpVersion<ConnectionType>();
     net::ListenerConfig config = CreateConfig(http_ver);
-    auto request_socket = net::CreateSocket(config);
+    auto request_socket = net::CreateSocket(config, config.ports[0]);
 
-    auto http_client_ptr = utest::CreateHttpClient();
+    auto http_client_ptr = utest::impl::CreateHttpClientCore();
     http_client_ptr->SetMaxHostConnections(1);
 
     auto request = CreateRequest(*http_client_ptr, request_socket, http_ver, ConnectionHeader::kKeepAlive);
@@ -283,7 +300,7 @@ UTEST_P(ServerNetConnection, KeepAlive) {
     TestHttprequestHandler handler;
 
     auto task = engine::AsyncNoSpan([&] {
-        net::Connection connection(
+        ConnectionType connection(
             config.connection_config,
             config.handler_defaults,
             std::make_unique<engine::io::Socket>(std::move(peer)),
@@ -303,14 +320,15 @@ UTEST_P(ServerNetConnection, KeepAlive) {
     EXPECT_EQ(handler.asyncs_finished, 2);
 }
 
-UTEST_P(ServerNetConnection, CancelMultipleInFlight) {
+TYPED_UTEST(ServerNetConnection, CancelMultipleInFlight) {
+    using ConnectionType = TypeParam;
     constexpr std::size_t kInFlightRequests = 10;
     constexpr std::size_t kMaxAttempts = 10;
-    const auto http_ver = GetParam();
+    const auto http_ver = HttpVersion<ConnectionType>();
     net::ListenerConfig config = CreateConfig(http_ver);
-    auto request_socket = net::CreateSocket(config);
+    auto request_socket = net::CreateSocket(config, config.ports[0]);
 
-    auto http_client_ptr = utest::CreateHttpClient();
+    auto http_client_ptr = utest::impl::CreateHttpClientCore();
     http_client_ptr->SetMaxHostConnections(1);
 
     for (unsigned ii = 0; ii < kMaxAttempts; ++ii) {
@@ -323,7 +341,7 @@ UTEST_P(ServerNetConnection, CancelMultipleInFlight) {
         TestHttprequestHandler handler;
 
         auto task = engine::AsyncNoSpan([&] {
-            net::Connection connection(
+            ConnectionType connection(
                 config.connection_config,
                 config.handler_defaults,
                 std::make_unique<engine::io::Socket>(std::move(peer)),

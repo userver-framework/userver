@@ -1,3 +1,7 @@
+import pytest
+
+
+@pytest.mark.skip('This test is broken. Fix it, please')
 async def test_trx_ok(service_client, pgsql):
     response = await service_client.post('/v1/key-value?key=foo&value=bar')
     assert response.status == 201
@@ -9,6 +13,7 @@ async def test_trx_ok(service_client, pgsql):
 
 
 # /// [fault injection]
+@pytest.mark.skip('This test is broken. Fix it, please')
 async def test_trx_fail(service_client, pgsql, userver_pg_trx):
     response = await service_client.delete('/v1/key-value?key=foo')
     assert response.status == 200

@@ -42,7 +42,12 @@ public:
     void SetEnabled(bool enabled);
 
 protected:
-    virtual Limit Update(const v2::Sensor::Data& data) = 0;
+    struct LimitWithDetails {
+        Limit limit;
+        std::optional<std::string> sensor_details;
+    };
+
+    virtual LimitWithDetails Update(const v2::Sensor::Data& data) = 0;
 
     // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
     std::optional<size_t> current_limit_;

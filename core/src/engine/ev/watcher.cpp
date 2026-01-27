@@ -22,14 +22,18 @@ void Watcher<ev_async>::Init(void (*cb)(struct ev_loop*, ev_async*, int) noexcep
 
 template <>
 void Watcher<ev_async>::StartImpl() noexcept {
-    if (is_running_) return;
+    if (is_running_) {
+        return;
+    }
     is_running_ = true;
     thread_control_.Start(w_);
 }
 
 template <>
 void Watcher<ev_async>::StopImpl() noexcept {
-    if (!is_running_) return;
+    if (!is_running_) {
+        return;
+    }
     is_running_ = false;
     thread_control_.Stop(w_);
 }
@@ -62,7 +66,9 @@ int Watcher<ev_io>::GetFd() const noexcept {
 
 template <>
 void Watcher<ev_io>::StartImpl() noexcept {
-    if (is_running_) return;
+    if (is_running_) {
+        return;
+    }
     is_running_ = true;
     UASSERT_MSG(IsFdValid(GetFd()), "Invalid fd=" + std::to_string(GetFd()));
     thread_control_.Start(w_);
@@ -70,18 +76,18 @@ void Watcher<ev_io>::StartImpl() noexcept {
 
 template <>
 void Watcher<ev_io>::StopImpl() noexcept {
-    if (!is_running_) return;
+    if (!is_running_) {
+        return;
+    }
     is_running_ = false;
     UASSERT_MSG(IsFdValid(GetFd()), "Invalid fd=" + std::to_string(GetFd()));
     thread_control_.Stop(w_);
 }
 
 template <>
-void Watcher<ev_timer>::Init(
-    void (*cb)(struct ev_loop*, ev_timer*, int) noexcept,
-    LibEvDuration after,
-    LibEvDuration repeat
-) noexcept {
+void Watcher<
+    ev_timer>::Init(void (*cb)(struct ev_loop*, ev_timer*, int) noexcept, LibEvDuration after, LibEvDuration repeat)
+    noexcept {
     UASSERT_MSG(!is_running_, "Values in active watcher should not be changed.");
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
     ev_timer_init(&w_, cb, after.count(), repeat.count());
@@ -97,14 +103,18 @@ void Watcher<ev_timer>::Set(LibEvDuration after, LibEvDuration repeat) noexcept 
 
 template <>
 void Watcher<ev_timer>::StartImpl() noexcept {
-    if (is_running_) return;
+    if (is_running_) {
+        return;
+    }
     is_running_ = true;
     thread_control_.Start(w_);
 }
 
 template <>
 void Watcher<ev_timer>::StopImpl() noexcept {
-    if (!is_running_) return;
+    if (!is_running_) {
+        return;
+    }
     is_running_ = false;
     thread_control_.Stop(w_);
 }

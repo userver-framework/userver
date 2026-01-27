@@ -26,8 +26,6 @@ namespace concurrent::impl {
 /// Treiber, R.K., 1986. Systems programming: Coping with parallelism.
 template <typename T, typename HookExtractor>
 class IntrusiveStack final {
-    static_assert(std::is_empty_v<HookExtractor>);
-
 public:
     constexpr IntrusiveStack() = default;
 
@@ -54,7 +52,9 @@ public:
         NodeTaggedPtr expected = stack_head_.load();
         while (true) {
             T* const expected_ptr = expected.GetDataPtr();
-            if (!expected_ptr) return nullptr;
+            if (!expected_ptr) {
+                return nullptr;
+            }
             const NodeTaggedPtr desired(GetNext(*expected_ptr).load(), expected.GetNextTag());
             if (stack_head_.compare_exchange_weak(expected, desired)) {
                 // 'relaxed' is OK, because popping a node must happen-before pushing it
@@ -98,8 +98,8 @@ private:
     static_assert(std::has_unique_object_representations_v<NodeTaggedPtr>);
 
     static std::atomic<T*>& GetNext(T& node) noexcept {
-        SinglyLinkedHook<T>& hook = HookExtractor{}(node);
-        return hook.next_;
+        SinglyLinkedHook<T>& hook = HookExtractor::GetHook(node);
+        return hook.next;
     }
 
     template <typename U, typename Func>

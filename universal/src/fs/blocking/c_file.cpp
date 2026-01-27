@@ -5,6 +5,10 @@
 #include <cstdio>
 #include <memory>
 
+#if __has_include(<stdio_ext.h>)
+#include <stdio_ext.h>  // for FSETLOCKING_BYCALLER, __fsetlocking
+#endif
+
 #include <userver/fs/blocking/file_descriptor.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
@@ -61,10 +65,15 @@ CFile::CFile(std::FILE* file) noexcept {
 
 CFile::CFile(const std::string& path, OpenMode flags, boost::filesystem::perms perms) {
     auto fd = FileDescriptor::Open(path, flags, perms);
-    impl_->handle.reset(
-        utils::CheckSyscallNotEquals(::fdopen(fd.GetNative(), ToMode(flags)), nullptr, "calling ::fdopen")
-    );
+    impl_->handle
+        .reset(utils::CheckSyscallNotEquals(::fdopen(fd.GetNative(), ToMode(flags)), nullptr, "calling ::fdopen"));
     std::move(fd).Release();
+
+#ifdef FSETLOCKING_BYCALLER
+    // Synchronization is not required for this FILE* because where are sure that it is not shared
+    // (unlike FILE* stderr, stdin, stdout).
+    __fsetlocking(impl_->handle.get(), FSETLOCKING_BYCALLER);
+#endif
 }
 
 bool CFile::IsOpen() const { return static_cast<bool>(impl_->handle); }
@@ -94,7 +103,9 @@ std::size_t CFile::Read(char* buffer, std::size_t size) {
 
 void CFile::Write(std::string_view data) {
     UASSERT(IsOpen());
-    if (data.empty()) return;
+    if (data.empty()) {
+        return;
+    }
 
     if (std::fwrite(data.data(), 1, data.size(), impl_->handle.get()) != data.size()) {
         throw std::system_error(std::ferror(impl_->handle.get()), std::generic_category(), "calling fwrite");

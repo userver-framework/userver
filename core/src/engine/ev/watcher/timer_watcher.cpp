@@ -7,7 +7,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine::ev {
 
-TimerWatcher::TimerWatcher(ThreadControl& thread_control) : ev_timer_(thread_control, this) {
+TimerWatcher::TimerWatcher(ThreadControl& thread_control)
+    : ev_timer_(thread_control, this)
+{
     ev_timer_.Init(&TimerWatcher::OnEventTimeout, {}, {});
 }
 
@@ -27,7 +29,7 @@ void TimerWatcher::SingleshotAsync(std::chrono::milliseconds timeout, Callback c
 
 void TimerWatcher::OnEventTimeout(struct ev_loop*, ev_timer* timer, int events) noexcept {
     auto* self = static_cast<TimerWatcher*>(timer->data);
-    self->ev_timer_.Stop();
+    const auto guard = self->ev_timer_.StopWithinEvCallback();
 
     if (events & EV_TIMER) {
         try {
@@ -56,7 +58,9 @@ void TimerWatcher::Cancel() {
     bool need_call_cb = false;
     {
         const std::lock_guard lock{mutex_};
-        if (cb_) need_call_cb = true;
+        if (cb_) {
+            need_call_cb = true;
+        }
     }
     if (need_call_cb) {
         LOG_TRACE() << "TimerWatcher::Cancel() (2) watcher=" << this;

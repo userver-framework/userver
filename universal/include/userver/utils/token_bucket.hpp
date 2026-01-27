@@ -6,6 +6,8 @@
 #include <atomic>
 #include <chrono>
 
+#include <userver/utils/statistics/rate_counter.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace utils {
@@ -88,6 +90,8 @@ public:
     static double GetRatePs(Duration interval);
 
 private:
+    friend void DumpMetric(statistics::Writer& writer, const TokenBucket& bucket);
+
     void Update();
 
     std::atomic<size_t> max_size_;
@@ -95,7 +99,11 @@ private:
     std::atomic<Duration> token_refill_interval_;
     std::atomic<size_t> tokens_;
     std::atomic<TimePoint> last_update_;
+
+    statistics::RateCounter obtain_failed_;
 };
+
+void DumpMetric(statistics::Writer& writer, const TokenBucket& bucket);
 
 }  // namespace utils
 

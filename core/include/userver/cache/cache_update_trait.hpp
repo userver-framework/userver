@@ -66,17 +66,6 @@ protected:
         kNoFirstUpdate = 1 << 0,
     };
 
-    /// Starts periodic updates
-    void StartPeriodicUpdates(utils::Flags<Flag> flags = {});
-
-    /// @brief Stops periodic updates
-    /// @warning Should be called in destructor of derived class.
-    void StopPeriodicUpdates();
-
-    void AssertPeriodicUpdateStarted();
-
-    void AssertPeriodicUpdateStopped();
-
     /// Called in `CachingComponentBase::Set` during update to indicate
     /// that the cached data has been modified
     void OnCacheModified();
@@ -129,6 +118,8 @@ protected:
     /// invocation of Update or default constructed value if this is the first
     /// Update).
     /// @param now current time point
+    /// @param stats_scope the scope that expects
+    /// one of `Finish`, `FinishNoChanges`, `FinishWithError` or an exception.
     ///
     /// @throws std::exception on update failure
     ///
@@ -143,7 +134,23 @@ protected:
         UpdateStatisticsScope& stats_scope
     ) = 0;
 
+    /// @brief Returns flags for cache start.
+    virtual utils::Flags<Flag> GetStartFlags() const;
+
+    /// @brief Call this to start periodic updates just now,
+    /// not after the constuctor.
+    void EarlyStartPeriodicUpdates(utils::Flags<Flag> flags);
+
+    /// @cond
+    // For internal use only
+    void EarlyStopPeriodicUpdates();
+    /// @endcond
+
 private:
+    void StartPeriodicUpdates();
+
+    void StopPeriodicUpdates();
+
     virtual void Cleanup() = 0;
 
     virtual void MarkAsExpired();

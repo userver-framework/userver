@@ -69,7 +69,8 @@ void DoTestBasic(Storage& storage) {
 
     const auto* const expected_labeled = "prefix_name{lab=\"foo\"} 42\n";
     EXPECT_EQ(
-        expected_labeled, ToPrometheusFormatUntyped(storage, Request::MakeWithPrefix("prefix.name", {{"lab", "foo"}}))
+        expected_labeled,
+        ToPrometheusFormatUntyped(storage, Request::MakeWithPrefix("prefix.name", {{"lab", "foo"}}))
     );
 
     EXPECT_EQ(
@@ -135,20 +136,20 @@ UTEST(MetricsWriter, Sample) {
     Storage storage;
 
     // The names mimic class member names, for the sample purposes
-    ComponentMetrics component_metrics_;
-    utils::statistics::Entry holder_;
-    component_metrics_.metrics.Insert("metric-in-map", std::make_shared<ComponentMetricsNested>());
+    ComponentMetrics component_metrics;
+    utils::statistics::Entry holder;
+    component_metrics.metrics.Insert("metric-in-map", std::make_shared<ComponentMetricsNested>());
     constexpr std::chrono::seconds kDuration{1674810371};
     utils::datetime::MockNowSet(std::chrono::system_clock::time_point{kDuration});
 
     /// [DumpMetric RegisterWriter]
-    holder_ = storage.RegisterWriter(
+    holder = storage.RegisterWriter(
         "begin-on-the-metric-path",
         [&](Writer& writer) {
             // Metric without labels
             writer["metric1"] = 42;
 
-            ComponentMetrics& metrics = component_metrics_;
+            const ComponentMetrics& metrics = component_metrics;
             writer["more_metrics"] = metrics;
         },
         {{"label_for_all", "labell value"}}
@@ -205,7 +206,8 @@ UTEST(MetricsWriter, WithError) {
     auto holder4 = storage.RegisterWriter({}, [](Writer& writer) {
         writer["some"]["path"].ValueWithLabels(3, {"name", "value"});
         writer["some"]["path"].ValueWithLabels(
-            [](bool raise) { return raise ? throw std::runtime_error{"Oops"} : 1; }(true), {"name", "value"}
+            [](bool raise) { return raise ? throw std::runtime_error{"Oops"} : 1; }(true),
+            {"name", "value"}
         );
     });
 
@@ -223,9 +225,7 @@ UTEST(MetricsWriter, WithError) {
 
     auto holder6 = storage.RegisterWriter(
         "some",
-        [](Writer& writer) {
-            writer["b"].ValueWithLabels(8, {"name2", "value2"});
-        },
+        [](Writer& writer) { writer["b"].ValueWithLabels(8, {"name2", "value2"}); },
         {{"name", "value"}}
     );
 
@@ -332,7 +332,8 @@ UTEST(MetricsWriter, LabeledMultiple) {
     EXPECT_EQ(
         expected_labeled2,
         ToPrometheusFormatUntyped(
-            storage, Request::MakeWithPath("a.1", {}, {{"name", "value"}, {"label_name", "label_value2"}})
+            storage,
+            Request::MakeWithPath("a.1", {}, {{"name", "value"}, {"label_name", "label_value2"}})
         )
     );
 
@@ -344,7 +345,8 @@ UTEST(MetricsWriter, LabeledMultiple) {
     EXPECT_EQ(
         expected_labeled2_a,
         ToPrometheusFormatUntyped(
-            storage, Request::MakeWithPath("a", {}, {{"name", "value"}, {"label_name", "label_value2"}})
+            storage,
+            Request::MakeWithPath("a", {}, {{"name", "value"}, {"label_name", "label_value2"}})
         )
     );
 
@@ -356,15 +358,22 @@ UTEST(MetricsWriter, LabeledMultiple) {
     EXPECT_EQ(
         expected_labeled2_c,
         ToPrometheusFormatUntyped(
-            storage, Request::MakeWithPath("c", {}, {{"name", "value"}, {"label_name", "label_value2"}})
+            storage,
+            Request::MakeWithPath("c", {}, {{"name", "value"}, {"label_name", "label_value2"}})
         )
     );
 }
 
 UTEST(MetricsWriter, CustomTypesOptimization) {
+    if constexpr (utils::statistics::impl::kCheckSubscriptionUB) {
+        return;
+    }
+    // Check for "not called" only if call on registration is not forced
+
     Storage storage;
-    auto holder =
-        storage.RegisterWriter("skip", [](Writer& writer) { writer = MetricTypeThatMustBeSkipped{"at 'skip' path"}; });
+    auto holder = storage.RegisterWriter("skip", [](Writer& writer) {
+        writer = MetricTypeThatMustBeSkipped{"at 'skip' path"};
+    });
     auto holder1 = storage.RegisterWriter("a", [](Writer& writer) {
         writer["skip"] = MetricTypeThatMustBeSkipped{"at 'a.skip' path"};
     });
@@ -423,10 +432,12 @@ UTEST(MetricsWriter, AutomaticUnsubscribingCheckWriterData) {
     };
 
     auto holder1 = storage.RegisterWriter("prefix1", writer_func);
-    { auto holder2 = storage.RegisterWriter("prefix2", writer_func); }
+    {
+        auto holder2 = storage.RegisterWriter("prefix2", writer_func);
+    }
 
     if constexpr (utils::statistics::impl::kCheckSubscriptionUB) {
-        EXPECT_EQ(counter, 1);
+        EXPECT_EQ(counter, 3);
     } else {
         EXPECT_EQ(counter, 0);
     }
@@ -441,10 +452,12 @@ UTEST(MetricsWriter, AutomaticUnsubscribingCheckExtenderData) {
     };
 
     auto holder1 = storage.RegisterExtender("prefix1", extender_func);
-    { auto holder2 = storage.RegisterExtender("prefix2", extender_func); }
+    {
+        auto holder2 = storage.RegisterExtender("prefix2", extender_func);
+    }
 
     if constexpr (utils::statistics::impl::kCheckSubscriptionUB) {
-        EXPECT_EQ(counter, 1);
+        EXPECT_EQ(counter, 3);
     } else {
         EXPECT_EQ(counter, 0);
     }

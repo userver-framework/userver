@@ -23,19 +23,24 @@ UTEST(SharedMutex, SharedLockParallel) {
 
     std::vector<engine::Task> tasks;
     tasks.reserve(2);
-    for (auto i = 0; i < 2; i++)
+    for (auto i = 0; i < 2; i++) {
         tasks.push_back(utils::Async("", [&mutex, &count, &was] {
-            std::shared_lock<engine::SharedMutex> lock(mutex);
+            const std::shared_lock<engine::SharedMutex> lock(mutex);
 
             count++;
             for (auto i = 0; i < 3 && count != 2; i++) {
                 engine::Yield();
             }
 
-            if (count == 2) was = true;
+            if (count == 2) {
+                was = true;
+            }
         }));
+    }
 
-    for (auto i = 0; i < 20 && !was; i++) engine::Yield();
+    for (auto i = 0; i < 20 && !was; i++) {
+        engine::Yield();
+    }
 
     EXPECT_TRUE(was.load());
 }
@@ -44,7 +49,7 @@ UTEST(SharedMutex, SharedAndUniqueLock) {
     engine::SharedMutex mutex;
 
     std::unique_lock<engine::SharedMutex> lock(mutex);
-    auto reader = utils::Async("", [&mutex] { std::shared_lock<engine::SharedMutex> lock(mutex); });
+    auto reader = utils::Async("", [&mutex] { const std::shared_lock<engine::SharedMutex> lock(mutex); });
 
     reader.WaitFor(std::chrono::milliseconds(50));
     EXPECT_FALSE(reader.IsFinished());
@@ -60,7 +65,7 @@ UTEST(SharedMutex, UniqueAndSharedLock) {
     engine::SharedMutex mutex;
 
     std::shared_lock<engine::SharedMutex> lock(mutex);
-    auto writer = utils::Async("", [&mutex] { std::unique_lock<engine::SharedMutex> lock(mutex); });
+    auto writer = utils::Async("", [&mutex] { const std::lock_guard<engine::SharedMutex> lock(mutex); });
 
     writer.WaitFor(std::chrono::milliseconds(50));
     EXPECT_FALSE(writer.IsFinished());
@@ -79,7 +84,7 @@ UTEST_MT(SharedMutex, WritersDontStarve, 2) {
 
     std::shared_lock<engine::SharedMutex> lock(mutex);
     auto writer = utils::Async("", [&mutex, &counter, &loaded] {
-        std::unique_lock<engine::SharedMutex> lock(mutex);
+        const std::lock_guard<engine::SharedMutex> lock(mutex);
         loaded = counter.load();
     });
 
@@ -90,7 +95,7 @@ UTEST_MT(SharedMutex, WritersDontStarve, 2) {
     readers.reserve(10);
     for (int i = 0; i < 10; i++) {
         readers.push_back(utils::Async("", [&counter, &mutex] {
-            std::shared_lock<engine::SharedMutex> lock(mutex);
+            const std::shared_lock<engine::SharedMutex> lock(mutex);
             counter++;
         }));
     }
@@ -116,14 +121,14 @@ UTEST(SharedMutex, TryLock) {
 
     {
         // mutex must be free of writers
-        std::shared_lock<engine::SharedMutex> lock(mutex);
+        const std::shared_lock<engine::SharedMutex> lock(mutex);
     }
 }
 
 UTEST(SharedMutex, TryLockFail) {
     engine::SharedMutex mutex;
 
-    std::unique_lock<engine::SharedMutex> lock(mutex);
+    const std::lock_guard<engine::SharedMutex> lock(mutex);
     auto task = utils::Async("", [&mutex] { return mutex.try_lock(); });
     EXPECT_FALSE(task.Get());
 }
@@ -136,19 +141,65 @@ UTEST(SharedMutex, SampleSharedMutex) {
     engine::SharedMutex mutex;
     std::string data;
     {
-        std::lock_guard<engine::SharedMutex> lock(mutex);
+        const std::lock_guard<engine::SharedMutex> lock(mutex);
         // accessing the data under the mutex for writing
         data = kTestString;
     }
 
     {
-        std::shared_lock<engine::SharedMutex> lock(mutex);
+        const std::shared_lock<engine::SharedMutex> lock(mutex);
         // accessing the data under the mutex for reading,
         // data cannot be changed
         const auto& x = data;
         ASSERT_EQ(x, kTestString);
     }
     /// [Sample engine::SharedMutex usage]
+}
+
+UTEST(SharedMutex, UnlockAndLockShared) {
+    engine::SharedMutex mutex;
+
+    mutex.lock();
+    mutex.unlock_and_lock_shared();
+    mutex.unlock_shared();
+
+    // Check that after unlock_and_lock_shared()+unlock_shared()
+    // unique lock doesn't block
+    mutex.lock();
+    mutex.unlock();
+}
+
+UTEST(SharedMutex, UnlockAndLockSharedIsShared) {
+    engine::SharedMutex mutex;
+
+    mutex.lock();
+    mutex.unlock_and_lock_shared();
+
+    // Check that after unlock_and_lock_shared() shared lock doesn't block
+    mutex.lock_shared();
+    mutex.unlock_shared();
+
+    mutex.unlock_shared();
+}
+
+UTEST(SharedMutex, UnlockAndLockSharedAwakesShared) {
+    engine::SharedMutex mutex;
+
+    mutex.lock();
+    auto reader = utils::Async("", [&mutex] { const std::shared_lock<engine::SharedMutex> lock(mutex); });
+
+    // shared_lock is still blocked
+    reader.WaitFor(std::chrono::milliseconds(50));
+    EXPECT_FALSE(reader.IsFinished());
+
+    mutex.unlock_and_lock_shared();
+
+    // shared_lock is successfully finished
+    reader.WaitFor(std::chrono::milliseconds(50));
+    EXPECT_TRUE(reader.IsFinished());
+    UEXPECT_NO_THROW(reader.Get());
+
+    mutex.unlock_shared();
 }
 
 USERVER_NAMESPACE_END

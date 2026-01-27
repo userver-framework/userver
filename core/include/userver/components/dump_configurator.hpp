@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/components/dump_configurator.hpp
+/// @brief @copybrief components::DumpConfigurator
+
 #include <string>
 
 #include <userver/components/component_base.hpp>
@@ -9,28 +12,25 @@ USERVER_NAMESPACE_BEGIN
 
 namespace components {
 
-// clang-format off
-
 /// @ingroup userver_components
 ///
 /// @brief Helper component that manages common configuration for userver dumps.
 ///
 /// The component must be configured in service config.
 ///
-/// ## Static options:
-/// Name | Description | Default value
-/// ---- | ----------- | -------------
-/// dump-root | Components store dumps in subdirectories of this directory | -
+/// ## Static options of components::DumpConfigurator :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/dump_configurator.md
+///
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
 ///
 /// ## Config example:
 ///
 /// @snippet components/common_component_list_test.cpp Sample dump configurator component config
-
-// clang-format on
 class DumpConfigurator final : public ComponentBase {
 public:
     /// @ingroup userver_component_names
-    /// @brief The default name of components::DumpConfigurator component
+    /// @brief The default name of @ref components::DumpConfigurator component
     static constexpr std::string_view kName = "dump-configurator";
 
     DumpConfigurator(const ComponentConfig& config, const ComponentContext& context);

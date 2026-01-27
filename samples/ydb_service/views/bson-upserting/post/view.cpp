@@ -16,8 +16,7 @@ VALUES ($id, $doc);
 )";
 }
 
-std::string
-BsonUpsertingHandler::HandleRequestThrow(const server::http::HttpRequest& request, server::request::RequestContext&)
+std::string BsonUpsertingHandler::HandleRequest(server::http::HttpRequest& request, server::request::RequestContext&)
     const {
     const auto& id = request.GetArg("id");
     const auto& body = request.RequestBody();

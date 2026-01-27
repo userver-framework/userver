@@ -23,6 +23,7 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::clickhouse {
 
 class ExecutionResult;
+class ParameterStore;
 
 namespace impl {
 struct ClickhouseSettings;
@@ -53,13 +54,28 @@ public:
 
     /// @brief Execute a statement at some host of the cluster
     /// with args as query parameters.
+    ///
+    /// It is convinient to keep SQL queries in separate files, see @ref scripts/docs/en/userver/sql_files.md
+    /// for more info.
     template <typename... Args>
     ExecutionResult Execute(const Query& query, const Args&... args) const;
 
     /// @brief Execute a statement with specified command control settings
     /// at some host of the cluster with args as query parameters.
+    ///
+    /// It is convinient to keep SQL queries in separate files, see @ref scripts/docs/en/userver/sql_files.md
+    /// for more info.
+    ///
+    /// # Example usage:
+    /// @snippet clickhouse/src/storages/tests/escape_chtest.cpp  basic_usage
     template <typename... Args>
     ExecutionResult Execute(OptionalCommandControl, const Query& query, const Args&... args) const;
+
+    /// @overload
+    ExecutionResult Execute(const Query& query, const ParameterStore& params) const;
+
+    /// @overload
+    ExecutionResult Execute(OptionalCommandControl, const Query& query, const ParameterStore& params) const;
 
     /// @brief Insert data at some host of the cluster;
     /// `T` is expected to be a struct of vectors of same length.
@@ -73,13 +89,14 @@ public:
     /// @brief Insert data with specified command control settings
     /// at some host of the cluster;
     /// `T` is expected to be a struct of vectors of same length.
+    /// @param optional_cc optional request QOS overrides
     /// @param table_name table to insert into
     /// @param column_names names of columns of the table
     /// @param data data to insert
     /// See @ref clickhouse_io for better understanding of T's requirements.
     template <typename T>
     void Insert(
-        OptionalCommandControl,
+        OptionalCommandControl optional_cc,
         const std::string& table_name,
         const std::vector<std::string_view>& column_names,
         const T& data
@@ -106,6 +123,7 @@ public:
     /// @brief Insert data with specified command control settings
     /// at some host of the cluster;
     /// `Container` is expected to be an iterable of clickhouse-mapped type.
+    /// @param optional_cc optional request QOS overrides
     /// @param table_name table to insert into
     /// @param column_names names of columns of the table
     /// @param data data to insert
@@ -117,7 +135,7 @@ public:
     /// is a concern.
     template <typename Container>
     void InsertRows(
-        OptionalCommandControl,
+        OptionalCommandControl optional_cc,
         const std::string& table_name,
         const std::vector<std::string_view>& column_names,
         const Container& data
@@ -176,7 +194,9 @@ void Cluster::InsertRows(
     const std::vector<std::string_view>& column_names,
     const Container& data
 ) const {
-    if (data.empty()) return;
+    if (data.empty()) {
+        return;
+    }
 
     const auto request = impl::InsertionRequest::CreateFromRows(table_name, column_names, data);
 
@@ -190,7 +210,7 @@ ExecutionResult Cluster::Execute(const Query& query, const Args&... args) const 
 
 template <typename... Args>
 ExecutionResult Cluster::Execute(OptionalCommandControl optional_cc, const Query& query, const Args&... args) const {
-    const auto formatted_query = query.WithArgs(args...);
+    const auto formatted_query = impl::WithArgs(query, args...);
     return DoExecute(optional_cc, formatted_query);
 }
 

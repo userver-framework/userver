@@ -17,7 +17,7 @@ namespace yaml_config::impl {
 
 namespace {
 
-bool IsTypeValid(FieldType type, const formats::yaml::Value& value) {
+bool IsTypeValid(FieldType type, const yaml_config::YamlConfig& value) {
     switch (type) {
         case FieldType::kInteger:
             return value.IsInt() || value.IsUInt64() || value.IsInt64();
@@ -37,11 +37,11 @@ bool IsTypeValid(FieldType type, const formats::yaml::Value& value) {
 }
 
 void CheckType(const YamlConfig& value, const Schema& schema) {
-    if (!IsTypeValid(schema.type, value.Yaml())) {
+    if (!IsTypeValid(schema.type, value)) {
         throw std::runtime_error(fmt::format(
             "Error while validating static config against schema. "
             "Value '{}' of field '{}' must be {}",
-            formats::yaml::ToString(value.Yaml()),
+            formats::yaml::ToString(value.GetRawYamlWithoutConfigVars()),
             value.GetPath(),
             ToString(schema.type)
         ));
@@ -51,9 +51,8 @@ void CheckType(const YamlConfig& value, const Schema& schema) {
 void ValidateEnum(const YamlConfig& enum_value, const Schema& schema) {
     CheckType(enum_value, schema);
     if (schema.enum_values->find(enum_value.As<std::string>()) == schema.enum_values->end()) {
-        std::vector<std::string> ordered_enum_values(
-            schema.enum_values.value().begin(), schema.enum_values.value().end()
-        );
+        std::vector<std::string>
+            ordered_enum_values(schema.enum_values.value().begin(), schema.enum_values.value().end());
         std::sort(ordered_enum_values.begin(), ordered_enum_values.end());
 
         throw std::runtime_error(fmt::format(
@@ -95,9 +94,10 @@ void ValidateObject(const YamlConfig& object, const Schema& schema) {
         // additionalProperties: false
         throw std::runtime_error(fmt::format(
             "Error while validating static config against schema. "
-            "Field '{}' is not declared in schema '{}' (declared: {}). "
-            "You've probably "
-            "made a typo or forgot to define components' static config schema.{}",
+            "Field '{}' is not declared in schema '{}' (declared: {}).{} "
+            "You've probably made a typo or forgot to define GetStaticConfigSchema method for this component. "
+            "If so, then please go and define this method according to the config options "
+            "the component's constructor actually uses.",
             value.GetPath(),
             schema.path,
             KeysAsString(properties),
@@ -146,7 +146,7 @@ void CheckNumericBounds(const YamlConfig& value, const Schema& schema) {
             ToString(schema.type),
             value.GetPath(),
             *schema.minimum,
-            formats::yaml::ToString(value.Yaml())
+            formats::yaml::ToString(value.GetRawYamlWithoutConfigVars())
         ));
     }
 
@@ -157,7 +157,7 @@ void CheckNumericBounds(const YamlConfig& value, const Schema& schema) {
             ToString(schema.type),
             value.GetPath(),
             *schema.maximum,
-            formats::yaml::ToString(value.Yaml())
+            formats::yaml::ToString(value.GetRawYamlWithoutConfigVars())
         ));
     }
 }

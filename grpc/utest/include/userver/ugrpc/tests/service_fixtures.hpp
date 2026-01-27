@@ -19,8 +19,10 @@ namespace ugrpc::tests {
 class ServiceFixtureBase : protected ServiceBase, public ::testing::Test {
 protected:
     /// @returns the statistics of the server and clients.
-    utils::statistics::Snapshot
-    GetStatistics(std::string prefix, std::vector<utils::statistics::Label> require_labels = {});
+    utils::statistics::Snapshot GetStatistics(
+        std::string prefix,
+        std::vector<utils::statistics::Label> require_labels = {}
+    );
 };
 
 /// @see @ref ugrpc::tests::Service
@@ -31,10 +33,29 @@ protected:
     using Service<GrpcService>::Service;
 
     /// @returns the statistics of the server and clients.
-    utils::statistics::Snapshot
-    GetStatistics(std::string prefix, std::vector<utils::statistics::Label> require_labels = {}) {
+    utils::statistics::Snapshot GetStatistics(
+        std::string prefix,
+        std::vector<utils::statistics::Label> require_labels = {}
+    ) {
         return utils::statistics::Snapshot{this->GetStatisticsStorage(), std::move(prefix), std::move(require_labels)};
     }
+};
+
+/// @brief Sets up a mini gRPC server and construct a client for it.
+template <typename GrpcService, typename ClientType>
+class ServiceWithClientFixture : public ServiceFixture<GrpcService> {
+public:
+    /// Passes @a args to the service fixture.
+    template <typename... Args>
+    explicit ServiceWithClientFixture(Args&&... args)
+        : ServiceFixture<GrpcService>(std::forward<Args>(args)...),
+          client_(this->ServiceFixture<GrpcService>::template MakeClient<ClientType>())
+    {}
+
+    ClientType& GetClient() { return client_; }
+
+private:
+    ClientType client_;
 };
 
 }  // namespace ugrpc::tests

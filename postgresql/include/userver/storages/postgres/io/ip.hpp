@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file userver/storages/postgres/io/network.hpp
+/// @file userver/storages/postgres/io/ip.hpp
 /// @brief utils::ip::NetworkV4 I/O support
 /// @ingroup userver_postgres_parse_and_format
 
@@ -41,12 +41,14 @@ inline constexpr char kIsCidr = 1;
 inline constexpr char kIsInet = 0;
 
 template <typename T>
-inline constexpr bool kIsNetworkType = std::is_same_v<T, USERVER_NAMESPACE::utils::ip::NetworkV4> ||
-                                       std::is_same_v<T, USERVER_NAMESPACE::utils::ip::NetworkV6>;
+inline constexpr bool kIsNetworkType =
+    std::is_same_v<T, USERVER_NAMESPACE::utils::ip::NetworkV4> ||
+    std::is_same_v<T, USERVER_NAMESPACE::utils::ip::NetworkV6>;
 
 template <typename T>
-inline constexpr bool kIsAddressType = std::is_same_v<T, USERVER_NAMESPACE::utils::ip::AddressV4> ||
-                                       std::is_same_v<T, USERVER_NAMESPACE::utils::ip::AddressV6>;
+inline constexpr bool kIsAddressType =
+    std::is_same_v<T, USERVER_NAMESPACE::utils::ip::AddressV4> ||
+    std::is_same_v<T, USERVER_NAMESPACE::utils::ip::AddressV6>;
 
 template <typename T>
 struct IpBufferFormatterBase : BufferFormatterBase<T> {
@@ -82,13 +84,14 @@ struct AddressNetworkBuffer : IpBufferFormatterBase<T> {
     template <typename Buffer>
     void operator()(const UserTypes& types, Buffer& buffer) {
         using Address = typename T::BytesType;
-        constexpr bool is_address_v4 = std::is_same_v<T, USERVER_NAMESPACE::utils::ip::AddressV4>;
-        typename BaseType::template IpFormatterInfo<Address> info{
+        constexpr bool kIsAddressV4 = std::is_same_v<T, USERVER_NAMESPACE::utils::ip::AddressV4>;
+        const typename BaseType::template IpFormatterInfo<Address> info{
             /* .address = */ this->value.GetBytes(),
-            /* .address_family = */ is_address_v4 ? kPgsqlAfInet : kPgsqlAfInet6,
+            /* .address_family = */ kIsAddressV4 ? kPgsqlAfInet : kPgsqlAfInet6,
             /* .prefix_length = */
-            static_cast<char>(is_address_v4 ? NetworkV4::kMaximumPrefixLength : NetworkV6::kMaximumPrefixLength),
-            /* .is_cidr = */ kIsCidr};
+            static_cast<char>(kIsAddressV4 ? NetworkV4::kMaximumPrefixLength : NetworkV6::kMaximumPrefixLength),
+            /* .is_cidr = */ kIsCidr
+        };
         BaseType::Format(info, types, buffer);
     }
 };
@@ -108,13 +111,14 @@ struct NetworkBufferFormatter : IpBufferFormatterBase<T> {
                 "method to conversation."
             );
         }
-        typename BaseType::template IpFormatterInfo<Address> info{
+        const typename BaseType::template IpFormatterInfo<Address> info{
             /* .address = */ canonical_network.GetAddress().GetBytes(),
             /* .address_family = */
             std::is_same_v<T, USERVER_NAMESPACE::utils::ip::NetworkV4> ? kPgsqlAfInet : kPgsqlAfInet6,
             /* .prefix_length = */
             static_cast<char>(canonical_network.GetPrefixLength()),
-            /* .is_cidr = */ kIsCidr};
+            /* .is_cidr = */ kIsCidr
+        };
         BaseType::Format(info, types, buffer);
     }
 };
@@ -173,7 +177,8 @@ private:
         unsigned char address_family
     ) {
         if (!(bytes_number == 16 && address_family == kPgsqlAfInet6) &&
-            !(bytes_number == 4 && address_family == kPgsqlAfInet)) {
+            !(bytes_number == 4 && address_family == kPgsqlAfInet))
+        {
             throw storages::postgres::IpAddressInvalidFormat("Invalid INET format");
         }
         bytes.resize(bytes_number);
@@ -272,13 +277,15 @@ struct BufferFormatter<InetNetwork> : detail::IpBufferFormatterBase<InetNetwork>
     template <typename Buffer>
     void operator()(const UserTypes& types, Buffer& buffer) {
         using Address = std::vector<unsigned char>;
-        typename BaseType::template IpFormatterInfo<Address> info{
+        const typename BaseType::template IpFormatterInfo<Address> info{
             /* .address = */ this->value.GetBytes(),
             /* .address_family = */
-            (this->value.GetAddressFamily() == InetNetwork::AddressFamily::IPv4) ? detail::kPgsqlAfInet
-                                                                                 : detail::kPgsqlAfInet6,
+            (this->value.GetAddressFamily() == InetNetwork::AddressFamily::kIPv4)
+                ? detail::kPgsqlAfInet
+                : detail::kPgsqlAfInet6,
             /* .prefix_length = */ static_cast<char>(this->value.GetPrefixLength()),
-            /* .is_cidr = */ detail::kIsInet};
+            /* .is_cidr = */ detail::kIsInet
+        };
         BaseType::Format(info, types, buffer);
     }
 };
@@ -327,7 +334,8 @@ struct BufferParser<InetNetwork> : detail::IpBufferParserBase<InetNetwork> {
         this->value = InetNetwork(
             std::move(info.bytes),
             info.prefix_length,
-            (info.family == detail::kPgsqlAfInet ? InetNetwork::AddressFamily::IPv4 : InetNetwork::AddressFamily::IPv6)
+            (info.family == detail::kPgsqlAfInet ? InetNetwork::AddressFamily::kIPv4 : InetNetwork::AddressFamily::kIPv6
+            )
         );
     }
 };

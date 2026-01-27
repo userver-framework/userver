@@ -6,9 +6,10 @@
 #include <vector>
 
 #include <userver/rcu/rcu_map.hpp>
-#include <userver/storages/redis/impl/base.hpp>
-#include <userver/storages/redis/impl/types.hpp>
-#include <userver/storages/redis/impl/wait_connected_mode.hpp>
+#include <userver/storages/redis/base.hpp>
+#include <userver/storages/redis/fwd.hpp>
+#include <userver/storages/redis/wait_connected_mode.hpp>
+#include <userver/utils/rand.hpp>
 
 #include <storages/redis/impl/command.hpp>
 #include <storages/redis/impl/redis_connection_holder.hpp>
@@ -16,35 +17,48 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis::impl {
 
 class ClusterShard {
 public:
-    using RedisPtr = std::shared_ptr<redis::Redis>;
+    using RedisPtr = std::shared_ptr<Redis>;
     using RedisConnectionPtr = std::shared_ptr<const RedisConnectionHolder>;
     using ServersWeighted = std::unordered_map<ServerId, size_t, ServerIdHasher>;
 
-    ClusterShard() = default;
-    ClusterShard(size_t shard, RedisConnectionPtr master, std::vector<RedisConnectionPtr> replicas)
-        : replicas_(std::move(replicas)), master_(std::move(master)), shard_(shard) {}
-    ClusterShard(const ClusterShard& other)
-        : replicas_(other.replicas_), master_(other.master_), current_(other.current_.load()), shard_(other.shard_) {}
+    ClusterShard()
+        : current_(utils::RandRange(std::numeric_limits<size_t>::max()))
+    {}
+    ClusterShard(
+        size_t shard,
+        RedisConnectionPtr master,
+        std::vector<RedisConnectionPtr> replicas,
+        std::optional<std::string> shard_name
+    )
+        : replicas_(std::move(replicas)),
+          master_(std::move(master)),
+          shard_(shard),
+          shard_name_(std::move(shard_name))
+    {}
+    ClusterShard(const ClusterShard& other) = delete;
     ClusterShard(ClusterShard&& other) noexcept
         : replicas_(std::move(other.replicas_)),
           master_(std::move(other.master_)),
           current_(other.current_.load()),
           shard_(other.shard_) {}
-    ClusterShard& operator=(const ClusterShard& other);
+    ClusterShard& operator=(const ClusterShard& other) = delete;
     ClusterShard& operator=(ClusterShard&& other) noexcept;
     bool IsReady(WaitConnectedMode mode) const;
     bool AsyncCommand(CommandPtr command) const;
     void GetStatistics(bool master, const MetricsSettings& settings, ShardStatistics& stats) const;
+    const std::optional<std::string>& GetName() const { return shard_name_; }
 
     ServersWeighted GetAvailableServersWeighted(bool with_master, const CommandControl& command_control) const;
 
 private:
-    static void
-    GetNearestServersPing(const CommandControl& command_control, std::vector<RedisConnectionPtr>& instances);
+    static void GetNearestServersPing(
+        const CommandControl& command_control,
+        std::vector<RedisConnectionPtr>& instances
+    );
     /// Return suitable instance if it is the only suitable instance.
     /// If there no suitable or multiple suitable instances then method return
     /// nullptr
@@ -57,6 +71,7 @@ private:
         size_t attempt,
         bool is_nearest_ping_server,
         size_t best_dc_count,
+        bool consider_ping,
         size_t* pinstance_idx
     );
     std::vector<RedisConnectionPtr> MakeReadonlyWithMasters() const;
@@ -67,6 +82,7 @@ private:
     RedisConnectionPtr master_;
     mutable std::atomic_size_t current_{0};
     size_t shard_{0};
+    std::optional<std::string> shard_name_;
 };
 
 size_t GetStartIndex(
@@ -77,6 +93,6 @@ size_t GetStartIndex(
     size_t current,
     size_t servers_count
 );
-}  // namespace redis
+}  // namespace storages::redis::impl
 
 USERVER_NAMESPACE_END

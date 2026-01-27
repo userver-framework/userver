@@ -110,6 +110,6 @@ $ curl http://localhost:8085/internal/inspect-requests?body=1 | jq
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref scripts/docs/en/userver/log_level_running_service.md | @ref scripts/docs/en/userver/service_monitor.md ⇨
+⇦ @ref scripts/docs/en/userver/log_level_running_service.md | @ref scripts/docs/en/userver/metrics.md ⇨
 @htmlonly </div> @endhtmlonly
 

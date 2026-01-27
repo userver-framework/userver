@@ -20,23 +20,21 @@ namespace engine::io::impl {
 namespace {
 
 int SetNonblock(int fd) {
-    int oldflags =
-        utils::CheckSyscallCustomException<IoSystemError>(::fcntl(fd, F_GETFL), "getting file status flags, fd={}", fd);
+    const int oldflags = utils::CheckSyscallCustomException<
+        IoSystemError>(::fcntl(fd, F_GETFL), "getting file status flags, fd={}", fd);
     if (!(oldflags & O_NONBLOCK)) {
-        utils::CheckSyscallCustomException<IoSystemError>(
-            ::fcntl(fd, F_SETFL, oldflags | O_NONBLOCK), "setting file status flags, fd=", fd
-        );
+        utils::CheckSyscallCustomException<
+            IoSystemError>(::fcntl(fd, F_SETFL, oldflags | O_NONBLOCK), "setting file status flags, fd=", fd);
     }
     return fd;
 }
 
 int SetCloexec(int fd) {
-    int oldflags =
-        utils::CheckSyscallCustomException<IoSystemError>(::fcntl(fd, F_GETFD), "getting file status flags, fd={}", fd);
+    const int oldflags = utils::CheckSyscallCustomException<
+        IoSystemError>(::fcntl(fd, F_GETFD), "getting file status flags, fd={}", fd);
     if (!(oldflags & FD_CLOEXEC)) {
-        utils::CheckSyscallCustomException<IoSystemError>(
-            ::fcntl(fd, F_SETFD, oldflags | FD_CLOEXEC), "setting file status flags, fd={}", fd
-        );
+        utils::CheckSyscallCustomException<
+            IoSystemError>(::fcntl(fd, F_SETFD, oldflags | FD_CLOEXEC), "setting file status flags, fd={}", fd);
     }
     return fd;
 }
@@ -54,14 +52,21 @@ int ReduceSigpipe(int fd) {
 void FdControlDeleter::operator()(FdControl* ptr) const noexcept { std::default_delete<FdControl>{}(ptr); }
 
 #ifndef NDEBUG
-Direction::SingleUserGuard::SingleUserGuard(Direction& dir) : dir_(dir) { dir_.poller_.SwitchStateToInUse(); }
+Direction::SingleUserGuard::SingleUserGuard(Direction& dir)
+    : dir_(dir)
+{
+    dir_.poller_.SwitchStateToInUse();
+}
 
 Direction::SingleUserGuard::~SingleUserGuard() { dir_.poller_.SwitchStateToReadyToUse(); }
 #endif  // #ifndef NDEBUG
 
 // Write operations on socket usually do not block, so it makes sense to reuse
 // the same ThreadControl for the sake of better balancing of ev threads.
-FdControl::FdControl(const ev::ThreadControl& control) : read_(control), write_(control) {}
+FdControl::FdControl(const ev::ThreadControl& control)
+    : read_(control),
+      write_(control)
+{}
 
 FdControl::~FdControl() {
     try {
@@ -72,6 +77,7 @@ FdControl::~FdControl() {
 }
 
 FdControlHolder FdControl::Adopt(int fd) {
+    // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
     FdControlHolder fd_control{new FdControl(current_task::GetEventThread())};
     // TODO: add conditional CLOEXEC set
     SetCloexec(fd);
@@ -83,13 +89,15 @@ FdControlHolder FdControl::Adopt(int fd) {
 }
 
 void FdControl::Close() {
-    if (!IsValid()) return;
+    if (!IsValid()) {
+        return;
+    }
     Invalidate();
 
     const auto fd = Fd();
     if (::close(fd) == -1) {
         const auto error_code = errno;
-        std::error_code ec(error_code, std::system_category());
+        const std::error_code ec(error_code, std::system_category());
         UASSERT_MSG(!error_code, "Failed to close fd=" + std::to_string(fd));
         LOG_ERROR() << "Cannot close fd " << fd << ": " << ec.message();
     }

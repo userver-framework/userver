@@ -52,29 +52,33 @@ constexpr char bench_json_data[] = R"({
 
 }  // anonymous namespace
 
-void json_path_short(benchmark::State& state) {
+void JsonPathShort(benchmark::State& state) {
     auto json = formats::json::FromString(bench_json_data);
 
     for ([[maybe_unused]] auto _ : state) {
         const auto res = (json["short"].As<std::string>() == "1");
         benchmark::DoNotOptimize(res);
-        if (!res) throw std::runtime_error("unexpected");
+        if (!res) {
+            throw std::runtime_error("unexpected");
+        }
     }
 }
-BENCHMARK(json_path_short);
+BENCHMARK(JsonPathShort);
 
-void json_path_long(benchmark::State& state) {
+void JsonPathLong(benchmark::State& state) {
     auto json = formats::json::FromString(bench_json_data);
 
     for ([[maybe_unused]] auto _ : state) {
         const auto res = (json["long_long_long_long_path"].As<std::string>() == "2");
         benchmark::DoNotOptimize(res);
-        if (!res) throw std::runtime_error("unexpected");
+        if (!res) {
+            throw std::runtime_error("unexpected");
+        }
     }
 }
-BENCHMARK(json_path_long);
+BENCHMARK(JsonPathLong);
 
-void json_path_deeply_nested(benchmark::State& state) {
+void JsonPathDeeplyNested(benchmark::State& state) {
     auto json = formats::json::FromString(bench_json_data);
 
     for ([[maybe_unused]] auto _ : state) {
@@ -82,40 +86,48 @@ void json_path_deeply_nested(benchmark::State& state) {
             (json["long"]["deeply"]["deeply"]["nested"]["json"]["value"]["with"]["some"]["data"].As<std::string>() ==
              "3");
         benchmark::DoNotOptimize(res);
-        if (!res) throw std::runtime_error("unexpected");
+        if (!res) {
+            throw std::runtime_error("unexpected");
+        }
     }
 }
-BENCHMARK(json_path_deeply_nested);
+BENCHMARK(JsonPathDeeplyNested);
 
-void json_path_long_and_deeply_nested(benchmark::State& state) {
+void JsonPathLongAndDeeplyNested(benchmark::State& state) {
     auto json = formats::json::FromString(bench_json_data);
 
     for ([[maybe_unused]] auto _ : state) {
         const auto res =
             (json["nested_long_long_long_long_path"]["deeply"]["deeply"]["nested"]["json"]["value"]["with"]["some"]
-                 ["data"]
+                 ["da"
+                  "t"
+                  "a"]
                      .As<std::string>() == "4");
         benchmark::DoNotOptimize(res);
-        if (!res) throw std::runtime_error("unexpected");
+        if (!res) {
+            throw std::runtime_error("unexpected");
+        }
     }
 }
-BENCHMARK(json_path_long_and_deeply_nested);
+BENCHMARK(JsonPathLongAndDeeplyNested);
 
 formats::json::ValueBuilder Build(size_t count) {
     formats::json::ValueBuilder builder;
-    for (size_t i = 0; i < count; i++) builder[std::to_string(i)] = i;
+    for (size_t i = 0; i < count; i++) {
+        builder[std::to_string(i)] = i;
+    }
     return builder;
 }
 
-void json_object_append(benchmark::State& state) {
+void JsonObjectAppend(benchmark::State& state) {
     const auto size = state.range(0);
     for ([[maybe_unused]] auto _ : state) {
         benchmark::DoNotOptimize(Build(size));
     }
 }
-BENCHMARK(json_object_append)->RangeMultiplier(2)->Range(1, 10240);
+BENCHMARK(JsonObjectAppend)->RangeMultiplier(2)->Range(1, 10240);
 
-void json_object_compare(benchmark::State& state) {
+void JsonObjectCompare(benchmark::State& state) {
     const auto size = state.range(0);
     const auto a = Build(size).ExtractValue();
     const auto b = Build(size).ExtractValue();
@@ -123,7 +135,7 @@ void json_object_compare(benchmark::State& state) {
         benchmark::DoNotOptimize(a == b);
     }
 }
-BENCHMARK(json_object_compare)->RangeMultiplier(2)->Range(1, 1024);
+BENCHMARK(JsonObjectCompare)->RangeMultiplier(2)->Range(1, 1024);
 
 formats::json::ValueBuilder BuildNocheck(size_t count) {
     formats::json::ValueBuilder builder;
@@ -133,40 +145,44 @@ formats::json::ValueBuilder BuildNocheck(size_t count) {
     return builder;
 }
 
-void json_object_append_nocheck(benchmark::State& state) {
+void JsonObjectAppendNocheck(benchmark::State& state) {
     const auto size = state.range(0);
     for ([[maybe_unused]] auto _ : state) {
         benchmark::DoNotOptimize(BuildNocheck(size));
     }
 }
-BENCHMARK(json_object_append_nocheck)->RangeMultiplier(2)->Range(1, 128);
+BENCHMARK(JsonObjectAppendNocheck)->RangeMultiplier(2)->Range(1, 128);
 
-void json_object_from_unordered(benchmark::State& state) {
+void JsonObjectFromUnordered(benchmark::State& state) {
     const auto size = state.range(0);
 
     std::unordered_map<std::string, int> map;
-    for (int i = 0; i < size; i++) map[std::to_string(i)] = i;
+    for (int i = 0; i < size; i++) {
+        map[std::to_string(i)] = i;
+    }
 
     for ([[maybe_unused]] auto _ : state) {
         benchmark::DoNotOptimize(formats::json::ValueBuilder(map));
     }
 }
-BENCHMARK(json_object_from_unordered)->RangeMultiplier(2)->Range(1, 1024);
+BENCHMARK(JsonObjectFromUnordered)->RangeMultiplier(2)->Range(1, 1024);
 
-void json_object_from_unordered_strong_typedef(benchmark::State& state) {
+void JsonObjectFromUnorderedStrongTypedef(benchmark::State& state) {
     const auto size = state.range(0);
 
     using MyString = utils::StrongTypedef<class Tag, std::string>;
     std::unordered_map<MyString, int> map;
-    for (int i = 0; i < size; i++) map[MyString{std::to_string(i)}] = i;
+    for (int i = 0; i < size; i++) {
+        map[MyString{std::to_string(i)}] = i;
+    }
 
     for ([[maybe_unused]] auto _ : state) {
         benchmark::DoNotOptimize(formats::json::ValueBuilder(map));
     }
 }
-BENCHMARK(json_object_from_unordered_strong_typedef)->RangeMultiplier(2)->Range(1, 1024);
+BENCHMARK(JsonObjectFromUnorderedStrongTypedef)->RangeMultiplier(2)->Range(1, 1024);
 
-void json_object_wide_object_operator_equals(benchmark::State& state) {
+void JsonObjectWideObjectOperatorEquals(benchmark::State& state) {
     const std::size_t size = state.range(0);
 
     formats::json::ValueBuilder builder{formats::json::Type::kObject};
@@ -182,6 +198,6 @@ void json_object_wide_object_operator_equals(benchmark::State& state) {
         benchmark::DoNotOptimize(first_value == second_value);
     }
 }
-BENCHMARK(json_object_wide_object_operator_equals)->DenseRange(4, 16, 4)->Range(32, 8192)->RangeMultiplier(2);
+BENCHMARK(JsonObjectWideObjectOperatorEquals)->DenseRange(4, 16, 4)->Range(32, 8192)->RangeMultiplier(2);
 
 USERVER_NAMESPACE_END

@@ -32,7 +32,7 @@ enum class EasyErrorCode {
     kFtpWeirdPassReply = native::CURLE_FTP_WEIRD_PASS_REPLY,
     kFtpAcceptTimeout = native::CURLE_FTP_ACCEPT_TIMEOUT,
     kFtpWeirdPasvReply = native::CURLE_FTP_WEIRD_PASV_REPLY,
-    kFtpWeird_227_format = native::CURLE_FTP_WEIRD_227_FORMAT,
+    kFtpWeird227Format = native::CURLE_FTP_WEIRD_227_FORMAT,
     kFtpCantGetHost = native::CURLE_FTP_CANT_GET_HOST,
     kHttp2 = native::CURLE_HTTP2,
     kFtpCouldntSetType = native::CURLE_FTP_COULDNT_SET_TYPE,
@@ -100,7 +100,7 @@ enum class EasyErrorCode {
     kNoConnectionAvailable = native::CURLE_NO_CONNECTION_AVAILABLE,
     kSslPinnedpubkeynotmatch = native::CURLE_SSL_PINNEDPUBKEYNOTMATCH,
     kSslInvalidcertstatus = native::CURLE_SSL_INVALIDCERTSTATUS,
-    kHttp2_stream = native::CURLE_HTTP2_STREAM,
+    kHttp2Stream = native::CURLE_HTTP2_STREAM,
     kRecursiveApiCall = native::CURLE_RECURSIVE_API_CALL,
     kAuthError = native::CURLE_AUTH_ERROR,
     kHttp3 = native::CURLE_HTTP3,
@@ -203,6 +203,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace curl::errc {
 
+// NOLINTBEGIN(readability-identifier-naming)
+
 inline std::error_code make_error_code(EasyErrorCode e) { return {static_cast<int>(e), GetEasyCategory()}; }
 
 inline std::error_code make_error_code(MultiErrorCode e) { return {static_cast<int>(e), GetMultiCategory()}; }
@@ -214,6 +216,8 @@ inline std::error_code make_error_code(FormErrorCode e) { return {static_cast<in
 inline std::error_code make_error_code(UrlErrorCode e) { return {static_cast<int>(e), GetUrlCategory()}; }
 
 inline std::error_code make_error_code(RateLimitErrorCode e) { return {static_cast<int>(e), GetRateLimitCategory()}; }
+
+// NOLINTEND(readability-identifier-naming)
 
 }  // namespace curl::errc
 

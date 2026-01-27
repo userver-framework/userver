@@ -9,6 +9,7 @@
 #include <userver/formats/json_fwd.hpp>
 #include <userver/formats/parse/to.hpp>
 #include <userver/utils/statistics/rate_counter.hpp>
+#include <userver/yaml_config/yaml_config.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -64,6 +65,8 @@ private:
 };
 
 RetryBudgetSettings Parse(const formats::json::Value& elem, formats::parse::To<RetryBudgetSettings>);
+
+RetryBudgetSettings Parse(const yaml_config::Value& elem, formats::parse::To<RetryBudgetSettings>);
 
 }  // namespace utils
 

@@ -4,7 +4,6 @@
 
 #include <csignal>
 #include <cstring>
-#include <iostream>
 #include <variant>
 
 #include <fmt/format.h>
@@ -14,6 +13,8 @@
 #include <userver/crypto/openssl.hpp>
 #include <userver/dynamic_config/snapshot.hpp>
 #include <userver/dynamic_config/value.hpp>
+#include <userver/engine/exception.hpp>
+#include <userver/engine/task/task_with_result.hpp>
 #include <userver/formats/json/serialize.hpp>
 #include <userver/fs/blocking/read.hpp>
 #include <userver/logging/impl/mem_logger.hpp>
@@ -24,22 +25,22 @@
 #include <userver/utils/impl/static_registration.hpp>
 #include <userver/utils/impl/userver_experiments.hpp>
 #include <userver/utils/overloaded.hpp>
+#include <userver/utils/regex.hpp>
 #include <userver/utils/strerror.hpp>
+#include <userver/utils/string_literal.hpp>
 #include <userver/utils/traceful_exception.hpp>
+#include <userver/utils/trx_tracker.hpp>
 
 #include <components/manager.hpp>
 #include <components/manager_config.hpp>
 #include <logging/config.hpp>
 #include <logging/tp_logger_utils.hpp>
+#include <server/handlers/auth/apikey/factories.hpp>
 #include <utils/ignore_signal_scope.hpp>
 #include <utils/jemalloc.hpp>
 #include <utils/signal_catcher.hpp>
 
 USERVER_NAMESPACE_BEGIN
-
-namespace server::handlers::auth::apikey {
-extern int auth_checker_apikey_module_activation;
-}  // namespace server::handlers::auth::apikey
 
 namespace components {
 
@@ -47,7 +48,10 @@ namespace {
 
 class LogScope final {
 public:
-    LogScope() : logger_prev_{logging::GetDefaultLogger()}, level_scope_{logging::GetDefaultLoggerLevel()} {
+    LogScope()
+        : logger_prev_{logging::GetDefaultLogger()},
+          level_scope_{logging::GetDefaultLoggerLevel()}
+    {
         logging::impl::SetDefaultLoggerRef(logging::impl::MemLogger::GetMemLogger());
     }
 
@@ -72,18 +76,20 @@ private:
     logging::DefaultLoggerLevelScope level_scope_;
 };
 
-const utils::impl::UserverExperiment kJemallocBgThread{"jemalloc-bg-thread"};
-
 void HandleJemallocSettings() {
-    static constexpr size_t kDefaultMaxBgThreads = 1;
+    static constexpr std::size_t kDefaultMaxBgThreads = 1;
 
-    auto ec = utils::jemalloc::SetMaxBgThreads(kDefaultMaxBgThreads);
-    if (ec) {
-        LOG_WARNING() << "Failed to set max_background_threads to " << kDefaultMaxBgThreads;
-    }
+    if (utils::impl::kJemallocBgThread.IsEnabled()) {
+        auto ec = utils::jemalloc::SetMaxBgThreads(kDefaultMaxBgThreads);
+        if (ec) {
+            LOG_WARNING()
+                << "Failed to set max_background_threads to " << kDefaultMaxBgThreads << ", code: " << ec.value();
+        }
 
-    if (kJemallocBgThread.IsEnabled()) {
-        utils::jemalloc::EnableBgThreads();
+        ec = utils::jemalloc::EnableBgThreads();
+        if (ec) {
+            LOG_WARNING() << "Failed to enable background_thread, code: " << ec.value();
+        }
     }
 }
 
@@ -94,18 +100,18 @@ void PreheatStacktraceCollector() {
     const auto dummy_stacktrace = logging::stacktrace_cache::to_string(boost::stacktrace::stacktrace{});
     const auto finish = now();
 
-    const auto initialization_duration_ms =
-        std::chrono::duration_cast<std::chrono::milliseconds>(finish - start).count();
+    const auto
+        initialization_duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>(finish - start).count();
     if (dummy_stacktrace.size() == 0) {
-        LOG_WARNING() << "Failed to initialize stacktrace collector, an attempt took " << initialization_duration_ms
-                      << "ms";
+        LOG_WARNING()
+            << "Failed to initialize stacktrace collector, an attempt took " << initialization_duration_ms << "ms";
     } else {
         LOG_INFO() << "Initialized stacktrace collector within " << initialization_duration_ms << "ms";
     }
 }
 
 bool IsTraced() {
-    static const std::string kTracerField = "TracerPid:\t";
+    static constexpr utils::StringLiteral kTracerField = "TracerPid:\t";
 
     try {
         // /proc is only available on linux,
@@ -148,7 +154,8 @@ ManagerConfig ParseManagerConfigAndSetupLogging(
     details += std::visit(
         utils::Overloaded{
             [](const std::string& path) { return fmt::format("file '{}'", path); },
-            [](const InMemoryConfig&) { return std::string{"in-memory config"}; }},
+            [](const InMemoryConfig&) { return std::string{"in-memory config"}; }
+        },
         config
     );
     if (config_vars_path) {
@@ -178,44 +185,12 @@ ManagerConfig ParseManagerConfigAndSetupLogging(
     }
 }
 
-void DoRun(
-    const PathOrConfig& config,
-    const std::optional<std::string>& config_vars_path,
-    const std::optional<std::string>& config_vars_override_path,
-    const ComponentList& component_list,
-    RunMode run_mode
-) {
-    utils::impl::FinishStaticRegistration();
-
-    utils::SignalCatcher signal_catcher{SIGINT, SIGTERM, SIGQUIT, SIGUSR1, SIGUSR2};
-    const utils::IgnoreSignalScope ignore_sigpipe_scope(SIGPIPE);
-
-    ++server::handlers::auth::apikey::auth_checker_apikey_module_activation;
-    crypto::Openssl::Init();
-
-    LogScope log_scope;
-    auto manager_config =
-        ParseManagerConfigAndSetupLogging(log_scope, config, config_vars_path, config_vars_override_path);
-
-    utils::impl::UserverExperimentsScope experiments_scope;
-    std::optional<Manager> manager;
-
-    try {
-        experiments_scope.EnableOnly(manager_config.enabled_experiments, manager_config.experiments_force_enabled);
-
-        HandleJemallocSettings();
-        if (manager_config.preheat_stacktrace_collector) {
-            PreheatStacktraceCollector();
-        }
-
-        manager.emplace(std::make_unique<ManagerConfig>(std::move(manager_config)), component_list);
-    } catch (const std::exception& ex) {
-        LOG_ERROR() << "Loading failed: " << ex;
-        throw;
+void CatchSignalsLoop(impl::Manager& manager, RunMode run_mode, utils::SignalCatcher& signal_catcher) noexcept {
+    if (run_mode == RunMode::kOnce) {
+        return;
     }
 
-    if (run_mode == RunMode::kOnce) return;
-
+    LOG_INFO() << "Starting to catch signals";
     for (;;) {
         auto signum = signal_catcher.Catch();
         if (signum == SIGTERM || signum == SIGQUIT) {
@@ -229,11 +204,71 @@ void DoRun(
             }
         } else if (signum == SIGUSR1 || signum == SIGUSR2) {
             LOG_INFO() << "Signal caught: " << utils::strsignal(signum);
-            manager->OnSignal(signum);
+            manager.OnSignal(signum);
         } else {
             LOG_WARNING() << "Got unexpected signal: " << signum << " (" << utils::strsignal(signum) << ')';
             UASSERT_MSG(false, "unexpected signal");
         }
+    }
+}
+
+void DoRun(
+    const PathOrConfig& config,
+    const std::optional<std::string>& config_vars_path,
+    const std::optional<std::string>& config_vars_override_path,
+    const ComponentList& component_list,
+    RunMode run_mode
+) {
+    const auto start_time = std::chrono::steady_clock::now();
+
+    utils::impl::FinishStaticRegistration();
+
+    utils::SignalCatcher signal_catcher{SIGINT, SIGTERM, SIGQUIT, SIGUSR1, SIGUSR2};
+    const utils::IgnoreSignalScope ignore_sigpipe_scope(SIGPIPE);
+
+    ++server::handlers::auth::apikey::auth_checker_apikey_module_activation;
+    crypto::Openssl::Init();
+
+    LogScope log_scope;
+    auto manager_config =
+        ParseManagerConfigAndSetupLogging(log_scope, config, config_vars_path, config_vars_override_path);
+
+    utils::impl::UserverExperimentsScope experiments_scope;
+    std::optional<impl::Manager> manager;
+
+    const utils::trx_tracker::impl::GlobalEnabler enabler{manager_config.enable_trx_tracker};
+
+    try {
+        experiments_scope.EnableOnly(manager_config.enabled_experiments);
+
+        HandleJemallocSettings();
+        if (manager_config.preheat_stacktrace_collector) {
+            PreheatStacktraceCollector();
+        }
+
+        manager.emplace(std::make_unique<ManagerConfig>(std::move(manager_config)), start_time);
+
+        // Start component system in background.
+        // POSIX signals can be already handled while component system is loading.
+        auto signal_on_stop = run_mode == RunMode::kNormal;
+        auto start_components_task = manager->StartComponentSystem(component_list, signal_on_stop);
+
+        // The main event loop.
+        // Other threads handle coroutines.
+        CatchSignalsLoop(*manager, run_mode, signal_catcher);
+
+        if (run_mode == RunMode::kNormal) {
+            start_components_task.RequestCancel();
+        }
+
+        try {
+            start_components_task.BlockingWait();
+            start_components_task.Get();
+        } catch (const engine::WaitInterruptedException&) {
+        }
+    } catch (const std::exception& ex) {
+        LOG_ERROR() << "Loading failed: " << ex;
+        throw;
     }
 }
 
@@ -264,6 +299,8 @@ void Run(const InMemoryConfig& config, const ComponentList& component_list) {
 void RunOnce(const InMemoryConfig& config, const ComponentList& component_list) {
     DoRun(config, {}, {}, component_list, RunMode::kOnce);
 }
+
+void RequestStop() { kill(getpid(), SIGTERM); }
 
 namespace impl {
 

@@ -26,8 +26,8 @@ __attribute__((noinline)) auto& ThreadLocal(Func&& factory) {
     thread_local VariableType variable{std::forward<Func>(factory)()};
     VariableType* ptr = &variable;
     // clang-format off
-  // NOLINTNEXTLINE(hicpp-no-assembler)
-  asm volatile("" : "+rm" (ptr));
+    // NOLINTNEXTLINE(hicpp-no-assembler)
+    asm volatile("" : "+rm" (ptr));
     // clang-format on
     return *ptr;
 }

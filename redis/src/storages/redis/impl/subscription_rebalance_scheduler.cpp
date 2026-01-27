@@ -6,7 +6,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis::impl {
 
 const std::chrono::seconds kRebalanceMinIntervalDefault{30};
 
@@ -18,7 +18,8 @@ SubscriptionRebalanceScheduler::SubscriptionRebalanceScheduler(
     : thread_control_(thread_pool.NextThread()),
       storage_(storage),
       shard_idx_(shard_idx),
-      rebalance_min_interval_{kRebalanceMinIntervalDefault} {
+      rebalance_min_interval_{kRebalanceMinIntervalDefault}
+{
     timer_.data = this;
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
     ev_timer_init(&timer_, OnTimer, 0.0, 0.0);
@@ -34,7 +35,7 @@ SubscriptionRebalanceScheduler::~SubscriptionRebalanceScheduler() { Stop(); }
 void SubscriptionRebalanceScheduler::RequestRebalance(ServerWeights weights) {
     bool need_notify = false;
     {
-        std::lock_guard<std::mutex> lock(mutex_);
+        const std::lock_guard<std::mutex> lock(mutex_);
         weights_ = std::move(weights);
         if (!next_rebalance_scheduled_) {
             next_rebalance_scheduled_ = true;
@@ -54,19 +55,19 @@ void SubscriptionRebalanceScheduler::Stop() {
 }
 
 void SubscriptionRebalanceScheduler::SetRebalanceMinInterval(std::chrono::milliseconds interval) {
-    std::lock_guard<std::mutex> lock(mutex_);
+    const std::lock_guard<std::mutex> lock(mutex_);
     rebalance_min_interval_ = interval;
 }
 
 std::chrono::milliseconds SubscriptionRebalanceScheduler::GetRebalanceMinInterval() const {
-    std::lock_guard<std::mutex> lock(mutex_);
+    const std::lock_guard<std::mutex> lock(mutex_);
     return rebalance_min_interval_;
 }
 
 void SubscriptionRebalanceScheduler::DoRebalance() {
     ServerWeights weights;
     {
-        std::lock_guard<std::mutex> lock(mutex_);
+        const std::lock_guard<std::mutex> lock(mutex_);
         weights.swap(weights_);
         if (weights.empty()) {
             next_rebalance_scheduled_ = false;
@@ -94,6 +95,6 @@ void SubscriptionRebalanceScheduler::OnTimer(struct ev_loop*, ev_timer* w, int) 
     scheduler->DoRebalance();
 }
 
-}  // namespace redis
+}  // namespace storages::redis::impl
 
 USERVER_NAMESPACE_END

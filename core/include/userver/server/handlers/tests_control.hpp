@@ -21,23 +21,24 @@ namespace server::handlers {
 /// @ingroup userver_components userver_http_handlers
 ///
 /// @brief Handler that allows to control the behavior of server from tests,
-/// and @ref scripts/docs/en/userver/functional_testing.md "functional tests with testsuite"
-/// in particular.
+/// and @ref scripts/docs/en/userver/functional_testing.md "functional tests with testsuite" in particular.
 ///
 /// It is highly recommended to disable this handle in production via the
 /// @ref userver_components "load-enabled: false" option.
 ///
 /// The component must be configured in service config.
 ///
-/// ## Static options:
-/// Aside from @ref userver_http_handlers "common handler options" component
-/// has the following options:
+/// ## Static options of server::handlers::TestsControl :
+/// @include{doc} scripts/docs/en/components_schema/core/src/server/handlers/tests_control.md
 ///
-/// Name | Description | Default value
-/// ---- | ----------- | -------------
-/// testpoint-url | an URL that should be notified in the TESTPOINT_CALLBACK and TESTPOINT_CALLBACK_NONCORO macros | -
-/// skip-unregistered-testpoints | do not send testpoints data for paths that were not registered by `testpoint-url` | false
-/// testpoint-timeout | timeout to use while working with testpoint-url | 1s
+/// Options inherited from @ref server::handlers::HttpHandlerBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/server/handlers/http_handler_base.md
+///
+/// Options inherited from @ref server::handlers::HandlerBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/server/handlers/handler_base.md
+///
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
 ///
 /// ## Static configuration example:
 ///

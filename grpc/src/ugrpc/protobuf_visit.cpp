@@ -4,10 +4,11 @@
 #include <google/protobuf/port.h>
 #include <google/protobuf/reflection.h>
 
-#include <ugrpc/impl/protobuf_utils.hpp>
-#include <userver/ugrpc/impl/protobuf_collector.hpp>
-#include <userver/ugrpc/protobuf_visit.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/impl/internal_tag.hpp>
+
+#include <userver/ugrpc/impl/protobuf_collector.hpp>
+#include <userver/ugrpc/protobuf_logging.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -16,6 +17,11 @@ namespace ugrpc {
 namespace {
 
 constexpr int kMaxRecursionLimit = 100;
+
+bool IsMessage(const google::protobuf::FieldDescriptor& field) {
+    return field.type() == google::protobuf::FieldDescriptor::TYPE_MESSAGE ||
+           field.type() == google::protobuf::FieldDescriptor::TYPE_GROUP;
+}
 
 void VisitMessagesRecursiveImpl(
     google::protobuf::Message& message,
@@ -33,7 +39,9 @@ void VisitMessagesRecursiveImpl(
         [&callback,
          &recursion_limit](google::protobuf::Message& message, const google::protobuf::FieldDescriptor& field) -> void {
             // Not a nested message
-            if (!impl::IsMessage(field)) return;
+            if (!IsMessage(field)) {
+                return;
+            }
 
             VisitNestedMessage(message, field, [&](google::protobuf::Message& msg) {
                 VisitMessagesRecursiveImpl(msg, callback, recursion_limit - 1);
@@ -56,7 +64,9 @@ void GetNestedMessageDescriptorsImpl(
         UINVARIANT(field, "field is nullptr");
 
         // Not a nested message
-        if (!impl::IsMessage(*field)) continue;
+        if (!IsMessage(*field)) {
+            continue;
+        }
 
         const google::protobuf::Descriptor* msg = field->message_type();
         UINVARIANT(msg, "msg is nullptr");
@@ -94,7 +104,9 @@ void VisitMessagesRecursive(google::protobuf::Message& message, MessageVisitCall
 
 void VisitFieldsRecursive(google::protobuf::Message& message, FieldVisitCallback callback) {
     VisitMessagesRecursiveImpl(
-        message, [&](google::protobuf::Message& message) -> void { VisitFields(message, callback); }, kMaxRecursionLimit
+        message,
+        [&](google::protobuf::Message& message) -> void { VisitFields(message, callback); },
+        kMaxRecursionLimit
     );
 }
 
@@ -103,7 +115,7 @@ void VisitNestedMessage(
     const google::protobuf::FieldDescriptor& field,
     MessageVisitCallback callback
 ) {
-    UINVARIANT(impl::IsMessage(field), "Not a nested message");
+    UINVARIANT(IsMessage(field), "Not a nested message");
 
     // Get reflection
     const google::protobuf::Reflection* reflection = message.GetReflection();
@@ -144,17 +156,19 @@ DescriptorList GetNestedMessageDescriptors(const google::protobuf::Descriptor& d
 const google::protobuf::Descriptor* FindGeneratedMessage(std::string_view name) {
     const google::protobuf::DescriptorPool* pool = google::protobuf::DescriptorPool::generated_pool();
     UINVARIANT(pool, "pool is nullptr");
-#if GOOGLE_PROTOBUF_VERSION >= 3022000
+#if GOOGLE_PROTOBUF_VERSION >= 4022000
     return pool->FindMessageTypeByName(name);
 #else
     return pool->FindMessageTypeByName(std::string(name));
 #endif
 }
 
-const google::protobuf::FieldDescriptor*
-FindField(const google::protobuf::Descriptor* descriptor, std::string_view field) {
+const google::protobuf::FieldDescriptor* FindField(
+    const google::protobuf::Descriptor* descriptor,
+    std::string_view field
+) {
     UINVARIANT(descriptor, "descriptor is nullptr");
-#if GOOGLE_PROTOBUF_VERSION >= 3022000
+#if GOOGLE_PROTOBUF_VERSION >= 4022000
     return descriptor->FindFieldByName(field);
 #else
     return descriptor->FindFieldByName(std::string(field));
@@ -169,7 +183,7 @@ void VisitorCompiler::Compile(const google::protobuf::Descriptor* descriptor) {
 void VisitorCompiler::Compile(const DescriptorList& descriptors) {
     {
         bool are_compiled = true;
-        std::shared_lock read_lock = LockRead();
+        const std::shared_lock read_lock = LockRead();
         for (const google::protobuf::Descriptor* descriptor : descriptors) {
             if (compiled_.find(descriptor) == compiled_.end()) {
                 // Something is not compiled. Need to compile.
@@ -183,12 +197,14 @@ void VisitorCompiler::Compile(const DescriptorList& descriptors) {
         }
     }
 
-    std::unique_lock write_lock = LockWrite();
+    const std::unique_lock write_lock = LockWrite();
     for (const google::protobuf::Descriptor* descriptor : GetFullSubtrees(descriptors)) {
         UINVARIANT(descriptor, "descriptor is nullptr");
 
         // We have already compiled this. Skip.
-        if (!compiled_.insert(descriptor).second) continue;
+        if (!compiled_.insert(descriptor).second) {
+            continue;
+        }
 
         // Compile the selection data
         CompileOne(*descriptor);
@@ -198,7 +214,9 @@ void VisitorCompiler::Compile(const DescriptorList& descriptors) {
             UINVARIANT(field, "field is nullptr");
 
             // Not a nested message
-            if (!impl::IsMessage(*field)) continue;
+            if (!IsMessage(*field)) {
+                continue;
+            }
 
             // Sync the reverse edges.
             // Even from unknown types - we might need to compile them in the future.
@@ -234,20 +252,38 @@ bool VisitorCompiler::ContainsSelected(const google::protobuf::Descriptor* descr
     // Compile if not yet compiled
     Compile(descriptor);
 
-    std::shared_lock read_lock = LockRead();
+    const std::shared_lock read_lock = LockRead();
     return fields_with_selected_children_.find(descriptor) != fields_with_selected_children_.end() ||
            IsSelected(*descriptor);
 }
 
-std::shared_lock<std::shared_mutex> VisitorCompiler::LockRead() {
+const VisitorCompiler::Dependencies& VisitorCompiler::GetFieldsWithSelectedChildren(utils::impl::InternalTag) const {
+    return fields_with_selected_children_;
+}
+
+const VisitorCompiler::Dependencies& VisitorCompiler::GetReverseEdges(utils::impl::InternalTag) const {
+    return reverse_edges_;
+}
+
+const VisitorCompiler::DescriptorSet& VisitorCompiler::GetPropagated(utils::impl::InternalTag) const {
+    return propagated_;
+}
+
+const VisitorCompiler::DescriptorSet& VisitorCompiler::GetCompiled(utils::impl::InternalTag) const { return compiled_; }
+
+std::shared_lock<engine::SharedMutex> VisitorCompiler::LockRead() {
     std::shared_lock read_lock(mutex_, std::defer_lock);
-    if (lock_behavior_ == LockBehavior::kShared) read_lock.lock();
+    if (lock_behavior_ == LockBehavior::kShared) {
+        read_lock.lock();
+    }
     return read_lock;
 }
 
-std::unique_lock<std::shared_mutex> VisitorCompiler::LockWrite() {
+std::unique_lock<engine::SharedMutex> VisitorCompiler::LockWrite() {
     std::unique_lock write_lock(mutex_, std::defer_lock);
-    if (lock_behavior_ == LockBehavior::kShared) write_lock.lock();
+    if (lock_behavior_ == LockBehavior::kShared) {
+        write_lock.lock();
+    }
     return write_lock;
 }
 
@@ -267,7 +303,8 @@ VisitorCompiler::DescriptorSet VisitorCompiler::GetFullSubtrees(const Descriptor
 void VisitorCompiler::PropagateSelected(const google::protobuf::Descriptor* descriptor) {
     UINVARIANT(descriptor, "descriptor is nullptr");
     if (!IsSelected(*descriptor) &&
-        fields_with_selected_children_.find(descriptor) == fields_with_selected_children_.end()) {
+        fields_with_selected_children_.find(descriptor) == fields_with_selected_children_.end())
+    {
         // This does not need to be propagated
         return;
     }
@@ -278,7 +315,9 @@ void VisitorCompiler::PropagateSelected(const google::protobuf::Descriptor* desc
     }
 
     const auto it = reverse_edges_.find(descriptor);
-    if (it == reverse_edges_.end()) return;  // No edges
+    if (it == reverse_edges_.end()) {
+        return;  // No edges
+    }
 
     const FieldDescriptorSet& fields = it->second;
     for (const google::protobuf::FieldDescriptor* field : fields) {
@@ -296,35 +335,51 @@ void VisitorCompiler::PropagateSelected(const google::protobuf::Descriptor* desc
 }
 
 FieldsVisitor::FieldsVisitor(Selector selector)
-    : BaseVisitor<FieldVisitCallback>(LockBehavior::kShared), selector_(selector) {
+    : BaseVisitor<FieldVisitCallback>(LockBehavior::kShared),
+      selector_(selector)
+{
     CompileAllGenerated();
 }
 
 FieldsVisitor::FieldsVisitor(Selector selector, const DescriptorList& descriptors)
-    : BaseVisitor<FieldVisitCallback>(LockBehavior::kShared), selector_(selector) {
+    : BaseVisitor<FieldVisitCallback>(LockBehavior::kShared),
+      selector_(selector)
+{
     Compile(descriptors);
 }
 
 FieldsVisitor::FieldsVisitor(Selector selector, LockBehavior lock_behavior)
-    : BaseVisitor<FieldVisitCallback>(lock_behavior), selector_(selector) {
+    : BaseVisitor<FieldVisitCallback>(lock_behavior),
+      selector_(selector)
+{
     CompileAllGenerated();
 }
 
 FieldsVisitor::FieldsVisitor(Selector selector, const DescriptorList& descriptors, LockBehavior lock_behavior)
-    : BaseVisitor<FieldVisitCallback>(lock_behavior), selector_(selector) {
+    : BaseVisitor<FieldVisitCallback>(lock_behavior),
+      selector_(selector)
+{
     Compile(descriptors);
+}
+
+const FieldsVisitor::Dependencies& FieldsVisitor::GetSelectedFields(utils::impl::InternalTag) const {
+    return selected_fields_;
 }
 
 void FieldsVisitor::CompileOne(const google::protobuf::Descriptor& descriptor) {
     for (const google::protobuf::FieldDescriptor* field : GetFieldDescriptors(descriptor)) {
         UINVARIANT(field, "field is nullptr");
-        if (selector_(*field)) selected_fields_[&descriptor].insert(field);
+        if (selector_(*field)) {
+            selected_fields_[&descriptor].insert(field);
+        }
     }
 }
 
 void FieldsVisitor::DoVisit(google::protobuf::Message& message, FieldVisitCallback callback) const {
     const auto it = selected_fields_.find(message.GetDescriptor());
-    if (it == selected_fields_.end()) return;
+    if (it == selected_fields_.end()) {
+        return;
+    }
 
     // Get reflection
     const google::protobuf::Reflection* reflection = message.GetReflection();
@@ -347,23 +402,35 @@ void FieldsVisitor::DoVisit(google::protobuf::Message& message, FieldVisitCallba
 }
 
 MessagesVisitor::MessagesVisitor(Selector selector)
-    : BaseVisitor<MessageVisitCallback>(LockBehavior::kShared), selector_(selector) {
+    : BaseVisitor<MessageVisitCallback>(LockBehavior::kShared),
+      selector_(selector)
+{
     CompileAllGenerated();
 }
 
 MessagesVisitor::MessagesVisitor(Selector selector, const DescriptorList& descriptors)
-    : BaseVisitor<MessageVisitCallback>(LockBehavior::kShared), selector_(selector) {
+    : BaseVisitor<MessageVisitCallback>(LockBehavior::kShared),
+      selector_(selector)
+{
     Compile(descriptors);
 }
 
 MessagesVisitor::MessagesVisitor(Selector selector, LockBehavior lock_behavior)
-    : BaseVisitor<MessageVisitCallback>(lock_behavior), selector_(selector) {
+    : BaseVisitor<MessageVisitCallback>(lock_behavior),
+      selector_(selector)
+{
     CompileAllGenerated();
 }
 
 MessagesVisitor::MessagesVisitor(Selector selector, const DescriptorList& descriptors, LockBehavior lock_behavior)
-    : BaseVisitor<MessageVisitCallback>(lock_behavior), selector_(selector) {
+    : BaseVisitor<MessageVisitCallback>(lock_behavior),
+      selector_(selector)
+{
     Compile(descriptors);
+}
+
+const MessagesVisitor::DescriptorSet& MessagesVisitor::GetSelectedMessages(utils::impl::InternalTag) const {
+    return selected_messages_;
 }
 
 void MessagesVisitor::CompileOne(const google::protobuf::Descriptor& descriptor) {
@@ -374,7 +441,9 @@ void MessagesVisitor::CompileOne(const google::protobuf::Descriptor& descriptor)
 
 void MessagesVisitor::DoVisit(google::protobuf::Message& message, MessageVisitCallback callback) const {
     const auto it = selected_messages_.find(message.GetDescriptor());
-    if (it == selected_messages_.end()) return;
+    if (it == selected_messages_.end()) {
+        return;
+    }
     callback(message);
 }
 

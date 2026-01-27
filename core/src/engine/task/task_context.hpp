@@ -2,8 +2,6 @@
 
 #include <atomic>
 #include <cstdint>
-#include <memory>
-#include <vector>
 
 #include <ev.h>
 #include <boost/intrusive/list_hook.hpp>
@@ -17,6 +15,8 @@
 #include <engine/task/sleep_state.hpp>
 #include <engine/task/task_counter.hpp>
 #include <userver/engine/deadline.hpp>
+#include <userver/engine/future_status.hpp>
+#include <userver/engine/impl/actor.hpp>
 #include <userver/engine/impl/context_accessor.hpp>
 #include <userver/engine/impl/detached_tasks_sync_block.hpp>
 #include <userver/engine/impl/task_local_storage.hpp>
@@ -62,7 +62,7 @@ protected:
     ~WaitStrategy() = default;
 };
 
-class TaskContext final : public ContextAccessor {
+class TaskContext final : public ContextAccessor, public deadlock_detector::Actor {
 public:
     struct NoEpoch {};
     using TaskPipe = coro::Pool::TaskPipe;
@@ -112,8 +112,7 @@ public:
 
     // wait for this to become finished
     // should only be called from other context
-    void Wait() const;
-    void WaitUntil(Deadline) const;
+    [[nodiscard]] FutureStatus WaitUntil(Deadline) const noexcept;
 
     TaskProcessor& GetTaskProcessor() { return task_processor_; }
     void DoStep();
@@ -133,6 +132,16 @@ public:
 
     void SetBackground(bool);
     bool IsBackground() const noexcept { return is_background_; };
+
+    static constexpr std::size_t kUnsetThreadIndex = static_cast<std::size_t>(-1);
+
+    void SetThreadPinning(std::size_t thread_index) noexcept {
+        UASSERT(thread_index_ == kUnsetThreadIndex);
+        UASSERT(thread_index != kUnsetThreadIndex);
+        thread_index_ = thread_index;
+    }
+
+    std::size_t GetThreadPinning() const noexcept { return thread_index_; }
 
     // causes this to yield and wait for wakeup
     // must only be called from this context
@@ -179,8 +188,14 @@ public:
 
     CountedCoroutinePtr& GetCoroutinePtr() noexcept;
 
+    bool WasStartedAsCritical() const;
+
+    utils::StringLiteral GetActorType() const override;
+
 private:
+    class YieldReasonGuard;
     class LocalStorageGuard;
+    class ProfilerExecutionGuard;
 
     static constexpr uint64_t kMagic = 0x6b73615453755459ULL;  // "YTuSTask"
 
@@ -189,19 +204,15 @@ private:
 
     static WakeupSource GetPrimaryWakeupSource(SleepState::Flags sleep_flags);
 
-    bool WasStartedAsCritical() const;
     void SetState(Task::State);
 
     void Schedule();
     static bool ShouldSchedule(SleepState::Flags flags, WakeupSource source);
 
-    void ProfilerStartExecution();
-    void ProfilerStopExecution();
+    void ProfilerStartExecution() noexcept;
+    void ProfilerStopExecution() noexcept;
 
     void TraceStateTransition(Task::State state);
-
-    void TsanAcquireBarrier() noexcept;
-    void TsanReleaseBarrier() noexcept;
 
     const uint64_t magic_{kMagic};
     TaskProcessor& task_processor_;
@@ -243,8 +254,11 @@ private:
 
     // refcounter for resources and memory deallocation
     std::atomic<std::size_t> intrusive_refcount_{1};
-    friend void intrusive_ptr_add_ref(TaskContext* p) noexcept;
-    friend void intrusive_ptr_release(TaskContext* p) noexcept;
+    friend void intrusive_ptr_add_ref(TaskContext* p) noexcept;  // NOLINT(readability-identifier-naming)
+    friend void intrusive_ptr_release(TaskContext* p) noexcept;  // NOLINT(readability-identifier-naming)
+
+    // for thread pinning task processors
+    std::size_t thread_index_{kUnsetThreadIndex};
 
 public:
     using WaitListHook = typename boost::intrusive::make_list_member_hook<
@@ -254,8 +268,8 @@ public:
     WaitListHook wait_list_hook;
 };
 
-void intrusive_ptr_add_ref(TaskContext* p) noexcept;
-void intrusive_ptr_release(TaskContext* p) noexcept;
+void intrusive_ptr_add_ref(TaskContext* p) noexcept;  // NOLINT(readability-identifier-naming)
+void intrusive_ptr_release(TaskContext* p) noexcept;  // NOLINT(readability-identifier-naming)
 
 bool HasWaitSucceeded(TaskContext::WakeupSource) noexcept;
 
@@ -263,8 +277,8 @@ bool HasWaitSucceeded(TaskContext::WakeupSource) noexcept;
 
 namespace current_task {
 
-impl::TaskContext& GetCurrentTaskContext() noexcept;
-impl::TaskContext* GetCurrentTaskContextUnchecked() noexcept;
+engine::impl::TaskContext& GetCurrentTaskContext() noexcept;
+engine::impl::TaskContext* GetCurrentTaskContextUnchecked() noexcept;
 
 }  // namespace current_task
 }  // namespace engine

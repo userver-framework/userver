@@ -1,6 +1,7 @@
 #include <userver/testsuite/http_testpoint_client.hpp>
 
 #include <userver/formats/json/inline.hpp>
+#include <userver/formats/json/serialize.hpp>
 #include <userver/formats/json/value_builder.hpp>
 #include <userver/testsuite/testpoint.hpp>
 #include <userver/testsuite/testpoint_control.hpp>
@@ -27,7 +28,7 @@ utest::HttpServerMock::HttpResponse EchoTestpoint(const utest::HttpServerMock::H
 }  // namespace
 
 UTEST(HttpTestpointClient, Smoke) {
-    utest::HttpServerMock mock_server(&EchoTestpoint);
+    const utest::HttpServerMock mock_server(&EchoTestpoint);
     const auto testpoint_url = mock_server.GetBaseUrl() + "/testpoint";
     const auto http_client = utest::CreateHttpClient();
 

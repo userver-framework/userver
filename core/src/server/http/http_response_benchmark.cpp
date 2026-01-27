@@ -8,7 +8,7 @@
 #include <userver/server/http/http_status.hpp>
 #include <userver/utils/small_string.hpp>
 
-#include <server/http/http_request_impl.hpp>
+#include <userver/server/http/http_request_builder.hpp>
 #include <userver/server/request/response_base.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -42,7 +42,7 @@ void OutputHeader(std::string& header, std::string_view key, std::string_view va
     append(kCrlf);
 }
 
-void http_headers_serialization_inplace(benchmark::State& state) {
+void HttpHeadersSerializationInplace(benchmark::State& state) {
     for ([[maybe_unused]] auto _ : state) {
         USERVER_NAMESPACE::http::headers::HeadersString os;
 
@@ -63,7 +63,9 @@ void http_headers_serialization_inplace(benchmark::State& state) {
 
         if (kHeaders.find(USERVER_NAMESPACE::http::headers::kContentLength) == kHeaders.end()) {
             server::http::impl::OutputHeader(
-                os, USERVER_NAMESPACE::http::headers::kContentLength, fmt::format(FMT_COMPILE("{}"), 1024)
+                os,
+                USERVER_NAMESPACE::http::headers::kContentLength,
+                fmt::format(FMT_COMPILE("{}"), 1024)
             );
         }
 
@@ -71,7 +73,7 @@ void http_headers_serialization_inplace(benchmark::State& state) {
     }
 }
 
-void http_headers_serialization_no_ostreams(benchmark::State& state) {
+void HttpHeadersSerializationNoOstreams(benchmark::State& state) {
     for ([[maybe_unused]] auto _ : state) {
         std::string os;
         os.reserve(1024);
@@ -93,7 +95,7 @@ void http_headers_serialization_no_ostreams(benchmark::State& state) {
     }
 }
 
-void http_headers_serialization_ostreams(benchmark::State& state) {
+void HttpHeadersSerializationOstreams(benchmark::State& state) {
     for ([[maybe_unused]] auto _ : state) {
         std::ostringstream os;
 
@@ -114,8 +116,8 @@ void http_headers_serialization_ostreams(benchmark::State& state) {
 
 void HttpResponseSetHeaderBenchmark(benchmark::State& state) {
     server::request::ResponseDataAccounter accounter{};
-    const server::http::HttpRequestImpl request_impl{accounter, engine::io::Sockaddr{}};
-    server::http::HttpResponse response{request_impl, accounter};
+    const auto request = server::http::HttpRequestBuilder{accounter}.Build();
+    server::http::HttpResponse response{*request, accounter};
 
     namespace Headers = USERVER_NAMESPACE::http::headers;
 
@@ -129,7 +131,7 @@ void HttpResponseSetHeaderBenchmark(benchmark::State& state) {
         response.SetHeader(Headers::kAcceptEncoding, "gzip, identity");
         response.SetHeader(Headers::kConnection, "keep-alive");
         response.SetHeader(Headers::kContentLength, "13");
-        if (!response.ClearHeaders()) {
+        if (!response.ClearUserHeaders()) {
             std::abort();
         }
     }
@@ -137,9 +139,9 @@ void HttpResponseSetHeaderBenchmark(benchmark::State& state) {
 
 }  // namespace
 
-BENCHMARK(http_headers_serialization_inplace);
-BENCHMARK(http_headers_serialization_no_ostreams);
-BENCHMARK(http_headers_serialization_ostreams);
+BENCHMARK(HttpHeadersSerializationInplace);
+BENCHMARK(HttpHeadersSerializationNoOstreams);
+BENCHMARK(HttpHeadersSerializationOstreams);
 BENCHMARK(HttpResponseSetHeaderBenchmark);
 
 USERVER_NAMESPACE_END

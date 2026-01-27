@@ -1,5 +1,7 @@
 #include <userver/tracing/manager.hpp>
 
+#include <boost/range/adaptor/reversed.hpp>
+
 #include <userver/engine/task/inherited_variable.hpp>
 #include <userver/http/common_headers.hpp>
 #include <userver/server/http/http_request.hpp>
@@ -35,7 +37,7 @@ struct OTelTracingHeadersInheritedData final {
 };
 
 /// @see TracingHeadersInheritedData for details on the contents.
-engine::TaskInheritedVariable<OTelTracingHeadersInheritedData> kOTelTracingHeadersInheritedData;
+engine::TaskInheritedVariable<OTelTracingHeadersInheritedData> kOtelTracingHeadersInheritedData;
 
 /// @see TracingHeadersInheritedData for details on the contents.
 engine::TaskInheritedVariable<std::string> kB3TracingSampledInheritedData;
@@ -62,15 +64,18 @@ bool B3TryFillSpanBuilderFromRequest(const server::http::HttpRequest& request, t
 template <class T>
 void B3FillWithTracingContext(const tracing::Span& span, T& target) {
     namespace b3 = http::headers::b3;
-    target.SetHeader(b3::kTraceId, span.GetTraceId());
-    target.SetHeader(b3::kSpanId, span.GetSpanId());
-    target.SetHeader(b3::kParentSpanId, span.GetParentId());
 
-    const auto* sampled = kB3TracingSampledInheritedData.GetOptional();
-    if (sampled && !sampled->empty()) {
-        target.SetHeader(b3::kSampled, *sampled);
-    } else {
-        target.SetHeader(b3::kSampled, "1");
+    if (const auto span_id = span.GetSpanIdForChildLogs()) {
+        target.SetHeader(b3::kTraceId, std::string{span.GetTraceId()});
+        target.SetHeader(b3::kSpanId, std::string{*span_id});
+        target.SetHeader(b3::kParentSpanId, std::string{span.GetParentId()});
+
+        const auto* sampled = kB3TracingSampledInheritedData.GetOptional();
+        if (sampled && !sampled->empty()) {
+            target.SetHeader(b3::kSampled, *sampled);
+        } else {
+            target.SetHeader(b3::kSampled, "1");
+        }
     }
 }
 
@@ -84,7 +89,7 @@ bool OpenTelemetryTryFillSpanBuilderFromRequest(
         return false;
     }
 
-    auto extraction_result = tracing::opentelemetry::ExtractTraceParentData(traceparent);
+    auto extraction_result = tracing::opentelemetry::ExtractTraceParentDataView(traceparent);
     if (!extraction_result.has_value()) {
         LOG_LIMITED_WARNING() << fmt::format(
             "Invalid traceparent header format ({}). Skipping Opentelemetry "
@@ -99,26 +104,30 @@ bool OpenTelemetryTryFillSpanBuilderFromRequest(
     span_builder.SetTraceId(std::move(data.trace_id));
     span_builder.SetParentSpanId(std::move(data.span_id));
     if (data.trace_flags.empty()) {
-        data.trace_flags = std::string{kDefaultOtelTraceFlags};
+        data.trace_flags = kDefaultOtelTraceFlags;
     }
 
     const auto& tracestate = request.GetHeader(opentelemetry::kTraceState);
-    kOTelTracingHeadersInheritedData.Set({
+    kOtelTracingHeadersInheritedData.Set({
         tracestate,
-        std::move(data.trace_flags),
+        std::string(data.trace_flags),
     });
     return true;
 }
 
 template <class T>
 void OpenTelemetryFillWithTracingContext(const tracing::Span& span, T& target, const logging::Level log_level) {
-    const auto* data = kOTelTracingHeadersInheritedData.GetOptional();
+    const auto* data = kOtelTracingHeadersInheritedData.GetOptional();
 
     std::string_view traceflags = kDefaultOtelTraceFlags;
     if (data) {
         traceflags = data->traceflags;
     }
-    auto traceparent_result = opentelemetry::BuildTraceParentHeader(span.GetTraceId(), span.GetSpanId(), traceflags);
+    const auto span_id = span.GetSpanIdForChildLogs();
+    if (!span_id) {
+        return;
+    }
+    auto traceparent_result = opentelemetry::BuildTraceParentHeader(span.GetTraceId(), *span_id, traceflags);
 
     if (!traceparent_result.has_value()) {
         LOG_LIMITED(log_level
@@ -147,16 +156,20 @@ bool YandexTaxiTryFillSpanBuilderFromRequest(
     span_builder.SetParentSpanId(parent_span_id);
 
     const auto& parent_link = request.GetHeader(http::headers::kXYaRequestId);
-    if (!parent_link.empty()) span_builder.SetParentLink(parent_link);
+    if (!parent_link.empty()) {
+        span_builder.SetParentLink(parent_link);
+    }
 
     return true;
 }
 
 template <class T>
 void YandexTaxiFillWithTracingContext(const tracing::Span& span, T& target) {
-    target.SetHeader(http::headers::kXYaRequestId, span.GetLink());
-    target.SetHeader(http::headers::kXYaTraceId, span.GetTraceId());
-    target.SetHeader(http::headers::kXYaSpanId, span.GetSpanId());
+    if (const auto span_id = span.GetSpanIdForChildLogs()) {
+        target.SetHeader(http::headers::kXYaRequestId, std::string{span.GetLink()});
+        target.SetHeader(http::headers::kXYaTraceId, std::string{span.GetTraceId()});
+        target.SetHeader(http::headers::kXYaSpanId, std::string{*span_id});
+    }
 }
 
 bool YandexTryFillSpanBuilderFromRequest(const server::http::HttpRequest& request, tracing::SpanBuilder& span_builder) {
@@ -171,7 +184,7 @@ bool YandexTryFillSpanBuilderFromRequest(const server::http::HttpRequest& reques
 
 template <class T>
 void YandexFillWithTracingContext(const tracing::Span& span, T& target) {
-    target.SetHeader(http::headers::kXRequestId, span.GetTraceId());
+    target.SetHeader(http::headers::kXRequestId, std::string{span.GetTraceId()});
 }
 
 }  // namespace
@@ -205,11 +218,10 @@ bool TryFillSpanBuilderFromRequest(Format format, const server::http::HttpReques
         case Format::kB3Alternative:
             return B3TryFillSpanBuilderFromRequest(request, span_builder);
     }
-
     UINVARIANT(false, "Unexpected format of tracing headers");
 }
 
-void FillRequestWithTracingContext(Format format, const tracing::Span& span, clients::http::PluginRequest request) {
+void FillRequestWithTracingContext(Format format, const tracing::Span& span, clients::http::MiddlewareRequest request) {
     switch (format) {
         case Format::kYandexTaxi:
             YandexTaxiFillWithTracingContext(span, request);
@@ -257,21 +269,19 @@ bool GenericTracingManager::TryFillSpanBuilderFromRequest(
     const server::http::HttpRequest& request,
     SpanBuilder& span_builder
 ) const {
-    for (auto format : kAllFormatsOrdered) {
-        if (!(in_request_response_ & format)) {
-            continue;
-        }
+    bool success = false;
 
-        if (tracing::TryFillSpanBuilderFromRequest(format, request, span_builder)) {
-            return true;
+    for (const auto& format : boost::adaptors::reverse(kAllFormatsOrdered)) {
+        if (in_request_response_ & format) {
+            success |= tracing::TryFillSpanBuilderFromRequest(format, request, span_builder);
         }
     }
-    return false;
+    return success;
 }
 
 void GenericTracingManager::FillRequestWithTracingContext(
     const tracing::Span& span,
-    clients::http::PluginRequest request
+    clients::http::MiddlewareRequest request
 ) const {
     for (auto format : kAllFormatsOrdered) {
         if (new_request_ & format) {

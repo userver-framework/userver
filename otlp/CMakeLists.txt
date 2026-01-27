@@ -1,14 +1,16 @@
 project(userver-otlp CXX)
 
-include(GrpcTargets)
+include(UserverGrpcTargets)
 include(SetupOpentelemetryProto)
 
-userver_module(otlp
+userver_module(
+    otlp
     SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}"
     LINK_LIBRARIES userver-otlp-proto
-
     UTEST_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/tests"
     UTEST_LINK_LIBRARIES userver-grpc-utest
+    DEPENDS grpc
+    EMBED_FILES src/otlp/logs/component.yaml
 )
 
 _userver_install_targets(COMPONENT otlp TARGETS userver-otlp-proto)

@@ -14,7 +14,7 @@ class Connection;
 
 class PlainQuery final {
 public:
-    PlainQuery(Connection& connection, const std::string& query);
+    PlainQuery(Connection& connection, std::string_view query);
     ~PlainQuery();
 
     PlainQuery(const PlainQuery& other) = delete;
@@ -25,7 +25,7 @@ public:
 
 private:
     Connection* connection_;
-    const std::string& query_;
+    const std::string_view query_;
 };
 
 }  // namespace storages::mysql::impl

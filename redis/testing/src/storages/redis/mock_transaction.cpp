@@ -15,7 +15,8 @@ class MockTransaction::ResultPromise {
 public:
     template <typename Result, typename ReplyType>
     ResultPromise(engine::Promise<ReplyType>&& promise, Request<Result, ReplyType>&& subrequest)
-        : impl_(std::make_unique<ResultPromiseImpl<Result, ReplyType>>(std::move(promise), std::move(subrequest))) {}
+        : impl_(std::make_unique<ResultPromiseImpl<Result, ReplyType>>(std::move(promise), std::move(subrequest)))
+    {}
 
     ResultPromise(ResultPromise&& other) = default;
 
@@ -33,7 +34,9 @@ private:
     class ResultPromiseImpl : public ResultPromiseImplBase {
     public:
         ResultPromiseImpl(engine::Promise<ReplyType>&& promise, Request<Result, ReplyType>&& subrequest)
-            : promise_(std::move(promise)), subrequest_(std::move(subrequest)) {}
+            : promise_(std::move(promise)),
+              subrequest_(std::move(subrequest))
+        {}
 
         void ProcessReply(const std::string& request_description) override {
             try {
@@ -43,7 +46,7 @@ private:
                 } else {
                     promise_.set_value(subrequest_.Get(request_description));
                 }
-            } catch (const USERVER_NAMESPACE::redis::RequestFailedException&) {
+            } catch (const RequestFailedException&) {
                 throw;
             } catch (const std::exception&) {
                 promise_.set_exception(std::current_exception());
@@ -61,7 +64,8 @@ private:
 class MockTransaction::MockRequestExecDataImpl final : public RequestDataBase<void> {
 public:
     MockRequestExecDataImpl(std::vector<std::unique_ptr<ResultPromise>>&& result_promises)
-        : result_promises_(std::move(result_promises)) {}
+        : result_promises_(std::move(result_promises))
+    {}
 
     void Wait() override {}
 
@@ -90,7 +94,10 @@ MockTransaction::MockTransaction(
     std::unique_ptr<MockTransactionImplBase> impl,
     CheckShards check_shards
 )
-    : client_(std::move(client)), check_shards_(check_shards), impl_(std::move(impl)) {}
+    : client_(std::move(client)),
+      check_shards_(check_shards),
+      impl_(std::move(impl))
+{}
 
 MockTransaction::~MockTransaction() = default;
 
@@ -98,7 +105,9 @@ RequestExec MockTransaction::Exec(const CommandControl& command_control) {
     if (!shard_) {
         throw EmptyTransactionException("Can't determine shard. Empty transaction?");
     }
-    if (command_control.force_shard_idx) shard_ = *command_control.force_shard_idx;
+    if (command_control.force_shard_idx) {
+        shard_ = *command_control.force_shard_idx;
+    }
     client_->CheckShardIdx(*shard_);
     return CreateMockExecRequest();
 }
@@ -160,6 +169,11 @@ RequestExpire MockTransaction::Expire(std::string key, std::chrono::seconds ttl)
     return AddSubrequest(impl_->Expire(std::move(key), ttl));
 }
 
+RequestExpire MockTransaction::Expire(std::string key, std::chrono::seconds ttl, ExpireOptions options) {
+    UpdateShard(key);
+    return AddSubrequest(impl_->Expire(std::move(key), ttl, options));
+}
+
 RequestGeoadd MockTransaction::Geoadd(std::string key, GeoaddArg point_member) {
     UpdateShard(key);
     return AddSubrequest(impl_->Geoadd(std::move(key), point_member));
@@ -168,6 +182,11 @@ RequestGeoadd MockTransaction::Geoadd(std::string key, GeoaddArg point_member) {
 RequestGeoadd MockTransaction::Geoadd(std::string key, std::vector<GeoaddArg> point_members) {
     UpdateShard(key);
     return AddSubrequest(impl_->Geoadd(std::move(key), std::move(point_members)));
+}
+
+RequestGeopos MockTransaction::Geopos(std::string key, std::vector<std::string> members) {
+    UpdateShard(key);
+    return AddSubrequest(impl_->Geopos(std::move(key), std::move(members)));
 }
 
 RequestGeoradius MockTransaction::Georadius(
@@ -461,6 +480,20 @@ RequestSetIfNotExist MockTransaction::SetIfNotExist(std::string key, std::string
     return AddSubrequest(impl_->SetIfNotExist(std::move(key), std::move(value), ttl));
 }
 
+RequestSetIfNotExistOrGet MockTransaction::SetIfNotExistOrGet(std::string key, std::string value) {
+    UpdateShard(key);
+    return AddSubrequest(impl_->SetIfNotExistOrGet(std::move(key), std::move(value)));
+}
+
+RequestSetIfNotExistOrGet MockTransaction::SetIfNotExistOrGet(
+    std::string key,
+    std::string value,
+    std::chrono::milliseconds ttl
+) {
+    UpdateShard(key);
+    return AddSubrequest(impl_->SetIfNotExistOrGet(std::move(key), std::move(value), ttl));
+}
+
 RequestSetex MockTransaction::Setex(std::string key, std::chrono::seconds seconds, std::string value) {
     UpdateShard(key);
     return AddSubrequest(impl_->Setex(std::move(key), seconds, std::move(value)));
@@ -580,14 +613,22 @@ RequestZrangebyscore MockTransaction::Zrangebyscore(std::string key, std::string
     return AddSubrequest(impl_->Zrangebyscore(std::move(key), std::move(min), std::move(max)));
 }
 
-RequestZrangebyscore
-MockTransaction::Zrangebyscore(std::string key, double min, double max, const RangeOptions& range_options) {
+RequestZrangebyscore MockTransaction::Zrangebyscore(
+    std::string key,
+    double min,
+    double max,
+    const RangeOptions& range_options
+) {
     UpdateShard(key);
     return AddSubrequest(impl_->Zrangebyscore(std::move(key), min, max, range_options));
 }
 
-RequestZrangebyscore
-MockTransaction::Zrangebyscore(std::string key, std::string min, std::string max, const RangeOptions& range_options) {
+RequestZrangebyscore MockTransaction::Zrangebyscore(
+    std::string key,
+    std::string min,
+    std::string max,
+    const RangeOptions& range_options
+) {
     UpdateShard(key);
     return AddSubrequest(impl_->Zrangebyscore(std::move(key), std::move(min), std::move(max), range_options));
 }
@@ -597,14 +638,21 @@ RequestZrangebyscoreWithScores MockTransaction::ZrangebyscoreWithScores(std::str
     return AddSubrequest(impl_->ZrangebyscoreWithScores(std::move(key), min, max));
 }
 
-RequestZrangebyscoreWithScores
-MockTransaction::ZrangebyscoreWithScores(std::string key, std::string min, std::string max) {
+RequestZrangebyscoreWithScores MockTransaction::ZrangebyscoreWithScores(
+    std::string key,
+    std::string min,
+    std::string max
+) {
     UpdateShard(key);
     return AddSubrequest(impl_->ZrangebyscoreWithScores(std::move(key), std::move(min), std::move(max)));
 }
 
-RequestZrangebyscoreWithScores
-MockTransaction::ZrangebyscoreWithScores(std::string key, double min, double max, const RangeOptions& range_options) {
+RequestZrangebyscoreWithScores MockTransaction::ZrangebyscoreWithScores(
+    std::string key,
+    double min,
+    double max,
+    const RangeOptions& range_options
+) {
     UpdateShard(key);
     return AddSubrequest(impl_->ZrangebyscoreWithScores(std::move(key), min, max, range_options));
 }
@@ -654,8 +702,8 @@ RequestZscore MockTransaction::Zscore(std::string key, std::string member) {
 void MockTransaction::UpdateShard(const std::string& key) {
     try {
         UpdateShard(client_->ShardByKey(key));
-    } catch (const USERVER_NAMESPACE::redis::InvalidArgumentException& ex) {
-        throw USERVER_NAMESPACE::redis::InvalidArgumentException(ex.what() + std::string{" for key=" + key});
+    } catch (const InvalidArgumentException& ex) {
+        throw InvalidArgumentException(ex.what() + std::string{" for key=" + key});
     }
 }
 
@@ -675,13 +723,13 @@ void MockTransaction::UpdateShard(size_t shard) {
     if (shard_) {
         if (check_shards_ == CheckShards::kSame && *shard_ != shard) {
             std::ostringstream os;
-            os << "Storages::redis::Transaction must deal with the same shard across "
+            os << "storages::redis::Transaction must deal with the same shard across "
                   "all the operations. Shard="
                << *shard_
                << " was detected by first command, but one of the commands used "
                   "shard="
                << shard;
-            throw USERVER_NAMESPACE::redis::InvalidArgumentException(os.str());
+            throw InvalidArgumentException(os.str());
         }
     } else {
         shard_ = shard;
@@ -691,9 +739,8 @@ void MockTransaction::UpdateShard(size_t shard) {
 template <typename Result, typename ReplyType>
 Request<Result, ReplyType> MockTransaction::AddSubrequest(Request<Result, ReplyType>&& subrequest) {
     engine::Promise<ReplyType> promise;
-    Request<Result, ReplyType> request(
-        std::make_unique<impl::TransactionSubrequestDataImpl<ReplyType>>(promise.get_future())
-    );
+    Request<Result, ReplyType>
+        request(std::make_unique<impl::TransactionSubrequestDataImpl<ReplyType>>(promise.get_future()));
     result_promises_.emplace_back(std::make_unique<ResultPromise>(std::move(promise), std::move(subrequest)));
     return request;
 }

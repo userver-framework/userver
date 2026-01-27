@@ -40,7 +40,7 @@ struct ConstantConfig final {
 };
 
 /// @brief A config key is a unique identifier for a config variable
-/// @snippet core/src/components/logging_configurator.cpp  key
+/// @snippet core/src/dynamic_config/config_test.cpp key bool
 template <typename Variable>
 class Key final {
 public:
@@ -54,7 +54,7 @@ public:
     /// `double`, `string`. The default is passed by value.
     ///
     /// Usage example:
-    /// @snippet server/handlers/http_server_settings.cpp  bool config sample
+    /// @snippet core/src/dynamic_config/config_test.cpp key bool
     Key(std::string_view name, const VariableType& default_value);
 
     /// @brief The constructor for a non-trivial `VariableType`. The default is
@@ -64,7 +64,7 @@ public:
     /// `VariableType`.
     ///
     /// Usage example:
-    /// @snippet components/logging_configurator.cpp  key
+    /// @snippet core/src/dynamic_config/config_test.cpp struct config cpp
     Key(std::string_view name, DefaultAsJsonString default_json);
 
     /// @brief The constructor that provides a special parser from JSON.
@@ -77,9 +77,6 @@ public:
     /// into a single C++ object.
     /// @warning Prefer to use a separate `Key` per JSON config item and use the
     /// constructors above whenever possible.
-    ///
-    /// Usage example:
-    /// @snippet clients/http/component.cpp  docs map config sample
     template <std::size_t N>
     Key(DocsMapParser parser, const ConfigDefault (&default_json_map)[N]);
 
@@ -171,11 +168,15 @@ private:
 
 // ========================== Implementation follows ==========================
 
-constexpr DefaultAsJsonString::DefaultAsJsonString(std::string_view json_string) : json_string(json_string) {}
+constexpr DefaultAsJsonString::DefaultAsJsonString(std::string_view json_string)
+    : json_string(json_string)
+{}
 
 template <typename T>
 ConfigDefault::ConfigDefault(std::string_view name, const T& value)
-    : name(name), default_json(impl::ToJsonString(value)) {}
+    : name(name),
+      default_json(impl::ToJsonString(value))
+{}
 
 template <typename Variable>
 Key<Variable>::Key(std::string_view name, const VariableType& default_value)
@@ -185,7 +186,8 @@ Key<Variable>::Key(std::string_view name, const VariableType& default_value)
               return impl::DocsMapGet(docs_map, name).template As<VariableType>();
           },
           impl::ValueToDocsMapString(name, default_value)
-      )) {}
+      ))
+{}
 
 template <typename Variable>
 Key<Variable>::Key(std::string_view name, DefaultAsJsonString default_json)
@@ -195,7 +197,8 @@ Key<Variable>::Key(std::string_view name, DefaultAsJsonString default_json)
               return impl::DocsMapGet(docs_map, name).template As<VariableType>();
           },
           impl::SingleToDocsMapString(name, default_json.json_string)
-      )) {}
+      ))
+{}
 
 template <typename Variable>
 Key<Variable>::Key(std::string_view name, JsonParser parser, DefaultAsJsonString default_json)
@@ -205,7 +208,8 @@ Key<Variable>::Key(std::string_view name, JsonParser parser, DefaultAsJsonString
               return parser(impl::DocsMapGet(docs_map, name));
           },
           impl::SingleToDocsMapString(name, default_json.json_string)
-      )) {}
+      ))
+{}
 
 template <typename Variable>
 template <std::size_t N>
@@ -214,15 +218,13 @@ Key<Variable>::Key(DocsMapParser parser, const ConfigDefault (&default_json_map)
           std::string{},
           [parser](const DocsMap& docs_map) -> std::any { return parser(docs_map); },
           impl::MultipleToDocsMapString(default_json_map, N)
-      )) {}
+      ))
+{}
 
 template <typename Variable>
 Key<Variable>::Key(ConstantConfig /*tag*/, VariableType value)
-    : id_(impl::Register(
-          std::string{},
-          [value = std::move(value)](const DocsMap& /*unused*/) { return value; },
-          "{}"
-      )) {}
+    : id_(impl::Register(std::string{}, [value = std::move(value)](const DocsMap& /*unused*/) { return value; }, "{}"))
+{}
 
 template <typename Variable>
 Key<Variable>::Key(impl::InternalTag, std::string_view name)
@@ -232,7 +234,8 @@ Key<Variable>::Key(impl::InternalTag, std::string_view name)
               return impl::DocsMapGet(docs_map, name).template As<VariableType>();
           },
           "{}"
-      )) {}
+      ))
+{}
 
 template <typename Variable>
 Key<Variable>::Key(impl::InternalTag, DocsMapParser parser)
@@ -240,7 +243,8 @@ Key<Variable>::Key(impl::InternalTag, DocsMapParser parser)
           std::string{},
           [parser](const DocsMap& docs_map) -> std::any { return parser(docs_map); },
           "{}"
-      )) {}
+      ))
+{}
 
 template <typename VariableType>
 std::string_view Key<VariableType>::GetName() const noexcept {

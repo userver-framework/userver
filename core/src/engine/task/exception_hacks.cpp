@@ -6,6 +6,9 @@
 #if __has_feature(memory_sanitizer)
 #define HAS_MSAN 1
 #endif
+#if __has_feature(address_sanitizer)
+#define HAS_ASAN 1
+#endif
 #endif
 
 // Thread Sanitizer uses dl_iterate_phdr function on initialization and fails if
@@ -14,7 +17,11 @@
 // Memory sanitizer gets crazy with uninstumented dl_phdr_info and conveniently
 // segfaults with stackoverflow trying to report the backtrace from within
 // dl_iterate_phdr.
-#if !defined(USERVER_DISABLE_PHDR_CACHE) && defined(__linux__) && !USERVER_IMPL_HAS_TSAN && !defined(HAS_MSAN)
+//
+// Address sanitizer also calls dl_iterate_phdr during its initialization
+// (before main and before static constructors), causing a crash.
+#if !defined(USERVER_DISABLE_PHDR_CACHE) && defined(__linux__) && !USERVER_IMPL_HAS_TSAN && !defined(HAS_MSAN) && \
+    !defined(HAS_ASAN)
 #define USE_PHDR_CACHE 1  // NOLINT
 #endif
 
@@ -47,7 +54,7 @@ using DlIterateFn = int (*)(DlIterateCb callback, void* data);
 inline auto GetOriginalDlIteratePhdr() {
     static void* func = dlsym(RTLD_NEXT, "dl_iterate_phdr");
     if (!func) {
-        utils::impl::AbortWithStacktrace("Cannot find dl_iterate_phdr function with dlsym");
+        utils::AbortWithStacktrace("Cannot find dl_iterate_phdr function with dlsym");
     }
 
     return reinterpret_cast<DlIterateFn>(func);
@@ -63,8 +70,9 @@ public:
             Teardown();
             LOG_WARNING() << "Failed to mlock(2) process debug info, an attempt took " << total_duration_ms;
         } else {
-            LOG_INFO() << "mlock(2)-ed approx " << mlocked_size_approx_ << " of process debug info within "
-                       << total_duration_ms;
+            LOG_INFO()
+                << "mlock(2)-ed approx " << mlocked_size_approx_ << " of process debug info within "
+                << total_duration_ms;
         }
     }
 
@@ -215,14 +223,14 @@ void AssertDynamicLoadingEnabled(std::string_view dl_function_name) {
             "loading/unloading into components constructors/destructors.",
             dl_function_name
         );
-        utils::impl::AbortWithStacktrace(message);
+        utils::AbortWithStacktrace(message);
     }
 }
 
 void AssertDlFunctionFound(void* function, std::string_view dl_function_name) {
     if (!function) {
         const auto message = fmt::format("Cannot find {} function with dlsym", dl_function_name);
-        utils::impl::AbortWithStacktrace(message);
+        utils::AbortWithStacktrace(message);
     }
 }
 
@@ -260,9 +268,7 @@ extern "C" {
 #ifndef __clang__
 [[gnu::visibility("default")]] [[gnu::externally_visible]]
 #endif
-    int
-    dl_iterate_phdr(USERVER_NAMESPACE::engine::impl::DlIterateCb callback,
-                    void* data) {
+int dl_iterate_phdr(USERVER_NAMESPACE::engine::impl::DlIterateCb callback, void* data) {
     return USERVER_NAMESPACE::engine::impl::DlIteratePhdr(callback, data);
 }
 
@@ -281,11 +287,13 @@ void* dlopen(const char* filename, int flags) {
     return reinterpret_cast<DlOpenSignature>(func)(filename, flags);
 }
 
+#ifdef LM_ID_BASE  // no dlmopen in musl
+
 #ifndef __clang__
 [[gnu::visibility("default")]] [[gnu::externally_visible]]
 #endif
 // NOLINTNEXTLINE(readability-inconsistent-declaration-parameter-name)
-void* dlmopen(Lmid_t lmid, const char *filename, int flags) {
+void* dlmopen(Lmid_t lmid, const char* filename, int flags) {
     using DlMOpenSignature = void* (*)(Lmid_t, const char*, int);
     constexpr const char* kFunctionName = "dlmopen";
     static void* func = dlsym(RTLD_NEXT, "dlmopen");
@@ -296,11 +304,13 @@ void* dlmopen(Lmid_t lmid, const char *filename, int flags) {
     return reinterpret_cast<DlMOpenSignature>(func)(lmid, filename, flags);
 }
 
+#endif  // LM_ID_BASE
+
 #ifndef __clang__
 [[gnu::visibility("default")]] [[gnu::externally_visible]]
 #endif
 // NOLINTNEXTLINE(readability-inconsistent-declaration-parameter-name)
-int dlclose(void *handle) {
+int dlclose(void* handle) {
     using DlCloseSignature = int (*)(void*);
     constexpr const char* kFunctionName = "dlclose";
     static void* func = dlsym(RTLD_NEXT, "dlclose");

@@ -2,13 +2,16 @@
 
 #include <chrono>
 #include <memory>
+#include <optional>
 
 #include <userver/engine/task/task.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/kafka/consumer_scope.hpp>
+#include <userver/kafka/impl/consumer_params.hpp>
 #include <userver/kafka/impl/holders.hpp>
 #include <userver/kafka/impl/stats.hpp>
 #include <userver/utils/statistics/writer.hpp>
+#include <userver/utils/zstring_view.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -19,32 +22,6 @@ class ConsumerImpl;
 struct ConsumerConfiguration;
 struct Secret;
 
-/// @brief Parameters Consumer uses in runtime.
-/// The struct is used only for documentation purposes, Consumer can be
-/// created through ConsumerComponent.
-struct ConsumerExecutionParams final {
-    /// @brief Number of new messages consumer is waiting before calling the
-    /// callback.
-    /// Maximum number of messages to consume in `poll_timeout` milliseconds.
-    std::size_t max_batch_size{1};
-
-    /// @brief Amount of time consumer is waiting for new messages before calling
-    /// the callback.
-    /// Maximum time to consume `max_batch_size` messages.
-    std::chrono::milliseconds poll_timeout{1000};
-
-    /// @brief User callback max duration.
-    /// If user callback duration exceeded the `max_callback_duration` consumer is
-    /// kicked from its groups and stops working for indefinite time.
-    /// @warning On each group membership change, all consumers stop and
-    /// start again, so try not to exceed max callback duration.
-    std::chrono::milliseconds max_callback_duration{300000};
-
-    /// @brief Time consumer suspends execution after user-callback exception.
-    /// @note After consumer restart, all uncommitted messages come again.
-    std::chrono::milliseconds restart_after_failure_delay{10000};
-};
-
 class Consumer final {
 public:
     /// @brief Creates the Kafka Consumer.
@@ -54,13 +31,14 @@ public:
     ///
     /// @param topics stands for topics list that consumer subscribes to
     /// after ConsumerScope::Start called
-    /// @param consumer_task_processor -- task processor for message batches
-    /// polling
+    /// @param consumer_task_processor -- task processor for message batches polling
+    /// @param consumer_blocking_task_processor -- task processor for consumer blocking operations
     /// All callbacks are invoked in `main_task_processor`
     Consumer(
         const std::string& name,
         const std::vector<std::string>& topics,
         engine::TaskProcessor& consumer_task_processor,
+        engine::TaskProcessor& consumer_blocking_task_processor,
         engine::TaskProcessor& main_task_processor,
         const ConsumerConfiguration& consumer_configuration,
         const Secret& secrets,
@@ -80,6 +58,49 @@ public:
     /// @brief Dumps per topic messages processing statistics.
     /// @see impl/stats.hpp
     void DumpMetric(utils::statistics::Writer& writer) const;
+
+    /// @cond
+    /// @brief Retrieves the low and high offsets for the specified topic and partition.
+    /// @see ConsumerScope::GetOffsetRange for better commitment process
+    OffsetRange GetOffsetRange(
+        utils::zstring_view topic,
+        std::uint32_t partition,
+        std::optional<std::chrono::milliseconds> timeout = std::nullopt
+    ) const;
+
+    /// @brief Retrieves the partition IDs for the specified topic.
+    /// @see ConsumerScope::GetPartitionIds for better commitment process
+    std::vector<std::uint32_t> GetPartitionIds(
+        utils::zstring_view topic,
+        std::optional<std::chrono::milliseconds> timeout = std::nullopt
+    ) const;
+    /// @endcond
+
+    /// @brief Seeks the \b partition_id for the specified \b topic to a given \b offset .
+    /// @see ConsumerScope::Seek for better commitment process
+    void Seek(
+        utils::zstring_view topic,
+        std::uint32_t partition_id,
+        std::uint64_t offset,
+        std::chrono::milliseconds timeout
+    ) const;
+
+    /// @brief Seeks the \b partition_id for the specified \b topic to the begginning offset .
+    /// @see ConsumerScope::SeekToBeginning for better commitment process
+    void SeekToBeginning(utils::zstring_view topic, std::uint32_t partition_id, std::chrono::milliseconds timeout)
+        const;
+
+    /// @brief Seeks the \b partition_id for the specified \b topic to the end offset .
+    /// @see ConsumerScope::SeekToEnd for better commitment process
+    void SeekToEnd(utils::zstring_view topic, std::uint32_t partition_id, std::chrono::milliseconds timeout) const;
+
+    /// @brief Sets the \b rebalance_callback for consumer .
+    /// @see ConsumerScope::SetRebalanceCallback for better commitment process
+    void SetRebalanceCallback(ConsumerRebalanceCallback rebalance_callback);
+
+    /// @brief Resets the rebalance callback for consumer .
+    /// @see ConsumerScope::ResetRebalanceCallback for better commitment process
+    void ResetRebalanceCallback();
 
 private:
     friend class kafka::ConsumerScope;
@@ -105,12 +126,14 @@ private:
 private:
     std::atomic<bool> processing_{false};
     Stats stats_;
+    std::optional<ConsumerRebalanceCallback> rebalance_callback_;
 
     const std::string name_;
     const std::vector<std::string> topics_;
-    const ConsumerExecutionParams execution_params;
+    const ConsumerExecutionParams execution_params_;
 
     engine::TaskProcessor& consumer_task_processor_;
+    engine::TaskProcessor& consumer_blocking_task_processor_;
     engine::TaskProcessor& main_task_processor_;
 
     ConfHolder conf_;
@@ -119,6 +142,6 @@ private:
     engine::Task poll_task_;
 };
 
-USERVER_NAMESPACE_END
-
 }  // namespace kafka::impl
+
+USERVER_NAMESPACE_END

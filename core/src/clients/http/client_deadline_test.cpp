@@ -19,12 +19,16 @@ using ResponseQueue = concurrent::SpmcQueue<int>;
 
 class WaitingEchoHandler final {
 public:
-    explicit WaitingEchoHandler(ResponseQueue& queue) : data_(std::make_shared<Data>(Data{queue.GetMultiConsumer()})) {}
+    explicit WaitingEchoHandler(ResponseQueue& queue)
+        : data_(std::make_shared<Data>(Data{queue.GetMultiConsumer()}))
+    {}
 
     utest::HttpServerMock::HttpResponse operator()(const utest::HttpServerMock::HttpRequest& request) {
         int response_status{};
         const bool success = data_->responses.Pop(response_status);
-        if (!success) return {500, {}, ""};
+        if (!success) {
+            return {500, {}, ""};
+        }
 
         utest::HttpServerMock::HttpResponse response{};
         response.response_status = response_status;
@@ -133,6 +137,26 @@ UTEST_F(HttpClientDeadline, ConnectionIsKeptAfterDeadlineExpires) {
     }
 
     EXPECT_EQ(GetServer().GetConnectionsOpenedCount(), 1);
+}
+
+UTEST_F(HttpClientDeadline, NoCrashOnUnfinishedRequestReuse) {
+    auto request = GetClient().CreateRequest().get().url(GetServer().GetBaseUrl()).timeout(utest::kMaxTestWaitTime);
+    for ([[maybe_unused]] const auto _ : boost::irange(3)) {
+        SetTaskInheritedDeadline(100ms);
+
+        UEXPECT_THROW((void)request.perform(), clients::http::CancelException);
+        PushResponseCode(200);
+    }
+}
+
+UTEST_F(HttpClientDeadline, NoCrashOnAlreadyTimedOutRequestReuse) {
+    auto request = GetClient().CreateRequest().get().url(GetServer().GetBaseUrl()).timeout(utest::kMaxTestWaitTime);
+    for ([[maybe_unused]] const auto _ : boost::irange(3)) {
+        SetTaskInheritedDeadline(-100ms);
+
+        UEXPECT_THROW((void)request.perform(), clients::http::CancelException);
+        PushResponseCode(200);
+    }
 }
 
 USERVER_NAMESPACE_END

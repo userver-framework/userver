@@ -7,17 +7,10 @@ _userver_module_begin(
 )
 
 _userver_module_find_include(
-    NAMES
-    gflags/gflags.h
-    gflags/gflags_completions.h
-    gflags/gflags_declare.h
-    gflags/gflags_gflags.h
+    NAMES gflags/gflags.h gflags/gflags_completions.h gflags/gflags_declare.h gflags/gflags_gflags.h
     PATH_SUFFIXES include
 )
 
-_userver_module_find_library(
-    NAMES gflags
-    PATH_SUFFIXES lib
-)
+_userver_module_find_library(NAMES gflags PATH_SUFFIXES lib)
 
 _userver_module_end()

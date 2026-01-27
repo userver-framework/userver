@@ -49,10 +49,10 @@ Just like in the @ref scripts/docs/en/userver/tutorial/hello_service.md
 the handler itself is a component inherited from
 server::handlers::HttpHandlerBase:
 
-@snippet samples/multipart_service/service.cpp  Multipart service sample - component
+@snippet samples/multipart_service/main.cpp  Multipart service sample - component
 
 The primary functionality of the handler should be located in
-`HandleRequestThrow` function. To work with the `multipart/form-data`
+`HandleRequest` function. To work with the `multipart/form-data`
 parameters use the appropriate
 server::http::HttpRequest functions:
 
@@ -62,7 +62,7 @@ server::http::HttpRequest functions:
 * server::http::HttpRequest::GetFormDataArgVector()
 * server::http::HttpRequest::HasFormDataArg()
 
-@snippet samples/multipart_service/service.cpp  Multipart service sample - HandleRequestThrow
+@snippet samples/multipart_service/main.cpp  Multipart service sample - HandleRequestThrow
 
 Note the work with the `image` in the above snippet. The image has a
 binary representation that require no additional decoding. The bytes of a
@@ -95,7 +95,7 @@ Finally, we
 add our component to the `components::MinimalServerComponentList()`,
 and start the server with static configuration file passed from command line.
 
-@snippet samples/multipart_service/service.cpp  Multipart service sample - main
+@snippet samples/multipart_service/main.cpp  Multipart service sample - main
 
 
 ### Build and Run
@@ -116,7 +116,6 @@ paths in the configuration files and starts the service.
 To start the service manually run
 `./samples/multipart_service/userver-samples-multipart_service -c </path/to/static_config.yaml>`.
 
-@note Without file path to `static_config.yaml` `userver-samples-multipart_service` will look for a file with name `config_dev.yaml`
 @note CMake doesn't copy `static_config.yaml` files from `samples` directory into build directory.
 
 Now you can send a request to your server from another terminal:
@@ -167,7 +166,7 @@ Do not forget to add the plugin in conftest.py:
 ## Full sources
 
 See the full example at:
-* @ref samples/multipart_service/service.cpp
+* @ref samples/multipart_service/main.cpp
 * @ref samples/multipart_service/static_config.yaml
 * @ref samples/multipart_service/CMakeLists.txt
 * @ref samples/multipart_service/tests/conftest.py
@@ -176,11 +175,11 @@ See the full example at:
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref scripts/docs/en/userver/tutorial/websocket_service.md | @ref scripts/docs/en/userver/tutorial/json_to_yaml.md ⇨
+⇦ @ref scripts/docs/en/userver/tutorial/static_content.md | @ref scripts/docs/en/userver/tutorial/s3api.md ⇨
 @htmlonly </div> @endhtmlonly
 
 
-@example samples/multipart_service/service.cpp
+@example samples/multipart_service/main.cpp
 @example samples/multipart_service/static_config.yaml
 @example samples/multipart_service/CMakeLists.txt
 @example samples/multipart_service/tests/conftest.py

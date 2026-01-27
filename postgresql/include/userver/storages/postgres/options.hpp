@@ -4,14 +4,18 @@
 /// @brief Options
 
 #include <chrono>
+#include <cstdint>
 #include <iosfwd>
 #include <optional>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 
 #include <userver/congestion_control/controllers/linear.hpp>
 #include <userver/storages/postgres/postgres_fwd.hpp>
 #include <userver/utils/impl/transparent_hash.hpp>
+#include <userver/utils/str_icase.hpp>
+#include <userver/utils/string_literal.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -20,7 +24,7 @@ namespace storages::postgres {
 /*! [Isolation levels] */
 /// @brief SQL transaction isolation level
 /// @see https://www.postgresql.org/docs/current/static/sql-set-transaction.html
-enum class IsolationLevel {
+enum class IsolationLevel : std::uint16_t {
     kReadCommitted,   //!< READ COMMITTED
     kRepeatableRead,  //!< REPEATABLE READ
     kSerializable,    //!< SERIALIZABLE
@@ -51,7 +55,7 @@ std::ostream& operator<<(std::ostream&, IsolationLevel);
 /// @see https://www.postgresql.org/docs/current/static/sql-set-transaction.html
 struct TransactionOptions {
     /*! [Transaction modes] */
-    enum Mode {
+    enum Mode : std::uint16_t {
         kReadWrite = 0,
         kReadOnly = 1,
         kDeferrable = 3  //!< Deferrable transaction is read only
@@ -61,9 +65,16 @@ struct TransactionOptions {
     Mode mode = kReadWrite;
 
     constexpr TransactionOptions() = default;
-    constexpr explicit TransactionOptions(IsolationLevel lvl) : isolation_level{lvl} {}
-    constexpr TransactionOptions(IsolationLevel lvl, Mode m) : isolation_level{lvl}, mode{m} {}
-    constexpr explicit TransactionOptions(Mode m) : mode{m} {}
+    constexpr explicit TransactionOptions(IsolationLevel lvl)
+        : isolation_level{lvl}
+    {}
+    constexpr TransactionOptions(IsolationLevel lvl, Mode m)
+        : isolation_level{lvl},
+          mode{m}
+    {}
+    constexpr explicit TransactionOptions(Mode m)
+        : mode{m}
+    {}
 
     bool IsReadOnly() const { return mode & kReadOnly; }
 
@@ -72,10 +83,10 @@ struct TransactionOptions {
     static constexpr TransactionOptions Deferrable() { return {IsolationLevel::kSerializable, kDeferrable}; }
 };
 
-constexpr inline bool operator==(const TransactionOptions& lhs, const TransactionOptions& rhs) {
+constexpr inline bool operator==(TransactionOptions lhs, TransactionOptions rhs) {
     return lhs.isolation_level == rhs.isolation_level && lhs.mode == rhs.mode;
 }
-const std::string& BeginStatement(const TransactionOptions&);
+USERVER_NAMESPACE::utils::StringLiteral BeginStatement(TransactionOptions opts) noexcept;
 
 /// A structure to control timeouts for PosrgreSQL queries
 ///
@@ -105,18 +116,32 @@ const std::string& BeginStatement(const TransactionOptions&);
 /// exception and the driver tries to clean up the connection for further reuse.
 struct CommandControl {
     /// Overall timeout for a command being executed
-    TimeoutDuration execute{};
+    TimeoutDuration network_timeout_ms{};
     /// PostgreSQL server-side timeout
-    TimeoutDuration statement{};
+    TimeoutDuration statement_timeout_ms{};
 
-    constexpr CommandControl(TimeoutDuration execute, TimeoutDuration statement)
-        : execute(execute), statement(statement) {}
+    enum class PreparedStatementsOptionOverride { kNoOverride, kEnabled, kDisabled };
 
-    constexpr CommandControl WithExecuteTimeout(TimeoutDuration n) const noexcept { return {n, statement}; }
+    PreparedStatementsOptionOverride prepared_statements_enabled{PreparedStatementsOptionOverride::kNoOverride};
 
-    constexpr CommandControl WithStatementTimeout(TimeoutDuration s) const noexcept { return {execute, s}; }
+    constexpr CommandControl(
+        TimeoutDuration network_timeout_ms,
+        TimeoutDuration statement_timeout_ms,
+        PreparedStatementsOptionOverride prepared_statements_enabled = PreparedStatementsOptionOverride::kNoOverride
+    )
+        : network_timeout_ms(network_timeout_ms),
+          statement_timeout_ms(statement_timeout_ms),
+          prepared_statements_enabled(prepared_statements_enabled)
+    {}
 
-    bool operator==(const CommandControl& rhs) const { return execute == rhs.execute && statement == rhs.statement; }
+    constexpr CommandControl WithExecuteTimeout(TimeoutDuration n) const noexcept { return {n, statement_timeout_ms}; }
+
+    constexpr CommandControl WithStatementTimeout(TimeoutDuration s) const noexcept { return {network_timeout_ms, s}; }
+
+    bool operator==(const CommandControl& rhs) const {
+        return network_timeout_ms == rhs.network_timeout_ms && statement_timeout_ms == rhs.statement_timeout_ms &&
+               prepared_statements_enabled == rhs.prepared_statements_enabled;
+    }
 
     bool operator!=(const CommandControl& rhs) const { return !(*this == rhs); }
 };
@@ -127,13 +152,15 @@ using OptionalCommandControl = std::optional<CommandControl>;
 using CommandControlByMethodMap = USERVER_NAMESPACE::utils::impl::TransparentMap<std::string, CommandControl>;
 using CommandControlByHandlerMap =
     USERVER_NAMESPACE::utils::impl::TransparentMap<std::string, CommandControlByMethodMap>;
-using CommandControlByQueryMap = std::unordered_map<std::string, CommandControl>;
+using CommandControlByQueryMap = USERVER_NAMESPACE::utils::impl::TransparentMap<std::string, CommandControl>;
 
-OptionalCommandControl
-GetHandlerOptionalCommandControl(const CommandControlByHandlerMap& map, std::string_view path, std::string_view method);
+OptionalCommandControl GetHandlerOptionalCommandControl(
+    const CommandControlByHandlerMap& map,
+    std::string_view path,
+    std::string_view method
+);
 
-OptionalCommandControl
-GetQueryOptionalCommandControl(const CommandControlByQueryMap& map, const std::string& query_name);
+OptionalCommandControl GetQueryOptionalCommandControl(const CommandControlByQueryMap& map, std::string_view query_name);
 
 /// Default initial pool connection count
 inline constexpr std::size_t kDefaultPoolMinSize = 4;
@@ -150,14 +177,22 @@ inline constexpr std::size_t kDefaultPoolMaxQueueSize = 200;
 /// Default limit for concurrent establishing connections number
 inline constexpr std::size_t kDefaultConnectingLimit = 0;
 
+/// @brief PostgreSQL topology options
+///
+/// Dynamic option @ref POSTGRES_TOPOLOGY_SETTINGS
 struct TopologySettings {
+    /// Maximum replication lag. Once the replica lag exceeds this value it will be automatically disabled.
     std::chrono::milliseconds max_replication_lag{kDefaultMaxReplicationLag};
+
+    /// List of manually disabled replicas (FQDNs).
+    std::unordered_set<std::string, USERVER_NAMESPACE::utils::StrIcaseHash, USERVER_NAMESPACE::utils::StrIcaseEqual>
+        disabled_replicas{};
 };
 
 /// @brief PostgreSQL connection pool options
 ///
 /// Dynamic option @ref POSTGRES_CONNECTION_POOL_SETTINGS
-struct PoolSettings {
+struct PoolSettings final {
     /// Number of connections created initially
     std::size_t min_size{kDefaultPoolMinSize};
 
@@ -174,6 +209,15 @@ struct PoolSettings {
         return min_size == rhs.min_size && max_size == rhs.max_size && max_queue_size == rhs.max_queue_size &&
                connecting_limit == rhs.connecting_limit;
     }
+};
+
+// Configs with a suffix `Dynamic` are need to compatibility with static:
+// We must update only fields that were updated in a dynamic config (not a full config!).
+struct PoolSettingsDynamic final {
+    std::optional<std::size_t> min_size;
+    std::optional<std::size_t> max_size;
+    std::optional<std::size_t> max_queue_size;
+    std::optional<std::size_t> connecting_limit;
 };
 
 /// Default size limit for prepared statements cache
@@ -211,6 +255,10 @@ struct ConnectionSettings {
         kDiscardNone,
         kDiscardAll,
     };
+    enum StatementLogMode {
+        kLogSkip,
+        kLog,
+    };
     using SettingsVersion = std::size_t;
 
     /// Cache prepared statements or not
@@ -240,6 +288,11 @@ struct ConnectionSettings {
     /// Execute discard all after establishing a new connection
     DiscardOnConnectOptions discard_on_connect = kDiscardAll;
 
+    /// Statement logging in span tags
+    StatementLogMode statement_log_mode = kLog;
+
+    bool deadline_propagation_enabled = true;
+
     /// Helps keep track of the changes in settings
     SettingsVersion version{0U};
 
@@ -257,6 +310,17 @@ struct ConnectionSettings {
                max_ttl != rhs.max_ttl || discard_on_connect != rhs.discard_on_connect ||
                omit_describe_mode != rhs.omit_describe_mode;
     }
+};
+
+struct ConnectionSettingsDynamic final {
+    std::optional<ConnectionSettings::PreparedStatementOptions> prepared_statements{};
+    std::optional<ConnectionSettings::UserTypesOptions> user_types{};
+    std::optional<std::size_t> max_prepared_cache_size{};
+    std::optional<std::size_t> recent_errors_threshold{};
+    std::optional<ConnectionSettings::CheckQueryParamsOptions> ignore_unused_query_params{};
+    std::optional<std::chrono::seconds> max_ttl{};
+    std::optional<ConnectionSettings::DiscardOnConnectOptions> discard_on_connect{};
+    std::optional<bool> deadline_propagation_enabled{};
 };
 
 /// @brief PostgreSQL statements metrics options

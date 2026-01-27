@@ -30,10 +30,12 @@ struct EncryptedWriter::Impl {
     std::string filename;
     Encryption encryption;
     std::unique_ptr<::CryptoPP::AuthenticatedEncryptionFilter> filter;
-    utils::StreamingCpuRelax cpu_relax_;
+    utils::StreamingCpuRelax cpu_relax;
 
     Impl(std::string&& filename, tracing::ScopeTime* scope)
-        : filename(std::move(filename)), cpu_relax_(kCheckTimeAfterBytes, scope) {}
+        : filename(std::move(filename)),
+          cpu_relax(kCheckTimeAfterBytes, scope)
+    {}
 
     std::string GetTempFilename() const { return filename + ".tmp"; }
 };
@@ -53,7 +55,8 @@ EncryptedWriter::EncryptedWriter(
     boost::filesystem::perms perms,
     tracing::ScopeTime& scope
 )
-    : impl_(std::move(filename), &scope) {
+    : impl_(std::move(filename), &scope)
+{
     IV iv{crypto::GenerateRandomBlock(kIvSize)};
     impl_->encryption.SetKeyWithIV(GetBytes(secret_key), secret_key.GetUnderlying().size(), GetBytes(iv), iv.size());
 
@@ -75,7 +78,7 @@ EncryptedWriter::~EncryptedWriter() = default;
 void EncryptedWriter::WriteRaw(std::string_view data) {
     // 2. Data
     impl_->filter->Put(reinterpret_cast<const unsigned char*>(data.data()), data.size());
-    impl_->cpu_relax_.Relax(data.size());
+    impl_->cpu_relax.Relax(data.size());
 }
 
 void EncryptedWriter::Finish() {
@@ -101,9 +104,8 @@ EncryptedReader::EncryptedReader(std::string filename, const SecretKey& secret_k
     constexpr bool kPumpAll = false;
 
     IV iv;
-    impl_->file = std::make_unique<::CryptoPP::FileSource>(
-        impl_->filename.c_str(), kPumpAll, new ::CryptoPP::StringSink(iv.GetUnderlying())
-    );
+    impl_->file = std::make_unique<
+        ::CryptoPP::FileSource>(impl_->filename.c_str(), kPumpAll, new ::CryptoPP::StringSink(iv.GetUnderlying()));
 
     auto& file = *impl_->file;
 
@@ -160,18 +162,29 @@ std::string_view EncryptedReader::ReadRaw(std::size_t max_size) {
     return {impl_->raw.data(), result_size};
 }
 
+void EncryptedReader::BackUp(std::size_t size) {
+    UASSERT_MSG(size <= impl_->next_skip, "Trying to BackUp more bytes than returned by the last ReadRaw");
+    impl_->next_skip -= size;
+}
+
 void EncryptedReader::Finish() {
-    if (impl_->file->GetStream()->eof()) return;
+    if (impl_->file->GetStream()->eof()) {
+        return;
+    }
 
     impl_->raw.clear();
     impl_->file->Pump(1);
-    if (impl_->raw.empty() && impl_->file->GetStream()->eof()) return;
+    if (impl_->raw.empty() && impl_->file->GetStream()->eof()) {
+        return;
+    }
 
     throw Error(fmt::format("Unexpected extra data at the end of encrypted dump file \"{}\"", impl_->filename));
 }
 
 EncryptedOperationsFactory::EncryptedOperationsFactory(SecretKey&& secret_key, boost::filesystem::perms perms)
-    : secret_key_(std::move(secret_key)), perms_(perms) {}
+    : secret_key_(std::move(secret_key)),
+      perms_(perms)
+{}
 
 std::unique_ptr<Reader> EncryptedOperationsFactory::CreateReader(std::string full_path) {
     return std::make_unique<EncryptedReader>(std::move(full_path), secret_key_);

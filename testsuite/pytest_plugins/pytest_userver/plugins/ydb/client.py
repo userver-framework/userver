@@ -2,6 +2,8 @@ import ydb as ydb_native_client
 
 
 class YdbClient:
+    """YDB Client implementation."""
+
     def __init__(self, endpoint, database):
         self._driver = self._init_driver(endpoint, database)
         self._database = database
@@ -9,6 +11,10 @@ class YdbClient:
 
     def execute(self, query):
         return self._session.transaction().execute(query, commit_tx=True)
+
+    @property
+    def topic_client(self):
+        return self._driver.topic_client
 
     @property
     def session(self):
@@ -21,7 +27,9 @@ class YdbClient:
     @staticmethod
     def _init_driver(endpoint, database):
         config = ydb_native_client.DriverConfig(
-            endpoint=endpoint, database=database, auth_token='',
+            endpoint=endpoint,
+            database=database,
+            auth_token='',
         )
         driver = ydb_native_client.Driver(config)
         driver.wait(timeout=30)
@@ -56,12 +64,8 @@ def create_table(client, schema):
         '/{}/{}'.format(client.database, schema['path']),
         ydb_native_client.TableDescription()
         .with_primary_keys(*schema['primary_key'])
-        .with_columns(*[
-            _prepare_column(column, version) for column in schema['schema']
-        ])
-        .with_indexes(*[
-            _prepare_index(index) for index in schema.get('indexes', [])
-        ]),
+        .with_columns(*[_prepare_column(column, version) for column in schema['schema']])
+        .with_indexes(*[_prepare_index(index) for index in schema.get('indexes', [])]),
     )
 
 

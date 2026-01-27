@@ -1,11 +1,18 @@
 #pragma once
 
 #include <chrono>
+#include <optional>
 #include <string>
 
+#include <userver/clients/http/cancellation_policy.hpp>
 #include <userver/dynamic_config/fwd.hpp>
 #include <userver/formats/json_fwd.hpp>
 #include <userver/yaml_config/fwd.hpp>
+
+namespace dynamic_config::http_client_connect_throttle {
+struct VariableTypeRaw;
+using VariableType = VariableTypeRaw;
+}  // namespace dynamic_config::http_client_connect_throttle
 
 USERVER_NAMESPACE_BEGIN
 
@@ -18,13 +25,6 @@ namespace clients::http {
 struct DeadlinePropagationConfig {
     bool update_header{true};
 };
-
-enum class CancellationPolicy {
-    kIgnore,
-    kCancel,
-};
-
-CancellationPolicy Parse(yaml_config::YamlConfig value, formats::parse::To<CancellationPolicy>);
 
 // Static config
 struct ClientSettings final {
@@ -52,18 +52,15 @@ struct ThrottleConfig final {
     std::chrono::microseconds per_host_connect_rate{0};
 };
 
-ThrottleConfig Parse(const formats::json::Value& value, formats::parse::To<ThrottleConfig>);
+ThrottleConfig Parse(const ::dynamic_config::http_client_connect_throttle::VariableType&);
 
 // Dynamic config
 struct Config final {
     static constexpr std::size_t kDefaultConnectionPoolSize = 10000;
 
     std::size_t connection_pool_size{kDefaultConnectionPoolSize};
-    std::string proxy;
     ThrottleConfig throttle;
 };
-
-Config ParseConfig(const dynamic_config::DocsMap& docs_map);
 
 }  // namespace clients::http::impl
 

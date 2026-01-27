@@ -7,14 +7,11 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::redis {
 
-class RequestExecDataImpl final : public RequestDataImplBase, public RequestDataBase<void> {
+class RequestExecDataImpl final : public RequestDataBase<void> {
 public:
-    RequestExecDataImpl(
-        USERVER_NAMESPACE::redis::Request&& request,
-        std::vector<TransactionImpl::ResultPromise>&& result_promises
-    );
+    RequestExecDataImpl(impl::Request&& request, std::vector<TransactionImpl::ResultPromise>&& result_promises);
 
-    void Wait() override;
+    void Wait() noexcept override;
 
     void Get(const std::string& request_description) override;
 
@@ -26,6 +23,9 @@ public:
     }
 
 private:
+    ReplyPtr GetReply() { return request_.Get(); }
+
+    impl::Request request_;
     std::vector<TransactionImpl::ResultPromise> result_promises_;
 };
 

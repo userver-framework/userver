@@ -4,18 +4,11 @@ from chaotic.back.cpp.translator import GeneratorConfig
 from chaotic.back.cpp.types import CppRef
 from chaotic.back.cpp.types import CppStruct
 from chaotic.front import ref_resolver
-from chaotic.front.parser import ParserConfig
-from chaotic.front.parser import SchemaParser
-from chaotic.front.types import SchemaObject
-from chaotic.main import generate_cpp_name_func
-from chaotic.main import NameMapItem
+from chaotic.front.types import Schema
 
 
-def test_simple_ref(clean):
-    config = ParserConfig(erase_prefix='')
-    parser = SchemaParser(
-        config=config, full_filepath='full', full_vfilepath='vfull',
-    )
+def test_simple_ref(clean, cpp_name_func, schema_parser):
+    parser = schema_parser
 
     parser.parse_schema(
         '/definitions/Type',
@@ -23,42 +16,37 @@ def test_simple_ref(clean):
     )
     parser.parse_schema('/definitions/ref', {'$ref': '#/definitions/Type'})
 
-    cpp_name_func = generate_cpp_name_func(
-        [NameMapItem('/definitions/([^/]*)/={0}')], '',
-    )
-
     schemas = parser.parsed_schemas()
     rr = ref_resolver.RefResolver()
     resolved_schemas = rr.sort_schemas(schemas)
     gen = Generator(
         config=GeneratorConfig(
-            namespaces={'vfull': ''}, infile_to_name_func=cpp_name_func,
+            namespaces={'vfull': ''},
+            infile_to_name_func=cpp_name_func,
         ),
     )
     cpp_types = gen.generate_types(resolved_schemas)
     cpp_types = clean(cpp_types)
 
     assert cpp_types == {
-        'Type': CppStruct(
-            raw_cpp_type=type_name.TypeName('Type'),
-            json_schema=None,
+        '::Type': CppStruct(
+            raw_cpp_type=type_name.TypeName('::Type'),
+            json_schema=Schema(),
             nullable=False,
             user_cpp_type=None,
             fields={},
         ),
-        'ref': CppRef(
-            raw_cpp_type=type_name.TypeName(''),
-            json_schema=None,
+        '::ref': CppRef(
+            raw_cpp_type=type_name.TypeName('::ref'),
+            json_schema=Schema(),
             nullable=False,
             indirect=False,
             self_ref=False,
-            cpp_name='Type',
+            cpp_name='::Type',
             user_cpp_type=None,
             orig_cpp_type=CppStruct(
-                raw_cpp_type=type_name.TypeName('Type'),
-                json_schema=SchemaObject(
-                    additionalProperties=False, properties={},
-                ),
+                raw_cpp_type=type_name.TypeName('::Type'),
+                json_schema=Schema(),
                 nullable=False,
                 user_cpp_type=None,
                 fields={},

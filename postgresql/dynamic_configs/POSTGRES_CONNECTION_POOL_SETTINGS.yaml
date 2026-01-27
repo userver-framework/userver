@@ -1,0 +1,71 @@
+default: {}
+description: |
+    Dynamic config that controls connection pool settings of PostgreSQL driver.
+
+    Dictionary keys can be either the value of `name_alias` static configuration option of the PostgreSQL component
+    (**not database name!**) or `__default__`. The latter configuration is applied for every non-matching
+    PostgreSQL component of the service.
+
+    Take note that it overrides the static configuration values of the service!
+schema:
+    type: object
+    example: |
+        {
+            // Settings for a specific component.
+            "postgresql-orders": {
+                "min_pool_size": 8,
+                "max_pool_size": 50,
+                "max_queue_size": 200,
+                "connecting_limit": 10
+            },
+            // All other components.
+            "__default__": {
+                "min_pool_size": 4,
+                "max_pool_size": 15,
+                "max_queue_size": 200,
+                "connecting_limit": 8
+            }
+        }
+    properties:
+        __default__:
+            $ref: "#/definitions/PoolSettings"
+    additionalProperties:
+        $ref: "#/definitions/PoolSettings"
+    definitions:
+        PoolSettings:
+            type: object
+            additionalProperties: false
+            properties:
+                min_pool_size:
+                    type: integer
+                    minimum: 0
+                    default: 4
+                    x-usrv-cpp-type: std::size_t
+                    description: |
+                        Number of connections created initially by PostgreSQL component instance to each of the provided
+                        PostgreSQL hosts. Connections are kept even without requests.
+                max_pool_size:
+                    type: integer
+                    minimum: 1
+                    default: 15
+                    x-usrv-cpp-type: std::size_t
+                    description: |
+                        Maximum number of connections that can be created by PostgreSQL component instance to each of
+                        the provided hosts for "connlimit_mode: manual". Should not be less than `min_pool_size`.
+                max_queue_size:
+                    type: integer
+                    minimum: 1
+                    default: 200
+                    description: |
+                        Maximum number of clients waiting for a connection. Exception is thrown if a new request
+                        exceeds this limit.
+                connecting_limit:
+                    type: integer
+                    minimum: 0
+                    default: 0
+                    description: |
+                        Limit for concurrent establishing connections number per PostgreSQL host (0 - unlimited).
+            required:
+              - min_pool_size
+              - max_pool_size
+              - max_queue_size

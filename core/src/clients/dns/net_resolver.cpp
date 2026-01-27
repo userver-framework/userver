@@ -49,7 +49,10 @@ std::exception_ptr MakeNotResolvedException(std::string_view name, std::string_v
 class NetResolver::Impl {
 public:
     struct Request {
-        Request(Impl& owner, std::string&& name) : owner{owner}, name{std::move(name)} {}
+        Request(Impl& owner, std::string&& name)
+            : owner{owner},
+              name{std::move(name)}
+        {}
 
         Impl& owner;
 
@@ -72,7 +75,8 @@ public:
         : fs_task_processor(fs_task_processor),
           query_timeout(query_timeout),
           query_attempts(query_attempts),
-          servers_csv(std::move(servers_csv)) {
+          servers_csv(std::move(servers_csv))
+    {
         // Might've been better to replace asocket as well but that requires
         // reimplementing a lot of configuration steps.
         socket_functions.aclose = &SocketCloseCallback;
@@ -209,8 +213,9 @@ public:
                 if (response.ttl.count() > node->ai_ttl) {
                     response.ttl = std::chrono::seconds{node->ai_ttl};
                 }
-                LOG_DEBUG() << request->name << " resolved to " << response.addrs.back() << " at "
-                            << response.received_at << ", ttl=" << node->ai_ttl;
+                LOG_DEBUG()
+                    << request->name << " resolved to " << response.addrs.back() << " at " << response.received_at
+                    << ", ttl=" << node->ai_ttl;
             }
             if (response.addrs.empty()) {
                 request->promise.set_exception(MakeNotResolvedException(request->name, "Empty address list"));
@@ -231,15 +236,17 @@ public:
     }
 
     void InitChannel() {
-        constexpr int kOptmask = ARES_OPT_FLAGS | ARES_OPT_TIMEOUTMS | ARES_OPT_TRIES | ARES_OPT_DOMAINS |
+        constexpr int kOptmask =
+            ARES_OPT_FLAGS | ARES_OPT_TIMEOUTMS | ARES_OPT_TRIES | ARES_OPT_DOMAINS |
 #if ARES_VERSION < 0x011400
-                                 ARES_OPT_SOCK_STATE_CB |
+            ARES_OPT_SOCK_STATE_CB |
 #endif
-                                 ARES_OPT_LOOKUPS;
+            ARES_OPT_LOOKUPS;
         struct ares_options options {};
-        options.flags = ARES_FLAG_STAYOPEN |  // do not close idle sockets
-                        ARES_FLAG_NOSEARCH |  // do not use search domains
-                        ARES_FLAG_NOALIASES;  // ignore HOSTALIASES from env
+        options.flags =
+            ARES_FLAG_STAYOPEN |  // do not close idle sockets
+            ARES_FLAG_NOSEARCH |  // do not use search domains
+            ARES_FLAG_NOALIASES;  // ignore HOSTALIASES from env
         options.timeout = query_timeout.count();
         options.tries = query_attempts;
         options.domains = nullptr;
@@ -295,7 +302,12 @@ public:
                 const auto* name_c_str = req->name.c_str();
                 auto channel_scope = channel.Use();
                 ::ares_getaddrinfo(
-                    channel_scope->get(), name_c_str, nullptr, &kHints, &AddrinfoCallback, req.release()
+                    channel_scope->get(),
+                    name_c_str,
+                    nullptr,
+                    &kHints,
+                    &AddrinfoCallback,
+                    req.release()
                 );
             }
 
@@ -319,12 +331,9 @@ NetResolver::NetResolver(
     int query_attempts,
     const std::vector<std::string>& custom_servers
 )
-    : impl_{std::make_unique<Impl>(
-          fs_task_processor,
-          query_timeout,
-          query_attempts,
-          fmt::to_string(fmt::join(custom_servers, ","))
-      )} {
+    : impl_{std::make_unique<
+          Impl>(fs_task_processor, query_timeout, query_attempts, fmt::to_string(fmt::join(custom_servers, ",")))}
+{
     static const impl::GlobalInitializer kInitCAres;
 
     if (query_timeout.count() < 0 || query_timeout.count() > std::numeric_limits<int>::max()) {

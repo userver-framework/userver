@@ -26,13 +26,14 @@ stats::OpType ToStatsOpType(operations::Delete::Mode);
 
 class Count::Impl {
 public:
-    explicit Impl(formats::bson::Document filter_) : filter(std::move(filter_)) {}
+    explicit Impl(formats::bson::Document filter)
+        : filter(std::move(filter))
+    {}
 
     formats::bson::Document filter;
     stats::OperationKey op_key{stats::OpType::kCount};
     impl::cdriver::ReadPrefsPtr read_prefs;
     std::optional<formats::bson::impl::BsonBuilder> options;
-    bool use_new_count{true};
     std::chrono::milliseconds max_server_time{kNoMaxServerTime};
 };
 
@@ -46,7 +47,9 @@ public:
 
 class Find::Impl {
 public:
-    explicit Impl(formats::bson::Document filter_) : filter(std::move(filter_)) {}
+    explicit Impl(formats::bson::Document filter)
+        : filter(std::move(filter))
+    {}
 
     formats::bson::Document filter;
     stats::OperationKey op_key{stats::OpType::kFind};
@@ -58,7 +61,9 @@ public:
 
 class InsertOne::Impl {
 public:
-    explicit Impl(formats::bson::Document&& document_) : document(std::move(document_)) {}
+    explicit Impl(formats::bson::Document&& document)
+        : document(std::move(document))
+    {}
 
     formats::bson::Document document;
     stats::OperationKey op_key{stats::OpType::kInsertOne};
@@ -70,7 +75,9 @@ class InsertMany::Impl {
 public:
     Impl() = default;
 
-    explicit Impl(std::vector<formats::bson::Document>&& documents_) : documents(std::move(documents_)) {}
+    explicit Impl(std::vector<formats::bson::Document>&& documents)
+        : documents(std::move(documents))
+    {}
 
     std::vector<formats::bson::Document> documents;
     stats::OperationKey op_key{stats::OpType::kInsertMany};
@@ -80,8 +87,10 @@ public:
 
 class ReplaceOne::Impl {
 public:
-    Impl(formats::bson::Document&& selector_, formats::bson::Document&& replacement_)
-        : selector(std::move(selector_)), replacement(std::move(replacement_)) {}
+    Impl(formats::bson::Document&& selector, formats::bson::Document&& replacement)
+        : selector(std::move(selector)),
+          replacement(std::move(replacement))
+    {}
 
     formats::bson::Document selector;
     formats::bson::Document replacement;
@@ -92,8 +101,11 @@ public:
 
 class Update::Impl {
 public:
-    Impl(Mode mode_, formats::bson::Document&& selector_, formats::bson::Document update_)
-        : mode(mode_), selector(std::move(selector_)), update(std::move(update_)) {}
+    Impl(Mode mode, formats::bson::Document&& selector, formats::bson::Document update)
+        : mode(mode),
+          selector(std::move(selector)),
+          update(std::move(update))
+    {}
 
     Mode mode;
     bool should_throw{true};  // moved here for size optimization
@@ -106,7 +118,10 @@ public:
 
 class Delete::Impl {
 public:
-    Impl(Mode mode_, formats::bson::Document&& selector_) : mode(mode_), selector(std::move(selector_)) {}
+    Impl(Mode mode, formats::bson::Document&& selector)
+        : mode(mode),
+          selector(std::move(selector))
+    {}
 
     Mode mode;
     bool should_throw{true};  // moved here for size optimization
@@ -117,7 +132,18 @@ public:
 
 class FindAndModify::Impl {
 public:
-    explicit Impl(formats::bson::Document&& query_) : query(std::move(query_)) {}
+    explicit Impl(formats::bson::Document&& query)
+        : query(std::move(query))
+    {}
+
+    Impl CloneWithOptions(impl::cdriver::FindAndModifyOptsPtr opts) const {
+        Impl impl{formats::bson::Document(query)};
+        impl.op_key = op_key;
+        impl.options = std::move(opts);
+        impl.should_retry_dupkey = should_retry_dupkey;
+        impl.max_server_time = max_server_time;
+        return impl;
+    }
 
     formats::bson::Document query;
     stats::OperationKey op_key{stats::OpType::kFindAndModify};
@@ -128,7 +154,17 @@ public:
 
 class FindAndRemove::Impl {
 public:
-    explicit Impl(formats::bson::Document&& query_) : query(std::move(query_)) {}
+    explicit Impl(formats::bson::Document&& query)
+        : query(std::move(query))
+    {}
+
+    Impl CloneWithOptions(impl::cdriver::FindAndModifyOptsPtr opts) const {
+        Impl impl{formats::bson::Document(query)};
+        impl.op_key = op_key;
+        impl.options = std::move(opts);
+        impl.max_server_time = max_server_time;
+        return impl;
+    }
 
     formats::bson::Document query;
     stats::OperationKey op_key{stats::OpType::kFindAndRemove};
@@ -138,7 +174,9 @@ public:
 
 class Bulk::Impl {
 public:
-    explicit Impl(Mode mode_) : mode(mode_) {}
+    explicit Impl(Mode mode)
+        : mode(mode)
+    {}
 
     impl::cdriver::BulkOperationPtr bulk;
     stats::OperationKey op_key{stats::OpType::kBulk};
@@ -148,11 +186,33 @@ public:
 
 class Aggregate::Impl {
 public:
-    explicit Impl(formats::bson::Value pipeline_) : pipeline(std::move(pipeline_)) {}
+    explicit Impl(formats::bson::Value pipeline)
+        : pipeline(std::move(pipeline))
+    {}
 
     formats::bson::Value pipeline;
     impl::cdriver::ReadPrefsPtr read_prefs;
     stats::OperationKey op_key{stats::OpType::kAggregate};
+    std::optional<formats::bson::impl::BsonBuilder> options;
+    bool has_comment_option{false};
+    std::chrono::milliseconds max_server_time{kNoMaxServerTime};
+};
+
+class Distinct::Impl {
+public:
+    explicit Impl(std::string field)
+        : field(std::move(field))
+    {}
+
+    Impl(std::string field, formats::bson::Document filter)
+        : field(std::move(field)),
+          filter(std::move(filter))
+    {}
+
+    std::string field;
+    std::optional<formats::bson::Document> filter;
+    stats::OperationKey op_key{stats::OpType::kDistinct};
+    impl::cdriver::ReadPrefsPtr read_prefs;
     std::optional<formats::bson::impl::BsonBuilder> options;
     bool has_comment_option{false};
     std::chrono::milliseconds max_server_time{kNoMaxServerTime};

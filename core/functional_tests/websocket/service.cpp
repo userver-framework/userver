@@ -1,9 +1,10 @@
 #include <userver/clients/dns/component.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
 
-#include <userver/clients/http/component.hpp>
+#include <userver/clients/http/component_list.hpp>
 #include <userver/components/minimal_server_component_list.hpp>
 #include <userver/concurrent/queue.hpp>
+#include <userver/engine/sleep.hpp>
 #include <userver/server/handlers/tests_control.hpp>
 #include <userver/server/websocket/websocket_handler.hpp>
 #include <userver/utils/async.hpp>
@@ -40,7 +41,9 @@ public:
         while (!engine::current_task::ShouldCancel()) {
             chat.Recv(message);
 
-            if (message.close_status) break;
+            if (message.close_status) {
+                break;
+            }
 
             if (message.data == "close") {
                 chat.Close(server::websocket::CloseStatus::kGoingAway);
@@ -49,7 +52,9 @@ public:
 
             chat.Send(std::move(message));
         }
-        if (message.close_status) chat.Close(*message.close_status);
+        if (message.close_status) {
+            chat.Close(*message.close_status);
+        }
     }
 };
 
@@ -62,16 +67,20 @@ public:
     void Handle(server::websocket::WebSocketConnection& chat, server::request::RequestContext&) const override {
         server::websocket::Message message;
         while (!engine::current_task::ShouldCancel()) {
-            const bool msgIsReceived = chat.TryRecv(message);
-            if (msgIsReceived) {
-                if (message.close_status) break;
+            const bool msg_is_received = chat.TryRecv(message);
+            if (msg_is_received) {
+                if (message.close_status) {
+                    break;
+                }
                 chat.Send(std::move(message));
             } else {
                 // we could've sent yet another server::websocket::Message
                 // e.g. chat.SendBinary(server::websocket::Message{ "blah", {}, true });
             }
         }
-        if (message.close_status) chat.Close(*message.close_status);
+        if (message.close_status) {
+            chat.Close(*message.close_status);
+        }
     }
 };
 
@@ -89,7 +98,9 @@ public:
             server::websocket::Message message;
             while (!engine::current_task::ShouldCancel()) {
                 chat.Recv(message);
-                if (message.close_status) break;
+                if (message.close_status) {
+                    break;
+                }
                 [[maybe_unused]] auto ret = producer.Push(std::move(message.data));
             }
         });
@@ -97,7 +108,9 @@ public:
         auto writer = utils::Async("writer", [&chat, consumer = queue->GetConsumer()] {
             while (!engine::current_task::ShouldCancel()) {
                 std::string msg;
-                if (!consumer.Pop(msg)) break;
+                if (!consumer.Pop(msg)) {
+                    break;
+                }
                 chat.SendBinary(msg);
             }
         });
@@ -109,14 +122,38 @@ public:
     }
 };
 
+class WebsocketsPingPongHandler final : public server::websocket::WebsocketHandlerBase {
+public:
+    static constexpr std::string_view kName = "websocket-ping-pong-handler";
+
+    using WebsocketHandlerBase::WebsocketHandlerBase;
+
+    void Handle(server::websocket::WebSocketConnection& chat, server::request::RequestContext&) const override {
+        std::chrono::milliseconds time_without_sends{0};
+        while (!engine::current_task::ShouldCancel()) {
+            if (chat.NotAnsweredSequentialPingsCount() > 3) {
+                LOG_WARNING() << "Ping not answered, closing connection";
+                chat.Close(server::websocket::CloseStatus::kGoingAway);
+                break;
+            }
+
+            chat.SendPing();
+            time_without_sends += std::chrono::milliseconds(200);
+            engine::InterruptibleSleepFor(std::chrono::milliseconds(200));
+        }
+    }
+};
+
 int main(int argc, char* argv[]) {
-    const auto component_list = components::MinimalServerComponentList()
-                                    .Append<WebsocketsHandler>()
-                                    .Append<WebsocketsHandlerAlt>()
-                                    .Append<WebsocketsFullDuplexHandler>()
-                                    .Append<clients::dns::Component>()
-                                    .Append<components::HttpClient>()
-                                    .Append<components::TestsuiteSupport>()
-                                    .Append<server::handlers::TestsControl>();
+    const auto component_list =
+        components::MinimalServerComponentList()
+            .Append<WebsocketsHandler>()
+            .Append<WebsocketsHandlerAlt>()
+            .Append<WebsocketsFullDuplexHandler>()
+            .Append<WebsocketsPingPongHandler>()
+            .Append<clients::dns::Component>()
+            .AppendComponentList(clients::http::ComponentList())
+            .Append<components::TestsuiteSupport>()
+            .Append<server::handlers::TestsControl>();
     return utils::DaemonMain(argc, argv, component_list);
 }

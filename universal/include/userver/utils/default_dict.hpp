@@ -51,14 +51,23 @@ public:
 
     DefaultDict() = default;
 
-    DefaultDict(init_list contents) : dict_(contents.begin(), contents.end()) {}
+    DefaultDict(init_list contents)
+        : dict_(contents.begin(), contents.end())
+    {}
 
-    DefaultDict(DictType dict) : dict_(std::move(dict)) {}
+    DefaultDict(DictType dict)
+        : dict_(std::move(dict))
+    {}
 
     DefaultDict(std::string name, init_list contents)
-        : name_(std::move(name)), dict_(contents.begin(), contents.end()) {}
+        : name_(std::move(name)),
+          dict_(contents.begin(), contents.end())
+    {}
 
-    DefaultDict(std::string name, DictType dict) : name_(std::move(name)), dict_(std::move(dict)) {}
+    DefaultDict(std::string name, DictType dict)
+        : name_(std::move(name)),
+          dict_(std::move(dict))
+    {}
 
     /// Returns true if *this has a utils::kDefaultDictDefaultName key,
     /// otherwise returns false.
@@ -79,9 +88,9 @@ public:
         return it->second;
     }
 
-    /// Returns value by `key` if it is in *this, otherwise returns value
-    /// by utils::kDefaultDictDefaultName if it is in *this,
-    /// otherwise throws a std::runtime_error exception.
+    /// Returns value by `key` if it is in `*this`, otherwise returns value
+    /// by @ref utils::kDefaultDictDefaultName if it is in `*this`,
+    /// otherwise throws a `std::runtime_error` exception.
     const ValueType& operator[](std::string_view key) const {
         auto it = utils::impl::FindTransparent(dict_, key);
         if (it == dict_.end()) {
@@ -99,7 +108,9 @@ public:
         return key ? Get(*key) : GetDefaultValue();
     }
 
-    /// @overload operator[](std::string_view key)
+    /// Returns value by `key` if it is in `*this`, otherwise returns value
+    /// by @ref utils::kDefaultDictDefaultName if it is in `*this`,
+    /// otherwise throws a `std::runtime_error` exception.
     const ValueType& Get(std::string_view key) const { return (*this)[key]; }
 
     /// Returns `key ? Get(*key) : GetDefaultValue()`
@@ -115,7 +126,9 @@ public:
         auto it = utils::impl::FindTransparent(dict_, key);
         if (it == dict_.end()) {
             it = utils::impl::FindTransparent(dict_, kDefaultDictDefaultName);
-            if (it == dict_.end()) return std::nullopt;
+            if (it == dict_.end()) {
+                return std::nullopt;
+            }
         }
 
         return it->second;

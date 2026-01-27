@@ -15,9 +15,13 @@ namespace {
 constexpr std::int32_t kMillis = 1000;
 }
 
-RetryBudget::RetryBudget() : RetryBudget(RetryBudgetSettings()) {}
+RetryBudget::RetryBudget()
+    : RetryBudget(RetryBudgetSettings())
+{}
 
-RetryBudget::RetryBudget(const RetryBudgetSettings& settings) : token_count_(settings.max_tokens * kMillis) {
+RetryBudget::RetryBudget(const RetryBudgetSettings& settings)
+    : token_count_(settings.max_tokens * kMillis)
+{
     SetSettings(settings);
 }
 
@@ -31,9 +35,11 @@ void RetryBudget::AccountOk() noexcept {
 
     auto expected = token_count_.load(std::memory_order_relaxed);
     while (!token_count_.compare_exchange_weak(
-        expected, std::min(max_tokens, expected + token_ratio), std::memory_order_relaxed, std::memory_order_relaxed
-    ))
-        ;
+        expected,
+        std::min(max_tokens, expected + token_ratio),
+        std::memory_order_relaxed,
+        std::memory_order_relaxed
+    ));
 
     ++ok_rate_counter_;
 }
@@ -45,9 +51,11 @@ void RetryBudget::AccountFail() noexcept {
 
     auto expected = token_count_.load(std::memory_order_relaxed);
     while (!token_count_.compare_exchange_weak(
-        expected, std::max(0, expected - kMillis), std::memory_order_relaxed, std::memory_order_relaxed
-    ))
-        ;
+        expected,
+        std::max(0, expected - kMillis),
+        std::memory_order_relaxed,
+        std::memory_order_relaxed
+    ));
 
     ++fail_rate_counter_;
 }
@@ -71,12 +79,21 @@ void RetryBudget::SetSettings(const RetryBudgetSettings& settings) {
     token_ratio_.store(settings.token_ratio * kMillis, std::memory_order_relaxed);
 }
 
-RetryBudgetSettings Parse(const formats::json::Value& elem, formats::parse::To<RetryBudgetSettings>) {
+template <typename Value>
+RetryBudgetSettings DoParse(const Value& elem, formats::parse::To<RetryBudgetSettings>) {
     RetryBudgetSettings result;
-    result.max_tokens = elem["max-tokens"].As<float>(result.max_tokens);
-    result.token_ratio = elem["token-ratio"].As<float>(result.token_ratio);
-    result.enabled = elem["enabled"].As<bool>(result.enabled);
+    result.max_tokens = elem["max-tokens"].template As<float>(result.max_tokens);
+    result.token_ratio = elem["token-ratio"].template As<float>(result.token_ratio);
+    result.enabled = elem["enabled"].template As<bool>(result.enabled);
     return result;
+}
+
+RetryBudgetSettings Parse(const formats::json::Value& elem, formats::parse::To<RetryBudgetSettings> to) {
+    return DoParse(elem, to);
+}
+
+RetryBudgetSettings Parse(const yaml_config::Value& elem, formats::parse::To<RetryBudgetSettings> to) {
+    return DoParse(elem, to);
 }
 
 void DumpMetric(statistics::Writer& writer, const RetryBudget& budget) {

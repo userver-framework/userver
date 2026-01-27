@@ -15,6 +15,7 @@
 
 #include <userver/compiler/demangle.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/string_literal.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -24,7 +25,9 @@ namespace impl {
 
 constexpr bool HasUppercaseAscii(std::string_view value) noexcept {
     for (auto c : value) {
-        if ('A' <= c && c <= 'Z') return true;
+        if ('A' <= c && c <= 'Z') {
+            return true;
+        }
     }
 
     return false;
@@ -97,7 +100,9 @@ public:
 #if defined(__clang__)
         __builtin_assume(size_ != kInvalidSize);
 #elif defined(__GNUC__)
-        if (size_ == kInvalidSize) __builtin_unreachable();
+        if (size_ == kInvalidSize) {
+            __builtin_unreachable();
+        }
 #endif
     }
 
@@ -105,9 +110,16 @@ public:
 
     constexpr bool HasPayload() const noexcept { return size_ == kInvalidSize; }
 
-    constexpr std::string_view GetString() const noexcept {
+    constexpr const char* GetStringPointer() const noexcept {
         UASSERT(!HasPayload());
-        return std::string_view{data_or_payload_.data, size_};
+        UASSERT(data_or_payload_.data);
+        return data_or_payload_.data;
+    }
+
+    constexpr std::size_t GetStringSize() const noexcept {
+        UASSERT(!HasPayload());
+        UASSERT(data_or_payload_.data);
+        return size_;
     }
 
     constexpr Payload GetPayload() const noexcept {
@@ -132,13 +144,15 @@ private:
 };
 
 template <typename Value>
-class SearchState<std::string_view, Value, std::enable_if_t<kFitsInStringOrPayload<Value>>> final {
+class SearchState<std::string_view, Value, std::enable_if_t<kFitsInStringOrPayload<Value>>> {
 public:
     constexpr explicit SearchState(std::string_view key) noexcept : state_(key) {}
 
     constexpr bool IsFound() const noexcept { return state_.HasPayload(); }
 
-    constexpr std::string_view GetKey() const noexcept { return state_.GetString(); }
+    constexpr std::string_view GetKey() const noexcept {
+        return std::string_view{state_.GetStringPointer(), state_.GetStringSize()};
+    }
 
     constexpr void SetValue(Value value) noexcept { state_ = StringOrPayload<Value>{value}; }
 
@@ -149,6 +163,14 @@ public:
 private:
     StringOrPayload<Value> state_;
 };
+
+template <typename Value>
+class SearchState<zstring_view, Value, std::enable_if_t<kFitsInStringOrPayload<Value>>> final
+    : public SearchState<std::string_view, Value> {};
+
+template <typename Value>
+class SearchState<StringLiteral, Value, std::enable_if_t<kFitsInStringOrPayload<Value>>> final
+    : public SearchState<std::string_view, Value> {};
 
 template <typename Key>
 class SearchState<Key, std::string_view, std::enable_if_t<kFitsInStringOrPayload<Key>>> final {
@@ -162,7 +184,48 @@ public:
     constexpr void SetValue(std::string_view value) noexcept { state_ = StringOrPayload<Key>{value}; }
 
     [[nodiscard]] constexpr std::optional<std::string_view> Extract() noexcept {
-        return IsFound() ? std::optional{state_.GetString()} : std::nullopt;
+        return IsFound() ? std::optional{std::string_view{state_.GetStringPointer(), state_.GetStringSize()}}
+                         : std::nullopt;
+    }
+
+private:
+    StringOrPayload<Key> state_;
+};
+
+template <typename Key>
+class SearchState<Key, zstring_view, std::enable_if_t<kFitsInStringOrPayload<Key>>> final {
+public:
+    constexpr explicit SearchState(Key key) noexcept : state_(key) {}
+
+    constexpr bool IsFound() const noexcept { return !state_.HasPayload(); }
+
+    constexpr Key GetKey() const noexcept { return state_.GetPayload(); }
+
+    constexpr void SetValue(zstring_view value) noexcept { state_ = StringOrPayload<Key>{value}; }
+
+    [[nodiscard]] constexpr std::optional<zstring_view> Extract() noexcept {
+        return IsFound() ? std::optional{zstring_view::UnsafeMake(state_.GetStringPointer(), state_.GetStringSize())}
+                         : std::nullopt;
+    }
+
+private:
+    StringOrPayload<Key> state_;
+};
+
+template <typename Key>
+class SearchState<Key, StringLiteral, std::enable_if_t<kFitsInStringOrPayload<Key>>> final {
+public:
+    constexpr explicit SearchState(Key key) noexcept : state_(key) {}
+
+    constexpr bool IsFound() const noexcept { return !state_.HasPayload(); }
+
+    constexpr Key GetKey() const noexcept { return state_.GetPayload(); }
+
+    constexpr void SetValue(StringLiteral value) noexcept { state_ = StringOrPayload<Key>{value}; }
+
+    [[nodiscard]] constexpr std::optional<StringLiteral> Extract() noexcept {
+        return IsFound() ? std::optional{StringLiteral::UnsafeMake(state_.GetStringPointer(), state_.GetStringSize())}
+                         : std::nullopt;
     }
 
 private:
@@ -223,14 +286,11 @@ public:
     constexpr SwitchByFirstICase& Case(std::string_view first, Second second) noexcept {
         UASSERT_MSG(
             !impl::HasUppercaseAscii(first),
-            fmt::format(
-                "String literal '{}' in utils::Switch*::Case() "
-                "should be in lower case",
-                first
-            )
+            fmt::format("String literal '{}' in utils::Switch*::Case() should be in lower case", first)
         );
         if (!state_.IsFound() && state_.GetKey().size() == first.size() &&
-            impl::ICaseEqualLowercase(first, state_.GetKey())) {
+            impl::ICaseEqualLowercase(first, state_.GetKey()))
+        {
             state_.SetValue(second);
         }
         return *this;
@@ -255,14 +315,11 @@ public:
     constexpr SwitchByFirstICase& Case(std::string_view first) noexcept {
         UASSERT_MSG(
             !impl::HasUppercaseAscii(first),
-            fmt::format(
-                "String literal '{}' in utils::Switch*::Case() "
-                "should be in lower case",
-                first
-            )
+            fmt::format("String literal '{}' in utils::Switch*::Case() should be in lower case", first)
         );
         if (!state_.IsFound() && state_.GetKey().size() == first.size() &&
-            impl::ICaseEqualLowercase(first, state_.GetKey())) {
+            impl::ICaseEqualLowercase(first, state_.GetKey()))
+        {
             state_.SetValue(Found{0});
         }
         return *this;
@@ -287,14 +344,11 @@ public:
     constexpr SwitchBySecondICase& Case(First first, std::string_view second) noexcept {
         UASSERT_MSG(
             !impl::HasUppercaseAscii(second),
-            fmt::format(
-                "String literal '{}' in utils::Switch*::Case() "
-                "should be in lower case",
-                second
-            )
+            fmt::format("String literal '{}' in utils::Switch*::Case() should be in lower case", second)
         );
         if (!state_.IsFound() && state_.GetKey().size() == second.size() &&
-            impl::ICaseEqualLowercase(second, state_.GetKey())) {
+            impl::ICaseEqualLowercase(second, state_.GetKey()))
+        {
             state_.SetValue(first);
         }
         return *this;
@@ -354,6 +408,15 @@ public:
 
 class SwitchTypesDetector final {
 public:
+    template <class T>
+    using DetectType = std::conditional_t<
+        std::is_convertible_v<T, StringLiteral>,
+        StringLiteral,
+        std::conditional_t<  // TODO: force StringLiteral
+            std::is_same_v<T, zstring_view>,
+            zstring_view,
+            std::conditional_t<std::is_convertible_v<T, std::string_view>, std::string_view, T>>>;
+
     constexpr SwitchTypesDetector& operator()() noexcept { return *this; }
 
     template <typename First, typename Second>
@@ -368,10 +431,7 @@ public:
 
     template <typename First, typename Second = void>
     constexpr auto Type() noexcept {
-        using first_type = std::conditional_t<std::is_convertible_v<First, std::string_view>, std::string_view, First>;
-        using second_type =
-            std::conditional_t<std::is_convertible_v<Second, std::string_view>, std::string_view, Second>;
-        return SwitchTypesDetected<first_type, second_type>{};
+        return SwitchTypesDetected<DetectType<First>, DetectType<Second>>{};
     }
 };
 
@@ -442,7 +502,7 @@ public:
         return Case(first);
     }
 
-    template <typename T, typename U>
+    template <typename T, typename U = void>
     constexpr CaseFirstDescriber& Type() {
         return *this;
     }
@@ -480,15 +540,16 @@ private:
 template <typename First, typename Second>
 class CaseGetValuesByIndex final {
 public:
-    explicit constexpr CaseGetValuesByIndex(std::size_t search_index) : index_(search_index + 1) {}
+    explicit constexpr CaseGetValuesByIndex(std::size_t search_index)
+        : index_(search_index + 1)
+    {}
 
     constexpr CaseGetValuesByIndex& Case(First first, Second second) noexcept {
         if (index_ == 0) {
             return *this;
         }
         if (index_ == 1) {
-            first_ = first;
-            second_ = second;
+            lazy_ = Lazy{Storage{first, second}};
         }
         --index_;
 
@@ -500,14 +561,27 @@ public:
         return *this;
     }
 
-    [[nodiscard]] constexpr First GetFirst() noexcept { return std::move(first_); }
+    [[nodiscard]] constexpr First GetFirst() noexcept { return std::move(lazy_.storage.first); }
 
-    [[nodiscard]] constexpr Second GetSecond() noexcept { return std::move(second_); }
+    [[nodiscard]] constexpr Second GetSecond() noexcept { return std::move(lazy_.storage.second); }
 
 private:
     std::size_t index_;
-    First first_{};
-    Second second_{};
+
+    // Work with non default constructible types
+    struct Storage {
+        First first;
+        Second second;
+    };
+
+    union Lazy {
+        constexpr Lazy() noexcept : empty{} {}
+        constexpr Lazy(Storage s) noexcept : storage{s} {}
+
+        char empty;
+        Storage storage;
+    };
+    Lazy lazy_;
 };
 
 template <typename First>
@@ -542,7 +616,8 @@ public:
 
     constexpr CaseFirstIndexerICase& Case(First first) noexcept {
         if (!state_.IsFound() && state_.GetKey().size() == first.size() &&
-            impl::ICaseEqualLowercase(first, state_.GetKey())) {
+            impl::ICaseEqualLowercase(first, state_.GetKey()))
+        {
             state_.SetValue(index_);
         }
         ++index_;
@@ -562,6 +637,11 @@ private:
 };
 
 }  // namespace impl
+
+/// Decays utils::StringLiteral and utils::zstring_view to a more generic std::string_view type.
+template <class T>
+using DecayToStringView =
+    std::conditional_t<std::is_same_v<T, StringLiteral> || std::is_same_v<T, zstring_view>, std::string_view, T>;
 
 /// @ingroup userver_universal userver_containers
 ///
@@ -598,7 +678,7 @@ public:
     using First = typename TypesPair::first_type;
     using Second = typename TypesPair::second_type;
 
-    struct value_type {
+    struct ValueType {
         First first;
         Second second;
     };
@@ -606,35 +686,33 @@ public:
     /// Returns Second if T is convertible to First, otherwise returns Second
     /// type.
     template <class T>
-    using MappedTypeFor = std::conditional_t<std::is_convertible_v<T, First>, Second, First>;
+    using MappedTypeFor = std::conditional_t<std::is_convertible_v<T, DecayToStringView<First>>, Second, First>;
 
     constexpr TrivialBiMap(BuilderFunc&& func) noexcept : func_(std::move(func)) {
         static_assert(std::is_empty_v<BuilderFunc>, "Mapping function should not capture variables");
         static_assert(std::is_trivially_copyable_v<First>, "First type in Case must be trivially copyable");
         static_assert(
             !std::is_void_v<Second>,
-            "If second type in Case is missing, use "
-            "utils::TrivialSet instead of utils::TrivialBiMap"
+            "If second type in Case is missing, use utils::TrivialSet instead of utils::TrivialBiMap"
         );
         static_assert(std::is_trivially_copyable_v<Second>, "Second type in Case must be trivially copyable");
     }
 
-    constexpr std::optional<Second> TryFindByFirst(First value) const noexcept {
-        return func_([value]() { return impl::SwitchByFirst<First, Second>{value}; }).Extract();
+    constexpr std::optional<Second> TryFindByFirst(DecayToStringView<First> value) const noexcept {
+        return func_([value]() { return impl::SwitchByFirst<DecayToStringView<First>, Second>{value}; }).Extract();
     }
 
-    constexpr std::optional<First> TryFindBySecond(Second value) const noexcept {
-        return func_([value]() { return impl::SwitchBySecond<First, Second>{value}; }).Extract();
+    constexpr std::optional<First> TryFindBySecond(DecayToStringView<Second> value) const noexcept {
+        return func_([value]() { return impl::SwitchBySecond<First, DecayToStringView<Second>>{value}; }).Extract();
     }
 
     template <class T>
     constexpr std::optional<MappedTypeFor<T>> TryFind(T value) const noexcept {
-        static_assert(
-            !std::is_convertible_v<T, First> || !std::is_convertible_v<T, Second>,
-            "Ambiguous conversion, use TryFindByFirst/TryFindBySecond instead"
-        );
-
-        if constexpr (std::is_convertible_v<T, First>) {
+        if constexpr (std::is_convertible_v<T, DecayToStringView<First>>) {
+            static_assert(
+                !std::is_convertible_v<T, DecayToStringView<Second>>,
+                "Ambiguous conversion, use TryFindByFirst/TryFindBySecond instead"
+            );
             return TryFindByFirst(value);
         } else {
             return TryFindBySecond(value);
@@ -660,13 +738,11 @@ public:
     /// @brief Case insensitive search for value that calls either
     /// TryFindICaseBySecond or TryFindICaseByFirst.
     constexpr std::optional<MappedTypeFor<std::string_view>> TryFindICase(std::string_view value) const noexcept {
-        static_assert(
-            !std::is_convertible_v<std::string_view, First> || !std::is_convertible_v<std::string_view, Second>,
-            "Ambiguous conversion, use "
-            "TryFindICaseByFirst/TryFindICaseBySecond"
-        );
-
-        if constexpr (std::is_convertible_v<std::string_view, First>) {
+        if constexpr (std::is_convertible_v<std::string_view, DecayToStringView<First>>) {
+            static_assert(
+                !std::is_convertible_v<std::string_view, DecayToStringView<Second>>,
+                "Ambiguous conversion, use TryFindICaseByFirst/TryFindICaseBySecond"
+            );
             return TryFindICaseByFirst(value);
         } else {
             return TryFindICaseBySecond(value);
@@ -715,51 +791,55 @@ public:
     /// Corresponding Case must be formattable
     template <typename T>
     std::string DescribeByType() const {
-        if constexpr (std::is_convertible_v<T, First>) {
+        if constexpr (std::is_convertible_v<T, DecayToStringView<First>>) {
             return DescribeFirst();
         } else {
             return DescribeSecond();
         }
     }
 
-    constexpr value_type GetValuesByIndex(std::size_t index) const {
+    constexpr ValueType GetValuesByIndex(std::size_t index) const {
+        UASSERT_MSG(index < size(), "Index is out of bounds");
         auto result = func_([index]() { return impl::CaseGetValuesByIndex<First, Second>{index}; });
-        return value_type{result.GetFirst(), result.GetSecond()};
+        return ValueType{result.GetFirst(), result.GetSecond()};
     }
 
-    class iterator {
+    class Iterator {
     public:
         using iterator_category = std::input_iterator_tag;
         using difference_type = std::ptrdiff_t;
 
-        explicit constexpr iterator(const TrivialBiMap& map, std::size_t position) : map_{map}, position_{position} {}
+        explicit constexpr Iterator(const TrivialBiMap& map, std::size_t position)
+            : map_{map},
+              position_{position}
+        {}
 
-        constexpr bool operator==(iterator other) const { return position_ == other.position_; }
+        constexpr bool operator==(Iterator other) const { return position_ == other.position_; }
 
-        constexpr bool operator!=(iterator other) const { return position_ != other.position_; }
+        constexpr bool operator!=(Iterator other) const { return position_ != other.position_; }
 
-        constexpr iterator operator++() {
+        constexpr Iterator operator++() {
             ++position_;
             return *this;
         }
 
-        constexpr iterator operator++(int) {
-            iterator copy{*this};
+        constexpr Iterator operator++(int) {
+            Iterator copy{*this};
             ++position_;
             return copy;
         }
 
-        constexpr value_type operator*() const { return map_.GetValuesByIndex(position_); }
+        constexpr ValueType operator*() const { return map_.GetValuesByIndex(position_); }
 
     private:
         const TrivialBiMap& map_;
         std::size_t position_;
     };
 
-    constexpr iterator begin() const { return iterator(*this, 0); }
-    constexpr iterator end() const { return iterator(*this, size()); }
-    constexpr iterator cbegin() const { return begin(); }
-    constexpr iterator cend() const { return end(); }
+    constexpr Iterator begin() const { return Iterator(*this, 0); }
+    constexpr Iterator end() const { return Iterator(*this, size()); }
+    constexpr Iterator cbegin() const { return begin(); }
+    constexpr Iterator cend() const { return end(); }
 
 private:
     const BuilderFunc func_;
@@ -773,7 +853,7 @@ TrivialBiMap(BuilderFunc) -> TrivialBiMap<BuilderFunc>;
 /// @brief Unordered set for trivial types, including string literals.
 ///
 /// For a two-value Case statements or efficiency notes
-/// see @ref utils::TrivialBimap.
+/// see @ref utils::TrivialBiMap.
 template <typename BuilderFunc>
 class TrivialSet final {
     using TypesPair = std::invoke_result_t<const BuilderFunc&, impl::SwitchTypesDetector>;
@@ -788,12 +868,15 @@ public:
         static_assert(std::is_void_v<Second>, "Second type in Case should be skipped in utils::TrivialSet");
     }
 
-    constexpr bool Contains(First value) const noexcept {
-        return func_([value]() { return impl::SwitchByFirst<First, Second>{value}; }).Extract();
+    constexpr bool Contains(DecayToStringView<First> value) const noexcept {
+        return func_([value]() { return impl::SwitchByFirst<DecayToStringView<First>, Second>{value}; }).Extract();
     }
 
     constexpr bool ContainsICase(std::string_view value) const noexcept {
-        static_assert(std::is_convertible_v<First, std::string_view>, "ContainsICase works only with std::string_view");
+        static_assert(
+            std::is_convertible_v<DecayToStringView<First>, std::string_view>,
+            "ContainsICase works only with std::string_view"
+        );
 
         return func_([value]() { return impl::SwitchByFirstICase<void>{value}; }).Extract();
     }
@@ -813,13 +896,13 @@ public:
 
     /// Returns index of the value in Case parameters or std::nullopt if no such
     /// value.
-    constexpr std::optional<std::size_t> GetIndex(First value) const {
+    constexpr std::optional<std::size_t> GetIndex(DecayToStringView<First> value) const {
         return func_([value]() { return impl::CaseFirstIndexer{value}; }).Extract();
     }
 
     /// Returns index of the case insensitive value in Case parameters or
     /// std::nullopt if no such value.
-    constexpr std::optional<std::size_t> GetIndexICase(First value) const {
+    constexpr std::optional<std::size_t> GetIndexICase(std::string_view value) const {
         return func_([value]() { return impl::CaseFirstIndexerICase{value}; }).Extract();
     }
 
@@ -831,7 +914,7 @@ template <typename BuilderFunc>
 TrivialSet(BuilderFunc) -> TrivialSet<BuilderFunc>;
 
 /// @brief Parses and returns whatever is specified by `map` from a
-/// `formats::*::Value`.
+/// `formats::json::Value` or another format's `Value`.
 /// @throws ExceptionType or `Value::Exception` by default, if `value` is not a
 /// string, or if `value` is not contained in `map`.
 /// @see @ref scripts/docs/en/userver/formats.md
@@ -845,7 +928,9 @@ auto ParseFromValueString(const Value& value, TrivialBiMap<BuilderFunc> map) {
 
     const auto string = value.template As<std::string>();
     const auto parsed = map.TryFind(string);
-    if (parsed) return *parsed;
+    if (parsed) {
+        return *parsed;
+    }
 
     using Exception = std::conditional_t<std::is_void_v<ExceptionType>, typename Value::Exception, ExceptionType>;
 
@@ -854,7 +939,7 @@ auto ParseFromValueString(const Value& value, TrivialBiMap<BuilderFunc> map) {
         compiler::GetTypeName<std::decay_t<decltype(*parsed)>>(),
         value.GetPath(),
         string,
-        map.template DescribeByType<std::string>()
+        map.template DescribeByType<std::string_view>()
     ));
 }
 
@@ -866,7 +951,9 @@ namespace impl {
 template <typename Enum, typename BuilderFunc>
 std::string_view EnumToStringView(Enum value, TrivialBiMap<BuilderFunc> map) {
     static_assert(std::is_enum_v<Enum>);
-    if (const auto string = map.TryFind(value)) return *string;
+    if (const auto string = map.TryFind(value)) {
+        return *string;
+    }
 
     UINVARIANT(
         false,

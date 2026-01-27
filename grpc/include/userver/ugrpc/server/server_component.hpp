@@ -15,32 +15,19 @@ namespace impl {
 struct ServiceDefaults;
 }  // namespace impl
 
-// clang-format off
-
 /// @ingroup userver_components
 ///
 /// @brief Component that configures and manages the gRPC server.
 ///
-/// ## Static options:
+/// ## Static options of ugrpc::server::ServerComponent :
+/// @include{doc} scripts/docs/en/components_schema/grpc/src/ugrpc/server/server_component.md
+///
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
+///
 /// The component name for static config is `"grpc-server"`.
 ///
-/// Name | Description | Default value
-/// ---- | ----------- | -------------
-/// access-tskv-logger | logger name for access-tskv.log | -
-/// port | the port to use for all gRPC services, or 0 to pick any available | -
-/// unix-socket-path | unix socket absolute path to listen to, instead of listening on `port` | -
-/// completion-queue-count | count of completion queues to create | 2
-/// channel-args | a map of channel arguments, see gRPC Core docs | {}
-/// native-log-level | min log level for the native gRPC library | 'error'
-/// enable-channelz | initialize service with runtime info about gRPC connections | false
-/// service-defaults | default config values for gRPC services, see config schema | {}
-/// tls.cert | path to file with server TLS certificate | -
-/// tls.key | path to file with secret key from server TLS certificate | -
-/// tls.ca | path to TLS client CA certificate | -
-///
 /// @see https://grpc.github.io/grpc/core/group__grpc__arg__keys.html
-
-// clang-format on
 class ServerComponent final : public components::ComponentBase {
 public:
     /// @ingroup userver_component_names
@@ -56,8 +43,10 @@ public:
     Server& GetServer() noexcept;
 
     /// @cond
-    ServiceConfig
-    ParseServiceConfig(const components::ComponentConfig& config, const components::ComponentContext& context);
+    ServiceConfig ParseServiceConfig(
+        const components::ComponentConfig& config,
+        const components::ComponentContext& context
+    );
     /// @endcond
 
     static yaml_config::Schema GetStaticConfigSchema();

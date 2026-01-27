@@ -14,11 +14,7 @@ MongoWorkerComponent::MongoWorkerComponent(
           config,
           context,
           context.FindComponent<components::Mongo>("mongo-sample").GetPool()->GetCollection("distlocks")
-      ) {
-    Start();
-}
-
-MongoWorkerComponent::~MongoWorkerComponent() { Stop(); }
+      ) {}
 
 void MongoWorkerComponent::DoWork() { TESTPOINT("distlock-worker", formats::json::Value()); }
 

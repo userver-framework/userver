@@ -107,16 +107,16 @@ enum StatusCode : uint16_t {
     kInvalidSslCertificate = 526,
 
     // migration aliases
-    Invalid = kInvalid,
-    OK = kOk,
-    Created = kCreated,
-    NoContent = kNoContent,
-    BadRequest = kBadRequest,
-    NotFound = kNotFound,
-    Conflict = kConflict,
-    TooManyRequests = kTooManyRequests,
-    InternalServerError = kInternalServerError,
-    kClientClosedRequest = kNginxClientClosedRequest,
+    Invalid = kInvalid,                                // NOLINT(readability-identifier-naming)
+    OK = kOk,                                          // NOLINT(readability-identifier-naming)
+    Created = kCreated,                                // NOLINT(readability-identifier-naming)
+    NoContent = kNoContent,                            // NOLINT(readability-identifier-naming)
+    BadRequest = kBadRequest,                          // NOLINT(readability-identifier-naming)
+    NotFound = kNotFound,                              // NOLINT(readability-identifier-naming)
+    Conflict = kConflict,                              // NOLINT(readability-identifier-naming)
+    TooManyRequests = kTooManyRequests,                // NOLINT(readability-identifier-naming)
+    InternalServerError = kInternalServerError,        // NOLINT(readability-identifier-naming)
+    kClientClosedRequest = kNginxClientClosedRequest,  // NOLINT(readability-identifier-naming)
 };
 
 std::string_view StatusCodeString(StatusCode status);
@@ -136,7 +136,10 @@ struct fmt::formatter<USERVER_NAMESPACE::http::StatusCode> {
     template <typename FormatContext>
     auto format(USERVER_NAMESPACE::http::StatusCode status, FormatContext& ctx) const {
         return fmt::format_to(
-            ctx.out(), "{} {}", static_cast<int>(status), USERVER_NAMESPACE::http::StatusCodeString(status)
+            ctx.out(),
+            "{} {}",
+            static_cast<int>(status),
+            USERVER_NAMESPACE::http::StatusCodeString(status)
         );
     }
 };

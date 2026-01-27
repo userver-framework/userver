@@ -1,8 +1,6 @@
 #include <userver/clients/http/request.hpp>
 
-#include <chrono>
 #include <cstdlib>
-#include <map>
 #include <string>
 #include <string_view>
 #include <system_error>
@@ -36,9 +34,16 @@ namespace clients::http {
 
 namespace {
 
-constexpr std::string_view kHeaderExpect = "Expect";
-
-std::string ToString(HttpMethod method) { return std::string{ToStringView(method)}; }
+static constexpr utils::TrivialBiMap kHttpMethodMap([](auto selector) {
+    return selector()
+        .Case(HttpMethod::kGet, "GET")
+        .Case(HttpMethod::kHead, "HEAD")
+        .Case(HttpMethod::kPost, "POST")
+        .Case(HttpMethod::kPut, "PUT")
+        .Case(HttpMethod::kPatch, "PATCH")
+        .Case(HttpMethod::kDelete, "DELETE")
+        .Case(HttpMethod::kOptions, "OPTIONS");
+});
 
 curl::easy::http_version_t ToNative(HttpVersion version) {
     switch (version) {
@@ -124,9 +129,7 @@ bool IsUserAgentHeader(std::string_view header_name) {
     return utils::StrIcaseEqual{}(header_name, USERVER_NAMESPACE::http::headers::kUserAgent);
 }
 
-void SetUserAgent(curl::easy& easy, const std::string& value) { easy.set_user_agent(value); }
-
-void SetUserAgent(curl::easy& easy, std::string_view value) { easy.set_user_agent(std::string{value}); }
+void SetUserAgent(curl::easy& easy, utils::zstring_view value) { easy.set_user_agent(value); }
 
 template <class Range>
 void SetHeaders(curl::easy& easy, const Range& headers_range) {
@@ -143,7 +146,9 @@ template <class Range>
 void SetCookies(curl::easy& easy, const Range& cookies_range) {
     std::string cookie_str;
     for (const auto& [name, value] : cookies_range) {
-        if (!cookie_str.empty()) cookie_str += "; ";
+        if (!cookie_str.empty()) {
+            cookie_str += "; ";
+        }
         cookie_str += name;
         cookie_str += '=';
         cookie_str += value;
@@ -171,22 +176,19 @@ bool IsAllowedSchemaInUrl(std::string_view url) {
 
 }  // namespace
 
-std::string_view ToStringView(HttpMethod method) {
-    static constexpr utils::TrivialBiMap kMap([](auto selector) {
-        return selector()
-            .Case(HttpMethod::kDelete, "DELETE")
-            .Case(HttpMethod::kGet, "GET")
-            .Case(HttpMethod::kHead, "HEAD")
-            .Case(HttpMethod::kPost, "POST")
-            .Case(HttpMethod::kPut, "PUT")
-            .Case(HttpMethod::kPatch, "PATCH")
-            .Case(HttpMethod::kOptions, "OPTIONS");
-    });
+std::string_view ToStringView(HttpMethod method) { return utils::impl::EnumToStringView(method, kHttpMethodMap); }
 
-    return utils::impl::EnumToStringView(method, kMap);
+HttpMethod HttpMethodFromString(std::string_view method_str) {
+    if (auto method = kHttpMethodMap.TryFindBySecond(method_str)) {
+        return *method;
+    }
+
+    throw std::runtime_error(
+        fmt::format("Unsupported http method '{}' (must be one of {})", method_str, kHttpMethodMap.DescribeSecond())
+    );
 }
 
-ProxyAuthType ProxyAuthTypeFromString(const std::string& auth_name) {
+ProxyAuthType ProxyAuthTypeFromString(std::string_view auth_name) {
     auto value = kAuthTypeMap.TryFindICase(auth_name);
     if (!value) {
         throw std::runtime_error(
@@ -203,17 +205,11 @@ Request::Request(
     RequestStats&& req_stats,
     const std::shared_ptr<DestinationStatistics>& dest_stats,
     clients::dns::Resolver* resolver,
-    impl::PluginPipeline& plugin_pipeline,
     const tracing::TracingManagerBase& tracing_manager
 )
-    : pimpl_(std::make_shared<RequestState>(
-          std::move(wrapper),
-          std::move(req_stats),
-          dest_stats,
-          resolver,
-          plugin_pipeline,
-          tracing_manager
-      )) {
+    : pimpl_(std::make_shared<
+             RequestState>(std::move(wrapper), std::move(req_stats), dest_stats, resolver, tracing_manager))
+{
     LOG_TRACE() << "Request::Request()";
     // default behavior follow redirects and verify ssl
     pimpl_->follow_redirects(true);
@@ -238,21 +234,29 @@ StreamedResponse Request::async_perform_stream_body(
 }
 
 std::shared_ptr<Response> Request::perform(utils::impl::SourceLocation location) {
-    return async_perform(location).Get();
+    return async_perform(location).Get(location);
 }
 
-Request& Request::url(const std::string& url) & {
+Request& Request::url(std::string url) & {
     if (!IsAllowedSchemaInUrl(url)) {
         throw BadArgumentException(curl::errc::EasyErrorCode::kUnsupportedProtocol, "Bad URL", url, {});
     }
-    std::error_code ec;
-    pimpl_->easy().set_url(url, ec);
-    if (ec) throw BadArgumentException(ec, "Bad URL", url, {});
 
-    pimpl_->SetDestinationMetricNameAuto(USERVER_NAMESPACE::http::ExtractMetaTypeFromUrl(url));
+    RequestState& impl = *pimpl_;
+    std::error_code ec;
+    impl.easy().set_url(std::move(url), ec);
+
+    /// `curl::easy::set_url(std::string&&, std::error_code&)` doesn't consume the string if fails.
+    if (ec) {
+        throw BadArgumentException(ec, "Bad URL", url, {});
+    }
+
+    impl.SetDestinationMetricNameAuto(std::string{
+        USERVER_NAMESPACE::http::ExtractMetaTypeFromUrl(impl.easy().get_original_url())
+    });
     return *this;
 }
-Request Request::url(const std::string& url) && { return std::move(this->url(url)); }
+Request Request::url(std::string url) && { return std::move(this->url(std::move(url))); }
 
 Request& Request::timeout(long timeout_ms) & {
     pimpl_->set_timeout(timeout_ms);
@@ -272,11 +276,11 @@ Request& Request::verify(bool verify) & {
 }
 Request Request::verify(bool verify) && { return std::move(this->verify(verify)); }
 
-Request& Request::ca_info(const std::string& file_path) & {
+Request& Request::ca_info(utils::zstring_view file_path) & {
     pimpl_->ca_info(file_path);
     return *this;
 }
-Request Request::ca_info(const std::string& file_path) && { return std::move(this->ca_info(file_path)); }
+Request Request::ca_info(utils::zstring_view file_path) && { return std::move(this->ca_info(file_path)); }
 
 Request& Request::ca(crypto::Certificate cert) & {
     pimpl_->ca(std::move(cert));
@@ -284,11 +288,11 @@ Request& Request::ca(crypto::Certificate cert) & {
 }
 Request Request::ca(crypto::Certificate cert) && { return std::move(this->ca(std::move(cert))); }
 
-Request& Request::crl_file(const std::string& file_path) & {
+Request& Request::crl_file(utils::zstring_view file_path) & {
     pimpl_->crl_file(file_path);
     return *this;
 }
-Request Request::crl_file(const std::string& file_path) && { return std::move(this->crl_file(file_path)); }
+Request Request::crl_file(utils::zstring_view file_path) && { return std::move(this->crl_file(file_path)); }
 
 Request& Request::client_key_cert(crypto::PrivateKey pkey, crypto::Certificate cert) & {
     pimpl_->client_key_cert(std::move(pkey), std::move(cert));
@@ -306,17 +310,19 @@ Request Request::http_version(HttpVersion version) && { return std::move(this->h
 
 Request& Request::retry(short retries, bool on_fails) & {
     UASSERT_MSG(retries >= 0, "retires < 0 (" + std::to_string(retries) + "), uninitialized variable?");
-    if (retries <= 0) retries = 1;
+    if (retries <= 0) {
+        retries = 1;
+    }
     pimpl_->retry(retries, on_fails);
     return *this;
 }
 Request Request::retry(short retries, bool on_fails) && { return std::move(this->retry(retries, on_fails)); }
 
-Request& Request::unix_socket_path(const std::string& path) & {
+Request& Request::unix_socket_path(utils::zstring_view path) & {
     pimpl_->unix_socket_path(path);
     return *this;
 }
-Request Request::unix_socket_path(const std::string& path) && { return std::move(this->unix_socket_path(path)); }
+Request Request::unix_socket_path(utils::zstring_view path) && { return std::move(this->unix_socket_path(path)); }
 
 Request& Request::use_ipv4() & {
     pimpl_->easy().set_ip_resolve(curl::easy::ip_resolve_v4);
@@ -337,8 +343,7 @@ Request& Request::connect_to(const ConnectTo& connect_to) & {
 Request Request::connect_to(const ConnectTo& connect_to) && { return std::move(this->connect_to(connect_to)); }
 
 Request& Request::data(std::string data) & {
-    if (!data.empty()) pimpl_->easy().add_header(kHeaderExpect, "", curl::easy::EmptyHeaderAction::kDoNotSend);
-    pimpl_->easy().set_post_fields(std::move(data));
+    pimpl_->data(data);
     return *this;
 }
 Request Request::data(std::string data) && { return std::move(this->data(std::move(data))); }
@@ -356,21 +361,29 @@ Request& Request::headers(const Headers& headers) & {
 }
 Request Request::headers(const Headers& headers) && { return std::move(this->headers(headers)); }
 
-Request& Request::headers(const std::initializer_list<std::pair<std::string_view, std::string_view>>& headers) & {
+Request& Request::headers(const std::initializer_list<std::pair<utils::zstring_view, utils::zstring_view>>& headers) & {
     SetHeaders(pimpl_->easy(), headers);
     return *this;
 }
-Request Request::headers(const std::initializer_list<std::pair<std::string_view, std::string_view>>& headers) && {
+Request Request::headers(const std::initializer_list<std::pair<utils::zstring_view, utils::zstring_view>>& headers) && {
     return std::move(this->headers(headers));
 }
 
-Request&
-Request::http_auth_type(HttpAuthType value, bool auth_only, std::string_view user, std::string_view password) & {
+Request& Request::http_auth_type(
+    HttpAuthType value,
+    bool auth_only,
+    utils::zstring_view user,
+    utils::zstring_view password
+) & {
     pimpl_->http_auth_type(HttpAuthTypeToNative(value), auth_only, user, password);
     return *this;
 }
-Request
-Request::http_auth_type(HttpAuthType value, bool auth_only, std::string_view user, std::string_view password) && {
+Request Request::http_auth_type(
+    HttpAuthType value,
+    bool auth_only,
+    utils::zstring_view user,
+    utils::zstring_view password
+) && {
     return std::move(this->http_auth_type(value, auth_only, user, password));
 }
 
@@ -380,25 +393,27 @@ Request& Request::proxy_headers(const Headers& headers) & {
 }
 Request Request::proxy_headers(const Headers& headers) && { return std::move(this->proxy_headers(headers)); }
 
-Request& Request::proxy_headers(const std::initializer_list<std::pair<std::string_view, std::string_view>>& headers) & {
+Request& Request::proxy_headers(const std::initializer_list<
+                                std::pair<utils::zstring_view, utils::zstring_view>>& headers) & {
     SetProxyHeaders(pimpl_->easy(), headers);
     return *this;
 }
-Request Request::proxy_headers(const std::initializer_list<std::pair<std::string_view, std::string_view>>& headers) && {
+Request Request::proxy_headers(const std::initializer_list<std::pair<utils::zstring_view, utils::zstring_view>>& headers
+) && {
     return std::move(this->proxy_headers(headers));
 }
 
-Request& Request::user_agent(const std::string& value) & {
+Request& Request::user_agent(utils::zstring_view value) & {
     pimpl_->easy().set_user_agent(value.c_str());
     return *this;
 }
-Request Request::user_agent(const std::string& value) && { return std::move(this->user_agent(value)); }
+Request Request::user_agent(utils::zstring_view value) && { return std::move(this->user_agent(value)); }
 
-Request& Request::proxy(const std::string& value) & {
+Request& Request::proxy(utils::zstring_view value) & {
     pimpl_->proxy(value);
     return *this;
 }
-Request Request::proxy(const std::string& value) && { return std::move(this->proxy(value)); }
+Request Request::proxy(utils::zstring_view value) && { return std::move(this->proxy(value)); }
 
 Request& Request::proxy_auth_type(ProxyAuthType value) & {
     pimpl_->proxy_auth_type(ProxyAuthTypeToNative(value));
@@ -421,28 +436,7 @@ Request Request::cookies(const std::unordered_map<std::string, std::string>& coo
 }
 
 Request& Request::method(HttpMethod method) & {
-    switch (method) {
-        case HttpMethod::kDelete:
-        case HttpMethod::kOptions:
-            pimpl_->easy().set_custom_request(ToString(method));
-            break;
-        case HttpMethod::kGet:
-            pimpl_->easy().set_http_get(true);
-            pimpl_->easy().set_custom_request(nullptr);
-            break;
-        case HttpMethod::kHead:
-            pimpl_->easy().set_no_body(true);
-            pimpl_->easy().set_custom_request(nullptr);
-            break;
-        // NOTE: set_post makes libcURL to read from stdin if no data is set
-        case HttpMethod::kPost:
-        case HttpMethod::kPut:
-        case HttpMethod::kPatch:
-            pimpl_->easy().set_custom_request(ToString(method));
-            // ensure a body as we should send Content-Length for this method
-            if (!pimpl_->easy().has_post_data()) data({});
-            break;
-    };
+    pimpl_->SetMethod(method);
     return *this;
 }
 
@@ -467,9 +461,10 @@ Request& Request::delete_method() & { return method(HttpMethod::kDelete); }
 Request Request::delete_method() && { return std::move(this->delete_method()); }
 
 Request& Request::set_custom_http_request_method(std::string method) & {
-    LOG_LIMITED_WARNING() << "This method can cause unexpected effects in libcurl, i.e., timeouts, "
-                             "changing of request type. Use it only if you need to make "
-                             "GET-request with body.";
+    LOG_LIMITED_WARNING()
+        << "This method can cause unexpected effects in libcurl, i.e., timeouts, "
+           "changing of request type. Use it only if you need to make "
+           "GET-request with body.";
     pimpl_->easy().set_custom_request(method);
     return *this;
 }
@@ -477,40 +472,51 @@ Request Request::set_custom_http_request_method(std::string method) && {
     return std::move(this->set_custom_http_request_method(std::move(method)));
 }
 
-Request& Request::get(const std::string& url) & { return get().url(url); }
-Request Request::get(const std::string& url) && { return std::move(this->get(url)); }
+Request& Request::get(std::string url) & { return get().url(std::move(url)); }
+Request Request::get(std::string url) && { return std::move(this->get(std::move(url))); }
 
-Request& Request::head(const std::string& url) & { return head().url(url); }
-Request Request::head(const std::string& url) && { return std::move(this->head(url)); }
+Request& Request::head(std::string url) & { return head().url(std::move(url)); }
+Request Request::head(std::string url) && { return std::move(this->head(std::move(url))); }
 
-Request& Request::post(const std::string& url, Form&& form) & { return this->url(url).form(std::move(form)); }
-Request Request::post(const std::string& url, Form&& form) && { return std::move(this->post(url, std::move(form))); }
-
-Request& Request::post(const std::string& url, std::string data) & {
-    return this->url(url).data(std::move(data)).post();
-}
-Request Request::post(const std::string& url, std::string data) && {
-    return std::move(this->post(url, std::move(data)));
+Request& Request::post(std::string url, Form&& form) & { return this->url(std::move(url)).form(std::move(form)); }
+Request Request::post(std::string url, Form&& form) && {
+    return std::move(this->post(std::move(url), std::move(form)));
 }
 
-Request& Request::put(const std::string& url, std::string data) & { return this->url(url).data(std::move(data)).put(); }
-Request Request::put(const std::string& url, std::string data) && { return std::move(this->put(url, std::move(data))); }
-
-Request& Request::patch(const std::string& url, std::string data) & {
-    return this->url(url).data(std::move(data)).patch();
+Request& Request::post(std::string url, std::string data) & {
+    return this->url(std::move(url)).data(std::move(data)).post();
 }
-Request Request::patch(const std::string& url, std::string data) && {
-    return std::move(this->patch(url, std::move(data)));
+Request Request::post(std::string url, std::string data) && {
+    return std::move(this->post(std::move(url), std::move(data)));
 }
 
-Request& Request::delete_method(const std::string& url) & { return this->url(url).delete_method(); }
-Request Request::delete_method(const std::string& url) && { return std::move(this->delete_method(url)); }
-
-Request& Request::delete_method(const std::string& url, std::string data) & {
-    return this->url(url).data(std::move(data)).delete_method();
+Request& Request::put(std::string url, std::string data) & {
+    return this->url(std::move(url)).data(std::move(data)).put();
 }
-Request Request::delete_method(const std::string& url, std::string data) && {
-    return std::move(this->delete_method(url, std::move(data)));
+Request Request::put(std::string url, std::string data) && {
+    return std::move(this->put(std::move(url), std::move(data)));
+}
+
+Request& Request::patch(std::string url, std::string data) & {
+    return this->url(std::move(url)).data(std::move(data)).patch();
+}
+Request Request::patch(std::string url, std::string data) && {
+    return std::move(this->patch(std::move(url), std::move(data)));
+}
+
+Request& Request::delete_method(std::string url) & { return this->url(std::move(url)).delete_method(); }
+Request Request::delete_method(std::string url) && { return std::move(this->delete_method(std::move(url))); }
+
+Request& Request::delete_method(std::string url, std::string data) & {
+    return this->url(std::move(url)).data(std::move(data)).delete_method();
+}
+Request Request::delete_method(std::string url, std::string data) && {
+    return std::move(this->delete_method(std::move(url), std::move(data)));
+}
+
+Request& Request::SetMiddlewaresList(const std::vector<utils::NotNull<MiddlewareBase*>>& middlewares) & {
+    pimpl_->SetMiddlewaresList(middlewares);
+    return *this;
 }
 
 Request& Request::SetLoggedUrl(std::string url) & {
@@ -518,6 +524,15 @@ Request& Request::SetLoggedUrl(std::string url) & {
     return *this;
 }
 Request Request::SetLoggedUrl(std::string url) && { return std::move(this->SetLoggedUrl(std::move(url))); }
+
+Request& Request::SetUrlTemplate(std::string url_template) & {
+    pimpl_->SetUrlTemplate(std::move(url_template));
+    return *this;
+}
+
+Request Request::SetUrlTemplate(std::string url_template) && {
+    return std::move(this->SetUrlTemplate(std::move(url_template)));
+}
 
 Request& Request::SetDestinationMetricName(const std::string& destination) & {
     pimpl_->SetDestinationMetricName(destination);
@@ -558,6 +573,10 @@ const std::string& Request::GetUrl() const& { return pimpl_->easy().get_original
 const std::string& Request::GetData() const& { return pimpl_->easy().get_post_data(); }
 
 std::string Request::ExtractData() { return pimpl_->easy().extract_post_data(); }
+
+void Request::SetWaitToken(utils::impl::InternalTag, utils::impl::WaitTokenStorageLock&& wait_token) {
+    pimpl_->SetWaitToken(std::move(wait_token));
+}
 
 }  // namespace clients::http
 

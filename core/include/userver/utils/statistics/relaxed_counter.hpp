@@ -23,7 +23,9 @@ public:
     RelaxedCounter(const RelaxedCounter& other) noexcept : val_(other.Load()) {}
 
     RelaxedCounter& operator=(const RelaxedCounter& other) noexcept {
-        if (this == &other) return *this;
+        if (this == &other) {
+            return *this;
+        }
 
         Store(other.Load());
         return *this;
@@ -73,6 +75,11 @@ private:
 template <typename T>
 void DumpMetric(Writer& writer, const RelaxedCounter<T>& value) {
     writer = value.Load();
+}
+
+template <typename T>
+void ResetMetric(RelaxedCounter<T>& value) {
+    value.Store(0);
 }
 
 }  // namespace utils::statistics

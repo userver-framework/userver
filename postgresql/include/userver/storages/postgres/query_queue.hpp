@@ -18,6 +18,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::postgres {
 
+class ParameterStore;
+
 /// @brief A container to enqueue queries in FIFO order and execute them all
 /// within a single network round-trip.
 ///
@@ -59,10 +61,12 @@ public:
     /// timeout for later execution.
     template <typename... Args>
     void Push(CommandControl cc, const Query& query, const Args&... args);
+    void Push(CommandControl cc, const Query& query, const ParameterStore& store);
 
     /// Add a query into the queue with default command-control.
     template <typename... Args>
     void Push(const Query& query, const Args&... args);
+    void Push(const Query& query, const ParameterStore& store);
 
     /// Collect results of all the queued queries, with specified timeout.
     /// Either returns a vector of N `ResultSet`s, where N is the number of
@@ -95,7 +99,7 @@ private:
     detail::ConnectionPtr conn_;
 
     struct QueriesStorage;
-    USERVER_NAMESPACE::utils::FastPimpl<QueriesStorage, 48, 8> queries_storage_;
+    USERVER_NAMESPACE::utils::FastPimpl<QueriesStorage, 56, 8> queries_storage_;
 };
 
 template <typename... Args>

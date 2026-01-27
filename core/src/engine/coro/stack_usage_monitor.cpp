@@ -7,7 +7,7 @@
 
 // userfaultfd is linux-specific,
 // and we use x86-64-specific RSP to calculate stack offsets
-#if defined(__linux__) && defined(__x86_64__)
+#if defined(__linux__) && defined(__x86_64__) && !defined(USERVER_DISABLE_STACK_USAGE_MONITOR)
 #include <sys/syscall.h>
 // Linux kernel version check, basically
 #if defined(__NR_userfaultfd)
@@ -113,7 +113,7 @@ std::uintptr_t GetStackBegin(const void* cb_ptr) noexcept {
 
 [[noreturn]] __attribute__((noinline)) void
 // the name is intentionally caps-ed, to be easily noticeable in the dumps
-THE_COROUTINE_OVERFLOWED_ITS_STACK() {
+THE_COROUTINE_OVERFLOWED_ITS_STACK() {  // NOLINT(readability-identifier-naming)
     // We are hitting a coroutine stack overflow, which normally would result in a
     // SIGSEGV with some hard to diagnose coredump (basically, the only
     // way to diagnose it correctly as SO is to employ some arcane knowledge:
@@ -221,8 +221,8 @@ void LogWarningWithErrno(
     logging::Level level = logging::Level::kWarning
 ) {
     const auto saved_errno = errno;
-    const auto message_with_errno =
-        fmt::format("{}, errno: {} ({})", message, saved_errno, utils::strerror(saved_errno));
+    const auto
+        message_with_errno = fmt::format("{}, errno: {} ({})", message, saved_errno, utils::strerror(saved_errno));
     UASSERT_MSG(false, message_with_errno);
     if (limited) {
         LOG_LIMITED(level) << message_with_errno;
@@ -263,17 +263,14 @@ private:
 
 class StackUsageMonitor::Impl final {
 public:
-    explicit Impl(std::size_t coro_stack_size) : coro_stack_size_{coro_stack_size} {
+    explicit Impl(std::size_t coro_stack_size)
+        : coro_stack_size_{coro_stack_size}
+    {
         UASSERT(coro_stack_size % kPageSize == 0);
     }
     ~Impl() { Stop(); }
 
     void Start() {
-        if (!utils::impl::kCoroutineStackUsageMonitorExperiment.IsEnabled()) {
-            LOG_INFO() << "StackUsageMonitor is not enabled, skipping initialization";
-            return;
-        }
-
         const auto monitor_fd = CreateUserfaultFd();
         if (monitor_fd == -1) {
             LogWarningWithErrno("Failed to initialize StackUsageMonitor(userfaultfd)");
@@ -319,9 +316,10 @@ public:
         monitor_thread_ = std::thread{[this] { MonitorForPageFaults(); }};
         is_active_ = true;
 
-        LOG_INFO() << "Successfully initialized StackUsageMonitor, kernel supports "
-                      "following userfaultfd features: "
-                   << supported_features;
+        LOG_INFO()
+            << "Successfully initialized StackUsageMonitor, kernel supports "
+               "following userfaultfd features: "
+            << supported_features;
     }
 
     void Cleanup() noexcept {
@@ -358,7 +356,7 @@ public:
             monitor_thread_.join();
         }
 
-        for (auto* thread_alt_stack : threads_alt_stacks) {
+        for (auto* thread_alt_stack : threads_alt_stacks_) {
             ::munmap(thread_alt_stack, kAltStackSize);
         }
 
@@ -464,7 +462,7 @@ public:
 
             const std::lock_guard lock{tid_to_pthread_initialization_mutex_};
             thread_id_to_pthread_id_.emplace_back(tid, thread_id);
-            threads_alt_stacks.push_back(alt_stack);
+            threads_alt_stacks_.push_back(alt_stack);
         }
     }
 
@@ -486,7 +484,8 @@ public:
             fmt::format_to(std::back_inserter(buff), "Coroutine is using approximately {}% of its stack\n", usage_pct);
             const auto coro_stack_usage_message = std::string_view{buff.data(), buff.size()};
             const auto stacktrace = boost::stacktrace::stacktrace::from_dump(
-                usage_info->serialized_stacktrace.data(), kMaxBinaryStacktraceSize
+                usage_info->serialized_stacktrace.data(),
+                kMaxBinaryStacktraceSize
             );
 
             const auto readable_stacktrace = logging::stacktrace_cache::to_string(stacktrace);
@@ -568,7 +567,9 @@ private:
                 if (pthread_kill(*faulting_thread_id, kStackUsageSignal)) {
                     // Yikes. Close the userfaultfd, hope for the best.
                     LogWarningWithErrno(
-                        "Failed to wakeup the faulting thread by signal", false, logging::Level::kError
+                        "Failed to wakeup the faulting thread by signal",
+                        false,
+                        logging::Level::kError
                     );
                     break;
                 }
@@ -580,7 +581,9 @@ private:
 
     std::optional<pthread_t> PidToPthreadT(int ptid) const {
         for (const auto& [pid, pthread_id] : thread_id_to_pthread_id_) {
-            if (ptid == pid) return pthread_id;
+            if (ptid == pid) {
+                return pthread_id;
+            }
         }
 
         return std::nullopt;
@@ -590,7 +593,7 @@ private:
     // change at runtime.
     std::mutex tid_to_pthread_initialization_mutex_;
     boost::container::small_vector<std::pair<int, pthread_t>, 32> thread_id_to_pthread_id_{};
-    boost::container::small_vector<void*, 32> threads_alt_stacks{};
+    boost::container::small_vector<void*, 32> threads_alt_stacks_{};
 
     std::size_t coro_stack_size_;
     std::thread monitor_thread_;
@@ -622,7 +625,9 @@ public:
 
 #endif
 
-StackUsageMonitor::StackUsageMonitor(std::size_t coro_stack_size) : impl_{coro_stack_size} {}
+StackUsageMonitor::StackUsageMonitor(std::size_t coro_stack_size)
+    : impl_{coro_stack_size}
+{}
 
 StackUsageMonitor::~StackUsageMonitor() { Stop(); }
 

@@ -18,7 +18,9 @@ T ExtractResult(NThreading::TFuture<NYdb::NCoordination::TResult<T>>&& future, s
 
 }  // namespace
 
-CoordinationSession::CoordinationSession(NYdb::NCoordination::TSession&& session) : session_{std::move(session)} {
+CoordinationSession::CoordinationSession(NYdb::NCoordination::TSession&& session)
+    : session_{std::move(session)}
+{
     UASSERT(session_);
 }
 
@@ -67,10 +69,14 @@ void CoordinationSession::DeleteSemaphore(std::string_view name) {
 }
 
 CoordinationClient::CoordinationClient(std::shared_ptr<impl::Driver> driver)
-    : driver_{std::move(driver)}, client_{driver_->GetNativeDriver()} {}
+    : driver_{std::move(driver)},
+      client_{driver_->GetNativeDriver()}
+{}
 
-CoordinationSession
-CoordinationClient::StartSession(std::string_view path, const NYdb::NCoordination::TSessionSettings& settings) {
+CoordinationSession CoordinationClient::StartSession(
+    std::string_view path,
+    const NYdb::NCoordination::TSessionSettings& settings
+) {
     auto session =
         ExtractResult(client_.StartSession(impl::JoinPath(driver_->GetDbPath(), path), settings), "StartSession");
     return CoordinationSession{std::move(session)};

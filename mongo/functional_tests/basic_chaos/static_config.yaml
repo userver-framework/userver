@@ -50,6 +50,7 @@ components_manager:
         testsuite-support:
 
         http-client:
+        http-client-core:
             fs-task-processor: main-task-processor
 
         tests-control:
@@ -63,6 +64,10 @@ components_manager:
 
         dns-client:
             fs-task-processor: fs-task-processor
+
+        secdist:
+            load-enabled: false
+        default-secdist-provider: {}
 
     task_processors:
         main-task-processor:

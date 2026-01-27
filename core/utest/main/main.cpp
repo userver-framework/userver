@@ -37,8 +37,9 @@ Config ParseConfig(int argc, char** argv) {
     po::notify(vm);
 
     Config config;
-    if (vm.count("log-level"))
+    if (vm.count("log-level")) {
         config.log_level = USERVER_NAMESPACE::logging::LevelFromString(vm["log-level"].as<std::string>());
+    }
 
     return config;
 }
@@ -62,8 +63,6 @@ int main(int argc, char** argv) {
     USERVER_NAMESPACE::utest::impl::InitMockNow();
 
     USERVER_NAMESPACE::utest::impl::SetLogLevel(config.log_level);
-
-    USERVER_NAMESPACE::utest::impl::EnableStackUsageMonitor();
 
     // TODO TAXICOMMON-9403
     // const PhdrCacheScope phdr_cache_scope{};

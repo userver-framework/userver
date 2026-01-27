@@ -2,7 +2,6 @@
 
 #include <fmt/format.h>
 #include <fmt/ranges.h>
-#include <userver/clients/dns/config.hpp>
 #include <userver/clients/dns/resolver.hpp>
 #include <userver/clients/http/component.hpp>
 #include <userver/clients/http/streamed_response.hpp>
@@ -16,6 +15,8 @@
 #include <userver/utils/assert.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
+#include <userver/static_config/dns_client.hpp>
+
 namespace chaos {
 
 static constexpr std::string_view kSeparator = ", ";
@@ -27,21 +28,23 @@ public:
 
     ResolverHandler(const components::ComponentConfig& config, const components::ComponentContext& context)
         : HttpHandlerBase(config, context),
-          resolver_{engine::current_task::GetTaskProcessor(), [&config] {
-                        clients::dns::ResolverConfig resolver_config;
-                        resolver_config.network_custom_servers = config["dns-servers"].As<std::vector<std::string>>();
-                        resolver_config.file_path = config["hosts-file"].As<std::string>();
-                        resolver_config.file_update_interval = std::chrono::seconds{kResolverTimeoutSecs};
-                        resolver_config.network_timeout = std::chrono::seconds{kResolverTimeoutSecs};
-                        resolver_config.network_attempts = 1;
-                        resolver_config.cache_max_reply_ttl =
-                            std::chrono::seconds{config["cache-max-ttl"].As<int64_t>()};
-                        resolver_config.cache_failure_ttl =
-                            std::chrono::seconds{config["cache-failure-ttl"].As<int64_t>()};
-                        resolver_config.cache_ways = 1;
-                        resolver_config.cache_size_per_way = config["cache-size-per-way"].As<int64_t>();
-                        return resolver_config;
-                    }()} {}
+          resolver_{
+              engine::current_task::GetTaskProcessor(),
+              [&config] {
+                  ::userver::static_config::DnsClient resolver_config;
+                  resolver_config.network_custom_servers = config["dns-servers"].As<std::vector<std::string>>();
+                  resolver_config.hosts_file_path = config["hosts-file"].As<std::string>();
+                  resolver_config.hosts_file_update_interval = std::chrono::seconds{kResolverTimeoutSecs};
+                  resolver_config.network_timeout = std::chrono::seconds{kResolverTimeoutSecs};
+                  resolver_config.network_attempts = 1;
+                  resolver_config.cache_max_reply_ttl = std::chrono::seconds{config["cache-max-ttl"].As<int64_t>()};
+                  resolver_config.cache_failure_ttl = std::chrono::seconds{config["cache-failure-ttl"].As<int64_t>()};
+                  resolver_config.cache_ways = 1;
+                  resolver_config.cache_size_per_way = config["cache-size-per-way"].As<int64_t>();
+                  return resolver_config;
+              }()
+          }
+    {}
 
     std::string HandleRequestThrow(const server::http::HttpRequest& request, server::request::RequestContext&)
         const override {

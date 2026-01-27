@@ -12,11 +12,11 @@ using namespace std::chrono_literals;
 
 USERVER_NAMESPACE_BEGIN
 
-UTEST(Semaphore, Ctr) { engine::Semaphore s{100}; }
+UTEST(Semaphore, Ctr) { const engine::Semaphore s{100}; }
 
 UTEST(Semaphore, OnePass) {
     engine::Semaphore s{1};
-    auto task = engine::AsyncNoSpan([&s]() { std::shared_lock guard{s}; });
+    auto task = engine::AsyncNoSpan([&s]() { const std::shared_lock guard{s}; });
 
     task.WaitFor(utest::kMaxTestWaitTime);
     EXPECT_TRUE(task.IsFinished());
@@ -36,16 +36,17 @@ UTEST(Semaphore, PassAcrossCoroutines) {
 UTEST(Semaphore, PassAcrossCoroutinesLocal) {
     engine::Semaphore s{1};
     std::shared_lock guard{s};
-    auto task2 =
-        engine::AsyncNoSpan([guard = std::move(guard)]() mutable { std::shared_lock local_guard = std::move(guard); });
+    auto task2 = engine::AsyncNoSpan([guard = std::move(guard)]() mutable {
+        const std::shared_lock local_guard = std::move(guard);
+    });
     task2.WaitFor(utest::kMaxTestWaitTime);
     EXPECT_TRUE(task2.IsFinished());
 }
 
 UTEST(Semaphore, TwoPass) {
     engine::Semaphore s{2};
-    std::shared_lock guard1{s};
-    auto task = engine::AsyncNoSpan([&s]() { std::shared_lock guard2{s}; });
+    const std::shared_lock guard1{s};
+    auto task = engine::AsyncNoSpan([&s]() { const std::shared_lock guard2{s}; });
 
     task.WaitFor(utest::kMaxTestWaitTime);
     EXPECT_TRUE(task.IsFinished());
@@ -54,7 +55,7 @@ UTEST(Semaphore, TwoPass) {
 UTEST(Semaphore, LockAndCancel) {
     engine::Semaphore s{1};
     std::shared_lock guard{s};
-    auto task = engine::AsyncNoSpan([&s]() { std::shared_lock guard{s}; });
+    auto task = engine::AsyncNoSpan([&s]() { const std::shared_lock guard{s}; });
 
     task.WaitFor(std::chrono::milliseconds(100));
     task.RequestCancel();
@@ -67,8 +68,8 @@ UTEST(Semaphore, LockAndCancel) {
 
 UTEST(CancellableSemaphore, LockAndCancel) {
     engine::CancellableSemaphore s{1};
-    std::shared_lock guard{s};
-    auto task = engine::AsyncNoSpan([&s]() { std::shared_lock guard{s}; });
+    const std::shared_lock guard{s};
+    auto task = engine::AsyncNoSpan([&s]() { const std::shared_lock guard{s}; });
 
     task.WaitFor(std::chrono::milliseconds(100));
     task.RequestCancel();
@@ -81,8 +82,9 @@ UTEST(CancellableSemaphore, LockAndCancel) {
 UTEST(CancellableSemaphore, TryLockAndCancel) {
     engine::CancellableSemaphore s{1};
     std::shared_lock guard{s};
-    auto task =
-        engine::AsyncNoSpan([&s]() { [[maybe_unused]] auto tmp = s.try_lock_shared_for(utest::kMaxTestWaitTime); });
+    auto task = engine::AsyncNoSpan([&s]() {
+        [[maybe_unused]] auto tmp = s.try_lock_shared_for(utest::kMaxTestWaitTime);
+    });
 
     task.WaitFor(std::chrono::milliseconds(100));
     task.RequestCancel();
@@ -93,9 +95,9 @@ UTEST(CancellableSemaphore, TryLockAndCancel) {
 
 UTEST(Semaphore, Lock2AndCancel) {
     engine::Semaphore s{2};
-    std::shared_lock guard{s};
+    const std::shared_lock guard{s};
     std::shared_lock<engine::Semaphore> guard1{s};
-    auto task = engine::AsyncNoSpan([&s]() { std::shared_lock guard{s}; });
+    auto task = engine::AsyncNoSpan([&s]() { const std::shared_lock guard{s}; });
 
     task.WaitFor(std::chrono::milliseconds(50));
     EXPECT_FALSE(task.IsFinished());
@@ -106,7 +108,7 @@ UTEST(Semaphore, LocksUnlocks) {
     engine::Semaphore s{1};
     auto multilocker = [&s]() {
         for (unsigned i = 0; i < 100; i++) {
-            std::shared_lock guard{s};
+            const std::shared_lock guard{s};
             engine::Yield();
         }
     };
@@ -122,7 +124,7 @@ UTEST_MT(Semaphore, LocksUnlocksMT, 2) {
     engine::Semaphore s{1};
     auto multilocker = [&s]() {
         for (unsigned i = 0; i < 100; i++) {
-            std::shared_lock guard{s};
+            const std::shared_lock guard{s};
             engine::Yield();
         }
     };
@@ -138,7 +140,7 @@ UTEST_MT(Semaphore, LocksUnlocksMtTorture, 4) {
     engine::Semaphore s{2};
     auto multilocker = [&s]() {
         for (unsigned i = 0; i < 100; i++) {
-            std::shared_lock guard{s};
+            const std::shared_lock guard{s};
             engine::Yield();
         }
     };
@@ -152,7 +154,8 @@ UTEST_MT(Semaphore, LocksUnlocksMtTorture, 4) {
         engine::AsyncNoSpan(multilocker),
         engine::AsyncNoSpan(multilocker),
         engine::AsyncNoSpan(multilocker),
-        engine::AsyncNoSpan(multilocker)};
+        engine::AsyncNoSpan(multilocker)
+    };
 
     const auto deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
     for (auto& t : tasks) {
@@ -164,14 +167,14 @@ UTEST_MT(Semaphore, LocksUnlocksMtTorture, 4) {
 UTEST(Semaphore, TryLock) {
     engine::Semaphore sem(2);
 
-    std::shared_lock lock(sem);
+    const std::shared_lock lock(sem);
     EXPECT_TRUE(engine::AsyncNoSpan([&sem] { return !!std::shared_lock(sem, std::try_to_lock); }).Get());
     EXPECT_TRUE(engine::AsyncNoSpan([&sem] { return !!std::shared_lock(sem, std::chrono::milliseconds(10)); }).Get());
     EXPECT_TRUE(engine::AsyncNoSpan([&sem] { return !!std::shared_lock(sem, std::chrono::system_clock::now()); }).Get()
     );
 
     auto long_holder = engine::AsyncNoSpan([&sem] {
-        std::shared_lock lock(sem);
+        const std::shared_lock lock(sem);
         engine::InterruptibleSleepUntil(engine::Deadline{});
     });
     engine::Yield();
@@ -205,7 +208,9 @@ UTEST_MT(Semaphore, LockPassing, 4) {
         for (size_t i = 0; i < GetThreadCount(); ++i) {
             tasks.push_back(engine::AsyncNoSpan(work));
         }
-        for (auto& task : tasks) task.Get();
+        for (auto& task : tasks) {
+            task.Get();
+        }
     }
 }
 
@@ -217,7 +222,7 @@ UTEST_MT(Semaphore, LockFastPathRace, 5) {
     for (std::size_t i = 0; i < GetThreadCount(); ++i) {
         tasks.push_back(engine::AsyncNoSpan([&] {
             std::size_t locks_taken = 0;
-            utils::FastScopeGuard unlock([&]() noexcept { sem.unlock_shared_count(locks_taken); });
+            const utils::FastScopeGuard unlock([&]() noexcept { sem.unlock_shared_count(locks_taken); });
 
             while (!test_deadline.IsReached()) {
                 ASSERT_TRUE(sem.try_lock_shared());
@@ -226,7 +231,9 @@ UTEST_MT(Semaphore, LockFastPathRace, 5) {
         }));
     }
 
-    for (auto& task : tasks) task.Get();
+    for (auto& task : tasks) {
+        task.Get();
+    }
 }
 
 UTEST(Semaphore, AllWaitersWakeUpWhenNeeded) {
@@ -235,7 +242,9 @@ UTEST(Semaphore, AllWaitersWakeUpWhenNeeded) {
     engine::Semaphore sem{kLocksCount};
 
     // Acquire locks 1-by-1. We'll then release them all at once.
-    for (std::size_t i = 0; i < kLocksCount; ++i) sem.lock_shared();
+    for (std::size_t i = 0; i < kLocksCount; ++i) {
+        sem.lock_shared();
+    }
 
     std::vector<engine::TaskWithResult<void>> tasks;
 
@@ -244,8 +253,10 @@ UTEST(Semaphore, AllWaitersWakeUpWhenNeeded) {
 
     for (std::size_t i = 0; i < kLocksCount; ++i) {
         tasks.push_back(engine::AsyncNoSpan([&] {
-            std::shared_lock lock(sem);
-            if (++locks_acquired == kLocksCount) all_locks_acquired.Send();
+            const std::shared_lock lock(sem);
+            if (++locks_acquired == kLocksCount) {
+                all_locks_acquired.Send();
+            }
 
             // only release 'lock' on test shutdown
             engine::InterruptibleSleepUntil(engine::Deadline{});
@@ -368,8 +379,7 @@ UTEST(Semaphore, SetCapacityNotifyUnreachable) {
     EXPECT_TRUE(semaphore.try_lock_shared_count(3));
 
     auto task5 = engine::AsyncNoSpan([&] {
-        const bool success =
-            semaphore.try_lock_shared_until_count(engine::Deadline::FromDuration(utest::kMaxTestWaitTime), 5);
+        const bool success = semaphore.try_lock_shared_until_count(engine::Deadline::FromDuration(300ms), 5);
         EXPECT_FALSE(success);
     });
 
@@ -386,7 +396,7 @@ UTEST_MT(SemaphoreLock, LockMoveCopyOwning, 2) {
     engine::SemaphoreLock lock(sem);
     ASSERT_TRUE(lock.OwnsLock());
 
-    engine::SemaphoreLock move_here{std::move(lock)};
+    const engine::SemaphoreLock move_here{std::move(lock)};
     // NOLINTNEXTLINE(bugprone-use-after-move,clang-analyzer-cplusplus.Move)
     EXPECT_FALSE(lock.OwnsLock());
     EXPECT_TRUE(move_here.OwnsLock());
@@ -397,7 +407,7 @@ UTEST_MT(SemaphoreLock, LockMoveCopyEmpty, 2) {
     engine::SemaphoreLock empty_lock;
     ASSERT_FALSE(empty_lock.OwnsLock());
 
-    engine::SemaphoreLock move_here{std::move(empty_lock)};
+    const engine::SemaphoreLock move_here{std::move(empty_lock)};
     // NOLINTNEXTLINE(bugprone-use-after-move,clang-analyzer-cplusplus.Move)
     EXPECT_FALSE(empty_lock.OwnsLock());
     EXPECT_FALSE(move_here.OwnsLock());
@@ -432,11 +442,40 @@ UTEST(SemaphoreLock, SampleSemaphore) {
     engine::Semaphore sema(kMaxSimultaneousLocks);
     // ...
     {
-        std::shared_lock lock(sema);
+        const std::shared_lock lock(sema);
         // There may be no more than 3 users
         // in the critical section at the same time
     }
     /// [Sample engine::Semaphore usage]
+}
+
+UTEST(Semaphore, LockZeroUnitsWithRemaining) {
+    engine::Semaphore sem{1};
+    EXPECT_EQ(sem.GetCapacity(), 1);
+    EXPECT_EQ(sem.RemainingApprox(), 1);
+    EXPECT_EQ(sem.UsedApprox(), 0);
+
+    sem.lock_shared_count(0);
+    EXPECT_EQ(sem.GetCapacity(), 1);
+    EXPECT_EQ(sem.RemainingApprox(), 1);
+    EXPECT_EQ(sem.UsedApprox(), 0);
+    sem.unlock_shared_count(0);
+}
+
+UTEST(Semaphore, LockZeroUnitsWithoutRemaining) {
+    engine::Semaphore sem{1};
+    sem.lock_shared_count(1);
+    EXPECT_EQ(sem.GetCapacity(), 1);
+    EXPECT_EQ(sem.RemainingApprox(), 0);
+    EXPECT_EQ(sem.UsedApprox(), 1);
+
+    sem.lock_shared_count(0);
+    EXPECT_EQ(sem.GetCapacity(), 1);
+    EXPECT_EQ(sem.RemainingApprox(), 0);
+    EXPECT_EQ(sem.UsedApprox(), 1);
+    sem.unlock_shared_count(0);
+
+    sem.unlock_shared_count(1);
 }
 
 USERVER_NAMESPACE_END

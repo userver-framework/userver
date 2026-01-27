@@ -4,6 +4,7 @@
 /// @brief @copybrief utils::TracefulException
 
 #include <exception>
+#include <iterator>
 #include <string>
 #include <type_traits>
 
@@ -82,7 +83,9 @@ template <typename PlainException>
 class ExceptionWithAttachedTrace final : public PlainException, public TracefulExceptionBase {
 public:
     explicit ExceptionWithAttachedTrace(const PlainException& ex)
-        : PlainException(ex), TracefulExceptionBase(ex.what()) {}
+        : PlainException(ex),
+          TracefulExceptionBase(ex.what())
+    {}
 };
 
 template <typename Exception>

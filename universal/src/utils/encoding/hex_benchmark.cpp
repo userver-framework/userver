@@ -20,16 +20,16 @@ std::string GenerateSource(size_t size) {
 
 }  // namespace
 
-void to_hex_benchmark(benchmark::State& state) {
+void ToHexBenchmark(benchmark::State& state) {
     const auto source = GenerateSource(state.range(0));
 
     for ([[maybe_unused]] auto _ : state) {
         benchmark::DoNotOptimize(utils::encoding::ToHex(source));
     }
 }
-BENCHMARK(to_hex_benchmark)->RangeMultiplier(2)->Range(8, 512);
+BENCHMARK(ToHexBenchmark)->RangeMultiplier(2)->Range(8, 512);
 
-void to_hex_benchmark_no_alloc(benchmark::State& state) {
+void ToHexBenchmarkNoAlloc(benchmark::State& state) {
     const auto source = GenerateSource(state.range(0));
 
     std::string out;
@@ -40,6 +40,6 @@ void to_hex_benchmark_no_alloc(benchmark::State& state) {
         utils::encoding::ToHex(source, out);
     }
 }
-BENCHMARK(to_hex_benchmark_no_alloc)->RangeMultiplier(2)->Range(8, 512);
+BENCHMARK(ToHexBenchmarkNoAlloc)->RangeMultiplier(2)->Range(8, 512);
 
 USERVER_NAMESPACE_END

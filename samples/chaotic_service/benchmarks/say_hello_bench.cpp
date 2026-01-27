@@ -9,8 +9,8 @@
 
 void HelloBenchmark(benchmark::State& state) {
     engine::RunStandalone([&] {
-        ::samples::hello::HelloResponseBody response{"userver"};
-        ::samples::hello::HelloRequestBody request{"userver"};
+        const ::samples::hello::HelloResponseBody response{"userver"};
+        const ::samples::hello::HelloRequestBody request{"userver"};
 
         for (auto _ : state) {
             auto result = samples::hello::SayHelloTo(request);

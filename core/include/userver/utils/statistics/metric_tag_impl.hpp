@@ -63,7 +63,7 @@ public:
 template <typename Metric>
 class MetricWrapper final : public MetricWrapperBase {
     static_assert(
-        meta::kIsDetected<HasDumpMetric, Metric> || kHasWriterSupport<Metric>,
+        meta::IsDetected<HasDumpMetric, Metric> || kHasWriterSupport<Metric>,
         "Provide a `void DumpMetric(utils::statistics::Writer&, const Metric&)`"
         "function in the namespace of `Metric`."
     );
@@ -72,7 +72,9 @@ class MetricWrapper final : public MetricWrapperBase {
 
 public:
     template <typename... Args>
-    explicit MetricWrapper(std::in_place_t, const Args&... args) : data_(args...) {
+    explicit MetricWrapper(std::in_place_t, const Args&... args)
+        : data_(args...)
+    {
         if constexpr (sizeof...(Args) == 0) {
             InitializeAtomic(data_);
         }
@@ -94,7 +96,7 @@ public:
     bool HasWriterSupport() const noexcept override { return kHasWriterSupport<Metric>; }
 
     void Reset() override {
-        if constexpr (meta::kIsDetected<HasResetMetric, Metric>) {
+        if constexpr (meta::IsDetected<HasResetMetric, Metric>) {
             ResetMetric(data_);
         }
     }
@@ -118,10 +120,12 @@ MetricFactory MakeMetricFactory(Args&&... args) {
         );
     } else {
         static_assert(
-            std::is_constructible_v<Metric, const Args&...>, "Metric type is not constructible from the given args"
+            std::is_constructible_v<Metric, const Args&...>,
+            "Metric type is not constructible from the given args"
         );
         static_assert(
-            (true && ... && std::is_copy_constructible_v<std::decay_t<Args>>), "Metric args must be copy-constructible"
+            (true && ... && std::is_copy_constructible_v<std::decay_t<Args>>),
+            "Metric args must be copy-constructible"
         );
     }
 

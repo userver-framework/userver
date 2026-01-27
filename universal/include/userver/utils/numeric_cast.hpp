@@ -3,6 +3,8 @@
 /// @file userver/utils/numeric_cast.hpp
 /// @brief @copybrief utils::numeric_cast
 
+#include <cmath>
+#include <limits>
 #include <stdexcept>
 
 #include <fmt/format.h>
@@ -26,21 +28,54 @@ using PrintableValue = std::conditional_t<(sizeof(T) > 1), T, int>;
 /// ## Example usage:
 ///
 /// @snippet utils/numeric_cast_test.cpp  Sample utils::numeric_cast usage
-template <typename U, typename T>
-constexpr U numeric_cast(T input) {
-    static_assert(std::is_integral_v<T>);
-    static_assert(std::is_integral_v<U>);
+template <typename To, typename Exception = std::runtime_error, typename From>
+constexpr To numeric_cast(From input) {  // NOLINT(readability-identifier-naming)
+    constexpr bool is_integral = std::is_integral_v<From> && std::is_integral_v<To>;
+    constexpr bool is_floating_point = std::is_floating_point_v<From> && std::is_floating_point_v<To>;
+    static_assert(is_integral || is_floating_point);
 
-    U result = input;
-    if (static_cast<T>(result) != input || ((result < 0) != (input < 0))) {
-        throw std::runtime_error(fmt::format(
-            "Failed to convert {} {} into {} due to integer overflow",
-            compiler::GetTypeName<T>(),
-            static_cast<impl::PrintableValue<T>>(input),
-            compiler::GetTypeName<U>()
+    using FromLimits = std::numeric_limits<From>;
+    using ToLimits = std::numeric_limits<To>;
+
+    constexpr bool check_positive_overflow =
+        is_integral ? ToLimits::digits < FromLimits::digits : ToLimits::max() < FromLimits::max();
+    constexpr bool check_negative_overflow =
+        is_integral
+            ?
+            // signed -> signed: possible loss if narrowing
+            // signed -> unsigned: loss if negative
+            FromLimits::is_signed && (!ToLimits::is_signed || ToLimits::digits < FromLimits::digits)
+            : ToLimits::lowest() > FromLimits::lowest();
+
+    std::string_view overflow_type{};
+
+    if constexpr (check_positive_overflow) {
+        if (input > static_cast<From>(ToLimits::max())) {
+            if (!FromLimits::has_infinity || !std::isinf(input)) {
+                overflow_type = "positive";
+            }
+        }
+    }
+
+    if constexpr (check_negative_overflow) {
+        if (input < static_cast<From>(ToLimits::lowest())) {
+            if (!FromLimits::has_infinity || !std::isinf(input)) {
+                overflow_type = "negative";
+            }
+        }
+    }
+
+    if (!overflow_type.empty()) {
+        throw Exception(fmt::format(
+            "Failed to convert {} {} into {} due to {} integer overflow",
+            compiler::GetTypeName<From>(),
+            static_cast<impl::PrintableValue<From>>(input),
+            compiler::GetTypeName<To>(),
+            overflow_type
         ));
     }
-    return result;
+
+    return static_cast<To>(input);
 }
 
 }  // namespace utils

@@ -32,7 +32,7 @@ protected:
     MongoPoolFixture();
     ~MongoPoolFixture() override;
 
-    storages::mongo::Pool GetDefaultPool();
+    storages::mongo::Pool& GetDefaultPool();
 
     storages::mongo::Pool MakePool(
         std::optional<std::string> db_name,

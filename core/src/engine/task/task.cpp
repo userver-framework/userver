@@ -19,9 +19,13 @@ static_assert(!std::is_polymorphic_v<Task>, "Slicing is used by derived types, v
 
 Task::Task() { UASSERT(!IsValid()); }
 
-Task::Task(impl::TaskContextHolder&& context) : TaskBase(std::move(context)) {}
+Task::Task(impl::TaskContextHolder&& context)
+    : TaskBase(std::move(context))
+{}
 
-Task::Task(Task&& other) noexcept : TaskBase(static_cast<TaskBase&&>(other)) { UASSERT(!other.IsValid()); }
+Task::Task(Task&& other) noexcept : TaskBase(static_cast<TaskBase&&>(other)) {
+    UASSERT(!other.IsValid());
+}
 
 Task& Task::operator=(Task&& other) noexcept {
     Terminate(TaskCancellationReason::kAbandoned);
@@ -32,16 +36,16 @@ Task& Task::operator=(Task&& other) noexcept {
 
 Task::~Task() { Terminate(TaskCancellationReason::kAbandoned); }
 
-void Task::Detach() && {
-    if (IsValid()) {
-        UASSERT(GetContext().UseCount() > 0);
+impl::ContextAccessor* Task::TryGetContextAccessor() noexcept { return IsValid() ? &GetContext() : nullptr; }
+
+void DetachUnscopedUnsafe(Task&& task) {
+    if (task.IsValid()) {
+        UASSERT(task.GetContext().UseCount() > 0);
         // If Adopt throws, the Task is kept in a consistent state
-        GetContext().GetTaskProcessor().Adopt(GetContext());
-        TaskBase::operator=(Task{});
+        task.GetContext().GetTaskProcessor().Adopt(task.GetContext());
+        task.TaskBase::operator=(Task{});
     }
 }
-
-impl::ContextAccessor* Task::TryGetContextAccessor() noexcept { return IsValid() ? &GetContext() : nullptr; }
 
 }  // namespace engine
 

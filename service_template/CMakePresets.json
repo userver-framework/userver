@@ -1,0 +1,46 @@
+{
+  "version": 2,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 20,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "debug",
+      "displayName": "Debug",
+      "description": "Fully featured Debug build",
+      "inherits": [
+        "common-flags"
+      ],
+      "binaryDir": "${sourceDir}/build-debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "USERVER_SANITIZE": "addr;ub"
+      }
+    },
+    {
+      "name": "release",
+      "displayName": "Release",
+      "description": "Fully featured Release build",
+      "inherits": [
+        "common-flags"
+      ],
+      "binaryDir": "${sourceDir}/build-release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "common-flags",
+      "hidden": true,
+      "generator": "Ninja",
+      "cacheVariables": {
+        "USERVER_FEATURE_GRPC": "ON",  // grpc template current
+        "USERVER_FEATURE_POSTGRESQL": "ON",  // postgresql template current
+        "USERVER_FEATURE_MONGODB": "ON",  // mongo template current
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+      }
+    }
+  ]
+}

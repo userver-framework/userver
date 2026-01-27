@@ -53,7 +53,7 @@ union WSHeader {
         unsigned char reserved : 3;
         unsigned char fin : 1;
 
-        unsigned char payloadLen : 7;
+        unsigned char payload_len : 7;
         unsigned char mask : 1;
     } bits;
     uint16_t bytes = 0;
@@ -75,8 +75,12 @@ enum class Final {
     kNo,
 };
 
-boost::container::small_vector<char, impl::kMaxFrameHeaderSize>
-DataFrameHeader(utils::span<const std::byte> data, bool is_text, Continuation is_continuation, Final is_final);
+boost::container::small_vector<char, impl::kMaxFrameHeaderSize> DataFrameHeader(
+    utils::span<const std::byte> data,
+    bool is_text,
+    Continuation is_continuation,
+    Final is_final
+);
 std::array<char, sizeof(WSHeader)> MakeControlFrame(WSOpcodes opcode, utils::span<const std::byte> data = {});
 std::string CloseFrame(CloseStatusInt status_code);
 
@@ -98,8 +102,12 @@ struct FrameParserState {
     std::string* payload = nullptr;
 };
 
-CloseStatus
-ReadWSFrame(FrameParserState& frame, engine::io::ReadableBase& io, unsigned max_payload_size, std::size_t& payload_len);
+CloseStatus ReadWSFrame(
+    FrameParserState& frame,
+    engine::io::ReadableBase& io,
+    unsigned max_payload_size,
+    std::size_t& payload_len
+);
 
 std::optional<CloseStatus> ReadWSFrameDontWaitForHeader(
     FrameParserState& frame,

@@ -81,14 +81,16 @@ INSTANTIATE_TEST_SUITE_P(
             2,
             "localhost",
             "5432",
-            "mydb"},
+            "mydb"
+        },
         TestData{
             pg::Dsn{"host=localhost,host1 port=5432 dbname=mydb "
                     "connect_timeout=10"},
             2,
             "localhost",
             "5432",
-            "mydb"},
+            "mydb"
+        },
         TestData{pg::Dsn{"host=/tmp/postgres.sock"}, 1, "/tmp/postgres.sock", "", ""},
         // URIs
         TestData{pg::Dsn{"postgresql://"}, 1, "localhost", "", ""},
@@ -103,7 +105,8 @@ INSTANTIATE_TEST_SUITE_P(
             1,
             "localhost",
             "",
-            "otherdb"},
+            "otherdb"
+        },
         TestData{pg::Dsn{"postgresql:///mydb?host=myhost&port=5433"}, 1, "myhost", "5433", "mydb"},
         TestData{pg::Dsn{"postgresql://%2Ftmp%2Fpostgres.sock"}, 1, "/tmp/postgres.sock", "", ""},
         // multi-host uri-like dsn is introduced in PostgreSQL 10.
@@ -113,7 +116,8 @@ INSTANTIATE_TEST_SUITE_P(
             2,
             "host1",
             "123",
-            "somedb"},
+            "somedb"
+        },
         // target_session_attrs is introduced in PostgreSQL 10.
         TestData{
             pg::Dsn{"postgresql://host1:123,host2:456/"
@@ -121,7 +125,8 @@ INSTANTIATE_TEST_SUITE_P(
             2,
             "host1",
             "123",
-            "somedb"},
+            "somedb"
+        },
         TestData{pg::Dsn{"postgresql:///mydb?host=localhost&port=5433"}, 1, "localhost", "5433", "mydb"},
         TestData{pg::Dsn{"postgresql://[2001:db8::1234]/database"}, 1, "2001:db8::1234", "", "database"},
         TestData{pg::Dsn{"postgresql:///dbname?host=/var/lib/postgresql"}, 1, "/var/lib/postgresql", "", "dbname"},
@@ -130,9 +135,10 @@ INSTANTIATE_TEST_SUITE_P(
 );
 
 TEST(PostgreDSN, DsnCutPassword) {
-    auto dsn_cut =
-        pg::DsnCutPassword(pg::Dsn{"host=127.0.0.1 port=6432 dbname=mydb connect_timeout=10 user=myuser "
-                                   "password=mypass"});
+    auto dsn_cut = pg::DsnCutPassword(pg::Dsn{
+        "host=127.0.0.1 port=6432 dbname=mydb connect_timeout=10 user=myuser "
+        "password=mypass"
+    });
     EXPECT_EQ(dsn_cut.find("password"), dsn_cut.npos);
     EXPECT_EQ(dsn_cut.find("mypass"), dsn_cut.npos);
 
@@ -145,7 +151,8 @@ TEST(PostgreDSN, DsnCutPassword) {
 
 TEST(PostgreDSN, EscapeHostName) {
     EXPECT_EQ(
-        pg::EscapeHostName("host-name.with.numbers130.dots.and-dashes"), "host_name_with_numbers130_dots_and_dashes"
+        pg::EscapeHostName("host-name.with.numbers130.dots.and-dashes"),
+        "host_name_with_numbers130_dots_and_dashes"
     );
 }
 

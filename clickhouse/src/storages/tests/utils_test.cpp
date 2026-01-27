@@ -71,7 +71,9 @@ ClusterWrapper::ClusterWrapper(
     bool use_compression,
     const std::vector<storages::clickhouse::impl::EndpointSettings>& endpoints
 )
-    : resolver_{MakeDnsResolver()}, cluster_{MakeCluster(resolver_, use_compression, endpoints)} {
+    : resolver_{MakeDnsResolver()},
+      cluster_{MakeCluster(resolver_, use_compression, endpoints)}
+{
     stats_holder_ = statistics_storage_.RegisterWriter("clickhouse", [this](utils::statistics::Writer& writer) {
         cluster_.WriteStatistics(writer);
     });
@@ -81,8 +83,10 @@ storages::clickhouse::Cluster* ClusterWrapper::operator->() { return &cluster_; 
 
 storages::clickhouse::Cluster& ClusterWrapper::operator*() { return cluster_; }
 
-utils::statistics::Snapshot
-ClusterWrapper::GetStatistics(std::string prefix, std::vector<utils::statistics::Label> require_labels) {
+utils::statistics::Snapshot ClusterWrapper::GetStatistics(
+    std::string prefix,
+    std::vector<utils::statistics::Label> require_labels
+) {
     return utils::statistics::Snapshot{statistics_storage_, std::move(prefix), std::move(require_labels)};
 }
 PoolWrapper::PoolWrapper()
@@ -92,8 +96,10 @@ PoolWrapper::PoolWrapper()
           storages::clickhouse::impl::PoolSettings{
               GetConfig(false),
               {"localhost", GetClickhousePort()},
-              GetAuthSettings()}
-      )} {}
+              GetAuthSettings()
+          }
+      )}
+{}
 
 storages::clickhouse::impl::PoolImpl* PoolWrapper::operator->() { return &*pool_; }
 

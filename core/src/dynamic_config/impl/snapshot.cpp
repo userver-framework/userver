@@ -5,6 +5,7 @@
 #include <userver/compiler/demangle.hpp>
 #include <userver/dynamic_config/exception.hpp>
 #include <userver/dynamic_config/storage_mock.hpp>
+#include <userver/formats/json/serialize.hpp>
 #include <userver/utils/cpu_relax.hpp>
 #include <userver/utils/enumerate.hpp>
 #include <userver/utils/impl/static_registration.hpp>
@@ -116,7 +117,9 @@ SnapshotData::SnapshotData(const std::vector<KeyValue>& config_variables) {
     }
 }
 
-SnapshotData::SnapshotData(const DocsMap& defaults, const std::vector<KeyValue>& overrides) : SnapshotData(overrides) {
+SnapshotData::SnapshotData(const DocsMap& defaults, const std::vector<KeyValue>& overrides)
+    : SnapshotData(overrides)
+{
     utils::StreamingCpuRelax relax(1, nullptr);
     for (const auto [id, metadata] : utils::enumerate(Registry())) {
         if (!user_configs_[id].has_value()) {
@@ -124,8 +127,13 @@ SnapshotData::SnapshotData(const DocsMap& defaults, const std::vector<KeyValue>&
             try {
                 user_configs_[id] = metadata.factory(defaults);
             } catch (const std::exception& ex) {
+                const auto
+                    name = metadata.name.empty() ? "with custom DocsMap parser" : std::string_view{metadata.name};
                 throw ConfigParseError(fmt::format(
-                    "{} while parsing dynamic config values. {}", compiler::GetTypeName(typeid(ex)), ex.what()
+                    "{} while parsing dynamic config {}. {}",
+                    compiler::GetTypeName(typeid(ex)),
+                    name,
+                    ex.what()
                 ));
             }
         }
@@ -133,11 +141,16 @@ SnapshotData::SnapshotData(const DocsMap& defaults, const std::vector<KeyValue>&
 }
 
 SnapshotData::SnapshotData(const SnapshotData& defaults, const std::vector<KeyValue>& overrides)
-    : SnapshotData(overrides) {
-    if (defaults.IsEmpty()) return;
+    : SnapshotData(overrides)
+{
+    if (defaults.IsEmpty()) {
+        return;
+    }
 
     for (const auto [id, factory] : utils::enumerate(Registry())) {
-        if (user_configs_[id].has_value()) continue;
+        if (user_configs_[id].has_value()) {
+            continue;
+        }
         user_configs_[id] = defaults.user_configs_[id];
     }
 }

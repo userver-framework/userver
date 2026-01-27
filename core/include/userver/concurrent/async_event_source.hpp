@@ -9,6 +9,8 @@
 #include <typeinfo>
 #include <utility>
 
+#include <userver/utils/impl/internal_tag.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace concurrent {
@@ -39,7 +41,9 @@ public:
     constexpr FunctionId() = default;
 
     template <typename Class>
-    explicit FunctionId(Class* obj) : FunctionId(obj, typeid(Class)) {}
+    explicit FunctionId(Class* obj)
+        : FunctionId(obj, typeid(Class))
+    {}
 
     explicit operator bool() const;
 
@@ -69,19 +73,21 @@ class [[nodiscard]] AsyncEventSubscriberScope final {
 public:
     AsyncEventSubscriberScope() = default;
 
-    template <typename... Args>
-    AsyncEventSubscriberScope(AsyncEventSource<Args...>& channel, FunctionId id)
-        : AsyncEventSubscriberScope(static_cast<impl::AsyncEventSourceBase&>(channel), id) {}
-
     AsyncEventSubscriberScope(AsyncEventSubscriberScope&& scope) noexcept;
-
     AsyncEventSubscriberScope& operator=(AsyncEventSubscriberScope&& other) noexcept;
-
     ~AsyncEventSubscriberScope();
 
     /// Unsubscribes manually. The subscription should be cancelled before
     /// anything that the callback needs is destroyed.
     void Unsubscribe() noexcept;
+
+    /// @cond
+    // For internal use only.
+    template <typename... Args>
+    AsyncEventSubscriberScope(utils::impl::InternalTag, AsyncEventSource<Args...>& channel, FunctionId id)
+        : AsyncEventSubscriberScope(static_cast<impl::AsyncEventSourceBase&>(channel), id)
+    {}
+    /// @endcond
 
 private:
     AsyncEventSubscriberScope(impl::AsyncEventSourceBase& channel, FunctionId id);

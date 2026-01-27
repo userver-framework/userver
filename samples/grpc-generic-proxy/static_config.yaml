@@ -22,6 +22,7 @@ components_manager:
                 port: $monitor-port
                 task_processor: monitor-task-processor
         http-client:
+        http-client-core:
             load-enabled: $testsuite-enabled
             fs-task-processor: fs-task-processor
         dns-client:
@@ -41,12 +42,10 @@ components_manager:
             blocking-task-processor: grpc-blocking-task-processor
 
         grpc-client-factory:
-            middlewares:
-              - grpc-client-logging
-              - grpc-client-deadline-propagation
 
         grpc-client-logging:
         grpc-client-deadline-propagation:
+        grpc-server-congestion-control:
 
         generic-client:
             endpoint: $grpc-generic-endpoint
@@ -56,16 +55,10 @@ components_manager:
             port: $grpc-server-port
             service-defaults:
                 task-processor: main-task-processor
-                middlewares:
-                  - grpc-server-logging
-                  - grpc-server-deadline-propagation
-                  - grpc-server-congestion-control
-                  - grpc-server-field-mask
 
-        grpc-server-logging:
-        grpc-server-deadline-propagation:
-        grpc-server-congestion-control:
-        grpc-server-field-mask:
+        grpc-server-middlewares-pipeline:
+        grpc-client-middlewares-pipeline:
+
 
         proxy-service:
 

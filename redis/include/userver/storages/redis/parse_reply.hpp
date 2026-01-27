@@ -1,12 +1,15 @@
 #pragma once
 
+/// @file
+/// @brief Customizations for Redis response parsings
+
 #include <optional>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
-#include <userver/storages/redis/impl/types.hpp>
+#include <userver/storages/redis/fwd.hpp>
 #include <userver/utils/void_t.hpp>
 
 #include <userver/storages/redis/reply_types.hpp>
@@ -51,8 +54,9 @@ struct To {};
 std::vector<std::string>
 ParseReplyDataArray(ReplyData&& array_data, const std::string& request_description, To<std::vector<std::string>>);
 
-std::vector<std::optional<std::string>>
-ParseReplyDataArray(ReplyData&& array_data, const std::string& request_description, To<std::vector<std::optional<std::string>>>);
+std::
+    vector<std::optional<std::string>>
+    ParseReplyDataArray(ReplyData&& array_data, const std::string& request_description, To<std::vector<std::optional<std::string>>>);
 
 std::vector<std::pair<std::string, std::string>>
 ParseReplyDataArray(ReplyData&& array_data, const std::string& request_description, To<std::vector<std::pair<std::string, std::string>>>);
@@ -62,6 +66,10 @@ ParseReplyDataArray(ReplyData&& array_data, const std::string& request_descripti
 
 std::vector<GeoPoint>
 ParseReplyDataArray(ReplyData&& array_data, const std::string& request_description, To<std::vector<GeoPoint>>);
+
+std::
+    vector<std::optional<Point>>
+    ParseReplyDataArray(ReplyData&& array_data, const std::string& request_description, To<std::vector<std::optional<Point>>>);
 
 std::string Parse(ReplyData&& reply_data, const std::string& request_description, To<std::string>);
 
@@ -88,6 +96,8 @@ bool Parse(ReplyData&& reply_data, const std::string& request_description, To<st
 
 void Parse(ReplyData&& reply_data, const std::string& request_description, To<StatusPong, void>);
 
+Point Parse(ReplyData&& reply_data, const std::string& request_description, To<Point>);
+
 SetReply Parse(ReplyData&& reply_data, const std::string& request_description, To<SetReply>);
 
 std::unordered_set<std::string>
@@ -112,16 +122,22 @@ std::vector<T> Parse(ReplyData&& reply_data, const std::string& request_descript
 
 template <typename T>
 std::optional<T> Parse(ReplyData&& reply_data, const std::string& request_description, To<std::optional<T>>) {
-    if (impl::IsNil(reply_data)) return std::nullopt;
+    if (impl::IsNil(reply_data)) {
+        return std::nullopt;
+    }
     return Parse(std::move(reply_data), request_description, To<T>{});
 }
+
+namespace impl {
 
 template <typename Result, typename ReplyType = Result>
 ReplyType ParseReply(ReplyPtr reply, const std::string& request_description = {}) {
     const auto& description = impl::RequestDescription(reply, request_description);
     impl::ExpectIsOk(reply, description);
-    return Parse(impl::ExtractData(reply), description, To<Result, ReplyType>{});
+    return Parse(impl::ExtractData(reply), description, To<Result, ReplyType>{});  // Customization point
 }
+
+}  // namespace impl
 
 }  // namespace storages::redis
 

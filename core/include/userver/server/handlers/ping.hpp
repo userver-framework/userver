@@ -12,21 +12,47 @@ namespace server::handlers {
 
 /// @ingroup userver_components userver_http_handlers
 ///
-/// @brief Handler that returns HTTP 200 if the service is OK and able to
-/// process requests.
+/// @brief Base class for handlers that returns HTTP 200 if the service
+/// is OK and able to process requests.
 ///
 /// Uses components::State::IsAnyComponentInFatalState() to detect
 /// fatal state (can not process requests).
 ///
-/// ## Static options:
-/// Inherits all the options from server::handlers::HttpHandlerBase
-/// @ref userver_http_handlers
-/// and adds the following ones:
+/// ## Static options of server::handlers::PingBase:
 ///
-/// Name | Description | Default value
-/// ---- | ----------- | -------------
-/// warmup-time-secs | how much time it needs to warmup the server | 0
-class Ping final : public HttpHandlerBase {
+/// Options inherited from @ref server::handlers::HttpHandlerBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/server/handlers/http_handler_base.md
+///
+/// Options inherited from @ref server::handlers::HandlerBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/server/handlers/handler_base.md
+///
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
+///
+/// @ref userver_http_handlers
+class PingBase : public HttpHandlerBase {
+public:
+    PingBase(const components::ComponentConfig& config, const components::ComponentContext& component_context);
+
+    std::string HandleRequestThrow(const http::HttpRequest& request, request::RequestContext& context) const override;
+
+private:
+    const components::State components_;
+};
+
+/// @ingroup userver_components userver_http_handlers
+///
+/// @brief Ping handler implementation with warmup
+///
+/// ## Static options of server::handlers::Ping:
+/// @include{doc} scripts/docs/en/components_schema/ccore/src/server/handlers/ping.md
+///
+/// Options inherited from @ref server::handlers::HandlerBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/server/handlers/handler_base.md
+///
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
+class Ping final : public PingBase {
 public:
     Ping(const components::ComponentConfig& config, const components::ComponentContext& component_context);
 
@@ -42,8 +68,6 @@ public:
 
 private:
     void AppendWeightHeaders(http::HttpResponse&) const;
-
-    const components::State components_;
 
     std::chrono::steady_clock::time_point load_time_{};
     std::chrono::seconds awacs_weight_warmup_time_{60};

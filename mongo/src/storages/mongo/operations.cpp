@@ -7,6 +7,7 @@
 #include <userver/storages/mongo/exception.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/graphite.hpp>
+#include <userver/utils/string_literal.hpp>
 
 #include <storages/mongo/cdriver/wrappers.hpp>
 #include <storages/mongo/operations_common.hpp>
@@ -106,7 +107,7 @@ void AppendWriteConcern(formats::bson::impl::BsonBuilder& builder, const options
     }
 }
 
-void AppendUint64Option(formats::bson::impl::BsonBuilder& builder, const std::string& name, std::uint64_t value) {
+void AppendUint64Option(formats::bson::impl::BsonBuilder& builder, std::string_view name, std::uint64_t value) {
     if (value > static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max())) {
         throw InvalidQueryArgumentException("Value ") << value << " of '" << name << "' is too high";
     }
@@ -114,26 +115,30 @@ void AppendUint64Option(formats::bson::impl::BsonBuilder& builder, const std::st
 }
 
 void AppendSkip(formats::bson::impl::BsonBuilder& builder, options::Skip skip) {
-    if (!skip.Value()) return;
+    if (!skip.Value()) {
+        return;
+    }
 
-    static const std::string kOptionName = "skip";
+    static constexpr utils::StringLiteral kOptionName = "skip";
     AppendUint64Option(builder, kOptionName, skip.Value());
 }
 
 void AppendLimit(formats::bson::impl::BsonBuilder& builder, options::Limit limit) {
-    if (!limit.Value()) return;
+    if (!limit.Value()) {
+        return;
+    }
 
-    static const std::string kOptionName = "limit";
+    static constexpr utils::StringLiteral kOptionName = "limit";
     AppendUint64Option(builder, kOptionName, limit.Value());
 }
 
 void AppendHint(formats::bson::impl::BsonBuilder& builder, const options::Hint& hint) {
-    static const std::string kOptionName = "hint";
+    static constexpr utils::StringLiteral kOptionName = "hint";
     builder.Append(kOptionName, hint.Value());
 }
 
 void AppendArrayFilters(formats::bson::impl::BsonBuilder& builder, const options::ArrayFilters& filters) {
-    static const std::string kOptionName = "arrayFilters";
+    static constexpr utils::StringLiteral kOptionName = "arrayFilters";
     builder.Append(kOptionName, filters.Value());
 }
 
@@ -141,15 +146,19 @@ void EnableFlag(const impl::cdriver::FindAndModifyOptsPtr& fam_options, mongoc_f
     UASSERT(!!fam_options);
     const auto old_flags = mongoc_find_and_modify_opts_get_flags(fam_options.get());
     if (!mongoc_find_and_modify_opts_set_flags(
-            fam_options.get(), static_cast<mongoc_find_and_modify_flags_t>(old_flags | new_flag)
-        )) {
+            fam_options.get(),
+            static_cast<mongoc_find_and_modify_flags_t>(old_flags | new_flag)
+        ))
+    {
         throw MongoException("Cannot set FAM flag ") << static_cast<std::int32_t>(new_flag);
     }
 }
 
 }  // namespace
 
-Count::Count(formats::bson::Document filter) : impl_(std::move(filter)) {}
+Count::Count(formats::bson::Document filter)
+    : impl_(std::move(filter))
+{}
 Count::~Count() = default;
 
 Count::Count(const Count& other) = default;
@@ -169,13 +178,11 @@ void Count::SetOption(options::Skip skip) { AppendSkip(impl::EnsureBuilder(impl_
 
 void Count::SetOption(options::Limit limit) { AppendLimit(impl::EnsureBuilder(impl_->options), limit); }
 
-void Count::SetOption(options::ForceCountImpl count_impl) {
-    impl_->use_new_count = (count_impl == options::ForceCountImpl::kAggregate);
-}
-
 void Count::SetOption(const options::MaxServerTime& max_server_time) {
     AppendMaxServerTime(impl_->max_server_time, max_server_time);
 }
+
+void Count::SetOption(const options::Hint& hint) { AppendHint(impl::EnsureBuilder(impl_->options), hint); }
 
 CountApprox::CountApprox() = default;
 CountApprox::~CountApprox() = default;
@@ -203,7 +210,9 @@ void CountApprox::SetOption(const options::MaxServerTime& max_server_time) {
     AppendMaxServerTime(impl_->max_server_time, max_server_time);
 }
 
-Find::Find(formats::bson::Document filter) : impl_(std::move(filter)) {}
+Find::Find(formats::bson::Document filter)
+    : impl_(std::move(filter))
+{}
 Find::~Find() = default;
 
 Find::Find(const Find& other) = default;
@@ -226,32 +235,36 @@ void Find::SetOption(options::Limit limit) { AppendLimit(impl::EnsureBuilder(imp
 ATTRIBUTE_NO_SANITIZE_UNDEFINED
 void Find::SetOption(options::Projection projection) {
     const bson_t* projection_bson = projection.GetProjectionBson();
-    if (bson_empty0(projection_bson)) return;
+    if (bson_empty0(projection_bson)) {
+        return;
+    }
 
-    static const std::string kOptionName = "projection";
+    static constexpr utils::StringLiteral kOptionName = "projection";
     impl::EnsureBuilder(impl_->options).Append(kOptionName, projection_bson);
 }
 
 ATTRIBUTE_NO_SANITIZE_UNDEFINED
 void Find::SetOption(const options::Sort& sort) {
     const bson_t* sort_bson = sort.GetSortBson();
-    if (bson_empty0(sort_bson)) return;
+    if (bson_empty0(sort_bson)) {
+        return;
+    }
 
-    static const std::string kOptionName = "sort";
+    static constexpr utils::StringLiteral kOptionName = "sort";
     impl::EnsureBuilder(impl_->options).Append(kOptionName, sort_bson);
 }
 
 void Find::SetOption(const options::Hint& hint) { AppendHint(impl::EnsureBuilder(impl_->options), hint); }
 
 void Find::SetOption(options::AllowPartialResults) {
-    static const std::string kOptionName = "allowPartialResults";
+    static constexpr utils::StringLiteral kOptionName = "allowPartialResults";
     impl::EnsureBuilder(impl_->options).Append(kOptionName, true);
 }
 
 void Find::SetOption(options::Tailable) {
-    static const std::string kTailable = "tailable";
-    static const std::string kAwaitData = "awaitData";
-    static const std::string kNoCursorTimeout = "noCursorTimeout";
+    static constexpr utils::StringLiteral kTailable = "tailable";
+    static constexpr utils::StringLiteral kAwaitData = "awaitData";
+    static constexpr utils::StringLiteral kNoCursorTimeout = "noCursorTimeout";
 
     for (const auto& option : {kTailable, kAwaitData, kNoCursorTimeout}) {
         impl::EnsureBuilder(impl_->options).Append(option, true);
@@ -266,7 +279,9 @@ void Find::SetOption(const options::MaxServerTime& max_server_time) {
     AppendMaxServerTime(impl_->max_server_time, max_server_time);
 }
 
-InsertOne::InsertOne(formats::bson::Document document) : impl_(std::move(document)) {}
+InsertOne::InsertOne(formats::bson::Document document)
+    : impl_(std::move(document))
+{}
 
 InsertOne::~InsertOne() = default;
 
@@ -287,7 +302,9 @@ void InsertOne::SetOption(options::SuppressServerExceptions) { impl_->should_thr
 
 InsertMany::InsertMany() = default;
 
-InsertMany::InsertMany(std::vector<formats::bson::Document> documents_) : impl_(std::move(documents_)) {}
+InsertMany::InsertMany(std::vector<formats::bson::Document> documents)
+    : impl_(std::move(documents))
+{}
 
 InsertMany::~InsertMany() = default;
 
@@ -299,7 +316,7 @@ InsertMany& InsertMany::operator=(InsertMany&&) noexcept = default;
 void InsertMany::Append(formats::bson::Document document) { impl_->documents.push_back(std::move(document)); }
 
 void InsertMany::SetOption(options::Unordered) {
-    static const std::string kOptionName = "ordered";
+    static constexpr utils::StringLiteral kOptionName = "ordered";
     impl::EnsureBuilder(impl_->options).Append(kOptionName, false);
 }
 
@@ -314,7 +331,8 @@ void InsertMany::SetOption(const options::WriteConcern& write_concern) {
 void InsertMany::SetOption(options::SuppressServerExceptions) { impl_->should_throw = false; }
 
 ReplaceOne::ReplaceOne(formats::bson::Document selector, formats::bson::Document replacement)
-    : impl_(std::move(selector), std::move(replacement)) {}
+    : impl_(std::move(selector), std::move(replacement))
+{}
 
 ReplaceOne::~ReplaceOne() = default;
 
@@ -336,7 +354,8 @@ void ReplaceOne::SetOption(const options::WriteConcern& write_concern) {
 void ReplaceOne::SetOption(options::SuppressServerExceptions) { impl_->should_throw = false; }
 
 Update::Update(Mode mode, formats::bson::Document selector, formats::bson::Document update)
-    : impl_(mode, std::move(selector), std::move(update)) {}
+    : impl_(mode, std::move(selector), std::move(update))
+{}
 
 Update::~Update() = default;
 
@@ -370,7 +389,9 @@ void Update::SetOption(const options::ArrayFilters& filters) {
 
 void Update::SetOption(const options::Hint& hint) { AppendHint(impl::EnsureBuilder(impl_->options), hint); }
 
-Delete::Delete(Mode mode, formats::bson::Document selector) : impl_(mode, std::move(selector)) {}
+Delete::Delete(Mode mode, formats::bson::Document selector)
+    : impl_(mode, std::move(selector))
+{}
 
 Delete::~Delete() = default;
 
@@ -389,15 +410,22 @@ void Delete::SetOption(const options::WriteConcern& write_concern) {
 
 void Delete::SetOption(options::SuppressServerExceptions) { impl_->should_throw = false; }
 
+void Delete::SetOption(const options::Hint& hint) { AppendHint(impl::EnsureBuilder(impl_->options), hint); }
+
 ATTRIBUTE_NO_SANITIZE_UNDEFINED
 FindAndModify::FindAndModify(formats::bson::Document query, const formats::bson::Document& update)
-    : impl_(std::move(query)) {
+    : impl_(std::move(query))
+{
     impl_->options.reset(mongoc_find_and_modify_opts_new());
     const bson_t* native_update_bson_ptr = update.GetBson().get();
     if (!mongoc_find_and_modify_opts_set_update(impl_->options.get(), native_update_bson_ptr)) {
         throw MongoException("Cannot set update document");
     }
 }
+
+FindAndModify::FindAndModify(Impl&& impl)
+    : impl_(std::move(impl))
+{}
 
 FindAndModify::~FindAndModify() = default;
 
@@ -461,10 +489,16 @@ void FindAndModify::SetOption(const options::ArrayFilters& filters) {
     }
 }
 
-FindAndRemove::FindAndRemove(formats::bson::Document query) : impl_(std::move(query)) {
+FindAndRemove::FindAndRemove(formats::bson::Document query)
+    : impl_(std::move(query))
+{
     impl_->options.reset(mongoc_find_and_modify_opts_new());
     EnableFlag(impl_->options, MONGOC_FIND_AND_MODIFY_REMOVE);
 }
+
+FindAndRemove::FindAndRemove(Impl&& impl)
+    : impl_(std::move(impl))
+{}
 
 FindAndRemove::~FindAndRemove() = default;
 
@@ -509,7 +543,9 @@ void FindAndRemove::SetOption(const options::MaxServerTime& max_server_time) {
     AppendMaxServerTime(impl_->max_server_time, max_server_time);
 }
 
-Aggregate::Aggregate(formats::bson::Value pipeline) : impl_(std::move(pipeline)) {
+Aggregate::Aggregate(formats::bson::Value pipeline)
+    : impl_(std::move(pipeline))
+{
     if (!impl_->pipeline.IsArray()) {
         throw InvalidQueryArgumentException("Aggregation pipeline is not an array");
     }
@@ -565,6 +601,52 @@ void Drop::SetOption(options::WriteConcern::Level level) {
 
 void Drop::SetOption(const options::WriteConcern& write_concern) {
     AppendWriteConcern(impl::EnsureBuilder(impl_->options), write_concern);
+}
+
+ATTRIBUTE_NO_SANITIZE_UNDEFINED
+void AppendCollation(formats::bson::impl::BsonBuilder& builder, const options::Collation& collation) {
+    const bson_t* collation_bson = collation.GetCollationBson();
+    if (bson_empty0(collation_bson)) {
+        return;
+    }
+
+    static constexpr utils::StringLiteral kOptionName = "collation";
+    builder.Append(kOptionName, collation_bson);
+}
+
+Distinct::Distinct(std::string field)
+    : impl_(std::move(field))
+{}
+
+Distinct::Distinct(std::string field, formats::bson::Document filter)
+    : impl_(std::move(field), std::move(filter))
+{}
+
+Distinct::~Distinct() = default;
+
+Distinct::Distinct(const Distinct& other) = default;
+Distinct::Distinct(Distinct&&) noexcept = default;
+Distinct& Distinct::operator=(const Distinct& rhs) = default;
+Distinct& Distinct::operator=(Distinct&&) noexcept = default;
+
+void Distinct::SetOption(const options::ReadPreference& read_prefs) {
+    impl_->read_prefs = MakeCDriverReadPrefs(read_prefs);
+}
+
+void Distinct::SetOption(options::ReadPreference::Mode mode) { impl_->read_prefs = MakeCDriverReadPrefs(mode); }
+
+void Distinct::SetOption(options::ReadConcern level) { AppendReadConcern(impl::EnsureBuilder(impl_->options), level); }
+
+void Distinct::SetOption(const options::Collation& collation) {
+    AppendCollation(impl::EnsureBuilder(impl_->options), collation);
+}
+
+void Distinct::SetOption(const options::Comment& comment) {
+    AppendComment(impl::EnsureBuilder(impl_->options), impl_->has_comment_option, comment);
+}
+
+void Distinct::SetOption(const options::MaxServerTime& max_server_time) {
+    AppendMaxServerTime(impl_->max_server_time, max_server_time);
 }
 
 }  // namespace storages::mongo::operations

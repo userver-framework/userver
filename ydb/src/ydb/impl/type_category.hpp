@@ -7,6 +7,10 @@
 
 #include <userver/ydb/types.hpp>
 
+namespace boost::uuids {
+struct uuid;
+}
+
 USERVER_NAMESPACE_BEGIN
 
 namespace ydb::impl {
@@ -42,6 +46,9 @@ inline constexpr auto kTypeCategory<Utf8> = NYdb::EPrimitiveType::Utf8;
 
 template <>
 inline constexpr auto kTypeCategory<Timestamp> = NYdb::EPrimitiveType::Timestamp;
+
+template <>
+inline constexpr auto kTypeCategory<boost::uuids::uuid> = NYdb::EPrimitiveType::Uuid;
 
 template <>
 inline constexpr auto kTypeCategory<formats::json::Value> = NYdb::EPrimitiveType::Json;

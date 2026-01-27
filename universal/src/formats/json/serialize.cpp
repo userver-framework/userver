@@ -81,7 +81,9 @@ void CheckKeyUniqueness(const impl::Value* root) {
             while (!stack.back().HasMoreElements()) {
                 depth--;
                 stack.pop_back();
-                if (stack.empty()) return;
+                if (stack.empty()) {
+                    return;
+                }
             }
         }
 
@@ -95,29 +97,37 @@ impl::VersionedValuePtr EnsureValid(impl::Document&& json) {
     return impl::VersionedValuePtr::Create(std::move(json));
 }
 
+std::string MakeParseErrorMessage(std::string_view doc, std::size_t offset, rapidjson::ParseErrorCode error_code) {
+    UASSERT(offset <= doc.size());
+    const std::size_t line = 1 + std::count(doc.begin(), doc.begin() + offset, '\n');
+    // Some versions of libstdc++ have runtime issues in
+    // string_view::find_last_of("\n", 0, offset) implementation.
+    const std::size_t from_pos = doc.substr(0, offset).find_last_of('\n');
+    const std::size_t column = offset > from_pos ? offset - from_pos : offset + 1;
+
+    return fmt::format(
+        "JSON parse error at line {} column {}: {}",
+        line,
+        column,
+        rapidjson::GetParseError_En(error_code)
+    );
+}
+
 }  // namespace
 
 Value FromString(std::string_view doc) {
-    if (doc.empty()) {
-        throw ParseException("JSON document is empty");
+    rapidjson::MemoryStream ms(doc.data(), doc.size());
+    impl::Document json{&g_allocator};
+    const rapidjson::ParseResult ok = json.ParseStream<
+        rapidjson::kParseDefaultFlags | rapidjson::kParseIterativeFlag | rapidjson::kParseFullPrecisionFlag>(ms);
+    if (!ok) {
+        throw ParseException(MakeParseErrorMessage(doc, ok.Offset(), ok.Code()));
     }
 
-    impl::Document json{&g_allocator};
-    rapidjson::ParseResult ok =
-        json.Parse<rapidjson::kParseDefaultFlags | rapidjson::kParseIterativeFlag | rapidjson::kParseFullPrecisionFlag>(
-            doc.data(), doc.size()
+    if (ms.Tell() != doc.size()) {
+        throw ParseException(
+            MakeParseErrorMessage(doc, ms.Tell(), rapidjson::ParseErrorCode::kParseErrorDocumentRootNotSingular)
         );
-    if (!ok) {
-        const auto offset = ok.Offset();
-        const auto line = 1 + std::count(doc.begin(), doc.begin() + offset, '\n');
-        // Some versions of libstdc++ have runtime issues in
-        // string_view::find_last_of("\n", 0, offset) implementation.
-        const auto from_pos = doc.substr(0, offset).find_last_of('\n');
-        const auto column = offset > from_pos ? offset - from_pos : offset + 1;
-
-        throw ParseException(fmt::format(
-            "JSON parse error at line {} column {}: {}", line, column, rapidjson::GetParseError_En(ok.Code())
-        ));
     }
 
     return Value{EnsureValid(std::move(json))};
@@ -130,12 +140,22 @@ Value FromStream(std::istream& is) {
 
     rapidjson::IStreamWrapper in(is);
     impl::Document json{&g_allocator};
-    rapidjson::ParseResult ok = json.ParseStream<
+    const rapidjson::ParseResult ok = json.ParseStream<
         rapidjson::kParseDefaultFlags | rapidjson::kParseIterativeFlag | rapidjson::kParseFullPrecisionFlag>(in);
     if (!ok) {
         throw ParseException(
             fmt::format("JSON parse error at offset {}: {}", ok.Offset(), rapidjson::GetParseError_En(ok.Code()))
         );
+    }
+
+    const std::size_t pos = in.Tell();
+    in.Take();  // increases the position indicator if the stream has not ended
+    if (pos != in.Tell()) {
+        throw ParseException(fmt::format(
+            "JSON parse error at offset {}: {}",
+            pos,
+            rapidjson::GetParseError_En(rapidjson::ParseErrorCode::kParseErrorDocumentRootNotSingular)
+        ));
     }
 
     return Value{EnsureValid(std::move(json))};

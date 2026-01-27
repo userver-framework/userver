@@ -1,0 +1,44 @@
+# yaml
+components_manager:
+    components:
+        handler-key-value:
+            path: /basic/sqlite/key-value
+            task_processor: main-task-processor
+            method: GET,DELETE,POST,PUT
+
+        handler-batch:
+            path: /basic/sqlite/batch
+            task_processor: main-task-processor
+            method: GET,DELETE,POST
+
+        testsuite-support:
+        tests-control:
+            load-enabled: $testsuite-enabled
+            path: /tests/{action}
+            method: POST
+            task_processor: main-task-processor
+
+        key-value-database:
+            db-path: "kv.db"
+
+        batch-database:
+            db-path: "batch.db"
+
+        server:
+            listener:
+                port: 8080
+                task_processor: main-task-processor
+        logging:
+            loggers:
+                default:
+                    file_path: "@stderr"
+                    level: debug
+                    overflow_behavior: discard
+
+    task_processors:
+        main-task-processor:
+            worker_threads: 4
+        fs-task-processor:
+            worker_threads: 4
+
+    default_task_processor: main-task-processor

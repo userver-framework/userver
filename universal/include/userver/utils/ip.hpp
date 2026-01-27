@@ -14,9 +14,11 @@
 
 #include <fmt/format.h>
 
+#include <userver/utils/zstring_view.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
-// IP address and utilities
+/// IP address and utilities
 namespace utils::ip {
 
 /// @ingroup userver_containers
@@ -27,11 +29,13 @@ class AddressBase final {
     static_assert(N == 4 || N == 16, "Address can only be 4 or 16 bytes size");
 
 public:
-    static constexpr std::size_t AddressSize = N;
+    static constexpr std::size_t kAddressSize = N;
     using BytesType = std::array<unsigned char, N>;
 
     AddressBase() noexcept : address_({0}) {}
-    explicit AddressBase(const BytesType& address) : address_(address) {}
+    explicit AddressBase(const BytesType& address)
+        : address_(address)
+    {}
 
     /// @brief Get the address in bytes, in network byte order.
     const BytesType& GetBytes() const noexcept { return address_; }
@@ -61,14 +65,12 @@ using AddressV6 = AddressBase<16>;
 template <typename T>
 inline constexpr bool kIsAddressType = std::is_same_v<T, AddressV4> || std::is_same_v<T, AddressV6>;
 
-/// @brief Create an IPv4 address from an IP address string in dotted decimal
-/// form.
+/// @brief Create an IPv4 address from an IP address string in dotted decimal form.
 /// @throw AddressSystemError
-AddressV4 AddressV4FromString(const std::string& str);
+AddressV4 AddressV4FromString(utils::zstring_view str);
 
-/// @brief Create an IPv6 address from an IP address string in dotted decimal
-/// form.
-AddressV6 AddressV6FromString(const std::string& str);
+/// @brief Create an IPv6 address from an IP address string in dotted decimal form.
+AddressV6 AddressV6FromString(utils::zstring_view str);
 
 /// @brief Get the address as a string in dotted decimal format.
 std::string AddressV4ToString(const AddressV4& address);
@@ -88,10 +90,13 @@ public:
     NetworkBase() noexcept = default;
 
     NetworkBase(const AddressType& address, unsigned short prefix_length)
-        : address_(address), prefix_length_(prefix_length) {
+        : address_(address),
+          prefix_length_(prefix_length)
+    {
         if (prefix_length > kMaximumPrefixLength) {
             throw std::out_of_range(fmt::format(
-                "{} prefix length is too large", std::is_same_v<Address, AddressV4> ? "NetworkV4" : "NetworkV6"
+                "{} prefix length is too large",
+                std::is_same_v<Address, AddressV4> ? "NetworkV4" : "NetworkV6"
             ));
         }
     }
@@ -172,7 +177,7 @@ NetworkV6 TransformToCidrFormat(NetworkV6 network);
 /// Use this class only if you need to work with INET PostgreSQL format.
 class InetNetwork final {
 public:
-    enum class AddressFamily : unsigned char { IPv4 = AF_INET, IPv6 = AF_INET6 };
+    enum class AddressFamily : unsigned char { kIPv4 = AF_INET, kIPv6 = AF_INET6 };
 
     // Default constructor: IPv4 address
     InetNetwork();
@@ -215,7 +220,10 @@ InetNetwork NetworkV6ToInetNetwork(const NetworkV6& network);
 /// @brief Invalid network or address
 class AddressSystemError final : public std::exception {
 public:
-    AddressSystemError(std::error_code code, std::string_view msg) : msg_(msg), code_(code) {}
+    AddressSystemError(std::error_code code, std::string_view msg)
+        : msg_(msg),
+          code_(code)
+    {}
 
     /// Operating system error code.
     const std::error_code& Code() const { return code_; }

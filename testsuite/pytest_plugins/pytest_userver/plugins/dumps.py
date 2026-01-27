@@ -1,7 +1,6 @@
 # pylint: disable=redefined-outer-name
 import pathlib
 import shutil
-import typing
 
 import pytest
 
@@ -31,16 +30,12 @@ def read_latest_dump(userver_dumps_root):
     @ingroup userver_testsuite_fixtures
     """
 
-    def read(dumper_name: str) -> typing.Optional[bytes]:
+    def read(dumper_name: str) -> bytes | None:
         specific_dir = userver_dumps_root.joinpath(dumper_name)
         if not specific_dir.is_dir():
             return None
         latest_dump_filename = max(
-            (
-                f
-                for f in specific_dir.iterdir()
-                if specific_dir.joinpath(f).is_file()
-            ),
+            (f for f in specific_dir.iterdir() if specific_dir.joinpath(f).is_file()),
             default=None,
         )
         if not latest_dump_filename:
@@ -75,7 +70,7 @@ def cleanup_userver_dumps(userver_dumps_root, request):
 def _userver_config_dumps(pytestconfig, userver_dumps_root):
     def patch_config(_config, config_vars) -> None:
         config_vars['userver-dumps-root'] = str(userver_dumps_root)
-        if not pytestconfig.getoption('--service-runner-mode', False):
+        if not pytestconfig.option.service_runner_mode:
             config_vars['userver-dumps-periodic'] = False
 
     return patch_config

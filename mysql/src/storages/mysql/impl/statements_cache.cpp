@@ -11,7 +11,9 @@ constexpr std::chrono::milliseconds kDefaultStatementDeleteTimeout{200};
 }
 
 StatementsCache::StatementsCache(Connection& connection, std::size_t capacity)
-    : connection_{connection}, cache_{capacity} {
+    : connection_{connection},
+      cache_{capacity}
+{
     UASSERT(capacity > 0);
 }
 
@@ -24,8 +26,8 @@ StatementsCache::~StatementsCache() {
     UASSERT(cache_.GetSize() == 0);
 }
 
-Statement& StatementsCache::PrepareStatement(const std::string& statement, engine::Deadline deadline) {
-    auto* statement_ptr = cache_.Get(statement);
+Statement& StatementsCache::PrepareStatement(std::string_view statement, engine::Deadline deadline) {
+    auto* statement_ptr = cache_.GetTransparent(statement);
     if (statement_ptr) {
         return *statement_ptr;
     }
@@ -39,7 +41,7 @@ Statement& StatementsCache::PrepareStatement(const std::string& statement, engin
         statement_to_be_deleted->SetDestructionDeadline(deadline);
     }
 
-    auto* added_statement = cache_.Emplace(statement, connection_, statement, deadline);
+    auto* added_statement = cache_.Emplace(std::string{statement}, connection_, std::string{statement}, deadline);
     UASSERT(added_statement);
     return *added_statement;
 }

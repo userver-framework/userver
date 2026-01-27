@@ -7,6 +7,7 @@
 /// @ingroup userver_universal userver_formats_parse
 
 #include <chrono>
+#include <cmath>
 #include <cstdint>
 #include <limits>
 
@@ -14,8 +15,8 @@
 
 #include <userver/formats/common/meta.hpp>
 #include <userver/formats/parse/to.hpp>
-#include <userver/utils/datetime.hpp>
 #include <userver/utils/datetime/from_string_saturating.hpp>
+#include <userver/utils/datetime_light.hpp>
 #include <userver/utils/meta.hpp>
 #include <userver/utils/string_to_duration.hpp>
 
@@ -35,8 +36,29 @@ void CheckInBounds(const Value& value, T x, T min, T max) {
 }
 
 template <typename Value>
+void CheckDoubleFitsInFloat(const Value& value, const double dval) {
+    if (!std::isfinite(dval)) {
+        auto msg = fmt::format(
+            "Double value ({}) of '{}' is prohibited for use. Inf and NaN values lead to vulnerabilities in code",
+            dval,
+            value.GetPath()
+        );
+        UASSERT_MSG(false, msg);
+        throw typename Value::ParseException(std::move(msg));
+    }
+
+    auto fval = static_cast<float>(dval);
+
+    if (!std::isfinite(fval)) {
+        throw typename Value::ParseException(
+            fmt::format("Double value ({}) of '{}' does not fit into float", dval, value.GetPath())
+        );
+    }
+}
+
+template <typename Value>
 float NarrowToFloat(double x, const Value& value) {
-    CheckInBounds<double>(value, x, std::numeric_limits<float>::lowest(), std::numeric_limits<float>::max());
+    impl::CheckDoubleFitsInFloat(value, x);
     return static_cast<float>(x);
 }
 
@@ -92,9 +114,10 @@ std::enable_if_t<common::kIsFormatValue<Value>, std::chrono::seconds> Parse(cons
                        : impl::ToSeconds(n.template As<std::string>(), n);
 }
 
-template <class Value>
-std::chrono::system_clock::time_point Parse(const Value& n, To<std::chrono::system_clock::time_point>) {
-    return utils::datetime::FromRfc3339StringSaturating(n.template As<std::string>());
+template <class Value, class Duration>
+std::chrono::time_point<std::chrono::system_clock, Duration>
+Parse(const Value& n, To<std::chrono::time_point<std::chrono::system_clock, Duration>>) {
+    return utils::datetime::FromRfc3339StringSaturating<Duration>(n.template As<std::string>());
 }
 
 template <class Value>

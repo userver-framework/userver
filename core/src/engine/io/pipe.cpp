@@ -37,7 +37,9 @@ Pipe::Pipe() {
     write_guard.Release();
 }
 
-PipeReader::PipeReader(int fd) : fd_control_(impl::FdControl::Adopt(fd)) {}
+PipeReader::PipeReader(int fd)
+    : fd_control_(impl::FdControl::Adopt(fd))
+{}
 
 bool PipeReader::IsValid() const { return !!fd_control_; }
 
@@ -77,7 +79,9 @@ int PipeReader::Release() noexcept {
 
 void PipeReader::Close() { fd_control_.reset(); }
 
-PipeWriter::PipeWriter(int fd) : fd_control_(impl::FdControl::Adopt(fd)) {}
+PipeWriter::PipeWriter(int fd)
+    : fd_control_(impl::FdControl::Adopt(fd))
+{}
 
 bool PipeWriter::IsValid() const { return !!fd_control_; }
 

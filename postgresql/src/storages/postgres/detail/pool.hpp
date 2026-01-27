@@ -4,10 +4,9 @@
 #include <memory>
 #include <vector>
 
-#include <boost/lockfree/queue.hpp>
-
 #include <userver/clients/dns/resolver_fwd.hpp>
 #include <userver/concurrent/background_task_storage.hpp>
+#include <userver/concurrent/queue.hpp>
 #include <userver/dynamic_config/source.hpp>
 #include <userver/engine/condition_variable.hpp>
 #include <userver/engine/semaphore.hpp>
@@ -56,7 +55,8 @@ public:
         const testsuite::PostgresControl& testsuite_pg_ctl,
         error_injection::Settings ei_settings,
         const congestion_control::v2::LinearController::StaticConfig& cc_config,
-        dynamic_config::Source config_source
+        dynamic_config::Source config_source,
+        USERVER_NAMESPACE::utils::statistics::MetricsStoragePtr metrics
     );
 
     ~ConnectionPool();
@@ -74,7 +74,8 @@ public:
         const testsuite::PostgresControl& testsuite_pg_ctl,
         error_injection::Settings ei_settings,
         const congestion_control::v2::LinearController::StaticConfig& cc_config,
-        dynamic_config::Source config_source
+        dynamic_config::Source config_source,
+        USERVER_NAMESPACE::utils::statistics::MetricsStoragePtr metrics
     );
 
     [[nodiscard]] ConnectionPtr Acquire(engine::Deadline);
@@ -101,6 +102,8 @@ public:
 
     dynamic_config::Source GetConfigSource() const;
 
+    const Dsn& GetDsn() const;
+
 private:
     using SizeGuard = postgres::SizeGuard<std::atomic<size_t>>;
 
@@ -108,8 +111,8 @@ private:
 
     TimeoutDuration GetExecuteTimeout(OptionalCommandControl) const;
 
-    [[nodiscard]] engine::TaskWithResult<bool> Connect(engine::SemaphoreLock);
-    bool DoConnect(engine::SemaphoreLock);
+    [[nodiscard]] engine::TaskWithResult<bool> Connect(engine::SemaphoreLock, ConnectionSettings&&);
+    bool DoConnect(engine::SemaphoreLock, ConnectionSettings&&);
 
     void TryCreateConnectionAsync();
     void CheckMinPoolSizeUnderflow();
@@ -135,8 +138,11 @@ private:
 
     void CheckUserTypes();
 
-    using RecentCounter = USERVER_NAMESPACE::utils::statistics::
-        RecentPeriod<USERVER_NAMESPACE::utils::statistics::RelaxedCounter<size_t>, size_t>;
+    using RecentCounter = USERVER_NAMESPACE::utils::statistics::RecentPeriod<
+        USERVER_NAMESPACE::utils::statistics::RelaxedCounter<size_t>,
+        size_t>;
+
+    using ConnectionQueue = concurrent::NonFifoMpmcQueue<Connection*>;
 
     mutable InstanceStatistics stats_;
     Dsn dsn_;
@@ -148,9 +154,9 @@ private:
     concurrent::BackgroundTaskStorageCore connect_task_storage_;
     concurrent::BackgroundTaskStorageCore close_task_storage_;
     USERVER_NAMESPACE::utils::PeriodicTask ping_task_;
-    engine::Mutex wait_mutex_;
-    engine::ConditionVariable conn_available_;
-    boost::lockfree::queue<Connection*> queue_;
+    std::shared_ptr<ConnectionQueue> queue_;
+    ConnectionQueue::MultiConsumer conn_consumer_;
+    ConnectionQueue::MultiProducer conn_producer_;
     engine::Semaphore size_semaphore_;
     engine::Semaphore connecting_semaphore_;
     std::atomic<size_t> wait_count_;
@@ -161,6 +167,7 @@ private:
     USERVER_NAMESPACE::utils::TokenBucket cancel_limit_;
     detail::StatementStatsStorage sts_;
     dynamic_config::Source config_source_;
+    USERVER_NAMESPACE::utils::statistics::MetricsStoragePtr metrics_;
 
     // Congestion control stuff
     cc::Sensor cc_sensor_;

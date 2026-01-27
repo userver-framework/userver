@@ -16,7 +16,9 @@ class KeepRunningIterator final {
 public:
     struct Empty {};
 
-    explicit KeepRunningIterator(std::atomic<bool>& keep_running) : keep_running_(keep_running) {}
+    explicit KeepRunningIterator(std::atomic<bool>& keep_running)
+        : keep_running_(keep_running)
+    {}
 
     KeepRunningIterator& operator++() { return *this; }
     Empty operator*() const { return {}; }
@@ -40,8 +42,8 @@ void RunParallelBenchmark(benchmark::State& state, Func func) {
     std::atomic<bool> keep_running{true};
 
     if (engine::current_task::IsTaskProcessorThread()) {
-        utils::FixedArray<engine::TaskWithResult<void>> competing_threads =
-            utils::GenerateFixedArray(state.range(0) - 1, [&](std::size_t) {
+        utils::FixedArray<engine::TaskWithResult<void>>
+            competing_threads = utils::GenerateFixedArray(state.range(0) - 1, [&](std::size_t) {
                 return engine::CriticalAsyncNoSpan([func, &keep_running] {
                     const impl::KeepRunningRange range{keep_running};
                     func(range);
@@ -55,8 +57,8 @@ void RunParallelBenchmark(benchmark::State& state, Func func) {
             thread.Get();
         }
     } else {
-        utils::FixedArray<std::future<void>> competing_threads =
-            utils::GenerateFixedArray(state.range(0) - 1, [&](std::size_t) {
+        utils::FixedArray<std::future<void>>
+            competing_threads = utils::GenerateFixedArray(state.range(0) - 1, [&](std::size_t) {
                 return std::async([func, &keep_running] {
                     const impl::KeepRunningRange range{keep_running};
                     func(range);

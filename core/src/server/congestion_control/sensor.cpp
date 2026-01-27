@@ -12,7 +12,9 @@ namespace {
 const std::chrono::seconds kSecond{1};
 }
 
-Sensor::Sensor(engine::TaskProcessor& tp) : tp_(tp) {}
+Sensor::Sensor(engine::TaskProcessor& tp)
+    : tp_(tp)
+{}
 
 void Sensor::RegisterRequestsSource(RequestsSource& source) {
     auto requests_sources = requests_sources_.StartWrite();
@@ -26,7 +28,9 @@ Sensor::Data Sensor::FetchCurrent() {
     auto duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>(now - last_fetch_tp_);
 
     // Seems impossible, but has to re-check
-    if (duration_ms.count() == 0) duration_ms = std::chrono::milliseconds(1);
+    if (duration_ms.count() == 0) {
+        duration_ms = std::chrono::milliseconds(1);
+    }
 
     auto overloads = tp_.GetTaskCounter().GetTasksOverloadSensor().value;
     auto overloads_ps = (overloads - last_overloads_) * kSecond / duration_ms;
@@ -36,7 +40,9 @@ Sensor::Data Sensor::FetchCurrent() {
 
     std::uint64_t requests{0};
     auto requests_sources = requests_sources_.Read();
-    for (const auto& source : *requests_sources) requests += source->GetTotalRequests();
+    for (const auto& source : *requests_sources) {
+        requests += source->GetTotalRequests();
+    }
     auto rps = (requests - last_requests_) * kSecond / duration_ms;
 
     last_fetch_tp_ = now;

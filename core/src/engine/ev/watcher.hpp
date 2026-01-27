@@ -48,6 +48,28 @@ public:
     // Synchronously stop ev_xxx. Can be used from coroutines only.
     void Stop() noexcept;
 
+    // Stop ev_xxx while in ev thread returning a guard, that protects from Stop() calls in coroutines to finish.
+    //
+    // This is useful to prolong the callback lifetime if the watcher must be stopped before some operations
+    // in callback, for example:
+    //
+    // void void IoWatcherCb(FdPoller& self) {
+    //    UASSERT(self.fd_watcher_.is_running_);
+    //    UASSERT(self.fd_watcher_.pending_op_count_ >= 0);
+    //    {
+    //        // Stop watcher to avoid watcher fd being closed from coroutine.
+    //        const auto guard = self.fd_watcher_.StopWithinEvCallback();
+    //
+    //        // `fd_watcher_.Stop()` invocation from coroutine won't finish while the `guard` is alive
+    //        UASSERT(!self.fd_watcher_.is_running_, "Stop was called");
+    //        UASSERT(self.fd_watcher_.pending_op_count_ > 0, "guaranteed by `guard`");
+    //
+    //        self.WakeupWaiters();  // Awake the coroutine. `self` is valid and not destroyed due to the `guard`
+    //    }
+    //    // `self` could be already destroyed
+    // }
+    [[nodiscard]] auto StopWithinEvCallback() noexcept;
+
     // Asynchronously start ev_xxx.
     void StartAsync() noexcept;
 
@@ -109,9 +131,29 @@ Watcher<EvType>::~Watcher() {
 
 template <typename EvType>
 void Watcher<EvType>::Stop() noexcept {
-    if (!IsActive()) return;
+    if (!IsActive()) {
+        return;
+    }
     RunInBoundEvLoopSync([this]() noexcept { StopImpl(); });
     static_assert(noexcept(StopImpl()), "Stop() is called from destructor and it should be noexcept");
+}
+
+template <typename EvType>
+auto Watcher<EvType>::StopWithinEvCallback() noexcept {
+    UASSERT(IsActive());
+    auto guard = EvLoopOpsCountingGuard();
+    static_assert(
+        noexcept(EvLoopOpsCountingGuard()),
+        "StopWithinEvCallback() is called from noexcept functions and should be noexcept"
+    );
+
+    UASSERT(thread_control_.IsInEvThread());
+    StopImpl();
+    static_assert(
+        noexcept(StopImpl()),
+        "StopWithinEvCallback() is called from noexcept functions and should be noexcept"
+    );
+    return guard;
 }
 
 template <typename EvType>
@@ -121,7 +163,9 @@ void Watcher<EvType>::StartAsync() noexcept {
 
 template <typename EvType>
 void Watcher<EvType>::StopAsync() noexcept {
-    if (!IsActive()) return;
+    if (!IsActive()) {
+        return;
+    }
     PushAsyncOp(AsyncOpType::kStop);
 }
 
@@ -162,7 +206,7 @@ auto Watcher<EvType>::EvLoopOpsCountingGuard() noexcept {
 
 template <typename EvType>
 void Watcher<EvType>::DoPerformAndRelease() noexcept {
-    utils::FastScopeGuard release_guard([this]() noexcept {
+    const utils::FastScopeGuard release_guard([this]() noexcept {
         // As long as pending_op_count_ != 0, Watcher owner will not destroy it
         // immediately, instead it will launch a synchronous Stop operation that
         // will be scheduled after the current one.

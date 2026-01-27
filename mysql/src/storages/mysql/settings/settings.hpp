@@ -26,7 +26,7 @@ enum class IpMode { kIpV4, kIpV6, kAny };
 
 struct ConnectionSettings final {
     std::size_t statements_cache_size;
-    // TODO : implement ssl somehow
+    /// Whether to verify server TLS/SSL certificate.
     bool use_secure_connection;
     // TODO : implement compression somehow
     bool use_compression;
@@ -49,8 +49,11 @@ struct PoolSettings final {
     AuthSettings auth_settings;
     ConnectionSettings connection_settings;
 
-    static PoolSettings
-    Create(const components::ComponentConfig& config, const EndpointInfo& endpoint_info, const AuthSettings& auth);
+    static PoolSettings Create(
+        const components::ComponentConfig& config,
+        const EndpointInfo& endpoint_info,
+        const AuthSettings& auth
+    );
 };
 
 struct MysqlSettings final {

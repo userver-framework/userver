@@ -7,30 +7,24 @@
 
 namespace functional_tests {
 
+/// [gRPC CallRequestHook declaration example]
 class MyMiddleware final : public ugrpc::server::MiddlewareBase {
-public:
-    explicit MyMiddleware() = default;
-
-    void CallRequestHook(const ugrpc::server::MiddlewareCallContext& context, google::protobuf::Message& request)
-        override;
-
-    void CallResponseHook(const ugrpc::server::MiddlewareCallContext& context, google::protobuf::Message& response)
-        override;
-
-    void Handle(ugrpc::server::MiddlewareCallContext& context) const override;
-};
-
-class MyMiddlewareComponent final : public ugrpc::server::MiddlewareComponentBase {
 public:
     static constexpr std::string_view kName = "my-middleware-server";
 
-    MyMiddlewareComponent(const components::ComponentConfig& config, const components::ComponentContext& ctx)
-        : ugrpc::server::MiddlewareComponentBase(config, ctx), middleware_(std::make_shared<MyMiddleware>()) {}
+    static inline const auto kDependency = middlewares::MiddlewareDependencyBuilder();
 
-    std::shared_ptr<ugrpc::server::MiddlewareBase> GetMiddleware() override;
+    MyMiddleware() = default;
 
-private:
-    std::shared_ptr<ugrpc::server::MiddlewareBase> middleware_;
+    void PostRecvMessage(ugrpc::server::MiddlewareCallContext& context, google::protobuf::Message& request)
+        const override;
+
+    void PreSendMessage(ugrpc::server::MiddlewareCallContext& context, google::protobuf::Message& response)
+        const override;
 };
+
+// There isn't a special logic to construct that middleware (doesn't have static config options) => use short-cut
+using MyMiddlewareComponent = ugrpc::server::SimpleMiddlewareFactoryComponent<MyMiddleware>;
+/// [gRPC CallRequestHook declaration example]
 
 }  // namespace functional_tests

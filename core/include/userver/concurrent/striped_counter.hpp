@@ -45,14 +45,14 @@ public:
         Add(-value);
     }
 
-    /// @brief Read the the total counter value. The counter uses the full range
+    /// @brief Read the total counter value. The counter uses the full range
     /// of `std::uintptr_t`, using wrap-around when necessary.
     /// @note The read is done with `std::memory_order_acquire`.
     ///
     /// Due to the underlying implementation being an array of counters, this
     /// function may return logically impossible values if `Subtract` is in play.
-    /// For example, doing Add(1) and Subtract(1) may lead to this
-    /// function returning -1 (wrapped).
+    /// For example, doing `Add(1)`, then `Subtract(1)` in one thread and `Read` in another thread in parallel
+    /// may lead to this function returning -1 (wrapped).
     /// With `Subtract`, consider using `NonNegativeRead` instead.
     std::uintptr_t Read() const noexcept;
 

@@ -9,9 +9,10 @@
 #include <userver/components/minimal_server_component_list.hpp>
 
 #include <userver/clients/dns/component.hpp>
-#include <userver/clients/http/component.hpp>
+#include <userver/clients/http/component_list.hpp>
 #include <userver/concurrent/variable.hpp>
 #include <userver/engine/wait_all_checked.hpp>
+#include <userver/formats/json/serialize.hpp>
 #include <userver/formats/json/serialize_container.hpp>
 #include <userver/formats/json/value.hpp>
 #include <userver/formats/json/value_builder.hpp>
@@ -110,11 +111,10 @@ HandlerKafkaConsumerGroups::HandlerKafkaConsumerGroups(
     auto consumer_by_name = consumer_by_name_.Lock();
     auto messages_by_consumer = messages_by_consumer_.Lock();
     for (const auto& consumer_name : config[kConsumersListFieldName].As<std::vector<std::string>>()) {
-        consumer_by_name->emplace(
-            consumer_name, utils::LazyPrvalue([&context, &consumer_name] {
-                return context.FindComponent<kafka::ConsumerComponent>(consumer_name).GetConsumer();
-            })
-        );
+        consumer_by_name
+            ->emplace(consumer_name, utils::LazyPrvalue([&context, &consumer_name] {
+                          return context.FindComponent<kafka::ConsumerComponent>(consumer_name).GetConsumer();
+                      }));
         messages_by_consumer->emplace(consumer_name, std::vector<formats::json::Value>{});
     }
 }
@@ -174,14 +174,14 @@ void HandlerKafkaConsumerGroups::Consume(const std::string& consumer_name, kafka
     auto& messages_storage = messages_it->second;
     for (const auto& message : messages) {
         if (should_fail_.load() && message.GetPayload() == kMessageToFail && consumer_name == kFaultyConsumer) {
-            LOG_WARNING() << "Received fail message!";
+            LOG_WARNING("Received fail message!");
             throw std::runtime_error{"Bad messages, i am going to fail forever!"};
         }
 
         messages_storage.emplace_back(Serialize(message, formats::serialize::To<formats::json::Value>{}));
     }
 
-    LOG_DEBUG() << fmt::format("Consumer '{}' consumed: {}", consumer_name, fmt::join(messages_storage, ", "));
+    LOG_DEBUG("Consumer '{}' consumed: {}", consumer_name, fmt::join(messages_storage, ", "));
 }
 
 formats::json::Value HandlerKafkaConsumerGroups::ReleaseMessages(const std::string& consumer_name) const {
@@ -234,16 +234,19 @@ properties:
 }  // namespace functional_tests
 
 int main(int argc, char* argv[]) {
-    const auto components_list = components::MinimalServerComponentList()
-                                     .Append<kafka::ConsumerComponent>("kafka-consumer-first")
-                                     .Append<kafka::ConsumerComponent>("kafka-consumer-second")
-                                     .Append<components::TestsuiteSupport>()
-                                     .Append<components::Secdist>()
-                                     .Append<components::DefaultSecdistProvider>()
-                                     .Append<components::HttpClient>()
-                                     .Append<clients::dns::Component>()
-                                     .Append<server::handlers::TestsControl>()
-                                     .Append<functional_tests::HandlerKafkaConsumerGroups>();
+    const auto components_list =
+        components::MinimalServerComponentList()
+            .Append<kafka::ConsumerComponent>("kafka-consumer-first")
+            .Append<kafka::ConsumerComponent>("kafka-consumer-second")
+            .Append<kafka::ConsumerComponent>("kafka-consumer-cooperative-first")
+            .Append<kafka::ConsumerComponent>("kafka-consumer-cooperative-second")
+            .Append<components::TestsuiteSupport>()
+            .Append<components::Secdist>()
+            .Append<components::DefaultSecdistProvider>()
+            .AppendComponentList(clients::http::ComponentList())
+            .Append<clients::dns::Component>()
+            .Append<server::handlers::TestsControl>()
+            .Append<functional_tests::HandlerKafkaConsumerGroups>();
 
     return utils::DaemonMain(argc, argv, components_list);
 }

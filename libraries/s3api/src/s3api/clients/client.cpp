@@ -26,6 +26,8 @@ const std::string kMeta = "x-amz-meta-";
 const std::string kTagging = "X-Amz-Tagging";
 constexpr const std::size_t kMaxS3Keys = 1000;
 
+constexpr http::headers::PredefinedHeader kEtagHeader{"ETag"};
+
 void SaveMeta(clients::http::Headers& headers, const ClientImpl::Meta& meta) {
     for (const auto& [header, value] : meta) {
         headers[kMeta + header] = value;
@@ -90,17 +92,19 @@ std::string GeneratePresignedUrl(
     // balancers support virtual host addressing and https
     generated_url << protocol << request.bucket << "." << host;
     const auto expires_at_time_t = std::chrono::system_clock::to_time_t(expires_at);
-    AddQueryParamsToPresignedUrl(generated_url, expires_at_time_t, request, authenticator);
+    AddQueryParamsToPresignedUrl(generated_url, expires_at_time_t, request, std::move(authenticator));
     return generated_url.str();
 }
 
-std::vector<ObjectMeta> ParseS3ListResponse(std::string_view s3_response) {
+std::vector<ObjectMeta> ParseS3ListResponse(utils::zstring_view s3_response) {
     std::vector<ObjectMeta> result;
     pugi::xml_document xml;
-    pugi::xml_parse_result parse_result = xml.load_string(s3_response.data());
+    const pugi::xml_parse_result parse_result = xml.load_string(s3_response.c_str());
     if (parse_result.status != pugi::status_ok) {
         throw ListBucketError(fmt::format(
-            "Failed to parse S3 list response as xml, error: {}, response: {}", parse_result.description(), s3_response
+            "Failed to parse S3 list response as xml, error: {}, response: {}",
+            parse_result.description(),
+            s3_response
         ));
     }
     try {
@@ -119,10 +123,10 @@ std::vector<ObjectMeta> ParseS3ListResponse(std::string_view s3_response) {
     return result;
 }
 
-std::vector<std::string> ParseS3DirectoriesListResponse(std::string_view s3_response) {
+std::vector<std::string> ParseS3DirectoriesListResponse(utils::zstring_view s3_response) {
     std::vector<std::string> result;
     pugi::xml_document xml;
-    pugi::xml_parse_result parse_result = xml.load_string(s3_response.data());
+    const pugi::xml_parse_result parse_result = xml.load_string(s3_response.c_str());
     if (parse_result.status != pugi::status_ok) {
         throw ListBucketError(fmt::format(
             "Failed to parse S3 directories list response as xml, error: {}, "
@@ -156,7 +160,10 @@ ClientImpl::ClientImpl(
     std::shared_ptr<authenticators::Authenticator> authenticator,
     std::string bucket
 )
-    : conn_(std::move(s3conn)), authenticator_{std::move(authenticator)}, bucket_(std::move(bucket)) {}
+    : conn_(std::move(s3conn)),
+      authenticator_{std::move(authenticator)},
+      bucket_(std::move(bucket))
+{}
 
 ClientImpl::ClientImpl(
     std::shared_ptr<S3Connection> s3conn,
@@ -167,7 +174,8 @@ ClientImpl::ClientImpl(
           std::move(s3conn),
           std::static_pointer_cast<authenticators::Authenticator>(std::move(authenticator)),
           std::move(bucket)
-      ) {}
+      )
+{}
 
 std::string_view ClientImpl::GetBucketName() const { return bucket_; }
 
@@ -232,8 +240,44 @@ std::string ClientImpl::TryGetObject(
     return RequestApi(req, "get_object", headers_data, headers_request);
 }
 
-std::optional<ClientImpl::HeadersDataResponse>
-ClientImpl::GetObjectHead(std::string_view path, const HeaderDataRequest& headers_request) const {
+std::optional<std::string> ClientImpl::GetPartialObject(
+    std::string_view path,
+    std::string_view range,
+    std::optional<std::string> version,
+    HeadersDataResponse* headers_data,
+    const HeaderDataRequest& headers_request
+) const {
+    try {
+        return std::make_optional(TryGetPartialObject(path, range, std::move(version), headers_data, headers_request));
+    } catch (const clients::http::HttpException& e) {
+        if (e.code() == 404) {
+            LOG_INFO() << "Can't get object with path: " << path << ", object not found:" << e.what();
+        } else {
+            LOG_ERROR() << "Can't get object with path: " << path << ", unknown error:" << e.what();
+        }
+        return std::nullopt;
+    } catch (const std::exception& e) {
+        LOG_ERROR() << "Can't get object with path: " << path << ", unknown error:" << e.what();
+        return std::nullopt;
+    }
+}
+
+std::string ClientImpl::TryGetPartialObject(
+    std::string_view path,
+    std::string_view range,
+    std::optional<std::string> version,
+    HeadersDataResponse* headers_data,
+    const HeaderDataRequest& headers_request
+) const {
+    auto req = api_methods::GetObject(bucket_, path, std::move(version));
+    api_methods::SetRange(req, range);
+    return RequestApi(req, "get_object", headers_data, headers_request);
+}
+
+std::optional<ClientImpl::HeadersDataResponse> ClientImpl::GetObjectHead(
+    std::string_view path,
+    const HeaderDataRequest& headers_request
+) const {
     HeadersDataResponse headers_data;
     auto req = api_methods::GetObjectHead(bucket_, path);
     try {
@@ -311,9 +355,8 @@ void ClientImpl::Auth(Request& request) const {
         }
     }
 
-    request.headers.insert(
-        std::make_move_iterator(std::begin(auth_headers)), std::make_move_iterator(std::end(auth_headers))
-    );
+    request.headers
+        .insert(std::make_move_iterator(std::begin(auth_headers)), std::make_move_iterator(std::end(auth_headers)));
 }
 
 std::string ClientImpl::RequestApi(
@@ -331,7 +374,6 @@ std::string ClientImpl::RequestApi(
             headers_data->meta.emplace();
             ReadMeta(response->headers(), *headers_data->meta);
         }
-
         if (headers_request.headers) {
             headers_data->headers.emplace();
             for (const auto& header : *headers_request.headers) {
@@ -345,8 +387,12 @@ std::string ClientImpl::RequestApi(
     return response->body();
 }
 
-std::optional<std::string>
-ClientImpl::ListBucketContents(std::string_view path, int max_keys, std::string marker, std::string delimiter) const {
+std::optional<std::string> ClientImpl::ListBucketContents(
+    std::string_view path,
+    int max_keys,
+    std::string marker,
+    std::string delimiter
+) const {
     auto req = api_methods::ListBucketContents(bucket_, path, max_keys, marker, delimiter);
     std::string reply = RequestApi(req, "list_bucket_contents");
     if (reply.empty()) {
@@ -361,7 +407,7 @@ std::vector<ObjectMeta> ClientImpl::ListBucketContentsParsed(std::string_view pa
     std::string marker = "";
     bool is_finished = false;
     while (!is_finished) {
-        auto response = ListBucketContents(path_prefix, kMaxS3Keys, marker);
+        auto response = ListBucketContents(path_prefix, kMaxS3Keys, marker, {});
         if (!response) {
             LOG_WARNING() << "Empty S3 bucket listing response for path prefix " << path_prefix;
             break;
@@ -391,9 +437,10 @@ std::vector<std::string> ClientImpl::ListBucketDirectories(std::string_view path
     while (!is_finished) {
         auto response = ListBucketContents(path_prefix, kMaxS3Keys, marker, "/");
         if (!response) {
-            LOG_WARNING() << "Empty S3 directory bucket listing response "
-                             "for path prefix "
-                          << path_prefix;
+            LOG_WARNING()
+                << "Empty S3 directory bucket listing response "
+                   "for path prefix "
+                << path_prefix;
             break;
         }
         auto response_result = ParseS3DirectoriesListResponse(*response);
@@ -437,7 +484,8 @@ std::string ClientImpl::CopyObject(
         }
 
         return USERVER_NAMESPACE::utils::FindOptional(
-            *object_head->headers, USERVER_NAMESPACE::http::headers::kContentType
+            *object_head->headers,
+            USERVER_NAMESPACE::http::headers::kContentType
         );
     }();
     if (!content_type) {
@@ -451,9 +499,100 @@ std::string ClientImpl::CopyObject(
     return RequestApi(req, "copy_object");
 }
 
-std::string
-ClientImpl::CopyObject(std::string_view key_from, std::string_view key_to, const std::optional<Meta>& meta) {
+std::string ClientImpl::CopyObject(
+    std::string_view key_from,
+    std::string_view key_to,
+    const std::optional<Meta>& meta
+) {
     return CopyObject(key_from, bucket_, key_to, meta);
+}
+
+multipart_upload::InitiateMultipartUploadResult ClientImpl::CreateMultipartUpload(
+    const multipart_upload::CreateMultipartUploadRequest& request
+) const try
+{
+    auto api_request = api_methods::CreateInternalApiRequest(bucket_, request);
+    const auto api_response_body = RequestApi(api_request, "create_multipart_upload");
+    return multipart_upload::InitiateMultipartUploadResult::Parse(api_response_body);
+} catch (const ResponseParsingError& exc) {
+    throw MultipartUploadError(
+        fmt::format("failed to parse CreateMultipartUpload action response - {}; key: {}", exc.what(), request.key)
+    );
+}
+
+multipart_upload::UploadPartResult ClientImpl::UploadPart(const multipart_upload::UploadPartRequest& request) const try
+{
+    auto api_request = api_methods::CreateInternalApiRequest(bucket_, request);
+
+    const HeaderDataRequest expected_headers({{std::string(kEtagHeader)}}, false);
+    HeadersDataResponse response_headers_data;
+
+    RequestApi(api_request, "upload_part", &response_headers_data, expected_headers);
+    if (!response_headers_data.headers) {
+        throw ResponseParsingError("missing ETag header in response");
+    }
+    const auto iter = response_headers_data.headers->find(kEtagHeader);
+    if (iter == response_headers_data.headers->end()) {
+        throw ResponseParsingError("missing ETag header in response");
+    }
+    if (iter->second.empty()) {
+        throw ResponseParsingError("got empty ETag header value in response");
+    }
+    return {std::move(iter->second)};
+
+} catch (const ResponseParsingError& exc) {
+    throw MultipartUploadError(fmt::format(
+        "failed to parse UploadPart action response - {}; upload_id '{}'; key '{}'",
+        exc.what(),
+        request.upload_id,
+        request.key
+    ));
+}
+
+multipart_upload::CompleteMultipartUploadResult ClientImpl::CompleteMultipartUpload(
+    const multipart_upload::CompleteMultipartUploadRequest& request
+) const try
+{
+    auto api_request = api_methods::CreateInternalApiRequest(bucket_, request);
+    const auto api_response_body = RequestApi(api_request, "complete_multipart_upload");
+    return multipart_upload::CompleteMultipartUploadResult::Parse(api_response_body);
+} catch (const ResponseParsingError& exc) {
+    throw MultipartUploadError(fmt::format(
+        "failed to parse CompleteMultipartUpload action response - {}; upload_id '{}'; key '{}'",
+        exc.what(),
+        request.upload_id,
+        request.key
+    ));
+}
+
+void ClientImpl::AbortMultipartUpload(const multipart_upload::AbortMultipartUploadRequest& request) const {
+    auto api_request = api_methods::CreateInternalApiRequest(bucket_, request);
+    RequestApi(api_request, "abort_multipart_upload");
+}
+
+multipart_upload::ListPartsResult ClientImpl::ListParts(const multipart_upload::ListPartsRequest& request) const try
+{
+    auto api_request = api_methods::CreateInternalApiRequest(bucket_, request);
+    const auto api_response_body = RequestApi(api_request, "list_parts");
+    return multipart_upload::ListPartsResult::Parse(api_response_body);
+} catch (const ResponseParsingError& exc) {
+    throw MultipartUploadError(fmt::format(
+        "failed to parse ListParts action response - {}; upload_id '{}'; key '{}'",
+        exc.what(),
+        request.upload_id,
+        request.key
+    ));
+}
+
+multipart_upload::ListMultipartUploadsResult ClientImpl::ListMultipartUploads(
+    const multipart_upload::ListMultipartUploadsRequest& request
+) const try
+{
+    auto api_request = api_methods::CreateInternalApiRequest(bucket_, request);
+    const auto api_response_body = RequestApi(api_request, "list_multipart_uploads");
+    return multipart_upload::ListMultipartUploadsResult::Parse(api_response_body);
+} catch (const ResponseParsingError& exc) {
+    throw MultipartUploadError(fmt::format("failed to parse ListMultipartUploads action response - {}", exc.what()));
 }
 
 ClientPtr GetS3Client(
@@ -461,7 +600,11 @@ ClientPtr GetS3Client(
     std::shared_ptr<authenticators::AccessKey> authenticator,
     std::string bucket
 ) {
-    return GetS3Client(s3conn, std::static_pointer_cast<authenticators::Authenticator>(authenticator), bucket);
+    return GetS3Client(
+        std::move(s3conn),
+        std::static_pointer_cast<authenticators::Authenticator>(authenticator),
+        std::move(bucket)
+    );
 }
 
 ClientPtr GetS3Client(

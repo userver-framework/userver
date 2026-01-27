@@ -1,7 +1,5 @@
 #pragma once
 
-#include <string>
-
 #include <grpcpp/impl/codegen/config.h>
 
 USERVER_NAMESPACE_BEGIN
@@ -22,6 +20,14 @@ extern const grpc::string kXYaTaxiRatelimitReason;
 extern const grpc::string kHostname;
 
 extern const grpc::string kCongestionControlRatelimitReason;
+
+extern const grpc::string kXOrigin;
+
+extern const grpc::string kXTestsuiteErrorCode;
+extern const grpc::string kXTestsuiteClientName;
+
+extern const grpc::string kTestsuiteNetworkCode;
+extern const grpc::string kTestsuiteTimeoutCode;
 
 }  // namespace ugrpc::impl
 

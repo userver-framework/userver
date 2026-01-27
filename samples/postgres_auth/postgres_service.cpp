@@ -22,8 +22,7 @@ public:
 
     using HttpHandlerBase::HttpHandlerBase;
 
-    std::string HandleRequestThrow(const server::http::HttpRequest& request, server::request::RequestContext& ctx)
-        const override {
+    std::string HandleRequest(server::http::HttpRequest& request, server::request::RequestContext& ctx) const override {
         request.GetHttpResponse().SetContentType(http::content_type::kTextPlain);
         return "Hello world, " + ctx.GetData<std::string>("name") + "!\n";
     }
@@ -34,16 +33,17 @@ public:
 
 /// [auth checker registration]
 int main(int argc, const char* const argv[]) {
-    server::handlers::auth::RegisterAuthCheckerFactory("bearer", std::make_unique<samples::pg::CheckerFactory>());
+    server::handlers::auth::RegisterAuthCheckerFactory<samples::pg::CheckerFactory>();
     /// [auth checker registration]
 
     /// [main]
-    const auto component_list = components::MinimalServerComponentList()
-                                    .Append<samples::pg::AuthCache>()
-                                    .Append<components::Postgres>("auth-database")
-                                    .Append<samples::pg::Hello>()
-                                    .Append<components::TestsuiteSupport>()
-                                    .Append<clients::dns::Component>();
+    const auto component_list =
+        components::MinimalServerComponentList()
+            .Append<samples::pg::AuthCache>()
+            .Append<components::Postgres>("auth-database")
+            .Append<samples::pg::Hello>()
+            .Append<components::TestsuiteSupport>()
+            .Append<clients::dns::Component>();
     return utils::DaemonMain(argc, argv, component_list);
     /// [main]
 }

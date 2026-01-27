@@ -10,6 +10,7 @@
 #include <userver/formats/yaml/serialize.hpp>
 #include <userver/formats/yaml/value_builder.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/resources.hpp>
 #include <userver/utils/trivial_map.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -23,7 +24,8 @@ void CheckFieldsNames(const formats::yaml::Value& yaml_schema) {
         return selector()
             .Case("type")
             .Case("description")
-            .Case("defaultDescription")
+            .Case("default")
+            .Case("defaultDescription")  // deprecated
             .Case("additionalProperties")
             .Case("properties")
             .Case("items")
@@ -149,7 +151,9 @@ FieldType Parse(const formats::yaml::Value& type, formats::parse::To<FieldType>)
     }
 
     throw std::runtime_error(fmt::format(
-        "Schema field 'type' must be one of [{}]), but '{}' was given", kFieldTypes.DescribeFirst(), as_string
+        "Schema field 'type' must be one of [{}]), but '{}' was given",
+        kFieldTypes.DescribeFirst(),
+        as_string
     ));
 }
 
@@ -161,9 +165,13 @@ formats::yaml::Value Serialize(const SchemaPtr& schema, formats::serialize::To<f
     return Serialize(*schema, to);
 }
 
-SchemaPtr::SchemaPtr(Schema&& schema) : schema_(std::make_unique<Schema>(std::move(schema))) {}
+SchemaPtr::SchemaPtr(Schema&& schema)
+    : schema_(std::make_unique<Schema>(std::move(schema)))
+{}
 
-SchemaPtr::SchemaPtr(const SchemaPtr& other) : SchemaPtr(Schema{*other}) {}
+SchemaPtr::SchemaPtr(const SchemaPtr& other)
+    : SchemaPtr(Schema{*other})
+{}
 
 SchemaPtr& SchemaPtr::operator=(const SchemaPtr& other) {
     *this = SchemaPtr{other};
@@ -221,18 +229,35 @@ formats::yaml::Value Serialize(const Schema& schema, formats::serialize::To<form
     builder["type"] = ToString(schema.type);
     builder["description"] = schema.description;
 
-    if (schema.default_description) builder["defaultDescription"] = *schema.default_description;
+    if (schema.default_description) {
+        builder["defaultDescription"] = *schema.default_description;
+    }
 
-    if (schema.additional_properties)
+    if (schema.additional_properties) {
         builder["additionalProperties"] =
             std::visit([](const auto& x) { return formats::yaml::ValueBuilder(x); }, *schema.additional_properties);
-    if (schema.properties) builder["properties"] = *schema.properties;
-    if (schema.items) builder["items"] = *schema.items;
-    if (schema.enum_values) builder["enum"] = *schema.enum_values;
-    if (schema.minimum) builder["minimum"] = *schema.minimum;
-    if (schema.maximum) builder["maximum"] = *schema.maximum;
-    if (schema.min_items) builder["minItems"] = *schema.min_items;
-    if (schema.max_items) builder["maxItems"] = *schema.max_items;
+    }
+    if (schema.properties) {
+        builder["properties"] = *schema.properties;
+    }
+    if (schema.items) {
+        builder["items"] = *schema.items;
+    }
+    if (schema.enum_values) {
+        builder["enum"] = *schema.enum_values;
+    }
+    if (schema.minimum) {
+        builder["minimum"] = *schema.minimum;
+    }
+    if (schema.maximum) {
+        builder["maximum"] = *schema.maximum;
+    }
+    if (schema.min_items) {
+        builder["minItems"] = *schema.min_items;
+    }
+    if (schema.max_items) {
+        builder["maxItems"] = *schema.max_items;
+    }
     return builder.ExtractValue();
 }
 
@@ -251,6 +276,10 @@ bool Schema::operator==(const Schema& other) const { return TieSchema(*this) == 
 
 Schema impl::SchemaFromString(const std::string& yaml_string) {
     return formats::yaml::FromString(yaml_string).As<Schema>();
+}
+
+Schema impl::SchemaFromResource(std::string_view resource_name) {
+    return impl::SchemaFromString(utils::FindResource(resource_name));
 }
 
 }  //  namespace yaml_config

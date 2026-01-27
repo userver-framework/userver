@@ -2,17 +2,15 @@ import collections
 import dataclasses
 import os
 import pathlib
-import subprocess
-from typing import Any
-from typing import Dict
-from typing import List
-from typing import NoReturn
-from typing import Optional
 
 import jinja2
 
+from chaotic import cpp_format
+from chaotic import jinja_env
 from chaotic.back.cpp import types as cpp_types
 from chaotic.front import types
+
+PARENT_DIR = os.path.dirname(__file__)
 
 
 @dataclasses.dataclass
@@ -25,7 +23,7 @@ class CppOutputFile:
 @dataclasses.dataclass
 class CppOutput:
     filepath_wo_ext: str
-    files: List[CppOutputFile]
+    files: list[CppOutputFile]
 
 
 current_namespace = ''  # pylint: disable=invalid-name
@@ -39,7 +37,8 @@ def close_namespace() -> str:
     if current_namespace:
         data = ''
         for name in reversed(current_namespace.split('::')):
-            data += '} //' + name + '\n'
+            if name:
+                data += '} //' + name + '\n'
         return data
     else:
         return ''
@@ -53,10 +52,26 @@ def open_namespace(new_ns: str) -> str:
     if new_ns:
         res = ''
         for namespace in new_ns.split('::'):
-            res = res + f'namespace {namespace} {{'
+            if namespace:
+                res += f'namespace {namespace} {{'
         return res
     else:
         return ''
+
+
+def shortest_cpp_name(type_: cpp_types.CppType, blacklist: list[str] | None = None) -> str:
+    if blacklist is None:
+        blacklist = []
+
+    if isinstance(type_, (cpp_types.CppRef, cpp_types.CppArray)):
+        return type_.cpp_global_name()
+
+    shortest = type_.raw_cpp_type.in_scope(get_current_namespace())
+    if shortest.split('::')[0] not in blacklist:
+        return shortest
+    else:
+        # Name collision, fallback to fully qualified name
+        return type_.cpp_global_name()
 
 
 def cpp_namespace(name: str) -> str:
@@ -73,14 +88,14 @@ def cpp_type(name: str) -> str:
     return name_part
 
 
-def declaration_includes(types: List[cpp_types.CppType]) -> List[str]:
+def declaration_includes(types: list[cpp_types.CppType]) -> list[str]:
     includes = set()
     for type_ in types:
         includes.update(set(type_.declaration_includes()))
     return sorted(includes)
 
 
-def definition_includes(types: List[cpp_types.CppType]) -> List[str]:
+def definition_includes(types: list[cpp_types.CppType]) -> list[str]:
     includes = set()
     for type_ in types:
         includes.update(set(type_.definition_includes()))
@@ -107,38 +122,12 @@ def cpp_struct_is_strict_parsing(struct: cpp_types.CppStruct) -> bool:
     return struct.strict_parsing and struct.extra_type is False
 
 
-def not_implemented(obj: Any = None) -> NoReturn:
-    raise Exception(repr(obj))
-
-
-def make_arcadia_loader() -> jinja2.FunctionLoader:
-    import library.python.resource as arc_resource
-
-    def arc_resource_loader(name: str) -> jinja2.BaseLoader:
-        return arc_resource.resfs_read(
-            f'taxi/uservices/userver/chaotic/chaotic/back/cpp/{name}',
-        ).decode('utf-8')
-
-    loader = jinja2.FunctionLoader(arc_resource_loader)
-
-    # try to load something and drop the result
-    try:
-        arc_resource_loader('templates/type.hpp.jinja')
-    except Exception:
-        raise ImportError('resfs is not available')
-
-    return loader
-
-
 def make_env() -> jinja2.Environment:
-    loader: jinja2.BaseLoader
-    try:
-        loader = make_arcadia_loader()
-    except ImportError:
-        loader = jinja2.FileSystemLoader(PARENT_DIR)
-    env = jinja2.Environment(loader=loader)
+    env = jinja_env.make_env(
+        'chaotic/chaotic/back/cpp',
+        os.path.join(PARENT_DIR),
+    )
 
-    env.globals['NOT_IMPLEMENTED'] = not_implemented
     env.globals['enumerate'] = enumerate
 
     env.globals['cpp_struct_is_strict_parsing'] = cpp_struct_is_strict_parsing
@@ -155,19 +144,12 @@ def make_env() -> jinja2.Environment:
     env.globals['open_namespace'] = open_namespace
     env.globals['close_namespace'] = close_namespace
     env.globals['get_current_namespace'] = get_current_namespace
+    env.globals['shortest_cpp_name'] = shortest_cpp_name
 
     return env
 
 
-PARENT_DIR = os.path.dirname(__file__)
 JINJA_ENV = make_env()
-
-
-def format_pp(input_: str, *, binary: str) -> str:
-    if not binary:
-        return input_
-    output = subprocess.check_output([binary], input=input_, encoding='utf-8')
-    return output + '\n'
 
 
 class OneToOneFileRenderer:
@@ -175,7 +157,7 @@ class OneToOneFileRenderer:
         self,
         *,
         relative_to: str,
-        vfilepath_to_relfilepath: Dict[str, str],
+        vfilepath_to_relfilepath: dict[str, str],
         clang_format_bin: str,
         parse_extra_formats: bool = False,
         generate_serializer: bool = False,
@@ -196,20 +178,21 @@ class OneToOneFileRenderer:
 
     def extract_external_includes(
         self,
-        types_cpp: Dict[str, cpp_types.CppType],
+        types_cpp: dict[str, cpp_types.CppType],
         ignore_filepath_wo_ext: str,
-    ) -> List[str]:
+    ) -> list[str]:
         result = set()
 
         def visitor(
-            schema: types.Schema, _parent: Optional[types.Schema],
+            schema: types.Schema,
+            _parent: types.Schema | None,
         ) -> None:
             if not isinstance(schema, types.Ref):
                 return
 
             filepath = self.filepath_wo_ext(
                 self._vfilepath_to_relfilepath(
-                    schema.schema.source_location().filepath,
+                    schema.schema_.source_location().filepath,
                 ),
             )
             if filepath != ignore_filepath_wo_ext:
@@ -230,13 +213,11 @@ class OneToOneFileRenderer:
 
     def render(
         self,
-        types: Dict[str, cpp_types.CppType],
+        types: dict[str, cpp_types.CppType],
         local_pair_header=True,
-        pair_header: Optional[str] = None,
-    ) -> List[CppOutput]:
-        files: Dict[str, Dict[str, cpp_types.CppType]] = (
-            collections.defaultdict(dict)
-        )
+        pair_header: str | None = None,
+    ) -> list[CppOutput]:
+        files: dict[str, dict[str, cpp_types.CppType]] = collections.defaultdict(dict)
 
         for name, type_ in types.items():
             assert type_.json_schema
@@ -259,7 +240,8 @@ class OneToOneFileRenderer:
         output = []
         for filepath_wo_ext, types_cpp in files.items():
             external_includes = self.extract_external_includes(
-                types_cpp, filepath_wo_ext,
+                types_cpp,
+                filepath_wo_ext,
             )
 
             if pair_header:
@@ -281,29 +263,39 @@ class OneToOneFileRenderer:
 
             tpl = JINJA_ENV.get_template('templates/type_fwd.hpp.jinja')
             fwd_hpp = tpl.render(types=types_cpp)
-            fwd_hpp = format_pp(fwd_hpp, binary=self._clang_format_bin)
+            fwd_hpp = cpp_format.format_pp(
+                fwd_hpp,
+                binary=self._clang_format_bin,
+            )
 
             tpl = JINJA_ENV.get_template('templates/type.hpp.jinja')
             hpp = tpl.render(**env)
-            hpp = format_pp(hpp, binary=self._clang_format_bin)
+            hpp = cpp_format.format_pp(hpp, binary=self._clang_format_bin)
 
             tpl = JINJA_ENV.get_template('templates/type_parsers.ipp.jinja')
             parsers_ipp = tpl.render(**env)
-            parsers_ipp = format_pp(parsers_ipp, binary=self._clang_format_bin)
+            parsers_ipp = cpp_format.format_pp(
+                parsers_ipp,
+                binary=self._clang_format_bin,
+            )
 
             tpl = JINJA_ENV.get_template('templates/type.cpp.jinja')
             cpp = tpl.render(**env)
-            cpp = format_pp(cpp, binary=self._clang_format_bin)
+            cpp = cpp_format.format_pp(cpp, binary=self._clang_format_bin)
 
             output.append(
                 CppOutput(
                     filepath_wo_ext=filepath_wo_ext,
                     files=[
                         CppOutputFile(
-                            content=fwd_hpp, ext='_fwd.hpp', subdir='include/',
+                            content=fwd_hpp,
+                            ext='_fwd.hpp',
+                            subdir='include/',
                         ),
                         CppOutputFile(
-                            content=hpp, ext='.hpp', subdir='include/',
+                            content=hpp,
+                            ext='.hpp',
+                            subdir='include/',
                         ),
                         CppOutputFile(
                             content=parsers_ipp,
@@ -316,3 +308,12 @@ class OneToOneFileRenderer:
             )
 
         return output
+
+    @staticmethod
+    def get_output_files(stem: str, path: str) -> list[str]:
+        return [
+            f'include/{path}/{stem}_fwd.hpp',
+            f'include/{path}/{stem}_parsers.ipp',
+            f'include/{path}/{stem}.hpp',
+            f'src/{path}/{stem}.cpp',
+        ]

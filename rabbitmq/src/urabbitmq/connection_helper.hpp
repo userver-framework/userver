@@ -43,11 +43,17 @@ public:
         engine::Deadline deadline
     );
 
-    [[nodiscard]] static impl::ResponseAwaiter
-    RemoveExchange(const ConnectionPtr& connection, const Exchange& exchange, engine::Deadline deadline);
+    [[nodiscard]] static impl::ResponseAwaiter RemoveExchange(
+        const ConnectionPtr& connection,
+        const Exchange& exchange,
+        engine::Deadline deadline
+    );
 
-    [[nodiscard]] static impl::ResponseAwaiter
-    RemoveQueue(const ConnectionPtr& connection, const Queue& queue, engine::Deadline deadline);
+    [[nodiscard]] static impl::ResponseAwaiter RemoveQueue(
+        const ConnectionPtr& connection,
+        const Queue& queue,
+        engine::Deadline deadline
+    );
 
     [[nodiscard]] static impl::ResponseAwaiter Get(
         const ConnectionPtr& connection,
@@ -61,8 +67,7 @@ public:
         const ConnectionPtr& connection,
         const Exchange& exchange,
         const std::string& routing_key,
-        const std::string& message,
-        MessageType type,
+        const Envelope& envelope,
         engine::Deadline deadline
     );
 
@@ -70,8 +75,7 @@ public:
         const ConnectionPtr& connection,
         const Exchange& exchange,
         const std::string& routing_key,
-        const std::string& message,
-        MessageType type,
+        const Envelope& envelope,
         engine::Deadline deadline
     );
 

@@ -18,13 +18,13 @@
 /// components::ClickHouse. The uClickHouse driver is asynchronous, it suspends
 /// current coroutine for carrying out network I/O.
 ///
-/// @section feature Features
+/// @section clickhouse_feature Features
 /// - Connection pooling;
 /// - Variadic template query parameter passing;
 /// - Query result extraction to C++ types;
 /// - Mapping C++ types to native ClickHouse types.
 ///
-/// @section info More information
+/// @section clickhouse_info More information
 /// - For configuration see components::ClickHouse
 /// - For cluster operations see storages::clickhouse::Cluster
 /// - For mapping C++ types to Clickhouse types see @ref clickhouse_io
@@ -33,7 +33,7 @@
 ///
 /// @htmlonly <div class="bottom-nav"> @endhtmlonly
 /// ⇦ @ref scripts/docs/en/userver/redis.md |
-/// @ref scripts/docs/en/userver/development/stability.md ⇨
+/// @ref scripts/docs/en/userver/libraries/easy.md ⇨
 /// @htmlonly </div> @endhtmlonly
 
 USERVER_NAMESPACE_BEGIN

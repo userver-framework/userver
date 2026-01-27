@@ -110,7 +110,9 @@ void ContextTimer::Impl::Restart(Params params) {
 }
 
 void ContextTimer::Impl::Finalize() {
-    if (!WasStarted()) return;
+    if (!WasStarted()) {
+        return;
+    }
 
     // We cannot use *this as payload here, because with MultiShotAsyncPayload,
     // two ev runs with the same data can happen. The first run would drop

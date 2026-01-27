@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file userver/utils/boost_uuid7s.hpp
+/// @file userver/utils/boost_uuid7.hpp
 /// @brief @copybrief utils::generators::GenerateBoostUuidV7()
 
 #include <chrono>

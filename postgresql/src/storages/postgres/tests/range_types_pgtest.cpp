@@ -10,7 +10,7 @@ namespace pg = storages::postgres;
 namespace {
 
 TEST(Postgre, RangeTypeEmpty) {
-    pg::IntegerRange r;
+    const pg::IntegerRange r;
 
     EXPECT_TRUE(r.Empty()) << "Default constructed range should be empty";
     EXPECT_FALSE(r.HasLowerBound()) << "Empty range doesn't have a lower bound";
@@ -20,9 +20,11 @@ TEST(Postgre, RangeTypeEmpty) {
 
     EXPECT_EQ(pg::IntegerRange{}, pg::MakeRange(0, 0)) << "Equal range ends with upper not included is an empty range";
     EXPECT_EQ(pg::IntegerRange{}, pg::MakeRange(0, 0, pg::RangeBound::kUpper))
-        << "Equal range ends with lower not included is an empty range";
+        << "Equal range ends with lower not "
+           "included is an empty range";
     EXPECT_NE(pg::IntegerRange{}, pg::MakeRange(0, 0, pg::RangeBound::kBoth))
-        << "Equal range ends with both included is not an empty range";
+        << "Equal range ends with both included "
+           "is not an empty range";
 }
 
 TEST(Postgre, RangeTypeIncludeLower) {
@@ -98,7 +100,7 @@ TEST(Postgre, RangeTypeUnboundedLowerExcludeUpper) {
 }
 
 TEST(Postgre, RangeTypeUnboundedBoth) {
-    pg::IntegerRange r{pg::kUnbounded, pg::kUnbounded};
+    const pg::IntegerRange r{pg::kUnbounded, pg::kUnbounded};
     EXPECT_FALSE(r.Empty()) << "Range (-∞, ∞) is not empty";
     EXPECT_FALSE(r.HasLowerBound()) << "Range (-∞, ∞) doesn't have a lower bound";
     EXPECT_FALSE(r.HasUpperBound()) << "Range (-∞, ∞) doesn't have an upper bound";
@@ -141,7 +143,7 @@ UTEST_P(PostgreConnection, Int4RangeRoundtripTest) {
     pg::ResultSet res{nullptr};
     pg::IntegerRange r;
 
-    TestData<pg::IntegerRange> test_data[]{
+    const TestData<pg::IntegerRange> test_data[]{
         {"empty", "empty", pg::IntegerRange{}},
         {"[0,2)", "lower-inclusive", pg::MakeRange(0, 2)},
         {"(0, 2)", "non-inclusive", pg::MakeRange(0, 2, pg::RangeBound::kNone)},
@@ -151,7 +153,8 @@ UTEST_P(PostgreConnection, Int4RangeRoundtripTest) {
         {"[0,)", "upper-unbounded-inclusive", pg::MakeRange(0, pg::kUnbounded)},
         {"(,0]", "lower-unbounded-inclusive", pg::MakeRange(pg::kUnbounded, 0, pg::RangeBound::kUpper)},
         {"(0,)", "upper-unbounded-exclusive", pg::MakeRange(0, pg::kUnbounded, pg::RangeBound::kNone)},
-        {"(,0)", "lower-unbounded-exclusive", pg::MakeRange(pg::kUnbounded, 0, pg::RangeBound::kNone)}};
+        {"(,0)", "lower-unbounded-exclusive", pg::MakeRange(pg::kUnbounded, 0, pg::RangeBound::kNone)}
+    };
 
     for (const auto& test : test_data) {
         UEXPECT_NO_THROW(
@@ -175,7 +178,7 @@ UTEST_P(PostgreConnection, Int8RangeRoundtripTest) {
     pg::ResultSet res{nullptr};
     pg::BigintRange r;
 
-    TestData<pg::BigintRange> test_data[]{
+    const TestData<pg::BigintRange> test_data[]{
         {"empty", "empty", pg::BigintRange{}},
         {"[0,2)", "lower-inclusive", pg::MakeRange(0, 2)},
         {"(0, 2)", "non-inclusive", pg::MakeRange(0, 2, pg::RangeBound::kNone)},
@@ -185,7 +188,8 @@ UTEST_P(PostgreConnection, Int8RangeRoundtripTest) {
         {"[0,)", "upper-unbounded-inclusive", pg::MakeRange(0, pg::kUnbounded)},
         {"(,0]", "lower-unbounded-inclusive", pg::MakeRange(pg::kUnbounded, 0, pg::RangeBound::kUpper)},
         {"(0,)", "upper-unbounded-exclusive", pg::MakeRange(0, pg::kUnbounded, pg::RangeBound::kNone)},
-        {"(,0)", "lower-unbounded-exclusive", pg::MakeRange(pg::kUnbounded, 0, pg::RangeBound::kNone)}};
+        {"(,0)", "lower-unbounded-exclusive", pg::MakeRange(pg::kUnbounded, 0, pg::RangeBound::kNone)}
+    };
 
     for (const auto& test : test_data) {
         UEXPECT_NO_THROW(
@@ -205,12 +209,12 @@ UTEST_P(PostgreConnection, Int8RangeRoundtripTest) {
 UTEST_P(PostgreConnection, BoundedInt8RangeRoundtripTest) {
     CheckConnection(GetConn());
     pg::ResultSet res{nullptr};
-    std::string invalid_ranges[]{"empty", "(,)", "[0,)", "(,0]", "(0,)", "(,0)"};
+    const std::string invalid_ranges[]{"empty", "(,)", "[0,)", "(,0]", "(0,)", "(,0)"};
     for (const auto& test : invalid_ranges) {
         UEXPECT_NO_THROW(res = GetConn()->Execute("select '" + test + "'::int8range"));
         UEXPECT_THROW(res.AsSingleRow<pg::BoundedBigintRange>(), pg::BoundedRangeError);
     }
-    TestData<pg::BoundedBigintRange> test_data[]{
+    const TestData<pg::BoundedBigintRange> test_data[]{
         {"[0,2)", "lower-inclusive", pg::BoundedBigintRange(0L, 2L)},
         {"(0, 2)", "non-inclusive", pg::BoundedBigintRange(0L, 2L, pg::RangeBound::kNone)},
         {"(0, 2]", "upper-inclusive", pg::BoundedBigintRange(0L, 2L, pg::RangeBound::kUpper)},

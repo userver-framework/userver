@@ -18,10 +18,10 @@ constexpr auto kStressTestDuration = std::chrono::milliseconds{500};
 
 static_assert(utils::statistics::kHasWriterSupport<utils::statistics::MinMaxAvg<int>>);
 
-template <int... values>
+template <int... Values>
 auto GetFilledMma() {
     utils::statistics::MinMaxAvg<int> mma;
-    (mma.Account(values), ...);
+    (mma.Account(Values), ...);
     return mma;
 }
 
@@ -33,7 +33,7 @@ void CheckCurrent(const utils::statistics::MinMaxAvg<int>& mma, int expected_min
 }
 
 TEST(MinMaxAvg, Default) {
-    utils::statistics::MinMaxAvg<int> mma;
+    const utils::statistics::MinMaxAvg<int> mma;
     CheckCurrent(mma, 0, 0, 0);
 }
 
@@ -103,7 +103,9 @@ TEST(MinMaxAvg, Stress) {
     };
 
     std::vector<std::future<MmaType>> futures;
-    for (size_t i = 0; i < kStressNumThreads; ++i) futures.push_back(std::async(std::launch::async, work));
+    for (size_t i = 0; i < kStressNumThreads; ++i) {
+        futures.push_back(std::async(std::launch::async, work));
+    }
 
     std::this_thread::sleep_for(kStressTestDuration);
     is_running = false;

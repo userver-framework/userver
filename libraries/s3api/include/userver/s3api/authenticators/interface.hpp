@@ -1,8 +1,9 @@
 #pragma once
 
 /// @file userver/s3api/authenticators/interface.hpp
-/// @brief Interface for autheticators - classes that sign the request with auth data
+/// @brief @copybrief s3api::authenticators::Authenticator
 
+#include <ctime>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -15,7 +16,9 @@ struct Request;
 
 namespace authenticators {
 
-// This is base class for all authenticators
+/// @ingroup userver_base_classes
+///
+/// @brief Base class for all authenticators - classes that sign the request with auth data
 struct Authenticator {
     virtual std::unordered_map<std::string, std::string> Auth(const Request& request) const = 0;
     virtual std::unordered_map<std::string, std::string> Sign(const Request& request, time_t expires) const = 0;

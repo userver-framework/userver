@@ -1,7 +1,7 @@
 #pragma once
 
 /// @file userver/formats/common/merge.hpp
-/// @brief @copybrief formats::json::MergeSchemas
+/// @brief @copybrief formats::common::Merge
 /// @ingroup userver_universal
 
 #include <userver/formats/common/items.hpp>

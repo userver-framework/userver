@@ -1,0 +1,99 @@
+#pragma once
+
+#include <variant>
+
+#include <clients/{{ name }}/exceptions.hpp>
+#include <userver/chaotic/openapi/client/exceptions.hpp>
+{% for include in spec.responses_declaration_includes() %}
+  #include <{{ include }}>
+{% endfor %}
+
+{% for include in spec.cpp_includes() %}
+#include <{{ include }}>
+{% endfor %}
+
+USERVER_NAMESPACE_BEGIN
+namespace clients::http {
+class Response;
+}
+USERVER_NAMESPACE_END
+
+namespace {{ namespace }} {
+
+{% for op in operations %}
+  {% if op.client_generate %}
+      namespace {{ op.cpp_namespace() }} {
+
+        {% for response in op.responses %}
+          {% for content_type, body in response.body.items() %}
+            {% if content_type != 'application/json' %}
+              struct {{ response.body_cpp_name(content_type) }} {
+                std::string data;
+
+                bool operator==(const {{ response.body_cpp_name(content_type) }}& other) const { return data == other.data; }
+              };
+            {% endif %}
+          {% endfor %}
+
+          {# TODO: description #}
+          struct Response{{ response.status }} 
+          {%- if response.is_error() -%}
+              : public ExceptionWithStatusCode
+          {%- endif -%}
+          {
+            {%- if response.is_error() -%}
+                Response{{ response.status }}() : ExceptionWithStatusCode({{ response.status }})
+                {}
+            {%- endif -%}
+
+            {% if len(response.body) == 0 %}
+              {# No body #}
+            {% elif len(response.body) == 1 %}
+                // {{ response.body }}
+              {{ list(response.body.values())[0].cpp_user_name() }} body;
+            {% else %}
+                std::variant<
+                  {%- for content_type, body in response.body.items() -%}
+                    {% if content_type == 'application/json' %}
+                      {{ body.cpp_user_name() }}
+                    {% else %}
+                      {{ response.body_cpp_name(content_type) }}
+                    {% endif %}
+                    {%- if not loop.last %},{% endif %}
+                  {%- endfor -%}
+                > body;
+            {% endif %}
+
+            {% for header in response.headers %}
+              {% if header.cpp_type.nullable %}
+                std::optional<{{ header.cpp_type.cpp_global_name() }}>
+              {%- else -%}
+                {{ header.cpp_type.cpp_global_name() }}
+              {% endif -%}
+              {{ header.cpp_name }};
+            {% endfor %}
+          };
+        {% endfor %}
+
+        {% if op.has_single_2xx_responses() %}
+          using Response = 
+            {%- for response in op.iter_2xx_responses() -%}
+              Response{{ response.status }}
+            {%- endfor -%}
+          ;
+        {% elif op.has_2xx_responses() %}
+          using Response = std::variant<
+            {% for response in op.iter_2xx_responses() -%}
+              Response{{ response.status }} {% if not loop.last %},{% endif -%}
+            {%- endfor -%}
+          >;
+        {% else %}
+          using Response = void;
+        {% endif %}
+
+        Response ParseResponse(USERVER_NAMESPACE::clients::http::Response& response);
+      }
+  {% endif %}
+{% endfor %}
+
+}

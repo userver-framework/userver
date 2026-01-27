@@ -1,0 +1,26 @@
+openapi: 3.0.0
+info:
+    title: test-object client
+    version: '1.0'
+
+paths:
+    /test2:
+        get:
+            operationId: MyTest2
+            requestBody:
+                content:
+                    application/json:
+                        x-usrv-non-std-type-reason: bla bla
+                        schema:
+                            type: string
+            responses:
+                '200':
+                    description: OK
+                    content:
+                        application/json:
+                            x-usrv-non-std-type-reason: bla bla bla
+                            schema:
+                                type: object
+                                properties: {}
+                                additionalProperties: false
+components: {}

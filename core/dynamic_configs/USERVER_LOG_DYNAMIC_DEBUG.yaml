@@ -1,0 +1,75 @@
+default:
+    force-enabled: []
+    force-disabled: []
+description: |
+    Logging per line and file overrides.
+    Location of file may be followed by `:[line number]` to specify 1 exact log in that file.
+
+    Locations are easy to retrieve from the logs: tracing::Span writes the "component" tag with the
+    location. For example: 'component: "DoParse ( taxi/uservices/services/my_service/src/parser.cpp:128 )"'.
+
+    Note that if you are taking the location from source editor and you have multiline logging macro:
+
+    ```
+    #299
+    #300    LOG_INFO(
+    #301        "Do not send '{}', instead send the '{}' command",
+    #302        incoming,
+    #303        correct_data
+    #304    );
+    #305
+    ```
+
+    then the line number depends on the compiler (can be `304` on clang, `300` on GCC).
+schema:
+    type: object
+    additionalProperties: false
+    required:
+      - force-enabled
+      - force-disabled
+    properties:
+        force-enabled:
+            type: array
+            description: |
+                Locations where logs should be FORCEFULLY ENABLED.
+                This option is DEPRECATED, use "force-enabled-level" instead.
+            items:
+                type: string
+        force-disabled:
+            type: array
+            description: |
+                Locations where logs should be FORCEFULLY DISABLED.
+                Logs of WARNING level and HIGHER will remain ENABLED.
+                This option is DEPRECATED, use "force-disabled-level" instead.
+            items:
+                type: string
+        force-enabled-level:
+            type: object
+            description: |
+                Locations where logs of the SPECIFIED LEVEL and HIGHER should be FORCEFULLY ENABLED.
+                For example, to enable WARNING and higher logs in "taxi/uservices/services/my_service/src/grpc",
+                DEBUG and higher logs in "taxi/uservices/services/my_service/src/server/server.cpp",
+                and a specific TRACE log (line 128) in "taxi/uservices/services/my_service/src/parser.cpp":
+
+                    "force-enabled-level": {
+                        "taxi/uservices/services/my_service/src/grpc": "WARNING",
+                        "taxi/uservices/services/my_service/src/server/server.cpp": "DEBUG",
+                        "taxi/uservices/services/my_service/src/parser.cpp:128": "TRACE"
+                    }
+            additionalProperties:
+                type: string
+        force-disabled-level:
+            type: object
+            description: |
+                Locations where logs of the SPECIFIED LEVEL and LOWER should be FORCEFULLY DISABLED.
+                For example, to disable ERROR and lower logs in "taxi/uservices/services/my_service/src/grpc",
+                INFO and lower logs in "taxi/uservices/services/my_service/src/server/server.cpp",
+                and a specific TRACE log (line 128) in "taxi/uservices/services/my_service/src/parser.cpp":
+
+                    "force-disabled-level": {
+                        "taxi/uservices/services/my_service/src/grpc": "ERROR",
+                        "taxi/uservices/services/my_service/src/server/server.cpp": "INFO",
+                        "taxi/uservices/services/my_service/src/parser.cpp:128": "TRACE"
+                    }
+            additionalProperties:
+                type: string

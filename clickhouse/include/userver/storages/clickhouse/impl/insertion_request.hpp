@@ -26,8 +26,11 @@ public:
     ~InsertionRequest();
 
     template <typename T>
-    static InsertionRequest
-    Create(const std::string& table_name, const std::vector<std::string_view>& column_names, const T& data);
+    static InsertionRequest Create(
+        const std::string& table_name,
+        const std::vector<std::string_view>& column_names,
+        const T& data
+    );
 
     template <typename Container>
     static InsertionRequest CreateFromRows(
@@ -45,7 +48,9 @@ private:
     class ColumnsMapper final {
     public:
         ColumnsMapper(impl::BlockWrapper& block, const std::vector<std::string_view>& column_names)
-            : block_{block}, column_names_{column_names} {}
+            : block_{block},
+              column_names_{column_names}
+        {}
 
         template <typename Field, size_t Index>
         void operator()(const Field& field, std::integral_constant<size_t, Index> i) {
@@ -64,7 +69,10 @@ private:
     class RowsMapper final {
     public:
         RowsMapper(impl::BlockWrapper& block, const std::vector<std::string_view>& column_names, const Container& data)
-            : block_{block}, column_names_{column_names}, data_{data} {}
+            : block_{block},
+              column_names_{column_names},
+              data_{data}
+        {}
 
         template <typename Field, size_t Index>
         void operator()(const Field&, std::integral_constant<size_t, Index> i) {

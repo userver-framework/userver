@@ -17,6 +17,9 @@
 
 #include <storages/clickhouse/impl/tracing_tags.hpp>
 
+#include <fmt/format.h>
+#include <fmt/ranges.h>
+
 namespace clickhouse {
 // Not present before 2.5.0, but we don't use it anyway.
 struct Endpoint;
@@ -39,18 +42,25 @@ constexpr std::chrono::milliseconds kConnectTimeout{1500};
 template <typename T>
 class ClickhouseSocketInput final : public clickhouse_cpp::InputStream {
 public:
-    ClickhouseSocketInput(T& socket, engine::Deadline& deadline) : socket_{socket}, deadline_{deadline} {}
+    ClickhouseSocketInput(T& socket, engine::Deadline& deadline)
+        : socket_{socket},
+          deadline_{deadline}
+    {}
     ~ClickhouseSocketInput() override = default;
 
 protected:
     bool Skip([[maybe_unused]] size_t unused) override { return false; }
 
     size_t DoRead(void* buf, size_t len) override {
-        if (deadline_.IsReached()) throw engine::io::IoTimeout{};
+        if (deadline_.IsReached()) {
+            throw engine::io::IoTimeout{};
+        }
 
         const auto read = socket_.RecvSome(buf, len, deadline_);
 
-        if (!read) throw engine::io::IoException{"socket reset by peer"};
+        if (!read) {
+            throw engine::io::IoException{"socket reset by peer"};
+        }
 
         return read;
     }
@@ -63,15 +73,22 @@ private:
 template <typename T>
 class ClickhouseSocketOutput final : public clickhouse_cpp::OutputStream {
 public:
-    ClickhouseSocketOutput(T& socket, engine::Deadline& deadline) : socket_{socket}, deadline_{deadline} {}
+    ClickhouseSocketOutput(T& socket, engine::Deadline& deadline)
+        : socket_{socket},
+          deadline_{deadline}
+    {}
     ~ClickhouseSocketOutput() override = default;
 
 protected:
     size_t DoWrite(const void* data, size_t len) override {
-        if (deadline_.IsReached()) throw engine::io::IoTimeout{};
+        if (deadline_.IsReached()) {
+            throw engine::io::IoTimeout{};
+        }
 
         const auto sent = socket_.SendAll(data, len, deadline_);
-        if (sent != len) throw engine::io::IoException{"broken pipe?"};
+        if (sent != len) {
+            throw engine::io::IoException{"broken pipe?"};
+        }
 
         return sent;
     }
@@ -92,7 +109,9 @@ Socket CreateSocket(engine::io::Sockaddr addr, engine::Deadline deadline) {
 class ClickhouseSocketAdapter : public clickhouse_cpp::SocketBase {
 public:
     ClickhouseSocketAdapter(engine::io::Sockaddr addr, engine::Deadline& deadline)
-        : deadline_{deadline}, socket_{CreateSocket(addr, deadline_)} {}
+        : deadline_{deadline},
+          socket_{CreateSocket(addr, deadline_)}
+    {}
 
     ~ClickhouseSocketAdapter() override { socket_.Close(); }
 
@@ -113,7 +132,8 @@ class ClickhouseTlsSocketAdapter : public clickhouse_cpp::SocketBase {
 public:
     ClickhouseTlsSocketAdapter(engine::io::Sockaddr addr, engine::Deadline& deadline)
         : deadline_{deadline},
-          tls_socket_{engine::io::TlsWrapper::StartTlsClient(CreateSocket(addr, deadline_), {}, deadline_)} {}
+          tls_socket_{engine::io::TlsWrapper::StartTlsClient(CreateSocket(addr, deadline_), {}, deadline_)}
+    {}
 
     std::unique_ptr<clickhouse_cpp::InputStream> makeInputStream() const override {
         return std::make_unique<ClickhouseSocketInput<TlsSocket>>(tls_socket_, deadline_);
@@ -160,7 +180,10 @@ public:
         ConnectionMode mode,
         engine::Deadline& operations_deadline
     )
-        : resolver_{resolver}, mode_{mode}, operations_deadline_{operations_deadline} {}
+        : resolver_{resolver},
+          mode_{mode},
+          operations_deadline_{operations_deadline}
+    {}
 
     ~ClickhouseSocketFactory() override = default;
 
@@ -189,7 +212,8 @@ private:
         }
 
         throw std::runtime_error{
-            fmt::format("Could not connect to any of the resolved addresses: {}", fmt::join(addrs, ", "))};
+            fmt::format("Could not connect to any of the resolved addresses: {}", fmt::join(addrs, ", "))
+        };
     }
 
     clients::dns::Resolver& resolver_;
@@ -250,15 +274,16 @@ NativeClientWrapper NativeClientFactory::Create(
     const AuthSettings& auth,
     const ConnectionSettings& connection_settings
 ) {
-    const auto options = clickhouse_cpp::ClientOptions{}
-                             .SetHost(endpoint.host)
-                             .SetPort(endpoint.port)
-                             .SetUser(auth.user)
-                             .SetPassword(auth.password)
-                             .SetDefaultDatabase(auth.database)
-                             .SetCompressionMethod(GetCompressionMethod(connection_settings.compression_method));
+    const auto options =
+        clickhouse_cpp::ClientOptions{}
+            .SetHost(endpoint.host)
+            .SetPort(endpoint.port)
+            .SetUser(auth.user)
+            .SetPassword(auth.password)
+            .SetDefaultDatabase(auth.database)
+            .SetCompressionMethod(GetCompressionMethod(connection_settings.compression_method));
 
-    tracing::Span span{scopes::kConnect};
+    const tracing::Span span{scopes::kConnect};
     return NativeClientWrapper{resolver, options, connection_settings.connection_mode};
 }
 

@@ -12,6 +12,9 @@ UTEST(MockPublishWaiter, TestBasic) {
     my_redis_mock->Publish("test-channel", "test_data", {}, {});
 
     waiter.Wait();
+
+    ASSERT_EQ(waiter.GetPublishedMessagesCount(), 1);
+    ASSERT_EQ(waiter.GetPublishedMessage(0), "test_data");
 }
 
 }  // namespace storages::redis

@@ -1,19 +1,29 @@
 from collections import OrderedDict
-from typing import Dict
 
 import pytest
 
 from chaotic.back.cpp.translator import Generator
 from chaotic.back.cpp.translator import GeneratorConfig
 from chaotic.back.cpp.types import CppType
+from chaotic.front.types import Schema
+from chaotic.main import generate_cpp_name_func
+from chaotic.main import NameMapItem
 
 
 @pytest.fixture
-def simple_gen(simple_parse, clean):
+def cpp_name_func():
+    return generate_cpp_name_func(
+        [NameMapItem('/definitions/([^/]*)/={0}'), NameMapItem('/([^/]*)/={0}')],
+        '',
+    )
+
+
+@pytest.fixture
+def simple_gen(simple_parse, clean, cpp_name_func):
     def func(input_: dict):
-        schemas = simple_parse(input_)
+        schemas = simple_parse(input_, clear=False)
         gen = Generator(
-            config=GeneratorConfig(namespaces={'vfull': ''}, include_dirs=None),
+            config=GeneratorConfig(namespaces={'vfull': ''}, include_dirs=None, infile_to_name_func=cpp_name_func),
         )
         types = gen.generate_types(schemas)
         return clean(types)
@@ -23,10 +33,16 @@ def simple_gen(simple_parse, clean):
 
 @pytest.fixture(name='clean')
 def _clean():
-    def func(ordered_dict: OrderedDict) -> Dict[str, CppType]:
+    def func(ordered_dict: OrderedDict) -> dict[str, CppType]:
         res = {}
+
+        def visit(child: CppType, parent: CppType):
+            child.json_schema = Schema()
+
         for key, val in ordered_dict.items():
-            res[key] = val.without_json_schema()
+            visit(val, None)
+            val.visit_children(visit)
+            res[key] = val
         return res
 
     return func

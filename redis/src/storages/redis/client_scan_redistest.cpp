@@ -15,9 +15,9 @@ public:
 
 template <typename T>
 class RedisClientScanTest : public RedisClientTest {
-    static constexpr ScanTag Tag = T::value;
-    using Match = storages::redis::ScanOptionsBase::Match;
-    using Count = storages::redis::ScanOptionsBase::Count;
+    static constexpr ScanTag kTag = T::value;
+    using Match = storages::redis::ScanOptionsGeneric::Match;
+    using Count = storages::redis::ScanOptionsGeneric::Count;
 
 public:
     void SetUp() override;
@@ -26,26 +26,28 @@ public:
 
     static std::vector<std::string> GetExpected() {
         std::vector<std::string> expected;
-        utils::regex rgx(pattern_cpp);
+        const utils::regex rgx(pattern_cpp);
         utils::match_results match;
-        for (int i = 0; i < N; i++) {
+        for (int i = 0; i < kN; i++) {
             auto key = "key:" + std::to_string(i);
-            if (utils::regex_match(key, match, rgx)) expected.emplace_back(key);
+            if (utils::regex_match(key, match, rgx)) {
+                expected.emplace_back(key);
+            }
         }
         std::sort(expected.begin(), expected.end());
         return expected;
     }
 
 private:
-    static constexpr int N = 1000;
+    static constexpr int kN = 1000;
     static const std::string pattern;
     static const std::string pattern_cpp;
 
     static auto GetScanOptions() {
         static Match match(pattern);
         static Count count(10);
-        static storages::redis::ScanOptionsTmpl<Tag> options(match, count);
-        return options;
+        static const storages::redis::ScanOptionsGeneric kOptions(match, count);
+        return kOptions;
     }
 };
 
@@ -58,7 +60,9 @@ template <>
 void RedisClientScanTest<ScanType<ScanTag::kScan>>::SetUp() {
     RedisClientTest::SetUp();
     auto client = GetClient();
-    for (int i = 0; i < N; i++) client->Set("key:" + std::to_string(i), "value", {}).Get();
+    for (int i = 0; i < kN; i++) {
+        client->Set("key:" + std::to_string(i), "value", {}).Get();
+    }
 }
 
 template <>
@@ -73,7 +77,9 @@ template <>
 void RedisClientScanTest<ScanType<ScanTag::kHscan>>::SetUp() {
     RedisClientTest::SetUp();
     auto client = GetClient();
-    for (int i = 0; i < N; i++) client->Hset("key", "key:" + std::to_string(i), "value", {}).Get();
+    for (int i = 0; i < kN; i++) {
+        client->Hset("key", "key:" + std::to_string(i), "value", {}).Get();
+    }
 }
 
 template <>
@@ -95,7 +101,9 @@ template <>
 void RedisClientScanTest<ScanType<ScanTag::kSscan>>::SetUp() {
     RedisClientTest::SetUp();
     auto client = GetClient();
-    for (int i = 0; i < N; i++) client->Sadd("key", "key:" + std::to_string(i), {}).Get();
+    for (int i = 0; i < kN; i++) {
+        client->Sadd("key", "key:" + std::to_string(i), {}).Get();
+    }
 }
 
 template <>
@@ -110,7 +118,9 @@ template <>
 void RedisClientScanTest<ScanType<ScanTag::kZscan>>::SetUp() {
     RedisClientTest::SetUp();
     auto client = GetClient();
-    for (int i = 0; i < N; i++) client->Zadd("key", i, "key:" + std::to_string(i), {}).Get();
+    for (int i = 0; i < kN; i++) {
+        client->Zadd("key", i, "key:" + std::to_string(i), {}).Get();
+    }
 }
 
 template <>
@@ -125,8 +135,11 @@ std::vector<std::string> RedisClientScanTest<ScanType<ScanTag::kZscan>>::GetActu
 
 }  // namespace
 
-using ScanTypes = testing::
-    Types<ScanType<ScanTag::kScan>, ScanType<ScanTag::kHscan>, ScanType<ScanTag::kSscan>, ScanType<ScanTag::kZscan>>;
+using ScanTypes = testing::Types<
+    ScanType<ScanTag::kScan>,
+    ScanType<ScanTag::kHscan>,
+    ScanType<ScanTag::kSscan>,
+    ScanType<ScanTag::kZscan>>;
 TYPED_UTEST_SUITE(RedisClientScanTest, ScanTypes);
 
 TYPED_UTEST(RedisClientScanTest, Scan) {
@@ -135,6 +148,87 @@ TYPED_UTEST(RedisClientScanTest, Scan) {
 
     EXPECT_EQ(actual.size(), expected.size());
     EXPECT_EQ(actual, expected);
+}
+
+UTEST_F(RedisClientTest, SampleScan) {
+    auto redis_client = GetClient();
+
+    /// [Sample Scan usage]
+    constexpr std::size_t kKeysWithSamePrefix = 100;
+    for (std::size_t i = 0; i < kKeysWithSamePrefix; ++i) {
+        redis_client->Set("the_key_" + std::to_string(i), "the_value", {}).Get();
+        redis_client->Set("a_key_" + std::to_string(i), "a_value", {}).Get();
+    }
+
+    std::size_t matches_found = 0;
+    for (const std::string& field : redis_client->Scan(0, storages::redis::Match{"the_key*"}, {})) {
+        EXPECT_EQ(field.find("the_key"), 0) << "Does not start with 'the_key'";
+        ++matches_found;
+    }
+    EXPECT_EQ(matches_found, kKeysWithSamePrefix);
+    /// [Sample Scan usage]
+}
+
+UTEST_F(RedisClientTest, SampleSscan) {
+    auto redis_client = GetClient();
+
+    /// [Sample Sadd and Sscan usage]
+    constexpr std::size_t kKeysWithSamePrefix = 100;
+    static const std::string kKey = "key";
+    for (std::size_t i = 0; i < kKeysWithSamePrefix; ++i) {
+        redis_client->Sadd(kKey, "the_value_" + std::to_string(i), {}).Get();
+        redis_client->Sadd(kKey, "a_value_" + std::to_string(i), {}).Get();
+    }
+
+    std::size_t matches_found = 0;
+    for (const std::string& value : redis_client->Sscan(kKey, storages::redis::Match{"the_value*"}, {})) {
+        EXPECT_EQ(value.find("the_value"), 0) << "Does not start with 'the_value'";
+        ++matches_found;
+    }
+    EXPECT_EQ(matches_found, kKeysWithSamePrefix);
+    /// [Sample Sadd and Sscan usage]
+}
+
+UTEST_F(RedisClientTest, SampleHscan) {
+    auto redis_client = GetClient();
+
+    /// [Sample Hscan usage]
+    constexpr std::size_t kKeysWithSamePrefix = 100;
+    static const std::string kKey = "key";
+    for (std::size_t i = 0; i < kKeysWithSamePrefix; ++i) {
+        redis_client->Hset(kKey, "the_field_" + std::to_string(i), "the_value", {}).Get();
+        redis_client->Hset(kKey, "a_field_" + std::to_string(i), "a_value", {}).Get();
+    }
+
+    std::size_t matches_found = 0;
+    for (const auto& [field, value] : redis_client->Hscan(kKey, storages::redis::Match{"the_field*"}, {})) {
+        EXPECT_EQ(field.find("the_field"), 0) << "Does not start with 'the_field'";
+        EXPECT_EQ(value, "the_value");
+        ++matches_found;
+    }
+    EXPECT_EQ(matches_found, kKeysWithSamePrefix);
+    /// [Sample Hscan usage]
+}
+
+UTEST_F(RedisClientTest, SampleZscan) {
+    auto redis_client = GetClient();
+
+    /// [Sample Zscan usage]
+    constexpr std::size_t kKeysWithSamePrefix = 100;
+    static const std::string kKey = "key";
+    for (std::size_t i = 0; i < kKeysWithSamePrefix; ++i) {
+        redis_client->Zadd(kKey, static_cast<double>(i), "the_value_" + std::to_string(i), {}).Get();
+        redis_client->Zadd(kKey, static_cast<double>(i), "a_value_" + std::to_string(i), {}).Get();
+    }
+
+    std::size_t matches_found = 0;
+    for (const storages::redis::MemberScore& ms : redis_client->Zscan(kKey, storages::redis::Match{"the_value*"}, {})) {
+        const auto& [member, score] = ms;
+        EXPECT_EQ(member.find("the_value"), 0) << "Does not start with 'the_value'";
+        ++matches_found;
+    }
+    EXPECT_EQ(matches_found, kKeysWithSamePrefix);
+    /// [Sample Zscan usage]
 }
 
 USERVER_NAMESPACE_END

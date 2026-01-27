@@ -1,0 +1,23 @@
+type: object
+description: |
+    Handler that returns HTTP 200 if file exist
+    and returns file data with mapped content/type
+additionalProperties: false
+properties:
+    fs-cache-component:
+        type: string
+        description: Name of the FsCache component
+        default: fs-cache-component
+    expires:
+        type: string
+        description: Cache age in seconds
+        default: 600
+    directory-file:
+        type: string
+        description: File to return for directory requests. File name (not path) search
+            in requested directory
+        default: index.html
+    not-found-file:
+        type: string
+        description: File to return for missing files
+        default: /404.html

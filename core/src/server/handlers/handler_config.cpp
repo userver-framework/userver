@@ -12,14 +12,14 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::handlers {
 
-namespace {
-constexpr size_t kLogRequestDataSizeDefaultLimit = 512;
-}
-
 UrlTrailingSlashOption Parse(const yaml_config::YamlConfig& yaml, formats::parse::To<UrlTrailingSlashOption>) {
     const auto& value = yaml.As<std::string>();
-    if (value == "both") return UrlTrailingSlashOption::kBoth;
-    if (value == "strict-match") return UrlTrailingSlashOption::kStrictMatch;
+    if (value == "both") {
+        return UrlTrailingSlashOption::kBoth;
+    }
+    if (value == "strict-match") {
+        return UrlTrailingSlashOption::kStrictMatch;
+    }
     throw std::runtime_error("can't parse UrlTrailingSlashOption from '" + value + '\'');
 }
 
@@ -46,35 +46,37 @@ HandlerConfig ParseHandlerConfigsWithDefaults(
         auto opt_path = value["path"].As<std::optional<std::string>>();
         const auto opt_fallback = value["as_fallback"].As<std::optional<FallbackHandler>>();
 
-        if (!opt_path == !opt_fallback)
+        if (!opt_path == !opt_fallback) {
             throw std::runtime_error(fmt::format(
                 "Expected 'path' or 'as_fallback' at {}, but {} provided",
                 value.GetPath(),
                 (!opt_path) ? "none" : "both"
             ));
+        }
 
-        if (opt_path)
+        if (opt_path) {
             config.path = std::move(*opt_path);
-        else
+        } else {
             config.path = *opt_fallback;
+        }
     }
 
-    config.task_processor = value["task_processor"].As<std::string>();
+    config.task_processor = value["task_processor"].As<std::optional<std::string>>();
     config.method = value["method"].As<std::string>();
     config.request_config.max_request_size = value["max_request_size"].As<size_t>(handler_defaults.max_request_size);
     config.request_config.max_headers_size = value["max_headers_size"].As<size_t>(handler_defaults.max_headers_size);
-    config.request_config.parse_args_from_body =
-        value["parse_args_from_body"].As<bool>(handler_defaults.parse_args_from_body);
+    config.request_config
+        .parse_args_from_body = value["parse_args_from_body"].As<bool>(handler_defaults.parse_args_from_body);
     config.auth = value["auth"].As<std::optional<auth::HandlerAuthConfig>>();
-    config.url_trailing_slash =
-        value["url_trailing_slash"].As<UrlTrailingSlashOption>(UrlTrailingSlashOption::kDefault);
+    config.url_trailing_slash = value["url_trailing_slash"].As<UrlTrailingSlashOption>(UrlTrailingSlashOption::kDefault
+    );
     config.max_requests_in_flight = value["max_requests_in_flight"].As<std::optional<size_t>>();
     config.request_body_size_log_limit =
-        value["request_body_size_log_limit"].As<size_t>(kLogRequestDataSizeDefaultLimit);
+        value["request_body_size_log_limit"].As<size_t>(handler_defaults.request_body_size_log_limit);
     config.request_headers_size_log_limit =
-        value["request_headers_size_log_limit"].As<size_t>(kLogRequestDataSizeDefaultLimit);
+        value["request_headers_size_log_limit"].As<size_t>(handler_defaults.request_headers_size_log_limit);
     config.response_data_size_log_limit =
-        value["response_data_size_log_limit"].As<size_t>(kLogRequestDataSizeDefaultLimit);
+        value["response_data_size_log_limit"].As<size_t>(handler_defaults.response_data_size_log_limit);
     config.max_requests_per_second = value["max_requests_per_second"].As<std::optional<size_t>>();
     config.decompress_request = value["decompress_request"].As<bool>(true);
     config.throttling_enabled = value["throttling_enabled"].As<bool>(true);
@@ -96,6 +98,8 @@ HandlerConfig ParseHandlerConfigsWithDefaults(
 
     config.deadline_expired_status_code =
         value["deadline_expired_status_code"].As<http::HttpStatus>(handler_defaults.deadline_expired_status_code);
+
+    config.enable_write_statistics = value["enable_write_statistics"].As<bool>(config.enable_write_statistics);
 
     return config;
 }

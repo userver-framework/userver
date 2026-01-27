@@ -48,7 +48,10 @@ private:
 
 class DoubleBufferingState::ProducerLock {
 public:
-    explicit ProducerLock(DoubleBufferingState& state) : state_(state), locked_index_(state.LockProducer()) {}
+    explicit ProducerLock(DoubleBufferingState& state)
+        : state_(state),
+          locked_index_(state.LockProducer())
+    {}
     ~ProducerLock() { state_.UnlockProducer(locked_index_); }
 
     ProducerLock(const ProducerLock&) = delete;
@@ -65,7 +68,10 @@ private:
 
 class DoubleBufferingState::ConsumerLock {
 public:
-    explicit ConsumerLock(DoubleBufferingState& state) : state_(state), locked_index_(state.LockConsumer()) {}
+    explicit ConsumerLock(DoubleBufferingState& state)
+        : state_(state),
+          locked_index_(state.LockConsumer())
+    {}
     ~ConsumerLock() { state_.UnlockConsumer(locked_index_); }
 
     ConsumerLock(const ConsumerLock&) = delete;
@@ -105,14 +111,14 @@ public:
     void Push(Data&& data) {
         static_assert(std::is_nothrow_move_assignable_v<Data>);
 
-        impl::DoubleBufferingState::ProducerLock producer{state_};
+        const impl::DoubleBufferingState::ProducerLock producer{state_};
         double_buffer_[producer.GetLockedIndex()] = std::move(data);
     }
 
     std::optional<Data> TryPop() {
         std::optional<Data> ret;
 
-        impl::DoubleBufferingState::ConsumerLock consumer{state_};
+        const impl::DoubleBufferingState::ConsumerLock consumer{state_};
         if (consumer) {
             ret = std::move(double_buffer_[consumer.GetLockedIndex()]);
         }

@@ -24,7 +24,7 @@ compiler::ThreadLocal local_task_counter_data = [] { return LocalTaskCounterData
 
 }  // namespace
 
-TaskCounter::Token::Token(TaskCounter& counter) noexcept : lock_(counter.tasks_alive_.Lock()) {
+TaskCounter::Token::Token(TaskCounter& counter) noexcept : lock_(counter.tasks_alive_.GetLock()) {
     concurrent::impl::AsymmetricThreadFenceLight();
 }
 
@@ -33,7 +33,9 @@ TaskCounter::CoroToken::CoroToken(TaskCounter& counter) noexcept : counter_(&cou
 }
 
 TaskCounter::CoroToken::~CoroToken() {
-    if (counter_) counter_->Increment(LocalCounterId::kStopped);
+    if (counter_) {
+        counter_->Increment(LocalCounterId::kStopped);
+    }
 }
 
 TaskCounter::CoroToken::CoroToken(TaskCounter::CoroToken&& other) noexcept
@@ -44,7 +46,15 @@ TaskCounter::CoroToken& TaskCounter::CoroToken::operator=(TaskCounter::CoroToken
     return *this;
 }
 
-TaskCounter::TaskCounter(std::size_t thread_count) : local_counters_(thread_count) {}
+TaskCounter::RunningToken::RunningToken(TaskCounter& counter) noexcept : counter_(counter) {
+    counter_.Increment(LocalCounterId::kStartedRunning);
+}
+
+TaskCounter::RunningToken::~RunningToken() { counter_.Increment(LocalCounterId::kStoppedRunning); }
+
+TaskCounter::TaskCounter(std::size_t thread_count)
+    : local_counters_(thread_count)
+{}
 
 TaskCounter::~TaskCounter() { UASSERT(!MayHaveTasksAlive()); }
 
@@ -81,11 +91,15 @@ Rate TaskCounter::GetTasksNoOverloadSensor() const noexcept {
     return GetApproximate(LocalCounterId::kNoOverloadSensor);
 }
 
-Rate TaskCounter::GetTaskSwitchFast() const noexcept { return GetApproximate(LocalCounterId::kSwitchFast); }
-
-Rate TaskCounter::GetTaskSwitchSlow() const noexcept { return GetApproximate(LocalCounterId::kSwitchSlow); }
-
 Rate TaskCounter::GetSpuriousWakeups() const noexcept { return GetApproximate(LocalCounterId::kSpuriousWakeups); }
+
+Rate TaskCounter::GetTasksStartedRunning() const noexcept { return GetApproximate(LocalCounterId::kStartedRunning); }
+
+std::uint64_t TaskCounter::GetRunningTasks() const noexcept {
+    const auto started = GetTasksStartedRunning();
+    const auto stopped = GetApproximate(LocalCounterId::kStoppedRunning);
+    return (started - std::min(stopped, started)).value;
+}
 
 void TaskCounter::AccountTaskCancel() noexcept { Increment(LocalCounterId::kCancelled); }
 
@@ -96,10 +110,6 @@ void TaskCounter::AccountTaskOverload() noexcept { Increment(GlobalCounterId::kO
 void TaskCounter::AccountTaskOverloadSensor() noexcept { Increment(LocalCounterId::kOverloadSensor); }
 
 void TaskCounter::AccountTaskNoOverloadSensor() noexcept { Increment(LocalCounterId::kNoOverloadSensor); }
-
-void TaskCounter::AccountTaskSwitchFast() noexcept { Increment(LocalCounterId::kSwitchFast); }
-
-void TaskCounter::AccountTaskSwitchSlow() noexcept { Increment(LocalCounterId::kSwitchSlow); }
 
 void TaskCounter::AccountSpuriousWakeup() noexcept { Increment(LocalCounterId::kSpuriousWakeups); }
 
@@ -128,6 +138,11 @@ void TaskCounter::Increment(GlobalCounterId id) noexcept { global_counters_[stat
 void SetLocalTaskCounterData(TaskCounter& counter, std::size_t thread_id) {
     auto local_data = local_task_counter_data.Use();
     *local_data = {&counter, thread_id};
+}
+
+std::size_t GetCurrentWorkerId() noexcept {
+    auto local_data = local_task_counter_data.Use();
+    return local_data->task_processor_thread_index;
 }
 
 }  // namespace engine::impl

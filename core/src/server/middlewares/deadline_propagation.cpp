@@ -6,7 +6,6 @@
 #include <userver/http/common_headers.hpp>
 #include <userver/server/handlers/exceptions.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
-#include <userver/server/handlers/impl/deadline_propagation_config.hpp>
 #include <userver/server/http/http_error.hpp>
 #include <userver/server/request/request_context.hpp>
 #include <userver/server/request/task_inherited_data.hpp>
@@ -14,6 +13,8 @@
 #include <userver/utils/fast_scope_guard.hpp>
 #include <userver/utils/from_string.hpp>
 #include <userver/utils/overloaded.hpp>
+
+#include <dynamic_config/variables/USERVER_DEADLINE_PROPAGATION_ENABLED.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -29,14 +30,17 @@ std::string GetHandlerPath(const handlers::HttpHandlerBase& handler) {
     return std::string{std::visit(
         utils::Overloaded{
             [](const std::string& path) -> std::string_view { return path; },
-            [](const handlers::FallbackHandler&) -> std::string_view { return "<fallback>"; }},
+            [](const handlers::FallbackHandler&) -> std::string_view { return "<fallback>"; }
+        },
         handler.GetConfig().path
     )};
 }
 
 std::optional<std::chrono::milliseconds> ParseTimeout(const http::HttpRequest& request) {
     const auto& timeout_ms_str = request.GetHeader(USERVER_NAMESPACE::http::headers::kXYaTaxiClientTimeoutMs);
-    if (timeout_ms_str.empty()) return std::nullopt;
+    if (timeout_ms_str.empty()) {
+        return std::nullopt;
+    }
 
     LOG_DEBUG() << "Got client timeout_ms=" << timeout_ms_str;
     std::chrono::milliseconds timeout;
@@ -67,7 +71,9 @@ void SetFormattedErrorResponse(http::HttpResponse& http_response, handlers::Form
 
 struct DeadlinePropagation::RequestScope final {
     RequestScope(request::impl::InternalRequestContext& context)
-        : config_snapshot{context.GetConfigSnapshot()}, shared_dp_context{context.GetDPContext()} {}
+        : config_snapshot{context.GetConfigSnapshot()},
+          shared_dp_context{context.GetDPContext()}
+    {}
 
     bool need_log_response{false};
     const dynamic_config::Snapshot& config_snapshot;
@@ -78,7 +84,8 @@ DeadlinePropagation::DeadlinePropagation(const handlers::HttpHandlerBase& handle
     : handler_{handler},
       deadline_propagation_enabled_{handler_.GetConfig().deadline_propagation_enabled},
       deadline_expired_status_code_{handler_.GetConfig().deadline_expired_status_code},
-      path_{GetHandlerPath(handler_)} {}
+      path_{GetHandlerPath(handler_)}
+{}
 
 void DeadlinePropagation::HandleRequest(http::HttpRequest& request, request::RequestContext& context) const {
     RequestScope dp_scope{context.GetInternalContext()};
@@ -124,8 +131,9 @@ void DeadlinePropagation::SetUpInheritedData(const http::HttpRequest& request, R
         engine::Deadline{},
     };
 
-    const utils::FastScopeGuard set_inherited_data_guard{
-        [&]() noexcept { request::kTaskInheritedData.Set(std::move(inherited_data)); }};
+    const utils::FastScopeGuard set_inherited_data_guard{[&]() noexcept {
+        request::kTaskInheritedData.Set(std::move(inherited_data));
+    }};
 
     SetupInheritedDeadline(request, inherited_data, dp_scope);
 }
@@ -140,7 +148,7 @@ void DeadlinePropagation::SetupInheritedDeadline(
     }
 
     const auto& config_snapshot = dp_scope.config_snapshot;
-    if (!config_snapshot[handlers::impl::kDeadlinePropagationEnabled]) {
+    if (!config_snapshot[::dynamic_config::USERVER_DEADLINE_PROPAGATION_ENABLED]) {
         return;
     }
 
@@ -149,7 +157,7 @@ void DeadlinePropagation::SetupInheritedDeadline(
         return;
     }
 
-    dp_scope.need_log_response = config_snapshot[handlers::kLogRequest];
+    dp_scope.need_log_response = config_snapshot[::dynamic_config::USERVER_LOG_REQUEST];
 
     auto* span_opt = tracing::Span::CurrentSpanUnchecked();
     if (span_opt) {
@@ -164,7 +172,7 @@ void DeadlinePropagation::SetupInheritedDeadline(
         return;
     }
 
-    if (config_snapshot[handlers::kCancelHandleRequestByDeadline]) {
+    if (config_snapshot[::dynamic_config::USERVER_CANCEL_HANDLE_REQUEST_BY_DEADLINE]) {
         engine::current_task::SetDeadline(deadline);
     }
 }
@@ -186,7 +194,8 @@ void DeadlinePropagation::HandleDeadlineExpired(
         status_code,
         handlers::ExternalBody{"Deadline expired"},
         handlers::InternalMessage{std::move(internal_message)},
-        handlers::ServiceErrorCode{"deadline_expired"}};
+        handlers::ServiceErrorCode{"deadline_expired"}
+    };
     SetFormattedErrorResponse(response, handler_.GetFormattedExternalErrorBody(exception_for_formatted_body));
 
     response.SetHeader(USERVER_NAMESPACE::http::headers::kXYaTaxiDeadlineExpired, "1");
@@ -205,7 +214,9 @@ void DeadlinePropagation::CompleteDeadlinePropagation(
         return;
     }
 
-    if (!inherited_data->deadline.IsReachable()) return;
+    if (!inherited_data->deadline.IsReachable()) {
+        return;
+    }
 
     const bool cancelled_by_deadline =
         engine::current_task::CancellationReason() == engine::TaskCancellationReason::kDeadline ||
@@ -224,7 +235,8 @@ void DeadlinePropagation::CompleteDeadlinePropagation(
             span_opt->AddNonInheritableTag("dp_original_body_size", original_body.size());
             if (dp_scope.need_log_response) {
                 span_opt->AddNonInheritableTag(
-                    "dp_original_body", handler_.GetResponseDataForLoggingChecked(request, context, response.GetData())
+                    "dp_original_body",
+                    handler_.GetResponseDataForLoggingChecked(request, context, response.GetData())
                 );
             }
         }

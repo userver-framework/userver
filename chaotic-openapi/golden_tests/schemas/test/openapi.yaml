@@ -1,0 +1,42 @@
+openapi: 3.0.0
+info:
+    description: Service sample
+    title: Service sample
+    version: '1.0'
+
+servers:
+  - url: uservice-sample.yandex.net
+    description: production
+  - url: uservice-sample.tst.yandex.net
+    description: testing
+
+# x-usrv-client-qos:
+#     dynamic-config: taxi/schemas/schemas/configs/declarations/uservice-template/USERVICE_TEMPLATE_CLIENT_QOS.yaml
+
+paths:
+    /testme:
+        post:
+            description: A testing method to call
+            parameters:
+              - in: query
+                name: number
+                required: true
+                schema:
+                    type: string
+              - in: query
+                name: array
+                required: true
+                schema:
+                    type: array
+                    items:
+                        type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            type: integer
+            responses:
+                200:
+                    description: OK
+
+components: {}

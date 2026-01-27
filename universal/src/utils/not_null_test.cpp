@@ -6,32 +6,32 @@
 USERVER_NAMESPACE_BEGIN
 
 TEST(NotNull, FromPtrConstructor) {
-    int sample = 179;
+    const int sample = 179;
     auto ptr = std::make_shared<int>(sample);
-    utils::NotNull<std::shared_ptr<int>> ref(ptr);
+    const utils::NotNull<std::shared_ptr<int>> ref(ptr);
     EXPECT_EQ(ref.GetBase(), ptr);
 
-    utils::NotNull<std::shared_ptr<int>> moved_ref(std::move(ptr));
+    const utils::NotNull<std::shared_ptr<int>> moved_ref(std::move(ptr));
     EXPECT_EQ(*moved_ref, sample);
 }
 
 TEST(NotNull, ConvertConstructor) {
-    int sample = 179;
+    const int sample = 179;
     const auto ptr = std::make_shared<int>(sample);
-    utils::NotNull<utils::SharedReadablePtr<int>> readable_ref(ptr);
+    const utils::NotNull<utils::SharedReadablePtr<int>> readable_ref(ptr);
     EXPECT_EQ(readable_ref.GetBase(), ptr);
 
     utils::NotNull<std::shared_ptr<int>> ref(ptr);
 
-    utils::NotNull<utils::SharedReadablePtr<int>> ref_copy(ref);
+    const utils::NotNull<utils::SharedReadablePtr<int>> ref_copy(ref);
     EXPECT_EQ(ref_copy.GetBase(), ptr);
 
-    utils::NotNull<utils::SharedReadablePtr<int>> ref_move(std::move(ref));
+    const utils::NotNull<utils::SharedReadablePtr<int>> ref_move(std::move(ref));
     EXPECT_EQ(*ref_move, sample);
 }
 
 TEST(NotNull, CopyAndMoveConstructor) {
-    int sample = 179;
+    const int sample = 179;
     auto ptr = std::make_shared<int>(sample);
     utils::NotNull<std::shared_ptr<int>> ref(ptr);
 
@@ -43,7 +43,7 @@ TEST(NotNull, CopyAndMoveConstructor) {
 }
 
 TEST(NotNull, CopyAndMoveOperator) {
-    int sample = 179;
+    const int sample = 179;
     auto ptr = std::make_shared<int>(sample);
     utils::NotNull<std::shared_ptr<int>> ref(ptr);
 
@@ -55,14 +55,14 @@ TEST(NotNull, CopyAndMoveOperator) {
 }
 
 TEST(NotNull, Operator) {
-    int sample = 179;
+    const int sample = 179;
     auto first_ptr = std::make_shared<int>(sample);
     auto second_ptr = std::make_shared<int>(sample);
 
-    utils::NotNull<std::shared_ptr<int>> first_ref(first_ptr);
-    utils::NotNull<std::shared_ptr<int>> second_ref(second_ptr);
+    const utils::NotNull<std::shared_ptr<int>> first_ref(first_ptr);
+    const utils::NotNull<std::shared_ptr<int>> second_ref(second_ptr);
 
-    utils::NotNull<std::shared_ptr<int>> equal_to_first_ref(first_ptr);
+    const utils::NotNull<std::shared_ptr<int>> equal_to_first_ref(first_ptr);
 
     EXPECT_TRUE(first_ref != second_ref);
     EXPECT_FALSE(first_ref == second_ref);
@@ -72,9 +72,9 @@ TEST(NotNull, Operator) {
 }
 
 TEST(NotNull, Get) {
-    std::vector<int> sample_vector{1, 2, 3};
+    const std::vector<int> sample_vector{1, 2, 3};
     auto ptr = std::make_shared<std::vector<int>>(sample_vector);
-    utils::NotNull<std::shared_ptr<std::vector<int>>> ref(ptr);
+    const utils::NotNull<std::shared_ptr<std::vector<int>>> ref(ptr);
 
     EXPECT_EQ(*ref, sample_vector);
     EXPECT_EQ(ref.GetBase(), ptr);
@@ -83,24 +83,24 @@ TEST(NotNull, Get) {
 
 TEST(NotNull, Pointer) {
     int sample = 179;
-    utils::NotNull ref(&sample);
+    const utils::NotNull ref(&sample);
     EXPECT_EQ(ref.GetBase(), &sample);
 }
 
 TEST(NotNull, ConvertibleFromReference) {
     int sample = 179;
-    utils::NotNull<int*> ref = sample;
+    const utils::NotNull<int*> ref = sample;
     EXPECT_EQ(ref.GetBase(), &sample);
 }
 
 TEST(NotNull, SharedRef) {
-    int sample = 179;
+    const int sample = 179;
     auto ref = utils::MakeSharedRef<int>(sample);
     EXPECT_EQ(*ref, sample);
 }
 
 TEST(NotNull, UniqueRef) {
-    int sample = 179;
+    const int sample = 179;
     auto ref = utils::MakeUniqueRef<int>(sample);
     EXPECT_EQ(*ref, sample);
 }

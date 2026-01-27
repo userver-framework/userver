@@ -3,7 +3,7 @@
 #include <set>
 
 #include <storages/postgres/tests/util_pgtest.hpp>
-#include <userver/storages/postgres/typed_result_set.hpp>
+#include <userver/storages/postgres/result_set.hpp>
 
 #include <userver/storages/postgres/io/boost_multiprecision.hpp>
 

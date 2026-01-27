@@ -1,18 +1,20 @@
 #include "zadd_reply.hpp"
 
 #include <userver/storages/redis/exception.hpp>
-#include <userver/storages/redis/impl/reply.hpp>
+#include <userver/storages/redis/reply.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis::impl {
 
-ZaddReply::ZaddReply(size_t value) : value_(value) {}
+ZaddReply::ZaddReply(size_t value)
+    : value_(value)
+{}
 
 ZaddReply ZaddReply::Parse(ReplyData&& reply_data, const std::string& request_description) {
     reply_data.ExpectInt(request_description);
 
-    int64_t value = reply_data.GetInt();
+    const int64_t value = reply_data.GetInt();
     if (value < 0) {
         throw ParseReplyException("Unexpected negative ZADD reply value: " + reply_data.ToDebugString());
     }
@@ -21,6 +23,6 @@ ZaddReply ZaddReply::Parse(ReplyData&& reply_data, const std::string& request_de
 
 size_t ZaddReply::GetCount() const { return value_; }
 
-}  // namespace redis
+}  // namespace storages::redis::impl
 
 USERVER_NAMESPACE_END

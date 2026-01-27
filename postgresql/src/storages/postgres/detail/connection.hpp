@@ -10,6 +10,7 @@
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/error_injection/settings.hpp>
 #include <userver/testsuite/postgres_control.hpp>
+#include <userver/tracing/scope_time.hpp>
 #include <userver/utils/statistics/min_max_avg.hpp>
 #include <userver/utils/strong_typedef.hpp>
 
@@ -139,7 +140,8 @@ public:
         const DefaultCommandControls& default_cmd_ctls,
         const testsuite::PostgresControl& testsuite_pg_ctl,
         const error_injection::Settings& ei_settings,
-        engine::SemaphoreLock&& size_lock = engine::SemaphoreLock{}
+        engine::SemaphoreLock&& size_lock,
+        USERVER_NAMESPACE::utils::statistics::MetricsStoragePtr metrics
     );
 
     /// Close the connection
@@ -151,7 +153,7 @@ public:
     bool IsInRecovery() const;
     bool IsReadOnly() const;
     void RefreshReplicaState(engine::Deadline) const;
-    ConnectionSettings const& GetSettings() const;
+    const ConnectionSettings& GetSettings() const;
 
     /// Get current connection state
     ConnectionState GetState() const;
@@ -210,19 +212,25 @@ public:
 
     //@{
     /** @name Command sending interface */
-    ResultSet
-    Execute(const Query& query, const detail::QueryParameters& = {}, OptionalCommandControl statement_cmd_ctl = {});
+    ResultSet Execute(
+        const Query& query,
+        const detail::QueryParameters& = {},
+        OptionalCommandControl statement_cmd_ctl = {}
+    );
 
     struct PreparedStatementMeta final {
-        std::string statement_name;
+        std::string meta_statement_name;
         ResultSet description;
     };
-    PreparedStatementMeta
-    PrepareStatement(const Query& query, const detail::QueryParameters& params, TimeoutDuration timeout);
+    PreparedStatementMeta PrepareStatement(
+        const Query& query,
+        const detail::QueryParameters& params,
+        TimeoutDuration timeout
+    );
 
     void AddIntoPipeline(
         CommandControl cc,
-        const std::string& prepared_statement_name,
+        const std::string& meta_statement_name,
         const detail::QueryParameters& params,
         const ResultSet& description,
         tracing::ScopeTime& scope
@@ -249,7 +257,7 @@ public:
     ResultSet Execute(CommandControl statement_cmd_ctl, const Query& query, const ParameterStore& store);
 
     StatementId PortalBind(
-        const std::string& statement,
+        const Query& query,
         const std::string& portal_name,
         const detail::QueryParameters& params,
         OptionalCommandControl
@@ -295,7 +303,7 @@ public:
 
     void MarkAsBroken();
 
-    OptionalCommandControl GetQueryCmdCtl(const std::optional<Query::Name>& query_name) const;
+    OptionalCommandControl GetQueryCmdCtl(std::optional<Query::NameView> query_name) const;
 
     /// Used in tests.
     const OptionalCommandControl& GetTransactionCommandControl() const;

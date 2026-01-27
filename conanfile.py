@@ -1,6 +1,6 @@
 # pylint: disable=no-member
 import os
-import re
+import platform
 
 from conan import ConanFile
 from conan.errors import ConanInvalidConfiguration
@@ -9,7 +9,9 @@ from conan.tools.cmake import cmake_layout
 from conan.tools.cmake import CMakeDeps
 from conan.tools.cmake import CMakeToolchain
 from conan.tools.files import copy
-from conan.tools.files import load
+from conan.tools.files import export_conandata_patches
+from conan.tools.files import get
+from conan.tools.scm import Git
 
 required_conan_version = '>=2.8.0'  # pylint: disable=invalid-name
 
@@ -18,11 +20,10 @@ class UserverConan(ConanFile):
     name = 'userver'
     description = 'The C++ Asynchronous Framework'
     topics = ('framework', 'coroutines', 'asynchronous')
-    url = 'https://github.com/userver-framework/userver'
+    url = 'https://github.com/conan-io/conan-center-index'
     homepage = 'https://userver.tech/'
     license = 'Apache-2.0'
     package_type = 'static-library'
-    exports_sources = '*'
 
     settings = 'os', 'arch', 'compiler', 'build_type'
     options = {
@@ -33,141 +34,155 @@ class UserverConan(ConanFile):
         'with_postgresql': [True, False],
         'with_postgresql_extra': [True, False],
         'with_redis': [True, False],
+        'with_redis_tls': [True, False],
         'with_grpc': [True, False],
         'with_clickhouse': [True, False],
         'with_rabbitmq': [True, False],
         'with_utest': [True, False],
         'with_kafka': [True, False],
         'with_otlp': [True, False],
-        'namespace': ['ANY'],
-        'namespace_begin': ['ANY'],
-        'namespace_end': ['ANY'],
+        'with_sqlite': [True, False],
+        'with_easy': [True, False],
+        'with_s3api': [True, False],
+        'with_grpc_reflection': [True, False],
+        'with_grpc_protovalidate': [True, False],
     }
 
     default_options = {
         'fPIC': True,
         'lto': False,
-        'with_jemalloc': True,
+        'with_jemalloc': (platform.system() != 'Darwin'),
         'with_mongodb': True,
         'with_postgresql': True,
         'with_postgresql_extra': False,
         'with_redis': True,
+        'with_redis_tls': True,
         'with_grpc': True,
         'with_clickhouse': True,
         'with_rabbitmq': True,
         'with_utest': True,
         'with_kafka': True,
         'with_otlp': True,
-        'namespace': 'userver',
-        'namespace_begin': 'namespace userver {',
-        'namespace_end': '}',
+        'with_sqlite': True,
+        'with_easy': True,
+        'with_s3api': True,
+        'with_grpc_reflection': True,
+        'with_grpc_protovalidate': False,
         'mongo-c-driver/*:with_sasl': 'cyrus',
+        'grpc/*:php_plugin': False,
+        'grpc/*:node_plugin': False,
+        'grpc/*:ruby_plugin': False,
+        'grpc/*:csharp_plugin': False,
+        'grpc/*:objective_c_plugin': False,
+        'hiredis/*:with_ssl': True,
+        'librdkafka/*:ssl': True,
+        'librdkafka/*:curl': True,
+        'librdkafka/*:sasl': True,
+        'librdkafka/*:zlib': True,
+        'librdkafka/*:zstd': True,
+        're2/*:with_icu': True,
     }
 
-    # scm = {
-    #     'type': 'git',
-    #     'url': 'https://github.com/userver-framework/userver.git',
-    #     'revision': 'develop'
-    # }
+    def source(self):
+        known_version = (self.conan_data or {}).get('sources', {}).get(self.version)
+        if known_version:
+            get(self, **known_version, strip_root=True)
+        else:
+            # Running from develop branch, do nothing
+            pass
 
-    def set_version(self):
-        content = load(
-            self,
-            os.path.join(
-                os.path.dirname(os.path.realpath(__file__)),
-                'cmake/GetUserverVersion.cmake',
-            ),
-        )
-        major_version = (
-            re.search(r'set\(USERVER_MAJOR_VERSION (.*)\)', content)
-            .group(1)
-            .strip()
-        )
-        minor_version = (
-            re.search(r'set\(USERVER_MINOR_VERSION (.*)\)', content)
-            .group(1)
-            .strip()
-        )
-
-        self.version = f'{major_version}.{minor_version}'
-
-    @property
-    def _source_subfolder(self):
-        return 'source'
-
-    @property
-    def _build_subfolder(self):
-        return os.path.join(self.build_folder)
+    def export_sources(self):
+        known_version = (self.conan_data or {}).get('sources', {}).get(self.version)
+        if known_version:
+            export_conandata_patches(self)
+        else:
+            # Running from develop branch, no patches
+            git = Git(self)
+            tracked_sources = git.included_files()
+            # To speed up copying, we take only the root folders
+            tracked_sources = {f.split('/')[0] for f in tracked_sources}
+            for i in tracked_sources:
+                copy(self, f'{i}*', self.recipe_folder, self.export_sources_folder)
 
     def layout(self):
         cmake_layout(self)
 
     def requirements(self):
-        self.requires('boost/1.79.0', transitive_headers=True)
-        self.requires('c-ares/1.19.1')
-        self.requires('cctz/2.3', transitive_headers=True)
+        self.requires('boost/1.86.0', transitive_headers=True)
+        self.requires('c-ares/1.33.1')
+        self.requires('cctz/2.4', transitive_headers=True)
         self.requires('concurrentqueue/1.0.3', transitive_headers=True)
-        self.requires('cryptopp/8.7.0')
-        self.requires('fmt/8.1.1', transitive_headers=True)
-        self.requires('libnghttp2/1.51.0')
+        self.requires('cryptopp/8.9.0')
+        self.requires('fmt/11.0.2', transitive_headers=True)
+        self.requires('libiconv/1.17')
+        self.requires('libnghttp2/1.61.0')
         self.requires('libcurl/7.86.0')
         self.requires('libev/4.33')
-        self.requires('openssl/1.1.1s')
+        self.requires('openssl/3.3.2')
         self.requires('rapidjson/cci.20220822', transitive_headers=True)
-        self.requires('yaml-cpp/0.7.0')
-        self.requires('zlib/1.2.13')
-        self.requires('zstd/1.5.6')
+        self.requires('yaml-cpp/0.8.0')
+        self.requires('zlib/1.3.1')
+        self.requires('zstd/1.5.5')
+        self.requires('icu/74.1', force=True)
+        self.requires('re2/20230301')
 
         if self.options.with_jemalloc:
             self.requires('jemalloc/5.3.0')
         if self.options.with_grpc or self.options.with_clickhouse:
-            self.requires(
-                'abseil/20230125.3',
-                transitive_headers=True,
-                transitive_libs=True,
-            )
+            self.requires('abseil/20240116.2', force=True)
         if self.options.with_grpc:
             self.requires(
-                'grpc/1.50.1', transitive_headers=True, transitive_libs=True,
-            )
-            self.requires(
-                'googleapis/cci.20230501',
+                'grpc/1.65.0',
                 transitive_headers=True,
                 transitive_libs=True,
             )
             self.requires(
-                'grpc-proto/cci.20220627',
+                'protobuf/5.27.0',
                 transitive_headers=True,
                 transitive_libs=True,
+                force=True,
             )
-            self.requires('protobuf/3.21.12', force=True)
+            self.requires('googleapis/cci.20230501')
         if self.options.with_postgresql:
-            self.requires('libpq/14.5')
+            # `run=True` required to find `pg_config` binary during `psycopg2` python module build
+            # without system package. We use system package.
+            self.requires('libpq/14.9')
         if self.options.with_mongodb or self.options.with_kafka:
-            self.requires('cyrus-sasl/2.1.27', force=True)
+            self.requires('cyrus-sasl/2.1.28')
         if self.options.with_mongodb:
             self.requires(
-                'mongo-c-driver/1.27.6',
+                'mongo-c-driver/1.30.3',
                 transitive_headers=True,
                 transitive_libs=True,
             )
         if self.options.with_redis:
-            self.requires('hiredis/1.0.2')
+            self.requires('hiredis/1.2.0')
         if self.options.with_rabbitmq:
-            self.requires('amqp-cpp/4.3.16')
+            self.requires('amqp-cpp/4.3.26')
         if self.options.with_clickhouse:
-            self.requires('clickhouse-cpp/2.4.0')
+            self.requires('clickhouse-cpp/2.5.1')
         if self.options.with_utest:
             self.requires(
-                'gtest/1.12.1', transitive_headers=True, transitive_libs=True,
+                'gtest/1.15.0',
+                transitive_headers=True,
+                transitive_libs=True,
             )
             self.requires(
-                'benchmark/1.6.2',
+                'benchmark/1.9.0',
                 transitive_headers=True,
                 transitive_libs=True,
             )
         if self.options.with_kafka:
-            self.requires('librdkafka/2.4.0')
+            self.requires('librdkafka/2.6.0')
+        if self.options.with_sqlite:
+            self.requires('sqlite3/3.46.1')
+        if self.options.with_s3api:
+            self.requires('pugixml/1.14')
+        if self.options.with_otlp:
+            self.requires('opentelemetry-proto/1.3.0')
+
+    def build_requirements(self):
+        self.tool_requires('protobuf/5.27.0')
 
     def validate(self):
         if self.settings.os == 'Windows':
@@ -175,564 +190,72 @@ class UserverConan(ConanFile):
                 'userver cannot be built on Windows',
             )
 
-        if (
-            self.options.with_mongodb
-            and self.dependencies['mongo-c-driver'].options.with_sasl
-            != 'cyrus'
-        ):
+        if self.options.with_mongodb and self.dependencies['mongo-c-driver'].options.with_sasl != 'cyrus':
             raise ConanInvalidConfiguration(
                 f'{self.ref} requires mongo-c-driver with_sasl cyrus',
             )
 
     def generate(self):
         tool_ch = CMakeToolchain(self)
-        tool_ch.variables['CMAKE_FIND_DEBUG_MODE'] = False
+        tool_ch.cache_variables['CMAKE_FIND_DEBUG_MODE'] = False
 
-        tool_ch.variables['USERVER_CONAN'] = True
-        tool_ch.variables['USERVER_IS_THE_ROOT_PROJECT'] = False
-        tool_ch.variables['USERVER_DOWNLOAD_PACKAGES'] = True
-        tool_ch.variables['USERVER_FEATURE_DWCAS'] = True
-        tool_ch.variables['USERVER_NAMESPACE'] = self.options.namespace
-        tool_ch.variables['USERVER_NAMESPACE_BEGIN'] = (
-            self.options.namespace_begin
-        )
-        tool_ch.variables['USERVER_NAMESPACE_END'] = self.options.namespace_end
+        tool_ch.cache_variables['USERVER_CONAN'] = True
+        tool_ch.cache_variables['USERVER_INSTALL'] = True
+        tool_ch.cache_variables['USERVER_DOWNLOAD_PACKAGES'] = True
+        tool_ch.cache_variables['USERVER_FEATURE_DWCAS'] = True
 
-        tool_ch.variables['USERVER_LTO'] = self.options.lto
-        tool_ch.variables['USERVER_FEATURE_JEMALLOC'] = (
-            self.options.with_jemalloc
-        )
-        tool_ch.variables['USERVER_FEATURE_MONGODB'] = (
-            self.options.with_mongodb
-        )
-        tool_ch.variables['USERVER_FEATURE_POSTGRESQL'] = (
-            self.options.with_postgresql
-        )
-        tool_ch.variables['USERVER_FEATURE_PATCH_LIBPQ'] = (
-            self.options.with_postgresql_extra
-        )
-        tool_ch.variables['USERVER_FEATURE_REDIS'] = self.options.with_redis
-        tool_ch.variables['USERVER_FEATURE_GRPC'] = self.options.with_grpc
-        tool_ch.variables['USERVER_FEATURE_CLICKHOUSE'] = (
-            self.options.with_clickhouse
-        )
-        tool_ch.variables['USERVER_FEATURE_RABBITMQ'] = (
-            self.options.with_rabbitmq
-        )
-        tool_ch.variables['USERVER_FEATURE_UTEST'] = self.options.with_utest
-        tool_ch.variables['USERVER_FEATURE_TESTSUITE'] = (
-            self.options.with_utest
-        )
-        tool_ch.variables['USERVER_FEATURE_KAFKA'] = self.options.with_kafka
-        tool_ch.variables['USERVER_FEATURE_OTLP'] = self.options.with_otlp
+        tool_ch.cache_variables['USERVER_LTO'] = self.options.lto
+        tool_ch.cache_variables['USERVER_FEATURE_JEMALLOC'] = self.options.with_jemalloc
+        tool_ch.cache_variables['USERVER_FEATURE_MONGODB'] = self.options.with_mongodb
+        tool_ch.cache_variables['USERVER_FEATURE_POSTGRESQL'] = self.options.with_postgresql
+        tool_ch.cache_variables['USERVER_FEATURE_PATCH_LIBPQ'] = self.options.with_postgresql_extra
+        tool_ch.cache_variables['USERVER_FEATURE_REDIS'] = self.options.with_redis
+        tool_ch.cache_variables['USERVER_FEATURE_REDIS_TLS'] = self.options.with_redis_tls
+        tool_ch.cache_variables['USERVER_FEATURE_GRPC'] = self.options.with_grpc
+        tool_ch.cache_variables['USERVER_FEATURE_CLICKHOUSE'] = self.options.with_clickhouse
+        tool_ch.cache_variables['USERVER_FEATURE_RABBITMQ'] = self.options.with_rabbitmq
+        tool_ch.cache_variables['USERVER_FEATURE_UTEST'] = self.options.with_utest
+        tool_ch.cache_variables['USERVER_FEATURE_TESTSUITE'] = self.options.with_utest
+        tool_ch.cache_variables['USERVER_FEATURE_KAFKA'] = self.options.with_kafka
+        tool_ch.cache_variables['USERVER_FEATURE_OTLP'] = self.options.with_otlp
+        tool_ch.cache_variables['USERVER_FEATURE_SQLITE'] = self.options.with_sqlite
+        tool_ch.cache_variables['USERVER_FEATURE_EASY'] = self.options.with_easy
+        tool_ch.cache_variables['USERVER_FEATURE_S3API'] = self.options.with_s3api
+        tool_ch.cache_variables['USERVER_FEATURE_GRPC_REFLECTION'] = self.options.with_grpc_reflection
+        tool_ch.cache_variables['USERVER_FEATURE_GRPC_PROTOVALIDATE'] = self.options.with_grpc_protovalidate
+
+        if self.options.with_grpc:
+            tool_ch.cache_variables['USERVER_GOOGLE_COMMON_PROTOS'] = (
+                self.dependencies['googleapis'].cpp_info.components['google_rpc_status_proto'].resdirs[0]
+            )
+
+        if self.options.with_otlp:
+            tool_ch.cache_variables['USERVER_OPENTELEMETRY_PROTO'] = self.dependencies[
+                'opentelemetry-proto'
+            ].conf_info.get(
+                'user.opentelemetry-proto:proto_root',
+            )
+
         tool_ch.generate()
 
         CMakeDeps(self).generate()
 
     def build(self):
+        # pg_config is required to build psycopg2 from source without system package.
+        # However, this approach fails on later stage, when venv for tests is built.
+        libpq = self.dependencies['libpq']
+        if libpq:
+            os.environ['PATH'] = os.environ['PATH'] + ':' + libpq.package_folder + '/bin'
+
         cmake = CMake(self)
         cmake.configure()
         cmake.build()
 
-    @property
-    def _cmake_subfolder(self):
-        return os.path.join(self.package_folder, 'cmake')
-
     def package(self):
-        copy(self, pattern='LICENSE', src=self.source_folder, dst='licenses')
-
-        copy(
-            self,
-            pattern='*',
-            dst=os.path.join(self.package_folder, 'scripts'),
-            src=os.path.join(self.source_folder, 'scripts'),
-            keep_path=True,
-        )
-
-        copy(
-            self,
-            pattern='*',
-            dst=os.path.join(
-                self.package_folder, 'include', 'function_backports',
-            ),
-            src=os.path.join(
-                self.source_folder,
-                'third_party',
-                'function_backports',
-                'include',
-            ),
-            keep_path=True,
-        )
-
-        def copy_component(component):
-            copy(
-                self,
-                pattern='*',
-                dst=os.path.join(self.package_folder, 'include', component),
-                src=os.path.join(self.source_folder, component, 'include'),
-                keep_path=True,
-            )
-            copy(
-                self,
-                pattern='*.a',
-                dst=os.path.join(self.package_folder, 'lib'),
-                src=os.path.join(self._build_subfolder, component),
-                keep_path=False,
-            )
-            copy(
-                self,
-                pattern='*.so',
-                dst=os.path.join(self.package_folder, 'lib'),
-                src=os.path.join(self._build_subfolder, component),
-                keep_path=False,
-            )
-
-        copy_component('core')
-        copy_component('universal')
-        for cmake_file in (
-            'UserverSetupEnvironment',
-            'SetupLinker',
-            'SetupLTO',
-            'UserverVenv',
-        ):
-            copy(
-                self,
-                pattern=f'{cmake_file}.cmake',
-                dst=os.path.join(self.package_folder, 'cmake'),
-                src=os.path.join(self.source_folder, 'cmake'),
-                keep_path=True,
-            )
-
-        if self.options.with_grpc:
-            copy_component('grpc')
-            copy(
-                self,
-                pattern='*',
-                dst=os.path.join(self.package_folder, 'include', 'grpc'),
-                src=os.path.join(
-                    self.source_folder, 'grpc', 'handlers', 'include',
-                ),
-                keep_path=True,
-            )
-            copy(
-                self,
-                pattern='GrpcTargets.cmake',
-                dst=os.path.join(self.package_folder, 'cmake'),
-                src=os.path.join(self.source_folder, 'cmake'),
-                keep_path=True,
-            )
-
-            with open(
-                os.path.join(self.package_folder, 'cmake', 'GrpcConan.cmake'),
-                'a+',
-            ) as grpc_file:
-                grpc_file.write('\nset(USERVER_CONAN TRUE)')
-        if self.options.with_utest:
-            copy(
-                self,
-                pattern='*',
-                dst=os.path.join(self.package_folder, 'include', 'utest'),
-                src=os.path.join(
-                    self.source_folder, 'universal', 'utest', 'include',
-                ),
-                keep_path=True,
-            )
-            copy(
-                self,
-                pattern='*',
-                dst=os.path.join(self.package_folder, 'include', 'utest'),
-                src=os.path.join(
-                    self.source_folder, 'core', 'utest', 'include',
-                ),
-                keep_path=True,
-            )
-            copy(
-                self,
-                pattern='*',
-                dst=os.path.join(self.package_folder, 'testsuite'),
-                src=os.path.join(self.source_folder, 'testsuite'),
-                keep_path=True,
-            )
-            copy(
-                self,
-                pattern='AddGoogleTests.cmake',
-                dst=os.path.join(self.package_folder, 'cmake'),
-                src=os.path.join(self.source_folder, 'cmake'),
-                keep_path=True,
-            )
-        if self.options.with_grpc or self.options.with_utest:
-            copy(
-                self,
-                pattern='UserverTestsuite.cmake',
-                dst=os.path.join(self.package_folder, 'cmake'),
-                src=os.path.join(self.source_folder, 'cmake'),
-                keep_path=True,
-            )
-            copy(
-                self,
-                pattern='SetupProtobuf.cmake',
-                dst=os.path.join(self.package_folder, 'cmake'),
-                src=os.path.join(self.source_folder, 'cmake'),
-                keep_path=True,
-            )
-        if self.options.with_postgresql:
-            copy_component('postgresql')
-
-        if self.options.with_mongodb:
-            copy_component('mongo')
-
-        if self.options.with_redis:
-            copy_component('redis')
-
-        if self.options.with_rabbitmq:
-            copy_component('rabbitmq')
-
-        if self.options.with_clickhouse:
-            copy_component('clickhouse')
-
-        if self.options.with_kafka:
-            copy_component('kafka')
-
-        if self.options.with_otlp:
-            copy_component('otlp')
-
-    @property
-    def _userver_components(self):
-        def abseil():
-            return ['abseil::abseil']
-
-        def ares():
-            return ['c-ares::c-ares']
-
-        def fmt():
-            return ['fmt::fmt']
-
-        def curl():
-            return ['libcurl::libcurl']
-
-        def cryptopp():
-            return ['cryptopp::cryptopp']
-
-        def cctz():
-            return ['cctz::cctz']
-
-        def boost():
-            return ['boost::boost']
-
-        def concurrentqueue():
-            return ['concurrentqueue::concurrentqueue']
-
-        def yaml():
-            return ['yaml-cpp::yaml-cpp']
-
-        def libev():
-            return ['libev::libev']
-
-        def libnghttp2():
-            return ['libnghttp2::libnghttp2']
-
-        def openssl():
-            return ['openssl::openssl']
-
-        def rapidjson():
-            return ['rapidjson::rapidjson']
-
-        def zlib():
-            return ['zlib::zlib']
-
-        def zstd():
-            # According to https://conan.io/center/recipes/zstd should be
-            # zstd::libzstd_static, but it does not work that way
-            return ['zstd::zstd']
-
-        def jemalloc():
-            return ['jemalloc::jemalloc'] if self.options.with_jemalloc else []
-
-        def grpc():
-            return ['grpc::grpc'] if self.options.with_grpc else []
-
-        def googleapis():
-            return ['googleapis::googleapis'] if self.options.with_grpc else []
-
-        def grpcproto():
-            return ['grpc-proto::grpc-proto'] if self.options.with_grpc else []
-
-        def protobuf():
-            return ['protobuf::protobuf'] if self.options.with_grpc else []
-
-        def postgresql():
-            return ['libpq::pq'] if self.options.with_postgresql else []
-
-        def gtest():
-            return ['gtest::gtest'] if self.options.with_utest else []
-
-        def benchmark():
-            return ['benchmark::benchmark'] if self.options.with_utest else []
-
-        def mongo():
-            return (
-                ['mongo-c-driver::mongo-c-driver']
-                if self.options.with_mongodb
-                else []
-            )
-
-        def cyrussasl():
-            return (
-                ['cyrus-sasl::cyrus-sasl'] if self.options.with_mongodb else []
-            )
-
-        def hiredis():
-            return ['hiredis::hiredis'] if self.options.with_redis else []
-
-        def amqpcpp():
-            return ['amqp-cpp::amqp-cpp'] if self.options.with_rabbitmq else []
-
-        def clickhouse():
-            return (
-                ['clickhouse-cpp::clickhouse-cpp']
-                if self.options.with_clickhouse
-                else []
-            )
-
-        def librdkafka():
-            return (
-                ['librdkafka::librdkafka'] if self.options.with_kafka else []
-            )
-
-        userver_components = [
-            {
-                'target': 'core',
-                'lib': 'core',
-                'requires': (
-                    ['universal']
-                    + abseil()
-                    + fmt()
-                    + cctz()
-                    + boost()
-                    + concurrentqueue()
-                    + yaml()
-                    + libev()
-                    + libnghttp2()
-                    + curl()
-                    + cryptopp()
-                    + jemalloc()
-                    + ares()
-                    + rapidjson()
-                    + zlib()
-                ),
-            },
-        ]
-        userver_components.extend([
-            {
-                'target': 'universal',
-                'lib': 'universal',
-                'requires': (
-                    fmt()
-                    + cctz()
-                    + boost()
-                    + concurrentqueue()
-                    + yaml()
-                    + cryptopp()
-                    + jemalloc()
-                    + openssl()
-                    + zstd()
-                ),
-            },
-        ])
-
-        if self.options.with_grpc:
-            userver_components.extend([
-                {
-                    'target': 'grpc',
-                    'lib': 'grpc',
-                    'requires': (
-                        ['core']
-                        + grpc()
-                        + protobuf()
-                        + googleapis()
-                        + grpcproto()
-                    ),
-                },
-                {
-                    'target': 'grpc-handlers',
-                    'lib': 'grpc-handlers',
-                    'requires': ['core'] + grpc(),
-                },
-                {
-                    'target': 'grpc-handlers-proto',
-                    'lib': 'grpc-handlers-proto',
-                    'requires': ['core'] + grpc(),
-                },
-                {
-                    'target': 'api-common-protos',
-                    'lib': 'api-common-protos',
-                    'requires': ['grpc'],
-                },
-            ])
-        if self.options.with_utest:
-            userver_components.extend([
-                {
-                    'target': 'utest',
-                    'lib': 'utest',
-                    'requires': ['core'] + gtest(),
-                },
-                {
-                    'target': 'ubench',
-                    'lib': 'ubench',
-                    'requires': ['core'] + benchmark(),
-                },
-            ])
-        if self.options.with_postgresql:
-            userver_components.extend([
-                {
-                    'target': 'postgresql',
-                    'lib': 'postgresql',
-                    'requires': ['core'] + postgresql(),
-                },
-            ])
-        if self.options.with_mongodb:
-            userver_components.extend([
-                {
-                    'target': 'mongo',
-                    'lib': 'mongo',
-                    'requires': ['core'] + mongo() + cyrussasl(),
-                },
-            ])
-        if self.options.with_redis:
-            userver_components.extend([
-                {
-                    'target': 'redis',
-                    'lib': 'redis',
-                    'requires': ['core'] + hiredis(),
-                },
-            ])
-        if self.options.with_rabbitmq:
-            userver_components.extend([
-                {
-                    'target': 'rabbitmq',
-                    'lib': 'rabbitmq',
-                    'requires': ['core'] + amqpcpp(),
-                },
-            ])
-        if self.options.with_clickhouse:
-            userver_components.extend([
-                {
-                    'target': 'clickhouse',
-                    'lib': 'clickhouse',
-                    'requires': ['core'] + clickhouse(),
-                },
-            ])
-        if self.options.with_kafka:
-            userver_components.extend([
-                {
-                    'target': 'kafka',
-                    'lib': 'kafka',
-                    'requires': (
-                        ['core']
-                        + cyrussasl()
-                        + curl()
-                        + zlib()
-                        + openssl()
-                        + librdkafka()
-                    ),
-                },
-            ])
-
-        if self.options.with_otlp:
-            userver_components.extend([
-                {'target': 'otlp', 'lib': 'otlp', 'requires': ['core']},
-            ])
-        return userver_components
+        cmake = CMake(self)
+        cmake.install()
 
     def package_info(self):
-        debug = (
-            'd'
-            if self.settings.build_type == 'Debug'
-            and self.settings.os == 'Windows'
-            else ''
-        )
-
-        def get_lib_name(module):
-            return f'userver-{module}{debug}'
-
-        def add_components(components):
-            for component in components:
-                conan_component = component['target']
-                cmake_target = component['target']
-                cmake_component = component['lib']
-                lib_name = get_lib_name(component['lib'])
-                requires = component['requires']
-                # TODO: we should also define COMPONENTS names of each target
-                # for find_package() but not possible yet in CMakeDeps
-                #       see https://github.com/conan-io/conan/issues/10258
-                self.cpp_info.components[conan_component].set_property(
-                    'cmake_target_name', 'userver::' + cmake_target,
-                )
-                if cmake_component == 'grpc':
-                    self.cpp_info.components[conan_component].libs.append(
-                        get_lib_name('grpc-internal'),
-                    )
-                else:
-                    self.cpp_info.components[conan_component].libs = [lib_name]
-                if cmake_component == 'otlp':
-                    self.cpp_info.components[conan_component].libs.append(
-                        get_lib_name('otlp-proto'),
-                    )
-                if cmake_component == 'universal':
-                    self.cpp_info.components[
-                        cmake_component
-                    ].includedirs.append(
-                        os.path.join('include', 'function_backports'),
-                    )
-                if cmake_component != 'ubench':
-                    self.cpp_info.components[
-                        conan_component
-                    ].includedirs.append(
-                        os.path.join('include', cmake_component),
-                    )
-
-                self.cpp_info.components[conan_component].requires = requires
-
-        self.cpp_info.components['universal'].defines.append(
-            f'USERVER_NAMESPACE={self.options.namespace}',
-        )
-        self.cpp_info.components['universal'].defines.append(
-            f'USERVER_NAMESPACE_BEGIN={self.options.namespace_begin}',
-        )
-        self.cpp_info.components['universal'].defines.append(
-            f'USERVER_NAMESPACE_END={self.options.namespace_end}',
-        )
-
-        self.cpp_info.set_property('cmake_file_name', 'userver')
-
-        add_components(self._userver_components)
-
-        with open(
-            os.path.join(self._cmake_subfolder, 'CallSetupEnv.cmake'), 'w',
-        ) as cmake_file:
-            cmake_file.write('userver_setup_environment()')
-
-        build_modules = [
-            os.path.join(
-                self._cmake_subfolder, 'UserverSetupEnvironment.cmake',
-            ),
-            os.path.join(self._cmake_subfolder, 'CallSetupEnv.cmake'),
-            os.path.join(self._cmake_subfolder, 'UserverVenv.cmake'),
-            os.path.join(self._cmake_subfolder, 'UserverTestsuite.cmake'),
-        ]
-        if self.options.with_utest:
-            build_modules.append(
-                os.path.join(self._cmake_subfolder, 'AddGoogleTests.cmake'),
-            )
-        if self.options.with_grpc:
-            build_modules.append(
-                os.path.join(self._cmake_subfolder, 'SetupProtobuf.cmake'),
-            )
-            build_modules.append(
-                os.path.join(self._cmake_subfolder, 'GrpcConan.cmake'),
-            )
-            build_modules.append(
-                os.path.join(self._cmake_subfolder, 'GrpcTargets.cmake'),
-            )
-
-        self.cpp_info.set_property('cmake_build_modules', build_modules)
+        # https://docs.conan.io/2/examples/tools/cmake/cmake_toolchain/use_package_config_cmake.html
+        self.cpp_info.set_property('cmake_find_mode', 'none')
+        self.cpp_info.builddirs.append(os.path.join('lib', 'cmake', 'userver'))

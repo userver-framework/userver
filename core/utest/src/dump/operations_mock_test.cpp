@@ -60,4 +60,22 @@ TEST(CacheDumpOperationsMock, Underread) {
     UEXPECT_THROW(reader.Finish(), dump::Error);
 }
 
+TEST(CacheDumpOperationsMock, ReadBackUp) {
+    dump::MockReader reader("abcdefg");
+    EXPECT_EQ(dump::ReadUnsafeAtMost(reader, 3), "abc");
+
+    dump::BackUpReadUnsafe(reader, 2);
+    EXPECT_EQ(dump::ReadUnsafeAtMost(reader, 4), "bcde");
+
+    dump::BackUpReadUnsafe(reader, 4);
+    EXPECT_EQ(dump::ReadUnsafeAtMost(reader, 5), "bcdef");
+
+    EXPECT_EQ(dump::ReadUnsafeAtMost(reader, 1), "g");
+
+    dump::BackUpReadUnsafe(reader, 1);
+    EXPECT_EQ(dump::ReadUnsafeAtMost(reader, 1), "g");
+
+    UEXPECT_NO_THROW(reader.Finish());
+}
+
 USERVER_NAMESPACE_END

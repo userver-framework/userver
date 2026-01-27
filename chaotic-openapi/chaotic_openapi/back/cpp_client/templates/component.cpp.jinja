@@ -1,0 +1,84 @@
+#include <clients/{{ name }}/component.hpp>
+
+#include <userver/chaotic/openapi/client/config.hpp>
+#include <userver/chaotic/openapi/client/middleware_factory.hpp>
+#include <userver/clients/http/middlewares/base.hpp>
+#include <userver/clients/http/middlewares/component.hpp>
+#include <userver/components/component_context.hpp>
+#include <userver/yaml_config/merge_schemas.hpp>
+
+{% if tvm_hack %}
+#undef USERVER_TVM2_HTTP_CLIENT
+{% endif %}
+#include <userver/clients/http/component.hpp>
+{% if tvm_hack %}
+#define USERVER_TVM2_HTTP_CLIENT
+{% endif %}
+
+
+namespace {{ namespace }} {
+
+Component::Component(const USERVER_NAMESPACE::components::ComponentConfig& config, const USERVER_NAMESPACE::components::ComponentContext& context)
+        : USERVER_NAMESPACE::components::LoggableComponentBase(config, context),
+          client_(
+              USERVER_NAMESPACE::chaotic::openapi::client::ParseConfig(config, ClientImpl::kDefaultBaseUrl),
+              context.FindComponent<USERVER_NAMESPACE::components::HttpClient>().GetHttpClient()
+          ) 
+{
+    if (config.HasMember("middlewares")) {
+        const auto& mw_config = config["middlewares"];
+        
+        for (const auto& [name, config] : USERVER_NAMESPACE::formats::common::Items(mw_config)) {
+            auto &factory = context.FindComponent<USERVER_NAMESPACE::chaotic::openapi::client::MiddlewareFactory>("chaotic-client-middleware-" + name);
+            auto middleware = factory.Create(config);
+            client_.RegisterMiddleware(middleware);
+        }
+
+        const auto& names = config["core-middlewares"].As<std::optional<std::vector<std::string>>>(std::nullopt);
+        std::optional<std::vector<USERVER_NAMESPACE::utils::NotNull<USERVER_NAMESPACE::clients::http::MiddlewareBase*>>> core_middlewares;
+        if (names) {
+            core_middlewares.emplace();
+            for (const auto& name : *names) {
+                auto& component =
+                    context.FindComponent<USERVER_NAMESPACE::clients::http::middlewares::ComponentBase>(name);
+                core_middlewares->emplace_back(&component.GetMiddleware());
+            }
+        }
+        client_.SetCoreMiddlewares(std::move(core_middlewares));
+    }
+}
+
+Client& Component::GetClient()
+{
+  return client_;
+}
+
+USERVER_NAMESPACE::yaml_config::Schema Component::GetStaticConfigSchema() {
+    std::string base_schema = R"(
+type: object
+description: OpenAPI HTTP client with middlewares
+additionalProperties: false
+properties:
+    base-url:
+        type: string
+        description: Base URL for the API
+    timeout-ms:
+        type: integer
+        description: Request timeout in milliseconds
+        minimum: 1
+    attempts:
+        type: integer
+        description: Maximum number of retry attempts
+        minimum: 1
+    middlewares:
+        type: object
+        description: Middlewares configuration
+        additionalProperties: true
+        properties: {}
+)";
+
+    return USERVER_NAMESPACE::yaml_config::MergeSchemas<USERVER_NAMESPACE::components::ComponentBase>(base_schema);
+
+}
+
+}

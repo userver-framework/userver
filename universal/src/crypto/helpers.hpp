@@ -49,7 +49,6 @@ constexpr size_t GetDigestLength(DigestSize digest_size) {
     return (bits + CHAR_BIT - 1) / CHAR_BIT;
 }
 
-decltype(&crypto::hash::HmacSha256) GetHmacFuncByEnum(DigestSize bits);
 const EVP_MD* GetShaMdByEnum(DigestSize bits);
 
 std::string InitListToString(std::initializer_list<std::string_view> data);

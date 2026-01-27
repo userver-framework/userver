@@ -4,6 +4,7 @@
 #include <storages/mongo/cdriver/pool_impl.hpp>
 #include <storages/mongo/database.hpp>
 #include <storages/mongo/stats_serialize.hpp>
+#include <storages/mongo/transaction_impl.hpp>
 #include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -31,11 +32,12 @@ Pool::Pool(
           ValidateConfig(pool_config, id),
           dns_resolver,
           config_source
-      )) {}
+      ))
+{}
 
-void Pool::Start() { impl_->Start(); }
+Pool::Pool(Pool&&) noexcept = default;
 
-void Pool::Stop() { impl_->Stop(); }
+Pool& Pool::operator=(Pool&&) noexcept = default;
 
 Pool::~Pool() = default;
 
@@ -43,18 +45,22 @@ void Pool::DropDatabase() { impl::Database(impl_, impl_->DefaultDatabaseName()).
 
 void Pool::Ping() { impl_->Ping(); }
 
-bool Pool::HasCollection(const std::string& name) const {
+bool Pool::HasCollection(utils::zstring_view name) const {
     return impl::Database(impl_, impl_->DefaultDatabaseName()).HasCollection(name);
 }
 
 Collection Pool::GetCollection(std::string name) const {
-    return Collection(
-        std::make_shared<impl::cdriver::CDriverCollectionImpl>(impl_, impl_->DefaultDatabaseName(), std::move(name))
-    );
+    return Collection(std::make_shared<
+                      impl::cdriver::CDriverCollectionImpl>(impl_, impl_->DefaultDatabaseName(), std::move(name)));
 }
 
 std::vector<std::string> Pool::ListCollectionNames() const {
     return impl::Database(impl_, impl_->DefaultDatabaseName()).ListCollectionNames();
+}
+
+Transaction Pool::BeginTransaction() const {
+    auto transaction_impl = std::make_unique<impl::TransactionImpl>(impl_);
+    return Transaction{std::move(transaction_impl)};
 }
 
 void DumpMetric(utils::statistics::Writer& writer, const Pool& pool) {
@@ -79,6 +85,8 @@ void DumpMetric(utils::statistics::Writer& writer, const Pool& pool) {
 }
 
 void Pool::SetPoolSettings(const PoolSettings& pool_settings) { impl_->SetPoolSettings(pool_settings); }
+
+void Pool::SetConnectionString(const std::string& connection_string) { impl_->SetConnectionString(connection_string); }
 
 }  // namespace storages::mongo
 

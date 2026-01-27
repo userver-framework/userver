@@ -9,12 +9,13 @@ namespace tests {
 
 /// Sets up a mini gRPC server using a single default-constructed service
 /// implementation. Will create the client with number of connections
-/// dependening on the UTEST_P parameter value.
+/// depending on the UTEST_P parameter value.
 template <typename GrpcService>
 // NOLINTNEXTLINE(fuchsia-multiple-inheritance)
-class ServiceFixtureMultichannel : public ::testing::Test,
-                                   public testing::WithParamInterface<std::size_t>,
-                                   protected ugrpc::tests::ServiceBase {
+class ServiceFixtureMultichannel
+    : public ::testing::Test,
+      public testing::WithParamInterface<std::size_t>,
+      protected ugrpc::tests::ServiceBase {
 protected:
     ServiceFixtureMultichannel() {
         const auto channel_count = GetParam();

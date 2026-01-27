@@ -4,6 +4,7 @@
 /// @brief @copybrief formats::json::Value
 
 #include <chrono>
+#include <iosfwd>
 #include <string_view>
 #include <type_traits>
 
@@ -12,8 +13,6 @@
 #include <userver/formats/json/exception.hpp>
 #include <userver/formats/json/impl/types.hpp>
 #include <userver/formats/json/iterator.hpp>
-#include <userver/formats/json/schema.hpp>
-#include <userver/formats/json/serialize.hpp>
 #include <userver/formats/json/string_builder_fwd.hpp>
 #include <userver/formats/parse/common.hpp>
 
@@ -55,7 +54,9 @@ class JsonValueParser;
 /// @snippet formats/json/value_test.cpp  Sample formats::json::Value usage
 ///
 /// @see @ref scripts/docs/en/userver/formats.md
-class Value final {
+///
+/// To iterate over `Value` as object use formats::common::Items.
+class Value {
 public:
     struct IterTraits {
         using ValueType = formats::json::Value;
@@ -102,6 +103,8 @@ public:
 
     /// @brief Returns an iterator to the beginning of the held array or map.
     /// @throw TypeMismatchException if not an array, object, or null.
+    ///
+    /// To iterate over `Value` as object use formats::common::Items.
     const_iterator begin() const;
 
     /// @brief Returns an iterator to the end of the held array or map.
@@ -146,11 +149,17 @@ public:
     /// @brief Returns true if *this holds an int64_t.
     bool IsInt64() const noexcept;
 
+    /// @brief Returns true if *this holds an uint.
+    bool IsUInt() const noexcept;
+
     /// @brief Returns true if *this holds an uint64_t.
     bool IsUInt64() const noexcept;
 
     /// @brief Returns true if *this holds a double.
     bool IsDouble() const noexcept;
+
+    /// @brief Returns true if *this holds a number (integer or floating point).
+    bool IsNumber() const noexcept;
 
     /// @brief Returns true if *this is holds a std::string.
     bool IsString() const noexcept;
@@ -220,11 +229,14 @@ public:
     /// @throw MemberMissingException if `this->IsMissing()`.
     void CheckNotMissing() const;
 
-    /// @throw MemberMissingException if `*this` is not an array or null.
+    /// @throw TypeMismatchException if `*this` is not an array or null.
     void CheckArrayOrNull() const;
 
     /// @throw TypeMismatchException if `*this` is not a map or null.
     void CheckObjectOrNull() const;
+
+    /// @throw TypeMismatchException if `*this` is not an array.
+    void CheckArray() const;
 
     /// @throw TypeMismatchException if `*this` is not a map.
     void CheckObject() const;
@@ -232,7 +244,7 @@ public:
     /// @throw TypeMismatchException if `*this` is not a map, array or null.
     void CheckObjectOrArrayOrNull() const;
 
-    /// @throw TypeMismatchException if `*this` is not a map, array or null;
+    /// @throw TypeMismatchException if `*this` is not an array or null;
     /// `OutOfBoundsException` if `index >= this->GetSize()`.
     void CheckInBounds(std::size_t index) const;
 
@@ -434,13 +446,16 @@ std::chrono::hours Parse(const Value& value, parse::To<std::chrono::hours>);
 /// @endcode
 using formats::common::Items;
 
+/// gtest formatter for formats::json::Value
+void PrintTo(const Value&, std::ostream*);
+
 }  // namespace formats::json
 
 /// Although we provide user defined literals, please beware that
 /// 'using namespace ABC' may contradict code style of your company.
 namespace formats::literals {
 
-json::Value operator"" _json(const char* str, std::size_t len);
+json::Value operator""_json(const char* str, std::size_t len);
 
 }  // namespace formats::literals
 

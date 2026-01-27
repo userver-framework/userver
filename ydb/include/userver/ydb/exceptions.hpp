@@ -6,10 +6,6 @@
 #include <string>
 #include <string_view>
 
-namespace NYdb {
-class TStatus;
-}  // namespace NYdb
-
 USERVER_NAMESPACE_BEGIN
 
 namespace ydb {

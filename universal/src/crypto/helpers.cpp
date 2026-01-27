@@ -74,7 +74,8 @@ EvpMdCtx::EvpMdCtx()
 #else
           EVP_MD_CTX_create()
 #endif
-      ) {
+      )
+{
     if (!ctx_) {
         throw CryptoException(FormatSslError("Failed to create EVP_MD_CTX"));
     }
@@ -92,21 +93,6 @@ EvpMdCtx::~EvpMdCtx() {
 
 EvpMdCtx::EvpMdCtx(EvpMdCtx&& other) noexcept : ctx_(std::exchange(other.ctx_, nullptr)) {}
 
-decltype(&crypto::hash::HmacSha256) GetHmacFuncByEnum(DigestSize bits) {
-    switch (bits) {
-        case DigestSize::k160:
-            return crypto::hash::HmacSha1;
-        case DigestSize::k256:
-            return crypto::hash::HmacSha256;
-        case DigestSize::k384:
-            return crypto::hash::HmacSha384;
-        case DigestSize::k512:
-            return crypto::hash::HmacSha512;
-    }
-
-    UINVARIANT(false, "Unexpected DigestSize");
-}
-
 const EVP_MD* GetShaMdByEnum(DigestSize bits) {
     switch (bits) {
         case DigestSize::k160:
@@ -122,7 +108,6 @@ const EVP_MD* GetShaMdByEnum(DigestSize bits) {
     UINVARIANT(false, "Unexpected DigestSize");
 }
 
-// TODO: remove after finishing the https://st.yandex-team.ru/TAXICOMMON-1754
 std::string InitListToString(std::initializer_list<std::string_view> data) {
     std::string combined_value;
 
@@ -168,7 +153,7 @@ std::string EnumValueToString(DigestSize bits) {
 }
 
 bool IsMatchingKeyCurve(EVP_PKEY* pkey, DigestSize bits) {
-    std::unique_ptr<EC_KEY, decltype(&EC_KEY_free)> ec_key(EVP_PKEY_get1_EC_KEY(pkey), EC_KEY_free);
+    const std::unique_ptr<EC_KEY, decltype(&EC_KEY_free)> ec_key(EVP_PKEY_get1_EC_KEY(pkey), EC_KEY_free);
     return ec_key && EC_GROUP_get_curve_name(EC_KEY_get0_group(ec_key.get())) == CurveNidByDigestSize(bits);
 }
 

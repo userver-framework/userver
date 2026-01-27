@@ -10,10 +10,18 @@ namespace {
 
 /* ^[-_0-9a-zA-Z.:=/\[\]()"?]+$ */
 bool IsPrintable(char c) {
-    if (strchr("-_:=/[]()\"?", c)) return true;
-    if ('a' <= c && c <= 'z') return true;
-    if ('A' <= c && c <= 'Z') return true;
-    if (isdigit(c)) return true;
+    if (strchr("-_:=/[]()\"?", c)) {
+        return true;
+    }
+    if ('a' <= c && c <= 'z') {
+        return true;
+    }
+    if ('A' <= c && c <= 'Z') {
+        return true;
+    }
+    if (isdigit(c)) {
+        return true;
+    }
 
     return false;
 }
@@ -24,10 +32,11 @@ std::string EscapeName(const std::string& s) {
     std::string result;
     result.reserve(s.size());
     for (auto c : s) {
-        if (IsPrintable(c))
+        if (IsPrintable(c)) {
             result.push_back(c);
-        else
+        } else {
             result.push_back('_');
+        }
     }
     return result;
 }

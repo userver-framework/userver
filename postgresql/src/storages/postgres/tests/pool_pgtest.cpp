@@ -13,6 +13,7 @@
 #include <userver/storages/postgres/dsn.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
 #include <userver/storages/postgres/query_queue.hpp>
+#include <userver/utils/statistics/metrics_storage.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -39,7 +40,8 @@ void PoolTransaction(const std::shared_ptr<pg::detail::ConnectionPool>& pool) {
 namespace storages::postgres {
 
 static void PrintTo(const CommandControl& cmd_ctl, std::ostream* os) {
-    *os << "CommandControl{execute=" << cmd_ctl.execute.count() << ", statement=" << cmd_ctl.statement.count() << '}';
+    *os << "CommandControl{network_timeout_ms=" << cmd_ctl.network_timeout_ms.count()
+        << ", statement_timeout_ms=" << cmd_ctl.statement_timeout_ms.count() << '}';
 }
 
 }  // namespace storages::postgres
@@ -61,7 +63,8 @@ UTEST_P(PostgrePool, ConnectionPool) {
         {},
         {},
         {},
-        dynamic_config::GetDefaultSource()
+        dynamic_config::GetDefaultSource(),
+        std::make_shared<utils::statistics::MetricsStorage>()
     );
     pg::detail::ConnectionPtr conn(nullptr);
 
@@ -83,7 +86,8 @@ UTEST_P(PostgrePool, ConnectionPoolInitiallyEmpty) {
         {},
         {},
         {},
-        dynamic_config::GetDefaultSource()
+        dynamic_config::GetDefaultSource(),
+        std::make_shared<utils::statistics::MetricsStorage>()
     );
     pg::detail::ConnectionPtr conn(nullptr);
 
@@ -105,13 +109,16 @@ UTEST_P(PostgrePool, ConnectionPoolReachedMaxSize) {
         {},
         {},
         {},
-        dynamic_config::GetDefaultSource()
+        dynamic_config::GetDefaultSource(),
+        std::make_shared<utils::statistics::MetricsStorage>()
     );
     pg::detail::ConnectionPtr conn(nullptr);
 
     UASSERT_NO_THROW(conn = pool->Acquire(MakeDeadline())) << "Obtained connection from pool";
-    UEXPECT_THROW(pg::detail::ConnectionPtr conn2 = pool->Acquire(MakeDeadline()), pg::PoolError)
-        << "Pool reached max size";
+    UEXPECT_THROW(const pg::detail::ConnectionPtr conn2 = pool->Acquire(MakeDeadline()), pg::PoolError)
+        << "Pool "
+           "reached "
+           "max size";
 
     CheckConnection(std::move(conn));
 }
@@ -130,7 +137,8 @@ UTEST_P(PostgrePool, ConnectionPoolHighDemand) {
         {},
         {},
         {},
-        dynamic_config::GetDefaultSource()
+        dynamic_config::GetDefaultSource(),
+        std::make_shared<utils::statistics::MetricsStorage>()
     );
     pg::detail::ConnectionPtr conn(nullptr);
     UASSERT_NO_THROW(conn = pool->Acquire(MakeDeadline())) << "Obtained connection from pool";
@@ -142,7 +150,7 @@ UTEST_P(PostgrePool, ConnectionPoolHighDemand) {
     concurrent::BackgroundTaskStorage ts{GetTaskProcessor()};
     for (auto i = 0; i < n_acquire_tasks; ++i) {
         ts.AsyncDetach("acquire", [&pool]() {
-            UEXPECT_THROW(pg::detail::ConnectionPtr conn = pool->Acquire(MakeDeadline()), pg::PoolError);
+            UEXPECT_THROW(const pg::detail::ConnectionPtr conn = pool->Acquire(MakeDeadline()), pg::PoolError);
         });
     }
     engine::SleepFor(std::chrono::milliseconds{100});
@@ -170,18 +178,18 @@ UTEST_P(PostgrePool, BlockWaitingOnAvailableConnection) {
         {},
         {},
         {},
-        dynamic_config::GetDefaultSource()
+        dynamic_config::GetDefaultSource(),
+        std::make_shared<utils::statistics::MetricsStorage>()
     );
     pg::detail::ConnectionPtr conn(nullptr);
 
     UASSERT_NO_THROW(conn = pool->Acquire(MakeDeadline())) << "Obtained connection from pool";
     // Free up connection asynchronously
-    engine::AsyncNoSpan(
+    engine::DetachUnscopedUnsafe(engine::AsyncNoSpan(
         GetTaskProcessor(),
         [](pg::detail::ConnectionPtr conn) { conn = pg::detail::ConnectionPtr(nullptr); },
         std::move(conn)
-    )
-        .Detach();
+    ));
     // NOLINTNEXTLINE(bugprone-use-after-move)
     UASSERT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
         << "Execution blocked because pool reached max size, but connection "
@@ -205,7 +213,8 @@ UTEST_P(PostgrePool, PoolInitialSizeExceedMaxSize) {
             {},
             {},
             {},
-            dynamic_config::GetDefaultSource()
+            dynamic_config::GetDefaultSource(),
+            std::make_shared<utils::statistics::MetricsStorage>()
         ),
         pg::InvalidConfig
     ) << "Pool reached max size";
@@ -227,10 +236,11 @@ UTEST_P(PostgrePool, PoolServerUnavailable) {
             {},
             {},
             {},
-            dynamic_config::GetDefaultSource()
+            dynamic_config::GetDefaultSource(),
+            std::make_shared<utils::statistics::MetricsStorage>()
         )
     );
-    UEXPECT_THROW(pg::detail::ConnectionPtr conn = pool->Acquire(MakeDeadline()), pg::PoolError) << "Empty pool";
+    UEXPECT_THROW(const pg::detail::ConnectionPtr conn = pool->Acquire(MakeDeadline()), pg::PoolError) << "Empty pool";
     const auto& stats = pool->GetStatistics();
     EXPECT_EQ(2, stats.connection.open_total);
     EXPECT_EQ(0, stats.connection.active);
@@ -251,7 +261,8 @@ UTEST_P(PostgrePool, PoolTransaction) {
         {},
         {},
         {},
-        dynamic_config::GetDefaultSource()
+        dynamic_config::GetDefaultSource(),
+        std::make_shared<utils::statistics::MetricsStorage>()
     );
     PoolTransaction(pool);
 }
@@ -270,7 +281,8 @@ UTEST_P(PostgrePool, PoolAliveIfConnectionExists) {
         testsuite::PostgresControl{},
         error_injection::Settings{},
         {},
-        dynamic_config::GetDefaultSource()
+        dynamic_config::GetDefaultSource(),
+        std::make_shared<utils::statistics::MetricsStorage>()
     );
     pg::detail::ConnectionPtr conn(nullptr);
 
@@ -293,7 +305,8 @@ UTEST_P(PostgrePool, ConnectionPtrWorks) {
         testsuite::PostgresControl{},
         error_injection::Settings{},
         {},
-        dynamic_config::GetDefaultSource()
+        dynamic_config::GetDefaultSource(),
+        std::make_shared<utils::statistics::MetricsStorage>()
     );
     pg::detail::ConnectionPtr conn(nullptr);
 
@@ -326,7 +339,8 @@ UTEST_P(PostgrePool, MinPool) {
         testsuite::PostgresControl{},
         error_injection::Settings{},
         {},
-        dynamic_config::GetDefaultSource()
+        dynamic_config::GetDefaultSource(),
+        std::make_shared<utils::statistics::MetricsStorage>()
     );
     const auto& stats = pool->GetStatistics();
     EXPECT_EQ(GetParam() == pg::InitMode::kAsync ? 0 : 1, stats.connection.open_total);
@@ -345,12 +359,15 @@ UTEST_P(PostgrePool, ConnectionCleanup) {
         kCachePreparedStatements,
         {},
         storages::postgres::DefaultCommandControls(
-            pg::CommandControl{std::chrono::milliseconds{100}, std::chrono::seconds{1}}, {}, {}
+            pg::CommandControl{std::chrono::milliseconds{100}, std::chrono::seconds{1}},
+            {},
+            {}
         ),
         testsuite::PostgresControl{},
         error_injection::Settings{},
         {},
-        dynamic_config::GetDefaultSource()
+        dynamic_config::GetDefaultSource(),
+        std::make_shared<utils::statistics::MetricsStorage>()
     );
 
     {
@@ -391,12 +408,15 @@ UTEST_P(PostgrePool, QueryCancel) {
         kCachePreparedStatements,
         {},
         storages::postgres::DefaultCommandControls(
-            pg::CommandControl{std::chrono::milliseconds{100}, std::chrono::milliseconds{10}}, {}, {}
+            pg::CommandControl{std::chrono::milliseconds{100}, std::chrono::milliseconds{10}},
+            {},
+            {}
         ),
         testsuite::PostgresControl{},
         error_injection::Settings{},
         {},
-        dynamic_config::GetDefaultSource()
+        dynamic_config::GetDefaultSource(),
+        std::make_shared<utils::statistics::MetricsStorage>()
     );
     {
         pg::Transaction trx{pg::detail::ConnectionPtr(nullptr)};
@@ -429,7 +449,8 @@ UTEST_P(PostgrePool, SetConnectionSettings) {
         {},
         {},
         {},
-        dynamic_config::GetDefaultSource()
+        dynamic_config::GetDefaultSource(),
+        std::make_shared<utils::statistics::MetricsStorage>()
     );
     pg::detail::ConnectionPtr conn(nullptr);
 
@@ -468,7 +489,8 @@ UTEST_P(PostgrePool, DefaultCmdCtl) {
         {},
         {},
         {},
-        dynamic_config::GetDefaultSource()
+        dynamic_config::GetDefaultSource(),
+        std::make_shared<utils::statistics::MetricsStorage>()
     );
 
     EXPECT_EQ(kTestCmdCtl, pool->GetDefaultCommandControl());
@@ -502,6 +524,82 @@ UTEST_P(PostgrePool, DefaultCmdCtl) {
     EXPECT_EQ(kTestCmdCtl, pool->GetDefaultCommandControl());
 }
 
+UTEST_P(PostgrePool, PreparedStatementsDisabledOverrideCommandControl) {
+    auto pool = pg::detail::ConnectionPool::Create(
+        GetDsnFromEnv(),
+        nullptr,
+        GetTaskProcessor(),
+        "",
+        GetParam(),
+        {1, 1, 10},
+        kCachePreparedStatements,
+        {},
+        storages::postgres::DefaultCommandControls(
+            pg::CommandControl{
+                std::chrono::milliseconds{100},
+                std::chrono::milliseconds{10},
+                pg::CommandControl::PreparedStatementsOptionOverride::kDisabled
+            },
+            {},
+            {}
+        ),
+        testsuite::PostgresControl{},
+        error_injection::Settings{},
+        {},
+        dynamic_config::GetDefaultSource(),
+        std::make_shared<utils::statistics::MetricsStorage>()
+    );
+    {
+        pg::detail::ConnectionPtr conn(nullptr);
+
+        UASSERT_NO_THROW(conn = pool->Acquire(MakeDeadline()));
+
+        const auto old_stats = conn->GetStatsAndReset();
+        UEXPECT_NO_THROW(conn->Execute("select 1"));
+
+        const auto stats = conn->GetStatsAndReset();
+        EXPECT_EQ(stats.prepared_statements_current, old_stats.prepared_statements_current);
+    }
+}
+
+UTEST_P(PostgrePool, PreparedStatementsEnabledOverrideCommandControl) {
+    auto pool = pg::detail::ConnectionPool::Create(
+        GetDsnFromEnv(),
+        nullptr,
+        GetTaskProcessor(),
+        "",
+        GetParam(),
+        {1, 1, 10},
+        kNoPreparedStatements,
+        {},
+        storages::postgres::DefaultCommandControls(
+            pg::CommandControl{
+                std::chrono::milliseconds{100},
+                std::chrono::milliseconds{10},
+                pg::CommandControl::PreparedStatementsOptionOverride::kEnabled
+            },
+            {},
+            {}
+        ),
+        testsuite::PostgresControl{},
+        error_injection::Settings{},
+        {},
+        dynamic_config::GetDefaultSource(),
+        std::make_shared<utils::statistics::MetricsStorage>()
+    );
+    {
+        pg::detail::ConnectionPtr conn(nullptr);
+
+        UASSERT_NO_THROW(conn = pool->Acquire(MakeDeadline()));
+
+        const auto old_stats = conn->GetStatsAndReset();
+        UEXPECT_NO_THROW(conn->Execute("select 1"));
+
+        const auto stats = conn->GetStatsAndReset();
+        EXPECT_GT(stats.prepared_statements_current, old_stats.prepared_statements_current);
+    }
+}
+
 UTEST_P(PostgrePool, CheckUserTypes) {
     std::shared_ptr<pg::detail::ConnectionPool> pool;
     auto conn_settings = kCachePreparedStatements;
@@ -520,7 +618,8 @@ UTEST_P(PostgrePool, CheckUserTypes) {
             {},
             {},
             {},
-            dynamic_config::GetDefaultSource()
+            dynamic_config::GetDefaultSource(),
+            std::make_shared<utils::statistics::MetricsStorage>()
         ),
         pg::UserTypeError
     );
@@ -544,7 +643,8 @@ UTEST_P(PostgrePool, ForQueryQueueMoveAssign) {
         {},
         {},
         {},
-        dynamic_config::GetDefaultSource()
+        dynamic_config::GetDefaultSource(),
+        std::make_shared<utils::statistics::MetricsStorage>()
     );
 
     constexpr pg::CommandControl kDefaultCC{utest::kMaxTestWaitTime, utest::kMaxTestWaitTime};
@@ -585,7 +685,8 @@ UTEST_P(PostgrePool, ForQueryQueueBeingNonTransactional) {
         {},
         {},
         {},
-        dynamic_config::GetDefaultSource()
+        dynamic_config::GetDefaultSource(),
+        std::make_shared<utils::statistics::MetricsStorage>()
     );
 
     constexpr pg::CommandControl kDefaultCC{utest::kMaxTestWaitTime, utest::kMaxTestWaitTime};
@@ -605,12 +706,13 @@ UTEST_P(PostgrePool, ForQueryQueueBeingNonTransactional) {
         query_queue.Push(kDefaultCC, "INSERT INTO qq_non_transactional_test(id) VALUES($1)", 1);
 
         std::vector<pg::ResultSet> result{};
-        EXPECT_ANY_THROW(result = query_queue.Collect(kDefaultCC.execute));
+        EXPECT_ANY_THROW(result = query_queue.Collect(kDefaultCC.network_timeout_ms));
     }
 
-    const auto inserted_values = pool->Acquire(MakeDeadline())
-                                     ->Execute("SELECT id FROM qq_non_transactional_test")
-                                     .AsContainer<std::vector<int>>();
+    const auto inserted_values =
+        pool->Acquire(MakeDeadline())
+            ->Execute("SELECT id FROM qq_non_transactional_test")
+            .AsContainer<std::vector<int>>();
     ASSERT_EQ(inserted_values.size(), 1);
     EXPECT_EQ(inserted_values.front(), 1);
 }

@@ -21,11 +21,6 @@ USERVER_NAMESPACE_BEGIN
 namespace engine::io {
 namespace {
 
-struct SslCtxDeleter {
-    void operator()(SSL_CTX* ctx) const noexcept { SSL_CTX_free(ctx); }
-};
-using SslCtx = std::unique_ptr<SSL_CTX, SslCtxDeleter>;
-
 struct SslDeleter {
     void operator()(SSL* ssl) const noexcept { SSL_free(ssl); }
 };
@@ -51,7 +46,9 @@ void BIO_set_shutdown(BIO* bio, int shutdown) { bio->shutdown = shutdown; }
 constexpr const char* kBioMethodName = "userver-socket";
 
 struct SocketBioData {
-    explicit SocketBioData(Socket&& socket) : socket(std::move(socket)) {
+    explicit SocketBioData(Socket&& socket)
+        : socket(std::move(socket))
+    {
         if (!this->socket) {
             throw TlsException("Cannot use an invalid socket for TLS");
         }
@@ -70,8 +67,12 @@ int SocketBioWriteEx(BIO* bio, const char* data, size_t len, size_t* bytes_writt
     try {
         *bytes_written = bio_data->socket.SendAll(data, len, bio_data->current_deadline);
         BIO_clear_retry_flags(bio);
-        if (bio_data->last_exception) bio_data->last_exception = {};
-        if (*bytes_written) return 1;  // success
+        if (bio_data->last_exception) {
+            bio_data->last_exception = {};
+        }
+        if (*bytes_written) {
+            return 1;  // success
+        }
     } catch (const engine::io::IoInterrupted& ex) {
         *bytes_written = ex.BytesTransferred();
         BIO_set_retry_write(bio);
@@ -90,8 +91,12 @@ int SocketBioReadEx(BIO* bio, char* data, size_t len, size_t* bytes_read) noexce
     try {
         *bytes_read = bio_data->socket.RecvSome(data, len, bio_data->current_deadline);
         BIO_clear_retry_flags(bio);
-        if (bio_data->last_exception) bio_data->last_exception = {};
-        if (*bytes_read) return 1;  // success
+        if (bio_data->last_exception) {
+            bio_data->last_exception = {};
+        }
+        if (*bytes_read) {
+            return 1;  // success
+        }
     } catch (const engine::io::IoInterrupted&) {
         BIO_set_retry_read(bio);
         bio_data->last_exception = std::current_exception();
@@ -118,12 +123,22 @@ int SocketBioCreate(BIO* bio) noexcept {
 const BIO_METHOD* GetSocketBioMethod() {
     static const auto kMethod = []() -> BioMethod {
         BioMethod method{BIO_meth_new(BIO_get_new_index() | BIO_TYPE_SOURCE_SINK, kBioMethodName)};
-        if (!method) return {};
-        if (1 != BIO_meth_set_write_ex(method.get(), &SocketBioWriteEx)) return {};
-        if (1 != BIO_meth_set_read_ex(method.get(), &SocketBioReadEx)) return {};
-        if (1 != BIO_meth_set_ctrl(method.get(), &SocketBioControl)) return {};
+        if (!method) {
+            return {};
+        }
+        if (1 != BIO_meth_set_write_ex(method.get(), &SocketBioWriteEx)) {
+            return {};
+        }
+        if (1 != BIO_meth_set_read_ex(method.get(), &SocketBioReadEx)) {
+            return {};
+        }
+        if (1 != BIO_meth_set_ctrl(method.get(), &SocketBioControl)) {
+            return {};
+        }
         // should be defined to prevent setting bio->init in BIO_new
-        if (1 != BIO_meth_set_create(method.get(), &SocketBioCreate)) return {};
+        if (1 != BIO_meth_set_create(method.get(), &SocketBioCreate)) {
+            return {};
+        }
         return method;
     }();
     return kMethod.get();
@@ -190,64 +205,10 @@ int SSL_write_ex(SSL* ssl, const void* data, size_t len, size_t* bytes_written) 
 }
 #endif
 
-SslCtx MakeSslCtx() {
-    crypto::Openssl::Init();
-
-    SslCtx ssl_ctx{SSL_CTX_new(SSLv23_method())};
-    if (!ssl_ctx) {
-        throw TlsException(crypto::FormatSslError("Failed create an SSL context: SSL_CTX_new"));
-    }
-#if OPENSSL_VERSION_NUMBER >= 0x010100000L
-    if (1 != SSL_CTX_set_min_proto_version(ssl_ctx.get(), TLS1_VERSION)) {
-        throw TlsException(crypto::FormatSslError("Failed create an SSL context: SSL_CTX_set_min_proto_version"));
-    }
-#endif
-
-    constexpr auto options = SSL_OP_ALL | SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_COMPRESSION
-#if OPENSSL_VERSION_NUMBER >= 0x010100000L
-                             | SSL_OP_NO_RENEGOTIATION
-#endif
-        ;
-    SSL_CTX_set_options(ssl_ctx.get(), options);
-    SSL_CTX_set_mode(ssl_ctx.get(), SSL_MODE_ENABLE_PARTIAL_WRITE);
-    SSL_CTX_clear_mode(ssl_ctx.get(), SSL_MODE_AUTO_RETRY);
-    if (1 != SSL_CTX_set_default_verify_paths(ssl_ctx.get())) {
-        LOG_LIMITED_WARNING() << crypto::FormatSslError("Failed create an SSL context: SSL_CTX_set_default_verify_paths"
-        );
-    }
-    return ssl_ctx;
-}
-
 enum InterruptAction {
     kPass,
     kFail,
 };
-
-void SetServerName(SslCtx& ctx, std::string_view server_name) {
-    if (server_name.empty()) {
-        return;
-    }
-
-    X509_VERIFY_PARAM* verify_param = SSL_CTX_get0_param(ctx.get());
-    if (!verify_param) {
-        throw TlsException("Failed to set up client TLS wrapper: SSL_CTX_get0_param");
-    }
-    if (1 != X509_VERIFY_PARAM_set1_host(verify_param, server_name.data(), server_name.size())) {
-        throw TlsException(crypto::FormatSslError("Failed to set up client TLS wrapper: X509_VERIFY_PARAM_set1_host"));
-    }
-    SSL_CTX_set_verify(ctx.get(), SSL_VERIFY_PEER, nullptr);
-}
-
-void AddCertAuthorities(SslCtx& ctx, const std::vector<crypto::Certificate>& cert_authorities) {
-    UASSERT(!cert_authorities.empty());
-    auto* store = SSL_CTX_get_cert_store(ctx.get());
-    UASSERT(store);
-    for (const auto& ca : cert_authorities) {
-        if (1 != X509_STORE_add_cert(store, ca.GetNative())) {
-            throw TlsException(crypto::FormatSslError("Failed to set up client TLS wrapper: X509_STORE_add_cert"));
-        }
-    }
-}
 
 }  // namespace
 
@@ -267,12 +228,15 @@ public:
 
     engine::impl::ContextAccessor& GetSocketContextAccessor() const noexcept;
 
-    TlsWrapper::Impl& impl_;
+    TlsWrapper::Impl& impl;
 };
 
 class TlsWrapper::Impl {
 public:
-    explicit Impl(Socket&& socket) : bio_data(std::move(socket)), read_accessor(*this) {}
+    explicit Impl(Socket&& socket)
+        : bio_data(std::move(socket)),
+          read_accessor(*this)
+    {}
 
     Impl(Impl&& other) noexcept
         : bio_data(std::move(other.bio_data)),
@@ -284,7 +248,7 @@ public:
         SyncBioData(SSL_get_rbio(ssl.get()), &other.bio_data);
     }
 
-    void SetUp(SslCtx&& ssl_ctx) {
+    void SetUp(const crypto::SslCtx& ssl_ctx) {
         Bio socket_bio{BIO_new(GetSocketBioMethod())};
         if (!socket_bio) {
             throw TlsException(crypto::FormatSslError("Failed to set up TLS wrapper: BIO_new"));
@@ -293,7 +257,7 @@ public:
         SyncBioData(socket_bio.get(), nullptr);
         BIO_set_init(socket_bio.get(), 1);
 
-        ssl.reset(SSL_new(ssl_ctx.get()));
+        ssl.reset(SSL_new(static_cast<SSL_CTX*>(ssl_ctx.GetRawSslCtx())));
         if (!ssl) {
             throw TlsException(crypto::FormatSslError("Failed to set up TLS wrapper: SSL_new"));
         }
@@ -330,6 +294,43 @@ public:
     }
 
     template <typename SslIoFunc>
+    std::optional<size_t> PerformSslIoOptional(SslIoFunc&& io_func, void* buf, size_t len, const char* context) {
+        UASSERT(ssl);
+        if (!len) {
+            return 0;
+        }
+
+        char* const begin = static_cast<char*>(buf);
+        char* const end = begin + len;
+        size_t chunk_size = 0;
+
+        bio_data.current_deadline = Deadline::Passed();
+
+        const int io_ret = io_func(ssl.get(), begin, end - begin, &chunk_size);
+        if (io_ret == 1) {
+            return chunk_size;
+        }
+
+        const int ssl_error = SSL_get_error(ssl.get(), io_ret);
+        switch (ssl_error) {
+            case SSL_ERROR_WANT_READ:
+            case SSL_ERROR_WANT_WRITE:
+                return std::nullopt;
+
+            case SSL_ERROR_ZERO_RETURN:
+                return 0;
+
+            case SSL_ERROR_SYSCALL:
+            case SSL_ERROR_SSL:
+                ssl.reset();
+                [[fallthrough]];
+
+            default:
+                throw TlsException(crypto::FormatSslError(std::string{context} + " failed"));
+        }
+    }
+
+    template <typename SslIoFunc>
     size_t PerformSslIo(
         SslIoFunc&& io_func,
         void* buf,
@@ -340,16 +341,18 @@ public:
         const char* context
     ) {
         UASSERT(ssl);
-        if (!len) return 0;
+        if (!len) {
+            return 0;
+        }
 
-            /* TODO
-            UASSERT_MSG(
-                ssl_usage_level == 0,
-                "You may not use SSL sockets concurrently from multiple coroutines");
-                */
+        /* TODO
+        UASSERT_MSG(
+            ssl_usage_level == 0,
+            "You may not use SSL sockets concurrently from multiple coroutines");
+            */
 #ifndef NDEBUG
         ssl_usage_level++;
-        utils::FastScopeGuard ssl_usage_guard([this]() noexcept { --ssl_usage_level; });
+        const utils::FastScopeGuard ssl_usage_guard([this]() noexcept { --ssl_usage_level; });
 #endif
 
         bio_data.current_deadline = deadline;
@@ -422,17 +425,23 @@ private:
     }
 };
 
-TlsWrapper::ReadContextAccessor::ReadContextAccessor(TlsWrapper::Impl& impl) : impl_(impl) {}
+TlsWrapper::ReadContextAccessor::ReadContextAccessor(TlsWrapper::Impl& impl)
+    : impl(impl)
+{}
 
 bool TlsWrapper::ReadContextAccessor::IsReady() const noexcept {
-    auto* ssl = impl_.ssl.get();
-    if (!ssl || SSL_has_pending(ssl)) return true;
+    auto* ssl = impl.ssl.get();
+    if (!ssl || SSL_has_pending(ssl)) {
+        return true;
+    }
     return GetSocketContextAccessor().IsReady();
 }
 
 engine::impl::EarlyWakeup TlsWrapper::ReadContextAccessor::TryAppendWaiter(engine::impl::TaskContext& waiter) {
-    auto* ssl = impl_.ssl.get();
-    if (!ssl || SSL_has_pending(ssl)) return engine::impl::EarlyWakeup{true};
+    auto* ssl = impl.ssl.get();
+    if (!ssl || SSL_has_pending(ssl)) {
+        return engine::impl::EarlyWakeup{true};
+    }
 
     return GetSocketContextAccessor().TryAppendWaiter(waiter);
 }
@@ -446,19 +455,20 @@ void TlsWrapper::ReadContextAccessor::AfterWait() noexcept { GetSocketContextAcc
 void TlsWrapper::ReadContextAccessor::RethrowErrorResult() const { GetSocketContextAccessor().RethrowErrorResult(); }
 
 engine::impl::ContextAccessor& TlsWrapper::ReadContextAccessor::GetSocketContextAccessor() const noexcept {
-    auto* ca = impl_.bio_data.socket.GetReadableBase().TryGetContextAccessor();
+    auto* ca = impl.bio_data.socket.GetReadableBase().TryGetContextAccessor();
     UASSERT(ca);
     return *ca;
 }
 
-TlsWrapper::TlsWrapper(Socket&& socket) : impl_(std::move(socket)) { SetupContextAccessors(); }
+TlsWrapper::TlsWrapper(Socket&& socket)
+    : impl_(std::move(socket))
+{
+    SetupContextAccessors();
+}
 
 TlsWrapper TlsWrapper::StartTlsClient(Socket&& socket, const std::string& server_name, Deadline deadline) {
-    auto ssl_ctx = MakeSslCtx();
-    SetServerName(ssl_ctx, server_name);
-
     TlsWrapper wrapper{std::move(socket)};
-    wrapper.impl_->SetUp(std::move(ssl_ctx));
+    wrapper.impl_->SetUp(crypto::SslCtx::CreateClientTlsContext(server_name));
     wrapper.impl_->ClientConnect(server_name, deadline);
     return wrapper;
 }
@@ -471,58 +481,15 @@ TlsWrapper TlsWrapper::StartTlsClient(
     Deadline deadline,
     const std::vector<crypto::Certificate>& extra_cert_authorities
 ) {
-    auto ssl_ctx = MakeSslCtx();
-    SetServerName(ssl_ctx, server_name);
-
-    if (!extra_cert_authorities.empty()) {
-        AddCertAuthorities(ssl_ctx, extra_cert_authorities);
-    }
-
-    if (cert) {
-        if (1 != SSL_CTX_use_certificate(ssl_ctx.get(), cert.GetNative())) {
-            throw TlsException(crypto::FormatSslError("Failed to set up client TLS wrapper: SSL_CTX_use_certificate"));
-        }
-    }
-
-    if (key) {
-        if (1 != SSL_CTX_use_PrivateKey(ssl_ctx.get(), key.GetNative())) {
-            throw TlsException(crypto::FormatSslError("Failed to set up client TLS wrapper: SSL_CTX_use_PrivateKey"));
-        }
-    }
-
     TlsWrapper wrapper{std::move(socket)};
-    wrapper.impl_->SetUp(std::move(ssl_ctx));
+    wrapper.impl_->SetUp(crypto::SslCtx::CreateClientTlsContext(server_name, cert, key, extra_cert_authorities));
     wrapper.impl_->ClientConnect(server_name, deadline);
     return wrapper;
 }
 
-TlsWrapper TlsWrapper::StartTlsServer(
-    Socket&& socket,
-    const crypto::Certificate& cert,
-    const crypto::PrivateKey& key,
-    Deadline deadline,
-    const std::vector<crypto::Certificate>& extra_cert_authorities
-) {
-    auto ssl_ctx = MakeSslCtx();
-
-    if (!extra_cert_authorities.empty()) {
-        AddCertAuthorities(ssl_ctx, extra_cert_authorities);
-        SSL_CTX_set_verify(ssl_ctx.get(), SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, nullptr);
-        LOG_INFO() << "Client SSL cert will be verified";
-    } else {
-        LOG_INFO() << "Client SSL cert will not be verified";
-    }
-
-    if (1 != SSL_CTX_use_certificate(ssl_ctx.get(), cert.GetNative())) {
-        throw TlsException(crypto::FormatSslError("Failed to set up server TLS wrapper: SSL_CTX_use_certificate"));
-    }
-
-    if (1 != SSL_CTX_use_PrivateKey(ssl_ctx.get(), key.GetNative())) {
-        throw TlsException(crypto::FormatSslError("Failed to set up server TLS wrapper: SSL_CTX_use_PrivateKey"));
-    }
-
+TlsWrapper TlsWrapper::StartTlsServer(Socket&& socket, const crypto::SslCtx& ctx, Deadline deadline) {
     TlsWrapper wrapper{std::move(socket)};
-    wrapper.impl_->SetUp(std::move(ssl_ctx));
+    wrapper.impl_->SetUp(ctx);
     wrapper.impl_->bio_data.current_deadline = deadline;
 
     auto ret = SSL_accept(wrapper.impl_->ssl.get());
@@ -542,13 +509,17 @@ TlsWrapper TlsWrapper::StartTlsServer(
 
 TlsWrapper::~TlsWrapper() {
     UASSERT(impl_->ssl_usage_level == 0);
-    if (!IsValid()) return;
+    if (!IsValid()) {
+        return;
+    }
 
     // socket will not be reused, attempt unidirectional shutdown
     SSL_shutdown(impl_->ssl.get());
 }
 
-TlsWrapper::TlsWrapper(TlsWrapper&& other) noexcept : impl_(std::move(other.impl_)) { SetupContextAccessors(); }
+TlsWrapper::TlsWrapper(TlsWrapper&& other) noexcept : impl_(std::move(other.impl_)) {
+    SetupContextAccessors();
+}
 
 void TlsWrapper::SetupContextAccessors() {
     // Cannot use raw Socket's accessor as some data might be already read into
@@ -565,7 +536,13 @@ bool TlsWrapper::WaitReadable(Deadline deadline) {
     impl_->CheckAlive();
     char buf = 0;
     return impl_->PerformSslIo(
-        &SSL_peek_ex, &buf, 1, impl::TransferMode::kOnce, InterruptAction::kPass, deadline, "WaitReadable"
+        &SSL_peek_ex,
+        &buf,
+        1,
+        impl::TransferMode::kOnce,
+        InterruptAction::kPass,
+        deadline,
+        "WaitReadable"
     );
 }
 
@@ -576,16 +553,19 @@ bool TlsWrapper::WaitWriteable(Deadline deadline) {
 
 size_t TlsWrapper::RecvSome(void* buf, size_t len, Deadline deadline) {
     impl_->CheckAlive();
-    return impl_->PerformSslIo(
-        &SSL_read_ex, buf, len, impl::TransferMode::kOnce, InterruptAction::kPass, deadline, "RecvSome"
-    );
+    return impl_
+        ->PerformSslIo(&SSL_read_ex, buf, len, impl::TransferMode::kOnce, InterruptAction::kPass, deadline, "RecvSome");
 }
 
 size_t TlsWrapper::RecvAll(void* buf, size_t len, Deadline deadline) {
     impl_->CheckAlive();
-    return impl_->PerformSslIo(
-        &SSL_read_ex, buf, len, impl::TransferMode::kWhole, InterruptAction::kPass, deadline, "RecvAll"
-    );
+    return impl_
+        ->PerformSslIo(&SSL_read_ex, buf, len, impl::TransferMode::kWhole, InterruptAction::kPass, deadline, "RecvAll");
+}
+
+std::optional<size_t> TlsWrapper::RecvNoblock(void* buf, size_t len) {
+    impl_->CheckAlive();
+    return impl_->PerformSslIoOptional(&SSL_read_ex, buf, len, "RecvNoblock");
 }
 
 size_t TlsWrapper::SendAll(const void* buf, size_t len, Deadline deadline) {
@@ -613,7 +593,9 @@ size_t TlsWrapper::SendAll(const void* buf, size_t len, Deadline deadline) {
             if (it - fits_in_buf_begin >= 2) {
                 for (auto* ins_pos = buf; fits_in_buf_begin != it; ++fits_in_buf_begin) {
                     ins_pos = std::copy_n(
-                        static_cast<const std::byte*>(fits_in_buf_begin->data), fits_in_buf_begin->len, ins_pos
+                        static_cast<const std::byte*>(fits_in_buf_begin->data),
+                        fits_in_buf_begin->len,
+                        ins_pos
                     );
                 }
                 sent_bytes += SendAll(buf, kBufSize - remaining_cap, deadline);

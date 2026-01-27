@@ -11,13 +11,7 @@ if len(sys.argv) != 3:
 
 printers_header = sys.argv[1]
 printers_script = sys.argv[2]
-protection_macro = (
-    os.path.relpath(printers_script, os.getcwd())
-    .lstrip('/')
-    .replace('/', '_')
-    .replace('.', '_')
-    .upper()
-)
+protection_macro = os.path.relpath(printers_script, os.getcwd()).lstrip('/').replace('/', '_').replace('.', '_').upper()
 
 # Grab the entire script
 with open(printers_script, 'r') as script:
@@ -25,10 +19,8 @@ with open(printers_script, 'r') as script:
 marshalized = base64.encodebytes(zlib.compress(marshal.dumps(bytecode)))
 string_len = 80
 marshalized_splitted = '\n' + '\n'.join(
-    str(marshalized[i : i + string_len])
-    for i in range(0, len(marshalized), string_len)
+    str(marshalized[i : i + string_len]) for i in range(0, len(marshalized), string_len)
 )
-print(marshalized_splitted)
 new_script = f'import marshal, zlib, base64\nexec(marshal.loads(zlib.decompress(base64.decodebytes({marshalized_splitted}))))'.split(
     '\n',
 )
@@ -36,6 +28,15 @@ new_script = f'import marshal, zlib, base64\nexec(marshal.loads(zlib.decompress(
 top_matter = f'''
 // Auto-generated. DO NOT EDIT.
 #pragma once
+
+USERVER_NAMESPACE_BEGIN
+namespace impl {{
+template <typename T>
+class VerySpecialUniqueClassForUserverNamespaceDetection {{}};
+template class VerySpecialUniqueClassForUserverNamespaceDetection<void>;
+static VerySpecialUniqueClassForUserverNamespaceDetection<void> userver_namespace_detection_mark __attribute__((used)) {{}};
+}}
+USERVER_NAMESPACE_END
 
 // NOLINTBEGIN
 // clang-format off
@@ -50,7 +51,7 @@ __asm__(
     ".pushsection \\".debug_gdb_scripts\\", \\"MS\\",@progbits,1\\n"
     ".ascii \\"\\\\4gdb.inlined-script.{protection_macro}\\\\n\\"\\n"'''
 
-bottom_matter = f"""
+bottom_matter = """
     ".byte 0\\n"
     ".popsection\\n");
 
@@ -66,10 +67,7 @@ bottom_matter = f"""
 with open(printers_header, 'wt') as header:
     print(
         top_matter,
-        *(
-            f'    ".ascii \\"{json.dumps(json.dumps(line)[1:-1])[1:-1]}\\\\n\\"\\n"'
-            for line in new_script
-        ),
+        *(f'    ".ascii \\"{json.dumps(json.dumps(line)[1:-1])[1:-1]}\\\\n\\"\\n"' for line in new_script),
         bottom_matter,
         sep='\n',
         file=header,

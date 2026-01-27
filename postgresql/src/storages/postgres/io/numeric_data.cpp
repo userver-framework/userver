@@ -22,8 +22,8 @@ namespace {
 
 enum ValidSigns : std::uint16_t { kNumericPositive = 0x0000, kNumericNegative = 0x4000, kNumericNan = 0xc000 };
 
-const Smallint kBinEncodingBase = 10000;
-const std::int64_t kPowersOfTen[]{
+constexpr Smallint kBinEncodingBase = 10000;
+constexpr std::int64_t kPowersOfTen[]{
     1,
     10,
     100,
@@ -42,14 +42,15 @@ const std::int64_t kPowersOfTen[]{
     1'000'000'000'000'000,
     10'000'000'000'000'000,
     100'000'000'000'000'000,
-    1'000'000'000'000'000'000};
+    1'000'000'000'000'000'000
+};
 
-const auto kMaxPowerOfTen = sizeof(kPowersOfTen) / sizeof(kPowersOfTen[0]) - 1;
+constexpr auto kMaxPowerOfTen = sizeof(kPowersOfTen) / sizeof(kPowersOfTen[0]) - 1;
 
-const std::uint16_t kDscaleMask = 0x3fff;
+constexpr std::uint16_t kDscaleMask = 0x3fff;
 
 // Number of decimal digits in
-const int kDigitWidth = 4;
+constexpr int kDigitWidth = 4;
 
 void WriteDigit(std::string& res, std::uint16_t bin_dgt, bool truncate_leading_zeros) {
     std::array<char, 8> buffer{'0', '0', '0', '0', '0', '0', '0', '0'};
@@ -165,7 +166,7 @@ struct NumericData {
     // Get binary representation
     [[nodiscard]] std::string GetBuffer() const;
     // Parse string
-    void Parse(const std::string&);
+    void Parse(USERVER_NAMESPACE::utils::zstring_view);
     // Output to string
     [[nodiscard]] std::string ToString() const;
     // Create buffer representation from an int64 value representation
@@ -200,14 +201,14 @@ void NumericData::ReadBuffer(FieldBuffer fb) {
 }
 
 std::string NumericData::GetBuffer() const {
-    static const UserTypes types;
+    static const UserTypes kTypes;
     std::string buff;
-    io::WriteBuffer(types, buff, ndigits);
-    io::WriteBuffer(types, buff, weight);
-    io::WriteBuffer(types, buff, sign);
-    io::WriteBuffer(types, buff, dscale);
+    io::WriteBuffer(kTypes, buff, ndigits);
+    io::WriteBuffer(kTypes, buff, weight);
+    io::WriteBuffer(kTypes, buff, sign);
+    io::WriteBuffer(kTypes, buff, dscale);
     for (auto dgt : digits) {
-        io::WriteBuffer(types, buff, dgt);
+        io::WriteBuffer(kTypes, buff, dgt);
     }
     return buff;
 }
@@ -218,7 +219,9 @@ std::string NumericData::ToString() const {
     }
 
     std::int32_t before_point = (weight + 1) * kDigitWidth;
-    if (before_point <= 0) before_point = 1;
+    if (before_point <= 0) {
+        before_point = 1;
+    }
 
     std::string res;
 
@@ -251,7 +254,7 @@ std::string NumericData::ToString() const {
     return res;
 }
 
-void NumericData::Parse(const std::string& str) {
+void NumericData::Parse(USERVER_NAMESPACE::utils::zstring_view str) {
     if (str.empty()) {
         throw InvalidInputFormat{"Empty numeric string representation"};
     }
@@ -293,7 +296,7 @@ void NumericData::Parse(const std::string& str) {
         int_part_end = dec_point_pos;
     }
 
-    std::string_view integral_part{str.data() + start_pos, int_part_end - start_pos};
+    const std::string_view integral_part{str.data() + start_pos, int_part_end - start_pos};
     // TODO Check if size is reasonable
     std::int32_t dec_weight = integral_part.size() - 1;
     std::uint16_t dec_scale{0};
@@ -366,12 +369,13 @@ IntegralRepresentation NumericData::ToInt64() const {
     } else {
         for (bin_dig_pos = 0; bin_dig_pos <= weight; ++bin_dig_pos) {
             auto dig = (bin_dig_pos < ndigits) ? digits[bin_dig_pos] : 0;
-            std::uint64_t new_val = (rep.value * kBinEncodingBase) + dig;
+            const std::uint64_t new_val = (rep.value * kBinEncodingBase) + dig;
             if (rep.value > static_cast<std::int64_t>(new_val) || new_val > int64_t_max) {
                 throw NumericOverflow{
                     "PosrgreSQL buffer contains a value that is too big to fit into "
                     "int64 + '" +
-                    ToString() + "'"};
+                    ToString() + "'"
+                };
             }
             rep.value = static_cast<std::int64_t>(new_val);
         }
@@ -388,12 +392,13 @@ IntegralRepresentation NumericData::ToInt64() const {
                 power = kBinEncodingBase / kPowersOfTen[truncate_count];
                 dig /= kPowersOfTen[truncate_count];
             }
-            std::uint64_t new_val = (rep.value * power) + dig;
+            const std::uint64_t new_val = (rep.value * power) + dig;
             if (rep.value > static_cast<std::int64_t>(new_val) || new_val > int64_t_max) {
                 throw NumericOverflow{
                     "PosrgreSQL buffer contains a value that is too big to fit into "
                     "int64 + '" +
-                    ToString() + "'"};
+                    ToString() + "'"
+                };
             }
             rep.value = static_cast<std::int64_t>(new_val);
         }
@@ -407,13 +412,16 @@ IntegralRepresentation NumericData::ToInt64() const {
 void NumericData::FromInt64(IntegralRepresentation rep) {
     if (rep.fractional_digit_count < 0 || static_cast<std::int64_t>(kMaxPowerOfTen) < rep.fractional_digit_count) {
         throw InvalidRepresentation{
-            "Number of digits after decimal point is invalid " + std::to_string(rep.fractional_digit_count)};
+            "Number of digits after decimal point is invalid " + std::to_string(rep.fractional_digit_count)
+        };
     }
-    if (rep.value == 0) return;
+    if (rep.value == 0) {
+        return;
+    }
 
     sign = rep.value < 0 ? kNumericNegative : kNumericPositive;
-    std::uint64_t abs_value = std::abs(rep.value);
-    std::int64_t integral_part = abs_value / kPowersOfTen[rep.fractional_digit_count];
+    const std::uint64_t abs_value = std::abs(rep.value);
+    const std::int64_t integral_part = abs_value / kPowersOfTen[rep.fractional_digit_count];
     std::int64_t fractional_part = abs_value % kPowersOfTen[rep.fractional_digit_count];
 
     auto integral_digits = Log10(integral_part);
@@ -464,7 +472,7 @@ std::string NumericBufferToString(const FieldBuffer& buffer) {
     return num_data.ToString();
 }
 
-std::string StringToNumericBuffer(const std::string& str_rep) {
+std::string StringToNumericBuffer(USERVER_NAMESPACE::utils::zstring_view str_rep) {
     NumericData num_data;
     num_data.Parse(str_rep);
     return num_data.GetBuffer();

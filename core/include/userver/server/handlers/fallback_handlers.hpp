@@ -10,11 +10,11 @@ enum class FallbackHandler {
     kImplicitOptions,
 };
 
-constexpr size_t kFallbackHandlerMax = static_cast<size_t>(FallbackHandler::kImplicitOptions);
+inline constexpr size_t kFallbackHandlerMax = static_cast<size_t>(FallbackHandler::kImplicitOptions);
 
-const std::string& ToString(FallbackHandler);
+std::string_view ToString(FallbackHandler);
 
-FallbackHandler FallbackHandlerFromString(const std::string& fallback_str);
+FallbackHandler FallbackHandlerFromString(std::string_view fallback_str);
 
 }  // namespace server::handlers
 

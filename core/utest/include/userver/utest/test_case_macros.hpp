@@ -138,15 +138,16 @@ USERVER_NAMESPACE_END
     using IMPL_UTEST_USER_FIXTURE(test_suite_name) = IMPL_UTEST_NON_PARENTHESIZED(test_suite_name)<UtestTypeParamImpl>
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define IMPL_UTEST_HIDE_USER_FIXTURE_BY_TEST_LAUNCHER(test_suite_name, test_launcher_template) \
-    using IMPL_UTEST_NON_PARENTHESIZED(test_suite_name) =                                      \
-        IMPL_UTEST_NON_PARENTHESIZED(test_launcher_template)<IMPL_UTEST_USER_FIXTURE(test_suite_name)>;
+#define IMPL_UTEST_HIDE_USER_FIXTURE_BY_TEST_LAUNCHER(test_suite_name, test_launcher_template)                \
+    using IMPL_UTEST_NON_PARENTHESIZED(test_suite_name) = IMPL_UTEST_NON_PARENTHESIZED(test_launcher_template \
+    )<IMPL_UTEST_USER_FIXTURE(test_suite_name)>;
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define IMPL_UTEST_HIDE_USER_FIXTURE_BY_TEST_LAUNCHER_TYPED(test_suite_name)               \
-    template <typename UtestTypeParamImpl>                                                 \
-    using IMPL_UTEST_NON_PARENTHESIZED(test_suite_name) = USERVER_NAMESPACE::utest::impl:: \
-        TestLauncherTyped<IMPL_UTEST_USER_FIXTURE(test_suite_name), UtestTypeParamImpl>;
+#define IMPL_UTEST_HIDE_USER_FIXTURE_BY_TEST_LAUNCHER_TYPED(test_suite_name)                                 \
+    template <typename UtestTypeParamImpl>                                                                   \
+    using IMPL_UTEST_NON_PARENTHESIZED(test_suite_name) = USERVER_NAMESPACE::utest::impl::TestLauncherTyped< \
+        IMPL_UTEST_USER_FIXTURE(test_suite_name),                                                            \
+        UtestTypeParamImpl>;
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define IMPL_UTEST_TEST(test_suite_name, test_name, thread_count, death_tests_enabled)                       \
@@ -157,9 +158,8 @@ USERVER_NAMESPACE_END
     };                                                                                                       \
     TEST(test_suite_name, test_name) {                                                                       \
         using EnrichedTest = IMPL_UTEST_HIDE_ENRICHED_FROM_IDE(test_suite_name, test_name)::EnrichedTest;    \
-        USERVER_NAMESPACE::utest::impl::TestLauncher<::testing::Test>::RunTest<EnrichedTest>(                \
-            thread_count, death_tests_enabled                                                                \
-        );                                                                                                   \
+        USERVER_NAMESPACE::utest::impl::TestLauncher<::testing::Test>::RunTest<                              \
+            EnrichedTest>(thread_count, death_tests_enabled);                                                \
     }                                                                                                        \
     void IMPL_UTEST_HIDE_ENRICHED_FROM_IDE(test_suite_name, test_name)::EnrichedTest::TestBody()
 

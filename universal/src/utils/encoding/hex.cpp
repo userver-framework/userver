@@ -131,7 +131,12 @@ std::string_view GetHexPart(std::string_view encoded) noexcept {
 
 void ToHex(std::string_view input, std::string& out) noexcept {
     out.clear();
-    out.resize(input.size() * 2);
+    out.resize(LengthInHexForm(input.size()));
+    ToHexBuffer(input, out);
+}
+
+void ToHexBuffer(std::string_view input, utils::span<char> out) noexcept {
+    UASSERT(out.size() >= LengthInHexForm(input.size()));
     const auto* first = input.data();
     const auto* last = input.data() + input.size();
     auto* dst = out.data();
@@ -150,7 +155,8 @@ void ToHex(std::string_view input, std::string& out) noexcept {
         // h4(b0), l4(b0), h4(b1), l4(b1), ... where h4() is the highest 4 bits,
         // l4() - lowest 4 bits, and b0, b1, ... are the original bytes
         const auto interleaving_hi_lo = _mm_and_si128(
-            _mm_unpacklo_epi8(_mm_srli_epi64(eight_bytes_of_data, 4), eight_bytes_of_data), detail::kLow4BitsMask
+            _mm_unpacklo_epi8(_mm_srli_epi64(eight_bytes_of_data, 4), eight_bytes_of_data),
+            detail::kLow4BitsMask
         );
 
         // and now we gather kXdigits as specified in interleaving_hi_lo

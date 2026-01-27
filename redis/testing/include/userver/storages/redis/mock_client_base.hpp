@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file storages/redis/mock_client_base_test.hpp
+/// @file
 /// @brief @copybrief storages::redis::MockClientBase
 
 #include <userver/utest/utest.hpp>
@@ -9,8 +9,8 @@
 #include <memory>
 #include <string>
 
-#include <userver/storages/redis/impl/base.hpp>
-#include <userver/storages/redis/impl/command_options.hpp>
+#include <userver/storages/redis/base.hpp>
+#include <userver/storages/redis/command_options.hpp>
 
 #include <userver/storages/redis/client.hpp>
 #include <userver/storages/redis/mock_request.hpp>
@@ -21,7 +21,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::redis {
 
-/// Base class for mocked redis clients in unit tests.
+/// @brief Base class for mocked redis clients in unit tests.
+///
 /// Please create clients with `std::make_shared`.
 /// Otherwise `Multi()` command will not work in mocked client.
 /// You should override methods for redis commands used in test.
@@ -44,16 +45,12 @@ public:
 
     ~MockClientBase() override;
 
-    void WaitConnectedOnce(USERVER_NAMESPACE::redis::RedisWaitConnected wait_connected) override;
+    void WaitConnectedOnce(RedisWaitConnected wait_connected) override;
 
     size_t ShardsCount() const override;
     bool IsInClusterMode() const override;
 
     size_t ShardByKey(const std::string& key) const override;
-
-    const std::string& GetAnyKeyForShard(size_t shard_idx) const override;
-
-    std::shared_ptr<Client> GetClientForShard(size_t shard_idx) override;
 
     // redis commands:
 
@@ -90,6 +87,12 @@ public:
         std::vector<std::string> args,
         const CommandControl& command_control
     ) override;
+    RequestGenericCommon GenericCommon(
+        std::string command,
+        std::vector<std::string> args,
+        size_t key_index,
+        const CommandControl& command_control
+    ) override;
 
     RequestScriptLoad ScriptLoad(std::string script, size_t shard, const CommandControl& command_control) override;
 
@@ -99,9 +102,19 @@ public:
 
     RequestExpire Expire(std::string key, std::chrono::seconds ttl, const CommandControl& command_control) override;
 
+    RequestExpire Expire(
+        std::string key,
+        std::chrono::seconds ttl,
+        ExpireOptions options,
+        const CommandControl& command_control
+    ) override;
+
     RequestGeoadd Geoadd(std::string key, GeoaddArg point_member, const CommandControl& command_control) override;
 
     RequestGeoadd Geoadd(std::string key, std::vector<GeoaddArg> point_members, const CommandControl& command_control)
+        override;
+
+    RequestGeopos Geopos(std::string key, std::vector<std::string> members, const CommandControl& command_control)
         override;
 
     RequestGeoradius Georadius(
@@ -166,8 +179,12 @@ public:
     RequestHincrby Hincrby(std::string key, std::string field, int64_t increment, const CommandControl& command_control)
         override;
 
-    RequestHincrbyfloat
-    Hincrbyfloat(std::string key, std::string field, double increment, const CommandControl& command_control) override;
+    RequestHincrbyfloat Hincrbyfloat(
+        std::string key,
+        std::string field,
+        double increment,
+        const CommandControl& command_control
+    ) override;
 
     RequestHkeys Hkeys(std::string key, const CommandControl& command_control) override;
 
@@ -257,8 +274,11 @@ public:
 
     RequestSet Set(std::string key, std::string value, const CommandControl& command_control) override;
 
-    RequestSet
-    Set(std::string key, std::string value, std::chrono::milliseconds ttl, const CommandControl& command_control
+    RequestSet Set(
+        std::string key,
+        std::string value,
+        std::chrono::milliseconds ttl,
+        const CommandControl& command_control
     ) override;
 
     RequestSetIfExist SetIfExist(std::string key, std::string value, const CommandControl& command_control) override;
@@ -274,6 +294,19 @@ public:
         override;
 
     RequestSetIfNotExist SetIfNotExist(
+        std::string key,
+        std::string value,
+        std::chrono::milliseconds ttl,
+        const CommandControl& command_control
+    ) override;
+
+    RequestSetIfNotExistOrGet SetIfNotExistOrGet(
+        std::string key,
+        std::string value,
+        const CommandControl& command_control
+    ) override;
+
+    RequestSetIfNotExistOrGet SetIfNotExistOrGet(
         std::string key,
         std::string value,
         std::chrono::milliseconds ttl,
@@ -336,8 +369,12 @@ public:
     RequestZaddIncr ZaddIncr(std::string key, double score, std::string member, const CommandControl& command_control)
         override;
 
-    RequestZaddIncrExisting
-    ZaddIncrExisting(std::string key, double score, std::string member, const CommandControl& command_control) override;
+    RequestZaddIncrExisting ZaddIncrExisting(
+        std::string key,
+        double score,
+        std::string member,
+        const CommandControl& command_control
+    ) override;
 
     RequestZcard Zcard(std::string key, const CommandControl& command_control) override;
 
@@ -345,14 +382,22 @@ public:
 
     RequestZrange Zrange(std::string key, int64_t start, int64_t stop, const CommandControl& command_control) override;
 
-    RequestZrangeWithScores
-    ZrangeWithScores(std::string key, int64_t start, int64_t stop, const CommandControl& command_control) override;
+    RequestZrangeWithScores ZrangeWithScores(
+        std::string key,
+        int64_t start,
+        int64_t stop,
+        const CommandControl& command_control
+    ) override;
 
     RequestZrangebyscore Zrangebyscore(std::string key, double min, double max, const CommandControl& command_control)
         override;
 
-    RequestZrangebyscore
-    Zrangebyscore(std::string key, std::string min, std::string max, const CommandControl& command_control) override;
+    RequestZrangebyscore Zrangebyscore(
+        std::string key,
+        std::string min,
+        std::string max,
+        const CommandControl& command_control
+    ) override;
 
     RequestZrangebyscore Zrangebyscore(
         std::string key,
@@ -370,8 +415,12 @@ public:
         const CommandControl& command_control
     ) override;
 
-    RequestZrangebyscoreWithScores
-    ZrangebyscoreWithScores(std::string key, double min, double max, const CommandControl& command_control) override;
+    RequestZrangebyscoreWithScores ZrangebyscoreWithScores(
+        std::string key,
+        double min,
+        double max,
+        const CommandControl& command_control
+    ) override;
 
     RequestZrangebyscoreWithScores ZrangebyscoreWithScores(
         std::string key,
@@ -400,14 +449,26 @@ public:
 
     RequestZrem Zrem(std::string key, std::vector<std::string> members, const CommandControl& command_control) override;
 
-    RequestZremrangebyrank
-    Zremrangebyrank(std::string key, int64_t start, int64_t stop, const CommandControl& command_control) override;
+    RequestZremrangebyrank Zremrangebyrank(
+        std::string key,
+        int64_t start,
+        int64_t stop,
+        const CommandControl& command_control
+    ) override;
 
-    RequestZremrangebyscore
-    Zremrangebyscore(std::string key, double min, double max, const CommandControl& command_control) override;
+    RequestZremrangebyscore Zremrangebyscore(
+        std::string key,
+        double min,
+        double max,
+        const CommandControl& command_control
+    ) override;
 
-    RequestZremrangebyscore
-    Zremrangebyscore(std::string key, std::string min, std::string max, const CommandControl& command_control) override;
+    RequestZremrangebyscore Zremrangebyscore(
+        std::string key,
+        std::string min,
+        std::string max,
+        const CommandControl& command_control
+    ) override;
 
     ScanRequest<ScanTag::kZscan> Zscan(std::string key, ZscanOptions options, const CommandControl& command_control)
         override;

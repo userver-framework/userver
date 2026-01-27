@@ -14,6 +14,10 @@
 
 #include <userver/formats/common/meta.hpp>
 
+namespace boost::uuids {
+struct uuid;
+}
+
 USERVER_NAMESPACE_BEGIN
 
 namespace utils::impl::strong_typedef {
@@ -54,7 +58,7 @@ constexpr inline bool kIsSerializeAllowedInWriteToStream = true;
 // Array like types serialization
 template <typename T, typename StringBuilder>
 void WriteToStreamArray(const T& value, StringBuilder& sw) {
-    typename StringBuilder::ArrayGuard guard(sw);
+    const typename StringBuilder::ArrayGuard guard(sw);
     for (const auto& item : value) {
         // explicit cast for vector<bool> shenanigans
         WriteToStream(static_cast<const meta::RangeValueType<T>&>(item), sw);
@@ -64,7 +68,7 @@ void WriteToStreamArray(const T& value, StringBuilder& sw) {
 // Dict like types serialization
 template <typename T, typename StringBuilder>
 void WriteToStreamDict(const T& value, StringBuilder& sw) {
-    typename StringBuilder::ObjectGuard guard(sw);
+    const typename StringBuilder::ObjectGuard guard(sw);
     for (const auto& [key, item] : value) {
         sw.Key(key);
         WriteToStream(item, sw);
@@ -85,6 +89,10 @@ WriteToStream(const T& value, StringBuilder& sw) {
     if constexpr (meta::kIsMap<T>) {
         impl::WriteToStreamDict(value, sw);
     } else if constexpr (meta::kIsRange<T>) {
+        static_assert(
+            !std::is_same_v<T, boost::uuids::uuid>,
+            "Include <userver/formats/serialize/boost_uuid.hpp> to serialize 'boost::uuids::uuid"
+        );
         static_assert(
             !meta::kIsRecursiveRange<T>,
             "Trying to log a recursive range, which can be dangerous. "

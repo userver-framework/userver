@@ -1,76 +1,196 @@
 #pragma once
 
+/// @file
+/// @brief Definitions of structures representing options for different commands
+
 #include <optional>
 #include <string>
+#include <vector>
 
+#include <userver/storages/redis/base.hpp>
+#include <userver/storages/redis/command_control.hpp>
 #include <userver/storages/redis/exception.hpp>
-#include <userver/storages/redis/impl/base.hpp>
-#include <userver/storages/redis/impl/command_options.hpp>
-
 #include <userver/storages/redis/scan_tag.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::redis {
 
-using Longitude = USERVER_NAMESPACE::redis::Longitude;
-using Latitude = USERVER_NAMESPACE::redis::Latitude;
-using BoxWidth = USERVER_NAMESPACE::redis::BoxWidth;
-using BoxHeight = USERVER_NAMESPACE::redis::BoxHeight;
-using CommandControl = USERVER_NAMESPACE::redis::CommandControl;
-using RangeOptions = USERVER_NAMESPACE::redis::RangeOptions;
-using GeoaddArg = USERVER_NAMESPACE::redis::GeoaddArg;
-using GeoradiusOptions = USERVER_NAMESPACE::redis::GeoradiusOptions;
-using GeosearchOptions = USERVER_NAMESPACE::redis::GeosearchOptions;
-using ZaddOptions = USERVER_NAMESPACE::redis::ZaddOptions;
+using Longitude = utils::StrongTypedef<struct LongitudeTag, double>;
+using Latitude = utils::StrongTypedef<struct LatitudeTag, double>;
+using BoxWidth = utils::StrongTypedef<struct BoxWidthTag, double>;
+using BoxHeight = utils::StrongTypedef<struct BoxHeightTag, double>;
 
-class ScanOptionsBase {
+struct RangeOptions {
+    std::optional<size_t> offset;
+    std::optional<size_t> count;
+};
+
+struct GeoaddArg {
+    double lon;
+    double lat;
+    std::string member;
+};
+
+struct GeoradiusOptions {
+    enum class Sort { kNone, kAsc, kDesc };
+    enum class Unit { kM, kKm, kMi, kFt };
+
+    Unit unit = Unit::kM;
+    bool withcoord = false;
+    bool withdist = false;
+    bool withhash = false;
+    size_t count = 0;
+    Sort sort = Sort::kNone;
+};
+
+struct GeosearchOptions {
+    enum class Sort { kNone, kAsc, kDesc };
+    enum class Unit { kM, kKm, kMi, kFt };
+
+    Unit unit = Unit::kM;
+    bool withcoord = false;
+    bool withdist = false;
+    bool withhash = false;
+    size_t count = 0;
+    Sort sort = Sort::kNone;
+};
+
+struct ZaddOptions {
+    enum class Exist { kAddAlways, kAddIfNotExist, kAddIfExist };
+    enum class Compare { kNone, kGreaterThan, kLessThan };
+    enum class ReturnValue { kAddedCount, kChangedCount };
+
+    ZaddOptions() = default;
+    constexpr ZaddOptions(
+        Exist exist,
+        ReturnValue return_value = ReturnValue::kAddedCount,
+        Compare compare = Compare::kNone
+    )
+        : exist(exist),
+          compare(compare),
+          return_value(return_value)
+    {}
+    constexpr ZaddOptions(Exist exist, Compare compare, ReturnValue return_value = ReturnValue::kAddedCount)
+        : exist(exist),
+          compare(compare),
+          return_value(return_value)
+    {}
+
+    constexpr ZaddOptions(ReturnValue return_value, Exist exist = Exist::kAddAlways, Compare compare = Compare::kNone)
+        : exist(exist),
+          compare(compare),
+          return_value(return_value)
+    {}
+    constexpr ZaddOptions(ReturnValue return_value, Compare compare, Exist exist = Exist::kAddAlways)
+        : exist(exist),
+          compare(compare),
+          return_value(return_value)
+    {}
+
+    constexpr ZaddOptions(
+        Compare compare,
+        Exist exist = Exist::kAddAlways,
+        ReturnValue return_value = ReturnValue::kAddedCount
+    )
+        : exist(exist),
+          compare(compare),
+          return_value(return_value)
+    {}
+    constexpr ZaddOptions(Compare compare, ReturnValue return_value, Exist exist = Exist::kAddAlways)
+        : exist(exist),
+          compare(compare),
+          return_value(return_value)
+    {}
+
+    Exist exist = Exist::kAddAlways;
+    Compare compare = Compare::kNone;
+    ReturnValue return_value = ReturnValue::kAddedCount;
+};
+
+constexpr ZaddOptions operator|(ZaddOptions::Exist exist, ZaddOptions::ReturnValue return_value) {
+    return {exist, return_value};
+}
+constexpr ZaddOptions operator|(ZaddOptions::Exist exist, ZaddOptions::Compare compare) { return {exist, compare}; }
+constexpr ZaddOptions operator|(ZaddOptions::Compare compare, ZaddOptions::Exist exist) { return {compare, exist}; }
+constexpr ZaddOptions operator|(ZaddOptions::Compare compare, ZaddOptions::ReturnValue return_value) {
+    return {compare, return_value};
+}
+constexpr ZaddOptions operator|(ZaddOptions::ReturnValue return_value, ZaddOptions::Exist exist) {
+    return {return_value, exist};
+}
+constexpr ZaddOptions operator|(ZaddOptions::ReturnValue return_value, ZaddOptions::Compare compare) {
+    return {return_value, compare};
+}
+
+/// @brief A command option to use in Scan, Hscan, Scan and Zscan commands.
+///
+/// Sample usage:
+/// @snippet redis/src/storages/redis/client_scan_redistest.cpp  Sample Scan usage
+class Match final {
 public:
-    ScanOptionsBase() = default;
-    ScanOptionsBase(ScanOptionsBase& other) = default;
-    ScanOptionsBase(const ScanOptionsBase& other) = default;
+    explicit Match(std::string value)
+        : value_(std::move(value))
+    {}
 
-    ScanOptionsBase(ScanOptionsBase&& other) = default;
+    const std::string& Get() const& { return value_; }
+
+    std::string Get() && { return std::move(value_); }
+
+private:
+    std::string value_;
+};
+
+/// @brief A hint for Scan, Hscan, Scan and Zscan commands.
+class Count final {
+public:
+    explicit constexpr Count(std::size_t value) noexcept : value_(value) {}
+
+    constexpr std::size_t Get() const noexcept { return value_; }
+
+private:
+    std::size_t value_;
+};
+
+/// @brief A command option to use in Scan, Hscan, Scan and Zscan commands that combines Match and Count options.
+class ScanOptionsGeneric {
+public:
+    using Match = storages::redis::Match;
+    using Count = storages::redis::Count;
+
+    ScanOptionsGeneric() = default;
+
+    ScanOptionsGeneric(const ScanOptionsGeneric& other) = default;
+    ScanOptionsGeneric& operator=(const ScanOptionsGeneric& other) = default;
+
+    ScanOptionsGeneric(ScanOptionsGeneric&& other) = default;
+    ScanOptionsGeneric& operator=(ScanOptionsGeneric&& other) = default;
 
     template <typename... Args>
-    ScanOptionsBase(Args&&... args) {
-        (Apply(std::forward<Args>(args)), ...);
+    ScanOptionsGeneric(Args... args) {
+        (Apply(std::move(args)), ...);
     }
 
-    class Match {
-    public:
-        explicit Match(std::string value) : value_(std::move(value)) {}
+    const std::optional<Match>& GetMatchOptional() const noexcept { return pattern_; }
 
-        const std::string& Get() const& { return value_; }
+    const std::optional<Count>& GetCountOptional() const noexcept { return count_; }
 
-        std::string Get() && { return std::move(value_); }
+    std::optional<Match> ExtractMatch() noexcept { return std::move(pattern_); }
 
-    private:
-        std::string value_;
-    };
-
-    class Count {
-    public:
-        explicit Count(size_t value) : value_(value) {}
-
-        size_t Get() const { return value_; }
-
-    private:
-        size_t value_;
-    };
-
-    std::optional<Match> ExtractMatch() { return std::move(pattern_); }
-
-    std::optional<Count> ExtractCount() { return std::move(count_); }
+    std::optional<Count> ExtractCount() noexcept { return std::move(count_); }
 
 private:
     void Apply(Match pattern) {
-        if (pattern_) throw USERVER_NAMESPACE::redis::InvalidArgumentException("duplicate Match parameter");
+        if (pattern_) {
+            throw InvalidArgumentException("duplicate Match parameter");
+        }
         pattern_ = std::move(pattern);
     }
 
     void Apply(Count count) {
-        if (count_) throw USERVER_NAMESPACE::redis::InvalidArgumentException("duplicate Count parameter");
+        if (count_) {
+            throw InvalidArgumentException("duplicate Count parameter");
+        }
         count_ = count;
     }
 
@@ -78,19 +198,59 @@ private:
     std::optional<Count> count_;
 };
 
-// strong typedef
-template <ScanTag scan_tag>
-class ScanOptionsTmpl : public ScanOptionsBase {
-    using ScanOptionsBase::ScanOptionsBase;
+template <ScanTag TScanTag>
+using ScanOptionsTmpl [[deprecated("Just use ScanOptionsGeneric")]] = ScanOptionsGeneric;
+
+using ScanOptions = ScanOptionsGeneric;
+using SscanOptions = ScanOptionsGeneric;
+using HscanOptions = ScanOptionsGeneric;
+using ZscanOptions = ScanOptionsGeneric;
+
+struct SetOptions {
+    enum class Exist { kSetAlways, kSetIfNotExist, kSetIfExist };
+
+    int seconds = 0;
+    int milliseconds = 0;
+    Exist exist = Exist::kSetAlways;
 };
 
-using ScanOptions = ScanOptionsTmpl<ScanTag::kScan>;
-using SscanOptions = ScanOptionsTmpl<ScanTag::kSscan>;
-using HscanOptions = ScanOptionsTmpl<ScanTag::kHscan>;
-using ZscanOptions = ScanOptionsTmpl<ScanTag::kZscan>;
+struct ExpireOptions {
+    enum class Exist { kSetAlways, kSetIfNotExist, kSetIfExist };
+    enum class Compare { kNone, kGreaterThan, kLessThan };
 
-void PutArg(USERVER_NAMESPACE::redis::CmdArgs::CmdArgsArray& args_, std::optional<ScanOptionsBase::Match> arg);
-void PutArg(USERVER_NAMESPACE::redis::CmdArgs::CmdArgsArray& args_, std::optional<ScanOptionsBase::Count> arg);
+    ExpireOptions() = default;
+    constexpr ExpireOptions(Exist exist, Compare compare = Compare::kNone)
+        : exist(exist),
+          compare(compare)
+    {
+        if (exist == Exist::kSetIfNotExist && compare != Compare::kNone) {
+            // @see https://redis-docs.ru/commands/expire/
+            throw std::invalid_argument("When exist is kSetIfNotExist, compare must be kNone");
+        }
+    }
+
+    constexpr ExpireOptions(Compare compare, Exist exist = Exist::kSetAlways)
+        : exist(exist),
+          compare(compare)
+    {
+        if (exist == Exist::kSetIfNotExist && compare != Compare::kNone) {
+            // @see https://redis-docs.ru/commands/expire/
+            throw std::invalid_argument("When exist is kSetIfNotExist, compare must be kNone");
+        }
+    }
+
+    Exist exist = Exist::kSetAlways;
+    Compare compare = Compare::kNone;
+};
+
+struct ScoreOptions {
+    bool withscores = false;
+};
+
+struct RangeScoreOptions {
+    ScoreOptions score_options;
+    RangeOptions range_options;
+};
 
 }  // namespace storages::redis
 

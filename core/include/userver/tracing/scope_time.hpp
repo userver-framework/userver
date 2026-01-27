@@ -36,8 +36,12 @@ public:
 
     /// @brief Creates a tracing::ScopeTime attached to
     /// tracing::Span::CurrentSpan() and starts measuring execution time.
+    /// Tag `{scope_name}_time` with elapsed time is added to result span.
     ///
     /// Equivalent to tracing::Span::CurrentSpan().CreateScopeTime(scope_name)
+    ///
+    /// @note `scope_name` parameter is expected to satisfy snake case.
+    /// Otherwise, it is converted to snake case.
     explicit ScopeTime(std::string scope_name);
 
     /// @brief If there exists a tracing::Span::CurrentSpan(),

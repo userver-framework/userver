@@ -6,7 +6,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-UTEST(ConcurrentVariable, Ctr) { concurrent::Variable<int> variable; }
+UTEST(ConcurrentVariable, Ctr) { const concurrent::Variable<int> variable; }
 
 UTEST(ConcurrentVariable, UniqueLock) {
     concurrent::Variable<int> variable{41};

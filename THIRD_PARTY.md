@@ -81,7 +81,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 **[boost-cmake build scripts](https://github.com/Orphis/boost-cmake)**
 Copyright (c) 2016, Florent Castelli All rights reserved.
 
-**[Goggle Test library](https://github.com/google/googletest)**
+**[Google Test library](https://github.com/google/googletest)**
 Copyright 2008, Google Inc.
 
 **[Highlight.js library](https://github.com/highlightjs/highlight.js/)**

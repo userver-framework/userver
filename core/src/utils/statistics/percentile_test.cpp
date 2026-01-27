@@ -8,7 +8,7 @@ USERVER_NAMESPACE_BEGIN
 static_assert(utils::statistics::kHasWriterSupport<utils::statistics::Percentile<100>>);
 
 TEST(Percentile, Zero) {
-    utils::statistics::Percentile<100> p;
+    const utils::statistics::Percentile<100> p;
 
     EXPECT_EQ(0U, p.GetPercentile(0));
     EXPECT_EQ(0U, p.GetPercentile(50));
@@ -28,7 +28,9 @@ TEST(Percentile, One) {
 TEST(Percentile, Hundred) {
     utils::statistics::Percentile<100> p;
 
-    for (int i = 0; i < 100; i++) p.Account(i);
+    for (int i = 0; i < 100; i++) {
+        p.Account(i);
+    }
 
     EXPECT_EQ(0U, p.GetPercentile(0));
     EXPECT_EQ(50U, p.GetPercentile(50));

@@ -26,7 +26,9 @@ TempFile TempFile::Create(std::string_view parent_path, std::string_view name_pr
     return TempFile{std::move(path)};
 }
 
-TempFile::TempFile(std::string&& path) : path_(std::move(path)) {
+TempFile::TempFile(std::string&& path)
+    : path_(std::move(path))
+{
     UASSERT(boost::filesystem::exists(path_));
     UASSERT(!boost::filesystem::is_directory(path_));
 }
@@ -42,12 +44,14 @@ TempFile& TempFile::operator=(TempFile&& other) noexcept {
 }
 
 TempFile::~TempFile() {
-    if (path_.empty()) return;
+    if (path_.empty()) {
+        return;
+    }
 
     try {
         fs::blocking::RemoveSingleFile(path_);
     } catch (const std::exception& ex) {
-        LOG_ERROR() << ex;
+        LOG_ERROR() << "fs::blocking::~TempFile failed with exception: " << ex;
     }
 }
 

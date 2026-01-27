@@ -15,7 +15,7 @@ using namespace std::chrono_literals;
 USERVER_NAMESPACE_BEGIN
 
 TEST(SingleConsumerEvent, Ctr) {
-    engine::SingleConsumerEvent event;
+    const engine::SingleConsumerEvent event;
     EXPECT_TRUE(event.IsAutoReset());
     EXPECT_FALSE(event.IsReady());
 }
@@ -52,7 +52,9 @@ UTEST(SingleConsumerEvent, WaitAndSend) {
 UTEST(SingleConsumerEvent, WaitAndSendDouble) {
     engine::SingleConsumerEvent event;
     auto task = engine::AsyncNoSpan([&event]() {
-        for (int i = 0; i < 2; i++) EXPECT_TRUE(event.WaitForEvent());
+        for (int i = 0; i < 2; i++) {
+            EXPECT_TRUE(event.WaitForEvent());
+        }
     });
 
     for (int i = 0; i < 2; i++) {
@@ -69,7 +71,9 @@ UTEST(SingleConsumerEvent, SendAndWait) {
     std::atomic<bool> is_event_sent{false};
 
     auto task = engine::AsyncNoSpan([&event, &is_event_sent]() {
-        while (!is_event_sent) engine::SleepFor(10ms);
+        while (!is_event_sent) {
+            engine::SleepFor(10ms);
+        }
         EXPECT_TRUE(event.WaitForEvent());
     });
 
@@ -232,7 +236,7 @@ UTEST_MT(SingleConsumerEvent, AsConditionVariable, 4) {
     engine::SingleConsumerEvent event;
     /// [CV init]
 
-    auto incrementers = utils::GenerateFixedArray(GetThreadCount() - 1, [&](std::size_t) {
+    auto incrementors = utils::GenerateFixedArray(GetThreadCount() - 1, [&](std::size_t) {
         return engine::CriticalAsyncNoSpan([&count, &event] {
             while (!engine::current_task::ShouldCancel()) {
                 /// [CV notifier]
@@ -262,9 +266,9 @@ UTEST_MT(SingleConsumerEvent, AsConditionVariable, 4) {
     EXPECT_TRUE(count_acquired != 0);
     EXPECT_TRUE(count_acquired % 2 == 0);
 
-    for (auto& incrementer : incrementers) {
-        incrementer.RequestCancel();
-        UEXPECT_NO_THROW(incrementer.Get());
+    for (auto& incrementor : incrementors) {
+        incrementor.RequestCancel();
+        UEXPECT_NO_THROW(incrementor.Get());
     }
 }
 

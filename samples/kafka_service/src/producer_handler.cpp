@@ -6,6 +6,7 @@
 #include <userver/components/component_context.hpp>
 
 #include <userver/formats/json/inline.hpp>
+#include <userver/formats/json/serialize.hpp>
 #include <userver/formats/json/value.hpp>
 
 #include <produce.hpp>
@@ -43,7 +44,8 @@ bool IsCorrectRequest(const formats::json::Value& request_json) {
 /// [Kafka service sample - producer component find]
 ProducerHandler::ProducerHandler(const components::ComponentConfig& config, const components::ComponentContext& context)
     : server::handlers::HttpHandlerJsonBase{config, context},
-      producer_{context.FindComponent<kafka::ProducerComponent>().GetProducer()} {}
+      producer_{context.FindComponent<kafka::ProducerComponent>().GetProducer()}
+{}
 /// [Kafka service sample - producer component find]
 
 /// [Kafka service sample - producer handler implementation]
@@ -63,7 +65,7 @@ formats::json::Value ProducerHandler::HandleRequestJsonThrow(
         case SendStatus::kSuccess:
             return formats::json::MakeObject("message", "Message send successfully");
         case SendStatus::kErrorRetryable:
-            request.SetResponseStatus(server::http::HttpStatus::TooManyRequests);
+            request.SetResponseStatus(server::http::HttpStatus::kTooManyRequests);
             return formats::json::MakeObject("error", "Retry later");
         case SendStatus::kErrorNonRetryable:
             request.SetResponseStatus(server::http::HttpStatus::kBadRequest);

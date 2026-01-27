@@ -34,7 +34,10 @@ enum class AddrDomain {
     kUnix = AF_UNIX,           ///< Unix socket
 };
 
-static_assert(AF_UNSPEC == 0, "Your socket subsystem looks broken, please contact support chat.");
+static_assert(
+    AF_UNSPEC == 0,  // NOLINT(misc-redundant-expression)
+    "Your socket subsystem looks broken, please contact support chat."
+);
 
 /// Native socket address wrapper
 class Sockaddr final {

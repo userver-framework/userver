@@ -4,7 +4,8 @@
 
 #include <userver/engine/sleep.hpp>
 
-#include "server_common_sentinel_test.hpp"
+#include <storages/redis/impl/keyshard_impl.hpp>
+#include <storages/redis/impl/server_common_sentinel_test.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -14,15 +15,22 @@ namespace {
 constexpr auto kSentinelChangeHostsWaitingTime = std::chrono::milliseconds(500);
 constexpr auto kSentinelChangeHostsMaxAttempts = 10;
 
-auto MakeGetRequest(redis::Sentinel& sentinel, const std::string& key, redis::CommandControl cc = {}) {
+auto MakeGetRequest(
+    storages::redis::impl::Sentinel& sentinel,
+    const std::string& key,
+    storages::redis::CommandControl cc = {}
+) {
+    cc.consider_ping = false;
     return sentinel.MakeRequest({"get", key}, key, false, sentinel.GetCommandControl(cc));
 }
 
-bool CheckMasterChanged(redis::Sentinel& sentinel, const size_t expected_idx, int magic_value) {
+bool CheckMasterChanged(storages::redis::impl::Sentinel& sentinel, const size_t expected_idx, int magic_value) {
     for (auto i = 0; i < kSentinelChangeHostsMaxAttempts; ++i) {
         auto res = MakeGetRequest(sentinel, "value").Get();
         LOG_DEBUG() << "got reply with type=" << res->data.GetTypeString() << " data=" << res->data.ToDebugString();
-        if (static_cast<size_t>(res->data.GetInt() - magic_value) == expected_idx) return true;
+        if (static_cast<size_t>(res->data.GetInt() - magic_value) == expected_idx) {
+            return true;
+        }
         engine::SleepFor(kSentinelChangeHostsWaitingTime);
     }
     return false;
@@ -89,7 +97,7 @@ UTEST(Redis, SentinelMastersChangingErrors) {
             master_idx = i;
             std::vector<MockRedisServer::HandlerPtr> masters_handlers;
             for (size_t sentinel_idx = 0; sentinel_idx < sentinel_count; sentinel_idx++) {
-                size_t quorum = sentinel_count / 2 + 1;
+                const size_t quorum = sentinel_count / 2 + 1;
                 if (master_idx == bad_redis_idx && sentinel_idx < quorum) {
                     masters_handlers.push_back(
                         sentinel_test.Sentinel(sentinel_idx)
@@ -140,7 +148,7 @@ UTEST(Redis, SentinelMasterAndSlave) {
     }
 
     {
-        redis::CommandControl force_master_cc;
+        storages::redis::CommandControl force_master_cc;
         force_master_cc.force_request_to_master = true;
         auto res = MakeGetRequest(sentinel, "value", force_master_cc).Get();
         ASSERT_TRUE(res->data.IsInt());
@@ -167,7 +175,7 @@ UTEST(Redis, SentinelCcRetryToMasterOnNilReply) {
         EXPECT_TRUE(res->data.IsNil());
     }
     {
-        redis::CommandControl force_master_cc;
+        storages::redis::CommandControl force_master_cc;
         force_master_cc.max_retries = 1;
         force_master_cc.force_request_to_master = true;
         auto res = MakeGetRequest(sentinel, "slave_nil", force_master_cc).Get();
@@ -175,21 +183,21 @@ UTEST(Redis, SentinelCcRetryToMasterOnNilReply) {
         EXPECT_TRUE(res->data.GetInt() == magic_value_master);
     }
     {
-        redis::CommandControl no_force_master_cc;
+        storages::redis::CommandControl no_force_master_cc;
         no_force_master_cc.max_retries = 2;
         no_force_master_cc.force_request_to_master = false;
         auto res = MakeGetRequest(sentinel, "slave_nil", no_force_master_cc).Get();
         EXPECT_TRUE(res->data.IsNil());
     }
     {
-        redis::CommandControl cc;
+        storages::redis::CommandControl cc;
         cc.max_retries = 1;
         cc.force_retries_to_master_on_nil_reply = true;
         auto res = MakeGetRequest(sentinel, "slave_nil", cc).Get();
         EXPECT_TRUE(res->data.IsNil());
     }
     {
-        redis::CommandControl cc;
+        storages::redis::CommandControl cc;
         cc.max_retries = 2;
         cc.force_retries_to_master_on_nil_reply = true;
         auto res = MakeGetRequest(sentinel, "slave_nil", cc).Get();
@@ -197,7 +205,7 @@ UTEST(Redis, SentinelCcRetryToMasterOnNilReply) {
         EXPECT_TRUE(res->data.GetInt() == magic_value_master);
     }
     {
-        redis::CommandControl cc;
+        storages::redis::CommandControl cc;
         cc.max_retries = 2;
         auto res = MakeGetRequest(sentinel, "slave_nil", cc).Get();
         EXPECT_TRUE(res->data.IsNil());
@@ -206,7 +214,7 @@ UTEST(Redis, SentinelCcRetryToMasterOnNilReply) {
     auto slave_nil_handler = sentinel_test.Slave().RegisterNilReplyHandler("GET", {"master_nil"});
     auto master_nil_handler = sentinel_test.Master().RegisterNilReplyHandler("GET", {"master_nil"});
     {
-        redis::CommandControl cc;
+        storages::redis::CommandControl cc;
         cc.max_retries = 5;
         cc.force_retries_to_master_on_nil_reply = true;
         auto res = MakeGetRequest(sentinel, "master_nil", cc).Get();
@@ -214,6 +222,31 @@ UTEST(Redis, SentinelCcRetryToMasterOnNilReply) {
         EXPECT_EQ(slave_nil_handler->GetReplyCount(), 1UL);
         EXPECT_EQ(master_nil_handler->GetReplyCount(), 1UL);
     }
+}
+
+UTEST(Redis, SentinelClusterdown) {
+    const size_t master_count = 3;
+    ClusterTest sentinel_test{master_count};
+    auto& sentinel = sentinel_test.SentinelClient();
+
+    EXPECT_TRUE(sentinel_test.Master().WaitForFirstPingReply(kSmallPeriod));
+    EXPECT_TRUE(sentinel_test.Slave().WaitForFirstPingReply(kSmallPeriod));
+
+    for (auto& server : sentinel_test.Slaves()) {
+        server->RegisterErrorReplyHandler("GET", "CLUSTERDOWN");
+    }
+
+    for (auto& server : sentinel_test.Masters()) {
+        server->RegisterErrorReplyHandler("GET", "CLUSTERDOWN");
+    }
+
+    storages::redis::CommandControl cc;
+    cc.max_retries = 2;
+    std::string key = "some key";
+    auto res = sentinel.MakeRequest({"GET", key}, key, false, sentinel.GetCommandControl(cc)).Get();
+    EXPECT_TRUE(!res->IsOk());
+    EXPECT_TRUE(res->status != storages::redis::ReplyStatus::kOk);
+    EXPECT_TRUE(res->data.IsError());
 }
 
 UTEST(Redis, SentinelForceShardIdx) {
@@ -225,9 +258,10 @@ UTEST(Redis, SentinelForceShardIdx) {
     auto& sentinel = sentinel_test.SentinelClient();
 
     for (size_t shard_idx = 0; shard_idx < shard_count; shard_idx++) {
-        EXPECT_TRUE(sentinel_test.Master(shard_idx).WaitForFirstPingReply(kSentinelChangeHostsWaitingTime))
-            << "shard_idx=" << shard_idx;
-        redis::CommandControl cc;
+        EXPECT_TRUE(sentinel_test.Master(shard_idx).WaitForFirstPingReply(kSentinelChangeHostsWaitingTime)
+        ) << "shard_idx="
+          << shard_idx;
+        storages::redis::CommandControl cc;
         cc.force_shard_idx = shard_idx;
         auto res = MakeGetRequest(sentinel, "value", cc).Get();
         LOG_DEBUG() << "got reply with type=" << res->data.GetTypeString() << " data=" << res->data.ToDebugString();

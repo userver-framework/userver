@@ -59,7 +59,10 @@ private:
 class MoodycamelExplicit final {
 public:
     explicit MoodycamelExplicit(std::size_t producer_count)
-        : queue_(0, producer_count, 0), producer_tokens_(producer_count, queue_), consumer_token_(queue_) {}
+        : queue_(0, producer_count, 0),
+          producer_tokens_(producer_count, queue_),
+          consumer_token_(queue_)
+    {}
 
     void Produce(std::size_t producer_id) { queue_.enqueue(producer_tokens_[producer_id], 0); }
 
@@ -91,7 +94,7 @@ public:
     void Produce(std::size_t /*producer_id*/) { queue_.Push(*new Node()); }
 
     bool TryConsume() {
-        auto* const node = queue_.TryPopBlocking();
+        const auto* node = queue_.TryPopBlocking();
         if (node) {
             benchmark::DoNotOptimize(node->foo);
             delete node;
@@ -136,7 +139,9 @@ void MpscQueueProduce(benchmark::State& state) {
     }
 
     keep_running = false;
-    for (auto& producer : producers) producer.get();
+    for (auto& producer : producers) {
+        producer.get();
+    }
     consumer.get();
 }
 
@@ -167,7 +172,9 @@ void MpscQueueConsume(benchmark::State& state) {
     }
 
     keep_running = false;
-    for (auto& producer : producers) producer.get();
+    for (auto& producer : producers) {
+        producer.get();
+    }
 }
 
 BENCHMARK_TEMPLATE(MpscQueueConsume, BoostLockfree)->RangeMultiplier(2)->Range(1, 32);

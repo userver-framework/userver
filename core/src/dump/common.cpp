@@ -5,6 +5,7 @@
 #include <boost/endian/conversion.hpp>
 #include <boost/uuid/uuid.hpp>
 
+#include <userver/formats/json/serialize.hpp>
 #include <userver/formats/json/value.hpp>
 #include <userver/utils/assert.hpp>
 

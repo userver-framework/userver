@@ -33,7 +33,7 @@ constexpr bool AreAllDumpable(std::index_sequence<Indices...>) {
 
 template <typename T>
 constexpr bool IsDumpableAggregate() {
-    if constexpr (std::is_aggregate_v<T> && !meta::kIsDetected<IsNotDumpedAggregate, T>) {
+    if constexpr (std::is_aggregate_v<T> && !meta::IsDetected<IsNotDumpedAggregate, T>) {
         constexpr auto kSize = boost::pfr::tuple_size_v<T>;
         static_assert(
             AreAllDumpable<T>(std::make_index_sequence<kSize>{}),

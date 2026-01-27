@@ -1,0 +1,47 @@
+#include <clients/{{ name }}/exceptions.hpp>
+
+#include <userver/clients/http/error_kind.hpp>
+
+namespace {{ namespace }} {
+
+Exception::~Exception() = default;
+
+HttpException::HttpException(USERVER_NAMESPACE::clients::http::ErrorKind error_kind)
+  : USERVER_NAMESPACE::chaotic::openapi::client::HttpException(error_kind)
+{}
+
+ExceptionWithStatusCode::ExceptionWithStatusCode(int status_code)
+  : USERVER_NAMESPACE::chaotic::openapi::client::ExceptionWithStatusCode(status_code)
+{}
+
+TimeoutException::~TimeoutException() = default;
+
+{% for op in operations %}
+  {% if op.client_generate %}
+
+namespace {{ op.cpp_namespace() }} {
+
+const char* Exception::what() const noexcept {
+    return HandleInfo().data();
+}
+
+std::string_view Exception::HandleInfo() const noexcept {
+    return kHandleInfo;
+}
+
+HttpException::~HttpException() = default;
+
+TimeoutException::TimeoutException() 
+  : HttpException(USERVER_NAMESPACE::clients::http::ErrorKind::kTimeout) 
+{}
+
+TimeoutException::~TimeoutException() = default;
+
+ExceptionWithStatusCode::~ExceptionWithStatusCode() = default;
+
+} // namespace
+
+  {% endif %}
+{% endfor %}
+
+}

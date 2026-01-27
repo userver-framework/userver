@@ -1,0 +1,82 @@
+syntax = "proto3";
+
+package types;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/duration.proto";
+
+enum TestEnum {
+    TEST_ENUM_UNSPECIFIED = 0;
+    TEST_ENUM_VALUE_1 = 1;
+    TEST_ENUM_VALUE_2 = 2;
+}
+
+message ConstrainedMessage {
+    option (buf.validate.message).cel = {
+        id: "constrained_message.general",
+        message: "sum is greater than 10",
+        expression: "this.required_rule + this.in_rule <= 10",
+    };
+
+    int32 required_rule = 1 [(buf.validate.field).required = true];
+    optional bool const_rule = 2 [(buf.validate.field).bool.const = true];
+    optional google.protobuf.Duration lt_rule = 3 [(buf.validate.field).duration.lt = { seconds: 5 }];
+    optional double gt_rule = 4 [(buf.validate.field).double.gt = 5.5];
+    optional int32 in_rule = 5 [(buf.validate.field).int32 = { in: [1, 2, 3] }];
+    optional string not_in_rule = 6 [(buf.validate.field).string = { not_in: ["aaa", "bbb"] }];
+    optional string uuid_rule = 7 [(buf.validate.field).string.uuid = true];
+    optional string regex_rule = 8 [(buf.validate.field).string.pattern = "Hello, *"];
+    optional TestEnum defined_only_rule = 9 [(buf.validate.field).enum.defined_only = true];
+    repeated int32 unique_gt_rule = 10 [
+        (buf.validate.field).repeated.unique = true,
+        (buf.validate.field).repeated.items = {
+            int32: {
+                gt: 10
+            }
+        }
+    ];
+    map<string, int32> keys_values_rule = 11 [
+        (buf.validate.field).map.keys = {
+            string: {
+                min_len: 1
+                max_len: 3
+            }
+        },
+        (buf.validate.field).map.values = {
+            int32: {
+                lte: 0
+            }
+        }
+    ];
+}
+
+message ConstrainedRequest {
+    option (buf.validate.message).cel = {
+        id: "constrained_request.general",
+        message: "field is greater than 10",
+        expression: "this.field <= 10",
+    };
+
+    optional int32 field = 1 [(buf.validate.field).int32.gte = -3];
+    repeated ConstrainedMessage messages = 2;
+}
+
+message ConstrainedResponse {
+    option (buf.validate.message).cel = {
+        id: "constrained_response.general",
+        message: "field is greater than 10",
+        expression: "this.field <= 10",
+    };
+
+    optional int32 field = 1 [(buf.validate.field).int32.gte = -3];
+    repeated ConstrainedMessage messages = 2;
+}
+
+message InvalidConstraints {
+    option (buf.validate.message).cel = {
+        id: "invalid_constraints",
+        expression: "this.non_existent_field <= 10",
+    };
+
+    int32 field = 1;
+}

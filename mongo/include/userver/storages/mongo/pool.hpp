@@ -11,7 +11,9 @@
 #include <userver/dynamic_config/fwd.hpp>
 #include <userver/storages/mongo/collection.hpp>
 #include <userver/storages/mongo/pool_config.hpp>
+#include <userver/storages/mongo/transaction.hpp>
 #include <userver/utils/statistics/fwd.hpp>
+#include <userver/utils/zstring_view.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -34,31 +36,12 @@ class PoolImpl;
 /// @snippet storages/mongo/collection_mongotest.hpp  Sample Mongo usage
 class Pool {
 public:
-    /// @cond
-
-    /// Client pool constructor, for internal use only
-    /// @param id pool identification string
-    /// @param uri database connection string
-    /// @param pool_config static config
-    /// @param dns_resolver asynchronous resolver or `nullptr`
-    /// @param config_source dynamic config
-    Pool(
-        std::string id,
-        const std::string& uri,
-        const PoolConfig& pool_config,
-        clients::dns::Resolver* dns_resolver,
-        dynamic_config::Source config_source
-    );
-
+    Pool(Pool&&) noexcept;
+    Pool& operator=(Pool&&) noexcept;
     ~Pool();
 
-    void Start();
-
-    void Stop();
-    /// @endcond
-
     /// Checks whether a collection exists
-    bool HasCollection(const std::string& name) const;
+    bool HasCollection(utils::zstring_view name) const;
 
     /// Returns a handle for the specified collection
     Collection GetCollection(std::string name) const;
@@ -70,13 +53,32 @@ public:
     /// Get a list of all the collection names in the associated database
     std::vector<std::string> ListCollectionNames() const;
 
+    /// @throws storages::mongo::MongoException if failed to connect to the mongo server.
     void Ping();
 
-    /// Writes pool statistics
+    /// @brief Begin a new transaction
+    /// @return Transaction handle for executing operations within transaction context
+    /// @throws MongoException if transaction cannot be started
+    Transaction BeginTransaction() const;
+
+    /// @cond
+    // For internal use only
+    Pool(
+        std::string id,
+        const std::string& uri,
+        const PoolConfig& pool_config,
+        clients::dns::Resolver* dns_resolver,
+        dynamic_config::Source config_source
+    );
+
+    // Writes pool statistics
     friend void DumpMetric(utils::statistics::Writer& writer, const Pool& pool);
 
-    /// Sets new dynamic pool settings
+    // Sets new dynamic pool settings
     void SetPoolSettings(const PoolSettings& pool_settings);
+
+    void SetConnectionString(const std::string& connection_string);
+    /// @endcond
 
 private:
     std::shared_ptr<impl::PoolImpl> impl_;

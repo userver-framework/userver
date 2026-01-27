@@ -21,8 +21,10 @@ namespace utils::statistics {
 /// @code
 /// metric-path: some-label=label-value, other-label=other-label-value\tRATE\t42
 /// @endcode
-std::string
-ToPrettyFormat(const utils::statistics::Storage& statistics, const utils::statistics::Request& statistics_request = {});
+std::string ToPrettyFormat(
+    const utils::statistics::Storage& statistics,
+    const utils::statistics::Request& statistics_request = {}
+);
 
 }  // namespace utils::statistics
 

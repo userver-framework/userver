@@ -13,16 +13,17 @@ USERVER_NAMESPACE_BEGIN
 namespace server::handlers {
 namespace {
 
-const std::string kLogger = "logger";
-const std::string kLevel = "level";
-const std::string kReset = "reset";
+constexpr utils::StringLiteral kLogger = "logger";
+constexpr utils::StringLiteral kLevel = "level";
+constexpr utils::StringLiteral kReset = "reset";
 
 }  // namespace
 
 LogLevel::LogLevel(const components::ComponentConfig& config, const components::ComponentContext& context)
     : HttpHandlerBase(config, context, /*is_monitor = */ true),
       logging_component_(context.FindComponent<components::Logging>()),
-      data_(Data{logging::GetDefaultLoggerLevel(), {}}) {}
+      data_(Data{logging::GetDefaultLoggerLevel(), {}})
+{}
 
 std::string LogLevel::HandleRequestThrow(const http::HttpRequest& request, request::RequestContext& context) const {
     switch (request.GetMethod()) {
@@ -38,7 +39,7 @@ std::string LogLevel::HandleRequestThrow(const http::HttpRequest& request, reque
 std::string LogLevel::ProcessGet(const http::HttpRequest& request, request::RequestContext&) const {
     const std::string& level_arg = request.GetPathArg(kLevel);
     if (!level_arg.empty()) {
-        std::string message = std::string{"unexpected parameter for log level getting: " + level_arg};
+        const std::string message = std::string{"unexpected parameter for log level getting: " + level_arg};
         throw ClientError(InternalMessage{message}, ExternalBody{message});
     }
     const std::string& logger_name = request.GetArg(kLogger);

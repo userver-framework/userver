@@ -4,14 +4,13 @@
 .mypy_cache
 .pytest_cache
 *.orig
-*.local
+/Makefile.local
 *.yawiki
 .ccache/
 .cache/
 .cores/
 /build*/
 /cmake-build-*/
-/docs/
 CMakeLists.txt.user
 compile_commands.json
 tags
@@ -22,3 +21,7 @@ static-analyzer-report
 .settings*
 .clangd
 .vscode
+scripts/docs/en/components_schema
+scripts/docs/en/dynamic_configs
+scripts/docs/en/versions.md
+scripts/docs/scripts/versions.js

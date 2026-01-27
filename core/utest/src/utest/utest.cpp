@@ -13,13 +13,3 @@ void PrintTo(std::chrono::microseconds us, std::ostream* os) { *os << us.count()
 void PrintTo(std::chrono::nanoseconds ns, std::ostream* os) { *os << ns.count() << "ns"; }
 
 }  // namespace testing
-
-USERVER_NAMESPACE_BEGIN
-
-namespace formats::json {
-
-void PrintTo(const Value& json, std::ostream* out) { Serialize(json, *out); }
-
-}  // namespace formats::json
-
-USERVER_NAMESPACE_END

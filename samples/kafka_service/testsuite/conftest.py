@@ -1,3 +1,5 @@
+import json
+
 import pytest
 
 # /// [Kafka service sample - kafka testsuite include]
@@ -8,6 +10,11 @@ pytest_plugins = ['pytest_userver.plugins.kafka']
 
 
 # /// [Kafka service sample - secdist]
+@pytest.fixture(scope='session')
+def kafka_components() -> list[str]:
+    return ['kafka-consumer', 'kafka-producer']
+
+
 @pytest.fixture(scope='session')
 def service_env(kafka_secdist) -> dict:
     """
@@ -23,7 +30,7 @@ def service_env(kafka_secdist) -> dict:
     }
     """
 
-    return {'SECDIST_CONFIG': kafka_secdist}
+    return {'SECDIST_CONFIG': json.dumps(kafka_secdist)}
     # /// [Kafka service sample - secdist]
 
 

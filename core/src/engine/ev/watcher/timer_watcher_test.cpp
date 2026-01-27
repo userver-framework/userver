@@ -16,7 +16,7 @@ UTEST(TimerWatcher, SingleShot) {
 
     engine::ev::TimerWatcher watcher(thread_control);
     watcher.SingleshotAsync(std::chrono::milliseconds(50), [&ec, &c, &mutex, &cv](std::error_code ec_arg) {
-        std::lock_guard<std::mutex> lock(mutex);
+        const std::lock_guard<std::mutex> lock(mutex);
         c++;
         ec = ec_arg;
         cv.notify_all();
@@ -43,7 +43,7 @@ UTEST(TimerWatcher, Cancel) {
 
     engine::ev::TimerWatcher watcher(thread_control);
     watcher.SingleshotAsync(std::chrono::milliseconds(50), [&c, &ec, &mutex, &cv](std::error_code ec_arg) {
-        std::lock_guard<std::mutex> lock(mutex);
+        const std::lock_guard<std::mutex> lock(mutex);
         c++;
         ec = ec_arg;
         cv.notify_all();
@@ -71,7 +71,7 @@ UTEST(TimerWatcher, CancelAfterExpire) {
 
     engine::ev::TimerWatcher watcher(thread_control);
     watcher.SingleshotAsync(std::chrono::milliseconds(50), [&c, &ec, &mutex, &cv](std::error_code ec_arg) {
-        std::lock_guard<std::mutex> lock(mutex);
+        const std::lock_guard<std::mutex> lock(mutex);
         c++;
         ec = ec_arg;
         cv.notify_all();

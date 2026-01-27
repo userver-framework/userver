@@ -3,6 +3,7 @@
 /// @file userver/storages/postgres/exceptions.hpp
 /// @brief Postgres errors
 
+#include <optional>
 #include <stdexcept>
 #include <string_view>
 
@@ -18,6 +19,14 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::postgres {
+
+namespace impl {
+
+// Provides nice to read messages for pattern strings that end on 'type'. For example:
+// fmt::format("Unexpected database type {}", OidPrettyPrint(oid));
+std::string OidPrettyPrint(Oid oid);
+
+}  // namespace impl
 
 /**
  * @page pg_errors uPg: Postgres errors
@@ -111,6 +120,7 @@ namespace storages::postgres {
  *       - InvalidInputBufferSize
  *       - InvalidParserCategory
  *       - InvalidTupleSizeRequested
+ *       - NarrowingOverflow
  *       - NonSingleColumnResultSet
  *       - NonSingleRowResultSet
  *       - NoBinaryParser
@@ -191,7 +201,10 @@ class RuntimeError : public Error {
 template <typename Base>
 class ServerError : public Base {
 public:
-    explicit ServerError(const Message& msg) : Base(msg.GetMessage()), msg_{msg} {}
+    explicit ServerError(const Message& msg)
+        : Base(msg.GetMessage()),
+          msg_{msg}
+    {}
 
     const Message& GetServerMessage() const { return msg_; }
 
@@ -613,6 +626,7 @@ public:
     ResultSetError(std::string msg);
 
     void AddMsgSuffix(std::string_view str);
+    void AddMsgPrefix(std::string_view str);
 
     const char* what() const noexcept override;
 
@@ -645,12 +659,12 @@ public:
     template <typename T>
     FieldValueIsNull(std::size_t field_index, std::string_view field_name, const T&)
         : ResultSetError(fmt::format(
-              "Field #{} name `{}` C++ type `{}` value is "
-              "null, forgot `std::optional`?",
+              "Field #{} name `{}` C++ type `{}` value is null, forgot `std::optional`?",
               field_index,
               field_name,
               compiler::GetTypeName<T>()
-          )) {}
+          ))
+    {}
 };
 
 /// @brief A value of a non-nullable type requested to be set null.
@@ -675,6 +689,7 @@ public:
 class UnknownBufferCategory : public ResultSetError {
 public:
     UnknownBufferCategory(std::string_view context, Oid type_oid);
+    UnknownBufferCategory(Oid type_oid, std::string_view cpp_field_type, std::string_view cpp_composite_type);
 
     const Oid type_oid;
 };
@@ -687,8 +702,7 @@ class NoBinaryParser : public ResultSetError {
 /// @brief Buffer size is invalid for a fixed-size type.
 /// Can occur when a wrong field type is requested for reply.
 class InvalidInputBufferSize : public ResultSetError {
-public:
-    InvalidInputBufferSize(std::size_t size, std::string_view message);
+    using ResultSetError::ResultSetError;
 };
 
 /// @brief Binary buffer contains invalid data.
@@ -709,7 +723,7 @@ public:
 /// contains more than one column.
 class NonSingleColumnResultSet : public ResultSetError {
 public:
-    NonSingleColumnResultSet(std::size_t actual_size, const std::string& type_name, const std::string& func);
+    NonSingleColumnResultSet(std::size_t actual_size, std::string_view type_name, std::string_view func);
 };
 
 /// @brief A result set containing a single row was expected
@@ -723,6 +737,13 @@ public:
 class FieldTupleMismatch : public ResultSetError {
 public:
     FieldTupleMismatch(std::size_t field_count, std::size_t tuple_size);
+};
+
+/// @brief A binary buffer contains a numeric value that does not fit
+/// into a given C++ value type.
+class NarrowingOverflow : public ResultSetError {
+public:
+    using ResultSetError::ResultSetError;
 };
 
 //@}
@@ -826,7 +847,8 @@ public:
               "Invalid enumeration value '{}' for enum type '{}'",
               USERVER_NAMESPACE::utils::UnderlyingValue(val),
               compiler::GetTypeName<Enum>()
-          )) {}
+          ))
+    {}
 };
 //@}
 

@@ -6,6 +6,7 @@
 
 #include <boost/lockfree/queue.hpp>
 
+#include <userver/compiler/impl/tsan.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/engine/task/task_with_result.hpp>
@@ -18,7 +19,7 @@ using namespace std::chrono_literals;
 
 USERVER_NAMESPACE_BEGIN
 
-TEST(SingleUseEvent, UnusedEvent) { engine::SingleUseEvent event; }
+TEST(SingleUseEvent, UnusedEvent) { const engine::SingleUseEvent event; }
 
 UTEST(SingleUseEvent, IsReady) {
     engine::SingleUseEvent event;
@@ -46,7 +47,9 @@ UTEST(SingleUseEvent, SendAndWait) {
     std::atomic<bool> is_event_sent{false};
 
     auto task = engine::AsyncNoSpan([&] {
-        while (!is_event_sent) engine::Yield();
+        while (!is_event_sent) {
+            engine::Yield();
+        }
         UEXPECT_NO_THROW(event.Wait());
     });
 
@@ -72,6 +75,7 @@ UTEST(SingleUseEvent, Sample) {
     sender.Get();
 }
 
+#if !USERVER_IMPL_HAS_TSAN
 UTEST_MT(SingleUseEvent, SimpleTaskQueue, 5) {
     struct SimpleTask final {
         std::uint64_t request;
@@ -105,7 +109,9 @@ UTEST_MT(SingleUseEvent, SimpleTaskQueue, 5) {
     auto server_task = utils::Async("server", [&] {
         while (keep_running_server) {
             SimpleTask* task{};
-            if (!task_queue.pop(task)) continue;
+            if (!task_queue.pop(task)) {
+                continue;
+            }
 
             task->response = task->request * 2;
             task->completion.Send();
@@ -115,10 +121,13 @@ UTEST_MT(SingleUseEvent, SimpleTaskQueue, 5) {
     engine::SleepFor(50ms);
 
     keep_running_clients = false;
-    for (auto& task : client_tasks) task.Get();
+    for (auto& task : client_tasks) {
+        task.Get();
+    }
     keep_running_server = false;
     server_task.Get();
 }
+#endif
 
 UTEST(SingleUseEvent, Cancellation) {
     engine::SingleUseEvent event;
@@ -163,6 +172,7 @@ UTEST_MT(SingleUseEvent, SendWaitRace, 2) {
     }
 }
 
+#if !USERVER_IMPL_HAS_TSAN
 UTEST_MT(SingleUseEvent, SendCancelRace, 3) {
     const auto test_deadline = engine::Deadline::FromDuration(100ms);
 
@@ -200,6 +210,7 @@ UTEST_MT(SingleUseEvent, SendCancelRace, 3) {
         }
     }
 }
+#endif
 
 namespace {
 
@@ -251,6 +262,7 @@ UTEST_P_MT(SingleUseEventWaitAny, WaitSendRace, 2) {
     }
 }
 
+#if !USERVER_IMPL_HAS_TSAN
 UTEST_P_MT(SingleUseEventWaitAny, SendCancelRace, 3) {
     const auto event_to_notify = GetParam();
     const auto test_deadline = engine::Deadline::FromDuration(50ms);
@@ -286,5 +298,6 @@ UTEST_P_MT(SingleUseEventWaitAny, SendCancelRace, 3) {
         }
     }
 }
+#endif
 
 USERVER_NAMESPACE_END

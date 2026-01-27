@@ -16,8 +16,8 @@ namespace {
 
 class Messenger final : public sample::ugrpc::UnitTestServiceBase {
 public:
-    void SayHello(SayHelloCall& call, sample::ugrpc::GreetingRequest&& /*request*/) override {
-        call.Finish(sample::ugrpc::GreetingResponse{});
+    SayHelloResult SayHello(CallContext& /*context*/, ::sample::ugrpc::GreetingRequest&& /*request*/) override {
+        return sample::ugrpc::GreetingResponse{};
     }
 };
 
@@ -27,23 +27,20 @@ using MiddlewareFlags = utils::Flags<MiddlewareFlag>;
 
 class Middleware final : public ugrpc::server::MiddlewareBase {
 public:
-    Middleware(MiddlewareFlag settings) : settings_(settings) {}
+    Middleware(MiddlewareFlag settings)
+        : settings_(settings)
+    {}
 
-    void Handle(ugrpc::server::MiddlewareCallContext& context) const override { context.Next(); }
-
-    void CallRequestHook(const ugrpc::server::MiddlewareCallContext& context, google::protobuf::Message&) override {
+    void PostRecvMessage(ugrpc::server::MiddlewareCallContext& context, google::protobuf::Message&) const override {
         if (settings_ == MiddlewareFlag::kErrorInRequestHook) {
-            context.GetCall().FinishWithError(
-                ::grpc::Status(::grpc::StatusCode::DATA_LOSS, "Data loss error in request hook")
-            );
+            return context.SetError(::grpc::Status(::grpc::StatusCode::DATA_LOSS, "Data loss error in request hook"));
         }
     }
 
-    void CallResponseHook(const ugrpc::server::MiddlewareCallContext& context, google::protobuf::Message&) override {
+    void PreSendMessage(ugrpc::server::MiddlewareCallContext& context, google::protobuf::Message&) const override {
         if (settings_ == MiddlewareFlag::kErrorInResponseHook) {
-            context.GetCall().FinishWithError(
-                ::grpc::Status(::grpc::StatusCode::OUT_OF_RANGE, "Out of range error in response hook")
-            );
+            return context
+                .SetError(::grpc::Status(::grpc::StatusCode::OUT_OF_RANGE, "Out of range error in response hook"));
         }
     }
 
@@ -51,25 +48,26 @@ private:
     MiddlewareFlag settings_;
 };
 
-class MockMessengerServiceFixture : public ugrpc::tests::ServiceFixtureBase,
-                                    public testing::WithParamInterface<MiddlewareFlags> {
+// NOLINTNEXTLINE(fuchsia-multiple-inheritance)
+class MockMessengerServiceFixture
+    : public ugrpc::tests::ServiceWithClientFixture<Messenger, sample::ugrpc::UnitTestServiceClient>,
+      public testing::WithParamInterface<MiddlewareFlags> {
 protected:
-    MockMessengerServiceFixture() {
-        SetServerMiddlewares({std::make_shared<Middleware>(static_cast<MiddlewareFlag>(GetParam().GetValue()))});
-        RegisterService(service_);
-        StartServer();
-    }
-
-private:
-    Messenger service_;
+    MockMessengerServiceFixture()
+        : ugrpc::tests::ServiceWithClientFixture<Messenger, sample::ugrpc::UnitTestServiceClient>(
+              ugrpc::server::ServerConfig{},
+              ugrpc::server::Middlewares{std::make_shared<Middleware>(static_cast<MiddlewareFlag>(GetParam().GetValue())
+              )},
+              ugrpc::client::Middlewares{}
+          )
+    {}
 };
 
 }  // namespace
 
 UTEST_P(MockMessengerServiceFixture, MiddlewareInterruption) {
-    const auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
     try {
-        client.SayHello(sample::ugrpc::GreetingRequest()).Finish();
+        GetClient().SayHello(sample::ugrpc::GreetingRequest());
         FAIL();  // Should not execute. The method must throw.
     } catch (const ugrpc::client::ErrorWithStatus& error) {
         switch (static_cast<MiddlewareFlag>(GetParam().GetValue())) {

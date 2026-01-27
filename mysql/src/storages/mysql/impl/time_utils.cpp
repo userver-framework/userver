@@ -12,21 +12,18 @@ namespace storages::mysql::impl {
 
 namespace {
 
-constexpr auto kMaxSystemRepresentableMicroseconds =
-    std::chrono::duration_cast<bindings::NativeBindsHelper::MariaDBTimepointResolution>(
-        std::chrono::system_clock::duration::max()
-    );
-constexpr auto kMinSystemRepresentableMicroseconds =
-    std::chrono::duration_cast<bindings::NativeBindsHelper::MariaDBTimepointResolution>(
-        std::chrono::system_clock::duration::min()
-    );
+constexpr auto kMaxSystemRepresentableMicroseconds = std::chrono::duration_cast<
+    bindings::NativeBindsHelper::MariaDBTimepointResolution>(std::chrono::system_clock::duration::max());
+constexpr auto kMinSystemRepresentableMicroseconds = std::chrono::duration_cast<
+    bindings::NativeBindsHelper::MariaDBTimepointResolution>(std::chrono::system_clock::duration::min());
 
 std::chrono::system_clock::time_point FromMariadbTimepointSafe(
     const std::chrono::time_point<std::chrono::system_clock, bindings::NativeBindsHelper::MariaDBTimepointResolution>&
         tp
 ) {
     if (tp.time_since_epoch() < kMinSystemRepresentableMicroseconds ||
-        tp.time_since_epoch() > kMaxSystemRepresentableMicroseconds) {
+        tp.time_since_epoch() > kMaxSystemRepresentableMicroseconds)
+    {
         throw MySQLValidationException{0, "DB timepoint is not representable in system_clock::timepoint"};
     }
 
@@ -74,7 +71,8 @@ Date TimeUtils::DateFromChrono(std::chrono::system_clock::time_point tp) {
     return Date{
         static_cast<std::uint32_t>(static_cast<int>(ymd.year())),
         static_cast<std::uint32_t>(ymd.month()),
-        static_cast<std::uint32_t>(ymd.day())};
+        static_cast<std::uint32_t>(ymd.day())
+    };
 }
 
 std::chrono::system_clock::time_point TimeUtils::DateToChrono(const Date& date) {
@@ -98,7 +96,8 @@ DateTime TimeUtils::DateTimeFromChrono(std::chrono::system_clock::time_point tp)
         static_cast<uint32_t>(time.hours().count()),
         static_cast<uint32_t>(time.minutes().count()),
         static_cast<uint32_t>(time.seconds().count()),
-        static_cast<uint64_t>(time.subseconds().count())};
+        static_cast<uint64_t>(time.subseconds().count())
+    };
 }
 
 std::chrono::system_clock::time_point TimeUtils::DateTimeToChrono(const DateTime& datetime) {

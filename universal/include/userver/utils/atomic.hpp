@@ -28,9 +28,13 @@ T AtomicUpdate(std::atomic<T>& atomic, Func updater) {
         const T new_value = updater(T{old_value});
 
         // don't mark cache line as dirty
-        if (old_value == new_value) return old_value;
+        if (old_value == new_value) {
+            return old_value;
+        }
 
-        if (atomic.compare_exchange_weak(old_value, new_value)) return new_value;
+        if (atomic.compare_exchange_weak(old_value, new_value)) {
+            return new_value;
+        }
     }
 }
 

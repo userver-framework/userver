@@ -1,0 +1,80 @@
+{% import "templates/requests.application.json.jinja" as application_json %}
+{% import "templates/requests.application.octet.stream.jinja" as application_octetstream %}
+{% import "templates/requests.application.xwwwformurlencoded.jinja" as application_xwwwformurlencoded %}
+{% import "templates/requests.application.multipart.formdata.jinja" as application_multipartformdata %}
+#pragma once
+
+#include <string>
+{% if spec.has_array_in_request_body() %}
+#include <userver/formats/serialize/common_containers.hpp>
+{% endif %}
+{% if spec.has_multiple_content_type_request() %}
+#include <variant>
+{% endif %}
+
+#include <userver/clients/http/request.hpp>
+{% for include in spec.requests_declaration_includes() %}
+#include <{{ include }}>
+{% endfor %}
+
+{% for include in spec.cpp_includes() %}
+#include <{{ include }}>
+{% endfor %}
+
+
+namespace {{ namespace }} {
+
+{% for op in operations %}
+  {% if op.client_generate %}
+      namespace {{ op.cpp_namespace() }} {
+    {%- if not op.empty_request() -%}
+      {% if len(op.request_bodies) == 1 %}
+        using Body = {{ op.request_bodies[0].schema.cpp_user_name() }};
+      {% elif len(op.request_bodies) > 1 %}
+        {%- for body in op.request_bodies -%}
+          {% if body.content_type == 'application/json' %}
+            {{ application_json.define_body_cpp_name(body) }}
+          {% elif body.content_type == 'multipart/form-data' %}
+            {{ application_multipartformdata.define_body_cpp_name(body) }}
+          {% elif body.content_type == 'application/x-www-form-urlencoded' %}
+            {{ application_xwwwformurlencoded.define_body_cpp_name(body) }}
+          {% else %}
+            {{ application_octetstream.define_body_cpp_name(body) }}
+          {% endif %}
+        {% endfor %}
+        using Body = std::variant<
+          {%- for body in op.request_bodies -%}
+            {{ body.cpp_name() }}
+            {%- if not loop.last %},{% endif %}
+          {% endfor %}
+        >;
+      {% endif %}
+
+        struct Request {
+          {% for parameter in op.parameters %}
+              {% if parameter.cpp_type.nullable %}
+                std::optional<{{ parameter.cpp_type.cpp_global_name() }}>
+              {%- else -%}
+                {{ parameter.cpp_type.cpp_global_name() }}
+              {% endif -%}
+              {{ parameter.cpp_name }};
+          {% endfor %}
+
+          {% for mw in op.middlewares %}
+              {{ mw.request_member_cpp_type }} {{ mw.request_member_name }};
+          {% endfor %}
+
+          {% if op.request_bodies %}
+              Body body;
+          {% endif %}
+        };
+    {% else %}
+        struct Request {};
+    {%- endif %}
+
+        void SerializeRequest(const Request& request, const std::string& base_url, USERVER_NAMESPACE::clients::http::Request& http_request);
+      }
+  {% endif %}
+{% endfor %}
+
+}

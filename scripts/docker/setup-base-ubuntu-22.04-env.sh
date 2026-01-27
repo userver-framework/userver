@@ -6,8 +6,8 @@ set -euox pipefail
 # Preparing to add new repos
 apt update
 DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends \
-  apt-transport-https ca-certificates dirmngr wget curl software-properties-common \
-  gnupg gnupg2
+  apt-utils apt-transport-https ca-certificates dirmngr wget curl software-properties-common \
+  gnupg gnupg2 sudo
 
 gpg_retrieve_curl() {
   # See https://unix.stackexchange.com/questions/682929/migrating-away-from-apt-key-adv
@@ -39,13 +39,18 @@ deb [signed-by=/usr/share/keyrings/ubuntu-toolchain-r.gpg] https://ppa.launchpad
 deb-src [signed-by=/usr/share/keyrings/ubuntu-toolchain-r.gpg] https://ppa.launchpadcontent.net/ubuntu-toolchain-r/test/ubuntu $(lsb_release -cs) main \n" \
   > /etc/apt/sources.list.d/ubuntu-toolchain-r.list
 
+# Adding cmake repository
+gpg_retrieve_curl https://apt.kitware.com/keys/kitware-archive-latest.asc kitware-archive-keyring
+echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ jammy main' \
+    | tee /etc/apt/sources.list.d/kitware.list
+
 # Adding clickhouse repositories as in https://clickhouse.com/docs/en/install#setup-the-debian-repository
 gpg_retrieve_keyserver 8919F6BD2B48D754 clickhouse-keyring
 echo "deb [signed-by=/usr/share/keyrings/clickhouse-keyring.gpg] https://packages.clickhouse.com/deb stable main"  \
     | tee /etc/apt/sources.list.d/clickhouse.list
 
 # Adding mariadb repositories (from https://www.linuxcapable.com/how-to-install-mariadb-on-ubuntu-linux/ )
-gpg_retrieve_curl http://mirror.mariadb.org/PublicKey_v2 mariadb
+gpg_retrieve_curl https://mariadb.org/mariadb_release_signing_key.pgp mariadb
 # Restore the correct URL after https://jira.mariadb.org/browse/MDBF-651
 #echo "deb [arch=amd64,arm64,ppc64el signed-by=/usr/share/keyrings/mariadb.gpg] https://deb.mariadb.org/10.11/ubuntu $(lsb_release -cs) main" \
 #    | tee /etc/apt/sources.list.d/mariadb.list
@@ -59,20 +64,7 @@ deb [arch=amd64 signed-by=/usr/share/keyrings/confluent.gpg] https://packages.co
 deb [signed-by=/usr/share/keyrings/confluent.gpg] https://packages.confluent.io/clients/deb $(lsb_release -cs) main\n" \
     | tee /etc/apt/sources.list.d/confluent.list
 
-# convoluted setup of rabbitmq + erlang taken from https://www.rabbitmq.com/install-debian.html#apt-quick-start-packagecloud
-## Team RabbitMQ's main signing key
-gpg_retrieve_curl https://keys.openpgp.org/vks/v1/by-fingerprint/0A9AF2115F4687BD29803A206B73A36E6026DFCA com.rabbitmq.team
-## Launchpad PPA that provides modern Erlang releases
-gpg_retrieve_curl "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0xf77f1eda57ebb1cc" net.launchpad.ppa.rabbitmq.erlang
-## PackageCloud RabbitMQ repository
-gpg_retrieve_curl https://packagecloud.io/rabbitmq/rabbitmq-server/gpgkey io.packagecloud.rabbitmq
-## Add apt repositories maintained by Team RabbitMQ
-printf "\
-deb [signed-by=/usr/share/keyrings/net.launchpad.ppa.rabbitmq.erlang.gpg] http://ppa.launchpad.net/rabbitmq/rabbitmq-erlang/ubuntu $(lsb_release -cs) main \n\
-deb-src [signed-by=/usr/share/keyrings/net.launchpad.ppa.rabbitmq.erlang.gpg] http://ppa.launchpad.net/rabbitmq/rabbitmq-erlang/ubuntu $(lsb_release -cs) main \n\
-deb [signed-by=/usr/share/keyrings/io.packagecloud.rabbitmq.gpg] https://packagecloud.io/rabbitmq/rabbitmq-server/ubuntu/ $(lsb_release -cs) main \n\
-deb-src [signed-by=/usr/share/keyrings/io.packagecloud.rabbitmq.gpg] https://packagecloud.io/rabbitmq/rabbitmq-server/ubuntu/ $(lsb_release -cs) main\n" \
-    | tee /etc/apt/sources.list.d/rabbitmq.list
+curl -fsSL https://raw.githubusercontent.com/userver-framework/userver/refs/heads/develop/scripts/rabbitmq/ubuntu_install_rabbitmq_server.sh | bash
 
 gpg_retrieve_curl https://www.mongodb.org/static/pgp/server-6.0.asc mongodb
 echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb.gpg ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/6.0 multiverse" \
@@ -109,7 +101,9 @@ DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends \
   chrpath \
   sudo \
   python3-pip \
-  locales
+  locales \
+  kitware-archive-keyring \
+  libsystemd-dev
 
 # Installing postgresql-server-dev-14 without dependencies
 #
@@ -124,19 +118,20 @@ rm -rf postgresql-server-dev-14* tmp_postgresql
 apt clean all
 
 # You could override those versions from command line
-AMQP_VERSION=${AMQP_VERSION:=v4.3.18}
-CLICKHOUSE_VERSION=${CLICKHOUSE_VERSION:=v2.3.0}
-ROCKSDB_VERSION=${ROCKSDB_VERSION:=v8.9.1}
+export GRPC_VERSION=${GRPC_VERSION:=v1.54.3}
+export AMQP_VERSION=${AMQP_VERSION:=v4.3.18}
+export CLICKHOUSE_VERSION=${CLICKHOUSE_VERSION:=v2.5.1}
+export ROCKSDB_VERSION=${ROCKSDB_VERSION:=v8.9.1}
+export POSTGRESQL_VERSION=${POSTGRESQL_VERSION:=14}
+
+# Installing gRPC library from sources
+./ubuntu_install_grpc.sh
 
 # Installing amqp/rabbitmq client libraries from sources
-git clone --depth 1 -b ${AMQP_VERSION} https://github.com/CopernicaMarketingSoftware/AMQP-CPP.git amqp-cpp
-(cd amqp-cpp && mkdir build && cd build && \
-  cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release .. && make -j $(nproc) && make install)
+./ubuntu_install_rabbitmq_dev.sh
 
 # Installing Clickhouse C++ client libraries from sources
-git clone --depth 1 -b ${CLICKHOUSE_VERSION} https://github.com/ClickHouse/clickhouse-cpp.git
-(cd clickhouse-cpp && mkdir build && cd build && \
-  cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release .. && make -j $(nproc) && make install)
+./ubuntu-install-clickhouse.sh
 
 # Installing RocksDB client libraries from sources
 git clone --depth 1 -b ${ROCKSDB_VERSION} https://github.com/facebook/rocksdb
@@ -146,13 +141,13 @@ git clone --depth 1 -b ${ROCKSDB_VERSION} https://github.com/facebook/rocksdb
   cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Debug -DROCKSDB_BUILD_SHARED=OFF -DWITH_TESTS=OFF -DWITH_BENCHMARK_TOOLS=OFF -DWITH_TOOLS=OFF  -DUSE_RTTI=ON .. && make -j $(nproc) && make install)
 
 # Installing Kafka
-DEBIAN_FRONTEND=noninteractive apt install -y default-jre
+DEBIAN_FRONTEND=noninteractive apt install -y openjdk-17-jdk
 
-curl https://dlcdn.apache.org/kafka/3.8.0/kafka_2.13-3.8.0.tgz -o kafka.tgz
+curl https://dlcdn.apache.org/kafka/4.0.0/kafka_2.13-4.0.0.tgz -o kafka.tgz
 mkdir -p /etc/kafka
 tar xf kafka.tgz --directory=/etc/kafka
-cp -r /etc/kafka/kafka_2.13-3.8.0/* /etc/kafka/
-rm -rf /etc/kafka/kafka_2.13-3.8.0
+cp -r /etc/kafka/kafka_2.13-4.0.0/* /etc/kafka/
+rm -rf /etc/kafka/kafka_2.13-4.0.0
 
 # Set UTC timezone
 TZ=Etc/UTC

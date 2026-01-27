@@ -42,9 +42,13 @@ public:
 
     void AppendNode(std::string_view node) {
         prefix_lengths_.push_back(path_.size());
-        if (node.empty()) return;
+        if (node.empty()) {
+            return;
+        }
 
-        if (!path_.empty()) path_ += '.';
+        if (!path_.empty()) {
+            path_ += '.';
+        }
         std::replace_copy(node.begin(), node.end(), std::back_inserter(path_), '.', '_');
     }
 
@@ -67,7 +71,9 @@ public:
     void AppendLabel(Label&& label) {
         auto& current = label_updates_.emplace();
 
-        if (!label) return;
+        if (!label) {
+            return;
+        }
 
         for (size_t i = 0; i < labels_.size(); ++i) {
             if (labels_[i].Name() == label.Name()) {
@@ -116,16 +122,12 @@ private:
 };
 
 struct DfsNode {
-    DfsNode(
-        const formats::json::Value& next,
-        std::string&& path_node_,
-        Label&& label_,
-        std::string&& children_label_name_
-    )
+    DfsNode(const formats::json::Value& next, std::string&& path_node, Label&& label, std::string&& children_label_name)
         : current(next),
-          path_node(std::move(path_node_)),
-          label(label_),
-          children_label_name(std::move(children_label_name_)) {}
+          path_node(std::move(path_node)),
+          label(std::move(label)),
+          children_label_name(std::move(children_label_name))
+    {}
 
     bool is_in_subtree{false};
     const formats::json::Value current;
@@ -222,7 +224,10 @@ void ProcessLeaf(
 
 }  // namespace
 
-Label::Label(std::string name, std::string value) : name_(std::move(name)), value_(std::move(value)) {
+Label::Label(std::string name, std::string value)
+    : name_(std::move(name)),
+      value_(std::move(value))
+{
     UASSERT(!name_.empty());
 }
 
@@ -251,7 +256,9 @@ void VisitMetrics(BaseFormatBuilder& out, const formats::json::Value& statistics
         }
 
         for (const auto& [key, value] : Items(state.current)) {
-            if (!key.empty() && key.front() == '$') continue;
+            if (!key.empty() && key.front() == '$') {
+                continue;
+            }
 
             if (value.IsObject()) {
                 ProcessInternalNode(dfs_stack, state.children_label_name, key, value);

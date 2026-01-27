@@ -3,7 +3,7 @@
 #include <server/http/http_request_constructor.hpp>
 #include <userver/http/predefined_header.hpp>
 
-#include <utils/gbench_auxilary.hpp>
+#include <utils/gbench_auxiliary.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -25,30 +25,36 @@ constexpr PredefinedHeader kHeadersArray[kHeadersCount] = {
     PredefinedHeader{"TestHeader30"}, PredefinedHeader{"TestHeader31"},
 };
 
-void http_request_headers_insert(benchmark::State& state) {
+void HttpRequestHeadersInsert(benchmark::State& state) {
     for ([[maybe_unused]] auto _ : state) {
         server::http::HttpRequest::HeadersMap map;
 
-        for (int i = 0; i < state.range(0); i++) map[kHeadersArray[i]] = "1";
+        for (int i = 0; i < state.range(0); i++) {
+            map[kHeadersArray[i]] = "1";
+        }
 
         benchmark::DoNotOptimize(map);
     }
 }
 
-void http_request_headers_get(benchmark::State& state) {
+void HttpRequestHeadersGet(benchmark::State& state) {
     server::http::HttpRequest::HeadersMap map;
-    for (const auto& header : kHeadersArray) map[header] = "1";
+    for (const auto& header : kHeadersArray) {
+        map[header] = "1";
+    }
 
     std::size_t i = 0;
     for ([[maybe_unused]] auto _ : state) {
-        if (++i == kHeadersCount) i = 0;
+        if (++i == kHeadersCount) {
+            i = 0;
+        }
         benchmark::DoNotOptimize(map.find(kHeadersArray[i]));
     }
 }
 
 }  // namespace
-BENCHMARK(http_request_headers_insert)->RangeMultiplier(2)->Range(1, kHeadersCount);
+BENCHMARK(HttpRequestHeadersInsert)->RangeMultiplier(2)->Range(1, kHeadersCount);
 
-BENCHMARK(http_request_headers_get);
+BENCHMARK(HttpRequestHeadersGet);
 
 USERVER_NAMESPACE_END

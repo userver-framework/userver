@@ -1,0 +1,78 @@
+syntax = "proto3";
+
+package simple.base;
+
+option go_package = "a.yandex-team.ru/taxi/uservices/userver/libraries/proto-structs/codegen-tests/proto/simple/base;simplebase";
+
+import "simple/subdirectory/subdirectory.proto";
+import "simple/subdirectory/separate_enum.proto";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/duration.proto";
+import "google/type/date.proto";
+import "google/type/timeofday.proto";
+import "google/protobuf/any.proto";
+
+message SimpleStruct {
+    int32 some_integer = 1;
+    optional string some_text = 2;
+    bool is_condition = 3;
+
+    oneof something {
+        int64 foo = 4;
+        string bar = 5;
+    };
+
+    repeated bytes some_bytes = 6;
+
+    message NestedStruct {
+        message NestedStruct2 {
+
+            enum InnerEnum1 {
+                FOO_VAL = 0;
+                BAR_VAL = 1;
+            }
+
+            string swag2 = 1;
+            InnerEnum1 swag3 = 2;
+        }
+
+        string swag = 1;
+    }
+
+    enum InnerEnum2 {
+        FOO_VAL = 0;
+        BAR_VAL = 1;
+    }
+
+    InnerEnum2 inner_enum = 7;
+    string digit1u = 8;
+    NestedStruct nested = 9;
+    optional NestedStruct optional_nested = 10;
+}
+
+message SecondStruct {
+    string str = 1;
+
+    simple.subdirectory.SubdirStruct subdir_struct = 2;
+    simple.subdirectory.MyEnum subdir_enum = 3;
+    simple.subdirectory.SeparateEnum separate_enum = 4;
+}
+
+enum GlobalEnum {
+    FOO_VAL = 0;
+    BAR_VAL = 1;
+}
+
+
+message ForAny {
+  string f1 = 1;
+}
+
+message WellKnownUsrv {
+  google.protobuf.Timestamp f1 = 1; // proto_structs::Timestamp
+  google.protobuf.Duration f2 = 2;  // proto_structs::Duration
+  google.type.Date f3 = 3;          // proto_structs::Date
+  google.type.TimeOfDay f4 = 4;     // proto_structs::TimeOfDay
+  google.protobuf.Any f5 = 5;       // proto_structs::Any
+}

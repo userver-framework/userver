@@ -1,0 +1,55 @@
+#include <clients/{{ name }}/client_impl.hpp>
+
+#include <userver/components/component_context.hpp>
+#include <userver/components/component_base.hpp>
+#include <userver/yaml_config/merge_schemas.hpp>
+
+namespace {{ namespace }} {
+
+ClientImpl::ClientImpl(const USERVER_NAMESPACE::chaotic::openapi::client::Config& config,
+             USERVER_NAMESPACE::clients::http::Client& http_client)
+    : config_(config), http_client_(http_client)
+{
+}
+
+{% for op in operations %}
+  {% if op.client_generate %}
+    {{ op.cpp_namespace() }}::Response ClientImpl::{{ op.cpp_method_name() }}(
+      {%- if not op.empty_request() -%}
+          const {{ op.cpp_namespace() }}::Request& request ,
+      {%- endif %}
+          const USERVER_NAMESPACE::chaotic::openapi::client::CommandControl& command_control
+      ) {
+        auto r = http_client_.CreateRequest();
+        r.SetUrlTemplate("{{ op.path }}");
+        {% if op.path != op.destination_metric_name() %}
+            r.SetDestinationMetricName(
+                config_.base_url + "{{ op.destination_metric_name() }}"
+            );
+        {% endif %}
+        if (core_middlewares_) {
+            r.SetMiddlewaresList(*core_middlewares_);
+        }
+        ApplyConfig(r, command_control, config_);
+
+        {%- if op.empty_request() -%}
+            {{ op.cpp_namespace() }}::Request request;
+        {%- endif %}
+        SerializeRequest(request, config_.base_url, r);
+
+        middleware_manager_.ProcessRequest(r);
+
+        std::shared_ptr<USERVER_NAMESPACE::clients::http::Response> response;
+        try {
+            response = r.perform();
+            middleware_manager_.ProcessResponse(*response);
+        } catch (const USERVER_NAMESPACE::clients::http::TimeoutException& e) {
+            throw {{ op.cpp_namespace() }}::TimeoutException();
+        }
+
+        return {{ op.cpp_namespace() }}::ParseResponse(*response);
+      }
+  {% endif %}
+{% endfor %}
+
+}

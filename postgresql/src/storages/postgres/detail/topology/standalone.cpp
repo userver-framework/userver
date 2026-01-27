@@ -14,7 +14,8 @@ Standalone::Standalone(
     const ConnectionSettings& conn_settings,
     const DefaultCommandControls& default_cmd_ctls,
     const testsuite::PostgresControl& testsuite_pg_ctl,
-    error_injection::Settings ei_settings
+    error_injection::Settings ei_settings,
+    USERVER_NAMESPACE::utils::statistics::MetricsStoragePtr metrics
 )
     : TopologyBase(
           bg_task_processor,
@@ -24,11 +25,21 @@ Standalone::Standalone(
           conn_settings,
           default_cmd_ctls,
           testsuite_pg_ctl,
-          std::move(ei_settings)
+          std::move(ei_settings),
+          std::move(metrics)
       ),
-      dsn_indices_by_type_(DsnIndicesByType{{ClusterHostType::kMaster, {0}}}),
-      alive_dsn_indices_(DsnIndices{0}),
-      dsn_stats_(GetDsnList().size()) {
+      dsn_indices_by_type_(DsnIndicesByType{
+          {
+              ClusterHostType::kMaster,
+              DsnIndices{std::vector<DsnIndex>{0}, DsnIndex{0}},
+          },
+      }),
+      alive_dsn_indices_(DsnIndices{
+          std::vector<DsnIndex>{0},
+          DsnIndex{0},
+      }),
+      dsn_stats_(GetDsnList().size())
+{
     UASSERT(GetDsnList().size() == 1);
 }
 

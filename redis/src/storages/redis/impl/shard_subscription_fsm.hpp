@@ -1,10 +1,10 @@
 #pragma once
 
-#include <userver/storages/redis/impl/base.hpp>
+#include <userver/storages/redis/base.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis::shard_subscriber {
+namespace storages::redis::impl::shard_subscriber {
 
 struct Event {
     enum class Type {
@@ -48,7 +48,10 @@ struct Action {
         kDeleteFsm
     };
 
-    Action(Type type, ServerId server_id = ServerId()) : type(type), server_id(server_id) {}
+    Action(Type type, ServerId server_id = ServerId())
+        : type(type),
+          server_id(server_id)
+    {}
 
     static std::string TypeToDebugString(Type type);
     std::string ToDebugString() const;
@@ -127,6 +130,6 @@ private:
     std::vector<Action> pending_actions_;
 };
 
-}  // namespace redis::shard_subscriber
+}  // namespace storages::redis::impl::shard_subscriber
 
 USERVER_NAMESPACE_END

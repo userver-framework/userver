@@ -1,0 +1,11 @@
+definitions:
+    ContainerWithFormatItem:
+        type: object
+        additionalProperties: false
+        properties:
+            my_field:
+                type: array
+                x-usrv-cpp-container: std::unordered_set
+                items:
+                    type: string
+                    format: uuid

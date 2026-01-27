@@ -27,8 +27,11 @@ engine::io::Socket CreateSocket(engine::io::Sockaddr& addr, engine::Deadline dea
     return socket;
 }
 
-engine::io::Socket
-CreateSocket(clients::dns::Resolver& resolver, const AMQP::Address& address, engine::Deadline deadline) {
+engine::io::Socket CreateSocket(
+    clients::dns::Resolver& resolver,
+    const AMQP::Address& address,
+    engine::Deadline deadline
+) {
     auto addrs = resolver.Resolve(address.hostname(), {});
     for (auto& addr : addrs) {
         addr.SetPort(static_cast<int>(address.port()));
@@ -95,7 +98,8 @@ AmqpConnectionHandler::AmqpConnectionHandler(
     : address_{ToAmqpAddress(endpoint, auth_settings, secure)},
       socket_{CreateSocketPtr(resolver, address_, auth_settings, deadline)},
       reader_{*this, *socket_},
-      stats_{stats} {}
+      stats_{stats}
+{}
 
 AmqpConnectionHandler::~AmqpConnectionHandler() { reader_.Stop(); }
 
@@ -134,7 +138,9 @@ void AmqpConnectionHandler::onData(AMQP::Connection* connection, const char* buf
 
 void AmqpConnectionHandler::onError(AMQP::Connection*, const char* message) {
     Invalidate();
-    if (is_ready_) return;
+    if (is_ready_) {
+        return;
+    }
 
     is_ready_.store(true);
     error_.emplace(message);

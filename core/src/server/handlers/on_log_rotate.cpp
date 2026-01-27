@@ -13,7 +13,8 @@ namespace server::handlers {
 
 OnLogRotate::OnLogRotate(const components::ComponentConfig& config, const components::ComponentContext& context)
     : HttpHandlerBase(config, context, /*is_monitor = */ true),
-      logging_component_(context.FindComponent<components::Logging>()) {}
+      logging_component_(context.FindComponent<components::Logging>())
+{}
 
 std::string OnLogRotate::HandleRequestThrow(const http::HttpRequest& request, request::RequestContext&) const {
     LOG_DEBUG() << "Start OnLogRotate handling";

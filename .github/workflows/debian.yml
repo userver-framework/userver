@@ -1,0 +1,161 @@
+name: Debian
+
+'on':
+    pull_request:
+    push:
+        branches:
+          - master
+          - develop
+          - feature/**
+
+env:
+    UBSAN_OPTIONS: print_stacktrace=1
+    ASAN_OPTIONS: detect_odr_violation=2
+    CCACHE_DIR: /home/runner/.cache/ccache
+    CCACHE_NOHASHDIR: true
+    CPM_SOURCE_CACHE: /home/runner/.cache/CPM
+
+jobs:
+    debian:
+        strategy:
+            fail-fast: false
+            matrix:
+                include:
+                  # TODO: debian-11 fails to compile core
+                  #
+                  # - cmake-flags: >-
+                  #     -DUSERVER_FORCE_DOWNLOAD_GTEST=ON
+                  #     -DCMAKE_CC_COMPILER=clang-11
+                  #     -DCMAKE_CXX_COMPILER=clang++-11
+                  #   image: debian:11
+                  #   info: Debian 11
+                  #   deps-file: debian-11.md
+
+                  - cmake-flags: >-
+                        -DCMAKE_CC_COMPILER=clang-14
+                        -DCMAKE_CXX_COMPILER=clang++-14
+                    image: debian:12
+                    info: Debian 12
+                    deps-file: debian-12.md
+
+                  # TODO: fails with:
+                  # 1)  ld.lld: error: undefined symbol: icudt76_dat
+                  #      >>> referenced by udata.ao:(openCommonData(char const*, int, UErrorCode*)) in archive /usr/lib/x86_64-linux-gnu/libicuuc.a
+                  # 2) userver/userver/universal/src/decimal64/decimal64_test.cpp:29:47: error: passing no argument for the '...' parameter of a variadic macro is a C++20 extension [-Werror,-Wc++20-extensions]
+                  #    TYPED_TEST_SUITE(Decimal64Round, RoundPolicies);
+                  # - cmake-flags: >-
+                  #     -DCMAKE_CC_COMPILER=clang-19
+                  #     -DCMAKE_CXX_COMPILER=clang++-19
+                  #     -DUSERVER_FEATURE_GRPC=OFF
+                  #     -DUSERVER_FEATURE_OTLP=OFF
+                  #     -DUSERVER_FEATURE_GRPC_REFLECTION=OFF
+                  #     -DUSERVER_FORCE_DOWNLOAD_RE2=ON
+                  #   image: debian:13
+                  #   info: Debian 13
+                  #   deps-file: debian-13.md
+
+        name: '${{ matrix.info }}'
+        runs-on: ubuntu-latest
+        container: ${{ matrix.image }}
+
+        env:
+            CMAKE_FLAGS: >-
+                -DCMAKE_BUILD_TYPE=Debug
+                -DCMAKE_CXX_STANDARD=17
+                -DUSERVER_USE_LD=lld
+                -DUSERVER_NO_WERROR=OFF
+                -DUSERVER_BUILD_ALL_COMPONENTS=1
+                -DUSERVER_BUILD_SAMPLES=1
+                -DUSERVER_BUILD_TESTS=1
+                -DUSERVER_FEATURE_JEMALLOC=OFF
+                -DUSERVER_FEATURE_KAFKA=OFF
+                -DUSERVER_FEATURE_CLICKHOUSE=OFF
+                -DUSERVER_FEATURE_STACKTRACE=OFF
+                -DUSERVER_FEATURE_PATCH_LIBPQ=OFF
+                -DUSERVER_DISABLE_RSEQ_ACCELERATION=YES
+                -DUSERVER_CHAOTIC_FORMAT=OFF
+                -DUSERVER_CHAOTIC_GOLDEN_TESTS=OFF
+
+        steps:
+          - uses: actions/checkout@v6
+            with:
+                fetch-depth: 0
+
+          - name: Restore cached directories
+            id: restore-cache
+            uses: actions/cache/restore@v5
+            with:
+                path: |
+                    ${{env.CCACHE_DIR}}
+                    ${{env.CPM_SOURCE_CACHE}}
+                key: 'debian-cache-dir ${{matrix.image}} ${{github.ref}} run-${{github.run_number}}'
+                restore-keys: |
+                    debian-cache-dir ${{github.ref}}
+                    debian-cache-dir
+
+          - name: Setup host cache dirs
+            run: |
+                mkdir -p ${{env.CCACHE_DIR}}
+                mkdir -p ${{env.CPM_SOURCE_CACHE}}
+
+          - name: Install dependencies
+            run: |
+                apt-get update
+                apt-get install -y lsb-release wget gnupg
+
+                # Install clang and lld
+                apt-get install -y clang lld
+
+                # Install project dependencies
+                apt-get install -y $(cat scripts/docs/en/deps/${{ matrix.deps-file }})
+
+          - name: Install test dependencies
+            if: ${{ false }}
+            run: |
+                apt-get install -y postgresql-15 \
+                                   redis-server \
+                                   rabbitmq-server
+
+          - name: Setup caches
+            run: |
+                echo "Cached CPM packages:"
+                du -h -d 1 ${{env.CPM_SOURCE_CACHE}} || true
+                for f in $(find ${{env.CPM_SOURCE_CACHE}} -name "cmake.lock" 2>/dev/null || true);
+                do
+                  repo=$(ls -d $(dirname $f)/*/ 2>/dev/null || true);
+                  if [ -n "$repo" ]; then
+                    echo "Repository: $repo";
+                    git config --global --add safe.directory $repo;
+                  fi
+                done
+
+                ccache -M 2.0GB
+                ccache -s
+
+          - name: Run cmake
+            run: |
+                cmake -S . -B build_debug $CMAKE_FLAGS ${{ matrix.cmake-flags }}
+
+          - name: Compile
+            run: |
+                cmake --build build_debug --parallel $(nproc)
+
+          - name: Save cached directories
+            uses: actions/cache/save@v5
+            with:
+                path: |
+                    ${{env.CCACHE_DIR}}
+                    ${{env.CPM_SOURCE_CACHE}}
+                key: ${{ steps.restore-cache.outputs.cache-primary-key }}
+
+          - name: Show cache stats
+            run: |
+                du -h -d 1 ${{env.CCACHE_DIR}} || true
+                du -h -d 1 ${{env.CPM_SOURCE_CACHE}} || true
+                ccache -s -v
+
+          - name: Run tests
+            if: ${{ false }}
+            run: |
+                cd build_debug
+                ctest -V

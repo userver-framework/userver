@@ -50,10 +50,9 @@ TEST(DocsMap, AreContentsEqualFalse) {
 
 TEST(DocsMap, ConfigExpectedToBeUsedRemovedAfterGet) {
     dynamic_config::DocsMap docs_map;
-    utils::impl::TransparentSet<std::string> to_be_used = {"a", "b"};
-    docs_map.SetConfigsExpectedToBeUsed(
-        utils::impl::TransparentSet<std::string>(to_be_used), utils::impl::InternalTag{}
-    );
+    const utils::impl::TransparentSet<std::string> to_be_used = {"a", "b"};
+    docs_map
+        .SetConfigsExpectedToBeUsed(utils::impl::TransparentSet<std::string>(to_be_used), utils::impl::InternalTag{});
     docs_map.Parse(R"({"a": "a", "b": "b"})", false);
 
     EXPECT_EQ(docs_map.GetConfigsExpectedToBeUsed(utils::impl::InternalTag{}), to_be_used);
@@ -61,10 +60,11 @@ TEST(DocsMap, ConfigExpectedToBeUsedRemovedAfterGet) {
     (void)docs_map.Get("a");
 
     EXPECT_EQ(
-        docs_map.GetConfigsExpectedToBeUsed(utils::impl::InternalTag{}), utils::impl::TransparentSet<std::string>({"b"})
+        docs_map.GetConfigsExpectedToBeUsed(utils::impl::InternalTag{}),
+        utils::impl::TransparentSet<std::string>({"b"})
     );
 
-    dynamic_config::DocsMap docs_map_copy(docs_map);
+    const dynamic_config::DocsMap docs_map_copy(docs_map);
     (void)docs_map_copy.Get("b");
 
     EXPECT_TRUE(docs_map_copy.GetConfigsExpectedToBeUsed(utils::impl::InternalTag{}).empty());

@@ -54,11 +54,11 @@ public:
         EnsureValid();
 
         Wait();
+        const utils::FastScopeGuard invalidate([this]() noexcept { Invalidate(); });
         if (GetState() == State::kCancelled) {
             throw TaskCancelledException(CancellationReason());
         }
 
-        utils::FastScopeGuard invalidate([this]() noexcept { Invalidate(); });
         return utils::impl::CastWrappedCall<T>(GetPayload()).Retrieve();
     }
 
@@ -68,8 +68,15 @@ public:
     static constexpr WaitMode kWaitMode = WaitMode::kSingleWaiter;
 
     // For internal use only.
-    explicit TaskWithResult(impl::TaskContextHolder&& context) : Task(std::move(context)) {}
+    explicit TaskWithResult(impl::TaskContextHolder&& context)
+        : Task(std::move(context))
+    {}
     /// @endcond
+
+    Task AsTask() && {
+        // NOLINTNEXTLINE(cppcoreguidelines-slicing)
+        return std::move(*this);
+    }
 
 private:
     void EnsureValid() const {

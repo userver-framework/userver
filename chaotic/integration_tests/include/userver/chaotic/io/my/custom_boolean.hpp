@@ -5,7 +5,9 @@
 namespace my {
 
 struct CustomBoolean final {
-    explicit CustomBoolean(bool b) : b(b) {}
+    explicit CustomBoolean(bool b)
+        : b(b)
+    {}
 
     bool b;
 };

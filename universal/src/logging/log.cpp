@@ -58,7 +58,9 @@ DefaultLoggerGuard::~DefaultLoggerGuard() {
 }
 
 DefaultLoggerLevelScope::DefaultLoggerLevelScope(logging::Level level)
-    : logger_(GetDefaultLogger()), level_initial_(GetLoggerLevel(logger_)) {
+    : logger_(GetDefaultLogger()),
+      level_initial_(GetLoggerLevel(logger_))
+{
     SetLoggerLevel(logger_, level);
 }
 
@@ -98,7 +100,7 @@ void LogFlush(LoggerRef logger) { logger.Flush(); }
 
 namespace impl {
 
-RateLimiter::RateLimiter(RateLimitData& data, Level level) noexcept : level_(level) {
+RateLimiter::RateLimiter(RateLimitData& data) noexcept {
     try {
         if (!impl::IsLogLimitedEnabled()) {
             return;

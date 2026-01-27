@@ -10,9 +10,9 @@ _EXPECTED_OUTPUT = """key:
 """
 
 
-def test_basic(path_to_json2yaml):
+def test_basic(service_binary):
     pipe = subprocess.Popen(
-        [path_to_json2yaml],
+        [service_binary],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         stdin=subprocess.PIPE,

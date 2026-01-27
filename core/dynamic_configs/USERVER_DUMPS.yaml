@@ -1,0 +1,20 @@
+default: {}
+description: |
+    Dynamic dump configuration. If the options are set for some dump then those
+    options override the static configuration.
+schema:
+    type: object
+    additionalProperties:
+        $ref: '#/definitions/ConfigPatch'
+
+    definitions:
+        ConfigPatch:
+            type: object
+            additionalProperties: false
+            properties:
+                dumps-enabled:
+                    type: boolean
+                min-dump-interval-ms:
+                    type: integer
+                    minimum: 0
+                    x-taxi-cpp-type: std::chrono::milliseconds

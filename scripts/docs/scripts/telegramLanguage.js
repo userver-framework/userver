@@ -1,4 +1,4 @@
-function changeTelegramChannelLanguageForRussianSpeakingUser() {
+export function changeTelegramChannelLanguageForRussianSpeakingUser() {
   if (!isBrowserUseRussianLanguage()) {
     return;
   }

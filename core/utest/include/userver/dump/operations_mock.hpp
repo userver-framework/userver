@@ -35,8 +35,10 @@ public:
 private:
     std::string_view ReadRaw(std::size_t max_size) override;
 
+    void BackUp(std::size_t size) override;
+
     std::string data_;
-    std::string_view unread_data_;
+    std::size_t pos_{0};
 };
 
 }  // namespace dump

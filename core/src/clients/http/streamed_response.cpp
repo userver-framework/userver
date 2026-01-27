@@ -25,7 +25,8 @@ StreamedResponse::StreamedResponse(
     : request_state_(std::move(request_state)),
       deadline_(std::min(ComputeBaseDeadline(*request_state_), request_state_->GetDeadline())),
       headers_future_(std::move(headers_future)),
-      queue_consumer_(std::move(queue_consumer)) {}
+      queue_consumer_(std::move(queue_consumer))
+{}
 
 std::future_status StreamedResponse::WaitForHeaders(engine::Deadline deadline) {
     if (response_) {

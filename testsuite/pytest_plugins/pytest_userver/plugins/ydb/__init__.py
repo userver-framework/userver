@@ -22,5 +22,6 @@ def pytest_addoption(parser):
 
 def pytest_configure(config):
     config.addinivalue_line(
-        'markers', 'ydb: per-test ydb-local initialization',
+        'markers',
+        'ydb: per-test ydb-local initialization',
     )

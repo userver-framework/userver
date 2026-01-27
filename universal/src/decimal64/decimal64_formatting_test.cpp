@@ -52,7 +52,7 @@ TEST(Decimal64, ToStringFormatOptions) {
   EXPECT_EQ(ToString(dec4, {",", " ",       "\3", "-", {},  6,  true  }),   "-1 000,123400");
   EXPECT_EQ(ToString(dec4, {",", " ",       "\3", "-", {},  6,  false }),   "-1 000,1234");
 
-  decimal64::FormatOptions format_dec3{",", " ", "\3", "<>", "<+>", 3, false};
+  const decimal64::FormatOptions format_dec3{",", " ", "\3", "<>", "<+>", 3, false};
   EXPECT_EQ(ToString(Dec4{"-1234.1200"},  format_dec3), "<>1 234,12");
   EXPECT_EQ(ToString(Dec4{"1234.1200"},   format_dec3), "<+>1 234,12");
   EXPECT_EQ(ToString(Dec4{"-1234.0000"},  format_dec3), "<>1 234");
@@ -66,7 +66,7 @@ TEST(Decimal64, ToStringFormatOptions) {
   EXPECT_EQ(ToString(Dec4{"0"},       {",", "\3", " ", "-", {}, 6, false}), "0");
   EXPECT_EQ(ToString(Dec4{"0"},       {",", "\3", " ", "-", {}, 0, true }), "0");
 
-  decimal64::Decimal<0> dec0{"1234"};
+  const decimal64::Decimal<0> dec0{"1234"};
   EXPECT_EQ(ToString(dec0, {",", " ", "\3",         "-", {}, {},  true  }),   "1 234");
   EXPECT_EQ(ToString(dec0, {",", " ", "\3",         "-", {}, {},  false }),   "1 234");
   EXPECT_EQ(ToString(dec0, {",", " ", "\3",         "-", {}, 2,   true  }),   "1 234,00");
@@ -80,7 +80,7 @@ TEST(Decimal64, ToStringFormatOptions) {
   EXPECT_EQ(ToString(dec0, {",", " ", {'\4', '\0'}, "-", {}, {},  true  }),   "1234");
   EXPECT_EQ(ToString(dec0, {",", " ", {'\4', '\0'}, "-", {}, {},  false }),   "1234");
 
-  decimal64::Decimal<2> dec2{"1010"};
+  const decimal64::Decimal<2> dec2{"1010"};
   EXPECT_EQ(ToString(dec2, {",", " ", "\3", "-", {}, {}, false}), "1 010");
   EXPECT_EQ(ToString(dec2, {",", " ", "\3", "-", {}, {}, true }), "1 010,00");
 

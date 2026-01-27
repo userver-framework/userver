@@ -32,11 +32,12 @@ UTEST_F(YdbSchemaNoPredefinedTables, CreateAndDropTable) {
     UASSERT_THROW(DescribeTableNative(*this, kTableName), ydb::YdbResponseError);
 
     // Step 1: create a table.
-    auto builder = NYdb::NTable::TTableBuilder{}
-                       .AddNonNullableColumn("key", NYdb::EPrimitiveType::String)
-                       .AddNullableColumn("some_id", NYdb::EPrimitiveType::Uint64)
-                       .AddNullableColumn("some_money", NYdb::TDecimalType{/*precision=*/22, /*scale=*/9})
-                       .SetPrimaryKeyColumn("key");
+    auto builder =
+        NYdb::NTable::TTableBuilder{}
+            .AddNonNullableColumn("key", NYdb::EPrimitiveType::String)
+            .AddNullableColumn("some_id", NYdb::EPrimitiveType::Uint64)
+            .AddNullableColumn("some_money", NYdb::TDecimalType{/*precision=*/22, /*scale=*/9})
+            .SetPrimaryKeyColumn("key");
     UASSERT_NO_THROW(GetTableClient().CreateTable(kTableName, builder.Build()));
 
     // Step 2: check that the table has been created as requested.
@@ -49,7 +50,7 @@ UTEST_F(YdbSchemaNoPredefinedTables, CreateAndDropTable) {
     {
         const auto& column = columns[0];
         EXPECT_EQ(column.Name, "key");
-        NYdb::TTypeParser parser{column.Type};
+        const NYdb::TTypeParser parser{column.Type};
         ASSERT_EQ(parser.GetKind(), NYdb::TTypeParser::ETypeKind::Primitive);
         EXPECT_EQ(parser.GetPrimitive(), NYdb::EPrimitiveType::String);
     }

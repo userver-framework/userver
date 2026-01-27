@@ -7,6 +7,7 @@
 #include <userver/engine/mutex.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/tracing/span.hpp>
 #include <userver/utils/periodic_task.hpp>
 
 using namespace std::chrono_literals;
@@ -65,12 +66,14 @@ struct SimpleTaskData final {
 
     void Run() {
         engine::SleepFor(sleep);
-        const std::unique_lock lock(mutex);
+        const std::lock_guard lock(mutex);
         ++count;
         LOG_DEBUG() << "SimpleTaskData::Run";
         cv.NotifyOne();
 
-        if (throw_exception) throw std::runtime_error("error_msg");
+        if (throw_exception) {
+            throw std::runtime_error("error_msg");
+        }
     }
 
     Count GetCount() const { return count; }
@@ -147,7 +150,9 @@ UTEST(PeriodicTask, Strong) {
 
     const auto start = std::chrono::steady_clock::now();
     utils::PeriodicTask task(
-        "task", utils::PeriodicTask::Settings(period, utils::PeriodicTask::Flags::kStrong), simple.GetTaskFunction()
+        "task",
+        utils::PeriodicTask::Settings(period, utils::PeriodicTask::Flags::kStrong),
+        simple.GetTaskFunction()
     );
     EXPECT_TRUE(simple.WaitFor(simple.sleep * n * kSlowRatio, [&] { return simple.GetCount() > n; }));
     const auto finish = std::chrono::steady_clock::now();
@@ -200,51 +205,51 @@ UTEST(PeriodicTask, ExceptionPeriod) {
 UTEST(PeriodicTask, SetSettings) {
     SimpleTaskData simple;
 
-    constexpr auto period1 = 50ms;
-    utils::PeriodicTask::Settings settings(period1);
+    constexpr auto kPeriod1 = 50ms;
+    utils::PeriodicTask::Settings settings(kPeriod1);
 
     utils::PeriodicTask task("task", settings, simple.GetTaskFunction());
 
-    constexpr auto period2 = 10ms;
-    settings.period = period2;
+    constexpr auto kPeriod2 = 10ms;
+    settings.period = kPeriod2;
     task.SetSettings(settings);
 
     constexpr Count n = 4;
-    EXPECT_TRUE(simple.WaitFor(period1 + period2 * n * kSlowRatio, [&simple]() { return simple.GetCount() > n; }));
+    EXPECT_TRUE(simple.WaitFor(kPeriod1 + kPeriod2 * n * kSlowRatio, [&simple]() { return simple.GetCount() > n; }));
 
     task.Stop();
 }
 
 UTEST(PeriodicTask, SetSettingsInstant) {
     SimpleTaskData simple;
-    constexpr auto period1 = 120s;
-    utils::PeriodicTask::Settings settings(period1, utils::PeriodicTask::Flags::kNow);
+    constexpr auto kPeriod1 = 120s;
+    utils::PeriodicTask::Settings settings(kPeriod1, utils::PeriodicTask::Flags::kNow);
     utils::PeriodicTask task("task", settings, simple.GetTaskFunction());
 
     constexpr auto kSyncDuration = 1s;
     engine::SleepFor(kSyncDuration);
 
-    constexpr auto period2 = kSyncDuration / 20;
-    settings.period = period2;
+    constexpr auto kPeriod2 = kSyncDuration / 20;
+    settings.period = kPeriod2;
     task.SetSettings(settings);
 
     engine::SleepFor(kSyncDuration);
 
-    EXPECT_TRUE(simple.WaitFor(2 * period2, [&simple]() { return simple.GetCount() > 0; }));
+    EXPECT_TRUE(simple.WaitFor(2 * kPeriod2, [&simple]() { return simple.GetCount() > 0; }));
     task.Stop();
 }
 
 UTEST(PeriodicTask, SetSettingsFirstIteration) {
     SimpleTaskData simple;
 
-    constexpr auto period1 = 50ms;
+    constexpr auto kPeriod1 = 50ms;
 
-    utils::PeriodicTask task("task", period1, simple.GetTaskFunction());
+    utils::PeriodicTask task("task", kPeriod1, simple.GetTaskFunction());
 
-    constexpr auto period2 = 120s;
-    task.SetSettings(period2);
+    constexpr auto kPeriod2 = 120s;
+    task.SetSettings(kPeriod2);
 
-    EXPECT_TRUE(simple.WaitFor(period1 * kSlowRatio, [&simple]() { return simple.GetCount() == 0; }));
+    EXPECT_TRUE(simple.WaitFor(kPeriod1 * kSlowRatio, [&simple]() { return simple.GetCount() == 0; }));
 
     task.Stop();
 }

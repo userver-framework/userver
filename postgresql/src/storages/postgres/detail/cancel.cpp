@@ -7,10 +7,18 @@
 #include <userver/engine/io/socket.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
 
+#ifdef __clang__
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define USERVER_IMPL_DISABLE_MSAN __attribute__((no_sanitize_memory))
+#else
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define USERVER_IMPL_DISABLE_MSAN
+#endif
+
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define PG_PROTOCOL_MAJOR(v) ((v) >> 16)
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define PG_PROTOCOL_MINOR(v) ((v)&0x0000ffff)
+#define PG_PROTOCOL_MINOR(v) ((v) & 0x0000ffff)
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define PG_PROTOCOL(m, n) (((m) << 16) | (n))
 
@@ -19,7 +27,7 @@
 
 using ACCEPT_TYPE_ARG3 = socklen_t;
 
-struct pg_sockaddr_storage {
+struct PgSockaddrStorage {
     union {
         struct sockaddr sa; /* get the system-dependent fields */
         int64_t ss_align;   /* ensures struct is properly aligned */
@@ -29,7 +37,7 @@ struct pg_sockaddr_storage {
 
 // NOLINTNEXTLINE(modernize-use-using)
 typedef struct {
-    struct pg_sockaddr_storage addr;
+    struct PgSockaddrStorage addr;
     ACCEPT_TYPE_ARG3 salen;
 } SockAddr;
 
@@ -42,9 +50,9 @@ struct pg_cancel {
 // NOLINTNEXTLINE(modernize-use-using)
 typedef struct CancelRequestPacket {
     /* Note that each field is stored in network byte order! */
-    uint32_t cancelRequestCode; /* code to identify a cancel request */
-    uint32_t backendPID;        /* PID of client's backend */
-    uint32_t cancelAuthCode;    /* secret key to authorize cancel */
+    uint32_t cancel_request_code; /* code to identify a cancel request */
+    uint32_t backend_pid;         /* PID of client's backend */
+    uint32_t cancel_auth_code;    /* secret key to authorize cancel */
 } CancelRequestPacket;
 
 struct CancelPacket {
@@ -56,8 +64,24 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::postgres::detail {
 
-void Cancel(PGcancel* cn, engine::Deadline deadline) {
-    if (!cn) return;
+namespace {
+
+// TODO(TAXICOMMON-11213) investigate why memory sanitizer complains.
+USERVER_IMPL_DISABLE_MSAN CancelPacket MakeCancelPacket(const PGcancel& cn) noexcept {
+    CancelPacket cp{};
+    cp.packetlen = sizeof(cp);
+    cp.cp.cancel_request_code = static_cast<uint32_t>(htonl(CANCEL_REQUEST_CODE));
+    cp.cp.backend_pid = htonl(cn.be_pid);
+    cp.cp.cancel_auth_code = htonl(cn.be_key);
+    return cp;
+}
+
+}  // namespace
+
+USERVER_IMPL_DISABLE_MSAN void Cancel(PGcancel* cn, engine::Deadline deadline) {
+    if (!cn) {
+        return;
+    }
 
     engine::io::Sockaddr addr;
     memcpy(addr.Data(), &cn->raddr, std::min<size_t>(sizeof(cn->raddr), addr.Size()));
@@ -66,14 +90,11 @@ void Cancel(PGcancel* cn, engine::Deadline deadline) {
 
     tmp_sock.Connect(addr, deadline);
 
-    CancelPacket cp{};
-    cp.packetlen = sizeof(cp);
-    cp.cp.cancelRequestCode = static_cast<uint32_t>(htonl(CANCEL_REQUEST_CODE));
-    cp.cp.backendPID = htonl(cn->be_pid);
-    cp.cp.cancelAuthCode = htonl(cn->be_key);
-
+    CancelPacket cp = MakeCancelPacket(*cn);
     auto ret = tmp_sock.SendAll(&cp, sizeof(cp), deadline);
-    if (ret != sizeof(cp)) throw CommandError("SendAll()");
+    if (ret != sizeof(cp)) {
+        throw CommandError("SendAll()");
+    }
 
     /*
      * Comment from libpq's sources, fe-connect.c, inside internal_cancel():

@@ -30,6 +30,7 @@ public:
     size_t Execute(const operations::Count&) const override;
     size_t Execute(const operations::CountApprox&) const override;
     Cursor Execute(const operations::Find&) const override;
+    std::vector<formats::bson::Value> Execute(const operations::Distinct&) const override;
     WriteResult Execute(const operations::InsertOne&) override;
     WriteResult Execute(const operations::InsertMany&) override;
     WriteResult Execute(const operations::ReplaceOne&) override;

@@ -3,6 +3,10 @@
 #include <userver/components/component.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
+#ifndef ARCADIA_ROOT
+#include "generated/src/server/handlers/auth/auth_checker_settings_component.yaml.hpp"  // Y_IGNORE
+#endif
+
 USERVER_NAMESPACE_BEGIN
 
 namespace components {
@@ -24,18 +28,12 @@ AuthCheckerSettings::AuthCheckerSettings(
     const ComponentContext& component_context
 )
     : ComponentBase(component_config, component_context),
-      settings_(GetSettings(component_context.FindComponentOptional<Secdist>())) {}
+      settings_(GetSettings(component_context.FindComponentOptional<Secdist>()))
+{}
 
 yaml_config::Schema AuthCheckerSettings::GetStaticConfigSchema() {
-    return yaml_config::MergeSchemas<ComponentBase>(R"(
-type: object
-description: >
-  Component that loads auth configuration settings from a
-  components::Secdist component if the latter was registered in
-  components::ComponentList.
-additionalProperties: false
-properties: {}
-)");
+    return yaml_config::MergeSchemasFromResource<
+        ComponentBase>("src/server/handlers/auth/auth_checker_settings_component.yaml");
 }
 
 }  // namespace components

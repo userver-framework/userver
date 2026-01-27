@@ -6,6 +6,7 @@
 #include <string>
 
 #include <userver/engine/task/task_processor_fwd.hpp>
+#include <userver/formats/json/serialize.hpp>
 #include <userver/formats/json/value.hpp>
 #include <userver/utils/function_ref.hpp>
 
@@ -102,7 +103,10 @@ USERVER_NAMESPACE_END
         if (!USERVER_NAMESPACE::testsuite::impl::IsTestpointEnabled(userver_impl_tp_name)) break;   \
                                                                                                     \
         USERVER_NAMESPACE::testsuite::impl::ExecuteTestpointBlocking(                               \
-            userver_impl_tp_name, json, callback, task_processor                                    \
+            userver_impl_tp_name,                                                                   \
+            json,                                                                                   \
+            callback,                                                                               \
+            task_processor                                                                          \
         );                                                                                          \
     } while (false)
 

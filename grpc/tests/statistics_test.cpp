@@ -7,6 +7,7 @@
 
 #include <userver/ugrpc/client/exceptions.hpp>
 
+#include <tests/deadline_helpers.hpp>
 #include <tests/unit_test_client.usrv.pb.hpp>
 #include <tests/unit_test_service.usrv.pb.hpp>
 #include <userver/ugrpc/tests/service_fixtures.hpp>
@@ -17,27 +18,29 @@ using namespace std::chrono_literals;
 
 namespace {
 
+constexpr auto kSayHelloSleepTime = std::chrono::milliseconds{20};
+
 class UnitTestServiceForStatistics final : public sample::ugrpc::UnitTestServiceBase {
 public:
-    void SayHello(SayHelloCall& call, sample::ugrpc::GreetingRequest&&) override {
-        engine::SleepFor(std::chrono::milliseconds{20});
-        call.FinishWithError({grpc::StatusCode::INVALID_ARGUMENT, "message", "details"});
+    SayHelloResult SayHello(CallContext& /*context*/, sample::ugrpc::GreetingRequest&& /*request*/) override {
+        engine::SleepFor(kSayHelloSleepTime);
+        return grpc::Status{grpc::StatusCode::INVALID_ARGUMENT, "message", "details"};
     }
 
-    void Chat(ChatCall& call) override {
-        call.FinishWithError({grpc::StatusCode::UNIMPLEMENTED, "message", "details"});
+    ChatResult Chat(CallContext& /*context*/, ChatReaderWriter& /*stream*/) override {
+        return grpc::Status{grpc::StatusCode::UNIMPLEMENTED, "message", "details"};
     }
 };
 
 }  // namespace
 
-using GrpcStatistics = ugrpc::tests::ServiceFixture<UnitTestServiceForStatistics>;
+using GrpcStatistics =
+    ugrpc::tests::ServiceWithClientFixture<UnitTestServiceForStatistics, sample::ugrpc::UnitTestServiceClient>;
 
 UTEST_F(GrpcStatistics, LongRequest) {
-    auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
     sample::ugrpc::GreetingRequest out;
     out.set_name("userver");
-    UEXPECT_THROW(client.SayHello(out).Finish(), ugrpc::client::InvalidArgumentError);
+    UEXPECT_THROW(GetClient().SayHello(out), ugrpc::client::InvalidArgumentError);
     GetServer().StopServing();
 
     for (const auto& domain : {"client", "server"}) {
@@ -62,49 +65,41 @@ UTEST_F(GrpcStatistics, LongRequest) {
     }
 }
 
-UTEST_F(GrpcStatistics, StatsBeforeGet) {
-    // In this test, we ensure that stats are accounted for even if we don't call
-    // future.Get(). Consider a situation where such futures are stockpiled
+UTEST_F(GrpcStatistics, DelayBeforeGet) {
+    // Consider a situation where response futures are stockpiled
     // somewhere, and the task awaits something else (more responses?) before
-    // calling Get. In this case, metrics should still be written as soon as
+    // calling response futures Get. In this case, metrics should still contain timings
     // the response is actually received on the network.
 
     utils::datetime::MockNowSet({});
 
-    auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
     sample::ugrpc::GreetingRequest out;
-    sample::ugrpc::GreetingResponse res;
     out.set_name("userver");
 
-    auto call = client.SayHello(out);
-    auto future = call.FinishAsync(res);
+    auto future = GetClient().AsyncSayHello(out);
 
-    const std::string kMetricsPath = "grpc.client.by-destination";
-    const std::vector<utils::statistics::Label> kMetricsLabels{
+    const std::string metrics_path = "grpc.client.by-destination";
+    const std::vector<utils::statistics::Label> metrics_labels{
         {"grpc_destination", "sample.ugrpc.UnitTestService/SayHello"},
     };
 
-    // Here we intend to wait until the client finishes processing the request and
-    // updates the metrics asynchronously without actually calling Get. Pretty
-    // much the only guaranteed way to await this is to wait until the metrics
-    // arrive.
-    const auto test_deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
-    while (true) {
-        if (test_deadline.IsReached()) {
-            FAIL() << "Client failed to set metrics until max test time";
+    const auto deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
+    while (!future.IsReady()) {
+        if (deadline.IsReached()) {
+            FAIL() << "Response could not reach Client until max test timeout";
         }
-
-        if (GetStatistics(kMetricsPath, kMetricsLabels).SingleMetric("rps").AsRate() >= utils::statistics::Rate{1}) {
-            break;
-        }
-
-        engine::SleepFor(std::chrono::milliseconds{1});
+        engine::InterruptibleSleepFor(std::chrono::milliseconds{10});
     }
+
+    const auto delay_before_get = tests::kLongTimeout;
+    engine::InterruptibleSleepFor(delay_before_get);
+
+    UEXPECT_THROW(future.Get(), ugrpc::client::InvalidArgumentError);
 
     // So that RecentPeriod "timings" metric makes the current epoch readable.
     utils::datetime::MockSleep(6s);
 
-    const auto stats = GetStatistics(kMetricsPath, kMetricsLabels);
+    const auto stats = GetStatistics(metrics_path, metrics_labels);
 
     // check status
     EXPECT_EQ(stats.SingleMetric("status", {{"grpc_code", "INVALID_ARGUMENT"}}).AsRate(), 1);
@@ -112,29 +107,25 @@ UTEST_F(GrpcStatistics, StatsBeforeGet) {
     EXPECT_EQ(stats.SingleMetric("rps").AsRate(), 1);
 
     // check timings
-    auto timing = stats.SingleMetric("timings", {{"percentile", "p100"}}).AsInt();
-    EXPECT_GE(timing, 20);
-    EXPECT_LT(timing, std::chrono::milliseconds{utest::kMaxTestWaitTime}.count());
-
-    UEXPECT_THROW(future.Get(), ugrpc::client::InvalidArgumentError);
+    const auto timing_ms = stats.SingleMetric("timings", {{"percentile", "p100"}}).AsInt();
+    EXPECT_GE(timing_ms, std::chrono::duration_cast<std::chrono::milliseconds>(kSayHelloSleepTime).count());
+    EXPECT_LT(timing_ms, std::chrono::duration_cast<std::chrono::milliseconds>(delay_before_get).count());
 }
 
 UTEST_F_MT(GrpcStatistics, Multithreaded, 2) {
     constexpr int kIterations = 10;
 
-    auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
-
     auto say_hello_task = utils::Async("say-hello", [&] {
         for (int i = 0; i < kIterations; ++i) {
             sample::ugrpc::GreetingRequest out;
             out.set_name("userver");
-            UEXPECT_THROW(client.SayHello(out).Finish(), ugrpc::client::InvalidArgumentError);
+            UEXPECT_THROW(GetClient().SayHello(out), ugrpc::client::InvalidArgumentError);
         }
     });
 
     auto chat_task = utils::Async("chat", [&] {
         for (int i = 0; i < kIterations; ++i) {
-            auto chat = client.Chat();
+            auto chat = GetClient().Chat();
             sample::ugrpc::StreamGreetingResponse response;
             UEXPECT_THROW((void)chat.Read(response), ugrpc::client::UnimplementedError);
         }

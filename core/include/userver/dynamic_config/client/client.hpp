@@ -24,7 +24,7 @@ struct ClientConfig {
     std::string config_url;
     bool append_path_to_url{true};
     std::string stage_name;
-    bool fallback_to_no_proxy{true};
+    bool is_prestable{false};
 };
 
 /// @ingroup userver_clients
@@ -33,7 +33,7 @@ struct ClientConfig {
 /// @ref scripts/docs/en/userver/dynamic_config.md "dynamic configs" service.
 ///
 /// It is safe to concurrently invoke members of the same client because this
-/// client is a thin wrapper around clients::http::Client.
+/// client is a thin wrapper around @ref clients::http::Client.
 class Client final {
 public:
     Client(clients::http::Client& http_client, const ClientConfig&);
@@ -44,6 +44,7 @@ public:
 
     struct Reply {
         USERVER_NAMESPACE::dynamic_config::DocsMap docs_map;
+        std::vector<std::string> kill_switches_disabled;
         std::vector<std::string> removed;
         Timestamp timestamp;
 
@@ -52,6 +53,7 @@ public:
 
     struct JsonReply {
         formats::json::Value configs;
+        std::vector<std::string> kill_switches_disabled;
         Timestamp timestamp;
     };
 
@@ -62,8 +64,10 @@ public:
     JsonReply FetchJson(const std::optional<Timestamp>& last_update, const std::vector<std::string>& fields_to_load);
 
 private:
-    formats::json::Value
-    FetchConfigs(const std::optional<Timestamp>& last_update, const std::vector<std::string>& fields_to_load);
+    formats::json::Value FetchConfigs(
+        const std::optional<Timestamp>& last_update,
+        const std::vector<std::string>& fields_to_load
+    );
 
     std::string FetchConfigsValues(std::string_view body);
 

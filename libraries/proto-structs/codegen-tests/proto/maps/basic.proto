@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+option go_package = "a.yandex-team.ru/taxi/uservices/userver/libraries/proto-structs/codegen-tests/proto/maps;maps";
+
+package maps;
+
+message Basic {
+  map<string, int64> string_int = 1;
+  map<string, string> string_string = 2;
+  map<int64, int64> int_int = 3;
+  map<int64, string> int_string = 4;
+}

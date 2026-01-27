@@ -8,7 +8,9 @@ USERVER_NAMESPACE_BEGIN
 namespace engine::ev {
 
 AsyncWatcher::AsyncWatcher(ThreadControl& thread_control, Callback cb)
-    : ev_async_(thread_control, this), cb_(std::move(cb)) {
+    : ev_async_(thread_control, this),
+      cb_(std::move(cb))
+{
     ev_async_.Init(&AsyncWatcher::OnEvent);
 }
 
@@ -16,9 +18,11 @@ AsyncWatcher::~AsyncWatcher() = default;
 
 void AsyncWatcher::Start() { ev_async_.StartAsync(); }
 
+void AsyncWatcher::Stop() { ev_async_.Stop(); }
+
 void AsyncWatcher::OnEvent(struct ev_loop*, ev_async* async, int events) noexcept {
     auto* self = static_cast<AsyncWatcher*>(async->data);
-    self->ev_async_.Stop();
+    const auto guard = self->ev_async_.StopWithinEvCallback();
 
     if (events & EV_ASYNC) {
         try {

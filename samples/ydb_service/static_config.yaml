@@ -21,8 +21,6 @@ components_manager:
                     file_path: '@stderr'
                     level: debug
                     overflow_behavior: discard  # Drop logs if the system is too busy to write them down.
-        secdist:
-            provider: default-secdist-provider
         default-secdist-provider:
             config: secure_data.json
 
@@ -41,6 +39,7 @@ components_manager:
             update-interval: 5s
 
         http-client:
+        http-client-core:
             fs-task-processor: fs-task-processor
             user-agent: $server-name
             user-agent#fallback: 'userver-based-service 1.0'
@@ -94,7 +93,13 @@ components_manager:
             task_processor: main-task-processor
 
         sample-topic-reader:
-            consumer-name: sample-consumer
+            consumer-name: sample-topic-consumer
+            topics:
+              - records/changefeed
+            restart-session-delay: 200ms
+
+        sample-federated-topic-reader:
+            consumer-name: sample-federated-topic-consumer
             topics:
               - records/changefeed
             restart-session-delay: 200ms

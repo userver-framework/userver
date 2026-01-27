@@ -10,6 +10,7 @@
 
 #include <userver/ugrpc/client/fwd.hpp>
 #include <userver/ugrpc/client/simple_client_component.hpp>
+#include <userver/ugrpc/impl/static_service_metadata.hpp>
 
 #include <samples/greeter_client.usrv.pb.hpp>
 /// [includes]
@@ -26,7 +27,7 @@ namespace samples {
 // microservice. Ignore that, it's just for the sake of example.
 class GreeterClient final {
 public:
-    explicit GreeterClient(api::GreeterServiceClient&& raw_client);
+    explicit GreeterClient(api::GreeterServiceClient& raw_client);
 
     std::string SayHello(std::string name) const;
 
@@ -37,25 +38,34 @@ public:
     std::vector<std::string> SayHelloStreams(const std::vector<std::string_view>& names) const;
 
 private:
-    static std::unique_ptr<grpc::ClientContext> MakeClientContext();
+    static ugrpc::client::CallOptions MakeCallOptions();
 
-    api::GreeterServiceClient raw_client_;
+    api::GreeterServiceClient& raw_client_;
 };
 /// [client]
 
 using Client = GreeterClient;
 
 /// [component]
-class GreeterClientComponent final : public ugrpc::client::SimpleClientComponent<Client> {
+extern const USERVER_NAMESPACE::dynamic_config::Key<ugrpc::client::ClientQos> kGreeterClientQos;
+
+class GreeterClientComponent final : public ugrpc::client::SimpleClientComponent<api::GreeterServiceClient> {
 public:
     static constexpr std::string_view kName = "greeter-client";
 
-    using Base = ugrpc::client::SimpleClientComponent<Client>;
+    using Base = ugrpc::client::SimpleClientComponent<api::GreeterServiceClient>;
 
     GreeterClientComponent(const ::components::ComponentConfig& config, const ::components::ComponentContext& context)
-        : Base(config, context) {}
+        : Base(config, context, kGreeterClientQos),
+          client_wrapper_(GetClient())
+    {}
 
     using Base::GetClient;
+
+    GreeterClient& GetClientWrapper() noexcept { return client_wrapper_; }
+
+private:
+    GreeterClient client_wrapper_;
 };
 /// [component]
 

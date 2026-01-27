@@ -3,8 +3,8 @@
 #include <memory>
 #include <string>
 
-#include <userver/storages/redis/impl/base.hpp>
-#include <userver/storages/redis/impl/request.hpp>
+#include <storages/redis/impl/request.hpp>
+#include <userver/storages/redis/base.hpp>
 #include <userver/utils/assert.hpp>
 
 #include <userver/storages/redis/client.hpp>
@@ -20,66 +20,51 @@ namespace storages::redis {
 
 namespace impl {
 
-void Wait(USERVER_NAMESPACE::redis::Request& request);
+void Wait(impl::Request& request) noexcept;
 
-template <ScanTag scan_tag>
-Request<ScanReplyTmpl<scan_tag>> MakeScanRequest(
+template <ScanTag TScanTag>
+storages::redis::Request<ScanReplyTmpl<TScanTag>> MakeScanRequest(
     ClientImpl& client,
     std::string key,
     size_t shard,
-    typename ScanReplyTmpl<scan_tag>::Cursor cursor,
-    ScanOptionsTmpl<scan_tag> options,
+    typename ScanReplyTmpl<TScanTag>::Cursor cursor,
+    ScanOptionsGeneric options,
     const CommandControl& command_control
 ) {
-    return client.MakeScanRequestWithKey<scan_tag>(std::move(key), shard, cursor, std::move(options), command_control);
-}
-
-template <>
-inline Request<ScanReply> MakeScanRequest<ScanTag::kScan>(
-    ClientImpl& client,
-    std::string,
-    size_t shard,
-    ScanReply::Cursor cursor,
-    ScanOptions options,
-    const CommandControl& command_control
-) {
-    return client.MakeScanRequestNoKey(shard, cursor, std::move(options), command_control);
+    if constexpr (TScanTag == ScanTag::kScan) {
+        return client.MakeScanRequestNoKey(shard, cursor, std::move(options), command_control);
+    } else {
+        return client
+            .MakeScanRequestWithKey<TScanTag>(std::move(key), shard, cursor, std::move(options), command_control);
+    }
 }
 
 }  // namespace impl
 
-class RequestDataImplBase {
-public:
-    RequestDataImplBase(USERVER_NAMESPACE::redis::Request&& request);
-
-    virtual ~RequestDataImplBase();
-
-protected:
-    ReplyPtr GetReply();
-
-    USERVER_NAMESPACE::redis::Request& GetRequest();
-
-private:
-    USERVER_NAMESPACE::redis::Request request_;
-};
-
 template <typename Result, typename ReplyType>
-class RequestDataImpl final : public RequestDataImplBase, public RequestDataBase<ReplyType> {
+class RequestDataImpl final : public RequestDataBase<ReplyType> {
 public:
-    explicit RequestDataImpl(USERVER_NAMESPACE::redis::Request&& request) : RequestDataImplBase(std::move(request)) {}
+    explicit RequestDataImpl(impl::Request&& request)
+        : request_(std::move(request))
+    {}
 
-    void Wait() override { impl::Wait(GetRequest()); }
+    void Wait() noexcept override { impl::Wait(request_); }
 
     ReplyType Get(const std::string& request_description) override {
         auto reply = GetReply();
-        return ParseReply<Result, ReplyType>(std::move(reply), request_description);
+        return impl::ParseReply<Result, ReplyType>(std::move(reply), request_description);
     }
 
     ReplyPtr GetRaw() override { return GetReply(); }
 
     engine::impl::ContextAccessor* TryGetContextAccessor() noexcept override {
-        return GetRequest().TryGetContextAccessor();
+        return request_.TryGetContextAccessor();
     }
+
+private:
+    ReplyPtr GetReply() { return request_.Get(); }
+
+    impl::Request request_;
 };
 
 template <typename Result, typename ReplyType>
@@ -87,7 +72,9 @@ class AggregateRequestDataImpl final : public RequestDataBase<ReplyType> {
     using RequestDataPtr = std::unique_ptr<RequestDataBase<ReplyType>>;
 
 public:
-    explicit AggregateRequestDataImpl(std::vector<RequestDataPtr>&& requests) : requests_(std::move(requests)) {}
+    explicit AggregateRequestDataImpl(std::vector<RequestDataPtr>&& requests)
+        : requests_(std::move(requests))
+    {}
 
     void Wait() override {
         for (auto& request : requests_) {
@@ -121,12 +108,14 @@ private:
 template <typename Result, typename ReplyType>
 class DummyRequestDataImpl final : public RequestDataBase<ReplyType> {
 public:
-    explicit DummyRequestDataImpl(ReplyPtr&& reply) : reply_(std::move(reply)) {}
+    explicit DummyRequestDataImpl(ReplyPtr&& reply)
+        : reply_(std::move(reply))
+    {}
 
-    void Wait() override {}
+    void Wait() noexcept override {}
 
     ReplyType Get(const std::string& request_description) override {
-        return ParseReply<Result, ReplyType>(std::move(reply_), request_description);
+        return impl::ParseReply<Result, ReplyType>(std::move(reply_), request_description);
     }
 
     ReplyPtr GetRaw() override { return std::move(reply_); }
@@ -140,31 +129,33 @@ private:
     ReplyPtr reply_;
 };
 
-template <ScanTag scan_tag>
-class RequestScanData final : public RequestScanDataBase<scan_tag> {
+template <ScanTag TScanTag>
+class RequestScanData final : public RequestScanDataBase<TScanTag> {
 public:
-    using ReplyElem = typename ScanReplyElem<scan_tag>::type;
+    using ReplyElem = typename ScanReplyElem<TScanTag>::type;
 
-    template <ScanTag scan_tag_param = scan_tag>
+    template <ScanTag ScanTagParam = TScanTag>
     RequestScanData(
         std::shared_ptr<ClientImpl> client,
         size_t shard,
-        ScanOptionsTmpl<scan_tag> options,
+        ScanOptionsGeneric options,
         const CommandControl& command_control,
-        std::enable_if_t<scan_tag_param == ScanTag::kScan>* = nullptr
+        std::enable_if_t<ScanTagParam == ScanTag::kScan>* = nullptr
     )
-        : RequestScanData(std::move(client), {}, shard, std::move(options), command_control, scan_tag) {}
+        : RequestScanData(std::move(client), {}, shard, std::move(options), command_control, TScanTag)
+    {}
 
-    template <ScanTag scan_tag_param = scan_tag>
+    template <ScanTag ScanTagParam = TScanTag>
     RequestScanData(
         std::shared_ptr<ClientImpl> client,
         std::string key,
         size_t shard,
-        ScanOptionsTmpl<scan_tag> options,
+        ScanOptionsGeneric options,
         const CommandControl& command_control,
-        std::enable_if_t<scan_tag_param != ScanTag::kScan>* = nullptr
+        std::enable_if_t<ScanTagParam != ScanTag::kScan>* = nullptr
     )
-        : RequestScanData(std::move(client), std::move(key), shard, std::move(options), command_control, scan_tag) {}
+        : RequestScanData(std::move(client), std::move(key), shard, std::move(options), command_control, TScanTag)
+    {}
 
     ReplyElem Get() override;
 
@@ -177,7 +168,7 @@ private:
         std::shared_ptr<ClientImpl> client,
         std::string key,
         size_t shard,
-        ScanOptionsTmpl<scan_tag> options,
+        ScanOptionsGeneric options,
         const CommandControl& command_control,
         ScanTag
     );
@@ -187,10 +178,10 @@ private:
     std::shared_ptr<ClientImpl> client_;
     std::string key_;
     size_t shard_{-1UL};
-    ScanOptionsTmpl<scan_tag> options_;
+    ScanOptionsGeneric options_;
     CommandControl command_control_;
 
-    using ScanReply = ScanReplyTmpl<scan_tag>;
+    using ScanReply = ScanReplyTmpl<TScanTag>;
 
     std::unique_ptr<Request<ScanReply>> request_;
     std::unique_ptr<ScanReply> reply_;
@@ -198,12 +189,12 @@ private:
     bool eof_{false};
 };
 
-template <ScanTag scan_tag>
-RequestScanData<scan_tag>::RequestScanData(
+template <ScanTag TScanTag>
+RequestScanData<TScanTag>::RequestScanData(
     std::shared_ptr<ClientImpl> client,
     std::string key,
     size_t shard,
-    ScanOptionsTmpl<scan_tag> options,
+    ScanOptionsGeneric options,
     const CommandControl& command_control,
     ScanTag
 )
@@ -212,55 +203,60 @@ RequestScanData<scan_tag>::RequestScanData(
       shard_(shard),
       options_(std::move(options)),
       command_control_(command_control),
-      request_(std::make_unique<Request<ScanReply>>(
-          impl::MakeScanRequest<scan_tag>(*client_, key_, shard_, {}, options_, command_control_)
-      )) {}
+      request_(std::make_unique<Request<
+                   ScanReply>>(impl::MakeScanRequest<TScanTag>(*client_, key_, shard_, {}, options_, command_control_)))
+{}
 
-template <ScanTag scan_tag>
-typename RequestScanData<scan_tag>::ReplyElem RequestScanData<scan_tag>::Get() {
-    if (Eof()) throw RequestScan::GetAfterEofException("Trying to Get() after eof");
+template <ScanTag TScanTag>
+typename RequestScanData<TScanTag>::ReplyElem RequestScanData<TScanTag>::Get() {
+    if (Eof()) {
+        throw RequestScan::GetAfterEofException("Trying to Get() after eof");
+    }
     UASSERT(reply_);
     UASSERT(reply_keys_index_ < reply_->GetKeys().size());
     return std::move(reply_->GetKeys()[reply_keys_index_++]);
 }
 
-template <ScanTag scan_tag>
-typename RequestScanData<scan_tag>::ReplyElem& RequestScanData<scan_tag>::Current() {
-    if (Eof()) throw RequestScan::GetAfterEofException("Trying to call Current() after eof");
+template <ScanTag TScanTag>
+typename RequestScanData<TScanTag>::ReplyElem& RequestScanData<TScanTag>::Current() {
+    if (Eof()) {
+        throw RequestScan::GetAfterEofException("Trying to call Current() after eof");
+    }
     UASSERT(reply_);
     UASSERT(reply_keys_index_ < reply_->GetKeys().size());
     return reply_->GetKeys()[reply_keys_index_];
 }
 
-template <ScanTag scan_tag>
-bool RequestScanData<scan_tag>::Eof() {
+template <ScanTag TScanTag>
+bool RequestScanData<TScanTag>::Eof() {
     CheckReply();
     return eof_;
 }
 
-template <ScanTag scan_tag>
-void RequestScanData<scan_tag>::CheckReply() {
+template <ScanTag TScanTag>
+void RequestScanData<TScanTag>::CheckReply() {
     while (!eof_ && (!reply_ || reply_keys_index_ == reply_->GetKeys().size())) {
         if (request_) {
             auto scan_reply_raw = request_->GetRaw();
             command_control_.force_server_id = scan_reply_raw->server_id;
-            auto scan_reply = ParseReply<ScanReply>(std::move(scan_reply_raw), this->request_description_);
-            if (reply_)
+            auto scan_reply = impl::ParseReply<ScanReply>(std::move(scan_reply_raw), this->request_description_);
+            if (reply_) {
                 *reply_ = std::move(scan_reply);
-            else
+            } else {
                 reply_ = std::make_unique<ScanReply>(std::move(scan_reply));
+            }
         } else {
             reply_.reset();
             eof_ = true;
         }
         reply_keys_index_ = 0;
 
-        if (!eof_ && reply_->GetCursor().GetValue())
-            *request_ = impl::MakeScanRequest<scan_tag>(
-                *client_, key_, shard_, reply_->GetCursor(), options_, command_control_
-            );
-        else
+        if (!eof_ && reply_->GetCursor().GetValue()) {
+            *request_ = impl::MakeScanRequest<
+                TScanTag>(*client_, key_, shard_, reply_->GetCursor(), options_, command_control_);
+        } else {
             request_.reset();
+        }
     }
 }
 

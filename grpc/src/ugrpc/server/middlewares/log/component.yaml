@@ -1,0 +1,35 @@
+type: object
+description: gRPC service logger component
+additionalProperties: false
+properties:
+    log-level:
+        type: string
+        description: set log level threshold
+        default: debug
+    msg-log-level:
+        type: string
+        description: set up logging level for request/response messages
+        default: debug
+    msg-size-log-limit:
+        type: string
+        description: max message size to log, the rest will be truncated
+        default: 512
+    local-log-level:
+        type: string
+        description: local log level of the span for user-provided handler
+        default: debug
+    status-codes-log-level:
+        type: object
+        properties: {}
+        additionalProperties:
+            type: string
+            description: log level
+        description: |-
+            gRPC status code string -> log level map.
+            Allows overriding the log level for the response for individual statuses.
+            See grpcpp StatusCode documentation for the list of possible values:
+            https://grpc.github.io/grpc/cpp/namespacegrpc.html#aff1730578c90160528f6a8d67ef5c43b
+
+            Example:
+              -  FAILED_PRECONDITION: info
+

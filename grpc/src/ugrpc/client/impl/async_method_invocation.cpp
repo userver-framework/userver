@@ -1,67 +1,19 @@
 #include <userver/ugrpc/client/impl/async_method_invocation.hpp>
 
-#include <ugrpc/impl/status.hpp>
-#include <userver/ugrpc/client/impl/async_methods.hpp>
+#include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client::impl {
 
-ParsedGStatus ParsedGStatus::ProcessStatus(const grpc::Status& status) {
-    if (status.ok()) {
-        return {};
-    }
-    auto gstatus = ugrpc::impl::ToGoogleRpcStatus(status);
-    std::optional<std::string> gstatus_string;
-    if (gstatus) {
-        gstatus_string = ugrpc::impl::GetGStatusLimitedMessage(*gstatus);
-    }
-
-    return ParsedGStatus{std::move(gstatus), std::move(gstatus_string)};
-}
-
-FinishAsyncMethodInvocation::FinishAsyncMethodInvocation(RpcData& rpc_data)
-    : rpc_data_(rpc_data), status_(rpc_data.GetStatus()) {}
-
-FinishAsyncMethodInvocation::~FinishAsyncMethodInvocation() { WaitWhileBusy(); }
-
 void FinishAsyncMethodInvocation::Notify(bool ok) noexcept {
-    if (ok) {
-        try {
-            rpc_data_.GetStatsScope().OnExplicitFinish(status_.error_code());
-
-            if (status_.error_code() == grpc::StatusCode::DEADLINE_EXCEEDED && rpc_data_.IsDeadlinePropagated()) {
-                rpc_data_.GetStatsScope().OnCancelledByDeadlinePropagation();
-            }
-
-            rpc_data_.GetStatsScope().Flush();
-
-            parsed_gstatus_ = ParsedGStatus::ProcessStatus(status_);
-        } catch (const std::exception& e) {
-            LOG_LIMITED_ERROR() << "Error in FinishAsyncMethodInvocation::Notify: " << e;
-        }
-    }
+    notify_time_ = std::chrono::steady_clock::now();
     AsyncMethodInvocation::Notify(ok);
 }
 
-ParsedGStatus& FinishAsyncMethodInvocation::GetParsedGStatus() { return parsed_gstatus_; }
-
-grpc::Status& FinishAsyncMethodInvocation::GetStatus() { return status_; }
-
-ugrpc::impl::AsyncMethodInvocation::WaitStatus
-Wait(ugrpc::impl::AsyncMethodInvocation& invocation, grpc::ClientContext& context) noexcept {
-    return impl::WaitUntil(invocation, context, engine::Deadline{});
-}
-
-ugrpc::impl::AsyncMethodInvocation::WaitStatus WaitUntil(
-    ugrpc::impl::AsyncMethodInvocation& invocation,
-    grpc::ClientContext& context,
-    engine::Deadline deadline
-) noexcept {
-    const auto status = invocation.WaitUntil(deadline);
-    if (status == ugrpc::impl::AsyncMethodInvocation::WaitStatus::kCancelled) context.TryCancel();
-
-    return status;
+std::chrono::steady_clock::time_point FinishAsyncMethodInvocation::GetNotifyTime() const noexcept {
+    UASSERT_MSG(notify_time_.has_value(), "GetNotifyTime should be called after invocation was notified");
+    return *notify_time_;
 }
 
 }  // namespace ugrpc::client::impl

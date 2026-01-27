@@ -10,7 +10,9 @@ namespace {
 using NativeType = clickhouse::impl::clickhouse_cpp::ColumnInt32;
 }
 
-Int32Column::Int32Column(ColumnRef column) : ClickhouseColumn{impl::GetTypedColumn<Int32Column, NativeType>(column)} {}
+Int32Column::Int32Column(ColumnRef column)
+    : ClickhouseColumn{impl::GetTypedColumn<Int32Column, NativeType>(column)}
+{}
 
 template <>
 Int32Column::cpp_type ColumnIterator<Int32Column>::DataHolder::Get() const {

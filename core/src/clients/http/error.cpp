@@ -59,7 +59,8 @@ std::exception_ptr PrepareRateLimitException(std::error_code ec, std::string_vie
 }  // namespace
 
 TimeoutException::TimeoutException(std::string_view message, const LocalStats& stats)
-    : BaseException(std::string(message), stats, ErrorKind::kTimeout) {}
+    : BaseException(std::string(message), stats, ErrorKind::kTimeout)
+{}
 
 BaseCodeException::BaseCodeException(
     std::error_code ec,
@@ -68,7 +69,8 @@ BaseCodeException::BaseCodeException(
     const LocalStats& stats
 )
     : BaseException(fmt::format("{}, curl error: {}, url: {}", message, ec.message(), url), stats, ErrorKind::kNetwork),
-      ec_(ec) {}
+      ec_(ec)
+{}
 
 HttpException::HttpException(int code, const LocalStats& stats, std::string_view message, ErrorKind error_kind)
     : BaseException(
@@ -76,17 +78,24 @@ HttpException::HttpException(int code, const LocalStats& stats, std::string_view
           stats,
           error_kind
       ),
-      code_(code) {}
+      code_(code)
+{}
 
-HttpClientException::HttpClientException(int code, const LocalStats& stats) : HttpClientException(code, stats, {}) {}
+HttpClientException::HttpClientException(int code, const LocalStats& stats)
+    : HttpClientException(code, stats, {})
+{}
 
 HttpClientException::HttpClientException(int code, const LocalStats& stats, std::string_view message)
-    : HttpException(code, stats, message, ErrorKind::kClient) {}
+    : HttpException(code, stats, message, ErrorKind::kClient)
+{}
 
-HttpServerException::HttpServerException(int code, const LocalStats& stats) : HttpServerException(code, stats, {}) {}
+HttpServerException::HttpServerException(int code, const LocalStats& stats)
+    : HttpServerException(code, stats, {})
+{}
 
 HttpServerException::HttpServerException(int code, const LocalStats& stats, std::string_view message)
-    : HttpException(code, stats, message, ErrorKind::kServer) {}
+    : HttpException(code, stats, message, ErrorKind::kServer)
+{}
 
 std::exception_ptr PrepareException(std::error_code ec, std::string_view url, const LocalStats& stats) {
     if (ec.category() == curl::errc::GetEasyCategory()) {

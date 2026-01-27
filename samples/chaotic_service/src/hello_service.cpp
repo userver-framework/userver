@@ -19,8 +19,7 @@ public:
     using HttpHandlerBase::HttpHandlerBase;
 
     /// [Handler]
-    std::string HandleRequestThrow(const server::http::HttpRequest& request, server::request::RequestContext&)
-        const override {
+    std::string HandleRequest(server::http::HttpRequest& request, server::request::RequestContext&) const override {
         request.GetHttpResponse().SetContentType(http::content_type::kApplicationJson);
 
         auto request_json = formats::json::FromString(request.RequestBody());

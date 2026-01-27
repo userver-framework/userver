@@ -48,11 +48,12 @@ private:
 
     void EnsureCurrent() const;
 
-    static constexpr std::size_t kSize = compiler::SelectSize()  //
-                                             .ForLibCpp32(52)
-                                             .ForLibCpp64(112)
-                                             .ForLibStdCpp64(112)
-                                             .ForLibStdCpp32(64);
+    static constexpr std::size_t kSize =
+        compiler::SelectSize()  //
+            .ForLibCpp32(52)
+            .ForLibCpp64(112)
+            .ForLibStdCpp64(112)
+            .ForLibStdCpp32(64);
     static constexpr std::size_t kAlignment = alignof(void*);
     utils::FastPimpl<Impl, kSize, kAlignment> impl_;
 };

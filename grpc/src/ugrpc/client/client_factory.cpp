@@ -1,79 +1,86 @@
 #include <userver/ugrpc/client/client_factory.hpp>
 
-#include <userver/engine/async.hpp>
-#include <userver/utils/algo.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/testsuite/grpc_control.hpp>
 
-#include <ugrpc/impl/logging.hpp>
+#include <userver/ugrpc/impl/completion_queue_pool_base.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client {
 
 ClientFactory::ClientFactory(
-    ClientFactorySettings&& settings,
+    ClientFactorySettings&& client_factory_settings,
     engine::TaskProcessor& channel_task_processor,
-    MiddlewareFactories mws,
+    impl::MiddlewarePipelineCreator& middleware_pipeline_creator,
     ugrpc::impl::CompletionQueuePoolBase& completion_queues,
     ugrpc::impl::StatisticsStorage& statistics_storage,
+    utils::statistics::MetricsStorage& metrics_storage,
     testsuite::GrpcControl& testsuite_grpc,
-    dynamic_config::Source source
+    dynamic_config::Source config_source
 )
-    : settings_(std::move(settings)),
+    : client_factory_settings_(std::move(client_factory_settings)),
       channel_task_processor_(channel_task_processor),
-      mws_(mws),
+      middleware_pipeline_creator_(middleware_pipeline_creator),
       completion_queues_(completion_queues),
-      channel_cache_(
-          testsuite_grpc.IsTlsEnabled() ? settings_.credentials : grpc::InsecureChannelCredentials(),
-          settings_.channel_args,
-          settings_.channel_count
-      ),
       client_statistics_storage_(statistics_storage),
-      config_source_(source),
-      testsuite_grpc_(testsuite_grpc) {
-    ugrpc::impl::SetupNativeLogging();
-    ugrpc::impl::UpdateNativeLogLevel(settings_.native_log_level);
+      client_qos_errors_reporter_(metrics_storage),
+      config_source_(config_source),
+      testsuite_grpc_(testsuite_grpc)
+{}
 
-    for (auto& [client_name, creds] : settings_.client_credentials) {
-        client_channel_cache_.try_emplace(
-            std::string{client_name},
-            testsuite_grpc.IsTlsEnabled() ? creds : grpc::InsecureChannelCredentials(),
-            settings_.channel_args,
-            settings_.channel_count
-        );
+impl::ClientInternals ClientFactory::MakeClientInternals(
+    ClientSettings&& client_settings,
+    std::optional<ugrpc::impl::StaticServiceMetadata> meta
+) {
+    UINVARIANT(!client_settings.client_name.empty(), "Client name is empty");
+    UINVARIANT(!client_settings.endpoint.empty(), "Client endpoint is empty");
+
+    LOG_INFO()
+        << "MakeClient " << client_settings.client_name << ": completion-queue-count=" << completion_queues_.GetSize()
+        << ", retry-config.attempts=" << client_factory_settings_.retry_config.attempts
+        << ", channel-count=" << client_factory_settings_.channel_count
+        << ", dedicated-channel-counts: " << client_settings.dedicated_methods_config;
+
+    ClientInfo info{
+        /*client_name=*/client_settings.client_name,
+        /*service_full_name=*/std::nullopt,
+    };
+    if (meta.has_value()) {
+        info.service_full_name.emplace(meta.value().service_full_name);
     }
-}
 
-impl::ChannelCache::Token ClientFactory::GetChannel(const std::string& client_name, const std::string& endpoint) {
-    // Spawn a blocking task creating a gRPC channel
-    // This is third party code, no use of span inside it
+    auto middlewares = middleware_pipeline_creator_.CreateMiddlewares(info);
 
-    return engine::AsyncNoSpan(
-               channel_task_processor_,
-               [&] {
-                   if (auto* const channel_cache = utils::FindOrNullptr(client_channel_cache_, client_name)) {
-                       return channel_cache->Get(endpoint);
-                   }
-                   return channel_cache_.Get(endpoint);
-               }
-    ).Get();
-}
+    auto channel_credentials =
+        testsuite_grpc_.IsTlsEnabled()
+            ? GetClientCredentials(client_factory_settings_, client_settings.client_name)
+            : grpc::InsecureChannelCredentials();
 
-impl::ClientDependencies ClientFactory::MakeClientDependencies(ClientSettings&& settings) {
-    UINVARIANT(!settings.client_name.empty(), "Client name is empty");
-    UINVARIANT(!settings.endpoint.empty(), "Client endpoint is empty");
+    impl::ChannelFactory
+        channel_factory{channel_task_processor_, std::move(channel_credentials), client_factory_settings_.auth_type};
 
-    return impl::ClientDependencies{
-        settings.client_name,
-        settings.endpoint,
-        impl::InstantiateMiddlewares(mws_, settings.client_name),
+    std::string destination_prefix_in_metrics =
+        client_settings.destination_prefix_in_metrics.value_or(fmt::format("client({})", client_settings.client_name));
+
+    return impl::ClientInternals{
+        std::move(client_settings.client_name),
+        std::move(destination_prefix_in_metrics),
+        std::move(client_settings.endpoint),
+        std::move(middlewares),
         completion_queues_,
         client_statistics_storage_,
-        GetChannel(settings.client_name, settings.endpoint),
+        client_qos_errors_reporter_,
         config_source_,
         testsuite_grpc_,
-        settings.client_qos,
-        settings_,
-        std::move(settings.dedicated_methods_config),
+        client_settings.client_qos,
+        client_factory_settings_.channel_count,
+        std::move(client_settings.dedicated_methods_config),
+        std::move(channel_factory),
+        client_factory_settings_.retry_config,
+        client_factory_settings_.channel_args,
+        client_factory_settings_.default_service_config,
+        client_factory_settings_.proxy_settings,
     };
 }
 

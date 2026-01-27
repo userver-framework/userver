@@ -1,12 +1,13 @@
 #include <userver/utils/statistics/testing.hpp>
 
 #include <algorithm>
-#include <iostream>
+#include <ostream>
 #include <sstream>
 #include <unordered_map>
 #include <utility>
 
 #include <fmt/format.h>
+#include <fmt/ranges.h>
 #include <boost/algorithm/cxx11/all_of.hpp>
 #include <boost/container/flat_set.hpp>
 #include <boost/range/iterator_range.hpp>
@@ -48,7 +49,9 @@ namespace {
 
 class SnapshotVisitor final : public BaseFormatBuilder {
 public:
-    explicit SnapshotVisitor(impl::SnapshotData& data) : data_(data) {}
+    explicit SnapshotVisitor(impl::SnapshotData& data)
+        : data_(data)
+    {}
 
     void HandleMetric(std::string_view path, LabelsSpan labels, const MetricValue& value) override {
         boost::container::flat_set<Label> labels_owned;
@@ -80,8 +83,11 @@ void PrependPrefix(std::string& path, const Request& request) {
     path = fmt::format("{}{}{}", request.prefix, separator, path);
 }
 
-std::optional<Metric>
-GetSingleOptional(const impl::SnapshotData& data, const std::string& path, const std::vector<Label>& required_labels) {
+std::optional<Metric> GetSingleOptional(
+    const impl::SnapshotData& data,
+    const std::string& path,
+    const std::vector<Label>& required_labels
+) {
     std::optional<Metric> found_metric;
     const auto iterator_pair = data.metrics.equal_range(path);
 
@@ -112,7 +118,8 @@ GetSingleOptional(const impl::SnapshotData& data, const std::string& path, const
 
 Snapshot::Snapshot(const Storage& storage, std::string prefix, std::vector<Label> require_labels)
     : request_(Request::MakeWithPrefix(std::move(prefix), {}, std::move(require_labels))),
-      data_(BuildSnapshotData(storage, request_)) {}
+      data_(BuildSnapshotData(storage, request_))
+{}
 
 MetricValue Snapshot::SingleMetric(std::string path, std::vector<Label> require_labels) const {
     PrependPrefix(path, request_);

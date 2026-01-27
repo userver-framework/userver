@@ -13,7 +13,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis {
 namespace {
 
 class ServerIdDescriptionMap {
@@ -21,19 +21,21 @@ public:
     ServerIdDescriptionMap() { SetDescription(ServerId::Invalid().GetId(), "invalid_server_id"); }
 
     void SetDescription(size_t server_id, std::string description) {
-        std::lock_guard<std::mutex> lock(mutex_);
+        const std::lock_guard<std::mutex> lock(mutex_);
         descriptions_.emplace(std::piecewise_construct, std::tie(server_id), std::tie(description));
     }
 
     void RemoveDescription(size_t server_id) {
-        std::lock_guard<std::mutex> lock(mutex_);
+        const std::lock_guard<std::mutex> lock(mutex_);
         descriptions_.erase(server_id);
     }
 
     std::string GetDescription(size_t server_id) const {
-        std::lock_guard<std::mutex> lock(mutex_);
+        const std::lock_guard<std::mutex> lock(mutex_);
         auto it = descriptions_.find(server_id);
-        if (it != descriptions_.end()) return it->second;
+        if (it != descriptions_.end()) {
+            return it->second;
+        }
         return {};
     }
 
@@ -48,12 +50,16 @@ ServerIdDescriptionMap& GetServerIdDescriptionMap() {
 }
 
 std::optional<int> ToIntOpt(const std::optional<CommandControl::Strategy>& strategy) {
-    if (!strategy) return std::nullopt;
+    if (!strategy) {
+        return std::nullopt;
+    }
     return static_cast<int>(*strategy);
 }
 
 std::optional<int64_t> ToIntOpt(const std::optional<ServerId>& server_id) {
-    if (!server_id || server_id->IsAny()) return std::nullopt;
+    if (!server_id || server_id->IsAny()) {
+        return std::nullopt;
+    }
     return server_id->GetId();
 }
 
@@ -68,28 +74,23 @@ constexpr utils::TrivialBiMap kToStrategy = [](auto selector) {
 }  // namespace
 
 void ServerId::SetDescription(std::string description) const {
-    if (IsAny()) return;
+    if (IsAny()) {
+        return;
+    }
     GetServerIdDescriptionMap().SetDescription(id_, std::move(description));
 }
 
 void ServerId::RemoveDescription() const {
-    if (IsAny()) return;
+    if (IsAny()) {
+        return;
+    }
     GetServerIdDescriptionMap().RemoveDescription(id_);
 }
 
 std::string ServerId::GetDescription() const { return GetServerIdDescriptionMap().GetDescription(id_); }
 
-std::atomic<int64_t> ServerId::next_id_{0};
-ServerId ServerId::invalid_ = ServerId::Generate();
-
-CommandControl::CommandControl(
-    const std::optional<std::chrono::milliseconds>& timeout_single,
-    const std::optional<std::chrono::milliseconds>& timeout_all,
-    const std::optional<size_t>& max_retries
-)
-    : timeout_single(timeout_single), timeout_all(timeout_all), max_retries(max_retries) {}
-
-bool CommandControl::operator==(const CommandControl& other) const { return std::tie(*this) == std::tie(other); }
+std::atomic<int64_t> ServerId::next_id{0};
+ServerId ServerId::invalid = ServerId::Generate();
 
 CommandControl CommandControl::MergeWith(const CommandControl& b) const {
     CommandControl res(*this);
@@ -107,6 +108,9 @@ CommandControl CommandControl::MergeWith(const CommandControl& b) const {
     }
     if (b.best_dc_count.has_value()) {
         res.best_dc_count = b.best_dc_count;
+    }
+    if (b.consider_ping.has_value()) {
+        res.consider_ping = b.consider_ping;
     }
     if (b.force_request_to_master.has_value()) {
         res.force_request_to_master = b.force_request_to_master;
@@ -136,7 +140,7 @@ CommandControl CommandControl::MergeWith(const CommandControl& b) const {
 }
 
 CommandControl CommandControl::MergeWith(const testsuite::RedisControl& t) const {
-    CommandControl res(*this);
+    auto res = *this;
     if (t.min_timeout_single > std::chrono::milliseconds::zero()) {
         res.timeout_single =
             (res.timeout_single.has_value() ? std::max(*res.timeout_single, t.min_timeout_single) : t.min_timeout_single
@@ -150,7 +154,7 @@ CommandControl CommandControl::MergeWith(const testsuite::RedisControl& t) const
 }
 
 CommandControl CommandControl::MergeWith(RetryNilFromMaster) const {
-    CommandControl res(*this);
+    auto res = *this;
     res.force_retries_to_master_on_nil_reply = true;
     return res;
 }
@@ -170,7 +174,7 @@ CommandControl::Strategy StrategyFromString(std::string_view strategy) {
     auto result = kToStrategy.TryFind(strategy);
     if (!result) {
         throw std::runtime_error(fmt::format(
-            "redis::CommandControl::Strategy should be one of [{}], "
+            "storages::redis::CommandControl::Strategy should be one of [{}], "
             "but '{}' was given",
             kToStrategy.DescribeFirst(),
             strategy
@@ -186,6 +190,6 @@ std::string_view StrategyToString(CommandControl::Strategy strategy) {
     return *result;
 }
 
-}  // namespace redis
+}  // namespace storages::redis
 
 USERVER_NAMESPACE_END

@@ -1,0 +1,72 @@
+# NOTE: if this CI check breaks, just remove it, docker checks are enough anyway.
+
+name: CI
+
+'on':
+    schedule:
+      - cron: '30 5 * * 1'  # Every Monday at 5:30
+    pull_request:
+    push:
+        branches:
+          - develop
+
+env:
+    UBSAN_OPTIONS: print_stacktrace=1
+
+jobs:
+    posix:
+        strategy:
+            fail-fast: false
+            matrix:
+                include:
+                  - os: ubuntu-24.04
+                    make: test-debug
+                    info: g++-11 + test-debug
+
+                  - os: ubuntu-24.04
+                    make: test-release
+                    info: g++-11 + test-release
+
+        name: '${{matrix.os}}: ${{matrix.info}}'
+        runs-on: ${{matrix.os}}
+
+        steps:
+          - uses: actions/checkout@v4
+            with:
+                submodules: true
+
+          - name: Reuse ccache directory
+            uses: actions/cache@v4
+            with:
+                path: ~/.cache/ccache
+                key: '${{matrix.os}} ${{matrix.info}} ccache-dir ${{github.ref}} run-${{github.run_number}}'
+                restore-keys: |
+                    ${{matrix.os}} ${{matrix.info}} ccache-dir ${{github.ref}} run-'
+                    ${{matrix.os}} ${{matrix.info}} ccache-
+
+          - name: Install packages
+            run: |
+                DEPS_FILE="https://raw.githubusercontent.com/userver-framework/userver/refs/heads/develop/scripts/docs/en/deps/${{matrix.os}}.md"
+                sudo apt update
+                sudo apt install --allow-downgrades -y $(wget -q -O - ${DEPS_FILE})
+                python3 -m pip install -r requirements.txt
+
+          # mongo template on
+          - name: Install mongo
+            run: |
+                wget -qO- https://pgp.mongodb.com/server-7.0.asc | sudo gpg --dearmor | sudo tee /usr/share/keyrings/mongodb-server-7.0.gpg >/dev/null
+                echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/7.0 multiverse" \
+                      | sudo tee -a /etc/apt/sources.list.d/mongodb-org-7.0.list
+                sudo apt update
+                sudo apt install mongodb-org
+                sudo apt install mongodb-mongosh
+
+          # mongo template off
+          - name: Setup ccache
+            run: |
+                ccache -M 2.0GB
+                ccache -s
+
+          - name: Run ${{matrix.make}}
+            run: |
+                make ${{matrix.make}}

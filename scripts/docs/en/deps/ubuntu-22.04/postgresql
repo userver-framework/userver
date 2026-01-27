@@ -1,0 +1,4 @@
+libpq-dev
+libkrb5-dev
+libldap2-dev
+postgresql-server-dev-16

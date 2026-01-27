@@ -17,13 +17,13 @@ public:
         formats::json::ValueBuilder error;
         error["code"] = std::move(status);
         error["message"] = std::move(msg);
-        json_error_body = formats::json::ToString(error.ExtractValue());
+        json_error_body_ = formats::json::ToString(error.ExtractValue());
     }
 
-    std::string GetExternalBody() const { return json_error_body; }
+    std::string GetExternalBody() const { return json_error_body_; }
 
 private:
-    std::string json_error_body;
+    std::string json_error_body_;
 };
 
 TEST(CustomHandlerException, BuilderSample) {
@@ -40,8 +40,10 @@ TEST(CustomHandlerException, BuilderSample) {
 /// [Sample direct construction]
 TEST(CustomHandlerException, DirectSample) {
     auto exc = server::handlers::ClientError(
-        server::handlers::InternalMessage{"Spam detected, criterion: too many "
-                                          "repetitions (42, we only allow 10)"},
+        server::handlers::InternalMessage{
+            "Spam detected, criterion: too many "
+            "repetitions (42, we only allow 10)"
+        },
         server::handlers::ExternalBody{"Failed to post: spam detected"}
     );
 

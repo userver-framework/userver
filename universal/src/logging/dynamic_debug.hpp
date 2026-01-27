@@ -30,7 +30,7 @@ using LogEntryContentHook = bi::set_base_hook<bi::optimize_size<true>, bi::link_
 struct LogEntryContent {
     LogEntryContent(const char* path, int line) noexcept : line(line), path(path) {}
 
-    std::atomic<EntryState> state{};
+    std::atomic<EntryState> state{EntryState{}};
     const int line;
     const char* const path;
     LogEntryContentHook hook;
@@ -39,23 +39,24 @@ struct LogEntryContent {
 bool operator<(const LogEntryContent& x, const LogEntryContent& y) noexcept;
 bool operator==(const LogEntryContent& x, const LogEntryContent& y) noexcept;
 
-using LogEntryContentSet = bi::set<  //
-    LogEntryContent,                 //
-    bi::constant_time_size<false>,   //
-    bi::member_hook<                 //
-        LogEntryContent,             //
-        LogEntryContentHook,         //
-        &LogEntryContent::hook       //
-        >                            //
+// multiset to allow multiple logs on the same line (happens with templates).
+using LogEntryContentSet = bi::multiset<  //
+    LogEntryContent,                      //
+    bi::constant_time_size<false>,        //
+    bi::member_hook<                      //
+        LogEntryContent,                  //
+        LogEntryContentHook,              //
+        &LogEntryContent::hook            //
+        >                                 //
     >;
 
-void AddDynamicDebugLog(
-    const std::string& location_relative,
-    int line,
-    EntryState state = EntryState{/*force_enabled_level=*/Level::kTrace}
-);
+void SetDynamicDebugLog(const std::string& location_relative, int line, EntryState state);
+
+void AddDynamicDebugLog(const std::string& location_relative, int line);
 
 void RemoveDynamicDebugLog(const std::string& location_relative, int line);
+
+void RemoveAllDynamicDebugLog();
 
 const LogEntryContentSet& GetDynamicDebugLocations();
 

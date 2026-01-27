@@ -1,18 +1,11 @@
-#include <userver/ugrpc/client/client_factory.hpp>
+#include <userver/ugrpc/client/client_factory_settings.hpp>
 
-#include <userver/dynamic_config/storage_mock.hpp>
-#include <userver/engine/task/task.hpp>
+#include <userver/engine/task/current_task.hpp>
 #include <userver/formats/json/serialize.hpp>
-#include <userver/formats/yaml/value.hpp>
-#include <userver/formats/yaml/value_builder.hpp>
-#include <userver/utest/utest.hpp>
-#include <userver/utils/statistics/storage.hpp>
-#include <userver/yaml_config/yaml_config.hpp>
 
-#include <../include/userver/ugrpc/client/impl/completion_queue_pool.hpp>
 #include <userver/ugrpc/client/channels.hpp>
-#include <userver/ugrpc/client/client_factory.hpp>
 #include <userver/ugrpc/client/impl/client_data.hpp>
+#include <userver/ugrpc/client/impl/client_data_accessor.hpp>
 #include <userver/ugrpc/impl/to_string.hpp>
 #include <userver/ugrpc/tests/service_fixtures.hpp>
 
@@ -63,7 +56,7 @@ protected:
 UTEST_F(GrpcClientWithServiceConfig, DefaultServiceConfig) {
     auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
 
-    auto& data = ugrpc::client::impl::GetClientData(client);
+    const auto& data = ugrpc::client::impl::ClientDataAccessor::GetClientData(client);
 
     // This is a very important moment. THe default service_config is applied not
     // upon creation, but when the name resolution process returns no service
@@ -72,13 +65,16 @@ UTEST_F(GrpcClientWithServiceConfig, DefaultServiceConfig) {
     // It doesn't matter whether we connect or not - we only need the name
     // resolution process to execute.
     std::ignore = ugrpc::client::TryWaitForConnected(
-        client, engine::Deadline::FromDuration(std::chrono::milliseconds{50}), engine::current_task::GetTaskProcessor()
+        client,
+        engine::Deadline::FromDuration(std::chrono::milliseconds{50}),
+        engine::current_task::GetTaskProcessor()
     );
 
     // test that service_config was passed to gRPC Core
-    auto& token = data.GetChannelToken();
-    for (std::size_t i = 0; i < token.GetChannelCount(); ++i) {
-        ASSERT_EQ(kServiceConfig, ugrpc::impl::ToString(token.GetChannel(i)->GetServiceConfigJSON()));
+    const auto stub_state = data.GetStubState();
+    const auto& channels = stub_state->stubs.GetChannels();
+    for (const auto& channel : channels) {
+        ASSERT_EQ(kServiceConfig, ugrpc::impl::ToString(channel->GetServiceConfigJSON()));
     }
 }
 

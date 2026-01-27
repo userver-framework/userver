@@ -3,11 +3,11 @@
 #include <cstddef>
 #include <string>
 
-#include <userver/storages/redis/impl/types.hpp>
+#include <userver/storages/redis/fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis::impl {
 
 class ZaddReply final {
 public:
@@ -21,6 +21,6 @@ private:
     size_t value_;
 };
 
-}  // namespace redis
+}  // namespace storages::redis::impl
 
 USERVER_NAMESPACE_END

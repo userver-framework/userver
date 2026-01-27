@@ -51,7 +51,10 @@ private:
     TryLockStatus status_{TryLockStatus::kTransientFailure};
 };
 
-CancellableSemaphore::CancellableSemaphore(Counter capacity) : acquired_locks_(0), capacity_(capacity) {}
+CancellableSemaphore::CancellableSemaphore(Counter capacity)
+    : acquired_locks_(0),
+      capacity_(capacity)
+{}
 
 CancellableSemaphore::~CancellableSemaphore() {
     UASSERT_MSG(
@@ -74,10 +77,7 @@ void CancellableSemaphore::SetCapacity(Counter capacity) {
     }
 }
 
-CancellableSemaphore::Counter CancellableSemaphore::GetCapacity()  //
-    const noexcept {
-    return capacity_.load();
-}
+CancellableSemaphore::Counter CancellableSemaphore::GetCapacity() const noexcept { return capacity_.load(); }
 
 std::size_t CancellableSemaphore::RemainingApprox() const {
     const auto acquired = acquired_locks_.load(std::memory_order_relaxed);
@@ -108,8 +108,9 @@ void CancellableSemaphore::lock_shared_count(const Counter count) {
 void CancellableSemaphore::unlock_shared() { unlock_shared_count(1); }
 
 void CancellableSemaphore::unlock_shared_count(const Counter count) {
-    UASSERT(count > 0);
-
+    if (count == 0) {
+        return;
+    }
     const auto old_acquired_locks = acquired_locks_.fetch_sub(count, std::memory_order_acq_rel);
     UASSERT_MSG(
         old_acquired_locks >= old_acquired_locks - count,
@@ -141,8 +142,12 @@ bool CancellableSemaphore::try_lock_shared_until(Deadline deadline) { return try
 
 bool CancellableSemaphore::try_lock_shared_until_count(Deadline deadline, const Counter count) {
     const auto status = LockFastPath(count);
-    if (status == TryLockStatus::kSuccess) return true;
-    if (status == TryLockStatus::kPermanentFailure) return false;
+    if (status == TryLockStatus::kSuccess) {
+        return true;
+    }
+    if (status == TryLockStatus::kPermanentFailure) {
+        return false;
+    }
     return LockSlowPath(deadline, count);
 }
 
@@ -165,7 +170,9 @@ bool CancellableSemaphore::LockSlowPath(Deadline deadline, const Counter count) 
 
 CancellableSemaphore::TryLockStatus CancellableSemaphore::DoTryLock(const Counter count) {
     auto capacity = capacity_.load(std::memory_order_acquire);
-    if (count > capacity) return TryLockStatus::kPermanentFailure;
+    if (count > capacity) {
+        return TryLockStatus::kPermanentFailure;
+    }
 
     auto expected = acquired_locks_.load(std::memory_order_acquire);
     bool success = false;
@@ -178,13 +185,16 @@ CancellableSemaphore::TryLockStatus CancellableSemaphore::DoTryLock(const Counte
 }
 
 CancellableSemaphore::TryLockStatus CancellableSemaphore::LockFastPath(const Counter count) {
-    UASSERT(count > 0);
-
+    if (count == 0) {
+        return TryLockStatus::kSuccess;
+    }
     const auto status = DoTryLock(count);
     return status;
 }
 
-Semaphore::Semaphore(Counter capacity) : sem_(capacity) {}
+Semaphore::Semaphore(Counter capacity)
+    : sem_(capacity)
+{}
 
 Semaphore::~Semaphore() = default;
 
@@ -230,18 +240,33 @@ bool Semaphore::try_lock_shared_until_count(Deadline deadline, Counter count) {
     return sem_.try_lock_shared_until_count(deadline, count);
 }
 
-SemaphoreLock::SemaphoreLock(Semaphore& sem) : sem_(&sem), owns_lock_(true) { sem_->lock_shared(); }
+SemaphoreLock::SemaphoreLock(Semaphore& sem)
+    : sem_(&sem),
+      owns_lock_(true)
+{
+    sem_->lock_shared();
+}
 
 SemaphoreLock::SemaphoreLock(Semaphore& sem, std::defer_lock_t) noexcept : sem_(&sem) {}
 
-SemaphoreLock::SemaphoreLock(Semaphore& sem, std::try_to_lock_t) : sem_(&sem) { TryLock(); }
+SemaphoreLock::SemaphoreLock(Semaphore& sem, std::try_to_lock_t)
+    : sem_(&sem)
+{
+    TryLock();
+}
 
 SemaphoreLock::SemaphoreLock(Semaphore& sem, std::adopt_lock_t) noexcept : sem_(&sem), owns_lock_(true) {}
 
-SemaphoreLock::SemaphoreLock(Semaphore& sem, Deadline deadline) : sem_(&sem) { TryLockUntil(deadline); }
+SemaphoreLock::SemaphoreLock(Semaphore& sem, Deadline deadline)
+    : sem_(&sem)
+{
+    TryLockUntil(deadline);
+}
 
 SemaphoreLock& SemaphoreLock::operator=(SemaphoreLock&& other) noexcept {
-    if (OwnsLock()) Unlock();
+    if (OwnsLock()) {
+        Unlock();
+    }
     sem_ = other.sem_;
     owns_lock_ = other.owns_lock_;
     other.owns_lock_ = false;
@@ -253,7 +278,9 @@ SemaphoreLock::SemaphoreLock(SemaphoreLock&& other) noexcept
     : sem_(other.sem_), owns_lock_(std::exchange(other.owns_lock_, false)) {}
 
 SemaphoreLock::~SemaphoreLock() {
-    if (OwnsLock()) Unlock();
+    if (OwnsLock()) {
+        Unlock();
+    }
 }
 
 bool SemaphoreLock::OwnsLock() const noexcept { return owns_lock_; }

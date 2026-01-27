@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file userver/utils/macaddr/macaddr_base.hpp
+/// @file userver/utils/macaddr.hpp
 /// @brief MAC address types
 
 #include <array>

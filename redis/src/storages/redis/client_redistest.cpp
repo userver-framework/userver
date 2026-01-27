@@ -7,6 +7,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace {
 
+using storages::redis::ExpireOptions;
+using storages::redis::ExpireReply;
+
 /// [Sample Redis Client usage]
 void RedisClientSampleUsage(storages::redis::Client& client) {
     client.Rpush("sample_list", "a", {}).Get();
@@ -36,7 +39,7 @@ UTEST_F(RedisClientTest, Sample) { RedisClientSampleUsage(*GetClient()); }
 UTEST_F(RedisClientTest, CancelRequest) {
     try {
         EXPECT_FALSE(RedisClientCancelRequest(*GetClient()));
-    } catch (const redis::RequestCancelledException&) {
+    } catch (const storages::redis::RequestCancelledException&) {
     }
 }
 
@@ -85,7 +88,9 @@ UTEST_F(RedisClientTest, Mget) {
 
     std::vector<std::string> keys;
     keys.reserve(100);
-    for (auto i = 0; i < 100; ++i) keys.push_back("key" + std::to_string(i));
+    for (auto i = 0; i < 100; ++i) {
+        keys.push_back("key" + std::to_string(i));
+    }
 
     storages::redis::CommandControl cc{};
     cc.chunk_size = 11;
@@ -116,8 +121,10 @@ UTEST_F(RedisClientTest, Unlink) {
 }
 
 UTEST_F(RedisClientTest, Geosearch) {
-    Version since{6, 2, 0};
-    if (!CheckVersion(since)) GTEST_SKIP() << SkipMsgByVersion("Geosearch", since);
+    const Version since{6, 2, 0};
+    if (!CheckVersion(since)) {
+        GTEST_SKIP() << SkipMsgByVersion("Geosearch", since);
+    }
 
     auto client = GetClient();
     client->Geoadd("Sicily", {13.361389, 38.115556, "Palermo"}, {}).Get();
@@ -129,10 +136,10 @@ UTEST_F(RedisClientTest, Geosearch) {
     options.withhash = true;
     options.withcoord = true;
 
-    const auto lon = redis::Longitude(15);
-    const auto lat = redis::Latitude(37);
-    const auto width = redis::BoxWidth(200);
-    const auto height = redis::BoxHeight(200);
+    const auto lon = storages::redis::Longitude(15);
+    const auto lat = storages::redis::Latitude(37);
+    const auto width = storages::redis::BoxWidth(200);
+    const auto height = storages::redis::BoxHeight(200);
 
     // FROMLONLAT BYRADIUS
     auto result = client->Geosearch("Sicily", lon, lat, 100, options, {}).Get();
@@ -218,11 +225,11 @@ UTEST_F(RedisClientTest, Decr) {
 UTEST_F(RedisClientTest, Eval) {
     auto client = GetClient();
 
-    auto result = client
-                      ->Eval<std::vector<std::string>>(
-                          "return { KEYS[1], KEYS[2], ARGV[1], ARGV[2] }", {"key1", "key2"}, {"arg1", "arg2"}, {}
-                      )
-                      .Get();
+    auto result =
+        client
+            ->Eval<std::vector<
+                std::string>>("return { KEYS[1], KEYS[2], ARGV[1], ARGV[2] }", {"key1", "key2"}, {"arg1", "arg2"}, {})
+            .Get();
     EXPECT_EQ(result.size(), 4);
     EXPECT_EQ(result[0], "key1");
 }
@@ -238,6 +245,24 @@ UTEST_F(RedisClientTest, EvalSha) {
     EXPECT_EQ(result_array[0], "key1");
 }
 
+UTEST_F(RedisClientTest, Generic) {
+    auto client = GetClient();
+    const storages::redis::CommandControl command_control{};
+    constexpr size_t kKeyIndex = 0;
+    UEXPECT_NO_THROW(client->GenericCommand<void>("set", {"key0", "foo"}, kKeyIndex, command_control).Wait());
+    EXPECT_EQ(client->GenericCommand<std::string>("get", {"key0"}, kKeyIndex, command_control).Get(), "foo");
+    EXPECT_EQ(
+        client->GenericCommand<int64_t>("LPUSH", {"list", "1", "2", "3", "4"}, kKeyIndex, command_control).Get(),
+        4
+    );
+    const std::vector<std::string> expected{"4", "3", "2", "1"};
+    EXPECT_EQ(
+        client->GenericCommand<std::vector<std::string>>("LRANGE", {"list", "0", "-1"}, kKeyIndex, command_control)
+            .Get(),
+        expected
+    );
+}
+
 UTEST_F(RedisClientTest, Exists) {
     auto client = GetClient();
     client->Set("key1", "Hello", {}).Get();
@@ -251,12 +276,142 @@ UTEST_F(RedisClientTest, Expire) {
     auto client = GetClient();
     client->Set("mykey", "Hello", {}).Get();
     EXPECT_EQ(
-        client->Expire("mykey", std::chrono::seconds(10), {}).Get(), storages::redis::ExpireReply::kTimeoutWasSet
+        client->Expire("mykey", std::chrono::seconds(10), {}).Get(),
+        storages::redis::ExpireReply::kTimeoutWasSet
     );
-    EXPECT_EQ(client->Ttl("mykey", {}).Get().GetExpireSeconds(), 10);
+    EXPECT_EQ(client->Ttl("mykey", {}).Get().GetExpire().count(), 10);
     client->Set("mykey", "Hello World", {}).Get();
     EXPECT_FALSE(client->Ttl("mykey", {}).Get().KeyHasExpiration());
 }
+
+struct RedisExpireOptionsTestCase {
+    std::optional<int> initial_expire;
+    int new_expire;
+    ExpireOptions options;
+    storages::redis::ExpireReply expected_reply;
+};
+
+class RedisExpireOptionsTest
+    : public RedisClientTest,
+      public ::testing::WithParamInterface<RedisExpireOptionsTestCase> {};
+
+UTEST_P(RedisExpireOptionsTest, ExpireOptionsTest) {
+    const Version since{7, 0, 0};
+    if (!CheckVersion(since)) {
+        GTEST_SKIP() << SkipMsgByVersion("Expire options", since);
+    }
+
+    auto client = GetClient();
+    auto [initial_expire, new_expire, options, expected_reply] = GetParam();
+
+    client->Set("mykey", "Hello", {}).Get();
+    if (initial_expire.has_value()) {
+        client->Expire("mykey", std::chrono::seconds(initial_expire.value()), {}).Get();
+    }
+    EXPECT_EQ(client->Expire("mykey", std::chrono::seconds(new_expire), options, {}).Get(), expected_reply);
+
+    switch (expected_reply) {
+        case ExpireReply::kKeyDoesNotExist:
+            if (initial_expire.has_value()) {
+                EXPECT_EQ(client->Ttl("mykey", {}).Get().GetExpire().count(), initial_expire.value());
+            } else {
+                EXPECT_FALSE(client->Ttl("mykey", {}).Get().KeyHasExpiration());
+            }
+            break;
+        case ExpireReply::kTimeoutWasSet:
+            EXPECT_EQ(client->Ttl("mykey", {}).Get().GetExpire().count(), new_expire);
+            break;
+    }
+}
+
+INSTANTIATE_UTEST_SUITE_P(
+    RedisClientTest,
+    RedisExpireOptionsTest,
+    testing::Values(
+        // initial_expire, new_expire, options, expected_reply
+        RedisExpireOptionsTestCase{
+            std::nullopt,
+            10,
+            ExpireOptions(ExpireOptions::Compare::kGreaterThan),
+            ExpireReply::kKeyDoesNotExist
+        },
+        RedisExpireOptionsTestCase{
+            9,
+            10,
+            ExpireOptions(ExpireOptions::Compare::kGreaterThan),
+            ExpireReply::kTimeoutWasSet
+        },
+        RedisExpireOptionsTestCase{
+            11,
+            10,
+            ExpireOptions(ExpireOptions::Compare::kGreaterThan),
+            ExpireReply::kKeyDoesNotExist
+        },
+
+        RedisExpireOptionsTestCase{
+            std::nullopt,
+            20,
+            ExpireOptions(ExpireOptions::Compare::kLessThan),
+            ExpireReply::kTimeoutWasSet
+        },
+        RedisExpireOptionsTestCase{
+            std::nullopt,
+            20,
+            ExpireOptions(ExpireOptions::Compare::kLessThan, ExpireOptions::Exist::kSetIfExist),
+            ExpireReply::kKeyDoesNotExist
+        },
+        RedisExpireOptionsTestCase{
+            19,
+            20,
+            ExpireOptions(ExpireOptions::Compare::kLessThan),
+            ExpireReply::kKeyDoesNotExist
+        },
+        RedisExpireOptionsTestCase{
+            21,
+            20,
+            ExpireOptions(ExpireOptions::Compare::kLessThan),
+            ExpireReply::kTimeoutWasSet
+        },
+
+        RedisExpireOptionsTestCase{
+            std::nullopt,
+            30,
+            ExpireOptions(ExpireOptions::Exist::kSetIfExist),
+            ExpireReply::kKeyDoesNotExist
+        },
+        RedisExpireOptionsTestCase{
+            29,
+            30,
+            ExpireOptions(ExpireOptions::Exist::kSetIfExist),
+            ExpireReply::kTimeoutWasSet
+        },
+        RedisExpireOptionsTestCase{
+            31,
+            30,
+            ExpireOptions(ExpireOptions::Exist::kSetIfExist),
+            ExpireReply::kTimeoutWasSet
+        },
+
+        RedisExpireOptionsTestCase{
+            std::nullopt,
+            40,
+            ExpireOptions(ExpireOptions::Exist::kSetIfNotExist),
+            ExpireReply::kTimeoutWasSet
+        },
+        RedisExpireOptionsTestCase{
+            39,
+            40,
+            ExpireOptions(ExpireOptions::Exist::kSetIfNotExist),
+            ExpireReply::kKeyDoesNotExist
+        },
+        RedisExpireOptionsTestCase{
+            41,
+            40,
+            ExpireOptions(ExpireOptions::Exist::kSetIfNotExist),
+            ExpireReply::kKeyDoesNotExist
+        }
+    )
+);
 
 UTEST_F(RedisClientTest, Georadius) {
     auto client = GetClient();
@@ -268,8 +423,8 @@ UTEST_F(RedisClientTest, Georadius) {
     options.withhash = true;
     options.withcoord = true;
 
-    const auto lon = redis::Longitude(15);
-    const auto lat = redis::Latitude(37);
+    const auto lon = storages::redis::Longitude(15);
+    const auto lat = storages::redis::Latitude(37);
 
     auto result = client->Georadius("Sicily", lon, lat, 200, options, {}).Get();
     EXPECT_EQ(result.size(), 2);
@@ -277,6 +432,22 @@ UTEST_F(RedisClientTest, Georadius) {
     EXPECT_EQ(result[0].dist, 190.4424);
     EXPECT_EQ(result[1].member, "Catania");
     EXPECT_EQ(result[1].dist, 56.4413);
+}
+
+UTEST_F(RedisClientTest, Geopos) {
+    auto client = GetClient();
+    client->Geoadd("Sicily", {{13.1, 38.2, "Palermo"}, {15.3, 37.4, "Catania"}}, {}).Get();
+    const auto
+        result = client->Geopos("Sicily", std::vector<std::string>{"Palermo", "Catania", "NonExisting"}, {}).Get();
+    const auto geo_tolerance = 1e-5;
+    EXPECT_EQ(result.size(), 3);
+    EXPECT_TRUE(result[0].has_value());
+    EXPECT_TRUE(result[1].has_value());
+    EXPECT_FALSE(result[2].has_value());
+    EXPECT_NEAR(result[0].value().lon, 13.1, geo_tolerance);
+    EXPECT_NEAR(result[0].value().lat, 38.2, geo_tolerance);
+    EXPECT_NEAR(result[1].value().lon, 15.3, geo_tolerance);
+    EXPECT_NEAR(result[1].value().lat, 37.4, geo_tolerance);
 }
 
 UTEST_F(RedisClientTest, Getset) {
@@ -522,9 +693,10 @@ UTEST_F(RedisClientTest, Pexpire) {
 
     client->Set("key", "Hello", {}).Get();
     EXPECT_EQ(
-        client->Pexpire("key", std::chrono::milliseconds{1999}, {}).Get(), storages::redis::ExpireReply::kTimeoutWasSet
+        client->Pexpire("key", std::chrono::milliseconds{1999}, {}).Get(),
+        storages::redis::ExpireReply::kTimeoutWasSet
     );
-    EXPECT_EQ(client->Ttl("key", {}).Get().GetExpireSeconds(), 2);
+    EXPECT_EQ(client->Ttl("key", {}).Get().GetExpire().count(), 2);
 }
 
 UTEST_F(RedisClientTest, Ping) {
@@ -610,7 +782,7 @@ UTEST_F(RedisClientTest, Setex) {
     auto client = GetClient();
 
     EXPECT_NO_THROW(client->Setex("key", std::chrono::seconds{10}, "value", {}).Get());
-    EXPECT_EQ(client->Ttl("key", {}).Get().GetExpireSeconds(), 10);
+    EXPECT_EQ(client->Ttl("key", {}).Get().GetExpire().count(), 10);
 }
 
 UTEST_F(RedisClientTest, Sismember) {
@@ -695,6 +867,42 @@ UTEST_F(RedisClientTest, Zadd) {
     EXPECT_EQ(client->ZaddIncr("zset", 4., "four", {}).Get(), 4.);
     EXPECT_EQ(client->ZaddIncrExisting("zset", 1.1, "four", {}).Get(), 5.1);
     EXPECT_FALSE(client->ZaddIncrExisting("zset", 1.1, "five", {}).Get().has_value());
+}
+
+UTEST_F(RedisClientTest, ZaddGtLt) {
+    const Version since{6, 2, 0};
+    if (!CheckVersion(since)) {
+        GTEST_SKIP() << SkipMsgByVersion("Zadd gt/lt", since);
+    }
+
+    auto client = GetClient();
+
+    storages::redis::ZaddOptions options;
+    options.compare = storages::redis::ZaddOptions::Compare::kGreaterThan;
+    EXPECT_EQ(client->Zadd("zset_gt_lt", {{1., "one"}, {3., "two"}}, options, {}).Get(), 2);
+    EXPECT_EQ(client->Zscore("zset_gt_lt", "one", {}).Get(), 1);
+    EXPECT_EQ(client->Zscore("zset_gt_lt", "two", {}).Get(), 3);
+
+    EXPECT_EQ(client->Zadd("zset_gt_lt", {{3., "one"}, {1., "two"}}, options, {}).Get(), 0);
+    EXPECT_EQ(client->Zscore("zset_gt_lt", "one", {}).Get(), 3);
+    EXPECT_EQ(client->Zscore("zset_gt_lt", "two", {}).Get(), 3);
+
+    EXPECT_EQ(client->Zadd("zset_gt_lt", {{4., "one"}, {4., "two"}}, options, {}).Get(), 0);
+    EXPECT_EQ(client->Zscore("zset_gt_lt", "one", {}).Get(), 4);
+    EXPECT_EQ(client->Zscore("zset_gt_lt", "two", {}).Get(), 4);
+
+    options.compare = storages::redis::ZaddOptions::Compare::kLessThan;
+    EXPECT_EQ(client->Zadd("zset_gt_lt", {{3., "one"}, {5., "two"}}, options, {}).Get(), 0);
+    EXPECT_EQ(client->Zscore("zset_gt_lt", "one", {}).Get(), 3);
+    EXPECT_EQ(client->Zscore("zset_gt_lt", "two", {}).Get(), 4);
+
+    EXPECT_EQ(client->Zadd("zset_gt_lt", {{5., "one"}, {3., "two"}}, options, {}).Get(), 0);
+    EXPECT_EQ(client->Zscore("zset_gt_lt", "one", {}).Get(), 3);
+    EXPECT_EQ(client->Zscore("zset_gt_lt", "two", {}).Get(), 3);
+
+    EXPECT_EQ(client->Zadd("zset_gt_lt", {{1., "one"}, {1., "two"}}, options, {}).Get(), 0);
+    EXPECT_EQ(client->Zscore("zset_gt_lt", "one", {}).Get(), 1);
+    EXPECT_EQ(client->Zscore("zset_gt_lt", "two", {}).Get(), 1);
 }
 
 UTEST_F(RedisClientTest, Zcard) {
@@ -816,15 +1024,23 @@ UTEST_F(RedisClientTest, Zscore) {
 
 UTEST_F(RedisClientTest, TransactionType) {
     auto client = GetClient();
+    /// [redis transaction sample]
+    // Create a storages::redis::Transaction
     auto transaction = client->Multi();
 
+    // Fill transaction with commands
     auto set = transaction->Set("key1", "value");
     auto lpush = transaction->Lpush("key2", "value");
     auto type1 = transaction->Type("key1");
     auto type2 = transaction->Type("key2");
+
+    // Send all the commands to the server in one go
     transaction->Exec({}).Get();
+
+    // Deal with individual results
     EXPECT_EQ(type1.Get(), storages::redis::KeyType::kString);
     EXPECT_EQ(type2.Get(), storages::redis::KeyType::kList);
+    /// [redis transaction sample]
 }
 
 UTEST_F(RedisClientTest, TransactionZrem) {

@@ -3,17 +3,15 @@ Supply dynamic configs for the service in testsuite.
 """
 
 # pylint: disable=redefined-outer-name
-import contextlib
-import copy
+from collections.abc import Callable
+from collections.abc import Iterable
 import dataclasses
-import datetime
 import json
 import pathlib
-import typing
 
 import pytest
 
-from pytest_userver.plugins import caches
+from pytest_userver import dynconf
 
 USERVER_CONFIG_HOOKS = [
     'userver_config_dynconf_cache',
@@ -23,284 +21,6 @@ USERVER_CONFIG_HOOKS = [
 USERVER_CACHE_CONTROL_HOOKS = {
     'dynamic-config-client-updater': '_userver_dynconfig_cache_control',
 }
-
-
-class BaseError(Exception):
-    """Base class for exceptions from this module"""
-
-
-class DynamicConfigNotFoundError(BaseError):
-    """Config parameter was not found and no default was provided"""
-
-
-class DynamicConfigUninitialized(BaseError):
-    """
-    Calling `dynamic_config.get` before defaults are fetched from the service.
-    Try adding a dependency on `service_client` in your fixture.
-    """
-
-
-class InvalidDefaultsError(BaseError):
-    """Dynamic config defaults action returned invalid response"""
-
-
-class UnknownConfigError(BaseError):
-    """Invalid dynamic config name in @pytest.mark.config"""
-
-
-ConfigDict = typing.Dict[str, typing.Any]
-
-
-class RemoveKey:
-    pass
-
-
-class Missing:
-    pass
-
-
-@dataclasses.dataclass
-class _ChangelogEntry:
-    timestamp: str
-    dirty_keys: typing.Set[str]
-    state: ConfigDict
-    prev_state: ConfigDict
-
-    @classmethod
-    def new(
-        cls, *, previous: typing.Optional['_ChangelogEntry'], timestamp: str,
-    ):
-        if previous:
-            prev_state = previous.state
-        else:
-            prev_state = {}
-        return cls(
-            timestamp=timestamp,
-            dirty_keys=set(),
-            state=prev_state.copy(),
-            prev_state=prev_state,
-        )
-
-    @property
-    def has_changes(self) -> bool:
-        return bool(self.dirty_keys)
-
-    def update(self, values: ConfigDict):
-        for key, value in values.items():
-            if value == self.prev_state.get(key, Missing):
-                self.dirty_keys.discard(key)
-            else:
-                self.dirty_keys.add(key)
-        self.state.update(values)
-
-
-@dataclasses.dataclass(frozen=True)
-class Updates:
-    timestamp: str
-    values: ConfigDict
-    removed: typing.List[str]
-
-    def is_empty(self) -> bool:
-        return not self.values and not self.removed
-
-
-class _Changelog:
-    timestamp: datetime.datetime
-    commited_entries: typing.List[_ChangelogEntry]
-    staged_entry: _ChangelogEntry
-
-    def __init__(self):
-        self.timestamp = datetime.datetime.fromtimestamp(
-            0, datetime.timezone.utc,
-        )
-        self.commited_entries = []
-        self.staged_entry = _ChangelogEntry.new(
-            timestamp=self.service_timestamp(), previous=None,
-        )
-
-    def service_timestamp(self) -> str:
-        return self.timestamp.strftime('%Y-%m-%dT%H:%M:%SZ')
-
-    def next_timestamp(self) -> str:
-        self.timestamp += datetime.timedelta(seconds=1)
-        return self.service_timestamp()
-
-    def commit(self) -> _ChangelogEntry:
-        """Commit staged changed if any and return last commited entry."""
-        entry = self.staged_entry
-        if entry.has_changes or not self.commited_entries:
-            self.staged_entry = _ChangelogEntry.new(
-                timestamp=self.next_timestamp(), previous=entry,
-            )
-            self.commited_entries.append(entry)
-        return self.commited_entries[-1]
-
-    def get_updated_since(
-        self,
-        values: ConfigDict,
-        updated_since: str,
-        ids: typing.Optional[typing.List[str]] = None,
-    ) -> Updates:
-        entry = self.commit()
-        values, removed = self._get_updated_since(values, updated_since)
-        if ids:
-            values = {name: values[name] for name in ids if name in values}
-            removed = [name for name in removed if name in ids]
-        return Updates(
-            timestamp=entry.timestamp, values=values, removed=removed,
-        )
-
-    def _get_updated_since(
-        self, values: ConfigDict, updated_since: str,
-    ) -> typing.Tuple[ConfigDict, typing.List[str]]:
-        if not updated_since:
-            return values, []
-        dirty_keys = set()
-        last_known_state = {}
-        for entry in reversed(self.commited_entries):
-            if entry.timestamp > updated_since:
-                dirty_keys.update(entry.dirty_keys)
-            else:
-                if entry.timestamp == updated_since:
-                    last_known_state = entry.state
-                break
-        # We don't want to send them again
-        result = {}
-        removed = []
-        for key in dirty_keys:
-            value = values.get(key, RemoveKey)
-            if last_known_state.get(key, Missing) != value:
-                if value is RemoveKey:
-                    removed.append(key)
-                else:
-                    result[key] = value
-        return result, removed
-
-    def add_entries(self, values: ConfigDict):
-        self.staged_entry.update(values)
-
-    @contextlib.contextmanager
-    def rollback(self, defaults: ConfigDict):
-        try:
-            yield
-        finally:
-            self._do_rollback(defaults)
-
-    def _do_rollback(self, defaults: ConfigDict):
-        if not self.commited_entries:
-            return
-
-        maybe_dirty = set()
-        for entry in self.commited_entries:
-            maybe_dirty.update(entry.dirty_keys)
-
-        last = self.commited_entries[-1]
-        last_state = last.state
-        dirty_keys = set()
-        reverted = {}
-        for key in maybe_dirty:
-            original = defaults.get(key, RemoveKey)
-            if last_state[key] != original:
-                dirty_keys.add(key)
-            reverted[key] = original
-
-        entry = _ChangelogEntry(
-            timestamp=last.timestamp,
-            state=last.state,
-            dirty_keys=dirty_keys,
-            prev_state={},
-        )
-        self.commited_entries = [entry]
-        self.staged_entry = _ChangelogEntry(
-            timestamp=self.staged_entry.timestamp,
-            dirty_keys=dirty_keys.copy(),
-            state=reverted,
-            prev_state=entry.state,
-        )
-
-
-class DynamicConfig:
-    """Simple dynamic config backend."""
-
-    def __init__(
-        self,
-        *,
-        initial_values: ConfigDict,
-        defaults: typing.Optional[ConfigDict],
-        config_cache_components: typing.Iterable[str],
-        cache_invalidation_state: caches.InvalidationState,
-        changelog: _Changelog,
-    ):
-        self._values = initial_values.copy()
-        # Defaults are only there for convenience, to allow accessing them
-        # in tests using dynamic_config.get. They are not sent to the service.
-        self._defaults = defaults
-        self._cache_invalidation_state = cache_invalidation_state
-        self._config_cache_components = config_cache_components
-        self._changelog = changelog
-
-    def set_values(self, values: ConfigDict):
-        self.set_values_unsafe(copy.deepcopy(values))
-
-    def set_values_unsafe(self, values: ConfigDict):
-        self._values.update(values)
-        self._changelog.add_entries(values)
-        self._sync_with_service()
-
-    def set(self, **values):
-        self.set_values(values)
-
-    def get_values_unsafe(self) -> ConfigDict:
-        return self._values
-
-    def get(self, key: str, default: typing.Any = None) -> typing.Any:
-        if key in self._values:
-            return copy.deepcopy(self._values[key])
-        if self._defaults is not None and key in self._defaults:
-            return copy.deepcopy(self._defaults[key])
-        if default is not None:
-            return default
-        if self._defaults is None:
-            raise DynamicConfigUninitialized(
-                f'Defaults for config {key!r} have not yet been fetched '
-                'from the service. Options:\n'
-                '1. add a dependency on service_client in your fixture;\n'
-                '2. pass `default` parameter to `dynamic_config.get`',
-            )
-        raise DynamicConfigNotFoundError(f'Config {key!r} is not found')
-
-    def remove_values(self, keys):
-        extra_keys = set(keys).difference(self._values.keys())
-        if extra_keys:
-            raise DynamicConfigNotFoundError(
-                f'Attempting to remove nonexistent configs: {extra_keys}',
-            )
-        for key in keys:
-            self._values.pop(key)
-        self._changelog.add_entries({key: RemoveKey for key in keys})
-        self._sync_with_service()
-
-    def remove(self, key):
-        return self.remove_values([key])
-
-    @contextlib.contextmanager
-    def modify(self, key: str) -> typing.Any:
-        value = self.get(key)
-        yield value
-        self.set_values({key: value})
-
-    @contextlib.contextmanager
-    def modify_many(
-        self, *keys: typing.Tuple[str, ...],
-    ) -> typing.Tuple[typing.Any, ...]:
-        values = tuple(self.get(key) for key in keys)
-        yield values
-        self.set_values(dict(zip(keys, values)))
-
-    def _sync_with_service(self):
-        self._cache_invalidation_state.invalidate(
-            self._config_cache_components,
-        )
 
 
 @pytest.fixture
@@ -314,20 +34,32 @@ def dynamic_config(
     dynamic_config_changelog,
     _dynconf_load_json_cached,
     dynconf_cache_names,
-) -> DynamicConfig:
+) -> dynconf.DynamicConfig:
     """
     Fixture that allows to control dynamic config values used by the service.
 
-    After change to the config, be sure to call:
-    @code
-    await service_client.update_server_state()
-    @endcode
+    Example:
 
-    HTTP client requests call it automatically before each request.
+    @snippet core/functional_tests/basic_chaos/tests-nonchaos/handlers/test_log_request_headers.py dynamic_config usage
+
+    Example with @ref kill_switches "kill switches":
+
+    @snippet core/functional_tests/dynamic_configs/tests/test_examples.py dynamic_config usage with kill switches
+
+    HTTP and gRPC client requests call `update_server_state` automatically before each request.
+
+    For main dynamic config documentation:
+
+    @see @ref dynamic_config_testsuite
+
+    See also other related fixtures:
+    * @ref pytest_userver.plugins.dynamic_config.dynamic_config "config_service_defaults"
+    * @ref pytest_userver.plugins.dynamic_config.dynamic_config "dynamic_config_fallback_patch"
+    * @ref pytest_userver.plugins.dynamic_config.dynamic_config "mock_configs_service"
 
     @ingroup userver_testsuite_fixtures
     """
-    config = DynamicConfig(
+    config = dynconf.DynamicConfig(
         initial_values=config_service_defaults,
         defaults=_dynamic_config_defaults_storage.snapshot,
         config_cache_components=dynconf_cache_names,
@@ -341,23 +73,42 @@ def dynamic_config(
             values = _dynconf_load_json_cached(path)
             updates.update(values)
         for marker in request.node.iter_markers('config'):
-            marker_json = object_substitute(marker.kwargs)
-            updates.update(marker_json)
+            value_update_kwargs = {
+                key: value for key, value in marker.kwargs.items() if value is not dynconf.USE_STATIC_DEFAULT
+            }
+            value_updates_json = object_substitute(value_update_kwargs)
+            updates.update(value_updates_json)
         config.set_values_unsafe(updates)
+
+        kill_switches_disabled = []
+        for marker in request.node.iter_markers('config'):
+            kill_switches_disabled.extend(
+                key for key, value in marker.kwargs.items() if value is dynconf.USE_STATIC_DEFAULT
+            )
+        config.switch_to_static_default(*kill_switches_disabled)
+
         yield config
+
+
+# @cond
 
 
 def pytest_configure(config):
     config.addinivalue_line(
-        'markers', 'config: per-test dynamic config values',
+        'markers',
+        'config: per-test dynamic config values',
     )
     config.addinivalue_line(
-        'markers', 'disable_config_check: disable config mark keys check',
+        'markers',
+        'disable_config_check: disable config mark keys check',
     )
+
+
+# @endcond
 
 
 @pytest.fixture(scope='session')
-def dynconf_cache_names() -> typing.Iterable[str]:
+def dynconf_cache_names() -> Iterable[str]:
     return tuple(USERVER_CACHE_CONTROL_HOOKS.keys())
 
 
@@ -377,7 +128,7 @@ def _dynconf_load_json_cached(json_loads, _dynconf_json_cache):
 
 
 @pytest.fixture
-def taxi_config(dynamic_config) -> DynamicConfig:
+def taxi_config(dynamic_config) -> dynconf.DynamicConfig:
     """
     Deprecated, use `dynamic_config` instead.
     """
@@ -385,7 +136,7 @@ def taxi_config(dynamic_config) -> DynamicConfig:
 
 
 @pytest.fixture(scope='session')
-def dynamic_config_fallback_patch() -> ConfigDict:
+def dynamic_config_fallback_patch() -> dynconf.ConfigValuesDict:
     """
     Override this fixture to replace some dynamic config values specifically
     for testsuite tests:
@@ -403,8 +154,9 @@ def dynamic_config_fallback_patch() -> ConfigDict:
 
 @pytest.fixture(scope='session')
 def config_service_defaults(
-    config_fallback_path, dynamic_config_fallback_patch,
-) -> ConfigDict:
+    config_fallback_path,
+    dynamic_config_fallback_patch,
+) -> dynconf.ConfigValuesDict:
     """
     Fixture that returns default values for dynamic config. You may override
     it in your local conftest.py or fixture:
@@ -435,13 +187,13 @@ def config_service_defaults(
 
 @dataclasses.dataclass(frozen=False)
 class _ConfigDefaults:
-    snapshot: typing.Optional[ConfigDict]
+    snapshot: dynconf.ConfigValuesDict | None
 
     async def update(self, client, dynamic_config) -> None:
         if self.snapshot is None:
             defaults = await client.get_dynamic_config_defaults()
             if not isinstance(defaults, dict):
-                raise InvalidDefaultsError()
+                raise dynconf.InvalidDefaultsError()
             self.snapshot = defaults
             # pylint:disable=protected-access
             dynamic_config._defaults = defaults
@@ -455,7 +207,7 @@ class _ConfigDefaults:
 # unspecified in tests, on the testsuite side. For that, we ask the service
 # for the dynamic config defaults after it's launched. It's enough to update
 # defaults once per service launch.
-@pytest.fixture(scope='package')
+@pytest.fixture(scope='session')
 def _dynamic_config_defaults_storage() -> _ConfigDefaults:
     return _ConfigDefaults(snapshot=None)
 
@@ -506,10 +258,7 @@ def userver_config_dynconf_fallback(config_service_defaults):
         elif isinstance(defaults_field, str):
             if defaults_field.startswith('$'):
                 return config_vars.get(defaults_field[1:], {})
-        assert False, (
-            f'Unexpected static config option '
-            f'`dynamic-config.defaults`: {defaults_field!r}'
-        )
+        assert False, f'Unexpected static config option `dynamic-config.defaults`: {defaults_field!r}'
 
     def _patch_config(config_yaml, config_vars):
         components = config_yaml['components_manager']['components']
@@ -550,18 +299,24 @@ def userver_config_dynconf_url(mockserver_info):
     return _patch_config
 
 
-# TODO publish _Changelog and document how to use it in custom config service
+# @cond
+
+
+# TODO publish dynconf._Changelog and document how to use it in custom config service
 #  mocks.
 @pytest.fixture(scope='session')
-def dynamic_config_changelog() -> _Changelog:
-    return _Changelog()
+def dynamic_config_changelog() -> dynconf._Changelog:
+    return dynconf._Changelog()
+
+
+# @endcond
 
 
 @pytest.fixture
 def mock_configs_service(
     mockserver,
-    dynamic_config: DynamicConfig,
-    dynamic_config_changelog: _Changelog,
+    dynamic_config: dynconf.DynamicConfig,
+    dynamic_config_changelog: dynconf._Changelog,
 ) -> None:
     """
     Adds a mockserver handler that forwards dynamic_config to service's
@@ -573,13 +328,18 @@ def mock_configs_service(
     @mockserver.json_handler('/configs-service/configs/values')
     def _mock_configs(request):
         updates = dynamic_config_changelog.get_updated_since(
-            dynamic_config.get_values_unsafe(),
+            dynconf._create_config_dict(
+                dynamic_config.get_values_unsafe(),
+                dynamic_config.get_kill_switches_disabled_unsafe(),
+            ),
             request.json.get('updated_since', ''),
             request.json.get('ids'),
         )
         response = {'configs': updates.values, 'updated_at': updates.timestamp}
         if updates.removed:
             response['removed'] = updates.removed
+        if updates.kill_switches_disabled:
+            response['kill_switches_disabled'] = updates.kill_switches_disabled
         return response
 
     @mockserver.json_handler('/configs-service/configs/status')
@@ -592,7 +352,7 @@ def mock_configs_service(
 
 
 @pytest.fixture
-def _userver_dynconfig_cache_control(dynamic_config_changelog: _Changelog):
+def _userver_dynconfig_cache_control(dynamic_config_changelog: dynconf._Changelog):
     def cache_control(updater, timestamp):
         entry = dynamic_config_changelog.commit()
         if entry.timestamp == timestamp:
@@ -617,8 +377,9 @@ _CHECK_CONFIG_ERROR = (
 # Should be invoked after _dynamic_config_defaults_storage is filled.
 @pytest.fixture
 def _check_config_marks(
-    request, _dynamic_config_defaults_storage,
-) -> typing.Callable[[], None]:
+    request,
+    _dynamic_config_defaults_storage,
+) -> Callable[[], None]:
     def check():
         config_defaults = _dynamic_config_defaults_storage.snapshot
         assert config_defaults is not None
@@ -627,16 +388,13 @@ def _check_config_marks(
             return
 
         unknown_configs = [
-            key
-            for marker in request.node.iter_markers('config')
-            for key in marker.kwargs
-            if key not in config_defaults
+            key for marker in request.node.iter_markers('config') for key in marker.kwargs if key not in config_defaults
         ]
 
         if unknown_configs:
             message = _CHECK_CONFIG_ERROR.format(
                 ', '.join(f'{key}=...' for key in sorted(unknown_configs)),
             )
-            raise UnknownConfigError(message)
+            raise dynconf.UnknownConfigError(message)
 
     return check

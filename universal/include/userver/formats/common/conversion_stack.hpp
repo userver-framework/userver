@@ -10,7 +10,8 @@
 #include <utility>
 
 #include <fmt/format.h>
-#include <boost/container/small_vector.hpp>
+#include <boost/container/deque.hpp>
+#include <boost/container/options.hpp>
 
 #include <userver/compiler/demangle.hpp>
 #include <userver/formats/common/type.hpp>
@@ -47,7 +48,11 @@ template <typename ValueFrom, typename ValueToBuilder>
 class ConversionStack final {
 public:
     /// Start the conversion from `value`.
-    explicit ConversionStack(ValueFrom value) : stack_() { stack_.emplace_back(std::move(value)); }
+    explicit ConversionStack(ValueFrom value)
+        : stack_()
+    {
+        stack_.emplace_back(std::move(value));
+    }
 
     ConversionStack(ConversionStack&&) = delete;
     ConversionStack& operator=(ConversionStack&&) = delete;
@@ -131,8 +136,12 @@ public:
 
 private:
     struct StackFrame final {
-        explicit StackFrame(ValueFrom&& from) : from(std::move(from)) {}
-        explicit StackFrame(const ValueFrom& from) : from(from) {}
+        explicit StackFrame(ValueFrom&& from)
+            : from(std::move(from))
+        {}
+        explicit StackFrame(const ValueFrom& from)
+            : from(from)
+        {}
 
         const ValueFrom from;
         std::optional<ValueToBuilder> to{};
@@ -140,7 +149,11 @@ private:
         bool is_parsed{false};
     };
 
-    boost::container::small_vector<StackFrame, 10> stack_;
+    // The container must have stable references. For example, YamlConfig::const_iterator stores a pointer
+    // to the YamlConfig node that is being iterated over. If a stack frame moves, then the next frame's
+    // `current_parsing_elem` will be invalidated. Updating iterators in such cases would be complex and expensive.
+    boost::container::deque<StackFrame, void, boost::container::deque_options<boost::container::block_size<16>>::type>
+        stack_;
 };
 
 /// @brief Performs the conversion between different formats. Only supports
@@ -158,9 +171,8 @@ ValueTo PerformMinimalFormatConversion(ValueFrom&& value) {
             compiler::GetTypeName<ValueTo>()
         ));
     }
-    formats::common::ConversionStack<std::decay_t<ValueFrom>, typename ValueTo::Builder> conversion_stack(
-        std::forward<ValueFrom>(value)
-    );
+    formats::common::ConversionStack<std::decay_t<ValueFrom>, typename ValueTo::Builder>
+        conversion_stack(std::forward<ValueFrom>(value));
     while (!conversion_stack.IsParsed()) {
         const auto& from = conversion_stack.GetNextFrom();
         if (from.IsBool()) {

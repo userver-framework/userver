@@ -52,6 +52,10 @@ void RunOnce(
 /// @see utils::DaemonMain
 void RunOnce(const InMemoryConfig& config, const ComponentList& component_list);
 
+/// Requests stop of the component system.
+/// The service will be eventually stopped.
+void RequestStop();
+
 namespace impl {
 
 // Composes a single static config schema from all components.

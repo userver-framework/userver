@@ -20,7 +20,8 @@ class CompositeTypeDescription {
 public:
     using CompositeFieldDefs = std::vector<CompositeFieldDef>;
     CompositeTypeDescription(CompositeFieldDefs::const_iterator begin, CompositeFieldDefs::const_iterator end)
-        : attributes_{begin, end} {}
+        : attributes_{begin, end}
+    {}
     std::size_t Size() const { return attributes_.size(); }
     bool Empty() const { return attributes_.empty(); }
     const CompositeFieldDef& operator[](std::size_t index) const {
@@ -107,20 +108,21 @@ struct CppToUserPgImpl {
     using Type = T;
     using Mapping = CppToUserPg<T>;
     static constexpr DBTypeName postgres_name = kPgUserTypeName<T>;
-    static const detail::RegisterUserTypeParser init_;
+    static const detail::RegisterUserTypeParser init;
     static Oid GetOid(const UserTypes& user_types) {
         // TODO Handle oid not found
-        return user_types.FindOid(init_.postgres_name);
+        return user_types.FindOid(init.postgres_name);
     }
     static Oid GetArrayOid(const UserTypes& user_types) {
         // TODO Handle oid not found
-        return user_types.FindArrayOid(init_.postgres_name);
+        return user_types.FindArrayOid(init.postgres_name);
     }
 };
 
 template <typename T>
-const RegisterUserTypeParser CppToUserPgImpl<T>::init_ =
-    RegisterUserTypeParser::Register(kPgUserTypeName<T>, compiler::GetTypeName<T>());
+const RegisterUserTypeParser CppToUserPgImpl<
+    T>::init = RegisterUserTypeParser::Register(kPgUserTypeName<T>, std::string{compiler::GetTypeName<T>()});
+
 }  // namespace io::detail
 
 void LogRegisteredTypesOnce();

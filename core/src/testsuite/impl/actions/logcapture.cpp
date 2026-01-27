@@ -9,7 +9,8 @@ USERVER_NAMESPACE_BEGIN
 namespace testsuite::impl::actions {
 
 LogCapture::LogCapture(const components::ComponentContext& component_context)
-    : logging_component_(component_context.FindComponent<components::Logging>()) {}
+    : logging_component_(component_context.FindComponent<components::Logging>())
+{}
 
 formats::json::Value LogCapture::Perform(const formats::json::Value& request_body) const {
     const auto socket_logging = request_body["socket_logging_duplication"];

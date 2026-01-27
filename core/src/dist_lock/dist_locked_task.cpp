@@ -24,7 +24,8 @@ DistLockedTask::DistLockedTask(
           std::make_shared<
               impl::Locker>(std::move(name), std::move(strategy), settings, std::move(worker_func), retry_mode),
           mode
-      ) {}
+      )
+{}
 
 DistLockedTask::DistLockedTask(
     engine::TaskProcessor& task_processor,
@@ -40,7 +41,8 @@ DistLockedTask::DistLockedTask(
           std::make_shared<
               impl::Locker>(std::move(name), std::move(strategy), settings, std::move(worker_func), retry_mode),
           mode
-      ) {}
+      )
+{}
 
 DistLockedTask::DistLockedTask(
     engine::TaskProcessor& task_processor,
@@ -48,13 +50,14 @@ DistLockedTask::DistLockedTask(
     DistLockWaitingMode mode
 )
     : TaskBase(locker_ptr->RunAsync(task_processor, impl::LockerMode::kOneshot, mode)),
-      locker_ptr_(std::move(locker_ptr)) {}
+      locker_ptr_(std::move(locker_ptr))
+{}
 
 DistLockedTask::~DistLockedTask() {
     if (IsValid()) {
         RequestCancel();
 
-        engine::TaskCancellationBlocker cancel_blocker;
+        const engine::TaskCancellationBlocker cancel_blocker;
         Wait();
     }
 }
@@ -76,7 +79,7 @@ void DistLockedTask::Get() noexcept(false) {
         throw engine::TaskCancelledException(CancellationReason());
     }
 
-    utils::FastScopeGuard invalidate([this]() noexcept { Invalidate(); });
+    const utils::FastScopeGuard invalidate([this]() noexcept { Invalidate(); });
     utils::impl::CastWrappedCall<void>(GetPayload()).Retrieve();
 }
 

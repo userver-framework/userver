@@ -1,0 +1,111 @@
+type: object
+description: component for YDB
+additionalProperties: false
+properties:
+    blocking_task_processor:
+        type: string
+        description: deprecated, unused property
+    credentials-provider:
+        type: string
+        description: name of credentials provider component
+    operation-settings:
+        type: object
+        description: default operation settings for requests to the database
+        additionalProperties: false
+        properties:
+            retries:
+                type: integer
+                description: default retries count for an operation
+                default: 3
+            operation-timeout:
+                type: string
+                description: |
+                    default operation timeout in utils::StringToDuration() format
+                default: 1s
+            cancel-after:
+                type: string
+                description: |
+                    cancel operation after specified string in
+                    utils::StringToDuration() format
+                default: 1s
+            client-timeout:
+                type: string
+                description: default client timeout in utils::StringToDuration format
+                default: 1s
+            get-session-timeout:
+                type: string
+                default: 5s
+                description: default session timeout
+    databases:
+        type: object
+        description: per-databases settings
+        properties: {}
+        additionalProperties:
+            type: object
+            additionalProperties: false
+            description: single database settings
+            properties:
+                endpoint:
+                    type: string
+                    description: gRPC endpoint URL, e.g. grpc://localhost:1234
+                database:
+                    type: string
+                    description: full database path, e.g. /ru/service/production/database
+                credentials:
+                    type: object
+                    properties: {}
+                    additionalProperties: true
+                    description: credentials config passed to credentials provider
+                        component
+                max_pool_size:
+                    type: integer
+                    minimum: 1
+                    default: 50
+                    description: maximum connection pool size
+                min_pool_size:
+                    type: integer
+                    minimum: 1
+                    default: 10
+                    description: minimum connection pool size
+                get_session_retry_limit:
+                    type: integer
+                    minimum: 0
+                    default: 5
+                    description: retries count to get session, every attempt with
+                        a get-session-timeout
+                keep-in-query-cache:
+                    type: boolean
+                    default: true
+                    description: whether to use query cache
+                prefer_local_dc:
+                    type: boolean
+                    default: true
+                    description: prefer making requests to local data center
+                sync_start:
+                    type: boolean
+                    default: true
+                    description: fail to boot if YDB is not available
+                aliases:
+                    description: list of aliases for this database
+                    type: array
+                    items:
+                        type: string
+                        description: alias name
+                by-database-timings-buckets-ms:
+                    type: array
+                    description: |
+                        Histogram bounds for by-database timing metrics.
+
+                        Default: 40 buckets with +20% increment per step
+                    items:
+                        type: number
+                        description: upper bound for an individual bucket
+                by-query-timings-buckets-ms:
+                    type: array
+                    description: |
+                        Histogram bounds for by-query timing metrics.
+
+                        Default: 15 buckets with +100% increment per step
+                    items:
+                        type: number
+                        description: upper bound for an individual bucket

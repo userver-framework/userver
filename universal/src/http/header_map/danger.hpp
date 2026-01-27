@@ -14,10 +14,10 @@ public:
 
     inline std::size_t HashKey(const PredefinedHeader& header) const noexcept {
         if (!IsRed()) {
-            return header.hash;
+            return header.hash_;
         }
 
-        return SafeHash(header.name);
+        return SafeHash(header.name_);
     }
 
     inline bool IsYellow() const noexcept { return state_ == State::kYellow; }

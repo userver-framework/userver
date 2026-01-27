@@ -47,7 +47,8 @@ public:
         QueueOverflowBehavior on_overflow = QueueOverflowBehavior::kDiscard
     ) {
         UASSERT_MSG(
-            engine::current_task::IsTaskProcessorThread(), "Misconfigured test. Should be run in coroutine environment"
+            engine::current_task::IsTaskProcessorThread(),
+            "Misconfigured test. Should be run in coroutine environment"
         );
 
         auto logger = GetStreamLogger();
@@ -132,7 +133,11 @@ public:
     }
 
 protected:
-    LoggingTestCoro() : LoggingTestBase(logging::Format::kTskv) { SetDefaultLoggerLevel(logging::Level::kError); }
+    LoggingTestCoro()
+        : LoggingTestBase(logging::Format::kTskv)
+    {
+        SetDefaultLoggerLevel(logging::Level::kError);
+    }
 
     ~LoggingTestCoro() override { stats_holder_.Unregister(); }
 
@@ -144,16 +149,16 @@ private:
 }  // namespace
 
 TEST_F(LoggingTest, TpLoggerNoop) {
-    ASSERT_FALSE(engine::current_task::IsTaskProcessorThread())
-        << "Misconfigured test. Should not be run in coroutine environment";
+    ASSERT_FALSE(engine::current_task::IsTaskProcessorThread()
+    ) << "Misconfigured test. Should not be run in coroutine environment";
 
     GetStreamLogger();
     EXPECT_EQ(GetRecordsCount(), 0);
 }
 
 TEST_F(LoggingTest, TpLoggerBasic) {
-    ASSERT_FALSE(engine::current_task::IsTaskProcessorThread())
-        << "Misconfigured test. Should not be run in coroutine environment";
+    ASSERT_FALSE(engine::current_task::IsTaskProcessorThread()
+    ) << "Misconfigured test. Should not be run in coroutine environment";
 
     auto logger = GetStreamLogger();
 
@@ -171,8 +176,8 @@ TEST_F(LoggingTest, TpLoggerBasic) {
 }
 
 TEST_F(LoggingTest, TpLoggerBasicRecursive) {
-    ASSERT_FALSE(engine::current_task::IsTaskProcessorThread())
-        << "Misconfigured test. Should not be run in coroutine environment";
+    ASSERT_FALSE(engine::current_task::IsTaskProcessorThread()
+    ) << "Misconfigured test. Should not be run in coroutine environment";
 
     auto logger = GetStreamLogger();
     LogRecursiveHelper(logger, 0, kLoggingRecursionDepth);
@@ -185,8 +190,8 @@ TEST_F(LoggingTest, TpLoggerBasicRecursive) {
 }
 
 TEST_F(LoggingTest, TpLoggerBasicMT) {
-    ASSERT_FALSE(engine::current_task::IsTaskProcessorThread())
-        << "Misconfigured test. Should not be run in coroutine environment";
+    ASSERT_FALSE(engine::current_task::IsTaskProcessorThread()
+    ) << "Misconfigured test. Should not be run in coroutine environment";
 
     auto logger = GetStreamLogger();
 
@@ -212,8 +217,8 @@ TEST_F(LoggingTest, TpLoggerBasicMT) {
 }
 
 TEST_F(LoggingTest, TpLoggerBasicFlushMT) {
-    ASSERT_FALSE(engine::current_task::IsTaskProcessorThread())
-        << "Misconfigured test. Should not be run in coroutine environment";
+    ASSERT_FALSE(engine::current_task::IsTaskProcessorThread()
+    ) << "Misconfigured test. Should not be run in coroutine environment";
 
     auto logger = GetStreamLogger();
 
@@ -240,16 +245,16 @@ TEST_F(LoggingTest, TpLoggerBasicFlushMT) {
 }
 
 TEST_F(LoggingTest, TpLoggerBasicToSyncNoop) {
-    ASSERT_FALSE(engine::current_task::IsTaskProcessorThread())
-        << "Misconfigured test. Should not be run in coroutine environment";
+    ASSERT_FALSE(engine::current_task::IsTaskProcessorThread()
+    ) << "Misconfigured test. Should not be run in coroutine environment";
     auto logger = GetStreamLogger();
 
     logger->StopConsumerTask();
 }
 
 TEST_F(LoggingTest, TpLoggerBasicToSyncNoopTwice) {
-    ASSERT_FALSE(engine::current_task::IsTaskProcessorThread())
-        << "Misconfigured test. Should not be run in coroutine environment";
+    ASSERT_FALSE(engine::current_task::IsTaskProcessorThread()
+    ) << "Misconfigured test. Should not be run in coroutine environment";
     auto logger = GetStreamLogger();
 
     logger->StopConsumerTask();
@@ -257,15 +262,15 @@ TEST_F(LoggingTest, TpLoggerBasicToSyncNoopTwice) {
 }
 
 UTEST_F(LoggingTestCoro, TpLoggerNoop) {
-    ASSERT_TRUE(engine::current_task::IsTaskProcessorThread())
-        << "Misconfigured test. Should be run in coroutine environment";
+    ASSERT_TRUE(engine::current_task::IsTaskProcessorThread()
+    ) << "Misconfigured test. Should be run in coroutine environment";
     GetStreamLogger();
     EXPECT_EQ(GetRecordsCount(), 0);
 }
 
 UTEST_F(LoggingTestCoro, TpLoggerBasic) {
-    ASSERT_TRUE(engine::current_task::IsTaskProcessorThread())
-        << "Misconfigured test. Should be run in coroutine environment";
+    ASSERT_TRUE(engine::current_task::IsTaskProcessorThread()
+    ) << "Misconfigured test. Should be run in coroutine environment";
     auto logger = GetStreamLogger();
 
     LOG_INFO_TO(logger) << "Some log";

@@ -29,7 +29,7 @@ This development strategy provides fast delivery and adoption of new features.
 ## Releases and Release model
 
 The above model may not fit if stability of interfaces is
-required. Examples of such development cases are: making prebuilt packeges of
+required. Examples of such development cases are: making prebuilt packages of
 the framework for package managers or OS distros, release based development
 model in the company, prototyping.
 
@@ -40,7 +40,7 @@ snapshots of the `develop` sources with
 Releases do not evolve, all the new functionality and bugfixes go to
 develop branch of git to become a new release some day.
 
-Starting from userver 2.0 we do a new minor release monthly.
+Starting from userver 2.0 we do a new minor release once in a month or two.
 
 
 ## Issue, feature and pull requests (PR)

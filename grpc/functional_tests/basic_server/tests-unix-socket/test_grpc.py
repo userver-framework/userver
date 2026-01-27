@@ -1,4 +1,4 @@
-import samples.greeter_pb2 as greeter_protos  # noqa: E402, E501
+import samples.greeter_pb2 as greeter_protos
 
 
 async def test_say_hello(grpc_client):

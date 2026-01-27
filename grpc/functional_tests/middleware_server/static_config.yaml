@@ -19,15 +19,31 @@ components_manager:
         grpc-server:
             port: 8091
 
+        congestion-control:
+
+        # /// [middleware pipeline component config]
         grpc-server-logging:
-            msg-size-log-limit: 10
+            msg-size-log-limit: 15
+
+        my-second-middleware-server:
+        # /// [my-middleware-server config]
+        my-middleware-server:
+
+        grpc-server-middlewares-pipeline:
+            middlewares:
+                # We must register middlewares in the pipeline:
+                my-middleware-server:
+                    enabled: true
+                    # /// [my-middleware-server config]
+                my-second-middleware-server:
+                    enabled: true
 
         greeter-service:
             task-processor: main-task-processor
             middlewares:
-              - grpc-server-logging
-              - my-middleware-server
-              - my-second-middleware-server
+                grpc-server-logging:
+                    msg-size-log-limit: 10  # you can override a config per service
+                    # /// [middleware pipeline component config]
 
         # http server
         server:
@@ -43,8 +59,6 @@ components_manager:
                 task_processor: main-task-processor
 
         testsuite-support: {}
-        my-middleware-server: {}
-        my-second-middleware-server: {}
 
     default_task_processor: main-task-processor
 
@@ -52,7 +66,7 @@ components_manager:
         grpc-blocking-task-processor:  # For blocking gRPC channel creation
             thread_name: grpc-worker
             worker_threads: 2
-        main-task-processor:           # For non-blocking operations
+        main-task-processor:  # For non-blocking operations
             worker_threads: 4
-        fs-task-processor:             # For blocking filesystem operations
+        fs-task-processor:  # For blocking filesystem operations
             worker_threads: 2

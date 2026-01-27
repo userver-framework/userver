@@ -1,0 +1,156 @@
+name: Arch
+
+'on':
+    pull_request:
+    push:
+        branches:
+          - master
+          - develop
+          - feature/**
+
+env:
+    UBSAN_OPTIONS: print_stacktrace=1
+    ASAN_OPTIONS: detect_odr_violation=2
+    CXX: clang++
+    CC: clang
+    CCACHE_DIR: /home/runner/.cache/ccache
+    CCACHE_NOHASHDIR: true
+    CPM_SOURCE_CACHE: /home/runner/.cache/CPM
+
+jobs:
+    archlinux:
+        strategy:
+            fail-fast: false
+
+        name: archlinux-latest
+        runs-on: ubuntu-latest
+        container:
+            image: archlinux:latest
+
+        env:
+            CMAKE_FLAGS: >-
+                -DCMAKE_BUILD_TYPE=Debug
+                -DCMAKE_CXX_STANDARD=17
+                -DUSERVER_USE_LD=lld
+                -DUSERVER_NO_WERROR=1
+                -DUSERVER_BUILD_ALL_COMPONENTS=1
+                -DUSERVER_BUILD_SAMPLES=1
+                -DUSERVER_BUILD_TESTS=1
+                -DUSERVER_FEATURE_GRPC=0
+                -DUSERVER_FEATURE_GRPC_REFLECTION=0
+                -DUSERVER_FEATURE_GRPC_PROTOVALIDATE=0
+                -DUSERVER_FEATURE_MONGODB=0
+                -DUSERVER_FEATURE_OTLP=0
+                -DUSERVER_FEATURE_ROCKS=0
+                -DUSERVER_USE_STATIC_LIBS=0
+                -DUSERVER_FEATURE_PATCH_LIBPQ=0
+
+        steps:
+          - uses: actions/checkout@v6
+            with:
+                fetch-depth: 0
+
+          - name: Restore cached directories
+            id: restore-cache
+            uses: actions/cache/restore@v5
+            with:
+                path: |
+                    ${{env.CCACHE_DIR}}
+                    ${{env.CPM_SOURCE_CACHE}}
+                key: 'archlinux-cache-dir ${{github.ref}} run-${{github.run_number}}'
+                restore-keys: |
+                    archlinux-cache-dir ${{github.ref}}
+                    archlinux-cache-dir
+
+          - name: Setup host cache dirs
+            run: |
+                mkdir -p ${{env.CCACHE_DIR}}
+                mkdir -p ${{env.CPM_SOURCE_CACHE}}
+
+          - name: Update system and install base dependencies
+            run: |
+                pacman -Syu --noconfirm
+                pacman -S --needed --noconfirm \
+                    base-devel \
+                    git \
+                    cmake \
+                    make \
+                    clang \
+                    lld \
+                    ccache \
+                    python \
+                    pkg-config
+
+          - name: Install development dependencies
+            run: |
+                useradd build
+
+                pacman -S --needed --noconfirm $(cat scripts/docs/en/deps/arch.md | grep -v -- 'makepkg|' )
+                set -x ; \
+                cat scripts/docs/en/deps/arch.md | grep -oP '^makepkg\|\K.*' | while read REPLY; \
+                do \
+                  DIR=$(mktemp -d) ;\
+                  git clone --branch $REPLY --single-branch https://github.com/archlinux/aur.git $DIR ;\
+                  pushd $DIR ;\
+
+                  chmod a+x .
+                  chmod a+rw -R .
+
+                  yes | su -s /usr/bin/makepkg - build ;\
+                  pacman -U --noconfirm *.zst
+
+                  popd ;\
+                  rm -rf $DIR ;\
+                done
+
+          - name: Install test dependencies
+            if: ${{ false }}  # Not working yet
+            run: |
+                pacman -S --needed --noconfirm \
+                    postgresql \
+                    redis \
+                    clickhouse \
+                    rabbitmq \
+                    mongodb
+
+          - name: Setup caches
+            run: |
+                echo "Cached CPM packages:"
+                du -h -d 1 ${{env.CPM_SOURCE_CACHE}} || true
+                for f in $(find ${{env.CPM_SOURCE_CACHE}} -name "cmake.lock" 2>/dev/null || true);
+                do
+                  repo=$(ls -d $(dirname $f)*/ 2>/dev/null || true);
+                  echo "Repository: $repo";
+                  git config --global --add safe.directory $repo 2>/dev/null || true;
+                done
+
+                ccache -M 2.0GB
+                ccache -s -v
+
+          - name: Run cmake
+            run: |
+                cmake -S . -B build_debug $CMAKE_FLAGS
+
+          - name: Compile
+            run: |
+                cmake --build build_debug -j$(nproc)
+
+          - name: Save cached directories
+            uses: actions/cache/save@v5
+            with:
+                path: |
+                    ${{env.CCACHE_DIR}}
+                    ${{env.CPM_SOURCE_CACHE}}
+                key: ${{ steps.restore-cache.outputs.cache-primary-key }}
+
+          - name: Show cache stats
+            run: |
+                du -h -d 1 ${{env.CCACHE_DIR}} || true
+                du -h -d 1 ${{env.CPM_SOURCE_CACHE}} || true
+                ccache -s -v
+
+          - name: Run tests
+            if: ${{ false }}  # Not working yet
+            run: |
+                cd build_debug
+                ctest -V

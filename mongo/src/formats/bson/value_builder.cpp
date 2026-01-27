@@ -11,7 +11,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace formats::bson {
 
-ValueBuilder::ValueBuilder() : ValueBuilder(Type::kNull) {}
+ValueBuilder::ValueBuilder()
+    : ValueBuilder(Type::kNull)
+{}
 
 ValueBuilder::ValueBuilder(ValueBuilder::Type type) {
     switch (type) {
@@ -20,19 +22,20 @@ ValueBuilder::ValueBuilder(ValueBuilder::Type type) {
             break;
 
         case Type::kArray:
-            impl_ =
-                std::make_shared<impl::ValueImpl>(impl::MutableBson().Extract(), impl::ValueImpl::DocumentKind::kArray);
+            impl_ = std::make_shared<
+                impl::ValueImpl>(impl::MutableBson().Extract(), impl::ValueImpl::DocumentKind::kArray);
             break;
 
         case Type::kObject:
-            impl_ = std::make_shared<impl::ValueImpl>(
-                impl::MutableBson().Extract(), impl::ValueImpl::DocumentKind::kDocument
-            );
+            impl_ = std::make_shared<
+                impl::ValueImpl>(impl::MutableBson().Extract(), impl::ValueImpl::DocumentKind::kDocument);
             break;
     }
 }
 
-ValueBuilder::ValueBuilder(impl::ValueImplPtr impl) : impl_(std::move(impl)) {}
+ValueBuilder::ValueBuilder(impl::ValueImplPtr impl)
+    : impl_(std::move(impl))
+{}
 
 ValueBuilder::ValueBuilder(const ValueBuilder& other) { *this = other; }
 
@@ -40,7 +43,9 @@ ValueBuilder::ValueBuilder(const ValueBuilder& other) { *this = other; }
 ValueBuilder::ValueBuilder(ValueBuilder&& other) { *this = std::move(other); }
 
 ValueBuilder& ValueBuilder::operator=(const ValueBuilder& other) {
-    if (this == &other) return *this;
+    if (this == &other) {
+        return *this;
+    }
 
     Assign(other.impl_);
     return *this;
@@ -61,7 +66,9 @@ ValueBuilder::ValueBuilder(const formats::bson::Value& value) {
     Assign(value.impl_);
 }
 
-ValueBuilder::ValueBuilder(const Document& document) : ValueBuilder(static_cast<const Value&>(document)) {}
+ValueBuilder::ValueBuilder(const Document& document)
+    : ValueBuilder(static_cast<const Value&>(document))
+{}
 
 ValueBuilder::ValueBuilder(formats::bson::Value&& value) {
     value.CheckNotMissing();
@@ -72,49 +79,89 @@ ValueBuilder::ValueBuilder(formats::bson::Value&& value) {
     }
 }
 
-ValueBuilder::ValueBuilder(Document&& document) : ValueBuilder(static_cast<Value&&>(document)) {}
+ValueBuilder::ValueBuilder(Document&& document)
+    : ValueBuilder(static_cast<Value&&>(document))
+{}
 
-ValueBuilder::ValueBuilder(std::nullptr_t) : ValueBuilder() {}
+ValueBuilder::ValueBuilder(std::nullptr_t)
+    : ValueBuilder()
+{}
 
-ValueBuilder::ValueBuilder(bool value) : impl_(std::make_shared<impl::ValueImpl>(value)) {}
+ValueBuilder::ValueBuilder(bool value)
+    : impl_(std::make_shared<impl::ValueImpl>(value))
+{}
 
-ValueBuilder::ValueBuilder(int value) : impl_(std::make_shared<impl::ValueImpl>(int32_t{value})) {}
+ValueBuilder::ValueBuilder(int value)
+    : impl_(std::make_shared<impl::ValueImpl>(int32_t{value}))
+{}
 
-ValueBuilder::ValueBuilder(unsigned int value) : impl_(std::make_shared<impl::ValueImpl>(int64_t{value})) {}
+ValueBuilder::ValueBuilder(unsigned int value)
+    : impl_(std::make_shared<impl::ValueImpl>(int64_t{value}))
+{}
 
-ValueBuilder::ValueBuilder(long value) : impl_(std::make_shared<impl::ValueImpl>(int64_t{value})) {}
+ValueBuilder::ValueBuilder(long value)
+    : impl_(std::make_shared<impl::ValueImpl>(int64_t{value}))
+{}
 
-ValueBuilder::ValueBuilder(unsigned long value) : impl_(std::make_shared<impl::ValueImpl>(impl::ToInt64(value))) {}
+ValueBuilder::ValueBuilder(unsigned long value)
+    : impl_(std::make_shared<impl::ValueImpl>(impl::ToInt64(value)))
+{}
 
-ValueBuilder::ValueBuilder(long long value) : impl_(std::make_shared<impl::ValueImpl>(int64_t{value})) {}
+ValueBuilder::ValueBuilder(long long value)
+    : impl_(std::make_shared<impl::ValueImpl>(int64_t{value}))
+{}
 
-ValueBuilder::ValueBuilder(unsigned long long value) : impl_(std::make_shared<impl::ValueImpl>(impl::ToInt64(value))) {}
+ValueBuilder::ValueBuilder(unsigned long long value)
+    : impl_(std::make_shared<impl::ValueImpl>(impl::ToInt64(value)))
+{}
 
 ValueBuilder::ValueBuilder(double value)
-    : impl_(std::make_shared<impl::ValueImpl>(formats::common::ValidateFloat<BsonException>(value))) {}
+    : impl_(std::make_shared<impl::ValueImpl>(formats::common::ValidateFloat<BsonException>(value)))
+{}
 
-ValueBuilder::ValueBuilder(const char* value) : ValueBuilder(std::string(value)) {}
+ValueBuilder::ValueBuilder(const char* value)
+    : ValueBuilder(std::string(value))
+{}
 
-ValueBuilder::ValueBuilder(char* value) : ValueBuilder(std::string(value)) {}
+ValueBuilder::ValueBuilder(char* value)
+    : ValueBuilder(std::string(value))
+{}
 
-ValueBuilder::ValueBuilder(std::string value) : impl_(std::make_shared<impl::ValueImpl>(std::move(value))) {}
+ValueBuilder::ValueBuilder(std::string value)
+    : impl_(std::make_shared<impl::ValueImpl>(std::move(value)))
+{}
 
-ValueBuilder::ValueBuilder(std::string_view value) : ValueBuilder(std::string(value)) {}
+ValueBuilder::ValueBuilder(std::string_view value)
+    : ValueBuilder(std::string(value))
+{}
 
 ValueBuilder::ValueBuilder(const std::chrono::system_clock::time_point& value)
-    : impl_(std::make_shared<impl::ValueImpl>(value)) {}
+    : impl_(std::make_shared<impl::ValueImpl>(value))
+{}
 
-ValueBuilder::ValueBuilder(const Oid& value) : impl_(std::make_shared<impl::ValueImpl>(value)) {}
+ValueBuilder::ValueBuilder(const Oid& value)
+    : impl_(std::make_shared<impl::ValueImpl>(value))
+{}
 
-ValueBuilder::ValueBuilder(Binary value) : impl_(std::make_shared<impl::ValueImpl>(std::move(value))) {}
+ValueBuilder::ValueBuilder(Binary value)
+    : impl_(std::make_shared<impl::ValueImpl>(std::move(value)))
+{}
 
-ValueBuilder::ValueBuilder(const Decimal128& value) : impl_(std::make_shared<impl::ValueImpl>(value)) {}
+ValueBuilder::ValueBuilder(const Decimal128& value)
+    : impl_(std::make_shared<impl::ValueImpl>(value))
+{}
 
-ValueBuilder::ValueBuilder(MinKey value) : impl_(std::make_shared<impl::ValueImpl>(value)) {}
+ValueBuilder::ValueBuilder(MinKey value)
+    : impl_(std::make_shared<impl::ValueImpl>(value))
+{}
 
-ValueBuilder::ValueBuilder(MaxKey value) : impl_(std::make_shared<impl::ValueImpl>(value)) {}
+ValueBuilder::ValueBuilder(MaxKey value)
+    : impl_(std::make_shared<impl::ValueImpl>(value))
+{}
 
-ValueBuilder::ValueBuilder(const Timestamp& value) : impl_(std::make_shared<impl::ValueImpl>(value)) {}
+ValueBuilder::ValueBuilder(const Timestamp& value)
+    : impl_(std::make_shared<impl::ValueImpl>(value))
+{}
 
 ValueBuilder::ValueBuilder(common::TransferTag, ValueBuilder&& value) noexcept : impl_(std::move(value.impl_)) {}
 

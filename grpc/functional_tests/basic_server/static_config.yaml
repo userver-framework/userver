@@ -17,8 +17,7 @@ components_manager:
 
         # Creates gRPC clients
         grpc-client-factory:
-            # The list of gRPC client middleware components to use
-            middlewares: []
+            disable-all-pipeline-middlewares: true
 
             # Optional channel parameters for gRPC Core
             # https://grpc.github.io/grpc/core/group__grpc__arg__keys.html
@@ -34,13 +33,20 @@ components_manager:
         greeter-service:
             echo-url: 'mockserver/v1/translations'  # Some other microservice listens on this URL
             task-processor: main-task-processor
+            disable-all-pipeline-middlewares: true
             middlewares:
-              - grpc-server-headers-propagator
+                grpc-server-headers-propagator:
+                    enabled: true
 
-        http-client:
+        grpc-server-middlewares-pipeline:
+        grpc-client-middlewares-pipeline:
+
+        http-client-middleware-pipeline:
+            middlewares:
+                http-client-headers-propagator:
+                    enabled: true
+        http-client-core:
             fs-task-processor: main-task-processor
-            plugins:
-              - headers-propagator
 
         dns-client:
             fs-task-processor: fs-task-processor
@@ -51,7 +57,9 @@ components_manager:
         grpc-server-headers-propagator:
             headers: ["custom-header-1", "custom-header-2"]
 
-        http-client-plugin-headers-propagator: {}
+        http-client-headers-propagator: {}
+
+        congestion-control:
 
         server:
             listener:
@@ -66,7 +74,7 @@ components_manager:
         grpc-blocking-task-processor:  # For blocking gRPC channel creation
             worker_threads: 2
             thread_name: grpc-worker
-        main-task-processor:           # For non-blocking operations
+        main-task-processor:  # For non-blocking operations
             worker_threads: 8
-        fs-task-processor:             # For blocking filesystem operations
+        fs-task-processor:  # For blocking filesystem operations
             worker_threads: 2

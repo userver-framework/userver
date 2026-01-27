@@ -27,10 +27,9 @@ constexpr std::size_t kMaxThreadNameLen = 15;  // + '\0'
 }  // namespace
 
 std::string GetCurrentThreadName() {
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
-    std::array<char, kMaxThreadNameLen + 1> buf;
+    std::array<char, kMaxThreadNameLen + 1> buf{};
 
-    int ret = ::pthread_getname_np(::pthread_self(), buf.data(), buf.size());
+    const int ret = ::pthread_getname_np(::pthread_self(), buf.data(), buf.size());
     if (ret) {
         throw std::system_error(ret, std::system_category(), "Cannot get thread name");
     }
@@ -63,7 +62,9 @@ void SetCurrentThreadName(std::string_view name) {
     }
 }
 
-CurrentThreadNameGuard::CurrentThreadNameGuard(std::string_view name) : prev_name_(GetCurrentThreadName()) {
+CurrentThreadNameGuard::CurrentThreadNameGuard(std::string_view name)
+    : prev_name_(GetCurrentThreadName())
+{
     SetCurrentThreadName(name);
 }
 

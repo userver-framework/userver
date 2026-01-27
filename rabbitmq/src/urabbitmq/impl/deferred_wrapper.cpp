@@ -4,12 +4,16 @@
 
 #include <urabbitmq/make_shared_enabler.hpp>
 
+#include <userver/utils/assert.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace urabbitmq::impl {
 
 void DeferredWrapper::Fail(const char* message) {
-    if (is_signaled_) return;
+    if (is_signaled_) {
+        return;
+    }
     UASSERT(message);
 
     is_signaled_.store(true);
@@ -18,7 +22,9 @@ void DeferredWrapper::Fail(const char* message) {
 }
 
 void DeferredWrapper::Ok() {
-    if (is_signaled_) return;
+    if (is_signaled_) {
+        return;
+    }
 
     is_signaled_.store(true);
     event_.Send();

@@ -2,6 +2,7 @@
 
 #include <fmt/format.h>
 
+#include <userver/alerts/source.hpp>
 #include <userver/components/component.hpp>
 #include <userver/components/dump_configurator.hpp>
 #include <userver/dynamic_config/source.hpp>
@@ -33,13 +34,15 @@ T CheckNotNull(T ptr) {
     return ptr;
 }
 
+alerts::Source kCacheUpdateErrorAlert("cache_update_error");
+
 }  // namespace
 
 void CacheUpdateTrait::Impl::InvalidateAsync(UpdateType update_type) {
-    if (static_config_.allowed_update_types == AllowedUpdateTypes::kOnlyFull &&
-        update_type == UpdateType::kIncremental) {
-        LOG_WARNING() << "Requested incremental update for cache '" << name_
-                      << "' while only full updates were allowed";
+    if (static_config_.allowed_update_types == AllowedUpdateTypes::kOnlyFull && update_type == UpdateType::kIncremental)
+    {
+        LOG_WARNING()
+            << "Requested incremental update for cache '" << name_ << "' while only full updates were allowed";
         update_type = UpdateType::kFull;
     }
 
@@ -82,10 +85,10 @@ void CacheUpdateTrait::Impl::DoInvalidateAsync() {
 void CacheUpdateTrait::Impl::UpdateSyncDebug(UpdateType update_type) {
     const std::lock_guard lock(update_mutex_);
 
-    if (static_config_.allowed_update_types == AllowedUpdateTypes::kOnlyFull &&
-        update_type == UpdateType::kIncremental) {
-        LOG_WARNING() << "Requested incremental update for cache '" << name_
-                      << "' while only full updates were allowed";
+    if (static_config_.allowed_update_types == AllowedUpdateTypes::kOnlyFull && update_type == UpdateType::kIncremental)
+    {
+        LOG_WARNING()
+            << "Requested incremental update for cache '" << name_ << "' while only full updates were allowed";
         update_type = UpdateType::kFull;
     }
 
@@ -107,18 +110,19 @@ CacheUpdateTrait::Impl::Impl(CacheDependencies&& dependencies, CacheUpdateTrait&
       static_config_(dependencies.config),
       config_(static_config_),
       cache_control_(dependencies.cache_control),
-      alerts_storage_(dependencies.alerts_storage_),
+      metrics_storage_(dependencies.metrics_storage),
       name_(std::move(dependencies.name)),
       update_task_name_("update-task/" + name_),
       task_processor_(dependencies.task_processor),
       periodic_update_enabled_(dependencies.cache_control.IsPeriodicUpdateEnabled(static_config_, name_)),
       periodic_task_flags_{utils::PeriodicTask::Flags::kChaotic},
-      dumpable_(customized_trait_) {
+      dumpable_(customized_trait_)
+{
     if (dependencies.dump_config) {
         dumper_.emplace(
             *dependencies.dump_config,
             CheckNotNull(std::move(dependencies.dump_rw_factory)),
-            *CheckNotNull(dependencies.fs_task_processor),
+            dependencies.fs_task_processor,
             *CheckNotNull(dependencies.config_source),
             dependencies.statistics_storage,
             dependencies.dump_control,
@@ -139,10 +143,11 @@ CacheUpdateTrait::Impl::Impl(CacheDependencies&& dependencies, CacheUpdateTrait&
 
 CacheUpdateTrait::Impl::~Impl() {
     if (is_running_.load()) {
-        LOG_ERROR() << "CacheUpdateTrait is being destroyed while periodic update "
-                       "task is still running. "
-                       "Derived class has to call StopPeriodicUpdates() in destructor. "
-                    << "Component name '" << name_ << "'";
+        LOG_ERROR()
+            << "CacheUpdateTrait is being destroyed while periodic update "
+               "task is still running. "
+               "Derived class has to call StopPeriodicUpdates() in destructor. "
+            << "Component name '" << name_ << "'";
         // Don't crash in production
         UASSERT_MSG(false, "StopPeriodicUpdates() is not called");
     }
@@ -182,7 +187,8 @@ void CacheUpdateTrait::Impl::StartPeriodicUpdates(utils::Flags<CacheUpdateTrait:
 
         if ((last_update_ == std::chrono::system_clock::time_point{} ||
              config->first_update_mode != FirstUpdateMode::kSkip) &&
-            (!(flags & CacheUpdateTrait::Flag::kNoFirstUpdate) || !periodic_update_enabled_)) {
+            (!(flags & CacheUpdateTrait::Flag::kNoFirstUpdate) || !periodic_update_enabled_))
+        {
             // ignore kNoFirstUpdate if !periodic_update_enabled_
             // because some components require caches to be updated at least once
 
@@ -191,14 +197,14 @@ void CacheUpdateTrait::Impl::StartPeriodicUpdates(utils::Flags<CacheUpdateTrait:
             first_update_invalidation_ = FirstUpdateInvalidation::kNo;
 
             // Force first update, do it synchronously
-            const tracing::Span span("first-update/" + name_);
             try {
-                DoPeriodicUpdate();
+                utils::CriticalAsync(task_processor_, "first-update/" + name_, [this] { DoPeriodicUpdate(); }).Get();
             } catch (const std::exception& e) {
                 if (dump_time && config->first_update_mode != FirstUpdateMode::kRequired) {
-                    LOG_WARNING() << "Failed to update cache " << name_
-                                  << " after loading a cache dump, going on with the "
-                                     "contents loaded from the dump";
+                    LOG_WARNING()
+                        << "Failed to update cache " << name_
+                        << " after loading a cache dump, going on with the "
+                           "contents loaded from the dump";
                 } else if (static_config_.allow_first_update_failure) {
                     LOG_WARNING() << "Failed to update cache " << name_ << " for the first time, leaving it empty";
                 } else {
@@ -207,6 +213,8 @@ void CacheUpdateTrait::Impl::StartPeriodicUpdates(utils::Flags<CacheUpdateTrait:
                 }
             }
         }
+
+        statistics_.is_first_sync_update_complete = true;
 
         if (dump_time && config->first_update_type == FirstUpdateType::kIncrementalThenAsyncFull) {
             dump_first_update_type_ = UpdateType::kFull;
@@ -298,13 +306,15 @@ UpdateType CacheUpdateTrait::Impl::NextUpdateType(const Config& config) {
             const auto steady_now = utils::datetime::SteadyNow();
             const auto& full_update_jitter = config.full_update_jitter;
             if (!generated_full_update_jitter_ &&
-                steady_now >= last_full_update_ + config.full_update_interval - full_update_jitter) {
+                steady_now >= last_full_update_ + config.full_update_interval - full_update_jitter)
+            {
                 generated_full_update_jitter_ = std::chrono::milliseconds(
                     utils::RandRange(-full_update_jitter.count(), full_update_jitter.count() + 1)
                 );
             }
             if (generated_full_update_jitter_ &&
-                steady_now >= last_full_update_ + config.full_update_interval + generated_full_update_jitter_.value()) {
+                steady_now >= last_full_update_ + config.full_update_interval + generated_full_update_jitter_.value())
+            {
                 return UpdateType::kFull;
             }
             return UpdateType::kIncremental;
@@ -334,8 +344,9 @@ void CacheUpdateTrait::Impl::DoPeriodicUpdate() {
         DoUpdate(update_type, *config);
         // Note: "on update success" logic goes inside DoUpdate
     } catch (const std::exception& ex) {
-        LOG_WARNING() << "Error while updating cache " << name_ << " (update_type=" << ToString(update_type)
-                      << "). Reason: " << ex;
+        LOG_WARNING()
+            << "Error while updating cache " << name_ << " (update_type=" << ToString(update_type)
+            << "). Reason: " << ex;
         throw;
     }
 }
@@ -344,12 +355,10 @@ void CacheUpdateTrait::Impl::OnUpdateFailure(const Config& config) {
     OnUpdateSkipped();
 
     if (config.alert_on_failing_to_update_times != 0 &&
-        failed_updates_counter_ >= config.alert_on_failing_to_update_times) {
-        alerts_storage_.FireAlert(
-            "cache_update_error",
-            fmt::format("cache '{}' hasn't been updated for {} times", Name(), failed_updates_counter_),
-            alerts::kInfinity
-        );
+        failed_updates_counter_ >= config.alert_on_failing_to_update_times)
+    {
+        kCacheUpdateErrorAlert.FireAlert(*metrics_storage_);
+        LOG_ERROR() << fmt::format("cache '{}' hasn't been updated for {} times", Name(), failed_updates_counter_);
     }
 }
 
@@ -358,28 +367,11 @@ void CacheUpdateTrait::Impl::OnUpdateSkipped() {
     failed_updates_counter_++;
     if (failed_updates_counter_ == failed_updates_before_expiration) {
         customized_trait_.MarkAsExpired();
-        LOG_WARNING() << "Cache is marked as expired because the number of "
-                         "failed updates has reached 'failed-updates-before-expiration' ("
-                      << failed_updates_before_expiration << ")";
+        LOG_WARNING()
+            << "Cache is marked as expired because the number of "
+               "failed updates has reached 'failed-updates-before-expiration' ("
+            << failed_updates_before_expiration << ")";
     }
-}
-
-void CacheUpdateTrait::Impl::AssertPeriodicUpdateStarted() {
-    UASSERT_MSG(
-        is_running_.load(),
-        "Cache " + name_ +
-            " has been constructed without calling "
-            "StartPeriodicUpdates(), call it in ctr"
-    );
-}
-
-void CacheUpdateTrait::Impl::AssertPeriodicUpdateStopped() {
-    UASSERT_MSG(
-        !is_running_.load(),
-        "Cache " + name_ +
-            " has been destructed without calling "
-            "StopPeriodicUpdates(), call it in dtr"
-    );
 }
 
 void CacheUpdateTrait::Impl::OnCacheModified() { cache_modified_ = true; }
@@ -400,13 +392,15 @@ void CacheUpdateTrait::Impl::DoUpdate(UpdateType update_type, const Config& conf
 
     const auto update_type_str = ToString(update_type);
     tracing::Span::CurrentSpan().AddTag("update_type", std::string{update_type_str});
+    tracing::Span::CurrentSpan().AddTag("cache_name", name_);
 
-    UpdateStatisticsScope stats(statistics_, update_type);
+    UpdateStatisticsScope stats(utils::impl::InternalTag{}, statistics_, update_type);
     LOG_INFO() << "Updating cache update_type=" << update_type_str << " name=" << name_;
 
     try {
         customized_trait_.Update(update_type, last_update_, now, stats);
         CheckUpdateState(stats.GetState(utils::impl::InternalTag{}), update_type_str);
+        tracing::Span::CurrentSpan().AddTag("documents_count", statistics_.documents_current_count);
     } catch (const std::exception& e) {
         OnUpdateFailure(config);
         throw;
@@ -422,10 +416,11 @@ void CacheUpdateTrait::Impl::DoUpdate(UpdateType update_type, const Config& conf
     failed_updates_counter_ = 0;
 
     last_update_ = now;
-    alerts_storage_.StopAlertNow("cache_update_error");
+    kCacheUpdateErrorAlert.StopAlertNow(*metrics_storage_);
     if (dumper_) {
         dumper_->OnUpdateCompleted(
-            now, cache_modified_.exchange(false) ? dump::UpdateType::kModified : dump::UpdateType::kAlreadyUpToDate
+            now,
+            cache_modified_.exchange(false) ? dump::UpdateType::kModified : dump::UpdateType::kAlreadyUpToDate
         );
     }
 }
@@ -446,6 +441,9 @@ void CacheUpdateTrait::Impl::CheckUpdateState(impl::UpdateState update_state, st
         case impl::UpdateState::kSuccess:
             LOG_INFO() << "Updated cache update_type=" << update_type_str << " name=" << name_;
             break;
+        case impl::UpdateState::kNoChanges:
+            LOG_INFO() << "No changes for cache update_type=" << update_type_str << " name=" << name_;
+            break;
         case impl::UpdateState::kFailure:
             throw std::runtime_error("FinishWithError");
     }
@@ -458,7 +456,9 @@ utils::PeriodicTask::Settings CacheUpdateTrait::Impl::GetPeriodicTaskSettings(co
     return settings;
 }
 
-CacheUpdateTrait::Impl::DumpableEntityProxy::DumpableEntityProxy(CacheUpdateTrait& cache) : cache_(cache) {}
+CacheUpdateTrait::Impl::DumpableEntityProxy::DumpableEntityProxy(CacheUpdateTrait& cache)
+    : cache_(cache)
+{}
 
 void CacheUpdateTrait::Impl::DumpableEntityProxy::GetAndWrite(dump::Writer& writer) const {
     cache_.GetAndWrite(writer);

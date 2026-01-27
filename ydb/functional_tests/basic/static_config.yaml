@@ -1,5 +1,8 @@
 # yaml
 components_manager:
+    userver_experiments:
+        ydb-deadline-propagation: true
+
     task_processors:                  # Task processor is an executor for coroutine tasks
         main-task-processor:          # Make a task processor for CPU-bound coroutine tasks.
             worker_threads: 4         # Process tasks in 4 threads.
@@ -43,6 +46,7 @@ components_manager:
             update-interval: 5s
 
         http-client:
+        http-client-core:
             fs-task-processor: fs-task-processor
             user-agent: $server-name
             user-agent#fallback: 'userver-based-service 1.0'
@@ -106,6 +110,3 @@ components_manager:
             # Name of the semaphore within the coordination node
             semaphore-name: sample-lock
 # /// [sample-dist-lock]
-
-userver_experiments:
-  - ydb-deadline-propagation

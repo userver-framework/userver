@@ -50,7 +50,7 @@ public:
     Range() = default;
 
     /// Unbounded range
-    Range(UnboundedType, UnboundedType) noexcept : data{RangeData{}} {}
+    Range(UnboundedType, UnboundedType) noexcept : data_{RangeData{}} {}
 
     /// Bounded range
     template <typename U, typename = std::enable_if_t<std::is_convertible_v<std::decay_t<U>, T>>>
@@ -76,32 +76,32 @@ public:
 
     bool operator!=(const Range& rhs) const { return !(*this == rhs); }
 
-    bool Empty() const { return !data; }
+    bool Empty() const { return !data_; }
 
     /// Make the range empty
-    void Clear() { data.reset(); }
+    void Clear() { data_.reset(); }
 
-    bool HasLowerBound() const { return !!data && data->HasBound(RangeBound::kLower); }
-    bool HasUpperBound() const { return !!data && data->HasBound(RangeBound::kUpper); }
+    bool HasLowerBound() const { return !!data_ && data_->HasBound(RangeBound::kLower); }
+    bool HasUpperBound() const { return !!data_ && data_->HasBound(RangeBound::kUpper); }
 
     /// Get the lower bound.
     const OptionalValue& GetLowerBound() const {
-        if (!!data) {
-            return data->GetOptionalValue(RangeBound::kLower);
+        if (!!data_) {
+            return data_->GetOptionalValue(RangeBound::kLower);
         }
         return kNoValue;
     }
 
     /// Get the upper bound.
     const OptionalValue& GetUpperBound() const {
-        if (!!data) {
-            return data->GetOptionalValue(RangeBound::kUpper);
+        if (!!data_) {
+            return data_->GetOptionalValue(RangeBound::kUpper);
         }
         return kNoValue;
     }
 
-    bool IsLowerBoundIncluded() const { return !!data && data->IsBoundIncluded(RangeBound::kLower); }
-    bool IsUpperBoundIncluded() const { return !!data && data->IsBoundIncluded(RangeBound::kUpper); }
+    bool IsLowerBoundIncluded() const { return !!data_ && data_->IsBoundIncluded(RangeBound::kLower); }
+    bool IsUpperBoundIncluded() const { return !!data_ && data_->IsBoundIncluded(RangeBound::kUpper); }
 
 private:
     template <typename U>
@@ -113,18 +113,24 @@ private:
 
         template <typename U>
         RangeData(U&& lower, U&& upper, RangeBounds bounds)
-            : RangeData{OptionalValue{std::forward<U>(lower)}, OptionalValue{std::forward<U>(upper)}, bounds} {}
+            : RangeData{OptionalValue{std::forward<U>(lower)}, OptionalValue{std::forward<U>(upper)}, bounds}
+        {}
 
         template <typename U>
         RangeData(U&& lower, UnboundedType, RangeBounds bounds) noexcept(kNothrowValueCopy)
-            : RangeData{OptionalValue{std::forward<U>(lower)}, OptionalValue{}, bounds} {}
+            : RangeData{OptionalValue{std::forward<U>(lower)}, OptionalValue{}, bounds}
+        {}
 
         template <typename U>
         RangeData(UnboundedType, U&& upper, RangeBounds bounds) noexcept(kNothrowValueCopy)
-            : RangeData{OptionalValue{}, OptionalValue{std::forward<U>(upper)}, bounds} {}
+            : RangeData{OptionalValue{}, OptionalValue{std::forward<U>(upper)}, bounds}
+        {}
 
         RangeData(OptionalValue low, OptionalValue up, RangeBounds bounds)
-            : bounds{bounds}, lower{std::move(low)}, upper{std::move(up)} {
+            : bounds{bounds},
+              lower{std::move(low)},
+              upper{std::move(up)}
+        {
             if (lower && upper && *upper < *lower) {
                 throw LogicError("Range lower bound is greater than upper");
             }
@@ -144,13 +150,17 @@ private:
 
         // Using this function without checking is ub
         const T& GetBoundValue(RangeBounds side) const {
-            if (side == RangeBound::kLower) return *lower;
+            if (side == RangeBound::kLower) {
+                return *lower;
+            }
             UASSERT_MSG(side == RangeBound::kUpper, "Invalid bounds side argument value");
             return *upper;
         }
 
         const OptionalValue& GetOptionalValue(RangeBounds side) const {
-            if (side == RangeBound::kLower) return lower;
+            if (side == RangeBound::kLower) {
+                return lower;
+            }
             UASSERT_MSG(side == RangeBound::kUpper, "Invalid bounds side argument value");
             return upper;
         }
@@ -162,17 +172,21 @@ private:
 
     template <typename U>
     static OptionalValue ConvertBound(const std::optional<U>& rhs) {
-        if (!rhs) return OptionalValue{};
+        if (!rhs) {
+            return OptionalValue{};
+        }
         return OptionalValue{*rhs};
     }
 
     template <typename U>
     static std::optional<RangeData> ConvertData(const Range<U>& rhs) {
-        if (!rhs.data) return {};
-        return RangeData{ConvertBound(rhs.data->lower), ConvertBound(rhs.data->upper), rhs.data->bounds};
+        if (!rhs.data_) {
+            return {};
+        }
+        return RangeData{ConvertBound(rhs.data_->lower), ConvertBound(rhs.data_->upper), rhs.data_->bounds};
     }
 
-    std::optional<RangeData> data;
+    std::optional<RangeData> data_;
 
     static const inline OptionalValue kNoValue{};
 };
@@ -275,7 +289,7 @@ struct RangeBinaryParser : BufferParserBase<Range<T>> {
         char wire_range_flags{0};
 
         buffer.Read(wire_range_flags, BufferCategory::kPlainBuffer);
-        RangeFlags range_flags(static_cast<RangeFlag>(wire_range_flags));
+        const RangeFlags range_flags(static_cast<RangeFlag>(wire_range_flags));
 
         ValueType wire_value;
         if (range_flags != RangeFlag::kEmpty) {
@@ -328,7 +342,7 @@ struct RangeBinaryFormatter : BufferFormatterBase<Range<T>> {
                 range_flags |= RangeFlag::kUpperBoundInclusive;
             }
         }
-        char wire_range_flags = static_cast<char>(range_flags.GetValue());
+        const char wire_range_flags = static_cast<char>(range_flags.GetValue());
         io::WriteBuffer(types, buffer, wire_range_flags);
         if (!this->value.Empty()) {
             // Write lower/upper bounds
@@ -418,56 +432,68 @@ namespace storages::postgres {
 template <typename T>
 template <typename U, typename>
 Range<T>::Range(U&& lower, U&& upper, RangeBounds bounds)
-    : data{RangeData{std::forward<U>(lower), std::forward<U>(upper), bounds}} {
+    : data_{RangeData{std::forward<U>(lower), std::forward<U>(upper), bounds}}
+{
     if (lower == upper && bounds != RangeBound::kBoth) {
         // this will make an empty range
-        data.reset();
+        data_.reset();
     }
 }
 
 template <typename T>
 template <typename U, typename>
 Range<T>::Range(U&& lower, UnboundedType ub, RangeBounds bounds) noexcept(kNothrowValueCopy)
-    : data{RangeData{std::forward<U>(lower), ub, bounds}} {}
+    : data_{RangeData{std::forward<U>(lower), ub, bounds}}
+{}
 
 template <typename T>
 template <typename U, typename>
 Range<T>::Range(UnboundedType ub, U&& upper, RangeBounds bounds) noexcept(kNothrowValueCopy)
-    : data{RangeData{ub, std::forward<U>(upper), bounds}} {}
+    : data_{RangeData{ub, std::forward<U>(upper), bounds}}
+{}
 
 template <typename T>
 Range<T>::Range(const OptionalValue& lower, const OptionalValue& upper, RangeBounds bounds)
-    : data{RangeData{lower, upper, bounds}} {}
+    : data_{RangeData{lower, upper, bounds}}
+{}
 
 template <typename T>
 template <typename U, typename>
-Range<T>::Range(const Range<U>& rhs) : data{ConvertData(rhs)} {}
+Range<T>::Range(const Range<U>& rhs)
+    : data_{ConvertData(rhs)}
+{}
 
 template <typename T>
 bool Range<T>::operator==(const Range& rhs) const {
-    return (Empty() && rhs.Empty()) || (data == rhs.data);
+    return (Empty() && rhs.Empty()) || (data_ == rhs.data_);
 }
 
 template <typename T>
 std::ostream& operator<<(std::ostream& os, const Range<T>& val) {
-    if (val.Empty()) return os << "empty";
-    if (val.HasLowerBound() && val.IsLowerBoundIncluded())
+    if (val.Empty()) {
+        return os << "empty";
+    }
+    if (val.HasLowerBound() && val.IsLowerBoundIncluded()) {
         os << '[';
-    else
+    } else {
         os << '(';
-    if (val.HasLowerBound())
+    }
+    if (val.HasLowerBound()) {
         os << *val.GetLowerBound();
-    else
+    } else {
         os << "-inf";
+    }
     os << ", ";
-    if (val.HasUpperBound())
+    if (val.HasUpperBound()) {
         os << *val.GetUpperBound();
-    else
+    } else {
         os << "inf";
-    if (val.HasUpperBound() && val.IsUpperBoundIncluded())
+    }
+    if (val.HasUpperBound() && val.IsUpperBoundIncluded()) {
         os << ']';
-    else
+    } else {
         os << ')';
+    }
     return os;
 }
 
@@ -484,7 +510,7 @@ bool Range<T>::RangeData::HasBound(RangeBounds side) const {
 
 template <typename T>
 bool Range<T>::RangeData::BoundEqual(const RangeData& rhs, RangeBounds side) const {
-    bool has_bound = HasBound(side);
+    const bool has_bound = HasBound(side);
     if (has_bound != rhs.HasBound(side)) {
         return false;
     }
@@ -509,16 +535,21 @@ bool Range<T>::RangeData::BoundEqual(const RangeData& rhs, RangeBounds side) con
 }
 
 template <typename T>
-BoundedRange<T>::BoundedRange() noexcept(kNothrowValueCtor) : value_{T{}, T{}, RangeBound::kBoth} {}
+BoundedRange<T>::BoundedRange() noexcept(kNothrowValueCtor)
+    : value_{T{}, T{}, RangeBound::kBoth}
+{}
 
 template <typename T>
 template <typename U, typename>
 BoundedRange<T>::BoundedRange(U&& lower, U&& upper, RangeBounds bounds)
-    : value_{std::forward<U>(lower), std::forward<U>(upper), bounds} {}
+    : value_{std::forward<U>(lower), std::forward<U>(upper), bounds}
+{}
 
 template <typename T>
 template <typename U>
-BoundedRange<T>::BoundedRange(Range<U>&& rhs) : value_{std::move(rhs)} {
+BoundedRange<T>::BoundedRange(Range<U>&& rhs)
+    : value_{std::move(rhs)}
+{
     if (value_.Empty()) {
         throw BoundedRangeError{"empty range"};
     }

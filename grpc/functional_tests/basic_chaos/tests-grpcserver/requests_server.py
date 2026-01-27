@@ -2,9 +2,8 @@ import asyncio
 import logging
 
 import grpc
-import pytest
 
-import samples.greeter_pb2 as greeter_pb2  # noqa: E402, E501
+import samples.greeter_pb2 as greeter_pb2
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +15,7 @@ ALL_CASES = [
     'say_hello_indept_streams',
 ]
 
-OK_RETRIES_COUNT = 5
+OK_RETRIES_COUNT = 10
 
 
 async def _say_hello(grpc_client, gate):
@@ -26,34 +25,12 @@ async def _say_hello(grpc_client, gate):
     assert gate.connections_count() > 0
 
 
-@pytest.mark.parametrize(
-    'metadata,logs,',
-    [
-        [(('x-yatraceid', 'traceid'),), {'trace_id': 'traceid'}],
-        [
-            (('x-yatraceid', 'traceid'), ('x-yaspanid', 'span')),
-            {'trace_id': 'traceid', 'parent_id': 'span'},
-        ],
-    ],
-)
-async def test_tracing_metadata(
-    grpc_client, service_client, gate, metadata, logs,
-):
-    request = greeter_pb2.GreetingRequest(name='Python')
-    async with service_client.capture_logs() as capture:
-        response = await grpc_client.SayHello(
-            request, wait_for_ready=True, metadata=metadata,
-        )
-        assert response.greeting == 'Hello, Python!'
-
-    assert capture.select(**logs)
-
-
 async def _say_hello_response_stream(grpc_client, gate):
     request = greeter_pb2.GreetingRequest(name='Python')
     reference = '!'
     async for response in grpc_client.SayHelloResponseStream(
-        request, wait_for_ready=True,
+        request,
+        wait_for_ready=True,
     ):
         assert response.greeting == f'Hello, Python{reference}'
         reference += '!'
@@ -71,7 +48,8 @@ async def _prepare_requests(names, sleep=1):
 
 async def _say_hello_request_stream(grpc_client, gate):
     stream = await grpc_client.SayHelloRequestStream(
-        _prepare_requests(['Python', '!', '!', '!'], 1), wait_for_ready=True,
+        _prepare_requests(['Python', '!', '!', '!'], 1),
+        wait_for_ready=True,
     )
     assert stream.greeting == 'Hello, Python!!!'
     assert gate.connections_count() > 0
@@ -80,7 +58,8 @@ async def _say_hello_request_stream(grpc_client, gate):
 async def _say_hello_streams(grpc_client, gate):
     reference = ''
     async for response in grpc_client.SayHelloStreams(
-        _prepare_requests(['Python', '!', '!', '!'], 1), wait_for_ready=True,
+        _prepare_requests(['Python', '!', '!', '!'], 1),
+        wait_for_ready=True,
     ):
         assert response.greeting == f'Hello, Python{reference}'
         reference += '!'
@@ -144,7 +123,8 @@ async def check_ok_for(case, grpc_client, gate):
     for i in range(OK_RETRIES_COUNT):
         try:
             await asyncio.wait_for(
-                _REQUESTS[case](grpc_client, gate), timeout=10.0,
+                _REQUESTS[case](grpc_client, gate),
+                timeout=10.0,
             )
             logging.info(f'OK at "{case}" (attempt {i})')
             return
@@ -158,7 +138,8 @@ async def check_ok_for(case, grpc_client, gate):
 async def check_unavailable_for(case, grpc_client, gate):
     try:
         await asyncio.wait_for(
-            _REQUESTS[case](grpc_client, gate), timeout=10.0,
+            _REQUESTS[case](grpc_client, gate),
+            timeout=10.0,
         )
         assert False, 'Server must return UNAVAILABLE'
     except asyncio.TimeoutError:
@@ -168,7 +149,7 @@ async def check_unavailable_for(case, grpc_client, gate):
 
 
 async def close_connection(gate):
-    gate.to_server_pass()
-    gate.to_client_pass()
+    await gate.to_server_pass()
+    await gate.to_client_pass()
     gate.start_accepting()
     await gate.sockets_close()

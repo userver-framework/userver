@@ -1,0 +1,30 @@
+openapi: 3.0.0
+info:
+    title: sample service
+    version: '1.0'
+
+paths:
+    /test:
+        post:
+            parameters:
+              - $ref: 'two.yaml#/components/parameters/Two'
+            responses:
+                '200':
+                    $ref: 'two.yaml#/components/responses/Two'
+                '201':
+                    $ref: './two.yaml#/components/responses/Two'
+            requestBody:
+                $ref: 'two.yaml#/components/requestBodies/Two'
+
+components:
+    schemas:
+        One:
+            type: object
+            properties:
+                two:
+                    $ref: 'two.yaml#/components/schemas/Two'
+                local:
+                    $ref: '#/components/schemas/Local'
+            additionalProperties: false
+        Local:
+            type: integer

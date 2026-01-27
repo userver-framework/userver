@@ -5,49 +5,33 @@
 #include <optional>
 #include <utility>
 
-#include <grpcpp/channel.h>
 #include <grpcpp/completion_queue.h>
-#include <grpcpp/security/credentials.h>
 
-#include <userver/dynamic_config/source.hpp>
+#include <userver/dynamic_config/snapshot.hpp>
+#include <userver/rcu/rcu.hpp>
 #include <userver/testsuite/grpc_control.hpp>
+#include <userver/utils/assert.hpp>
 #include <userver/utils/fixed_array.hpp>
 
-#include <userver/ugrpc/client/client_factory_settings.hpp>
-#include <userver/ugrpc/client/fwd.hpp>
-#include <userver/ugrpc/client/impl/channel_cache.hpp>
+#include <userver/ugrpc/client/client_qos.hpp>
+#include <userver/ugrpc/client/impl/channel_argument_utils.hpp>
+#include <userver/ugrpc/client/impl/client_internals.hpp>
+#include <userver/ugrpc/client/impl/client_qos_errors_reporter.hpp>
+#include <userver/ugrpc/client/impl/compat/channel_arguments_builder.hpp>
+#include <userver/ugrpc/client/impl/stub_handle.hpp>
+#include <userver/ugrpc/client/impl/stub_state.hpp>
 #include <userver/ugrpc/client/middlewares/fwd.hpp>
-#include <userver/ugrpc/impl/static_metadata.hpp>
+#include <userver/ugrpc/impl/static_service_metadata.hpp>
 #include <userver/ugrpc/impl/statistics.hpp>
-#include <userver/ugrpc/impl/to_string.hpp>
+
+#include <dynamic_config/variables/EGRESS_GRPC_PROXY_ENABLED.hpp>
+#include <dynamic_config/variables/EGRESS_NO_PROXY_TARGETS.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace ugrpc::impl {
-class StatisticsStorage;
-class CompletionQueuePoolBase;
-}  // namespace ugrpc::impl
-
-namespace ugrpc::client {
-struct ClientFactorySettings;
-}
-
 namespace ugrpc::client::impl {
 
-/// Contains all non-code-generated dependencies for creating a gRPC client
-struct ClientDependencies final {
-    std::string client_name;
-    std::string endpoint;
-    Middlewares mws;
-    ugrpc::impl::CompletionQueuePoolBase& completion_queues;
-    ugrpc::impl::StatisticsStorage& statistics_storage;
-    impl::ChannelCache::Token channel_token;
-    const dynamic_config::Source config_source;
-    testsuite::GrpcControl& testsuite_grpc;
-    const dynamic_config::Key<ClientQos>* qos{nullptr};
-    const ClientFactorySettings& settings;
-    DedicatedMethodsConfig dedicated_methods_config;
-};
+struct StubState;
 
 struct GenericClientTag final {
     explicit GenericClientTag() = default;
@@ -56,121 +40,171 @@ struct GenericClientTag final {
 /// The internal state of generated gRPC clients
 class ClientData final {
 public:
-    template <typename Service>
-    using Stub = typename Service::Stub;
-
     ClientData() = delete;
 
     template <typename Service>
-    ClientData(ClientDependencies&& dependencies, ugrpc::impl::StaticServiceMetadata metadata, std::in_place_type_t<Service>)
-        : dependencies_(std::move(dependencies)),
+    ClientData(ClientInternals&& internals, ugrpc::impl::StaticServiceMetadata metadata, std::in_place_type_t<Service>)
+        : internals_(std::move(internals)),
           metadata_(metadata),
           service_statistics_(&GetServiceStatistics()),
-          default_stubs_(MakeStubs<Service>(dependencies_.channel_token)),
-          dedicated_stubs_(MakeDedicatedStubs<Service>(dependencies_, metadata)) {}
+          channel_arguments_builder_(
+              std::in_place,
+              internals_.channel_args,
+              internals_.default_service_config,
+              internals_.retry_config,
+              metadata
+          )
+    {
+        if (internals_.qos) {
+            SubscribeOnConfigUpdate<Service>(
+                ::dynamic_config::EGRESS_GRPC_PROXY_ENABLED,
+                ::dynamic_config::EGRESS_NO_PROXY_TARGETS,
+                *internals_.qos
+            );
+        } else {
+            SubscribeOnConfigUpdate<
+                Service>(::dynamic_config::EGRESS_GRPC_PROXY_ENABLED, ::dynamic_config::EGRESS_NO_PROXY_TARGETS);
+        }
+    }
 
     template <typename Service>
-    ClientData(ClientDependencies&& dependencies, GenericClientTag, std::in_place_type_t<Service>)
-        : dependencies_(std::move(dependencies)), default_stubs_(MakeStubs<Service>(dependencies_.channel_token)) {}
+    ClientData(ClientInternals&& internals, GenericClientTag, std::in_place_type_t<Service>)
+        : internals_(std::move(internals))
+    {
+        SubscribeOnConfigUpdate<
+            Service>(::dynamic_config::EGRESS_GRPC_PROXY_ENABLED, ::dynamic_config::EGRESS_NO_PROXY_TARGETS);
+    }
 
-    ClientData(ClientData&&) noexcept = default;
-    ClientData& operator=(ClientData&&) = delete;
+    ~ClientData();
 
+    ClientData(ClientData&&) noexcept = delete;
     ClientData(const ClientData&) = delete;
+    ClientData& operator=(ClientData&&) = delete;
     ClientData& operator=(const ClientData&) = delete;
 
-    template <typename Service>
-    Stub<Service>& NextStubFromMethodId(std::size_t method_id) const {
-        if (!dedicated_stubs_[method_id].empty()) {
-            return *static_cast<Stub<Service>*>(NextStubPtr(dedicated_stubs_[method_id]).get());
-        }
-        return NextGenericStub<Service>();
-    }
+    StubHandle NextStub(std::size_t method_id) const;
 
-    template <typename Service>
-    Stub<Service>& NextGenericStub() const {
-        return *static_cast<Stub<Service>*>(NextStubPtr(default_stubs_).get());
-    }
+    StubHandle NextStub() const;
 
     grpc::CompletionQueue& NextQueue() const;
 
-    dynamic_config::Snapshot GetConfigSnapshot() const { return dependencies_.config_source.GetSnapshot(); }
+    dynamic_config::Snapshot GetConfigSnapshot() const { return internals_.config_source.GetSnapshot(); }
 
     ugrpc::impl::MethodStatistics& GetStatistics(std::size_t method_id) const;
 
     ugrpc::impl::MethodStatistics& GetGenericStatistics(std::string_view call_name) const;
 
-    ChannelCache::Token& GetChannelToken() { return dependencies_.channel_token; }
+    std::string_view GetClientName() const { return internals_.client_name; }
 
-    std::string_view GetClientName() const { return dependencies_.client_name; }
-
-    const Middlewares& GetMiddlewares() const { return dependencies_.mws; }
+    const Middlewares& GetMiddlewares() const { return internals_.middlewares; }
 
     const ugrpc::impl::StaticServiceMetadata& GetMetadata() const;
 
-    const testsuite::GrpcControl& GetTestsuiteControl() const { return dependencies_.testsuite_grpc; }
+    const testsuite::GrpcControl& GetTestsuiteControl() const { return internals_.testsuite_grpc; }
 
     const dynamic_config::Key<ClientQos>* GetClientQos() const;
 
-    std::size_t GetDedicatedChannelCount(std::size_t method_id) const;
+    const RetryConfig& GetRetryConfig() const { return internals_.retry_config; }
+
+    rcu::ReadablePtr<StubState> GetStubState() const;
+
+    /// @returns Target endpoint address string from the channel factory
+    std::string_view GetEndpoint() const { return internals_.endpoint; }
 
 private:
-    static std::shared_ptr<grpc::Channel>
-    CreateChannelImpl(const ClientDependencies& dependencies, const grpc::string& endpoint);
-
-    static std::size_t GetDedicatedChannelCountImpl(
-        const ClientDependencies& dependencies,
-        std::size_t method_id,
-        const ugrpc::impl::StaticServiceMetadata& meta
-    );
-
-    using StubDeleterType = void (*)(void*);
-    using StubPtr = std::unique_ptr<void, StubDeleterType>;
-
-    using StubPool = utils::FixedArray<StubPtr>;
-
-    template <typename Service>
-    static void StubDeleter(void* ptr) noexcept {
-        delete static_cast<Stub<Service>*>(ptr);
+    template <typename Stub>
+    static StubPool MakeStubs(
+        std::size_t size,
+        const ChannelFactory& channel_factory,
+        std::string_view target,
+        const grpc::ChannelArguments& channel_args
+    ) {
+        auto channels = utils::GenerateFixedArray(size, [&channel_factory, target, &channel_args](std::size_t) {
+            return channel_factory.CreateChannel(target, channel_args);
+        });
+        auto stubs = utils::GenerateFixedArray(channels.size(), [&channels](std::size_t index) {
+            return MakeStub<Stub>(channels[index]);
+        });
+        return StubPool{std::move(channels), std::move(stubs)};
     }
 
-    template <typename Service>
-    static utils::FixedArray<StubPtr> MakeStubs(impl::ChannelCache::Token& channel_token) {
-        const std::size_t channel_count = channel_token.GetChannelCount();
-        return utils::GenerateFixedArray(channel_count, [&](std::size_t index) {
-            return StubPtr(Service::NewStub(channel_token.GetChannel(index)).release(), &StubDeleter<Service>);
+    template <typename Stub>
+    static utils::FixedArray<StubPool> MakeDedicatedStubs(
+        const ugrpc::impl::StaticServiceMetadata& metadata,
+        const DedicatedMethodsConfig& dedicated_methods_config,
+        const ChannelFactory& channel_factory,
+        std::string_view target,
+        const grpc::ChannelArguments& channel_args
+    ) {
+        return utils::GenerateFixedArray(GetMethodsCount(metadata), [&](std::size_t method_id) {
+            const auto method_channel_count =
+                GetMethodChannelCount(dedicated_methods_config, GetMethodName(metadata, method_id));
+            return MakeStubs<Stub>(method_channel_count, channel_factory, target, channel_args);
         });
     }
-
-    template <typename Service>
-    static utils::FixedArray<StubPool>
-    MakeDedicatedStubs(ClientDependencies& dependencies, const ugrpc::impl::StaticServiceMetadata& meta) {
-        const auto& method_full_names = meta.method_full_names;
-        const auto endpoint_string = ugrpc::impl::ToGrpcString(dependencies.endpoint);
-        return utils::GenerateFixedArray(method_full_names.size(), [&](std::size_t method_id) {
-            const auto count_of_channels = GetDedicatedChannelCountImpl(dependencies, method_id, meta);
-            return utils::GenerateFixedArray(count_of_channels, [&](std::size_t) {
-                return StubPtr(Service::NewStub(CreateChannelImpl(dependencies, endpoint_string)).release(), &StubDeleter<Service>);
-            });
-        });
-    }
-
-    const StubPtr& NextStubPtr(const utils::FixedArray<StubPtr>& stubs) const;
 
     ugrpc::impl::ServiceStatistics& GetServiceStatistics();
 
-    ClientDependencies dependencies_;
-    std::optional<ugrpc::impl::StaticServiceMetadata> metadata_{std::nullopt};
-    ugrpc::impl::ServiceStatistics* service_statistics_{nullptr};
-    utils::FixedArray<StubPtr> default_stubs_;
-    // method_id -> stub_pool
-    utils::FixedArray<StubPool> dedicated_stubs_;
-};
+    template <typename Service, typename... Keys>
+    void SubscribeOnConfigUpdate(const Keys&... keys) {
+        config_subscription_ =
+            internals_.config_source
+                .UpdateAndListen(this, internals_.client_name, &ClientData::OnConfigUpdate<Service>, keys...);
+    }
 
-template <typename Client>
-ClientData& GetClientData(Client& client) {
-    return client.impl_;
-}
+    template <typename Service>
+    void OnConfigUpdate(const dynamic_config::Snapshot& config) {
+        const auto& client_qos = internals_.qos ? config[*internals_.qos] : ClientQos{};
+
+        if (metadata_.has_value() && internals_.qos) {
+            internals_.client_qos_error_reporter
+                .ValidateAndReportClientQosErrors(client_qos, internals_.qos->GetName(), *metadata_);
+        }
+
+        std::string target = internals_.endpoint;
+
+        auto channel_args =
+            channel_arguments_builder_.has_value()
+                ? channel_arguments_builder_->Build(client_qos)
+                : BuildChannelArguments(internals_.channel_args, internals_.default_service_config);
+
+        const auto& proxy_settings = internals_.proxy_settings;
+
+        auto proxy_enabled = config[::dynamic_config::EGRESS_GRPC_PROXY_ENABLED];
+        const auto& no_proxy_targets = config[::dynamic_config::EGRESS_NO_PROXY_TARGETS].targets;
+        if (!proxy_settings.proxy_address.empty() && proxy_enabled && !proxy_settings.no_proxy_targets.count(target) &&
+            !no_proxy_targets.count(target))
+        {
+            SetHttpProxy(target, channel_args, internals_.channel_factory.GetAuthType(), proxy_settings.proxy_address);
+        }
+        auto stubs = MakeStubs<
+            typename Service::Stub>(internals_.channel_count, internals_.channel_factory, target, channel_args);
+
+        auto dedicated_stubs =
+            metadata_.has_value()
+                ? MakeDedicatedStubs<typename Service::Stub>(
+                      *metadata_,
+                      internals_.dedicated_methods_config,
+                      internals_.channel_factory,
+                      target,
+                      channel_args
+                  )
+                : utils::FixedArray<StubPool>{};
+
+        stub_state_.Assign({client_qos, std::move(stubs), std::move(dedicated_stubs)});
+    }
+
+    ClientInternals internals_;
+    std::optional<ugrpc::impl::StaticServiceMetadata> metadata_;
+    ugrpc::impl::ServiceStatistics* service_statistics_{nullptr};
+
+    std::optional<compat::ChannelArgumentsBuilder> channel_arguments_builder_;
+
+    rcu::Variable<StubState> stub_state_;
+
+    // These fields must be the last ones
+    concurrent::AsyncEventSubscriberScope config_subscription_;
+};
 
 }  // namespace ugrpc::client::impl
 

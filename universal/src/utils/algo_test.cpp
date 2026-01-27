@@ -13,7 +13,8 @@ USERVER_NAMESPACE_BEGIN
 
 TEST(UtilsAlgo, StrCat) {
     EXPECT_EQ(
-        utils::StrCat("a", std::string_view{"bbb"}, std::string{"cc"}, static_cast<const char*>("dddd")), "abbbccdddd"
+        utils::StrCat("a", std::string_view{"bbb"}, std::string{"cc"}, static_cast<const char*>("dddd")),
+        "abbbccdddd"
     );
 }
 
@@ -31,6 +32,20 @@ TEST(UtilsAlgo, FindOrNullptrMaps) {
     EXPECT_EQ(*utils::FindOrNullptr(um, "1"), 2);
 }
 
+TEST(UtilsAlgo, FindOrNullptrSets) {
+    std::set<std::string> s = {"1"};
+    std::unordered_set<std::string> us = {"1"};
+
+    EXPECT_FALSE(utils::FindOrNullptr(s, "2"));
+    EXPECT_FALSE(utils::FindOrNullptr(us, "2"));
+
+    ASSERT_TRUE(utils::FindOrNullptr(s, "1"));
+    ASSERT_TRUE(utils::FindOrNullptr(us, "1"));
+
+    EXPECT_EQ(*utils::FindOrNullptr(s, "1"), "1");
+    EXPECT_EQ(*utils::FindOrNullptr(us, "1"), "1");
+}
+
 TEST(UtilsAlgo, FindOrDefaultMaps) {
     constexpr int kFallback = 42;
     std::map<std::string, int> m = {{"1", 2}};
@@ -46,7 +61,19 @@ TEST(UtilsAlgo, FindOrDefaultMaps) {
     EXPECT_EQ(utils::FindOrDefault(um, "1", kFallback), 2);
 }
 
-TEST(UtilsAlgo, FindOptional) {
+TEST(UtilsAlgo, FindOrDefaultSets) {
+    constexpr int kFallback = 42;
+    std::set<int> s = {1};
+    std::unordered_set<int> us = {1};
+
+    EXPECT_EQ(utils::FindOrDefault(s, 2, kFallback), kFallback);
+    EXPECT_EQ(utils::FindOrDefault(us, 2, kFallback), kFallback);
+
+    EXPECT_EQ(utils::FindOrDefault(s, 1, kFallback), 1);
+    EXPECT_EQ(utils::FindOrDefault(us, 1, kFallback), 1);
+}
+
+TEST(UtilsAlgo, FindOptionalMaps) {
     std::map<std::string, int> m = {{"1", 2}};
     std::unordered_map<std::string, int> um = {{"1", 2}};
 
@@ -55,6 +82,17 @@ TEST(UtilsAlgo, FindOptional) {
 
     EXPECT_EQ(utils::FindOptional(m, "1"), 2);
     EXPECT_EQ(utils::FindOptional(um, "1"), 2);
+}
+
+TEST(UtilsAlgo, FindOptionalSets) {
+    std::set<std::string> s = {"1"};
+    std::unordered_set<std::string> us = {"1"};
+
+    EXPECT_FALSE(utils::FindOptional(s, "2"));
+    EXPECT_FALSE(utils::FindOptional(us, "2"));
+
+    EXPECT_EQ(utils::FindOptional(s, "1"), "1");
+    EXPECT_EQ(utils::FindOptional(us, "1"), "1");
 }
 
 TEST(UtilsAlgo, Erase) {

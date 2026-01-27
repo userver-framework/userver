@@ -1,19 +1,15 @@
 #pragma once
-
-#include <optional>
-
-#include <userver/logging/level.hpp>
+#include <string>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::impl {
 
-// Thread-safe. Can be called multiple times if needed.
-void SetupNativeLogging();
-
-// Thread-safe. Can be called multiple times if needed, the most verbose log
-// level is chosen. Only kDebug, kInfo, kError levels are allowed.
-void UpdateNativeLogLevel(logging::Level min_log_level);
+extern const std::string kBodyTag;
+extern const std::string kCodeTag;
+extern const std::string kComponentTag;
+extern const std::string kMessageMarshalledLenTag;
+extern const std::string kTypeTag;
 
 }  // namespace ugrpc::impl
 

@@ -9,7 +9,7 @@ namespace utils {
 
 SignalCatcher::SignalCatcher(std::initializer_list<int> signals) {
     utils::CheckSyscall(sigemptyset(&sigset_), "initializing signal set");
-    for (int signum : signals) {
+    for (const int signum : signals) {
         utils::CheckSyscall(sigaddset(&sigset_, signum), "adding signal to set");
     }
     utils::CheckSyscall(pthread_sigmask(SIG_BLOCK, &sigset_, &old_sigset_), "blocking signals");

@@ -18,7 +18,7 @@ public:
         return true;
     }
 
-    void FillRequestWithTracingContext(const tracing::Span&, clients::http::PluginRequest) const override {
+    void FillRequestWithTracingContext(const tracing::Span&, clients::http::MiddlewareRequest) const override {
         ++fill_request_counter_;
     }
 
@@ -39,14 +39,14 @@ private:
 }  // namespace
 
 UTEST(TracingManagerBase, TracingManagerCorrectCalls) {
-    MockTracingManager tracing_manager;
+    const MockTracingManager tracing_manager;
     auto http_client_ptr = utest::CreateHttpClient(tracing_manager);
 
     const utest::SimpleServer http_server_final{clients::http::Response200WithHeader{"xxx: test"}};
 
     const auto url = http_server_final.GetBaseUrl();
     auto& http_client = *http_client_ptr;
-    std::string data{};
+    const std::string data{};
 
     const auto response = http_client.CreateRequest().post(url, data).timeout(std::chrono::seconds(1)).perform();
 
@@ -63,14 +63,15 @@ UTEST(TracingManagerBase, TracingManagerCorrectCallsPerRequest) {
 
     const auto url = http_server_final.GetBaseUrl();
     auto& http_client = *http_client_ptr;
-    std::string data{};
+    const std::string data{};
 
-    MockTracingManager tracing_manager;
-    const auto response = http_client.CreateRequest()
-                              .post(url, data)
-                              .timeout(std::chrono::seconds(1))
-                              .SetTracingManager(tracing_manager)
-                              .perform();
+    const MockTracingManager tracing_manager;
+    const auto response =
+        http_client.CreateRequest()
+            .post(url, data)
+            .timeout(std::chrono::seconds(1))
+            .SetTracingManager(tracing_manager)
+            .perform();
 
     EXPECT_TRUE(response->IsOk());
     EXPECT_EQ(tracing_manager.GetCreateNewSpanCounter(), 0);

@@ -7,10 +7,9 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis {
 
-CommandControl::Strategy
-Parse(const formats::json::Value& elem, formats::parse::To<USERVER_NAMESPACE::redis::CommandControl::Strategy>) {
+CommandControl::Strategy Parse(const formats::json::Value& elem, formats::parse::To<CommandControl::Strategy>) {
     auto strategy = elem.As<std::string>();
     try {
         return StrategyFromString(strategy);
@@ -20,9 +19,8 @@ Parse(const formats::json::Value& elem, formats::parse::To<USERVER_NAMESPACE::re
     }
 }
 
-USERVER_NAMESPACE::redis::CommandControl
-Parse(const formats::json::Value& elem, formats::parse::To<USERVER_NAMESPACE::redis::CommandControl>) {
-    USERVER_NAMESPACE::redis::CommandControl result;
+CommandControl Parse(const formats::json::Value& elem, formats::parse::To<CommandControl>) {
+    CommandControl result;
 
     for (const auto [name, option] : Items(elem)) {
         if (name == "timeout_all_ms") {
@@ -38,7 +36,7 @@ Parse(const formats::json::Value& elem, formats::parse::To<USERVER_NAMESPACE::re
         } else if (name == "max_retries") {
             result.max_retries = option.As<size_t>();
         } else if (name == "strategy") {
-            result.strategy = option.As<USERVER_NAMESPACE::redis::CommandControl::Strategy>();
+            result.strategy = option.As<CommandControl::Strategy>();
         } else if (name == "best_dc_count") {
             result.best_dc_count = option.As<size_t>();
         } else if (name == "max_ping_latency_ms") {
@@ -48,14 +46,20 @@ Parse(const formats::json::Value& elem, formats::parse::To<USERVER_NAMESPACE::re
             }
         } else if (name == "allow_reads_from_master") {
             result.allow_reads_from_master = option.As<bool>();
+        } else if (name == "force_request_to_master") {
+            result.force_request_to_master = option.As<bool>();
+        } else if (name == "consider_ping") {
+            result.consider_ping = option.As<bool>();
         } else {
             LOG_WARNING() << "unknown key for CommandControl map: " << name;
         }
     }
     if (result.best_dc_count.has_value() && result.strategy.has_value() && (*result.best_dc_count > 1) &&
-        (*result.strategy != USERVER_NAMESPACE::redis::CommandControl::Strategy::kNearestServerPing)) {
-        LOG_WARNING() << "CommandControl.best_dc_count = " << *result.best_dc_count
-                      << ", but is ignored for the current strategy (" << static_cast<size_t>(*result.strategy) << ")";
+        (*result.strategy != CommandControl::Strategy::kNearestServerPing))
+    {
+        LOG_WARNING()
+            << "CommandControl.best_dc_count = " << *result.best_dc_count
+            << ", but is ignored for the current strategy (" << static_cast<size_t>(*result.strategy) << ")";
     }
     return result;
 }
@@ -72,13 +76,12 @@ RedisWaitConnected Parse(const formats::json::Value& elem, formats::parse::To<Re
     return result;
 }
 
-USERVER_NAMESPACE::redis::CommandsBufferingSettings
-Parse(const formats::json::Value& elem, formats::parse::To<USERVER_NAMESPACE::redis::CommandsBufferingSettings>) {
-    USERVER_NAMESPACE::redis::CommandsBufferingSettings result;
+CommandsBufferingSettings Parse(const formats::json::Value& elem, formats::parse::To<CommandsBufferingSettings>) {
+    CommandsBufferingSettings result;
     result.buffering_enabled = elem["buffering_enabled"].As<bool>();
     result.commands_buffering_threshold = elem["commands_buffering_threshold"].As<size_t>(0);
-    result.watch_command_timer_interval =
-        std::chrono::microseconds(elem["watch_command_timer_interval_us"].As<size_t>());
+    result.watch_command_timer_interval = std::chrono::microseconds(elem["watch_command_timer_interval_us"].As<size_t>()
+    );
     return result;
 }
 
@@ -106,10 +109,6 @@ PubsubMetricsSettings Parse(const formats::json::Value& elem, formats::parse::To
     return result;
 }
 
-}  // namespace redis
-
-namespace storages::redis {
-
 namespace {
 
 template <typename T, typename Value>
@@ -124,7 +123,8 @@ Config Config::Parse(const dynamic_config::DocsMap& docs_map) {
     Into(result.default_command_control, docs_map.Get("REDIS_DEFAULT_COMMAND_CONTROL"));
     Into(result.subscriber_default_command_control, docs_map.Get("REDIS_SUBSCRIBER_DEFAULT_COMMAND_CONTROL"));
     Into(
-        result.subscriptions_rebalance_min_interval, docs_map.Get("REDIS_SUBSCRIPTIONS_REBALANCE_MIN_INTERVAL_SECONDS")
+        result.subscriptions_rebalance_min_interval,
+        docs_map.Get("REDIS_SUBSCRIPTIONS_REBALANCE_MIN_INTERVAL_SECONDS")
     );
     Into(result.redis_wait_connected, docs_map.Get("REDIS_WAIT_CONNECTED"));
     Into(result.commands_buffering_settings, docs_map.Get("REDIS_COMMANDS_BUFFERING_SETTINGS"));

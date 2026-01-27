@@ -5,9 +5,12 @@
 #include <userver/logging/level_serialization.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
-#include <ugrpc/impl/logging.hpp>
-#include <userver/ugrpc/client/middlewares/base.hpp>
+#include <ugrpc/impl/grpc_native_logging.hpp>
 #include <userver/ugrpc/server/server_component.hpp>
+
+#ifndef ARCADIA_ROOT
+#include "generated/src/ugrpc/client/common_component.yaml.hpp"  // Y_IGNORE
+#endif
 
 USERVER_NAMESPACE_BEGIN
 
@@ -48,7 +51,12 @@ CommonComponent::CommonComponent(const components::ComponentConfig& config, cons
       client_statistics_storage_(
           context.FindComponent<components::StatisticsStorage>().GetStorage(),
           ugrpc::impl::StatisticsDomain::kClient
-      ) {
+      ),
+      proxy_settings_{
+          config["proxy-address"].As<std::string>(""),
+          config["servicemesh-settings"]["egress"]["disable_proxy"].As<std::unordered_set<std::string>>({})
+      }
+{
     ugrpc::impl::SetupNativeLogging();
     ugrpc::impl::UpdateNativeLogLevel(config["native-log-level"].As<logging::Level>(logging::Level::kError));
 }
@@ -56,29 +64,7 @@ CommonComponent::CommonComponent(const components::ComponentConfig& config, cons
 CommonComponent::~CommonComponent() = default;
 
 yaml_config::Schema CommonComponent::GetStaticConfigSchema() {
-    return yaml_config::MergeSchemas<components::ComponentBase>(R"(
-type: object
-description: Provides a ClientFactory in the component system
-additionalProperties: false
-properties:
-    blocking-task-processor:
-        type: string
-        description: the task processor for blocking channel creation
-    native-log-level:
-        type: string
-        description: min log level for the native gRPC library
-        defaultDescription: error
-        enum:
-          - debug
-          - info
-          - error
-    completion-queue-count:
-        type: integer
-        description: |
-            completion queue count to create. Should be ~2 times less than worker
-            threads for best RPS.
-        minimum: 1
-)");
+    return yaml_config::MergeSchemasFromResource<components::ComponentBase>("src/ugrpc/client/common_component.yaml");
 }
 
 }  // namespace ugrpc::client

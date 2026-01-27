@@ -11,22 +11,19 @@ USERVER_NAMESPACE_BEGIN
 
 namespace components {
 
-// clang-format off
-
 /// @ingroup userver_components
 ///
 /// @brief Component for getting the engine::subprocess::ProcessStarter.
 ///
-/// ## Static options:
-/// Name | Description | Default value
-/// ---- | ----------- | -------------
-/// task_processor | the name of the TaskProcessor for asynchronous process starting | `main-task-processor`
-
-// clang-format on
+/// ## Static options of components::ProcessStarter :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/process_starter.md
+///
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
 class ProcessStarter final : public ComponentBase {
 public:
     /// @ingroup userver_component_names
-    /// @brief The default name of components::ProcessStarter component
+    /// @brief The default name of @ref components::ProcessStarter component
     static constexpr std::string_view kName = "process-starter";
 
     ProcessStarter(const ComponentConfig& config, const ComponentContext& context);

@@ -7,7 +7,6 @@
 #include <csignal>
 #include <cstdio>
 #include <cstring>
-#include <iostream>
 
 #include <fmt/format.h>
 #include <fmt/ranges.h>
@@ -33,7 +32,7 @@ namespace engine::subprocess {
 namespace {
 
 void DoExec(
-    const std::string& command,
+    const std::string& executable_path,
     const std::vector<std::string>& args,
     const EnvironmentVariables& env,
     const std::optional<std::string>& stdout_file,
@@ -58,7 +57,7 @@ void DoExec(
     envp_ptrs.reserve(env.size() + 1);
 
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
-    argv_ptrs.push_back(const_cast<char*>(command.c_str()));
+    argv_ptrs.push_back(const_cast<char*>(executable_path.c_str()));
     for (const auto& arg : args) {
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
         argv_ptrs.push_back(const_cast<char*>(arg.c_str()));
@@ -76,9 +75,9 @@ void DoExec(
                                  // use the execv, execvp functions
 
     if (!use_path) {
-        utils::CheckSyscall(execv(command.c_str(), argv_ptrs.data()), "execv");
+        utils::CheckSyscall(execv(executable_path.c_str(), argv_ptrs.data()), "execv");
     } else {
-        utils::CheckSyscall(execvp(command.c_str(), argv_ptrs.data()), "execvp");
+        utils::CheckSyscall(execvp(executable_path.c_str(), argv_ptrs.data()), "execvp");
     }
 }
 
@@ -104,13 +103,17 @@ EnvironmentVariables ApplyEnvironmentUpdate(
 }  // namespace
 
 ProcessStarter::ProcessStarter(TaskProcessor& task_processor)
-    : thread_control_(task_processor.EventThreadPool().GetEvDefaultLoopThread()) {}
+    : thread_control_(task_processor.EventThreadPool().GetEvDefaultLoopThread())
+{}
 
-ChildProcess
-ProcessStarter::Exec(const std::string& command, const std::vector<std::string>& args, ExecOptions&& options) {
+ChildProcess ProcessStarter::Exec(
+    const std::string& executable_path,
+    const std::vector<std::string>& args,
+    ExecOptions&& options
+) {
     EnvironmentVariables env = ApplyEnvironmentUpdate(std::move(options.env), std::move(options.env_update));
 
-    if (options.use_path && command.find('/') != std::string::npos && !env.GetValueOptional("PATH")) {
+    if (options.use_path && executable_path.find('/') != std::string::npos && !env.GetValueOptional("PATH")) {
         throw std::runtime_error(
             "execvp potential vulnerability. more details "
             "https://github.com/userver-framework/userver/issues/588"
@@ -118,77 +121,62 @@ ProcessStarter::Exec(const std::string& command, const std::vector<std::string>&
     }
 
     tracing::Span span("ProcessStarter::Exec");
-    span.AddTag("command", command);
+    span.AddTag("executable_path", executable_path);
     Promise<ChildProcess> promise;
     auto future = promise.get_future();
 
+    LOG_DEBUG() << fmt::format(
+        "do fork() + {}(), executable_path={}, args=[\'{}\'], env=[{}]",
+        options.use_path ? "execv" : "execvp",
+        executable_path,
+        fmt::join(args, "' '"),
+        fmt::join(
+            env | boost::adaptors::transformed([](const auto& key_value) {
+                return key_value.first + '=' + key_value.second;
+            }),
+            ", "
+        )
+    );
     thread_control_.RunInEvLoopAsync([&, promise = std::move(promise)]() mutable {
-        const auto keys = env | boost::adaptors::transformed([](const auto& key_value) {
-                              return key_value.first + '=' + key_value.second;
-                          });
-        LOG_DEBUG() << fmt::format(
-            "do fork() + {}(), command={}, args=[\'{}\'], env=[]",
-            options.use_path ? "execv" : "execvp",
-            fmt::join(args, "' '"),
-            fmt::join(keys, ", ")
-        );
-
-        const auto pid = utils::CheckSyscall(fork(), "fork");
-        if (pid) {
-            // in parent thread
-            span.AddTag("child-process-pid", pid);
-            LOG_DEBUG() << "Started child process with pid=" << pid;
-            Promise<ChildProcessStatus> exec_result_promise;
-            auto res = ChildProcessMapSet(pid, ev::ChildProcessMapValue(std::move(exec_result_promise)));
-            if (res.second) {
-                promise.set_value(ChildProcess{ChildProcessImpl{pid, res.first->status_promise.get_future()}});
-            } else {
-                const auto msg = fmt::format("process with pid={} already exists in child_process_map", pid);
-                LOG_ERROR() << msg << ", send SIGKILL";
-                ChildProcessImpl(pid, Future<ChildProcessStatus>{}).SendSignal(SIGKILL);
-                promise.set_exception(std::make_exception_ptr(std::runtime_error(msg)));
-            }
-        } else {
-            // in child thread
-            try {
-                try {
-                    DoExec(command, args, env, options.stdout_file, options.stderr_file, options.use_path);
-                } catch (const std::exception& ex) {
-                    std::cerr << "Cannot execute child: " << ex.what();
+        try {
+            const auto pid = utils::CheckSyscall(fork(), "fork");
+            if (pid) {
+                // in parent thread
+                span.AddTag("child-process-pid", pid);
+                LOG_DEBUG() << "Started child process with pid=" << pid;
+                Promise<ChildProcessStatus> exec_result_promise;
+                auto res = ChildProcessMapSet(pid, ev::ChildProcessMapValue(std::move(exec_result_promise)));
+                if (res.second) {
+                    promise.set_value(ChildProcess{ChildProcessImpl{pid, res.first->status_promise.get_future()}});
+                } else {
+                    const auto msg = fmt::format("process with pid={} already exists in child_process_map", pid);
+                    LOG_ERROR() << msg << ", send SIGKILL";
+                    ChildProcessImpl(pid, Future<ChildProcessStatus>{}).SendSignal(SIGKILL);
+                    promise.set_exception(std::make_exception_ptr(std::runtime_error(msg)));
                 }
-            } catch (...) {
-                // must not do anything in a child
+            } else {
+                // in child thread
+                try {
+                    try {
+                        DoExec(executable_path, args, env, options.stdout_file, options.stderr_file, options.use_path);
+                    } catch (const std::exception& ex) {
+                        std::fputs(utils::StrCat("Cannot execute child: ", ex.what()).c_str(), stderr);
+                    }
+                } catch (...) {
+                    // must not do anything in a child
+                    std::abort();
+                }
+                // on success execve or execvp does not return
                 std::abort();
             }
-            // on success execve or execvp does not return
-            std::abort();
+        } catch (const std::exception& /*e*/) {
+            // utils::CheckSyscall may throw and without the following line a useless "Broken promise" is reported
+            promise.set_exception(std::current_exception());
         }
     });
 
     const TaskCancellationBlocker cancel_blocker;
     return future.get();
-}
-
-ChildProcess ProcessStarter::Exec(
-    const std::string& command,
-    const std::vector<std::string>& args,
-    const EnvironmentVariables& env,
-    const std::optional<std::string>& stdout_file,
-    const std::optional<std::string>& stderr_file
-) {
-    ExecOptions options{std::move(env), std::nullopt, std::move(stdout_file), std::move(stderr_file), false};
-    return Exec(command, args, std::move(options));
-}
-
-ChildProcess ProcessStarter::Exec(
-    const std::string& command,
-    const std::vector<std::string>& args,
-    EnvironmentVariablesUpdate env_update,
-    const std::optional<std::string>& stdout_file,
-    const std::optional<std::string>& stderr_file
-) {
-    ExecOptions options{std::nullopt, std::move(env_update), std::move(stdout_file), std::move(stderr_file), false};
-    return Exec(command, args, std::move(options));
 }
 
 }  // namespace engine::subprocess

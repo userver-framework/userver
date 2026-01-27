@@ -35,14 +35,25 @@ struct DBTypeName {
     const std::string_view schema;
     const std::string_view name;
 
-    constexpr DBTypeName() : schema{}, name{} {}
-    explicit constexpr DBTypeName(std::pair<std::string_view, std::string_view> n) : schema(n.first), name(n.second) {}
+    constexpr DBTypeName()
+        : schema{},
+          name{}
+    {}
+    explicit constexpr DBTypeName(std::pair<std::string_view, std::string_view> n)
+        : schema(n.first),
+          name(n.second)
+    {}
     /// Implicit constructor from a string literal, to enable declarations like
     /// @code
     /// DBTypeName my_type = "my_schema.my_type";
     /// @endcode
-    /* implicit */ constexpr DBTypeName(const char* name) : DBTypeName(utils::ParseDBName(name)) {}
-    constexpr DBTypeName(std::string_view s, std::string_view n) : schema(s), name(n) {}
+    /* implicit */ constexpr DBTypeName(const char* name)
+        : DBTypeName(utils::ParseDBName(name))
+    {}
+    constexpr DBTypeName(std::string_view s, std::string_view n)
+        : schema(s),
+          name(n)
+    {}
 
     bool operator==(const DBTypeName& rhs) const { return name == rhs.name && schema == rhs.schema; }
     bool operator<(const DBTypeName& rhs) const {

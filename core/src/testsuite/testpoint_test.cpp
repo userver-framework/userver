@@ -2,6 +2,7 @@
 
 #include <thread>
 
+#include <userver/compiler/impl/tsan.hpp>
 #include <userver/engine/task/task_base.hpp>
 #include <userver/formats/json/inline.hpp>
 #include <userver/formats/json/value_builder.hpp>
@@ -86,6 +87,7 @@ UTEST(Testpoint, MultipleTestpointsInSameScope) {
     EXPECT_EQ(times_called, 4);
 }
 
+#if !USERVER_IMPL_HAS_TSAN
 UTEST(Testpoint, Exceptions) {
     testsuite::TestpointControl testpoint_control;
     EchoTestpointClient testpoint_client;
@@ -126,6 +128,7 @@ UTEST_MT(Testpoint, ExceptionsNoncoro, 2) {
         }
     }).join();
 }
+#endif
 
 UTEST(Testpoint, Inactive) {
     testsuite::TestpointControl testpoint_control;
@@ -153,7 +156,9 @@ UTEST(Testpoint, Inactive) {
 TEST(Testpoint, InactiveNoncoro) {
     try {
         TESTPOINT_NONCORO(
-            "name-noncoro", true ? throw Exception() : formats::json::Value{}, engine::current_task::GetTaskProcessor()
+            "name-noncoro",
+            true ? throw Exception() : formats::json::Value{},
+            engine::current_task::GetTaskProcessor()
         );
     } catch (const Exception&) {
         FAIL() << "Exception was thrown on inactive testpoint. JSON expression was "

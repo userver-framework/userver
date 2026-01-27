@@ -28,7 +28,9 @@ public:
 
     /// @cond
     // For internal use only.
-    explicit PreparedArgsBuilder(NYdb::TParamsBuilder&& builder) : builder_(std::move(builder)) {}
+    explicit PreparedArgsBuilder(NYdb::TParamsBuilder&& builder)
+        : builder_(std::move(builder))
+    {}
 
     // For internal use only.
     template <typename... NamesValues>
@@ -54,11 +56,13 @@ void PreparedArgsBuilder::Add(const std::string& name, T&& value) {
     param_builder.Build();
 }
 
+/// @cond
 template <typename... NamesValues>
 void PreparedArgsBuilder::AddParams(NamesValues&&... names_values) {
     [[maybe_unused]] decltype(auto) result = (*this << ... << std::forward<NamesValues>(names_values));
     static_assert(std::is_same_v<decltype(result), PreparedArgsBuilder&>);
 }
+/// @endcond
 
 struct PreparedArgsBuilder::PreparedArgsWithKey final {
     PreparedArgsBuilder& builder;

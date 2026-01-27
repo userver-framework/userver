@@ -41,14 +41,16 @@ void ProducerImpl::ErrorCallback(rd_kafka_resp_err_t error, const char* reason, 
     ) << fmt::format("Error {} occurred because of '{}': {}", static_cast<int>(error), reason, rd_kafka_err2str(error));
 
     if (error == RD_KAFKA_RESP_ERR__RESOLVE || error == RD_KAFKA_RESP_ERR__TRANSPORT ||
-        error == RD_KAFKA_RESP_ERR__AUTHENTICATION || error == RD_KAFKA_RESP_ERR__ALL_BROKERS_DOWN) {
+        error == RD_KAFKA_RESP_ERR__AUTHENTICATION || error == RD_KAFKA_RESP_ERR__ALL_BROKERS_DOWN)
+    {
         ++stats_.connections_error;
     }
 }
 
 void ProducerImpl::LogCallback(const char* facility, const char* message, int log_level) const {
-    LOG(convertRdKafkaLogLevelToLoggingLevel(log_level))
-        << logging::LogExtra{{{"kafka_callback", "log_callback"}, {"facility", facility}}} << message;
+    LOG(ConvertRdKafkaLogLevelToLoggingLevel(log_level)
+    ) << logging::LogExtra{{{"kafka_callback", "log_callback"}, {"facility", facility}}}
+      << message;
 }
 
 void ProducerImpl::DeliveryReportCallback(const rd_kafka_message_t* message) const {
@@ -73,10 +75,10 @@ void ProducerImpl::DeliveryReportCallback(const rd_kafka_message_t* message) con
     DeliveryResult delivery_result{message->err, message_status};
     const auto message_latency_ms = GetMessageLatency(message);
 
-    LOG_DEBUG() << fmt::format(
+    LOG(debug_info_log_level_) << fmt::format(
         "Message delivery report: err: {}, status: {}, latency: {}ms",
         rd_kafka_err2str(message->err),
-        kMessageStatus.TryFind(message_status).value_or("<bad status>"),
+        kMessageStatus.TryFind(message_status).value_or(utils::StringLiteral{"<bad status>"}),
         message_latency_ms.count()
     );
 
@@ -85,7 +87,7 @@ void ProducerImpl::DeliveryReportCallback(const rd_kafka_message_t* message) con
     if (delivery_result.IsSuccess()) {
         ++topic_stats->messages_counts.messages_success;
 
-        LOG_INFO() << fmt::format(
+        LOG(operation_log_level_) << fmt::format(
             "Message to topic '{}' delivered successfully to "
             "partition "
             "{} by offset {} in {}ms",
@@ -97,24 +99,30 @@ void ProducerImpl::DeliveryReportCallback(const rd_kafka_message_t* message) con
     } else {
         ++topic_stats->messages_counts.messages_error;
 
-        LOG_WARNING(
-        ) << fmt::format("Failed to delivery message to topic '{}': {}", topic_name, rd_kafka_err2str(message->err));
+        LOG_WARNING("Failed to delivery message to topic '{}': {}", topic_name, rd_kafka_err2str(message->err));
     }
 
     complete_handle->SetDeliveryResult(std::move(delivery_result));
     delete complete_handle;
 }
 
-ProducerImpl::ProducerImpl(Configuration&& configuration)
+ProducerImpl::ProducerImpl(
+    Configuration&& configuration,
+    const logging::Level debug_info_log_level,
+    const logging::Level operation_log_level
+)
     : delivery_timeout_(std::stoull(configuration.GetOption("delivery.timeout.ms"))),
-      producer_(std::move(configuration).Release()) {
+      debug_info_log_level_(debug_info_log_level),
+      operation_log_level_(operation_log_level),
+      producer_(std::move(configuration).Release())
+{
     /// Sets the callback which is called when delivery reports queue transfers
     /// from empty state to non-empty.
     /// Registered callback is called from internal librdkafka thread, not userver
     /// one.
     rd_kafka_queue_cb_event_enable(producer_.GetQueue(), &EventCallbackProxy, this);
 
-    utils::PeriodicTask::Settings settings{std::chrono::seconds{1}};
+    const utils::PeriodicTask::Settings settings{std::chrono::seconds{1}};
     log_events_handler_.Start("kafka_producer_log_events_handler", settings, [this] {
         HandleEvents("log events handler");
     });
@@ -123,13 +131,15 @@ ProducerImpl::ProducerImpl(Configuration&& configuration)
 const Stats& ProducerImpl::GetStats() const { return stats_; }
 
 DeliveryResult ProducerImpl::Send(
-    const std::string& topic_name,
+    utils::zstring_view topic_name,
     std::string_view key,
     std::string_view message,
-    std::optional<std::uint32_t> partition
+    std::optional<std::uint32_t> partition,
+    HeadersHolder headers_holder
 ) const {
-    LOG_INFO() << fmt::format("Message to topic '{}' is requested to send", topic_name);
-    auto delivery_result_future = ScheduleMessageDelivery(topic_name, key, message, partition);
+    LOG(operation_log_level_) << fmt::format("Message to topic '{}' is requested to send", topic_name);
+    auto delivery_result_future =
+        ScheduleMessageDelivery(topic_name, key, message, partition, std::move(headers_holder));
 
     WaitUntilDeliveryReported(delivery_result_future);
 
@@ -137,10 +147,11 @@ DeliveryResult ProducerImpl::Send(
 }
 
 engine::Future<DeliveryResult> ProducerImpl::ScheduleMessageDelivery(
-    const std::string& topic_name,
+    utils::zstring_view topic_name,
     std::string_view key,
     std::string_view message,
-    std::optional<std::uint32_t> partition
+    std::optional<std::uint32_t> partition,
+    HeadersHolder headers_holder
 ) const {
     auto waiter = std::make_unique<DeliveryWaiter>();
     auto wait_handle = waiter->GetFuture();
@@ -167,12 +178,13 @@ engine::Future<DeliveryResult> ProducerImpl::ScheduleMessageDelivery(
     /// the `librdkafka` API requirements. If `msgflags` set to
     /// `RD_KAFKA_MSG_F_FREE`, produce implementation fries the message
     /// data, though not const pointer is required
+    ///
+    /// Headers holder **must** be released if `rd_kafka_producev` succeeded.
 
 #ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wgnu-statement-expression"
 #endif
-
     // NOLINTBEGIN(clang-analyzer-cplusplus.NewDeleteLeaks,cppcoreguidelines-pro-type-const-cast)
     const rd_kafka_resp_err_t enqueue_error = rd_kafka_producev(
         producer_.GetHandle(),
@@ -180,6 +192,7 @@ engine::Future<DeliveryResult> ProducerImpl::ScheduleMessageDelivery(
         RD_KAFKA_V_KEY(key.data(), key.size()),
         RD_KAFKA_V_VALUE(const_cast<char*>(message.data()), message.size()),
         RD_KAFKA_V_MSGFLAGS(0),
+        RD_KAFKA_V_HEADERS(headers_holder.GetHandle()),
         RD_KAFKA_V_PARTITION(partition.value_or(RD_KAFKA_PARTITION_UA)),
         RD_KAFKA_V_OPAQUE(waiter.get()),
         RD_KAFKA_V_END
@@ -191,10 +204,10 @@ engine::Future<DeliveryResult> ProducerImpl::ScheduleMessageDelivery(
 #endif
 
     if (enqueue_error == RD_KAFKA_RESP_ERR_NO_ERROR) {
-        [[maybe_unused]] auto _ = waiter.release();
+        [[maybe_unused]] const auto headers_holder_ptr = headers_holder.release();
+        [[maybe_unused]] const auto waiter_ptr = waiter.release();
     } else {
-        LOG_WARNING(
-        ) << fmt::format("Failed to enqueue message to Kafka local queue: {}", rd_kafka_err2str(enqueue_error));
+        LOG_WARNING("Failed to enqueue message to Kafka local queue: {}", rd_kafka_err2str(enqueue_error));
         waiter->SetDeliveryResult(DeliveryResult{enqueue_error});
     }
 
@@ -222,7 +235,7 @@ void ProducerImpl::DispatchEvent(const EventHolder& event_holder) const {
         case RD_KAFKA_EVENT_DR: {
             const std::size_t message_count = rd_kafka_event_message_count(event);
             UASSERT_MSG(message_count > 0, "No messages in RD_KAFKA_EVENT_DR");
-            LOG_DEBUG() << fmt::format("Delivery report event with {} messages", message_count);
+            LOG(debug_info_log_level_) << fmt::format("Delivery report event with {} messages", message_count);
 
             while (const auto* message = rd_kafka_event_message_next(event)) {
                 DeliveryReportCallback(message);
@@ -230,7 +243,9 @@ void ProducerImpl::DispatchEvent(const EventHolder& event_holder) const {
         } break;
         case RD_KAFKA_EVENT_ERROR: {
             ErrorCallback(
-                rd_kafka_event_error(event), rd_kafka_event_error_string(event), rd_kafka_event_error_is_fatal(event)
+                rd_kafka_event_error(event),
+                rd_kafka_event_error_string(event),
+                rd_kafka_event_error_is_fatal(event)
             );
         } break;
         case RD_KAFKA_EVENT_LOG: {
@@ -240,6 +255,9 @@ void ProducerImpl::DispatchEvent(const EventHolder& event_holder) const {
             rd_kafka_event_log(event, &facility, &message, &log_level);
             LogCallback(facility, message, log_level);
         } break;
+        default:
+            // skip other events.
+            break;
     }
 }
 
@@ -250,7 +268,7 @@ std::size_t ProducerImpl::HandleEvents(std::string_view context) const {
         ++handled;
     }
 
-    LOG_DEBUG() << fmt::format("Handled {} events ({})", handled, context);
+    LOG(debug_info_log_level_) << fmt::format("Handled {} events ({})", handled, context);
 
     return handled;
 }
@@ -278,7 +296,7 @@ void ProducerImpl::WaitUntilDeliveryReported(engine::Future<DeliveryResult>& del
     /// handle events from producer's queue.
     ///
     /// Remark: events are created by `librdkafka` internal threads, so it is not
-    /// possible to atomically check queue emptyness and suspend the coroutine.
+    /// possible to atomically check queue emptiness and suspend the coroutine.
 
     while (!delivery_result.is_ready() && !engine::current_task::ShouldCancel()) {
         /// optimistic path. suppose that there are already some ready events from
@@ -291,23 +309,23 @@ void ProducerImpl::WaitUntilDeliveryReported(engine::Future<DeliveryResult>& del
 
         EventWaiter waiter;
         /// (N) notice that in any time after waiter is pushed into waiters list and
-        /// before it poped it may be waked up by EventCallback.
-        /// Consequently, after waiter is poped from the list, it must try to handle
+        /// before it popped it may be waked up by EventCallback.
+        /// Consequently, after waiter is popped from the list, it must try to handle
         /// the events if it was signaled (event `delivery_result` is ready).
         waiters_.PushWaiter(waiter);
 
-        /// If there are events, it is not neccessary to sleep.
+        /// If there are events, it is not necessary to sleep.
         if (HandleEvents("after waiter created, before sleep")) {
             waiters_.PopWaiter(waiter);
             if (waiter.event.IsReady()) {  // (N)
-                LOG_DEBUG() << "Waiter were signaled before sleeping!";
-                HandleEvents("after waiter poped, before sleep");
+                LOG_DEBUG("Waiter were signaled before sleeping!");
+                HandleEvents("after waiter popped, before sleep");
             }
             continue;
         }
 
         auto waked_up_by = engine::WaitAny(waiter.event, delivery_result);
-        LOG_DEBUG() << fmt::format(
+        LOG(debug_info_log_level_) << fmt::format(
             "Wake up reason: {}",
             waked_up_by.has_value() ? (waked_up_by == 0 ? "EventCallback" : "DeliveryResult") : "Cancel"
         );
@@ -337,9 +355,11 @@ void ProducerImpl::WaitUntilDeliveryReported(engine::Future<DeliveryResult>& del
             /// waitAny is canceled, but delivery reports are handled in another tasks
             /// or/and in producer's dctor.
 
-            LOG_WARNING() << "Delivery waiting loop is canceled before the message "
-                             "is delivered. Ensure to call a producer destructor to "
-                             "guarantee that all messages are delivered";
+            LOG_WARNING(
+                "Delivery waiting loop is canceled before the message "
+                "is delivered. Ensure to call a producer destructor to "
+                "guarantee that all messages are delivered"
+            );
             break;
         }
     }
@@ -350,7 +370,7 @@ void ProducerImpl::EventCallback() {
     /// coroutine environment, therefore not all synchronization
     /// primitives can be used in the callback body.
 
-    LOG_INFO() << "Producer events queue became non-empty. Waking up event waiter";
+    LOG(debug_info_log_level_) << "Producer events queue became non-empty. Waking up event waiter";
     waiters_.PopAndWakeupOne();
 }
 
@@ -367,7 +387,7 @@ void ProducerImpl::WaitUntilAllMessagesDelivered() && {
         /// `rd_kafka_flush` returns true if no messages are waiting for the
         /// delivery
         if (rd_kafka_flush(producer_.GetHandle(), /*timeout_ms=*/0) == RD_KAFKA_RESP_ERR_NO_ERROR) {
-            LOG_INFO() << "All messages are successfully delivered";
+            LOG(operation_log_level_) << "All messages are successfully delivered";
             break;
         }
         engine::SleepFor(flush_step_duration);
@@ -375,13 +395,13 @@ void ProducerImpl::WaitUntilAllMessagesDelivered() && {
         HandleEvents("waiting until all messages delivered");
 
         if (step < kFlushSteps) {
-            LOG_WARNING() << fmt::format(
+            LOG_WARNING(
                 "[retry {}] Producer flushing timeouted on producer destroy. Waiting "
                 "more..",
                 step
             );
         } else {
-            LOG_ERROR() << fmt::format("Some producer messages are probably not delivered :(");
+            LOG_ERROR("Some producer messages are probably not delivered :(");
         }
     }
 }

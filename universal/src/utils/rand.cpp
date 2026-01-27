@@ -33,7 +33,9 @@ std::seed_seq MakeSeedSeq() {
     return std::seed_seq(random_chunks.begin(), random_chunks.end());
 }
 
-RandomImpl::RandomImpl() : gen_(AsLvalue(impl::MakeSeedSeq())) {}
+RandomImpl::RandomImpl()
+    : gen_(AsLvalue(impl::MakeSeedSeq()))
+{}
 
 compiler::ThreadLocalScope<RandomImpl> UseLocalRandomImpl() { return local_random_impl.Use(); }
 

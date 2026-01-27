@@ -18,17 +18,16 @@ namespace http::headers {
 class PredefinedHeader;
 }  // namespace http::headers
 
-namespace server::http {
-class HttpRequestImpl;
-}  // namespace server::http
-
 namespace server::request {
 
 struct Header {
     std::string_view name;
     std::string value;
 
-    Header(std::string_view name, std::string value) : name(name), value(std::move(value)) {}
+    Header(std::string_view name, std::string value)
+        : name(name),
+          value(std::move(value))
+    {}
 };
 
 using HeadersToPropagate = boost::container::small_vector<Header, 10>;

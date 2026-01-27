@@ -6,7 +6,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::mysql::impl::io {
 
-ExtractorBase::ExtractorBase(std::size_t size) : binder_{size} {}
+ExtractorBase::ExtractorBase(std::size_t size)
+    : binder_{size}
+{}
 
 ExtractorBase::~ExtractorBase() = default;
 

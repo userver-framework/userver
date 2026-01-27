@@ -1,18 +1,21 @@
-project(userver-lib-s3api CXX)
+project(userver-s3api CXX)
 
-find_package(Pugixml REQUIRED)
+find_package(pugixml REQUIRED)
 
-userver_module(lib-s3api
+userver_module(
+    s3api
     SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}"
-    LINK_LIBRARIES_PRIVATE pugixml
+    LINK_LIBRARIES_PRIVATE pugixml::pugixml
     UTEST_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*_test.cpp"
+    DEPENDS core
 )
 
-_userver_directory_install(COMPONENT lib-s3api FILES
-    "${USERVER_ROOT_DIR}/cmake/modules/FindPugixml.cmake"
-    DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/userver"
+_userver_directory_install(
+    COMPONENT s3api
+    FILES "${USERVER_ROOT_DIR}/cmake/modules/Findpugixml.cmake"
+    DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/userver/modules"
 )
 
 if(USERVER_FEATURE_UTEST)
-  add_subdirectory(utest)
+    add_subdirectory(utest)
 endif()

@@ -1,0 +1,10 @@
+type: object
+description: class for nonce cache settings
+additionalProperties: false
+properties:
+    ways:
+        type: integer
+        description: number of ways for associative cache
+    size:
+        type: integer
+        description: max amount of items to store in cache

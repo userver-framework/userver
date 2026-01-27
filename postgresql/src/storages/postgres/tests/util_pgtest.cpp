@@ -4,6 +4,7 @@
 
 #include <userver/concurrent/background_task_storage.hpp>
 #include <userver/engine/task/task.hpp>
+#include <userver/utils/statistics/metrics_storage.hpp>
 
 #include <storages/postgres/default_command_controls.hpp>
 #include <storages/postgres/detail/connection.hpp>
@@ -20,25 +21,26 @@ constexpr const char* kPostgresDsn = "POSTGRES_TEST_DSN";
 }  // namespace
 
 pg::DefaultCommandControls GetTestCmdCtls() {
-    static auto kDefaultCmdCtls = pg::DefaultCommandControls(kTestCmdCtl, {}, {});
-    return kDefaultCmdCtls;
+    static auto default_cmd_ctls = pg::DefaultCommandControls(kTestCmdCtl, {}, {});
+    return default_cmd_ctls;
 }
 
 DefaultCommandControlScope::DefaultCommandControlScope(storages::postgres::CommandControl default_cmd_ctl)
-    : old_cmd_ctl_(GetTestCmdCtls().GetDefaultCmdCtl()) {
+    : old_cmd_ctl_(GetTestCmdCtls().GetDefaultCmdCtl())
+{
     GetTestCmdCtls().UpdateDefaultCmdCtl(default_cmd_ctl);
 }
 
 DefaultCommandControlScope::~DefaultCommandControlScope() { GetTestCmdCtls().UpdateDefaultCmdCtl(old_cmd_ctl_); }
 
-engine::Deadline MakeDeadline() { return engine::Deadline::FromDuration(kTestCmdCtl.execute); }
+engine::Deadline MakeDeadline() { return engine::Deadline::FromDuration(kTestCmdCtl.network_timeout_ms); }
 
 void PrintBuffer(std::ostream& os, const std::uint8_t* buffer, std::size_t size) {
     os << "Buffer size " << size << '\n';
     std::size_t b_no{0};
     std::ostringstream printable;
     for (const std::uint8_t* c = buffer; c != buffer + size; ++c) {
-        unsigned char byte = *c;
+        const unsigned char byte = *c;
         os << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(byte);
         printable << (std::isprint(*c) ? *c : '.');
         ++b_no;
@@ -77,9 +79,7 @@ pg::DsnList PostgreSQLBase::GetDsnListFromEnv() {
     }
 
     std::vector<std::string> conn_list;
-    boost::split(
-        conn_list, conn_list_env, [](char c) { return c == ';'; }, boost::token_compress_on
-    );
+    boost::split(conn_list, conn_list_env, [](char c) { return c == ';'; }, boost::token_compress_on);
 
     pg::DsnList dsn_list;
     for (auto conn : conn_list) {
@@ -99,7 +99,17 @@ storages::postgres::detail::ConnectionPtr PostgreSQLBase::MakeConnection(
 
     try {
         conn = pg::detail::Connection::Connect(
-            dsn, nullptr, task_processor, GetTaskStorage(), kConnectionId, settings, GetTestCmdCtls(), {}, {}
+            dsn,
+            nullptr,
+            task_processor,
+            GetTaskStorage(),
+            kConnectionId,
+            settings,
+            GetTestCmdCtls(),
+            {},
+            {},
+            engine::SemaphoreLock{},
+            std::make_shared<utils::statistics::MetricsStorage>()
         );
     } catch (const storages::postgres::Error& ex) {
         ADD_FAILURE() << ex.what();
@@ -112,7 +122,9 @@ storages::postgres::detail::ConnectionPtr PostgreSQLBase::MakeConnection(
     }
 
     pg::detail::ConnectionPtr conn_ptr{std::move(conn)};
-    if (conn_ptr) CheckConnection(conn_ptr);
+    if (conn_ptr) {
+        CheckConnection(conn_ptr);
+    }
     return conn_ptr;
 }
 
@@ -121,9 +133,10 @@ void PostgreSQLBase::CheckConnection(const pg::detail::ConnectionPtr& conn) {
 
     ASSERT_TRUE(conn->IsConnected()) << "Connection to PostgreSQL is established";
     ASSERT_TRUE(conn->IsIdle()) << "Connection to PosgreSQL is idle after connection";
-    ASSERT_FALSE(conn->IsInTransaction()) << "Connection to PostgreSQL is "
-                                             "not in a transaction after "
-                                             "connection";
+    ASSERT_FALSE(conn->IsInTransaction()
+    ) << "Connection to PostgreSQL is "
+         "not in a transaction after "
+         "connection";
 }
 
 void PostgreSQLBase::FinalizeConnection(pg::detail::ConnectionPtr conn) {
@@ -140,12 +153,26 @@ concurrent::BackgroundTaskStorageCore& PostgreSQLBase::GetTaskStorage() {
     return bts;
 }
 
-PostgreConnection::PostgreConnection() : conn(MakeConnection(GetDsnFromEnv(), GetTaskProcessor(), GetParam())) {}
+PostgreConnectionBaseFixture::PostgreConnectionBaseFixture() = default;
 
-PostgreConnection::~PostgreConnection() {
+PostgreConnectionBaseFixture::~PostgreConnectionBaseFixture() {
     // force connection cleanup to avoid leaving detached tasks behind
     engine::AsyncNoSpan(GetTaskProcessor(), [] {}).Wait();
 }
+
+storages::postgres::detail::ConnectionPtr PostgreConnectionBaseFixture::MakeConn(
+    storages::postgres::ConnectionSettings settings
+) {
+    return MakeConnection(GetDsnFromEnv(), GetTaskProcessor(), std::move(settings));
+}
+
+PostgreConnection::PostgreConnection()
+    : conn_(MakeConnection(GetDsnFromEnv(), GetTaskProcessor(), GetParam()))
+{}
+
+PostgreConnection::~PostgreConnection() = default;
+
+storages::postgres::detail::ConnectionPtr& PostgreConnection::GetConn() { return conn_; }
 
 INSTANTIATE_UTEST_SUITE_P(
     ConnectionSettings,

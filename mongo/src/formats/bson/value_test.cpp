@@ -249,7 +249,7 @@ TEST(BsonValue, NullAsDefaulted) {
 
     EXPECT_EQ(doc["nulled"].As<int>(42), 42);
 
-    std::vector<int> value{4, 2};
+    const std::vector<int> value{4, 2};
     EXPECT_EQ(doc["nulled"].template As<std::vector<int>>(value), value);
 }
 
@@ -258,7 +258,7 @@ TEST(BsonValue, ExampleUsage) {
     // #include <userver/formats/bson.hpp>
 
     auto doc = formats::bson::MakeDoc("key1", 1, "key2", formats::bson::MakeDoc("key3", "val"));
-    formats::bson::Value bson = formats::bson::FromBinaryString(ToBinaryString(doc).GetView());
+    const formats::bson::Value bson = formats::bson::FromBinaryString(ToBinaryString(doc).GetView());
 
     const auto key1 = bson["key1"].As<int>();
     ASSERT_EQ(key1, 1);
@@ -286,7 +286,7 @@ MyKeyValue Parse(const formats::bson::Value& bson, formats::parse::To<MyKeyValue
 TEST(FormatsBson, ExampleUsageMyStruct) {
     auto doc = formats::bson::MakeDoc("my_value", formats::bson::MakeDoc("field1", "one", "field2", 1));
 
-    formats::bson::Value bson = formats::bson::FromBinaryString(ToBinaryString(doc).GetView());
+    const formats::bson::Value bson = formats::bson::FromBinaryString(ToBinaryString(doc).GetView());
     auto data = bson["my_value"].As<MyKeyValue>();
     EXPECT_EQ(data.field1, "one");
     EXPECT_EQ(data.field2, 1);

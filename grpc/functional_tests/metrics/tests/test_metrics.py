@@ -1,8 +1,6 @@
-import typing
-
 import pytest
 
-import samples.greeter_pb2 as greeter_protos  # noqa: E402, E501
+import samples.greeter_pb2 as greeter_protos
 
 
 def _normalize_metrics(metrics: str) -> str:
@@ -15,32 +13,38 @@ def _normalize_metrics(metrics: str) -> str:
     return '\n'.join(result) + '\n'
 
 
-def _drop_non_grpc_metrics(metrics: typing.List[str]) -> typing.List[str]:
+def _drop_non_grpc_metrics(metrics: list[str]) -> list[str]:
     result = []
     for line in metrics:
-        if line.startswith(('grpc.server', 'grpc.client')):
-            result.append(line)
+        try:
+            path = line.split(':')[0]
+            if 'grpc' in path:
+                result.append(line)
+        except IndexError:
+            continue
 
     return result
 
 
-def _hide_metrics_values(metrics: typing.List[str]) -> typing.List[str]:
+def _hide_metrics_values(metrics: list[str]) -> list[str]:
     return ['\t'.join(line.split('\t')[0:2]) for line in metrics]
 
 
 @pytest.fixture(name='force_metrics_to_appear')
-async def _force_metrics_to_appear(grpc_client, mock_grpc_greeter):
-    @mock_grpc_greeter('SayHello')
-    async def _mock_say_hello(mock_request, _mock_context):
+async def _force_metrics_to_appear(grpc_client, greeter_mock):
+    # /// [grpc client test]
+    @greeter_mock('SayHello')
+    async def mock_say_hello(mock_request, _mock_context):
         return greeter_protos.GreetingResponse(
             greeting=f'Hello, {mock_request.name} from mockserver!',
         )
+        # /// [grpc client test]
 
     request = greeter_protos.GreetingRequest(name='Python')
     response = await grpc_client.SayHello(request)
     assert response.greeting == 'FWD: Hello, Python from mockserver!'
 
-    assert _mock_say_hello.times_called == 1
+    assert mock_say_hello.times_called == 1
 
 
 async def test_metrics_smoke(monitor_client, force_metrics_to_appear):
@@ -60,7 +64,5 @@ async def test_metrics(monitor_client, load, force_metrics_to_appear):
         await monitor_client.metrics_raw(output_format='pretty'),
     )
     assert all_metrics == reference, (
-        '\n===== Service metrics start =====\n'
-        f'{all_metrics}\n'
-        '===== Service metrics end =====\n'
+        f'\n===== Service metrics start =====\n{all_metrics}\n===== Service metrics end =====\n'
     )

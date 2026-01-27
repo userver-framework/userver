@@ -32,7 +32,7 @@ void CreateLogDirectory(const std::string& logger_name, const std::string& file_
     } catch (const std::exception& e) {
         auto msg = "Failed to create directory for log file of logger '" + logger_name + "': " + e.what();
         LOG_ERROR() << msg;
-        throw std::runtime_error(msg);
+        throw std::runtime_error(std::move(msg));
     }
 }
 
@@ -124,7 +124,9 @@ std::optional<LoggerConfig> ExtractDefaultLoggerConfig(const components::Manager
     }
 
     const auto logger_config_yaml = (*iter)["loggers"][kDefaultLoggerName];
-    if (logger_config_yaml.IsMissing()) return {};
+    if (logger_config_yaml.IsMissing()) {
+        return {};
+    }
     auto logger_config = logger_config_yaml.As<LoggerConfig>();
 
     logger_config.SetName(std::string{kDefaultLoggerName});

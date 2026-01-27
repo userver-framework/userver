@@ -8,6 +8,7 @@
 #include <string>
 #include <string_view>
 
+#include <userver/logging/fwd.hpp>
 #include <userver/utils/str_icase.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -55,15 +56,22 @@ public:
     /// Differs from equality comparison in wildcard support.
     bool DoesAccept(const ContentType&) const;
 
+    /// Value of "boundary" parameter.
+    const std::string& Boundary() const;
+
     /// Builds a string representation of content-type/media-range
     std::string ToString() const;
 
 private:
+    friend logging::LogHelper& operator<<(logging::LogHelper&, const ContentType&);
+    friend std::ostream& operator<<(std::ostream&, const ContentType&);
+
     void BuildStringRepresentation();
 
     std::string type_;
     std::string subtype_;
     std::string charset_;
+    std::string boundary_;
     int quality_;
 
     std::string string_representation_;
@@ -84,8 +92,6 @@ public:
 private:
     utils::StrIcaseHash str_hasher_;
 };
-
-std::ostream& operator<<(std::ostream&, const ContentType&);
 
 namespace content_type {
 

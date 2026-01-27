@@ -6,6 +6,8 @@
         C++ wrapper for libcurl's easy interface
 */
 
+// NOLINTBEGIN(readability-identifier-naming)
+
 #pragma once
 
 #include <cstdio>
@@ -23,6 +25,7 @@
 #include <curl-ev/url.hpp>
 
 #include <userver/clients/http/local_stats.hpp>
+#include <userver/utils/zstring_view.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -44,16 +47,15 @@ class ThreadControl;
     }
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define IMPLEMENT_CURL_OPTION_BOOLEAN(FUNCTION_NAME, OPTION_NAME)                                               \
-    inline void FUNCTION_NAME(bool enabled) {                                                                   \
-        std::error_code ec;                                                                                     \
-        FUNCTION_NAME(enabled, ec);                                                                             \
-        throw_error(ec, PP_STRINGIZE(FUNCTION_NAME));                                                           \
-    }                                                                                                           \
-    inline void FUNCTION_NAME(bool enabled, std::error_code& ec) {                                              \
-        ec = std::error_code(                                                                                   \
-            static_cast<errc::EasyErrorCode>(native::curl_easy_setopt(handle_, OPTION_NAME, enabled ? 1L : 0L)) \
-        );                                                                                                      \
+#define IMPLEMENT_CURL_OPTION_BOOLEAN(FUNCTION_NAME, OPTION_NAME)                                                      \
+    inline void FUNCTION_NAME(bool enabled) {                                                                          \
+        std::error_code ec;                                                                                            \
+        FUNCTION_NAME(enabled, ec);                                                                                    \
+        throw_error(ec, PP_STRINGIZE(FUNCTION_NAME));                                                                  \
+    }                                                                                                                  \
+    inline void FUNCTION_NAME(bool enabled, std::error_code& ec) {                                                     \
+        ec = std::error_code(static_cast<                                                                              \
+                             errc::EasyErrorCode>(native::curl_easy_setopt(handle_, OPTION_NAME, enabled ? 1L : 0L))); \
     }
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
@@ -79,15 +81,14 @@ class ThreadControl;
     inline void FUNCTION_NAME(const char* str, std::error_code& ec) {                                                \
         ec = std::error_code(static_cast<errc::EasyErrorCode>(native::curl_easy_setopt(handle_, OPTION_NAME, str))); \
     }                                                                                                                \
-    inline void FUNCTION_NAME(const std::string& str) {                                                              \
+    inline void FUNCTION_NAME(utils::zstring_view str) {                                                             \
         std::error_code ec;                                                                                          \
         FUNCTION_NAME(str, ec);                                                                                      \
         throw_error(ec, PP_STRINGIZE(FUNCTION_NAME));                                                                \
     }                                                                                                                \
-    inline void FUNCTION_NAME(const std::string& str, std::error_code& ec) {                                         \
-        ec = std::error_code(                                                                                        \
-            static_cast<errc::EasyErrorCode>(native::curl_easy_setopt(handle_, OPTION_NAME, str.c_str()))            \
-        );                                                                                                           \
+    inline void FUNCTION_NAME(utils::zstring_view str, std::error_code& ec) {                                        \
+        ec = std::error_code(static_cast<                                                                            \
+                             errc::EasyErrorCode>(native::curl_easy_setopt(handle_, OPTION_NAME, str.c_str())));     \
     }
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
@@ -130,25 +131,25 @@ public:                                                                         
     inline void FUNCTION_NAME##_no_copy(std::string_view, std::error_code&) = delete
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define IMPLEMENT_CURL_OPTION_GET_STRING_VIEW(FUNCTION_NAME, OPTION_NAME)                                              \
-    inline std::string_view FUNCTION_NAME() {                                                                          \
-        std::error_code ec;                                                                                            \
-        auto info = FUNCTION_NAME(ec);                                                                                 \
-        throw_error(ec, PP_STRINGIZE(FUNCTION_NAME));                                                                  \
-        return info;                                                                                                   \
-    }                                                                                                                  \
-    inline std::string_view FUNCTION_NAME(std::error_code& ec) {                                                       \
-        char* info = nullptr;                                                                                          \
-        ec =                                                                                                           \
-            std::error_code(static_cast<errc::EasyErrorCode>(native::curl_easy_getinfo(handle_, OPTION_NAME, &info))); \
-        return info ? info : std::string_view{};                                                                       \
+#define IMPLEMENT_CURL_OPTION_GET_STRING_VIEW(FUNCTION_NAME, OPTION_NAME)                                             \
+    inline std::string_view FUNCTION_NAME() {                                                                         \
+        std::error_code ec;                                                                                           \
+        auto info = FUNCTION_NAME(ec);                                                                                \
+        throw_error(ec, PP_STRINGIZE(FUNCTION_NAME));                                                                 \
+        return info;                                                                                                  \
+    }                                                                                                                 \
+    inline std::string_view FUNCTION_NAME(std::error_code& ec) {                                                      \
+        char* info = nullptr;                                                                                         \
+        ec = std::error_code(static_cast<errc::EasyErrorCode>(native::curl_easy_getinfo(handle_, OPTION_NAME, &info)) \
+        );                                                                                                            \
+        return info ? info : std::string_view{};                                                                      \
     }
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define IMPLEMENT_CURL_OPTION_GET_LONG(FUNCTION_NAME, OPTION_NAME)                                                     \
     inline long FUNCTION_NAME() {                                                                                      \
         long info;                                                                                                     \
-        std::error_code ec =                                                                                           \
+        const std::error_code ec =                                                                                     \
             std::error_code(static_cast<errc::EasyErrorCode>(native::curl_easy_getinfo(handle_, OPTION_NAME, &info))); \
         throw_error(ec, PP_STRINGIZE(FUNCTION_NAME));                                                                  \
         return info;                                                                                                   \
@@ -158,7 +159,7 @@ public:                                                                         
 #define IMPLEMENT_CURL_OPTION_GET_CURL_OFF_T(FUNCTION_NAME, OPTION_NAME)                                               \
     inline long FUNCTION_NAME() {                                                                                      \
         native::curl_off_t info;                                                                                       \
-        std::error_code ec =                                                                                           \
+        const std::error_code ec =                                                                                     \
             std::error_code(static_cast<errc::EasyErrorCode>(native::curl_easy_getinfo(handle_, OPTION_NAME, &info))); \
         throw_error(ec, PP_STRINGIZE(FUNCTION_NAME));                                                                  \
         return info;                                                                                                   \
@@ -169,7 +170,7 @@ public:                                                                         
     inline std::vector<std::string> FUNCTION_NAME() {                                                                  \
         struct native::curl_slist* info;                                                                               \
         std::vector<std::string> results;                                                                              \
-        std::error_code ec =                                                                                           \
+        const std::error_code ec =                                                                                     \
             std::error_code(static_cast<errc::EasyErrorCode>(native::curl_easy_getinfo(handle_, OPTION_NAME, &info))); \
         throw_error(ec, PP_STRINGIZE(FUNCTION_NAME));                                                                  \
         struct native::curl_slist* it = info;                                                                          \
@@ -187,6 +188,13 @@ public:                                                                         
 #else
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define CURL_SSLVERSION_NAMESPACE native::
+#endif
+
+// https://github.com/curl/curl/pull/16482
+#if (LIBCURL_VERSION_MAJOR == 8 && LIBCURL_VERSION_MINOR >= 13) || (LIBCURL_VERSION_MAJOR >= 9)
+#define CURL_8_13_NAMESPACE
+#else
+#define CURL_8_13_NAMESPACE native::
 #endif
 
 namespace curl {
@@ -254,9 +262,6 @@ public:
     using read_function_t = size_t (*)(void* ptr, size_t size, size_t nmemb, void* userdata);
     IMPLEMENT_CURL_OPTION(set_read_function, native::CURLOPT_READFUNCTION, read_function_t);
     IMPLEMENT_CURL_OPTION(set_read_data, native::CURLOPT_READDATA, void*);
-    using ioctl_function_t = native::curlioerr (*)(native::CURL* handle, int cmd, void* clientp);
-    IMPLEMENT_CURL_OPTION(set_ioctl_function, native::CURLOPT_IOCTLFUNCTION, ioctl_function_t);
-    IMPLEMENT_CURL_OPTION(set_ioctl_data, native::CURLOPT_IOCTLDATA, void*);
     using seek_function_t = int (*)(void* instream, native::curl_off_t offset, int origin);
     IMPLEMENT_CURL_OPTION(set_seek_function, native::CURLOPT_SEEKFUNCTION, seek_function_t);
     IMPLEMENT_CURL_OPTION(set_seek_data, native::CURLOPT_SEEKDATA, void*);
@@ -270,8 +275,6 @@ public:
     using closesocket_function_t = int (*)(void* clientp, native::curl_socket_t item);
     IMPLEMENT_CURL_OPTION(set_closesocket_function, native::CURLOPT_CLOSESOCKETFUNCTION, closesocket_function_t);
     IMPLEMENT_CURL_OPTION(set_closesocket_data, native::CURLOPT_CLOSESOCKETDATA, void*);
-    using progress_function_t = int (*)(void* clientp, double dltotal, double dlnow, double ultotal, double ulnow);
-    IMPLEMENT_CURL_OPTION(set_progress_function, native::CURLOPT_PROGRESSFUNCTION, progress_function_t);
     IMPLEMENT_CURL_OPTION(set_progress_data, native::CURLOPT_PROGRESSDATA, void*);
     using xferinfo_function_t = int (*)(
         void* clientp,
@@ -304,7 +307,11 @@ public:
     // network options
 
     void set_url(std::string url_str);
-    void set_url(std::string url_str, std::error_code& ec);
+
+    /// @overload `set_url`
+    /// @note Doesn't perform a move from `url_str`, if error occurs.
+    void set_url(std::string&& url_str, std::error_code& ec);
+
     const std::string& get_original_url() const;
     const url& get_easy_url() const;
 
@@ -315,7 +322,6 @@ public:
     IMPLEMENT_CURL_OPTION(set_proxy_type, native::CURLOPT_PROXYTYPE, long);
     IMPLEMENT_CURL_OPTION_STRING(set_no_proxy, native::CURLOPT_NOPROXY);
     IMPLEMENT_CURL_OPTION_BOOLEAN(set_http_proxy_tunnel, native::CURLOPT_HTTPPROXYTUNNEL);
-    IMPLEMENT_CURL_OPTION_STRING(set_socks5_gsapi_service, native::CURLOPT_SOCKS5_GSSAPI_SERVICE);
     IMPLEMENT_CURL_OPTION_BOOLEAN(set_socks5_gsapi_nec, native::CURLOPT_SOCKS5_GSSAPI_NEC);
     IMPLEMENT_CURL_OPTION_STRING(set_interface, native::CURLOPT_INTERFACE);
     IMPLEMENT_CURL_OPTION(set_local_port, native::CURLOPT_LOCALPORT, long);
@@ -333,9 +339,9 @@ public:
     // authentication options
 
     enum netrc_t {
-        netrc_optional = native::CURL_NETRC_OPTIONAL,
-        netrc_ignored = native::CURL_NETRC_IGNORED,
-        netrc_required = native::CURL_NETRC_REQUIRED
+        netrc_optional = CURL_8_13_NAMESPACE CURL_NETRC_OPTIONAL,
+        netrc_ignored = CURL_8_13_NAMESPACE CURL_NETRC_IGNORED,
+        netrc_required = CURL_8_13_NAMESPACE CURL_NETRC_REQUIRED
     };
     IMPLEMENT_CURL_OPTION_ENUM(set_netrc, native::CURLOPT_NETRC, netrc_t, long);
     IMPLEMENT_CURL_OPTION_STRING(set_netrc_file, native::CURLOPT_NETRC_FILE);
@@ -360,9 +366,8 @@ public:
     }
     inline void set_http_auth(httpauth_t auth, bool auth_only, std::error_code& ec) {
         auto l = static_cast<long>(auth | (auth_only ? CURLAUTH_ONLY : 0UL));
-        ec = std::error_code(
-            static_cast<errc::EasyErrorCode>(native::curl_easy_setopt(handle_, native::CURLOPT_HTTPAUTH, l))
-        );
+        ec = std::error_code(static_cast<
+                             errc::EasyErrorCode>(native::curl_easy_setopt(handle_, native::CURLOPT_HTTPAUTH, l)));
     }
     IMPLEMENT_CURL_OPTION(set_tls_auth_type, native::CURLOPT_TLSAUTH_TYPE, long);
     IMPLEMENT_CURL_OPTION_STRING(set_tls_auth_user, native::CURLOPT_TLSAUTH_USERNAME);
@@ -390,7 +395,6 @@ public:
     IMPLEMENT_CURL_OPTION(set_max_redirs, native::CURLOPT_MAXREDIRS, long);
     IMPLEMENT_CURL_OPTION(set_post_redir, native::CURLOPT_POSTREDIR, long);
     IMPLEMENT_CURL_OPTION_BOOLEAN(set_post, native::CURLOPT_POST);
-    IMPLEMENT_CURL_OPTION_BOOLEAN(set_put, native::CURLOPT_PUT);
     void set_post_fields(std::string&& post_fields);
     void set_post_fields(std::string&& post_fields, std::error_code& ec);
     IMPLEMENT_CURL_OPTION(set_post_fields, native::CURLOPT_POSTFIELDS, void*);
@@ -456,12 +460,12 @@ public:
     IMPLEMENT_CURL_OPTION_STRING(set_cookie_list, native::CURLOPT_COOKIELIST);
     IMPLEMENT_CURL_OPTION_BOOLEAN(set_http_get, native::CURLOPT_HTTPGET);
     enum http_version_t {
-        http_version_none = native::CURL_HTTP_VERSION_NONE,
-        http_version_1_0 = native::CURL_HTTP_VERSION_1_0,
-        http_version_1_1 = native::CURL_HTTP_VERSION_1_1,
-        http_version_2_0 = native::CURL_HTTP_VERSION_2_0,
-        http_version_2tls = native::CURL_HTTP_VERSION_2TLS,
-        http_version_2_prior_knowledge = native::CURL_HTTP_VERSION_2_PRIOR_KNOWLEDGE,
+        http_version_none = CURL_8_13_NAMESPACE CURL_HTTP_VERSION_NONE,
+        http_version_1_0 = CURL_8_13_NAMESPACE CURL_HTTP_VERSION_1_0,
+        http_version_1_1 = CURL_8_13_NAMESPACE CURL_HTTP_VERSION_1_1,
+        http_version_2_0 = CURL_8_13_NAMESPACE CURL_HTTP_VERSION_2_0,
+        http_version_2tls = CURL_8_13_NAMESPACE CURL_HTTP_VERSION_2TLS,
+        http_version_2_prior_knowledge = CURL_8_13_NAMESPACE CURL_HTTP_VERSION_2_PRIOR_KNOWLEDGE,
     };
     IMPLEMENT_CURL_OPTION_ENUM(set_http_version, native::CURLOPT_HTTP_VERSION, http_version_t, long);
     IMPLEMENT_CURL_OPTION_BOOLEAN(set_ignore_content_length, native::CURLOPT_IGNORE_CONTENT_LENGTH);
@@ -485,8 +489,8 @@ public:
     IMPLEMENT_CURL_OPTION(set_max_file_size, native::CURLOPT_MAXFILESIZE, long);
     IMPLEMENT_CURL_OPTION(set_max_file_size_large, native::CURLOPT_MAXFILESIZE_LARGE, native::curl_off_t);
     enum time_condition_t {
-        if_modified_since = native::CURL_TIMECOND_IFMODSINCE,
-        if_unmodified_since = native::CURL_TIMECOND_IFUNMODSINCE
+        if_modified_since = CURL_8_13_NAMESPACE CURL_TIMECOND_IFMODSINCE,
+        if_unmodified_since = CURL_8_13_NAMESPACE CURL_TIMECOND_IFUNMODSINCE
     };
     IMPLEMENT_CURL_OPTION_ENUM(set_time_condition, native::CURLOPT_TIMECONDITION, time_condition_t, long);
     IMPLEMENT_CURL_OPTION(set_time_value, native::CURLOPT_TIMEVALUE, long);
@@ -512,10 +516,10 @@ public:
     IMPLEMENT_CURL_OPTION_ENUM(set_ip_resolve, native::CURLOPT_IPRESOLVE, ip_resolve_t, long);
     IMPLEMENT_CURL_OPTION_BOOLEAN(set_connect_only, native::CURLOPT_CONNECT_ONLY);
     enum use_ssl_t {
-        use_ssl_none = native::CURLUSESSL_NONE,
-        use_ssl_try = native::CURLUSESSL_TRY,
-        use_ssl_control = native::CURLUSESSL_CONTROL,
-        use_ssl_all = native::CURLUSESSL_ALL
+        use_ssl_none = CURL_8_13_NAMESPACE CURLUSESSL_NONE,
+        use_ssl_try = CURL_8_13_NAMESPACE CURLUSESSL_TRY,
+        use_ssl_control = CURL_8_13_NAMESPACE CURLUSESSL_CONTROL,
+        use_ssl_all = CURL_8_13_NAMESPACE CURLUSESSL_ALL
     };
     IMPLEMENT_CURL_OPTION_ENUM(set_use_ssl, native::CURLOPT_USE_SSL, use_ssl_t, long);
     void add_resolve(const std::string& host, const std::string& port, const std::string& addr);
@@ -633,7 +637,6 @@ public:
     IMPLEMENT_CURL_OPTION_GET_LONG(get_num_connects, native::CURLINFO_NUM_CONNECTS);
     IMPLEMENT_CURL_OPTION_GET_LIST(get_ssl_engines, native::CURLINFO_SSL_ENGINES);
     IMPLEMENT_CURL_OPTION_GET_LIST(get_cookielist, native::CURLINFO_COOKIELIST);
-    IMPLEMENT_CURL_OPTION_GET_LONG(get_lastsocket, native::CURLINFO_LASTSOCKET);
     IMPLEMENT_CURL_OPTION_GET_STRING_VIEW(get_ftp_entry_path, native::CURLINFO_FTP_ENTRY_PATH);
     IMPLEMENT_CURL_OPTION_GET_STRING_VIEW(get_redirect_url, native::CURLINFO_REDIRECT_URL);
     IMPLEMENT_CURL_OPTION_GET_STRING_VIEW(get_primary_ip, native::CURLINFO_PRIMARY_IP);
@@ -697,8 +700,11 @@ private:
         native::curl_off_t ultotal,
         native::curl_off_t ulnow
     ) noexcept;
-    static native::curl_socket_t
-    opensocket(void* clientp, native::curlsocktype purpose, struct native::curl_sockaddr* address) noexcept;
+    static native::curl_socket_t opensocket(
+        void* clientp,
+        native::curlsocktype purpose,
+        struct native::curl_sockaddr* address
+    ) noexcept;
     static int closesocket(void* clientp, native::curl_socket_t item) noexcept;
 
     // do_ev_* methods run in libev thread
@@ -744,3 +750,5 @@ private:
 #undef IMPLEMENT_CURL_OPTION_GET_LIST
 
 USERVER_NAMESPACE_END
+
+// NOLINTEND(readability-identifier-naming)

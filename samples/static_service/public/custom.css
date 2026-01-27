@@ -1,0 +1,13 @@
+.nav-bar {
+    padding-top: 12px;
+    padding-bottom: 8px;
+    padding-left: 8px;
+}
+
+.name {
+    font-weight: bold;
+}
+
+#the-messages {
+    margin: 18px;
+}

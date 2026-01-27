@@ -1,12 +1,14 @@
 #include <userver/dump/operations_file.hpp>
 
 #include <algorithm>
+#include <cstdio>
 #include <stdexcept>
 #include <utility>
 
 #include <fmt/format.h>
 
 #include <userver/fs/blocking/write.hpp>
+#include <userver/utils/numeric_cast.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -20,7 +22,8 @@ FileWriter::FileWriter(std::string path, boost::filesystem::perms perms, tracing
     : final_path_(std::move(path)),
       path_(final_path_ + ".tmp"),
       perms_(perms),
-      cpu_relax_(kCheckTimeAfterBytes, &scope) {
+      cpu_relax_(kCheckTimeAfterBytes, &scope)
+{
     constexpr fs::blocking::OpenMode mode{fs::blocking::OpenFlag::kWrite, fs::blocking::OpenFlag::kExclusiveCreate};
     const auto tmp_perms = perms_ | boost::filesystem::perms::owner_write;
 
@@ -54,7 +57,9 @@ void FileWriter::Finish() {
     }
 }
 
-FileReader::FileReader(std::string path) : path_(std::move(path)) {
+FileReader::FileReader(std::string path)
+    : path_(std::move(path))
+{
     try {
         file_ = fs::blocking::CFile(path_, fs::blocking::OpenFlag::kRead);
     } catch (const std::exception& ex) {
@@ -77,6 +82,16 @@ std::string_view FileReader::ReadRaw(std::size_t max_size) {
     }
 
     return {curr_chunk_.data(), bytes_read};
+}
+
+void FileReader::BackUp(std::size_t size) {
+    if (std::fseek(file_.GetNative(), -utils::numeric_cast<long>(size), SEEK_CUR)) {
+        throw std::system_error(
+            std::ferror(file_.GetNative()),
+            std::generic_category(),
+            "calling fseek, probably trying to BackUp more bytes than returned by the last ReadRaw"
+        );
+    }
 }
 
 void FileReader::Finish() {
@@ -109,7 +124,9 @@ void FileReader::Finish() {
     }
 }
 
-FileOperationsFactory::FileOperationsFactory(boost::filesystem::perms perms) : perms_(perms) {}
+FileOperationsFactory::FileOperationsFactory(boost::filesystem::perms perms)
+    : perms_(perms)
+{}
 
 std::unique_ptr<Reader> FileOperationsFactory::CreateReader(std::string full_path) {
     return std::make_unique<FileReader>(std::move(full_path));

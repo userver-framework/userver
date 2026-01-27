@@ -23,15 +23,6 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace utils {
-
-template <class Tag, class T, utils::StrongTypedefOps Ops>
-static void PrintTo(const utils::StrongTypedef<Tag, T, Ops>& v, std::ostream* os) {
-    ::testing::internal::UniversalTersePrint(v.GetUnderlying(), os);
-}
-
-}  // namespace utils
-
 namespace {
 
 struct IntTag {};
@@ -115,7 +106,7 @@ TEST(SerializeStrongTypedef, ParseOptionalIntNone) {
 }
 
 TEST(SerializeStrongTypedef, SerializeCycleInt) {
-    IntTypedef reference{10};
+    const IntTypedef reference{10};
     // Serialize
     auto json_object = formats::json::ValueBuilder(reference).ExtractValue();
 
@@ -139,7 +130,7 @@ TEST(SerializeStrongTypedef, SerializeCycleOptionalInt) {
 }
 
 TEST(SerializeStrongTypedef, SerializeCycleOptionalIntNone) {
-    OptionalIntTypedef reference{boost::none};
+    const OptionalIntTypedef reference{boost::none};
     // Serialize
     auto json_object = formats::json::ValueBuilder(reference).ExtractValue();
 
@@ -190,8 +181,10 @@ TEST(SerializeStrongTypedef, ToString) {
         utils::StrongTypedef<struct StringTagStrong, std::string, utils::StrongTypedefOps::kCompareStrong>;
     using StringTypedefCompareTransparent =
         utils::StrongTypedef<struct StringTagTransparent, std::string, utils::StrongTypedefOps::kCompareTransparent>;
-    using StringTypedefCompareTransparentOnly = utils::
-        StrongTypedef<struct StringTagTransparentOnly, std::string, utils::StrongTypedefOps::kCompareTransparentOnly>;
+    using StringTypedefCompareTransparentOnly = utils::StrongTypedef<
+        struct StringTagTransparentOnly,
+        std::string,
+        utils::StrongTypedefOps::kCompareTransparentOnly>;
 
     using UInt64Typedef = utils::StrongTypedef<struct UInt64Tag, uint64_t>;
 

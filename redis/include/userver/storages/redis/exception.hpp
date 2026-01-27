@@ -10,7 +10,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis {
 
 /// Generic redis-related exception
 class Exception : public std::runtime_error {
@@ -62,6 +62,6 @@ public:
     using Exception::Exception;
 };
 
-}  // namespace redis
+}  // namespace storages::redis
 
 USERVER_NAMESPACE_END

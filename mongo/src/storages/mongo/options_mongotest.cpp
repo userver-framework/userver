@@ -2,12 +2,13 @@
 #include <chrono>
 #include <string>
 
-#include <storages/mongo/dynamic_config.hpp>
 #include <storages/mongo/util_mongotest.hpp>
 #include <userver/formats/bson.hpp>
 #include <userver/storages/mongo/collection.hpp>
 #include <userver/storages/mongo/exception.hpp>
 #include <userver/storages/mongo/pool.hpp>
+
+#include <dynamic_config/variables/MONGO_DEFAULT_MAX_TIME_MS.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -49,7 +50,8 @@ bool IsCollectionWriteConcernTimeout(mongo::Collection& collection, const mongo:
 
     for (std::size_t attempt = 0; attempt < kMaxAttempts; ++attempt) {
         if (IsWriteConcernTimeoutResult(collection.Execute(insert_op)) ||
-            IsWriteConcernTimeoutResult(collection.Execute(delete_op))) {
+            IsWriteConcernTimeoutResult(collection.Execute(delete_op)))
+        {
             return true;
         }
     }
@@ -155,10 +157,12 @@ UTEST_F(Options, DISABLED_SkipLimit) {  // TODO: TAXICOMMON-8662
     }
 
     UEXPECT_THROW(
-        coll.CountApprox(mongo::options::Skip{static_cast<size_t>(-1)}), mongo::InvalidQueryArgumentException
+        coll.CountApprox(mongo::options::Skip{static_cast<size_t>(-1)}),
+        mongo::InvalidQueryArgumentException
     );
     UEXPECT_THROW(
-        coll.CountApprox(mongo::options::Limit{static_cast<size_t>(-1)}), mongo::InvalidQueryArgumentException
+        coll.CountApprox(mongo::options::Limit{static_cast<size_t>(-1)}),
+        mongo::InvalidQueryArgumentException
     );
 }
 
@@ -229,7 +233,8 @@ UTEST_F(Options, Projection) {
         EXPECT_EQ(3, (*doc)["arr"][0].As<int>());
     }
     UEXPECT_THROW(
-        coll.FindOne({}, mongo::options::Projection{}.Slice("arr", -1, 2)), mongo::InvalidQueryArgumentException
+        coll.FindOne({}, mongo::options::Projection{}.Slice("arr", -1, 2)),
+        mongo::InvalidQueryArgumentException
     );
     {
         auto doc = coll.FindOne({}, mongo::options::Projection{"a"}.Slice("arr", 2, -3));
@@ -277,9 +282,9 @@ UTEST_F(Options, ProjectionTwo) {
         bson::MakeDoc("a", 1, "b", "2", "doc", bson::MakeDoc("a", nullptr, "b", 0), "arr", bson::MakeArray(0, 1, 2, 3))
     );
 
-    const auto kDummyUpdate = bson::MakeDoc("$set", bson::MakeDoc("a", 1));
+    const auto dummy_update = bson::MakeDoc("$set", bson::MakeDoc("a", 1));
     {
-        auto result = coll.FindAndModify({}, kDummyUpdate, mongo::options::Projection{});
+        auto result = coll.FindAndModify({}, dummy_update, mongo::options::Projection{});
         EXPECT_EQ(1, result.MatchedCount());
         EXPECT_EQ(1, result.ModifiedCount());
         EXPECT_EQ(0, result.UpsertedCount());
@@ -291,7 +296,7 @@ UTEST_F(Options, ProjectionTwo) {
         EXPECT_EQ(5, doc.GetSize());
     }
     {
-        auto result = coll.FindAndModify({}, kDummyUpdate, mongo::options::Projection{"_id"});
+        auto result = coll.FindAndModify({}, dummy_update, mongo::options::Projection{"_id"});
         EXPECT_EQ(1, result.MatchedCount());
         EXPECT_EQ(1, result.ModifiedCount());
         EXPECT_EQ(0, result.UpsertedCount());
@@ -304,7 +309,7 @@ UTEST_F(Options, ProjectionTwo) {
         EXPECT_TRUE(doc.HasMember("_id"));
     }
     {
-        auto result = coll.FindAndModify({}, kDummyUpdate, mongo::options::Projection{"a"});
+        auto result = coll.FindAndModify({}, dummy_update, mongo::options::Projection{"a"});
         EXPECT_EQ(1, result.MatchedCount());
         EXPECT_EQ(1, result.ModifiedCount());
         EXPECT_EQ(0, result.UpsertedCount());
@@ -319,7 +324,9 @@ UTEST_F(Options, ProjectionTwo) {
     }
     {
         auto result = coll.FindAndModify(
-            {}, kDummyUpdate, mongo::options::Projection{"a"}.Exclude("_id").Include("b").Include("arr")
+            {},
+            dummy_update,
+            mongo::options::Projection{"a"}.Exclude("_id").Include("b").Include("arr")
         );
         EXPECT_EQ(1, result.MatchedCount());
         EXPECT_EQ(1, result.ModifiedCount());
@@ -335,8 +342,8 @@ UTEST_F(Options, ProjectionTwo) {
         EXPECT_TRUE(doc["arr"].IsArray());
     }
     {
-        auto result =
-            coll.FindAndModify({}, kDummyUpdate, mongo::options::Projection{}.Exclude("_id").Exclude("doc.a"));
+        auto
+            result = coll.FindAndModify({}, dummy_update, mongo::options::Projection{}.Exclude("_id").Exclude("doc.a"));
         EXPECT_EQ(1, result.MatchedCount());
         EXPECT_EQ(1, result.ModifiedCount());
         EXPECT_EQ(0, result.UpsertedCount());
@@ -363,11 +370,13 @@ UTEST_F(Options, ProjectionThree) {
         bson::MakeDoc("a", 1, "b", "2", "doc", bson::MakeDoc("a", nullptr, "b", 0), "arr", bson::MakeArray(0, 1, 2, 3))
     );
 
-    const auto kDummyUpdate = bson::MakeDoc("$set", bson::MakeDoc("a", 1));
+    const auto dummy_update = bson::MakeDoc("$set", bson::MakeDoc("a", 1));
 
     {
         auto result = coll.FindAndModify(
-            bson::MakeDoc("arr", bson::MakeDoc("$gt", 0)), kDummyUpdate, mongo::options::Projection{"arr.$"}
+            bson::MakeDoc("arr", bson::MakeDoc("$gt", 0)),
+            dummy_update,
+            mongo::options::Projection{"arr.$"}
         );
         EXPECT_EQ(1, result.MatchedCount());
         EXPECT_EQ(1, result.ModifiedCount());
@@ -384,7 +393,7 @@ UTEST_F(Options, ProjectionThree) {
         EXPECT_EQ(1, doc["arr"][0].As<int>());
     }
     {
-        auto result = coll.FindAndModify({}, kDummyUpdate, mongo::options::Projection{}.Slice("arr", -1));
+        auto result = coll.FindAndModify({}, dummy_update, mongo::options::Projection{}.Slice("arr", -1));
         EXPECT_EQ(1, result.MatchedCount());
         EXPECT_EQ(1, result.ModifiedCount());
         EXPECT_EQ(0, result.UpsertedCount());
@@ -403,11 +412,11 @@ UTEST_F(Options, ProjectionThree) {
         EXPECT_EQ(3, doc["arr"][0].As<int>());
     }
     UEXPECT_THROW(
-        coll.FindAndModify({}, kDummyUpdate, mongo::options::Projection{}.Slice("arr", -1, 2)),
+        coll.FindAndModify({}, dummy_update, mongo::options::Projection{}.Slice("arr", -1, 2)),
         mongo::InvalidQueryArgumentException
     );
     {
-        auto result = coll.FindAndModify({}, kDummyUpdate, mongo::options::Projection{"a"}.Slice("arr", 2, -3));
+        auto result = coll.FindAndModify({}, dummy_update, mongo::options::Projection{"a"}.Slice("arr", 2, -3));
         EXPECT_EQ(1, result.MatchedCount());
         EXPECT_EQ(1, result.ModifiedCount());
         EXPECT_EQ(0, result.UpsertedCount());
@@ -425,7 +434,7 @@ UTEST_F(Options, ProjectionThree) {
         EXPECT_EQ(2, doc["arr"][1].As<int>());
     }
     {
-        auto result = coll.FindAndModify({}, kDummyUpdate, mongo::options::Projection{"a"}.ElemMatch("arr", {}));
+        auto result = coll.FindAndModify({}, dummy_update, mongo::options::Projection{"a"}.ElemMatch("arr", {}));
         EXPECT_EQ(1, result.MatchedCount());
         EXPECT_EQ(1, result.ModifiedCount());
         EXPECT_EQ(0, result.UpsertedCount());
@@ -440,7 +449,9 @@ UTEST_F(Options, ProjectionThree) {
     }
     {
         auto result = coll.FindAndModify(
-            {}, kDummyUpdate, mongo::options::Projection{"a"}.ElemMatch("arr", bson::MakeDoc("$bitsAllSet", 2))
+            {},
+            dummy_update,
+            mongo::options::Projection{"a"}.ElemMatch("arr", bson::MakeDoc("$bitsAllSet", 2))
         );
         EXPECT_EQ(1, result.MatchedCount());
         EXPECT_EQ(1, result.ModifiedCount());
@@ -458,7 +469,7 @@ UTEST_F(Options, ProjectionThree) {
         EXPECT_EQ(2, doc["arr"][0].As<int>());
     }
     {
-        auto result = coll.FindAndModify({}, kDummyUpdate, mongo::options::Projection{"doc.b"});
+        auto result = coll.FindAndModify({}, dummy_update, mongo::options::Projection{"doc.b"});
         EXPECT_EQ(1, result.MatchedCount());
         EXPECT_EQ(1, result.ModifiedCount());
         EXPECT_EQ(0, result.UpsertedCount());
@@ -502,7 +513,8 @@ UTEST_F(Options, Sort) {
     }
     {
         auto doc = coll.FindOne(
-            {}, mongo::options::Sort{{"a", mongo::options::Sort::kAscending}, {"b", mongo::options::Sort::kAscending}}
+            {},
+            mongo::options::Sort{{"a", mongo::options::Sort::kAscending}, {"b", mongo::options::Sort::kAscending}}
         );
         ASSERT_TRUE(doc);
         EXPECT_EQ(0, (*doc)["a"].As<int>());
@@ -510,7 +522,8 @@ UTEST_F(Options, Sort) {
     }
     {
         auto doc = coll.FindOne(
-            {}, mongo::options::Sort{{"b", mongo::options::Sort::kAscending}, {"a", mongo::options::Sort::kAscending}}
+            {},
+            mongo::options::Sort{{"b", mongo::options::Sort::kAscending}, {"a", mongo::options::Sort::kAscending}}
         );
         ASSERT_TRUE(doc);
         EXPECT_EQ(1, (*doc)["a"].As<int>());
@@ -564,7 +577,8 @@ UTEST_F(Options, Sort) {
     }
     {
         auto result = coll.FindAndRemove(
-            {}, mongo::options::Sort{{"a", mongo::options::Sort::kAscending}, {"b", mongo::options::Sort::kAscending}}
+            {},
+            mongo::options::Sort{{"a", mongo::options::Sort::kAscending}, {"b", mongo::options::Sort::kAscending}}
         );
         EXPECT_EQ(1, result.MatchedCount());
         EXPECT_EQ(1, result.DeletedCount());
@@ -578,7 +592,8 @@ UTEST_F(Options, Sort) {
     }
     {
         auto result = coll.FindAndRemove(
-            {}, mongo::options::Sort{{"b", mongo::options::Sort::kAscending}, {"a", mongo::options::Sort::kAscending}}
+            {},
+            mongo::options::Sort{{"b", mongo::options::Sort::kAscending}, {"a", mongo::options::Sort::kAscending}}
         );
         EXPECT_EQ(1, result.MatchedCount());
         EXPECT_EQ(1, result.DeletedCount());
@@ -601,6 +616,11 @@ UTEST_F(Options, Hint) {
     UEXPECT_NO_THROW(
         coll.UpdateMany({}, bson::MakeDoc("$set", bson::MakeDoc("a", "b")), mongo::options::Hint{"some_index"})
     );
+
+    UEXPECT_NO_THROW(coll.Count({}, mongo::options::Hint{"some_index"}));
+
+    UEXPECT_NO_THROW(coll.DeleteOne(bson::MakeDoc("_id", 1), mongo::options::Hint{"some_index"}));
+    UEXPECT_NO_THROW(coll.DeleteMany({}, mongo::options::Hint{"some_index"}));
 }
 
 UTEST_F(Options, AllowPartialResults) {
@@ -631,7 +651,8 @@ UTEST_F(Options, MaxServerTime) {
     );
     UEXPECT_THROW(
         coll.Find(
-            bson::MakeDoc("$where", "sleep(100) || true"), mongo::options::MaxServerTime{std::chrono::milliseconds{50}}
+            bson::MakeDoc("$where", "sleep(100) || true"),
+            mongo::options::MaxServerTime{std::chrono::milliseconds{50}}
         ),
         storages::mongo::ServerException
     );
@@ -641,7 +662,7 @@ UTEST_F(Options, MaxServerTime) {
 }
 
 UTEST_F(Options, DefaultMaxServerTime) {
-    SetDynamicConfig({{mongo::kDefaultMaxTime, std::chrono::milliseconds{123}}});
+    SetDynamicConfig({{::dynamic_config::MONGO_DEFAULT_MAX_TIME_MS, std::chrono::milliseconds{123}}});
     auto coll = GetDefaultPool().GetCollection("max_server_time");
 
     coll.InsertOne(bson::MakeDoc("x", 1));
@@ -664,18 +685,20 @@ UTEST_F(Options, WriteConcern) {
     auto coll = GetDefaultPool().GetCollection("write_concern");
 
     UEXPECT_NO_THROW(coll.InsertOne(
-        {}, mongo::options::WriteConcern{mongo::options::WriteConcern::kMajority}.SetTimeout(utest::kMaxTestWaitTime)
+        {},
+        mongo::options::WriteConcern{mongo::options::WriteConcern::kMajority}.SetTimeout(utest::kMaxTestWaitTime)
     ));
     UEXPECT_NO_THROW(coll.InsertOne({}, mongo::options::WriteConcern::kUnacknowledged));
     UEXPECT_NO_THROW(coll.InsertOne({}, mongo::options::WriteConcern{1}));
     UEXPECT_NO_THROW(coll.InsertOne(
         {},
-        mongo::options::WriteConcern{mongo::options::WriteConcern::kMajority}.SetJournal(false).SetTimeout(
-            utest::kMaxTestWaitTime
-        )
+        mongo::options::WriteConcern{mongo::options::WriteConcern::kMajority}
+            .SetJournal(false)
+            .SetTimeout(utest::kMaxTestWaitTime)
     ));
     UEXPECT_THROW(
-        coll.InsertOne({}, mongo::options::WriteConcern{static_cast<size_t>(-1)}), mongo::InvalidQueryArgumentException
+        coll.InsertOne({}, mongo::options::WriteConcern{static_cast<size_t>(-1)}),
+        mongo::InvalidQueryArgumentException
     );
     UEXPECT_THROW(coll.InsertOne({}, mongo::options::WriteConcern{10}), mongo::ServerException);
     UEXPECT_THROW(coll.InsertOne({}, mongo::options::WriteConcern{"test"}), mongo::ServerException);
@@ -690,9 +713,9 @@ UTEST_F(Options, WriteConcern) {
     UEXPECT_NO_THROW(coll.FindAndModify(
         {},
         {},
-        mongo::options::WriteConcern{mongo::options::WriteConcern::kMajority}.SetJournal(false).SetTimeout(
-            utest::kMaxTestWaitTime
-        )
+        mongo::options::WriteConcern{mongo::options::WriteConcern::kMajority}
+            .SetJournal(false)
+            .SetTimeout(utest::kMaxTestWaitTime)
     ));
     UEXPECT_THROW(
         coll.FindAndModify({}, {}, mongo::options::WriteConcern{static_cast<size_t>(-1)}),
@@ -845,23 +868,25 @@ UTEST_F(Options, ArrayFilters) {
         EXPECT_TRUE(result.ServerErrors().empty());
         EXPECT_TRUE(result.WriteConcernErrors().empty());
     }
-
     {
-        auto result = coll.UpdateMany(
-            {},
-            bson::MakeDoc("$set", bson::MakeDoc("grades.$[elem]", 101)),
-            mongo::options::ArrayFilters({bson::MakeDoc("elem", bson::MakeDoc("$gte", 100))})
+        std::vector<formats::bson::Document>
+            filters{bson::MakeDoc("low", bson::MakeDoc("$lt", 95)), bson::MakeDoc("high", bson::MakeDoc("$gte", 95))};
+        auto result = coll.UpdateOne(
+            bson::MakeDoc("_id", 1),
+            bson::MakeDoc("$set", bson::MakeDoc("grades.$[low]", 90, "grades.$[high]", 100)),
+            mongo::options::ArrayFilters(filters.begin(), filters.end())
         );
 
         EXPECT_TRUE(result.ServerErrors().empty());
         EXPECT_TRUE(result.WriteConcernErrors().empty());
     }
-
     {
+        std::vector<formats::bson::Document> empty_filters;
+
         UEXPECT_NO_THROW(coll.FindAndModify(
             bson::MakeDoc("_id", 1),
-            bson::MakeDoc("$set", bson::MakeDoc("grades.$[elem]", 100)),
-            mongo::options::ArrayFilters({bson::MakeDoc("elem", bson::MakeDoc("$gte", 100))})
+            bson::MakeDoc("$set", bson::MakeDoc("grades", bson::MakeArray(100, 100, 100))),
+            mongo::options::ArrayFilters(empty_filters.begin(), empty_filters.end())
         ));
     }
 }

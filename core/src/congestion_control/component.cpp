@@ -1,7 +1,7 @@
 #include <userver/congestion_control/component.hpp>
+#include <userver/congestion_control/controller.hpp>
 
 #include <congestion_control/watchdog.hpp>
-#include <userver/congestion_control/config.hpp>
 #include <userver/server/congestion_control/sensor.hpp>
 
 #include <userver/components/component.hpp>
@@ -14,6 +14,13 @@
 #include <userver/server/component.hpp>
 #include <userver/server/server.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
+
+#include <dynamic_config/variables/USERVER_RPS_CCONTROL_ACTIVATED_FACTOR_METRIC.hpp>
+#include <dynamic_config/variables/USERVER_RPS_CCONTROL_ENABLED.hpp>
+
+#ifndef ARCADIA_ROOT
+#include "generated/src/congestion_control/component.yaml.hpp"  // Y_IGNORE
+#endif
 
 USERVER_NAMESPACE_BEGIN
 
@@ -63,7 +70,6 @@ struct Component::Impl {
 
     // These subscriptions and tasks must be the last fields!
     Watchdog wd;
-    utils::statistics::Entry statistics_holder;
     concurrent::AsyncEventSubscriberScope config_subscription;
     // See the comment above before adding new fields.
 
@@ -72,7 +78,8 @@ struct Component::Impl {
           server(server),
           server_sensor(tp),
           server_controller(kServerControllerName, dynamic_config),
-          fake_mode(fake_mode) {
+          fake_mode(fake_mode)
+    {
         server_limiter.RegisterLimitee(server);
         server_sensor.RegisterRequestsSource(server);
     }
@@ -85,15 +92,18 @@ Component::Component(const components::ComponentConfig& config, const components
           context.FindComponent<components::Server>().GetServer(),
           engine::current_task::GetTaskProcessor(),
           config["fake-mode"].As<bool>(false)
-      ) {
+      )
+{
     auto min_threads = config["min-cpu"].As<size_t>(1);
     auto only_rtc = config["only-rtc"].As<bool>(true);
 
     pimpl_->server.SetRpsRatelimitStatusCode(static_cast<server::http::HttpStatus>(config["status-code"].As<int>(429)));
 
     if (!pimpl_->fake_mode && only_rtc && !hostinfo::IsInRtc()) {
-        LOG_WARNING() << "Started outside of RTC, forcing fake-mode";
-        pimpl_->fake_mode = true;
+        throw std::runtime_error(
+            "Started outside of RTC, don't know how to get number of CPU cores. You have to pass CPU_LIMIT environment "
+            "variable with the correct value in order CC to work properly."
+        );
     }
 
     auto cpu_limit = hostinfo::CpuLimit().value_or(0);
@@ -108,41 +118,40 @@ Component::Component(const components::ComponentConfig& config, const components
     }
 
     if (pimpl_->fake_mode) {
-        LOG_WARNING() << "congestion_control is started in fake-mode, no RPS limit "
-                         "is enforced";
+        LOG_WARNING()
+            << "congestion_control is started in fake-mode, no RPS limit "
+               "is enforced";
     }
 
     pimpl_->wd.Register({pimpl_->server_sensor, pimpl_->server_limiter, pimpl_->server_controller});
 
     pimpl_->config_subscription = pimpl_->dynamic_config.UpdateAndListen(this, kName, &Component::OnConfigUpdate);
 
-    auto& storage = context.FindComponent<components::StatisticsStorage>().GetStorage();
-    pimpl_->statistics_holder =
-        storage.RegisterWriter(std::string{kName}, [this](utils::statistics::Writer& writer) { ExtendWriter(writer); });
+    utils::statistics::RegisterWriterScope(context, std::string{kName}, [this](utils::statistics::Writer& writer) {
+        ExtendWriter(writer);
+    });
 }
 
-Component::~Component() {
-    pimpl_->config_subscription.Unsubscribe();
-    pimpl_->statistics_holder.Unregister();
-}
+Component::~Component() { pimpl_->config_subscription.Unsubscribe(); }
 
 void Component::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
-    const auto& conf = cfg[impl::kRpsCcConfig];
-    const bool is_enabled_dynamic = conf.is_enabled;
-    pimpl_->last_activate_factor = conf.activate_factor;
+    const bool is_enabled_dynamic = cfg[::dynamic_config::USERVER_RPS_CCONTROL_ENABLED];
+    pimpl_->last_activate_factor = cfg[::dynamic_config::USERVER_RPS_CCONTROL_ACTIVATED_FACTOR_METRIC];
 
     bool enabled = !pimpl_->fake_mode.load() && !pimpl_->force_disabled.load();
     if (enabled && !is_enabled_dynamic) {
-        LOG_INFO() << "Congestion control is explicitly disabled in "
-                      "USERVER_RPS_CCONTROL_ENABLED config";
+        LOG_INFO()
+            << "Congestion control is explicitly disabled in "
+               "USERVER_RPS_CCONTROL_ENABLED config";
         enabled = false;
     }
     pimpl_->server_controller.SetEnabled(enabled);
 }
 
 void Component::OnAllComponentsLoaded() {
-    LOG_DEBUG() << "Found " << pimpl_->server.GetThrottlableHandlersCount()
-                << " registered HTTP handlers with enabled throttling";
+    LOG_DEBUG()
+        << "Found " << pimpl_->server.GetThrottlableHandlersCount()
+        << " registered HTTP handlers with enabled throttling";
     if (pimpl_->server.GetThrottlableHandlersCount() == 0) {
         pimpl_->force_disabled = true;
         LOG_WARNING() << "No throttlable HTTP handlers registered, disabling";
@@ -165,29 +174,10 @@ server::congestion_control::Limiter& Component::GetServerLimiter() { return pimp
 
 server::congestion_control::Sensor& Component::GetServerSensor() { return pimpl_->server_sensor; }
 
+const congestion_control::Controller& Component::GetServerController() const { return pimpl_->server_controller; }
+
 yaml_config::Schema Component::GetStaticConfigSchema() {
-    return yaml_config::MergeSchemas<components::ComponentBase>(R"(
-type: object
-description: Component to limit too active requests, also known as CC.
-additionalProperties: false
-properties:
-    fake-mode:
-        type: boolean
-        description: if set, an actual throttling is skipped, but FSM is still working and producing informational logs
-        defaultDescription: false
-    min-cpu:
-        type: integer
-        description: force fake-mode if the current cpu number is less than the specified value
-        defaultDescription: 1
-    only-rtc:
-        type: boolean
-        description: if set to true and hostinfo::IsInRtc() returns false then forces the fake-mode
-        defaultDescription: true
-    status-code:
-        type: integer
-        description: HTTP status code for ratelimited responses
-        defaultDescription: 429
-)");
+    return yaml_config::MergeSchemasFromResource<components::ComponentBase>("src/congestion_control/component.yaml");
 }
 
 }  // namespace congestion_control

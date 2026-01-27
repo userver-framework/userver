@@ -29,6 +29,13 @@ public:
     using NodePtr = SinglyLinkedBaseHook*;
     using NodeRef = utils::NotNull<NodePtr>;
 
+    enum class PopMode {
+        // See TryPopBlocking.
+        kRarelyBlocking,
+        // See TryPopWeak.
+        kWeak,
+    };
+
     constexpr IntrusiveMpscQueueImpl() = default;
 
     IntrusiveMpscQueueImpl(IntrusiveMpscQueueImpl&&) = delete;
@@ -53,7 +60,7 @@ public:
     // Can only be called from one thread at a time.
     NodePtr TryPopBlocking() noexcept;
 
-    // Returns the oldest pushed not, or `nullptr` if the queue "seems to be"
+    // Returns the oldest pushed node, or `nullptr` if the queue "seems to be"
     // empty. Can only be called from one thread at a time.
     // Unlike TryPopBlocking, never blocks, but this comes at a cost: it might
     // not return an item that has been completely pushed (happens-before).
@@ -63,6 +70,9 @@ public:
     // pushed concurrently, then one producer is randomly chosen to be
     // responsible for pushing both items, and the other producer walks away,
     // and for them the push operation is essentially pushed asynchronously.
+    //
+    // In addition to that, the last remaining item in the queue may not be
+    // returned if the push of a second item has started.
     //
     // If the producers always notify the consumer after pushing,
     // then TryPopWeak is enough: the consumer will be notified of all
@@ -74,15 +84,11 @@ public:
     // upon the notification.
     NodePtr TryPopWeak() noexcept;
 
+    // See TryPopBlocking and TryPopWeak.
+    NodePtr TryPop(PopMode pop_mode) noexcept;
+
 private:
-    enum class PopMode {
-        kRarelyBlocking,
-        kWeak,
-    };
-
     static std::atomic<NodePtr>& GetNext(NodeRef node) noexcept;
-
-    NodePtr DoTryPop(PopMode) noexcept;
 
     // This node is put into the queue when it would otherwise be empty.
     SinglyLinkedBaseHook stub_;
@@ -108,6 +114,8 @@ public:
     T* TryPopBlocking() noexcept { return static_cast<T*>(impl_.TryPopBlocking()); }
 
     T* TryPopWeak() noexcept { return static_cast<T*>(impl_.TryPopWeak()); }
+
+    T* TryPop(IntrusiveMpscQueueImpl::PopMode pop_mode) noexcept { return static_cast<T*>(impl_.TryPop(pop_mode)); }
 
 private:
     IntrusiveMpscQueueImpl impl_;

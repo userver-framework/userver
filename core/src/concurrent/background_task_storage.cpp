@@ -9,23 +9,30 @@ USERVER_NAMESPACE_BEGIN
 namespace concurrent {
 
 BackgroundTaskStorageCore::BackgroundTaskStorageCore()
-    : sync_block_(std::in_place, engine::impl::DetachedTasksSyncBlock::StopMode::kCancelAndWait) {}
+    : sync_block_(std::in_place, engine::impl::DetachedTasksSyncBlock::StopMode::kCancelAndWait)
+{}
 
 BackgroundTaskStorageCore::~BackgroundTaskStorageCore() {
-    if (!sync_block_) return;
+    if (!sync_block_) {
+        return;
+    }
     sync_block_->RequestCancellation(engine::TaskCancellationReason::kAbandoned);
 }
 
 void BackgroundTaskStorageCore::CancelAndWait() noexcept {
     UASSERT_MSG(sync_block_, "CancelAndWait should be called no more than once");
-    if (!sync_block_) return;
+    if (!sync_block_) {
+        return;
+    }
     sync_block_->RequestCancellation(engine::TaskCancellationReason::kUserRequest);
     sync_block_.reset();
 }
 
 void BackgroundTaskStorageCore::CloseAndWaitDebug() noexcept {
     UASSERT_MSG(sync_block_, "CloseAndWaitDebug should be called no more than once");
-    if (!sync_block_) return;
+    if (!sync_block_) {
+        return;
+    }
     sync_block_->WaitAllTasksCompleteDebug();
     sync_block_.reset();
 }
@@ -37,13 +44,19 @@ void BackgroundTaskStorageCore::Detach(engine::Task&& task) {
 
 std::int64_t BackgroundTaskStorageCore::ActiveTasksApprox() const noexcept {
     UASSERT_MSG(sync_block_, "Trying to get the task count for a dead BTS");
-    if (!sync_block_) return 0;
+    if (!sync_block_) {
+        return 0;
+    }
     return sync_block_->ActiveTasksApprox();
 }
 
-BackgroundTaskStorage::BackgroundTaskStorage() : BackgroundTaskStorage(engine::current_task::GetTaskProcessor()) {}
+BackgroundTaskStorage::BackgroundTaskStorage()
+    : BackgroundTaskStorage(engine::current_task::GetTaskProcessor())
+{}
 
-BackgroundTaskStorage::BackgroundTaskStorage(engine::TaskProcessor& task_processor) : task_processor_(task_processor) {}
+BackgroundTaskStorage::BackgroundTaskStorage(engine::TaskProcessor& task_processor)
+    : task_processor_(task_processor)
+{}
 
 void BackgroundTaskStorage::CancelAndWait() noexcept { core_.CancelAndWait(); }
 

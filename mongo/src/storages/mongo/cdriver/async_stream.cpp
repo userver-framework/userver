@@ -102,7 +102,9 @@ private:
 };
 
 engine::Deadline DeadlineFromTimeoutMs(int32_t timeout_ms) {
-    if (timeout_ms < 0) return {};
+    if (timeout_ms < 0) {
+        return {};
+    }
     if (!timeout_ms) {
         return engine::Deadline::Passed();
     }
@@ -128,7 +130,7 @@ engine::io::Socket ConnectUnix(const mongoc_host_list_t& host, int32_t timeout_m
     std::memcpy(sa->sun_path, host.host, host_len);
 
     try {
-        engine::TaskCancellationBlocker block_cancel;
+        const engine::TaskCancellationBlocker block_cancel;
         engine::io::Socket socket{addr.Domain(), engine::io::SocketType::kStream};
         socket.Connect(addr, DeadlineFromTimeoutMs(timeout_ms));
         return socket;
@@ -141,7 +143,11 @@ engine::io::Socket ConnectUnix(const mongoc_host_list_t& host, int32_t timeout_m
         LOG_INFO() << "Cannot connect to UNIX socket '" << host.host << "': " << ex;
     }
     bson_set_error(
-        error, MONGOC_ERROR_STREAM, MONGOC_ERROR_STREAM_CONNECT, "Cannot connect to UNIX socket '%s'", host.host
+        error,
+        MONGOC_ERROR_STREAM,
+        MONGOC_ERROR_STREAM_CONNECT,
+        "Cannot connect to UNIX socket '%s'",
+        host.host
     );
     return {};
 }
@@ -167,37 +173,26 @@ clients::dns::AddrVector GetaddrInfo(const mongoc_host_list_t& host, bson_error_
     }
 
     clients::dns::AddrVector result;
-    AddrinfoPtr ai_result(ai_result_raw);
+    const AddrinfoPtr ai_result(ai_result_raw);
     for (auto* res = ai_result.get(); res; res = res->ai_next) {
-        engine::io::Sockaddr current_addr(res->ai_addr);
+        const engine::io::Sockaddr current_addr(res->ai_addr);
         result.push_back(current_addr);
     }
     return result;
 }
 
-engine::io::Socket ConnectTcpByName(
+engine::io::Socket DoConnectTcpByName(
     const mongoc_host_list_t& host,
     int32_t timeout_ms,
     bson_error_t* error,
     clients::dns::Resolver* dns_resolver
 ) {
-    if (!IsTcpConnectAllowed(host.host_and_port)) {
-        bson_set_error(
-            error,
-            MONGOC_ERROR_STREAM,
-            MONGOC_ERROR_STREAM_CONNECT,
-            "Too many connection errors in recent period for %s",
-            host.host_and_port
-        );
-        return {};
-    }
-
     const auto deadline = DeadlineFromTimeoutMs(timeout_ms);
     try {
         auto addrs = dns_resolver ? dns_resolver->Resolve(host.host, deadline) : GetaddrInfo(host, error);
         for (auto&& current_addr : addrs) {
             try {
-                engine::TaskCancellationBlocker block_cancel;
+                const engine::TaskCancellationBlocker block_cancel;
                 current_addr.SetPort(host.port);
                 engine::io::Socket socket{current_addr.Domain(), engine::io::SocketType::kStream};
                 socket.SetOption(IPPROTO_TCP, TCP_NODELAY, 1);
@@ -205,8 +200,7 @@ engine::io::Socket ConnectTcpByName(
                 ReportTcpConnectSuccess(host.host_and_port);
                 return socket;
             } catch (const engine::io::IoCancelled& ex) {
-                UASSERT_MSG(false, "Cancellation is not supported in cdriver implementation");
-
+                ReportTcpConnectError(host.host_and_port);
                 bson_set_error(error, MONGOC_ERROR_STREAM, MONGOC_ERROR_STREAM_CONNECT, "%s", ex.what());
                 return {};
             } catch (const engine::io::IoException& ex) {
@@ -216,7 +210,11 @@ engine::io::Socket ConnectTcpByName(
     } catch (const clients::dns::ResolverException& ex) {
         LOG_LIMITED_ERROR() << "Cannot resolve " << host.host << ": " << ex;
         bson_set_error(
-            error, MONGOC_ERROR_STREAM, MONGOC_ERROR_STREAM_NAME_RESOLUTION, "Cannot resolve %s", host.host_and_port
+            error,
+            MONGOC_ERROR_STREAM,
+            MONGOC_ERROR_STREAM_NAME_RESOLUTION,
+            "Cannot resolve %s",
+            host.host_and_port
         );
         return {};
     } catch (const std::exception& ex) {
@@ -227,14 +225,57 @@ engine::io::Socket ConnectTcpByName(
     return {};
 }
 
-engine::io::Socket
-Connect(const mongoc_host_list_t* host, int32_t timeout_ms, bson_error_t* error, clients::dns::Resolver* dns_resolver) {
+engine::io::Socket ConnectTcpByName(
+    const mongoc_host_list_t& host,
+    int32_t timeout_ms,
+    bson_error_t* error,
+    clients::dns::Resolver* dns_resolver,
+    concurrent::BackgroundTaskStorage& bts
+) {
+    const auto host_state = CheckTcpConnectionState(host.host_and_port);
+    if (host_state == HostConnectionState::kChecking) {
+        /*
+         * Pessimistically check for TCP connection in background.
+         * It is needed for services with a small number of connections and a periodic task
+         * that uses the same connection every ~3 seconds. It must not experience synchronous probe
+         * delays as it obviously affects response timings.
+         * The background probe does the same check thing, but doesn't slow down the user.
+         *
+         * See https://st.yandex-team.ru/TAXICOMMON-9746 and https://st.yandex-team.ru/TAXICOMMON-9644
+         */
+        bts.AsyncDetach("mongo_probe_tcp_connection", [host, timeout_ms, dns_resolver] {
+            bson_error_t tmp_error;
+            [[maybe_unused]] auto socket = DoConnectTcpByName(host, timeout_ms, &tmp_error, dns_resolver);
+        });
+    }
+
+    if (host_state != HostConnectionState::kAlive) {
+        bson_set_error(
+            error,
+            MONGOC_ERROR_STREAM,
+            MONGOC_ERROR_STREAM_CONNECT,
+            "Too many connection errors in recent period for %s",
+            host.host_and_port
+        );
+        return {};
+    }
+
+    return DoConnectTcpByName(host, timeout_ms, error, dns_resolver);
+}
+
+engine::io::Socket Connect(
+    const mongoc_host_list_t* host,
+    int32_t timeout_ms,
+    bson_error_t* error,
+    clients::dns::Resolver* dns_resolver,
+    concurrent::BackgroundTaskStorage& bts
+) {
     UASSERT(host);
     switch (host->family) {
         case AF_UNSPEC:  // mongoc thinks this is okay
         case AF_INET:
         case AF_INET6:
-            return ConnectTcpByName(*host, timeout_ms, error, dns_resolver);
+            return ConnectTcpByName(*host, timeout_ms, error, dns_resolver, bts);
 
         case AF_UNIX:
             return ConnectUnix(*host, timeout_ms, error);
@@ -281,7 +322,7 @@ public:
     };
 
     Guard Get(uint64_t current_epoch) {
-        Guard guard{poller_, is_locked_};
+        const Guard guard{poller_, is_locked_};
 
         if (seen_epoch_ < current_epoch) {
             poller_.Reset();
@@ -310,8 +351,10 @@ mongoc_stream_t* MakeAsyncStream(
     auto* init_data = static_cast<AsyncStreamInitiatorData*>(user_data);
 
     const auto connect_timeout_ms = mongoc_uri_get_option_as_int32(uri, MONGOC_URI_CONNECTTIMEOUTMS, 5000);
-    auto socket = Connect(host, connect_timeout_ms, error, init_data->dns_resolver);
-    if (!socket) return nullptr;
+    auto socket = Connect(host, connect_timeout_ms, error, init_data->dns_resolver, init_data->bts);
+    if (!socket) {
+        return nullptr;
+    }
 
     auto stream = AsyncStream::Create(std::move(socket));
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
@@ -322,9 +365,9 @@ mongoc_stream_t* MakeAsyncStream(
     const char* mechanism = mongoc_uri_get_auth_mechanism(uri);
     if (mongoc_uri_get_tls(uri) || (mechanism && !std::strcmp(mechanism, "MONGODB-X509"))) {
         {
-            cdriver::StreamPtr wrapped_stream(
-                mongoc_stream_tls_new_with_hostname(stream.get(), host->host, &init_data->ssl_opt, true)
-            );
+            cdriver::StreamPtr
+                wrapped_stream(mongoc_stream_tls_new_with_hostname(stream.get(), host->host, &init_data->ssl_opt, true)
+                );
             if (!wrapped_stream) {
                 bson_set_error(error, MONGOC_ERROR_STREAM, MONGOC_ERROR_STREAM_SOCKET, "Cannot initialize TLS stream");
                 return nullptr;
@@ -341,8 +384,9 @@ mongoc_stream_t* MakeAsyncStream(
     // enable read buffering
     UASSERT(stream);
     UASSERT(
-        stream.get() == async_stream_ptr || (mongoc_stream_get_tls_stream(stream.get()) == stream.get() &&
-                                             mongoc_stream_get_base_stream(stream.get()) == async_stream_ptr)
+        stream.get() == async_stream_ptr ||
+        (mongoc_stream_get_tls_stream(stream.get()) == stream.get() &&
+         mongoc_stream_get_base_stream(stream.get()) == async_stream_ptr)
     );
     async_stream_ptr->SetCreated();
     return stream.release();
@@ -394,12 +438,16 @@ size_t AsyncStream::BufferedRecv(void* data, size_t size, size_t min_bytes, engi
                     // no pending data, can be buffered
                     recv_buffer_bytes_used_ += socket_.RecvSome(recv_buffer_.data(), recv_buffer_.size(), deadline);
                     UASSERT(recv_buffer_bytes_used_ <= recv_buffer_.size());
-                    if (!recv_buffer_bytes_used_) break;  // EOF
+                    if (!recv_buffer_bytes_used_) {
+                        break;  // EOF
+                    }
                 } else {
                     // no pending data, will overflow the buffer, stream directly
                     const auto batch_size = bytes_left - bytes_left % recv_buffer_.size();
                     iter_bytes_stored = socket_.RecvSome(pos, batch_size, deadline);
-                    if (!iter_bytes_stored) break;  // EOF
+                    if (!iter_bytes_stored) {
+                        break;  // EOF
+                    }
                 }
             }
             UASSERT(iter_bytes_stored || (recv_buffer_bytes_used_ > old_recv_buffer_bytes_used));
@@ -415,6 +463,7 @@ size_t AsyncStream::BufferedRecv(void* data, size_t size, size_t min_bytes, engi
 }
 
 cdriver::StreamPtr AsyncStream::Create(engine::io::Socket socket) {
+    // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
     return cdriver::StreamPtr(new AsyncStream(std::move(socket)));
 }
 
@@ -521,23 +570,29 @@ ssize_t AsyncStream::Readv(
 
     size_t recvd_total = 0;
     try {
-        engine::TaskCancellationBlocker block_cancel;
+        const engine::TaskCancellationBlocker block_cancel;
         size_t curr_iov = 0;
         while (curr_iov < iovcnt && (min_bytes > recvd_total || !recvd_total)) {
             const auto recvd_now =
                 self->BufferedRecv(iov[curr_iov].iov_base, iov[curr_iov].iov_len, min_bytes - recvd_total, deadline);
-            if (!recvd_now) break;  // EOF
+            if (!recvd_now) {
+                break;  // EOF
+            }
             recvd_total += recvd_now;
 
             iov[curr_iov].iov_base = reinterpret_cast<char*>(iov[curr_iov].iov_base) + recvd_now;
             iov[curr_iov].iov_len -= recvd_now;
 
-            if (!iov[curr_iov].iov_len) ++curr_iov;
+            if (!iov[curr_iov].iov_len) {
+                ++curr_iov;
+            }
         }
     } catch (const engine::io::IoCancelled&) {
         UASSERT_MSG(false, "Cancellation is not supported in cdriver implementation");
 
-        if (!recvd_total) error = EINVAL;
+        if (!recvd_total) {
+            error = EINVAL;
+        }
     } catch (const engine::io::IoTimeout& timeout_ex) {
         self->is_timed_out_ = true;
         error = ETIMEDOUT;
@@ -556,13 +611,8 @@ ssize_t AsyncStream::Readv(
     return recvd_total;
 }
 
-int AsyncStream::Setsockopt(
-    mongoc_stream_t* stream,
-    int level,
-    int optname,
-    void* optval,
-    mongoc_socklen_t optlen
-) noexcept {
+int AsyncStream::Setsockopt(mongoc_stream_t* stream, int level, int optname, void* optval, mongoc_socklen_t optlen)
+    noexcept {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
     auto* self = static_cast<AsyncStream*>(stream);
     LOG_TRACE() << "Setting socket option for async stream " << self;
@@ -583,7 +633,9 @@ bool AsyncStream::CheckClosed(mongoc_stream_t* base_stream) noexcept {
 
 ssize_t AsyncStream::Poll(mongoc_stream_poll_t* streams, size_t nstreams, int32_t timeout_ms) noexcept {
     LOG_TRACE() << "Polling " << nstreams << " async streams";
-    if (!nstreams) return 0;
+    if (!nstreams) {
+        return 0;
+    }
 
     // We used to have a "mark all streams as errored out (by POLLERR)" logic in
     // case of cancellation, but apparently that leads to the connection being
@@ -617,7 +669,8 @@ ssize_t AsyncStream::Poll(mongoc_stream_poll_t* streams, size_t nstreams, int32_
     try {
         engine::io::Poller::Event poller_event;
         for (auto status = poller->NextEvent(poller_event, deadline); status == engine::io::Poller::Status::kSuccess;
-             status = poller->NextEventNoblock(poller_event)) {
+             status = poller->NextEventNoblock(poller_event))
+        {
             for (size_t i = 0; i < nstreams; ++i) {
                 if (stream_fds[i] == poller_event.fd) {
                     ready += !streams[i].revents;

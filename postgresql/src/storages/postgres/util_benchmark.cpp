@@ -7,6 +7,7 @@
 #include <storages/postgres/detail/connection.hpp>
 #include <userver/engine/run_standalone.hpp>
 #include <userver/storages/postgres/dsn.hpp>
+#include <userver/utils/statistics/metrics_storage.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -46,7 +47,9 @@ void PgConnection::RunStandalone(benchmark::State& state, std::size_t thread_cou
                 {ConnectionSettings::kCachePreparedStatements},
                 DefaultCommandControls(kBenchCmdCtl, {}, {}),
                 {},
-                {}
+                {},
+                {},
+                std::make_shared<USERVER_NAMESPACE::utils::statistics::MetricsStorage>()
             );
         }
 

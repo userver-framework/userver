@@ -34,20 +34,20 @@ template <typename Value>
 using IsFormatValue = typename Value::ParseException;
 
 template <class Value, class T>
-constexpr inline bool kHasParse = meta::kIsDetected<HasParse, Value, T>;
+constexpr inline bool kHasParse = meta::IsDetected<HasParse, Value, T>;
 
 template <class Value, class T>
-constexpr inline bool kHasSerialize = meta::kIsDetected<HasSerialize, Value, T>;
+constexpr inline bool kHasSerialize = meta::IsDetected<HasSerialize, Value, T>;
 
 template <class Value, class T>
-constexpr inline bool kHasConvert = meta::kIsDetected<HasConvert, Value, T>;
+constexpr inline bool kHasConvert = meta::IsDetected<HasConvert, Value, T>;
 
 }  // namespace impl
 
 /// Used in `Parse` overloads that are templated on `Value`, avoids clashing
 /// with `Parse` from string
 template <class Value>
-constexpr inline bool kIsFormatValue = meta::kIsDetected<impl::IsFormatValue, Value>;
+constexpr inline bool kIsFormatValue = meta::IsDetected<impl::IsFormatValue, Value>;
 
 // Unwraps a transient type - tag types, for which ADL-found `Parse` returns
 // another type, not the type specified in `formats::parse::To`. For example,

@@ -2,13 +2,14 @@
 
 #include <libpq-fe.h>
 #include <memory>
+#include <optional>
 #include <string_view>
 
 #include <userver/storages/postgres/postgres_fwd.hpp>
 
 #include <userver/logging/log_extra.hpp>
+#include <userver/storages/postgres/field.hpp>
 #include <userver/storages/postgres/message.hpp>
-#include <userver/storages/postgres/result_set.hpp>
 #include <userver/storages/postgres/sql_state.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 
@@ -37,7 +38,7 @@ public:
     std::string CommandStatus() const;
     std::size_t RowsAffected() const;
 
-    std::size_t IndexOfName(const std::string& name) const;
+    std::size_t IndexOfName(USERVER_NAMESPACE::utils::zstring_view name) const;
 
     std::string_view GetFieldName(std::size_t col) const;
     FieldDescription GetFieldDescription(std::size_t col) const;
@@ -65,16 +66,16 @@ public:
     std::string GetMessageDatatype() const;
     std::string GetMessageConstraint() const;
 
-    std::string GetMessageField(int fieldcode) const;
+    std::optional<std::string> GetMessageField(int fieldcode) const;
 
     logging::LogExtra GetMessageLogExtra() const;
     //@}
 
-    ResultHandle handle_;
-    io::TypeBufferCategory buffer_categories_;
+    ResultHandle handle;
+    io::TypeBufferCategory buffer_categories;
 
     struct CachedFieldBufferCategories;
-    USERVER_NAMESPACE::utils::FastPimpl<CachedFieldBufferCategories, 88, 8> cached_buffer_categories_;
+    USERVER_NAMESPACE::utils::FastPimpl<CachedFieldBufferCategories, 88, 8> cached_buffer_categories;
 };
 
 inline ResultWrapper::ResultHandle MakeResultHandle(PGresult* pg_res) { return {pg_res, &PQclear}; }

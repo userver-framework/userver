@@ -2,28 +2,48 @@
 
 #include <atomic>
 
-#include <userver/storages/redis/impl/base.hpp>
+#include <userver/storages/redis/base.hpp>
+#include <userver/utils/assert.hpp>
 #include "shard.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis::impl {
 
 struct GetHostsRequest {
+    static GetHostsRequest QuerySentinelMasters(Shard& sentinel_shard, Password password) {
+        return GetHostsRequest(sentinel_shard, std::move(password));
+    }
+    static GetHostsRequest QuerySentinelSlaves(Shard& sentinel_shard, std::string shard_name, Password password) {
+        return GetHostsRequest(sentinel_shard, std::move(shard_name), std::move(password));
+    }
+
+private:
     // For MASTERS
     GetHostsRequest(Shard& sentinel_shard, Password password)
         : sentinel_shard(sentinel_shard),
           command({"SENTINEL", "MASTERS"}),
           master(true),
-          password(std::move(password)) {}
+          password(std::move(password))
+    {
+        UASSERT(command.GetCommandCount() == 1);
+        UASSERT_MSG(
+            fmt::to_string(command.begin()->GetJoinedArgs(";")) == "SENTINEL;MASTERS",
+            fmt::to_string(command.begin()->GetJoinedArgs(";"))
+        );
+    }
 
     // For SLAVES
     GetHostsRequest(Shard& sentinel_shard, std::string shard_name, Password password)
         : sentinel_shard(sentinel_shard),
           command({"SENTINEL", "SLAVES", std::move(shard_name)}),
           master(false),
-          password(std::move(password)) {}
+          password(std::move(password))
+    {
+        UASSERT(command.GetCommandCount() == 1);
+    }
 
+public:
     Shard& sentinel_shard;
     CmdArgs command;
 
@@ -31,8 +51,8 @@ struct GetHostsRequest {
     Password password;
 };
 
-using ProcessGetHostsRequestCb =
-    std::function<void(const ConnInfoByShard& info, size_t requests_sent, size_t responses_parsed)>;
+using ProcessGetHostsRequestCb = std::function<
+    void(const ConnInfoByShard& info, size_t requests_sent, size_t responses_parsed)>;
 
 void ProcessGetHostsRequest(GetHostsRequest request, ProcessGetHostsRequestCb callback);
 
@@ -70,24 +90,34 @@ private:
 static constexpr size_t kClusterHashSlots = 16384;
 
 struct GetClusterHostsRequest {
-    GetClusterHostsRequest(Shard& sentinel_shard, Password password)
-        : sentinel_shard(sentinel_shard), command({"CLUSTER", "SLOTS"}), password(std::move(password)) {}
+    GetClusterHostsRequest(Shard& sentinel_shard, Password password, std::string shard_group_name)
+        : sentinel_shard(sentinel_shard),
+          command({"CLUSTER", "SLOTS"}),
+          password(std::move(password)),
+          shard_group_name(std::move(shard_group_name))
+    {}
 
     Shard& sentinel_shard;
     CmdArgs command;
 
     Password password;
+    std::string shard_group_name;
 };
 
 struct SlotInterval {
     size_t slot_min;
     size_t slot_max;
 
-    SlotInterval(size_t slot_min, size_t slot_max) : slot_min(slot_min), slot_max(slot_max) {}
+    SlotInterval(size_t slot_min, size_t slot_max)
+        : slot_min(slot_min),
+          slot_max(slot_max)
+    {}
 
     bool operator<(const SlotInterval& r) const { return slot_min < r.slot_min; }
     bool operator==(const SlotInterval& r) const { return slot_min == r.slot_min && slot_max == r.slot_max; }
 };
+
+logging::LogHelper& operator<<(logging::LogHelper& log, SlotInterval interval);
 
 struct ClusterShardHostInfo {
     ConnectionInfoInt master;
@@ -119,24 +149,29 @@ struct MasterSlavesConnInfos {
 
 using ClusterSlotsResponse = std::map<SlotInterval, MasterSlavesConnInfos>;
 
-class GetClusterHostsContext : public std::enable_shared_from_this<GetClusterHostsContext> {
+class GetClusterHostsContext {
 public:
     GetClusterHostsContext(
         Password password,
         std::shared_ptr<const std::vector<std::string>> shard_names,
+        std::string shard_group_name,
         ProcessGetClusterHostsRequestCb&& callback,
         size_t expected_responses_cnt
     );
 
-    std::function<void(const CommandPtr&, const ReplyPtr& reply)> GenerateCallback();
+private:
+    friend void ProcessGetClusterHostsRequest(
+        std::shared_ptr<const std::vector<std::string>> shard_names,
+        GetClusterHostsRequest request,
+        ProcessGetClusterHostsRequestCb callback
+    );
 
     void OnAsyncCommandFailed();
-
-private:
     void OnResponse(const CommandPtr&, const ReplyPtr& reply);
     void ProcessResponses();
     void ProcessResponsesOnce();
 
+    const std::string shard_group_name_;
     const Password password_;
     const std::shared_ptr<const std::vector<std::string>> shard_names_;
     const ProcessGetClusterHostsRequestCb callback_;
@@ -150,6 +185,18 @@ private:
     std::map<ServerId, ClusterSlotsResponse> responses_by_id_;
 };
 
-}  // namespace redis
+enum class ClusterSlotsResponseStatus {
+    kOk,
+    kFail,
+    kNonCluster,
+};
+
+ClusterSlotsResponseStatus ParseClusterSlotsResponse(
+    const ReplyPtr& reply,
+    ClusterSlotsResponse& res,
+    const std::string& shard_group_name
+);
+
+}  // namespace storages::redis::impl
 
 USERVER_NAMESPACE_END

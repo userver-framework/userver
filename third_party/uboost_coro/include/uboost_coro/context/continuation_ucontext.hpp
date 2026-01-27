@@ -62,7 +62,7 @@ namespace detail {
 // entered if the execution context
 // is resumed for the first time
 template <typename Record>
-#ifdef BOOST_OS_MACOS
+#if BOOST_OS_MACOS
 static void entry_func(std::uint32_t data_high,
                        std::uint32_t data_low) noexcept {
   auto data =
@@ -105,7 +105,7 @@ struct BOOST_CONTEXT_DECL activation_record {
     activation_record( stack_context sctx_) noexcept :
         sctx( sctx_ ),
         main_ctx( false ) {
-    } 
+    }
 
     virtual ~activation_record() {
 	}
@@ -264,7 +264,7 @@ public:
             c = boost::context::detail::invoke( fn_, std::move( c) );
 #else
             c = std::invoke( fn_, std::move( c) );
-#endif  
+#endif
         } catch ( forced_unwind const& ex) {
             c = Ctx{ ex.from };
         }
@@ -306,7 +306,7 @@ static activation_record * create_context1( StackAlloc && salloc, Fn && fn) {
     record->uctx.uc_stack.ss_size = reinterpret_cast< uintptr_t >( storage) -
             reinterpret_cast< uintptr_t >( stack_bottom) - static_cast< uintptr_t >( 64);
     record->uctx.uc_link = nullptr;
-#ifdef BOOST_OS_MACOS
+#if BOOST_OS_MACOS
     const auto integer = std::uint64_t(record);
     ::makecontext(&record->uctx, (void (*)()) & entry_func<capture_t>, 2,
                   std::uint32_t((integer >> 32) & 0xFFFFFFFF),
@@ -324,7 +324,7 @@ static activation_record * create_context1( StackAlloc && salloc, Fn && fn) {
 
 template< typename Ctx, typename StackAlloc, typename Fn >
 static activation_record * create_context2( preallocated palloc, StackAlloc && salloc, Fn && fn) {
-    typedef capture_record< Ctx, StackAlloc, Fn >  capture_t; 
+    typedef capture_record< Ctx, StackAlloc, Fn >  capture_t;
 
     // reserve space for control structure
     void * storage = reinterpret_cast< void * >(
@@ -349,7 +349,7 @@ static activation_record * create_context2( preallocated palloc, StackAlloc && s
     record->uctx.uc_stack.ss_size = reinterpret_cast< uintptr_t >( storage) -
             reinterpret_cast< uintptr_t >( stack_bottom) - static_cast< uintptr_t >( 64);
     record->uctx.uc_link = nullptr;
-#ifdef BOOST_OS_MACOS
+#if BOOST_OS_MACOS
     const auto integer = std::uint64_t(record);
     ::makecontext(&record->uctx, (void (*)()) & entry_func<capture_t>, 2,
                   std::uint32_t((integer >> 32) & 0xFFFFFFFF),
@@ -478,7 +478,7 @@ public:
     }
 
     #if !defined(BOOST_EMBTC)
-    
+
     template< typename charT, class traitsT >
     friend std::basic_ostream< charT, traitsT > &
     operator<<( std::basic_ostream< charT, traitsT > & os, continuation const& other) {
@@ -490,7 +490,7 @@ public:
     }
 
     #else
-    
+
     template< typename charT, class traitsT >
     friend std::basic_ostream< charT, traitsT > &
     operator<<( std::basic_ostream< charT, traitsT > & os, continuation const& other);
@@ -515,7 +515,7 @@ public:
     }
 
 #endif
-    
+
 template<
     typename Fn,
     typename = detail::disable_overload< continuation, Fn >

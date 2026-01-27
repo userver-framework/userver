@@ -6,6 +6,8 @@
         Integration of libcurl's multi interface with Boost.Asio
 */
 
+// NOLINTBEGIN(readability-identifier-naming)
+
 #pragma once
 
 #include <functional>
@@ -32,7 +34,7 @@ namespace curl {
 class easy;
 struct socket_info;
 
-class multi final {
+class multi final {  // NOLINT(readability-identifier-naming)
 public:
     using Callback = std::function<void()>;
     multi(engine::ev::ThreadControl& thread_control, const std::shared_ptr<ConnectRateLimiter>& connect_rate_limiter);
@@ -88,8 +90,8 @@ private:
 
     socket_info* GetSocketInfo(native::curl_socket_t);
 
-    static int
-    socket(native::CURL* native_easy, native::curl_socket_t s, int what, void* userp, void* socketp) noexcept;
+    static int socket(native::CURL* native_easy, native::curl_socket_t s, int what, void* userp, void* socketp)
+        noexcept;
     static int timer(native::CURLM* native_multi, long timeout_ms, void* userp) noexcept;
 
     class Impl;
@@ -102,3 +104,5 @@ private:
 }  // namespace curl
 
 USERVER_NAMESPACE_END
+
+// NOLINTEND(readability-identifier-naming)

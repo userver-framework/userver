@@ -25,20 +25,24 @@ inline std::shared_ptr<request::RequestParser> CreateTestParser(
         /*.max_url_size = */ 8192,
         /*.max_request_size = */ 1024 * 1024,
         /*.max_headers_size = */ 65536,
+        /*.request_body_size_log_limit = */ 512,
+        /*.request_headers_size_log_limit = */ 512,
+        /*.response_data_size_log_limit = */ 512,
         /*.parse_args_from_body = */ false,
         /*.testing_mode = */ true,  // non default value
         /*.decompress_request = */ false,
         /* set_tracing_headers = */ true,
         /* deadline_propagation_enabled = */ true,
-        /* deadline_expired_status_code = */ http::HttpStatus{498}};
+        /* deadline_expired_status_code = */ http::HttpStatus{498}
+    };
     static server::net::ParserStats test_stats;
     static server::request::ResponseDataAccounter test_accounter;
-    static const server::net::Http2SessionConfig http2_config;
+    static const server::net::Http2SessionConfig kHttp2Config;
     if (http_version == USERVER_NAMESPACE::http::HttpVersion::k2) {
         return std::make_shared<server::http::Http2Session>(
             kTestHandlerInfoIndex,
             kTestRequestConfig,
-            http2_config,
+            kHttp2Config,
             std::move(cb),
             test_stats,
             test_accounter,
@@ -46,7 +50,12 @@ inline std::shared_ptr<request::RequestParser> CreateTestParser(
         );
     } else {
         return std::make_shared<server::http::HttpRequestParser>(
-            kTestHandlerInfoIndex, kTestRequestConfig, std::move(cb), test_stats, test_accounter, engine::io::Sockaddr{}
+            kTestHandlerInfoIndex,
+            kTestRequestConfig,
+            std::move(cb),
+            test_stats,
+            test_accounter,
+            engine::io::Sockaddr{}
         );
     }
 }

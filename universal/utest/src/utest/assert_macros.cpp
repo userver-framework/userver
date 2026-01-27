@@ -1,6 +1,7 @@
 #include <userver/utest/assert_macros.hpp>
 
 #include <fmt/format.h>
+#include <gmock/gmock.h>
 
 #include <userver/compiler/demangle.hpp>
 #include <userver/logging/stacktrace_cache.hpp>
@@ -135,6 +136,10 @@ std::string AssertNoThrow(std::function<void()> statement, std::string_view stat
         return MakeNonStdExceptionMessage(statement_text);
         // don't rethrow to make sure a nice message is displayed
     }
+}
+
+testing::Matcher<const ::std::string&> MakeHasSubstrMatcher(std::string_view expected) {
+    return testing::HasSubstr(std::string{expected});
 }
 
 }  // namespace utest::impl

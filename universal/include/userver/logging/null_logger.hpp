@@ -11,14 +11,23 @@ namespace logging {
 
 /// @brief Returns a logger that drops all incoming messages
 /// @see components::Logging
-LoggerRef GetNullLogger() noexcept;
+TextLoggerRef GetNullLogger() noexcept;
 
 /// @brief Creates a logger that drops all incoming messages.
 ///
 /// Use GetNullLogger() is you need a reference to logger.
 ///
 /// @see components::Logging
-LoggerPtr MakeNullLogger();
+TextLoggerPtr MakeNullLogger();
+
+namespace impl {
+
+// Creates a logger that drops all incoming messages, but
+// * reports log level INFO (customizable) to force forming those messages;
+// * uses Formats::kRaw to produce reasonable CPU usage for formatting logs.
+TextLoggerPtr MakeNoopLoggerForTests();
+
+}  // namespace impl
 
 }  // namespace logging
 

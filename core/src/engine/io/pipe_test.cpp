@@ -21,7 +21,7 @@ constexpr std::chrono::milliseconds kIoTimeout{10};
 
 }  // namespace
 
-UTEST(Pipe, Smoke) { io::Pipe pipe; }
+UTEST(Pipe, Smoke) { const io::Pipe pipe; }
 
 UTEST(Pipe, Wait) {
     io::Pipe pipe;
@@ -73,8 +73,8 @@ UTEST(Pipe, Write) {
     auto writer = engine::AsyncNoSpan([&] {
         try {
             while (true) {
-                const auto wrote_bytes =
-                    pipe.writer.WriteAll(buf.data(), buf.size(), Deadline::FromDuration(kIoTimeout));
+                const auto
+                    wrote_bytes = pipe.writer.WriteAll(buf.data(), buf.size(), Deadline::FromDuration(kIoTimeout));
                 ASSERT_EQ(buf.size(), wrote_bytes);
                 total_wrote_bytes += wrote_bytes;
             }
@@ -90,9 +90,9 @@ UTEST(Pipe, Write) {
 
     EXPECT_NE(0, total_wrote_bytes);
     while (total_wrote_bytes) {
-        const auto read_bytes = pipe.reader.ReadAll(
-            buf.data(), std::min(total_wrote_bytes, buf.size()), Deadline::FromDuration(kIoTimeout)
-        );
+        const auto read_bytes =
+            pipe.reader
+                .ReadAll(buf.data(), std::min(total_wrote_bytes, buf.size()), Deadline::FromDuration(kIoTimeout));
         EXPECT_EQ(read_bytes, std::min(total_wrote_bytes, buf.size()));
         total_wrote_bytes -= read_bytes;
     }

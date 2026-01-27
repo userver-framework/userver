@@ -1,0 +1,62 @@
+type: object
+description: Provides a ClientFactory in the component system
+additionalProperties: false
+properties:
+    auth-type:
+        type: string
+        description: an optional authentication method
+        default: insecure
+        enum:
+          - insecure
+          - ssl
+    ssl-credentials-options:
+        type: object
+        description: SSL options for cases when `auth-type` is `ssl`
+        default: {}
+        additionalProperties: false
+        properties:
+            pem-root-certs:
+                type: string
+                description: The path to file containing the PEM encoding of the server root certificates
+                default: absent
+            pem-private-key:
+                type: string
+                description: The path to file containing the PEM encoding of the client's private key
+                default: absent
+            pem-cert-chain:
+                type: string
+                description: The path to file containing the PEM encoding of the client's certificate chain
+                default: absent
+    retry-config:
+        type: object
+        description: Retry configuration for outgoing RPCs
+        default: {}
+        additionalProperties: false
+        properties:
+            attempts:
+                type: integer
+                description: The maximum number of RPC attempts, including the original attempt
+                default: 1
+                minimum: 1
+    channel-args:
+        type: object
+        description: a map of channel arguments, see gRPC Core docs
+        default: {}
+        additionalProperties:
+            type: string
+            description: value of channel argument, must be a string or an integer
+        properties: {}
+    default-service-config:
+        type: string
+        description: |
+            Default value for gRPC `service config`. See
+            https://github.com/grpc/grpc/blob/master/doc/service_config.md
+            This value is used if the name resolution process can't get value
+            from DNS.
+
+            Default: absent
+    channel-count:
+        type: integer
+        description: |
+            Number of channels created for each endpoint.
+        default: 1

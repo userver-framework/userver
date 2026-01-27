@@ -1,9 +1,9 @@
  ## Apache Kafka
 
-**Quality:** @ref QUALITY_TIERS "Silver Tier".
+**Quality:** @ref QUALITY_TIERS "Golden Tier".
 
 🐙 **userver** provides access to Apache Kafka Brokers via
-two independent interfaces: kafka::ProducerComponent and
+two independent interfaces: @ref kafka::ProducerComponent and
 kafka::ConsumerComponent.
 
 They expose APIs for sending messages to Kafka topics, suspending
@@ -17,6 +17,7 @@ in separate task processor.
 - Support of SASL SCRAM-SHA-512 authentication and SSL transport for Broker communication;
 - Comprehensive logs of all events and errors;
 - Metrics;
+- Kafka message headers support;
 
 ## Producer Features
 - 🚀 Parallel cooperative messages delivery reports processing (in comparison
@@ -37,6 +38,25 @@ in separate task processor.
 - Automatic rollback to last committed message when batch processing failed;
 - Partition offsets asynchronous commit;
 
+## Metrics
+
+Producer and consumer yields same set of metrics (but with different prefixes):
+
+| Metric name                      | Labels                    | Description                                                            |
+|----------------------------------|---------------------------|------------------------------------------------------------------------|
+| kafka_producer.avg_ms_spent_time | `component-name`, `topic` | Average message producer latency                                       |
+| kafka_producer.messages_total    | `component-name`, `topic` | Total number of sent messages                                          |
+| kafka_producer.messages_success  | `component-name`, `topic` | Number of messages successfully written to partition                   |
+| kafka_producer.messages_error    | `component-name`, `topic` | Number of messages failed to produce                                   |
+| kafka_producer.connections_error | `component-name`          | Number of broker connection errors occurred                            |
+| kafka_consumer.avg_ms_spent_time | `component-name`, `topic` | Average time between message written to partition and read by consumer |
+| kafka_consumer.messages_total    | `component-name`, `topic` | Total number of read messages                                          |
+| kafka_consumer.messages_success  | `component-name`, `topic` | Number of successfully processed messages                              |
+| kafka_consumer.messages_error    | `component-name`, `topic` | Number of messages user-callback failed                                |
+| kafka_consumer.connections_error | `component-name`          | Number of broker connection errors occurred                            |
+
+See @ref scripts/docs/en/userver/service_monitor.md for info on how to get the metrics.
+
 ## Planned Enhancements
 - ✅ Transfer from raw polling with timeouts to events processing,
   making the message polling non-blocking and leading to better library
@@ -47,12 +67,12 @@ in separate task processor.
 
 # Unit and functional testing
 - @ref scripts/docs/en/userver/tutorial/kafka_service.md shows how to test userver services with Kafka consumers and producers;
-- kafka::utest::KafkaCluster may be used for convenient unit testing with local consumers and producers instances;
+- @ref kafka::utest::KafkaCluster may be used for convenient unit testing with local consumers and producers instances;
 
 ## More information
-- For configuration see kafka::ProducerComponent and kafka::ConsumerComponent;
-- For understanding of interfaces see kafka::Producer and kafka::ConsumerScope;
-- Also kafka::impl::Consumer and kafka::impl::Configuration are well documented and may be useful;
+- For configuration see @ref kafka::ProducerComponent and @ref kafka::ConsumerComponent;
+- For understanding of interfaces see @ref kafka::Producer and @ref kafka::ConsumerScope;
+- @ref kafka::ConsumerComponent may be useful;
 
 ----------
 

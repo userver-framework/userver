@@ -4,7 +4,6 @@
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 
-#include <userver/clients/dns/config.hpp>
 #include <userver/clients/dns/exception.hpp>
 #include <userver/clients/dns/resolver.hpp>
 #include <userver/engine/sleep.hpp>
@@ -67,7 +66,9 @@ struct MockedResolver {
           }()},
           server_mock{[this](const ServerMock::DnsQuery& query) -> ServerMock::DnsAnswerVector {
               engine::InterruptibleSleepFor(reply_delay);
-              if (query.name == "fail") throw std::exception{};
+              if (query.name == "fail") {
+                  throw std::exception{};
+              }
 
               if (query.type == ServerMock::RecordType::kA) {
                   return {{query.type, kNetV4Sockaddr, 99999}};
@@ -76,18 +77,22 @@ struct MockedResolver {
               }
               throw std::exception{};
           }},
-          resolver{engine::current_task::GetTaskProcessor(), [&] {
-                       clients::dns::ResolverConfig config;
-                       config.file_path = hosts_file.GetPath();
-                       config.file_update_interval = utest::kMaxTestWaitTime;
-                       config.network_timeout = utest::kMaxTestWaitTime;
-                       config.network_attempts = 1;
-                       config.cache_max_reply_ttl = std::chrono::seconds{cache_max_ttl};
-                       config.cache_failure_ttl = std::chrono::seconds{cache_max_ttl}, config.cache_ways = 1;
-                       config.cache_size_per_way = cache_size_per_way;
-                       config.network_custom_servers = {server_mock.GetServerAddress()};
-                       return config;
-                   }()} {}
+          resolver{
+              engine::current_task::GetTaskProcessor(),
+              [&] {
+                  ::userver::static_config::DnsClient config;
+                  config.hosts_file_path = hosts_file.GetPath();
+                  config.hosts_file_update_interval = utest::kMaxTestWaitTime;
+                  config.network_timeout = utest::kMaxTestWaitTime;
+                  config.network_attempts = 1;
+                  config.cache_max_reply_ttl = std::chrono::seconds{cache_max_ttl};
+                  config.cache_failure_ttl = std::chrono::seconds{cache_max_ttl}, config.cache_ways = 1;
+                  config.cache_size_per_way = cache_size_per_way;
+                  config.network_custom_servers = {server_mock.GetServerAddress()};
+                  return config;
+              }()
+          }
+    {}
 
     clients::dns::Resolver* operator->() { return &resolver; }
 
@@ -114,14 +119,17 @@ using Expected = std::vector<std::string_view>;
     // will be better with views::transform and join
     fmt::memory_buffer buf;
     for (const auto& addr : addrs) {
-        if (buf.size() > 0) buf.append(kSeparator);
+        if (buf.size() > 0) {
+            buf.append(kSeparator);
+        }
         buf.append(addr.PrimaryAddressString());
     }
     const std::string_view got_str{buf.data(), buf.size()};
 
     if (got_str != expected_str) {
-        return ::testing::AssertionFailure() << addrs_text << " returned wrong address list: expected [" << expected_str
-                                             << "], got [" << got_str << ']';
+        return ::testing::AssertionFailure()
+               << addrs_text << " returned wrong address list: expected [" << expected_str << "], got [" << got_str
+               << ']';
     }
     return ::testing::AssertionSuccess();
 }
@@ -136,7 +144,9 @@ UTEST(Resolver, Smoke) {
     EXPECT_PRED_FORMAT2(CheckAddrs, resolver->Resolve("mycomputer", test_deadline), (Expected{"::1", "127.0.0.1"}));
 
     EXPECT_PRED_FORMAT2(
-        CheckAddrs, resolver->Resolve("not-mycomputer", test_deadline), (Expected{kNetV6String, kNetV4String})
+        CheckAddrs,
+        resolver->Resolve("not-mycomputer", test_deadline),
+        (Expected{kNetV6String, kNetV4String})
     );
 
     UEXPECT_THROW(resolver->Resolve("fail", test_deadline), clients::dns::NotResolvedException);
@@ -151,7 +161,9 @@ UTEST(Resolver, Smoke) {
     UEXPECT_THROW(resolver->Resolve("[::1]:80", test_deadline), clients::dns::NotResolvedException);
 
     EXPECT_PRED_FORMAT2(
-        CheckAddrs, resolver->Resolve("[::ffff:127.0.0.1]", test_deadline), (Expected{"::ffff:127.0.0.1"})
+        CheckAddrs,
+        resolver->Resolve("[::ffff:127.0.0.1]", test_deadline),
+        (Expected{"::ffff:127.0.0.1"})
     );
 
     UEXPECT_THROW(resolver->Resolve("[not-mycomputer]", test_deadline), clients::dns::NotResolvedException);
@@ -161,12 +173,12 @@ UTEST(Resolver, Smoke) {
     UEXPECT_THROW(resolver->Resolve("*.*", test_deadline), clients::dns::NotResolvedException);
 
     const auto& counters = resolver->GetLookupSourceCounters();
-    EXPECT_EQ(counters.file, 1);
-    EXPECT_EQ(counters.cached, 0);
-    EXPECT_EQ(counters.cached_stale, 0);
-    EXPECT_EQ(counters.cached_failure, 0);
-    EXPECT_EQ(counters.network, 1);
-    EXPECT_EQ(counters.network_failure, 1);
+    EXPECT_EQ(counters.file.Load(), 1);
+    EXPECT_EQ(counters.cached.Load(), 0);
+    EXPECT_EQ(counters.cached_stale.Load(), 0);
+    EXPECT_EQ(counters.cached_failure.Load(), 0);
+    EXPECT_EQ(counters.network.Load(), 1);
+    EXPECT_EQ(counters.network_failure.Load(), 1);
 }
 
 // 'localhost' should always return loopback IP -- RFC6761 6.3
@@ -177,14 +189,18 @@ UTEST(Resolver, Localhost) {
 
     EXPECT_PRED_FORMAT2(CheckAddrs, resolver->Resolve("localhost", test_deadline), (Expected{"::1", "127.0.0.1"}));
     EXPECT_PRED_FORMAT2(
-        CheckAddrs, resolver->Resolve("subdomain.localhost", test_deadline), (Expected{"::1", "127.0.0.1"})
+        CheckAddrs,
+        resolver->Resolve("subdomain.localhost", test_deadline),
+        (Expected{"::1", "127.0.0.1"})
     );
 
     resolver.ReplaceHosts();
 
     EXPECT_PRED_FORMAT2(CheckAddrs, resolver->Resolve("localhost", test_deadline), (Expected{"::1", "127.0.0.1"}));
     EXPECT_PRED_FORMAT2(
-        CheckAddrs, resolver->Resolve("subdomain.localhost", test_deadline), (Expected{"::1", "127.0.0.1"})
+        CheckAddrs,
+        resolver->Resolve("subdomain.localhost", test_deadline),
+        (Expected{"::1", "127.0.0.1"})
     );
 
     resolver->ReloadHosts();
@@ -192,27 +208,33 @@ UTEST(Resolver, Localhost) {
     // override in hosts does not work
     EXPECT_PRED_FORMAT2(CheckAddrs, resolver->Resolve("localhost", test_deadline), (Expected{"::1", "127.0.0.1"}));
     EXPECT_PRED_FORMAT2(
-        CheckAddrs, resolver->Resolve("subdomain.localhost", test_deadline), (Expected{"::1", "127.0.0.1"})
+        CheckAddrs,
+        resolver->Resolve("subdomain.localhost", test_deadline),
+        (Expected{"::1", "127.0.0.1"})
     );
 
     // FQDN works
     EXPECT_PRED_FORMAT2(CheckAddrs, resolver->Resolve("localhost.", test_deadline), (Expected{"::1", "127.0.0.1"}));
     EXPECT_PRED_FORMAT2(
-        CheckAddrs, resolver->Resolve("subdomain.localhost.", test_deadline), (Expected{"::1", "127.0.0.1"})
+        CheckAddrs,
+        resolver->Resolve("subdomain.localhost.", test_deadline),
+        (Expected{"::1", "127.0.0.1"})
     );
 
     // we correctly identify domains
     EXPECT_PRED_FORMAT2(
-        CheckAddrs, resolver->Resolve("not-localhost", test_deadline), (Expected{kNetV6String, kNetV4String})
+        CheckAddrs,
+        resolver->Resolve("not-localhost", test_deadline),
+        (Expected{kNetV6String, kNetV4String})
     );
 
     const auto& counters = resolver->GetLookupSourceCounters();
-    EXPECT_EQ(counters.file, 0);
-    EXPECT_EQ(counters.cached, 0);
-    EXPECT_EQ(counters.cached_stale, 0);
-    EXPECT_EQ(counters.cached_failure, 0);
-    EXPECT_EQ(counters.network, 1);
-    EXPECT_EQ(counters.network_failure, 0);
+    EXPECT_EQ(counters.file.Load(), 0);
+    EXPECT_EQ(counters.cached.Load(), 0);
+    EXPECT_EQ(counters.cached_stale.Load(), 0);
+    EXPECT_EQ(counters.cached_failure.Load(), 0);
+    EXPECT_EQ(counters.network.Load(), 1);
+    EXPECT_EQ(counters.network_failure.Load(), 0);
 }
 
 // 'invalid' should always fail -- RFC6761 6.4
@@ -241,16 +263,18 @@ UTEST(Resolver, Invalid) {
 
     // we correctly identify domains
     EXPECT_PRED_FORMAT2(
-        CheckAddrs, resolver->Resolve("not-invalid", test_deadline), (Expected{kNetV6String, kNetV4String})
+        CheckAddrs,
+        resolver->Resolve("not-invalid", test_deadline),
+        (Expected{kNetV6String, kNetV4String})
     );
 
     const auto& counters = resolver->GetLookupSourceCounters();
-    EXPECT_EQ(counters.file, 0);
-    EXPECT_EQ(counters.cached, 0);
-    EXPECT_EQ(counters.cached_stale, 0);
-    EXPECT_EQ(counters.cached_failure, 0);
-    EXPECT_EQ(counters.network, 1);
-    EXPECT_EQ(counters.network_failure, 0);
+    EXPECT_EQ(counters.file.Load(), 0);
+    EXPECT_EQ(counters.cached.Load(), 0);
+    EXPECT_EQ(counters.cached_stale.Load(), 0);
+    EXPECT_EQ(counters.cached_failure.Load(), 0);
+    EXPECT_EQ(counters.network.Load(), 1);
+    EXPECT_EQ(counters.network_failure.Load(), 0);
 }
 
 UTEST(Resolver, FileUpdate) {
@@ -269,12 +293,12 @@ UTEST(Resolver, FileUpdate) {
     EXPECT_PRED_FORMAT2(CheckAddrs, resolver->Resolve("mycomputer", test_deadline), (Expected{"127.0.0.2"}));
 
     const auto& counters = resolver->GetLookupSourceCounters();
-    EXPECT_EQ(counters.file, 3);
-    EXPECT_EQ(counters.cached, 0);
-    EXPECT_EQ(counters.cached_stale, 0);
-    EXPECT_EQ(counters.cached_failure, 0);
-    EXPECT_EQ(counters.network, 0);
-    EXPECT_EQ(counters.network_failure, 0);
+    EXPECT_EQ(counters.file.Load(), 3);
+    EXPECT_EQ(counters.cached.Load(), 0);
+    EXPECT_EQ(counters.cached_stale.Load(), 0);
+    EXPECT_EQ(counters.cached_failure.Load(), 0);
+    EXPECT_EQ(counters.network.Load(), 0);
+    EXPECT_EQ(counters.network_failure.Load(), 0);
 }
 
 UTEST(Resolver, CacheWorks) {
@@ -283,20 +307,24 @@ UTEST(Resolver, CacheWorks) {
     MockedResolver resolver{1000, 1};
 
     EXPECT_PRED_FORMAT2(
-        CheckAddrs, resolver->Resolve("not-mycomputer", test_deadline), (Expected{kNetV6String, kNetV4String})
+        CheckAddrs,
+        resolver->Resolve("not-mycomputer", test_deadline),
+        (Expected{kNetV6String, kNetV4String})
     );
 
     EXPECT_PRED_FORMAT2(
-        CheckAddrs, resolver->Resolve("not-mycomputer", test_deadline), (Expected{kNetV6String, kNetV4String})
+        CheckAddrs,
+        resolver->Resolve("not-mycomputer", test_deadline),
+        (Expected{kNetV6String, kNetV4String})
     );
 
     const auto& counters = resolver->GetLookupSourceCounters();
-    EXPECT_EQ(counters.file, 0);
-    EXPECT_EQ(counters.cached, 1);
-    EXPECT_EQ(counters.cached_stale, 0);
-    EXPECT_EQ(counters.cached_failure, 0);
-    EXPECT_EQ(counters.network, 1);
-    EXPECT_EQ(counters.network_failure, 0);
+    EXPECT_EQ(counters.file.Load(), 0);
+    EXPECT_EQ(counters.cached.Load(), 1);
+    EXPECT_EQ(counters.cached_stale.Load(), 0);
+    EXPECT_EQ(counters.cached_failure.Load(), 0);
+    EXPECT_EQ(counters.network.Load(), 1);
+    EXPECT_EQ(counters.network_failure.Load(), 0);
 }
 
 UTEST(Resolver, CacheOverflow) {
@@ -317,12 +345,12 @@ UTEST(Resolver, CacheOverflow) {
     EXPECT_PRED_FORMAT2(CheckAddrs, resolver->Resolve("second", test_deadline), (Expected{kNetV6String, kNetV4String}));
 
     const auto& counters = resolver->GetLookupSourceCounters();
-    EXPECT_EQ(counters.file, 0);
-    EXPECT_EQ(counters.cached, 2);
-    EXPECT_EQ(counters.cached_stale, 0);
-    EXPECT_EQ(counters.cached_failure, 0);
-    EXPECT_EQ(counters.network, 4);
-    EXPECT_EQ(counters.network_failure, 0);
+    EXPECT_EQ(counters.file.Load(), 0);
+    EXPECT_EQ(counters.cached.Load(), 2);
+    EXPECT_EQ(counters.cached_stale.Load(), 0);
+    EXPECT_EQ(counters.cached_failure.Load(), 0);
+    EXPECT_EQ(counters.network.Load(), 4);
+    EXPECT_EQ(counters.network_failure.Load(), 0);
 }
 
 UTEST(Resolver, CacheStale) {
@@ -341,12 +369,12 @@ UTEST(Resolver, CacheStale) {
     EXPECT_PRED_FORMAT2(CheckAddrs, resolver->Resolve("first", test_deadline), (Expected{kNetV6String, kNetV4String}));
 
     const auto& counters = resolver->GetLookupSourceCounters();
-    EXPECT_EQ(counters.file, 0);
-    EXPECT_EQ(counters.cached, 1);
-    EXPECT_EQ(counters.cached_stale, 1);
-    EXPECT_EQ(counters.cached_failure, 0);
-    EXPECT_GE(counters.network, 1);
-    EXPECT_EQ(counters.network_failure, 0);
+    EXPECT_EQ(counters.file.Load(), 0);
+    EXPECT_EQ(counters.cached.Load(), 1);
+    EXPECT_EQ(counters.cached_stale.Load(), 1);
+    EXPECT_EQ(counters.cached_failure.Load(), 0);
+    EXPECT_GE(counters.network.Load(), 1);
+    EXPECT_EQ(counters.network_failure.Load(), 0);
 }
 
 UTEST(Resolver, CacheFailures) {
@@ -364,12 +392,12 @@ UTEST(Resolver, CacheFailures) {
     UEXPECT_THROW(resolver->Resolve("fail", test_deadline), clients::dns::NotResolvedException);
 
     const auto& counters = resolver->GetLookupSourceCounters();
-    EXPECT_EQ(counters.file, 0);
-    EXPECT_EQ(counters.cached, 0);
-    EXPECT_EQ(counters.cached_stale, 0);
-    EXPECT_EQ(counters.cached_failure, 1);
-    EXPECT_GE(counters.network, 0);
-    EXPECT_EQ(counters.network_failure, 2);
+    EXPECT_EQ(counters.file.Load(), 0);
+    EXPECT_EQ(counters.cached.Load(), 0);
+    EXPECT_EQ(counters.cached_stale.Load(), 0);
+    EXPECT_EQ(counters.cached_failure.Load(), 1);
+    EXPECT_GE(counters.network.Load(), 0);
+    EXPECT_EQ(counters.network_failure.Load(), 2);
 }
 
 UTEST(Resolver, FileDoesNotCache) {
@@ -383,16 +411,18 @@ UTEST(Resolver, FileDoesNotCache) {
     resolver->ReloadHosts();
 
     EXPECT_PRED_FORMAT2(
-        CheckAddrs, resolver->Resolve("disappearing", test_deadline), (Expected{kNetV6String, kNetV4String})
+        CheckAddrs,
+        resolver->Resolve("disappearing", test_deadline),
+        (Expected{kNetV6String, kNetV4String})
     );
 
     const auto& counters = resolver->GetLookupSourceCounters();
-    EXPECT_EQ(counters.file, 1);
-    EXPECT_EQ(counters.cached, 0);
-    EXPECT_EQ(counters.cached_stale, 0);
-    EXPECT_EQ(counters.cached_failure, 0);
-    EXPECT_GE(counters.network, 1);
-    EXPECT_EQ(counters.network_failure, 0);
+    EXPECT_EQ(counters.file.Load(), 1);
+    EXPECT_EQ(counters.cached.Load(), 0);
+    EXPECT_EQ(counters.cached_stale.Load(), 0);
+    EXPECT_EQ(counters.cached_failure.Load(), 0);
+    EXPECT_GE(counters.network.Load(), 1);
+    EXPECT_EQ(counters.network_failure.Load(), 0);
 }
 
 UTEST(Resolver, FileOverridesCache) {
@@ -404,10 +434,14 @@ UTEST(Resolver, FileOverridesCache) {
     UEXPECT_THROW(resolver->Resolve("fail", test_deadline), clients::dns::NotResolvedException);
 
     EXPECT_PRED_FORMAT2(
-        CheckAddrs, resolver->Resolve("override", test_deadline), (Expected{kNetV6String, kNetV4String})
+        CheckAddrs,
+        resolver->Resolve("override", test_deadline),
+        (Expected{kNetV6String, kNetV4String})
     );
     EXPECT_PRED_FORMAT2(
-        CheckAddrs, resolver->Resolve("override", test_deadline), (Expected{kNetV6String, kNetV4String})
+        CheckAddrs,
+        resolver->Resolve("override", test_deadline),
+        (Expected{kNetV6String, kNetV4String})
     );
 
     resolver.ReplaceHosts();
@@ -417,12 +451,12 @@ UTEST(Resolver, FileOverridesCache) {
     EXPECT_PRED_FORMAT2(CheckAddrs, resolver->Resolve("override", test_deadline), (Expected{"127.0.0.5"}));
 
     const auto& counters = resolver->GetLookupSourceCounters();
-    EXPECT_EQ(counters.file, 2);
-    EXPECT_EQ(counters.cached, 1);
-    EXPECT_EQ(counters.cached_stale, 0);
-    EXPECT_EQ(counters.cached_failure, 1);
-    EXPECT_GE(counters.network, 1);
-    EXPECT_EQ(counters.network_failure, 1);
+    EXPECT_EQ(counters.file.Load(), 2);
+    EXPECT_EQ(counters.cached.Load(), 1);
+    EXPECT_EQ(counters.cached_stale.Load(), 0);
+    EXPECT_EQ(counters.cached_failure.Load(), 1);
+    EXPECT_GE(counters.network.Load(), 1);
+    EXPECT_EQ(counters.network_failure.Load(), 1);
 }
 
 UTEST(Resolver, FirstUpdateCombines) {
@@ -442,12 +476,12 @@ UTEST(Resolver, FirstUpdateCombines) {
     UEXPECT_THROW(second_fail.Get(), clients::dns::NotResolvedException);
 
     const auto& counters = resolver->GetLookupSourceCounters();
-    EXPECT_EQ(counters.file, 0);
-    EXPECT_EQ(counters.cached, 1);
-    EXPECT_EQ(counters.cached_stale, 0);
-    EXPECT_EQ(counters.cached_failure, 1);
-    EXPECT_EQ(counters.network, 1);
-    EXPECT_EQ(counters.network_failure, 1);
+    EXPECT_EQ(counters.file.Load(), 0);
+    EXPECT_EQ(counters.cached.Load(), 1);
+    EXPECT_EQ(counters.cached_stale.Load(), 0);
+    EXPECT_EQ(counters.cached_failure.Load(), 1);
+    EXPECT_EQ(counters.network.Load(), 1);
+    EXPECT_EQ(counters.network_failure.Load(), 1);
 }
 
 USERVER_NAMESPACE_END

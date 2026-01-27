@@ -5,10 +5,10 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis::impl {
 
 std::optional<std::chrono::microseconds> GetSocketPeerRtt(int fd);
 
-}  // namespace redis
+}  // namespace storages::redis::impl
 
 USERVER_NAMESPACE_END

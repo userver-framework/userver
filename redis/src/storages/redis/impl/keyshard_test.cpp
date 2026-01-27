@@ -57,7 +57,7 @@ const std::string kKey =
     "Index.КАЗАХСТАН:Index.КАЗАХСТАН:Index.КАЗАХСТАН:";
 
 TEST(KeyShardTaximeterCrc32, Multithreads) {
-    redis::KeyShardTaximeterCrc32 key_shard(kShards);
+    storages::redis::impl::KeyShardTaximeterCrc32 key_shard(kShards);
 
     std::mutex mutex;
     std::vector<size_t> counts(kShards, 0);
@@ -73,11 +73,15 @@ TEST(KeyShardTaximeterCrc32, Multithreads) {
                 ++tcounts[idx];
             }
 
-            std::scoped_lock guard(mutex);
-            for (size_t i = 0; i < kShards; ++i) counts[i] += tcounts[i];
+            const std::scoped_lock guard(mutex);
+            for (size_t i = 0; i < kShards; ++i) {
+                counts[i] += tcounts[i];
+            }
         });
     }
-    for (auto& thread : threads) thread.join();
+    for (auto& thread : threads) {
+        thread.join();
+    }
 
     EXPECT_EQ(kCount, counts[key_shard.ShardByKey(kKey)]);
 }

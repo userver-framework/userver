@@ -1,6 +1,5 @@
 #include <userver/utils/statistics/storage.hpp>
 
-#include <algorithm>
 #include <utility>
 
 #include <boost/container/small_vector.hpp>
@@ -24,24 +23,37 @@ namespace {
 const std::string kVersionField = "$version";
 constexpr int kVersion = 2;
 
-void RemoveAddedLabels(std::vector<Label>& labels, const Request::AddLabels& add_labels) {
-    labels.erase(
-        std::remove_if(
-            labels.begin(),
-            labels.end(),
-            [&add_labels](const auto& label) {
-                auto it = add_labels.find(label.Name());
-                return it != add_labels.end() && it->second == label.Value();
-            }
-        ),
-        labels.end()
-    );
-}
-
 class FakeFormatBuilder final : public BaseFormatBuilder {
 public:
     void HandleMetric(std::string_view, LabelsSpan, const MetricValue&) override {}
 };
+
+void WriteWithFakeFormat(impl::MetricsSource& source)
+{
+    static constexpr std::string_view fake_prefix = "fake_prefix";
+    if (source.writer) {
+        FakeFormatBuilder builder;
+        const Request request;
+        impl::WriterState state{builder, request, {}, {}};
+        auto writer = Writer{&state}[fake_prefix];
+        source.writer(writer);
+    }
+    if (source.extender) {
+        source.extender(StatisticsRequest{});
+    }
+}
+
+[[maybe_unused]] void CheckDataUsedByCallbackIsValidBeforeRegistering(impl::MetricsSource& source) noexcept {
+    try {
+        WriteWithFakeFormat(source);
+    } catch (const std::exception& e) {
+        utils::AbortWithStacktrace(fmt::format(
+            "Unhandled exception while statistics holder {} is registering: {}",
+            source.prefix_path,
+            e.what()
+        ));
+    }
+}
 
 // During the `Entry::Unregister` call or destruction of `Entry`, all variables
 // used by the writer or extender callback must be valid (must not be
@@ -50,61 +62,28 @@ public:
 // callback.
 [[maybe_unused]] void CheckDataUsedByCallbackHasNotBeenDestroyedBeforeUnregistering(impl::MetricsSource& source
 ) noexcept {
-    static constexpr std::string_view fake_prefix = "fake_prefix";
     try {
-        if (source.writer) {
-            FakeFormatBuilder builder;
-            Request request;
-            impl::WriterState state{builder, request, {}, {}};
-            auto writer = Writer{&state}[fake_prefix];
-            source.writer(writer);
-        }
-        if (source.extender) {
-            source.extender(StatisticsRequest{});
-        }
+        WriteWithFakeFormat(source);
     } catch (const std::exception& e) {
-        LOG_ERROR() << "Unhandled exception while statistics holder " << source.prefix_path
-                    << " is unregistering automatically: " << e.what();
+        utils::AbortWithStacktrace(fmt::format(
+            "Unhandled exception while statistics holder {} is unregistering automatically: {}",
+            source.prefix_path,
+            e.what()
+        ));
     }
 }
 
 }  // namespace
 
-Request Request::MakeWithPrefix(const std::string& prefix, AddLabels add_labels, std::vector<Label> require_labels) {
-    RemoveAddedLabels(require_labels, add_labels);
-    return {
-        prefix,
-        prefix.empty() ? PrefixMatch::kNoop : PrefixMatch::kStartsWith,
-        std::move(require_labels),
-        std::move(add_labels)};
-}
-
-Request Request::MakeWithPath(const std::string& path, AddLabels add_labels, std::vector<Label> require_labels) {
-    RemoveAddedLabels(require_labels, add_labels);
-    UASSERT(!path.empty());
-    return {path, PrefixMatch::kExact, std::move(require_labels), std::move(add_labels)};
-}
-
-Request::Request(
-    std::string prefix_in,
-    PrefixMatch path_match_type_in,
-    std::vector<Label> require_labels_in,
-    AddLabels add_labels_in
-)
-    : prefix(std::move(prefix_in)),
-      prefix_match_type(path_match_type_in),
-      require_labels(std::move(require_labels_in)),
-      add_labels(std::move(add_labels_in)) {}
-
-BaseFormatBuilder::~BaseFormatBuilder() = default;
-
-Storage::Storage() : may_register_extenders_(true) {}
+Storage::Storage()
+    : may_register_extenders_(true)
+{}
 
 formats::json::Value Storage::GetAsJson() const {
     formats::json::ValueBuilder result;
     result[kVersionField] = kVersion;
 
-    std::shared_lock lock(mutex_);
+    const std::shared_lock lock(mutex_);
 
     for (const auto& entry : metrics_sources_) {
         if (entry.writer) {
@@ -127,7 +106,7 @@ void Storage::VisitMetrics(BaseFormatBuilder& out, const Request& request) const
 
         boost::container::small_vector<LabelView, 16> labels_vector;
 
-        std::shared_lock lock(mutex_);
+        const std::shared_lock lock(mutex_);
         for (const auto& entry : metrics_sources_) {
             if (!entry.writer) {
                 continue;
@@ -141,15 +120,17 @@ void Storage::VisitMetrics(BaseFormatBuilder& out, const Request& request) const
 
             try {
                 auto writer =
-                    (entry.prefix_path.empty() ? Writer{state, labels_vector}
-                                               : Writer{state, labels_vector}[entry.prefix_path]);
+                    (entry.prefix_path.empty()
+                         ? Writer{state, labels_vector}
+                         : Writer{state, labels_vector}[entry.prefix_path]);
                 if (writer) {
                     LOG_DEBUG() << "Getting statistics for prefix=" << entry.prefix_path;
                     entry.writer(writer);
                 }
             } catch (const std::exception& e) {
                 UASSERT_MSG(
-                    false, fmt::format("Failed to write metrics for prefix '{}': {}", entry.prefix_path, e.what())
+                    false,
+                    fmt::format("Failed to write metrics for prefix '{}': {}", entry.prefix_path, e.what())
                 );
                 LOG_ERROR() << "Failed to write metrics for prefix '" << entry.prefix_path << "': " << e;
             }
@@ -177,16 +158,17 @@ Entry Storage::DoRegisterExtender(impl::MetricsSource&& source) {
         "constructors"
     );
 
-    std::lock_guard lock(mutex_);
+    const std::lock_guard lock(mutex_);
+    if constexpr (impl::kCheckSubscriptionUB) {
+        CheckDataUsedByCallbackIsValidBeforeRegistering(source);
+    }
     const auto res = metrics_sources_.insert(metrics_sources_.end(), std::move(source));
     return Entry(Entry::Impl{this, res});
 }
 
-void Storage::UnregisterExtender(
-    impl::StorageIterator iterator,
-    [[maybe_unused]] impl::UnregisteringKind kind
-) noexcept {
-    std::lock_guard lock(mutex_);
+void Storage::UnregisterExtender(impl::StorageIterator iterator, [[maybe_unused]] impl::UnregisteringKind kind)
+    noexcept {
+    const std::lock_guard lock(mutex_);
     if constexpr (impl::kCheckSubscriptionUB) {
         if (kind == impl::UnregisteringKind::kAutomatic) {
             // fake writer and extender call to check

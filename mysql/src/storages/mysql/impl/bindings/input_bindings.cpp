@@ -8,7 +8,10 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::mysql::impl::bindings {
 
-InputBindings::InputBindings(std::size_t size) : owned_binds_{size}, binds_ptr_{owned_binds_.data()} {
+InputBindings::InputBindings(std::size_t size)
+    : owned_binds_{size},
+      binds_ptr_{owned_binds_.data()}
+{
     // Not always necessary, but we can live with that
     intermediate_buffers_.resize(size);
 }
@@ -162,22 +165,24 @@ void InputBindings::BindDecimal(std::size_t pos, C<io::DecimalWrapper>& val) {
 void InputBindings::ValidateAgainstStatement(MYSQL_STMT& statement) {
     const auto params_count = mysql_stmt_param_count(&statement);
     UINVARIANT(
-        params_count == Size(), fmt::format("Parameters count mismatch: expected {}, got {}", params_count, Size())
+        params_count == Size(),
+        fmt::format("Parameters count mismatch: expected {}, got {}", params_count, Size())
     );
     if (params_count == 0) {
         return;
     }
 
     const auto res_deleter = [](MYSQL_RES* res) { mysql_free_result(res); };
-    const std::unique_ptr<MYSQL_RES, decltype(res_deleter)> params_metadata{
-        mysql_stmt_param_metadata(&statement), res_deleter};
+    const std::unique_ptr<MYSQL_RES, decltype(res_deleter)>
+        params_metadata{mysql_stmt_param_metadata(&statement), res_deleter};
 
     // mysql_stmt_param_metadata always returns NULL at the time of writing,
     // because "server doesn't deliver any information yet".
     // This is sad, but oh well
     if (params_metadata != nullptr) {
-        LOG_LIMITED_WARNING() << "mysql_stmt_param_metadata got implemented serverside, please file "
-                                 "an issue about it, so maintainers could improve the driver.";
+        LOG_LIMITED_WARNING()
+            << "mysql_stmt_param_metadata got implemented serverside, please file "
+               "an issue about it, so maintainers could improve the driver.";
     }
 }
 

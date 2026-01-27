@@ -15,10 +15,10 @@ namespace {
 
 class YdbExecuteParallelDataQuery : public YdbSmallTableTest {};
 
-void WaitSessionCountIsZero(const NYdb::NTable::TTableClient& table_client_) {
+void WaitSessionCountIsZero(const NYdb::NTable::TTableClient& table_client) {
     constexpr auto sleep = std::chrono::milliseconds{10};
     const auto deadline{engine::Deadline::FromDuration(utest::kMaxTestWaitTime)};
-    while (table_client_.GetActiveSessionCount() != 0) {
+    while (table_client.GetActiveSessionCount() != 0) {
         engine::SleepFor(sleep);
         if (deadline.IsReached()) {
             throw std::runtime_error{"Session count is not zero"};

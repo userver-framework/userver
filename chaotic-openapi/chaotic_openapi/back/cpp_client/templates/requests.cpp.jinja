@@ -1,0 +1,126 @@
+{% import "templates/requests.application.json.jinja" as application_json %}
+{% import "templates/requests.application.octet.stream.jinja" as application_octetstream %}
+{% import "templates/requests.application.xwwwformurlencoded.jinja" as application_xwwwformurlencoded %}
+{% import "templates/requests.application.multipart.formdata.jinja" as application_multipartformdata %}
+
+#include <clients/{{ name }}/requests.hpp>
+
+#include <userver/chaotic/openapi/parameters_write.hpp>
+#include <userver/formats/json/value_builder.hpp>
+#include <userver/http/common_headers.hpp>
+#include <userver/utils/trivial_map.hpp>
+#include <userver/http/url.hpp>
+#include <userver/clients/http/form.hpp>
+#include <userver/chaotic/openapi/form.hpp>
+
+namespace {{ namespace }} {
+
+namespace openapi = USERVER_NAMESPACE::chaotic::openapi;
+
+{% for op in operations %}
+  {% if op.client_generate %}
+      namespace {{ op.cpp_namespace() }} {
+    {%- if not op.empty_request() -%}
+
+{% for parameter in op.parameters %}
+    static constexpr openapi::Name k{{ parameter.cpp_name }} = "{{ parameter.raw_name }}";
+{% endfor %}
+
+{% if op.has_any_hidden_query_parameters() %}
+    constexpr utils::TrivialSet kHiddenQueries = [](auto selector) {
+        return selector()
+            {% for parameter in op.parameters %}
+                {% if parameter.query_log_mode_hide %}
+                    .Case(k{{ parameter.cpp_name }})
+                {% endif %}
+            {% endfor %}
+        ;
+    };
+
+    bool IsHiddenQueryArg(std::string_view str) {
+        return kHiddenQueries.Contains(str);
+    }
+{% endif %}
+
+void SerializeRequest(const Request& request, const std::string& base_url, USERVER_NAMESPACE::clients::http::Request& http_request)
+{
+  {# parameters #}
+  openapi::ParameterSinkHttpClient sink(
+    http_request,
+    base_url + "{{ op.path }}"
+  );
+
+  {% if op.has_any_hidden_query_parameters() %}
+    sink.SetHiddenQueryArgNamesFunc(&IsHiddenQueryArg);
+  {% endif %}
+
+  {% for parameter in op.parameters %}
+    {% if parameter.required %}
+      openapi::WriteParameter<{{ parameter.parser }}>(request.{{ parameter.cpp_name}}, sink);
+    {% else %}
+      if (request.{{ parameter.cpp_name }})
+        openapi::WriteParameter<{{ parameter.parser }}>(*request.{{ parameter.cpp_name}}, sink);
+    {% endif %}
+  {% endfor %}
+
+  {# body #}
+  {% if len(op.request_bodies) == 1 %}
+    http_request.data(ToString(USERVER_NAMESPACE::formats::json::ValueBuilder(request.body).ExtractValue()));
+  {% elif len(op.request_bodies) > 1 %}
+    switch (request.body.index()) {
+    {%- for num, body in enumerate(op.request_bodies) -%}
+      case {{ num }}: {
+        http_request.headers(USERVER_NAMESPACE::clients::http::Headers{ {USERVER_NAMESPACE::http::headers::kContentType, "{{ body.content_type }}"} });
+
+        {% set body_obj = "std::get<" + str(num) + ">(request.body)" %}
+        {% if body.content_type == 'application/json' %}
+            {{ application_json.serialize(body_obj, "http_request") }}
+        {% elif body.content_type == 'multipart/form-data' %}
+            {{ application_multipartformdata.serialize(body, body_obj, "http_request") }}
+        {% elif body.content_type == 'application/x-www-form-urlencoded' %}
+            {{ application_xwwwformurlencoded.serialize(body, body_obj, "http_request") }}
+        {% else %}
+            {{ application_octetstream.serialize(body_obj, "http_request") }}
+        {% endif %}
+        break;
+      }
+    {% endfor %}
+    default:
+    {# TODO #}
+      UASSERT(false);
+    }
+  {% endif %}
+
+  sink.Flush();
+
+  {# middlewares #}
+  {% for mw in op.middlewares %}
+      {{ mw.write_member_command('request', 'sink', 'http_request') }}
+  {% endfor %}
+
+}
+
+    {% else %}
+
+void SerializeRequest(const Request&, const std::string& base_url, USERVER_NAMESPACE::clients::http::Request& http_request)
+{
+  {# parameters #}
+  openapi::ParameterSinkHttpClient sink(
+    http_request,
+    base_url + "{{ op.path }}"
+  );
+
+  sink.Flush();
+
+  {# middlewares #}
+  {% for mw in op.middlewares %}
+      {{ mw.write_member_command('request', 'sink', 'http_request') }}
+  {% endfor %}
+}
+
+    {%- endif %}
+} // namespace
+  {% endif %}
+{% endfor %}
+
+}

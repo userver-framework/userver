@@ -28,7 +28,8 @@ ConsumerBaseImpl::ConsumerBaseImpl(ConnectionPtr&& connection, const ConsumerSet
       queue_name_{settings.queue.GetUnderlying()},
       prefetch_count_{settings.prefetch_count},
       connection_ptr_{std::move(connection)},
-      channel_{connection_ptr_->GetChannel()} {
+      channel_{connection_ptr_->GetChannel()}
+{
     // We take ownership of the connection, because if it remains pooled
     // things get messy with lifetimes and callbacks
     connection_ptr_.Adopt();
@@ -84,7 +85,9 @@ void ConsumerBaseImpl::Stop() {
     // didn't receive onSuccess callback yet.
     // I'm not sure whether consumer.onMessage could fire in channel destructor,
     // so we guard against that via `stopped_`
-    { [[maybe_unused]] ConnectionPtr tmp{std::move(connection_ptr_)}; }
+    {
+        [[maybe_unused]] ConnectionPtr tmp{std::move(connection_ptr_)};
+    }
 }
 
 bool ConsumerBaseImpl::IsBroken() const { return broken_ || !connection_ptr_.IsUsable(); }
@@ -97,6 +100,12 @@ void ConsumerBaseImpl::OnMessage(const AMQP::Message& message, uint64_t delivery
     consumed.message = std::string(message.body(), message.bodySize());
     consumed.metadata.exchange = message.exchange();
     consumed.metadata.routingKey = message.routingkey();
+    if (message.hasReplyTo()) {
+        consumed.reply_to = message.replyTo();
+    }
+    if (message.hasCorrelationID()) {
+        consumed.correlation_id = message.correlationID();
+    }
 
     bts_.Detach(engine::AsyncNoSpan(
         dispatcher_,
@@ -123,8 +132,9 @@ void ConsumerBaseImpl::OnMessage(const AMQP::Message& message, uint64_t delivery
                     channel_.Reject(delivery_tag, true, {});
                 }
             } catch (const std::exception& ex) {
-                LOG_WARNING() << "Failed to " << (success ? "ack" : "requeue")
-                              << " the message, it will be requeued by RabbitMQ at some point";
+                LOG_WARNING()
+                    << "Failed to " << (success ? "ack" : "requeue")
+                    << " the message, it will be requeued by RabbitMQ at some point";
             }
         }
     ));

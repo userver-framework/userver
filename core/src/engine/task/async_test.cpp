@@ -15,9 +15,19 @@ USERVER_NAMESPACE_BEGIN
 namespace {
 
 struct CountGuard {
-    CountGuard(std::atomic<int>& count) : count_(count) { count_++; }
-    CountGuard(CountGuard&& other) noexcept : count_(other.count_) { count_++; }
-    CountGuard(const CountGuard& other) : count_(other.count_) { count_++; }
+    CountGuard(std::atomic<int>& count)
+        : count_(count)
+    {
+        count_++;
+    }
+    CountGuard(CountGuard&& other) noexcept : count_(other.count_) {
+        count_++;
+    }
+    CountGuard(const CountGuard& other)
+        : count_(other.count_)
+    {
+        count_++;
+    }
 
     ~CountGuard() { count_--; }
 
@@ -59,8 +69,7 @@ struct CountingConstructions {
     CountingConstructions(CountingConstructions&&) noexcept { ++constructions; }
     CountingConstructions(const CountingConstructions&) { ++constructions; }
 
-    void operator()() const { /*noop*/
-    }
+    void operator()() const { /*noop*/ }
 
     CountingConstructions& operator=(CountingConstructions&&) = default;
     CountingConstructions& operator=(const CountingConstructions&) = default;
@@ -210,22 +219,27 @@ UTEST(Async, WithDeadlineDetach) {
     std::atomic<bool> finished{false};
     auto task = engine::AsyncNoSpan([&started, &finished] {
         auto start = std::chrono::steady_clock::now();
-        engine::AsyncNoSpan(engine::Deadline::FromDuration(kDeadlineTestsTimeout), [start, &started, &finished] {
-            started = true;
-            EXPECT_FALSE(engine::current_task::IsCancelRequested());
-            engine::InterruptibleSleepFor(utest::kMaxTestWaitTime);
-            EXPECT_TRUE(engine::current_task::IsCancelRequested());
+        engine::DetachUnscopedUnsafe(engine::AsyncNoSpan(
+            engine::Deadline::FromDuration(kDeadlineTestsTimeout),
+            [start, &started, &finished] {
+                started = true;
+                EXPECT_FALSE(engine::current_task::IsCancelRequested());
+                engine::InterruptibleSleepFor(utest::kMaxTestWaitTime);
+                EXPECT_TRUE(engine::current_task::IsCancelRequested());
 
-            auto finish = std::chrono::steady_clock::now();
-            auto duration = finish - start;
-            EXPECT_GE(duration, kDeadlineTestsTimeout);
-            EXPECT_LT(duration, kMaxTestDuration);
-            finished = true;
-        }).Detach();
+                auto finish = std::chrono::steady_clock::now();
+                auto duration = finish - start;
+                EXPECT_GE(duration, kDeadlineTestsTimeout);
+                EXPECT_LT(duration, kMaxTestDuration);
+                finished = true;
+            }
+        ));
     });
     UEXPECT_NO_THROW(task.Get());
     EXPECT_TRUE(started.load());
-    while (!finished) engine::Yield();
+    while (!finished) {
+        engine::Yield();
+    }
 }
 
 UTEST(Async, Critical) {
@@ -284,7 +298,9 @@ UTEST_MT(Async, CancelNotifyRace, 4) {
 
     static constexpr auto delay = [] {
         compiler::RelaxCpu relax;
-        for (int i = 0; i < 50; ++i) relax();
+        for (int i = 0; i < 50; ++i) {
+            relax();
+        }
     };
 
     while (!test_deadline.IsReached()) {

@@ -1,7 +1,7 @@
 #pragma once
 
 /// @file userver/fs/fs_cache_client.hpp
-/// @brief @copybref fs::FsCacheClient
+/// @brief @copybrief fs::FsCacheClient
 
 #include <userver/engine/io/sys_linux/inotify.hpp>
 #include <userver/fs/read.hpp>

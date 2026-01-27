@@ -12,7 +12,8 @@ class BaseHandler : public server::handlers::HttpHandlerJsonBase {
 public:
     BaseHandler(const components::ComponentConfig& config, const components::ComponentContext& context)
         : HttpHandlerJsonBase(config, context),
-          ydb_client_(context.FindComponent<ydb::YdbComponent>().GetTableClient("sampledb")) {}
+          ydb_client_(context.FindComponent<ydb::YdbComponent>().GetTableClient("sampledb"))
+    {}
 
 protected:
     ydb::TableClient& Ydb() const { return *ydb_client_; }

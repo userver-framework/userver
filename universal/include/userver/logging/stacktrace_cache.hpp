@@ -11,7 +11,7 @@ namespace logging::stacktrace_cache {
 
 /// Get cached stacktrace
 /// @see GlobalEnableStacktrace
-std::string to_string(const boost::stacktrace::stacktrace& st);
+std::string to_string(const boost::stacktrace::stacktrace& st);  // NOLINT(readability-identifier-naming)
 
 /// Enable/disable stacktraces. If disabled, stacktrace_cache::to_string()
 /// returns with a const string.

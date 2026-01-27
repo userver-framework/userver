@@ -7,6 +7,9 @@ components_manager:
         consumer-task-processor:
             thread_name: consumer
             worker_threads: 4
+        consumer-blocking-task-processor:
+            thread_name: consumer-blocking
+            worker_threads: 1
     default_task_processor: main-task-processor
 
     components:
@@ -17,6 +20,8 @@ components_manager:
             consumers_list:
               - kafka-consumer-first
               - kafka-consumer-second
+              - kafka-consumer-cooperative-first
+              - kafka-consumer-cooperative-second
 
         kafka-consumer-first: &kafka_consumer
             group_id: test-group
@@ -29,9 +34,23 @@ components_manager:
 
         kafka-consumer-second: *kafka_consumer
 
+        kafka-consumer-cooperative-first: &kafka_cooperative_consumer
+            group_id: test-cooperative-group
+            topics:
+              - test-cooperative-topic
+            auto_offset_reset: smallest
+            max_batch_size: 1
+            restart_after_failure_delay: 1s
+            security_protocol: PLAINTEXT
+            rd_kafka_custom_options:
+                partition.assignment.strategy: cooperative-sticky
+
+        kafka-consumer-cooperative-second: *kafka_cooperative_consumer
+
         testsuite-support:
 
         http-client:
+        http-client-core:
             fs-task-processor: main-task-processor
 
         tests-control:

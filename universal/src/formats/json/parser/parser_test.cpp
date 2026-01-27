@@ -2,26 +2,18 @@
 
 #include <unordered_map>
 
+#include <userver/compiler/demangle.hpp>
 #include <userver/formats/json/parser/parser.hpp>
 #include <userver/formats/json/serialize.hpp>
 
-// TODO: move to utest/*
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define EXPECT_THROW_TEXT(code, exception_type, exc_text)                                             \
-    try {                                                                                             \
-        code;                                                                                         \
-        FAIL() << "expected exception " #exception_type ", but not thrown";                           \
-    } catch (const exception_type& e) {                                                               \
-        EXPECT_EQ(e.what(), std::string{exc_text}) << "wrong exception message";                      \
-    } catch (const std::exception& e) {                                                               \
-        FAIL() << "wrong exception type, expected " #exception_type ", but got " << typeid(e).name(); \
-    }
+#define EXPECT_THROW_TEXT(code, exception_type, exc_text) UEXPECT_THROW_MSG(code, exception_type, exc_text)
 
 USERVER_NAMESPACE_BEGIN
 namespace fjp = formats::json::parser;
 
 TEST(JsonStringParser, Int64) {
-    std::string input{"12345"};
+    const std::string input{"12345"};
 
     int64_t result{0};
     fjp::Int64Parser int_parser;
@@ -88,9 +80,12 @@ TEST(JsonStringParser, Int64Overflow) {
     EXPECT_THROW_TEXT(
         (fjp::ParseToType<int64_t, fjp::Int64Parser>(input)),
         fjp::ParseError,
-        "Parse error at pos 20, path '': bad "
-        "numeric conversion: positive overflow, the latest token "
-        "was 18446744073709551615"
+        fmt::format(
+            "Parse error at pos 20, path '': Failed to convert {} 18446744073709551615 into {} "
+            "due to positive integer overflow, the latest token was 18446744073709551615",
+            compiler::GetTypeName<std::uint64_t>(),
+            compiler::GetTypeName<std::int64_t>()
+        )
     );
 }
 
@@ -105,7 +100,7 @@ protected:
 };
 
 TEST(JsonStringParser, EmptyObject) {
-    std::string input{"{}"};
+    const std::string input{"{}"};
 
     EmptyObjectParser obj_parser;
 
@@ -175,7 +170,7 @@ private:
 };
 
 TEST(JsonStringParser, IntObject) {
-    std::string input("{\"field\": 234}");
+    const std::string input("{\"field\": 234}");
     EXPECT_EQ((fjp::ParseToType<IntObject, IntObjectParser>(input)), IntObject({234}));
 }
 
@@ -203,7 +198,9 @@ TEST(JsonStringParser, ArrayIntObjectNoField) {
     state.PushParser(array_parser);
 
     EXPECT_THROW_TEXT(
-        state.ProcessInput(input), fjp::ParseError, "Parse error at pos 2, path '[0]': Missing required field 'field'"
+        state.ProcessInput(input),
+        fjp::ParseError,
+        "Parse error at pos 2, path '[0]': Missing required field 'field'"
     );
 }
 
@@ -227,7 +224,7 @@ TEST(JsonStringParser, ArrayIntErrorMsg) {
 }
 
 TEST(JsonStringParser, ArrayInt) {
-    std::string input("[1,2,3]");
+    const std::string input("[1,2,3]");
     std::vector<int64_t> result{};
 
     fjp::Int64Parser int_parser;
@@ -243,7 +240,7 @@ TEST(JsonStringParser, ArrayInt) {
 }
 
 TEST(JsonStringParser, ArrayArrayInt) {
-    std::string input("[[1],[],[2,3,4]]");
+    const std::string input("[[1],[],[2,3,4]]");
     std::vector<std::vector<int64_t>> result{};
 
     fjp::Int64Parser int_parser;
@@ -261,8 +258,13 @@ TEST(JsonStringParser, ArrayArrayInt) {
 }
 
 TEST(JsonStringParser, ArrayBool) {
-    std::string input{"[true, false, true]"};
+    const std::string input{"[true, false, true]"};
     std::vector<bool> result;
+
+#if defined(__GNUC__) && !defined(__clang__) && __GNUC__ <= 9
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds"  // https://gcc.gnu.org/bugzilla/show_bug.cgi?id=59124
+#endif
 
     fjp::BoolParser bool_parser;
     fjp::ArrayParser<bool, fjp::BoolParser> parser(bool_parser);
@@ -274,6 +276,10 @@ TEST(JsonStringParser, ArrayBool) {
     state.PushParser(parser);
     state.ProcessInput(input);
     EXPECT_EQ(result, (std::vector<bool>{true, false, true}));
+
+#if defined(__GNUC__) && !defined(__clang__) && __GNUC__ <= 9
+#pragma GCC diagnostic pop
+#endif
 }
 
 template <class T>
@@ -343,20 +349,22 @@ TYPED_TEST(JsonStringParserMap, Invalid) {
     );
 
     EXPECT_THROW_TEXT(
-        state.ProcessInput(R"(}{)"), fjp::ParseError, "Parse error at pos 0, path '': The document is empty."
+        state.ProcessInput(R"(}{)"),
+        fjp::ParseError,
+        "Parse error at pos 0, path '': The document is empty."
     );
 }
 
 TEST(JsonStringParser, JsonValue) {
-    std::string inputs[] = {
+    const std::string inputs[] = {
         R"([1, "123", "", -2, 3.5, {"key": 1, "other": {"key2": 2}}, {}])",
         R"({})",
     };
     for (const auto& input : inputs) {
         auto value_str = formats::json::FromString(input);
         auto value_sax = fjp::ParseToType<formats::json::Value, fjp::JsonValueParser>(input);
-        EXPECT_EQ(value_str, value_sax) << "input: " + input + ", str='" + ToString(value_str) + "', sax='" +
-                                               ToString(value_sax) + "'";
+        EXPECT_EQ(value_str, value_sax)
+            << "input: " + input + ", str='" + ToString(value_str) + "', sax='" + ToString(value_sax) + "'";
     }
 }
 
@@ -405,7 +413,7 @@ TEST(JsonStringParser, JsonValueLeak) {
 }
 
 TEST(JsonStringParser, JsonValueBad) {
-    std::string inputs[] = {
+    const std::string inputs[] = {
         R"({)",         //
         R"()",          //
         R"({}})",       //
@@ -422,12 +430,20 @@ TEST(JsonStringParser, JsonValueBad) {
 }
 
 TEST(JsonStringParser, BomSymbol) {
-    std::string input =
+    const std::string input =
         "{\r\n\"track_id\": \"0000436301831\",\r\n\"service\": "
         "\"boxberry\",\r\n\"status\": \"pickedup\"\r\n}";
     auto value_str = formats::json::FromString(input);
     auto value_sax = fjp::ParseToType<formats::json::Value, fjp::JsonValueParser>(input);
     EXPECT_EQ(value_str, value_sax);
+}
+
+TEST(JsonStringParser, ZeroByte) {
+    EXPECT_THROW_TEXT(
+        (fjp::ParseToType<formats::json::Value, fjp::JsonValueParser>(std::string_view{"{}\0z", 4})),
+        formats::json::parser::BaseError,
+        "Parse error at pos 2, path '': The document root must not be followed by other values."
+    );
 }
 
 USERVER_NAMESPACE_END

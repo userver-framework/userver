@@ -39,7 +39,9 @@ TempDirectory TempDirectory::Create(std::string_view parent_path, std::string_vi
     return TempDirectory{std::move(path)};
 }
 
-TempDirectory::TempDirectory(std::string&& path) : path_(std::move(path)) {
+TempDirectory::TempDirectory(std::string&& path)
+    : path_(std::move(path))
+{
     UASSERT(boost::filesystem::is_directory(path_));
 }
 
@@ -54,7 +56,9 @@ TempDirectory& TempDirectory::operator=(TempDirectory&& other) noexcept {
 }
 
 TempDirectory::~TempDirectory() {
-    if (path_.empty()) return;
+    if (path_.empty()) {
+        return;
+    }
 
     try {
         RemoveDirectory(path_);

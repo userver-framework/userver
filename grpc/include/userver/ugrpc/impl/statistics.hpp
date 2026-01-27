@@ -7,7 +7,7 @@
 #include <string_view>
 
 #include <userver/ugrpc/impl/code_statistics.hpp>
-#include <userver/ugrpc/impl/static_metadata.hpp>
+#include <userver/ugrpc/impl/static_service_metadata.hpp>
 
 #include <userver/utils/fixed_array.hpp>
 #include <userver/utils/statistics/fwd.hpp>
@@ -108,7 +108,7 @@ void DumpMetric(utils::statistics::Writer& writer, const MethodStatisticsSnapsho
 void DumpMetricWithLabels(
     utils::statistics::Writer& writer,
     const MethodStatisticsSnapshot& stats,
-    std::optional<std::string_view> client_name,
+    std::optional<std::string_view> destination_prefix_in_metrics,
     std::string_view call_name,
     std::string_view service_name
 );
@@ -132,7 +132,7 @@ public:
 
     void DumpAndCountTotal(
         utils::statistics::Writer& writer,
-        std::optional<std::string_view> client_name,
+        std::optional<std::string_view> destination_prefix_in_metrics,
         MethodStatisticsSnapshot& total
     ) const;
 

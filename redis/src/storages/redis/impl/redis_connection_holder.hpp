@@ -2,33 +2,65 @@
 #include <memory>
 
 #include <engine/ev/watcher/periodic_watcher.hpp>
-#include <storages/redis/impl/cluster_sentinel_impl.hpp>
 #include <storages/redis/impl/redis.hpp>
+#include <storages/redis/impl/redis_creation_settings.hpp>
 #include <storages/redis/impl/sentinel.hpp>
+#include <storages/redis/impl/sentinel_impl.hpp>
 #include <userver/concurrent/variable.hpp>
 #include <userver/rcu/rcu.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis::impl {
 
 /// This class holds redis connection and automatically reconnects if
 /// disconnected
-class RedisConnectionHolder : public std::enable_shared_from_this<RedisConnectionHolder> {
+class RedisConnectionHolder final : public std::enable_shared_from_this<RedisConnectionHolder> {
+    class EmplaceEnabler;
+
 public:
+    static constexpr redis::RedisCreationSettings makeClusterNodeRedisCreationSettings() {
+        /// Here we allow read from replicas possibly stale data.
+        /// This does not affect connections to masters
+        return redis::RedisCreationSettings{ConnectionSecurity::kNone, true};
+    }
+    static constexpr redis::RedisCreationSettings makeSentinelNodeRedisCreationSettings() {
+        /// Non-cluster nodes does not support READONLY command
+        return redis::RedisCreationSettings{ConnectionSecurity::kNone, false};
+    }
+
+    RedisConnectionHolder() = delete;
     RedisConnectionHolder(
+        EmplaceEnabler,
         const engine::ev::ThreadControl& sentinel_thread_control,
         const std::shared_ptr<engine::ev::ThreadPool>& redis_thread_pool,
+        const std::string& shard_group_name,
         const std::string& host,
         uint16_t port,
         Password password,
+        std::size_t database_index,
         CommandsBufferingSettings buffering_settings,
         ReplicationMonitoringSettings replication_monitoring_settings,
-        utils::RetryBudgetSettings retry_budget_settings
+        utils::RetryBudgetSettings retry_budget_settings,
+        redis::RedisCreationSettings redis_creation_settings
     );
     ~RedisConnectionHolder();
     RedisConnectionHolder(const RedisConnectionHolder&) = delete;
     RedisConnectionHolder& operator=(const RedisConnectionHolder&) = delete;
+
+    static std::shared_ptr<RedisConnectionHolder> Create(
+        const engine::ev::ThreadControl& sentinel_thread_control,
+        const std::shared_ptr<engine::ev::ThreadPool>& redis_thread_pool,
+        const std::string& shard_group_name,
+        const std::string& host,
+        uint16_t port,
+        Password password,
+        std::size_t database_index,
+        CommandsBufferingSettings buffering_settings,
+        ReplicationMonitoringSettings replication_monitoring_settings,
+        utils::RetryBudgetSettings retry_budget_settings,
+        redis::RedisCreationSettings redis_creation_settings = makeClusterNodeRedisCreationSettings()
+    );
 
     std::shared_ptr<Redis> Get() const;
 
@@ -51,13 +83,17 @@ private:
     concurrent::Variable<utils::RetryBudgetSettings, std::mutex> retry_budget_settings_;
     engine::ev::ThreadControl ev_thread_;
     std::shared_ptr<engine::ev::ThreadPool> redis_thread_pool_;
+    const std::string shard_group_name_;
     const std::string host_;
     const uint16_t port_;
     const Password password_;
+    const std::size_t database_index_;
+    Statistics statistics_;
     rcu::Variable<std::shared_ptr<Redis>, rcu::BlockingRcuTraits> redis_;
     engine::ev::PeriodicWatcher connection_check_timer_;
+    const RedisCreationSettings redis_creation_settings_;
 };
 
-}  // namespace redis
+}  // namespace storages::redis::impl
 
 USERVER_NAMESPACE_END

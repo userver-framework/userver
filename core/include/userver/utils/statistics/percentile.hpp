@@ -69,15 +69,21 @@ template <
 class Percentile final {
 public:
     Percentile() noexcept {
-        for (auto& value : values_) value.store(0, std::memory_order_relaxed);
-        for (auto& value : extra_values_) value.store(0, std::memory_order_relaxed);
+        for (auto& value : values_) {
+            value.store(0, std::memory_order_relaxed);
+        }
+        for (auto& value : extra_values_) {
+            value.store(0, std::memory_order_relaxed);
+        }
         count_.store(0, std::memory_order_release);
     }
 
     Percentile(const Percentile<M, Counter, ExtraBuckets, ExtraBucketSize>& other) noexcept { *this = other; }
 
     Percentile& operator=(const Percentile& rhs) noexcept {
-        if (this == &rhs) return *this;
+        if (this == &rhs) {
+            return *this;
+        }
 
         std::size_t sum = 0;
         for (std::size_t i = 0; i < values_.size(); i++) {
@@ -122,25 +128,35 @@ public:
     /// @param percent - value in [0..100] - requested percentile.
     /// If outside of 100, then returns last bucket that has any element in it.
     std::size_t GetPercentile(double percent) const {
-        if (count_ == 0) return 0;
+        if (count_ == 0) {
+            return 0;
+        }
 
         std::size_t sum = 0;
-        std::size_t want_sum = count_.load(std::memory_order_acquire) * percent;
+        const std::size_t want_sum = count_.load(std::memory_order_acquire) * percent;
         std::size_t max_value = 0;
         for (std::size_t i = 0; i < values_.size(); i++) {
             const auto value = values_[i].load(std::memory_order_relaxed);
             sum += value;
-            if (sum * 100 > want_sum) return i;
+            if (sum * 100 > want_sum) {
+                return i;
+            }
 
-            if (value) max_value = i;
+            if (value) {
+                max_value = i;
+            }
         }
 
         for (size_t i = 0; i < extra_values_.size(); i++) {
             const auto value = extra_values_[i].load(std::memory_order_relaxed);
             sum += value;
-            if (sum * 100 > want_sum) return ExtraBucketToValue(i);
+            if (sum * 100 > want_sum) {
+                return ExtraBucketToValue(i);
+            }
 
-            if (value) max_value = ExtraBucketToValue(i);
+            if (value) {
+                max_value = ExtraBucketToValue(i);
+            }
         }
 
         return max_value;
@@ -169,8 +185,12 @@ public:
 
     /// @brief Zero out all the buckets and total number of elements.
     void Reset() noexcept {
-        for (auto& value : values_) value.store(0, std::memory_order_relaxed);
-        for (auto& value : extra_values_) value.store(0, std::memory_order_relaxed);
+        for (auto& value : values_) {
+            value.store(0, std::memory_order_relaxed);
+        }
+        for (auto& value : extra_values_) {
+            value.store(0, std::memory_order_relaxed);
+        }
         count_ = 0;
     }
 
@@ -199,10 +219,9 @@ void DumpMetric(
     const Percentile<M, Counter, ExtraBuckets, ExtraBucketSize>& perc,
     std::initializer_list<double> percents = {0, 50, 90, 95, 98, 99, 99.6, 99.9, 100}
 ) {
-    for (double percent : percents) {
-        writer.ValueWithLabels(
-            perc.GetPercentile(percent), {"percentile", statistics::GetPercentileFieldName(percent)}
-        );
+    for (const double percent : percents) {
+        writer
+            .ValueWithLabels(perc.GetPercentile(percent), {"percentile", statistics::GetPercentileFieldName(percent)});
     }
 }
 

@@ -18,7 +18,7 @@ template <typename T, typename DbType>
 using HasConvert = decltype(Convert(std::declval<DbType&&>(), convert::To<T>{}));
 
 template <typename T, typename DbType>
-inline constexpr bool kHasConvert = meta::kIsDetected<HasConvert, T, DbType>;
+inline constexpr bool kHasConvert = meta::IsDetected<HasConvert, T, DbType>;
 
 }  // namespace impl
 

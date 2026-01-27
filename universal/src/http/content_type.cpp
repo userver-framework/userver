@@ -2,15 +2,17 @@
 
 #include <cstdlib>
 #include <functional>
-#include <iostream>
+#include <ostream>
 
 #include <fmt/compile.h>
 #include <fmt/format.h>
 #include <fmt/ostream.h>
 #include <boost/functional/hash.hpp>
 
+#include <userver/logging/log_helper.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/str_icase.hpp>
+#include <userver/utils/string_literal.hpp>
 #include <userver/utils/text_light.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -21,12 +23,13 @@ namespace {
 constexpr int kMaxQuality = 1000;
 const std::string kDefaultCharset = "UTF-8";
 
-const std::string kOwsChars = " \t";
-const std::string kTypeTokenInvalidChars = kOwsChars + '/';
-const std::string kCharsetParamName = "charset";
-const std::string kQualityParamName = "q";
+constexpr utils::StringLiteral kOwsChars = " \t";
+constexpr utils::StringLiteral kTypeTokenInvalidChars = " \t/";  // kOwsChars + '/'
+constexpr utils::StringLiteral kCharsetParamName = "charset";
+constexpr utils::StringLiteral kQualityParamName = "q";
+constexpr utils::StringLiteral kBoundaryParamName = "boundary";
 
-const std::string kTokenAny = "*";
+constexpr utils::StringLiteral kTokenAny = "*";
 
 std::string_view LtrimOws(std::string_view view) {
     const auto first_pchar_pos = view.find_first_not_of(kOwsChars);
@@ -45,12 +48,14 @@ std::string_view RtrimOws(std::string_view view) {
     return view;
 }
 
-int ParseQuality(std::string_view param_value) {
+int ParseQuality(std::string_view param_value, std::string_view full_string) {
     static constexpr size_t kFullPrecisionLength = 5;  // "1.000"
 
     if (!param_value.empty() && param_value.size() <= kFullPrecisionLength) {
         if (param_value[0] == '0') {
-            if (param_value.size() == 1) return 0;
+            if (param_value.size() == 1) {
+                return 0;
+            }
             if (param_value[1] == '.') {
                 // FIXME: replace with from_chars
                 int quality = 0;
@@ -74,27 +79,34 @@ int ParseQuality(std::string_view param_value) {
             return kMaxQuality;
         }
     }
-    throw MalformedContentType("Invalid quality value: \'" + std::string(param_value) + '\'');
+    throw MalformedContentType(
+        fmt::format("Invalid quality value '{}' in a parameter of content type '{}'", param_value, full_string)
+    );
 }
 
 }  // namespace
 
-ContentType::ContentType(std::string_view unparsed) : quality_(kMaxQuality) {
+ContentType::ContentType(std::string_view unparsed)
+    : quality_(kMaxQuality)
+{
+    const auto full_string = unparsed;
+
     auto delim_pos = unparsed.find('/');
     if (delim_pos == std::string::npos) {
-        throw MalformedContentType("Invalid media type: '" + std::string(unparsed) + '\'');
+        throw MalformedContentType(fmt::format("Content type does not contain /: '{}'", full_string));
     }
     type_ = std::string(LtrimOws(unparsed.substr(0, delim_pos)));
     if (type_.empty() || type_.find_first_of(kTypeTokenInvalidChars) != std::string::npos) {
-        throw MalformedContentType("Invalid media type: '" + std::string(unparsed) + '\'');
+        throw MalformedContentType(fmt::format("Invalid media type in content type: '{}'", full_string));
     }
     unparsed.remove_prefix(delim_pos + 1);
 
     delim_pos = unparsed.find(';');
     subtype_ = std::string(RtrimOws(unparsed.substr(0, delim_pos)));
     if (subtype_.empty() || subtype_.find_first_of(kTypeTokenInvalidChars) != std::string::npos ||
-        (type_ == kTokenAny && subtype_ != kTokenAny)) {
-        throw MalformedContentType("Invalid media type: \'" + type_ + '/' + std::string(unparsed) + '\'');
+        (type_ == kTokenAny && subtype_ != kTokenAny))
+    {
+        throw MalformedContentType(fmt::format("Invalid media subtype in content type: '{}'", full_string));
     }
 
     while (delim_pos != std::string::npos) {
@@ -102,38 +114,52 @@ ContentType::ContentType(std::string_view unparsed) : quality_(kMaxQuality) {
 
         auto param_name_end = unparsed.find('=');
         if (param_name_end == std::string::npos) {
-            throw MalformedContentType("Malformed parameter in content type");
+            throw MalformedContentType(fmt::format("Malformed parameter in content type: '{}'", full_string));
         }
         auto param_name = LtrimOws(unparsed.substr(0, param_name_end));
         if (param_name.find_first_of(kOwsChars) != std::string_view::npos) {
-            throw MalformedContentType("Malformed parameter name in content type: '" + std::string(param_name) + '\'');
+            throw MalformedContentType(
+                fmt::format("Malformed parameter name '{}' in content type '{}'", param_name, full_string)
+            );
         }
         unparsed.remove_prefix(param_name_end + 1);
 
         if (unparsed.empty()) {
-            throw MalformedContentType("Missing value for parameter: '" + std::string(param_name) + '\'');
+            throw MalformedContentType(
+                fmt::format("Missing value for parameter '{}' in content type '{}'", param_name, full_string)
+            );
         }
         if (unparsed[0] == '"') {
-            throw MalformedContentType("Quoted parameter values are not supported");
+            throw MalformedContentType(
+                fmt::format("Quoted parameter values are not supported in content type: '{}'", full_string)
+            );
         }
         delim_pos = unparsed.find(';');
 
         if (utils::StrIcaseEqual()(kCharsetParamName, param_name)) {
             charset_ = std::string(RtrimOws(unparsed.substr(0, delim_pos)));
             if (charset_.empty() || charset_.find_first_of(kOwsChars) != std::string::npos) {
-                throw MalformedContentType("Invalid charset in content type: '" + charset_ + '\'');
+                throw MalformedContentType(
+                    fmt::format("Invalid charset '{}' in content type '{}'", charset_, full_string)
+                );
             }
         } else if (utils::StrIcaseEqual()(kQualityParamName, param_name)) {
-            quality_ = ParseQuality(RtrimOws(unparsed.substr(0, delim_pos)));
+            quality_ = ParseQuality(RtrimOws(unparsed.substr(0, delim_pos)), full_string);
+        } else if (utils::StrIcaseEqual()(kBoundaryParamName, param_name)) {
+            boundary_ = unparsed.substr(0, delim_pos);
         }
     }
 
     BuildStringRepresentation();
 }
 
-ContentType::ContentType(const std::string& media_range) : ContentType(std::string_view{media_range}) {}
+ContentType::ContentType(const std::string& media_range)
+    : ContentType(std::string_view{media_range})
+{}
 
-ContentType::ContentType(const char* media_range) : ContentType(std::string_view{media_range}) {}
+ContentType::ContentType(const char* media_range)
+    : ContentType(std::string_view{media_range})
+{}
 
 std::string ContentType::MediaType() const { return fmt::format(FMT_COMPILE("{}/{}"), TypeToken(), SubtypeToken()); }
 
@@ -162,6 +188,8 @@ bool ContentType::DoesAccept(const ContentType& other) const {
     }
     return icase_equal(Charset(), other.Charset());
 }
+
+const std::string& ContentType::Boundary() const { return boundary_; }
 
 std::string ContentType::ToString() const { return string_representation_; }
 
@@ -192,12 +220,20 @@ bool operator!=(const ContentType& lhs, const ContentType& rhs) { return !(lhs =
 bool operator<(const ContentType& lhs, const ContentType& rhs) {
     const utils::StrIcaseCompareThreeWay icase_cmp{};
     // */* has the lowest priority
-    if (lhs.TypeToken() == kTokenAny) return rhs.TypeToken() != kTokenAny;
-    if (rhs.TypeToken() == kTokenAny) return false;
+    if (lhs.TypeToken() == kTokenAny) {
+        return rhs.TypeToken() != kTokenAny;
+    }
+    if (rhs.TypeToken() == kTokenAny) {
+        return false;
+    }
 
     // type/* has lower priority than any specific type
-    if (lhs.SubtypeToken() == kTokenAny) return rhs.SubtypeToken() != kTokenAny;
-    if (rhs.SubtypeToken() == kTokenAny) return false;
+    if (lhs.SubtypeToken() == kTokenAny) {
+        return rhs.SubtypeToken() != kTokenAny;
+    }
+    if (rhs.SubtypeToken() == kTokenAny) {
+        return false;
+    }
 
     const auto type_token_cmp_result = icase_cmp(lhs.TypeToken(), rhs.TypeToken());
     if (type_token_cmp_result == 0) {
@@ -210,7 +246,9 @@ bool operator<(const ContentType& lhs, const ContentType& rhs) {
                 }
                 return true;
             }
-            if (!rhs.HasExplicitCharset()) return false;
+            if (!rhs.HasExplicitCharset()) {
+                return false;
+            }
 
             const auto charset_cmp_result = icase_cmp(lhs.Charset(), rhs.Charset());
             if (charset_cmp_result == 0) {
@@ -231,7 +269,13 @@ size_t ContentTypeHash::operator()(const ContentType& content_type) const {
     return hash;
 }
 
-std::ostream& operator<<(std::ostream& os, const ContentType& content_type) { return os << content_type.ToString(); }
+std::ostream& operator<<(std::ostream& os, const ContentType& content_type) {
+    return os << content_type.string_representation_;
+}
+
+logging::LogHelper& operator<<(logging::LogHelper& lh, const ContentType& content_type) {
+    return lh << content_type.string_representation_;
+}
 
 namespace content_type {
 

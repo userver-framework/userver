@@ -1,50 +1,62 @@
 #pragma once
 
-#include <functional>
 #include <memory>
 #include <shared_mutex>
 #include <string>
-#include <type_traits>
 #include <unordered_map>
 #include <vector>
 
 #include <userver/components/component_context.hpp>
 #include <userver/components/component_fwd.hpp>
 #include <userver/components/component_list.hpp>
-#include <userver/components/raw_component_base.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
+#include <userver/utils/impl/transparent_hash.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace engine::impl {
+namespace engine {
+template <typename T>
+class TaskWithResult;
+
+namespace impl {
 class TaskProcessorPools;
-}  // namespace engine::impl
+}  // namespace impl
+}  // namespace engine
 
 namespace os_signals {
 class ProcessorComponent;
 }  // namespace os_signals
 
 namespace components {
-
 class ComponentList;
 struct ManagerConfig;
+}  // namespace components
+
+namespace components::impl {
+
+class ComponentAdderBase;
 
 using ComponentConfigMap = std::unordered_map<std::string, const ComponentConfig&>;
+using TaskProcessorsMap = utils::impl::TransparentMap<std::string, std::unique_ptr<engine::TaskProcessor>>;
 
+// Responsible for instantiating coroutine engine, wrapping ComponentContextImpl in it and bridging it
+// to the outside world.
 class Manager final {
 public:
-    using TaskProcessorsMap = std::unordered_map<std::string, std::unique_ptr<engine::TaskProcessor>>;
-
-    Manager(std::unique_ptr<ManagerConfig>&& config, const ComponentList& component_list);
+    Manager(std::unique_ptr<ManagerConfig>&& config, std::chrono::steady_clock::time_point start_time);
     ~Manager();
 
+    engine::TaskWithResult<void> StartComponentSystem(const ComponentList& component_list, bool signal_on_stop);
     const ManagerConfig& GetConfig() const;
     const std::shared_ptr<engine::impl::TaskProcessorPools>& GetTaskProcessorPools() const;
     const TaskProcessorsMap& GetTaskProcessorsMap() const;
+    engine::TaskProcessor& GetTaskProcessor(std::string_view name) const;
 
     void OnSignal(int signum);
 
     std::chrono::steady_clock::time_point GetStartTime() const;
+
+    std::chrono::milliseconds GetPreLoadDuration() const;
 
     std::chrono::milliseconds GetLoadDuration() const;
 
@@ -74,19 +86,10 @@ private:
     void CreateComponentContext(const ComponentList& component_list);
     void AddComponents(const ComponentList& component_list);
 
-    friend void impl::AddComponentImpl(
-        Manager& manager,
-        const components::ComponentConfigMap& config_map,
-        const std::string& name,
-        impl::ComponentBaseFactory factory
-    );
-
     void AddComponentImpl(
         const components::ComponentConfigMap& config_map,
         const std::string& name,
-        std::function<std::unique_ptr<
-            components::RawComponentBase>(const components::ComponentConfig&, const components::ComponentContext&)>
-            factory
+        const impl::ComponentAdderBase& adder
     );
     void ClearComponents() noexcept;
     components::ComponentConfigMap MakeComponentConfigMap(const ComponentList& component_list);
@@ -96,16 +99,17 @@ private:
     TaskProcessorsStorage task_processors_storage_;
 
     mutable std::shared_timed_mutex context_mutex_;
-    components::ComponentContext component_context_;
+    std::unique_ptr<impl::ComponentContextImpl> component_context_;
     bool components_cleared_{false};
 
     engine::TaskProcessor* default_task_processor_{nullptr};
     const std::chrono::steady_clock::time_point start_time_;
+    const std::chrono::milliseconds pre_load_duration_{0};
     std::chrono::milliseconds load_duration_{0};
 
     os_signals::ProcessorComponent* signal_processor_{nullptr};
 };
 
-}  // namespace components
+}  // namespace components::impl
 
 USERVER_NAMESPACE_END

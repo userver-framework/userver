@@ -38,6 +38,7 @@ TEST(FormatsItems, LvalueReference) {
 }
 
 TEST(FormatsItems, ConstLvalueReference) {
+    /// [Items Example Usage - Simple object]
     const auto value = formats::json::FromString(R"({"key": "value"})");
     int iterations = 0;
     for (const auto& [key, value] : Items(value)) {
@@ -47,6 +48,7 @@ TEST(FormatsItems, ConstLvalueReference) {
 
         ++iterations;
     }
+    /// [Items Example Usage - Simple object]
 
     iterations = 0;
     for (auto [key, value] : Items(value)) {
@@ -89,7 +91,7 @@ TEST(FormatsItems, Iterations) {
 
     ASSERT_NE(it, items.end());
     auto value_x = *it;
-    std::string key_x = value_x.key;
+    const std::string key_x = value_x.key;
     auto v_x = value_x.value;
 
     it++;
@@ -115,17 +117,19 @@ TEST(FormatsItems, Iterations) {
 TEST(FormatsItems, BoostRanges) {
     auto value = formats::json::FromString(R"({"key1": "v1", "key2": "v2"})");
     EXPECT_THAT(
-        Items(value) | boost::adaptors::transformed(
-                           // Must return by value since kv is temporary and stores key.
-                           [](auto kv) { return std::move(kv.key); }
-                       ),
+        Items(value) |
+            boost::adaptors::transformed(
+                // Must return by value since kv is temporary and stores key.
+                [](auto kv) { return std::move(kv.key); }
+            ),
         testing::UnorderedElementsAreArray({"key1", "key2"})
     );
     EXPECT_THAT(
-        Items(value) | boost::adaptors::transformed(
-                           // Can return by reference since kv only stores value&.
-                           [](auto kv) -> const auto& { return kv.value; }
-                       ),
+        Items(value) |
+            boost::adaptors::transformed(
+                // Can return by reference since kv only stores value&.
+                [](auto kv) -> const auto& { return kv.value; }
+            ),
         testing::UnorderedElementsAreArray(
             {formats::json::ValueBuilder{"v1"}.ExtractValue(), formats::json::ValueBuilder{"v2"}.ExtractValue()}
         )

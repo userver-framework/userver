@@ -23,10 +23,16 @@ T OpenFile(const std::string& filename, ReopenMode mode = ReopenMode::kAppend) {
     constexpr std::chrono::milliseconds kIntervalForRetries{10};
 
     constexpr auto kOpenFlags = fs::blocking::OpenMode{
-        fs::blocking::OpenFlag::kWrite, fs::blocking::OpenFlag::kCreateIfNotExists, fs::blocking::OpenFlag::kAppend};
+        fs::blocking::OpenFlag::kWrite,
+        fs::blocking::OpenFlag::kCreateIfNotExists,
+        fs::blocking::OpenFlag::kAppend
+    };
 
     constexpr auto kOpenFlagsTruncate = fs::blocking::OpenMode{
-        fs::blocking::OpenFlag::kWrite, fs::blocking::OpenFlag::kCreateIfNotExists, fs::blocking::OpenFlag::kTruncate};
+        fs::blocking::OpenFlag::kWrite,
+        fs::blocking::OpenFlag::kCreateIfNotExists,
+        fs::blocking::OpenFlag::kTruncate
+    };
 
     const auto flags = mode == ReopenMode::kTruncate ? kOpenFlagsTruncate : kOpenFlags;
 

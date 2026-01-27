@@ -16,7 +16,8 @@ namespace {
 // Actual inaccuracy will be around +-5% on pracice due to interpolation.
 constexpr double kDefaultPerDatabaseBoundsArray[] = {
     1,   2,   3,   5,   7,   10,  13,  16,  20,  24,  29,   35,   42,   50,   60,    71,    84,    100,   120,   144,
-    173, 208, 250, 300, 360, 430, 520, 620, 730, 850, 1000, 1800, 3200, 5600, 10000, 18000, 32000, 56000, 100000};
+    173, 208, 250, 300, 360, 430, 520, 620, 730, 850, 1000, 1800, 3200, 5600, 10000, 18000, 32000, 56000, 100000
+};
 
 // "Golden test". Note that there is 1 more "inf" bucket.
 static_assert(std::size(kDefaultPerDatabaseBoundsArray) == 39);
@@ -52,11 +53,15 @@ void DoDumpMetric(utils::statistics::Writer& writer, const T& stats) {
 constexpr utils::span<const double> kDefaultPerDatabaseBounds{kDefaultPerDatabaseBoundsArray};
 constexpr utils::span<const double> kDefaultPerQueryBounds{kDefaultPerQueryBoundsArray};
 
-StatsCounters::StatsCounters(utils::span<const double> histogram_bounds) : timings(histogram_bounds) {}
+StatsCounters::StatsCounters(utils::span<const double> histogram_bounds)
+    : timings(histogram_bounds)
+{}
 
 void DumpMetric(utils::statistics::Writer& writer, const StatsCounters& stats) { DoDumpMetric(writer, stats); }
 
-StatsAggregator::StatsAggregator(utils::span<const double> histogram_bounds) : timings(histogram_bounds) {}
+StatsAggregator::StatsAggregator(utils::span<const double> histogram_bounds)
+    : timings(histogram_bounds)
+{}
 
 void StatsAggregator::Add(const StatsCounters& other) {
     success += other.success.Load();
@@ -83,7 +88,8 @@ Stats::Stats(
 )
     : by_database_histogram_bounds(utils::AsContainer<std::vector<double>>(by_database_histogram_bounds)),
       by_query_histogram_bounds(utils::AsContainer<std::vector<double>>(by_query_histogram_bounds)),
-      unnamed_queries(by_database_histogram_bounds) {}
+      unnamed_queries(by_database_histogram_bounds)
+{}
 
 void DumpMetric(utils::statistics::Writer& writer, const Stats& stats) {
     {

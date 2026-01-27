@@ -118,6 +118,7 @@ inline constexpr PredefinedHeader kSetCookie{"Set-Cookie"};
 /// @{
 inline constexpr PredefinedHeader kWebsocketKey{"Sec-WebSocket-Key"};
 inline constexpr PredefinedHeader kWebsocketAccept{"Sec-WebSocket-Accept"};
+inline constexpr PredefinedHeader kWebsocketProtocol{"Sec-WebSocket-Protocol"};
 inline constexpr PredefinedHeader kWebsocketVersion{"Sec-WebSocket-Version"};
 /// @}
 
@@ -161,6 +162,7 @@ inline constexpr PredefinedHeader kXBaggage{"baggage"};
 /// @name Generic Yandex headers
 /// @{
 inline constexpr PredefinedHeader kXYandexUid{"X-Yandex-UID"};
+inline constexpr PredefinedHeader kXYandexLogin{"X-Yandex-Login"};
 
 // IP address of mobile client, not an IP address of single-hop client.
 inline constexpr PredefinedHeader kXRemoteIp{"X-Remote-IP"};

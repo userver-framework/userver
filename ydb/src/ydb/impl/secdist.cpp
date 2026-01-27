@@ -16,6 +16,9 @@ DatabaseSettings GetDatabaseSettings(const formats::json::Value& doc) {
     settings.endpoint = doc["endpoint"].As<std::optional<std::string>>();
     settings.database = doc["database"].As<std::optional<std::string>>();
     settings.sync_start = doc["sync_start"].As<std::optional<bool>>();
+    settings.secure_connection_cert = doc["secure_connection_cert"].As<std::optional<std::string>>();
+    settings.user = doc["user"].As<std::optional<std::string>>();
+    settings.password = doc["password"].As<std::optional<std::string>>();
     if (doc.HasMember("token")) {
         settings.oauth_token = doc["token"].As<std::string>();
     } else if (doc.HasMember("iam_jwt_params")) {

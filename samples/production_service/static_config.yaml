@@ -52,10 +52,6 @@ components_manager:
             path: /service/monitor
             method: GET
             task_processor: monitor-task-processor
-        handler-fired-alerts:
-            path: /service/fired-alerts
-            method: GET
-            task_processor: monitor-task-processor
         # /// [Production service sample - static config utility handlers]
 
         # /// [Production service sample - static config ping]
@@ -71,12 +67,15 @@ components_manager:
         # /// [Production service sample - static config variables usage]
         # yaml
         http-client:
+        http-client-core:
             fs-task-processor: fs-task-processor
             user-agent: $server-name
             user-agent#fallback: 'userver-based-service 1.0'
         # /// [Production service sample - static config variables usage]
 
         http-client-statistics:
+            core-component: http-client-statistics-core
+        http-client-statistics-core:
             fs-task-processor: fs-task-processor
             pool-statistics-disable: true
             thread-name-prefix: stats
@@ -107,8 +106,6 @@ components_manager:
             limited-logging-interval: 1s
         # /// [Production service sample - static config secdist]
         # yaml
-        secdist:
-            provider: default-secdist-provider
         default-secdist-provider:
             config: $secdist-path
         # /// [Production service sample - static config secdist]
@@ -176,7 +173,7 @@ components_manager:
         testsuite-support:
     coro_pool:
         initial_size: $coro-pool-initial-size
-        initial_size#fallback: 5000
+        initial_size#fallback: 4000
         max_size: $coro-pool-max-size
         max_size#fallback: 50000
 

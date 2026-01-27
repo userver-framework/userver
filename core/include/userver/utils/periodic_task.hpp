@@ -6,20 +6,22 @@
 #include <chrono>
 #include <functional>
 #include <optional>
-#include <random>
 #include <string>
 
-#include <userver/engine/condition_variable.hpp>
-#include <userver/engine/deadline.hpp>
-#include <userver/engine/single_consumer_event.hpp>
-#include <userver/engine/task/task_with_result.hpp>
-#include <userver/rcu/rcu.hpp>
-#include <userver/testsuite/periodic_task_control.hpp>
-#include <userver/tracing/span.hpp>
+#include <userver/logging/level.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/fast_pimpl.hpp>
 #include <userver/utils/flags.hpp>
 
 USERVER_NAMESPACE_BEGIN
+
+namespace engine {
+class TaskProcessor;
+}  // namespace engine
+
+namespace testsuite {
+class PeriodicTaskControl;
+}  // namespace testsuite
 
 namespace utils {
 
@@ -64,7 +66,8 @@ public:
             utils::Flags<Flags> flags = {},
             logging::Level span_level = logging::Level::kInfo
         )
-            : Settings(period, kDistributionPercent, flags, span_level) {}
+            : Settings(period, kDistributionPercent, flags, span_level)
+        {}
 
         constexpr Settings(
             std::chrono::milliseconds period,
@@ -72,7 +75,11 @@ public:
             utils::Flags<Flags> flags = {},
             logging::Level span_level = logging::Level::kInfo
         )
-            : period(period), distribution(distribution), flags(flags), span_level(span_level) {
+            : period(period),
+              distribution(distribution),
+              flags(flags),
+              span_level(span_level)
+        {
             UASSERT(distribution <= period);
         }
 
@@ -82,13 +89,18 @@ public:
             utils::Flags<Flags> flags = {},
             logging::Level span_level = logging::Level::kInfo
         )
-            : Settings(period, period * distribution_percent / 100, flags, span_level) {
+            : Settings(period, period * distribution_percent / 100, flags, span_level)
+        {
             UASSERT(distribution_percent <= 100);
         }
 
         template <class Rep, class Period>
         constexpr /*implicit*/ Settings(std::chrono::duration<Rep, Period> period)
-            : Settings(period, kDistributionPercent, {}, logging::Level::kInfo) {}
+            : Settings(period, kDistributionPercent, {}, logging::Level::kInfo)
+        {}
+
+        bool operator==(const Settings& other) const noexcept;
+        bool operator!=(const Settings& other) const noexcept;
 
         // Note: Tidy requires us to explicitly initialize these fields, although
         // the initializers are never used.
@@ -196,33 +208,10 @@ public:
     Settings GetCurrentSettings() const;
 
 private:
-    enum class SuspendState { kRunning, kSuspended };
-
-    void DoStart();
-
-    void Run();
-
-    bool Step();
-
-    bool StepDebug(bool preserve_span);
-
-    bool DoStep();
-
-    std::chrono::milliseconds MutatePeriod(std::chrono::milliseconds period);
-
-    rcu::Variable<std::string> name_;
-    Callback callback_;
-    engine::TaskWithResult<void> task_;
-    rcu::Variable<Settings> settings_;
-    engine::SingleConsumerEvent changed_event_;
-    std::atomic<bool> should_force_step_{false};
-    std::optional<std::minstd_rand> mutate_period_random_;
-
-    // For kNow only
-    engine::Mutex step_mutex_;
-    std::atomic<SuspendState> suspend_state_;
-
-    std::optional<USERVER_NAMESPACE::testsuite::PeriodicTaskRegistrationHolder> registration_holder_;
+    class Impl;
+    constexpr static std::size_t kSize = 448;
+    constexpr static std::size_t kAlignment = 16;
+    utils::FastPimpl<Impl, kSize, kAlignment> impl_;
 };
 
 }  // namespace utils

@@ -3,71 +3,200 @@
 // This file was generated from {{ proto.source_file }}
 #include "{{ proto.source_file_without_ext }}_client.usrv.pb.hpp"
 
-{# All constant includes must go inside this header #}
-#include <userver/ugrpc/impl/protobuf_collector.hpp>
+{# DO NOT ADD NEW INCLUDES HERE! Add them inside codegen_definitions.hpp instead #}
 #include <userver/ugrpc/client/impl/codegen_definitions.hpp>
 
 {{ utils.include_grpcpp(proto.source_file_without_ext) }}
+
+{% if params.structs %}
+#include <userver/grpc-proto-structs/client/impl/codegen_definitions.hpp>
+{% endif %}
 
 {% call utils.optional_namespace(proto.namespace) %}
 
 {% for service in proto.services %}
 
 // Inline to deduplicate between client.usrv.cpp and service.usrv.cpp
-inline constexpr std::string_view k{{service.name}}MethodNames[] = {
-  {% for method in service.method %}
-  "{{proto.package_prefix}}{{service.name}}/{{method.name}}",
-  {% endfor %}
+inline constexpr std::array<USERVER_NAMESPACE::ugrpc::impl::MethodDescriptor, {{service.method | length}}> k{{service.name}}Methods = {
+{% for method in service.method %}
+    USERVER_NAMESPACE::ugrpc::impl::MethodDescriptor{
+        "{{proto.package_prefix}}{{service.name}}/{{method.name}}",
+{% if method.client_streaming and method.server_streaming %}
+        USERVER_NAMESPACE::ugrpc::RpcType::kBidiStreaming,
+{% elif method.client_streaming %}
+        USERVER_NAMESPACE::ugrpc::RpcType::kClientStreaming,
+{% elif method.server_streaming %}
+        USERVER_NAMESPACE::ugrpc::RpcType::kServerStreaming,
+{% else %}
+        USERVER_NAMESPACE::ugrpc::RpcType::kUnary,
+{% endif %}
+    },
+{% endfor %}
 };
 
 // Inline to deduplicate between client.usrv.cpp and service.usrv.cpp
 inline const bool k{{service.name}}TypesRegistration =
     (USERVER_NAMESPACE::ugrpc::impl::RegisterMessageTypes({
-      {% for method in service.method %}
+{% for method in service.method %}
         std::string("{{method.input_type}}").substr(1),
         std::string("{{method.output_type}}").substr(1),
-      {% endfor %}
+{% endfor %}
     }),
     false);
 
-{{service.name}}Client::{{service.name}}Client(
-    USERVER_NAMESPACE::ugrpc::client::impl::ClientDependencies&& dependencies)
-    : impl_(std::move(dependencies), GetMetadata(),
+{{service.name}}Client::{{service.name}}Client(USERVER_NAMESPACE::ugrpc::client::impl::ClientInternals&& internals)
+    : client_data_(std::move(internals), GetMetadata(),
             std::in_place_type<{{utils.namespace_with_colons(proto.namespace)}}::{{service.name}}>) {
     }
-  {% for method in service.method %}
-  {% set method_id = loop.index0 %}
 
-{{service.name}}Client::{{method.name}}Call
-{{service.name}}Client::{{method.name}}(
-    {% if not method.client_streaming %}
-    const {{ method.input_type | grpc_to_cpp_name }}& request,
-    {% endif %}
-    std::unique_ptr<::grpc::ClientContext> context,
-    const USERVER_NAMESPACE::ugrpc::client::Qos& qos
+{{service.name}}Client::{{service.name}}Client({{service.name}}Client&&) noexcept = default;
+
+{{service.name}}Client& {{service.name}}Client::operator=({{service.name}}Client&&) noexcept = default;
+
+{{service.name}}Client::~{{service.name}}Client() = default;
+
+{% for method in service.method %}
+{% set method_id = loop.index0 %}
+
+{% if method.client_streaming and method.server_streaming %}
+{{service.name}}Client::{{method.name}}ReaderWriter {{service.name}}Client::{{method.name}}(
+    USERVER_NAMESPACE::ugrpc::client::CallOptions call_options
 ) const {
-      auto& stub = impl_.NextStubFromMethodId<{{utils.namespace_with_colons(proto.namespace)}}::{{service.name}}>({{method_id}});
-      return {
+    return {
         USERVER_NAMESPACE::ugrpc::client::impl::CreateCallParams(
-          impl_, {{method_id}}, std::move(context), qos
+            *client_data_, {{method_id}}, std::move(call_options)
         ),
-        [&stub](auto&&... args) { return stub.PrepareAsync{{method.name}}(std::forward<decltype(args)>(args)...); },
-        {% if method.client_streaming %}
-      };
-        {% else %}
-        request,
-      };
-        {% endif %}
+        &{{service.name}}::Stub::PrepareAsync{{method.name}},
+    };
 }
-  {% endfor %}
+{% elif method.client_streaming %}
+{{service.name}}Client::{{method.name}}Writer {{service.name}}Client::{{method.name}}(
+    USERVER_NAMESPACE::ugrpc::client::CallOptions call_options
+) const {
+    return {
+        USERVER_NAMESPACE::ugrpc::client::impl::CreateCallParams(
+            *client_data_, {{method_id}}, std::move(call_options)
+        ),
+        &{{service.name}}::Stub::PrepareAsync{{method.name}},
+    };
+}
+{% elif method.server_streaming %}
+{{service.name}}Client::{{method.name}}Reader {{service.name}}Client::{{method.name}}(
+    const {{ method.input_type | grpc_to_cpp_name }}& request,
+    USERVER_NAMESPACE::ugrpc::client::CallOptions call_options
+) const {
+    return {
+        USERVER_NAMESPACE::ugrpc::client::impl::CreateCallParams(
+            *client_data_, {{method_id}}, std::move(call_options)
+        ),
+        &{{service.name}}::Stub::PrepareAsync{{method.name}},
+        request,
+    };
+}
+{% else %}
+{{ method.output_type | grpc_to_cpp_name }} {{service.name}}Client::{{method.name}}(
+    const {{ method.input_type | grpc_to_cpp_name }}& request,
+    USERVER_NAMESPACE::ugrpc::client::CallOptions call_options
+) const {
+    return USERVER_NAMESPACE::ugrpc::client::impl::PerformUnaryCall(
+        USERVER_NAMESPACE::ugrpc::client::impl::CreateCallParams(
+            *client_data_, {{method_id}}, std::move(call_options)
+        ),
+        USERVER_NAMESPACE::ugrpc::client::impl::PrepareUnaryCallProxy(
+            &{{service.name}}::Stub::PrepareAsync{{method.name}}
+        ),
+        request
+    );
+}
+
+{{service.name}}Client::{{method.name}}ResponseFuture {{service.name}}Client::Async{{method.name}}(
+    const {{ method.input_type | grpc_to_cpp_name }}& request,
+    USERVER_NAMESPACE::ugrpc::client::CallOptions call_options
+) const {
+    return {
+        USERVER_NAMESPACE::ugrpc::client::impl::CreateCallParams(
+            *client_data_, {{method_id}}, std::move(call_options)
+        ),
+        USERVER_NAMESPACE::ugrpc::client::impl::PrepareUnaryCallProxy(
+            &{{service.name}}::Stub::PrepareAsync{{method.name}}
+        ),
+        request,
+    };
+}
+{% endif %}
+{% endfor %}
 
 USERVER_NAMESPACE::ugrpc::impl::StaticServiceMetadata
 {{ service.name }}Client::GetMetadata() {
   (void)k{{service.name}}TypesRegistration;  // odr-use
 
   return USERVER_NAMESPACE::ugrpc::impl::MakeStaticServiceMetadata<
-    {{utils.namespace_with_colons(proto.namespace)}}::{{service.name}}>(
-      k{{service.name}}MethodNames);
+      {{utils.namespace_with_colons(proto.namespace)}}::{{service.name}}>(
+          k{{service.name}}Methods);
 }
+{% if params.structs %}
+
+namespace structs {
+
+{{service.name}}Client::{{service.name}}Client({{service.name}}Client&&) noexcept = default;
+{{service.name}}Client& {{service.name}}Client::operator=({{service.name}}Client&&) noexcept = default;
+
+{{service.name}}Client::~{{service.name}}Client() = default;
+
+{%- set namespace_path = '::' + proto.namespace if proto.namespace | length > 0 else '' -%}
+const {{namespace_path}}::{{service.name}}Client& {{ service.name }}Client::GetProtobufClient() const { return *protobuf_client_; }
+
+{{namespace_path}}::{{service.name}}Client& {{ service.name }}Client::GetProtobufClient() { return *protobuf_client_; }
+
+{{service.name}}Client::{{service.name}}Client(
+        USERVER_NAMESPACE::utils::SharedRef<{{namespace_path}}::{{service.name}}Client> protobuf_client)
+    : protobuf_client_(std::move(protobuf_client)) {}
+{% for method in service.method %}
+{% set method_id = loop.index0 %}
+
+{% if method.client_streaming and method.server_streaming %}
+{{service.name}}Client::{{method.name}}ReaderWriter {{service.name}}Client::{{method.name}}(
+    USERVER_NAMESPACE::ugrpc::client::CallOptions call_options
+) const {
+    return {{method.name}}ReaderWriter{protobuf_client_->{{method.name}}(std::move(call_options))};
+}
+{% elif method.client_streaming %}
+{{service.name}}Client::{{method.name}}Writer {{service.name}}Client::{{method.name}}(
+    USERVER_NAMESPACE::ugrpc::client::CallOptions call_options
+) const {
+    return {{method.name}}Writer{protobuf_client_->{{method.name}}(std::move(call_options))};
+}
+{% elif method.server_streaming %}
+{{service.name}}Client::{{method.name}}Reader {{service.name}}Client::{{method.name}}(
+    const {{ method.input_type | grpc_to_structs_name }}& request,
+    USERVER_NAMESPACE::ugrpc::client::CallOptions call_options
+) const {
+    return {{method.name}}Reader{protobuf_client_->{{method.name}}(proto_structs::StructToMessage(request), std::move(call_options))};
+}
+{% else %}
+{{ method.output_type | grpc_to_structs_name }} {{service.name}}Client::{{method.name}}(
+    const {{ method.input_type | grpc_to_structs_name }}& request,
+    USERVER_NAMESPACE::ugrpc::client::CallOptions call_options
+) const {
+    const auto response = protobuf_client_->{{method.name}}(proto_structs::StructToMessage(request), std::move(call_options));
+    return proto_structs::MessageToStruct<{{ method.output_type | grpc_to_structs_name }}>(response);
+}
+
+{{service.name}}Client::{{method.name}}ResponseFuture {{service.name}}Client::Async{{method.name}}(
+    const {{ method.input_type | grpc_to_structs_name }}& request,
+    USERVER_NAMESPACE::ugrpc::client::CallOptions call_options
+) const {
+    return {{method.name}}ResponseFuture{protobuf_client_->Async{{method.name}}(proto_structs::StructToMessage(request), std::move(call_options))};
+}
+{% endif %}
+{% endfor %}
+
+USERVER_NAMESPACE::ugrpc::impl::StaticServiceMetadata
+{{ service.name }}Client::GetMetadata() {
+    return {{namespace_path}}::{{service.name}}Client::GetMetadata();
+}
+
+}  // namespace structs
+{% endif %}
 {% endfor %}
 {% endcall %} {# utils.optional_namespace #}

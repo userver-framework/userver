@@ -3,6 +3,7 @@
 /// @file userver/crypto/certificate.hpp
 /// @brief @copybrief crypto::Certificate
 
+#include <list>
 #include <memory>
 #include <optional>
 #include <string>
@@ -37,12 +38,29 @@ public:
     ///
     /// @throw crypto::KeyParseError if failed to load the certificate.
     static Certificate LoadFromString(std::string_view certificate);
+    /// Loads the certificate and skips the meta information in it
+    /// @throw crypto::KeyParseError if failed to load the certificate.
+    static Certificate LoadFromStringSkippingAttributes(std::string_view certificate);
+
+    /// Returns Subject
+    std::string GetSubject() const;
 
 private:
-    explicit Certificate(std::shared_ptr<NativeType> cert) : cert_(std::move(cert)) {}
+    explicit Certificate(std::shared_ptr<NativeType> cert)
+        : cert_(std::move(cert))
+    {}
 
     std::shared_ptr<NativeType> cert_;
 };
+
+using CertificatesChain = std::list<Certificate>;
+
+/// Accepts a string that contains a chain of certificates (primary and intermediate), checks that
+/// it's correct, loads it into OpenSSL structures and returns as a
+/// list of 'Certificate's.
+///
+/// @throw crypto::KeyParseError if failed to load the certificate.
+CertificatesChain LoadCertificatesChainFromString(std::string_view chain);
 
 }  // namespace crypto
 

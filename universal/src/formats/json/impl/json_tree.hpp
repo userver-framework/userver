@@ -18,19 +18,24 @@ public:
     TreeIterFrame() = default;
 
     /// frame pointing to non-first element of object
-    TreeIterFrame(const Value* container, std::size_t index) : container_{container}, current_index_{index} {
-        if (container->IsArray())
+    TreeIterFrame(const Value* container, std::size_t index)
+        : container_{container},
+          current_index_{index}
+    {
+        if (container->IsArray()) {
             end_ = container->Size();
-        else if (container->IsObject())
+        } else if (container->IsObject()) {
             end_ = container->MemberCount();
-        else {
+        } else {
             UASSERT_MSG(false, "TreeIterFrame called on non-container element");
             end_ = 1;  // do our best to not crash with -DNDEBUG
         }
     }
 
     /// initialize new frame from rapidjson value
-    TreeIterFrame(const Value* container) : TreeIterFrame(container, 0) {}
+    TreeIterFrame(const Value* container)
+        : TreeIterFrame(container, 0)
+    {}
 
     /// Returns currently "selected" value from frame.
     /// For non-containers always returns container

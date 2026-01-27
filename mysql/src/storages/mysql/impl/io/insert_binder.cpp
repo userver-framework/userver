@@ -6,7 +6,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::mysql::impl::io {
 
-InsertBinderBase::InsertBinderBase(std::size_t size) : ParamsBinderBase{size} {}
+InsertBinderBase::InsertBinderBase(std::size_t size)
+    : ParamsBinderBase{size}
+{}
 
 InsertBinderBase::~InsertBinderBase() = default;
 

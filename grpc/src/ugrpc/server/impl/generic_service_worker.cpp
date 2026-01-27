@@ -12,28 +12,16 @@ namespace ugrpc::server::impl {
 
 namespace {
 
-constexpr std::string_view kGenericMethodFullNamesFake[] = {
-    "Generic/Generic",
-};
-constexpr std::string_view kGenericServiceNameFake = "Generic";
-constexpr ugrpc::impl::StaticServiceMetadata kGenericMetadataFake{kGenericServiceNameFake, kGenericMethodFullNamesFake};
+constexpr utils::StringLiteral kGenericServiceFullNameFake = "Generic";
 
-auto Dispatch(void (GenericServiceBase::*service_method)(GenericServiceBase::Call&)) { return service_method; }
+constexpr std::array kGenericMethodsFake = {ugrpc::impl::MethodDescriptor{
+    /*method_full_name*/ utils::StringLiteral{"Generic/Generic"},
+    /*method_type*/ RpcType::kBidiStreaming,
+}};
+
+constexpr ugrpc::impl::StaticServiceMetadata kGenericMetadataFake{kGenericServiceFullNameFake, kGenericMethodsFake};
 
 }  // namespace
-
-template <>
-struct CallTraits<void (GenericServiceBase::*)(GenericServiceBase::Call&)> final {
-    using ServiceBase = GenericServiceBase;
-    using Request = grpc::ByteBuffer;
-    using Response = grpc::ByteBuffer;
-    using RawCall = impl::RawReaderWriter<Request, Response>;
-    using InitialRequest = NoInitialRequest;
-    using Call = BidirectionalStream<Request, Response>;
-    using ContextType = grpc::GenericServerContext;
-    using ServiceMethod = void (ServiceBase::*)(Call&);
-    static constexpr auto kCallCategory = CallCategory::kGeneric;
-};
 
 struct GenericServiceTag final {};
 
@@ -43,18 +31,17 @@ public:
     explicit AsyncService(std::size_t method_count) { UASSERT(method_count == 1); }
 
     template <typename CallTraits>
-    void Prepare(
+    void RequestCall(
         int method_id,
         grpc::GenericServerContext& context,
         typename CallTraits::InitialRequest& /*initial_request*/,
-        typename CallTraits::RawCall& stream,
+        typename CallTraits::RawResponder& responder,
         grpc::CompletionQueue& call_cq,
         grpc::ServerCompletionQueue& notification_cq,
         void* tag
     ) {
-        static_assert(CallTraits::kCallCategory == CallCategory::kGeneric);
         UASSERT(method_id == 0);
-        service_.RequestCall(&context, &stream, &call_cq, &notification_cq, tag);
+        service_.RequestCall(&context, &responder, &call_cq, &notification_cq, tag);
     }
 
     grpc::AsyncGenericService& GetService() { return service_; }
@@ -64,15 +51,18 @@ private:
 };
 
 struct GenericServiceWorker::Impl {
-    Impl(GenericServiceBase& service, ServiceSettings&& settings)
-        : service(service), service_data(std::move(settings), kGenericMetadataFake) {}
+    Impl(GenericServiceBase& service, ServiceInternals&& internals)
+        : service(service),
+          service_data(std::move(internals), kGenericMetadataFake)
+    {}
 
     GenericServiceBase& service;
     ServiceData<GenericServiceTag> service_data;
 };
 
-GenericServiceWorker::GenericServiceWorker(GenericServiceBase& service, ServiceSettings&& settings)
-    : impl_(service, std::move(settings)) {}
+GenericServiceWorker::GenericServiceWorker(GenericServiceBase& service, ServiceInternals&& internals)
+    : impl_(service, std::move(internals))
+{}
 
 GenericServiceWorker::GenericServiceWorker(GenericServiceWorker&&) noexcept = default;
 
@@ -83,7 +73,7 @@ GenericServiceWorker::~GenericServiceWorker() = default;
 grpc::AsyncGenericService& GenericServiceWorker::GetService() { return impl_->service_data.async_service.GetService(); }
 
 void GenericServiceWorker::Start() {
-    impl::StartServing(impl_->service_data, impl_->service, Dispatch(&GenericServiceBase::Handle));
+    impl::StartServing(impl_->service_data, impl_->service, &GenericServiceBase::Handle);
 }
 
 }  // namespace ugrpc::server::impl

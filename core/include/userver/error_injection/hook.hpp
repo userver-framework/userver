@@ -23,17 +23,17 @@ public:
     /// @throws ErrorException in case of artificial error
     template <typename TimeoutException, typename ErrorException>
     void PreHook() {
-        if (verdict_ == Verdict::Skip) {
+        if (verdict_ == Verdict::kSkip) {
             // fast path
             return;
         }
 
         switch (verdict_) {
-            case Verdict::Error:
+            case Verdict::kError:
                 LOG_ERROR() << "Error injection hook triggered verdict: error";
                 throw ErrorException{"error injection"};
 
-            case Verdict::Timeout:
+            case Verdict::kTimeout:
                 LOG_ERROR() << "Error injection hook triggered verdict: timeout";
                 {
                     auto scope_time = tracing::Span::CurrentSpan().CreateScopeTime("error_injection_timeout");
@@ -41,9 +41,9 @@ public:
                 }
                 throw TimeoutException{"error injection"};
 
-            case Verdict::MaxDelay:
-            case Verdict::RandomDelay:
-            case Verdict::Skip:
+            case Verdict::kMaxDelay:
+            case Verdict::kRandomDelay:
+            case Verdict::kSkip:
                 // pass
                 ;
         }
@@ -52,13 +52,15 @@ public:
     /// Must be called just after operation. May sleep for some time,
     /// or do nothing.
     void PostHook() {
-        if (verdict_ == Verdict::Skip) {
+        if (verdict_ == Verdict::kSkip) {
             // fast path
             return;
         }
 
-        engine::Deadline deadline = CalcPostHookDeadline();
-        if (deadline.IsReached()) return;
+        const engine::Deadline deadline = CalcPostHookDeadline();
+        if (deadline.IsReached()) {
+            return;
+        }
 
         LOG_ERROR() << "Error injection hook triggered verdict: max-delay / random-delay";
         auto scope_time = tracing::Span::CurrentSpan().CreateScopeTime("error_injection_delay");

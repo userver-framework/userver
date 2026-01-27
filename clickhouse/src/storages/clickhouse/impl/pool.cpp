@@ -27,7 +27,8 @@ tracing::Span PrepareExecutionSpan(const std::string& scope, const std::string& 
 }  // namespace
 
 Pool::Pool(clients::dns::Resolver& resolver, PoolSettings&& settings)
-    : impl_{std::make_shared<impl::PoolImpl>(resolver, std::move(settings))} {
+    : impl_{std::make_shared<impl::PoolImpl>(resolver, std::move(settings))}
+{
     impl_->StartMaintenance();
 }
 
@@ -37,7 +38,10 @@ ExecutionResult Pool::Execute(OptionalCommandControl optional_cc, const Query& q
     auto conn_ptr = impl_->Acquire();
 
     auto span = PrepareExecutionSpan(impl::scopes::kQuery, impl_->GetHostName());
-    query.FillSpanTags(span);
+    UASSERT(query.GetLogMode() == Query::LogMode::kNameOnly || query.GetLogMode() == Query::LogMode::kFull);
+    if (query.GetOptionalNameView().has_value()) {
+        span.AddTag(tracing::kDatabaseStatementName, std::string{*query.GetOptionalNameView()});
+    }
 
     const auto timer = impl_->GetExecuteTimer();
     return conn_ptr->Execute(optional_cc, query);

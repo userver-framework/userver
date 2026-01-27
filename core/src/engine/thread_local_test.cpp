@@ -6,6 +6,7 @@
 #include <thread>
 
 #include <userver/compiler/impl/tls.hpp>
+#include <userver/compiler/impl/tsan.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/sleep.hpp>
 
@@ -90,6 +91,8 @@ UTEST_MT(ThreadLocal, DISABLED_TaskUsesCorrectInstanceAfterSleep, 2) {
     UEXPECT_NO_THROW(sleep2.Get());
 }
 
+// Test is not ready to TSan non-migrating scheduler
+#if !USERVER_IMPL_HAS_TSAN
 namespace {
 
 auto& SafeGetThreadLocal() {
@@ -157,6 +160,7 @@ UTEST_MT(ThreadLocal, SafeThreadLocalWorks, 2) {
 
     UEXPECT_NO_THROW(sleep2.Get());
 }
+#endif
 
 namespace {
 

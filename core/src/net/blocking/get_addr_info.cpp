@@ -24,7 +24,7 @@ std::vector<engine::io::Sockaddr> GetAddrInfo(std::string_view host, const char*
 
     auto rv = ::getaddrinfo(host.data(), service_or_port, &hints, &temp_result);
 
-    std::unique_ptr<addrinfo, decltype(&freeaddrinfo)> addrinfo_result(temp_result, &::freeaddrinfo);
+    const std::unique_ptr<addrinfo, decltype(&freeaddrinfo)> addrinfo_result(temp_result, &::freeaddrinfo);
 
     if (rv != 0) {
         throw std::runtime_error(fmt::format("::getaddrinfo failed: {}", gai_strerror(rv)));

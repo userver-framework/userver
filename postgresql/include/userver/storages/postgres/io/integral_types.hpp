@@ -12,6 +12,7 @@
 #include <userver/storages/postgres/io/buffer_io_base.hpp>
 #include <userver/storages/postgres/io/traits.hpp>
 #include <userver/storages/postgres/io/type_mapping.hpp>
+#include <userver/utils/numeric_cast.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -49,27 +50,35 @@ struct IntegralBySizeParser {
     }
 };
 
+template <typename To, typename From>
+To NumericCast(From value) {
+    return USERVER_NAMESPACE::utils::numeric_cast<To, NarrowingOverflow>(value);
+}
+
 template <typename T>
 struct IntegralBinaryParser : BufferParserBase<T> {
     using BaseType = BufferParserBase<T>;
     using BaseType::BaseType;
+    using ValueType = typename BaseType::ValueType;
 
     void operator()(const FieldBuffer& buf) {
         switch (buf.length) {
             case 2:
-                this->value = IntegralBySizeParser<2>::ParseBuffer(buf);
+                this->value = NumericCast<ValueType>(IntegralBySizeParser<2>::ParseBuffer(buf));
                 break;
             case 4:
-                this->value = IntegralBySizeParser<4>::ParseBuffer(buf);
+                this->value = NumericCast<ValueType>(IntegralBySizeParser<4>::ParseBuffer(buf));
                 break;
             case 8:
-                this->value = IntegralBySizeParser<8>::ParseBuffer(buf);
+                this->value = NumericCast<ValueType>(IntegralBySizeParser<8>::ParseBuffer(buf));
                 break;
             default:
-                throw InvalidInputBufferSize{
-                    buf.length,
+                throw InvalidInputBufferSize{fmt::format(
+                    "Invalid buffer size {} "
                     "for an integral value type (expecting size 2, 4, or 8). Not an "
-                    "integer was returned from query."};
+                    "integer was returned from query.",
+                    buf.length
+                )};
         }
     }
 };
@@ -81,7 +90,9 @@ struct IntegralBinaryFormatter {
 
     T value;
 
-    explicit IntegralBinaryFormatter(T val) : value{val} {}
+    explicit IntegralBinaryFormatter(T val)
+        : value{val}
+    {}
     template <typename Buffer>
     void operator()(const UserTypes&, Buffer& buf) const {
         buf.reserve(buf.size() + size);
@@ -117,12 +128,16 @@ static_assert(sizeof(AltInteger) == sizeof(Integer));
 /** @name 2 byte integer */
 template <>
 struct BufferParser<Smallint> : detail::IntegralBinaryParser<Smallint> {
-    explicit BufferParser(Smallint& val) : IntegralBinaryParser(val) {}
+    explicit BufferParser(Smallint& val)
+        : IntegralBinaryParser(val)
+    {}
 };
 
 template <>
 struct BufferFormatter<Smallint> : detail::IntegralBinaryFormatter<Smallint> {
-    explicit BufferFormatter(Smallint val) : IntegralBinaryFormatter(val) {}
+    explicit BufferFormatter(Smallint val)
+        : IntegralBinaryFormatter(val)
+    {}
 };
 //@}
 
@@ -130,12 +145,16 @@ struct BufferFormatter<Smallint> : detail::IntegralBinaryFormatter<Smallint> {
 /** @name 4 byte integer */
 template <>
 struct BufferParser<Integer> : detail::IntegralBinaryParser<Integer> {
-    explicit BufferParser(Integer& val) : IntegralBinaryParser(val) {}
+    explicit BufferParser(Integer& val)
+        : IntegralBinaryParser(val)
+    {}
 };
 
 template <>
 struct BufferFormatter<Integer> : detail::IntegralBinaryFormatter<Integer> {
-    explicit BufferFormatter(Integer val) : IntegralBinaryFormatter(val) {}
+    explicit BufferFormatter(Integer val)
+        : IntegralBinaryFormatter(val)
+    {}
 };
 //@}
 
@@ -143,23 +162,31 @@ struct BufferFormatter<Integer> : detail::IntegralBinaryFormatter<Integer> {
 /** @name 8 byte integer */
 template <>
 struct BufferParser<Bigint> : detail::IntegralBinaryParser<Bigint> {
-    explicit BufferParser(Bigint& val) : IntegralBinaryParser(val) {}
+    explicit BufferParser(Bigint& val)
+        : IntegralBinaryParser(val)
+    {}
 };
 
 template <>
 struct BufferFormatter<Bigint> : detail::IntegralBinaryFormatter<Bigint> {
-    explicit BufferFormatter(Bigint val) : IntegralBinaryFormatter(val) {}
+    explicit BufferFormatter(Bigint val)
+        : IntegralBinaryFormatter(val)
+    {}
 };
 
 /// @cond
 template <>
 struct BufferParser<detail::AltInteger> : detail::IntegralBinaryParser<detail::AltInteger> {
-    explicit BufferParser(detail::AltInteger& val) : IntegralBinaryParser(val) {}
+    explicit BufferParser(detail::AltInteger& val)
+        : IntegralBinaryParser(val)
+    {}
 };
 
 template <>
 struct BufferFormatter<detail::AltInteger> : detail::IntegralBinaryFormatter<detail::AltInteger> {
-    explicit BufferFormatter(detail::AltInteger val) : IntegralBinaryFormatter(val) {}
+    explicit BufferFormatter(detail::AltInteger val)
+        : IntegralBinaryFormatter(val)
+    {}
 };
 /// @endcond
 
@@ -170,14 +197,18 @@ struct BufferFormatter<detail::AltInteger> : detail::IntegralBinaryFormatter<det
 template <>
 struct BufferParser<bool> {
     bool& value;
-    explicit BufferParser(bool& val) : value{val} {}
+    explicit BufferParser(bool& val)
+        : value{val}
+    {}
     void operator()(const FieldBuffer& buf);
 };
 
 template <>
 struct BufferFormatter<bool> {
     bool value;
-    explicit BufferFormatter(bool val) : value(val) {}
+    explicit BufferFormatter(bool val)
+        : value(val)
+    {}
     template <typename Buffer>
     void operator()(const UserTypes&, Buffer& buf) const {
         buf.push_back(value ? 1 : 0);

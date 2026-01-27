@@ -4,6 +4,7 @@
 
 #include <storages/postgres/detail/connection.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
+#include <userver/tracing/span.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/scope_guard.hpp>
 
@@ -13,14 +14,15 @@ namespace storages::postgres {
 
 struct QueryQueue::QueriesStorage final {
     struct QueryMeta final {
-        std::string prepared_statement_name;
+        std::string meta_statement_name;
         ParamsHolder params;
         TimeoutDuration statement_timeout;
 
         QueryMeta(std::string prepared_statement_name, ParamsHolder&& params, TimeoutDuration statement_timeout)
-            : prepared_statement_name{std::move(prepared_statement_name)},
+            : meta_statement_name{std::move(prepared_statement_name)},
               params{std::move(params)},
-              statement_timeout{statement_timeout} {}
+              statement_timeout{statement_timeout}
+        {}
     };
 
     std::vector<QueryMeta> queries;
@@ -28,7 +30,9 @@ struct QueryQueue::QueriesStorage final {
 };
 
 QueryQueue::QueryQueue(CommandControl default_cc, detail::ConnectionPtr&& conn)
-    : default_cc_{default_cc}, conn_{std::move(conn)} {
+    : default_cc_{default_cc},
+      conn_{std::move(conn)}
+{
     UINVARIANT(conn_->IsPipelineActive(), "QueryQueue usage requires pipelining to be enabled");
 
     UINVARIANT(conn_->ArePreparedStatementsEnabled(), "QueryQueue usage requires prepared statements to be enabled");
@@ -45,7 +49,7 @@ void QueryQueue::Reserve(std::size_t size) {
     queries_storage_->descriptions.reserve(size);
 }
 
-std::vector<ResultSet> QueryQueue::Collect() { return QueryQueue::Collect(default_cc_.execute); }
+std::vector<ResultSet> QueryQueue::Collect() { return QueryQueue::Collect(default_cc_.network_timeout_ms); }
 
 std::vector<ResultSet> QueryQueue::Collect(TimeoutDuration timeout) {
     ValidateUsage();
@@ -53,8 +57,9 @@ std::vector<ResultSet> QueryQueue::Collect(TimeoutDuration timeout) {
     tracing::Span collect_span{"query_queue_collect"};
     auto scope = collect_span.CreateScopeTime();
 
-    const USERVER_NAMESPACE::utils::ScopeGuard reset_guard{
-        [this] { [[maybe_unused]] const detail::ConnectionPtr tmp{std::move(conn_)}; }};
+    const USERVER_NAMESPACE::utils::ScopeGuard reset_guard{[this] {
+        [[maybe_unused]] const detail::ConnectionPtr tmp{std::move(conn_)};
+    }};
 
     if (queries_storage_->queries.empty()) {
         return {};
@@ -67,14 +72,17 @@ std::vector<ResultSet> QueryQueue::Collect(TimeoutDuration timeout) {
         const auto& description = queries_storage_->descriptions[i];
         const CommandControl cc{
             timeout /* .execute, used for SetStatementTimeout deadline */,
-            meta.statement_timeout /* .statement, used as expected */};
-        conn_->AddIntoPipeline(cc, meta.prepared_statement_name, meta.params.params_proxy, description, scope);
+            meta.statement_timeout /* .statement, used as expected */
+        };
+        conn_->AddIntoPipeline(cc, meta.meta_statement_name, meta.params.params_proxy, description, scope);
     }
 
     auto result = conn_->GatherPipeline(timeout, queries_storage_->descriptions);
     if (result.size() != queries_storage_->queries.size()) {
         throw RuntimeError{fmt::format(
-            "QueryQueue results count mismatch: expected {}, got {}", queries_storage_->queries.size(), result.size()
+            "QueryQueue results count mismatch: expected {}, got {}",
+            queries_storage_->queries.size(),
+            result.size()
         )};
     }
     return result;
@@ -85,14 +93,22 @@ const UserTypes& QueryQueue::GetConnectionUserTypes() const { return conn_->GetU
 void QueryQueue::DoPush(CommandControl cc, const Query& query, ParamsHolder&& params) {
     ValidateUsage();
 
-    auto prepared_statement_meta = conn_->PrepareStatement(query, params.params_proxy, cc.execute);
+    auto prepared_statement_meta = conn_->PrepareStatement(query, params.params_proxy, cc.network_timeout_ms);
     queries_storage_->queries.emplace_back(
-        std::move(prepared_statement_meta.statement_name), std::move(params), cc.statement
+        std::move(prepared_statement_meta.meta_statement_name),
+        std::move(params),
+        cc.statement_timeout_ms
     );
     queries_storage_->descriptions.emplace_back(std::move(prepared_statement_meta.description));
 }
 
 void QueryQueue::ValidateUsage() const { UINVARIANT(conn_, "The query queue is finalized and no longer usable."); }
+
+void QueryQueue::Push(CommandControl cc, const Query& query, const ParameterStore& store) {
+    DoPush(cc, query, ParamsHolder{{}, detail::QueryParameters(store.GetInternalData())});
+}
+
+void QueryQueue::Push(const Query& query, const ParameterStore& store) { Push(default_cc_, query, store); }
 
 }  // namespace storages::postgres
 

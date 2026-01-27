@@ -41,17 +41,21 @@ private:
     Duration GetNotCommittedLoad() const noexcept;
 
     struct Impl;
-    std::unique_ptr<Impl> pimpl;
+    std::unique_ptr<Impl> pimpl_;
 };
 
 /// @brief A RAII-style guard to account code block execution time in
-/// utils::statistics::BusyStorage. Aware of recursive invokations in the same
+/// utils::statistics::BusyStorage. Aware of recursive invocations in the same
 /// thread.
 ///
 /// @snippet utils/statistics/busy_test.cpp  busy sample
 class BusyMarker final {
 public:
-    BusyMarker(BusyStorage& storage) : storage_(storage) { storage_.StartWork(); }
+    BusyMarker(BusyStorage& storage)
+        : storage_(storage)
+    {
+        storage_.StartWork();
+    }
 
     BusyMarker(const BusyMarker&) = delete;
     BusyMarker& operator=(const BusyMarker&) = delete;

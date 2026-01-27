@@ -5,15 +5,15 @@
 #include <storages/redis/impl/command.hpp>
 #include <storages/redis/impl/redis.hpp>
 #include <userver/logging/log.hpp>
-#include <userver/storages/redis/impl/base.hpp>
-#include <userver/storages/redis/impl/reply.hpp>
+#include <userver/storages/redis/base.hpp>
+#include <userver/storages/redis/reply.hpp>
 #include <userver/utils/assert.hpp>
 
 #include <hiredis/hiredis.h>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis::impl {
 
 namespace {
 
@@ -31,6 +31,7 @@ const std::string_view kCommandTypes[] = {
     "expire",
     "flushdb",
     "geoadd",
+    "geopos",
     "georadius_ro",
     "geosearch",
     "get",
@@ -78,6 +79,7 @@ const std::string_view kCommandTypes[] = {
     "scan",
     "scard",
     "script",
+    "select",
     "sentinel",
     "set",
     "setex",
@@ -127,9 +129,8 @@ struct ConnStateStatistic {
 void DumpMetric(utils::statistics::Writer& writer, const ConnStateStatistic& stats) {
     for (size_t i = 0; i <= static_cast<int>(Redis::State::kDisconnectError); ++i) {
         const auto state = static_cast<Redis::State>(i);
-        writer["cluster_states"].ValueWithLabels(
-            stats.Get(state), {"redis_instance_state", redis::StateToString(state)}
-        );
+        writer["cluster_states"]
+            .ValueWithLabels(stats.Get(state), {"redis_instance_state", impl::StateToString(state)});
     }
 }
 
@@ -141,7 +142,9 @@ std::chrono::milliseconds MillisecondsSinceEpoch() {
 
 Statistics::Statistics() {
     command_timings_percentile.reserve(std::size(kCommandTypes));
-    for (const auto& cmd : kCommandTypes) command_timings_percentile.try_emplace(cmd);
+    for (const auto& cmd : kCommandTypes) {
+        command_timings_percentile.try_emplace(cmd);
+    }
 }
 
 void Statistics::AccountStateChanged(RedisState new_state) {
@@ -153,9 +156,8 @@ void Statistics::AccountStateChanged(RedisState new_state) {
 }
 
 void Statistics::AccountCommandSent(const CommandPtr& cmd) {
-    for (const auto& args : cmd->args.args) {
-        size_t size = 0;
-        for (const auto& arg : args) size += arg.size();
+    for (const auto& args : cmd->args) {
+        const std::size_t size = args.GetCommandBytesLength();
         request_size_percentile.GetCurrentCounter().Account(size);
     }
 }
@@ -209,12 +211,10 @@ void DumpMetric(utils::statistics::Writer& writer, const InstanceStatistics& sta
     }
 
     for (size_t i = 0; i < kReplyStatusMap.size(); ++i) {
-        writer["errors"].ValueWithLabels(
-            stats.error_count[i].Load().value, {"redis_error", ToString(static_cast<ReplyStatus>(i))}
-        );
-        writer["errors.v2"].ValueWithLabels(
-            stats.error_count[i].Load(), {"redis_error", ToString(static_cast<ReplyStatus>(i))}
-        );
+        writer["errors"]
+            .ValueWithLabels(stats.error_count[i].Load().value, {"redis_error", ToString(static_cast<ReplyStatus>(i))});
+        writer["errors.v2"]
+            .ValueWithLabels(stats.error_count[i].Load(), {"redis_error", ToString(static_cast<ReplyStatus>(i))});
     }
 
     if (real_instance) {
@@ -225,13 +225,15 @@ void DumpMetric(utils::statistics::Writer& writer, const InstanceStatistics& sta
         for (size_t i = 0; i <= static_cast<int>(Redis::State::kDisconnectError); ++i) {
             const auto state = static_cast<Redis::State>(i);
             writer["state"].ValueWithLabels(
-                static_cast<int>(stats.state == state), {"redis_instance_state", redis::StateToString(state)}
+                static_cast<int>(stats.state == state),
+                {"redis_instance_state", impl::StateToString(state)}
             );
         }
 
-        long long session_time_ms = stats.state == redis::Redis::State::kConnected
-                                        ? (redis::MillisecondsSinceEpoch() - stats.session_start_time).count()
-                                        : 0;
+        const long long session_time_ms =
+            stats.state == impl::Redis::State::kConnected
+                ? (impl::MillisecondsSinceEpoch() - stats.session_start_time).count()
+                : 0;
         writer["session-time-ms"] = session_time_ms;
     }
 }
@@ -258,7 +260,7 @@ void DumpMetric(utils::statistics::Writer& writer, const SentinelStatistics& sta
     DumpMetric(writer, stats.shard_group_total, false);
     writer["errors"].ValueWithLabels(stats.internal.redis_not_ready.Load().value, {"redis_error", "redis_not_ready"});
     writer["errors.v2"].ValueWithLabels(stats.internal.redis_not_ready.Load(), {"redis_error", "redis_not_ready"});
-    if (stats.internal.is_autotoplogy.load()) {
+    if (stats.internal.is_autotopology.load()) {
         writer["cluster_topology_checks"] = stats.internal.cluster_topology_checks.Load().value;
         writer["cluster_topology_updates"] = stats.internal.cluster_topology_updates.Load().value;
         // We have to duplicate metrics with different sensor name to change
@@ -294,6 +296,6 @@ void DumpMetric(utils::statistics::Writer& writer, const SentinelStatistics& sta
     }
 }
 
-}  // namespace redis
+}  // namespace storages::redis::impl
 
 USERVER_NAMESPACE_END

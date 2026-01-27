@@ -1,11 +1,13 @@
 #include "multipart_form_data_parser.hpp"
 
+#include <array>
+
 #include <boost/algorithm/string/predicate.hpp>
 
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
-
-#include <array>
+#include <userver/utils/str_icase.hpp>
+#include <userver/utils/string_literal.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -13,12 +15,12 @@ namespace server::http {
 
 namespace {
 
-const std::string kMultipartFormData = "multipart/form-data";
+constexpr utils::StringLiteral kMultipartFormData = "multipart/form-data";
 
-const char kCr = '\r';
-const char kLf = '\n';
+constexpr char kCr = '\r';
+constexpr char kLf = '\n';
 
-const std::string kOwsChars = " \t";
+constexpr utils::StringLiteral kOwsChars = " \t";
 
 [[nodiscard]] std::string_view LtrimOws(std::string_view str) {
     const auto first_pchar_pos = str.find_first_not_of(kOwsChars);
@@ -46,19 +48,15 @@ const std::string kOwsChars = " \t";
 }
 
 [[nodiscard]] bool SkipCrLf(std::string_view& str, std::string_view crlf) {
-    for (char c : crlf) {
-        if (!SkipSymbol(str, c)) return false;
+    for (const char c : crlf) {
+        if (!SkipSymbol(str, c)) {
+            return false;
+        }
     }
     return true;
 }
 
-bool IEquals(std::string_view l, std::string_view r) {
-    if (l.size() != r.size()) return false;
-    for (size_t pos = 0; pos < l.size(); pos++) {
-        if (tolower(l[pos]) != tolower(r[pos])) return false;
-    }
-    return true;
-}
+bool IEquals(std::string_view l, std::string_view r) { return utils::StrIcaseEqual{}(l, r); }
 
 [[nodiscard]] bool SkipDoubleHyphen(std::string_view& str) {
     return SkipSymbol(str, '-') && !!SkipSymbol(str, '-');  // !!-for clang-tidy
@@ -67,7 +65,9 @@ bool IEquals(std::string_view l, std::string_view r) {
 bool IsWsp(char c) { return c == ' ' || c == '\t'; }
 
 void SkipOptionalSpaces(std::string_view& str) {
-    while (!str.empty() && IsWsp(str.front())) str.remove_prefix(1);
+    while (!str.empty() && IsWsp(str.front())) {
+        str.remove_prefix(1);
+    }
 }
 
 std::string_view ReadToken(std::string_view& str) {
@@ -78,15 +78,17 @@ std::string_view ReadToken(std::string_view& str) {
         for (int i = 33; i < 127; i++) {
             res[i] = true;
         }
-        for (char c : "()<>@,;:\\\"/[]?={}") {
+        for (const char c : "()<>@,;:\\\"/[]?={}") {
             res[static_cast<uint8_t>(c)] = false;
         }
         return res;
     }();
 
     size_t pos = 0;
-    while (pos < str.size() && kAllowed[static_cast<uint8_t>(str[pos])]) ++pos;
-    std::string_view res = str.substr(0, pos);
+    while (pos < str.size() && kAllowed[static_cast<uint8_t>(str[pos])]) {
+        ++pos;
+    }
+    const std::string_view res = str.substr(0, pos);
     str.remove_prefix(pos);
     return res;
 }
@@ -106,7 +108,9 @@ std::string_view ReadHeaderValue(std::string_view& str) {
     }();
 
     size_t pos = 0;
-    while (pos < str.size() && kAllowed[static_cast<uint8_t>(str[pos])]) ++pos;
+    while (pos < str.size() && kAllowed[static_cast<uint8_t>(str[pos])]) {
+        ++pos;
+    }
 
     auto header_value = TrimOws(str.substr(0, pos));
     str.remove_prefix(pos);
@@ -131,7 +135,9 @@ struct FormDataArgInfo {
 };
 
 bool ParseHeaderParamValue(std::string_view& str, std::string* value) {
-    if (value) *value = {};
+    if (value) {
+        *value = {};
+    }
     SkipOptionalSpaces(str);
     if (!str.empty() && str.front() == '"') {
         str.remove_prefix(1);
@@ -142,11 +148,15 @@ bool ParseHeaderParamValue(std::string_view& str, std::string* value) {
             }
             if (str.front() == '\\') {
                 str.remove_prefix(1);
-                if (str.empty()) break;
+                if (str.empty()) {
+                    break;
+                }
             }
-            char c = str.front();
+            const char c = str.front();
             str.remove_prefix(1);
-            if (value) *value += c;
+            if (value) {
+                *value += c;
+            }
         }
         LOG_WARNING() << "Can't parse header param value: closing '\"' not found";
         return false;
@@ -156,15 +166,17 @@ bool ParseHeaderParamValue(std::string_view& str, std::string* value) {
             LOG_WARNING() << "Can't parse header param value: token not found";
             return false;
         }
-        if (value) *value = token;
+        if (value) {
+            *value = token;
+        }
         return true;
     }
 }
 
 bool ParseContentDisposition(std::string_view content_disposition, FormDataArgInfo& arg_info) {
-    static const std::string_view kFormData = "form-data";
-    static const std::string_view kName = "name";
-    static const std::string_view kFilename = "filename";
+    static constexpr utils::StringLiteral kFormData = "form-data";
+    static constexpr utils::StringLiteral kName = "name";
+    static constexpr utils::StringLiteral kFilename = "filename";
 
     auto str = content_disposition;
     auto value = ReadToken(str);
@@ -174,17 +186,23 @@ bool ParseContentDisposition(std::string_view content_disposition, FormDataArgIn
     }
     SkipOptionalSpaces(str);
     while (!str.empty()) {
-        if (!SkipSymbol(str, ';')) return false;
+        if (!SkipSymbol(str, ';')) {
+            return false;
+        }
         SkipOptionalSpaces(str);
         auto param_name = ReadToken(str);
         if (!param_name.empty()) {
             SkipOptionalSpaces(str);
-            if (!SkipSymbol(str, '=')) return false;
-            bool is_name = IEquals(param_name, kName);
-            bool is_filename = IEquals(param_name, kFilename);
-            bool need_header_value = is_name || is_filename;
+            if (!SkipSymbol(str, '=')) {
+                return false;
+            }
+            const bool is_name = IEquals(param_name, kName);
+            const bool is_filename = IEquals(param_name, kFilename);
+            const bool need_header_value = is_name || is_filename;
             std::string value;
-            if (!ParseHeaderParamValue(str, need_header_value ? &value : nullptr)) return false;
+            if (!ParseHeaderParamValue(str, need_header_value ? &value : nullptr)) {
+                return false;
+            }
             SkipOptionalSpaces(str);
             if (is_name) {
                 arg_info.name = std::move(value);
@@ -205,13 +223,15 @@ bool ParseContentDisposition(std::string_view content_disposition, FormDataArgIn
 }
 
 bool ProcessMultipartFormDataHeader(std::string_view name, std::string_view value, FormDataArgInfo& arg_info) {
-    static const std::string kContentDisposition = "Content-Disposition";
-    static const std::string kContentType = "Content-Type";
+    static constexpr utils::StringLiteral kContentDisposition = "Content-Disposition";
+    static constexpr utils::StringLiteral kContentType = "Content-Type";
 
     LOG_TRACE() << "Process header: name=" << name << ", value=" << value;
     if (IEquals(name, kContentDisposition)) {
         arg_info.arg.content_disposition = value;
-        if (!ParseContentDisposition(arg_info.arg.content_disposition, arg_info)) return false;
+        if (!ParseContentDisposition(arg_info.arg.content_disposition, arg_info)) {
+            return false;
+        }
     } else if (IEquals(name, kContentType)) {
         arg_info.arg.content_type = value;
     }
@@ -222,18 +242,24 @@ bool ProcessMultipartFormDataHeader(std::string_view name, std::string_view valu
 
 bool ParseMultipartFormDataHeaders(std::string_view& body, FormDataArgInfo& arg_info, std::string_view crlf) {
     while (!body.empty()) {
-        if (boost::starts_with(body, crlf)) break;
+        if (boost::starts_with(body, crlf)) {
+            break;
+        }
 
         auto header_name = ReadToken(body);
         if (header_name.empty()) {
             LOG_WARNING() << "Can't parse multipart header: header-name token not found";
             return false;
         }
-        if (!SkipSymbol(body, ':')) return false;
+        if (!SkipSymbol(body, ':')) {
+            return false;
+        }
 
         LOG_TRACE() << "header_name_parsed, unparsed body part=" << body;
         auto header_value = ReadHeaderValue(body);
-        if (!SkipCrLf(body, crlf)) return false;
+        if (!SkipCrLf(body, crlf)) {
+            return false;
+        }
 
         if (!ProcessMultipartFormDataHeader(header_name, header_value, arg_info)) {
             LOG_WARNING() << "Can't parse multipart header name";
@@ -258,16 +284,21 @@ size_t FindBoundaryEnd(std::string_view body, std::string_view boundary, std::st
                     if (pos < body.size() && body[pos] == '-') {
                         ++pos;
                         size_t idx = 0;
-                        while (idx < boundary.size() && pos + idx < body.size() && body[pos + idx] == boundary[idx])
+                        while (idx < boundary.size() && pos + idx < body.size() && body[pos + idx] == boundary[idx]) {
                             ++idx;
+                        }
                         pos += idx;
-                        if (idx == boundary.size()) return pos;
+                        if (idx == boundary.size()) {
+                            return pos;
+                        }
                     }
                 }
-            } else
+            } else {
                 ++pos;
-        } else
+            }
+        } else {
             ++pos;
+        }
     }
     return std::string_view::npos;
 }
@@ -280,14 +311,14 @@ bool ParseMultipartFormDataValue(
     FormDataArgs& form_data_args,
     std::string_view crlf
 ) {
-    static const std::string kCharset = "_charset_";
+    static constexpr utils::StringLiteral kCharset = "_charset_";
 
     if (arg_info.arg.content_disposition.empty()) {
         LOG_WARNING() << "Missing Content-Disposition header";
         return false;
     }
 
-    size_t pos = FindBoundaryEnd(body, boundary, crlf);
+    const size_t pos = FindBoundaryEnd(body, boundary, crlf);
     if (pos == std::string_view::npos) {
         LOG_WARNING() << "Unexpected end of form-data part value";
         return false;
@@ -314,13 +345,20 @@ bool ParseMultipartFormDataBody(
     LOG_TRACE() << "body=" << body << ", body.size()=" << body.size();
     std::string_view crlf = "\r\n";
     if (boundary.size() + 2 <= body.size() && body[0] == '-' && body[1] == '-' &&
-        body.substr(2, boundary.size()) == boundary) {
+        body.substr(2, boundary.size()) == boundary)
+    {
         body.remove_prefix(2 + boundary.size());
-        if (!strict_cr_lf) crlf = AutoDetectCrLf(body, crlf);
+        if (!strict_cr_lf) {
+            crlf = AutoDetectCrLf(body, crlf);
+        }
     } else {
-        while (!body.empty() && body.front() != kCr && body.front() != kLf) body.remove_prefix(1);
-        if (!strict_cr_lf) crlf = AutoDetectCrLf(body, crlf);
-        size_t pos = FindBoundaryEnd(body, boundary, crlf);
+        while (!body.empty() && body.front() != kCr && body.front() != kLf) {
+            body.remove_prefix(1);
+        }
+        if (!strict_cr_lf) {
+            crlf = AutoDetectCrLf(body, crlf);
+        }
+        const size_t pos = FindBoundaryEnd(body, boundary, crlf);
         if (pos == std::string_view::npos) {
             LOG_WARNING() << "Unexpected request body end";
             return false;
@@ -330,17 +368,23 @@ bool ParseMultipartFormDataBody(
     SkipOptionalSpaces(body);
 
     std::optional<std::string> charset;
-    if (!default_charset.empty()) charset = std::move(default_charset);
+    if (!default_charset.empty()) {
+        charset = std::move(default_charset);
+    }
 
     LOG_TRACE() << "crlf=" << crlf;
 
     while (!body.empty()) {
         if (body.front() == '-') {
-            if (!SkipDoubleHyphen(body)) return false;
+            if (!SkipDoubleHyphen(body)) {
+                return false;
+            }
             // https://datatracker.ietf.org/doc/html/rfc2046#section-5.1.1
             SkipOptionalSpaces(body);
             if (!body.empty()) {
-                if (!SkipCrLf(body, crlf)) return false;
+                if (!SkipCrLf(body, crlf)) {
+                    return false;
+                }
             }
             if (!body.empty()) {
                 LOG_INFO() << "Extra (" << body.size() << ") characters in request body";
@@ -356,11 +400,15 @@ bool ParseMultipartFormDataBody(
             }
             return true;
         }
-        if (!SkipCrLf(body, crlf)) return false;
+        if (!SkipCrLf(body, crlf)) {
+            return false;
+        }
 
         FormDataArgInfo arg_info;
 
-        if (!ParseMultipartFormDataHeaders(body, arg_info, crlf)) return false;
+        if (!ParseMultipartFormDataHeaders(body, arg_info, crlf)) {
+            return false;
+        }
         LOG_TRACE() << "ParseMultipartFormDataHeaders finished, body=" << body << ", body.size()=" << body.size();
         if (!ParseMultipartFormDataValue(body, boundary, std::move(arg_info), charset, form_data_args, crlf)) {
             return false;
@@ -373,8 +421,12 @@ bool ParseMultipartFormDataBody(
 }  // namespace
 
 bool IsMultipartFormDataContentType(std::string_view content_type) {
-    if (!IEquals(content_type.substr(0, kMultipartFormData.size()), kMultipartFormData)) return false;
-    if (content_type.size() == kMultipartFormData.size()) return true;
+    if (!IEquals(content_type.substr(0, kMultipartFormData.size()), kMultipartFormData)) {
+        return false;
+    }
+    if (content_type.size() == kMultipartFormData.size()) {
+        return true;
+    }
     switch (content_type[kMultipartFormData.size()]) {
         case ';':
         case ' ':
@@ -390,9 +442,9 @@ bool ParseMultipartFormData(
     FormDataArgs& form_data_args,
     bool strict_cr_lf
 ) {
-    static const std::string kBoundary = "boundary";
-    static const std::string kCharset = "charset";
-    static const std::string kBoundaryNotFound = "'boundary' parameter of multipart/form-data not found";
+    static constexpr utils::StringLiteral kBoundary = "boundary";
+    static constexpr utils::StringLiteral kCharset = "charset";
+    static constexpr utils::StringLiteral kBoundaryNotFound = "'boundary' parameter of multipart/form-data not found";
 
     if (!IsMultipartFormDataContentType(content_type)) {
         LOG_WARNING() << "Content type is not 'multipart/form-data'";
@@ -405,17 +457,23 @@ bool ParseMultipartFormData(
     std::string boundary;
     std::string charset;
     while (!unparsed.empty()) {
-        if (!SkipSymbol(unparsed, ';')) return false;
+        if (!SkipSymbol(unparsed, ';')) {
+            return false;
+        }
         SkipOptionalSpaces(unparsed);
         auto param_name = ReadToken(unparsed);
         if (!param_name.empty()) {
             SkipOptionalSpaces(unparsed);
-            if (!SkipSymbol(unparsed, '=')) return false;
-            bool is_boundary = IEquals(param_name, kBoundary);
-            bool is_charset = IEquals(param_name, kCharset);
-            bool need_header_value = is_boundary || is_charset;
+            if (!SkipSymbol(unparsed, '=')) {
+                return false;
+            }
+            const bool is_boundary = IEquals(param_name, kBoundary);
+            const bool is_charset = IEquals(param_name, kCharset);
+            const bool need_header_value = is_boundary || is_charset;
             std::string value;
-            if (!ParseHeaderParamValue(unparsed, need_header_value ? &value : nullptr)) return false;
+            if (!ParseHeaderParamValue(unparsed, need_header_value ? &value : nullptr)) {
+                return false;
+            }
             SkipOptionalSpaces(unparsed);
             if (is_boundary) {
                 boundary = std::move(value);

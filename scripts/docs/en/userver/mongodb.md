@@ -15,6 +15,7 @@ databases and the BSON format.
 * Timeouts;
 * Congestion control to work smoothly under heavy load and to restore from metastable failure state;
 * @ref scripts/docs/en/userver/deadline_propagation.md .
+* @ref storages::mongo::Transaction
 
 
 ## Metrics
@@ -98,8 +99,33 @@ eliminates the extra load. On the one hand, it leads to extra error responses, b
 on the other hand, it greatly lowers the timings of the rest of the database
 requests and helps Mongo to return to the normal state with lower response timings.
 
+
+#### Mongo Congestion Control Activation Troubleshooting
+
+If the Mongo CC for service is active (the service logs contain "Congestion Control DATABASE_NAME is active" and/or the
+metrics have `mongo.congestion-control.is-enabled` set) and the workload is usual for
+the service, then something is wrong with the database. Service or database maintainers should resolve the issue.
+
+**Steps to troubleshoot:**
+
+1. Start by locating the requests that execute for a long time. Take a look at the
+   `mongo.by-[database|collection|operation].timings*` metrics to locate the database, collection and operation that
+   cause the most of the database load. Also take a look at the metrics that are reported by the Mongo database
+   directly (not by the userver based service).
+
+2. Ask your favorite WEB search engine or AI for an information on how to optimize the slow queries in MongoDB. Usually
+   adding indexes or sharding the database does the job. 
+
+3. The slowdown could be caused by MongoDB sending megabytes of responses to your service on a slow connection:
+   * Verify that the application logic is optimal, no unnecessary data is retrieved
+   * Minimize network interactions with @ref components::MongoCache.
+
+4. If most of the queries run slowly or all of the queries take similar time, then the bottleneck could be in the
+   database resources. Make sure that the database has enough CPU, RAM and Network Throughput resources.
+
+
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref scripts/docs/en/userver/ydb.md | @ref scripts/docs/en/userver/redis.md ⇨
+⇦ @ref scripts/docs/en/userver/odbc.md | @ref scripts/docs/en/userver/redis.md ⇨
 @htmlonly </div> @endhtmlonly

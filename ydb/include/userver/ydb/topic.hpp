@@ -24,8 +24,11 @@ struct TopicSettings;
 ///
 /// ## Example usage:
 ///
-/// @snippet userver/samples/ydb_service/components/topic_reader.hpp  Sample
-/// Topic reader
+/// @ref samples/ydb_service/components/topic_reader.hpp
+/// @ref samples/ydb_service/components/topic_reader.cpp
+///
+/// @example samples/ydb_service/components/topic_reader.hpp
+/// @example samples/ydb_service/components/topic_reader.cpp
 class TopicReadSession final {
 public:
     /// @cond
@@ -37,8 +40,12 @@ public:
     ///
     /// Waits until event occurs
     /// @param max_events_count maximum events count in batch
+    /// @param max_size_bytes total size limit for data messages in batch
     /// if not specified, read session chooses event batch size automatically
-    std::vector<NYdb::NTopic::TReadSessionEvent::TEvent> GetEvents(std::optional<std::size_t> max_events_count = {});
+    std::vector<NYdb::NTopic::TReadSessionEvent::TEvent> GetEvents(
+        std::optional<std::size_t> max_events_count = {},
+        size_t max_size_bytes = std::numeric_limits<size_t>::max()
+    );
 
     /// @brief Close read session
     ///

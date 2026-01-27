@@ -12,7 +12,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace urabbitmq {
 
-ClientImpl::ClientImpl(clients::dns::Resolver& resolver, const ClientSettings& settings) : settings_{settings} {
+ClientImpl::ClientImpl(clients::dns::Resolver& resolver, const ClientSettings& settings)
+    : settings_{settings}
+{
     const auto endpoints_count = settings_.endpoints.endpoints.size();
     pools_.assign(endpoints_count, {{}, nullptr});
 

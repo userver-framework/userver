@@ -20,8 +20,6 @@ public:
     TracingManagerComponentBase(const components::ComponentConfig&, const components::ComponentContext&);
 };
 
-// clang-format off
-
 /// @ingroup userver_components
 ///
 /// @brief Component that provides access to the actual TracingManager
@@ -41,18 +39,15 @@ public:
 ///
 /// The component can be configured in service config.
 ///
-/// ## Static options:
-/// Name | Description | Default value
-/// ---- | ----------- | -------------
-/// component-name | name of the component, that implements TracingManagerComponentBase | <use tracing::GenericTracingManager with below settings>
-/// incoming-format | Array of incoming tracing formats supported by tracing::FormatFromString | ['opentelemetry', 'taxi']
-/// new-requests-format | Send tracing data in those formats supported by tracing::FormatFromString | ['opentelemetry', 'taxi']
+/// ## Static options of tracing::DefaultTracingManagerLocator :
+/// @include{doc} scripts/docs/en/components_schema/core/src/tracing/manager_component.md
 ///
-// clang-format on
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
 class DefaultTracingManagerLocator final : public components::ComponentBase {
 public:
     /// @ingroup userver_component_names
-    /// @brief The default name of tracing::DefaultTracingManagerLocator
+    /// @brief The default name of @ref tracing::DefaultTracingManagerLocator
     static constexpr std::string_view kName = "tracing-manager-locator";
 
     DefaultTracingManagerLocator(const components::ComponentConfig&, const components::ComponentContext&);

@@ -1,17 +1,11 @@
 #include <userver/ugrpc/client/channels.hpp>
 
-#include <userver/dynamic_config/storage_mock.hpp>
-#include <userver/dynamic_config/test_helpers.hpp>
 #include <userver/engine/async.hpp>
-#include <userver/engine/io/socket.hpp>
 #include <userver/engine/sleep.hpp>
-#include <userver/engine/task/task.hpp>
-#include <userver/logging/null_logger.hpp>
+#include <userver/engine/task/current_task.hpp>
 #include <userver/utest/utest.hpp>
-#include <userver/utils/statistics/storage.hpp>
 
-#include <../include/userver/ugrpc/client/impl/completion_queue_pool.hpp>
-#include <userver/ugrpc/client/client_factory.hpp>
+#include <userver/ugrpc/client/client_factory_settings.hpp>
 #include <userver/ugrpc/server/server.hpp>
 #include <userver/ugrpc/tests/service.hpp>
 #include <userver/ugrpc/tests/standalone_client.hpp>
@@ -27,10 +21,10 @@ namespace {
 
 class UnitTestServiceSimple final : public sample::ugrpc::UnitTestServiceBase {
 public:
-    void SayHello(SayHelloCall& call, sample::ugrpc::GreetingRequest&&) override {
+    SayHelloResult SayHello(CallContext& /*context*/, sample::ugrpc::GreetingRequest&& /*request*/) override {
         sample::ugrpc::GreetingResponse response{};
-        call.Finish(response);
         EXPECT_FALSE(engine::current_task::ShouldCancel());
+        return response;
     }
 };
 
@@ -62,18 +56,22 @@ UTEST_P_MT(GrpcChannels, TryWaitForConnected, 2) {
 
         // TryWaitForConnected should wait for the server to start and return 'true'
         EXPECT_TRUE(ugrpc::client::TryWaitForConnected(
-            client, engine::Deadline::FromDuration(utest::kMaxTestWaitTime), engine::current_task::GetTaskProcessor()
+            client,
+            engine::Deadline::FromDuration(utest::kMaxTestWaitTime),
+            engine::current_task::GetTaskProcessor()
         ));
 
-        auto call = client.SayHello({});
+        auto future = client.AsyncSayHello({});
         EXPECT_FALSE(engine::current_task::ShouldCancel());
-        UEXPECT_NO_THROW((void)call.Finish());
+        UEXPECT_NO_THROW(future.Get());
         EXPECT_FALSE(engine::current_task::ShouldCancel());
 
         // TryWaitForConnected should return immediately if the connection is
         // already alive
         EXPECT_TRUE(ugrpc::client::TryWaitForConnected(
-            client, engine::Deadline::FromDuration(kSmallTimeout), engine::current_task::GetTaskProcessor()
+            client,
+            engine::Deadline::FromDuration(kSmallTimeout),
+            engine::current_task::GetTaskProcessor()
         ));
     });
 

@@ -1,8 +1,7 @@
 #include <userver/clients/dns/component.hpp>
-#include <userver/clients/http/component.hpp>
+#include <userver/clients/http/component_list.hpp>
 #include <userver/components/minimal_server_component_list.hpp>
-#include <userver/dynamic_config/client/component.hpp>
-#include <userver/dynamic_config/updater/component.hpp>
+#include <userver/dynamic_config/updater/component_list.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/server/handlers/ping.hpp>
 #include <userver/server/handlers/server_monitor.hpp>
@@ -29,14 +28,21 @@ public:
         } else if (type == "sleep") {
             engine::SleepFor(std::chrono::seconds{1});
         } else if (type == "json") {
-            formats::json::Value json = formats::json::FromString(req.RequestBody());
+            const formats::json::Value json = formats::json::FromString(req.RequestBody());
             return ToString(json);
         }
         return "";
     };
+};
 
+class HandlerHttp2Stream final : public server::handlers::HttpHandlerBase {
+public:
+    static constexpr std::string_view kName = "handler-http2-stream";
+
+    HandlerHttp2Stream(const components::ComponentConfig& config, const components::ComponentContext& context)
+        : server::handlers::HttpHandlerBase(config, context) {}
     void HandleStreamRequest(
-        const server::http::HttpRequest& req,
+        server::http::HttpRequest& req,
         server::request::RequestContext&,
         server::http::ResponseBodyStream& stream
     ) const override {
@@ -77,16 +83,17 @@ public:
 };
 
 int main(int argc, char* argv[]) {
-    auto component_list = components::MinimalServerComponentList()
-                              .Append<components::TestsuiteSupport>()
-                              .Append<components::HttpClient>()
-                              .Append<clients::dns::Component>()
-                              .Append<server::handlers::ServerMonitor>()
-                              .Append<server::handlers::TestsControl>()
-                              .Append<components::DynamicConfigClientUpdater>()
-                              .Append<components::DynamicConfigClient>()
-                              .Append<HandlerHttp2>()
-                              .Append<server::handlers::Ping>();
+    auto component_list =
+        components::MinimalServerComponentList()
+            .AppendComponentList(USERVER_NAMESPACE::dynamic_config::updater::ComponentList())
+            .Append<components::TestsuiteSupport>()
+            .AppendComponentList(clients::http::ComponentList())
+            .Append<clients::dns::Component>()
+            .Append<server::handlers::ServerMonitor>()
+            .Append<server::handlers::TestsControl>()
+            .Append<HandlerHttp2>()
+            .Append<HandlerHttp2Stream>()
+            .Append<server::handlers::Ping>();
 
     return utils::DaemonMain(argc, argv, component_list);
 }

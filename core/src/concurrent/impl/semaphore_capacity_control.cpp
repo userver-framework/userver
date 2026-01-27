@@ -1,11 +1,15 @@
 #include <userver/concurrent/impl/semaphore_capacity_control.hpp>
 
+#include <userver/utils/assert.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace concurrent::impl {
 
 SemaphoreCapacityControl::SemaphoreCapacityControl(engine::CancellableSemaphore& semaphore)
-    : semaphore_(semaphore), capacity_requested_(semaphore.GetCapacity()) {}
+    : semaphore_(semaphore),
+      capacity_requested_(semaphore.GetCapacity())
+{}
 
 void SemaphoreCapacityControl::SetCapacity(Counter capacity) {
     capacity_requested_.store(capacity);
@@ -41,7 +45,9 @@ void SemaphoreCapacityControl::UpdateSemaphoreCapacity() const {
         capacity_base = capacity_requested_.load();
         capacity_override = capacity_override_.load();
         const auto new_capacity = capacity_override == kOverrideDisabled ? capacity_base : capacity_override;
-        if (new_capacity == capacity) break;
+        if (new_capacity == capacity) {
+            break;
+        }
 
         capacity = new_capacity;
     }

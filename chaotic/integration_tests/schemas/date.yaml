@@ -16,3 +16,6 @@ definitions:
             deleted_at:
                 type: string
                 format: date-time-iso-basic
+            modified_at:
+                type: string
+                format: date-time-fraction

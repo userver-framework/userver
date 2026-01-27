@@ -26,8 +26,8 @@ TEST(SharedReadablePtr, Basic) {
 }
 
 TEST(SharedReadablePtr, EqualNullptr) {
-    utils::SharedReadablePtr<int> null{nullptr};
-    utils::SharedReadablePtr<int> data{GetSharedPtr()};
+    const utils::SharedReadablePtr<int> null{nullptr};
+    const utils::SharedReadablePtr<int> data{GetSharedPtr()};
 
     EXPECT_EQ(null, nullptr);
     EXPECT_EQ(nullptr, null);
@@ -47,7 +47,10 @@ struct Pair {
     int x;
     std::string y;
 
-    Pair(int x, std::string y) : x{x}, y{std::move(y)} {}
+    Pair(int x, std::string y)
+        : x{x},
+          y{std::move(y)}
+    {}
 
     bool operator==(const Pair& other) const { return other.x == x && other.y == y; }
 };

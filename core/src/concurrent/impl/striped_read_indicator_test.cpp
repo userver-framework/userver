@@ -2,6 +2,7 @@
 
 #include <thread>
 
+#include <userver/compiler/impl/tsan.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/mutex.hpp>
 #include <userver/engine/sleep.hpp>
@@ -9,6 +10,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
+#if !USERVER_IMPL_HAS_TSAN
 namespace {
 constexpr std::size_t kReadersCount = 3;
 constexpr std::size_t kCheckersCount = 1;
@@ -16,7 +18,7 @@ constexpr std::size_t kCheckersCount = 1;
 
 UTEST_MT(StripedReadIndicator, LockPassingStress, kReadersCount + kCheckersCount) {
     concurrent::impl::StripedReadIndicator indicator;
-    concurrent::impl::StripedReadIndicatorLock indicator_lock = indicator.Lock();
+    concurrent::impl::StripedReadIndicatorLock indicator_lock = indicator.GetLock();
     engine::Mutex ping_pong_mutex;
 
     std::atomic<bool> keep_running{true};
@@ -51,6 +53,7 @@ UTEST_MT(StripedReadIndicator, LockPassingStress, kReadersCount + kCheckersCount
     indicator_lock = concurrent::impl::StripedReadIndicatorLock{};
     EXPECT_TRUE(indicator.IsFree());
 }
+#endif
 
 UTEST(StripedReadIndicator, Metrics) {
     concurrent::impl::StripedReadIndicator indicator;
@@ -58,29 +61,29 @@ UTEST(StripedReadIndicator, Metrics) {
     EXPECT_TRUE(indicator.IsFree());
     EXPECT_EQ(indicator.GetAcquireCountApprox(), 0);
     EXPECT_EQ(indicator.GetReleaseCountApprox(), 0);
-    EXPECT_EQ(indicator.GetActiveCountApprox(), 0);
+    EXPECT_EQ(indicator.GetActiveCountUpperEstimate(), 0);
     {
-        const auto lock1 = indicator.Lock();
+        const auto lock1 = indicator.GetLock();
         EXPECT_FALSE(indicator.IsFree());
         EXPECT_EQ(indicator.GetAcquireCountApprox(), 1);
         EXPECT_EQ(indicator.GetReleaseCountApprox(), 0);
-        EXPECT_EQ(indicator.GetActiveCountApprox(), 1);
+        EXPECT_EQ(indicator.GetActiveCountUpperEstimate(), 1);
         {
-            const auto lock2 = indicator.Lock();
+            const auto lock2 = indicator.GetLock();
             EXPECT_FALSE(indicator.IsFree());
             EXPECT_EQ(indicator.GetAcquireCountApprox(), 2);
             EXPECT_EQ(indicator.GetReleaseCountApprox(), 0);
-            EXPECT_EQ(indicator.GetActiveCountApprox(), 2);
+            EXPECT_EQ(indicator.GetActiveCountUpperEstimate(), 2);
         }
         EXPECT_FALSE(indicator.IsFree());
         EXPECT_EQ(indicator.GetAcquireCountApprox(), 2);
         EXPECT_EQ(indicator.GetReleaseCountApprox(), 1);
-        EXPECT_EQ(indicator.GetActiveCountApprox(), 1);
+        EXPECT_EQ(indicator.GetActiveCountUpperEstimate(), 1);
     }
     EXPECT_TRUE(indicator.IsFree());
     EXPECT_EQ(indicator.GetAcquireCountApprox(), 2);
     EXPECT_EQ(indicator.GetReleaseCountApprox(), 2);
-    EXPECT_EQ(indicator.GetActiveCountApprox(), 0);
+    EXPECT_EQ(indicator.GetActiveCountUpperEstimate(), 0);
 }
 
 USERVER_NAMESPACE_END

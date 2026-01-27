@@ -2,8 +2,10 @@
 
 #include <grpcpp/generic/async_generic_service.h>
 
-#include <userver/ugrpc/server/impl/service_worker.hpp>
 #include <userver/utils/box.hpp>
+
+#include <userver/ugrpc/server/impl/service_internals.hpp>
+#include <userver/ugrpc/server/impl/service_worker.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -15,7 +17,7 @@ namespace ugrpc::server::impl {
 
 class GenericServiceWorker final {
 public:
-    GenericServiceWorker(GenericServiceBase& service, ServiceSettings&& settings);
+    GenericServiceWorker(GenericServiceBase& service, ServiceInternals&& internals);
 
     GenericServiceWorker(GenericServiceWorker&&) noexcept;
     GenericServiceWorker& operator=(GenericServiceWorker&&) noexcept;

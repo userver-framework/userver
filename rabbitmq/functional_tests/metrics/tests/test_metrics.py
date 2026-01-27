@@ -30,7 +30,8 @@ async def test_metrics(service_client, monitor_client, testpoint, load):
 
     for i in range(num_messages):
         response = await service_client.post(
-            '/v1/messages/', json={'message': str(i)},
+            '/v1/messages/',
+            json={'message': str(i)},
         )
         assert response.status_code == 200
 
@@ -43,7 +44,8 @@ async def test_metrics(service_client, monitor_client, testpoint, load):
     ethalon = load('metrics_values.txt')
     all_metrics = _normalize_metrics(
         await monitor_client.metrics_raw(
-            output_format='pretty', prefix='rabbitmq',
+            output_format='pretty',
+            prefix='rabbitmq',
         ),
     )
     assert all_metrics == ethalon

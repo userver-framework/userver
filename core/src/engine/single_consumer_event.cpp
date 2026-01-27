@@ -11,7 +11,10 @@ namespace engine {
 
 class SingleConsumerEvent::EventWaitStrategy final : public impl::WaitStrategy {
 public:
-    EventWaitStrategy(SingleConsumerEvent& event, impl::TaskContext& current) : event_(event), current_(current) {}
+    EventWaitStrategy(SingleConsumerEvent& event, impl::TaskContext& current)
+        : event_(event),
+          current_(current)
+    {}
 
     impl::EarlyWakeup SetupWakeups() override {
         return impl::EarlyWakeup{event_.waiters_->GetSignalOrAppend(&current_)};

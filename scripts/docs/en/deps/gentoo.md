@@ -5,6 +5,8 @@ dev-cpp/yaml-cpp
 dev-db/mongodb
 dev-db/postgresql
 dev-db/redis
+dev-debug/gdb 
+dev-db/unixODBC
 dev-lang/python
 dev-libs/crypto++
 dev-libs/hiredis
@@ -14,6 +16,7 @@ dev-libs/libev
 dev-libs/libfmt
 dev-libs/mongo-c-driver
 dev-libs/openssl
+dev-libs/pugixml
 dev-libs/re2
 dev-python/jinja
 dev-python/pip
@@ -22,6 +25,7 @@ dev-util/ccache
 dev-util/cmake
 dev-util/ninja
 dev-vcs/git
+llvm-core/clang
 net-dns/c-ares
 net-libs/grpc
 net-libs/nghttp2

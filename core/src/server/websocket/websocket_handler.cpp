@@ -13,6 +13,10 @@
 #include <userver/server/websocket/server.hpp>
 #include "protocol.hpp"
 
+#ifndef ARCADIA_ROOT
+#include "generated/src/server/websocket/websocket_handler.yaml.hpp"  // Y_IGNORE
+#endif
+
 USERVER_NAMESPACE_BEGIN
 
 namespace server::websocket {
@@ -21,11 +25,12 @@ WebsocketHandlerBase::WebsocketHandlerBase(
     const components::ComponentConfig& config,
     const components::ComponentContext& context
 )
-    : server::handlers::HttpHandlerBase(config, context), config_(config.As<Config>()) {
-    auto& statistics_storage = context.FindComponent<components::StatisticsStorage>().GetStorage();
-    statistics_holder_ = statistics_storage.RegisterWriter(
-        "ws." + config.Name(), [this](utils::statistics::Writer& writer) { return WriteMetrics(writer); }
-    );
+    : server::handlers::HttpHandlerBase(config, context),
+      config_(config.As<Config>())
+{
+    utils::statistics::RegisterWriterScope(context, "ws." + config.Name(), [this](utils::statistics::Writer& writer) {
+        return WriteMetrics(writer);
+    });
 }
 
 std::string WebsocketHandlerBase::HandleRequestThrow(
@@ -33,18 +38,23 @@ std::string WebsocketHandlerBase::HandleRequestThrow(
     server::request::RequestContext& context
 ) const {
     if (request.GetMethod() != server::http::HttpMethod::kGet ||
-        !utils::StrIcaseEqual(
-        )(request.GetHeader(USERVER_NAMESPACE::http::headers::kUpgrade), std::string_view("websocket")) ||
-        !utils::StrIcaseEqual(
-        )(request.GetHeader(USERVER_NAMESPACE::http::headers::kConnection), std::string_view("upgrade"))) {
+        !utils::StrIcaseEqual()(
+            request.GetHeader(USERVER_NAMESPACE::http::headers::kUpgrade),
+            std::string_view("websocket")
+        ) ||
+        !utils::StrIcaseEqual()(
+            request.GetHeader(USERVER_NAMESPACE::http::headers::kConnection),
+            std::string_view("upgrade")
+        ))
+    {
         HandleNonWebsocketRequest(request, context);
     }
 
-    const std::string& secWebsocketKey = request.GetHeader(USERVER_NAMESPACE::http::headers::kWebsocketKey);
+    const std::string& sec_websocket_key = request.GetHeader(USERVER_NAMESPACE::http::headers::kWebsocketKey);
 
     // We are fine if `secWebsocketKey` is not properly base64-ecoded
     static constexpr std::size_t kLengthOfBase64Encoded16Bytes = 24;
-    if (kLengthOfBase64Encoded16Bytes != secWebsocketKey.size()) {
+    if (kLengthOfBase64Encoded16Bytes != sec_websocket_key.size()) {
         LOG_WARNING() << "Empty or invalid Websocket Key";
         throw server::handlers::ClientError();
     }
@@ -59,13 +69,16 @@ std::string WebsocketHandlerBase::HandleRequestThrow(
         return "";
     }
 
-    if (!HandleHandshake(request, response, context)) return "";
+    if (!HandleHandshake(request, response, context)) {
+        return "";
+    }
 
     response.SetStatus(server::http::HttpStatus::kSwitchingProtocols);
     response.SetHeader(USERVER_NAMESPACE::http::headers::kConnection, "Upgrade");
     response.SetHeader(USERVER_NAMESPACE::http::headers::kUpgrade, "websocket");
     response.SetHeader(
-        USERVER_NAMESPACE::http::headers::kWebsocketAccept, websocket::impl::WebsocketSecAnswer(secWebsocketKey)
+        USERVER_NAMESPACE::http::headers::kWebsocketAccept,
+        websocket::impl::WebsocketSecAnswer(sec_websocket_key)
     );
 
     request.SetUpgradeWebsocket([context = std::make_shared<server::request::RequestContext>(std::move(context)),
@@ -93,20 +106,8 @@ void WebsocketHandlerBase::WriteMetrics(utils::statistics::Writer& writer) const
 }
 
 yaml_config::Schema WebsocketHandlerBase::GetStaticConfigSchema() {
-    return yaml_config::MergeSchemas<server::handlers::HttpHandlerBase>(R"(
-type: object
-description: Base class for WebSocket handlers
-additionalProperties: false
-properties:
-    max-remote-payload:
-        type: integer
-        description: max input message payload size
-        defaultDescription: 65536
-    fragment-size:
-        type: integer
-        description: max output fragment size
-        defaultDescription: 65536
-)");
+    return yaml_config::MergeSchemasFromResource<
+        server::handlers::HttpHandlerBase>("src/server/websocket/websocket_handler.yaml");
 }
 
 }  // namespace server::websocket

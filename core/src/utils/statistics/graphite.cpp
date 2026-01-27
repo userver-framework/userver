@@ -20,7 +20,11 @@ bool IsGraphitePrintable(char c) noexcept { return std::isalnum(c) || std::strch
 
 void AppendGraphiteSafe(fmt::memory_buffer& out, std::string_view value) {
     std::replace_copy_if(
-        value.cbegin(), value.cend(), std::back_inserter(out), [](char c) { return !IsGraphitePrintable(c); }, '_'
+        value.cbegin(),
+        value.cend(),
+        std::back_inserter(out),
+        [](char c) { return !IsGraphitePrintable(c); },
+        '_'
     );
 }
 
@@ -30,7 +34,8 @@ public:
         : ending_(fmt::format(
               FMT_COMPILE(" {}\n"),
               std::chrono::duration_cast<std::chrono::seconds>(utils::datetime::MockNow().time_since_epoch()).count()
-          )) {}
+          ))
+    {}
 
     void HandleMetric(std::string_view path, utils::statistics::LabelsSpan labels, const MetricValue& value) override {
         if (value.IsHistogram()) {

@@ -8,17 +8,17 @@ namespace formats::yaml::impl {
 Type GetExtendedType(const YAML::Node& val) {
     switch (val.Type()) {
         case YAML::NodeType::Sequence:
-            return arrayValue;
+            return kArrayValue;
         case YAML::NodeType::Map:
-            return objectValue;
+            return kObjectValue;
         case YAML::NodeType::Null:
-            return nullValue;
+            return kNullValue;
         case YAML::NodeType::Scalar:
-            return scalarValue;
+            return kScalarValue;
         case YAML::NodeType::Undefined:
             throw std::logic_error("undefined node type should not be used");
     }
-    return errorValue;
+    return kErrorValue;
 }
 
 const char* NameForType(Type expected) {
@@ -27,11 +27,11 @@ const char* NameForType(Type expected) {
     case Type::type:   \
         return #type;
     switch (expected) {
-        RET_NAME(nullValue)
-        RET_NAME(scalarValue)
-        RET_NAME(arrayValue)
-        RET_NAME(objectValue)
-        RET_NAME(errorValue)
+        RET_NAME(kNullValue)
+        RET_NAME(kScalarValue)
+        RET_NAME(kArrayValue)
+        RET_NAME(kObjectValue)
+        RET_NAME(kErrorValue)
     }
     return "ERROR";
 #undef RET_NAME

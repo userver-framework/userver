@@ -11,7 +11,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace urabbitmq {
 
-// clang-format off
 /// @ingroup userver_base_classes
 ///
 /// @brief Base component for your consumers.
@@ -33,13 +32,11 @@ namespace urabbitmq {
 ///
 /// @snippet samples/rabbitmq_service/static_config.yaml  RabbitMQ consumer sample - static config
 ///
-/// ## Static options:
-/// Name             | Description
-/// rabbit_name      | Name of the RabbitMQ component to use for consumption
-/// queue            | Name of the queue to consume from
-/// prefetch_count   | prefetch_count for the consumer, limits the amount of in-flight messages
+/// ## Static options @ref urabbitmq::ConsumerComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/rabbitmq/src/urabbitmq/consumer_component_base.md
 ///
-// clang-format on
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
 class ConsumerComponentBase : public components::ComponentBase {
 public:
     ConsumerComponentBase(const components::ComponentConfig& config, const components::ComponentContext& context);
@@ -63,8 +60,7 @@ protected:
     /// that `ack` ever reached the broker (network issues or unexpected shutdown,
     /// for example).
     /// It is however guaranteed for message to be requeued if `Process` fails.
-    virtual void Process(std::string) { /* do nothing */
-    }
+    virtual void Process(std::string) { /* do nothing */ }
 
     /// @brief You may override this method in derived class and implement
     /// message handling logic. By default it just calls `Process` with message

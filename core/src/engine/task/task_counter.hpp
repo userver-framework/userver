@@ -22,6 +22,7 @@ class TaskCounter final {
 public:
     class Token;
     class CoroToken;
+    class RunningToken;
 
     explicit TaskCounter(std::size_t thread_count);
 
@@ -62,11 +63,11 @@ public:
 
     Rate GetTasksNoOverloadSensor() const noexcept;
 
-    Rate GetTaskSwitchFast() const noexcept;
-
-    Rate GetTaskSwitchSlow() const noexcept;
-
     Rate GetSpuriousWakeups() const noexcept;
+
+    Rate GetTasksStartedRunning() const noexcept;
+
+    std::uint64_t GetRunningTasks() const noexcept;
 
     void AccountTaskCancel() noexcept;
 
@@ -77,10 +78,6 @@ public:
     void AccountTaskOverloadSensor() noexcept;
 
     void AccountTaskNoOverloadSensor() noexcept;
-
-    void AccountTaskSwitchFast() noexcept;
-
-    void AccountTaskSwitchSlow() noexcept;
 
     void AccountSpuriousWakeup() noexcept;
 
@@ -98,11 +95,11 @@ private:
         kStarted,
         kStopped,
         kCancelled,
-        kSwitchFast,
-        kSwitchSlow,
         kSpuriousWakeups,
         kOverloadSensor,
         kNoOverloadSensor,
+        kStartedRunning,
+        kStoppedRunning,
 
         kCountersSize,
     };
@@ -156,7 +153,21 @@ private:
     TaskCounter* counter_;
 };
 
+class TaskCounter::RunningToken final {
+public:
+    explicit RunningToken(impl::TaskCounter& counter) noexcept;
+
+    RunningToken(RunningToken&& other) noexcept;
+    RunningToken& operator=(RunningToken&& rhs) noexcept;
+    ~RunningToken();
+
+private:
+    TaskCounter& counter_;
+};
+
 void SetLocalTaskCounterData(TaskCounter& counter, std::size_t thread_id);
+
+std::size_t GetCurrentWorkerId() noexcept;
 
 }  // namespace engine::impl
 

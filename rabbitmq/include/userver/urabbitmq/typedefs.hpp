@@ -3,6 +3,8 @@
 /// @file userver/urabbitmq/typedefs.hpp
 /// @brief Convenient typedefs for RabbitMQ entities.
 
+#include <chrono>
+
 #include <userver/utils/strong_typedef.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -71,6 +73,19 @@ struct ConsumedMessage {
     };
     std::string message;
     Metadata metadata;
+    std::optional<std::string> reply_to{};
+    std::optional<std::string> correlation_id{};
+};
+
+/// @brief Structure holding an AMQP message body along with some of its
+/// metadata fields. This struct is used to pass messages from the end user,
+/// hiding the actual AMQP message object implementation.
+struct Envelope {
+    std::string message;
+    MessageType type;
+    std::optional<std::string> reply_to{};
+    std::optional<std::string> correlation_id{};
+    std::optional<std::chrono::milliseconds> expiration{};
 };
 
 }  // namespace urabbitmq

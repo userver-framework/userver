@@ -32,7 +32,7 @@ inline constexpr std::string_view kFlatbufResponseDataName = "__response_flatbuf
 ///
 /// ## Example usage:
 ///
-/// @snippet samples/flatbuf_service/flatbuf_service.cpp Flatbuf service sample - component
+/// @snippet samples/flatbuf_service/main.cpp Flatbuf service sample - component
 
 // clang-format on
 
@@ -94,18 +94,18 @@ HttpHandlerFlatbufBase<InputType, ReturnType>::HttpHandlerFlatbufBase(
     const components::ComponentConfig& config,
     const components::ComponentContext& component_context
 )
-    : HttpHandlerBase(config, component_context) {}
+    : HttpHandlerBase(config, component_context)
+{}
 
 template <typename InputType, typename ReturnType>
-std::string HttpHandlerFlatbufBase<InputType, ReturnType>::HandleRequestThrow(
-    const http::HttpRequest& request,
-    request::RequestContext& context
-) const {
+std::string HttpHandlerFlatbufBase<
+    InputType,
+    ReturnType>::HandleRequestThrow(const http::HttpRequest& request, request::RequestContext& context) const {
     const auto& input = context.GetData<const typename InputType::NativeTableType&>(impl::kFlatbufRequestDataName);
 
-    const auto& ret = context.SetData(
-        std::string{impl::kFlatbufResponseDataName}, HandleRequestFlatbufThrow(request, input, context)
-    );
+    const auto& ret =
+        context
+            .SetData(std::string{impl::kFlatbufResponseDataName}, HandleRequestFlatbufThrow(request, input, context));
 
     flatbuffers::FlatBufferBuilder fbb;
     auto ret_fbb = ReturnType::Pack(fbb, &ret);
@@ -114,16 +114,16 @@ std::string HttpHandlerFlatbufBase<InputType, ReturnType>::HandleRequestThrow(
 }
 
 template <typename InputType, typename ReturnType>
-const typename InputType::NativeTableType* HttpHandlerFlatbufBase<InputType, ReturnType>::GetInputData(
-    const request::RequestContext& context
-) const {
+const typename InputType::NativeTableType* HttpHandlerFlatbufBase<
+    InputType,
+    ReturnType>::GetInputData(const request::RequestContext& context) const {
     return context.GetDataOptional<const typename InputType::NativeTableType>(impl::kFlatbufRequestDataName);
 }
 
 template <typename InputType, typename ReturnType>
-const typename ReturnType::NativeTableType* HttpHandlerFlatbufBase<InputType, ReturnType>::GetOutputData(
-    const request::RequestContext& context
-) const {
+const typename ReturnType::NativeTableType* HttpHandlerFlatbufBase<
+    InputType,
+    ReturnType>::GetOutputData(const request::RequestContext& context) const {
     return context.GetDataOptional<const typename ReturnType::NativeTableType>(impl::kFlatbufResponseDataName);
 }
 
@@ -133,7 +133,7 @@ std::string HttpHandlerFlatbufBase<InputType, ReturnType>::GetRequestBodyForLogg
     request::RequestContext&,
     const std::string& request_body
 ) const {
-    size_t limit = GetConfig().request_body_size_log_limit;
+    const size_t limit = GetConfig().request_body_size_log_limit;
     return utils::log::ToLimitedHex(request_body, limit);
 }
 
@@ -143,15 +143,14 @@ std::string HttpHandlerFlatbufBase<InputType, ReturnType>::GetResponseDataForLog
     request::RequestContext&,
     const std::string& response_data
 ) const {
-    size_t limit = GetConfig().response_data_size_log_limit;
+    const size_t limit = GetConfig().response_data_size_log_limit;
     return utils::log::ToLimitedHex(response_data, limit);
 }
 
 template <typename InputType, typename ReturnType>
-void HttpHandlerFlatbufBase<InputType, ReturnType>::ParseRequestData(
-    const http::HttpRequest& request,
-    request::RequestContext& context
-) const {
+void HttpHandlerFlatbufBase<
+    InputType,
+    ReturnType>::ParseRequestData(const http::HttpRequest& request, request::RequestContext& context) const {
     const auto& body = request.RequestBody();
     const auto* input_fbb = flatbuffers::GetRoot<InputType>(body.data());
     flatbuffers::Verifier verifier(reinterpret_cast<const uint8_t*>(body.data()), body.size());

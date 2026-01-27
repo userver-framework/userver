@@ -1,0 +1,101 @@
+name: Ubuntu
+
+'on':
+    pull_request:
+    push:
+        branches:
+          - master
+          - develop
+          - feature/**
+
+env:
+    JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
+    UBSAN_OPTIONS: print_stacktrace=1
+    ASAN_OPTIONS: detect_odr_violation=2
+    CCACHE_DIR: /home/runner/.cache/ccache
+    CCACHE_NOHASHDIR: true
+    CPM_SOURCE_CACHE: /home/runner/.cache/CPM
+    REDIS_SLEEP_WORKAROUND_SECONDS: 60
+
+jobs:
+    posix:
+        strategy:
+            fail-fast: false
+        env:
+            CMAKE_FLAGS: >-
+                -DCMAKE_BUILD_TYPE=Debug
+                -DCMAKE_CXX_STANDARD=17
+                -DUSERVER_SANITIZE="ub addr"
+                -DUSERVER_BUILD_SAMPLES=1
+                -DUSERVER_BUILD_TESTS=1
+
+        name: ubuntu (minimal installation)
+        runs-on: ubuntu-latest
+
+        steps:
+          - uses: actions/checkout@v6
+
+          - name: Restore cached directories
+            id: restore-cache
+            uses: actions/cache/restore@v5
+            with:
+                path: |
+                    ${{env.CCACHE_DIR}}
+                    ${{env.CPM_SOURCE_CACHE}}
+                key: 'ubuntu-cache-dir ${{matrix.id}} ${{github.ref}} run-${{github.run_number}}'
+                restore-keys: |
+                    ubuntu-cache-dir ${{matrix.id}} ${{github.ref}}
+                    ubuntu-cache-dir ${{matrix.id}}
+
+          - name: Setup ramdrive for testsuites
+            run: |
+                sudo mkdir -p "/mnt/ramdisk/$USER"
+                sudo chmod 777 "/mnt/ramdisk/$USER"
+                sudo mount -t tmpfs -o size=2048M tmpfs "/mnt/ramdisk/$USER"
+
+          - name: Free disk space
+            run: ./scripts/githubci_free_space.sh
+
+          - name: Install common deps
+            run: |
+                sudo apt update
+                sudo apt install build-essential clang cmake ccache libjemalloc-dev
+                sudo apt install \
+                  libssl-dev \
+                  libboost-context1.83-dev \
+                  libboost-coroutine1.83-dev \
+                  libboost-filesystem1.83-dev \
+                  libboost-iostreams1.83-dev \
+                  libboost-locale1.83-dev \
+                  libboost-program-options1.83-dev \
+                  libboost-stacktrace1.83-dev \
+                  libbenchmark-dev
+
+          - name: Setup ccache
+            run: |
+                ccache -M 2.0GB
+                ccache -s -v
+
+          - name: Run cmake
+            run: |
+                cmake -S . -B build_debug
+
+          - name: Compile
+            run: |
+                pwd
+                cd build_debug
+                cmake --build . -j $(nproc)
+
+          - name: Save cached directories
+            uses: actions/cache/save@v5
+            with:
+                path: |
+                    ${{env.CCACHE_DIR}}
+                    ${{env.CPM_SOURCE_CACHE}}
+                key: ${{ steps.restore-cache.outputs.cache-primary-key }}
+
+          - name: Show cache stats
+            run: |
+                du -h -d 1 ${{env.CCACHE_DIR}}
+                du -h -d 1 ${{env.CPM_SOURCE_CACHE}}
+                ccache -s -v

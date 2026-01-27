@@ -1,0 +1,81 @@
+# yaml
+components_manager:
+    components:
+        # The required common components
+        logging:
+            fs-task-processor: fs-task-processor
+            loggers:
+                default:
+                    file_path: '@stderr'
+                    level: debug
+                    overflow_behavior: discard
+
+        handler-server-monitor:
+            path: /service/monitor
+            method: GET
+            task_processor: main-task-processor
+
+        congestion-control:
+
+        greeter-client-test:
+
+        # gRPC client
+        grpc-client-common:
+            blocking-task-processor: grpc-blocking-task-processor
+
+        grpc-client-headers-propagator:
+            skip-headers:
+                skipped-header: true
+
+        grpc-client-origin:
+            user-agent: middleware-client-service
+        # /// [grpc client factory]
+        # yaml
+        grpc-client-factory:
+            middlewares:
+                grpc-client-deadline-propagation:
+                    enabled: false
+            retry-config:
+                attempts: 2
+            channel-args: {}
+        # /// [grpc client factory]
+
+        greeter-client:
+            endpoint: $greeter-client-endpoint
+
+        # http server (for testsuite support)
+        server:
+            listener:
+                port: 8092
+                task_processor: main-task-processor
+            listener-monitor:
+                port: $monitor-server-port
+                task_processor: main-task-processor
+
+        testsuite-support:
+        tests-control:
+            path: /tests/{action}
+            method: POST
+            task_processor: main-task-processor
+            testpoint-timeout: 10s
+            testpoint-url:
+            throttling_enabled: false
+
+        # http client (for testsuite support)
+        http-client:
+        http-client-core:
+            fs-task-processor: main-task-processor
+
+        dns-client:
+            fs-task-processor: fs-task-processor
+
+    default_task_processor: main-task-processor
+
+    task_processors:
+        grpc-blocking-task-processor:  # For blocking gRPC channel creation
+            thread_name: grpc-worker
+            worker_threads: 2
+        main-task-processor:  # For non-blocking operations
+            worker_threads: 4
+        fs-task-processor:  # For blocking filesystem operations
+            worker_threads: 2

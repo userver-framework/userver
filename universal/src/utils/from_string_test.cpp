@@ -4,8 +4,9 @@
 #include <random>
 #include <type_traits>
 
+#include <fmt/core.h>
+#include <fmt/format.h>
 #include <gtest/gtest.h>
-#include <boost/lexical_cast.hpp>
 
 #include <userver/compiler/demangle.hpp>
 
@@ -20,31 +21,44 @@ std::string ToString(T value) {
     if constexpr (sizeof(value) == 1) {
         // Prevent printing int8_t and uint8_t as a character
         return std::to_string(static_cast<int>(value));
+    } else if constexpr (std::is_same_v<T, long double> && FMT_VERSION < 100100) {
+        // fmt before 10.1.0 formatted long double incorrectly
+        // https://github.com/fmtlib/fmt/issues/3564
+        return fmt::format("{:.{}g}", value, std::numeric_limits<long double>::max_digits10);
     } else {
-        return boost::lexical_cast<std::string>(value);
+        return fmt::to_string(value);
     }
 }
 
 template <typename T>
-auto TestInvalid(const std::string& input) {
-    ASSERT_THROW(utils::FromString<T>(input), std::runtime_error)
-        << "type = " << compiler::GetTypeName<T>() << ", input = \"" << input << "\"";
-}
-
-template <typename StringType, typename T>
-auto CheckConverts(StringType input, T expectedResult) {
-    T actualResult{};
-    ASSERT_NO_THROW(actualResult = utils::FromString<T>(input))
-        << "type = " << compiler::GetTypeName<T>() << ", input = \"" << input << "\"";
-    ASSERT_EQ(actualResult, expectedResult)
-        << "type = " << compiler::GetTypeName<T>() << ", input = \"" << input << "\"";
+std::string GetDiagnosticString(std::string_view input) {
+    return fmt::format("type = {}, input = {}", compiler::GetTypeName<T>(), input);
 }
 
 template <typename T>
-auto TestConverts(const std::string& input, T expectedResult) {
-    CheckConverts(input.data(), expectedResult);
-    CheckConverts(input, expectedResult);
-    CheckConverts(std::string_view{input}, expectedResult);
+auto TestInvalid(const std::string& input) {
+    ASSERT_FALSE(utils::FromStringNoThrow<T>(input)) << GetDiagnosticString<T>(input);
+    ASSERT_THROW(utils::FromString<T>(input), utils::FromStringException) << GetDiagnosticString<T>(input);
+}
+
+template <typename StringType, typename T>
+auto CheckConverts(StringType input, T expected_result) {
+    T actual_result{};
+
+    ASSERT_NO_THROW(actual_result = utils::FromStringNoThrow<T>(input).value()) << GetDiagnosticString<T>(input);
+    ASSERT_EQ(actual_result, expected_result) << GetDiagnosticString<T>(input);
+
+    actual_result = T{};
+
+    ASSERT_NO_THROW(actual_result = utils::FromString<T>(input)) << GetDiagnosticString<T>(input);
+    ASSERT_EQ(actual_result, expected_result) << GetDiagnosticString<T>(input);
+}
+
+template <typename T>
+auto TestConverts(const std::string& input, T expected_result) {
+    CheckConverts(input.c_str(), expected_result);
+    CheckConverts(input, expected_result);
+    CheckConverts(std::string_view{input}, expected_result);
 }
 
 template <typename T>
@@ -59,9 +73,8 @@ auto DistributionForTesting() {
     } else {
         // 8-bit types are not allowed in uniform_int_distribution, so increase the
         // T size.
-        return std::uniform_int_distribution<std::common_type_t<T, unsigned short>>(
-            std::numeric_limits<T>::min(), std::numeric_limits<T>::max()
-        );
+        return std::uniform_int_distribution<
+            std::common_type_t<T, unsigned short>>(std::numeric_limits<T>::min(), std::numeric_limits<T>::max());
     }
 }
 
@@ -70,8 +83,18 @@ auto DistributionForTesting() {
 template <typename T>
 class FromStringTest : public ::testing::Test {};
 
-using NumericTypes = ::testing::
-    Types<int8_t, uint8_t, int16_t, uint16_t, int32_t, uint32_t, int64_t, uint64_t, float, double, long double>;
+using NumericTypes = ::testing::Types<
+    int8_t,
+    uint8_t,
+    int16_t,
+    uint16_t,
+    int32_t,
+    uint32_t,
+    int64_t,
+    uint64_t,
+    float,
+    double,
+    long double>;
 TYPED_TEST_SUITE(FromStringTest, NumericTypes);
 
 TYPED_TEST(FromStringTest, Sign) {
@@ -93,11 +116,11 @@ TYPED_TEST(FromStringTest, Randomized) {
 
     // `randomEngine` is initialized with a fixed default seed
     // NOLINTNEXTLINE(cert-msc51-cpp)
-    std::default_random_engine randomEngine;
+    std::default_random_engine random_engine;
     auto distribution = DistributionForTesting<T>();
 
     for (int i = 0; i < kTestIterations; ++i) {
-        TestPreserves(static_cast<T>(distribution(randomEngine)));
+        TestPreserves(static_cast<T>(distribution(random_engine)));
     }
 }
 
@@ -135,6 +158,16 @@ TYPED_TEST(FromStringTest, StrangeDecimalPoints) {
     }
 }
 
+TYPED_TEST(FromStringTest, HasZeroByte) {
+    using T = TypeParam;
+
+    if constexpr (std::is_floating_point_v<T>) {
+        TestInvalid<T>({"1.1\0 <- zero byte", 17});
+    }
+
+    TestInvalid<T>({"1\0 <- zero byte", 15});
+}
+
 TYPED_TEST(FromStringTest, Exponents) {
     using T = TypeParam;
 
@@ -154,14 +187,8 @@ TYPED_TEST(FromStringTest, NonDecimal) {
     TestInvalid<T>("0b10");
     TestInvalid<T>("0o10");
 
-    if constexpr (std::is_floating_point_v<T>) {
-        TestConverts("0x10", T{0x10});
-        TestConverts("0xAB", T{0xAB});
-        TestConverts("0xab", T{0xAB});
-        TestConverts("0xABP2", T{0xABP2});
-    } else {
-        TestInvalid<T>("0x10");
-    }
+    TestInvalid<T>("0x10");
+    TestInvalid<T>("0X10");
 }
 
 TYPED_TEST(FromStringTest, ExtraSpaces) {
@@ -218,7 +245,7 @@ TYPED_TEST(FromStringTest, ExceptionDetails) {
 
     try {
         utils::FromString<T>(".blah");
-    } catch (const std::runtime_error& e) {
+    } catch (const utils::FromStringException& e) {
         what = e.what();
     } catch (const std::exception& e) {
         // swallow
@@ -226,7 +253,8 @@ TYPED_TEST(FromStringTest, ExceptionDetails) {
 
     ASSERT_FALSE(what.empty());
     ASSERT_NE(what.find(".blah"), std::string::npos);
-    ASSERT_NE(what.find(compiler::GetTypeName<T>()), std::string::npos);
+    // NOTE: GetTypeName(typeid(T)) for old version of GCC
+    ASSERT_NE(what.find(compiler::GetTypeName(typeid(T))), std::string::npos);
 }
 
 TEST(FromString, StringViewToFloatingPointSmall) {

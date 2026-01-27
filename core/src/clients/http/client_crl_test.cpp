@@ -6,6 +6,7 @@
 
 #include <userver/crypto/certificate.hpp>
 #include <userver/crypto/private_key.hpp>
+#include <userver/engine/async.hpp>
 #include <userver/engine/io/tls_wrapper.hpp>
 #include <userver/fs/blocking/temp_file.hpp>
 #include <userver/fs/blocking/write.hpp>
@@ -309,19 +310,20 @@ EmOKfeOntrWGKRoDws82ckOkpBkZ0/9gsl8g18u+jFCcSUfmXH7FtGg=
 -----END X509 CRL-----)";
 
 struct TlsServer {
-    TlsServer() : port_(tcp_listener_.socket.Getsockname().Port()) {}
+    TlsServer()
+        : port(tcp_listener.socket.Getsockname().Port())
+    {}
 
     void ReceiveAndShutdown(std::initializer_list<crypto::Certificate> cas = {}) {
         auto deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
-        auto socket = tcp_listener_.socket.Accept(deadline);
+        auto socket = tcp_listener.socket.Accept(deadline);
 
-        auto tls_server = engine::io::TlsWrapper::StartTlsServer(
-            std::move(socket),
-            crypto::Certificate::LoadFromString(kServerCertificate),
+        crypto::SslCtx ssl_ctx = crypto::SslCtx::CreateServerTlsContext(
+            crypto::LoadCertificatesChainFromString(kServerCertificate),
             crypto::PrivateKey::LoadFromString(kRevokedServerPrivateKey),
-            deadline,
             cas
         );
+        auto tls_server = engine::io::TlsWrapper::StartTlsServer(std::move(socket), ssl_ctx, deadline);
 
         std::array<char, 2048> data{};
         const auto size = tls_server.RecvSome(data.data(), data.size(), deadline);
@@ -340,8 +342,8 @@ struct TlsServer {
         EXPECT_TRUE(socket.IsValid());
     }
 
-    internal::net::TcpListener tcp_listener_;
-    int port_;
+    internal::net::TcpListener tcp_listener;
+    int port;
 };
 
 auto InterceptCrlDistribution() {
@@ -371,15 +373,16 @@ UTEST(HttpClient, HttpsWithNoCrl) {
 
     auto http_client_ptr = utest::CreateHttpClient();
     TlsServer tls_server;
-    const auto ssl_url = fmt::format("https://[::1]:{}", tls_server.port_);
+    const auto ssl_url = fmt::format("https://[::1]:{}", tls_server.port);
 
-    auto response_future = http_client_ptr->CreateRequest()
-                               .post(ssl_url)
-                               .timeout(utest::kMaxTestWaitTime)
-                               .ca(ca)
-                               .client_key_cert(pkey, cert)
-                               .verify(true)
-                               .async_perform();
+    auto response_future =
+        http_client_ptr->CreateRequest()
+            .post(ssl_url)
+            .timeout(utest::kMaxTestWaitTime)
+            .ca(ca)
+            .client_key_cert(pkey, cert)
+            .verify(true)
+            .async_perform();
 
     tls_server.ReceiveAndShutdown({ca});
     response_future.Wait();
@@ -400,16 +403,17 @@ UTEST(HttpClient, HttpsWithCrl) {
 
     auto http_client_ptr = utest::CreateHttpClient();
     TlsServer tls_server;
-    const auto ssl_url = fmt::format("https://[::1]:{}", tls_server.port_);
+    const auto ssl_url = fmt::format("https://[::1]:{}", tls_server.port);
 
-    auto response_future = http_client_ptr->CreateRequest()
-                               .post(ssl_url)
-                               .timeout(utest::kMaxTestWaitTime)
-                               .ca(ca)
-                               .crl_file(tmp_file.GetPath())
-                               .client_key_cert(pkey, cert)
-                               .verify(true)
-                               .async_perform();
+    auto response_future =
+        http_client_ptr->CreateRequest()
+            .post(ssl_url)
+            .timeout(utest::kMaxTestWaitTime)
+            .ca(ca)
+            .crl_file(tmp_file.GetPath())
+            .client_key_cert(pkey, cert)
+            .verify(true)
+            .async_perform();
 
     UEXPECT_THROW(tls_server.ReceiveAndShutdown({ca}), engine::io::TlsException);
     response_future.Wait();
@@ -428,16 +432,17 @@ UTEST(HttpClient, HttpsWithCrlNoVerify) {
 
     auto http_client_ptr = utest::CreateHttpClient();
     TlsServer tls_server;
-    const auto ssl_url = fmt::format("https://[::1]:{}", tls_server.port_);
+    const auto ssl_url = fmt::format("https://[::1]:{}", tls_server.port);
 
-    auto response_future = http_client_ptr->CreateRequest()
-                               .post(ssl_url)
-                               .timeout(utest::kMaxTestWaitTime)
-                               .ca(ca)
-                               .crl_file(tmp_file.GetPath())
-                               .client_key_cert(pkey, cert)
-                               .verify(false)  // do not do that in production!
-                               .async_perform();
+    auto response_future =
+        http_client_ptr->CreateRequest()
+            .post(ssl_url)
+            .timeout(utest::kMaxTestWaitTime)
+            .ca(ca)
+            .crl_file(tmp_file.GetPath())
+            .client_key_cert(pkey, cert)
+            .verify(false)  // do not do that in production!
+            .async_perform();
 
     UEXPECT_NO_THROW(tls_server.ReceiveAndShutdown({ca}));
     response_future.Wait();
@@ -454,15 +459,16 @@ UTEST(HttpClient, HttpsWithNoServerCa) {
 
     auto http_client_ptr = utest::CreateHttpClient();
     TlsServer tls_server;
-    const auto ssl_url = fmt::format("https://[::1]:{}", tls_server.port_);
+    const auto ssl_url = fmt::format("https://[::1]:{}", tls_server.port);
 
-    auto response_future = http_client_ptr->CreateRequest()
-                               .post(ssl_url)
-                               .timeout(utest::kMaxTestWaitTime)
-                               .ca(ca)
-                               .client_key_cert(pkey, cert)
-                               .verify(true)
-                               .async_perform();
+    auto response_future =
+        http_client_ptr->CreateRequest()
+            .post(ssl_url)
+            .timeout(utest::kMaxTestWaitTime)
+            .ca(ca)
+            .client_key_cert(pkey, cert)
+            .verify(true)
+            .async_perform();
 
     tls_server.ReceiveAndShutdown();
     response_future.Wait();
@@ -478,14 +484,15 @@ UTEST(HttpClient, HttpsWithNoClientCa) {
 
     auto http_client_ptr = utest::CreateHttpClient();
     TlsServer tls_server;
-    const auto ssl_url = fmt::format("https://[::1]:{}", tls_server.port_);
+    const auto ssl_url = fmt::format("https://[::1]:{}", tls_server.port);
 
-    auto response_future = http_client_ptr->CreateRequest()
-                               .post(ssl_url)
-                               .timeout(utest::kMaxTestWaitTime)
-                               .client_key_cert(pkey, cert)
-                               .verify(true)
-                               .async_perform();
+    auto response_future =
+        http_client_ptr->CreateRequest()
+            .post(ssl_url)
+            .timeout(utest::kMaxTestWaitTime)
+            .client_key_cert(pkey, cert)
+            .verify(true)
+            .async_perform();
 
     auto ca = crypto::Certificate::LoadFromString(kCaCertPem);
     UEXPECT_THROW(tls_server.ReceiveAndShutdown({ca}), engine::io::TlsException);

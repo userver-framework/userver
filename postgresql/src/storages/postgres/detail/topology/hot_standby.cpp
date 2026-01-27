@@ -62,10 +62,13 @@ const WalInfoStatements& GetWalInfoStatementsForVersion(int version) {
         {90400,
          "SELECT pg_current_xlog_location(), now()",
          "SELECT pg_last_xlog_replay_location(), "
-         "pg_last_xact_replay_timestamp()"}};
+         "pg_last_xact_replay_timestamp()"}
+    };
 
     for (const auto& cand : kKnownStatements) {
-        if (version >= cand.min_version) return cand;
+        if (version >= cand.min_version) {
+            return cand;
+        }
     }
     throw PoolError{fmt::format("Unsupported database version: {}", version)};
 }
@@ -74,11 +77,15 @@ std::string_view ConsumeToken(std::string_view& sv) {
     static constexpr auto kSep = " ,()\"";
 
     const auto sep_end = sv.find_first_not_of(kSep);
-    if (sep_end == std::string_view::npos) return {};
+    if (sep_end == std::string_view::npos) {
+        return {};
+    }
     sv.remove_prefix(sep_end);
 
     const auto tok_end = sv.find_first_of(kSep);
-    if (tok_end == std::string::npos) return std::exchange(sv, {});
+    if (tok_end == std::string::npos) {
+        return std::exchange(sv, {});
+    }
 
     auto token = sv.substr(0, tok_end);
     sv.remove_prefix(tok_end);
@@ -88,7 +95,9 @@ std::string_view ConsumeToken(std::string_view& sv) {
 size_t ParseSize(std::string_view token) {
     size_t result = 0;
     for (const char c : token) {
-        if (c < '0' || c > '9') break;
+        if (c < '0' || c > '9') {
+            break;
+        }
         result *= 10;
         result += c - '0';
     }
@@ -98,11 +107,16 @@ size_t ParseSize(std::string_view token) {
 }  // namespace
 
 struct HotStandby::HostState {
-    explicit HostState(const Dsn& dsn) : app_name{EscapeHostName(OptionsFromDsn(dsn).host)} {}
+    explicit HostState(const Dsn& dsn)
+        : host_name{OptionsFromDsn(dsn).host},
+          app_name(EscapeHostName(host_name))
+    {}
 
     ~HostState() {
         // close connections synchronously
-        if (connection) connection->Close();
+        if (connection) {
+            connection->Close();
+        }
     }
 
     void Reset() noexcept {
@@ -117,7 +131,9 @@ struct HotStandby::HostState {
 
     std::unique_ptr<Connection> connection;
 
-    const std::string host_port;
+    // Used to check against disabled_replicas
+    std::string host_name;
+
     // In pg_stat_replication slaves' host names are escaped and the column is
     // called `application_name`
     std::string app_name;
@@ -138,7 +154,8 @@ HotStandby::HotStandby(
     const ConnectionSettings& conn_settings,
     const DefaultCommandControls& default_cmd_ctls,
     const testsuite::PostgresControl& testsuite_pg_ctl,
-    error_injection::Settings ei_settings
+    error_injection::Settings ei_settings,
+    USERVER_NAMESPACE::utils::statistics::MetricsStoragePtr metrics
 )
     : TopologyBase(
           bg_task_processor,
@@ -148,10 +165,12 @@ HotStandby::HotStandby(
           conn_settings,
           default_cmd_ctls,
           testsuite_pg_ctl,
-          std::move(ei_settings)
+          std::move(ei_settings),
+          std::move(metrics)
       ),
       host_states_{GetDsnList().begin(), GetDsnList().end()},
-      dsn_stats_(GetDsnList().size()) {
+      dsn_stats_(GetDsnList().size())
+{
     RunDiscovery();
 
     discovery_task_.Start(
@@ -177,19 +196,22 @@ void HotStandby::RunDiscovery() {
     for (DsnIndex i = 0; i < GetDsnList().size(); ++i) {
         tasks.emplace_back(engine::AsyncNoSpan([this, i] { RunCheck(i); }));
     }
-    for (auto& task : tasks) task.Get();
+    for (auto& task : tasks) {
+        task.Get();
+    }
 
     // Report states and find the master
     HostState* master = nullptr;
     std::chrono::system_clock::time_point max_slave_xact_timestamp;
     for (DsnIndex i = 0; i < host_states_.size(); ++i) {
         auto& state = host_states_[i];
-        LOG_DEBUG() << state.app_name << " is " << state.role << ": rtt " << state.roundtrip_time.count() << "us, LSN "
-                    << state.wal_lsn << ", last xact time " << state.current_xact_timestamp;
+        LOG_DEBUG()
+            << state.app_name << " is " << state.role << ": rtt " << state.roundtrip_time.count() << "us, LSN "
+            << state.wal_lsn << ", last xact time " << state.current_xact_timestamp;
         if (state.roundtrip_time != kUnknownRtt) {
-            dsn_stats_[i].roundtrip_time.GetCurrentCounter().Account(
-                std::chrono::duration_cast<std::chrono::milliseconds>(state.roundtrip_time).count()
-            );
+            dsn_stats_[i]
+                .roundtrip_time.GetCurrentCounter()
+                .Account(std::chrono::duration_cast<std::chrono::milliseconds>(state.roundtrip_time).count());
         }
         if (state.role == ClusterHostType::kMaster) {
             master = &state;
@@ -203,7 +225,9 @@ void HotStandby::RunDiscovery() {
     // slaves.
     for (DsnIndex i = 0; i < host_states_.size(); ++i) {
         auto& slave = host_states_[i];
-        if (slave.role != ClusterHostType::kSlave) continue;
+        if (slave.role != ClusterHostType::kSlave) {
+            continue;
+        }
 
         // xact timestamp can become stale when there are no writes.
         // - In normal case we compare against local slave time to avoid distributed
@@ -221,15 +245,22 @@ void HotStandby::RunDiscovery() {
             std::chrono::duration_cast<ReplicationLag>(target_xact_timestamp - slave.current_xact_timestamp)
         );
 
-        dsn_stats_[i].replication_lag.GetCurrentCounter().Account(
-            std::chrono::duration_cast<std::chrono::milliseconds>(slave_lag).count()
-        );
+        dsn_stats_[i]
+            .replication_lag.GetCurrentCounter()
+            .Account(std::chrono::duration_cast<std::chrono::milliseconds>(slave_lag).count());
 
-        auto& max_replication_lag = GetTopologySettings().max_replication_lag;
-        if (max_replication_lag > std::chrono::milliseconds{0} && slave_lag > max_replication_lag) {
+        const auto& topology_settings = GetTopologySettings();
+        if (topology_settings.max_replication_lag > std::chrono::milliseconds{0} &&
+            slave_lag > topology_settings.max_replication_lag)
+        {
             // Demote lagged slave
-            LOG_INFO() << "Disabling slave " << slave.app_name << " due to replication lag of " << slave_lag.count()
-                       << " ms (max " << GetTopologySettings().max_replication_lag.count() << " ms)";
+            LOG_INFO()
+                << "Disabling slave " << slave.app_name << " due to replication lag of " << slave_lag.count()
+                << " ms (max " << topology_settings.max_replication_lag.count() << " ms)";
+            slave.role = ClusterHostType::kNone;
+        } else if (topology_settings.disabled_replicas.count(slave.host_name)) {
+            // Manually disable slave
+            LOG_INFO() << "Disabling slave " << slave.app_name << " due to manual setting in config";
             slave.role = ClusterHostType::kNone;
         } else if (master) {
             // Check for sync slave
@@ -246,33 +277,47 @@ void HotStandby::RunDiscovery() {
     // Demote readonly master to slave
     if (master && master->is_readonly) {
         if (!GetTestsuiteControl().IsReadonlyMasterExpected()) {
-            LOG_WARNING() << "Primary host is not writable, possibly due to "
-                             "insufficient disk space";
+            LOG_WARNING()
+                << "Primary host is not writable, possibly due to "
+                   "insufficient disk space";
         }
         master->role = ClusterHostType::kSlave;
     }
 
-    DsnIndices alive_dsn_indices;
-    for (DsnIndex i = 0; i < GetDsnList().size(); ++i) {
+    // Collect all alive indices
+    const auto& dsn_list = GetDsnList();
+    DsnIndices alive_dsn_indices{};
+    alive_dsn_indices.indices.reserve(dsn_list.size());
+    for (DsnIndex i = 0; i < dsn_list.size(); ++i) {
         if (host_states_[i].role != ClusterHostType::kNone) {
-            alive_dsn_indices.push_back(i);
+            alive_dsn_indices.indices.push_back(i);
         }
     }
 
-    std::sort(alive_dsn_indices.begin(), alive_dsn_indices.end(), [this](DsnIndex lhs, DsnIndex rhs) {
-        return host_states_[lhs].roundtrip_time < host_states_[rhs].roundtrip_time;
+    // sort indices by hostname to keep round robbin policy consistent
+    UASSERT(alive_dsn_indices.indices.size() <= host_states_.size());
+    std::sort(alive_dsn_indices.indices.begin(), alive_dsn_indices.indices.end(), [this](DsnIndex lhs, DsnIndex rhs) {
+        return host_states_[lhs].host_name < host_states_[rhs].host_name;
     });
-    DsnIndicesByType dsn_indices_by_type;
-    for (DsnIndex idx : alive_dsn_indices) {
+
+    FillNearestDsnIndex(alive_dsn_indices);
+
+    DsnIndicesByType dsn_indices_by_type{};
+    for (const DsnIndex idx : alive_dsn_indices.indices) {
         const auto& state = host_states_[idx];
 
-        dsn_indices_by_type[state.role].push_back(idx);
+        dsn_indices_by_type[state.role].indices.push_back(idx);
         // Always allow using sync slaves for slave requests, mainly for
         // transition purposes -- TAXICOMMON-2006
         if (state.role == ClusterHostType::kSyncSlave) {
-            dsn_indices_by_type[ClusterHostType::kSlave].push_back(idx);
+            dsn_indices_by_type[ClusterHostType::kSlave].indices.push_back(idx);
         }
     }
+
+    for (auto& [_, indices] : dsn_indices_by_type) {
+        FillNearestDsnIndex(indices);
+    }
+
     dsn_indices_by_type_.Assign(std::move(dsn_indices_by_type));
     alive_dsn_indices_.Assign(std::move(alive_dsn_indices));
 }
@@ -293,18 +338,17 @@ void HotStandby::RunCheck(DsnIndex idx) {
         }
     }
     auto deadline = GetTestsuiteControl().MakeExecuteDeadline(kCheckTimeout);
-    auto start = std::chrono::steady_clock::now();
     try {
         state.connection->RefreshReplicaState(deadline);
         state.role = state.connection->IsInRecovery() ? ClusterHostType::kSlave : ClusterHostType::kMaster;
         state.is_readonly = state.connection->IsReadOnly();
-        state.roundtrip_time = std::chrono::duration_cast<Rtt>(std::chrono::steady_clock::now() - start);
-
         const auto& wal_info_stmts = GetWalInfoStatementsForVersion(state.connection->GetServerVersion());
         std::optional<std::chrono::system_clock::time_point> current_xact_timestamp;
 
+        auto start = std::chrono::steady_clock::now();
         const auto wal_info =
             state.connection->Execute(state.connection->IsInRecovery() ? wal_info_stmts.slave : wal_info_stmts.master);
+        state.roundtrip_time = std::chrono::duration_cast<Rtt>(std::chrono::steady_clock::now() - start);
         wal_info.Front().To(state.wal_lsn, current_xact_timestamp);
         if (current_xact_timestamp) {
             state.current_xact_timestamp = *current_xact_timestamp;
@@ -335,7 +379,9 @@ std::vector<std::string> ParseSyncStandbyNames(std::string_view value) {
         LOG_TRACE() << "Quorum replication detected";
         // TODO?: we can check that num_sync is less than the number of standbys
     } else if (!token.empty()) {
-        if (USERVER_NAMESPACE::utils::StrIcaseEqual{}(token, kMultiKeyword)) token = ConsumeToken(value);
+        if (USERVER_NAMESPACE::utils::StrIcaseEqual{}(token, kMultiKeyword)) {
+            token = ConsumeToken(value);
+        }
         if (value.find('(') != std::string_view::npos) {
             // [FIRST] num_sync ( standby_name [, ...] )
             num_sync = ParseSize(token);
@@ -352,6 +398,16 @@ std::vector<std::string> ParseSyncStandbyNames(std::string_view value) {
         token = ConsumeToken(value);
     }
     return sync_slave_names;
+}
+
+void HotStandby::FillNearestDsnIndex(DsnIndices& dsn_indices) {
+    const auto& indices = dsn_indices.indices;
+    auto it = std::min_element(indices.begin(), indices.end(), [this](DsnIndex lhs, DsnIndex rhs) {
+        return host_states_[lhs].roundtrip_time < host_states_[rhs].roundtrip_time;
+    });
+    if (it != indices.end()) {
+        dsn_indices.nearest = *it;
+    }
 }
 
 }  // namespace storages::postgres::detail::topology

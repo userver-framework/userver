@@ -45,9 +45,13 @@ public:
 
     RequestExpire Expire(std::string key, std::chrono::seconds ttl) override;
 
+    RequestExpire Expire(std::string key, std::chrono::seconds ttl, ExpireOptions options) override;
+
     RequestGeoadd Geoadd(std::string key, GeoaddArg point_member) override;
 
     RequestGeoadd Geoadd(std::string key, std::vector<GeoaddArg> point_members) override;
+
+    RequestGeopos Geopos(std::string key, std::vector<std::string> members) override;
 
     RequestGeoradius Georadius(
         std::string key,
@@ -57,8 +61,12 @@ public:
         const GeoradiusOptions& georadius_options
     ) override;
 
-    RequestGeosearch
-    Geosearch(std::string key, std::string member, double radius, const GeosearchOptions& geosearch_options) override;
+    RequestGeosearch Geosearch(
+        std::string key,
+        std::string member,
+        double radius,
+        const GeosearchOptions& geosearch_options
+    ) override;
 
     RequestGeosearch Geosearch(
         std::string key,
@@ -179,6 +187,11 @@ public:
 
     RequestSetIfNotExist SetIfNotExist(std::string key, std::string value, std::chrono::milliseconds ttl) override;
 
+    RequestSetIfNotExistOrGet SetIfNotExistOrGet(std::string key, std::string value) override;
+
+    RequestSetIfNotExistOrGet SetIfNotExistOrGet(std::string key, std::string value, std::chrono::milliseconds ttl)
+        override;
+
     RequestSetex Setex(std::string key, std::chrono::seconds seconds, std::string value) override;
 
     RequestSismember Sismember(std::string key, std::string member) override;
@@ -232,15 +245,23 @@ public:
     RequestZrangebyscore Zrangebyscore(std::string key, double min, double max, const RangeOptions& range_options)
         override;
 
-    RequestZrangebyscore
-    Zrangebyscore(std::string key, std::string min, std::string max, const RangeOptions& range_options) override;
+    RequestZrangebyscore Zrangebyscore(
+        std::string key,
+        std::string min,
+        std::string max,
+        const RangeOptions& range_options
+    ) override;
 
     RequestZrangebyscoreWithScores ZrangebyscoreWithScores(std::string key, double min, double max) override;
 
     RequestZrangebyscoreWithScores ZrangebyscoreWithScores(std::string key, std::string min, std::string max) override;
 
-    RequestZrangebyscoreWithScores
-    ZrangebyscoreWithScores(std::string key, double min, double max, const RangeOptions& range_options) override;
+    RequestZrangebyscoreWithScores ZrangebyscoreWithScores(
+        std::string key,
+        double min,
+        double max,
+        const RangeOptions& range_options
+    ) override;
 
     RequestZrangebyscoreWithScores ZrangebyscoreWithScores(
         std::string key,

@@ -21,8 +21,10 @@ inline constexpr std::size_t kDefaultSerializeBlockSize = 4096;
 /// results in extra allocations, too large chunk size results in wasting memory
 /// @throws std::runtime_error on serialization errors (supposedly only happens
 /// on extremely rare allocation failures or proto reflection malfunctioning).
-grpc::ByteBuffer
-SerializeToByteBuffer(const ::google::protobuf::Message& message, std::size_t block_size = kDefaultSerializeBlockSize);
+grpc::ByteBuffer SerializeToByteBuffer(
+    const ::google::protobuf::Message& message,
+    std::size_t block_size = kDefaultSerializeBlockSize
+);
 
 /// @brief Parse a Protobuf message from the wire format.
 /// @param buffer the buffer that might be tempered with during deserialization

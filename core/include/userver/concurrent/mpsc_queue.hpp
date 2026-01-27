@@ -24,7 +24,9 @@ namespace impl {
 
 template <typename T>
 struct MpscQueueNode final : public SinglyLinkedBaseHook {
-    explicit MpscQueueNode(T&& value) : value(std::move(value)) {}
+    explicit MpscQueueNode(T&& value)
+        : value(std::move(value))
+    {}
 
     T value;
 };
@@ -67,7 +69,9 @@ public:
     /// @cond
     // For internal use only
     explicit MpscQueue(std::size_t max_size, EmplaceEnabler /*unused*/)
-        : remaining_capacity_(max_size), remaining_capacity_control_(remaining_capacity_) {}
+        : remaining_capacity_(max_size),
+          remaining_capacity_control_(remaining_capacity_)
+    {}
 
     MpscQueue(MpscQueue&&) = delete;
     MpscQueue(const MpscQueue&) = delete;
@@ -121,10 +125,13 @@ private:
 
     bool Pop(ConsumerToken&, T&, engine::Deadline);
     bool PopNoblock(ConsumerToken&, T&);
-    bool DoPop(ConsumerToken&, T&);
+    bool DoPop(ConsumerToken&, T&, impl::IntrusiveMpscQueueImpl::PopMode);
 
     void MarkConsumerIsDead();
     void MarkProducerIsDead();
+
+    bool NoMoreProducers() const { return producer_is_created_ && producers_count_ == 0; }
+    bool NoMoreConsumers() const { return consumer_is_created_and_dead_; }
 
     impl::IntrusiveMpscQueue<Node> queue_{};
     engine::SingleConsumerEvent nonempty_event_{};
@@ -132,11 +139,12 @@ private:
     impl::SemaphoreCapacityControl remaining_capacity_control_;
     std::atomic<bool> consumer_is_created_{false};
     std::atomic<bool> consumer_is_created_and_dead_{false};
-    std::atomic<bool> producer_is_created_and_dead_{false};
+    std::atomic<bool> producer_is_created_{false};
     std::atomic<size_t> producers_count_{0};
     std::atomic<size_t> size_{0};
 };
 
+/// @cond
 template <typename T>
 MpscQueue<T>::~MpscQueue() {
     UASSERT(consumer_is_created_and_dead_ || !consumer_is_created_);
@@ -146,11 +154,12 @@ MpscQueue<T>::~MpscQueue() {
         remaining_capacity_.unlock_shared();
     }
 }
+/// @endcond
 
 template <typename T>
 typename MpscQueue<T>::Producer MpscQueue<T>::GetProducer() {
-    producers_count_++;
-    producer_is_created_and_dead_ = false;
+    ++producers_count_;
+    producer_is_created_ = true;
     nonempty_event_.Send();
     return Producer(this->shared_from_this(), EmplaceEnabler{});
 }
@@ -196,7 +205,7 @@ bool MpscQueue<T>::PushNoblock(ProducerToken& token, T&& value) {
 
 template <typename T>
 bool MpscQueue<T>::DoPush(ProducerToken& /*unused*/, T&& value) {
-    if (consumer_is_created_and_dead_) {
+    if (NoMoreConsumers()) {
         remaining_capacity_.unlock_shared();
         return false;
     }
@@ -213,25 +222,41 @@ bool MpscQueue<T>::DoPush(ProducerToken& /*unused*/, T&& value) {
 
 template <typename T>
 bool MpscQueue<T>::Pop(ConsumerToken& token, T& value, engine::Deadline deadline) {
-    while (!DoPop(token, value)) {
-        if (producer_is_created_and_dead_ || !nonempty_event_.WaitForEventUntil(deadline)) {
+    bool no_more_producers = false;
+    const bool success = nonempty_event_.WaitUntil(deadline, [&] {
+        // kWeak is OK here, because if there is another push operation in process,
+        // they will notify us after pushing.
+        if (DoPop(token, value, impl::IntrusiveMpscQueueImpl::PopMode::kWeak)) {
+            return true;
+        }
+        if (NoMoreProducers()) {
             // Producer might have pushed something in queue between .pop()
             // and !producer_is_created_and_dead_ check. Check twice to avoid
             // TOCTOU.
-            return DoPop(token, value);
+            if (!DoPop(token, value, impl::IntrusiveMpscQueueImpl::PopMode::kRarelyBlocking)) {
+                no_more_producers = true;
+            }
+            return true;
         }
-    }
-    return true;
+        return false;
+    });
+    return success && !no_more_producers;
 }
 
 template <typename T>
 bool MpscQueue<T>::PopNoblock(ConsumerToken& token, T& value) {
-    return DoPop(token, value);
+    // kRarelyBlocking is required here, because with kWeak we sometimes would miss an item if another push
+    // is in process, and there is no guarantee that the user will retry PopNoblock.
+    //
+    // If there was a high-level consumer API that is not affected by kWeak (e.g. some batching API),
+    // then it could be used there.
+    // As it stands, it would be too bug-prone to provide weak guarantees in PopNoblock.
+    return DoPop(token, value, impl::IntrusiveMpscQueueImpl::PopMode::kRarelyBlocking);
 }
 
 template <typename T>
-bool MpscQueue<T>::DoPop(ConsumerToken& /*unused*/, T& value) {
-    if (const auto node = std::unique_ptr<Node>{queue_.TryPopWeak()}) {
+bool MpscQueue<T>::DoPop(ConsumerToken& /*unused*/, T& value, impl::IntrusiveMpscQueueImpl::PopMode pop_mode) {
+    if (const auto node = std::unique_ptr<Node>{queue_.TryPop(pop_mode)}) {
         value = std::move(node->value);
 
         --size_;
@@ -250,8 +275,9 @@ void MpscQueue<T>::MarkConsumerIsDead() {
 
 template <typename T>
 void MpscQueue<T>::MarkProducerIsDead() {
-    producer_is_created_and_dead_ = (--producers_count_ == 0);
-    nonempty_event_.Send();
+    if (--producers_count_ == 0) {
+        nonempty_event_.Send();
+    }
 }
 
 }  // namespace concurrent

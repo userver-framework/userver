@@ -99,8 +99,8 @@ void Ins(storages::postgres::Transaction& tr,
             <span class="values__icon thumbnail thumbnail_asynchronous"></span>
             <p class="values__cardinfo">
               Efficient asynchronous drivers for databases (MongoDB, PostgreSQL,
-              MySQL/MariaDB, Redis, ClickHouse, YDB, ...) and data
-              transfer protocols (HTTP, WEbSockets, gRPC, TCP, AMQP-0.9.1,
+              MySQL/MariaDB, Valkey, Redis, ClickHouse, YDB, SQLite ...) and
+              data transfer protocols (HTTP, WebSockets, gRPC, TCP, AMQP-0.9.1,
               Apache Kafka, ...), tasks construction and cancellation.
             </p>
           </div>
@@ -128,6 +128,39 @@ void Ins(storages::postgres::Transaction& tr,
           </div>
         </div>
       </section>
+      <section class="section sample container">
+        <h2>Service Example</h2>
+        <p class="how__info paragraph">
+          Simple 🐙 userver service that handles HTTP requests to "/kv" URL and responds with a key from database
+        </p>
+          <pre id="intro_sample" style=""><code>
+#include &lt;userver/easy.hpp&gt;
+#include "schemas/key_value.hpp"
+
+int main(int argc, char* argv[]) {
+    using namespace userver;
+
+    easy::HttpWith&lt;easy::PgDep&gt;(argc, argv)
+        // Handles multiple HTTP requests to `/kv` URL concurrently
+        .Get("/kv", [](formats::json::Value request_json, const easy::PgDep&amp; dep) {
+            // JSON parser and serializer are generated from JSON schema by userver
+            auto key = request_json.As&lt;schemas::KeyRequest&gt;().key;
+
+            // Asynchronous execution of the SQL query in transaction. Current thread
+            // handles other requests while the response from the DB is being received:
+            auto res = dep.pg().Execute(
+                storages::postgres::ClusterHostType::kSlave,
+                // Query is converted into a prepared statement. Subsequent requests
+                // send only parameters in a binary form and meta information is
+                // discarded on the DB side, significantly saving network bandwidth.
+                "SELECT value FROM key_value_table WHERE key=$1", key
+            );
+
+            schemas::KeyValue response{key, res[0][0].As&lt;std::string&gt;()};
+            return formats::json::ValueBuilder{response}.ExtractValue();
+        });
+}</code></pre>
+      </section>
       <section class="section companies container">
         <h2>
           Brands and companies using <span class="userver__title">userver</span>
@@ -137,6 +170,10 @@ void Ins(storages::postgres::Transaction& tr,
           <span class="logo logo_delivery" title="Delivery club"></span>
           <span class="logo logo_matchmaker" title="Matchmaker"></span>
           <span class="logo logo_yago" title="Yandex Go"></span>
+          <span class="logo logo_slugkit" title="SlugKit"></span>
+        </div>
+        <div class="companies__logos mt">
+          <p style="text-align: center;" class="paragraph">2GIS, T-Bank and others...</p>
         </div>
       </section>
       <section class="section feedback">
@@ -205,8 +242,11 @@ void Ins(storages::postgres::Transaction& tr,
     <!-- Highlight codeblocks -->
     <script src="highlight.min.js"></script>
     <script>
-      document.querySelectorAll(".codeblock__body").forEach((el) => {
-        hljs.highlightElement(el);
+      document.querySelectorAll(".codeblock__body code").forEach((el) => {
+        el.parentNode.innerHTML = hljs.highlightAuto(el.textContent).value;
+      });
+      document.querySelectorAll("#intro_sample code").forEach((el) => {
+        el.parentNode.innerHTML = hljs.highlightAuto(el.textContent).value;
       });
     </script>
     <!-- Hide some blocks on landing page -->

@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <chrono>
-#include <map>
 #include <string_view>
 
 #include <cryptopp/osrng.h>
@@ -18,13 +17,16 @@
 #include <userver/baggage/baggage.hpp>
 #include <userver/clients/dns/resolver.hpp>
 #include <userver/clients/http/connect_to.hpp>
+#include <userver/http/url.hpp>
 #include <userver/server/request/task_inherited_data.hpp>
+#include <userver/utils/algo.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/async.hpp>
 #include <userver/utils/encoding/hex.hpp>
 #include <userver/utils/overloaded.hpp>
 #include <userver/utils/rand.hpp>
 #include <userver/utils/text_light.hpp>
+#include <userver/utils/zstring_view.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -52,28 +54,33 @@ constexpr Status kLeastHttpCodeForDeadlineExpired{400};
 
 constexpr Status kFakeHttpErrorCode{599};
 
-const std::string kTracingClientName = "external";
+constexpr utils::TrivialBiMap kTestsuiteActions = [](auto selector) {
+    return selector()
+        .Case("timeout", curl::errc::EasyErrorCode::kOperationTimedout)
+        .Case("network", curl::errc::EasyErrorCode::kCouldNotConnect);
+};
 
-const std::map<std::string, std::error_code> kTestsuiteActions = {
-    {"timeout", {curl::errc::EasyErrorCode::kOperationTimedout}},
-    {"network", {curl::errc::EasyErrorCode::kCouldNotConnect}}};
-const std::string kTestsuiteSupportedErrorsKey = "X-Testsuite-Supported-Errors";
-const std::string kTestsuiteSupportedErrors = fmt::to_string(fmt::join(boost::adaptors::keys(kTestsuiteActions), ","));
+constexpr std::string_view kTestsuiteSupportedErrorsKey = "X-Testsuite-Supported-Errors";
+
+std::string_view GetTestsuiteSupportedErrors() {
+    static_assert(kTestsuiteActions.size() == 2, "Fix the below line");
+    return "network,timeout";
+}
 
 std::error_code TestsuiteResponseHook(Status status_code, const Headers& headers, tracing::Span& span) {
     if (status_code == kFakeHttpErrorCode) {
         const auto it = headers.find(std::string_view{"X-Testsuite-Error"});
 
         if (headers.end() != it) {
-            LOG_INFO() << "Mockserver faked error of type " << it->second
-                       << tracing::impl::LogSpanAsLastNoCurrent{span};
+            LOG_INFO()
+                << "Mockserver faked error of type " << it->second << tracing::impl::LogSpanAsLastNoCurrent{span};
 
-            const auto error_it = kTestsuiteActions.find(it->second);
-            if (error_it != kTestsuiteActions.end()) {
-                return error_it->second;
+            const auto opt_value = kTestsuiteActions.TryFindByFirst(it->second);
+            if (opt_value) {
+                return std::error_code{*opt_value};
             }
 
-            utils::impl::AbortWithStacktrace(fmt::format(
+            utils::AbortWithStacktrace(fmt::format(
                 "Unsupported mockserver protocol X-Testsuite-Error header value: {}. "
                 "Try to update submodules and recompile project first. If it does "
                 "not help please contact testsuite support team.",
@@ -92,10 +99,14 @@ bool IsSetCookie(std::string_view key) {
 // Not a strict check, but OK for non-header line check
 bool IsHttpStatusLineStart(const char* ptr, size_t size) { return (size > 5 && memcmp(ptr, "HTTP/", 5) == 0); }
 
-char* rfind_not_space(char* ptr, size_t size) {
+std::string ToString(HttpMethod method) { return std::string{ToStringView(method)}; }
+
+char* RfindNotSpace(char* ptr, size_t size) {
     for (char* p = ptr + size - 1; p >= ptr; --p) {
         const char c = *p;
-        if (c == '\n' || c == '\r' || c == ' ' || c == '\t') continue;
+        if (c == '\n' || c == '\r' || c == ' ' || c == '\t') {
+            continue;
+        }
         return p + 1;
     }
     return ptr;
@@ -117,7 +128,9 @@ void SetBaggageHeader(curl::easy& e) {
 
 std::exception_ptr PrepareDeadlinePassedException(std::string_view url, LocalStats stats) {
     return std::make_exception_ptr(CancelException(
-        fmt::format("Timeout happened (deadline propagation), url: {}", url), stats, ErrorKind::kDeadlinePropagation
+        fmt::format("Timeout happened (deadline propagation), url: {}", url),
+        stats,
+        ErrorKind::kDeadlinePropagation
     ));
 }
 
@@ -159,7 +172,7 @@ private:
 
 // Instance-wide password used to avoid passing unencrypted keys
 [[maybe_unused]] const std::string& GetPkeyPassword() {
-    static const std::string password = [] {
+    static const std::string kPassword = [] {
         CryptoPP::DefaultAutoSeededRNG prng;
         std::string random_bytes;
         random_bytes.resize(32);
@@ -170,7 +183,7 @@ private:
         }
         return random_bytes;
     }();
-    return password;
+    return kPassword;
 }
 
 // Type-dependent implementations to avoid alternate branch instantiation
@@ -207,7 +220,6 @@ RequestState::RequestState(
     RequestStats&& req_stats,
     const std::shared_ptr<DestinationStatistics>& dest_stats,
     clients::dns::Resolver* resolver,
-    impl::PluginPipeline& plugin_pipeline,
     const tracing::TracingManagerBase& tracing_manager
 )
     : easy_(std::move(wrapper)),
@@ -218,18 +230,18 @@ RequestState::RequestState(
       tracing_manager_{tracing_manager},
       is_cancelled_(false),
       errorbuffer_(),
-      resolver_{resolver},
-      plugin_pipeline_{plugin_pipeline} {
+      resolver_{resolver}
+{
     // Libcurl calls sigaction(2)  way too frequently unless this option is used.
     easy().set_no_signal(true);
     easy().set_error_buffer(errorbuffer_.data());
 
     // define header function
-    easy().set_header_function(&RequestState::on_header);
+    easy().set_header_function(&RequestState::OnHeader);
     easy().set_header_data(this);
 
     // set autodecoding
-    static const bool curl_supports_zstd = [] {
+    static const bool kCurlSupportsZstd = [] {
 #ifdef CURL_VERSION_ZSTD
         return curl_version_info(curl::native::CURLVERSION_NOW)->features & CURL_VERSION_ZSTD;
 #else
@@ -237,11 +249,17 @@ RequestState::RequestState(
 #endif
     }();
 
-    if (curl_supports_zstd) {
+    if (kCurlSupportsZstd) {
         easy().set_accept_encoding("zstd,gzip,deflate,identity");
     } else {
         easy().set_accept_encoding("gzip,deflate,identity");
     }
+
+    // Even if proxy is an empty string we should set it, because empty proxy
+    // for CURL disables the use of *_proxy env variables.
+    easy().set_proxy("");
+
+    RequestCompleted();
 }
 
 RequestState::~RequestState() {
@@ -253,7 +271,9 @@ RequestState::~RequestState() {
 void RequestState::follow_redirects(bool follow) {
     easy().set_follow_location(follow);
     easy().set_post_redir(static_cast<long>(follow));
-    if (follow) easy().set_max_redirs(kMaxRedirectCount);
+    if (follow) {
+        easy().set_max_redirs(kMaxRedirectCount);
+    }
 }
 
 void RequestState::verify(bool verify) {
@@ -261,7 +281,7 @@ void RequestState::verify(bool verify) {
     easy().set_ssl_verify_peer(verify);
 }
 
-void RequestState::ca_info(const std::string& file_path) { easy().set_ca_info(file_path.c_str()); }
+void RequestState::ca_info(utils::zstring_view file_path) { easy().set_ca_info(file_path.c_str()); }
 
 void RequestState::ca(crypto::Certificate cert) {
     UINVARIANT(cert, "No certificate");
@@ -270,12 +290,12 @@ void RequestState::ca(crypto::Certificate cert) {
     } else {
         // Legacy non-portable way, broken since 7.87.0
         ca_ = std::move(cert);
-        easy().set_ssl_ctx_function(&RequestState::on_certificate_request);
+        easy().set_ssl_ctx_function(&RequestState::OnCertificateRequest);
         easy().set_ssl_ctx_data(this);
     }
 }
 
-void RequestState::crl_file(const std::string& file_path) { easy().set_crl_file(file_path.c_str()); }
+void RequestState::crl_file(utils::zstring_view file_path) { easy().set_crl_file(file_path.c_str()); }
 
 void RequestState::client_key_cert(crypto::PrivateKey pkey, crypto::Certificate cert) {
     UINVARIANT(pkey, "No private key");
@@ -312,13 +332,15 @@ void RequestState::client_key_cert(crypto::PrivateKey pkey, crypto::Certificate 
         cert_id.reserve(kCertIdLength);
         utils::encoding::ToHex(
             std::string_view{
-                reinterpret_cast<const char*>(cert_sig->data), std::min<size_t>(cert_sig->length, kCertIdLength / 2)},
+                reinterpret_cast<const char*>(cert_sig->data),
+                std::min<size_t>(cert_sig->length, kCertIdLength / 2)
+            },
             cert_id
         );
         cert_id.resize(kCertIdLength, '=');
         easy().set_egd_socket(cert_id);
 
-        easy().set_ssl_ctx_function(&RequestState::on_certificate_request);
+        easy().set_ssl_ctx_function(&RequestState::OnCertificateRequest);
         easy().set_ssl_ctx_data(this);
     }
 }
@@ -336,7 +358,7 @@ void RequestState::retry(short retries, bool on_fails) {
     retry_.on_fails = on_fails;
 }
 
-void RequestState::unix_socket_path(const std::string& path) { easy().set_unix_socket_path(path); }
+void RequestState::unix_socket_path(utils::zstring_view path) { easy().set_unix_socket_path(path); }
 
 void RequestState::connect_to(const ConnectTo& connect_to) {
     curl::native::curl_slist* ptr = connect_to.GetUnderlying();
@@ -345,22 +367,24 @@ void RequestState::connect_to(const ConnectTo& connect_to) {
     }
 }
 
-void RequestState::proxy(const std::string& value) {
+void RequestState::proxy(utils::zstring_view value) {
     proxy_url_ = value;
     easy().set_proxy(value);
 }
+
+bool RequestState::IsProxySet() const { return proxy_url_.has_value(); }
 
 void RequestState::proxy_auth_type(curl::easy::proxyauth_t value) { easy().set_proxy_auth(value); }
 
 void RequestState::http_auth_type(
     curl::easy::httpauth_t value,
     bool auth_only,
-    std::string_view user,
-    std::string_view password
+    utils::zstring_view user,
+    utils::zstring_view password
 ) {
     easy().set_http_auth(value, auth_only);
-    easy().set_user(std::string{user}.c_str());
-    easy().set_password(std::string{password}.c_str());
+    easy().set_user(user.c_str());
+    easy().set_password(password.c_str());
 }
 
 void RequestState::Cancel() {
@@ -393,14 +417,16 @@ void RequestState::SetDeadlinePropagationConfig(const DeadlinePropagationConfig&
     deadline_propagation_config_ = deadline_propagation_config;
 }
 
-size_t RequestState::on_header(void* ptr, size_t size, size_t nmemb, void* userdata) {
+size_t RequestState::OnHeader(void* ptr, size_t size, size_t nmemb, void* userdata) {
     auto* self = static_cast<RequestState*>(userdata);
     const std::size_t data_size = size * nmemb;
-    if (self) self->parse_header(static_cast<char*>(ptr), data_size);
+    if (self) {
+        self->ParseHeader(static_cast<char*>(ptr), data_size);
+    }
     return data_size;
 }
 
-curl::native::CURLcode RequestState::on_certificate_request(void* /*curl*/, void* sslctx, void* userdata) noexcept {
+curl::native::CURLcode RequestState::OnCertificateRequest(void* /*curl*/, void* sslctx, void* userdata) noexcept {
     auto* ssl = static_cast<SSL_CTX*>(sslctx);
     auto* self = static_cast<RequestState*>(userdata);
 
@@ -433,7 +459,7 @@ curl::native::CURLcode RequestState::on_certificate_request(void* /*curl*/, void
     return curl::native::CURLcode::CURLE_OK;
 }
 
-void RequestState::on_completed(std::shared_ptr<RequestState> holder, std::error_code err) {
+void RequestState::OnCompleted(std::shared_ptr<RequestState> holder, std::error_code err) {
     UASSERT(holder);
     UASSERT(holder->span_storage_);
     auto& span = holder->span_storage_->Get();
@@ -470,9 +496,11 @@ void RequestState::on_completed(std::shared_ptr<RequestState> holder, std::error
             err = easy.rate_limit_error();
         }
 
+        holder->middlewares_pipeline_.HookOnError(*holder, err);
+
         span.AddTag(tracing::kErrorFlag, true);
         span.AddTag(tracing::kErrorMessage, err.message());
-        span.AddTag(tracing::kHttpStatusCode, kFakeHttpErrorCode);
+        span.AddTag(tracing::kHttpResponseStatusCode, kFakeHttpErrorCode);
 
         if (holder->errorbuffer_.front()) {
             LOG_DEBUG() << "cURL error details: " << holder->errorbuffer_.data();
@@ -482,8 +510,10 @@ void RequestState::on_completed(std::shared_ptr<RequestState> holder, std::error
 
         const utils::Overloaded visitor{
             [&holder, &err](FullBufferedData& buffered_data) {
-                { [[maybe_unused]] const auto cleanup = holder->response_move(); }
-                auto promise = std::move(buffered_data.promise_);
+                {
+                    [[maybe_unused]] const auto cleanup = holder->response_move();
+                }
+                auto promise = std::move(buffered_data.promise);
                 // The task will wake up and may reuse RequestState.
                 promise.set_exception(holder->PrepareException(err));
             },
@@ -491,22 +521,25 @@ void RequestState::on_completed(std::shared_ptr<RequestState> holder, std::error
                 auto producer = std::move(stream_data.queue_producer);
                 // The task will wake up and may reuse RequestState.
                 std::move(producer).Reset();
-            }};
+            }
+        };
         std::visit(visitor, holder->data_);
     } else {
-        span.AddTag(tracing::kHttpStatusCode, status_code);
+        span.AddTag(tracing::kHttpResponseStatusCode, status_code);
         holder->response()->SetStatusCode(status_code);
         holder->response()->SetStats(easy.get_local_stats());
 
-        if (holder->response()->IsError()) span.AddTag(tracing::kErrorFlag, true);
+        if (holder->response()->IsError()) {
+            span.AddTag(tracing::kErrorFlag, true);
+        }
 
-        holder->plugin_pipeline_.HookOnCompleted(*holder, *holder->response());
+        holder->middlewares_pipeline_.HookOnCompleted(*holder, *holder->response());
 
         holder->span_storage_.reset();
 
         const utils::Overloaded visitor{
             [&holder](FullBufferedData& buffered_data) {
-                auto promise = std::move(buffered_data.promise_);
+                auto promise = std::move(buffered_data.promise);
                 // The task will wake up and may reuse RequestState.
                 promise.set_value(holder->response_move());
             },
@@ -514,13 +547,15 @@ void RequestState::on_completed(std::shared_ptr<RequestState> holder, std::error
                 auto producer = std::move(stream_data.queue_producer);
                 // The task will wake up and may reuse RequestState.
                 std::move(producer).Reset();
-            }};
+            }
+        };
         std::visit(visitor, holder->data_);
     }
+    holder->RequestCompleted();
     // it is unsafe to touch any content of holder after this point!
 }
 
-void RequestState::on_retry(std::shared_ptr<RequestState> holder, std::error_code err) {
+void RequestState::OnRetry(std::shared_ptr<RequestState> holder, std::error_code err) {
     UASSERT(holder);
     UASSERT(holder->span_storage_);
     LOG_TRACE() << "RequestImpl::on_retry" << tracing::impl::LogSpanAsLastNoCurrent{holder->span_storage_->Get()};
@@ -530,13 +565,17 @@ void RequestState::on_retry(std::shared_ptr<RequestState> holder, std::error_cod
     // - if we used all attempts
     // - if failed to reach server, and we should not retry on fails
     // - if this request was cancelled
-    const bool not_need_retry = (!err && !holder->ShouldRetryResponse()) ||
-                                (holder->retry_.current >= holder->retry_.retries) ||
-                                (err && !holder->retry_.on_fails) || holder->is_cancelled_.load();
+    bool not_need_retry =
+        (!err && !holder->ShouldRetryResponse()) || (holder->retry_.current >= holder->retry_.retries) ||
+        (err && !holder->retry_.on_fails) || holder->is_cancelled_.load();
+
+    if (!not_need_retry) {
+        not_need_retry = !holder->middlewares_pipeline_.HookOnRetry(*holder);
+    }
 
     if (not_need_retry) {
         // finish if no need to retry
-        RequestState::on_completed(std::move(holder), err);
+        RequestState::OnCompleted(std::move(holder), err);
     } else {
         // calculate backoff before retry
         const auto eb_power = std::clamp(holder->retry_.current - 1, 0, kEBMaxPower);
@@ -545,7 +584,7 @@ void RequestState::on_retry(std::shared_ptr<RequestState> holder, std::error_cod
         holder->UpdateTimeoutFromDeadline(backoff);
         if (holder->remote_timeout_ <= std::chrono::milliseconds::zero()) {
             holder->deadline_expired_ = true;
-            RequestState::on_completed(std::move(holder), err);
+            RequestState::OnCompleted(std::move(holder), err);
             return;
         }
 
@@ -560,19 +599,20 @@ void RequestState::on_retry(std::shared_ptr<RequestState> holder, std::error_cod
         // call on_retry_timer on timer
         auto& holder_ref = *holder;
         holder_ref.retry_.timer->SingleshotAsync(backoff, [holder = std::move(holder)](std::error_code err) {
-            holder->on_retry_timer(err);
+            holder->OnRetryTimer(err);
         });
     }
 }
 
-void RequestState::on_retry_timer(std::error_code err) {
+void RequestState::OnRetryTimer(std::error_code err) {
     // if there is no error with timer call perform, otherwise finish
-    if (!err)
-        perform_request([holder = shared_from_this()](std::error_code err) mutable {
-            RequestState::on_retry(std::move(holder), err);
+    if (!err) {
+        PerformRequest([holder = shared_from_this()](std::error_code err) mutable {
+            RequestState::OnRetry(std::move(holder), err);
         });
-    else
-        on_completed(shared_from_this(), err);
+    } else {
+        OnCompleted(shared_from_this(), err);
+    }
 }
 
 void RequestState::ParseSingleCookie(const char* ptr, size_t size) {
@@ -584,11 +624,12 @@ void RequestState::ParseSingleCookie(const char* ptr, size_t size) {
     }
 }
 
-void RequestState::parse_header(char* ptr, size_t size) try {
+void RequestState::ParseHeader(char* ptr, size_t size) try
+{
     /* It is a fast path in curl's thread (io thread).  Creation of tmp
      * std::string, boost::trim_right_if(), etc. is too expensive. */
 
-    auto* end = rfind_not_space(ptr, size);
+    auto* end = RfindNotSpace(ptr, size);
     if (ptr == end) {
         const auto status_code = static_cast<Status>(easy().get_response_code());
         response()->SetStatusCode(status_code);
@@ -599,7 +640,9 @@ void RequestState::parse_header(char* ptr, size_t size) try {
     const char* col_pos = static_cast<const char*>(memchr(ptr, ':', size));
     if (col_pos == nullptr) {
         if (IsHttpStatusLineStart(ptr, size)) {
-            for (auto& [k, v] : response_->headers()) LOG_INFO() << "drop header " << k << "=" << v;
+            if (!response()->headers().empty()) {
+                LOG_INFO() << "Drop headers: " << (response_->headers() | boost::adaptors::map_keys);
+            }
             // In case of redirect drop 1st response headers
             response_->headers().clear();
         }
@@ -628,7 +671,48 @@ void RequestState::parse_header(char* ptr, size_t size) try {
     LOG_ERROR() << "Failed to parse header: " << e.what();
 }
 
+void RequestState::SetMiddlewaresList(const std::vector<utils::NotNull<MiddlewareBase*>>& middlewares) {
+    middlewares_pipeline_ = MiddlewaresPipeline(middlewares);
+}
+
 void RequestState::SetLoggedUrl(std::string url) { log_url_ = std::move(url); }
+
+void RequestState::SetUrlTemplate(std::string url_template) { url_template_ = std::move(url_template); }
+
+void RequestState::SetMethod(HttpMethod method) {
+    switch (method) {
+        case HttpMethod::kDelete:
+        case HttpMethod::kOptions:
+            easy().set_custom_request(ToString(method));
+            break;
+        case HttpMethod::kGet:
+            easy().set_http_get(true);
+            easy().set_custom_request(nullptr);
+            break;
+        case HttpMethod::kHead:
+            easy().set_no_body(true);
+            easy().set_custom_request(nullptr);
+            break;
+        // NOTE: set_post makes libcURL to read from stdin if no data is set
+        case HttpMethod::kPost:
+        case HttpMethod::kPut:
+        case HttpMethod::kPatch:
+            easy().set_custom_request(ToString(method));
+            // ensure a body as we should send Content-Length for this method
+            if (!easy().has_post_data()) {
+                data({});
+            }
+            break;
+    };
+    method_ = method;
+}
+
+void RequestState::data(std::string data) {
+    if (!data.empty()) {
+        easy().add_header(kHeaderExpect, "", curl::easy::EmptyHeaderAction::kDoNotSend);
+    }
+    easy().set_post_fields(std::move(data));
+}
 
 const std::string& RequestState::GetLoggedOriginalUrl() const noexcept {
     // We may want to use original_url if effective_url is not available yet.
@@ -642,6 +726,7 @@ std::string_view RequestState::GetLoggedEffectiveUrl() noexcept {
 }
 
 engine::Future<std::shared_ptr<Response>> RequestState::async_perform(utils::impl::SourceLocation location) {
+    WaitForRequestCompletion();
     data_.emplace<FullBufferedData>();
 
     StartNewSpan(location);
@@ -653,19 +738,22 @@ engine::Future<std::shared_ptr<Response>> RequestState::async_perform(utils::imp
     // set place for response body
     easy().set_sink(&response_->sink_string());
 
-    auto future = std::get_if<FullBufferedData>(&data_)->promise_.get_future();
+    auto future = std::get_if<FullBufferedData>(&data_)->promise.get_future();
 
     if (UpdateTimeoutFromDeadlineAndCheck()) {
-        perform_request([holder = shared_from_this()](std::error_code err) mutable {
-            RequestState::on_retry(std::move(holder), err);
+        PerformRequest([holder = shared_from_this()](std::error_code err) mutable {
+            RequestState::OnRetry(std::move(holder), err);
         });
     }
 
     return future;
 }
 
-engine::Future<void>
-RequestState::async_perform_stream(const std::shared_ptr<Queue>& queue, utils::impl::SourceLocation location) {
+engine::Future<void> RequestState::async_perform_stream(
+    const std::shared_ptr<Queue>& queue,
+    utils::impl::SourceLocation location
+) {
+    WaitForRequestCompletion();
     data_.emplace<StreamData>(queue->GetProducer());
 
     StartNewSpan(location);
@@ -682,15 +770,15 @@ RequestState::async_perform_stream(const std::shared_ptr<Queue>& queue, utils::i
     auto future = std::get_if<StreamData>(&data_)->headers_promise.get_future();
 
     if (UpdateTimeoutFromDeadlineAndCheck()) {
-        perform_request([holder = shared_from_this()](std::error_code err) mutable {
-            RequestState::on_completed(std::move(holder), err);
+        PerformRequest([holder = shared_from_this()](std::error_code err) mutable {
+            RequestState::OnCompleted(std::move(holder), err);
         });
     }
 
     return future;
 }
 
-void RequestState::perform_request(curl::easy::handler_type handler) {
+void RequestState::PerformRequest(curl::easy::handler_type handler) {
     UASSERT_MSG(!cert_ || pkey_, "Setting certificate is useless without setting private key");
 
     UASSERT(response_);
@@ -699,26 +787,31 @@ void RequestState::perform_request(curl::easy::handler_type handler) {
 
     UpdateTimeoutHeader();
 
-    plugin_pipeline_.HookPerformRequest(*this);
+    middlewares_pipeline_.HookPerformRequest(*this);
 
     if (resolver_ && retry_.current == 1) {
-        engine::AsyncNoSpan([this, holder = shared_from_this(), handler = std::move(handler)]() mutable {
-            try {
-                ResolveTargetAddress(*resolver_);
-                easy().async_perform(std::move(handler));
-            } catch (const clients::dns::ResolverException& ex) {
-                // TODO: should retry - TAXICOMMON-4932
-                auto* buffered_data = std::get_if<FullBufferedData>(&data_);
-                if (buffered_data) {
-                    buffered_data->promise_.set_exception(std::current_exception());
+        engine::DetachUnscopedUnsafe(
+            engine::AsyncNoSpan([this, holder = shared_from_this(), handler = std::move(handler)]() mutable {
+                try {
+                    ResolveTargetAddress(*resolver_);
+                    easy().async_perform(std::move(handler));
+                    return;
+                } catch (const clients::dns::ResolverException& ex) {
+                    // TODO: should retry - TAXICOMMON-4932
+                    auto* buffered_data = std::get_if<FullBufferedData>(&data_);
+                    if (buffered_data) {
+                        buffered_data->promise.set_exception(std::current_exception());
+                    }
+                } catch (const BaseException& ex) {
+                    auto* buffered_data = std::get_if<FullBufferedData>(&data_);
+                    if (buffered_data) {
+                        buffered_data->promise.set_exception(std::current_exception());
+                    }
                 }
-            } catch (const BaseException& ex) {
-                auto* buffered_data = std::get_if<FullBufferedData>(&data_);
-                if (buffered_data) {
-                    buffered_data->promise_.set_exception(std::current_exception());
-                }
-            }
-        }).Detach();
+                span_storage_.reset();
+                RequestCompleted();
+            })
+        );
     } else {
         easy().async_perform(std::move(handler));
     }
@@ -726,7 +819,8 @@ void RequestState::perform_request(curl::easy::handler_type handler) {
 
 void RequestState::SetEasyTimeout(std::chrono::milliseconds timeout) {
     UASSERT_MSG(
-        timeout >= std::chrono::seconds{0}, fmt::format("timeout_ms < 0 ({})), uninitialized variable?", timeout)
+        timeout >= std::chrono::seconds{0},
+        fmt::format("timeout_ms < 0 ({})), uninitialized variable?", timeout)
     );
     easy().set_timeout_ms(timeout.count());
     easy().set_connect_timeout_ms(timeout.count());
@@ -738,7 +832,9 @@ bool RequestState::IsDeadlineExpired() const noexcept { return deadline_expired_
 
 void RequestState::UpdateTimeoutFromDeadline(std::chrono::milliseconds backoff) {
     UASSERT(remote_timeout_ >= std::chrono::milliseconds::zero());
-    if (!deadline_.IsReachable()) return;
+    if (!deadline_.IsReachable()) {
+        return;
+    }
 
     const auto timeout_from_deadline = std::clamp(
         std::chrono::duration_cast<std::chrono::milliseconds>(deadline_.TimeLeft() - backoff),
@@ -764,7 +860,9 @@ bool RequestState::UpdateTimeoutFromDeadlineAndCheck(std::chrono::milliseconds b
 }
 
 void RequestState::UpdateTimeoutHeader() {
-    if (!deadline_propagation_config_.update_header) return;
+    if (!deadline_propagation_config_.update_header) {
+        return;
+    }
 
     easy().add_header(
         USERVER_NAMESPACE::http::headers::kXYaTaxiClientTimeoutMs,
@@ -782,11 +880,13 @@ void RequestState::HandleDeadlineAlreadyPassed() {
 
     WithRequestStats([](RequestStats& stats) { stats.AccountCancelledByDeadline(); });
 
+    span_storage_.reset();
+
     auto exc = PrepareDeadlinePassedException(GetLoggedOriginalUrl(), easy().get_local_stats());
 
     const utils::Overloaded visitor{
         [&exc](FullBufferedData& buffered_data) {
-            auto promise = std::move(buffered_data.promise_);
+            auto promise = std::move(buffered_data.promise);
             // The task will wake up and may reuse RequestState.
             promise.set_exception(std::move(exc));
         },
@@ -796,15 +896,18 @@ void RequestState::HandleDeadlineAlreadyPassed() {
                 // The task will wake up and may reuse RequestState.
                 promise.set_exception(std::move(exc));
             }
-        }};
+        }
+    };
     std::visit(visitor, data_);
+    RequestCompleted();
 }
 
 void RequestState::CheckResponseDeadline(std::error_code& err, Status status_code) {
     const std::chrono::microseconds attempt_time{easy().get_total_time_usec()};
 
     if (!deadline_expired_ && timeout_updated_by_deadline_ &&
-        (attempt_time >= remote_timeout_ || (!err && IsDeadlineExpiredResponse(status_code)))) {
+        (attempt_time >= remote_timeout_ || (!err && IsDeadlineExpiredResponse(status_code))))
+    {
         // The most probable cause is IsDeadlineExpiredResponse, case (1).
         // Even if not, the ResponseFuture already has thrown or is preparing
         // to throw a CancelledException, so reflect it here for consistency.
@@ -856,10 +959,11 @@ void RequestState::AccountResponse(std::error_code err) {
 
     WithRequestStats([this, err, attempts, time_to_start](RequestStats& stats) {
         stats.StoreTimeToStart(time_to_start);
-        if (err)
+        if (err) {
             stats.FinishEc(err, attempts);
-        else
+        } else {
             stats.FinishOk(static_cast<int>(easy().get_response_code()), attempts);
+        }
     });
 }
 
@@ -881,7 +985,7 @@ void RequestState::ResetDataForNewRequest() {
     SetBaggageHeader(easy());
 
     response_ = std::make_shared<Response>();
-    response_->SetStatusCode(Status::InternalServerError);
+    response_->SetStatusCode(Status::kInternalServerError);
 
     is_cancelled_ = false;
     retry_.current = 1;
@@ -903,6 +1007,8 @@ void RequestState::ResetDataForNewRequest() {
     SetEasyTimeout(original_timeout_);
 
     StartStats();
+
+    ResetRequestCompletion();
 }
 
 size_t RequestState::StreamWriteFunction(char* ptr, size_t size, size_t nmemb, void* userdata) {
@@ -911,8 +1017,9 @@ size_t RequestState::StreamWriteFunction(char* ptr, size_t size, size_t nmemb, v
     auto* stream_data = std::get_if<StreamData>(&rs.data_);
     UASSERT(stream_data);
 
-    LOG_DEBUG() << fmt::format("Got bytes in stream API chunk, chunk of ({} bytes)", actual_size)
-                << tracing::impl::LogSpanAsLastNoCurrent{rs.span_storage_->Get()};
+    LOG_DEBUG()
+        << fmt::format("Got bytes in stream API chunk, chunk of ({} bytes)", actual_size)
+        << tracing::impl::LogSpanAsLastNoCurrent{rs.span_storage_->Get()};
 
     std::string buffer(ptr, actual_size);
     auto& queue_producer = stream_data->queue_producer;
@@ -947,7 +1054,7 @@ void RequestState::ApplyTestsuiteConfig() {
     if (!prefixes.empty()) {
         auto url = easy().get_original_url();
         if (!IsPrefix(url, prefixes) && !IsPrefix(url, allowed_urls_extra_)) {
-            utils::impl::AbortWithStacktrace(fmt::format(
+            utils::AbortWithStacktrace(fmt::format(
                 "{} forbidden by testsuite config, allowed prefixes={}, "
                 "extra prefixes={}",
                 url,
@@ -962,20 +1069,39 @@ void RequestState::ApplyTestsuiteConfig() {
         set_timeout(std::chrono::milliseconds(*timeout).count());
     }
 
-    easy().add_header(kTestsuiteSupportedErrorsKey, kTestsuiteSupportedErrors);
+    easy().add_header(kTestsuiteSupportedErrorsKey, GetTestsuiteSupportedErrors());
 }
 
 void RequestState::StartNewSpan(utils::impl::SourceLocation location) {
     UINVARIANT(!span_storage_, "Attempt to reuse request while the previous one has not finished");
 
-    span_storage_.emplace(std::string{kTracingClientName}, location);
+    std::string span_name;
+    if (url_template_.has_value()) {
+        span_name = utils::StrCat(ToStringView(method_), " ", url_template_.value());
+    } else {
+        span_name = utils::StrCat(
+            ToStringView(method_),
+            " ",
+            USERVER_NAMESPACE::http::ExtractHostname(easy().get_original_url())
+        );
+    }
+    span_storage_.emplace(std::move(span_name), location);
+
     auto& span = span_storage_->Get();
 
     auto request_editable_instance = GetEditableRequestInstance();
 
     tracing_manager_->FillRequestWithTracingContext(span, request_editable_instance);
-    plugin_pipeline_.HookCreateSpan(*this);
-    span.AddTag(tracing::kHttpUrl, GetLoggedOriginalUrl());
+    middlewares_pipeline_.HookCreateSpan(*this, span);
+    span.AddTag(tracing::kUrlFull, GetLoggedOriginalUrl());
+    span.AddTag(
+        tracing::kServerAddress,
+        std::string{USERVER_NAMESPACE::http::ExtractHostname(easy().get_original_url())}
+    );
+    span.AddTag(tracing::kHttpRequestMethod, std::string{ToStringView(method_)});
+    if (url_template_.has_value()) {
+        span.AddTag(tracing::kHttpUrlTemplate, url_template_.value());
+    }
     span.AddTag(tracing::kMaxAttempts, retry_.retries);
 
     // Span is local to a Request, it is not related to current coroutine
@@ -994,17 +1120,24 @@ template <typename Func>
 void RequestState::WithRequestStats(const Func& func) {
     static_assert(std::is_invocable_v<const Func&, RequestStats&>);
     func(stats_);
-    if (dest_req_stats_) func(*dest_req_stats_);
+    if (dest_req_stats_) {
+        func(*dest_req_stats_);
+    }
 }
 
 void RequestState::ResolveTargetAddress(clients::dns::Resolver& resolver) {
     const auto deadline = engine::Deadline::FromDuration(remote_timeout_);
 
-    const MaybeOwnedUrl target{proxy_url_, easy()};
+    const static std::string kEmptyString;
+    const std::string& proxy_url = proxy_url_ ? *proxy_url_ : kEmptyString;
+    const MaybeOwnedUrl target{proxy_url, easy()};
+
     const std::string hostname = target.Get().GetHostPtr().get();
 
     // CURLOPT_RESOLV hostnames cannot contain colons (as IPv6 addresses do), skip
-    if (hostname.find(':') != std::string::npos) return;
+    if (hostname.find(':') != std::string::npos) {
+        return;
+    }
 
     const auto addrs = resolver.Resolve(hostname, deadline);
     auto addr_strings =
@@ -1015,7 +1148,26 @@ void RequestState::ResolveTargetAddress(clients::dns::Resolver& resolver) {
 
 void RequestState::SetTracingManager(const tracing::TracingManagerBase& m) { tracing_manager_ = m; }
 
-PluginRequest RequestState::GetEditableRequestInstance() { return PluginRequest(*this); }
+MiddlewareRequest RequestState::GetEditableRequestInstance() { return MiddlewareRequest(*this); }
+
+void RequestState::SetWaitToken(utils::impl::WaitTokenStorageLock&& wait_token) { wait_token_ = std::move(wait_token); }
+
+void RequestState::ResetRequestCompletion() { request_completed_.Reset(); }
+
+void RequestState::RequestCompleted() { request_completed_.Send(); }
+
+void RequestState::WaitForRequestCompletion() {
+    if (request_completed_.WaitForEvent()) {
+        return;
+    }
+
+    UASSERT(engine::current_task::ShouldCancel());
+    throw CancelException(
+        "Wait for the previous HTTP response was aborted due to task cancellation",
+        easy().get_local_stats(),
+        ErrorKind::kCancel
+    );
+}
 
 }  // namespace clients::http
 

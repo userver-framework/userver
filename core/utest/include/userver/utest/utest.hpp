@@ -4,16 +4,13 @@
 /// @brief Versions of gtest macros that run tests in a coroutine environment
 
 #include <chrono>
-#include <functional>
-#include <utility>
 
 #include <gtest/gtest.h>
 
+#include <userver/compiler/impl/asan.hpp>
 #include <userver/engine/run_in_coro.hpp>  // legacy
 #include <userver/utest/assert_macros.hpp>
 #include <userver/utest/test_case_macros.hpp>
-#include <userver/utils/assert.hpp>
-#include <userver/utils/strong_typedef.hpp>
 
 // gtest-specific serializers
 namespace testing {
@@ -32,38 +29,12 @@ namespace utest {
 
 /// The maximum time a typical test is allowed to execute. If exceeded, a
 /// deadlock is assumed. This time must not be too low to avoid flaky tests.
+///
+/// Use this timeout for awaiting something that is expected to complete.
+/// Use appropriate shorter timeouts for awaiting something that is not expected to ever complete.
 inline constexpr std::chrono::seconds kMaxTestWaitTime(20);
 
 }  // namespace utest
-
-namespace formats::json {
-
-class Value;
-
-void PrintTo(const Value&, std::ostream*);
-
-}  // namespace formats::json
-
-namespace utils {
-
-template <class Tag, class T, StrongTypedefOps Ops>
-void PrintTo(const StrongTypedef<Tag, T, Ops>& v, std::ostream* os) {
-    ::testing::internal::UniversalTersePrint(v.GetUnderlying(), os);
-}
-
-}  // namespace utils
-
-namespace decimal64 {
-
-template <int Prec, typename RoundPolicy>
-class Decimal;
-
-template <int Prec, typename RoundPolicy>
-void PrintTo(const Decimal<Prec, RoundPolicy>& v, std::ostream* os) {
-    *os << v;
-}
-
-}  // namespace decimal64
 
 USERVER_NAMESPACE_END
 
@@ -73,6 +44,14 @@ USERVER_NAMESPACE_END
 #else
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define DISABLED_IN_DEBUG_TEST_NAME(name) name
+#endif
+
+#if USERVER_IMPL_HAS_ASAN
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define DISABLED_IN_ASAN_TEST_NAME(name) DISABLED_##name
+#else
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define DISABLED_IN_ASAN_TEST_NAME(name) name
 #endif
 
 #ifdef __APPLE__
@@ -157,6 +136,12 @@ USERVER_NAMESPACE_END
 /// @hideinitializer
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define UTEST_P(test_suite_name, test_name) IMPL_UTEST_TEST_P(test_suite_name, test_name, 1, false)
+
+/// @brief An equivalent of the gtest macro TEST_P for death tests that starts
+/// the test body as a coroutine task
+/// @hideinitializer
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define UTEST_P_DEATH(test_suite_name, test_name) IMPL_UTEST_TEST_P(test_suite_name, test_name, 1, true)
 
 /// @brief An equivalent of the gtest macro TEST_P that starts the test body as
 /// a coroutine task

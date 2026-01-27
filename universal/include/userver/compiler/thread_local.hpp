@@ -140,9 +140,13 @@ class ThreadLocal final {
     static_assert(std::is_same_v<VariableType, std::invoke_result_t<const Factory&>>);
 
 public:
-    USERVER_IMPL_CONSTEVAL ThreadLocal() : factory_(Factory{}) {}
+    USERVER_IMPL_CONSTEVAL ThreadLocal()
+        : factory_(Factory{})
+    {}
 
-    USERVER_IMPL_CONSTEVAL /*implicit*/ ThreadLocal(Factory factory) : factory_(factory) {}
+    USERVER_IMPL_CONSTEVAL /*implicit*/ ThreadLocal(Factory factory)
+        : factory_(factory)
+    {}
 
     ThreadLocalScope<VariableType> Use() { return ThreadLocalScope<VariableType>(impl::ThreadLocal(factory_)); }
 
@@ -173,13 +177,13 @@ ThreadLocalScope<VariableType>::~ThreadLocalScope() {
 
 template <typename VariableType>
 VariableType& ThreadLocalScope<VariableType>::operator*() & noexcept  //
-    USERVER_IMPL_LIFETIME_BOUND {
+USERVER_IMPL_LIFETIME_BOUND {
     return variable_;
 }
 
 template <typename VariableType>
 VariableType* ThreadLocalScope<VariableType>::operator->() & noexcept  //
-    USERVER_IMPL_LIFETIME_BOUND {
+USERVER_IMPL_LIFETIME_BOUND {
     return &**this;
 }
 

@@ -1,0 +1,19 @@
+{% macro serialize(body, request, http_request) %}
+  const auto &data = {{ request }};
+  USERVER_NAMESPACE::clients::http::Form form;
+
+  {% for field_name, field in body.schema.fields.items() %}
+      {% if field.required %}
+        form.AddContent("{{ field_name }}", USERVER_NAMESPACE::chaotic::openapi::PrimitiveToString(data.{{ field_name }});
+      {% else %}
+        if (data.{{ field_name }})
+          form.AddContent("{{ field_name }}", USERVER_NAMESPACE::chaotic::openapi::PrimitiveToString(*data.{{ field_name }}));
+      {% endif %}
+  {% endfor %}
+  {{ http_request }}.form(std::move(form));
+{% endmacro %}
+
+
+{% macro define_body_cpp_name(body) %}
+  using {{ body.cpp_name() }} = {{ body.schema.cpp_user_name() }};
+{% endmacro %}

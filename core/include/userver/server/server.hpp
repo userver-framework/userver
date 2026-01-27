@@ -53,6 +53,7 @@ public:
 
     const http::HttpRequestHandler& GetHttpRequestHandler(bool is_monitor = false) const;
 
+    void StartMonitorPort();
     void Start();
 
     void Stop();
@@ -68,7 +69,7 @@ public:
     std::uint64_t GetTotalRequests() const override;
 
 private:
-    std::unique_ptr<ServerImpl> pimpl;
+    std::unique_ptr<ServerImpl> pimpl_;
 };
 
 }  // namespace server

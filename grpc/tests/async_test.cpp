@@ -2,7 +2,6 @@
 
 #include <grpcpp/grpcpp.h>
 
-#include <ugrpc/impl/status.hpp>
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/ugrpc/client/exceptions.hpp>
@@ -23,23 +22,27 @@ constexpr int kNumber = 42;
 
 class AsyncTestServiceWithError final : public sample::ugrpc::UnitTestServiceBase {
 public:
-    void Chat(ChatCall& call) override { call.FinishWithError({grpc::StatusCode::INTERNAL, "message", "details"}); }
+    ChatResult Chat(CallContext& /*context*/, ChatReaderWriter& /*stream*/) override {
+        return grpc::Status{grpc::StatusCode::INTERNAL, "message", "details"};
+    }
 };
 
 class AsyncTestService final : public sample::ugrpc::UnitTestServiceBase {
 public:
-    void Chat(ChatCall& call) override {
+    ChatResult Chat(CallContext& /*context*/, ChatReaderWriter& /*stream*/) override {
         sample::ugrpc::StreamGreetingResponse response;
         response.set_number(kNumber);
         response.set_name("Hello");
-        call.WriteAndFinish(response);
+        return response;
     }
 };
 
 }  // namespace
 
-using GrpcAsyncClientErrorTest = ugrpc::tests::ServiceFixture<AsyncTestServiceWithError>;
-using GrpcAsyncClientTest = ugrpc::tests::ServiceFixture<AsyncTestService>;
+using GrpcAsyncClientErrorTest =
+    ugrpc::tests::ServiceWithClientFixture<AsyncTestServiceWithError, sample::ugrpc::UnitTestServiceClient>;
+using GrpcAsyncClientTest =
+    ugrpc::tests::ServiceWithClientFixture<AsyncTestService, sample::ugrpc::UnitTestServiceClient>;
 
 UTEST_F(GrpcAsyncClientErrorTest, BidirectionalStreamAsyncRead) {
     const auto grpc_version_minor = utils::FromString<int>(utils::text::Split(grpc::Version(), ".").at(1));
@@ -47,10 +50,9 @@ UTEST_F(GrpcAsyncClientErrorTest, BidirectionalStreamAsyncRead) {
         GTEST_SKIP() << "Disabled due to https://github.com/grpc/grpc/issues/14812";
     }
 
-    auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
     sample::ugrpc::StreamGreetingResponse in;
     sample::ugrpc::StreamGreetingRequest out{};
-    auto call = client.Chat();
+    auto call = GetClient().Chat();
     // This future will never complete with a response, because the service writes
     // nothing
     auto future = call.ReadAsync(in);
@@ -76,8 +78,7 @@ UTEST_F(GrpcAsyncClientErrorTest, BidirectionalStreamAsyncRead) {
 }
 
 UTEST_F(GrpcAsyncClientTest, BidirectionalStreamAsyncRead) {
-    auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
-    auto is = client.Chat();
+    auto is = GetClient().Chat();
 
     sample::ugrpc::StreamGreetingResponse in;
     auto future_for_move = is.ReadAsync(in);

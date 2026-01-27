@@ -19,22 +19,21 @@ constexpr std::string_view kSayHelloCallName = "sample.ugrpc.UnitTestService/Say
 
 class SampleGenericService final : public ugrpc::server::GenericServiceBase {
 public:
-    void Handle(Call& call) override {
-        EXPECT_EQ(call.GetCallName(), kSayHelloCallName);
+    GenericResult Handle(GenericCallContext& context, GenericReaderWriter& stream) override {
+        EXPECT_EQ(context.GetCallName(), kSayHelloCallName);
 
         grpc::ByteBuffer request_bytes;
-        ASSERT_TRUE(call.Read(request_bytes));
+        EXPECT_TRUE(stream.Read(request_bytes));
 
         sample::ugrpc::GreetingRequest request;
         if (!ugrpc::ParseFromByteBuffer(std::move(request_bytes), request)) {
-            call.FinishWithError(grpc::Status{grpc::StatusCode::INVALID_ARGUMENT, "Failed to parse request"});
-            return;
+            return grpc::Status{grpc::StatusCode::INVALID_ARGUMENT, "Failed to parse request"};
         }
 
         sample::ugrpc::GreetingResponse response;
         response.set_name("Hello " + request.name());
 
-        call.WriteAndFinish(ugrpc::SerializeToByteBuffer(response));
+        return ugrpc::SerializeToByteBuffer(response);
     }
 };
 /// [sample]
@@ -43,31 +42,32 @@ void PerformGenericUnaryCall(const sample::ugrpc::UnitTestServiceClient& client)
     sample::ugrpc::GreetingRequest out;
     out.set_name("generic");
 
-    auto call = client.SayHello(out);
+    const auto in = client.SayHello(out);
 
-    const auto in = call.Finish();
     EXPECT_EQ(in.name(), "Hello generic");
 }
 
 class RealCallNameGenericService final : public ugrpc::server::GenericServiceBase {
 public:
-    void Handle(Call& call) override {
-        call.SetMetricsCallName(call.GetCallName());
-        call.FinishWithError(grpc::Status{grpc::StatusCode::UNAUTHENTICATED, "To avoid message parsing bureaucracy"});
+    GenericResult Handle(GenericCallContext& context, GenericReaderWriter& /*stream*/) override {
+        context.SetMetricsCallName(context.GetCallName());
+        return grpc::Status{grpc::StatusCode::UNAUTHENTICATED, "To avoid message parsing bureaucracy"};
     }
 };
 
 }  // namespace
 
-using GenericServiceTest = ugrpc::tests::ServiceFixture<SampleGenericService>;
+using GenericServiceTest =
+    ugrpc::tests::ServiceWithClientFixture<SampleGenericService, sample::ugrpc::UnitTestServiceClient>;
 
-UTEST_F(GenericServiceTest, UnaryCall) { PerformGenericUnaryCall(MakeClient<sample::ugrpc::UnitTestServiceClient>()); }
+UTEST_F(GenericServiceTest, UnaryCall) { PerformGenericUnaryCall(GetClient()); }
 
-using RealCallNameGenericServiceTest = ugrpc::tests::ServiceFixture<RealCallNameGenericService>;
+using RealCallNameGenericServiceTest =
+    ugrpc::tests::ServiceWithClientFixture<RealCallNameGenericService, sample::ugrpc::UnitTestServiceClient>;
 
 UTEST_F(RealCallNameGenericServiceTest, MetricsRealUnsafe) {
     UEXPECT_THROW_MSG(
-        PerformGenericUnaryCall(MakeClient<sample::ugrpc::UnitTestServiceClient>()),
+        PerformGenericUnaryCall(GetClient()),
         ugrpc::client::UnauthenticatedError,
         "To avoid message parsing bureaucracy"
     );
@@ -103,7 +103,7 @@ UTEST_F(RealCallNameGenericServiceTest, MetricsRealUnsafe) {
 }
 
 UTEST_F(GenericServiceTest, MetricsDefaultCallNameIsFake) {
-    PerformGenericUnaryCall(MakeClient<sample::ugrpc::UnitTestServiceClient>());
+    PerformGenericUnaryCall(GetClient());
 
     // Server writes metrics after Finish, after the client might have returned
     // from Finish.
@@ -124,18 +124,24 @@ UTEST_F(GenericServiceTest, MetricsDefaultCallNameIsFake) {
 using GenericServerLoggingTest = utest::LogCaptureFixture<GenericServiceTest>;
 
 UTEST_F(GenericServerLoggingTest, Logs) {
-    PerformGenericUnaryCall(MakeClient<sample::ugrpc::UnitTestServiceClient>());
+    PerformGenericUnaryCall(GetClient());
 
     // Server writes metrics after Finish, after the client might have returned
     // from Finish.
     GetServer().StopServing();
 
-    const auto span_log = GetSingleLog(GetLogCapture().Filter([](const utest::LogRecord& record) {
-        const auto span_name = record.GetTagOptional("stopwatch_name");
-        return span_name && utils::text::StartsWith(*span_name, "grpc/");
-    }));
-    EXPECT_EQ(span_log.GetTagOptional("stopwatch_name"), "grpc/sample.ugrpc.UnitTestService/SayHello") << span_log;
-    EXPECT_EQ(span_log.GetTagOptional("grpc_code"), "OK") << span_log;
+    const auto span_log = GetSingleLog(GetLogCapture().Filter(
+        "",
+        {{
+            {std::string_view("span_kind"), std::string_view("server")},
+            {std::string_view("stopwatch_name"), std::string_view("sample.ugrpc.UnitTestService/SayHello")},
+        }}
+    ));
+    EXPECT_EQ(span_log.GetTagOptional("stopwatch_name"), kSayHelloCallName) << span_log;
+    EXPECT_EQ(span_log.GetTagOptional("rpc.system"), "grpc") << span_log;
+    EXPECT_EQ(span_log.GetTagOptional("rpc.service"), "sample.ugrpc.UnitTestService") << span_log;
+    EXPECT_EQ(span_log.GetTagOptional("rpc.method"), "SayHello") << span_log;
+    EXPECT_EQ(span_log.GetTagOptional(tracing::kGrpcCode), "OK") << span_log;
 }
 
 USERVER_NAMESPACE_END

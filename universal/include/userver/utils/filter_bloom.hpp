@@ -40,7 +40,10 @@ public:
     /// @note If expected to increment n times is recommended to set counters_num
     /// to 16 * n
     explicit FilterBloom(std::size_t counters_num = 256, Hash1 hash_1 = Hash1{}, Hash2 hash_2 = Hash2{})
-        : counters_(counters_num, 0), hasher_1(std::move(hash_1)), hasher_2(std::move(hash_2)) {
+        : counters_(counters_num, 0),
+          hasher_1_(std::move(hash_1)),
+          hasher_2_(std::move(hash_2))
+    {
         UASSERT((!std::is_same_v<Hash1, Hash2>));
         UASSERT((std::is_same_v<std::invoke_result_t<Hash1, const T&>, std::invoke_result_t<Hash2, const T&>>));
     }
@@ -65,8 +68,8 @@ private:
     Counter MinFrequency(const HashedType& hashed_value_1, const HashedType& hashed_value_2) const;
 
     utils::FixedArray<Counter> counters_;
-    const Hash1 hasher_1;
-    const Hash2 hasher_2;
+    const Hash1 hasher_1_;
+    const Hash2 hasher_2_;
 
     static constexpr std::size_t kHashFunctionsCount = 4;
 };
@@ -77,21 +80,22 @@ inline uint64_t FilterBloom<T, Counter, Hash1, Hash2>::Coefficient(std::size_t s
 }
 
 template <typename T, typename Counter, typename Hash1, typename Hash2>
-uint64_t FilterBloom<T, Counter, Hash1, Hash2>::GetHash(
-    const HashedType& hashed_value_1,
-    const HashedType& hashed_value_2,
-    uint64_t coefficient
-) const {
+uint64_t FilterBloom<
+    T,
+    Counter,
+    Hash1,
+    Hash2>::GetHash(const HashedType& hashed_value_1, const HashedType& hashed_value_2, uint64_t coefficient) const {
     // the idea was taken from
     // https://www.eecs.harvard.edu/~michaelm/postscripts/tr-02-05.pdf
     return hashed_value_1 + hashed_value_2 * coefficient;
 }
 
 template <typename T, typename Counter, typename Hash1, typename Hash2>
-Counter FilterBloom<T, Counter, Hash1, Hash2>::MinFrequency(
-    const HashedType& hashed_value_1,
-    const HashedType& hashed_value_2
-) const {
+Counter FilterBloom<
+    T,
+    Counter,
+    Hash1,
+    Hash2>::MinFrequency(const HashedType& hashed_value_1, const HashedType& hashed_value_2) const {
     std::optional<Counter> min_count;
     for (std::size_t step = 0; step < kHashFunctionsCount; ++step) {
         auto current_count = counters_[GetHash(hashed_value_1, hashed_value_2, Coefficient(step)) % counters_.size()];
@@ -104,8 +108,8 @@ Counter FilterBloom<T, Counter, Hash1, Hash2>::MinFrequency(
 
 template <typename T, typename Counter, typename Hash1, typename Hash2>
 void FilterBloom<T, Counter, Hash1, Hash2>::Increment(const T& item) {
-    auto hash_value_1 = hasher_1(item);
-    auto hash_value_2 = hasher_2(item);
+    auto hash_value_1 = hasher_1_(item);
+    auto hash_value_2 = hasher_2_(item);
     Counter min_frequency = MinFrequency(hash_value_1, hash_value_2);
 
     for (std::size_t step = 0; step < kHashFunctionsCount; ++step) {
@@ -118,8 +122,8 @@ void FilterBloom<T, Counter, Hash1, Hash2>::Increment(const T& item) {
 
 template <typename T, typename Counter, typename Hash1, typename Hash2>
 Counter FilterBloom<T, Counter, Hash1, Hash2>::Estimate(const T& item) const {
-    auto hash_value_1 = hasher_1(item);
-    auto hash_value_2 = hasher_2(item);
+    auto hash_value_1 = hasher_1_(item);
+    auto hash_value_2 = hasher_2_(item);
     return MinFrequency(hash_value_1, hash_value_2);
 }
 

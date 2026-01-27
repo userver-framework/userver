@@ -72,6 +72,7 @@ enum class OpType {
     kCount = kReadMin,
     kCountApprox,
     kFind,
+    kDistinct,
     kAggregate,
 
     kWriteMin,
@@ -123,6 +124,8 @@ struct HeartbeatsStatistics final {
     Counter success;
     Counter failed;
     Counter start;
+
+    std::chrono::steady_clock::time_point hb_started{};
 };
 
 // See
@@ -133,19 +136,21 @@ struct ApmStats final {
 };
 
 struct EventStats final {
-    Rate sucess;
+    Rate success;
     Rate failed;
 
-    bool operator==(const EventStats& o) const { return sucess == o.sucess && failed == o.failed; }
+    bool operator==(const EventStats& o) const { return success == o.success && failed == o.failed; }
 };
 
 struct ConnStats final {
-    EventStats event_stats_;  // per-connection
-    ApmStats* apm_stats_{nullptr};
+    EventStats event_stats;  // per-connection
+    ApmStats* apm_stats{nullptr};
 };
 
 struct PoolStatistics final {
-    PoolStatistics() : pool(utils::MakeSharedRef<PoolConnectStatistics>()) {}
+    PoolStatistics()
+        : pool(utils::MakeSharedRef<PoolConnectStatistics>())
+    {}
 
     utils::SharedRef<PoolConnectStatistics> pool;
     rcu::RcuMap<std::string, CollectionStatistics> collections;

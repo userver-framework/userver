@@ -3,8 +3,11 @@
 #include <fmt/format.h>
 
 #include <components/component_list_test.hpp>
+#include <userver/compiler/impl/tsan.hpp>
 #include <userver/components/common_component_list.hpp>
 #include <userver/components/run.hpp>
+#include <userver/dynamic_config/test_helpers.hpp>
+#include <userver/engine/run_standalone.hpp>
 #include <userver/fs/blocking/temp_directory.hpp>  // for fs::blocking::TempDirectory
 #include <userver/fs/blocking/write.hpp>           // for fs::blocking::RewriteFileContents
 #include <userver/internal/net/net_listener.hpp>
@@ -35,6 +38,7 @@ components_manager:
     initial_size: 50
     max_size: 500
   default_task_processor: main-task-processor
+  fs_task_processor: main-task-processor
   event_thread_pool:
     threads: 4
   task_processors:
@@ -56,8 +60,6 @@ components_manager:
           overflow_behavior: $overflow_behavior
     tracer:
         service-name: config-service
-    statistics-storage:
-      # Nothing
     dynamic-config:
       updates-enabled: true
       fs-cache-path: $dynamic-config-cache-path
@@ -81,7 +83,7 @@ components_manager:
     dump-configurator:
       dump-root: $userver-dumps-root
     testsuite-support:
-    http-client:
+    http-client-core:
       pool-statistics-disable: true
       thread-name-prefix: http-client
       threads: 2
@@ -91,8 +93,6 @@ components_manager:
       testsuite-enabled: true
       testsuite-timeout: 5s
       testsuite-allowed-url-prefixes: ['http://localhost:8083/', 'http://localhost:8084/']
-    dns-client:
-      fs-task-processor: main-task-processor
     dynamic-config-client:
       get-configs-overrides-for-service: true
       service-name: common_component_list-service
@@ -107,11 +107,9 @@ components_manager:
       config-settings: false
       additional-cleanup-interval: 5m
       first-update-fail-ok: true
-    tracer:
-        service-name: config-service
     statistics-storage:
       # Nothing
-    http-client-statistics:
+    http-client-statistics-core:
       fs-task-processor: main-task-processor
     system-statistics-collector:
       fs-task-processor: main-task-processor
@@ -245,7 +243,8 @@ class CommonServerComponentList : public ComponentList {
 protected:
     CommonServerComponentList() {
         fs::blocking::RewriteFileContents(
-            GetDynamicConfigCachePath(), formats::json::ToString(dynamic_config::impl::GetDefaultDocsMap().AsJson())
+            GetDynamicConfigCachePath(),
+            formats::json::ToString(dynamic_config::impl::GetDefaultDocsMap().AsJson())
         );
     }
 
@@ -289,6 +288,7 @@ TEST_F(CommonServerComponentList, Smoke) {
     );
 }
 
+#if !USERVER_IMPL_HAS_TSAN
 TEST_F(CommonServerComponentList, Logger) {
     auto& old_logger = logging::GetDefaultLogger();
     logging::impl::SetDefaultLoggerRef(logging::impl::MemLogger::GetMemLogger());
@@ -323,6 +323,7 @@ TEST_F(CommonServerComponentList, Logger) {
     logging::impl::MemLogger::GetMemLogger().ForwardTo(&old_logger);
     logging::impl::MemLogger::GetMemLogger().ForwardTo(nullptr);
 }
+#endif
 
 TEST_F(CommonServerComponentList, TraceLogging) {
     fs::blocking::RewriteFileContents(
@@ -386,9 +387,10 @@ TEST_F(CommonServerComponentList, BlockingDefaultLogger) {
     );
 
     const components::InMemoryConfig config{std::string{kStaticConfig} + GetConfigVarsPath()};
-    const auto component_list = components::CommonComponentList()
-                                    .AppendComponentList(components::CommonServerComponentList())
-                                    .Append<server::handlers::Ping>();
+    const auto component_list =
+        components::CommonComponentList()
+            .AppendComponentList(components::CommonServerComponentList())
+            .Append<server::handlers::Ping>();
     UEXPECT_THROW_MSG(components::RunOnce(config, component_list), std::exception, "efault logger");
 }
 

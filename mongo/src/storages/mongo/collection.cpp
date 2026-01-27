@@ -5,7 +5,9 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::mongo {
-Collection::Collection(std::shared_ptr<impl::CollectionImpl> impl) : impl_(std::move(impl)) {}
+Collection::Collection(std::shared_ptr<impl::CollectionImpl> impl)
+    : impl_(std::move(impl))
+{}
 
 const std::string& Collection::GetCollectionName() const { return impl_->GetCollectionName(); }
 
@@ -16,6 +18,10 @@ size_t Collection::Execute(const operations::CountApprox& count_approx_op) const
 }
 
 Cursor Collection::Execute(const operations::Find& find_op) const { return impl_->Execute(find_op); }
+
+std::vector<formats::bson::Value> Collection::Execute(const operations::Distinct& distinct_op) const {
+    return impl_->Execute(distinct_op);
+}
 
 WriteResult Collection::Execute(const operations::InsertOne& insert_op) { return impl_->Execute(insert_op); }
 

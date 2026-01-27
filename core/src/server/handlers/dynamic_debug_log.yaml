@@ -1,0 +1,4 @@
+type: object
+description: Handler to show/hide logs at the specific file:line
+additionalProperties: false
+properties: {}

@@ -59,7 +59,7 @@ enum class HandlerErrorCode {
     kUnsupportedMediaType,  //!< kUnsupportedMediaType Content-Encoding or
                             //!< Content-Type is not supported
 
-    // Server error codes are declared ater the client side error to be
+    // Server error codes are declared after the client side error to be
     // mapped correctly to a protocol-specific error code!
 };
 // When adding enumerators here ^, please also add mappings to the
@@ -107,13 +107,13 @@ template <typename T>
 using HasInternalMessage = decltype(std::declval<const T&>().GetInternalMessage());
 
 template <typename T>
-inline constexpr bool kHasInternalMessage = meta::kIsDetected<HasInternalMessage, T>;
+inline constexpr bool kHasInternalMessage = meta::IsDetected<HasInternalMessage, T>;
 
 template <typename T>
 using HasExternalBody = decltype(std::declval<const T&>().GetExternalBody());
 
 template <typename T>
-inline constexpr bool kHasExternalBody = meta::kIsDetected<HasExternalBody, T>;
+inline constexpr bool kHasExternalBody = meta::IsDetected<HasExternalBody, T>;
 
 template <typename T>
 inline constexpr bool kIsMessageBuilder = kHasExternalBody<T>;
@@ -121,7 +121,7 @@ inline constexpr bool kIsMessageBuilder = kHasExternalBody<T>;
 template <typename T>
 struct MessageExtractor {
     static_assert(
-        meta::kIsDetected<HasExternalBody, T>,
+        meta::IsDetected<HasExternalBody, T>,
         "Please use your message builder to build external body for "
         "your error. See server::handlers::CustomHandlerException "
         "for more info"
@@ -134,7 +134,7 @@ struct MessageExtractor {
     }
 
     std::string GetServiceCode() const {
-        if constexpr (meta::kIsDetected<HasServiceCode, T>) {
+        if constexpr (meta::IsDetected<HasServiceCode, T>) {
             return builder.GetServiceCode();
         } else {
             return std::string{};
@@ -171,21 +171,21 @@ struct CustomHandlerExceptionData final {
     formats::json::Value details;
 
 private:
-    void Apply(HandlerErrorCode handler_code_) { handler_code = handler_code_; }
+    void Apply(HandlerErrorCode l_handler_code) { handler_code = l_handler_code; }
 
-    void Apply(ServiceErrorCode service_code_) { service_code = std::move(service_code_.body); }
+    void Apply(ServiceErrorCode l_service_code) { service_code = std::move(l_service_code.body); }
 
-    void Apply(InternalMessage internal_message_) { internal_message = std::move(internal_message_.body); }
+    void Apply(InternalMessage l_internal_message) { internal_message = std::move(l_internal_message.body); }
 
-    void Apply(ExternalBody external_body_) { external_body = std::move(external_body_.body); }
+    void Apply(ExternalBody l_external_body) { external_body = std::move(l_external_body.body); }
 
-    void Apply(ExtraHeaders headers_) { headers = std::move(headers_.headers); }
+    void Apply(ExtraHeaders l_headers) { headers = std::move(l_headers.headers); }
 
-    void Apply(formats::json::Value details_) { details = std::move(details_); }
+    void Apply(formats::json::Value l_details) { details = std::move(l_details); }
 
     template <typename MessageBuilder>
     void Apply(MessageBuilder&& builder) {
-        impl::MessageExtractor<MessageBuilder> extractor{builder};
+        const impl::MessageExtractor<MessageBuilder> extractor{builder};
         is_external_body_formatted = extractor.IsExternalBodyFormatted();
         service_code = extractor.GetServiceCode();
         external_body = extractor.GetExternalBody();
@@ -241,11 +241,13 @@ public:
     /// @snippet server/handlers/exceptions_test.cpp  Sample custom error builder
     template <typename... Args>
     CustomHandlerException(HandlerErrorCode handler_code, Args&&... args)
-        : CustomHandlerException(impl::CustomHandlerExceptionData{handler_code, std::forward<Args>(args)...}) {}
+        : CustomHandlerException(impl::CustomHandlerExceptionData{handler_code, std::forward<Args>(args)...})
+    {}
 
     /// @overload
     explicit CustomHandlerException(HandlerErrorCode handler_code)
-        : CustomHandlerException(impl::CustomHandlerExceptionData{handler_code}) {}
+        : CustomHandlerException(impl::CustomHandlerExceptionData{handler_code})
+    {}
 
     /// @deprecated Use the variadic constructor above instead.
     CustomHandlerException(
@@ -262,20 +264,23 @@ public:
               std::move(internal_message),
               handler_code,
               std::move(headers),
-              std::move(details)}) {}
+              std::move(details)
+          })
+    {}
 
     /// @deprecated Use the variadic constructor above instead.
     template <typename MessageBuilder, typename = std::enable_if_t<impl::kIsMessageBuilder<MessageBuilder>>>
     CustomHandlerException(MessageBuilder&& builder, HandlerErrorCode handler_code)
-        : CustomHandlerException(impl::CustomHandlerExceptionData{std::forward<MessageBuilder>(builder), handler_code}
-          ) {}
+        : CustomHandlerException(impl::CustomHandlerExceptionData{std::forward<MessageBuilder>(builder), handler_code})
+    {}
 
     /// @cond
     explicit CustomHandlerException(impl::CustomHandlerExceptionData&& data)
         : runtime_error(
               data.internal_message.empty() ? std::string{GetCodeDescription(data.handler_code)} : data.internal_message
           ),
-          data_(std::move(data)) {
+          data_(std::move(data))
+    {
         UASSERT_MSG(
             data_.details.IsNull() || data_.details.IsObject(),
             "The details JSON value must be either null or an object"
@@ -313,7 +318,9 @@ public:
 
     /// @see CustomHandlerException::CustomHandlerException for allowed args
     template <typename... Args>
-    explicit ExceptionWithCode(Args&&... args) : CustomHandlerException(kDefaultCode, std::forward<Args>(args)...) {}
+    explicit ExceptionWithCode(Args&&... args)
+        : CustomHandlerException(kDefaultCode, std::forward<Args>(args)...)
+    {}
 };
 
 /// Exception class for situations when request preconditions have failed.

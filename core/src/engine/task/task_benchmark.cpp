@@ -23,17 +23,23 @@
 
 USERVER_NAMESPACE_BEGIN
 
-void engine_task_create(benchmark::State& state) {
+void EngineTaskCreate(benchmark::State& state) {
     // We use 2 threads to ensure that detached tasks are deallocated,
     // otherwise this benchmark OOMs after some time.
     engine::RunStandalone(2, [&] {
-        for ([[maybe_unused]] auto _ : state) engine::AsyncNoSpan([]() {}).Detach();
+        for ([[maybe_unused]] auto _ : state) {
+            engine::DetachUnscopedUnsafe(engine::AsyncNoSpan([]() {}));
+        }
     });
 }
-BENCHMARK(engine_task_create);
+BENCHMARK(EngineTaskCreate);
 
-void engine_task_yield_single_thread(benchmark::State& state) {
-    engine::RunStandalone([&] {
+template <engine::TaskQueueType Scheduler>
+void EngineTaskYieldSingleThread(benchmark::State& state) {
+    engine::TaskProcessorPoolsConfig config{};
+    config.queue_type = Scheduler;
+
+    engine::RunStandalone(1, config, [&] {
         RunParallelBenchmark(state, [](auto& range) {
             for ([[maybe_unused]] auto _ : range) {
                 engine::Yield();
@@ -41,10 +47,40 @@ void engine_task_yield_single_thread(benchmark::State& state) {
         });
     });
 }
-BENCHMARK(engine_task_yield_single_thread)->RangeMultiplier(2)->Range(1, 128);
 
-void engine_task_yield_multiple_threads(benchmark::State& state) {
-    engine::RunStandalone(state.range(0), [&] {
+void EngineTaskYieldSingleThreadDefault(benchmark::State& state) {
+    EngineTaskYieldSingleThread<engine::TaskQueueType::kGlobalTaskQueue>(state);
+}
+BENCHMARK(EngineTaskYieldSingleThreadDefault)->RangeMultiplier(2)->Range(1, 128);
+
+void EngineTaskYieldSingleThreadPullPin(benchmark::State& state) {
+    EngineTaskYieldSingleThread<engine::TaskQueueType::kPullPinTaskQueue>(state);
+}
+BENCHMARK(EngineTaskYieldSingleThreadPullPin)->RangeMultiplier(2)->Range(1, 128);
+
+void EngineTaskYieldSingleThreadTraced(benchmark::State& state) {
+    engine::RunStandalone([&] {
+        auto& tp = engine::current_task::GetTaskProcessor();
+        engine::TracePlugin plugin(tp.GetWorkerCount());
+        tp.RegisterPlugin(plugin);
+
+        RunParallelBenchmark(state, [](auto& range) {
+            for ([[maybe_unused]] auto _ : range) {
+                engine::Yield();
+            }
+        });
+
+        tp.UnregisterPlugin(plugin);
+    });
+}
+BENCHMARK(EngineTaskYieldSingleThreadTraced)->RangeMultiplier(2)->Range(1, 128);
+
+template <engine::TaskQueueType Scheduler>
+void EngineTaskYieldMultipleThreads(benchmark::State& state) {
+    engine::TaskProcessorPoolsConfig config{};
+    config.queue_type = Scheduler;
+
+    engine::RunStandalone(state.range(0), config, [&] {
         std::atomic<std::uint64_t> total_yields{0};
 
         RunParallelBenchmark(state, [&](auto& range) {
@@ -61,9 +97,18 @@ void engine_task_yield_multiple_threads(benchmark::State& state) {
             benchmark::Counter(static_cast<double>(total_yields) / state.range(0), benchmark::Counter::kIsRate);
     });
 }
-BENCHMARK(engine_task_yield_multiple_threads)->RangeMultiplier(2)->Range(1, 32)->Arg(6)->Arg(12);
 
-void engine_task_yield_multiple_task_processors(benchmark::State& state) {
+void EngineTaskYieldMultipleThreadsDefault(benchmark::State& state) {
+    EngineTaskYieldMultipleThreads<engine::TaskQueueType::kGlobalTaskQueue>(state);
+}
+BENCHMARK(EngineTaskYieldMultipleThreadsDefault)->RangeMultiplier(2)->Range(1, 32)->Arg(6)->Arg(12);
+
+void EngineTaskYieldMultipleThreadsPullPin(benchmark::State& state) {
+    EngineTaskYieldMultipleThreads<engine::TaskQueueType::kPullPinTaskQueue>(state);
+}
+BENCHMARK(EngineTaskYieldMultipleThreadsPullPin)->RangeMultiplier(2)->Range(1, 32)->Arg(6)->Arg(12);
+
+void EngineTaskYieldMultipleTaskProcessors(benchmark::State& state) {
     engine::RunStandalone([&] {
         auto tp_pool = engine::SingleThreadedTaskProcessorsPool::MakeForTests(state.range(0) - 1);
 
@@ -98,14 +143,16 @@ void engine_task_yield_multiple_task_processors(benchmark::State& state) {
             benchmark::Counter(static_cast<double>(yields_performed) / state.range(0), benchmark::Counter::kIsRate);
     });
 }
-BENCHMARK(engine_task_yield_multiple_task_processors)->RangeMultiplier(2)->Range(1, 32);
+BENCHMARK(EngineTaskYieldMultipleTaskProcessors)->RangeMultiplier(2)->Range(1, 32);
 
-void thread_yield(benchmark::State& state) {
-    for ([[maybe_unused]] auto _ : state) std::this_thread::yield();
+void ThreadYield(benchmark::State& state) {
+    for ([[maybe_unused]] auto _ : state) {
+        std::this_thread::yield();
+    }
 }
-BENCHMARK(thread_yield)->RangeMultiplier(2)->ThreadRange(1, 32);
+BENCHMARK(ThreadYield)->RangeMultiplier(2)->ThreadRange(1, 32);
 
-void engine_multiple_tasks_multiple_threads(benchmark::State& state) {
+void EngineMultipleTasksMultipleThreads(benchmark::State& state) {
     engine::RunStandalone(state.range(0), [&] {
         std::atomic<std::uint64_t> tasks_count_total = 0;
         RunParallelBenchmark(state, [&](auto& range) {
@@ -120,9 +167,9 @@ void engine_multiple_tasks_multiple_threads(benchmark::State& state) {
         benchmark::DoNotOptimize(tasks_count_total);
     });
 }
-BENCHMARK(engine_multiple_tasks_multiple_threads)->RangeMultiplier(2)->Range(1, 32)->Arg(6)->Arg(12);
+BENCHMARK(EngineMultipleTasksMultipleThreads)->RangeMultiplier(2)->Range(1, 32)->Arg(6)->Arg(12);
 
-void engine_multiple_yield_two_task_processor_no_extra_wakeups(benchmark::State& state) {
+void EngineMultipleYieldTwoTaskProcessorNoExtraWakeups(benchmark::State& state) {
     engine::RunStandalone([&] {
         std::vector<std::unique_ptr<engine::TaskProcessor>> processors;
         for (int i = 0; i < 2; i++) {
@@ -131,7 +178,8 @@ void engine_multiple_yield_two_task_processor_no_extra_wakeups(benchmark::State&
             proc_config.thread_name = std::to_string(i);
             proc_config.worker_threads = state.range(0);
             processors.push_back(std::make_unique<engine::TaskProcessor>(
-                std::move(proc_config), engine::current_task::GetTaskProcessor().GetTaskProcessorPools()
+                std::move(proc_config),
+                engine::current_task::GetTaskProcessor().GetTaskProcessorPools()
             ));
         }
         auto tasks_count{state.range(0) / 2};
@@ -170,17 +218,16 @@ void engine_multiple_yield_two_task_processor_no_extra_wakeups(benchmark::State&
             benchmark::Counter(static_cast<double>(yields_performed) / state.range(0), benchmark::Counter::kIsRate);
     });
 }
-BENCHMARK(engine_multiple_yield_two_task_processor_no_extra_wakeups)->RangeMultiplier(2)->Range(2, 32)->Arg(6)->Arg(12);
+BENCHMARK(EngineMultipleYieldTwoTaskProcessorNoExtraWakeups)->RangeMultiplier(2)->Range(2, 32)->Arg(6)->Arg(12);
 
-void engine_tasks_from_another_task_processor(benchmark::State& state) {
+void EngineTasksFromAnotherTaskProcessor(benchmark::State& state) {
     engine::RunStandalone([&] {
         engine::TaskProcessorConfig proc_config;
         proc_config.name = "benchmark";
         proc_config.thread_name = "benchmark";
         proc_config.worker_threads = state.range(0);
-        engine::TaskProcessor task_processor(
-            std::move(proc_config), engine::current_task::GetTaskProcessor().GetTaskProcessorPools()
-        );
+        engine::TaskProcessor
+            task_processor(std::move(proc_config), engine::current_task::GetTaskProcessor().GetTaskProcessorPools());
         std::deque<engine::TaskWithResult<void>> tasks;
         for (std::size_t i = 0; i < proc_config.worker_threads; i++) {
             tasks.push_back(engine::AsyncNoSpan(task_processor, []() {}));
@@ -192,6 +239,6 @@ void engine_tasks_from_another_task_processor(benchmark::State& state) {
         }
     });
 }
-BENCHMARK(engine_tasks_from_another_task_processor)->RangeMultiplier(2)->Range(2, 32)->Arg(6)->Arg(12);
+BENCHMARK(EngineTasksFromAnotherTaskProcessor)->RangeMultiplier(2)->Range(2, 32)->Arg(6)->Arg(12);
 
 USERVER_NAMESPACE_END
