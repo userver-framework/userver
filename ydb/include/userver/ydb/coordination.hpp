@@ -61,13 +61,13 @@ public:
     );
 
     /// Create semaphore
-    void CreateSemaphore(std::string_view name, std::uint64_t limit);
+    void CreateSemaphore(std::string_view name, std::uint64_t limit, std::string_view data = {});
 
     /// Update semaphore
     void UpdateSemaphore(std::string_view name, std::string_view data);
 
     /// Delete semaphore
-    void DeleteSemaphore(std::string_view name);
+    void DeleteSemaphore(std::string_view name, bool force = false);
 
 private:
     NYdb::NCoordination::TSession session_;

@@ -56,16 +56,16 @@ NYdb::NCoordination::TSemaphoreDescription CoordinationSession::DescribeSemaphor
     return ExtractResult(session_.DescribeSemaphore(impl::ToString(name), settings), "DescribeSemaphore");
 }
 
-void CoordinationSession::CreateSemaphore(std::string_view name, std::uint64_t limit) {
-    ExtractResult(session_.CreateSemaphore(impl::ToString(name), limit), "CreateSemaphore");
+void CoordinationSession::CreateSemaphore(std::string_view name, std::uint64_t limit, std::string_view data) {
+    ExtractResult(session_.CreateSemaphore(impl::ToString(name), limit, impl::ToString(data)), "CreateSemaphore");
 }
 
 void CoordinationSession::UpdateSemaphore(std::string_view name, std::string_view data) {
     ExtractResult(session_.UpdateSemaphore(impl::ToString(name), impl::ToString(data)), "UpdateSemaphore");
 }
 
-void CoordinationSession::DeleteSemaphore(std::string_view name) {
-    ExtractResult(session_.DeleteSemaphore(impl::ToString(name)), "DeleteSemaphore");
+void CoordinationSession::DeleteSemaphore(std::string_view name, bool force) {
+    ExtractResult(session_.DeleteSemaphore(impl::ToString(name), force), "DeleteSemaphore");
 }
 
 CoordinationClient::CoordinationClient(std::shared_ptr<impl::Driver> driver)
