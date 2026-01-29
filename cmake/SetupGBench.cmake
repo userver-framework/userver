@@ -19,7 +19,7 @@ if(NOT USERVER_FORCE_DOWNLOAD_PACKAGES)
     endif()
 endif()
 
-set(UserverGBench_VERSION "1.6.1")
+set(UserverGBench_VERSION "1.9.5")
 
 include(DownloadUsingCPM)
 cpmaddpackage(
