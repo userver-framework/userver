@@ -55,18 +55,41 @@ using add_seq_index_t = typename add_seq_index<IndexList>::type;
 
 
 template<typename Value>
-struct TimestampedValue : public Value {
+struct TimestampedValue {
+    Value value;
     std::chrono::steady_clock::time_point last_accessed;
-
+    
     TimestampedValue() = default;
+    
+    explicit TimestampedValue(const Value& val) 
+        : value(val), last_accessed(std::chrono::steady_clock::now()) {}
+        
+    explicit TimestampedValue(Value&& val) 
+        : value(std::move(val)), last_accessed(std::chrono::steady_clock::now()) {}
+    
+    operator Value&() { return value; }
+    operator const Value&() const { return value; }
+    
+    Value* operator->() { return &value; }
+    const Value* operator->() const { return &value; }
+    
+    Value& get() { return value; }
+    const Value& get() const { return value; }
+};
 
-    explicit TimestampedValue(const Value& val)
-        : Value(val),
-          last_accessed(std::chrono::steady_clock::now()) {}
+template <typename Iterator>
+class TimestampedIteratorWrapper : public Iterator {
+public:
+    using Iterator::Iterator;
+    TimestampedIteratorWrapper(Iterator iter) : Iterator(std::move(iter)) {}
+    
+    auto operator->() {
+        return *(this->Iterator::operator->());
+    }
 
-    explicit TimestampedValue(Value&& val)
-        : Value(std::move(val)),
-          last_accessed(std::chrono::steady_clock::now()) {}
+    auto operator->() const {
+        return *(this->Iterator::operator->());
+    }
 };
 } // namespace impl
 } // namespace multi_index_lru

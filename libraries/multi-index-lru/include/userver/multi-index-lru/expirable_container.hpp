@@ -80,7 +80,7 @@ public:
         if (it != primary_index.end()) {
             if (std::chrono::steady_clock::now() > it->last_accessed + ttl_) {
                 primary_index.erase(it);
-                return primary_index.end();
+                return impl::TimestampedIteratorWrapper{primary_index.end()};
             }
 
             auto& seq_index = container_.template get<0>();
@@ -92,7 +92,7 @@ public:
             });
         }
 
-        return it;
+        return impl::TimestampedIteratorWrapper{it};
     }
 
     template <typename Tag, typename Key>
