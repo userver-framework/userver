@@ -3,7 +3,7 @@
 /// @file userver/multi-index-lru/container.hpp
 /// @brief @copybrief multi_index_lru::Container
 
-#include "container_impl.hpp"
+#include "impl/mpl_helpers.hpp"
 
 USERVER_NAMESPACE_BEGIN
 

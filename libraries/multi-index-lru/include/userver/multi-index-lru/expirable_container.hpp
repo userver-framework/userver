@@ -8,8 +8,10 @@
 #include <functional>
 #include <atomic>
 #include <cassert> 
+#include <array>
 
-#include "container_impl.hpp"
+#include "impl/mpl_helpers.hpp"
+#define _USERVER_MULTIINDEX_LRU_MUTEX_COUNT 100
 
 USERVER_NAMESPACE_BEGIN
 
@@ -36,7 +38,8 @@ public:
 
     template <typename... Args>
     bool emplace(Args&&... args) {
-        std::lock_guard<std::mutex> lock(mutex_);
+
+        lock_all_mutexes();
 
         auto& seq_index = container_.template get<0>();
         auto result = seq_index.emplace_front(std::forward<Args>(args)...);
@@ -50,9 +53,12 @@ public:
             seq_index.pop_back();
         }
 
+        unlock_all_mutexes();
+
         if (!cleanup_thread_running_.load(std::memory_order_relaxed)) {
             start_cleanup();
         }
+
 
         return result.second;
     }
@@ -63,9 +69,13 @@ public:
 
     template <typename Tag, typename Key>
     auto find(const Key& key) {
-        std::lock_guard<std::mutex> lock(mutex_);
         auto& primary_index = container_.template get<Tag>();
         auto it = primary_index.find(key);
+
+        std::size_t element_ptr = (std::size_t) it.operator->();
+        std::lock_guard<std::mutex> lock(mutexes_[element_ptr % _USERVER_MULTIINDEX_LRU_MUTEX_COUNT]);
+
+        it = primary_index.find(key);
 
         if (it != primary_index.end()) {
             if (std::chrono::steady_clock::now() > it->last_accessed + ttl_) {
@@ -92,17 +102,30 @@ public:
 
     template <typename Tag, typename Key>
     bool erase(const Key& key) {
-        std::lock_guard<std::mutex> lock(mutex_);
-        return container_.template get<Tag>().erase(key) > 0;
+        auto& primary_index = container_.template get<Tag>();
+        auto it = primary_index.find(key);
+
+        if (it == primary_index.end()) {
+            return false;
+        }
+
+        std::size_t element_ptr = (std::size_t) it.operator->();
+        std::lock_guard<std::mutex> lock(mutexes_[element_ptr % _USERVER_MULTIINDEX_LRU_MUTEX_COUNT]);
+
+        return primary_index.erase(key) > 0;
     }
 
     std::size_t size() const { 
-        std::lock_guard<std::mutex> lock(mutex_);
-        return container_.size(); 
+        lock_all_mutexes();
+        std::size_t size = container_.size();
+        unlock_all_mutexes();
+        return size;
     }
     bool empty() const { 
-        std::lock_guard<std::mutex> lock(mutex_);
-        return container_.empty(); 
+        lock_all_mutexes();
+        auto res = container_.empty(); 
+        unlock_all_mutexes();
+        return res;
     }
     std::size_t capacity() const { return max_size_; }
 
@@ -110,15 +133,17 @@ public:
         max_size_ = new_capacity;
         auto& seq_index = container_.template get<0>();
 
-        std::lock_guard<std::mutex> lock(mutex_);
+        lock_all_mutexes();
         while (container_.size() > max_size_) {
             seq_index.pop_back();
         }
+        unlock_all_mutexes();
     }
 
     void clear() { 
-        std::lock_guard<std::mutex> lock(mutex_);
+        lock_all_mutexes();
         container_.clear(); 
+        unlock_all_mutexes();
     }
 
     template <typename Tag>
@@ -132,19 +157,33 @@ private:
     using BoostContainer = boost::multi_index::multi_index_container<CacheItem, ExtendedIndexSpecifierList, Allocator>;
 
     void cleanup() {
-        std::lock_guard<std::mutex> lock(mutex_);
+        lock_all_mutexes();
         auto now = std::chrono::steady_clock::now();
         
         auto& seq_index = container_.template get<0>();
-        for (auto it = seq_index.begin(); it != seq_index.end(); ) {
+        while(!seq_index.empty()) {
+            auto it = seq_index.rbegin(); 
             if (now > it->last_accessed + ttl_) {
-                it = seq_index.erase(it);
+                seq_index.pop_back();
             } else {
-                ++it;
+                break; 
             }
         }
+        unlock_all_mutexes();
     }
-    
+
+    void lock_all_mutexes() const {
+        for (int i = 0; i < _USERVER_MULTIINDEX_LRU_MUTEX_COUNT; ++i) {
+            mutexes_[i].lock();
+        }
+    }
+
+    void unlock_all_mutexes() const {
+        for (int i = 0; i < _USERVER_MULTIINDEX_LRU_MUTEX_COUNT; ++i) {
+            mutexes_[i].unlock();
+        }
+    }
+
     void start_cleanup() {
         std::lock_guard<std::mutex> lock(start_thread_mutex_);
         if (cleanup_thread_running_.load(std::memory_order_relaxed)) {
@@ -171,10 +210,10 @@ private:
     std::size_t max_size_;
     std::chrono::milliseconds ttl_;
     std::chrono::milliseconds cleanup_interval_;
-    mutable std::mutex mutex_;
     mutable std::mutex start_thread_mutex_;
     std::atomic<bool> cleanup_thread_running_;
     std::thread cleanup_thread_;
+    mutable std::array<std::mutex, _USERVER_MULTIINDEX_LRU_MUTEX_COUNT> mutexes_;
 };
 }  // namespace multi_index_lru
 
