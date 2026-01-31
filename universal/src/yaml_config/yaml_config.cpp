@@ -227,7 +227,7 @@ YamlConfig YamlConfig::operator[](size_t index) const {
         return MakeMissingConfig(*this, index)[value.As<std::string>()];
     }
 
-    return {std::move(value), config_vars_};
+    return {std::move(value), config_vars_, mode_};
 }
 
 std::size_t YamlConfig::GetSize() const { return yaml_.GetSize(); }
