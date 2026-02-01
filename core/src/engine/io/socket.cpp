@@ -501,6 +501,17 @@ void Socket::SetOption(int layer, int optname, int optval) {
     );
 }
 
+void Socket::SetOption(int layer, int optname, const void* optval, socklen_t optlen) {
+    UASSERT(IsValid());
+    utils::CheckSyscallCustomException<IoSystemError>(
+        ::setsockopt(Fd(), layer, optname, optval, optlen),
+        "setting socket option {},{} on fd {}",
+        layer,
+        optname,
+        Fd()
+    );
+}
+
 }  // namespace engine::io
 
 USERVER_NAMESPACE_END

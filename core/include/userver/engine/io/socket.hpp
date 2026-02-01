@@ -154,6 +154,9 @@ public:
     /// Sets a socket option.
     void SetOption(int layer, int optname, int optval);
 
+    /// Sets a socket option with non-trivial optval.
+    void SetOption(int layer, int optname, const void* optval, socklen_t optlen);
+
     /// @brief Receives at least one byte from the socket.
     /// @returns 0 if connection is closed on one side and no data could be
     /// received any more, received bytes count otherwise.
