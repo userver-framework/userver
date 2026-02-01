@@ -3,7 +3,6 @@
 /// @file userver/engine/io/sockaddr.hpp
 /// @brief @copybrief engine::io::Sockaddr
 
-#include <arpa/inet.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <sys/types.h>
