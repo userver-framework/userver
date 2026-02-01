@@ -18,6 +18,36 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine::io {
 
+IpMreq::IpMreq(const char* imr_multiaddr, const char* imr_interface) : family_{AF_INET} {
+    memset(&data_, 0, sizeof(data_));
+    struct ip_mreq* imr_ptr = As<struct ip_mreq>();
+    if (::inet_pton(AF_INET, imr_multiaddr, &imr_ptr->imr_multiaddr) != 1) {
+        throw IpMulticastRequestException(
+            fmt::format("Invalid IPv4 multicast address: {}", imr_multiaddr)
+        );
+    }
+    if (imr_interface != nullptr) {
+        if (::inet_pton(AF_INET, imr_interface, &imr_ptr->imr_interface) != 1) {
+            throw IpMulticastRequestException(
+                fmt::format("Invalid IPv4 interface address: {}", imr_interface)
+            );
+        }
+    } else {
+        imr_ptr->imr_interface.s_addr = htonl(INADDR_ANY);
+    }
+}
+
+IpMreq::IpMreq(const char* ipv6mr_multiaddr, unsigned int ipv6mr_interface) : family_{AF_INET6} {
+    memset(&data_, 0, sizeof(data_));
+    struct ipv6_mreq* req = As<ipv6_mreq>();
+    if (inet_pton(AF_INET6, ipv6mr_multiaddr, &req->ipv6mr_multiaddr) != 1) {
+        throw IpMulticastRequestException(
+            fmt::format("Invalid IPv6 address: {}", ipv6mr_multiaddr)
+        );
+    }
+    req->ipv6mr_interface = ipv6mr_interface;
+}
+
 Sockaddr Sockaddr::MakeUnixSocketAddress(std::string_view path) {
     Sockaddr addr;
     auto* sa = addr.As<struct sockaddr_un>();

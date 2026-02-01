@@ -3,6 +3,7 @@
 /// @file userver/engine/io/sockaddr.hpp
 /// @brief @copybrief engine::io::Sockaddr
 
+#include <arpa/inet.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -26,6 +27,12 @@ public:
     using std::runtime_error::runtime_error;
 };
 
+/// Multicast request related exceptions
+class IpMulticastRequestException : public std::runtime_error {
+public:
+    using std::runtime_error::runtime_error;
+};
+
 /// Communication domain
 enum class AddrDomain {
     kUnspecified = AF_UNSPEC,  ///< Unspecified
@@ -38,6 +45,52 @@ static_assert(
     AF_UNSPEC == 0,  // NOLINT(misc-redundant-expression)
     "Your socket subsystem looks broken, please contact support chat."
 );
+
+/// Native ip multicast request wrapper
+class IpMreq final {
+public:
+    /// @brief Creates IPv4 multicast request.
+    /// @param imr_multiaddr IPv4 multicast group address (e.g., "239.255.0.1")
+    /// @param imr_interface IPv4 interface address (nullptr for INADDR_ANY)
+    IpMreq(const char* imr_multiaddr, const char* imr_interface = nullptr);
+
+    /// @brief Creates IPv6 multicast request.
+    /// @param ipv6mr_multiaddr IPv6 multicast group address (e.g., "ff02::1")
+    /// @param ipv6mr_interface Interface index (0 for default)
+    IpMreq(const char* ipv6mr_multiaddr, unsigned int ipv6mr_interface = 0);
+
+    /// @brief Native multicast request structure pointer.
+    void* Data() { return &data_; }
+
+    /// @brief Native multicast request structure pointer.
+    const void* Data() const { return &data_; }
+
+    /// @brief Returns socket option level.
+    int GetSocketOptionLevel() const noexcept { return (family_ == AF_INET ? IPPROTO_IP : IPPROTO_IPV6); }
+
+    /// @brief Returns socket option name for joining multicast group.
+    int GetJoinSocketOptionName() const noexcept { return (family_ == AF_INET ? IP_ADD_MEMBERSHIP : IPV6_JOIN_GROUP); }
+
+    /// @brief Returns socket option name for leaving multicast group.
+    int GetLeaveSocketOption() const noexcept { return (family_ == AF_INET ? IP_DROP_MEMBERSHIP : IPV6_LEAVE_GROUP); }
+
+    /// Returns appropriate size for setsockopt based on address family.
+    /// @param domain Socket domain (AF_INET or AF_INET6)
+    size_t Size() const noexcept { return (family_ == AF_INET ? sizeof(struct ip_mreq) : sizeof(struct ipv6_mreq)); }
+
+private:
+    template <typename T>
+    T* As() {
+        static_assert(sizeof(T) <= sizeof(data_), "Invalid ip multicast request type");
+        return reinterpret_cast<T*>(&data_);
+    }
+
+    union Storage {
+        struct ip_mreq ip_req;
+        struct ipv6_mreq ipv6_req;
+    } data_;
+    int family_;
+};
 
 /// Native socket address wrapper
 class Sockaddr final {
