@@ -124,7 +124,7 @@ class UserverConan(ConanFile):
         self.requires('zlib/[^1.3.1]')
         self.requires('zstd/[^1.5.5]')
         self.requires('icu/[>=74.1 <77]', force=True)
-        self.requires('re2/[>=20230301 <20240703]')
+        self.requires('re2/[>=20230301 <20240702]')
 
         if self.options.with_jemalloc:
             self.requires('jemalloc/[^5.3.0]')
