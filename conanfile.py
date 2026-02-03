@@ -243,7 +243,7 @@ class UserverConan(ConanFile):
     def build(self):
         # pg_config is required to build psycopg2 from source without system package.
         # However, this approach fails on later stage, when venv for tests is built.
-        if libpq := self.dependencies.get('libpq')
+        if libpq := self.dependencies.get('libpq'):
             os.environ['PATH'] = os.environ['PATH'] + ':' + libpq.package_folder + '/bin'
 
         cmake = CMake(self)
