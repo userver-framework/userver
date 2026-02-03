@@ -108,8 +108,7 @@ class UserverConan(ConanFile):
         cmake_layout(self)
 
     def requirements(self):
-        #self.requires('boost/[^1.86]', transitive_headers=True)
-        self.requires('boost/1.86.0', transitive_headers=True)
+        self.requires('boost/[>=1.86 <1.90]', transitive_headers=True)
         self.requires('c-ares/[^1.33]')
         self.requires('cctz/[^2.4]', transitive_headers=True)
         self.requires('concurrentqueue/1.0.3', transitive_headers=True)
@@ -244,8 +243,7 @@ class UserverConan(ConanFile):
     def build(self):
         # pg_config is required to build psycopg2 from source without system package.
         # However, this approach fails on later stage, when venv for tests is built.
-        libpq = self.dependencies['libpq']
-        if libpq:
+        if libpq := self.dependencies.get('libpq')
             os.environ['PATH'] = os.environ['PATH'] + ':' + libpq.package_folder + '/bin'
 
         cmake = CMake(self)
