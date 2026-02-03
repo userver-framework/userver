@@ -108,7 +108,8 @@ class UserverConan(ConanFile):
         cmake_layout(self)
 
     def requirements(self):
-        self.requires('boost/[^1.86]', transitive_headers=True)
+        #self.requires('boost/[^1.86]', transitive_headers=True)
+        self.requires('boost/1.86.0', transitive_headers=True)
         self.requires('c-ares/[^1.33]')
         self.requires('cctz/[^2.4]', transitive_headers=True)
         self.requires('concurrentqueue/1.0.3', transitive_headers=True)
@@ -118,8 +119,7 @@ class UserverConan(ConanFile):
         self.requires('libnghttp2/[^1.61]')
         self.requires('libcurl/[>=7.86.0 <7.88 || >8.1.2]')
         self.requires('libev/[^4.33]')
-        #self.requires('openssl/[>=1.1 <4]')
-        self.requires('openssl/3.3.2')
+        self.requires('openssl/[>=1.1 <4]')
         self.requires('rapidjson/[>=cci.20230929 <cci.20230930]', transitive_headers=True)
         self.requires('yaml-cpp/[^0.8]')
         self.requires('zlib/[^1.3]')
