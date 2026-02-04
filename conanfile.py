@@ -119,17 +119,17 @@ class UserverConan(ConanFile):
         self.requires('libcurl/[>=7.86.0 <7.88 || >8.1.2]')
         self.requires('libev/[^4.33]')
         self.requires('openssl/[>=1.1 <4]')
-        self.requires('rapidjson/[>=cci.20230929 <cci.20230930]', transitive_headers=True)
+        self.requires('rapidjson/[>=cci.20230929]', transitive_headers=True)
         self.requires('yaml-cpp/[^0.8]')
         self.requires('zlib/[^1.3]')
-        self.requires('zstd/[^1.5]')
-        self.requires('icu/[>=74.1 <77]', force=True)
-        self.requires('re2/[>=20230301]')
+        self.requires('zstd/[^1.5]', force=True)  # Kafaka and mongo require zstd/1.5.5
+        self.requires('icu/[>=76.1]', force=True)  # curl and re2 insist on different versions
+        self.requires('re2/[>=20230301]', force=True)  # gRPC requires re2/20230301
 
         if self.options.with_jemalloc:
             self.requires('jemalloc/[^5.3]')
         if self.options.with_grpc or self.options.with_clickhouse:
-            self.requires('abseil/[>=20240116.2]', force=True)
+            self.requires('abseil/[>=20240116.2]')
         if self.options.with_grpc:
             self.requires(
                 'grpc/[^1.65]',
