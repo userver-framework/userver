@@ -129,10 +129,10 @@ class UserverConan(ConanFile):
         if self.options.with_jemalloc:
             self.requires('jemalloc/[^5.3]')
         if self.options.with_grpc or self.options.with_clickhouse:
-            self.requires('abseil/20240116.2', force=True)
+            self.requires('abseil/[>=20240116.2]', force=True)
         if self.options.with_grpc:
             self.requires(
-                'grpc/[^1.65.0]',
+                'grpc/[^1.65]',
                 transitive_headers=True,
                 transitive_libs=True,
             )
