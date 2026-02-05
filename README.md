@@ -31,6 +31,7 @@ requests and tasks and returns to the handling of the operation only when it is
 guaranteed to execute immediately:
 
 ```cpp
+#include <string>
 #include <userver/easy.hpp>
 #include "schemas/key_value.hpp"
 
