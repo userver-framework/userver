@@ -111,7 +111,7 @@ class UserverConan(ConanFile):
         self.requires('boost/1.86.0', transitive_headers=True)
         self.requires('c-ares/[^1.33]')
         self.requires('cctz/[^2.4]', transitive_headers=True)
-        self.requires('concurrentqueue/[^1.0.3]', transitive_headers=True)
+        self.requires('concurrentqueue/1.0.3')  # 1.0.4 does not work dues to https://github.com/cameron314/concurrentqueue/issues/439
         self.requires('cryptopp/[^8.9]')
         self.requires('fmt/[>=8.1.1 <13]', transitive_headers=True)
         self.requires('libiconv/[^1.17]')
