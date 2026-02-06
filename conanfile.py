@@ -108,10 +108,13 @@ class UserverConan(ConanFile):
         cmake_layout(self)
 
     def requirements(self):
-        self.requires('boost/[>=1.86.0 <1.89]', transitive_headers=True)
+        self.requires('boost/[>=1.83 <1.88]', transitive_headers=True)
         self.requires('c-ares/[^1.33]')
         self.requires('cctz/[^2.4]', transitive_headers=True)
+
+        # 1.0.4 does not work due to https://github.com/cameron314/concurrentqueue/issues/439
         self.requires('concurrentqueue/1.0.3', transitive_headers=True)
+
         self.requires('cryptopp/[^8.9]')
         self.requires('fmt/[>=8.1.1 <13]', transitive_headers=True)
         self.requires('libiconv/[^1.17]')
