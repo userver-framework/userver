@@ -19,39 +19,39 @@ inline constexpr bool is_mpl_na = false;
 template <typename T>
 inline constexpr bool is_mpl_na<T, std::void_t<decltype(std::declval<T>().~na())>> = true;
 
-template <typename... Indices>
-struct lazy_add_seq {
-    using type = boost::multi_index::indexed_by<boost::multi_index::sequenced<>, Indices...>;
+template <typename IndexType, typename... Indices>
+struct lazy_add_index {
+    using type = boost::multi_index::indexed_by<IndexType, Indices...>;
 };
 
-template <typename... Indices>
-struct lazy_add_seq_no_last {
+template <typename IndexType, typename... Indices>
+struct lazy_add_index_no_last {
 private:
     template <std::size_t... I>
     static auto makeWithoutLast(std::index_sequence<I...>) {
         using Tuple = std::tuple<Indices...>;
-        return boost::multi_index::indexed_by<boost::multi_index::sequenced<>, std::tuple_element_t<I, Tuple>...>{};
+        return boost::multi_index::indexed_by<IndexType, std::tuple_element_t<I, Tuple>...>{};
     }
 
 public:
     using type = decltype(makeWithoutLast(std::make_index_sequence<sizeof...(Indices) - 1>{}));
 };
 
-template <typename IndexList>
-struct add_seq_index {};
+template <typename IndexType, typename IndexList>
+struct add_index {};
 
-template <typename... Indices>
-struct add_seq_index<boost::multi_index::indexed_by<Indices...>> {
+template <typename IndexType, typename... Indices>
+struct add_index<IndexType, boost::multi_index::indexed_by<Indices...>> {
     using LastType = decltype((Indices{}, ...));
 
     using type = typename std::conditional_t<
         is_mpl_na<LastType>,
-        lazy_add_seq_no_last<Indices...>,
-        lazy_add_seq<Indices...>>::type;
+        lazy_add_index_no_last<IndexType, Indices...>,
+        lazy_add_index<IndexType, Indices...>>::type;
 };
 
-template <typename IndexList>
-using add_seq_index_t = typename add_seq_index<IndexList>::type;
+template <typename IndexType, typename IndexList>
+using add_index_t = typename add_index<IndexType, IndexList>::type;
 
 
 template<typename Value>
@@ -72,6 +72,9 @@ struct TimestampedValue {
     
     Value* operator->() { return &value; }
     const Value* operator->() const { return &value; }
+
+    Value& operator*() {return value; }
+    const Value& operator*() const {return value; }
     
     Value& get() { return value; }
     const Value& get() const { return value; }

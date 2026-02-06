@@ -1,5 +1,8 @@
 #include <userver/multi-index-lru/container.hpp>
 #include <userver/multi-index-lru/expirable_container.hpp>
+#include <userver/utils/async.hpp>
+#include <userver/engine/run_standalone.hpp>
+#include <userver/engine/task/task_with_result.hpp>
 
 #include <string>
 
@@ -44,8 +47,8 @@ protected:
                 boost::multi_index::member<User, std::string, &User::name>>>>;
 };
 
-
 TEST_F(ExpirableUsersTest, BasicOperations) {
+    userver::engine::RunStandalone([&] {
     UserCacheExpirable cache(3, std::chrono::seconds(10));  // capacity=3, TTL=10s
 
     // Test insertion
@@ -71,9 +74,11 @@ TEST_F(ExpirableUsersTest, BasicOperations) {
     auto by_name = cache.find<NameTag>("Charlie");
     ASSERT_NE(by_name, cache.end<NameTag>());
     EXPECT_EQ(by_name->email, "charlie@test.com");
+    });
 }
 
 TEST_F(ExpirableUsersTest, LRUEviction) {
+    userver::engine::RunStandalone([&] {
     UserCacheExpirable cache(3, std::chrono::seconds(10));
 
     cache.insert(User{1, "alice@test.com", "Alice"});
@@ -92,9 +97,11 @@ TEST_F(ExpirableUsersTest, LRUEviction) {
     EXPECT_TRUE(cache.contains<IdTag>(3));   // Charlie remains
     EXPECT_TRUE(cache.contains<IdTag>(4));   // David added
     EXPECT_EQ(cache.size(), 3);
+    });
 }
 
 TEST_F(ExpirableUsersTest, TTLExpiration) {
+    userver::engine::RunStandalone([&] {
     using namespace std::chrono_literals;
     
     UserCacheExpirable cache(100, 100ms);  // Very short TTL for testing
@@ -113,9 +120,11 @@ TEST_F(ExpirableUsersTest, TTLExpiration) {
     EXPECT_FALSE(cache.contains<IdTag>(1));
     EXPECT_FALSE(cache.contains<IdTag>(2));
     EXPECT_EQ(cache.size(), 0);
+    });
 }
 
 TEST_F(ExpirableUsersTest, TTLRefreshOnAccess) {
+    userver::engine::RunStandalone([&] {
     using namespace std::chrono_literals;
     
     UserCacheExpirable cache(100, 200ms);
@@ -135,9 +144,11 @@ TEST_F(ExpirableUsersTest, TTLRefreshOnAccess) {
     // Wait for full TTL from last access
     std::this_thread::sleep_for(200ms);
     EXPECT_FALSE(cache.contains<IdTag>(1));
+    });
 }
 
 TEST_F(ExpirableUsersTest, EraseOperations) {
+    userver::engine::RunStandalone([&] {
     UserCacheExpirable cache(3, std::chrono::seconds(10));
     
     cache.insert(User{1, "alice@test.com", "Alice"});
@@ -150,9 +161,11 @@ TEST_F(ExpirableUsersTest, EraseOperations) {
     
     EXPECT_FALSE(cache.erase<IdTag>(999));  // Non-existent
     EXPECT_EQ(cache.size(), 1);
+    });
 }
 
 TEST_F(ExpirableUsersTest, SetCapacity) {
+    userver::engine::RunStandalone([&] {
     UserCacheExpirable cache(5, std::chrono::seconds(10));
     
     // Fill cache
@@ -168,9 +181,11 @@ TEST_F(ExpirableUsersTest, SetCapacity) {
     
     // Size should be <= new capacity
     EXPECT_LE(cache.size(), 3);
+    });
 }
 
 TEST_F(ExpirableUsersTest, Clear) {
+    userver::engine::RunStandalone([&] {
     UserCacheExpirable cache(5, std::chrono::seconds(10));
     
     cache.insert(User{1, "alice@test.com", "Alice"});
@@ -185,41 +200,43 @@ TEST_F(ExpirableUsersTest, Clear) {
     EXPECT_TRUE(cache.empty());
     EXPECT_FALSE(cache.contains<IdTag>(1));
     EXPECT_FALSE(cache.contains<IdTag>(2));
+    });
 }
 
 TEST_F(ExpirableUsersTest, ThreadSafetyBasic) {
+    userver::engine::RunStandalone([&] {
     UserCacheExpirable cache(100, std::chrono::seconds(10));
     
-    constexpr int kThreads = 4;
+    constexpr int kCoroutines = 4;
     constexpr int kIterations = 100;
-    std::vector<std::thread> threads;
+    std::vector<engine::TaskWithResult<void>> tasks;
+    tasks.reserve(kCoroutines);
     
-    for (int t = 0; t < kThreads; ++t) {
-        threads.emplace_back([&cache, t]() {
+    for (int t = 0; t < kCoroutines; ++t) {
+        tasks.push_back(utils::Async("using cache", [&cache, t]() {
             for (int i = 0; i < kIterations; ++i) {
                 int id = t * kIterations + i;
+                
                 cache.insert(User{id, std::to_string(id) + "@test.com", "User" + std::to_string(id)});
                 
-                // Concurrent reads
                 if (id % 3 == 0) {
                     cache.find<IdTag>(id);
                     cache.contains<IdTag>(id);
                 }
                 
-                // Concurrent erase
                 if (id % 5 == 0) {
                     cache.erase<IdTag>(id - 1);
                 }
             }
-        });
+        }));
     }
     
-    for (auto& t : threads) {
-        t.join();
+    for (auto& task : tasks) {
+        task.Get();
     }
     
-    // Should not crash and size should be reasonable
-    EXPECT_LE(cache.size(), 100);  // Due to capacity limit
+    EXPECT_LE(cache.size(), 100);
+    });
 }
 }  // namespace
 

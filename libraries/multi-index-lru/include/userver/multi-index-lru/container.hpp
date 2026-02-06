@@ -80,7 +80,9 @@ public:
     }
 
 private:
-    using ExtendedIndexSpecifierList = impl::add_seq_index_t<IndexSpecifierList>;
+    using ExtendedIndexSpecifierList = impl::add_index_t<
+                                    boost::multi_index::sequenced<>,
+                                    IndexSpecifierList>;
 
     using BoostContainer = boost::multi_index::multi_index_container<Value, ExtendedIndexSpecifierList, Allocator>;
 
