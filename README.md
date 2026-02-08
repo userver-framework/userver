@@ -33,6 +33,7 @@ guaranteed to execute immediately:
 ```cpp
 #include <userver/easy.hpp>
 #include "schemas/key_value.hpp"
+#include <string>
 
 int main(int argc, char* argv[]) {
     using namespace userver;
