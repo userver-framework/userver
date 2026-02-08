@@ -53,11 +53,10 @@ struct add_index<IndexType, boost::multi_index::indexed_by<Indices...>> {
 template <typename IndexType, typename IndexList>
 using add_index_t = typename add_index<IndexType, IndexList>::type;
 
-
 template<typename Value>
 struct TimestampedValue {
     Value value;
-    std::chrono::steady_clock::time_point last_accessed;
+    mutable std::chrono::steady_clock::time_point last_accessed;
     
     TimestampedValue() = default;
     

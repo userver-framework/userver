@@ -9,6 +9,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace multi_index_lru {
 
+template <typename Value, typename IndexSpecifierList, typename Allocator = std::allocator<Value>>
+class ExpirableContainer;
+
 /// @ingroup userver_containers
 ///
 /// @brief MultiIndex LRU container
@@ -20,7 +23,7 @@ public:
     {}
 
     template <typename... Args>
-    bool emplace(Args&&... args) {
+    auto emplace(Args&&... args) {
         auto& seq_index = container_.template get<0>();
         auto result = seq_index.emplace_front(std::forward<Args>(args)...);
 
@@ -29,12 +32,12 @@ public:
         } else if (seq_index.size() > max_size_) {
             seq_index.pop_back();
         }
-        return result.second;
+        return result;
     }
 
-    bool insert(const Value& value) { return emplace(value); }
+    bool insert(const Value& value) { return emplace(value).second; }
 
-    bool insert(Value&& value) { return emplace(std::move(value)); }
+    bool insert(Value&& value) { return emplace(std::move(value)).second; }
 
     template <typename Tag, typename Key>
     auto find(const Key& key) {
@@ -88,6 +91,27 @@ private:
 
     BoostContainer container_;
     std::size_t max_size_;
+
+    auto &get_sequensed() {
+        return container_.template get<0>();
+    }
+
+    const auto& get_sequensed() const {
+        return container_.template get<0>();
+    }
+
+    template <typename Tag>
+    auto& get() {
+        return container_.template get<Tag>();
+    }
+
+    template <typename Tag>
+    const auto& get() const {
+        return container_.template get<Tag>();
+    }
+
+    template <typename V, typename I, typename A>
+    friend class ExpirableContainer;
 };
 }  // namespace multi_index_lru
 

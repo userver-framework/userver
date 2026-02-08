@@ -76,7 +76,7 @@ static void ExpirableFindEmplaceMix(benchmark::State& state) {
 
     UserCache cache(
         cache_size,
-        std::chrono::minutes(10),      // ttl — big to not cause interference 
+        std::chrono::seconds(5),      // ttl — big to not cause interference 
         std::chrono::seconds(1)        // cleanup_interval
     );
 

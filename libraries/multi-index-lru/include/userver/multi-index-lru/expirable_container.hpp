@@ -9,6 +9,7 @@
 #include <mutex>
 
 #include "impl/mpl_helpers.hpp"
+#include "container.hpp"
 
 #include <userver/utils/async.hpp>
 #include <userver/utils/rand.hpp>
@@ -25,13 +26,13 @@ namespace multi_index_lru {
 /// @ingroup userver_containers
 ///
 /// @brief MultiIndex LRU expirable container
-template <typename Value, typename IndexSpecifierList, typename Allocator = std::allocator<Value>>
+template <typename Value, typename IndexSpecifierList, typename Allocator>
 class ExpirableContainer {
 public:
     explicit ExpirableContainer(size_t max_size,
                        std::chrono::milliseconds ttl,
                        std::chrono::milliseconds cleanup_interval = std::chrono::milliseconds(60))
-        : max_size_(max_size), ttl_(ttl), cleanup_interval_(cleanup_interval)
+        : container_(max_size), ttl_(ttl), cleanup_interval_(cleanup_interval)
     {
         assert(ttl.count() > 0 && "ttl must be positive");
         assert(cleanup_interval.count() > 0 && "cleanup_interval must be positive");
@@ -42,101 +43,75 @@ public:
     }
 
     template <typename... Args>
-    bool emplace(Args&&... args) {
-        std::lock_guard<userver::engine::SharedMutex> read_lock(read_mutex_);
-        std::lock_guard<userver::engine::Mutex> write_lock(write_mutex_);
+    auto emplace(Args&&... args) {
+        std::lock_guard<userver::engine::SharedMutex> lock(mutex_);
 
-        auto& seq_index = container_.template get<0>();
-        auto result = seq_index.emplace_front(std::forward<Args>(args)...);
+        auto result = container_.emplace(std::forward<Args>(args)...);
 
         if (!result.second) {
-            seq_index.relocate(seq_index.begin(), result.first);
-            seq_index.modify(result.first, [](CacheItem& item) {
-                item.last_accessed = std::chrono::steady_clock::now();
-            });
-        } else if (seq_index.size() > max_size_) {
-            seq_index.pop_back();
+            result.first->last_accessed = std::chrono::steady_clock::now();
         }
 
         start_cleanup();
 
-        return result.second;
+        return result;
     }
 
     template <typename Tag, typename Key>
     auto find(const Key& key) {
-        std::shared_lock<userver::engine::SharedMutex> read_lock(read_mutex_);
-        auto& primary_index = container_.template get<Tag>();
-        auto it = primary_index.find(key);
-
-        if (it != primary_index.end()) {
+        std::lock_guard<userver::engine::SharedMutex> lock(mutex_);
+        auto it = container_.template find<Tag, Key>(key);
+        
+        if (it != container_.template end<Tag>()) {
             if (std::chrono::steady_clock::now() > it->last_accessed + ttl_) {
-                std::lock_guard<userver::engine::Mutex> write_lock(write_mutex_);
-                primary_index.erase(it);
-                return impl::TimestampedIteratorWrapper{primary_index.end()};
+                container_.template get<Tag>().erase(it);
+                return impl::TimestampedIteratorWrapper{container_.template end<Tag>()};
             }
 
-            auto& seq_index = container_.template get<0>();
-            auto seq_it = container_.template project<0>(it);
-            {
-                std::lock_guard<userver::engine::Mutex> write_lock(write_mutex_);
-                seq_index.relocate(seq_index.begin(), seq_it);
-
-                primary_index.modify(it, [](CacheItem& item) {
-                    item.last_accessed = std::chrono::steady_clock::now();
-                });
-            }
+            it->last_accessed = std::chrono::steady_clock::now();
         }
 
         return impl::TimestampedIteratorWrapper{it};
     }
 
-    bool insert(const Value& value) { return emplace(value); }
+    bool insert(const Value& value) { return emplace(value).second; }
 
-    bool insert(Value&& value) { return emplace(std::move(value)); }
+    bool insert(Value&& value) { return emplace(std::move(value)).second; }
 
     template <typename Tag, typename Key>
     bool contains(const Key& key) {
-        return this->template find<Tag, Key>(key) != container_.template get<Tag>().end();
+        return this->template find<Tag, Key>(key) != container_.template end<Tag>();
     }
 
     template <typename Tag, typename Key>
     bool erase(const Key& key) {
-        std::lock_guard<userver::engine::SharedMutex> read_lock(read_mutex_);
-        std::lock_guard<userver::engine::Mutex> write_lock(write_mutex_);
-        return container_.template get<Tag>().erase(key) > 0;
+        std::lock_guard<userver::engine::SharedMutex> lock(mutex_);
+        return container_.template erase<Tag, Key>(key);
     }
 
     std::size_t size() const { 
-        std::shared_lock<userver::engine::SharedMutex> read_lock(read_mutex_);
+        std::shared_lock<userver::engine::SharedMutex> lock(mutex_);
         return container_.size(); 
     }
     bool empty() const { 
-        std::shared_lock<userver::engine::SharedMutex> read_lock(read_mutex_);
+        std::shared_lock<userver::engine::SharedMutex> lock(mutex_);
         return container_.empty(); 
     }
-    std::size_t capacity() const { return max_size_; }
+    std::size_t capacity() const { return container_.capacity(); }
 
     void set_capacity(std::size_t new_capacity) {
-        max_size_ = new_capacity;
-        auto& seq_index = container_.template get<0>();
-
-        std::lock_guard<userver::engine::SharedMutex> read_lock(read_mutex_);
-        std::lock_guard<userver::engine::Mutex> write_lock(write_mutex_);
-        while (container_.size() > max_size_) {
-            seq_index.pop_back();
-        }
+        std::lock_guard<userver::engine::SharedMutex> lock(mutex_);
+        container_.set_capacity(new_capacity);
     }
 
     void clear() { 
-        std::lock_guard<userver::engine::SharedMutex> read_lock(read_mutex_);
-        std::lock_guard<userver::engine::Mutex> write_lock(write_mutex_);
+        std::lock_guard<userver::engine::SharedMutex> lock(mutex_);
         container_.clear(); 
     }
 
     template <typename Tag>
     auto end() {
-        return container_.template get<Tag>().end();
+        return container_.template end<Tag>();
     }
 
 private:
@@ -144,14 +119,13 @@ private:
     using ExtendedIndexSpecifierList = impl::add_index_t<
                                     boost::multi_index::sequenced<>,
                                     IndexSpecifierList>;
-    using BoostContainer = boost::multi_index::multi_index_container<CacheItem, ExtendedIndexSpecifierList, Allocator>;
+    using BoostContainer = Container<CacheItem, IndexSpecifierList, Allocator>;
 
     void cleanup() {
-        std::lock_guard<userver::engine::SharedMutex> read_lock(read_mutex_);
-        std::lock_guard<userver::engine::Mutex> write_lock(write_mutex_);
+        std::lock_guard<userver::engine::SharedMutex> lock(mutex_);
         auto now = std::chrono::steady_clock::now();
         
-        auto& seq_index = container_.template get<0>();
+        auto& seq_index = container_.get_sequensed();
         while(!seq_index.empty()) {
             auto it = seq_index.rbegin(); 
             if (now > it->last_accessed + ttl_) {
@@ -183,11 +157,9 @@ private:
     }
 
     BoostContainer container_;
-    std::size_t max_size_;
     std::chrono::milliseconds ttl_;
     std::chrono::milliseconds cleanup_interval_;
-    mutable userver::engine::SharedMutex read_mutex_;
-    mutable userver::engine::Mutex write_mutex_;
+    mutable userver::engine::SharedMutex mutex_;
     userver::engine::Task cleanup_task_; 
 };
 

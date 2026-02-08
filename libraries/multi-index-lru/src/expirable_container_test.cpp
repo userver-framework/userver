@@ -127,12 +127,12 @@ TEST_F(ExpirableUsersTest, TTLRefreshOnAccess) {
     userver::engine::RunStandalone([&] {
     using namespace std::chrono_literals;
     
-    UserCacheExpirable cache(100, 200ms);
+    UserCacheExpirable cache(100, 190ms);
     
     cache.insert(User{1, "alice@test.com", "Alice"});
     
     // Wait a bit but not enough to expire
-    std::this_thread::sleep_for(80ms);
+    std::this_thread::sleep_for(100ms);
     
     // Access should refresh TTL
     EXPECT_TRUE(cache.contains<IdTag>(1));
