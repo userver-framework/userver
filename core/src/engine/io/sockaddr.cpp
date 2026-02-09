@@ -19,8 +19,8 @@ USERVER_NAMESPACE_BEGIN
 namespace engine::io {
 
 IpMreq::IpMreq(const char* imr_multiaddr, const char* imr_interface) : family_{AF_INET} {
-    memset(&data_, 0, sizeof(data_));
-    struct ip_mreq* imr_ptr = As<struct ip_mreq>();
+    data_.ip_req = {};
+    struct ip_mreq* imr_ptr = &data_.ip_req;
     if (::inet_pton(AF_INET, imr_multiaddr, &imr_ptr->imr_multiaddr) != 1) {
         throw IpMulticastRequestException(
             fmt::format("Invalid IPv4 multicast address: {}", imr_multiaddr)
@@ -38,8 +38,8 @@ IpMreq::IpMreq(const char* imr_multiaddr, const char* imr_interface) : family_{A
 }
 
 IpMreq::IpMreq(const char* ipv6mr_multiaddr, unsigned int ipv6mr_interface) : family_{AF_INET6} {
-    memset(&data_, 0, sizeof(data_));
-    struct ipv6_mreq* req = As<ipv6_mreq>();
+    data_.ipv6_req = {};
+    struct ipv6_mreq* req = &data_.ipv6_req;
     if (inet_pton(AF_INET6, ipv6mr_multiaddr, &req->ipv6mr_multiaddr) != 1) {
         throw IpMulticastRequestException(
             fmt::format("Invalid IPv6 address: {}", ipv6mr_multiaddr)
