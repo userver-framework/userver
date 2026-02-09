@@ -78,12 +78,6 @@ public:
     size_t Size() const noexcept { return (family_ == AF_INET ? sizeof(struct ip_mreq) : sizeof(struct ipv6_mreq)); }
 
 private:
-    template <typename T>
-    T* As() {
-        static_assert(sizeof(T) <= sizeof(data_), "Invalid ip multicast request type");
-        return reinterpret_cast<T*>(&data_);
-    }
-
     union Storage {
         struct ip_mreq ip_req;
         struct ipv6_mreq ipv6_req;
