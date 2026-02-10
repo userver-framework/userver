@@ -101,12 +101,12 @@ private:
     }
 
     template <typename Tag>
-    auto& get() {
+    auto& get_index() {
         return container_.template get<Tag>();
     }
 
     template <typename Tag>
-    const auto& get() const {
+    const auto& get_index() const {
         return container_.template get<Tag>();
     }
 

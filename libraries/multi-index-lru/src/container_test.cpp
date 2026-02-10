@@ -1,9 +1,8 @@
 #include <userver/multi-index-lru/container.hpp>
-#include <userver/multi-index-lru/expirable_container.hpp>
+#include <userver/utest/utest.hpp>
 
 #include <string>
 
-#include <gtest/gtest.h>
 #include <boost/multi_index/hashed_index.hpp>
 #include <boost/multi_index/member.hpp>
 #include <boost/multi_index/ordered_index.hpp>
@@ -45,7 +44,7 @@ protected:
                 boost::multi_index::member<User, std::string, &User::name>>>>;
 };
 
-TEST_F(LRUUsersTest, BasicOperations) {
+UTEST_F(LRUUsersTest, BasicOperations) {
     UserCache cache(3);  // capacity == 3
 
     // Test insertion
@@ -75,7 +74,7 @@ TEST_F(LRUUsersTest, BasicOperations) {
     EXPECT_NE(it, cache.end<EmailTag>());
 }
 
-TEST_F(LRUUsersTest, LRUEviction) {
+UTEST_F(LRUUsersTest, LRUEviction) {
     UserCache cache(3);
 
     cache.emplace(User{1, "alice@test.com", "Alice"});
@@ -121,7 +120,7 @@ protected:
                 boost::multi_index::member<Product, std::string, &Product::name>>>>;
 };
 
-TEST_F(ProductsTest, BasicProductOperations) {
+UTEST_F(ProductsTest, BasicProductOperations) {
     ProductCache cache(2);
 
     cache.emplace(Product{"A1", "Laptop", 999.99});
@@ -132,7 +131,7 @@ TEST_F(ProductsTest, BasicProductOperations) {
     EXPECT_EQ(laptop->name, "Laptop");
 }
 
-TEST_F(ProductsTest, ProductEviction) {
+UTEST_F(ProductsTest, ProductEviction) {
     ProductCache cache(2);
 
     cache.emplace(Product{"A1", "Laptop", 999.99});

@@ -7,6 +7,7 @@
 #include <cassert> 
 #include <shared_mutex>
 #include <mutex>
+#include <optional>
 
 #include "impl/mpl_helpers.hpp"
 #include "container.hpp"
@@ -57,30 +58,24 @@ public:
         return result;
     }
 
-    template <typename Tag, typename Key>
-    auto find(const Key& key) {
-        std::lock_guard<userver::engine::SharedMutex> lock(mutex_);
-        auto it = container_.template find<Tag, Key>(key);
-        
-        if (it != container_.template end<Tag>()) {
-            if (std::chrono::steady_clock::now() > it->last_accessed + ttl_) {
-                container_.template get<Tag>().erase(it);
-                return impl::TimestampedIteratorWrapper{container_.template end<Tag>()};
-            }
-
-            it->last_accessed = std::chrono::steady_clock::now();
-        }
-
-        return impl::TimestampedIteratorWrapper{it};
-    }
-
     bool insert(const Value& value) { return emplace(value).second; }
 
     bool insert(Value&& value) { return emplace(std::move(value)).second; }
 
     template <typename Tag, typename Key>
+    std::optional<Value> get(const Key& key) {
+        std::lock_guard<userver::engine::SharedMutex> lock(mutex_);
+        auto it = find<Tag, Key>(lock, key);
+        if (it == end<Tag>()) {
+            return std::nullopt;
+        }
+        return *it;
+    }
+
+    template <typename Tag, typename Key>
     bool contains(const Key& key) {
-        return this->template find<Tag, Key>(key) != container_.template end<Tag>();
+        std::lock_guard<userver::engine::SharedMutex> lock(mutex_);
+        return this->template find<Tag, Key>(lock, key) != container_.template end<Tag>();
     }
 
     template <typename Tag, typename Key>
@@ -119,11 +114,27 @@ private:
     using ExtendedIndexSpecifierList = impl::add_index_t<
                                     boost::multi_index::sequenced<>,
                                     IndexSpecifierList>;
-    using BoostContainer = Container<CacheItem, IndexSpecifierList, Allocator>;
+    using CacheContainer = Container<CacheItem, IndexSpecifierList, Allocator>;
+
+    template <typename Tag, typename Key>
+    auto find(std::lock_guard<userver::engine::SharedMutex>&, const Key& key) {
+        auto it = container_.template find<Tag, Key>(key);
+        
+        if (it != container_.template end<Tag>()) {
+            if (std::chrono::steady_clock::now() > it->last_accessed + ttl_) {
+                container_.template get_index<Tag>().erase(it);
+                return impl::TimestampedIteratorWrapper{container_.template end<Tag>()};
+            }
+
+            it->last_accessed = std::chrono::steady_clock::now();
+        }
+
+        return impl::TimestampedIteratorWrapper{it};
+    }
 
     void cleanup() {
-        std::lock_guard<userver::engine::SharedMutex> lock(mutex_);
         auto now = std::chrono::steady_clock::now();
+        std::lock_guard<userver::engine::SharedMutex> lock(mutex_);
         
         auto& seq_index = container_.get_sequensed();
         while(!seq_index.empty()) {
@@ -156,7 +167,7 @@ private:
         }
     }
 
-    BoostContainer container_;
+    CacheContainer container_;
     std::chrono::milliseconds ttl_;
     std::chrono::milliseconds cleanup_interval_;
     mutable userver::engine::SharedMutex mutex_;

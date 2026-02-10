@@ -104,9 +104,9 @@ static void ExpirableFindEmplaceMix(benchmark::State& state) {
 
     for (auto _ : state) {
         for (std::size_t i = 0; i < read_ops; ++i) {
-            cache.find<NameTag, std::string>(names[i]);
-            cache.find<EmailTag, std::string>(emails[i]);
-            cache.find<IdTag, int>(ids[i]);
+            cache.get<NameTag, std::string>(names[i]);
+            cache.get<EmailTag, std::string>(emails[i]);
+            cache.get<IdTag, int>(ids[i]);
         }
 
         for (std::size_t i = 0; i < write_ops; ++i) { 
@@ -155,9 +155,9 @@ static void ExpirableGetOperations(benchmark::State& state) {
         state.ResumeTiming();
 
         for (std::size_t i = 0; i < kOperationsNumber; ++i) {
-            benchmark::DoNotOptimize(cache.find<NameTag, std::string>(names[i]));
-            benchmark::DoNotOptimize(cache.find<EmailTag, std::string>(emails[i]));
-            benchmark::DoNotOptimize(cache.find<IdTag, int>(ids[i]));
+            benchmark::DoNotOptimize(cache.get<NameTag, std::string>(names[i]));
+            benchmark::DoNotOptimize(cache.get<EmailTag, std::string>(emails[i]));
+            benchmark::DoNotOptimize(cache.get<IdTag, int>(ids[i]));
         }
     }
 

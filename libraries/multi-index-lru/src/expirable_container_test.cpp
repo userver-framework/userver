@@ -1,12 +1,10 @@
-#include <userver/multi-index-lru/container.hpp>
 #include <userver/multi-index-lru/expirable_container.hpp>
 #include <userver/utils/async.hpp>
-#include <userver/engine/run_standalone.hpp>
 #include <userver/engine/task/task_with_result.hpp>
+#include <userver/utest/utest.hpp>
 
 #include <string>
 
-#include <gtest/gtest.h>
 #include <boost/multi_index/hashed_index.hpp>
 #include <boost/multi_index/member.hpp>
 #include <boost/multi_index/ordered_index.hpp>
@@ -47,8 +45,7 @@ protected:
                 boost::multi_index::member<User, std::string, &User::name>>>>;
 };
 
-TEST_F(ExpirableUsersTest, BasicOperations) {
-    userver::engine::RunStandalone([&] {
+UTEST_F(ExpirableUsersTest, BasicOperations) {
     UserCacheExpirable cache(3, std::chrono::seconds(10));  // capacity=3, TTL=10s
 
     // Test insertion
@@ -60,25 +57,23 @@ TEST_F(ExpirableUsersTest, BasicOperations) {
     EXPECT_EQ(cache.capacity(), 3);
     EXPECT_FALSE(cache.empty());
 
-    // Test find by id
-    auto by_id = cache.find<IdTag>(1);
-    ASSERT_NE(by_id, cache.end<IdTag>());
+    // Test get by id
+    auto by_id = cache.get<IdTag>(1);
+    EXPECT_TRUE(by_id.has_value());
     EXPECT_EQ(by_id->name, "Alice");
 
-    // Test find by email
-    auto by_email = cache.find<EmailTag>("bob@test.com");
-    ASSERT_NE(by_email, cache.end<EmailTag>());
+    // Test get by email
+    auto by_email = cache.get<EmailTag>("bob@test.com");
+    EXPECT_TRUE(by_email.has_value());
     EXPECT_EQ(by_email->id, 2);
 
-    // Test find by name
-    auto by_name = cache.find<NameTag>("Charlie");
-    ASSERT_NE(by_name, cache.end<NameTag>());
+    // Test get by name
+    auto by_name = cache.get<NameTag>("Charlie");
+    EXPECT_TRUE(by_name.has_value());
     EXPECT_EQ(by_name->email, "charlie@test.com");
-    });
 }
 
-TEST_F(ExpirableUsersTest, LRUEviction) {
-    userver::engine::RunStandalone([&] {
+UTEST_F(ExpirableUsersTest, LRUEviction) {
     UserCacheExpirable cache(3, std::chrono::seconds(10));
 
     cache.insert(User{1, "alice@test.com", "Alice"});
@@ -86,8 +81,8 @@ TEST_F(ExpirableUsersTest, LRUEviction) {
     cache.insert(User{3, "charlie@test.com", "Charlie"});
 
     // Access Alice and Charlie to make them recently used
-    cache.find<IdTag>(1);
-    cache.find<IdTag>(3);
+    cache.get<IdTag>(1);
+    cache.get<IdTag>(3);
 
     // Add fourth element - Bob should be evicted (LRU)
     cache.insert(User{4, "david@test.com", "David"});
@@ -97,11 +92,9 @@ TEST_F(ExpirableUsersTest, LRUEviction) {
     EXPECT_TRUE(cache.contains<IdTag>(3));   // Charlie remains
     EXPECT_TRUE(cache.contains<IdTag>(4));   // David added
     EXPECT_EQ(cache.size(), 3);
-    });
 }
 
-TEST_F(ExpirableUsersTest, TTLExpiration) {
-    userver::engine::RunStandalone([&] {
+UTEST_F(ExpirableUsersTest, TTLExpiration) {
     using namespace std::chrono_literals;
     
     UserCacheExpirable cache(100, 100ms);  // Very short TTL for testing
@@ -120,11 +113,10 @@ TEST_F(ExpirableUsersTest, TTLExpiration) {
     EXPECT_FALSE(cache.contains<IdTag>(1));
     EXPECT_FALSE(cache.contains<IdTag>(2));
     EXPECT_EQ(cache.size(), 0);
-    });
 }
 
-TEST_F(ExpirableUsersTest, TTLRefreshOnAccess) {
-    userver::engine::RunStandalone([&] {
+UTEST_F(ExpirableUsersTest, TTLRefreshOnAccess) {
+    
     using namespace std::chrono_literals;
     
     UserCacheExpirable cache(100, 190ms);
@@ -144,11 +136,10 @@ TEST_F(ExpirableUsersTest, TTLRefreshOnAccess) {
     // Wait for full TTL from last access
     std::this_thread::sleep_for(200ms);
     EXPECT_FALSE(cache.contains<IdTag>(1));
-    });
 }
 
-TEST_F(ExpirableUsersTest, EraseOperations) {
-    userver::engine::RunStandalone([&] {
+UTEST_F(ExpirableUsersTest, EraseOperations) {
+    
     UserCacheExpirable cache(3, std::chrono::seconds(10));
     
     cache.insert(User{1, "alice@test.com", "Alice"});
@@ -161,11 +152,10 @@ TEST_F(ExpirableUsersTest, EraseOperations) {
     
     EXPECT_FALSE(cache.erase<IdTag>(999));  // Non-existent
     EXPECT_EQ(cache.size(), 1);
-    });
 }
 
-TEST_F(ExpirableUsersTest, SetCapacity) {
-    userver::engine::RunStandalone([&] {
+UTEST_F(ExpirableUsersTest, SetCapacity) {
+    
     UserCacheExpirable cache(5, std::chrono::seconds(10));
     
     // Fill cache
@@ -181,11 +171,10 @@ TEST_F(ExpirableUsersTest, SetCapacity) {
     
     // Size should be <= new capacity
     EXPECT_LE(cache.size(), 3);
-    });
 }
 
-TEST_F(ExpirableUsersTest, Clear) {
-    userver::engine::RunStandalone([&] {
+UTEST_F(ExpirableUsersTest, Clear) {
+    
     UserCacheExpirable cache(5, std::chrono::seconds(10));
     
     cache.insert(User{1, "alice@test.com", "Alice"});
@@ -200,11 +189,10 @@ TEST_F(ExpirableUsersTest, Clear) {
     EXPECT_TRUE(cache.empty());
     EXPECT_FALSE(cache.contains<IdTag>(1));
     EXPECT_FALSE(cache.contains<IdTag>(2));
-    });
 }
 
-TEST_F(ExpirableUsersTest, ThreadSafetyBasic) {
-    userver::engine::RunStandalone([&] {
+UTEST_F(ExpirableUsersTest, ThreadSafetyBasic) {
+    
     UserCacheExpirable cache(100, std::chrono::seconds(10));
     
     constexpr int kCoroutines = 4;
@@ -220,7 +208,7 @@ TEST_F(ExpirableUsersTest, ThreadSafetyBasic) {
                 cache.insert(User{id, std::to_string(id) + "@test.com", "User" + std::to_string(id)});
                 
                 if (id % 3 == 0) {
-                    cache.find<IdTag>(id);
+                    cache.get<IdTag>(id);
                     cache.contains<IdTag>(id);
                 }
                 
@@ -236,7 +224,6 @@ TEST_F(ExpirableUsersTest, ThreadSafetyBasic) {
     }
     
     EXPECT_LE(cache.size(), 100);
-    });
 }
 }  // namespace
 
