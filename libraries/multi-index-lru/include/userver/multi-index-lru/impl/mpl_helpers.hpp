@@ -93,6 +93,20 @@ public:
         return *(this->Iterator::operator->());
     }
 };
+
+template<typename T>
+struct is_unique_index {
+private:
+    template<typename U>
+    static auto test(int) -> decltype(std::declval<U>().find(std::declval<typename U::key_type>()), 
+                                      std::true_type{});
+    
+    template<typename>
+    static std::false_type test(...);
+    
+public:
+    static constexpr bool value = decltype(test<T>(0))::value;
+};
 } // namespace impl
 } // namespace multi_index_lru
 

@@ -110,6 +110,11 @@ private:
         return container_.template get<Tag>();
     }
 
+    template <typename IterT>
+    auto project_to_sequenced(IterT it) {
+        return container_.template project<0>(it);
+    }
+
     template <typename V, typename I, typename A>
     friend class ExpirableContainer;
 };

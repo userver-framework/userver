@@ -59,18 +59,18 @@ UTEST_F(ExpirableUsersTest, BasicOperations) {
 
     // Test get by id
     auto by_id = cache.get<IdTag>(1);
-    EXPECT_TRUE(by_id.has_value());
-    EXPECT_EQ(by_id->name, "Alice");
+    EXPECT_FALSE(by_id.empty());
+    EXPECT_EQ(by_id.begin()->name, "Alice");
 
     // Test get by email
     auto by_email = cache.get<EmailTag>("bob@test.com");
-    EXPECT_TRUE(by_email.has_value());
-    EXPECT_EQ(by_email->id, 2);
+    EXPECT_FALSE(by_email.empty());
+    EXPECT_EQ(by_email.begin()->id, 2);
 
     // Test get by name
     auto by_name = cache.get<NameTag>("Charlie");
-    EXPECT_TRUE(by_name.has_value());
-    EXPECT_EQ(by_name->email, "charlie@test.com");
+    EXPECT_FALSE(by_name.empty());
+    EXPECT_EQ(by_name.begin()->email, "charlie@test.com");
 }
 
 UTEST_F(ExpirableUsersTest, LRUEviction) {

@@ -7,7 +7,7 @@
 #include <cassert> 
 #include <shared_mutex>
 #include <mutex>
-#include <optional>
+#include <vector>
 
 #include "impl/mpl_helpers.hpp"
 #include "container.hpp"
@@ -63,19 +63,33 @@ public:
     bool insert(Value&& value) { return emplace(std::move(value)).second; }
 
     template <typename Tag, typename Key>
-    std::optional<Value> get(const Key& key) {
+    std::vector<Value> get(const Key& key) {
+        auto now = std::chrono::steady_clock::now();
         std::lock_guard<userver::engine::SharedMutex> lock(mutex_);
-        auto it = find<Tag, Key>(lock, key);
-        if (it == end<Tag>()) {
-            return std::nullopt;
+        
+        std::vector<Value> result;
+        auto& index = container_.template get_index<Tag>();
+        
+        if constexpr (impl::is_unique_index<decltype(index)>::value) {
+            auto it = find<Tag, Key>(lock, key, now);
+            if (it != container_.template end<Tag>()) {
+                result.push_back(it->value);
+            }
+        } else {
+            auto range = find_range<Tag, Key>(lock, key, now);
+            for (auto it = range.first; it != range.second; ++it) {
+                result.push_back(it->value);
+            }
         }
-        return *it;
+        
+        return result;
     }
 
     template <typename Tag, typename Key>
     bool contains(const Key& key) {
+        auto now = std::chrono::steady_clock::now();
         std::lock_guard<userver::engine::SharedMutex> lock(mutex_);
-        return this->template find<Tag, Key>(lock, key) != container_.template end<Tag>();
+        return find<Tag, Key>(lock, key, now) != container_.template end<Tag>();
     }
 
     template <typename Tag, typename Key>
@@ -117,19 +131,55 @@ private:
     using CacheContainer = Container<CacheItem, IndexSpecifierList, Allocator>;
 
     template <typename Tag, typename Key>
-    auto find(std::lock_guard<userver::engine::SharedMutex>&, const Key& key) {
+    auto find(std::lock_guard<userver::engine::SharedMutex>&, 
+                   const Key& key, 
+                   std::chrono::steady_clock::time_point now) {
         auto it = container_.template find<Tag, Key>(key);
         
-        if (it != container_.template end<Tag>()) {
-            if (std::chrono::steady_clock::now() > it->last_accessed + ttl_) {
+        if (it != end<Tag>()) {
+            if (now > it->last_accessed + ttl_) {
                 container_.template get_index<Tag>().erase(it);
-                return impl::TimestampedIteratorWrapper{container_.template end<Tag>()};
+                return end<Tag>();
+            } else {
+                it->last_accessed = now;
             }
-
-            it->last_accessed = std::chrono::steady_clock::now();
         }
+        
+        return it;
+    }
 
-        return impl::TimestampedIteratorWrapper{it};
+    template <typename Tag, typename Key>
+    auto find_range(std::lock_guard<userver::engine::SharedMutex>&,
+                    const Key& key,
+                    std::chrono::steady_clock::time_point now) {
+        auto& index = container_.template get_index<Tag>();
+        auto [begin, end] = index.equal_range(key);
+        
+        auto it = begin;
+        std::vector<decltype(it)> to_erase;
+        std::vector<decltype(it)> to_move;
+        
+        while (it != end) {
+            if (now > it->last_accessed + ttl_) {
+                to_erase.push_back(it);
+                ++it;
+            } else {
+                it->last_accessed = now;
+                to_move.push_back(it);
+                ++it;
+            }
+        }
+        
+        for (auto erase_it : to_erase) {
+            index.erase(erase_it);
+        }
+        
+        auto& seq_index = container_.get_sequensed();
+        for (auto move_it : to_move) {
+            seq_index.relocate(seq_index.begin(), container_.project_to_sequenced(move_it));
+        }
+        
+        return index.equal_range(key);
     }
 
     void cleanup() {
@@ -173,7 +223,6 @@ private:
     mutable userver::engine::SharedMutex mutex_;
     userver::engine::Task cleanup_task_; 
 };
-
 
 }  // namespace multi_index_lru
 
