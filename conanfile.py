@@ -71,17 +71,9 @@ class UserverConan(ConanFile):
         'with_grpc_protovalidate': False,
         'with_phdr_cache': True,
         'mongo-c-driver/*:with_sasl': 'cyrus',
-        'grpc/*:php_plugin': False,
-        'grpc/*:node_plugin': False,
-        'grpc/*:ruby_plugin': False,
-        'grpc/*:csharp_plugin': False,
-        'grpc/*:objective_c_plugin': False,
         'hiredis/*:with_ssl': True,
         'librdkafka/*:ssl': True,
-        'librdkafka/*:curl': True,
         'librdkafka/*:sasl': True,
-        'librdkafka/*:zlib': True,
-        'librdkafka/*:zstd': True,
         're2/*:with_icu': True,
     }
 
