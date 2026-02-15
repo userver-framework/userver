@@ -46,7 +46,7 @@ class UserverConan(ConanFile):
         'with_s3api': [True, False],
         'with_grpc_reflection': [True, False],
         'with_grpc_protovalidate': [True, False],
-        'with_phdr_cache': [True, Fals],
+        'with_phdr_cache': [True, False],
     }
 
     default_options = {
