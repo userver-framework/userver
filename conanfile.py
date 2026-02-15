@@ -46,6 +46,7 @@ class UserverConan(ConanFile):
         'with_s3api': [True, False],
         'with_grpc_reflection': [True, False],
         'with_grpc_protovalidate': [True, False],
+        'with_phdr_cache': [True, Fals],
     }
 
     default_options = {
@@ -68,6 +69,7 @@ class UserverConan(ConanFile):
         'with_s3api': True,
         'with_grpc_reflection': True,
         'with_grpc_protovalidate': False,
+        'with_phdr_cache': True,
         'mongo-c-driver/*:with_sasl': 'cyrus',
         'grpc/*:php_plugin': False,
         'grpc/*:node_plugin': False,
@@ -226,6 +228,7 @@ class UserverConan(ConanFile):
         tool_ch.cache_variables['USERVER_FEATURE_S3API'] = self.options.with_s3api
         tool_ch.cache_variables['USERVER_FEATURE_GRPC_REFLECTION'] = self.options.with_grpc_reflection
         tool_ch.cache_variables['USERVER_FEATURE_GRPC_PROTOVALIDATE'] = self.options.with_grpc_protovalidate
+        tool_ch.cache_variables['USERVER_DISABLE_PHDR_CACHE'] = not self.options.with_phdr_cache
 
         if self.options.with_grpc:
             tool_ch.cache_variables['USERVER_GOOGLE_COMMON_PROTOS'] = (
