@@ -48,15 +48,10 @@ static_assert(
 /// Native ip multicast request wrapper
 class IpMreq final {
 public:
-    /// @brief Creates IPv4 multicast request.
-    /// @param imr_multiaddr IPv4 multicast group address (e.g., "239.255.0.1")
-    /// @param imr_interface IPv4 interface address (nullptr for INADDR_ANY)
-    IpMreq(const char* imr_multiaddr, const char* imr_interface = nullptr);
-
-    /// @brief Creates IPv6 multicast request.
-    /// @param ipv6mr_multiaddr IPv6 multicast group address (e.g., "ff02::1")
-    /// @param ipv6mr_interface Interface index (0 for default)
-    IpMreq(const char* ipv6mr_multiaddr, unsigned int ipv6mr_interface = 0);
+    /// @brief Creates multicast request. IP version is chosen automatically from ip_multiaddr value.
+    /// @param ip_multiaddr IP multicast group address (e.g. 239.255.0.1" or "ff02::1")
+    /// @param interface_index Interface index (0 for default);
+    IpMreq(const char* ip_multiaddr, unsigned int interface_index);
 
     /// @brief Native multicast request structure pointer.
     void* Data() { return &data_; }
@@ -75,11 +70,11 @@ public:
 
     /// Returns appropriate size for setsockopt based on address family.
     /// @param domain Socket domain (AF_INET or AF_INET6)
-    size_t Size() const noexcept { return (family_ == AF_INET ? sizeof(struct ip_mreq) : sizeof(struct ipv6_mreq)); }
+    size_t Size() const noexcept { return (family_ == AF_INET ? sizeof(struct ip_mreqn) : sizeof(struct ipv6_mreq)); }
 
 private:
     union Storage {
-        struct ip_mreq ip_req;
+        struct ip_mreqn ip_req;
         struct ipv6_mreq ipv6_req;
     } data_;
     int family_;
