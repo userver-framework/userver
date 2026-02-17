@@ -35,6 +35,13 @@ public:
     bool IsBroken() const;
     void NotifyBroken();
 
+protected:
+    friend class Transaction;
+    void Begin(); // begin transaction, use it only from transaction
+    void Commit(); // commit all changes made by connection
+    void Rollback(); // rollback all changes made by connection
+    bool IsInsideTransaction() const; // check if connection has autocommit_off transaction mode
+
 private:
     EnvironmentHandle env_;
     DatabaseHandle handle_;

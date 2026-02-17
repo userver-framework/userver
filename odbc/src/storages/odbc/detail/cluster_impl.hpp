@@ -8,6 +8,7 @@
 #include <userver/storages/odbc/query.hpp>
 #include <userver/storages/odbc/result_set.hpp>
 #include <userver/storages/odbc/settings.hpp>
+#include <userver/storages/odbc/transaction.hpp>
 
 #include <storages/odbc/detail/pool.hpp>
 
@@ -22,6 +23,8 @@ public:
     ~ClusterImpl() = default;
 
     ResultSet Execute(ClusterHostTypeFlags flags, const Query& query);
+
+    Transaction Begin(ClusterHostTypeFlags flags);
 
 private:
     std::vector<std::string> dsns_;

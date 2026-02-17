@@ -4,6 +4,7 @@
 #include <userver/storages/odbc/query.hpp>
 #include <userver/storages/odbc/result_set.hpp>
 #include <userver/storages/odbc/settings.hpp>
+#include <userver/storages/odbc/transaction.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -23,6 +24,8 @@ public:
     ~Cluster();
 
     ResultSet Execute(ClusterHostTypeFlags flags, const Query& query);
+
+    Transaction Begin(ClusterHostTypeFlags flags);
 
 private:
     detail::ClusterImplPtr impl_;

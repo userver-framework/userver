@@ -18,6 +18,10 @@ Cluster::~Cluster() = default;
 
 ResultSet Cluster::Execute(ClusterHostTypeFlags flags, const Query& query) { return impl_->Execute(flags, query); }
 
+Transaction Cluster::Begin(ClusterHostTypeFlags flags) {
+    return impl_->Begin(flags);
+}
+
 }  // namespace storages::odbc
 
 USERVER_NAMESPACE_END

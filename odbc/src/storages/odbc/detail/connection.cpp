@@ -125,6 +125,54 @@ bool Connection::IsBroken() const {
 
 void Connection::NotifyBroken() {}
 
+bool Connection::IsInsideTransaction() {
+    SQLUINTEGER state == 0;
+    SQLRETURN ret = SQLGetConnectAttr(handle_.get(), SQL_ATTR_AUTOCOMMIT, &state, sizeof(state), nullptr);
+    if (!SQL_SUCCEEDED(ret) || state == SQL_AUTOCOMMIT_OFF) {
+        return true;
+    }
+    return false;
+}
+
+void Connection::Begin() {
+     SQLRETURN ret =
+        SQLSetConnectAttr(handle_.get(), SQL_ATTR_AUTOCOMMIT, SQL_AUTOCOMMIT_OFF, SQL_IS_UINTEGER);
+
+    if (!SQL_SUCCEEDED(ret)) {
+        throw ConnectionError(
+            "Failed to set connection autocommit attribute:" + detail::GetSQLDiagString(env_.get(), SQL_HANDLE_ENV)
+        );
+    }
+}
+
+void Connection::Commit() {
+    if (!IsInsideTransaction()) {
+        throw ConnectionError(
+            "User try to commit autocommit connection:" + detail::GetSQLDiagString(env_.get(), SQL_HANDLE_ENV)
+        );
+    }
+    SQLRETURN ret = SQLEndTran(SQL_HANDLE_DBC, Oc, SQL_COMMIT);
+    if (!SQL_SUCCEEDED(ret)) {
+        throw ConnectionError(
+            "Failed to commit transaction inside connection:" + detail::GetSQLDiagString(env_.get(), SQL_HANDLE_ENV)
+        );
+    }
+}
+
+void Connection::Rollback() {
+    if (!IsInsideTransaction()) {
+        throw ConnectionError(
+            "User try to rollback autocommit connection:" + detail::GetSQLDiagString(env_.get(), SQL_HANDLE_ENV)
+        );
+    }
+    SQLRETURN ret = SQLEndTran(SQL_HANDLE_DBC, Oc, SQL_ROLLBACK);
+    if (!SQL_SUCCEEDED(ret)) {
+        throw ConnectionError(
+            "Failed to rollback transaction inside connection:" + detail::GetSQLDiagString(env_.get(), SQL_HANDLE_ENV)
+        );
+    }
+}
+
 }  // namespace storages::odbc
 
 USERVER_NAMESPACE_END
