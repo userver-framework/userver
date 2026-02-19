@@ -24,7 +24,7 @@ public:
 
     template <typename... Args>
     auto emplace(Args&&... args) {
-        auto& seq_index = container_.template get<0>();
+        auto& seq_index = get_sequensed();
         auto result = seq_index.emplace_front(std::forward<Args>(args)...);
 
         if (!result.second) {
@@ -40,12 +40,12 @@ public:
     bool insert(Value&& value) { return emplace(std::move(value)).second; }
 
     template <typename Tag, typename Key>
-    auto find(const Key& key) {
-        auto& primary_index = container_.template get<Tag>();
+    auto get(const Key& key) {
+        auto& primary_index = get_index<Tag>();
         auto it = primary_index.find(key);
 
         if (it != primary_index.end()) {
-            auto& seq_index = container_.template get<0>();
+            auto& seq_index = get_sequensed();
             auto seq_it = container_.template project<0>(it);
             seq_index.relocate(seq_index.begin(), seq_it);
         }
@@ -54,13 +54,39 @@ public:
     }
 
     template <typename Tag, typename Key>
+    auto get_no_update(const Key& key) {
+        return get_index<Tag>().find(key);
+    }
+
+    template <typename Tag, typename Key>
+    auto equal_range(const Key& key) {
+        auto& primary_index = get_index<Tag>();
+
+        auto [begin, end] = primary_index.equal_range(key);
+        auto it = begin;
+        
+        auto& seq_index = get_sequensed();
+        while (it != end) {
+            seq_index.relocate(seq_index.begin(), project_to_sequenced(it));
+            ++it;
+        }
+        
+        return std::pair{begin, end};
+    }
+
+    template <typename Tag, typename Key>
+    auto equal_range_no_update(const Key& key) {
+        return get_index<Tag>().equal_range(key);
+    }
+
+    template <typename Tag, typename Key>
     bool contains(const Key& key) {
-        return this->template find<Tag, Key>(key) != container_.template get<Tag>().end();
+        return this->template get<Tag, Key>(key) != get_index<Tag>().end();
     }
 
     template <typename Tag, typename Key>
     bool erase(const Key& key) {
-        return container_.template get<Tag>().erase(key) > 0;
+        return get_index<Tag>().erase(key) > 0;
     }
 
     std::size_t size() const { return container_.size(); }
@@ -69,7 +95,7 @@ public:
 
     void set_capacity(std::size_t new_capacity) {
         max_size_ = new_capacity;
-        auto& seq_index = container_.template get<0>();
+        auto& seq_index = get_sequensed();
         while (container_.size() > max_size_) {
             seq_index.pop_back();
         }
@@ -79,7 +105,7 @@ public:
 
     template <typename Tag>
     auto end() {
-        return container_.template get<Tag>().end();
+        return get_index<Tag>().end();
     }
 
 private:

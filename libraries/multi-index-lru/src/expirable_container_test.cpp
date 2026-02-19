@@ -1,9 +1,12 @@
 #include <userver/multi-index-lru/expirable_container.hpp>
 #include <userver/utils/async.hpp>
 #include <userver/engine/task/task_with_result.hpp>
+#include <userver/engine/mutex.hpp>
+#include <userver/engine/sleep.hpp>
 #include <userver/utest/utest.hpp>
 
 #include <string>
+#include <mutex>
 
 #include <boost/multi_index/hashed_index.hpp>
 #include <boost/multi_index/member.hpp>
@@ -57,20 +60,20 @@ UTEST_F(ExpirableUsersTest, BasicOperations) {
     EXPECT_EQ(cache.capacity(), 3);
     EXPECT_FALSE(cache.empty());
 
-    // Test get by id
-    auto by_id = cache.get<IdTag>(1);
-    EXPECT_FALSE(by_id.empty());
-    EXPECT_EQ(by_id.begin()->name, "Alice");
+    // Test get by id (unique index) – returns vector
+    auto alice_vec = cache.get<IdTag>(1);
+    ASSERT_EQ(alice_vec.size(), 1);
+    EXPECT_EQ(alice_vec[0].name, "Alice");
 
-    // Test get by email
-    auto by_email = cache.get<EmailTag>("bob@test.com");
-    EXPECT_FALSE(by_email.empty());
-    EXPECT_EQ(by_email.begin()->id, 2);
+    // Test get by email (unique index)
+    auto bob_vec = cache.get<EmailTag>("bob@test.com");
+    ASSERT_EQ(bob_vec.size(), 1);
+    EXPECT_EQ(bob_vec[0].id, 2);
 
-    // Test get by name
-    auto by_name = cache.get<NameTag>("Charlie");
-    EXPECT_FALSE(by_name.empty());
-    EXPECT_EQ(by_name.begin()->email, "charlie@test.com");
+    // Test get by name (non‑unique index) – returns all with that name
+    auto charlie_vec = cache.get<NameTag>("Charlie");
+    ASSERT_EQ(charlie_vec.size(), 1);
+    EXPECT_EQ(charlie_vec[0].email, "charlie@test.com");
 }
 
 UTEST_F(ExpirableUsersTest, LRUEviction) {
@@ -80,9 +83,9 @@ UTEST_F(ExpirableUsersTest, LRUEviction) {
     cache.insert(User{2, "bob@test.com", "Bob"});
     cache.insert(User{3, "charlie@test.com", "Charlie"});
 
-    // Access Alice and Charlie to make them recently used
-    cache.get<IdTag>(1);
-    cache.get<IdTag>(3);
+    // Access Alice and Charlie to make them recently used (contains updates timestamp)
+    EXPECT_TRUE(cache.contains<IdTag>(1));
+    EXPECT_TRUE(cache.contains<IdTag>(3));
 
     // Add fourth element - Bob should be evicted (LRU)
     cache.insert(User{4, "david@test.com", "David"});
@@ -98,7 +101,7 @@ UTEST_F(ExpirableUsersTest, TTLExpiration) {
     using namespace std::chrono_literals;
     
     UserCacheExpirable cache(100, 100ms);  // Very short TTL for testing
-    
+
     cache.insert(User{1, "alice@test.com", "Alice"});
     cache.insert(User{2, "bob@test.com", "Bob"});
     
@@ -108,7 +111,7 @@ UTEST_F(ExpirableUsersTest, TTLExpiration) {
     EXPECT_EQ(cache.size(), 2);
     
     // Wait for TTL to expire
-    std::this_thread::sleep_for(150ms);
+    userver::engine::SleepFor(150ms);
     
     EXPECT_FALSE(cache.contains<IdTag>(1));
     EXPECT_FALSE(cache.contains<IdTag>(2));
@@ -116,30 +119,27 @@ UTEST_F(ExpirableUsersTest, TTLExpiration) {
 }
 
 UTEST_F(ExpirableUsersTest, TTLRefreshOnAccess) {
-    
     using namespace std::chrono_literals;
     
     UserCacheExpirable cache(100, 190ms);
-    
+
     cache.insert(User{1, "alice@test.com", "Alice"});
     
     // Wait a bit but not enough to expire
-    std::this_thread::sleep_for(100ms);
-    
-    // Access should refresh TTL
+    userver::engine::SleepFor(99ms);
+    // Access via contains should refresh TTL
     EXPECT_TRUE(cache.contains<IdTag>(1));
     
     // Wait again - should still be alive due to refresh
-    std::this_thread::sleep_for(100ms);
+    userver::engine::SleepFor(99ms);
     EXPECT_TRUE(cache.contains<IdTag>(1));
     
     // Wait for full TTL from last access
-    std::this_thread::sleep_for(200ms);
+    userver::engine::SleepFor(200ms);
     EXPECT_FALSE(cache.contains<IdTag>(1));
 }
 
 UTEST_F(ExpirableUsersTest, EraseOperations) {
-    
     UserCacheExpirable cache(3, std::chrono::seconds(10));
     
     cache.insert(User{1, "alice@test.com", "Alice"});
@@ -155,7 +155,6 @@ UTEST_F(ExpirableUsersTest, EraseOperations) {
 }
 
 UTEST_F(ExpirableUsersTest, SetCapacity) {
-    
     UserCacheExpirable cache(5, std::chrono::seconds(10));
     
     // Fill cache
@@ -174,7 +173,6 @@ UTEST_F(ExpirableUsersTest, SetCapacity) {
 }
 
 UTEST_F(ExpirableUsersTest, Clear) {
-    
     UserCacheExpirable cache(5, std::chrono::seconds(10));
     
     cache.insert(User{1, "alice@test.com", "Alice"});
@@ -192,8 +190,9 @@ UTEST_F(ExpirableUsersTest, Clear) {
 }
 
 UTEST_F(ExpirableUsersTest, ThreadSafetyBasic) {
-    
+    // Container is not thread-safe; external synchronization required.
     UserCacheExpirable cache(100, std::chrono::seconds(10));
+    engine::Mutex mutex;
     
     constexpr int kCoroutines = 4;
     constexpr int kIterations = 100;
@@ -201,18 +200,23 @@ UTEST_F(ExpirableUsersTest, ThreadSafetyBasic) {
     tasks.reserve(kCoroutines);
     
     for (int t = 0; t < kCoroutines; ++t) {
-        tasks.push_back(utils::Async("using cache", [&cache, t]() {
+        tasks.push_back(utils::Async("using cache", [&cache, &mutex, t]() {
             for (int i = 0; i < kIterations; ++i) {
                 int id = t * kIterations + i;
                 
-                cache.insert(User{id, std::to_string(id) + "@test.com", "User" + std::to_string(id)});
+                {
+                    std::lock_guard<engine::Mutex> lock(mutex);
+                    cache.insert(User{id, std::to_string(id) + "@test.com", "User" + std::to_string(id)});
+                }
                 
                 if (id % 3 == 0) {
-                    cache.get<IdTag>(id);
+                    std::lock_guard<engine::Mutex> lock(mutex);
+                    // Use contains to check existence and update timestamp
                     cache.contains<IdTag>(id);
                 }
                 
                 if (id % 5 == 0) {
+                    std::lock_guard<engine::Mutex> lock(mutex);
                     cache.erase<IdTag>(id - 1);
                 }
             }
@@ -223,8 +227,10 @@ UTEST_F(ExpirableUsersTest, ThreadSafetyBasic) {
         task.Get();
     }
     
+    std::lock_guard<engine::Mutex> lock(mutex);
     EXPECT_LE(cache.size(), 100);
 }
+
 }  // namespace
 
 USERVER_NAMESPACE_END

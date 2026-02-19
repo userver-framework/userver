@@ -54,23 +54,23 @@ UTEST_F(LRUUsersTest, BasicOperations) {
 
     EXPECT_EQ(cache.size(), 3);
 
-    // Test find by id
-    auto by_id = cache.find<IdTag, int>(1);
+    // Test get by id
+    auto by_id = cache.get<IdTag, int>(1);
     ASSERT_NE(by_id, cache.end<IdTag>());
     EXPECT_EQ(by_id->name, "Alice");
 
-    // Test find by email
-    auto by_email = cache.find<EmailTag, std::string>("bob@test.com");
+    // Test get by email
+    auto by_email = cache.get<EmailTag, std::string>("bob@test.com");
     ASSERT_NE(by_email, cache.end<EmailTag>());
     EXPECT_EQ(by_email->id, 2);
 
-    // Test find by name
-    auto by_name = cache.find<NameTag, std::string>("Charlie");
+    // Test get by name
+    auto by_name = cache.get<NameTag, std::string>("Charlie");
     ASSERT_NE(by_name, cache.end<NameTag>());
     EXPECT_EQ(by_name->email, "charlie@test.com");
 
-    // Test template find method
-    auto it = cache.find<EmailTag, std::string>("alice@test.com");
+    // Test template get method
+    auto it = cache.get<EmailTag, std::string>("alice@test.com");
     EXPECT_NE(it, cache.end<EmailTag>());
 }
 
@@ -82,8 +82,8 @@ UTEST_F(LRUUsersTest, LRUEviction) {
     cache.emplace(User{3, "charlie@test.com", "Charlie"});
 
     // Access Alice and Charlie to make them recently used
-    cache.find<IdTag>(1);
-    cache.find<IdTag>(3);
+    cache.get<IdTag>(1);
+    cache.get<IdTag>(3);
 
     // Add fourth element - Bob should be evicted
     cache.emplace(User{4, "david@test.com", "David"});
@@ -92,6 +92,89 @@ UTEST_F(LRUUsersTest, LRUEviction) {
     EXPECT_TRUE((cache.contains<IdTag>(1)));   // Alice remains
     EXPECT_TRUE((cache.contains<IdTag>(3)));   // Charlie remains
     EXPECT_TRUE((cache.contains<IdTag>(4)));   // David added
+}
+
+UTEST_F(LRUUsersTest, GetNoUpdateDoesNotChangeLru) {
+    UserCache cache(3);
+
+    cache.emplace(User{1, "alice@test.com", "Alice"});
+    cache.emplace(User{2, "bob@test.com", "Bob"});
+    cache.emplace(User{3, "charlie@test.com", "Charlie"});
+
+    auto it = cache.get_no_update<IdTag>(1); // without updating
+    ASSERT_NE(it, cache.end<IdTag>());
+    EXPECT_EQ(it->name, "Alice");
+
+    cache.emplace(User{4, "david@test.com", "David"});
+
+    EXPECT_FALSE((cache.contains<IdTag>(1)));  // evicted 
+    EXPECT_TRUE((cache.contains<IdTag>(2)));   // remains
+    EXPECT_TRUE((cache.contains<IdTag>(3)));   // remains
+    EXPECT_TRUE((cache.contains<IdTag>(4)));   // added
+}
+
+UTEST_F(LRUUsersTest, EqualRangeUpdatesLruForAllMatches) {
+    UserCache cache(4);
+
+    cache.emplace(User{1, "john1@test.com", "John"});
+    cache.emplace(User{2, "john2@test.com", "John"});
+    cache.emplace(User{3, "alice@test.com", "Alice"});
+    cache.emplace(User{4, "bob@test.com", "Bob"});
+
+    auto [begin, end] = cache.equal_range<NameTag, std::string>("John");
+    int count = 0;
+    for (auto it = begin; it != end; ++it) {
+        ++count;
+    }
+    EXPECT_EQ(count, 2);
+
+    cache.emplace(User{5, "eve@test.com", "Eve"});
+
+    EXPECT_TRUE((cache.contains<IdTag>(1)));  // remains
+    EXPECT_TRUE((cache.contains<IdTag>(2)));  // remains
+    EXPECT_FALSE((cache.contains<IdTag>(3))); // evicted
+    EXPECT_TRUE((cache.contains<IdTag>(4)));  // remains
+    EXPECT_TRUE((cache.contains<IdTag>(5)));  // added
+}
+
+UTEST_F(LRUUsersTest, EqualRangeNoUpdateDoesNotChangeLru) {
+    UserCache cache(4);
+
+    cache.emplace(User{1, "john1@test.com", "John"});
+    cache.emplace(User{2, "john2@test.com", "John"});
+    cache.emplace(User{3, "alice@test.com", "Alice"});
+    cache.emplace(User{4, "bob@test.com", "Bob"});
+
+    auto [begin, end] = cache.equal_range_no_update<NameTag, std::string>("John");
+    int count = 0;
+    for (auto it = begin; it != end; ++it) {
+        ++count;
+    }
+    EXPECT_EQ(count, 2);
+
+    cache.emplace(User{5, "eve@test.com", "Eve"});
+
+    EXPECT_FALSE((cache.contains<IdTag>(1))); // evicted
+    EXPECT_TRUE((cache.contains<IdTag>(2)));  // remains
+    EXPECT_TRUE((cache.contains<IdTag>(3)));  // remains
+    EXPECT_TRUE((cache.contains<IdTag>(4)));  // remains
+    EXPECT_TRUE((cache.contains<IdTag>(5)));  // added
+}
+
+UTEST_F(LRUUsersTest, EqualRangeWorksWithEmptyRange) {
+    UserCache cache(3);
+    cache.emplace(User{1, "alice@test.com", "Alice"});
+
+    auto [begin, end] = cache.equal_range<NameTag, std::string>("Nonexistent");
+    EXPECT_EQ(begin, end);
+}
+
+UTEST_F(LRUUsersTest, EqualRangeNoUpdateWorksWithEmptyRange) {
+    UserCache cache(3);
+    cache.emplace(User{1, "alice@test.com", "Alice"});
+
+    auto [begin, end] = cache.equal_range_no_update<NameTag, std::string>("Nonexistent");
+    EXPECT_EQ(begin, end);
 }
 
 class ProductsTest : public ::testing::Test {
@@ -126,7 +209,7 @@ UTEST_F(ProductsTest, BasicProductOperations) {
     cache.emplace(Product{"A1", "Laptop", 999.99});
     cache.emplace(Product{"A2", "Mouse", 29.99});
 
-    auto laptop = cache.find<SkuTag, std::string>("A1");
+    auto laptop = cache.get<SkuTag, std::string>("A1");
     ASSERT_NE(laptop, cache.end<SkuTag>());
     EXPECT_EQ(laptop->name, "Laptop");
 }
@@ -138,15 +221,15 @@ UTEST_F(ProductsTest, ProductEviction) {
     cache.emplace(Product{"A2", "Mouse", 29.99});
 
     // A1 was used, so A2 should be ousted when adding A3
-    cache.find<SkuTag>("A1");
+    cache.get<SkuTag>("A1");
     cache.emplace(Product{"A3", "Keyboard", 79.99});
 
     EXPECT_TRUE((cache.contains<SkuTag, std::string>("A1")));   // used
     EXPECT_TRUE((cache.contains<SkuTag, std::string>("A3")));   // new
     EXPECT_FALSE((cache.contains<SkuTag, std::string>("A2")));  // ousted
 
-    EXPECT_NE(cache.find<NameTag>("Keyboard"), cache.end<NameTag>());
-    EXPECT_EQ(cache.find<NameTag>("Mouse"), cache.end<NameTag>());
+    EXPECT_NE(cache.get<NameTag>("Keyboard"), cache.end<NameTag>());
+    EXPECT_EQ(cache.get<NameTag>("Mouse"), cache.end<NameTag>());
 }
 
 TEST(Snippet, SimpleUsage) {
@@ -167,7 +250,7 @@ TEST(Snippet, SimpleUsage) {
 
     MyLruCache cache(1000);  // Capacity of 1000 items
     cache.insert(my_value);
-    auto it = cache.find<MyTag>("some_key");
+    auto it = cache.get<MyTag>("some_key");
     EXPECT_NE(it, cache.end<MyTag>());
     /// [Usage]
 }

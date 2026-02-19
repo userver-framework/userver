@@ -8,6 +8,7 @@
 #include <shared_mutex>
 #include <mutex>
 #include <vector>
+#include <iostream>
 
 #include "impl/mpl_helpers.hpp"
 #include "container.hpp"
@@ -31,29 +32,19 @@ template <typename Value, typename IndexSpecifierList, typename Allocator>
 class ExpirableContainer {
 public:
     explicit ExpirableContainer(size_t max_size,
-                       std::chrono::milliseconds ttl,
-                       std::chrono::milliseconds cleanup_interval = std::chrono::milliseconds(60))
-        : container_(max_size), ttl_(ttl), cleanup_interval_(cleanup_interval)
+                       std::chrono::milliseconds ttl)
+        : container_(max_size), ttl_(ttl)
     {
         assert(ttl.count() > 0 && "ttl must be positive");
-        assert(cleanup_interval.count() > 0 && "cleanup_interval must be positive");
-    }
-
-    ~ExpirableContainer() {
-        stop_cleanup();
     }
 
     template <typename... Args>
     auto emplace(Args&&... args) {
-        std::lock_guard<userver::engine::SharedMutex> lock(mutex_);
-
         auto result = container_.emplace(std::forward<Args>(args)...);
 
         if (!result.second) {
             result.first->last_accessed = std::chrono::steady_clock::now();
         }
-
-        start_cleanup();
 
         return result;
     }
@@ -63,20 +54,37 @@ public:
     bool insert(Value&& value) { return emplace(std::move(value)).second; }
 
     template <typename Tag, typename Key>
-    std::vector<Value> get(const Key& key) {
-        auto now = std::chrono::steady_clock::now();
-        std::lock_guard<userver::engine::SharedMutex> lock(mutex_);
-        
+    auto get(const Key& key) {
         std::vector<Value> result;
         auto& index = container_.template get_index<Tag>();
         
         if constexpr (impl::is_unique_index<decltype(index)>::value) {
-            auto it = find<Tag, Key>(lock, key, now);
+            auto it = find<Tag, Key>(key);
             if (it != container_.template end<Tag>()) {
                 result.push_back(it->value);
             }
         } else {
-            auto range = find_range<Tag, Key>(lock, key, now);
+            auto range = find_range<Tag, Key>(key);
+            for (auto it = range.first; it != range.second; ++it) {
+                result.push_back(it->value);
+            }
+        }
+        
+        return result;
+    }
+
+    template <typename Tag, typename Key>
+    auto get_no_update(const Key& key) {
+        std::vector<Value> result;
+        auto& index = container_.template get_index<Tag>();
+        
+        if constexpr (impl::is_unique_index<decltype(index)>::value) {
+            auto it = container_.template get_no_update<Tag, Key>(key);
+            if (it != container_.template end<Tag>()) {
+                result.push_back(it->value);
+            }
+        } else {
+            auto range = container_.template equal_range_no_update<Tag, Key>(key);
             for (auto it = range.first; it != range.second; ++it) {
                 result.push_back(it->value);
             }
@@ -87,40 +95,47 @@ public:
 
     template <typename Tag, typename Key>
     bool contains(const Key& key) {
-        auto now = std::chrono::steady_clock::now();
-        std::lock_guard<userver::engine::SharedMutex> lock(mutex_);
-        return find<Tag, Key>(lock, key, now) != container_.template end<Tag>();
+        return this->template find<Tag, Key>(key) != container_.template end<Tag>();
     }
 
     template <typename Tag, typename Key>
     bool erase(const Key& key) {
-        std::lock_guard<userver::engine::SharedMutex> lock(mutex_);
         return container_.template erase<Tag, Key>(key);
     }
 
     std::size_t size() const { 
-        std::shared_lock<userver::engine::SharedMutex> lock(mutex_);
         return container_.size(); 
     }
     bool empty() const { 
-        std::shared_lock<userver::engine::SharedMutex> lock(mutex_);
         return container_.empty(); 
     }
     std::size_t capacity() const { return container_.capacity(); }
 
     void set_capacity(std::size_t new_capacity) {
-        std::lock_guard<userver::engine::SharedMutex> lock(mutex_);
         container_.set_capacity(new_capacity);
     }
 
     void clear() { 
-        std::lock_guard<userver::engine::SharedMutex> lock(mutex_);
         container_.clear(); 
     }
 
     template <typename Tag>
     auto end() {
         return container_.template end<Tag>();
+    }
+
+    void cleanup_expired() {
+        auto now = std::chrono::steady_clock::now();
+        auto& seq_index = container_.get_sequensed();
+
+        while(!seq_index.empty()) {
+            auto it = seq_index.rbegin(); 
+            if (now > it->last_accessed + ttl_) {
+                seq_index.pop_back();
+            } else {
+                break; 
+            }
+        }
     }
 
 private:
@@ -131,10 +146,9 @@ private:
     using CacheContainer = Container<CacheItem, IndexSpecifierList, Allocator>;
 
     template <typename Tag, typename Key>
-    auto find(std::lock_guard<userver::engine::SharedMutex>&, 
-                   const Key& key, 
-                   std::chrono::steady_clock::time_point now) {
-        auto it = container_.template find<Tag, Key>(key);
+    auto find(const Key& key) {
+        auto now = std::chrono::steady_clock::now();
+        auto it = container_.template get<Tag, Key>(key);
         
         if (it != end<Tag>()) {
             if (now > it->last_accessed + ttl_) {
@@ -149,15 +163,13 @@ private:
     }
 
     template <typename Tag, typename Key>
-    auto find_range(std::lock_guard<userver::engine::SharedMutex>&,
-                    const Key& key,
-                    std::chrono::steady_clock::time_point now) {
+    auto find_range(const Key& key) {
+        auto now = std::chrono::steady_clock::now();
         auto& index = container_.template get_index<Tag>();
-        auto [begin, end] = index.equal_range(key);
+        auto [begin, end] = container_.template equal_range<Tag, Key>(key);
         
         auto it = begin;
         std::vector<decltype(it)> to_erase;
-        std::vector<decltype(it)> to_move;
         
         while (it != end) {
             if (now > it->last_accessed + ttl_) {
@@ -165,7 +177,6 @@ private:
                 ++it;
             } else {
                 it->last_accessed = now;
-                to_move.push_back(it);
                 ++it;
             }
         }
@@ -174,54 +185,11 @@ private:
             index.erase(erase_it);
         }
         
-        auto& seq_index = container_.get_sequensed();
-        for (auto move_it : to_move) {
-            seq_index.relocate(seq_index.begin(), container_.project_to_sequenced(move_it));
-        }
-        
         return index.equal_range(key);
-    }
-
-    void cleanup() {
-        auto now = std::chrono::steady_clock::now();
-        std::lock_guard<userver::engine::SharedMutex> lock(mutex_);
-        
-        auto& seq_index = container_.get_sequensed();
-        while(!seq_index.empty()) {
-            auto it = seq_index.rbegin(); 
-            if (now > it->last_accessed + ttl_) {
-                seq_index.pop_back();
-            } else {
-                break; 
-            }
-        }
-    }
-    
-    void start_cleanup() {
-        if (cleanup_task_.IsValid() && !cleanup_task_.IsFinished()) {
-            return;
-        }
-
-        cleanup_task_ = userver::utils::Async("lru_cleanup", [this] {
-            while (!userver::engine::current_task::ShouldCancel()) {
-                userver::engine::SleepFor(cleanup_interval_);
-                this->cleanup();
-            }
-        });
-    }
-
-    void stop_cleanup() {
-        if (cleanup_task_.IsValid()) {
-            cleanup_task_.RequestCancel();
-            cleanup_task_.Wait(); 
-        }
     }
 
     CacheContainer container_;
     std::chrono::milliseconds ttl_;
-    std::chrono::milliseconds cleanup_interval_;
-    mutable userver::engine::SharedMutex mutex_;
-    userver::engine::Task cleanup_task_; 
 };
 
 }  // namespace multi_index_lru
