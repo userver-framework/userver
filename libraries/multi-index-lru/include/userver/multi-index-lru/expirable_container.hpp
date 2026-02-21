@@ -51,48 +51,66 @@ public:
     bool insert(Value&& value) { return emplace(std::move(value)).second; }
 
     template <typename Tag, typename Key>
-    auto get(const Key& key) {
-        std::vector<Value> result;
-        auto& index = container_.template get_index<Tag>();
+    auto find(const Key& key) {
+        auto now = std::chrono::steady_clock::now();
+        auto it = container_.template find<Tag, Key>(key);
         
-        if constexpr (impl::is_unique_index<decltype(index)>::value) {
-            auto it = find<Tag, Key>(key);
-            if (it != container_.template end<Tag>()) {
-                result.push_back(it->value);
-            }
-        } else {
-            auto range = find_range<Tag, Key>(key);
-            for (auto it = range.first; it != range.second; ++it) {
-                result.push_back(it->value);
+        if (it != container_.template end<Tag>()) {
+            if (now > it->last_accessed + ttl_) {
+                container_.template get_index<Tag>().erase(it);
+                return end<Tag>();
+            } else {
+                it->last_accessed = now;
             }
         }
         
-        return result;
+        return impl::TimestampedIteratorWrapper{it};
     }
 
     template <typename Tag, typename Key>
-    auto get_no_update(const Key& key) {
-        std::vector<Value> result;
+    auto find_no_update(const Key& key) {
+        auto it = container_.template find_no_update<Tag, Key>(key);
+        return impl::TimestampedIteratorWrapper{it};
+    }
+
+    template <typename Tag, typename Key>
+    auto equal_range(const Key& key) {
+        auto now = std::chrono::steady_clock::now();
         auto& index = container_.template get_index<Tag>();
+        auto [begin, end] = container_.template equal_range<Tag, Key>(key);
         
-        if constexpr (impl::is_unique_index<decltype(index)>::value) {
-            auto it = container_.template get_no_update<Tag, Key>(key);
-            if (it != container_.template end<Tag>()) {
-                result.push_back(it->value);
-            }
-        } else {
-            auto range = container_.template equal_range_no_update<Tag, Key>(key);
-            for (auto it = range.first; it != range.second; ++it) {
-                result.push_back(it->value);
+        auto it = begin;
+        std::vector<decltype(it)> to_erase;
+        
+        while (it != end) {
+            if (now > it->last_accessed + ttl_) {
+                to_erase.push_back(it);
+                ++it;
+            } else {
+                it->last_accessed = now;
+                ++it;
             }
         }
         
-        return result;
+        for (auto erase_it : to_erase) {
+            index.erase(erase_it);
+        }
+        
+        auto ret = index.equal_range(key);
+        return std::pair{impl::TimestampedIteratorWrapper{ret.first},
+                         impl::TimestampedIteratorWrapper{ret.second}};
+    }
+
+    template <typename Tag, typename Key>
+    auto equal_range_no_update(const Key& key) {
+        auto [begin, end] = container_.template equal_range_no_update<Tag, Key>(key);
+        return std::pair{impl::TimestampedIteratorWrapper{begin},
+                         impl::TimestampedIteratorWrapper{end}};
     }
 
     template <typename Tag, typename Key>
     bool contains(const Key& key) {
-        return this->template find<Tag, Key>(key) != container_.template end<Tag>();
+        return this->template find<Tag, Key>(key) != this->template end<Tag>();
     }
 
     template <typename Tag, typename Key>
@@ -118,7 +136,7 @@ public:
 
     template <typename Tag>
     auto end() {
-        return container_.template end<Tag>();
+        return impl::TimestampedIteratorWrapper{container_.template end<Tag>()};
     }
 
     void cleanup_expired() {
@@ -137,53 +155,7 @@ public:
 
 private:
     using CacheItem = impl::TimestampedValue<Value>;
-    using ExtendedIndexSpecifierList = impl::add_index_t<
-                                    boost::multi_index::sequenced<>,
-                                    IndexSpecifierList>;
     using CacheContainer = Container<CacheItem, IndexSpecifierList, Allocator>;
-
-    template <typename Tag, typename Key>
-    auto find(const Key& key) {
-        auto now = std::chrono::steady_clock::now();
-        auto it = container_.template get<Tag, Key>(key);
-        
-        if (it != end<Tag>()) {
-            if (now > it->last_accessed + ttl_) {
-                container_.template get_index<Tag>().erase(it);
-                return end<Tag>();
-            } else {
-                it->last_accessed = now;
-            }
-        }
-        
-        return it;
-    }
-
-    template <typename Tag, typename Key>
-    auto find_range(const Key& key) {
-        auto now = std::chrono::steady_clock::now();
-        auto& index = container_.template get_index<Tag>();
-        auto [begin, end] = container_.template equal_range<Tag, Key>(key);
-        
-        auto it = begin;
-        std::vector<decltype(it)> to_erase;
-        
-        while (it != end) {
-            if (now > it->last_accessed + ttl_) {
-                to_erase.push_back(it);
-                ++it;
-            } else {
-                it->last_accessed = now;
-                ++it;
-            }
-        }
-        
-        for (auto erase_it : to_erase) {
-            index.erase(erase_it);
-        }
-        
-        return index.equal_range(key);
-    }
 
     CacheContainer container_;
     std::chrono::milliseconds ttl_;

@@ -79,6 +79,21 @@ struct TimestampedValue {
     const Value& get() const { return value; }
 };
 
+template <typename Iterator>
+class TimestampedIteratorWrapper : public Iterator {
+public:
+    using Iterator::Iterator;
+    TimestampedIteratorWrapper(Iterator iter) : Iterator(std::move(iter)) {}
+    
+    auto operator->() {
+        return *(this->Iterator::operator->());
+    }
+
+    auto operator->() const {
+        return *(this->Iterator::operator->());
+    }
+};
+
 template<typename T>
 struct is_unique_index {
 private:

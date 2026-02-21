@@ -84,9 +84,9 @@ void LruFindEmplaceMix(benchmark::State& state) {
 
     for ([[maybe_unused]] auto _ : state) {
         for (std::size_t i = 0; i < reading_kOperationsNumber; ++i) {
-            cache.get<NameTag, std::string>(names[i]);
-            cache.get<EmailTag, std::string>(emails[i]);
-            cache.get<IdTag, int>(ids[i]);
+            cache.find<NameTag, std::string>(names[i]);
+            cache.find<EmailTag, std::string>(emails[i]);
+            cache.find<IdTag, int>(ids[i]);
         }
 
         for (std::size_t i = 0; i < writing_kOperationsNumber; ++i) {
@@ -122,9 +122,9 @@ static void GetOperations(::benchmark::State& state) {
         state.ResumeTiming();
 
         for (std::size_t i = 0; i < operations_count; ++i) {
-            ::benchmark::DoNotOptimize(cache.get<NameTag, std::string>(names[i]));
-            ::benchmark::DoNotOptimize(cache.get<EmailTag, std::string>(emails[i]));
-            ::benchmark::DoNotOptimize(cache.get<IdTag, int>(ids[i]));
+            ::benchmark::DoNotOptimize(cache.find<NameTag, std::string>(names[i]));
+            ::benchmark::DoNotOptimize(cache.find<EmailTag, std::string>(emails[i]));
+            ::benchmark::DoNotOptimize(cache.find<IdTag, int>(ids[i]));
         }
     }
 

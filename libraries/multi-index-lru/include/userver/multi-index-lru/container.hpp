@@ -40,7 +40,7 @@ public:
     bool insert(Value&& value) { return emplace(std::move(value)).second; }
 
     template <typename Tag, typename Key>
-    auto get(const Key& key) {
+    auto find(const Key& key) {
         auto& primary_index = get_index<Tag>();
         auto it = primary_index.find(key);
 
@@ -54,7 +54,7 @@ public:
     }
 
     template <typename Tag, typename Key>
-    auto get_no_update(const Key& key) {
+    auto find_no_update(const Key& key) {
         return get_index<Tag>().find(key);
     }
 
@@ -81,7 +81,7 @@ public:
 
     template <typename Tag, typename Key>
     bool contains(const Key& key) {
-        return this->template get<Tag, Key>(key) != get_index<Tag>().end();
+        return this->template find<Tag, Key>(key) != end<Tag>();
     }
 
     template <typename Tag, typename Key>
