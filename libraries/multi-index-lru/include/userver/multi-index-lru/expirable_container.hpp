@@ -1,20 +1,17 @@
 #pragma once
 
-/// @file userver/multi-index-lru/container.hpp
+/// @file userver/multi-index-lru/expirable_container.hpp
 /// @brief @copybrief multi_index_lru::ExpirableContainer
 
 #include <functional>
-#include <cassert> 
 #include <shared_mutex>
-#include <mutex>
-#include <vector>
-#include <iostream>
 
 #include "impl/mpl_helpers.hpp"
 #include "container.hpp"
 
 #include <userver/utils/async.hpp>
 #include <userver/utils/rand.hpp>
+#include <userver/utils/assert.hpp>
 #include <userver/engine/mutex.hpp>
 #include <userver/engine/shared_mutex.hpp>
 #include <userver/engine/task/task_with_result.hpp>
@@ -35,7 +32,7 @@ public:
                        std::chrono::milliseconds ttl)
         : container_(max_size), ttl_(ttl)
     {
-        assert(ttl.count() > 0 && "ttl must be positive");
+        UASSERT_MSG(ttl.count() > 0, "ttl must be positive");
     }
 
     template <typename... Args>

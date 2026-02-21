@@ -74,11 +74,7 @@ static void ExpirableFindEmplaceMix(benchmark::State& state) {
     userver::engine::RunStandalone([&] {
     const std::size_t cache_size = state.range(0);
 
-    UserCache cache(
-        cache_size,
-        std::chrono::seconds(5),      // ttl — big to not cause interference 
-        std::chrono::seconds(1)        // cleanup_interval
-    );
+    UserCache cache(cache_size, std::chrono::seconds(5));
 
     for (std::size_t i = 0; i < cache_size; ++i) {
         cache.insert(GenerateUser());
@@ -131,11 +127,7 @@ static void ExpirableGetOperations(benchmark::State& state) {
     userver::engine::RunStandalone([&] {
     const std::size_t cache_size = state.range(0);
 
-    UserCache cache(
-        cache_size,
-        std::chrono::minutes(10),
-        std::chrono::minutes(1)
-    );
+    UserCache cache(cache_size, std::chrono::minutes(10));
     PrepareCache(cache, cache_size);
 
     
@@ -175,11 +167,7 @@ static void ExpirableEmplaceOperations(benchmark::State& state) {
     userver::engine::RunStandalone([&] {
     const std::size_t cache_size = state.range(0);
 
-    UserCache cache(
-        cache_size,
-        std::chrono::minutes(10),
-        std::chrono::minutes(1)
-    );
+    UserCache cache(cache_size, std::chrono::minutes(10));
     PrepareCache(cache, cache_size);
 
     for (auto _ : state) {
