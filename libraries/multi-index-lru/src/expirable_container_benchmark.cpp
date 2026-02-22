@@ -5,6 +5,7 @@
 #include <vector>
 #include <chrono>
 
+#include <benchmark/benchmark.h>
 #include <boost/multi_index/member.hpp>
 #include <boost/multi_index/ordered_index.hpp>
 
