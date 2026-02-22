@@ -1,5 +1,6 @@
 #include <userver/multi-index-lru/expirable_container.hpp>
 #include <userver/utils/rand.hpp>
+#include <userver/engine/run_standalone.hpp>
 
 #include <string>
 #include <vector>
