@@ -3,20 +3,10 @@
 /// @file userver/multi-index-lru/expirable_container.hpp
 /// @brief @copybrief multi_index_lru::ExpirableContainer
 
-#include <functional>
-#include <shared_mutex>
-
 #include "impl/mpl_helpers.hpp"
 #include "container.hpp"
 
-#include <userver/utils/async.hpp>
-#include <userver/utils/rand.hpp>
 #include <userver/utils/assert.hpp>
-#include <userver/engine/mutex.hpp>
-#include <userver/engine/shared_mutex.hpp>
-#include <userver/engine/task/task_with_result.hpp>
-#include <userver/engine/sleep.hpp>
-#include <userver/engine/task/cancel.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -77,28 +67,25 @@ public:
     auto equal_range(const Key& key) {
         auto now = std::chrono::steady_clock::now();
         auto& index = container_.template get_index<Tag>();
-        auto [begin, end] = container_.template equal_range<Tag, Key>(key);
+        auto range = container_.template equal_range<Tag, Key>(key);
         
-        auto it = begin;
-        std::vector<decltype(it)> to_erase;
+        auto it = range.first;
+        bool changed = false;
         
-        while (it != end) {
+        while (it != range.second) {
             if (now > it->last_accessed + ttl_) {
-                to_erase.push_back(it);
-                ++it;
+                it = index.erase(it);
+                changed = true;
             } else {
                 it->last_accessed = now;
                 ++it;
             }
         }
-        
-        for (auto erase_it : to_erase) {
-            index.erase(erase_it);
+        if (changed) {
+            range = index.equal_range(key);
         }
-        
-        auto ret = index.equal_range(key);
-        return std::pair{impl::TimestampedIteratorWrapper{ret.first},
-                         impl::TimestampedIteratorWrapper{ret.second}};
+        return std::pair{impl::TimestampedIteratorWrapper{range.first},
+                         impl::TimestampedIteratorWrapper{range.second}};
     }
 
     template <typename Tag, typename Key>

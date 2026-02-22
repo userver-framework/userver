@@ -1,6 +1,5 @@
 #include <userver/multi-index-lru/expirable_container.hpp>
 #include <userver/utils/async.hpp>
-#include <userver/engine/task/task_with_result.hpp>
 #include <userver/engine/mutex.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/utest/utest.hpp>
@@ -11,7 +10,6 @@
 #include <boost/multi_index/hashed_index.hpp>
 #include <boost/multi_index/member.hpp>
 #include <boost/multi_index/ordered_index.hpp>
-#include <boost/multi_index/identity.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -123,7 +121,7 @@ UTEST_F(ExpirableUsersTest, TTLExpiration) {
     EXPECT_EQ(cache.size(), 2);
     
     // Wait for TTL to expire
-    userver::engine::SleepFor(150ms);
+    engine::SleepFor(150ms);
     
     EXPECT_EQ(cache.find<IdTag>(1), cache.end<IdTag>());
     EXPECT_EQ(cache.find<IdTag>(2), cache.end<IdTag>());
@@ -138,17 +136,17 @@ UTEST_F(ExpirableUsersTest, TTLRefreshOnAccess) {
     cache.insert(User{1, "alice@test.com", "Alice"});
     
     // Wait a bit but not enough to expire
-    userver::engine::SleepFor(99ms);
+    engine::SleepFor(99ms);
     
     // Access via find should refresh TTL
     EXPECT_NE(cache.find<IdTag>(1), cache.end<IdTag>());
     
     // Wait again - should still be alive due to refresh
-    userver::engine::SleepFor(99ms);
+    engine::SleepFor(99ms);
     EXPECT_NE(cache.find<IdTag>(1), cache.end<IdTag>());
     
     // Wait for full TTL from last access
-    userver::engine::SleepFor(200ms);
+    engine::SleepFor(200ms);
     EXPECT_EQ(cache.find<IdTag>(1), cache.end<IdTag>());
 }
 
@@ -257,7 +255,7 @@ UTEST_F(ExpirableUsersTest, CleanupExpired) {
     cache.insert(User{2, "bob@test.com", "Bob"});
     
     // Wait for TTL to expire
-    userver::engine::SleepFor(150ms);
+    engine::SleepFor(150ms);
     
     // cleanup_expired should remove expired items
     cache.cleanup_expired();

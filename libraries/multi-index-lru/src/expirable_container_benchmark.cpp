@@ -1,14 +1,10 @@
 #include <userver/multi-index-lru/expirable_container.hpp>
 #include <userver/utils/rand.hpp>
-#include <userver/engine/run_standalone.hpp>
 
-#include <random>
 #include <string>
 #include <vector>
 #include <chrono>
-#include <iostream>
 
-#include <benchmark/benchmark.h>
 #include <boost/multi_index/member.hpp>
 #include <boost/multi_index/ordered_index.hpp>
 
@@ -71,7 +67,7 @@ using UserCache = multi_index_lru::ExpirableContainer<
             boost::multi_index::member<User, std::string, &User::name>>>>;
 
 static void ExpirableFindEmplaceMix(benchmark::State& state) {
-    userver::engine::RunStandalone([&] {
+    engine::RunStandalone([&] {
     const std::size_t cache_size = state.range(0);
 
     UserCache cache(cache_size, std::chrono::seconds(5));
@@ -124,7 +120,7 @@ static void PrepareCache(UserCache& cache, std::size_t size) {
 }
 
 static void ExpirableGetOperations(benchmark::State& state) {
-    userver::engine::RunStandalone([&] {
+    engine::RunStandalone([&] {
     const std::size_t cache_size = state.range(0);
 
     UserCache cache(cache_size, std::chrono::minutes(10));
@@ -164,7 +160,7 @@ BENCHMARK(ExpirableGetOperations)
 
 
 static void ExpirableEmplaceOperations(benchmark::State& state) {
-    userver::engine::RunStandalone([&] {
+    engine::RunStandalone([&] {
     const std::size_t cache_size = state.range(0);
 
     UserCache cache(cache_size, std::chrono::minutes(10));
