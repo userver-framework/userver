@@ -8,6 +8,7 @@
 #include <array>
 #include <cerrno>
 #include <cstdlib>
+#include <memory>
 #include <string_view>
 
 #include <userver/engine/async.hpp>
@@ -462,6 +463,74 @@ UTEST_MT(Socket, ConcurrentReadWriteUdp, 2) {
 
     read_task.Get();
     /// [send self concurrent]
+}
+
+UTEST_MT(Socket, UdpIpMreqMultipleReceiversIPv4, 3) {
+    const auto deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
+
+    static constexpr uint16_t kPort = 12345;
+    static constexpr const char* kGroup = "239.255.0.1";
+    static constexpr int packets_count = 3;
+
+    sockaddr_in raw_multiaddr{AF_INET, htons(kPort), {}, {}};
+    inet_pton(AF_INET, kGroup, &raw_multiaddr.sin_addr);
+    io::Sockaddr multiaddr(&raw_multiaddr);
+    io::IpMreq mreq(kGroup, INADDR_ANY);
+
+    std::vector<engine::TaskWithResult<void>> tasks;
+    std::vector<std::shared_ptr<io::Socket>> receivers;
+    for (int i = 0; i < 2; ++i) {
+        const auto& receiver = receivers.emplace_back(
+            std::make_shared<io::Socket>(io::AddrDomain::kInet, io::SocketType::kDgram)
+        );
+        int reuse = 1;
+        receiver->SetOption(SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
+
+        sockaddr_in any{AF_INET, htons(kPort), {}, {}};
+        any.sin_addr.s_addr = htonl(INADDR_ANY);
+        receiver->Bind(io::Sockaddr(&any));
+        receiver->SetOption(mreq.GetSocketOptionLevel(), mreq.GetJoinSocketOptionName(), mreq.Data(), mreq.Size());
+
+        tasks.push_back(engine::AsyncNoSpan([receiver, deadline] {
+            char c{};
+            for (int packet_idx = 0; packet_idx < packets_count; ++packet_idx) {
+            	const auto result = receiver->RecvSomeFrom(&c, 1, deadline);
+            	EXPECT_EQ(result.bytes_received, 1);
+            	EXPECT_EQ(c, 'a' + packet_idx);
+            }
+        }));
+    }
+
+    io::Socket sender{io::AddrDomain::kInet, io::SocketType::kDgram};
+    for (int packet_idx = 0; packet_idx < packets_count; ++packet_idx) {
+    	const char data = 'a' + packet_idx;
+    	EXPECT_EQ(sender.SendAllTo(multiaddr, &data, 1, deadline), 1);
+    }
+
+    for (auto& t : tasks) {
+        t.Get();
+    }
+    tasks.clear();
+
+    for (int i = 0; i < 2; ++i) {
+        const auto& receiver = receivers[i];
+        receiver->SetOption(mreq.GetSocketOptionLevel(), mreq.GetLeaveSocketOption(), mreq.Data(), mreq.Size());
+
+	    tasks.push_back(engine::AsyncNoSpan([receiver] {
+            auto short_deadline = Deadline::FromDuration(std::chrono::milliseconds(300));
+        	char c{};
+    	    const auto result = receiver->RecvSomeFrom(&c, 1, short_deadline);
+	        EXPECT_EQ(result.bytes_received, 0);
+        }));
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+    char data = 'x';
+    EXPECT_EQ(sender.SendAllTo(multiaddr, &data, 1, deadline), 1);
+    for (auto& t : tasks) {
+        UEXPECT_THROW(t.Get(), io::IoTimeout);
+    }
 }
 
 UTEST(Socket, WriteALot) {
