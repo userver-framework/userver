@@ -1,0 +1,125 @@
+name: Create service test
+
+'on':
+    pull_request:
+    push:
+        branches:
+          - master
+          - develop
+          - feature/**
+
+env:
+    UBSAN_OPTIONS: print_stacktrace=1
+    ASAN_OPTIONS: detect_odr_violation=2
+    CCACHE_DIR: /home/runner/.cache/ccache
+    CCACHE_NOHASHDIR: true
+    CPM_SOURCE_CACHE: /home/runner/.cache/CPM
+    CMAKE_FLAGS: -GNinja
+                        -DCMAKE_CXX_COMPILER=clang++-18
+                        -DCMAKE_C_COMPILER=clang-18
+                        -DCMAKE_BUILD_TYPE=Release
+                        -DUSERVER_SANITIZE="ub addr"
+                        -DUSERVER_NO_WERROR=0
+                        -DUSERVER_INSTALL=1
+                        -DUSERVER_FEATURE_CORE=1
+                        -DUSERVER_FEATURE_CHAOTIC=1
+                        -DUSERVER_FEATURE_POSTGRESQL=1
+                        -DUSERVER_FEATURE_MONGODB=1
+                        -DUSERVER_FEATURE_GRPC=1
+jobs:
+    posix:
+        strategy:
+            fail-fast: false
+
+        runs-on: ubuntu-24.04
+
+        steps:
+          - uses: actions/checkout@v4
+
+          - name: Restore cached directories
+            id: restore-cache
+            uses: actions/cache/restore@v4
+            with:
+                path: |
+                    ${{env.CCACHE_DIR}}
+                    ${{env.CPM_SOURCE_CACHE}}
+                key: 'ubuntu-cache-dir ${{matrix.id}} ${{github.ref}} run-${{github.run_number}}'
+                restore-keys: |
+                    ubuntu-cache-dir ${{matrix.id}} ${{github.ref}}
+                    ubuntu-cache-dir ${{matrix.id}}
+
+          - name: Setup ramdrive for testsuites
+            run: |
+                sudo mkdir -p "/mnt/ramdisk/$USER"
+                sudo chmod 777 "/mnt/ramdisk/$USER"
+                sudo mount -t tmpfs -o size=2048M tmpfs "/mnt/ramdisk/$USER"
+
+          - name: Free disk space
+            run: |
+                df -h
+                # See https://stackoverflow.com/questions/75536771/github-runner-out-of-disk-space-after-building-docker-image
+                sudo rm -rf /usr/share/dotnet /usr/local/lib/android /usr/lib/php* /opt/ghc \
+                    /usr/local/share/powershell /usr/share/swift /usr/local/.ghcup \
+                    /opt/hostedtoolcache/CodeQL || true
+                sudo docker image prune --all --force
+                df -h
+
+          - name: Install common deps
+            run: |
+                sudo apt update
+                sudo apt purge -y libpq5 libpq-dev postgresql-*
+                sudo apt install --allow-downgrades -y ccache redis-server postgresql $(cat scripts/docs/en/deps/ubuntu-24.04.md | tr '\n' ' ')
+
+          - name: Setup ccache
+            run: |
+                ccache -M 2.0GB
+                ccache -s -v
+
+          - name: Install gdb and pytest
+            run: |
+                sudo apt install -y gdb python3-pytest pycodestyle
+                pip install ruff
+
+          - name: Run cmake
+            run: |
+                cmake -S . -B build_release ${{env.CMAKE_FLAGS}}
+
+          - name: Compile
+            run: |
+                pwd
+                cd build_release
+                cmake --build . -j $(nproc)
+
+          - name: Install
+            run: |
+                sudo cmake --install build_release
+
+          - name: Service (empty)
+            run: |
+                userver-create-service myservice
+                cd myservice
+                make build-release
+                make test-release
+                cd ..
+                rm -rf myservice
+
+          # - name: Service (mongo)
+          #   run: |
+          #       userver-create-service --mongo myservice-mongo
+          #       cd myservice-mongo
+          #       make build-release
+          #       make test-release
+
+          # - name: Service (grpc)
+          #   run: |
+          #       userver-create-service --grpc myservice-grpc
+          #       cd myservice-grpc
+          #       make build-release
+          #       make test-release
+
+          - name: Service (postgresql)
+            run: |
+                userver-create-service --postgres myservice-pg
+                cd myservice-pg
+                make build-release
+                make test-release
