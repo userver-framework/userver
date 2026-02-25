@@ -144,6 +144,9 @@ class UserverConan(ConanFile):
             # `run=True` required to find `pg_config` binary during `psycopg2` python module build
             # without system package. We use system package.
             self.requires('libpq/[>=14.9 <20]')
+        if self.options.with_postgresql_extra:
+            self.requires('openldap/[^2.6]')
+            self.requires('krb5/[^1.21]')
         if self.options.with_mongodb or self.options.with_kafka:
             self.requires('cyrus-sasl/[^2.1]')
         if self.options.with_mongodb:
@@ -222,6 +225,13 @@ class UserverConan(ConanFile):
         tool_ch.cache_variables['USERVER_FEATURE_GRPC_PROTOVALIDATE'] = self.options.with_grpc_protovalidate
         tool_ch.cache_variables['USERVER_DISABLE_PHDR_CACHE'] = not self.options.with_phdr_cache
 
+        cmake_modules_path = os.path.join(self.source_folder, 'cmake', 'modules')
+        existing_module_path = tool_ch.cache_variables.get('CMAKE_MODULE_PATH', '')
+        if existing_module_path:
+            tool_ch.cache_variables['CMAKE_MODULE_PATH'] = f'{cmake_modules_path};{existing_module_path}'
+        else:
+            tool_ch.cache_variables['CMAKE_MODULE_PATH'] = cmake_modules_path
+
         if self.options.with_grpc:
             tool_ch.cache_variables['USERVER_GOOGLE_COMMON_PROTOS'] = (
                 self.dependencies['googleapis'].cpp_info.components['google_rpc_status_proto'].resdirs[0]
@@ -233,6 +243,15 @@ class UserverConan(ConanFile):
             ].conf_info.get(
                 'user.opentelemetry-proto:proto_root',
             )
+
+        if self.options.with_postgresql_extra:
+            libpq = self.dependencies['libpq']
+            libpq_package_folder = libpq.package_folder
+
+            tool_ch.cache_variables['USERVER_PG_SERVER_INCLUDE_DIR'] = os.path.join(
+                libpq_package_folder, 'include', 'postgresql', 'server'
+            )
+            tool_ch.cache_variables['USERVER_PG_SERVER_LIBRARY_DIR'] = os.path.join(libpq_package_folder, 'lib')
 
         tool_ch.generate()
 
