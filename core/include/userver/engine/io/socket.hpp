@@ -69,6 +69,7 @@ public:
     void Listen(int backlog = SOMAXCONN);
 
     /// @brief Joins multicast group to receive multicast datagrams.
+    /// @snippet src/engine/io/socket_test.cpp multicast socket creation sample
     void AddMembership(const IpMreq& mreq);
 
     /// @brief Leaves multicast group previously joined with AddMembership.
