@@ -1,5 +1,7 @@
 #include "amqp_connection_handler.hpp"
 
+#include <algorithm>
+#include <limits>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 
@@ -11,6 +13,7 @@
 #include <userver/urabbitmq/client_settings.hpp>
 #include <userver/utils/assert.hpp>
 
+#include <urabbitmq/impl/amqp_connection.hpp>
 #include <urabbitmq/statistics/connection_statistics.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -18,6 +21,7 @@ USERVER_NAMESPACE_BEGIN
 namespace urabbitmq::impl {
 
 namespace {
+constexpr std::chrono::milliseconds kHeartbeatSendTimeout{200};
 
 engine::io::Socket CreateSocket(engine::io::Sockaddr& addr, engine::Deadline deadline) {
     engine::io::Socket socket{addr.Domain(), engine::io::SocketType::kTcp};
@@ -91,6 +95,7 @@ AmqpConnectionHandler::AmqpConnectionHandler(
     clients::dns::Resolver& resolver,
     const EndpointInfo& endpoint,
     const AuthSettings& auth_settings,
+    size_t heartbeat_interval_seconds,
     bool secure,
     statistics::ConnectionStatistics& stats,
     engine::Deadline deadline
@@ -98,15 +103,32 @@ AmqpConnectionHandler::AmqpConnectionHandler(
     : address_{ToAmqpAddress(endpoint, auth_settings, secure)},
       socket_{CreateSocketPtr(resolver, address_, auth_settings, deadline)},
       reader_{*this, *socket_},
+      configured_heartbeat_seconds_{
+          static_cast<uint16_t>(std::min<size_t>(heartbeat_interval_seconds, std::numeric_limits<uint16_t>::max()))},
       stats_{stats}
 {}
 
-AmqpConnectionHandler::~AmqpConnectionHandler() { reader_.Stop(); }
+AmqpConnectionHandler::~AmqpConnectionHandler() {
+    heartbeat_task_.Stop();
+    reader_.Stop();
+}
 
 void AmqpConnectionHandler::onProperties(AMQP::Connection*, const AMQP::Table&, AMQP::Table& client) {
     client["product"] = "uServer AMQP library";
     client["copyright"] = "Copyright 2022-2022 Yandex NV";
     client["information"] = "https://userver.tech/dd/de2/rabbitmq_driver.html";
+}
+
+uint16_t AmqpConnectionHandler::onNegotiate(AMQP::Connection*, uint16_t interval) {
+    if (interval == 0 || configured_heartbeat_seconds_ == 0) {
+        negotiated_heartbeat_seconds_.store(0, std::memory_order_relaxed);
+        return 0;
+    }
+
+    const auto negotiated = static_cast<uint16_t>(std::min<uint16_t>(interval, configured_heartbeat_seconds_));
+    negotiated_heartbeat_seconds_.store(negotiated, std::memory_order_relaxed);
+    LOG_INFO() << "RabbitMQ heartbeat negotiated at " << negotiated << "s";
+    return negotiated;
 }
 
 void AmqpConnectionHandler::onData(AMQP::Connection* connection, const char* buffer, size_t size) {
@@ -160,6 +182,7 @@ void AmqpConnectionHandler::onReady(AMQP::Connection*) {
 }
 
 void AmqpConnectionHandler::OnConnectionCreated(AmqpConnection* connection, engine::Deadline deadline) {
+    connection_ = connection;
     reader_.Start(connection);
 
     if (!connection_ready_event_.WaitForEventUntil(deadline)) {
@@ -169,11 +192,22 @@ void AmqpConnectionHandler::OnConnectionCreated(AmqpConnection* connection, engi
 
     if (error_.has_value()) {
         reader_.Stop();
+        connection_ = nullptr;
         throw ConnectionSetupError{"Failed to setup a connection: " + *error_};
+    }
+
+    const auto heartbeat_seconds = negotiated_heartbeat_seconds_.load(std::memory_order_relaxed);
+    if (heartbeat_seconds > 0) {
+        const auto heartbeat_period = std::chrono::seconds{std::max<uint16_t>(1, heartbeat_seconds / 2)};
+        heartbeat_task_.Start("amqp_heartbeat", {heartbeat_period}, [this] { SendHeartbeat(); });
     }
 }
 
-void AmqpConnectionHandler::OnConnectionDestruction() { reader_.Stop(); }
+void AmqpConnectionHandler::OnConnectionDestruction() {
+    heartbeat_task_.Stop();
+    connection_ = nullptr;
+    reader_.Stop();
+}
 
 void AmqpConnectionHandler::Invalidate() { broken_ = true; }
 
@@ -188,6 +222,26 @@ void AmqpConnectionHandler::SetOperationDeadline(engine::Deadline deadline) { op
 statistics::ConnectionStatistics& AmqpConnectionHandler::GetStatistics() { return stats_; }
 
 const AMQP::Address& AmqpConnectionHandler::GetAddress() const { return address_; }
+
+void AmqpConnectionHandler::SendHeartbeat() {
+    if (IsBroken() || connection_ == nullptr) {
+        return;
+    }
+
+    try {
+        const auto deadline = engine::Deadline::FromDuration(kHeartbeatSendTimeout);
+        auto lock = AmqpConnectionLocker{*connection_}.Lock(deadline);
+        connection_->SetOperationDeadline(deadline);
+        connection_->GetNative().heartbeat();
+    } catch (const std::exception& ex) {
+        LOG_WARNING() << "Failed to send AMQP heartbeat: " << ex.what();
+        Invalidate();
+        if (connection_ != nullptr) {
+            auto lock = AmqpConnectionLocker{*connection_}.Lock({});
+            connection_->GetNative().fail("Underlying connection broke.");
+        }
+    }
+}
 
 }  // namespace urabbitmq::impl
 

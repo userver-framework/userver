@@ -94,6 +94,17 @@ AMQP::Table CreateHeaders() {
     return headers;
 }
 
+AMQP::Table CreateHeadersForPublish(const Envelope& envelope) {
+    auto headers = CreateHeaders();
+    if (envelope.headers.has_value()) {
+        for (const auto& [key, value] : envelope.headers.value()) {
+            headers[key] = value;
+        }
+    }
+
+    return headers;
+}
+
 }  // namespace
 
 AmqpChannel::AmqpChannel(AmqpConnection& conn)
@@ -196,7 +207,7 @@ void AmqpChannel::Publish(
 ) {
     AMQP::Envelope native_envelope{envelope.message.data(), envelope.message.size()};
     native_envelope.setPersistent(envelope.type == MessageType::kPersistent);
-    native_envelope.setHeaders(CreateHeaders());
+    native_envelope.setHeaders(CreateHeadersForPublish(envelope));
     if (envelope.reply_to.has_value()) {
         native_envelope.setReplyTo(envelope.reply_to.value().c_str());
     }
@@ -285,7 +296,7 @@ ResponseAwaiter AmqpReliableChannel::Publish(
     if (envelope.expiration.has_value()) {
         native_envelope.setExpiration(std::to_string(envelope.expiration.value().count()));
     }
-    native_envelope.setHeaders(CreateHeaders());
+    native_envelope.setHeaders(CreateHeadersForPublish(envelope));
 
     auto awaiter = conn_.GetAwaiter(deadline);
 

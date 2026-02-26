@@ -1,5 +1,6 @@
 #include "consumer_base_impl.hpp"
 
+#include <sstream>
 #include <string>
 
 #include <fmt/format.h>
@@ -105,6 +106,12 @@ void ConsumerBaseImpl::OnMessage(const AMQP::Message& message, uint64_t delivery
     }
     if (message.hasCorrelationID()) {
         consumed.correlation_id = message.correlationID();
+    }
+    const auto& headers = message.headers();
+    for (const auto& key : headers.keys()) {
+        std::ostringstream stream;
+        stream << headers.get(key);
+        consumed.headers.emplace(key, stream.str());
     }
 
     bts_.Detach(engine::AsyncNoSpan(
