@@ -233,6 +233,14 @@ void Socket::Listen(int backlog) {
         IoSystemError>(::listen(Fd(), backlog), "listening on a socket, fd={}, backlog={}", Fd(), backlog);
 }
 
+void Socket::AddMembership(const IpMreq& mreq) {
+    SetOption(mreq.GetSocketOptionLevel(), mreq.GetJoinSocketOptionName(), mreq.Data(), mreq.Size());
+}
+
+void Socket::DropMembership(const IpMreq& mreq) {
+    SetOption(mreq.GetSocketOptionLevel(), mreq.GetLeaveSocketOption(), mreq.Data(), mreq.Size());
+}
+
 bool Socket::WaitReadable(Deadline deadline) {
     UASSERT(IsValid());
     return fd_control_->Read().Wait(deadline);

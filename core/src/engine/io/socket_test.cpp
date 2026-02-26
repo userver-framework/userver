@@ -490,7 +490,7 @@ UTEST_MT(Socket, UdpIpMreqMultipleReceiversIPv4, 3) {
         sockaddr_in any{AF_INET, htons(kPort), {}, {}};
         any.sin_addr.s_addr = htonl(INADDR_ANY);
         receiver->Bind(io::Sockaddr(&any));
-        receiver->SetOption(mreq.GetSocketOptionLevel(), mreq.GetJoinSocketOptionName(), mreq.Data(), mreq.Size());
+        receiver->AddMembership(mreq);
 
         tasks.push_back(engine::AsyncNoSpan([receiver, deadline] {
             char c{};
@@ -515,7 +515,7 @@ UTEST_MT(Socket, UdpIpMreqMultipleReceiversIPv4, 3) {
 
     for (int i = 0; i < 2; ++i) {
         const auto& receiver = receivers[i];
-        receiver->SetOption(mreq.GetSocketOptionLevel(), mreq.GetLeaveSocketOption(), mreq.Data(), mreq.Size());
+        receiver->DropMembership(mreq);
 
 	    tasks.push_back(engine::AsyncNoSpan([receiver] {
             auto short_deadline = Deadline::FromDuration(std::chrono::milliseconds(300));
