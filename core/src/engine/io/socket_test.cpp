@@ -10,6 +10,7 @@
 #include <cstdlib>
 #include <memory>
 #include <string_view>
+#include <thread>
 
 #include <userver/engine/async.hpp>
 #include <userver/engine/condition_variable.hpp>
