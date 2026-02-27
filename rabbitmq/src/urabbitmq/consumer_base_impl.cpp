@@ -1,6 +1,5 @@
 #include "consumer_base_impl.hpp"
 
-#include <sstream>
 #include <string>
 
 #include <fmt/format.h>
@@ -94,24 +93,26 @@ void ConsumerBaseImpl::Stop() {
 bool ConsumerBaseImpl::IsBroken() const { return broken_ || !connection_ptr_.IsUsable(); }
 
 void ConsumerBaseImpl::OnMessage(const AMQP::Message& message, uint64_t delivery_tag) {
-    std::string span_name{fmt::format("consume_{}_{}", queue_name_, consumer_tag_.value_or("ctag:unknown"))};
-    std::string trace_id = message.headers().get("u-trace-id");
-    std::string parent_span_id = message.headers().get("u-parent-span-id");
-    ConsumedMessage consumed;
-    consumed.message = std::string(message.body(), message.bodySize());
-    consumed.metadata.exchange = message.exchange();
-    consumed.metadata.routingKey = message.routingkey();
-    if (message.hasReplyTo()) {
-        consumed.reply_to = message.replyTo();
-    }
+  const auto &headers = message.headers();
+  std::string span_name{fmt::format("consume_{}_{}", queue_name_,
+                                    consumer_tag_.value_or("ctag:unknown"))};
+  std::string trace_id = headers.get("u-trace-id");
+  std::string parent_span_id = headers.get("u-parent-span-id");
+  ConsumedMessage consumed;
+  consumed.message = std::string(message.body(), message.bodySize());
+  consumed.metadata.exchange = message.exchange();
+  consumed.metadata.routingKey = message.routingkey();
+  if (message.hasReplyTo()) {
+    consumed.reply_to = message.replyTo();
+  }
     if (message.hasCorrelationID()) {
-        consumed.correlation_id = message.correlationID();
+      consumed.correlation_id = message.correlationID();
     }
-    const auto& headers = message.headers();
-    for (const auto& key : headers.keys()) {
-        std::ostringstream stream;
-        stream << headers.get(key);
-        consumed.headers.emplace(key, stream.str());
+
+    const auto keys = headers.keys();
+    consumed.headers.reserve(keys.size());
+    for (const auto &key : keys) {
+      consumed.headers.emplace(key, std::string(headers.get(key)));
     }
 
     bts_.Detach(engine::AsyncNoSpan(
