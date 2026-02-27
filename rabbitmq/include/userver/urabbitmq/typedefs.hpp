@@ -68,8 +68,6 @@ enum class MessageType {
 /// metadata fields. This struct is used to pass messages to the end user,
 /// hiding the actual AMQP message object implementation.
 struct ConsumedMessage {
-    using Headers = std::unordered_map<std::string, std::string>;
-
     struct Metadata {
         std::string exchange;
         std::string routingKey;
@@ -78,21 +76,19 @@ struct ConsumedMessage {
     Metadata metadata;
     std::optional<std::string> reply_to{};
     std::optional<std::string> correlation_id{};
-    Headers headers{};
+    std::unordered_map<std::string, std::string> headers{};
 };
 
 /// @brief Structure holding an AMQP message body along with some of its
 /// metadata fields. This struct is used to pass messages from the end user,
 /// hiding the actual AMQP message object implementation.
 struct Envelope {
-    using Headers = std::unordered_map<std::string, std::string>;
-
     std::string message;
     MessageType type;
     std::optional<std::string> reply_to{};
     std::optional<std::string> correlation_id{};
     std::optional<std::chrono::milliseconds> expiration{};
-    std::optional<Headers> headers{};
+    std::optional<std::unordered_map<std::string, std::string>> headers{};
 };
 
 }  // namespace urabbitmq

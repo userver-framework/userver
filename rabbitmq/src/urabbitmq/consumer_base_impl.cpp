@@ -28,8 +28,7 @@ ConsumerBaseImpl::ConsumerBaseImpl(ConnectionPtr&& connection, const ConsumerSet
       queue_name_{settings.queue.GetUnderlying()},
       prefetch_count_{settings.prefetch_count},
       connection_ptr_{std::move(connection)},
-      channel_{connection_ptr_->GetChannel()}
-{
+      channel_{connection_ptr_->GetChannel()} {
     // We take ownership of the connection, because if it remains pooled
     // things get messy with lifetimes and callbacks
     connection_ptr_.Adopt();
@@ -93,26 +92,25 @@ void ConsumerBaseImpl::Stop() {
 bool ConsumerBaseImpl::IsBroken() const { return broken_ || !connection_ptr_.IsUsable(); }
 
 void ConsumerBaseImpl::OnMessage(const AMQP::Message& message, uint64_t delivery_tag) {
-  const auto &headers = message.headers();
-  std::string span_name{fmt::format("consume_{}_{}", queue_name_,
-                                    consumer_tag_.value_or("ctag:unknown"))};
-  std::string trace_id = headers.get("u-trace-id");
-  std::string parent_span_id = headers.get("u-parent-span-id");
-  ConsumedMessage consumed;
-  consumed.message = std::string(message.body(), message.bodySize());
-  consumed.metadata.exchange = message.exchange();
-  consumed.metadata.routingKey = message.routingkey();
-  if (message.hasReplyTo()) {
-    consumed.reply_to = message.replyTo();
-  }
+    const auto& headers = message.headers();
+    std::string span_name{fmt::format("consume_{}_{}", queue_name_, consumer_tag_.value_or("ctag:unknown"))};
+    std::string trace_id = headers.get("u-trace-id");
+    std::string parent_span_id = headers.get("u-parent-span-id");
+    ConsumedMessage consumed;
+    consumed.message = std::string(message.body(), message.bodySize());
+    consumed.metadata.exchange = message.exchange();
+    consumed.metadata.routingKey = message.routingkey();
+    if (message.hasReplyTo()) {
+        consumed.reply_to = message.replyTo();
+    }
     if (message.hasCorrelationID()) {
-      consumed.correlation_id = message.correlationID();
+        consumed.correlation_id = message.correlationID();
     }
 
     const auto keys = headers.keys();
     consumed.headers.reserve(keys.size());
-    for (const auto &key : keys) {
-      consumed.headers.emplace(key, std::string(headers.get(key)));
+    for (const auto& key : keys) {
+        consumed.headers.emplace(key, std::string(headers.get(key)));
     }
 
     bts_.Detach(engine::AsyncNoSpan(
