@@ -475,7 +475,9 @@ UTEST_MT(Socket, UdpIpMreqIPv4, 1) {
     int reuse = 1;
     receiver.SetOption(SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
 
-    sockaddr_in any_addr{AF_INET, htons(kPort), {}, {}};
+    sockaddr_in any_addr{};
+    any_addr.sin_family = AF_INET;
+    any_addr.sin_port = htons(kPort);
     any_addr.sin_addr.s_addr = htonl(INADDR_ANY);
     receiver.Bind(engine::io::Sockaddr(&any_addr));
 
@@ -496,7 +498,9 @@ UTEST_MT(Socket, UdpIpMreqMultipleReceiversIPv4, 3) {
     static constexpr const char* kGroup = "239.255.0.1";
     static constexpr int packets_count = 3;
 
-    sockaddr_in raw_multiaddr{AF_INET, htons(kPort), {}, {}};
+    sockaddr_in raw_multiaddr{};
+    raw_multiaddr.sin_family = AF_INET;
+    raw_multiaddr.sin_port = htons(kPort);
     inet_pton(AF_INET, kGroup, &raw_multiaddr.sin_addr);
     io::Sockaddr multiaddr(&raw_multiaddr);
     io::IpMreq mreq(kGroup, INADDR_ANY);
@@ -510,7 +514,9 @@ UTEST_MT(Socket, UdpIpMreqMultipleReceiversIPv4, 3) {
         int reuse = 1;
         receiver->SetOption(SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
 
-        sockaddr_in any{AF_INET, htons(kPort), {}, {}};
+        sockaddr_in any{};
+        any.sin_family = AF_INET;
+        any.sin_port = htons(kPort);
         any.sin_addr.s_addr = htonl(INADDR_ANY);
         receiver->Bind(io::Sockaddr(&any));
         receiver->AddMembership(mreq);
