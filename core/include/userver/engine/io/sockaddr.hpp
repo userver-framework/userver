@@ -49,7 +49,9 @@ static_assert(
 /// @snippet src/engine/io/socket_test.cpp multicast socket creation sample
 class IpMreq final {
 public:
-    /// @brief Creates multicast request. IP version is chosen automatically from ip_multiaddr value.
+    /// @brief Creates a structure storing multicast group membership request information.
+    /// The resulting object may be passed to @ref Socket::AddMembership and @ref Socket::DropMembership methods.
+    /// @note IP version is chosen automatically from ip_multiaddr value.
     /// @param ip_multiaddr IP multicast group address (e.g. 239.255.0.1" or "ff02::1")
     /// @param interface_index Interface index (0 for default);
     IpMreq(const char* ip_multiaddr, unsigned int interface_index);
