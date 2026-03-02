@@ -466,6 +466,29 @@ UTEST_MT(Socket, ConcurrentReadWriteUdp, 2) {
     /// [send self concurrent]
 }
 
+UTEST_MT(Socket, UdpIpMreqIPv4, 1) {
+    static constexpr uint16_t kPort = 12345;
+    static constexpr const char* kGroup = "239.255.0.1";
+
+    /// [multicast socket creation sample]
+    auto receiver = engine::io::Socket(engine::io::AddrDomain::kInet, engine::io::SocketType::kDgram);
+    int reuse = 1;
+    receiver.SetOption(SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
+
+    sockaddr_in any_addr{AF_INET, htons(kPort), {}, {}};
+    any_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    receiver.Bind(engine::io::Sockaddr(&any_addr));
+
+    engine::io::IpMreq mreq(kGroup, INADDR_ANY);
+    receiver.AddMembership(mreq);
+
+    char c{};
+    const auto result = receiver.ReadNoblock(&c, 1);
+    /// [multicast socket creation sample]
+
+    EXPECT_FALSE(result);  // not expecting any input
+}
+
 UTEST_MT(Socket, UdpIpMreqMultipleReceiversIPv4, 3) {
     const auto deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
 

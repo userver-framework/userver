@@ -46,6 +46,7 @@ static_assert(
 );
 
 /// Native ip multicast request wrapper
+/// @snippet src/engine/io/socket_test.cpp multicast socket creation sample
 class IpMreq final {
 public:
     /// @brief Creates multicast request. IP version is chosen automatically from ip_multiaddr value.
