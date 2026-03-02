@@ -481,8 +481,9 @@ UTEST_MT(Socket, UdpIpMreqMultipleReceiversIPv4, 3) {
     std::vector<engine::TaskWithResult<void>> tasks;
     std::vector<std::shared_ptr<io::Socket>> receivers;
     for (int i = 0; i < 2; ++i) {
-        /// [[multicast socket creation sample]]
-        const auto& receiver = std::make_shared<io::Socket>(io::AddrDomain::kInet, io::SocketType::kDgram);
+        const auto& receiver = receivers.emplace_back(
+            std::make_shared<io::Socket>(io::AddrDomain::kInet, io::SocketType::kDgram)
+        );
         int reuse = 1;
         receiver->SetOption(SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
 
@@ -490,8 +491,6 @@ UTEST_MT(Socket, UdpIpMreqMultipleReceiversIPv4, 3) {
         any.sin_addr.s_addr = htonl(INADDR_ANY);
         receiver->Bind(io::Sockaddr(&any));
         receiver->AddMembership(mreq);
-        /// [[multicast socket creation sample]]
-        receivers.emplace_back(receiver);
 
         tasks.push_back(engine::AsyncNoSpan([receiver, deadline] {
             char c{};
