@@ -3,6 +3,7 @@
 #include <chrono>
 #include <cstdint>
 #include <optional>
+#include <string>
 #include <string_view>
 
 #include <ydb-cpp-sdk/client/table/query_stats/stats.h>
@@ -31,6 +32,26 @@ struct QuerySettings final {
     std::optional<bool> keep_in_query_cache{std::nullopt};
 
     std::optional<NYdb::NTable::ECollectQueryStatsMode> collect_query_stats{std::nullopt};
+};
+
+struct RequestSettings final {
+    std::chrono::milliseconds timeout_ms{0};
+
+    std::string trace_id{};
+};
+
+using ExecuteSettings = RequestSettings;
+using CommitSettings = RequestSettings;
+using RollbackSettings = RequestSettings;
+
+struct RetryTxSettings final {
+    TransactionMode tx_mode{TransactionMode::kSerializableRW};
+    std::chrono::milliseconds timeout_ms{0};
+    std::uint32_t retries{10};
+    bool is_idempotent{false};
+
+    CommitSettings commit_settings;
+    RollbackSettings rollback_settings;
 };
 
 }  // namespace ydb

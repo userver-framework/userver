@@ -13,6 +13,8 @@
 #include <boost/pfr/core.hpp>
 #include <boost/pfr/core_name.hpp>
 
+#include <fmt/ranges.h>
+
 #include <userver/utils/assert.hpp>
 #include <userver/utils/constexpr_indices.hpp>
 #include <userver/utils/enumerate.hpp>

@@ -1,0 +1,45 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: userver <userver@yandex-team.ru>
+Date: Tue, 25 Feb 2026 00:00:00 +0000
+Subject: [PATCH] Fix protobuf 4.24 compatibility
+
+1. cmake/protobuf: Add Protobuf well-known types include path so that
+   protoc can find google/protobuf/struct.proto when Protobuf is fetched
+   via CPM.
+
+2. operation.h: Remove include of google/protobuf/stubs/status.h which
+   was removed in protobuf 4.22+. The include is unnecessary because
+   MessageToJsonString now returns absl::Status.
+
+---
+ cmake/protobuf.cmake                                              | 4 ++++
+ include/ydb-cpp-sdk/client/types/operation/operation.h             | 1 -
+ 2 files changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/cmake/protobuf.cmake b/cmake/protobuf.cmake
+index 1111111..2222222 100644
+--- a/cmake/protobuf.cmake
++++ b/cmake/protobuf.cmake
+@@ -55,6 +55,10 @@ function(_ydb_sdk_init_proto_library_impl Tgt USE_API_COMMON_PROTOS)
+ 
+   set(proto_incls ${YDB_SDK_SOURCE_DIR})
+ 
++  if(Protobuf_INCLUDE_DIR)
++    list(APPEND proto_incls ${Protobuf_INCLUDE_DIR})
++  endif()
++
+   if (USE_API_COMMON_PROTOS)
+     target_link_libraries(${Tgt} PUBLIC
+       api-common-protos
+diff --git a/include/ydb-cpp-sdk/client/types/operation/operation.h b/include/ydb-cpp-sdk/client/types/operation/operation.h
+index 3333333..4444444 100644
+--- a/include/ydb-cpp-sdk/client/types/operation/operation.h
++++ b/include/ydb-cpp-sdk/client/types/operation/operation.h
+@@ -6,7 +6,6 @@
+ 
+ #include <library/cpp/threading/future/future.h>
+ 
+-#include <google/protobuf/stubs/status.h>
+ #include <google/protobuf/timestamp.pb.h>
+ #include <google/protobuf/util/json_util.h>
+ 

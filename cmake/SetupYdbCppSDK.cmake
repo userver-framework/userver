@@ -25,6 +25,10 @@ write_package_stub(jwt-cpp)
 
 set(RAPIDJSON_INCLUDE_DIRS "${USERVER_THIRD_PARTY_DIRS}/rapidjson/include")
 
+if(Protobuf_INCLUDE_DIR)
+    set(Protobuf_INCLUDE_DIR "${Protobuf_INCLUDE_DIR}" CACHE PATH "" FORCE)
+endif()
+
 if(TARGET userver-api-common-protos)
     set(YDB_SDK_GOOGLE_COMMON_PROTOS_TARGET userver-api-common-protos)
 else()
@@ -37,6 +41,7 @@ cpmaddpackage(
     GIT_TAG v3.13.0
     GITHUB_REPOSITORY ydb-platform/ydb-cpp-sdk
     GIT_SHALLOW TRUE
+    PATCHES ydb-cpp-sdk_protobuf_include.patch
     OPTIONS "Brotli_VERSION ${Brotli_VERSION}" "RAPIDJSON_INCLUDE_DIRS ${RAPIDJSON_INCLUDE_DIRS}"
             "YDB_SDK_GOOGLE_COMMON_PROTOS_TARGET ${YDB_SDK_GOOGLE_COMMON_PROTOS_TARGET}" "YDB_SDK_EXAMPLES OFF"
 )

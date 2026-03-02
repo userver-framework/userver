@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include <string>
 
 #include <ydb-cpp-sdk/client/query/client.h>
@@ -19,7 +20,83 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ydb {
 
+/// @brief Transaction actor for use with TableClient::RetryTx.
+///
+/// Provides only query execution within a transaction. Commit and rollback
+/// are controlled by returning TxAction from the retry function.
+/// https://ydb.tech/docs/en/concepts/transactions
+class TxActor {
+public:
+    TxActor(const TxActor&) = delete;
+    TxActor& operator=(const TxActor&) = delete;
+    TxActor(TxActor&&) noexcept = delete;
+    TxActor& operator=(TxActor&&) = delete;
+
+    /// Execute a single data query as a part of the transaction. Query parameters
+    /// are passed in `Args` as "string key - value" pairs:
+    ///
+    /// @code
+    /// tx.Execute(query, "name1", value1, "name2", value2, ...);
+    /// @endcode
+    ///
+    /// Use ydb::PreparedArgsBuilder for storing a generic buffer of query params
+    /// if needed.
+    ///
+    /// @{
+    template <typename... Args>
+    ExecuteResponse Execute(const Query& query, Args&&... args);
+
+    template <typename... Args>
+    ExecuteResponse Execute(ExecuteSettings settings, const Query& query, Args&&... args);
+
+    ExecuteResponse Execute(ExecuteSettings settings, const Query& query, PreparedArgsBuilder&& builder);
+    /// @}
+
+    PreparedArgsBuilder GetBuilder() const;
+
+private:
+    friend class TableClient;
+
+    TxActor(
+        TableClient& table_client,
+        NYdb::NQuery::TTransaction ydb_tx,
+        std::string name
+    ) noexcept;
+
+    TableClient& table_client_;
+    std::string name_;
+    impl::StatsScope stats_scope_;
+    tracing::Span span_;
+    NYdb::NQuery::TTransaction ydb_tx_;
+};
+
+template <typename... Args>
+ExecuteResponse TxActor::Execute(const Query& query, Args&&... args) {
+    auto builder = GetBuilder();
+    builder.AddParams(std::forward<Args>(args)...);
+    return Execute(ExecuteSettings{}, query, std::move(builder));
+}
+
+template <typename... Args>
+ExecuteResponse TxActor::Execute(ExecuteSettings settings, const Query& query, Args&&... args) {
+    auto builder = GetBuilder();
+    builder.AddParams(std::forward<Args>(args)...);
+    return Execute(std::move(settings), query, std::move(builder));
+}
+
+/// Action to take after the retry function completes.
+enum class TxAction {
+    kCommit,
+    kRollback,
+};
+
+/// Signature for the function passed to TableClient::RetryTx.
+using RetryTxFunction = std::function<TxAction(TxActor&)>;
+
 /// @brief YDB Transaction
+///
+/// @deprecated Use TableClient::RetryTx instead of manually managing
+/// transactions with Begin/Commit/Rollback.
 ///
 /// https://ydb.tech/docs/en/concepts/transactions
 class Transaction final {

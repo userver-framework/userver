@@ -35,8 +35,21 @@ void ApplyToRequestSettings(
 
 template <typename T>
 void ApplyToRequestSettings(
+    NYdb::TRequestSettings<T>& result,
+    const RequestSettings& settings,
+    engine::Deadline deadline
+) {
+    result.ClientTimeout(GetBoundTimeout(settings.timeout_ms, deadline));
+
+    if (!settings.trace_id.empty()) {
+        result.TraceId(impl::ToString(settings.trace_id));
+    }
+}
+
+template <typename T, typename Settings = OperationSettings>
+void ApplyToRequestSettings(
     NYdb::TOperationRequestSettings<T>& result,
-    const OperationSettings& settings,
+    const Settings& settings,
     engine::Deadline deadline
 ) {
     auto timeout = GetBoundTimeout(settings.client_timeout_ms, deadline);
@@ -50,8 +63,8 @@ void ApplyToRequestSettings(
     }
 }
 
-template <typename T>
-T PrepareRequestSettings(const OperationSettings& settings, engine::Deadline deadline) {
+template <typename T, typename Settings>
+T PrepareRequestSettings(const Settings& settings, engine::Deadline deadline) {
     T result;
     impl::ApplyToRequestSettings(result, settings, deadline);
     return result;

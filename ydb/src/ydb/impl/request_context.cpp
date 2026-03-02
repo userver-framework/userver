@@ -18,9 +18,33 @@ namespace ydb::impl {
 
 namespace {
 
+template <typename Settings>
+void AddSpecificTags(tracing::Span& span, const Settings& settings);
+
+template <>
+void AddSpecificTags<OperationSettings>(tracing::Span& span, const OperationSettings& settings) {
+    UASSERT(settings.retries.has_value());
+    span.AddTag("max_retries", *settings.retries);
+    span.AddTag("get_session_timeout_ms", settings.get_session_timeout_ms.count());
+    span.AddTag("client_timeout_ms", settings.client_timeout_ms.count());
+}
+
+template <>
+void AddSpecificTags<RequestSettings>(tracing::Span& span, const RequestSettings& settings) {
+    span.AddTag("timeout_ms", settings.timeout_ms.count());
+}
+
+template <>
+void AddSpecificTags<RetryTxSettings>(tracing::Span& span, const RetryTxSettings& settings) {
+    span.AddTag("timeout_ms", settings.timeout_ms.count());
+    span.AddTag("retries", settings.retries);
+    span.AddTag("is_idempotent", settings.is_idempotent);
+}
+
+template <typename Settings>
 tracing::Span MakeSpan(
     const Query& query,
-    OperationSettings& settings,
+    Settings& settings,
     tracing::Span* custom_parent_span,
     utils::impl::SourceLocation location
 ) {
@@ -29,7 +53,7 @@ tracing::Span MakeSpan(
             ? custom_parent_span->CreateChild("ydb_query", location)
             : tracing::Span("ydb_query", location);
 
-    settings.trace_id = span.GetTraceId();
+    // settings.trace_id = span.GetTraceId();
 
     const auto optional_name_view = query.GetOptionalNameView();
     switch (query.GetLogMode()) {
@@ -47,10 +71,7 @@ tracing::Span MakeSpan(
             break;
     }
 
-    UASSERT(settings.retries.has_value());
-    span.AddTag("max_retries", *settings.retries);
-    span.AddTag("get_session_timeout_ms", settings.get_session_timeout_ms.count());
-    span.AddTag("client_timeout_ms", settings.client_timeout_ms.count());
+    AddSpecificTags<Settings>(span, settings);
 
     if (optional_name_view) {
         try {
@@ -63,7 +84,17 @@ tracing::Span MakeSpan(
     return span;
 }
 
+template <typename Settings>
 void PrepareSettings(
+    const Query& query,
+    const dynamic_config::Snapshot& config_snapshot,
+    Settings& os,
+    impl::IsStreaming is_streaming,
+    const OperationSettings& default_settings
+);
+
+template <>
+void PrepareSettings<OperationSettings>(
     const Query& query,
     const dynamic_config::Snapshot& config_snapshot,
     OperationSettings& os,
@@ -123,6 +154,28 @@ void PrepareSettings(
     }
 }
 
+template <>
+void PrepareSettings<RequestSettings>(
+    [[maybe_unused]] const Query& query,
+    [[maybe_unused]] const dynamic_config::Snapshot& config_snapshot,
+    [[maybe_unused]] RequestSettings& os,
+    [[maybe_unused]] impl::IsStreaming is_streaming,
+    [[maybe_unused]] const OperationSettings& default_settings
+) {
+    // TODO: to think about default settings for RequestSettings
+}
+
+template <>
+void PrepareSettings<RetryTxSettings>(
+    [[maybe_unused]] const Query& query,
+    [[maybe_unused]] const dynamic_config::Snapshot& config_snapshot,
+    [[maybe_unused]] RetryTxSettings& os,
+    [[maybe_unused]] impl::IsStreaming is_streaming,
+    [[maybe_unused]] const OperationSettings& default_settings
+) {
+    // TODO: to think about default settings for RetryTxSettings
+}
+
 engine::Deadline GetDeadline(tracing::Span& span, const dynamic_config::Snapshot& config_snapshot) {
     if (config_snapshot[::dynamic_config::YDB_DEADLINE_PROPAGATION_VERSION] !=
         impl::kDeadlinePropagationExperimentVersion)
@@ -152,10 +205,11 @@ engine::Deadline GetDeadline(tracing::Span& span, const dynamic_config::Snapshot
 
 }  // namespace
 
-RequestContext::RequestContext(
+template <typename Settings>
+RequestContext<Settings>::RequestContext(
     TableClient& l_table_client,
     const Query& query,
-    OperationSettings&& settings,
+    Settings&& settings,
     IsStreaming is_streaming,
     tracing::Span* custom_parent_span,
     const utils::impl::SourceLocation& location
@@ -167,13 +221,14 @@ RequestContext::RequestContext(
       config_snapshot(table_client.config_source_.GetSnapshot()),
       // Note: comma operator is used to insert code between initializations.
       span((
-          PrepareSettings(query, config_snapshot, this->settings, is_streaming, table_client.default_settings_),
-          MakeSpan(query, this->settings, custom_parent_span, location)
+          PrepareSettings<Settings>(query, config_snapshot, this->settings, is_streaming, table_client.default_settings_),
+          MakeSpan<Settings>(query, this->settings, custom_parent_span, location)
       )),
       deadline(GetDeadline(span, config_snapshot))
 {}
 
-void RequestContext::HandleError(const NYdb::TStatus& status) {
+template <typename Settings>
+void RequestContext<Settings>::HandleError(const NYdb::TStatus& status) {
     if (engine::current_task::ShouldCancel()) {
         return;
     }
@@ -189,12 +244,17 @@ void RequestContext::HandleError(const NYdb::TStatus& status) {
     }
 }
 
-RequestContext::~RequestContext() {
+template <typename Settings>
+RequestContext<Settings>::~RequestContext() {
     if (engine::current_task::ShouldCancel() && !is_error) {
         stats_scope.OnCancelled();
         span.AddTag("cancelled", true);
     }
 }
+
+template struct RequestContext<OperationSettings>;
+template struct RequestContext<RequestSettings>;
+template struct RequestContext<RetryTxSettings>;
 
 }  // namespace ydb::impl
 

@@ -19,6 +19,47 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ydb {
 
+TxActor::TxActor(
+    TableClient& table_client,
+    NYdb::NQuery::TTransaction ydb_tx,
+    std::string name
+) noexcept
+    : table_client_(table_client),
+        name_(std::move(name)),
+        stats_scope_(impl::StatsScope::TransactionTag{}, *table_client_.stats_, name_),
+        span_("ydb_retry_transaction"),
+        ydb_tx_(std::move(ydb_tx)) {
+    span_.DetachFromCoroStack();
+    span_.AddTag("transaction_name", name_);
+}
+
+ExecuteResponse TxActor::Execute(ExecuteSettings settings, const Query& query, PreparedArgsBuilder&& builder) {
+    impl::RequestContext<ExecuteSettings> context{table_client_, query, std::move(settings), impl::IsStreaming{false}, &span_};
+    auto internal_params = std::move(builder).Build();
+
+    auto exec_settings = impl::PrepareRequestSettings<NYdb::NQuery::TExecuteQuerySettings, ExecuteSettings>(settings, context.deadline);
+
+    const auto tx = NYdb::NQuery::TTxControl::Tx(ydb_tx_);
+    auto execute_fut = ydb_tx_.GetSession().ExecuteQuery(
+        impl::ToString(query.GetStatementView()),
+        tx,
+        std::move(internal_params),
+        exec_settings
+    );
+
+    auto status = impl::GetFutureValueChecked(
+        std::move(execute_fut),
+        "TxActor::Execute",
+        context
+    );
+
+    return ExecuteResponse(std::move(status));
+}
+
+PreparedArgsBuilder TxActor::GetBuilder() const {
+    return table_client_.GetBuilder();
+}
+
 Transaction::Transaction(
     TableClient& table_client,
     std::variant<NYdb::NQuery::TTransaction, NYdb::NTable::TTransaction> ydb_tx,

@@ -11,14 +11,18 @@ namespace {
 
 class RetryOperationFixture : public ydb::ClientFixtureBase {
 public:
-    template <typename Func>
-    auto RetryOperationSync(std::size_t retries, Func func) {
+    template <typename FuncResult, typename Func>
+    FuncResult RetryOperationSync(std::size_t retries, Func func) {
         auto settings = MakeOperationSettings(retries);
         ydb::impl::RequestContext context{GetTableClient(), ydb::Query{}, std::move(settings)};
 
-        auto future = ydb::impl::RetryOperation(context, std::move(func));
+        std::unique_ptr<FuncResult> result;
 
-        return ydb::impl::GetFutureValueUnchecked(std::move(future));
+        ydb::impl::RetryOperation(context, [func = std::move(func), &result](NYdb::NTable::TSession session) mutable {
+            result = std::make_unique<FuncResult>(func(session));
+        });
+
+        return std::move(*result);
     }
 
 private:
@@ -36,8 +40,8 @@ constexpr NYdb::EStatus kSuccess = NYdb::EStatus::SUCCESS;
 constexpr NYdb::EStatus kRetryableStatus = NYdb::EStatus::ABORTED;
 constexpr NYdb::EStatus kNonRetryableStatus = NYdb::EStatus::BAD_REQUEST;
 
-inline NThreading::TFuture<NYdb::TStatus> MakeStatusFuture(NYdb::EStatus status) {
-    return NThreading::MakeFuture<NYdb::TStatus>(NYdb::TStatus{status, NYdb::NIssue::TIssues{}});
+inline NYdb::TStatus MakeStatusFuture(NYdb::EStatus status) {
+    return NYdb::TStatus(status, NYdb::NIssue::TIssues{});
 }
 
 class TestOperationResults final : public NYdb::TStatus {
@@ -59,11 +63,10 @@ private:
 
 UTEST_F(RetryOperationFixture, HandleOfInheritorsOfTStatus) {
     const std::string data = "qwerty";
-    const auto res = RetryOperationSync(
+    const auto res = RetryOperationSync<TestOperationResults>(
         /*retries=*/0,
         [&data](NYdb::NTable::TSession) {
-            return NThreading::MakeFuture<
-                TestOperationResults>(TestOperationResults{NYdb::TStatus{kSuccess, NYdb::NIssue::TIssues{}}, data});
+            return TestOperationResults{NYdb::TStatus{kSuccess, NYdb::NIssue::TIssues{}}, data};
         }
     );
     ASSERT_EQ(res.GetData(), data);
@@ -71,7 +74,7 @@ UTEST_F(RetryOperationFixture, HandleOfInheritorsOfTStatus) {
 
 UTEST_F(RetryOperationFixture, Success) {
     std::size_t attempts = 0;
-    const auto res = RetryOperationSync(/*retries=*/3, [&attempts](NYdb::NTable::TSession) {
+    const auto res = RetryOperationSync<NYdb::TStatus>(/*retries=*/3, [&attempts](NYdb::NTable::TSession) {
         attempts++;
         return MakeStatusFuture(kSuccess);
     });
@@ -82,7 +85,7 @@ UTEST_F(RetryOperationFixture, Success) {
 
 UTEST_F(RetryOperationFixture, NonRetry) {
     std::size_t attempts = 0;
-    const auto res = RetryOperationSync(/*retries=*/3, [&attempts](NYdb::NTable::TSession) {
+    const auto res = RetryOperationSync<NYdb::TStatus>(/*retries=*/3, [&attempts](NYdb::NTable::TSession) {
         attempts++;
         return MakeStatusFuture(kNonRetryableStatus);
     });
@@ -93,7 +96,7 @@ UTEST_F(RetryOperationFixture, NonRetry) {
 UTEST_F(RetryOperationFixture, SuccessOnTheLastAttempt) {
     constexpr std::uint32_t kRetries = 5;
     std::size_t attempts = 0;
-    const auto res = RetryOperationSync(/*retries=*/kRetries, [&attempts](NYdb::NTable::TSession) {
+    const auto res = RetryOperationSync<NYdb::TStatus>(/*retries=*/kRetries, [&attempts](NYdb::NTable::TSession) {
         attempts++;
         if (attempts < kRetries) {
             return MakeStatusFuture(kRetryableStatus);
@@ -107,7 +110,7 @@ UTEST_F(RetryOperationFixture, SuccessOnTheLastAttempt) {
 UTEST_F(RetryOperationFixture, AttemptsIsRetriesPlusOne) {
     constexpr std::uint32_t kRetries = 5;
     std::size_t attempts = 0;
-    const auto res = RetryOperationSync(
+    const auto res = RetryOperationSync<NYdb::TStatus>(
         /*retries=*/kRetries,
         [&attempts](NYdb::NTable::TSession) {
             attempts++;
@@ -122,7 +125,7 @@ UTEST_F(RetryOperationFixture, RetriesLimit) {
     // ydb-sdk has own maximum for retries, so we want to step over this
     constexpr std::uint32_t kRetries = 1000;
     std::size_t attempts = 0;
-    const auto res = RetryOperationSync(
+    const auto res = RetryOperationSync<NYdb::TStatus>(
         /*retries=*/1000,
         [&attempts](NYdb::NTable::TSession) {
             attempts++;
@@ -138,7 +141,7 @@ UTEST_F(RetryOperationFixture, RetriesLimit) {
 
 UTEST_F(RetryOperationFixture, Exception) {
     UASSERT_THROW_MSG(
-        RetryOperationSync(
+        RetryOperationSync<NYdb::TStatus>(
             /*retries=*/0,
             [](NYdb::NTable::TSession) {
                 throw std::runtime_error{"error"};

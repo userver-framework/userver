@@ -41,6 +41,7 @@ public:
 private:
     friend class Transaction;
     friend class TableClient;
+    friend class TxActor;
     struct PreparedArgsWithKey;
 
     NYdb::TParams Build() && { return std::move(builder_).Build(); }
