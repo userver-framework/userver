@@ -23,8 +23,6 @@ namespace urabbitmq::impl {
 
 namespace {
 
-constexpr std::chrono::milliseconds kHeartbeatSendTimeout{200};
-
 engine::io::Socket CreateSocket(engine::io::Sockaddr& addr, engine::Deadline deadline) {
     engine::io::Socket socket{addr.Domain(), engine::io::SocketType::kTcp};
     socket.SetOption(IPPROTO_TCP, TCP_NODELAY, 1);
@@ -106,7 +104,7 @@ AmqpConnectionHandler::AmqpConnectionHandler(
       socket_{CreateSocketPtr(resolver, address_, auth_settings, deadline)},
       reader_{*this, *socket_},
       configured_heartbeat_seconds_{static_cast<
-          std::uint16_t>(std::min<std::size_t>(heartbeat_interval_seconds, std::numeric_limits<uint16_t>::max()))},
+          std::uint16_t>(std::min<std::size_t>(heartbeat_interval_seconds, std::numeric_limits<std::uint16_t>::max()))},
       stats_{stats} {}
 
 AmqpConnectionHandler::~AmqpConnectionHandler() {
@@ -121,7 +119,7 @@ void AmqpConnectionHandler::onProperties(AMQP::Connection*, const AMQP::Table&, 
 }
 
 uint16_t AmqpConnectionHandler::onNegotiate(AMQP::Connection*, uint16_t interval) {
-    const auto negotiated = static_cast<uint16_t>(std::min<uint16_t>(interval, configured_heartbeat_seconds_));
+    const auto negotiated = std::min<std::uint16_t>(interval, configured_heartbeat_seconds_);
     negotiated_heartbeat_seconds_.store(negotiated, std::memory_order_relaxed);
     LOG_INFO() << "RabbitMQ heartbeat negotiated at " << negotiated << "s";
     return negotiated;
@@ -199,9 +197,8 @@ void AmqpConnectionHandler::OnConnectionCreated(AmqpConnection* connection, engi
     if (heartbeat_seconds > 0) {
         const auto half_interval =
             std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::seconds{heartbeat_seconds}) / 2;
-        const auto heartbeat_period = std::max(500ms, half_interval);
 
-        heartbeat_task_.Start("amqp_heartbeat", {heartbeat_period, utils::PeriodicTask::Flags::kNow}, [this] {
+        heartbeat_task_.Start("amqp_heartbeat", {half_interval, utils::PeriodicTask::Flags::kNow}, [this] {
             SendHeartbeat();
         });
     }
@@ -233,7 +230,7 @@ void AmqpConnectionHandler::SendHeartbeat() {
     }
 
     try {
-        const auto deadline = engine::Deadline::FromDuration(kHeartbeatSendTimeout);
+        const auto deadline = engine::Deadline::FromDuration(std::chrono::seconds{configured_heartbeat_seconds_} / 2);
         auto lock = AmqpConnectionLocker{*connection_}.Lock(deadline);
         connection_->SetOperationDeadline(deadline);
         connection_->GetNative().heartbeat();

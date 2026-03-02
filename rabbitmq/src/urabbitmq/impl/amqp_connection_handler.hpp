@@ -89,7 +89,7 @@ private:
     utils::PeriodicTask heartbeat_task_;
     AmqpConnection* connection_{nullptr};
     std::atomic<uint16_t> negotiated_heartbeat_seconds_{0};
-    uint16_t configured_heartbeat_seconds_{0};
+    std::uint16_t configured_heartbeat_seconds_{0};
 
     engine::SingleConsumerEvent connection_ready_event_;
     std::atomic<bool> broken_{false};
