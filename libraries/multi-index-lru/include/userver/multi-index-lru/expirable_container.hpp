@@ -99,6 +99,11 @@ public:
     }
 
     template <typename Tag, typename Key>
+    bool contains_no_update(const Key& key) const {
+        return this->template find_no_update<Tag, Key>(key) != this->template end<Tag>();
+    }
+
+    template <typename Tag, typename Key>
     bool erase(const Key& key) {
         return container_.template erase<Tag, Key>(key);
     }
