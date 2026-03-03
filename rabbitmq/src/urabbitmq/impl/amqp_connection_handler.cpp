@@ -1,10 +1,10 @@
 #include "amqp_connection_handler.hpp"
 
 #include <algorithm>
+#include <limits>
 
 #include <netinet/in.h>
 #include <netinet/tcp.h>
-#include <limits>
 
 #include <userver/clients/dns/resolver.hpp>
 #include <userver/engine/io/common.hpp>
@@ -230,7 +230,9 @@ void AmqpConnectionHandler::SendHeartbeat() {
     }
 
     try {
-        const auto deadline = engine::Deadline::FromDuration(std::chrono::seconds{configured_heartbeat_seconds_} / 2);
+        const auto deadline = engine::Deadline::FromDuration(std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::seconds{configured_heartbeat_seconds_} / 2.0
+        ));
         auto lock = AmqpConnectionLocker{*connection_}.Lock(deadline);
         connection_->SetOperationDeadline(deadline);
         connection_->GetNative().heartbeat();
