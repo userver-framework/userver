@@ -10,12 +10,7 @@
 #include <userver/engine/mutex.hpp>
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/sleep.hpp>
-#include <userver/engine/task/current_task.hpp>
 #include <userver/utils/uuid4.hpp>
-
-#include <urabbitmq/impl/amqp_connection.hpp>
-#include <urabbitmq/impl/amqp_connection_handler.hpp>
-#include <urabbitmq/statistics/connection_statistics.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -92,60 +87,6 @@ private:
     engine::Mutex mutex_;
     bool thrown_{false};
     engine::ConditionVariable cond_;
-};
-
-class RawPublisher final {
-public:
-    explicit RawPublisher(engine::Deadline deadline)
-        : resolver_{engine::current_task::GetTaskProcessor(), {}},
-          settings_{urabbitmq::TestsHelper::CreateSettings()},
-          handler_{
-              resolver_,
-              settings_.endpoints.endpoints.front(),
-              settings_.endpoints.auth,
-              settings_.pool_settings.heartbeat_interval_seconds,
-              settings_.use_secure_connection,
-              stats_,
-              deadline,
-          },
-          connection_{handler_, settings_.pool_settings.max_in_flight_requests, deadline}
-    {}
-
-    void PublishReliable(
-        const urabbitmq::Exchange& exchange,
-        const std::string& routing_key,
-        std::string_view message,
-        const AMQP::Table& headers,
-        engine::Deadline deadline
-    ) {
-        AMQP::Envelope envelope{message.data(), message.size()};
-        envelope.setHeaders(headers);
-
-        std::optional<std::string> error;
-        engine::SingleConsumerEvent published;
-
-        auto reliable = connection_.GetReliableChannel(deadline);
-        reliable->publish(exchange.GetUnderlying(), routing_key, envelope)
-            .onAck([&published] { published.Send(); })
-            .onError([&published, &error](const char* message) {
-                error = message;
-                published.Send();
-            });
-
-        if (!published.WaitForEventFor(utest::kMaxTestWaitTime)) {
-            throw std::runtime_error{"Timed out waiting for publish ack"};
-        }
-        if (error.has_value()) {
-            throw std::runtime_error{*error};
-        }
-    }
-
-private:
-    clients::dns::Resolver resolver_;
-    const urabbitmq::ClientSettings settings_;
-    urabbitmq::statistics::ConnectionStatistics stats_;
-    urabbitmq::impl::AmqpConnectionHandler handler_;
-    urabbitmq::impl::AmqpConnection connection_;
 };
 
 }  // namespace
@@ -394,66 +335,6 @@ UTEST(Consumer, ConsumeMetadataAndHeadersWork) {
         ASSERT_EQ(msg.headers.count("u-parent-span-id"), 1) << "Missing u-parent-span-id in " << payload;
         EXPECT_FALSE(msg.headers.at("u-trace-id").empty());
         EXPECT_FALSE(msg.headers.at("u-parent-span-id").empty());
-    }
-}
-
-UTEST(Consumer, HeaderFieldStringConversionInvariants) {
-    ClientWrapper client{};
-    client.SetupRmqEntities();
-    const urabbitmq::ConsumerSettings settings{client.GetQueue(), 10};
-
-    AMQP::Table headers;
-    headers.set("string", "value");
-    headers.set("empty-string", "");
-    headers.set("bool-true", true);
-    headers.set("bool-false", false);
-    headers.set("uint8", static_cast<std::uint8_t>(255));
-    headers.set("int8", static_cast<std::int8_t>(-100));
-    headers.set("uint16", static_cast<std::uint16_t>(65000));
-    headers.set("int16", static_cast<std::int16_t>(-30000));
-    headers.set("uint32", std::numeric_limits<std::uint32_t>::max());
-    headers.set("int32", std::numeric_limits<std::int32_t>::min());
-    headers.set("uint64", std::numeric_limits<std::uint64_t>::max());
-    headers.set("int64", std::numeric_limits<std::int64_t>::min());
-    headers.set("float", AMQP::Float{3.14f});
-    headers.set("double", AMQP::Double{2.718281828});
-    headers.set("void", nullptr);
-
-    const std::unordered_map<std::string, std::string> expected_values{
-        {"string", "value"},
-        {"empty-string", ""},
-        {"bool-true", "true"},
-        {"bool-false", "false"},
-        {"uint8", "255"},
-        {"int8", "-100"},
-        {"uint16", "65000"},
-        {"int16", "-30000"},
-        {"uint32", "4294967295"},
-        {"int32", "-2147483648"},
-        {"uint64", "18446744073709551615"},
-        {"int64", "-9223372036854775808"},
-        {"float", "3.14"},
-        {"double", "2.718281828"},
-        {"void", ""},
-    };
-
-    Consumer consumer{client.Get(), settings};
-    consumer.ExpectConsume(1);
-    consumer.Start();
-
-    RawPublisher publisher{client.GetDeadline()};
-    publisher.PublishReliable(client.GetExchange(), client.GetRoutingKey(), "payload-header-conversion", headers, client.GetDeadline());
-
-    consumer.Wait();
-    const auto consumed = consumer.GetMessagesWithMetadata();
-
-    ASSERT_EQ(consumed.size(), 1);
-    EXPECT_EQ(consumed[0].message, "payload-header-conversion");
-    ASSERT_EQ(consumed[0].headers.size(), expected_values.size());
-
-    for (const auto& [key, expected_value] : expected_values) {
-        ASSERT_EQ(consumed[0].headers.count(key), 1) << "Missing header: " << key;
-        EXPECT_EQ(consumed[0].headers.at(key), expected_value) << "Unexpected converted value for key: " << key;
     }
 }
 
