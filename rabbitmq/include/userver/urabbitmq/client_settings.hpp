@@ -78,7 +78,7 @@ struct PoolSettings final {
 
     /// Requested AMQP heartbeat interval in seconds.
     /// Set to 0 to disable heartbeats.
-    size_t heartbeat_interval_seconds = 30;
+    size_t heartbeat_interval_seconds = 60;
 };
 
 class TestsHelper;
