@@ -4,7 +4,9 @@
 /// @brief Convenient typedefs for RabbitMQ entities.
 
 #include <chrono>
+#include <cstdint>
 #include <unordered_map>
+#include <variant>
 
 #include <userver/utils/strong_typedef.hpp>
 
@@ -79,6 +81,17 @@ struct ConsumedMessage {
     std::unordered_map<std::string, std::string> headers{};
 };
 
+using HeaderValue = std::variant<
+    std::string,
+    std::int8_t,
+    std::uint8_t,
+    std::int16_t,
+    std::uint16_t,
+    std::int32_t,
+    std::uint32_t,
+    std::int64_t,
+    std::uint64_t>;
+
 /// @brief Structure holding an AMQP message body along with some of its
 /// metadata fields. This struct is used to pass messages from the end user,
 /// hiding the actual AMQP message object implementation.
@@ -88,7 +101,7 @@ struct Envelope {
     std::optional<std::string> reply_to{};
     std::optional<std::string> correlation_id{};
     std::optional<std::chrono::milliseconds> expiration{};
-    std::optional<std::unordered_map<std::string, std::string>> headers{};
+    std::optional<std::unordered_map<std::string, HeaderValue>> headers{};
 };
 
 }  // namespace urabbitmq

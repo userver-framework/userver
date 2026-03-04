@@ -1,7 +1,11 @@
 #include "utils_rmqtest.hpp"
 
+#include <cstdint>
+#include <limits>
 #include <optional>
+#include <type_traits>
 #include <unordered_map>
+#include <variant>
 
 #include <amqpcpp.h>
 
@@ -10,6 +14,7 @@
 #include <userver/engine/mutex.hpp>
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/sleep.hpp>
+#include <userver/utils/overloaded.hpp>
 #include <userver/utils/uuid4.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -251,7 +256,21 @@ UTEST(Consumer, ConsumeMetadataAndHeadersWork) {
         std::string name;
         std::optional<std::string> reply_to;
         std::optional<std::string> correlation_id;
-        std::unordered_map<std::string, std::string> headers;
+        std::unordered_map<std::string, urabbitmq::HeaderValue> headers;
+    };
+
+    const auto header_value_to_string = [](const urabbitmq::HeaderValue& value) {
+        return std::visit(
+            utils::Overloaded{
+                [](const std::string& typed_value) { return typed_value; },
+                [](const auto typed_value) {
+                    using T = std::decay_t<decltype(typed_value)>;
+                    static_assert(std::is_integral_v<T>, "Only integral header values are supported");
+                    return std::to_string(typed_value);
+                },
+            },
+            value
+        );
     };
 
     const std::vector<Case> cases{
@@ -262,7 +281,14 @@ UTEST(Consumer, ConsumeMetadataAndHeadersWork) {
             "corr-id",
             {
                 {"x-custom-header", "custom-value"},
-                {"x-custom-int", "42"},
+                {"x-int8", std::numeric_limits<std::int8_t>::min()},
+                {"x-uint8", std::numeric_limits<std::uint8_t>::max()},
+                {"x-int16", std::numeric_limits<std::int16_t>::min()},
+                {"x-uint16", std::numeric_limits<std::uint16_t>::max()},
+                {"x-int32", std::numeric_limits<std::int32_t>::min()},
+                {"x-uint32", std::numeric_limits<std::uint32_t>::max()},
+                {"x-int64", std::numeric_limits<std::int64_t>::min()},
+                {"x-uint64", std::numeric_limits<std::uint64_t>::max()},
             },
         },
         {
@@ -327,7 +353,8 @@ UTEST(Consumer, ConsumeMetadataAndHeadersWork) {
         for (const auto& [header_key, header_value] : case_data.headers) {
             ASSERT_EQ(msg.headers.count(header_key), 1) << "Missing header '" << header_key << "' in " << payload;
             const auto& actual = msg.headers.at(header_key);
-            EXPECT_NE(actual.find(header_value), std::string::npos)
+            const auto expected = header_value_to_string(header_value);
+            EXPECT_NE(actual.find(expected), std::string::npos)
                 << "Unexpected value for header '" << header_key << "' in " << payload << ": " << actual;
         }
 
