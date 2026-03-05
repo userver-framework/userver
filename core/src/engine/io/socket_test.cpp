@@ -10,7 +10,6 @@
 #include <cstdlib>
 #include <memory>
 #include <string_view>
-#include <thread>
 
 #include <userver/engine/async.hpp>
 #include <userver/engine/condition_variable.hpp>
@@ -472,8 +471,6 @@ UTEST_MT(Socket, UdpIpMreqIPv4, 1) {
 
     /// [multicast socket creation sample]
     auto receiver = engine::io::Socket(engine::io::AddrDomain::kInet, engine::io::SocketType::kDgram);
-    int reuse = 1;
-    receiver.SetOption(SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
 
     sockaddr_in any_addr{};
     any_addr.sin_family = AF_INET;
@@ -511,8 +508,6 @@ UTEST_MT(Socket, UdpIpMreqMultipleReceiversIPv4, 3) {
         const auto& receiver = receivers.emplace_back(
             std::make_shared<io::Socket>(io::AddrDomain::kInet, io::SocketType::kDgram)
         );
-        int reuse = 1;
-        receiver->SetOption(SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
 
         sockaddr_in any{};
         any.sin_family = AF_INET;
@@ -553,8 +548,6 @@ UTEST_MT(Socket, UdpIpMreqMultipleReceiversIPv4, 3) {
 	        EXPECT_EQ(result.bytes_received, 0);
         }));
     }
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
     char data = 'x';
     EXPECT_EQ(sender.SendAllTo(multiaddr, &data, 1, deadline), 1);
