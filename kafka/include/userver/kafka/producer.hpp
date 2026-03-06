@@ -7,6 +7,7 @@
 #include <userver/kafka/exceptions.hpp>
 #include <userver/kafka/headers.hpp>
 #include <userver/utils/fast_pimpl.hpp>
+#include <userver/utils/span.hpp>
 #include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -110,6 +111,36 @@ public:
         HeaderViews headers = {}
     ) const;
 
+    /// @brief Sends given messages to topic `topic_name` by given `key`
+    /// and `partition` (if passed) with payload contains the `messages`
+    /// data. Asynchronously waits until the messages are delivered or the delivery
+    /// error occurred.
+    ///
+    /// No payload data is copied. Method holds the data until messages are
+    /// delivered.
+    ///
+    /// Thread-safe and can be called from any number of threads
+    /// concurrently.
+    ///
+    /// If `partition` not passed, partition is chosen by internal
+    /// Kafka partitioner.
+    ///
+    /// @warning if `enable_idempotence` option is enabled, do not use both
+    /// explicit partitions and Kafka-chosen ones.
+    ///
+    /// @throws BulkSendException if some messages was not delivered
+    /// and acked by Kafka Broker in configured timeout.
+    ///
+    /// @note Use BulkSendException::GetExceptions method to get a list
+    /// of occured nested exceptions.
+    void Send(
+        utils::zstring_view topic_name,
+        std::string_view key,
+        utils::span<const std::string> messages,
+        std::optional<std::uint32_t> partition = kUnassignedPartition,
+        HeaderViews headers = {}
+    ) const;
+
     /// @brief Same as Producer::Send, but returns the task which can be
     /// used to wait the message delivery manually.
     ///
@@ -139,6 +170,14 @@ private:
         std::string_view message,
         std::optional<std::uint32_t> partition,
         impl::HeadersHolder&& headers_holder
+    ) const;
+
+    void SendImpl(
+        utils::zstring_view topic_name,
+        std::string_view key,
+        utils::span<const std::string> messages,
+        std::optional<std::uint32_t> partition,
+        std::vector<impl::HeadersHolder>&& headers_holders
     ) const;
 
     const std::string name_;

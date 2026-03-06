@@ -8,6 +8,7 @@
 #include <userver/engine/wait_any.hpp>
 #include <userver/kafka/impl/configuration.hpp>
 #include <userver/tracing/span.hpp>
+#include <userver/utils/span.hpp>
 #include <userver/utils/trivial_map.hpp>
 
 #include <kafka/impl/log_level.hpp>
@@ -138,12 +139,47 @@ DeliveryResult ProducerImpl::Send(
     HeadersHolder headers_holder
 ) const {
     LOG(operation_log_level_) << fmt::format("Message to topic '{}' is requested to send", topic_name);
+    auto deadline = engine::Deadline::FromDuration(delivery_timeout_);
     auto delivery_result_future =
-        ScheduleMessageDelivery(topic_name, key, message, partition, std::move(headers_holder));
+        ScheduleMessageDelivery(topic_name, key, message, partition, std::move(headers_holder), deadline);
 
     WaitUntilDeliveryReported(delivery_result_future);
 
     return delivery_result_future.get();
+}
+
+std::vector<DeliveryResult> ProducerImpl::Send(
+    utils::zstring_view topic_name,
+    std::string_view key,
+    utils::span<const std::string> messages,
+    std::optional<std::uint32_t> partition,
+    std::vector<HeadersHolder> headers_holders
+) const {
+    UASSERT(messages.size() == headers_holders.size());
+
+    LOG(operation_log_level_) <<
+        fmt::format("Messages {} to topic '{}' are requested to send", messages.size(), topic_name);
+
+    std::vector<engine::Future<DeliveryResult>> delivery_result_futures;
+    delivery_result_futures.reserve(messages.size());
+
+    auto deadline = engine::Deadline::FromDuration(delivery_timeout_);
+    for (std::size_t i = 0; i < messages.size(); ++i) {
+        delivery_result_futures.emplace_back(
+            ScheduleMessageDelivery(topic_name, key, messages[i], partition, std::move(headers_holders[i]), deadline)
+        );
+    }
+
+    std::vector<DeliveryResult> delivery_results;
+    delivery_results.reserve(messages.size());
+
+    for (auto& delivery_result_future : delivery_result_futures) {
+        WaitUntilDeliveryReported(delivery_result_future);
+
+        delivery_results.emplace_back(delivery_result_future.get());
+    }
+
+    return delivery_results;
 }
 
 engine::Future<DeliveryResult> ProducerImpl::ScheduleMessageDelivery(
@@ -151,7 +187,8 @@ engine::Future<DeliveryResult> ProducerImpl::ScheduleMessageDelivery(
     std::string_view key,
     std::string_view message,
     std::optional<std::uint32_t> partition,
-    HeadersHolder headers_holder
+    HeadersHolder headers_holder,
+    engine::Deadline deadline
 ) const {
     auto waiter = std::make_unique<DeliveryWaiter>();
     auto wait_handle = waiter->GetFuture();
@@ -181,6 +218,7 @@ engine::Future<DeliveryResult> ProducerImpl::ScheduleMessageDelivery(
     ///
     /// Headers holder **must** be released if `rd_kafka_producev` succeeded.
 
+    while (!deadline.IsReached() && !engine::current_task::ShouldCancel()) {
 #ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wgnu-statement-expression"
@@ -203,12 +241,19 @@ engine::Future<DeliveryResult> ProducerImpl::ScheduleMessageDelivery(
 #pragma clang diagnostic pop
 #endif
 
-    if (enqueue_error == RD_KAFKA_RESP_ERR_NO_ERROR) {
-        [[maybe_unused]] const auto headers_holder_ptr = headers_holder.release();
-        [[maybe_unused]] const auto waiter_ptr = waiter.release();
-    } else {
-        LOG_WARNING("Failed to enqueue message to Kafka local queue: {}", rd_kafka_err2str(enqueue_error));
-        waiter->SetDeliveryResult(DeliveryResult{enqueue_error});
+        if (enqueue_error == RD_KAFKA_RESP_ERR_NO_ERROR) {
+            [[maybe_unused]] const auto headers_holder_ptr = headers_holder.release();
+            [[maybe_unused]] const auto waiter_ptr = waiter.release();
+        } else if (enqueue_error == RD_KAFKA_RESP_ERR__QUEUE_FULL) {
+            LOG_LIMITED_WARNING("Kafka local queue is full");
+            /// waiting for a while for the queue to clear up
+            engine::Yield();
+            continue;
+        } else {
+            LOG_WARNING("Failed to enqueue message to Kafka local queue: {}", rd_kafka_err2str(enqueue_error));
+            waiter->SetDeliveryResult(DeliveryResult{enqueue_error});
+        }
+        break;
     }
 
     return wait_handle;
