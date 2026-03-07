@@ -13,6 +13,7 @@
 
 #include <userver/engine/async.hpp>
 #include <userver/engine/condition_variable.hpp>
+#include <userver/engine/io/multicast_membership.hpp>
 #include <userver/engine/io/sockaddr.hpp>
 #include <userver/engine/io/socket.hpp>
 #include <userver/engine/mutex.hpp>
