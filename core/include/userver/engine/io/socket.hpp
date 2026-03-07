@@ -68,12 +68,6 @@ public:
     /// Starts listening for connections on a specified socket (must be bound).
     void Listen(int backlog = SOMAXCONN);
 
-    /// @brief Joins multicast group to receive multicast datagrams.
-    void AddMembership(const IpMreq& mreq);
-
-    /// @brief Leaves multicast group previously joined with AddMembership.
-    void DropMembership(const IpMreq& mreq);
-
     /// Suspends current task until the socket has data available.
     /// @returns false on timeout or on task cancellations; true otherwise.
     [[nodiscard]] bool WaitReadable(Deadline) override;
