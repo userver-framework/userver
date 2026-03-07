@@ -481,7 +481,7 @@ UTEST(Socket, UdpIpMreqIPv4) {
         receiver.Bind(engine::io::Sockaddr(&any_addr));
 
         engine::io::IpMreq mreq(kGroup, 0);
-        receiver.SetOption(mreq.GetSocketOptionLevel(), mreq.GetJoinSocketOptionName(), mreq.Data(), mreq.Size());
+        engine::io::IpMreq::AddMembership(receiver, mreq);
 
         char c{};
         const auto result = receiver.ReadNoblock(&c, 1);
@@ -507,7 +507,7 @@ UTEST(Socket, UdpIpMreqIPv6) {
     receiver.Bind(engine::io::Sockaddr(&any_addr));
 
     engine::io::IpMreq mreq(kGroup, 0);
-    receiver.SetOption(mreq.GetSocketOptionLevel(), mreq.GetJoinSocketOptionName(), mreq.Data(), mreq.Size());
+    io::IpMreq::AddMembership(receiver, mreq);
 
     char c{};
     const auto result = receiver.ReadNoblock(&c, 1);
@@ -540,7 +540,7 @@ UTEST_MT(Socket, UdpIpMreqMultipleReceiversIPv6, 3) {
         any.sin6_port = htons(kPort);
         any.sin6_addr = in6addr_any;
         receiver->Bind(io::Sockaddr(&any));
-        receiver->SetOption(mreq.GetSocketOptionLevel(), mreq.GetJoinSocketOptionName(), mreq.Data(), mreq.Size());
+        io::IpMreq::AddMembership(*receiver, mreq);
 
         tasks.push_back(engine::AsyncNoSpan([receiver, deadline] {
             char c{};
@@ -565,7 +565,7 @@ UTEST_MT(Socket, UdpIpMreqMultipleReceiversIPv6, 3) {
 
     for (int i = 0; i < 2; ++i) {
         const auto& receiver = receivers[i];
-        receiver->SetOption(mreq.GetSocketOptionLevel(), mreq.GetLeaveSocketOption(), mreq.Data(), mreq.Size());
+        io::IpMreq::DropMembership(*receiver, mreq);
 
         tasks.push_back(engine::AsyncNoSpan([receiver] {
             auto short_deadline = Deadline::FromDuration(std::chrono::milliseconds(300));

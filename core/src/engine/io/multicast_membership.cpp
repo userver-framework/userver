@@ -4,6 +4,8 @@
 
 #include <fmt/format.h>
 
+#include <userver/engine/io/socket.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace engine::io {
@@ -26,6 +28,14 @@ IpMreq::IpMreq(const char* ip_multiaddr, unsigned int interface_index) {
             );
         }
     }
+}
+
+void IpMreq::AddMembership(Socket& socket, const IpMreq& mreq) {
+    socket.SetOption(mreq.GetSocketOptionLevel(), mreq.GetJoinSocketOptionName(), mreq.Data(), mreq.Size());
+}
+
+void IpMreq::DropMembership(Socket& socket, const IpMreq& mreq) {
+    socket.SetOption(mreq.GetSocketOptionLevel(), mreq.GetLeaveSocketOption(), mreq.Data(), mreq.Size());
 }
 
 }  // namespace engine::io

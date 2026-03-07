@@ -19,6 +19,8 @@ public:
     using std::runtime_error::runtime_error;
 };
 
+class Socket;
+
 /// Native ip multicast request wrapper
 /// @snippet src/engine/io/socket_test.cpp multicast socket creation sample
 class IpMreq final {
@@ -35,6 +37,12 @@ public:
 
     /// @brief Native multicast request structure pointer.
     const void* Data() const { return &data_; }
+
+    /// @brief Joins multicast group for given socket to receive multicast datagrams.
+    static void AddMembership(Socket& socket, const IpMreq& mreq);
+
+    /// @brief Leaves multicast group for given socket previously joined with AddMembership.
+    static void DropMembership(Socket& socket, const IpMreq& mreq);
 
     /// @brief Returns socket option level.
     int GetSocketOptionLevel() const noexcept { return (family_ == AF_INET ? IPPROTO_IP : IPPROTO_IPV6); }
