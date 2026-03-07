@@ -465,71 +465,96 @@ UTEST_MT(Socket, ConcurrentReadWriteUdp, 2) {
     /// [send self concurrent]
 }
 
-UTEST_MT(Socket, UdpIpMreqIPv4, 1) {
-    static constexpr uint16_t kPort = 12345;
-    static constexpr const char* kGroup = "239.255.0.1";
+UTEST(Socket, UdpIpMreqIPv4) {
+    try {
+        /// [multicast socket creation sample]
+        static constexpr std::uint16_t kPort = 12345;
+        static constexpr const char* kGroup = "224.0.0.42";
 
-    /// [multicast socket creation sample]
-    auto receiver = engine::io::Socket(engine::io::AddrDomain::kInet, engine::io::SocketType::kDgram);
+        auto receiver = engine::io::Socket(engine::io::AddrDomain::kInet, engine::io::SocketType::kDgram);
 
-    sockaddr_in any_addr{};
-    any_addr.sin_family = AF_INET;
-    any_addr.sin_port = htons(kPort);
-    any_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+        sockaddr_in any_addr{};
+        any_addr.sin_family = AF_INET;
+        any_addr.sin_port = htons(kPort);
+        any_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+        receiver.Bind(engine::io::Sockaddr(&any_addr));
+
+        engine::io::IpMreq mreq(kGroup, 0);
+        receiver.AddMembership(mreq);
+
+        char c{};
+        const auto result = receiver.ReadNoblock(&c, 1);
+        /// [multicast socket creation sample]
+
+        EXPECT_FALSE(result);  // not expecting any input
+    } catch (const std::exception& e) {
+        EXPECT_NE(std::string_view{e.what()}.find("No such device"), std::string_view::npos)
+            << "Error not related to host support of IPv4: " << e.what();
+    }
+}
+
+UTEST(Socket, UdpIpMreqIPv6) {
+    static constexpr std::uint16_t kPort = 12345;
+    static constexpr const char* kGroup = "ff02::41";
+
+    auto receiver = engine::io::Socket(engine::io::AddrDomain::kInet6, engine::io::SocketType::kDgram);
+
+    sockaddr_in6 any_addr{};
+    any_addr.sin6_family = AF_INET6;
+    any_addr.sin6_port = htons(kPort);
+    any_addr.sin6_addr = in6addr_any;
     receiver.Bind(engine::io::Sockaddr(&any_addr));
 
-    engine::io::IpMreq mreq(kGroup, INADDR_ANY);
+    engine::io::IpMreq mreq(kGroup, 0);
     receiver.AddMembership(mreq);
 
     char c{};
     const auto result = receiver.ReadNoblock(&c, 1);
-    /// [multicast socket creation sample]
 
     EXPECT_FALSE(result);  // not expecting any input
 }
 
-UTEST_MT(Socket, UdpIpMreqMultipleReceiversIPv4, 3) {
+UTEST_MT(Socket, UdpIpMreqMultipleReceiversIPv6, 3) {
     const auto deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
 
     static constexpr uint16_t kPort = 12345;
-    static constexpr const char* kGroup = "239.255.0.1";
+    static constexpr const char* kGroup = "ff02::42";
     static constexpr int packets_count = 3;
 
-    sockaddr_in raw_multiaddr{};
-    raw_multiaddr.sin_family = AF_INET;
-    raw_multiaddr.sin_port = htons(kPort);
-    inet_pton(AF_INET, kGroup, &raw_multiaddr.sin_addr);
+    sockaddr_in6 raw_multiaddr{};
+    raw_multiaddr.sin6_family = AF_INET6;
+    raw_multiaddr.sin6_port = htons(kPort);
+    inet_pton(AF_INET6, kGroup, &raw_multiaddr.sin6_addr);
     io::Sockaddr multiaddr(&raw_multiaddr);
-    io::IpMreq mreq(kGroup, INADDR_ANY);
+    io::IpMreq mreq(kGroup, 0);
 
     std::vector<engine::TaskWithResult<void>> tasks;
     std::vector<std::shared_ptr<io::Socket>> receivers;
     for (int i = 0; i < 2; ++i) {
-        const auto& receiver = receivers.emplace_back(
-            std::make_shared<io::Socket>(io::AddrDomain::kInet, io::SocketType::kDgram)
-        );
+        const auto& receiver =
+            receivers.emplace_back(std::make_shared<io::Socket>(io::AddrDomain::kInet6, io::SocketType::kDgram));
 
-        sockaddr_in any{};
-        any.sin_family = AF_INET;
-        any.sin_port = htons(kPort);
-        any.sin_addr.s_addr = htonl(INADDR_ANY);
+        sockaddr_in6 any{};
+        any.sin6_family = AF_INET6;
+        any.sin6_port = htons(kPort);
+        any.sin6_addr = in6addr_any;
         receiver->Bind(io::Sockaddr(&any));
         receiver->AddMembership(mreq);
 
         tasks.push_back(engine::AsyncNoSpan([receiver, deadline] {
             char c{};
             for (int packet_idx = 0; packet_idx < packets_count; ++packet_idx) {
-            	const auto result = receiver->RecvSomeFrom(&c, 1, deadline);
-            	EXPECT_EQ(result.bytes_received, 1);
-            	EXPECT_EQ(c, 'a' + packet_idx);
+                const auto result = receiver->RecvSomeFrom(&c, 1, deadline);
+                EXPECT_EQ(result.bytes_received, 1);
+                EXPECT_EQ(c, 'a' + packet_idx);
             }
         }));
     }
 
-    io::Socket sender{io::AddrDomain::kInet, io::SocketType::kDgram};
+    io::Socket sender{io::AddrDomain::kInet6, io::SocketType::kDgram};
     for (int packet_idx = 0; packet_idx < packets_count; ++packet_idx) {
-    	const char data = 'a' + packet_idx;
-    	EXPECT_EQ(sender.SendAllTo(multiaddr, &data, 1, deadline), 1);
+        const char data = 'a' + packet_idx;
+        EXPECT_EQ(sender.SendAllTo(multiaddr, &data, 1, deadline), 1);
     }
 
     for (auto& t : tasks) {
@@ -541,11 +566,11 @@ UTEST_MT(Socket, UdpIpMreqMultipleReceiversIPv4, 3) {
         const auto& receiver = receivers[i];
         receiver->DropMembership(mreq);
 
-	    tasks.push_back(engine::AsyncNoSpan([receiver] {
+        tasks.push_back(engine::AsyncNoSpan([receiver] {
             auto short_deadline = Deadline::FromDuration(std::chrono::milliseconds(300));
-        	char c{};
-    	    const auto result = receiver->RecvSomeFrom(&c, 1, short_deadline);
-	        EXPECT_EQ(result.bytes_received, 0);
+            char c{};
+            const auto result = receiver->RecvSomeFrom(&c, 1, short_deadline);
+            EXPECT_EQ(result.bytes_received, 0);
         }));
     }
 
