@@ -30,11 +30,11 @@ IpMreq::IpMreq(const char* ip_multiaddr, unsigned int interface_index) {
     }
 }
 
-void IpMreq::AddMembership(Socket& socket, const IpMreq& mreq) {
+void AddMembership(Socket& socket, const IpMreq& mreq) {
     socket.SetOption(mreq.GetSocketOptionLevel(), mreq.GetJoinSocketOptionName(), mreq.Data(), mreq.Size());
 }
 
-void IpMreq::DropMembership(Socket& socket, const IpMreq& mreq) {
+void DropMembership(Socket& socket, const IpMreq& mreq) {
     socket.SetOption(mreq.GetSocketOptionLevel(), mreq.GetLeaveSocketOption(), mreq.Data(), mreq.Size());
 }
 
