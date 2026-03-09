@@ -33,7 +33,7 @@
   "forwardPorts": [
     8080
   ],
-  "image": "ghcr.io/userver-framework/ubuntu-22.04-userver-pg-dev",
+  "image": "ghcr.io/userver-framework/ubuntu-22.04-userver-pg",
   "mounts": [],
   "onCreateCommand": "sudo git config --global --add safe.directory /home/user/service_template",
   "remoteUser": "user",
