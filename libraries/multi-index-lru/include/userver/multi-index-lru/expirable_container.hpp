@@ -22,7 +22,8 @@ public:
         : container_(max_size),
           ttl_(ttl)
     {
-        UASSERT_MSG(ttl.count() > 0, "ttl must be positive");
+        UINVARIANT(ttl.count() > 0, "ttl must be positive");
+        UINVARIANT(max_size > 0, "capacity must be positive");
     }
 
     template <typename... Args>
