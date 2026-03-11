@@ -1,4 +1,7 @@
-#!/bin/sh
+#!/bin/bash
+
+# Exit on any error and treat unset variables as errors, print all commands
+set -euox pipefail
 
 sudo apt install -y openjdk-17-jdk
 
