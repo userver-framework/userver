@@ -3,6 +3,8 @@
 #include <chrono>
 #include <stdexcept>
 
+#include <fmt/ranges.h>
+
 #include <server/handlers/http_handler_base_statistics.hpp>
 #include <server/handlers/http_server_settings.hpp>
 #include <server/request/task_inherited_request_impl.hpp>
