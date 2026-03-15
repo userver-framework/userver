@@ -13,7 +13,7 @@ userver-create-service [--grpc] [--mongo] [--postgresql] myservice
 
 This will create `myservice` dir, relative to the current working directory.
 
-If the command above is not found, see @ref service_templates_bootstrap.
+If the command above is not found, see @ref service_templates.
 
 To use additional userver libraries later, see @ref service_templates_libraries.
 
@@ -27,11 +27,10 @@ If the tests fail and you see messages like "No XXX installation found. Install 
 installed in the environment you are running tests. Do not hesitate to install the missing database servers, like
 PostgreSQL, MongoDB and others.
 
-4\. To get a feel for how the service runs without needing to set up full production environment,
-run in the service project root:
+4\. To get a feel for how the service runs without needing to set up full production environment, run:
 
 ```shell
-make start-debug
+myservice$ make start-debug
 ```
 
 Wait until the service starts, then try to send a request.
@@ -47,10 +46,10 @@ The answer should be something like this:
 Hello, userver!
 ```
 
-5\. (Optional) Add the service project to Git, run in the project root:
+5\. (Optional) Add the service project to Git:
 
 ```shell
-git init && git add . && git commit -m "Initial commit"
+myservice$ git init && git add . && git commit -m "Initial commit"
 ```
 
 Push it to GitHub
@@ -60,34 +59,39 @@ There are preconfigured GitHub CI checks that run ctest tests.
 
 Now you are ready for fast and comfortable creation of C++ microservices, services and utilities!
 
-@anchor service_templates
-## Service templates for userver based services
+## Quick start for beginners (old way, pre userver 2.8)
 
-@anchor service_templates_bootstrap
-### Obtaining the service template scripts
+@warning Service template repositories are deprecated, because possible sets of userver libraries to include cause
+an exponential growth in the number of wanted repositories. For userver 2.9 and later, use
+the @ref quick_start_for_beginners "service project generator script" instead.
 
-`userver-create-service` is available right away if you have userver @ref userver_install "installed".
+1\. Press the "Use this template" button at the top right of the appropriate service template repo page:
 
-If you use @ref devcontainers "Dev Containers", or if you @ref userver_cpm "use CPM to download userver",
-run this script to get `userver-create-service` command:
+| Link                                                             | Contains               |
+|------------------------------------------------------------------|------------------------|
+| https://github.com/userver-framework/service_template            | HTTP                   |
+| https://github.com/userver-framework/pg_service_template         | HTTP, PostgreSQL       |
+| https://github.com/userver-framework/pg_grpc_service_template    | HTTP, PostgreSQL, gRPC |
+| https://github.com/userver-framework/mongo_grpc_service_template | HTTP, MongoDB, gRPC    |
 
-* Linux, macOS, BSD: @ref service-template/userver-create-service.sh
-* Windows: @ref service-template/userver-create-service.bat
-
-In the script, replace `vMAJOR.MINOR` with the actual userver version, or use `develop` to get bleeding-edge features
-at your own risk.
-
----
-
-If you are planning to build userver as a subdirectory (not recommended generally),
-you can temporarily add userver scripts directory to `PATH` to bring the command into scope:
+2\. Clone the service:
 
 ```shell
-export PATH=/path/to/userver/scripts:$PATH
+git clone https://github.com/your-username/your-service.git && cd your-service
 ```
 
-@anchor service_templates_run
-### Creating a new service project
+3\. Give a proper name to your service and replace all the occurrences of "*service_template" string with that name:
+
+```shell
+find . -not -path "./third_party/*" -not -path ".git/*" -not -path './build-*' -type f | xargs sed -i 's/service_template/YOUR_SERVICE_NAME/g'
+```
+
+4\. @ref ways_to_get_userver "Get userver".
+
+5\. Build and test the service, see steps 3-4 from the @ref quick_start_for_beginners "updated instruction above".
+
+@anchor service_templates
+## Service templates for userver based services
 
 To create a new service project, run:
 
@@ -99,21 +103,40 @@ userver-create-service [--grpc] [--mongo] [--postgresql] myservice
 * service name will be the last segment of the path;
 * without feature flags, the service only has some stubs for HTTP handlers.
 
+If you use @ref devcontainers "Dev Containers", or if you @ref userver_cpm "use CPM to download userver",
+run this script to get `userver-create-service` command:
+
+* Linux, macOS, BSD: @ref service-template/userver-create-service.sh
+* Windows: @ref service-template/userver-create-service.bat
+
+In the script, replace `vMAJOR.MINOR` with the actual userver version, or use `develop` to get bleeding-edge features
+at your own risk.
+
+If instead of installing userver you are planning to build userver as a subdirectory,
+call the script from userver directory:
+
+```shell
+path/to/userver/scripts/userver-create-service [--grpc] [--mongo] [--postgresql] myservice
+```
+
+You'll need to @ref ways_to_get_userver "get userver" before proceeding with local development.
+
 More information on the project directory structure can be found
 @ref scripts/docs/en/userver/tutorial/hello_service.md "here".
 
 @anchor service_templates_libraries
 ### Using additional userver libraries in service templates
 
-To use additional userver libraries, e.g. `userver::kafka`, add to the root `CMakeLists.txt`:
+The service templates allow to kickstart the development of your production-ready service,
+but there can't be a repo for each and every combination of userver libraries.
+To use additional userver libraries, e.g. `userver::grpc`, add to the root `CMakeLists.txt`:
 
 ```cmake
-find_package(userver COMPONENTS core kafka QUIET)
+find_package(userver COMPONENTS core grpc QUIET)
 ```
 
 Then add the corresponding option to @ref service_templates_presets "cmake presets",
 e.g. `"USERVER_FEATURE_GRPC": "ON"`.
-(This allows to use @ref userver_cpm "CPM" with the service project.)
 
 @see @ref userver_libraries
 
@@ -163,13 +186,14 @@ You can download prebuilt userver using one of the following ways:
 2. @ref docker_with_ubuntu_22_04 "Docker (manual)";
 3. @ref prebuilt_deb_package "prebuilt Debian package";
 4. @ref userver_conan "Conan";
+5. @ref gentoo_ebuild "Gentoo ebuild"
 
 Alternatively, install @ref scripts/docs/en/userver/build/dependencies.md "build dependencies" for userver,
 then build userver in one of the following ways:
 
-5. @ref userver_install "install userver";
-6. let the service template download and build userver as a subdirectory using (@ref userver_cpm "CPM");
-7. pass a path to custom userver location to `download_userver()`, then let the service
+6. @ref userver_install "install userver";
+7. let the service template download and build userver as a subdirectory using (@ref userver_cpm "CPM");
+8. pass a path to custom userver location to `download_userver()`, then let the service
    @ref service_templates_presets "build userver as a subdirectory".
 
 @anchor devcontainers
@@ -241,8 +265,8 @@ Some advice:
 userver itself can be downloaded and built using CPM.
 In fact, this is what `download_userver()` function does in @ref service_templates "service templates" by default.
 
-`download_userver()` just forwards its arguments to `CPMAddPackage` with some defaults,
-so you can pin userver `VERSION` or `GIT_TAG` for reproducible builds.
+`download_userver()` just calls `CPMAddPackage` with some defaults, so you can pin userver `VERSION` or `GIT_TAG`
+for reproducible builds.
 
 When acquiring userver via CPM, you first need to install build dependencies. There are options:
 
@@ -412,12 +436,12 @@ Alternatively see @ref userver_install "userver install"
 
 
 @anchor prebuilt_deb_package
-### Using a prebuilt Debian package for Ubuntu
+### Using a prebuilt Debian package for Ubuntu 22.04
 
 You can download and install a `.deb` package that is attached to each
 [userver release](https://github.com/userver-framework/userver/releases).
 
-The package currently targets latest Ubuntus, for other Ubuntu versions your mileage may vary.
+The package currently targets Ubuntu 22.04, for other Ubuntu versions your mileage may vary.
 
 
 @anchor userver_conan
@@ -454,6 +478,41 @@ target_link_libraries(${PROJECT_NAME} PUBLIC userver::grpc)
 @see @ref userver_libraries
 
 
+@anchor gentoo_ebuild
+## Gentoo ebuild
+
+You can install userver via Emerge in Gentoo Linux:
+
+1. Set needed use-flags in file `/etc/portage/package.use/userver`:
+
+   ```bash
+   dev-cpp/userver-framework flag1 flag2 ...
+   ```
+
+   Supported use-flags:
+
+   ```
+   postgres - Provide asynchronous driver for PostgreSQL
+   redis - Provide asynchronous driver for Redis
+   mongodb - Provide asynchronous driver for MongoDB
+   mysql - Provide asynchronous driver for MySQL/MariaDB
+   rabbitmq - Provide asynchronous driver for RabbitMQ (AMQP 0-9-1)
+   kafka - Provide asynchronous driver for Apache Kafka
+   utest - Provide utest and ubench for unit testing and benchmarking coroutines
+   testsuite - Enable functional tests via testsuite
+   easy - Build easy HTTP server library
+   ```
+   
+2. Install userver:
+
+   ```bash
+   sudo emerge app-portage/eselect-repository
+   sudo eselect repository add userver-framework git https://github.com/userver-framework/userver-overlay.git
+   sudo emerge --sync
+   sudo emerge --ask dev-cpp/userver
+   ```
+
+
 ## Yandex Cloud with Ubuntu 22.04
 
 The userver framework is
@@ -468,7 +527,7 @@ userver framework.
 
 You can start with @ref service_templates "service template".
 
-If there is a need to update userver in the VM, do the following:
+If there a need to update the userver in the VM do the following:
 
 ```bash
 sudo apt remove libuserver-*
@@ -479,12 +538,22 @@ sudo git pull
 sudo ./scripts/build_and_install_all.sh
 ```
 
-@cond
-Guideline for documentation authors:
-* this page is the main tutorial for getting from zero to building a basic service project as soon as possible;
-* for local build dependencies, use dependencies.md;
-* for advanced build flags, use options.md.
-@endcond
+## PGO (clang)
+
+PGO compilation consists of 2 compilation stages: profile collecting and compilation with PGO.
+You can use PGO compilation doing the following steps:
+
+1) configure userver AND your service with cmake option `-DUSERVER_PGO_GENERATE=ON`, compile the service;
+2) run the resulting binary under the production-like workload to collect profile;
+3) run llvm-profdata to convert profraw profile data format into profdata:
+   ```sh
+   llvm-profdata merge -output=code.profdata default.profraw
+   ```
+4) configure userver AND your service with cmake option `-DUSERVER_PGO_USE=<path_to_profdata>`, compile the service.
+
+The resulting binary should be 2-15% faster than without PGO, depending on the code and workload.
+
+@see @ref cmake_options
 
 ----------
 
