@@ -28,7 +28,6 @@ Currently we're looking for maintainers for the following OSes/distros:
 * Fedora
 * Debian
 * ArchLinux
-* Gentoo
 * FreeBSD
 * Conan package
 
@@ -39,6 +38,7 @@ The list is not complete, you may suggest your own distro to maintain.
 
 Active maintainers so far:
 - Ubuntu - userver team
+- Gentoo - [halfdarkangel](https://t.me/halfdarkangel)
 
 
 ## Contacts
