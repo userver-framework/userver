@@ -124,6 +124,8 @@ rabbitmq - install dependencies to build with RabbitMQ messages broker (use with
 kafka - install dependencies to build with Apache Kafka (use with Cmake option USERVER_FEATURE_KAFKA=ON)
 rocksdb - install dependencies to build with RocksDB (unrecomented) (use with Cmake option USERVER_FEATURE_ROCKS=ON)
 utest - install dependencies to build with Utest (use with Cmake option USERVER_FEATURE_UTEST=ON)
+odbc - install dependencies to build with Complete ODBC driver manager (use with Cmake option USERVER_FEATURE_ODBC=ON)  
+sqlite - install dependencies to build with sqlite (use with Cmake option USERVER_FEATURE_SQLITE=ON)
 ```
 
 ### Alpine

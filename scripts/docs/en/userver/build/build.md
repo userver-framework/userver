@@ -501,6 +501,9 @@ You can install userver via Emerge in Gentoo Linux:
    utest - Provide utest and ubench for unit testing and benchmarking coroutines
    testsuite - Enable functional tests via testsuite
    easy - Build easy HTTP server library
+   odbc - Provide asynchronous driver for ODBC
+   sqlite - Provide asynchronous driver for SQLite
+   uboost-coro - Build with vendored version of Boost.context and Boost.coroutine2
    ```
    
 2. Install userver:
