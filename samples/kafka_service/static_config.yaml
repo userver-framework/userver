@@ -32,6 +32,7 @@ components_manager:
               - test-topic-2
             auto_offset_reset: smallest  # Strategy for reading topics without committed offsets
             max_batch_size: 5            # Number of messages consumers waits until user-callback is called
+            poll_timeout: 500ms          # Maximum time to consume `max_batch_size` messages.
             security_protocol: PLAINTEXT # Broker connection settings
         # /// [Kafka service sample - consumer static config]
 
