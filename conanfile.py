@@ -75,11 +75,6 @@ class UserverConan(ConanFile):
         'librdkafka/*:ssl': True,
         'librdkafka/*:sasl': True,
         're2/*:with_icu': True,
-        'grpc/*:php_plugin': False,
-        'grpc/*:node_plugin': False,
-        'grpc/*:ruby_plugin': False,
-        'grpc/*:csharp_plugin': False,
-        'grpc/*:objective_c_plugin': False,
     }
 
     def source(self):
@@ -126,7 +121,7 @@ class UserverConan(ConanFile):
         self.requires('zlib/[^1.3]')
         self.requires('zstd/[^1.5]')
         self.requires('icu/[>=74.1 <77]', force=True)
-        self.requires('re2/[>=20251105]')
+        self.requires('re2/20230301', force=True)
 
         if self.options.with_jemalloc:
             self.requires('jemalloc/[^5.3]')
