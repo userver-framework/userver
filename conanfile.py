@@ -179,7 +179,7 @@ class UserverConan(ConanFile):
             self.requires('opentelemetry-proto/[^1.3]')
 
     def build_requirements(self):
-        self.tool_requires('protobuf/[^5.27]')
+        self.tool_requires('protobuf/<host_version>')
 
     def validate(self):
         if self.settings.os == 'Windows':
