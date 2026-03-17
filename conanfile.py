@@ -143,7 +143,9 @@ class UserverConan(ConanFile):
         if self.options.with_postgresql:
             # `run=True` required to find `pg_config` binary during `psycopg2` python module build
             # without system package. We use system package.
-            self.requires('libpq/[>=14.9 <20]')
+            #
+            # `<16` is due to link errors `undefined reference to `gss_release_buffer'`
+            self.requires('libpq/[>=14.9 <16]')
         if self.options.with_mongodb or self.options.with_kafka:
             self.requires('cyrus-sasl/[^2.1]')
         if self.options.with_mongodb:
