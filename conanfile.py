@@ -75,6 +75,11 @@ class UserverConan(ConanFile):
         'librdkafka/*:ssl': True,
         'librdkafka/*:sasl': True,
         're2/*:with_icu': True,
+        'grpc/*:php_plugin': False,
+        'grpc/*:node_plugin': False,
+        'grpc/*:ruby_plugin': False,
+        'grpc/*:csharp_plugin': False,
+        'grpc/*:objective_c_plugin': False,
     }
 
     def source(self):
