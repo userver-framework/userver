@@ -16,8 +16,6 @@
 
 USERVER_NAMESPACE_BEGIN
 
-using namespace std::literals;
-
 namespace {
 
 class ProducerTest : public kafka::utest::KafkaCluster {};
@@ -31,7 +29,7 @@ UTEST_F(ProducerTest, OneProducerOneSendSync) {
 
 UTEST_F(ProducerTest, OneProducerBulkSendSync) {
     auto producer = MakeProducer("kafka-producer");
-    UEXPECT_NO_THROW(producer.Send(GenerateTopic(), "test-key", std::vector{"test-msg-1"s, "test-msg-2"s}));
+    UEXPECT_NO_THROW(producer.Send(GenerateTopic(), "test-key", std::vector{"test-msg-1", "test-msg-2"}));
 }
 
 UTEST_F(ProducerTest, OneProducerOneSendAsync) {
@@ -67,7 +65,7 @@ UTEST_F(ProducerTest, OneProducerHeadersBulkSendSync) {
     UEXPECT_NO_THROW(producer.Send(
         GenerateTopic(),
         "test-key",
-        std::vector{"test-msg-1"s, "test-msg-2"s},
+        std::vector<std::string_view>{"test-msg-1", "test-msg-2"},
         /*partition=*/kafka::kUnassignedPartition,
         {{"key-1", "value-1"}, {"key-2", "value-2"}, {"key-3", "value-3"}}
     ));
@@ -208,7 +206,26 @@ UTEST_F(ProducerTest, FullQueue) {
          key = fmt::format("test-key-{}", kMaxQueueMessages),
          message = fmt::format("test-msg-{}", kMaxQueueMessages)] { producer.Send(topic, key, message); };
 
-    UEXPECT_NO_THROW(make_send_request());
+    UEXPECT_THROW(make_send_request(), kafka::QueueFullException);
+
+    /// [Producer retryable error]
+    bool delivered{false};
+    const auto deadline = engine::Deadline::FromDuration(producer_configuration.delivery_timeout);
+    while (!delivered && !deadline.IsReached()) {
+        try {
+            make_send_request();
+            delivered = true;
+        } catch (const kafka::SendException& e) {
+            if (e.IsRetryable()) {
+                engine::InterruptibleSleepFor(std::chrono::milliseconds{10});
+                continue;
+            }
+            break;
+        }
+    }
+    /// [Producer retryable error]
+
+    EXPECT_TRUE(delivered);
     UEXPECT_NO_THROW(engine::WaitAllChecked(results));
 }
 
@@ -284,7 +301,7 @@ UTEST_F(ProducerTest, OneProducerManyBulkSendSync) {
     const auto topic = GenerateTopic();
 
     for (std::size_t send{0}; send < kSendCount; ++send) {
-	auto messages = std::vector{fmt::format("test-msg1-{}", send), fmt::format("test-msg2-{}", send)};
+        auto messages = std::vector{fmt::format("test-msg1-{}", send), fmt::format("test-msg2-{}", send)};
         UEXPECT_NO_THROW(producer.Send(topic, fmt::format("test-key-{}", send), messages)) << send;
     }
 }
@@ -347,7 +364,7 @@ UTEST_F(ProducerTest, ManyProducersManyBulkSendSync) {
     for (std::size_t send{0}; send < kSendCount; ++send) {
         const auto& topic = topics.at(send % kTopicCount);
         auto& producer = producers.at(send % kProducerCount);
-	auto messages = std::vector{fmt::format("test-msg1-{}", send), fmt::format("test-msg2-{}", send)};
+        auto messages = std::vector{fmt::format("test-msg1-{}", send), fmt::format("test-msg2-{}", send)};
         UEXPECT_NO_THROW(producer.Send(topic, fmt::format("test-key-{}", send), messages)) << send;
     }
 }
@@ -434,7 +451,7 @@ UTEST_F_MT(ProducerTest, OneProducerManyBulkSendSyncMt, 1 + 4) {
     for (std::size_t group{0}; group + 1 < GetThreadCount(); ++group) {
         results.emplace_back(utils::Async(fmt::format("producer_test_send_sync_{}", group), [&producer, &topics] {
             for (std::size_t send{0}; send < kSendPerTask; ++send) {
-		auto messages = std::vector{fmt::format("test-msg1-{}", send), fmt::format("test-msg2-{}", send)};
+                auto messages = std::vector{fmt::format("test-msg1-{}", send), fmt::format("test-msg2-{}", send)};
                 producer.Send(
                     topics.at(send % topics.size()),
                     fmt::format("test-key-{}", send),

@@ -1,13 +1,15 @@
 #pragma once
 
 #include <cstdint>
+#include <type_traits>
+#include <utility>
 
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/engine/task/task_with_result.hpp>
 #include <userver/kafka/exceptions.hpp>
 #include <userver/kafka/headers.hpp>
+#include <userver/kafka/impl/messages.hpp>
 #include <userver/utils/fast_pimpl.hpp>
-#include <userver/utils/span.hpp>
 #include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -133,13 +135,20 @@ public:
     ///
     /// @note Use BulkSendException::GetExceptions method to get a list
     /// of occured nested exceptions.
-    void Send(
+    template<typename Messages>
+    std::enable_if_t<
+        std::is_convertible_v<decltype(std::declval<const Messages&>()[0]), std::string_view>
+        &&
+        std::is_integral_v<decltype(std::declval<const Messages&>().size())>
+    > Send(
         utils::zstring_view topic_name,
         std::string_view key,
-        utils::span<const std::string> messages,
+        const Messages& messages,
         std::optional<std::uint32_t> partition = kUnassignedPartition,
         HeaderViews headers = {}
-    ) const;
+    ) const {
+        SendWrapper(topic_name, key, impl::MessagesAdapter{messages}, partition, std::move(headers));
+    }
 
     /// @brief Same as Producer::Send, but returns the task which can be
     /// used to wait the message delivery manually.
@@ -175,9 +184,17 @@ private:
     void SendImpl(
         utils::zstring_view topic_name,
         std::string_view key,
-        utils::span<const std::string> messages,
+        const impl::Messages& messages,
         std::optional<std::uint32_t> partition,
         std::vector<impl::HeadersHolder>&& headers_holders
+    ) const;
+
+    void SendWrapper(
+        utils::zstring_view topic_name,
+        std::string_view key,
+        const impl::Messages& messages,
+        std::optional<std::uint32_t> partition,
+        HeaderViews headers
     ) const;
 
     const std::string name_;

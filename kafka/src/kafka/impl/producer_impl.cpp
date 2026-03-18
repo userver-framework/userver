@@ -8,7 +8,6 @@
 #include <userver/engine/wait_any.hpp>
 #include <userver/kafka/impl/configuration.hpp>
 #include <userver/tracing/span.hpp>
-#include <userver/utils/span.hpp>
 #include <userver/utils/trivial_map.hpp>
 
 #include <kafka/impl/log_level.hpp>
@@ -141,7 +140,7 @@ DeliveryResult ProducerImpl::Send(
     LOG(operation_log_level_) << fmt::format("Message to topic '{}' is requested to send", topic_name);
     auto deadline = engine::Deadline::FromDuration(delivery_timeout_);
     auto delivery_result_future =
-        ScheduleMessageDelivery(topic_name, key, message, partition, std::move(headers_holder), deadline);
+        ScheduleMessageDelivery(topic_name, key, message, partition, std::move(headers_holder), deadline, QueueFullHandlingPolicy::Throw);
 
     WaitUntilDeliveryReported(delivery_result_future);
 
@@ -151,27 +150,27 @@ DeliveryResult ProducerImpl::Send(
 std::vector<DeliveryResult> ProducerImpl::Send(
     utils::zstring_view topic_name,
     std::string_view key,
-    utils::span<const std::string> messages,
+    const Messages& messages,
     std::optional<std::uint32_t> partition,
     std::vector<HeadersHolder> headers_holders
 ) const {
-    UASSERT(messages.size() == headers_holders.size());
+    UASSERT(messages.Size() == headers_holders.size());
 
     LOG(operation_log_level_) <<
-        fmt::format("Messages {} to topic '{}' are requested to send", messages.size(), topic_name);
+        fmt::format("Messages {} to topic '{}' are requested to send", messages.Size(), topic_name);
 
     std::vector<engine::Future<DeliveryResult>> delivery_result_futures;
-    delivery_result_futures.reserve(messages.size());
+    delivery_result_futures.reserve(messages.Size());
 
     auto deadline = engine::Deadline::FromDuration(delivery_timeout_);
-    for (std::size_t i = 0; i < messages.size(); ++i) {
+    for (std::size_t i = 0; i < messages.Size(); ++i) {
         delivery_result_futures.emplace_back(
-            ScheduleMessageDelivery(topic_name, key, messages[i], partition, std::move(headers_holders[i]), deadline)
+            ScheduleMessageDelivery(topic_name, key, messages[i], partition, std::move(headers_holders[i]), deadline, QueueFullHandlingPolicy::Retry)
         );
     }
 
     std::vector<DeliveryResult> delivery_results;
-    delivery_results.reserve(messages.size());
+    delivery_results.reserve(messages.Size());
 
     for (auto& delivery_result_future : delivery_result_futures) {
         WaitUntilDeliveryReported(delivery_result_future);
@@ -188,7 +187,8 @@ engine::Future<DeliveryResult> ProducerImpl::ScheduleMessageDelivery(
     std::string_view message,
     std::optional<std::uint32_t> partition,
     HeadersHolder headers_holder,
-    engine::Deadline deadline
+    engine::Deadline deadline,
+    QueueFullHandlingPolicy queue_full_handling_policy
 ) const {
     auto waiter = std::make_unique<DeliveryWaiter>();
     auto wait_handle = waiter->GetFuture();
@@ -244,7 +244,7 @@ engine::Future<DeliveryResult> ProducerImpl::ScheduleMessageDelivery(
         if (enqueue_error == RD_KAFKA_RESP_ERR_NO_ERROR) {
             [[maybe_unused]] const auto headers_holder_ptr = headers_holder.release();
             [[maybe_unused]] const auto waiter_ptr = waiter.release();
-        } else if (enqueue_error == RD_KAFKA_RESP_ERR__QUEUE_FULL) {
+        } else if (queue_full_handling_policy == QueueFullHandlingPolicy::Retry && enqueue_error == RD_KAFKA_RESP_ERR__QUEUE_FULL) {
             LOG_LIMITED_WARNING("Kafka local queue is full");
             /// waiting for a while for the queue to clear up
             engine::Yield();

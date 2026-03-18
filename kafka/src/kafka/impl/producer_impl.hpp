@@ -7,10 +7,10 @@
 #include <librdkafka/rdkafka.h>
 
 #include <userver/engine/deadline.hpp>
+#include <userver/kafka/impl/messages.hpp>
 #include <userver/kafka/impl/stats.hpp>
 #include <userver/logging/level.hpp>
 #include <userver/utils/periodic_task.hpp>
-#include <userver/utils/span.hpp>
 
 #include <kafka/impl/concurrent_event_waiter.hpp>
 #include <kafka/impl/delivery_waiter.hpp>
@@ -47,7 +47,7 @@ public:
     [[nodiscard]] std::vector<DeliveryResult> Send(
         utils::zstring_view topic_name,
         std::string_view key,
-        utils::span<const std::string> messages,
+        const Messages& messages,
         std::optional<std::uint32_t> partition,
         std::vector<HeadersHolder> headers
     ) const;
@@ -63,6 +63,11 @@ public:
     void EventCallback();
 
 private:
+    enum class QueueFullHandlingPolicy {
+        Throw,
+        Retry,
+    };
+
     /// @brief Schedules the message delivery.
     /// @returns the future for delivery result, which must be awaited.
     [[nodiscard]] engine::Future<DeliveryResult> ScheduleMessageDelivery(
@@ -71,7 +76,8 @@ private:
         std::string_view message,
         std::optional<std::uint32_t> partition,
         HeadersHolder headers,
-        engine::Deadline deadline
+        engine::Deadline deadline,
+        QueueFullHandlingPolicy queue_full_handling_policy
     ) const;
 
     /// @brief Poll a delivery or error event from producer's queue.

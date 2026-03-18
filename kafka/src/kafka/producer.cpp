@@ -7,7 +7,6 @@
 #include <userver/testsuite/testpoint.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/utils/async.hpp>
-#include <userver/utils/span.hpp>
 #include <userver/utils/text_light.hpp>
 
 #include <kafka/impl/producer_impl.hpp>
@@ -138,18 +137,18 @@ void Producer::Send(
     }).Get();
 }
 
-void Producer::Send(
+void Producer::SendWrapper(
     utils::zstring_view topic_name,
     std::string_view key,
-    utils::span<const std::string> messages,
+    const impl::Messages& messages,
     std::optional<std::uint32_t> partition,
     HeaderViews headers
 ) const {
     utils::Async(
         producer_task_processor_,
         "producer_send_bulk",
-        [this, topic_name, key, messages, partition, &headers] {
-            SendImpl(topic_name, key, messages, partition, BuildHeaderHolders(headers, messages.size()));
+        [this, topic_name, key, &messages, partition, &headers] {
+            SendImpl(topic_name, key, messages, partition, BuildHeaderHolders(headers, messages.Size()));
         }
     ).Get();
 }
@@ -211,7 +210,7 @@ void Producer::SendImpl(
 void Producer::SendImpl(
     utils::zstring_view topic_name,
     std::string_view key,
-    utils::span<const std::string> messages,
+    const impl::Messages& messages,
     std::optional<std::uint32_t> partition,
     std::vector<impl::HeadersHolder>&& headers_holders
 ) const {
@@ -220,12 +219,12 @@ void Producer::SendImpl(
 
     std::vector<std::vector<OwningHeader>> headers_copies;
     if (testsuite::AreTestpointsAvailable()) {
-        for (std::size_t i = 0; i < messages.size(); ++i) {
+        for (std::size_t i = 0; i < messages.Size(); ++i) {
             headers_copies.emplace_back(BuildOwningHeaders(headers_holders[i]));
         }
     }
     if (testsuite::AreTestpointsAvailable()) {
-        for (std::size_t i = 0; i < messages.size(); ++i) {
+        for (std::size_t i = 0; i < messages.Size(); ++i) {
             SendToTestPoint(name_, topic_name, key, messages[i], partition, headers_copies[i], "::started");
         }
     }
@@ -236,7 +235,7 @@ void Producer::SendImpl(
     HandleDeliveryErrors(delivery_results);
 
     if (testsuite::AreTestpointsAvailable()) {
-        for (std::size_t i = 0; i < messages.size(); ++i) {
+        for (std::size_t i = 0; i < messages.Size(); ++i) {
             SendToTestPoint(name_, topic_name, key, messages[i], partition, headers_copies[i]);
         }
     }
