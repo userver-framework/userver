@@ -17,7 +17,7 @@ using CoutLoggerFixture = CoutLoggerFixtureBase<::testing::Test>;
 // by the fixture
 // TEST_F(CoutLoggerFixture, TraceMessage)
 // {
-//     LOG_DEBUG() << "Test trace message";
+//     LOG_TRACE() << "Test trace message";
 // }
 
 TEST_F(CoutLoggerFixture, DebugMessage)
