@@ -2,10 +2,17 @@
 
 /// @file userver/utest/default_logger_fixture.hpp
 /// @brief @copybrief utest::DefaultLoggerFixture
+/// @brief @copybrief utest::CoutLoggerFixture
 
+#include <concepts>
+#include <iostream>
+#include <mutex>
+#include <string_view>
+#include <thread>
 #include <vector>
 
 #include <userver/logging/log.hpp>
+#include <userver/logging/impl/logger_base.hpp>
 #include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -62,6 +69,50 @@ private:
     logging::Level level_initial_{};
 
     static inline std::vector<logging::LoggerPtr> once_used_loggers;
+};
+
+namespace detail {
+
+class CoutLogger final : public logging::impl::TextLogger {
+public:
+    CoutLogger() : TextLogger(logging::Format::kTskv)
+    {
+        SetLevel(logging::Level::kDebug);
+    }
+
+    void Log(logging::Level level, logging::impl::formatters::LoggerItemRef item) override
+    {
+        UASSERT(dynamic_cast<logging::impl::TextLogItem*>(&item));
+        auto& str = static_cast<logging::impl::TextLogItem&>(item);
+        std::lock_guard lock(m_mutex);
+        std::cout << std::this_thread::get_id()
+            << "\t" << logging::ToString(level) 
+            << "\t" << std::string_view(str.log_line.begin(), str.log_line.end())
+            << std::endl;
+    }
+private:
+    std::mutex m_mutex;
+};
+
+logging::LoggerPtr MakeCoutLogger() {
+    static CoutLogger g_cout;
+    //return std::shared_ptr<logging::impl::LoggerBase>(nullptr, &g_cout);
+    // return logging::LoggerPtr(logging::LoggerPtr{}, &g_cout);
+    using logging::impl::LoggerBase;
+    return std::shared_ptr<LoggerBase>(std::shared_ptr<LoggerBase>{}, &g_cout);
+}
+
+}  // namespace detail
+
+/// @brief Fixture that provides CoutLogger as the default logger and manages its
+/// lifetime (in the same way as DefaultLoggerFixture)
+/// @snippet universal/utest/src/utest/default_logger_test.cpp - the fixture's usage sample
+template <class Base>
+class CoutLoggerFixtureBase : public DefaultLoggerFixture<Base> {
+public:
+    CoutLoggerFixtureBase() {
+        DefaultLoggerFixture<Base>::SetDefaultLogger(detail::MakeCoutLogger());
+    }
 };
 
 }  // namespace utest
