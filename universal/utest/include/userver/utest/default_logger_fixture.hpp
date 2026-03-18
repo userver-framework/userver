@@ -96,8 +96,7 @@ private:
 
 logging::LoggerPtr MakeCoutLogger() {
     static CoutLogger g_cout;
-    //return std::shared_ptr<logging::impl::LoggerBase>(nullptr, &g_cout);
-    // return logging::LoggerPtr(logging::LoggerPtr{}, &g_cout);
+	
     using logging::impl::LoggerBase;
     return std::shared_ptr<LoggerBase>(std::shared_ptr<LoggerBase>{}, &g_cout);
 }
