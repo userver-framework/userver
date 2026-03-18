@@ -22,12 +22,7 @@ class CoutLogger final : public logging::impl::TextLogger {
 public:
     CoutLogger() : TextLogger(logging::Format::kTskv)
     {
-#if 0
-		// Actually in the case we see some manipulation with the level and in the end it doesn't work expected way
         SetLevel(logging::GetDefaultLoggerLevel()); // consider gtest_hooks.hpp usage
-#else
-		SetLevel(logging::Level::kDebug);
-#endif
     }
 
     void Log(logging::Level level, logging::impl::formatters::LoggerItemRef item) override
