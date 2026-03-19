@@ -4,6 +4,7 @@
 /// @brief @copybrief utest::DefaultLoggerFixture
 /// @brief @copybrief utest::CoutLoggerFixture
 
+#include <concepts>
 #include <iostream>
 #include <mutex>
 #include <string_view>
@@ -86,7 +87,7 @@ public:
         std::lock_guard lock(m_mutex);
         std::cout << std::this_thread::get_id()
             << "\t" << logging::ToString(level) 
-            << "\t" << std::string_view(str.log_line.begin(), str.log_line.end())
+            << "\t" << std::string_view(&*str.log_line.begin(), std::distance(str.log_line.begin(), str.log_line.end()))
             << std::endl;
     }
 private:
@@ -96,7 +97,7 @@ private:
 inline
 logging::LoggerPtr MakeCoutLogger() {
     static CoutLogger g_cout;
-	
+
     using logging::impl::LoggerBase;
     return std::shared_ptr<LoggerBase>(std::shared_ptr<LoggerBase>{}, &g_cout);
 }
