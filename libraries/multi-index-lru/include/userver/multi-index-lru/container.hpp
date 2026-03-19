@@ -4,23 +4,31 @@
 /// @brief @copybrief multi_index_lru::Container
 
 #include "impl/mpl_helpers.hpp"
+#include "impl/mempool.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
 namespace multi_index_lru {
 
-template <typename Value, typename IndexSpecifierList, typename Allocator = std::allocator<Value>>
+template <typename Value, typename IndexSpecifierList>
 class ExpirableContainer;
 
 /// @ingroup userver_containers
 ///
 /// @brief MultiIndex LRU container
-template <typename Value, typename IndexSpecifierList, typename Allocator = std::allocator<Value>>
+template <typename Value, typename IndexSpecifierList>
 class Container {
 public:
-    explicit Container(size_t max_size)
+    using AllocatorType = FixedPoolAllocator<Value>;
+
+    explicit Container(std::size_t max_size)
         : max_size_(max_size)
-    {}
+        , allocator_(max_size + 2)
+        , container_(
+            typename BoostContainer::ctor_args_list(),
+            allocator_
+          ) 
+        {}
 
     template <typename... Args>
     auto emplace(Args&&... args) {
@@ -114,14 +122,19 @@ public:
     }
 
 private:
-    template <typename V, typename I, typename A>
+    template <typename V, typename I>
     friend class ExpirableContainer;
 
     using ExtendedIndexSpecifierList = impl::add_index_t<boost::multi_index::sequenced<>, IndexSpecifierList>;
-    using BoostContainer = boost::multi_index::multi_index_container<Value, ExtendedIndexSpecifierList, Allocator>;
+    using BoostContainer = boost::multi_index::multi_index_container<
+        Value,
+        ExtendedIndexSpecifierList,
+        AllocatorType
+    >;
 
-    BoostContainer container_;
     std::size_t max_size_;
+    AllocatorType allocator_;
+    BoostContainer container_;
 
     auto& get_sequenced() noexcept { return container_.template get<0>(); }
 

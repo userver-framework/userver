@@ -15,7 +15,7 @@ namespace multi_index_lru {
 /// @ingroup userver_containers
 ///
 /// @brief MultiIndex LRU expirable container
-template <typename Value, typename IndexSpecifierList, typename Allocator>
+template <typename Value, typename IndexSpecifierList>
 class ExpirableContainer {
 public:
     explicit ExpirableContainer(size_t max_size, std::chrono::milliseconds ttl)
@@ -138,7 +138,7 @@ public:
 
 private:
     using CacheItem = impl::TimestampedValue<Value>;
-    using CacheContainer = Container<CacheItem, IndexSpecifierList, Allocator>;
+    using CacheContainer = Container<CacheItem, IndexSpecifierList>;
 
     CacheContainer container_;
     std::chrono::milliseconds ttl_;
