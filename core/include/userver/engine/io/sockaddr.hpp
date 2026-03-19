@@ -55,8 +55,22 @@ public:
         ::memcpy(&data_, data, Sockaddr::Addrlen(domain));
     }
 
+    /// @brief Creates address of an IP socket with passed address.
+    static Sockaddr MakeIPSocketAddress(const char* ip_address);
+
     /// @brief Creates address of a Unix socket located at the specified path.
     static Sockaddr MakeUnixSocketAddress(std::string_view path);
+
+    /// @brief Creates the IPv6 wildcard address `[::]:0` that also handles IPv4
+    /// connections.
+    ///
+    /// A program needs to support only this API type to support IPv4 and IPv6.
+    static Sockaddr MakeInaddrAny() noexcept;
+
+    /// @brief Creates the IPv4 only wildcard address `0.0.0.0:0`.
+    ///
+    /// Prefer a more generic MakeInaddrAny() function if not sure.
+    static Sockaddr MakeIPv4InaddrAny() noexcept;
 
     /// @brief Creates the IPv6 loopback address `[::1]:0` that also handles IPv4
     /// connections.
