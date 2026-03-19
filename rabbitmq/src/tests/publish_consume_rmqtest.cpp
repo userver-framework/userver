@@ -1,25 +1,49 @@
 #include "utils_rmqtest.hpp"
 
 #include <cstdint>
-#include <limits>
 #include <optional>
-#include <type_traits>
 #include <unordered_map>
-#include <variant>
-
-#include <amqpcpp.h>
+#include <utility>
 
 #include <userver/concurrent/variable.hpp>
 #include <userver/engine/condition_variable.hpp>
 #include <userver/engine/mutex.hpp>
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/sleep.hpp>
-#include <userver/utils/overloaded.hpp>
+#include <userver/formats/common/type.hpp>
+#include <userver/formats/json/value_builder.hpp>
 #include <userver/utils/uuid4.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace {
+
+template <typename T>
+formats::json::Value MakeHeaderValue(T&& value) {
+    return formats::json::ValueBuilder{std::forward<T>(value)}.ExtractValue();
+}
+
+formats::json::Value MakeNestedArrayValue() {
+    formats::json::ValueBuilder builder{formats::common::Type::kArray};
+    builder.PushBack(std::int64_t{-7});
+    builder.PushBack("array-value");
+
+    formats::json::ValueBuilder nested_object{formats::common::Type::kObject};
+    nested_object["enabled"] = false;
+    nested_object["nullable"] = formats::json::ValueBuilder{};
+    builder.PushBack(std::move(nested_object));
+
+    return builder.ExtractValue();
+}
+
+formats::json::Value MakeNestedObjectValue() {
+    formats::json::ValueBuilder builder{formats::common::Type::kObject};
+    builder["count"] = std::uint64_t{42};
+    builder["name"] = "nested-object";
+    builder["array"] = formats::json::ValueBuilder{MakeNestedArrayValue()};
+
+    return builder.ExtractValue();
+}
 
 class Consumer final : public urabbitmq::ConsumerBase {
 public:
@@ -259,47 +283,28 @@ UTEST(Consumer, ConsumeMetadataAndHeadersWork) {
         std::unordered_map<std::string, urabbitmq::HeaderValue> headers;
     };
 
-    const auto header_value_to_string = [](const urabbitmq::HeaderValue& value) {
-        return std::visit(
-            utils::Overloaded{
-                [](const std::string& typed_value) { return typed_value; },
-                [](const auto typed_value) {
-                    using T = std::decay_t<decltype(typed_value)>;
-                    static_assert(std::is_integral_v<T>, "Only integral header values are supported");
-                    return std::to_string(typed_value);
-                },
-            },
-            value
-        );
-    };
-
     const std::vector<Case> cases{
         {"no-user-headers", std::nullopt, std::nullopt, {}},
         {
-            "simple-user-headers",
+            "scalar-user-headers",
             "reply-queue",
             "corr-id",
             {
-                {"x-custom-header", "custom-value"},
-                {"x-int8", std::numeric_limits<std::int8_t>::min()},
-                {"x-uint8", std::numeric_limits<std::uint8_t>::max()},
-                {"x-int16", std::numeric_limits<std::int16_t>::min()},
-                {"x-uint16", std::numeric_limits<std::uint16_t>::max()},
-                {"x-int32", std::numeric_limits<std::int32_t>::min()},
-                {"x-uint32", std::numeric_limits<std::uint32_t>::max()},
-                {"x-int64", std::numeric_limits<std::int64_t>::min()},
-                {"x-uint64", std::numeric_limits<std::uint64_t>::max()},
+                {"x-custom-header", MakeHeaderValue("custom-value")},
+                {"x-bool", MakeHeaderValue(true)},
+                {"x-int64", MakeHeaderValue(std::int64_t{-10})},
+                {"x-uint64", MakeHeaderValue(std::uint64_t{10})},
+                {"x-double", MakeHeaderValue(2.5)},
+                {"x-null", formats::json::ValueBuilder{}.ExtractValue()},
             },
         },
         {
-            "many-user-headers",
-            "reply-many",
-            "corr-many",
+            "nested-user-headers",
+            "reply-nested",
+            "corr-nested",
             {
-                {"x-empty", ""},
-                {"x-spaces", "a b c"},
-                {"x-symbols", R"(!@#$%^&*()[]{}<>/?\\|;:'\",.~-_=+)"},
-                {"x-long", std::string(128, 'x')},
+                {"x-array", MakeNestedArrayValue()},
+                {"x-object", MakeNestedObjectValue()},
             },
         },
         {
@@ -307,9 +312,9 @@ UTEST(Consumer, ConsumeMetadataAndHeadersWork) {
             "reply-override",
             "corr-override",
             {
-                {"u-trace-id", "trace-from-user"},
-                {"u-parent-span-id", "parent-from-user"},
-                {"x-another", "value"},
+                {"u-trace-id", MakeHeaderValue("trace-from-user")},
+                {"u-parent-span-id", MakeHeaderValue("parent-from-user")},
+                {"x-another", MakeHeaderValue("value")},
             },
         },
     };
@@ -352,16 +357,16 @@ UTEST(Consumer, ConsumeMetadataAndHeadersWork) {
 
         for (const auto& [header_key, header_value] : case_data.headers) {
             ASSERT_EQ(msg.headers.count(header_key), 1) << "Missing header '" << header_key << "' in " << payload;
-            const auto& actual = msg.headers.at(header_key);
-            const auto expected = header_value_to_string(header_value);
-            EXPECT_NE(actual.find(expected), std::string::npos)
-                << "Unexpected value for header '" << header_key << "' in " << payload << ": " << actual;
+            EXPECT_EQ(msg.headers.at(header_key), header_value)
+                << "Unexpected value for header '" << header_key << "' in " << payload;
         }
 
         ASSERT_EQ(msg.headers.count("u-trace-id"), 1) << "Missing u-trace-id in " << payload;
         ASSERT_EQ(msg.headers.count("u-parent-span-id"), 1) << "Missing u-parent-span-id in " << payload;
-        EXPECT_FALSE(msg.headers.at("u-trace-id").empty());
-        EXPECT_FALSE(msg.headers.at("u-parent-span-id").empty());
+        ASSERT_TRUE(msg.headers.at("u-trace-id").IsString());
+        ASSERT_TRUE(msg.headers.at("u-parent-span-id").IsString());
+        EXPECT_FALSE(msg.headers.at("u-trace-id").As<std::string>().empty());
+        EXPECT_FALSE(msg.headers.at("u-parent-span-id").As<std::string>().empty());
     }
 }
 

@@ -1,14 +1,13 @@
 #include "amqp_channel.hpp"
 
 #include <optional>
-#include <type_traits>
 
 #include <userver/engine/task/task.hpp>
 #include <userver/tracing/span.hpp>
-#include <userver/utils/overloaded.hpp>
 
 #include <urabbitmq/impl/amqp_connection.hpp>
 #include <urabbitmq/impl/deferred_wrapper.hpp>
+#include <urabbitmq/impl/header_value.hpp>
 #include <urabbitmq/statistics/connection_statistics.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -99,23 +98,7 @@ AMQP::Table CreateHeaders() {
 AMQP::Table CreateHeadersForPublish(const Envelope& envelope) {
     auto headers = CreateHeaders();
     if (envelope.headers.has_value()) {
-        for (const auto& [key, value] : envelope.headers.value()) {
-            std::visit(
-                utils::Overloaded{
-                    [&headers, &key](const std::string& typed_value) { headers[key] = typed_value; },
-                    [&headers, &key](const auto typed_value) {
-                        using T = std::decay_t<decltype(typed_value)>;
-                        static_assert(std::is_integral_v<T>, "Only integral header values are supported");
-                        if constexpr (std::is_signed_v<T>) {
-                            headers[key] = static_cast<std::int64_t>(typed_value);
-                        } else {
-                            headers[key] = static_cast<std::uint64_t>(typed_value);
-                        }
-                    },
-                },
-                value
-            );
-        }
+        AddHeadersToTable(headers, *envelope.headers);
     }
 
     return headers;

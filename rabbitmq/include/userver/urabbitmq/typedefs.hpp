@@ -5,9 +5,11 @@
 
 #include <chrono>
 #include <cstdint>
+#include <optional>
+#include <string>
 #include <unordered_map>
-#include <variant>
 
+#include <userver/formats/json/value.hpp>
 #include <userver/utils/strong_typedef.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -66,6 +68,10 @@ enum class MessageType {
     kTransient,
 };
 
+/// JSON-like representation of an AMQP header value.
+/// This is not JSON, but a convenient tree representation for AMQP field values.
+using HeaderValue = formats::json::Value;
+
 /// @brief Structure holding an AMQP message body along with some of its
 /// metadata fields. This struct is used to pass messages to the end user,
 /// hiding the actual AMQP message object implementation.
@@ -78,19 +84,8 @@ struct ConsumedMessage {
     Metadata metadata;
     std::optional<std::string> reply_to{};
     std::optional<std::string> correlation_id{};
-    std::unordered_map<std::string, std::string> headers{};
+    std::unordered_map<std::string, HeaderValue> headers{};
 };
-
-using HeaderValue = std::variant<
-    std::string,
-    std::int8_t,
-    std::uint8_t,
-    std::int16_t,
-    std::uint16_t,
-    std::int32_t,
-    std::uint32_t,
-    std::int64_t,
-    std::uint64_t>;
 
 /// @brief Structure holding an AMQP message body along with some of its
 /// metadata fields. This struct is used to pass messages from the end user,

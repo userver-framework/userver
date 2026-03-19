@@ -12,7 +12,7 @@
 #include <urabbitmq/connection.hpp>
 #include <urabbitmq/impl/amqp_channel.hpp>
 #include <urabbitmq/impl/deferred_wrapper.hpp>
-#include <urabbitmq/impl/field_to_string.hpp>
+#include <urabbitmq/impl/header_value.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -108,11 +108,7 @@ void ConsumerBaseImpl::OnMessage(const AMQP::Message& message, uint64_t delivery
         consumed.correlation_id = message.correlationID();
     }
 
-    const auto keys = headers.keys();
-    consumed.headers.reserve(keys.size());
-    for (const auto& key : keys) {
-        consumed.headers.emplace(key, impl::FieldToString(headers.get(key)));
-    }
+    consumed.headers = impl::TableToHeaders(headers);
 
     bts_.Detach(engine::AsyncNoSpan(
         dispatcher_,
