@@ -474,10 +474,8 @@ UTEST(Socket, UdpIpMreqIPv4) {
 
         auto receiver = engine::io::Socket(engine::io::AddrDomain::kInet, engine::io::SocketType::kDgram);
 
-        sockaddr_in any_addr{};
-        any_addr.sin_family = AF_INET;
-        any_addr.sin_port = htons(kPort);
-        any_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+        auto any_addr = engine::io::Sockaddr::MakeIPv4InaddrAny();
+        any_addr.SetPort(kPort);
         receiver.Bind(engine::io::Sockaddr(&any_addr));
 
         engine::io::IpMreq mreq(kGroup, 0);
@@ -500,10 +498,8 @@ UTEST(Socket, UdpIpMreqIPv6) {
 
     auto receiver = engine::io::Socket(engine::io::AddrDomain::kInet6, engine::io::SocketType::kDgram);
 
-    sockaddr_in6 any_addr{};
-    any_addr.sin6_family = AF_INET6;
-    any_addr.sin6_port = htons(kPort);
-    any_addr.sin6_addr = in6addr_any;
+    auto any_addr = engine::io::Sockaddr::MakeInaddrAny();
+    any_addr.SetPort(kPort);
     receiver.Bind(engine::io::Sockaddr(&any_addr));
 
     engine::io::IpMreq mreq(kGroup, 0);
@@ -522,11 +518,8 @@ UTEST_MT(Socket, UdpIpMreqMultipleReceiversIPv6, 3) {
     static constexpr const char* kGroup = "ff02::42";
     static constexpr int packets_count = 3;
 
-    sockaddr_in6 raw_multiaddr{};
-    raw_multiaddr.sin6_family = AF_INET6;
-    raw_multiaddr.sin6_port = htons(kPort);
-    inet_pton(AF_INET6, kGroup, &raw_multiaddr.sin6_addr);
-    io::Sockaddr multiaddr(&raw_multiaddr);
+    auto multiaddr = engine::io::Sockaddr::MakeIPSocketAddress(kGroup);
+    multiaddr.SetPort(kPort);
     io::IpMreq mreq(kGroup, 0);
 
     std::vector<engine::TaskWithResult<void>> tasks;
@@ -535,10 +528,8 @@ UTEST_MT(Socket, UdpIpMreqMultipleReceiversIPv6, 3) {
         const auto& receiver =
             receivers.emplace_back(std::make_shared<io::Socket>(io::AddrDomain::kInet6, io::SocketType::kDgram));
 
-        sockaddr_in6 any{};
-        any.sin6_family = AF_INET6;
-        any.sin6_port = htons(kPort);
-        any.sin6_addr = in6addr_any;
+        auto any = engine::io::Sockaddr::MakeInaddrAny();
+        any.SetPort(kPort);
         receiver->Bind(io::Sockaddr(&any));
         io::AddMembership(*receiver, mreq);
 
