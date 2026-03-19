@@ -4,7 +4,6 @@
 /// @brief @copybrief utest::DefaultLoggerFixture
 /// @brief @copybrief utest::CoutLoggerFixture
 
-#include <concepts>
 #include <iostream>
 #include <mutex>
 #include <string_view>
