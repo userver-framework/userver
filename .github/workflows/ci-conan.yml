@@ -52,7 +52,7 @@ jobs:
             run: |
                 brew update
                 brew tap mongodb/brew
-                brew install clang-format postgresql redis kafka rabbitmq mongodb-community
+                brew install postgresql redis kafka rabbitmq mongodb-community
                 brew install python@3.11
 
           - name: Checkout
