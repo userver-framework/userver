@@ -140,7 +140,7 @@ DeliveryResult ProducerImpl::Send(
     LOG(operation_log_level_) << fmt::format("Message to topic '{}' is requested to send", topic_name);
     auto deadline = engine::Deadline::FromDuration(delivery_timeout_);
     auto delivery_result_future =
-        ScheduleMessageDelivery(topic_name, key, message, partition, std::move(headers_holder), deadline, QueueFullHandlingPolicy::Throw);
+        ScheduleMessageDelivery(topic_name, key, message, partition, std::move(headers_holder), deadline);
 
     WaitUntilDeliveryReported(delivery_result_future);
 
@@ -165,7 +165,7 @@ std::vector<DeliveryResult> ProducerImpl::Send(
     auto deadline = engine::Deadline::FromDuration(delivery_timeout_);
     for (std::size_t i = 0; i < messages.Size(); ++i) {
         delivery_result_futures.emplace_back(
-            ScheduleMessageDelivery(topic_name, key, messages[i], partition, std::move(headers_holders[i]), deadline, QueueFullHandlingPolicy::Retry)
+            ScheduleMessageDelivery(topic_name, key, messages[i], partition, std::move(headers_holders[i]), deadline)
         );
     }
 
@@ -187,8 +187,7 @@ engine::Future<DeliveryResult> ProducerImpl::ScheduleMessageDelivery(
     std::string_view message,
     std::optional<std::uint32_t> partition,
     HeadersHolder headers_holder,
-    engine::Deadline deadline,
-    QueueFullHandlingPolicy queue_full_handling_policy
+    engine::Deadline deadline
 ) const {
     auto waiter = std::make_unique<DeliveryWaiter>();
     auto wait_handle = waiter->GetFuture();
@@ -244,7 +243,7 @@ engine::Future<DeliveryResult> ProducerImpl::ScheduleMessageDelivery(
         if (enqueue_error == RD_KAFKA_RESP_ERR_NO_ERROR) {
             [[maybe_unused]] const auto headers_holder_ptr = headers_holder.release();
             [[maybe_unused]] const auto waiter_ptr = waiter.release();
-        } else if (queue_full_handling_policy == QueueFullHandlingPolicy::Retry && enqueue_error == RD_KAFKA_RESP_ERR__QUEUE_FULL) {
+        } else if (enqueue_error == RD_KAFKA_RESP_ERR__QUEUE_FULL) {
             LOG_LIMITED_WARNING("Kafka local queue is full");
             /// waiting for a while for the queue to clear up
             engine::Yield();

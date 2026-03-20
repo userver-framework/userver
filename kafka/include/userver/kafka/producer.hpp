@@ -104,7 +104,22 @@ public:
     ///
     /// @note Use SendException::IsRetryable method to understand whether there is
     /// a sense to retry the message sending.
-    /// @snippet kafka/tests/producer_kafkatest.cpp Producer retryable error
+    ///
+    /// @code{.cpp}
+    /// bool delivered{false};
+    /// while (!delivered && !deadline.IsReached()) {
+    ///     try {
+    ///         producer.Send(topic, key, message);
+    ///         delivered = true;
+    ///     } catch (const kafka::SendException& e) {
+    ///         if (e.IsRetryable()) {
+    ///             engine::InterruptibleSleepFor(std::chrono::milliseconds{10});
+    ///             continue;
+    ///         }
+    ///         break;
+    ///     }
+    /// }
+    /// @endcode
     void Send(
         utils::zstring_view topic_name,
         std::string_view key,

@@ -200,32 +200,9 @@ UTEST_F(ProducerTest, FullQueue) {
             .emplace_back(producer.SendAsync(topic, fmt::format("test-key-{}", send), fmt::format("test-msg-{}", send))
             );
     }
-    auto make_send_request =
-        [&producer,
-         &topic,
-         key = fmt::format("test-key-{}", kMaxQueueMessages),
-         message = fmt::format("test-msg-{}", kMaxQueueMessages)] { producer.Send(topic, key, message); };
 
-    UEXPECT_THROW(make_send_request(), kafka::QueueFullException);
-
-    /// [Producer retryable error]
-    bool delivered{false};
-    const auto deadline = engine::Deadline::FromDuration(producer_configuration.delivery_timeout);
-    while (!delivered && !deadline.IsReached()) {
-        try {
-            make_send_request();
-            delivered = true;
-        } catch (const kafka::SendException& e) {
-            if (e.IsRetryable()) {
-                engine::InterruptibleSleepFor(std::chrono::milliseconds{10});
-                continue;
-            }
-            break;
-        }
-    }
-    /// [Producer retryable error]
-
-    EXPECT_TRUE(delivered);
+    UEXPECT_NO_THROW(producer.Send(
+        topic, fmt::format("test-key-{}", kMaxQueueMessages), fmt::format("test-msg-{}", kMaxQueueMessages)));
     UEXPECT_NO_THROW(engine::WaitAllChecked(results));
 }
 

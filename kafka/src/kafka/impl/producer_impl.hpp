@@ -63,11 +63,6 @@ public:
     void EventCallback();
 
 private:
-    enum class QueueFullHandlingPolicy {
-        Throw,
-        Retry,
-    };
-
     /// @brief Schedules the message delivery.
     /// @returns the future for delivery result, which must be awaited.
     [[nodiscard]] engine::Future<DeliveryResult> ScheduleMessageDelivery(
@@ -76,8 +71,7 @@ private:
         std::string_view message,
         std::optional<std::uint32_t> partition,
         HeadersHolder headers,
-        engine::Deadline deadline,
-        QueueFullHandlingPolicy queue_full_handling_policy
+        engine::Deadline deadline
     ) const;
 
     /// @brief Poll a delivery or error event from producer's queue.
