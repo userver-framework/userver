@@ -32,7 +32,7 @@ public:
         if (nodes_handler_.size() > 0) {
             auto node = nodes_handler_index.extract(std::prev(nodes_handler_index.end()));
             new (&node.value()) Value(std::forward<Args>(args)...);
-            auto ret = seq_index.insert(container_.end(), std::move(node));
+            auto ret = seq_index.insert(seq_index.begin(), std::move(node));
             result = {ret.position, ret.inserted};
         } else {
             result = seq_index.emplace_front(std::forward<Args>(args)...);
@@ -40,7 +40,7 @@ public:
         if (!result.second) {
             seq_index.relocate(seq_index.begin(), result.first);
         } else if (seq_index.size() > max_size_) {
-            nodes_handler_index.insert(nodes_handler_index.end(), std::move(seq_index.extract(result.first)));
+            nodes_handler_index.insert(nodes_handler_index.end(), std::move(seq_index.extract(std::prev(seq_index.end()))));
         }
         return result;
     }
@@ -101,9 +101,9 @@ public:
 
     template <typename Tag, typename Key>
     bool erase(const Key& key) {
-        auto it = find_no_update<Tag, Key>;
+        auto it = find_no_update<Tag, Key>(key);
         if (it == end<Tag>()) return false;
-        nodes_handler_.insert(nodes_handler_.end(), std::move(container_.template get<Tag>.extract(it)));
+        nodes_handler_.insert(nodes_handler_.end(), std::move(container_.template get<Tag>().extract(it)));
         return true;
     }
 
