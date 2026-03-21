@@ -325,7 +325,7 @@ void StartPeriodicTask(
     if (testsuite_tasks.IsEnabled()) {
         testsuite_tasks.RegisterTask("periodic/" + name, std::move(callback));
     } else {
-        periodic_task.Start(std::move(name), std::move(settings), std::move(callback));
+        periodic_task.Start(std::move(name), settings, std::move(callback));
     }
 }
 
