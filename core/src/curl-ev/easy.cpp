@@ -106,6 +106,18 @@ bool AddHeaderDoReplace(
     return false;
 }
 
+// Mask out flags, keep only base type (SOCK_STREAM, etc.)
+int StripSocketFlags(int x)
+{
+#ifdef SOCK_CLOEXEC
+    x &= ~SOCK_CLOEXEC;
+#endif
+#ifdef SOCK_NONBLOCK
+    x &= ~SOCK_NONBLOCK;
+#endif
+    return x;
+}
+
 }  // namespace
 
 using BusyMarker = utils::statistics::BusyMarker;
@@ -818,7 +830,7 @@ native::curl_socket_t easy::opensocket(
         LOG_TRACE() << "skip throttle check";
     }
 
-    if (purpose == native::CURLSOCKTYPE_IPCXN && address->socktype == SOCK_STREAM) {
+    if (purpose == native::CURLSOCKTYPE_IPCXN && StripSocketFlags(address->socktype) == SOCK_STREAM) {
         // Note to self: Why is address->protocol always set to zero?
         s = self->open_tcp_socket(address);
         if (s != -1 && multi_handle) {
