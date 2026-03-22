@@ -4,6 +4,7 @@
 /// @brief @copybrief multi_index_lru::Container
 
 #include "impl/mpl_helpers.hpp"
+#include <vector>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -24,14 +25,15 @@ public:
 
     template <typename... Args>
     auto emplace(Args&&... args) {
-        auto& nodes_handler_index = nodes_handler_.template get<0>();
         auto& seq_index = get_sequenced();
 
         std::pair<decltype(seq_index.begin()), bool> result;
 
-        if (nodes_handler_.size() > 0) {
-            auto node = nodes_handler_index.extract(std::prev(nodes_handler_index.end()));
-            new (&node.value()) Value(std::forward<Args>(args)...);
+        if (free_nodes_.size() > 0) {
+            auto node = std::move(free_nodes_.back());
+            free_nodes_.pop_back();
+        
+            node.value() =  Value(std::forward<Args>(args)...);
             auto ret = seq_index.insert(seq_index.begin(), std::move(node));
             result = {ret.position, ret.inserted};
         } else {
@@ -40,7 +42,7 @@ public:
         if (!result.second) {
             seq_index.relocate(seq_index.begin(), result.first);
         } else if (seq_index.size() > max_size_) {
-            nodes_handler_index.insert(nodes_handler_index.end(), std::move(seq_index.extract(std::prev(seq_index.end()))));
+            free_nodes_.emplace_back(seq_index.extract(std::prev(seq_index.end())));
         }
         return result;
     }
@@ -103,7 +105,7 @@ public:
     bool erase(const Key& key) {
         auto it = find_no_update<Tag, Key>(key);
         if (it == end<Tag>()) return false;
-        nodes_handler_.insert(nodes_handler_.end(), std::move(container_.template get<Tag>().extract(it)));
+        free_nodes_.emplace_back(container_.template get<Tag>().extract(it));
         return true;
     }
 
@@ -115,7 +117,7 @@ public:
         max_size_ = new_capacity;
         auto& seq_index = get_sequenced();
         while (container_.size() > max_size_) {
-            nodes_handler_.insert(nodes_handler_.end(), seq_index.extract(std::prev(seq_index.end())));
+            free_nodes_.emplace_back(seq_index.extract(std::prev(seq_index.end())));
         }
     }
 
@@ -135,7 +137,7 @@ private:
 
     BoostContainer container_;
     std::size_t max_size_;
-    BoostContainer nodes_handler_;
+    std::vector<typename BoostContainer::node_type> free_nodes_;
 
     auto& get_sequenced() noexcept { return container_.template get<0>(); }
 

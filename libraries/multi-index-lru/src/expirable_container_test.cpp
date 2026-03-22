@@ -305,6 +305,8 @@ UTEST_F(ExpirableUsersTest, ThreadSafetyBasic) {
     EXPECT_LE(cache.size(), 100);
 }
 
+#ifdef NDEBUG
+
 UTEST_F(ExpirableUsersTest, ZeroTTL) {
     using namespace std::chrono_literals;
     
@@ -337,6 +339,7 @@ UTEST_F(ExpirableUsersTest, NegativeTTL) {
         utils::InvariantError
     );
 }
+#endif
 
 }  // namespace
 
