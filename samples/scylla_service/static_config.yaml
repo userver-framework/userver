@@ -1,0 +1,42 @@
+components_manager:
+    task_processors:
+        main-task-processor:
+            worker_threads: 4
+        fs-task-processor:
+            worker_threads: 1
+
+    components:
+        server:
+            listener:
+                port: 8080
+
+        dns-client:
+            fs-task-processor: fs-task-processor
+
+        handler-example:
+            path: /v1/example
+            method: POST
+            task_processor: main-task-processor
+
+        logging:
+            loggers:
+                default:
+                    file_path: '@stderr'
+                    level: debug
+                    overflow_behavior: discard
+
+        scylla-example:
+            dbconnection: scylladb
+            consistency: local_quorum
+            serial_consistency: local_serial
+            request_timeout: 10s
+            pool_size: 16
+            app_name: scylla_app_name_4
+            shard_awareness: true
+            retry_policy: default
+            speculative_execution:
+                enabled: false
+                max_attempts: 2
+                delay: 100ms
+            default_keyspace: examples
+

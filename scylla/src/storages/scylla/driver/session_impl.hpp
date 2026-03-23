@@ -1,0 +1,82 @@
+#pragma once
+
+#include <memory>
+#include <string>
+
+#include <cassandra.h>
+
+#include <storages/scylla/session_impl.hpp>
+#include <userver/clients/dns/resolver_utils.hpp>
+#include <userver/dynamic_config/fwd.hpp>
+#include <userver/storages/scylla/session_config.hpp>
+#include <userver/utils/assert.hpp>
+
+USERVER_NAMESPACE_BEGIN
+
+namespace storages::scylla::impl::driver {
+
+class DriverSessionImpl : public SessionImpl {
+public:
+    DriverSessionImpl(
+        std::string id,
+        const std::string& hosts,
+        const SessionConfig& session_config,
+        dynamic_config::Source config_source,
+        clients::dns::Resolver* dns_resolver
+    );
+
+    struct SessionDeleter {
+        void operator()(CassSession* s) const noexcept {
+            if (s) {
+                cass_session_free(s);
+            }
+        }
+    };
+
+    struct ClusterDeleter {
+        void operator()(CassCluster* c) const noexcept {
+            if (c) {
+                cass_cluster_free(c);
+            }
+        }
+    };
+
+    class Connection final {
+    public:
+        Connection(CassSession* session, CassCluster* cluster) : session_(session), cluster_(cluster) {
+            UASSERT(session_);
+            UASSERT(cluster_);
+        }
+
+        CassSession* GetSession() { return session_.get(); }
+
+    private:
+        std::unique_ptr<CassSession, SessionDeleter> session_;
+        std::unique_ptr<CassCluster, ClusterDeleter> cluster_;
+    };
+
+    const std::string& DefaultDatabaseName() const override;
+
+    CassSession* GetNativeSession() { return connection_->GetSession(); }
+
+    void Ping() override {
+        // TODO: implement
+    }
+
+    void SetConnectionString(const std::string& connection_string) override {
+        // TODO: implement
+    }
+
+    using ConnPtr = std::shared_ptr<Connection>;
+
+private:
+    ConnPtr Create();
+
+    std::string hosts_;
+    std::string default_keyspace_;
+    ConnPtr connection_;
+};
+
+}  // namespace storages::scylla::impl::driver
+
+USERVER_NAMESPACE_END

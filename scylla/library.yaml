@@ -1,0 +1,7 @@
+project-name: userver-scylla
+maintainers:
+  - Common components
+description: ScyllaDB serialization helpers
+
+libraries:
+  - userver-core
