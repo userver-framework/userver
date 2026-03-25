@@ -17,6 +17,7 @@ components_manager:
             min_pool_size: 1
             max_pool_size: 1
             max_in_flight_requests: 5
+            heartbeat_interval_seconds: 1
             use_secure_connection: false
 
         secdist: {}  # Component that stores configuration of hosts and passwords

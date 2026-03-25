@@ -1,10 +1,10 @@
 #include "header_value.hpp"
 
 #include <cstdint>
-#include <memory>
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
+#include <utility>
 
 #include <fmt/format.h>
 
@@ -18,32 +18,56 @@ namespace urabbitmq::impl {
 
 namespace {
 
-formats::json::Value ToJsonValue(const AMQP::Array& array);
-formats::json::Value ToJsonValue(const AMQP::Table& table);
-std::unique_ptr<AMQP::Field> ToAmqpField(const HeaderValue& value);
-
-[[noreturn]] void ThrowUnsupportedAmqpField(char type_id) {
-    throw std::runtime_error{fmt::format("Unsupported AMQP header field type '{}'", type_id)};
+template <typename T>
+HeaderValue MakeHeaderValue(T&& value) {
+    return HeaderValue::Builder{std::forward<T>(value)}.ExtractValue();
 }
 
-[[noreturn]] void ThrowUnsupportedHeaderValue(const HeaderValue& value) {
+AMQP::Array ToAmqpArray(const HeaderValue& value);
+AMQP::Table ToAmqpTable(const HeaderValue& value);
+
+template <typename Func>
+decltype(auto) WithAmqpField(const HeaderValue& value, Func&& func) {
+    if (value.IsNull()) {
+        return std::forward<Func>(func)(AMQP::VoidField{});
+    }
+    if (value.IsBool()) {
+        return std::forward<Func>(func)(AMQP::BooleanSet{value.As<bool>()});
+    }
+    if (value.IsInt()) {
+        return std::forward<Func>(func)(AMQP::Long{value.As<int>()});
+    }
+    if (value.IsInt64()) {
+        return std::forward<Func>(func)(AMQP::LongLong{value.As<std::int64_t>()});
+    }
+    if (value.IsUInt()) {
+        return std::forward<Func>(func)(AMQP::ULong{value.As<unsigned int>()});
+    }
+    if (value.IsUInt64()) {
+        return std::forward<Func>(func)(AMQP::ULongLong{value.As<std::uint64_t>()});
+    }
+    if (value.IsDouble()) {
+        return std::forward<Func>(func)(AMQP::Double{value.As<double>()});
+    }
+    if (value.IsString()) {
+        return std::forward<Func>(func)(AMQP::LongString{value.As<std::string>()});
+    }
+    if (value.IsArray()) {
+        auto array = ToAmqpArray(value);
+        return std::forward<Func>(func)(array);
+    }
+    if (value.IsObject()) {
+        auto table = ToAmqpTable(value);
+        return std::forward<Func>(func)(table);
+    }
+
     throw std::runtime_error{fmt::format("Unsupported RabbitMQ header value at '{}'", value.GetPath())};
 }
 
-formats::json::Value ToJsonValue(const AMQP::Array& array) {
-    formats::json::ValueBuilder builder{formats::common::Type::kArray};
-    const auto count = array.count();
-    for (std::uint32_t index = 0; index < count; ++index) {
-        builder.PushBack(formats::json::ValueBuilder{FieldToHeaderValue(array[static_cast<std::uint8_t>(index)])});
-    }
-
-    return builder.ExtractValue();
-}
-
-formats::json::Value ToJsonValue(const AMQP::Table& table) {
-    formats::json::ValueBuilder builder{formats::common::Type::kObject};
-    for (const auto& key : table.keys()) {
-        builder.EmplaceNocheck(key, formats::json::ValueBuilder{FieldToHeaderValue(table[key])});
+HeaderValue ToHeaderValueFromArray(const AMQP::Array& array) {
+    HeaderValue::Builder builder{formats::common::Type::kArray};
+    for (std::uint32_t index = 0; index < array.count(); ++index) {
+        builder.PushBack(impl::ToHeaderValue(array[index]));
     }
 
     return builder.ExtractValue();
@@ -52,7 +76,7 @@ formats::json::Value ToJsonValue(const AMQP::Table& table) {
 AMQP::Array ToAmqpArray(const HeaderValue& value) {
     AMQP::Array array;
     for (const auto& item : value) {
-        array.push_back(*ToAmqpField(item));
+        WithAmqpField(item, [&array](const AMQP::Field& field) { array.push_back(field); });
     }
 
     return array;
@@ -61,87 +85,61 @@ AMQP::Array ToAmqpArray(const HeaderValue& value) {
 AMQP::Table ToAmqpTable(const HeaderValue& value) {
     AMQP::Table table;
     for (const auto& [key, item] : formats::common::Items(value)) {
-        table.set(key, *ToAmqpField(item));
+        WithAmqpField(item, [&table, &key](const AMQP::Field& field) { table.set(key, field); });
     }
 
     return table;
 }
 
-std::unique_ptr<AMQP::Field> ToAmqpField(const HeaderValue& value) {
-    if (value.IsNull()) {
-        return std::make_unique<AMQP::VoidField>();
-    }
-    if (value.IsBool()) {
-        return std::make_unique<AMQP::BooleanSet>(value.As<bool>());
-    }
-    if (value.IsInt() || value.IsInt64()) {
-        return std::make_unique<AMQP::LongLong>(value.As<std::int64_t>());
-    }
-    if (value.IsUInt() || value.IsUInt64()) {
-        return std::make_unique<AMQP::ULongLong>(value.As<std::uint64_t>());
-    }
-    if (value.IsDouble()) {
-        return std::make_unique<AMQP::Double>(value.As<double>());
-    }
-    if (value.IsString()) {
-        return std::make_unique<AMQP::LongString>(value.As<std::string>());
-    }
-    if (value.IsArray()) {
-        return std::make_unique<AMQP::Array>(ToAmqpArray(value));
-    }
-    if (value.IsObject()) {
-        return std::make_unique<AMQP::Table>(ToAmqpTable(value));
+HeaderValue ToHeaderValueFromTable(const AMQP::Table& table) {
+    HeaderValue::Builder builder{formats::common::Type::kObject};
+    for (const auto& key : table.keys()) {
+        builder.EmplaceNocheck(key, impl::ToHeaderValue(table[key]));
     }
 
-    ThrowUnsupportedHeaderValue(value);
+    return builder.ExtractValue();
 }
 
 }  // namespace
 
-HeaderValue FieldToHeaderValue(const AMQP::Field& field) {
+HeaderValue ToHeaderValue(const AMQP::Field& field) {
     switch (field.typeID()) {
         case 'S':
         case 's':
-            return formats::json::ValueBuilder{static_cast<const std::string&>(field)}.ExtractValue();
+            return MakeHeaderValue(static_cast<const std::string&>(field));
         case 't':
-            return formats::json::ValueBuilder{static_cast<const AMQP::BooleanSet&>(field).value() != 0}.ExtractValue();
+            return MakeHeaderValue(static_cast<const AMQP::BooleanSet&>(field).value() != 0);
         case 'B':
-            return formats::json::ValueBuilder{static_cast<std::uint64_t>(static_cast<std::uint8_t>(field))}
-                .ExtractValue();
+            return MakeHeaderValue(static_cast<unsigned int>(field));
         case 'b':
-            return formats::json::ValueBuilder{static_cast<std::int64_t>(static_cast<std::int8_t>(field))}
-                .ExtractValue();
+            return MakeHeaderValue(static_cast<int>(field));
         case 'u':
-            return formats::json::ValueBuilder{static_cast<std::uint64_t>(static_cast<std::uint16_t>(field))}
-                .ExtractValue();
+            return MakeHeaderValue(static_cast<unsigned int>(field));
         case 'U':
-            return formats::json::ValueBuilder{static_cast<std::int64_t>(static_cast<std::int16_t>(field))}
-                .ExtractValue();
+            return MakeHeaderValue(static_cast<int>(field));
         case 'i':
-            return formats::json::ValueBuilder{static_cast<std::uint64_t>(static_cast<std::uint32_t>(field))}
-                .ExtractValue();
+            return MakeHeaderValue(static_cast<unsigned int>(field));
         case 'I':
-            return formats::json::ValueBuilder{static_cast<std::int64_t>(static_cast<std::int32_t>(field))}
-                .ExtractValue();
+            return MakeHeaderValue(static_cast<int>(field));
         case 'l':
         case 'T':
-            return formats::json::ValueBuilder{static_cast<std::uint64_t>(field)}.ExtractValue();
+            return MakeHeaderValue(static_cast<std::uint64_t>(field));
         case 'L':
-            return formats::json::ValueBuilder{static_cast<std::int64_t>(field)}.ExtractValue();
+            return MakeHeaderValue(static_cast<std::int64_t>(field));
         case 'f':
-            return formats::json::ValueBuilder{static_cast<double>(static_cast<float>(field))}.ExtractValue();
+            return MakeHeaderValue(static_cast<double>(static_cast<float>(field)));
         case 'd':
         case 'D':
-            return formats::json::ValueBuilder{static_cast<double>(field)}.ExtractValue();
+            return MakeHeaderValue(static_cast<double>(field));
         case 'A':
-            return ToJsonValue(static_cast<const AMQP::Array&>(field));
+            return ToHeaderValueFromArray(static_cast<const AMQP::Array&>(field));
         case 'F':
-            return ToJsonValue(static_cast<const AMQP::Table&>(field));
+            return ToHeaderValueFromTable(static_cast<const AMQP::Table&>(field));
         case 'V':
-            return formats::json::ValueBuilder{}.ExtractValue();
+            return HeaderValue::Builder{}.ExtractValue();
     }
 
-    ThrowUnsupportedAmqpField(field.typeID());
+    throw std::runtime_error{fmt::format("Unsupported AMQP header field type '{}'", field.typeID())};
 }
 
 std::unordered_map<std::string, HeaderValue> TableToHeaders(const AMQP::Table& table) {
@@ -151,7 +149,7 @@ std::unordered_map<std::string, HeaderValue> TableToHeaders(const AMQP::Table& t
     headers.reserve(keys.size());
 
     for (const auto& key : keys) {
-        headers.emplace(key, FieldToHeaderValue(table[key]));
+        headers.emplace(key, ToHeaderValue(table[key]));
     }
 
     return headers;
@@ -159,7 +157,7 @@ std::unordered_map<std::string, HeaderValue> TableToHeaders(const AMQP::Table& t
 
 void AddHeadersToTable(AMQP::Table& table, const std::unordered_map<std::string, HeaderValue>& headers) {
     for (const auto& [key, value] : headers) {
-        table.set(key, *ToAmqpField(value));
+        WithAmqpField(value, [&table, &key](const AMQP::Field& field) { table.set(key, field); });
     }
 }
 

@@ -19,28 +19,28 @@ USERVER_NAMESPACE_BEGIN
 namespace {
 
 template <typename T>
-formats::json::Value MakeHeaderValue(T&& value) {
-    return formats::json::ValueBuilder{std::forward<T>(value)}.ExtractValue();
+urabbitmq::HeaderValue MakeHeaderValue(T&& value) {
+    return urabbitmq::HeaderValue::Builder{std::forward<T>(value)}.ExtractValue();
 }
 
-formats::json::Value MakeNestedArrayValue() {
-    formats::json::ValueBuilder builder{formats::common::Type::kArray};
+urabbitmq::HeaderValue MakeNestedArrayValue() {
+    urabbitmq::HeaderValue::Builder builder{formats::common::Type::kArray};
     builder.PushBack(std::int64_t{-7});
     builder.PushBack("array-value");
 
-    formats::json::ValueBuilder nested_object{formats::common::Type::kObject};
+    urabbitmq::HeaderValue::Builder nested_object{formats::common::Type::kObject};
     nested_object["enabled"] = false;
-    nested_object["nullable"] = formats::json::ValueBuilder{};
+    nested_object["nullable"] = urabbitmq::HeaderValue::Builder{};
     builder.PushBack(std::move(nested_object));
 
     return builder.ExtractValue();
 }
 
-formats::json::Value MakeNestedObjectValue() {
-    formats::json::ValueBuilder builder{formats::common::Type::kObject};
+urabbitmq::HeaderValue MakeNestedObjectValue() {
+    urabbitmq::HeaderValue::Builder builder{formats::common::Type::kObject};
     builder["count"] = std::uint64_t{42};
     builder["name"] = "nested-object";
-    builder["array"] = formats::json::ValueBuilder{MakeNestedArrayValue()};
+    builder["array"] = urabbitmq::HeaderValue::Builder{MakeNestedArrayValue()};
 
     return builder.ExtractValue();
 }
@@ -292,10 +292,12 @@ UTEST(Consumer, ConsumeMetadataAndHeadersWork) {
             {
                 {"x-custom-header", MakeHeaderValue("custom-value")},
                 {"x-bool", MakeHeaderValue(true)},
+                {"x-int", MakeHeaderValue(-10)},
                 {"x-int64", MakeHeaderValue(std::int64_t{-10})},
+                {"x-uint", MakeHeaderValue(10u)},
                 {"x-uint64", MakeHeaderValue(std::uint64_t{10})},
                 {"x-double", MakeHeaderValue(2.5)},
-                {"x-null", formats::json::ValueBuilder{}.ExtractValue()},
+                {"x-null", urabbitmq::HeaderValue::Builder{}.ExtractValue()},
             },
         },
         {

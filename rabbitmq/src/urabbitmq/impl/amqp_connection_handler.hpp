@@ -48,7 +48,7 @@ public:
         clients::dns::Resolver& resolver,
         const EndpointInfo& endpoint,
         const AuthSettings& auth_settings,
-        size_t heartbeat_interval_seconds,
+        std::size_t heartbeat_interval_seconds,
         bool secure,
         statistics::ConnectionStatistics& stats,
         engine::Deadline deadline
@@ -56,9 +56,9 @@ public:
     ~AmqpConnectionHandler() override;
 
     void onProperties(AMQP::Connection* connection, const AMQP::Table& server, AMQP::Table& client) override;
-    uint16_t onNegotiate(AMQP::Connection* connection, uint16_t interval) override;
+    std::uint16_t onNegotiate(AMQP::Connection* connection, std::uint16_t interval) override;
 
-    void onData(AMQP::Connection* connection, const char* buffer, size_t size) override;
+    void onData(AMQP::Connection* connection, const char* buffer, std::size_t size) override;
 
     void onError(AMQP::Connection* connection, const char* message) override;
 
@@ -74,8 +74,8 @@ public:
 
     void SetOperationDeadline(engine::Deadline deadline);
 
-    void AccountRead(size_t size);
-    void AccountWrite(size_t size);
+    void AccountRead(std::size_t size);
+    void AccountWrite(std::size_t size);
 
     statistics::ConnectionStatistics& GetStatistics();
 

@@ -11,7 +11,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace urabbitmq::impl {
 
-HeaderValue FieldToHeaderValue(const AMQP::Field& field);
+HeaderValue ToHeaderValue(const AMQP::Field& field);
 
 std::unordered_map<std::string, HeaderValue> TableToHeaders(const AMQP::Table& table);
 
