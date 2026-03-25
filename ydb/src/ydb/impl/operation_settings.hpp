@@ -16,6 +16,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ydb::impl {
 
+constexpr double kOperationTimeoutMultiplier = 0.8;
+
 std::chrono::milliseconds GetBoundTimeout(std::chrono::milliseconds timeout, engine::Deadline deadline);
 
 NYdb::NQuery::TExecuteQuerySettings ToExecuteQuerySettings(const QuerySettings& query_settings);
@@ -27,6 +29,23 @@ void ApplyToRequestSettings(
     engine::Deadline deadline
 ) {
     result.ClientTimeout(GetBoundTimeout(settings.client_timeout_ms, deadline));
+
+    if (!settings.trace_id.empty()) {
+        result.TraceId(impl::ToString(settings.trace_id));
+    }
+}
+
+template <typename T>
+void ApplyToRequestSettings(
+    NYdb::TOperationRequestSettings<T>& result,
+    const OperationSettings& settings,
+    engine::Deadline deadline
+) {
+    auto timeout = GetBoundTimeout(settings.client_timeout_ms, deadline);
+
+    result.ClientTimeout(timeout);
+    result.OperationTimeout(timeout * kOperationTimeoutMultiplier);
+    result.CancelAfter(timeout * kOperationTimeoutMultiplier);
 
     if (!settings.trace_id.empty()) {
         result.TraceId(impl::ToString(settings.trace_id));
