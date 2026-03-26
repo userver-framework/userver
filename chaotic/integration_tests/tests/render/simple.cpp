@@ -296,6 +296,11 @@ TEST(Simple, StringEnum) {
     EXPECT_EQ("bar", ToString(ns::StringEnum::kBar));
     EXPECT_EQ("some!thing", ToString(ns::StringEnum::kSomeThing));
 
+    EXPECT_TRUE(IsValidStringEnum("foo"));
+    EXPECT_TRUE(IsValidStringEnum("bar"));
+    EXPECT_TRUE(IsValidStringEnum("some!thing"));
+    EXPECT_FALSE(IsValidStringEnum("invalid"));
+
     EXPECT_EQ(FromString("foo", formats::parse::To<ns::StringEnum>{}), ns::StringEnum::kFoo);
     UEXPECT_THROW_MSG(
         FromString("zoo", formats::parse::To<ns::StringEnum>{}),
