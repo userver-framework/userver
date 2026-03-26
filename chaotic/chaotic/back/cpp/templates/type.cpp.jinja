@@ -210,14 +210,16 @@
     {% endif %}
 {% endmacro %}
 
-{% macro generate_isvalid_definition(type) %}
+{% macro generate_isconvertible_definition(type) %}
     {# handle subtypes #}
     {%- for schema in type.subtypes() -%}
-        {{ generate_isvalid_definition(schema) }}
+        {{ generate_isconvertible_definition(schema) }}
     {% endfor %}
 
     {% if type.get_py_type() == 'CppStringEnum' %}
-        bool IsValid{{ shortest_cpp_name(type) }}(std::string_view value) {
+        bool IsConvertible(std::string_view value,
+            {{ userver }}::formats::parse::To<{{ shortest_cpp_name(type) }}>)
+        {
             return k{{ type.cpp_global_struct_field_name() }}_Mapping.TryFindBySecond(value).has_value();
         }
     {% endif %}
@@ -325,7 +327,7 @@
 
     {{ generate_tostring_definition(type) }}
 
-    {{ generate_isvalid_definition(type) }}
+    {{ generate_isconvertible_definition(type) }}
 {% endfor %}
 
 {{ common.switch_namespace('') }}

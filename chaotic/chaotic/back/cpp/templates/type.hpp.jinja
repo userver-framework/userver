@@ -279,14 +279,15 @@
     {% endif %}
 {% endmacro %}
 
-{% macro generate_isvalid_declaration(type) %}
+{% macro generate_isconvertible_declaration(type) %}
     {# handle subtypes #}
     {%- for schema in type.subtypes() -%}
-        {{ generate_isvalid_declaration(schema) }}
+        {{ generate_isconvertible_declaration(schema) }}
     {% endfor %}
 
     {% if type.get_py_type() == 'CppStringEnum' %}
-        bool IsValid{{ shortest_cpp_name(type) }}(std::string_view value);
+        bool IsConvertible(std::string_view value,
+            {{ userver }}::formats::parse::To<{{ shortest_cpp_name(type) }}>);
     {% endif %}
 {% endmacro %}
 
@@ -341,7 +342,7 @@
 
     {{ generate_tostring_declaration(type) }}
 
-    {{ generate_isvalid_declaration(type) }}
+    {{ generate_isconvertible_declaration(type) }}
 {% endfor %}
 
 {{ common.switch_namespace('') }}
