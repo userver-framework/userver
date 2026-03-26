@@ -210,6 +210,18 @@
     {% endif %}
 {% endmacro %}
 
+{% macro generate_isvalid_definition(type) %}
+    {# handle subtypes #}
+    {%- for schema in type.subtypes() -%}
+        {{ generate_isvalid_definition(schema) }}
+    {% endfor %}
+
+    {% if type.get_py_type() == 'CppStringEnum' %}
+        bool IsValid{{ shortest_cpp_name(type) }}(std::string_view value) {
+            return k{{ type.cpp_global_struct_field_name() }}_Mapping.TryFindBySecond(value).has_value();
+        }
+    {% endif %}
+{% endmacro %}
 
 {% macro generate_operator_eq_definition(type) %}
     {% set local_name = shortest_cpp_name(type) %}
@@ -312,6 +324,8 @@
     {% endif %}
 
     {{ generate_tostring_definition(type) }}
+
+    {{ generate_isvalid_definition(type) }}
 {% endfor %}
 
 {{ common.switch_namespace('') }}
