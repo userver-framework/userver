@@ -60,6 +60,8 @@ USERVER_NAMESPACE::formats::json::Value Serialize(
 
 std::string ToString(Enum::Foo value);
 
+bool IsConvertible(std::string_view value, USERVER_NAMESPACE::formats::parse::To<Enum::Foo>);
+
 }  // namespace ns
 
 template <>

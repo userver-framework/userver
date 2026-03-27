@@ -82,6 +82,10 @@ std::string ToString(Enum::Foo value) {
   throw std::runtime_error(fmt::format("Invalid enum value: {}", static_cast<int>(value)));
 }
 
+bool IsConvertible(std::string_view value, USERVER_NAMESPACE::formats::parse::To<Enum::Foo>) {
+  return k__ns__Enum__Foo_Mapping.TryFindBySecond(value).has_value();
+}
+
 }  // namespace ns
 
 fmt::format_context::iterator fmt::formatter<ns::Enum::Foo>::format(const ns::Enum::Foo& value,
