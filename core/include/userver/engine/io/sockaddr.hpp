@@ -13,6 +13,7 @@
 
 #include <fmt/format.h>
 #include <userver/utils/fmt_compat.hpp>
+#include <userver/utils/zstring_view.hpp>
 
 #include <userver/logging/log_helper_fwd.hpp>
 
@@ -56,7 +57,7 @@ public:
     }
 
     /// @brief Creates address of an IP socket with passed address.
-    static Sockaddr MakeIPSocketAddress(const char* ip_address);
+    static Sockaddr MakeIPSocketAddress(utils::zstring_view ip_address);
 
     /// @brief Creates address of a Unix socket located at the specified path.
     static Sockaddr MakeUnixSocketAddress(std::string_view path);

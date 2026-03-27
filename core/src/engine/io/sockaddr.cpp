@@ -18,15 +18,15 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine::io {
 
-Sockaddr Sockaddr::MakeIPSocketAddress(const char* ip_address) {
+Sockaddr Sockaddr::MakeIPSocketAddress(const utils::zstring_view ip_address) {
     Sockaddr addr;
     auto* ipv4_sa = addr.As<struct sockaddr_in>();
-    if (inet_pton(AF_INET, ip_address, &ipv4_sa->sin_addr) == 1) {
+    if (inet_pton(AF_INET, ip_address.c_str(), &ipv4_sa->sin_addr) == 1) {
         ipv4_sa->sin_family = AF_INET;
         return addr;
     }
     auto* ipv6_sa = addr.As<struct sockaddr_in6>();
-    if (inet_pton(AF_INET6, ip_address, &ipv6_sa->sin6_addr) == 1) {
+    if (inet_pton(AF_INET6, ip_address.c_str(), &ipv6_sa->sin6_addr) == 1) {
         ipv6_sa->sin6_family = AF_INET6;
         return addr;
     }
