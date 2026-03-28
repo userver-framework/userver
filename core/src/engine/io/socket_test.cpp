@@ -466,6 +466,42 @@ UTEST_MT(Socket, ConcurrentReadWriteUdp, 2) {
     /// [send self concurrent]
 }
 
+UTEST(Socket, MakeIpSocketAddress) {
+	{
+		auto ip_addr = io::Sockaddr::MakeIPSocketAddress("127.0.0.1");
+		auto loopback_addr = io::Sockaddr::MakeIPv4LoopbackAddress();
+		EXPECT_EQ(ip_addr.Port(), loopback_addr.Port());
+		EXPECT_EQ(ip_addr.Domain(), loopback_addr.Domain());
+		EXPECT_EQ(ip_addr.PrimaryAddressString(), loopback_addr.PrimaryAddressString());
+	}
+
+	{
+		auto ip_addr = io::Sockaddr::MakeIPSocketAddress("::");
+		auto addr_any = io::Sockaddr::MakeInaddrAny();
+		EXPECT_EQ(ip_addr.Port(), addr_any.Port());
+		EXPECT_EQ(ip_addr.Domain(), addr_any.Domain());
+		EXPECT_EQ(ip_addr.PrimaryAddressString(), addr_any.PrimaryAddressString());
+	}
+
+	{
+		static constexpr const char* kIpAddress = "ff02::42";
+		static constexpr uint16_t kPort = 42;
+
+    	sockaddr_in6 raw_addr{};
+    	raw_addr.sin6_family = AF_INET6;
+    	raw_addr.sin6_port = htons(kPort);
+    	inet_pton(AF_INET6, kIpAddress, &raw_addr.sin6_addr);
+    	io::Sockaddr constructed_addr(&raw_addr);
+
+		auto ip_addr = io::Sockaddr::MakeIPSocketAddress(kIpAddress);
+		ip_addr.SetPort(kPort);
+
+		EXPECT_EQ(ip_addr.Port(), constructed_addr.Port());
+		EXPECT_EQ(ip_addr.Domain(), constructed_addr.Domain());
+		EXPECT_EQ(ip_addr.PrimaryAddressString(), constructed_addr.PrimaryAddressString());
+	}
+}
+
 UTEST(Socket, UdpIpMreqIPv4) {
     try {
         /// [multicast socket creation sample]
