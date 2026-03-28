@@ -57,6 +57,7 @@ public:
     }
 
     /// @brief Creates address of an IP socket with passed address.
+    /// @note use @ref Socket::ConnectTcpByName in case you need DNS resolving.
     static Sockaddr MakeIPSocketAddress(utils::zstring_view ip_address);
 
     /// @brief Creates address of a Unix socket located at the specified path.
