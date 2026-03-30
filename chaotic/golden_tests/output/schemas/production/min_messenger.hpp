@@ -507,6 +507,8 @@ USERVER_NAMESPACE::formats::json::Value Serialize(
 
 std::string ToString(V1LikeTriggerRequest::Animation value);
 
+bool IsConvertible(std::string_view value, USERVER_NAMESPACE::formats::parse::To<V1LikeTriggerRequest::Animation>);
+
 // Authorization scenario:
 //
 // User sends `POST /v1/user/authorization` request with this object in body. If the authorization is

@@ -762,6 +762,10 @@ std::string ToString(V1LikeTriggerRequest::Animation value) {
   throw std::runtime_error(fmt::format("Invalid enum value: {}", static_cast<int>(value)));
 }
 
+bool IsConvertible(std::string_view value, USERVER_NAMESPACE::formats::parse::To<V1LikeTriggerRequest::Animation>) {
+  return k__ns__V1LikeTriggerRequest__Animation_Mapping.TryFindBySecond(value).has_value();
+}
+
 V1UserAuthorizationRequest FromJsonString(std::string_view json,
                                           USERVER_NAMESPACE::formats::parse::To<V1UserAuthorizationRequest>) {
   return USERVER_NAMESPACE::formats::json::parser::ParseToType<
