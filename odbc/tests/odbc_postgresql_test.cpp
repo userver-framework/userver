@@ -3,22 +3,11 @@
 #include <userver/utest/utest.hpp>
 #include <userver/utils/async.hpp>
 
+#include <userver/storages/odbc/tests/utils.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::odbc::tests {
-
-constexpr auto kDSN =
-    "DRIVER={PostgreSQL Unicode};"
-    "SERVER=localhost;"
-    "PORT=15433;"
-    "DATABASE=postgres;"
-    "UID=testsuite;"
-    "PWD=password;";
-
-namespace {
-auto kHostSettings = storages::odbc::settings::HostSettings{kDSN, {}};
-auto kSettings = storages::odbc::settings::ODBCClusterSettings{{kHostSettings}};
-}  // namespace
 
 UTEST(CreateConnection, Works) { storages::odbc::Cluster cluster(kSettings); }
 
