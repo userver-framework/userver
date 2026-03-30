@@ -1,6 +1,7 @@
 #include <storages/odbc/detail/connection.hpp>
 
 #include <storages/odbc/detail/diag_wrapper.hpp>
+#include <storages/odbc/detail/tracing.hpp>
 #include <userver/storages/odbc/exception.hpp>
 
 #include <vector>
@@ -8,6 +9,7 @@
 #include <fmt/format.h>
 #include <sql.h>
 #include <sqlext.h>
+#include <userver/tracing/tags.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -98,13 +100,20 @@ Connection::Connection(const std::string& dsn)
 }
 
 ResultSet Connection::Query(std::string_view query) {
+    tracing::Span span{detail::tracing::MakeQuerySpanName(query)};
+    span.AddTag(tracing::kDatabaseType, "odbc");
+    span.AddTag(tracing::kDatabaseStatement, std::string{query});
+
     auto stmt = detail::MakeResultHandle(handle_.get());
 
     std::vector<SQLCHAR> query_buffer(query.begin(), query.end());
     query_buffer.push_back('\0');
     SQLRETURN ret = SQLExecDirect(stmt.get(), query_buffer.data(), SQL_NTS);
     if (!SQL_SUCCEEDED(ret)) {
-        throw StatementError("Failed to execute query:" + detail::GetSQLDiagString(stmt.get(), SQL_HANDLE_STMT));
+        const auto diag = detail::GetSQLDiagString(stmt.get(), SQL_HANDLE_STMT);
+        span.AddTag(tracing::kErrorFlag, true);
+        span.AddTag(tracing::kErrorMessage, diag);
+        throw StatementError("Failed to execute query:" + diag);
     }
 
     auto wrapper = std::make_shared<detail::ResultWrapper>(std::move(stmt));
