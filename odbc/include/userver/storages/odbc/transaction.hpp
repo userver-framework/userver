@@ -2,6 +2,7 @@
 
 /// @file userver/storages/odbc/transaction.hpp
 
+#include <userver/engine/deadline.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/utils/trx_tracker.hpp>
 
@@ -21,7 +22,7 @@ namespace detail {
 /// storages::odbc::Cluster
 class Transaction final {
 public:
-    explicit Transaction(detail::ConnectionPtr&& connection);
+    explicit Transaction(detail::ConnectionPtr&& connection, engine::Deadline deadline);
     ~Transaction();
     Transaction(const Transaction& other) = delete;
     Transaction(Transaction&& other) noexcept;
@@ -38,6 +39,7 @@ private:
     void AssertValid() const;
 
     detail::ConnectionPtr connection_;
+    engine::Deadline deadline_;
     tracing::Span span_;
     utils::trx_tracker::TransactionLock trx_lock_;
 };

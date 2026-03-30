@@ -2,19 +2,24 @@
 
 #include <storages/odbc/detail/connection.hpp>
 #include <storages/odbc/detail/conn_ptr.hpp>
+#include <storages/odbc/detail/deadline.hpp>
 #include <userver/storages/odbc/impl/tracing_tags.hpp>
 
+#include <userver/logging/log.hpp>
 #include <userver/tracing/span.hpp>
+#include <userver/utils/fast_scope_guard.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::odbc {
 
-Transaction::Transaction(detail::ConnectionPtr&& connection)
+Transaction::Transaction(detail::ConnectionPtr&& connection, engine::Deadline deadline)
     : connection_{std::move(connection)},
+      deadline_{deadline},
       span_{storages::odbc::impl::tracing::kTransactionSpan}
 {
-    (*connection_)->Begin();
+    detail::CheckDeadlineNotExpired(deadline_);
+    (*connection_)->Begin(deadline_);
     trx_lock_.Lock();
 }
 
@@ -31,27 +36,26 @@ Transaction::~Transaction() {
 }
 
 void Transaction::Commit() {
+    const utils::FastScopeGuard unlock_guard([this]() noexcept { trx_lock_.Unlock(); });
     AssertValid();
-    {
-        auto connection = std::move(connection_);
-        (*connection)->Commit();
-    }
-    trx_lock_.Unlock();
+    detail::CheckDeadlineNotExpired(deadline_);
+    auto connection = std::move(connection_);
+    (*connection)->Commit(deadline_);
 }
 
 void Transaction::Rollback() {
+    const utils::FastScopeGuard unlock_guard([this]() noexcept { trx_lock_.Unlock(); });
     AssertValid();
-    {
-        auto connection = std::move(connection_);
-        (*connection)->Rollback();
-    }
-    trx_lock_.Unlock();
+    detail::CheckDeadlineNotExpired(deadline_);
+    auto connection = std::move(connection_);
+    (*connection)->Rollback(deadline_);
 }
 
 ResultSet Transaction::Execute(const Query& query) const {
     AssertValid();
+    detail::CheckDeadlineNotExpired(deadline_);
     tracing::Span span{storages::odbc::impl::tracing::kExecuteSpan};
-    return (*connection_)->Query(query.GetStatementView());
+    return (*connection_)->Query(query.GetStatementView(), deadline_);
 }
 
 void Transaction::AssertValid() const {

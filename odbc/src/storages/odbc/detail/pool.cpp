@@ -45,8 +45,8 @@ Pool::Pool(std::vector<std::string> dsns, std::size_t min_pool_size, std::size_t
 
 Pool::~Pool() { Reset(); }
 
-ConnectionPtr Pool::Acquire() {
-    auto conn_wrapper = AcquireConnection({});
+ConnectionPtr Pool::Acquire(engine::Deadline deadline) {
+    auto conn_wrapper = AcquireConnection(deadline);
 
     return {std::move(conn_wrapper.pool_ptr), std::move(conn_wrapper.connection_ptr)};
 }

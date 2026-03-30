@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 #include <userver/drivers/impl/connection_pool_base.hpp>
+#include <userver/engine/deadline.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -18,7 +19,7 @@ public:
 
     ~Pool();
 
-    ConnectionPtr Acquire();
+    ConnectionPtr Acquire(engine::Deadline deadline);
 
     void Release(ConnectionUniquePtr connection);
 
