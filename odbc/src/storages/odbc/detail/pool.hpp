@@ -13,8 +13,8 @@ namespace storages::odbc::detail {
 
 class Pool final : public drivers::impl::ConnectionPoolBase<Connection, Pool> {
 public:
-    Pool(const std::string& dsn, std::size_t max_pool_size, std::size_t max_simultaneously_connecting_clients);
-    Pool(std::vector<std::string> dsns, std::size_t max_pool_size, std::size_t max_simultaneously_connecting_clients);
+    Pool(const std::string& dsn, std::size_t min_pool_size, std::size_t max_pool_size);
+    Pool(std::vector<std::string> dsns, std::size_t min_pool_size, std::size_t max_pool_size);
 
     ~Pool();
 

@@ -13,12 +13,12 @@ auto constexpr kInitTimeout = std::chrono::milliseconds{1000};
 
 }  // namespace
 
-Pool::Pool(const std::string& dsn, std::size_t max_pool_size, std::size_t max_simultaneously_connecting_clients)
-    : ConnectionPoolBase<Connection, Pool>(max_pool_size, max_simultaneously_connecting_clients),
+Pool::Pool(const std::string& dsn, std::size_t min_pool_size, std::size_t max_pool_size)
+    : ConnectionPoolBase<Connection, Pool>(max_pool_size, max_pool_size),
       dsns_({dsn})
 {
     try {
-        Init(0, kInitTimeout);
+        Init(min_pool_size, kInitTimeout);
     } catch (const Error& odbc_err) {
         Reset();
         throw;
@@ -28,12 +28,12 @@ Pool::Pool(const std::string& dsn, std::size_t max_pool_size, std::size_t max_si
     }
 }
 
-Pool::Pool(std::vector<std::string> dsns, std::size_t max_pool_size, std::size_t max_simultaneously_connecting_clients)
-    : ConnectionPoolBase<Connection, Pool>(max_pool_size, max_simultaneously_connecting_clients),
+Pool::Pool(std::vector<std::string> dsns, std::size_t min_pool_size, std::size_t max_pool_size)
+    : ConnectionPoolBase<Connection, Pool>(max_pool_size, max_pool_size),
       dsns_(std::move(dsns))
 {
     try {
-        Init(0, kInitTimeout);
+        Init(min_pool_size, kInitTimeout);
     } catch (const Error& odbc_err) {
         Reset();
         throw;

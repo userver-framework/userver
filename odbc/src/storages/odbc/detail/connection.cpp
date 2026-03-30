@@ -139,7 +139,7 @@ void Connection::Begin() {
         handle_.get(),
         SQL_ATTR_AUTOCOMMIT,
         reinterpret_cast<SQLPOINTER>(SQL_AUTOCOMMIT_OFF),
-        0
+        SQL_IS_UINTEGER
     );
 
     if (!SQL_SUCCEEDED(ret)) {

@@ -15,7 +15,7 @@ TopologyBase::TopologyBase(const settings::ODBCClusterSettings& settings) {
 
     pools_.reserve(settings.pools.size());
     for (const auto& host : settings.pools) {
-        pools_.push_back(std::make_shared<Pool>(host.dsn, host.pool.max_size, host.pool.max_size));
+        pools_.push_back(std::make_shared<Pool>(host.dsn, host.pool.min_size, host.pool.max_size));
     }
 }
 
