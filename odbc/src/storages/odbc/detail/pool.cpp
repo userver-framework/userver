@@ -15,7 +15,22 @@ auto constexpr kInitTimeout = std::chrono::milliseconds{1000};
 
 Pool::Pool(const std::string& dsn, std::size_t max_pool_size, std::size_t max_simultaneously_connecting_clients)
     : ConnectionPoolBase<Connection, Pool>(max_pool_size, max_simultaneously_connecting_clients),
-      dsn_(dsn)
+      dsns_({dsn})
+{
+    try {
+        Init(0, kInitTimeout);
+    } catch (const Error& odbc_err) {
+        Reset();
+        throw;
+    } catch (const std::exception& ex) {
+        LOG_ERROR() << "Error while initializing ODBC connection pool: " << ex;
+        throw;
+    }
+}
+
+Pool::Pool(std::vector<std::string> dsns, std::size_t max_pool_size, std::size_t max_simultaneously_connecting_clients)
+    : ConnectionPoolBase<Connection, Pool>(max_pool_size, max_simultaneously_connecting_clients),
+      dsns_(std::move(dsns))
 {
     try {
         Init(0, kInitTimeout);
@@ -44,7 +59,8 @@ Pool::ConnectionUniquePtr Pool::DoCreateConnection(engine::Deadline deadline) {
     }
 
     try {
-        return std::make_unique<Connection>(dsn_);
+        const auto idx = dsn_index_.fetch_add(1, std::memory_order_relaxed);
+        return std::make_unique<Connection>(dsns_[idx % dsns_.size()]);
     } catch (const std::exception& ex) {
         LOG_ERROR() << "Failed to create ODBC connection: " << ex;
         throw;

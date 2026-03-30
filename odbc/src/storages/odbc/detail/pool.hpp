@@ -1,8 +1,10 @@
 #pragma once
 
+#include <atomic>
 #include <storages/odbc/detail/conn_ptr.hpp>
 #include <storages/odbc/detail/connection.hpp>
 #include <string>
+#include <vector>
 #include <userver/drivers/impl/connection_pool_base.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -12,6 +14,7 @@ namespace storages::odbc::detail {
 class Pool final : public drivers::impl::ConnectionPoolBase<Connection, Pool> {
 public:
     Pool(const std::string& dsn, std::size_t max_pool_size, std::size_t max_simultaneously_connecting_clients);
+    Pool(std::vector<std::string> dsns, std::size_t max_pool_size, std::size_t max_simultaneously_connecting_clients);
 
     ~Pool();
 
@@ -30,7 +33,8 @@ private:
     void AccountConnectionDestroyed() noexcept;
     void AccountOverload() noexcept;
 
-    std::string dsn_;
+    const std::vector<std::string> dsns_;
+    mutable std::atomic<std::size_t> dsn_index_{0};
 };
 
 }  // namespace storages::odbc::detail

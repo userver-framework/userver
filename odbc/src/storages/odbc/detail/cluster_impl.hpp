@@ -11,6 +11,7 @@
 #include <userver/storages/odbc/transaction.hpp>
 
 #include <storages/odbc/detail/pool.hpp>
+#include <storages/odbc/detail/topology/topology_base.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -27,8 +28,9 @@ public:
     Transaction Begin(ClusterHostTypeFlags flags);
 
 private:
-    std::vector<std::string> dsns_;
-    std::vector<std::shared_ptr<Pool>> pools_;
+    Pool& SelectPool(ClusterHostTypeFlags flags) const;
+
+    std::unique_ptr<topology::TopologyBase> topology_;
 };
 }  // namespace storages::odbc::detail
 
