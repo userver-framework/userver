@@ -11,6 +11,7 @@
 #include <userver/storages/odbc/transaction.hpp>
 
 #include <userver/engine/deadline.hpp>
+#include <userver/utils/statistics/writer.hpp>
 
 #include <storages/odbc/detail/pool.hpp>
 #include <storages/odbc/detail/topology/topology_base.hpp>
@@ -32,6 +33,8 @@ public:
     Transaction Begin(ClusterHostTypeFlags flags);
 
     Transaction Begin(engine::Deadline deadline, ClusterHostTypeFlags flags);
+
+    void WriteStatistics(utils::statistics::Writer& writer) const;
 
 private:
     Pool& SelectPool(ClusterHostTypeFlags flags) const;

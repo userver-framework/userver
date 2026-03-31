@@ -1,10 +1,12 @@
 #pragma once
 
 #include <memory>
+#include <string>
 #include <vector>
 
 #include <userver/storages/odbc/cluster_types.hpp>
 #include <userver/storages/odbc/settings.hpp>
+#include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -21,6 +23,8 @@ public:
     static std::unique_ptr<TopologyBase> Create(const settings::ODBCClusterSettings& settings);
 
     Pool& SelectPool(ClusterHostType host_type) const;
+
+    void WriteStatistics(utils::statistics::Writer& writer) const;
 
 protected:
     explicit TopologyBase(const settings::ODBCClusterSettings& settings);

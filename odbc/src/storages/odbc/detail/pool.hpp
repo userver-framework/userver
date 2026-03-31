@@ -1,8 +1,10 @@
 #pragma once
 
 #include <atomic>
+#include <cstddef>
 #include <storages/odbc/detail/conn_ptr.hpp>
 #include <storages/odbc/detail/connection.hpp>
+#include <storages/odbc/detail/statistics.hpp>
 #include <string>
 #include <vector>
 #include <userver/drivers/impl/connection_pool_base.hpp>
@@ -23,6 +25,8 @@ public:
 
     void Release(ConnectionUniquePtr connection);
 
+    const PoolConnectionStatistics& GetConnectionStatistics() const noexcept { return stats_; }
+
 private:
     friend class drivers::impl::ConnectionPoolBase<Connection, Pool>;
 
@@ -36,6 +40,8 @@ private:
 
     const std::vector<std::string> dsns_;
     mutable std::atomic<std::size_t> dsn_index_{0};
+
+    PoolConnectionStatistics stats_{};
 };
 
 }  // namespace storages::odbc::detail

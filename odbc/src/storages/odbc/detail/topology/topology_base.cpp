@@ -43,6 +43,17 @@ Pool& TopologyBase::SelectPool(ClusterHostType host_type) const {
     UINVARIANT(false, "Unknown host type");
 }
 
+void TopologyBase::WriteStatistics(utils::statistics::Writer& writer) const {
+    if (auto connections_writer = writer["connections"]) {
+        for (std::size_t i = 0; i < pools_.size(); ++i) {
+            connections_writer.ValueWithLabels(
+                pools_[i]->GetConnectionStatistics(),
+                {{"odbc_pool", std::to_string(i)}}
+            );
+        }
+    }
+}
+
 }  // namespace storages::odbc::detail::topology
 
 USERVER_NAMESPACE_END

@@ -67,11 +67,11 @@ Pool::ConnectionUniquePtr Pool::DoCreateConnection(engine::Deadline deadline) {
     }
 }
 
-void Pool::AccountConnectionCreated() noexcept {}
-void Pool::AccountConnectionAcquired() noexcept {}
-void Pool::AccountConnectionReleased() noexcept {}
-void Pool::AccountConnectionDestroyed() noexcept {}
-void Pool::AccountOverload() noexcept {}
+void Pool::AccountConnectionCreated() noexcept { ++stats_.created; }
+void Pool::AccountConnectionAcquired() noexcept { ++stats_.acquired; }
+void Pool::AccountConnectionReleased() noexcept { ++stats_.released; }
+void Pool::AccountConnectionDestroyed() noexcept { ++stats_.closed; }
+void Pool::AccountOverload() noexcept { ++stats_.overload; }
 
 }  // namespace storages::odbc::detail
 

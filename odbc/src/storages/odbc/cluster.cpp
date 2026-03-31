@@ -30,6 +30,8 @@ Transaction Cluster::Begin(engine::Deadline deadline, ClusterHostTypeFlags flags
     return impl_->Begin(deadline, flags);
 }
 
+void Cluster::WriteStatistics(utils::statistics::Writer& writer) const { impl_->WriteStatistics(writer); }
+
 }  // namespace storages::odbc
 
 USERVER_NAMESPACE_END

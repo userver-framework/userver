@@ -7,6 +7,7 @@
 #include <userver/storages/odbc/transaction.hpp>
 
 #include <userver/engine/deadline.hpp>
+#include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -32,6 +33,8 @@ public:
     Transaction Begin(ClusterHostTypeFlags flags);
 
     Transaction Begin(engine::Deadline deadline, ClusterHostTypeFlags flags);
+
+    void WriteStatistics(utils::statistics::Writer& writer) const;
 
 private:
     detail::ClusterImplPtr impl_;

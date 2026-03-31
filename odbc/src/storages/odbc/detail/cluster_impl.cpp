@@ -60,6 +60,11 @@ Pool& ClusterImpl::SelectPool(ClusterHostTypeFlags flags) const {
     return topology_->SelectPool(ClusterHostType::kMaster);
 }
 
+void ClusterImpl::WriteStatistics(utils::statistics::Writer& writer) const {
+    UASSERT(topology_);
+    topology_->WriteStatistics(writer);
+}
+
 }  // namespace storages::odbc::detail
 
 USERVER_NAMESPACE_END
