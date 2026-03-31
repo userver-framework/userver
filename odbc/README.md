@@ -148,11 +148,57 @@ components_manager:
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
+| `secdist_alias` | string | — | Name of the database in secdist config (for secure credential storage) |
 | `dsn` | string | — | ODBC connection string (for single-pool mode) |
 | `min_pool_size` | integer | 1 | Minimum number of connections kept in the pool |
 | `max_pool_size` | integer | 10 | Maximum number of connections in the pool |
 | `dns_resolver` | string | `async` | DNS resolution mode: `async` (non-blocking) or `getaddrinfo` (blocking) |
 | `pools` | array | — | List of pool configurations (for multi-pool mode) |
+
+### Secdist Integration
+
+For secure credential storage, you can use secdist instead of putting DSN strings directly in the static config:
+
+```yaml
+components_manager:
+    components:
+        odbc:
+            secdist_alias: my_database
+            min_pool_size: 1
+            max_pool_size: 10
+            dns_resolver: async
+```
+
+The secdist JSON file should contain:
+
+```json
+{
+    "odbc_settings": {
+        "databases": {
+            "my_database": {
+                "dsn": "DRIVER={PostgreSQL Unicode};SERVER=localhost;PORT=5432;DATABASE=mydb;UID=user;PWD=secret"
+            }
+        }
+    }
+}
+```
+
+For multiple hosts (master-replica setup):
+
+```json
+{
+    "odbc_settings": {
+        "databases": {
+            "my_database": {
+                "hosts": [
+                    "DRIVER={PostgreSQL Unicode};SERVER=master.db.local;PORT=5432;DATABASE=mydb;UID=user;PWD=secret",
+                    "DRIVER={PostgreSQL Unicode};SERVER=replica.db.local;PORT=5432;DATABASE=mydb;UID=user;PWD=secret"
+                ]
+            }
+        }
+    }
+}
+```
 
 ### DNS Resolution
 

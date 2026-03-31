@@ -6,8 +6,11 @@
 #include <userver/clients/dns/resolver_utils.hpp>
 #include <userver/components/component.hpp>
 #include <userver/components/statistics_storage.hpp>
+#include <userver/storages/secdist/component.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
+
+#include "odbc_secdist.hpp"
 
 #ifndef ARCADIA_ROOT
 #include "generated/src/storages/odbc/component.yaml.hpp"  // Y_IGNORE
@@ -19,7 +22,9 @@ namespace components {
 
 namespace {
 
-storages::odbc::settings::ODBCClusterSettings MakeClusterSettings(const components::ComponentConfig& config) {
+storages::odbc::settings::ODBCClusterSettings MakeClusterSettingsFromConfig(
+    const components::ComponentConfig& config
+) {
     using storages::odbc::settings::HostSettings;
     using storages::odbc::settings::ODBCClusterSettings;
     using storages::odbc::settings::PoolSettings;
@@ -33,19 +38,60 @@ storages::odbc::settings::ODBCClusterSettings MakeClusterSettings(const componen
     }
 
     const auto pools_cfg = config["pools"];
-    UINVARIANT(!pools_cfg.IsMissing() && pools_cfg.GetSize() > 0, "Either 'dsn' or non-empty 'pools' must be set");
+    if (!pools_cfg.IsMissing() && pools_cfg.GetSize() > 0) {
+        std::vector<HostSettings> pools;
+        pools.reserve(pools_cfg.GetSize());
+        for (std::size_t i = 0; i < pools_cfg.GetSize(); ++i) {
+            const auto pool = pools_cfg[i];
+            const auto dsn = pool["dsn"].As<std::string>();
+            const auto min_size = pool["min_pool_size"].As<std::size_t>(PoolSettings{}.min_size);
+            const auto max_size = pool["max_pool_size"].As<std::size_t>(PoolSettings{}.max_size);
+            pools.emplace_back(HostSettings{dsn, PoolSettings{min_size, max_size}});
+        }
+        return ODBCClusterSettings{std::move(pools)};
+    }
+
+    return ODBCClusterSettings{};
+}
+
+storages::odbc::settings::ODBCClusterSettings MakeClusterSettingsFromSecdist(
+    const storages::odbc::secdist::OdbcSettings& odbc_settings,
+    const std::string& dbalias,
+    const components::ComponentConfig& config
+) {
+    using storages::odbc::settings::HostSettings;
+    using storages::odbc::settings::ODBCClusterSettings;
+    using storages::odbc::settings::PoolSettings;
+
+    const auto connection_infos = odbc_settings.GetConnectionInfos(dbalias);
+
+    const auto min_size = config["min_pool_size"].As<std::size_t>(PoolSettings{}.min_size);
+    const auto max_size = config["max_pool_size"].As<std::size_t>(PoolSettings{}.max_size);
 
     std::vector<HostSettings> pools;
-    pools.reserve(pools_cfg.GetSize());
-    for (std::size_t i = 0; i < pools_cfg.GetSize(); ++i) {
-        const auto pool = pools_cfg[i];
-        const auto dsn = pool["dsn"].As<std::string>();
-        const auto min_size = pool["min_pool_size"].As<std::size_t>(PoolSettings{}.min_size);
-        const auto max_size = pool["max_pool_size"].As<std::size_t>(PoolSettings{}.max_size);
-        pools.emplace_back(HostSettings{dsn, PoolSettings{min_size, max_size}});
+    pools.reserve(connection_infos.size());
+    for (const auto& info : connection_infos) {
+        pools.emplace_back(HostSettings{info.dsn, PoolSettings{min_size, max_size}});
     }
 
     return ODBCClusterSettings{std::move(pools)};
+}
+
+storages::odbc::settings::ODBCClusterSettings MakeClusterSettings(
+    const components::ComponentConfig& config,
+    const components::ComponentContext& context
+) {
+    const auto secdist_alias = config["secdist_alias"].As<std::optional<std::string>>();
+
+    if (secdist_alias.has_value()) {
+        const auto& secdist = context.FindComponent<components::Secdist>();
+        const auto& odbc_settings = secdist.Get().Get<storages::odbc::secdist::OdbcSettings>();
+        return MakeClusterSettingsFromSecdist(odbc_settings, *secdist_alias, config);
+    }
+
+    auto settings = MakeClusterSettingsFromConfig(config);
+    UINVARIANT(!settings.pools.empty(), "Either 'dsn', 'pools', or 'secdist_alias' must be set");
+    return settings;
 }
 
 }  // namespace
@@ -53,7 +99,7 @@ storages::odbc::settings::ODBCClusterSettings MakeClusterSettings(const componen
 Odbc::Odbc(const ComponentConfig& config, const ComponentContext& context)
     : ComponentBase{config, context},
       cluster_{std::make_shared<storages::odbc::Cluster>(
-          MakeClusterSettings(config),
+          MakeClusterSettings(config, context),
           clients::dns::GetResolverPtr(config, context)
       )}
 {
@@ -76,4 +122,3 @@ yaml_config::Schema Odbc::GetStaticConfigSchema() {
 }  // namespace components
 
 USERVER_NAMESPACE_END
-

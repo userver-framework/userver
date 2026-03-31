@@ -2,6 +2,11 @@ type: object
 description: ODBC client component
 additionalProperties: false
 properties:
+    secdist_alias:
+        type: string
+        description: |
+            name of the database in secdist config.
+            If specified, DSN will be read from secdist instead of static config.
     dsn:
         type: string
         description: connection DSN string (used for single-pool configuration)
