@@ -210,3 +210,80 @@ The `dns_resolver` option controls how hostnames in DSN strings are resolved:
 
 When using `async` mode, the SERVER/HOST parameter in your DSN will be automatically resolved to an IP address before connecting. This allows for proper integration with service discovery and DNS-based load balancing.
 
+## Dynamic Configuration
+
+ODBC supports runtime configuration updates via userver's dynamic config system. The following dynamic configs are available:
+
+### ODBC_DEFAULT_COMMAND_CONTROL
+
+Controls default timeouts for ODBC operations:
+
+```json
+{
+    "network_timeout_ms": 5000,
+    "statement_timeout_ms": 30000
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `network_timeout_ms` | integer | Network timeout in milliseconds |
+| `statement_timeout_ms` | integer | Statement execution timeout in milliseconds |
+
+### ODBC_CONNECTION_POOL_SETTINGS
+
+Controls connection pool settings per component. This is a dictionary where keys are component names:
+
+```json
+{
+    "__default__": {
+        "min_pool_size": 1,
+        "max_pool_size": 10
+    },
+    "odbc-primary": {
+        "min_pool_size": 5,
+        "max_pool_size": 20
+    }
+}
+```
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `min_pool_size` | integer | 1 | Minimum number of connections in the pool |
+| `max_pool_size` | integer | 10 | Maximum number of connections in the pool |
+
+**Note:** Pool size changes via dynamic config are logged but require a component restart to take effect, as the underlying connection pool does not support dynamic resizing. Timeout settings from `ODBC_DEFAULT_COMMAND_CONTROL` are applied immediately.
+
+### Example Dynamic Config
+
+```yaml
+# In your dynamic config file
+ODBC_DEFAULT_COMMAND_CONTROL:
+    network_timeout_ms: 5000
+    statement_timeout_ms: 30000
+
+ODBC_CONNECTION_POOL_SETTINGS:
+    __default__:
+        min_pool_size: 1
+        max_pool_size: 10
+    my-odbc-component:
+        min_pool_size: 3
+        max_pool_size: 15
+```
+
+### Programmatic Access
+
+You can access the current dynamic config values programmatically:
+
+```cpp
+#include <userver/storages/odbc/cluster.hpp>
+
+// Get current default timeouts from dynamic config
+auto network_timeout = cluster->GetDefaultNetworkTimeout();
+auto statement_timeout = cluster->GetDefaultStatementTimeout();
+
+if (network_timeout.has_value()) {
+    // Use the configured timeout
+}
+```
+

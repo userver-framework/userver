@@ -1,11 +1,15 @@
 #pragma once
 
+#include <atomic>
+#include <chrono>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
 #include <userver/clients/dns/resolver_fwd.hpp>
 #include <userver/engine/deadline.hpp>
+#include <userver/rcu/rcu.hpp>
 #include <userver/utils/statistics/writer.hpp>
 
 #include <userver/storages/odbc/cluster_types.hpp>
@@ -18,6 +22,10 @@
 #include <storages/odbc/detail/topology/topology_base.hpp>
 
 USERVER_NAMESPACE_BEGIN
+
+namespace storages::odbc {
+struct CommandControl;
+}
 
 namespace storages::odbc::detail {
 
@@ -37,6 +45,12 @@ public:
 
     void WriteStatistics(utils::statistics::Writer& writer) const;
 
+    void SetDefaultCommandControl(const CommandControl& cc);
+
+    std::optional<std::chrono::milliseconds> GetDefaultNetworkTimeout() const;
+
+    std::optional<std::chrono::milliseconds> GetDefaultStatementTimeout() const;
+
 private:
     Pool& SelectPool(ClusterHostTypeFlags flags) const;
 
@@ -45,6 +59,12 @@ private:
     Transaction BeginImpl(engine::Deadline effective_deadline, ClusterHostTypeFlags flags);
 
     std::unique_ptr<topology::TopologyBase> topology_;
+
+    // Dynamic config: command control (timeouts)
+    std::atomic<std::chrono::milliseconds::rep> default_network_timeout_ms_{0};
+    std::atomic<std::chrono::milliseconds::rep> default_statement_timeout_ms_{0};
+    std::atomic<bool> has_network_timeout_{false};
+    std::atomic<bool> has_statement_timeout_{false};
 };
 }  // namespace storages::odbc::detail
 

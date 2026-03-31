@@ -1,5 +1,8 @@
 #pragma once
 
+#include <chrono>
+#include <optional>
+
 #include <userver/clients/dns/resolver_fwd.hpp>
 #include <userver/engine/deadline.hpp>
 #include <userver/utils/statistics/writer.hpp>
@@ -13,6 +16,8 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::odbc {
+
+struct CommandControl;
 
 namespace detail {
 
@@ -36,6 +41,15 @@ public:
     Transaction Begin(engine::Deadline deadline, ClusterHostTypeFlags flags);
 
     void WriteStatistics(utils::statistics::Writer& writer) const;
+
+    /// @brief Set default command control (timeouts) from dynamic config
+    void SetDefaultCommandControl(const CommandControl& cc);
+
+    /// @brief Get current default network timeout
+    std::optional<std::chrono::milliseconds> GetDefaultNetworkTimeout() const;
+
+    /// @brief Get current default statement timeout
+    std::optional<std::chrono::milliseconds> GetDefaultStatementTimeout() const;
 
 private:
     detail::ClusterImplPtr impl_;

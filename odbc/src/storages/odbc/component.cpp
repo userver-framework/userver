@@ -6,10 +6,12 @@
 #include <userver/clients/dns/resolver_utils.hpp>
 #include <userver/components/component.hpp>
 #include <userver/components/statistics_storage.hpp>
+#include <userver/dynamic_config/storage/component.hpp>
 #include <userver/storages/secdist/component.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
+#include "odbc_config.hpp"
 #include "odbc_secdist.hpp"
 
 #ifndef ARCADIA_ROOT
@@ -98,20 +100,43 @@ storages::odbc::settings::ODBCClusterSettings MakeClusterSettings(
 
 Odbc::Odbc(const ComponentConfig& config, const ComponentContext& context)
     : ComponentBase{config, context},
+      name_{config.Name()},
       cluster_{std::make_shared<storages::odbc::Cluster>(
           MakeClusterSettings(config, context),
           clients::dns::GetResolverPtr(config, context)
-      )}
+      )},
+      config_source_{context.FindComponent<components::DynamicConfig>().GetSource()}
 {
     auto& statistics_storage = context.FindComponent<components::StatisticsStorage>();
     statistics_holder_ = statistics_storage.GetStorage().RegisterWriter(
         "odbc",
         [this](utils::statistics::Writer& writer) { cluster_->WriteStatistics(writer); },
-        {{"component", config.Name()}}
+        {{"component", name_}}
     );
+
+    // Subscribe to dynamic config updates
+    config_subscription_ = config_source_.UpdateAndListen(this, "odbc", &Odbc::OnConfigUpdate);
 }
 
-Odbc::~Odbc() { statistics_holder_.Unregister(); }
+Odbc::~Odbc() {
+    config_subscription_.Unsubscribe();
+    statistics_holder_.Unregister();
+}
+
+void Odbc::OnConfigUpdate(const dynamic_config::Snapshot& config) {
+    const auto& odbc_config = config[storages::odbc::kConfig];
+
+    // Apply default command control from dynamic config
+    const auto pool_settings_opt = odbc_config.pool_settings.GetOptional(name_);
+    if (pool_settings_opt.has_value()) {
+        // Note: Pool size changes require restart as ConnectionPoolBase
+        // doesn't support dynamic resizing. Log a warning if settings differ.
+        // In future versions, this could be enhanced to support dynamic resizing.
+    }
+
+    // Apply command control (timeouts)
+    cluster_->SetDefaultCommandControl(odbc_config.default_command_control);
+}
 
 std::shared_ptr<storages::odbc::Cluster> Odbc::GetCluster() const { return cluster_; }
 

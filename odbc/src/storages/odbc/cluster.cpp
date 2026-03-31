@@ -1,6 +1,7 @@
 #include <userver/storages/odbc/cluster.hpp>
 
 #include <storages/odbc/detail/cluster_impl.hpp>
+#include <storages/odbc/odbc_config.hpp>
 
 #include <userver/utils/assert.hpp>
 
@@ -31,6 +32,18 @@ Transaction Cluster::Begin(engine::Deadline deadline, ClusterHostTypeFlags flags
 }
 
 void Cluster::WriteStatistics(utils::statistics::Writer& writer) const { impl_->WriteStatistics(writer); }
+
+void Cluster::SetDefaultCommandControl(const CommandControl& cc) {
+    impl_->SetDefaultCommandControl(cc);
+}
+
+std::optional<std::chrono::milliseconds> Cluster::GetDefaultNetworkTimeout() const {
+    return impl_->GetDefaultNetworkTimeout();
+}
+
+std::optional<std::chrono::milliseconds> Cluster::GetDefaultStatementTimeout() const {
+    return impl_->GetDefaultStatementTimeout();
+}
 
 }  // namespace storages::odbc
 

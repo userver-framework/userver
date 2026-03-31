@@ -3,6 +3,7 @@
 #include <storages/odbc/detail/deadline.hpp>
 #include <storages/odbc/detail/pool.hpp>
 #include <storages/odbc/detail/topology/topology_base.hpp>
+#include <storages/odbc/odbc_config.hpp>
 #include <userver/storages/odbc/cluster_types.hpp>
 #include <userver/storages/odbc/exception.hpp>
 #include <userver/storages/odbc/impl/tracing_tags.hpp>
@@ -84,6 +85,36 @@ Pool& ClusterImpl::SelectPool(ClusterHostTypeFlags flags) const {
 void ClusterImpl::WriteStatistics(utils::statistics::Writer& writer) const {
     UASSERT(topology_);
     topology_->WriteStatistics(writer);
+}
+
+void ClusterImpl::SetDefaultCommandControl(const CommandControl& cc) {
+    if (cc.network_timeout.has_value()) {
+        default_network_timeout_ms_.store(cc.network_timeout->count(), std::memory_order_relaxed);
+        has_network_timeout_.store(true, std::memory_order_release);
+    } else {
+        has_network_timeout_.store(false, std::memory_order_release);
+    }
+
+    if (cc.statement_timeout.has_value()) {
+        default_statement_timeout_ms_.store(cc.statement_timeout->count(), std::memory_order_relaxed);
+        has_statement_timeout_.store(true, std::memory_order_release);
+    } else {
+        has_statement_timeout_.store(false, std::memory_order_release);
+    }
+}
+
+std::optional<std::chrono::milliseconds> ClusterImpl::GetDefaultNetworkTimeout() const {
+    if (has_network_timeout_.load(std::memory_order_acquire)) {
+        return std::chrono::milliseconds{default_network_timeout_ms_.load(std::memory_order_relaxed)};
+    }
+    return std::nullopt;
+}
+
+std::optional<std::chrono::milliseconds> ClusterImpl::GetDefaultStatementTimeout() const {
+    if (has_statement_timeout_.load(std::memory_order_acquire)) {
+        return std::chrono::milliseconds{default_statement_timeout_ms_.load(std::memory_order_relaxed)};
+    }
+    return std::nullopt;
 }
 
 }  // namespace storages::odbc::detail
