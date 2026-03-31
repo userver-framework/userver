@@ -18,7 +18,7 @@ namespace protobuf::json::tests {
 struct PresenceToJsonTestParam {
     PresenceMessageData input = {};
     std::string expected_json = {};
-    WriteOptions options = {};
+    PrintOptions options = {};
 };
 
 struct PresenceFromJsonTestParam {
@@ -114,7 +114,9 @@ TEST_P(PresenceToJsonTest, Test) {
     const auto& param = GetParam();
 
     auto input = PrepareTestData(param.input);
-    formats::json::Value json, expected_json, sample_json;
+    formats::json::Value json;
+    formats::json::Value expected_json;
+    formats::json::Value sample_json;
 
     UASSERT_NO_THROW((json = MessageToJson(input, param.options)));
     UASSERT_NO_THROW((expected_json = PrepareJsonTestData(param.expected_json)));
@@ -128,12 +130,14 @@ TEST_P(PresenceFromJsonTest, Test) {
     using Message = proto_json::messages::PresenceMessage;
     const auto& param = GetParam();
 
-    Message message, expected_message, sample_message;
+    Message message;
+    Message expected_message;
+    Message sample_message;
     formats::json::Value input = PrepareJsonTestData(param.input);
     expected_message = PrepareTestData(param.expected_message);
 
     UASSERT_NO_THROW((message = JsonToMessage<Message>(input)));
-    UASSERT_NO_THROW(InitSampleMessage(param.input, {}, sample_message));
+    UASSERT_NO_THROW(InitSampleMessage(param.input, sample_message));
 
     CheckMessageEqual(message, sample_message);
     CheckMessageEqual(message, expected_message);

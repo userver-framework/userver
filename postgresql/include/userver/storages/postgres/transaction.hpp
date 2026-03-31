@@ -155,6 +155,24 @@ public:
     static constexpr TransactionOptions Deferrable{  // NOLINT(readability-identifier-naming)
         TransactionOptions::Deferrable()
     };
+    /// Read-write repeatable read transaction
+    static constexpr TransactionOptions RepeatableReadRW{  // NOLINT(readability-identifier-naming)
+        storages::postgres::IsolationLevel::kRepeatableRead
+    };
+    /// Read-write serializable transaction
+    static constexpr TransactionOptions SerializableRW{  // NOLINT(readability-identifier-naming)
+        storages::postgres::IsolationLevel::kSerializable
+    };
+    /// Read-only repeatable read transaction
+    static constexpr TransactionOptions RepeatableReadRO{  // NOLINT(readability-identifier-naming)
+        storages::postgres::IsolationLevel::kRepeatableRead,
+        TransactionOptions::kReadOnly
+    };
+    /// Read-only serializable transaction
+    static constexpr TransactionOptions SerializableRO{  // NOLINT(readability-identifier-naming)
+        storages::postgres::IsolationLevel::kSerializable,
+        TransactionOptions::kReadOnly
+    };
     // clang-format on
     //@}
 

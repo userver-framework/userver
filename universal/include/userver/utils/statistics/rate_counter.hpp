@@ -13,10 +13,12 @@ namespace utils::statistics {
 
 class Writer;
 
+/// @ingroup userver_universal
+///
 /// @brief Atomic counter of type Rate with relaxed memory ordering
 ///
 /// This class is represented as Rate metric when serializing to statistics.
-/// Otherwise it is the same class as RelaxedCounter
+/// Otherwise it is the same class as @ref utils::statistics::RelaxedCounter.
 class RateCounter final {
 public:
     using ValueType = Rate;
@@ -57,22 +59,15 @@ public:
         val_.store(val_.load(std::memory_order_relaxed) + arg.value, std::memory_order_relaxed);
     }
 
-    RateCounter& operator++() noexcept {
-        val_.fetch_add(1, std::memory_order_relaxed);
-        return *this;
-    }
+    Rate operator++() noexcept { return Rate{val_.fetch_add(1, std::memory_order_relaxed) + 1}; }
 
     Rate operator++(int) noexcept { return Rate{val_.fetch_add(1, std::memory_order_relaxed)}; }
 
-    RateCounter& operator+=(Rate arg) noexcept {
-        val_.fetch_add(arg.value, std::memory_order_relaxed);
-        return *this;
+    Rate operator+=(Rate arg) noexcept {
+        return Rate{val_.fetch_add(arg.value, std::memory_order_relaxed) + arg.value};
     }
 
-    RateCounter& operator+=(const RateCounter& arg) noexcept {
-        *this += arg.Load();
-        return *this;
-    }
+    Rate operator+=(const RateCounter& arg) noexcept { return *this += arg.Load(); }
 
 private:
     static_assert(std::atomic<Rate::ValueType>::is_always_lock_free);

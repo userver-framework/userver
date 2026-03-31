@@ -41,7 +41,9 @@ jobs:
                     os: ubuntu-24.04
                     info: clang-18 + debug + sanitize addr+ub
                     id: ubuntu24_clang18_debug_sanitize-addr-ub
-                    tests-flags: ''
+                    # Sanitizer consumes too much virtual memory and Subprocess tests fail with:
+                    # "Error while fork: Cannot allocate memory" (std::system_error)
+                    tests-flags: '--gtest_filter=-Subprocess.*'
                     tests-env: ''
 
                   - cmake-flags: >-
@@ -233,7 +235,6 @@ jobs:
                 du -h -d 1 ${{env.CPM_SOURCE_CACHE}}
                 ccache -s -v
 
-
           - name: Run tests (universal)
             run: |
                 echo "UBSAN_OPTIONS=${UBSAN_OPTIONS} ASAN_OPTIONS=${ASAN_OPTIONS}"
@@ -295,7 +296,6 @@ jobs:
                 # Mongo is not available on Ubuntu 22.04 from default repos
                 if [ "${{matrix.os}}" != "ubuntu-22.04" ]; then ctest -V -R userver-mongo-mongotest ; fi
 
-
           - name: Run tests (gRPC)
             if: matrix.os != 'ubuntu-24.04'
             run: |
@@ -320,6 +320,6 @@ jobs:
                 ctest -V
 
           - name: Run tests (sqlite)
-            run: |
+            run: |-
                 cd build_debug/sqlite
                 ctest -V

@@ -151,8 +151,6 @@ private:
     rcu::Variable<PoolSettings> settings_;
     rcu::Variable<ConnectionSettings> conn_settings_;
     engine::TaskProcessor& bg_task_processor_;
-    concurrent::BackgroundTaskStorageCore connect_task_storage_;
-    concurrent::BackgroundTaskStorageCore close_task_storage_;
     USERVER_NAMESPACE::utils::PeriodicTask ping_task_;
     std::shared_ptr<ConnectionQueue> queue_;
     ConnectionQueue::MultiConsumer conn_consumer_;
@@ -174,6 +172,23 @@ private:
     cc::Limiter cc_limiter_;
     congestion_control::v2::LinearController cc_controller_;
     std::atomic<std::size_t> cc_max_connections_{0};
+
+    // The order of destruction of the following BTS fields is important.
+    // `close_task_storage_` holds tasks closing underlying PG connections. See @ref
+    // PGConnectionWrapper::~PGConnectionWrapper(). Tasks in the other two BTSes may keep connections that will produce
+    // close tasks offloaded to this BTS. So, this BTS should outlive the others.
+    //
+    // `cleanup_task_storage_` holds @ref CleanupConnection() tasks.
+    // Tasks in `connect_task_storage_` may produce new connections that have to be released later.
+    // And @ref Release() may result in a new task offloaded to `cleanup_task_storage_` BTS.
+    // So, this BTS should outlive the last one.
+    //
+    // `connect_task_storage_` holds the task responsible for opening new connections if open connecions number
+    // falls below the minimum.
+    // It should be destroyed first to prevent new connections opening and offloading of new tasks to the other BTSes.
+    concurrent::BackgroundTaskStorageCore close_task_storage_;
+    concurrent::BackgroundTaskStorageCore cleanup_task_storage_;
+    concurrent::BackgroundTaskStorageCore connect_task_storage_;
 };
 
 }  // namespace storages::postgres::detail

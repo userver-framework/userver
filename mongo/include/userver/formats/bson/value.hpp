@@ -139,8 +139,10 @@ public:
     bool IsDocument() const;
     bool IsNull() const;
     bool IsBool() const;
+    bool IsInt() const;
     bool IsInt32() const;
     bool IsInt64() const;
+    bool IsUInt64() const;
     bool IsDouble() const;
     bool IsString() const;
     bool IsDateTime() const;

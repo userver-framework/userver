@@ -70,10 +70,6 @@ public:
     std::optional<std::string_view> GetSpanIdForChildLogs() const;
 
 private:
-    void LogOpenTracing() const;
-    void DoLogOpenTracing(const Tracer& tracer, logging::impl::TagWriter writer) const;
-    static void AddOpentracingTags(formats::json::StringBuilder& output, const logging::LogExtra& input);
-
     static std::string_view GetParentIdForLogging(const Span::Impl* parent);
     bool ShouldLog() const;
 

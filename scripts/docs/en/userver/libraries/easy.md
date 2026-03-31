@@ -73,12 +73,14 @@ As you may noticed from a previous example, passing arguments in an URL may not 
 request is complex. In this example, let's change the previous service to accept JSON request and answers with JSON, and
 force the keys to be integers.
 
-If the function for a path accepts formats::json::Value the easy library attempts to automatically parse the request
-as JSON. If the function returns formats::json::Value, then the content type is automatically set to `application/json`:
+If the function for a path accepts formats::json::Value or a JSON parseable structure the easy library attempts to
+automatically parse the request
+as JSON. If the function returns formats::json::Value or a JSON parseable structure, then the content type is
+automatically set to `application/json`:
 
 @include libraries/easy/samples/3_json/main.cpp
 
-Note the `request_json.As<schemas::KeyRequest>()` usage. This example uses @ref scripts/docs/en/userver/chaotic.md
+Note the `schemas::KeyRequest` usage. This example uses @ref scripts/docs/en/userver/chaotic.md
 to generate the parsers and serializers via `CMakeLists.txt`:
 
 @include libraries/easy/samples/3_json/CMakeLists.txt
@@ -149,7 +151,7 @@ and the binary will output the database schema to `STDOUT`. You can also provide
 `./your_prototype --dump-db-schema pg_service_template_based_service/postgresql/schemas/db_1.sql`.
 
 Another option is to take the schema from easy::HttpWith::DbSchema(). In any case, do not forget to remove the
-DbSchema call and do not forget to remove schema from source code. 
+DbSchema call and do not forget to remove schema from source code.
 
 If there's any `pgsql_local` customizations in testsuite tests, then remove `db_dump_schema_path` fixture usage
 and use the default version of the fixture from the service template. Note the `postgresql/data` directory in the
@@ -168,7 +170,7 @@ As a result you should get something close to the following:
 * @ref libraries/easy/samples/5_pg_service_template/configs/static_config.yaml
 * @ref libraries/easy/samples/5_pg_service_template/postgresql/schemas/db_1.sql
 
-After that, if you fell that easy::HttpWith gets in the way then you can remove it while still using 
+After that, if you fell that easy::HttpWith gets in the way then you can remove it while still using
 easy::Dependencies. For example the following code with easy::HttpWith:
 
 @snippet libraries/easy/samples/5_pg_service_template/src/main.cpp  main

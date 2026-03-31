@@ -2,12 +2,12 @@
 
 /// [Websocket service sample - component]
 #include <userver/components/minimal_server_component_list.hpp>
-#include <userver/server/websocket/websocket_handler.hpp>
+#include <userver/server/handlers/websocket_handler.hpp>
 #include <userver/utils/daemon_run.hpp>
 
 namespace samples::websocket {
 
-class WebsocketsHandler final : public server::websocket::WebsocketHandlerBase {
+class WebsocketsHandler final : public server::handlers::WebsocketHandlerBase {
 public:
     // `kName` is used as the component name in static config
     static constexpr std::string_view kName = "websocket-handler";
@@ -15,8 +15,8 @@ public:
     // Component is valid after construction and is able to accept requests
     using WebsocketHandlerBase::WebsocketHandlerBase;
 
-    void Handle(server::websocket::WebSocketConnection& chat, server::request::RequestContext&) const override {
-        server::websocket::Message message;
+    void Handle(::websocket::WebSocketConnection& chat, server::request::RequestContext&) const override {
+        ::websocket::Message message;
         while (!engine::current_task::ShouldCancel()) {
             chat.Recv(message);  // throws on closed/dropped connection
             if (message.close_status) {

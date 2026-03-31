@@ -121,6 +121,7 @@ def render(spec: types.ClientSpec, context: Context) -> list[CppOutput]:
         vfilepath_to_relfilepath=vfilepath_map,
         clang_format_bin=context.clang_format_bin,
         generate_serializer=True,
+        generate_sax_parser=True,
     )
     cpp_outputs = r.render(
         spec.extract_cpp_types(),

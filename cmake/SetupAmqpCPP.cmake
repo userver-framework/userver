@@ -1,3 +1,4 @@
+# @ingroup download
 option(USERVER_DOWNLOAD_PACKAGE_AMQPCPP "Download and setup amqp-cpp" ${USERVER_DOWNLOAD_PACKAGES})
 
 if(NOT USERVER_FORCE_DOWNLOAD_PACKAGES)

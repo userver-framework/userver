@@ -7,6 +7,7 @@
 #include <string_view>
 #include <vector>
 
+#include <engine/io/tests/net_listener.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/get_all.hpp>
 #include <userver/engine/io/exception.hpp>
@@ -14,7 +15,6 @@
 #include <userver/engine/io/tls_wrapper.hpp>
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/sleep.hpp>
-#include <userver/internal/net/net_listener.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/async.hpp>
 
@@ -24,7 +24,7 @@ namespace {
 
 namespace io = engine::io;
 using Deadline = engine::Deadline;
-using TcpListener = internal::net::TcpListener;
+using TcpListener = engine::io::tests::TcpListener;
 
 // Certificates for testing were generated via the following command:
 // openssl req -x509 -sha256 -nodes -newkey rsa:2048

@@ -14,12 +14,18 @@
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wc99-extensions"
 #pragma clang diagnostic ignored "-Wdeprecated-volatile"
+#elif defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
+#pragma GCC diagnostic ignored "-Wvolatile"
 #endif
 
 #include <rseq/rseq.h>
 
 #ifdef __clang__
 #pragma clang diagnostic pop
+#elif defined(__GNUC__)
+#pragma GCC diagnostic pop
 #endif
 
 #include <userver/compiler/impl/constexpr.hpp>

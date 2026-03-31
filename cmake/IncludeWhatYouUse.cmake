@@ -1,3 +1,4 @@
+# @ingroup compilation
 option(IWYU_ENABLED "Check with include-what-you-use" OFF)
 
 if(IWYU_ENABLED)

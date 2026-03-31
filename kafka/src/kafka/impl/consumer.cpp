@@ -1,6 +1,8 @@
 #include <userver/kafka/impl/consumer.hpp>
 
+#include <map>
 #include <string_view>
+#include <vector>
 
 #include <userver/engine/sleep.hpp>
 #include <userver/formats/json/value_builder.hpp>
@@ -129,8 +131,34 @@ void Consumer::RunConsuming(ConsumerScope::Callback callback) {
             consumer_->AccountMessageBatchProcessingSucceeded(polled_messages);
             TESTPOINT(fmt::format("tp_{}", name_), {});
         } catch (const std::exception& e) {
+            LOG_ERROR("Messages processing failed in consumer into client callback: {}", e.what());
             consumer_->AccountMessageBatchProcessingFailed(polled_messages);
-            throw;
+
+            // Seek back to the start of the failed batch so the same messages
+            // are redelivered on the next poll (no consumer recreation).
+            // Seek with numeric offset is local-only in librdkafka: it sets
+            // next_fetch_position; no broker request until the next Fetch (poll).
+            using Key = std::pair<utils::zstring_view, std::uint32_t>;
+            std::map<Key, std::uint64_t> min_offset_by_partition;
+            for (const auto& msg : polled_messages) {
+                Key key{msg.GetTopic(), static_cast<std::uint32_t>(msg.GetPartition())};
+                const auto offset = static_cast<std::uint64_t>(msg.GetOffset());
+                auto it = min_offset_by_partition.find(key);
+                if (it == min_offset_by_partition.end()) {
+                    min_offset_by_partition[key] = offset;
+                } else {
+                    it->second = std::min(it->second, offset);
+                }
+            }
+            std::vector<SeekParams> seek_params;
+            seek_params.reserve(min_offset_by_partition.size());
+            for (const auto& [key, offset] : min_offset_by_partition) {
+                seek_params.push_back({key.first, key.second, offset});
+            }
+            constexpr auto kSeekAfterFailureTimeout = std::chrono::seconds(20);
+            MultiSeek(seek_params, kSeekAfterFailureTimeout);
+            LOG_WARNING("Sought back to reprocess failed batch");
+            CallErrorTestpoint(fmt::format("tp_error_{}", name_), e.what());
         }
     }
 }
@@ -212,45 +240,43 @@ void Consumer::Seek(
 ) const {
     UINVARIANT(processing_.load(), "Message processing is not currently started");
 
-    return utils::Async(
-               consumer_blocking_task_processor_,
-               "consumer_seek",
-               [this, topic, partition_id, offset, timeout] {
-                   ExtendCurrentSpan();
+    utils::Async(consumer_blocking_task_processor_, "consumer_seek", [this, topic, partition_id, offset, timeout] {
+        ExtendCurrentSpan();
 
-                   return consumer_->Seek(topic, partition_id, offset, timeout);
-               }
-    ).Get();
+        consumer_->Seek(topic, partition_id, offset, timeout);
+    }).Get();
+}
+
+void Consumer::MultiSeek(utils::span<const SeekParams> params, std::chrono::milliseconds timeout) const {
+    UINVARIANT(processing_.load(), "Message processing is not currently started");
+
+    utils::Async(consumer_blocking_task_processor_, "consumer_multi_seek", [this, params, timeout] {
+        ExtendCurrentSpan();
+
+        consumer_->MultiSeek(params, timeout);
+    }).Get();
 }
 
 void Consumer::SeekToBeginning(utils::zstring_view topic, std::uint32_t partition_id, std::chrono::milliseconds timeout)
     const {
     UINVARIANT(processing_.load(), "Message processing is not currently started");
 
-    return utils::Async(
-               consumer_blocking_task_processor_,
-               "consumer_seek_to_beginning",
-               [this, topic, partition_id, timeout] {
-                   ExtendCurrentSpan();
+    utils::Async(consumer_blocking_task_processor_, "consumer_seek_to_beginning", [this, topic, partition_id, timeout] {
+        ExtendCurrentSpan();
 
-                   return consumer_->SeekToBeginning(topic, partition_id, timeout);
-               }
-    ).Get();
+        consumer_->SeekToBeginning(topic, partition_id, timeout);
+    }).Get();
 }
 
 void Consumer::SeekToEnd(utils::zstring_view topic, std::uint32_t partition_id, std::chrono::milliseconds timeout)
     const {
     UINVARIANT(processing_.load(), "Message processing is not currently started");
 
-    return utils::Async(
-               consumer_blocking_task_processor_,
-               "consumer_seek_to_end",
-               [this, topic, partition_id, timeout] {
-                   ExtendCurrentSpan();
+    utils::Async(consumer_blocking_task_processor_, "consumer_seek_to_end", [this, topic, partition_id, timeout] {
+        ExtendCurrentSpan();
 
-                   return consumer_->SeekToEnd(topic, partition_id, timeout);
-               }
-    ).Get();
+        consumer_->SeekToEnd(topic, partition_id, timeout);
+    }).Get();
 }
 
 void Consumer::SetRebalanceCallback(ConsumerRebalanceCallback rebalance_callback) {

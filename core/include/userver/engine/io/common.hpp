@@ -23,16 +23,33 @@ inline constexpr int kInvalidFd = -1;
 
 /// @ingroup userver_base_classes
 ///
-/// Interface for readable streams
-class ReadableBase {
+/// Base class for readable stream waiting
+class ReadAwaiter {
 public:
-    virtual ~ReadableBase();
-
-    /// Whether the stream is valid.
-    virtual bool IsValid() const = 0;
+    virtual ~ReadAwaiter();
 
     /// Suspends current task until the stream has data available.
     [[nodiscard]] virtual bool WaitReadable(Deadline) = 0;
+
+    /// For internal use only
+    impl::ContextAccessor* TryGetContextAccessor() { return ca_; }
+
+protected:
+    void SetReadableContextAccessor(impl::ContextAccessor* ca) { ca_ = ca; }
+
+private:
+    impl::ContextAccessor* ca_{nullptr};
+};
+
+/// @ingroup userver_base_classes
+///
+/// Interface for readable streams
+class ReadableBase : public ReadAwaiter {
+public:
+    ~ReadableBase() override;
+
+    /// Whether the stream is valid.
+    virtual bool IsValid() const = 0;
 
     /// Receives up to len (including zero) bytes from the stream.
     /// @returns filled-in optional on data presence (e.g. 0, 1, 2... bytes)
@@ -50,12 +67,23 @@ public:
     /// Receives exactly len bytes from the stream.
     /// @note Can return less than len if stream is closed by peer.
     [[nodiscard]] virtual size_t ReadAll(void* buf, size_t len, Deadline deadline) = 0;
+};
+
+/// @ingroup userver_base_classes
+///
+/// Base class for writable stream waiting
+class WriteAwaiter {
+public:
+    virtual ~WriteAwaiter();
+
+    /// Suspends current task until the data is available.
+    [[nodiscard]] virtual bool WaitWriteable(Deadline deadline) = 0;
 
     /// For internal use only
     impl::ContextAccessor* TryGetContextAccessor() { return ca_; }
 
 protected:
-    void SetReadableContextAccessor(impl::ContextAccessor* ca) { ca_ = ca; }
+    void SetWritableContextAccessor(impl::ContextAccessor* ca) { ca_ = ca; }
 
 private:
     impl::ContextAccessor* ca_{nullptr};
@@ -70,12 +98,9 @@ struct IoData final {
 /// @ingroup userver_base_classes
 ///
 /// Interface for writable streams
-class WritableBase {
+class WritableBase : public WriteAwaiter {
 public:
-    virtual ~WritableBase();
-
-    /// Suspends current task until the data is available.
-    [[nodiscard]] virtual bool WaitWriteable(Deadline deadline) = 0;
+    ~WritableBase() override;
 
     /// @brief Sends exactly len bytes of buf.
     /// @note Can return less than len if stream is closed by peer.
@@ -88,15 +113,6 @@ public:
         }
         return result;
     }
-
-    /// For internal use only
-    impl::ContextAccessor* TryGetContextAccessor() { return ca_; }
-
-protected:
-    void SetWritableContextAccessor(impl::ContextAccessor* ca) { ca_ = ca; }
-
-private:
-    impl::ContextAccessor* ca_{nullptr};
 };
 
 /// @ingroup userver_base_classes

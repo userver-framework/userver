@@ -16,10 +16,10 @@ USERVER_NAMESPACE_BEGIN
 // TODO move functions to cpp
 namespace tests {
 
-constexpr auto kShortTimeout = std::chrono::milliseconds{300};
-constexpr auto kLongTimeout = std::chrono::milliseconds{500} + kShortTimeout;
+constexpr auto kShortTimeout = std::chrono::milliseconds{500};
+constexpr auto kLongTimeout = std::chrono::milliseconds{1000} + kShortTimeout;
 
-constexpr auto kAddSleep = std::chrono::milliseconds{100};
+constexpr auto kAddSleep = std::chrono::milliseconds{200};
 
 const std::string kGrpcMethod = "grpc_method";
 

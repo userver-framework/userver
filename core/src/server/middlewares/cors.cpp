@@ -160,7 +160,7 @@ Cors::Config Parse(const yaml_config::YamlConfig& value, formats::parse::To<Cors
 
 CorsFactory::CorsFactory(const components::ComponentConfig& config, const components::ComponentContext& context)
     : HttpMiddlewareFactoryBase{config, context},
-      global_config_{(const yaml_config::YamlConfig&)config}  // Explicit slicing
+      global_config_{static_cast<const yaml_config::YamlConfig&>(config)}  // Explicit slicing
 {}
 
 std::unique_ptr<HttpMiddlewareBase> CorsFactory::Create(

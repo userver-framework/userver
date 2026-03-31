@@ -141,7 +141,6 @@ private:
         impl::HeadersHolder&& headers_holder
     ) const;
 
-private:
     const std::string name_;
     engine::TaskProcessor& producer_task_processor_;
 

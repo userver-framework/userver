@@ -154,7 +154,7 @@ UTEST_F(LogServiceTest, SmokeLogs) {
         std::chrono::nanoseconds>(std::chrono::system_clock::now().time_since_epoch());
     LOG_INFO() << "log";
 
-    while (GetService1().logs.size() < 1) {
+    while (GetService1().logs.empty()) {
         engine::SleepFor(std::chrono::milliseconds(10));
     }
 
@@ -177,7 +177,7 @@ UTEST_F(LogServiceTest, SmokeTrace) {
     const auto timestamp2 = std::chrono::duration_cast<
         std::chrono::nanoseconds>(std::chrono::system_clock::now().time_since_epoch());
 
-    while (GetService2().spans.size() < 1) {
+    while (GetService2().spans.empty()) {
         engine::SleepFor(std::chrono::milliseconds(10));
     }
 
@@ -246,7 +246,7 @@ UTEST_F(LogServiceTest, SpanEvent) {
         std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now().time_since_epoch())
             .count();
 
-    while (GetService2().spans.size() < 1) {
+    while (GetService2().spans.empty()) {
         engine::SleepFor(std::chrono::milliseconds(10));
     }
 

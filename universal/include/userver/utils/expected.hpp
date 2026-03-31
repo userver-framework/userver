@@ -7,6 +7,8 @@
 #include <string>
 #include <variant>
 
+#include <userver/compiler/impl/lifetime.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace utils {
@@ -39,8 +41,8 @@ public:
     template <class U, class... Args>
     unexpected(std::initializer_list<U> il, Args&&... args);
 
-    E& error() noexcept;
-    const E& error() const noexcept;
+    E& error() noexcept USERVER_IMPL_LIFETIME_BOUND;
+    const E& error() const noexcept USERVER_IMPL_LIFETIME_BOUND;
 
 private:
     E value_;
@@ -76,21 +78,21 @@ public:
     /// @brief Return reference to the value or throws bad_expected_access
     /// if it's not available
     /// @throws utils::bad_expected_access if *this contain an unexpected value
-    S& value() &;
+    S& value() & USERVER_IMPL_LIFETIME_BOUND;
 
     /// @overload
-    S&& value() &&;
+    S&& value() && USERVER_IMPL_LIFETIME_BOUND;
 
     /// @overload
-    const S& value() const&;
+    const S& value() const& USERVER_IMPL_LIFETIME_BOUND;
 
     /// @brief Return reference to the error value or throws bad_expected_access
     /// if it's not available
     /// @throws utils::bad_expected_access if success value is not available
-    E& error();
+    E& error() USERVER_IMPL_LIFETIME_BOUND;
 
     /// @overload
-    const E& error() const;
+    const E& error() const USERVER_IMPL_LIFETIME_BOUND;
 
 private:
     std::variant<S, unexpected<E>> data_;
@@ -113,8 +115,8 @@ public:
     explicit operator bool() const noexcept;
     void value() const;
 
-    E& error();
-    const E& error() const;
+    E& error() USERVER_IMPL_LIFETIME_BOUND;
+    const E& error() const USERVER_IMPL_LIFETIME_BOUND;
 
 private:
     std::variant<std::monostate, unexpected<E>> data_;
@@ -143,12 +145,12 @@ unexpected<E>::unexpected(std::initializer_list<U> il, Args&&... args)
 {}
 
 template <class E>
-E& unexpected<E>::error() noexcept {
+E& unexpected<E>::error() noexcept USERVER_IMPL_LIFETIME_BOUND {
     return value_;
 }
 
 template <class E>
-const E& unexpected<E>::error() const noexcept {
+const E& unexpected<E>::error() const noexcept USERVER_IMPL_LIFETIME_BOUND {
     return value_;
 }
 
@@ -200,7 +202,7 @@ expected<S, E>::operator bool() const noexcept {
 }
 
 template <class S, class E>
-S& expected<S, E>::value() & {
+    S& expected<S, E>::value() & USERVER_IMPL_LIFETIME_BOUND {
     S* result = std::get_if<S>(&data_);
     if (result == nullptr) {
         throw bad_expected_access("Trying to get undefined value from utils::expected");
@@ -209,12 +211,12 @@ S& expected<S, E>::value() & {
 }
 
 template <class S, class E>
-S&& expected<S, E>::value() && {
+    S&& expected<S, E>::value() && USERVER_IMPL_LIFETIME_BOUND {
     return std::move(value());
 }
 
 template <class S, class E>
-const S& expected<S, E>::value() const& {
+const S& expected<S, E>::value() const& USERVER_IMPL_LIFETIME_BOUND {
     const S* result = std::get_if<S>(&data_);
     if (result == nullptr) {
         throw bad_expected_access("Trying to get undefined value from utils::expected");
@@ -223,7 +225,7 @@ const S& expected<S, E>::value() const& {
 }
 
 template <class S, class E>
-E& expected<S, E>::error() {
+E& expected<S, E>::error() USERVER_IMPL_LIFETIME_BOUND {
     auto* result = std::get_if<unexpected<E>>(&data_);
     if (result == nullptr) {
         throw bad_expected_access("Trying to get undefined error value from utils::expected");
@@ -232,7 +234,7 @@ E& expected<S, E>::error() {
 }
 
 template <class S, class E>
-const E& expected<S, E>::error() const {
+const E& expected<S, E>::error() const USERVER_IMPL_LIFETIME_BOUND {
     const auto* result = std::get_if<unexpected<E>>(&data_);
     if (result == nullptr) {
         throw bad_expected_access("Trying to get undefined error value from utils::expected");
@@ -283,7 +285,7 @@ void expected<void, E>::value() const {
 }
 
 template <class E>
-E& expected<void, E>::error() {
+E& expected<void, E>::error() USERVER_IMPL_LIFETIME_BOUND {
     auto* result = std::get_if<unexpected<E>>(&data_);
     if (result == nullptr) {
         throw bad_expected_access("Trying to get undefined error value from utils::expected");
@@ -292,7 +294,7 @@ E& expected<void, E>::error() {
 }
 
 template <class E>
-const E& expected<void, E>::error() const {
+const E& expected<void, E>::error() const USERVER_IMPL_LIFETIME_BOUND {
     const auto* result = std::get_if<unexpected<E>>(&data_);
     if (result == nullptr) {
         throw bad_expected_access("Trying to get undefined error value from utils::expected");

@@ -619,4 +619,31 @@ TYPED_UTEST(YdbExecuteTpl, CursorThrow) {
     UASSERT_THROW(cursor.GetFirstRow(), ydb::EmptyResponseError);
 }
 
+TYPED_UTEST(YdbExecuteTpl, GetSingleRowThrowEmptyResponseError) {
+    this->CreateTable("test_table", false);
+    const ydb::Query query{R"(
+        SELECT *
+        FROM test_table
+        WHERE FALSE;
+    )"};
+
+    auto response = this->Execute(query);
+    auto cursor = response.GetSingleCursor();
+    ASSERT_EQ(cursor.size(), 0);
+    UASSERT_THROW(std::move(cursor).GetSingleRow(), ydb::EmptyResponseError);
+}
+
+TYPED_UTEST(YdbExecuteTpl, GetSingleRowThrowIgnoreResultsError) {
+    this->CreateTable("test_table", true);
+    const ydb::Query query{R"(
+        SELECT *
+        FROM test_table;
+    )"};
+
+    auto response = this->Execute(query);
+    auto cursor = response.GetSingleCursor();
+    ASSERT_GT(cursor.size(), 1);
+    UASSERT_THROW(std::move(cursor).GetSingleRow(), ydb::IgnoreResultsError);
+}
+
 USERVER_NAMESPACE_END

@@ -1,4 +1,4 @@
-import grpc
+import grpc.aio
 import pytest
 
 import samples.greeter_pb2 as greeter_protos
@@ -16,12 +16,12 @@ import samples.greeter_pb2_grpc as greeter_services
 async def test_no_proxy_target_by_file(
     service_client,
     grpc_mockserver,
-    taxi_config,
+    dynamic_config,
     grpc_mockserver_endpoint,
     cfg_enabled,
     no_proxy_target,
 ):
-    taxi_config.set_values({
+    dynamic_config.set_values({
         'EGRESS_GRPC_PROXY_ENABLED': cfg_enabled,
         'EGRESS_NO_PROXY_TARGETS': {
             'targets': [grpc_mockserver_endpoint] if no_proxy_target else [],
@@ -30,7 +30,7 @@ async def test_no_proxy_target_by_file(
     await service_client.update_server_state()
 
     @grpc_mockserver(greeter_services.GreeterServiceServicer.SayHello)
-    async def mock_say_hello(request, context: grpc.aio.ServicerContext):
+    async def mock_say_hello(request: greeter_protos.GreetingRequest, context: grpc.aio.ServicerContext):
         return greeter_protos.GreetingResponse()
 
     await service_client.run_task('call-say-hello')

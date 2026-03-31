@@ -44,7 +44,6 @@ components_manager:
             http-timeout: 20s
             service-name: testsuite-support
 
-
         http-client:
         http-client-core:
             fs-task-processor: fs-task-processor
@@ -78,13 +77,13 @@ components_manager:
             method: GET,POST,PUT,DELETE
             task_processor: main-task-processor
             throttling_enabled: false
-            max_request_size: 2097152 #  2Mib
+            max_request_size: 2097152  #  2Mib
 
         handler-http2-stream:
             path: /http2server-stream
             method: GET,POST,PUT,DELETE
             task_processor: main-task-processor
             throttling_enabled: false
-            max_request_size: 2097152 #  2Mib
+            max_request_size: 2097152  #  2Mib
             response-body-stream: true
 

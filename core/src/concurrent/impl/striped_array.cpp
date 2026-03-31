@@ -71,7 +71,7 @@ StripedArrayNode& AcquireStripedArrayNode() {
 
 void ReleaseStripedArrayNode(StripedArrayNode& node) noexcept {
     static_assert(noexcept(striped_array_storage.Push(node)));
-    return striped_array_storage.Push(node);
+    striped_array_storage.Push(node);
 }
 
 }  // namespace

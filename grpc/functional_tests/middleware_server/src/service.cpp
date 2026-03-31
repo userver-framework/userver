@@ -2,18 +2,38 @@
 
 #include <fmt/format.h>
 
+#include <userver/components/component_context.hpp>
+#include <userver/congestion_control/component.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/sleep.hpp>
+#include <userver/utils/assert.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
 #include <userver/ugrpc/server/service_component_base.hpp>
 
 namespace functional_tests {
 
+namespace {
+
+void EnsureCongestionControlEnbled(const congestion_control::Controller& congestion_control_controller) {
+    UINVARIANT(congestion_control_controller.IsEnabled(), "CongestionControl Controller should be enabled");
+}
+
+}  // namespace
+
+GreeterServiceComponent::GreeterServiceComponent(
+    const components::ComponentConfig& config,
+    const components::ComponentContext& context
+)
+    : samples::api::GreeterServiceBase::Component(config, context),
+      congestion_control_controller_{context.FindComponent<congestion_control::Component>().GetServerController()}
+{}
+
 GreeterServiceComponent::SayHelloResult GreeterServiceComponent::SayHello(
     CallContext& /*context*/,
     samples::api::GreetingRequest&& request
 ) {
+    EnsureCongestionControlEnbled(congestion_control_controller_);
     samples::api::GreetingResponse response;
     response.set_greeting(fmt::format("Hello, {}!", request.name()));
     return response;
@@ -24,6 +44,7 @@ GreeterServiceComponent::SayHelloResponseStreamResult GreeterServiceComponent::S
     samples::api::GreetingRequest&& request,
     SayHelloResponseStreamWriter& writer
 ) {
+    EnsureCongestionControlEnbled(congestion_control_controller_);
     std::string message = fmt::format("{}, {}", "Hello", request.name());
     constexpr auto kCountSend = 5;
     constexpr std::chrono::milliseconds kTimeInterval{200};
@@ -41,6 +62,7 @@ GreeterServiceComponent::SayHelloRequestStreamResult GreeterServiceComponent::Sa
     CallContext& /*context*/,
     SayHelloRequestStreamReader& reader
 ) {
+    EnsureCongestionControlEnbled(congestion_control_controller_);
     std::string income_message;
     samples::api::GreetingRequest request;
     while (reader.Read(request)) {
@@ -55,6 +77,7 @@ GreeterServiceComponent::SayHelloStreamsResult GreeterServiceComponent::SayHello
     CallContext& /*context*/,
     SayHelloStreamsReaderWriter& stream
 ) {
+    EnsureCongestionControlEnbled(congestion_control_controller_);
     constexpr std::chrono::milliseconds kTimeInterval{200};
     std::string income_message;
     samples::api::GreetingRequest request;

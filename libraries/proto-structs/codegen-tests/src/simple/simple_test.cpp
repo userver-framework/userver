@@ -1,14 +1,17 @@
 #include <type_traits>
+#include <unordered_map>
+#include <vector>
 
 #include <gtest/gtest.h>
 
+#include <userver/formats/json/value_builder.hpp>
+#include <userver/formats/parse/common_containers.hpp>
+#include <userver/formats/serialize/common_containers.hpp>
 #include <userver/proto-structs/convert.hpp>
 #include <userver/proto-structs/type_mapping.hpp>
 
 #include <simple/base/base.pb.h>
 #include <simple/base/base.structs.usrv.pb.hpp>
-
-#include <google/protobuf/any.h>
 
 namespace ss = simple::base::structs;
 
@@ -124,6 +127,11 @@ TEST(Oneof, WellKnownTypes) {
     const std::chrono::hours hours{20};
     const std::chrono::minutes minutes{10};
     const std::string string_value{"swag"};
+    const formats::json::Value json_bool = formats::json::ValueBuilder{true}.ExtractValue();
+    const formats::json::Array json_array{formats::json::ValueBuilder{std::vector<double>{-1.5, 1.5}}.ExtractValue()};
+    const formats::json::Object json_object{
+        formats::json::ValueBuilder(std::unordered_map<std::string, std::string>{{"a", "1"}, {"b", "2"}}).ExtractValue()
+    };
 
     ss::WellKnownUsrv message;
 
@@ -136,9 +144,12 @@ TEST(Oneof, WellKnownTypes) {
     proto_structs::traits::CompatibleMessageType<ss::ForAny> for_any;
     for_any.set_f1(string_value);
 
-    EXPECT_TRUE(pbuf_any.PackFrom(for_any));
+    ASSERT_TRUE(pbuf_any.PackFrom(for_any));
 
     message.f5 = proto_structs::Any{pbuf_any};
+    message.f6 = json_bool;
+    message.f7 = json_array;
+    message.f8 = json_object;
 
     const auto vanilla = proto_structs::StructToMessage(std::move(message));
 
@@ -168,6 +179,10 @@ TEST(Oneof, WellKnownTypes) {
 
     const auto parsed_any = parsed.f5.Unpack<ss::ForAny>();
     ASSERT_EQ(parsed_any.f1, string_value);
+
+    ASSERT_EQ(parsed.f6, json_bool);
+    ASSERT_EQ(parsed.f7, json_array);
+    ASSERT_EQ(parsed.f8, json_object);
 }
 
 USERVER_NAMESPACE_END

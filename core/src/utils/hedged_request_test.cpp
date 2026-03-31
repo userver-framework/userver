@@ -98,6 +98,7 @@ public:
         return attempt_program[request.attempt].process_reply_result;
     }
 
+    // NOLINTNEXTLINE(readability-make-member-function-const)
     std::optional<ReplyType> ExtractReply() { return reply; }
 
     void Finish(RequestType&& request) {

@@ -4,6 +4,7 @@
 #include <chrono>
 #include <string>
 
+#include <engine/io/tests/net_listener.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/condition_variable.hpp>
 #include <userver/engine/io/sockaddr.hpp>
@@ -12,7 +13,6 @@
 #include <userver/engine/run_standalone.hpp>
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/sleep.hpp>
-#include <userver/internal/net/net_listener.hpp>
 #include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -28,7 +28,7 @@ constexpr auto kDeadlineMaxTime = std::chrono::seconds{60};
 void SocketSendAll(benchmark::State& state) {
     engine::RunStandalone([&]() {
         const auto test_deadline = Deadline::FromDuration(kDeadlineMaxTime);
-        internal::net::TcpListener listener;
+        engine::io::tests::TcpListener listener;
         auto [server, client] = listener.MakeSocketPair(test_deadline);
         std::atomic<bool> reading{true};
         auto task_reader = engine::AsyncNoSpan(
@@ -54,7 +54,7 @@ BENCHMARK(SocketSendAll);
 void SocketSendAllV(benchmark::State& state) {
     engine::RunStandalone([&]() {
         const auto test_deadline = Deadline::FromDuration(kDeadlineMaxTime);
-        internal::net::TcpListener listener;
+        engine::io::tests::TcpListener listener;
         auto [server, client] = listener.MakeSocketPair(test_deadline);
         std::atomic<bool> reading{true};
         auto task_reader = engine::AsyncNoSpan(
@@ -78,7 +78,7 @@ BENCHMARK(SocketSendAllV);
 [[maybe_unused]] void SocketSendAllVRange(benchmark::State& state) {
     engine::RunStandalone(2, [&]() {
         const auto test_deadline = Deadline::FromDuration(kDeadlineMaxTime);
-        internal::net::TcpListener listener;
+        engine::io::tests::TcpListener listener;
         const auto send_buff = std::string(state.range(0), 'a');
         const auto size_buff = fmt::format("\r\n{:x}\r\n", send_buff.size());
         auto [server, client] = listener.MakeSocketPair(test_deadline);
@@ -109,7 +109,7 @@ BENCHMARK(SocketSendAllV);
 [[maybe_unused]] void SocketSendAllRange(benchmark::State& state) {
     engine::RunStandalone(2, [&]() {
         const auto test_deadline = Deadline::FromDuration(kDeadlineMaxTime);
-        internal::net::TcpListener listener;
+        engine::io::tests::TcpListener listener;
         const auto send_buff = std::string(state.range(0), 'a');
         const auto size_buff = fmt::format("\r\n{:x}\r\n", send_buff.size());
         auto [server, client] = listener.MakeSocketPair(test_deadline);

@@ -152,6 +152,7 @@ Request CreateMockRequestTimeout() {
 
 template <ScanTag TScanTag>
 ScanRequest<TScanTag> CreateMockRequestScan(const std::vector<typename ScanReplyElem<TScanTag>::type>& reply_data) {
+    // NOLINTNEXTLINE(google-readability-casting)
     return ScanRequest<TScanTag>(std::make_unique<impl::MockRequestScanData<TScanTag>>(reply_data));
 }
 

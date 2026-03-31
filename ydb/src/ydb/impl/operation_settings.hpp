@@ -2,7 +2,9 @@
 
 #include <chrono>
 
+#include <ydb-cpp-sdk/client/query/query.h>
 #include <ydb-cpp-sdk/client/retry/retry.h>
+#include <ydb-cpp-sdk/client/table/table.h>
 #include <ydb-cpp-sdk/client/types/request_settings.h>
 
 #include <userver/engine/deadline.hpp>
@@ -13,6 +15,8 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace ydb::impl {
+
+constexpr double kOperationTimeoutMultiplier = 0.8;
 
 std::chrono::milliseconds GetBoundTimeout(std::chrono::milliseconds timeout, engine::Deadline deadline);
 
@@ -35,15 +39,11 @@ void ApplyToRequestSettings(
     const OperationSettings& settings,
     engine::Deadline deadline
 ) {
-    result.OperationTimeout(GetBoundTimeout(settings.operation_timeout_ms, deadline));
+    auto timeout = GetBoundTimeout(settings.client_timeout_ms, deadline);
 
-    if (settings.cancel_after_ms > std::chrono::milliseconds::zero()) {
-        result.CancelAfter(settings.cancel_after_ms);
-    }
-
-    if (settings.client_timeout_ms > std::chrono::milliseconds::zero()) {
-        result.ClientTimeout(settings.client_timeout_ms);
-    }
+    result.ClientTimeout(timeout);
+    result.OperationTimeout(timeout * kOperationTimeoutMultiplier);
+    result.CancelAfter(timeout * kOperationTimeoutMultiplier);
 
     if (!settings.trace_id.empty()) {
         result.TraceId(impl::ToString(settings.trace_id));

@@ -37,7 +37,7 @@ class ContextTimer::Impl final : public TimerArmer<Impl>, public Finalizer<Impl>
 public:
     struct Params {
         Action action{};
-        SleepState::Epoch sleep_epoch{};
+        Epoch sleep_epoch{};
         Deadline deadline{};
     };
 
@@ -205,23 +205,21 @@ void ContextTimer::StartCancel(
     ev::TimerThreadControl& thread_control,
     Deadline deadline
 ) {
-    impl_->Start(std::move(context), thread_control, {Action::kCancel, SleepState::Epoch{}, deadline});
+    impl_->Start(std::move(context), thread_control, {Action::kCancel, Epoch{}, deadline});
 }
 
 void ContextTimer::StartWakeup(
     boost::intrusive_ptr<TaskContext> context,
     ev::TimerThreadControl& thread_control,
     Deadline deadline,
-    SleepState::Epoch sleep_epoch
+    Epoch sleep_epoch
 ) {
     impl_->Start(std::move(context), thread_control, {Action::kWakeupByEpoch, sleep_epoch, deadline});
 }
 
-void ContextTimer::RestartCancel(Deadline deadline) {
-    impl_->Restart({Action::kCancel, SleepState::Epoch{}, deadline});
-}
+void ContextTimer::RestartCancel(Deadline deadline) { impl_->Restart({Action::kCancel, Epoch{}, deadline}); }
 
-void ContextTimer::RestartWakeup(Deadline deadline, SleepState::Epoch sleep_epoch) {
+void ContextTimer::RestartWakeup(Deadline deadline, Epoch sleep_epoch) {
     impl_->Restart({Action::kWakeupByEpoch, sleep_epoch, deadline});
 }
 

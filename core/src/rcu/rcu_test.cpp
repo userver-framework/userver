@@ -424,6 +424,7 @@ UTEST_MT(Rcu, TortureTest, kTotalTasks) {
     rcu::ReadablePtr<CleaningUpInt> ptr = data.Read();
 
     std::vector<engine::TaskWithResult<void>> tasks;
+    tasks.reserve(kTotalTasks - 1);
 
     for (std::size_t i = 0; i < kReadablePtrPingPongTasks; ++i) {
         tasks.push_back(engine::AsyncNoSpan([&] {

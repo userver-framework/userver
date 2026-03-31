@@ -21,8 +21,7 @@ properties:
             Default: update_interval / 10
     updates-enabled:
         type: boolean
-        description: if false, cache updates are disabled (except for the first one
-            if !first-update-fail-ok)
+        description: if false, cache updates are disabled (except for the first one if !first-update-fail-ok)
         default: true
     full-update-interval:
         type: string
@@ -52,8 +51,8 @@ properties:
         default: true
     additional-cleanup-interval:
         type: string
-        description: how often to run background RCU garbage collector
-        default: 10 seconds
+        description: how often to run background RCU garbage collector, in milliseconds
+        default: 10000
     is-strong-period:
         type: boolean
         description: whether to include Update execution time in update-interval

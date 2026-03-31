@@ -171,7 +171,7 @@ typename Parser::ResultType ParseSingle(Parser& parser, std::string_view input) 
     parser.Subscribe(sink);
 
     ParserState state;
-    state.PushParser(parser);
+    state.PushParser(parser.GetParser());
     state.ProcessInput(input);
 
     return result;

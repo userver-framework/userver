@@ -8,6 +8,8 @@
 #include <stdexcept>
 #include <utility>
 
+#include <userver/compiler/impl/lifetime.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace utils {
@@ -25,7 +27,7 @@ public:
 
     /// @brief Returns the stored value or rethrows the stored exception
     /// @throws std::logic_error if no value/exception stored
-    const T& Get() const&;
+    const T& Get() const& USERVER_IMPL_LIFETIME_BOUND;
 
     /// Stores a value
     void SetValue(const T&);
@@ -35,6 +37,9 @@ public:
 
     /// Stores an exception
     void SetException(std::exception_ptr&&) noexcept;
+
+    // Returns the stored exception if present
+    std::exception_ptr GetException() const noexcept;
 
 private:
     // variant here would require a specialization for exception_ptr
@@ -60,6 +65,9 @@ public:
     /// Stores an exception
     void SetException(std::exception_ptr&&) noexcept;
 
+    // Returns the stored exception if present
+    std::exception_ptr GetException() const noexcept;
+
 private:
     bool has_value_{false};
     std::exception_ptr exception_;
@@ -77,7 +85,7 @@ T ResultStore<T>::Retrieve() {
 }
 
 template <typename T>
-const T& ResultStore<T>::Get() const& {
+const T& ResultStore<T>::Get() const& USERVER_IMPL_LIFETIME_BOUND {
     if (value_) {
         return *value_;
     }
@@ -102,6 +110,11 @@ void ResultStore<T>::SetException(std::exception_ptr&& exception) noexcept {
     exception_ = std::move(exception);
 }
 
+template <typename T>
+std::exception_ptr ResultStore<T>::GetException() const noexcept {
+    return exception_;
+}
+
 // NOLINTNEXTLINE(readability-make-member-function-const)
 inline void ResultStore<void>::Retrieve() { Get(); }
 
@@ -120,6 +133,8 @@ inline void ResultStore<void>::SetValue() noexcept { has_value_ = true; }
 inline void ResultStore<void>::SetException(std::exception_ptr&& exception) noexcept {
     exception_ = std::move(exception);
 }
+
+inline std::exception_ptr ResultStore<void>::GetException() const noexcept { return exception_; }
 
 }  // namespace utils
 

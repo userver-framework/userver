@@ -20,8 +20,10 @@
 #include <type_traits>
 #include <utility>
 
+#include <userver/proto-structs/exceptions.hpp>
 #include <userver/proto-structs/io/context.hpp>
 #include <userver/proto-structs/type_mapping.hpp>
+#include <userver/protobuf/string.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -91,6 +93,47 @@ requires traits::ProtoStruct<std::remove_cvref_t<TStruct>>
     Message msg;
     StructToMessage(std::forward<TStruct>(obj), msg);
     return msg;
+}
+
+/// @brief Converts binary data @a binary_data to proto struct @a obj.
+/// @tparam TStruct proto struct type
+/// @throws ReadError if conversion has failed.
+template <typename TStruct>
+requires traits::ProtoStruct<std::remove_cvref_t<TStruct>>
+void BinaryToStruct(std::string_view binary_data, TStruct& obj) {
+    using Message = traits::CompatibleMessageType<std::remove_cvref_t<TStruct>>;
+    Message msg;
+    if (!msg.ParseFromString(binary_data)) {
+        throw ReadError("", "parsing protobuf message from binary data failed");
+    }
+    MessageToStruct(msg, obj);
+}
+
+/// @brief Converts binary data @a binary_data to specified proto struct type.
+/// @tparam TStruct proto struct type
+/// @throws ReadError if conversion has failed.
+template <typename TStruct>
+requires traits::ProtoStruct<std::remove_cvref_t<TStruct>>
+[[nodiscard]] TStruct BinaryToStruct(std::string_view binary_data) {
+    TStruct obj;
+    BinaryToStruct(binary_data, obj);
+    return obj;
+}
+
+/// @brief Converts proto struct @a obj to it's compatible binary data.
+/// @tparam TStruct proto struct type
+/// @throws WriteError if conversion has failed.
+template <typename TStruct>
+requires traits::ProtoStruct<std::remove_cvref_t<TStruct>>
+[[nodiscard]] std::string StructToBinary(TStruct&& obj) {
+    using Message = traits::CompatibleMessageType<std::remove_cvref_t<TStruct>>;
+    Message msg;
+    StructToMessage(std::forward<TStruct>(obj), msg);
+    protobuf::ProtoStringType binary_data;
+    if (!msg.SerializeToString(&binary_data)) {
+        throw WriteError("", "serializing protobuf message to binary data failed");
+    };
+    return binary_data;
 }
 
 }  // namespace proto_structs

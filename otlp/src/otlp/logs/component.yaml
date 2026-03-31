@@ -29,7 +29,7 @@ properties:
             work and we will look for it with name given in this
             parameter.
             You need to set that component propertly, e.g. disable
-            middlwares (otherwise it will be an infinite loop of client
+            middlewares (otherwise it will be an infinite loop of client
             producing logs that go into otlp logger and back to client
             and that causes even more logs).
 

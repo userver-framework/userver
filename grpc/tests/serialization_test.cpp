@@ -6,7 +6,7 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace {
-constexpr std::string_view kEmpty = R"()";
+constexpr std::string_view kEmpty{};
 constexpr std::string_view kInt = R"(12)";
 constexpr std::string_view kDouble = R"(12.123)";
 constexpr std::string_view kBool = R"(false)";
@@ -132,7 +132,7 @@ struct Param {
     formats::json::Value to_cast;
 };
 
-const std::vector<Param> TestParams() {
+std::vector<Param> TestParams() {
     return {
         Param("empty", kEmpty),
         Param("int", kInt),
@@ -162,7 +162,7 @@ const std::vector<Param> TestParams() {
 class SerializationTest : public testing::TestWithParam<Param> {};
 
 TEST_P(SerializationTest, JsonTest) {
-    auto param = GetParam();
+    const auto& param = GetParam();
 
     auto proto_struct = formats::parse::Parse(param.to_cast, formats::parse::To<google::protobuf::Value>{});
     auto result = formats::serialize::Serialize(proto_struct, formats::serialize::To<formats::json::Value>{});

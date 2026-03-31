@@ -16,12 +16,12 @@ userver_module(
     DEPENDS core
     GENERATE_DYNAMIC_CONFIGS
     EMBED_FILES src/storages/redis/component.yaml
+    EMBED_FILES src/storages/redis/dynamic_component.yaml
 )
 
 # for libev
 set_source_files_properties(
     ${CMAKE_CURRENT_SOURCE_DIR}/src/storages/redis/impl/redis.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/storages/redis/impl/sentinel_impl.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/storages/redis/impl/subscription_rebalance_scheduler.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/storages/redis/impl/ev_thread/thread.cpp
     PROPERTIES COMPILE_FLAGS -fno-strict-aliasing

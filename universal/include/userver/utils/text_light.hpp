@@ -19,6 +19,9 @@ std::string Trim(const std::string& str);
 /// Trim string in-place.
 std::string Trim(std::string&& str);
 
+/// Return trimmed view of a string.
+std::string_view TrimView(std::string_view str);
+
 enum class SplitFlags {
     kNone = 0,
     kCompressAdjacentSeparators = 1 << 0,

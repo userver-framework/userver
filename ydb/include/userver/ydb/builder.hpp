@@ -18,8 +18,14 @@ class Transaction;
 
 class PreparedArgsBuilder final {
 public:
+    PreparedArgsBuilder() = default;
+
     PreparedArgsBuilder(PreparedArgsBuilder&&) noexcept = default;
     PreparedArgsBuilder& operator=(PreparedArgsBuilder&&) = delete;
+
+    explicit PreparedArgsBuilder(NYdb::TParamsBuilder&& builder)
+        : builder_(std::move(builder))
+    {}
 
     /// Supported types and required includes are documented in:
     /// <userver/ydb/io/supported_types.hpp>
@@ -27,11 +33,6 @@ public:
     void Add(const std::string& name, T&& value);
 
     /// @cond
-    // For internal use only.
-    explicit PreparedArgsBuilder(NYdb::TParamsBuilder&& builder)
-        : builder_(std::move(builder))
-    {}
-
     // For internal use only.
     template <typename... NamesValues>
     void AddParams(NamesValues&&... names_values);

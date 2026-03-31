@@ -69,7 +69,7 @@ private:
         kStart,
         kInside,
     };
-    State state_;
+    State state_{State::kStart};
     std::string key_;
     Map result_;
     ValueParser& value_parser_;

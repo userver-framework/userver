@@ -133,6 +133,8 @@ void ParserState::ProcessInput(std::string_view sw) {
     }
 }
 
+std::string ParserState::GetCurrentPath() const { return impl_->GetPath(); }
+
 BaseParser& ParserState::GetTopParser() const {
     UASSERT(!impl_->stack.empty());
     return *impl_->stack.back().parser;

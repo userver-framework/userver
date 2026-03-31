@@ -9,7 +9,6 @@
 
 #include <middlewares/impl/middlewares_graph.hpp>
 #include <userver/middlewares/groups.hpp>
-#include <userver/middlewares/pipeline.hpp>
 #include <userver/middlewares/runner.hpp>
 
 #ifndef ARCADIA_ROOT
@@ -91,10 +90,10 @@ std::vector<std::string> MiddlewarePipeline::GetPerServiceMiddlewares(const impl
 AnyMiddlewarePipelineComponent::AnyMiddlewarePipelineComponent(
     const components::ComponentConfig& config,
     const components::ComponentContext& context,
-    impl::BuiltInConfig&& base_config
+    impl::BuiltInConfig&& builtin_config
 )
     : components::ComponentBase(config, context),
-      pipeline_(MakeDependencies(config, context, std::move(base_config)))
+      pipeline_(MakeDependencies(config, context, std::move(builtin_config)))
 {}
 
 const impl::MiddlewarePipeline& AnyMiddlewarePipelineComponent::GetPipeline() const { return pipeline_; }

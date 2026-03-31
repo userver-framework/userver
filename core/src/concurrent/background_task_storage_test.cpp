@@ -2,13 +2,13 @@
 
 #include <atomic>
 
+#include <engine/tests/task_processor_utils.hpp>
 #include <userver/concurrent/background_task_storage.hpp>
 #include <userver/concurrent/background_task_storage_fwd.hpp>
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/engine/task/cancel.hpp>
 #include <userver/engine/task/inherited_variable.hpp>
-#include <userver/engine/task/task_processor_utils.hpp>
 #include <userver/utils/lazy_prvalue.hpp>
 
 using namespace std::chrono_literals;
@@ -222,7 +222,7 @@ UTEST(BackgroundTaskStorage, NoTaskInheritedVariables) {
 }
 
 TEST(BackgroundTaskStorage, CustomTaskProcessor) {
-    engine::TwoStandaloneTaskProcessors tp;
+    engine::tests::TwoStandaloneTaskProcessors tp;
     tp.RunBlocking([&] {
         engine::SingleConsumerEvent finished;
         concurrent::BackgroundTaskStorage bts(tp.GetSecondary());
@@ -237,7 +237,7 @@ TEST(BackgroundTaskStorage, CustomTaskProcessor) {
 }
 
 TEST(BackgroundTaskStorage, StrongTaskProcessorBinding) {
-    engine::TwoStandaloneTaskProcessors tp;
+    engine::tests::TwoStandaloneTaskProcessors tp;
     tp.RunBlocking([&] {
         engine::SingleConsumerEvent finished;
         concurrent::BackgroundTaskStorage bts;

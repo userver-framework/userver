@@ -21,6 +21,7 @@ struct ManagerConfig {
     engine::coro::PoolConfig coro_pool;
     engine::ev::ThreadPoolConfig event_thread_pool;
     std::vector<components::ComponentConfig> components;
+    std::string boot_log_path;
     std::vector<engine::TaskProcessorConfig> task_processors;
     std::string default_task_processor;
     std::string fs_task_processor;

@@ -20,8 +20,7 @@ properties:
         properties:
             pipeline-builder:
                 type: string
-                description: name of a component to build a middleware pipeline for
-                    this particular handler
+                description: name of a component to build a middleware pipeline for this particular handler
                 default: default-handler-middleware-pipeline-builder
         additionalProperties:
             type: object

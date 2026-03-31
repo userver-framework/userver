@@ -23,6 +23,11 @@ void RewriteFileContents(engine::TaskProcessor& async_tp, const std::string& pat
     engine::AsyncNoSpan(async_tp, &fs::blocking::RewriteFileContents, path, contents).Get();
 }
 
+void RewriteFileContents(const std::string& path, std::string_view contents)
+{
+    RewriteFileContents(engine::current_task::GetBlockingTaskProcessor(), path, contents);
+}
+
 void SyncDirectoryContents(engine::TaskProcessor& async_tp, const std::string& path) {
     engine::AsyncNoSpan(async_tp, &fs::blocking::SyncDirectoryContents, path).Get();
 }

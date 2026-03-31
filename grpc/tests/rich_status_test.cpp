@@ -24,7 +24,9 @@ void CheckCommonFields(
 }  // namespace
 
 UTEST(RichStatus, DefaultConstructor) {
-    ugrpc::RichStatus status;
+    /// [rich_status_default_constructor]
+    ugrpc::RichStatus status;  // Creates OK status
+    /// [rich_status_default_constructor]
 
     const auto google_status = std::move(status).GetGoogleStatus();
 
@@ -34,26 +36,28 @@ UTEST(RichStatus, DefaultConstructor) {
 }
 
 UTEST(RichStatus, FromGrpcStatus) {
-    const auto code = grpc::StatusCode::NOT_FOUND;
-    const auto message = "not found";
-
-    grpc::Status grpc_status{code, message};
+    /// [rich_status_from_grpc_status]
+    grpc::Status grpc_status{grpc::StatusCode::NOT_FOUND, "Resource not found"};
     ugrpc::RichStatus status{grpc_status};
+    /// [rich_status_from_grpc_status]
 
     const auto google_status = std::move(status).GetGoogleStatus();
 
-    CheckCommonFields(google_status, code, message, 0);
+    CheckCommonFields(google_status, grpc::StatusCode::NOT_FOUND, "Resource not found", 0);
 }
 
 UTEST(RichStatus, ConstructorWithMessage) {
-    const auto code = grpc::StatusCode::INVALID_ARGUMENT;
-    const auto message = "invalid argument provided";
-
-    ugrpc::RichStatus status{code, message};
+    /// [rich_status_constructor_with_details]
+    ugrpc::RichStatus status{
+        grpc::StatusCode::INVALID_ARGUMENT,
+        "Invalid request",
+        ugrpc::BadRequest{{{"field", "error description"}}}
+    };
+    /// [rich_status_constructor_with_details]
 
     const auto google_status = std::move(status).GetGoogleStatus();
 
-    CheckCommonFields(google_status, code, message, 0);
+    CheckCommonFields(google_status, grpc::StatusCode::INVALID_ARGUMENT, "Invalid request", 1);
 }
 
 UTEST(RichStatus, ToGrpcStatus) {
@@ -420,15 +424,16 @@ UTEST(RichStatus, MultipleDetails) {
 }
 
 UTEST(RichStatus, AddDetailChaining) {
-    const auto code = grpc::StatusCode::OUT_OF_RANGE;
-    const auto message = "value out of range";
-
-    ugrpc::RichStatus status{code, message};
-    status.AddDetail(ugrpc::RetryInfo{std::chrono::seconds{1}}).AddDetail(ugrpc::DebugInfo{{"line1"}, "detail"});
+    /// [rich_status_add_detail_chaining]
+    auto status =
+        ugrpc::RichStatus(grpc::StatusCode::OUT_OF_RANGE, "value out of range")
+            .AddDetail(ugrpc::RetryInfo{std::chrono::seconds{1}})
+            .AddDetail(ugrpc::DebugInfo{{"line1"}, "detail"});
+    /// [rich_status_add_detail_chaining]
 
     const auto google_status = std::move(status).GetGoogleStatus();
 
-    CheckCommonFields(google_status, code, message, 2);
+    CheckCommonFields(google_status, grpc::StatusCode::OUT_OF_RANGE, "value out of range", 2);
 
     google::rpc::RetryInfo unpacked_retry;
     EXPECT_TRUE(google_status.details(0).UnpackTo(&unpacked_retry));

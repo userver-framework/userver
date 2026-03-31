@@ -6,6 +6,7 @@
 #include <userver/engine/io/sockaddr.hpp>
 #include <userver/engine/io/socket.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
+#include <userver/tracing/span.hpp>
 
 #ifdef __clang__
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
@@ -79,6 +80,7 @@ USERVER_IMPL_DISABLE_MSAN CancelPacket MakeCancelPacket(const PGcancel& cn) noex
 }  // namespace
 
 USERVER_IMPL_DISABLE_MSAN void Cancel(PGcancel* cn, engine::Deadline deadline) {
+    tracing::Span span{"pg_cancel"};
     if (!cn) {
         return;
     }

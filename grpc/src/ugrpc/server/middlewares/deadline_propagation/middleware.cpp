@@ -84,10 +84,11 @@ void Middleware::OnCallStart(MiddlewareCallContext& context) const {
             context.GetStorageContext()
         ))
     {
-        return context.SetError(grpc::Status{
+        context.SetError(grpc::Status{
             grpc::StatusCode::DEADLINE_EXCEEDED,
             "Deadline propagation: Not enough time to handle this call"
         });
+        return;
     }
 }
 
@@ -119,10 +120,11 @@ void Middleware::PreSendStatus(MiddlewareCallContext& context, grpc::Status& sta
             ugrpc::ToString(status.error_code()),
             status.error_message()
         );
-        return context.SetError(grpc::Status{
+        context.SetError(grpc::Status{
             grpc::StatusCode::DEADLINE_EXCEEDED,
             "Deadline specified by the client for this RPC was exceeded"
         });
+        return;
     }
 }
 

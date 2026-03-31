@@ -16,6 +16,11 @@ namespace middlewares::groups {
 /// @ingroup userver_middlewares_groups
 ///
 /// @brief The first group in the pipeline.
+///
+/// @details There are:
+///
+/// gRPC-server:
+/// * @ref ugrpc::client::middlewares::graceful_shutdown_headers::Component
 struct PreCore final {
     static constexpr std::string_view kName = "pre-core";
     static inline const auto kDependency = middlewares::MiddlewareDependencyBuilder();

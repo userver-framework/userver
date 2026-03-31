@@ -20,17 +20,18 @@ USERVER_NAMESPACE_BEGIN
 // Test is not ready to TSan non-migrating scheduler
 #if !USERVER_IMPL_HAS_TSAN
 namespace {
-constexpr size_t kNumThreads = 2;
+constexpr std::size_t kNumThreads = 2;
 }  // namespace
 
 UTEST_MT(Errno, IsCoroLocal, kNumThreads) {
-    size_t threads_started{0};
-    size_t threads_switched{0};
+    const auto deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
+
+    std::size_t threads_started{0};
+    std::size_t threads_switched{0};
     std::mutex mutex;
     std::condition_variable cv;
     std::vector<engine::TaskWithResult<bool>> tasks;
-
-    auto deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
+    tasks.reserve(kNumThreads);
 
     for (size_t i = 0; i < kNumThreads; ++i) {
         tasks.push_back(engine::AsyncNoSpan([&] {

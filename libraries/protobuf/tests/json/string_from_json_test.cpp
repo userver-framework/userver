@@ -17,14 +17,14 @@ namespace protobuf::json::tests {
 struct StringFromJsonSuccessTestParam {
     std::string input = {};
     StringMessageData expected_message = {};
-    ReadOptions options = {};
+    ParseOptions options = {};
 };
 
 struct StringFromJsonFailureTestParam {
     std::string input = {};
-    ReadErrorCode expected_errc = {};
+    ParseErrorCode expected_errc = {};
     std::string expected_path = {};
-    ReadOptions options = {};
+    ParseOptions options = {};
 };
 
 void PrintTo(const StringFromJsonSuccessTestParam& param, std::ostream* os) {
@@ -53,24 +53,26 @@ INSTANTIATE_TEST_SUITE_P(
     ,
     StringFromJsonFailureTest,
     ::testing::Values(
-        StringFromJsonFailureTestParam{R"({"field1":[]})", ReadErrorCode::kInvalidType, "field1"},
-        StringFromJsonFailureTestParam{R"({"field1":{}})", ReadErrorCode::kInvalidType, "field1"},
-        StringFromJsonFailureTestParam{R"({"field1":true})", ReadErrorCode::kInvalidType, "field1"},
-        StringFromJsonFailureTestParam{R"({"field1":10})", ReadErrorCode::kInvalidType, "field1"}
+        StringFromJsonFailureTestParam{R"({"field1":[]})", ParseErrorCode::kInvalidType, "field1"},
+        StringFromJsonFailureTestParam{R"({"field1":{}})", ParseErrorCode::kInvalidType, "field1"},
+        StringFromJsonFailureTestParam{R"({"field1":true})", ParseErrorCode::kInvalidType, "field1"},
+        StringFromJsonFailureTestParam{R"({"field1":10})", ParseErrorCode::kInvalidType, "field1"}
     )
 );
 
 TEST_P(StringFromJsonSuccessTest, Test) {
     const auto& param = GetParam();
 
-    proto_json::messages::StringMessage message, expected_message, sample_message;
+    proto_json::messages::StringMessage message;
+    proto_json::messages::StringMessage expected_message;
+    proto_json::messages::StringMessage sample_message;
     formats::json::Value input = PrepareJsonTestData(param.input);
     expected_message = PrepareTestData(param.expected_message);
 
     message.set_field1("dump");
 
     UASSERT_NO_THROW((message = JsonToMessage<proto_json::messages::StringMessage>(input, param.options)));
-    UASSERT_NO_THROW(InitSampleMessage(param.input, param.options, sample_message));
+    UASSERT_NO_THROW(InitSampleMessage(param.input, sample_message, param.options));
 
     CheckMessageEqual(message, sample_message);
     CheckMessageEqual(message, expected_message);
@@ -82,12 +84,12 @@ TEST_P(StringFromJsonFailureTest, Test) {
     proto_json::messages::StringMessage sample_message;
     formats::json::Value input = PrepareJsonTestData(param.input);
 
-    EXPECT_READ_ERROR(
+    EXPECT_PARSE_ERROR(
         (void)JsonToMessage<proto_json::messages::StringMessage>(input, param.options),
         param.expected_errc,
         param.expected_path
     );
-    UEXPECT_THROW(InitSampleMessage(param.input, param.options, sample_message), SampleError);
+    UEXPECT_THROW(InitSampleMessage(param.input, sample_message, param.options), SampleError);
 }
 
 }  // namespace protobuf::json::tests

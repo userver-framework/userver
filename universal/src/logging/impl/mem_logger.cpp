@@ -46,15 +46,15 @@ size_t MemLogger::GetPendingLogsCount() {
     return pimpl_->data.size();
 }
 
-void MemLogger::Log(Level level, formatters::LoggerItemRef msg) {
-    UASSERT(dynamic_cast<formatters::LogItem*>(&msg));
+void MemLogger::Log(Level level, formatters::LoggerItemRef item) {
+    UASSERT(dynamic_cast<formatters::LogItem*>(&item));
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
-    auto& item = static_cast<formatters::LogItem&>(msg);
+    auto& struct_item = static_cast<formatters::LogItem&>(item);
 
     const std::lock_guard lock(pimpl_->mutex);
     if (pimpl_->forward_logger) {
-        auto formatter = pimpl_->forward_logger->MakeFormatter(level, item.log_class, item.location);
-        DispatchItem(item, *formatter);
+        auto formatter = pimpl_->forward_logger->MakeFormatter(level, struct_item.log_class, struct_item.location);
+        DispatchItem(struct_item, *formatter);
 
         auto& li = formatter->ExtractLoggerItem();
         pimpl_->forward_logger->Log(level, li);
@@ -65,7 +65,7 @@ void MemLogger::Log(Level level, formatters::LoggerItemRef msg) {
         return;
     }
 
-    pimpl_->data.push_back(std::move(item));
+    pimpl_->data.push_back(std::move(struct_item));
 }
 
 formatters::BasePtr MemLogger::MakeFormatter(

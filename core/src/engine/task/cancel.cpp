@@ -61,7 +61,7 @@ void SetDeadline(Deadline deadline) { GetCurrentTaskContext().SetCancelDeadline(
 
 TaskCancellationToken GetCancellationToken() { return TaskCancellationToken(GetCurrentTaskContext()); }
 
-void RequestCancel() { return GetCurrentTaskContext().RequestCancel(TaskCancellationReason::kUserRequest); }
+void RequestCancel() { GetCurrentTaskContext().RequestCancel(TaskCancellationReason::kUserRequest); }
 
 }  // namespace current_task
 

@@ -244,7 +244,7 @@ std::string Parse(const YamlConfig& value, formats::parse::To<std::string>);
 
 template <typename T, typename First, typename... Rest>
 auto YamlConfig::As(First&& default_arg, Rest&&... more_default_args) const {
-    if (IsMissing()) {
+    if (IsMissing() || IsNull()) {
         // intended raw ctor call, sometimes casts
         // NOLINTNEXTLINE(google-readability-casting)
         return decltype(As<T>())(std::forward<First>(default_arg), std::forward<Rest>(more_default_args)...);
@@ -254,7 +254,7 @@ auto YamlConfig::As(First&& default_arg, Rest&&... more_default_args) const {
 
 template <typename T>
 auto YamlConfig::As(YamlConfig::DefaultConstructed) const {
-    return IsMissing() ? decltype(As<T>())() : As<T>();
+    return (IsMissing() || IsNull()) ? decltype(As<T>())() : As<T>();
 }
 
 /// @brief Wrapper for handy python-like iteration over a map

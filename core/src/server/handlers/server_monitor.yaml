@@ -11,8 +11,7 @@ properties:
         properties: {}
     format:
         type: string
-        description: Default metrics format. Either static option or URL parameter
-            has to be provided.
+        description: Default metrics format. Either static option or URL parameter has to be provided.
         enum:
           - graphite
           - prometheus

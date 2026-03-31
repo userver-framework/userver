@@ -23,7 +23,7 @@ logging::Level AdjustLogLevelForCancellations(logging::Level level) {
 }  // namespace
 
 void SetupSpan(
-    std::optional<tracing::InPlaceSpan>& span_holder,
+    std::optional<tracing::InPlaceSpan>& span_storage,
     grpc::ServerContext& context,
     std::string_view call_name,
     std::string_view service_name,
@@ -42,25 +42,25 @@ void SetupSpan(
                 "headers",
                 extraction_result.error()
             );
-            span_holder.emplace(std::string{span_name}, utils::impl::SourceLocation::Current());
+            span_storage.emplace(std::string{span_name}, utils::impl::SourceLocation::Current());
         } else {
             auto data = std::move(extraction_result).value();
-            span_holder
+            span_storage
                 .emplace(std::string{span_name}, data.trace_id, data.span_id, utils::impl::SourceLocation::Current());
         }
     } else if (const auto* const trace_id = utils::FindOrNullptr(client_metadata, ugrpc::impl::kXYaTraceId)) {
         const auto* const parent_span_id = utils::FindOrNullptr(client_metadata, ugrpc::impl::kXYaSpanId);
-        span_holder.emplace(
+        span_storage.emplace(
             std::string{span_name},
             ugrpc::impl::ToStringView(*trace_id),
             parent_span_id ? ugrpc::impl::ToStringView(*parent_span_id) : std::string_view{},
             utils::impl::SourceLocation::Current()
         );
     } else {
-        span_holder.emplace(std::string{span_name}, utils::impl::SourceLocation::Current());
+        span_storage.emplace(std::string{span_name}, utils::impl::SourceLocation::Current());
     }
 
-    auto& span = span_holder->Get();
+    auto& span = span_storage->Get();
     const auto* const parent_link = utils::FindOrNullptr(client_metadata, ugrpc::impl::kXYaRequestId);
     if (parent_link) {
         span.SetParentLink(ugrpc::impl::ToStringView(*parent_link));
@@ -131,7 +131,11 @@ void ReportInterrupted(CallState& state) noexcept {
         state.statistics_scope.OnNetworkError();
         auto& span = state.GetSpan();
         span.AddNonInheritableTag(tracing::kErrorFlag, true);
-        span.AddNonInheritableTag(tracing::kErrorMessage, "RPC interrupted");
+        span.AddNonInheritableTag(
+            tracing::kErrorMessage,
+            "Call is interrupted before it was finished and response with status code was sent (it is not a server "
+            "error, most likely client cancelled the call because the result is not needed anymore)"
+        );
         span.SetLogLevel(logging::Level::kWarning);
     } catch (const std::exception& ex) {
         LOG_ERROR() << "Error in ReportInterrupted: " << ex;

@@ -11,6 +11,7 @@ namespace grpc_protovalidate::client {
 
 struct ValidationSettings {
     bool fail_fast{true};
+    bool validate_requests{false};
 };
 
 struct Settings final {
@@ -25,7 +26,9 @@ public:
     explicit Middleware(const Settings& settings);
     ~Middleware() override;
 
-    void PostRecvMessage(ugrpc::client::MiddlewareCallContext& context, const google::protobuf::Message& message)
+    void PreSendMessage(ugrpc::client::MiddlewareCallContext&, const google::protobuf::Message& request) const override;
+
+    void PostRecvMessage(ugrpc::client::MiddlewareCallContext& context, const google::protobuf::Message& response)
         const override;
 
 private:

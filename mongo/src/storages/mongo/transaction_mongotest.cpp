@@ -130,8 +130,10 @@ UTEST_F(MongoTransaction, MultipleOperationsInTransaction) {
     auto collection = txn.GetCollection(kCollectionName);
 
     // Insert multiple documents
+    static constexpr std::size_t kDocCount = 5;
     std::vector<formats::bson::Document> docs;
-    for (int i = 0; i < 5; ++i) {
+    docs.reserve(kDocCount);
+    for (std::size_t i = 0; i < kDocCount; ++i) {
         docs.push_back(bson::MakeDoc("name", fmt::format("user_{}", i), "age", 20 + i));
     }
 

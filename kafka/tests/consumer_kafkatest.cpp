@@ -510,7 +510,7 @@ UTEST_F(ConsumerTest, SeekToEnd) {
                     ));
                 }
 
-                // signals that seek have already occured.
+                // signals that seek have already occurred.
                 seek_completed.Send();
             }
         };

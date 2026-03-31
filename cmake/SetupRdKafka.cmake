@@ -1,5 +1,6 @@
 include_guard(GLOBAL)
 
+# @ingroup download
 option(USERVER_DOWNLOAD_PACKAGE_KAFKA "Download and setup librdkafka if no librdkafka matching version was found"
        ${USERVER_DOWNLOAD_PACKAGES}
 )

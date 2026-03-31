@@ -103,11 +103,6 @@ HttpRequestBuilder& HttpRequestBuilder::SetTaskProcessor(engine::TaskProcessor& 
     return *this;
 }
 
-HttpRequestBuilder& HttpRequestBuilder::SetHttpHandlerStatistics(handlers::HttpRequestStatistics& stats) {
-    request_->SetHttpHandlerStatistics(stats);
-    return *this;
-}
-
 HttpRequestBuilder& HttpRequestBuilder::SetStreamProducer(impl::Http2StreamEventProducer&& producer) {
     request_->SetStreamProducer(std::move(producer));
     return *this;

@@ -30,7 +30,6 @@ components:
                 b_prop:
                     type: integer
 
-
         IntegerOneOfDiscriminator:
             type: object
             additionalProperties: false

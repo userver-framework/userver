@@ -73,7 +73,7 @@ There are two additional options in the static config:
 
 @warning It is dangerous to disable all middlewares! Some middlewares greatly enhance service resilency and availability (e.g., @ref ugrpc::server::middlewares::deadline_propagation::Component, @ref ugrpc::server::middlewares::congestion_control::Component, @ref ugrpc::client::middlewares::deadline_propagation::Component).
 
-For more information about options see docs `ugrpc::server::ServiceComponentBase` and `ugrpc::client::ClientFactoryComponent`. 
+For more information about options see docs `ugrpc::server::ServiceComponentBase` and `ugrpc::client::ClientFactoryComponent`.
 
 Example of the static YAML config.
 

@@ -45,51 +45,44 @@ bool operator==(const LogEntryContent& x, const LogEntryContent& y) noexcept {
     return x.line == y.line && std::strcmp(x.path, y.path) == 0;
 }
 
-void AddDynamicDebugLog(const std::string& location_relative, int line, EntryState state) {
+void SetDynamicDebugLog(const std::string& location_relative, int line, EntryState state) {
     utils::impl::AssertStaticRegistrationFinished();
 
     auto& all_locations = GetAllLocations();
-
     auto it_lower = all_locations.lower_bound({location_relative.c_str(), line});
-    if (it_lower == all_locations.end() ||
-        std::strncmp(it_lower->path, location_relative.c_str(), location_relative.size()) != 0)
-    {
-        ThrowUnknownDynamicLogLocation(location_relative, line);
-    }
 
+    bool found_match = false;
     if (line != kAnyLine) {
-        // A specific line
-        if (it_lower->line != line || it_lower->path != location_relative) {
-            // Non-full match
-            ThrowUnknownDynamicLogLocation(location_relative, line);
-        }
-
-        // Full match
-        it_lower->state.store(state);
-        return;
-    } else {
-        // Any line
         for (; it_lower != all_locations.end(); ++it_lower) {
+            // check for exact match
+            if (line != it_lower->line || it_lower->path != location_relative) {
+                break;
+            }
+            it_lower->state.store(state);
+            found_match = true;
+        }
+    } else {
+        for (; it_lower != all_locations.end(); ++it_lower) {
+            // compare prefixes
             if (std::strncmp(it_lower->path, location_relative.c_str(), location_relative.size()) != 0) {
                 break;
             }
             it_lower->state.store(state);
+            found_match = true;
         }
+    }
+
+    if (!found_match) {
+        ThrowUnknownDynamicLogLocation(location_relative, line);
     }
 }
 
+void AddDynamicDebugLog(const std::string& location_relative, int line) {
+    SetDynamicDebugLog(location_relative, line, EntryState{/*force_enabled_level=*/Level::kTrace});
+}
+
 void RemoveDynamicDebugLog(const std::string& location_relative, int line) {
-    utils::impl::AssertStaticRegistrationFinished();
-    auto& all_locations = GetAllLocations();
-
-    auto it_lower = all_locations.lower_bound({location_relative.c_str(), line});
-    const auto it_upper =
-        all_locations.upper_bound({location_relative.c_str(), line != kAnyLine ? line : std::numeric_limits<int>::max()}
-        );
-
-    for (; it_lower != it_upper; ++it_lower) {
-        it_lower->state.store(EntryState{});
-    }
+    SetDynamicDebugLog(location_relative, line, EntryState{});
 }
 
 void RemoveAllDynamicDebugLog() {

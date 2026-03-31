@@ -142,12 +142,23 @@ Nuances:
 
 ### Inline formatting
 
-The userver framework provides a convenient inline formatting feature for logging, which optimizes performance by avoiding the creation of intermediate strings. Instead of using `fmt::format(...)` to create a formatted string and then passing it to `LOG_INFO()`, you can directly write the formatted output into the logging buffer using `LOG_INFO(...)`. This reduces memory allocations and improves efficiency.
-The `LOG_INFO(...)` method allows you to format log messages directly into the logger's buffer. It uses the same syntax as `fmt::format`, leveraging the fmtlib library for string formatting, but avoids constructing a temporary `std::string`. This is particularly useful for high-performance applications where logging overhead needs to be minimized.
+The userver framework provides a convenient inline formatting feature for logging, which optimizes performance by
+avoiding the creation of intermediate strings. Instead of using `fmt::format(...)` to create a formatted string and
+then passing it to `LOG_INFO()`, you can directly write the formatted output into the logging buffer using
+`LOG_INFO(...)`. This reduces memory allocations and improves efficiency.
+
+The `LOG_INFO(...)` method allows you to format log messages directly into the logger's buffer. It uses the same syntax
+as `fmt::format`, leveraging the `fmt` library for string formatting, but avoids constructing a temporary `std::string`.
+This is particularly useful for high-performance applications where logging overhead needs to be minimized.
 
 #### Syntax
+
 ```cpp
 LOG_INFO(<format-string>, <args>...);
+LOG_LIMITED_INFO(<format-string>, <args>...);
+LOG(level, <format-string>, <args>...);
+LOG_TO(logger, level, <format-string>, <args>...);
+LOG_LIMITED_WARNING_TO(logger, <format-string>, <args>...);
 ```
 
 - `<format-string>`: A format string following fmtlib conventions (e.g., "{} {}", "Value: {0}, Name: {1}").
@@ -197,9 +208,15 @@ For more details on fmtlib formatting syntax, refer to the fmtlib documentation 
 
 ### Lambda-Based Logging
 
-The userver framework provides a powerful mechanism for custom logging of container contents using lambda functions. This approach eliminates the need to build intermediate strings with `std::stringstream` when logging structured data, such as fields of container elements. Instead, you can pass a lambda function to `LOG_INFO()` that defines how to stream the data directly into the log buffer, improving performance and readability.
+The userver framework provides a powerful mechanism for custom logging of container contents using lambda functions.
+This approach eliminates the need to build intermediate strings with `std::stringstream` when logging structured data,
+such as fields of container elements. Instead, you can pass a lambda function to `LOG_INFO()` that defines how to
+stream the data directly into the log buffer, improving performance and readability.
 
-The userver logging system allows you to pass a lambda function to `LOG_INFO()` to customize how container elements or other data are streamed into the log buffer. The lambda takes an output stream (auto& out) as its parameter, which you can use to write formatted data directly. This avoids the overhead of constructing temporary strings with std::stringstream and provides a flexible way to log complex data structures.
+The userver logging system allows you to pass a lambda function to `LOG_INFO()` to customize how container elements or
+other data are streamed into the log buffer. The lambda takes an output stream (auto& out) as its parameter, which you
+can use to write formatted data directly. This avoids the overhead of constructing temporary strings with
+`std::stringstream` and provides a flexible way to log complex data structures.
 
 ```cpp
 LOG_INFO() << [<capture>](auto& out) {
@@ -268,12 +285,13 @@ Records: [{foo=1, bar=x}, {foo=2, bar=y}, ]
 - Readability: Keeps formatting logic concise and co-located with the logging statement.
 - Maintainability: Lambda-based logging is easier to modify than stringstream-based concatenation.
 
-For additional formatting control, you can combine this feature with userver's inline formatting (`out.Format(...)`) or default container streaming.
+For additional formatting control, you can combine this feature with userver's inline formatting (`out.Format(...)`) or
+default container streaming.
 
 ### Tags
 
-If you want to add tags to as single log record, then you can create an object of type `logging::LogExtra`, add the necessary tags to it
-and output the `LogExtra` object to the log:
+If you want to add tags to as single log record, then you can create an object of type `logging::LogExtra`, add the
+necessary tags to it and output the `LogExtra` object to the log:
 
 @snippet logging/log_extra_test.cpp Example using LogExtra
 
@@ -282,14 +300,14 @@ to use `tracing::Span`, which implicitly adds tags to the log.
 
 ### Stacktrace
 
-Sometimes it is useful to write a full stacktrace to the log. Typical use case is for logging a "never should happen happened"
-situation. Use logging::LogExtra::Stacktrace() for such cases:
+Sometimes it is useful to write a full stacktrace to the log. Typical use case is for logging a "never should happen
+happened" situation. Use logging::LogExtra::Stacktrace() for such cases:
 
 @snippet logging/log_extra_test.cpp Example using stacktrace in log
 
 Important: getting a text representation of a stacktrace is an **expensive operation**. In addition, the stacktrace
-itself increases the log record size several times. Therefore, you do not need to use a stack trace for all errors. Use it only
-when it is 100% useful for diagnostics and other diagnostic tools are ineffective.
+itself increases the log record size several times. Therefore, you do not need to use a stack trace for all errors. Use
+it only when it is 100% useful for diagnostics and other diagnostic tools are ineffective.
 
 @anchor custom_loggers
 ### Additional loggers
@@ -332,13 +350,26 @@ block (technically, the time between its constructor and destructor) and stores 
 Example log for `tracing::Span span{"cache_invalidate"}`:
 
 ```
-tskv	timestamp=2018-12-04T14:00:35.303132	timezone=+03:00	level=INFO	module=~Impl ( userver/src/tracing/span.cpp:76 ) 	task_id=140572868354752	coro_id=140579682340544	text=	trace_id=672a081c8004409ca79d5cc05cb5e580	span_id=12ff00c63bcc46599741bab62506881c	parent_id=7a7c1c6999094d2a8e3d22bc6ecf5d70	stopwatch_name=cache_invalidate	start_timestamp=1543921235.301035	total_time=2.08675	span_ref_type=child	stopwatch_units=ms
+tskv	timestamp=2018-12-04T14:00:35.303132	timezone=+03:00	level=INFO	module=~Impl ( userver/src/tracing/span.cpp:76 )
+	task_id=140572868354752	coro_id=140579682340544	text=	trace_id=672a081c8004409ca79d5cc05cb5e580
+	span_id=12ff00c63bcc46599741bab62506881c	parent_id=7a7c1c6999094d2a8e3d22bc6ecf5d70	stopwatch_name=cache_invalidate
+	start_timestamp=1543921235.301035	total_time=2.08675	span_ref_type=child	stopwatch_units=ms
 ```
 
 Log record example for some `POST /v1/upload`  handle:
 
 ```
-tskv	timestamp=2020-08-13T15:30:52.507493	level=INFO	module=~Impl ( userver/core/src/tracing/span.cpp:139 ) 	task_id=7F110B765400	thread_id=0x00007F115BDEE700	text=	stopwatch_name=http/handler-v1_upload-post	total_time=36.393694	span_ref_type=child	stopwatch_units=ms	start_timestamp=1597321852.471086	meta_type=/v1/upload	_type=response	method=POST	body={"status":"ok"}	uri=/v1/upload?provider_id=driver-metrics	http_handle_request_time=36.277501	http_serialize_response_data_time=0.003394	tags_cache_mapping_time=0.018781	find_service_time=21.702876	http_parse_request_data_time=0.053233	http_check_auth_time=0.029809	http_check_ratelimit_time=0.000118	entities_cache_mapping_time=0.01037	register_request_time=0.819509	log_to_yt_time=0.047565	save_request_result_time=1.523389	upload_queries_time=5.179371	commit_time=4.11817	link=48e0029fc25e460880529b9d300967df	parent_link=b1377a1b20384fe292fd77cb96b30121	source_service=driver-metrics	entity_type=udid	merge_policy=append	provider_name=driver-metrics	tags_count_append=3	meta_code=200	trace_id=2f6bf12265934260876a236c373b37dc	span_id=8f828566189db0d0	parent_id=fdae1985431a6a57
+tskv	timestamp=2020-08-13T15:30:52.507493	level=INFO	module=~Impl ( userver/core/src/tracing/span.cpp:139 )
+	task_id=7F110B765400	thread_id=0x00007F115BDEE700	text=	stopwatch_name=http/handler-v1_upload-post
+	total_time=36.393694	span_ref_type=child	stopwatch_units=ms	start_timestamp=1597321852.471086	meta_type=/v1/upload
+	_type=response	method=POST	body={"status":"ok"}	uri=/v1/upload?provider_id=driver-metrics
+	http_handle_request_time=36.277501	http_serialize_response_data_time=0.003394	tags_cache_mapping_time=0.018781
+	find_service_time=21.702876	http_parse_request_data_time=0.053233	http_check_auth_time=0.029809
+	http_check_ratelimit_time=0.000118	entities_cache_mapping_time=0.01037	register_request_time=0.819509
+	log_to_yt_time=0.047565	save_request_result_time=1.523389	upload_queries_time=5.179371	commit_time=4.11817
+	link=48e0029fc25e460880529b9d300967df	parent_link=b1377a1b20384fe292fd77cb96b30121	source_service=driver-metrics
+	entity_type=udid	merge_policy=append	provider_name=driver-metrics	tags_count_append=3	meta_code=200
+	trace_id=2f6bf12265934260876a236c373b37dc	span_id=8f828566189db0d0	parent_id=fdae1985431a6a57
 ```
 
 tracing::Span can only be created on stack. Currently, the ability to create `tracing::Span` as a member of a class

@@ -42,7 +42,9 @@ constexpr std::string_view kStatementVacuum = "vacuum";
 constexpr std::string_view kStatementListen = "listen {}";
 constexpr std::string_view kStatementUnlisten = "unlisten {}";
 
-const Query kSetConfigQuery{fmt::format("SELECT set_config($1, $2, $3) as {}", kSetConfigQueryResultName)};
+const std::string kSetConfigSQL = fmt::format("SELECT set_config($1, $2, $3) as {}", kSetConfigQueryResultName);
+const Query::Name kSetConfigName{"set_config"};
+const Query kSetConfigQuery{kSetConfigSQL, kSetConfigName};
 
 // we hope lc_messages is en_US, we don't control it anyway
 const std::string kBadCachedPlanErrorMessage = "cached plan must not change result type";
@@ -137,7 +139,7 @@ struct CountRollback : TrackTrxEnd {
 
 const std::string kSetLocalWorkMem = "SET LOCAL work_mem='256MB'";
 
-const std::string kGetUserTypesSQL = R"~(
+constexpr USERVER_NAMESPACE::utils::StringLiteral kGetUserTypesSQL = R"~(
 SELECT  t.oid,
         n.nspname,
         t.typname,
@@ -155,7 +157,10 @@ FROM pg_catalog.pg_type t
 WHERE n.nspname NOT IN ('pg_catalog', 'pg_toast', 'information_schema')
   AND (c.relkind IS NULL OR c.relkind NOT IN ('i', 'S', 'I')))~";
 
-const std::string kGetCompositeAttribsSQL = R"~(
+constexpr Query::NameLiteral kGetUserTypesName{"get_user_types"};
+const Query kGetUserTypesQuery{kGetUserTypesSQL, kGetUserTypesName};
+
+constexpr USERVER_NAMESPACE::utils::StringLiteral kGetCompositeAttribsSQL = R"~(
 SELECT c.reltype,
     a.attname,
     a.atttypid
@@ -166,6 +171,18 @@ WHERE n.nspname NOT IN ('pg_catalog', 'pg_toast', 'information_schema')
   AND a.attnum > 0 AND NOT a.attisdropped
   AND c.relkind NOT IN ('i', 'S', 'I')
 ORDER BY c.reltype, a.attnum)~";
+
+constexpr Query::NameLiteral kGetCompositeAttribsName{"get_composite_attribs"};
+const Query kGetCompositeAttribsQuery{kGetCompositeAttribsSQL, kGetCompositeAttribsName};
+
+// https://www.postgresql.org/docs/current/runtime-config-logging.html#GUC-LOG-LINE-PREFIX
+constexpr USERVER_NAMESPACE::utils::StringLiteral kGetSessionIdSQL = R"~(
+    SELECT to_hex(trunc(EXTRACT(EPOCH FROM backend_start))::integer) || '.' || to_hex(pid) AS session_id
+    FROM pg_stat_activity
+    WHERE pid = pg_backend_pid())~";
+
+constexpr Query::NameLiteral kGetSessionIdName{"get_session_id"};
+const Query kGetSessionIdQuery{kGetSessionIdSQL, kGetSessionIdName};
 
 const std::string kPingStatement = "SELECT 1 AS ping";
 
@@ -198,6 +215,20 @@ constexpr USERVER_NAMESPACE::utils::StringLiteral kCommands[] = {
 };
 
 alerts::Source kPreparedQueriesOverflowAlert("prepared_queries_overflow");
+
+std::string MakeStatementName(const Connection::StatementId& query_id, const Query& query) {
+    // max_identifier_length (NAMEDATALEN from src/include/pg_config_manual.h - 1)
+    constexpr std::size_t kMaxIdentifierLength = 63;
+
+    std::string statement_name = fmt::format("q_{:x}", query_id.GetUnderlying());
+    if (!query.GetOptionalNameView()) {
+        return statement_name;
+    }
+    auto name_view = *query.GetOptionalNameView();
+    statement_name += '_';
+    statement_name += name_view.substr(0, kMaxIdentifierLength - statement_name.size());
+    return statement_name;
+}
 
 }  // namespace
 
@@ -284,15 +315,32 @@ void ConnectionImpl::AsyncConnect(const Dsn& dsn, engine::Deadline deadline) {
     // some allowance.
     auto timeout = std::chrono::duration_cast<std::chrono::milliseconds>(deadline.TimeLeft());
     deadline = testsuite_pg_ctl_.MakeExecuteDeadline(timeout);
-    conn_wrapper_.AsyncConnect(dsn, deadline, scope);
+    const std::string client_encoding = "UTF8";
+    const PGConnectionWrapper::ConnectParams start_params{
+        /* .dsn = */ dsn,
+        /* .application_name = */ settings_.application_name,
+        /* .client_encoding = */ client_encoding,
+    };
+    conn_wrapper_.AsyncConnect(start_params, deadline, scope);
     conn_wrapper_.FillSpanTags(span, {timeout, GetStatementTimeout()});
+
+    const auto session_id = ExecuteCommandNoPrepare(kGetSessionIdQuery, deadline).AsSingleRow<std::string>();
+    conn_wrapper_.SetSessionId(session_id, span);
 
     scope.Reset(scopes::kGetConnectData);
     // We cannot handle exceptions here, so we let them got to the caller
     if (settings_.discard_on_connect == ConnectionSettings::kDiscardAll) {
         ExecuteCommandNoPrepare("DISCARD ALL", deadline);
+        SetParameter("client_encoding", client_encoding, Connection::ParameterScope::kSession, deadline);
+        if (start_params.application_name) {
+            SetParameter(
+                "application_name",
+                *start_params.application_name,
+                Connection::ParameterScope::kSession,
+                deadline
+            );
+        }
     }
-    SetParameter("client_encoding", "UTF8", Connection::ParameterScope::kSession, deadline);
     RefreshReplicaState(deadline);
     SetConnectionStatementTimeout(GetDefaultCommandControl().statement_timeout_ms, deadline);
     if (settings_.user_types != ConnectionSettings::kPredefinedTypesOnly) {
@@ -367,17 +415,6 @@ bool ConnectionImpl::IsExpired() const { return expires_at_.has_value() && Stead
 const ConnectionSettings& ConnectionImpl::GetSettings() const { return settings_; }
 
 CommandControl ConnectionImpl::GetDefaultCommandControl() const { return default_cmd_ctls_.GetDefaultCmdCtl(); }
-
-void ConnectionImpl::UpdateDefaultCommandControl() {
-    auto cmd_ctl = GetDefaultCommandControl();
-    if (cmd_ctl != default_cmd_ctl_) {
-        SetConnectionStatementTimeout(
-            cmd_ctl.statement_timeout_ms,
-            testsuite_pg_ctl_.MakeExecuteDeadline(cmd_ctl.network_timeout_ms)
-        );
-        default_cmd_ctl_ = cmd_ctl;
-    }
-}
 
 const OptionalCommandControl& ConnectionImpl::GetTransactionCommandControl() const { return transaction_cmd_ctl_; }
 
@@ -856,7 +893,7 @@ const ConnectionImpl::PreparedStatementInfo& ConnectionImpl::DoPrepareStatement(
     scope.Reset(scopes::kPrepare);
     LOG_TRACE() << "Query is not yet prepared";
 
-    const std::string meta_statement_name = "q" + std::to_string(query_hash) + "_" + uuid_;
+    const std::string meta_statement_name = MakeStatementName(query_id, query);
     const bool should_prepare = !statement_info;
     if (should_prepare) {
         conn_wrapper_.SendPrepare(meta_statement_name, statement, params, scope);
@@ -1099,10 +1136,11 @@ void ConnectionImpl::SetParameter(
         << " scope";
     StaticQueryParameters<3> params;
     params.Write(db_types_, name, value, is_transaction_scope);
+
     if (IsPipelineActive()) {
-        SendCommandNoPrepare(kSetConfigQuery, detail::QueryParameters{params}, deadline, logging::Level::kDebug);
+        SendCommandNoPrepare(kSetConfigQuery, detail::QueryParameters{params}, deadline);
     } else {
-        ExecuteCommand(kSetConfigQuery, detail::QueryParameters{params}, deadline, logging::Level::kDebug);
+        ExecuteCommand(kSetConfigQuery, detail::QueryParameters{params}, deadline);
     }
 }
 
@@ -1123,9 +1161,9 @@ void ConnectionImpl::LoadUserTypes(engine::Deadline deadline) {
             ExecuteCommandNoPrepare("BEGIN", deadline);
             ExecuteCommandNoPrepare(kSetLocalWorkMem, deadline);
 #endif
-            types.emplace(ExecuteCommand(kGetUserTypesSQL, deadline).AsSetOf<DBTypeDescription>(kRowTag));
+            types.emplace(ExecuteCommand(kGetUserTypesQuery, deadline).AsSetOf<DBTypeDescription>(kRowTag));
             attribs =
-                ExecuteCommand(kGetCompositeAttribsSQL, deadline).AsContainer<UserTypes::CompositeFieldDefs>(kRowTag);
+                ExecuteCommand(kGetCompositeAttribsQuery, deadline).AsContainer<UserTypes::CompositeFieldDefs>(kRowTag);
             ExecuteCommandNoPrepare("COMMIT", deadline);
 #if LIBPQ_HAS_PIPELINING
             conn_wrapper_.ExitPipelineMode();

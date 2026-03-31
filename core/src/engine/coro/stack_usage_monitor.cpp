@@ -151,7 +151,7 @@ struct StackUsageInfo final {
 
 compiler::ThreadLocal stack_usage_info = [] { return StackUsageInfo{}; };
 
-static void StackUsageHandler(const void* cb_ptr, ucontext_t* stack_context) noexcept {
+void StackUsageHandler(const void* cb_ptr, ucontext_t* stack_context) noexcept {
     // We calculate everything in pages, and here we round down because the stack
     // is growing downwards.
     const auto stack_pointer = RoundDownToPageSize(

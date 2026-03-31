@@ -34,31 +34,31 @@ properties:
                       - json_yadeploy
                 flush_level:
                     type: string
-                    description: messages of this and higher levels get flushed to
-                        the file immediately
+                    description: messages of this and higher levels get flushed to the file immediately
                     default: warning
                 message_queue_size:
                     type: integer
-                    description: the size of internal message queue, must be a power
-                        of 2
+                    description: the size of internal message queue, must be a power of 2
                     default: 65536
                 overflow_behavior:
                     type: string
-                    description: "message handling policy while the queue is full:
-                        `discard` drops messages, `block` waits until message gets
-                        into the queue"
+                    description: "message handling policy while the queue is full: `discard` drops messages, `block` waits until
+                        message gets into the queue"
                     default: discard
                     enum:
                       - discard
                       - block
+                truncate-on-start:
+                    type: boolean
+                    default: false
+                    description: if true, the log file is truncated on service start
                 fs-task-processor:
                     type: string
                     description: task processor for disk I/O operations for this logger
                     default: top-level `fs-task-processor` option
                 testsuite-capture:
                     type: object
-                    description: if exists, setups additional TCP log sink for testing
-                        purposes
+                    description: if exists, setups additional TCP log sink for testing purposes
                     default: "{}"
                     additionalProperties: false
                     properties:

@@ -247,7 +247,6 @@ ConnectionPtr ConnectionPool::Acquire(engine::Deadline deadline) {
     ++stats_.connection.used;
     CheckDeadlineIsExpired(config);
 
-    connection->UpdateDefaultCommandControl();
     return connection;
 }
 
@@ -304,8 +303,9 @@ void ConnectionPool::Release(Connection* connection) {
     } else {
         // Connection cleanup is done asynchronously while returning control to
         // the user
-        close_task_storage_.Detach(USERVER_NAMESPACE::utils::CriticalAsync(
+        cleanup_task_storage_.Detach(USERVER_NAMESPACE::utils::CriticalAsyncBackground(
             "clear_conn_after_cancel",
+            bg_task_processor_,
             [this, connection, dec_cnt = std::move(dg)] {
                 LOG_LIMITED_WARNING() << "Released connection in busy state. Trying to clean up...";
                 TESTPOINT("pg_cleanup", formats::json::Value{});
@@ -591,18 +591,21 @@ Connection* ConnectionPool::Pop(engine::Deadline deadline) {
 }
 
 void ConnectionPool::Clear() {
-    Connection* connection = nullptr;
-    while (conn_consumer_.PopNoblock(connection)) {
-        delete connection;
-    }
-
-    // A close task may still call Push(),
-    // so cleanup queue after the task storage
-    close_task_storage_.CancelAndWait();
+    // A CleanupConnection() task may still call Push().
+    // So, we clean up the queue after the task storage.
+    cleanup_task_storage_.CancelAndWait();
 
     queue_.reset();
-    std::move(conn_consumer_).Reset();
     std::move(conn_producer_).Reset();
+
+    Connection* connection = nullptr;
+    while (conn_consumer_.PopNoblock(connection)) {
+        DeleteConnection(connection);
+    }
+
+    std::move(conn_consumer_).Reset();
+
+    close_task_storage_.CancelAndWait();
 }
 
 void ConnectionPool::CleanupConnection(Connection* connection) {

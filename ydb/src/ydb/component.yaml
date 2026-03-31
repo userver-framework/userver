@@ -17,17 +17,6 @@ properties:
                 type: integer
                 description: default retries count for an operation
                 default: 3
-            operation-timeout:
-                type: string
-                description: |
-                    default operation timeout in utils::StringToDuration() format
-                default: 1s
-            cancel-after:
-                type: string
-                description: |
-                    cancel operation after specified string in
-                    utils::StringToDuration() format
-                default: 1s
             client-timeout:
                 type: string
                 description: default client timeout in utils::StringToDuration format
@@ -55,8 +44,7 @@ properties:
                     type: object
                     properties: {}
                     additionalProperties: true
-                    description: credentials config passed to credentials provider
-                        component
+                    description: credentials config passed to credentials provider component
                 max_pool_size:
                     type: integer
                     minimum: 1
@@ -71,8 +59,7 @@ properties:
                     type: integer
                     minimum: 0
                     default: 5
-                    description: retries count to get session, every attempt with
-                        a get-session-timeout
+                    description: retries count to get session, every attempt with a get-session-timeout
                 keep-in-query-cache:
                     type: boolean
                     default: true
@@ -85,6 +72,10 @@ properties:
                     type: boolean
                     default: true
                     description: fail to boot if YDB is not available
+                use-query-client:
+                    type: boolean
+                    default: true
+                    description: whether to use query client for table client methods (ExecuteDataQuery, Transaction methods)
                 aliases:
                     description: list of aliases for this database
                     type: array

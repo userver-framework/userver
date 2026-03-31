@@ -13,14 +13,12 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ydb {
 
-enum class TransactionMode { kSerializableRW, kOnlineRO, kStaleRO };
+enum class TransactionMode { kSerializableRW, kOnlineRO, kStaleRO, kSnapshotRO, kSnapshotRW };
 
 struct OperationSettings final {
     std::optional<std::uint32_t> retries{std::nullopt};
 
     // https://docs.yandex-team.ru/ydb-tech/best_practices/timeouts#operational
-    std::chrono::milliseconds operation_timeout_ms{0};
-    std::chrono::milliseconds cancel_after_ms{0};
     std::chrono::milliseconds client_timeout_ms{0};
     std::optional<TransactionMode> tx_mode{std::nullopt};
     std::chrono::milliseconds get_session_timeout_ms{0};
@@ -29,7 +27,9 @@ struct OperationSettings final {
 };
 
 struct QuerySettings final {
+    // deprecated, Query Client doesn't have KeepInQueryCache, it caches automatically
     std::optional<bool> keep_in_query_cache{std::nullopt};
+
     std::optional<NYdb::NTable::ECollectQueryStatsMode> collect_query_stats{std::nullopt};
 };
 

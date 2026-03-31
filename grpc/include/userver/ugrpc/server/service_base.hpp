@@ -44,6 +44,9 @@ public:
     virtual ~ServiceBase();
 
     /// @cond
+    // For internal use only.
+    virtual ugrpc::impl::StaticServiceMetadata GetMetadata(utils::impl::InternalTag) const = 0;
+
     // Creates a worker that forwards requests to this service.
     // The service must be destroyed after the worker.
     // For internal use only.

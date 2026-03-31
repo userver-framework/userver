@@ -58,8 +58,6 @@ logging::impl::LogExtraTskvFormatter FormatLogMessage(
     std::optional<grpc::StatusCode> code,
     const logging::LogExtra* log_extra
 ) {
-    static const auto kTimezone = utils::datetime::LocalTimezoneTimestring(start_time, "%z");
-
     const auto it = metadata.find("user-agent");
     std::string_view user_agent;
     if (it != metadata.end()) {
@@ -78,7 +76,7 @@ logging::impl::LogExtraTskvFormatter FormatLogMessage(
     fmt::format_to(
         std::back_inserter(formatter.GetTextLogItem().log_line),
         "\ttimestamp={}"
-        "\ttimezone={}"
+        "\ttimezone=+0000"
         "\tuser_agent={}"
         "\tip={}"
         "\tx_real_ip={}"
@@ -87,8 +85,7 @@ logging::impl::LogExtraTskvFormatter FormatLogMessage(
         "\tupstream_response_time={}.{:0>3}"
         "\tgrpc_status={}"
         "\tgrpc_status_code={}",
-        logging::impl::GetCurrentLocalTimeString(start_time).ToStringView(),
-        kTimezone,
+        logging::impl::GetCurrentGMTimeString(start_time).ToStringView(),
         EscapeForAccessTskvLog(user_agent),
         ip,
         ip,

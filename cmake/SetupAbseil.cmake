@@ -1,8 +1,10 @@
 # userver does not use Abseil directly, but some libraries need it.
 
+# @ingroup download
 option(USERVER_DOWNLOAD_PACKAGE_ABSEIL "Download and setup Abseil if no Abseil matching version was found"
        ${USERVER_DOWNLOAD_PACKAGES}
 )
+# @ingroup download
 option(USERVER_FORCE_DOWNLOAD_ABSEIL "Download Abseil even if it exists in a system" ${USERVER_DOWNLOAD_PACKAGES})
 
 if(NOT USERVER_FORCE_DOWNLOAD_ABSEIL)

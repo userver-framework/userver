@@ -65,7 +65,7 @@ constexpr decltype(auto) get(T& val
 /// \overload get
 template <std::size_t I, class T>
 constexpr auto get(T&, std::enable_if_t<!std::is_assignable<T, T>::value>* = nullptr) noexcept {
-    static_assert(sizeof(T) && false, "====================> Boost.PFR: Calling boost::pfr::get on non const non assignable type is allowed only in C++17");
+    static_assert(!sizeof(T), "====================> Boost.PFR: Calling boost::pfr::get on non const non assignable type is allowed only in C++17");
     return 0;
 }
 #endif
@@ -99,7 +99,7 @@ constexpr U& get(T& val
 /// \overload get
 template <class U, class T>
 constexpr U& get(T&, std::enable_if_t<!std::is_assignable<T, T>::value>* = nullptr) noexcept {
-    static_assert(sizeof(T) && false, "====================> Boost.PFR: Calling boost::pfr::get on non const non assignable type is allowed only in C++17");
+    static_assert(!sizeof(T), "====================> Boost.PFR: Calling boost::pfr::get on non const non assignable type is allowed only in C++17");
     return 0;
 }
 #endif
@@ -192,7 +192,7 @@ constexpr auto structure_tie(T& val
 /// \overload structure_tie
 template <class T>
 constexpr auto structure_tie(T&, std::enable_if_t<!std::is_assignable<T, T>::value>* = nullptr) noexcept {
-    static_assert(sizeof(T) && false, "====================> Boost.PFR: Calling boost::pfr::structure_tie on non const non assignable type is allowed only in C++17");
+    static_assert(!sizeof(T), "====================> Boost.PFR: Calling boost::pfr::structure_tie on non const non assignable type is allowed only in C++17");
     return 0;
 }
 #endif
@@ -201,7 +201,7 @@ constexpr auto structure_tie(T&, std::enable_if_t<!std::is_assignable<T, T>::val
 /// \overload structure_tie
 template <class T>
 constexpr auto structure_tie(T&&, std::enable_if_t< std::is_rvalue_reference<T&&>::value>* = nullptr) noexcept {
-    static_assert(sizeof(T) && false, "====================> Boost.PFR: Calling boost::pfr::structure_tie on rvalue references is forbidden");
+    static_assert(!sizeof(T), "====================> Boost.PFR: Calling boost::pfr::structure_tie on rvalue references is forbidden");
     return 0;
 }
 

@@ -9,6 +9,8 @@
 #include <type_traits>
 #include <utility>
 
+#include <userver/compiler/impl/lifetime.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 /// Utilities
@@ -56,11 +58,11 @@ public:
 
     /// In-place constructs an object of the specified type
     template <typename ValueType, typename... Args>
-    ValueType& Emplace(Args&&... args);
+    ValueType& Emplace(Args&&... args) USERVER_IMPL_LIFETIME_BOUND;
 
     /// In-place constructs an object of the specified type
     template <typename ValueType, typename Item, typename... Args>
-    ValueType& Emplace(std::initializer_list<Item> list, Args&&... args);
+    ValueType& Emplace(std::initializer_list<Item> list, Args&&... args) USERVER_IMPL_LIFETIME_BOUND;
 
 private:
     struct HolderBase;
@@ -178,13 +180,13 @@ AnyMovable& AnyMovable::operator=(ValueType&& rhs) {
 }
 
 template <typename ValueType, typename... Args>
-ValueType& AnyMovable::Emplace(Args&&... args) {
+ValueType& AnyMovable::Emplace(Args&&... args) USERVER_IMPL_LIFETIME_BOUND {
     content_ = Holder<ValueType>::Make(std::forward<Args>(args)...);
     return static_cast<Holder<ValueType>&>(*content_).held;
 }
 
 template <typename ValueType, typename Item, typename... Args>
-ValueType& AnyMovable::Emplace(std::initializer_list<Item> list, Args&&... args) {
+ValueType& AnyMovable::Emplace(std::initializer_list<Item> list, Args&&... args) USERVER_IMPL_LIFETIME_BOUND {
     content_ = Holder<ValueType>::Make(list, std::forward<Args>(args)...);
     return static_cast<Holder<ValueType>&>(*content_).held;
 }

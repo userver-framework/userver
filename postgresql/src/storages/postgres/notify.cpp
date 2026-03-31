@@ -28,18 +28,21 @@ struct NotifyScope::Impl {
     Impl(const Impl&) = delete;
     Impl& operator=(const Impl&) = delete;
 
+    // NOLINTNEXTLINE(readability-make-member-function-const)
     Notification WaitNotify(engine::Deadline deadline) {
         UINVARIANT(conn, "Called WaitNotify on empty NotifyScope");
         return conn->WaitNotify(deadline);
     }
 
 private:
+    // NOLINTNEXTLINE(readability-make-member-function-const)
     void Listen() {
         UASSERT(conn);
         LOG_DEBUG() << "Start listening on channel '" << channel << "'";
         conn->Listen(channel, cmd_ctl);
     }
 
+    // NOLINTNEXTLINE(readability-make-member-function-const)
     void Unlisten() {
         if (!conn) {
             return;

@@ -9,7 +9,7 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace server::handlers {
-class HttpHandlerStatistics;
+class HttpHandlerStatisticsAggregate;
 }
 
 namespace server::middlewares {
@@ -28,7 +28,7 @@ private:
     void FailProcessingAndSetResponse(const http::HttpRequest& request, request::RequestContext& context) const;
 
     mutable utils::TokenBucket rate_limit_;
-    handlers::HttpHandlerStatistics& statistics_;
+    handlers::HttpHandlerStatisticsAggregate& statistics_;
 
     std::optional<std::size_t> max_requests_per_second_;
     std::optional<std::size_t> max_requests_in_flight_;

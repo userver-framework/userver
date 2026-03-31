@@ -12,7 +12,7 @@ namespace {
 
 template <typename TErrorCode>
 [[nodiscard]] constexpr const char* GetConversionErrorCodeStr(const TErrorCode code) noexcept {
-    if constexpr (std::is_same_v<TErrorCode, ReadErrorCode>) {
+    if constexpr (std::is_same_v<TErrorCode, ParseErrorCode>) {
         switch (code) {
             case TErrorCode::kUnknownField:
                 return "unknown field";
@@ -37,26 +37,41 @@ template <typename TErrorCode>
 }
 
 template <typename TErrorCode>
-[[nodiscard]] constexpr const char* GetConversionErrorDescription() noexcept {
-    if constexpr (std::is_same_v<TErrorCode, ReadErrorCode>) {
-        return "Failed to convert JSON field '{}' with error '{}'";
+[[nodiscard]] constexpr const char* GetConversionErrorDescription(bool with_description) noexcept {
+    if constexpr (std::is_same_v<TErrorCode, ParseErrorCode>) {
+        return with_description
+                   ? "Failed to convert JSON field '{}' with error '{}' ({})"
+                   : "Failed to convert JSON field '{}' with error '{}'";
     } else {
-        return "Failed to convert protobuf message field '{}' with error '{}'";
+        return with_description
+                   ? "Failed to convert protobuf message field '{}' with error '{}' ({})"
+                   : "Failed to convert protobuf message field '{}' with error '{}'";
     }
 }
 
 }  // namespace
 
 template <typename TErrorCode>
-ConversionError<TErrorCode>::ConversionError(const ConversionError<TErrorCode>::ErrorCodeType code, std::string path)
+ConversionError<TErrorCode>::ConversionError(
+    const ConversionError<TErrorCode>::ErrorCodeType code,
+    std::string path,
+    std::string_view description
+)
     : ConversionErrorBase(
-          fmt::format(GetConversionErrorDescription<TErrorCode>(), path, GetConversionErrorCodeStr(code))
+          description.empty()
+              ? fmt::format(GetConversionErrorDescription<TErrorCode>(false), path, GetConversionErrorCodeStr(code))
+              : fmt::format(
+                    GetConversionErrorDescription<TErrorCode>(true),
+                    path,
+                    GetConversionErrorCodeStr(code),
+                    description
+                )
       ),
       error_info_(code, std::move(path))
 {}
 
-template class ConversionError<ReadErrorCode>;
-template class ConversionError<WriteErrorCode>;
+template class ConversionError<ParseErrorCode>;
+template class ConversionError<PrintErrorCode>;
 
 }  // namespace protobuf::json
 

@@ -36,7 +36,7 @@ using RequestsQueue = concurrent::SpscQueue<ParsedRequestImplPtr>;
 }  // namespace
 
 // Fixture - nghttp2_client
-// API - create request with custorm headers, type, url+query, body
+// API - create request with custom headers, type, url+query, body
 class Http2SessionTest : public ::testing::Test {
 public:
     Http2SessionTest()

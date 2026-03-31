@@ -1,0 +1,83 @@
+# yaml
+components_manager:
+    components:
+        handler-cluster-command:
+            path: /command
+            task_processor: main-task-processor
+            method: GET,DELETE,POST
+        handler-cluster-control:
+            path: /control
+            task_processor: main-task-processor
+            method: POST,DELETE
+
+        key-value-database:
+            thread_pools:
+                redis_thread_pool_size: 2
+                sentinel_thread_pool_size: 1
+
+        testsuite-support:
+
+        http-client:
+        http-client-core:
+            fs-task-processor: main-task-processor
+
+        tests-control:
+            method: POST
+            path: /tests/{action}
+            skip-unregistered-testpoints: true
+            task_processor: main-task-processor
+            testpoint-timeout: 10s
+            testpoint-url: $mockserver/testpoint
+            throttling_enabled: false
+
+        handler-server-monitor:
+            path: /service/monitor
+            method: GET
+            task_processor: main-task-processor
+
+        secdist: {}
+        default-secdist-provider:
+            config: /etc/redis_service/secure_data.json
+            missing-ok: true
+            environment-secrets-key: SECDIST_CONFIG
+
+        server:
+            listener:
+                port: 8187
+                task_processor: main-task-processor
+            listener-monitor:
+                port: $monitor-server-port
+                port#fallback: 8086
+                task_processor: main-task-processor
+        logging:
+            fs-task-processor: fs-task-processor
+            loggers:
+                default:
+                    file_path: '@stderr'
+                    level: debug
+                    overflow_behavior: discard
+
+        dynamic-config:
+            defaults:
+                REDIS_METRICS_SETTINGS:
+                    command-timings-enabled: true
+                    reply-sizes-enabled: true
+                    request-sizes-enabled: true
+                    timings-enabled: true
+                REDIS_PUBSUB_METRICS_SETTINGS:
+                    per-shard-stats-enabled: true
+                REDIS_REPLICA_MONITORING_SETTINGS:
+                    __default__:
+                        enable-monitoring: true
+                        forbid-requests-to-syncing-replicas: true
+            updates-enabled: false
+        dns-client:
+            fs-task-processor: fs-task-processor
+
+    task_processors:
+        main-task-processor:
+            worker_threads: 4
+        fs-task-processor:
+            worker_threads: 4
+
+    default_task_processor: main-task-processor

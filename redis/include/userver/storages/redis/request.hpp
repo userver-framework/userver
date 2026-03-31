@@ -40,7 +40,7 @@ public:
 
     /// Wait for the request to finish on Redis server, server or request errors (if any) are logged but not thrown.
     ///
-    /// @throws Exceptions on missuse (for example, calling Wait() on a single result from a transaction before waiting
+    /// @throws Exceptions on misuse (for example, calling Wait() on a single result from a transaction before waiting
     /// for the transaction itself).
     void Wait() { impl_->Wait(); }
 

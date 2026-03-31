@@ -5,11 +5,15 @@
 
 #include <cstdint>
 
+#include <fmt/format.h>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace utils::statistics {
 
-/// `Rate` metrics (or "counter" metrics) are metrics that only monotonically
+/// @ingroup userver_universal
+///
+/// @brief `Rate` metrics (or "counter" metrics) are metrics that only monotonically
 /// increase or are reset to zero on restart. Some monitoring systems give them
 /// special treatment with regard to maintaining proper non-negative derivative.
 struct Rate {
@@ -56,3 +60,14 @@ inline Rate operator+(Rate first, Rate second) noexcept { return Rate{first.valu
 }  // namespace utils::statistics
 
 USERVER_NAMESPACE_END
+
+template <>
+class fmt::formatter<USERVER_NAMESPACE::utils::statistics::Rate> {
+public:
+    constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+
+    template <typename FormatCtx>
+    auto format(const USERVER_NAMESPACE::utils::statistics::Rate& rate, FormatCtx& ctx) const {
+        return fmt::format_to(ctx.out(), "{}", rate.value);
+    }
+};

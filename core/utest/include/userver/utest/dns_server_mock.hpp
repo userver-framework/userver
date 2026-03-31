@@ -12,9 +12,9 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace internal::net {
+namespace engine::io::tests {
 struct UdpListener;
-}  // namespace internal::net
+}  // namespace engine::io::tests
 
 namespace utest {
 
@@ -54,7 +54,7 @@ public:
 private:
     void ProcessRequests();
 
-    std::shared_ptr<internal::net::UdpListener> listener_;
+    std::shared_ptr<engine::io::tests::UdpListener> listener_;
     DnsHandler handler_;
     engine::Task receiver_task_;
 };

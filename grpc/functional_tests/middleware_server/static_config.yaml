@@ -1,5 +1,7 @@
 # yaml
 components_manager:
+    graceful_shutdown_interval: 10s
+
     components:
         # The required common components
         logging:
@@ -9,6 +11,30 @@ components_manager:
                     file_path: '@stderr'
                     level: debug
                     overflow_behavior: discard
+
+        dynamic-config:
+            updates-enabled: true
+            fs-cache-path: $dynamic-config-cache
+            fs-task-processor: fs-task-processor
+
+        dynamic-config-client:
+            config-url: $config-server-url
+            http-retries: 5
+            http-timeout: 20s
+            service-name: testsuite-support
+
+        dynamic-config-client-updater:
+            config-settings: false
+            first-update-fail-ok: true
+            full-update-interval: 1m
+            update-interval: 5s
+
+        http-client:
+        http-client-core:
+            fs-task-processor: main-task-processor
+
+        dns-client:
+            fs-task-processor: fs-task-processor
 
         handler-server-monitor:
             path: /service/monitor
@@ -57,6 +83,15 @@ components_manager:
                     in_buffer_size: 32768
                     requests_queue_size_threshold: 100
                 task_processor: main-task-processor
+
+        tests-control:
+            method: POST
+            path: /tests/{action}
+            skip-unregistered-testpoints: true
+            task_processor: main-task-processor
+            testpoint-timeout: 10s
+            testpoint-url: $mockserver/testpoint
+            throttling_enabled: false
 
         testsuite-support: {}
 

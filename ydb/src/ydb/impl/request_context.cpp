@@ -50,8 +50,6 @@ tracing::Span MakeSpan(
     UASSERT(settings.retries.has_value());
     span.AddTag("max_retries", *settings.retries);
     span.AddTag("get_session_timeout_ms", settings.get_session_timeout_ms.count());
-    span.AddTag("operation_timeout_ms", settings.operation_timeout_ms.count());
-    span.AddTag("cancel_after_ms", settings.cancel_after_ms.count());
     span.AddTag("client_timeout_ms", settings.client_timeout_ms.count());
 
     if (optional_name_view) {
@@ -81,12 +79,7 @@ void PrepareSettings(
     if (!os.retries.has_value()) {
         os.retries = default_settings.retries.value();
     }
-    if (os.operation_timeout_ms == std::chrono::milliseconds::zero()) {
-        os.operation_timeout_ms = default_settings.operation_timeout_ms;
-    }
-    if (os.cancel_after_ms == std::chrono::milliseconds::zero()) {
-        os.cancel_after_ms = default_settings.cancel_after_ms;
-    }
+
     // For streaming operations, client timeout is applied to the entire
     // streaming RPC. Meanwhile, streaming RPCs can be expected to take
     // an unbounded amount of time. YDB gRPC machinery automatically checks
@@ -121,12 +114,6 @@ void PrepareSettings(
     if (cc.attempts.has_value()) {
         UASSERT(*cc.attempts > 0);
         os.retries = *cc.attempts - 1;
-    }
-    if (cc.operation_timeout_ms) {
-        os.operation_timeout_ms = cc.operation_timeout_ms.value();
-    }
-    if (cc.cancel_after_ms) {
-        os.cancel_after_ms = cc.cancel_after_ms.value();
     }
     if (cc.client_timeout_ms) {
         os.client_timeout_ms = cc.client_timeout_ms.value();

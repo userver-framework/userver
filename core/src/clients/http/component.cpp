@@ -20,7 +20,7 @@ namespace components {
 
 namespace {
 
-static std::vector<utils::NotNull<clients::http::MiddlewareBase*>> FindMiddlewares(
+std::vector<utils::NotNull<clients::http::MiddlewareBase*>> FindMiddlewares(
     middlewares::impl::MiddlewaresMap middlewares_map,
     const components::ComponentContext& context
 ) {

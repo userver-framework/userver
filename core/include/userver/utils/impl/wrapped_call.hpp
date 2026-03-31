@@ -30,7 +30,7 @@ public:
     /// Returns (or rethrows) the result of wrapped call invocation
     decltype(auto) Get() const& { return result_.Get(); }
 
-    void RethrowErrorResult() const final { (void)result_.Get(); }
+    std::exception_ptr GetException() const noexcept final { return result_.GetException(); }
 
 protected:
     WrappedCall() noexcept = default;

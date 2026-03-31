@@ -15,7 +15,7 @@ class CommonSleepWaitStrategy final : public WaitStrategy {
 public:
     CommonSleepWaitStrategy() = default;
 
-    EarlyWakeup SetupWakeups() override { return EarlyWakeup{false}; }
+    EarlyNotify SetupWakeups() override { return EarlyNotify{false}; }
 
     void DisableWakeups() noexcept override {}
 };

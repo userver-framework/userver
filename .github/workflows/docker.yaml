@@ -114,8 +114,8 @@ jobs:
             run: ./scripts/githubci_free_space.sh
 
           - name: Setup ccache
-            run: docker-compose -f .github/docker-compose.yml run --rm ${{ matrix.image
-                }} bash -c 'ccache -M 2.0GB && ccache -s -v'
+            run: docker-compose -f .github/docker-compose.yml run --rm ${{ matrix.image }} bash -c 'ccache -M 2.0GB && ccache
+                -s -v'
 
           - name: Run cmake
             run: >-

@@ -29,6 +29,12 @@ ClientFactory::ClientFactory(
       testsuite_grpc_(testsuite_grpc)
 {}
 
+ClientFactory::~ClientFactory() {
+    if (!alive_clients_indicator_.IsFree()) {
+        utils::AbortWithStacktrace("Some clients are still alive");
+    }
+}
+
 impl::ClientInternals ClientFactory::MakeClientInternals(
     ClientSettings&& client_settings,
     std::optional<ugrpc::impl::StaticServiceMetadata> meta
@@ -37,7 +43,8 @@ impl::ClientInternals ClientFactory::MakeClientInternals(
     UINVARIANT(!client_settings.endpoint.empty(), "Client endpoint is empty");
 
     LOG_INFO()
-        << "MakeClient " << client_settings.client_name << ": completion-queue-count=" << completion_queues_.GetSize()
+        << "MakeClient " << client_settings.client_name << ": endpoint=" << client_settings.endpoint
+        << ", completion-queue-count=" << completion_queues_.GetSize()
         << ", retry-config.attempts=" << client_factory_settings_.retry_config.attempts
         << ", channel-count=" << client_factory_settings_.channel_count
         << ", dedicated-channel-counts: " << client_settings.dedicated_methods_config;
@@ -64,6 +71,7 @@ impl::ClientInternals ClientFactory::MakeClientInternals(
         client_settings.destination_prefix_in_metrics.value_or(fmt::format("client({})", client_settings.client_name));
 
     return impl::ClientInternals{
+        alive_clients_indicator_.GetLock(),
         std::move(client_settings.client_name),
         std::move(destination_prefix_in_metrics),
         std::move(client_settings.endpoint),
@@ -78,9 +86,10 @@ impl::ClientInternals ClientFactory::MakeClientInternals(
         std::move(client_settings.dedicated_methods_config),
         std::move(channel_factory),
         client_factory_settings_.retry_config,
+        client_factory_settings_.retry_limiter_factory,
         client_factory_settings_.channel_args,
         client_factory_settings_.default_service_config,
-        client_factory_settings_.proxy_settings,
+        client_factory_settings_.proxy_settings
     };
 }
 

@@ -176,7 +176,7 @@ public:
         }
 
         // Clear remaining items in queue
-        T value;
+        T value;  // NOLINT(cppcoreguidelines-pro-type-member-init)
         ConsumerToken token{queue_};
         while (consumer_side_.PopNoblock(token, value)) {
         }

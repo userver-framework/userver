@@ -39,6 +39,8 @@ LoggerConfig Parse(const yaml_config::YamlConfig& value, formats::parse::To<Logg
 
     config.flush_level = value["flush_level"].As<logging::Level>(config.flush_level);
 
+    config.truncate_on_start = value["truncate-on-start"].As<bool>(config.truncate_on_start);
+
     config.message_queue_size = value["message_queue_size"].As<size_t>(config.message_queue_size);
 
     config.queue_overflow_behavior = value["overflow_behavior"].As<QueueOverflowBehavior>(config.queue_overflow_behavior

@@ -10,7 +10,7 @@ The container maintains elements in access order while supporting multiple index
 
 ## Usage
 
-@snippet libraries/multi-index-lru/src/main_test.cpp Usage
+@snippet libraries/multi-index-lru/src/container_test.cpp Usage
 
 
 ----------

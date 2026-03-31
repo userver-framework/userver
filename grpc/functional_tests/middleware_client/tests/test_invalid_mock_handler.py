@@ -43,7 +43,15 @@ async def test_ok(grpc_mockserver):
         return greeter_protos.GreetingResponse()
 
 
-async def test_missing(service_client, asyncexc_check):
+class UnimplementedServicer(greeter_services.GreeterServiceServicer):
+    """All methods are still unimplemented."""
+
+
+@pytest.mark.parametrize('with_install_servicer', [False, True])
+async def test_missing(service_client, grpc_mockserver, asyncexc_check, with_install_servicer):
+    if with_install_servicer:
+        grpc_mockserver.install_servicer(UnimplementedServicer())
+
     message = 'Method not found!'
     expected_error = re.compile(f"'{SAY_HELLO}' failed: code=UNIMPLEMENTED, message='{message}'")
 

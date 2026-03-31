@@ -47,8 +47,7 @@ properties:
         default: 1000000
     message_send_max_retries:
         type: integer
-        description: maximum number of send request retries until `delivery_timeout`
-            reached
+        description: maximum number of send request retries until `delivery_timeout` reached
         default: 2147483647
     retry_backoff:
         type: string

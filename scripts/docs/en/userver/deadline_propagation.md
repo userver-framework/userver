@@ -351,13 +351,13 @@ If the request is sent with deadline propagation enabled, then:
 1. If the deadline has expired before the start of `Execute`, the exception `stores::postgres::ConnectionInterrupted` is
    thrown.
 2. There are two timeouts in Postgres. See @ref storages::postgres::CommandControl.
-  `statement_timeout` is adjusted and `network_timeout` isn't adjusted by deadline propagation. 
+  `statement_timeout` is adjusted and `network_timeout` isn't adjusted by deadline propagation.
 
   For example:
 
   For a query in some handler `statement_timeout=500ms` and `network_timeout=600ms`. But a client calls that handler with
   timeout `300ms`.
-  `statement_timeout` is adjusted to 300ms and `network_timeout` **is not** adjusted. 
+  `statement_timeout` is adjusted to 300ms and `network_timeout` **is not** adjusted.
 
   `network_timeout` isn't adjusted, because we want to give Postgres the opportunity to cancel the request, and not
   immediately break the connection. Otherwise, this would lead to failure of a connection pool during DP timeouts.

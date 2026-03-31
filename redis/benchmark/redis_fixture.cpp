@@ -62,7 +62,7 @@ void Redis::RunStandalone(std::function<void()> payload) {
             "none",
             config.GetSource(),
             "pub",
-            storages::redis::impl::KeyShardFactory{""}
+            storages::redis::impl::KeyShardFactory{storages::redis::ShardingStrategy::kKeyShardTaximeterCrc32}
         );
 
         sentinel_->WaitConnectedDebug();

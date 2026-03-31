@@ -58,9 +58,9 @@ public:
     /// Task wait mode
     enum class WaitMode {
         /// Can be awaited by at most one task at a time
-        kSingleWaiter,
+        kSingleAwaiter,
         /// Can be awaited by multiple tasks simultaneously
-        kMultipleWaiters
+        kMultipleAwaiters
     };
 
     /// @brief Checks whether this object owns

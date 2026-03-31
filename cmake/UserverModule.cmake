@@ -1,5 +1,38 @@
 include_guard(GLOBAL)
 
+# Creates a userver module with name MODULE. That includes the following cmake targets:
+# - userver-MODULE library target
+# - userver-MODULE-dynamic-configs library target
+# - userver-MODULE-unittest binary target
+# - userver-MODULE-dbtest binary target
+# - userver-MODULE-benchmark binary target
+#
+# @arg MODULE Module name
+# @option NO_INSTALL Do not install the module on 'cmake install'
+# @option NO_CORE_LINK Do not link with userver-core
+# @option GENERATE_DYNAMIC_CONFIGS Generate dynamic config models from 'dynamic_configs/'
+# @param SOURCE_DIR @required Source directory of the module
+# @param INSTALL_COMPONENT Component name to install (defaults to MODULE)
+# @multiparam IGNORE_SOURCES ???
+# @multiparam LINK_LIBRARIES Targets to link as PUBLIC
+# @multiparam LINK_LIBRARIES_PRIVATE Targets to link as PRIVATE
+# @multiparam INCLUDE_DIRS Directories to add to -I as PUBLIC
+# @multiparam INCLUDE_DIRS_PRIVATE Directories to add to -I as PRIVATE
+# @multiparam UTEST_DIRS ???
+# @multiparam UTEST_SOURCES Glob expression for gtest source files
+# @multiparam UTEST_LINK_LIBRARIES Targets to link for gtest target
+# @multiparam DBTEST_DIRS ???
+# @multiparam DBTEST_SOURCES ???
+# @multiparam DBTEST_LINK_LIBRARIES Targets to link to dbtest target
+# @multiparam DBTEST_DATABASES Database names to start for dbtest
+# @multiparam DBTEST_ENV Environment variables to set for dbtest
+# @multiparam UBENCH_DIRS ???
+# @multiparam UBENCH_SOURCES ???
+# @multiparam UBENCH_LINK_LIBRARIES ???
+# @multiparam UBENCH_DATABASES Databases to start for benchmarks
+# @multiparam UBENCH_ENV Environment variables to set for benchmarks
+# @multiparam DEPENDS Userver module name(s) that the current module depends on
+# @multiparam EMBED_FILES Files to embed
 function(userver_module MODULE)
     unset(ARG_UNPARSED_ARGUMENTS)
     set(OPTIONS NO_INSTALL NO_CORE_LINK GENERATE_DYNAMIC_CONFIGS)

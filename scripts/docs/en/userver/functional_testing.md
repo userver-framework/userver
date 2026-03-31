@@ -409,12 +409,13 @@ An example on testsuite tasks could be found here:
 * Testcase: @ref samples/testsuite-support/tests/test_tasks.py
 
 @anchor TESTSUITE_METRICS_TESTING
-#### Metrics
+#### Metrics tesing in testsuite
 
-Testsuite provides access to userver metrics written by
-utils::statistics::Writer and utils::statistics::MetricTag via
+Testsuite provides access to userver metrics written by @ref utils::statistics::Writer and
+@ref utils::statistics::MetricTag via
 @ref pytest_userver.plugins.service_client.monitor_client "monitor_client"
 , see @ref tutorial_metrics "tutorial on configuration".
+
 It allows to:
 
 - retrieve specific service metric by path and (optionally) labels:
@@ -422,8 +423,9 @@ It allows to:
 - retrieve array of metrics by path prefix and (optionally) labels:
   @ref pytest_userver.client.ClientMonitor.metrics "await monitor_client.metrics(path_prefix, labels)"
 - retrieve specific service metric by path and (optionally) labels or `None` if no such metric:
-  @ref pytest_userver.client.ClientMonitor.single_metric "await monitor_client.single_metric_optional(path, labels)"
-- reset metrics: @ref pytest_userver.client.Client.reset_metrics "await service_client.reset_metrics()"
+  @ref pytest_userver.client.ClientMonitor.single_metric_optional "await monitor_client.single_metric_optional(path, labels)"
+- diff of metrics: @ref pytest_userver.client.ClientMonitor.metrics_diff "await monitor_client.metrics_diff()"
+- reset metrics (discouraged): @ref pytest_userver.client.Client.reset_metrics "await service_client.reset_metrics()"
 
 Example usage:
 
@@ -435,9 +437,9 @@ and used like:
 
 @snippet samples/testsuite-support/src/metrics.cpp metrics usage
 
-the metrics could be retrieved and reset as follows:
+the metrics could be checked in the following way:
 
-@snippet samples/testsuite-support/tests/test_metrics.py metrics reset
+@snippet samples/testsuite-support/tests/test_metrics.py  metrics diff
 
 For metrics with labels, they could be retrieved in the following way:
 
@@ -448,17 +450,21 @@ comparable:
 
 @snippet testsuite/tests/metrics/test_metrics.py  values set
 
+A discouraged method for retrieving and resetting metrics is following:
+
+@snippet samples/testsuite-support/tests/test_metrics.py metrics reset
+
 * C++ code: @ref samples/testsuite-support/src/metrics.cpp
 * C++ header: @ref samples/testsuite-support/src/metrics.hpp
 * Testcase: @ref samples/testsuite-support/tests/test_metrics.py
 
 
-#### Metrics Portability
+#### Metrics Portability Testing in Testsuite
 
 Different monitoring systems and time series databases have different
 limitations. To make sure that the metrics of your service could be used on
 most of the popular systems, there is special action in
-server::handlers::TestsControl.
+@ref server::handlers::TestsControl.
 
 To use it you could just write the following test:
 

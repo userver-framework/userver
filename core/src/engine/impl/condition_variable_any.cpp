@@ -18,34 +18,34 @@ void OnConditionVariableSpuriousWakeup() { current_task::GetTaskProcessor().GetT
 template <typename MutexType>
 class CvWaitStrategy final : public WaitStrategy {
 public:
-    CvWaitStrategy(WaitList& waiters, TaskContext& current, std::unique_lock<MutexType>& mutex_lock) noexcept
-        : waiters_(waiters), waiter_token_(waiters_), current_(current), mutex_lock_(mutex_lock) {}
+    CvWaitStrategy(WaitList& awaiters, TaskContext& current, std::unique_lock<MutexType>& mutex_lock) noexcept
+        : awaiters_(awaiters), awaiter_token_(awaiters_), current_(current), mutex_lock_(mutex_lock) {}
 
-    EarlyWakeup SetupWakeups() override {
+    EarlyNotify SetupWakeups() override {
         UASSERT(mutex_lock_);
         UASSERT(current_.IsCurrent());
         {
-            WaitList::Lock waiters_lock{waiters_};
-            waiters_.Append(waiters_lock, &current_);
+            WaitList::Lock awaiters_lock{awaiters_};
+            awaiters_.Append(awaiters_lock, &current_, current_.GetAwaiterContext());
         }
 
         mutex_lock_.unlock();
         // A race is not possible here, because check + Append is performed under
         // mutex_lock_, and user state that defines readiness should only be changed
         // by user under mutex_lock_.
-        return EarlyWakeup{false};
+        return EarlyNotify{false};
     }
 
     void DisableWakeups() noexcept override {
         UASSERT(current_.IsCurrent());
 
-        WaitList::Lock waiters_lock{waiters_};
-        waiters_.Remove(waiters_lock, current_);
+        WaitList::Lock awaiters_lock{awaiters_};
+        awaiters_.Remove(awaiters_lock, current_, current_.GetAwaiterContext());
     }
 
 private:
-    WaitList& waiters_;
-    const WaitList::WaitersScopeCounter waiter_token_;
+    WaitList& awaiters_;
+    const WaitList::AwaitersScopeCounter awaiter_token_;
     TaskContext& current_;
     std::unique_lock<MutexType>& mutex_lock_;
 };
@@ -68,7 +68,7 @@ CvStatus ConditionVariableAny<MutexType>::WaitUntil(std::unique_lock<MutexType>&
 
     auto wakeup_source = TaskContext::WakeupSource::kNone;
     {
-        CvWaitStrategy<MutexType> wait_manager(*waiters_, current, lock);
+        CvWaitStrategy<MutexType> wait_manager(*awaiters_, current, lock);
         wakeup_source = current.Sleep(wait_manager, deadline);
     }
     // re-lock the mutex after it's been released in SetupWakeups()
@@ -86,7 +86,7 @@ CvStatus ConditionVariableAny<MutexType>::WaitUntil(std::unique_lock<MutexType>&
         case TaskContext::WakeupSource::kBootstrap:
             UASSERT(!"invalid wakeup source");
             [[fallthrough]];
-        case TaskContext::WakeupSource::kWaitList:
+        case TaskContext::WakeupSource::kNotify:
             return CvStatus::kNoTimeout;
     }
 
@@ -95,17 +95,17 @@ CvStatus ConditionVariableAny<MutexType>::WaitUntil(std::unique_lock<MutexType>&
 
 template <typename MutexType>
 void ConditionVariableAny<MutexType>::NotifyOne() {
-    if (waiters_->GetCountOfSleepies()) {
-        WaitList::Lock lock(*waiters_);
-        waiters_->WakeupOne(lock);
+    if (awaiters_->GetCountOfSleepies()) {
+        WaitList::Lock lock(*awaiters_);
+        awaiters_->NotifyOne(lock);
     }
 }
 
 template <typename MutexType>
 void ConditionVariableAny<MutexType>::NotifyAll() {
-    if (waiters_->GetCountOfSleepies()) {
-        WaitList::Lock lock(*waiters_);
-        waiters_->WakeupAll(lock);
+    if (awaiters_->GetCountOfSleepies()) {
+        WaitList::Lock lock(*awaiters_);
+        awaiters_->NotifyAll(lock);
     }
 }
 

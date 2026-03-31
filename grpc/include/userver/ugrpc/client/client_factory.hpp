@@ -10,6 +10,7 @@
 #include <userver/dynamic_config/source.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 
+#include <userver/concurrent/impl/striped_read_indicator.hpp>
 #include <userver/ugrpc/client/client_factory_settings.hpp>
 #include <userver/ugrpc/client/client_settings.hpp>
 #include <userver/ugrpc/client/fwd.hpp>
@@ -65,11 +66,18 @@ public:
     );
     /// @endcond
 
+    ~ClientFactory();
+
 private:
     impl::ClientInternals MakeClientInternals(
         ClientSettings&& client_settings,
         std::optional<ugrpc::impl::StaticServiceMetadata> meta
     );
+
+    // Ensures that all clients created by this factory are destroyed before
+    // the factory itself. If any client outlives the factory, the program
+    // will abort with a stacktrace in the factory's destructor.
+    concurrent::impl::StripedReadIndicator alive_clients_indicator_;
 
     ClientFactorySettings client_factory_settings_;
     engine::TaskProcessor& channel_task_processor_;
@@ -83,7 +91,7 @@ private:
 
 template <typename Client>
 Client ClientFactory::MakeClient(ClientSettings&& client_settings) {
-    return Client(MakeClientInternals(std::move(client_settings), Client::GetMetadata()));
+    return Client(MakeClientInternals(std::move(client_settings), Client::GetMetadata(utils::impl::InternalTag{})));
 }
 
 template <typename Client>

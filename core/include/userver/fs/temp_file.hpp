@@ -24,9 +24,13 @@ namespace fs {
 /// permissions. The file descriptor can be accessed using `File`.
 class TempFile final {
 public:
-    /// @brief Create the file at the default path for temporary files
+    /// @brief Create the file at the default path for temporary files with custom fs task processor
     /// @throws std::runtime_error
     static TempFile Create(engine::TaskProcessor& fs_task_processor);
+
+    /// @brief Create the file at the default path for temporary files
+    /// @throws std::runtime_error
+    static TempFile Create();
 
     /// @brief Create the file at the specified path
     /// @param parent_path The directory where the temporary file will be created
@@ -40,7 +44,7 @@ public:
         engine::TaskProcessor& fs_task_processor
     );
 
-    TempFile() = delete;
+    TempFile();
     TempFile(TempFile&& other) noexcept = default;
     TempFile& operator=(TempFile&& other) noexcept = default;
     ~TempFile() noexcept;

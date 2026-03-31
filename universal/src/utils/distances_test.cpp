@@ -42,7 +42,7 @@ const std::vector<std::string> languages = {"cpp", "python", "ruby", "c_sharp", 
 }  // namespace
 
 TEST_P(LevenshteinDistanceTest, LevenshteinAlgorithm) {
-    const TestData data = GetParam();
+    const TestData& data = GetParam();
     EXPECT_EQ(utils::GetLevenshteinDistance(data.view1, data.view2), data.result);
 }
 INSTANTIATE_TEST_SUITE_P(
@@ -62,7 +62,7 @@ INSTANTIATE_TEST_SUITE_P(
 );
 
 TEST_P(DamerauLevenshteinDistanceTest, DamerauLevenshteinAlgorithm) {
-    const TestData data = GetParam();
+    const TestData& data = GetParam();
     EXPECT_EQ(utils::GetDamerauLevenshteinDistance(data.view1, data.view2), data.result);
 }
 
@@ -82,7 +82,7 @@ INSTANTIATE_TEST_SUITE_P(
 );
 
 TEST_P(NearestNameFixture, NearestName) {
-    const NearestNameTestData data = GetParam();
+    const NearestNameTestData& data = GetParam();
     std::map<std::string, int> map_data;
     std::set<std::string> set_data;
     std::unordered_map<std::string, int> un_map_data;

@@ -10,6 +10,7 @@
 #include <userver/clients/http/form.hpp>
 #include <userver/clients/http/response_future.hpp>
 #include <userver/clients/http/streamed_response.hpp>
+#include <userver/clients/http/websocket_response.hpp>
 #include <userver/concurrent/queue.hpp>
 #include <userver/engine/future.hpp>
 #include <userver/http/common_headers.hpp>
@@ -34,7 +35,7 @@ namespace clients::http {
 
 namespace {
 
-static constexpr utils::TrivialBiMap kHttpMethodMap([](auto selector) {
+constexpr utils::TrivialBiMap kHttpMethodMap([](auto selector) {
     return selector()
         .Case(HttpMethod::kGet, "GET")
         .Case(HttpMethod::kHead, "HEAD")
@@ -164,7 +165,7 @@ void SetProxyHeaders(curl::easy& easy, const Range& headers_range) {
 }
 
 bool IsAllowedSchemaInUrl(std::string_view url) {
-    static constexpr std::string_view kAllowedSchemas[] = {"http://", "https://"};
+    static constexpr std::string_view kAllowedSchemas[] = {"http://", "https://", "ws://", "wss://"};
 
     for (const std::string_view allowed_schema : kAllowedSchemas) {
         if (utils::StrIcaseEqual{}(allowed_schema, url.substr(0, allowed_schema.size()))) {
@@ -235,6 +236,10 @@ StreamedResponse Request::async_perform_stream_body(
 
 std::shared_ptr<Response> Request::perform(utils::impl::SourceLocation location) {
     return async_perform(location).Get(location);
+}
+
+WebSocketResponse Request::PerformWebSocketHandshake(utils::impl::SourceLocation location) {
+    return pimpl_->async_perform_websocket_handshake(location).get();
 }
 
 Request& Request::url(std::string url) & {
@@ -517,6 +522,15 @@ Request Request::delete_method(std::string url, std::string data) && {
 Request& Request::SetMiddlewaresList(const std::vector<utils::NotNull<MiddlewareBase*>>& middlewares) & {
     pimpl_->SetMiddlewaresList(middlewares);
     return *this;
+}
+
+Request& Request::SetIncompleteTlsConnectionCloseExpected(bool expect) & {
+    pimpl_->SetIncompleteTlsConnectionCloseExpected(expect);
+    return *this;
+}
+
+Request Request::SetIncompleteTlsConnectionCloseExpected(bool expect) && {
+    return std::move(this->SetIncompleteTlsConnectionCloseExpected(expect));
 }
 
 Request& Request::SetLoggedUrl(std::string url) & {

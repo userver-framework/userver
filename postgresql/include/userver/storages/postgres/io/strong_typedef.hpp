@@ -52,12 +52,14 @@ inline constexpr bool kIsStrongTypedefDirectlyMapped =
 
 template <typename Tag, typename T, USERVER_NAMESPACE::utils::StrongTypedefOps Ops, typename Enable>
 struct IsMappedToPg<USERVER_NAMESPACE::utils::StrongTypedef<Tag, T, Ops, Enable>>
+    // NOLINTNEXTLINE(google-readability-casting)
     : BoolConstant<kIsStrongTypedefDirectlyMapped<Tag, T, Ops, Enable> || kIsMappedToPg<T>> {};
 
 // Mark that strong typedef mapping is a special case for disambiguating
 // specialization of CppToPg
 template <typename Tag, typename T, USERVER_NAMESPACE::utils::StrongTypedefOps Ops, typename Enable>
 struct IsSpecialMapping<USERVER_NAMESPACE::utils::StrongTypedef<Tag, T, Ops, Enable>>
+    // NOLINTNEXTLINE(google-readability-casting)
     : BoolConstant<!kIsStrongTypedefDirectlyMapped<Tag, T, Ops, Enable> && kIsMappedToPg<T>> {};
 
 template <typename Tag, typename T, USERVER_NAMESPACE::utils::StrongTypedefOps Ops, typename Enable>

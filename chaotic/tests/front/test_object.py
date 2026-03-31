@@ -1,9 +1,7 @@
 import pytest
 
-from chaotic.front.parser import ParserError
-from chaotic.front.types import Boolean
-from chaotic.front.types import Integer
-from chaotic.front.types import SchemaObject
+from chaotic.front import parser as front_parser
+from chaotic.front import types as front_types
 
 
 def test_empty(simple_parse):
@@ -19,7 +17,7 @@ def test_very_empty(simple_parse):
 
 
 def test_unknown_required(simple_parse):
-    with pytest.raises(ParserError) as exc:
+    with pytest.raises(front_parser.ParserError) as exc:
         simple_parse({
             'type': 'object',
             'properties': {},
@@ -31,7 +29,7 @@ def test_unknown_required(simple_parse):
 
 
 def test_unknown_fields(simple_parse):
-    with pytest.raises(ParserError) as exc:
+    with pytest.raises(front_parser.ParserError) as exc:
         simple_parse({
             'type': 'object',
             'unknown_field': 'x',
@@ -43,7 +41,7 @@ def test_unknown_fields(simple_parse):
 
 
 def test_error_in_property(simple_parse):
-    with pytest.raises(ParserError) as exc:
+    with pytest.raises(front_parser.ParserError) as exc:
         simple_parse({
             'type': 'object',
             'properties': {'field': {'type': 'xxxx'}},
@@ -54,7 +52,7 @@ def test_error_in_property(simple_parse):
 
 
 def test_error_in_extra(simple_parse):
-    with pytest.raises(ParserError) as exc:
+    with pytest.raises(front_parser.ParserError) as exc:
         simple_parse({
             'type': 'object',
             'properties': {},
@@ -71,8 +69,8 @@ def test_property_and_additional(simple_parse):
         'additionalProperties': {'type': 'boolean'},
     })
     assert data.schemas == {
-        'vfull#/definitions/type': SchemaObject(
-            properties={'field': Integer()},
-            additionalProperties=Boolean(),
+        'vfull#/definitions/type': front_types.SchemaObject(
+            properties={'field': front_types.Integer()},
+            additionalProperties=front_types.Boolean(),
         ),
     }

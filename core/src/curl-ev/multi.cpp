@@ -104,7 +104,7 @@ multi::~multi() {
     thread_control_.RunInEvLoopSync([] {});
 
     if (handle_) {
-        native::curl_multi_cleanup(handle_);
+        thread_control_.RunInEvLoopSync([&handle = handle_] { native::curl_multi_cleanup(handle); });
         handle_ = nullptr;
     }
 }

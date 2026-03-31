@@ -20,8 +20,12 @@ TEST_P(EmptyFromJsonFailureTest, Test) {
     proto_json::messages::EmptyMessage message;
     formats::json::Value input = PrepareJsonTestData(param);
 
-    EXPECT_READ_ERROR((void)JsonToMessage<proto_json::messages::EmptyMessage>(input), ReadErrorCode::kInvalidType, "/");
-    UEXPECT_THROW(InitSampleMessage(param, {}, message), SampleError);
+    EXPECT_PARSE_ERROR(
+        (void)JsonToMessage<proto_json::messages::EmptyMessage>(input),
+        ParseErrorCode::kInvalidType,
+        "/"
+    );
+    UEXPECT_THROW(InitSampleMessage(param, message), SampleError);
 }
 
 }  // namespace protobuf::json::tests

@@ -22,7 +22,7 @@ public:
         int magic_value_add_master = 0,
         int magic_value_add_slave = 0,
         size_t redis_thread_count = 1,
-        storages::redis::impl::KeyShardFactory key_shard = {storages::redis::impl::kRedisCluster}
+        storages::redis::impl::KeyShardFactory key_shard = {storages::redis::ShardingStrategy::kRedisCluster}
     );
 
     using MockRedisServerArray = std::vector<std::unique_ptr<MockRedisServer>>;
@@ -58,7 +58,7 @@ public:
         int magic_value_add_master = 0,
         int magic_value_add_slave = 0,
         size_t redis_thread_count = 1,
-        storages::redis::impl::KeyShardFactory key_shard = {""}
+        storages::redis::impl::KeyShardFactory key_shard = {storages::redis::ShardingStrategy::kKeyShardTaximeterCrc32}
     );
 
     using MockRedisServerArray = std::vector<std::unique_ptr<MockRedisServer>>;
@@ -96,7 +96,7 @@ public:
         int magic_value_add_master = 0,
         int magic_value_add_slave = 0,
         size_t redis_thread_count = 1,
-        storages::redis::impl::KeyShardFactory key_shard = {""}
+        storages::redis::impl::KeyShardFactory key_shard = {storages::redis::ShardingStrategy::kKeyShardTaximeterCrc32}
     );
 
     using MockRedisServerArray = std::vector<std::unique_ptr<MockRedisServer>>;

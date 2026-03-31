@@ -1,7 +1,7 @@
 #pragma once
 
 /// @file userver/utils/task_builder.hpp
-/// @brief @copybrief engine::TaskBuilder
+/// @brief @copybrief utils::TaskBuilder
 
 #include <variant>
 
@@ -17,11 +17,10 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils {
 
-/// Builder class for engine::Task and engine::TaskWithResult.
-/// Use it if you want to build a task with complex properties
-/// or even the property values are determined at runtime.
-/// If you just want to start a task, use @ref utils::Async
-/// or @ref engine::AsyncNoSpan.
+/// @brief Builder class for @ref engine::Task and @ref engine::TaskWithResult.
+///
+/// Use it if you want to build a task with complex properties or even the property values are determined at runtime.
+/// If you just want to start a task, use @ref utils::Async or @ref engine::AsyncNoSpan.
 ///
 /// @see @ref intro_tasks
 class TaskBuilder final {
@@ -91,6 +90,7 @@ public:
     auto BuildShared(Function&& f, Args&&... args);
 
 private:
+    template <typename Task>
     engine::impl::TaskConfig MakeConfig() const;
 
     auto MakeSpanFunctor(
@@ -109,7 +109,6 @@ private:
     // Note: do not use impl::TaskConfig as it stores a ref to TaskProcessor, which cannot be nullptr
     engine::TaskProcessor* tp_{nullptr};
     engine::Task::Importance importance_{engine::Task::Importance::kNormal};
-    engine::Task::WaitMode wait_mode_{engine::Task::WaitMode::kSingleWaiter};
     engine::Deadline deadline_;
     std::optional<std::variant<std::string, NoSpanTag, HideSpanTag>> span_;
     utils::impl::SpanWrapCall::InheritVariables inherit_variables_{utils::impl::SpanWrapCall::InheritVariables::kYes};
@@ -121,6 +120,12 @@ inline auto TaskBuilder::MakeSpanFunctor(
     const utils::impl::SourceLocation& location
 ) {
     return utils::impl::SpanLazyPrvalue(std::move(name), inherit_variables_, hide_span, location);
+}
+
+template <typename Task>
+engine::impl::TaskConfig TaskBuilder::MakeConfig() const {
+    auto& tp = tp_ ? *tp_ : engine::current_task::GetTaskProcessor();
+    return {tp, importance_, Task::kWaitMode, deadline_};
 }
 
 template <typename Function, typename... Args>
@@ -148,18 +153,20 @@ Task TaskBuilder::BuildTask(Function&& f, Args&&... args) {
         *span_,
         [&](const std::string& name) {
             return Task{engine::impl::MakeTask(
-                MakeConfig(),
+                MakeConfig<Task>(),
                 MakeSpanFunctor({name}, HideSpan::kNo),
                 std::forward<Function>(f),
                 std::forward<Args>(args)...
             )};
         },
         [&](NoSpanTag) {
-            return Task{engine::impl::MakeTask(MakeConfig(), std::forward<Function>(f), std::forward<Args>(args)...)};
+            return Task{
+                engine::impl::MakeTask(MakeConfig<Task>(), std::forward<Function>(f), std::forward<Args>(args)...)
+            };
         },
         [&](HideSpanTag) {
             return Task{engine::impl::MakeTask(
-                MakeConfig(),
+                MakeConfig<Task>(),
                 MakeSpanFunctor({}, HideSpan::kYes),
                 std::forward<Function>(f),
                 std::forward<Args>(args)...

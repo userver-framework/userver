@@ -7,9 +7,8 @@ properties:
         description: if a request matches this path wildcard then process it by handler
     as_fallback:
         type: string
-        description: set to "implicit-http-options" and do not specify a path if this
-            handler processes the OPTIONS requests for paths that do not process OPTIONS
-            method
+        description: set to "implicit-http-options" and do not specify a path if this handler processes the OPTIONS requests for
+            paths that do not process OPTIONS method
         enum:
           - implicit-http-options
           - unknown
@@ -33,8 +32,8 @@ properties:
         default: 65536
     parse_args_from_body:
         type: boolean
-        description: optional field to parse request according to x-www-form-urlencoded
-            rules and make parameters accessible as query parameters
+        description: optional field to parse request according to x-www-form-urlencoded rules and make parameters accessible as
+            query parameters
         default: false
     auth:
         type: object
@@ -52,8 +51,7 @@ properties:
                     description: auth type
     url_trailing_slash:
         type: string
-        description: "'both' to treat URLs with and without a trailing slash as equal,
-            'strict-match' otherwise"
+        description: "'both' to treat URLs with and without a trailing slash as equal, 'strict-match' otherwise"
         default: 'both'
         enum:
           - both
@@ -88,9 +86,8 @@ properties:
         default: true
     throttling_enabled:
         type: boolean
-        description: allow throttling of the requests by components::Server , for
-            more info see its `max_response_size_in_flight` and `requests_queue_size_threshold`
-            options
+        description: allow throttling of the requests by components::Server , for more info see its `max_response_size_in_flight`
+            and `requests_queue_size_threshold` options
         default: true
     set-response-server-hostname:
         type: boolean
@@ -105,13 +102,11 @@ properties:
         default: false
     monitor-handler:
         type: boolean
-        description: overrides the in-code `is_monitor` flag that makes the handler
-            run either on 'server.listener' or on 'server.listener-monitor'
+        description: overrides the in-code `is_monitor` flag that makes the handler run either on 'server.listener' or on 'server.listener-monitor'
         default: uses in-code flag value
     set_tracing_headers:
         type: boolean
-        description: whether to set http tracing headers (X-YaTraceId, X-YaSpanId,
-            X-RequestId)
+        description: whether to set http tracing headers (X-YaTraceId, X-YaSpanId, X-RequestId)
         default: true
     deadline_propagation_enabled:
         type: boolean
@@ -130,6 +125,13 @@ properties:
             Deadline propagation is disabled if disabled statically OR
             dynamically.
         default: true
+    deadline_propagation_prefer_timestamp:
+        type: boolean
+        description: |
+            When `true`, use X-Request-Deadline as this handler's request/task deadline when allowed
+            by dynamic config. The value is still captured for propagation to downstream services when
+            the header is present.
+        default: false
     deadline_expired_status_code:
         type: integer
         description: the HTTP status code to return if the request deadline expires

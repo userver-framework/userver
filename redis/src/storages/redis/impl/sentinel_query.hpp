@@ -1,6 +1,7 @@
 #pragma once
 
 #include <atomic>
+#include <set>
 
 #include <userver/storages/redis/base.hpp>
 #include <userver/utils/assert.hpp>
@@ -11,6 +12,14 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::redis::impl {
 
 struct GetHostsRequest {
+    static GetHostsRequest QuerySentinelMasters(Shard& sentinel_shard, Password password) {
+        return GetHostsRequest(sentinel_shard, std::move(password));
+    }
+    static GetHostsRequest QuerySentinelSlaves(Shard& sentinel_shard, std::string shard_name, Password password) {
+        return GetHostsRequest(sentinel_shard, std::move(shard_name), std::move(password));
+    }
+
+private:
     // For MASTERS
     GetHostsRequest(Shard& sentinel_shard, Password password)
         : sentinel_shard(sentinel_shard),
@@ -35,6 +44,7 @@ struct GetHostsRequest {
         UASSERT(command.GetCommandCount() == 1);
     }
 
+public:
     Shard& sentinel_shard;
     CmdArgs command;
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <ydb-cpp-sdk/client/query/fwd.h>
+#include <ydb-cpp-sdk/client/query/client.h>
 #include <ydb-cpp-sdk/client/result/result.h>
 #include <ydb-cpp-sdk/client/table/table.h>
 
@@ -10,6 +10,7 @@
 #include <optional>
 #include <typeinfo>
 
+#include <userver/utils/meta.hpp>
 #include <userver/utils/not_null.hpp>
 #include <userver/ydb/impl/cast.hpp>
 #include <userver/ydb/io/insert_row.hpp>
@@ -131,6 +132,25 @@ public:
     /// cursor is empty
     Row GetFirstRow();
 
+    /// @brief Extract first row
+    /// @throws EmptyResponseError if @ref empty().
+    /// @throws IgnoreResultsError if @ref size() > 1.
+    Row GetSingleRow() &&;
+
+    /// @brief Extract data into a container. Each row is parsed using @ref Row::As.
+    template <typename Container>
+    Container AsContainer() &&;
+
+    /// @brief Extract first row into user type using @ref Row::As.
+    /// @throws EmptyResponseError if @ref empty().
+    template <typename T>
+    T AsSingleRow() &&;
+
+    /// @brief Extract first row into user type using @ref Row::As.
+    /// @returns A single row result set if non empty result was returned, empty `std::optional` otherwise
+    template <typename T>
+    std::optional<T> AsOptionalSingleRow() &&;
+
     /// Returns true if response has been truncated to the database limit
     /// (currently 1000 rows)
     bool IsTruncated() const;
@@ -154,8 +174,8 @@ private:
 class ExecuteResponse final {
 public:
     /// @cond
-    explicit ExecuteResponse(NYdb::NTable::TDataQueryResult&& query_result);
-    explicit ExecuteResponse(NYdb::NQuery::TExecuteQueryResult&& query_result);
+    explicit ExecuteResponse(std::variant<NYdb::NQuery::TExecuteQueryResult, NYdb::NTable::TDataQueryResult>&&
+                                 query_result);
     /// @endcond
 
     ExecuteResponse(const ExecuteResponse&) = delete;
@@ -247,6 +267,36 @@ T Row::Get(std::size_t column_index) {
     auto& column = GetColumn(column_index);
     const auto column_name = std::to_string(column_index);
     return Parse<T>(column, ParseContext{/*column_name=*/column_name});
+}
+
+template <typename Container>
+Container Cursor::AsContainer() && {
+    using ValueType = typename Container::value_type;
+    Container c;
+    if constexpr (meta::kIsReservable<Container>) {
+        c.reserve(size());
+    }
+
+    auto inserter = meta::Inserter(c);
+    for (Row row : *this) {
+        *inserter = std::move(row).As<ValueType>();
+        ++inserter;
+    }
+
+    return c;
+}
+
+template <typename T>
+T Cursor::AsSingleRow() && {
+    return std::move(*this).GetSingleRow().As<T>();
+}
+
+template <typename T>
+std::optional<T> Cursor::AsOptionalSingleRow() && {
+    if (empty()) {
+        return std::nullopt;
+    }
+    return std::move(*this).AsSingleRow<T>();
 }
 
 }  // namespace ydb

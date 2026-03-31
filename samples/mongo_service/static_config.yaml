@@ -2,10 +2,10 @@
 # yaml
 components_manager:
     components:
-        mongo-tr:     # Matches component registration and component retrieval strings
+        mongo-tr:  # Matches component registration and component retrieval strings
             dbconnection: mongodb://localhost:27217/admin
 
-        dns-client:                     # Asynchronous DNS component
+        dns-client:  # Asynchronous DNS component
             fs-task-processor: fs-task-processor
 
         handler-translations:
@@ -14,11 +14,11 @@ components_manager:
             task_processor: main-task-processor
 
         server:
-            # ...
-# /// [Mongo service sample - static config]
-            listener:                 # configuring the main listening socket...
-                port: 8090            # ...to listen on this port and...
-                task_processor: main-task-processor    # ...process incoming requests on this task processor.
+            # /// [Mongo service sample - static config]
+            listener:  # configuring the main listening socket...
+                port: 8090  # ...to listen on this port and...
+                task_processor: main-task-processor  # ...process incoming requests on this task processor.
+                # ...
         logging:
             fs-task-processor: fs-task-processor
             loggers:
@@ -27,12 +27,12 @@ components_manager:
                     level: debug
                     overflow_behavior: discard  # Drop logs if the system is too busy to write them down.
 
-    task_processors:                  # Task processor is an executor for coroutine tasks
+    task_processors:  # Task processor is an executor for coroutine tasks
 
-        main-task-processor:          # Make a task processor for CPU-bound coroutine tasks.
-            worker_threads: 4         # Process tasks in 4 threads.
+        main-task-processor:  # Make a task processor for CPU-bound coroutine tasks.
+            worker_threads: 4  # Process tasks in 4 threads.
 
-        fs-task-processor:            # Make a separate task processor for filesystem bound tasks.
+        fs-task-processor:  # Make a separate task processor for filesystem bound tasks.
             worker_threads: 4
 
     default_task_processor: main-task-processor  # Task processor in which components start.

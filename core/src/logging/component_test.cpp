@@ -14,7 +14,6 @@
 #include <userver/fs/blocking/write.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/os_signals/component.hpp>
-#include <userver/tracing/component.hpp>
 #include <userver/utest/utest.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -98,8 +97,6 @@ components_manager:
         custom:
           file_path: $custom-logger-path
           format: tskv
-    tracer:
-      service-name: test-service
     two-loggers:
 )";
 
@@ -112,7 +109,6 @@ components::ComponentList MakeTwoLoggersComponentList() {
     return components::ComponentList()
         .Append<os_signals::ProcessorComponent>()
         .Append<components::Logging>()
-        .Append<components::Tracer>()
         .Append<components::StatisticsStorage>()
         .Append<TwoLoggersComponent>();
 }

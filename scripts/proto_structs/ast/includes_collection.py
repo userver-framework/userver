@@ -17,17 +17,24 @@ from proto_structs.models import type_overrides
 from proto_structs.models import type_ref_consts
 
 
-def collect(*, file_ast: ast.File, plugin_options: Any | None) -> list[str]:
+def collect(*, file_ast: ast.File, plugin_options: Any | None, use_induced_deps: bool = True) -> list[str]:
     """
     Recursively collect all includes that will be present in the generated structs hpp or cpp file.
     Includes to other structs or vanilla protobuf files are NOT accounted for.
-    The result does not include proto structs bundles, which are always present.
     The result is always sorted.
+
+    The result does not include proto structs bundles, which are always present.
+
+    With use_induced_deps=True, the includes from induced_deps_hpp.hpp and induced_deps_cpp.hpp
+    are additionally excluded from the result.
     """
     parsed_options = options.PluginOptions(**plugin_options) if plugin_options else options.PluginOptions()
     includes_set = {include.path for include in collect_file(file_ast, plugin_options=parsed_options)}
     includes_set.difference_update(includes_bundles.bundle_hpp())
     includes_set.difference_update(includes_bundles.bundle_cpp())
+    if use_induced_deps:
+        includes_set.difference_update(includes_bundles.induced_deps_hpp())
+        includes_set.difference_update(includes_bundles.induced_deps_cpp())
     return sorted(includes_set)
 
 

@@ -131,7 +131,7 @@ std::enable_if_t<std::is_base_of_v<RawComponentBase, T>, T&> LocateDependency(
 ///
 /// The core limitation of a type `T` registered via `ContainerName(Of<T>)` is
 /// that it is not able to explicitly use
-/// @ref components::ComponentContext in the consturctor.
+/// @ref components::ComponentContext in the constructor.
 /// But if you want to only "fetch" something from the context,
 /// you're always able to define your own @ref components::LocateDependency
 /// that fetches everything you need from @ref components::ComponentContext.

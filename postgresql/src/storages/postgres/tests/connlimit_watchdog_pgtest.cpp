@@ -83,9 +83,7 @@ public:
     );
 
     Watchdog()
-        : cluster_(
-              CreateClusterImpl(this->GetDsnListFromEnv(), this->GetTaskProcessor(), kHostsCount * 2, testsuite_tasks_)
-          )
+        : cluster_(CreateClusterImpl(GetDsnListFromEnv(), GetTaskProcessor(), kHostsCount * 2, testsuite_tasks_))
     {
         // Do the step of ConnlimitWatchdog to create the table.
         testsuite_tasks_.RunTask(kWatchdogTaskName);
@@ -116,7 +114,6 @@ private:
         t.Commit();
     }
 
-private:
     testsuite::TestsuiteTasks testsuite_tasks_{true};
     pgd::ClusterImpl cluster_;
 };

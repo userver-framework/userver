@@ -19,26 +19,26 @@ public:
         CancellableSemaphore& sem,
         CancellableSemaphore::Counter count
     ) noexcept
-        : sem_(sem), current_(current), waiter_token_(*sem_.lock_waiters_), count_(count) {}
+        : sem_(sem), current_(current), awaiter_token_(*sem_.lock_awaiters_), count_(count) {}
 
-    impl::EarlyWakeup SetupWakeups() override {
-        impl::WaitList::Lock lock(*sem_.lock_waiters_);
+    impl::EarlyNotify SetupWakeups() override {
+        impl::WaitList::Lock lock(*sem_.lock_awaiters_);
         status_ = sem_.DoTryLock(count_);
         if (status_ != TryLockStatus::kTransientFailure) {
-            return impl::EarlyWakeup{status_ == TryLockStatus::kSuccess};
+            return impl::EarlyNotify{status_ == TryLockStatus::kSuccess};
         }
         if (sem_.UsedApprox() <= sem_.GetCapacity() - count_) {
-            return impl::EarlyWakeup{true};
+            return impl::EarlyNotify{true};
         }
         // A race is not possible here, because check + Append is performed under
         // WaitList::Lock, and notification also takes WaitList::Lock.
-        sem_.lock_waiters_->Append(lock, &current_);
-        return impl::EarlyWakeup{false};
+        sem_.lock_awaiters_->Append(lock, &current_, current_.GetAwaiterContext());
+        return impl::EarlyNotify{false};
     }
 
     void DisableWakeups() noexcept override {
-        impl::WaitList::Lock lock(*sem_.lock_waiters_);
-        sem_.lock_waiters_->Remove(lock, current_);
+        impl::WaitList::Lock lock(*sem_.lock_awaiters_);
+        sem_.lock_awaiters_->Remove(lock, current_, current_.GetAwaiterContext());
     }
 
     TryLockStatus GetTryLockStatus() const noexcept { return status_; }
@@ -46,7 +46,7 @@ public:
 private:
     CancellableSemaphore& sem_;
     impl::TaskContext& current_;
-    const impl::WaitList::WaitersScopeCounter waiter_token_;
+    const impl::WaitList::AwaitersScopeCounter awaiter_token_;
     const CancellableSemaphore::Counter count_;
     TryLockStatus status_{TryLockStatus::kTransientFailure};
 };
@@ -71,9 +71,9 @@ CancellableSemaphore::~CancellableSemaphore() {
 void CancellableSemaphore::SetCapacity(Counter capacity) {
     capacity_.store(capacity);
 
-    if (lock_waiters_->GetCountOfSleepies()) {
-        impl::WaitList::Lock lock{*lock_waiters_};
-        lock_waiters_->WakeupAll(lock);
+    if (lock_awaiters_->GetCountOfSleepies()) {
+        impl::WaitList::Lock lock{*lock_awaiters_};
+        lock_awaiters_->NotifyAll(lock);
     }
 }
 
@@ -122,12 +122,12 @@ void CancellableSemaphore::unlock_shared_count(const Counter count) {
         )
     );
 
-    if (lock_waiters_->GetCountOfSleepies()) {
-        impl::WaitList::Lock lock{*lock_waiters_};
+    if (lock_awaiters_->GetCountOfSleepies()) {
+        impl::WaitList::Lock lock{*lock_awaiters_};
         if (count > 1) {
-            lock_waiters_->WakeupAll(lock);
+            lock_awaiters_->NotifyAll(lock);
         } else {
-            lock_waiters_->WakeupOne(lock);
+            lock_awaiters_->NotifyOne(lock);
         }
     }
 }

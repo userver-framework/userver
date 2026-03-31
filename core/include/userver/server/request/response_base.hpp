@@ -97,7 +97,7 @@ public:
     bool IsLimitReached() const;
 
     bool IsReady() const { return is_ready_; }
-    bool IsSent() const { return is_sent_; }
+    bool IsSent() const noexcept { return is_sent_; }
     size_t BytesSent() const { return bytes_sent_; }
     std::chrono::steady_clock::time_point ReadyTime() const { return ready_time_; }
     std::chrono::steady_clock::time_point SentTime() const { return sent_time_; }

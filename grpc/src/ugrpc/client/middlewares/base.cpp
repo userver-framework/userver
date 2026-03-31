@@ -10,7 +10,10 @@ namespace ugrpc::client {
 
 void MiddlewareBase::PreStartCall(MiddlewareCallContext& /*context*/) const {}
 
-void MiddlewareBase::PostFinish(MiddlewareCallContext& /*context*/, const grpc::Status& /*status*/) const {}
+void MiddlewareBase::PostFinish(
+    MiddlewareCallContext& /*context*/,
+    const CompletionStatus& /*result*/
+) const {}
 
 void MiddlewareBase::PreSendMessage(MiddlewareCallContext& /*context*/, const google::protobuf::Message& /*message*/)
     const {}

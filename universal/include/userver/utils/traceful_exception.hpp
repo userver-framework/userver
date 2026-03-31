@@ -4,6 +4,7 @@
 /// @brief @copybrief utils::TracefulException
 
 #include <exception>
+#include <iterator>
 #include <string>
 #include <type_traits>
 

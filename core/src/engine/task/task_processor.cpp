@@ -50,18 +50,18 @@ constexpr OverloadActionAndValue<OverloadBitAndValue> GetOverloadActionAndValue(
     }
 }
 
-void SetTaskQueueWaitTimepoint(impl::TaskContext* context) {
+void SetTaskQueueWaitTimepoint(impl::TaskContext& context) {
     static constexpr std::size_t kTaskTimestampInterval = 4;
     thread_local std::size_t task_count = 0;
     if (task_count++ == kTaskTimestampInterval) {
         task_count = 0;
-        context->SetQueueWaitTimepoint(std::chrono::steady_clock::now());
+        context.SetQueueWaitTimepoint(std::chrono::steady_clock::now());
     } else {
         /* Don't call clock_gettime() too often.
          * This leads to killing some innocent tasks on overload, up to
          * +(kTaskTimestampInterval-1), we may sacrifice them.
          */
-        context->SetQueueWaitTimepoint(std::chrono::steady_clock::time_point());
+        context.SetQueueWaitTimepoint(std::chrono::steady_clock::time_point());
     }
 }
 
@@ -191,7 +191,7 @@ void TaskProcessor::InitiateShutdown() {
     detached_contexts_->RequestCancellation(TaskCancellationReason::kShutdown);
 }
 
-void TaskProcessor::Schedule(impl::TaskContext* context) {
+void TaskProcessor::Schedule(boost::intrusive_ptr<impl::TaskContext>&& context) {
     UASSERT(context);
     UASSERT(&context->GetTaskProcessor() == this);
     const auto [action, max_queue_length] = GetOverloadActionAndValue(action_bit_and_max_task_queue_wait_length_);
@@ -213,9 +213,9 @@ void TaskProcessor::Schedule(impl::TaskContext* context) {
         context->RequestCancel(TaskCancellationReason::kShutdown);
     }
 
-    SetTaskQueueWaitTimepoint(context);
+    SetTaskQueueWaitTimepoint(*context);
 
-    std::visit([&context](auto&& arg) { return arg.Push(context); }, task_queue_);
+    std::visit([&context](auto&& arg) { return arg.Push(std::move(context)); }, task_queue_);
 }
 
 void TaskProcessor::Adopt(impl::TaskContext& context) { detached_contexts_->Add(context); }
@@ -396,20 +396,14 @@ void TaskProcessor::ProcessTasks() noexcept {
 
         CheckWaitTime(*context);
 
-        bool has_failed = false;
         try {
             const impl::TaskCounter::RunningToken token{GetTaskCounter()};
             context->DoStep();
         } catch (const std::exception& ex) {
             LOG_ERROR() << "uncaught exception from DoStep: " << ex;
-            has_failed = true;
         }
 
         pools_->GetCoroPool().AccountStackUsage();
-
-        if (has_failed || context->IsFinished()) {
-            context->FinishDetached();
-        }
     }
 }
 

@@ -11,11 +11,11 @@ USERVER_NAMESPACE_BEGIN
 TEST(YamlConfig, Presence) {
     static_assert(formats::common::impl::kHasParse<USERVER_NAMESPACE::yaml_config::YamlConfig, ns::CustomStruct1>);
 
-    // Due to JSON extra
-    static_assert(!formats::common::impl::kHasParse<USERVER_NAMESPACE::yaml_config::YamlConfig, ns::CustomAllOf__P0>);
+    // JSON extra is convertible
+    static_assert(formats::common::impl::kHasParse<USERVER_NAMESPACE::yaml_config::YamlConfig, ns::CustomAllOf__P0>);
 
     // Transitively
-    static_assert(!formats::common::impl::kHasParse<USERVER_NAMESPACE::yaml_config::YamlConfig, ns::CustomAllOf>);
+    static_assert(formats::common::impl::kHasParse<USERVER_NAMESPACE::yaml_config::YamlConfig, ns::CustomAllOf>);
 }
 
 TEST(YamlConfig, Parse) {

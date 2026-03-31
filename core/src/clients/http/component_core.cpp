@@ -108,7 +108,7 @@ HttpClientCore::HttpClientCore(const ComponentConfig& component_config, const Co
     const auto thread_name_prefix = component_config["thread-name-prefix"].As<std::string>("");
     auto stats_name = "httpclient" + (thread_name_prefix.empty() ? "" : ("-" + thread_name_prefix));
     utils::statistics::RegisterWriterScope(context, std::move(stats_name), [this](utils::statistics::Writer& writer) {
-        return WriteStatistics(writer);
+        WriteStatistics(writer);
     });
 }
 

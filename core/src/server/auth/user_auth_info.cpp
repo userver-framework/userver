@@ -81,7 +81,7 @@ const UserAuthInfo& GetUserAuthInfo(const server::request::RequestContext& reque
     return *pauth_info;
 }
 
-const std::optional<UserAuthInfo> GetUserAuthInfoOpt(const server::request::RequestContext& request_context) {
+std::optional<UserAuthInfo> GetUserAuthInfoOpt(const server::request::RequestContext& request_context) {
     const auto* pauth_info = request_context.GetDataOptional<UserAuthInfo>(kRequestContextKeyUserAuthInfo);
 
     if (!pauth_info) {

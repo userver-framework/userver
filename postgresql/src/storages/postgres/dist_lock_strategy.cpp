@@ -19,14 +19,23 @@ namespace {
 // timeout in seconds - $3
 std::string MakeAcquireQuery(const std::string& table) {
     static constexpr std::string_view kAcquireQueryFmt = R"(
-    INSERT INTO {} AS t (key, owner, expiration_time) VALUES
-    ($1, $2, current_timestamp + make_interval(secs => $3))
+    INSERT INTO {} AS t (key, owner, expiration_time) SELECT
+    $1, $2, current_timestamp + make_interval(secs => $3)
+    -- don't insert any records when actual lock from another owner is exists
+    WHERE NOT EXISTS (
+        -- actual lock from another owner
+        SELECT *
+        FROM {}
+        WHERE key = $1
+          AND owner <> $2
+          AND expiration_time > current_timestamp
+    )
     ON CONFLICT (key) DO UPDATE
     SET owner = $2, expiration_time = current_timestamp + make_interval(secs => $3)
     WHERE (t.owner = $2) OR
     (t.expiration_time <= current_timestamp) RETURNING 1;
 )";
-    return fmt::format(FMT_COMPILE(kAcquireQueryFmt), table);
+    return fmt::format(FMT_COMPILE(kAcquireQueryFmt), table, table);
 }
 
 // key - $1

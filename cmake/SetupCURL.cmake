@@ -1,6 +1,8 @@
+# @ingroup download
 option(USERVER_DOWNLOAD_PACKAGE_CURL "Download and setup libcurl if no libcurl of matching version was found"
        ${USERVER_DOWNLOAD_PACKAGES}
 )
+# @ingroup download
 option(USERVER_FORCE_DOWNLOAD_CURL "Download Curl even if there is an installed system package"
        ${USERVER_FORCE_DOWNLOAD_PACKAGES}
 )

@@ -58,6 +58,7 @@ extern UserverExperiment kJemallocBgThread;
 extern UserverExperiment kServerSelectionTimeoutExperiment;
 extern UserverExperiment kPgCcExperiment;
 extern UserverExperiment kYdbDeadlinePropagationExperiment;
+extern UserverExperiment kWaitAllCheckedUpgradeExperiment;
 
 }  // namespace utils::impl
 

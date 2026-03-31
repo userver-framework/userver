@@ -11,7 +11,6 @@
 #include <userver/dynamic_config/fwd.hpp>
 #include <userver/dynamic_config/snapshot.hpp>
 #include <userver/logging/fwd.hpp>
-#include <userver/tracing/in_place_span.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/utils/any_storage.hpp>
 
@@ -38,7 +37,7 @@ struct CallParams {
     const std::string_view method_name;
     ugrpc::impl::MethodStatistics& method_statistics;
     ugrpc::impl::StatisticsStorage& statistics_storage;
-    std::optional<tracing::InPlaceSpan>& span_storage;
+    tracing::Span& span;
     const Middlewares& middlewares;
     const dynamic_config::Source& config_source;
     const boost::container::flat_map<grpc::StatusCode, logging::Level>& status_codes_log_level;
@@ -48,7 +47,7 @@ struct CallParams {
 struct CallState : CallParams {
     explicit CallState(CallParams&& params);
 
-    tracing::Span& GetSpan();
+    tracing::Span& GetSpan() { return span; }
 
     ugrpc::impl::RpcStatisticsScope statistics_scope;
     std::optional<dynamic_config::Snapshot> config_snapshot;

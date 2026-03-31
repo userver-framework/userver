@@ -1,5 +1,8 @@
 #include <userver/server/congestion_control/limiter.hpp>
 
+#include <boost/range/adaptor/transformed.hpp>
+#include <boost/range/numeric.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace server::congestion_control {
@@ -11,6 +14,14 @@ void Limiter::SetLimit(const USERVER_NAMESPACE::congestion_control::Limit& new_l
     for (const auto& limitee : *lock) {
         limitee->SetLimit(limit);
     }
+}
+
+std::size_t Limiter::GetLimitableHandlersCount() const {
+    auto lock = limitees_.Lock();
+    return boost::accumulate(
+        *lock | boost::adaptors::transformed([](auto ptr) { return ptr->GetLimitableHandlersCount(); }),
+        std::size_t{0}
+    );
 }
 
 void Limiter::RegisterLimitee(Limitee& limitee) {

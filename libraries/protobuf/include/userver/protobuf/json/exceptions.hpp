@@ -13,8 +13,8 @@ USERVER_NAMESPACE_BEGIN
 /// @brief Top namespace for the protobuf JSON utilities.
 namespace protobuf::json {
 
-/// @brief JSON read error code.
-enum class ReadErrorCode {
+/// @brief JSON `Value` to protobuf message conversion error code.
+enum class ParseErrorCode {
     /// @brief JSON field is unknown (does not match to any protobuf message field).
     kUnknownField = 1,
 
@@ -31,12 +31,11 @@ enum class ReadErrorCode {
     kInvalidValue = 5
 };
 
-/// @brief JSON write error code.
-enum class WriteErrorCode {
-    /// @brief Protobuf well-known message does not have expected field
+/// @brief Protobuf message to JSON `Value` conversion error code.
+enum class PrintErrorCode {
     /// @brief Protobuf message field has invalid value.
     /// This code can be set when converting well-known message which may have more strict constraints than the
-    /// typesof their fields (see
+    /// types of their fields (see
     /// [here](https://github.com/protocolbuffers/protobuf/blob/main/src/google/protobuf/duration.proto) for example).
     kInvalidValue = 1
 };
@@ -46,7 +45,7 @@ enum class WriteErrorCode {
 template <
     typename TErrorCode,
     typename = std::enable_if_t<
-        std::is_same_v<TErrorCode, ReadErrorCode> || std::is_same_v<TErrorCode, WriteErrorCode>>>
+        std::is_same_v<TErrorCode, ParseErrorCode> || std::is_same_v<TErrorCode, PrintErrorCode>>>
 class ConversionErrorInfo {
 public:
     using ErrorCodeType = TErrorCode;
@@ -79,11 +78,11 @@ private:
     std::string path_;
 };
 
-/// @brief JSON read error information.
-using ReadErrorInfo = ConversionErrorInfo<ReadErrorCode>;
+/// @brief JSON `Value` to protobuf message conversion error information.
+using ParseErrorInfo = ConversionErrorInfo<ParseErrorCode>;
 
-/// @brief JSON write error information.
-using WriteErrorInfo = ConversionErrorInfo<WriteErrorCode>;
+/// @brief Protobuf message to JSON `Value` conversion error information.
+using PrintErrorInfo = ConversionErrorInfo<PrintErrorCode>;
 
 /// @brief Base exception type for JSON utilities.
 class JsonError : public protobuf::Error {
@@ -107,7 +106,7 @@ public:
 
     /// @brief Creates error for invalid json/protobuf field identified by @a path .
     /// See @ref ConversionErrorInfo::ConversionErrorInfo for more information about @a path format.
-    ConversionError(ErrorCodeType code, std::string path);
+    ConversionError(ErrorCodeType code, std::string path, std::string_view description = "");
 
     /// @brief Returns information about occurred error.
     [[nodiscard]] const ErrorInfoType& GetErrorInfo() const& noexcept { return error_info_; }
@@ -119,14 +118,14 @@ private:
     ErrorInfoType error_info_;
 };
 
-extern template class ConversionError<ReadErrorCode>;
-extern template class ConversionError<WriteErrorCode>;
+extern template class ConversionError<ParseErrorCode>;
+extern template class ConversionError<PrintErrorCode>;
 
-/// @brief JSON read error.
-using ReadError = ConversionError<ReadErrorCode>;
+/// @brief JSON `Value` to protobuf message conversion error.
+using ParseError = ConversionError<ParseErrorCode>;
 
-/// @brief JSON write error.
-using WriteError = ConversionError<WriteErrorCode>;
+/// @brief Protobuf message to JSON `Value` conversion error.
+using PrintError = ConversionError<PrintErrorCode>;
 
 }  // namespace protobuf::json
 

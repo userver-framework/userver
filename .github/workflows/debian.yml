@@ -38,21 +38,21 @@ jobs:
                     info: Debian 12
                     deps-file: debian-12.md
 
-                  # TODO: fails with:
-                  # 1)  ld.lld: error: undefined symbol: icudt76_dat
-                  #      >>> referenced by udata.ao:(openCommonData(char const*, int, UErrorCode*)) in archive /usr/lib/x86_64-linux-gnu/libicuuc.a
-                  # 2) userver/userver/universal/src/decimal64/decimal64_test.cpp:29:47: error: passing no argument for the '...' parameter of a variadic macro is a C++20 extension [-Werror,-Wc++20-extensions]
-                  #    TYPED_TEST_SUITE(Decimal64Round, RoundPolicies);
-                  # - cmake-flags: >-
-                  #     -DCMAKE_CC_COMPILER=clang-19
-                  #     -DCMAKE_CXX_COMPILER=clang++-19
-                  #     -DUSERVER_FEATURE_GRPC=OFF
-                  #     -DUSERVER_FEATURE_OTLP=OFF
-                  #     -DUSERVER_FEATURE_GRPC_REFLECTION=OFF
-                  #     -DUSERVER_FORCE_DOWNLOAD_RE2=ON
-                  #   image: debian:13
-                  #   info: Debian 13
-                  #   deps-file: debian-13.md
+                # TODO: fails with:
+                # 1)  ld.lld: error: undefined symbol: icudt76_dat
+                #      >>> referenced by udata.ao:(openCommonData(char const*, int, UErrorCode*)) in archive /usr/lib/x86_64-linux-gnu/libicuuc.a
+                # 2) userver/userver/universal/src/decimal64/decimal64_test.cpp:29:47: error: passing no argument for the '...' parameter of a variadic macro is a C++20 extension [-Werror,-Wc++20-extensions]
+                #    TYPED_TEST_SUITE(Decimal64Round, RoundPolicies);
+                # - cmake-flags: >-
+                #     -DCMAKE_CC_COMPILER=clang-19
+                #     -DCMAKE_CXX_COMPILER=clang++-19
+                #     -DUSERVER_FEATURE_GRPC=OFF
+                #     -DUSERVER_FEATURE_OTLP=OFF
+                #     -DUSERVER_FEATURE_GRPC_REFLECTION=OFF
+                #     -DUSERVER_FORCE_DOWNLOAD_RE2=ON
+                #   image: debian:13
+                #   info: Debian 13
+                #   deps-file: debian-13.md
 
         name: '${{ matrix.info }}'
         runs-on: ubuntu-latest
@@ -156,6 +156,6 @@ jobs:
 
           - name: Run tests
             if: ${{ false }}
-            run: |
+            run: |-
                 cd build_debug
                 ctest -V

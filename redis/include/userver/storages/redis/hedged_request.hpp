@@ -36,7 +36,6 @@ namespace impl {
 
 template <typename RedisRequestType>
 struct RedisRequestStrategy {
-public:
     using RequestType = RedisRequestType;
     using ReplyType = typename RequestType::Reply;
     using GenF = std::function<std::optional<RequestType>(int)>;

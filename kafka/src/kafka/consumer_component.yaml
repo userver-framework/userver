@@ -18,6 +18,15 @@ properties:
             with the client instance which made it,
             which can be helpful in debugging and troubleshooting scenarios.
         default: userver
+    group_instance_id:
+        type: string
+        description: |
+            Enable static group membership. Static group members are able
+            to leave and rejoin a group within the configured session.timeout.ms
+            without prompting a group rebalance. This should be used in combination
+            with a larger session.timeout.ms to avoid group rebalances caused by
+            transient unavailability (e.g. process restarts)
+        default: none
     topics:
         type: array
         description: list of topics consumer subscribes
@@ -26,13 +35,11 @@ properties:
             description: topic name
     max_batch_size:
         type: integer
-        description: maximum number of messages consumer waits for new messages before
-            calling a callback
+        description: maximum number of messages consumer waits for new messages before calling a callback
         default: 1
     poll_timeout:
         type: string
-        description: maximum amount of time consumer waits for new messages before
-            calling a callback
+        description: maximum amount of time consumer waits for new messages before calling a callback
         default: 1s
     message_key_log_format:
         type: string
@@ -78,10 +85,9 @@ properties:
     env_pod_name:
         type: string
         description: |
-            if defined and `group_id` value contains
-            `{pod_name}` substring, the substring
-            is replaced with the value of the environment
-            variable `env_pod_name`
+            if defined and `group_id` or `group_instance_id` value contains
+            `{pod_name}` substring, the substring is replaced with
+            the value of the environment variable `env_pod_name`
         default: none
     security_protocol:
         type: string

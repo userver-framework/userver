@@ -33,6 +33,7 @@ struct LoggerConfig final {
     Level level = Level::kInfo;
     Format format = Format::kTskv;
     Level flush_level = Level::kWarning;
+    bool truncate_on_start = false;
 
     // must be a power of 2
     size_t message_queue_size = kDefaultMessageQueueSize;

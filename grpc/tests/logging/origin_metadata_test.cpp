@@ -18,62 +18,54 @@ USERVER_NAMESPACE_BEGIN
 
 namespace {
 
-template <typename ServiceType>
-class WithServerLogMiddleware : public ugrpc::tests::ServiceFixture<ServiceType> {
+using ServiceType = testing::StrictMock<tests::UnitTestServiceGmock>;
+using ClientType = sample::ugrpc::UnitTestServiceClient;
+
+class OriginMetadataServerTestClientServer : public ugrpc::tests::ServiceWithClientFixture<ServiceType, ClientType> {
 public:
-    WithServerLogMiddleware()
-        : ugrpc::tests::ServiceFixture<ServiceType>(
-              {},
-              {std::make_shared<ugrpc::server::middlewares::log::Middleware>([] {
-                  // TODO in C++20, rewrite IILE to designated initialization.
-                  ugrpc::server::middlewares::log::Settings log_settings;
-                  log_settings.msg_log_level = logging::Level::kInfo;
-                  return log_settings;
-              }())},
-              {}
-          ) {}
+    OriginMetadataServerTestClientServer()
+        : ugrpc::tests::ServiceWithClientFixture<ServiceType, ClientType>(
+              ugrpc::server::ServerConfig{},
+              ugrpc::server::Middlewares{MakeMiddleware()},
+              ugrpc::client::Middlewares{}
+          )
+    {}
+
+private:
+    std::shared_ptr<ugrpc::server::middlewares::log::Middleware> MakeMiddleware() {
+        return std::make_shared<ugrpc::server::middlewares::log::Middleware>([] {
+            // TODO in C++20, rewrite IILE to designated initialization.
+            ugrpc::server::middlewares::log::Settings log_settings;
+            log_settings.msg_log_level = logging::Level::kInfo;
+            return log_settings;
+        }());
+    }
 };
+
+class OriginMetadataServerTest : public utest::LogCaptureFixture<OriginMetadataServerTestClientServer> {};
 
 constexpr std::string_view kSampleUserAgent = "test-service/0.0.42";
 
-template <typename ServiceType>
-class WithClientOriginMiddleware : public ugrpc::tests::ServiceFixture<ServiceType> {
+class OriginMetadataClientTest : public ugrpc::tests::ServiceWithClientFixture<ServiceType, ClientType> {
 public:
-    WithClientOriginMiddleware()
-        : ugrpc::tests::ServiceFixture<
-              ServiceType>({}, {}, {std::make_shared<ugrpc::client::middlewares::origin::Middleware>([] {
-                               // TODO in C++20, rewrite IILE to designated initialization.
-                               ugrpc::client::middlewares::origin::Settings origin_settings;
-                               origin_settings.user_agent = kSampleUserAgent;
-                               return origin_settings;
-                           }())}) {}
-};
-
-template <typename ClientType, typename Base>
-class WithClient : public Base {
-public:
-    WithClient()
-        : client_(this->Base::template MakeClient<ClientType>())
+    OriginMetadataClientTest()
+        : ugrpc::tests::ServiceWithClientFixture<ServiceType, ClientType>(
+              ugrpc::server::ServerConfig{},
+              ugrpc::server::Middlewares{},
+              ugrpc::client::Middlewares{MakeMiddleware()}
+          )
     {}
 
-    ClientType& GetClient() { return client_; }
-
 private:
-    ClientType client_;
+    std::shared_ptr<ugrpc::client::middlewares::origin::Middleware> MakeMiddleware() {
+        return std::make_shared<ugrpc::client::middlewares::origin::Middleware>([] {
+            // TODO in C++20, rewrite IILE to designated initialization.
+            ugrpc::client::middlewares::origin::Settings origin_settings;
+            origin_settings.user_agent = kSampleUserAgent;
+            return origin_settings;
+        }());
+    }
 };
-
-class OriginMetadataServerTest          //
-    : public utest::LogCaptureFixture<  //
-          WithClient<
-              sample::ugrpc::UnitTestServiceClient,
-              WithServerLogMiddleware<  //
-                  testing::StrictMock<tests::UnitTestServiceGmock>>>> {};
-
-class OriginMetadataClientTest  //
-    : public WithClient<
-          sample::ugrpc::UnitTestServiceClient,
-          WithClientOriginMiddleware<  //
-              testing::StrictMock<tests::UnitTestServiceGmock>>> {};
 
 }  // namespace
 

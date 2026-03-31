@@ -41,11 +41,11 @@ private:
 
     void EmptySurplusQueue(impl::TaskContext* extra);
 
-    impl::TaskContext* StealFromAnotherConsumerOrGlobalQueue(const std::size_t attempts, std::size_t to_steal);
+    impl::TaskContext* StealFromAnotherConsumerOrGlobalQueue(std::size_t attempts, std::size_t to_steal);
 
     std::size_t Steal(utils::span<impl::TaskContext*> buffer);
 
-    impl::TaskContext* TryPopFromOwnerQueue(const bool is_global);
+    impl::TaskContext* TryPopFromOwnerQueue(bool is_global);
 
     impl::TaskContext* ProbabilisticPopFromOwnerQueues();
 
@@ -57,7 +57,7 @@ private:
 
     impl::TaskContext* DoPop();
 
-    void Sleep(const std::int32_t old_sleep_counter);
+    void Sleep(std::int32_t old_sleep_counter);
 
     void WakeUp();
 

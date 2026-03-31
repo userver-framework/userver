@@ -28,6 +28,7 @@ namespace {
 constexpr utils::StringLiteral kTracingTypeResponse = "response";
 constexpr utils::StringLiteral kTracingBody = "body";
 constexpr utils::StringLiteral kTracingUri = "uri";
+constexpr utils::StringLiteral kTracingResponseBodyLength = "response_body_length";
 
 std::string GetHeadersLogString(const http::HttpResponse& response) {
     std::string result;
@@ -177,6 +178,7 @@ void Tracing::EnrichLogs(
                 std::string{kTracingBody},
                 handler_.GetResponseDataForLoggingChecked(request, context, response.GetData())
             );
+            span.AddNonInheritableTag(std::string{kTracingResponseBodyLength}, response.GetData().length());
         }
         span.AddNonInheritableTag(std::string{kTracingUri}, handler_.GetUrlForLoggingChecked(request, context));
     } catch (const std::exception& ex) {

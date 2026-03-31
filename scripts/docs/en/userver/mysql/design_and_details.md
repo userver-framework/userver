@@ -1,4 +1,4 @@
-## MySQL driver design and implementation details 
+## MySQL driver design and implementation details
 
 ### Driver Architecture
 Like most drivers in 🐙 **userver** the uMySQL driver consists of three logically

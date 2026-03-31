@@ -47,6 +47,9 @@ WELL_KNOWN_TYPES: Mapping[str, type_ref.TypeReference] = {
     'google.type.Date': type_ref.UserverLibraryType(full_cpp_name_wo_userver='proto_structs::Date'),
     'google.type.TimeOfDay': type_ref.UserverLibraryType(full_cpp_name_wo_userver='proto_structs::TimeOfDay'),
     'google.protobuf.Any': type_ref.UserverLibraryType(full_cpp_name_wo_userver='proto_structs::Any'),
+    'google.protobuf.Value': type_ref.UserverLibraryType(full_cpp_name_wo_userver='formats::json::Value'),
+    'google.protobuf.ListValue': type_ref.UserverLibraryType(full_cpp_name_wo_userver='formats::json::Array'),
+    'google.protobuf.Struct': type_ref.UserverLibraryType(full_cpp_name_wo_userver='formats::json::Object'),
 }
 
 

@@ -14,8 +14,7 @@ properties:
         default: 600
     directory-file:
         type: string
-        description: File to return for directory requests. File name (not path) search
-            in requested directory
+        description: File to return for directory requests. File name (not path) search in requested directory
         default: index.html
     not-found-file:
         type: string

@@ -34,7 +34,11 @@ void Middleware::PreStartCall(MiddlewareCallContext& context) const {
     context.GetClientContext().AddMetadata(ugrpc::impl::kXTestsuiteClientName, ugrpc::impl::ToGrpcString(client_name_));
 }
 
-void Middleware::PostFinish(MiddlewareCallContext& context, const grpc::Status&) const {
+void Middleware::PostFinish(MiddlewareCallContext& context, const CompletionStatus& result) const {
+    if (!result.has_value()) {
+        return;
+    }
+
     const auto& metadata = context.GetClientContext().GetServerTrailingMetadata();
 
     if (auto error_code = utils::FindOptional(metadata, ugrpc::impl::kXTestsuiteErrorCode)) {

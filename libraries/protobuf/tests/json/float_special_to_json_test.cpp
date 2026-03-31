@@ -50,7 +50,8 @@ TYPED_TEST(FloatSpecialToJsonTest, Test) {
 
     const auto& value = Param::kValue;
     auto input = PrepareTestData(value);
-    formats::json::Value json, sample_json;
+    formats::json::Value json;
+    formats::json::Value sample_json;
 
     UASSERT_NO_THROW((json = MessageToJson(input, {})));
     UASSERT_NO_THROW((sample_json = CreateSampleJson(input)));

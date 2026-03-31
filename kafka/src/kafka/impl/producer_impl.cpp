@@ -324,7 +324,7 @@ void ProducerImpl::WaitUntilDeliveryReported(engine::Future<DeliveryResult>& del
             continue;
         }
 
-        auto waked_up_by = engine::WaitAny(waiter.event, delivery_result);
+        auto waked_up_by = engine::MakeWaitAny(waiter.event, delivery_result).Wait();
         LOG(debug_info_log_level_) << fmt::format(
             "Wake up reason: {}",
             waked_up_by.has_value() ? (waked_up_by == 0 ? "EventCallback" : "DeliveryResult") : "Cancel"

@@ -104,7 +104,8 @@ public:
         const engine::ev::ThreadControl& thread_control,
         Redis& redis_obj,
         const RedisCreationSettings& redis_settings,
-        const std::string& shard_group_name
+        const std::string& shard_group_name,
+        Statistics& statistics
     );
     ~RedisImpl();
 
@@ -120,10 +121,11 @@ public:
 
     static logging::Level StateChangeToLogLevel(State old_state, State new_state);
     State GetState() const;
+    const NonSharedInstanceStatistics& GetStatistics() const;
+
     const std::string& GetServer() const { return server_; }
     const std::string& GetHost() const { return host_; }
     uint16_t GetPort() const { return port_; }
-    const Statistics& GetStatistics() const { return statistics_; }
     ServerId GetServerId() const { return server_id_; }
     size_t GetRunningCommands() const;
     bool IsDestroying() const { return destroying_; }
@@ -255,7 +257,8 @@ private:
     std::atomic<double> ping_latency_ms_{kInitialPingLatencyMs};
     logging::LogExtra log_extra_;
     bool watch_command_timer_started_ = false;
-    Statistics statistics_;
+    Statistics& statistics_;
+    NonSharedInstanceStatistics non_shared_statistics_;
     ServerId server_id_;
     bool attached_ = false;
     std::shared_ptr<RedisImpl> self_;
@@ -280,11 +283,13 @@ std::string_view StateToString(RedisState state) {
 Redis::Redis(
     const std::shared_ptr<engine::ev::ThreadPool>& thread_pool,
     const RedisCreationSettings& redis_settings,
-    const std::string& shard_group_name
+    const std::string& shard_group_name,
+    Statistics& statistics
 )
     : thread_control_(thread_pool->NextThread())
 {
-    impl_ = std::make_shared<RedisImpl>(thread_pool, thread_control_, *this, redis_settings, shard_group_name);
+    impl_ = std::make_shared<
+        RedisImpl>(thread_pool, thread_control_, *this, redis_settings, shard_group_name, statistics);
 }
 
 Redis::~Redis() {
@@ -307,8 +312,7 @@ void Redis::Connect(
 bool Redis::AsyncCommand(const CommandPtr& command) { return impl_->AsyncCommand(command); }
 
 Redis::State Redis::GetState() const { return impl_->GetState(); }
-
-const Statistics& Redis::GetStatistics() const { return impl_->GetStatistics(); }
+const NonSharedInstanceStatistics& Redis::GetStatistics() const { return impl_->GetStatistics(); }
 
 ServerId Redis::GetServerId() const { return impl_->GetServerId(); }
 
@@ -345,7 +349,8 @@ Redis::RedisImpl::RedisImpl(
     const engine::ev::ThreadControl& thread_control,
     Redis& redis_obj,
     const RedisCreationSettings& redis_settings,
-    const std::string& shard_group_name
+    const std::string& shard_group_name,
+    Statistics& statistics
 )
     : redis_obj_(&redis_obj),
       ev_thread_control_(thread_control),
@@ -353,6 +358,7 @@ Redis::RedisImpl::RedisImpl(
       shard_group_name_(shard_group_name),
       send_readonly_(redis_settings.send_readonly),
       connection_security_(redis_settings.connection_security),
+      statistics_(statistics),
       server_id_(ServerId::Generate()),
       retry_budget_(utils::RetryBudgetSettings{100, 0.1, false})
 {
@@ -782,6 +788,8 @@ void Redis::RedisImpl::OnConnectTimeoutImpl() {
 
 Redis::State Redis::RedisImpl::GetState() const { return state_; }
 
+const NonSharedInstanceStatistics& Redis::RedisImpl::GetStatistics() const { return non_shared_statistics_; }
+
 size_t Redis::RedisImpl::GetRunningCommands() const { return sent_count_; }
 
 logging::Level Redis::RedisImpl::StateChangeToLogLevel(State /*old_state*/, State new_state) {
@@ -814,7 +822,9 @@ void Redis::RedisImpl::SetState(State state) {
       << "Redis server connection state for server=" << GetServer() << " (server_id=" << GetServerId().GetId()
       << ") changed from " << StateToString(state_) << " to " << StateToString(state);
     state_ = state;
-    statistics_.AccountStateChanged(state);
+    if (!IsDestroying()) {
+        statistics_.AccountStateChanged(state);
+    }
 
     auto self = shared_from_this();  // prevents deleting this in Disconnect()
     if (state == State::kConnected) {
@@ -1202,6 +1212,7 @@ void Redis::RedisImpl::ProcessCommand(const CommandPtr& command) {
 
     bool multi = false;
     for (const auto& args : command->args) {
+        non_shared_statistics_.commands_count++;
         if (args.IsMultiCommand()) {
             multi = true;
         }

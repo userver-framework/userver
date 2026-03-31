@@ -1,9 +1,5 @@
 #include "wait_list.hpp"
 
-#include <boost/intrusive/list.hpp>
-
-#include <engine/task/task_context.hpp>
-
 #include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -26,68 +22,59 @@ bool IsInIntrusiveContainer(const Container& container, const Value& val) {
     return false;
 }
 
-using MemberHookConfig = boost::intrusive::member_hook<
-    impl::TaskContext,
-    impl::TaskContext::WaitListHook,
-    &impl::TaskContext::wait_list_hook>;
-
 }  // namespace
-
-struct WaitList::List
-    : public boost::intrusive::make_list<
-          impl::TaskContext,
-          boost::intrusive::constant_time_size<false>,
-          MemberHookConfig>::type {};
 
 // not implicitly noexcept on focal
 // NOLINTNEXTLINE(hicpp-use-equals-default,modernize-use-equals-default)
 WaitList::WaitList() noexcept {}
 
-WaitList::~WaitList() { UASSERT_MSG(waiting_contexts_->empty(), "Someone is waiting on the WaitList"); }
+WaitList::~WaitList() { UASSERT_MSG(awaiters_.empty(), "Someone is waiting on the WaitList"); }
 
 bool WaitList::IsEmpty(Lock& lock) const noexcept {
     UASSERT(lock);
-    return waiting_contexts_->empty();
+    return awaiters_.empty();
 }
 
-void WaitList::Append(Lock& lock, boost::intrusive_ptr<impl::TaskContext> context) noexcept {
+void WaitList::Append(Lock& lock, boost::intrusive_ptr<impl::Awaiter> awaiter, std::uintptr_t context) noexcept {
     UASSERT(lock);
-    UASSERT(context);
-    UASSERT_MSG(!context->wait_list_hook.is_linked(), "context already in list");
+    UASSERT(awaiter);
+    UASSERT_MSG(!awaiter->wait_list_data_.is_linked(), "context already in list");
 
-    waiting_contexts_->push_back(*context.detach());  // referencing, not copying!
+    awaiter->wait_list_data_.context = context;
+    awaiters_.push_back(*awaiter.detach());  // referencing, not copying!
 }
 
-void WaitList::WakeupOne(Lock& lock) {
+void WaitList::NotifyOne(Lock& lock) {
     UASSERT(lock);
-    if (!waiting_contexts_->empty()) {
-        const boost::intrusive_ptr<impl::TaskContext> context(&waiting_contexts_->front(), kAdopt);
-        context->wait_list_hook.unlink();
+    if (awaiters_.empty()) {
+        return;
+    }
+    boost::intrusive_ptr<impl::Awaiter> awaiter(&awaiters_.front(), kAdopt);
+    awaiter->wait_list_data_.unlink();
+    const auto context = awaiter->wait_list_data_.context;
+    impl::Notify(std::move(awaiter), context);
+}
 
-        context->Wakeup(impl::TaskContext::WakeupSource::kWaitList, impl::TaskContext::NoEpoch{});
+void WaitList::NotifyAll(Lock& lock) {
+    UASSERT(lock);
+    while (!awaiters_.empty()) {
+        boost::intrusive_ptr<impl::Awaiter> awaiter(&awaiters_.front(), kAdopt);
+        awaiter->wait_list_data_.unlink();
+        const auto context = awaiter->wait_list_data_.context;
+        impl::Notify(std::move(awaiter), context);
     }
 }
 
-void WaitList::WakeupAll(Lock& lock) {
+void WaitList::Remove(Lock& lock, impl::Awaiter& awaiter, std::uintptr_t) noexcept {
     UASSERT(lock);
-    while (!waiting_contexts_->empty()) {
-        const boost::intrusive_ptr<impl::TaskContext> context(&waiting_contexts_->front(), kAdopt);
-        context->wait_list_hook.unlink();
-
-        context->Wakeup(impl::TaskContext::WakeupSource::kWaitList, impl::TaskContext::NoEpoch{});
-    }
-}
-
-void WaitList::Remove(Lock& lock, impl::TaskContext& context) noexcept {
-    UASSERT(lock);
-    if (!context.wait_list_hook.is_linked()) {
+    if (!awaiter.wait_list_data_.is_linked()) {
         return;
     }
 
-    const boost::intrusive_ptr<impl::TaskContext> ctx(&context, kAdopt);
-    UASSERT_MSG(IsInIntrusiveContainer(*waiting_contexts_, context), "context belongs to other list");
+    const boost::intrusive_ptr<impl::Awaiter> holder(&awaiter, kAdopt);
+    UASSERT_MSG(IsInIntrusiveContainer(awaiters_, awaiter), "awaiter belongs to other list");
 
-    context.wait_list_hook.unlink();
+    awaiter.wait_list_data_.unlink();
 }
 
 }  // namespace engine::impl

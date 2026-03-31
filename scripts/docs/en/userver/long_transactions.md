@@ -61,7 +61,7 @@ Metric: `engine.heavy-operations-in-transactions` is incremented in case of heav
 
 Move the heavy request out from the transaction.
 
-If the bahavior is understood and it is fine to have a long transaction in that particular case, the check could be
+If the behavior is understood and it is fine to have a long transaction in that particular case, the check could be
 disabled for a scope via @ref utils::trx_tracker::CheckDisabler :
 
 @snippet utils/trx_tracker_test.cpp Sample CheckDisabler usage

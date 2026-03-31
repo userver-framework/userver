@@ -54,6 +54,11 @@ public:
     /// @overload
     const ugrpc::client::CallContext& GetContext() const { return future_.GetContext(); }
 
+    /// @cond
+    // For internal use only.
+    engine::impl::ContextAccessor* TryGetContextAccessor() noexcept { return future_.TryGetContextAccessor(); }
+    /// @endcond
+
 private:
     VanillaFuture future_;
 };

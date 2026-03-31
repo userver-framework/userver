@@ -14,32 +14,32 @@ USERVER_NAMESPACE_BEGIN
 
 namespace protobuf::json::tests {
 
-struct UnkownJsonFieldAcceptedTestParam {
+struct UnknownJsonFieldAcceptedTestParam {
     std::string input = {};
     UnknownFieldMessageData expected_message = {};
 };
 
-struct UnkownJsonFieldRejectedTestParam {
+struct UnknownJsonFieldRejectedTestParam {
     std::string input = {};
     std::string expected_path = {};
 };
 
-void PrintTo(const UnkownJsonFieldAcceptedTestParam& param, std::ostream* os) {
+void PrintTo(const UnknownJsonFieldAcceptedTestParam& param, std::ostream* os) {
     *os << fmt::format("{{ input = '{}' }}", param.input);
 }
 
-void PrintTo(const UnkownJsonFieldRejectedTestParam& param, std::ostream* os) {
+void PrintTo(const UnknownJsonFieldRejectedTestParam& param, std::ostream* os) {
     *os << fmt::format("{{ input = '{}' }}", param.input);
 }
 
-class UnkownJsonFieldAcceptedTest : public ::testing::TestWithParam<UnkownJsonFieldAcceptedTestParam> {};
-class UnkownJsonFieldRejectedTest : public ::testing::TestWithParam<UnkownJsonFieldRejectedTestParam> {};
+class UnknownJsonFieldAcceptedTest : public ::testing::TestWithParam<UnknownJsonFieldAcceptedTestParam> {};
+class UnknownJsonFieldRejectedTest : public ::testing::TestWithParam<UnknownJsonFieldRejectedTestParam> {};
 
 INSTANTIATE_TEST_SUITE_P(
     ,
-    UnkownJsonFieldAcceptedTest,
+    UnknownJsonFieldAcceptedTest,
     ::testing::Values(
-        UnkownJsonFieldAcceptedTestParam{
+        UnknownJsonFieldAcceptedTestParam{
             R"({
               "field1":{"field1":"aaa"},
               "field2":[{"field1":"item1"}],
@@ -47,7 +47,7 @@ INSTANTIATE_TEST_SUITE_P(
             })",
             UnknownFieldMessageData{{"aaa"}, {{"item1"}}, {{1, {"value1"}}}}
         },
-        UnkownJsonFieldAcceptedTestParam{
+        UnknownJsonFieldAcceptedTestParam{
             R"({
               "unknown_field": true,
               "field1":{"field1":"aaa"},
@@ -56,7 +56,7 @@ INSTANTIATE_TEST_SUITE_P(
             })",
             UnknownFieldMessageData{{"aaa"}, {{"item1"}}, {{1, {"value1"}}}}
         },
-        UnkownJsonFieldAcceptedTestParam{
+        UnknownJsonFieldAcceptedTestParam{
             R"({
               "field1":{"field1":"aaa","unknown_field":true},
               "field2":[{"field1":"item1"}],
@@ -64,7 +64,7 @@ INSTANTIATE_TEST_SUITE_P(
             })",
             UnknownFieldMessageData{{"aaa"}, {{"item1"}}, {{1, {"value1"}}}}
         },
-        UnkownJsonFieldAcceptedTestParam{
+        UnknownJsonFieldAcceptedTestParam{
             R"({
               "field1":{"field1":"aaa"},
               "field2":[{"field1":"item1","unknown_field":true}],
@@ -72,7 +72,7 @@ INSTANTIATE_TEST_SUITE_P(
             })",
             UnknownFieldMessageData{{"aaa"}, {{"item1"}}, {{1, {"value1"}}}}
         },
-        UnkownJsonFieldAcceptedTestParam{
+        UnknownJsonFieldAcceptedTestParam{
             R"({
               "field1":{"field1":"aaa"},
               "field2":[{"field1":"item1"}],
@@ -85,72 +85,74 @@ INSTANTIATE_TEST_SUITE_P(
 
 INSTANTIATE_TEST_SUITE_P(
     ,
-    UnkownJsonFieldRejectedTest,
+    UnknownJsonFieldRejectedTest,
     ::testing::Values(
-        UnkownJsonFieldRejectedTestParam{
+        UnknownJsonFieldRejectedTestParam{
             R"({
-              "unknown_field": true,
+              "unknown.field": true,
               "field1":{"field1":"aaa"},
               "field2":[{"field1":"item1"}],
               "field3":{"1":{"field1":"value1"}}
             })",
-            "unknown_field"
+            "'unknown.field'"
         },
-        UnkownJsonFieldRejectedTestParam{
+        UnknownJsonFieldRejectedTestParam{
             R"({
-              "field1":{"field1":"aaa","unknown_field":true},
+              "field1":{"field1":"aaa","unknown.field":true},
               "field2":[{"field1":"item1"}],
               "field3":{"1":{"field1":"value1"}}
             })",
-            "field1.unknown_field"
+            "field1.'unknown.field'"
         },
-        UnkownJsonFieldRejectedTestParam{
+        UnknownJsonFieldRejectedTestParam{
             R"({
               "field1":{"field1":"aaa"},
-              "field2":[{"field1":"item1","unknown_field":true}],
+              "field2":[{"field1":"item1","unknown.field":true}],
               "field3":{"1":{"field1":"value1"}}
             })",
-            "field2[0].unknown_field",
+            "field2[0].'unknown.field'",
         },
-        UnkownJsonFieldRejectedTestParam{
+        UnknownJsonFieldRejectedTestParam{
             R"({
               "field1":{"field1":"aaa"},
               "field2":[{"field1":"item1"}],
-              "field3":{"1":{"field1":"value1","unknown_field":true}}
+              "field3":{"1":{"field1":"value1","unknown.field":true}}
             })",
-            "field3.1.unknown_field"
+            "field3.1.'unknown.field'"
         }
     )
 );
 
-TEST_P(UnkownJsonFieldAcceptedTest, Test) {
+TEST_P(UnknownJsonFieldAcceptedTest, Test) {
     using Message = proto_json::messages::UnknownFieldMessage;
     const auto& param = GetParam();
 
-    Message message, expected_message, sample_message;
+    Message message;
+    Message expected_message;
+    Message sample_message;
     formats::json::Value input = PrepareJsonTestData(param.input);
     expected_message = PrepareTestData(param.expected_message);
 
     UASSERT_NO_THROW((message = JsonToMessage<Message>(input, {.ignore_unknown_fields = true})));
-    UASSERT_NO_THROW(InitSampleMessage(param.input, {.ignore_unknown_fields = true}, sample_message));
+    UASSERT_NO_THROW(InitSampleMessage(param.input, sample_message, {.ignore_unknown_fields = true}));
 
     CheckMessageEqual(message, sample_message);
     CheckMessageEqual(message, expected_message);
 }
 
-TEST_P(UnkownJsonFieldRejectedTest, Test) {
+TEST_P(UnknownJsonFieldRejectedTest, Test) {
     using Message = proto_json::messages::UnknownFieldMessage;
     const auto& param = GetParam();
 
     Message sample;
     formats::json::Value input = PrepareJsonTestData(param.input);
 
-    EXPECT_READ_ERROR(
+    EXPECT_PARSE_ERROR(
         (void)JsonToMessage<proto_json::messages::UnknownFieldMessage>(input, {.ignore_unknown_fields = false}),
-        ReadErrorCode::kUnknownField,
+        ParseErrorCode::kUnknownField,
         param.expected_path
     );
-    UEXPECT_THROW(InitSampleMessage(param.input, {.ignore_unknown_fields = false}, sample), SampleError);
+    UEXPECT_THROW(InitSampleMessage(param.input, sample, {.ignore_unknown_fields = false}), SampleError);
 }
 
 }  // namespace protobuf::json::tests

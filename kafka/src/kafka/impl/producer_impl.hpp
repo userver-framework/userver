@@ -24,8 +24,8 @@ class ProducerImpl final {
 public:
     explicit ProducerImpl(
         Configuration&& configuration,
-        const logging::Level debug_info_log_level,
-        const logging::Level operation_log_level
+        logging::Level debug_info_log_level,
+        logging::Level operation_log_level
     );
 
     const Stats& GetStats() const;
@@ -90,7 +90,6 @@ private:
     /// waiter about the delivery.
     void DeliveryReportCallback(const rd_kafka_message_s* message) const;
 
-private:
     const std::chrono::milliseconds delivery_timeout_;
     const logging::Level debug_info_log_level_;
     const logging::Level operation_log_level_;

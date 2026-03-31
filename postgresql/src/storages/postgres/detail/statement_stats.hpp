@@ -23,7 +23,6 @@ private:
 
     static SteadyClock::time_point Now();
 
-private:
     const Query& query_;
     const StatementStatsStorage* sts_;
 

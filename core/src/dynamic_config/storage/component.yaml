@@ -31,7 +31,7 @@ properties:
             Default: no fs cache
     fs-task-processor:
         type: string
-        description: |
+        description: |-
             Name of the task processor to run the blocking file write operations.
 
             Default: engine::current_task::GetBlockingTaskProcessor()

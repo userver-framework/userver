@@ -55,8 +55,6 @@ public:
 
     HttpRequestBuilder& SetTaskProcessor(engine::TaskProcessor& task_processor);
 
-    HttpRequestBuilder& SetHttpHandlerStatistics(handlers::HttpRequestStatistics& stats);
-
     // TODO: remove?
     HttpRequestBuilder& SetStreamProducer(impl::Http2StreamEventProducer&& producer);
 

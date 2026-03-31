@@ -19,7 +19,7 @@ namespace msgs = proto_json::messages;
 struct EnumToJsonSuccessTestParam {
     EnumMessageData input = {};
     std::string expected_json = {};
-    WriteOptions options = {};
+    PrintOptions options = {};
 };
 
 void PrintTo(const EnumToJsonSuccessTestParam& param, std::ostream* os) {
@@ -77,7 +77,9 @@ TEST_P(EnumToJsonSuccessTest, Test) {
     const auto& param = GetParam();
 
     auto input = PrepareTestData(param.input);
-    formats::json::Value json, expected_json, sample_json;
+    formats::json::Value json;
+    formats::json::Value expected_json;
+    formats::json::Value sample_json;
 
     UASSERT_NO_THROW((json = MessageToJson(input, param.options)));
     UASSERT_NO_THROW((expected_json = PrepareJsonTestData(param.expected_json)));

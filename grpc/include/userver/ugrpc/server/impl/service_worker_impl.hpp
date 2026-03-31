@@ -22,19 +22,20 @@
 #include <userver/utils/lazy_prvalue.hpp>
 #include <userver/utils/statistics/entry.hpp>
 
+#include <userver/ugrpc/impl/async_service.hpp>
 #include <userver/ugrpc/impl/static_service_metadata.hpp>
 #include <userver/ugrpc/impl/statistics.hpp>
 #include <userver/ugrpc/impl/statistics_scope.hpp>
 #include <userver/ugrpc/impl/statistics_storage.hpp>
 #include <userver/ugrpc/server/call_context.hpp>
 #include <userver/ugrpc/server/impl/async_method_invocation.hpp>
-#include <userver/ugrpc/server/impl/async_service.hpp>
 #include <userver/ugrpc/server/impl/call_processor.hpp>
 #include <userver/ugrpc/server/impl/call_state.hpp>
 #include <userver/ugrpc/server/impl/call_traits.hpp>
 #include <userver/ugrpc/server/impl/completion_queue_pool.hpp>
 #include <userver/ugrpc/server/impl/error_code.hpp>
 #include <userver/ugrpc/server/impl/exceptions.hpp>
+#include <userver/ugrpc/server/impl/request_async_call.hpp>
 #include <userver/ugrpc/server/impl/service_internals.hpp>
 #include <userver/ugrpc/server/impl/service_worker.hpp>
 #include <userver/ugrpc/server/middlewares/base.hpp>
@@ -44,12 +45,20 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::server::impl {
 
-void ParseGenericCallName(
-    std::string_view generic_call_name,
-    std::string_view& call_name,
-    std::string_view& service_name,
-    std::string_view& method_name
+struct GenericMethodParseResults {
+    std::string_view call_name;
+    std::string_view service_name;
+    std::string_view method_name;
+};
+GenericMethodParseResults ParseGenericMethodName(std::string_view generic_method_name);
+
+void ConstructSpan(
+    std::optional<tracing::InPlaceSpan>& span_storage,
+    std::string_view call_name,
+    const grpc::ServerContext& server_context
 );
+
+void AddServiceMethodTags(tracing::Span& span, std::string_view service_name, std::string_view method_name);
 
 /// Per-gRPC-service data
 template <typename GrpcppService>
@@ -63,7 +72,7 @@ struct ServiceData final {
 
     const ServiceInternals internals;
     const ugrpc::impl::StaticServiceMetadata metadata;
-    AsyncService<GrpcppService> async_service{GetMethodsCount(metadata)};
+    ugrpc::impl::AsyncService<GrpcppService> async_service;
     utils::impl::WaitTokenStorage wait_tokens;
     ugrpc::impl::ServiceStatistics& service_statistics{
         internals.statistics_storage.GetServiceStatistics(metadata, std::nullopt)
@@ -101,17 +110,18 @@ public:
         // see
         // https://git.ecdf.ed.ac.uk/s1886313/tensorflow/-/blob/438604fc885208ee05f9eef2d0f2c630e1360a83/tensorflow/core/distributed_runtime/rpc/grpc_call.h#L201
         // and grpc::ServerContext::AsyncNotifyWhenDone
-        ugrpc::server::impl::RpcFinishedEvent notify_when_done(engine::current_task::GetCancellationToken(), context_);
-
-        context_.AsyncNotifyWhenDone(notify_when_done.GetCompletionTag());
+        ugrpc::server::impl::RpcDoneEvent
+            notify_when_done{engine::current_task::GetCancellationToken(), server_context_};
+        server_context_.AsyncNotifyWhenDone(notify_when_done.GetCompletionTag());
 
         auto& queue = method_data_.service_data.internals.completion_queues.GetQueue(method_data_.queue_id);
 
         ugrpc::impl::AsyncMethodInvocation request_call_invocation;
         // the request for an incoming RPC must be performed synchronously
-        method_data_.service_data.async_service.template RequestCall<CallTraits>(
+        RequestAsyncCall<CallTraits>(
+            method_data_.service_data.async_service,
             method_data_.method_id,
-            context_,
+            server_context_,
             initial_request_,
             raw_responder_,
             queue,
@@ -159,23 +169,29 @@ private:
     using Context = typename CallTraits::Context;
 
     void ProcessCall() {
-        auto call_name = method_data_.call_name;
-        auto service_name = method_data_.service_data.metadata.service_full_name;
-        auto method_name = method_data_.method_name;
+        std::string_view call_name = method_data_.call_name;
+        std::string_view service_name = method_data_.service_data.metadata.service_full_name;
+        std::string_view method_name = method_data_.method_name;
         if constexpr (std::is_same_v<Context, GenericCallContext>) {
-            ParseGenericCallName(context_.method(), call_name, service_name, method_name);
+            auto parse_results = ParseGenericMethodName(server_context_.method());
+            call_name = parse_results.call_name;
+            service_name = parse_results.service_name;
+            method_name = parse_results.method_name;
         }
+
+        ConstructSpan(span_, call_name, server_context_);
+        AddServiceMethodTags(span_->Get(), service_name, method_name);
 
         CallProcessor<CallTraits> call_processor{
             CallParams{
-                context_,
+                server_context_,
                 CallTraits::kRpcType,
                 call_name,
                 service_name,
                 method_name,
                 method_data_.statistics,
                 method_data_.service_data.internals.statistics_storage,
-                span_storage_,
+                span_->Get(),
                 method_data_.service_data.internals.middlewares,
                 method_data_.service_data.internals.config_source,
                 method_data_.service_data.internals.status_codes_log_level,
@@ -195,10 +211,10 @@ private:
 
     MethodData<GrpcppService, CallTraits> method_data_;
 
-    typename CallTraits::RawContext context_{};
+    typename CallTraits::RawContext server_context_{};
     InitialRequest initial_request_{};
-    RawResponder raw_responder_{&context_};
-    std::optional<tracing::InPlaceSpan> span_storage_{};
+    RawResponder raw_responder_{&server_context_};
+    std::optional<tracing::InPlaceSpan> span_;
 };
 
 template <typename GrpcppService, typename Service, typename... ServiceMethods>

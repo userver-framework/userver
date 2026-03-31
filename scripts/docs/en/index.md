@@ -68,6 +68,7 @@ and make sure that it builds and passes tests.
 * @ref scripts/docs/en/userver/tutorial/auth_postgres.md
 * @ref scripts/docs/en/userver/tutorial/digest_auth_postgres.md
 * @ref scripts/docs/en/userver/tutorial/websocket_service.md
+* @ref scripts/docs/en/userver/tutorial/websocket_client.md
 * @ref scripts/docs/en/userver/tutorial/static_content.md
 * @ref scripts/docs/en/userver/tutorial/multipart_service.md
 * @ref scripts/docs/en/userver/tutorial/s3api.md
@@ -103,6 +104,7 @@ and make sure that it builds and passes tests.
 ## Protocols
 * @ref scripts/docs/en/userver/grpc/grpc.md
     * @ref scripts/docs/en/userver/grpc/timeouts_retries.md
+    * @ref scripts/docs/en/userver/grpc/rich_status.md
     * Middlewares
         * @ref scripts/docs/en/userver/grpc/server_middlewares.md
             * @ref scripts/docs/en/userver/grpc/server_middleware_implementation.md
@@ -126,6 +128,7 @@ and make sure that it builds and passes tests.
     * @ref scripts/docs/en/dynamic_configs/dynamic_configs.md
 * @ref scripts/docs/en/userver/log_level_running_service.md
 * @ref scripts/docs/en/userver/requests_in_flight.md
+* @ref scripts/docs/en/userver/metrics.md
 * @ref scripts/docs/en/userver/service_monitor.md
 * @ref scripts/docs/en/userver/memory_profile_running_service.md
 * @ref scripts/docs/en/userver/dns_control.md

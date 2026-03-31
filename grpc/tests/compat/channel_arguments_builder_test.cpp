@@ -97,7 +97,7 @@ void VerifyMethodConfig(
 }  // namespace
 
 UTEST(ServiceConfigBuilderTest, BuildEmpty) {
-    const auto metadata = sample::ugrpc::UnitTestServiceClient::GetMetadata();
+    const auto metadata = sample::ugrpc::UnitTestServiceClient::GetMetadata(utils::impl::InternalTag{});
 
     const ugrpc::client::RetryConfig retry_config;
 
@@ -117,7 +117,7 @@ UTEST(ServiceConfigBuilderTest, BuildEmpty) {
 }
 
 UTEST(ServiceConfigBuilderTest, Static) {
-    const auto metadata = sample::ugrpc::UnitTestServiceClient::GetMetadata();
+    const auto metadata = sample::ugrpc::UnitTestServiceClient::GetMetadata(utils::impl::InternalTag{});
 
     const ugrpc::client::RetryConfig retry_config{/*attempts=*/2};
 
@@ -142,7 +142,7 @@ UTEST(ServiceConfigBuilderTest, Static) {
 }
 
 UTEST(ServiceConfigBuilderTest, Qos) {
-    const auto metadata = sample::ugrpc::UnitTestServiceClient::GetMetadata();
+    const auto metadata = sample::ugrpc::UnitTestServiceClient::GetMetadata(utils::impl::InternalTag{});
 
     const ugrpc::client::RetryConfig retry_config;
 
@@ -188,7 +188,7 @@ UTEST(ServiceConfigBuilderTest, Qos) {
 }
 
 UTEST(ServiceConfigBuilderTest, QosNoRetry) {
-    const auto metadata = sample::ugrpc::UnitTestServiceClient::GetMetadata();
+    const auto metadata = sample::ugrpc::UnitTestServiceClient::GetMetadata(utils::impl::InternalTag{});
 
     const ugrpc::client::RetryConfig retry_config;
 
@@ -234,7 +234,7 @@ UTEST(ServiceConfigBuilderTest, QosNoRetry) {
 }
 
 UTEST(ServiceConfigBuilderTest, Complex) {
-    const auto metadata = sample::ugrpc::UnitTestServiceClient::GetMetadata();
+    const auto metadata = sample::ugrpc::UnitTestServiceClient::GetMetadata(utils::impl::InternalTag{});
 
     const ugrpc::client::RetryConfig retry_config;
 

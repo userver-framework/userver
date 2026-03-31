@@ -100,7 +100,7 @@ FileInfoWithDataConstPtr CreateFileInfo(std::string data, std::string ext) {
     }
     for (const auto& [lhs_path, lhs_info] : lhs) {
         auto rhs_iter = rhs.find(lhs_path);
-        if (rhs_iter == rhs.end() || bool(lhs_info) != bool(rhs_iter->second)) {
+        if (rhs_iter == rhs.end() || static_cast<bool>(lhs_info) != static_cast<bool>(rhs_iter->second)) {
             return AssertionFailure(lhs_expr, rhs_expr, lhs, rhs);
         }
         if (!lhs_info) {
@@ -126,7 +126,7 @@ TEST_F(TestReadRecursiveFilesInfoWithData, NormalRead) {
     CreateTestFiles(GetDirPath(), existing_files);
 
     {
-        const FileInfoWithDataMap expected = existing_files;
+        const FileInfoWithDataMap& expected = existing_files;
         auto read_result = ReadRecursiveFilesInfoWithData(GetDirPathStr(), SettingsReadFile::kNone);
         EXPECT_PRED_FORMAT2(AssertionEqual, expected, read_result);
     }

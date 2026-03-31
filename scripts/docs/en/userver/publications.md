@@ -52,7 +52,7 @@
   [Монолит vs Микросервисы, и Как эффективно работать с последними в C++](https://youtu.be/5QtAFKgS938)
 * 📖 Retries, exponential backoff, jitter, rate limits, circuit breakers, deadline propagations and other
   important features for stability (ru): [Хороший ретрай, плохой ретрай, или История одного падения](https://habr.com/ru/companies/yandex/articles/762678/)
-* 📖 Kafka driver implementation (ru): [Реализация драйвера для брокера сообщений Kafka в фреймворке userver](https://www.hse.ru/edu/vkr/925074491)  
+* 📖 Kafka driver implementation (ru): [Реализация драйвера для брокера сообщений Kafka в фреймворке userver](https://www.hse.ru/edu/vkr/925074491)
 * 📖 Dirty C++ tricks from userver and Boost (ru): [Грязные трюки C++ из userver и Boost](https://habr.com/ru/companies/yandex/articles/852244/)
 * 📖 [Story of website design at Behance](https://www.behance.net/gallery/185906583/Userver-C)
 

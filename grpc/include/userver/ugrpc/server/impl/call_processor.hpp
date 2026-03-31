@@ -111,18 +111,11 @@ public:
           initial_request_(initial_request),
           service_(service),
           service_method_(service_method)
-    {
-        // TODO Move setting up Span a middleware?
-        SetupSpan(
-            state_.span_storage,
-            state_.server_context,
-            state_.call_name,
-            state_.service_name,
-            state_.method_name
-        );
-    }
+    {}
 
     void DoCall() {
+        auto scope_time = state_.GetSpan().CreateScopeTime("finish");
+
         RunOnCallStart();
 
         bool finished = false;
@@ -144,6 +137,7 @@ public:
         if (!engine::current_task::ShouldCancel() && !responder_.IsInterrupted()) {
             RunPreFinishHooks(response);
             finished = impl::Finish(responder_, response, status_);
+            scope_time.Reset("post_finish");
         }
 
         if (finished) {

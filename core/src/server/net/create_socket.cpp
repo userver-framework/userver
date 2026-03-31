@@ -8,7 +8,9 @@
 #include <userver/engine/io/socket.hpp>
 #include <userver/fs/blocking/read.hpp>
 #include <userver/fs/blocking/write.hpp>
+#include <userver/logging/log.hpp>
 #include <userver/net/blocking/get_addr_info.hpp>
+#include <utils/check_syscall.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -62,18 +64,29 @@ engine::io::Socket CreateIpv6Socket(const std::string& address, uint16_t port, i
     return socket;
 }
 
+engine::io::Socket AdoptSocket(int fd, int backlog) {
+    auto sock_fd = utils::CheckSyscallCustomException<engine::io::IoSystemError>(::dup(fd), "dup");
+    engine::io::Socket socket(sock_fd, engine::io::AddrDomain::kInet6);
+    socket.Listen(backlog);
+    return socket;
+}
+
 engine::io::Socket DoCreateSocket(const ListenerConfig& config, const PortConfig& port_config) {
-    if (port_config.unix_socket_path.empty()) {
+    if (port_config.port != 0) {
         return CreateIpv6Socket(port_config.address, port_config.port, config.backlog);
-    } else {
+    } else if (port_config.listen_socket_fd) {
+        return AdoptSocket(*port_config.listen_socket_fd, config.backlog);
+    } else if (!port_config.unix_socket_path.empty()) {
         return CreateUnixSocket(port_config.unix_socket_path, config.backlog, port_config.unix_socket_perms);
+    } else {
+        UINVARIANT(false, "Config error: no data to create server listen socket");
     }
 }
 
 }  // namespace
 
 engine::io::Socket CreateSocket(const ListenerConfig& config, const PortConfig& port_config) {
-    // Note: socket creation accesses filesystem
+    //  Note: socket creation accesses filesystem
     auto& tp = engine::current_task::GetBlockingTaskProcessor();
     return engine::AsyncNoSpan(tp, &DoCreateSocket, std::ref(config), std::ref(port_config)).Get();
 }

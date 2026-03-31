@@ -85,7 +85,7 @@ TEST(ComplexToJsonFailureTest, Test) {
     (*bottoms)["aaa"].mutable_field2()->set_nanos(-1);
 
     formats::json::ValueBuilder builder;
-    EXPECT_WRITE_ERROR((builder = message), WriteErrorCode::kInvalidValue, "inters[0].bottoms['aaa'].field2");
+    EXPECT_PRINT_ERROR((builder = message), PrintErrorCode::kInvalidValue, "inters[0].bottoms['aaa'].field2");
 }
 */
 

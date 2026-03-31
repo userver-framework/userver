@@ -1,0 +1,84 @@
+# Functions
+
+{% for symbol in symbols %}
+{%- if symbol.name.startswith('userver_') %}
+{{ symbol.pretty }}
+{%- endif %}
+{% endfor %}
+
+{% macro render_option(cmd) -%}
+| {{ cmd.args[0] }} | {{ cmd.args[1] | unquote | oneline | escape }} | {{ cmd.args[2] | unquote | escape }} |
+{%- endmacro %}
+
+{% macro render_set(cmd) -%}
+| {{ cmd.args[0] }} | {{ cmd.args[4] | unquote | escape }} | {{ cmd.args[1] | unquote | escape }} |
+{%- endmacro %}
+
+
+# Build options
+
+## Global options
+
+| Option | Description | Default |
+|--------|-------------|---------|
+{%- for cmd in commands | only_command('option') | only_group(None) %}
+{{ render_option(cmd) }}
+{%- endfor %}
+
+
+### CMake options for selecting userver libraries to build
+
+| Option | Description | Default |
+|--------|-------------|---------|
+{%- for cmd in commands | only_command('option') | only_group('libraries') %}
+{{ render_option(cmd) }}
+{%- endfor %}
+
+### CMake options for building everything
+
+@see @ref scripts/docs/en/userver/build/userver.md
+
+| Option | Description | Default |
+|--------|-------------|---------|
+{%- for cmd in commands | only_command('option') | only_group('everything') %}
+{{ render_option(cmd) }}
+{%- endfor %}
+
+### CMake options for downloading userver dependencies
+
+| Option | Description | Default |
+|--------|-------------|---------|
+{%- for cmd in commands | only_command('option') | only_group('download') %}
+{{ render_option(cmd) }}
+{%- endfor %}
+
+### CMake options for features that are unavailable for some platforms
+
+@see @ref scripts/docs/en/userver/build/dependencies.md
+
+| Option | Description | Default |
+|--------|-------------|---------|
+{%- for cmd in commands | only_command('option') | only_group('some_platforms') %}
+{{ render_option(cmd) }}
+{%- endfor %}
+
+
+### CMake variables for paths to dependencies
+
+| Variable | Description | Default |
+|--------|-------------|---------|
+{%- for cmd in commands | only_command('set') | only_group('dependencies') %}
+{{ render_set(cmd) }}
+{%- endfor %}
+
+
+### CMake options for various compilation modes
+
+| Option       | Description   | Default   |
+|--------|-------------|---------|
+{%- for cmd in commands | only_command('option') | only_group('compilation') %}
+{{ render_option(cmd) }}
+{%- endfor -%}
+{% for cmd in commands | only_command('set') | only_group('compilation') %}
+{{ render_set(cmd) }}
+{%- endfor %}

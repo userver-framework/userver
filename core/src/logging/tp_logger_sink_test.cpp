@@ -47,13 +47,12 @@ public:
 
     void operator()() noexcept {
         for (std::uint64_t i = 0; i < count_; ++i) {
-            relax_();
+            compiler::RelaxCpu::YieldCpuDebug();
         }
         ++count_;
     }
 
 private:
-    compiler::RelaxCpu relax_;
     std::uint64_t count_{1};
 };
 

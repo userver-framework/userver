@@ -3,7 +3,7 @@
 #include <userver/engine/run_standalone.hpp>
 #include <userver/logging/impl/logger_base.hpp>
 #include <userver/logging/null_logger.hpp>
-#include <userver/tracing/tracer.hpp>
+#include <userver/tracing/span.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

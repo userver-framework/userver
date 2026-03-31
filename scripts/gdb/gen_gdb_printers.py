@@ -18,10 +18,10 @@ with open(printers_script, 'r') as script:
     bytecode = compile(script.read(), printers_script, 'exec')
 marshalized = base64.encodebytes(zlib.compress(marshal.dumps(bytecode)))
 string_len = 80
-marshalized_splitted = '\n' + '\n'.join(
+marshalized_split = '\n' + '\n'.join(
     str(marshalized[i : i + string_len]) for i in range(0, len(marshalized), string_len)
 )
-new_script = f'import marshal, zlib, base64\nexec(marshal.loads(zlib.decompress(base64.decodebytes({marshalized_splitted}))))'.split(
+new_script = f'import marshal, zlib, base64\nexec(marshal.loads(zlib.decompress(base64.decodebytes({marshalized_split}))))'.split(
     '\n',
 )
 

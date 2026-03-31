@@ -18,9 +18,9 @@
 #include <userver/ugrpc/client/impl/client_internals.hpp>
 #include <userver/ugrpc/client/impl/client_qos_errors_reporter.hpp>
 #include <userver/ugrpc/client/impl/compat/channel_arguments_builder.hpp>
-#include <userver/ugrpc/client/impl/stub_handle.hpp>
 #include <userver/ugrpc/client/impl/stub_state.hpp>
 #include <userver/ugrpc/client/middlewares/fwd.hpp>
+#include <userver/ugrpc/impl/async_service.hpp>
 #include <userver/ugrpc/impl/static_service_metadata.hpp>
 #include <userver/ugrpc/impl/statistics.hpp>
 
@@ -53,6 +53,9 @@ public:
               internals_.default_service_config,
               internals_.retry_config,
               metadata
+          ),
+          method_retry_limiters_(
+              CreateRetryLimiters(internals_.retry_limiter_factory, metadata, internals_.destination_prefix_in_metrics)
           )
     {
         if (internals_.qos) {
@@ -82,10 +85,6 @@ public:
     ClientData& operator=(ClientData&&) = delete;
     ClientData& operator=(const ClientData&) = delete;
 
-    StubHandle NextStub(std::size_t method_id) const;
-
-    StubHandle NextStub() const;
-
     grpc::CompletionQueue& NextQueue() const;
 
     dynamic_config::Snapshot GetConfigSnapshot() const { return internals_.config_source.GetSnapshot(); }
@@ -106,14 +105,20 @@ public:
 
     const RetryConfig& GetRetryConfig() const { return internals_.retry_config; }
 
+    RetryLimiterFactory* GetRetryLimiterFactory() const noexcept { return internals_.retry_limiter_factory; }
+
+    RetryLimiter* GetRetryLimiter(std::size_t method_id) const noexcept;
+
     rcu::ReadablePtr<StubState> GetStubState() const;
 
     /// @returns Target endpoint address string from the channel factory
     std::string_view GetEndpoint() const { return internals_.endpoint; }
 
+    std::string_view GetDestinationPrefixInMetrics() const { return internals_.destination_prefix_in_metrics; }
+
 private:
-    template <typename Stub>
-    static StubPool MakeStubs(
+    template <typename Service>
+    static StubArray MakeStubs(
         std::size_t size,
         const ChannelFactory& channel_factory,
         std::string_view target,
@@ -123,13 +128,13 @@ private:
             return channel_factory.CreateChannel(target, channel_args);
         });
         auto stubs = utils::GenerateFixedArray(channels.size(), [&channels](std::size_t index) {
-            return MakeStub<Stub>(channels[index]);
+            return ugrpc::impl::AsyncService<Service>::NewStub(channels[index]);
         });
-        return StubPool{std::move(channels), std::move(stubs)};
+        return StubArray{std::move(channels), std::move(stubs)};
     }
 
-    template <typename Stub>
-    static utils::FixedArray<StubPool> MakeDedicatedStubs(
+    template <typename Service>
+    static utils::FixedArray<StubArray> MakeDedicatedStubs(
         const ugrpc::impl::StaticServiceMetadata& metadata,
         const DedicatedMethodsConfig& dedicated_methods_config,
         const ChannelFactory& channel_factory,
@@ -139,9 +144,15 @@ private:
         return utils::GenerateFixedArray(GetMethodsCount(metadata), [&](std::size_t method_id) {
             const auto method_channel_count =
                 GetMethodChannelCount(dedicated_methods_config, GetMethodName(metadata, method_id));
-            return MakeStubs<Stub>(method_channel_count, channel_factory, target, channel_args);
+            return MakeStubs<Service>(method_channel_count, channel_factory, target, channel_args);
         });
     }
+
+    static utils::FixedArray<std::unique_ptr<RetryLimiter>> CreateRetryLimiters(
+        RetryLimiterFactory* factory,
+        const ugrpc::impl::StaticServiceMetadata& metadata,
+        std::string_view destination_prefix_in_metrics
+    );
 
     ugrpc::impl::ServiceStatistics& GetServiceStatistics();
 
@@ -177,19 +188,18 @@ private:
         {
             SetHttpProxy(target, channel_args, internals_.channel_factory.GetAuthType(), proxy_settings.proxy_address);
         }
-        auto stubs = MakeStubs<
-            typename Service::Stub>(internals_.channel_count, internals_.channel_factory, target, channel_args);
+        auto stubs = MakeStubs<Service>(internals_.channel_count, internals_.channel_factory, target, channel_args);
 
         auto dedicated_stubs =
             metadata_.has_value()
-                ? MakeDedicatedStubs<typename Service::Stub>(
+                ? MakeDedicatedStubs<Service>(
                       *metadata_,
                       internals_.dedicated_methods_config,
                       internals_.channel_factory,
                       target,
                       channel_args
                   )
-                : utils::FixedArray<StubPool>{};
+                : utils::FixedArray<StubArray>{};
 
         stub_state_.Assign({client_qos, std::move(stubs), std::move(dedicated_stubs)});
     }
@@ -201,6 +211,9 @@ private:
     std::optional<compat::ChannelArgumentsBuilder> channel_arguments_builder_;
 
     rcu::Variable<StubState> stub_state_;
+
+    // RetryLimiter instances per method
+    utils::FixedArray<std::unique_ptr<RetryLimiter>> method_retry_limiters_;
 
     // These fields must be the last ones
     concurrent::AsyncEventSubscriberScope config_subscription_;

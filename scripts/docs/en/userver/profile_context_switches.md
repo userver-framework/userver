@@ -1,4 +1,4 @@
-# Profiling context switches 
+# Profiling context switches
 
 This type of profiling is used to detect the most common cases of context
 switches. Some use cases for this profiler are:
@@ -11,11 +11,11 @@ switches. Some use cases for this profiler are:
 
 ## How to profile a service
 
-1. Make sure that service is build with debug information and that the 
+1. Make sure that service is build with debug information and that the
 cmake option `USERVER_FEATURE_STACKTRACE` was turned `ON`.
 2. In the static config file set the `task-trace` options for the task processor
 you are willing to profile. All the `task-trace` options are described at
-"Static task_processor options" in components::ManagerControllerComponent. It 
+"Static task_processor options" in components::ManagerControllerComponent. It
 is recommended to place traces into a separate
 logger to avoid bloat of your default log file. For example:
 @snippet components/minimal_server_component_list_test.cpp  Sample task-switch tracing
@@ -39,19 +39,19 @@ $ make -j4 userver-core-unittest && ./userver/core/userver-core-unittest --gtest
 3   [----------] Global test environment set-up.
 4   [----------] 1 test from CommonComponentList
 5   [ RUN      ] CommonComponentList.ServerMinimal
-6   INFO  Task 7F3081833C00 changed state to kSuspended, delay = 73us 
-7   INFO  Task 7F3081833600 changed state to kRunning, delay = 273us 
-8   INFO  Task 7F3081833C00 changed state to kQueued, delay = 2736194us 
-9   INFO  Task 7F3081833C00 changed state to kRunning, delay = 29us 
-10  INFO  Task 7F3081833600 changed state to kCompleted, delay = 334us 
-11  INFO  Task 7F308201F500 changed state to kQueued, delay = 0us 
-12  INFO  Task 7F308201F500 changed state to kRunning, delay = 57us 
-13  INFO  Task 7F3081833C00 changed state to kSuspended, delay = 906us 
-14  INFO  Task 7F3081800000 changed state to kRunning, delay = 273us 
-15  INFO  Task 7F3081833C00 changed state to kQueued, delay = 54us 
-16  INFO  Task 7F3081833C00 changed state to kRunning, delay = 29us 
-17  INFO  Task 7F3081833C00 changed state to kSuspended, delay = 56us 
-18  INFO  Task 7F3081800000 changed state to kCompleted, delay = 334us 
+6   INFO  Task 7F3081833C00 changed state to kSuspended, delay = 73us
+7   INFO  Task 7F3081833600 changed state to kRunning, delay = 273us
+8   INFO  Task 7F3081833C00 changed state to kQueued, delay = 2736194us
+9   INFO  Task 7F3081833C00 changed state to kRunning, delay = 29us
+10  INFO  Task 7F3081833600 changed state to kCompleted, delay = 334us
+11  INFO  Task 7F308201F500 changed state to kQueued, delay = 0us
+12  INFO  Task 7F308201F500 changed state to kRunning, delay = 57us
+13  INFO  Task 7F3081833C00 changed state to kSuspended, delay = 906us
+14  INFO  Task 7F3081800000 changed state to kRunning, delay = 273us
+15  INFO  Task 7F3081833C00 changed state to kQueued, delay = 54us
+16  INFO  Task 7F3081833C00 changed state to kRunning, delay = 29us
+17  INFO  Task 7F3081833C00 changed state to kSuspended, delay = 56us
+18  INFO  Task 7F3081800000 changed state to kCompleted, delay = 334us
 ```
 
 There are two suspicious places:
@@ -87,7 +87,7 @@ $ make -j4 userver-core_unittest && ./userver/core/userver-core_unittest --gtest
  6# userver::engine::Mutex::unlock() at /userver/core/src/engine/mutex.cpp:81
  7# std::lock_guard<userver::engine::Mutex>::~lock_guard() at /usr/include/c++/bits/std_mutex.h:165
  8# userver::concurrent::LockedPtr<std::lock_guard<userver::engine::Mutex>, userver::components::ComponentContext::Impl::ProtectedData const>::~LockedPtr() at /userver/core/include/userver/concurrent/variable.hpp:16
-  ... 
+  ...
 7   INFO  Task 7F3081833C00 changed state to kRunning, delay = 584080us span_id=388dad66e4efd590	stacktrace= 0# userver::logging::impl::ExtendLogExtraWithStacktrace(userver::logging::LogExtra&, userver::utils::Flags<userver::logging::impl::LogExtraStacktraceFlags>) at /userver/core/src/logging/log_extra_stacktrace.cpp:41
  1# userver::engine::impl::(anonymous namespace)::StacktraceFromLoggerLevel(std::shared_ptr<userver::logging::impl::LoggerWithInfo> const&) at /userver/core/src/engine/task/task_context.cpp:73
  2# userver::engine::impl::TaskContext::TraceStateTransition(userver::engine::Task::State) at /userver/core/src/engine/task/task_context.cpp:729
@@ -109,7 +109,7 @@ $ make -j4 userver-core_unittest && ./userver/core/userver-core_unittest --gtest
   cmake option `USERVER_FEATURE_STACKTRACE` turned `ON`. Also check that
   the debug information was not stripped away from the service and that you
   have a modern `libbacktrace` library on your system.
-  
+
 - **Q:** Can I use it on a service running in production?
 
   **A:** Yes, but note that stacktrace demangling may add unpredictable

@@ -85,14 +85,14 @@ components_manager:
                 port: 8188
                 task_processor: main-task-processor
 
-# /// [logging]
+        # /// [logging]
         logging:
             fs-task-processor: fs-task-processor
             loggers:
                 default:
                     file_path: '@stderr'
                     level: info
-# /// [logging]
+                    # /// [logging]
 
         dynamic-config:
             updates-enabled: true

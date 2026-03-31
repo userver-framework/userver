@@ -178,7 +178,6 @@ private:
         return header_writer;
     }
 
-private:
     HttpResponse& response_;
     Http2Session& http2_session_;
 };

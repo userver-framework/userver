@@ -78,7 +78,6 @@ class OffsetRangeException : public std::runtime_error {
 public:
     using std::runtime_error::runtime_error;
 
-public:
     OffsetRangeException(std::string_view what, std::string_view topic, std::uint32_t partition);
 };
 
@@ -99,7 +98,6 @@ class GetMetadataException : public std::runtime_error {
 public:
     using std::runtime_error::runtime_error;
 
-public:
     GetMetadataException(std::string_view what, std::string_view topic);
 };
 

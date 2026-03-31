@@ -9,7 +9,7 @@ USERVER_NAMESPACE_BEGIN
 namespace chaotic::convert {
 
 template <typename T, typename U>
-U Convert(const T& value, To<U>) {
+constexpr U Convert(const T& value, To<U>) {
     static_assert(
         std::is_constructible_v<U, const T&>,
         "There is no `Convert(const Value&, chaotic::convert::To<T>)` in "

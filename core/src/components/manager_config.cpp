@@ -99,6 +99,16 @@ properties:
                 type: integer
                 description: size of a single coroutine, bytes
                 defaultDescription: 256 * 1024
+            unoptimized_stack_size_multiplier:
+                type: number
+                description: |
+                    Stack size is multiplied by this number in case of unoptimized build (-O0).
+                    With function inlining disabled, stack size may be increased as compared to production builds.
+                    Use this option to avoid annoying stack overflows during local development.
+                    stack_usage_monitor_enabled is advised to prevent crashes in production.
+                defaultDescription: 1.0
+                minimum: 1.0
+                maximum: 16.0
             local_cache_size:
                 type: integer
                 description: |
@@ -143,6 +153,9 @@ properties:
         description: 'dictionary of "component name": "options"'
         additionalProperties: true
         properties: {}
+    boot-log-path:
+        type: string
+        description: if non-empty, defines path to boot logs
     task_processors:
         type: object
         description: dictionary of task processors to create and their options
@@ -293,6 +306,7 @@ ManagerConfig Parse(const yaml_config::YamlConfig& value, formats::parse::To<Man
         );
     }
     config.components = yaml_config::ParseMapToArray<components::ComponentConfig>(value["components"]);
+    config.boot_log_path = value["boot-log-path"].As<std::string>({});
     config.task_processors = yaml_config::ParseMapToArray<engine::TaskProcessorConfig>(value["task_processors"]);
     config.default_task_processor = value["default_task_processor"].As<std::string>("main-task-processor");
     config.fs_task_processor = value["fs_task_processor"].As<std::string>("fs-task-processor");

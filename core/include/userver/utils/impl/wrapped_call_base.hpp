@@ -1,5 +1,7 @@
 #pragma once
 
+#include <exception>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace utils::impl {
@@ -15,8 +17,8 @@ public:
     /// (but not the held result)
     virtual void Perform() = 0;
 
-    /// Rethrow the stored exception result of the call, if any
-    virtual void RethrowErrorResult() const = 0;
+    /// Shows whether the result contains an exception or not.
+    virtual std::exception_ptr GetException() const noexcept = 0;
 
 protected:
     WrappedCallBase() noexcept;

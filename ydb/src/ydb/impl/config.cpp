@@ -45,6 +45,7 @@ TableSettings ParseTableSettings(const yaml_config::YamlConfig& dbconfig, const 
     result.keep_in_query_cache = dbconfig["keep-in-query-cache"].As<bool>(result.keep_in_query_cache);
 
     result.sync_start = dbconfig["sync_start"].As<bool>(result.sync_start);
+    result.use_query_client = dbconfig["use-query-client"].As<bool>(result.use_query_client);
 
     result.by_database_timings_buckets =
         dbconfig["by-database-timings-buckets-ms"].As<std::optional<std::vector<double>>>();

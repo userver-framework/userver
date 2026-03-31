@@ -22,56 +22,58 @@ public:
     }
 };
 
-class CongestionControlTest : public ugrpc::tests::ServiceFixtureBase {
-protected:
-    CongestionControlTest() {
+class CongestionControlTest
+    : public ugrpc::tests::ServiceWithClientFixture<UnitTestService, sample::ugrpc::UnitTestServiceClient> {
+public:
+    CongestionControlTest()
+        : ugrpc::tests::ServiceWithClientFixture<UnitTestService, sample::ugrpc::UnitTestServiceClient>(
+              ugrpc::server::ServerConfig{},
+              ugrpc::server::Middlewares{MakeMiddleware()},
+              ugrpc::client::Middlewares{}
+          )
+    {}
+
+private:
+    std::shared_ptr<ugrpc::server::middlewares::congestion_control::Middleware> MakeMiddleware() {
         std::shared_ptr<utils::TokenBucket>
             rate_limit = std::make_shared<utils::TokenBucket>(utils::TokenBucket::MakeUnbounded());
         rate_limit->SetMaxSize(0);
-        auto congestion_control_middleware = std::make_shared<
-            ugrpc::server::middlewares::congestion_control::Middleware>(
+        return std::make_shared<ugrpc::server::middlewares::congestion_control::Middleware>(
             ugrpc::server::middlewares::congestion_control::Settings{},
             rate_limit
         );
-        SetServerMiddlewares({congestion_control_middleware});
-
-        RegisterService(service_);
-        StartServer();
     }
-
-private:
-    UnitTestService service_;
 };
 
-class CongestionControlCustomCodeTest : public ugrpc::tests::ServiceFixtureBase {
-protected:
-    CongestionControlCustomCodeTest() {
+class CongestionControlCustomCodeTest
+    : public ugrpc::tests::ServiceWithClientFixture<UnitTestService, sample::ugrpc::UnitTestServiceClient> {
+public:
+    CongestionControlCustomCodeTest()
+        : ugrpc::tests::ServiceWithClientFixture<UnitTestService, sample::ugrpc::UnitTestServiceClient>(
+              ugrpc::server::ServerConfig{},
+              ugrpc::server::Middlewares{MakeMiddleware()},
+              ugrpc::client::Middlewares{}
+          )
+    {}
+
+private:
+    std::shared_ptr<ugrpc::server::middlewares::congestion_control::Middleware> MakeMiddleware() {
         std::shared_ptr<utils::TokenBucket>
             rate_limit = std::make_shared<utils::TokenBucket>(utils::TokenBucket::MakeUnbounded());
         rate_limit->SetMaxSize(0);
-        auto congestion_control_middleware = std::make_shared<
-            ugrpc::server::middlewares::congestion_control::Middleware>(
+        return std::make_shared<ugrpc::server::middlewares::congestion_control::Middleware>(
             ugrpc::server::middlewares::congestion_control::Settings{grpc::StatusCode::INTERNAL},
             rate_limit
         );
-        SetServerMiddlewares({congestion_control_middleware});
-
-        RegisterService(service_);
-        StartServer();
     }
-
-private:
-    UnitTestService service_;
 };
 
 }  // namespace
 
 UTEST_F(CongestionControlTest, Basic) {
-    const auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
-
     sample::ugrpc::GreetingRequest out;
     out.set_name("userver");
-    auto future = client.AsyncSayHello(out);
+    auto future = GetClient().AsyncSayHello(out);
 
     UEXPECT_THROW(future.Get(), ugrpc::client::ResourceExhaustedError);
 
@@ -83,11 +85,9 @@ UTEST_F(CongestionControlTest, Basic) {
 }
 
 UTEST_F(CongestionControlCustomCodeTest, CustomCode) {
-    const auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
-
     sample::ugrpc::GreetingRequest out;
     out.set_name("userver");
-    auto future = client.AsyncSayHello(out);
+    auto future = GetClient().AsyncSayHello(out);
 
     UEXPECT_THROW(future.Get(), ugrpc::client::InternalError);
 

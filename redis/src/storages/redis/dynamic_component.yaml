@@ -1,0 +1,23 @@
+type: object
+description: Redis client component
+additionalProperties: false
+properties:
+    thread_pools:
+        type: object
+        description: thread pools options
+        additionalProperties: false
+        properties:
+            redis_thread_pool_size:
+                type: integer
+                description: thread count to serve Redis requests
+            sentinel_thread_pool_size:
+                type: integer
+                description: thread count to serve sentinel requests
+    metrics_level:
+        type: string
+        description: set metrics detail level
+        default: instance
+        enum:
+          - cluster
+          - shard
+          - instance

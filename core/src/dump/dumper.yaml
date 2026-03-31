@@ -9,12 +9,10 @@ properties:
         properties:
             enable:
                 type: boolean
-                description: Whether this `Dumper` should actually read and write
-                    dumps
+                description: Whether this `Dumper` should actually read and write dumps
             world-readable:
                 type: boolean
-                description: If true, dumps are created with access 0444, otherwise
-                    with access 0400
+                description: If true, dumps are created with access 0444, otherwise with access 0400
             format-version:
                 type: integer
                 description: Allows to ignore dumps written with an obsolete format-version
@@ -30,8 +28,7 @@ properties:
                 default: 1
             min-interval:
                 type: string
-                description: "`WriteDumpAsync` calls performed in a fast succession
-                    are ignored"
+                description: "`WriteDumpAsync` calls performed in a fast succession are ignored"
                 default: 0s
             fs-task-processor:
                 type: string

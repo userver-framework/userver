@@ -131,7 +131,7 @@ jobs:
 
           - name: Show cache stats
             shell: alpine.sh {0}
-            run: |
+            run: |-
                 du -h -d 1 ${{env.CCACHE_DIR}}
                 du -h -d 1 ${{env.CPM_SOURCE_CACHE}}
                 ccache -s -v

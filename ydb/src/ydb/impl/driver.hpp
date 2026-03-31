@@ -38,7 +38,7 @@ public:
 
     utils::RetryBudget& GetRetryBudget();
 
-    friend void DumpMetric(utils::statistics::Writer& writer, const Driver& client);
+    friend void DumpMetric(utils::statistics::Writer& writer, const Driver& driver);
 
 private:
     const std::string dbname_;

@@ -27,6 +27,12 @@ properties:
                 type: string
                 description: The path to file containing the PEM encoding of the client's certificate chain
                 default: absent
+    retry-limiter:
+        type: string
+        description: |
+            Component that will be used as retry-limiter for this client.
+            Retry limiter tracks success/failure rates and decides whether retries should be allowed
+            Might be set to 'null' or ommited value as 'retry-limiter: ', to explicitly disable retry-limiter for this client.
     retry-config:
         type: object
         description: Retry configuration for outgoing RPCs

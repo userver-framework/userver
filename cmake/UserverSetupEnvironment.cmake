@@ -90,6 +90,7 @@ function(_userver_setup_environment_impl)
     add_compile_options("-pipe" "-g" "-fPIC")
     add_compile_definitions("PIC=1")
 
+    # @ingroup compilation
     option(USERVER_COMPILATION_TIME_TRACE "Generate Clang compilation time trace" OFF)
     if(USERVER_COMPILATION_TIME_TRACE)
         if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -117,6 +118,7 @@ function(_userver_setup_environment_impl)
     )
     message(STATUS "Linker global flags: ${CMAKE_EXE_LINKER_FLAGS}")
 
+    # @ingroup compilation
     option(USERVER_USE_CCACHE "Use ccache for build" ON)
     if(USERVER_USE_CCACHE)
         find_program(CCACHE_EXECUTABLE ccache)

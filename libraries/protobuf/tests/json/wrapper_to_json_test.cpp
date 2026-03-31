@@ -77,7 +77,7 @@ auto GetJsonValue(const formats::json::Value& json) {
 struct WrapperToJsonSuccessTestParam {
     WrapperMessageData input = {};
     std::string expected_json = {};
-    WriteOptions options = {};
+    PrintOptions options = {};
 };
 
 class WrapperToJsonSuccessTest : public ::testing::TestWithParam<WrapperToJsonSuccessTestParam> {};
@@ -142,7 +142,9 @@ TEST_P(WrapperToJsonSuccessTest, Test) {
     const auto& param = GetParam();
 
     auto input = PrepareTestData(param.input);
-    formats::json::Value json, expected_json, sample_json;
+    formats::json::Value json;
+    formats::json::Value expected_json;
+    formats::json::Value sample_json;
 
     UASSERT_NO_THROW((json = MessageToJson(input, param.options)));
     UASSERT_NO_THROW((expected_json = PrepareJsonTestData(param.expected_json)));
@@ -175,7 +177,8 @@ TYPED_TEST(WrapperToJsonAdditionalTest, InlinedNonNull) {
     using Param = typename TestFixture::Param;
     using Message = typename Param::Message;
 
-    formats::json::Value json, sample;
+    formats::json::Value json;
+    formats::json::Value sample;
     Message message;
     SetWrappedValue(message, Param::kValue);
 
@@ -189,7 +192,8 @@ TYPED_TEST(WrapperToJsonAdditionalTest, InlinedNull) {
     using Param = typename TestFixture::Param;
     using Message = typename Param::Message;
 
-    formats::json::Value json, sample;
+    formats::json::Value json;
+    formats::json::Value sample;
     Message message;
 
     UASSERT_NO_THROW((json = MessageToJson(message, {})));

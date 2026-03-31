@@ -1,3 +1,4 @@
+# TODO
 function(userver_is_cxx_compile_option_supported IS_SUPPORTED OPTION)
     include(CheckCXXCompilerFlag)
     string(REPLACE "-" "_" FLAG ${OPTION})
@@ -21,6 +22,7 @@ function(userver_is_cxx_compile_option_supported IS_SUPPORTED OPTION)
     endif()
 endfunction()
 
+#TODO
 function(userver_target_cxx_compile_options_if_supported target visibility)
     foreach(OPTION ${ARGN})
         userver_is_cxx_compile_option_supported(IS_SUPPORTED ${OPTION})
@@ -30,6 +32,7 @@ function(userver_target_cxx_compile_options_if_supported target visibility)
     endforeach()
 endfunction()
 
+#TODO
 function(userver_cxx_compile_options_if_supported)
     foreach(OPTION ${ARGN})
         userver_is_cxx_compile_option_supported(IS_SUPPORTED ${OPTION})

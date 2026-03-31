@@ -1,8 +1,8 @@
 #include <userver/components/tcp_acceptor_base.hpp>
 
 #include <userver/components/component.hpp>
-#include <userver/components/scope.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/utils/resource_scopes.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
 #include <server/net/create_socket.hpp>
@@ -53,10 +53,10 @@ TcpAcceptorBase::TcpAcceptorBase(
         sockets_.emplace_back(SocketData{std::move(socket), {}});
     }
 
-    context.RegisterScope(MakeScope([this] {
+    context.Scopes().Register([this] {
         Start();
         return utils::FastScopeGuard([this]() noexcept { Stop(); });
-    }));
+    });
 }
 
 void TcpAcceptorBase::KeepAccepting(engine::io::Socket& listen_sock) {

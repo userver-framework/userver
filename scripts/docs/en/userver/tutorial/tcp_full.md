@@ -14,7 +14,7 @@ Let's write a TCP echo server. It should accept incoming connections, read the
 data from socket and send the received data back concurrently with read. The
 read/write operation continues as long as the socket is open.
 
-We would also need production quality metrics and logs for the service. 
+We would also need production quality metrics and logs for the service.
 
 
 ### TCP server
@@ -24,7 +24,7 @@ function to get the new sockets:
 
 @snippet samples/tcp_full_duplex_service/main.cpp  TCP sample - component
 
-@warning `ProcessSocket` functions are invoked concurrently on the same 
+@warning `ProcessSocket` functions are invoked concurrently on the same
 instance of the class. Use @ref scripts/docs/en/userver/synchronization.md "synchronization primitives"
 or do not modify shared data in `ProcessSocket`.
 
@@ -36,10 +36,12 @@ or do not modify shared data in `ProcessSocket`.
 ### Statistics registration
 
 To automatically deliver the metrics they should be registered via
-utils::statistics::MetricTag and DumpMetric+ResetMetric functions should be
+@ref utils::statistics::MetricTag and `DumpMetric` + `ResetMetric` functions should be
 defined:
 
 @snippet samples/tcp_full_duplex_service/main.cpp  TCP sample - Stats tag
+
+Note that @ref utils::statistics::RateCounter is used, because it is known that the metric is monotonic.
 
 Now the tag could be used in component constructor to get a reference to the
 `struct Stats`:
@@ -86,7 +88,7 @@ The @ref tracing::Span and utils::Async work together to produce nice logs that
 allow you to trace particular file descriptor:
 ```
 tskv	timestamp=2022-08-22T16:31:34.855853	text=Failed to read data	fd=108	link=5bc8829cc3dc425d8d5c5d560f815fa2	trace_id=63eb16f2165d45669c23df725530572c	span_id=17b35cd05db1c11e
-``` 
+```
 
 On scope exit (for example because of the exception or return) the destructors
 would work in the following order:
@@ -148,6 +150,7 @@ is ready to accept requests. To do that, override the
 @ref pytest_userver.plugins.service.service_non_http_health_checks "service_non_http_health_checks":
 
 @snippet samples/tcp_full_duplex_service/tests/conftest.py  service_non_http_health_checker
+
 
 
 ## Full sources

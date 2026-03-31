@@ -29,7 +29,7 @@ void GenerateRandomBlock(utils::span<std::byte> buffer) {
 
 }  // namespace impl
 
-void GenerateRandomBlock(utils::span<char> buffer) { return GenerateRandomBlock(utils::as_writable_bytes(buffer)); }
+void GenerateRandomBlock(utils::span<char> buffer) { GenerateRandomBlock(utils::as_writable_bytes(buffer)); }
 
 std::string GenerateRandomBlock(std::size_t size) {
     std::string block(size, '\0');

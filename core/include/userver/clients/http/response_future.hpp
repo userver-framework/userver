@@ -48,8 +48,6 @@ public:
     /// @brief Wait for the response and return it
     std::shared_ptr<Response> Get(utils::impl::SourceLocation location = utils::impl::SourceLocation::Current());
 
-    void SetCancellationPolicy(CancellationPolicy cp);
-
     /// @cond
     /// Internal helper for WaitAny/WaitAll
     engine::impl::ContextAccessor* TryGetContextAccessor() noexcept;

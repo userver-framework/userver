@@ -1,5 +1,6 @@
 #include <userver/utest/utest.hpp>
 
+#include <userver/engine/impl/context_accessor.hpp>
 #include <userver/engine/io/fd_poller.hpp>
 #include <userver/engine/task/task_base.hpp>
 #include <userver/engine/wait_any.hpp>
@@ -29,6 +30,26 @@ public:
 
 private:
     int fd_[2]{};
+};
+
+class ReadyAwaitableImpl final : public engine::impl::ContextAccessor {
+public:
+    bool IsReady() const noexcept override { return is_ready_; }
+
+    void TryAppendAwaiter(boost::intrusive_ptr<engine::impl::Awaiter>&, std::uintptr_t) override { is_ready_ = true; }
+
+    void RemoveAwaiter(engine::impl::Awaiter&, std::uintptr_t) noexcept override {}
+
+private:
+    bool is_ready_{false};
+};
+
+class ReadyAwaitable final {
+public:
+    engine::impl::ContextAccessor* TryGetContextAccessor() noexcept { return &impl_; }
+
+private:
+    ReadyAwaitableImpl impl_;
 };
 
 void CheckedWrite(int fd, const void* buf, size_t len) { ASSERT_EQ(len, ::write(fd, buf, len)); }
@@ -68,6 +89,41 @@ UTEST(FdPoller, WaitAnyRead) {
     // Cannot read from an empty pipe
     num = engine::WaitAnyFor(kSmallWaitTime, poller_read);
     EXPECT_EQ(num, std::nullopt);
+}
+
+UTEST(FdPoller, WaitAnyReadNoStaleNotifications) {
+    ReadyAwaitable ready_awaitable;
+
+    Pipe pipe;
+    engine::io::FdPoller poller_read{engine::current_task::GetEventThread()};
+    poller_read.Reset(pipe.In(), engine::io::FdPoller::Kind::kRead);
+
+    engine::io::FdPoller poller_write{engine::current_task::GetEventThread()};
+    poller_write.Reset(pipe.Out(), engine::io::FdPoller::Kind::kWrite);
+
+    char buf[] = {1};
+    CheckedWrite(pipe.Out(), buf, sizeof(buf));
+
+    {
+        // Can read from a non-empty pipe
+        const auto num = engine::WaitAny(poller_read, ready_awaitable);
+        EXPECT_NE(num, std::nullopt);  // Can be 0 or 1.
+    }
+    // We may still have some background activity in ev threads here.
+
+    CheckedRead(pipe.In(), buf, sizeof(buf));
+    // ResetReady should make it so that any background notifications from the previous waiting session
+    // do not affect the new one.
+    poller_read.ResetReady();
+    // With the old implementation of FdPoller, there was a bug that would leak the async notification
+    // to the new waiting session. This can be reproduced reliably by adding `std::this_thread::sleep(10ms)`
+    // to the middle of FdPoller::RemoveAwaiter and beginning of IoWatcherCb.
+
+    {
+        // Cannot read from an empty pipe
+        const auto num = engine::WaitAnyFor(kSmallWaitTime, poller_read);
+        EXPECT_EQ(num, std::nullopt);
+    }
 }
 
 USERVER_NAMESPACE_END

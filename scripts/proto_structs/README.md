@@ -39,7 +39,7 @@ Summary, with our settings:
 
 2. Do not use `trim`. Instead of removing extra newlines, make it so that extra newlines are not generated.
 
-3. A macro that generates a whole line or multiple lines should include the trailing newline character, 
+3. A macro that generates a whole line or multiple lines should include the trailing newline character,
    so that it produces a [POSIX line](https://stackoverflow.com/q/729692/5173839).
 
    * On the other hand, a macro that generates a part of a line should not include the trailing newline.

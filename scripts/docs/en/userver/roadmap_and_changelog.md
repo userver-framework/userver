@@ -26,21 +26,142 @@ Changelog news also go to the
 * ✔️ Improved Conan support.
 * ✔️ SQLite driver
 * ✔️ Web interface for the [uservice-dynconf](https://github.com/userver-framework/uservice-dynconf)
-* ✔️ Retry budget plugin for HTTP clients clients::http::plugins::retry_budget::Component.
+* ✔️ Retry budget middleware for HTTP clients @ref clients::http::middlewares::retry_budget::Component.
 * 👨‍💻 gRPC simplification and functionality improvement.
 * 👨‍💻 Generate full-blown accessories for OpenAPI:
   * clients
   * handlers
+* New experimental HTTP client on top of Boost.Beast instead of `libcurl`.
+* Drop C++17 support.
 
 
 ## Changelog
+
+### Release v2.16
+
+* **Support of C++17 is deprecated and will be removed in one on the next releases**. C++20 is the default for
+  userver for quite some time. Use C++20 or even a more modern C++.
+* New readiness notification flow for tasks, futures, events and other awaitable objects. It provides a lightweight and
+  efficient framework for more efficient implementation of waiting objects/methods like @ref engine::WaitAny,
+  @ref engine::FdPoller, @ref engine::TaskBase::BlockingWait .
+* Ydb: @ref ydb::Transaction and @ref ydb::TableClient::ExecuteDataQuery switched from Table Client to Query Client API.
+* Multicast support for sockets. See @ref engine::io::IpMreq .
+  Many thanks to [Dmitry Borchuk](https://github.com/dmitryborchuk) for the contribution!
+* SAX parsing in Chaotic codegen. See @ref scripts/docs/en/userver/chaotic.md .
+* HttpClient: New Websocket client. See @ref scripts/docs/en/userver/tutorial/websocket_client.md .
+* gRPC: Retry limiter. See @ref ugrpc::client::RetryLimiter .
+* Separate log for components loading that simplifies components loading issues debugging.
+  See `components_manager.boot-log-path` in @ref components::ManagerControllerComponent .
+* Redis: Valkey and Redis dynamic client component. See @ref components::DynamicRedis .
+* @ref components::StatisticsStorage allows filtering of metrics by @ref utils::statistics::MetricTag .
+* Automatic conversions between structs and JSON in `easy` library. See @ref scripts/docs/en/userver/libraries/easy.md .
+* Resource scopes separated from the component system. See @ref utils::ResourceScopeStorage .
+* New @ref multi_index_lru::ExpirableContainer container. Many thanks to [hzhdlrp](https://github.com/hzhdlrp)
+  for the contribution!
+* Kafka: Added `group_instance_id` option to @ref kafka::ConsumerComponent .
+* gRPC: Perform retry on the next channel.
+* Ydb: New transaction modes support. See @ref ydb::TransactionMode .
+* Ydb: New AsContainer() method in cursor. See @ref ydb::Cursor::AsContainer .
+* Redis: New @ref storages::redis::Client::EvalReadOnly and @ref storages::redis::Client::EvalShaReadOnly functions.
+* Per-handler metrics in HTTP server. See `SetHandlerMetricsShard` in @ref server::request::RequestContext .
+* gRPC: Extended gRPC client completion statuses. See @ref ugrpc::client::SpecialCaseCompletionType .
+* `operator==` for proto structs.
+* Userver can listen on a socket passed via `execve`. See `listen-socket-fd` parameter description in
+  @ref components::Server .
+* New `contains_no_update` method in @ref multi_index_lru::Container and benchmarks cleanup.
+  Many thanks to [hzhdlrp](https://github.com/hzhdlrp) for the contribution!
+* New @ref net::blocking::ConnectTcpByName method to connect to a remote endpoint via a host name and a port.
+* Converters between proto structs and binary data. See @ref userver/proto-structs/convert.hpp .
+* Converters between proto structs and JSON. See @ref userver/proto-structs/json.hpp .
+* Converters between proto structs enums and strings.
+* @ref server::websocket::WebSocketConnection support for waiting primitives (like @ref engine::MakeWaitAny ).
+* Added @ref engine::io::Sockaddr::MakeIPSocketAddress, @ref engine::io::Sockaddr::MakeInaddrAny and
+  @ref engine::io::Sockaddr::MakeIPv4InaddrAny functions.
+  Many thanks to [Dmitry Borchuk](https://github.com/dmitryborchuk) for the contribution!
+
+* Optimizations and fixes
+  * New @ref engine::WaitAnyContext (@ref engine::MakeWaitAny ) and @ref engine::WaitAllChecked waiting primitives
+    optimized for usage in loops.
+  * Kafka: Reuse consumer after a user exception.
+  * Redis: Optimized statistics storage - removed most of per-shard and per-instance statistics that are rarely used
+    to save memory, CPU and network bandwidth.
+  * Prevent an unnecessary copy inside the `ServerImpl::WriteTotalHandlerStatistics` function.
+    Many thanks to [gabrielyanabraham](https://github.com/gabrielyanabraham) for the PR!
+  * Optimized @ref engine::TaskBase::BlockingWait .
+  * Kafka: Deprecated @ref engine::WaitAny replaced with @ref engine::MakeWaitAny .
+    Many thanks to [Dmitry Isaikin](https://github.com/disaykin) for the PR!
+  * Fixed @ref yaml_config::YamlConfig mode when accessing an array by index.
+    Many thanks to [Fedor Shatokhin](https://github.com/FedShat) for the contribution!
+  * Fixed compilation error with modern `libfmt` versions. Many thanks to
+    [Konstantin Goncharik](https://github.com/botanegg) for the PR!
+  * Fixed -flto=auto support for GCC. Many thanks to [Konstantin Goncharik](https://github.com/botanegg)
+    for the PR!
+  * Fixed broken `journal_mode` and `synchronous` options definitions in @ref components::SQLite .
+    Many thanks to [Alexey Mednyy](https://github.com/swex) for the PR!
+  * Fixed a compile warning in @ref utils::PeriodicTask .
+    Many thanks to [Evgeny Proydakov](https://github.com/proydakov) for the PR!
+  * HttpClient: Fixed socket type equality check. Many thanks to [Konstantin Goncharik](https://github.com/botanegg)
+    for the PR!
+  * Ydb: Fixed compilation error with modern `libfmt` versions.
+    Many thanks to [Vasily Sviridov](https://github.com/vasily-sviridov) for the PR!
+
+* Build and testing
+  * Updated Google benchmark to 1.9.5. Many thanks to [Konstantin Goncharik](https://github.com/botanegg) for the PR!
+  * Userver devcontainer. See @ref scripts/docs/en/userver/build/userver.md#devcontainers_userver .
+  * New `component_manager.coro_pool.unoptimized_stack_size_multiplier` option to automatically increase stack size
+    in unoptimized builds. See @ref components::ManagerControllerComponent .
+  * gRPC: @ref @ref pytest_userver.grpc._client.PreCallClientInterceptor accessible from testsuite.
+  * New @ref utils::StartPeriodicTask method that allows deterministic testing of periodic tasks in testsuite.
+  * Upgraded CPM.cmake to 0.42.1. Many thanks to [Konstantin Goncharik](https://github.com/botanegg) for the PR!
+
+* Documentation
+  * Better documentation and benchmark for LRU caches.
+  * Markdown documentation for cmake files.
+  * Postgres: Updated connections limit documentation. See @ref scripts/docs/en/userver/pg_connlimit_mode_auto.md .
+  * Extra samples for metrics unit testing.
+  * Updated @ref engine::SingleUseEvent and @ref engine::SingleConsumerEvent documentation.
+  * gRPC: @ref ugrpc::RichStatus documentation. See @ref scripts/docs/en/userver/grpc/rich_status.md .
+  * Added missing include to @ref README.md. Many thanks to [Aleksey Belov](https://github.com/belov-aleksey) for the PR!
+  * Updated Gentoo build docs. Many thanks to [halfdarkangel](https://github.com/halfdarkangel) for the contribution!
+  * Detailed description of Congestion Control logic. See @ref scripts/docs/en/userver/congestion_control.md .
+  * Kafka: Added `pool_timeout` to kafka-consumer config in @ref samples/kafka_service/static_config.yaml .
+    Many thanks to [Konstantin Goncharik](https://github.com/botanegg) for the PR!
+
+
+### Release v2.15
+
+* **Support of C++17 is deprecated and will be removed in one on the next releases**. C++20 is the default for
+  userver for quite some time. Use C++20 or even a more modern C++.
+* Deadlock detector is now enabled by default in testsuite runs. The behavior can be changed by overriding the
+  @ref pytest_userver.plugins.config.userver_deadlock_detector_mode() fixture.
+* Redis driver internals were rewritten to remove duplicate code in `Sentinel`/`ClusterImpl`, simplify inheritance and
+  reduce binary size.
+* New `pull-pin-task-queue` experimental scheduler where each task gets pinned to a thread-specific
+  queue and is executed only in that thread. See static config option 'task-processor-queue' of the
+  @ref components::ManagerControllerComponent for more info.
+* Drastically reduced memory usage by @ref components::Redis statistics/metrics in case of network topology changes or
+  multiple Valkey/Redis nodes going down.
+* Stacktrace capturing via `boost::stacktrace` / `std::stacktrace` in Boost.Context became more than x50 faster on
+  LLVM version of `libunwind`. Other unwinding libraries could have also gained profit.
+* gRPC now clamps status codes outside the valid `[0, 16]` range to `UNKNOWN`.
+* More docs for the @ref USERVER_LOG_DYNAMIC_DEBUG, logging macros and @ref engine::SharedMutex.
+* Documented the metrics testing and creation. See @ref scripts/docs/en/userver/metrics.md
+* Added `use_secure_connection` static config option for @ref storages::mysql::Component.
+  Many thanks to [Yury Bogomolov](https://github.com/ybogo) for the PR.
+* Workaround `+=` use for `std::atomic<double>` for llvm-17/libc++. Many thanks to
+  [Alexander Chernov](https://github.com/blackav) for the PR.
+* Added missing `<ctime>` include. Many thanks to [Alexander Chernov](https://github.com/blackav) for the PR.
+* Added missing `<iterator>` include. Many thanks to [Alexander Chernov](https://github.com/blackav) for the PR.
+* Added missing `<fmt/ranges.h>` include. Many thanks to [Taras Litvinenko](https://github.com/xensmo) for the PR.
+* Fixed flapping YDB tests. Many thanks to [Bulat Gayazov](https://github.com/Gazizonoki) for the PR!
+
 
 ### Release v2.14
 
 * Added a @ref ugrpc::RichStatus builder for creating rich gRPC error statuses with
   structured details following Google's error model
 * Added a @ref utils::statistics::RegisterWriterScope for safe and easy registration of statistics.
-* No more need to call `CacheUpdateTrait::StartPeriodicUpdates()` from your caching components.  
+* No more need to call `CacheUpdateTrait::StartPeriodicUpdates()` from your caching components.
 * Implemented a @ref scripts/docs/en/userver/libraries/multi_index_lru.md, thanks to
   [hzhdlrp](https://github.com/hzhdlrp).
 * Statement name is now logged when using @ref storages::postgres::Portal.
@@ -67,7 +188,7 @@ Changelog news also go to the
   help!
 * Fixed error in [uservice-dynconf](https://github.com/userver-framework/uservice-dynconf) schema. Many thanks to
   [Repin Daniil](https://github.com/Repin-Daniil) for the PR!
-* @ref components::ComponentContext::RegisterScope() now can be used to register some resource that will be
+* @ref components::ComponentContext::Scopes() now can be used to register some resource that will be
   called after the component is successfully created (including all
   class descendants) and destroyed right before calling the destructor of the most derived component. This is a low
   level feature, more high level functions for caches, distlocks and subscriptions will appear soon.
@@ -109,12 +230,13 @@ Plugins are renamed to middlewares and @ref components::HttpClient was split int
 
 1. Instead of `.Append<components::HttpClient>()` use `.AppendComponentList(clients::http::ComponentList())` in
    your component list (see @ref clients::http::ComponentList "docs").
-2. For classes inherited from @ref tracing::TracingManagerBase:
-   1. Change @ref clients::http::PluginRequest in @ref tracing::TracingManagerBase::FillRequestWithTracingContext() parameters to @ref clients::http::MiddlewareRequest
-3. For classes inherited from @ref clients::http::Plugin:
+2. For classes inherited from @ref tracing::TracingManagerBase :
+   1. Change @ref clients::http::PluginRequest in @ref tracing::TracingManagerBase::FillRequestWithTracingContext()
+      parameters to @ref clients::http::MiddlewareRequest
+3. For classes inherited from @ref clients::http::Plugin :
    1. Replace `#include <userver/clients/http/plugin.hpp>` with `#include <userver/clients/http/middlewares/base.hpp>`
    2. Change base class to @ref clients::http::MiddlewareBase
-   3. Change @ref clients::http::PluginRequest in methods parameters to @ref clients::http::MiddlewareRequest
+   3. Change clients::http::PluginRequest in methods parameters to @ref clients::http::MiddlewareRequest
    4. Stop passing middleware name to  base class constructor
    5. Empty methods implementations (or `return true;` for @ref clients::http::MiddlewareBase::HookOnRetry()) may be omitted
 
@@ -143,7 +265,7 @@ Plugins are renamed to middlewares and @ref components::HttpClient was split int
    ...
    };
    ```
-4. For plugin components inherited from @ref clients::http::plugin::ComponentBase:
+4. For plugin components inherited from @ref clients::http::plugin::ComponentBase :
    1. Replace `#include <userver/clients/http/plugin_component.hpp>` with `#include <userver/clients/http/middlewares/component.hpp>`
    2. Change base class to @ref clients::http::middlewares::ComponentBase
    3. Component name is not required to have prefix `http-client-plugin-` anymore, `http-client-` prefix is suggested instead
@@ -210,7 +332,7 @@ Plugins are renamed to middlewares and @ref components::HttpClient was split int
    -        http-client-plugin-plugin-with-dynamic-config:
    +        http-client-middleware-with-dynamic-config:
                ...
-   
+
    -        http-client:
    +        http-client-core:
                 fs-task-processor: fs-task-processor
@@ -241,7 +363,7 @@ Plugins are renamed to middlewares and @ref components::HttpClient was split int
 * Dots in tag keys of logs and spans are now not changed to underscores. HTTP client/server spans are now written
   according to OTel conventions.
 * Added support for ReplyTo, CorrelationId, Expiration fields. Many thanks to
-  [Alexander Aparin](https://github.com/alex-aparin) for the PR! 
+  [Alexander Aparin](https://github.com/alex-aparin) for the PR!
 * @ref s3api::Client now supports multipart upload.
 * Redis now understands the `GEOPOS` and `EXPIRE` commands via @ref storages::redis::Client member function `Geopos()`
   and `Expire()`.
@@ -258,7 +380,7 @@ Plugins are renamed to middlewares and @ref components::HttpClient was split int
   * TSKV based formatters are now constructed 3 times faster leading to about 1% overall improvement for CPU
     consumption of some services.
   * Trace data extraction and processing is now 10 times faster.
-  * Optimized @ref logging::LogExtra efficiency with std::initializer_list to avoid memory allocations. 
+  * Optimized @ref logging::LogExtra efficiency with std::initializer_list to avoid memory allocations.
   * @ref fs::blocking::CFile now does not lock internal mutex when works with files. Up to 0.2% improvement in logging
     and ~40% improvement for dumping caches of integers.
   * Reuse `SSL_CTX` for TLS/SSL connections. As a result memory consumption drastically reduced for TLS/SSL server with.
@@ -267,7 +389,7 @@ Plugins are renamed to middlewares and @ref components::HttpClient was split int
 * Build
   * Fix compiling with `fmt` >= 12. Many thanks to [Konstantin Goncharik](https://github.com/botanegg) for the PR!
   * Improved compatibility of response body for aws sdk clients. Many thanks to
-    [Alexander Aparin](https://github.com/alex-aparin) for the PR! 
+    [Alexander Aparin](https://github.com/alex-aparin) for the PR!
   * Support libpq patching with pq >= 18. MAny thanks to [Vladislav Nepogodin](https://github.com/vnepogodin) for
     the PR!
   * `api-common-protos` are now used from the main branch of the upstream, rather than from `1.50` version.

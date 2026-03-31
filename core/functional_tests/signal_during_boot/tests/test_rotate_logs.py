@@ -17,6 +17,10 @@ async def wait_for_logfile(fname: str):
     await sync.wait_until(check_ready)
 
 
+def stderr_handler(line: str):
+    pass
+
+
 async def test_boot_logs(
     service_binary,
     service_config_path_temp,
@@ -36,6 +40,7 @@ async def test_boot_logs(
         ],
         health_check=_checker,
         env=service_env,
+        stderr_handler=stderr_handler,
     ) as scope:
         daemon = await ensure_daemon_started(scope)
 

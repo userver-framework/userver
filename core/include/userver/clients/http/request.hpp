@@ -34,6 +34,7 @@ namespace clients::http {
 
 class RequestState;
 class StreamedResponse;
+class WebSocketResponse;
 class ConnectTo;
 class Form;
 struct DeadlinePropagationConfig;
@@ -84,7 +85,7 @@ enum class ProxyAuthType {
 
 ProxyAuthType ProxyAuthTypeFromString(std::string_view auth_name);
 
-/// @brief Class for creating and performing new http requests, usually retieved from @ref clients::http::Client.
+/// @brief Class for creating and performing new http requests, usually retrieved from @ref clients::http::Client.
 class Request final {
 public:
     /// Request cookies container type
@@ -336,6 +337,18 @@ public:
     /// Override list of middlewares from @ref components::HttpClient for specific request
     Request& SetMiddlewaresList(const std::vector<utils::NotNull<MiddlewareBase*>>& middlewares) &;
 
+    /// Set flag to ignore tls receive error for responses
+    /// with `Connection: close` header.
+    ///
+    /// The behaviour of handling TLS errors has been changed
+    /// in libcurl>=8.15.0 and reproducible for connections
+    /// with incomplete TLS close procedure.
+    ///
+    /// @see https://github.com/curl/curl/pull/17531/changes
+    Request& SetIncompleteTlsConnectionCloseExpected(bool expect) &;
+    /// @overload
+    Request SetIncompleteTlsConnectionCloseExpected(bool expect) &&;
+
     /// Override log URL. Useful for "there's a secret in the query".
     /// @warning The query might be logged by other intermediate HTTP agents (nginx, L7 balancer, etc.).
     Request& SetLoggedUrl(std::string url) &;
@@ -384,8 +397,11 @@ public:
     /// Works well with @ref engine::WaitAny(), @ref engine::WaitAnyFor(), and @ref engine::WaitUntil() functions:
     /// @snippet src/clients/http/client_wait_test.cpp HTTP Client - waitany
     ///
-    /// Request object could be reused after retrieval of data from ResponseFuture, all the setup holds:
-    /// @snippet src/clients/http/client_test.cpp  HTTP Client - reuse async
+    /// Refrain from reusing the Request object.
+    /// Though it might be possible to reuse it after extracting data from ResponseFuture, a subsequent async_perform
+    /// or perform call could be delayed until the previous request fully completes. This delay can occur if the
+    /// previous request either timed out or was canceled.
+    /// Future versions might entirely forbid Request objects reuse.
     [[nodiscard]] ResponseFuture async_perform(
         utils::impl::SourceLocation location = utils::impl::SourceLocation::Current()
     );
@@ -401,9 +417,19 @@ public:
     /// Calls async_perform and wait for timeout_ms on a future. Default time  for waiting will be timeout value if it
     /// was set. If error occurred it will be thrown as exception.
     ///
-    /// Request object could be reused after return from perform(), all the setup holds:
-    /// @snippet src/clients/http/client_test.cpp  HTTP Client - request reuse
+    /// Refrain from reusing the Request object.
+    /// Though it might be possible to reuse it after extracting data from ResponseFuture, a subsequent async_perform
+    /// or perform call could be delayed until the previous request fully completes. This delay can occur if the
+    /// previous request either timed out or was canceled.
+    /// Future versions might entirely forbid Request objects reuse.
     [[nodiscard]] std::shared_ptr<Response> perform(
+        utils::impl::SourceLocation location = utils::impl::SourceLocation::Current()
+    );
+
+    /// @brief Starts the Websocket handshake.
+    ///
+    /// @snippet samples/websocket_client/main.cpp WebSocket client sample - handler
+    [[nodiscard]] WebSocketResponse PerformWebSocketHandshake(
         utils::impl::SourceLocation location = utils::impl::SourceLocation::Current()
     );
 

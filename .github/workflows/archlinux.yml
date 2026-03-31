@@ -151,6 +151,6 @@ jobs:
 
           - name: Run tests
             if: ${{ false }}  # Not working yet
-            run: |
+            run: |-
                 cd build_debug
                 ctest -V

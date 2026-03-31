@@ -42,7 +42,7 @@ class RegisteredNtrx:
         def _failure_tp(data):
             return {
                 'inject_failure': self.is_failure_enabled(name),
-                'failure_type': self._get_failure_type(name).name,
+                'failure_type': self._get_failure_type(name).name if self.is_failure_enabled(name) else None,
             }
 
     def _disable_failure(self, name: str) -> None:

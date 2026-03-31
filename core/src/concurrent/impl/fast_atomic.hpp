@@ -123,8 +123,15 @@ public:
     // - https://github.com/rust-lang/unsafe-code-guidelines/issues/345
     // - https://gcc.gnu.org/bugzilla/show_bug.cgi?id=80835
     // Summary: legal on x86* and ARM.
-    USERVER_IMPL_PROTECT_DWCAS_ATTR USERVER_IMPL_DISABLE_TSAN T LoadWithTearing() const noexcept {
-        return impl::LoadWithTearing(impl_);
+    //
+    // See also "Tearable atomics" C++ standard proposal:
+    // http://wg21.link/p0690r1
+    USERVER_IMPL_PROTECT_DWCAS_ATTR T LoadWithTearing() const noexcept {
+        if constexpr (USERVER_IMPL_HAS_TSAN) {
+            return this->load<std::memory_order_relaxed>();
+        } else {
+            return impl::LoadWithTearing(impl_);
+        }
     }
 
 private:

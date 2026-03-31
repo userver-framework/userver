@@ -546,6 +546,12 @@ def userver_config_http_client(
         if mockserver_ssl_info:
             allowed_urls.append(mockserver_ssl_info.base_url)
         allowed_urls += allowed_url_prefixes_extra
+
+        # Add WebSocket prefixes (ws:// and wss://) alongside HTTP prefixes
+        allowed_urls.append(mockserver_info.ws_url('/'))
+        if mockserver_ssl_info:
+            allowed_urls.append(mockserver_ssl_info.ws_url('/'))
+
         http_client_core['testsuite-allowed-url-prefixes'] = allowed_urls
 
     return patch_config

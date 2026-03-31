@@ -20,60 +20,7 @@ using testing::Not;
 
 USERVER_NAMESPACE_BEGIN
 
-class Span : public LoggingTest {
-private:
-    tracing::TracerCleanupScope tracer_scope_;
-};
-
-class OpentracingSpan : public Span {
-protected:
-    OpentracingSpan()
-        : opentracing_logger_(MakeNamedStreamLogger("openstracing", logging::Format::kTskv))
-    {
-        tracing::Tracer::SetTracer(tracing::Tracer("service-test-name", opentracing_logger_.logger));
-
-        // Discard logs
-        logging::LogFlush(*opentracing_logger_.logger);
-        opentracing_logger_.stream.str({});
-    }
-
-    // NOLINTNEXTLINE(readability-make-member-function-const)
-    void FlushOpentracing() { logging::LogFlush(*opentracing_logger_.logger); }
-
-    static void CheckTagFormat(const formats::json::Value& tag) {
-        EXPECT_TRUE(tag.HasMember("key"));
-        EXPECT_TRUE(tag.HasMember("value"));
-        EXPECT_TRUE(tag.HasMember("type"));
-    }
-
-    static void CheckTagTypeAndValue(
-        const formats::json::Value& tag,
-        const std::string& type,
-        const std::string& value
-    ) {
-        EXPECT_EQ(type, tag["type"].As<std::string>());
-        EXPECT_EQ(value, tag["value"].As<std::string>());
-    }
-
-    static formats::json::Value GetTagsJson(const std::string& log_output) {
-        auto tags_start = log_output.find("tags=");
-        if (tags_start == std::string::npos) {
-            return {};
-        }
-        tags_start += 5;
-        auto tags_str = log_output.substr(tags_start);
-        const auto tags_end = tags_str.find(']');
-        if (tags_end == std::string::npos) {
-            return {};
-        }
-        return formats::json::FromString(tags_str.substr(0, tags_end + 1));
-    }
-
-    std::string GetOtStreamString() const { return opentracing_logger_.stream.str(); }
-
-private:
-    StringStreamLogger opentracing_logger_;
-};
+class Span : public LoggingTest {};
 
 UTEST_F(Span, Ctr) {
     {
@@ -193,66 +140,6 @@ UTEST_F(Span, NonInheritTag) {
     logging::LogFlush();
 
     EXPECT_THAT(GetStreamString(), Not(HasSubstr("k=v")));
-}
-
-UTEST_F(OpentracingSpan, Tags) {
-    {
-        tracing::Span span("span_name");
-        span.AddTag("k", "v");
-        span.AddTag(tracing::kHttpResponseStatusCode, 200);
-        span.AddTag("error", false);
-        span.AddTag(tracing::kHttpRequestMethod, "POST");
-        span.AddTag("db.type", "postgres");
-        span.AddTag("db.statement", "SELECT * ");
-        span.AddTag("peer.address", "127.0.0.1:8080");
-        span.AddTag(tracing::kUrlFull, "http://example.com/example");
-    }
-    FlushOpentracing();
-    const auto log_str = GetOtStreamString();
-    EXPECT_THAT(log_str, Not(HasSubstr("k=v")));
-    EXPECT_THAT(log_str, HasSubstr("http.response.status_code"));
-    EXPECT_THAT(log_str, HasSubstr("error"));
-    EXPECT_THAT(log_str, HasSubstr("http.request.method"));
-    EXPECT_THAT(log_str, HasSubstr("db.type"));
-    EXPECT_THAT(log_str, HasSubstr("db.statement"));
-    EXPECT_THAT(log_str, HasSubstr("server.address"));
-    EXPECT_THAT(log_str, HasSubstr("url.full"));
-}
-
-UTEST_F(OpentracingSpan, FromTracerWithServiceName) {
-    tracing::Tracer::SetTracer({"test_service", tracing::Tracer::CopyCurrentTracer().GetOptionalLogger()});
-    // clang-format off
-    { const tracing::Span span("span_name", nullptr, tracing::ReferenceType::kChild); }
-    // clang-format on
-
-    FlushOpentracing();
-    const auto log_str = GetOtStreamString();
-    EXPECT_THAT(log_str, HasSubstr("service_name=test_service"));
-}
-
-UTEST_F(OpentracingSpan, TagFormat) {
-    {
-        tracing::Span span("span_name");
-        span.AddTag(tracing::kHttpResponseStatusCode, 200);
-        span.AddTag("error", false);
-        span.AddTag(tracing::kHttpRequestMethod, "POST");
-    }
-    FlushOpentracing();
-    const auto tags = GetTagsJson(GetOtStreamString());
-    EXPECT_EQ(3, tags.GetSize());
-    for (const auto& tag : tags) {
-        CheckTagFormat(tag);
-        const auto key = tag["key"].As<std::string>();
-        if (key == "http.response.status_code") {
-            CheckTagTypeAndValue(tag, "int64", "200");
-        } else if (key == "error") {
-            CheckTagTypeAndValue(tag, "bool", "0");
-        } else if (key == "http.request.method") {
-            CheckTagTypeAndValue(tag, "string", "POST");
-        } else {
-            FAIL() << "Got unknown key in tags: " << key;
-        }
-    }
 }
 
 UTEST_F(Span, ScopeTime) {

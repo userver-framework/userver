@@ -1,7 +1,7 @@
 #pragma once
 
 /// @file userver/proto-structs/type_mapping.hpp
-/// @brief Concepts and traits for checking proto struct and protobuf message compatability.
+/// @brief Concepts and traits for checking proto struct and protobuf message compatibility.
 
 #include <cstdint>
 #include <iosfwd>
@@ -115,7 +115,7 @@ struct GetOneofNthType<0, T, TTail...> {
 
 template <std::size_t Index, typename T>
 struct OneofAlternativeTrait {
-    static_assert(sizeof(T) && false, "Trait should be applied to 'Oneof'");
+    static_assert(!sizeof(T), "Trait should be applied to 'Oneof'");
 };
 
 template <std::size_t Index, typename... TFields>

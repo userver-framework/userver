@@ -270,6 +270,7 @@ UTEST_MT(Task, MultiWait, 4) {
     size_t tasks_started = 0;
 
     std::vector<engine::TaskWithResult<void>> tasks;
+    tasks.reserve(kWaitingTasksCount);
     for (size_t i = 0; i < kWaitingTasksCount; ++i) {
         tasks.push_back(engine::AsyncNoSpan([&shared_task, &mutex, &cv, &tasks_started, test_deadline]() {
             {
@@ -296,7 +297,7 @@ TEST(Task, CoroStackSizeSet) {
     config.coro_stack_size = 256 * 1024 + 123;
     engine::RunStandalone(1, config, []() {
         const auto expected_stack_size =
-            256 * 1024 + /* The size should be rounded up to the page size */
+            (256 * 1024) + /* The size should be rounded up to the page size */
             utils::sys_info::GetPageSize();
         ASSERT_EQ(engine::current_task::GetStackSize(), expected_stack_size);
     });

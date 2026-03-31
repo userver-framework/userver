@@ -21,7 +21,7 @@ constexpr std::int64_t kMin = std::numeric_limits<std::int64_t>::min();  // -922
 struct Int64FromJsonSuccessTestParam {
     std::string input = {};
     Int64MessageData expected_message = {};
-    ReadOptions options = {};
+    ParseOptions options = {};
 
     // Older protobuf libraries does not support exponential notation for the quoted integers.
     // This was fixed in the "v30.0-rc1" / "v6.30.0-rc1" (GOOGLE_PROTOBUF_VERSION = 6030000).
@@ -30,9 +30,9 @@ struct Int64FromJsonSuccessTestParam {
 
 struct Int64FromJsonFailureTestParam {
     std::string input = {};
-    ReadErrorCode expected_errc = {};
+    ParseErrorCode expected_errc = {};
     std::string expected_path = {};
-    ReadOptions options = {};
+    ParseOptions options = {};
 };
 
 void PrintTo(const Int64FromJsonSuccessTestParam& param, std::ostream* os) {
@@ -89,71 +89,71 @@ INSTANTIATE_TEST_SUITE_P(
     ,
     Int64FromJsonFailureTest,
     ::testing::Values(
-        Int64FromJsonFailureTestParam{R"({"field1":[],"field2":1,"field3":1})", ReadErrorCode::kInvalidType, "field1"},
-        Int64FromJsonFailureTestParam{R"({"field1":1,"field2":{},"field3":1})", ReadErrorCode::kInvalidType, "field2"},
+        Int64FromJsonFailureTestParam{R"({"field1":[],"field2":1,"field3":1})", ParseErrorCode::kInvalidType, "field1"},
+        Int64FromJsonFailureTestParam{R"({"field1":1,"field2":{},"field3":1})", ParseErrorCode::kInvalidType, "field2"},
         Int64FromJsonFailureTestParam{
             R"({"field1":1,"field2":1,"field3":true})",
-            ReadErrorCode::kInvalidType,
+            ParseErrorCode::kInvalidType,
             "field3"
         },
         Int64FromJsonFailureTestParam{
             R"({"field1":9223372036854775808,"field2":1,"field3":1})",
-            ReadErrorCode::kInvalidValue,
+            ParseErrorCode::kInvalidValue,
             "field1"
         },
         Int64FromJsonFailureTestParam{
             R"({"field1":1,"field2":-9223372036854775809,"field3":1})",
-            ReadErrorCode::kInvalidValue,
+            ParseErrorCode::kInvalidValue,
             "field2"
         },
         Int64FromJsonFailureTestParam{
             R"({"field1":1,"field2":1,"field3":"9223372036854775808"})",
-            ReadErrorCode::kInvalidValue,
+            ParseErrorCode::kInvalidValue,
             "field3"
         },
         Int64FromJsonFailureTestParam{
             R"({"field1":"-9223372036854775809","field2":1,"field3":1})",
-            ReadErrorCode::kInvalidValue,
+            ParseErrorCode::kInvalidValue,
             "field1"
         },
         Int64FromJsonFailureTestParam{
             R"({"field1":1,"field2":1e50,"field3":1})",
-            ReadErrorCode::kInvalidValue,
+            ParseErrorCode::kInvalidValue,
             "field2"
         },
         Int64FromJsonFailureTestParam{
             R"({"field1":1,"field2":1,"field3":-1e50})",
-            ReadErrorCode::kInvalidValue,
+            ParseErrorCode::kInvalidValue,
             "field3"
         },
         Int64FromJsonFailureTestParam{
             R"({"field1":" 123","field2":1,"field3":1})",
-            ReadErrorCode::kInvalidValue,
+            ParseErrorCode::kInvalidValue,
             "field1"
         },
         Int64FromJsonFailureTestParam{
             R"({"field1":1,"field2":"-123 ","field3":1})",
-            ReadErrorCode::kInvalidValue,
+            ParseErrorCode::kInvalidValue,
             "field2"
         },
         Int64FromJsonFailureTestParam{
             R"({"field1":1,"field2":1,"field3":"1a3"})",
-            ReadErrorCode::kInvalidValue,
+            ParseErrorCode::kInvalidValue,
             "field3"
         },
         Int64FromJsonFailureTestParam{
             R"({"field1":"1.1","field2":1,"field3":1})",
-            ReadErrorCode::kInvalidValue,
+            ParseErrorCode::kInvalidValue,
             "field1"
         },
         Int64FromJsonFailureTestParam{
             R"({"field1":1,"field2":"1e50","field3":1})",
-            ReadErrorCode::kInvalidValue,
+            ParseErrorCode::kInvalidValue,
             "field2"
         },
         Int64FromJsonFailureTestParam{
             R"({"field1":1,"field2":1,"field3":"-1e50"})",
-            ReadErrorCode::kInvalidValue,
+            ParseErrorCode::kInvalidValue,
             "field3"
         }
     )
@@ -162,7 +162,9 @@ INSTANTIATE_TEST_SUITE_P(
 TEST_P(Int64FromJsonSuccessTest, Test) {
     const auto& param = GetParam();
 
-    proto_json::messages::Int64Message message, expected_message, sample_message;
+    proto_json::messages::Int64Message message;
+    proto_json::messages::Int64Message expected_message;
+    proto_json::messages::Int64Message sample_message;
     formats::json::Value input = PrepareJsonTestData(param.input);
     expected_message = PrepareTestData(param.expected_message);
 
@@ -173,11 +175,11 @@ TEST_P(Int64FromJsonSuccessTest, Test) {
     UASSERT_NO_THROW((message = JsonToMessage<proto_json::messages::Int64Message>(input, param.options)));
 
 #if GOOGLE_PROTOBUF_VERSION >= 6030000
-    UASSERT_NO_THROW(InitSampleMessage(param.input, param.options, sample_message));
+    UASSERT_NO_THROW(InitSampleMessage(param.input, sample_message, param.options));
     CheckMessageEqual(message, sample_message);
 #else
     if (!param.skip_native_parsing_for_older_versions) {
-        UASSERT_NO_THROW(InitSampleMessage(param.input, param.options, sample_message));
+        UASSERT_NO_THROW(InitSampleMessage(param.input, sample_message, param.options));
         CheckMessageEqual(message, sample_message);
     }
 #endif
@@ -191,12 +193,12 @@ TEST_P(Int64FromJsonFailureTest, Test) {
     proto_json::messages::Int64Message sample_message;
     formats::json::Value input = PrepareJsonTestData(param.input);
 
-    EXPECT_READ_ERROR(
+    EXPECT_PARSE_ERROR(
         (void)JsonToMessage<proto_json::messages::Int64Message>(input, param.options),
         param.expected_errc,
         param.expected_path
     );
-    UEXPECT_THROW(InitSampleMessage(param.input, param.options, sample_message), SampleError);
+    UEXPECT_THROW(InitSampleMessage(param.input, sample_message, param.options), SampleError);
 }
 
 }  // namespace protobuf::json::tests

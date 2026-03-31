@@ -227,7 +227,7 @@ YamlConfig YamlConfig::operator[](size_t index) const {
         return MakeMissingConfig(*this, index)[value.As<std::string>()];
     }
 
-    return {std::move(value), config_vars_};
+    return {std::move(value), config_vars_, mode_};
 }
 
 std::size_t YamlConfig::GetSize() const { return yaml_.GetSize(); }
@@ -252,9 +252,9 @@ bool YamlConfig::IsArray() const noexcept { return yaml_.IsArray(); }
 
 bool YamlConfig::IsObject() const noexcept { return yaml_.IsObject(); }
 
-void YamlConfig::CheckNotMissing() const { return yaml_.CheckNotMissing(); }
+void YamlConfig::CheckNotMissing() const { yaml_.CheckNotMissing(); }
 
-void YamlConfig::CheckArray() const { return yaml_.CheckArray(); }
+void YamlConfig::CheckArray() const { yaml_.CheckArray(); }
 
 void YamlConfig::CheckArrayOrNull() const { yaml_.CheckArrayOrNull(); }
 

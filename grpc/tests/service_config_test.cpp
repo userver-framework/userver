@@ -72,7 +72,7 @@ UTEST_F(GrpcClientWithServiceConfig, DefaultServiceConfig) {
 
     // test that service_config was passed to gRPC Core
     const auto stub_state = data.GetStubState();
-    const auto& channels = stub_state->stubs.GetChannels();
+    const auto& channels = stub_state->stubs.channels;
     for (const auto& channel : channels) {
         ASSERT_EQ(kServiceConfig, ugrpc::impl::ToString(channel->GetServiceConfigJSON()));
     }

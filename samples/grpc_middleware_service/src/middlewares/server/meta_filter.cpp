@@ -22,7 +22,8 @@ void MetaFilter::OnCallStart(ugrpc::server::MiddlewareCallContext& context) cons
         const auto it = metadata.find(ToRef(header));
         if (it == metadata.cend()) {
             LOG_ERROR() << "Missed some headers";
-            return context.SetError(::grpc::Status{::grpc::StatusCode::FAILED_PRECONDITION, "Missed some headers"});
+            context.SetError(::grpc::Status{::grpc::StatusCode::FAILED_PRECONDITION, "Missed some headers"});
+            return;
         }
     }
 }

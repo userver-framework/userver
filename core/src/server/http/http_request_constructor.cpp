@@ -126,7 +126,6 @@ void HttpRequestConstructor::ParseUrl() {
 
         builder_.SetTaskProcessor(handler_info->task_processor);
         builder_.SetHttpHandler(handler_info->handler);
-        builder_.SetHttpHandlerStatistics(handler_info->handler.GetRequestStatistics());
     } else {
         if (match_result.status == MatchRequestResult::Status::kMethodNotAllowed) {
             SetStatus(Status::kMethodNotAllowed);

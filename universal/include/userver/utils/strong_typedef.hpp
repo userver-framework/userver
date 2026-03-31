@@ -14,6 +14,7 @@
 
 #include <boost/functional/hash_fwd.hpp>
 
+#include <userver/compiler/impl/lifetime.hpp>
 #include <userver/compiler/impl/three_way_comparison.hpp>
 #include <userver/formats/common/meta.hpp>
 #include <userver/utils/meta.hpp>
@@ -197,13 +198,13 @@ public:
         );
     }
 
-    explicit constexpr operator const T&() const& noexcept { return data_; }
+    explicit constexpr operator const T&() const& noexcept USERVER_IMPL_LIFETIME_BOUND { return data_; }
     explicit constexpr operator T() && noexcept { return std::move(data_); }
-    explicit constexpr operator T&() & noexcept { return data_; }
+    explicit constexpr operator T&() & noexcept USERVER_IMPL_LIFETIME_BOUND { return data_; }
 
-    constexpr const T& GetUnderlying() const& noexcept { return data_; }
+    constexpr const T& GetUnderlying() const& noexcept USERVER_IMPL_LIFETIME_BOUND { return data_; }
     constexpr T GetUnderlying() && noexcept { return std::move(data_); }
-    constexpr T& GetUnderlying() & noexcept { return data_; }
+    constexpr T& GetUnderlying() & noexcept USERVER_IMPL_LIFETIME_BOUND { return data_; }
 
     template <typename Void = void, typename = impl::strong_typedef::EnableIfRange<T, Void>>
     auto begin() {

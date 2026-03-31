@@ -124,7 +124,7 @@ std::enable_if_t<std::is_same_v<meta::RangeValueType<T>, std::string>, std::vect
 template <typename Parameter>
 struct SerializeParameter {
     static std::string Serialize(const typename Parameter::UserType&) {
-        static_assert(sizeof(Parameter) && false, "No SerializeParameter specialization found for `Parameter`");
+        static_assert(!sizeof(Parameter), "No SerializeParameter specialization found for `Parameter`");
         return {};
     }
 };

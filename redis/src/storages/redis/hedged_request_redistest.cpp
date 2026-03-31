@@ -36,18 +36,21 @@ UTEST_F(RedisClientTest, HedgedRequestAsync) {
 }
 
 UTEST_F(RedisClientTest, HedgedRequestBulk) {
+    static constexpr std::size_t kRequestCount = 10;
+
     auto client = GetClient();
     const storages::redis::CommandControl cc;
     const auto testkey = std::string("testkey");
     const auto testvalue = std::string("testvalue");
-    for (size_t i = 0; i < 10; ++i) {
+    for (std::size_t i = 0; i < kRequestCount; ++i) {
         const std::string key = testkey + std::to_string(i);
         const std::string value = testvalue + std::to_string(i);
         client->Set(key, value, cc).Get();
     }
 
     std::vector<std::tuple<std::string>> args;
-    for (size_t i = 0; i < 10; ++i) {
+    args.reserve(kRequestCount);
+    for (std::size_t i = 0; i < kRequestCount; ++i) {
         args.emplace_back(testkey + std::to_string(i));
     }
 
@@ -55,24 +58,27 @@ UTEST_F(RedisClientTest, HedgedRequestBulk) {
     auto response = storages::redis::MakeBulkHedgedRedisRequest<
         storages::redis::RequestGet>(client, &storages::redis::Client::Get, cc, settings, args);
     ASSERT_EQ(response.size(), args.size());
-    for (size_t i = 0; i < 10; ++i) {
+    for (std::size_t i = 0; i < kRequestCount; ++i) {
         EXPECT_EQ(response[i], testvalue + std::to_string(i));
     }
 }
 
 UTEST_F(RedisClientTest, HedgedRequestBulkAsync) {
+    static constexpr std::size_t kRequestCount = 10;
+
     auto client = GetClient();
     const storages::redis::CommandControl cc;
     const auto testkey = std::string("testkey");
     const auto testvalue = std::string("testvalue");
-    for (size_t i = 0; i < 10; ++i) {
+    for (std::size_t i = 0; i < kRequestCount; ++i) {
         const std::string key = testkey + std::to_string(i);
         const std::string value = testvalue + std::to_string(i);
         client->Set(key, value, cc).Get();
     }
 
     std::vector<std::tuple<std::string>> args;
-    for (size_t i = 0; i < 10; ++i) {
+    args.reserve(kRequestCount);
+    for (std::size_t i = 0; i < kRequestCount; ++i) {
         args.emplace_back(testkey + std::to_string(i));
     }
 
@@ -81,7 +87,7 @@ UTEST_F(RedisClientTest, HedgedRequestBulkAsync) {
         storages::redis::RequestGet>(client, &storages::redis::Client::Get, cc, settings, args);
     auto response = future.Get();
     ASSERT_EQ(response.size(), args.size());
-    for (size_t i = 0; i < 10; ++i) {
+    for (std::size_t i = 0; i < kRequestCount; ++i) {
         EXPECT_EQ(response[i], testvalue + std::to_string(i));
     }
 }

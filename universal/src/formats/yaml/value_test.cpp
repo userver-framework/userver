@@ -126,7 +126,7 @@ TEST(FormatsYaml, NodesTags) {
     field_tag_prefix: !example!foo 42
   )");
 
-    for (auto scalar_field :
+    for (const std::string_view scalar_field :
          {"field_int", "field_string", "field_bool", "field_array", "field_obj", "field_array_json", "field_obj_json"})
     {
         EXPECT_EQ(yaml[scalar_field].GetTag(), "?") << "Field: " << scalar_field;

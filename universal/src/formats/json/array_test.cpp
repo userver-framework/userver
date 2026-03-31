@@ -129,4 +129,12 @@ TEST(FormatsJsonArray, CanBeConvertedToContainers) {
     EXPECT_EQ(array.ConvertTo<std::vector<int>>(), expected);
 }
 
+TEST(FormatsJsonArray, OptionalEmptyArray) {
+    auto array{formats::json::FromString("[]")};
+    const std::vector<int> expected{};
+
+    EXPECT_EQ(array.As<std::optional<std::vector<int>>>(), expected);
+    EXPECT_EQ(array.ConvertTo<std::vector<int>>(), expected);
+}
+
 USERVER_NAMESPACE_END

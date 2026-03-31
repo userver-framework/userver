@@ -137,7 +137,6 @@ private:
         */
     }
 
-private:
     ydb::FederatedTopicReadSession read_session_;
     bool session_closed_{false};
 };

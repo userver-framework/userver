@@ -122,7 +122,7 @@ private:
             const Duration bucket_epoch = items_[index].epoch.load();
 
             // Second condition allows non-monotonic timeline (that is common for tests)
-            // but still forbids race (rewrite of fresh bucket by sleeped after L113 thread)
+            // but still forbids race (rewrite of fresh bucket by slept after L113 thread)
             if (epoch > bucket_epoch || epoch + max_duration_ < bucket_epoch) {
                 const std::size_t new_index = (index + 1) % items_.size();
 

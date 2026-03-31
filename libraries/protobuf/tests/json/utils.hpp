@@ -22,31 +22,31 @@
 #include "proto_json/messages.pb.h"
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define EXPECT_WRITE_ERROR(EXPR, CODE, PATH)                             \
+#define EXPECT_PRINT_ERROR(EXPR, CODE, PATH)                             \
     try {                                                                \
         (EXPR);                                                          \
-        ADD_FAILURE() << "Should throw 'WriteError' exception";          \
-    } catch (const protobuf::json::WriteError& error) {                  \
+        ADD_FAILURE() << "Should throw 'PrintError' exception";          \
+    } catch (const protobuf::json::PrintError& error) {                  \
         EXPECT_EQ(error.GetErrorInfo().GetCode(), (CODE));               \
         EXPECT_EQ(error.GetErrorInfo().GetPath(), (PATH));               \
     } catch (...) {                                                      \
-        ADD_FAILURE() << "Unexpected exception, should be 'WriteError'"; \
+        ADD_FAILURE() << "Unexpected exception, should be 'PrintError'"; \
     }
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define EXPECT_READ_ERROR(EXPR, CODE, PATH)                             \
-    try {                                                               \
-        (EXPR);                                                         \
-        ADD_FAILURE() << "Should throw 'ReadError' exception";          \
-    } catch (const protobuf::json::ReadError& error) {                  \
-        EXPECT_EQ(error.GetErrorInfo().GetCode(), (CODE));              \
-        EXPECT_EQ(error.GetErrorInfo().GetPath(), (PATH));              \
-    } catch (...) {                                                     \
-        ADD_FAILURE() << "Unexpected exception, should be 'ReadError'"; \
+#define EXPECT_PARSE_ERROR(EXPR, CODE, PATH)                             \
+    try {                                                                \
+        (EXPR);                                                          \
+        ADD_FAILURE() << "Should throw 'ParseError' exception";          \
+    } catch (const protobuf::json::ParseError& error) {                  \
+        EXPECT_EQ(error.GetErrorInfo().GetCode(), (CODE));               \
+        EXPECT_EQ(error.GetErrorInfo().GetPath(), (PATH));               \
+    } catch (...) {                                                      \
+        ADD_FAILURE() << "Unexpected exception, should be 'ParseError'"; \
     }
 
 template <>
-struct fmt::formatter<USERVER_NAMESPACE::protobuf::json::WriteOptions> {
+struct fmt::formatter<USERVER_NAMESPACE::protobuf::json::PrintOptions> {
     auto parse(fmt::format_parse_context& ctx) {
         auto it = ctx.begin();
         if (it != ctx.end() && *it != '}') {
@@ -56,7 +56,7 @@ struct fmt::formatter<USERVER_NAMESPACE::protobuf::json::WriteOptions> {
     }
 
     template <typename FormatContext>
-    auto format(const USERVER_NAMESPACE::protobuf::json::WriteOptions& options, FormatContext& ctx) const
+    auto format(const USERVER_NAMESPACE::protobuf::json::PrintOptions& options, FormatContext& ctx) const
         -> decltype(ctx.out()) {
         return fmt::format_to(
             ctx.out(),
@@ -69,7 +69,7 @@ struct fmt::formatter<USERVER_NAMESPACE::protobuf::json::WriteOptions> {
 };
 
 template <>
-struct fmt::formatter<USERVER_NAMESPACE::protobuf::json::ReadOptions> {
+struct fmt::formatter<USERVER_NAMESPACE::protobuf::json::ParseOptions> {
     auto parse(fmt::format_parse_context& ctx) {
         auto it = ctx.begin();
         if (it != ctx.end() && *it != '}') {
@@ -79,14 +79,14 @@ struct fmt::formatter<USERVER_NAMESPACE::protobuf::json::ReadOptions> {
     }
 
     template <typename FormatContext>
-    auto format(const USERVER_NAMESPACE::protobuf::json::ReadOptions& options, FormatContext& ctx) const
+    auto format(const USERVER_NAMESPACE::protobuf::json::ParseOptions& options, FormatContext& ctx) const
         -> decltype(ctx.out()) {
         return fmt::format_to(ctx.out(), "{{ignore_unknown_fields={}}}", options.ignore_unknown_fields);
     }
 };
 
 template <>
-struct fmt::formatter<USERVER_NAMESPACE::protobuf::json::WriteErrorCode> {
+struct fmt::formatter<USERVER_NAMESPACE::protobuf::json::PrintErrorCode> {
     auto parse(fmt::format_parse_context& ctx) {
         auto it = ctx.begin();
         if (it != ctx.end() && *it != '}') {
@@ -96,10 +96,10 @@ struct fmt::formatter<USERVER_NAMESPACE::protobuf::json::WriteErrorCode> {
     }
 
     template <typename FormatContext>
-    auto format(const USERVER_NAMESPACE::protobuf::json::WriteErrorCode& code, FormatContext& ctx) const
+    auto format(const USERVER_NAMESPACE::protobuf::json::PrintErrorCode& code, FormatContext& ctx) const
         -> decltype(ctx.out()) {
         switch (code) {
-            case USERVER_NAMESPACE::protobuf::json::WriteErrorCode::kInvalidValue:
+            case USERVER_NAMESPACE::protobuf::json::PrintErrorCode::kInvalidValue:
                 return fmt::format_to(ctx.out(), "kInvalidValue");
             default:
                 return fmt::format_to(ctx.out(), "UNKNOWN");
@@ -108,7 +108,7 @@ struct fmt::formatter<USERVER_NAMESPACE::protobuf::json::WriteErrorCode> {
 };
 
 template <>
-struct fmt::formatter<USERVER_NAMESPACE::protobuf::json::ReadErrorCode> {
+struct fmt::formatter<USERVER_NAMESPACE::protobuf::json::ParseErrorCode> {
     auto parse(fmt::format_parse_context& ctx) {
         auto it = ctx.begin();
         if (it != ctx.end() && *it != '}') {
@@ -118,18 +118,18 @@ struct fmt::formatter<USERVER_NAMESPACE::protobuf::json::ReadErrorCode> {
     }
 
     template <typename FormatContext>
-    auto format(const USERVER_NAMESPACE::protobuf::json::ReadErrorCode& code, FormatContext& ctx) const
+    auto format(const USERVER_NAMESPACE::protobuf::json::ParseErrorCode& code, FormatContext& ctx) const
         -> decltype(ctx.out()) {
         switch (code) {
-            case USERVER_NAMESPACE::protobuf::json::ReadErrorCode::kUnknownField:
+            case USERVER_NAMESPACE::protobuf::json::ParseErrorCode::kUnknownField:
                 return fmt::format_to(ctx.out(), "kUnknownField");
-            case USERVER_NAMESPACE::protobuf::json::ReadErrorCode::kUnknownEnum:
+            case USERVER_NAMESPACE::protobuf::json::ParseErrorCode::kUnknownEnum:
                 return fmt::format_to(ctx.out(), "kUnknownEnum");
-            case USERVER_NAMESPACE::protobuf::json::ReadErrorCode::kMultipleOneofFields:
+            case USERVER_NAMESPACE::protobuf::json::ParseErrorCode::kMultipleOneofFields:
                 return fmt::format_to(ctx.out(), "kMultipleOneofFields");
-            case USERVER_NAMESPACE::protobuf::json::ReadErrorCode::kInvalidType:
+            case USERVER_NAMESPACE::protobuf::json::ParseErrorCode::kInvalidType:
                 return fmt::format_to(ctx.out(), "kInvalidType");
-            case USERVER_NAMESPACE::protobuf::json::ReadErrorCode::kInvalidValue:
+            case USERVER_NAMESPACE::protobuf::json::ParseErrorCode::kInvalidValue:
                 return fmt::format_to(ctx.out(), "kInvalidValue");
             default:
                 return fmt::format_to(ctx.out(), "UNKNOWN");
@@ -162,9 +162,9 @@ using ProtoValue = std::variant<
 
 formats::json::Value PrepareJsonTestData(const std::string& json_data);
 
-formats::json::Value CreateSampleJson(const ::google::protobuf::Message& message, const WriteOptions& options = {});
+formats::json::Value CreateSampleJson(const ::google::protobuf::Message& message, const PrintOptions& options = {});
 
-void InitSampleMessage(const std::string& json, const ReadOptions& options, ::google::protobuf::Message& message);
+void InitSampleMessage(const std::string& json, ::google::protobuf::Message& message, const ParseOptions& options = {});
 
 ::google::protobuf::Value ProtoValueToNative(const ProtoValue& data);
 
@@ -212,6 +212,7 @@ struct BytesMessageData {
 
 struct EnumMessageData {
     proto_json::messages::EnumMessage::Test field1 = proto_json::messages::EnumMessage::TEST_UNSPECIFIED;
+    std::optional<proto_json::messages::EnumMessage::Test> field2 = {};
 };
 
 struct NestedMessageData {
@@ -269,6 +270,15 @@ struct RepeatedMessageData {
     std::vector<std::int32_t> field1 = {};
     std::vector<BoolMessageData> field2 = {};
     std::vector<DurationMessageData> field3 = {};
+    std::vector<ProtoValue> field4 = {};
+    std::vector<std::uint32_t> field5 = {};
+    std::vector<std::int64_t> field6 = {};
+    std::vector<std::uint64_t> field7 = {};
+    std::vector<float> field8 = {};
+    std::vector<double> field9 = {};
+    std::vector<bool> field10 = {};
+    std::vector<std::string> field11 = {};
+    std::vector<proto_json::messages::RepeatedMessage::Test> field12 = {};
 };
 
 struct MapMessageData {
@@ -279,6 +289,7 @@ struct MapMessageData {
     std::map<bool, proto_json::messages::MapMessage::TestEnum> field5 = {};
     std::map<std::string, BoolMessageData> field6 = {};
     std::map<std::string, DurationMessageData> field7 = {};
+    std::map<std::int32_t, ProtoValue> field8 = {};
 };
 
 struct NullValueMessageData {

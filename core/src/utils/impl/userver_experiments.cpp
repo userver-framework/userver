@@ -94,6 +94,7 @@ UserverExperiment kJemallocBgThread{"jemalloc-bg-thread"};
 UserverExperiment kServerSelectionTimeoutExperiment{"mongo-server-selection-timeout"};
 UserverExperiment kPgCcExperiment{"pg-cc"};
 UserverExperiment kYdbDeadlinePropagationExperiment{"ydb-deadline-propagation"};
+UserverExperiment kWaitAllCheckedUpgradeExperiment{"wait-all-checked-upgrade"};
 
 }  // namespace utils::impl
 

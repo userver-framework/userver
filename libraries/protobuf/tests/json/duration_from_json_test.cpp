@@ -21,14 +21,14 @@ namespace protobuf::json::tests {
 struct DurationFromJsonSuccessTestParam {
     std::string input = {};
     DurationMessageData expected_message = {};
-    ReadOptions options = {};
+    ParseOptions options = {};
 };
 
 struct DurationFromJsonFailureTestParam {
     std::string input = {};
-    ReadErrorCode expected_errc = {};
+    ParseErrorCode expected_errc = {};
     std::string expected_path = {};
-    ReadOptions options = {};
+    ParseOptions options = {};
 
     // Protobuf ProtoJSON legacy syntax supports some features, which we want to prohibit (because
     // we do not want our clients to use syntax that may break in the newer protobuf versions).
@@ -78,38 +78,40 @@ INSTANTIATE_TEST_SUITE_P(
     ,
     DurationFromJsonFailureTest,
     ::testing::Values(
-        DurationFromJsonFailureTestParam{R"({"field1":[]})", ReadErrorCode::kInvalidType, "field1"},
-        DurationFromJsonFailureTestParam{R"({"field1":{}})", ReadErrorCode::kInvalidType, "field1", {}, true},
-        DurationFromJsonFailureTestParam{R"({"field1":true})", ReadErrorCode::kInvalidType, "field1"},
-        DurationFromJsonFailureTestParam{R"({"field1":1})", ReadErrorCode::kInvalidType, "field1"},
-        DurationFromJsonFailureTestParam{R"({"field1":""})", ReadErrorCode::kInvalidValue, "field1"},
-        DurationFromJsonFailureTestParam{R"({"field1":"abc"})", ReadErrorCode::kInvalidValue, "field1"},
-        DurationFromJsonFailureTestParam{R"({"field1":"0"})", ReadErrorCode::kInvalidValue, "field1"},
-        DurationFromJsonFailureTestParam{R"({"field1":"0.-0s"})", ReadErrorCode::kInvalidValue, "field1"},
-        DurationFromJsonFailureTestParam{R"({"field1":"0ss"})", ReadErrorCode::kInvalidValue, "field1"},
-        DurationFromJsonFailureTestParam{R"({"field1":"123-s"})", ReadErrorCode::kInvalidValue, "field1"},
-        DurationFromJsonFailureTestParam{R"({"field1":"-123.-1s"})", ReadErrorCode::kInvalidValue, "field1"},
-        DurationFromJsonFailureTestParam{R"({"field1":"315576000001.0s"})", ReadErrorCode::kInvalidValue, "field1"},
-        DurationFromJsonFailureTestParam{R"({"field1":"-315576000001.0s"})", ReadErrorCode::kInvalidValue, "field1"},
-        DurationFromJsonFailureTestParam{R"({"field1":"0.1000000000s"})", ReadErrorCode::kInvalidValue, "field1"},
-        DurationFromJsonFailureTestParam{R"({"field1":"-0.1000000000s"})", ReadErrorCode::kInvalidValue, "field1"},
-        DurationFromJsonFailureTestParam{R"({"field1":"1..1s"})", ReadErrorCode::kInvalidValue, "field1"},
-        DurationFromJsonFailureTestParam{R"({"field1":".1s"})", ReadErrorCode::kInvalidValue, "field1"},
-        DurationFromJsonFailureTestParam{R"({"field1":"1.1.s"})", ReadErrorCode::kInvalidValue, "field1"}
+        DurationFromJsonFailureTestParam{R"({"field1":[]})", ParseErrorCode::kInvalidType, "field1"},
+        DurationFromJsonFailureTestParam{R"({"field1":{}})", ParseErrorCode::kInvalidType, "field1", {}, true},
+        DurationFromJsonFailureTestParam{R"({"field1":true})", ParseErrorCode::kInvalidType, "field1"},
+        DurationFromJsonFailureTestParam{R"({"field1":1})", ParseErrorCode::kInvalidType, "field1"},
+        DurationFromJsonFailureTestParam{R"({"field1":""})", ParseErrorCode::kInvalidValue, "field1"},
+        DurationFromJsonFailureTestParam{R"({"field1":"abc"})", ParseErrorCode::kInvalidValue, "field1"},
+        DurationFromJsonFailureTestParam{R"({"field1":"0"})", ParseErrorCode::kInvalidValue, "field1"},
+        DurationFromJsonFailureTestParam{R"({"field1":"0.-0s"})", ParseErrorCode::kInvalidValue, "field1"},
+        DurationFromJsonFailureTestParam{R"({"field1":"0ss"})", ParseErrorCode::kInvalidValue, "field1"},
+        DurationFromJsonFailureTestParam{R"({"field1":"123-s"})", ParseErrorCode::kInvalidValue, "field1"},
+        DurationFromJsonFailureTestParam{R"({"field1":"-123.-1s"})", ParseErrorCode::kInvalidValue, "field1"},
+        DurationFromJsonFailureTestParam{R"({"field1":"315576000001.0s"})", ParseErrorCode::kInvalidValue, "field1"},
+        DurationFromJsonFailureTestParam{R"({"field1":"-315576000001.0s"})", ParseErrorCode::kInvalidValue, "field1"},
+        DurationFromJsonFailureTestParam{R"({"field1":"0.1000000000s"})", ParseErrorCode::kInvalidValue, "field1"},
+        DurationFromJsonFailureTestParam{R"({"field1":"-0.1000000000s"})", ParseErrorCode::kInvalidValue, "field1"},
+        DurationFromJsonFailureTestParam{R"({"field1":"1..1s"})", ParseErrorCode::kInvalidValue, "field1"},
+        DurationFromJsonFailureTestParam{R"({"field1":".1s"})", ParseErrorCode::kInvalidValue, "field1"},
+        DurationFromJsonFailureTestParam{R"({"field1":"1.1.s"})", ParseErrorCode::kInvalidValue, "field1"}
     )
 );
 
 TEST_P(DurationFromJsonSuccessTest, Test) {
     const auto& param = GetParam();
 
-    proto_json::messages::DurationMessage message, expected_message, sample_message;
+    proto_json::messages::DurationMessage message;
+    proto_json::messages::DurationMessage expected_message;
+    proto_json::messages::DurationMessage sample_message;
     formats::json::Value input = PrepareJsonTestData(param.input);
     expected_message = PrepareTestData(param.expected_message);
 
     message.mutable_field1()->set_seconds(100001);
 
     UASSERT_NO_THROW((message = JsonToMessage<proto_json::messages::DurationMessage>(input, param.options)));
-    UASSERT_NO_THROW(InitSampleMessage(param.input, param.options, sample_message));
+    UASSERT_NO_THROW(InitSampleMessage(param.input, sample_message, param.options));
 
     CheckMessageEqual(message, sample_message);
     CheckMessageEqual(message, expected_message);
@@ -121,14 +123,14 @@ TEST_P(DurationFromJsonFailureTest, Test) {
     proto_json::messages::DurationMessage sample_message;
     formats::json::Value input = PrepareJsonTestData(param.input);
 
-    EXPECT_READ_ERROR(
+    EXPECT_PARSE_ERROR(
         (void)JsonToMessage<proto_json::messages::DurationMessage>(input, param.options),
         param.expected_errc,
         param.expected_path
     );
 
     if (!param.skip_native_check) {
-        UEXPECT_THROW(InitSampleMessage(param.input, param.options, sample_message), SampleError);
+        UEXPECT_THROW(InitSampleMessage(param.input, sample_message, param.options), SampleError);
     }
 }
 
@@ -137,12 +139,13 @@ TEST(DurationFromJsonAdditionalTest, InlinedNonNull) {
 
     const char* json_str = "\"123.987654321s\"";
     const auto json = formats::json::FromString(json_str);
-    Message message, sample;
+    Message message;
+    Message sample;
 
     message.set_seconds(100001);
 
     UASSERT_NO_THROW((message = JsonToMessage<Message>(json)));
-    UASSERT_NO_THROW(InitSampleMessage(json_str, {}, sample));
+    UASSERT_NO_THROW(InitSampleMessage(json_str, sample));
 
     EXPECT_EQ(message.seconds(), 123);
     EXPECT_EQ(message.nanos(), 987654321);
@@ -153,12 +156,13 @@ TEST(DurationFromJsonAdditionalTest, InlinedNull) {
     using Message = ::google::protobuf::Duration;
 
     const auto json = formats::json::FromString("null");
-    Message message, sample;
+    Message message;
+    Message sample;
 
     message.set_seconds(100001);
 
     UASSERT_NO_THROW((message = JsonToMessage<Message>(json)));
-    UASSERT_NO_THROW(InitSampleMessage("null", {}, sample));
+    UASSERT_NO_THROW(InitSampleMessage("null", sample));
 
     EXPECT_EQ(message.seconds(), 0);
     EXPECT_EQ(message.nanos(), 0);
@@ -175,7 +179,7 @@ TEST(DurationFromJsonAdditionalTest, DynamicMessage) {
     {
         std::unique_ptr<::google::protobuf::Message> message(factory.GetPrototype(Message::descriptor())->New());
 
-        UASSERT_NO_THROW(JsonToMessage(json, {}, *message));
+        UASSERT_NO_THROW(JsonToMessage(json, *message));
 
         const auto reflection = message->GetReflection();
         const auto seconds_desc = message->GetDescriptor()->FindFieldByName("seconds");

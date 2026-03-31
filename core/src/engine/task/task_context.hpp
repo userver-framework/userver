@@ -4,8 +4,6 @@
 #include <cstdint>
 
 #include <ev.h>
-#include <boost/intrusive/list_hook.hpp>
-#include <boost/smart_ptr/intrusive_ref_counter.hpp>
 
 #include <engine/coro/pool.hpp>
 #include <engine/ev/thread_control.hpp>
@@ -17,6 +15,7 @@
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/future_status.hpp>
 #include <userver/engine/impl/actor.hpp>
+#include <userver/engine/impl/awaiter.hpp>
 #include <userver/engine/impl/context_accessor.hpp>
 #include <userver/engine/impl/detached_tasks_sync_block.hpp>
 #include <userver/engine/impl/task_local_storage.hpp>
@@ -49,7 +48,7 @@ public:
     // - DisableWakeups is not called;
     // - SetupWakeups should disable wakeup sources itself;
     // - SetupWakeups may or may not call context.Wakeup.
-    virtual EarlyWakeup SetupWakeups() = 0;
+    virtual EarlyNotify SetupWakeups() = 0;
 
     // Implementation must disable all wakeup sources (wait lists, timers) here.
     // It may not sleep.
@@ -62,9 +61,9 @@ protected:
     ~WaitStrategy() = default;
 };
 
-class TaskContext final : public ContextAccessor, public deadlock_detector::Actor {
+// NOLINTNEXTLINE(fuchsia-multiple-inheritance)
+class TaskContext final : public ContextAccessor, public Awaiter, public deadlock_detector::Actor {
 public:
-    struct NoEpoch {};
     using TaskPipe = coro::Pool::TaskPipe;
     using TaskId = uint64_t;
 
@@ -73,7 +72,7 @@ public:
     /// Wakeup sources in descending priority order
     enum class WakeupSource : uint32_t {
         kNone = static_cast<uint32_t>(SleepFlags::kNone),
-        kWaitList = static_cast<uint32_t>(SleepFlags::kWakeupByWaitList),
+        kNotify = static_cast<uint32_t>(SleepFlags::kWakeupByWaitList),
         kDeadlineTimer = static_cast<uint32_t>(SleepFlags::kWakeupByDeadlineTimer),
         kCancelRequest = static_cast<uint32_t>(SleepFlags::kWakeupByCancelRequest),
         kBootstrap = static_cast<uint32_t>(SleepFlags::kWakeupByBootstrap),
@@ -106,9 +105,6 @@ public:
 
     // whether user code finished executing, coroutine may still be running
     bool IsFinished() const noexcept;
-
-    void SetDetached(DetachedTasksSyncBlock::Token& token) noexcept;
-    void FinishDetached() noexcept;
 
     // wait for this to become finished
     // should only be called from other context
@@ -149,13 +145,17 @@ public:
     WakeupSource Sleep(WaitStrategy& wait_strategy, Deadline deadline);
 
     // sleep epoch increments after each wakeup
-    SleepState::Epoch GetEpoch() noexcept;
+    Epoch GetEpoch() const noexcept;
+
+    // Awaiter's context. Effectively returns the same value as GetEpoch()
+    std::uintptr_t GetAwaiterContext() const noexcept;
 
     // causes this to return from the nearest sleep
     // i.e. wakeup is queued if task is running
     // normally non-blocking, except corner cases in TaskProcessor::Schedule()
-    void Wakeup(WakeupSource, SleepState::Epoch epoch);
-    void Wakeup(WakeupSource, NoEpoch);
+    void Wakeup(WakeupSource, Epoch epoch) noexcept;
+    void Wakeup(WakeupSource, NoEpoch) noexcept;
+    void Wakeup(WakeupSource, std::uintptr_t context) noexcept;
 
     static void CoroFunc(TaskPipe& task_pipe);
 
@@ -175,12 +175,9 @@ public:
 
     // ContextAccessor implementation
     bool IsReady() const noexcept override;
-    EarlyWakeup TryAppendWaiter(TaskContext& waiter) override;
-    void RemoveWaiter(TaskContext& waiter) noexcept override;
-    void AfterWait() noexcept override;
-    void RethrowErrorResult() const override;
-
-    size_t UseCount() const noexcept;
+    void TryAppendAwaiter(boost::intrusive_ptr<Awaiter>& awaiter, std::uintptr_t context) override;
+    void RemoveAwaiter(Awaiter& awaiter, std::uintptr_t context) noexcept override;
+    std::exception_ptr GetErrorResult() const noexcept override;
 
     std::size_t DecrementFetchSharedTaskUsages() noexcept;
     std::size_t IncrementFetchSharedTaskUsages() noexcept;
@@ -199,20 +196,25 @@ private:
 
     static constexpr uint64_t kMagic = 0x6b73615453755459ULL;  // "YTuSTask"
 
-    void ArmDeadlineTimer(Deadline deadline, SleepState::Epoch sleep_epoch);
+    void ArmDeadlineTimer(Deadline deadline, Epoch sleep_epoch);
     void ArmCancellationTimer();
 
     static WakeupSource GetPrimaryWakeupSource(SleepState::Flags sleep_flags);
 
-    void SetState(Task::State);
+    void SetState(Task::State) noexcept;
 
-    void Schedule();
-    static bool ShouldSchedule(SleepState::Flags flags, WakeupSource source);
+    void Schedule() noexcept;
+    static bool ShouldSchedule(SleepState::Flags flags, WakeupSource source) noexcept;
 
     void ProfilerStartExecution() noexcept;
     void ProfilerStopExecution() noexcept;
 
-    void TraceStateTransition(Task::State state);
+    void TraceStateTransition(Task::State state) noexcept;
+
+    friend void intrusive_ptr_release(Awaiter* awaiter) noexcept;  // NOLINT(readability-identifier-naming)
+
+    // Called from intrusive_ptr_release. Should delete the instance
+    void Destroy() noexcept;
 
     const uint64_t magic_{kMagic};
     TaskProcessor& task_processor_;
@@ -224,11 +226,12 @@ private:
     EhGlobals eh_globals_;
 
     utils::impl::WrappedCallBase* payload_;
+    std::exception_ptr exception_;
 
     std::atomic<Task::State> state_{Task::State::kNew};
     std::atomic<DetachedTasksSyncBlock::Token*> detached_token_{nullptr};
     std::atomic<TaskCancellationReason> cancellation_reason_{TaskCancellationReason::kNone};
-    FastPimplGenericWaitList finish_waiters_;
+    FastPimplGenericWaitList finish_awaiters_;
 
     ContextTimer deadline_timer_;
     engine::Deadline cancel_deadline_;
@@ -240,7 +243,7 @@ private:
 
     std::size_t trace_csw_left_;
 
-    AtomicSleepState sleep_state_{SleepState{SleepFlags::kSleeping, SleepState::Epoch{0}}};
+    AtomicSleepState sleep_state_{SleepState{SleepFlags::kSleeping, Epoch{0}}};
     WakeupSource wakeup_source_{WakeupSource::kNone};
 
     CountedCoroutinePtr coro_;
@@ -252,24 +255,9 @@ private:
     // refcounter for task abandoning (cancellation) in engine::SharedTask
     std::atomic<std::size_t> shared_task_usages_{1};
 
-    // refcounter for resources and memory deallocation
-    std::atomic<std::size_t> intrusive_refcount_{1};
-    friend void intrusive_ptr_add_ref(TaskContext* p) noexcept;  // NOLINT(readability-identifier-naming)
-    friend void intrusive_ptr_release(TaskContext* p) noexcept;  // NOLINT(readability-identifier-naming)
-
     // for thread pinning task processors
     std::size_t thread_index_{kUnsetThreadIndex};
-
-public:
-    using WaitListHook = typename boost::intrusive::make_list_member_hook<
-        boost::intrusive::link_mode<boost::intrusive::auto_unlink>>::type;
-
-    // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
-    WaitListHook wait_list_hook;
 };
-
-void intrusive_ptr_add_ref(TaskContext* p) noexcept;  // NOLINT(readability-identifier-naming)
-void intrusive_ptr_release(TaskContext* p) noexcept;  // NOLINT(readability-identifier-naming)
 
 bool HasWaitSucceeded(TaskContext::WakeupSource) noexcept;
 

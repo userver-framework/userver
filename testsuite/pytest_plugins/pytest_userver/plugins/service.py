@@ -12,7 +12,6 @@ from typing import Any
 
 import pytest
 
-from testsuite.daemons.pytest_plugin import DaemonInstance
 from testsuite.utils import url_util
 
 from pytest_userver.utils import net
@@ -109,6 +108,25 @@ def service_start_timeout() -> float:
 
 
 @pytest.fixture(scope='session')
+async def service_binary_launcher():
+    """
+    If non-empty, defines a list of arguments starting with executable
+    that is used instead of `service_binary`. The final argument list consists of
+    `service_binary_launcher` plus the common service cmdline.
+
+    Can be used for:
+    - resource limiting (rlimit, cgroup)
+    - security limiting (capabilities, LSM)
+    - resource profiling (perf)
+    - tracing (strace, ltrace)
+
+    @see @ref pytest_userver.plugins.service.service_daemon_instance "service_daemon_instance"
+    @ingroup userver_testsuite_fixtures
+    """
+    return []
+
+
+@pytest.fixture(scope='session')
 async def service_daemon_scope(
     create_daemon_scope,
     daemon_scoped_mark,
@@ -116,6 +134,7 @@ async def service_daemon_scope(
     service_http_ping_url,
     service_config_path_temp,
     service_binary,
+    service_binary_launcher,
     service_non_http_health_checks,
     service_start_timeout,
 ):
@@ -163,7 +182,7 @@ async def service_daemon_scope(
     poll_retries = int(service_start_timeout / 0.05)
 
     async with create_daemon_scope(
-        args=[str(service_binary), '--config', str(service_config_path_temp)],
+        args=service_binary_launcher + [str(service_binary), '--config', str(service_config_path_temp)],
         ping_url=service_http_ping_url,
         health_check=health_check,
         env=service_env,
@@ -278,7 +297,7 @@ async def service_daemon_instance(
     # User defined client deps must be last in order to use
     # fixtures defined above.
     extra_client_deps,
-) -> DaemonInstance:
+):
     """
     Calls `ensure_daemon_started` on
     @ref pytest_userver.plugins.service.service_daemon_scope "service_daemon_scope"
@@ -369,9 +388,7 @@ def pytest_generate_tests(metafunc: pytest.Metafunc) -> None:
             # TODO use pytest.HIDDEN_PARAM after it becomes available
             #  https://github.com/pytest-dev/pytest/issues/13228
             ids=['uservice_oneshot'],
-            # TODO use scope='function' after it stops breaking fixture dependencies
-            #  https://github.com/pytest-dev/pytest/issues/13248
-            scope=None,
+            scope='function',
         )
 
 

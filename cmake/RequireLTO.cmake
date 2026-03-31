@@ -1,11 +1,14 @@
 include(CheckIPOSupported)
 check_ipo_supported(LANGUAGES CXX)
 
+# @ingroup compilation
 option(USERVER_LTO_CACHE "Use lto cache for link time optimizations" ON)
+# @ingroup compilation
 set(USERVER_LTO_CACHE_DIR
     "${CMAKE_CURRENT_BINARY_DIR}/.ltocache"
     CACHE PATH "LTO cache directory"
 )
+# @ingroup compilation
 set(USERVER_LTO_CACHE_SIZE_MB
     "6000"
     CACHE STRING "LTO cache size limit in MB"

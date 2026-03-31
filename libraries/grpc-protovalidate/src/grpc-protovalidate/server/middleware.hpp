@@ -12,6 +12,7 @@ namespace grpc_protovalidate::server {
 struct ValidationSettings {
     bool fail_fast{true};
     bool send_violations{false};
+    bool validate_responses{false};
 };
 
 struct Settings final {
@@ -27,6 +28,9 @@ public:
     ~Middleware() override;
 
     void PostRecvMessage(ugrpc::server::MiddlewareCallContext& context, google::protobuf::Message& request)
+        const override;
+
+    void PreSendMessage(ugrpc::server::MiddlewareCallContext& context, google::protobuf::Message& response)
         const override;
 
 private:

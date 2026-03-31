@@ -63,7 +63,7 @@ Otherwise, there could be enough information to reproduce the problem.
   std::string data = "I store some heap allocated data";
   task1 = utils::Async("task1", [&data](){ function1(data); });
   task2 = utils::Async("task2", [&data](){ function2(data); });
-  
+
   task2.Get(); // oops! The exception from Get() would call the destructor
                // of `data` while `task1` still uses it.
   ```
@@ -72,7 +72,7 @@ Otherwise, there could be enough information to reproduce the problem.
   std::string data = "I store some heap allocated data";
   auto task1 = utils::Async("task1", [&data](){ function1(data); });
   auto task2 = utils::Async("task2", [&data](){ function2(data); });
-  
+
   task2.Get(); // `task1` and `task2` cancelled, waited and destroyed
                // before destruction of `data`.
   ```

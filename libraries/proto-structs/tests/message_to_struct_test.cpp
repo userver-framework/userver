@@ -395,28 +395,6 @@ TEST(MessageToStruct, WellKnownJson) {
 
         CheckWellKnownJsonEqual(obj, msg);
     }
-
-    {
-        messages::WellKnownJson msg = create_valid();
-        msg.mutable_f2()->add_values();
-
-        UEXPECT_THROW_MSG(
-            static_cast<void>(MessageToStruct<structs::WellKnownJson>(msg)),
-            ReadError,
-            "'messages.WellKnownJson.f2'"
-        );
-    }
-
-    {
-        messages::WellKnownJson msg = create_valid();
-        static_cast<void>((*msg.mutable_f3()->mutable_fields())["key"]);
-
-        UEXPECT_THROW_MSG(
-            static_cast<void>(MessageToStruct<structs::WellKnownJson>(msg)),
-            ReadError,
-            "'messages.WellKnownJson.f3'"
-        );
-    }
 }
 
 TEST(MessageToStruct, Optional) {

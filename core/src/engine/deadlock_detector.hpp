@@ -20,13 +20,39 @@ public:
 
     virtual ~StateBase();
 
+    // Actor acquires the resource.
+    // The actor could acquire the same resource only once.
     void OnResourceAcquire(const Actor& owner, const Actor& resource);
 
+    // Current task acquires the resource.
+    // The current task could acquire the same resource only once.
+    void OnResourceAcquire(const Actor& resource);
+
+    // Actor acquires the resource.
+    // The actor could acquire the same resource multiple times.
+    void OnReentrantResourceAcquire(const Actor& owner, const Actor& resource);
+
+    // Current task acquires the resource.
+    // The current task could acquire the same resource multiple times.
+    void OnReentrantResourceAcquire(const Actor& resource);
+
+    // Actor releases the resource.
     void OnResourceRelease(const Actor& owner, const Actor& resource) noexcept;
 
+    // Current task releases the resource.
+    void OnResourceRelease(const Actor& resource) noexcept;
+
+    // Actor waits for the resource.
     void OnWaitForResourceStart(const Actor& waiting, const Actor& resource);
 
+    // Current task waits for the resource.
+    void OnWaitForResourceStart(const Actor& resource);
+
+    // Actor finishes waiting for the resource.
     void OnWaitForResourceFinish(const Actor& waiting, const Actor& resource) noexcept;
+
+    // Current task finishes waiting for the resource.
+    void OnWaitForResourceFinish(const Actor& resource) noexcept;
 
     void OnActorDestroy(const Actor& actor);
 
@@ -34,7 +60,7 @@ protected:
     virtual void OnCycleFound(const std::vector<const Actor*>& cycle) = 0;
 
 private:
-    void AddDependency(const Actor& from, const Actor& to);
+    void AddDependency(const Actor& from, const Actor& to, bool allow_repeated_deps);
 
     void RemoveDependency(const Actor& from, const Actor& to) noexcept;
 

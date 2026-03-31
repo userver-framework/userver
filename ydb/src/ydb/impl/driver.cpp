@@ -22,8 +22,8 @@ Driver::Driver(std::string dbname, impl::DriverSettings settings)
       retry_budget_(utils::RetryBudgetSettings{})
 {
     NYdb::TDriverConfig driver_config;
-    driver_config.SetEndpoint(settings.endpoint.data())
-        .SetDatabase(settings.database.data())
+    driver_config.SetEndpoint(settings.endpoint)
+        .SetDatabase(settings.database)
         .SetBalancingPolicy(
             settings.prefer_local_dc
                 ? NYdb::EBalancingPolicy::UsePreferableLocation
@@ -31,21 +31,21 @@ Driver::Driver(std::string dbname, impl::DriverSettings settings)
         );
 
     if (settings.secure_connection_cert.has_value()) {
-        driver_config.UseSecureConnection(settings.secure_connection_cert->data());
+        driver_config.UseSecureConnection(*settings.secure_connection_cert);
     }
 
     if (settings.credentials_provider_factory) {
         driver_config.SetCredentialsProviderFactory(settings.credentials_provider_factory);
     } else if (settings.oauth_token.has_value()) {
-        driver_config.SetAuthToken(settings.oauth_token->c_str());
+        driver_config.SetAuthToken(*settings.oauth_token);
     } else if (settings.iam_jwt_params.has_value()) {
         driver_config.UseSecureConnection().SetCredentialsProviderFactory(
-            NYdb::CreateIamJwtParamsCredentialsProviderFactory({.JwtContent = settings.iam_jwt_params->c_str()})
+            NYdb::CreateIamJwtParamsCredentialsProviderFactory({.JwtContent = *settings.iam_jwt_params})
         );
     } else if (settings.user.has_value() && settings.password.has_value()) {
         NYdb::TLoginCredentialsParams creds{};
-        creds.User = settings.user->c_str();
-        creds.Password = settings.password->c_str();
+        creds.User = *settings.user;
+        creds.Password = *settings.password;
         driver_config.SetCredentialsProviderFactory(NYdb::CreateLoginCredentialsProviderFactory(std::move(creds)));
     }
 

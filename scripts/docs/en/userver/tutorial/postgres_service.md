@@ -36,13 +36,13 @@ To access the database from our new component we need to find the PostgreSQL com
 
 @snippet samples/postgres_service/main.cpp  Postgres service sample - component constructor
 
-After that, our component is ready to process incoming requests in the KeyValue::HandleRequestThrow function. 
+After that, our component is ready to process incoming requests in the KeyValue::HandleRequestThrow function.
 
 
 ### KeyValue::HandleRequestThrow
 
 In this sample we use a single handler to deal with all the HTTP methods. The KeyValue::HandleRequestThrow member
-function mostly dispatches the request to one of the member functions that actually implement the key-value storage logic: 
+function mostly dispatches the request to one of the member functions that actually implement the key-value storage logic:
 
 @snippet samples/postgres_service/main.cpp  Postgres service sample - HandleRequestThrow
 
@@ -93,7 +93,7 @@ Name of the query could be used in dynamic configs to set the execution timeouts
 You can start a transaction by calling storages::postgres::Cluster::Begin(). Transactions are automatically rolled back,
 if you do not commit them.
 To execute a query in transaction, just call Execute member function of a transaction. Just like with non-transactional
-Execute, you can pass string or storages::Query, you could reuse the 
+Execute, you can pass string or storages::Query, you could reuse the
 same query in different functions. Transactions also could be named, and those names could be used in @ref POSTGRES_QUERIES_COMMAND_CONTROL.
 
 @snippet samples/postgres_service/main.cpp  Postgres service sample - PostValue

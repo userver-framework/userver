@@ -3,20 +3,20 @@ components_manager:
     userver_experiments:
         ydb-deadline-propagation: true
 
-    task_processors:                  # Task processor is an executor for coroutine tasks
-        main-task-processor:          # Make a task processor for CPU-bound coroutine tasks.
-            worker_threads: 4         # Process tasks in 4 threads.
+    task_processors:  # Task processor is an executor for coroutine tasks
+        main-task-processor:  # Make a task processor for CPU-bound coroutine tasks.
+            worker_threads: 4  # Process tasks in 4 threads.
 
-        fs-task-processor:            # Make a separate task processor for filesystem bound tasks.
+        fs-task-processor:  # Make a separate task processor for filesystem bound tasks.
             worker_threads: 1
 
     default_task_processor: main-task-processor
 
-    components:                       # Configuring components that were registered via component_list
+    components:  # Configuring components that were registered via component_list
         server:
-            listener:                 # configuring the main listening socket...
-                port: 8080            # ...to listen on this port and...
-                task_processor: main-task-processor    # ...process incoming requests on this task processor.
+            listener:  # configuring the main listening socket...
+                port: 8080  # ...to listen on this port and...
+                task_processor: main-task-processor  # ...process incoming requests on this task processor.
             listener-monitor:
                 port: 8081
                 task_processor: main-task-processor
@@ -69,9 +69,7 @@ components_manager:
 
         ydb:
             operation-settings:
-                cancel-after: 1001ms
                 client-timeout: 1101ms
-                operation-timeout: 1001ms
                 retries: 2
                 get-session-timeout: 5001ms
             databases:
@@ -98,7 +96,7 @@ components_manager:
             path: /ydb/describe-table
             task_processor: main-task-processor
 
-# /// [sample-dist-lock]
+        # /// [sample-dist-lock]
         # yaml
         sample-dist-lock:
             # Settings that might be used for a group of related distlock instances
@@ -109,4 +107,4 @@ components_manager:
                 coordination-node: sample-node
             # Name of the semaphore within the coordination node
             semaphore-name: sample-lock
-# /// [sample-dist-lock]
+            # /// [sample-dist-lock]

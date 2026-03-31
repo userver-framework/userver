@@ -19,7 +19,7 @@ public:
     ClientImpl(const settings::SQLiteSettings& settings, engine::TaskProcessor& blocking_task_processor);
     ~ClientImpl();
 
-    std::shared_ptr<infra::ConnectionPtr> GetConnection(OperationType op_type) const;
+    std::shared_ptr<infra::ConnectionPtr> GetConnection(OperationType operation_type) const;
 
     void WriteStatistics(utils::statistics::Writer& writer) const;
 

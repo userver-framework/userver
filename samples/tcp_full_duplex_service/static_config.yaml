@@ -1,20 +1,20 @@
 # yaml
 components_manager:
-    task_processors:                  # Task processor is an executor for coroutine tasks
+    task_processors:  # Task processor is an executor for coroutine tasks
 
-        main-task-processor:          # Make a task processor for CPU-bound coroutine tasks.
-            worker_threads: 4         # Process tasks in 4 threads.
+        main-task-processor:  # Make a task processor for CPU-bound coroutine tasks.
+            worker_threads: 4  # Process tasks in 4 threads.
 
-        fs-task-processor:            # Make a separate task processor for filesystem bound tasks.
+        fs-task-processor:  # Make a separate task processor for filesystem bound tasks.
             worker_threads: 4
 
-        monitor-task-processor:       # Make a separate task processor for administrative tasks.
+        monitor-task-processor:  # Make a separate task processor for administrative tasks.
             worker_threads: 2
             thread_name: mon-worker
 
     default_task_processor: main-task-processor  # Task processor in which components start.
 
-    components:                       # Configuring components that were registered via component_list
+    components:  # Configuring components that were registered via component_list
         logging:
             fs-task-processor: fs-task-processor
             loggers:
@@ -26,8 +26,8 @@ components_manager:
         # /// [TCP component]
         # yaml
         tcp-echo:
-            task_processor: main-task-processor         # Run socket accepts on CPU bound task processor
-            sockets_task_processor: main-task-processor # Run ProcessSocket() for each new socket on CPU bound task processor
+            task_processor: main-task-processor  # Run socket accepts on CPU bound task processor
+            sockets_task_processor: main-task-processor  # Run ProcessSocket() for each new socket on CPU bound task processor
             port: 8181
         # /// [TCP component]
 
@@ -35,8 +35,8 @@ components_manager:
         # yaml
         server:
             listener:
-                port: 8182            # ...to listen on this port and...
-                task_processor: monitor-task-processor    # ...process incoming requests on this task processor.                
+                port: 8182  # ...to listen on this port and...
+                task_processor: monitor-task-processor  # ...process incoming requests on this task processor.
         handler-server-monitor:
             path: /service/monitor
             method: GET
@@ -53,5 +53,5 @@ components_manager:
         http-client:
         http-client-core:
             fs-task-processor: fs-task-processor
-        dns-client:                     # Asynchronous DNS component
+        dns-client:  # Asynchronous DNS component
             fs-task-processor: fs-task-processor

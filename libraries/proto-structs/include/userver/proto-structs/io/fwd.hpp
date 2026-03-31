@@ -1,7 +1,7 @@
 #pragma once
 
 /// @file userver/proto-structs/io/fwd.hpp
-/// @brief Forward declarations of utlity types for conversions.
+/// @brief Forward declarations of utility types for conversions.
 
 USERVER_NAMESPACE_BEGIN
 

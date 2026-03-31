@@ -30,19 +30,12 @@ download_and_extract_doxygen() {
     fi
 }
 
-# Find doxygen, download doxygen if needed.
-DOXYGEN="${DOXYGEN:-doxygen}"
-
-if ! $DOXYGEN --version >/dev/null 2>&1; then
+# Download doxygen if ${DOXYGEN} not set explicitly
+if [ -z "$DOXYGEN" ]; then
     download_and_extract_doxygen
 fi
+echo "Doxygen: $DOXYGEN"
 
-DOXYGEN_VERSION_MIN="1.10.0"
-DOXYGEN_VERSION_CUR=$($DOXYGEN --version | awk -F " " '{print $1}')
-
-if ! printf "%s\n%s\n" "$DOXYGEN_VERSION_MIN" "$DOXYGEN_VERSION_CUR" | sort -C; then
-    download_and_extract_doxygen
-fi
 
 # Run userver codegen to avoid doxygen errors with invalid includes.
 CMAKE_COMMAND=$(grep -oP 'CMAKE_COMMAND:INTERNAL=\K.*' "$BUILD_DIR/CMakeCache.txt")

@@ -135,6 +135,8 @@ void Ins(storages::postgres::Transaction& tr,
         </p>
           <pre id="intro_sample" style=""><code>
 #include &lt;userver/easy.hpp&gt;
+
+// schemas::KeyRequest and parsers+serializers generated from JSON schema
 #include "schemas/key_value.hpp"
 
 int main(int argc, char* argv[]) {
@@ -142,10 +144,7 @@ int main(int argc, char* argv[]) {
 
     easy::HttpWith&lt;easy::PgDep&gt;(argc, argv)
         // Handles multiple HTTP requests to `/kv` URL concurrently
-        .Get("/kv", [](formats::json::Value request_json, const easy::PgDep&amp; dep) {
-            // JSON parser and serializer are generated from JSON schema by userver
-            auto key = request_json.As&lt;schemas::KeyRequest&gt;().key;
-
+        .Get("/kv", [](schemas::KeyRequest&amp;&amp; request, const easy::PgDep&amp; dep) {
             // Asynchronous execution of the SQL query in transaction. Current thread
             // handles other requests while the response from the DB is being received:
             auto res = dep.pg().Execute(
@@ -153,11 +152,13 @@ int main(int argc, char* argv[]) {
                 // Query is converted into a prepared statement. Subsequent requests
                 // send only parameters in a binary form and meta information is
                 // discarded on the DB side, significantly saving network bandwidth.
-                "SELECT value FROM key_value_table WHERE key=$1", key
+                "SELECT value FROM key_value_table WHERE key=$1", request.key
             );
 
-            schemas::KeyValue response{key, res[0][0].As&lt;std::string&gt;()};
-            return formats::json::ValueBuilder{response}.ExtractValue();
+            return schemas::KeyValue{
+                .key=std::move(request.key),
+                .value=res[0][0].As&lt;std::string&gt;(),
+            };
         });
 }</code></pre>
       </section>
@@ -242,11 +243,11 @@ int main(int argc, char* argv[]) {
     <!-- Highlight codeblocks -->
     <script src="highlight.min.js"></script>
     <script>
-      document.querySelectorAll(".codeblock__body").forEach((el) => {
-        hljs.highlightElement(el);
+      document.querySelectorAll(".codeblock__body code").forEach((el) => {
+        el.parentNode.innerHTML = hljs.highlightAuto(el.textContent).value;
       });
-      document.querySelectorAll("#intro_sample").forEach((el) => {
-        hljs.highlightElement(el);
+      document.querySelectorAll("#intro_sample code").forEach((el) => {
+        el.parentNode.innerHTML = hljs.highlightAuto(el.textContent).value;
       });
     </script>
     <!-- Hide some blocks on landing page -->

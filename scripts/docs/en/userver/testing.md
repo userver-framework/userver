@@ -98,7 +98,7 @@ Example usage:
 - To mock time, use `utils::datetime::Now()` and `utils::datetime::SteadyNow()`
   from `<userver/utils/datetime.hpp>` instead of
   `std::chrono::system_clock::now()` and `std::chrono::steady_clock::now()`,
-  respectively. 
+  respectively.
 - Control the mocked time in tests using `<userver/utils/mock_now.hpp>`
 
 @snippet universal/src/utils/mock_now_test.cpp  Mocked time sample
@@ -134,11 +134,13 @@ Default dynamic config values can be accessed using `<dynamic_config/test_helper
 
 ### Testing userver logging
 
-API for capturing userver logs can be found in
-@ref userver/utest/default_logger_fixture.hpp
+API for capturing userver logs can be found in @ref userver/utest/log_capture_fixture.hpp
 
-It can be used for testing that a certain piece of code produces logs
+@ref utest::LogCaptureFixture can be used for testing that a certain piece of code produces logs
 with the given text (which is brittle, but sometimes needs to be done).
+
+@snippet grpc/tests/cancel_test.cpp  Sample of LogCaptureFixture
+
 It can also be used for testing @ref logging::LogHelper serialization functions.
 
 ### Outputting logs in unit test run
@@ -150,10 +152,14 @@ the debug logs for all the `*Log*` tests for the CMake built binary:
 ./core/userver-core-unittest --log-level=debug --gtest_filter=*Log*
 ```
 
+@warning Link with `userver::utest` CMake target to make the `--log-level=debug` work
+
+
 ### Ignoring signals in debugger
 
-Userver uses signals for internal matters to identify coroutine stack usage @ref scripts/docs/en/userver/stack.md.
-If you see too much "caught signal X" in debugger, you may disable stack usage monitor via environment variable:
+🐙 userver uses signals for internal matters to identify coroutine stack usage @ref scripts/docs/en/userver/stack.md.
+In debugger presence the functionality is automatically disabled. However, if you are using an exotic OS or debugger,
+you may force-disable stack usage monitor via environment variable:
 
 ```
 USERVER_ENABLE_STACK_USAGE_MONITOR=0

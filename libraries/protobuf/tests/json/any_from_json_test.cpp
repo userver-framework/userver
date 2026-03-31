@@ -20,7 +20,7 @@ namespace protobuf::json::tests {
 struct AnyFromJsonSuccessTestParam {
     std::string input = {};
     AnyMessageData expected_message = {};
-    ReadOptions options = {};
+    ParseOptions options = {};
 
     // This variable is used to disable some checks that fail in the native protobuf implementation.
     bool skip_native_check = false;
@@ -28,9 +28,9 @@ struct AnyFromJsonSuccessTestParam {
 
 struct AnyFromJsonFailureTestParam {
     std::string input = {};
-    ReadErrorCode expected_errc = {};
+    ParseErrorCode expected_errc = {};
     std::string expected_path = {};
-    ReadOptions options = {};
+    ParseOptions options = {};
 };
 
 void PrintTo(const AnyFromJsonSuccessTestParam& param, std::ostream* os) {
@@ -177,17 +177,17 @@ INSTANTIATE_TEST_SUITE_P(
     ,
     AnyFromJsonFailureTest,
     ::testing::Values(
-        AnyFromJsonFailureTestParam{R"({"field1":[]})", ReadErrorCode::kInvalidType, "field1"},
-        AnyFromJsonFailureTestParam{R"({"field1":true})", ReadErrorCode::kInvalidType, "field1"},
-        AnyFromJsonFailureTestParam{R"({"field1":1})", ReadErrorCode::kInvalidType, "field1"},
-        AnyFromJsonFailureTestParam{R"({"field1":"hello"})", ReadErrorCode::kInvalidType, "field1"},
+        AnyFromJsonFailureTestParam{R"({"field1":[]})", ParseErrorCode::kInvalidType, "field1"},
+        AnyFromJsonFailureTestParam{R"({"field1":true})", ParseErrorCode::kInvalidType, "field1"},
+        AnyFromJsonFailureTestParam{R"({"field1":1})", ParseErrorCode::kInvalidType, "field1"},
+        AnyFromJsonFailureTestParam{R"({"field1":"hello"})", ParseErrorCode::kInvalidType, "field1"},
         AnyFromJsonFailureTestParam{
             R"({
               "field1": {
                 "@type":"oops"
               }
             })",
-            ReadErrorCode::kInvalidValue,
+            ParseErrorCode::kInvalidValue,
             "field1"
         },
         AnyFromJsonFailureTestParam{
@@ -196,7 +196,7 @@ INSTANTIATE_TEST_SUITE_P(
                 "@type":"type.googleapis.com/proto_json.messages.NonExistent"
               }
             })",
-            ReadErrorCode::kInvalidValue,
+            ParseErrorCode::kInvalidValue,
             "field1"
         },
         AnyFromJsonFailureTestParam{
@@ -205,7 +205,7 @@ INSTANTIATE_TEST_SUITE_P(
                 "@type":true
               }
             })",
-            ReadErrorCode::kInvalidValue,
+            ParseErrorCode::kInvalidValue,
             "field1"
         },
         AnyFromJsonFailureTestParam{
@@ -214,7 +214,7 @@ INSTANTIATE_TEST_SUITE_P(
                 "value":"123.000000987s"
               }
             })",
-            ReadErrorCode::kInvalidValue,
+            ParseErrorCode::kInvalidValue,
             "field1"
         },
         AnyFromJsonFailureTestParam{
@@ -223,7 +223,7 @@ INSTANTIATE_TEST_SUITE_P(
                 "field1":1
               }
             })",
-            ReadErrorCode::kInvalidValue,
+            ParseErrorCode::kInvalidValue,
             "field1"
         },
         AnyFromJsonFailureTestParam{
@@ -233,7 +233,7 @@ INSTANTIATE_TEST_SUITE_P(
                 "field1":10,"field2":20,"field3":30,"unknown_field":true
               }
             })",
-            ReadErrorCode::kUnknownField,
+            ParseErrorCode::kUnknownField,
             "field1.unknown_field",
             {.ignore_unknown_fields = false}
         },
@@ -245,7 +245,7 @@ INSTANTIATE_TEST_SUITE_P(
                 "unknown_field":true
               }
             })",
-            ReadErrorCode::kUnknownField,
+            ParseErrorCode::kUnknownField,
             "field1.unknown_field",
             {.ignore_unknown_fields = false}
         }
@@ -255,7 +255,9 @@ INSTANTIATE_TEST_SUITE_P(
 TEST_P(AnyFromJsonSuccessTest, Test) {
     const auto& param = GetParam();
 
-    proto_json::messages::AnyMessage message, expected_message, sample_message;
+    proto_json::messages::AnyMessage message;
+    proto_json::messages::AnyMessage expected_message;
+    proto_json::messages::AnyMessage sample_message;
     formats::json::Value input = PrepareJsonTestData(param.input);
     expected_message = PrepareTestData(param.expected_message);
 
@@ -264,7 +266,7 @@ TEST_P(AnyFromJsonSuccessTest, Test) {
     UASSERT_NO_THROW((message = JsonToMessage<proto_json::messages::AnyMessage>(input, param.options)));
 
     if (!param.skip_native_check) {
-        UASSERT_NO_THROW(InitSampleMessage(param.input, param.options, sample_message));
+        UASSERT_NO_THROW(InitSampleMessage(param.input, sample_message, param.options));
         CheckMessageEqual(message, sample_message);
     }
 
@@ -277,12 +279,12 @@ TEST_P(AnyFromJsonFailureTest, Test) {
     proto_json::messages::AnyMessage sample_message;
     formats::json::Value input = PrepareJsonTestData(param.input);
 
-    EXPECT_READ_ERROR(
+    EXPECT_PARSE_ERROR(
         (void)JsonToMessage<proto_json::messages::AnyMessage>(input, param.options),
         param.expected_errc,
         param.expected_path
     );
-    UEXPECT_THROW(InitSampleMessage(param.input, param.options, sample_message), SampleError);
+    UEXPECT_THROW(InitSampleMessage(param.input, sample_message, param.options), SampleError);
 }
 
 TEST(AnyFromJsonAdditionalTest, InlinedNonNull) {
@@ -294,13 +296,14 @@ TEST(AnyFromJsonAdditionalTest, InlinedNonNull) {
           "field1":1,"field2":2,"field3":3
         })";
     const auto json = formats::json::FromString(json_str);
-    Message message, sample;
+    Message message;
+    Message sample;
     proto_json::messages::Int32Message payload;
 
     message.set_type_url("dump");
 
     UASSERT_NO_THROW((message = JsonToMessage<Message>(json)));
-    UASSERT_NO_THROW(InitSampleMessage(json_str, {}, sample));
+    UASSERT_NO_THROW(InitSampleMessage(json_str, sample));
     ASSERT_TRUE(message.Is<proto_json::messages::Int32Message>());
     ASSERT_TRUE(message.UnpackTo(&payload));
 
@@ -317,18 +320,19 @@ TEST(AnyFromJsonAdditionalTest, InlinedNull) {
         const auto json = formats::json::FromString("null");
         Message message;
 
-        EXPECT_READ_ERROR((message = JsonToMessage<Message>(json)), ReadErrorCode::kInvalidType, "/");
-        UEXPECT_THROW(InitSampleMessage("null", {}, message), SampleError);
+        EXPECT_PARSE_ERROR((message = JsonToMessage<Message>(json)), ParseErrorCode::kInvalidType, "/");
+        UEXPECT_THROW(InitSampleMessage("null", message), SampleError);
     }
 
     {
         const auto json = formats::json::FromString("{}");
-        Message message, sample;
+        Message message;
+        Message sample;
 
         message.set_type_url("dump");
 
         UASSERT_NO_THROW((message = JsonToMessage<Message>(json)));
-        UASSERT_NO_THROW(InitSampleMessage("{}", {}, sample));
+        UASSERT_NO_THROW(InitSampleMessage("{}", sample));
 
         EXPECT_TRUE(message.type_url().empty());
         EXPECT_TRUE(message.value().empty());
@@ -352,7 +356,7 @@ TEST(AnyFromJsonAdditionalTest, DynamicMessage) {
     {
         std::unique_ptr<::google::protobuf::Message> message(factory.GetPrototype(Message::descriptor())->New());
 
-        UASSERT_NO_THROW(JsonToMessage(json, {}, *message));
+        UASSERT_NO_THROW(JsonToMessage(json, *message));
 
         const auto reflection = message->GetReflection();
         const auto type_url_desc = message->GetDescriptor()->FindFieldByName("type_url");

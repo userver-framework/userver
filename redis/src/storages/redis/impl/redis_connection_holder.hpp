@@ -2,10 +2,11 @@
 #include <memory>
 
 #include <engine/ev/watcher/periodic_watcher.hpp>
-#include <storages/redis/impl/cluster_sentinel_impl.hpp>
 #include <storages/redis/impl/redis.hpp>
 #include <storages/redis/impl/redis_creation_settings.hpp>
 #include <storages/redis/impl/sentinel.hpp>
+#include <storages/redis/impl/sentinel_impl.hpp>
+#include <storages/redis/impl/statistics_holder.hpp>
 #include <userver/concurrent/variable.hpp>
 #include <userver/rcu/rcu.hpp>
 
@@ -19,10 +20,14 @@ class RedisConnectionHolder final : public std::enable_shared_from_this<RedisCon
     class EmplaceEnabler;
 
 public:
-    static constexpr redis::RedisCreationSettings makeDefaultRedisCreationSettings() {
+    static constexpr redis::RedisCreationSettings makeClusterNodeRedisCreationSettings() {
         /// Here we allow read from replicas possibly stale data.
         /// This does not affect connections to masters
         return redis::RedisCreationSettings{ConnectionSecurity::kNone, true};
+    }
+    static constexpr redis::RedisCreationSettings makeSentinelNodeRedisCreationSettings() {
+        /// Non-cluster nodes does not support READONLY command
+        return redis::RedisCreationSettings{ConnectionSecurity::kNone, false};
     }
 
     RedisConnectionHolder() = delete;
@@ -38,7 +43,8 @@ public:
         CommandsBufferingSettings buffering_settings,
         ReplicationMonitoringSettings replication_monitoring_settings,
         utils::RetryBudgetSettings retry_budget_settings,
-        redis::RedisCreationSettings redis_creation_settings
+        redis::RedisCreationSettings redis_creation_settings,
+        StatisticsHolder::Stats& stats
     );
     ~RedisConnectionHolder();
     RedisConnectionHolder(const RedisConnectionHolder&) = delete;
@@ -55,7 +61,8 @@ public:
         CommandsBufferingSettings buffering_settings,
         ReplicationMonitoringSettings replication_monitoring_settings,
         utils::RetryBudgetSettings retry_budget_settings,
-        redis::RedisCreationSettings redis_creation_settings = makeDefaultRedisCreationSettings()
+        StatisticsHolder::Stats& stats,
+        redis::RedisCreationSettings redis_creation_settings = makeClusterNodeRedisCreationSettings()
     );
 
     std::shared_ptr<Redis> Get() const;
@@ -65,6 +72,7 @@ public:
     void SetRetryBudgetSettings(utils::RetryBudgetSettings settings);
 
     Redis::State GetState() const;
+    size_t GetCommandsCounter() const;
 
     // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
     boost::signals2::signal<void(Redis::State)> signal_state_change;
@@ -84,6 +92,7 @@ private:
     const uint16_t port_;
     const Password password_;
     const std::size_t database_index_;
+    Statistics& statistics_;
     rcu::Variable<std::shared_ptr<Redis>, rcu::BlockingRcuTraits> redis_;
     engine::ev::PeriodicWatcher connection_check_timer_;
     const RedisCreationSettings redis_creation_settings_;

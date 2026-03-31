@@ -5,6 +5,10 @@
 
 USERVER_NAMESPACE_BEGIN
 
+namespace server::handlers {
+class HttpHandlerStatistics;
+}
+
 namespace server::middlewares {
 
 class HandlerMetrics final : public HttpMiddlewareBase {

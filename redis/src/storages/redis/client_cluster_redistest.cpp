@@ -4,7 +4,7 @@
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/sleep.hpp>
 
-#include <storages/redis/impl/cluster_sentinel_impl.hpp>
+#include <storages/redis/impl/sentinel_impl.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -309,6 +309,108 @@ UTEST_F(RedisClusterClientTest, EvalSha) {
     upload_scripts();
 }
 
+UTEST_F(RedisClusterClientTest, EvalReadOnly) {
+    const Version since{7, 0, 0};
+    if (!CheckVersion(since)) {
+        GTEST_SKIP() << SkipMsgByVersion("EvalReadOnly", since);
+    }
+
+    auto client = GetClient();
+
+    /// [Sample eval_ro usage]
+    client->Set("the_key", "the_value", {}).Get();
+
+    // Read-only script that reads a key
+    const std::string read_only_script{R"~(
+        local value = redis.call("get", KEYS[1])
+        if value then
+            return value .. "_from_redis"
+        else
+            return nil
+        end
+    )~"};
+
+    auto val1 = client->EvalReadOnly<std::string>(read_only_script, {"the_key"}, {}, {}).Get();
+    EXPECT_EQ(val1, "the_value_from_redis");
+
+    // Script that attempts to modify data
+    const std::string modifying_script{R"~(
+        redis.call("set", KEYS[1], "modified_value")
+        return "modified"
+    )~"};
+
+    // EvalReadOnly should fail when script tries to modify data
+    auto req = client->EvalReadOnly<std::string>(modifying_script, {"the_key"}, {}, {});
+    UASSERT_THROW(req.Get(), storages::redis::RequestFailedException);
+
+    // Verify the value was not modified
+    auto final_value = client->Get("the_key", {}).Get();
+    ASSERT_TRUE(final_value);
+    EXPECT_EQ(*final_value, "the_value");
+
+    /// [Sample eval_ro usage]
+}
+
+UTEST_F(RedisClusterClientTest, EvalShaReadOnly) {
+    const Version since{7, 0, 0};
+    if (!CheckVersion(since)) {
+        GTEST_SKIP() << SkipMsgByVersion("EvalShaReadOnly", since);
+    }
+
+    auto client = GetClient();
+
+    /// [Sample evalsha_ro usage]
+    auto upload_script = [client](const std::string& lua_script) {
+        const std::size_t shards_count = client->ShardsCount();
+        std::string script_sha;
+        for (std::size_t i = 0; i < shards_count; ++i) {
+            script_sha = client->ScriptLoad(lua_script, i, {}).Get();
+        }
+        return script_sha;
+    };
+
+    // Read-only script that reads a key
+    const std::string read_only_script{R"~(
+        local value = redis.call("get", KEYS[1])
+        if value then
+            return value .. "_from_redis"
+        else
+            return nil
+        end
+    )~"};
+    const auto read_only_script_sha = upload_script(read_only_script);
+
+    client->Set("the_key", "the_value", {}).Get();
+
+    // Test read-only script execution
+    auto val1 = client->EvalShaReadOnly<std::string>(read_only_script_sha, {"the_key"}, {}, {}).Get();
+    if (val1.IsNoScriptError()) {
+        upload_script(read_only_script);
+
+        // retry...
+        val1 = client->EvalShaReadOnly<std::string>(read_only_script_sha, {"the_key"}, {}, {}).Get();
+    }
+    EXPECT_EQ(val1.Get(), "the_value_from_redis");
+
+    // Script that attempts to modify data
+    const std::string modifying_script{R"~(
+        redis.call("set", KEYS[1], "modified_value")
+        return "modified"
+    )~"};
+    const auto modifying_script_sha = upload_script(modifying_script);
+
+    // EvalShaReadOnly should fail when script tries to modify data
+    auto req = client->EvalShaReadOnly<std::string>(modifying_script_sha, {"the_key"}, {}, {});
+    UASSERT_THROW(req.Get(), storages::redis::RequestFailedException);
+
+    // Verify the value was not modified
+    auto final_value = client->Get("the_key", {}).Get();
+    ASSERT_TRUE(final_value);
+    EXPECT_EQ(*final_value, "the_value");
+
+    /// [Sample evalsha_ro usage]
+}
+
 UTEST_F(RedisClusterClientTest, Subscribe) {
     auto client = GetClient();
     auto subscribe_client = GetSubscribeClient();
@@ -416,7 +518,7 @@ UTEST_F(RedisClusterClientTest, LongWork) {
 UTEST_F(RedisClusterClientTest, ClusterSlotsCalled) {
     auto client = GetClient();
     engine::SleepFor(std::chrono::seconds(10));
-    ASSERT_GT(storages::redis::impl::ClusterSentinelImpl::GetClusterSlotsCalledCounter(), 2);
+    ASSERT_GT(storages::redis::impl::SentinelImpl::GetClusterSlotsCalledCounter(), 2);
 }
 
 USERVER_NAMESPACE_END

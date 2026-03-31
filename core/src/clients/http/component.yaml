@@ -8,8 +8,8 @@ properties:
         default: http-client-core
     middlewares:
         type: object
-        description: map of middlewares to apply. Middleware settings from components::HttpClient
-            override settings from @ref clients::http::MiddlewarePipelineComponent
+        description: map of middlewares to apply. Middleware settings from components::HttpClient override settings from @ref
+            clients::http::MiddlewarePipelineComponent
         properties: {}
         additionalProperties:
             type: object

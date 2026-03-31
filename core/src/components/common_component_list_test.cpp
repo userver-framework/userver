@@ -174,12 +174,6 @@ components_manager:
           file_path: '@stdout'
           overflow_behavior: discard
 # /// [Sample logging component config]
-# /// [Sample tracer component config]
-# yaml
-    tracer:
-        service-name: config-service
-        tracer: native
-# /// [Sample tracer component config]
 # /// [Sample statistics storage component config]
 # yaml
     statistics-storage:

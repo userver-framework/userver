@@ -26,7 +26,7 @@ private:
 };
 
 namespace query_args {
-constexpr std::string_view kDelimeter = "delimiter";
+constexpr std::string_view kDelimiter = "delimiter";
 constexpr std::string_view kEncodingType = "encoding-type";
 constexpr std::string_view kMarker = "marker";
 constexpr std::string_view kMaxKeys = "max-keys";
@@ -136,7 +136,7 @@ Request ListBucketContents(
     }
 
     if (!delimiter.empty()) {
-        params.emplace(query_args::kDelimeter, delimiter);
+        params.emplace(query_args::kDelimiter, delimiter);
     }
 
     req.req = "?" + USERVER_NAMESPACE::http::MakeQuery(params);
@@ -231,9 +231,9 @@ Request CreateInternalApiRequest(
 Request CreateInternalApiRequest(const std::string& bucket, const multipart_upload::UploadPartRequest& request) {
     Request result;
     result.method = clients::http::HttpMethod::kPut;
-    // `Content-Type`-header is absent in S3 API, however PUT-request implementaion in CURL for URIs with query
+    // `Content-Type`-header is absent in S3 API, however PUT-request implementation in CURL for URIs with query
     // may implicitly insert `application/x-www-form-urlencoded` which must be taken into account when making
-    // canonical request for signature. But it happens after we sign the request without knowlege of this header.
+    // canonical request for signature. But it happens after we sign the request without knowledge of this header.
     // We explicitly override this Content-Type value here to make this request be signed correctly.
     result.headers = clients::http::Headers{
         {http::headers::kContentLength, std::to_string(request.data.size())},
@@ -285,7 +285,7 @@ Request CreateInternalApiRequest(
 
     http::Args params;
     if (request.delimiter) {
-        params.emplace(query_args::kDelimeter, *request.delimiter);
+        params.emplace(query_args::kDelimiter, *request.delimiter);
     }
 
     if (request.prefix) {

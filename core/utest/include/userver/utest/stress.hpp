@@ -7,6 +7,9 @@
 
 #include <userver/engine/deadline.hpp>
 
+#include <userver/compiler/impl/asan.hpp>
+#include <userver/compiler/impl/tsan.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace utest {
@@ -44,7 +47,12 @@ public:
     bool ShouldStop() const { return deadline_.IsReached(); }
 
 private:
+#if USERVER_IMPL_HAS_TSAN || USERVER_IMPL_HAS_ASAN
+    // Too many iterations with sanitizers may consume too much virtual memory and crach the application
+    static constexpr std::chrono::milliseconds kMaxStressTestWaitTime{300};
+#else
     static constexpr std::chrono::seconds kMaxStressTestWaitTime{30};
+#endif
 
     engine::Deadline deadline_{engine::Deadline::FromDuration(kMaxStressTestWaitTime)};
 };

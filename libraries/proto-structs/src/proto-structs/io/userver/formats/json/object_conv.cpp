@@ -15,15 +15,15 @@ formats::json::Object ReadProtoStruct(
     const ::google::protobuf::Struct& msg
 ) {
     try {
-        return formats::json::Object{protobuf::json::MessageToJson(msg, protobuf::json::WriteOptions{})};
-    } catch (const protobuf::json::WriteError& e) {
+        return formats::json::Object{protobuf::json::MessageToJson(msg, protobuf::json::PrintOptions{})};
+    } catch (const protobuf::json::PrintError& e) {
         ctx.AddError(e.what());
         return formats::json::Object{};
     }
 }
 
 void WriteProtoStruct(WriteContext&, const formats::json::Object& obj, ::google::protobuf::Struct& msg) {
-    protobuf::json::JsonToMessage(obj.GetValue(), protobuf::json::ReadOptions{}, msg);
+    protobuf::json::JsonToMessage(obj.GetValue(), msg, protobuf::json::ParseOptions{});
 }
 
 }  // namespace proto_structs::io

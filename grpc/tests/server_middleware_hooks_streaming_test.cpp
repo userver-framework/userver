@@ -196,7 +196,7 @@ UTEST_P(ServerMiddlewareHooksStreamingWithParamTest, FailInFirstMiddlewareOnStar
             client_finished.WaitUntil(engine::Deadline::FromDuration(utest::kMaxTestWaitTime)),
             engine::FutureStatus::kReady
         );
-        return SetErrorOrThrowRuntimeError(context);
+        SetErrorOrThrowRuntimeError(context);
     });
     EXPECT_CALL(M1(), OnCallStart).Times(1);
     EXPECT_CALL(M1(), PostRecvMessage).Times(0);
@@ -239,7 +239,7 @@ UTEST_P(ServerMiddlewareHooksStreamingWithParamTest, FailInSecondMiddlewareOnSta
             client_finished.WaitUntil(engine::Deadline::FromDuration(utest::kMaxTestWaitTime)),
             engine::FutureStatus::kReady
         );
-        return SetErrorOrThrowRuntimeError(context);
+        SetErrorOrThrowRuntimeError(context);
     });
     EXPECT_CALL(M1(), OnCallStart).Times(1);
     EXPECT_CALL(M1(), PostRecvMessage).Times(0);
@@ -279,7 +279,7 @@ UTEST_P(ServerMiddlewareHooksStreamingWithParamTest, FailInFirstMiddlewareOnPost
 
     ON_CALL(M1(), PostRecvMessage)
         .WillByDefault([this](ugrpc::server::MiddlewareCallContext& context, google::protobuf::Message&) {
-            return SetErrorOrThrowRuntimeError(context);
+            SetErrorOrThrowRuntimeError(context);
         });
     EXPECT_CALL(M1(), OnCallStart).Times(1);
     EXPECT_CALL(M1(), PostRecvMessage).Times(1);
@@ -320,7 +320,7 @@ UTEST_P(ServerMiddlewareHooksStreamingWithParamTest, FailInSecondMiddlewareOnPos
     ON_CALL(M2(), PostRecvMessage)
         .WillByDefault([this, &count](ugrpc::server::MiddlewareCallContext& context, google::protobuf::Message&) {
             if (count == 1) {
-                return SetErrorOrThrowRuntimeError(context);
+                SetErrorOrThrowRuntimeError(context);
             }
             ++count;
         });
@@ -369,7 +369,7 @@ UTEST_P(ServerMiddlewareHooksStreamingWithParamTest, FailInSecondMiddlewareOnPre
     ON_CALL(M2(), PreSendMessage)
         .WillByDefault([this, &count](ugrpc::server::MiddlewareCallContext& context, google::protobuf::Message&) {
             if (count == kSuccessCount) {
-                return SetErrorOrThrowRuntimeError(context);
+                SetErrorOrThrowRuntimeError(context);
             }
             ++count;
         });

@@ -28,8 +28,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace {
 
-using ClientType = sample::ugrpc::UnitTestServiceClient;
-
 constexpr auto kDeadlinePropagated = "deadline-propagated";
 constexpr auto kCancelledByDp = "cancelled-by-deadline-propagation";
 
@@ -52,7 +50,10 @@ private:
     bool wait_deadline_{false};
 };
 
-class DeadlineStatsTests : public ugrpc::tests::ServiceFixture<UnitTestDeadlineStatsService> {
+class DeadlineStatsTests
+    : public ugrpc::tests::ServiceWithClientFixture<
+          UnitTestDeadlineStatsService,
+          sample::ugrpc::UnitTestServiceClient> {
 public:
     DeadlineStatsTests() {
         ExtendDynamicConfig({
@@ -70,14 +71,14 @@ public:
         sample::ugrpc::GreetingResponse response;
         request.set_name("abacaba");
 
-        auto client = MakeClient<ClientType>();
-
         auto call_options = tests::MakeCallOptions(set_deadline);
         try {
-            response = client.SayHello(request, std::move(call_options));
+            response = GetClient().SayHello(request, std::move(call_options));
             EXPECT_EQ(response.name(), "Hello abacaba");
             return true;
         } catch (const ugrpc::client::DeadlineExceededError& /*exception*/) {
+            return false;
+        } catch (const ugrpc::client::RpcCancelledError& /*exception*/) {
             return false;
         }
     }

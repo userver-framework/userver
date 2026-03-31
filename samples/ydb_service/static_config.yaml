@@ -1,19 +1,19 @@
 # yaml
 components_manager:
-    task_processors:                  # Task processor is an executor for coroutine tasks
-        main-task-processor:          # Make a task processor for CPU-bound coroutine tasks.
-            worker_threads: 4         # Process tasks in 4 threads.
+    task_processors:  # Task processor is an executor for coroutine tasks
+        main-task-processor:  # Make a task processor for CPU-bound coroutine tasks.
+            worker_threads: 4  # Process tasks in 4 threads.
 
-        fs-task-processor:            # Make a separate task processor for filesystem bound tasks.
+        fs-task-processor:  # Make a separate task processor for filesystem bound tasks.
             worker_threads: 1
 
     default_task_processor: main-task-processor
 
-    components:                       # Configuring components that were registered via component_list
+    components:  # Configuring components that were registered via component_list
         server:
-            listener:                 # configuring the main listening socket...
-                port: 8080            # ...to listen on this port and...
-                task_processor: main-task-processor    # ...process incoming requests on this task processor.
+            listener:  # configuring the main listening socket...
+                port: 8080  # ...to listen on this port and...
+                task_processor: main-task-processor  # ...process incoming requests on this task processor.
         logging:
             fs-task-processor: fs-task-processor
             loggers:
@@ -57,9 +57,7 @@ components_manager:
 
         ydb:
             operation-settings:
-                cancel-after: 1000ms
                 client-timeout: 1100ms
-                operation-timeout: 1000ms
                 retries: 3
             databases:
                 sampledb:

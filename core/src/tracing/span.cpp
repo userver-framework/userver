@@ -194,8 +194,6 @@ void Span::Impl::PutIntoLogger(logging::impl::TagWriter writer) && {
         const auto events_tag = MakeTagFromEvents(events_);
         writer.PutTag("events", events_tag);
     }
-
-    LogOpenTracing();
 }
 
 void Span::Impl::LogTo(logging::impl::TagWriter writer) const {

@@ -6,6 +6,7 @@ set -euox pipefail
 # Install a proper compilation toolchain
 apt update
 DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends \
+    sudo \
     clang-18 \
     lld-18 \
     llvm-18 \
@@ -30,7 +31,7 @@ update-alternatives --install /usr/bin/clang-tidy clang-tidy /usr/bin/clang-tidy
 
 # Create user "user" for non-root access to services in devcontainer
 USERNAME=user
-USER_UID=1000
+USER_UID=1001
 USER_GID=$USER_UID
 groupadd --gid $USER_GID $USERNAME \
     && useradd --uid $USER_UID --gid $USER_GID -m $USERNAME \

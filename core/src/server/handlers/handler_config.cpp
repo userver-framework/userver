@@ -96,6 +96,9 @@ HandlerConfig ParseHandlerConfigsWithDefaults(
     config.deadline_propagation_enabled =
         value["deadline_propagation_enabled"].As<bool>(handler_defaults.deadline_propagation_enabled);
 
+    config.deadline_propagation_prefer_timestamp =
+        value["deadline_propagation_prefer_timestamp"].As<bool>(handler_defaults.deadline_propagation_prefer_timestamp);
+
     config.deadline_expired_status_code =
         value["deadline_expired_status_code"].As<http::HttpStatus>(handler_defaults.deadline_expired_status_code);
 

@@ -11,7 +11,7 @@ namespace protobuf::json::impl {
 
 [[nodiscard]] formats::json::ValueBuilder WriteMessage(
     const ::google::protobuf::Message& message,
-    const WriteOptions& options
+    const PrintOptions& options
 );
 
 }  // namespace protobuf::json::impl

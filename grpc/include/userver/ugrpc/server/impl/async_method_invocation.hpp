@@ -11,14 +11,14 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::server::impl {
 
-class RpcFinishedEvent final : public ugrpc::impl::EventBase {
+class RpcDoneEvent final : public ugrpc::impl::EventBase {
 public:
-    RpcFinishedEvent(engine::TaskCancellationToken cancellation_token, const grpc::ServerContext& server_ctx) noexcept;
+    RpcDoneEvent(engine::TaskCancellationToken cancellation_token, const grpc::ServerContext& server_context) noexcept;
 
-    RpcFinishedEvent(const RpcFinishedEvent&) = delete;
-    RpcFinishedEvent& operator=(const RpcFinishedEvent&) = delete;
-    RpcFinishedEvent(RpcFinishedEvent&&) = delete;
-    RpcFinishedEvent& operator=(RpcFinishedEvent&&) = delete;
+    RpcDoneEvent(const RpcDoneEvent&) = delete;
+    RpcDoneEvent& operator=(const RpcDoneEvent&) = delete;
+    RpcDoneEvent(RpcDoneEvent&&) = delete;
+    RpcDoneEvent& operator=(RpcDoneEvent&&) = delete;
 
     void* GetCompletionTag() noexcept;
 
@@ -30,7 +30,7 @@ public:
 
 private:
     engine::TaskCancellationToken cancellation_token_;
-    const grpc::ServerContext& server_ctx_;
+    const grpc::ServerContext& server_context_;
     engine::SingleUseEvent event_;
 };
 

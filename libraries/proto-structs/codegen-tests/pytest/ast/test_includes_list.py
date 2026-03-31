@@ -32,8 +32,12 @@ import utils
 def test_includes_are_correct(proto_path, expected_includes) -> None:
     proto_source = utils.load_proto_source_file(proto_path)
     file_ast = parser.Parser().parse(proto_source)
-    includes = includes_collection.collect(file_ast=file_ast, plugin_options=None)
+
+    includes = includes_collection.collect(file_ast=file_ast, plugin_options=None, use_induced_deps=False)
     assert includes == expected_includes
+
+    includes_with_induced_deps = includes_collection.collect(file_ast=file_ast, plugin_options=None)
+    assert includes_with_induced_deps == []
 
 
 @pytest.mark.parametrize(
@@ -71,5 +75,8 @@ def test_includes_are_correct(proto_path, expected_includes) -> None:
     ],
 )
 def test_deps_within_well_knowns(file_ast, expected_includes) -> None:
-    includes = includes_collection.collect(file_ast=file_ast, plugin_options=None)
+    includes = includes_collection.collect(file_ast=file_ast, plugin_options=None, use_induced_deps=False)
     assert includes == expected_includes
+
+    includes_with_induced_deps = includes_collection.collect(file_ast=file_ast, plugin_options=None)
+    assert includes_with_induced_deps == []

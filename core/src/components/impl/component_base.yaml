@@ -1,6 +1,5 @@
 type: object
-description: base component. Don't use it for application components, use ComponentBase
-    instead
+description: base component. Don't use it for application components, use ComponentBase instead
 additionalProperties: false
 properties:
     load-enabled:

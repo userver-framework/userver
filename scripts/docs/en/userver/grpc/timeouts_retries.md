@@ -44,7 +44,7 @@ For unary RPCs, clients automatically retry calls that fail with an error.
 
 Conditions for a retry to occur:
 1. The error code is one of the retryable status codes:
-   @snippet grpc/src/ugrpc/client/impl/retry_policy.cpp  retryable
+   @snippet grpc/src/ugrpc/status_codes.cpp  retryable
 2. The number of previous attempts is less than `MaxAttempts`;
 3. The overall Deadline (including from @ref scripts/docs/en/userver/deadline_propagation.md) has not been exceeded.
 

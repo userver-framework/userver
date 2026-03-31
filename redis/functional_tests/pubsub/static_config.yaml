@@ -31,8 +31,16 @@ components_manager:
             method: GET,DELETE
             db: redis-cluster
 
+        handler-publisher:
+            path: /publisher
+            task_processor: main-task-processor
+            method: GET
+            db: redis-sentinel
+
         key-value-database:
-            groups: []
+            groups:
+              - config_name: redis-sentinel
+                db: redis-sentinel
             subscribe_groups:
               - config_name: redis-sentinel
                 db: redis-sentinel

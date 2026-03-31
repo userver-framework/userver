@@ -29,8 +29,11 @@ endif()
 
 set(USERVER_AVAILABLE_COMPONENTS universal)
 
+# @ingroup libraries
 option(USERVER_FEATURE_CORE "Provide a core library with coroutines, otherwise build only userver-universal" ON)
+# @ingroup libraries
 option(USERVER_FEATURE_CHAOTIC "Provide chaotic-codegen for jsonschema" ON)
+# @ingroup libraries
 option(USERVER_FEATURE_CHAOTIC_EXPERIMENTAL "Provide chaotic-codegen for openapi" OFF)
 
 set(USERVER_BUILD_PLATFORM_X86 OFF)
@@ -44,12 +47,15 @@ function(_require_userver_core FEATURE)
     endif()
 endfunction()
 
+# @ingroup libraries
 option(USERVER_FEATURE_UTEST "Provide 'utest' and 'ubench' for gtest and gbenchmark integration" ON)
 if(USERVER_FEATURE_UTEST)
     message(STATUS "Building utest with gtest and ubench with gbench")
 endif()
 
+# @ingroup everything
 option(USERVER_BUILD_TESTS "Build unit tests, functional tests and benchmarks for userver itself" OFF)
+# @ingroup everything
 option(USERVER_BUILD_SAMPLES "Build userver samples" OFF)
 
 if(USERVER_BUILD_TESTS AND NOT USERVER_FEATURE_UTEST)
@@ -62,6 +68,7 @@ if(USERVER_INSTALL AND USERVER_BUILD_TESTS)
     )
 endif()
 
+# @ingroup everything
 option(USERVER_BUILD_ALL_COMPONENTS "\
 Build all libraries except for those explicitly turned off by 'USERVER_FEATURE_*'\
 and except for libraries disabled for the current platform" OFF
@@ -91,16 +98,20 @@ endif()
 
 option(USERVER_CONAN "Build with Conan packages" "${CONAN_EXPORTED}")
 
+# @ingroup download
 option(USERVER_DOWNLOAD_PACKAGES "Download missing third party packages and use the downloaded versions" ON)
+# @ingroup download
 option(USERVER_FORCE_DOWNLOAD_PACKAGES
        "Download all possible third party packages even if a system package is available" OFF
 )
 
+# @ingroup some_platforms
 option(USERVER_FEATURE_CRYPTOPP_BLAKE2 "Provide wrappers for blake2 algorithms of crypto++" ON)
 if(NOT USERVER_FEATURE_CRYPTOPP_BLAKE2)
     add_compile_definitions("USERVER_NO_CRYPTOPP_BLAKE2=1")
 endif()
 
+# @ingroup some_platforms
 option(USERVER_FEATURE_CRYPTOPP_BASE64_URL
        "Provide wrappers for Base64 URL decoding and encoding algorithms of crypto++" ON
 )
@@ -113,9 +124,12 @@ if(CMAKE_SYSTEM_NAME MATCHES "BSD")
 else()
     set(JEMALLOC_DEFAULT ON)
 endif()
+# @ingroup some_platforms
 option(USERVER_FEATURE_JEMALLOC "Enable linkage with jemalloc memory allocator" ${JEMALLOC_DEFAULT})
 
+# @ingroup some_platforms
 option(USERVER_DISABLE_PHDR_CACHE "Disable caching of dl_phdr_info items, which interferes with dlopen" OFF)
+# @ingroup some_platforms
 option(USERVER_FEATURE_STACK_USAGE_MONITOR "Enable coroutine stack usage monitor if available" ON)
 
 set(USERVER_DISABLE_RSEQ_DEFAULT ON)
@@ -123,22 +137,36 @@ if(USERVER_BUILD_PLATFORM_X86 AND CMAKE_SYSTEM_NAME MATCHES "Linux")
     set(USERVER_DISABLE_RSEQ_DEFAULT OFF)
     message(STATUS "rseq-based acceleration is enabled by default")
 endif()
+# @ingroup some_platforms
 option(USERVER_DISABLE_RSEQ_ACCELERATION "Disable rseq-based optimizations" ${USERVER_DISABLE_RSEQ_DEFAULT})
 
 option(USERVER_CHECK_PACKAGE_VERSIONS "Check package versions" ON)
 
+# @ingroup libraries
 option(USERVER_FEATURE_MONGODB "Provide asynchronous driver for MongoDB" "${USERVER_MONGODB_DEFAULT}")
+# @ingroup libraries
 option(USERVER_FEATURE_POSTGRESQL "Provide asynchronous driver for PostgreSQL" "${USERVER_LIB_ENABLED_DEFAULT}")
+# @ingroup libraries
 option(USERVER_FEATURE_REDIS "Provide asynchronous driver for Redis" "${USERVER_LIB_ENABLED_DEFAULT}")
+# @ingroup libraries
 option(USERVER_FEATURE_GRPC "Provide asynchronous driver for gRPC" "${USERVER_LIB_ENABLED_DEFAULT}")
+# @ingroup libraries
 option(USERVER_FEATURE_CLICKHOUSE "Provide asynchronous driver for ClickHouse" "${USERVER_LIB_ENABLED_DEFAULT}")
+# @ingroup libraries
 option(USERVER_FEATURE_KAFKA "Provide asynchronous driver for Apache Kafka" "${USERVER_LIB_ENABLED_DEFAULT}")
+# @ingroup libraries
 option(USERVER_FEATURE_RABBITMQ "Provide asynchronous driver for RabbitMQ" "${USERVER_LIB_ENABLED_DEFAULT}")
+# @ingroup libraries
 option(USERVER_FEATURE_MYSQL "Provide asynchronous driver for MariaDB/MySQL" "${USERVER_LIB_ENABLED_DEFAULT}")
+# @ingroup libraries
 option(USERVER_FEATURE_ROCKS "Provide asynchronous driver for Rocks" "${USERVER_LIB_ENABLED_DEFAULT}")
+# @ingroup libraries
 option(USERVER_FEATURE_YDB "Provide asynchronous driver for YDB" "${USERVER_YDB_DEFAULT}")
+# @ingroup libraries
 option(USERVER_FEATURE_OTLP "Provide asynchronous OTLP exporters" "${USERVER_LIB_ENABLED_DEFAULT}")
+# @ingroup libraries
 option(USERVER_FEATURE_SQLITE "Provide asynchronous driver for SQLite" "${USERVER_LIB_ENABLED_DEFAULT}")
+# @ingroup libraries
 option(USERVER_FEATURE_ODBC "Provide asynchronous wrapper around ODBC" "${USERVER_LIB_ENABLED_DEFAULT}")
 
 set(CMAKE_DEBUG_POSTFIX d)

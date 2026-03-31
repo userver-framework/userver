@@ -31,7 +31,7 @@ public:
 
     void operator()() noexcept {
         for (Counter i = 0; i < iterations_; ++i) {
-            compiler::RelaxCpu{}();
+            compiler::RelaxCpu::YieldCpuDebug();
         }
         ++iterations_;
     }

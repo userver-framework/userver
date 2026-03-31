@@ -88,7 +88,7 @@ public:
     /// @brief Set the HTTP response status code.
     /// @returns true if the status was set. Returns false if headers
     /// were already sent for stream'ed response and the new status was not set.
-    bool SetStatus(HttpStatus status);
+    bool SetStatus(HttpStatus status) noexcept;
 
     /// @brief Set the end of system headers.
     /// All headers written before this call are considered system; after - user.

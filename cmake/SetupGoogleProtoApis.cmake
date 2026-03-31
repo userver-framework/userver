@@ -1,7 +1,9 @@
+# @ingroup dependencies
 set(USERVER_GOOGLE_COMMON_PROTOS_TARGET
     ""
     CACHE STRING "Name of cmake target preparing google common proto library"
 )
+# @ingroup dependencies
 set(USERVER_GOOGLE_COMMON_PROTOS
     ""
     CACHE PATH "Path to the folder with google common proto files"

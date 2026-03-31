@@ -1,13 +1,21 @@
 import json
 from pathlib import Path
-
-import requests
+from urllib.error import HTTPError
+from urllib.request import Request
+from urllib.request import urlopen
 
 url = 'https://api.github.com/repos/userver-framework/docs/contents/'
 headers = {'Accept': 'application/vnd.github+json'}
-response = requests.get(url, headers=headers)
-response.raise_for_status()
-data = response.json()
+
+try:
+    request = Request(url, headers=headers)
+
+    with urlopen(request) as response:
+        data = json.loads(response.read().decode('utf-8'))
+
+except HTTPError as e:
+    print(f'HTTP Error {e.code}: {e.reason}')
+    raise
 
 versions = [item['name'] for item in data if item['type'] == 'dir' and item['name'].lower().startswith('v')]
 

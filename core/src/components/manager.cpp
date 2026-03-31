@@ -43,15 +43,15 @@ auto RunInCoro(engine::TaskProcessor& task_processor, Func&& func) {
 }
 
 std::optional<size_t> GuessCpuLimit(const std::string& tp_name) {
-    auto cpu_f = hostinfo::CpuLimit();
-    if (!cpu_f) {
+    auto cpu_opt = hostinfo::CpuLimit();
+    if (!cpu_opt) {
         return {};
     }
 
     const auto hw_concurrency = std::thread::hardware_concurrency();
     const auto hw_threads_estimate = hw_concurrency ? hw_concurrency : kDefaultHwThreadsEstimate;
 
-    auto cpu = std::lround(*cpu_f);
+    auto cpu = std::lround(*cpu_opt);
     if (cpu > 0 && static_cast<unsigned int>(cpu) < hw_threads_estimate * 2) {
         // TODO: hack for https://st.yandex-team.ru/TAXICOMMON-2132
         if (cpu < 3) {
@@ -65,7 +65,7 @@ std::optional<size_t> GuessCpuLimit(const std::string& tp_name) {
     }
 
     LOG_WARNING()
-        << "CPU limit from env CPU_LIMIT (" << cpu_f
+        << "CPU limit from env CPU_LIMIT (" << cpu
         << ") looks very different from the estimated number of "
            "hardware threads ("
         << hw_threads_estimate << "), worker_threads from the static config will be used";
@@ -243,10 +243,12 @@ engine::TaskWithResult<void> Manager::StartComponentSystem(const ComponentList& 
 Manager::~Manager() {
     LOG_INFO() << "Stopping components manager";
 
-    try {
-        RunInCoro(*default_task_processor_, [this] { component_context_->OnGracefulShutdownStarted(); });
-    } catch (const std::exception& exc) {
-        LOG_ERROR() << "Graceful shutdown failed: " << exc;
+    if (component_context_) {
+        try {
+            RunInCoro(*default_task_processor_, [this] { component_context_->OnGracefulShutdownStarted(); });
+        } catch (const std::exception& exc) {
+            LOG_ERROR() << "Graceful shutdown failed: " << exc;
+        }
     }
     engine::impl::TeardownPhdrCacheAndEnableDynamicLoading();
 
@@ -440,8 +442,6 @@ void Manager::AddComponents(const ComponentList& component_list) {
 
     auto stop_time = std::chrono::steady_clock::now();
     load_duration_ = std::chrono::duration_cast<std::chrono::milliseconds>(stop_time - start_time);
-
-    LOG_INFO() << "All components loaded";
 }
 
 void Manager::AddComponentImpl(
@@ -459,20 +459,20 @@ void Manager::AddComponentImpl(
         return;
     }
 
-    LOG_DEBUG() << "Starting component " << name;
-
     auto* component = component_context_->AddComponent(name, config_it->second, adder);
     if (auto* signal_processor = dynamic_cast<os_signals::ProcessorComponent*>(component)) {
         const std::lock_guard<std::shared_timed_mutex> lock(context_mutex_);
         signal_processor_ = signal_processor;
     }
-    LOG_DEBUG() << "Started component " << name;
 }
 
 void Manager::ClearComponents() noexcept {
     {
         const std::lock_guard<std::shared_timed_mutex> lock(context_mutex_);
         components_cleared_ = true;
+    }
+    if (!component_context_) {
+        return;
     }
     try {
         component_context_->ClearComponents();

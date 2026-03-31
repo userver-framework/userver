@@ -175,7 +175,22 @@ private:
     void StopPrintAddingComponentsTask();
     void PrintAddingComponents() const;
 
+    enum class Event {
+        kComponentSystemIsStarting,
+        kStarting,
+        kStarted,
+        kComponentSystemIsStarted,
+        kLoadingIsCancelled,
+        kSwitching,
+        kWaitingForComponent,
+        kFindComponent,
+    };
+    static std::string_view ToString(Event event);
+
+    void EmitBootEvent(Event event, logging::LogExtra log_extra = {}) const;
+
     const Manager& manager_;
+    logging::LoggerPtr boot_logger_;
 
     ComponentMap components_;
     std::atomic_flag components_load_cancelled_ ATOMIC_FLAG_INIT;

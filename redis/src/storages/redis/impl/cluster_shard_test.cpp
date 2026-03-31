@@ -4,7 +4,6 @@
 
 #include <gtest/gtest.h>
 
-#include <storages/redis/impl/sentinel_impl.hpp>
 #include <userver/storages/redis/base.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -77,7 +76,7 @@ INSTANTIATE_TEST_SUITE_P(
             MakeCC(),
             0,
             kEveryDc,
-            storages::redis::impl::SentinelImplBase::kDefaultPrevInstanceIdx,
+            storages::redis::impl::SentinelImpl::kDefaultPrevInstanceIdx,
             0,
             kServersCount,
             kInstanceReplica0
@@ -86,7 +85,7 @@ INSTANTIATE_TEST_SUITE_P(
             MakeCC(),
             0,
             kEveryDc,
-            storages::redis::impl::SentinelImplBase::kDefaultPrevInstanceIdx,
+            storages::redis::impl::SentinelImpl::kDefaultPrevInstanceIdx,
             1,
             kServersCount,
             kInstanceReplica1
@@ -95,7 +94,7 @@ INSTANTIATE_TEST_SUITE_P(
             MakeCC(),
             0,
             kEveryDc,
-            storages::redis::impl::SentinelImplBase::kDefaultPrevInstanceIdx,
+            storages::redis::impl::SentinelImpl::kDefaultPrevInstanceIdx,
             2,
             kServersCount,
             kInstanceReplica0
@@ -104,7 +103,7 @@ INSTANTIATE_TEST_SUITE_P(
             MakeCC(),
             0,
             kEveryDc,
-            storages::redis::impl::SentinelImplBase::kDefaultPrevInstanceIdx,
+            storages::redis::impl::SentinelImpl::kDefaultPrevInstanceIdx,
             3,
             kServersCount,
             kInstanceReplica1
@@ -118,7 +117,7 @@ INSTANTIATE_TEST_SUITE_P(
             MakeCC(),
             1,
             kEveryDc,
-            storages::redis::impl::SentinelImplBase::kDefaultPrevInstanceIdx,
+            storages::redis::impl::SentinelImpl::kDefaultPrevInstanceIdx,
             0,
             kServersCount,
             kInstanceReplica1
@@ -127,7 +126,7 @@ INSTANTIATE_TEST_SUITE_P(
             MakeCC(),
             1,
             kEveryDc,
-            storages::redis::impl::SentinelImplBase::kDefaultPrevInstanceIdx,
+            storages::redis::impl::SentinelImpl::kDefaultPrevInstanceIdx,
             1,
             kServersCount,
             kInstanceMaster
@@ -136,7 +135,7 @@ INSTANTIATE_TEST_SUITE_P(
             MakeCC(),
             1,
             kEveryDc,
-            storages::redis::impl::SentinelImplBase::kDefaultPrevInstanceIdx,
+            storages::redis::impl::SentinelImpl::kDefaultPrevInstanceIdx,
             2,
             kServersCount,
             kInstanceReplica0
@@ -145,7 +144,7 @@ INSTANTIATE_TEST_SUITE_P(
             MakeCC(),
             1,
             kEveryDc,
-            storages::redis::impl::SentinelImplBase::kDefaultPrevInstanceIdx,
+            storages::redis::impl::SentinelImpl::kDefaultPrevInstanceIdx,
             3,
             kServersCount,
             kInstanceReplica1
@@ -166,7 +165,7 @@ INSTANTIATE_TEST_SUITE_P(
             MakeCC(true),
             0,
             kEveryDc,
-            storages::redis::impl::SentinelImplBase::kDefaultPrevInstanceIdx,
+            storages::redis::impl::SentinelImpl::kDefaultPrevInstanceIdx,
             0,
             kServersCount,
             kInstanceReplica0
@@ -175,7 +174,7 @@ INSTANTIATE_TEST_SUITE_P(
             MakeCC(true),
             0,
             kEveryDc,
-            storages::redis::impl::SentinelImplBase::kDefaultPrevInstanceIdx,
+            storages::redis::impl::SentinelImpl::kDefaultPrevInstanceIdx,
             1,
             kServersCount,
             kInstanceReplica1
@@ -184,7 +183,7 @@ INSTANTIATE_TEST_SUITE_P(
             MakeCC(true),
             0,
             kEveryDc,
-            storages::redis::impl::SentinelImplBase::kDefaultPrevInstanceIdx,
+            storages::redis::impl::SentinelImpl::kDefaultPrevInstanceIdx,
             2,
             kServersCount,
             kInstanceMaster
@@ -193,7 +192,7 @@ INSTANTIATE_TEST_SUITE_P(
             MakeCC(true),
             0,
             kEveryDc,
-            storages::redis::impl::SentinelImplBase::kDefaultPrevInstanceIdx,
+            storages::redis::impl::SentinelImpl::kDefaultPrevInstanceIdx,
             3,
             kServersCount,
             kInstanceReplica0
@@ -203,14 +202,14 @@ INSTANTIATE_TEST_SUITE_P(
         ///{ Test read_only request first try, first attempt, NearestPingServer,
         ///  do not allow reads from master.
         ///  We always want one of fastest server. the less index the faster.
-        ///  But we can cylcle through first best_dc_count servers and default
+        ///  But we can cycle through first best_dc_count servers and default
         ///  value is 0.
         ///  So expected results only 0, 1
         std::make_tuple(
             MakeCC(),
             0,
             kNearestServerPing,
-            storages::redis::impl::SentinelImplBase::kDefaultPrevInstanceIdx,
+            storages::redis::impl::SentinelImpl::kDefaultPrevInstanceIdx,
             0,
             kServersCount,
             0
@@ -219,7 +218,7 @@ INSTANTIATE_TEST_SUITE_P(
             MakeCC(),
             0,
             kNearestServerPing,
-            storages::redis::impl::SentinelImplBase::kDefaultPrevInstanceIdx,
+            storages::redis::impl::SentinelImpl::kDefaultPrevInstanceIdx,
             1,
             kServersCount,
             1
@@ -228,7 +227,7 @@ INSTANTIATE_TEST_SUITE_P(
             MakeCC(),
             0,
             kNearestServerPing,
-            storages::redis::impl::SentinelImplBase::kDefaultPrevInstanceIdx,
+            storages::redis::impl::SentinelImpl::kDefaultPrevInstanceIdx,
             2,
             kServersCount,
             0
@@ -237,7 +236,7 @@ INSTANTIATE_TEST_SUITE_P(
             MakeCC(),
             0,
             kNearestServerPing,
-            storages::redis::impl::SentinelImplBase::kDefaultPrevInstanceIdx,
+            storages::redis::impl::SentinelImpl::kDefaultPrevInstanceIdx,
             3,
             kServersCount,
             1
@@ -247,13 +246,13 @@ INSTANTIATE_TEST_SUITE_P(
         ///{ Test read_only request first try, first attempt, NearestPingServer,
         ///  allow reads from master.
         ///  We always want one of fastest server. the less index the faster.
-        ///  But we can cylcle through first best_dc_count servers now it is 1.
+        ///  But we can cycle through first best_dc_count servers now it is 1.
         ///  So expected results only 0, only the best each time
         std::make_tuple(
             MakeCC(kAllowReadFromMaster, storages::redis::CommandControl::Strategy::kNearestServerPing, 1),
             0,
             kNearestServerPing,
-            storages::redis::impl::SentinelImplBase::kDefaultPrevInstanceIdx,
+            storages::redis::impl::SentinelImpl::kDefaultPrevInstanceIdx,
             0,
             kServersCount,
             0
@@ -262,7 +261,7 @@ INSTANTIATE_TEST_SUITE_P(
             MakeCC(kAllowReadFromMaster, storages::redis::CommandControl::Strategy::kNearestServerPing, 1),
             0,
             kNearestServerPing,
-            storages::redis::impl::SentinelImplBase::kDefaultPrevInstanceIdx,
+            storages::redis::impl::SentinelImpl::kDefaultPrevInstanceIdx,
             1,
             kServersCount,
             0
@@ -271,7 +270,7 @@ INSTANTIATE_TEST_SUITE_P(
             MakeCC(kAllowReadFromMaster, storages::redis::CommandControl::Strategy::kNearestServerPing, 1),
             0,
             kNearestServerPing,
-            storages::redis::impl::SentinelImplBase::kDefaultPrevInstanceIdx,
+            storages::redis::impl::SentinelImpl::kDefaultPrevInstanceIdx,
             2,
             kServersCount,
             0
@@ -280,7 +279,7 @@ INSTANTIATE_TEST_SUITE_P(
             MakeCC(kAllowReadFromMaster, storages::redis::CommandControl::Strategy::kNearestServerPing, 1),
             0,
             kNearestServerPing,
-            storages::redis::impl::SentinelImplBase::kDefaultPrevInstanceIdx,
+            storages::redis::impl::SentinelImpl::kDefaultPrevInstanceIdx,
             3,
             kServersCount,
             0
@@ -290,14 +289,14 @@ INSTANTIATE_TEST_SUITE_P(
         ///{ Test read_only request first try, first attempt, NearestPingServer,
         ///  allow reads from master.
         ///  We always want one of fastest server. the less index the faster.
-        ///  But we can cylcle through first best_dc_count servers now it is 2.
+        ///  But we can cycle through first best_dc_count servers now it is 2.
         ///  So expected results only 0 and 1, only one of the best each time
         ///  (one of this numbers can be master)
         std::make_tuple(
             MakeCC(kAllowReadFromMaster, storages::redis::CommandControl::Strategy::kNearestServerPing, 2),
             0,
             kNearestServerPing,
-            storages::redis::impl::SentinelImplBase::kDefaultPrevInstanceIdx,
+            storages::redis::impl::SentinelImpl::kDefaultPrevInstanceIdx,
             0,
             kServersCount,
             0
@@ -306,7 +305,7 @@ INSTANTIATE_TEST_SUITE_P(
             MakeCC(kAllowReadFromMaster, storages::redis::CommandControl::Strategy::kNearestServerPing, 2),
             0,
             kNearestServerPing,
-            storages::redis::impl::SentinelImplBase::kDefaultPrevInstanceIdx,
+            storages::redis::impl::SentinelImpl::kDefaultPrevInstanceIdx,
             1,
             kServersCount,
             1
@@ -315,7 +314,7 @@ INSTANTIATE_TEST_SUITE_P(
             MakeCC(kAllowReadFromMaster, storages::redis::CommandControl::Strategy::kNearestServerPing, 2),
             0,
             kNearestServerPing,
-            storages::redis::impl::SentinelImplBase::kDefaultPrevInstanceIdx,
+            storages::redis::impl::SentinelImpl::kDefaultPrevInstanceIdx,
             2,
             kServersCount,
             0
@@ -324,7 +323,7 @@ INSTANTIATE_TEST_SUITE_P(
             MakeCC(kAllowReadFromMaster, storages::redis::CommandControl::Strategy::kNearestServerPing, 2),
             0,
             kNearestServerPing,
-            storages::redis::impl::SentinelImplBase::kDefaultPrevInstanceIdx,
+            storages::redis::impl::SentinelImpl::kDefaultPrevInstanceIdx,
             3,
             kServersCount,
             1
@@ -334,13 +333,13 @@ INSTANTIATE_TEST_SUITE_P(
         ///{ Test read_only request first try, first attempt, NearestPingServer,
         ///  allow reads from master.
         ///  We always want one of fastest server. the less index the faster.
-        ///  But we can cylcle through first best_dc_count servers now it is 3.
+        ///  But we can cycle through first best_dc_count servers now it is 3.
         ///  So expected results only 0, 1 and 2 (one of this numbers is master)
         std::make_tuple(
             MakeCC(kAllowReadFromMaster, storages::redis::CommandControl::Strategy::kNearestServerPing, 3),
             0,
             kNearestServerPing,
-            storages::redis::impl::SentinelImplBase::kDefaultPrevInstanceIdx,
+            storages::redis::impl::SentinelImpl::kDefaultPrevInstanceIdx,
             0,
             kServersCount,
             0
@@ -349,7 +348,7 @@ INSTANTIATE_TEST_SUITE_P(
             MakeCC(kAllowReadFromMaster, storages::redis::CommandControl::Strategy::kNearestServerPing, 3),
             0,
             kNearestServerPing,
-            storages::redis::impl::SentinelImplBase::kDefaultPrevInstanceIdx,
+            storages::redis::impl::SentinelImpl::kDefaultPrevInstanceIdx,
             1,
             kServersCount,
             1
@@ -358,7 +357,7 @@ INSTANTIATE_TEST_SUITE_P(
             MakeCC(kAllowReadFromMaster, storages::redis::CommandControl::Strategy::kNearestServerPing, 3),
             0,
             kNearestServerPing,
-            storages::redis::impl::SentinelImplBase::kDefaultPrevInstanceIdx,
+            storages::redis::impl::SentinelImpl::kDefaultPrevInstanceIdx,
             2,
             kServersCount,
             2
@@ -367,7 +366,7 @@ INSTANTIATE_TEST_SUITE_P(
             MakeCC(kAllowReadFromMaster, storages::redis::CommandControl::Strategy::kNearestServerPing, 3),
             0,
             kNearestServerPing,
-            storages::redis::impl::SentinelImplBase::kDefaultPrevInstanceIdx,
+            storages::redis::impl::SentinelImpl::kDefaultPrevInstanceIdx,
             3,
             kServersCount,
             0
@@ -383,7 +382,7 @@ INSTANTIATE_TEST_SUITE_P(
             MakeCC(kDoNotAllowReadFromMaster, storages::redis::CommandControl::Strategy::kNearestServerPing, 3),
             0,
             kNearestServerPing,
-            storages::redis::impl::SentinelImplBase::kDefaultPrevInstanceIdx,
+            storages::redis::impl::SentinelImpl::kDefaultPrevInstanceIdx,
             0,
             kServersCount,
             0
@@ -392,7 +391,7 @@ INSTANTIATE_TEST_SUITE_P(
             MakeCC(kDoNotAllowReadFromMaster, storages::redis::CommandControl::Strategy::kNearestServerPing, 3),
             0,
             kNearestServerPing,
-            storages::redis::impl::SentinelImplBase::kDefaultPrevInstanceIdx,
+            storages::redis::impl::SentinelImpl::kDefaultPrevInstanceIdx,
             1,
             kServersCount,
             1
@@ -401,7 +400,7 @@ INSTANTIATE_TEST_SUITE_P(
             MakeCC(kDoNotAllowReadFromMaster, storages::redis::CommandControl::Strategy::kNearestServerPing, 3),
             0,
             kNearestServerPing,
-            storages::redis::impl::SentinelImplBase::kDefaultPrevInstanceIdx,
+            storages::redis::impl::SentinelImpl::kDefaultPrevInstanceIdx,
             2,
             kServersCount,
             0
@@ -410,7 +409,7 @@ INSTANTIATE_TEST_SUITE_P(
             MakeCC(kDoNotAllowReadFromMaster, storages::redis::CommandControl::Strategy::kNearestServerPing, 3),
             0,
             kNearestServerPing,
-            storages::redis::impl::SentinelImplBase::kDefaultPrevInstanceIdx,
+            storages::redis::impl::SentinelImpl::kDefaultPrevInstanceIdx,
             3,
             kServersCount,
             1

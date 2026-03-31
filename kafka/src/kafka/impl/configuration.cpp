@@ -38,9 +38,7 @@ void KafkaLogCallback(const rd_kafka_t*, int level, const char* facility, const 
 
 template <class SupportedList>
 bool IsSupportedOption(const SupportedList& supported_options, const std::string& configured_option) {
-    return utils::ContainsIf(supported_options, [&configured_option](std::string_view supported_option) {
-        return configured_option.compare(supported_option) == 0;
-    });
+    return std::find(std::begin(supported_options), std::end(supported_options), configured_option);
 }
 
 template <class SupportedList>
@@ -86,13 +84,35 @@ std::string ResolveGroupId(const ConsumerConfiguration& configuration) {
     }
 
     const auto pos = group_id.find(kPodNameSubstr);
-    if (group_id.find(kPodNameSubstr) != std::string::npos) {
+    if (pos != std::string::npos) {
         const auto pod_name = ResolvePodName(*configuration.env_pod_name);
 
         return group_id.replace(pos, kPodNameSubstr.size(), pod_name);
     }
 
     return group_id;
+}
+
+std::optional<std::string> ResolveGroupInstanceId(const ConsumerConfiguration& configuration) {
+    static constexpr std::string_view kPodNameSubstr{"{pod_name}"};
+
+    if (!configuration.group_instance_id.has_value()) {
+        return std::nullopt;
+    }
+    auto group_instance_id{configuration.group_instance_id.value()};
+
+    if (!configuration.env_pod_name.has_value()) {
+        return std::nullopt;
+    }
+
+    const auto pos = group_instance_id.find(kPodNameSubstr);
+    if (pos != std::string::npos) {
+        const auto pod_name = ResolvePodName(*configuration.env_pod_name);
+
+        return group_instance_id.replace(pos, kPodNameSubstr.size(), pod_name);
+    }
+
+    return group_instance_id;
 }
 
 }  // namespace
@@ -171,6 +191,7 @@ ConsumerConfiguration Parse(const yaml_config::YamlConfig& config, formats::pars
     if (config.HasMember(kEnvPodNameField)) {
         consumer.env_pod_name = config[kEnvPodNameField].As<std::string>();
     }
+    consumer.group_instance_id = config["group_instance_id"].As<std::optional<std::string>>(std::nullopt);
 
     return consumer;
 }
@@ -329,10 +350,19 @@ void Configuration::SetRdKafka(const RdKafkaOptions& rd_kafka_options) {
 void Configuration::SetConsumer(const ConsumerConfiguration& configuration) {
     const auto group_id = ResolveGroupId(configuration);
     UINVARIANT(!group_id.empty(), "Consumer group_id must not be empty");
+    const auto group_instance_id = ResolveGroupInstanceId(configuration);
 
-    LOG_INFO("Consumer '{}' is going to join group '{}'", name_, group_id);
+    LOG_INFO(
+        "Consumer '{}' is going to join group '{}' as instance '{}'",
+        name_,
+        group_id,
+        group_instance_id.value_or("<chosen by broker>")
+    );
 
     SetOption("group.id", group_id);
+    if (group_instance_id.has_value()) {
+        SetOption("group.instance.id", group_instance_id.value());
+    }
     SetOption("enable.auto.commit", "false");
     SetOption("auto.offset.reset", configuration.auto_offset_reset);
     SetOption("max.poll.interval.ms", configuration.max_callback_duration);

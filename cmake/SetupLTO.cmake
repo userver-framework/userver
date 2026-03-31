@@ -1,3 +1,4 @@
+# @ingroup compilation
 option(USERVER_LTO "Use link time optimizations" OFF)
 
 if(NOT USERVER_LTO)

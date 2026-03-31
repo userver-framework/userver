@@ -5,6 +5,7 @@
 
 #include <userver/engine/shared_mutex.hpp>
 #include <userver/rcu/rcu.hpp>
+#include <userver/server/request/task_inherited_data.hpp>
 #include <userver/testsuite/testpoint_control.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/async.hpp>
@@ -85,7 +86,8 @@ void ExecuteTestpointCoro(
         return;
     }
 
-    utils::trx_tracker::CheckDisabler disabler;
+    const utils::trx_tracker::CheckDisabler disabler;
+    const server::request::DeadlinePropagationBlocker deadline_propagation_blocker;
     tp_scope.GetClient().Execute(name, json, callback);
 }
 

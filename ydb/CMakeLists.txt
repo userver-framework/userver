@@ -7,6 +7,7 @@ set(YDB_LIBRARIES
     YDB-CPP-SDK::Coordination
     YDB-CPP-SDK::Driver
     YDB-CPP-SDK::Operation
+    YDB-CPP-SDK::Query
     YDB-CPP-SDK::Result
     YDB-CPP-SDK::Scheme
     YDB-CPP-SDK::SolomonStats

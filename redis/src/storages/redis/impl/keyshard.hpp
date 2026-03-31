@@ -3,6 +3,8 @@
 #include <memory>
 #include <string>
 
+#include <userver/storages/redis/sharding_strategies.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::redis::impl {
@@ -16,14 +18,17 @@ public:
 };
 
 class KeyShardFactory {
-    std::string type_;
+    ShardingStrategy sharding_strategy_;
 
 public:
-    KeyShardFactory(const std::string& type)
-        : type_(type)
+    KeyShardFactory(ShardingStrategy sharding_strategy)
+        : sharding_strategy_(sharding_strategy)
     {}
-    std::unique_ptr<KeyShard> operator()(size_t nshards);
+    std::unique_ptr<KeyShard> operator()(size_t nshards) const;
     bool IsClusterStrategy() const;
+
+    std::string_view GetShardingStrategyAsString() const { return ToStringView(sharding_strategy_); }
+    ShardingStrategy GetShardingStrategy() const { return sharding_strategy_; }
 };
 
 }  // namespace storages::redis::impl

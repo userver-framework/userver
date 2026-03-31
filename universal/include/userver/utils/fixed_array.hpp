@@ -8,6 +8,7 @@
 #include <type_traits>
 #include <utility>
 
+#include <userver/compiler/impl/lifetime.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/impl/internal_tag.hpp>
 
@@ -22,7 +23,7 @@ namespace utils {
 /// The array allows initializing each of the array elements with the same parameters:
 /// @snippet src/utils/fixed_array_test.cpp  Sample FixedArray
 ///
-/// The array also allows initializing each of the array elements with the output of a generator funtion:
+/// The array also allows initializing each of the array elements with the output of a generator function:
 /// @snippet src/utils/fixed_array_test.cpp  Sample GenerateFixedArray
 template <class T>
 class FixedArray final {
@@ -48,31 +49,31 @@ public:
     std::size_t size() const noexcept { return size_; }
     bool empty() const noexcept { return size_ == 0; }
 
-    const T& operator[](std::size_t i) const noexcept {
+    const T& operator[](std::size_t i) const noexcept USERVER_IMPL_LIFETIME_BOUND {
         UASSERT(i < size_);
         return data()[i];
     }
 
-    T& operator[](std::size_t i) noexcept {
+    T& operator[](std::size_t i) noexcept USERVER_IMPL_LIFETIME_BOUND {
         UASSERT(i < size_);
         return data()[i];
     }
 
-    T& front() noexcept { return *NonEmptyData(); }
-    const T& front() const noexcept { return *NonEmptyData(); }
+    T& front() noexcept USERVER_IMPL_LIFETIME_BOUND { return *NonEmptyData(); }
+    const T& front() const noexcept USERVER_IMPL_LIFETIME_BOUND { return *NonEmptyData(); }
 
-    T& back() noexcept { return *(NonEmptyData() + size_ - 1); }
-    const T& back() const noexcept { return *(NonEmptyData() + size_ - 1); }
+    T& back() noexcept USERVER_IMPL_LIFETIME_BOUND { return *(NonEmptyData() + size_ - 1); }
+    const T& back() const noexcept USERVER_IMPL_LIFETIME_BOUND { return *(NonEmptyData() + size_ - 1); }
 
-    T* data() noexcept { return storage_; }
-    const T* data() const noexcept { return storage_; }
+    T* data() noexcept USERVER_IMPL_LIFETIME_BOUND { return storage_; }
+    const T* data() const noexcept USERVER_IMPL_LIFETIME_BOUND { return storage_; }
 
-    T* begin() noexcept { return data(); }
-    T* end() noexcept { return data() + size_; }
-    const T* begin() const noexcept { return data(); }
-    const T* end() const noexcept { return data() + size_; }
-    const T* cbegin() const noexcept { return data(); }
-    const T* cend() const noexcept { return data() + size_; }
+    T* begin() noexcept USERVER_IMPL_LIFETIME_BOUND { return data(); }
+    T* end() noexcept USERVER_IMPL_LIFETIME_BOUND { return data() + size_; }
+    const T* begin() const noexcept USERVER_IMPL_LIFETIME_BOUND { return data(); }
+    const T* end() const noexcept USERVER_IMPL_LIFETIME_BOUND { return data() + size_; }
+    const T* cbegin() const noexcept USERVER_IMPL_LIFETIME_BOUND { return data(); }
+    const T* cend() const noexcept USERVER_IMPL_LIFETIME_BOUND { return data() + size_; }
 
     /// @cond
     template <class GeneratorFunc>

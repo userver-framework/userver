@@ -124,7 +124,6 @@ private:
     impl::Secret AddBootstrapServers(impl::Secret secrets) const;
     std::string InitBootstrapServers();
 
-private:
     static std::atomic<std::size_t> kTopicsCount;
     class MockCluster;
     utils::Box<MockCluster> mock_;

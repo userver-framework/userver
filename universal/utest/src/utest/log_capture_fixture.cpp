@@ -67,7 +67,7 @@ private:
 const std::string& LogRecord::GetText() const { return GetTag("text"); }
 
 const std::string& LogRecord::GetTag(std::string_view key) const {
-    auto tag_value = GetTagOrNullptr(key);
+    const auto* tag_value = GetTagOrNullptr(key);
     if (!tag_value) {
         throw std::runtime_error(fmt::format("No '{}' tag in log record:\n{}", key, log_raw_));
     }

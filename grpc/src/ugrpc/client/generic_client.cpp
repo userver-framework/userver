@@ -2,27 +2,21 @@
 
 #include <utility>
 
-#include <grpcpp/generic/generic_stub.h>
+#include <grpcpp/generic/async_generic_service.h>
+
+#include <userver/utils/algo.hpp>
+#include <userver/utils/assert.hpp>
 
 #include <userver/ugrpc/client/impl/call_params.hpp>
 #include <userver/ugrpc/client/impl/client_data.hpp>
 #include <userver/ugrpc/client/impl/perform_unary_call.hpp>
-#include <userver/utils/algo.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client {
 
-namespace {
-
-struct GenericService final {
-    using Stub = grpc::GenericStub;
-};
-
-}  // namespace
-
 GenericClient::GenericClient(impl::ClientInternals&& internals)
-    : client_data_(std::move(internals), impl::GenericClientTag{}, std::in_place_type<GenericService>)
+    : client_data_(std::move(internals), impl::GenericClientTag{}, std::in_place_type<grpc::AsyncGenericService>)
 {
     // There is no technical reason why QOS configs should be unsupported here.
     // However, it would be difficult to detect non-existent RPC names in QOS.

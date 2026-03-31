@@ -15,12 +15,12 @@ namespace engine::impl {
 
 class WaitAnyWaitStrategy final : public WaitStrategy {
 public:
-    WaitAnyWaitStrategy(utils::span<ContextAccessor*> targets, TaskContext& waiter)
-        : waiter_(waiter),
+    WaitAnyWaitStrategy(utils::span<ContextAccessor*> targets, TaskContext& awaiter)
+        : awaiter_(awaiter),
           targets_(targets)
     {}
 
-    EarlyWakeup SetupWakeups() override {
+    EarlyNotify SetupWakeups() override {
         for (auto*& target : targets_) {
             if (!target) {
                 continue;
@@ -31,16 +31,16 @@ public:
             });
 
             // SetupWakeups might throw.
-            const auto early_wakeup = target->TryAppendWaiter(waiter_);
-
-            if (static_cast<bool>(early_wakeup)) {
-                return EarlyWakeup{true};
+            boost::intrusive_ptr<Awaiter> awaiter_ptr{&awaiter_};
+            target->TryAppendAwaiter(awaiter_ptr, awaiter_.GetAwaiterContext());
+            if (awaiter_ptr != nullptr) {  // target is ready.
+                return EarlyNotify::kYes;
             }
 
             disable_wakeups.Release();
         }
 
-        return EarlyWakeup{false};
+        return EarlyNotify::kNo;
     }
 
     void DisableWakeups() noexcept override { DoDisableWakeups(targets_); }
@@ -51,11 +51,11 @@ private:
             if (!target) {
                 continue;
             }
-            target->RemoveWaiter(waiter_);
+            target->RemoveAwaiter(awaiter_, awaiter_.GetAwaiterContext());
         }
     }
 
-    TaskContext& waiter_;
+    TaskContext& awaiter_;
     const utils::span<ContextAccessor*> targets_;
 };
 

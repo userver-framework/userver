@@ -16,15 +16,15 @@ Let's write a simple chat server that echoes incoming messages as outgoing messa
 
 ### WebSocket handler component
 
-WebSocket handlers must derive from `server::websocket::WebsocketHandlerBase` and have a name, that
-is obtainable at compile time via `kName` variable and is obtainable at runtime via `HandlerName()`.
+WebSocket handlers must derive from @ref server::handlers::WebsocketHandlerBase and have a name, that
+is obtainable at compile time via `kName` variable and is obtainable at runtime via @ref server::handlers::HandlerBase::HandlerName.
 
 @snippet samples/websocket_service/main.cpp  Websocket service sample - component
 
 ### Static config
 
 Now we have to configure the service by providing `task_processors` and
-`default_task_processor` options for the components::ManagerControllerComponent
+`default_task_processor` options for the @ref components::ManagerControllerComponent
 and configuring each component in `components` section:
 
 @include samples/websocket_service/static_config.yaml
@@ -37,7 +37,7 @@ described in docs.
 ### int main()
 
 Finally, we
-add our component to the `components::MinimalServerComponentList()`,
+add our component to the @ref components::MinimalServerComponentList,
 and start the server with static configuration file passed from command line.
 
 @snippet samples/websocket_service/main.cpp  Websocket service sample - main
@@ -96,7 +96,7 @@ See the full example at:
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref scripts/docs/en/userver/tutorial/digest_auth_postgres.md | @ref scripts/docs/en/userver/tutorial/static_content.md ⇨
+⇦ @ref scripts/docs/en/userver/tutorial/digest_auth_postgres.md | @ref scripts/docs/en/userver/tutorial/websocket_client.md ⇨
 @htmlonly </div> @endhtmlonly
 
 

@@ -1,6 +1,6 @@
 ## Synchronization Primitives
 
-This page describes the synchronization mechanisms that are available in userver, their advantages and weaknesses. 
+This page describes the synchronization mechanisms that are available in userver, their advantages and weaknesses.
 It is assumed that the developer is aware of concurrent programming and concepts like "race", "critical section", "mutex".
 
 ## Constraint
@@ -21,7 +21,7 @@ be expected by users and could lead to std::terminate().
 Read the documentation on particular primitive to get the behavior on
 task cancellation. The cancellation could be **blocked** by
 engine::TaskCancellationBlocker, so the latter could be used to force the
-primitive to ignore the cancellation request.  
+primitive to ignore the cancellation request.
 
 See also: @ref task_cancellation_intro
 
@@ -30,12 +30,12 @@ See also: @ref task_cancellation_intro
 
 This section describes the major available synchronization mechanisms with use cases. All the primitives are listed at the @ref userver_concurrency API Group.
 
-@note There is no "faster" synchronization mechanism. Different primitives are suitable for different situations. 
-For some load profile primitive A could be 1000 times faster than primitive B. For another - exactly the opposite. 
-Before choosing a primitive, determinate the load profile 
-(how often does reading and writing occur, 
-how many concurrent writers/readers are there etc). 
-For a practical assessment of the effectiveness of a particular tool for your case, use 
+@note There is no "faster" synchronization mechanism. Different primitives are suitable for different situations.
+For some load profile primitive A could be 1000 times faster than primitive B. For another - exactly the opposite.
+Before choosing a primitive, determinate the load profile
+(how often does reading and writing occur,
+how many concurrent writers/readers are there etc).
+For a practical assessment of the effectiveness of a particular tool for your case, use
 [google benchmark](https://github.com/google/benchmark) and stress testing.
 
 

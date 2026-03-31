@@ -10,12 +10,12 @@ from chaotic import error as chaotic_error
 from chaotic.front import parser as chaotic_parser
 from chaotic.front import ref
 from chaotic.front import types
-from . import base_model
-from . import errors
-from . import model
-from . import openapi
-from . import ref_resolver
-from . import swagger
+from chaotic_openapi.front import base_model
+from chaotic_openapi.front import errors
+from chaotic_openapi.front import model
+from chaotic_openapi.front import openapi
+from chaotic_openapi.front import ref_resolver
+from chaotic_openapi.front import swagger
 
 
 @dataclasses.dataclass

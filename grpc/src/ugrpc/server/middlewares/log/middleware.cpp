@@ -19,7 +19,7 @@ namespace ugrpc::server::middlewares::log {
 namespace {
 
 std::string GetMessageForLogging(const google::protobuf::Message& message, const Settings& settings) {
-    if (!logging::ShouldLog(settings.msg_log_level)) {
+    if (settings.msg_log_level < settings.log_level || !logging::ShouldLog(settings.msg_log_level)) {
         return "";
     }
     return ugrpc::ToLimitedDebugString(message, settings.max_msg_size);
@@ -130,7 +130,9 @@ void Middleware::OnCallFinish(MiddlewareCallContext& context, const std::optiona
     } else {
         extra.Extend({
             {ugrpc::impl::kTypeTag, "error_status"},
-            {ugrpc::impl::kBodyTag, "RPC interrupted"},
+            {ugrpc::impl::kBodyTag,
+             "Call is interrupted before it was finished and response with status code was sent (it is not a server "
+             "error, most likely client cancelled the call because the result is not needed anymore)"},
         });
         logger.Log(logging::Level::kWarning, "gRPC error", std::move(extra));
     }

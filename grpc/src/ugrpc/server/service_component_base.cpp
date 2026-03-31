@@ -1,5 +1,7 @@
 #include <userver/ugrpc/server/service_component_base.hpp>
 
+#include <google/protobuf/descriptor.h>
+
 #include <userver/components/component_config.hpp>
 #include <userver/components/component_context.hpp>
 #include <userver/formats/common/merge.hpp>
@@ -29,21 +31,31 @@ ServiceComponentBase::ServiceComponentBase(
     : impl::MiddlewareRunnerComponentBase(config, context, MiddlewarePipelineComponent::kName),
       server_(context.FindComponent<ServerComponent>()),
       config_(server_.ParseServiceConfig(config, context)),
-      info_(ServiceInfo{config.Name()})
-{
-    config_.middlewares = CreateMiddlewares(*info_);
-}
+      component_name_(context.GetComponentName())
+{}
 
 ServiceComponentBase::~ServiceComponentBase() = default;
 
 void ServiceComponentBase::RegisterService(ServiceBase& service) {
     UINVARIANT(!registered_.exchange(true), "Register must only be called once");
 
+    ServiceInfo service_info;
+    service_info.service_component_name = component_name_;
+    service_info.full_service_name = service.GetMetadata(utils::impl::InternalTag{}).service_full_name;
+    service_info.service_descriptor =
+        google::protobuf::DescriptorPool::generated_pool()->FindServiceByName(*service_info.full_service_name);
+    config_.middlewares = CreateMiddlewares(service_info);
+
     server_.GetServer().AddService(service, std::move(config_));
 }
 
 void ServiceComponentBase::RegisterService(GenericServiceBase& service) {
     UINVARIANT(!registered_.exchange(true), "Register must only be called once");
+
+    ServiceInfo service_info;
+    service_info.service_component_name = component_name_;
+    config_.middlewares = CreateMiddlewares(service_info);
+
     server_.GetServer().AddService(service, std::move(config_));
 }
 

@@ -5,7 +5,10 @@
 #include <sstream>
 #include <unordered_map>
 
-#include <boost/algorithm/string.hpp>
+#include <boost/algorithm/string/constants.hpp>
+#include <boost/algorithm/string/join.hpp>
+#include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string/trim.hpp>
 #include <boost/range/adaptor/transformed.hpp>
 
 #include <userver/utils/assert.hpp>
@@ -21,6 +24,17 @@ std::string Trim(const std::string& str) { return boost::algorithm::trim_copy(st
 std::string Trim(std::string&& str) {
     boost::algorithm::trim(str);
     return std::move(str);
+}
+
+std::string_view TrimView(std::string_view str)
+{
+    // boost::algorithm::trim*() doesn't support std::string_view in some versions :(
+    auto start = std::find_if_not(str.begin(), str.end(), ::isspace);
+    auto end = std::find_if_not(str.rbegin(), str.rend(), ::isspace).base();
+    if (start >= end) {
+        return {};
+    }
+    return str.substr(start - str.begin(), end - start);
 }
 
 std::vector<std::string> Split(std::string_view str, std::string_view sep, SplitFlags split_flags) {

@@ -83,6 +83,7 @@ struct DeadlinePropagation::RequestScope final {
 DeadlinePropagation::DeadlinePropagation(const handlers::HttpHandlerBase& handler)
     : handler_{handler},
       deadline_propagation_enabled_{handler_.GetConfig().deadline_propagation_enabled},
+      deadline_propagation_prefer_timestamp_{handler_.GetConfig().deadline_propagation_prefer_timestamp},
       deadline_expired_status_code_{handler_.GetConfig().deadline_expired_status_code},
       path_{GetHandlerPath(handler_)}
 {}

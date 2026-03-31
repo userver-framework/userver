@@ -37,7 +37,8 @@ void Middleware::OnCallStart(MiddlewareCallContext& context) const {
         server_context
             .AddInitialMetadata(ugrpc::impl::kXYaTaxiRatelimitReason, ugrpc::impl::kCongestionControlRatelimitReason);
 
-        return context.SetError(grpc::Status{settings_.reject_status_code, "Congestion control: rate limit exceeded"});
+        context.SetError(grpc::Status{settings_.reject_status_code, "Congestion control: rate limit exceeded"});
+        return;
     }
 }
 

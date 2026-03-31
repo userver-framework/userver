@@ -1,5 +1,5 @@
 ## Component system
- 
+
 A userver-based service usually consists of components. A component is a basic
 building block that encapsulates dependencies logic with configuration and
 is able to interact with other components.
@@ -111,7 +111,7 @@ loading fails, FindComponent() wakes up and throws an
 ## References from components and lifetime of clients
 It is a common practice to have a component that returns a reference *R* from some function *F*. In such cases:
 * a reference *R* lives as long as the component is alive
-* a reference *R* is usually a client 
+* a reference *R* is usually a client
 * and it is safe to invoke member functions of reference *R* concurrently unless otherwise specified.
 
 Examples:
@@ -142,15 +142,15 @@ All the components have the following options:
 @anchor static-configs-validation
 ### Static configs validation
 
-To validate static configs you only need to define member function of your component 
+To validate static configs you only need to define member function of your component
 `GetStaticConfigSchema()`
 
 @snippet components/component_sample_test.cpp  Sample user component schema
 
-All schemas and sub-schemas must have `description` field and can have 
+All schemas and sub-schemas must have `description` field and can have
 `defaultDescription` field if they have a default value.
 
-Scope of static config validatoin can be specified by `validate_all_components` section of 
+Scope of static config validation can be specified by `validate_all_components` section of
 `components_manager` config. To disable it use:
 
 ```
@@ -167,7 +167,7 @@ You also can force static config validation of your component by adding `compone
 
 Supported types:
 * Scalars: `boolean`, `string`, `integer`, `double`
-* `object` must have options `additionalProperties` and `properties`
+* `object` must have options `additionalProperties` and `properties`, may have `required`
 * `array` must have option `items`
 
 @anchor select-config-file-mode

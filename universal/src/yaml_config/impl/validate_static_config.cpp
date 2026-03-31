@@ -104,6 +104,19 @@ void ValidateObject(const YamlConfig& object, const Schema& schema) {
             utils::SuggestNearestName(properties | boost::adaptors::map_keys, name)
         ));
     }
+
+    if (schema.required.has_value()) {
+        for (const auto& name : *schema.required) {
+            const auto field = object[name];
+            if (field.IsMissing()) {
+                throw std::runtime_error(fmt::format(
+                    "Error while validating static config against schema. "
+                    "Required field '{}' is missing",
+                    field.GetPath()
+                ));
+            }
+        }
+    }
 }
 
 void ValidateArrayLen(const YamlConfig& array, const Schema& schema) {

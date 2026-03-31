@@ -7,6 +7,8 @@
 #include <string_view>
 #include <type_traits>
 
+#include <fmt/format.h>
+
 #include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -15,6 +17,8 @@ namespace utils::statistics {
 
 class Label;
 
+/// @ingroup userver_universal
+///
 /// @brief Non owning label name+value storage.
 class LabelView final {
 public:
@@ -30,7 +34,7 @@ public:
 
     template <class T, std::enable_if_t<std::is_arithmetic_v<T>>* = nullptr>
     constexpr LabelView(std::string_view, T) {
-        static_assert(sizeof(T) && false, "Labels should not be arithmetic values, only strings!");
+        static_assert(!sizeof(T), "Labels should not be arithmetic values, only strings!");
     }
 
     constexpr explicit operator bool() const { return !name_.empty(); }
@@ -45,7 +49,10 @@ private:
 
 bool operator<(const LabelView& x, const LabelView& y) noexcept;
 bool operator==(const LabelView& x, const LabelView& y) noexcept;
+bool operator!=(const LabelView& x, const LabelView& y) noexcept;
 
+/// @ingroup userver_universal
+///
 /// @brief Label name+value storage.
 class Label final {
 public:
@@ -55,7 +62,7 @@ public:
 
     template <class T, std::enable_if_t<std::is_arithmetic_v<T>>* = nullptr>
     Label(std::string, T) {
-        static_assert(sizeof(T) && false, "Labels should not be arithmetic values, only strings!");
+        static_assert(!sizeof(T), "Labels should not be arithmetic values, only strings!");
     }
 
     explicit operator bool() const { return !name_.empty(); }
@@ -73,7 +80,10 @@ private:
 
 bool operator<(const Label& x, const Label& y) noexcept;
 bool operator==(const Label& x, const Label& y) noexcept;
+bool operator!=(const Label& x, const Label& y) noexcept;
 
+/// @ingroup userver_universal
+///
 /// @brief View over a continuous range of LabelView.
 class LabelsSpan final {
 public:
@@ -106,3 +116,35 @@ private:
 }  // namespace utils::statistics
 
 USERVER_NAMESPACE_END
+
+template <>
+struct fmt::formatter<USERVER_NAMESPACE::utils::statistics::LabelView> {
+    constexpr static auto parse(format_parse_context& ctx) { return ctx.begin(); }
+
+    template <typename FormatContext>
+    auto format(USERVER_NAMESPACE::utils::statistics::LabelView value, FormatContext& ctx) const {
+        return fmt::format_to(ctx.out(), "{}={}", value.Name(), value.Value());
+    }
+};
+
+template <>
+struct fmt::formatter<USERVER_NAMESPACE::utils::statistics::Label>
+    : public fmt::formatter<USERVER_NAMESPACE::utils::statistics::LabelView> {
+    template <typename FormatContext>
+    auto format(const USERVER_NAMESPACE::utils::statistics::Label& value, FormatContext& ctx) const {
+        return formatter<USERVER_NAMESPACE::utils::statistics::LabelView>::format(
+            USERVER_NAMESPACE::utils::statistics::LabelView{value},
+            ctx
+        );
+    }
+};
+
+template <>
+struct fmt::formatter<USERVER_NAMESPACE::utils::statistics::LabelsSpan> {
+    constexpr static auto parse(format_parse_context& ctx) { return ctx.begin(); }
+
+    fmt::format_context::iterator format(
+        USERVER_NAMESPACE::utils::statistics::LabelsSpan value,
+        fmt::format_context& ctx
+    ) const;
+};

@@ -61,7 +61,7 @@ In particular this means:
 - Only with `update-jitter: 0s` and `is-strong-period: true` updates follow a strict schedule.
 
 `full-update-interval` is the minimum interval between `full` updates in
-`full-and-incremental` cache. With each update, the cache checks if 
+`full-and-incremental` cache. With each update, the cache checks if
 `full-update-interval` of the time has passed since the previous `full` update,
 and if it has passed, the current update will be `full`.
 
@@ -116,7 +116,7 @@ multiple concurrent cache readers while doing a background
 cache update. In case of time consuming work with cache data, users may encounter
 the fact that different readers work with different versions of the data. As a
 result, more than two versions of the cache data can coexist at the same time.
-Memory and other resources of old data versions are released either when 
+Memory and other resources of old data versions are released either when
 updating the cache or when the background garbage collector collects the
 garbage. The frequency of garbage collection is regulated via the
 `additional-cleanup-interval` parameter.
@@ -198,7 +198,7 @@ you to speed up the loading of the service in the case of multiple heavy caches.
 ## Metrics
 
 Each cache automatically collects metrics. See
-@ref scripts/docs/en/userver/service_monitor.md for a list of metrics with some descriptions. 
+@ref scripts/docs/en/userver/service_monitor.md for a list of metrics with some descriptions.
 
 
 ## Common misuses

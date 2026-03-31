@@ -30,6 +30,27 @@ async def test_echo_with_continuation(websocket_client):
         assert response == 'First second third'
 
 
+async def test_echo_bin(websocket_client):
+    async with websocket_client.get('chat') as chat:
+        await chat.send(b'\x00\x01\x02\xff')
+        response = await chat.recv()
+        assert response == b'\x00\x01\x02\xff'
+
+
+async def test_echo_bin_with_text(websocket_client):
+    async with websocket_client.get('chat') as chat:
+        await chat.send('msg1')
+        await chat.send(b'\x00\x01\x02\xff')
+        await chat.send('msg2')
+
+        response = await chat.recv()
+        assert response == 'msg1'
+        response = await chat.recv()
+        assert response == b'\x00\x01\x02\xff'
+        response = await chat.recv()
+        assert response == 'msg2'
+
+
 async def test_close_by_server(websocket_client):
     async with websocket_client.get('chat') as chat:
         await chat.send('close')
@@ -83,7 +104,7 @@ async def test_too_big(websocket_client):
 
 
 async def test_origin(service_client, service_port):
-    async with websockets.connect(
+    async with websockets.legacy.client.connect(
         f'ws://localhost:{service_port}/chat',
         extra_headers={'Origin': 'localhost'},
     ) as chat:
@@ -176,7 +197,16 @@ async def test_upgrade_header_with_tab_then_reconnect(service_port):
     await writer.wait_closed()
 
     # 2. Check new connection can be established
-    async with websockets.connect(f'ws://localhost:{service_port}/chat') as chat:
+    async with websockets.legacy.client.connect(f'ws://localhost:{service_port}/chat') as chat:
         await chat.send('ping')
         resp = await chat.recv()
         assert resp == 'ping'
+
+
+async def test_non_websocket_request(service_client):
+    response = await service_client.get(
+        '/chat',
+    )
+
+    assert response.status == 400
+    assert response.text == 'Not a websocket request'

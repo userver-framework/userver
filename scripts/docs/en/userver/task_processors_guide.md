@@ -18,7 +18,7 @@ Any amount of task processors could be created with any names.
 utils::Async and engine::AsyncNoSpan start a new task on a provided as a
 first argument task processor. If the task processor is not provided
 utils::Async and engine::AsyncNoSpan use the task processor that
-runs the current task (engine::current_task::GetTaskProcessor()). 
+runs the current task (engine::current_task::GetTaskProcessor()).
 
 A task processor could be obtained from components::ComponentContext in the
 constructor of the component. References to task processors outlive the

@@ -112,6 +112,50 @@ async def test_timeout_expired(
 
 
 @pytest.mark.parametrize(
+    'timeout,deadline,reuse_attempts',
+    [(100, 2000, 2), (100, 2000, 3), (200, 2000, 2)],
+)
+async def test_timeout_expired_with_reuse(
+    service_client,
+    call,
+    client_metrics,
+    slow_mock,
+    timeout,
+    deadline,
+    reuse_attempts,
+):
+    async with service_client.capture_logs(log_level='INFO') as capture:
+        async with client_metrics:
+            response = await call(
+                headers={DP_TIMEOUT_MS: str(deadline)},
+                timeout=timeout,
+                reuse_attempts=reuse_attempts,
+            )
+            assert response.status == 500
+            assert response.text == ''
+
+    assert client_metrics.value_at('cancelled-by-deadline', VERSION) == 0
+    assert client_metrics.value_at('errors', {'http_error': 'ok', **VERSION}) == 0
+    assert client_metrics.value_at('errors', {'http_error': 'timeout', **VERSION}) == reuse_attempts
+
+    logs = capture.select(stopwatch_name='GET localhost')
+    assert len(logs) == reuse_attempts
+    for i in range(reuse_attempts):
+        log = logs[i]
+        assert log['error'] == '1'
+        assert log['http.request.resend_count'] == '1'
+        assert log['http.request.max_resend_count'] == '1'
+        assert log.get('cancelled_by_deadline', '0') == '0'
+        assert log['error_msg'] == 'Timeout was reached'
+        assert log['timeout_ms'] == str(timeout)
+        assert log['propagated_timeout_ms'] == str(timeout)
+
+    logs = get_handler_exception_logs(capture)
+    assert len(logs) == 1
+    assert 'clients::http::TimeoutException' in logs[0]['text']
+
+
+@pytest.mark.parametrize(
     'timeout,deadline,attempts',
     [
         (400, 100, 1),
@@ -171,6 +215,61 @@ async def test_deadline_expired(
     assert logs[0]['error_msg'] == 'Timeout was reached'
     assert logs[0]['timeout_ms'] == str(timeout)
     assert 0 <= int(logs[0]['propagated_timeout_ms']) <= deadline
+
+    logs = get_handler_exception_logs(capture)
+    assert len(logs) == 1
+    assert 'clients::http::CancelException' in logs[0]['text']
+
+
+@pytest.mark.parametrize(
+    'timeout,deadline,reuse_attempts',
+    [
+        (400, 100, 2),
+        (200, 100, 3),
+    ],
+)
+async def test_deadline_expired_with_reuse(
+    service_client,
+    call,
+    client_metrics,
+    slow_mock,
+    timeout,
+    deadline,
+    reuse_attempts,
+):
+    async with service_client.capture_logs(log_level='INFO') as capture:
+        async with client_metrics:
+            response = await call(
+                headers={DP_TIMEOUT_MS: str(deadline)},
+                timeout=timeout,
+                reuse_attempts=reuse_attempts,
+            )
+            assert response.status == 504
+            assert response.text == 'Deadline expired'
+
+            # With the given test parameters all subsequent "reuse" requests are immediately exprired.
+            # So, we do not need to wait for the last "reuse" request completion
+
+    assert client_metrics.value_at('cancelled-by-deadline', VERSION) == reuse_attempts
+    assert client_metrics.value_at('errors', {'http_error': 'ok', **VERSION}) == 0
+    # With the given test parameters timeout happens only on the first request.
+    # All subsequent "reuse" requests are immediately exprired
+    assert client_metrics.value_at('errors', {'http_error': 'timeout', **VERSION}) == 1
+
+    logs = capture.select(stopwatch_name='GET localhost')
+    assert len(logs) == reuse_attempts
+    for i in range(reuse_attempts):
+        log = logs[i]
+        assert log['error'] == '1'
+        assert log['http.request.max_resend_count'] == '1'
+        assert log['cancelled_by_deadline'] == '1'
+        if i == 0:
+            # With the given test parameters timeout happens only on the first request.
+            # All subsequent requests are immediately exprired
+            assert log['error_msg'] == 'Timeout was reached'
+        else:
+            assert log.get('error_msg') is None
+        assert log['timeout_ms'] == str(timeout)
 
     logs = get_handler_exception_logs(capture)
     assert len(logs) == 1

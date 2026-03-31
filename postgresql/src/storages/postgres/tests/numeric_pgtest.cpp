@@ -64,7 +64,7 @@ TEST(PostgreIO, Numeric) {
 class PostgreNumericIO : public ::testing::TestWithParam<std::string> {};
 
 TEST_P(PostgreNumericIO, ParseString) {
-    auto str_rep = GetParam();
+    const auto& str_rep = GetParam();
     auto str_buf = io::detail::StringToNumericBuffer(str_rep);
     EXPECT_FALSE(str_buf.empty());
     const Numeric num{str_rep.c_str()};
@@ -137,7 +137,7 @@ using DecIOTestData = std::pair<std::string, pg::io::detail::IntegralRepresentat
 class PostgreDecimalIO : public ::testing::TestWithParam<DecIOTestData> {};
 
 TEST_P(PostgreDecimalIO, BufferIO) {
-    auto params = GetParam();
+    const auto& params = GetParam();
     auto expected = params.second;
     auto expected_str = params.first;
 

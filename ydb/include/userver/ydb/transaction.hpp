@@ -2,6 +2,9 @@
 
 #include <string>
 
+#include <ydb-cpp-sdk/client/query/client.h>
+#include <ydb-cpp-sdk/client/table/table.h>
+
 #include <userver/tracing/span.hpp>
 #include <userver/utils/trx_tracker.hpp>
 
@@ -69,7 +72,7 @@ public:
     // For internal use only.
     Transaction(
         TableClient& table_client,
-        NYdb::NTable::TTransaction ydb_tx,
+        std::variant<NYdb::NQuery::TTransaction, NYdb::NTable::TTransaction> ydb_tx,
         std::string name,
         OperationSettings&& rollback_settings
     ) noexcept;
@@ -85,7 +88,7 @@ private:
     std::string name_;
     impl::StatsScope stats_scope_;
     tracing::Span span_;
-    NYdb::NTable::TTransaction ydb_tx_;
+    std::variant<NYdb::NQuery::TTransaction, NYdb::NTable::TTransaction> ydb_tx_;
     OperationSettings rollback_settings_;
     bool is_active_{true};
     utils::trx_tracker::TransactionLock trx_lock_;

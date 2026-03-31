@@ -63,7 +63,7 @@ public:
     Query& operator=(Query&& other) = default;
 
     /// Constructor that omits dynamic initialization and relies on `statement` and `name` being string literals
-    constexpr Query(utils::StringLiteral statement, NameLiteral name, LogMode log_mode)
+    constexpr Query(utils::StringLiteral statement, NameLiteral name, LogMode log_mode = LogMode::kFull)
         : data_{StaticStrings{statement, name}},
           log_mode_{log_mode}
     {}

@@ -8,7 +8,7 @@
     <tab type="usergroup" visible="yes" title="Reference">
       <tab type="namespacemembers" visible="no" title="" intro=""/>
       <tab type="classlist" visible="yes" title="" intro=""/>
-      <tab type="classindex" visible="$ALPHABETICAL_INDEX" title=""/> 
+      <tab type="classindex" visible="$ALPHABETICAL_INDEX" title=""/>
       <tab type="hierarchy" visible="no" title="" intro=""/>
       <tab type="classmembers" visible="no" title="" intro=""/>
       <tab type="filelist" visible="yes" title="" intro=""/>

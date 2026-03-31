@@ -7,6 +7,7 @@
 #include <exception>
 #include <string_view>
 
+#include <userver/compiler/impl/lifetime.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -63,7 +64,7 @@ public:
     bool operator==(const regex&) const;
 
     /// @returns a view to the original pattern stored inside.
-    std::string_view GetPatternView() const;
+    std::string_view GetPatternView() const USERVER_IMPL_LIFETIME_BOUND;
 
     /// @returns the original pattern.
     std::string str() const;

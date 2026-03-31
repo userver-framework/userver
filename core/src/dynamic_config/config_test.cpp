@@ -520,6 +520,7 @@ UTEST(DynamicConfig, DeadlockOnSubscribeInCallback) {
 
 UTEST(DynamicConfig, DeadlockOnSubscribeInSendEvent) {
     struct LocalSubscriber {
+        // NOLINTNEXTLINE(readability-make-member-function-const)
         void OnConfigUpdate(const dynamic_config::Snapshot&) {
             if (cb) {
                 cb();
@@ -550,6 +551,7 @@ UTEST(DynamicConfig, DeadlockOnSubscribeInSendEvent) {
 
 UTEST(DynamicConfig, DeadlockOnSubscribeInSendEventDiff) {
     struct LocalSubscriber {
+        // NOLINTNEXTLINE(readability-make-member-function-const)
         void OnDiffUpdate(const dynamic_config::Diff&) {
             if (cb) {
                 cb();

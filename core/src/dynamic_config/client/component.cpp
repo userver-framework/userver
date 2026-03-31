@@ -32,13 +32,13 @@ std::string ReadStageName(const std::string& filepath) {
 
 #ifdef ARCADIA_ROOT
 bool IsClownductorPrestable() {
-    auto filepath = "/etc/clownductor_group";
+    constexpr std::string_view filepath = "/etc/clownductor_group";
     auto& tp = engine::current_task::GetBlockingTaskProcessor();
 
-    if (!fs::FileExists(tp, filepath)) {
+    if (!fs::FileExists(tp, std::string{filepath})) {
         return false;
     }
-    auto content = fs::ReadFileContents(tp, filepath);
+    auto content = fs::ReadFileContents(tp, std::string{filepath});
     utils::text::Trim(content);
     return utils::text::EndsWith(content, "_pre_stable") || utils::text::EndsWith(content, "_prestable");
 }

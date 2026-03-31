@@ -4,8 +4,8 @@ additionalProperties: false
 properties:
     updates-sink:
         type: string
-        description: name of the component derived from components::DynamicConfigUpdatesSinkBase
-            to be used for storing received updates
+        description: name of the component derived from components::DynamicConfigUpdatesSinkBase to be used for storing received
+            updates
         default: dynamic-config
     store-enabled:
         type: boolean

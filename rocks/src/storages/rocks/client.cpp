@@ -41,13 +41,10 @@ std::string Client::Get(std::string_view key) {
 }
 
 void Client::Delete(std::string_view key) {
-    return engine::AsyncNoSpan(
-               blocking_task_processor_,
-               [this, key] {
-                   const rocksdb::Status status = db_->Delete(rocksdb::WriteOptions(), key);
-                   CheckStatus(status, "Delete");
-               }
-    ).Get();
+    engine::AsyncNoSpan(blocking_task_processor_, [this, key] {
+        const rocksdb::Status status = db_->Delete(rocksdb::WriteOptions(), key);
+        CheckStatus(status, "Delete");
+    }).Get();
 }
 
 void Client::CheckStatus(rocksdb::Status status, std::string_view method_name) {

@@ -138,7 +138,7 @@ protected:
     virtual utils::Flags<Flag> GetStartFlags() const;
 
     /// @brief Call this to start periodic updates just now,
-    /// not after the constuctor.
+    /// not after the constructor.
     void EarlyStartPeriodicUpdates(utils::Flags<Flag> flags);
 
     /// @cond

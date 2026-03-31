@@ -23,4 +23,31 @@ paths:
                     description: OK
                     content:
                         application/json: {}
+
+    /path/with/{regex}/:
+        get:
+            parameters:
+              - in: path
+                name: regex
+                required: true
+                schema:
+                    type: string
+            operationId: WithRegex
+            responses:
+                '200':
+                    description: OK
+
+    /path/with/{regex2}/:
+        get:
+            parameters:
+              - in: path
+                name: regex2
+                required: true
+                schema:
+                    type: string
+            #operationId: WithRegex
+            responses:
+                '200':
+                    description: OK
+
 components: {}

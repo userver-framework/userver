@@ -29,6 +29,7 @@ struct TableSettings {
     std::uint32_t get_session_retry_limit{5};
     bool keep_in_query_cache{true};
     bool sync_start{true};
+    bool use_query_client{true};
     std::optional<std::vector<double>> by_database_timings_buckets{};
     std::optional<std::vector<double>> by_query_timings_buckets{};
 };

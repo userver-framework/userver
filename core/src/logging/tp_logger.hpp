@@ -75,7 +75,7 @@ public:
 
     void StopConsumerTask();
 
-    void Log(Level level, impl::formatters::LoggerItemRef msg) override;
+    void Log(Level level, impl::formatters::LoggerItemRef item) override;
     void Flush() override;
     void PrependCommonTags(TagWriter writer) const override;
 

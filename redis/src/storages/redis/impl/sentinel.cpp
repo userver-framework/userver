@@ -15,7 +15,6 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/impl/userver_experiments.hpp>
 
-#include <storages/redis/impl/cluster_sentinel_impl.hpp>
 #include <storages/redis/impl/command.hpp>
 #include <storages/redis/impl/redis.hpp>
 #include <storages/redis/impl/sentinel_impl.hpp>
@@ -94,36 +93,20 @@ Sentinel::Sentinel(
         "Database index other than 0 now supported in cluster and standalone modes"
     );
     sentinel_thread_control_->RunInEvLoopBlocking([&]() {
-        if (IsInClusterMode()) {
-            impl_ = std::make_unique<ClusterSentinelImpl>(
-                *sentinel_thread_control_,
-                thread_pools_->GetRedisThreadPool(),
-                *this,
-                shards,
-                conns,
-                std::move(shard_group_name),
-                client_name,
-                password,
-                connection_security,
-                key_shard_factory(shards.size()),
-                dynamic_config_source
-            );
-        } else {
-            impl_ = std::make_unique<SentinelImpl>(
-                *sentinel_thread_control_,
-                thread_pools_->GetRedisThreadPool(),
-                *this,
-                shards,
-                conns,
-                std::move(shard_group_name),
-                client_name,
-                password,
-                connection_security,
-                key_shard_factory(shards.size()),
-                dynamic_config_source,
-                database_index
-            );
-        }
+        impl_ = std::make_unique<SentinelImpl>(
+            *sentinel_thread_control_,
+            thread_pools_->GetRedisThreadPool(),
+            *this,
+            shards,
+            conns,
+            std::move(shard_group_name),
+            client_name,
+            password,
+            connection_security,
+            std::move(key_shard_factory),
+            dynamic_config_source,
+            database_index
+        );
     });
 }
 
@@ -244,7 +227,7 @@ void Sentinel::AsyncCommand(CommandPtr command, bool master, size_t shard) {
     try {
         impl_->AsyncCommand(
             {command, master, shard, std::chrono::steady_clock::now()},
-            SentinelImplBase::kDefaultPrevInstanceIdx
+            SentinelImpl::kDefaultPrevInstanceIdx
         );
     } catch (const std::exception& ex) {
         LOG_WARNING() << "exception in " << __func__ << " '" << ex.what() << "'";
@@ -274,7 +257,7 @@ void Sentinel::AsyncCommand(CommandPtr command, const std::string& key, bool mas
     try {
         impl_->AsyncCommand(
             {command, master, shard, std::chrono::steady_clock::now()},
-            SentinelImplBase::kDefaultPrevInstanceIdx
+            SentinelImpl::kDefaultPrevInstanceIdx
         );
     } catch (const std::exception& ex) {
         LOG_WARNING() << "exception in " << __func__ << " '" << ex.what() << "'";
@@ -304,19 +287,19 @@ size_t Sentinel::ShardsCount() const { return impl_->ShardsCount(); }
 void Sentinel::CheckShardIdx(size_t shard_idx) const { CheckShardIdx(shard_idx, ShardsCount()); }
 
 void Sentinel::CheckShardIdx(size_t shard_idx, size_t shard_count) {
-    if (shard_idx >= shard_count && shard_idx != ClusterSentinelImpl::kUnknownShard) {
+    if (shard_idx >= shard_count && shard_idx != SentinelImpl::kUnknownShard) {
         throw InvalidArgumentException(
             "invalid shard (" + std::to_string(shard_idx) + " >= " + std::to_string(shard_count) + ')'
         );
     }
 }
 
-SentinelStatistics Sentinel::GetStatistics(const MetricsSettings& settings) const {
+std::unique_ptr<SentinelStatistics> Sentinel::GetStatistics(const MetricsSettings& settings) const {
     return impl_->GetStatistics(settings);
 }
 
 void Sentinel::SetCommandsBufferingSettings(CommandsBufferingSettings commands_buffering_settings) {
-    return impl_->SetCommandsBufferingSettings(commands_buffering_settings);
+    impl_->SetCommandsBufferingSettings(commands_buffering_settings);
 }
 
 void Sentinel::SetReplicationMonitoringSettings(const ReplicationMonitoringSettings& replication_monitoring_settings) {

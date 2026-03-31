@@ -34,6 +34,7 @@ function(setup_compiler_debug_info_compression)
     endif()
 endfunction()
 
+# @ingroup compilation
 set(USERVER_DEBUG_INFO_COMPRESSION
     "auto"
     CACHE STRING "Linker and compiler debug info compression algorithm (z, zstd, none, auto)"

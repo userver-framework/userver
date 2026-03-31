@@ -6,11 +6,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::server::impl {
 
-tracing::Span& CallState::GetSpan() {
-    UINVARIANT(span_storage, "Span is not set up for this RPC yet");
-    return span_storage->Get();
-}
-
 CallState::CallState(CallParams&& params)
     : CallParams(std::move(params)),
       statistics_scope(method_statistics),

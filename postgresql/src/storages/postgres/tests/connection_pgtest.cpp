@@ -254,6 +254,29 @@ UTEST_P(PostgreConnection, RAIITransaction) {
     }
 }
 
+void CheckTransactionIsolationLevel(
+    pg::detail::ConnectionPtr& conn,
+    pg::TransactionOptions options,
+    pg::IsolationLevel lvl
+) {
+    EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
+    pg::Transaction trx(std::move(conn), options);
+    pg::ResultSet res{nullptr};
+    UEXPECT_NO_THROW(res = trx.Execute("SELECT current_setting('transaction_isolation')"));
+    EXPECT_FALSE(res.IsEmpty()) << "Result set is obtained";
+    EXPECT_EQ(ToStringView(lvl), res.AsSingleRow<std::string>());
+}
+
+UTEST_P(PostgreConnection, TransactionRepeatableReadIsolationLevel) {
+    CheckConnection(GetConn());
+    CheckTransactionIsolationLevel(GetConn(), pg::Transaction::RepeatableReadRO, pg::IsolationLevel::kRepeatableRead);
+}
+
+UTEST_P(PostgreConnection, TransactionSerializableIsolationLevel) {
+    CheckConnection(GetConn());
+    CheckTransactionIsolationLevel(GetConn(), pg::Transaction::SerializableRO, pg::IsolationLevel::kSerializable);
+}
+
 UTEST_P(PostgreConnection, RollbackToIdle) {
     CheckConnection(GetConn());
     EXPECT_EQ(pg::ConnectionState::kIdle, GetConn()->GetState());

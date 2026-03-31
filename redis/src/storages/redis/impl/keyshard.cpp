@@ -119,28 +119,28 @@ std::optional<std::string> KeyShardGpsStorageDriver::Parse(const std::string& s)
     return parts[2];  // data/db/driver_id/data/bucket
 }
 
-std::unique_ptr<KeyShard> KeyShardFactory::operator()(size_t nshards) {
-    LOG_TRACE() << "Create KeyShard with type '" << type_ << '\'';
-    if (type_ == "KeyShardGpsStorageDriver") {
-        return std::make_unique<KeyShardGpsStorageDriver>(nshards);
+std::unique_ptr<KeyShard> KeyShardFactory::operator()(size_t nshards) const {
+    LOG_TRACE() << "Create KeyShard with type '" << ToStringView(sharding_strategy_) << '\'';
+    switch (sharding_strategy_) {
+        case ShardingStrategy::kKeyShardGpsStorageDriver:
+            return std::make_unique<KeyShardGpsStorageDriver>(nshards);
+        case ShardingStrategy::kKeyShardTaximeterCrc32:
+            return std::make_unique<KeyShardTaximeterCrc32>(nshards);
+        case ShardingStrategy::kKeyShardCrc32:
+            return std::make_unique<KeyShardCrc32>(nshards);
+        case ShardingStrategy::kRedisCluster:
+            return nullptr;
+        case ShardingStrategy::kRedisStandalone:
+            return std::make_unique<KeyShardStandalone>();
     }
-    if (type_ == "KeyShardTaximeterCrc32") {
-        return std::make_unique<KeyShardTaximeterCrc32>(nshards);
-    }
-    if (type_ == KeyShardCrc32::kName) {
-        return std::make_unique<KeyShardCrc32>(nshards);
-    }
-    if (type_ == kRedisCluster) {
-        return nullptr;
-    }
-    if (type_ == KeyShardStandalone::kName) {
-        return std::make_unique<KeyShardStandalone>();
-    }
-
+    UASSERT(false);
     return std::make_unique<KeyShardTaximeterCrc32>(nshards);
 }
 
-bool KeyShardFactory::IsClusterStrategy() const { return type_ == kRedisCluster || type_ == KeyShardStandalone::kName; }
+bool KeyShardFactory::IsClusterStrategy() const {
+    return sharding_strategy_ == ShardingStrategy::kRedisCluster ||
+           sharding_strategy_ == ShardingStrategy::kRedisStandalone;
+}
 
 }  // namespace storages::redis::impl
 

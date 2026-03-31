@@ -175,6 +175,7 @@ inline constexpr PredefinedHeader kXYaTaxiAllowAuthResponse{"X-YaTaxi-Allow-Auth
 inline constexpr PredefinedHeader kXYaTaxiServerHostname{"X-YaTaxi-Server-Hostname"};
 inline constexpr PredefinedHeader kXYaTaxiClientTimeoutMs{"X-YaTaxi-Client-TimeoutMs"};
 inline constexpr PredefinedHeader kXYaTaxiDeadlineExpired{"X-YaTaxi-Deadline-Expired"};
+inline constexpr PredefinedHeader kXRequestDeadline{"X-Request-Deadline"};
 inline constexpr PredefinedHeader kXYaTaxiRatelimitedBy{"X-YaTaxi-Ratelimited-By"};
 inline constexpr PredefinedHeader kXYaTaxiRatelimitReason{"X-YaTaxi-Ratelimit-Reason"};
 

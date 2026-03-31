@@ -167,23 +167,25 @@ SentinelShardTest::SentinelShardTest(
     CreateSentinelClient(std::move(key_shard));
 }
 
-std::vector<std::string> SentinelShardTest::InitRedisNames(size_t shard_count) {
+std::vector<std::string> SentinelShardTest::InitRedisNames(std::size_t shard_count) {
     assert(shard_count > 0);
     std::vector<std::string> result;
-    for (size_t shard_idx = 0; shard_idx < shard_count; shard_idx++) {
+    result.reserve(shard_count);
+    for (std::size_t shard_idx = 0; shard_idx < shard_count; ++shard_idx) {
         result.push_back("redis_name_" + std::to_string(shard_idx));
     }
     return result;
 }
 
-void SentinelShardTest::InitSentinelServers(size_t shard_count) {
+void SentinelShardTest::InitSentinelServers(std::size_t shard_count) {
     std::vector<MockRedisServer::MasterInfo> master_infos;
-    for (size_t shard_idx = 0; shard_idx < shard_count; shard_idx++) {
+    master_infos.reserve(shard_count);
+    for (std::size_t shard_idx = 0; shard_idx < shard_count; shard_idx++) {
         master_infos.emplace_back(redis_names_.at(shard_idx), kLocalhost, Master(shard_idx).GetPort());
     }
     for (auto& sentinel : sentinels_) {
         sentinel->RegisterSentinelMastersHandler(master_infos);
-        for (size_t shard_idx = 0; shard_idx < shard_count; shard_idx++) {
+        for (std::size_t shard_idx = 0; shard_idx < shard_count; ++shard_idx) {
             sentinel->RegisterSentinelSlavesHandler(
                 redis_names_.at(shard_idx),
                 {{redis_names_.at(shard_idx), kLocalhost, Slave(shard_idx).GetPort()}}

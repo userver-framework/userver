@@ -13,13 +13,29 @@
 #include <yaml-cpp/yaml.h>
 #include <boost/container/small_vector.hpp>
 
+#include <userver/formats/common/conversion_stack.hpp>
 #include <userver/formats/common/path.hpp>
+#include <userver/formats/json/value.hpp>
+#include <userver/formats/json/value_builder.hpp>
 #include <userver/formats/yaml/exception.hpp>
 #include <userver/formats/yaml/value.hpp>
+#include <userver/formats/yaml/value_builder.hpp>
 #include <userver/utils/enumerate.hpp>
 #include <userver/utils/not_null.hpp>
 
 USERVER_NAMESPACE_BEGIN
+
+namespace formats::parse {
+
+formats::json::Value Parse(const formats::yaml::Value& yaml, parse::To<json::Value>) {
+    return formats::common::PerformMinimalFormatConversion<json::Value>(yaml);
+}
+
+formats::yaml::Value Parse(const formats::json::Value& json, formats::parse::To<formats::yaml::Value>) {
+    return formats::common::PerformMinimalFormatConversion<yaml::Value>(json);
+}
+
+}  // namespace formats::parse
 
 namespace formats::yaml {
 

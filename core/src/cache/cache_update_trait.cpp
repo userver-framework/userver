@@ -4,8 +4,8 @@
 
 #include <cache/cache_dependencies.hpp>
 #include <cache/cache_update_trait_impl.hpp>
-#include <userver/components/scope.hpp>
 #include <userver/dump/helpers.hpp>
+#include <userver/utils/resource_scopes.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -17,10 +17,10 @@ CacheUpdateTrait::CacheUpdateTrait(
 )
     : CacheUpdateTrait(CacheDependencies::Make(config, context))
 {
-    context.RegisterScope(components::MakeScope([this] {
+    context.Scopes().Register([this] {
         StartPeriodicUpdates();
         return utils::FastScopeGuard([this]() noexcept { StopPeriodicUpdates(); });
-    }));
+    });
 }
 
 CacheUpdateTrait::CacheUpdateTrait(CacheDependencies&& dependencies)

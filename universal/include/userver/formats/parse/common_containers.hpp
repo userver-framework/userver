@@ -7,6 +7,7 @@
 /// @ingroup userver_universal userver_formats_parse
 
 #include <optional>
+#include <string_view>
 #include <type_traits>
 
 #include <userver/formats/common/meta.hpp>

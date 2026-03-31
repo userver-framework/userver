@@ -81,7 +81,6 @@ jobs:
                 ccache -M 2.0GB
                 ccache -s -v
 
-
           - name: Run cmake
             run: |
                 cmake -S./ -B./build_debug -DUSERVER_PYTHON_PATH=$(brew --prefix)/bin/python3.12 $CMAKE_FLAGS
@@ -174,6 +173,6 @@ jobs:
                 ulimit -n 4096 && GTEST_FILTER="-PostgreCluster.TransactionTimeouts" ctest -V -E testsuite-userver-postgresql-tests-basic-chaos
 
           - name: Run tests (sqlite)
-            run: |
+            run: |-
                 cd build_debug/sqlite
                 ctest -V -E "userver-sqlite-unittest" # unittests failed with fs access

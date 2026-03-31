@@ -3,6 +3,7 @@
 /// @file userver/s3api/authenticators/interface.hpp
 /// @brief @copybrief s3api::authenticators::Authenticator
 
+#include <ctime>
 #include <memory>
 #include <string>
 #include <unordered_map>

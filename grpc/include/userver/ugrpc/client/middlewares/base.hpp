@@ -14,8 +14,10 @@
 #include <userver/middlewares/groups.hpp>
 #include <userver/middlewares/runner.hpp>
 #include <userver/tracing/span.hpp>
+#include <userver/utils/expected.hpp>
 #include <userver/utils/impl/internal_tag_fwd.hpp>
 
+#include <userver/ugrpc/client/completion_status.hpp>
 #include <userver/ugrpc/rpc_type.hpp>
 #include <userver/ugrpc/time_utils.hpp>
 
@@ -107,9 +109,8 @@ public:
 
     /// @brief This function is called after rpc, on each rpc. It does nothing by
     /// default
-    /// @note Could be not called in case of deadline or network problem
     /// @see @ref ugrpc::client::RpcInterruptedError
-    virtual void PostFinish(MiddlewareCallContext&, const grpc::Status&) const;
+    virtual void PostFinish(MiddlewareCallContext&, const CompletionStatus&) const;
 
 protected:
     MiddlewareBase();

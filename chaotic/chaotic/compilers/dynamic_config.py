@@ -9,14 +9,12 @@ import yaml
 
 from chaotic import cpp_format
 from chaotic import cpp_names
+from chaotic import main
 from chaotic.back.cpp import renderer
 from chaotic.back.cpp import translator
-from chaotic.back.cpp import types
+from chaotic.back.cpp import types as cpp_types
 from chaotic.front import ref
-from chaotic.front.types import ResolvedSchemas
-from chaotic.main import generate_cpp_name_func
-from chaotic.main import NameMapItem
-from chaotic.main import read_schemas
+from chaotic.front import types as front_types
 
 INCLUDE_DIRS = [
     str(pathlib.Path(__file__).parent.parent.parent / 'include'),
@@ -80,10 +78,10 @@ def enrich_jinja_env(env: jinja2.Environment) -> None:
 
 class CompilerBase:
     def __init__(self) -> None:
-        self._variables_types: dict[str, dict[str, types.CppType]] = {}
+        self._variables_types: dict[str, dict[str, cpp_types.CppType]] = {}
         self._definitions: dict[
             str,
-            tuple[ResolvedSchemas, dict[str, types.CppType]],
+            tuple[front_types.ResolvedSchemas, dict[str, cpp_types.CppType]],
         ] = {}
         self._defaults: dict[str, Any] = {}
         self.seen_includes: dict[str, set[str]] = {}
@@ -114,14 +112,14 @@ class CompilerBase:
 
         return []
 
-    def extract_variable_type(self) -> types.CppType:
+    def extract_variable_type(self) -> cpp_types.CppType:
         keys = list(self._variables_types.keys())
         assert len(keys) == 1
         name = keys[0]
 
         name_lower = self.format_ns_name(name)
-        types = self._variables_types[name]
-        return types[f'::taxi_config::{name_lower}::VariableTypeRaw']
+        var_types = self._variables_types[name]
+        return var_types[f'::taxi_config::{name_lower}::VariableTypeRaw']
 
     def format_ns_name(self, name: str) -> str:
         return name.lower().replace('/', '_').replace('-', '_').split('.')[0]
@@ -133,7 +131,7 @@ class CompilerBase:
         include_dirs: list[str] = [],
     ) -> None:
         name_lower = self.format_ns_name(name)
-        name_map = [NameMapItem('/([^/]+)/={0}')]
+        name_map = [main.NameMapItem('/([^/]+)/={0}')]
         # fname = f'taxi_config/definitions/{name}'
         fname = f'{name}'
 
@@ -172,9 +170,9 @@ class CompilerBase:
         name_lower = self.format_ns_name(name)
         name_map = [
             # Variable type
-            NameMapItem('/schema/=VariableTypeRaw'),
+            main.NameMapItem('/schema/=VariableTypeRaw'),
             # Aux. types
-            NameMapItem('/schema/definitions/([^/]+)/={0}'),
+            main.NameMapItem('/schema/definitions/([^/]+)/={0}'),
         ]
         # The virtual name is used for generated filepath identification
         # fname = f'taxi_config/variables/{name}.types.yaml'
@@ -193,13 +191,13 @@ class CompilerBase:
         self._defaults[name] = self._read_default(filepath)
         self.seen_includes[filepath] = seen_includes
 
-    def _collect_schemas(self) -> list[ResolvedSchemas]:
+    def _collect_schemas(self) -> list[front_types.ResolvedSchemas]:
         schemas = []
         for def_schemas, _definitions in self._definitions.values():
             schemas.append(def_schemas)
         return schemas
 
-    def _collect_types(self) -> dict[str, types.CppType]:
+    def _collect_types(self) -> dict[str, cpp_types.CppType]:
         types = {}
         for _def_schemas, definitions in self._definitions.values():
             types.update(definitions)
@@ -213,15 +211,15 @@ class CompilerBase:
         name_map,
         fname: str,
         include_dirs: list[str],
-    ) -> tuple[ResolvedSchemas, dict[str, types.CppType], set[str]]:
-        schemas = read_schemas(
+    ) -> tuple[front_types.ResolvedSchemas, dict[str, cpp_types.CppType], set[str]]:
+        schemas = main.read_schemas(
             erase_path_prefix=erase_prefix,
             filepaths=[filepath],
             name_map=name_map,
-            file_map=[NameMapItem(escape_re_pattern(filepath) + '=' + fname)],
+            file_map=[main.NameMapItem(escape_re_pattern(filepath) + '=' + fname)],
             dependencies=self._collect_schemas(),
         )
-        cpp_name_func = generate_cpp_name_func(
+        cpp_name_func = main.generate_cpp_name_func(
             name_map=name_map,
             erase_prefix=erase_prefix,
         )
@@ -273,7 +271,7 @@ class CompilerBase:
 
     def create_aliases(
         self,
-        types: dict[str, types.CppType],
+        types: dict[str, cpp_types.CppType],
     ) -> list[tuple[str, str]]:
         return []
 
@@ -295,6 +293,7 @@ class CompilerBase:
             clang_format_bin=get_clang_format_bin(),
             parse_extra_formats=parse_extra_formats,
             generate_serializer=parse_extra_formats,
+            generate_sax_parser=False,
         )
 
     def variable_type(self, name: str) -> str:

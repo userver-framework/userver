@@ -57,7 +57,6 @@ std::string MergeYaml(std::string_view source, std::string_view patch);
 
 class ComponentList : public ::testing::Test {
     tests::impl::DefaultLoggerGuardTest default_logger_guard_;
-    tracing::TracerCleanupScope tracer_scope_;
 };
 
 USERVER_NAMESPACE_END

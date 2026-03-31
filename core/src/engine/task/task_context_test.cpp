@@ -31,17 +31,17 @@ struct WaitListRaceSimulator final : public engine::impl::WaitStrategy {
     // cannot use passed deadline because of fast path
     WaitListRaceSimulator() = default;
 
-    engine::impl::EarlyWakeup SetupWakeups() override {
+    engine::impl::EarlyNotify SetupWakeups() override {
         // wake up immediately
         engine::current_task::GetCurrentTaskContext()
-            .Wakeup(engine::impl::TaskContext::WakeupSource::kDeadlineTimer, engine::impl::SleepState::Epoch{0});
-        return engine::impl::EarlyWakeup{false};
+            .Wakeup(engine::impl::TaskContext::WakeupSource::kDeadlineTimer, engine::impl::Epoch{0});
+        return engine::impl::EarlyNotify{false};
     }
 
     void DisableWakeups() noexcept override {
         // simulate wait list notification before cleanup
         engine::current_task::GetCurrentTaskContext()
-            .Wakeup(engine::impl::TaskContext::WakeupSource::kWaitList, engine::impl::TaskContext::NoEpoch{});
+            .Wakeup(engine::impl::TaskContext::WakeupSource::kNotify, engine::impl::NoEpoch{});
     }
 };
 
@@ -83,7 +83,7 @@ UTEST(TaskContext, WaitListWakeupRace) {
     auto& context = engine::current_task::GetCurrentTaskContext();
 
     WaitListRaceSimulator wait_manager;
-    EXPECT_EQ(context.Sleep(wait_manager, engine::Deadline{}), engine::impl::TaskContext::WakeupSource::kWaitList);
+    EXPECT_EQ(context.Sleep(wait_manager, engine::Deadline{}), engine::impl::TaskContext::WakeupSource::kNotify);
 }
 
 USERVER_NAMESPACE_END

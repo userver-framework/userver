@@ -126,10 +126,9 @@ void MpscQueueProduce(benchmark::State& state) {
     }
 
     auto consumer = std::async([&] {
-        compiler::RelaxCpu relax;
         while (keep_running) {
             if (!queue.TryConsume()) {
-                relax();
+                compiler::RelaxCpu::YieldCpuDebug();
             }
         }
     });

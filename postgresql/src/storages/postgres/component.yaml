@@ -72,8 +72,7 @@ properties:
         default: false
     ignore_unused_query_params:
         type: boolean
-        description: disable check for not-NULL query params that are not used in
-            query
+        description: disable check for not-NULL query params that are not used in query
         default: false
     max-ttl-sec:
         type: integer
@@ -147,3 +146,6 @@ properties:
           - auto
           - manual
         description: how to learn the `max_pool_size`
+    application_name:
+        type: string
+        description: will be displayed in postgres statistics and logs

@@ -1,19 +1,19 @@
 components_manager:
-    task_processors:                  # Task processor is an executor for coroutine tasks
+    task_processors:  # Task processor is an executor for coroutine tasks
 
-        main-task-processor:          # Make a task processor for CPU-bound coroutine tasks.
-            worker_threads: $worker-threads         # Process tasks in 4 threads.
+        main-task-processor:  # Make a task processor for CPU-bound coroutine tasks.
+            worker_threads: $worker-threads  # Process tasks in 4 threads.
 
-        fs-task-processor:            # Make a separate task processor for filesystem bound tasks.
+        fs-task-processor:  # Make a separate task processor for filesystem bound tasks.
             worker_threads: $worker-fs-threads
 
     default_task_processor: main-task-processor
 
-    components:                       # Configuring components that were registered via component_list
+    components:  # Configuring components that were registered via component_list
         server:
-            listener:                 # configuring the main listening socket...
-                port: $server-port            # ...to listen on this port and...
-                task_processor: main-task-processor    # ...process incoming requests on this task processor.
+            listener:  # configuring the main listening socket...
+                port: $server-port  # ...to listen on this port and...
+                task_processor: main-task-processor  # ...process incoming requests on this task processor.
 
         logging:
             fs-task-processor: fs-task-processor
@@ -33,7 +33,7 @@ components_manager:
                 POSTGRES_DEFAULT_COMMAND_CONTROL:
                     network_timeout_ms: 750
                     statement_timeout_ms: 500
-                # postgresql template off
+                    # postgresql template off
 
         testsuite-support: {}
 
@@ -60,15 +60,15 @@ components_manager:
             throttling_enabled: false
             url_trailing_slash: strict-match
 
-        handler-hello:                    # Finally! Our handler.
-            path: /hello                  # Registering handler by URL '/hello'.
-            method: GET,POST              # It will only reply to GET (HEAD) and POST requests.
+        handler-hello:  # Finally! Our handler.
+            path: /hello  # Registering handler by URL '/hello'.
+            method: GET,POST  # It will only reply to GET (HEAD) and POST requests.
             task_processor: main-task-processor  # Run it on CPU bound task processor
         # postgresql template on
 
-        handler-hello-postgres:          # Our postgres handler.
-            path: /hello-postgres         # Registering handler by URL '/hello-postgres'.
-            method: GET,POST              # It will only reply to GET (HEAD) and POST requests.
+        handler-hello-postgres:  # Our postgres handler.
+            path: /hello-postgres  # Registering handler by URL '/hello-postgres'.
+            method: GET,POST  # It will only reply to GET (HEAD) and POST requests.
             task_processor: main-task-processor  # Run it on CPU bound task processor
 
         postgres-db-1:
@@ -81,9 +81,9 @@ components_manager:
         # postgresql template off
         # mongo template on
 
-        handler-hello-mongo:             # Our mongo handler.
-            path: /hello-mongo            # Registering handler by URL '/hello-mongo'.
-            method: GET,POST              # It will only reply to GET (HEAD) and POST requests.
+        handler-hello-mongo:  # Our mongo handler.
+            path: /hello-mongo  # Registering handler by URL '/hello-mongo'.
+            method: GET,POST  # It will only reply to GET (HEAD) and POST requests.
             task_processor: main-task-processor  # Run it on CPU bound task processor
 
         mongo-db-1:
@@ -98,4 +98,4 @@ components_manager:
 
         handler-hello-grpc:
             task-processor: main-task-processor
-        # mongo template off
+            # mongo template off

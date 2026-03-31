@@ -130,14 +130,6 @@ def userver_config_grpc_mockserver(grpc_mockserver_endpoint):
     return patch_config
 
 
-@pytest.fixture
-def grpc_mockserver_new(grpc_mockserver) -> pytest_userver.grpc.Mockserver:
-    """
-    @deprecated Legacy alias for @ref pytest_userver.plugins.grpc.mockserver.grpc_mockserver "grpc_mockserver".
-    """
-    return grpc_mockserver
-
-
 # @cond
 
 

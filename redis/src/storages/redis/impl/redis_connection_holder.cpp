@@ -18,7 +18,8 @@ RedisConnectionHolder::RedisConnectionHolder(
     CommandsBufferingSettings buffering_settings,
     ReplicationMonitoringSettings replication_monitoring_settings,
     utils::RetryBudgetSettings retry_budget_settings,
-    redis::RedisCreationSettings redis_creation_settings
+    redis::RedisCreationSettings redis_creation_settings,
+    Statistics& stats
 )
     : commands_buffering_settings_(std::move(buffering_settings)),
       replication_monitoring_settings_(std::move(replication_monitoring_settings)),
@@ -30,6 +31,7 @@ RedisConnectionHolder::RedisConnectionHolder(
       port_(port),
       password_(std::move(password)),
       database_index_(database_index),
+      statistics_(stats),
       connection_check_timer_(ev_thread_, [this] { EnsureConnected(); }, kCheckRedisConnectedInterval),
       redis_creation_settings_(redis_creation_settings)
 {}
@@ -49,6 +51,7 @@ std::shared_ptr<RedisConnectionHolder> RedisConnectionHolder::Create(
     CommandsBufferingSettings buffering_settings,
     ReplicationMonitoringSettings replication_monitoring_settings,
     utils::RetryBudgetSettings retry_budget_settings,
+    Statistics& stats,
     redis::RedisCreationSettings redis_creation_settings
 ) {
     auto holder = std::make_shared<RedisConnectionHolder>(
@@ -63,7 +66,8 @@ std::shared_ptr<RedisConnectionHolder> RedisConnectionHolder::Create(
         std::move(buffering_settings),
         std::move(replication_monitoring_settings),
         std::move(retry_budget_settings),
-        std::move(redis_creation_settings)
+        std::move(redis_creation_settings),
+        stats
     );
 
     // https://github.com/boostorg/signals2/issues/59
@@ -87,7 +91,8 @@ void RedisConnectionHolder::EnsureConnected() {
 }
 
 void RedisConnectionHolder::CreateConnection() {
-    auto instance = std::make_shared<Redis>(redis_thread_pool_, redis_creation_settings_, shard_group_name_);
+    auto instance = std::make_shared<
+        Redis>(redis_thread_pool_, redis_creation_settings_, shard_group_name_, statistics_);
     UASSERT(weak_from_this().lock());
     instance->signal_state_change.connect([weak_ptr{weak_from_this()}](Redis::State state) {
         const auto ptr = weak_ptr.lock();
@@ -138,6 +143,11 @@ void RedisConnectionHolder::SetRetryBudgetSettings(utils::RetryBudgetSettings se
 Redis::State RedisConnectionHolder::GetState() const {
     auto ptr = redis_.Read();
     return ptr->get()->GetState();
+}
+
+size_t RedisConnectionHolder::GetCommandsCounter() const {
+    auto ptr = redis_.Read();
+    return ptr->get()->GetStatistics().commands_count.load(std::memory_order_relaxed);
 }
 
 }  // namespace storages::redis::impl

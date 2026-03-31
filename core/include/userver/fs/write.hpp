@@ -35,6 +35,14 @@ void CreateDirectories(engine::TaskProcessor& async_tp, std::string_view path);
 /// @throws std::runtime_error if failed to overwrite
 void RewriteFileContents(engine::TaskProcessor& async_tp, const std::string& path, std::string_view contents);
 
+/// @brief Rewrite file contents asynchronously
+/// It doesn't provide strict atomic guarantees. If you need them, use
+/// `fs::RewriteFileContentsAtomically`.
+/// @param path file to rewrite
+/// @param contents new file contents
+/// @throws std::runtime_error if failed to overwrite
+void RewriteFileContents(const std::string& path, std::string_view contents);
+
 /// @brief Renames existing file
 /// @param async_tp TaskProcessor for synchronous waiting
 /// @param source path to move from

@@ -7,6 +7,8 @@
 {{ do_render_struct(node, context) -}}
 {% elif node.kind == "oneof" %}
 {{ do_render_oneof(node, context) -}}
+{% elif node.kind == "enum" %}
+{{ do_render_enum(node, context) -}}
 {% endif %}
 {% endmacro %}
 
@@ -73,4 +75,37 @@ USERVER_NAMESPACE::proto_structs::io::WriteContext&,
 {% set field_type_name = field.field_type.contextual_cpp_name(context=context) %}
 UPROTO_ONEOF_DEFINE_FIELD_FUNCTIONS({{ oneof_type_name }}, {{ field_type_name }}, {{ field.short_name }})
 {% endfor %} {#- for field -#}
+{% endmacro %}
+
+
+{% macro do_render_enum(enum, context) %}
+
+// ---------- IO for {{ enum.full_cpp_name() }} ----------
+{{ do_render_to_string(enum, context) -}}
+{{ do_render_to_string_view(enum, context) -}}
+{{ do_render_parse(enum, context) -}}
+{% endmacro %}
+
+{% macro do_render_to_string(enum, context) %}
+
+const std::string& ToString(
+{{- enum.contextual_cpp_name(context=context) -}}
+);
+{% endmacro %}
+
+{% macro do_render_to_string_view(enum, context) %}
+
+std::string_view ToStringView(
+{{- enum.contextual_cpp_name(context=context) -}}
+);
+{% endmacro %}
+
+{% macro do_render_parse(enum, context) %}
+
+{{ enum.contextual_cpp_name(context=context) }} Parse(
+{% filter indent(width=4, first=True) %}
+std::string_view,
+USERVER_NAMESPACE::formats::parse::To<{{ enum.contextual_cpp_name(context=context) }}>
+{% endfilter %}
+);
 {% endmacro %}

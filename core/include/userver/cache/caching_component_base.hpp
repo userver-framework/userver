@@ -285,14 +285,14 @@ void CachingComponentBase<T>::Set(T&& value) {
 }
 
 template <typename T>
-void CachingComponentBase<T>::Attach(const std::shared_ptr<const T>& new_value) {
+void CachingComponentBase<T>::Attach(const std::shared_ptr<const T>& value_ptr) {
     if (HasPreAssignCheck()) {
         auto old_value = cache_.Read();
-        PreAssignCheck(old_value->get(), new_value.get());
+        PreAssignCheck(old_value->get(), value_ptr.get());
     }
 
-    cache_.Assign(new_value);
-    event_channel_.SendEvent(new_value);
+    cache_.Assign(value_ptr);
+    event_channel_.SendEvent(value_ptr);
     OnCacheModified();
 }
 

@@ -30,3 +30,19 @@ def bundle_cpp() -> Set[str]:
         'libraries/proto-structs/include/userver/proto-structs/impl/bundles/structs_cpp.hpp',
         sanity_check_has_include='userver/proto-structs/io/std/string_conv.hpp',
     )
+
+
+@functools.cache
+def induced_deps_hpp() -> Set[str]:
+    return _extract_includes(
+        'libraries/proto-structs/include/userver/proto-structs/impl/bundles/induced_deps_hpp.hpp',
+        sanity_check_has_include='userver/proto-structs/io/userver/proto_structs/time_of_day.hpp',
+    )
+
+
+@functools.cache
+def induced_deps_cpp() -> Set[str]:
+    return _extract_includes(
+        'libraries/proto-structs/include/userver/proto-structs/impl/bundles/induced_deps_cpp.hpp',
+        sanity_check_has_include='userver/proto-structs/io/userver/proto_structs/time_of_day_conv.hpp',
+    )

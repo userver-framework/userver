@@ -1,8 +1,12 @@
 # Duplicate gRPC's option definition here, otherwise it will always resolve to OFF, because gRPC is not yet configured
 # at this point.
+
+# @ingroup download
 option(USERVER_DOWNLOAD_PACKAGE_GRPC "Download and setup gRPC" ${USERVER_DOWNLOAD_PACKAGES})
 
+# @ingroup download
 option(USERVER_DOWNLOAD_PACKAGE_PROTOBUF "Download and setup Protobuf" ${USERVER_DOWNLOAD_PACKAGE_GRPC})
+# @ingroup download
 option(USERVER_FORCE_DOWNLOAD_PROTOBUF "Download Protobuf even if there is an installed system package"
        ${USERVER_FORCE_DOWNLOAD_PACKAGES}
 )

@@ -28,10 +28,16 @@ public:
     ClusterShard()
         : current_(utils::RandRange(std::numeric_limits<size_t>::max()))
     {}
-    ClusterShard(size_t shard, RedisConnectionPtr master, std::vector<RedisConnectionPtr> replicas)
+    ClusterShard(
+        size_t shard,
+        RedisConnectionPtr master,
+        std::vector<RedisConnectionPtr> replicas,
+        std::optional<std::string> shard_name
+    )
         : replicas_(std::move(replicas)),
           master_(std::move(master)),
-          shard_(shard)
+          shard_(shard),
+          shard_name_(std::move(shard_name))
     {}
     ClusterShard(const ClusterShard& other) = delete;
     ClusterShard(ClusterShard&& other) noexcept
@@ -43,7 +49,9 @@ public:
     ClusterShard& operator=(ClusterShard&& other) noexcept;
     bool IsReady(WaitConnectedMode mode) const;
     bool AsyncCommand(CommandPtr command) const;
-    void GetStatistics(bool master, const MetricsSettings& settings, ShardStatistics& stats) const;
+    void GetConnStats(bool master, ConnStateStatistic& stats) const;
+    void GetCommandsCounter(bool master, size_t& stats) const;
+    const std::optional<std::string>& GetName() const { return shard_name_; }
 
     ServersWeighted GetAvailableServersWeighted(bool with_master, const CommandControl& command_control) const;
 
@@ -75,6 +83,7 @@ private:
     RedisConnectionPtr master_;
     mutable std::atomic_size_t current_{0};
     size_t shard_{0};
+    std::optional<std::string> shard_name_;
 };
 
 size_t GetStartIndex(

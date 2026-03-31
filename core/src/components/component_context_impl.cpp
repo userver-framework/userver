@@ -18,6 +18,7 @@
 #include <components/manager.hpp>
 #include <components/manager_config.hpp>
 #include <engine/task/task_processor.hpp>
+#include <logging/tp_logger_utils.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -96,6 +97,21 @@ ComponentContextImpl::ComponentContextImpl(const Manager& manager, std::vector<s
         UINVARIANT(success, "Duplicate component names");
     }
 
+    if (!manager_.GetConfig().boot_log_path.empty()) {
+        logging::LoggerConfig config;
+        config.logger_name = "boot";
+        config.file_path = manager_.GetConfig().boot_log_path;
+        config.level = logging::Level::kTrace;
+        config.format = logging::Format::kJson;
+        config.truncate_on_start = true;
+        config.queue_overflow_behavior = logging::QueueOverflowBehavior::kBlock;
+
+        boot_logger_ = logging::impl::MakeTpLogger(config);
+    }
+
+    LOG_DEBUG() << "Starting component system";
+    EmitBootEvent(Event::kComponentSystemIsStarting);
+
     StartPrintAddingComponentsTask();
 }
 
@@ -104,6 +120,9 @@ RawComponentBase* ComponentContextImpl::AddComponent(
     const ComponentConfig& config,
     const ComponentAdderBase& adder
 ) {
+    LOG_DEBUG() << "Starting component " << name;
+    EmitBootEvent(Event::kStarting, {{"component_name", name}});
+
     auto& component_info = GetComponentInfo(*this, name);
     const LoadingComponentScope loading_component_scope(*this, component_info);
 
@@ -125,6 +144,10 @@ RawComponentBase* ComponentContextImpl::AddComponent(
             << fmt::format("\"{0}\" [label=\"{0}\n{1}\"]; ", name, compiler::GetTypeName(typeid(*component)))
             << component_info.GetDependencies();
     }
+
+    LOG_DEBUG() << "Started component " << name;
+    EmitBootEvent(Event::kStarted, {{"component_name", name}});
+
     return component;
 }
 
@@ -143,6 +166,9 @@ void ComponentContextImpl::OnAllComponentsLoaded() {
 
     // In case no exception flies out, the service is fully loaded at this point.
     service_lifetime_stage_ = ServiceLifetimeStage::kRunning;
+
+    LOG_INFO() << "All components loaded";
+    EmitBootEvent(Event::kComponentSystemIsStarted);
 }
 
 void ComponentContextImpl::OnGracefulShutdownStarted() {
@@ -202,7 +228,7 @@ void ComponentContextImpl::CancelComponentsLoad() {
     if (components_load_cancelled_.test_and_set()) {
         return;
     }
-    for (auto& component_info : components_) {
+    for (const auto& component_info : components_) {
         LOG_DEBUG() << "Call OnLoadingCancelled() for component '" << component_info->GetName() << "'";
         component_info->OnLoadingCancelled();
     }
@@ -372,6 +398,14 @@ void ComponentContextImpl::ProcessSingleComponentLifetimeStageSwitching(
         }
 
         LOG_DEBUG() << "Call " << params.stage_switch_handler_name << " for component '" << name << "'";
+        EmitBootEvent(
+            Event::kSwitching,
+            {
+                {"component_name", name},
+                {"stage_switch_handler_name", params.stage_switch_handler_name},
+            }
+        );
+
         (component_info.*params.stage_switch_handler)();
     } catch (const impl::StageSwitchingCancelledException& ex) {
         LOG_WARNING() << params.stage_switch_handler_name << " failed for component '" << name << "': " << ex;
@@ -442,6 +476,13 @@ RawComponentBase* ComponentContextImpl::DoFindComponent(std::string_view name, C
     LOG_DEBUG()
         << "Component '" << name << "' is not loaded yet, component '" << current_component.GetName()
         << "' is waiting for it to load";
+    EmitBootEvent(
+        Event::kWaitingForComponent,
+        {
+            {"component_name", current_component.GetName()},
+            {"dependency_name", name},
+        }
+    );
 
     const SearchingComponentScope finder(*this, current_component);
 
@@ -456,6 +497,14 @@ void ComponentContextImpl::AddDependency(ComponentInfo& dependency, ComponentInf
     }
 
     LOG_DEBUG() << "Resolving dependency " << current_component.GetName() << " -> " << dependency.GetName();
+    EmitBootEvent(
+        Event::kFindComponent,
+        {
+            {"component_name", current_component.GetName()},
+            {"dependency_name", dependency.GetName()},
+        }
+    );
+
     CheckForDependencyCycle(current_component, dependency, *data);
 
     current_component.AddItDependsOn(dependency);
@@ -522,6 +571,7 @@ void ComponentContextImpl::PrepareComponentLifetimeStageSwitching() {
 }
 
 void ComponentContextImpl::CancelComponentLifetimeStageSwitching() {
+    EmitBootEvent(Event::kLoadingIsCancelled);
     for (auto& component_item : components_) {
         component_item->SetStageSwitchingCancelled(true);
     }
@@ -578,6 +628,43 @@ void ComponentContextImpl::PrintAddingComponents() const {
         << JoinNamesFromInfo(adding_components, ", ") << ']';
 
     trace_plugin_.PrintStacksByComponentNames(ExtractNamesFromInfo(busy_components));
+}
+
+std::string_view ComponentContextImpl::ToString(Event event)
+{
+    switch (event) {
+        case Event::kComponentSystemIsStarting:
+            return "component_system_is_starting";
+        case Event::kStarting:
+            return "component_is_starting";
+        case Event::kStarted:
+            return "component_is_created";
+        case Event::kComponentSystemIsStarted:
+            return "component_system_is_started";
+        case Event::kLoadingIsCancelled:
+            return "loading_is_cancelled";
+        case Event::kSwitching:
+            return "component_is_switching_stage";
+        case Event::kWaitingForComponent:
+            return "waiting_for_component";
+        case Event::kFindComponent:
+            return "find_component";
+    }
+    // suppress error on gcc-10 and gcc-11
+    throw std::runtime_error("Unexpected event");
+}
+
+void ComponentContextImpl::EmitBootEvent(Event event, logging::LogExtra log_extra) const {
+    if (!boot_logger_) {
+        return;
+    }
+
+    log_extra.Extend("event_type", std::string{ToString(event)});
+    LOG_INFO_TO(*boot_logger_) << log_extra;
+
+    if (event == Event::kComponentSystemIsStarted) {
+        boot_logger_->Flush();
+    }
 }
 
 }  // namespace components::impl

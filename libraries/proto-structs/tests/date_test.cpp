@@ -57,7 +57,7 @@ TEST(DateTest, IsValid) {
     EXPECT_TRUE(Date::IsValid(std::nullopt, std::chrono::February, 29d));
 }
 
-TEST(DateTest, Conversions) {
+TEST(DateTest, ConversionsNull) {
     Date d{std::nullopt, std::nullopt, std::nullopt};
 
     EXPECT_TRUE(d.IsEmpty());
@@ -83,8 +83,10 @@ TEST(DateTest, Conversions) {
     EXPECT_THROW([[maybe_unused]] auto val = static_cast<std::chrono::year>(d), ValueError);
     EXPECT_THROW([[maybe_unused]] auto val = d.ToChronoSysDays(), ValueError);
     EXPECT_THROW([[maybe_unused]] auto val = static_cast<std::chrono::sys_days>(d), ValueError);
+}
 
-    d = Date{};
+TEST(DateTest, ConversionsDefault) {
+    Date d{};
 
     EXPECT_TRUE(d.IsEmpty());
     EXPECT_FALSE(d.HasYearMonthDay());
@@ -97,8 +99,10 @@ TEST(DateTest, Conversions) {
     EXPECT_EQ(d.YearNum(), 0);
     EXPECT_EQ(d.MonthNum(), 0);
     EXPECT_EQ(d.DayNum(), 0);
+}
 
-    d = 2019y / std::chrono::May / 28d;
+TEST(DateTest, ConversionsStdDate) {
+    Date d = 2019y / std::chrono::May / 28d;
 
     EXPECT_FALSE(d.IsEmpty());
     ASSERT_TRUE(d.HasYearMonthDay());
@@ -126,8 +130,10 @@ TEST(DateTest, Conversions) {
         static_cast<std::chrono::sys_days>(d),
         static_cast<std::chrono::sys_days>(2019y / std::chrono::May / 28d)
     );
+}
 
-    d = 2019y / std::chrono::May;
+TEST(DateTest, ConversionsStdYearMonth) {
+    Date d = 2019y / std::chrono::May;
 
     EXPECT_FALSE(d.IsEmpty());
     EXPECT_FALSE(d.HasYearMonthDay());
@@ -141,8 +147,10 @@ TEST(DateTest, Conversions) {
     EXPECT_EQ(d.ToChronoYear(), 2019y);
     EXPECT_EQ(d.ToChronoSysDays(), static_cast<std::chrono::sys_days>(2019y / std::chrono::May / 1d));
     EXPECT_EQ(static_cast<std::chrono::sys_days>(d), static_cast<std::chrono::sys_days>(2019y / std::chrono::May / 1d));
+}
 
-    d = std::chrono::May / 28d;
+TEST(DateTest, ConversionsStdMonthDay) {
+    Date d = std::chrono::May / 28d;
 
     EXPECT_FALSE(d.IsEmpty());
     EXPECT_FALSE(d.HasYearMonthDay());
@@ -155,8 +163,10 @@ TEST(DateTest, Conversions) {
     EXPECT_EQ(d.ToChronoMonthDay(), std::chrono::May / 28d);
     EXPECT_THROW([[maybe_unused]] auto val = d.ToChronoYear(), ValueError);
     EXPECT_THROW([[maybe_unused]] auto val = d.ToChronoSysDays(), ValueError);
+}
 
-    d = 2019y;
+TEST(DateTest, ConversionsStdYear) {
+    Date d = 2019y;
 
     EXPECT_FALSE(d.IsEmpty());
     EXPECT_FALSE(d.HasYearMonthDay());
@@ -173,26 +183,10 @@ TEST(DateTest, Conversions) {
         static_cast<std::chrono::sys_days>(d),
         static_cast<std::chrono::sys_days>(2019y / std::chrono::January / 1d)
     );
+}
 
-    d = utils::datetime::Date(2019, 5, 28);
-
-    EXPECT_FALSE(d.IsEmpty());
-    ASSERT_TRUE(d.HasYearMonthDay());
-    ASSERT_TRUE(d.HasYearMonth());
-    ASSERT_TRUE(d.HasMonthDay());
-    ASSERT_TRUE(d.HasYear());
-    EXPECT_EQ(d.ToChronoDate(), 2019y / std::chrono::May / 28d);
-    EXPECT_EQ(d.ToUserverDate(), utils::datetime::Date(2019, 5, 28));
-    EXPECT_EQ(d.ToChronoYearMonth(), 2019y / std::chrono::May);
-    EXPECT_EQ(d.ToChronoMonthDay(), std::chrono::May / 28d);
-    EXPECT_EQ(d.ToChronoYear(), 2019y);
-    EXPECT_EQ(d.ToChronoSysDays(), static_cast<std::chrono::sys_days>(2019y / std::chrono::May / 28d));
-    EXPECT_EQ(
-        static_cast<std::chrono::sys_days>(d),
-        static_cast<std::chrono::sys_days>(2019y / std::chrono::May / 28d)
-    );
-
-    d = static_cast<std::chrono::sys_days>(2019y / std::chrono::May / 28d);
+TEST(DateTest, ConversionsUserverDate) {
+    Date d = utils::datetime::Date(2019, 5, 28);
 
     EXPECT_FALSE(d.IsEmpty());
     ASSERT_TRUE(d.HasYearMonthDay());
@@ -209,8 +203,30 @@ TEST(DateTest, Conversions) {
         static_cast<std::chrono::sys_days>(d),
         static_cast<std::chrono::sys_days>(2019y / std::chrono::May / 28d)
     );
+}
 
-    d = Date{utils::impl::InternalTag{}, 2019, 5, 28};
+TEST(DateTest, ConversionsChronoSysDays) {
+    Date d = static_cast<std::chrono::sys_days>(2019y / std::chrono::May / 28d);
+
+    EXPECT_FALSE(d.IsEmpty());
+    ASSERT_TRUE(d.HasYearMonthDay());
+    ASSERT_TRUE(d.HasYearMonth());
+    ASSERT_TRUE(d.HasMonthDay());
+    ASSERT_TRUE(d.HasYear());
+    EXPECT_EQ(d.ToChronoDate(), 2019y / std::chrono::May / 28d);
+    EXPECT_EQ(d.ToUserverDate(), utils::datetime::Date(2019, 5, 28));
+    EXPECT_EQ(d.ToChronoYearMonth(), 2019y / std::chrono::May);
+    EXPECT_EQ(d.ToChronoMonthDay(), std::chrono::May / 28d);
+    EXPECT_EQ(d.ToChronoYear(), 2019y);
+    EXPECT_EQ(d.ToChronoSysDays(), static_cast<std::chrono::sys_days>(2019y / std::chrono::May / 28d));
+    EXPECT_EQ(
+        static_cast<std::chrono::sys_days>(d),
+        static_cast<std::chrono::sys_days>(2019y / std::chrono::May / 28d)
+    );
+}
+
+TEST(DateTest, ConversionsInternal) {
+    Date d = Date{utils::impl::InternalTag{}, 2019, 5, 28};
 
     EXPECT_FALSE(d.IsEmpty());
     ASSERT_TRUE(d.HasYearMonthDay());

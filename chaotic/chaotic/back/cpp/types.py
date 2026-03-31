@@ -1,4 +1,5 @@
 # pylint: disable=too-many-lines
+from collections.abc import Callable
 import dataclasses
 import itertools
 from typing import Any
@@ -13,7 +14,7 @@ USERVER_COLONCOLON = 'userver::'
 @dataclasses.dataclass
 class CppType:
     raw_cpp_type: type_name.TypeName
-    json_schema: types.Schema | None
+    json_schema: types.Schema
     nullable: bool  # TODO: maybe move into  field?
     user_cpp_type: str | None
 
@@ -28,8 +29,6 @@ class CppType:
         if self == other:
             return True
 
-        assert self.json_schema is not None
-        assert other.json_schema is not None
         left = self.json_schema.model_dump()
         right = other.json_schema.model_dump()
         return self._is_isomorphic_dicts(left, right)
@@ -64,8 +63,10 @@ class CppType:
 
         return True
 
-    def without_json_schema(self) -> 'CppType':
-        return dataclasses.replace(self, json_schema=None)
+    def visit_children(self, cb: Callable[['CppType', 'CppType'], None]) -> None:
+        for subtype in self.subtypes():
+            cb(subtype, self)
+            subtype.visit_children(cb)
 
     # Should return only direct subtypes, not recursively because
     # jinja's generate_*() is called recursively.
@@ -77,6 +78,12 @@ class CppType:
 
     def definition_includes(self) -> list[str]:
         raise NotImplementedError()
+
+    def sax_parser_includes(self) -> list[str]:
+        return ['userver/chaotic/sax_parser.hpp']
+
+    def descriptor_type(self) -> str:
+        return self.parser_type('TODO', 'TODO')
 
     def parser_type(self, ns: str, name: str) -> str:
         """
@@ -144,8 +151,6 @@ class CppType:
         return self.cpp_global_name().replace('::', '__')
 
     def cpp_comment(self) -> str:
-        assert self.json_schema
-
         schema = self.json_schema
         description = ((schema.title or '') + '\n' + (schema.description or '')).strip()
         if description:
@@ -282,7 +287,6 @@ class CppPrimitiveType(CppType):
         if self.user_cpp_type:
             includes += self.get_includes_by_cpp_type(self.user_cpp_type)
 
-        assert self.json_schema
         type_ = self.json_schema.type  # type: ignore
         if type_ == 'integer':
             includes.append('cstdint')
@@ -452,6 +456,12 @@ class CppRef(CppType):
         else:
             return self.orig_cpp_type.definition_includes()
 
+    def sax_parser_includes(self) -> list[str]:
+        includes = super().sax_parser_includes()
+        if not self.indirect and not self.self_ref:
+            includes += self.orig_cpp_type.sax_parser_includes()
+        return includes
+
     def parser_type(self, ns: str, name: str) -> str:
         if self.indirect:
             return f'USERVER_NAMESPACE::chaotic::Ref<{self.orig_cpp_type.parser_type(ns, name)}>'
@@ -491,6 +501,7 @@ class CppIntEnum(CppType):
     def definition_includes(self) -> list[str]:
         return [
             'cstdint',
+            'userver/formats/common/meta.hpp',
             'userver/chaotic/exception.hpp',
             'userver/chaotic/primitive.hpp',
             'userver/utils/trivial_map.hpp',
@@ -531,6 +542,7 @@ class CppStringEnum(CppType):
 
     def definition_includes(self) -> list[str]:
         return [
+            'userver/formats/common/meta.hpp',
             'userver/chaotic/exception.hpp',
             'userver/chaotic/primitive.hpp',
             'userver/utils/trivial_map.hpp',
@@ -562,19 +574,26 @@ class CppStructField:
     required: bool
     schema: CppType
 
-    def without_json_schema(self) -> 'CppStructField':
-        if self.schema:
-            return dataclasses.replace(
-                self,
-                schema=self.schema.without_json_schema(),
-            )
-        else:
-            return self
-
-    def _default(self) -> str | None:
+    def _default(self) -> Any | None:
         return getattr(self.schema, 'default', None)
 
-    def _get_default(self) -> str:
+    def get_default_cpp_type(self) -> str:
+        default = self._default()
+        assert default is not None
+
+        if isinstance(default, EnumItemName):
+            cpp_type = default.rsplit('::', 1)[0]
+            return cpp_type
+        elif isinstance(default, str):
+            return 'std::string_view'
+        elif isinstance(default, bool):
+            return 'bool'
+        elif isinstance(default, float):
+            return 'double'
+        else:
+            return 'std::int64_t'
+
+    def _get_default(self) -> Any:
         default = self._default()
         if default is None:
             return ''
@@ -590,6 +609,16 @@ class CppStructField:
         else:
             return default
 
+    def get_default_raw(self) -> Any:
+        default = self._get_default()
+        if isinstance(default, int):
+            return f'std::int64_t{{{default}}}'
+        elif isinstance(default, str) and default.startswith('"'):
+            # TODO: return f'USERVER_NAMESPACE::utils::StringLiteral{{{default}}}'
+            return f'std::string_view{{{default}}}'
+        else:
+            return f'{default}'
+
     def get_default(self) -> str:
         default = self._get_default()
         if not default:
@@ -598,9 +627,12 @@ class CppStructField:
         if self.schema.user_cpp_type:
             if isinstance(default, str):
                 default = f'std::string_view({default})'
+            elif isinstance(default, int):
+                default = f'{default}LL'
             type_ = self.schema.user_cpp_type
             return f'Convert({default}, USERVER_NAMESPACE::chaotic::convert::To<{type_}>{{}})'
-        return default
+
+        return f'{default}'
 
     def cpp_field_type(self) -> str:
         type_ = self.schema
@@ -627,9 +659,33 @@ class CppStructField:
     def cpp_field_parse_type(self) -> str:
         type_ = self.schema.parser_type('TODO', self.name.title())
         if self.required or self._default() is not None:
-            return type_
+            if self.schema.nullable:
+                return f'std::optional<{type_}>'
+            else:
+                return type_
         else:
             return f'std::optional<{type_}>'
+
+    def descriptor_type(self, object_type: str) -> str:
+        ch = 'USERVER_NAMESPACE::chaotic'
+        type_ = self.schema.parser_type('TODO', self.name.title())
+        name = self.cpp_field_name()
+        nullable = self.schema.nullable
+
+        if self.required:
+            if nullable:
+                mode = f'{ch}::Optional<{type_}>'
+            else:
+                mode = f'{ch}::Required<{type_}>'
+        elif self._default() is None:
+            assert not nullable
+            mode = f'{ch}::Optional<{type_}>'
+        else:
+            default_var = f'{object_type}::kFieldDefault{name}'
+            mode = f'{ch}::Defaulted<{type_}, {self.get_default_cpp_type()}, {default_var}>'
+
+        name_var = f'{object_type}::kFieldName{name}'
+        return f'{ch}::Field<{object_type}, {mode}, &{object_type}::{name}, {name_var}>'
 
 
 @dataclasses.dataclass
@@ -656,20 +712,6 @@ class CppStruct(CppType):
             self.extra_type = self.fields['__default__'].schema
             self.fields['__default__'].required = False
 
-    def without_json_schema(self) -> CppType:
-        tmp = super().without_json_schema()
-        assert isinstance(tmp, CppStruct)
-
-        tmp.fields = dict(
-            map(
-                lambda x: (x[0], x[1].without_json_schema()),
-                self.fields.items(),
-            ),
-        )
-        if isinstance(self.extra_type, CppType):
-            tmp.extra_type = self.extra_type.without_json_schema()
-        return tmp
-
     def _is_default_dict_candidate(self) -> bool:
         if len(self.fields) != 1:
             return False
@@ -688,11 +730,40 @@ class CppStruct(CppType):
         return super().cpp_user_name()
 
     def parser_type(self, ns: str, name: str) -> str:
-        parser_type = self._primitive_parser_type()
         if self._is_default_dict():
             assert isinstance(self.extra_type, CppType)
             dict_type = f'USERVER_NAMESPACE::utils::DefaultDict<{self.extra_type.cpp_user_name()}>'
+            parser_type = self._primitive_parser_type()
             return f'USERVER_NAMESPACE::chaotic::WithType<{parser_type}, {dict_type}>'
+
+        return self._primitive_parser_type()
+
+    def descriptor_type(self) -> str:
+        name = self.raw_cpp_type.in_global_scope()
+        ch = 'USERVER_NAMESPACE::chaotic'
+
+        match self.extra_type:
+            case None:
+                unknown_fields = f'{ch}::UnknownFields::Ignore'
+            case True:
+                unknown_fields = f'{ch}::UnknownFields::StoreJson'
+            case False:
+                unknown_fields = f'{ch}::UnknownFields::Forbid'
+            case _:
+                unknown_fields = f'{ch}::UnknownFields::StoreTyped<{self.extra_type.parser_type(ch, name)}>'
+
+        fields = [
+            self.fields[field].descriptor_type(
+                name,
+            )
+            for field in self.fields
+        ]
+
+        template_args = ', '.join([name, unknown_fields] + fields)
+        parser_type = f'{ch}::Object<{template_args}>'
+
+        if self.user_cpp_type:
+            parser_type = f'{ch}::WithType<{parser_type}, {self.cpp_user_name()}>'
         return parser_type
 
     def subtypes(self) -> list[CppType]:
@@ -702,7 +773,6 @@ class CppStruct(CppType):
         return types
 
     def extra_container(self) -> str:
-        assert self.json_schema
         kwargs = self.json_schema.x_properties
         return kwargs.get(
             'x-usrv-cpp-extra-type',
@@ -710,7 +780,10 @@ class CppStruct(CppType):
         )
 
     def declaration_includes(self) -> list[str]:
-        includes = ['optional']
+        includes = [
+            'optional',
+            'userver/chaotic/object.hpp',
+        ]
         if self.user_cpp_type:
             includes += self.get_includes_by_cpp_type(self.user_cpp_type)
         for field in self.fields.values():
@@ -753,6 +826,14 @@ class CppStruct(CppType):
             )
         return includes
 
+    def sax_parser_includes(self) -> list[str]:
+        includes = super().sax_parser_includes()
+        for field in self.fields.values():
+            includes.extend(field.schema.sax_parser_includes())
+        if isinstance(self.extra_type, CppType):
+            includes.extend(self.extra_type.sax_parser_includes())
+        return includes
+
     def need_dom_parser(self) -> bool:
         return True
 
@@ -790,13 +871,6 @@ class CppArray(CppType):
     def _cpp_name(self) -> str:
         return f'{self.container}<{self.items.cpp_user_name()}>'
 
-    def without_json_schema(self) -> 'CppArray':
-        tmp = super().without_json_schema()
-        assert isinstance(tmp, CppArray)
-
-        tmp.items = self.items.without_json_schema()
-        return tmp
-
     def subtypes(self) -> list[CppType]:
         return [self.items]
 
@@ -829,6 +903,9 @@ class CppArray(CppType):
             'userver/chaotic/with_type.hpp',
         ] + self.items.definition_includes()
 
+    def sax_parser_includes(self) -> list[str]:
+        return super().sax_parser_includes() + self.items.sax_parser_includes()
+
     def need_using_type(self) -> bool:
         return True
 
@@ -860,6 +937,9 @@ class CppStructAllOf(CppType):
             'userver/formats/common/merge.hpp',
             'userver/chaotic/primitive.hpp',
         ] + flatten([item.definition_includes() for item in self.parents])
+
+    def sax_parser_includes(self) -> list[str]:
+        return super().sax_parser_includes() + flatten([item.sax_parser_includes() for item in self.parents])
 
     def parser_type(self, ns: str, name: str) -> str:
         return self._primitive_parser_type()
@@ -905,6 +985,9 @@ class CppVariant(CppType):
             'userver/chaotic/variant.hpp',
         ] + flatten([item.definition_includes() for item in self.variants])
 
+    def sax_parser_includes(self) -> list[str]:
+        return super().sax_parser_includes() + flatten([item.sax_parser_includes() for item in self.variants])
+
     def parser_type(self, ns: str, name: str) -> str:
         parsers = []
         for variant in self.variants:
@@ -943,6 +1026,9 @@ class CppVariantWithDiscriminator(CppType):
         return ['userver/formats/json/serialize_variant.hpp'] + flatten([
             item.definition_includes() for item in self.variants.values()
         ])
+
+    def sax_parser_includes(self) -> list[str]:
+        return super().sax_parser_includes() + flatten([item.sax_parser_includes() for item in self.variants.values()])
 
     def parser_type(self, ns: str, name: str) -> str:
         variants_list = []

@@ -1,11 +1,15 @@
 import dateutil
 import pytest
+import pytest_userver.client
+
+import testsuite.plugins.mocked_time
+import testsuite.utils.http
 
 
 # /// [mocked_time]
 @pytest.mark.now('2019-12-31T11:22:33Z')
-async def test_now(service_client, mocked_time):
-    response = await service_client.get('/now')
+async def test_now(service_client: pytest_userver.client.Client, mocked_time: testsuite.plugins.mocked_time.MockedTime):
+    response: testsuite.utils.http.ClientResponse = await service_client.get('/now')
     assert response.status == 200
     assert 'application/json' in response.headers['Content-Type']
     assert response.json() == {'now': '2019-12-31T11:22:33+00:00'}

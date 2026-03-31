@@ -1,5 +1,6 @@
 include_guard(GLOBAL)
 
+# @ingroup download
 option(USERVER_DOWNLOAD_PACKAGE_ROCKS "Download and setup RocksDB if no RocksDB matching version was found"
        ${USERVER_DOWNLOAD_PACKAGES}
 )

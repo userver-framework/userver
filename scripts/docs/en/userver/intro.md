@@ -287,7 +287,7 @@ Unlike C++20 coroutines, userver does not have a magical way to kill a task. The
 
 How some synchronization primitives react to cancellations:
 
-  * `engine::TaskWithResult::Get` and `engine::TaskBase::Wait` throw `engine::WaitIterruptedException`, which typically leads to the destruction of the child task during stack unwinding, cancelling and awaiting it;
+  * `engine::TaskWithResult::Get` and `engine::TaskBase::Wait` throw `engine::WaitInterruptedException`, which typically leads to the destruction of the child task during stack unwinding, cancelling and awaiting it;
   * `engine::ConditionVariable::Wait` and `engine::Future::wait` return a status code;
   * `engine::SingleConsumerEvent::WaitForEvent` returns `false`;
   * `engine::SingleConsumerEvent::WaitForEventFor` returns `false` and needs an additional `engine::current_task::ShouldCancel()` check;

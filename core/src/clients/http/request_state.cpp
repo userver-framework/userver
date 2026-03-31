@@ -17,12 +17,15 @@
 #include <userver/baggage/baggage.hpp>
 #include <userver/clients/dns/resolver.hpp>
 #include <userver/clients/http/connect_to.hpp>
+#include <userver/clients/http/websocket_response.hpp>
+#include <userver/http/common_headers.hpp>
 #include <userver/http/url.hpp>
 #include <userver/server/request/task_inherited_data.hpp>
 #include <userver/utils/algo.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/async.hpp>
 #include <userver/utils/encoding/hex.hpp>
+#include <userver/utils/from_string.hpp>
 #include <userver/utils/overloaded.hpp>
 #include <userver/utils/rand.hpp>
 #include <userver/utils/text_light.hpp>
@@ -213,6 +216,25 @@ void ModernClientKeyCertImpl(Easy& easy, crypto::PrivateKey&& pkey, crypto::Cert
     easy.set_ssl_key_type("PEM");
 }
 
+bool IsHttp11WithCompleteBody(const std::shared_ptr<Response> response) {
+    constexpr auto kConnectionTokenClose = "close";
+
+    if (response->status_code() == Status::kInvalid) {
+        return false;
+    }
+
+    const auto& headers = response->headers();
+
+    const auto connection_token = utils::FindOrDefault(headers, USERVER_NAMESPACE::http::headers::kConnection, "");
+    if (connection_token != kConnectionTokenClose) {
+        return false;
+    }
+
+    const auto* content_length = utils::FindOrNullptr(headers, USERVER_NAMESPACE::http::headers::kContentLength);
+    // complete body check needs only in case of receiving `Content-Length` in a pair of `Connection: close`
+    return !content_length || utils::FromString<size_t>(*content_length) == response->body_view().size();
+}
+
 }  // namespace
 
 RequestState::RequestState(
@@ -258,6 +280,8 @@ RequestState::RequestState(
     // Even if proxy is an empty string we should set it, because empty proxy
     // for CURL disables the use of *_proxy env variables.
     easy().set_proxy("");
+
+    RequestCompleted();
 }
 
 RequestState::~RequestState() {
@@ -463,20 +487,51 @@ void RequestState::OnCompleted(std::shared_ptr<RequestState> holder, std::error_
     auto& span = holder->span_storage_->Get();
     auto& easy = holder->easy();
 
+    LOG_TRACE() << "OnCompleted status_code=" << static_cast<int>(holder->response()->status_code()) << " err=" << err;
+
+    if (holder->response()->status_code() == Status::kInvalid && !err) {
+        // We haven't received the full set of headers, the response is truncated
+        err = std::error_code(curl::errc::EasyErrorCode::kRecvError);
+
+        holder->response()->SetStatusCode(Status::kInternalServerError);
+    }
+
     // TODO don't swallow errors, report them to StreamedResponse
     auto* stream_data = std::get_if<StreamData>(&holder->data_);
     if (stream_data && !stream_data->headers_promise_set.exchange(true)) {
-        stream_data->headers_promise.set_value();
         LOG_DEBUG() << "Stream API, status code is set (with body)";
+        if (!err) {
+            stream_data->headers_promise.set_value();
+        } else {
+            // The task will wake up and may reuse RequestState.
+            auto promise = std::move(stream_data->headers_promise);
+            promise.set_exception(holder->PrepareException(err));
+        }
     }
 
     const auto status_code = static_cast<Status>(easy.get_response_code());
 
     holder->CheckResponseDeadline(err, status_code);
 
+    if (err && std::get_if<WebSocketHandshakeData>(&holder->data_) &&
+        err == std::error_code(curl::errc::EasyErrorCode::kHttpReturnedError) && status_code != Status::kInvalid)
+    {
+        // curl expects 101 for WebSocket, treats other statuses as error.
+        // Ignore error if got complete HTTP response (e.g. 401, 403).
+        err = {};
+    }
+
     if (holder->testsuite_config_ && !err) {
         const auto& headers = holder->response()->headers();
         err = TestsuiteResponseHook(status_code, headers, span);
+    }
+
+    if (holder->is_incomplete_tls_connection_close_expected_.load(std::memory_order_acquire) && !stream_data &&
+        IsHttp11WithCompleteBody(holder->response()))
+    {
+        // The response says "HTTP/1.1", the full body is read.
+        // It's a transport error, but not a HTTP request/respose error.
+        err = {};
     }
 
     holder->AccountResponse(err);
@@ -519,7 +574,15 @@ void RequestState::OnCompleted(std::shared_ptr<RequestState> holder, std::error_
                 auto producer = std::move(stream_data.queue_producer);
                 // The task will wake up and may reuse RequestState.
                 std::move(producer).Reset();
-            }
+            },
+            [&holder, &err](WebSocketHandshakeData& data) {
+                {
+                    [[maybe_unused]] const auto cleanup = holder->response_move();
+                }
+                auto promise = std::move(data.promise);
+                // The task will wake up and may reuse RequestState.
+                promise.set_exception(holder->PrepareException(err));
+            },
         };
         std::visit(visitor, holder->data_);
     } else {
@@ -545,10 +608,16 @@ void RequestState::OnCompleted(std::shared_ptr<RequestState> holder, std::error_
                 auto producer = std::move(stream_data.queue_producer);
                 // The task will wake up and may reuse RequestState.
                 std::move(producer).Reset();
+            },
+            [&holder, &easy](WebSocketHandshakeData& data) {
+                auto promise = std::move(data.promise);
+                // The task will wake up and may reuse RequestState.
+                promise.set_value(WebSocketResponse(holder->response_move(), std::move(easy.extracted_socket())));
             }
         };
         std::visit(visitor, holder->data_);
     }
+    holder->RequestCompleted();
     // it is unsafe to touch any content of holder after this point!
 }
 
@@ -634,15 +703,18 @@ void RequestState::ParseHeader(char* ptr, size_t size) try
     }
     *end = '\0';
 
-    const char* col_pos = static_cast<const char*>(memchr(ptr, ':', size));
-    if (col_pos == nullptr) {
-        if (IsHttpStatusLineStart(ptr, size)) {
-            if (!response()->headers().empty()) {
-                LOG_INFO() << "Drop headers: " << (response_->headers() | boost::adaptors::map_keys);
-            }
+    if (IsHttpStatusLineStart(ptr, size)) {
+        if (!response()->headers().empty()) {
+            LOG_INFO() << "Drop headers: " << (response_->headers() | boost::adaptors::map_keys);
             // In case of redirect drop 1st response headers
             response_->headers().clear();
         }
+        return;
+    }
+
+    const char* col_pos = static_cast<const char*>(memchr(ptr, ':', size));
+    if (col_pos == nullptr) {
+        LOG_WARNING() << "Incorrect header line: " << ptr;
         return;
     }
 
@@ -651,7 +723,8 @@ void RequestState::ParseHeader(char* ptr, size_t size) try
     ++col_pos;
 
     if (IsSetCookie(key)) {
-        return ParseSingleCookie(col_pos, end - col_pos);
+        ParseSingleCookie(col_pos, end - col_pos);
+        return;
     }
 
     // From https://tools.ietf.org/html/rfc7230#page-22 :
@@ -670,6 +743,10 @@ void RequestState::ParseHeader(char* ptr, size_t size) try
 
 void RequestState::SetMiddlewaresList(const std::vector<utils::NotNull<MiddlewareBase*>>& middlewares) {
     middlewares_pipeline_ = MiddlewaresPipeline(middlewares);
+}
+
+void RequestState::SetIncompleteTlsConnectionCloseExpected(bool expect) {
+    is_incomplete_tls_connection_close_expected_.store(expect, std::memory_order_release);
 }
 
 void RequestState::SetLoggedUrl(std::string url) { log_url_ = std::move(url); }
@@ -723,7 +800,8 @@ std::string_view RequestState::GetLoggedEffectiveUrl() noexcept {
 }
 
 engine::Future<std::shared_ptr<Response>> RequestState::async_perform(utils::impl::SourceLocation location) {
-    data_.emplace<FullBufferedData>();
+    WaitForRequestCompletion();
+    auto& data = data_.emplace<FullBufferedData>();
 
     StartNewSpan(location);
     ResetDataForNewRequest();
@@ -734,7 +812,7 @@ engine::Future<std::shared_ptr<Response>> RequestState::async_perform(utils::imp
     // set place for response body
     easy().set_sink(&response_->sink_string());
 
-    auto future = std::get_if<FullBufferedData>(&data_)->promise.get_future();
+    auto future = data.promise.get_future();
 
     if (UpdateTimeoutFromDeadlineAndCheck()) {
         PerformRequest([holder = shared_from_this()](std::error_code err) mutable {
@@ -749,7 +827,8 @@ engine::Future<void> RequestState::async_perform_stream(
     const std::shared_ptr<Queue>& queue,
     utils::impl::SourceLocation location
 ) {
-    data_.emplace<StreamData>(queue->GetProducer());
+    WaitForRequestCompletion();
+    auto& data = data_.emplace<StreamData>(queue->GetProducer());
 
     StartNewSpan(location);
     ResetDataForNewRequest();
@@ -762,11 +841,38 @@ engine::Future<void> RequestState::async_perform_stream(
     // Force no retries
     retry_.retries = 1;
 
-    auto future = std::get_if<StreamData>(&data_)->headers_promise.get_future();
+    auto future = data.headers_promise.get_future();
 
     if (UpdateTimeoutFromDeadlineAndCheck()) {
         PerformRequest([holder = shared_from_this()](std::error_code err) mutable {
             RequestState::OnCompleted(std::move(holder), err);
+        });
+    }
+
+    return future;
+}
+
+engine::Future<WebSocketResponse> RequestState::async_perform_websocket_handshake(utils::impl::SourceLocation location
+) {
+    WaitForRequestCompletion();
+    auto& data = data_.emplace<WebSocketHandshakeData>();
+
+    StartNewSpan(location);
+    ResetDataForNewRequest();
+
+    auto& span = span_storage_->Get();
+    span.AddTag("stream_api", 0);
+
+    // set place for response body
+    easy().set_sink(&response_->sink_string());
+    easy().set_connect_only(2L /** websocket handshake */);
+    easy().enable_socket_extraction();
+
+    auto future = data.promise.get_future();
+
+    if (UpdateTimeoutFromDeadlineAndCheck()) {
+        PerformRequest([holder = shared_from_this()](std::error_code err) mutable {
+            RequestState::OnRetry(std::move(holder), err);
         });
     }
 
@@ -787,21 +893,24 @@ void RequestState::PerformRequest(curl::easy::handler_type handler) {
     if (resolver_ && retry_.current == 1) {
         engine::DetachUnscopedUnsafe(
             engine::AsyncNoSpan([this, holder = shared_from_this(), handler = std::move(handler)]() mutable {
+                auto exception_handler = utils::Overloaded{
+                    [](FullBufferedData& data) { data.promise.set_exception(std::current_exception()); },
+                    [](WebSocketHandshakeData& data) { data.promise.set_exception(std::current_exception()); },
+                    [](StreamData&) {},
+                };
+
                 try {
                     ResolveTargetAddress(*resolver_);
                     easy().async_perform(std::move(handler));
+                    return;
                 } catch (const clients::dns::ResolverException& ex) {
                     // TODO: should retry - TAXICOMMON-4932
-                    auto* buffered_data = std::get_if<FullBufferedData>(&data_);
-                    if (buffered_data) {
-                        buffered_data->promise.set_exception(std::current_exception());
-                    }
+                    std::visit(exception_handler, data_);
                 } catch (const BaseException& ex) {
-                    auto* buffered_data = std::get_if<FullBufferedData>(&data_);
-                    if (buffered_data) {
-                        buffered_data->promise.set_exception(std::current_exception());
-                    }
+                    std::visit(exception_handler, data_);
                 }
+                span_storage_.reset();
+                RequestCompleted();
             })
         );
     } else {
@@ -872,6 +981,8 @@ void RequestState::HandleDeadlineAlreadyPassed() {
 
     WithRequestStats([](RequestStats& stats) { stats.AccountCancelledByDeadline(); });
 
+    span_storage_.reset();
+
     auto exc = PrepareDeadlinePassedException(GetLoggedOriginalUrl(), easy().get_local_stats());
 
     const utils::Overloaded visitor{
@@ -886,9 +997,14 @@ void RequestState::HandleDeadlineAlreadyPassed() {
                 // The task will wake up and may reuse RequestState.
                 promise.set_exception(std::move(exc));
             }
+        },
+        [&exc](WebSocketHandshakeData& data) {
+            auto promise = std::move(data.promise);
+            promise.set_exception(std::move(exc));
         }
     };
     std::visit(visitor, data_);
+    RequestCompleted();
 }
 
 void RequestState::CheckResponseDeadline(std::error_code& err, Status status_code) {
@@ -974,7 +1090,7 @@ void RequestState::ResetDataForNewRequest() {
     SetBaggageHeader(easy());
 
     response_ = std::make_shared<Response>();
-    response_->SetStatusCode(Status::kInternalServerError);
+    response_->SetStatusCode(Status::kInvalid);
 
     is_cancelled_ = false;
     retry_.current = 1;
@@ -996,6 +1112,8 @@ void RequestState::ResetDataForNewRequest() {
     SetEasyTimeout(original_timeout_);
 
     StartStats();
+
+    ResetRequestCompletion();
 }
 
 size_t RequestState::StreamWriteFunction(char* ptr, size_t size, size_t nmemb, void* userdata) {
@@ -1138,6 +1256,23 @@ void RequestState::SetTracingManager(const tracing::TracingManagerBase& m) { tra
 MiddlewareRequest RequestState::GetEditableRequestInstance() { return MiddlewareRequest(*this); }
 
 void RequestState::SetWaitToken(utils::impl::WaitTokenStorageLock&& wait_token) { wait_token_ = std::move(wait_token); }
+
+void RequestState::ResetRequestCompletion() { request_completed_.Reset(); }
+
+void RequestState::RequestCompleted() { request_completed_.Send(); }
+
+void RequestState::WaitForRequestCompletion() {
+    if (request_completed_.WaitForEvent()) {
+        return;
+    }
+
+    UASSERT(engine::current_task::ShouldCancel());
+    throw CancelException(
+        "Wait for the previous HTTP response was aborted due to task cancellation",
+        easy().get_local_stats(),
+        ErrorKind::kCancel
+    );
+}
 
 }  // namespace clients::http
 

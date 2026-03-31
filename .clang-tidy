@@ -15,7 +15,6 @@ Checks:
   ,performance-*\
   ,portability-*\
   ,readability-*\
-  # it will work from clang-16
   ,-bugprone-unchecked-optional-access\
   ,-bugprone-easily-swappable-parameters\
   ,-bugprone-exception-escape\
@@ -43,13 +42,15 @@ Checks:
   ,-cppcoreguidelines-non-private-member-variables-in-classes\
   ,-cppcoreguidelines-owning-memory\
   ,-cppcoreguidelines-pro-bounds-array-to-pointer-decay\
+  ,-cppcoreguidelines-pro-bounds-avoid-unchecked-container-access\
   ,-cppcoreguidelines-pro-bounds-constant-array-index\
   ,-cppcoreguidelines-pro-bounds-pointer-arithmetic\
   ,-cppcoreguidelines-pro-type-reinterpret-cast\
   ,-cppcoreguidelines-pro-type-union-access\
   ,-cppcoreguidelines-pro-type-vararg\
   ,-cppcoreguidelines-special-member-functions\
-  ,-cppcoreguidelines-virtual-class-destructor
+  ,-cppcoreguidelines-rvalue-reference-param-not-moved\
+  ,-cppcoreguidelines-virtual-class-destructor\
   ,-google-explicit-constructor\
   ,-google-readability-braces-around-statements\
   ,-google-readability-function-size\
@@ -91,6 +92,7 @@ Checks:
   ,-portability-simd-intrinsics\
   ,-readability-braces-around-statements\
   ,-readability-container-contains\
+  ,-readability-convert-member-functions-to-static\
   ,-readability-else-after-return\
   ,-readability-function-cognitive-complexity\
   ,-readability-identifier-length\
@@ -98,17 +100,18 @@ Checks:
   ,-readability-magic-numbers\
   ,-readability-misleading-indentation\
   ,-readability-named-parameter\
+  ,-readability-qualified-auto\
   ,-readability-redundant-declaration\
+  ,-readability-redundant-member-init\
+  ,-readability-simplify-boolean-expr\
+  ,-readability-suspicious-call-argument\
   ,-readability-uppercase-literal-suffix\
   ,-readability-use-anyofallof\
   ,-hicpp-use-emplace\
   ,-modernize-use-emplace\
-  ,# TODO: will be removed in TAXICOMMON-11134
-  ,-clang-analyzer-optin.cplusplus.UninitializedObject\
-  ,-google-readability-casting\
-  ,-performance-inefficient-vector-operation\
-  ,-performance-unnecessary-copy-initialization\
   "
+# WARNING: DO NOT PUT COMMENTS BETWEEN CHECKS ABOVE!
+# It will have the effect of silently breaking clang-tidy checks altogether.
 
 WarningsAsErrors: '*'
 HeaderFilterRegex: '/userver/(build|clickhouse|core|grpc|mongo|postgresql|redis|kafka|shared|tools)/'

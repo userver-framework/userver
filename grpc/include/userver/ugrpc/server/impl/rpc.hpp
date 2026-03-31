@@ -83,6 +83,7 @@ public:
     /// @brief Complete the RPC with an error
     ///
     /// Trims whitespaces from gRPC status messages before transmission.
+    /// Clamps invalid status codes to UNKNOWN if not in range [0, 16].
     ///
     /// `Finish` must not be called multiple times.
     ///
@@ -176,7 +177,9 @@ template <typename CallTraits>
 
     // Trim whitespaces from gRPC status messages before transmission
     // to ensure compliance with HTTP/2 RFC9113 8.2.1
-    impl::TrimStatusErrorMessage(status);
+    // Clamp status code to [0, 16], converting out-of-range values to UNKNOWN
+    // to ensure compliance with gRPC spec
+    impl::NormalizeStatus(status);
 
     if constexpr (!IsSingleResponseMethod(CallTraits::kRpcType)) {
         return impl::Finish(raw_responder_, status);

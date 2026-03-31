@@ -30,6 +30,7 @@ namespace {
 constexpr utils::StringLiteral kTracingTypeRequest = "request";
 constexpr utils::StringLiteral kTracingBody = "body";
 constexpr utils::StringLiteral kTracingUri = "uri";
+constexpr utils::StringLiteral kTracingRequestBodyLength = "request_body_length";
 
 constexpr utils::StringLiteral kAcceptLanguageTag = "acceptlang";
 
@@ -149,7 +150,7 @@ void HandlerAdapter::LogRequest(const http::HttpRequest& request, request::Reque
         logging::LogExtra log_extra{
             {tracing::kHttpMetaType, meta_type},
             {tracing::kType, kTracingTypeRequest},
-            {"request_body_length", request.RequestBody().length()},
+            {kTracingRequestBodyLength, request.RequestBody().length()},
             {kTracingBody, handler_.GetRequestBodyForLoggingChecked(request, context, request.RequestBody())},
             {kTracingUri, handler_.GetUrlForLoggingChecked(request, context)},
             {tracing::kHttpMethod, request.GetMethodStr()},

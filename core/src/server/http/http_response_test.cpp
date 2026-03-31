@@ -4,9 +4,9 @@
 #include <fmt/format.h>
 #include <gmock/gmock.h>
 
+#include <engine/io/tests/net_listener.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/http/common_headers.hpp>
-#include <userver/internal/net/net_listener.hpp>
 #include <userver/server/http/http_request_builder.hpp>
 #include <userver/server/http/http_response.hpp>
 #include <userver/utest/utest.hpp>
@@ -24,7 +24,7 @@ UTEST(HttpResponse, Smoke) {
     response.SetData(std::string{kBody});
     response.SetStatus(server::http::HttpStatus::kOk);
 
-    auto [server, client] = internal::net::TcpListener{}.MakeSocketPair(test_deadline);
+    auto [server, client] = engine::io::tests::TcpListener{}.MakeSocketPair(test_deadline);
     auto send_task = engine::AsyncNoSpan(
         [](auto&& response, auto&& socket) { response.SendResponse(socket); },
         std::ref(response),
@@ -62,7 +62,7 @@ UTEST(HttpResponse, AccounterLifetimeIfSent) {
     response.SetData(body);
     response.SetStatus(server::http::HttpStatus::kOk);
 
-    auto [server, client] = internal::net::TcpListener{}.MakeSocketPair(test_deadline);
+    auto [server, client] = engine::io::tests::TcpListener{}.MakeSocketPair(test_deadline);
     auto send_task = engine::AsyncNoSpan(
         [](auto&& response, auto&& socket) { response.SendResponse(socket); },
         std::ref(response),
@@ -91,7 +91,7 @@ UTEST_P(HttpResponseBody, ForbiddenBody) {
     response.SetData("test data");
     response.SetStatus(static_cast<server::http::HttpStatus>(GetParam()));
 
-    auto [server, client] = internal::net::TcpListener{}.MakeSocketPair(test_deadline);
+    auto [server, client] = engine::io::tests::TcpListener{}.MakeSocketPair(test_deadline);
     auto send_task = engine::AsyncNoSpan(
         [](auto&& response, auto&& socket) { response.SendResponse(socket); },
         std::ref(response),

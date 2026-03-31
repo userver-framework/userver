@@ -73,11 +73,10 @@ public:
 
 }  // namespace
 
-using MetadataTest = ugrpc::tests::ServiceFixture<SimpleMetadataService>;
+using MetadataTest =
+    ugrpc::tests::ServiceWithClientFixture<SimpleMetadataService, sample::ugrpc::UnitTestServiceClient>;
 
 UTEST_F(MetadataTest, ClientSendMetadata) {
-    auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
-
     sample::ugrpc::GreetingRequest request;
     request.set_name("test");
 
@@ -87,17 +86,15 @@ UTEST_F(MetadataTest, ClientSendMetadata) {
     /// [client_write_metadata]
     call_options.AddMetadata("user-id", "12345");
 
-    auto response = client.SayHello(request, std::move(call_options));
+    auto response = GetClient().SayHello(request, std::move(call_options));
     EXPECT_EQ(response.name(), "Hello test (header: custom-value) (user: 12345)");
 }
 
 UTEST_F(MetadataTest, ClientReadInitialMetadata) {
-    auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
-
     sample::ugrpc::GreetingRequest request;
     request.set_name("test");
 
-    auto future = client.AsyncSayHello(request, {});
+    auto future = GetClient().AsyncSayHello(request, {});
     auto response = future.Get();
 
     /// [client_read_initial_metadata]
@@ -110,12 +107,10 @@ UTEST_F(MetadataTest, ClientReadInitialMetadata) {
 }
 
 UTEST_F(MetadataTest, ClientReadTrailingMetadata) {
-    auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
-
     sample::ugrpc::GreetingRequest request;
     request.set_name("test");
 
-    auto future = client.AsyncSayHello(request, {});
+    auto future = GetClient().AsyncSayHello(request, {});
     auto response = future.Get();
 
     /// [client_read_trailing_metadata]
@@ -128,8 +123,6 @@ UTEST_F(MetadataTest, ClientReadTrailingMetadata) {
 }
 
 UTEST_F(MetadataTest, StreamingRequestResponseMetadata) {
-    auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
-
     sample::ugrpc::StreamGreetingRequest request;
     request.set_name("stream-test");
     request.set_number(3);
@@ -138,7 +131,7 @@ UTEST_F(MetadataTest, StreamingRequestResponseMetadata) {
     call_options.AddMetadata("stream-id", "stream-123");
     call_options.AddMetadata("custom-request-header", "request-value");
 
-    auto stream = client.ReadMany(request, std::move(call_options));
+    auto stream = GetClient().ReadMany(request, std::move(call_options));
 
     sample::ugrpc::StreamGreetingResponse response;
     int count = 0;

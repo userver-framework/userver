@@ -320,9 +320,13 @@ UTEST_MT(SharedTaskWithResult, MultithreadedGet, 4) {
         return 1;
     });
 
-    std::vector<engine::TaskWithResult<void>> tasks;
+    static constexpr std::size_t kTaskCount = 4;
+
     std::atomic_int sum{0};
-    for (size_t i = 0; i < 4; ++i) {
+
+    std::vector<engine::TaskWithResult<void>> tasks;
+    tasks.reserve(kTaskCount);
+    for (size_t i = 0; i < kTaskCount; ++i) {
         // Getting shared_task's result in parallel
         tasks.push_back(utils::Async("waiter_task", [shared_task /* copy is allowed */, &sum]() {
             sum += shared_task.Get();
@@ -345,9 +349,12 @@ UTEST_MT(SharedTaskWithResult, MultithreadedWait, 4) {
         return 1;
     });
 
+    static constexpr std::size_t kTaskCount = 4;
+
     std::vector<engine::TaskWithResult<void>> tasks;
+    tasks.reserve(kTaskCount);
     std::atomic_int sum{0};
-    for (size_t i = 0; i < 4; ++i) {
+    for (size_t i = 0; i < kTaskCount; ++i) {
         tasks.push_back(utils::Async("waiter_task", [&shared_task, &sum]() {
             shared_task.Wait();
 

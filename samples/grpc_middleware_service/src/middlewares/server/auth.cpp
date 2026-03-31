@@ -18,7 +18,8 @@ void Middleware::OnCallStart(ugrpc::server::MiddlewareCallContext& context) cons
 
     if (it == metadata.cend() || it->second != kCredentials) {
         LOG_ERROR() << "Invalid credentials";
-        return context.SetError(::grpc::Status{::grpc::StatusCode::PERMISSION_DENIED, "Invalid credentials"});
+        context.SetError(::grpc::Status{::grpc::StatusCode::PERMISSION_DENIED, "Invalid credentials"});
+        return;
     }
 }
 /// [Middleware implementation]

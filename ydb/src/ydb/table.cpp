@@ -16,33 +16,49 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace ydb {
+
 namespace {
 
-NYdb::NTable::TTxSettings PrepareTxSettings(const OperationSettings& settings) {
-    switch (settings.tx_mode.value()) {
-        case TransactionMode::kSerializableRW: {
-            return NYdb::NTable::TTxSettings::SerializableRW();
-        }
-        case TransactionMode::kOnlineRO: {
-            return NYdb::NTable::TTxSettings::OnlineRO();
-        }
-        case TransactionMode::kStaleRO: {
-            return NYdb::NTable::TTxSettings::StaleRO();
-        }
+NYdb::NQuery::TTxSettings MakeTxSettings(TransactionMode tx_mode) {
+    switch (tx_mode) {
+        case TransactionMode::kSerializableRW:
+            return NYdb::NQuery::TTxSettings::SerializableRW();
+        case TransactionMode::kOnlineRO:
+            return NYdb::NQuery::TTxSettings::OnlineRO();
+        case TransactionMode::kStaleRO:
+            return NYdb::NQuery::TTxSettings::StaleRO();
+        case TransactionMode::kSnapshotRO:
+            return NYdb::NQuery::TTxSettings::SnapshotRO();
+        case TransactionMode::kSnapshotRW:
+            return NYdb::NQuery::TTxSettings::SnapshotRW();
     }
 }
 
-NYdb::NQuery::TTxSettings PrepareQueryTxSettings(const OperationSettings& settings) {
-    switch (settings.tx_mode.value()) {
-        case TransactionMode::kSerializableRW: {
-            return NYdb::NQuery::TTxSettings::SerializableRW();
-        }
-        case TransactionMode::kOnlineRO: {
-            return NYdb::NQuery::TTxSettings::OnlineRO();
-        }
-        case TransactionMode::kStaleRO: {
-            return NYdb::NQuery::TTxSettings::StaleRO();
-        }
+NYdb::NTable::TTxSettings MakeTableTxSettings(TransactionMode tx_mode) {
+    switch (tx_mode) {
+        case TransactionMode::kSerializableRW:
+            return NYdb::NTable::TTxSettings::SerializableRW();
+        case TransactionMode::kOnlineRO:
+            return NYdb::NTable::TTxSettings::OnlineRO();
+        case TransactionMode::kStaleRO:
+            return NYdb::NTable::TTxSettings::StaleRO();
+        case TransactionMode::kSnapshotRO:
+            return NYdb::NTable::TTxSettings::SnapshotRO();
+        case TransactionMode::kSnapshotRW:
+            return NYdb::NTable::TTxSettings::SnapshotRW();
+    }
+}
+
+NYdb::NQuery::EStatsMode ConvertStatsMode(NYdb::NTable::ECollectQueryStatsMode collect_query_stats_mode) {
+    switch (collect_query_stats_mode) {
+        case NYdb::NTable::ECollectQueryStatsMode::None:
+            return NYdb::NQuery::EStatsMode::None;
+        case NYdb::NTable::ECollectQueryStatsMode::Basic:
+            return NYdb::NQuery::EStatsMode::Basic;
+        case NYdb::NTable::ECollectQueryStatsMode::Full:
+            return NYdb::NQuery::EStatsMode::Full;
+        case NYdb::NTable::ECollectQueryStatsMode::Profile:
+            return NYdb::NQuery::EStatsMode::Profile;
     }
 }
 
@@ -57,6 +73,7 @@ TableClient::TableClient(
     : config_source_(config_source),
       default_settings_(std::move(operation_settings)),
       keep_in_query_cache_(settings.keep_in_query_cache),
+      use_query_client_{settings.use_query_client},
       stats_(std::make_unique<impl::Stats>(
           settings.by_database_timings_buckets
               ? utils::span{*settings.by_database_timings_buckets}
@@ -323,20 +340,38 @@ Transaction TableClient::Begin(utils::StringLiteral transaction_name, OperationS
 Transaction TableClient::Begin(DynamicTransactionName transaction_name, OperationSettings settings) {
     const Query query{"", Query::Name{"Begin"}};
     impl::RequestContext context{*this, query, std::move(settings)};
-    auto tx_settings = PrepareTxSettings(context.settings);
 
-    auto future = impl::RetryOperation(
-        context,
-        [tx_settings = std::move(tx_settings),
-         settings = context.settings,
-         deadline = context.deadline](NYdb::NTable::TSession session) {
-            const auto exec_settings = impl::PrepareRequestSettings<NYdb::NTable::TBeginTxSettings>(settings, deadline);
-            return session.BeginTransaction(tx_settings, exec_settings);
-        }
-    );
+    if (use_query_client_) {
+        auto tx_settings = MakeTxSettings(context.settings.tx_mode.value());
 
-    auto status = impl::GetFutureValueChecked(std::move(future), "BeginTransaction", context);
-    return Transaction(*this, status.GetTransaction(), transaction_name.GetUnderlying(), std::move(settings));
+        auto future = impl::RetryQuery(
+            context,
+            [tx_settings = std::move(tx_settings),
+             settings = context.settings,
+             deadline = context.deadline](NYdb::NQuery::TSession session) {
+                const auto
+                    exec_settings = impl::PrepareRequestSettings<NYdb::NQuery::TBeginTxSettings>(settings, deadline);
+                return session.BeginTransaction(tx_settings, exec_settings);
+            }
+        );
+
+        auto status = impl::GetFutureValueChecked(std::move(future), "BeginTransaction", context);
+        return Transaction(*this, status.GetTransaction(), transaction_name.GetUnderlying(), std::move(settings));
+    } else {
+        auto tx_settings = MakeTableTxSettings(context.settings.tx_mode.value());
+        auto future = impl::RetryOperation(
+            context,
+            [tx_settings = std::move(tx_settings),
+             settings = context.settings,
+             deadline = context.deadline](NYdb::NTable::TSession session) {
+                const auto
+                    exec_settings = impl::PrepareRequestSettings<NYdb::NTable::TBeginTxSettings>(settings, deadline);
+                return session.BeginTransaction(tx_settings, exec_settings);
+            }
+        );
+        auto status = impl::GetFutureValueChecked(std::move(future), "BeginTransaction", context);
+        return Transaction(*this, status.GetTransaction(), transaction_name.GetUnderlying(), std::move(settings));
+    }
 }
 
 void TableClient::ExecuteSchemeQuery(const std::string& query) {
@@ -370,17 +405,21 @@ ExecuteResponse TableClient::ExecuteDataQuery(
     const Query& query,
     PreparedArgsBuilder&& builder
 ) {
+    if (use_query_client_) {
+        return ExecuteQuery(ToExecuteQuerySettings(query_settings), std::move(settings), query, std::move(builder));
+    }
+
     impl::RequestContext context{*this, query, std::move(settings)};
 
     auto future = impl::RetryOperation(
         context,
         [query,
          params = std::move(builder).Build(),
-         exec_settings = ToExecQuerySettings(query_settings),
+         exec_settings = ToExecDataQuerySettings(query_settings),
          settings = context.settings,
          deadline = context.deadline](NYdb::NTable::TSession session) mutable {
             impl::ApplyToRequestSettings(exec_settings, settings, deadline);
-            const auto tx_settings = PrepareTxSettings(settings);
+            const auto tx_settings = MakeTableTxSettings(settings.tx_mode.value());
             const auto tx = NYdb::NTable::TTxControl::BeginTx(tx_settings).CommitTx();
             return session.ExecuteDataQuery(impl::ToString(query.GetStatementView()), tx, params, exec_settings);
         }
@@ -403,13 +442,6 @@ ExecuteResponse TableClient::ExecuteQuery(
     const Query& query,
     PreparedArgsBuilder&& builder
 ) {
-    if (settings.operation_timeout_ms > std::chrono::milliseconds::zero()) {
-        throw std::runtime_error("You set up custom operation_timeout in an execution method that does not use it");
-    }
-    if (settings.cancel_after_ms > std::chrono::milliseconds::zero()) {
-        throw std::runtime_error("You set up custom cancel_after in an execution method that does not use it");
-    }
-
     impl::RequestContext context{*this, query, std::move(settings)};
 
     auto future = impl::RetryQuery(
@@ -420,7 +452,7 @@ ExecuteResponse TableClient::ExecuteQuery(
          settings = context.settings,
          deadline = context.deadline](NYdb::NQuery::TSession session) mutable {
             impl::ApplyToRequestSettings(exec_settings, settings, deadline);
-            const auto tx_settings = PrepareQueryTxSettings(settings);
+            const auto tx_settings = MakeTxSettings(settings.tx_mode.value());
             const auto tx = NYdb::NQuery::TTxControl::BeginTx(tx_settings).CommitTx();
             return session.ExecuteQuery(impl::ToString(query.GetStatementView()), tx, params, exec_settings);
         }
@@ -446,16 +478,31 @@ void DumpMetric(utils::statistics::Writer& writer, const TableClient& table_clie
     );
 }
 
-PreparedArgsBuilder TableClient::GetBuilder() const { return PreparedArgsBuilder(table_client_->GetParamsBuilder()); }
+PreparedArgsBuilder TableClient::GetBuilder() const { return PreparedArgsBuilder{}; }
 
-NYdb::NTable::TExecDataQuerySettings TableClient::ToExecQuerySettings(QuerySettings query_settings) const {
+NYdb::NQuery::TExecuteQuerySettings TableClient::ToExecuteQuerySettings(const QuerySettings& query_settings) const {
+    NYdb::NQuery::TExecuteQuerySettings exec_settings;
+
+    // Query Client doesn't have KeepInQueryCache, it caches automatically
+    if (query_settings.collect_query_stats) {
+        exec_settings.StatsMode(ConvertStatsMode(*query_settings.collect_query_stats));
+    }
+
+    return exec_settings;
+}
+
+NYdb::NTable::TExecDataQuerySettings TableClient::ToExecDataQuerySettings(const QuerySettings& query_settings) const {
     NYdb::NTable::TExecDataQuerySettings exec_settings;
+
     exec_settings.KeepInQueryCache(query_settings.keep_in_query_cache.value_or(keep_in_query_cache_));
+
     if (query_settings.collect_query_stats) {
         exec_settings.CollectQueryStats(*query_settings.collect_query_stats);
     }
+
     return exec_settings;
 }
+
 }  // namespace ydb
 
 USERVER_NAMESPACE_END

@@ -41,7 +41,7 @@ WriteResult Collection::Execute(operations::Bulk&& bulk_op) { return impl_->Exec
 
 Cursor Collection::Execute(const operations::Aggregate& aggregate_op) { return impl_->Execute(aggregate_op); }
 
-void Collection::Execute(const operations::Drop& drop_op) { return impl_->Execute(drop_op); }
+void Collection::Execute(const operations::Drop& drop_op) { impl_->Execute(drop_op); }
 
 }  // namespace storages::mongo
 

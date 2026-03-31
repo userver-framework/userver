@@ -67,6 +67,7 @@ Inotify::Inotify()
 
 Inotify::~Inotify() {
     auto fd = fd_.GetFd();
+    fd_.Invalidate();
     if (fd != -1) {
         close(fd);
     }

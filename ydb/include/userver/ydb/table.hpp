@@ -94,10 +94,12 @@ public:
     /// client.ExecuteDataQuery(query, "name1", value1, "name2", value2, ...);
     /// @endcode
     ///
-    /// Use ydb::PreparedArgsBuilder for storing a generic buffer of query params
-    /// if needed.
+    /// @warning ExecuteDataQuery returns no more than 1000 rows. Consider @ref ExecuteQuery() instead, but make sure
+    ///          that it works for your case.
     ///
-    /// It is convinient to keep YQL queries in separate files, see @ref scripts/docs/en/userver/sql_files.md
+    /// Use ydb::PreparedArgsBuilder for storing a generic buffer of query params if needed.
+    ///
+    /// It is convenient to keep YQL queries in separate files, see @ref scripts/docs/en/userver/sql_files.md
     /// for more info.
     ///
     /// @{
@@ -187,12 +189,14 @@ public:
     /// client.ExecuteQuery(query, "name1", value1, "name2", value2, ...);
     /// @endcode
     ///
-    /// Use ydb::PreparedArgsBuilder for storing a generic buffer of query params
-    /// if needed.
+    /// Use ydb::PreparedArgsBuilder for storing a generic buffer of query params if needed.
     ///
     /// If both exec_settings and settings args are passed,
     /// exec_settings.client_timeout_ms and exec_settings.trace_id are ignored
     /// and are overwritten by settings.client_timeout_ms and settings.trace_id.
+    ///
+    /// It is convenient to keep YQL queries in separate files, see @ref scripts/docs/en/userver/sql_files.md
+    /// for more info.
     /// @{
     template <typename... Args>
     ExecuteResponse ExecuteQuery(const Query& query, Args&&... args);
@@ -235,7 +239,8 @@ private:
 
     void Select1();
 
-    NYdb::NTable::TExecDataQuerySettings ToExecQuerySettings(QuerySettings query_settings) const;
+    NYdb::NQuery::TExecuteQuerySettings ToExecuteQuerySettings(const QuerySettings& query_settings) const;
+    NYdb::NTable::TExecDataQuerySettings ToExecDataQuerySettings(const QuerySettings& query_settings) const;
 
     template <typename... Args>
     PreparedArgsBuilder MakeBuilder(Args&&... args);
@@ -258,6 +263,7 @@ private:
     dynamic_config::Source config_source_;
     const OperationSettings default_settings_;
     const bool keep_in_query_cache_;
+    const bool use_query_client_;
     std::unique_ptr<impl::Stats> stats_;
     std::shared_ptr<impl::Driver> driver_;
     std::unique_ptr<NYdb::NScheme::TSchemeClient> scheme_client_;
