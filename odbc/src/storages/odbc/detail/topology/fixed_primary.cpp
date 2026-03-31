@@ -16,8 +16,8 @@ std::size_t WrappingIncrement(std::atomic<std::size_t>& value, std::size_t mod) 
 
 }  // namespace
 
-FixedPrimary::FixedPrimary(const settings::ODBCClusterSettings& settings)
-    : TopologyBase(settings),
+FixedPrimary::FixedPrimary(const settings::ODBCClusterSettings& settings, clients::dns::Resolver* resolver)
+    : TopologyBase(settings, resolver),
       primary_{InitializePrimaryPoolReference()},
       secondaries_{InitializeSecondariesVector()} {}
 

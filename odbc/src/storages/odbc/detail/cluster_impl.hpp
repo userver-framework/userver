@@ -4,14 +4,15 @@
 #include <string>
 #include <vector>
 
+#include <userver/clients/dns/resolver_fwd.hpp>
+#include <userver/engine/deadline.hpp>
+#include <userver/utils/statistics/writer.hpp>
+
 #include <userver/storages/odbc/cluster_types.hpp>
 #include <userver/storages/odbc/query.hpp>
 #include <userver/storages/odbc/result_set.hpp>
 #include <userver/storages/odbc/settings.hpp>
 #include <userver/storages/odbc/transaction.hpp>
-
-#include <userver/engine/deadline.hpp>
-#include <userver/utils/statistics/writer.hpp>
 
 #include <storages/odbc/detail/pool.hpp>
 #include <storages/odbc/detail/topology/topology_base.hpp>
@@ -22,7 +23,7 @@ namespace storages::odbc::detail {
 
 class ClusterImpl {
 public:
-    ClusterImpl(const settings::ODBCClusterSettings& settings);
+    ClusterImpl(const settings::ODBCClusterSettings& settings, clients::dns::Resolver* resolver);
 
     ~ClusterImpl() = default;
 

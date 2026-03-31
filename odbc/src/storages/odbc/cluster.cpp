@@ -8,10 +8,10 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::odbc {
 
-Cluster::Cluster(const settings::ODBCClusterSettings& settings)
-    : impl_(std::make_unique<detail::ClusterImpl>(settings))
+Cluster::Cluster(const settings::ODBCClusterSettings& settings, clients::dns::Resolver* resolver)
+    : impl_(std::make_unique<detail::ClusterImpl>(settings, resolver))
 {
-    UASSERT(settings.pools.size() > 0);
+    UASSERT(!settings.pools.empty());
 }
 
 Cluster::~Cluster() = default;

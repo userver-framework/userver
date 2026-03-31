@@ -1,34 +1,57 @@
 #include <storages/odbc/detail/topology/topology_base.hpp>
 
+#include <userver/clients/dns/resolver.hpp>
+#include <userver/utils/assert.hpp>
+
+#include <userver/storages/odbc/dsn.hpp>
+
 #include <storages/odbc/detail/pool.hpp>
 #include <storages/odbc/detail/topology/fixed_primary.hpp>
 #include <storages/odbc/detail/topology/standalone.hpp>
-
-#include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::odbc::detail::topology {
 
-TopologyBase::TopologyBase(const settings::ODBCClusterSettings& settings) {
+namespace {
+
+constexpr std::chrono::seconds kDnsResolveTimeout{5};
+
+std::string ResolveDsn(const std::string& dsn_str, clients::dns::Resolver* resolver) {
+    if (!resolver) {
+        return dsn_str;
+    }
+    auto resolved = ResolveDsnHost(
+        Dsn{dsn_str}, *resolver, engine::Deadline::FromDuration(kDnsResolveTimeout)
+    );
+    return resolved.GetUnderlying();
+}
+
+}  // namespace
+
+TopologyBase::TopologyBase(const settings::ODBCClusterSettings& settings, clients::dns::Resolver* resolver) {
     UASSERT(!settings.pools.empty());
 
     pools_.reserve(settings.pools.size());
     for (const auto& host : settings.pools) {
-        pools_.push_back(std::make_shared<Pool>(host.dsn, host.pool.min_size, host.pool.max_size));
+        auto resolved_dsn = ResolveDsn(host.dsn, resolver);
+        pools_.push_back(std::make_shared<Pool>(resolved_dsn, host.pool.min_size, host.pool.max_size));
     }
 }
 
 TopologyBase::~TopologyBase() = default;
 
-std::unique_ptr<TopologyBase> TopologyBase::Create(const settings::ODBCClusterSettings& settings) {
+std::unique_ptr<TopologyBase> TopologyBase::Create(
+    const settings::ODBCClusterSettings& settings,
+    clients::dns::Resolver* resolver
+) {
     UASSERT(!settings.pools.empty());
 
     if (settings.pools.size() == 1) {
-        return std::make_unique<Standalone>(settings);
+        return std::make_unique<Standalone>(settings, resolver);
     }
 
-    return std::make_unique<FixedPrimary>(settings);
+    return std::make_unique<FixedPrimary>(settings, resolver);
 }
 
 Pool& TopologyBase::SelectPool(ClusterHostType host_type) const {

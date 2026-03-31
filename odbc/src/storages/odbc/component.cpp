@@ -3,6 +3,7 @@
 #include <optional>
 #include <vector>
 
+#include <userver/clients/dns/resolver_utils.hpp>
 #include <userver/components/component.hpp>
 #include <userver/components/statistics_storage.hpp>
 #include <userver/utils/assert.hpp>
@@ -51,7 +52,10 @@ storages::odbc::settings::ODBCClusterSettings MakeClusterSettings(const componen
 
 Odbc::Odbc(const ComponentConfig& config, const ComponentContext& context)
     : ComponentBase{config, context},
-      cluster_{std::make_shared<storages::odbc::Cluster>(MakeClusterSettings(config))}
+      cluster_{std::make_shared<storages::odbc::Cluster>(
+          MakeClusterSettings(config),
+          clients::dns::GetResolverPtr(config, context)
+      )}
 {
     auto& statistics_storage = context.FindComponent<components::StatisticsStorage>();
     statistics_holder_ = statistics_storage.GetStorage().RegisterWriter(

@@ -4,9 +4,11 @@
 #include <string>
 #include <vector>
 
+#include <userver/clients/dns/resolver_fwd.hpp>
+#include <userver/utils/statistics/writer.hpp>
+
 #include <userver/storages/odbc/cluster_types.hpp>
 #include <userver/storages/odbc/settings.hpp>
-#include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -20,14 +22,17 @@ class TopologyBase {
 public:
     virtual ~TopologyBase();
 
-    static std::unique_ptr<TopologyBase> Create(const settings::ODBCClusterSettings& settings);
+    static std::unique_ptr<TopologyBase> Create(
+        const settings::ODBCClusterSettings& settings,
+        clients::dns::Resolver* resolver
+    );
 
     Pool& SelectPool(ClusterHostType host_type) const;
 
     void WriteStatistics(utils::statistics::Writer& writer) const;
 
 protected:
-    explicit TopologyBase(const settings::ODBCClusterSettings& settings);
+    TopologyBase(const settings::ODBCClusterSettings& settings, clients::dns::Resolver* resolver);
 
     virtual Pool& GetPrimary() const = 0;
     virtual Pool& GetSecondary() const = 0;

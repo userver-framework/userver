@@ -13,7 +13,7 @@ namespace {
 
 bool IsWordBorder(char c) { return !std::isalnum(static_cast<unsigned char>(c)) && c != '"' && c != '_' && c != '-'; }
 
-std::string_view FindCommandName(std::string_view str) {
+std::string FindCommandName(std::string_view str) {
     const std::size_t max_search_depth = std::min(std::size_t{128}, str.size());
     const auto end_it = str.begin() + max_search_depth;
 

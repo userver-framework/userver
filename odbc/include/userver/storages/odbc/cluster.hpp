@@ -1,13 +1,14 @@
 #pragma once
 
+#include <userver/clients/dns/resolver_fwd.hpp>
+#include <userver/engine/deadline.hpp>
+#include <userver/utils/statistics/writer.hpp>
+
 #include <userver/storages/odbc/cluster_types.hpp>
 #include <userver/storages/odbc/query.hpp>
 #include <userver/storages/odbc/result_set.hpp>
 #include <userver/storages/odbc/settings.hpp>
 #include <userver/storages/odbc/transaction.hpp>
-
-#include <userver/engine/deadline.hpp>
-#include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -22,7 +23,7 @@ using ClusterImplPtr = std::unique_ptr<ClusterImpl>;
 
 class Cluster {
 public:
-    Cluster(const settings::ODBCClusterSettings& settings);
+    Cluster(const settings::ODBCClusterSettings& settings, clients::dns::Resolver* resolver);
 
     ~Cluster();
 
@@ -39,6 +40,7 @@ public:
 private:
     detail::ClusterImplPtr impl_;
 };
+
 }  // namespace storages::odbc
 
 USERVER_NAMESPACE_END

@@ -8,8 +8,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::odbc::detail::topology {
 
-Standalone::Standalone(const settings::ODBCClusterSettings& settings)
-    : TopologyBase(settings),
+Standalone::Standalone(const settings::ODBCClusterSettings& settings, clients::dns::Resolver* resolver)
+    : TopologyBase(settings, resolver),
       pool_{InitializePoolReference()} {}
 
 Standalone::~Standalone() = default;

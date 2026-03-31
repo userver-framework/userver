@@ -13,9 +13,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::odbc::detail {
 
-ClusterImpl::ClusterImpl(const settings::ODBCClusterSettings& settings) {
+ClusterImpl::ClusterImpl(const settings::ODBCClusterSettings& settings, clients::dns::Resolver* resolver) {
     UINVARIANT(!settings.pools.empty(), "Pools count should be positive");
-    topology_ = topology::TopologyBase::Create(settings);
+    topology_ = topology::TopologyBase::Create(settings, resolver);
 }
 
 ResultSet ClusterImpl::Execute([[maybe_unused]] ClusterHostTypeFlags flags, const Query& query) {

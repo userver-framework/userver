@@ -11,7 +11,7 @@ namespace storages::odbc::detail::topology {
 
 class FixedPrimary final : public TopologyBase {
 public:
-    explicit FixedPrimary(const settings::ODBCClusterSettings& settings);
+    FixedPrimary(const settings::ODBCClusterSettings& settings, clients::dns::Resolver* resolver);
     ~FixedPrimary() final;
 
 private:

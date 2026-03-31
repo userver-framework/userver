@@ -110,3 +110,57 @@ Common exceptions from `userver::storages::odbc`:
 - `storages::odbc::ConnectionError` — connection / driver failures
 - `storages::odbc::StatementError` — statement-level execution errors
 
+## Component Configuration
+
+The ODBC component can be configured in the static config file. Below is the full schema:
+
+### Single Pool Configuration
+
+```yaml
+components_manager:
+    components:
+        odbc:
+            dsn: "DRIVER={PostgreSQL Unicode};SERVER=localhost;PORT=5432;DATABASE=mydb;UID=user;PWD=password"
+            min_pool_size: 1      # optional, default: 1
+            max_pool_size: 10     # optional, default: 10
+            dns_resolver: async   # optional, default: async (options: async, getaddrinfo)
+```
+
+### Multi-Pool Configuration
+
+For master-replica setups or multiple database hosts:
+
+```yaml
+components_manager:
+    components:
+        odbc:
+            dns_resolver: async
+            pools:
+              - dsn: "DRIVER={PostgreSQL Unicode};SERVER=master.db.local;PORT=5432;DATABASE=mydb;UID=user;PWD=password"
+                min_pool_size: 2
+                max_pool_size: 15
+              - dsn: "DRIVER={PostgreSQL Unicode};SERVER=replica.db.local;PORT=5432;DATABASE=mydb;UID=user;PWD=password"
+                min_pool_size: 1
+                max_pool_size: 10
+```
+
+### Configuration Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `dsn` | string | — | ODBC connection string (for single-pool mode) |
+| `min_pool_size` | integer | 1 | Minimum number of connections kept in the pool |
+| `max_pool_size` | integer | 10 | Maximum number of connections in the pool |
+| `dns_resolver` | string | `async` | DNS resolution mode: `async` (non-blocking) or `getaddrinfo` (blocking) |
+| `pools` | array | — | List of pool configurations (for multi-pool mode) |
+
+### DNS Resolution
+
+The `dns_resolver` option controls how hostnames in DSN strings are resolved:
+
+- **`async`** (default): Uses userver's asynchronous DNS resolver. Hostnames are resolved at component startup and replaced with IP addresses in the DSN. This is non-blocking and recommended for production.
+
+- **`getaddrinfo`**: Uses the system's blocking `getaddrinfo()` call. The DSN is passed to the ODBC driver as-is, and hostname resolution happens during connection establishment.
+
+When using `async` mode, the SERVER/HOST parameter in your DSN will be automatically resolved to an IP address before connecting. This allows for proper integration with service discovery and DNS-based load balancing.
+
