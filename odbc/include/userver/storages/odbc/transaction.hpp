@@ -2,6 +2,8 @@
 
 /// @file userver/storages/odbc/transaction.hpp
 
+#include <chrono>
+
 #include <userver/engine/deadline.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/utils/trx_tracker.hpp>
@@ -13,6 +15,7 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::odbc {
 namespace detail {
     class ConnectionPtr;
+    class Pool;
 }
 
 /// @brief RAII transaction wrapper, auto-<b>ROLLBACK</b>s on destruction if no
@@ -22,12 +25,12 @@ namespace detail {
 /// storages::odbc::Cluster
 class Transaction final {
 public:
-    explicit Transaction(detail::ConnectionPtr&& connection, engine::Deadline deadline);
+    explicit Transaction(detail::ConnectionPtr&& connection, detail::Pool& pool, engine::Deadline deadline);
     ~Transaction();
     Transaction(const Transaction& other) = delete;
     Transaction(Transaction&& other) noexcept;
 
-    ResultSet Execute(const Query& query) const;
+    ResultSet Execute(const Query& query);
 
     /// @brief Commit the transaction
     void Commit();
@@ -39,7 +42,10 @@ private:
     void AssertValid() const;
 
     detail::ConnectionPtr connection_;
+    detail::Pool* pool_;
     engine::Deadline deadline_;
+    std::chrono::steady_clock::time_point start_time_;
+    std::chrono::microseconds busy_time_{0};
     tracing::Span span_;
     utils::trx_tracker::TransactionLock trx_lock_;
 };

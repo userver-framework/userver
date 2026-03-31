@@ -4,10 +4,12 @@
 #include <storages/odbc/detail/pool.hpp>
 #include <storages/odbc/detail/topology/topology_base.hpp>
 #include <userver/storages/odbc/cluster_types.hpp>
+#include <userver/storages/odbc/exception.hpp>
 #include <userver/storages/odbc/impl/tracing_tags.hpp>
 
 #include <userver/tracing/span.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/datetime/steady_coarse_clock.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -30,8 +32,26 @@ ResultSet ClusterImpl::ExecuteImpl(engine::Deadline effective_deadline, ClusterH
     CheckDeadlineNotExpired(effective_deadline);
 
     tracing::Span span{storages::odbc::impl::tracing::kExecuteSpan};
-    auto conn = SelectPool(flags).Acquire(effective_deadline);
-    return conn->Query(query.GetStatementView(), effective_deadline);
+    auto& pool = SelectPool(flags);
+    auto conn = pool.Acquire(effective_deadline);
+
+    pool.AccountOutOfTransaction();
+
+    const auto start = utils::datetime::SteadyCoarseClock::now();
+    try {
+        auto result = conn->Query(query.GetStatementView(), effective_deadline);
+        const auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(
+            utils::datetime::SteadyCoarseClock::now() - start
+        );
+        pool.AccountQueryExecuted(elapsed);
+        return result;
+    } catch (const OperationInterrupted&) {
+        pool.AccountQueryTimeout();
+        throw;
+    } catch (const Error&) {
+        pool.AccountQueryError();
+        throw;
+    }
 }
 
 Transaction ClusterImpl::Begin(ClusterHostTypeFlags flags) {
@@ -46,7 +66,8 @@ Transaction ClusterImpl::BeginImpl(engine::Deadline effective_deadline, ClusterH
     CheckDeadlineNotExpired(effective_deadline);
 
     tracing::Span span{storages::odbc::impl::tracing::kTransactionSpan};
-    return Transaction{SelectPool(flags).Acquire(effective_deadline), effective_deadline};
+    auto& pool = SelectPool(flags);
+    return Transaction{pool.Acquire(effective_deadline), pool, effective_deadline};
 }
 
 Pool& ClusterImpl::SelectPool(ClusterHostTypeFlags flags) const {

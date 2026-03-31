@@ -1,6 +1,7 @@
 #pragma once
 
 #include <atomic>
+#include <chrono>
 #include <cstddef>
 #include <storages/odbc/detail/conn_ptr.hpp>
 #include <storages/odbc/detail/connection.hpp>
@@ -25,7 +26,16 @@ public:
 
     void Release(ConnectionUniquePtr connection);
 
-    const PoolConnectionStatistics& GetConnectionStatistics() const noexcept { return stats_; }
+    const InstanceStatistics& GetStatistics() const noexcept { return stats_; }
+
+    void AccountQueryExecuted(std::chrono::microseconds duration) noexcept;
+    void AccountQueryError() noexcept;
+    void AccountQueryTimeout() noexcept;
+    void AccountOutOfTransaction() noexcept;
+
+    void AccountTransactionStarted() noexcept;
+    void AccountTransactionCommit(std::chrono::microseconds total_duration, std::chrono::microseconds busy_duration) noexcept;
+    void AccountTransactionRollback() noexcept;
 
 private:
     friend class drivers::impl::ConnectionPoolBase<Connection, Pool>;
@@ -39,9 +49,10 @@ private:
     void AccountOverload() noexcept;
 
     const std::vector<std::string> dsns_;
+    const std::size_t max_pool_size_;
     mutable std::atomic<std::size_t> dsn_index_{0};
 
-    PoolConnectionStatistics stats_{};
+    InstanceStatistics stats_{};
 };
 
 }  // namespace storages::odbc::detail

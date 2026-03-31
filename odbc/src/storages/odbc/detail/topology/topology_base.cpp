@@ -67,13 +67,11 @@ Pool& TopologyBase::SelectPool(ClusterHostType host_type) const {
 }
 
 void TopologyBase::WriteStatistics(utils::statistics::Writer& writer) const {
-    if (auto connections_writer = writer["connections"]) {
-        for (std::size_t i = 0; i < pools_.size(); ++i) {
-            connections_writer.ValueWithLabels(
-                pools_[i]->GetConnectionStatistics(),
-                {{"odbc_pool", std::to_string(i)}}
-            );
-        }
+    for (std::size_t i = 0; i < pools_.size(); ++i) {
+        writer.ValueWithLabels(
+            pools_[i]->GetStatistics(),
+            {{"odbc_pool", std::to_string(i)}}
+        );
     }
 }
 
