@@ -8,28 +8,29 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::odbc::tests {
+
 UTEST(CreateTransaction, Works) {
-    storages::odbc::Cluster cluster(kSettings);
-    auto trx = cluster.Begin();
+    auto cluster = MakeCluster();
+    auto trx = cluster.Begin(storages::odbc::ClusterHostType::kMaster);
     trx.Commit();
 }
 
 UTEST(CreateTransaction, MultipleDSN) {
-    storages::odbc::Cluster cluster(storages::odbc::settings::ODBCClusterSettings{{kHostSettings, kHostSettings}});
-    auto trx = cluster.Begin();
+    auto cluster = MakeCluster(kMultiDSNSettings);
+    auto trx = cluster.Begin(storages::odbc::ClusterHostType::kMaster);
     trx.Commit();
 }
 
 UTEST(CreateTransaction, Rollback) {
-    storages::odbc::Cluster cluster(kSettings);
-    auto trx = cluster.Begin();
+    auto cluster = MakeCluster();
+    auto trx = cluster.Begin(storages::odbc::ClusterHostType::kMaster);
     trx.Rollback();
 }
 
-UTEST(Query, Works) {
-    storages::odbc::Cluster cluster(kSettings);
-    auto trx = cluster.Begin();
-    auto result = trx.Execute(storages::odbc::ClusterHostType::kMaster, "SELECT 1");
+UTEST(Transaction, QueryInTransaction) {
+    auto cluster = MakeCluster();
+    auto trx = cluster.Begin(storages::odbc::ClusterHostType::kMaster);
+    auto result = trx.Execute("SELECT 1");
     EXPECT_EQ(result.Size(), 1);
     EXPECT_FALSE(result.IsEmpty());
     auto row = result[0];
@@ -40,79 +41,140 @@ UTEST(Query, Works) {
 }
 
 UTEST(Transaction, DoubleCommitThrows) {
-    storages::odbc::Cluster cluster(kSettings);
-    auto trx = cluster.Begin();
+    auto cluster = MakeCluster();
+    auto trx = cluster.Begin(storages::odbc::ClusterHostType::kMaster);
     trx.Commit();
-    EXPECT_THROW(trx.Commit(), storages::odbc::TransactionException);
+    UEXPECT_THROW(trx.Commit(), storages::odbc::TransactionException);
 }
 
 UTEST(Transaction, CommitAfterRollbackThrows) {
-    storages::odbc::Cluster cluster(kSettings);
-    auto trx = cluster.Begin();
+    auto cluster = MakeCluster();
+    auto trx = cluster.Begin(storages::odbc::ClusterHostType::kMaster);
     trx.Rollback();
-    EXPECT_THROW(trx.Commit(), storages::odbc::TransactionException);
+    UEXPECT_THROW(trx.Commit(), storages::odbc::TransactionException);
 }
 
 UTEST(Transaction, RollbackAfterCommitThrows) {
-    storages::odbc::Cluster cluster(kSettings);
-    auto trx = cluster.Begin();
+    auto cluster = MakeCluster();
+    auto trx = cluster.Begin(storages::odbc::ClusterHostType::kMaster);
     trx.Commit();
-    EXPECT_THROW(trx.Rollback(), storages::odbc::TransactionException);
+    UEXPECT_THROW(trx.Rollback(), storages::odbc::TransactionException);
 }
 
 UTEST(Transaction, QueryAfterCommitThrows) {
-    storages::odbc::Cluster cluster(kSettings);
-    auto trx = cluster.Begin();
+    auto cluster = MakeCluster();
+    auto trx = cluster.Begin(storages::odbc::ClusterHostType::kMaster);
     trx.Commit();
-    EXPECT_THROW(
-        trx.Execute(storages::odbc::ClusterHostType::kMaster, "SELECT 1"),
-        storages::odbc::TransactionException
-    );
+    UEXPECT_THROW(trx.Execute("SELECT 1"), storages::odbc::TransactionException);
 }
 
 UTEST(Transaction, QueryAfterRollbackThrows) {
-    storages::odbc::Cluster cluster(kSettings);
-    auto trx = cluster.Begin();
+    auto cluster = MakeCluster();
+    auto trx = cluster.Begin(storages::odbc::ClusterHostType::kMaster);
     trx.Rollback();
-    EXPECT_THROW(
-        trx.Execute(storages::odbc::ClusterHostType::kMaster, "SELECT 1"),
-        storages::odbc::TransactionException
+    UEXPECT_THROW(trx.Execute("SELECT 1"), storages::odbc::TransactionException);
+}
+
+UTEST(Transaction, AutoRollbackOnDestruction) {
+    auto cluster = MakeCluster();
+
+    cluster.Execute(
+        storages::odbc::ClusterHostType::kMaster,
+        "CREATE TABLE IF NOT EXISTS t_auto_rollback(id INT PRIMARY KEY)"
     );
+    cluster.Execute(storages::odbc::ClusterHostType::kMaster, "DELETE FROM t_auto_rollback");
+
+    {
+        auto trx = cluster.Begin(storages::odbc::ClusterHostType::kMaster);
+        trx.Execute("INSERT INTO t_auto_rollback(id) VALUES(999)");
+        // trx goes out of scope without Commit — should auto-rollback
+    }
+
+    auto result = cluster.Execute(
+        storages::odbc::ClusterHostType::kMaster,
+        "SELECT id FROM t_auto_rollback WHERE id=999"
+    );
+    EXPECT_EQ(result.Size(), 0);
 }
 
 UTEST(Transaction, PersistDataAfterCommit) {
-    storages::odbc::Cluster cluster(kSettings);
-    // Create a table in a transaction and insert a value.
-    auto trx = cluster.Begin();
-    trx.Execute(storages::odbc::ClusterHostType::kMaster, "CREATE TABLE IF NOT EXISTS t_commit(id INT PRIMARY KEY)");
-    trx.Execute(storages::odbc::ClusterHostType::kMaster, "DELETE FROM t_commit");
-    trx.Execute(storages::odbc::ClusterHostType::kMaster, "INSERT INTO t_commit(id) VALUES(100)");
+    auto cluster = MakeCluster();
+    auto trx = cluster.Begin(storages::odbc::ClusterHostType::kMaster);
+    trx.Execute("CREATE TABLE IF NOT EXISTS t_commit(id INT PRIMARY KEY)");
+    trx.Execute("DELETE FROM t_commit");
+    trx.Execute("INSERT INTO t_commit(id) VALUES(100)");
     trx.Commit();
 
-    // Check in another transaction that the value exists.
-    auto check_trx = cluster.Begin();
-    auto result = check_trx.Execute(storages::odbc::ClusterHostType::kMaster, "SELECT id FROM t_commit WHERE id=100");
+    auto check_trx = cluster.Begin(storages::odbc::ClusterHostType::kMaster);
+    auto result = check_trx.Execute("SELECT id FROM t_commit WHERE id=100");
     ASSERT_EQ(result.Size(), 1);
     ASSERT_EQ(result[0][0].GetInt32(), 100);
     check_trx.Commit();
 }
 
 UTEST(Transaction, RollbackData) {
-    storages::odbc::Cluster cluster(kSettings);
-    // Create a table in a transaction and insert a value, then rollback.
-    auto trx = cluster.Begin();
-    trx.Execute(storages::odbc::ClusterHostType::kMaster, "CREATE TABLE IF NOT EXISTS t_rollback(id INT PRIMARY KEY)");
-    trx.Execute(storages::odbc::ClusterHostType::kMaster, "DELETE FROM t_rollback");
-    trx.Execute(storages::odbc::ClusterHostType::kMaster, "INSERT INTO t_rollback(id) VALUES(200)");
+    auto cluster = MakeCluster();
+    auto trx = cluster.Begin(storages::odbc::ClusterHostType::kMaster);
+    trx.Execute("CREATE TABLE IF NOT EXISTS t_rollback(id INT PRIMARY KEY)");
+    trx.Execute("DELETE FROM t_rollback");
+    trx.Execute("INSERT INTO t_rollback(id) VALUES(200)");
     trx.Rollback();
 
-    // Check in another transaction that the value does not exist.
-    auto check_trx = cluster.Begin();
-    auto result = check_trx.Execute(storages::odbc::ClusterHostType::kMaster, "SELECT id FROM t_rollback WHERE id=200");
+    auto check_trx = cluster.Begin(storages::odbc::ClusterHostType::kMaster);
+    auto result = check_trx.Execute("SELECT id FROM t_rollback WHERE id=200");
     ASSERT_EQ(result.Size(), 0);
     check_trx.Commit();
 }
 
-} // namespace storages::odbc::tests
+UTEST(Transaction, SequentialTransactionsReuseConnection) {
+    auto hostSettings = storages::odbc::settings::HostSettings{kDSN, {1, 1}};
+    storages::odbc::Cluster cluster(storages::odbc::settings::ODBCClusterSettings{{hostSettings}}, nullptr);
+
+    cluster.Execute(
+        storages::odbc::ClusterHostType::kMaster,
+        "CREATE TABLE IF NOT EXISTS t_seq(id INT PRIMARY KEY)"
+    );
+    cluster.Execute(storages::odbc::ClusterHostType::kMaster, "DELETE FROM t_seq");
+
+    for (int i = 0; i < 5; ++i) {
+        auto trx = cluster.Begin(storages::odbc::ClusterHostType::kMaster);
+        trx.Execute("INSERT INTO t_seq(id) VALUES(" + std::to_string(i) + ")");
+        trx.Commit();
+    }
+
+    auto result = cluster.Execute(storages::odbc::ClusterHostType::kMaster, "SELECT COUNT(*) FROM t_seq");
+    EXPECT_EQ(result[0][0].GetInt64(), 5);
+}
+
+UTEST(Transaction, PlainQueryAfterTransaction) {
+    auto hostSettings = storages::odbc::settings::HostSettings{kDSN, {1, 1}};
+    storages::odbc::Cluster cluster(storages::odbc::settings::ODBCClusterSettings{{hostSettings}}, nullptr);
+
+    cluster.Execute(
+        storages::odbc::ClusterHostType::kMaster,
+        "CREATE TABLE IF NOT EXISTS t_plain_after(id INT PRIMARY KEY)"
+    );
+    cluster.Execute(storages::odbc::ClusterHostType::kMaster, "DELETE FROM t_plain_after");
+
+    {
+        auto trx = cluster.Begin(storages::odbc::ClusterHostType::kMaster);
+        trx.Execute("INSERT INTO t_plain_after(id) VALUES(1)");
+        trx.Commit();
+    }
+
+    // Plain (non-transactional) insert after a transaction — verifies autocommit is restored
+    cluster.Execute(
+        storages::odbc::ClusterHostType::kMaster,
+        "INSERT INTO t_plain_after(id) VALUES(2)"
+    );
+
+    auto result = cluster.Execute(
+        storages::odbc::ClusterHostType::kMaster,
+        "SELECT COUNT(*) FROM t_plain_after"
+    );
+    EXPECT_EQ(result[0][0].GetInt64(), 2);
+}
+
+}  // namespace storages::odbc::tests
 
 USERVER_NAMESPACE_END

@@ -118,11 +118,11 @@ UTEST(OdbcMetrics, ErrorMetrics) {
 
     const utils::statistics::Snapshot snapshot{
         statistics_storage,
-        "odbc.errors",
-        {{"odbc_pool", "0"}, {"odbc_error", "query-exec"}},
+        "odbc",
+        {{"odbc_pool", "0"}},
     };
 
-    EXPECT_GE(snapshot.SingleMetric().AsRate(), 1);
+    EXPECT_GE(snapshot.SingleMetric("errors", {{"odbc_error", "query-exec"}}).AsRate(), 1);
 
     entry.Unregister();
 }

@@ -24,7 +24,7 @@ server::request::TaskInheritedData MakeRequestData(engine::Deadline deadline) {
 }  // namespace
 
 UTEST(OdbcDeadline, CancelledByInheritedDeadlineOnDefaultExecute) {
-    storages::odbc::Cluster cluster(kSettings);
+    auto cluster = MakeCluster();
     server::request::kTaskInheritedData.Set(MakeRequestData(engine::Deadline::FromDuration(-1s)));
 
     UEXPECT_THROW(
@@ -34,7 +34,7 @@ UTEST(OdbcDeadline, CancelledByInheritedDeadlineOnDefaultExecute) {
 }
 
 UTEST(OdbcDeadline, InheritedExpiredOverridesLongExplicitExecute) {
-    storages::odbc::Cluster cluster(kSettings);
+    auto cluster = MakeCluster();
     server::request::kTaskInheritedData.Set(MakeRequestData(engine::Deadline::Passed()));
 
     UEXPECT_THROW(
@@ -44,7 +44,7 @@ UTEST(OdbcDeadline, InheritedExpiredOverridesLongExplicitExecute) {
 }
 
 UTEST(OdbcDeadline, ExplicitExpiredExecute) {
-    storages::odbc::Cluster cluster(kSettings);
+    auto cluster = MakeCluster();
 
     UEXPECT_THROW(
         cluster.Execute(engine::Deadline::Passed(), storages::odbc::ClusterHostType::kMaster, "SELECT 1"),
@@ -53,14 +53,17 @@ UTEST(OdbcDeadline, ExplicitExpiredExecute) {
 }
 
 UTEST(OdbcDeadline, CancelledByInheritedDeadlineOnBegin) {
-    storages::odbc::Cluster cluster(kSettings);
+    auto cluster = MakeCluster();
     server::request::kTaskInheritedData.Set(MakeRequestData(engine::Deadline::FromDuration(-1s)));
 
-    UEXPECT_THROW(cluster.Begin(storages::odbc::ClusterHostType::kMaster), storages::odbc::OperationInterrupted);
+    UEXPECT_THROW(
+        cluster.Begin(storages::odbc::ClusterHostType::kMaster),
+        storages::odbc::OperationInterrupted
+    );
 }
 
 UTEST(OdbcDeadline, DeadlinePropagationBlockerIgnoresInheritedExpiry) {
-    storages::odbc::Cluster cluster(kSettings);
+    auto cluster = MakeCluster();
     server::request::kTaskInheritedData.Set(MakeRequestData(engine::Deadline::Passed()));
 
     server::request::DeadlinePropagationBlocker blocker;

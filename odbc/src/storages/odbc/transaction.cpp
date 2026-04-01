@@ -90,7 +90,9 @@ ResultSet Transaction::Execute(const Query& query) {
 }
 
 void Transaction::AssertValid() const {
-    UINVARIANT(connection_->IsValid(), "Transaction accessed after it's been committed (or rolled back)");
+    if (!connection_->IsValid()) {
+        throw TransactionException("Transaction accessed after it's been committed (or rolled back)");
+    }
 }
 
 }  // namespace storages::odbc

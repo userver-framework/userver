@@ -421,6 +421,3 @@ endif()
 if(USERVER_INSTALL)
     include(cmake/UserverPack.cmake)
 endif()
-
-include_directories(/opt/homebrew/opt/icu4c/include)
-link_directories(/opt/homebrew/opt/icu4c/lib)

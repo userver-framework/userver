@@ -9,14 +9,12 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::odbc::tests {
 
-UTEST(CreateConnection, Works) { storages::odbc::Cluster cluster(kSettings); }
+UTEST(CreateConnection, Works) { auto cluster = MakeCluster(); }
 
-UTEST(CreateConnection, MultipleDSN) {
-    storages::odbc::Cluster cluster(storages::odbc::settings::ODBCClusterSettings{{kHostSettings, kHostSettings}});
-}
+UTEST(CreateConnection, MultipleDSN) { auto cluster = MakeCluster(kMultiDSNSettings); }
 
 UTEST(Query, Works) {
-    storages::odbc::Cluster cluster(kSettings);
+    auto cluster = MakeCluster();
 
     auto result = cluster.Execute(storages::odbc::ClusterHostType::kMaster, "SELECT 1");
     EXPECT_EQ(result.Size(), 1);
@@ -38,7 +36,7 @@ UTEST(Query, Works) {
 
 UTEST(Query, VariousTypes) {
     auto query = "SELECT 42, 'test', 1.0, false, null, true";
-    storages::odbc::Cluster cluster(kSettings);
+    auto cluster = MakeCluster();
 
     auto result = cluster.Execute(storages::odbc::ClusterHostType::kMaster, query);
     EXPECT_EQ(result.Size(), 1);
@@ -67,7 +65,7 @@ UTEST(Query, VariousTypes) {
 
 UTEST(Query, DifferentHostTypes) {
     auto query = "SELECT 1";
-    storages::odbc::Cluster cluster(kSettings);
+    auto cluster = MakeCluster();
 
     // TODO: needs an actual check that host are selected correctly
     cluster.Execute(storages::odbc::ClusterHostType::kMaster, query);
@@ -75,10 +73,43 @@ UTEST(Query, DifferentHostTypes) {
     cluster.Execute(storages::odbc::ClusterHostType::kNone, query);
 }
 
+UTEST(Query, EmptyResult) {
+    auto cluster = MakeCluster();
+    auto result = cluster.Execute(
+        storages::odbc::ClusterHostType::kMaster,
+        "SELECT 1 WHERE false"
+    );
+    EXPECT_EQ(result.Size(), 0);
+    EXPECT_TRUE(result.IsEmpty());
+}
+
+UTEST(Query, FieldCount) {
+    auto cluster = MakeCluster();
+    auto result = cluster.Execute(storages::odbc::ClusterHostType::kMaster, "SELECT 1, 2, 3");
+    EXPECT_EQ(result.FieldCount(), 3);
+    EXPECT_EQ(result.Size(), 1);
+    EXPECT_EQ(result[0].Size(), 3);
+}
+
+UTEST(Query, GetInt64) {
+    auto cluster = MakeCluster();
+    auto result = cluster.Execute(
+        storages::odbc::ClusterHostType::kMaster,
+        "SELECT 2147483648"
+    );
+    EXPECT_EQ(result[0][0].GetInt64(), 2147483648LL);
+}
+
+UTEST(Query, GetStringFromNumber) {
+    auto cluster = MakeCluster();
+    auto result = cluster.Execute(storages::odbc::ClusterHostType::kMaster, "SELECT 42");
+    EXPECT_EQ(result[0][0].GetString(), "42");
+}
+
 UTEST(Pool, LessQueriesThanConnections) {
     std::size_t poolConnections = 5;
     auto hostSettings = storages::odbc::settings::HostSettings{kDSN, {poolConnections, poolConnections}};
-    storages::odbc::Cluster cluster(storages::odbc::settings::ODBCClusterSettings{{hostSettings}});
+    storages::odbc::Cluster cluster(storages::odbc::settings::ODBCClusterSettings{{hostSettings}}, nullptr);
 
     std::vector<engine::TaskWithResult<ResultSet>> futures;
     futures.reserve(poolConnections);
@@ -99,7 +130,7 @@ UTEST(Pool, LessQueriesThanConnections) {
 UTEST(Pool, EqualQueriesAndConnections) {
     std::size_t poolConnections = 5;
     auto hostSettings = storages::odbc::settings::HostSettings{kDSN, {poolConnections, poolConnections}};
-    storages::odbc::Cluster cluster(storages::odbc::settings::ODBCClusterSettings{{hostSettings}});
+    storages::odbc::Cluster cluster(storages::odbc::settings::ODBCClusterSettings{{hostSettings}}, nullptr);
 
     std::vector<engine::TaskWithResult<ResultSet>> futures;
     futures.reserve(poolConnections);
@@ -120,7 +151,7 @@ UTEST(Pool, EqualQueriesAndConnections) {
 UTEST(Pool, MoreQueriesThanConnectionsButLessThanPoolSize) {
     std::size_t poolConnections = 5;
     auto hostSettings = storages::odbc::settings::HostSettings{kDSN, {poolConnections, poolConnections * 2}};
-    storages::odbc::Cluster cluster(storages::odbc::settings::ODBCClusterSettings{{hostSettings}});
+    storages::odbc::Cluster cluster(storages::odbc::settings::ODBCClusterSettings{{hostSettings}}, nullptr);
 
     std::vector<engine::TaskWithResult<ResultSet>> futures;
     futures.reserve(poolConnections + 2);
@@ -141,7 +172,7 @@ UTEST(Pool, MoreQueriesThanConnectionsButLessThanPoolSize) {
 UTEST(Pool, MoreQueriesThanConnectionsAndPoolSize) {
     std::size_t poolConnections = 5;
     auto hostSettings = storages::odbc::settings::HostSettings{kDSN, {poolConnections, poolConnections}};
-    storages::odbc::Cluster cluster(storages::odbc::settings::ODBCClusterSettings{{hostSettings}});
+    storages::odbc::Cluster cluster(storages::odbc::settings::ODBCClusterSettings{{hostSettings}}, nullptr);
 
     std::vector<engine::TaskWithResult<ResultSet>> futures;
     futures.reserve(poolConnections * 2);
@@ -161,20 +192,20 @@ UTEST(Pool, MoreQueriesThanConnectionsAndPoolSize) {
 
 UTEST(Pool, RestoresBrokenConnection) {
     auto hostSettings = storages::odbc::settings::HostSettings{kDSN, {1, 1}};
-    storages::odbc::Cluster cluster(storages::odbc::settings::ODBCClusterSettings{{hostSettings}});
+    storages::odbc::Cluster cluster(storages::odbc::settings::ODBCClusterSettings{{hostSettings}}, nullptr);
 
     auto killConnectionQuery = "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'postgres';";
 
     try {
         cluster.Execute(storages::odbc::ClusterHostType::kMaster, killConnectionQuery);
     } catch (...) {
-        // terminating the connection brokes query
     }
 
     auto selectRes = cluster.Execute(storages::odbc::ClusterHostType::kMaster, "SELECT 1");
     EXPECT_EQ(selectRes.Size(), 1);
     EXPECT_EQ(selectRes[0][0].GetInt32(), 1);
 }
+
 }  // namespace storages::odbc::tests
 
 USERVER_NAMESPACE_END

@@ -2,6 +2,7 @@
 
 #include <storages/odbc/detail/pool.hpp>
 #include <userver/engine/deadline.hpp>
+#include <userver/storages/odbc/exception.hpp>
 #include <userver/utest/utest.hpp>
 
 USERVER_NAMESPACE_BEGIN

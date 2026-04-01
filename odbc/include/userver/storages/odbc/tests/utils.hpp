@@ -17,9 +17,16 @@ constexpr auto kDSN =
     "UID=testsuite;"
     "PWD=password;";
 
-auto kHostSettings = storages::odbc::settings::HostSettings{kDSN, {}};
-auto kSettings = storages::odbc::settings::ODBCClusterSettings{{kHostSettings}};
-auto kMultiDSNSettings = storages::odbc::settings::ODBCClusterSettings{{kHostSettings, kHostSettings}};
-} // namespace storages::odbc::tests
+inline auto kHostSettings = storages::odbc::settings::HostSettings{kDSN, {}};
+inline auto kSettings = storages::odbc::settings::ODBCClusterSettings{{kHostSettings}};
+inline auto kMultiDSNSettings = storages::odbc::settings::ODBCClusterSettings{{kHostSettings, kHostSettings}};
+
+inline storages::odbc::Cluster MakeCluster(
+    const storages::odbc::settings::ODBCClusterSettings& settings = kSettings
+) {
+    return storages::odbc::Cluster{settings, nullptr};
+}
+
+}  // namespace storages::odbc::tests
 
 USERVER_NAMESPACE_END
