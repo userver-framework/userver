@@ -58,13 +58,8 @@ endif()
 # cmake/UserverSetupEnvironment.cmake
 add_library(userver-internal-compile-options INTERFACE)
 userver_target_require_dwcas(userver-internal-compile-options INTERFACE)
-target_compile_features(userver-internal-compile-options INTERFACE cxx_std_17)
-target_compile_options(userver-internal-compile-options INTERFACE "-Wall" "-Wextra")
-
-# as alternative for -Wno-gnu-zero-variadic-macro-arguments
-if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_STANDARD GREATER_EQUAL 20)
-    target_compile_options(userver-internal-compile-options INTERFACE "-Wpedantic")
-endif()
+target_compile_features(userver-internal-compile-options INTERFACE cxx_std_20)
+target_compile_options(userver-internal-compile-options INTERFACE "-Wall" "-Wextra" "-Wpedantic")
 
 include(UserverCxxCompileOptionsIfSupported)
 userver_target_cxx_compile_options_if_supported(
@@ -80,8 +75,6 @@ userver_target_cxx_compile_options_if_supported(
     "-Wno-error=deprecated-declarations"
     # This warning is unavoidable in generic code with templates
     "-Wno-useless-cast"
-    # Starting from C++20, passing zero arguments to a variadic macro parameter is allowed
-    "-Wno-gnu-zero-variadic-macro-arguments"
     # gcc complains: the ABI of passing union with ‘long double’ has changed in GCC 4.4
     "-Wno-psabi"
 )

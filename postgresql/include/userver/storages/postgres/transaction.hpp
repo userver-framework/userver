@@ -50,7 +50,7 @@ namespace storages::postgres {
 /// ----------
 ///
 /// @htmlonly <div class="bottom-nav"> @endhtmlonly
-/// ⇦ @ref pg_driver | @ref pg_run_queries ⇨
+/// ⇦ @ref scripts/docs/en/userver/pg_driver.md | @ref pg_run_queries ⇨
 /// @htmlonly </div> @endhtmlonly
 
 /// @page pg_run_queries uPg: Running queries

@@ -294,7 +294,7 @@ engine::Task PGConnectionWrapper::Cancel() {
         try {
             detail::Cancel(cancel.get(), engine::Deadline::FromDuration(std::chrono::seconds(5)));
         } catch (const std::exception& e) {
-            PGCW_LOG_LIMITED_WARNING() << "Failed to cancel current request";
+            PGCW_LOG_LIMITED_WARNING() << "Failed to cancel current request: " << e;
         }
     });
 }

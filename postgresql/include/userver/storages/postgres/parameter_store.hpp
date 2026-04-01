@@ -14,7 +14,7 @@ namespace storages::postgres {
 
 /// @ingroup userver_containers
 ///
-/// @brief Class for dynamic PostgreSQL parameter list construction.
+/// @brief Class for dynamic PostgreSQL parameter list construction, allows query construction on the fly.
 ///
 /// Typical use case for this container is to keep parameters around while the
 /// query is being constructed on the fly:

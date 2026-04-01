@@ -68,6 +68,11 @@ function(_userver_setup_environment_impl)
             PARENT_SCOPE
         )
     endif()
+
+    if(CMAKE_CXX_STANDARD LESS 20)
+        message(FATAL_ERROR "userver requires CMAKE_CXX_STANDARD >= 20 (got: ${CMAKE_CXX_STANDARD})")
+    endif()
+
     message(STATUS "C++ standard ${CMAKE_CXX_STANDARD}")
     set(CMAKE_CXX_STANDARD_REQUIRED
         ON

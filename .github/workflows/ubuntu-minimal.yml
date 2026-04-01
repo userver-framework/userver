@@ -24,7 +24,7 @@ jobs:
         env:
             CMAKE_FLAGS: >-
                 -DCMAKE_BUILD_TYPE=Debug
-                -DCMAKE_CXX_STANDARD=17
+                -DCMAKE_CXX_STANDARD=20
                 -DUSERVER_SANITIZE="ub addr"
                 -DUSERVER_BUILD_SAMPLES=1
                 -DUSERVER_BUILD_TESTS=1

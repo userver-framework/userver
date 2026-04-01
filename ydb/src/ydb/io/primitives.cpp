@@ -155,6 +155,46 @@ void BoolTrait::Write(NYdb::TValueBuilderBase<Builder>& builder, Type value) {
     builder.Bool(value);
 }
 
+template struct OptionalPrimitiveTraits<Int8Trait>;
+template struct PrimitiveTraits<Int8Trait>;
+
+Int8Trait::Type Int8Trait::Parse(const NYdb::TValueParser& value_parser) { return value_parser.GetInt8(); }
+
+template <typename Builder>
+void Int8Trait::Write(NYdb::TValueBuilderBase<Builder>& builder, Type value) {
+    builder.Int8(value);
+}
+
+template struct OptionalPrimitiveTraits<Uint8Trait>;
+template struct PrimitiveTraits<Uint8Trait>;
+
+Uint8Trait::Type Uint8Trait::Parse(const NYdb::TValueParser& value_parser) { return value_parser.GetUint8(); }
+
+template <typename Builder>
+void Uint8Trait::Write(NYdb::TValueBuilderBase<Builder>& builder, Type value) {
+    builder.Uint8(value);
+}
+
+template struct OptionalPrimitiveTraits<Int16Trait>;
+template struct PrimitiveTraits<Int16Trait>;
+
+Int16Trait::Type Int16Trait::Parse(const NYdb::TValueParser& value_parser) { return value_parser.GetInt16(); }
+
+template <typename Builder>
+void Int16Trait::Write(NYdb::TValueBuilderBase<Builder>& builder, Type value) {
+    builder.Int16(value);
+}
+
+template struct OptionalPrimitiveTraits<Uint16Trait>;
+template struct PrimitiveTraits<Uint16Trait>;
+
+Uint16Trait::Type Uint16Trait::Parse(const NYdb::TValueParser& value_parser) { return value_parser.GetUint16(); }
+
+template <typename Builder>
+void Uint16Trait::Write(NYdb::TValueBuilderBase<Builder>& builder, Type value) {
+    builder.Uint16(value);
+}
+
 template struct OptionalPrimitiveTraits<Int32Trait>;
 template struct PrimitiveTraits<Int32Trait>;
 

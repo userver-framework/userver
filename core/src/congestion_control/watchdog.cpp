@@ -44,7 +44,22 @@ void Watchdog::Check() {
     auto cis = cis_.Lock();
     for (const auto& ci : *cis) {
         auto data = ci.sensor.FetchCurrent();
+
+        TESTPOINT_CALLBACK_NONCORO(
+            "congestion-control-sensor",
+            formats::json::Value{},
+            tp_,
+            [&data](const formats::json::Value& doc) {
+                data.current_load = doc["current-load"].As<std::uint64_t>(data.current_load);
+                data.overload_events_count = doc["overload-events-count"].As<std::uint64_t>(data.overload_events_count);
+                data.no_overload_events_count =
+                    doc["no-overload-events-count"].As<std::uint64_t>(data.no_overload_events_count);
+                LOG_INFO() << "Forcing CC Sensor data from testpoint: " << doc;
+            }
+        );
+
         ci.controller.Feed(data);
+
         auto limit = ci.controller.GetLimit();
 
         TESTPOINT_CALLBACK_NONCORO(
@@ -52,10 +67,13 @@ void Watchdog::Check() {
             formats::json::Value{},
             tp_,
             [&limit](const formats::json::Value& doc) {
-                limit.load_limit = doc["force-rps-limit"].As<std::optional<size_t>>();
-                LOG_ERROR() << "Forcing RPS limit from testpoint: " << limit.load_limit;
+                if (doc.HasMember("force-rps-limit")) {
+                    limit.load_limit = doc["force-rps-limit"].As<std::optional<std::size_t>>();
+                    LOG_ERROR() << "Forcing RPS limit from testpoint: " << limit.load_limit;
+                }
             }
         );
+
         ci.limiter.SetLimit(limit);
 
         TESTPOINT_NONCORO("congestion-control-apply", formats::json::Value{}, tp_);

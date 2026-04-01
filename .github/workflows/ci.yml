@@ -28,12 +28,13 @@ jobs:
                         -DCMAKE_CXX_COMPILER=clang++-18
                         -DCMAKE_C_COMPILER=clang-18
                         -DCMAKE_BUILD_TYPE=Debug
-                        -DCMAKE_CXX_STANDARD=17
+                        -DCMAKE_CXX_STANDARD=20
                         -DUSERVER_SANITIZE="ub addr"
                         -DUSERVER_NO_WERROR=0
                         -DUSERVER_BUILD_ALL_COMPONENTS=1
                         -DUSERVER_BUILD_SAMPLES=1
                         -DUSERVER_BUILD_TESTS=1
+                        -DUSERVER_FEATURE_YDB=0
                         -DUSERVER_NAMESPACE=userver_ns
                         -DUSERVER_NAMESPACE_BEGIN="namespace userver_ns { inline namespace
                         v1 {"
@@ -51,7 +52,7 @@ jobs:
                         -DCMAKE_CXX_COMPILER=g++-13
                         -DCMAKE_C_COMPILER=gcc-13
                         -DCMAKE_BUILD_TYPE=Release
-                        -DCMAKE_CXX_STANDARD=17
+                        -DCMAKE_CXX_STANDARD=20
                         -DUSERVER_SANITIZE=""
                         -DUSERVER_NO_WERROR=1
                         -DUSERVER_BUILD_ALL_COMPONENTS=1
@@ -68,12 +69,13 @@ jobs:
                         -DCMAKE_CXX_COMPILER=clang++-14
                         -DCMAKE_C_COMPILER=clang-14
                         -DCMAKE_BUILD_TYPE=Debug
-                        -DCMAKE_CXX_STANDARD=17
+                        -DCMAKE_CXX_STANDARD=20
                         -DUSERVER_SANITIZE="ub addr"
                         -DUSERVER_NO_WERROR=0
                         -DUSERVER_BUILD_ALL_COMPONENTS=1
                         -DUSERVER_BUILD_SAMPLES=1
                         -DUSERVER_BUILD_TESTS=1
+                        -DUSERVER_FEATURE_YDB=0
                         -DUSERVER_NAMESPACE=userver_ns
                         -DUSERVER_NAMESPACE_BEGIN="namespace userver_ns { inline namespace
                         v1 {"
@@ -90,11 +92,12 @@ jobs:
                         -DCMAKE_CXX_COMPILER=g++-10
                         -DCMAKE_C_COMPILER=gcc-10
                         -DCMAKE_BUILD_TYPE=Release
-                        -DCMAKE_CXX_STANDARD=17
+                        -DCMAKE_CXX_STANDARD=20
                         -DUSERVER_USE_LD=gold
                         -DUSERVER_BUILD_ALL_COMPONENTS=1
                         -DUSERVER_BUILD_SAMPLES=1
                         -DUSERVER_BUILD_TESTS=1
+                        -DUSERVER_FEATURE_YDB=0
                         -DUSERVER_NO_WERROR=1
                     os: ubuntu-22.04
                     info: g++-10 + release
