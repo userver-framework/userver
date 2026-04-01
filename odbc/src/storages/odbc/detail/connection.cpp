@@ -3,6 +3,7 @@
 #include <storages/odbc/detail/broken_guard.hpp>
 #include <storages/odbc/detail/deadline.hpp>
 #include <storages/odbc/detail/diag_wrapper.hpp>
+#include <storages/odbc/detail/result_wrapper.hpp>
 #include <storages/odbc/detail/tracing.hpp>
 #include <userver/storages/odbc/exception.hpp>
 
@@ -13,6 +14,7 @@
 #include <fmt/format.h>
 #include <sql.h>
 #include <sqlext.h>
+#include <userver/tracing/span.hpp>
 #include <userver/tracing/tags.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -138,7 +140,7 @@ ResultSet Connection::Query(std::string_view query, engine::Deadline deadline) {
         std::vector<SQLCHAR> query_buffer(query.begin(), query.end());
         query_buffer.push_back('\0');
         SQLRETURN ret = SQLExecDirect(stmt.get(), query_buffer.data(), SQL_NTS);
-        if (!SQL_SUCCEEDED(ret)) {
+        if (!SQL_SUCCEEDED(ret) && ret != SQL_NO_DATA) {
             const auto diag = detail::GetSQLDiagString(stmt.get(), SQL_HANDLE_STMT);
             span.AddTag(tracing::kErrorFlag, true);
             span.AddTag(tracing::kErrorMessage, diag);
@@ -146,7 +148,16 @@ ResultSet Connection::Query(std::string_view query, engine::Deadline deadline) {
         }
 
         auto wrapper = std::make_shared<detail::ResultWrapper>(std::move(stmt));
-        wrapper->Fetch();
+        // Only call Fetch for SELECT-like statements that produce a result set.
+        // DML statements (INSERT/UPDATE/DELETE) have 0 result columns; calling
+        // SQLFetch on them returns SQL_NO_DATA or an error depending on the driver.
+        if (ret != SQL_NO_DATA) {
+            SQLSMALLINT col_count = 0;
+            SQLNumResultCols(stmt.get(), &col_count);
+            if (col_count > 0) {
+                wrapper->Fetch();
+            }
+        }
 
         return ResultSet(std::move(wrapper));
     });
@@ -215,6 +226,7 @@ void Connection::Commit(engine::Deadline deadline) {
                 detail::GetSQLDiagString(handle_.get(), SQL_HANDLE_DBC)
             );
         }
+        RestoreAutocommit();
     });
 }
 
@@ -234,7 +246,23 @@ void Connection::Rollback(engine::Deadline deadline) {
                 detail::GetSQLDiagString(handle_.get(), SQL_HANDLE_DBC)
             );
         }
+        RestoreAutocommit();
     });
+}
+
+void Connection::RestoreAutocommit() {
+    SQLRETURN ret = SQLSetConnectAttr(
+        handle_.get(),
+        SQL_ATTR_AUTOCOMMIT,
+        reinterpret_cast<SQLPOINTER>(SQL_AUTOCOMMIT_ON),
+        SQL_IS_UINTEGER
+    );
+    if (!SQL_SUCCEEDED(ret)) {
+        throw ConnectionError(
+            "Failed to restore autocommit after transaction:" +
+            detail::GetSQLDiagString(handle_.get(), SQL_HANDLE_DBC)
+        );
+    }
 }
 
 }  // namespace storages::odbc

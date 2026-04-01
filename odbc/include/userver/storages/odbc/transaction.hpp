@@ -6,6 +6,8 @@
 
 #include <userver/engine/deadline.hpp>
 #include <userver/tracing/span.hpp>
+#include <userver/utils/datetime/steady_coarse_clock.hpp>
+#include <userver/utils/fast_pimpl.hpp>
 #include <userver/utils/trx_tracker.hpp>
 
 #include <userver/storages/odbc/result_set.hpp>
@@ -41,10 +43,11 @@ public:
 private:
     void AssertValid() const;
 
-    detail::ConnectionPtr connection_;
+    // shared_ptr<Pool>(16) + unique_ptr<Connection>(8) = 24 bytes, align 8
+    utils::FastPimpl<detail::ConnectionPtr, 24, 8> connection_;
     detail::Pool* pool_;
     engine::Deadline deadline_;
-    std::chrono::steady_clock::time_point start_time_;
+    utils::datetime::SteadyCoarseClock::time_point start_time_;
     std::chrono::microseconds busy_time_{0};
     tracing::Span span_;
     utils::trx_tracker::TransactionLock trx_lock_;

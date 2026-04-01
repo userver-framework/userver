@@ -1,6 +1,7 @@
 
 #include <userver/storages/odbc/result_set.hpp>
 
+#include <storages/odbc/detail/result_wrapper.hpp>
 #include <userver/storages/odbc/exception.hpp>
 #include <userver/utils/assert.hpp>
 

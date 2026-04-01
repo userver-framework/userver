@@ -55,6 +55,7 @@ protected:
     bool IsInsideTransaction() const; // check if connection has autocommit_off transaction mode
 
 private:
+    void RestoreAutocommit();
     bool DriverReportsDead() const;
 
     EnvironmentHandle env_;

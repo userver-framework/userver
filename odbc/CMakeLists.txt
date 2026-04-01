@@ -9,6 +9,7 @@ userver_module(
     DBTEST_DATABASES postgresql
     DBTEST_ENV POSTGRES_TEST_DSN=postgresql://testsuite@localhost:15433/postgres
     DEPENDS core
+    EMBED_FILES src/storages/odbc/component.yaml
 )
 
 _userver_directory_install(
@@ -16,3 +17,7 @@ _userver_directory_install(
     FILES "${USERVER_ROOT_DIR}/cmake/modules/Findlibodbc.cmake"
     DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/userver/modules"
 )
+
+if(USERVER_BUILD_TESTS)
+    add_subdirectory(functional_tests)
+endif()

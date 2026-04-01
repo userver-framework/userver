@@ -7,6 +7,8 @@
 #include <userver/components/component.hpp>
 #include <userver/components/statistics_storage.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
+#include <userver/storages/odbc/cluster.hpp>
+#include <userver/storages/odbc/settings.hpp>
 #include <userver/storages/secdist/component.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>

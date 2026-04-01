@@ -48,8 +48,8 @@ void Transaction::Commit() {
     const utils::FastScopeGuard unlock_guard([this]() noexcept { trx_lock_.Unlock(); });
     AssertValid();
     detail::CheckDeadlineNotExpired(deadline_);
-    auto connection = std::move(connection_);
-    (*connection)->Commit(deadline_);
+    auto connection = std::move(*connection_);
+    connection->Commit(deadline_);
 
     const auto total_duration = std::chrono::duration_cast<std::chrono::microseconds>(
         utils::datetime::SteadyCoarseClock::now() - start_time_
@@ -61,8 +61,8 @@ void Transaction::Rollback() {
     const utils::FastScopeGuard unlock_guard([this]() noexcept { trx_lock_.Unlock(); });
     AssertValid();
     detail::CheckDeadlineNotExpired(deadline_);
-    auto connection = std::move(connection_);
-    (*connection)->Rollback(deadline_);
+    auto connection = std::move(*connection_);
+    connection->Rollback(deadline_);
     pool_->AccountTransactionRollback();
 }
 

@@ -3,7 +3,7 @@
 #include <limits>
 #include <memory>
 
-#include <storages/odbc/detail/result_wrapper.hpp>
+#include <userver/storages/odbc/odbc_fwd.hpp>
 #include <userver/storages/odbc/row.hpp>
 
 USERVER_NAMESPACE_BEGIN
