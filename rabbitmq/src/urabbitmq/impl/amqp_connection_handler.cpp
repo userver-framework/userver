@@ -180,6 +180,7 @@ void AmqpConnectionHandler::onReady(AMQP::Connection*) {
 }
 
 void AmqpConnectionHandler::OnConnectionCreated(AmqpConnection* connection, engine::Deadline deadline) {
+    UINVARIANT(connection_ == nullptr, "Unexpected repeated OnConnectionCreated call");
     connection_ = connection;
     reader_.Start(connection);
 

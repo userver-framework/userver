@@ -152,20 +152,27 @@ async def test_rabbitmq_heartbeat_reconnects(testpoint, service_client, gate):
     assert response.status_code == 200
     await message_consumed.wait_call()
 
-    await gate.to_server_noop()
-    await gate.to_client_noop()
-    await asyncio.sleep(2.5)
-    await gate.to_server_pass()
-    await gate.to_client_pass()
-    await gate.sockets_close()
+    async with service_client.capture_logs(log_level='INFO') as capture:
 
-    await gate.wait_for_connections(timeout=10.0)
-    await asyncio.sleep(1.0)
+        @capture.subscribe(text="Consumer for queue 'chaos-queue' is broken, trying to restart")
+        def consumer_broken(**kwargs):
+            pass
 
-    response = await service_client.post('/v1/messages?message=after-heartbeat')
-    assert response.status_code == 200
+        @capture.subscribe(text='Restarted successfully')
+        def consumer_restarted(**kwargs):
+            pass
 
-    await message_consumed.wait_call()
+        await gate.to_server_drop()
+        await asyncio.sleep(3.0)
+        await gate.to_server_pass()
+
+        await consumer_broken.wait_call()
+        await consumer_restarted.wait_call()
+
+        response = await service_client.post('/v1/messages?message=after-heartbeat')
+        assert response.status_code == 200
+
+        await message_consumed.wait_call()
 
     response = await service_client.get('/v1/messages')
     assert response.status_code == 200

@@ -85,7 +85,8 @@ AMQP::Array ToAmqpArray(const HeaderValue& value) {
 AMQP::Table ToAmqpTable(const HeaderValue& value) {
     AMQP::Table table;
     for (const auto& [key, item] : formats::common::Items(value)) {
-        WithAmqpField(item, [&table, &key](const AMQP::Field& field) { table.set(key, field); });
+        const auto key_copy = std::string{key};
+        WithAmqpField(item, [&table, key_copy](const AMQP::Field& field) { table.set(key_copy, field); });
     }
 
     return table;
@@ -157,7 +158,8 @@ std::unordered_map<std::string, HeaderValue> TableToHeaders(const AMQP::Table& t
 
 void AddHeadersToTable(AMQP::Table& table, const std::unordered_map<std::string, HeaderValue>& headers) {
     for (const auto& [key, value] : headers) {
-        WithAmqpField(value, [&table, &key](const AMQP::Field& field) { table.set(key, field); });
+        const auto key_copy = key;
+        WithAmqpField(value, [&table, key_copy](const AMQP::Field& field) { table.set(key_copy, field); });
     }
 }
 
