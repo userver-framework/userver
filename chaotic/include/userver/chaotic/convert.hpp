@@ -72,7 +72,7 @@ public:
 }  // namespace impl
 
 template <typename T, typename U>
-constexpt auto Convert(const T& value, To<U>) -> decltype(U{value}) {
+constexpr auto Convert(const T& value, To<U>) -> decltype(U{value}) {
     return U{value};
 }
 
