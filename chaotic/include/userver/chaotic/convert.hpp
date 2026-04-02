@@ -72,7 +72,7 @@ public:
 }  // namespace impl
 
 template <typename T, typename U>
-constexpr std::enable_if_t<std::is_constructible_v<U, const T&>, U> Convert(const T& value, To<U>) {
+constexpt auto Convert(const T& value, To<U>) -> decltype(U{value}) {
     return U{value};
 }
 
