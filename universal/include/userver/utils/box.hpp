@@ -80,18 +80,8 @@ public:
     {}
 
     /// Allocate the value, emplacing it with the given @a args.
-    template <
-        typename... Args,
-        std::enable_if_t<
-            impl::ConjunctionWithTrait<
-                // Protection against hiding special
-                // constructors.
-                impl::kArgsAreNotSelf<Box, Args...>,
-                // Support SFINAE.
-                std::is_constructible,
-                T,
-                Args&&...>(),
-            int> = 0>
+    template <typename... Args>
+    requires impl::kArgsAreNotSelf<Box, Args...> && requires(Args&&... args) { T(std::forward<Args>(args)...); }
     explicit Box(Args&&... args)
         : data_(std::make_unique<T>(std::forward<Args>(args)...))
     {}
@@ -116,22 +106,11 @@ public:
     }
 
     /// Assigns-through to the contained value.
-    template <
-        typename U = T,
-        std::enable_if_t<
-            impl::ConjunctionWithTrait<  //
-                impl::ConjunctionWithTrait<
-                    // Protection against hiding
-                    // special constructors.
-                    impl::kArgsAreNotSelf<Box, U>,
-                    // Support SFINAE.
-                    std::is_constructible,
-                    T,
-                    U>(),
-                std::is_assignable,
-                T&,
-                U>(),
-            int> = 0>
+    template <typename U = T>
+    requires impl::kArgsAreNotSelf<Box, U> && requires(U&& other) {
+        // Constructible and assignable
+        T(std::forward<U>(other)) = other;
+    }
     Box& operator=(U&& other) {
         if (data_) {
             *data_ = std::forward<U>(other);
