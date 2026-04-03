@@ -67,7 +67,7 @@ struct IsStringEnum<Enum, utils::void_t<decltype(Convert(std::string_view{}, cha
 }  // namespace impl
 
 template <typename Enum>
-requires std::is_enum_v<Enum>
+    requires std::is_enum_v<Enum>
 std::conditional_t<impl::IsStringEnum<Enum>::value, impl::StringEnumParser<Enum>, impl::IntEnumParser<Enum>>
     ParserOf(Type<Enum>);
 
