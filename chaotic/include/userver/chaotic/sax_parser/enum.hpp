@@ -68,8 +68,14 @@ struct IsStringEnum<Enum, utils::void_t<decltype(Convert(std::string_view{}, cha
 
 template <typename Enum>
     requires std::is_enum_v<Enum>
-std::conditional_t<impl::IsStringEnum<Enum>::value, impl::StringEnumParser<Enum>, impl::IntEnumParser<Enum>>
-    ParserOf(Type<Enum>);
+auto ParserOf(Type<Enum>)
+{
+  if constexpr (impl::IsStringEnum<Enum>::value) {
+    return impl::StringEnumParser<Enum>{};
+  } else {
+    return impl::IntEnumParser<Enum> {};
+  }
+}
 
 }  // namespace chaotic::sax
 
