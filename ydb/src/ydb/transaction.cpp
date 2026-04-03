@@ -22,43 +22,32 @@ namespace ydb {
 TxActor::TxActor(
     TableClient& table_client,
     NYdb::NQuery::TTransaction ydb_tx,
-    std::string name
+    engine::Deadline deadline
 ) noexcept
     : table_client_(table_client),
-        name_(std::move(name)),
-        stats_scope_(impl::StatsScope::TransactionTag{}, *table_client_.stats_, name_),
-        span_("ydb_retry_transaction"),
-        ydb_tx_(std::move(ydb_tx)) {
-    span_.DetachFromCoroStack();
-    span_.AddTag("transaction_name", name_);
-}
+      ydb_tx_(std::move(ydb_tx)),
+      deadline_(deadline)
+{}
 
 ExecuteResponse TxActor::Execute(ExecuteSettings settings, const Query& query, PreparedArgsBuilder&& builder) {
-    impl::RequestContext<ExecuteSettings> context{table_client_, query, std::move(settings), impl::IsStreaming{false}, &span_};
+    impl::RequestContext<ExecuteSettings>
+        context{table_client_, query, std::move(settings), impl::IsStreaming{false}, nullptr, deadline_};
     auto internal_params = std::move(builder).Build();
 
-    auto exec_settings = impl::PrepareRequestSettings<NYdb::NQuery::TExecuteQuerySettings, ExecuteSettings>(settings, context.deadline);
+    auto exec_settings =
+        impl::PrepareRequestSettings<NYdb::NQuery::TExecuteQuerySettings, ExecuteSettings>(settings, context.deadline);
 
     const auto tx = NYdb::NQuery::TTxControl::Tx(ydb_tx_);
-    auto execute_fut = ydb_tx_.GetSession().ExecuteQuery(
-        impl::ToString(query.GetStatementView()),
-        tx,
-        std::move(internal_params),
-        exec_settings
-    );
+    auto execute_fut =
+        ydb_tx_.GetSession()
+            .ExecuteQuery(impl::ToString(query.GetStatementView()), tx, std::move(internal_params), exec_settings);
 
-    auto status = impl::GetFutureValueChecked(
-        std::move(execute_fut),
-        "TxActor::Execute",
-        context
-    );
+    auto status = impl::GetFutureValueChecked(std::move(execute_fut), "TxActor::Execute", context);
 
     return ExecuteResponse(std::move(status));
 }
 
-PreparedArgsBuilder TxActor::GetBuilder() const {
-    return table_client_.GetBuilder();
-}
+PreparedArgsBuilder TxActor::GetBuilder() const { return table_client_.GetBuilder(); }
 
 Transaction::Transaction(
     TableClient& table_client,
@@ -260,6 +249,10 @@ ExecuteResponse Transaction::Execute(
 
     error_guard.Release();
     return ExecuteResponse(std::move(status));
+}
+
+NYdb::TTransactionBase& Transaction::GetNativeTransaction() {
+    return std::visit([](auto& tx) -> NYdb::TTransactionBase& { return tx; }, ydb_tx_);
 }
 
 }  // namespace ydb

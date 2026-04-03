@@ -40,9 +40,7 @@ constexpr NYdb::EStatus kSuccess = NYdb::EStatus::SUCCESS;
 constexpr NYdb::EStatus kRetryableStatus = NYdb::EStatus::ABORTED;
 constexpr NYdb::EStatus kNonRetryableStatus = NYdb::EStatus::BAD_REQUEST;
 
-inline NYdb::TStatus MakeStatusFuture(NYdb::EStatus status) {
-    return NYdb::TStatus(status, NYdb::NIssue::TIssues{});
-}
+inline NYdb::TStatus MakeStatusFuture(NYdb::EStatus status) { return NYdb::TStatus(status, NYdb::NIssue::TIssues{}); }
 
 class TestOperationResults final : public NYdb::TStatus {
 public:

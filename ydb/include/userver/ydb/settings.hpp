@@ -52,6 +52,8 @@ struct RetryTxSettings final {
 
     CommitSettings commit_settings;
     RollbackSettings rollback_settings;
+
+    std::string trace_id{};
 };
 
 }  // namespace ydb

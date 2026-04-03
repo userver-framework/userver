@@ -9,7 +9,6 @@
 
 #include <userver/ydb/exceptions.hpp>
 #include <ydb/impl/request_context.hpp>
-//#include <ydb/impl/retry.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

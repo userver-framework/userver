@@ -27,31 +27,29 @@ VALUES ($id_key, $name_key, $service_key, $channel_key, CurrentUtcTimestamp(), $
         ydb::Query::LogMode::kNameOnly,
     };
 
-    Ydb().RetryTx("trx", {.tx_mode = ydb::TransactionMode::kSerializableRW},
-        [&](ydb::TxActor& tx) {
-            for (auto i : {1, 2}) {
-                auto response = tx.Execute(
-                    kUpsertQuery,  //
-                    "$id_key",
-                    request["id"].As<std::string>() + std::to_string(i),  //
-                    "$name_key",
-                    ydb::Utf8{request["name"].As<std::string>() + std::to_string(i)},  //
-                    "$service_key",
-                    request["service"].As<std::string>(),  //
-                    "$channel_key",
-                    request["channel"].As<int64_t>(),  //
-                    "$state_key",
-                    request["state"].As<std::optional<formats::json::Value>>()  //
-                );
+    Ydb().RetryTx("trx", {.tx_mode = ydb::TransactionMode::kSerializableRW}, [&](ydb::TxActor& tx) {
+        for (auto i : {1, 2}) {
+            auto response = tx.Execute(
+                kUpsertQuery,  //
+                "$id_key",
+                request["id"].As<std::string>() + std::to_string(i),  //
+                "$name_key",
+                ydb::Utf8{request["name"].As<std::string>() + std::to_string(i)},  //
+                "$service_key",
+                request["service"].As<std::string>(),  //
+                "$channel_key",
+                request["channel"].As<int64_t>(),  //
+                "$state_key",
+                request["state"].As<std::optional<formats::json::Value>>()  //
+            );
 
-                if (response.GetCursorCount() != 0) {
-                    throw std::runtime_error("Unexpected response data");
-                }
+            if (response.GetCursorCount() != 0) {
+                throw std::runtime_error("Unexpected response data");
             }
-
-            return ydb::TxAction::kCommit;
         }
-    );
+
+        return ydb::TxAction::kCommit;
+    });
 
     return formats::json::MakeObject();
 }

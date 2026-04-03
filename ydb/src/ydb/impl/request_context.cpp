@@ -19,23 +19,25 @@ namespace ydb::impl {
 namespace {
 
 template <typename Settings>
-void AddSpecificTags(tracing::Span& span, const Settings& settings);
+void AddSpecificTags(tracing::Span& span, Settings& settings);
 
 template <>
-void AddSpecificTags<OperationSettings>(tracing::Span& span, const OperationSettings& settings) {
+void AddSpecificTags<OperationSettings>(tracing::Span& span, OperationSettings& settings) {
     UASSERT(settings.retries.has_value());
     span.AddTag("max_retries", *settings.retries);
     span.AddTag("get_session_timeout_ms", settings.get_session_timeout_ms.count());
     span.AddTag("client_timeout_ms", settings.client_timeout_ms.count());
+    settings.trace_id = span.GetTraceId();
 }
 
 template <>
-void AddSpecificTags<RequestSettings>(tracing::Span& span, const RequestSettings& settings) {
+void AddSpecificTags<RequestSettings>(tracing::Span& span, RequestSettings& settings) {
     span.AddTag("timeout_ms", settings.timeout_ms.count());
+    settings.trace_id = span.GetTraceId();
 }
 
 template <>
-void AddSpecificTags<RetryTxSettings>(tracing::Span& span, const RetryTxSettings& settings) {
+void AddSpecificTags<RetryTxSettings>(tracing::Span& span, RetryTxSettings& settings) {
     span.AddTag("timeout_ms", settings.timeout_ms.count());
     span.AddTag("retries", settings.retries);
     span.AddTag("is_idempotent", settings.is_idempotent);
@@ -52,8 +54,6 @@ tracing::Span MakeSpan(
         custom_parent_span
             ? custom_parent_span->CreateChild("ydb_query", location)
             : tracing::Span("ydb_query", location);
-
-    // settings.trace_id = span.GetTraceId();
 
     const auto optional_name_view = query.GetOptionalNameView();
     switch (query.GetLogMode()) {
@@ -108,7 +108,7 @@ void PrepareSettings<OperationSettings>(
     // 3. Dynamic config
 
     if (!os.retries.has_value()) {
-        os.retries = default_settings.retries.value();
+        os.retries = default_settings.retries;
     }
 
     // For streaming operations, client timeout is applied to the entire
@@ -127,7 +127,7 @@ void PrepareSettings<OperationSettings>(
         os.get_session_timeout_ms = default_settings.get_session_timeout_ms;
     }
     if (!os.tx_mode) {
-        os.tx_mode = default_settings.tx_mode.value();
+        os.tx_mode = default_settings.tx_mode;
     }
 
     const auto& cc_map = config_snapshot[::dynamic_config::YDB_QUERIES_COMMAND_CONTROL];
@@ -176,6 +176,8 @@ void PrepareSettings<RetryTxSettings>(
     // TODO: to think about default settings for RetryTxSettings
 }
 
+}  // namespace
+
 engine::Deadline GetDeadline(tracing::Span& span, const dynamic_config::Snapshot& config_snapshot) {
     if (config_snapshot[::dynamic_config::YDB_DEADLINE_PROPAGATION_VERSION] !=
         impl::kDeadlinePropagationExperimentVersion)
@@ -203,8 +205,6 @@ engine::Deadline GetDeadline(tracing::Span& span, const dynamic_config::Snapshot
     return inherited_deadline;
 }
 
-}  // namespace
-
 template <typename Settings>
 RequestContext<Settings>::RequestContext(
     TableClient& l_table_client,
@@ -212,6 +212,7 @@ RequestContext<Settings>::RequestContext(
     Settings&& settings,
     IsStreaming is_streaming,
     tracing::Span* custom_parent_span,
+    engine::Deadline parent_deadline,
     const utils::impl::SourceLocation& location
 )
     : table_client(l_table_client),
@@ -221,10 +222,11 @@ RequestContext<Settings>::RequestContext(
       config_snapshot(table_client.config_source_.GetSnapshot()),
       // Note: comma operator is used to insert code between initializations.
       span((
-          PrepareSettings<Settings>(query, config_snapshot, this->settings, is_streaming, table_client.default_settings_),
+          PrepareSettings<
+              Settings>(query, config_snapshot, this->settings, is_streaming, table_client.default_settings_),
           MakeSpan<Settings>(query, this->settings, custom_parent_span, location)
       )),
-      deadline(GetDeadline(span, config_snapshot))
+      deadline(std::min(GetDeadline(span, config_snapshot), parent_deadline))
 {}
 
 template <typename Settings>
@@ -252,9 +254,9 @@ RequestContext<Settings>::~RequestContext() {
     }
 }
 
-template struct RequestContext<OperationSettings>;
-template struct RequestContext<RequestSettings>;
-template struct RequestContext<RetryTxSettings>;
+template class RequestContext<OperationSettings>;
+template class RequestContext<RequestSettings>;
+template class RequestContext<RetryTxSettings>;
 
 }  // namespace ydb::impl
 

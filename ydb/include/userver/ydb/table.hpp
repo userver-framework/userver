@@ -34,7 +34,7 @@ struct Stats;
 struct TableSettings;
 class Driver;
 template <typename Settings = OperationSettings>
-struct RequestContext;
+class RequestContext;
 enum class IsStreaming : bool {};
 }  // namespace impl
 
@@ -263,7 +263,7 @@ private:
     friend class Transaction;
     friend class TxActor;
     template <typename Settings>
-    friend struct impl::RequestContext;
+    friend class impl::RequestContext;
 
     std::string JoinDbPath(std::string_view path) const;
 

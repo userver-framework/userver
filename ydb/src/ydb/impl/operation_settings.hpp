@@ -46,6 +46,19 @@ void ApplyToRequestSettings(
     }
 }
 
+template <typename T>
+void ApplyToRequestSettings(
+    NYdb::TRequestSettings<T>& result,
+    const RetryTxSettings& settings,
+    engine::Deadline deadline
+) {
+    result.ClientTimeout(GetBoundTimeout(settings.timeout_ms, deadline));
+
+    if (!settings.trace_id.empty()) {
+        result.TraceId(impl::ToString(settings.trace_id));
+    }
+}
+
 template <typename T, typename Settings = OperationSettings>
 void ApplyToRequestSettings(
     NYdb::TOperationRequestSettings<T>& result,

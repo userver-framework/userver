@@ -26,7 +26,6 @@ struct BackoffSettings {
 
 struct CommonRetrySettings {
     std::chrono::milliseconds timeout_ms{std::chrono::milliseconds::max()};
-    std::chrono::milliseconds get_session_timeout_ms{5000};
     std::uint32_t retries{10};
     bool is_idempotent{false};
 
@@ -67,60 +66,82 @@ NYdb::TAsyncStatus RetryOperation(NYdb::NQuery::TQueryClient& query_client, Args
     return query_client.RetryQuery(std::forward<Args>(args)...);
 }
 
-template <typename TClient, typename Fn, typename GetSessionSettings>
+template <typename TClient, typename Settings, typename Fn, typename GetSessionSettings>
 class RetryHandler {
 public:
     using TSession = typename TClient::TSession;
 
     RetryHandler(
-        TClient& client,
-        utils::RetryBudget& retry_budget,
-        const CommonRetrySettings& retry_settings,
+        TClient& native_client,
+        TableClient& table_client,
+        const Settings& settings,
+        engine::Deadline deadline,
         Fn&& fn
     )
-        : client_{client},
-          retry_budget_{retry_budget},
-          retry_settings_{retry_settings},
-          get_session_settings_{GetSessionSettings().ClientTimeout(retry_settings_.get_session_timeout_ms)},
-          fn_{std::move(fn)}
+        : native_client_{native_client},
+          table_client_{table_client},
+          settings_{settings},
+          retry_settings_{PrepareRetrySettings<Settings>(settings_, table_client_.GetRetryBudget(), deadline)},
+          fn_{std::move(fn)},
+          deadline_{engine::Deadline::FromDuration(retry_settings_.timeout_ms)}
     {}
 
     void Execute() {
-        std::optional<TSession> session;
-        engine::Deadline deadline = engine::Deadline::FromDuration(retry_settings_.timeout_ms);
-        for (std::uint32_t i = 0; i <= retry_settings_.retries && !deadline.IsReached(); ++i) {
-            try {
-                if constexpr (std::is_invocable_v<Fn&, TSession>) {
-                    if (!session) {
-                        auto get_session_future = client_.GetSession(get_session_settings_);
-                        session = GetFutureValueChecked(std::move(get_session_future), "GetSession").GetSession();
-                    }
-                    fn_(*session);
-                } else {
-                    fn_(client_);
-                }
-                retry_budget_.AccountOk();
-            } catch (const YdbResponseError& e) {
-                auto [backoff, reset_session] = RetryStep::GetNext(retry_settings_, e.GetStatus().GetStatus(), i);
-                if (reset_session) {
-                    session.reset();
-                }
-                if (backoff.has_value()) {
-                    retry_budget_.AccountFail();
-                    engine::SleepUntil(std::min(engine::Deadline::FromDuration(*backoff), deadline));
-                } else {
-                    throw;
-                }
+        for (std::uint32_t i = 0; i <= retry_settings_.retries && !deadline_.IsReached(); ++i) {
+            auto backoff_until = TryExecute(i);
+            if (!backoff_until.IsReached()) {
+                engine::SleepUntil(std::min(backoff_until, deadline_));
             }
         }
     }
 
+    engine::Deadline TryExecute(std::uint32_t retry_number) {
+        //RequestContext attempt_context{retry_context_, Query{"", Query::Name{"ydb.Attempt"}}, IsInternalContext{true}};
+
+        try {
+            if constexpr (std::is_invocable_v<Fn&, TClient&>) {
+                fn_(native_client_);
+            } else {
+                if (!session_) {
+                    RequestContext<Settings> get_session_context{table_client_, Query{"", Query::Name{"GetSession"}}, Settings{settings_}, IsStreaming{false}, nullptr, deadline_};
+                    auto get_session_settings = PrepareRequestSettings<GetSessionSettings>(get_session_context.settings, get_session_context.deadline);
+
+                    auto get_session_future = native_client_.GetSession(get_session_settings);
+                    session_ = GetFutureValueChecked(std::move(get_session_future), "GetSession", get_session_context).GetSession();
+                }
+                if constexpr (std::is_invocable_v<Fn&, TSession, engine::Deadline>) {
+                    fn_(*session_, deadline_);
+                } else {
+                    fn_(*session_);
+                }
+            }
+
+            table_client_.GetRetryBudget().AccountOk();
+            return engine::Deadline::Passed();
+        } catch (const YdbResponseError& e) {
+            table_client_.GetRetryBudget().AccountFail();
+
+            auto [backoff, reset_session] = RetryStep::GetNext(retry_settings_, e.GetStatus().GetStatus(), retry_number);
+            if (reset_session) {
+                session_.reset();
+            }
+            if (!backoff.has_value()) {
+                throw;
+            }
+
+            return engine::Deadline::FromDuration(*backoff);
+        }
+    }
+
 private:
-    TClient& client_;
-    utils::RetryBudget& retry_budget_;
+    TClient& native_client_;
+    TableClient& table_client_;
+    Settings settings_;
     CommonRetrySettings retry_settings_;
-    GetSessionSettings get_session_settings_;
     Fn fn_;
+    engine::Deadline deadline_;
+
+    std::optional<TSession> session_;
 };
 
 // Fn: (NYdb::NTable::TSession) -> void
@@ -131,34 +152,53 @@ template <typename Fn>
 void RetryOperation(impl::RequestContext<OperationSettings>& request_context, Fn&& fn) {
     static_assert(std::is_invocable_v<Fn&, NYdb::NTable::TSession> || std::is_invocable_v<Fn&, NYdb::NTable::TTableClient&>);
 
-    auto& client = request_context.table_client.GetNativeTableClient();
-    auto& retry_budget = request_context.table_client.GetRetryBudget();
-    auto retry_handler = std::make_shared<RetryHandler<NYdb::NTable::TTableClient, Fn, NYdb::NTable::TCreateSessionSettings>>(
-        client,
-        retry_budget,
-        PrepareRetrySettings<OperationSettings>(request_context.settings, retry_budget, request_context.deadline),
-        std::forward<Fn>(fn)
-    );
-    retry_handler->Execute();
+    try {
+        RetryHandler<NYdb::NTable::TTableClient, OperationSettings, Fn, NYdb::NTable::TCreateSessionSettings>(
+            request_context.table_client.GetNativeTableClient(),
+            request_context.table_client,
+            request_context.settings,
+            request_context.deadline,
+            std::forward<Fn>(fn)
+        ).Execute();
+    } catch (const YdbResponseError& e) {
+        request_context.HandleError(e.GetStatus());
+        throw;
+    }
 }
 
 // Fn: (NYdb::NQuery::TSession) -> void
 //     OR
 //     (NYdb::NQuery::TQueryClient&) -> void
 // RetryQuery -> void
-template <typename Fn, typename Settings = OperationSettings>
-void RetryQuery(impl::RequestContext<Settings>& request_context, Fn&& fn) {
+template <typename Fn>
+void RetryQuery(impl::RequestContext<OperationSettings>& request_context, Fn&& fn) {
     static_assert(std::is_invocable_v<Fn&, NYdb::NQuery::TSession> || std::is_invocable_v<Fn&, NYdb::NQuery::TQueryClient&>);
 
-    auto& client = request_context.table_client.GetNativeQueryClient();
-    auto& retry_budget = request_context.table_client.GetRetryBudget();
-    auto retry_handler = std::make_shared<RetryHandler<NYdb::NQuery::TQueryClient, Fn, NYdb::NQuery::TCreateSessionSettings>>(
-        client,
-        retry_budget,
-        PrepareRetrySettings<Settings>(request_context.settings, retry_budget, request_context.deadline),
+    try {
+        RetryHandler<NYdb::NQuery::TQueryClient, OperationSettings, Fn, NYdb::NQuery::TCreateSessionSettings>(
+            request_context.table_client.GetNativeQueryClient(),
+            request_context.table_client,
+            request_context.settings,
+            request_context.deadline,
+            std::forward<Fn>(fn)
+        ).Execute();
+    } catch (const YdbResponseError& e) {
+        request_context.HandleError(e.GetStatus());
+        throw;
+    }
+}
+
+template <typename Fn>
+void RetryQuery(const RetryTxSettings& retry_settings, TableClient& table_client, engine::Deadline deadline, Fn&& fn) {
+    static_assert(std::is_invocable_v<Fn&, NYdb::NQuery::TSession> || std::is_invocable_v<Fn&, NYdb::NQuery::TSession, engine::Deadline>);
+
+    RetryHandler<NYdb::NQuery::TQueryClient, RetryTxSettings, Fn, NYdb::NQuery::TCreateSessionSettings>(
+        table_client.GetNativeQueryClient(),
+        table_client,
+        retry_settings,
+        deadline,
         std::forward<Fn>(fn)
-    );
-    retry_handler->Execute();
+    ).Execute();
 }
 
 }  // namespace ydb::impl

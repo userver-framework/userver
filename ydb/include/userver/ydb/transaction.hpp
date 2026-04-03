@@ -6,6 +6,7 @@
 #include <ydb-cpp-sdk/client/query/client.h>
 #include <ydb-cpp-sdk/client/table/table.h>
 
+#include <userver/engine/deadline.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/utils/trx_tracker.hpp>
 
@@ -57,17 +58,11 @@ public:
 private:
     friend class TableClient;
 
-    TxActor(
-        TableClient& table_client,
-        NYdb::NQuery::TTransaction ydb_tx,
-        std::string name
-    ) noexcept;
+    TxActor(TableClient& table_client, NYdb::NQuery::TTransaction ydb_tx, engine::Deadline deadline) noexcept;
 
     TableClient& table_client_;
-    std::string name_;
-    impl::StatsScope stats_scope_;
-    tracing::Span span_;
     NYdb::NQuery::TTransaction ydb_tx_;
+    engine::Deadline deadline_;
 };
 
 template <typename... Args>
@@ -154,6 +149,12 @@ public:
         OperationSettings&& rollback_settings
     ) noexcept;
     /// @endcond
+
+    /// Get native transaction
+    /// @warning Use with care! Facilities from
+    /// `<core/include/userver/drivers/subscribable_futures.hpp>` can help with
+    /// non-blocking wait operations.
+    NYdb::TTransactionBase& GetNativeTransaction();
 
 private:
     void MarkError() noexcept;

@@ -18,14 +18,18 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ydb::impl {
 
+engine::Deadline GetDeadline(tracing::Span& span, const dynamic_config::Snapshot& config_snapshot);
+
 template <typename Settings>
-struct RequestContext final {
+class RequestContext final {
+public:
     RequestContext(
         TableClient& client,
         const Query& query,
         Settings&& settings,
         IsStreaming is_streaming = IsStreaming{false},
         tracing::Span* custom_parent_span = nullptr,
+        engine::Deadline parent_deadline = {},
         const utils::impl::SourceLocation& location = utils::impl::SourceLocation::Current()
     );
 

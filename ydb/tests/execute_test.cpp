@@ -473,16 +473,20 @@ UTEST_F(YdbExecute, TransactionIsQueryFromCache) {
 UTEST_F(YdbExecute, RetryTxCommit) {
     CreateTable("retry_tx_commit", false);
 
-    GetTableClient().RetryTx("test_retry_tx", ydb::RetryTxSettings{
-        .tx_mode = ydb::TransactionMode::kSerializableRW,
-        .retries = 3,
-    }, [](ydb::TxActor& tx) {
-        tx.Execute(ydb::Query{R"(
+    GetTableClient().RetryTx(
+        "test_retry_tx",
+        ydb::RetryTxSettings{
+            .tx_mode = ydb::TransactionMode::kSerializableRW,
+            .retries = 3,
+        },
+        [](ydb::TxActor& tx) {
+            tx.Execute(ydb::Query{R"(
             UPSERT INTO retry_tx_commit (key, value_str, value_int)
             VALUES ("key1", "value1", 1), ("key2", "value2", 2);
         )"});
-        return ydb::TxAction::kCommit;
-    });
+            return ydb::TxAction::kCommit;
+        }
+    );
 
     auto response = GetTableClient().ExecuteQuery(ydb::Query{R"(
         SELECT key, value_str, value_int
@@ -504,16 +508,20 @@ UTEST_F(YdbExecute, RetryTxCommit) {
 UTEST_F(YdbExecute, RetryTxRollback) {
     CreateTable("retry_tx_rollback", false);
 
-    GetTableClient().RetryTx("test_retry_tx_rollback", ydb::RetryTxSettings{
-        .tx_mode = ydb::TransactionMode::kSerializableRW,
-        .retries = 3,
-    }, [](ydb::TxActor& tx) {
-        tx.Execute(ydb::Query{R"(
+    GetTableClient().RetryTx(
+        "test_retry_tx_rollback",
+        ydb::RetryTxSettings{
+            .tx_mode = ydb::TransactionMode::kSerializableRW,
+            .retries = 3,
+        },
+        [](ydb::TxActor& tx) {
+            tx.Execute(ydb::Query{R"(
             UPSERT INTO retry_tx_rollback (key, value_str, value_int)
             VALUES ("key1", "value1", 1);
         )"});
-        return ydb::TxAction::kRollback;
-    });
+            return ydb::TxAction::kRollback;
+        }
+    );
 
     auto response = GetTableClient().ExecuteQuery(ydb::Query{R"(
         SELECT key FROM retry_tx_rollback;

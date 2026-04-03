@@ -38,7 +38,6 @@ CommonRetrySettings PrepareRetrySettings<OperationSettings>(
 ) {
     return CommonRetrySettings{
         .timeout_ms = GetBoundTimeout(operation_settings.client_timeout_ms, deadline),
-        .get_session_timeout_ms = GetBoundTimeout(operation_settings.get_session_timeout_ms, deadline),
         .retries = retry_budget.CanRetry() ? operation_settings.retries.value() : 0,
     };
 }
@@ -56,17 +55,27 @@ CommonRetrySettings PrepareRetrySettings<RetryTxSettings>(
     };
 }
 
-RetryStep RetryStep::GetNext(const CommonRetrySettings& retry_settings, NYdb::EStatus status, std::uint32_t retry_number) {
+RetryStep RetryStep::GetNext(
+    const CommonRetrySettings& retry_settings,
+    NYdb::EStatus status,
+    std::uint32_t retry_number
+) {
     switch (status) {
         case NYdb::EStatus::ABORTED:
             return {.backoff = std::chrono::milliseconds::zero(), .reset_session = false};
 
         case NYdb::EStatus::OVERLOADED:
         case NYdb::EStatus::CLIENT_RESOURCE_EXHAUSTED:
-            return {.backoff = CalcBackoffTime(retry_settings.slow_backoff_settings, retry_number), .reset_session = false};
+            return {
+                .backoff = CalcBackoffTime(retry_settings.slow_backoff_settings, retry_number),
+                .reset_session = false
+            };
 
         case NYdb::EStatus::UNAVAILABLE:
-            return {.backoff = CalcBackoffTime(retry_settings.fast_backoff_settings, retry_number), .reset_session = false};
+            return {
+                .backoff = CalcBackoffTime(retry_settings.fast_backoff_settings, retry_number),
+                .reset_session = false
+            };
 
         case NYdb::EStatus::BAD_SESSION:
         case NYdb::EStatus::SESSION_BUSY:
@@ -74,14 +83,20 @@ RetryStep RetryStep::GetNext(const CommonRetrySettings& retry_settings, NYdb::ES
 
         case NYdb::EStatus::UNDETERMINED:
             if (retry_settings.is_idempotent) {
-                return {.backoff = CalcBackoffTime(retry_settings.fast_backoff_settings, retry_number), .reset_session = false};
+                return {
+                    .backoff = CalcBackoffTime(retry_settings.fast_backoff_settings, retry_number),
+                    .reset_session = false
+                };
             } else {
                 return {.backoff = std::nullopt, .reset_session = false};
             }
 
         case NYdb::EStatus::TRANSPORT_UNAVAILABLE:
             if (retry_settings.is_idempotent) {
-                return {.backoff = CalcBackoffTime(retry_settings.fast_backoff_settings, retry_number), .reset_session = true};
+                return {
+                    .backoff = CalcBackoffTime(retry_settings.fast_backoff_settings, retry_number),
+                    .reset_session = true
+                };
             } else {
                 return {.backoff = std::nullopt, .reset_session = false};
             }
