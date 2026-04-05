@@ -18,6 +18,7 @@ public:
     const std::string& GetTableName() const;
 
     void Execute(const operations::InsertOne&);
+    operations::SelectOne::Row Execute(const operations::SelectOne&);
 
 private:
     std::shared_ptr<impl::TableImpl> impl_;

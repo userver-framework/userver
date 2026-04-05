@@ -47,6 +47,54 @@ void InsertOne::BindDouble(std::string column_name, double value) {
     impl_->bindings.push_back({std::move(column_name), value});
 }
 
+class SelectOne::Impl {
+public:
+    std::vector<std::string> columns;
+    bool select_all{true};
+    std::vector<SelectOne::Condition> conditions;
+};
+
+SelectOne::SelectOne() = default;
+SelectOne::~SelectOne() = default;
+SelectOne::SelectOne(const SelectOne&) = default;
+SelectOne::SelectOne(SelectOne&&) noexcept = default;
+SelectOne& SelectOne::operator=(const SelectOne&) = default;
+SelectOne& SelectOne::operator=(SelectOne&&) noexcept = default;
+
+void SelectOne::AddColumn(std::string column_name) {
+    impl_->select_all = false;
+    impl_->columns.push_back(std::move(column_name));
+}
+
+void SelectOne::AddAllColumns() {
+    impl_->select_all = true;
+    impl_->columns.clear();
+}
+
+void SelectOne::WhereString(std::string column_name, std::string value) {
+    impl_->conditions.push_back({std::move(column_name), std::move(value)});
+}
+
+void SelectOne::WhereInt32(std::string column_name, int32_t value) {
+    impl_->conditions.push_back({std::move(column_name), value});
+}
+
+void SelectOne::WhereInt64(std::string column_name, int64_t value) {
+    impl_->conditions.push_back({std::move(column_name), value});
+}
+
+void SelectOne::WhereBool(std::string column_name, bool value) {
+    impl_->conditions.push_back({std::move(column_name), value});
+}
+
+void SelectOne::WhereFloat(std::string column_name, float value) {
+    impl_->conditions.push_back({std::move(column_name), value});
+}
+
+void SelectOne::WhereDouble(std::string column_name, double value) {
+    impl_->conditions.push_back({std::move(column_name), value});
+}
+
 }  // namespace storages::scylla::operations
 
 USERVER_NAMESPACE_END

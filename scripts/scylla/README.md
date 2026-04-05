@@ -36,7 +36,7 @@ docker exec -it scylla-dev-1 bash
 ```
 
 ```shell
-/opt/userver/scripts/dev/scylla/entrypoint.sh
+/opt/userver/scripts/scylla/entrypoint.sh
 ```
 
 This builds and runs the `samples/scylla_service` sample.
@@ -46,21 +46,7 @@ This builds and runs the `samples/scylla_service` sample.
 From inside the dev container
 
 ```shell
-curl -X POST http://localhost:8080/v1/example
-```
+curl -X POST http://localhost:8080/v1/insert
 
-Back in cqlsh
-
-```sql
-SELECT * FROM examples.basic;
-```
-
-Expected output:
-
-```
- key  | bln  | dbl    | flt   | i32 | i64
-------+------+--------+-------+-----+-----
- test | True | 0.0002 | 0.001 |   1 |   2
-
-(1 rows)
+curl http://localhost:8080/v1/select
 ```

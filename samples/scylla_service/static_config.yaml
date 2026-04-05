@@ -13,9 +13,14 @@ components_manager:
         dns-client:
             fs-task-processor: fs-task-processor
 
-        handler-example:
-            path: /v1/example
+        handler-insert:
+            path: /v1/insert
             method: POST
+            task_processor: main-task-processor
+
+        handler-select:
+            path: /v1/select
+            method: GET
             task_processor: main-task-processor
 
         logging:

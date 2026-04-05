@@ -20,6 +20,13 @@ public:
     std::vector<Binding> bindings;
 };
 
+class SelectOne::Impl {
+public:
+    std::vector<std::string> columns;
+    bool select_all{true};
+    std::vector<SelectOne::Condition> conditions;
+};
+
 }  // namespace storages::scylla::operations
 
 USERVER_NAMESPACE_END

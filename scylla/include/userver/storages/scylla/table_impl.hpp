@@ -15,6 +15,7 @@ public:
     const std::string& GetTableName() const;
 
     virtual void Execute(const operations::InsertOne&) = 0;
+    virtual operations::SelectOne::Row Execute(const operations::SelectOne&) = 0;
 
 protected:
     TableImpl(std::string keyspace_name, std::string table_name);

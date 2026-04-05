@@ -5,7 +5,7 @@ services:
     stdin_open: true
     tty: true
     volumes:
-      - ../../../:/opt/userver
+      - ../../:/opt/userver
     depends_on:
       - scylladb
     networks:
