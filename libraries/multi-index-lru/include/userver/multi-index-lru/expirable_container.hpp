@@ -137,6 +137,7 @@ public:
         return impl::IteratorToValue{container_.template end<Tag>()};
     }
 
+    // Removes all expired items from container
     void cleanup_expired() {
         const auto now = std::chrono::steady_clock::now();
 

@@ -24,6 +24,7 @@ public:
         : max_size_(max_size)
     {}
 
+    // Constructs element in-place, returns pair<iterator, bool>
     template <typename... Args>
     auto emplace(Args&&... args) {
         auto& seq_index = get_sequenced();
@@ -71,6 +72,7 @@ public:
         return get_index<Tag>().find(key);
     }
 
+    // Returns range of matching elements, updates all
     template <typename Tag, typename Key>
     auto equal_range(const Key& key) {
         auto& primary_index = get_index<Tag>();
@@ -87,6 +89,7 @@ public:
         return std::pair{begin, end};
     }
 
+    // Returns range of matching elements without updates
     template <typename Tag, typename Key>
     auto equal_range_no_update(const Key& key) const {
         return get_index<Tag>().equal_range(key);
@@ -158,6 +161,7 @@ public:
         }
     }
 
+    // Returns end iterator for specified index
     template <typename Tag>
     auto end() const {
         return get_index<Tag>().end();
