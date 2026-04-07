@@ -22,6 +22,11 @@ typedef struct {
 
 #if USERVER_LIBPQ_VERSION >= 180000
 
+#ifdef __clang__
+#       pragma clang diagnostic push
+#       pragma clang diagnostic ignored "-Wc99-extensions"
+#endif
+
 struct pg_cancel {
     SockAddr raddr;          /* Remote address */
     int be_pid;              /* PID of to-be-canceled backend */
@@ -37,6 +42,10 @@ struct pg_cancel {
     int32_t cancel_pkt_len;                     /* in network byte order */
     char cancel_req[/*FLEXIBLE_ARRAY_MEMBER*/]; /* CancelRequestPacket */
 };
+
+#ifdef __clang__
+#       pragma clang diagnostic pop
+#endif
 
 #else
 
