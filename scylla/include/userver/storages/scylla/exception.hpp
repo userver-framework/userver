@@ -1,5 +1,10 @@
 #pragma once
 
+/// @file userver/storages/scylla/exception.hpp
+/// @brief ScyllaDB-specific exceptions
+
+#include <chrono>
+
 #include <userver/utils/traceful_exception.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -18,6 +23,46 @@ class InvalidConfigException : public ScyllaException {
 };
 
 class NetworkException : public ScyllaException {
+    using ScyllaException::ScyllaException;
+};
+
+class QueryException : public ScyllaException {
+    using ScyllaException::ScyllaException;
+};
+
+class InvalidQueryArgumentException : public QueryException {
+    using QueryException::QueryException;
+};
+
+class AuthenticationException : public ScyllaException {
+    using ScyllaException::ScyllaException;
+};
+
+class ClusterUnavailableException : public ScyllaException {
+    using ScyllaException::ScyllaException;
+};
+
+class ServerException : public QueryException {
+public:
+    ServerException(int code, std::string_view what);
+
+    int Code() const noexcept { return code_; }
+
+private:
+    int code_;
+};
+
+class TimeoutException : public ServerException {
+public:
+    TimeoutException(int code, std::string_view what, std::chrono::milliseconds timeout);
+
+    std::chrono::milliseconds Timeout() const noexcept { return timeout_; }
+
+private:
+    std::chrono::milliseconds timeout_;
+};
+
+class PoolOverloadException : public ScyllaException {
     using ScyllaException::ScyllaException;
 };
 

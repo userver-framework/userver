@@ -3,6 +3,7 @@
 #include <userver/storages/scylla/component.hpp>
 
 #include <userver/components/component.hpp>
+#include <userver/storages/scylla/exception.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
@@ -53,7 +54,8 @@ Scylla::Scylla(const ComponentConfig& config, const ComponentContext& context) :
     }
 
     if (hosts.empty()) {
-        throw std::runtime_error(config.Name() + ": either 'dbalias' or 'dbconnection' must be set in static config");
+        throw storages::scylla::InvalidConfigException(
+            config.Name() + ": either 'dbalias' or 'dbconnection' must be set in static config");
     }
 
     auto* dns_resolver = clients::dns::GetResolverPtr(config, context);

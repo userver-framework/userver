@@ -1,5 +1,6 @@
 #include <userver/storages/scylla/table_impl.hpp>
 
+#include <userver/storages/scylla/exception.hpp>
 #include <userver/utils/text.hpp>
 
 #include <string>
@@ -10,10 +11,10 @@ namespace storages::scylla::impl {
 TableImpl::TableImpl(std::string keyspace_name, std::string table_name)
     : keyspace_name_(keyspace_name), table_name_(table_name) {
     if (!utils::text::IsCString(keyspace_name_)) {
-        throw std::invalid_argument("keyspace name must be a string");
+        throw InvalidConfigException("keyspace name must be a string");
     }
     if (!utils::text::IsCString(table_name_)) {
-        throw std::invalid_argument("table name must be a string");
+        throw InvalidConfigException("table name must be a string");
     }
 }
 

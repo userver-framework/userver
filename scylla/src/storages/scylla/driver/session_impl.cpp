@@ -1,16 +1,24 @@
 #include "session_impl.hpp"
 
-#include <stdexcept>
-#include <string_view>
+#include <memory>
 
 #include <cassandra.h>
 
 #include <userver/dynamic_config/source.hpp>
 #include <userver/logging/log.hpp>
 
+#include <storages/scylla/driver/cass_wrappers.hpp>
+#include <storages/scylla/driver/scylla_error.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::scylla::impl::driver {
+
+namespace {
+
+constexpr const char* kPingQuery = "SELECT release_version FROM system.local";
+
+}  // namespace
 
 DriverSessionImpl::DriverSessionImpl(
     std::string id,
@@ -24,30 +32,31 @@ DriverSessionImpl::DriverSessionImpl(
       default_keyspace_(session_config.default_keyspace),
       connection_(Create()) {}
 
+
+void DriverSessionImpl::SetConnectionString(const std::string& connection_string) {
+
+}
+
 DriverSessionImpl::ConnPtr DriverSessionImpl::Create() {
     LOG_DEBUG() << "Creating scylla connection";
 
-    CassCluster* cluster = cass_cluster_new();
-    cass_cluster_set_contact_points(cluster, hosts_.c_str());
+    CassClusterPtr cluster(cass_cluster_new());
+    cass_cluster_set_contact_points(cluster.get(), hosts_.c_str());
 
-    CassSession* session = cass_session_new();
-    CassFuture* future = cass_session_connect(session, cluster);
-    cass_future_wait(future);
+    CassSessionPtr session(cass_session_new());
 
-    CassError rc = cass_future_error_code(future);
-    if (rc != CASS_OK) {
-        const char* message = nullptr;
-        size_t message_length = 0;
-        cass_future_error_message(future, &message, &message_length);
-        LOG_ERROR() << "Scylla connect failed: " << std::string_view(message, message_length);
-        cass_future_free(future);
-        cass_session_free(session);
-        cass_cluster_free(cluster);
-        throw std::runtime_error("Failed to connect to ScyllaDB");
-    }
-    cass_future_free(future);
+    CassFuturePtr connect_future(
+        cass_session_connect(session.get(), cluster.get()));
+    cass_future_wait(connect_future.get());
+    CheckFuture(connect_future.get(), "connect");
 
-    return std::make_shared<Connection>(session, cluster);
+    CassStatementPtr ping_stmt(cass_statement_new(kPingQuery, 0));
+    CassFuturePtr ping_future(
+        cass_session_execute(session.get(), ping_stmt.get()));
+    cass_future_wait(ping_future.get());
+    CheckFuture(ping_future.get(), "ping");
+
+    return std::make_shared<Connection>(session.release(), cluster.release());
 }
 
 const std::string& DriverSessionImpl::DefaultDatabaseName() const { return default_keyspace_; }

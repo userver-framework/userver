@@ -63,9 +63,7 @@ public:
         // TODO: implement
     }
 
-    void SetConnectionString(const std::string& connection_string) override {
-        // TODO: implement
-    }
+    void SetConnectionString(const std::string& connection_string) override;
 
     using ConnPtr = std::shared_ptr<Connection>;
 

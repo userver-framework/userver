@@ -6,6 +6,8 @@
 #include <string>
 #include <variant>
 
+#include <storages/scylla/driver/cass_wrappers.hpp>
+#include <storages/scylla/driver/scylla_error.hpp>
 #include <storages/scylla/driver/session_impl.hpp>
 #include <storages/scylla/operations_impl.hpp>
 
@@ -20,7 +22,7 @@ void DriverTableImpl::Execute(const operations::InsertOne& operation) {
     const auto& bindings = operation.impl_->bindings;
 
     if (bindings.empty()) {
-        throw std::runtime_error("sorry no bindings");
+        throw QueryException("InsertOne: no bindings provided");
     }
 
     std::string columns, placeholders;
@@ -43,7 +45,7 @@ void DriverTableImpl::Execute(const operations::InsertOne& operation) {
 
     std::string query = "INSERT INTO " + full_table + " (" + columns + ") VALUES (" + placeholders + ")";
 
-    CassStatement* statement = cass_statement_new(query.c_str(), bindings.size());
+    CassStatementPtr statement(cass_statement_new(query.c_str(), bindings.size()));
 
     for (size_t i = 0; i < bindings.size(); ++i) {
         std::visit(
@@ -51,17 +53,17 @@ void DriverTableImpl::Execute(const operations::InsertOne& operation) {
                 using T = std::decay_t<decltype(val)>;
 
                 if constexpr (std::is_same_v<T, std::string>) {
-                    cass_statement_bind_string(statement, i, val.c_str());
+                    cass_statement_bind_string(statement.get(), i, val.c_str());
                 } else if constexpr (std::is_same_v<T, int32_t>) {
-                    cass_statement_bind_int32(statement, i, val);
+                    cass_statement_bind_int32(statement.get(), i, val);
                 } else if constexpr (std::is_same_v<T, int64_t>) {
-                    cass_statement_bind_int64(statement, i, val);
+                    cass_statement_bind_int64(statement.get(), i, val);
                 } else if constexpr (std::is_same_v<T, bool>) {
-                    cass_statement_bind_bool(statement, i, val ? cass_true : cass_false);
+                    cass_statement_bind_bool(statement.get(), i, val ? cass_true : cass_false);
                 } else if constexpr (std::is_same_v<T, float>) {
-                    cass_statement_bind_float(statement, i, val);
+                    cass_statement_bind_float(statement.get(), i, val);
                 } else if constexpr (std::is_same_v<T, double>) {
-                    cass_statement_bind_double(statement, i, val);
+                    cass_statement_bind_double(statement.get(), i, val);
                 }
             },
             bindings[i].value
@@ -70,22 +72,9 @@ void DriverTableImpl::Execute(const operations::InsertOne& operation) {
 
     auto* driver_session = dynamic_cast<DriverSessionImpl*>(session_impl_.get());
 
-    CassFuture* future = cass_session_execute(driver_session->GetNativeSession(), statement);
-    cass_future_wait(future);
-
-    CassError rc = cass_future_error_code(future);
-    if (rc != CASS_OK) {
-        const char* message;
-        size_t message_length;
-        cass_future_error_message(future, &message, &message_length);
-        std::string err(message, message_length);
-        cass_future_free(future);
-        cass_statement_free(statement);
-        throw std::runtime_error("failed: " + err);
-    }
-
-    cass_future_free(future);
-    cass_statement_free(statement);
+    CassFuturePtr future(cass_session_execute(driver_session->GetNativeSession(), statement.get()));
+    cass_future_wait(future.get());
+    CheckFuture(future.get(), "InsertOne");
 }
 
 operations::SelectOne::Row DriverTableImpl::Execute(const operations::SelectOne& operation) {
@@ -122,7 +111,7 @@ operations::SelectOne::Row DriverTableImpl::Execute(const operations::SelectOne&
 
     query += " LIMIT 1";
 
-    CassStatement* statement = cass_statement_new(query.c_str(), conditions.size());
+    CassStatementPtr statement(cass_statement_new(query.c_str(), conditions.size()));
 
     for (size_t i = 0; i < conditions.size(); ++i) {
         std::visit(
@@ -130,17 +119,17 @@ operations::SelectOne::Row DriverTableImpl::Execute(const operations::SelectOne&
                 using T = std::decay_t<decltype(val)>;
 
                 if constexpr (std::is_same_v<T, std::string>) {
-                    cass_statement_bind_string(statement, i, val.c_str());
+                    cass_statement_bind_string(statement.get(), i, val.c_str());
                 } else if constexpr (std::is_same_v<T, int32_t>) {
-                    cass_statement_bind_int32(statement, i, val);
+                    cass_statement_bind_int32(statement.get(), i, val);
                 } else if constexpr (std::is_same_v<T, int64_t>) {
-                    cass_statement_bind_int64(statement, i, val);
+                    cass_statement_bind_int64(statement.get(), i, val);
                 } else if constexpr (std::is_same_v<T, bool>) {
-                    cass_statement_bind_bool(statement, i, val ? cass_true : cass_false);
+                    cass_statement_bind_bool(statement.get(), i, val ? cass_true : cass_false);
                 } else if constexpr (std::is_same_v<T, float>) {
-                    cass_statement_bind_float(statement, i, val);
+                    cass_statement_bind_float(statement.get(), i, val);
                 } else if constexpr (std::is_same_v<T, double>) {
-                    cass_statement_bind_double(statement, i, val);
+                    cass_statement_bind_double(statement.get(), i, val);
                 }
             },
             conditions[i].value
@@ -149,29 +138,19 @@ operations::SelectOne::Row DriverTableImpl::Execute(const operations::SelectOne&
 
     auto* driver_session = dynamic_cast<DriverSessionImpl*>(session_impl_.get());
 
-    CassFuture* future = cass_session_execute(driver_session->GetNativeSession(), statement);
-    cass_future_wait(future);
+    CassFuturePtr future(cass_session_execute(driver_session->GetNativeSession(), statement.get()));
+    cass_future_wait(future.get());
+    CheckFuture(future.get(), "SelectOne");
 
-    CassError rc = cass_future_error_code(future);
-    if (rc != CASS_OK) {
-        const char* message;
-        size_t message_length;
-        cass_future_error_message(future, &message, &message_length);
-        std::string err(message, message_length);
-        cass_future_free(future);
-        cass_statement_free(statement);
-        throw std::runtime_error("SelectOne failed: " + err);
-    }
-
-    const CassResult* result = cass_future_get_result(future);
+    const CassResult* result = cass_future_get_result(future.get());
     operations::SelectOne::Row row;
 
     const CassRow* cass_row = cass_result_first_row(result);
     if (cass_row) {
         size_t col_count = cass_result_column_count(result);
         for (size_t i = 0; i < col_count; ++i) {
-            const char* col_name;
-            size_t col_name_length;
+            const char* col_name = nullptr;
+            size_t col_name_length = 0;
             cass_result_column_name(result, i, &col_name, &col_name_length);
             std::string name(col_name, col_name_length);
 
@@ -182,38 +161,38 @@ operations::SelectOne::Row DriverTableImpl::Execute(const operations::SelectOne&
             switch (val_type) {
                 case CASS_VALUE_TYPE_VARCHAR:
                 case CASS_VALUE_TYPE_TEXT: {
-                    const char* str;
-                    size_t str_length;
+                    const char* str = nullptr;
+                    size_t str_length = 0;
                     cass_value_get_string(cass_val, &str, &str_length);
                     value = std::string(str, str_length);
                     break;
                 }
                 case CASS_VALUE_TYPE_INT: {
-                    int32_t v;
+                    int32_t v = 0;
                     cass_value_get_int32(cass_val, &v);
                     value = v;
                     break;
                 }
                 case CASS_VALUE_TYPE_BIGINT: {
-                    int64_t v;
+                    int64_t v = 0;
                     cass_value_get_int64(cass_val, &v);
                     value = v;
                     break;
                 }
                 case CASS_VALUE_TYPE_BOOLEAN: {
-                    cass_bool_t v;
+                    cass_bool_t v = cass_false;
                     cass_value_get_bool(cass_val, &v);
                     value = static_cast<bool>(v);
                     break;
                 }
                 case CASS_VALUE_TYPE_FLOAT: {
-                    float v;
+                    float v = 0.0f;
                     cass_value_get_float(cass_val, &v);
                     value = v;
                     break;
                 }
                 case CASS_VALUE_TYPE_DOUBLE: {
-                    double v;
+                    double v = 0.0;
                     cass_value_get_double(cass_val, &v);
                     value = v;
                     break;
@@ -227,8 +206,6 @@ operations::SelectOne::Row DriverTableImpl::Execute(const operations::SelectOne&
     }
 
     cass_result_free(result);
-    cass_future_free(future);
-    cass_statement_free(statement);
 
     return row;
 }
