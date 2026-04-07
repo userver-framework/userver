@@ -11,10 +11,6 @@
 #include "exttypes.hpp"
 #include "string_view_support.hpp"
 
-USERVER_NAMESPACE_BEGIN
-
-namespace formats::yaml {
-
 namespace {
 
 // Helper structure for YAML conversions. YAML has built in conversion logic and
@@ -31,6 +27,41 @@ struct IsConvertibleChecker {
         return {};
     }
 };
+
+}  // anonymous namespace
+
+namespace YAML {
+
+// Reverting harm done by https://github.com/jbeder/yaml-cpp/commit/96f5c887f373ac483844c51cfc9a3621002314f0
+// to detect if the conversion is successful without throwing an exception
+template <typename T>
+requires std::integral<T> || std::floating_point<T>
+struct as_if<T, IsConvertibleChecker<T> > {
+    explicit as_if(const Node& node_)
+        : node(node_)
+    {}
+    const Node& node;
+
+    T operator()(const IsConvertibleChecker<T>& fallback) const {
+        if (!node.m_pNode) {
+            return fallback;
+        }
+
+        T t;
+        if (convert<T>::decode(node, t)) {
+            return t;
+        }
+        return fallback;
+    }
+};
+
+}  // namespace YAML
+
+USERVER_NAMESPACE_BEGIN
+
+namespace formats::yaml {
+
+namespace {
 
 auto MakeMissingNode() { return YAML::Node{}[0]; }
 
