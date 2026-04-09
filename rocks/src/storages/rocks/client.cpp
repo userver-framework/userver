@@ -1,5 +1,7 @@
 #include <userver/storages/rocks/client.hpp>
 
+#include <rocksdb/version.h>
+
 #include <fmt/format.h>
 
 #include <userver/storages/rocks/exception.hpp>
@@ -15,9 +17,13 @@ Client::Client(const std::string& db_path, engine::TaskProcessor& blocking_task_
     rocksdb::Options options;
     options.create_if_missing = true;
 
+#if ROCKSDB_MAJOR > 9
+    const rocksdb::Status status = rocksdb::DB::Open(options, db_path, &db_);
+#else
     rocksdb::DB* db{};
     const rocksdb::Status status = rocksdb::DB::Open(options, db_path, &db);
     db_.reset(db);
+#endif
     CheckStatus(status, "Create client");
 }
 
