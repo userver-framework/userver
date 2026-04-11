@@ -6,7 +6,11 @@ endif()
 
 find_package(userver REQUIRED COMPONENTS universal)
 
-find_package(Boost REQUIRED CONFIG COMPONENTS locale iostreams)
+if(USERVER_FEATURE_UBOOST_CORO)
+    find_package(Boost REQUIRED CONFIG COMPONENTS locale iostreams)
+else()
+    find_package(Boost REQUIRED CONFIG COMPONENTS locale iostreams context)
+endif()
 
 find_package(ZLIB REQUIRED)
 find_package(c-ares REQUIRED)
