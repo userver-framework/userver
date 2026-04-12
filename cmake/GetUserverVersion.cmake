@@ -23,7 +23,7 @@ endif()
 
 file(READ ${USERVER_ROOT_DIR}/version.txt VERSION)
 string(STRIP ${VERSION} VERSION)
-string(REGEX MATCH "^([0-9]+)\.([0-9]+)([-a-z0-9]*)" USERVER_MATCHED_VERSION_STRING "${VERSION}")
+string(REGEX MATCH "^([0-9]+)\.([0-9]+)([\-a-z0-9]*)" USERVER_MATCHED_VERSION_STRING "${VERSION}")
 if(NOT USERVER_MATCHED_VERSION_STRING STREQUAL VERSION)
     message(FATAL_ERROR "Failed to retrieve userver major/minor version number from '${VERSION}'")
 endif()
