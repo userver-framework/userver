@@ -163,6 +163,9 @@ target_compile_definitions(
            "USERVER_NAMESPACE_END=${USERVER_NAMESPACE_END}" "USERVER=1"
 )
 
+set(VERSION_CONFIG ${CMAKE_CURRENT_SOURCE_DIR}/include/userver/version.hpp)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/version.hpp.in ${VERSION_CONFIG} ESCAPE_QUOTES @ONLY)
+
 # https://github.com/jemalloc/jemalloc/issues/820
 if(USERVER_FEATURE_JEMALLOC
    AND NOT USERVER_SANITIZE
