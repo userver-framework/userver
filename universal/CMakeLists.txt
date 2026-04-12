@@ -164,6 +164,10 @@ target_compile_definitions(
 )
 
 set(VERSION_CONFIG ${CMAKE_CURRENT_SOURCE_DIR}/include/userver/version.hpp)
+math(EXPR USERVER_VERSION_FULL "10000 * ${USERVER_MAJOR_VERSION} + 100 * ${USERVER_MINOR_VERSION}")
+if(USERVER_RELEASE_CANDIDATE)
+    math(EXPR USERVER_VERSION_FULL "${USERVER_VERSION_FULL} - 1")
+endif()
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/version.hpp.in ${VERSION_CONFIG} ESCAPE_QUOTES @ONLY)
 
 # https://github.com/jemalloc/jemalloc/issues/820

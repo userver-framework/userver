@@ -1,7 +1,11 @@
 #pragma once
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#cmakedefine USERVER_VERSION_MAJOR "@USERVER_MAJOR_VERSION@"
+#define USERVER_VERSION_MAJOR @USERVER_MAJOR_VERSION@
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#cmakedefine USERVER_VERSION_MINOR "@USERVER_MINOR_VERSION@"
+#define USERVER_VERSION_MINOR @USERVER_MINOR_VERSION@
+
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define USERVER_VERSION_FULL @USERVER_VERSION_FULL@
+
