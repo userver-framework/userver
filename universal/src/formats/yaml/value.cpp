@@ -11,52 +11,6 @@
 #include "exttypes.hpp"
 #include "string_view_support.hpp"
 
-namespace {
-
-// Helper structure for YAML conversions. YAML has built in conversion logic and
-// an `T Node::as<T>(U default_value)` function that uses it. We provide
-// `IsConvertibleChecker<T>{}` as a `default_value`, and if the
-// `IsConvertibleChecker` was converted to T (an implicit conversion operator
-// was called), then the conversion failed.
-template <class T>
-struct IsConvertibleChecker {
-    bool& convertible;
-
-    operator T() const {
-        convertible = false;
-        return {};
-    }
-};
-
-}  // anonymous namespace
-
-namespace YAML {
-
-// Reverting harm done by https://github.com/jbeder/yaml-cpp/commit/96f5c887f373ac483844c51cfc9a3621002314f0
-// to detect if the conversion is successful without throwing an exception
-template <typename T>
-requires std::integral<T> || std::floating_point<T>
-struct as_if<T, IsConvertibleChecker<T> > {
-    explicit as_if(const Node& node_in)
-        : node(node_in)
-    {}
-    const Node& node;
-
-    T operator()(const IsConvertibleChecker<T>& fallback) const {
-        if (!node.m_pNode) {
-            return fallback;
-        }
-
-        T t;
-        if (convert<T>::decode(node, t)) {
-            return t;
-        }
-        return fallback;
-    }
-};
-
-}  // namespace YAML
-
 USERVER_NAMESPACE_BEGIN
 
 namespace formats::yaml {
@@ -182,21 +136,19 @@ bool Value::IsConvertibleToArithmetic() const {
         return false;
     }
 
-    bool ok = true;
-    value_pimpl_->as<T>(IsConvertibleChecker<T>{ok});
-    return ok && !IsExplicitlyTypedString(*value_pimpl_);
+    T t{};
+    return YAML::convert<T>::decode(*value_pimpl_, t) && !IsExplicitlyTypedString(*value_pimpl_);
 }
 
 template <class T>
 T Value::ValueAsArithmetic() const {
     CheckNotMissing();
 
-    bool ok = true;
-    auto res = value_pimpl_->as<T>(IsConvertibleChecker<T>{ok});
-    if (!ok || IsExplicitlyTypedString(*value_pimpl_)) {
+    T t{};
+    if (!YAML::convert<T>::decode(*value_pimpl_, t) || IsExplicitlyTypedString(*value_pimpl_)) {
         throw TypeMismatchException(*value_pimpl_, compiler::GetTypeName<T>(), path_.ToStringView());
     }
-    return res;
+    return t;
 }
 
 bool Value::IsNull() const noexcept {
