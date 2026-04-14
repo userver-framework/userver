@@ -4,6 +4,8 @@
 #include <userver/dynamic_config/source.hpp>
 #include <userver/storages/scylla/session_config.hpp>
 
+#include <storages/scylla/stats.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::scylla::impl {
@@ -14,13 +16,15 @@ public:
 
     const std::string& Id() const;
     dynamic_config::Snapshot GetConfig() const;
+    const stats::ScyllaSessionStatistics& GetStatistics() const;
+    stats::ScyllaSessionStatistics& GetStatistics();
 
     virtual const std::string& DefaultDatabaseName() const = 0;
 
-    // unimplemented
     virtual void Ping() = 0;
 
-    // unimplemented
+    virtual void DropKeyspace() = 0;
+
     virtual void SetConnectionString(const std::string& connection_string) = 0;
 
 protected:
@@ -29,6 +33,7 @@ protected:
 private:
     const std::string id_;
     const dynamic_config::Source config_source_;
+    stats::ScyllaSessionStatistics statistics_;
 };
 
 using SessionImplPtr = std::shared_ptr<SessionImpl>;

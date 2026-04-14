@@ -90,6 +90,24 @@ properties:
     type: string
     description: Default keyspace for queries. If empty, table names must be fully qualified (e.g. keyspace.table).
     default: ''
+  ssl:
+    type: object
+    description: TLS/SSL settings
+    additionalProperties: false
+    properties:
+      enabled:
+        type: boolean
+        description: enable TLS for cluster connections
+        default: false
+      verify:
+        type: string
+        description: certificate verification mode
+        default: peer_cert
+        enum:
+          - none
+          - peer_cert
+          - peer_identity
+          - peer_identity_dns
   dns_resolver:
     type: string
     description: server hostname resolver type

@@ -2,18 +2,87 @@
 
 #include <cassandra.h>
 
+#include <chrono>
 #include <optional>
 #include <string>
 #include <variant>
+
+#include <userver/storages/scylla/exception.hpp>
 
 #include <storages/scylla/driver/cass_wrappers.hpp>
 #include <storages/scylla/driver/scylla_error.hpp>
 #include <storages/scylla/driver/session_impl.hpp>
 #include <storages/scylla/operations_impl.hpp>
+#include <storages/scylla/scylla_config.hpp>
+#include <storages/scylla/stats.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::scylla::impl::driver {
+
+namespace {
+
+class QueryStopwatch final {
+public:
+    explicit QueryStopwatch(stats::OperationStatisticsItem& item) noexcept
+        : item_(item), start_(std::chrono::steady_clock::now()) {}
+
+    QueryStopwatch(const QueryStopwatch&) = delete;
+    QueryStopwatch(QueryStopwatch&&) = delete;
+
+    void AccountSuccess() noexcept {
+        accounted_ = true;
+        item_.Account(stats::ErrorType::kSuccess, Elapsed());
+    }
+
+    void AccountFailure(const std::exception& ex) noexcept {
+        accounted_ = true;
+        item_.Account(stats::ClassifyException(ex), Elapsed());
+    }
+
+    ~QueryStopwatch() {
+        if (!accounted_) {
+            item_.Account(stats::ErrorType::kOther, Elapsed());
+        }
+    }
+
+private:
+    std::chrono::milliseconds Elapsed() const noexcept {
+        return std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now() - start_);
+    }
+
+    stats::OperationStatisticsItem& item_;
+    std::chrono::steady_clock::time_point start_;
+    bool accounted_{false};
+};
+
+void ApplyCommandControl(CassStatement* stmt,
+                         const CommandControl& cc) noexcept {
+    if (cc.request_timeout) {
+        cass_statement_set_request_timeout(
+            stmt,
+            static_cast<cass_uint64_t>(cc.request_timeout->count()));
+    }
+    if (cc.consistency) {
+        cass_statement_set_consistency(
+            stmt,
+            static_cast<CassConsistency>(*cc.consistency));
+    }
+    if (cc.serial_consistency) {
+        cass_statement_set_serial_consistency(
+            stmt,
+            static_cast<CassConsistency>(*cc.serial_consistency));
+    }
+}
+
+std::optional<CommandControl> GetCommandControl(
+    DriverSessionImpl& session) {
+    const auto config = session.GetConfig();
+    return config[kScyllaDefaultCommandControl].GetOptional(session.Id());
+}
+
+}  // namespace
 
 DriverTableImpl::DriverTableImpl(SessionImplPtr session_impl, std::string keyspace_name, std::string table_name)
     : TableImpl(std::move(keyspace_name), std::move(table_name)), session_impl_(session_impl) {}
@@ -72,9 +141,16 @@ void DriverTableImpl::Execute(const operations::InsertOne& operation) {
 
     auto* driver_session = dynamic_cast<DriverSessionImpl*>(session_impl_.get());
 
-    CassFuturePtr future(cass_session_execute(driver_session->GetNativeSession(), statement.get()));
-    cass_future_wait(future.get());
-    CheckFuture(future.get(), "InsertOne");
+    QueryStopwatch stopwatch(*driver_session->GetStatistics().session->queries);
+    try {
+        CassFuturePtr future(cass_session_execute(driver_session->GetNativeSession(), statement.get()));
+        cass_future_wait(future.get());
+        CheckFuture(future.get(), "InsertOne");
+    } catch (const std::exception& ex) {
+        stopwatch.AccountFailure(ex);
+        throw;
+    }
+    stopwatch.AccountSuccess();
 }
 
 operations::SelectOne::Row DriverTableImpl::Execute(const operations::SelectOne& operation) {
@@ -138,9 +214,16 @@ operations::SelectOne::Row DriverTableImpl::Execute(const operations::SelectOne&
 
     auto* driver_session = dynamic_cast<DriverSessionImpl*>(session_impl_.get());
 
-    CassFuturePtr future(cass_session_execute(driver_session->GetNativeSession(), statement.get()));
-    cass_future_wait(future.get());
-    CheckFuture(future.get(), "SelectOne");
+    QueryStopwatch stopwatch(*driver_session->GetStatistics().session->queries);
+    CassFuturePtr future;
+    try {
+        future.reset(cass_session_execute(driver_session->GetNativeSession(), statement.get()));
+        cass_future_wait(future.get());
+        CheckFuture(future.get(), "SelectOne");
+    } catch (const std::exception& ex) {
+        stopwatch.AccountFailure(ex);
+        throw;
+    }
 
     const CassResult* result = cass_future_get_result(future.get());
     operations::SelectOne::Row row;
@@ -207,6 +290,7 @@ operations::SelectOne::Row DriverTableImpl::Execute(const operations::SelectOne&
 
     cass_result_free(result);
 
+    stopwatch.AccountSuccess();
     return row;
 }
 

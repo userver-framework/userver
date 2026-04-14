@@ -99,21 +99,26 @@ constexpr utils::TrivialBiMap kRetryPolicyMapping([](auto selector) {
         .Case(SessionConfig::RetryPolicyType::kFallthrough, "fallthrough");
 });
 
+constexpr utils::TrivialBiMap kLoadBalancingPolicyMapping([](auto selector) {
+    return selector()
+        .Case(SessionConfig::LoadBalancingPolicy::kRoundRobin, "round_robin")
+        .Case(SessionConfig::LoadBalancingPolicy::kDcAware, "dc_aware");
+});
+
+constexpr utils::TrivialBiMap kSslVerifyModeMapping([](auto selector) {
+    return selector()
+        .Case(SessionConfig::SslSettings::VerifyMode::kNone, "none")
+        .Case(SessionConfig::SslSettings::VerifyMode::kPeerCert, "peer_cert")
+        .Case(SessionConfig::SslSettings::VerifyMode::kPeerIdentity, "peer_identity")
+        .Case(SessionConfig::SslSettings::VerifyMode::kPeerIdentityDns, "peer_identity_dns");
+});
+
 void SessionSettings::Validate(const std::string& session_id) const {
-    bool unable_to_connect = max_size == 0 || establishing_limit == 0;
-    bool idle_exceeds_max = idle_limit > max_size;
-    bool initial_exceeds_idle = initial_size > idle_limit;
-
-    if (unable_to_connect) {
-        throw InvalidConfigException("invalid max_size or establishing_limit at ") << session_id << " session_config";
+    if (num_threads_io == 0) {
+        throw InvalidConfigException("num_threads_io must be > 0 at ") << session_id;
     }
-
-    if (idle_exceeds_max) {
-        throw InvalidConfigException("idle_limit exceeds max_size at ") << session_id << " session_config";
-    }
-
-    if (initial_exceeds_idle) {
-        throw InvalidConfigException("initial_size exceeds idle_limit at ") << session_id << " session_config";
+    if (core_connections_per_host == 0) {
+        throw InvalidConfigException("core_connections_per_host must be > 0 at ") << session_id;
     }
 }
 
@@ -129,6 +134,14 @@ static auto Parse(const yaml_config::YamlConfig& config, formats::parse::To<Sess
     return utils::ParseFromValueString<InvalidConfigException>(config, kRetryPolicyMapping);
 }
 
+static auto Parse(const yaml_config::YamlConfig& config, formats::parse::To<SessionConfig::LoadBalancingPolicy>) {
+    return utils::ParseFromValueString<InvalidConfigException>(config, kLoadBalancingPolicyMapping);
+}
+
+static auto Parse(const yaml_config::YamlConfig& config, formats::parse::To<SessionConfig::SslSettings::VerifyMode>) {
+    return utils::ParseFromValueString<InvalidConfigException>(config, kSslVerifyModeMapping);
+}
+
 SessionConfig Parse(const yaml_config::YamlConfig& config, formats::parse::To<SessionConfig>) {
     SessionConfig result{};
     result.conn_timeout = config["conn_timeout"].As<std::chrono::milliseconds>(result.conn_timeout);
@@ -136,10 +149,29 @@ SessionConfig Parse(const yaml_config::YamlConfig& config, formats::parse::To<Se
     result.consistency = config["consistency"].As<Consistency>(result.consistency);
     result.serial_consistency = config["serial_consistency"].As<SerialConsistency>(result.serial_consistency);
     result.pool_size = config["pool_size"].As<std::size_t>(result.pool_size);
-    result.shard_awareness = config["shard_awareness"].As<bool>(result.shard_awareness);
+    result.token_aware_routing = config["token_aware_routing"].As<bool>(result.token_aware_routing);
     result.retry_policy = config["retry_policy"].As<SessionConfig::RetryPolicyType>(result.retry_policy);
+    result.load_balancing_policy =
+        config["load_balancing_policy"].As<SessionConfig::LoadBalancingPolicy>(result.load_balancing_policy);
+    result.preferred_datacenter = config["preferred_datacenter"].As<std::string>(result.preferred_datacenter);
     result.app_name = config["app_name"].As<std::string>(result.app_name);
     result.default_keyspace = config["default_keyspace"].As<std::string>();
+
+    if (config.HasMember("speculative_execution")) {
+        const auto& spec = config["speculative_execution"];
+        result.speculative_execution.enabled = spec["enabled"].As<bool>(result.speculative_execution.enabled);
+        result.speculative_execution.max_attempts =
+            spec["max_attempts"].As<std::size_t>(result.speculative_execution.max_attempts);
+        result.speculative_execution.delay =
+            spec["delay"].As<std::chrono::milliseconds>(result.speculative_execution.delay);
+    }
+
+    if (config.HasMember("ssl")) {
+        const auto& ssl = config["ssl"];
+        result.ssl.enabled = ssl["enabled"].As<bool>(result.ssl.enabled);
+        result.ssl.verify = ssl["verify"].As<SessionConfig::SslSettings::VerifyMode>(result.ssl.verify);
+    }
+
     return result;
 }
 
@@ -151,6 +183,11 @@ void SessionConfig::Validate(const std::string& session_id) const {
 
     if (!IsValidAppName(app_name)) {
         throw InvalidConfigException("Invalid app name in ") << session_id << " session config";
+    }
+
+    if (load_balancing_policy == LoadBalancingPolicy::kDcAware && preferred_datacenter.empty()) {
+        throw InvalidConfigException("preferred_datacenter is required for dc_aware load balancing in ")
+            << session_id;
     }
 }
 

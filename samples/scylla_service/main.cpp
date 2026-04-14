@@ -5,6 +5,8 @@
 #include <userver/storages/scylla/component.hpp>
 #include <userver/storages/scylla/operations.hpp>
 #include <userver/storages/scylla/session.hpp>
+#include <userver/storages/secdist/component.hpp>
+#include <userver/storages/secdist/provider_component.hpp>
 #include <userver/utest/using_namespace_userver.hpp>
 #include <userver/utils/daemon_run.hpp>
 
@@ -17,7 +19,7 @@ public:
 
     InsertHandler(const components::ComponentConfig& config, const components::ComponentContext& context)
         : HttpHandlerBase(config, context),
-          session_(context.FindComponent<components::Scylla>("scylla-example").GetSession()) {}
+          session_(context.FindComponent<components::Scylla>("scylla-dbconnection").GetSession()) {}
 
     std::string HandleRequest(server::http::HttpRequest&, server::request::RequestContext&) const override {
         auto table = session_->GetTable("basic");
@@ -44,7 +46,7 @@ public:
 
     SelectHandler(const components::ComponentConfig& config, const components::ComponentContext& context)
         : HttpHandlerBase(config, context),
-          session_(context.FindComponent<components::Scylla>("scylla-example").GetSession()) {}
+          session_(context.FindComponent<components::Scylla>("scylla-secdist").GetSession()) {}
 
     std::string HandleRequest(server::http::HttpRequest&, server::request::RequestContext&) const override {
         auto table = session_->GetTable("basic");
@@ -83,7 +85,10 @@ int main(int argc, char* argv[]) {
     const auto component_list =
         components::MinimalServerComponentList()
             .Append<clients::dns::Component>()
-            .Append<components::Scylla>("scylla-example")
+            .Append<components::Secdist>()
+            .Append<components::DefaultSecdistProvider>()
+            .Append<components::Scylla>("scylla-dbconnection")
+            .Append<components::Scylla>("scylla-secdist")
             .Append<samples::scylladb::InsertHandler>()
             .Append<samples::scylladb::SelectHandler>();
     return utils::DaemonMain(argc, argv, component_list);

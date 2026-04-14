@@ -2,6 +2,7 @@
 
 #include <userver/components/component_base.hpp>
 #include <userver/storages/secdist/secdist.hpp>
+#include <userver/utils/statistics/entry.hpp>
 
 #include <string>
 
@@ -26,6 +27,8 @@ private:
     std::string dbalias_;
     storages::scylla::SessionPtr session_;
 
+
+    utils::statistics::Entry statistics_entry_;
     concurrent::AsyncEventSubscriberScope secdist_subscriber_;
 };
 

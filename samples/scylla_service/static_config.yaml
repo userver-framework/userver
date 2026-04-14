@@ -30,13 +30,14 @@ components_manager:
                     level: debug
                     overflow_behavior: discard
 
-        scylla-example:
-            dbconnection: scylladb
+        # Option 1: direct connection string (no secdist needed)
+        scylla-dbconnection:
+            dbconnection: 127.0.0.1
             consistency: local_quorum
             serial_consistency: local_serial
             request_timeout: 10s
             pool_size: 16
-            app_name: scylla_app_name_4
+            app_name: scylla_sample
             shard_awareness: true
             retry_policy: default
             speculative_execution:
@@ -45,3 +46,23 @@ components_manager:
                 delay: 100ms
             default_keyspace: examples
 
+        # Option 2: hosts resolved via secdist
+        scylla-secdist:
+            dbalias: scylla_example
+            consistency: local_quorum
+            serial_consistency: local_serial
+            request_timeout: 10s
+            pool_size: 16
+            app_name: scylla_sample
+            shard_awareness: true
+            retry_policy: default
+            speculative_execution:
+                enabled: false
+                max_attempts: 2
+                delay: 100ms
+            default_keyspace: examples
+
+        secdist:
+            provider: default-secdist-provider
+        default-secdist-provider:
+            config: /etc/scylla_service/secdist.json

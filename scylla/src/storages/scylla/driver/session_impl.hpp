@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <string>
 
 #include <cassandra.h>
@@ -22,7 +23,8 @@ public:
         const std::string& hosts,
         const SessionConfig& session_config,
         dynamic_config::Source config_source,
-        clients::dns::Resolver* dns_resolver
+        clients::dns::Resolver* dns_resolver,
+        std::optional<storages::scylla::SslSecrets> ssl_secrets = std::nullopt
     );
 
     struct SessionDeleter {
@@ -59,9 +61,9 @@ public:
 
     CassSession* GetNativeSession() { return connection_->GetSession(); }
 
-    void Ping() override {
-        // TODO: implement
-    }
+    void Ping() override;
+
+    void DropKeyspace() override;
 
     void SetConnectionString(const std::string& connection_string) override;
 
@@ -70,6 +72,8 @@ public:
 private:
     ConnPtr Create();
 
+    SessionConfig session_config_;
+    std::optional<storages::scylla::SslSecrets> ssl_secrets_;
     std::string hosts_;
     std::string default_keyspace_;
     ConnPtr connection_;

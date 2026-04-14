@@ -3,6 +3,7 @@
 #include <chrono>
 #include <optional>
 #include <string>
+#include <vector>
 
 #include <userver/yaml_config/yaml_config.hpp>
 
@@ -26,15 +27,13 @@ enum class Consistency : uint16_t {
 enum class SerialConsistency : uint16_t { kSerial = 0x0008, kLocalSerial = 0x0009 };
 
 struct SessionSettings final {
-    static constexpr std::size_t kDefaultInitialSize = 16;
-    static constexpr std::size_t kDefaultMaxSize = 128;
-    static constexpr std::size_t kDefaultIdleLimit = 64;
-    static constexpr std::size_t kDefaultConnectingLimit = 8;
+    /// Number of I/O threads in the CassSession (handles async I/O)
+    static constexpr std::size_t kDefaultNumThreadsIo = 1;
+    /// Per-host core (minimum) connections kept alive
+    static constexpr std::size_t kDefaultCoreConnectionsPerHost = 1;
 
-    size_t initial_size = kDefaultInitialSize;
-    size_t max_size = kDefaultMaxSize;
-    size_t idle_limit = kDefaultIdleLimit;
-    size_t establishing_limit = kDefaultConnectingLimit;
+    size_t num_threads_io = kDefaultNumThreadsIo;
+    size_t core_connections_per_host = kDefaultCoreConnectionsPerHost;
 
     void Validate(const std::string& session_id) const;
 };
@@ -57,17 +56,20 @@ struct SessionConfig final {
 
     enum class LoadBalancingPolicy {
         kRoundRobin,
-        kTokenAwareRoundRobin,
-        kDcAwareRoundRobin,
+        kDcAware,
     };
-    LoadBalancingPolicy load_balancing_policy = LoadBalancingPolicy::kTokenAwareRoundRobin;
+    LoadBalancingPolicy load_balancing_policy = LoadBalancingPolicy::kDcAware;
     std::string preferred_datacenter;
+
+    /// Token-aware routing: sends queries directly to the replica that owns
+    /// the partition key. In ScyllaDB, this also enables shard-aware routing
+    // (sends to the exact CPU shard within the node).
+    /// Sits on top of the base load balancing policy.
+    bool token_aware_routing = true;
 
     SessionSettings dynamic_settings;
 
     void Validate(const std::string& session_id) const;
-
-    bool shard_awareness = true;
 
     enum class RetryPolicyType {
         kDefault,
@@ -85,9 +87,32 @@ struct SessionConfig final {
     std::string default_keyspace;
 
     std::string app_name = kDefaultAppName;
+
+    struct SslSettings {
+        bool enabled = false;
+
+        enum class VerifyMode {
+            kNone,
+            kPeerCert,
+            kPeerIdentity,
+            kPeerIdentityDns,
+        };
+        VerifyMode verify = VerifyMode::kPeerCert;
+    };
+    SslSettings ssl;
 };
 
 SessionConfig Parse(const yaml_config::YamlConfig& config, formats::parse::To<SessionConfig>);
+
+/// TLS certificate material from secdist. Kept alongside SessionConfig
+/// because the two are consumed together when building a CassCluster.
+struct SslSecrets {
+    std::vector<std::string> trusted_certs;
+    std::optional<std::string> client_cert;
+    std::optional<std::string> client_key;
+    std::string client_key_password;
+};
+
 }  // namespace storages::scylla
 
 USERVER_NAMESPACE_END

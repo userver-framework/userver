@@ -13,6 +13,10 @@ const std::string& SessionImpl::Id() const { return id_; }
 
 dynamic_config::Snapshot SessionImpl::GetConfig() const { return config_source_.GetSnapshot(); }
 
+const stats::ScyllaSessionStatistics& SessionImpl::GetStatistics() const { return statistics_; }
+
+stats::ScyllaSessionStatistics& SessionImpl::GetStatistics() { return statistics_; }
+
 }  // namespace storages::scylla::impl
 
 USERVER_NAMESPACE_END

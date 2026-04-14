@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -56,9 +57,8 @@ public:
         const std::string& hosts,
         const SessionConfig& session_config,
         dynamic_config::Source config_source,
-        // ??
-        // const std::string& contact_points,
-        clients::dns::Resolver* dns_resolver
+        clients::dns::Resolver* dns_resolver,
+        std::optional<SslSecrets> ssl_secrets = std::nullopt
     );
 
     friend void DumpMetric(utils::statistics::Writer& writer, const Session& session);
