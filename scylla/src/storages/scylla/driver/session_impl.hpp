@@ -6,6 +6,7 @@
 
 #include <cassandra.h>
 
+#include <storages/scylla/driver/prepared_cache.hpp>
 #include <storages/scylla/session_impl.hpp>
 #include <userver/clients/dns/resolver_utils.hpp>
 #include <userver/dynamic_config/fwd.hpp>
@@ -61,6 +62,10 @@ public:
 
     CassSession* GetNativeSession() { return connection_->GetSession(); }
 
+    const SessionConfig& GetSessionConfig() const noexcept { return session_config_; }
+
+    PreparedStatementCache& GetPreparedCache() noexcept { return prepared_cache_; }
+
     void Ping() override;
 
     void DropKeyspace() override;
@@ -77,8 +82,9 @@ private:
     std::string hosts_;
     std::string default_keyspace_;
     ConnPtr connection_;
+    PreparedStatementCache prepared_cache_;
 };
 
-}  // namespace storages::scylla::impl::driver
+}
 
 USERVER_NAMESPACE_END

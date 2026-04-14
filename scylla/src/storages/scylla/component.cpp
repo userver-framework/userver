@@ -16,7 +16,7 @@
 #include <userver/storages/secdist/component.hpp>
 
 #ifndef ARCADIA_ROOT
-#include "generated/src/storages/scylla/component.yaml.hpp"  // Y_IGNORE
+#include "generated/src/storages/scylla/component.yaml.hpp"
 #endif
 
 USERVER_NAMESPACE_BEGIN
@@ -33,7 +33,7 @@ storages::scylla::SessionConfig ParseSessionConfig(const ComponentConfig& config
 
     return session_config;
 }
-}  // namespace
+}
 
 Scylla::Scylla(const ComponentConfig& config, const ComponentContext& context) : ComponentBase(config, context) {
     auto db_alias = config["dbalias"].As<std::string>("");
@@ -99,6 +99,6 @@ Scylla::~Scylla() {
     statistics_entry_.Unregister();
     secdist_subscriber_.Unsubscribe();
 }
-}  // namespace components
+}
 
 USERVER_NAMESPACE_END

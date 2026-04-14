@@ -38,6 +38,6 @@ private:
 
 using SessionImplPtr = std::shared_ptr<SessionImpl>;
 
-}  // namespace storages::scylla::impl
+}
 
 USERVER_NAMESPACE_END

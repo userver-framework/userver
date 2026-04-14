@@ -27,9 +27,9 @@ enum class Consistency : uint16_t {
 enum class SerialConsistency : uint16_t { kSerial = 0x0008, kLocalSerial = 0x0009 };
 
 struct SessionSettings final {
-    /// Number of I/O threads in the CassSession (handles async I/O)
+
     static constexpr std::size_t kDefaultNumThreadsIo = 1;
-    /// Per-host core (minimum) connections kept alive
+
     static constexpr std::size_t kDefaultCoreConnectionsPerHost = 1;
 
     size_t num_threads_io = kDefaultNumThreadsIo;
@@ -39,7 +39,7 @@ struct SessionSettings final {
 };
 
 struct SessionConfig final {
-    // these are timeouts!!!
+
     static constexpr auto kDefaultConnTimeout = std::chrono::seconds{2};
     static constexpr auto kDefaultRequestTimeout = std::chrono::seconds{10};
 
@@ -61,10 +61,6 @@ struct SessionConfig final {
     LoadBalancingPolicy load_balancing_policy = LoadBalancingPolicy::kDcAware;
     std::string preferred_datacenter;
 
-    /// Token-aware routing: sends queries directly to the replica that owns
-    /// the partition key. In ScyllaDB, this also enables shard-aware routing
-    // (sends to the exact CPU shard within the node).
-    /// Sits on top of the base load balancing policy.
     bool token_aware_routing = true;
 
     SessionSettings dynamic_settings;
@@ -104,8 +100,6 @@ struct SessionConfig final {
 
 SessionConfig Parse(const yaml_config::YamlConfig& config, formats::parse::To<SessionConfig>);
 
-/// TLS certificate material from secdist. Kept alongside SessionConfig
-/// because the two are consumed together when building a CassCluster.
 struct SslSecrets {
     std::vector<std::string> trusted_certs;
     std::optional<std::string> client_cert;
@@ -113,6 +107,6 @@ struct SslSecrets {
     std::string client_key_password;
 };
 
-}  // namespace storages::scylla
+}
 
 USERVER_NAMESPACE_END

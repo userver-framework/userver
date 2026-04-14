@@ -39,7 +39,7 @@ docker exec -it scylla-dev-1 bash
 /opt/userver/scripts/scylla/entrypoint.sh
 ```
 
-This builds and runs the `samples/scylla_service` sample.
+This builds current userver and runs the `samples/scylla_service` sample.
 
 ---
 

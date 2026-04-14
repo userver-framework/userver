@@ -35,6 +35,13 @@ TimeoutException::TimeoutException(
           << timeout.count() << "ms]: " << what;
 }
 
-}  // namespace storages::scylla
+CancelledException::CancelledException(ByDeadlinePropagation)
+    : ScyllaException{},
+      by_deadline_propagation_(true)
+{
+    *this << "ScyllaDB operation cancelled by upstream deadline propagation";
+}
+
+}
 
 USERVER_NAMESPACE_END

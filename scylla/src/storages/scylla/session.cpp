@@ -38,11 +38,17 @@ Table Session::GetTable(std::string table_name) const {
 
 void Session::DropKeyspace() { impl_->DropKeyspace(); }
 
+void Session::Ping() { impl_->Ping(); }
+
+void Session::SetContactPoints(const std::string& contact_points) {
+    impl_->SetConnectionString(contact_points);
+}
+
 void DumpMetric(utils::statistics::Writer& writer, const Session& session) {
     UASSERT(session.impl_);
     writer = *session.impl_->GetStatistics().session;
 }
 
-}  // namespace storages::scylla
+}
 
 USERVER_NAMESPACE_END

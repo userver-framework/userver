@@ -1,8 +1,8 @@
 #include "session_impl.hpp"
 
-#include <cctype>
 #include <chrono>
 #include <memory>
+#include <string_view>
 
 #include <cassandra.h>
 
@@ -10,8 +10,14 @@
 #include <userver/dynamic_config/source.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/storages/scylla/exception.hpp>
+#include <userver/tracing/span.hpp>
+#include <userver/tracing/tags.hpp>
 
+#include <storages/scylla/driver/async_future.hpp>
 #include <storages/scylla/driver/cass_wrappers.hpp>
+#include <storages/scylla/driver/cql_builder.hpp>
+#include <storages/scylla/driver/query_helpers.hpp>
+#include <storages/scylla/driver/request_context.hpp>
 #include <storages/scylla/driver/scylla_error.hpp>
 #include <storages/scylla/scylla_secdist.hpp>
 #include <storages/scylla/stats.hpp>
@@ -24,34 +30,14 @@ namespace {
 
 constexpr const char* kPingQuery = "SELECT release_version FROM system.local";
 
-// Maximum length of an unquoted CQL identifier (Cassandra/ScyllaDB limit).
-constexpr std::size_t kMaxCqlIdentifierLength = 48;
-
 std::chrono::milliseconds ElapsedSince(std::chrono::steady_clock::time_point start) noexcept {
     return std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::steady_clock::now() - start);
 }
 
-// Validate a string as a safe-to-interpolate unquoted CQL identifier.
-//
-// CQL DDL statements like DROP KEYSPACE cannot use bound parameters, so the
-// keyspace name must be inlined into the query string. To prevent CQL
-// injection we accept only the conservative subset: alphanumerics and
-// underscores, starting with a letter, up to 48 characters.
-bool IsValidCqlIdentifier(std::string_view name) noexcept {
-    if (name.empty() || name.size() > kMaxCqlIdentifierLength) return false;
-    if (std::isalpha(static_cast<unsigned char>(name.front())) == 0) return false;
-    for (const char c : name) {
-        const auto uc = static_cast<unsigned char>(c);
-        if (std::isalnum(uc) == 0 && c != '_') return false;
-    }
-    return true;
-}
-
 void ApplyLoadBalancingPolicy(CassCluster* cluster, const SessionConfig& config) {
     using LBP = SessionConfig::LoadBalancingPolicy;
 
-    // Step 1: Set the base routing policy
     switch (config.load_balancing_policy) {
         case LBP::kRoundRobin:
             cass_cluster_set_load_balance_round_robin(cluster);
@@ -60,15 +46,12 @@ void ApplyLoadBalancingPolicy(CassCluster* cluster, const SessionConfig& config)
             cass_cluster_set_load_balance_dc_aware(
                 cluster,
                 config.preferred_datacenter.c_str(),
-                0,         // used_hosts_per_remote_dc
-                cass_false // don't allow remote DCs for local consistency
+                0,
+                cass_false
             );
             break;
     }
 
-    // Step 2: Token-aware is an optimization layer on top of any base policy.
-    // In ScyllaDB, this also enables shard-aware routing (requests go to the
-    // exact CPU shard that owns the partition, not just the node).
     cass_cluster_set_token_aware_routing(cluster,
         config.token_aware_routing ? cass_true : cass_false);
 }
@@ -104,7 +87,7 @@ int ToVerifyFlags(SessionConfig::SslSettings::VerifyMode mode) {
 void ApplySsl(
     CassCluster* cluster,
     const SessionConfig::SslSettings& ssl_config,
-    const std::optional<secdist::SslSecrets>& ssl_secrets
+    const std::optional<SslSecrets>& ssl_secrets
 ) {
     if (!ssl_config.enabled) return;
 
@@ -152,15 +135,53 @@ void ApplySpeculativeExecution(CassCluster* cluster, const SessionConfig::Specul
     }
 }
 
-}  // namespace
+void CppDriverLogCallback(const CassLogMessage* message, void* ) noexcept {
+    if (!message) return;
+    const std::string_view text(message->message);
+    switch (message->severity) {
+        case CASS_LOG_CRITICAL:
+        case CASS_LOG_ERROR:
+            LOG_ERROR() << "[scylla cpp-driver] " << text;
+            break;
+        case CASS_LOG_WARN:
+            LOG_WARNING() << "[scylla cpp-driver] " << text;
+            break;
+        case CASS_LOG_INFO:
+            LOG_INFO() << "[scylla cpp-driver] " << text;
+            break;
+        case CASS_LOG_DEBUG:
+        case CASS_LOG_TRACE:
+            LOG_DEBUG() << "[scylla cpp-driver] " << text;
+            break;
+        default:
+            break;
+    }
+}
+
+void EnsureCppDriverLogBridge() {
+    [[maybe_unused]] static const int kBridgeInstalled = [] {
+        cass_log_set_level(CASS_LOG_WARN);
+        cass_log_set_callback(&CppDriverLogCallback, nullptr);
+        return 0;
+    }();
+}
+
+void ApplyDefaultConsistency(CassCluster* cluster, const SessionConfig& config) {
+    cass_cluster_set_consistency(
+        cluster, static_cast<CassConsistency>(config.consistency));
+    cass_cluster_set_serial_consistency(
+        cluster, static_cast<CassConsistency>(config.serial_consistency));
+}
+
+}
 
 DriverSessionImpl::DriverSessionImpl(
     std::string id,
     const std::string& hosts,
     const SessionConfig& session_config,
     dynamic_config::Source config_source,
-    clients::dns::Resolver* /*dns_resolver*/,
-    std::optional<secdist::SslSecrets> ssl_secrets
+    clients::dns::Resolver* ,
+    std::optional<SslSecrets> ssl_secrets
 )
     : SessionImpl(std::move(id), session_config, config_source),
       session_config_(session_config),
@@ -168,7 +189,6 @@ DriverSessionImpl::DriverSessionImpl(
       default_keyspace_(session_config.default_keyspace) {
     SetConnectionString(hosts);
 }
-
 
 void DriverSessionImpl::SetConnectionString(const std::string& connection_string) {
     if (hosts_ == connection_string) {
@@ -194,7 +214,17 @@ void DriverSessionImpl::SetConnectionString(const std::string& connection_string
 }
 
 DriverSessionImpl::ConnPtr DriverSessionImpl::Create() {
+    EnsureCppDriverLogBridge();
+
+    tracing::Span span("scylla_connect");
+    span.AddTag(tracing::kDatabaseType, std::string{kDatabaseScyllaType});
+    if (!default_keyspace_.empty()) {
+        span.AddTag(tracing::kDatabaseInstance, default_keyspace_);
+    }
+
     LOG_DEBUG() << "Creating scylla connection";
+
+    prepared_cache_.Clear();
 
     CassClusterPtr cluster(cass_cluster_new());
     cass_cluster_set_contact_points(cluster.get(), hosts_.c_str());
@@ -210,10 +240,9 @@ DriverSessionImpl::ConnPtr DriverSessionImpl::Create() {
         settings.core_connections_per_host);
 
     ApplyLoadBalancingPolicy(cluster.get(), session_config_);
-
     ApplyRetryPolicy(cluster.get(), session_config_.retry_policy);
-
     ApplySpeculativeExecution(cluster.get(), session_config_.speculative_execution);
+    ApplyDefaultConsistency(cluster.get(), session_config_);
 
     if (!session_config_.app_name.empty()) {
         cass_cluster_set_application_name(cluster.get(),
@@ -226,7 +255,7 @@ DriverSessionImpl::ConnPtr DriverSessionImpl::Create() {
 
     CassFuturePtr connect_future(
         cass_session_connect(session.get(), cluster.get()));
-    cass_future_wait(connect_future.get());
+    AsyncWaitFuture(connect_future.get());
     CheckFuture(connect_future.get(), "connect");
 
     auto& session_stats = *GetStatistics().session;
@@ -234,9 +263,11 @@ DriverSessionImpl::ConnPtr DriverSessionImpl::Create() {
         const auto start = std::chrono::steady_clock::now();
         try {
             CassStatementPtr ping_stmt(cass_statement_new(kPingQuery, 0));
+            ApplyConsistency(ping_stmt.get(), session_config_, std::nullopt);
+            MarkIdempotent(ping_stmt.get());
             CassFuturePtr ping_future(
                 cass_session_execute(session.get(), ping_stmt.get()));
-            cass_future_wait(ping_future.get());
+            AsyncWaitFuture(ping_future.get());
             CheckFuture(ping_future.get(), "ping");
             session_stats.ping->Account(stats::ErrorType::kSuccess, ElapsedSince(start));
         } catch (const std::exception& ex) {
@@ -250,13 +281,17 @@ DriverSessionImpl::ConnPtr DriverSessionImpl::Create() {
 }
 
 void DriverSessionImpl::Ping() {
+    auto span = MakeDbSpan("scylla_ping", default_keyspace_);
     auto& session_stats = *GetStatistics().session;
     const auto start = std::chrono::steady_clock::now();
     try {
         CassStatementPtr ping_stmt(cass_statement_new(kPingQuery, 0));
+        ApplyConsistency(ping_stmt.get(), session_config_, std::nullopt);
+        ApplyDeadlineAndTimeout(ping_stmt.get(), session_config_.request_timeout);
+        MarkIdempotent(ping_stmt.get());
         CassFuturePtr ping_future(
             cass_session_execute(connection_->GetSession(), ping_stmt.get()));
-        cass_future_wait(ping_future.get());
+        AsyncWaitFuture(ping_future.get());
         CheckFuture(ping_future.get(), "ping");
         session_stats.ping->Account(stats::ErrorType::kSuccess, ElapsedSince(start));
     } catch (const std::exception& ex) {
@@ -270,39 +305,19 @@ void DriverSessionImpl::DropKeyspace() {
         throw InvalidConfigException(
             "Cannot drop keyspace: no default keyspace configured for session '" + Id() + "'");
     }
-    if (!IsValidCqlIdentifier(default_keyspace_)) {
-        throw InvalidConfigException(
-            "Refusing to drop keyspace '" + default_keyspace_ +
-            "': name is not a valid unquoted CQL identifier "
-            "(letters/digits/underscore, starting with a letter, max 48 chars)");
-    }
 
     LOG_WARNING() << "Dropping ScyllaDB keyspace '" << default_keyspace_
                   << "' on session '" << Id() << "'";
 
-    // Safe to interpolate: default_keyspace_ has been validated above as a
-    // restricted CQL identifier, so it cannot contain quotes, semicolons,
-    // whitespace, or comment markers.
-    const std::string query = "DROP KEYSPACE IF EXISTS " + default_keyspace_;
+    auto context = MakeSessionRequestContext(*this, "scylla_drop_keyspace", default_keyspace_);
 
-    auto& session_stats = *GetStatistics().session;
-    const auto start = std::chrono::steady_clock::now();
-    try {
-        CassStatementPtr stmt(cass_statement_new(query.c_str(), 0));
-        CassFuturePtr future(
-            cass_session_execute(connection_->GetSession(), stmt.get()));
-        cass_future_wait(future.get());
-        CheckFuture(future.get(), "drop keyspace");
+    auto statement = cql::BuildDropKeyspaceStatement(context);
 
-        session_stats.queries->Account(stats::ErrorType::kSuccess, ElapsedSince(start));
-    } catch (const std::exception& ex) {
-        session_stats.queries->Account(stats::ClassifyException(ex), ElapsedSince(start));
-        throw;
-    }
+    ExecuteStatement(context, std::move(statement), true, "drop keyspace");
 }
 
 const std::string& DriverSessionImpl::DefaultDatabaseName() const { return default_keyspace_; }
 
-}  // namespace storages::scylla::impl::driver
+}
 
 USERVER_NAMESPACE_END

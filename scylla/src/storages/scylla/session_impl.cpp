@@ -5,7 +5,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::scylla::impl {
 
-// TODO: extend this file
 SessionImpl::SessionImpl(std::string&& id, const SessionConfig session_config, dynamic_config::Source config_source)
     : id_(std::move(id)), config_source_(config_source) {};
 
@@ -17,6 +16,6 @@ const stats::ScyllaSessionStatistics& SessionImpl::GetStatistics() const { retur
 
 stats::ScyllaSessionStatistics& SessionImpl::GetStatistics() { return statistics_; }
 
-}  // namespace storages::scylla::impl
+}
 
 USERVER_NAMESPACE_END

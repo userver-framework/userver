@@ -27,6 +27,36 @@ public:
     std::vector<SelectOne::Condition> conditions;
 };
 
-}  // namespace storages::scylla::operations
+class DeleteOne::Impl {
+public:
+    std::vector<DeleteOne::Condition> conditions;
+};
+
+class SelectMany::Impl {
+public:
+    std::vector<std::string> columns;
+    bool select_all{true};
+    std::vector<SelectMany::Condition> conditions;
+    size_t limit{0};
+};
+
+class UpdateOne::Impl {
+public:
+    std::vector<UpdateOne::Assignment> assignments;
+    std::vector<UpdateOne::Condition> conditions;
+};
+
+class Count::Impl {
+public:
+    std::vector<Count::Condition> conditions;
+};
+
+class InsertMany::Impl {
+public:
+
+    std::vector<std::vector<InsertMany::Binding>> rows{{}};
+};
+
+}
 
 USERVER_NAMESPACE_END

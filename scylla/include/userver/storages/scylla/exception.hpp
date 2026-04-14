@@ -1,8 +1,5 @@
 #pragma once
 
-/// @file userver/storages/scylla/exception.hpp
-/// @brief ScyllaDB-specific exceptions
-
 #include <chrono>
 
 #include <userver/utils/traceful_exception.hpp>
@@ -66,6 +63,19 @@ class PoolOverloadException : public ScyllaException {
     using ScyllaException::ScyllaException;
 };
 
-}  // namespace storages::scylla
+class CancelledException : public ScyllaException {
+public:
+    struct ByDeadlinePropagation final {};
+
+    using ScyllaException::ScyllaException;
+    explicit CancelledException(ByDeadlinePropagation);
+
+    bool IsByDeadlinePropagation() const noexcept { return by_deadline_propagation_; }
+
+private:
+    bool by_deadline_propagation_{false};
+};
+
+}
 
 USERVER_NAMESPACE_END

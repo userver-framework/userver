@@ -27,11 +27,10 @@ private:
     std::string dbalias_;
     storages::scylla::SessionPtr session_;
 
-
     utils::statistics::Entry statistics_entry_;
     concurrent::AsyncEventSubscriberScope secdist_subscriber_;
 };
 
-}  // namespace components
+}
 
 USERVER_NAMESPACE_END

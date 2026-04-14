@@ -74,7 +74,7 @@ std::optional<SerialConsistency> SerialConsistencyFromRaw(int16_t value) {
             return std::nullopt;
     }
 }
-}  // namespace
+}
 
 constexpr utils::TrivialBiMap kSerialConsistencyMapping([](auto selector) {
     return selector().Case(SerialConsistency::kSerial, "serial").Case(SerialConsistency::kLocalSerial, "local_serial");
@@ -191,6 +191,6 @@ void SessionConfig::Validate(const std::string& session_id) const {
     }
 }
 
-}  // namespace storages::scylla
+}
 
 USERVER_NAMESPACE_END
