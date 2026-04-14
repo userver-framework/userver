@@ -19,6 +19,7 @@
 #include <storages/scylla/driver/query_helpers.hpp>
 #include <storages/scylla/driver/request_context.hpp>
 #include <storages/scylla/driver/scylla_error.hpp>
+#include <storages/scylla/driver/value_extract.hpp>
 #include <storages/scylla/scylla_secdist.hpp>
 #include <storages/scylla/stats.hpp>
 
@@ -317,6 +318,68 @@ void DriverSessionImpl::DropKeyspace() {
 }
 
 const std::string& DriverSessionImpl::DefaultDatabaseName() const { return default_keyspace_; }
+
+namespace {
+
+CassStatementPtr PrepareRawStatement(
+    RequestContext& ctx,
+    const std::string& query,
+    const std::vector<Value>& params
+) {
+    cql::CqlQuery q;
+    q.text = query;
+    q.values.reserve(params.size());
+    for (const auto& p : params) q.values.push_back(p);
+    return cql::Prepare(ctx, q);
+}
+
+}  // namespace
+
+Rows DriverSessionImpl::ExecuteRaw(const std::string& query, const std::vector<Value>& params) {
+    auto ctx = MakeSessionRequestContext(*this, "scylla_execute_raw", default_keyspace_);
+    auto stmt = PrepareRawStatement(ctx, query, params);
+    auto result = ExecuteStatement(ctx, std::move(stmt), false, "ExecuteRaw");
+    return ExtractAllRows(result.get());
+}
+
+PagedRows DriverSessionImpl::ExecuteRawPaged(
+    const std::string& query,
+    const std::vector<Value>& params,
+    std::size_t page_size,
+    const std::string& paging_state
+) {
+    auto ctx = MakeSessionRequestContext(*this, "scylla_execute_raw_paged", default_keyspace_);
+    auto stmt = PrepareRawStatement(ctx, query, params);
+
+    if (page_size > 0) {
+        cass_statement_set_paging_size(stmt.get(), static_cast<int>(page_size));
+    }
+    if (!paging_state.empty()) {
+        if (cass_statement_set_paging_state_token(
+                stmt.get(), paging_state.data(), paging_state.size()) != CASS_OK) {
+            throw QueryException("ExecuteRawPaged: invalid paging state token");
+        }
+    }
+
+    auto result = ExecuteStatement(ctx, std::move(stmt), false, "ExecuteRawPaged");
+
+    PagedRows out;
+    out.rows = ExtractAllRows(result.get());
+    out.has_more_pages = cass_result_has_more_pages(result.get()) == cass_true;
+    if (out.has_more_pages) {
+        const char* token = nullptr;
+        std::size_t token_len = 0;
+        cass_result_paging_state_token(result.get(), &token, &token_len);
+        out.paging_state.assign(token, token_len);
+    }
+    return out;
+}
+
+void DriverSessionImpl::ExecuteRawVoid(const std::string& query, const std::vector<Value>& params) {
+    auto ctx = MakeSessionRequestContext(*this, "scylla_execute_raw_void", default_keyspace_);
+    auto stmt = PrepareRawStatement(ctx, query, params);
+    ExecuteStatement(ctx, std::move(stmt), false, "ExecuteRawVoid");
+}
 
 }
 

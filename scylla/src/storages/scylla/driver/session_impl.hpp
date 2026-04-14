@@ -72,6 +72,14 @@ public:
 
     void SetConnectionString(const std::string& connection_string) override;
 
+    Rows ExecuteRaw(const std::string& query, const std::vector<Value>& params) override;
+    PagedRows ExecuteRawPaged(
+        const std::string& query,
+        const std::vector<Value>& params,
+        std::size_t page_size,
+        const std::string& paging_state) override;
+    void ExecuteRawVoid(const std::string& query, const std::vector<Value>& params) override;
+
     using ConnPtr = std::shared_ptr<Connection>;
 
 private:

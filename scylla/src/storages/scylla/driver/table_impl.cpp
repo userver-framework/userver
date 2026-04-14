@@ -1,7 +1,6 @@
 #include "table_impl.hpp"
 
 #include <cstdint>
-#include <optional>
 #include <utility>
 
 #include <cassandra.h>
@@ -12,6 +11,7 @@
 #include <storages/scylla/driver/cql_builder.hpp>
 #include <storages/scylla/driver/request_context.hpp>
 #include <storages/scylla/driver/session_impl.hpp>
+#include <storages/scylla/driver/value_extract.hpp>
 #include <storages/scylla/operations_impl.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -28,82 +28,11 @@ DriverSessionImpl& GetDriverSession(const SessionImplPtr& session_impl) {
     return *driver;
 }
 
-std::optional<operations::SelectOne::Value> ExtractColumnValue(const CassValue* cass_val) {
-    switch (cass_value_type(cass_val)) {
-        case CASS_VALUE_TYPE_VARCHAR:
-        case CASS_VALUE_TYPE_TEXT: {
-            const char* str = nullptr;
-            std::size_t str_length = 0;
-            cass_value_get_string(cass_val, &str, &str_length);
-            return std::string(str, str_length);
-        }
-        case CASS_VALUE_TYPE_INT: {
-            int32_t v = 0;
-            cass_value_get_int32(cass_val, &v);
-            return v;
-        }
-        case CASS_VALUE_TYPE_BIGINT: {
-            int64_t v = 0;
-            cass_value_get_int64(cass_val, &v);
-            return v;
-        }
-        case CASS_VALUE_TYPE_BOOLEAN: {
-            cass_bool_t v = cass_false;
-            cass_value_get_bool(cass_val, &v);
-            return static_cast<bool>(v);
-        }
-        case CASS_VALUE_TYPE_FLOAT: {
-            float v = 0.0f;
-            cass_value_get_float(cass_val, &v);
-            return v;
-        }
-        case CASS_VALUE_TYPE_DOUBLE: {
-            double v = 0.0;
-            cass_value_get_double(cass_val, &v);
-            return v;
-        }
-        default:
-            return std::nullopt;
-    }
+Row ExtractFirstRow(const CassResult* result) {
+    return ExtractRow(result, cass_result_first_row(result));
 }
 
-template <typename Row>
-Row ExtractRowImpl(const CassResult* result, const CassRow* cass_row) {
-    Row row;
-    if (!cass_row) return row;
-
-    const std::size_t col_count = cass_result_column_count(result);
-    row.reserve(col_count);
-    for (std::size_t i = 0; i < col_count; ++i) {
-        const char* col_name = nullptr;
-        std::size_t col_name_length = 0;
-        cass_result_column_name(result, i, &col_name, &col_name_length);
-
-        auto value = ExtractColumnValue(cass_row_get_column(cass_row, i));
-        if (!value) continue;
-
-        row.emplace_back(std::string(col_name, col_name_length), std::move(*value));
-    }
-    return row;
-}
-
-operations::SelectOne::Row ExtractFirstRow(const CassResult* result) {
-    return ExtractRowImpl<operations::SelectOne::Row>(result, cass_result_first_row(result));
-}
-
-operations::SelectMany::ResultSet ExtractAllRows(const CassResult* result) {
-    operations::SelectMany::ResultSet rows;
-    rows.reserve(cass_result_row_count(result));
-
-    CassIteratorPtr iterator{cass_iterator_from_result(result)};
-    while (cass_iterator_next(iterator.get())) {
-        rows.push_back(
-            ExtractRowImpl<operations::SelectMany::Row>(result, cass_iterator_get_row(iterator.get())));
-    }
-    return rows;
-}
-
-int64_t ExtractCount(const CassResult* result) {
+std::int64_t ExtractCount(const CassResult* result) {
     const CassRow* row = cass_result_first_row(result);
     if (!row) {
         throw ScyllaException() << "Count: empty result";
@@ -112,11 +41,11 @@ int64_t ExtractCount(const CassResult* result) {
     if (!value) {
         throw ScyllaException() << "Count: no column in result row";
     }
-    int64_t count = 0;
+    cass_int64_t count = 0;
     if (cass_value_get_int64(value, &count) != CASS_OK) {
         throw ScyllaException() << "Count: result column is not a bigint";
     }
-    return count;
+    return static_cast<std::int64_t>(count);
 }
 
 template <typename QueryBuilder, typename Parse>
@@ -139,7 +68,7 @@ auto RunTableRequest(
 
 constexpr auto kNoParse = [](const CassResult*) noexcept {};
 
-}
+}  // namespace
 
 DriverTableImpl::DriverTableImpl(SessionImplPtr session_impl, std::string keyspace_name, std::string table_name)
     : TableImpl(std::move(keyspace_name), std::move(table_name)), session_impl_(std::move(session_impl)) {}
@@ -149,11 +78,11 @@ void DriverTableImpl::Execute(const operations::InsertOne& op) {
         GetDriverSession(session_impl_),
         "scylla_insert_one", GetKeyspaceName(), GetTableName(),
         "InsertOne", true,
-        cql::Insert(op.impl_->bindings),
+        cql::Insert(op.impl_->bindings, /*if_not_exists=*/false, op.impl_->using_clause),
         kNoParse);
 }
 
-operations::SelectOne::Row DriverTableImpl::Execute(const operations::SelectOne& op) {
+Row DriverTableImpl::Execute(const operations::SelectOne& op) {
     return RunTableRequest(
         GetDriverSession(session_impl_),
         "scylla_select_one", GetKeyspaceName(), GetTableName(),
@@ -162,17 +91,61 @@ operations::SelectOne::Row DriverTableImpl::Execute(const operations::SelectOne&
         ExtractFirstRow);
 }
 
-operations::SelectMany::ResultSet DriverTableImpl::Execute(const operations::SelectMany& op) {
-    return RunTableRequest(
-        GetDriverSession(session_impl_),
-        "scylla_select_many", GetKeyspaceName(), GetTableName(),
-        "SelectMany", true,
-        cql::SelectMany(op.impl_->columns, op.impl_->select_all, op.impl_->conditions, op.impl_->limit),
-        ExtractAllRows);
+Rows DriverTableImpl::Execute(const operations::SelectMany& op) {
+    auto& session = GetDriverSession(session_impl_);
+    auto ctx = MakeTableRequestContext(session, "scylla_select_many", GetKeyspaceName(), GetTableName());
+    const auto full_table = cql::BuildFullTableName(ctx.keyspace, ctx.table);
+
+    auto stmt = cql::Prepare(
+        ctx,
+        cql::SelectMany(op.impl_->columns, op.impl_->select_all, op.impl_->conditions,
+                        op.impl_->limit, op.impl_->allow_filtering)(full_table));
+
+    if (op.impl_->page_size > 0) {
+        cass_statement_set_paging_size(stmt.get(), static_cast<int>(op.impl_->page_size));
+    }
+
+    auto result = ExecuteStatement(ctx, std::move(stmt), true, "SelectMany");
+    return ExtractAllRows(result.get());
+}
+
+PagedRows DriverTableImpl::ExecutePaged(
+    const operations::SelectMany& op,
+    std::string paging_state
+) {
+    auto& session = GetDriverSession(session_impl_);
+    auto ctx = MakeTableRequestContext(session, "scylla_select_paged", GetKeyspaceName(), GetTableName());
+    const auto full_table = cql::BuildFullTableName(ctx.keyspace, ctx.table);
+
+    auto stmt = cql::Prepare(
+        ctx,
+        cql::SelectMany(op.impl_->columns, op.impl_->select_all, op.impl_->conditions,
+                        op.impl_->limit, op.impl_->allow_filtering)(full_table));
+
+    const std::size_t page_size = op.impl_->page_size > 0 ? op.impl_->page_size : 1000;
+    cass_statement_set_paging_size(stmt.get(), static_cast<int>(page_size));
+
+    if (!paging_state.empty()) {
+        if (cass_statement_set_paging_state_token(stmt.get(), paging_state.data(), paging_state.size()) != CASS_OK) {
+            throw QueryException("ExecutePaged: invalid paging state token");
+        }
+    }
+
+    auto result = ExecuteStatement(ctx, std::move(stmt), true, "SelectManyPaged");
+
+    PagedRows out;
+    out.rows = ExtractAllRows(result.get());
+    out.has_more_pages = cass_result_has_more_pages(result.get()) == cass_true;
+    if (out.has_more_pages) {
+        const char* token = nullptr;
+        std::size_t token_len = 0;
+        cass_result_paging_state_token(result.get(), &token, &token_len);
+        out.paging_state.assign(token, token_len);
+    }
+    return out;
 }
 
 void DriverTableImpl::Execute(const operations::DeleteOne& op) {
-
     RunTableRequest(
         GetDriverSession(session_impl_),
         "scylla_delete_one", GetKeyspaceName(), GetTableName(),
@@ -182,16 +155,15 @@ void DriverTableImpl::Execute(const operations::DeleteOne& op) {
 }
 
 void DriverTableImpl::Execute(const operations::UpdateOne& op) {
-
     RunTableRequest(
         GetDriverSession(session_impl_),
         "scylla_update_one", GetKeyspaceName(), GetTableName(),
         "UpdateOne", true,
-        cql::Update(op.impl_->assignments, op.impl_->conditions),
+        cql::Update(op.impl_->assignments, op.impl_->conditions, op.impl_->using_clause),
         kNoParse);
 }
 
-int64_t DriverTableImpl::Execute(const operations::Count& op) {
+std::int64_t DriverTableImpl::Execute(const operations::Count& op) {
     return RunTableRequest(
         GetDriverSession(session_impl_),
         "scylla_count", GetKeyspaceName(), GetTableName(),
@@ -230,8 +202,8 @@ void DriverTableImpl::Execute(const operations::InsertMany& op) {
 
     CassBatchPtr batch{cass_batch_new(CASS_BATCH_TYPE_LOGGED)};
     for (const auto& row : rows) {
-
-        auto stmt = cql::Prepare(ctx, cql::Insert(row)(full_table));
+        auto stmt = cql::Prepare(
+            ctx, cql::Insert(row, /*if_not_exists=*/false, op.impl_->using_clause)(full_table));
         if (cass_batch_add_statement(batch.get(), stmt.get()) != CASS_OK) {
             throw QueryException("InsertMany: failed to add statement to batch");
         }
@@ -240,7 +212,46 @@ void DriverTableImpl::Execute(const operations::InsertMany& op) {
     ExecuteBatch(ctx, std::move(batch), true, "InsertMany");
 }
 
-void DriverTableImpl::Execute(const operations::Truncate& ) {
+operations::LwtResult DriverTableImpl::ExecuteLwt(const operations::InsertOne& op) {
+    if (!op.impl_->if_not_exists) {
+        throw QueryException("ExecuteLwt(InsertOne): IfNotExists() must be set");
+    }
+    return RunTableRequest(
+        GetDriverSession(session_impl_),
+        "scylla_insert_one_lwt", GetKeyspaceName(), GetTableName(),
+        "InsertOneLwt", false,
+        cql::Insert(op.impl_->bindings, /*if_not_exists=*/true, op.impl_->using_clause),
+        ExtractLwtResult);
+}
+
+operations::LwtResult DriverTableImpl::ExecuteLwt(const operations::UpdateOne& op) {
+    if (!op.impl_->if_exists && op.impl_->if_conditions.empty()) {
+        throw QueryException(
+            "ExecuteLwt(UpdateOne): IfExists() or at least one If*() predicate is required");
+    }
+    return RunTableRequest(
+        GetDriverSession(session_impl_),
+        "scylla_update_one_lwt", GetKeyspaceName(), GetTableName(),
+        "UpdateOneLwt", false,
+        cql::UpdateLwt(op.impl_->assignments, op.impl_->conditions,
+                       op.impl_->if_conditions, op.impl_->if_exists, op.impl_->using_clause),
+        ExtractLwtResult);
+}
+
+operations::LwtResult DriverTableImpl::ExecuteLwt(const operations::DeleteOne& op) {
+    if (!op.impl_->if_exists && op.impl_->if_conditions.empty()) {
+        throw QueryException(
+            "ExecuteLwt(DeleteOne): IfExists() or at least one If*() predicate is required");
+    }
+    return RunTableRequest(
+        GetDriverSession(session_impl_),
+        "scylla_delete_one_lwt", GetKeyspaceName(), GetTableName(),
+        "DeleteOneLwt", false,
+        cql::DeleteRowsLwt(op.impl_->conditions, op.impl_->if_conditions, op.impl_->if_exists),
+        ExtractLwtResult);
+}
+
+void DriverTableImpl::Execute(const operations::Truncate&) {
     auto& session = GetDriverSession(session_impl_);
     auto ctx = MakeTableRequestContext(
         session, "scylla_truncate", GetKeyspaceName(), GetTableName());
@@ -248,6 +259,6 @@ void DriverTableImpl::Execute(const operations::Truncate& ) {
     ExecuteStatement(ctx, cql::BuildTruncateStatement(ctx), false, "Truncate");
 }
 
-}
+}  // namespace storages::scylla::impl::driver
 
 USERVER_NAMESPACE_END
