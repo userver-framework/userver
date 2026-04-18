@@ -64,6 +64,52 @@ properties:
                     type: boolean
                     default: true
                     description: whether to use query cache
+                network-threads-num:
+                    type: integer
+                    minimum: 1
+                    description: |
+                        NYdb::TDriverConfig::SetNetworkThreadsNum. If omitted, not set (SDK default).
+                client-threads-num:
+                    type: integer
+                    minimum: 0
+                    description: |
+                        NYdb::TDriverConfig::SetClientThreadsNum. If omitted, not set (SDK default).
+                tcp-keepalive:
+                    type: object
+                    additionalProperties: false
+                    description: |
+                        NYdb::TDriverConfig::SetTcpKeepAliveSettings. If the whole block is omitted, not set (SDK default).
+                        Use 0 for idle/count/interval on Linux to mean OS default.
+                    properties:
+                        enabled:
+                            type: boolean
+                            description: enable TCP keepalive on gRPC sockets (Linux; if omitted in a partial block, parser default
+                                applies)
+                        idle-sec:
+                            type: integer
+                            minimum: 0
+                            description: seconds idle before first keepalive probe (0 = OS default on Linux)
+                        probe-count:
+                            type: integer
+                            minimum: 0
+                            description: unacknowledged probes before drop (0 = OS default on Linux)
+                        interval-sec:
+                            type: integer
+                            minimum: 0
+                            description: seconds between probes (0 = OS default on Linux)
+                    required:
+                      - enabled
+                      - idle-sec
+                      - probe-count
+                      - interval-sec
+                grpc-keepalive-timeout:
+                    type: string
+                    description: |
+                        Duration string, e.g. 10s. NYdb::TDriverConfig::SetGRpcKeepAliveTimeout. If omitted, not set (SDK default).
+                grpc-keepalive-permit-without-calls:
+                    type: boolean
+                    description: |
+                        NYdb::TDriverConfig::SetGRpcKeepAlivePermitWithoutCalls. If omitted, not set (SDK default).
                 prefer_local_dc:
                     type: boolean
                     default: true

@@ -1,6 +1,8 @@
 #pragma once
 
 #include <cstdint>
+#include <exception>
+#include <map>
 #include <stdexcept>
 #include <string_view>
 
@@ -25,6 +27,29 @@ protected:
 
 private:
     const bool is_retryable_{false};
+};
+
+/// @brief Base exception thrown by Producer::Send in bulk mode
+/// in case of one or more send errors.
+class BulkSendException : public std::runtime_error {
+    static constexpr const char* kWhat{"Some messages was not delivered."};
+
+public:
+    using ExceptionMap = std::map<std::size_t, std::exception_ptr>;
+
+    explicit BulkSendException(ExceptionMap nested_exceptions);
+
+    /// @return nested errors.
+    /// Nested exceptions are subclasses of SendException.
+    const ExceptionMap& GetExceptions() const noexcept;
+
+private:
+    /// @brief A mapping from the message's index in the bulk send operation
+    /// to the exception that occurred during its delivering.
+    /// @details Key: 0-based index of the element in the input batch.
+    /// Value: Pointer to the exception.
+    /// @note Contains only indices that resulted in an error.
+    const ExceptionMap nested_exceptions_;
 };
 
 class DeliveryTimeoutException final : public SendException {

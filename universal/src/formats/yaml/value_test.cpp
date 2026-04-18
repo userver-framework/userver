@@ -146,4 +146,23 @@ TEST(FormatsYaml, NodesTags) {
     EXPECT_EQ(yaml["field_tag_prefix"].GetTag(), "tag:example,2024:foo");
 }
 
+TEST(FormatsYaml, IsBoolFromParsedScalar) {
+    auto f = formats::yaml::FromString("false");
+    auto t = formats::yaml::FromString("true");
+
+    EXPECT_TRUE(f.IsBool());
+    EXPECT_TRUE(t.IsBool());
+    EXPECT_FALSE(f.As<bool>());
+    EXPECT_TRUE(t.As<bool>());
+
+    EXPECT_FALSE(formats::yaml::FromString("\"false\"").IsBool());
+    EXPECT_FALSE(formats::yaml::FromString("hello").IsBool());
+}
+
+TEST(FormatsYaml, IsIntFromParsedScalar) {
+    auto v = formats::yaml::FromString("42");
+    EXPECT_TRUE(v.IsInt());
+    EXPECT_EQ(v.As<int>(), 42);
+}
+
 USERVER_NAMESPACE_END

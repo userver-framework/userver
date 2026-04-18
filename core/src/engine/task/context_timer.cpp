@@ -135,7 +135,6 @@ void ContextTimer::Impl::DoArmTimerInEvThread() {
     using LibEvDuration = std::chrono::duration<double>;
     const auto time_left = std::chrono::duration_cast<LibEvDuration>(params_.deadline.TimeLeft()).count();
 
-    LOG_TRACE() << "time_left=" << time_left;
     if (time_left <= 0.0) {
         // Optimization for small deadlines or high load
         DoOnTimer();

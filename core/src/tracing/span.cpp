@@ -434,6 +434,8 @@ void Span::AttachToCoroStack() { pimpl_->AttachToCoroStack(); }
 
 std::chrono::system_clock::time_point Span::GetStartSystemTime() const { return pimpl_->start_system_time_; }
 
+std::chrono::steady_clock::time_point Span::GetStartSteadyTime() const { return pimpl_->start_steady_time_; }
+
 std::string_view Span::GetTraceId() const { return pimpl_->GetTraceId(); }
 
 std::string_view Span::GetSpanId() const { return pimpl_->GetSpanId(); }

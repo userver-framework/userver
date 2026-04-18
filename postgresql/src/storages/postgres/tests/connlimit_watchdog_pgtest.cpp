@@ -69,7 +69,10 @@ pg::Transaction GetTransaction(pgd::ClusterImpl& cluster) {
 }
 
 constexpr size_t kReservedConn = 5;
-constexpr size_t kTestsuiteConnlimit = 100 - kReservedConn;
+constexpr size_t kTestsuiteServerConnlimit = 100;
+constexpr size_t kTestsuiteConnlimit = kTestsuiteServerConnlimit - kReservedConn;
+constexpr size_t kFallbackConnlimit = 17;
+constexpr size_t kMaxStepsWithError = 3;
 
 enum class MigrationVersion { kV1 = 0, kV2 = 1, kCount };
 
@@ -93,19 +96,25 @@ public:
 
     std::size_t DoStepV1() {
         // This watchdog use the native host like the watchdog in ClusterImpl.
-        pg::ConnlimitWatchdog connlimit_watchdog_v1{cluster_, testsuite_tasks_, kShardNumber, [] {}};
+        auto connlimit_watchdog_v1 = MakeConnlimitWatchdog();
         connlimit_watchdog_v1.StepV1();
         return connlimit_watchdog_v1.GetConnlimit();
     }
 
     std::size_t DoStepV2() {
         // Use different host names to emulate different hosts.
-        pg::ConnlimitWatchdog connlimit_watchdog_v2{cluster_, testsuite_tasks_, kShardNumber, [] {}, "host2"};
+        auto connlimit_watchdog_v2 = MakeConnlimitWatchdog("host2");
         connlimit_watchdog_v2.StepV2();
         return connlimit_watchdog_v2.GetConnlimit();
     }
 
+    pg::ConnlimitWatchdog MakeConnlimitWatchdog(std::string host_name = hostinfo::blocking::GetRealHostName()) {
+        return pg::ConnlimitWatchdog{cluster_, testsuite_tasks_, kShardNumber, kFallbackConnlimit, [] {}, host_name};
+    }
+
     pgd::ClusterImpl& GetCluster() { return cluster_; }
+
+    void SetUp() override { scope_.Set(utils::impl::kPgConnlimitWatchdogFallbackExperiment, true); }
 
 private:
     void ClearTable() {
@@ -116,6 +125,18 @@ private:
 
     testsuite::TestsuiteTasks testsuite_tasks_{true};
     pgd::ClusterImpl cluster_;
+    utils::impl::UserverExperimentsScope scope_;
+};
+
+class WatchdogWithNewConnectionsReservation : public Watchdog {
+public:
+    void SetUp() override {
+        Watchdog::SetUp();
+        scope_.Set(utils::impl::kPgConnlimitWatchdogReservationExperiment, true);
+    }
+
+private:
+    utils::impl::UserverExperimentsScope scope_;
 };
 
 UTEST_F(Watchdog, Basic) {
@@ -213,6 +234,38 @@ UTEST_F(Watchdog, MultiUsersWithV2) {
     }
     // StepV2 divides connections only between current_user => new host of 'current_user' affects a connlimit.
     EXPECT_EQ(kTestsuiteConnlimit / 2, DoStepV2());
+}
+
+UTEST_F(Watchdog, FallbackConnlimit) {
+    auto expected_connlimit = kTestsuiteConnlimit;
+    auto watchdog = MakeConnlimitWatchdog();
+    // Do single step with working connection
+    watchdog.StepV2();
+    // Update connection to a non-working one
+    GetCluster().SetDsnList({GetUnavailableDsn()});
+
+    while (expected_connlimit >= kFallbackConnlimit) {
+        for (size_t i = 0; i <= kMaxStepsWithError; ++i) {
+            ASSERT_EQ(expected_connlimit, watchdog.GetConnlimit());
+            watchdog.StepV2();
+        }
+        expected_connlimit /= 2;
+    }
+
+    ASSERT_EQ(kFallbackConnlimit, watchdog.GetConnlimit());
+}
+
+UTEST_F(WatchdogWithNewConnectionsReservation, CheckLimit) {
+    constexpr auto
+        kConnectionsLimit = kTestsuiteServerConnlimit - static_cast<std::size_t>(kTestsuiteServerConnlimit * 0.05);
+
+    EXPECT_EQ(kConnectionsLimit, DoStepV1());
+
+    // There are two hosts after 'StepV2'.
+    EXPECT_EQ(kConnectionsLimit / 2, DoStepV2());
+
+    // There are two hosts after 'StepV2'.
+    EXPECT_EQ(kConnectionsLimit / 2, DoStepV1());
 }
 
 USERVER_NAMESPACE_END

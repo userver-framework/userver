@@ -107,66 +107,6 @@ UTEST_F_MT(GrpcBidirectionalStream, BidirectionalStreamTest, 2) {
     );
 }
 
-UTEST_F(GrpcBidirectionalStream, PingPongFinishOk) {
-    auto stream = GetClient().Chat();
-
-    ASSERT_TRUE(stream.Write(sample::ugrpc::StreamGreetingRequest()));
-    sample::ugrpc::StreamGreetingResponse response;
-    ASSERT_TRUE(stream.Read(response));
-
-    ASSERT_TRUE(ugrpc::client::PingPongFinish(stream));
-
-    ASSERT_FALSE(stream.Write(sample::ugrpc::StreamGreetingRequest()));
-    ASSERT_FALSE(stream.WritesDone());
-    ASSERT_THROW(stream.WriteAndCheck(sample::ugrpc::StreamGreetingRequest()), ugrpc::client::RpcError);
-    ASSERT_FALSE(stream.Read(response));
-    ASSERT_THROW([[maybe_unused]] auto _ = stream.ReadAsync(response), ugrpc::client::RpcError);
-}
-
-UTEST_F(GrpcBidirectionalStream, PingPongFinishNoMessages) {
-    auto stream = GetClient().Chat();
-
-    ASSERT_TRUE(ugrpc::client::PingPongFinish(stream));
-
-    ASSERT_FALSE(stream.Write(sample::ugrpc::StreamGreetingRequest()));
-    ASSERT_FALSE(stream.WritesDone());
-    ASSERT_THROW(stream.WriteAndCheck(sample::ugrpc::StreamGreetingRequest()), ugrpc::client::RpcError);
-    sample::ugrpc::StreamGreetingResponse response;
-    ASSERT_FALSE(stream.Read(response));
-    ASSERT_THROW([[maybe_unused]] auto _ = stream.ReadAsync(response), ugrpc::client::RpcError);
-}
-
-UTEST_F(GrpcBidirectionalStream, PingPongFinishMoreMessages) {
-    auto stream = GetClient().Chat();
-
-    ASSERT_TRUE(stream.Write(sample::ugrpc::StreamGreetingRequest()));
-    // No 'Read' here
-
-    ASSERT_FALSE(ugrpc::client::PingPongFinish(stream));
-
-    ASSERT_FALSE(stream.Write(sample::ugrpc::StreamGreetingRequest()));
-    ASSERT_FALSE(stream.WritesDone());
-    ASSERT_THROW(stream.WriteAndCheck(sample::ugrpc::StreamGreetingRequest()), ugrpc::client::RpcError);
-    sample::ugrpc::StreamGreetingResponse response;
-    ASSERT_FALSE(stream.Read(response));
-    ASSERT_THROW([[maybe_unused]] auto _ = stream.ReadAsync(response), ugrpc::client::RpcError);
-}
-
-UTEST_F(GrpcBidirectionalStream, PingPongFinishAfterWritesDone) {
-    auto stream = GetClient().Chat();
-
-    ASSERT_TRUE(stream.WritesDone());
-
-    ASSERT_FALSE(ugrpc::client::PingPongFinish(stream));
-
-    ASSERT_FALSE(stream.Write(sample::ugrpc::StreamGreetingRequest()));
-    ASSERT_FALSE(stream.WritesDone());
-    ASSERT_THROW(stream.WriteAndCheck(sample::ugrpc::StreamGreetingRequest()), ugrpc::client::RpcError);
-    sample::ugrpc::StreamGreetingResponse response;
-    ASSERT_FALSE(stream.Read(response));
-    ASSERT_THROW([[maybe_unused]] auto _ = stream.ReadAsync(response), ugrpc::client::RpcError);
-}
-
 UTEST_F(GrpcBidirectionalStream, BidirectionalStreamReadRemaining) {
     auto stream = GetClient().Chat();
 
@@ -238,6 +178,31 @@ UTEST_F(GrpcBidirectionalStream, BidirectionalStreamDestroy) {
 
     EXPECT_EQ(get_metric("cancelled"), 0);
     EXPECT_EQ(get_metric(kStatus, {{"grpc_code", "UNKNOWN"}}), 0);
+}
+
+namespace {
+
+class UnitTestServiceChatAutoFinish final : public sample::ugrpc::UnitTestServiceBase {
+public:
+    ChatResult Chat(CallContext& /*context*/, ChatReaderWriter& stream) override {
+        stream.Write(sample::ugrpc::StreamGreetingResponse{});
+        return grpc::Status::OK;
+    }
+};
+
+using GrpcBidirectionalStreamChatAutoFinish =
+    ugrpc::tests::ServiceWithClientFixture<UnitTestServiceChatAutoFinish, sample::ugrpc::UnitTestServiceClient>;
+
+}  // namespace
+
+UTEST_F(GrpcBidirectionalStreamChatAutoFinish, BidirectionalStreamWritesDoneThrowOnClosedStream) {
+    auto stream = GetClient().Chat();
+
+    sample::ugrpc::StreamGreetingResponse response;
+    ASSERT_TRUE(stream.Read(response));
+    ASSERT_FALSE(stream.Read(response));
+
+    UASSERT_NO_THROW(ugrpc::client::ReadRemainingAndFinish(stream));
 }
 
 UTEST_F(GrpcInputStream, InputStreamDestroy) {

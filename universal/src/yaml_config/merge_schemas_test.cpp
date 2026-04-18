@@ -205,4 +205,16 @@ TEST(MergeSchemas, RequiredParentOnlyNoChildRequired) {
     EXPECT_EQ(*schema.required, (std::unordered_set<std::string>{"parent_option"}));
 }
 
+TEST(YamlConfigSchema, AdditionalPropertiesFalse) {
+    auto schema = yaml_config::impl::SchemaFromString(R"(
+type: object
+description: test
+additionalProperties: false
+properties: {}
+)");
+    ASSERT_TRUE(schema.additional_properties.has_value());
+    ASSERT_TRUE(std::holds_alternative<bool>(schema.additional_properties.value()));
+    EXPECT_FALSE(std::get<bool>(schema.additional_properties.value()));
+}
+
 USERVER_NAMESPACE_END

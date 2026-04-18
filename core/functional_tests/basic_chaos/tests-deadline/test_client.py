@@ -1,10 +1,19 @@
 import asyncio
+import datetime
 
 import pytest
 
 DP_TIMEOUT_MS = 'X-YaTaxi-Client-TimeoutMs'
 DP_DEADLINE_EXPIRED = 'X-YaTaxi-Deadline-Expired'
+DP_ABSOLUTE_DEADLINE = 'X-Request-Deadline'
 VERSION = {'version': '2'}
+
+
+def _make_iso_deadline(offset_seconds: float) -> str:
+    tp = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(
+        seconds=offset_seconds,
+    )
+    return tp.strftime('%Y-%m-%dT%H:%M:%S.') + f'{tp.microsecond:06d}Z'
 
 
 @pytest.fixture(name='call')
@@ -385,3 +394,22 @@ async def test_dp_timeout_not_retried(
     assert response.text == ''
 
     assert fake_deadline_expired_mock.times_called == retries_performed
+
+
+async def test_absolute_deadline_propagated_as_is(call, mockserver):
+    iso_deadline = _make_iso_deadline(10.0)
+    captured = {}
+
+    @mockserver.handler('/test')
+    async def mock(request):
+        captured['headers'] = dict(request.headers)
+        return mockserver.make_response('OK!')
+
+    response = await call(
+        headers={
+            DP_TIMEOUT_MS: '500',
+            DP_ABSOLUTE_DEADLINE: iso_deadline,
+        },
+    )
+    assert response.status == 200
+    assert captured['headers'].get(DP_ABSOLUTE_DEADLINE) == iso_deadline

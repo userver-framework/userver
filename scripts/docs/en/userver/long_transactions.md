@@ -73,6 +73,5 @@ To disable the check for the whole service use the `enable_trx_tracker` static c
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref scripts/docs/en/userver/dump_coroutines.md | @ref scripts/docs/en/userver/caches.md ⇨
+⇦ @ref scripts/docs/en/userver/dump_coroutines.md | @ref scripts/docs/en/userver/graceful_shutdown.md ⇨
 @htmlonly </div> @endhtmlonly
-

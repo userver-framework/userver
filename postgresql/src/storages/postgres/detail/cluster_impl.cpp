@@ -100,7 +100,13 @@ ClusterImpl::ClusterImpl(
       ei_settings_(ei_settings),
       metrics_(std::move(metrics)),
       rr_host_idx_(0),
-      connlimit_watchdog_(*this, testsuite_tasks, shard_number, [this]() { OnConnlimitChanged(); })
+      connlimit_watchdog_(
+          *this,
+          testsuite_tasks,
+          shard_number,
+          cluster_settings.pool_settings.min_size,
+          [this]() { OnConnlimitChanged(); }
+      )
 {
     CreateTopology(dsns);
 

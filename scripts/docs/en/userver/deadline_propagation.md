@@ -62,7 +62,8 @@ In practice, it won't work that way:
 
 ### How it works in userver
 
-In HTTP, we use custom headers, as described below.
+In HTTP, we use custom headers, as described below: `X-YaTaxi-Client-TimeoutMs` for the remaining time until the
+deadline (duration), and optionally `X-Request-Deadline` for an absolute UTC timepoint for the whole call chain.
 
 In gRPC, we use the built-in deadline mechanism based on the `grpc-timeout` header.
 
@@ -100,6 +101,12 @@ The decision to transmit the `duration` was made based on the fact that the cloc
 enough between hosts. In case of an unfortunate combination of circumstances, the service may reject the request
 prematurely. This problem especially affects requests with small timeouts.
 
+For HTTP, an optional `X-Request-Deadline` header can still carry an absolute timepoint; using it as the local
+request/task deadline is opt-in per handler (`deadline_propagation_prefer_timestamp` in static config) and can be
+disabled globally via the @ref USERVER_DEADLINE_PROPAGATION_ABSOLUTE_TIMESTAMP_ENABLED dynamic config. When
+`X-YaTaxi-Client-TimeoutMs` is also present, userver may compare the two representations and fall back to duration-only
+propagation if clock skew exceeds @ref USERVER_DEADLINE_PROPAGATION_CLOCK_SKEW_THRESHOLD_MS.
+
 ### Deadline Propagation HTTP headers
 
 The deadline propagation mechanism in userver uses custom headers.
@@ -134,6 +141,18 @@ support deadline propagation.
         - If the request was NOT made using the entire remainder of the calling service's deadline:
             - Interpret the response like a typical timeout (regardless of the received HTTP status code and body)
             - Apply the rules for retrying a timeout
+
+3. `X-Request-Deadline`
+
+    - Optional. The client may send an absolute deadline as a UTC timestamp string; the format matches
+      @ref utils::datetime::kAbsoluteDeadlineFormat (for example `2026-04-14T15:42:47.726911Z`).
+
+    - When `deadline_propagation_prefer_timestamp` is `true` on the handler and absolute timestamps are allowed in
+      dynamic config, userver uses this timepoint for the local request/task deadline when parsing succeeds and
+      clock-skew checks pass (see the note in the previous section).
+
+    - The value may still be stored for propagation to downstream services when the header is present, even if the
+      handler does not prefer the timestamp for the local deadline.
 
 ## API
 

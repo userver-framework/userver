@@ -117,8 +117,8 @@ struct PgToCppPredefined {
 template <typename T>
 struct CppToPg<
     T,
-    std::enable_if_t<!traits::kIsSpecialMapping<T> && traits::kIsMappedToPg<T> && !traits::kIsMappedToArray<T>>>
-    : std::conditional_t<traits::kIsMappedToSystemType<T>, detail::CppToSystemPgImpl<T>, detail::CppToUserPgImpl<T>> {};
+    std::enable_if_t<!traits::IsSpecialMapping<T>::value && traits::kIsMappedToPg<T> && !traits::IsMappedToArray<T>>>
+    : std::conditional_t<traits::IsMappedToSystemType<T>, detail::CppToSystemPgImpl<T>, detail::CppToUserPgImpl<T>> {};
 
 template <typename T>
 constexpr bool IsTypeMappedToSystem() {

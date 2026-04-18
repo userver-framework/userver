@@ -1,10 +1,8 @@
 #include <userver/ugrpc/server/impl/call_processor.hpp>
 
-#include <userver/tracing/opentelemetry.hpp>
 #include <userver/tracing/tags.hpp>
 #include <userver/utils/algo.hpp>
 
-#include <ugrpc/impl/rpc_metadata.hpp>
 #include <userver/ugrpc/impl/statistics_scope.hpp>
 #include <userver/ugrpc/impl/to_string.hpp>
 #include <userver/ugrpc/server/impl/error_code.hpp>
@@ -21,56 +19,6 @@ logging::Level AdjustLogLevelForCancellations(logging::Level level) {
 }
 
 }  // namespace
-
-void SetupSpan(
-    std::optional<tracing::InPlaceSpan>& span_storage,
-    grpc::ServerContext& context,
-    std::string_view call_name,
-    std::string_view service_name,
-    std::string_view method_name
-) {
-    auto span_name = call_name;
-    const auto& client_metadata = context.client_metadata();
-
-    const auto* const traceparent = utils::FindOrNullptr(client_metadata, ugrpc::impl::kTraceParent);
-    if (traceparent) {
-        auto extraction_result =
-            tracing::opentelemetry::ExtractTraceParentDataView(ugrpc::impl::ToStringView(*traceparent));
-        if (!extraction_result.has_value()) {
-            LOG_LIMITED_WARNING() << fmt::format(
-                "Invalid traceparent header format ({}). Skipping Opentelemetry "
-                "headers",
-                extraction_result.error()
-            );
-            span_storage.emplace(std::string{span_name}, utils::impl::SourceLocation::Current());
-        } else {
-            auto data = std::move(extraction_result).value();
-            span_storage
-                .emplace(std::string{span_name}, data.trace_id, data.span_id, utils::impl::SourceLocation::Current());
-        }
-    } else if (const auto* const trace_id = utils::FindOrNullptr(client_metadata, ugrpc::impl::kXYaTraceId)) {
-        const auto* const parent_span_id = utils::FindOrNullptr(client_metadata, ugrpc::impl::kXYaSpanId);
-        span_storage.emplace(
-            std::string{span_name},
-            ugrpc::impl::ToStringView(*trace_id),
-            parent_span_id ? ugrpc::impl::ToStringView(*parent_span_id) : std::string_view{},
-            utils::impl::SourceLocation::Current()
-        );
-    } else {
-        span_storage.emplace(std::string{span_name}, utils::impl::SourceLocation::Current());
-    }
-
-    auto& span = span_storage->Get();
-    const auto* const parent_link = utils::FindOrNullptr(client_metadata, ugrpc::impl::kXYaRequestId);
-    if (parent_link) {
-        span.SetParentLink(ugrpc::impl::ToStringView(*parent_link));
-    }
-
-    span.AddNonInheritableTag(tracing::kSpanKind, tracing::kSpanKindServer);
-    span.AddNonInheritableTag(tracing::kRpcSystem, "grpc");
-    span.AddNonInheritableTag(tracing::kRpcService, std::string{service_name});
-    span.AddNonInheritableTag(tracing::kRpcMethod, std::string{method_name});
-}
 
 grpc::Status ReportCustomError(const USERVER_NAMESPACE::server::handlers::CustomHandlerException& ex, CallState& state)
     noexcept {

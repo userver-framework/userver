@@ -32,14 +32,9 @@ constexpr bool IsInNamespaceImpl(std::string_view nsp) {
 }
 
 template <typename T>
-constexpr bool IsInNamespace(std::string_view nsp) {
-    return IsInNamespaceImpl<std::remove_const_t<std::decay_t<T>>>(nsp);
-}
-
+concept IsInStdNamespace = detail::IsInNamespaceImpl<std::remove_cvref_t<T>>("std");
 template <typename T>
-inline constexpr bool kIsInStdNamespace = IsInNamespace<T>("std");
-template <typename T>
-inline constexpr bool kIsInBoostNamespace = IsInNamespace<T>("boost");
+concept IsInBoostNamespace = detail::IsInNamespaceImpl<std::remove_cvref_t<T>>("boost");
 
 }  // namespace storages::postgres::detail
 

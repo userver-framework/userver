@@ -7,6 +7,7 @@
 #include <string_view>
 #include <utility>
 
+#include <userver/compiler/impl/lifetime.hpp>
 #include <userver/concurrent/async_event_source.hpp>
 #include <userver/dynamic_config/snapshot.hpp>
 #include <userver/utils/assert.hpp>
@@ -23,10 +24,10 @@ public:
     VariableSnapshotPtr(VariableSnapshotPtr&&) = delete;
     VariableSnapshotPtr& operator=(VariableSnapshotPtr&&) = delete;
 
-    const VariableType& operator*() const& { return *variable_; }
+    const VariableType& operator*() const& USERVER_IMPL_LIFETIME_BOUND { return *variable_; }
     const VariableType& operator*() && { ReportMisuse(); }
 
-    const VariableType* operator->() const& { return variable_; }
+    const VariableType* operator->() const& USERVER_IMPL_LIFETIME_BOUND { return variable_; }
     const VariableType* operator->() && { ReportMisuse(); }
 
 private:

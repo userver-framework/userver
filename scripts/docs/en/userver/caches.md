@@ -227,5 +227,5 @@ Each cache automatically collects metrics. See
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref scripts/docs/en/userver/long_transactions.md | @ref scripts/docs/en/userver/cache_dumps.md ⇨
+⇦ @ref scripts/docs/en/userver/graceful_shutdown.md | @ref scripts/docs/en/userver/cache_dumps.md ⇨
 @htmlonly </div> @endhtmlonly

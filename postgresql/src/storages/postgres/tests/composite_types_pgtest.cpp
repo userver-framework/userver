@@ -294,11 +294,11 @@ static_assert(tt::detail::AssertHasCompositeFormatters<pgtest::FooTuple>());
 static_assert(tt::detail::AssertHasCompositeFormatters<pgtest::FooBar>());
 static_assert(tt::detail::AssertHasCompositeFormatters<pgtest::FooClass>());
 
-static_assert(tt::kHasParser<pgtest::BunchOfFoo>);
-static_assert(tt::kHasFormatter<pgtest::BunchOfFoo>);
+static_assert(tt::HasParser<pgtest::BunchOfFoo>);
+static_assert(tt::HasFormatter<pgtest::BunchOfFoo>);
 
-static_assert(tt::kHasParser<pgtest::NoUserMapping>);
-static_assert(!tt::kHasFormatter<pgtest::NoUserMapping>);
+static_assert(tt::HasParser<pgtest::NoUserMapping>);
+static_assert(!tt::HasFormatter<pgtest::NoUserMapping>);
 
 static_assert(tt::kTypeBufferCategory<pgtest::FooTuple> == io::BufferCategory::kCompositeBuffer);
 static_assert(tt::kTypeBufferCategory<pgtest::FooBar> == io::BufferCategory::kCompositeBuffer);

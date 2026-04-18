@@ -419,8 +419,6 @@ void TaskProcessor::CheckWaitTime(impl::TaskContext& context) {
     const auto wait_timepoint = context.GetQueueWaitTimepoint();
     if (wait_timepoint != std::chrono::steady_clock::time_point()) {
         const auto wait_time = std::chrono::steady_clock::now() - wait_timepoint;
-        const auto wait_time_us = std::chrono::duration_cast<std::chrono::microseconds>(wait_time);
-        LOG_TRACE() << "queue wait time = " << wait_time_us.count() << "us";
 
         SetTaskQueueWaitTimeOverloaded(max_wait_time.count() && wait_time >= max_wait_time);
 

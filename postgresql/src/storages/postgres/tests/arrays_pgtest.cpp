@@ -133,7 +133,7 @@ static_assert(tt::kIsMappedToPg<three_dim_array>);
 
 static_assert(tt::kIsMappedToPg<vector_of_arrays>);
 
-static_assert(tt::kHasParser<one_dim_vector>);
+static_assert(tt::HasParser<one_dim_vector>);
 
 static_assert(tt::kIsMappedToPg<unordered_set>);
 static_assert(tt::kIsMappedToPg<vector_of_unordered_sets>);

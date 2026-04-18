@@ -47,6 +47,7 @@ list(
     src/ugrpc/client/simple_client_component.yaml
     src/ugrpc/server/middlewares/access_log/component.yaml
     src/ugrpc/server/middlewares/congestion_control/component.yaml
+    src/ugrpc/server/middlewares/deadline_propagation/component.yaml
     src/ugrpc/server/middlewares/headers_propagator/component.yaml
     src/ugrpc/server/middlewares/log/component.yaml
     src/ugrpc/server/server_component.yaml

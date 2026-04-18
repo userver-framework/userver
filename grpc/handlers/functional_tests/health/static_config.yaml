@@ -1,5 +1,7 @@
 # yaml
 components_manager:
+    graceful_shutdown_interval: 10s
+
     components:
         # The required common components
         logging:
@@ -25,6 +27,9 @@ components_manager:
         grpc-health:
             task-processor: main-task-processor
             disable-all-pipeline-middlewares: true
+            middlewares:
+                grpc-server-graceful-shutdown-headers:
+                    enabled: true
 
     default_task_processor: main-task-processor
 

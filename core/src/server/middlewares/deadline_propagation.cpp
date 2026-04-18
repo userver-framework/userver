@@ -3,6 +3,7 @@
 #include <server/handlers/http_server_settings.hpp>
 #include <server/request/internal_request_context.hpp>
 
+#include <userver/engine/deadline.hpp>
 #include <userver/http/common_headers.hpp>
 #include <userver/server/handlers/exceptions.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
@@ -14,10 +15,6 @@
 #include <userver/utils/from_string.hpp>
 #include <userver/utils/overloaded.hpp>
 
-#include <userver/utils/datetime.hpp>
-
-#include <dynamic_config/variables/USERVER_DEADLINE_PROPAGATION_ABSOLUTE_TIMESTAMP_ENABLED.hpp>
-#include <dynamic_config/variables/USERVER_DEADLINE_PROPAGATION_CLOCK_SKEW_THRESHOLD_MS.hpp>
 #include <dynamic_config/variables/USERVER_DEADLINE_PROPAGATION_ENABLED.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -62,53 +59,6 @@ std::optional<std::chrono::milliseconds> ParseTimeout(const http::HttpRequest& r
     }
 
     return timeout;
-}
-
-std::optional<request::TaskInheritedOriginalDeadline> ParseAbsoluteDeadline(const http::HttpRequest& request) {
-    const auto& header_str = request.GetHeader(USERVER_NAMESPACE::http::headers::kXRequestDeadline);
-    if (header_str.empty()) {
-        return std::nullopt;
-    }
-
-    LOG_DEBUG() << "Got X-Request-Deadline: " << header_str;
-    try {
-        const auto timestamp = utils::datetime::UtcStringtime(header_str, utils::datetime::kTaximeterFormat);
-        return std::chrono::time_point_cast<std::chrono::microseconds>(timestamp);
-    } catch (const std::exception& exception) {
-        LOG_LIMITED_WARNING() << "Can't parse X-Request-Deadline from '" << header_str << "': " << exception.what();
-        return std::nullopt;
-    }
-}
-
-/// Returns true if clock skew is within the threshold (absolute deadline is trustworthy).
-bool IsClockSkewAcceptable(
-    const request::TaskInheritedOriginalDeadline& absolute_tp,
-    std::chrono::milliseconds duration_timeout,
-    std::chrono::milliseconds threshold,
-    tracing::Span* span
-) {
-    if (threshold == std::chrono::milliseconds{0}) {
-        return true;  // Check disabled
-    }
-
-    const auto expected_timestamp =
-        std::chrono::time_point_cast<std::chrono::microseconds>(utils::datetime::Now()) + duration_timeout;
-
-    const auto skew = std::chrono::abs(absolute_tp - expected_timestamp);
-    const auto skew_ms = std::chrono::duration_cast<std::chrono::milliseconds>(skew);
-
-    if (span) {
-        span->AddNonInheritableTag("dp_clock_skew_ms", skew_ms.count());
-    }
-
-    if (skew_ms > threshold) {
-        LOG_LIMITED_WARNING()
-            << "Clock skew detected: " << skew_ms << ", threshold: " << threshold
-            << ". Falling back to duration-based deadline propagation";
-        return false;
-    }
-
-    return true;
 }
 
 void SetFormattedErrorResponse(http::HttpResponse& http_response, handlers::FormattedErrorData&& formatted_error_data) {
@@ -204,48 +154,46 @@ void DeadlinePropagation::SetupInheritedDeadline(
         return;
     }
 
-    const auto original_deadline = ParseAbsoluteDeadline(request);
-    if (original_deadline) {
+    const auto& header_str = request.GetHeader(USERVER_NAMESPACE::http::headers::kXRequestDeadline);
+    if (!header_str.empty()) {
+        LOG_DEBUG() << "Got X-Request-Deadline: " << header_str;
+    }
+    const auto original_deadline = request::impl::ParseXRequestDeadlineString(header_str);
+    if (original_deadline.has_value()) {
         inherited_data.original_deadline = original_deadline;
     }
 
-    std::optional<engine::Deadline> chosen_deadline;
-    std::int64_t span_deadline_received_ms = 0;
     auto* span_opt = tracing::Span::CurrentSpanUnchecked();
     const auto timeout = ParseTimeout(request);
 
-    if (original_deadline.has_value() && deadline_propagation_prefer_timestamp_ &&
-        config_snapshot[::dynamic_config::USERVER_DEADLINE_PROPAGATION_ABSOLUTE_TIMESTAMP_ENABLED])
-    {
-        bool use_absolute = true;
-        if (timeout.has_value()) {
-            const auto&
-                threshold = config_snapshot[::dynamic_config::USERVER_DEADLINE_PROPAGATION_CLOCK_SKEW_THRESHOLD_MS];
-            use_absolute = IsClockSkewAcceptable(*original_deadline, *timeout, threshold, span_opt);
-        }
+    std::optional<engine::Deadline> chosen_deadline = request::impl::TryMakeDeadlinePreferringAbsoluteTimestamp(
+        original_deadline,
+        deadline_propagation_prefer_timestamp_,
+        timeout,
+        config_snapshot,
+        span_opt
+    );
 
-        if (use_absolute) {
-            chosen_deadline = engine::Deadline::FromTimePoint(*original_deadline);
-
-            const auto now_sys_micro = std::chrono::time_point_cast<std::chrono::microseconds>(utils::datetime::Now());
-            span_deadline_received_ms =
-                std::chrono::duration_cast<std::chrono::milliseconds>(*original_deadline - now_sys_micro).count();
-        }
-    }
-
-    if (!chosen_deadline) {
-        if (!timeout) {
+    std::chrono::milliseconds span_deadline_received{0};
+    if (!chosen_deadline.has_value()) {
+        if (!timeout.has_value()) {
             return;
         }
         chosen_deadline = engine::Deadline::FromTimePoint(request.GetStartTime() + *timeout);
-        span_deadline_received_ms = timeout->count();
+        span_deadline_received = *timeout;
+    } else {
+        span_deadline_received =
+            *chosen_deadline == engine::Deadline::Passed()
+                ? std::chrono::milliseconds{0}
+                : std::chrono::duration_cast<
+                      std::chrono::milliseconds>(chosen_deadline->GetTimePoint() - request.GetStartTime());
     }
 
     inherited_data.deadline = *chosen_deadline;
     dp_scope.need_log_response = config_snapshot[::dynamic_config::USERVER_LOG_REQUEST];
 
     if (span_opt) {
-        span_opt->AddNonInheritableTag("deadline_received_ms", span_deadline_received_ms);
+        span_opt->AddNonInheritableTag("deadline_received_ms", span_deadline_received.count());
     }
 
     if (chosen_deadline->IsSurelyReachedApprox()) {

@@ -22,6 +22,7 @@
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/http/common_headers.hpp>
 #include <userver/http/url.hpp>
+#include <userver/server/request/task_inherited_data.hpp>
 #include <userver/tracing/in_place_span.hpp>
 #include <userver/tracing/manager.hpp>
 #include <userver/tracing/span.hpp>
@@ -236,6 +237,8 @@ private:
     std::chrono::milliseconds remote_timeout_;
 
     DeadlinePropagationConfig deadline_propagation_config_;
+    /// original absolute deadline from task inherited data
+    std::optional<server::request::TaskInheritedOriginalDeadline> inherited_original_deadline_;
     /// deadline from current task
     engine::Deadline deadline_;
     bool timeout_updated_by_deadline_{false};

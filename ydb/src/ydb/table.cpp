@@ -145,7 +145,7 @@ auto TableClient::ExecuteWithPathImpl(
          query_settings = std::forward<QuerySettings>(query_settings),
          settings = context.settings,
          deadline = context.deadline,
-         trace_id = context.span.GetTraceId()](FuncArg arg) mutable {
+         trace_id = std::string{context.span.GetTraceId()}](FuncArg arg) mutable {
             impl::ApplyToRequestSettings(query_settings, settings, deadline, trace_id);
             return func(std::forward<FuncArg>(arg), full_path, query_settings);
         }
@@ -188,7 +188,7 @@ ReadTableResults TableClient::ReadTable(
          read_settings = std::move(read_settings),
          settings = context.settings,
          deadline = context.deadline,
-         trace_id = context.span.GetTraceId()](NYdb::NTable::TSession session) mutable {
+         trace_id = std::string{context.span.GetTraceId()}](NYdb::NTable::TSession session) mutable {
             impl::ApplyToRequestSettings(read_settings, settings, deadline, trace_id);
             return session.ReadTable(impl::ToString(full_path), read_settings);
         }
@@ -212,7 +212,7 @@ ScanQueryResults TableClient::ExecuteScanQuery(
          scan_settings = std::move(scan_settings),
          settings = context.settings,
          deadline = context.deadline,
-         trace_id = context.span.GetTraceId()](NYdb::NTable::TTableClient& table_client) mutable {
+         trace_id = std::string{context.span.GetTraceId()}](NYdb::NTable::TTableClient& table_client) mutable {
             impl::ApplyToRequestSettings(scan_settings, settings, deadline, trace_id);
             return table_client.StreamExecuteScanQuery(impl::ToString(query.GetStatementView()), params, scan_settings);
         }
@@ -357,7 +357,7 @@ Transaction TableClient::Begin(DynamicTransactionName transaction_name, Operatio
             [tx_settings = std::move(tx_settings),
              settings = context.settings,
              deadline = context.deadline,
-             trace_id = context.span.GetTraceId()](NYdb::NQuery::TSession session) {
+             trace_id = std::string{context.span.GetTraceId()}](NYdb::NQuery::TSession session) {
                 const auto begin_tx_settings = impl::PrepareRequestSettings<
                     NYdb::NQuery::TBeginTxSettings>(settings, deadline, trace_id);
                 return session.BeginTransaction(tx_settings, begin_tx_settings);
@@ -373,7 +373,7 @@ Transaction TableClient::Begin(DynamicTransactionName transaction_name, Operatio
             [tx_settings = std::move(tx_settings),
              settings = context.settings,
              deadline = context.deadline,
-             trace_id = context.span.GetTraceId()](NYdb::NTable::TSession session) {
+             trace_id = std::string{context.span.GetTraceId()}](NYdb::NTable::TSession session) {
                 const auto begin_tx_settings = impl::PrepareRequestSettings<
                     NYdb::NTable::TBeginTxSettings>(settings, deadline, trace_id);
                 return session.BeginTransaction(tx_settings, begin_tx_settings);
@@ -394,7 +394,7 @@ void TableClient::ExecuteSchemeQuery(const std::string& query) {
         [query,
          settings = context.settings,
          deadline = context.deadline,
-         trace_id = context.span.GetTraceId()](NYdb::NTable::TSession session) {
+         trace_id = std::string{context.span.GetTraceId()}](NYdb::NTable::TSession session) {
             const auto exec_settings = impl::PrepareRequestSettings<
                 NYdb::NTable::TExecSchemeQuerySettings>(settings, deadline, trace_id);
             return session.ExecuteSchemeQuery(impl::ToString(query), exec_settings);
@@ -431,7 +431,7 @@ ExecuteResponse TableClient::ExecuteDataQuery(
          exec_settings = ToExecDataQuerySettings(query_settings),
          settings = context.settings,
          deadline = context.deadline,
-         trace_id = context.span.GetTraceId()](NYdb::NTable::TSession session) mutable {
+         trace_id = std::string{context.span.GetTraceId()}](NYdb::NTable::TSession session) mutable {
             impl::ApplyToRequestSettings(exec_settings, settings, deadline, trace_id);
             const auto tx_settings = MakeTableTxSettings(settings.tx_mode.value());
             const auto tx = NYdb::NTable::TTxControl::BeginTx(tx_settings).CommitTx();
@@ -465,7 +465,7 @@ ExecuteResponse TableClient::ExecuteQuery(
          exec_settings = std::move(exec_settings),
          settings = context.settings,
          deadline = context.deadline,
-         trace_id = context.span.GetTraceId()](NYdb::NQuery::TSession session) mutable {
+         trace_id = std::string{context.span.GetTraceId()}](NYdb::NQuery::TSession session) mutable {
             impl::ApplyToRequestSettings(exec_settings, settings, deadline, trace_id);
             const auto tx_settings = MakeTxSettings(settings.tx_mode.value());
             const auto tx = NYdb::NQuery::TTxControl::BeginTx(tx_settings).CommitTx();

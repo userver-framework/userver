@@ -6,18 +6,16 @@
 #include <atomic>
 #include <chrono>
 #include <optional>
-#include <string>
+#include <string_view>
 
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/task/inherited_variable.hpp>
+#include <userver/server/request/impl/absolute_deadline.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 /// Server request related types and functions
 namespace server::request {
-
-/// Microsecond-precision system-clock instant (e.g. from `X-Request-Deadline`).
-using TaskInheritedOriginalDeadline = std::chrono::time_point<std::chrono::system_clock, std::chrono::microseconds>;
 
 /// @brief Signals when an operation has detected deadline expiration.
 class DeadlineSignal final {

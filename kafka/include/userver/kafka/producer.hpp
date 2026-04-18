@@ -1,11 +1,14 @@
 #pragma once
 
 #include <cstdint>
+#include <type_traits>
+#include <utility>
 
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/engine/task/task_with_result.hpp>
 #include <userver/kafka/exceptions.hpp>
 #include <userver/kafka/headers.hpp>
+#include <userver/kafka/impl/messages.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 #include <userver/utils/statistics/writer.hpp>
 
@@ -81,26 +84,20 @@ public:
 
     /// @brief Sends given message to topic `topic_name` by given `key`
     /// and `partition` (if passed) with payload contains the `message`
-    /// data. Asynchronously waits until the message is delivered or the delivery
-    /// error occurred.
+    /// data. Asynchronously waits until the message is delivered or the delivery error occurred.
     ///
-    /// No payload data is copied. Method holds the data until message is
-    /// delivered.
+    /// No payload data is copied. Method holds the data until message is delivered.
     ///
-    /// Thread-safe and can be called from any number of threads
-    /// concurrently.
+    /// Thread-safe and can be called from any number of threads concurrently.
     ///
-    /// If `partition` not passed, partition is chosen by internal
-    /// Kafka partitioner.
+    /// If `partition` not passed, partition is chosen by internal Kafka partitioner.
     ///
-    /// @warning if `enable_idempotence` option is enabled, do not use both
-    /// explicit partitions and Kafka-chosen ones.
+    /// @warning if `enable_idempotence` option is enabled, do not use both explicit partitions and Kafka-chosen ones.
     ///
     /// @throws SendException and its descendants if message is not delivered
     /// and acked by Kafka Broker in configured timeout.
     ///
-    /// @note Use SendException::IsRetryable method to understand whether there is
-    /// a sense to retry the message sending.
+    /// @note Use SendException::IsRetryable method to understand whether there is a sense to retry the message sending.
     /// @snippet kafka/tests/producer_kafkatest.cpp Producer retryable error
     void Send(
         utils::zstring_view topic_name,
@@ -110,11 +107,40 @@ public:
         HeaderViews headers = {}
     ) const;
 
+    /// @brief Sends given messages to topic `topic_name` by given `key`
+    /// and `partition` (if passed) with payload contains the `messages`
+    /// data. Asynchronously waits until the messages are delivered or the delivery error occurred.
+    ///
+    /// No payload data is copied. Method holds the data until messages are delivered.
+    ///
+    /// Thread-safe and can be called from any number of threads concurrently.
+    ///
+    /// If `partition` not passed, partition is chosen by internal Kafka partitioner.
+    ///
+    /// @warning if `enable_idempotence` option is enabled, do not use both explicit partitions and Kafka-chosen ones.
+    ///
+    /// @throws BulkSendException if some messages was not delivered
+    /// and acked by Kafka Broker in configured timeout.
+    ///
+    /// @note Use BulkSendException::GetExceptions method to get a list of occured nested exceptions.
+    template <typename Messages>
+    std::enable_if_t<
+        std::is_convertible_v<decltype(std::declval<const Messages&>()[0]), std::string_view> &&
+        std::is_integral_v<decltype(std::declval<const Messages&>().size())> >
+    Send(
+        utils::zstring_view topic_name,
+        std::string_view key,
+        const Messages& messages,
+        std::optional<std::uint32_t> partition = kUnassignedPartition,
+        HeaderViews headers = {}
+    ) const {
+        SendWrapper(topic_name, key, impl::MessagesAdapter{messages}, partition, std::move(headers));
+    }
+
     /// @brief Same as Producer::Send, but returns the task which can be
     /// used to wait the message delivery manually.
     ///
-    /// @warning If user schedules a batch of send requests with
-    /// Producer::SendAsync, some send
+    /// @warning If user schedules a batch of send requests with Producer::SendAsync, some send
     /// requests may be retried by the library (for instance, in case of network
     /// blink). Though, the order messages are written to partition may differ
     /// from the order messages are initially sent
@@ -139,6 +165,22 @@ private:
         std::string_view message,
         std::optional<std::uint32_t> partition,
         impl::HeadersHolder&& headers_holder
+    ) const;
+
+    void SendImpl(
+        utils::zstring_view topic_name,
+        std::string_view key,
+        const impl::Messages& messages,
+        std::optional<std::uint32_t> partition,
+        std::vector<impl::HeadersHolder>&& headers_holders
+    ) const;
+
+    void SendWrapper(
+        utils::zstring_view topic_name,
+        std::string_view key,
+        const impl::Messages& messages,
+        std::optional<std::uint32_t> partition,
+        HeaderViews headers
     ) const;
 
     const std::string name_;

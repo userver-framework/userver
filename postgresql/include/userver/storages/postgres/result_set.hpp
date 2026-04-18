@@ -333,7 +333,7 @@ auto ResultSet::AsSetOf() const {
 template <typename T>
 auto ResultSet::AsSetOf(RowTag) const {
     detail::AssertSaneTypeToDeserialize<T>();
-    using ValueType = std::decay_t<T>;
+    using ValueType = std::remove_cvref_t<T>;
     io::traits::AssertIsValidRowType<ValueType>();
     return TypedResultSet<T, RowTag>{*this};
 }
@@ -341,7 +341,7 @@ auto ResultSet::AsSetOf(RowTag) const {
 template <typename T>
 auto ResultSet::AsSetOf(FieldTag) const {
     detail::AssertSaneTypeToDeserialize<T>();
-    using ValueType = std::decay_t<T>;
+    using ValueType = std::remove_cvref_t<T>;
     detail::AssertRowTypeIsMappedToPgOrIsCompositeType<ValueType>();
     if (FieldCount() > 1) {
         throw NonSingleColumnResultSet{FieldCount(), compiler::GetTypeName<T>(), "AsSetOf"};
@@ -354,7 +354,7 @@ Container ResultSet::AsContainer() const {
     detail::AssertSaneTypeToDeserialize<Container>();
     using ValueType = typename Container::value_type;
     Container c;
-    if constexpr (io::traits::kCanReserve<Container>) {
+    if constexpr (io::traits::CanReserve<Container>) {
         c.reserve(Size());
     }
     auto res = AsSetOf<ValueType>();
@@ -373,7 +373,7 @@ Container ResultSet::AsContainer(RowTag) const {
     detail::AssertSaneTypeToDeserialize<Container>();
     using ValueType = typename Container::value_type;
     Container c;
-    if constexpr (io::traits::kCanReserve<Container>) {
+    if constexpr (io::traits::CanReserve<Container>) {
         c.reserve(Size());
     }
     auto res = AsSetOf<ValueType>(kRowTag);

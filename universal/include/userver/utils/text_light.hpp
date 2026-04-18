@@ -14,12 +14,15 @@ USERVER_NAMESPACE_BEGIN
 namespace utils::text {
 
 /// Return trimmed copy of string.
+[[nodiscard]]
 std::string Trim(const std::string& str);
 
 /// Trim string in-place.
+[[nodiscard]]
 std::string Trim(std::string&& str);
 
 /// Return trimmed view of a string.
+[[nodiscard]]
 std::string_view TrimView(std::string_view str);
 
 enum class SplitFlags {

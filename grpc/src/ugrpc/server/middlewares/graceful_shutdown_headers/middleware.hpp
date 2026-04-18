@@ -13,6 +13,7 @@ public:
     Middleware(const components::State& state, dynamic_config::Source source);
 
     void OnCallStart(MiddlewareCallContext& context) const override;
+    void PreSendStatus(MiddlewareCallContext& context, grpc::Status&) const override;
 
 private:
     const components::State state_;

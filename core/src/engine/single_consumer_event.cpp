@@ -45,20 +45,15 @@ bool SingleConsumerEvent::WaitForEventUntil(Deadline deadline) {
     }
 
     impl::TaskContext& current = current_task::GetCurrentTaskContext();
-    LOG_TRACE() << "WaitForEventUntil()";
     EventWaitStrategy wait_manager{*this, current};
 
     while (true) {
         if (GetIsSignaled()) {
-            LOG_TRACE() << "success";
             return true;
         }
 
-        LOG_TRACE() << "iteration()";
-
         const auto wakeup_source = current.Sleep(wait_manager, deadline);
         if (!impl::HasWaitSucceeded(wakeup_source)) {
-            LOG_TRACE() << "failure";
             return false;
         }
     }

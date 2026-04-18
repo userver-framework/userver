@@ -277,6 +277,8 @@ public:
 
     std::chrono::system_clock::time_point GetStartSystemTime() const;
 
+    std::chrono::steady_clock::time_point GetStartSteadyTime() const;
+
     /// @cond
     // For internal use only.
     void AddTags(const logging::LogExtra&, utils::impl::InternalTag);

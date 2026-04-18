@@ -33,7 +33,6 @@ namespace {
 Awaiter* const kSignaled = reinterpret_cast<Awaiter*>(1);
 
 void DoNotify(AwaiterWithContext awaiter) {
-    LOG_TRACE() << "NotifyOne awaiter=" << fmt::to_string(awaiter) << " use_count=" << awaiter.awaiter->UseCount();
     impl::Notify(boost::intrusive_ptr<Awaiter>{awaiter.awaiter, /*add_ref=*/false}, awaiter.context);
 }
 
@@ -54,7 +53,6 @@ void WaitListLight::GetSignalOrAppend(boost::intrusive_ptr<Awaiter>& awaiter, st
     UASSERT(awaiter);
 
     const AwaiterWithContext new_awaiter{awaiter.get(), context};
-    LOG_TRACE() << "Append awaiter=" << fmt::to_string(new_awaiter) << " use_count=" << awaiter->UseCount();
 
     AwaiterWithContext expected{};
     // seq_cst is important for the "Append-Check-Wakeup" sequence.
@@ -122,7 +120,6 @@ void WaitListLight::Remove(Awaiter& awaiter, std::uintptr_t context) noexcept {
         return;
     }
 
-    LOG_TRACE() << "Remove awaiter=" << fmt::to_string(expected) << " use_count=" << awaiter.UseCount();
     intrusive_ptr_release(&awaiter);
 }
 

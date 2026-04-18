@@ -2,6 +2,8 @@
 
 #include <google/protobuf/util/time_util.h>
 
+#include <utility>
+
 #include <userver/dynamic_config/snapshot.hpp>
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/task/cancel.hpp>
@@ -9,6 +11,7 @@
 #include <userver/utils/impl/internal_tag.hpp>
 
 #include <userver/ugrpc/impl/statistics_scope.hpp>
+#include <userver/ugrpc/impl/to_string.hpp>
 #include <userver/ugrpc/status_codes.hpp>
 #include <userver/ugrpc/time_utils.hpp>
 
@@ -30,48 +33,81 @@ bool CheckAndSetupDeadline(
     std::string_view method_name,
     ugrpc::impl::RpcStatisticsScope& statistics_scope,
     const dynamic_config::Snapshot& config,
-    utils::AnyStorage<StorageContext>& context
-
+    utils::AnyStorage<StorageContext>& context,
+    bool prefer_absolute_deadline
 ) {
     if (!config[::dynamic_config::USERVER_DEADLINE_PROPAGATION_ENABLED]) {
         return true;
     }
 
-    auto deadline_duration = ugrpc::TimespecToDuration(server_context.raw_deadline());
-
-    if (deadline_duration == engine::Deadline::Duration::max()) {
-        return true;
+    std::optional<USERVER_NAMESPACE::server::request::TaskInheritedOriginalDeadline> absolute_original_deadline;
+    const auto& client_metadata = server_context.client_metadata();
+    const auto absolute_deadline_it = client_metadata.find("x-request-deadline");
+    if (absolute_deadline_it != client_metadata.end()) {
+        absolute_original_deadline = USERVER_NAMESPACE::server::request::impl::ParseXRequestDeadlineString(
+            ugrpc::impl::ToString(absolute_deadline_it->second)
+        );
     }
 
-    context.Emplace(kDeadlineReceivedKey, deadline_duration);
+    const auto deadline_duration = ugrpc::TimespecToDuration(server_context.raw_deadline());
+    const bool has_grpc_deadline = (deadline_duration != engine::Deadline::Duration::max());
+    std::optional<std::chrono::milliseconds> grpc_client_deadline_ms;
+    if (has_grpc_deadline) {
+        grpc_client_deadline_ms = std::chrono::duration_cast<std::chrono::milliseconds>(deadline_duration);
+    }
 
-    const auto deadline_duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>(deadline_duration);
+    auto chosen_deadline = USERVER_NAMESPACE::server::request::impl::TryMakeDeadlinePreferringAbsoluteTimestamp(
+        absolute_original_deadline,
+        prefer_absolute_deadline,
+        grpc_client_deadline_ms,
+        config,
+        &span
+    );
 
-    const bool cancelled_by_deadline =
-        engine::current_task::ShouldCancel() || deadline_duration_ms <= engine::Deadline::Duration{0};
+    if (!chosen_deadline.has_value()) {
+        if (!has_grpc_deadline) {
+            return true;
+        }
+        chosen_deadline = engine::Deadline::FromDuration(deadline_duration);
+    }
 
-    span.AddNonInheritableTag("deadline_received_ms", deadline_duration_ms.count());
+    const auto time_left =
+        *chosen_deadline == engine::Deadline::Passed()
+            ? engine::Deadline::Duration::zero()
+            : chosen_deadline->GetTimePoint() - span.GetStartSteadyTime();
+    context.Emplace(kDeadlineReceivedKey, time_left);
+    span.AddNonInheritableTag(
+        "deadline_received_ms",
+        std::chrono::duration_cast<std::chrono::milliseconds>(time_left).count()
+    );
+
     statistics_scope.OnDeadlinePropagated();
-    span.AddNonInheritableTag("cancelled_by_deadline", cancelled_by_deadline);
 
+    USERVER_NAMESPACE::server::request::kTaskInheritedData.Set(USERVER_NAMESPACE::server::request::TaskInheritedData{
+        service_name,
+        method_name,
+        span.GetStartSteadyTime(),
+        *chosen_deadline,
+        {},
+        absolute_original_deadline,
+    });
+
+    const bool cancelled_by_deadline = engine::current_task::ShouldCancel() || chosen_deadline->IsSurelyReachedApprox();
+    span.AddNonInheritableTag("cancelled_by_deadline", cancelled_by_deadline);
     if (cancelled_by_deadline && config[::dynamic_config::USERVER_GRPC_SERVER_CANCEL_TASK_BY_DEADLINE]) {
         // Experiment and config are enabled
         statistics_scope.OnCancelledByDeadlinePropagation();
         return false;
     }
 
-    const USERVER_NAMESPACE::server::request::TaskInheritedData inherited_data{
-        service_name,
-        method_name,
-        std::chrono::steady_clock::now(),
-        engine::Deadline::FromDuration(deadline_duration)
-    };
-    USERVER_NAMESPACE::server::request::kTaskInheritedData.Set(inherited_data);
-
     return true;
 }
 
 }  // namespace
+
+Middleware::Middleware(Settings&& settings)
+    : settings_{std::move(settings)}
+{}
 
 void Middleware::OnCallStart(MiddlewareCallContext& context) const {
     if (!CheckAndSetupDeadline(
@@ -81,7 +117,8 @@ void Middleware::OnCallStart(MiddlewareCallContext& context) const {
             context.GetMethodName(),
             context.GetStatistics(utils::impl::InternalTag{}),
             context.GetInitialDynamicConfig(),
-            context.GetStorageContext()
+            context.GetStorageContext(),
+            settings_.prefer_absolute_deadline
         ))
     {
         context.SetError(grpc::Status{

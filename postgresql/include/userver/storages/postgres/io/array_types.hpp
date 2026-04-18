@@ -45,7 +45,7 @@ struct HasFixedDimensionsImpl {
 template <typename T>
 struct HasFixedDimensions
     : std::conditional_t<
-          kIsFixedSizeContainer<T>,
+          meta::kIsFixedSizeContainer<T>,
           detail::HasFixedDimensionsImpl<T>,
           BoolConstant<!kIsCompatibleContainer<T>>>::type {};
 
@@ -76,7 +76,7 @@ struct JoinSequences<std::integer_sequence<T, U...>, std::integer_sequence<T, V.
 
 template <typename T>
 struct FixedDimensionsImpl {
-    static_assert(kIsFixedSizeContainer<T>, "Container must have fixed size");
+    static_assert(meta::kIsFixedSizeContainer<T>, "Container must have fixed size");
     using type = typename JoinSequences<
         std::integer_sequence<std::size_t, kDimensionSize<T>>,
         typename FixedDimensions<typename T::value_type>::type>::type;
@@ -97,7 +97,7 @@ constexpr std::array<T, sizeof...(Values)> MakeArray(const std::integer_sequence
 template <typename T>
 struct FixedDimensions
     : std::conditional_t<
-          kIsFixedSizeContainer<T>,
+          meta::kIsFixedSizeContainer<T>,
           detail::FixedDimensionsImpl<T>,
           detail::FixedDimensionsNonContainer<T>> {};
 
@@ -182,7 +182,7 @@ private:
     }
     template <typename Element>
     bool CheckDimensions([[maybe_unused]] DimensionConstIterator dim) const {
-        if constexpr (traits::kIsFixedSizeContainer<Element>) {
+        if constexpr (meta::kIsFixedSizeContainer<Element>) {
             // check subdimensions
             if (*dim != traits::kDimensionSize<Element>) {
                 return false;
@@ -221,10 +221,10 @@ private:
         Element& elem
     ) {
         if constexpr (traits::kIsCompatibleContainer<Element>) {
-            if constexpr (traits::kCanClear<Element>) {
+            if constexpr (traits::CanClear<Element>) {
                 elem.clear();
             }
-            if constexpr (traits::kCanReserve<Element>) {
+            if constexpr (traits::CanReserve<Element>) {
                 elem.reserve(*dim);
             }
             auto it = GetInserter(elem);
@@ -394,7 +394,7 @@ constexpr bool EnableArrayParser() {
         return false;
     } else {
         using ElementType = typename traits::ContainerFinalElement<Container>::type;
-        return traits::kHasParser<ElementType>;
+        return traits::HasParser<ElementType>;
     }
 }
 template <typename Container>
@@ -406,7 +406,7 @@ constexpr bool EnableArrayFormatter() {
         return false;
     } else {
         using ElementType = typename traits::ContainerFinalElement<Container>::type;
-        return traits::kHasFormatter<ElementType>;
+        return traits::HasFormatter<ElementType>;
     }
 }
 template <typename Container>
@@ -427,12 +427,12 @@ constexpr bool IsTypeMappedToSystemArray() {
 namespace traits {
 
 template <typename T>
-struct Input<T, std::enable_if_t<!detail::kCustomParserDefined<T> && io::detail::kEnableArrayParser<T>>> {
+struct Input<T, std::enable_if_t<!detail::CustomParserDefined<T> && io::detail::kEnableArrayParser<T>>> {
     using type = io::detail::ArrayBinaryParser<T>;
 };
 
 template <typename T>
-struct Output<T, std::enable_if_t<!detail::kCustomFormatterDefined<T> && io::detail::kEnableArrayFormatter<T>>> {
+struct Output<T, std::enable_if_t<!detail::CustomFormatterDefined<T> && io::detail::kEnableArrayFormatter<T>>> {
     using type = io::detail::ArrayBinaryFormatter<T>;
 };
 

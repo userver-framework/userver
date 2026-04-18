@@ -44,7 +44,7 @@ std::size_t FieldBuffer::Read(T&& value, const TypeBufferCategory& categories, s
 
 template <typename T>
 std::size_t FieldBuffer::ReadRaw(T&& value, const TypeBufferCategory& categories, BufferCategory cat) {
-    using ValueType = std::decay_t<T>;
+    using ValueType = std::remove_cvref_t<T>;
     Integer field_length{0};
     auto consumed = Read(field_length, BufferCategory::kPlainBuffer);
     if (field_length == kPgNullBufferSize) {

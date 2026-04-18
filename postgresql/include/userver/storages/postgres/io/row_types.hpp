@@ -79,10 +79,10 @@ namespace detail {
 struct ForDeserializationTag;
 
 template <typename T, typename = USERVER_NAMESPACE::utils::void_t<>>
-struct IsPostgresBuildInTypeWrapper : std::false_type {};
+struct IsPostgresBuildInTypeWrapperImpl : std::false_type {};
 
 template <typename T>
-struct IsPostgresBuildInTypeWrapper<T, USERVER_NAMESPACE::utils::void_t<decltype(T::kIsPostgresBuildInTypeWrapper)>>
+struct IsPostgresBuildInTypeWrapperImpl<T, USERVER_NAMESPACE::utils::void_t<decltype(T::kIsPostgresBuildInTypeWrapper)>>
     : std::integral_constant<const bool, T::kIsPostgresBuildInTypeWrapper> {
     static_assert(
         std::is_same_v<decltype(T::kIsPostgresBuildInTypeWrapper), const bool>,
@@ -91,18 +91,16 @@ struct IsPostgresBuildInTypeWrapper<T, USERVER_NAMESPACE::utils::void_t<decltype
 };
 
 template <typename T>
-inline constexpr bool kIsPostgresBuildInTypeWrapper = IsPostgresBuildInTypeWrapper<T>::value;
+concept IsPostgresBuildInTypeWrapper = IsPostgresBuildInTypeWrapperImpl<T>::value;
 
 template <typename T>
 constexpr bool DetectIsSuitableRowType() {
     using type = std::remove_cv_t<T>;
     return std::is_class_v<type> && !std::is_empty_v<type> &&
            boost::pfr::is_implicitly_reflectable_v<type, detail::ForDeserializationTag> &&
-           !std::is_polymorphic_v<type> && !std::is_union_v<type> && !postgres::detail::kIsInStdNamespace<type> &&
-           !postgres::detail::kIsInBoostNamespace<type> && !detail::kIsPostgresBuildInTypeWrapper<type>;
+           !std::is_polymorphic_v<type> && !std::is_union_v<type> && !postgres::detail::IsInStdNamespace<type> &&
+           !postgres::detail::IsInBoostNamespace<type> && !detail::IsPostgresBuildInTypeWrapper<type>;
 }
-
-}  // namespace detail
 
 template <typename T>
 struct IsSuitableRowType : BoolConstant<detail::DetectIsSuitableRowType<T>()> {};
@@ -110,8 +108,7 @@ struct IsSuitableRowType : BoolConstant<detail::DetectIsSuitableRowType<T>()> {}
 template <typename Tag, typename T, USERVER_NAMESPACE::utils::StrongTypedefOps Ops>
 struct IsSuitableRowType<USERVER_NAMESPACE::utils::StrongTypedef<Tag, T, Ops>> : IsSuitableRowType<T> {};
 
-template <typename T>
-inline constexpr bool kIsSuitableRowType = IsSuitableRowType<T>::value;
+}  // namespace detail
 
 enum class RowCategoryType { kNonRow, kTuple, kAggregate, kIntrusiveIntrospection };
 
@@ -127,7 +124,7 @@ struct RowCategory
               HasIntrospection<T>::value,
               RowCategoryConstant<RowCategoryType::kIntrusiveIntrospection>,
               std::conditional_t<
-                  IsSuitableRowType<T>::value,
+                  detail::IsSuitableRowType<T>::value,
                   RowCategoryConstant<RowCategoryType::kAggregate>,
                   RowCategoryConstant<RowCategoryType::kNonRow>>>> {};
 
@@ -145,20 +142,35 @@ constexpr void AssertIsValidRowType() {
         "1. primitive type. "
         "2. std::tuple. "
         "3. Aggregation type. See std::aggregation. "
-        "4. Has a Introspect method that makes the std::tuple from your "
-        "class/struct. "
+        "4. Has a Introspect method that makes the std::tuple from your class/struct. "
         "For more info see `uPg: Typed PostgreSQL results` chapter in docs."
     );
 }
 
 template <typename T>
-inline constexpr bool kIsRowType = kRowCategory<T> != RowCategoryType::kNonRow;
+concept IsRowType = kRowCategory<T> != RowCategoryType::kNonRow;
 
 template <typename T>
-inline constexpr bool kIsCompositeType = kIsRowType<T>;
+concept IsCompositeType = IsRowType<T>;
 
 template <typename T>
-inline constexpr bool kIsColumnType = kRowCategory<T> == RowCategoryType::kNonRow;
+concept IsColumnType = kRowCategory<T> == RowCategoryType::kNonRow;
+
+// NOLINTBEGIN(readability-identifier-naming)
+
+/// @deprecated
+template <typename T>
+concept kIsRowType = IsRowType<T>;
+
+/// @deprecated
+template <typename T>
+concept kIsCompositeType = IsCompositeType<T>;
+
+/// @deprecated
+template <typename T>
+concept kIsColumnType = IsColumnType<T>;
+
+// NOLINTEND(readability-identifier-naming)
 
 template <typename T, typename Enable = USERVER_NAMESPACE::utils::void_t<>>
 struct ExtractionTag {
@@ -169,9 +181,6 @@ template <typename T>
 struct ExtractionTag<T, std::enable_if_t<kIsRowType<T>>> {
     using type = RowTag;
 };
-
-template <typename T>
-inline constexpr typename ExtractionTag<T>::type kExtractionTag{};
 
 }  // namespace traits
 

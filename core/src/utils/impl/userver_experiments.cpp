@@ -95,6 +95,8 @@ UserverExperiment kServerSelectionTimeoutExperiment{"mongo-server-selection-time
 UserverExperiment kPgCcExperiment{"pg-cc"};
 UserverExperiment kYdbDeadlinePropagationExperiment{"ydb-deadline-propagation"};
 UserverExperiment kWaitAllCheckedUpgradeExperiment{"wait-all-checked-upgrade"};
+UserverExperiment kPgConnlimitWatchdogFallbackExperiment{"pg-connlimit-watchdog-new-fallback"};
+UserverExperiment kPgConnlimitWatchdogReservationExperiment{"pg-connlimit-watchdog-new-reservation"};
 
 }  // namespace utils::impl
 

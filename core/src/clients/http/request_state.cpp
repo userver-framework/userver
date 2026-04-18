@@ -24,6 +24,7 @@
 #include <userver/utils/algo.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/async.hpp>
+#include <userver/utils/datetime_light.hpp>
 #include <userver/utils/encoding/hex.hpp>
 #include <userver/utils/from_string.hpp>
 #include <userver/utils/overloaded.hpp>
@@ -970,6 +971,16 @@ void RequestState::UpdateTimeoutHeader() {
         fmt::to_string(remote_timeout_.count()),
         curl::easy::DuplicateHeaderAction::kReplace
     );
+
+    if (inherited_original_deadline_.has_value()) {
+        const auto iso_str =
+            utils::datetime::UtcTimestring(*inherited_original_deadline_, utils::datetime::kAbsoluteDeadlineFormat);
+        easy().add_header(
+            USERVER_NAMESPACE::http::headers::kXRequestDeadline,
+            iso_str,
+            curl::easy::DuplicateHeaderAction::kReplace
+        );
+    }
 }
 
 void RequestState::HandleDeadlineAlreadyPassed() {
@@ -1096,6 +1107,7 @@ void RequestState::ResetDataForNewRequest() {
     retry_.current = 1;
     remote_timeout_ = original_timeout_;
     deadline_ = server::request::GetTaskInheritedDeadline();
+    inherited_original_deadline_ = server::request::GetTaskInheritedOriginalDeadline();
     deadline_expired_ = false;
     timeout_updated_by_deadline_ = false;
 

@@ -3,16 +3,13 @@
 #include <cstddef>
 #include <exception>
 #include <optional>
-#include <string_view>
 #include <type_traits>
 #include <utility>
 
 #include <google/protobuf/message.h>
-#include <grpcpp/server_context.h>
 
 #include <userver/logging/log.hpp>
 #include <userver/server/handlers/exceptions.hpp>
-#include <userver/tracing/in_place_span.hpp>
 #include <userver/utils/fast_scope_guard.hpp>
 #include <userver/utils/impl/internal_tag.hpp>
 
@@ -27,14 +24,6 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::server::impl {
-
-void SetupSpan(
-    std::optional<tracing::InPlaceSpan>& span_storage,
-    grpc::ServerContext& context,
-    std::string_view call_name,
-    std::string_view service_name,
-    std::string_view method_name
-);
 
 grpc::Status ReportCustomError(const USERVER_NAMESPACE::server::handlers::CustomHandlerException& ex, CallState& state)
     noexcept;

@@ -8,11 +8,22 @@
 #include <type_traits>
 #include <utility>
 
+#include <userver/compiler/impl/lifetime.hpp>
 #include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace utils {
+
+namespace impl {
+
+template <typename T>
+struct IsStdSharedPtr : std::false_type {};
+
+template <typename T>
+struct IsStdSharedPtr<std::shared_ptr<T>> : std::true_type {};
+
+}  // namespace impl
 
 /// @ingroup userver_universal userver_containers
 ///
@@ -90,6 +101,18 @@ public:
     constexpr decltype(auto) operator->() const& { return GetBase(); }
 
     constexpr decltype(auto) operator*() const& { return *GetBase(); }
+
+    constexpr decltype(auto) operator->() const& USERVER_IMPL_LIFETIME_BOUND
+    requires(!std::is_trivially_copyable_v<T>) && (!impl::IsStdSharedPtr<T>::value)
+    {
+        return GetBase();
+    }
+
+    constexpr decltype(auto) operator*() const& USERVER_IMPL_LIFETIME_BOUND
+    requires(!std::is_trivially_copyable_v<T>) && (!impl::IsStdSharedPtr<T>::value)
+    {
+        return *GetBase();
+    }
 
     template <typename U>
     constexpr bool operator==(const NotNull<U>& other) const& {

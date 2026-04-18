@@ -1,40 +1,36 @@
 #pragma once
 
-#include <exception>
+#include <array>
 #include <functional>
 #include <optional>
 #include <string_view>
 #include <type_traits>
 #include <utility>
 
-#include <grpcpp/completion_queue.h>
 #include <grpcpp/server_context.h>
+#include <boost/smart_ptr/intrusive_ref_counter.hpp>
 
 #include <userver/engine/async.hpp>
 #include <userver/engine/task/cancel.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
-#include <userver/tracing/in_place_span.hpp>
-#include <userver/tracing/span.hpp>
-#include <userver/tracing/span_builder.hpp>
 #include <userver/utils/assert.hpp>
-#include <userver/utils/fast_scope_guard.hpp>
 #include <userver/utils/impl/wait_token_storage.hpp>
 #include <userver/utils/lazy_prvalue.hpp>
-#include <userver/utils/statistics/entry.hpp>
+#include <userver/utils/make_intrusive_ptr.hpp>
 
+#include <userver/ugrpc/impl/async_method_invocation.hpp>
 #include <userver/ugrpc/impl/async_service.hpp>
+#include <userver/ugrpc/impl/event_base.hpp>
 #include <userver/ugrpc/impl/static_service_metadata.hpp>
 #include <userver/ugrpc/impl/statistics.hpp>
 #include <userver/ugrpc/impl/statistics_scope.hpp>
 #include <userver/ugrpc/impl/statistics_storage.hpp>
 #include <userver/ugrpc/server/call_context.hpp>
-#include <userver/ugrpc/server/impl/async_method_invocation.hpp>
 #include <userver/ugrpc/server/impl/call_processor.hpp>
 #include <userver/ugrpc/server/impl/call_state.hpp>
 #include <userver/ugrpc/server/impl/call_traits.hpp>
 #include <userver/ugrpc/server/impl/completion_queue_pool.hpp>
 #include <userver/ugrpc/server/impl/error_code.hpp>
-#include <userver/ugrpc/server/impl/exceptions.hpp>
 #include <userver/ugrpc/server/impl/request_async_call.hpp>
 #include <userver/ugrpc/server/impl/service_internals.hpp>
 #include <userver/ugrpc/server/impl/service_worker.hpp>
@@ -51,14 +47,6 @@ struct GenericMethodParseResults {
     std::string_view method_name;
 };
 GenericMethodParseResults ParseGenericMethodName(std::string_view generic_method_name);
-
-void ConstructSpan(
-    std::optional<tracing::InPlaceSpan>& span_storage,
-    std::string_view call_name,
-    const grpc::ServerContext& server_context
-);
-
-void AddServiceMethodTags(tracing::Span& span, std::string_view service_name, std::string_view method_name);
 
 /// Per-gRPC-service data
 template <typename GrpcppService>
@@ -87,45 +75,102 @@ struct MethodData final {
     const std::size_t method_id{};
     typename CallTraits::ServiceBase& service;
     const typename CallTraits::ServiceMethod service_method;
+    ugrpc::impl::MethodStatistics& method_statistics{service_data.service_statistics.GetMethodStatistics(method_id)};
+};
 
-    utils::StringLiteral call_name{ugrpc::impl::GetMethodFullName(service_data.metadata, method_id)};
-    // Remove name of the service and slash
-    utils::StringLiteral method_name{ugrpc::impl::GetMethodName(service_data.metadata, method_id)};
-    ugrpc::impl::MethodStatistics& statistics{service_data.service_statistics.GetMethodStatistics(method_id)};
+template <typename CallTraits>
+struct CallData final : public boost::intrusive_ref_counter<CallData<CallTraits>> {
+    class OnDoneEvent final : public ugrpc::impl::EventBase {
+    public:
+        explicit OnDoneEvent(CallData& calld)
+            : calld_{calld}
+        {}
+
+        void* GetCompletionTag() noexcept {
+            // Ref for CompletionQueue; released in `Notify`.
+            intrusive_ptr_add_ref(&calld_);
+
+            return static_cast<EventBase*>(this);
+        }
+
+        void Notify(bool ok) noexcept override {
+            // Server-side AsyncNotifyWhenDone: ok should always be true
+            UASSERT(ok);
+
+            if (calld_.server_context.IsCancelled()) {
+                calld_.cancellation_token.RequestCancel();
+            }
+
+            Release();
+        }
+
+        void Release() noexcept { intrusive_ptr_release(&calld_); }
+
+    private:
+        CallData& calld_;
+    };
+
+    using ServerContext = typename CallTraits::RawContext;
+    using Responder = typename CallTraits::RawResponder;
+    using Request = typename CallTraits::InitialRequest;
+
+    ServerContext server_context;
+    Responder responder{&server_context};
+    Request request{};
+
+    engine::TaskCancellationToken cancellation_token{engine::current_task::GetCancellationToken()};
+
+    OnDoneEvent on_done_event{*this};
 };
 
 template <typename GrpcppService, typename CallTraits>
-class CallData final {
+class CallAcceptor {
 public:
-    explicit CallData(const MethodData<GrpcppService, CallTraits>& method_data)
-        : wait_token_(method_data.service_data.wait_tokens.GetToken()),
-          method_data_(method_data)
-    {
-        UASSERT(method_data.method_id < GetMethodsCount(method_data.service_data.metadata));
+    static void ListenAsync(const MethodData<GrpcppService, CallTraits>& method_data) {
+        engine::DetachUnscopedUnsafe(engine::CriticalAsyncNoSpan(
+            method_data.service_data.internals.task_processor,
+            utils::LazyPrvalue([&] { return CallAcceptor{method_data}; })
+        ));
     }
 
+    explicit CallAcceptor(const MethodData<GrpcppService, CallTraits>& method_data)
+        : wait_token_(method_data.service_data.wait_tokens.GetToken()),
+          method_data_(method_data)
+    {}
+
     void operator()() && {
+        auto calld = AcceptCall();
+        if (calld) {
+            // Spawn a new instance to serve new requests while we process this one.
+            CallAcceptor::ListenAsync(method_data_);
+
+            ProcessCall(std::move(calld));
+        }
+    }
+
+private:
+    boost::intrusive_ptr<CallData<CallTraits>> AcceptCall() {
+        auto calld = utils::make_intrusive_ptr<CallData<CallTraits>>();
+
         // Based on the tensorflow code, we must first call AsyncNotifyWhenDone
         // and only then RequestCall<>
         // see
         // https://git.ecdf.ed.ac.uk/s1886313/tensorflow/-/blob/438604fc885208ee05f9eef2d0f2c630e1360a83/tensorflow/core/distributed_runtime/rpc/grpc_call.h#L201
         // and grpc::ServerContext::AsyncNotifyWhenDone
-        ugrpc::server::impl::RpcDoneEvent
-            notify_when_done{engine::current_task::GetCancellationToken(), server_context_};
-        server_context_.AsyncNotifyWhenDone(notify_when_done.GetCompletionTag());
+        calld->server_context.AsyncNotifyWhenDone(calld->on_done_event.GetCompletionTag());
 
-        auto& queue = method_data_.service_data.internals.completion_queues.GetQueue(method_data_.queue_id);
+        auto& cq = method_data_.service_data.internals.completion_queues.GetQueue(method_data_.queue_id);
 
         ugrpc::impl::AsyncMethodInvocation request_call_invocation;
         // the request for an incoming RPC must be performed synchronously
         RequestAsyncCall<CallTraits>(
             method_data_.service_data.async_service,
             method_data_.method_id,
-            server_context_,
-            initial_request_,
-            raw_responder_,
-            queue,
-            queue,
+            calld->server_context,
+            calld->request,
+            calld->responder,
+            cq,
+            cq,
             request_call_invocation.GetCompletionTag()
         );
 
@@ -139,65 +184,41 @@ public:
             // Do not wait for notify_when_done. When queue is shutting down, it will
             // not be called.
             // https://github.com/grpc/grpc/issues/10136
-            return;
+            calld->on_done_event.Release();
+
+            return nullptr;
         }
 
-        const utils::FastScopeGuard await_notify_when_done([&]() noexcept {
-            // Even if we finished before receiving notification that call is done, we
-            // should wait on this async operation. CompletionQueue has a pointer to
-            // stack-allocated object, that object is going to be freed upon exit. To
-            // prevent segfaults, wait until queue is done with this object.
-            notify_when_done.WaitNonCancellable();
-        });
-
-        // start a concurrent listener immediately, as advised by gRPC docs
-        ListenAsync(method_data_);
-
-        ProcessCall();
+        return calld;
     }
 
-    static void ListenAsync(const MethodData<GrpcppService, CallTraits>& method_data) {
-        engine::DetachUnscopedUnsafe(engine::CriticalAsyncNoSpan(
-            method_data.service_data.internals.task_processor,
-            utils::LazyPrvalue([&] { return CallData(method_data); })
-        ));
-    }
-
-private:
-    using InitialRequest = typename CallTraits::InitialRequest;
-    using RawResponder = typename CallTraits::RawResponder;
-    using Context = typename CallTraits::Context;
-
-    void ProcessCall() {
-        std::string_view call_name = method_data_.call_name;
-        std::string_view service_name = method_data_.service_data.metadata.service_full_name;
-        std::string_view method_name = method_data_.method_name;
-        if constexpr (std::is_same_v<Context, GenericCallContext>) {
-            auto parse_results = ParseGenericMethodName(server_context_.method());
+    void ProcessCall(boost::intrusive_ptr<CallData<CallTraits>>&& calld) {
+        const auto& metadata = method_data_.service_data.metadata;
+        std::string_view call_name = GetMethodFullName(metadata, method_data_.method_id);
+        std::string_view service_name = metadata.service_full_name;
+        std::string_view method_name = GetMethodName(metadata, method_data_.method_id);
+        if constexpr (std::is_same_v<typename CallTraits::Context, GenericCallContext>) {
+            auto parse_results = ParseGenericMethodName(calld->server_context.method());
             call_name = parse_results.call_name;
             service_name = parse_results.service_name;
             method_name = parse_results.method_name;
         }
 
-        ConstructSpan(span_, call_name, server_context_);
-        AddServiceMethodTags(span_->Get(), service_name, method_name);
-
         CallProcessor<CallTraits> call_processor{
             CallParams{
-                server_context_,
+                calld->server_context,
                 CallTraits::kRpcType,
                 call_name,
                 service_name,
                 method_name,
-                method_data_.statistics,
+                method_data_.method_statistics,
                 method_data_.service_data.internals.statistics_storage,
-                span_->Get(),
                 method_data_.service_data.internals.middlewares,
                 method_data_.service_data.internals.config_source,
                 method_data_.service_data.internals.status_codes_log_level,
             },
-            raw_responder_,
-            initial_request_,
+            calld->responder,
+            calld->request,
             method_data_.service,
             method_data_.service_method,
         };
@@ -210,18 +231,13 @@ private:
     const utils::impl::WaitTokenStorageLock wait_token_;
 
     MethodData<GrpcppService, CallTraits> method_data_;
-
-    typename CallTraits::RawContext server_context_{};
-    InitialRequest initial_request_{};
-    RawResponder raw_responder_{&server_context_};
-    std::optional<tracing::InPlaceSpan> span_;
 };
 
 template <typename GrpcppService, typename Service, typename... ServiceMethods>
 void StartServing(ServiceData<GrpcppService>& service_data, Service& service, ServiceMethods... service_methods) {
     for (std::size_t queue_id = 0; queue_id < service_data.internals.completion_queues.GetSize(); ++queue_id) {
         std::size_t method_id = 0;
-        (CallData<
+        (CallAcceptor<
              GrpcppService,
              CallTraits<ServiceMethods>>::ListenAsync({service_data, queue_id, method_id++, service, service_methods}),
          ...);

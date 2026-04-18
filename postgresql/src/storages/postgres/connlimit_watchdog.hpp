@@ -23,6 +23,7 @@ public:
         detail::ClusterImpl& cluster,
         testsuite::TestsuiteTasks& testsuite_tasks,
         int shard_number,
+        std::size_t min_fallback_connections,
         std::function<void()> on_new_connlimit,
         std::string host_name = hostinfo::blocking::GetRealHostName()
     );
@@ -55,6 +56,7 @@ private:
     int steps_with_errors_{0};
     USERVER_NAMESPACE::utils::PeriodicTask periodic_;
     int shard_number_;
+    std::size_t min_fallback_connections_;
     std::string host_name_;
 };
 

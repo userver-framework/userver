@@ -285,7 +285,9 @@ UTEST_P(ServerMiddlewareHooksUnaryTest, DeadlinePropagation) {
     SetSuccessHandler();
 
     ON_CALL(Middleware(1), OnCallStart).WillByDefault([](ugrpc::server::MiddlewareCallContext& context) {
-        const ugrpc::server::middlewares::deadline_propagation::Middleware deadline_propagation{};
+        const ugrpc::server::middlewares::deadline_propagation::Middleware deadline_propagation{
+            ugrpc::server::middlewares::deadline_propagation::Settings{}
+        };
         deadline_propagation.OnCallStart(context);
     });
 
@@ -300,7 +302,9 @@ UTEST_P(ServerMiddlewareHooksUnaryTest, DeadlinePropagation) {
         .WillByDefault([](ugrpc::server::MiddlewareCallContext& context, grpc::Status& status) {
             EXPECT_TRUE(status.ok());
             /// Here the status will be replaced by 'grpc-server-deadline-propagation' middleware
-            const ugrpc::server::middlewares::deadline_propagation::Middleware deadline_propagation{};
+            const ugrpc::server::middlewares::deadline_propagation::Middleware deadline_propagation{
+                ugrpc::server::middlewares::deadline_propagation::Settings{}
+            };
             deadline_propagation.PreSendStatus(context, status);
         });
     ON_CALL(Middleware(0), PreSendStatus)

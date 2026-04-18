@@ -161,7 +161,6 @@ void Thread::UpdateTimersWatcher(struct ev_loop* loop, ev_timer*, int) noexcept 
 
 void Thread::UpdateLoopWatcherImpl() {
     while (AsyncPayloadBase* payload = func_queue_.TryPopBlocking()) {
-        LOG_TRACE() << "Thread::UpdateLoopWatcherImpl(), " << compiler::GetTypeName(typeid(*payload));
         try {
             payload->PerformAndRelease();
         } catch (const std::exception& ex) {

@@ -139,7 +139,7 @@ async def test_absolute_deadline_disabled_dynamically(call):
         headers={
             **HEADERS,
             DP_TIMEOUT_MS: '5000',
-            DP_ABSOLUTE_DEADLINE: _make_iso_deadline(-120.0),
+            DP_ABSOLUTE_DEADLINE: _make_iso_deadline(-1.0),
         },
     )
     assert response.status == 200

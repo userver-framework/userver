@@ -67,6 +67,21 @@ DriverSettings ParseDriverSettings(
     auto config_database = dbconfig["database"].As<std::optional<std::string>>();
 
     result.prefer_local_dc = dbconfig["prefer_local_dc"].As<bool>(result.prefer_local_dc);
+    result.network_threads_num = dbconfig["network-threads-num"].As<std::optional<std::size_t>>();
+    result.client_threads_num = dbconfig["client-threads-num"].As<std::optional<std::size_t>>();
+
+    if (!dbconfig["tcp-keepalive"].IsMissing()) {
+        const auto tcp = dbconfig["tcp-keepalive"];
+        result.tcp_keepalive = TcpKeepaliveSettings{
+            tcp["enabled"].As<bool>(),
+            tcp["idle-sec"].As<std::size_t>(),
+            tcp["probe-count"].As<std::size_t>(),
+            tcp["interval-sec"].As<std::size_t>(),
+        };
+    }
+    result.grpc_keepalive_timeout = dbconfig["grpc-keepalive-timeout"].As<std::optional<std::chrono::milliseconds>>();
+    result.grpc_keepalive_permit_without_calls =
+        dbconfig["grpc-keepalive-permit-without-calls"].As<std::optional<bool>>();
 
     result.endpoint = MergeWithSecdist(dbsecdist.endpoint, std::move(config_endpoint), dbconfig, "endpoint");
     result.database = MergeWithSecdist(dbsecdist.database, std::move(config_database), dbconfig, "database");
@@ -82,8 +97,6 @@ DriverSettings ParseDriverSettings(
 
     return result;
 }
-
-using OptMs = std::optional<std::chrono::milliseconds>;
 
 const dynamic_config::Key<std::unordered_map<std::string, utils::RetryBudgetSettings>> kRetryBudgetSettings(
     "YDB_RETRY_BUDGET",
