@@ -386,9 +386,15 @@ class Generator:
 
     def _str_enum_name(self, item: str) -> str:
         cpp_name = cpp_names.camel_case(self._normalize_name(item))
-        if cpp_name[0].isnumeric():
+        if cpp_name == '_':
+            cpp_name = ''
+        if cpp_name and cpp_name[0].isnumeric():
             cpp_name = 'X' + cpp_name
         return 'k' + cpp_name
+
+    @staticmethod
+    def _str_enum_fallback_suffix(item: str) -> str:
+        return 'U' + '_'.join(f'{ord(ch):X}' for ch in item)
 
     def _gen_string(
         self,
@@ -400,19 +406,29 @@ class Generator:
         if schema.enum:
             assert not user_cpp_type
 
+            enum_cpp_names = {item: self._str_enum_name(item) for item in schema.enum}
+            duplicates = {
+                cpp_name
+                for cpp_name, count in collections.Counter(enum_cpp_names.values()).items()
+                if count > 1
+            }
+            for item, cpp_name in list(enum_cpp_names.items()):
+                if cpp_name == 'k' or cpp_name in duplicates:
+                    enum_cpp_names[item] = f'{cpp_name}{self._str_enum_fallback_suffix(item)}'
+
             enums = []
             for item in schema.enum:
                 enums.append(
                     cpp_types.CppStringEnumItem(
                         raw_name=item,
-                        cpp_name=self._str_enum_name(item),
+                        cpp_name=enum_cpp_names[item],
                     ),
                 )
 
             default: cpp_types.EnumItemName | None
             if schema.default:
                 default = cpp_types.EnumItemName(
-                    name.in_global_scope() + '::' + self._str_enum_name(schema.default),
+                    name.in_global_scope() + '::' + enum_cpp_names[schema.default],
                 )
             else:
                 default = None

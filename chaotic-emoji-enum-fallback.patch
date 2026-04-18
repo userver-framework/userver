@@ -1,0 +1,20 @@
+--- a/chaotic/back/cpp/translator.py
++++ b/chaotic/back/cpp/translator.py
+@@ -390,11 +390,18 @@ class Generator:
+             default=schema.default,
+         )
+ 
+     def _str_enum_name(self, item: str) -> str:
+         cpp_name = cpp_names.camel_case(self._normalize_name(item))
++        if not cpp_name:
++            # Some enum values such as emoji normalize to "_" and then to an
++            # empty CamelCase name. Fall back to a stable identifier based on
++            # Unicode code points so such string enums remain codegenable.
++            cpp_name = 'U' + '_'.join(f'{ord(ch):X}' for ch in item)
+         if cpp_name[0].isnumeric():
+             cpp_name = 'X' + cpp_name
+         return 'k' + cpp_name
+ 
+     def _gen_string(
+         self,
+         name: type_name.TypeName,
