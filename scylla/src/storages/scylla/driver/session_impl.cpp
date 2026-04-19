@@ -12,6 +12,7 @@
 #include <userver/storages/scylla/exception.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/tracing/tags.hpp>
+#include <userver/utils/algo.hpp>
 
 #include <storages/scylla/driver/async_future.hpp>
 #include <storages/scylla/driver/cass_wrappers.hpp>
@@ -32,8 +33,7 @@ namespace {
 constexpr const char* kPingQuery = "SELECT release_version FROM system.local";
 
 std::chrono::milliseconds ElapsedSince(std::chrono::steady_clock::time_point start) noexcept {
-    return std::chrono::duration_cast<std::chrono::milliseconds>(
-        std::chrono::steady_clock::now() - start);
+    return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start);
 }
 
 void ApplyLoadBalancingPolicy(CassCluster* cluster, const SessionConfig& config) {
@@ -44,17 +44,11 @@ void ApplyLoadBalancingPolicy(CassCluster* cluster, const SessionConfig& config)
             cass_cluster_set_load_balance_round_robin(cluster);
             break;
         case LBP::kDcAware:
-            cass_cluster_set_load_balance_dc_aware(
-                cluster,
-                config.preferred_datacenter.c_str(),
-                0,
-                cass_false
-            );
+            cass_cluster_set_load_balance_dc_aware(cluster, config.preferred_datacenter.c_str(), 0, cass_false);
             break;
     }
 
-    cass_cluster_set_token_aware_routing(cluster,
-        config.token_aware_routing ? cass_true : cass_false);
+    cass_cluster_set_token_aware_routing(cluster, config.token_aware_routing ? cass_true : cass_false);
 }
 
 void ApplyRetryPolicy(CassCluster* cluster, SessionConfig::RetryPolicyType type) {
@@ -90,7 +84,9 @@ void ApplySsl(
     const SessionConfig::SslSettings& ssl_config,
     const std::optional<SslSecrets>& ssl_secrets
 ) {
-    if (!ssl_config.enabled) return;
+    if (!ssl_config.enabled) {
+        return;
+    }
 
     crypto::Openssl::Init();
 
@@ -130,14 +126,17 @@ void ApplySpeculativeExecution(CassCluster* cluster, const SessionConfig::Specul
         cass_cluster_set_constant_speculative_execution_policy(
             cluster,
             static_cast<cass_int64_t>(spec.delay.count()),
-            static_cast<int>(spec.max_attempts));
+            static_cast<int>(spec.max_attempts)
+        );
     } else {
         cass_cluster_set_no_speculative_execution_policy(cluster);
     }
 }
 
-void CppDriverLogCallback(const CassLogMessage* message, void* ) noexcept {
-    if (!message) return;
+void CppDriverLogCallback(const CassLogMessage* message, void*) noexcept {
+    if (!message) {
+        return;
+    }
     const std::string_view text(message->message);
     switch (message->severity) {
         case CASS_LOG_CRITICAL:
@@ -168,53 +167,62 @@ void EnsureCppDriverLogBridge() {
 }
 
 void ApplyDefaultConsistency(CassCluster* cluster, const SessionConfig& config) {
-    cass_cluster_set_consistency(
-        cluster, static_cast<CassConsistency>(config.consistency));
-    cass_cluster_set_serial_consistency(
-        cluster, static_cast<CassConsistency>(config.serial_consistency));
+    cass_cluster_set_consistency(cluster, static_cast<CassConsistency>(config.consistency));
+    cass_cluster_set_serial_consistency(cluster, static_cast<CassConsistency>(config.serial_consistency));
 }
 
-}
+}  // namespace
 
 DriverSessionImpl::DriverSessionImpl(
     std::string id,
-    const std::string& hosts,
+    utils::zstring_view hosts,
     const SessionConfig& session_config,
     dynamic_config::Source config_source,
-    clients::dns::Resolver* ,
+    clients::dns::Resolver*,
     std::optional<SslSecrets> ssl_secrets
 )
     : SessionImpl(std::move(id), session_config, config_source),
       session_config_(session_config),
       ssl_secrets_(std::move(ssl_secrets)),
-      default_keyspace_(session_config.default_keyspace) {
-    SetConnectionString(hosts);
+      default_keyspace_(session_config.default_keyspace),
+      hosts_(hosts),
+      connection_(Create(hosts)) {}
+
+DriverSessionImpl::ConnPtr DriverSessionImpl::GetActiveConnection() const {
+    std::shared_lock lock(conn_mutex_);
+    return connection_;
 }
 
-void DriverSessionImpl::SetConnectionString(const std::string& connection_string) {
-    if (hosts_ == connection_string) {
-        return;
+void DriverSessionImpl::SetConnectionString(utils::zstring_view connection_string) {
+    {
+        std::shared_lock lock(conn_mutex_);
+        if (hosts_ == connection_string) {
+            return;
+        }
+    }
+
+    LOG_WARNING() << "New connection string for '" << Id() << "' found in secdist, reconnecting to ScyllaDB";
+
+    auto new_connection = Create(connection_string);
+
+    ConnPtr old_connection;
+    {
+        std::unique_lock lock(conn_mutex_);
+        if (hosts_ == connection_string) {
+            return;
+        }
+        hosts_ = std::string{connection_string};
+        old_connection = std::exchange(connection_, std::move(new_connection));
     }
 
     auto& session_stats = *GetStatistics().session;
-    const bool is_reconnect = !hosts_.empty();
-    if (is_reconnect) {
-        LOG_WARNING() << "New connection string for '" << Id()
-                      << "' found in secdist, reconnecting to ScyllaDB";
-    }
-
-    hosts_ = connection_string;
-    auto new_connection = Create();
-    if (connection_) {
+    if (old_connection) {
         ++session_stats.closed;
-    }
-    connection_ = std::move(new_connection);
-    if (is_reconnect) {
         ++session_stats.reconnects;
     }
 }
 
-DriverSessionImpl::ConnPtr DriverSessionImpl::Create() {
+DriverSessionImpl::ConnPtr DriverSessionImpl::Create(utils::zstring_view hosts) {
     EnsureCppDriverLogBridge();
 
     tracing::Span span("scylla_connect");
@@ -225,20 +233,19 @@ DriverSessionImpl::ConnPtr DriverSessionImpl::Create() {
 
     LOG_DEBUG() << "Creating scylla connection";
 
-    prepared_cache_.Clear();
-
     CassClusterPtr cluster(cass_cluster_new());
-    cass_cluster_set_contact_points(cluster.get(), hosts_.c_str());
+    cass_cluster_set_contact_points(cluster.get(), hosts.c_str());
 
-    cass_cluster_set_connect_timeout(cluster.get(),
-        static_cast<unsigned>(session_config_.conn_timeout.count()));
-    cass_cluster_set_request_timeout(cluster.get(),
-        static_cast<unsigned>(session_config_.request_timeout.count()));
+    cass_cluster_set_connect_timeout(cluster.get(), static_cast<unsigned>(session_config_.conn_timeout.count()));
+    cass_cluster_set_request_timeout(cluster.get(), static_cast<unsigned>(session_config_.request_timeout.count()));
 
-    const auto& settings = session_config_.dynamic_settings;
-    cass_cluster_set_num_threads_io(cluster.get(), settings.num_threads_io);
-    cass_cluster_set_core_connections_per_host(cluster.get(),
-        settings.core_connections_per_host);
+    const auto& pool = session_config_.pool_settings;
+    cass_cluster_set_num_threads_io(cluster.get(), pool.num_threads_io);
+    if (pool.core_connections_per_shard > 0) {
+        cass_cluster_set_core_connections_per_shard(cluster.get(), pool.core_connections_per_shard);
+    } else {
+        cass_cluster_set_core_connections_per_host(cluster.get(), pool.core_connections_per_host);
+    }
 
     ApplyLoadBalancingPolicy(cluster.get(), session_config_);
     ApplyRetryPolicy(cluster.get(), session_config_.retry_policy);
@@ -246,16 +253,14 @@ DriverSessionImpl::ConnPtr DriverSessionImpl::Create() {
     ApplyDefaultConsistency(cluster.get(), session_config_);
 
     if (!session_config_.app_name.empty()) {
-        cass_cluster_set_application_name(cluster.get(),
-            session_config_.app_name.c_str());
+        cass_cluster_set_application_name(cluster.get(), session_config_.app_name.c_str());
     }
 
     ApplySsl(cluster.get(), session_config_.ssl, ssl_secrets_);
 
     CassSessionPtr session(cass_session_new());
 
-    CassFuturePtr connect_future(
-        cass_session_connect(session.get(), cluster.get()));
+    CassFuturePtr connect_future(cass_session_connect(session.get(), cluster.get()));
     AsyncWaitFuture(connect_future.get());
     CheckFuture(connect_future.get(), "connect");
 
@@ -266,8 +271,7 @@ DriverSessionImpl::ConnPtr DriverSessionImpl::Create() {
             CassStatementPtr ping_stmt(cass_statement_new(kPingQuery, 0));
             ApplyConsistency(ping_stmt.get(), session_config_, std::nullopt);
             MarkIdempotent(ping_stmt.get());
-            CassFuturePtr ping_future(
-                cass_session_execute(session.get(), ping_stmt.get()));
+            CassFuturePtr ping_future(cass_session_execute(session.get(), ping_stmt.get()));
             AsyncWaitFuture(ping_future.get());
             CheckFuture(ping_future.get(), "ping");
             session_stats.ping->Account(stats::ErrorType::kSuccess, ElapsedSince(start));
@@ -282,6 +286,8 @@ DriverSessionImpl::ConnPtr DriverSessionImpl::Create() {
 }
 
 void DriverSessionImpl::Ping() {
+    auto conn = GetActiveConnection();
+    UASSERT(conn);
     auto span = MakeDbSpan("scylla_ping", default_keyspace_);
     auto& session_stats = *GetStatistics().session;
     const auto start = std::chrono::steady_clock::now();
@@ -290,8 +296,7 @@ void DriverSessionImpl::Ping() {
         ApplyConsistency(ping_stmt.get(), session_config_, std::nullopt);
         ApplyDeadlineAndTimeout(ping_stmt.get(), session_config_.request_timeout);
         MarkIdempotent(ping_stmt.get());
-        CassFuturePtr ping_future(
-            cass_session_execute(connection_->GetSession(), ping_stmt.get()));
+        CassFuturePtr ping_future(cass_session_execute(conn->GetSession(), ping_stmt.get()));
         AsyncWaitFuture(ping_future.get());
         CheckFuture(ping_future.get(), "ping");
         session_stats.ping->Account(stats::ErrorType::kSuccess, ElapsedSince(start));
@@ -304,11 +309,11 @@ void DriverSessionImpl::Ping() {
 void DriverSessionImpl::DropKeyspace() {
     if (default_keyspace_.empty()) {
         throw InvalidConfigException(
-            "Cannot drop keyspace: no default keyspace configured for session '" + Id() + "'");
+            utils::StrCat("Cannot drop keyspace: no default keyspace configured for session '", Id(), "'")
+        );
     }
 
-    LOG_WARNING() << "Dropping ScyllaDB keyspace '" << default_keyspace_
-                  << "' on session '" << Id() << "'";
+    LOG_WARNING() << "Dropping ScyllaDB keyspace '" << default_keyspace_ << "' on session '" << Id() << "'";
 
     auto context = MakeSessionRequestContext(*this, "scylla_drop_keyspace", default_keyspace_);
 
@@ -321,21 +326,19 @@ const std::string& DriverSessionImpl::DefaultDatabaseName() const { return defau
 
 namespace {
 
-CassStatementPtr PrepareRawStatement(
-    RequestContext& ctx,
-    const std::string& query,
-    const std::vector<Value>& params
-) {
+CassStatementPtr PrepareRawStatement(RequestContext& ctx, std::string_view query, const std::vector<Value>& params) {
     cql::CqlQuery q;
     q.text = query;
     q.values.reserve(params.size());
-    for (const auto& p : params) q.values.push_back(p);
+    for (const auto& p : params) {
+        q.values.push_back(p);
+    }
     return cql::Prepare(ctx, q);
 }
 
 }  // namespace
 
-Rows DriverSessionImpl::ExecuteRaw(const std::string& query, const std::vector<Value>& params) {
+Rows DriverSessionImpl::ExecuteRaw(std::string_view query, const std::vector<Value>& params) {
     auto ctx = MakeSessionRequestContext(*this, "scylla_execute_raw", default_keyspace_);
     auto stmt = PrepareRawStatement(ctx, query, params);
     auto result = ExecuteStatement(ctx, std::move(stmt), false, "ExecuteRaw");
@@ -343,10 +346,10 @@ Rows DriverSessionImpl::ExecuteRaw(const std::string& query, const std::vector<V
 }
 
 PagedRows DriverSessionImpl::ExecuteRawPaged(
-    const std::string& query,
+    std::string_view query,
     const std::vector<Value>& params,
     std::size_t page_size,
-    const std::string& paging_state
+    std::string_view paging_state
 ) {
     auto ctx = MakeSessionRequestContext(*this, "scylla_execute_raw_paged", default_keyspace_);
     auto stmt = PrepareRawStatement(ctx, query, params);
@@ -355,8 +358,7 @@ PagedRows DriverSessionImpl::ExecuteRawPaged(
         cass_statement_set_paging_size(stmt.get(), static_cast<int>(page_size));
     }
     if (!paging_state.empty()) {
-        if (cass_statement_set_paging_state_token(
-                stmt.get(), paging_state.data(), paging_state.size()) != CASS_OK) {
+        if (cass_statement_set_paging_state_token(stmt.get(), paging_state.data(), paging_state.size()) != CASS_OK) {
             throw QueryException("ExecuteRawPaged: invalid paging state token");
         }
     }
@@ -375,12 +377,12 @@ PagedRows DriverSessionImpl::ExecuteRawPaged(
     return out;
 }
 
-void DriverSessionImpl::ExecuteRawVoid(const std::string& query, const std::vector<Value>& params) {
+void DriverSessionImpl::ExecuteRawVoid(std::string_view query, const std::vector<Value>& params) {
     auto ctx = MakeSessionRequestContext(*this, "scylla_execute_raw_void", default_keyspace_);
     auto stmt = PrepareRawStatement(ctx, query, params);
     ExecuteStatement(ctx, std::move(stmt), false, "ExecuteRawVoid");
 }
 
-}
+}  // namespace storages::scylla::impl::driver
 
 USERVER_NAMESPACE_END

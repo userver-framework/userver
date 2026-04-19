@@ -3,6 +3,7 @@
 #include <chrono>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include <userver/yaml_config/yaml_config.hpp>
@@ -26,24 +27,22 @@ enum class Consistency : uint16_t {
 
 enum class SerialConsistency : uint16_t { kSerial = 0x0008, kLocalSerial = 0x0009 };
 
-struct SessionSettings final {
-
+struct SessionPoolSettings final {
     static constexpr std::size_t kDefaultNumThreadsIo = 1;
-
     static constexpr std::size_t kDefaultCoreConnectionsPerHost = 1;
+    static constexpr std::size_t kDefaultCoreConnectionsPerShard = 0;
 
-    size_t num_threads_io = kDefaultNumThreadsIo;
-    size_t core_connections_per_host = kDefaultCoreConnectionsPerHost;
+    std::size_t num_threads_io = kDefaultNumThreadsIo;
+    std::size_t core_connections_per_host = kDefaultCoreConnectionsPerHost;
+    std::size_t core_connections_per_shard = kDefaultCoreConnectionsPerShard;
 
-    void Validate(const std::string& session_id) const;
+    void Validate(std::string_view session_id) const;
 };
 
 struct SessionConfig final {
-
     static constexpr auto kDefaultConnTimeout = std::chrono::seconds{2};
     static constexpr auto kDefaultRequestTimeout = std::chrono::seconds{10};
 
-    static constexpr std::size_t kDefaultPoolSize = 16;
     static constexpr char kDefaultAppName[] = "userver";
 
     std::chrono::milliseconds conn_timeout = kDefaultConnTimeout;
@@ -51,8 +50,6 @@ struct SessionConfig final {
 
     Consistency consistency = Consistency::kLocalQuorum;
     SerialConsistency serial_consistency = SerialConsistency::kLocalSerial;
-
-    std::size_t pool_size = kDefaultPoolSize;
 
     enum class LoadBalancingPolicy {
         kRoundRobin,
@@ -63,9 +60,9 @@ struct SessionConfig final {
 
     bool token_aware_routing = true;
 
-    SessionSettings dynamic_settings;
+    SessionPoolSettings pool_settings;
 
-    void Validate(const std::string& session_id) const;
+    void Validate(std::string_view session_id) const;
 
     enum class RetryPolicyType {
         kDefault,
@@ -107,6 +104,6 @@ struct SslSecrets {
     std::string client_key_password;
 };
 
-}
+}  // namespace storages::scylla
 
 USERVER_NAMESPACE_END

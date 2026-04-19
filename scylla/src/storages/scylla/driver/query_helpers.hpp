@@ -24,15 +24,11 @@ namespace storages::scylla::impl::driver {
 
 inline constexpr std::string_view kDatabaseScyllaType = "scylla";
 
-inline tracing::Span MakeDbSpan(
-    std::string name,
-    const std::string& keyspace,
-    std::string_view table = {}
-) {
+inline tracing::Span MakeDbSpan(std::string name, std::string_view keyspace, std::string_view table = {}) {
     tracing::Span span(std::move(name));
     span.AddTag(tracing::kDatabaseType, std::string{kDatabaseScyllaType});
     if (!keyspace.empty()) {
-        span.AddTag(tracing::kDatabaseInstance, keyspace);
+        span.AddTag(tracing::kDatabaseInstance, std::string{keyspace});
     }
     if (!table.empty()) {
         span.AddTag(tracing::kDatabaseCollection, std::string{table});
@@ -40,10 +36,7 @@ inline tracing::Span MakeDbSpan(
     return span;
 }
 
-inline void ApplyDeadlineAndTimeout(
-    CassStatement* statement,
-    std::chrono::milliseconds configured_timeout
-) {
+inline void ApplyDeadlineAndTimeout(CassStatement* statement, std::chrono::milliseconds configured_timeout) {
     if (engine::current_task::ShouldCancel()) {
         throw CancelledException("ScyllaDB operation cancelled: ")
             << ToString(engine::current_task::CancellationReason());
@@ -62,8 +55,7 @@ inline void ApplyDeadlineAndTimeout(
     }
 
     if (effective_timeout.count() > 0) {
-        cass_statement_set_request_timeout(
-            statement, static_cast<cass_uint64_t>(effective_timeout.count()));
+        cass_statement_set_request_timeout(statement, static_cast<cass_uint64_t>(effective_timeout.count()));
     }
 
     auto* span = tracing::Span::CurrentSpanUnchecked();
@@ -78,19 +70,14 @@ inline void ApplyConsistency(
     const std::optional<CommandControl>& cc
 ) {
     const auto consistency = cc && cc->consistency ? *cc->consistency : session_config.consistency;
-    cass_statement_set_consistency(
-        statement, static_cast<CassConsistency>(consistency));
+    cass_statement_set_consistency(statement, static_cast<CassConsistency>(consistency));
 
-    const auto serial =
-        cc && cc->serial_consistency ? *cc->serial_consistency : session_config.serial_consistency;
-    cass_statement_set_serial_consistency(
-        statement, static_cast<CassConsistency>(serial));
+    const auto serial = cc && cc->serial_consistency ? *cc->serial_consistency : session_config.serial_consistency;
+    cass_statement_set_serial_consistency(statement, static_cast<CassConsistency>(serial));
 }
 
-inline void MarkIdempotent(CassStatement* statement) {
-    cass_statement_set_is_idempotent(statement, cass_true);
-}
+inline void MarkIdempotent(CassStatement* statement) { cass_statement_set_is_idempotent(statement, cass_true); }
 
-}
+}  // namespace storages::scylla::impl::driver
 
 USERVER_NAMESPACE_END

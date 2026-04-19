@@ -1,11 +1,13 @@
 #include "scylla_secdist.hpp"
 
+#include <functional>
 #include <unordered_map>
 
 #include <userver/formats/json/value.hpp>
 #include <userver/storages/scylla/exception.hpp>
 #include <userver/storages/secdist/exceptions.hpp>
 #include <userver/storages/secdist/helpers.hpp>
+#include <userver/utils/str_icase.hpp>
 
 #include <boost/range/adaptor/map.hpp>
 
@@ -47,10 +49,10 @@ class ScyllaSettings {
 public:
     explicit ScyllaSettings(const formats::json::Value& doc);
 
-    const ScyllaDbSettings& Get(const std::string& dbalias) const;
+    const ScyllaDbSettings& Get(std::string_view dbalias) const;
 
 private:
-    std::unordered_map<std::string, ScyllaDbSettings> settings_;
+    std::unordered_map<std::string, ScyllaDbSettings, utils::StrCaseHash, utils::StrIcaseEqual> settings_;
 };
 
 ScyllaSettings::ScyllaSettings(const formats::json::Value& doc) {
@@ -73,28 +75,30 @@ ScyllaSettings::ScyllaSettings(const formats::json::Value& doc) {
     }
 }
 
-const ScyllaDbSettings& ScyllaSettings::Get(const std::string& dbalias) const {
+const ScyllaDbSettings& ScyllaSettings::Get(std::string_view dbalias) const {
     auto it = settings_.find(dbalias);
 
     if (it == settings_.end()) {
-        throw storages::scylla::InvalidConfigException(fmt::format(
-            "dbalias {} not found in secdist config. Available aliases: [{}]",
-            dbalias,
-            fmt::join(settings_ | boost::adaptors::map_keys, ", ")
-        ));
+        throw storages::scylla::InvalidConfigException(
+            fmt::format(
+                "dbalias {} not found in secdist config. Available aliases: [{}]",
+                dbalias,
+                fmt::join(settings_ | boost::adaptors::map_keys, ", ")
+            )
+        );
     }
 
     return it->second;
 }
 
-}
+}  // namespace
 
-std::string GetSecdistHosts(const storages::secdist::Secdist& secdist, const std::string& dbalias) {
+std::string GetSecdistHosts(const storages::secdist::Secdist& secdist, std::string_view dbalias) {
     auto snapshot = secdist.GetSnapshot();
     return GetSecdistHosts(*snapshot, dbalias);
 }
 
-std::string GetSecdistHosts(const storages::secdist::SecdistConfig& secdist, const std::string& dbalias) {
+std::string GetSecdistHosts(const storages::secdist::SecdistConfig& secdist, std::string_view dbalias) {
     try {
         return secdist.Get<storages::scylla::secdist::ScyllaSettings>().Get(dbalias).hosts;
     } catch (const storages::secdist::SecdistError& ex) {
@@ -103,12 +107,12 @@ std::string GetSecdistHosts(const storages::secdist::SecdistConfig& secdist, con
     }
 }
 
-std::optional<SslSecrets> GetSecdistSsl(const storages::secdist::Secdist& secdist, const std::string& dbalias) {
+std::optional<SslSecrets> GetSecdistSsl(const storages::secdist::Secdist& secdist, std::string_view dbalias) {
     auto snapshot = secdist.GetSnapshot();
     return GetSecdistSsl(*snapshot, dbalias);
 }
 
-std::optional<SslSecrets> GetSecdistSsl(const storages::secdist::SecdistConfig& secdist, const std::string& dbalias) {
+std::optional<SslSecrets> GetSecdistSsl(const storages::secdist::SecdistConfig& secdist, std::string_view dbalias) {
     try {
         return secdist.Get<storages::scylla::secdist::ScyllaSettings>().Get(dbalias).ssl;
     } catch (const storages::secdist::SecdistError& ex) {
@@ -117,6 +121,6 @@ std::optional<SslSecrets> GetSecdistSsl(const storages::secdist::SecdistConfig& 
     }
 }
 
-}
+}  // namespace storages::scylla::secdist
 
 USERVER_NAMESPACE_END

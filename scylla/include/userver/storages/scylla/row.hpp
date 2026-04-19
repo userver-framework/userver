@@ -9,6 +9,7 @@
 
 #include <userver/storages/scylla/exception.hpp>
 #include <userver/storages/scylla/value.hpp>
+#include <userver/utils/algo.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -56,10 +57,10 @@ template <typename T>
 T Row::Get(std::string_view name) const {
     const auto& v = At(name);
     if (v.IsNull()) {
-        throw QueryException(std::string{"Row::Get<"} + std::string{name} + ">: column is NULL");
+        throw QueryException(utils::StrCat("Row::Get<", name, ">: column is NULL"));
     }
     if (!v.Is<T>()) {
-        throw QueryException(std::string{"Row::Get<"} + std::string{name} + ">: type mismatch");
+        throw QueryException(utils::StrCat("Row::Get<", name, ">: type mismatch"));
     }
     return v.Get<T>();
 }
@@ -67,7 +68,9 @@ T Row::Get(std::string_view name) const {
 template <typename T>
 std::optional<T> Row::TryGet(std::string_view name) const {
     const auto* v = Find(name);
-    if (v == nullptr || v->IsNull() || !v->Is<T>()) return std::nullopt;
+    if (v == nullptr || v->IsNull() || !v->Is<T>()) {
+        return std::nullopt;
+    }
     return v->Get<T>();
 }
 

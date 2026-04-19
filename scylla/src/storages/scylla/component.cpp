@@ -9,6 +9,7 @@
 #include <userver/storages/scylla/exception.hpp>
 #include <userver/storages/scylla/session.hpp>
 #include <userver/storages/scylla/session_config.hpp>
+#include <userver/utils/algo.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
 #include <storages/scylla/scylla_secdist.hpp>
@@ -33,7 +34,7 @@ storages::scylla::SessionConfig ParseSessionConfig(const ComponentConfig& config
 
     return session_config;
 }
-}
+}  // namespace
 
 Scylla::Scylla(const ComponentConfig& config, const ComponentContext& context) : ComponentBase(config, context) {
     auto db_alias = config["dbalias"].As<std::string>("");
@@ -51,7 +52,8 @@ Scylla::Scylla(const ComponentConfig& config, const ComponentContext& context) :
 
     if (hosts.empty()) {
         throw storages::scylla::InvalidConfigException(
-            config.Name() + ": either 'dbalias' or 'dbconnection' must be set in static config");
+            utils::StrCat(config.Name(), ": either 'dbalias' or 'dbconnection' must be set in static config")
+        );
     }
 
     auto* dns_resolver = clients::dns::GetResolverPtr(config, context);
@@ -59,8 +61,8 @@ Scylla::Scylla(const ComponentConfig& config, const ComponentContext& context) :
     const auto dynamic_config = context.FindComponent<DynamicConfig>().GetSource();
     const auto session_config = ParseSessionConfig(config);
 
-    session_ = std::make_shared<storages::scylla::Session>(
-        config.Name(), hosts, session_config, dynamic_config, dns_resolver);
+    session_ = std::make_shared<
+        storages::scylla::Session>(config.Name(), hosts, session_config, dynamic_config, dns_resolver);
 
     if (!dbalias_.empty()) {
         secdist_subscriber_ = secdist->UpdateAndListen(this, dbalias_, &Scylla::OnSecdistUpdate);
@@ -70,7 +72,8 @@ Scylla::Scylla(const ComponentConfig& config, const ComponentContext& context) :
 
     auto section_name = config.Name();
     if (boost::algorithm::starts_with(section_name, kStandardScyllaPrefix) &&
-        section_name.size() != kStandardScyllaPrefix.size()) {
+        section_name.size() != kStandardScyllaPrefix.size())
+    {
         section_name = section_name.substr(kStandardScyllaPrefix.size());
     }
 
@@ -99,6 +102,6 @@ Scylla::~Scylla() {
     statistics_entry_.Unregister();
     secdist_subscriber_.Unsubscribe();
 }
-}
+}  // namespace components
 
 USERVER_NAMESPACE_END

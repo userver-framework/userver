@@ -154,6 +154,11 @@ if(USERVER_FEATURE_SQLITE)
     add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-sqlite_service)
 endif()
 
+if(USERVER_FEATURE_SCYLLADB)
+    add_subdirectory(scylla_service)
+    add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-scylla_service)
+endif()
+
 if(USERVER_FEATURE_S3API)
     add_subdirectory(s3api)
     add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-s3api)

@@ -19,7 +19,7 @@ namespace storages::scylla {
 
 Session::Session(
     std::string id,
-    const std::string& hosts,
+    utils::zstring_view hosts,
     const SessionConfig& session_config,
     dynamic_config::Source config_source,
     clients::dns::Resolver* dns_resolver,
@@ -27,7 +27,13 @@ Session::Session(
 )
     : impl_(
           std::make_shared<impl::driver::DriverSessionImpl>(
-              std::move(id), hosts, session_config, config_source, dns_resolver, std::move(ssl_secrets))
+              std::move(id),
+              hosts,
+              session_config,
+              config_source,
+              dns_resolver,
+              std::move(ssl_secrets)
+          )
       ) {}
 
 Session::Session(Session&&) noexcept = default;
@@ -44,17 +50,11 @@ void Session::DropKeyspace() { impl_->DropKeyspace(); }
 
 void Session::Ping() { impl_->Ping(); }
 
-void Session::SetContactPoints(const std::string& contact_points) {
-    impl_->SetConnectionString(contact_points);
-}
+void Session::SetContactPoints(utils::zstring_view contact_points) { impl_->SetConnectionString(contact_points); }
 
-Rows Session::Execute(std::string query) {
-    return impl_->ExecuteRaw(query, {});
-}
+Rows Session::Execute(std::string query) { return impl_->ExecuteRaw(query, {}); }
 
-Rows Session::Execute(std::string query, std::vector<Value> params) {
-    return impl_->ExecuteRaw(query, params);
-}
+Rows Session::Execute(std::string query, std::vector<Value> params) { return impl_->ExecuteRaw(query, params); }
 
 PagedRows Session::ExecutePaged(
     std::string query,
@@ -65,9 +65,7 @@ PagedRows Session::ExecutePaged(
     return impl_->ExecuteRawPaged(query, params, page_size, paging_state);
 }
 
-void Session::ExecuteVoid(std::string query, std::vector<Value> params) {
-    impl_->ExecuteRawVoid(query, params);
-}
+void Session::ExecuteVoid(std::string query, std::vector<Value> params) { impl_->ExecuteRawVoid(query, params); }
 
 Cursor Session::NewCursor(std::string query, std::vector<Value> params, std::size_t page_size) {
     return Cursor{impl_, std::move(query), std::move(params), page_size};
@@ -82,14 +80,17 @@ Cursor::Cursor(
     std::shared_ptr<impl::SessionImpl> session_impl,
     std::string query,
     std::vector<Value> params,
-    std::size_t page_size)
+    std::size_t page_size
+)
     : session_impl_(std::move(session_impl)),
       query_(std::move(query)),
       params_(std::move(params)),
       page_size_(page_size == 0 ? 1000 : page_size) {}
 
 std::optional<Rows> Cursor::NextPage() {
-    if (done_) return std::nullopt;
+    if (done_) {
+        return std::nullopt;
+    }
 
     auto page = session_impl_->ExecuteRawPaged(query_, params_, page_size_, paging_state_);
 

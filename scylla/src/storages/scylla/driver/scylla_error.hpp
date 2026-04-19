@@ -7,16 +7,13 @@
 
 #include <userver/logging/log.hpp>
 #include <userver/storages/scylla/exception.hpp>
+#include <userver/utils/algo.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::scylla::impl::driver {
 
-[[noreturn]] inline void ThrowScyllaError(
-    CassError rc,
-    std::string_view error_message,
-    std::string prefix
-) {
+[[noreturn]] inline void ThrowScyllaError(CassError rc, std::string_view error_message, std::string prefix) {
     if (!prefix.empty()) {
         prefix += ": ";
     }
@@ -33,8 +30,9 @@ namespace storages::scylla::impl::driver {
             case CASS_ERROR_LIB_REQUEST_TIMED_OUT:
                 throw TimeoutException(
                     static_cast<int>(rc),
-                    std::string(prefix) + std::string(error_message),
-                    std::chrono::milliseconds{0});
+                    utils::StrCat(prefix, error_message),
+                    std::chrono::milliseconds{0}
+                );
 
             case CASS_ERROR_LIB_INVALID_STATE:
             case CASS_ERROR_LIB_INVALID_DATA:
@@ -59,16 +57,15 @@ namespace storages::scylla::impl::driver {
             case CASS_ERROR_SERVER_WRITE_TIMEOUT:
                 throw TimeoutException(
                     static_cast<int>(rc),
-                    std::string(prefix) + std::string(error_message),
-                    std::chrono::milliseconds{0});
+                    utils::StrCat(prefix, error_message),
+                    std::chrono::milliseconds{0}
+                );
 
             case CASS_ERROR_SERVER_READ_FAILURE:
             case CASS_ERROR_SERVER_WRITE_FAILURE:
             case CASS_ERROR_SERVER_FUNCTION_FAILURE:
             case CASS_ERROR_SERVER_ALREADY_EXISTS:
-                throw ServerException(
-                    static_cast<int>(rc),
-                    std::string(prefix) + std::string(error_message));
+                throw ServerException(static_cast<int>(rc), utils::StrCat(prefix, error_message));
 
             case CASS_ERROR_SERVER_INVALID_QUERY:
             case CASS_ERROR_SERVER_SYNTAX_ERROR:
@@ -76,9 +73,7 @@ namespace storages::scylla::impl::driver {
                 throw InvalidQueryArgumentException() << prefix << error_message;
 
             default:
-                throw ServerException(
-                    static_cast<int>(rc),
-                    std::string(prefix) + std::string(error_message));
+                throw ServerException(static_cast<int>(rc), utils::StrCat(prefix, error_message));
         }
     }
 
@@ -87,7 +82,9 @@ namespace storages::scylla::impl::driver {
 
 inline void CheckFuture(CassFuture* future, std::string_view action) {
     CassError rc = cass_future_error_code(future);
-    if (rc == CASS_OK) return;
+    if (rc == CASS_OK) {
+        return;
+    }
 
     const char* message = nullptr;
     size_t message_length = 0;
@@ -96,9 +93,9 @@ inline void CheckFuture(CassFuture* future, std::string_view action) {
 
     LOG_ERROR() << "Scylla " << action << " failed: " << error_message;
 
-    ThrowScyllaError(rc, error_message, std::string("Scylla ") + std::string(action) + " failed");
+    ThrowScyllaError(rc, error_message, utils::StrCat("Scylla ", action, " failed"));
 }
 
-}
+}  // namespace storages::scylla::impl::driver
 
 USERVER_NAMESPACE_END

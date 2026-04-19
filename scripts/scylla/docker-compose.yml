@@ -1,0 +1,30 @@
+services:
+  dev:
+    build: .
+    privileged: true
+    stdin_open: true
+    tty: true
+    volumes:
+      - ../../:/opt/userver
+    depends_on:
+      - scylladb
+    networks:
+      - scylla
+
+  scylladb:
+    container_name: scylla
+    image: scylladb/scylla:latest
+    ports:
+      - 9042:9042
+      - 9160:9160
+    volumes:
+      - scylladata:/var/lib/scylla
+    command: --smp 1 --memory 750M
+    networks:
+      - scylla
+
+networks:
+  scylla:
+
+volumes:
+  scylladata:

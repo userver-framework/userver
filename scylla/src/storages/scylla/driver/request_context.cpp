@@ -4,6 +4,8 @@
 #include <exception>
 #include <utility>
 
+#include <userver/utils/assert.hpp>
+
 #include <storages/scylla/driver/async_future.hpp>
 #include <storages/scylla/driver/query_helpers.hpp>
 #include <storages/scylla/driver/scylla_error.hpp>
@@ -42,8 +44,7 @@ public:
 
 private:
     std::chrono::milliseconds Elapsed() const noexcept {
-        return std::chrono::duration_cast<std::chrono::milliseconds>(
-            std::chrono::steady_clock::now() - start_);
+        return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start_);
     }
 
     stats::OperationStatisticsItem& item_;
@@ -64,10 +65,16 @@ RequestContext MakeContextImpl(
         timeout = *cc->request_timeout;
     }
 
+    auto connection = session.GetActiveConnection();
+    UASSERT(connection);
+    auto* native_session = connection->GetSession();
+    auto& prepared_cache = connection->GetPreparedCache();
+
     return RequestContext{
         session,
-        session.GetNativeSession(),
-        session.GetPreparedCache(),
+        std::move(connection),
+        native_session,
+        prepared_cache,
         *session.GetStatistics().session->queries,
         std::move(span),
         timeout,
@@ -77,22 +84,18 @@ RequestContext MakeContextImpl(
     };
 }
 
-}
+}  // namespace
 
 RequestContext MakeTableRequestContext(
     DriverSessionImpl& session,
     std::string span_name,
-    const std::string& keyspace,
+    std::string_view keyspace,
     std::string_view table
 ) {
     return MakeContextImpl(session, MakeDbSpan(std::move(span_name), keyspace, table), keyspace, table);
 }
 
-RequestContext MakeSessionRequestContext(
-    DriverSessionImpl& session,
-    std::string span_name,
-    const std::string& keyspace
-) {
+RequestContext MakeSessionRequestContext(DriverSessionImpl& session, std::string span_name, std::string_view keyspace) {
     return MakeContextImpl(session, MakeDbSpan(std::move(span_name), keyspace), keyspace, {});
 }
 
@@ -123,27 +126,17 @@ CassResultPtr ExecuteStatement(
     return CassResultPtr{cass_future_get_result(future.get())};
 }
 
-void ExecuteBatch(
-    RequestContext& ctx,
-    CassBatchPtr batch,
-    bool idempotent,
-    std::string_view action
-) {
-
+void ExecuteBatch(RequestContext& ctx, CassBatchPtr batch, bool idempotent, std::string_view action) {
     const auto& session_config = ctx.session.GetSessionConfig();
-    const auto consistency = ctx.cc && ctx.cc->consistency
-        ? *ctx.cc->consistency
-        : session_config.consistency;
+    const auto consistency = ctx.cc && ctx.cc->consistency ? *ctx.cc->consistency : session_config.consistency;
     cass_batch_set_consistency(batch.get(), static_cast<CassConsistency>(consistency));
 
-    const auto serial = ctx.cc && ctx.cc->serial_consistency
-        ? *ctx.cc->serial_consistency
-        : session_config.serial_consistency;
+    const auto
+        serial = ctx.cc && ctx.cc->serial_consistency ? *ctx.cc->serial_consistency : session_config.serial_consistency;
     cass_batch_set_serial_consistency(batch.get(), static_cast<CassConsistency>(serial));
 
     if (ctx.request_timeout.count() > 0) {
-        cass_batch_set_request_timeout(
-            batch.get(), static_cast<cass_uint64_t>(ctx.request_timeout.count()));
+        cass_batch_set_request_timeout(batch.get(), static_cast<cass_uint64_t>(ctx.request_timeout.count()));
     }
 
     if (idempotent) {
@@ -163,6 +156,6 @@ void ExecuteBatch(
     stopwatch.AccountSuccess();
 }
 
-}
+}  // namespace storages::scylla::impl::driver
 
 USERVER_NAMESPACE_END

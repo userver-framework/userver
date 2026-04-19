@@ -7,6 +7,7 @@
 #include <cassandra.h>
 
 #include <userver/storages/scylla/exception.hpp>
+#include <userver/utils/algo.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -26,9 +27,7 @@ CassUuid ToCass(const Uuid& u) {
     return out;
 }
 
-Uuid FromCass(const CassUuid& cu) {
-    return Uuid{cu.time_and_version, cu.clock_seq_and_node};
-}
+Uuid FromCass(const CassUuid& cu) { return Uuid{cu.time_and_version, cu.clock_seq_and_node}; }
 
 }  // namespace
 
@@ -44,12 +43,10 @@ Uuid Uuid::TimeBased() {
     return FromCass(out);
 }
 
-Uuid Uuid::FromString(std::string_view text) {
+Uuid Uuid::FromString(utils::zstring_view text) {
     CassUuid out;
-    std::string null_terminated{text};
-    if (cass_uuid_from_string(null_terminated.c_str(), &out) != CASS_OK) {
-        throw InvalidQueryArgumentException(
-            std::string{"Uuid::FromString: invalid UUID '"} + null_terminated + "'");
+    if (cass_uuid_from_string(text.c_str(), &out) != CASS_OK) {
+        throw InvalidQueryArgumentException(utils::StrCat("Uuid::FromString: invalid UUID '", text, "'"));
     }
     return FromCass(out);
 }

@@ -38,26 +38,35 @@ properties:
     enum:
       - serial
       - local_serial
-  pool_size:
-    type: integer
-    description: connections per node
-    default: 16
+  pool:
+    type: object
+    description: connection pool settings passed to the cpp-driver
+    additionalProperties: false
+    properties:
+      num_threads_io:
+        type: integer
+        description: number of IO threads owned by the cpp-driver
+        default: 1
+      core_connections_per_host:
+        type: integer
+        description: number of tcp connections
+        default: 1
+      core_connections_per_shard:
+        type: integer
+        description: |
+          Scylla shard-aware connections per shard
+        default: 0
   load_balancing_policy:
     type: string
     description: how to pick which node to query
-    default: token_aware_round_robin
+    default: dc_aware
     enum:
       - round_robin
-      - token_aware_round_robin
-      - dc_aware_round_robin
+      - dc_aware
   preferred_datacenter:
     type: string
     description: local datacenter for DC-aware routing
     default: ''
-  shard_awareness:
-    type: boolean
-    description: route queries to the correct CPU core
-    default: true
   retry_policy:
     type: string
     description: what to do when a query fails

@@ -1,6 +1,5 @@
 #pragma once
 
-#include <initializer_list>
 #include <memory>
 #include <optional>
 #include <string>
@@ -39,7 +38,8 @@ private:
         std::shared_ptr<impl::SessionImpl> session_impl,
         std::string query,
         std::vector<Value> params,
-        std::size_t page_size);
+        std::size_t page_size
+    );
 
     std::shared_ptr<impl::SessionImpl> session_impl_;
     std::string query_;
@@ -86,7 +86,7 @@ public:
 
     explicit Session(
         std::string id,
-        const std::string& hosts,
+        utils::zstring_view hosts,
         const SessionConfig& session_config,
         dynamic_config::Source config_source,
         clients::dns::Resolver* dns_resolver,
@@ -95,9 +95,7 @@ public:
 
     friend void DumpMetric(utils::statistics::Writer& writer, const Session& session);
 
-    void SetSessionSettings(const SessionSettings& session_settings);
-
-    void SetContactPoints(const std::string& contact_points);
+    void SetContactPoints(utils::zstring_view contact_points);
 
 private:
     std::shared_ptr<impl::SessionImpl> impl_;

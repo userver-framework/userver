@@ -1,26 +1,28 @@
 # /// [scylla setup]
-import json
+import os
 
 import pytest
 
-pytest_plugins = ['pytest_userver.plugins.core']
+from pytest_userver.plugins.scylla import ConnectionInfo
+
+pytest_plugins = ['pytest_userver.plugins.scylla']
 # /// [scylla setup]
 
 
-# /// [service_env]
-SECDIST_CONFIG = {
-    'scylla_settings': {
-        'scylla_example': {
-            'hosts': 'scylla',
-        },
-    },
-}
-
-
 @pytest.fixture(scope='session')
-def service_env():
-    return {'SECDIST_CONFIG': json.dumps(SECDIST_CONFIG)}
-    # /// [service_env]
+def scylla_connection_info(pytestconfig) -> ConnectionInfo:
+    host = (
+        pytestconfig.option.scylla_host
+        or os.environ.get('TESTSUITE_SCYLLA_HOST')
+        or 'scylla'
+    )
+    port = (
+        pytestconfig.option.scylla_port
+        or int(os.environ.get('TESTSUITE_SCYLLA_PORT') or 9042)
+    )
+
+
+    return ConnectionInfo(host=host, port=port)
 
 
 @pytest.fixture(autouse=True)

@@ -11,7 +11,6 @@
 #include <userver/formats/json/value_builder.hpp>
 #include <userver/server/http/http_request.hpp>
 #include <userver/storages/scylla/operations.hpp>
-#include <userver/utest/using_namespace_userver.hpp>
 
 namespace samples::scylladb {
 
@@ -23,8 +22,7 @@ inline constexpr std::string_view kComponentName = "scylla-db";
 
 [[noreturn]] void BadRequest(std::string message);
 
-const std::string& RequireArg(const server::http::HttpRequest& request,
-                              const std::string& name);
+const std::string& RequireArg(const server::http::HttpRequest& request, std::string_view name);
 
 formats::json::Value ParseBody(const server::http::HttpRequest& request);
 
@@ -34,8 +32,7 @@ formats::json::ValueBuilder RowToJson(const Row& row);
 
 formats::json::ValueBuilder RowsToJson(const Rows& rows);
 
-Value JsonToBasicValue(std::string_view name,
-                       const formats::json::Value& json);
+Value JsonToBasicValue(std::string_view name, const formats::json::Value& json);
 
 std::string ToHex(std::string_view data);
 

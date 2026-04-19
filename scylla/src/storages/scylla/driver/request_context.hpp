@@ -21,6 +21,7 @@ namespace storages::scylla::impl::driver {
 
 struct RequestContext final {
     DriverSessionImpl& session;
+    DriverSessionImpl::ConnPtr connection;
     CassSession* native_session;
     PreparedStatementCache& prepared_cache;
     stats::OperationStatisticsItem& stats;
@@ -34,15 +35,11 @@ struct RequestContext final {
 RequestContext MakeTableRequestContext(
     DriverSessionImpl& session,
     std::string span_name,
-    const std::string& keyspace,
+    std::string_view keyspace,
     std::string_view table
 );
 
-RequestContext MakeSessionRequestContext(
-    DriverSessionImpl& session,
-    std::string span_name,
-    const std::string& keyspace
-);
+RequestContext MakeSessionRequestContext(DriverSessionImpl& session, std::string span_name, std::string_view keyspace);
 
 CassResultPtr ExecuteStatement(
     RequestContext& ctx,
@@ -51,13 +48,8 @@ CassResultPtr ExecuteStatement(
     std::string_view action
 );
 
-void ExecuteBatch(
-    RequestContext& ctx,
-    CassBatchPtr batch,
-    bool idempotent,
-    std::string_view action
-);
+void ExecuteBatch(RequestContext& ctx, CassBatchPtr batch, bool idempotent, std::string_view action);
 
-}
+}  // namespace storages::scylla::impl::driver
 
 USERVER_NAMESPACE_END

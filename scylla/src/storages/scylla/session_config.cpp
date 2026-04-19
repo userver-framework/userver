@@ -3,29 +3,23 @@
 #include <gmock/internal/gmock-internal-utils.h>
 #include <netinet/in.h>
 
-#include <boost/iostreams/filter/gzip.hpp>
-
-#include "userver/storages/scylla/session.hpp"
-
 #include <userver/utils/text.hpp>
 #include <userver/utils/trivial_map.hpp>
 
 #include <userver/storages/scylla/exception.hpp>
-
-#include "userver/server/request/task_inherited_data.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::scylla {
 
 namespace {
-bool IsValidAppName(const std::string& app_name) {
+bool IsValidAppName(std::string_view app_name) {
     bool is_utf8 = utils::text::IsUtf8(app_name);
 
     return is_utf8 && utils::text::IsCString(app_name);
 }
 
-void IsValidDuration(const std::chrono::milliseconds& timeout, const char* field_name, const std::string& session_id) {
+void IsValidDuration(const std::chrono::milliseconds& timeout, const char* field_name, std::string_view session_id) {
     auto count_ms = timeout.count();
 
     bool is_valid = count_ms >= 0 && count_ms <= std::numeric_limits<int32_t>::max();
@@ -64,17 +58,7 @@ std::optional<Consistency> ConsistencyFromRaw(uint16_t value) {
     }
 }
 
-std::optional<SerialConsistency> SerialConsistencyFromRaw(int16_t value) {
-    switch (value) {
-        case 0x0008:
-            return SerialConsistency::kSerial;
-        case 0x0009:
-            return SerialConsistency::kLocalSerial;
-        default:
-            return std::nullopt;
-    }
-}
-}
+}  // namespace
 
 constexpr utils::TrivialBiMap kSerialConsistencyMapping([](auto selector) {
     return selector().Case(SerialConsistency::kSerial, "serial").Case(SerialConsistency::kLocalSerial, "local_serial");
@@ -113,13 +97,24 @@ constexpr utils::TrivialBiMap kSslVerifyModeMapping([](auto selector) {
         .Case(SessionConfig::SslSettings::VerifyMode::kPeerIdentityDns, "peer_identity_dns");
 });
 
-void SessionSettings::Validate(const std::string& session_id) const {
+void SessionPoolSettings::Validate(std::string_view session_id) const {
     if (num_threads_io == 0) {
         throw InvalidConfigException("num_threads_io must be > 0 at ") << session_id;
     }
     if (core_connections_per_host == 0) {
         throw InvalidConfigException("core_connections_per_host must be > 0 at ") << session_id;
     }
+}
+
+SessionPoolSettings Parse(const yaml_config::YamlConfig& config, formats::parse::To<SessionPoolSettings>) {
+    SessionPoolSettings result{};
+
+    result.num_threads_io = config["num_threads_io"].As<std::size_t>(result.num_threads_io);
+    result.core_connections_per_host =
+        config["core_connections_per_host"].As<std::size_t>(result.core_connections_per_host);
+    result.core_connections_per_shard =
+        config["core_connections_per_shard"].As<std::size_t>(result.core_connections_per_shard);
+    return result;
 }
 
 static auto Parse(const yaml_config::YamlConfig& config, formats::parse::To<Consistency>) {
@@ -148,7 +143,7 @@ SessionConfig Parse(const yaml_config::YamlConfig& config, formats::parse::To<Se
     result.request_timeout = config["request_timeout"].As<std::chrono::milliseconds>(result.request_timeout);
     result.consistency = config["consistency"].As<Consistency>(result.consistency);
     result.serial_consistency = config["serial_consistency"].As<SerialConsistency>(result.serial_consistency);
-    result.pool_size = config["pool_size"].As<std::size_t>(result.pool_size);
+    result.pool_settings = config["pool"].As<SessionPoolSettings>(result.pool_settings);
     result.token_aware_routing = config["token_aware_routing"].As<bool>(result.token_aware_routing);
     result.retry_policy = config["retry_policy"].As<SessionConfig::RetryPolicyType>(result.retry_policy);
     result.load_balancing_policy =
@@ -160,10 +155,10 @@ SessionConfig Parse(const yaml_config::YamlConfig& config, formats::parse::To<Se
     if (config.HasMember("speculative_execution")) {
         const auto& spec = config["speculative_execution"];
         result.speculative_execution.enabled = spec["enabled"].As<bool>(result.speculative_execution.enabled);
-        result.speculative_execution.max_attempts =
-            spec["max_attempts"].As<std::size_t>(result.speculative_execution.max_attempts);
-        result.speculative_execution.delay =
-            spec["delay"].As<std::chrono::milliseconds>(result.speculative_execution.delay);
+        result.speculative_execution
+            .max_attempts = spec["max_attempts"].As<std::size_t>(result.speculative_execution.max_attempts);
+        result.speculative_execution
+            .delay = spec["delay"].As<std::chrono::milliseconds>(result.speculative_execution.delay);
     }
 
     if (config.HasMember("ssl")) {
@@ -175,22 +170,21 @@ SessionConfig Parse(const yaml_config::YamlConfig& config, formats::parse::To<Se
     return result;
 }
 
-void SessionConfig::Validate(const std::string& session_id) const {
+void SessionConfig::Validate(std::string_view session_id) const {
     IsValidDuration(conn_timeout, "connection timeout", session_id);
     IsValidDuration(request_timeout, "request timeout", session_id);
 
-    dynamic_settings.Validate(session_id);
+    pool_settings.Validate(session_id);
 
     if (!IsValidAppName(app_name)) {
         throw InvalidConfigException("Invalid app name in ") << session_id << " session config";
     }
 
     if (load_balancing_policy == LoadBalancingPolicy::kDcAware && preferred_datacenter.empty()) {
-        throw InvalidConfigException("preferred_datacenter is required for dc_aware load balancing in ")
-            << session_id;
+        throw InvalidConfigException("preferred_datacenter is required for dc_aware load balancing in ") << session_id;
     }
 }
 
-}
+}  // namespace storages::scylla
 
 USERVER_NAMESPACE_END

@@ -2,6 +2,7 @@
 
 #include <userver/dynamic_config/value.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/utils/algo.hpp>
 #include <userver/utils/trivial_map.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -24,23 +25,24 @@ constexpr utils::TrivialBiMap kConsistencyMapping([](auto selector) {
 });
 
 constexpr utils::TrivialBiMap kSerialConsistencyMapping([](auto selector) {
-    return selector()
-        .Case(SerialConsistency::kSerial, "serial")
-        .Case(SerialConsistency::kLocalSerial, "local_serial");
+    return selector().Case(SerialConsistency::kSerial, "serial").Case(SerialConsistency::kLocalSerial, "local_serial");
 });
 
-}
+}  // namespace
 
-CommandControl Parse(const formats::json::Value& value,
-                     formats::parse::To<CommandControl>) {
+CommandControl Parse(const formats::json::Value& value, formats::parse::To<CommandControl>) {
     CommandControl result;
 
     if (value.HasMember("request_timeout_ms")) {
         const auto ms = value["request_timeout_ms"].As<std::int64_t>();
         if (ms <= 0) {
             throw std::runtime_error(
-                "Invalid request_timeout_ms in SCYLLA_DEFAULT_COMMAND_CONTROL: "
-                "must be > 0, got " + std::to_string(ms));
+                utils::StrCat(
+                    "Invalid request_timeout_ms in SCYLLA_DEFAULT_COMMAND_CONTROL: "
+                    "must be > 0, got ",
+                    std::to_string(ms)
+                )
+            );
         }
         result.request_timeout = std::chrono::milliseconds{ms};
     }
@@ -50,10 +52,13 @@ CommandControl Parse(const formats::json::Value& value,
         const auto mapped = kConsistencyMapping.TryFind(str);
         if (!mapped) {
             throw std::runtime_error(
-                "Unknown consistency '" + str +
-                "' in SCYLLA_DEFAULT_COMMAND_CONTROL. "
-                "Valid values: " +
-                kConsistencyMapping.DescribeByType<std::string>());
+                utils::StrCat(
+                    "Unknown consistency '",
+                    str,
+                    "' in SCYLLA_DEFAULT_COMMAND_CONTROL. Valid values: ",
+                    kConsistencyMapping.DescribeByType<std::string>()
+                )
+            );
         }
         result.consistency = mapped;
     }
@@ -63,10 +68,13 @@ CommandControl Parse(const formats::json::Value& value,
         const auto mapped = kSerialConsistencyMapping.TryFind(str);
         if (!mapped) {
             throw std::runtime_error(
-                "Unknown serial_consistency '" + str +
-                "' in SCYLLA_DEFAULT_COMMAND_CONTROL. "
-                "Valid values: " +
-                kSerialConsistencyMapping.DescribeByType<std::string>());
+                utils::StrCat(
+                    "Unknown serial_consistency '",
+                    str,
+                    "' in SCYLLA_DEFAULT_COMMAND_CONTROL. Valid values: ",
+                    kSerialConsistencyMapping.DescribeByType<std::string>()
+                )
+            );
         }
         result.serial_consistency = mapped;
     }
@@ -74,12 +82,11 @@ CommandControl Parse(const formats::json::Value& value,
     return result;
 }
 
-const dynamic_config::Key<utils::DefaultDict<CommandControl>>
-    kScyllaDefaultCommandControl{
-        "SCYLLA_DEFAULT_COMMAND_CONTROL",
-        dynamic_config::DefaultAsJsonString{"{}"},
-    };
+const dynamic_config::Key<utils::DefaultDict<CommandControl>> kScyllaDefaultCommandControl{
+    "SCYLLA_DEFAULT_COMMAND_CONTROL",
+    dynamic_config::DefaultAsJsonString{"{}"},
+};
 
-}
+}  // namespace storages::scylla
 
 USERVER_NAMESPACE_END

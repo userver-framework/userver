@@ -3,18 +3,19 @@
 #include <string>
 
 #include <userver/storages/scylla/exception.hpp>
+#include <userver/utils/algo.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::scylla {
 
-bool Row::Has(std::string_view name) const noexcept {
-    return Find(name) != nullptr;
-}
+bool Row::Has(std::string_view name) const noexcept { return Find(name) != nullptr; }
 
 const Value* Row::Find(std::string_view name) const noexcept {
     for (const auto& cell : cells_) {
-        if (cell.first == name) return &cell.second;
+        if (cell.first == name) {
+            return &cell.second;
+        }
     }
     return nullptr;
 }
@@ -22,7 +23,7 @@ const Value* Row::Find(std::string_view name) const noexcept {
 const Value& Row::At(std::string_view name) const {
     const auto* v = Find(name);
     if (v == nullptr) {
-        throw QueryException(std::string{"Row::At: column '"} + std::string{name} + "' not found");
+        throw QueryException(utils::StrCat("row::At: column '", name, "' not found"));
     }
     return *v;
 }

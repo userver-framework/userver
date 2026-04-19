@@ -135,23 +135,3 @@ curl -sS -w '\n%{http_code}\n' -X DELETE "http://localhost:8080/v1/kv/delete_if_
 
 
 ---
-
-Current `static_config.yaml`
-
-```yaml
-scylla-db:
-    dbconnection: scylla
-    consistency: local_quorum
-    serial_consistency: local_serial
-    request_timeout: 10s
-    pool_size: 16
-    app_name: scylla_sample
-    shard_awareness: true
-    retry_policy: default
-    load_balancing_policy: round_robin
-    speculative_execution:
-        enabled: false
-        max_attempts: 2
-        delay: 100ms
-    default_keyspace: examples
-```

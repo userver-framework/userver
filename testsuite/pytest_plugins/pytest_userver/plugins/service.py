@@ -219,6 +219,7 @@ def auto_client_deps(request) -> None:
     * `redis_store`
     * `mysql`
     * @ref pytest_userver.plugins.ydb.ydbsupport.ydb "ydb"
+    * @ref pytest_userver.plugins.scylla.scylla "scylla"
     * @ref pytest_userver.plugins.grpc.mockserver.grpc_mockserver "grpc_mockserver"
 
     To add other dependencies prefer overriding the
@@ -237,6 +238,7 @@ def auto_client_deps(request) -> None:
         'redis_store',
         'mysql',
         'ydb',
+        'scylla',
         'grpc_mockserver',
     }
 

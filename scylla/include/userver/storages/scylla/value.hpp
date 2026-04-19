@@ -12,6 +12,8 @@
 #include <variant>
 #include <vector>
 
+#include <userver/utils/zstring_view.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::scylla {
@@ -22,13 +24,12 @@ struct Uuid {
 
     static Uuid Random();
     static Uuid TimeBased();
-    static Uuid FromString(std::string_view text);
+    static Uuid FromString(utils::zstring_view text);
 
     std::string ToString() const;
 
     friend bool operator==(const Uuid& a, const Uuid& b) noexcept {
-        return a.time_and_version == b.time_and_version &&
-               a.clock_seq_and_node == b.clock_seq_and_node;
+        return a.time_and_version == b.time_and_version && a.clock_seq_and_node == b.clock_seq_and_node;
     }
     friend bool operator!=(const Uuid& a, const Uuid& b) noexcept { return !(a == b); }
 };
@@ -37,9 +38,7 @@ using Timestamp = std::chrono::system_clock::time_point;
 
 struct Date {
     std::uint32_t days_since_epoch{0};
-    friend bool operator==(const Date& a, const Date& b) noexcept {
-        return a.days_since_epoch == b.days_since_epoch;
-    }
+    friend bool operator==(const Date& a, const Date& b) noexcept { return a.days_since_epoch == b.days_since_epoch; }
 };
 
 struct Time {
@@ -189,7 +188,9 @@ const T& Value::Get() const {
 
 template <typename T>
 std::optional<T> Value::TryGet() const {
-    if (!Is<T>()) return std::nullopt;
+    if (!Is<T>()) {
+        return std::nullopt;
+    }
     return Get<T>();
 }
 
