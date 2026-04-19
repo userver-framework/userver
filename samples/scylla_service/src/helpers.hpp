@@ -11,6 +11,7 @@
 #include <userver/formats/json/value_builder.hpp>
 #include <userver/server/http/http_request.hpp>
 #include <userver/storages/scylla/operations.hpp>
+#include <userver/utest/using_namespace_userver.hpp>
 
 namespace samples::scylladb {
 

@@ -21,6 +21,7 @@
 #include <userver/storages/secdist/component.hpp>
 #include <userver/storages/secdist/provider_component.hpp>
 #include <userver/utils/daemon_run.hpp>
+#include <userver/utest/using_namespace_userver.hpp>
 
 #include "helpers.hpp"
 
