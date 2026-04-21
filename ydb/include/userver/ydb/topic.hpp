@@ -71,6 +71,50 @@ private:
     std::shared_ptr<NYdb::NTopic::IReadSession> read_session_;
 };
 
+/// @brief Write session used to connect to a topic for writting
+///
+/// @see https://ydb.tech/docs/en/reference/ydb-sdk/topic#write
+class TopicWriteSession final {
+public:
+    /// @cond
+    /// For internal use only.
+    explicit TopicWriteSession(std::shared_ptr<NYdb::NTopic::IWriteSession> write_session);
+    /// @endcond
+
+    /// @brief Wait for the next write session event
+    ///
+    /// Suspends the current coroutine until an event is available,
+    /// the returns it without blocking the thread.
+    std::optional<NYdb::NTopic::TWriteSessionEvent::TEvent> GetEvent();
+
+    /// @brief Poll for a write session event without waiting
+    ///
+    /// Returns the next buffered event immediately if one is available,
+    /// or `std::nullopt` if the event queue is empty. Does not suspend
+    /// the coroutine.
+    std::optional<NYdb::NTopic::TWriteSessionEvent::TEvent> TryGetEvent();
+
+    /// @brief Write a messsage using a continuation token from TReadyToAcceptEvent
+    ///
+    /// Must be called only after receiving TReadyToAcceptEvent from GetEvent().
+    void Write(NYdb::NTopic::TContinuationToken&& token, NYdb::NTopic::TWriteMessage&& message);
+
+    /// @brief Close write session
+    ///
+    /// Waits for all in-flights messages to be acknowledged.
+    /// Force closes after timeout
+    bool Close(std::chrono::milliseconds timeout);
+
+    /// Get native write session
+    /// @warning Use with care! Facilities from
+    /// `<core/include/userver/drivers/subscribable_futures.hpp>` can help with
+    /// non-blocking wait operations.
+    std::shared_ptr<NYdb::NTopic::IWriteSession> GetNativeTopicWriteSession();
+
+private:
+    std::shared_ptr<NYdb::NTopic::IWriteSession> write_session_;
+};
+
 /// @ingroup userver_clients
 ///
 /// @brief YDB Topic Client
@@ -93,6 +137,9 @@ public:
 
     /// Create read session
     TopicReadSession CreateReadSession(const NYdb::NTopic::TReadSessionSettings& settings);
+
+    /// Create write session
+    TopicWriteSession CreateWriteSession(const NYdb::NTopic::TWriteSessionSettings& settings);
 
     /// Get native topic client
     /// @warning Use with care! Facilities from
