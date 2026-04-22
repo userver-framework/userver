@@ -71,7 +71,7 @@ std::string CalculateHmac(
             hmac.Update(reinterpret_cast<const byte*>(data.data()), data.size());
         }
         mac.resize(HashAlgorithm::DIGESTSIZE);
-        hmac.Final(reinterpret_cast<byte*>(&mac[0]));
+        hmac.Final(reinterpret_cast<byte*>(mac.data()));
     } catch (const CryptoPP::Exception& exc) {
         throw crypto::CryptoException(exc.what());
     }

@@ -22,6 +22,13 @@ components_manager:
                     level: debug
                     overflow_behavior: discard
 
+        http-client:
+        http-client-core:
+            fs-task-processor: main-task-processor
+
+        dns-client:
+            fs-task-processor: fs-task-processor
+
         server:
             listener:
                 port: 8080
@@ -30,14 +37,42 @@ components_manager:
                 port: 8081
                 task_processor: main-task-processor
 
+        dynamic-config:
+            updates-enabled: true
+            fs-cache-path: $dynamic-config-cache
+            fs-task-processor: fs-task-processor
+
+        dynamic-config-client:
+            config-url: $config-server-url
+            http-retries: 5
+            http-timeout: 20s
+            service-name: testsuite-support
+
+        dynamic-config-client-updater:
+            config-settings: false
+            first-update-fail-ok: true
+            full-update-interval: 1m
+            update-interval: 5s
+
         handler-ping:
             path: /ping
             method: GET
             task_processor: main-task-processor
             throttling_enabled: false
 
-        handler-sigterm:
+        handler-log-level:
             monitor-handler: true
-            path: /sigterm
-            method: POST
+            path: /log-level/{level}
+            method: GET
             task_processor: main-task-processor
+
+        tests-control:
+            method: POST
+            path: /tests/{action}
+            skip-unregistered-testpoints: true
+            task_processor: main-task-processor
+            testpoint-timeout: 10s
+            testpoint-url: $mockserver/testpoint
+            throttling_enabled: false
+
+        testsuite-support:

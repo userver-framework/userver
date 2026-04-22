@@ -66,6 +66,7 @@ enum class ServiceLifetimeStage {
     /// The service waits for `graceful_shutdown_interval` (0 by default) before continuing with the actual service
     /// shutdown in @ref ServiceLifetimeStage::kOnAllComponentsAreStoppingIsRunning.
     ///
+    /// @see @ref scripts/docs/en/userver/graceful_shutdown.md
     /// @see @ref components::ManagerControllerComponent
     ///
     /// Example:

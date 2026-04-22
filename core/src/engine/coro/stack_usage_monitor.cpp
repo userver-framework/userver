@@ -151,7 +151,7 @@ struct StackUsageInfo final {
 
 compiler::ThreadLocal stack_usage_info = [] { return StackUsageInfo{}; };
 
-static void StackUsageHandler(const void* cb_ptr, ucontext_t* stack_context) noexcept {
+void StackUsageHandler(const void* cb_ptr, ucontext_t* stack_context) noexcept {
     // We calculate everything in pages, and here we round down because the stack
     // is growing downwards.
     const auto stack_pointer = RoundDownToPageSize(
@@ -507,7 +507,10 @@ private:
 
         UASSERT(monitor_fd_.Get() != -1);
         UASSERT(stop_fd_.Get() != -1);
-        std::array<::pollfd, 2> poll_fds{::pollfd{monitor_fd_.Get(), POLLIN, 0}, ::pollfd{stop_fd_.Get(), POLLIN, 0}};
+        std::array<::pollfd, 2> poll_fds{
+            ::pollfd{.fd = monitor_fd_.Get(), .events = POLLIN, .revents = 0},
+            ::pollfd{.fd = stop_fd_.Get(), .events = POLLIN, .revents = 0},
+        };
 
         while (true) {
             poll_fds[0].revents = poll_fds[1].revents = 0;

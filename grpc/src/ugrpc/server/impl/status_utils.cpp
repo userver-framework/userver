@@ -2,6 +2,8 @@
 
 #include <boost/algorithm/string.hpp>
 
+#include <userver/ugrpc/impl/status_utils.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace {
@@ -28,6 +30,11 @@ void TrimStatusErrorMessage(grpc::Status& status) {
             status.error_details(),
         };
     }
+}
+
+void NormalizeStatus(grpc::Status& status) {
+    TrimStatusErrorMessage(status);
+    ugrpc::impl::ClampStatusCodeToValidRange(status);
 }
 
 }  // namespace ugrpc::server::impl

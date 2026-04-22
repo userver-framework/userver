@@ -13,8 +13,7 @@ properties:
         description: path to the database file or `::memory::` for in-memory mode
     create_file:
         type: boolean
-        description: create the database file if it does not exist at the specified
-            path
+        description: create the database file if it does not exist at the specified path
         default: true
     is_read_only:
         type: boolean
@@ -38,11 +37,10 @@ properties:
           - persist
           - memory
           - wal
-          - false
+          - off
     busy_timeout:
         type: integer
-        description: timeout duration (in milliseconds) to wait when the database
-            is busy
+        description: timeout duration (in milliseconds) to wait when the database is busy
         default: 5000
     foreign_keys:
         type: boolean
@@ -56,11 +54,10 @@ properties:
           - extra
           - full
           - normal
-          - false
+          - off
     cache_size:
         type: integer
-        description: maximum cache size, specified in number of pages or in kibibytes
-            (negative value)
+        description: maximum cache size, specified in number of pages or in kibibytes (negative value)
         default: -2000
     journal_size_limit:
         type: integer

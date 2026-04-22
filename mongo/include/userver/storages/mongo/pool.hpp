@@ -56,11 +56,6 @@ public:
     /// @throws storages::mongo::MongoException if failed to connect to the mongo server.
     void Ping();
 
-    /// @brief Begin a new transaction
-    /// @return Transaction handle for executing operations within transaction context
-    /// @throws MongoException if transaction cannot be started
-    Transaction BeginTransaction() const;
-
     /// @cond
     // For internal use only
     Pool(
@@ -81,6 +76,13 @@ public:
     /// @endcond
 
 private:
+    // Note: transactions are broken. See tests for more info
+    //
+    /// @brief Begin a new transaction
+    /// @return Transaction handle for executing operations within transaction context
+    /// @throws MongoException if transaction cannot be started
+    Transaction BeginTransaction() const;
+
     std::shared_ptr<impl::PoolImpl> impl_;
 };
 

@@ -1,4 +1,4 @@
-#include "listener_impl.hpp"
+#include <server/net/listener_impl.hpp>
 
 #include <netinet/tcp.h>
 
@@ -17,6 +17,7 @@
 #include <userver/engine/sleep.hpp>
 #include <userver/fs/blocking/read.hpp>
 #include <userver/fs/blocking/write.hpp>
+#include <userver/http/common_headers.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/fast_scope_guard.hpp>
@@ -99,6 +100,8 @@ void ListenerImpl::AcceptConnection(engine::io::Socket& request_socket, const Po
 }
 
 void ListenerImpl::ProcessConnection(engine::io::Socket peer_socket, const PortConfig& port_config) {
+    using USERVER_NAMESPACE::http::HttpVersion;
+
     if (peer_socket.Getsockname().Domain() == engine::io::AddrDomain::kInet6 ||
         peer_socket.Getsockname().Domain() == engine::io::AddrDomain::kInet)
     {
@@ -120,30 +123,50 @@ void ListenerImpl::ProcessConnection(engine::io::Socket peer_socket, const PortC
     }
 
     LOG_TRACE() << "Start connection processing for fd " << fd;
-    if (endpoint_info_->listener_config.connection_config.http_version == USERVER_NAMESPACE::http::HttpVersion::k2) {
-        Http2Connection connection_ptr(
-            endpoint_info_->listener_config.connection_config,
-            endpoint_info_->listener_config.handler_defaults,
-            std::move(socket),
-            std::move(remote_address),
-            endpoint_info_->request_handler,
-            stats_,
-            data_accounter_
-        );
-        connection_ptr.Process();
-    } else {
-        Connection connection_ptr(
-            endpoint_info_->listener_config.connection_config,
-            endpoint_info_->listener_config.handler_defaults,
-            std::move(socket),
-            std::move(remote_address),
-            endpoint_info_->request_handler,
-            stats_,
-            data_accounter_
-        );
 
-        connection_ptr.Process();
+    std::shared_ptr<http::HttpRequest> first_request{};
+    std::unique_ptr<engine::io::RwBase> extracted_socket{};
+    UASSERT(stats_);
+    if (endpoint_info_->listener_config.connection_config.http_version == USERVER_NAMESPACE::http::HttpVersion::k2) {
+        Http2Connection connection(
+            endpoint_info_->listener_config.connection_config,
+            endpoint_info_->listener_config.handler_defaults,
+            std::move(socket),
+            remote_address,
+            endpoint_info_->request_handler,
+            *stats_,
+            data_accounter_
+        );
+        try {
+            connection.Process();
+            LOG_TRACE() << "Finishing connection for fd " << fd;
+            return;
+        } catch (const Http1IsNotSupported& e) {
+            first_request = std::move(connection.GetFirstHttp1Request());
+            extracted_socket = connection.ExtractSocket();
+        } catch (const std::exception& e) {
+            LOG_INFO() << "Closing idle connection: " << e;
+            return;
+        }
     }
+    if (!extracted_socket) {
+        extracted_socket = std::move(socket);
+    }
+    Http1Connection connection(
+        endpoint_info_->listener_config.connection_config,
+        endpoint_info_->listener_config.handler_defaults,
+        std::move(extracted_socket),
+        std::move(remote_address),
+        endpoint_info_->request_handler,
+        *stats_,
+        data_accounter_
+    );
+    if (first_request) {
+        // If HTTP/1.1 request was read on HTTP/2.0 connection, we prefer to switch to a pure HTTP/1.1 connection
+        // and handle it here.
+        connection.ProcessRequest(std::move(first_request));
+    }
+    connection.Process();
     LOG_TRACE() << "Finishing connection for fd " << fd;
 }
 

@@ -269,11 +269,53 @@ async def test_grpc_client_retries_rst_stream_refused_stream(
     assert attempts == max_attempts
 
 
+@pytest.mark.parametrize('invalid_grpc_status', [17, 100, 255, 1000, 100000])
+async def test_grpc_client_converts_invalid_status_to_unknown(
+    service_client,
+    grpc_server: http2.GrpcServer,
+    invalid_grpc_status: int,
+) -> None:
+    expected_grpc_status_code = grpc.StatusCode.UNKNOWN
+    expected_grpc_status_details = 'nonstandarderror'
+
+    support_non_standard_codes = await client_supports_non_standard_codes(service_client)
+
+    if not support_non_standard_codes:
+        pytest.skip('UBSan enabled')
+
+    def _response_factory() -> list[http2.Frame]:
+        # Send a response with an invalid grpc-status code
+        headers: list[tuple[str, str]] = [
+            (':status', '200'),
+            ('content-type', 'application/grpc'),
+            ('grpc-status', str(invalid_grpc_status)),
+            ('grpc-message', expected_grpc_status_details),
+        ]
+
+        return [http2.HeadersFrame(headers=headers, end_stream=True)]
+
+    grpc_server.response_factory = _response_factory
+
+    actual_grpc_status_code, actual_grpc_status_details = await run_client_full_status(service_client)
+
+    assert actual_grpc_status_code == expected_grpc_status_code, (
+        'Expected grpc-status code to be UNKNOWN. userver must clamp out-of-range codes to UNKNOWN'
+    )
+    assert actual_grpc_status_details == expected_grpc_status_details
+
+
 async def run_client(service_client) -> grpc.StatusCode:
     resp = await service_client.post('/client')
     assert resp.status == 200
 
     return utils.status_from_str(resp.json()['grpc-status'])
+
+
+async def run_client_full_status(service_client) -> tuple[grpc.StatusCode, str]:
+    resp = await service_client.post('/client')
+    assert resp.status == 200
+
+    return (utils.status_from_str(resp.json()['grpc-status']), resp.json()['grpc-message'])
 
 
 async def client_grpc_version(service_client) -> float:
@@ -283,6 +325,13 @@ async def client_grpc_version(service_client) -> float:
     version = resp.json()['grpc-version']
 
     return float(version['major']) + 0.01 * float(version['minor'])
+
+
+async def client_supports_non_standard_codes(service_client) -> bool:
+    resp = await service_client.get('/client')
+    assert resp.status == 200
+
+    return resp.json()['supports-non-standard-codes']
 
 
 def http2_status_to_grpc(http_status: int) -> grpc.StatusCode:

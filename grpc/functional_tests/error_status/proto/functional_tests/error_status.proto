@@ -4,12 +4,16 @@ package functional_tests.api;
 
 service ErrorStatusService {
   rpc ReturnErrorStatus(ErrorStatusRequest) returns(ErrorStatusResponse) {}
+  rpc ReturnNonStandardErrorStatus(ErrorStatusRequest) returns(ErrorStatusResponse) {}
 
   rpc ThrowErrorWithStatusException(ErrorStatusRequest) returns(ErrorStatusResponse) {}
   rpc ThrowRuntimeErrorException(RuntimeErrorRequest) returns(ErrorStatusResponse) {}
 
   rpc ReturnStreamErrorStatus(ErrorStatusRequest) returns(stream ErrorStatusResponse) {}
   rpc ThrowStreamErrorWithStatusException(ErrorStatusRequest) returns(stream ErrorStatusResponse) {}
+  rpc ReturnStreamNonStandardErrorStatus(ErrorStatusRequest) returns(stream ErrorStatusResponse) {}
+
+  rpc SupportsNonStandardStatus(NonStandardErrorStatusSupportRequest) returns(NonStandardErrorStatusSupportResponse) {}
 }
 
 message ErrorStatusRequest {
@@ -22,4 +26,12 @@ message RuntimeErrorRequest {
 }
 
 message ErrorStatusResponse {
+  bool non_empty_msg = 1;
+}
+
+message NonStandardErrorStatusSupportRequest {
+}
+
+message NonStandardErrorStatusSupportResponse {
+  bool supports_non_standard_statuses = 1;
 }

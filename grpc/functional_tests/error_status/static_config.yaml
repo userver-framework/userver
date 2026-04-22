@@ -45,7 +45,7 @@ components_manager:
         grpc-blocking-task-processor:  # For blocking gRPC channel creation
             thread_name: grpc-worker
             worker_threads: 2
-        main-task-processor:           # For non-blocking operations
+        main-task-processor:  # For non-blocking operations
             worker_threads: 4
-        fs-task-processor:             # For blocking filesystem operations
+        fs-task-processor:  # For blocking filesystem operations
             worker_threads: 2

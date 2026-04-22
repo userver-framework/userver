@@ -65,7 +65,7 @@ public:
     using Task::TryGetContextAccessor;
 
     /// @cond
-    static constexpr WaitMode kWaitMode = WaitMode::kSingleWaiter;
+    static constexpr WaitMode kWaitMode = WaitMode::kSingleAwaiter;
 
     // For internal use only.
     explicit TaskWithResult(impl::TaskContextHolder&& context)

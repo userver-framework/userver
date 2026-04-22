@@ -1,8 +1,10 @@
 #include <userver/ugrpc/client/impl/middleware_hooks.hpp>
 
 #include <userver/utils/assert.hpp>
+#include <userver/utils/expected.hpp>
 #include <userver/utils/overloaded.hpp>
 
+#include <userver/ugrpc/client/completion_status.hpp>
 #include <userver/ugrpc/client/middlewares/base.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -17,10 +19,10 @@ MiddlewareHooks MiddlewareHooks::SendMessageHooks(const google::protobuf::Messag
     return MiddlewareHooks{Inbound{false, &send_message}};
 }
 
-MiddlewareHooks MiddlewareHooks::FinishHooks(const grpc::Status& status, const google::protobuf::Message* response)
+MiddlewareHooks MiddlewareHooks::FinishHooks(const CompletionStatus& result, const google::protobuf::Message* response)
     noexcept {
-    UASSERT(status.ok() || nullptr == response);
-    return MiddlewareHooks{Outbound{&status, response}};
+    UASSERT(!result.has_value() || result.value().ok() || nullptr == response);
+    return MiddlewareHooks{Outbound{&result, response}};
 }
 
 MiddlewareHooks MiddlewareHooks::RecvMessageHooks(const google::protobuf::Message& recv_message) noexcept {
@@ -42,8 +44,8 @@ void MiddlewareHooks::Run(const MiddlewareBase& middleware, MiddlewareCallContex
                 if (params.recv_message) {
                     middleware.PostRecvMessage(context, *params.recv_message);
                 }
-                if (params.status) {
-                    middleware.PostFinish(context, *params.status);
+                if (params.result) {
+                    middleware.PostFinish(context, *params.result);
                 }
             },
         },

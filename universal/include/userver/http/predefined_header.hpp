@@ -124,7 +124,8 @@ inline constexpr utils::TrivialBiMap kKnownHeadersLowercaseMap = [](auto selecto
         .Case("tracestate", 39)
         .Case("http2-settings", 40)
         .Case(":method", 41)
-        .Case(":path", 42);
+        .Case(":path", 42)
+        .Case("x-request-deadline", 43);
 };
 
 // We use different values for "no index" at compile and run time to simplify

@@ -4,7 +4,7 @@ import enum
 from typing import Any
 
 from chaotic.front import types
-from . import base_model
+from chaotic_openapi.front import base_model
 
 
 class In(str, enum.Enum):

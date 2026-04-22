@@ -33,7 +33,7 @@ void RateLimit::HandleRequest(http::HttpRequest& request, request::RequestContex
 }
 
 bool RateLimit::CheckRateLimit(const http::HttpRequest& request, request::RequestContext& context) const {
-    auto& statistics = statistics_.ForMethod(request.GetMethod());
+    auto& statistics = statistics_.GetOverallStatistics().ForMethod(request.GetMethod());
 
     const bool success = rate_limit_.Obtain();
     if (!success) {

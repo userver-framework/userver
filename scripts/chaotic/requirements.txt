@@ -1,4 +1,4 @@
 Jinja2 >= 2.10
 PyYAML >= 6.0.1
 pydantic >= 2.5.3
-
+transliterate >= 1.10.2

@@ -97,7 +97,7 @@ void VerifyMethodConfig(
 }  // namespace
 
 UTEST(ServiceConfigBuilderTest, BuildEmpty) {
-    const auto metadata = sample::ugrpc::UnitTestServiceClient::GetMetadata();
+    const auto metadata = sample::ugrpc::UnitTestServiceClient::GetMetadata(utils::impl::InternalTag{});
 
     const ugrpc::client::RetryConfig retry_config;
 
@@ -117,9 +117,9 @@ UTEST(ServiceConfigBuilderTest, BuildEmpty) {
 }
 
 UTEST(ServiceConfigBuilderTest, Static) {
-    const auto metadata = sample::ugrpc::UnitTestServiceClient::GetMetadata();
+    const auto metadata = sample::ugrpc::UnitTestServiceClient::GetMetadata(utils::impl::InternalTag{});
 
-    const ugrpc::client::RetryConfig retry_config{/*attempts=*/2};
+    const ugrpc::client::RetryConfig retry_config{.attempts = 2};
 
     const ugrpc::client::impl::compat::ServiceConfigBuilder
         service_config_builder{metadata, retry_config, /*static_service_config=*/std::nullopt};
@@ -142,7 +142,7 @@ UTEST(ServiceConfigBuilderTest, Static) {
 }
 
 UTEST(ServiceConfigBuilderTest, Qos) {
-    const auto metadata = sample::ugrpc::UnitTestServiceClient::GetMetadata();
+    const auto metadata = sample::ugrpc::UnitTestServiceClient::GetMetadata(utils::impl::InternalTag{});
 
     const ugrpc::client::RetryConfig retry_config;
 
@@ -158,7 +158,7 @@ UTEST(ServiceConfigBuilderTest, Qos) {
     const ugrpc::client::impl::compat::ServiceConfigBuilder
         service_config_builder{metadata, retry_config, formats::json::ToString(static_service_config)};
 
-    const ugrpc::client::Qos qos_default{/*attempts=*/2, /*timeout=*/std::nullopt};
+    const ugrpc::client::Qos qos_default{.attempts = 2, .timeout = std::nullopt};
     ugrpc::client::ClientQos client_qos;
     client_qos.methods.SetDefault(qos_default);
 
@@ -188,7 +188,7 @@ UTEST(ServiceConfigBuilderTest, Qos) {
 }
 
 UTEST(ServiceConfigBuilderTest, QosNoRetry) {
-    const auto metadata = sample::ugrpc::UnitTestServiceClient::GetMetadata();
+    const auto metadata = sample::ugrpc::UnitTestServiceClient::GetMetadata(utils::impl::InternalTag{});
 
     const ugrpc::client::RetryConfig retry_config;
 
@@ -204,7 +204,7 @@ UTEST(ServiceConfigBuilderTest, QosNoRetry) {
     const ugrpc::client::impl::compat::ServiceConfigBuilder
         service_config_builder{metadata, retry_config, formats::json::ToString(static_service_config)};
 
-    const ugrpc::client::Qos qos_default{/*attempts=*/1, /*timeout=*/std::nullopt};
+    const ugrpc::client::Qos qos_default{.attempts = 1, .timeout = std::nullopt};
     ugrpc::client::ClientQos client_qos;
     client_qos.methods.SetDefault(qos_default);
 
@@ -234,7 +234,7 @@ UTEST(ServiceConfigBuilderTest, QosNoRetry) {
 }
 
 UTEST(ServiceConfigBuilderTest, Complex) {
-    const auto metadata = sample::ugrpc::UnitTestServiceClient::GetMetadata();
+    const auto metadata = sample::ugrpc::UnitTestServiceClient::GetMetadata(utils::impl::InternalTag{});
 
     const ugrpc::client::RetryConfig retry_config;
 
@@ -269,10 +269,10 @@ UTEST(ServiceConfigBuilderTest, Complex) {
     const ugrpc::client::impl::compat::ServiceConfigBuilder
         service_config_builder{metadata, retry_config, formats::json::ToString(static_service_config)};
 
-    const ugrpc::client::Qos qos0{/*attempts=*/2, /*timeout=*/std::nullopt};
-    const ugrpc::client::Qos qos1{/*attempts=*/3, /*timeout=*/std::nullopt};
-    const ugrpc::client::Qos qos3{/*attempts=*/std::nullopt, /*timeout=*/std::nullopt};
-    const ugrpc::client::Qos qos_default{/*attempts=*/4, /*timeout=*/std::nullopt};
+    const ugrpc::client::Qos qos0{.attempts = 2, .timeout = std::nullopt};
+    const ugrpc::client::Qos qos1{.attempts = 3, .timeout = std::nullopt};
+    const ugrpc::client::Qos qos3{.attempts = std::nullopt, .timeout = std::nullopt};
+    const ugrpc::client::Qos qos_default{.attempts = 4, .timeout = std::nullopt};
     ugrpc::client::ClientQos client_qos;
     client_qos.methods.Set(GetMethodFullName(metadata, 0), qos0);
     client_qos.methods.Set(GetMethodFullName(metadata, 1), qos1);

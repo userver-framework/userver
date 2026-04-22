@@ -109,8 +109,6 @@ private:
 
     void Reset(int fd, Kind kind) { poller_.Reset(fd, kind); }
 
-    void WakeupWaiters() { poller_.WakeupWaiters(); }
-
     // does not notify
     void Invalidate() { poller_.Invalidate(); }
 

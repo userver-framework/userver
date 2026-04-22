@@ -297,9 +297,8 @@ UTEST_MT(Async, CancelNotifyRace, 4) {
     const auto test_deadline = engine::Deadline::FromDuration(std::chrono::milliseconds{100});
 
     static constexpr auto delay = [] {
-        compiler::RelaxCpu relax;
         for (int i = 0; i < 50; ++i) {
-            relax();
+            compiler::RelaxCpu::YieldCpuDebug();
         }
     };
 

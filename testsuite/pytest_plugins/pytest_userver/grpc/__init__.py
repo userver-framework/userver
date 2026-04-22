@@ -1,5 +1,5 @@
 """
-Mocks for the gRPC servers, a.k.a. `pytest_userver.grpc.
+Mocks for the gRPC servers, a.k.a. `pytest_userver.grpc`.
 
 @sa @ref scripts/docs/en/userver/tutorial/grpc_service.md
 @sa @ref pytest_userver.plugins.grpc.mockserver
@@ -11,13 +11,18 @@ import asyncio
 from collections.abc import Callable
 import contextlib
 import inspect
+import types
+import typing
 from typing import Any
+from typing import Generic
 from typing import TypeAlias
+from typing import TypeVar
 
 import grpc
 
 import testsuite.utils.callinfo
 
+from ._client import PreCallClientInterceptor  # noqa: F401
 from ._mocked_errors import MockedError  # noqa: F401
 from ._mocked_errors import NetworkError  # noqa: F401
 from ._mocked_errors import TimeoutError  # noqa: F401
@@ -28,6 +33,7 @@ from ._servicer_mock import _ServiceMock
 Handler: TypeAlias = Callable[[Any, grpc.aio.ServicerContext], Any]
 MockDecorator: TypeAlias = Callable[[Handler], testsuite.utils.callinfo.AsyncCallQueue]
 AsyncExcAppend: TypeAlias = Callable[[Exception], None]
+Servicer = TypeVar('Servicer')
 
 
 class MockserverSession:
@@ -175,28 +181,37 @@ class Mockserver:
         _check_is_servicer_class(servicer_class)
         return factory
 
-    def install_servicer(self, servicer: object, /) -> None:
+    def install_servicer(self, servicer: Servicer, /) -> Servicer:
         """
         Installs as a mock `servicer`, the class of which should inherit from a generated `*Servicer` class.
 
-        For example, @ref grpc/functional_tests/basic_chaos/tests-grpcclient/service.py "this servicer class"
-        can be installed as follows:
+        1. Write a service implementation:
 
-        @snippet grpc/functional_tests/basic_chaos/tests-grpcclient/conftest.py installing mockserver servicer
+           @snippet grpc/functional_tests/middleware_client/tests/test_install_servicer.py servicer
 
-        @note Inheritance from multiple `*Servicer` classes at once is allowed.
+           @note Inheritance from multiple `*Servicer` classes at once is allowed.
 
-        @example grpc/functional_tests/basic_chaos/tests-grpcclient/service.py
+        2. Install servicer instance:
+
+           @snippet grpc/functional_tests/middleware_client/tests/test_install_servicer.py install servicer
+
+        3. Use service mock:
+
+           @snippet grpc/functional_tests/middleware_client/tests/test_install_servicer.py use mock
         """
-        base_servicer_classes = [cls for cls in inspect.getmro(type(servicer))[1:] if cls.__name__.endswith('Servicer')]
+        base_servicer_classes = [cls for cls in inspect.getmro(type(servicer)) if _is_servicer_class(cls)]
         if not base_servicer_classes:
             raise ValueError(f"Given object's type ({type(servicer)}) is not inherited from any grpc *Servicer class")
+        proxy = _MockProxy(servicer)
         for servicer_class in base_servicer_classes:
             # pylint: disable=protected-access
             mock = self._mockserver_session._get_auto_service_mock(servicer_class)
             for python_method_name in mock.known_methods:
-                handler_func = getattr(servicer, python_method_name)
-                mock.install_handler(python_method_name)(handler_func)
+                if _get_class_that_defined_method(type(servicer), python_method_name) not in base_servicer_classes:
+                    handler_func: types.MethodType = getattr(servicer, python_method_name)
+                    callqueue = mock.install_handler(python_method_name)(handler_func)
+                    object.__setattr__(proxy, python_method_name, callqueue)
+        return typing.cast(Servicer, proxy)
 
 
 # @cond
@@ -228,6 +243,34 @@ def _get_class_from_method(method) -> type:
         cls = method.__globals__.get(class_name)
     assert isinstance(cls, type)
     return cls
+
+
+def _get_class_that_defined_method(cls: type, method_name: str) -> type | None:
+    for cls in inspect.getmro(cls):
+        if method_name in cls.__dict__:
+            return cls
+    # May happen with a method defined via __getattr__.
+    return None
+
+
+def _is_servicer_class(cls: type) -> bool:
+    try:
+        return '_pb2_grpc.' in inspect.getfile(cls)
+    except TypeError:
+        return False
+
+
+class _MockProxy(Generic[Servicer]):
+    def __init__(self, wrapped_servicer: Servicer) -> None:
+        object.__setattr__(self, '_wrapped_servicer', wrapped_servicer)
+
+    def __getattr__(self, name: str) -> Any:
+        servicer: Servicer = object.__getattribute__(self, '_wrapped_servicer')
+        return getattr(servicer, name)
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        servicer: Servicer = object.__getattribute__(self, '_wrapped_servicer')
+        setattr(servicer, name, value)
 
 
 # @endcond

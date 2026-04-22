@@ -22,6 +22,37 @@ int ParseOctal(std::string_view s) {
     }
     return value;
 }
+
+class SingleSocketSource final {
+public:
+    void AddSource(std::string source) {
+        if (source.empty()) {
+            return;
+        }
+
+        if (!source_.empty()) {
+            throw std::runtime_error(fmt::format(
+                "Both '{}' and '{}' fields are set, only single field may "
+                "be set at a time",
+                source_,
+                source
+            ));
+        }
+        source_ = std::move(source);
+    }
+
+    void ValidateSingleSource() {
+        if (source_.empty()) {
+            throw std::runtime_error(
+                "One of the following fields must be set: non-zero 'port', non-empty 'unix-socket', 'listen-socket-fd'"
+            );
+        }
+    }
+
+private:
+    std::string source_;
+};
+
 }  // namespace
 
 PortConfig Parse(const yaml_config::YamlConfig& value, formats::parse::To<PortConfig>) {
@@ -32,16 +63,19 @@ PortConfig Parse(const yaml_config::YamlConfig& value, formats::parse::To<PortCo
     config.unix_socket_path = value["unix-socket"].As<std::string>("");
     config.unix_socket_perms = static_cast<
         boost::filesystem::perms>(ParseOctal(value["unix-socket-permissions"].As<std::string>("600")));
+    config.listen_socket_fd = value["listen-socket-fd"].As<std::optional<int>>();
 
-    if (config.port != 0 && !config.unix_socket_path.empty()) {
-        throw std::runtime_error(
-            "Both 'port' and 'unix-socket' fields are set, only single field may "
-            "be set at a time"
-        );
+    SingleSocketSource source;
+    if (config.port != 0) {
+        source.AddSource("port");
     }
-    if (config.port == 0 && config.unix_socket_path.empty()) {
-        throw std::runtime_error("Either non-zero 'port' or non-empty 'unix-socket' fields must be set");
+    if (!config.unix_socket_path.empty()) {
+        source.AddSource("unix_socket_path");
     }
+    if (config.listen_socket_fd) {
+        source.AddSource("listen_socket_fd");
+    }
+    source.ValidateSingleSource();
 
     auto cert_path = value["tls"]["cert"].As<std::string>({});
     auto pkey_path = value["tls"]["private-key"].As<std::string>({});
@@ -80,11 +114,11 @@ ListenerConfig Parse(const yaml_config::YamlConfig& value, formats::parse::To<Li
     config.backlog = value["backlog"].As<int>(config.backlog);
 
     config.ports = value["ports"].As<std::vector<PortConfig>>({});
-    if (value.HasMember("port") || value.HasMember("unix-socket")) {
+    if (value.HasMember("port") || value.HasMember("unix-socket") || value.HasMember("listen-socket-fd")) {
         config.ports.emplace_back(value.As<PortConfig>());
     }
     if (config.ports.empty()) {
-        throw std::runtime_error("No port/unix socket is set in listener config");
+        throw std::runtime_error("No port/fd/unix socket is set in listener config");
     }
 
     if (config.backlog <= 0) {

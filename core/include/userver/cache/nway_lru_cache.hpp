@@ -15,58 +15,99 @@ USERVER_NAMESPACE_BEGIN
 
 namespace cache {
 
+/// @brief N-way LRU cache with per-way mutexes and optional dump support.
 /// @ingroup userver_containers
+///
+/// @snippet core/src/cache/nway_lru_cache_test.cpp NWayLRU basic
 template <typename T, typename U, typename Hash = std::hash<T>, typename Equal = std::equal_to<T>>
 class NWayLRU final {
 public:
-    /// @param ways is the number of ways (a.k.a. shards, internal hash-maps),
-    /// into which elements are distributed based on their hash. Each shard is
-    /// protected by an individual mutex. Larger `ways` means more internal
-    /// hash-map instances and more memory usage, but less contention. A good
-    /// starting point is `ways=16`. If you encounter contention, you can increase
-    /// `ways` to something on the order of `256` or whatever your RAM constraints
-    /// allow.
-    ///
-    /// @param way_size is the maximum allowed amount of elements per way. When
-    /// the size of a way reaches this number, existing elements are deleted
-    /// according to the LRU policy.
-    ///
-    /// @param hash is the instance of `Hash` function to use, in case of a custom stateful `Hash`.
-    /// @param equal is the instance of `Equal` function to use, in case of a custom stateful `Equal`.
+    /// @brief Constructs an N-way LRU cache with the given number of ways and
+    /// maximum elements per way.
     ///
     /// The maximum total number of elements is `ways * way_size`.
+    ///
+    /// @param ways Number of ways (a.k.a. shards, internal hash-maps), into
+    /// which elements are distributed based on their hash. Each shard is
+    /// protected by an individual mutex. Larger \p ways means more internal
+    /// hash-map instances and more memory usage, but less contention. A good
+    /// starting point is `ways=16`. If you encounter contention, you can
+    /// increase \p ways to something on the order of `256` or whatever your
+    /// RAM constraints allow.
+    /// @param way_size Maximum allowed amount of elements per way. When the
+    /// size of a way reaches this number, existing elements are deleted
+    /// according to the LRU policy.
+    /// @param hash Instance of \p Hash function to use, in case of a custom
+    /// stateful Hash.
+    /// @param equal Instance of \p Equal function to use, in case of a custom
+    /// stateful Equal.
+    /// @throws std::logic_error if \p ways is zero.
     NWayLRU(size_t ways, size_t way_size, const Hash& hash = Hash(), const Equal& equal = Equal());
 
+    /// @brief Stores value by key.
+    /// @param key Key to store the value under.
+    /// @param value Value to store.
     void Put(const T& key, U value);
 
+    /// @brief Returns cached value by key if validator returns true for it.
+    /// @param key Key to look up.
+    /// @param validator Callable that takes the cached value and returns false
+    /// to invalidate the entry.
+    /// @return Cached value if present and validator returned true, otherwise
+    /// std::nullopt.
+    /// @note If validator returns false, the entry is removed from the cache.
     template <typename Validator>
     std::optional<U> Get(const T& key, Validator validator);
 
+    /// @brief Returns cached value by key if present; otherwise std::nullopt.
+    /// @param key Key to look up.
+    /// @return Cached value if present, otherwise std::nullopt.
+    /// @note Equivalent to Get(key, [](const U&) { return true; }).
     std::optional<U> Get(const T& key) {
         return Get(key, [](const U&) { return true; });
     }
 
+    /// @brief Returns cached value by key if present; otherwise returns
+    /// default_value.
+    /// @param key Key to look up.
+    /// @param default_value Value to return when key is not found.
+    /// @return Cached value if present, otherwise \p default_value.
     U GetOr(const T& key, const U& default_value);
 
+    /// @brief Removes all entries from the cache.
     void Invalidate();
 
+    /// @brief Removes the entry for the given key if present.
+    /// @param key Key whose entry is to be removed.
     void InvalidateByKey(const T& key);
 
-    /// Iterates over all items. May be slow for big caches.
+    /// @brief Iterates over all items, invoking \p func for each (key, value).
+    /// @param func Callable to invoke for each item (e.g. void(const T&, const U&)).
+    /// @note May be slow for big caches.
     template <typename Function>
     void VisitAll(Function func) const;
 
+    /// @brief Returns the total number of elements in the cache across all ways.
+    /// @return Total number of elements.
     size_t GetSize() const;
 
-    /// For the description of `way_size`,
-    /// see the cache::NWayLRU::NWayLRU constructor.
+    /// @brief Updates maximum elements per way.
+    /// @param way_size New maximum elements per way; see
+    /// @ref cache::NWayLRU::NWayLRU "NWayLRU constructor" for the semantics.
     void UpdateWaySize(size_t way_size);
 
+    /// @brief Serializes the cache contents to the dump writer.
+    /// @param writer Target @ref dump::Writer.
     void Write(dump::Writer& writer) const;
+
+    /// @brief Deserializes the cache contents from the dump reader.
+    /// @param reader Source @ref dump::Reader.
+    /// @note Clears existing entries before loading.
     void Read(dump::Reader& reader);
 
-    /// The dump::Dumper will be notified of any cache updates. This method is not
-    /// thread-safe.
+    /// @brief Sets the dumper; it will be notified of any cache updates.
+    /// @param dumper Instance of @ref dump::Dumper, or nullptr to clear.
+    /// @note This method is not thread-safe.
     void SetDumper(std::shared_ptr<dump::Dumper> dumper);
 
 private:
@@ -113,7 +154,7 @@ template <typename T, typename U, typename Hash, typename Eq>
 void NWayLRU<T, U, Hash, Eq>::Put(const T& key, U value) {
     auto& way = GetWay(key);
     {
-        const std::unique_lock<engine::Mutex> lock(way.mutex);
+        const std::unique_lock lock{way.mutex};
         way.cache.Put(key, std::move(value));
     }
     NotifyDumper();
@@ -123,7 +164,7 @@ template <typename T, typename U, typename Hash, typename Eq>
 template <typename Validator>
 std::optional<U> NWayLRU<T, U, Hash, Eq>::Get(const T& key, Validator validator) {
     auto& way = GetWay(key);
-    const std::unique_lock<engine::Mutex> lock(way.mutex);
+    const std::unique_lock lock{way.mutex};
     auto* value = way.cache.Get(key);
 
     if (value) {
@@ -140,7 +181,7 @@ template <typename T, typename U, typename Hash, typename Eq>
 void NWayLRU<T, U, Hash, Eq>::InvalidateByKey(const T& key) {
     auto& way = GetWay(key);
     {
-        const std::unique_lock<engine::Mutex> lock(way.mutex);
+        const std::unique_lock lock{way.mutex};
         way.cache.Erase(key);
     }
     NotifyDumper();
@@ -149,14 +190,14 @@ void NWayLRU<T, U, Hash, Eq>::InvalidateByKey(const T& key) {
 template <typename T, typename U, typename Hash, typename Eq>
 U NWayLRU<T, U, Hash, Eq>::GetOr(const T& key, const U& default_value) {
     auto& way = GetWay(key);
-    std::unique_lock<engine::Mutex> lock(way.mutex);
+    const std::unique_lock lock{way.mutex};
     return way.cache.GetOr(key, default_value);
 }
 
 template <typename T, typename U, typename Hash, typename Eq>
 void NWayLRU<T, U, Hash, Eq>::Invalidate() {
     for (auto& way : caches_) {
-        const std::unique_lock<engine::Mutex> lock(way.mutex);
+        const std::unique_lock lock{way.mutex};
         way.cache.Clear();
     }
     NotifyDumper();
@@ -166,7 +207,7 @@ template <typename T, typename U, typename Hash, typename Eq>
 template <typename Function>
 void NWayLRU<T, U, Hash, Eq>::VisitAll(Function func) const {
     for (const auto& way : caches_) {
-        std::unique_lock<engine::Mutex> lock(way.mutex);
+        const std::unique_lock lock{way.mutex};
         way.cache.VisitAll(func);
     }
 }
@@ -175,7 +216,7 @@ template <typename T, typename U, typename Hash, typename Eq>
 size_t NWayLRU<T, U, Hash, Eq>::GetSize() const {
     size_t size{0};
     for (const auto& way : caches_) {
-        const std::unique_lock<engine::Mutex> lock(way.mutex);
+        const std::unique_lock lock{way.mutex};
         size += way.cache.GetSize();
     }
     return size;
@@ -184,7 +225,7 @@ size_t NWayLRU<T, U, Hash, Eq>::GetSize() const {
 template <typename T, typename U, typename Hash, typename Eq>
 void NWayLRU<T, U, Hash, Eq>::UpdateWaySize(size_t way_size) {
     for (auto& way : caches_) {
-        const std::unique_lock<engine::Mutex> lock(way.mutex);
+        const std::unique_lock lock{way.mutex};
         way.cache.SetMaxSize(way_size);
     }
 }
@@ -206,7 +247,7 @@ void NWayLRU<T, U, Hash, Equal>::Write(dump::Writer& writer) const {
     writer.Write(caches_.size());
 
     for (const Way& way : caches_) {
-        const std::unique_lock<engine::Mutex> lock(way.mutex);
+        const std::unique_lock lock{way.mutex};
 
         writer.Write(way.cache.GetSize());
 

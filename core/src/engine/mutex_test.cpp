@@ -96,9 +96,11 @@ TYPED_UTEST_P_MT(Mutex, LockPassing, kThreads) {
 
     while (!test_deadline.IsReached()) {
         std::vector<engine::TaskWithResult<void>> tasks;
+        tasks.reserve(worker_count);
         for (size_t i = 0; i < worker_count; ++i) {
             tasks.push_back(engine::AsyncNoSpan(work));
         }
+
         for (auto& task : tasks) {
             task.Get();
         }

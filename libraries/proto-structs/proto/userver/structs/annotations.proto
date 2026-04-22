@@ -51,7 +51,7 @@ message MessageAnnotations {
   // for them instead.
   optional bool exact = 1;
 
-  // Wrap generated struct type in `userver::utils::Box` in all occurances of
+  // Wrap generated struct type in `userver::utils::Box` in all occurrences of
   // the message type.
   //
   // Using generated struct type indirectly is necessary in cases when two
@@ -87,7 +87,7 @@ message FieldAnnotations {
   // Only meaningful for fields having protobuf message type, otherwise ignored.
   optional bool exact = 1;
 
-  // Wrap generated struct type in `userver::utils::Box` in all occurances of
+  // Wrap generated struct type in `userver::utils::Box` in all occurrences of
   // the message type.
   //
   // Using generated struct type indirectly is necessary in cases when two

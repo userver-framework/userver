@@ -34,9 +34,9 @@ curl http://localhost:8090/v1/translations -s | jq
       "ru": "Привет",
       "en": "Hello"
     },
-    "wellcome": {
+    "welcome": {
       "ru": "Добро пожаловать",
-      "en": "Wellcome"
+      "en": "Welcome"
     }
   },
   "update_time": "2021-11-01T12:00:00Z"

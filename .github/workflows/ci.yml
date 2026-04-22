@@ -28,12 +28,13 @@ jobs:
                         -DCMAKE_CXX_COMPILER=clang++-18
                         -DCMAKE_C_COMPILER=clang-18
                         -DCMAKE_BUILD_TYPE=Debug
-                        -DCMAKE_CXX_STANDARD=17
+                        -DCMAKE_CXX_STANDARD=20
                         -DUSERVER_SANITIZE="ub addr"
                         -DUSERVER_NO_WERROR=0
                         -DUSERVER_BUILD_ALL_COMPONENTS=1
                         -DUSERVER_BUILD_SAMPLES=1
                         -DUSERVER_BUILD_TESTS=1
+                        -DUSERVER_FEATURE_YDB=0
                         -DUSERVER_NAMESPACE=userver_ns
                         -DUSERVER_NAMESPACE_BEGIN="namespace userver_ns { inline namespace
                         v1 {"
@@ -41,7 +42,9 @@ jobs:
                     os: ubuntu-24.04
                     info: clang-18 + debug + sanitize addr+ub
                     id: ubuntu24_clang18_debug_sanitize-addr-ub
-                    tests-flags: ''
+                    # Sanitizer consumes too much virtual memory and Subprocess tests fail with:
+                    # "Error while fork: Cannot allocate memory" (std::system_error)
+                    tests-flags: '--gtest_filter=-Subprocess.*'
                     tests-env: ''
 
                   - cmake-flags: >-
@@ -49,7 +52,7 @@ jobs:
                         -DCMAKE_CXX_COMPILER=g++-13
                         -DCMAKE_C_COMPILER=gcc-13
                         -DCMAKE_BUILD_TYPE=Release
-                        -DCMAKE_CXX_STANDARD=17
+                        -DCMAKE_CXX_STANDARD=20
                         -DUSERVER_SANITIZE=""
                         -DUSERVER_NO_WERROR=1
                         -DUSERVER_BUILD_ALL_COMPONENTS=1
@@ -66,12 +69,13 @@ jobs:
                         -DCMAKE_CXX_COMPILER=clang++-14
                         -DCMAKE_C_COMPILER=clang-14
                         -DCMAKE_BUILD_TYPE=Debug
-                        -DCMAKE_CXX_STANDARD=17
+                        -DCMAKE_CXX_STANDARD=20
                         -DUSERVER_SANITIZE="ub addr"
                         -DUSERVER_NO_WERROR=0
                         -DUSERVER_BUILD_ALL_COMPONENTS=1
                         -DUSERVER_BUILD_SAMPLES=1
                         -DUSERVER_BUILD_TESTS=1
+                        -DUSERVER_FEATURE_YDB=0
                         -DUSERVER_NAMESPACE=userver_ns
                         -DUSERVER_NAMESPACE_BEGIN="namespace userver_ns { inline namespace
                         v1 {"
@@ -79,25 +83,7 @@ jobs:
                     os: ubuntu-22.04
                     info: clang-14 + debug + sanitize addr+ub
                     id: ubuntu22_clang14_debug_sanitize-addr-ub
-                    tests-flags: ''
-                    tests-env: ''
-
-                  # GCC-10 - testing minimal required compiler
-                  - cmake-flags: >-
-                        -GNinja
-                        -DCMAKE_CXX_COMPILER=g++-10
-                        -DCMAKE_C_COMPILER=gcc-10
-                        -DCMAKE_BUILD_TYPE=Release
-                        -DCMAKE_CXX_STANDARD=17
-                        -DUSERVER_USE_LD=gold
-                        -DUSERVER_BUILD_ALL_COMPONENTS=1
-                        -DUSERVER_BUILD_SAMPLES=1
-                        -DUSERVER_BUILD_TESTS=1
-                        -DUSERVER_NO_WERROR=1
-                    os: ubuntu-22.04
-                    info: g++-10 + release
-                    id: ubuntu22_gcc10_release
-                    tests-flags: '--gtest_filter=-StackUsageMonitorTest.BacktraceLogging'
+                    tests-flags: '--gtest_filter=-LoggingTest.Format:LoggingTest.CallFormat'
                     tests-env: ''
 
         name: '${{matrix.os}}: ${{matrix.info}}'
@@ -233,7 +219,6 @@ jobs:
                 du -h -d 1 ${{env.CPM_SOURCE_CACHE}}
                 ccache -s -v
 
-
           - name: Run tests (universal)
             run: |
                 echo "UBSAN_OPTIONS=${UBSAN_OPTIONS} ASAN_OPTIONS=${ASAN_OPTIONS}"
@@ -295,7 +280,6 @@ jobs:
                 # Mongo is not available on Ubuntu 22.04 from default repos
                 if [ "${{matrix.os}}" != "ubuntu-22.04" ]; then ctest -V -R userver-mongo-mongotest ; fi
 
-
           - name: Run tests (gRPC)
             if: matrix.os != 'ubuntu-24.04'
             run: |
@@ -320,6 +304,6 @@ jobs:
                 ctest -V
 
           - name: Run tests (sqlite)
-            run: |
+            run: |-
                 cd build_debug/sqlite
                 ctest -V

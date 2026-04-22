@@ -93,7 +93,6 @@ private:
         const std::optional<std::string>& topic = std::nullopt
     ) const;
 
-private:
     mutable concurrent::Variable<MessagesByTopic> messages_by_topic_;
 
     // Subscriptions must be the last fields! Add new fields above this comment.
@@ -127,7 +126,6 @@ private:
         const server::http::HttpRequest& request
     ) const;
 
-private:
     std::unordered_map<std::string, const kafka::Producer&> producer_by_topic_;
 };
 

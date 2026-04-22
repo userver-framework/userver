@@ -14,7 +14,7 @@ void ConcurrentEventWaiters::PushWaiter(EventWaiter& waiter) const {
 void ConcurrentEventWaiters::PopWaiter(EventWaiter& waiter) const {
     auto locked_waiters = waiters_.Lock();
     if (!waiter.event.IsReady()) {
-        auto waiter_it = locked_waiters->s_iterator_to(waiter);
+        auto waiter_it = locked_waiters->iterator_to(waiter);
         locked_waiters->erase(waiter_it);
     }
 }

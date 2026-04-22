@@ -54,26 +54,56 @@ void SendToTestPoint(
     }());
 }
 
-[[noreturn]] void ThrowSendError(const impl::DeliveryResult& delivery_result) {
+std::exception_ptr BuildSendError(const impl::DeliveryResult& delivery_result) {
     const auto error = delivery_result.GetMessageError();
     UASSERT(error != RD_KAFKA_RESP_ERR_NO_ERROR);
 
     switch (error) {
         case RD_KAFKA_RESP_ERR__MSG_TIMED_OUT:
-            throw DeliveryTimeoutException{};
+            return std::make_exception_ptr(DeliveryTimeoutException{});
         case RD_KAFKA_RESP_ERR__QUEUE_FULL:
-            throw QueueFullException{};
+            return std::make_exception_ptr(QueueFullException{});
         case RD_KAFKA_RESP_ERR_MSG_SIZE_TOO_LARGE:
-            throw MessageTooLargeException{};
+            return std::make_exception_ptr(MessageTooLargeException{});
         case RD_KAFKA_RESP_ERR__UNKNOWN_TOPIC:
-            throw kafka::UnknownTopicException{};
+            return std::make_exception_ptr(UnknownTopicException{});
         case RD_KAFKA_RESP_ERR__UNKNOWN_PARTITION:
-            throw kafka::UnknownPartitionException{};
+            return std::make_exception_ptr(UnknownPartitionException{});
         default:
-            throw kafka::SendException{rd_kafka_err2str(error)};
+            return std::make_exception_ptr(SendException{rd_kafka_err2str(error)});
+    }
+}
+
+[[noreturn]] void ThrowSendError(const impl::DeliveryResult& delivery_result) {
+    std::rethrow_exception(BuildSendError(delivery_result));
+}
+
+auto BuildOwningHeaders(const impl::HeadersHolder& headers) {
+    auto reader = HeadersReader{headers.GetHandle()};
+    return std::vector<OwningHeader>{reader.begin(), reader.end()};
+}
+
+auto BuildHeaderHolders(HeaderViews headers, std::size_t count) {
+    std::vector<impl::HeadersHolder> holders;
+    holders.reserve(count);
+    for (std::size_t i = 0; i < count; ++i) {
+        holders.emplace_back(impl::HeadersHolder{headers});
+    }
+    return holders;
+}
+
+void HandleDeliveryErrors(const std::vector<impl::DeliveryResult>& delivery_results) {
+    std::map<std::size_t, std::exception_ptr> exceptions;
+    for (std::size_t i = 0; i < delivery_results.size(); ++i) {
+        const auto& delivery_result = delivery_results[i];
+        if (!delivery_result.IsSuccess()) {
+            exceptions[i] = BuildSendError(delivery_result);
+        }
     }
 
-    UASSERT(false);
+    if (!exceptions.empty()) {
+        throw BulkSendException{std::move(exceptions)};
+    }
 }
 
 }  // namespace
@@ -109,6 +139,22 @@ void Producer::Send(
     utils::Async(producer_task_processor_, "producer_send", [this, topic_name, key, message, partition, &headers] {
         SendImpl(topic_name, key, message, partition, impl::HeadersHolder{headers});
     }).Get();
+}
+
+void Producer::SendWrapper(
+    utils::zstring_view topic_name,
+    std::string_view key,
+    const impl::Messages& messages,
+    std::optional<std::uint32_t> partition,
+    HeaderViews headers
+) const {
+    utils::Async(
+        producer_task_processor_,
+        "producer_send_bulk",
+        [this, topic_name, key, &messages, partition, &headers] {
+            SendImpl(topic_name, key, messages, partition, BuildHeaderHolders(headers, messages.Size()));
+        }
+    ).Get();
 }
 
 engine::TaskWithResult<void> Producer::SendAsync(
@@ -148,8 +194,7 @@ void Producer::SendImpl(
 
     std::vector<OwningHeader> headers_copy;
     if (testsuite::AreTestpointsAvailable()) {
-        auto reader = HeadersReader{headers_holder.GetHandle()};
-        headers_copy = std::vector<OwningHeader>{reader.begin(), reader.end()};
+        headers_copy = BuildOwningHeaders(headers_holder);
     }
     if (testsuite::AreTestpointsAvailable()) {
         SendToTestPoint(name_, topic_name, key, message, partition, headers_copy, "::started");
@@ -163,6 +208,40 @@ void Producer::SendImpl(
 
     if (testsuite::AreTestpointsAvailable()) {
         SendToTestPoint(name_, topic_name, key, message, partition, headers_copy);
+    }
+}
+
+void Producer::SendImpl(
+    utils::zstring_view topic_name,
+    std::string_view key,
+    const impl::Messages& messages,
+    std::optional<std::uint32_t> partition,
+    std::vector<impl::HeadersHolder>&& headers_holders
+) const {
+    tracing::Span::CurrentSpan().AddTag("kafka_producer", name_);
+    tracing::Span::CurrentSpan().AddTag("kafka_send_key", std::string{key});
+
+    std::vector<std::vector<OwningHeader>> headers_copies;
+    if (testsuite::AreTestpointsAvailable()) {
+        for (std::size_t i = 0; i < messages.Size(); ++i) {
+            headers_copies.emplace_back(BuildOwningHeaders(headers_holders[i]));
+        }
+    }
+    if (testsuite::AreTestpointsAvailable()) {
+        for (std::size_t i = 0; i < messages.Size(); ++i) {
+            SendToTestPoint(name_, topic_name, key, messages[i], partition, headers_copies[i], "::started");
+        }
+    }
+
+    const std::vector<impl::DeliveryResult>
+        delivery_results = producer_->Send(topic_name, key, messages, partition, std::move(headers_holders));
+
+    HandleDeliveryErrors(delivery_results);
+
+    if (testsuite::AreTestpointsAvailable()) {
+        for (std::size_t i = 0; i < messages.Size(); ++i) {
+            SendToTestPoint(name_, topic_name, key, messages[i], partition, headers_copies[i]);
+        }
     }
 }
 

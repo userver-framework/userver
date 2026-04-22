@@ -41,3 +41,26 @@ definitions:
     AOXIndirect:
         type: number
         x-usrv-cpp-type: my::CustomNumber
+
+    ObjectNonZeroArrayOfXCppType:
+        type: object
+        additionalProperties:
+            type: array
+            minItems: 1
+            maxItems: 4
+            items:
+                type: object
+                x-usrv-cpp-type: my::Point
+                additionalProperties: false
+                required:
+                  - lon
+                  - lat
+                properties:
+                    lon:
+                        type: number
+                        minimum: -42
+                    lat:
+                        type: number
+                        maximum: 43
+
+        properties: {}

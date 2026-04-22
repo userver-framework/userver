@@ -1,7 +1,12 @@
+import pytest_userver.client
+
+import testsuite.utils.http
+
+
 # /// [select]
-async def test_select(service_client):
+async def test_select(service_client: pytest_userver.client.Client):
     async with service_client.capture_logs(log_level='INFO') as capture:
-        response = await service_client.get('/logcapture')
+        response: testsuite.utils.http.ClientResponse = await service_client.get('/logcapture')
         assert response.status == 200
 
     records = capture.select(

@@ -1,8 +1,10 @@
 #include <userver/testsuite/testsuite_support.hpp>
 #include <userver/utest/using_namespace_userver.hpp>  // IWYU pragma: keep
 
+#include <chrono>
 #include <string>
 #include <string_view>
+#include <vector>
 
 #include <fmt/format.h>
 
@@ -35,6 +37,7 @@ public:
 private:
     std::string GetValue(std::string_view key, const server::http::HttpRequest& request) const;
     std::string PostValue(std::string_view key, const server::http::HttpRequest& request) const;
+    std::string PostBlpop(std::string_view key, std::string_view blpop_wait_sec) const;
     std::string DeleteValue(std::string_view key) const;
 
     storages::redis::ClientPtr redis_client_;
@@ -60,8 +63,13 @@ std::string KeyValue::HandleRequestThrow(
     switch (request.GetMethod()) {
         case server::http::HttpMethod::kGet:
             return GetValue(key, request);
-        case server::http::HttpMethod::kPost:
+        case server::http::HttpMethod::kPost: {
+            const auto& blpop_wait_sec = request.GetArg("blpop_wait_sec");
+            if (!blpop_wait_sec.empty()) {
+                return PostBlpop(key, blpop_wait_sec);
+            }
             return PostValue(key, request);
+        }
         case server::http::HttpMethod::kDelete:
             return DeleteValue(key);
         default:
@@ -90,6 +98,20 @@ std::string KeyValue::GetValue(std::string_view key, const server::http::HttpReq
         return {};
     }
     return *result;
+}
+
+std::string KeyValue::PostBlpop(std::string_view key, std::string_view blpop_wait_sec) const {
+    constexpr size_t kKeyIndex = 0;
+    const storages::redis::CommandControl blpop_cc{std::chrono::seconds{120}, std::chrono::seconds{120}, 4};
+    using BlpopReply = std::vector<std::string>;
+    const auto result =
+        redis_client_
+            ->GenericCommand<BlpopReply>("BLPOP", {std::string{key}, std::string{blpop_wait_sec}}, kKeyIndex, blpop_cc)
+            .Get();
+    if (result.size() >= 2) {
+        return fmt::format("{} {}", result[0], result[1]);
+    }
+    return std::string{};
 }
 
 std::string KeyValue::PostValue(std::string_view key, const server::http::HttpRequest& request) const {

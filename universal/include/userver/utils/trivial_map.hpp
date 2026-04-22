@@ -56,7 +56,7 @@ struct Found final {
     constexpr explicit operator std::size_t() const noexcept { return 0; }
 };
 
-template <typename Key, typename Value, typename Enabled = void>
+template <typename Key, typename Value>
 class SearchState final {
 public:
     constexpr explicit SearchState(Key key) noexcept : key_or_result_(std::in_place_index<0>, key) {}
@@ -87,7 +87,7 @@ private:
 inline constexpr std::size_t kInvalidSize = std::numeric_limits<std::size_t>::max();
 
 template <typename Payload>
-inline constexpr bool kFitsInStringOrPayload =
+concept FitsInStringOrPayload =
     sizeof(Payload) <= sizeof(const char*) &&
     (std::is_integral_v<Payload> || std::is_enum_v<Payload> || std::is_same_v<Payload, Found>);
 
@@ -128,7 +128,7 @@ public:
     }
 
 private:
-    static_assert(kFitsInStringOrPayload<Payload>);
+    static_assert(FitsInStringOrPayload<Payload>);
 
     union DataOrPayload {
         constexpr explicit DataOrPayload(const char* data) noexcept : data(data) {}
@@ -143,8 +143,8 @@ private:
     std::size_t size_;
 };
 
-template <typename Value>
-class SearchState<std::string_view, Value, std::enable_if_t<kFitsInStringOrPayload<Value>>> {
+template <FitsInStringOrPayload Value>
+class SearchState<std::string_view, Value> {
 public:
     constexpr explicit SearchState(std::string_view key) noexcept : state_(key) {}
 
@@ -164,16 +164,14 @@ private:
     StringOrPayload<Value> state_;
 };
 
-template <typename Value>
-class SearchState<zstring_view, Value, std::enable_if_t<kFitsInStringOrPayload<Value>>> final
-    : public SearchState<std::string_view, Value> {};
+template <FitsInStringOrPayload Value>
+class SearchState<zstring_view, Value> final : public SearchState<std::string_view, Value> {};
 
-template <typename Value>
-class SearchState<StringLiteral, Value, std::enable_if_t<kFitsInStringOrPayload<Value>>> final
-    : public SearchState<std::string_view, Value> {};
+template <FitsInStringOrPayload Value>
+class SearchState<StringLiteral, Value> final : public SearchState<std::string_view, Value> {};
 
-template <typename Key>
-class SearchState<Key, std::string_view, std::enable_if_t<kFitsInStringOrPayload<Key>>> final {
+template <FitsInStringOrPayload Key>
+class SearchState<Key, std::string_view> final {
 public:
     constexpr explicit SearchState(Key key) noexcept : state_(key) {}
 
@@ -192,8 +190,8 @@ private:
     StringOrPayload<Key> state_;
 };
 
-template <typename Key>
-class SearchState<Key, zstring_view, std::enable_if_t<kFitsInStringOrPayload<Key>>> final {
+template <FitsInStringOrPayload Key>
+class SearchState<Key, zstring_view> final {
 public:
     constexpr explicit SearchState(Key key) noexcept : state_(key) {}
 
@@ -212,8 +210,8 @@ private:
     StringOrPayload<Key> state_;
 };
 
-template <typename Key>
-class SearchState<Key, StringLiteral, std::enable_if_t<kFitsInStringOrPayload<Key>>> final {
+template <FitsInStringOrPayload Key>
+class SearchState<Key, StringLiteral> final {
 public:
     constexpr explicit SearchState(Key key) noexcept : state_(key) {}
 
@@ -801,7 +799,7 @@ public:
     constexpr ValueType GetValuesByIndex(std::size_t index) const {
         UASSERT_MSG(index < size(), "Index is out of bounds");
         auto result = func_([index]() { return impl::CaseGetValuesByIndex<First, Second>{index}; });
-        return ValueType{result.GetFirst(), result.GetSecond()};
+        return ValueType{.first = result.GetFirst(), .second = result.GetSecond()};
     }
 
     class Iterator {

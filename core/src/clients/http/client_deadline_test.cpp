@@ -139,4 +139,24 @@ UTEST_F(HttpClientDeadline, ConnectionIsKeptAfterDeadlineExpires) {
     EXPECT_EQ(GetServer().GetConnectionsOpenedCount(), 1);
 }
 
+UTEST_F(HttpClientDeadline, NoCrashOnUnfinishedRequestReuse) {
+    auto request = GetClient().CreateRequest().get().url(GetServer().GetBaseUrl()).timeout(utest::kMaxTestWaitTime);
+    for ([[maybe_unused]] const auto _ : boost::irange(3)) {
+        SetTaskInheritedDeadline(100ms);
+
+        UEXPECT_THROW((void)request.perform(), clients::http::CancelException);
+        PushResponseCode(200);
+    }
+}
+
+UTEST_F(HttpClientDeadline, NoCrashOnAlreadyTimedOutRequestReuse) {
+    auto request = GetClient().CreateRequest().get().url(GetServer().GetBaseUrl()).timeout(utest::kMaxTestWaitTime);
+    for ([[maybe_unused]] const auto _ : boost::irange(3)) {
+        SetTaskInheritedDeadline(-100ms);
+
+        UEXPECT_THROW((void)request.perform(), clients::http::CancelException);
+        PushResponseCode(200);
+    }
+}
+
 USERVER_NAMESPACE_END

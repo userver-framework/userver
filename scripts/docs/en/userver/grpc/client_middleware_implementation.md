@@ -5,7 +5,7 @@
 
 There are two main interfaces for implementing a middleware:
 1. @ref ugrpc::client::MiddlewareBase. Class that implements the main logic of a middleware.
-2. @ref ugrpc::client::SimpleMiddlewareFactoryComponent short-cut for simple cases without static options. 
+2. @ref ugrpc::client::SimpleMiddlewareFactoryComponent short-cut for simple cases without static options.
     * Or @ref ugrpc::client::MiddlewareFactoryComponentBase to declare static options.
 
 ## MiddlewareBase
@@ -14,10 +14,12 @@ There are two main interfaces for implementing a middleware:
 
 ### PreStartCall and PostFinish
 
-Methods @ref ugrpc::client::MiddlewareBase::PreStartCall and @ref ugrpc::client::MiddlewareBase::PostFinish are called once per grpc Call (RPC).
+Methods @ref ugrpc::client::MiddlewareBase::PreStartCall and @ref ugrpc::client::MiddlewareBase::PostFinish are called for each RPC attempt.
 
-`PreStartCall` is called before the first message is sent.
-`PostFinish` is called after the last message is received or after an error status is received from the downstream service.
+`PreStartCall` is called before the first message is sent in each attempt.
+`PostFinish` is called after each attempt completes, regardless of how it completes (success, error, cancellation, abandonment, or network error).
+
+For unary RPCs with retries enabled, both `PreStartCall` and `PostFinish` will be called multiple times - once per retry attempt.
 
 `PreStartCall` hooks are called in the direct middlewares order. `PostFinish` hooks are called in the reversed order.
 
@@ -79,8 +81,8 @@ digraph Pipeline {
 
 
   FirstMiddlewarePreStartCall -> SecondMiddlewarePreStartCall;
-  SecondMiddlewarePreStartCall -> SendMessages [label = "once"];
-  ReceiveMessages -> SecondMiddlewarePostFinish [label = "once"];
+  SecondMiddlewarePreStartCall -> SendMessages;
+  ReceiveMessages -> SecondMiddlewarePostFinish;
   SecondMiddlewarePostFinish -> FirstMiddlewarePostFinish;
 
   Pipeline[label = "PreStartCall/PostFinish middlewares hooks order", shape=plaintext, rank="main"];
@@ -91,6 +93,15 @@ Streaming RPCs can have multiple requests and responses, but `PreStartCall` and 
 
 For more information about the middlewares order:
 @see @ref scripts/docs/en/userver/grpc/middlewares_order.md.
+
+#### PostFinish completion status
+
+The `PostFinish` hook receives a @ref ugrpc::client::CompletionStatus parameter, which is a `utils::expected<grpc::Status, SpecialCaseCompletionType>`.
+
+This means the completion can be one of:
+- **Normal completion** (`grpc::Status`): The RPC completed with a standard gRPC status (success or error)
+- **Special case completion** (@ref ugrpc::client::SpecialCaseCompletionType): The RPC completed in an exceptional way:
+  @snippet grpc/include/userver/ugrpc/client/completion_status.hpp special_cases_declaration
 
 #### Per-call (RPC) hooks implementation example
 
@@ -132,16 +143,16 @@ digraph Pipeline {
     shape=box;
     label = "FirstMiddleware";
 
-    FirstMiddlewareCallRequestHook [label = "CallRequestHook", shape=box];
-    FirstMiddlewareCallResponseHook [label = "CallResponseHook", shape=box];
+    FirstMiddlewareCallRequestHook [label = "PreSendMessage", shape=box];
+    FirstMiddlewareCallResponseHook [label = "PostRecvMessage", shape=box];
   }
 
   subgraph cluster_SecondMiddleware{
     shape=box;
     label = "SecondMiddleware";
 
-    SecondMiddlewareCallRequestHook [label = "CallRequestHook", shape=box];
-    SecondMiddlewareCallResponseHook [label = "CallResponseHook", shape=box];
+    SecondMiddlewareCallRequestHook [label = "PreSendMessage", shape=box];
+    SecondMiddlewareCallResponseHook [label = "PostRecvMessage", shape=box];
   }
 
   subgraph cluster_NetworkInteraction {
@@ -181,7 +192,7 @@ The static YAML config and component registration are identical as in the exampl
 
 ## MiddlewareFactoryComponent
 
-We use a simple short-cut @ref ugrpc::client::SimpleMiddlewareFactoryComponent in the example above. 
+We use a simple short-cut @ref ugrpc::client::SimpleMiddlewareFactoryComponent in the example above.
 To declare static config options of your middleware see @ref scripts/docs/en/userver/grpc/middlewares_configuration.md.
 
 ## Exceptions and errors in middlewares
@@ -191,6 +202,8 @@ To fully understand what happens when middlewares hooks are failed, you should u
 
 All exceptions are rethrown to the user code from client's RPC creating methods, `Read` / `Write` (for streaming), and from methods that return the RPC status.
 
+Note that in case of exception middleware pipeline is stopped and subsequent middlewares hooks are not called.
+
 ## Using static config options in middlewares
 
 There are two ways to implement a middleware component. You can see above @ref ugrpc::client::SimpleMiddlewareFactoryComponent. This component is need
@@ -198,7 +211,7 @@ for simple cases without static config options of a middleware.
 
 @note In that case, `kName` and `kDependency` (@ref middlewares::MiddlewareDependencyBuilder) must be in a middleware class (as shown above).
 
-If you want to use static config options for your middleware, use @ref ugrpc::client::MiddlewareFactoryComponentBase. 
+If you want to use static config options for your middleware, use @ref ugrpc::client::MiddlewareFactoryComponentBase.
 @see @ref scripts/docs/en/userver/grpc/middlewares_configuration.md.
 
 To override static config options of a middleware per a client see @ref grpc_middlewares_config_override.

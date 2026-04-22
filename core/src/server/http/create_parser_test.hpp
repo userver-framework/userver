@@ -33,6 +33,7 @@ inline std::shared_ptr<request::RequestParser> CreateTestParser(
         /*.decompress_request = */ false,
         /* set_tracing_headers = */ true,
         /* deadline_propagation_enabled = */ true,
+        /* deadline_propagation_prefer_timestamp = */ false,
         /* deadline_expired_status_code = */ http::HttpStatus{498}
     };
     static server::net::ParserStats test_stats;

@@ -52,7 +52,7 @@ namespace {
     engine::TaskProcessor& blocking_task_processor
 ) {
     const auto stub_state = client_data.GetStubState();
-    const auto& channels = stub_state->stubs.GetChannels();
+    const auto& channels = stub_state->stubs.channels;
 
     auto& queue = client_data.NextQueue();
 

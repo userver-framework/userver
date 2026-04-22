@@ -84,7 +84,8 @@ void Write(Writer& writer, const char* value);
 
 /// @brief Integral types serialization support
 template <typename T>
-std::enable_if_t<meta::kIsInteger<T>> Write(Writer& writer, T value) {
+requires meta::kIsInteger<T>
+void Write(Writer& writer, T value) {
     if constexpr (sizeof(T) == 1) {
         impl::WriteTrivial(writer, value);
     } else {
@@ -94,7 +95,8 @@ std::enable_if_t<meta::kIsInteger<T>> Write(Writer& writer, T value) {
 
 /// @brief Integral types deserialization support
 template <typename T>
-std::enable_if_t<meta::kIsInteger<T>, T> Read(Reader& reader, To<T>) {
+requires meta::kIsInteger<T>
+T Read(Reader& reader, To<T>) {
     if constexpr (sizeof(T) == 1) {
         return impl::ReadTrivial<T>(reader);
     }
@@ -110,13 +112,15 @@ std::enable_if_t<meta::kIsInteger<T>, T> Read(Reader& reader, To<T>) {
 
 /// @brief Floating-point serialization support
 template <typename T>
-std::enable_if_t<std::is_floating_point_v<T>> Write(Writer& writer, T value) {
+requires std::is_floating_point_v<T>
+void Write(Writer& writer, T value) {
     impl::WriteTrivial(writer, value);
 }
 
 /// @brief Floating-point deserialization support
 template <typename T>
-std::enable_if_t<std::is_floating_point_v<T>, T> Read(Reader& reader, To<T>) {
+requires std::is_floating_point_v<T>
+T Read(Reader& reader, To<T>) {
     return impl::ReadTrivial<T>(reader);
 }
 
@@ -128,13 +132,15 @@ bool Read(Reader& reader, To<bool>);
 
 /// @brief enum serialization support
 template <typename T>
-std::enable_if_t<std::is_enum_v<T>> Write(Writer& writer, T value) {
+requires std::is_enum_v<T>
+void Write(Writer& writer, T value) {
     writer.Write(static_cast<std::underlying_type_t<T>>(value));
 }
 
 /// @brief enum deserialization support
 template <typename T>
-std::enable_if_t<std::is_enum_v<T>, T> Read(Reader& reader, To<T>) {
+requires std::is_enum_v<T>
+T Read(Reader& reader, To<T>) {
     return static_cast<T>(reader.Read<std::underlying_type_t<T>>());
 }
 

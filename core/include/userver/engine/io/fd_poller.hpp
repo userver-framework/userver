@@ -3,7 +3,6 @@
 /// @file userver/engine/io/fd_poller.hpp
 /// @brief Low-level file descriptor r/w poller
 
-#include <memory>
 #include <optional>
 
 #include <userver/engine/deadline.hpp>
@@ -75,7 +74,8 @@ public:
     /// Wait().
     [[nodiscard]] std::optional<Kind> Wait(Deadline);
 
-    /// Reset "ready" flag for WaitAny().
+    /// Reset "ready" flag for WaitAny. Once notified, wait operations will return
+    /// immediately on further calls unless readiness is reset.
     void ResetReady() noexcept;
 
     /// Get event kind that was triggered on this poller.
@@ -96,12 +96,11 @@ private:
         kInUse,  /// < used only in debug to detect invalid concurrent usage
     };
 
-    void WakeupWaiters();
     void SwitchStateToInUse();
     void SwitchStateToReadyToUse();
 
-    struct Impl;
-    utils::FastPimpl<Impl, 128, 16> pimpl_;
+    class Impl;
+    utils::FastPimpl<Impl, 144, 16> pimpl_;
 };
 
 }  // namespace engine::io

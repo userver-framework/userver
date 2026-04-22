@@ -554,13 +554,13 @@ class UtaskApplyCmd(gdb.Command):
                 if task_cnt == 0:
                     print('No tasks found')
             else:
-                fast_chached_tasks: list[TaskContext] = []
+                fast_cached_tasks: list[TaskContext] = []
                 for task in get_all_tasks():
                     # fast filtering
                     if which_task == task.task_id:
                         return self.invoke_per_task(task, cmd, from_tty)
-                    fast_chached_tasks.append(task)
-                for task in fast_chached_tasks:
+                    fast_cached_tasks.append(task)
+                for task in fast_cached_tasks:
                     # getting attached_span is a bit longer
                     if (span := task.attached_span) and which_task == span.name:
                         return self.invoke_per_task(task, cmd, from_tty)

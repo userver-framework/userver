@@ -21,14 +21,14 @@ constexpr float kMin = std::numeric_limits<float>::min();
 struct FloatFromJsonSuccessTestParam {
     std::string input = {};
     FloatMessageData expected_message = {};
-    ReadOptions options = {};
+    ParseOptions options = {};
 };
 
 struct FloatFromJsonFailureTestParam {
     std::string input = {};
-    ReadErrorCode expected_errc = {};
+    ParseErrorCode expected_errc = {};
     std::string expected_path = {};
-    ReadOptions options = {};
+    ParseOptions options = {};
 
     // Native implementation does not emit error on some expected cases which we want to detect.
     // This variable turns off checks for native implementation.
@@ -79,30 +79,32 @@ INSTANTIATE_TEST_SUITE_P(
     ,
     FloatFromJsonFailureTest,
     ::testing::Values(
-        FloatFromJsonFailureTestParam{R"({"field1":[]})", ReadErrorCode::kInvalidType, "field1"},
-        FloatFromJsonFailureTestParam{R"({"field1":{}})", ReadErrorCode::kInvalidType, "field1"},
-        FloatFromJsonFailureTestParam{R"({"field1":true})", ReadErrorCode::kInvalidType, "field1"},
-        FloatFromJsonFailureTestParam{R"({"field1":3.403e+38})", ReadErrorCode::kInvalidValue, "field1"},
-        FloatFromJsonFailureTestParam{R"({"field1":"3.403e+38"})", ReadErrorCode::kInvalidValue, "field1"},
-        FloatFromJsonFailureTestParam{R"({"field1":-3.403e+38})", ReadErrorCode::kInvalidValue, "field1"},
-        FloatFromJsonFailureTestParam{R"({"field1":"-3.403e+38"})", ReadErrorCode::kInvalidValue, "field1"},
-        FloatFromJsonFailureTestParam{R"({"field1":" 123"})", ReadErrorCode::kInvalidValue, "field1", {}, true},
-        FloatFromJsonFailureTestParam{R"({"field1":"123 "})", ReadErrorCode::kInvalidValue, "field1", {}, true},
-        FloatFromJsonFailureTestParam{R"({"field1":"1a3"})", ReadErrorCode::kInvalidValue, "field1"}
+        FloatFromJsonFailureTestParam{R"({"field1":[]})", ParseErrorCode::kInvalidType, "field1"},
+        FloatFromJsonFailureTestParam{R"({"field1":{}})", ParseErrorCode::kInvalidType, "field1"},
+        FloatFromJsonFailureTestParam{R"({"field1":true})", ParseErrorCode::kInvalidType, "field1"},
+        FloatFromJsonFailureTestParam{R"({"field1":3.403e+38})", ParseErrorCode::kInvalidValue, "field1"},
+        FloatFromJsonFailureTestParam{R"({"field1":"3.403e+38"})", ParseErrorCode::kInvalidValue, "field1"},
+        FloatFromJsonFailureTestParam{R"({"field1":-3.403e+38})", ParseErrorCode::kInvalidValue, "field1"},
+        FloatFromJsonFailureTestParam{R"({"field1":"-3.403e+38"})", ParseErrorCode::kInvalidValue, "field1"},
+        FloatFromJsonFailureTestParam{R"({"field1":" 123"})", ParseErrorCode::kInvalidValue, "field1", {}, true},
+        FloatFromJsonFailureTestParam{R"({"field1":"123 "})", ParseErrorCode::kInvalidValue, "field1", {}, true},
+        FloatFromJsonFailureTestParam{R"({"field1":"1a3"})", ParseErrorCode::kInvalidValue, "field1"}
     )
 );
 
 TEST_P(FloatFromJsonSuccessTest, Test) {
     const auto& param = GetParam();
 
-    proto_json::messages::FloatMessage message, expected_message, sample_message;
+    proto_json::messages::FloatMessage message;
+    proto_json::messages::FloatMessage expected_message;
+    proto_json::messages::FloatMessage sample_message;
     formats::json::Value input = PrepareJsonTestData(param.input);
     expected_message = PrepareTestData(param.expected_message);
 
     message.set_field1(100.001);
 
     UASSERT_NO_THROW((message = JsonToMessage<proto_json::messages::FloatMessage>(input, param.options)));
-    UASSERT_NO_THROW(InitSampleMessage(param.input, param.options, sample_message));
+    UASSERT_NO_THROW(InitSampleMessage(param.input, sample_message, param.options));
 
     CheckMessageEqual(message, sample_message);
     CheckMessageEqual(message, expected_message);
@@ -114,14 +116,14 @@ TEST_P(FloatFromJsonFailureTest, Test) {
     proto_json::messages::FloatMessage sample_message;
     formats::json::Value input = PrepareJsonTestData(param.input);
 
-    EXPECT_READ_ERROR(
+    EXPECT_PARSE_ERROR(
         (void)JsonToMessage<proto_json::messages::FloatMessage>(input, param.options),
         param.expected_errc,
         param.expected_path
     );
 
     if (!param.skip_native_check) {
-        UEXPECT_THROW(InitSampleMessage(param.input, param.options, sample_message), SampleError);
+        UEXPECT_THROW(InitSampleMessage(param.input, sample_message, param.options), SampleError);
     }
 }
 

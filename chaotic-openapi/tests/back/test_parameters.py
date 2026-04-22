@@ -319,3 +319,29 @@ def test_dash_in_name(translate_single_schema):
     spec = translate_single_schema(schema)
     assert spec.operations[0].parameters[0].raw_name == 'a_b_c'
     assert spec.operations[0].path == '/{a_b_c}'
+
+
+def test_regex_in_path(translate_single_schema):
+    schema = {
+        'openapi': '3.0.0',
+        'info': {'title': '', 'version': '1.0'},
+        'paths': {
+            'foo/{a-b-c}/bar': {
+                'get': {
+                    'parameters': [
+                        {
+                            'in': 'path',
+                            'name': 'a-b-c',
+                            'description': 'parameter description',
+                            'schema': {
+                                'type': 'integer',
+                            },
+                        },
+                    ],
+                    'responses': {},
+                },
+            },
+        },
+    }
+    spec = translate_single_schema(schema)
+    assert spec.operations[0].cpp_namespace() == 'foo_a_b_c_bar::get'

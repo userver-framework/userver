@@ -168,7 +168,7 @@ TEST(PostgreDSN, QuotedOptions) {
 class Mask : public ::testing::TestWithParam<std::pair<pg::Dsn, std::string>> {};
 
 TEST_P(Mask, MaskDSN) {
-    auto param = GetParam();
+    const auto& param = GetParam();
     EXPECT_EQ(param.second, pg::DsnMaskPassword(param.first));
 }
 

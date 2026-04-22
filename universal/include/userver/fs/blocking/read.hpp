@@ -9,6 +9,7 @@
 #include <userver/fs/file_info_with_data.hpp>
 #include <userver/fs/settings_read_file.hpp>
 #include <userver/utils/boost_filesystem_file_status.hpp>
+#include <userver/utils/zstring_view.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -25,7 +26,7 @@ namespace fs::blocking {
 /// @returns file contents
 /// @throws std::runtime_error if read fails for any reason (e.g. no such file,
 /// read error, etc.),
-std::string ReadFileContents(const std::string& path);
+std::string ReadFileContents(utils::zstring_view path);
 
 /// @brief Checks whether the file exists synchronously
 /// @param path file path to check

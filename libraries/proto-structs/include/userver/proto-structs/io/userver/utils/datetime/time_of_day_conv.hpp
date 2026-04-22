@@ -10,7 +10,6 @@
 #include <userver/proto-structs/io/context.hpp>
 #include <userver/proto-structs/time_of_day.hpp>
 #include <userver/utils/impl/internal_tag.hpp>
-#include "userver/utils/time_of_day.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -21,8 +20,7 @@ utils::datetime::TimeOfDay<TDuration> ReadProtoStruct(
     ReadContext& ctx,
     To<utils::datetime::TimeOfDay<TDuration>>,
     const ::google::type::TimeOfDay& msg
-) try
-{
+) {
     // note that `google.type.TimeOfDay` allows 60 for seconds (for leap-seconds) and 24h in most general case,
     // however this will not be expected by most users (which will expect userver::utils::datetime::TimeOfDay
     // to be strictly less than 24h), so we prefer to fail on such values
@@ -39,11 +37,13 @@ utils::datetime::TimeOfDay<TDuration> ReadProtoStruct(
         return utils::datetime::TimeOfDay<TDuration>{};
     }
 
-    return TimeOfDay(utils::impl::InternalTag{}, msg.hours(), msg.minutes(), msg.seconds(), msg.nanos())
-        .ToUserverTimeOfDay<TDuration>();
-} catch (const ValueError& e) {
-    ctx.AddError(e.what());
-    return utils::datetime::TimeOfDay<TDuration>{};
+    try {
+        return TimeOfDay(utils::impl::InternalTag{}, msg.hours(), msg.minutes(), msg.seconds(), msg.nanos())
+            .ToUserverTimeOfDay<TDuration>();
+    } catch (const ValueError& e) {
+        ctx.AddError(e.what());
+        return utils::datetime::TimeOfDay<TDuration>{};
+    }
 }
 
 template <typename TDuration>

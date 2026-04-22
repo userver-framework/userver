@@ -72,7 +72,6 @@ public:
     const ConnectionSettings& GetSettings() const;
 
     CommandControl GetDefaultCommandControl() const;
-    void UpdateDefaultCommandControl();
 
     const OptionalCommandControl& GetTransactionCommandControl() const;
     OptionalCommandControl GetNamedQueryCommandControl(std::optional<Query::NameView> query_name) const;
@@ -240,7 +239,6 @@ private:
     std::optional<std::chrono::steady_clock::time_point> expires_at_;
     bool deadline_propagation_is_active_{false};
 
-    CommandControl default_cmd_ctl_{{}, {}};
     DefaultCommandControls default_cmd_ctls_;
     testsuite::PostgresControl testsuite_pg_ctl_;
     OptionalCommandControl transaction_cmd_ctl_;

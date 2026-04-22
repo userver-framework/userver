@@ -83,15 +83,15 @@ std::shared_ptr<Redis> StandaloneTopologyHolder::GetRedisInstance(const HostPort
     return {};
 }
 
-void StandaloneTopologyHolder::GetStatistics(SentinelStatistics& stats, const MetricsSettings& settings) const {
-    stats.internal.is_autotoplogy = false;
+void StandaloneTopologyHolder::GetStatistics(SentinelStatistics& stats, const MetricsSettings&) const {
+    stats.internal.is_autotopology = false;
     stats.internal.cluster_topology_checks = utils::statistics::Rate{0};
     stats.internal.cluster_topology_updates = utils::statistics::Rate{
         current_topology_version_.load(std::memory_order_relaxed)
     };
 
     auto topology = GetTopology();
-    topology->GetStatistics(settings, stats);
+    statistics_holder_.GetStatistics(stats, *topology);
 }
 
 void StandaloneTopologyHolder::SetCommandsBufferingSettings(CommandsBufferingSettings settings) {
@@ -171,6 +171,7 @@ std::shared_ptr<RedisConnectionHolder> StandaloneTopologyHolder::CreateRedisInst
         buffering_settings_ptr->value_or(CommandsBufferingSettings{}),
         *replication_monitoring_settings_ptr,
         *retry_budget_settings_ptr,
+        statistics_holder_.MakeInstanceStats(),
         redis::RedisCreationSettings{info.GetConnectionSecurity(), false}
     );
 }

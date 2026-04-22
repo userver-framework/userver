@@ -424,6 +424,7 @@ constexpr utils::TrivialSet kStateWhitelist = [](auto selector) {
         /** @name Misc errors that are logged to LOG_WARNING instead of LOG_ERROR */
         .Case(SqlState::kUniqueViolation)
         .Case(SqlState::kForeignKeyViolation)
+        .Case(SqlState::kSerializationFailure)
         .Case(SqlState::kDuplicatePreparedStatement)
         //@}
         ;

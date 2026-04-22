@@ -3,11 +3,13 @@
 #include <future>
 
 #include <engine/impl/generic_wait_list.hpp>
+#include <engine/impl/non_cancellable_awaiter.hpp>
 #include <engine/task/task_base_impl.hpp>
 #include <engine/task/task_context.hpp>
 #include <engine/task/task_processor.hpp>
 #include <engine/task/task_processor_pools.hpp>
 #include <userver/engine/async.hpp>
+#include <userver/engine/impl/epoch.hpp>
 #include <userver/engine/impl/task_context_holder.hpp>
 #include <userver/engine/task/cancel.hpp>
 #include <userver/utils/assert.hpp>
@@ -27,7 +29,7 @@ static_assert(!std::is_polymorphic_v<TaskBase>, "Slicing is used by derived type
 TaskBase::TaskBase(impl::TaskContextHolder&& context)
     : pimpl_(Impl{std::move(context).Extract()})
 {
-    pimpl_->context->Wakeup(impl::TaskContext::WakeupSource::kBootstrap, impl::SleepState::Epoch{0});
+    pimpl_->context->Wakeup(impl::TaskContext::WakeupSource::kBootstrap, impl::Epoch{0});
 }
 
 bool TaskBase::IsValid() const { return !!pimpl_->context; }
@@ -85,15 +87,13 @@ void TaskBase::BlockingWait() const {
         return;
     }
 
-    std::packaged_task<void()> task([&context] {
-        const TaskCancellationBlocker block_cancels;
-        const auto status = context.WaitUntil(Deadline{});
-        UASSERT(status == FutureStatus::kReady);
-    });
-    auto future = task.get_future();
+    std::promise<void> promise;
+    auto future = promise.get_future();
 
-    engine::DetachUnscopedUnsafe(engine::CriticalAsyncNoSpan(context.GetTaskProcessor(), std::move(task)));
-    future.wait();
+    impl::AppendNonCancellableAwaiter(context, [promise = std::move(promise)]() mutable noexcept {
+        promise.set_value();
+    });
+
     future.get();
     UASSERT(context.IsFinished());
 }

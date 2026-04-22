@@ -34,13 +34,13 @@ INSTANTIATE_TEST_SUITE_P(
     Crypto,
     Base64UniversalDecodeSuccessTest,
     ::testing::Values(
-        Base64UniversalDecodeSuccessTestParam{"", ""},
-        Base64UniversalDecodeSuccessTestParam{"SGVsbG8/", "Hello?"},
-        Base64UniversalDecodeSuccessTestParam{"SGVsbG8_", "Hello?"},
-        Base64UniversalDecodeSuccessTestParam{"+/s=", "\xfb\xfb"},
-        Base64UniversalDecodeSuccessTestParam{"-_s=", "\xfb\xfb"},
-        Base64UniversalDecodeSuccessTestParam{"+/s", "\xfb\xfb"},
-        Base64UniversalDecodeSuccessTestParam{"-_s", "\xfb\xfb"}
+        Base64UniversalDecodeSuccessTestParam{.input = "", .expected_result = ""},
+        Base64UniversalDecodeSuccessTestParam{.input = "SGVsbG8/", .expected_result = "Hello?"},
+        Base64UniversalDecodeSuccessTestParam{.input = "SGVsbG8_", .expected_result = "Hello?"},
+        Base64UniversalDecodeSuccessTestParam{.input = "+/s=", .expected_result = "\xfb\xfb"},
+        Base64UniversalDecodeSuccessTestParam{.input = "-_s=", .expected_result = "\xfb\xfb"},
+        Base64UniversalDecodeSuccessTestParam{.input = "+/s", .expected_result = "\xfb\xfb"},
+        Base64UniversalDecodeSuccessTestParam{.input = "-_s", .expected_result = "\xfb\xfb"}
     )
 );
 
@@ -48,9 +48,9 @@ INSTANTIATE_TEST_SUITE_P(
     Crypto,
     Base64UniversalDecodeFailureTest,
     ::testing::Values(
-        Base64UniversalDecodeFailureTestParam{"TW=E"},
-        Base64UniversalDecodeFailureTestParam{"TQ==="},
-        Base64UniversalDecodeFailureTestParam{"TWE#"}
+        Base64UniversalDecodeFailureTestParam{.input = "TW=E"},
+        Base64UniversalDecodeFailureTestParam{.input = "TQ==="},
+        Base64UniversalDecodeFailureTestParam{.input = "TWE#"}
     )
 );
 

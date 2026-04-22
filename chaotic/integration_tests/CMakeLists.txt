@@ -11,6 +11,11 @@ target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/i
 add_google_tests(${PROJECT_NAME})
 
 file(GLOB_RECURSE SCHEMAS ${CMAKE_CURRENT_SOURCE_DIR}/schemas/*.yaml)
+set(NON_SAX_SCHEMAS
+        ${CMAKE_CURRENT_SOURCE_DIR}/schemas/no_sax.yaml
+)
+list(REMOVE_ITEM SCHEMAS ${NON_SAX_SCHEMAS})
+
 userver_target_generate_chaotic(
     ${PROJECT_NAME}-chgen
     PARSE_EXTRA_FORMATS
@@ -26,3 +31,20 @@ userver_target_generate_chaotic(
     RELATIVE_TO ${CMAKE_CURRENT_SOURCE_DIR}
 )
 target_link_libraries(${PROJECT_NAME} ${PROJECT_NAME}-chgen)
+
+userver_target_generate_chaotic(
+    ${PROJECT_NAME}-chgen-no-sax
+    PARSE_EXTRA_FORMATS
+    GENERATE_SERIALIZERS
+    NO_SAX_PARSE
+    INCLUDE_DIRS
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/../include
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../universal/include
+    LAYOUT
+    "/definitions/([^/]*)/=ns::{0}"
+    OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR}/src
+    SCHEMAS ${NON_SAX_SCHEMAS}
+    RELATIVE_TO ${CMAKE_CURRENT_SOURCE_DIR}
+)
+target_link_libraries(${PROJECT_NAME} ${PROJECT_NAME}-chgen-no-sax)

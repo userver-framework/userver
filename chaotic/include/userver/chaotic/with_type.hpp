@@ -19,7 +19,7 @@ template <typename Value, typename RawType, typename UserType>
 UserType Parse(const Value& value, formats::parse::To<WithType<RawType, UserType>>) {
     auto result = value.template As<RawType>();
     try {
-        return Convert(result, convert::To<UserType>{});
+        return chaotic::ConvertTo<UserType>(std::move(result));
     } catch (const std::exception& e) {
         chaotic::ThrowForValue(e.what(), value);
     }
@@ -27,8 +27,8 @@ UserType Parse(const Value& value, formats::parse::To<WithType<RawType, UserType
 
 template <typename Value, typename RawType, typename UserType>
 Value Serialize(const WithType<RawType, UserType>& ps, formats::serialize::To<Value>) {
-    return typename Value::Builder{RawType{Convert(ps.value, convert::To<std::decay_t<decltype(RawType::value)>>())}
-    }.ExtractValue();
+    using RawTypeDecayed = std::decay_t<decltype(RawType::value)>;
+    return typename Value::Builder{RawType{chaotic::ConvertTo<RawTypeDecayed>(ps.value)}}.ExtractValue();
 }
 
 }  // namespace chaotic

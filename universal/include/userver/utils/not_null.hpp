@@ -8,11 +8,22 @@
 #include <type_traits>
 #include <utility>
 
+#include <userver/compiler/impl/lifetime.hpp>
 #include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace utils {
+
+namespace impl {
+
+template <typename T>
+struct IsStdSharedPtr : std::false_type {};
+
+template <typename T>
+struct IsStdSharedPtr<std::shared_ptr<T>> : std::true_type {};
+
+}  // namespace impl
 
 /// @ingroup userver_universal userver_containers
 ///
@@ -37,26 +48,30 @@ public:
         UASSERT_MSG(ptr_, "Trying to construct NotNull from null");
     }
 
-    template <typename U, typename = std::enable_if_t<std::is_convertible_v<U, T>>>
+    template <typename U>
+    requires std::is_convertible_v<U, T>
     constexpr explicit NotNull(U&& u)
         : ptr_(std::forward<U>(u))
     {
         UASSERT_MSG(ptr_, "Trying to construct NotNull from null");
     }
 
-    template <typename U, typename = std::enable_if_t<std::is_convertible_v<U*, T>>>
+    template <typename U>
+    requires std::is_convertible_v<U*, T>
     constexpr /*implicit*/ NotNull(U& u)
         : ptr_(std::addressof(u))
     {}
 
-    template <typename U, typename = std::enable_if_t<std::is_convertible_v<U, T>>>
+    template <typename U>
+    requires std::is_convertible_v<U, T>
     constexpr NotNull(const NotNull<U>& other)
         : ptr_(other.GetBase())
     {
         UASSERT_MSG(ptr_, "Trying to construct NotNull from null (moved-from) NotNull");
     }
 
-    template <typename U, typename = std::enable_if_t<std::is_convertible_v<U, T>>>
+    template <typename U>
+    requires std::is_convertible_v<U, T>
     constexpr NotNull(NotNull<U>&& other)
         : ptr_(std::move(other).GetBase())
     {
@@ -91,6 +106,18 @@ public:
 
     constexpr decltype(auto) operator*() const& { return *GetBase(); }
 
+    constexpr decltype(auto) operator->() const& USERVER_IMPL_LIFETIME_BOUND
+    requires(!std::is_trivially_copyable_v<T>) && (!impl::IsStdSharedPtr<T>::value)
+    {
+        return GetBase();
+    }
+
+    constexpr decltype(auto) operator*() const& USERVER_IMPL_LIFETIME_BOUND
+    requires(!std::is_trivially_copyable_v<T>) && (!impl::IsStdSharedPtr<T>::value)
+    {
+        return *GetBase();
+    }
+
     template <typename U>
     constexpr bool operator==(const NotNull<U>& other) const& {
         return GetBase() == other.GetBase();
@@ -120,13 +147,15 @@ template <typename U>
 using UniqueRef = NotNull<std::unique_ptr<U>>;
 
 /// @brief An equivalent of `std::make_shared` for SharedRef.
-template <typename U, typename... Args, typename = std::enable_if_t<std::is_constructible_v<U, Args...>>>
+template <typename U, typename... Args>
+requires std::is_constructible_v<U, Args...>
 SharedRef<U> MakeSharedRef(Args&&... args) {
     return SharedRef<U>{std::make_shared<U>(std::forward<Args>(args)...)};
 }
 
 /// @brief An equivalent of `std::make_unique` for UniqueRef.
-template <typename U, typename... Args, typename = std::enable_if_t<std::is_constructible_v<U, Args...>>>
+template <typename U, typename... Args>
+requires std::is_constructible_v<U, Args...>
 UniqueRef<U> MakeUniqueRef(Args&&... args) {
     return UniqueRef<U>{std::make_unique<U>(std::forward<Args>(args)...)};
 }

@@ -65,6 +65,29 @@ std::unordered_map<std::string, std::shared_ptr<grpc::ChannelCredentials>> MakeC
     return client_credentials;
 }
 
+std::optional<RetryLimiterFactory*> TryFindRetryLimiterFactory(
+    const components::ComponentConfig& config,
+    const components::ComponentContext& context
+) {
+    auto retry_limiter_factory_name_yaml = config["retry-limiter"];
+    if (retry_limiter_factory_name_yaml.IsMissing()) {
+        return std::nullopt;
+    }
+
+    auto retry_limiter_factory_name = retry_limiter_factory_name_yaml.As<std::optional<std::string>>();
+    if (retry_limiter_factory_name) {
+        auto* retry_limiter_factory = context.FindComponentOptional<RetryLimiterFactory>(*retry_limiter_factory_name);
+        UINVARIANT(
+            retry_limiter_factory,
+            fmt::format("RetryLimiterFactory component '{}' not found", *retry_limiter_factory_name)
+        );
+
+        return retry_limiter_factory;
+    }
+
+    return nullptr;
+}
+
 }  // namespace
 
 ClientFactoryComponent::ClientFactoryComponent(
@@ -73,6 +96,9 @@ ClientFactoryComponent::ClientFactoryComponent(
 )
     : impl::MiddlewareRunnerComponentBase(config, context, MiddlewarePipelineComponent::kName) {
     auto& client_common_component = context.FindComponent<CommonComponent>();
+
+    auto retry_limiter_factory =
+        TryFindRetryLimiterFactory(config, context).value_or(client_common_component.retry_limiter_factory_);
 
     auto& metrics_storage = context.FindComponent<components::StatisticsStorage>().GetMetricsStorageRef();
 
@@ -94,6 +120,7 @@ ClientFactoryComponent::ClientFactoryComponent(
         std::move(credentials),
         std::move(client_credentials),
         std::move(client_factory_config.retry_config),
+        retry_limiter_factory,
         std::move(client_factory_config.channel_args),
         std::move(client_factory_config.default_service_config),
         client_factory_config.channel_count,

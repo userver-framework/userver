@@ -3,6 +3,8 @@
 #include <chrono>
 #include <stdexcept>
 
+#include <fmt/ranges.h>
+
 #include <server/handlers/http_handler_base_statistics.hpp>
 #include <server/handlers/http_server_settings.hpp>
 #include <server/request/task_inherited_request_impl.hpp>
@@ -54,9 +56,6 @@ HttpRequestHandler::HttpRequestHandler(
 engine::TaskWithResult<void> HttpRequestHandler::StartFailsafeTask(std::shared_ptr<http::HttpRequest> http_request
 ) const {
     const auto* handler = http_request->GetHttpHandler();
-    static handlers::HttpRequestStatistics dummy_statistics;
-
-    http_request->SetHttpHandlerStatistics(dummy_statistics);
 
     return engine::AsyncNoSpan([request = std::move(http_request), handler]() {
         request->SetTaskStartTime();
@@ -149,7 +148,8 @@ engine::TaskWithResult<void> HttpRequestHandler::StartRequestTask(std::shared_pt
         return StartFailsafeTask(std::move(http_request));
     }
 
-    if (handler->GetConfig().response_body_stream) {
+    request::RequestContext context;
+    if (handler->IsStreamed(*std::move(http_request), context)) {
         http_response.SetStreamBody();
     }
 

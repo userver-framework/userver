@@ -2,10 +2,10 @@
 
 A Least Recently Used (LRU) Cache organizes items in order of use. It drops
 items not used for the longest amount of time in favor of caching new items.
-There are also expirable LRU caches that drop expired records and may prolong 
+There are also expirable LRU caches that drop expired records and may prolong
 record lifetime on usage.
 
-To implement those caches userver provides a base component class 
+To implement those caches userver provides a base component class
 @ref cache::LruCacheComponent that manages an instance of @ref cache::ExpirableLruCache.
 
 ## Typical use cases
@@ -28,7 +28,7 @@ Using @ref cache::LruCacheComponent is quite straightforward. Write a component 
 
 @snippet cache/lru_cache_component_base_test.hpp  Sample lru cache component
 
-After that, get the component using the 
+After that, get the component using the
 components::ComponentContext::FindComponent() and call
 cache::LruCacheComponent::GetCache(). Use the returned @ref cache::LruCacheWrapper.
 
@@ -59,5 +59,5 @@ Here's a brief introduction into LRU types:
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref pg_cache | @ref pg_driver ⇨
+⇦ @ref pg_cache | @ref scripts/docs/en/userver/pg_driver.md ⇨
 @htmlonly </div> @endhtmlonly

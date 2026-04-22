@@ -13,6 +13,8 @@
 #include <userver/proto-structs/io/context.hpp>
 #include <userver/proto-structs/type_mapping.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace proto_structs::io {
 
 namespace impl {
@@ -71,3 +73,5 @@ void WriteProtoField(
 }
 
 }  // namespace proto_structs::io
+
+USERVER_NAMESPACE_END

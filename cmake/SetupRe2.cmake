@@ -1,6 +1,8 @@
+# @ingroup download
 option(USERVER_DOWNLOAD_PACKAGE_RE2 "Download and setup Re2 if no Re2 matching version was found"
        ${USERVER_DOWNLOAD_PACKAGES}
 )
+# @ingroup download
 option(USERVER_FORCE_DOWNLOAD_RE2 "Download Re2 even if it exists in a system" ${USERVER_FORCE_DOWNLOAD_PACKAGES})
 
 if(NOT USERVER_FORCE_DOWNLOAD_RE2)

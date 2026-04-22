@@ -117,7 +117,7 @@ private:
     TryLockStatus LockFastPath(Counter count);
     bool LockSlowPath(Deadline, Counter count);
 
-    impl::FastPimplWaitList lock_waiters_;
+    impl::FastPimplWaitList lock_awaiters_;
     std::atomic<Counter> acquired_locks_;
     std::atomic<Counter> capacity_;
 };

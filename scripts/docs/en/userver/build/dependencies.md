@@ -88,21 +88,46 @@ USERVER_FEATURE_PATCH_LIBPQ=0
 
 ### Gentoo
 
-\b Dependencies: @ref scripts/docs/en/deps/gentoo.md "third_party/userver/scripts/docs/en/deps/gentoo.md"
+\b Dependencies: https://github.com/userver-framework/userver-overlay/blob/master/dev-cpp/userver-meta/userver-meta-2.13.ebuild
 
 Dependencies can be installed via:
 
 ```bash
-DEPS_FILE="https://raw.githubusercontent.com/userver-framework/userver/refs/heads/develop/scripts/docs/en/deps/gentoo.md" && \
-sudo emerge --ask --update --oneshot $(wget -q -O - ${DEPS_FILE})
+sudo emerge app-portage/eselect-repository
+sudo eselect repository add userver-framework git https://github.com/userver-framework/userver-overlay.git
+sudo emerge --sync
+sudo emerge --ask dev-cpp/userver-meta
 ```
 
 Recommended CMake options:
 
 ```
-USERVER_CHECK_PACKAGE_VERSIONS=0
+USERVER_CHECK_PACKAGE_VERSIONS=OFF
+USERVER_FEATURE_STACKTRACE=OFF
+USERVER_FEATURE_GRPC=OFF
+USERVER_FEATURE_GRPC_REFLECTION=OFF
+USERVER_FEATURE_REDIS_TLS=OFF
+USERVER_FEATURE_CLICKHOUSE=OFF
+USERVER_FEATURE_ROCKS=OFF
+USERVER_FEATURE_OTLP=OFF
+USERVER_FEATURE_S3API=OFF
 ```
 
+Use-flags:
+
+```
+grpc - install dependencies to build with Grpc (unrecomented) (use with Cmake option USERVER_FEATURE_GRPC=ON)
+postgres - install dependencies to build with PostgreSQL (use with Cmake option USERVER_FEATURE_POSTGRESQL=ON)
+redis - install dependencies to build with Redis db (use with Cmake option USERVER_FEATURE_REDIS=ON)
+mongodb  - install dependencies to build with Mongo db (use with Cmake option USERVER_FEATURE_MONGODB=ON)
+mysql - install dependencies to build with MySQL (MariaDB) (use with Cmake option USERVER_FEATURE_MYSQL=ON)
+rabbitmq - install dependencies to build with RabbitMQ messages broker (use with Cmake option USERVER_FEATURE_RABBITMQ=ON)
+kafka - install dependencies to build with Apache Kafka (use with Cmake option USERVER_FEATURE_KAFKA=ON)
+rocksdb - install dependencies to build with RocksDB (unrecomented) (use with Cmake option USERVER_FEATURE_ROCKS=ON)
+utest - install dependencies to build with Utest (use with Cmake option USERVER_FEATURE_UTEST=ON)
+odbc - install dependencies to build with Complete ODBC driver manager (use with Cmake option USERVER_FEATURE_ODBC=ON)
+sqlite - install dependencies to build with sqlite (use with Cmake option USERVER_FEATURE_SQLITE=ON)
+```
 
 ### Alpine
 
@@ -244,7 +269,7 @@ sudo mkdir -p /etc/apt/preferences.d
 printf "Package: postgresql-14\nPin: version 14.5*\nPin-Priority: 1001\n" | sudo tee -a /etc/apt/preferences.d/postgresql-14
 printf "Package: postgresql-client-14\nPin: version 14.5*\nPin-Priority: 1001\n" | sudo tee -a /etc/apt/preferences.d/postgresql-client-14
 sudo apt install --allow-downgrades -y postgresql-14 postgresql-client-14
- 
+
 printf "Package: libpq5\nPin: version 14.5*\nPin-Priority: 1001\n" | sudo tee -a /etc/apt/preferences.d/libpq5
 printf "Package: libpq-dev\nPin: version 14.5*\nPin-Priority: 1001\n"| sudo tee -a /etc/apt/preferences.d/libpq-dev
 sudo apt install --allow-downgrades -y libpq5 libpq-dev

@@ -33,18 +33,8 @@ UTEST_F(KafkaServiceTest, Consume) {
     const std::string test_topic1{"test-topic-1"};
     const std::string test_topic2{"test-topic-2"};
     const std::array test_messages{
-        kafka::utest::Message{
-            test_topic1,
-            "test-key-1",
-            "test-msg-1",
-            /*partition=*/0
-        },
-        kafka::utest::Message{
-            test_topic2,
-            "test-key-2",
-            "test-msg-2",
-            /*partition=*/0
-        }
+        kafka::utest::Message{.topic = test_topic1, .key = "test-key-1", .payload = "test-msg-1", .partition = 0},
+        kafka::utest::Message{.topic = test_topic2, .key = "test-key-2", .payload = "test-msg-2", .partition = 0},
     };
 
     SendMessages(test_messages);

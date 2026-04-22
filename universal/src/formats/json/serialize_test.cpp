@@ -109,7 +109,7 @@ TEST(FormatsJson, ParseStreamHasZeroByte) {
 class FmtFormatterParameterized : public testing::TestWithParam<std::string> {};
 
 TEST_P(FmtFormatterParameterized, FormatsJsonFmt) {
-    const std::string str = GetParam();
+    const std::string& str = GetParam();
     const auto value = formats::json::FromString(str);
     EXPECT_EQ(fmt::format("{}", value), str);
     EXPECT_THROW(static_cast<void>(fmt::format(fmt::runtime("{:s}"), value)), fmt::format_error);
@@ -151,19 +151,19 @@ thread_local const auto thread_local_json3 = global_json3;
 }  // namespace
 
 TEST_P(NonSortedJsonToSortedString, NonDepthTreeCopy) {
-    const NotSortedTestData pair_data_res = GetParam();
+    const NotSortedTestData& pair_data_res = GetParam();
     const auto json = formats::json::FromString(pair_data_res.source);
     EXPECT_EQ(formats::json::ToStableString(json), pair_data_res.result);
 }
 
 TEST_P(NonSortedJsonToSortedString, NonDepthTreeMove) {
-    const NotSortedTestData pair_data_res = GetParam();
+    const NotSortedTestData& pair_data_res = GetParam();
     auto json = formats::json::FromString(pair_data_res.source);
     EXPECT_EQ(formats::json::ToStableString(std::move(json)), pair_data_res.result);
 }
 
 TEST_P(JsonToStringCycle, NonDepthTree) {
-    const CycleTestData data = GetParam();
+    const CycleTestData& data = GetParam();
     const auto json = formats::json::FromString(data.source);
     const auto json_str = formats::json::ToString(json);
     const auto json_copy = formats::json::FromString(json_str);

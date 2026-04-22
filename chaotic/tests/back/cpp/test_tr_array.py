@@ -1,23 +1,22 @@
 from chaotic.back.cpp import type_name
-from chaotic.back.cpp.types import CppArray
-from chaotic.back.cpp.types import CppArrayValidator
-from chaotic.back.cpp.types import CppPrimitiveValidator
+from chaotic.back.cpp import types as cpp_types
+from chaotic.front import types as front_types
 
 
 def test_array_int(simple_gen, cpp_primitive_type):
     types = simple_gen({'type': 'array', 'items': {'type': 'integer'}})
     assert types == {
-        '::type': CppArray(
+        '::type': cpp_types.CppArray(
             raw_cpp_type=type_name.TypeName('::type'),
             user_cpp_type=None,
-            json_schema=None,
+            json_schema=front_types.Schema(),
             nullable=False,
             items=cpp_primitive_type(
-                validators=CppPrimitiveValidator(prefix='typeA'),
+                validators=cpp_types.CppPrimitiveValidator(prefix='typeA'),
                 raw_cpp_type_str='int',
             ),
             container='std::vector',
-            validators=CppArrayValidator(),
+            validators=cpp_types.CppArrayValidator(),
         ),
     }
 
@@ -28,27 +27,27 @@ def test_array_array_with_validators(simple_gen, cpp_primitive_type):
         'items': {'type': 'array', 'items': {'type': 'integer', 'minimum': 1}},
     })
     assert types == {
-        '::type': CppArray(
+        '::type': cpp_types.CppArray(
             raw_cpp_type=type_name.TypeName('::type'),
             user_cpp_type=None,
-            json_schema=None,
+            json_schema=front_types.Schema(),
             nullable=False,
-            items=CppArray(
+            items=cpp_types.CppArray(
                 raw_cpp_type=type_name.TypeName('::typeA'),
                 user_cpp_type=None,
-                json_schema=None,
+                json_schema=front_types.Schema(),
                 nullable=False,
                 items=cpp_primitive_type(
-                    validators=CppPrimitiveValidator(
+                    validators=cpp_types.CppPrimitiveValidator(
                         min=1,
                         prefix='typeAA',
                     ),
                     raw_cpp_type_str='int',
                 ),
                 container='std::vector',
-                validators=CppArrayValidator(),
+                validators=cpp_types.CppArrayValidator(),
             ),
             container='std::vector',
-            validators=CppArrayValidator(),
+            validators=cpp_types.CppArrayValidator(),
         ),
     }

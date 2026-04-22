@@ -14,7 +14,7 @@
 #include <userver/utest/utest.hpp>
 #include <userver/utils/assert.hpp>
 
-#include <userver/internal/net/net_listener.hpp>
+#include <engine/io/tests/net_listener.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -230,7 +230,7 @@ size_t UpdateForServFail(char* data, size_t original_size) noexcept {
 
 DnsServerMock::DnsServerMock(DnsHandler handler)
     // NOLINTNEXTLINE(cppcoreguidelines-slicing)
-    : listener_(std::make_shared<internal::net::UdpListener>()),
+    : listener_(std::make_shared<engine::io::tests::UdpListener>()),
       handler_{std::move(handler)},
       receiver_task_{engine::AsyncNoSpan([this] { ProcessRequests(); })}
 {}

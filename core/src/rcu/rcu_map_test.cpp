@@ -202,16 +202,17 @@ UTEST_MT(RcuMap, ConcurrentUpdates, 4) {
 }
 
 UTEST_MT(RcuMap, ConcurrentTryEmplace, 16) {
-    const size_t reps = 100;
+    constexpr int kTestRepetitions = 100;
 
-    for (size_t rep = 0; rep < reps; rep++) {
+    for (int rep = 0; rep < kTestRepetitions; ++rep) {
         rcu::RcuMap<std::string, int> map;
 
-        const size_t num_tasks = 16;
-        std::atomic<size_t> insertions = 0;
+        static constexpr std::size_t kTaskCount = 16;
+        std::atomic<std::size_t> insertions = 0;
 
         std::vector<engine::TaskWithResult<void>> tasks;
-        for (size_t i = 0; i < num_tasks; i++) {
+        tasks.reserve(kTaskCount);
+        for (std::size_t i = 0; i < kTaskCount; ++i) {
             tasks.push_back(engine::AsyncNoSpan([&map, &insertions, i] {
                 auto key = std::string(20 + i / 2, 'x');
                 auto res = map.TryEmplace(key, i);
@@ -224,7 +225,7 @@ UTEST_MT(RcuMap, ConcurrentTryEmplace, 16) {
         for (auto& task : tasks) {
             task.Get();
         }
-        EXPECT_EQ(insertions, num_tasks / 2);
+        EXPECT_EQ(insertions, kTaskCount / 2);
     }
 }
 #endif

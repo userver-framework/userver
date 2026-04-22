@@ -1,6 +1,7 @@
 #include <userver/yaml_config/impl/validate_static_config.hpp>
 
 #include <userver/formats/yaml/serialize.hpp>
+#include <userver/formats/yaml/value_builder.hpp>
 #include <userver/yaml_config/schema.hpp>
 #include <userver/yaml_config/yaml_config.hpp>
 
@@ -31,7 +32,7 @@ incorrect_filed_name:
         std::runtime_error,
         "Schema field name must be one of ['type', 'description', 'default', "
         "'defaultDescription', 'additionalProperties', 'properties', 'items', "
-        "'enum', 'minimum', 'maximum', 'minItems', 'maxItems'], but "
+        "'enum', 'minimum', 'maximum', 'minItems', 'maxItems', 'required'], but "
         "'incorrect_filed_name' was given. "
         "Schema path: '/'"
     );
@@ -425,6 +426,37 @@ properties:
     UEXPECT_NO_THROW(Validate(static_config, schema));
 }
 
+TEST(StaticConfigValidator, ArrayWithEnvPassed) {
+    const std::string static_config = R"(
+component:
+  values:
+    - value#env: ENV_VALUE
+)";
+
+    const std::string schema = R"(
+type: object
+description: test component with nested array
+additionalProperties: false
+properties:
+    values:
+      type: array
+      description: values
+      items:
+        type: object
+        additionalProperties: false
+        properties:
+          value:
+            type: string
+            description: value
+)";
+
+    UEXPECT_THROW(Validate(static_config, schema), formats::yaml::MemberMissingException);
+
+    // NOLINTNEXTLINE(concurrency-mt-unsafe)
+    ::setenv("ENV_VALUE", "100", 1);
+    UEXPECT_THROW(Validate(static_config, schema), formats::yaml::MemberMissingException);
+}
+
 TEST(StaticConfigValidator, Enum) {
     const std::string correct_static_config = R"(
 mode: on
@@ -523,6 +555,137 @@ maximum: 19.5
         "Expected number at path '/' to be <= 19.5 (actual: 19.6)"
     );
     UEXPECT_THROW_MSG(Validate("What", schema), std::runtime_error, "Value 'What' of field '/' must be number");
+}
+
+const std::string kRequiredFooSchema = R"(
+type: object
+description: object with required field
+additionalProperties: false
+properties:
+    foo:
+        type: string
+        description: required string
+required:
+  - foo
+)";
+
+TEST(StaticConfigValidator, RequiredField) {
+    const auto& schema = kRequiredFooSchema;
+
+    // present — no throw
+    UEXPECT_NO_THROW(Validate("foo: bar\n", schema));
+
+    // missing (empty object) — throws
+    UEXPECT_THROW_MSG(
+        Validate("{}\n", schema),
+        std::runtime_error,
+        "Error while validating static config against schema. Required field 'foo' is missing"
+    );
+
+    // null is treated as present — no throw
+    UEXPECT_NO_THROW(Validate("foo:\n", schema));
+}
+
+TEST(StaticConfigValidator, RequiredMultipleFields) {
+    const std::string schema = R"(
+type: object
+description: object with multiple required fields
+additionalProperties: false
+properties:
+    foo:
+        type: string
+        description: foo
+    bar:
+        type: integer
+        description: bar
+    baz:
+        type: string
+        description: optional baz
+required:
+  - foo
+  - bar
+)";
+    // both required present
+    UEXPECT_NO_THROW(Validate("foo: a\nbar: 1\n", schema));
+
+    // one required missing
+    UEXPECT_THROW_MSG(
+        Validate("foo: a\n", schema),
+        std::runtime_error,
+        "Error while validating static config against schema. Required field 'bar' is missing"
+    );
+}
+
+TEST(StaticConfigValidator, RequiredFieldNotInProperties) {
+    const std::string schema = R"(
+type: object
+description: schema with required name not in properties
+additionalProperties: false
+properties:
+    foo:
+        type: string
+        description: foo
+required:
+  - not_declared
+)";
+    UEXPECT_THROW_MSG(
+        formats::yaml::FromString(schema).As<yaml_config::Schema>(),
+        std::runtime_error,
+        "Schema field '/': 'required' contains 'not_declared' which is not declared in 'properties'"
+    );
+}
+
+TEST(StaticConfigValidator, RequiredOnNonObject) {
+    const std::string schema = R"(
+type: integer
+description: integer with required
+required:
+  - foo
+)";
+    UEXPECT_THROW_MSG(
+        formats::yaml::FromString(schema).As<yaml_config::Schema>(),
+        std::runtime_error,
+        "Schema field '/' of type 'integer' can not have field 'required', because its type is not 'object'"
+    );
+}
+
+TEST(StaticConfigValidator, RequiredFieldNestedObject) {
+    const std::string schema = R"(
+type: object
+description: outer
+additionalProperties: false
+properties:
+    inner:
+        type: object
+        description: inner
+        additionalProperties: false
+        properties:
+            field:
+                type: string
+                description: required nested field
+        required:
+          - field
+)";
+    // nested required field present
+    UEXPECT_NO_THROW(Validate("inner:\n  field: hello\n", schema));
+
+    // nested required field missing
+    UEXPECT_THROW_MSG(
+        Validate("inner: {}\n", schema),
+        std::runtime_error,
+        "Error while validating static config against schema. Required field 'inner.field' is missing"
+    );
+}
+
+TEST(StaticConfigValidator, RequiredSchemaSerializeRoundtrip) {
+    const auto schema = formats::yaml::FromString(kRequiredFooSchema).As<yaml_config::Schema>();
+    ASSERT_TRUE(schema.required.has_value());
+    EXPECT_EQ(*schema.required, (std::unordered_set<std::string>{"foo"}));
+
+    // Serialize and re-parse
+    const auto serialized = formats::yaml::ValueBuilder(schema).ExtractValue();
+    const auto reparsed = serialized.As<yaml_config::Schema>();
+    EXPECT_EQ(schema, reparsed);
 }
 
 USERVER_NAMESPACE_END

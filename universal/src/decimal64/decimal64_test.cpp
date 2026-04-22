@@ -1,5 +1,6 @@
 #include <userver/decimal64/decimal64.hpp>
 
+#include <compare>
 #include <limits>
 #include <unordered_map>
 
@@ -217,12 +218,10 @@ TEST(Decimal64, DivisionByZero) {
     EXPECT_THROW(Dec4{1} / 0, decimal64::DivisionByZeroError);
 }
 
-#ifdef USERVER_IMPL_HAS_THREE_WAY_COMPARISON
 TEST(Decimal64, ThreeWayComparison) {
     EXPECT_EQ(Dec4{1} <=> Dec4{1}, 1 <=> 1);
     EXPECT_EQ(Dec4{1} <=> Dec4{2}, 1 <=> 2);
 }
-#endif
 
 TEST(Decimal64, RoundToMultipleOf) {
     const auto dec = Dec4{"12.346"};

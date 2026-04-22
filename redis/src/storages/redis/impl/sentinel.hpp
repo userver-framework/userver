@@ -40,7 +40,6 @@ const auto kProcessWaitingCommandsInterval = std::chrono::seconds(3);
 const auto kCheckRedisConnectedInterval = std::chrono::seconds(3);
 
 // Forward declarations
-class SentinelImplBase;
 class SentinelImpl;
 class Shard;
 
@@ -119,7 +118,8 @@ public:
     // letters for a given shard.
     const std::string& GetAnyKeyForShard(size_t shard_idx) const;
 
-    SentinelStatistics GetStatistics(const MetricsSettings& settings) const;
+    // Return std::unique_ptr instead of SentinelStatistics value to keep coroutine stack small
+    std::unique_ptr<SentinelStatistics> GetStatistics(const MetricsSettings& settings) const;
 
     void SetCommandsBufferingSettings(CommandsBufferingSettings commands_buffering_settings);
     void SetReplicationMonitoringSettings(const ReplicationMonitoringSettings& replication_monitoring_settings);
@@ -203,7 +203,7 @@ public:
 private:
     friend class Transaction;
 
-    std::unique_ptr<SentinelImplBase> impl_;
+    std::unique_ptr<SentinelImpl> impl_;
     const std::string shard_group_name_;
     std::shared_ptr<ThreadPools> thread_pools_;
     std::unique_ptr<engine::ev::ThreadControl> sentinel_thread_control_;

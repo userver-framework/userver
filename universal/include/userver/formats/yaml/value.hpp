@@ -301,11 +301,9 @@ private:
 template <typename T>
 auto Value::As() const {
     static_assert(
-        formats::common::impl::kHasParse<Value, T>,
-        "There is no `Parse(const Value&, formats::parse::To<T>)` in "
-        "namespace of `T` or `formats::parse`. "
-        "Probably you forgot to include the "
-        "<userver/formats/parse/common_containers.hpp> or you "
+        formats::common::impl::HasParse<Value, T>,
+        "There is no `Parse(const Value&, formats::parse::To<T>)` in namespace of `T` or `formats::parse`. "
+        "Probably you forgot to include the <userver/formats/parse/common_containers.hpp> or you "
         "have not provided a `Parse` function overload."
     );
 

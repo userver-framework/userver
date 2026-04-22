@@ -24,7 +24,7 @@ jobs:
         env:
             CMAKE_FLAGS: >-
                 -DCMAKE_BUILD_TYPE=Debug
-                -DCMAKE_CXX_STANDARD=17
+                -DCMAKE_CXX_STANDARD=20
                 -DUSERVER_SANITIZE="ub addr"
                 -DUSERVER_BUILD_SAMPLES=1
                 -DUSERVER_BUILD_TESTS=1
@@ -95,7 +95,7 @@ jobs:
                 key: ${{ steps.restore-cache.outputs.cache-primary-key }}
 
           - name: Show cache stats
-            run: |
+            run: |-
                 du -h -d 1 ${{env.CCACHE_DIR}}
                 du -h -d 1 ${{env.CPM_SOURCE_CACHE}}
                 ccache -s -v

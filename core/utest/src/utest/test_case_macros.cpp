@@ -116,7 +116,7 @@ void DoRunTest(
         // work with gtest's `waitpid()` calls.
         config.ev_default_loop_disabled = true;
     }
-    return DoRunTest(thread_count, config, std::move(factory));
+    DoRunTest(thread_count, config, std::move(factory));
 }
 
 void RunSetUpTestSuite(void (*set_up_test_suite)()) {

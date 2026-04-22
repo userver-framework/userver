@@ -1,6 +1,6 @@
 #include "tcp_socket_sink.hpp"
 
-#include <userver/internal/net/net_listener.hpp>
+#include <engine/io/tests/net_listener.hpp>
 #include <userver/net/blocking/get_addr_info.hpp>
 
 #include <userver/engine/async.hpp>
@@ -30,13 +30,13 @@ UTEST(TcpSocketSink, SocketConnectErrorIpV4) {
 }
 
 UTEST(TcpSocketSink, SocketConnectV4) {
-    const internal::net::TcpListener listener(internal::net::IpVersion::kV4);
+    const engine::io::tests::TcpListener listener(engine::io::tests::IpVersion::kV4);
     auto socket_sink = logging::impl::TcpSocketSink({listener.addr});
     EXPECT_NO_THROW(socket_sink.Log({"msg", logging::Level::kWarning}));
 }
 
 UTEST(TcpSocketSink, SocketConnectV6) {
-    const internal::net::TcpListener listener(internal::net::IpVersion::kV6);
+    const engine::io::tests::TcpListener listener(engine::io::tests::IpVersion::kV6);
     auto socket_sink = logging::impl::TcpSocketSink({listener.addr});
     EXPECT_NO_THROW(socket_sink.Log({"msg", logging::Level::kWarning}));
 }
@@ -44,7 +44,7 @@ UTEST(TcpSocketSink, SocketConnectV6) {
 UTEST(TcpSocketSink, SinkReadOnceV4) {
     const auto deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
 
-    internal::net::TcpListener listener(internal::net::IpVersion::kV4);
+    engine::io::tests::TcpListener listener(engine::io::tests::IpVersion::kV4);
     auto socket_sink = logging::impl::TcpSocketSink({listener.addr});
 
     auto listen_task = engine::AsyncNoSpan([&listener, &deadline] {
@@ -63,7 +63,7 @@ UTEST(TcpSocketSink, SinkReadOnceV4) {
 UTEST(TcpSocketSink, SinkReadMoreV4) {
     const auto deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
 
-    internal::net::TcpListener listener(internal::net::IpVersion::kV4);
+    engine::io::tests::TcpListener listener(engine::io::tests::IpVersion::kV4);
     auto socket_sink = logging::impl::TcpSocketSink({listener.addr});
 
     auto listen_task = engine::AsyncNoSpan([&listener, &deadline] {
@@ -83,7 +83,7 @@ UTEST(TcpSocketSink, SinkReadMoreV4) {
 }
 
 UTEST_MT(TcpSocketSink, ConcurrentClose, 4) {
-    const internal::net::TcpListener listener(internal::net::IpVersion::kV4);
+    const engine::io::tests::TcpListener listener(engine::io::tests::IpVersion::kV4);
     auto socket_sink = logging::impl::TcpSocketSink({listener.addr});
 
     auto log_task_1 = engine::AsyncNoSpan([&socket_sink] { EXPECT_NO_THROW(socket_sink.Close()); });

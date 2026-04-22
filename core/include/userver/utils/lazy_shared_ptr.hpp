@@ -8,6 +8,7 @@
 #include <memory>
 #include <utility>
 
+#include <userver/compiler/impl/lifetime.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/shared_readable_ptr.hpp>
@@ -76,7 +77,7 @@ public:
 
     /// @brief Get a pointer to the data (may be null). Fetches the data on the
     /// first access.
-    const T* Get() const& {
+    const T* Get() const& USERVER_IMPL_LIFETIME_BOUND {
         if (const auto* current_value = value_.load(); current_value != kUnfilled) {
             return current_value;
         }
@@ -90,7 +91,7 @@ public:
 
     /// @brief Get a smart pointer to the data (may be null). Fetches the data on
     /// the first access.
-    const utils::SharedReadablePtr<T>& GetShared() const& {
+    const utils::SharedReadablePtr<T>& GetShared() const& USERVER_IMPL_LIFETIME_BOUND {
         if (value_ == kUnfilled) {
             auto readable = get_data_();
             if (const auto* expected = kUnfilled; value_.compare_exchange_strong(expected, readable.Get())) {
@@ -109,7 +110,7 @@ public:
 
     ///@returns `*Get()`
     ///@note `Get()` must not be `nullptr`.
-    const T& operator*() const& {
+    const T& operator*() const& USERVER_IMPL_LIFETIME_BOUND {
         const auto* res = Get();
         UASSERT(res);
         return *res;
@@ -117,16 +118,16 @@ public:
 
     /// @returns `Get()`
     /// @note `Get()` must not be `nullptr`.
-    const T* operator->() const& { return &**this; }
+    const T* operator->() const& USERVER_IMPL_LIFETIME_BOUND { return &**this; }
 
     /// @returns `Get() != nullptr`
-    explicit operator bool() const& { return !!Get(); }
+    explicit operator bool() const& USERVER_IMPL_LIFETIME_BOUND { return !!Get(); }
 
     /// @returns `GetShared()`
-    operator const utils::SharedReadablePtr<T>&() const& { return GetShared(); }
+    operator const utils::SharedReadablePtr<T>&() const& USERVER_IMPL_LIFETIME_BOUND { return GetShared(); }
 
     /// @returns `GetShared()`
-    operator std::shared_ptr<const T>() const& { return GetShared(); }
+    operator std::shared_ptr<const T>() const& USERVER_IMPL_LIFETIME_BOUND { return GetShared(); }
 
 private:
     static inline const auto kUnfilled = reinterpret_cast<const T*>(std::uintptr_t{1});

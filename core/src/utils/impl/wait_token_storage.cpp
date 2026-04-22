@@ -6,7 +6,6 @@
 #include <utility>
 
 #include <concurrent/impl/owning_intrusive_pool.hpp>
-#include <userver/compiler/impl/constexpr.hpp>
 #include <userver/concurrent/impl/asymmetric_fence.hpp>
 #include <userver/concurrent/impl/intrusive_hooks.hpp>
 #include <userver/concurrent/impl/intrusive_stack.hpp>
@@ -36,7 +35,7 @@ using WaitTokenStorageImplPool = concurrent::impl::OwningIntrusivePool<concurren
     WaitTokenStorageImpl,
     concurrent::impl::MemberHook<&WaitTokenStorageImpl::pool_hook>>>;
 
-USERVER_IMPL_CONSTINIT WaitTokenStorageImplPool wait_token_storage_impl_pool;
+constinit WaitTokenStorageImplPool wait_token_storage_impl_pool;
 
 }  // namespace
 

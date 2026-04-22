@@ -1,35 +1,39 @@
 #pragma once
 
-#include "oneof_fwd.hpp"
-
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <userver/chaotic/object.hpp>
+#include <userver/chaotic/type_bundle_hpp.hpp>
 #include <userver/formats/json/serialize_variant.hpp>
 #include <userver/formats/parse/variant.hpp>
 #include <variant>
 
-#include <userver/chaotic/type_bundle_hpp.hpp>
+#include "oneof_fwd.hpp"
 
 namespace ns {
 
 struct OneOf {
-    using Foo = std::variant<int, std::string>;
+  using Foo = std::variant<int, std::string>;
 
-    std::optional<::ns::OneOf::Foo> foo{};
+  static constexpr USERVER_NAMESPACE::utils::StringLiteral kFieldNamefoo = "foo";
+  std::optional<::ns::OneOf::Foo> foo{};
 };
 
-bool operator==(const ::ns::OneOf& lhs, const ::ns::OneOf& rhs);
+bool operator==(const OneOf& lhs, const OneOf& rhs);
 
-USERVER_NAMESPACE::logging::LogHelper& operator<<(USERVER_NAMESPACE::logging::LogHelper& lh, const ::ns::OneOf& value);
+USERVER_NAMESPACE::logging::LogHelper& operator<<(USERVER_NAMESPACE::logging::LogHelper& lh, const OneOf& value);
 
-OneOf Parse(USERVER_NAMESPACE::formats::json::Value json, USERVER_NAMESPACE::formats::parse::To<::ns::OneOf>);
+OneOf Parse(USERVER_NAMESPACE::formats::json::Value json, USERVER_NAMESPACE::formats::parse::To<OneOf>);
 
-OneOf Parse(USERVER_NAMESPACE::formats::yaml::Value json, USERVER_NAMESPACE::formats::parse::To<::ns::OneOf>);
+OneOf Parse(USERVER_NAMESPACE::formats::yaml::Value json, USERVER_NAMESPACE::formats::parse::To<OneOf>);
 
-OneOf Parse(USERVER_NAMESPACE::yaml_config::Value json, USERVER_NAMESPACE::formats::parse::To<::ns::OneOf>);
+OneOf Parse(USERVER_NAMESPACE::yaml_config::Value json, USERVER_NAMESPACE::formats::parse::To<OneOf>);
 
-USERVER_NAMESPACE::formats::json::Value
-Serialize(const ::ns::OneOf& value, USERVER_NAMESPACE::formats::serialize::To<USERVER_NAMESPACE::formats::json::Value>);
+OneOf FromJsonString(std::string_view json, USERVER_NAMESPACE::formats::parse::To<OneOf>);
+
+USERVER_NAMESPACE::formats::json::Value Serialize(
+    const OneOf& value, USERVER_NAMESPACE::formats::serialize::To<USERVER_NAMESPACE::formats::json::Value>);
 
 }  // namespace ns
+

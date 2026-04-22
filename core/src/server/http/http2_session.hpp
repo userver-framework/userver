@@ -65,13 +65,17 @@ public:
     void HandleStreamingEvents();
 
 private:
+    friend class Http2ResponseWriter;
+
+    using SessionPtr = std::unique_ptr<nghttp2_session, std::function<decltype(nghttp2_session_del)>>;
+
     static int OnFrameRecv(nghttp2_session* session, const nghttp2_frame* frame, void* user_data);
 
     static int OnDataFrameSend(
         nghttp2_session* session,
         nghttp2_frame* frame,
         const uint8_t* framehd,
-        size_t length,
+        size_t max_len,
         nghttp2_data_source* source,
         void* user_data
     );
@@ -103,18 +107,13 @@ private:
     static int OnStreamClose(nghttp2_session* session, int32_t stream_id, uint32_t error_code, void* user_data);
 
     void RegisterStream(Stream::Id id);
-    void RemoveStream(Stream& id);
+    void RemoveStream(Stream& stream);
     Stream& GetStreamChecked(Stream::Id id);
 
     void SubmitRstStream(Stream::Id stream_id);
 
     void FinalizeRequest(Stream& stream);
     bool ConnectionIsOk();
-
-private:
-    friend class Http2ResponseWriter;
-
-    using SessionPtr = std::unique_ptr<nghttp2_session, std::function<decltype(nghttp2_session_del)>>;
 
     const net::Http2SessionConfig& config_;
 

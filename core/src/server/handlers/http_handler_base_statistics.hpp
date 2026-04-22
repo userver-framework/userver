@@ -14,6 +14,7 @@
 #include <userver/utils/statistics/rate_counter.hpp>
 #include <userver/utils/statistics/recentperiod.hpp>
 #include <utils/statistics/http_codes.hpp>
+#include <utils/statistics/impl/monotonic_concurrent_statistics_map.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -82,26 +83,6 @@ struct HttpHandlerStatisticsSnapshot final {
 
 void DumpMetric(utils::statistics::Writer& writer, const HttpHandlerStatisticsSnapshot& stats);
 
-// Statistics for a single request from the overall server or the external
-// client perspective. Includes the time spent in queue.
-struct HttpRequestStatisticsEntry final {
-    std::chrono::milliseconds timing;
-};
-
-class HttpRequestMethodStatistics final {
-public:
-    using Snapshot = void;
-
-    void Account(const HttpRequestStatisticsEntry& stats) noexcept;
-
-    using Percentile = utils::statistics::Percentile<2048, unsigned int, 120>;
-
-    Percentile GetTimings() const { return timings_.GetStatsForPeriod(); }
-
-private:
-    utils::statistics::RecentPeriod<Percentile, Percentile, utils::datetime::SteadyClock> timings_;
-};
-
 bool IsOkMethod(http::HttpMethod method) noexcept;
 
 std::size_t HttpMethodToIndex(http::HttpMethod method) noexcept;
@@ -123,24 +104,35 @@ private:
 
 class HttpHandlerStatistics final : public ByMethodStatistics<HttpHandlerMethodStatistics> {};
 
-class HttpRequestStatistics final : public ByMethodStatistics<HttpRequestMethodStatistics> {};
+class HttpHandlerStatisticsAggregate {
+public:
+    HttpHandlerStatistics& GetOverallStatistics();
+    utils::statistics::impl::MonotonicConcurrentStatisticsMap<HttpHandlerStatistics>& GetShardedStatisticsStorage();
+
+private:
+    HttpHandlerStatistics overall_handler_statistics_;
+    utils::statistics::impl::MonotonicConcurrentStatisticsMap<HttpHandlerStatistics> sharded_handler_statistics_;
+};
 
 class HttpHandlerStatisticsScope final {
 public:
     HttpHandlerStatisticsScope(
-        HttpHandlerStatistics& stats,
+        HttpHandlerStatisticsAggregate& stats,
         http::HttpMethod method,
         server::http::HttpResponse& response
     );
 
     ~HttpHandlerStatisticsScope();
 
+    void SetShardedStats(std::string_view sensor_path_part, utils::statistics::LabelsSpan labels);
+
     // TODO(TAXICOMMON-6584) detect automatically?
     //  symptom: we didn't send a normal response due to deadline expiration
     void OnCancelledByDeadline() noexcept;
 
 private:
-    HttpHandlerStatistics& stats_;
+    HttpHandlerStatisticsAggregate& stats_;
+    HttpHandlerStatistics* sharded_stats_{nullptr};
     const http::HttpMethod method_;
     const std::chrono::steady_clock::time_point start_time_;
     server::http::HttpResponse& response_;

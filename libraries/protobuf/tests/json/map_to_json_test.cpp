@@ -14,14 +14,14 @@ namespace protobuf::json::tests {
 struct MapToJsonSuccessTestParam {
     MapMessageData input = {};
     std::string expected_json = {};
-    WriteOptions options = {};
+    PrintOptions options = {};
 };
 
 struct MapToJsonFailureTestParam {
     MapMessageData input = {};
-    WriteErrorCode expected_errc = {};
+    PrintErrorCode expected_errc = {};
     std::string expected_path = {};
-    WriteOptions options = {};
+    PrintOptions options = {};
 };
 
 class MapToJsonSuccessTest : public ::testing::TestWithParam<MapToJsonSuccessTestParam> {};
@@ -34,29 +34,31 @@ INSTANTIATE_TEST_SUITE_P(
         MapToJsonSuccessTestParam{MapMessageData{}, R"({})"},
         MapToJsonSuccessTestParam{
             MapMessageData{},
-            R"({"field1":{},"field2":{},"field3":{},"field4":{},"field5":{},"field6":{},"field7":{}})",
+            R"({"field1":{},"field2":{},"field3":{},"field4":{},"field5":{},"field6":{},"field7":{},"field8":{}})",
             {.always_print_fields_with_no_presence = true}
         },
         MapToJsonSuccessTestParam{
             MapMessageData{
                 .field1 = {{1, 2}, {3, 4}, {5, 6}},
                 .field2 = {{10, 1.5}, {20, 1.5}},
-                .field3 = {{100, true}, {200, false}},
+                .field3 = {{100, true}, {-200, false}},
                 .field4 = {{1000, "hello"}, {2000, "world"}},
                 .field5 =
                     {{true, proto_json::messages::MapMessage::TEST_ENUM_VALUE1},
                      {false, proto_json::messages::MapMessage::TEST_ENUM_VALUE0}},
                 .field6 = {{"aaa", {true}}, {"bbb", {false}}},
-                .field7 = {{"ccc", {.seconds = 10, .nanos = 999}}}
+                .field7 = {{"ccc", {.seconds = 10, .nanos = 999}}},
+                .field8 = {{-2, ProtoValue{}}, {-1, ProtoValue{"test"}}, {0, ProtoValue{}}, {1, ProtoValue{true}}}
             },
             R"({
               "field1":{"1":2,"3":4,"5":6},
               "field2":{"10":1.5,"20":1.5},
-              "field3":{"100":true,"200":false},
+              "field3":{"100":true,"-200":false},
               "field4":{"1000":"hello","2000":"world"},
               "field5":{"true":"TEST_ENUM_VALUE1","false":"TEST_ENUM_VALUE0"},
               "field6":{"aaa":{"field1":true},"bbb":{}},
-              "field7":{"ccc":"10.000000999s"}
+              "field7":{"ccc":"10.000000999s"},
+              "field8":{"-1":"test","1":true}
             })"
         },
         MapToJsonSuccessTestParam{
@@ -76,7 +78,7 @@ INSTANTIATE_TEST_SUITE_P(
     MapToJsonFailureTest,
     ::testing::Values(MapToJsonFailureTestParam{
         MapMessageData{.field7 = {{"aaa", {.seconds = 1, .nanos = -1}}}},
-        WriteErrorCode::kInvalidValue,
+        PrintErrorCode::kInvalidValue,
         "field7['aaa']"
     })
 );
@@ -85,7 +87,9 @@ TEST_P(MapToJsonSuccessTest, Test) {
     const auto& param = GetParam();
 
     auto input = PrepareTestData(param.input);
-    formats::json::Value json, expected_json, sample_json;
+    formats::json::Value json;
+    formats::json::Value expected_json;
+    formats::json::Value sample_json;
 
     UASSERT_NO_THROW((json = MessageToJson(input, param.options)));
     UASSERT_NO_THROW((expected_json = PrepareJsonTestData(param.expected_json)));
@@ -99,7 +103,7 @@ TEST_P(MapToJsonFailureTest, Test) {
     const auto& param = GetParam();
     auto input = PrepareTestData(param.input);
 
-    EXPECT_WRITE_ERROR((void)MessageToJson(input, param.options), param.expected_errc, param.expected_path);
+    EXPECT_PRINT_ERROR((void)MessageToJson(input, param.options), param.expected_errc, param.expected_path);
     UEXPECT_THROW((void)CreateSampleJson(input, param.options), SampleError);
 }
 

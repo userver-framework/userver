@@ -11,6 +11,7 @@ from chaotic.back.cpp import types as cpp_types
 from chaotic.front import types
 
 PARENT_DIR = os.path.dirname(__file__)
+FORMATS_JSON = '::formats::json'
 
 
 @dataclasses.dataclass
@@ -59,6 +60,21 @@ def open_namespace(new_ns: str) -> str:
         return ''
 
 
+def shortest_cpp_name(type_: cpp_types.CppType, blacklist: list[str] | None = None) -> str:
+    if blacklist is None:
+        blacklist = []
+
+    if isinstance(type_, (cpp_types.CppRef, cpp_types.CppArray)):
+        return type_.cpp_global_name()
+
+    shortest = type_.raw_cpp_type.in_scope(get_current_namespace())
+    if shortest.split('::')[0] not in blacklist:
+        return shortest
+    else:
+        # Name collision, fallback to fully qualified name
+        return type_.cpp_global_name()
+
+
 def cpp_namespace(name: str) -> str:
     if '::' not in name:
         return ''
@@ -85,6 +101,17 @@ def definition_includes(types: list[cpp_types.CppType]) -> list[str]:
     for type_ in types:
         includes.update(set(type_.definition_includes()))
     return sorted(includes)
+
+
+def sax_parser_includes(types: list[cpp_types.CppType]) -> list[str]:
+    includes = set()
+    for type_ in types:
+        includes.update(set(type_.sax_parser_includes()))
+    return sorted(includes)
+
+
+def has_json_parse(parse_formats: list[str]) -> bool:
+    return FORMATS_JSON in parse_formats
 
 
 def extra_cpp_type(type_: cpp_types.CppStruct) -> str:
@@ -119,6 +146,7 @@ def make_env() -> jinja2.Environment:
 
     env.globals['declaration_includes'] = declaration_includes
     env.globals['definition_includes'] = definition_includes
+    env.globals['sax_parser_includes'] = sax_parser_includes
 
     env.globals['cpp_namespace'] = cpp_namespace
     env.globals['cpp_type'] = cpp_type
@@ -129,6 +157,8 @@ def make_env() -> jinja2.Environment:
     env.globals['open_namespace'] = open_namespace
     env.globals['close_namespace'] = close_namespace
     env.globals['get_current_namespace'] = get_current_namespace
+    env.globals['shortest_cpp_name'] = shortest_cpp_name
+    env.globals['has_json_parse'] = has_json_parse
 
     return env
 
@@ -145,12 +175,14 @@ class OneToOneFileRenderer:
         clang_format_bin: str,
         parse_extra_formats: bool = False,
         generate_serializer: bool = False,
+        generate_sax_parser: bool = False,
     ) -> None:
         self._relative_to = relative_to
         self._vfilepath_to_relfilepath_map = vfilepath_to_relfilepath
         self._clang_format_bin = clang_format_bin
         self._parse_extra_formats = parse_extra_formats
         self._generate_serializer = generate_serializer
+        self._generate_sax_parser = generate_sax_parser
 
     @staticmethod
     def filepath_wo_ext(filepath: str) -> str:
@@ -161,6 +193,22 @@ class OneToOneFileRenderer:
         return self._vfilepath_to_relfilepath_map[vfilepath]
 
     def extract_external_includes(
+        self,
+        types_cpp: dict[str, cpp_types.CppType],
+        ignore_filepath_wo_ext: str,
+    ) -> list[str]:
+        return list(map(self.filepath_to_include, self.extract_external_stems(types_cpp, ignore_filepath_wo_ext)))
+
+    def extract_external_sax_parser_includes(
+        self,
+        types_cpp: dict[str, cpp_types.CppType],
+        ignore_filepath_wo_ext: str,
+    ) -> list[str]:
+        return list(
+            map(self.filepath_to_sax_parser_include, self.extract_external_stems(types_cpp, ignore_filepath_wo_ext))
+        )
+
+    def extract_external_stems(
         self,
         types_cpp: dict[str, cpp_types.CppType],
         ignore_filepath_wo_ext: str,
@@ -180,7 +228,7 @@ class OneToOneFileRenderer:
                 ),
             )
             if filepath != ignore_filepath_wo_ext:
-                result.add(self.filepath_to_include(filepath))
+                result.add(filepath)
 
         for type_ in types_cpp.values():
             assert type_.json_schema
@@ -189,11 +237,17 @@ class OneToOneFileRenderer:
 
         return sorted(result)
 
-    def filepath_to_include(self, filepath_wo_ext: str) -> str:
+    def filepath_to_smth(self, filepath_wo_ext: str, ext: str) -> str:
         if filepath_wo_ext.startswith('/'):
-            return os.path.relpath(filepath_wo_ext, self._relative_to) + '.hpp'
+            return os.path.relpath(filepath_wo_ext, self._relative_to) + ext
         else:
-            return filepath_wo_ext + '.hpp'
+            return filepath_wo_ext + ext
+
+    def filepath_to_include(self, filepath_wo_ext: str) -> str:
+        return self.filepath_to_smth(filepath_wo_ext, '.hpp')
+
+    def filepath_to_sax_parser_include(self, filepath_wo_ext: str) -> str:
+        return self.filepath_to_smth(filepath_wo_ext, '_sax_parsers.hpp')
 
     def render(
         self,
@@ -214,16 +268,20 @@ class OneToOneFileRenderer:
 
         if self._parse_extra_formats:
             parse_formats = [
-                '::formats::json',
+                FORMATS_JSON,
                 '::formats::yaml',
                 '::yaml_config',
             ]
         else:
-            parse_formats = ['::formats::json']
+            parse_formats = [FORMATS_JSON]
 
         output = []
         for filepath_wo_ext, types_cpp in files.items():
             external_includes = self.extract_external_includes(
+                types_cpp,
+                filepath_wo_ext,
+            )
+            external_sax_parser_includes = self.extract_external_sax_parser_includes(
                 types_cpp,
                 filepath_wo_ext,
             )
@@ -236,14 +294,21 @@ class OneToOneFileRenderer:
                 else:
                     p_header = filepath_wo_ext
 
+            assert not self._generate_sax_parser or has_json_parse(parse_formats), (
+                'SAX parsing requires JSON parse format'
+            )
             env = {
                 'pair_header': p_header,
                 'types': types_cpp,
                 'userver': 'USERVER_NAMESPACE',
                 'external_includes': external_includes,
+                'external_sax_parser_includes': external_sax_parser_includes,
                 'parse_formats': parse_formats,
                 'generate_serializer': self._generate_serializer,
+                'generate_sax_parser': self._generate_sax_parser,
             }
+
+            output_files: list[CppOutputFile] = []
 
             tpl = JINJA_ENV.get_template('templates/type_fwd.hpp.jinja')
             fwd_hpp = tpl.render(types=types_cpp)
@@ -251,10 +316,24 @@ class OneToOneFileRenderer:
                 fwd_hpp,
                 binary=self._clang_format_bin,
             )
+            output_files.append(
+                CppOutputFile(
+                    content=fwd_hpp,
+                    ext='_fwd.hpp',
+                    subdir='include/',
+                )
+            )
 
             tpl = JINJA_ENV.get_template('templates/type.hpp.jinja')
             hpp = tpl.render(**env)
             hpp = cpp_format.format_pp(hpp, binary=self._clang_format_bin)
+            output_files.append(
+                CppOutputFile(
+                    content=hpp,
+                    ext='.hpp',
+                    subdir='include/',
+                ),
+            )
 
             tpl = JINJA_ENV.get_template('templates/type_parsers.ipp.jinja')
             parsers_ipp = tpl.render(**env)
@@ -262,42 +341,39 @@ class OneToOneFileRenderer:
                 parsers_ipp,
                 binary=self._clang_format_bin,
             )
+            output_files.append(
+                CppOutputFile(
+                    content=parsers_ipp,
+                    ext='_parsers.ipp',
+                    subdir='include/',
+                )
+            )
+
+            if self._generate_sax_parser:
+                tpl = JINJA_ENV.get_template('templates/type_sax_parsers.hpp.jinja')
+                sax_parsers_hpp = tpl.render(**env)
+                sax_parsers_hpp = cpp_format.format_pp(
+                    sax_parsers_hpp,
+                    binary=self._clang_format_bin,
+                )
+                output_files.append(
+                    CppOutputFile(
+                        content=sax_parsers_hpp,
+                        ext='_sax_parsers.hpp',
+                        subdir='include/',
+                    )
+                )
 
             tpl = JINJA_ENV.get_template('templates/type.cpp.jinja')
             cpp = tpl.render(**env)
             cpp = cpp_format.format_pp(cpp, binary=self._clang_format_bin)
+            output_files.append(CppOutputFile(content=cpp, ext='.cpp', subdir='src/'))
 
             output.append(
                 CppOutput(
                     filepath_wo_ext=filepath_wo_ext,
-                    files=[
-                        CppOutputFile(
-                            content=fwd_hpp,
-                            ext='_fwd.hpp',
-                            subdir='include/',
-                        ),
-                        CppOutputFile(
-                            content=hpp,
-                            ext='.hpp',
-                            subdir='include/',
-                        ),
-                        CppOutputFile(
-                            content=parsers_ipp,
-                            ext='_parsers.ipp',
-                            subdir='include/',
-                        ),
-                        CppOutputFile(content=cpp, ext='.cpp', subdir='src/'),
-                    ],
+                    files=output_files,
                 ),
             )
 
         return output
-
-    @staticmethod
-    def get_output_files(stem: str, path: str) -> list[str]:
-        return [
-            f'include/{path}/{stem}_fwd.hpp',
-            f'include/{path}/{stem}_parsers.ipp',
-            f'include/{path}/{stem}.hpp',
-            f'src/{path}/{stem}.cpp',
-        ]

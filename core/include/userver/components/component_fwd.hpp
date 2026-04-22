@@ -12,6 +12,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace components {
 
+template <typename T>
+struct WithType;
+
 class ComponentConfig;
 
 class ComponentContext;

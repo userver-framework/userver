@@ -2,6 +2,7 @@ if(TARGET benchmark::benchmark)
     return()
 endif()
 
+# @ingroup download
 option(USERVER_DOWNLOAD_PACKAGE_GBENCH "Download and setup gbench if no gbench of matching version was found"
        ${USERVER_DOWNLOAD_PACKAGES}
 )
@@ -18,7 +19,7 @@ if(NOT USERVER_FORCE_DOWNLOAD_PACKAGES)
     endif()
 endif()
 
-set(UserverGBench_VERSION "1.6.1")
+set(UserverGBench_VERSION "1.9.5")
 
 include(DownloadUsingCPM)
 cpmaddpackage(

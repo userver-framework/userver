@@ -99,11 +99,11 @@ public:
     ValueBuilder operator[](std::size_t index);
     /// @brief Access member by key for modification.
     /// @throw `TypeMismatchException` if not object or null value.
-    template <
-        typename Tag,
-        utils::StrongTypedefOps Ops,
-        typename Enable = std::enable_if_t<utils::IsStrongTypedefLoggable(Ops)>>
-    ValueBuilder operator[](const utils::StrongTypedef<Tag, std::string, Ops>& key);
+    template <typename Tag, utils::StrongTypedefOps Ops>
+    requires(utils::IsStrongTypedefLoggable(Ops))
+    ValueBuilder operator[](const utils::StrongTypedef<Tag, std::string, Ops>& key) {
+        return (*this)[key.GetUnderlying()];
+    }
 
     /// @brief Remove key from object. If key is missing nothing happens.
     /// @throw `TypeMismatchException` if value is not an object.
@@ -194,20 +194,14 @@ private:
     friend class Iterator<IterTraits>;
 };
 
-template <typename Tag, utils::StrongTypedefOps Ops, typename Enable>
-ValueBuilder ValueBuilder::operator[](const utils::StrongTypedef<Tag, std::string, Ops>& key) {
-    return (*this)[key.GetUnderlying()];
-}
-
 template <typename T>
 Value ValueBuilder::DoSerialize(const T& t) {
     static_assert(
-        formats::common::impl::kHasSerialize<Value, T>,
+        formats::common::impl::HasSerialize<Value, T>,
         "There is no `Serialize(const T&, formats::serialize::To<yaml::Value>)` "
         "in namespace of `T` or `formats::serialize`. "
         ""
-        "Probably you forgot to include the "
-        "<userver/formats/serialize/common_containers.hpp> or you "
+        "Probably you forgot to include the <userver/formats/serialize/common_containers.hpp> or you "
         "have not provided a `Serialize` function overload."
     );
 
@@ -215,8 +209,8 @@ Value ValueBuilder::DoSerialize(const T& t) {
 }
 
 template <typename T>
-std::enable_if_t<std::is_integral<T>::value && sizeof(T) <= sizeof(long long), Value>
-Serialize(T value, formats::serialize::To<Value>) {
+requires(std::is_integral<T>::value && sizeof(T) <= sizeof(long long))
+Value Serialize(T value, formats::serialize::To<Value>) {
     using Type = std::conditional_t<std::is_signed<T>::value, long long, unsigned long long>;
     return yaml::ValueBuilder(static_cast<Type>(value)).ExtractValue();
 }

@@ -84,14 +84,14 @@ struct MockSentinelServers {
         }
     }
 
-    void CreateSentinelClientAndWait(const secdist::RedisSettings& settings) {
+    void CreateSentinelClientAndWait(const secdist::RedisSettings& settings) const {
         auto sentinel_client = storages::redis::impl::Sentinel::CreateSentinel(
             thread_pool,
             settings,
             "test_shard_group_name",
             dynamic_config::GetDefaultSource(),
             "test_client_name",
-            {""}
+            {storages::redis::ShardingStrategy::kKeyShardTaximeterCrc32}
         );
         sentinel_client->WaitConnectedDebug(std::empty(slaves));
     }
@@ -116,7 +116,7 @@ struct MockSentinelServers {
             "test_shard_group_name",
             dynconf,
             "test_client_name",
-            {""},
+            storages::redis::ShardingStrategy::kKeyShardTaximeterCrc32,
             cc,
             redis_control
         );
@@ -160,7 +160,9 @@ TEST(Redis, NoPassword) {
 
     auto pool = std::make_shared<storages::redis::impl::ThreadPools>(1, 1);
     const storages::redis::RedisCreationSettings redis_settings;
-    auto redis = std::make_shared<storages::redis::impl::Redis>(pool->GetRedisThreadPool(), redis_settings, kDbName);
+    storages::redis::impl::Statistics stats;
+    auto redis = std::make_shared<
+        storages::redis::impl::Redis>(pool->GetRedisThreadPool(), redis_settings, kDbName, stats);
     redis->Connect({kLocalhost}, server.GetPort(), storages::redis::Password(""), kDatabaseIndex);
 
     EXPECT_TRUE(ping_handler->WaitForFirstReply(kSmallPeriod));
@@ -173,7 +175,9 @@ TEST(Redis, Auth) {
 
     auto pool = std::make_shared<storages::redis::impl::ThreadPools>(1, 1);
     const storages::redis::RedisCreationSettings redis_settings;
-    auto redis = std::make_shared<storages::redis::impl::Redis>(pool->GetRedisThreadPool(), redis_settings, kDbName);
+    storages::redis::impl::Statistics stats;
+    auto redis = std::make_shared<
+        storages::redis::impl::Redis>(pool->GetRedisThreadPool(), redis_settings, kDbName, stats);
     redis->Connect({kLocalhost}, server.GetPort(), storages::redis::Password("password"), kDatabaseIndex);
 
     EXPECT_TRUE(auth_handler->WaitForFirstReply(kSmallPeriod));
@@ -187,7 +191,9 @@ TEST(Redis, AuthFail) {
 
     auto pool = std::make_shared<storages::redis::impl::ThreadPools>(1, 1);
     const storages::redis::RedisCreationSettings redis_settings;
-    auto redis = std::make_shared<storages::redis::impl::Redis>(pool->GetRedisThreadPool(), redis_settings, kDbName);
+    storages::redis::impl::Statistics stats;
+    auto redis = std::make_shared<
+        storages::redis::impl::Redis>(pool->GetRedisThreadPool(), redis_settings, kDbName, stats);
     redis->Connect({kLocalhost}, server.GetPort(), storages::redis::Password("password"), kDatabaseIndex);
 
     EXPECT_TRUE(auth_error_handler->WaitForFirstReply(kSmallPeriod));
@@ -202,7 +208,9 @@ TEST(Redis, AuthTimeout) {
 
     auto pool = std::make_shared<storages::redis::impl::ThreadPools>(1, 1);
     const storages::redis::RedisCreationSettings redis_settings;
-    auto redis = std::make_shared<storages::redis::impl::Redis>(pool->GetRedisThreadPool(), redis_settings, kDbName);
+    storages::redis::impl::Statistics stats;
+    auto redis = std::make_shared<
+        storages::redis::impl::Redis>(pool->GetRedisThreadPool(), redis_settings, kDbName, stats);
     redis->Connect({kLocalhost}, server.GetPort(), storages::redis::Password("password"), kDatabaseIndex);
 
     EXPECT_TRUE(auth_error_handler->WaitForFirstReply(sleep_period + kSmallPeriod));
@@ -436,7 +444,9 @@ TEST(Redis, Select) {
 
     auto pool = std::make_shared<storages::redis::impl::ThreadPools>(1, 1);
     const storages::redis::RedisCreationSettings redis_settings;
-    auto redis = std::make_shared<storages::redis::impl::Redis>(pool->GetRedisThreadPool(), redis_settings, kDbName);
+    storages::redis::impl::Statistics stats;
+    auto redis = std::make_shared<
+        storages::redis::impl::Redis>(pool->GetRedisThreadPool(), redis_settings, kDbName, stats);
     redis->Connect({kLocalhost}, server.GetPort(), {}, kRedisDatabaseIndex);
 
     EXPECT_TRUE(select_handler->WaitForFirstReply(kSmallPeriod));
@@ -450,7 +460,9 @@ TEST(Redis, SelectFail) {
 
     auto pool = std::make_shared<storages::redis::impl::ThreadPools>(1, 1);
     const storages::redis::RedisCreationSettings redis_settings;
-    auto redis = std::make_shared<storages::redis::impl::Redis>(pool->GetRedisThreadPool(), redis_settings, kDbName);
+    storages::redis::impl::Statistics stats;
+    auto redis = std::make_shared<
+        storages::redis::impl::Redis>(pool->GetRedisThreadPool(), redis_settings, kDbName, stats);
     redis->Connect({kLocalhost}, server.GetPort(), {}, kRedisDatabaseIndex);
 
     EXPECT_TRUE(select_error_handler->WaitForFirstReply(kSmallPeriod));
@@ -465,7 +477,9 @@ TEST(Redis, SelectTimeout) {
 
     auto pool = std::make_shared<storages::redis::impl::ThreadPools>(1, 1);
     const storages::redis::RedisCreationSettings redis_settings;
-    auto redis = std::make_shared<storages::redis::impl::Redis>(pool->GetRedisThreadPool(), redis_settings, kDbName);
+    storages::redis::impl::Statistics stats;
+    auto redis = std::make_shared<
+        storages::redis::impl::Redis>(pool->GetRedisThreadPool(), redis_settings, kDbName, stats);
     redis->Connect({kLocalhost}, server.GetPort(), {}, kRedisDatabaseIndex);
 
     EXPECT_TRUE(select_error_handler->WaitForFirstReply(sleep_period + kSmallPeriod));
@@ -480,7 +494,9 @@ TEST(Redis, SlaveREADONLY) {
     auto pool = std::make_shared<storages::redis::impl::ThreadPools>(1, 1);
     storages::redis::RedisCreationSettings redis_settings;
     redis_settings.send_readonly = true;
-    auto redis = std::make_shared<storages::redis::impl::Redis>(pool->GetRedisThreadPool(), redis_settings, kDbName);
+    storages::redis::impl::Statistics stats;
+    auto redis = std::make_shared<
+        storages::redis::impl::Redis>(pool->GetRedisThreadPool(), redis_settings, kDbName, stats);
     redis->Connect({kLocalhost}, server.GetPort(), {}, kDatabaseIndex);
 
     EXPECT_TRUE(readonly_handler->WaitForFirstReply(kSmallPeriod));
@@ -495,7 +511,9 @@ TEST(Redis, SlaveREADONLYFail) {
     auto pool = std::make_shared<storages::redis::impl::ThreadPools>(1, 1);
     storages::redis::RedisCreationSettings redis_settings;
     redis_settings.send_readonly = true;
-    auto redis = std::make_shared<storages::redis::impl::Redis>(pool->GetRedisThreadPool(), redis_settings, kDbName);
+    storages::redis::impl::Statistics stats;
+    auto redis = std::make_shared<
+        storages::redis::impl::Redis>(pool->GetRedisThreadPool(), redis_settings, kDbName, stats);
     redis->Connect({kLocalhost}, server.GetPort(), {}, kDatabaseIndex);
 
     EXPECT_TRUE(readonly_handler->WaitForFirstReply(kSmallPeriod));
@@ -508,7 +526,9 @@ TEST(Redis, PingFail) {
 
     auto pool = std::make_shared<storages::redis::impl::ThreadPools>(1, 1);
     const storages::redis::RedisCreationSettings redis_settings;
-    auto redis = std::make_shared<storages::redis::impl::Redis>(pool->GetRedisThreadPool(), redis_settings, kDbName);
+    storages::redis::impl::Statistics stats;
+    auto redis = std::make_shared<
+        storages::redis::impl::Redis>(pool->GetRedisThreadPool(), redis_settings, kDbName, stats);
     redis->Connect({kLocalhost}, server.GetPort(), storages::redis::Password(""), kDatabaseIndex);
 
     EXPECT_TRUE(ping_error_handler->WaitForFirstReply(kSmallPeriod));
@@ -535,7 +555,9 @@ TEST_P(RedisDisconnectingReplies, X) {
 
     auto pool = std::make_shared<storages::redis::impl::ThreadPools>(1, 1);
     const storages::redis::RedisCreationSettings redis_settings;
-    auto redis = std::make_shared<storages::redis::impl::Redis>(pool->GetRedisThreadPool(), redis_settings, kDbName);
+    storages::redis::impl::Statistics stats;
+    auto redis = std::make_shared<
+        storages::redis::impl::Redis>(pool->GetRedisThreadPool(), redis_settings, kDbName, stats);
     redis->Connect({kLocalhost}, server.GetPort(), storages::redis::Password(""), kDatabaseIndex);
 
     EXPECT_TRUE(ping_handler->WaitForFirstReply(kSmallPeriod));

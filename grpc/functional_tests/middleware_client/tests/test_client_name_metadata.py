@@ -6,7 +6,7 @@ import samples.greeter_pb2_grpc as greeter_services
 CLIENT_NAME_METADATA = 'x-testsuite-client-name'
 
 
-async def test_error_status(service_client, grpc_mockserver):
+async def test_metadata(service_client, grpc_mockserver):
     @grpc_mockserver(greeter_services.GreeterServiceServicer.SayHello)
     async def mock_say_hello(request, context: grpc.aio.ServicerContext):
         req_metadata = grpc.aio.Metadata(*context.invocation_metadata())

@@ -19,7 +19,7 @@ namespace dynamic_config {
 namespace impl {
 
 template <typename T>
-using IsJson = std::enable_if_t<std::is_same_v<T, formats::json::Value>>;
+concept IsJson = std::is_same_v<T, formats::json::Value>;
 
 }  // namespace impl
 

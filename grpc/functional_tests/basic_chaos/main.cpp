@@ -4,6 +4,7 @@
 #include <userver/clients/http/component_list.hpp>
 #include <userver/components/minimal_server_component_list.hpp>
 #include <userver/congestion_control/component.hpp>
+#include <userver/dynamic_config/updater/component_list.hpp>
 #include <userver/server/handlers/tests_control.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
 #include <userver/ugrpc/client/client_factory_component.hpp>
@@ -18,6 +19,7 @@
 int main(int argc, char* argv[]) {
     const auto component_list =
         components::MinimalServerComponentList()
+            .AppendComponentList(USERVER_NAMESPACE::dynamic_config::updater::ComponentList())
             .Append<components::TestsuiteSupport>()
             .AppendComponentList(ugrpc::server::DefaultComponentList())
             .Append<ugrpc::server::middlewares::access_log::Component>()

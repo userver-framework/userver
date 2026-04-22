@@ -48,7 +48,7 @@ public:
 
     void InitiateShutdown();
 
-    void Schedule(impl::TaskContext*);
+    void Schedule(boost::intrusive_ptr<impl::TaskContext>&&);
 
     void Adopt(impl::TaskContext& context);
 

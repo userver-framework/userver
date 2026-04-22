@@ -55,8 +55,7 @@ properties:
                 description: path to TLS certificate
     service-defaults:
         type: object
-        description: omitted options for service components will default to the corresponding
-            option from here
+        description: omitted options for service components will default to the corresponding option from here
         additionalProperties: false
         properties:
             task-processor:

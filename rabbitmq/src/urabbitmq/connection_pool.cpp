@@ -92,6 +92,7 @@ ConnectionPool::ConnectionUniquePtr ConnectionPool::DoCreateConnection(engine::D
         endpoint_info_,
         auth_settings_,
         pool_settings_.max_in_flight_requests,
+        pool_settings_.heartbeat_interval_seconds,
         use_secure_connection_,
         stats_,
         deadline

@@ -6,6 +6,8 @@ import pathlib
 import re
 from typing import NoReturn
 
+import transliterate
+
 from chaotic import cpp_names
 from chaotic import error
 from chaotic.back.cpp import type_name
@@ -85,14 +87,6 @@ class FormatChooser:
                     type_,
                     f'{type_.raw_cpp_type} has JSON-specific field "extra"',
                 )
-            if isinstance(type_, cpp_types.CppStruct):
-                assert isinstance(type_, cpp_types.CppStruct)
-
-                if type_.extra_type is True:
-                    mark_as_only_json(
-                        type_,
-                        f'{type_.raw_cpp_type} has JSON-specific field "extra"',
-                    )
 
 
 class TranslatorError(error.BaseError):
@@ -492,7 +486,12 @@ class Generator:
 
     @staticmethod
     def _normalize_name(name: str) -> str:
-        return re.sub(NON_NAME_SYMBOL_RE, '_', name)
+        if re.search(NON_NAME_SYMBOL_RE, name):
+            lang = transliterate.detect_language(name, heavy_check=True)
+            if lang:
+                name = transliterate.translit(name, lang, reversed=True)
+            name = re.sub(NON_NAME_SYMBOL_RE, '_', name)
+        return name
 
     def _gen_field(
         self,
@@ -520,6 +519,13 @@ class Generator:
 
         name = class_name.joinns(type_name)
         type_ = self._generate_type(name, schema)
+        nullable = type_.nullable
+
+        if nullable and not required:
+            self._raise(
+                schema,
+                msg='optional nullable fields are not supported',
+            )
 
         field = cpp_types.CppStructField(
             name=cpp_name or self._normalize_name(field_name),
@@ -713,7 +719,7 @@ class Generator:
             user_cpp_type=None,
             orig_cpp_type=cpp_types.CppType(
                 raw_cpp_type=type_name.TypeName(''),
-                json_schema=None,
+                json_schema=types.Schema(),
                 nullable=False,
                 user_cpp_type=None,
             ),

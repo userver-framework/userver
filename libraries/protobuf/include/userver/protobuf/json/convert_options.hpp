@@ -7,16 +7,16 @@ USERVER_NAMESPACE_BEGIN
 
 namespace protobuf::json {
 
-/// @brief JSON read options which affect how JSON `Value` is converted to a protobuf message.
-struct ReadOptions {
+/// @brief Options which affect how JSON `Value` is converted to a protobuf message.
+struct ParseOptions {
     /// @brief Ignore unknown JSON fields and enum value names.
     /// If not set, conversion of a JSON object containing unknown field (i.e. field that is not mapped to any protobuf
     /// message field) or unknown enum value name will fail.
     bool ignore_unknown_fields = false;
 };
 
-/// @brief JSON write options which affect how protobuf message is converted to a JSON `ValueBuilder`/`Value`.
-struct WriteOptions {
+/// @brief Options which affect how protobuf message is converted to a JSON `ValueBuilder`/`Value`.
+struct PrintOptions {
     /// @brief Always output protobuf message fields that do not have explicit presence.
     /// This fields are:
     /// * implicit presence fields set to default value

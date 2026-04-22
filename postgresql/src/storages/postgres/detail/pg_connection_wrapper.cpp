@@ -1,5 +1,7 @@
 #include <storages/postgres/detail/pg_connection_wrapper.hpp>
 
+#include <boost/container/small_vector.hpp>
+
 #include <pg_config.h>
 
 #ifndef USERVER_NO_LIBPQ_PATCHES
@@ -14,12 +16,6 @@ auto PQXsendQueryPrepared(PGconn* conn, const char* stmtName, int nParams, const
 }
 #endif
 
-#ifdef ARCADIA_ROOT
-#define USERVER_LIBPQ_VERSION PG_VERSION_NUM
-#else
-#include <userver_libpq_version.hpp>  // Y_IGNORE
-#endif
-
 #include <userver/concurrent/background_task_storage.hpp>
 #include <userver/crypto/openssl.hpp>
 #include <userver/engine/task/cancel.hpp>
@@ -30,6 +26,7 @@ auto PQXsendQueryPrepared(PGconn* conn, const char* stmtName, int nParams, const
 
 #include <storages/postgres/detail/cancel.hpp>
 #include <storages/postgres/detail/pg_message_severity.hpp>
+#include <storages/postgres/detail/pg_version.hpp>
 #include <storages/postgres/detail/tracing_tags.hpp>
 #include <userver/storages/postgres/dsn.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
@@ -124,7 +121,7 @@ const char* MsgForStatus(ConnStatusType status) {
 #endif
 #if USERVER_LIBPQ_VERSION >= 180000
         case CONNECTION_AUTHENTICATING:
-            return "PQstatus: Waiting for connection authentification to complete";
+            return "PQstatus: Waiting for connection authentication to complete";
 #endif
     }
 
@@ -292,54 +289,70 @@ engine::Task PGConnectionWrapper::Cancel() {
         try {
             detail::Cancel(cancel.get(), engine::Deadline::FromDuration(std::chrono::seconds(5)));
         } catch (const std::exception& e) {
-            PGCW_LOG_LIMITED_WARNING() << "Failed to cancel current request";
+            PGCW_LOG_LIMITED_WARNING() << "Failed to cancel current request: " << e;
         }
     });
 }
 
-void PGConnectionWrapper::AsyncConnect(const Dsn& dsn, Deadline deadline, tracing::ScopeTime& scope) {
-    PGCW_LOG_DEBUG() << "Connecting to " << DsnCutPassword(dsn);
+void PGConnectionWrapper::AsyncConnect(const ConnectParams& params, Deadline deadline, tracing::ScopeTime& scope) {
+    PGCW_LOG_DEBUG() << "Connecting to " << DsnCutPassword(params.dsn);
 
-    auto options = OptionsFromDsn(dsn);
+    auto options = OptionsFromDsn(params.dsn);
     log_extra_.Extend(tracing::kDatabaseInstance, std::move(options.dbname));
     log_extra_.Extend(tracing::kPeerAddress, std::move(options.host) + ':' + options.port);
 
     scope.Reset(scopes::kLibpqConnect);
-    StartAsyncConnect(dsn);
+    StartAsyncConnect(params);
     scope.Reset(scopes::kLibpqWaitConnectFinish);
-    WaitConnectionFinish(deadline, dsn);
-    PGCW_LOG_DEBUG() << "Connected to " << DsnCutPassword(dsn);
+    WaitConnectionFinish(deadline, params.dsn);
+    PGCW_LOG_DEBUG() << "Connected to " << DsnCutPassword(params.dsn);
 }
 
-void PGConnectionWrapper::StartAsyncConnect(const Dsn& dsn) {
+void PGConnectionWrapper::StartAsyncConnect(const ConnectParams& params) {
     if (conn_) {
         PGCW_LOG_LIMITED_ERROR()
             << "Attempt to connect a connection that is already connected" << logging::LogExtra::Stacktrace();
-        throw ConnectionFailed{dsn, "Already connected"};
+        throw ConnectionFailed{params.dsn, "Already connected"};
     }
 
     // PQconnectStart() may access /etc/hosts, ~/.pgpass, /etc/passwd, etc.
-    engine::CriticalAsyncNoSpan(bg_task_processor_, [&dsn, this] {
-        conn_ = PQconnectStart(dsn.GetUnderlying().c_str());
+    engine::CriticalAsyncNoSpan(bg_task_processor_, [&params, this] {
+        boost::container::small_vector<const char*, 8> keywords{"dbname"};
+        boost::container::small_vector<const char*, 8> values{params.dsn.GetUnderlying().c_str()};
+
+        if (params.application_name) {
+            keywords.push_back("application_name");
+            values.push_back(params.application_name->c_str());
+        }
+
+        if (params.client_encoding) {
+            keywords.push_back("client_encoding");
+            values.push_back(params.client_encoding->c_str());
+        }
+
+        keywords.push_back(nullptr);
+        values.push_back(nullptr);
+
+        conn_ = PQconnectStartParams(keywords.data(), values.data(), true);
     }).Get();
 
     if (!conn_) {
         // The only reason the pointer cannot be null is that libpq failed
         // to allocate memory for the structure
         PGCW_LOG_LIMITED_ERROR() << "libpq failed to allocate a PGconn structure" << logging::LogExtra::Stacktrace();
-        throw ConnectionFailed{dsn, "Failed to allocate PGconn structure"};
+        throw ConnectionFailed{params.dsn, "Failed to allocate PGconn structure"};
     }
 
     const auto status = PQstatus(conn_);
     if (CONNECTION_BAD == status) {
-        const std::string msg = MsgForStatus(status);
+        const std::string msg = fmt::format("{}: {}", MsgForStatus(status), PQerrorMessage(conn_));
         PGCW_LOG_WARNING() << msg;
-        CloseWithError(ConnectionFailed{dsn, msg});
+        CloseWithError(ConnectionFailed{params.dsn, msg});
     } else {
         PGCW_LOG_TRACE() << MsgForStatus(status);
     }
 
-    RefreshSocket(dsn);
+    RefreshSocket(params.dsn);
 
     // set this as early as possible to avoid dumping notices to stderr
     PQsetNoticeReceiver(conn_, &NoticeReceiver, this);
@@ -783,7 +796,11 @@ ResultSet PGConnectionWrapper::MakeResult(ResultHandle&& handle) {
             break;
 #endif
     }
-    LOG_DEBUG() << "Result checked";
+
+    logging::LogExtra log_extra;
+    log_extra.Extend("db.row_count", wrapper->RowCount());
+    PGCW_LOG_DEBUG() << "Result checked" << log_extra;
+
     return ResultSet{wrapper};
 }
 
@@ -1007,6 +1024,12 @@ void PGConnectionWrapper::PutPipelineSync() {
         ++pipeline_sync_counter_;
     }
 #endif
+}
+
+void PGConnectionWrapper::SetSessionId(const std::string& session_id, tracing::Span& span) {
+    const std::string pg_session_id = "pg.session_id";
+    log_extra_.Extend(pg_session_id, session_id);
+    span.AddNonInheritableTag(pg_session_id, session_id);
 }
 
 }  // namespace storages::postgres::detail

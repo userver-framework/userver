@@ -22,14 +22,14 @@ namespace protobuf::json::tests {
 struct FieldMaskToJsonSuccessTestParam {
     FieldMaskMessageData input = {};
     std::string expected_json = {};
-    WriteOptions options = {};
+    PrintOptions options = {};
 };
 
 struct FieldMaskToJsonFailureTestParam {
     FieldMaskMessageData input = {};
-    WriteErrorCode expected_errc = {};
+    PrintErrorCode expected_errc = {};
     std::string expected_path = {};
-    WriteOptions options = {};
+    PrintOptions options = {};
 };
 
 std::vector<std::string> ParseFieldMaskStr(std::string_view paths) {
@@ -84,7 +84,7 @@ INSTANTIATE_TEST_SUITE_P(
         FieldMaskToJsonSuccessTestParam{
             FieldMaskMessageData{std::vector<std::string>{"some_field"}},
             R"({"field1":"someField"})",
-            WriteOptions{.preserve_proto_field_names = true}  // does not affect field mask serialization!
+            {.preserve_proto_field_names = true}  // does not affect field mask serialization!
         },
         FieldMaskToJsonSuccessTestParam{
             FieldMaskMessageData{std::vector<std::string>{"some_field.another_field..one_more", "_a_b0_c"}},
@@ -103,42 +103,42 @@ INSTANTIATE_TEST_SUITE_P(
     ::testing::Values(
         FieldMaskToJsonFailureTestParam{
             FieldMaskMessageData{std::vector<std::string>{"Some_field"}},
-            WriteErrorCode::kInvalidValue,
+            PrintErrorCode::kInvalidValue,
             "field1"
         },
         FieldMaskToJsonFailureTestParam{
             FieldMaskMessageData{std::vector<std::string>{"some_Field"}},
-            WriteErrorCode::kInvalidValue,
+            PrintErrorCode::kInvalidValue,
             "field1"
         },
         FieldMaskToJsonFailureTestParam{
             FieldMaskMessageData{std::vector<std::string>{"some_fielD"}},
-            WriteErrorCode::kInvalidValue,
+            PrintErrorCode::kInvalidValue,
             "field1"
         },
         FieldMaskToJsonFailureTestParam{
             FieldMaskMessageData{std::vector<std::string>{"some_f!ield"}},
-            WriteErrorCode::kInvalidValue,
+            PrintErrorCode::kInvalidValue,
             "field1"
         },
         FieldMaskToJsonFailureTestParam{
             FieldMaskMessageData{std::vector<std::string>{"__some_field"}},
-            WriteErrorCode::kInvalidValue,
+            PrintErrorCode::kInvalidValue,
             "field1"
         },
         FieldMaskToJsonFailureTestParam{
             FieldMaskMessageData{std::vector<std::string>{"some__field"}},
-            WriteErrorCode::kInvalidValue,
+            PrintErrorCode::kInvalidValue,
             "field1"
         },
         FieldMaskToJsonFailureTestParam{
             FieldMaskMessageData{std::vector<std::string>{"some_field_"}},
-            WriteErrorCode::kInvalidValue,
+            PrintErrorCode::kInvalidValue,
             "field1"
         },
         FieldMaskToJsonFailureTestParam{
             FieldMaskMessageData{std::vector<std::string>{"some_0field"}},
-            WriteErrorCode::kInvalidValue,
+            PrintErrorCode::kInvalidValue,
             "field1"
         }
     )
@@ -148,7 +148,9 @@ TEST_P(FieldMaskToJsonSuccessTest, Test) {
     const auto& param = GetParam();
 
     auto input = PrepareTestData(param.input);
-    formats::json::Value json, expected_json, sample_json;
+    formats::json::Value json;
+    formats::json::Value expected_json;
+    formats::json::Value sample_json;
 
     UASSERT_NO_THROW((json = MessageToJson(input, param.options)));
     UASSERT_NO_THROW((expected_json = PrepareJsonTestData(param.expected_json)));
@@ -180,15 +182,16 @@ TEST_P(FieldMaskToJsonFailureTest, Test) {
     const auto& param = GetParam();
     auto input = PrepareTestData(param.input);
 
-    EXPECT_WRITE_ERROR((void)MessageToJson(input, param.options), param.expected_errc, param.expected_path);
+    EXPECT_PRINT_ERROR((void)MessageToJson(input, param.options), param.expected_errc, param.expected_path);
 }
 
 TEST(FieldMaskToJsonAdditionalTest, InlinedNonNull) {
     FieldMaskMessageData data{std::vector<std::string>{"some_field.nested_field"}};
     auto message = PrepareTestData(data);
-    formats::json::Value json, sample;
+    formats::json::Value json;
+    formats::json::Value sample;
 
-    UASSERT_NO_THROW((json = MessageToJson(message.field1())));
+    UASSERT_NO_THROW((json = MessageToJson(message.field1(), {})));
     UASSERT_NO_THROW((sample = CreateSampleJson(message.field1())));
     ASSERT_TRUE(json.IsString());
     ASSERT_TRUE(sample.IsString());
@@ -206,9 +209,10 @@ TEST(FieldMaskToJsonAdditionalTest, InlinedNonNull) {
 TEST(FieldMaskToJsonAdditionalTest, InlinedNull) {
     FieldMaskMessageData data{};
     auto message = PrepareTestData(data);
-    formats::json::Value json, sample;
+    formats::json::Value json;
+    formats::json::Value sample;
 
-    UASSERT_NO_THROW((json = MessageToJson(message.field1())));
+    UASSERT_NO_THROW((json = MessageToJson(message.field1(), {})));
     UASSERT_NO_THROW((sample = CreateSampleJson(message.field1())));
     ASSERT_TRUE(json.IsString());
     ASSERT_TRUE(sample.IsString());
@@ -230,7 +234,7 @@ TEST(FieldMaskToJsonAdditionalTest, DynamicMessage) {
 
         formats::json::Value json;
 
-        UASSERT_NO_THROW((json = MessageToJson(*message)));
+        UASSERT_NO_THROW((json = MessageToJson(*message, {})));
         ASSERT_TRUE(json.IsString());
 
         auto paths = ParseFieldMaskStr(json.As<std::string>());

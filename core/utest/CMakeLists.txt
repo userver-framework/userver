@@ -11,7 +11,7 @@ target_compile_definitions(userver-utest PUBLIC $<TARGET_PROPERTY:userver-core,C
 target_link_libraries(
     userver-utest
     PUBLIC userver-core userver-universal-utest-base
-    PRIVATE userver-core-internal Boost::program_options
+    PRIVATE Boost::program_options
 )
 target_include_directories(
     userver-utest

@@ -59,7 +59,7 @@ In addition, the output has a hierarchical structure that is displayed correctly
 
 * `utask list`: Lists all tasks with their names (corresponding span names) and statuses. Example:
 ```
-(gdb) help utask list 
+(gdb) help utask list
 usage: utask list [-h] [-s [STATE ...]] [-i ID] [-n NAME] [-b BACKTRACE]
 
 List userver tasks (all or some of them)
@@ -147,7 +147,7 @@ For now `utask` commands are implemented for only linux x86 platforms, but can b
 In addition, all of the above functionality works for debugging both a live process and coredumps.
 
 
-@anchor stack_usage_debugging_with_gdb 
+@anchor stack_usage_debugging_with_gdb
 ## Stack usage debugging with GDB
 
 To debug a high stack usage just run your service under GDB, reproduce the situation with high stack consumption and
@@ -190,12 +190,12 @@ Frame stack usage is 208822391 bytes
 ## GDB complains: received signal ?, Unknown signal
 
 This is a side effect of the stack usage monitor interfering with GDB. In recent versions, the framework automatically detects
-an attached debugger and disables the stack usage monitor to avoid this issue, printing the log warning: "Detected attached 
+an attached debugger and disables the stack usage monitor to avoid this issue, printing the log warning: "Detected attached
 debugger. Stack usage monitor is disabled".
 
-If automatic detection does not work in your environment, or if you want to disable the monitor for other reasons, you have 
-several options. For unit tests, you can set the environment variable USERVER_ENABLE_STACK_USAGE_MONITOR=0. For other binaries, 
-you can either disable it via the static config option coro_pool.stack_usage_monitor_enabled in 
+If automatic detection does not work in your environment, or if you want to disable the monitor for other reasons, you have
+several options. For unit tests, you can set the environment variable USERVER_ENABLE_STACK_USAGE_MONITOR=0. For other binaries,
+you can either disable it via the static config option coro_pool.stack_usage_monitor_enabled in
 components::ManagerControllerComponent, or disable it entirely at build time using USERVER_FEATURE_STACK_USAGE_MONITOR (see @ref
  scripts/docs/en/userver/build/options.md).
 

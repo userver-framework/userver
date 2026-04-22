@@ -21,7 +21,6 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace server::handlers {
-class HttpRequestStatistics;
 class HttpHandlerBase;
 }  // namespace server::handlers
 
@@ -218,7 +217,7 @@ public:
     /// @cond
     void SetRequestBody(std::string body);
     void ParseArgsFromBody();
-    bool IsFinal() const;
+    bool IsFinal() const noexcept;
     /// @endcond
 
     /// @brief Set the response status code.
@@ -231,7 +230,7 @@ public:
     /// was set to `false` and this is a compressed request.
     bool IsBodyCompressed() const;
 
-    HttpResponse& GetHttpResponse() const;
+    HttpResponse& GetHttpResponse() const noexcept;
 
     /// Get approximate time point of request handling start
     std::chrono::steady_clock::time_point GetStartTime() const;
@@ -239,7 +238,7 @@ public:
     /// @cond
     void MarkAsInternalServerError() const;
 
-    void SetStartSendResponseTime();
+    void SetStartSendResponseTime() noexcept;
     void SetFinishSendResponseTime();
 
     void WriteAccessLogs(
@@ -268,8 +267,6 @@ public:
     /// @endcond
 
 private:
-    void AccountResponseTime();
-
     void SetPathArgs(std::vector<std::pair<std::string, std::string>> args);
 
     void SetHttpHandler(const handlers::HttpHandlerBase& handler);
@@ -277,8 +274,6 @@ private:
 
     void SetTaskProcessor(engine::TaskProcessor& task_processor);
     engine::TaskProcessor* GetTaskProcessor() const;
-
-    void SetHttpHandlerStatistics(handlers::HttpRequestStatistics&);
 
     // HTTP/2.0 only
     void SetResponseStreamId(std::int32_t);

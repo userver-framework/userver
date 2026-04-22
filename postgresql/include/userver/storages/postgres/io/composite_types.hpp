@@ -36,7 +36,7 @@ struct CompositeBinaryParser : BufferParserBase<T> {
     using BaseType::BaseType;
 
     void operator()(FieldBuffer buffer, const TypeBufferCategory& categories) {
-        if constexpr (!traits::kIsMappedToUserType<T>) {
+        if constexpr (!traits::IsMappedToUserType<T>) {
             InitRecordParser();
         }
 
@@ -82,7 +82,7 @@ private:
     void
     ReadTuple(FieldBuffer& buffer, const TypeBufferCategory& categories, Tuple&& tuple, std::index_sequence<Indexes...>)
         const {
-        (ReadField(buffer, categories, Indexes, std::get<Indexes>(std::forward<Tuple>(tuple))), ...);
+        (ReadField(buffer, categories, Indexes, std::get<Indexes>(tuple)), ...);
     }
 };
 
@@ -153,7 +153,7 @@ private:
     void
     WriteTuple(const UserTypes& types, const CompositeTypeDescription& type_desc, Buffer& buffer, Tuple&& tuple, std::index_sequence<Indexes...>)
         const {
-        (WriteField(types, type_desc, Indexes, buffer, std::get<Indexes>(std::forward<Tuple>(tuple))), ...);
+        (WriteField(types, type_desc, Indexes, buffer, std::get<Indexes>(tuple)), ...);
     }
 };
 
@@ -169,9 +169,8 @@ struct AssertTupleHasParsers;
 template <typename... Members>
 struct AssertTupleHasParsers<std::tuple<Members...>> : std::true_type {
     static_assert(
-        (HasParser<std::decay_t<Members>>::value && ...),
-        "No parser for member. Probably you forgot to include "
-        "file with parser or to define your own. Please see page "
+        (HasParser<std::remove_cvref_t<Members>> && ...),
+        "No parser for member. Probably you forgot to include file with parser or to define your own. Please see page "
         "`uPg: Supported data types` for more information"
     );
 };
@@ -182,10 +181,9 @@ struct AssertTupleHasFormatters;
 template <typename... Members>
 struct AssertTupleHasFormatters<std::tuple<Members...>> : std::true_type {
     static_assert(
-        (HasFormatter<std::decay_t<Members>>::value && ...),
-        "No formatter for member. Probably you forgot to "
-        "include file with formatter or to define your own. Please see page "
-        "`uPg: Supported data types` for more information"
+        (HasFormatter<std::remove_cvref_t<Members>> && ...),
+        "No formatter for member. Probably you forgot to include file with formatter or to define your own. "
+        "Please see page `uPg: Supported data types` for more information"
     );
 };
 
@@ -204,13 +202,13 @@ constexpr bool AssertHasCompositeFormatters() {
 }  // namespace detail
 
 template <typename T>
-struct Input<T, std::enable_if_t<!detail::kCustomParserDefined<T> && kIsRowType<T>>> {
+struct Input<T, std::enable_if_t<!detail::CustomParserDefined<T> && kIsRowType<T>>> {
     static_assert(detail::AssertHasCompositeParsers<T>());
     using type = io::detail::CompositeBinaryParser<T>;
 };
 
 template <typename T>
-struct Output<T, std::enable_if_t<!detail::kCustomFormatterDefined<T> && kIsMappedToUserType<T> && kIsRowType<T>>> {
+struct Output<T, std::enable_if_t<!detail::CustomFormatterDefined<T> && IsMappedToUserType<T> && kIsRowType<T>>> {
     static_assert(detail::AssertHasCompositeFormatters<T>());
     using type = io::detail::CompositeBinaryFormatter<T>;
 };

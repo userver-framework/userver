@@ -1,5 +1,4 @@
 import logging
-import os
 
 import pytest
 
@@ -24,10 +23,7 @@ except ModuleNotFoundError:
     PREFIX = 'userver/'
 
 
-SKIP_BROKEN_LOGS = pytest.mark.skipif(
-    os.environ.get('TESTSUITE_SKIP_BROKEN_LOGS'),
-    reason='TAXICOMMON-9730',
-)
+SERVICE_LOCATION_DIR = SERVICE_LOCATION.rsplit('/', 1)[0]
 
 
 @pytest.fixture(name='taxi_bodyless_headers_mock')
@@ -39,7 +35,6 @@ def _taxi_bodyless_headers_mock(mockserver):
         return mockserver.make_response(headers={'something': 'nothing'})
 
 
-@SKIP_BROKEN_LOGS
 async def test_service_debug_logs_off(
     service_client,
     taxi_bodyless_headers_mock,
@@ -51,7 +46,6 @@ async def test_service_debug_logs_off(
     assert not capture.select(text=SERVICE_LOGGED_TEXT)
 
 
-@SKIP_BROKEN_LOGS
 async def test_service_debug_logs_on(
     service_client,
     monitor_client,
@@ -70,7 +64,36 @@ async def test_service_debug_logs_on(
     assert capture.select(text=SERVICE_LOGGED_TEXT)
 
 
-@SKIP_BROKEN_LOGS
+async def test_service_debug_logs_on_directory(
+    service_client,
+    monitor_client,
+    taxi_bodyless_headers_mock,
+):
+    resp = await monitor_client.put(
+        '/log/dynamic-debug',
+        params={'location': SERVICE_LOCATION_DIR},
+    )
+    assert resp.status_code == 200
+
+    async with service_client.capture_logs() as capture:
+        response = await service_client.get('/ping')
+        assert response.status_code == 200
+
+    assert capture.select(text=SERVICE_LOGGED_TEXT)
+
+    resp = await monitor_client.delete(
+        '/log/dynamic-debug',
+        params={'location': SERVICE_LOCATION_DIR},
+    )
+    assert resp.status_code == 200
+
+    async with service_client.capture_logs() as capture:
+        response = await service_client.get('/ping')
+        assert response.status_code == 200
+
+    assert not capture.select(text=SERVICE_LOGGED_TEXT)
+
+
 async def test_invalid_line(
     service_client,
     monitor_client,
@@ -83,7 +106,6 @@ async def test_invalid_line(
     assert resp.status_code == 500
 
 
-@SKIP_BROKEN_LOGS
 async def test_service_debug_logs_prefix(
     service_client,
     monitor_client,
@@ -101,7 +123,6 @@ async def test_service_debug_logs_prefix(
         assert path.startswith(PREFIX)
 
 
-@SKIP_BROKEN_LOGS
 async def test_service_debug_logs_on_off(
     service_client,
     monitor_client,
@@ -125,7 +146,6 @@ async def test_service_debug_logs_on_off(
     assert not capture.select(text=SERVICE_LOGGED_TEXT)
 
 
-@SKIP_BROKEN_LOGS
 async def test_userver_debug_logs_file_off(
     service_client,
     taxi_bodyless_headers_mock,
@@ -137,7 +157,6 @@ async def test_userver_debug_logs_file_off(
     assert not capture.select(text=USERVER_LOGGED_TEXT)
 
 
-@SKIP_BROKEN_LOGS
 async def test_userver_debug_logs_file(
     service_client,
     monitor_client,
@@ -156,7 +175,6 @@ async def test_userver_debug_logs_file(
     assert capture.select(text=USERVER_LOGGED_TEXT)
 
 
-@SKIP_BROKEN_LOGS
 async def test_userver_dynamic_config_debug_logs_on(
     service_client,
     dynamic_config,
@@ -165,7 +183,7 @@ async def test_userver_dynamic_config_debug_logs_on(
 ):
     dynamic_config.set_values({
         'USERVER_LOG_DYNAMIC_DEBUG': {
-            'force-enabled': [SERVICE_LOCATION],
+            'force-enabled': ['bad-value', SERVICE_LOCATION, 'another-bad-value'],
             'force-disabled': [],
         },
     })
@@ -177,7 +195,6 @@ async def test_userver_dynamic_config_debug_logs_on(
     assert capture.select(text=SERVICE_LOGGED_TEXT)
 
 
-@SKIP_BROKEN_LOGS
 async def test_userver_dynamic_config_debug_logs_file_on(
     service_client,
     dynamic_config,
@@ -186,7 +203,7 @@ async def test_userver_dynamic_config_debug_logs_file_on(
 ):
     dynamic_config.set_values({
         'USERVER_LOG_DYNAMIC_DEBUG': {
-            'force-enabled': [USERVER_LOCATION_FILE],
+            'force-enabled': ['bad-value', USERVER_LOCATION_FILE, 'another-bad-value'],
             'force-disabled': [],
         },
     })
@@ -198,7 +215,26 @@ async def test_userver_dynamic_config_debug_logs_file_on(
     assert capture.select(text=USERVER_LOGGED_TEXT)
 
 
-@SKIP_BROKEN_LOGS
+async def test_userver_dynamic_config_debug_logs_dirs_ignored(
+    service_client,
+    dynamic_config,
+    monitor_client,
+    taxi_bodyless_headers_mock,
+):
+    dynamic_config.set_values({
+        'USERVER_LOG_DYNAMIC_DEBUG': {
+            'force-enabled': [SERVICE_LOCATION_DIR],
+            'force-disabled': [],
+        },
+    })
+
+    async with service_client.capture_logs() as capture:
+        response = await service_client.get('/ping')
+        assert response.status_code == 200
+
+    assert not capture.select(text=USERVER_LOGGED_TEXT)
+
+
 async def test_userver_dynamic_config_debug_logs_level_on(
     service_client,
     dynamic_config,
@@ -209,7 +245,11 @@ async def test_userver_dynamic_config_debug_logs_level_on(
         'USERVER_LOG_DYNAMIC_DEBUG': {
             'force-enabled': [],
             'force-disabled': [],
-            'force-enabled-level': {SERVICE_LOCATION: 'TRACE'},
+            'force-enabled-level': {
+                'bad-value': 'TRACE',
+                SERVICE_LOCATION: 'TRACE',
+                'another-bad-value': 'ERROR',
+            },
             'force-disabled-level': {},
         },
     })
@@ -232,7 +272,6 @@ async def test_userver_dynamic_config_debug_logs_level_on(
     assert not capture.select(text=SERVICE_LOGGED_TEXT)
 
 
-@SKIP_BROKEN_LOGS
 async def test_userver_dynamic_config_debug_logs_off(
     service_client,
     dynamic_config,
@@ -259,7 +298,6 @@ async def test_userver_dynamic_config_debug_logs_off(
     assert not capture.select(text=SERVICE_LOGGED_TEXT)
 
 
-@SKIP_BROKEN_LOGS
 async def test_userver_dynamic_config_debug_logs_file_off(
     service_client,
     dynamic_config,
@@ -286,7 +324,6 @@ async def test_userver_dynamic_config_debug_logs_file_off(
     assert not capture.select(text=USERVER_LOGGED_TEXT)
 
 
-@SKIP_BROKEN_LOGS
 async def test_userver_dynamic_config_debug_logs_level_off(
     service_client,
     dynamic_config,

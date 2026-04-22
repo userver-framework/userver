@@ -1,7 +1,7 @@
 #pragma once
 
 /// @file userver/logging/log.hpp
-/// @brief Logging helpers
+/// @brief Logging helpers, see @ref scripts/docs/en/userver/logging.md for more info.
 
 #include <chrono>
 
@@ -115,14 +115,12 @@ public:
 // Represents a single rate limit usage
 class RateLimiter {
 public:
-    RateLimiter(RateLimitData& data, Level level) noexcept;
-    bool ShouldLog() const { return should_log_; }
-    void SetShouldNotLog() { should_log_ = false; }
-    Level GetLevel() const { return level_; }
+    explicit RateLimiter(RateLimitData& data) noexcept;
+    bool ShouldLog() const noexcept { return should_log_; }
+    auto GetDroppedCount() const noexcept { return dropped_count_; }
     friend LogHelper& operator<<(LogHelper& lh, const RateLimiter& rl) noexcept;
 
 private:
-    const Level level_;
     bool should_log_{true};
     uint64_t dropped_count_{0};
 };
@@ -153,6 +151,10 @@ struct EntryStorage final {
 
 }  // namespace logging
 
+USERVER_NAMESPACE_END
+
+// NOLINTBEGIN(cppcoreguidelines-macro-usage)
+
 /// @cond
 
 #ifdef USERVER_FEATURE_ERASE_LOG_WITH_LEVEL
@@ -161,73 +163,66 @@ struct EntryStorage final {
 // * logging registration via EntryStorage
 // * ShouldLog() calls and related `if` statements and runtime checks
 // * SourceLocation info
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define USERVER_IMPL_ERASE_LOG                                                  \
+#define USERVER_IMPL_ERASE_LOG(logger, ...)                                     \
     true                                                                        \
         ? logging::impl::Noop{}                                                 \
         : USERVER_NAMESPACE::logging::LogHelper(                                \
-              USERVER_NAMESPACE::logging::GetDefaultLogger(),                   \
+              logger,                                                           \
               USERVER_NAMESPACE::logging::Level::kTrace,                        \
+              USERVER_NAMESPACE::logging::LogClass::kLog,                       \
               USERVER_NAMESPACE::utils::impl::SourceLocation::Custom(0, {}, {}) \
           )                                                                     \
-              .AsLvalue()
+              .AsLvalue(__VA_ARGS__)
 
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define USERVER_IMPL_LOGS_TRACE_ERASER(X) USERVER_IMPL_ERASE_LOG
+#define USERVER_IMPL_LOGS_TRACE_ERASER(MACRO, LOGGER, ...) USERVER_IMPL_ERASE_LOG(LOGGER, __VA_ARGS__)
 
 #if USERVER_FEATURE_ERASE_LOG_WITH_LEVEL > 0
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define USERVER_IMPL_LOGS_DEBUG_ERASER(X) USERVER_IMPL_ERASE_LOG
+#define USERVER_IMPL_LOGS_DEBUG_ERASER(MACRO, LOGGER, ...) USERVER_IMPL_ERASE_LOG(LOGGER, __VA_ARGS__)
 #endif
 
 #if USERVER_FEATURE_ERASE_LOG_WITH_LEVEL > 1
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define USERVER_IMPL_LOGS_INFO_ERASER(X) USERVER_IMPL_ERASE_LOG
+#define USERVER_IMPL_LOGS_INFO_ERASER(MACRO, LOGGER, ...) USERVER_IMPL_ERASE_LOG(LOGGER, __VA_ARGS__)
 #endif
 
 #if USERVER_FEATURE_ERASE_LOG_WITH_LEVEL > 2
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define USERVER_IMPL_LOGS_WARNING_ERASER(X) USERVER_IMPL_ERASE_LOG
+#define USERVER_IMPL_LOGS_WARNING_ERASER(MACRO, LOGGER, ...) USERVER_IMPL_ERASE_LOG(LOGGER, __VA_ARGS__)
 #endif
 
 #if USERVER_FEATURE_ERASE_LOG_WITH_LEVEL > 3
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define USERVER_IMPL_LOGS_ERROR_ERASER(X) USERVER_IMPL_ERASE_LOG
+#define USERVER_IMPL_LOGS_ERROR_ERASER(MACRO, LOGGER, ...) USERVER_IMPL_ERASE_LOG(LOGGER, __VA_ARGS__)
 #endif
 
 #endif  // #ifdef USERVER_FEATURE_ERASE_LOG_WITH_LEVEL
 
 #ifndef USERVER_IMPL_LOGS_TRACE_ERASER
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define USERVER_IMPL_LOGS_TRACE_ERASER(X) X
+#define USERVER_IMPL_LOGS_TRACE_ERASER(MACRO, LOGGER, ...) \
+    MACRO(LOGGER, USERVER_NAMESPACE::logging::Level::kTrace, __VA_ARGS__)
 #endif
 
 #ifndef USERVER_IMPL_LOGS_DEBUG_ERASER
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define USERVER_IMPL_LOGS_DEBUG_ERASER(X) X
+#define USERVER_IMPL_LOGS_DEBUG_ERASER(MACRO, LOGGER, ...) \
+    MACRO(LOGGER, USERVER_NAMESPACE::logging::Level::kDebug, __VA_ARGS__)
 #endif
 
 #ifndef USERVER_IMPL_LOGS_INFO_ERASER
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define USERVER_IMPL_LOGS_INFO_ERASER(X) X
+#define USERVER_IMPL_LOGS_INFO_ERASER(MACRO, LOGGER, ...) \
+    MACRO(LOGGER, USERVER_NAMESPACE::logging::Level::kInfo, __VA_ARGS__)
 #endif
 
 #ifndef USERVER_IMPL_LOGS_WARNING_ERASER
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define USERVER_IMPL_LOGS_WARNING_ERASER(X) X
+#define USERVER_IMPL_LOGS_WARNING_ERASER(MACRO, LOGGER, ...) \
+    MACRO(LOGGER, USERVER_NAMESPACE::logging::Level::kWarning, __VA_ARGS__)
 #endif
 
 #ifndef USERVER_IMPL_LOGS_ERROR_ERASER
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define USERVER_IMPL_LOGS_ERROR_ERASER(X) X
+#define USERVER_IMPL_LOGS_ERROR_ERASER(MACRO, LOGGER, ...) \
+    MACRO(LOGGER, USERVER_NAMESPACE::logging::Level::kError, __VA_ARGS__)
 #endif
 
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define USERVER_IMPL_LOG_TO(logger, level, ...)                                                      \
     USERVER_NAMESPACE::logging::LogHelper(logger, level, USERVER_NAMESPACE::logging::LogClass::kLog) \
         .AsLvalue(__VA_ARGS__)
 
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define USERVER_IMPL_DYNAMIC_DEBUG_ENTRY                                                                 \
     []() noexcept -> const USERVER_NAMESPACE::logging::impl::StaticLogEntry& {                           \
         struct NameHolder {                                                                              \
@@ -236,13 +231,16 @@ struct EntryStorage final {
         const auto& entry = USERVER_NAMESPACE::logging::impl::EntryStorage<NameHolder, __LINE__>::entry; \
         return entry;                                                                                    \
     }
-   /// @endcond
+/// @endcond
 
-/// @brief If lvl matches the verbosity then builds a stream and evaluates a
-/// message for the specified logger.
+/// @brief If `lvl` matches the verbosity then builds a stream and evaluates a
+/// message for the specified `logger`.
+///
+/// @param ... optional `fmt::format` string literal and its arguments
+///
+/// Not affected by `USERVER_FEATURE_ERASE_LOG_WITH_LEVEL` @ref scripts/docs/en/userver/build/options.md "CMake option".
 /// @hideinitializer
 // static_cast<int> below are workarounds for -Wtautological-compare
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define LOG_TO(logger, lvl, ...)                                                           \
     __builtin_expect(                                                                      \
         USERVER_IMPL_DYNAMIC_DEBUG_ENTRY().ShouldNotLog((logger), (lvl)),                  \
@@ -253,75 +251,113 @@ struct EntryStorage final {
 
 /// @brief If lvl matches the verbosity then builds a stream and evaluates a
 /// message for the default logger.
+///
+/// @param ... optional `fmt::format` string literal and its arguments
+///
+/// Not affected by `USERVER_FEATURE_ERASE_LOG_WITH_LEVEL` @ref scripts/docs/en/userver/build/options.md "CMake option".
 /// @hideinitializer
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define LOG(lvl, ...) LOG_TO(USERVER_NAMESPACE::logging::GetDefaultLogger(), (lvl), __VA_ARGS__)
 
 /// @brief Evaluates a message and logs it to the default logger if its level is
-/// below or equal to logging::Level::kTrace
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define LOG_TRACE(...) USERVER_IMPL_LOGS_TRACE_ERASER(LOG(USERVER_NAMESPACE::logging::Level::kTrace, __VA_ARGS__))
+/// below or equal to @ref logging::Level::kTrace
+///
+/// @param ... optional `fmt::format` string literal and its arguments
+///
+/// Affected by `USERVER_FEATURE_ERASE_LOG_WITH_LEVEL` @ref scripts/docs/en/userver/build/options.md "CMake option".
+#define LOG_TRACE(...) \
+    USERVER_IMPL_LOGS_TRACE_ERASER(LOG_TO, USERVER_NAMESPACE::logging::GetDefaultLogger(), __VA_ARGS__)
 
 /// @brief Evaluates a message and logs it to the default logger if its level is
-/// below or equal to logging::Level::kDebug
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define LOG_DEBUG(...) USERVER_IMPL_LOGS_DEBUG_ERASER(LOG(USERVER_NAMESPACE::logging::Level::kDebug, __VA_ARGS__))
+/// below or equal to @ref logging::Level::kDebug
+///
+/// @param ... optional `fmt::format` string literal and its arguments
+///
+/// Affected by `USERVER_FEATURE_ERASE_LOG_WITH_LEVEL` @ref scripts/docs/en/userver/build/options.md "CMake option".
+#define LOG_DEBUG(...) \
+    USERVER_IMPL_LOGS_DEBUG_ERASER(LOG_TO, USERVER_NAMESPACE::logging::GetDefaultLogger(), __VA_ARGS__)
 
 /// @brief Evaluates a message and logs it to the default logger if its level is
-/// below or equal to logging::Level::kInfo
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define LOG_INFO(...) USERVER_IMPL_LOGS_INFO_ERASER(LOG(USERVER_NAMESPACE::logging::Level::kInfo, __VA_ARGS__))
+/// below or equal to @ref logging::Level::kInfo
+///
+/// @param ... optional `fmt::format` string literal and its arguments
+///
+/// Affected by `USERVER_FEATURE_ERASE_LOG_WITH_LEVEL` @ref scripts/docs/en/userver/build/options.md "CMake option".
+#define LOG_INFO(...) USERVER_IMPL_LOGS_INFO_ERASER(LOG_TO, USERVER_NAMESPACE::logging::GetDefaultLogger(), __VA_ARGS__)
 
 /// @brief Evaluates a message and logs it to the default logger if its level is
-/// below or equal to logging::Level::kWarning
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define LOG_WARNING(...) USERVER_IMPL_LOGS_WARNING_ERASER(LOG(USERVER_NAMESPACE::logging::Level::kWarning, __VA_ARGS__))
+/// below or equal to @ref logging::Level::kWarning
+///
+/// @param ... optional `fmt::format` string literal and its arguments
+///
+/// Affected by `USERVER_FEATURE_ERASE_LOG_WITH_LEVEL` @ref scripts/docs/en/userver/build/options.md "CMake option".
+#define LOG_WARNING(...) \
+    USERVER_IMPL_LOGS_WARNING_ERASER(LOG_TO, USERVER_NAMESPACE::logging::GetDefaultLogger(), __VA_ARGS__)
 
 /// @brief Evaluates a message and logs it to the default logger if its level is
-/// below or equal to logging::Level::kError
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define LOG_ERROR(...) USERVER_IMPL_LOGS_ERROR_ERASER(LOG(USERVER_NAMESPACE::logging::Level::kError, __VA_ARGS__))
+/// below or equal to @ref logging::Level::kError
+///
+/// @param ... optional `fmt::format` string literal and its arguments
+///
+/// Affected by `USERVER_FEATURE_ERASE_LOG_WITH_LEVEL` @ref scripts/docs/en/userver/build/options.md "CMake option".
+#define LOG_ERROR(...) \
+    USERVER_IMPL_LOGS_ERROR_ERASER(LOG_TO, USERVER_NAMESPACE::logging::GetDefaultLogger(), __VA_ARGS__)
 
 /// @brief Evaluates a message and logs it to the default logger if its level is
-/// below or equal to logging::Level::kCritical
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+/// below or equal to @ref logging::Level::kCritical
+///
+/// @param ... optional `fmt::format` string literal and its arguments
+///
+/// Not affected by `USERVER_FEATURE_ERASE_LOG_WITH_LEVEL` @ref scripts/docs/en/userver/build/options.md "CMake option".
 #define LOG_CRITICAL(...) LOG(USERVER_NAMESPACE::logging::Level::kCritical, __VA_ARGS__)
 
 ///////////////////////////////////////////////////////////////////////////////
 
 /// @brief Evaluates a message and logs it to the `logger` if its level is below
-/// or equal to logging::Level::kTrace
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define LOG_TRACE_TO(logger, ...) \
-    USERVER_IMPL_LOGS_TRACE_ERASER(LOG_TO(logger, USERVER_NAMESPACE::logging::Level::kTrace, __VA_ARGS__))
+/// or equal to @ref logging::Level::kTrace
+///
+/// @param ... optional `fmt::format` string literal and its arguments
+///
+/// Not affected by `USERVER_FEATURE_ERASE_LOG_WITH_LEVEL` @ref scripts/docs/en/userver/build/options.md "CMake option".
+#define LOG_TRACE_TO(logger, ...) USERVER_IMPL_LOGS_TRACE_ERASER(LOG_TO, logger, __VA_ARGS__)
 
 /// @brief Evaluates a message and logs it to the `logger` if its level is below
-/// or equal to logging::Level::kDebug
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define LOG_DEBUG_TO(logger, ...) \
-    USERVER_IMPL_LOGS_DEBUG_ERASER(LOG_TO(logger, USERVER_NAMESPACE::logging::Level::kDebug, __VA_ARGS__))
+/// or equal to @ref logging::Level::kDebug
+///
+/// @param ... optional `fmt::format` string literal and its arguments
+///
+/// Affected by `USERVER_FEATURE_ERASE_LOG_WITH_LEVEL` @ref scripts/docs/en/userver/build/options.md "CMake option".
+#define LOG_DEBUG_TO(logger, ...) USERVER_IMPL_LOGS_DEBUG_ERASER(LOG_TO, logger, __VA_ARGS__)
 
 /// @brief Evaluates a message and logs it to the `logger` if its level is below
-/// or equal to logging::Level::kInfo
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define LOG_INFO_TO(logger, ...) \
-    USERVER_IMPL_LOGS_INFO_ERASER(LOG_TO(logger, USERVER_NAMESPACE::logging::Level::kInfo, __VA_ARGS__))
+/// or equal to @ref logging::Level::kInfo
+///
+/// @param ... optional `fmt::format` string literal and its arguments
+///
+/// Affected by `USERVER_FEATURE_ERASE_LOG_WITH_LEVEL` @ref scripts/docs/en/userver/build/options.md "CMake option".
+#define LOG_INFO_TO(logger, ...) USERVER_IMPL_LOGS_INFO_ERASER(LOG_TO, logger, __VA_ARGS__)
 
 /// @brief Evaluates a message and logs it to the `logger` if its level is below
-/// or equal to logging::Level::kWarning
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define LOG_WARNING_TO(logger, ...) \
-    USERVER_IMPL_LOGS_WARNING_ERASER(LOG_TO(logger, USERVER_NAMESPACE::logging::Level::kWarning, __VA_ARGS__))
+/// or equal to @ref logging::Level::kWarning
+///
+/// @param ... optional `fmt::format` string literal and its arguments
+///
+/// Affected by `USERVER_FEATURE_ERASE_LOG_WITH_LEVEL` @ref scripts/docs/en/userver/build/options.md "CMake option".
+#define LOG_WARNING_TO(logger, ...) USERVER_IMPL_LOGS_WARNING_ERASER(LOG_TO, logger, __VA_ARGS__)
 
 /// @brief Evaluates a message and logs it to the `logger` if its level is below
-/// or equal to logging::Level::kError
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define LOG_ERROR_TO(logger, ...) \
-    USERVER_IMPL_LOGS_ERROR_ERASER(LOG_TO(logger, USERVER_NAMESPACE::logging::Level::kError, __VA_ARGS__))
+/// or equal to @ref logging::Level::kError
+///
+/// @param ... optional `fmt::format` string literal and its arguments
+///
+/// Affected by `USERVER_FEATURE_ERASE_LOG_WITH_LEVEL` @ref scripts/docs/en/userver/build/options.md "CMake option".
+#define LOG_ERROR_TO(logger, ...) USERVER_IMPL_LOGS_ERROR_ERASER(LOG_TO, logger, __VA_ARGS__)
 
 /// @brief Evaluates a message and logs it to the `logger` if its level is below
-/// or equal to logging::Level::kCritical
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+/// or equal to @ref logging::Level::kCritical
+///
+/// @param ... optional `fmt::format` string literal and its arguments
+///
+/// Not affected by `USERVER_FEATURE_ERASE_LOG_WITH_LEVEL` @ref scripts/docs/en/userver/build/options.md "CMake option".
 #define LOG_CRITICAL_TO(logger, ...) LOG_TO(logger, USERVER_NAMESPACE::logging::Level::kCritical, __VA_ARGS__)
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -329,110 +365,133 @@ struct EntryStorage final {
 /// @brief If lvl matches the verbosity then builds a stream and evaluates a
 /// message for the logger. Ignores log messages that occur too often.
 /// @hideinitializer
-// Note: we have to jump through the hoops to keep lazy evaluation of the logged
-// data AND log the dropped logs count from the correct LogHelper in the face of
-// multithreading and coroutines.
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define LOG_LIMITED_TO(logger, lvl, ...)                                               \
-    for (USERVER_NAMESPACE::logging::impl::RateLimiter log_limited_to_rl{              \
-             []() -> USERVER_NAMESPACE::logging::impl::RateLimitData& {                \
-                 thread_local USERVER_NAMESPACE::logging::impl::RateLimitData rl_data; \
-                 return rl_data;                                                       \
-             }(),                                                                      \
-             (lvl)                                                                     \
-         };                                                                            \
-         log_limited_to_rl.ShouldLog();                                                \
-         log_limited_to_rl.SetShouldNotLog())                                          \
-    LOG_TO((logger), log_limited_to_rl.GetLevel(), __VA_ARGS__) << log_limited_to_rl
+#define LOG_LIMITED_TO(logger, lvl, ...)                                                         \
+    if (const USERVER_NAMESPACE::logging::impl::RateLimiter                                      \
+            userver_log_limited_to_rl{[]() -> USERVER_NAMESPACE::logging::impl::RateLimitData& { \
+                thread_local USERVER_NAMESPACE::logging::impl::RateLimitData rl_data;            \
+                return rl_data;                                                                  \
+            }()};                                                                                \
+        !userver_log_limited_to_rl.ShouldLog())                                                  \
+    {                                                                                            \
+    } else                                                                                       \
+        LOG_TO((logger), (lvl), __VA_ARGS__) << userver_log_limited_to_rl
 
 /// @brief If lvl matches the verbosity then builds a stream and evaluates a
 /// message for the default logger. Ignores log messages that occur too often.
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+///
+/// @param ... optional `fmt::format` string literal and its arguments
+///
+/// Not affected by `USERVER_FEATURE_ERASE_LOG_WITH_LEVEL` @ref scripts/docs/en/userver/build/options.md "CMake option".
 #define LOG_LIMITED(lvl, ...) LOG_LIMITED_TO(USERVER_NAMESPACE::logging::GetDefaultLogger(), (lvl), __VA_ARGS__)
 
 /// @brief Evaluates a message and logs it to the default logger if the log
 /// message does not occur too often and default logger level is below or equal
-/// to logging::Level::kTrace.
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+/// to @ref logging::Level::kTrace.
+///
+/// @param ... optional `fmt::format` string literal and its arguments
+///
+/// Affected by `USERVER_FEATURE_ERASE_LOG_WITH_LEVEL` @ref scripts/docs/en/userver/build/options.md "CMake option".
 #define LOG_LIMITED_TRACE(...) \
-    USERVER_IMPL_LOGS_TRACE_ERASER(LOG_LIMITED(USERVER_NAMESPACE::logging::Level::kTrace, __VA_ARGS__))
+    USERVER_IMPL_LOGS_TRACE_ERASER(LOG_LIMITED_TO, USERVER_NAMESPACE::logging::GetDefaultLogger(), __VA_ARGS__)
 
 /// @brief Evaluates a message and logs it to the default logger if the log
 /// message does not occur too often and default logger level is below or equal
-/// to logging::Level::kDebug.
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+/// to @ref logging::Level::kDebug.
+///
+/// @param ... optional `fmt::format` string literal and its arguments
+///
+/// Affected by `USERVER_FEATURE_ERASE_LOG_WITH_LEVEL` @ref scripts/docs/en/userver/build/options.md "CMake option".
 #define LOG_LIMITED_DEBUG(...) \
-    USERVER_IMPL_LOGS_DEBUG_ERASER(LOG_LIMITED(USERVER_NAMESPACE::logging::Level::kDebug, __VA_ARGS__))
+    USERVER_IMPL_LOGS_DEBUG_ERASER(LOG_LIMITED_TO, USERVER_NAMESPACE::logging::GetDefaultLogger(), __VA_ARGS__)
 
 /// @brief Evaluates a message and logs it to the default logger if the log
 /// message does not occur too often and default logger level is below or equal
-/// to logging::Level::kInfo.
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+/// to @ref logging::Level::kInfo.
+///
+/// @param ... optional `fmt::format` string literal and its arguments
+///
+/// Affected by `USERVER_FEATURE_ERASE_LOG_WITH_LEVEL` @ref scripts/docs/en/userver/build/options.md "CMake option".
 #define LOG_LIMITED_INFO(...) \
-    USERVER_IMPL_LOGS_INFO_ERASER(LOG_LIMITED(USERVER_NAMESPACE::logging::Level::kInfo, __VA_ARGS__))
+    USERVER_IMPL_LOGS_INFO_ERASER(LOG_LIMITED_TO, USERVER_NAMESPACE::logging::GetDefaultLogger(), __VA_ARGS__)
 
 /// @brief Evaluates a message and logs it to the default logger if the log
 /// message does not occur too often and default logger level is below or equal
-/// to logging::Level::kWarning.
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+/// to @ref logging::Level::kWarning.
+///
+/// @param ... optional `fmt::format` string literal and its arguments
+///
+/// Affected by `USERVER_FEATURE_ERASE_LOG_WITH_LEVEL` @ref scripts/docs/en/userver/build/options.md "CMake option".
 #define LOG_LIMITED_WARNING(...) \
-    USERVER_IMPL_LOGS_WARNING_ERASER(LOG_LIMITED(USERVER_NAMESPACE::logging::Level::kWarning, __VA_ARGS__))
+    USERVER_IMPL_LOGS_WARNING_ERASER(LOG_LIMITED_TO, USERVER_NAMESPACE::logging::GetDefaultLogger(), __VA_ARGS__)
 
 /// @brief Evaluates a message and logs it to the default logger if the log
 /// message does not occur too often and default logger level is below or equal
-/// to logging::Level::kError.
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+/// to @ref logging::Level::kError.
+///
+/// @param ... optional `fmt::format` string literal and its arguments
+///
+/// Affected by `USERVER_FEATURE_ERASE_LOG_WITH_LEVEL` @ref scripts/docs/en/userver/build/options.md "CMake option".
 #define LOG_LIMITED_ERROR(...) \
-    USERVER_IMPL_LOGS_ERROR_ERASER(LOG_LIMITED(USERVER_NAMESPACE::logging::Level::kError, __VA_ARGS__))
+    USERVER_IMPL_LOGS_ERROR_ERASER(LOG_LIMITED_TO, USERVER_NAMESPACE::logging::GetDefaultLogger(), __VA_ARGS__)
 
 /// @brief Evaluates a message and logs it to the default logger if the log
 /// message does not occur too often and default logger level is below or equal
-/// to logging::Level::kCritical.
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+/// to @ref logging::Level::kCritical.
+///
+/// @param ... optional `fmt::format` string literal and its arguments
+///
+/// Not affected by `USERVER_FEATURE_ERASE_LOG_WITH_LEVEL` @ref scripts/docs/en/userver/build/options.md "CMake option".
 #define LOG_LIMITED_CRITICAL(...) LOG_LIMITED(USERVER_NAMESPACE::logging::Level::kCritical, __VA_ARGS__)
 
 ///////////////////////////////////////////////////////////////////////////////
 
 /// @brief Evaluates a message and logs it to the `logger` if the log message
-/// does not occur too often and `logger` level is below or equal to
-/// logging::Level::kTrace.
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define LOG_LIMITED_TRACE_TO(logger, ...) \
-    USERVER_IMPL_LOGS_TRACE_ERASER(LOG_LIMITED_TO(logger, USERVER_NAMESPACE::logging::Level::kTrace, __VA_ARGS__))
+/// does not occur too often and `logger` level is below or equal to @ref logging::Level::kTrace.
+///
+/// @param ... optional `fmt::format` string literal and its arguments
+///
+/// Affected by `USERVER_FEATURE_ERASE_LOG_WITH_LEVEL` @ref scripts/docs/en/userver/build/options.md "CMake option".
+#define LOG_LIMITED_TRACE_TO(logger, ...) USERVER_IMPL_LOGS_TRACE_ERASER(LOG_LIMITED_TO, logger, __VA_ARGS__)
 
 /// @brief Evaluates a message and logs it to the `logger` if the log message
-/// does not occur too often and `logger` level is below or equal to
-/// logging::Level::kDebug.
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define LOG_LIMITED_DEBUG_TO(logger, ...) \
-    USERVER_IMPL_LOGS_DEBUG_ERASER(LOG_LIMITED_TO(logger, USERVER_NAMESPACE::logging::Level::kDebug, __VA_ARGS__))
+/// does not occur too often and `logger` level is below or equal to @ref logging::Level::kDebug.
+///
+/// @param ... optional `fmt::format` string literal and its arguments
+///
+/// Affected by `USERVER_FEATURE_ERASE_LOG_WITH_LEVEL` @ref scripts/docs/en/userver/build/options.md "CMake option".
+#define LOG_LIMITED_DEBUG_TO(logger, ...) USERVER_IMPL_LOGS_DEBUG_ERASER(LOG_LIMITED_TO, logger, __VA_ARGS__)
 
 /// @brief Evaluates a message and logs it to the `logger` if the log message
-/// does not occur too often and `logger` level is below or equal to
-/// logging::Level::kInfo.
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define LOG_LIMITED_INFO_TO(logger, ...) \
-    USERVER_IMPL_LOGS_INFO_ERASER(LOG_LIMITED_TO(logger, USERVER_NAMESPACE::logging::Level::kInfo, __VA_ARGS__))
+/// does not occur too often and `logger` level is below or equal to @ref logging::Level::kInfo.
+///
+/// @param ... optional `fmt::format` string literal and its arguments
+///
+/// Affected by `USERVER_FEATURE_ERASE_LOG_WITH_LEVEL` @ref scripts/docs/en/userver/build/options.md "CMake option".
+#define LOG_LIMITED_INFO_TO(logger, ...) USERVER_IMPL_LOGS_INFO_ERASER(LOG_LIMITED_TO, logger, __VA_ARGS__)
 
 /// @brief Evaluates a message and logs it to the `logger` if the log message
-/// does not occur too often and `logger` level is below or equal to
-/// logging::Level::kWarning.
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define LOG_LIMITED_WARNING_TO(logger, ...) \
-    USERVER_IMPL_LOGS_WARNING_ERASER(LOG_LIMITED_TO(logger, USERVER_NAMESPACE::logging::Level::kWarning, __VA_ARGS__))
+/// does not occur too often and `logger` level is below or equal to @ref logging::Level::kWarning.
+///
+/// @param ... optional `fmt::format` string literal and its arguments
+///
+/// Affected by `USERVER_FEATURE_ERASE_LOG_WITH_LEVEL` @ref scripts/docs/en/userver/build/options.md "CMake option".
+#define LOG_LIMITED_WARNING_TO(logger, ...) USERVER_IMPL_LOGS_WARNING_ERASER(LOG_LIMITED_TO, logger, __VA_ARGS__)
 
 /// @brief Evaluates a message and logs it to the `logger` if the log message
-/// does not occur too often and `logger` level is below or equal to
-/// logging::Level::kError.
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define LOG_LIMITED_ERROR_TO(logger, ...) \
-    USERVER_IMPL_LOGS_ERROR_ERASER(LOG_LIMITED_TO(logger, USERVER_NAMESPACE::logging::Level::kError, __VA_ARGS__))
+/// does not occur too often and `logger` level is below or equal to @ref logging::Level::kError.
+///
+/// @param ... optional `fmt::format` string literal and its arguments
+///
+/// Affected by `USERVER_FEATURE_ERASE_LOG_WITH_LEVEL` @ref scripts/docs/en/userver/build/options.md "CMake option".
+#define LOG_LIMITED_ERROR_TO(logger, ...) USERVER_IMPL_LOGS_ERROR_ERASER(LOG_LIMITED_TO, logger, __VA_ARGS__)
 
 /// @brief Evaluates a message and logs it to the `logger` if the log message
-/// does not occur too often and `logger` level is below or equal to
-/// logging::Level::kCritical.
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+/// does not occur too often and `logger` level is below or equal to @ref logging::Level::kCritical.
+///
+/// @param ... optional `fmt::format` string literal and its arguments
+///
+/// Not affected by `USERVER_FEATURE_ERASE_LOG_WITH_LEVEL` @ref scripts/docs/en/userver/build/options.md "CMake option".
 #define LOG_LIMITED_CRITICAL_TO(logger, ...) \
     LOG_LIMITED_TO(logger, USERVER_NAMESPACE::logging::Level::kCritical, __VA_ARGS__)
 
-USERVER_NAMESPACE_END
+// NOLINTEND(cppcoreguidelines-macro-usage)

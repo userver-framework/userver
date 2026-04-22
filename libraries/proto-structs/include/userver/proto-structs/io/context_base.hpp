@@ -19,7 +19,7 @@ class FieldDescriptor;
 
 USERVER_NAMESPACE_BEGIN
 
-/// @brief Namespace for conversion utlities and predefined proto-structs conversion hooks for well-known std/userver
+/// @brief Namespace for conversion utilities and predefined proto-structs conversion hooks for well-known std/userver
 ///        types.
 namespace proto_structs::io {
 

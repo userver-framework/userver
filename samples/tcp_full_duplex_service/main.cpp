@@ -10,8 +10,10 @@
 #include <userver/server/handlers/server_monitor.hpp>
 #include <userver/utils/daemon_run.hpp>
 
+#include <userver/utils/statistics/fmt.hpp>
 #include <userver/utils/statistics/metric_tag.hpp>
 #include <userver/utils/statistics/metrics_storage.hpp>
+#include <userver/utils/statistics/rate_counter.hpp>
 
 #include <userver/clients/http/component_list.hpp>
 #include <userver/server/handlers/tests_control.hpp>
@@ -42,9 +44,9 @@ namespace samples::tcp::echo {
 
 /// [TCP sample - Stats definition]
 struct Stats {
-    std::atomic<std::uint64_t> opened_sockets{0};
-    std::atomic<std::uint64_t> closed_sockets{0};
-    std::atomic<std::uint64_t> bytes_read{0};
+    utils::statistics::RateCounter opened_sockets;
+    utils::statistics::RateCounter closed_sockets;
+    utils::statistics::RateCounter bytes_read;
 };
 /// [TCP sample - Stats definition]
 
@@ -58,9 +60,9 @@ void DumpMetric(utils::statistics::Writer& writer, const Stats& stats) {
 }
 
 void ResetMetric(Stats& stats) {
-    stats.opened_sockets = 0;
-    stats.closed_sockets = 0;
-    stats.bytes_read = 0;
+    ResetMetric(stats.opened_sockets);
+    ResetMetric(stats.closed_sockets);
+    ResetMetric(stats.bytes_read);
 }
 /// [TCP sample - Stats tag]
 
@@ -96,7 +98,7 @@ void DoRecv(engine::io::Socket& sock, Queue::Producer producer, Stats& stats) {
             return;
         }
 
-        stats.bytes_read += read_bytes;
+        stats.bytes_read += utils::statistics::Rate{read_bytes};
         if (!producer.Push({buf.data(), read_bytes})) {
             return;
         }

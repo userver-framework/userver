@@ -35,7 +35,7 @@ RequestZscore Client::Zscore(
 }
 
 void Client::Publish(std::string channel, std::string message, const CommandControl& command_control) {
-    return Publish(std::move(channel), std::move(message), command_control, PubShard::kZeroShard);
+    Publish(std::move(channel), std::move(message), command_control, PubShard::kZeroShard);
 }
 
 ScanRequest<ScanTag::kScan> Client::Scan(size_t shard, const CommandControl& command_control) {

@@ -37,6 +37,14 @@ engine::Deadline GetTaskInheritedDeadline() noexcept {
     return data ? data->deadline : engine::Deadline{};
 }
 
+std::optional<TaskInheritedOriginalDeadline> GetTaskInheritedOriginalDeadline() noexcept {
+    const auto* data = kTaskInheritedData.GetOptional();
+    if (data == nullptr) {
+        return std::nullopt;
+    }
+    return data->original_deadline;
+}
+
 void MarkTaskInheritedDeadlineExpired() noexcept {
     const auto* data = kTaskInheritedData.GetOptional();
     if (data) {
@@ -50,6 +58,7 @@ DeadlinePropagationBlocker::DeadlinePropagationBlocker()
     if (old_value_.deadline.IsReachable()) {
         auto patched = old_value_;
         patched.deadline = {};
+        patched.original_deadline.reset();
         kTaskInheritedData.Set(std::move(patched));
     }
 }

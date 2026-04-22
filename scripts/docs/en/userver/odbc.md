@@ -1,7 +1,7 @@
 ## ODBC Driver
 
 🐙 **userver** provides generic asynchronous driver for SQL-like databases via ODBC. The driver is in early
-development stage and can only execute simple querries.
+development stage and can only execute simple queries.
 
 
 ----------

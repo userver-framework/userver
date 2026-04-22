@@ -38,6 +38,7 @@ T OpenFile(const std::string& filename, ReopenMode mode = ReopenMode::kAppend) {
 
     namespace fs = boost::filesystem;
     constexpr auto kFilePermissions = fs::owner_write | fs::owner_read | fs::group_read | fs::others_read;
+    std::string error_message{};
 
     for (auto tries = 0; tries < kMaxTries; ++tries) {
         try {
@@ -53,7 +54,8 @@ T OpenFile(const std::string& filename, ReopenMode mode = ReopenMode::kAppend) {
             } else {
                 return T::Open(filename, flags, kFilePermissions);
             }
-        } catch (std::exception&) {
+        } catch (std::exception& e) {
+            error_message = e.what() != nullptr ? e.what() : "Unknown error";
             if (engine::current_task::IsTaskProcessorThread()) {
                 engine::SleepFor(kIntervalForRetries);
             } else {
@@ -61,7 +63,7 @@ T OpenFile(const std::string& filename, ReopenMode mode = ReopenMode::kAppend) {
             }
         }
     }
-    throw std::runtime_error(fmt::format("Filename {} cannot be created or opened", filename));
+    throw std::runtime_error(fmt::format("Filename {} cannot be created or opened: {}", filename, error_message));
 }
 
 }  // namespace logging::impl

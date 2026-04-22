@@ -36,9 +36,15 @@
       "hidden": true,
       "generator": "Ninja",
       "cacheVariables": {
-        "USERVER_FEATURE_GRPC": "ON",  // grpc template current
-        "USERVER_FEATURE_POSTGRESQL": "ON",  // postgresql template current
-        "USERVER_FEATURE_MONGODB": "ON",  // mongo template current
+        // grpc template on
+        "USERVER_FEATURE_GRPC": "ON",
+        // grpc template off
+        // postgresql template on
+        "USERVER_FEATURE_POSTGRESQL": "ON",
+        // postgresql template off
+        // mongo template on
+        "USERVER_FEATURE_MONGODB": "ON",
+        // mongo template off
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
       }
     }

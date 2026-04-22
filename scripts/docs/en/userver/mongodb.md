@@ -114,7 +114,7 @@ the service, then something is wrong with the database. Service or database main
    directly (not by the userver based service).
 
 2. Ask your favorite WEB search engine or AI for an information on how to optimize the slow queries in MongoDB. Usually
-   adding indexes or sharding the database does the job. 
+   adding indexes or sharding the database does the job.
 
 3. The slowdown could be caused by MongoDB sending megabytes of responses to your service on a slow connection:
    * Verify that the application logic is optimal, no unnecessary data is retrieved

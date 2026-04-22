@@ -1,5 +1,4 @@
 #include <userver/components/minimal_server_component_list.hpp>
-#include <userver/utest/using_namespace_userver.hpp>
 #include <userver/utils/daemon_run.hpp>
 
 // Note: this is for the purposes of tests/samples only

@@ -1,5 +1,7 @@
 #include <userver/urabbitmq/client_settings.hpp>
 
+#include <cstdint>
+#include <limits>
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
@@ -100,9 +102,16 @@ PoolSettings Parse(const yaml_config::YamlConfig& config, formats::parse::To<Poo
     result.min_pool_size = config["min_pool_size"].As<size_t>(result.min_pool_size);
     result.max_pool_size = config["max_pool_size"].As<size_t>(result.max_pool_size);
     result.max_in_flight_requests = config["max_in_flight_requests"].As<size_t>(result.max_in_flight_requests);
+    result
+        .heartbeat_interval_seconds = config["heartbeat_interval_seconds"].As<size_t>(result.heartbeat_interval_seconds
+    );
 
     UINVARIANT(result.min_pool_size <= result.max_pool_size, "max_pool_size is less than min_pool_size");
     UINVARIANT(result.max_pool_size > 0, "max_pool_size is set to zero");
+    UINVARIANT(
+        result.heartbeat_interval_seconds <= std::numeric_limits<std::uint16_t>::max(),
+        "heartbeat_interval_seconds is too large"
+    );
 
     return result;
 }
@@ -112,8 +121,7 @@ ClientSettings::ClientSettings() = default;
 ClientSettings::ClientSettings(const components::ComponentConfig& config, const RabbitEndpoints& rabbit_endpoints)
     : pool_settings{config.As<PoolSettings>()},
       endpoints{rabbit_endpoints},
-      use_secure_connection{config["use_secure_connection"].As<bool>(true)}
-{}
+      use_secure_connection{config["use_secure_connection"].As<bool>(true)} {}
 
 RabbitEndpointsMulti::RabbitEndpointsMulti(const formats::json::Value& doc) {
     const auto rabbitmq_settings = doc["rabbitmq_settings"];

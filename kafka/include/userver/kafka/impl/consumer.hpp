@@ -10,6 +10,7 @@
 #include <userver/kafka/impl/consumer_params.hpp>
 #include <userver/kafka/impl/holders.hpp>
 #include <userver/kafka/impl/stats.hpp>
+#include <userver/utils/span.hpp>
 #include <userver/utils/statistics/writer.hpp>
 #include <userver/utils/zstring_view.hpp>
 
@@ -85,7 +86,12 @@ public:
         std::chrono::milliseconds timeout
     ) const;
 
-    /// @brief Seeks the \b partition_id for the specified \b topic to the begginning offset .
+    /// @brief Seeks multiple topic partitions to the given offsets in one call.
+    /// @param params Topic, partition_id and offset for each seek.
+    /// @param timeout Timeout for the operation.
+    void MultiSeek(utils::span<const SeekParams> params, std::chrono::milliseconds timeout) const;
+
+    /// @brief Seeks the \b partition_id for the specified \b topic to the beginning offset.
     /// @see ConsumerScope::SeekToBeginning for better commitment process
     void SeekToBeginning(utils::zstring_view topic, std::uint32_t partition_id, std::chrono::milliseconds timeout)
         const;
@@ -123,7 +129,6 @@ private:
     /// @brief Subscribes for configured topics and starts polling loop.
     void RunConsuming(ConsumerScope::Callback callback);
 
-private:
     std::atomic<bool> processing_{false};
     Stats stats_;
     std::optional<ConsumerRebalanceCallback> rebalance_callback_;

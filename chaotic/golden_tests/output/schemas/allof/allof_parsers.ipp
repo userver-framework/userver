@@ -1,7 +1,5 @@
 #pragma once
 
-#include "allof.hpp"
-
 #include <userver/chaotic/object.hpp>
 #include <userver/chaotic/primitive.hpp>
 #include <userver/chaotic/validators.hpp>
@@ -11,67 +9,71 @@
 #include <userver/formats/serialize/common_containers.hpp>
 #include <userver/utils/trivial_map.hpp>
 
+#include "allof.hpp"
+
 namespace ns {
 
 static constexpr USERVER_NAMESPACE::utils::TrivialSet k__ns__AllOf__Foo__P0_PropertiesNames = [](auto selector) {
-    return selector().template Type<std::string_view>().Case("foo");
+  return selector().template Type<std::string_view>().Case("foo");
 };
 
 static constexpr USERVER_NAMESPACE::utils::TrivialSet k__ns__AllOf__Foo__P1_PropertiesNames = [](auto selector) {
-    return selector().template Type<std::string_view>().Case("bar");
+  return selector().template Type<std::string_view>().Case("bar");
 };
 
 static constexpr USERVER_NAMESPACE::utils::TrivialSet k__ns__AllOf_PropertiesNames = [](auto selector) {
-    return selector().template Type<std::string_view>().Case("foo");
+  return selector().template Type<std::string_view>().Case("foo");
 };
 
-template <typename Value>
-::ns::AllOf::Foo__P0 Parse(Value value, USERVER_NAMESPACE::formats::parse::To<::ns::AllOf::Foo__P0>) {
-    value.CheckNotMissing();
-    value.CheckObjectOrNull();
+template <typename Value, typename = std::enable_if_t<USERVER_NAMESPACE::formats::common::kIsFormatValue<Value>>>
+AllOf::Foo__P0 Parse(Value value, USERVER_NAMESPACE::formats::parse::To<AllOf::Foo__P0>) {
+  value.CheckNotMissing();
+  value.CheckObjectOrNull();
 
-    ::ns::AllOf::Foo__P0 res;
+  AllOf::Foo__P0 res;
 
-    res.foo = value["foo"].template As<std::optional<USERVER_NAMESPACE::chaotic::Primitive<std::string>>>();
+  res.foo = value["foo"].template As<std::optional<USERVER_NAMESPACE::chaotic::Primitive<std::string>>>();
 
-    res.extra =
-        USERVER_NAMESPACE::chaotic::ExtractAdditionalPropertiesTrue(value, k__ns__AllOf__Foo__P0_PropertiesNames);
+  res.extra = USERVER_NAMESPACE::chaotic::ExtractAdditionalPropertiesTrue(
+      Parse(std::move(value), USERVER_NAMESPACE::formats::parse::To<USERVER_NAMESPACE::formats::json::Value>()),
+      k__ns__AllOf__Foo__P0_PropertiesNames);
 
-    return res;
+  return res;
 }
 
-template <typename Value>
-::ns::AllOf::Foo__P1 Parse(Value value, USERVER_NAMESPACE::formats::parse::To<::ns::AllOf::Foo__P1>) {
-    value.CheckNotMissing();
-    value.CheckObjectOrNull();
+template <typename Value, typename = std::enable_if_t<USERVER_NAMESPACE::formats::common::kIsFormatValue<Value>>>
+AllOf::Foo__P1 Parse(Value value, USERVER_NAMESPACE::formats::parse::To<AllOf::Foo__P1>) {
+  value.CheckNotMissing();
+  value.CheckObjectOrNull();
 
-    ::ns::AllOf::Foo__P1 res;
+  AllOf::Foo__P1 res;
 
-    res.bar = value["bar"].template As<std::optional<USERVER_NAMESPACE::chaotic::Primitive<int>>>();
+  res.bar = value["bar"].template As<std::optional<USERVER_NAMESPACE::chaotic::Primitive<int>>>();
 
-    res.extra =
-        USERVER_NAMESPACE::chaotic::ExtractAdditionalPropertiesTrue(value, k__ns__AllOf__Foo__P1_PropertiesNames);
+  res.extra = USERVER_NAMESPACE::chaotic::ExtractAdditionalPropertiesTrue(
+      Parse(std::move(value), USERVER_NAMESPACE::formats::parse::To<USERVER_NAMESPACE::formats::json::Value>()),
+      k__ns__AllOf__Foo__P1_PropertiesNames);
 
-    return res;
+  return res;
 }
 
-template <typename Value>
-::ns::AllOf::Foo Parse(Value value, USERVER_NAMESPACE::formats::parse::To<::ns::AllOf::Foo>) {
-    return ::ns::AllOf::Foo(value.template As<::ns::AllOf::Foo__P0>(), value.template As<::ns::AllOf::Foo__P1>());
+template <typename Value, typename = std::enable_if_t<USERVER_NAMESPACE::formats::common::kIsFormatValue<Value>>>
+AllOf::Foo Parse(Value value, USERVER_NAMESPACE::formats::parse::To<AllOf::Foo>) {
+  return AllOf::Foo(value.template As<AllOf::Foo__P0>(), value.template As<AllOf::Foo__P1>());
 }
 
-template <typename Value>
-::ns::AllOf Parse(Value value, USERVER_NAMESPACE::formats::parse::To<::ns::AllOf>) {
-    value.CheckNotMissing();
-    value.CheckObjectOrNull();
+template <typename Value, typename = std::enable_if_t<USERVER_NAMESPACE::formats::common::kIsFormatValue<Value>>>
+AllOf Parse(Value value, USERVER_NAMESPACE::formats::parse::To<AllOf>) {
+  value.CheckNotMissing();
+  value.CheckObjectOrNull();
 
-    ::ns::AllOf res;
+  AllOf res;
 
-    res.foo = value["foo"].template As<std::optional<USERVER_NAMESPACE::chaotic::Primitive<::ns::AllOf::Foo>>>();
+  res.foo = value["foo"].template As<std::optional<USERVER_NAMESPACE::chaotic::Primitive<::ns::AllOf::Foo>>>();
 
-    USERVER_NAMESPACE::chaotic::ValidateNoAdditionalProperties(value, k__ns__AllOf_PropertiesNames);
+  USERVER_NAMESPACE::chaotic::ValidateNoAdditionalProperties(value, k__ns__AllOf_PropertiesNames);
 
-    return res;
+  return res;
 }
 
 }  // namespace ns

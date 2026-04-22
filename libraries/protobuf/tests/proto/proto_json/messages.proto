@@ -61,6 +61,7 @@ message EnumMessage {
   }
 
   Test field1 = 1;
+  optional Test field2 = 2;
 }
 
 message EmptyMessage {}
@@ -113,9 +114,25 @@ message OneofMessage {
 }
 
 message RepeatedMessage {
+  enum Test {
+    TEST_UNSPECIFIED = 0;
+    TEST_VALUE1 = 1;
+  }
+
   repeated int32 field1 = 1;
   repeated BoolMessage field2 = 2;
   repeated google.protobuf.Duration field3 = 3;
+  repeated google.protobuf.Value field4 = 4;
+
+  // for coverage
+  repeated uint32 field5 = 5;
+  repeated int64 field6 = 6;
+  repeated uint64 field7 = 7;
+  repeated float field8 = 8;
+  repeated double field9 = 9;
+  repeated bool field10 = 10;
+  repeated string field11 = 11;
+  repeated Test field12 = 12;
 }
 
 message MapMessage {
@@ -131,6 +148,7 @@ message MapMessage {
   map<bool, TestEnum> field5 = 5;
   map<string, BoolMessage> field6 = 6;
   map<string, google.protobuf.Duration> field7 = 7;
+  map<sint32, google.protobuf.Value> field8 = 8;
 }
 
 message NullValueMessage {

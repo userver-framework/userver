@@ -3,12 +3,12 @@ async def test_kv(service_client):
         '/kv',
         json={'key': 1, 'value': 'one'},
     )
-    assert response.status == 200
+    assert response.status == 200, response.json()
     assert response.json() is None
     assert 'application/json' in response.headers['Content-Type']
 
     response = await service_client.get('/kv', json={'key': 1})
-    assert response.status == 200
+    assert response.status == 200, response.json()
     assert response.json() == {'key': 1, 'value': 'one'}
     assert 'application/json' in response.headers['Content-Type']
 
@@ -19,6 +19,16 @@ async def test_kv(service_client):
     assert response.status == 200
 
     response = await service_client.get('/kv', json={'key': 1})
-    assert response.status == 200
+    assert response.status == 200, response.json()
     assert response.json() == {'key': 1, 'value': 'again_1'}
+    assert 'application/json' in response.headers['Content-Type']
+
+
+async def test_bad_key(service_client):
+    response = await service_client.post(
+        '/kv',
+        json={'key': 42, 'value': 'one'},
+    )
+    assert response.status == 400, response.json()
+    assert response.json() == {'code': 'client_error', 'message': 'We do not accept key 42'}
     assert 'application/json' in response.headers['Content-Type']

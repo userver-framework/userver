@@ -9,6 +9,8 @@
 
 #include <userver/proto-structs/io/impl/std/any_map_conv.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace proto_structs::io {
 
 template <
@@ -64,3 +66,5 @@ void WriteProtoField(
 }
 
 }  // namespace proto_structs::io
+
+USERVER_NAMESPACE_END

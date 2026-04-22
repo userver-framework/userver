@@ -5,11 +5,11 @@
 
 #include <atomic>
 #include <chrono>
+#include <compare>
 #include <cstdint>
 #include <optional>
 #include <string>
 
-#include <userver/compiler/impl/three_way_comparison.hpp>
 #include <userver/storages/redis/fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -32,14 +32,7 @@ public:
 
     bool IsAny() const { return id_ == -1; }
 
-#ifdef USERVER_IMPL_HAS_THREE_WAY_COMPARISON
     auto operator<=>(const ServerId&) const = default;
-#else
-    bool operator==(const ServerId& other) const { return other.id_ == id_; }
-    bool operator!=(const ServerId& other) const { return !(other == *this); }
-
-    bool operator<(const ServerId& other) const { return id_ < other.id_; }
-#endif
 
     static ServerId Generate() {
         ServerId sid;
@@ -147,9 +140,7 @@ struct CommandControl {
     ) noexcept
         : timeout_single(timeout_single), timeout_all(timeout_all), max_retries(max_retries) {}
 
-#ifdef USERVER_IMPL_HAS_THREE_WAY_COMPARISON
     auto operator<=>(const CommandControl&) const = default;
-#endif
 
     CommandControl MergeWith(const CommandControl& b) const;
     CommandControl MergeWith(const testsuite::RedisControl&) const;

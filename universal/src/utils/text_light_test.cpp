@@ -8,8 +8,6 @@
 #include <userver/utest/assert_macros.hpp>
 #include <userver/utils/text_light.hpp>
 
-#include <gtest/gtest.h>
-
 USERVER_NAMESPACE_BEGIN
 
 using utils::text::RemoveQuotes;
@@ -57,6 +55,12 @@ TEST(Text, EndsWith) {
     EXPECT_FALSE(utils::text::EndsWith("123_5", "12345"));
     EXPECT_FALSE(utils::text::EndsWith("", "12345"));
     EXPECT_TRUE(utils::text::EndsWith("", ""));
+}
+
+TEST(Text, TrimView) {
+    EXPECT_EQ(utils::text::TrimView("foo"), "foo");
+    EXPECT_EQ(utils::text::TrimView(" 1 "), "1");
+    EXPECT_EQ(utils::text::TrimView("  "), "");
 }
 
 TEST(Text, ICaseStartsWith) {

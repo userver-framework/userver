@@ -21,7 +21,7 @@ namespace proto_structs {
 /// @brief Type to represent `google.protobuf.Timestamp` in proto structs.
 ///
 /// This type is organized in the same way as its protobuf counterpart and allows for the same range of values
-/// desribed here https://github.com/protocolbuffers/protobuf/blob/main/src/google/protobuf/timestamp.proto :
+/// described here https://github.com/protocolbuffers/protobuf/blob/main/src/google/protobuf/timestamp.proto :
 /// from `0001-01-01 00:00:00` to `9999-12-31 23:59:59` expressed as an offset from Unix epoch `1970-01-01 00:00:00`.
 class Timestamp {
 public:
@@ -41,7 +41,7 @@ public:
 
     /// @brief Creates timestamp from @a seconds specifying the offset from Unix epoch and @a nanos which are the
     ///        non-negative (from `0` to `999'999'999`) fractions of second.
-    /// @throws ValueError if @a seconds and @a nanos does not satisty the requirements or outside the allowed range.
+    /// @throws ValueError if @a seconds and @a nanos does not satisfy the requirements or outside the allowed range.
     /// @warning Note that @ref proto_structs::Duration treats @a nanos in a different way than `Timestamp`, which
     ///          means it is not correct in general to create timestamp from duration's `Seconds` and `Nanos` - use
     ///          specific constructor instead.

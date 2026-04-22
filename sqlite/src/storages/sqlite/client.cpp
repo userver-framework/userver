@@ -37,7 +37,7 @@ ResultSet Client::DoExecute(impl::io::ParamsBinderBase& params, std::shared_ptr<
     return pimpl_->ExecuteCommand(prepare_statement, connection);
 }
 
-void Client::WriteStatistics(utils::statistics::Writer& writer) const { return pimpl_->WriteStatistics(writer); }
+void Client::WriteStatistics(utils::statistics::Writer& writer) const { pimpl_->WriteStatistics(writer); }
 
 void Client::AccountQueryExecute(std::shared_ptr<infra::ConnectionPtr> connection) const noexcept {
     pimpl_->AccountQueryExecute(connection);

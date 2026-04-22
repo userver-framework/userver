@@ -24,7 +24,6 @@
 #include <userver/logging/component.hpp>
 #include <userver/os_signals/component.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
-#include <userver/tracing/component.hpp>
 
 #include <cache/internal_helpers_test.hpp>
 #include <components/component_list_test.hpp>
@@ -477,7 +476,6 @@ components::ComponentList MakeComponentList() {
         .Append<os_signals::ProcessorComponent>()
         .Append<components::StatisticsStorage>()
         .Append<components::Logging>()
-        .Append<components::Tracer>()
         .Append<Component2>()
         .Append<Component1>()
         .Append<ComponentNotLoaded>()

@@ -1,5 +1,6 @@
 #include <userver/utest/simple_server.hpp>
 
+#include <engine/io/tests/net_listener.hpp>
 #include <userver/concurrent/background_task_storage.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/io/socket.hpp>
@@ -7,7 +8,6 @@
 #include <userver/engine/sleep.hpp>
 #include <userver/engine/task/cancel.hpp>
 #include <userver/engine/task/task.hpp>
-#include <userver/internal/net/net_listener.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utest/utest.hpp>
 
@@ -120,7 +120,7 @@ public:
 
 private:
     OnRequest callback_;
-    internal::net::TcpListener listener_;
+    engine::io::tests::TcpListener listener_;
     std::atomic<std::uint64_t> connections_opened_count_{0};
 
     concurrent::BackgroundTaskStorage client_tasks_storage_;
@@ -131,7 +131,7 @@ private:
 
 SimpleServer::Impl::Impl(OnRequest callback, Protocol protocol)
     : callback_{std::move(callback)},
-      listener_{protocol == Protocol::kTcpIpV6 ? internal::net::IpVersion::kV6 : internal::net::IpVersion::kV4}
+      listener_{protocol == Protocol::kTcpIpV6 ? engine::io::tests::IpVersion::kV6 : engine::io::tests::IpVersion::kV4}
 {
     EXPECT_TRUE(callback_) << "SimpleServer must be started with a request callback";
 

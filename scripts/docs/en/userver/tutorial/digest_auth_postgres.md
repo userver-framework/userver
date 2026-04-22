@@ -10,7 +10,7 @@ Make sure that you can compile and run core tests and read a basic example
 
 This tutorial shows how to create a custom digest authorization checker. In
 the tutorial the authorization data is stored in PostgreSQL database, and
-information of an authorized user (i.e. Authorization header) 
+information of an authorized user (i.e. Authorization header)
 is passed to the HTTP handler.
 
 Authentication credentials checking logic is set in base class `server::handlers::auth::digest::AuthChecker`.
@@ -28,7 +28,7 @@ Let's make a table to store users data:
 
 ### Authorization Checker
 
-To implement an authorization checker derive from 
+To implement an authorization checker derive from
 `server::handlers::auth::digest::AuthChecker` and override the virtual functions:
 
 @snippet samples/digest_auth_service/auth_digest.cpp  auth checker declaration

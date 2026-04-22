@@ -22,9 +22,7 @@
 #include <boost/pfr/detail/sequence_tuple.hpp>
 #include <boost/pfr/detail/stdarray.hpp>
 
-#ifdef BOOST_PFR_HAS_STD_MODULE
-import std;
-#else
+#if !defined(BOOST_PFR_INTERFACE_UNIT)
 #include <type_traits>
 #include <string_view>
 #include <array>
@@ -218,8 +216,8 @@ constexpr std::string_view get_name() noexcept {
         "====================> Boost.PFR: It is impossible to extract name from old C array since it doesn't have named members"
     );
     static_assert(
-        sizeof(T) && BOOST_PFR_USE_CPP17,
-        "====================> Boost.PFR: Extraction of field's names is allowed only when the BOOST_PFR_USE_CPP17 macro enabled."
+        sizeof(T) && (BOOST_PFR_USE_CPP17 || BOOST_PFR_USE_CPP26),
+        "====================> Boost.PFR: Extraction of field's names is allowed only when the BOOST_PFR_USE_CPP17 or the BOOST_PFR_USE_CPP26 macro enabled."
    );
 
    return stored_name_of_field<T, I>.data();

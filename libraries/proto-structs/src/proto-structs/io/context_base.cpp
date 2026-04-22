@@ -5,6 +5,8 @@
 
 #include <userver/utils/impl/internal_tag.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace proto_structs::io {
 
 std::string Context::GetCurrentPath(int current_field_number) const {
@@ -104,3 +106,5 @@ template class ContextWithErrors<ReadError>;
 template class ContextWithErrors<WriteError>;
 
 }  // namespace proto_structs::io
+
+USERVER_NAMESPACE_END

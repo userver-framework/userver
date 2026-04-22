@@ -213,7 +213,8 @@ To test `kafka_sample::Produce` we can use such technique:
 
 @snippet samples/kafka_service/unittest/kafka_test.cpp  Kafka service sample - producer unit test
 
-To test `kafka_sample::Consume` use @ref kafka::utest::KafkaCluster::SendMessages and @ref kafka::utest::KafkaCluster::ReceiveMessages:
+To test `kafka_sample::Consume` use @ref kafka::utest::KafkaCluster::SendMessages and
+@ref kafka::utest::KafkaCluster::ReceiveMessages :
 
 @snippet samples/kafka_service/unittest/kafka_test.cpp  Kafka service sample - consumer unit test
 

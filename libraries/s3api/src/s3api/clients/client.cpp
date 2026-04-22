@@ -404,7 +404,7 @@ std::optional<std::string> ClientImpl::ListBucketContents(
 std::vector<ObjectMeta> ClientImpl::ListBucketContentsParsed(std::string_view path_prefix) const {
     std::vector<ObjectMeta> result;
     // S3 doc: specifies the key to start with when listing objects in a bucket
-    std::string marker = "";
+    std::string marker{};
     bool is_finished = false;
     while (!is_finished) {
         auto response = ListBucketContents(path_prefix, kMaxS3Keys, marker, {});
@@ -432,7 +432,7 @@ std::vector<ObjectMeta> ClientImpl::ListBucketContentsParsed(std::string_view pa
 std::vector<std::string> ClientImpl::ListBucketDirectories(std::string_view path_prefix) const {
     std::vector<std::string> result;
     // S3 doc: specifies the key to start with when listing objects in a bucket
-    std::string marker = "";
+    std::string marker{};
     bool is_finished = false;
     while (!is_finished) {
         auto response = ListBucketContents(path_prefix, kMaxS3Keys, marker, "/");

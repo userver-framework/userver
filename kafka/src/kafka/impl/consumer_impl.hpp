@@ -12,6 +12,7 @@
 #include <userver/kafka/message.hpp>
 #include <userver/kafka/offset_range.hpp>
 #include <userver/kafka/rebalance_types.hpp>
+#include <userver/utils/span.hpp>
 #include <userver/utils/zstring_view.hpp>
 
 #include <kafka/impl/holders_aliases.hpp>
@@ -75,6 +76,11 @@ public:
 
     /// @brief Seeks the partition ID for the specified \b topic to the end offset .
     void SeekToEnd(utils::zstring_view topic, std::uint32_t partition_id, std::chrono::milliseconds timeout) const;
+
+    /// @brief Seeks multiple topic partitions to the given offsets in one call.
+    /// @param params Topic, partition_id and offset for each seek.
+    /// @param timeout Timeout for the operation.
+    void MultiSeek(utils::span<const SeekParams> params, std::chrono::milliseconds timeout) const;
 
     /// @brief Effectively calls `PollMessage` until `deadline` is reached
     /// and no more than `max_batch_size` messages polled.
@@ -146,15 +152,17 @@ private:
         std::chrono::milliseconds timeout
     ) const;
 
+    /// @brief Seeks multiple topic partitions to the given offsets (internal, expects validated inputs).
+    void SeekToOffsets(utils::span<const SeekParams> params, std::chrono::milliseconds timeout) const;
+
     /// @brief Callback which is called after succeeded/failed commit.
     /// Currently, used for logging purposes.
-    void OffsetCommitCallback(rd_kafka_resp_err_t err, const rd_kafka_topic_partition_list_s* committed_offsets);
+    void OffsetCommitCallback(rd_kafka_resp_err_t err, const rd_kafka_topic_partition_list_s* committed_offsets) const;
 
     std::shared_ptr<TopicStats> GetTopicStats(const std::string& topic);
 
     void AccountPolledMessageStat(const Message& polled_message);
 
-private:
     const std::string& name_;
     const std::vector<std::string> topics_;
     const ConsumerExecutionParams execution_params_;

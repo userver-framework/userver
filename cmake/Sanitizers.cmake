@@ -31,15 +31,22 @@ function(_userver_get_sanitize_blacklist_file COMPILE_FLAGS_BL LINK_FLAGS_BL)
     )
 endfunction()
 
+# @arg SANITIZER_LIST_VAR smth
+# @arg COMPILE_FLAGS_VAR smth
+# @arg LINK_FLAGS_VAR smth
+# 
+# 
 function(_userver_get_sanitize_options SANITIZER_LIST_VAR COMPILE_FLAGS_VAR LINK_FLAGS_VAR)
     get_property(USERVER_CMAKE_DIR GLOBAL PROPERTY userver_cmake_dir)
 
     set(USERVER_SANITIZE_ENUM "mem, addr, thread, ub")
 
+    # @ingroup compilation
     set(USERVER_SANITIZE
         ""
         CACHE STRING "Sanitizer, possible values: ${USERVER_SANITIZE_ENUM}"
     )
+    # @ingroup compilation
     set(USERVER_SANITIZE_BLACKLIST
         ""
         CACHE FILEPATH "Blacklist for sanitizers"

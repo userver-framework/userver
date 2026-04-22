@@ -24,7 +24,7 @@ boost::intrusive_ptr<TaskContext> MakeContext() {
     return engine::impl::MakeTask(
                {engine::current_task::GetTaskProcessor(),
                 engine::Task::Importance::kNormal,
-                engine::Task::WaitMode::kSingleWaiter,
+                engine::Task::WaitMode::kSingleAwaiter,
                 {}},
                [] {}
     ).Extract();
@@ -51,12 +51,12 @@ void WaitListInsertion(benchmark::State& state) {
         {
             WaitList::Lock guard{wl};
             for ([[maybe_unused]] auto _ : state) {
-                wl.Append(guard, contexts[i]);
+                wl.Append(guard, contexts[i], contexts[i]->GetAwaiterContext());
 
                 if (++i == kTasksCount) {
                     state.PauseTiming();
                     while (i--) {
-                        wl.Remove(guard, *contexts[i]);
+                        wl.Remove(guard, *contexts[i], contexts[i]->GetAwaiterContext());
                     }
                     state.ResumeTiming();
                 }
@@ -65,7 +65,7 @@ void WaitListInsertion(benchmark::State& state) {
 
         WaitList::Lock guard{wl};
         while (i--) {
-            wl.Remove(guard, *contexts[i]);
+            wl.Remove(guard, *contexts[i], contexts[i]->GetAwaiterContext());
         }
     });
 }
@@ -79,19 +79,19 @@ void WaitListRemoval(benchmark::State& state) {
 
         WaitList::Lock guard{wl};
         for (const auto& c : contexts) {
-            wl.Append(guard, c);
+            wl.Append(guard, c, c->GetAwaiterContext());
         }
 
         std::size_t i = 0;
         for ([[maybe_unused]] auto _ : state) {
-            wl.Remove(guard, *contexts[i]);
+            wl.Remove(guard, *contexts[i], contexts[i]->GetAwaiterContext());
 
             if (++i == kTasksCount) {
                 state.PauseTiming();
                 i = 0;
                 {
                     for (const auto& c : contexts) {
-                        wl.Append(guard, c);
+                        wl.Append(guard, c, c->GetAwaiterContext());
                     }
                 }
                 state.ResumeTiming();
@@ -99,7 +99,7 @@ void WaitListRemoval(benchmark::State& state) {
         }
 
         while (i != kTasksCount) {
-            wl.Remove(guard, *contexts[i]);
+            wl.Remove(guard, *contexts[i], contexts[i]->GetAwaiterContext());
             ++i;
         }
     });
@@ -119,10 +119,10 @@ void WaitListAddRemoveContention(benchmark::State& state) {
                 while (run) {
                     {
                         WaitList::Lock guard{wl};
-                        wl.Append(guard, ctx);
+                        wl.Append(guard, ctx, ctx->GetAwaiterContext());
                     }
                     WaitList::Lock guard{wl};
-                    wl.Remove(guard, *ctx);
+                    wl.Remove(guard, *ctx, ctx->GetAwaiterContext());
                 }
             }));
         }
@@ -131,10 +131,10 @@ void WaitListAddRemoveContention(benchmark::State& state) {
         for ([[maybe_unused]] auto _ : state) {
             {
                 WaitList::Lock guard{wl};
-                wl.Append(guard, ctx);
+                wl.Append(guard, ctx, ctx->GetAwaiterContext());
             }
             WaitList::Lock guard{wl};
-            wl.Remove(guard, *ctx);
+            wl.Remove(guard, *ctx, ctx->GetAwaiterContext());
         }
 
         run = false;
@@ -155,11 +155,11 @@ void WaitListAddRemoveContentionUnbalanced(benchmark::State& state) {
                 while (run) {
                     for (auto& ctx : contexts) {
                         WaitList::Lock guard{wl};
-                        wl.Append(guard, ctx);
+                        wl.Append(guard, ctx, ctx->GetAwaiterContext());
                     }
                     for (auto& ctx : contexts) {
                         WaitList::Lock guard{wl};
-                        wl.Remove(guard, *ctx);
+                        wl.Remove(guard, *ctx, ctx->GetAwaiterContext());
                     }
                 }
             }));
@@ -169,11 +169,11 @@ void WaitListAddRemoveContentionUnbalanced(benchmark::State& state) {
         for ([[maybe_unused]] auto _ : state) {
             for (auto& ctx : contexts) {
                 WaitList::Lock guard{wl};
-                wl.Append(guard, ctx);
+                wl.Append(guard, ctx, ctx->GetAwaiterContext());
             }
             for (auto& ctx : contexts) {
                 WaitList::Lock guard{wl};
-                wl.Remove(guard, *ctx);
+                wl.Remove(guard, *ctx, ctx->GetAwaiterContext());
             }
         }
 

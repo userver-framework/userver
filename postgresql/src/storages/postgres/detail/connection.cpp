@@ -91,8 +91,6 @@ bool Connection::IsInTransaction() const { return pimpl_->IsInTransaction(); }
 
 CommandControl Connection::GetDefaultCommandControl() const { return pimpl_->GetDefaultCommandControl(); }
 
-void Connection::UpdateDefaultCommandControl() { pimpl_->UpdateDefaultCommandControl(); }
-
 Connection::Statistics Connection::GetStatsAndReset() { return pimpl_->GetStatsAndReset(); }
 
 void Connection::Begin(

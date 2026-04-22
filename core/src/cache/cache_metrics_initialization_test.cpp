@@ -13,7 +13,6 @@
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
-#include <userver/utest/utest.hpp>
 #include <userver/utils/statistics/testing.hpp>
 
 USERVER_NAMESPACE_BEGIN

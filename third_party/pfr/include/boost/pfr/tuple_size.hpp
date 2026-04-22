@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2024 Antony Polukhin
+// Copyright (c) 2016-2025 Antony Polukhin
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -10,11 +10,15 @@
 
 #include <boost/pfr/detail/config.hpp>
 
-#include <type_traits>
-#include <utility>      // metaprogramming stuff
+#if !defined(BOOST_USE_MODULES) || defined(BOOST_PFR_INTERFACE_UNIT)
 
 #include <boost/pfr/detail/sequence_tuple.hpp>
 #include <boost/pfr/detail/fields_count.hpp>
+
+#if !defined(BOOST_PFR_INTERFACE_UNIT)
+#include <type_traits>
+#include <utility>      // metaprogramming stuff
+#endif
 
 /// \file boost/pfr/tuple_size.hpp
 /// Contains tuple-like interfaces to get fields count \forcedlink{tuple_size}, \forcedlink{tuple_size_v}.
@@ -48,5 +52,7 @@ constexpr std::size_t tuple_size_v = tuple_size<T>::value;
 BOOST_PFR_END_MODULE_EXPORT
 
 }} // namespace boost::pfr
+
+#endif  // #if defined(BOOST_USE_MODULES) && !defined(BOOST_PFR_INTERFACE_UNIT)
 
 #endif // BOOST_PFR_TUPLE_SIZE_HPP

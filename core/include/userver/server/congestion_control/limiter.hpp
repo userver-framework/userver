@@ -14,11 +14,15 @@ namespace server::congestion_control {
 class Limitee {
 public:
     virtual void SetLimit(std::optional<size_t> new_limit) = 0;
+
+    virtual std::size_t GetLimitableHandlersCount() const = 0;
 };
 
 class Limiter final : public USERVER_NAMESPACE::congestion_control::Limiter {
 public:
     void SetLimit(const USERVER_NAMESPACE::congestion_control::Limit& new_limit) override;
+
+    std::size_t GetLimitableHandlersCount() const;
 
     void RegisterLimitee(Limitee& limitee);
 

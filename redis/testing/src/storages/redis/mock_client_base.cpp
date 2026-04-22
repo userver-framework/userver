@@ -97,6 +97,24 @@ RequestEvalShaCommon MockClientBase::EvalShaCommon(
     AbortWithStacktrace(kNotMocked);
 }
 
+RequestEvalCommon MockClientBase::EvalReadOnlyCommon(
+    std::string /*script*/,
+    std::vector<std::string> /*keys*/,
+    std::vector<std::string> /*args*/,
+    const CommandControl& /*command_control*/
+) {
+    AbortWithStacktrace(kNotMocked);
+}
+
+RequestEvalShaCommon MockClientBase::EvalShaReadOnlyCommon(
+    std::string /*script*/,
+    std::vector<std::string> /*keys*/,
+    std::vector<std::string> /*args*/,
+    const CommandControl& /*command_control*/
+) {
+    AbortWithStacktrace(kNotMocked);
+}
+
 RequestGenericCommon MockClientBase::GenericCommon(
     std::string /*command*/,
     std::vector<std::string> /*args*/,

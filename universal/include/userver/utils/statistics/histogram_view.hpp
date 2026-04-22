@@ -7,6 +7,8 @@
 #include <cstdint>
 #include <type_traits>
 
+#include <fmt/format.h>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace utils::statistics {
@@ -18,6 +20,8 @@ struct Bucket;
 struct Access;
 }  // namespace impl::histogram
 
+/// @ingroup userver_universal
+///
 /// @brief The non-owning reader API for "histogram" metrics.
 ///
 /// @see utils::statistics::Histogram for details on semantics
@@ -72,3 +76,19 @@ bool operator!=(HistogramView lhs, HistogramView rhs) noexcept;
 }  // namespace utils::statistics
 
 USERVER_NAMESPACE_END
+
+template <>
+struct fmt::formatter<USERVER_NAMESPACE::utils::statistics::HistogramView> {
+    constexpr static auto parse(format_parse_context& ctx) { return ctx.begin(); }
+
+    template <typename FormatCtx>
+    auto format(USERVER_NAMESPACE::utils::statistics::HistogramView histogram, FormatCtx& ctx) const {
+        const auto bucket_count = histogram.GetBucketCount();
+        for (std::size_t i = 0; i < bucket_count; ++i) {
+            ctx.advance_to(fmt::format_to(ctx.out(), "[{}]={}", histogram.GetUpperBoundAt(i), histogram.GetValueAt(i)));
+            ctx.advance_to(fmt::format_to(ctx.out(), ","));
+        }
+        ctx.advance_to(fmt::format_to(ctx.out(), "[inf]={}", histogram.GetValueAtInf()));
+        return ctx.out();
+    }
+};

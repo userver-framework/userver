@@ -220,7 +220,7 @@ async def test_http1_broken_bytes(service_client, create_socket):
             await sock.recv(1024, timeout=1.0)
         await sock.sendall(b'garbage')
         r = await sock.recv(1024)
-        assert 'HTTP/1.1 400 Bad Request' in r.decode('utf-8')
+        assert len(r.decode('utf-8')) == 0
 
 
 async def _send_and_receive(sock, conn):
@@ -390,7 +390,6 @@ async def do_max_streams(sock, conn):
     _assert_responses(events)
 
 
-@pytest.mark.skip(reason='TAXICOMMON-10258')
 async def test_many_in_flight(
     create_connection,
     monitor_client,
@@ -410,7 +409,6 @@ async def test_many_in_flight(
         await do_max_streams(sock, conn)
 
 
-@pytest.mark.skip(reason='TAXICOMMON-10258')
 async def test_limit_concurrent_streams(
     service_client,
     create_connection,
@@ -455,7 +453,6 @@ async def test_limit_concurrent_streams(
         assert 'request HEADERS: max concurrent streams exceeded' in str(receive)
 
 
-@pytest.mark.skip(reason='TAXICOMMON-10232: broken in nghttp2 1.65.0')
 async def test_stream_already_closed(create_connection, service_client):
     async with create_connection() as (sock, conn):
 

@@ -149,8 +149,6 @@ components_manager:
       path: /tests/control
       method: POST
       task_processor: main-task-processor
-    tracer:
-      tracer: native
     worker-cleanup-inactive-users:
       cleanup-inactive-users-period: $cleanup_inactive_users_period
       task_processor: bg-task-processor
@@ -217,7 +215,7 @@ TEST(ManagerConfig, Basic) {
 
     EXPECT_EQ(mc.task_processors.size(), 5);
 
-    ASSERT_EQ(mc.components.size(), 29);
+    ASSERT_EQ(mc.components.size(), 28);
 
     EXPECT_TRUE(std::any_of(mc.components.begin(), mc.components.end(), [](const auto& conf) {
         return conf.Name() == "api-firebase";

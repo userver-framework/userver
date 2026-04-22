@@ -6,6 +6,7 @@
 #include <google/protobuf/util/time_util.h>
 
 #include <userver/proto-structs/convert.hpp>
+#include <userver/utest/assert_macros.hpp>
 
 #include "messages.pb.h"
 #include "structs.hpp"
@@ -18,8 +19,8 @@ TEST(MessageToStruct, Empty) {
     messages::Empty msg;
     structs::Empty obj;
 
-    ASSERT_NO_THROW(MessageToStruct(msg, obj));
-    ASSERT_NO_THROW((obj = MessageToStruct<structs::Empty>(msg)));
+    UASSERT_NO_THROW(MessageToStruct(msg, obj));
+    UASSERT_NO_THROW((obj = MessageToStruct<structs::Empty>(msg)));
 }
 
 TEST(MessageToStruct, Scalar) {
@@ -53,14 +54,14 @@ TEST(MessageToStruct, Scalar) {
         obj.f3 = 2;
         obj.f8 = "test";
 
-        ASSERT_NO_THROW(MessageToStruct(msg, obj));
+        UASSERT_NO_THROW(MessageToStruct(msg, obj));
         CheckScalarEqual(obj, msg);
 
         msg.set_f8("hello");
         msg.set_f9("world");
         msg.set_f11(456);
 
-        ASSERT_NO_THROW(MessageToStruct(msg, obj));
+        UASSERT_NO_THROW(MessageToStruct(msg, obj));
         CheckScalarEqual(obj, msg);
     }
 
@@ -68,14 +69,7 @@ TEST(MessageToStruct, Scalar) {
         messages::Scalar msg;
         msg.set_f11(-1);
 
-        try {
-            auto result = MessageToStruct<structs::Scalar>(msg);
-            FAIL() << "exception should be thrown";
-        } catch (const ups::ReadError& e) {
-            EXPECT_THAT(e.what(), ::testing::HasSubstr("'messages.Scalar.f11'"));
-        } catch (...) {
-            FAIL() << "unexpected exception type";
-        }
+        UEXPECT_THROW_MSG(static_cast<void>(MessageToStruct<structs::Scalar>(msg)), ReadError, "'messages.Scalar.f11'");
     }
 }
 
@@ -88,7 +82,7 @@ TEST(MessageToStruct, WellKnownStd) {
         return msg;
     };
 
-    ASSERT_NO_THROW(static_cast<void>(MessageToStruct<structs::WellKnownStd>(create_valid())));
+    UASSERT_NO_THROW(static_cast<void>(MessageToStruct<structs::WellKnownStd>(create_valid())));
 
     {
         messages::WellKnownStd msg;
@@ -115,7 +109,7 @@ TEST(MessageToStruct, WellKnownStd) {
         obj.f1 = std::chrono::system_clock::now();
         obj.f2 = std::chrono::milliseconds(1001);
 
-        ASSERT_NO_THROW(MessageToStruct(msg, obj));
+        UASSERT_NO_THROW(MessageToStruct(msg, obj));
         CheckWellKnownStdEqual(obj, msg);
 
         *msg.mutable_f2() = ::google::protobuf::util::TimeUtil::NanosecondsToDuration(-123'456'789'987'654'321LL);
@@ -124,7 +118,7 @@ TEST(MessageToStruct, WellKnownStd) {
         msg.mutable_f4()->set_seconds(0);
         msg.mutable_f4()->set_nanos(0);
 
-        ASSERT_NO_THROW(MessageToStruct(msg, obj));
+        UASSERT_NO_THROW(MessageToStruct(msg, obj));
         CheckWellKnownStdEqual(obj, msg);
     }
 
@@ -132,9 +126,10 @@ TEST(MessageToStruct, WellKnownStd) {
         messages::WellKnownStd msg = create_valid();
         msg.mutable_f1()->set_nanos(1'999'999'999);
 
-        EXPECT_THAT(
-            [&msg]() { static_cast<void>(MessageToStruct<structs::WellKnownStd>(msg)); },
-            ::testing::ThrowsMessage<ReadError>(::testing::HasSubstr("'messages.WellKnownStd.f1'"))
+        UEXPECT_THROW_MSG(
+            static_cast<void>(MessageToStruct<structs::WellKnownStd>(msg)),
+            ReadError,
+            "'messages.WellKnownStd.f1'"
         );
     }
 
@@ -142,9 +137,10 @@ TEST(MessageToStruct, WellKnownStd) {
         messages::WellKnownStd msg = create_valid();
         msg.mutable_f2()->set_nanos(-1'999'999'999);
 
-        EXPECT_THAT(
-            [&msg]() { static_cast<void>(MessageToStruct<structs::WellKnownStd>(msg)); },
-            ::testing::ThrowsMessage<ReadError>(::testing::HasSubstr("'messages.WellKnownStd.f2'"))
+        UEXPECT_THROW_MSG(
+            static_cast<void>(MessageToStruct<structs::WellKnownStd>(msg)),
+            ReadError,
+            "'messages.WellKnownStd.f2'"
         );
     }
 
@@ -152,9 +148,10 @@ TEST(MessageToStruct, WellKnownStd) {
         messages::WellKnownStd msg = create_valid();
         msg.mutable_f3()->set_day(0);  // not full date is not allowed for std::chrono::year_month_day
 
-        EXPECT_THAT(
-            [&msg]() { static_cast<void>(MessageToStruct<structs::WellKnownStd>(msg)); },
-            ::testing::ThrowsMessage<ReadError>(::testing::HasSubstr("'messages.WellKnownStd.f3'"))
+        UEXPECT_THROW_MSG(
+            static_cast<void>(MessageToStruct<structs::WellKnownStd>(msg)),
+            ReadError,
+            "'messages.WellKnownStd.f3'"
         );
     }
 
@@ -162,9 +159,10 @@ TEST(MessageToStruct, WellKnownStd) {
         messages::WellKnownStd msg = create_valid();
         msg.mutable_f4()->set_seconds(60);  // leap second is not allowed for std::chrono::hh_mm_ss
 
-        EXPECT_THAT(
-            [&msg]() { static_cast<void>(MessageToStruct<structs::WellKnownStd>(msg)); },
-            ::testing::ThrowsMessage<ReadError>(::testing::HasSubstr("'messages.WellKnownStd.f4'"))
+        UEXPECT_THROW_MSG(
+            static_cast<void>(MessageToStruct<structs::WellKnownStd>(msg)),
+            ReadError,
+            "'messages.WellKnownStd.f4'"
         );
     }
 }
@@ -176,7 +174,7 @@ TEST(MessageToStruct, WellKnownUsrv) {
         return msg;
     };
 
-    ASSERT_NO_THROW(static_cast<void>(MessageToStruct<structs::WellKnownUsrv>(create_valid())));
+    UASSERT_NO_THROW(static_cast<void>(MessageToStruct<structs::WellKnownUsrv>(create_valid())));
 
     {
         messages::WellKnownUsrv msg;
@@ -217,7 +215,7 @@ TEST(MessageToStruct, WellKnownUsrv) {
         obj.f2 = std::chrono::system_clock::now();
         obj.f3 = std::chrono::milliseconds(1001);
 
-        ASSERT_NO_THROW(MessageToStruct(msg, obj));
+        UASSERT_NO_THROW(MessageToStruct(msg, obj));
         CheckWellKnownUsrvEqual(obj, msg);
 
         any_payload.set_f1(5);
@@ -230,7 +228,7 @@ TEST(MessageToStruct, WellKnownUsrv) {
         msg.mutable_f5()->set_nanos(0);
         msg.mutable_f7()->set_value("-1001.001");
 
-        ASSERT_NO_THROW(MessageToStruct(msg, obj));
+        UASSERT_NO_THROW(MessageToStruct(msg, obj));
         CheckWellKnownUsrvEqual(obj, msg);
         CheckSimpleEqual(obj.f1.Unpack<structs::Simple>(), any_payload);
     }
@@ -239,9 +237,10 @@ TEST(MessageToStruct, WellKnownUsrv) {
         messages::WellKnownUsrv msg = create_valid();
         msg.mutable_f2()->set_nanos(1'999'999'999);
 
-        EXPECT_THAT(
-            [&msg]() { static_cast<void>(MessageToStruct<structs::WellKnownUsrv>(msg)); },
-            ::testing::ThrowsMessage<ReadError>(::testing::HasSubstr("'messages.WellKnownUsrv.f2'"))
+        UEXPECT_THROW_MSG(
+            static_cast<void>(MessageToStruct<structs::WellKnownUsrv>(msg)),
+            ReadError,
+            "'messages.WellKnownUsrv.f2'"
         );
     }
 
@@ -249,9 +248,10 @@ TEST(MessageToStruct, WellKnownUsrv) {
         messages::WellKnownUsrv msg = create_valid();
         msg.mutable_f3()->set_nanos(-1'999'999'999);
 
-        EXPECT_THAT(
-            [&msg]() { static_cast<void>(MessageToStruct<structs::WellKnownUsrv>(msg)); },
-            ::testing::ThrowsMessage<ReadError>(::testing::HasSubstr("'messages.WellKnownUsrv.f3'"))
+        UEXPECT_THROW_MSG(
+            static_cast<void>(MessageToStruct<structs::WellKnownUsrv>(msg)),
+            ReadError,
+            "'messages.WellKnownUsrv.f3'"
         );
     }
 
@@ -259,9 +259,10 @@ TEST(MessageToStruct, WellKnownUsrv) {
         messages::WellKnownUsrv msg = create_valid();
         msg.mutable_f4()->set_year(10'000);
 
-        EXPECT_THAT(
-            [&msg]() { static_cast<void>(MessageToStruct<structs::WellKnownUsrv>(msg)); },
-            ::testing::ThrowsMessage<ReadError>(::testing::HasSubstr("'messages.WellKnownUsrv.f4'"))
+        UEXPECT_THROW_MSG(
+            static_cast<void>(MessageToStruct<structs::WellKnownUsrv>(msg)),
+            ReadError,
+            "'messages.WellKnownUsrv.f4'"
         );
     }
 
@@ -269,9 +270,10 @@ TEST(MessageToStruct, WellKnownUsrv) {
         messages::WellKnownUsrv msg = create_valid();
         msg.mutable_f5()->set_hours(-1);
 
-        EXPECT_THAT(
-            [&msg]() { static_cast<void>(MessageToStruct<structs::WellKnownUsrv>(msg)); },
-            ::testing::ThrowsMessage<ReadError>(::testing::HasSubstr("'messages.WellKnownUsrv.f5'"))
+        UEXPECT_THROW_MSG(
+            static_cast<void>(MessageToStruct<structs::WellKnownUsrv>(msg)),
+            ReadError,
+            "'messages.WellKnownUsrv.f5'"
         );
     }
 
@@ -279,17 +281,19 @@ TEST(MessageToStruct, WellKnownUsrv) {
         messages::WellKnownUsrv msg = create_valid();
         msg.mutable_f6()->set_hours(24);
 
-        EXPECT_THAT(
-            [&msg]() { static_cast<void>(MessageToStruct<structs::WellKnownUsrv>(msg)); },
-            ::testing::ThrowsMessage<ReadError>(::testing::HasSubstr("'messages.WellKnownUsrv.f6'"))
+        UEXPECT_THROW_MSG(
+            static_cast<void>(MessageToStruct<structs::WellKnownUsrv>(msg)),
+            ReadError,
+            "'messages.WellKnownUsrv.f6'"
         );
 
         msg = create_valid();
         msg.mutable_f6()->set_seconds(60);
 
-        EXPECT_THAT(
-            [&msg]() { static_cast<void>(MessageToStruct<structs::WellKnownUsrv>(msg)); },
-            ::testing::ThrowsMessage<ReadError>(::testing::HasSubstr("'messages.WellKnownUsrv.f6'"))
+        UEXPECT_THROW_MSG(
+            static_cast<void>(MessageToStruct<structs::WellKnownUsrv>(msg)),
+            ReadError,
+            "'messages.WellKnownUsrv.f6'"
         );
     }
 
@@ -297,18 +301,99 @@ TEST(MessageToStruct, WellKnownUsrv) {
         messages::WellKnownUsrv msg = create_valid();
         msg.mutable_f7()->set_value("");
 
-        EXPECT_THAT(
-            [&msg]() { static_cast<void>(MessageToStruct<structs::WellKnownUsrv>(msg)); },
-            ::testing::ThrowsMessage<ReadError>(::testing::HasSubstr("'messages.WellKnownUsrv.f7'"))
+        UEXPECT_THROW_MSG(
+            static_cast<void>(MessageToStruct<structs::WellKnownUsrv>(msg)),
+            ReadError,
+            "'messages.WellKnownUsrv.f7'"
         );
 
         msg.Clear();
         msg.mutable_f7()->set_value("1.1234");
 
-        EXPECT_THAT(
-            [&msg]() { static_cast<void>(MessageToStruct<structs::WellKnownUsrv>(msg)); },
-            ::testing::ThrowsMessage<ReadError>(::testing::HasSubstr("'messages.WellKnownUsrv.f7'"))
+        UEXPECT_THROW_MSG(
+            static_cast<void>(MessageToStruct<structs::WellKnownUsrv>(msg)),
+            ReadError,
+            "'messages.WellKnownUsrv.f7'"
         );
+    }
+}
+
+TEST(MessageToStruct, WellKnownJson) {
+    auto create_valid = []() {
+        messages::WellKnownJson msg;
+        msg.mutable_f1()->set_null_value(::google::protobuf::NULL_VALUE);
+        return msg;
+    };
+
+    auto create_list = [](double num, const std::string& str, bool b) {
+        ::google::protobuf::ListValue list;
+        list.add_values()->set_null_value(::google::protobuf::NULL_VALUE);
+        list.add_values()->set_number_value(num);
+        list.add_values()->set_string_value(str);
+        list.add_values()->set_bool_value(b);
+        return list;
+    };
+
+    auto create_struct = [](double num, const std::string& str, bool b) {
+        ::google::protobuf::Struct obj;
+        (*obj.mutable_fields())["key0"].set_null_value(::google::protobuf::NULL_VALUE);
+        (*obj.mutable_fields())["key1"].set_number_value(num);
+        (*obj.mutable_fields())["key2"].set_string_value(str);
+        (*obj.mutable_fields())["key3"].set_bool_value(b);
+        return obj;
+    };
+
+    UASSERT_NO_THROW(static_cast<void>(MessageToStruct<structs::WellKnownJson>(create_valid())));
+
+    {
+        messages::WellKnownJson msg = create_valid();
+        auto obj = MessageToStruct<structs::WellKnownJson>(msg);
+
+        CheckWellKnownJsonEqual(obj, msg);
+    }
+
+    {
+        messages::WellKnownJson msg;
+        *(msg.mutable_f1()->mutable_list_value()) = create_list(1, "test", true);
+        auto obj = MessageToStruct<structs::WellKnownJson>(msg);
+
+        CheckWellKnownJsonEqual(obj, msg);
+    }
+
+    {
+        messages::WellKnownJson msg;
+        *(msg.mutable_f1()->mutable_struct_value()) = create_struct(5, "test2", false);
+        auto obj = MessageToStruct<structs::WellKnownJson>(msg);
+
+        CheckWellKnownJsonEqual(obj, msg);
+    }
+
+    {
+        messages::WellKnownJson msg;
+        msg.mutable_f1()->set_number_value(1001);
+        *msg.mutable_f2() = create_list(10, "hello", false);
+        *msg.mutable_f3() = create_struct(20, "world", true);
+
+        auto obj = MessageToStruct<structs::WellKnownJson>(msg);
+
+        CheckWellKnownJsonEqual(obj, msg);
+    }
+
+    {
+        messages::WellKnownJson msg;
+        *msg.mutable_f1()->mutable_list_value()->add_values()->mutable_list_value() = create_list(5, "hi", true);
+        auto obj = MessageToStruct<structs::WellKnownJson>(msg);
+
+        CheckWellKnownJsonEqual(obj, msg);
+    }
+
+    {
+        messages::WellKnownJson msg;
+        auto& top = *msg.mutable_f1()->mutable_struct_value()->mutable_fields();
+        *top["top"].mutable_struct_value() = create_struct(6, "bonjour", false);
+        auto obj = MessageToStruct<structs::WellKnownJson>(msg);
+
+        CheckWellKnownJsonEqual(obj, msg);
     }
 }
 
@@ -337,12 +422,12 @@ TEST(MessageToStruct, Optional) {
         obj.f3 = structs::TestEnum::kValue2;
         obj.f4 = {.f1 = 5};
 
-        ASSERT_NO_THROW(MessageToStruct(msg, obj));
+        UASSERT_NO_THROW(MessageToStruct(msg, obj));
         CheckOptionalEqual(obj, msg);
 
         msg.set_f2("test3");
 
-        ASSERT_NO_THROW(MessageToStruct(msg, obj));
+        UASSERT_NO_THROW(MessageToStruct(msg, obj));
         CheckOptionalEqual(obj, msg);
     }
 }
@@ -379,12 +464,12 @@ TEST(MessageToStruct, Repeated) {
         obj.f2 = {"test2"};
         obj.f4 = {{.f1 = 5}};
 
-        ASSERT_NO_THROW(MessageToStruct(msg, obj));
+        UASSERT_NO_THROW(MessageToStruct(msg, obj));
         CheckRepeatedEqual(obj, msg);
 
         msg.add_f2("hello");
 
-        ASSERT_NO_THROW(MessageToStruct(msg, obj));
+        UASSERT_NO_THROW(MessageToStruct(msg, obj));
         CheckRepeatedEqual(obj, msg);
     }
 }
@@ -419,12 +504,12 @@ TEST(MessageToStruct, Map) {
         obj.f2 = {{"key1", "value1"}};
         obj.f4 = {{"simple1", {.f1 = 5}}};
 
-        ASSERT_NO_THROW(MessageToStruct(msg, obj));
+        UASSERT_NO_THROW(MessageToStruct(msg, obj));
         CheckMapEqual(obj, msg);
 
         (*msg.mutable_f2())["key2"] = "value2";
 
-        ASSERT_NO_THROW(MessageToStruct(msg, obj));
+        UASSERT_NO_THROW(MessageToStruct(msg, obj));
         CheckMapEqual(obj, msg);
     }
 }
@@ -448,17 +533,17 @@ TEST(MessageToStruct, Oneof) {
         msg.set_f2("test");
         obj.test_oneof.Set<0>(1);
 
-        ASSERT_NO_THROW(MessageToStruct(msg, obj));
+        UASSERT_NO_THROW(MessageToStruct(msg, obj));
         CheckOneofEqual(obj, msg);
 
         msg.set_f3(messages::TestEnum::TEST_ENUM_UNSPECIFIED);
 
-        ASSERT_NO_THROW(MessageToStruct(msg, obj));
+        UASSERT_NO_THROW(MessageToStruct(msg, obj));
         CheckOneofEqual(obj, msg);
 
         msg.mutable_f4()->set_f1(1001);
 
-        ASSERT_NO_THROW(MessageToStruct(msg, obj));
+        UASSERT_NO_THROW(MessageToStruct(msg, obj));
         CheckOneofEqual(obj, msg);
     }
 }
@@ -495,7 +580,7 @@ TEST(MessageToStruct, Indirect) {
         obj.f4 = {{10, structs::Simple{.f1 = 1002}}};
         obj.test_oneof.Set<0>(structs::Simple{.f1 = 30});
 
-        ASSERT_NO_THROW(MessageToStruct(msg, obj));
+        UASSERT_NO_THROW(MessageToStruct(msg, obj));
         CheckIndirectEqual(obj, msg);
 
         msg.mutable_f5()->set_f1(12);
@@ -503,7 +588,7 @@ TEST(MessageToStruct, Indirect) {
         msg.add_f8(messages::TEST_ENUM_VALUE1);
         obj.test_oneof.Set<0>(structs::Simple{.f1 = 1003});
 
-        ASSERT_NO_THROW(MessageToStruct(msg, obj));
+        UASSERT_NO_THROW(MessageToStruct(msg, obj));
         CheckIndirectEqual(obj, msg);
     }
 }
@@ -535,13 +620,13 @@ TEST(MessageToStruct, Strong) {
         obj.f1 = structs::Strong::F1Strong{5};
         obj.f4[100] = structs::Strong::F4Strong{structs::Simple{.f1 = 6}};
 
-        ASSERT_NO_THROW(MessageToStruct(msg, obj));
+        UASSERT_NO_THROW(MessageToStruct(msg, obj));
         CheckStrongEqual(obj, msg);
 
         msg.set_f2("test");
         obj.test_oneof.Set<0>(structs::Strong::F5Strong{std::chrono::nanoseconds{123'456'789'987'654'321}});
 
-        ASSERT_NO_THROW(MessageToStruct(msg, obj));
+        UASSERT_NO_THROW(MessageToStruct(msg, obj));
         CheckStrongEqual(obj, msg);
     }
 }
@@ -561,7 +646,7 @@ TEST(MessageToStruct, Erroneous) {
         try {
             auto result = MessageToStruct<structs::Erroneous>(msg);
             FAIL() << "exception should be thrown";
-        } catch (const ups::ReadError& e) {
+        } catch (const ReadError& e) {
             EXPECT_THAT(e.what(), ::testing::HasSubstr("'messages.Erroneous.f1'"));
             EXPECT_THAT(e.what(), ::testing::HasSubstr("conversion_failure_exception"));
         } catch (...) {
@@ -576,7 +661,7 @@ TEST(MessageToStruct, Erroneous) {
         try {
             auto result = MessageToStruct<structs::Erroneous>(msg);
             FAIL() << "exception should be thrown";
-        } catch (const ups::ReadError& e) {
+        } catch (const ReadError& e) {
             EXPECT_THAT(e.what(), ::testing::HasSubstr("'messages.Erroneous.f2.error_field'"));
             EXPECT_THAT(e.what(), ::testing::HasSubstr("conversion_failure_error"));
         } catch (...) {
@@ -591,7 +676,7 @@ TEST(MessageToStruct, Erroneous) {
         try {
             auto result = MessageToStruct<structs::Erroneous>(msg);
             FAIL() << "exception should be thrown";
-        } catch (const ups::ReadError& e) {
+        } catch (const ReadError& e) {
             EXPECT_THAT(e.what(), ::testing::HasSubstr("'messages.Erroneous.f3.<unknown_1001>'"));
             EXPECT_THAT(e.what(), ::testing::HasSubstr("conversion_failure_error_with_unknown_field"));
         } catch (...) {
@@ -606,7 +691,7 @@ TEST(MessageToStruct, Erroneous) {
         try {
             auto result = MessageToStruct<structs::Erroneous>(msg);
             FAIL() << "exception should be thrown";
-        } catch (const ups::ReadError& e) {
+        } catch (const ReadError& e) {
             EXPECT_THAT(e.what(), ::testing::HasSubstr("'messages.Erroneous.f4.<unknown_1001>'"));
             EXPECT_THAT(e.what(), ::testing::HasSubstr("conversion_failure_error_with_unknown_field"));
         } catch (...) {

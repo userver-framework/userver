@@ -1,16 +1,16 @@
 # yaml
 components_manager:
-    task_processors:                  # Task processor is an executor for coroutine tasks
+    task_processors:  # Task processor is an executor for coroutine tasks
 
-        main-task-processor:          # Make a task processor for CPU-bound coroutine tasks.
-            worker_threads: 4         # Process tasks in 4 threads.
+        main-task-processor:  # Make a task processor for CPU-bound coroutine tasks.
+            worker_threads: 4  # Process tasks in 4 threads.
 
-        fs-task-processor:            # Make a separate task processor for filesystem bound tasks.
+        fs-task-processor:  # Make a separate task processor for filesystem bound tasks.
             worker_threads: 4
 
     default_task_processor: main-task-processor  # Task processor in which components start.
 
-    components:                       # Configuring components that were registered via component_list
+    components:  # Configuring components that were registered via component_list
         logging:
             fs-task-processor: fs-task-processor
             loggers:
@@ -24,4 +24,4 @@ components_manager:
         tcp-hello:
             port: 8180
             greeting: hello
-        # /// [TCP component]
+            # /// [TCP component]

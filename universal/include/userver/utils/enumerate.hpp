@@ -57,13 +57,19 @@ using SentinelTypeOf = decltype(std::end(std::declval<Range&>()));
 
 template <typename Container>
 struct ContainerWrapper {
-    constexpr IteratorWrapper<IteratorTypeOf<Container>> begin() { return {std::begin(container), 0}; }
+    constexpr IteratorWrapper<IteratorTypeOf<Container>> begin() {
+        return {.iterator = std::begin(container), .pos = 0};
+    }
 
-    constexpr IteratorWrapper<SentinelTypeOf<Container>> end() { return {std::end(container), 0}; }
+    constexpr IteratorWrapper<SentinelTypeOf<Container>> end() { return {.iterator = std::end(container), .pos = 0}; }
 
-    constexpr IteratorWrapper<IteratorTypeOf<const Container>> begin() const { return {std::begin(container), 0}; }
+    constexpr IteratorWrapper<IteratorTypeOf<const Container>> begin() const {
+        return {.iterator = std::begin(container), .pos = 0};
+    }
 
-    constexpr IteratorWrapper<SentinelTypeOf<const Container>> end() const { return {std::end(container), 0}; }
+    constexpr IteratorWrapper<SentinelTypeOf<const Container>> end() const {
+        return {.iterator = std::end(container), .pos = 0};
+    }
 
     Container container;
 };

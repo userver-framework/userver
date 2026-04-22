@@ -11,6 +11,8 @@ namespace google::type {
 class TimeOfDay;
 }  // namespace google::type
 
+USERVER_NAMESPACE_BEGIN
+
 namespace proto_structs::traits {
 
 template <typename TDuration>

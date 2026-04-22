@@ -30,14 +30,14 @@ public:
             ASSERT_TRUE(cmd->control.force_server_id);
             const auto& host = cmd->control.force_server_id->GetDescription();
             cmds_.push_back(cmd);
-            if (host.size()) {
+            if (!host.empty()) {
                 ssubscriptions_by_host_[host]++;
             }
         };
         auto sharded_unsubscribe_callback = [&](const std::string& /*channel*/, storages::redis::impl::CommandPtr cmd) {
             ASSERT_TRUE(cmd->control.force_server_id);
             const auto& host = cmd->control.force_server_id->GetDescription();
-            if (host.size()) {
+            if (!host.empty()) {
                 ssubscriptions_by_host_[host]--;
             }
         };
@@ -48,14 +48,14 @@ public:
 
             cmds_.push_back(cmd);
 
-            if (host.size()) {
+            if (!host.empty()) {
                 subscriptions_by_host_[host]++;
             }
         };
         auto unsubscribe_callback = [&](size_t /*shard_idx*/, storages::redis::impl::CommandPtr cmd) {
             ASSERT_TRUE(cmd->control.force_server_id);
             const auto& host = cmd->control.force_server_id->GetDescription();
-            if (host.size()) {
+            if (!host.empty()) {
                 subscriptions_by_host_[host]--;
             }
         };

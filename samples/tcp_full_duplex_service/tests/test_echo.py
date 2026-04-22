@@ -36,18 +36,17 @@ async def recv_all_data(sock):
 
 
 async def test_basic(service_client, asyncio_socket, monitor_client, tcp_service_port):
-    await service_client.reset_metrics()
-
     sock = asyncio_socket.tcp()
-    await sock.connect(('localhost', tcp_service_port))
+    async with monitor_client.metrics_diff(prefix='tcp-echo') as differ:
+        await sock.connect(('localhost', tcp_service_port))
 
-    send_task = asyncio.create_task(send_all_data(sock))
-    await recv_all_data(sock)
-    await send_task
-    metrics = await monitor_client.metrics(prefix='tcp-echo.')
-    assert metrics.value_at('tcp-echo.sockets.opened') == 1
-    assert metrics.value_at('tcp-echo.sockets.closed') == 0
-    assert metrics.value_at('tcp-echo.bytes.read') == DATA_LENGTH
+        send_task = asyncio.create_task(send_all_data(sock))
+        await recv_all_data(sock)
+        await send_task
+
+    assert differ.value_at('sockets.opened') == 1
+    assert differ.value_at('sockets.closed') == 0
+    assert differ.value_at('bytes.read') == DATA_LENGTH
     # /// [Functional test]
 
 

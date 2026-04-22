@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2024 Antony Polukhin
+// Copyright (c) 2016-2025 Antony Polukhin
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -9,14 +9,12 @@
 
 #include <boost/pfr/detail/config.hpp>
 
-#ifdef BOOST_PFR_HAS_STD_MODULE
-import std;
-#else
-#include <utility>      // metaprogramming stuff
-#endif
-
 #include <boost/pfr/detail/sequence_tuple.hpp>
 #include <boost/pfr/detail/rvalue_t.hpp>
+
+#if !defined(BOOST_PFR_INTERFACE_UNIT)
+#include <utility>      // metaprogramming stuff
+#endif
 
 namespace boost { namespace pfr { namespace detail {
 
@@ -33,7 +31,30 @@ constexpr void for_each_field_impl_apply(T&& v, F&& f, I /*i*/, int) {
     std::forward<F>(f)(std::forward<T>(v));
 }
 
-#if !defined(__cpp_fold_expressions) || __cpp_fold_expressions < 201603
+#if BOOST_PFR_USE_CPP26
+template<class T, class F, std::size_t... I>
+constexpr void for_each_field_impl(T& t, F&& f, std::index_sequence<I...>, auto move_values) {
+    if constexpr (std::is_aggregate_v<T> || std::is_bounded_array_v<T>) {
+        auto &&[... members] = t;
+        if constexpr (move_values)
+            (detail::for_each_field_impl_apply(std::move(members...[I]),
+                                               std::forward<F>(f),
+                                               size_t_<I>{},
+                                               1L),
+             ...);
+        else
+            (detail::for_each_field_impl_apply(
+                 members... [I], std::forward<F>(f), size_t_<I> {}, 1L),
+             ...);
+    } else {
+        if constexpr (move_values)
+            (detail::for_each_field_impl_apply(std::move(t), std::forward<F>(f), size_t_<I>{}, 1L),
+             ...);
+        else
+            (detail::for_each_field_impl_apply(t, std::forward<F>(f), size_t_<I>{}, 1L), ...);
+    }
+}
+#elif !defined(__cpp_fold_expressions) || __cpp_fold_expressions < 201603
 template <class T, class F, std::size_t... I>
 constexpr void for_each_field_impl(T& t, F&& f, std::index_sequence<I...>, std::false_type /*move_values*/) {
      const int v[] = {0, (
@@ -63,8 +84,6 @@ constexpr void for_each_field_impl(T& t, F&& f, std::index_sequence<I...>, std::
      (detail::for_each_field_impl_apply(sequence_tuple::get<I>(std::move(t)), std::forward<F>(f), size_t_<I>{}, 1L), ...);
 }
 #endif
-
 }}} // namespace boost::pfr::detail
-
 
 #endif // BOOST_PFR_DETAIL_FOR_EACH_FIELD_IMPL_HPP

@@ -14,7 +14,15 @@ namespace utils::statistics {
 /// on MetricTag<Metric>.
 class MetricsStorage final {
 public:
+    /// @brief Creates `MetricStorage` that considers all `MetricTag<Metric>` instances
     MetricsStorage();
+
+    /// @brief Creates `MetricStorage` that considers only `MetricTag<Metric>` instances whose paths are listed in
+    /// `allowed_metric_paths`. If `allowed_metric_paths` equals `std::nullopt`, then all `MetricTag<Metric>` instances
+    /// considered
+    /// @param allowed_metric_paths paths of `MetricTag<Metric>` instances that should be considered or
+    /// `std::nullopt` if all `MetricTag<Metric>` instances should be considered
+    MetricsStorage(const std::optional<std::vector<std::string>>& allowed_metric_paths);
 
     [[nodiscard]] std::vector<Entry> RegisterIn(Storage& statistics_storage);
 

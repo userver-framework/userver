@@ -14,6 +14,9 @@
 #include <userver/proto-structs/io/std/vector.hpp>
 
 #include <userver/proto-structs/io/userver/decimal64/decimal.hpp>
+#include <userver/proto-structs/io/userver/formats/json/array.hpp>
+#include <userver/proto-structs/io/userver/formats/json/object.hpp>
+#include <userver/proto-structs/io/userver/formats/json/value.hpp>
 #include <userver/proto-structs/io/userver/proto_structs/any.hpp>
 #include <userver/proto-structs/io/userver/proto_structs/date.hpp>
 #include <userver/proto-structs/io/userver/proto_structs/duration.hpp>

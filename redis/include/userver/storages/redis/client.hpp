@@ -110,6 +110,42 @@ public:
         };
     }
 
+    /// @brief This is a read-only variant of the Eval() command that cannot execute commands that modify data.
+    ///
+    /// For huge scripts consider EvalShaReadOnly() to save network bandwidth.
+    ///
+    /// Sample usage:
+    /// @snippet redis/src/storages/redis/client_cluster_redistest.cpp  Sample eval_ro usage
+    template <typename ScriptResult, typename ReplyType = ScriptResult>
+    RequestEval<ScriptResult, ReplyType> EvalReadOnly(
+        std::string script,
+        std::vector<std::string> keys,
+        std::vector<std::string> args,
+        const CommandControl& command_control
+    ) {
+        return RequestEval<ScriptResult, ReplyType>{
+            EvalReadOnlyCommon(std::move(script), std::move(keys), std::move(args), command_control)
+        };
+    }
+
+    /// @brief This is a read-only variant of the EvalSha() command that cannot execute commands that modify data.
+    ///
+    /// For small scripts consider using a simpler EvalReadOnly() member function.
+    ///
+    /// Sample usage:
+    /// @snippet redis/src/storages/redis/client_cluster_redistest.cpp  Sample evalsha_ro usage
+    template <typename ScriptResult, typename ReplyType = ScriptResult>
+    RequestEvalSha<ScriptResult, ReplyType> EvalShaReadOnly(
+        std::string script_hash,
+        std::vector<std::string> keys,
+        std::vector<std::string> args,
+        const CommandControl& command_control
+    ) {
+        return RequestEvalSha<ScriptResult, ReplyType>{
+            EvalShaReadOnlyCommon(std::move(script_hash), std::move(keys), std::move(args), command_control)
+        };
+    }
+
     /// @brief Execute a custom Redis command.
     /// @param key_index Index of the key in the args vector used to determine the shard
     ///
@@ -667,6 +703,18 @@ protected:
         const CommandControl& command_control
     ) = 0;
     virtual RequestEvalShaCommon EvalShaCommon(
+        std::string script_hash,
+        std::vector<std::string> keys,
+        std::vector<std::string> args,
+        const CommandControl& command_control
+    ) = 0;
+    virtual RequestEvalCommon EvalReadOnlyCommon(
+        std::string script,
+        std::vector<std::string> keys,
+        std::vector<std::string> args,
+        const CommandControl& command_control
+    ) = 0;
+    virtual RequestEvalShaCommon EvalShaReadOnlyCommon(
         std::string script_hash,
         std::vector<std::string> keys,
         std::vector<std::string> args,

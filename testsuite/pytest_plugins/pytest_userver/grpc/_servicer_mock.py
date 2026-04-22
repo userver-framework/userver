@@ -125,6 +125,9 @@ class _PatchedServicerContext:
     async def abort(self, code: grpc.StatusCode, details: str = '', trailing_metadata: Any = tuple()) -> None:
         raise _PatchedAbort(code, details, trailing_metadata)
 
+    async def abort_with_status(self, status: grpc.Status) -> None:
+        await self.abort(status.code, status.details, status.trailing_metadata)
+
     def __getattr__(self, item: str) -> Any:
         return getattr(self._context, item)
 

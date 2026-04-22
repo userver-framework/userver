@@ -5,8 +5,6 @@
 #include <cxxabi.h>
 #include <cstring>
 
-#include <userver/compiler/impl/constexpr.hpp>
-
 #include <engine/task/task_context.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -17,7 +15,7 @@ namespace engine::impl {
 
 // NOLINTNEXTLINE(hicpp-use-noexcept,modernize-use-noexcept)
 abi::__cxa_eh_globals* GetGlobals() throw() {
-    USERVER_IMPL_CONSTINIT thread_local EhGlobals tls_globals;
+    constinit thread_local EhGlobals tls_globals;
     auto* globals = &tls_globals;
 
     auto* context = current_task::GetCurrentTaskContextUnchecked();

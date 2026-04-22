@@ -5,6 +5,7 @@
 #include <fmt/compile.h>
 
 #include <engine/task/task_context.hpp>
+#include <logging/config.hpp>
 #include <logging/impl/buffered_file_sink.hpp>
 #include <logging/impl/fd_sink.hpp>
 #include <logging/impl/unix_socket_sink.hpp>
@@ -13,8 +14,6 @@
 #include <userver/logging/impl/logger_base.hpp>
 #include <userver/logging/impl/tag_writer.hpp>
 #include <userver/tracing/span.hpp>
-
-#include "config.hpp"
 
 USERVER_NAMESPACE_BEGIN
 

@@ -29,6 +29,9 @@ add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-https-no-passphrase)
 add_subdirectory(metrics)
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-metrics)
 
+add_subdirectory(sharded_http_handler_metrics)
+add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-sharded-http-handler-metrics)
+
 add_subdirectory(static_service)
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-static-service)
 
@@ -52,3 +55,9 @@ add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-cache-update)
 
 add_subdirectory(websocket)
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-websocket)
+
+# WebSocket client requires curl >= 7.86 with WebSocket support
+if(CURL_VERSION_STRING VERSION_GREATER_EQUAL "7.86")
+    add_subdirectory(websocket_client)
+    add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-websocket_client)
+endif()

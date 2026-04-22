@@ -148,8 +148,15 @@ RedisConnectionState::RedisConnectionState() {
         USERVER_NAMESPACE::storages::redis::impl::kDefaultRedisThreadPoolSize
     );
 
-    sentinel_ =
-        Sentinel::CreateSentinel(thread_pools_, GetRedisSettings(), "none", configs_source, "pub", KeyShardFactory{""});
+    const auto sharding_strategy = storages::redis::ShardingStrategy::kKeyShardTaximeterCrc32;
+    sentinel_ = Sentinel::CreateSentinel(
+        thread_pools_,
+        GetRedisSettings(),
+        "none",
+        configs_source,
+        "pub",
+        KeyShardFactory{sharding_strategy}
+    );
     sentinel_->WaitConnectedDebug();
     client_ = std::make_shared<ClientImpl>(sentinel_);
 
@@ -159,7 +166,7 @@ RedisConnectionState::RedisConnectionState() {
         "none",
         configs_source,
         "pub",
-        "KeyShardZero",
+        sharding_strategy,
         {},
         {}
     );
@@ -181,7 +188,7 @@ RedisConnectionState::RedisConnectionState(InClusterMode) {
         "none",
         configs_source,
         "pub",
-        KeyShardFactory{storages::redis::impl::kRedisCluster}
+        KeyShardFactory{storages::redis::ShardingStrategy::kRedisCluster}
     );
     sentinel_->WaitConnectedDebug();
     UASSERT(sentinel_->ShardsCount() != 0);
@@ -194,7 +201,7 @@ RedisConnectionState::RedisConnectionState(InClusterMode) {
         "none",
         configs_source,
         "pub",
-        "RedisCluster",
+        storages::redis::ShardingStrategy::kRedisCluster,
         {},
         {}
     );

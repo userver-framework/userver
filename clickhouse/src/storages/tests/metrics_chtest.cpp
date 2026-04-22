@@ -61,6 +61,7 @@ UTEST(Metrics, ActiveConnections) {
     PoolWrapper pool{};
 
     std::vector<storages::clickhouse::impl::ConnectionPtr> connections;
+    connections.reserve(3);
     for (size_t i = 0; i < 3; ++i) {
         connections.emplace_back(pool->Acquire());
     }

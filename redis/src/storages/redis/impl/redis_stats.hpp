@@ -26,6 +26,7 @@ constexpr size_t kReplySizeBucketCount = 15;
 constexpr size_t kRequestSizeBucketCount = 15;
 constexpr size_t kTimingBucketCount = 15;
 
+/// This statistics is shared between instances of cluster
 class Statistics {
 public:
     Statistics();
@@ -51,6 +52,12 @@ public:
     std::atomic_size_t offset_from_master_bytes = 0;
 
     std::array<utils::statistics::RateCounter, kReplyStatusMap.size()> error_count{{}};
+};
+
+/// Non shared statistics of instances. Keep it small
+class NonSharedInstanceStatistics {
+public:
+    std::atomic_size_t commands_count = 0;
 };
 
 struct InstanceStatistics {
@@ -110,13 +117,34 @@ struct InstanceStatistics {
     std::array<utils::statistics::RateCounter, kReplyStatusMap.size()> error_count{{}};
 };
 
+struct ConnStateStatistic {
+    std::array<size_t, static_cast<size_t>(RedisState::kDisconnectError) + 1> statistic{};
+
+    void Add(RedisState state) {
+        UASSERT(state <= RedisState::kDisconnectError);
+        statistic.at(static_cast<size_t>(state))++;
+    }
+
+    void Add(const ConnStateStatistic& other) {
+        for (size_t i = 0; i < statistic.size(); ++i) {
+            statistic[i] += other.statistic[i];
+        }
+    }
+
+    size_t Get(RedisState state) const {
+        UASSERT(state <= RedisState::kDisconnectError);
+        return statistic.at(static_cast<size_t>(state));
+    }
+};
+
 struct ShardStatistics {
     ShardStatistics(const MetricsSettings& settings)
         : shard_total(settings)
     {}
 
     InstanceStatistics shard_total;
-    std::unordered_map<std::string, InstanceStatistics> instances;
+    ConnStateStatistic conn_stat;
+    size_t instances_count = 0;
     bool is_ready = false;
     std::chrono::steady_clock::time_point last_ready_time;
 };
@@ -125,12 +153,14 @@ struct SentinelStatisticsInternal {
     SentinelStatisticsInternal() = default;
     SentinelStatisticsInternal(const SentinelStatisticsInternal& other)
         : redis_not_ready(other.redis_not_ready),
+          is_autotopology(other.is_autotopology.load(std::memory_order_relaxed)),
           cluster_topology_checks(other.cluster_topology_checks),
           cluster_topology_updates(other.cluster_topology_updates)
     {}
 
     utils::statistics::RateCounter redis_not_ready{0};
-    std::atomic_bool is_autotoplogy{false};
+    // TODO: remove this field
+    std::atomic_bool is_autotopology{false};
     utils::statistics::RateCounter cluster_topology_checks{0};
     utils::statistics::RateCounter cluster_topology_updates{0};
 };
@@ -143,12 +173,18 @@ struct SentinelStatistics {
 
     InstanceStatistics GetShardGroupTotalStatistics() const;
 
+    // Statistics for "sentinel shard" – actually not a shard and not a sentinel.
+    // This "shard" is composed of instances that are used to determine the current cluster topology.
     std::optional<ShardStatistics> sentinel;
-    std::unordered_map<std::string, ShardStatistics> masters;
-    std::unordered_map<std::string, ShardStatistics> slaves;
+    size_t master_commands{0};
+    size_t slaves_commands{0};
+    ConnStateStatistic masters_conn_stats;
+    ConnStateStatistic replicas_conn_stats;
     InstanceStatistics shard_group_total;
     SentinelStatisticsInternal internal;
 };
+
+void DumpMetric(utils::statistics::Writer& writer, const ConnStateStatistic& stats);
 
 void DumpMetric(utils::statistics::Writer& writer, const InstanceStatistics& stats, bool real_instance = true);
 

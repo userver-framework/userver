@@ -244,6 +244,9 @@ digraph Pipeline {
     node [shape=box, width=2.0];
 
     node_PreCore [label="PreCore", penwidth=0, height=0, width=1];
+    GracefulShutdownHeaders [label="grpc-server-graceful-shutdown-headers"];
+
+    node_PreCore -> GracefulShutdownHeaders [style=invis, minlen=0];
   }
 
   subgraph cluster_Logging {

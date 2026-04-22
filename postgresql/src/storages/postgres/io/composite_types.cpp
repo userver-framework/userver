@@ -19,7 +19,7 @@ template <>
 struct CppToSystemPg<Record> : PredefinedOid<PredefinedOids::kRecord> {};
 
 static_assert(traits::kTypeBufferCategory<Record> == BufferCategory::kCompositeBuffer);
-static_assert(traits::kHasParser<Record>);
+static_assert(traits::HasParser<Record>);
 
 namespace detail {
 

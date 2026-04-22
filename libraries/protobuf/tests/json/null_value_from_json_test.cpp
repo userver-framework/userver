@@ -17,7 +17,7 @@ namespace protobuf::json::tests {
 struct NullValueFromJsonSuccessTestParam {
     std::string input = {};
     NullValueMessageData expected_message = {};
-    ReadOptions options = {};
+    ParseOptions options = {};
 };
 
 void PrintTo(const NullValueFromJsonSuccessTestParam& param, std::ostream* os) {
@@ -49,12 +49,14 @@ TEST_P(NullValueFromJsonSuccessTest, Test) {
     using Message = proto_json::messages::NullValueMessage;
     const auto& param = GetParam();
 
-    Message message, expected_message, sample_message;
+    Message message;
+    Message expected_message;
+    Message sample_message;
     formats::json::Value input = PrepareJsonTestData(param.input);
     expected_message = PrepareTestData(param.expected_message);
 
     UASSERT_NO_THROW((message = JsonToMessage<Message>(input, param.options)));
-    UASSERT_NO_THROW(InitSampleMessage(param.input, param.options, sample_message));
+    UASSERT_NO_THROW(InitSampleMessage(param.input, sample_message, param.options));
 
     CheckMessageEqual(message, sample_message);
     CheckMessageEqual(message, expected_message);

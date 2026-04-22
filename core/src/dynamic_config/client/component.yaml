@@ -8,16 +8,14 @@ properties:
         default: true
     service-name:
         type: string
-        description: name of the service to send if the get-configs-overrides-for-service
-            is true
+        description: name of the service to send if the get-configs-overrides-for-service is true
     http-client:
         type: string
         description: name of @ref components::HttpClient to use
         defaultDescription: dynamic-config-http-client
     http-timeout:
         type: string
-        description: HTTP request timeout to the remote in utils::StringToDuration()
-            suitable format
+        description: HTTP request timeout to the remote in utils::StringToDuration() suitable format
     http-retries:
         type: integer
         description: string HTTP retries before reporting the request failure

@@ -7,8 +7,8 @@ properties:
         description: name of the lock
     lock-ttl:
         type: string
-        description: TTL of the lock; must be at least as long as the duration between
-            subsequent cancellation checks, otherwise brain split is possible
+        description: TTL of the lock; must be at least as long as the duration between subsequent cancellation checks, otherwise
+            brain split is possible
     mongo-timeout:
         type: string
         description: timeout, must be at least 2*lock-ttl

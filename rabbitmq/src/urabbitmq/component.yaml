@@ -23,6 +23,11 @@ properties:
         description: |
             per-connection limit for requests awaiting response from the broker
         default: 5
+    heartbeat_interval_seconds:
+        type: integer
+        description: |
+            requested AMQP heartbeat interval in seconds; 0 disables heartbeats
+        default: 60
     use_secure_connection:
         type: boolean
         description: whether to use TLS for connections

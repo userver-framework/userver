@@ -7,5 +7,4 @@ properties:
         description: set to true to make LOG_LIMITED drop repeated logs
     limited-logging-interval:
         type: string
-        description: utils::StringToDuration suitable duration string to group repeated
-            logs into one message
+        description: utils::StringToDuration suitable duration string to group repeated logs into one message

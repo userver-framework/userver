@@ -45,7 +45,7 @@ void Danger::ToRed() noexcept {
 std::size_t Danger::SafeHash(std::string_view key) const noexcept {
     UASSERT(k0_ != 0 && k1_ != 0);
 
-    return utils::StrIcaseHash{utils::HashSeed{k0_, k1_}}(key);
+    return utils::StrIcaseHash{utils::HashSeed{.k0 = k0_, .k1 = k1_}}(key);
 }
 
 std::size_t Danger::UnsafeHash(std::string_view key) noexcept {

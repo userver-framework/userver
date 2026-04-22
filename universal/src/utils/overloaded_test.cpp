@@ -82,8 +82,8 @@ TEST(OverloadedTest, ReturnReference) {
         double imag;
     };
 
-    std::variant<Real, Complex> var_real = Real{1.0};
-    std::variant<Real, Complex> var_complex = Complex{2.0, 3.0};
+    std::variant<Real, Complex> var_real = Real{.value = 1.0};
+    std::variant<Real, Complex> var_complex = Complex{.real = 2.0, .imag = 3.0};
 
     std::visit(
         utils::Overloaded{

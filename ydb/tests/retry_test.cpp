@@ -26,8 +26,6 @@ private:
         static constexpr std::chrono::milliseconds kTimeout{3000};
         return ydb::OperationSettings{
             .retries = retries,
-            .operation_timeout_ms = kTimeout,
-            .cancel_after_ms = kTimeout,
             .client_timeout_ms = kTimeout,
             .get_session_timeout_ms = kTimeout,
         };

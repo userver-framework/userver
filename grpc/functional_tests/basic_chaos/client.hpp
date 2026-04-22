@@ -35,11 +35,11 @@ public:
             context.FindComponent<ugrpc::client::SimpleClientComponent<Client>>("greeter-client-component").GetClient();
         const auto& data = ugrpc::client::impl::ClientDataAccessor::GetClientData(client);
         const auto stub_state = data.GetStubState();
-        UASSERT(stub_state->dedicated_stubs[0].Size() == 3);
-        UASSERT(stub_state->dedicated_stubs[1].Size() == 0);
-        UASSERT(stub_state->dedicated_stubs[2].Size() == 2);
-        UASSERT(stub_state->dedicated_stubs[3].Size() == 0);
-        UASSERT(stub_state->dedicated_stubs[4].Size() == 0);
+        UASSERT(stub_state->dedicated_stubs[0].stubs.size() == 3);
+        UASSERT(stub_state->dedicated_stubs[1].stubs.size() == 0);
+        UASSERT(stub_state->dedicated_stubs[2].stubs.size() == 2);
+        UASSERT(stub_state->dedicated_stubs[3].stubs.size() == 0);
+        UASSERT(stub_state->dedicated_stubs[4].stubs.size() == 0);
     }
 
     inline std::string SayHello(std::string name, bool is_small_timeout);

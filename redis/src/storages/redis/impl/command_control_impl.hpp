@@ -7,7 +7,6 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::redis::impl {
 
 struct CommandControlImpl {
-public:
     using Strategy = CommandControl::Strategy;
 
     explicit CommandControlImpl(const CommandControl& command_control);

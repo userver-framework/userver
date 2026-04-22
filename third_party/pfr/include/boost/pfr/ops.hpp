@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2024 Antony Polukhin
+// Copyright (c) 2016-2025 Antony Polukhin
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -8,6 +8,8 @@
 #pragma once
 
 #include <boost/pfr/detail/config.hpp>
+
+#if !defined(BOOST_USE_MODULES) || defined(BOOST_PFR_INTERFACE_UNIT)
 
 #include <boost/pfr/detail/detectors.hpp>
 #include <boost/pfr/ops_fields.hpp>
@@ -40,13 +42,13 @@ namespace detail {
 ///////////////////// Helper typedefs that are used by all the ops
     template <template <class, class> class Detector, class T, class U>
     using enable_not_comp_base_t = std::enable_if_t<
-        not_appliable<Detector, T const&, U const&>::value,
+        not_applicable<Detector, T const&, U const&>::value,
         bool
     >;
 
     template <template <class, class> class Detector, class T, class U>
     using enable_comp_base_t = std::enable_if_t<
-        !not_appliable<Detector, T const&, U const&>::value,
+        !not_applicable<Detector, T const&, U const&>::value,
         bool
     >;
 ///////////////////// std::enable_if_t like functions that enable only if types do not support operation
@@ -59,7 +61,7 @@ namespace detail {
     template <class T, class U> using enable_not_ge_comp_t = enable_not_comp_base_t<comp_ge_detector, T, U>;
 
     template <class T> using enable_not_hashable_t = std::enable_if_t<
-        not_appliable<hash_detector, const T&, const T&>::value,
+        not_applicable<hash_detector, const T&, const T&>::value,
         std::size_t
     >;
 ///////////////////// std::enable_if_t like functions that enable only if types do support operation
@@ -72,7 +74,7 @@ namespace detail {
     template <class T, class U> using enable_ge_comp_t = enable_comp_base_t<comp_ge_detector, T, U>;
 
     template <class T> using enable_hashable_t = std::enable_if_t<
-        !not_appliable<hash_detector, const T&, const T&>::value,
+        !not_applicable<hash_detector, const T&, const T&>::value,
         std::size_t
     >;
 } // namespace detail
@@ -186,5 +188,7 @@ constexpr detail::enable_hashable_t<T> hash_value(const T& value) {
 BOOST_PFR_END_MODULE_EXPORT
 
 }} // namespace boost::pfr
+
+#endif  // #if !defined(BOOST_USE_MODULES) || defined(BOOST_PFR_INTERFACE_UNIT)
 
 #endif // BOOST_PFR_OPS_HPP

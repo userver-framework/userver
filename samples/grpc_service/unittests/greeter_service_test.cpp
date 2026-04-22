@@ -22,7 +22,10 @@ protected:
         generated_client_ = MakeClient<samples::api::GreeterServiceClient>();
     }
 
-    ~GreeterServiceTest() override { StopServer(); }
+    ~GreeterServiceTest() override {
+        generated_client_.reset();
+        StopServer();
+    }
 
     samples::api::GreeterServiceClient& GetGeneratedClient() { return generated_client_.value(); }
 

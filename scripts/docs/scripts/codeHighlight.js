@@ -1,4 +1,4 @@
-function highlight_code() {
+export function highlight_code() {
     if (window.location.href.indexOf("pp_source") !== -1
         || window.location.href.indexOf("cpp-example") !== -1) {
         // Header listing is already nicely highlighted by Doxygen
@@ -11,19 +11,13 @@ function highlight_code() {
     hljs.registerAliases('sh', {languageName: 'shell'});
     hljs.registerAliases('bash', {languageName: 'shell'});
     hljs.registerAliases('yml', {languageName: 'yaml'});
-    $(".fragment").each(function() {
-        const node = $(this);
+    document.querySelectorAll(".fragment").forEach(function(node) {
         let data = '';
         let language = '';
         let requires_highlighting = true;
 
-        node.children('div.line').each(function(i) {
-            line = $(this).text();
-
-            // Doxygen 1.8.11 workaround to remove line numbers.
-            // No line numbers added in Doxygen 1.8.13
-            line = line.replace(/^ *\d+\xA0/, '');
-
+        node.querySelectorAll('div.line').forEach(function(item, i) {
+            let line = item.textContent;
             if (i === 0) {
                 line = line.trimLeft().replace(/^# /, '');
                 if (line === 'autodetect') {
@@ -49,6 +43,6 @@ function highlight_code() {
         } else {
             data = hljs.highlightAuto(data).value;
         }
-        node.replaceWith('<div class="fragment"><pre>' + data + '</pre></div>');
+        node.innerHTML = '<pre>' + data + '</pre>';
     });
 }

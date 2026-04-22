@@ -16,8 +16,7 @@ Response PerformUnaryCall(
 ) {
     utils::trx_tracker::CheckNoTransactions(params.call_name.Get());
     UnaryCall unary_call{std::move(params), std::move(prepare_unary_call), request};
-    unary_call.Perform();
-    return unary_call.ExtractResponse();
+    return unary_call.Perform();
 }
 
 }  // namespace ugrpc::client::impl

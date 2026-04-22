@@ -17,7 +17,9 @@ void Http2StreamEventProducer::PushEvent(Http2StreamEvent event, engine::Deadlin
     event_.Send();
 }
 
-void Http2StreamEventProducer::CloseStream(std::int32_t id) { PushEvent({id, "", /*is_end=*/true}); }
+void Http2StreamEventProducer::CloseStream(std::int32_t id) {
+    PushEvent({.stream_id = id, .body_part = "", .is_end = true});
+}
 
 }  // namespace server::http::impl
 

@@ -16,6 +16,7 @@
 #include <userver/formats/serialize/common_containers.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
 #include <userver/server/handlers/tests_control.hpp>
+#include <userver/storages/redis/client.hpp>
 #include <userver/storages/redis/command_options.hpp>
 #include <userver/storages/redis/component.hpp>
 #include <userver/storages/redis/subscribe_client.hpp>
@@ -121,6 +122,48 @@ storages::redis::SubscriptionToken ReadStoreReturn::Subscribe() const {
     });
 }
 
+class Publisher final : public server::handlers::HttpHandlerBase {
+public:
+    static constexpr std::string_view kName = "handler-many-subscriptions";
+
+    Publisher(const components::ComponentConfig& config, const components::ComponentContext& context);
+
+    ~Publisher() final = default;
+
+    std::string HandleRequestThrow(const server::http::HttpRequest& request, server::request::RequestContext&)
+        const override;
+
+    static yaml_config::Schema GetStaticConfigSchema();
+
+private:
+    const std::shared_ptr<storages::redis::Client> redis_client_;
+};
+
+Publisher::Publisher(const components::ComponentConfig& config, const components::ComponentContext& context)
+    : server::handlers::HttpHandlerBase(config, context),
+      redis_client_{
+          context.FindComponent<components::Redis>("key-value-database").GetClient(config["db"].As<std::string>())
+      }
+{}
+
+std::string Publisher::HandleRequestThrow(const server::http::HttpRequest& request, server::request::RequestContext&)
+    const {
+    redis_client_->Publish("output-channel", request.GetArg("message"), {});
+    return "";
+}
+
+yaml_config::Schema Publisher::GetStaticConfigSchema() {
+    return yaml_config::MergeSchemas<HandlerBase>(R"(
+type: object
+description: ReadStoreReturn handler schema
+additionalProperties: false
+properties:
+    db:
+        type: string
+        description: redis database name
+)");
+}
+
 class ManySubscriptions final : public server::handlers::HttpHandlerBase {
 public:
     static constexpr std::string_view kName = "handler-many-subscriptions";
@@ -221,6 +264,7 @@ int main(int argc, char* argv[]) {
             .Append<chaos::ReadStoreReturn>("handler-sentinel")
             .Append<chaos::ReadStoreReturn>("handler-sentinel-with-master")
             .Append<chaos::ReadStoreReturn>("handler-standalone")
+            .Append<chaos::Publisher>("handler-publisher")
             .Append<chaos::ManySubscriptions>("handler-many-subscriptions")
             .AppendComponentList(clients::http::ComponentList())
             .Append<components::Secdist>()

@@ -55,9 +55,7 @@ auto GetJsonValue(const formats::json::Value& json) {
         return json.As<double>();
     } else if constexpr (std::is_same_v<Type, float>) {
         return json.As<float>();
-    } else if constexpr (std::is_same_v<Type, std::int64_t>) {
-        return utils::FromString<Type>(json.As<std::string>());
-    } else if constexpr (std::is_same_v<Type, std::uint64_t>) {
+    } else if constexpr (std::is_same_v<Type, std::int64_t> || std::is_same_v<Type, std::uint64_t>) {
         return utils::FromString<Type>(json.As<std::string>());
     } else if constexpr (std::is_same_v<Type, std::int32_t>) {
         return json.As<std::int32_t>();
@@ -79,7 +77,7 @@ auto GetJsonValue(const formats::json::Value& json) {
 struct WrapperToJsonSuccessTestParam {
     WrapperMessageData input = {};
     std::string expected_json = {};
-    WriteOptions options = {};
+    PrintOptions options = {};
 };
 
 class WrapperToJsonSuccessTest : public ::testing::TestWithParam<WrapperToJsonSuccessTestParam> {};
@@ -144,7 +142,9 @@ TEST_P(WrapperToJsonSuccessTest, Test) {
     const auto& param = GetParam();
 
     auto input = PrepareTestData(param.input);
-    formats::json::Value json, expected_json, sample_json;
+    formats::json::Value json;
+    formats::json::Value expected_json;
+    formats::json::Value sample_json;
 
     UASSERT_NO_THROW((json = MessageToJson(input, param.options)));
     UASSERT_NO_THROW((expected_json = PrepareJsonTestData(param.expected_json)));
@@ -177,11 +177,12 @@ TYPED_TEST(WrapperToJsonAdditionalTest, InlinedNonNull) {
     using Param = typename TestFixture::Param;
     using Message = typename Param::Message;
 
-    formats::json::Value json, sample;
+    formats::json::Value json;
+    formats::json::Value sample;
     Message message;
     SetWrappedValue(message, Param::kValue);
 
-    UASSERT_NO_THROW((json = MessageToJson(message)));
+    UASSERT_NO_THROW((json = MessageToJson(message, {})));
     UASSERT_NO_THROW((sample = CreateSampleJson(message)));
     EXPECT_EQ(json, sample);
     EXPECT_EQ(GetJsonValue<Param>(json), Param::kValue);
@@ -191,10 +192,11 @@ TYPED_TEST(WrapperToJsonAdditionalTest, InlinedNull) {
     using Param = typename TestFixture::Param;
     using Message = typename Param::Message;
 
-    formats::json::Value json, sample;
+    formats::json::Value json;
+    formats::json::Value sample;
     Message message;
 
-    UASSERT_NO_THROW((json = MessageToJson(message)));
+    UASSERT_NO_THROW((json = MessageToJson(message, {})));
     UASSERT_NO_THROW((sample = CreateSampleJson(message)));
     EXPECT_EQ(json, sample);
 }
@@ -211,7 +213,7 @@ TYPED_TEST(WrapperToJsonAdditionalTest, DynamicMessage) {
 
         formats::json::Value json;
 
-        UASSERT_NO_THROW((json = MessageToJson(*message)));
+        UASSERT_NO_THROW((json = MessageToJson(*message, {})));
         EXPECT_EQ(GetJsonValue<Param>(json), Param::kValue);
     }
 }

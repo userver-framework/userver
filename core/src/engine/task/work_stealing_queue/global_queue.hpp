@@ -39,11 +39,11 @@ public:
 
     void Push(impl::TaskContext* ctx);
 
-    void PushBulk(const utils::span<impl::TaskContext*> buffer);
+    void PushBulk(utils::span<impl::TaskContext*> buffer);
 
     void Push(Token& token, impl::TaskContext* ctx);
 
-    void PushBulk(Token& token, const utils::span<impl::TaskContext*> buffer);
+    void PushBulk(Token& token, utils::span<impl::TaskContext*> buffer);
 
     impl::TaskContext* TryPop(Token& token);
 
@@ -52,7 +52,7 @@ public:
     Token CreateConsumerToken();
 
 private:
-    void DoPush(const std::size_t index, const utils::span<impl::TaskContext*> buffer);
+    void DoPush(std::size_t index, utils::span<impl::TaskContext*> buffer);
 
     std::int64_t GetCountersSum() const noexcept;
 

@@ -24,8 +24,8 @@ namespace formats::parse {
  * {01234567-89ab-cdef-0123-456789abcdef}
  * {0123456789abcdef0123456789abcdef}
  */
-template <typename Value>
-std::enable_if_t<common::kIsFormatValue<Value>, boost::uuids::uuid> Parse(const Value& value, To<boost::uuids::uuid>) {
+template <common::kIsFormatValue Value>
+boost::uuids::uuid Parse(const Value& value, To<boost::uuids::uuid>) {
     std::optional<std::string> str;
     try {
         str = value.template As<std::string>();

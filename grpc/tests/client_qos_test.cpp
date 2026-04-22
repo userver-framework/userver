@@ -168,7 +168,7 @@ UTEST_F(GrpcClientQosConfigExceeded, DeadlinePropagationWorks) {
     tests::InitTaskInheritedDeadline(engine::Deadline::FromDuration(tests::kShortTimeout));
 
     sample::ugrpc::GreetingResponse response;
-    UEXPECT_THROW(response = client.SayHello(kRequest), ugrpc::client::DeadlineExceededError);
+    UEXPECT_THROW(response = client.SayHello(kRequest), ugrpc::client::RpcCancelledError);
 }
 
 UTEST_F(GrpcClientQosConfigExceeded, ContextDeadlineOverrides) {
@@ -203,7 +203,7 @@ UTEST_F(GrpcClientQosConfigExceeded, EmptyConfigMeansInfinity) {
     tests::InitTaskInheritedDeadline(engine::Deadline::FromDuration(tests::kShortTimeout));
 
     sample::ugrpc::GreetingResponse response;
-    UEXPECT_THROW(response = client.SayHello(kRequest), ugrpc::client::DeadlineExceededError);
+    UEXPECT_THROW(response = client.SayHello(kRequest), ugrpc::client::RpcCancelledError);
 }
 
 using ClientQosValidationTest = utest::LogCaptureFixture<GrpcClientQosConfigOk>;

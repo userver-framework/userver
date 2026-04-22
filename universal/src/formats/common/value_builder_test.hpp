@@ -46,11 +46,8 @@ inline void TestNanInfInstantiation() {
 #endif
 }
 
-template <typename, typename, typename = std::void_t<> >
-struct CanCallOperatorBrackets : public std::false_type {};
-
 template <typename T, typename U>
-struct CanCallOperatorBrackets<T, U, std::void_t<decltype(std::declval<T>()[std::declval<U>()])> > : std::true_type {};
+concept CanCallOperatorBrackets = requires(T t, U u) { t[u]; };
 
 namespace formats::bson {
 // this is part of an ugly hack to overcome compile error when constructing
@@ -94,8 +91,8 @@ TYPED_TEST_P(CommonValueBuilderTests, StringStrongTypedef) {
     // non-loggable can't be used
     {
         using MyNonLoggableStringTypedef = utils::NonLoggable<struct Tag, std::string>;
-        static_assert((CanCallOperatorBrackets<ValueBuilder, MyStringTypedef>::value));
-        static_assert(!(CanCallOperatorBrackets<ValueBuilder, MyNonLoggableStringTypedef>::value));
+        static_assert(CanCallOperatorBrackets<ValueBuilder, MyStringTypedef>);
+        static_assert(!CanCallOperatorBrackets<ValueBuilder, MyNonLoggableStringTypedef>);
     }
 }
 

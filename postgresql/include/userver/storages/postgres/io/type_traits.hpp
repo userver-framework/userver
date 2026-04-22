@@ -15,7 +15,7 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::postgres::io::traits {
 
 template <bool Value>
-using BoolConstant = std::integral_constant<bool, Value>;
+using BoolConstant = std::bool_constant<Value>;
 template <std::size_t Value>
 using SizeConstant = std::integral_constant<std::size_t, Value>;
 
@@ -23,48 +23,32 @@ using SizeConstant = std::integral_constant<std::size_t, Value>;
 /** @name Type mapping traits */
 /// @brief Detect if the C++ type is mapped to a Postgres system type.
 template <typename T>
-struct IsMappedToSystemType : utils::IsDeclComplete<CppToSystemPg<T>> {};
-template <typename T>
-inline constexpr bool kIsMappedToSystemType = IsMappedToSystemType<T>::value;
+concept IsMappedToSystemType = utils::IsDeclComplete<CppToSystemPg<T>>::value;
 
 /// @brief Detect if the C++ type is mapped to a Postgres user type.
 template <typename T>
-struct IsMappedToUserType : utils::IsDeclComplete<CppToUserPg<T>> {};
-template <typename T>
-inline constexpr bool kIsMappedToUserType = IsMappedToUserType<T>::value;
+concept IsMappedToUserType = utils::IsDeclComplete<CppToUserPg<T>>::value;
+
+namespace detail {
+
+template <typename Container>
+constexpr bool EnableContainerMapping() noexcept;
+
+}  // namespace detail
 
 /// @brief Detect if the C++ type is mapped to a Postgres array type.
 template <typename T>
-struct IsMappedToArray;
-template <typename T>
-inline constexpr bool kIsMappedToArray = IsMappedToArray<T>::value;
+concept IsMappedToArray = detail::EnableContainerMapping<T>();
 
 /// @brief Detect if the C++ type is mapped to a Postgres type.
-template <typename T, typename = USERVER_NAMESPACE::utils::void_t<>>
-struct IsMappedToPg : BoolConstant<kIsMappedToUserType<T> || kIsMappedToSystemType<T> || kIsMappedToArray<T>> {};
 template <typename T>
-inline constexpr bool kIsMappedToPg = IsMappedToPg<T>::value;
+struct IsMappedToPg : BoolConstant<IsMappedToUserType<T> || IsMappedToSystemType<T> || IsMappedToArray<T>> {};
+template <typename T>
+concept kIsMappedToPg = IsMappedToPg<T>::value;  // NOLINT(readability-identifier-naming)
 
 /// @brief Mark C++ mapping a special case for disambiguation.
-template <typename T, typename = USERVER_NAMESPACE::utils::void_t<>>
+template <typename T>
 struct IsSpecialMapping : std::false_type {};
-template <typename T>
-inline constexpr bool kIsSpecialMapping = IsSpecialMapping<T>::value;
-///@}
-
-///@{
-/** @name Detect iostream operators */
-template <typename T>
-using HasOutputOperator = decltype(std::declval<std::ostream&>() << std::declval<T&>());
-
-template <typename T>
-inline constexpr bool kHasOutputOperator = meta::IsDetected<HasOutputOperator, T>;
-
-template <typename T>
-using HasInputOperator = decltype(std::declval<std::istream&>() >> std::declval<T&>());
-
-template <typename T>
-inline constexpr bool kHasInputOperator = meta::IsDetected<HasInputOperator, T>;
 ///@}
 
 ///@{
@@ -73,20 +57,16 @@ inline constexpr bool kHasInputOperator = meta::IsDetected<HasInputOperator, T>;
 template <typename T>
 struct IsCompatibleContainer : std::false_type {};
 template <typename T>
-inline constexpr bool kIsCompatibleContainer = IsCompatibleContainer<T>::value;
-
-template <typename T>
-inline constexpr bool kIsFixedSizeContainer = meta::kIsFixedSizeContainer<T>;
+concept kIsCompatibleContainer = IsCompatibleContainer<T>::value;  // NOLINT(readability-identifier-naming)
 /// @}
 
 ///@{
 /// @brief Calculate number of dimensions in C++ container.
-template <typename T, typename Enable = USERVER_NAMESPACE::utils::void_t<>>
+template <typename T>
 struct DimensionCount : SizeConstant<0> {};
 
-template <typename T>
-struct DimensionCount<T, std::enable_if_t<kIsCompatibleContainer<T>>>
-    : SizeConstant<1 + DimensionCount<typename T::value_type>::value> {};
+template <kIsCompatibleContainer T>
+struct DimensionCount<T> : SizeConstant<1 + DimensionCount<typename T::value_type>::value> {};
 template <typename T>
 inline constexpr std::size_t kDimensionCount = DimensionCount<T>::value;
 ///@}
@@ -119,12 +99,10 @@ template <typename T>
 using ContainerFinaleElementType = typename ContainerFinalElement<T>::type;
 ///@}
 
-///@{
-/** @name IsMappedToArray implementation */
 namespace detail {
 
 template <typename Container>
-constexpr bool EnableContainerMapping() {
+constexpr bool EnableContainerMapping() noexcept {
     if constexpr (!traits::kIsCompatibleContainer<Container>) {
         return false;
     } else {
@@ -135,33 +113,13 @@ constexpr bool EnableContainerMapping() {
 }  // namespace detail
 
 template <typename T>
-struct IsMappedToArray : BoolConstant<detail::EnableContainerMapping<T>()> {};
-///@}
-
-template <typename T, typename = USERVER_NAMESPACE::utils::void_t<>>
-struct CanReserve : std::false_type {};
-template <typename T>
-struct CanReserve<T, USERVER_NAMESPACE::utils::void_t<decltype(std::declval<T>().reserve(std::declval<std::size_t>()))>>
-    : std::true_type {};
-template <typename T>
-inline constexpr bool kCanReserve = CanReserve<T>::value;
-
-template <typename T, typename = USERVER_NAMESPACE::utils::void_t<>>
-struct CanResize : std::false_type {};
+concept CanReserve = requires(T value) { value.reserve(std::size_t{1}); };
 
 template <typename T>
-struct CanResize<T, USERVER_NAMESPACE::utils::void_t<decltype(std::declval<T>().resize(std::declval<std::size_t>()))>>
-    : std::true_type {};
-template <typename T>
-inline constexpr bool kCanResize = CanResize<T>::value;
-
-template <typename T, typename = USERVER_NAMESPACE::utils::void_t<>>
-struct CanClear : std::false_type {};
+concept CanResize = requires(T value) { value.resize(std::size_t{1}); };
 
 template <typename T>
-struct CanClear<T, USERVER_NAMESPACE::utils::void_t<decltype(std::declval<T>().clear())>> : std::true_type {};
-template <typename T>
-inline constexpr bool kCanClear = CanClear<T>::value;
+concept CanClear = requires(T value) { value.clear(); };
 
 template <typename T>
 auto Inserter(T& container) {
@@ -186,20 +144,20 @@ struct AddTupleConstRef;
 
 template <typename... T>
 struct AddTupleConstRef<std::tuple<T...>> {
-    using type = std::tuple<std::add_const_t<std::add_lvalue_reference_t<std::decay_t<T>>>...>;
+    using type = std::tuple<const std::remove_reference_t<T>&...>;
 };
 
 template <typename Tuple>
 struct TupleHasParsers;
 
 template <typename... T>
-struct TupleHasParsers<std::tuple<T...>> : std::bool_constant<(HasParser<std::decay_t<T>>::value && ...)> {};
+struct TupleHasParsers<std::tuple<T...>> : std::bool_constant<(HasParser<std::remove_cvref_t<T>> && ...)> {};
 
 template <typename Tuple>
 struct TupleHasFormatters;
 
 template <typename... T>
-struct TupleHasFormatters<std::tuple<T...>> : std::bool_constant<(HasFormatter<std::decay_t<T>>::value && ...)> {};
+struct TupleHasFormatters<std::tuple<T...>> : std::bool_constant<(HasFormatter<std::remove_cvref_t<T>> && ...)> {};
 
 }  // namespace storages::postgres::io::traits
 

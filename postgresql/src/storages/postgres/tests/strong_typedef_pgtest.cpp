@@ -66,8 +66,8 @@ static_assert(
     std::is_same<io::CppToPg<StringTypedef>::Mapping, io::CppToSystemPg<std::string>>::value,
     "Strong typedef must have the same mapping as the underlying type"
 );
-static_assert(tt::kHasParser<StringTypedef>, "Strong typedef to a defined type must have a parser");
-static_assert(tt::kHasFormatter<StringTypedef>, "Strong typedef to a defined type must have a formatter");
+static_assert(tt::HasParser<StringTypedef>, "Strong typedef to a defined type must have a parser");
+static_assert(tt::HasFormatter<StringTypedef>, "Strong typedef to a defined type must have a formatter");
 static_assert(!tt::kIsNullable<StringTypedef>, "Strong typedef must derive nullability from underlying type");
 
 static_assert(tt::kIsMappedToPg<OptStringTypedef>, "Strong typedef must map to underlying type mapping");
@@ -75,8 +75,8 @@ static_assert(
     std::is_same<io::CppToPg<OptStringTypedef>::Mapping, io::CppToSystemPg<std::string>>::value,
     "Strong typedef must have the same mapping as the underlying type"
 );
-static_assert(tt::kHasParser<OptStringTypedef>, "Strong typedef to a defined type must have a parser");
-static_assert(tt::kHasFormatter<OptStringTypedef>, "Strong typedef to a defined type must have a formatter");
+static_assert(tt::HasParser<OptStringTypedef>, "Strong typedef to a defined type must have a parser");
+static_assert(tt::HasFormatter<OptStringTypedef>, "Strong typedef to a defined type must have a formatter");
 static_assert(tt::kIsNullable<OptStringTypedef>, "Strong typedef must derive nullability from underlying type");
 
 static_assert(tt::kIsMappedToPg<IntTypedef>, "Strong typedef must map to underlying type mapping");
@@ -84,8 +84,8 @@ static_assert(
     std::is_same<io::CppToPg<IntTypedef>::Mapping, io::CppToSystemPg<pg::Integer>>::value,
     "Strong typedef must have the same mapping as the underlying type"
 );
-static_assert(tt::kHasParser<IntTypedef>, "Strong typedef to a defined type must have a parser");
-static_assert(tt::kHasFormatter<IntTypedef>, "Strong typedef to a defined type must have a formatter");
+static_assert(tt::HasParser<IntTypedef>, "Strong typedef to a defined type must have a parser");
+static_assert(tt::HasFormatter<IntTypedef>, "Strong typedef to a defined type must have a formatter");
 static_assert(!tt::kIsNullable<IntTypedef>, "Strong typedef must derive nullability from underlying type");
 
 static_assert(tt::kIsMappedToPg<UserTypedef>, "Strong typedef must map to underlying type mapping");
@@ -93,8 +93,8 @@ static_assert(
     std::is_same<io::CppToPg<UserTypedef>::Mapping, io::CppToUserPg<UserType>>::value,
     "Strong typedef must have the same mapping as the underlying type"
 );
-static_assert(tt::kHasParser<UserTypedef>, "Strong typedef to a defined type must have a parser");
-static_assert(tt::kHasFormatter<UserTypedef>, "Strong typedef to a defined type must have a formatter");
+static_assert(tt::HasParser<UserTypedef>, "Strong typedef to a defined type must have a parser");
+static_assert(tt::HasFormatter<UserTypedef>, "Strong typedef to a defined type must have a formatter");
 static_assert(!tt::kIsNullable<UserTypedef>, "Strong typedef must derive nullability from underlying type");
 
 // Check mapping calculation doesn't break hand-mapped types
@@ -121,8 +121,8 @@ static_assert(
     "a strong typedef"
 );
 static_assert(tt::kIsMappedToPg<sample::EnumStrongTypedef>, "A valid enum strong typedef must have a parser");
-static_assert(tt::kHasParser<sample::EnumStrongTypedef>, "A valid enum strong typedef must have a parser");
-static_assert(tt::kHasFormatter<sample::EnumStrongTypedef>, "A valid enum strong typedef must have a formatter");
+static_assert(tt::HasParser<sample::EnumStrongTypedef>, "A valid enum strong typedef must have a parser");
+static_assert(tt::HasFormatter<sample::EnumStrongTypedef>, "A valid enum strong typedef must have a formatter");
 static_assert(
     !tt::kIsNullable<sample::EnumStrongTypedef>,
     "Strong typedef must derive nullability from underlying type"

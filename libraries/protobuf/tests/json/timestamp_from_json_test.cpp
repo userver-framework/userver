@@ -26,14 +26,14 @@ constexpr auto kTestSeconds = 1s + 1min + 1h + 24h + (31 * 24h) + (365 * 24h);
 struct TimestampFromJsonSuccessTestParam {
     std::string input = {};
     TimestampMessageData expected_message = {};
-    ReadOptions options = {};
+    ParseOptions options = {};
 };
 
 struct TimestampFromJsonFailureTestParam {
     std::string input = {};
-    ReadErrorCode expected_errc = {};
+    ParseErrorCode expected_errc = {};
     std::string expected_path = {};
-    ReadOptions options = {};
+    ParseOptions options = {};
 
     // Protobuf ProtoJSON legacy syntax supports some features, which we want to prohibit (because
     // we do not want our clients to use syntax that may break in the newer protobuf versions).
@@ -123,169 +123,169 @@ INSTANTIATE_TEST_SUITE_P(
     ,
     TimestampFromJsonFailureTest,
     ::testing::Values(
-        TimestampFromJsonFailureTestParam{R"({"field1":[]})", ReadErrorCode::kInvalidType, "field1"},
-        TimestampFromJsonFailureTestParam{R"({"field1":{}})", ReadErrorCode::kInvalidType, "field1", {}, true},
-        TimestampFromJsonFailureTestParam{R"({"field1":true})", ReadErrorCode::kInvalidType, "field1"},
-        TimestampFromJsonFailureTestParam{R"({"field1":10})", ReadErrorCode::kInvalidType, "field1"},
-        TimestampFromJsonFailureTestParam{R"({"field1":""})", ReadErrorCode::kInvalidValue, "field1"},
-        TimestampFromJsonFailureTestParam{R"({"field1":"abc"})", ReadErrorCode::kInvalidValue, "field1"},
-        TimestampFromJsonFailureTestParam{R"({"field1":"-"})", ReadErrorCode::kInvalidValue, "field1"},
-        TimestampFromJsonFailureTestParam{R"({"field1":"2010"})", ReadErrorCode::kInvalidValue, "field1"},
-        TimestampFromJsonFailureTestParam{R"({"field1":"2010-"})", ReadErrorCode::kInvalidValue, "field1"},
-        TimestampFromJsonFailureTestParam{R"({"field1":"2010-10"})", ReadErrorCode::kInvalidValue, "field1"},
-        TimestampFromJsonFailureTestParam{R"({"field1":"2010-10-"})", ReadErrorCode::kInvalidValue, "field1"},
-        TimestampFromJsonFailureTestParam{R"({"field1":"2010-10-10"})", ReadErrorCode::kInvalidValue, "field1"},
-        TimestampFromJsonFailureTestParam{R"({"field1":"2010-10-10T"})", ReadErrorCode::kInvalidValue, "field1"},
-        TimestampFromJsonFailureTestParam{R"({"field1":"2010-10-10T10"})", ReadErrorCode::kInvalidValue, "field1"},
-        TimestampFromJsonFailureTestParam{R"({"field1":"2010-10-10T10:10"})", ReadErrorCode::kInvalidValue, "field1"},
+        TimestampFromJsonFailureTestParam{R"({"field1":[]})", ParseErrorCode::kInvalidType, "field1"},
+        TimestampFromJsonFailureTestParam{R"({"field1":{}})", ParseErrorCode::kInvalidType, "field1", {}, true},
+        TimestampFromJsonFailureTestParam{R"({"field1":true})", ParseErrorCode::kInvalidType, "field1"},
+        TimestampFromJsonFailureTestParam{R"({"field1":10})", ParseErrorCode::kInvalidType, "field1"},
+        TimestampFromJsonFailureTestParam{R"({"field1":""})", ParseErrorCode::kInvalidValue, "field1"},
+        TimestampFromJsonFailureTestParam{R"({"field1":"abc"})", ParseErrorCode::kInvalidValue, "field1"},
+        TimestampFromJsonFailureTestParam{R"({"field1":"-"})", ParseErrorCode::kInvalidValue, "field1"},
+        TimestampFromJsonFailureTestParam{R"({"field1":"2010"})", ParseErrorCode::kInvalidValue, "field1"},
+        TimestampFromJsonFailureTestParam{R"({"field1":"2010-"})", ParseErrorCode::kInvalidValue, "field1"},
+        TimestampFromJsonFailureTestParam{R"({"field1":"2010-10"})", ParseErrorCode::kInvalidValue, "field1"},
+        TimestampFromJsonFailureTestParam{R"({"field1":"2010-10-"})", ParseErrorCode::kInvalidValue, "field1"},
+        TimestampFromJsonFailureTestParam{R"({"field1":"2010-10-10"})", ParseErrorCode::kInvalidValue, "field1"},
+        TimestampFromJsonFailureTestParam{R"({"field1":"2010-10-10T"})", ParseErrorCode::kInvalidValue, "field1"},
+        TimestampFromJsonFailureTestParam{R"({"field1":"2010-10-10T10"})", ParseErrorCode::kInvalidValue, "field1"},
+        TimestampFromJsonFailureTestParam{R"({"field1":"2010-10-10T10:10"})", ParseErrorCode::kInvalidValue, "field1"},
         TimestampFromJsonFailureTestParam{
             R"({"field1":"2010-10-10T10:10:10"})",
-            ReadErrorCode::kInvalidValue,
+            ParseErrorCode::kInvalidValue,
             "field1"
         },
         TimestampFromJsonFailureTestParam{
             R"({"field1":"2010-10-10T10:10:10z"})",
-            ReadErrorCode::kInvalidValue,
+            ParseErrorCode::kInvalidValue,
             "field1"
         },
         TimestampFromJsonFailureTestParam{
             R"({"field1":"2010-10-10T10:10:10ZZ"})",
-            ReadErrorCode::kInvalidValue,
+            ParseErrorCode::kInvalidValue,
             "field1"
         },
         TimestampFromJsonFailureTestParam{
             R"({"field1":"2010-10-10T10:10:10+"})",
-            ReadErrorCode::kInvalidValue,
+            ParseErrorCode::kInvalidValue,
             "field1"
         },
         TimestampFromJsonFailureTestParam{
             R"({"field1":"2010-10-10T10:10:10+02"})",
-            ReadErrorCode::kInvalidValue,
+            ParseErrorCode::kInvalidValue,
             "field1"
         },
         TimestampFromJsonFailureTestParam{
             R"({"field1":"2010-10-10T10:10:10-02:"})",
-            ReadErrorCode::kInvalidValue,
+            ParseErrorCode::kInvalidValue,
             "field1"
         },
         TimestampFromJsonFailureTestParam{
             R"({"field1":"2010-10-10T10:10:10+02:00Z"})",
-            ReadErrorCode::kInvalidValue,
+            ParseErrorCode::kInvalidValue,
             "field1"
         },
         TimestampFromJsonFailureTestParam{
             R"({"field1":"2010-10-10T10:10:10+02:0"})",
-            ReadErrorCode::kInvalidValue,
+            ParseErrorCode::kInvalidValue,
             "field1"
         },
         TimestampFromJsonFailureTestParam{
             R"({"field1":"2010-10-10T10:10:10+2:00"})",
-            ReadErrorCode::kInvalidValue,
+            ParseErrorCode::kInvalidValue,
             "field1"
         },
         TimestampFromJsonFailureTestParam{
             R"({"field1":"2010-10-10T10:10:10Z+02:00"})",
-            ReadErrorCode::kInvalidValue,
+            ParseErrorCode::kInvalidValue,
             "field1"
         },
         TimestampFromJsonFailureTestParam{
             R"({"field1":"2010-10-10T10:10:1Z"})",
-            ReadErrorCode::kInvalidValue,
+            ParseErrorCode::kInvalidValue,
             "field1"
         },
         TimestampFromJsonFailureTestParam{
             R"({"field1":"2010-10-10T10:1:10Z"})",
-            ReadErrorCode::kInvalidValue,
+            ParseErrorCode::kInvalidValue,
             "field1"
         },
         TimestampFromJsonFailureTestParam{
             R"({"field1":"2010-10-10T1:10:10Z"})",
-            ReadErrorCode::kInvalidValue,
+            ParseErrorCode::kInvalidValue,
             "field1"
         },
         TimestampFromJsonFailureTestParam{
             R"({"field1":"2010-10-10T1:10:10Z"})",
-            ReadErrorCode::kInvalidValue,
+            ParseErrorCode::kInvalidValue,
             "field1"
         },
         TimestampFromJsonFailureTestParam{
             R"({"field1":"2010-10-10t10:10:10Z"})",
-            ReadErrorCode::kInvalidValue,
+            ParseErrorCode::kInvalidValue,
             "field1"
         },
         TimestampFromJsonFailureTestParam{
             R"({"field1":"2010-10-10TT10:10:10Z"})",
-            ReadErrorCode::kInvalidValue,
+            ParseErrorCode::kInvalidValue,
             "field1"
         },
         TimestampFromJsonFailureTestParam{
             R"({"field1":"2010-10-1T10:10:10Z"})",
-            ReadErrorCode::kInvalidValue,
+            ParseErrorCode::kInvalidValue,
             "field1"
         },
         TimestampFromJsonFailureTestParam{
             R"({"field1":"2010-1-10T10:10:10Z"})",
-            ReadErrorCode::kInvalidValue,
+            ParseErrorCode::kInvalidValue,
             "field1"
         },
         TimestampFromJsonFailureTestParam{
             R"({"field1":"201-10-10T10:10:10Z"})",
-            ReadErrorCode::kInvalidValue,
+            ParseErrorCode::kInvalidValue,
             "field1"
         },
         TimestampFromJsonFailureTestParam{
             R"({"field1":"201A-10-10T10:10:10Z"})",
-            ReadErrorCode::kInvalidValue,
+            ParseErrorCode::kInvalidValue,
             "field1"
         },
         TimestampFromJsonFailureTestParam{
             R"({"field1":"2010--10-10T10:10:10Z"})",
-            ReadErrorCode::kInvalidValue,
+            ParseErrorCode::kInvalidValue,
             "field1"
         },
         TimestampFromJsonFailureTestParam{
             R"({"field1":"2010-1A-10T10:10:10Z"})",
-            ReadErrorCode::kInvalidValue,
+            ParseErrorCode::kInvalidValue,
             "field1"
         },
         TimestampFromJsonFailureTestParam{
             R"({"field1":"2010-10--10T10:10:10Z"})",
-            ReadErrorCode::kInvalidValue,
+            ParseErrorCode::kInvalidValue,
             "field1"
         },
         TimestampFromJsonFailureTestParam{
             R"({"field1":"2010-10-1AT10:10:10Z"})",
-            ReadErrorCode::kInvalidValue,
+            ParseErrorCode::kInvalidValue,
             "field1"
         },
         TimestampFromJsonFailureTestParam{
             R"({"field1":"2010-10-10T1A:10:10Z"})",
-            ReadErrorCode::kInvalidValue,
+            ParseErrorCode::kInvalidValue,
             "field1"
         },
         TimestampFromJsonFailureTestParam{
             R"({"field1":"2010-10-10T10-10:10Z"})",
-            ReadErrorCode::kInvalidValue,
+            ParseErrorCode::kInvalidValue,
             "field1"
         },
         TimestampFromJsonFailureTestParam{
             R"({"field1":"2010-10-10T10:1A:10Z"})",
-            ReadErrorCode::kInvalidValue,
+            ParseErrorCode::kInvalidValue,
             "field1"
         },
         TimestampFromJsonFailureTestParam{
             R"({"field1":"2010-10-10T10:10::10Z"})",
-            ReadErrorCode::kInvalidValue,
+            ParseErrorCode::kInvalidValue,
             "field1"
         },
         TimestampFromJsonFailureTestParam{
             R"({"field1":"2010-10-10T10:10:1AZ"})",
-            ReadErrorCode::kInvalidValue,
+            ParseErrorCode::kInvalidValue,
             "field1"
         },
         TimestampFromJsonFailureTestParam{
             R"({"field1":"2010-10-10T10:10:10+-02:00"})",
-            ReadErrorCode::kInvalidValue,
+            ParseErrorCode::kInvalidValue,
             "field1"
         }
     )
@@ -294,14 +294,16 @@ INSTANTIATE_TEST_SUITE_P(
 TEST_P(TimestampFromJsonSuccessTest, Test) {
     const auto& param = GetParam();
 
-    proto_json::messages::TimestampMessage message, expected_message, sample_message;
+    proto_json::messages::TimestampMessage message;
+    proto_json::messages::TimestampMessage expected_message;
+    proto_json::messages::TimestampMessage sample_message;
     formats::json::Value input = PrepareJsonTestData(param.input);
     expected_message = PrepareTestData(param.expected_message);
 
     message.mutable_field1()->set_seconds(100001);
 
     UASSERT_NO_THROW((message = JsonToMessage<proto_json::messages::TimestampMessage>(input, param.options)));
-    UASSERT_NO_THROW(InitSampleMessage(param.input, param.options, sample_message));
+    UASSERT_NO_THROW(InitSampleMessage(param.input, sample_message, param.options));
 
     CheckMessageEqual(message, sample_message);
     CheckMessageEqual(message, expected_message);
@@ -313,14 +315,14 @@ TEST_P(TimestampFromJsonFailureTest, Test) {
     proto_json::messages::TimestampMessage sample_message;
     formats::json::Value input = PrepareJsonTestData(param.input);
 
-    EXPECT_READ_ERROR(
+    EXPECT_PARSE_ERROR(
         (void)JsonToMessage<proto_json::messages::TimestampMessage>(input, param.options),
         param.expected_errc,
         param.expected_path
     );
 
     if (!param.skip_native_check) {
-        UEXPECT_THROW(InitSampleMessage(param.input, param.options, sample_message), SampleError);
+        UEXPECT_THROW(InitSampleMessage(param.input, sample_message, param.options), SampleError);
     }
 }
 
@@ -329,12 +331,13 @@ TEST(TimestampFromJsonAdditionalTest, InlinedNonNull) {
 
     const char* json_str = "\"1970-01-01T00:02:03.000000321Z\"";
     const auto json = formats::json::FromString(json_str);
-    Message message, sample;
+    Message message;
+    Message sample;
 
     message.set_seconds(100001);
 
     UASSERT_NO_THROW((message = JsonToMessage<Message>(json)));
-    UASSERT_NO_THROW(InitSampleMessage(json_str, {}, sample));
+    UASSERT_NO_THROW(InitSampleMessage(json_str, sample));
 
     EXPECT_EQ(message.seconds(), 123);
     EXPECT_EQ(message.nanos(), 321);
@@ -345,12 +348,13 @@ TEST(TimestampFromJsonAdditionalTest, InlinedNull) {
     using Message = ::google::protobuf::Timestamp;
 
     const auto json = formats::json::FromString("null");
-    Message message, sample;
+    Message message;
+    Message sample;
 
     message.set_seconds(100001);
 
     UASSERT_NO_THROW((message = JsonToMessage<Message>(json)));
-    UASSERT_NO_THROW(InitSampleMessage("null", {}, sample));
+    UASSERT_NO_THROW(InitSampleMessage("null", sample));
 
     EXPECT_EQ(message.seconds(), 0);
     EXPECT_EQ(message.nanos(), 0);
@@ -367,7 +371,7 @@ TEST(TimestampFromJsonAdditionalTest, DynamicMessage) {
     {
         std::unique_ptr<::google::protobuf::Message> message(factory.GetPrototype(Message::descriptor())->New());
 
-        UASSERT_NO_THROW(JsonToMessage(json, {}, *message));
+        UASSERT_NO_THROW(JsonToMessage(json, *message));
 
         const auto reflection = message->GetReflection();
         const auto seconds_desc = message->GetDescriptor()->FindFieldByName("seconds");

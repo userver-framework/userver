@@ -33,14 +33,15 @@ public:
 
     void PostRecvMessage(ugrpc::server::MiddlewareCallContext& context, google::protobuf::Message&) const override {
         if (settings_ == MiddlewareFlag::kErrorInRequestHook) {
-            return context.SetError(::grpc::Status(::grpc::StatusCode::DATA_LOSS, "Data loss error in request hook"));
+            context.SetError(::grpc::Status(::grpc::StatusCode::DATA_LOSS, "Data loss error in request hook"));
+            return;
         }
     }
 
     void PreSendMessage(ugrpc::server::MiddlewareCallContext& context, google::protobuf::Message&) const override {
         if (settings_ == MiddlewareFlag::kErrorInResponseHook) {
-            return context
-                .SetError(::grpc::Status(::grpc::StatusCode::OUT_OF_RANGE, "Out of range error in response hook"));
+            context.SetError(::grpc::Status(::grpc::StatusCode::OUT_OF_RANGE, "Out of range error in response hook"));
+            return;
         }
     }
 
@@ -50,25 +51,24 @@ private:
 
 // NOLINTNEXTLINE(fuchsia-multiple-inheritance)
 class MockMessengerServiceFixture
-    : public ugrpc::tests::ServiceFixtureBase,
+    : public ugrpc::tests::ServiceWithClientFixture<Messenger, sample::ugrpc::UnitTestServiceClient>,
       public testing::WithParamInterface<MiddlewareFlags> {
 protected:
-    MockMessengerServiceFixture() {
-        SetServerMiddlewares({std::make_shared<Middleware>(static_cast<MiddlewareFlag>(GetParam().GetValue()))});
-        RegisterService(service_);
-        StartServer();
-    }
-
-private:
-    Messenger service_;
+    MockMessengerServiceFixture()
+        : ugrpc::tests::ServiceWithClientFixture<Messenger, sample::ugrpc::UnitTestServiceClient>(
+              ugrpc::server::ServerConfig{},
+              ugrpc::server::Middlewares{std::make_shared<Middleware>(static_cast<MiddlewareFlag>(GetParam().GetValue())
+              )},
+              ugrpc::client::Middlewares{}
+          )
+    {}
 };
 
 }  // namespace
 
 UTEST_P(MockMessengerServiceFixture, MiddlewareInterruption) {
-    const auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
     try {
-        client.SayHello(sample::ugrpc::GreetingRequest());
+        GetClient().SayHello(sample::ugrpc::GreetingRequest());
         FAIL();  // Should not execute. The method must throw.
     } catch (const ugrpc::client::ErrorWithStatus& error) {
         switch (static_cast<MiddlewareFlag>(GetParam().GetValue())) {

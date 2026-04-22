@@ -36,7 +36,6 @@ namespace impl {
 
 template <typename RedisRequestType>
 struct RedisRequestStrategy {
-public:
     using RequestType = RedisRequestType;
     using ReplyType = typename RequestType::Reply;
     using GenF = std::function<std::optional<RequestType>(int)>;
@@ -145,7 +144,7 @@ std::vector<std::optional<typename RedisRequestType::Reply>> MakeBulkHedgedRedis
     strategies.reserve(args.size());
 
     for (auto&& arg : args) {
-        auto gen_request = [redis, method, cc{std::move(cc)}, args_tuple{std::move(arg)}](int try_count) mutable
+        auto gen_request = [redis, method, cc{cc}, args_tuple{std::move(arg)}](int try_count) mutable
             -> std::optional<RedisRequestType> {
             cc.retry_counter = try_count;
             cc.max_retries = 1;  ///< We do retries ourselves
@@ -181,7 +180,7 @@ MakeBulkHedgedRedisRequestAsync(
     strategies.reserve(args.size());
 
     for (auto&& arg : args) {
-        auto gen_request = [redis, method, cc{std::move(cc)}, args_tuple{std::move(arg)}](int try_count) mutable
+        auto gen_request = [redis, method, cc{cc}, args_tuple{std::move(arg)}](int try_count) mutable
             -> std::optional<RedisRequestType> {
             cc.retry_counter = try_count;
             cc.max_retries = 1;  ///< We do retries ourselves

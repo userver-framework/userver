@@ -35,11 +35,7 @@ void AsyncWatcher::OnEvent(struct ev_loop*, ev_async* async, int events) noexcep
 
 void AsyncWatcher::Send() { ev_async_.Send(); }
 
-void AsyncWatcher::CallCb() {
-    LOG_TRACE() << "CallCb (1) watcher=" << this;
-
-    cb_();
-}
+void AsyncWatcher::CallCb() { cb_(); }
 
 }  // namespace engine::ev
 

@@ -17,7 +17,7 @@ userver is split into multiple CMake libraries.
 | `userver::grpc`            | `USERVER_FEATURE_GRPC`                            | `grpc`                | @ref scripts/docs/en/userver/grpc/grpc.md                 |
 | `userver::grpc-utest`      | `USERVER_FEATURE_GRPC` + `USERVER_FEATURE_UTEST`  | `grpc`                | @ref scripts/docs/en/userver/grpc/grpc.md                 |
 | `userver::mongo`           | `USERVER_FEATURE_MONGODB`                         | `mongo`               | @ref scripts/docs/en/userver/mongodb.md                   |
-| `userver::postgresql`      | `USERVER_FEATURE_POSTGRESQL`                      | `postgresql`          | @ref pg_driver                                            |
+| `userver::postgresql`      | `USERVER_FEATURE_POSTGRESQL`                      | `postgresql`          | @ref scripts/docs/en/userver/pg_driver.md                 |
 | `userver::redis`           | `USERVER_FEATURE_REDIS`                           | `redis`               | @ref scripts/docs/en/userver/redis.md                     |
 | `userver::redis-utest`     | `USERVER_FEATURE_REDIS` + `USERVER_FEATURE_UTEST` | `redis`               | @ref scripts/docs/en/userver/redis.md                     |
 | `userver::clickhouse`      | `USERVER_FEATURE_CLICKHOUSE`                      | `clickhouse`          | @ref clickhouse_driver                                    |

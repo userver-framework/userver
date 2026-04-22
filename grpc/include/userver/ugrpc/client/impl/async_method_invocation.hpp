@@ -15,10 +15,10 @@ public:
     void Notify(bool ok) noexcept override;
 
     /// When notify is called, we store timestamp and later use it in statistics
-    [[nodiscard]] std::chrono::steady_clock::time_point GetFinishTime() const noexcept;
+    [[nodiscard]] std::chrono::steady_clock::time_point GetNotifyTime() const noexcept;
 
 private:
-    std::optional<std::chrono::steady_clock::time_point> finish_time_;
+    std::optional<std::chrono::steady_clock::time_point> notify_time_;
 };
 
 }  // namespace ugrpc::client::impl

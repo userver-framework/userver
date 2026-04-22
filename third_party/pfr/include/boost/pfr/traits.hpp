@@ -9,8 +9,13 @@
 
 #include <boost/pfr/detail/config.hpp>
 
+#if !defined(BOOST_USE_MODULES) || defined(BOOST_PFR_INTERFACE_UNIT)
+
 #include <boost/pfr/detail/possible_reflectable.hpp>
+
+#if !defined(BOOST_PFR_INTERFACE_UNIT)
 #include <type_traits>
+#endif
 
 /// \file boost/pfr/traits.hpp
 /// Contains traits \forcedlink{is_reflectable} and \forcedlink{is_implicitly_reflectable} for detecting an ability to reflect type.
@@ -59,6 +64,8 @@ constexpr bool is_implicitly_reflectable_v = is_implicitly_reflectable<T, WhatFo
 BOOST_PFR_END_MODULE_EXPORT
 
 }} // namespace boost::pfr
+
+#endif  // #if !defined(BOOST_USE_MODULES) || defined(BOOST_PFR_INTERFACE_UNIT)
 
 #endif // BOOST_PFR_TRAITS_HPP
 

@@ -9,21 +9,47 @@ import yaml
 from chaotic.back.cpp import types as cpp_types
 from chaotic.front import parser as chaotic_parser
 from chaotic.front import ref
-from . import renderer
+from chaotic_openapi.back.cpp_client import renderer
 
 TYPES_INCLUDES = [
     'cstdint',
     'fmt/core.h',
     'optional',
     'string',
+    # TODO: hardcode, calculate in runtime
+    'userver/chaotic/object.hpp',
+    'userver/chaotic/primitive.hpp',
+    'userver/chaotic/sax_parser.hpp',
+    'userver/chaotic/with_type.hpp',
+    'userver/formats/parse/common_containers.hpp',
+    'userver/formats/serialize/common_containers.hpp',
 ]
+
+
+@dataclasses.dataclass
+class External:
+    libraries: list[str]
+    userver_modules: list[str]
 
 
 def filepath_with_stem(fpath: str) -> str:
     return fpath.rsplit('.', 1)[0]
 
 
-def _get_template_includes(name: str, client_name: str, graph: dict[str, list[str]]) -> list[str]:
+def _get_template_includes(
+    name: str,
+    client_name: str,
+    graph: dict[str, list[str]],
+    external: External,
+) -> list[str]:
+    mw_includes = []
+    if 'passenger-authorizer-backend' in external.libraries:
+        mw_includes.append('models/pa_auth_context.hpp')
+    if 'eats-authproxy-backend' in external.libraries:
+        mw_includes.append('eats-authproxy-backend/auth_context.hpp')
+    if 'bank-authproxy-backend' in external.libraries:
+        mw_includes.append('bank-authproxy-backend/bank_auth_context.hpp')
+
     includes = {
         'client.cpp': [
             f'clients/{client_name}/client.hpp',
@@ -63,7 +89,11 @@ def _get_template_includes(name: str, client_name: str, graph: dict[str, list[st
         'component.cpp': [
             f'clients/{client_name}/component.hpp',
             'userver/chaotic/openapi/client/config.hpp',
+            'userver/chaotic/openapi/client/middleware_factory.hpp',
+            'userver/clients/http/middlewares/base.hpp',
+            'userver/clients/http/middlewares/component.hpp',
             'userver/components/component_context.hpp',
+            'userver/yaml_config/merge_schemas.hpp',
             'userver/clients/http/component.hpp',
         ],
         'component.hpp': [
@@ -79,11 +109,15 @@ def _get_template_includes(name: str, client_name: str, graph: dict[str, list[st
             'userver/http/url.hpp',
             'userver/clients/http/form.hpp',
             'userver/chaotic/openapi/form.hpp',
+            'userver/utils/trivial_map.hpp',
         ],
         'requests.hpp': [
             'string',
             'variant',
+            'userver/clients/http/request.hpp',
+            'userver/formats/serialize/common_containers.hpp',
             *[f'clients/{client_name}/{dep}' for dep in graph],
+            *mw_includes,
         ],
         'responses.cpp': [
             f'clients/{client_name}/responses.hpp',
@@ -92,12 +126,19 @@ def _get_template_includes(name: str, client_name: str, graph: dict[str, list[st
             'userver/http/common_headers.hpp',
             'userver/http/content_type.hpp',
             'userver/logging/log.hpp',
+            'userver/chaotic/openapi/parameters_read.hpp',
+            'userver/chaotic/sax_parser.hpp',
+            *[f'clients/{client_name}/{dep}'[:-4] + '_sax_parsers.hpp' for dep in graph],
+            # TODO: hardcode
+            *TYPES_INCLUDES,
         ],
         'responses.hpp': [
             'variant',
             f'clients/{client_name}/exceptions.hpp',
             'userver/chaotic/openapi/client/exceptions.hpp',
             *[f'clients/{client_name}/{dep}' for dep in graph],
+            # TODO: hardcode
+            *TYPES_INCLUDES,
         ],
     }
     return includes[name]
@@ -188,6 +229,7 @@ def include_graph(name: str, schemas_dir: pathlib.Path) -> dict[str, list[str]]:
 
 def get_includes(client_name: str, schemas_dir: str) -> dict[str, list[str]]:
     graph = include_graph(client_name, pathlib.Path(schemas_dir))
+    external = external_libraries(schemas_dir)
 
     output = collections.defaultdict(list)
     for name in renderer.TEMPLATE_NAMES:
@@ -195,7 +237,7 @@ def get_includes(client_name: str, schemas_dir: str) -> dict[str, list[str]]:
             rel_path = f'include/clients/{client_name}/{name}'
         else:
             rel_path = f'src/clients/{client_name}/{name}'
-        output[rel_path] = _get_template_includes(name, client_name, graph)
+        output[rel_path] = _get_template_includes(name, client_name, graph, external)
 
     for file in graph:
         stem = filepath_with_stem(file)
@@ -208,22 +250,29 @@ def get_includes(client_name: str, schemas_dir: str) -> dict[str, list[str]]:
         ]
         output[f'include/clients/{client_name}/{stem}_parsers.ipp'] = [
             f'clients/{client_name}/{stem}.hpp',
+            # TODO: hardcode
+            'userver/chaotic/object.hpp',
+            'userver/chaotic/primitive.hpp',
+            'userver/chaotic/with_type.hpp',
+            'userver/formats/parse/common_containers.hpp',
+            'userver/formats/serialize/common_containers.hpp',
+        ]
+        output[f'include/clients/{client_name}/{stem}_sax_parsers.hpp'] = [
+            f'clients/{client_name}/{stem}.hpp',
+            f'clients/{client_name}/{stem}_parsers.ipp',
+            # TODO: hardcode
+            *TYPES_INCLUDES,
         ]
         output[f'src/clients/{client_name}/{stem}.cpp'] = [
             f'clients/{client_name}/{stem}.hpp',
             f'clients/{client_name}/{stem}_parsers.ipp',
+            f'clients/{client_name}/{stem}_sax_parsers.hpp',
             'userver/chaotic/type_bundle_cpp.hpp',
             *TYPES_INCLUDES,
             *graph[file],
         ]
 
     return output
-
-
-@dataclasses.dataclass
-class External:
-    libraries: list[str]
-    userver_modules: list[str]
 
 
 # For Yandex uservices only, not for OSS

@@ -84,6 +84,12 @@ inline const bool k{{service.name}}TypesRegistration =
 {% endif %}
 {% endfor %}
 
+USERVER_NAMESPACE::ugrpc::impl::StaticServiceMetadata
+{{service.name}}Base::GetMetadata(USERVER_NAMESPACE::utils::impl::InternalTag) const {
+    using GrpcppService = {{utils.namespace_with_colons(proto.namespace)}}::{{service.name}};
+    return USERVER_NAMESPACE::ugrpc::impl::MakeStaticServiceMetadata<GrpcppService>(k{{service.name}}Methods);
+}
+
 std::unique_ptr<USERVER_NAMESPACE::ugrpc::server::impl::ServiceWorker>
 {{service.name}}Base::MakeWorker(USERVER_NAMESPACE::ugrpc::server::impl::ServiceInternals&& internals) {
     (void)k{{service.name}}TypesRegistration;  // odr-use

@@ -1,6 +1,8 @@
+# @ingroup download
 option(USERVER_DOWNLOAD_PACKAGE_FMT "Download and setup Fmt if no Fmt of matching version was found"
        ${USERVER_DOWNLOAD_PACKAGES}
 )
+# @ingroup download
 option(USERVER_FORCE_DOWNLOAD_FMT "Download fmt even if there is an installed system package"
        ${USERVER_FORCE_DOWNLOAD_PACKAGES}
 )

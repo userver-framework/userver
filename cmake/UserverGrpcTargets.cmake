@@ -92,6 +92,7 @@ endfunction()
 
 _userver_prepare_grpc()
 
+#TODO
 function(userver_generate_grpc_files)
     set(options)
     set(one_value_args CPP_FILES CPP_USRV_FILES GENERATED_INCLUDES SOURCE_PATH OUTPUT_PATH)
@@ -269,6 +270,7 @@ function(userver_generate_grpc_files)
     endif()
 endfunction()
 
+#TODO
 function(userver_add_grpc_library NAME)
     set(options)
     set(one_value_args SOURCE_PATH OUTPUT_PATH)

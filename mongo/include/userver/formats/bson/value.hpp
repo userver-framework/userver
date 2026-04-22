@@ -139,8 +139,10 @@ public:
     bool IsDocument() const;
     bool IsNull() const;
     bool IsBool() const;
+    bool IsInt() const;
     bool IsInt32() const;
     bool IsInt64() const;
+    bool IsUInt64() const;
     bool IsDouble() const;
     bool IsString() const;
     bool IsDateTime() const;
@@ -169,7 +171,7 @@ public:
     template <typename T>
     auto As() const {
         static_assert(
-            formats::common::impl::kHasParse<Value, T>,
+            formats::common::impl::HasParse<Value, T>,
             "There is no `Parse(const Value&, formats::parse::To<T>)` in namespace "
             "of `T` or `formats::parse`. "
             "Probably you have not provided a `Parse` function overload."
@@ -202,16 +204,15 @@ public:
     /// For example, `true` may be converted to 1.0.
     template <typename T>
     T ConvertTo() const {
-        if constexpr (formats::common::impl::kHasConvert<Value, T>) {
+        if constexpr (formats::common::impl::HasConvert<Value, T>) {
             return Convert(*this, formats::parse::To<T>{});
-        } else if constexpr (formats::common::impl::kHasParse<Value, T>) {
+        } else if constexpr (formats::common::impl::HasParse<Value, T>) {
             return Parse(*this, formats::parse::To<T>{});
         } else {
             static_assert(
                 !sizeof(T),
-                "There is no `Convert(const Value&, formats::parse::To<T>)` or"
-                "`Parse(const Value&, formats::parse::To<T>)`"
-                "in namespace of `T` or `formats::parse`. "
+                "There is no `Convert(const Value&, formats::parse::To<T>)` or "
+                "`Parse(const Value&, formats::parse::To<T>)` in namespace of `T` or `formats::parse`. "
                 "Probably you have not provided a `Convert` function overload."
             );
         }

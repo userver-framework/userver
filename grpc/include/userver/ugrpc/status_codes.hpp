@@ -29,11 +29,26 @@ std::string ToString(grpc::StatusCode code) noexcept;
 /// * `UNAVAILABLE`
 /// * `DATA_LOSS`
 ///
-/// We intentionally do not include `CANCELLED` and `DEADLINE_EXPIRED` here, because the situation may either be
+/// We intentionally do not include `CANCELLED` and `DEADLINE_EXCEEDED` here, because the situation may either be
 /// considered not erroneous at all (when a client explicitly cancels an RPC; when a client attempts an RPC with a very
 /// short deadline), or there is no single obvious service to blame (when the collective deadline expires for an RPC
 /// tree).
 bool IsServerError(grpc::StatusCode code) noexcept;
+
+/// @brief Check if a gRPC status code is retryable
+///
+/// Returns true for status codes that typically indicate transient failures
+/// and are safe to retry:
+///
+/// * `CANCELLED`
+/// * `UNKNOWN`
+/// * `DEADLINE_EXCEEDED`
+/// * `INTERNAL`
+/// * `UNAVAILABLE`
+///
+/// @param code The gRPC status code to check
+/// @return true if the status code is retryable, false otherwise
+bool IsRetryable(grpc::StatusCode code) noexcept;
 
 }  // namespace ugrpc
 

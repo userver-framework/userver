@@ -53,6 +53,7 @@ SQLRETURN ResultWrapper::GetStatus() const {
     return ret;
 }
 
+// NOLINTNEXTLINE(readability-make-member-function-const)
 void ResultWrapper::Fetch() { CheckStatus(SQLFetch(handle.get()), handle.get(), SQL_HANDLE_STMT); }
 
 std::size_t ResultWrapper::RowCount() const {

@@ -4,8 +4,10 @@
 /// @brief Client streaming interfaces
 
 #include <memory>
+#include <utility>
 
 #include <userver/ugrpc/client/impl/rpc.hpp>
+#include <userver/ugrpc/client/stream_read_future.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -144,7 +146,7 @@ private:
 /// If destroyed early, the RPC is cancelled. The server gets @ref ugrpc::client::RpcInterruptedError
 /// and the `abandoned-error` metric is incremented. The connection stays open for reuse.
 /// gRPC provides no way to early-close a server-streaming RPC gracefully.
-// See @ref ugrpc::client::ReadRemainingAndFinish and @ref ugrpc::client::PingPongFinish for graceful completion.
+// See @ref ugrpc::client::ReadRemainingAndFinish for graceful completion.
 ///
 /// `Read` and `AsyncRead` can throw if error status is received from server.
 /// User MUST NOT call `Read` or `AsyncRead` again after failure of any of these
@@ -168,9 +170,6 @@ private:
 template <typename Request, typename Response>
 class [[nodiscard]] ReaderWriter final {
 public:
-    using StreamReadFuture = ugrpc::client::StreamReadFuture<
-        typename impl::BidirectionalStream<Request, Response>::RawStream>;
-
     /// @cond
     // For internal use only
     template <typename Stub>
@@ -202,7 +201,7 @@ public:
     /// @return StreamReadFuture future
     /// @throws ugrpc::client::RpcError on an RPC error
     /// @throws ugrpc::client::RpcError if the stream is already closed for reads
-    StreamReadFuture ReadAsync(Response& response) { return stream_->ReadAsync(response); }
+    StreamReadFuture<Response> ReadAsync(Response& response) { return stream_->ReadAsync(response); }
 
     /// @brief Write the next outgoing message
     ///

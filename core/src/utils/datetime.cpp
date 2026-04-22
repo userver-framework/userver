@@ -94,22 +94,22 @@ time_t Unlocalize(const cctz::civil_second& local_tp, const std::string& timezon
     return Timestamp(cctz::convert(local_tp, GetTimezone(timezone)));
 }
 
-std::optional<cctz::time_zone> GetOptionalTimezone(const std::string& tzname) {
+std::optional<cctz::time_zone> GetOptionalTimezone(const std::string& timezone) {
     if (engine::current_task::IsTaskProcessorThread()) {
         static rcu::RcuMap<std::string, std::optional<cctz::time_zone>> map;
-        auto it = map.Get(tzname);
+        auto it = map.Get(timezone);
         if (it) {
             return *it;
         }
 
         // DoGetOptionalTimezone() may access filesystem, run it in blocking task processor
         auto [value, _] =
-            map.Emplace(tzname, engine::AsyncNoSpan(engine::current_task::GetBlockingTaskProcessor(), [&tzname] {
-                                    return DoGetOptionalTimezone(tzname);
-                                }).Get());
+            map.Emplace(timezone, engine::AsyncNoSpan(engine::current_task::GetBlockingTaskProcessor(), [&timezone] {
+                                      return DoGetOptionalTimezone(timezone);
+                                  }).Get());
         return *value;
     } else {
-        return DoGetOptionalTimezone(tzname);
+        return DoGetOptionalTimezone(timezone);
     }
 }
 

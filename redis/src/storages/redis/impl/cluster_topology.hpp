@@ -11,7 +11,6 @@
 #include <userver/storages/redis/base.hpp>
 
 #include <storages/redis/impl/cluster_shard.hpp>
-#include <storages/redis/impl/sentinel_impl.hpp>
 #include <storages/redis/impl/sentinel_query.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -29,7 +28,7 @@ using NodesStorage = rcu::RcuMap<std::string, RedisConnectionHolder, StdMutexRcu
 
 class ClusterTopology {
 public:
-    static constexpr auto kUnknownShard = SentinelImplBase::kUnknownShard;
+    static constexpr auto kUnknownShard = SentinelImpl::kUnknownShard;
 
     ClusterTopology() = default;
     ClusterTopology(ClusterTopology&&) = default;
@@ -81,8 +80,6 @@ public:
         return cluster_shards_.size();
     }
     std::chrono::steady_clock::time_point GetTimestamp() const { return timestamp_; }
-
-    void GetStatistics(const MetricsSettings& settings, SentinelStatistics& stats) const;
 
     std::unordered_map<ServerId, size_t, ServerIdHasher> GetAvailableServersWeighted(
         size_t shard_idx,

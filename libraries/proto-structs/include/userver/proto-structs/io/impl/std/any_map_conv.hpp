@@ -6,6 +6,8 @@
 
 #include <userver/proto-structs/io/context.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace proto_structs::io::impl {
 
 template <typename TMap, typename TKey, typename TValue>
@@ -43,3 +45,5 @@ void WriteMap(
 }
 
 }  // namespace proto_structs::io::impl
+
+USERVER_NAMESPACE_END

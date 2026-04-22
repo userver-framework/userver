@@ -1,10 +1,10 @@
-#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include <limits>
 
 #include <userver/proto-structs/duration.hpp>
 #include <userver/proto-structs/exceptions.hpp>
+#include <userver/utest/assert_macros.hpp>
 #include <userver/utils/impl/internal_tag.hpp>
 
 using namespace std::literals::chrono_literals;
@@ -35,14 +35,8 @@ TEST(DurationTest, IsValid) {
         Duration(utils::impl::InternalTag{}, std::numeric_limits<int64_t>::min(), std::numeric_limits<int32_t>::min()),
         ValueError
     );
-    EXPECT_THAT(
-        []() { [[maybe_unused]] Duration d(987'654'321'000s, 123'456'789ns); },
-        ::testing::ThrowsMessage<ValueError>(::testing::HasSubstr("987654321000s.123456789ns"))
-    );
-    EXPECT_THAT(
-        []() { [[maybe_unused]] Duration d(OverflowingDuration::max()); },
-        ::testing::ThrowsMessage<ValueError>(::testing::HasSubstr("will overflow"))
-    );
+    UEXPECT_THROW_MSG(Duration(987'654'321'000s, 123'456'789ns), ValueError, "987654321000s.123456789ns");
+    UEXPECT_THROW_MSG((Duration{OverflowingDuration::max()}), ValueError, "will overflow");
 
     EXPECT_TRUE(Duration::IsValid(0s, 0ns));
     EXPECT_TRUE(Duration::IsValid(0s, 1ns));
@@ -101,31 +95,31 @@ TEST(DurationTest, SaturateCast) {
 
     Duration d;
 
-    ASSERT_NO_THROW(d = std::chrono::nanoseconds::max());
+    UASSERT_NO_THROW(d = std::chrono::nanoseconds::max());
     EXPECT_TRUE(d.FitsInChronoDuration<std::chrono::nanoseconds>());
     EXPECT_EQ(d.ToChronoDuration<std::chrono::nanoseconds>(), std::chrono::nanoseconds::max());
     EXPECT_EQ(static_cast<std::chrono::nanoseconds>(d), std::chrono::nanoseconds::max());
     EXPECT_EQ(d.ToNanos(), std::chrono::nanoseconds::max());
 
-    ASSERT_NO_THROW(d = std::chrono::nanoseconds::min());
+    UASSERT_NO_THROW(d = std::chrono::nanoseconds::min());
     EXPECT_TRUE(d.FitsInChronoDuration<std::chrono::nanoseconds>());
     EXPECT_EQ(d.ToChronoDuration<std::chrono::nanoseconds>(), std::chrono::nanoseconds::min());
     EXPECT_EQ(static_cast<std::chrono::nanoseconds>(d), std::chrono::nanoseconds::min());
     EXPECT_EQ(d.ToNanos(), std::chrono::nanoseconds::min());
 
-    ASSERT_NO_THROW(d = Duration(kMaxSeconds + 1s, 0ns));
+    UASSERT_NO_THROW(d = Duration(kMaxSeconds + 1s, 0ns));
     EXPECT_FALSE(d.FitsInChronoDuration<std::chrono::nanoseconds>());
     EXPECT_EQ(d.ToChronoDuration<std::chrono::nanoseconds>(), std::chrono::nanoseconds::max());
     EXPECT_EQ(static_cast<std::chrono::nanoseconds>(d), std::chrono::nanoseconds::max());
     EXPECT_EQ(d.ToNanos(), std::chrono::nanoseconds::max());
 
-    ASSERT_NO_THROW(d = Duration(kMinSeconds - 1s, 0ns));
+    UASSERT_NO_THROW(d = Duration(kMinSeconds - 1s, 0ns));
     EXPECT_FALSE(d.FitsInChronoDuration<std::chrono::nanoseconds>());
     EXPECT_EQ(d.ToChronoDuration<std::chrono::nanoseconds>(), std::chrono::nanoseconds::min());
     EXPECT_EQ(static_cast<std::chrono::nanoseconds>(d), std::chrono::nanoseconds::min());
     EXPECT_EQ(d.ToNanos(), std::chrono::nanoseconds::min());
 
-    ASSERT_NO_THROW(d = Duration(kMaxSeconds + 1s, 123'456'789ns));
+    UASSERT_NO_THROW(d = Duration(kMaxSeconds + 1s, 123'456'789ns));
     EXPECT_FALSE(d.FitsInChronoDuration<std::chrono::nanoseconds>());
     EXPECT_TRUE(d.FitsInChronoDuration<std::chrono::milliseconds>());
     EXPECT_EQ(d.ToChronoDuration<std::chrono::milliseconds>(), kMaxSeconds + 1s + 123ms);
@@ -133,7 +127,7 @@ TEST(DurationTest, SaturateCast) {
     EXPECT_EQ(d.ToNanos(), std::chrono::nanoseconds::max());
     EXPECT_EQ(d.ToMillis(), kMaxSeconds + 1s + 123ms);
 
-    ASSERT_NO_THROW(d = Duration(kMinSeconds - 1s, -123'456'789ns));
+    UASSERT_NO_THROW(d = Duration(kMinSeconds - 1s, -123'456'789ns));
     EXPECT_FALSE(d.FitsInChronoDuration<std::chrono::nanoseconds>());
     EXPECT_TRUE(d.FitsInChronoDuration<std::chrono::milliseconds>());
     EXPECT_EQ(d.ToChronoDuration<std::chrono::milliseconds>(), kMinSeconds - 1s - 123ms);
@@ -145,24 +139,24 @@ TEST(DurationTest, SaturateCast) {
         using TestDuration = std::chrono::duration<std::int16_t, std::pico>;
         Duration d;
 
-        ASSERT_NO_THROW(d = Duration::Min());
+        UASSERT_NO_THROW(d = Duration::Min());
         EXPECT_FALSE(d.FitsInChronoDuration<TestDuration>());
         EXPECT_EQ(d.ToChronoDuration<TestDuration>(), TestDuration::min());
         EXPECT_EQ(static_cast<TestDuration>(d), TestDuration::min());
 
-        ASSERT_NO_THROW(d = Duration::Max());
+        UASSERT_NO_THROW(d = Duration::Max());
         EXPECT_FALSE(d.FitsInChronoDuration<TestDuration>());
         EXPECT_EQ(d.ToChronoDuration<TestDuration>(), TestDuration::max());
         EXPECT_EQ(static_cast<TestDuration>(d), TestDuration::max());
 
-        ASSERT_NO_THROW(d = TestDuration::min());
+        UASSERT_NO_THROW(d = TestDuration::min());
         EXPECT_TRUE(d.FitsInChronoDuration<TestDuration>());
         EXPECT_EQ(d.Seconds(), 0s);
         EXPECT_EQ(d.Nanos(), -32ns);
         EXPECT_EQ(d.ToChronoDuration<TestDuration>().count(), -32'000);
         EXPECT_EQ(static_cast<TestDuration>(d).count(), -32'000);
 
-        ASSERT_NO_THROW(d = TestDuration::max());
+        UASSERT_NO_THROW(d = TestDuration::max());
         EXPECT_TRUE(d.FitsInChronoDuration<TestDuration>());
         EXPECT_EQ(d.Seconds(), 0s);
         EXPECT_EQ(d.Nanos(), 32ns);
@@ -174,22 +168,22 @@ TEST(DurationTest, SaturateCast) {
         using TestDuration = std::chrono::duration<std::int16_t, std::chrono::weeks::period>;
         Duration d;
 
-        ASSERT_NO_THROW(d = Duration::Min());
+        UASSERT_NO_THROW(d = Duration::Min());
         EXPECT_FALSE(d.FitsInChronoDuration<TestDuration>());
         EXPECT_EQ(d.ToChronoDuration<TestDuration>(), TestDuration::min());
         EXPECT_EQ(static_cast<TestDuration>(d), TestDuration::min());
 
-        ASSERT_NO_THROW(d = Duration::Max());
+        UASSERT_NO_THROW(d = Duration::Max());
         EXPECT_FALSE(d.FitsInChronoDuration<TestDuration>());
         EXPECT_EQ(d.ToChronoDuration<TestDuration>(), TestDuration::max());
         EXPECT_EQ(static_cast<TestDuration>(d), TestDuration::max());
 
-        ASSERT_NO_THROW(d = TestDuration::min());
+        UASSERT_NO_THROW(d = TestDuration::min());
         EXPECT_TRUE(d.FitsInChronoDuration<TestDuration>());
         EXPECT_EQ(d.ToChronoDuration<TestDuration>(), TestDuration::min());
         EXPECT_EQ(static_cast<TestDuration>(d), TestDuration::min());
 
-        ASSERT_NO_THROW(d = TestDuration::max());
+        UASSERT_NO_THROW(d = TestDuration::max());
         EXPECT_TRUE(d.FitsInChronoDuration<TestDuration>());
         EXPECT_EQ(d.ToChronoDuration<TestDuration>(), TestDuration::max());
         EXPECT_EQ(static_cast<TestDuration>(d), TestDuration::max());

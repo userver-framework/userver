@@ -90,9 +90,10 @@ CallParams CreateCallParams(const ClientData& client_data, std::size_t method_id
         throw RpcCancelledError(call_name, "RPC construction");
     }
 
-    auto stub = client_data.NextStub(method_id);
+    auto stub_state = client_data.GetStubState();
 
-    const auto qos = stub.GetClientQos().methods.GetOptional(call_name).value_or(Qos{});
+    const auto& client_qos = stub_state->client_qos;
+    const auto qos = client_qos.methods.GetOptional(call_name).value_or(Qos{});
     ApplyRetryConfiguration(call_options, qos, client_data.GetRetryConfig(), client_data.GetTestsuiteControl());
     if (RpcType::kUnary == GetMethodType(metadata, method_id)) {
         ApplyRetryConfiguration(call_options, qos, client_data.GetRetryConfig(), client_data.GetTestsuiteControl());
@@ -105,6 +106,10 @@ CallParams CreateCallParams(const ClientData& client_data, std::size_t method_id
         );
     }
 
+    const auto& stubs = impl::GetMethodStubs(*stub_state, method_id);
+
+    auto* retry_limiter = client_data.GetRetryLimiter(method_id);
+
     return CallParams{
         client_data.GetClientName(),
         client_data.NextQueue(),
@@ -115,10 +120,11 @@ CallParams CreateCallParams(const ClientData& client_data, std::size_t method_id
         metadata.service_full_name,
         GetMethodName(metadata, method_id),
         std::move(call_options),
-        std::move(stub),
+        MethodStubs{std::move(stub_state), stubs},
         client_data.GetMiddlewares(),
         client_data.GetStatistics(method_id),
         client_data.GetTestsuiteControl(),
+        retry_limiter
     };
 }
 
@@ -152,6 +158,9 @@ CallParams CreateGenericCallParams(
         method_name = call_name;
     }
 
+    auto stub_state = client_data.GetStubState();
+    const auto& stubs = impl::GetGenericMethodStubs(*stub_state);
+
     return CallParams{
         client_data.GetClientName(),
         client_data.NextQueue(),
@@ -162,10 +171,11 @@ CallParams CreateGenericCallParams(
         service_name,
         method_name,
         std::move(call_options),
-        client_data.NextStub(),
+        MethodStubs{std::move(stub_state), stubs},
         client_data.GetMiddlewares(),
         client_data.GetGenericStatistics(generic_options.metrics_call_name.value_or(call_name)),
         client_data.GetTestsuiteControl(),
+        nullptr,
     };
 }
 

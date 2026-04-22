@@ -4,8 +4,8 @@ import pprint
 
 import yaml
 
+from chaotic_openapi.back.linter import validators
 from chaotic_openapi.front import parser as front_parser
-from . import validators
 
 
 def parse_args():

@@ -64,19 +64,16 @@ public:
 };
 
 class GrpcClientValidatorTest
-    : public ugrpc::tests::ServiceFixtureBase,
+    : public ugrpc::tests::ServiceWithClientFixture<UnitTestServiceValidator, types::UnitTestServiceClient>,
       public testing::WithParamInterface<grpc_protovalidate::client::Settings> {
 public:
-    GrpcClientValidatorTest() {
-        SetClientMiddlewares({std::make_shared<grpc_protovalidate::client::Middleware>(GetParam())});
-        RegisterService(service_);
-        StartServer();
-    }
-
-    ~GrpcClientValidatorTest() override { StopServer(); }
-
-private:
-    UnitTestServiceValidator service_;
+    GrpcClientValidatorTest()
+        : ugrpc::tests::ServiceWithClientFixture<UnitTestServiceValidator, types::UnitTestServiceClient>(
+              ugrpc::server::ServerConfig{},
+              ugrpc::server::Middlewares{},
+              ugrpc::client::Middlewares{std::make_shared<grpc_protovalidate::client::Middleware>(GetParam())}
+          )
+    {}
 };
 
 }  // namespace
@@ -87,46 +84,33 @@ INSTANTIATE_UTEST_SUITE_P(
     testing::Values(
         grpc_protovalidate::client::Settings{
             .per_method =
-                {
-                    {"types.UnitTestService/CheckConstraintsUnary", {.fail_fast = false}},
-                    {"/UnknownMethod", {.fail_fast = true}},
-                }
+                {{"types.UnitTestService/CheckConstraintsUnary", {.fail_fast = false, .validate_requests = true}},
+                 {"/UnknownMethod", {.fail_fast = true}}}
         },
         grpc_protovalidate::client::Settings{
-            .global =
-                {
-                    .fail_fast = false,
-                },
+            .global = {.fail_fast = false},
             .per_method =
-                {
-                    {"types.UnitTestService/CheckConstraintsUnary", {.fail_fast = false}},
-                    {"/UnknownMethod", {.fail_fast = true}},
-                }
+                {{"types.UnitTestService/CheckConstraintsUnary", {.fail_fast = false, .validate_requests = true}},
+                 {"/UnknownMethod", {.fail_fast = true}}}
         }
     )
 );
 
 UTEST_P_MT(GrpcClientValidatorTest, AllValid, 2) {
     constexpr std::size_t kRequestCount = 3;
-    auto client = MakeClient<types::UnitTestServiceClient>();
-    auto stream = client.CheckConstraintsStreaming();
 
-    const types::ConstrainedRequest request;
     std::vector<types::ConstrainedRequest> requests(kRequestCount);
-    std::vector<types::ConstrainedResponse> responses;
-
     for (std::size_t i = 0; i < kRequestCount; ++i) {
         requests[i].set_field(static_cast<int32_t>(i + 1));
     }
 
     // check unary method
-
     types::ConstrainedResponse response;
-    UEXPECT_NO_THROW(response = client.CheckConstraintsUnary(requests[0]));
+    UEXPECT_NO_THROW(response = GetClient().CheckConstraintsUnary(requests[0]));
     EXPECT_EQ(response.field(), requests[0].field());
 
     // check streaming method
-
+    auto stream = GetClient().CheckConstraintsStreaming();
     auto write_task = engine::AsyncNoSpan([&stream, &requests] {
         for (const auto& request : requests) {
             const bool success = stream.Write(request);
@@ -138,6 +122,7 @@ UTEST_P_MT(GrpcClientValidatorTest, AllValid, 2) {
         return stream.WritesDone();
     });
 
+    std::vector<types::ConstrainedResponse> responses;
     while (stream.Read(response)) {
         responses.push_back(std::move(response));
     }
@@ -152,14 +137,9 @@ UTEST_P_MT(GrpcClientValidatorTest, AllValid, 2) {
 
 UTEST_P_MT(GrpcClientValidatorTest, AllInvalid, 2) {
     constexpr std::size_t kRequestCount = 3;
-    const auto& streaming_settings = GetParam().Get("types.UnitTestService/CheckConstraintsStreaming");
-    auto client = MakeClient<types::UnitTestServiceClient>();
-    auto stream = client.CheckConstraintsStreaming();
 
-    types::ConstrainedRequest request;
     std::vector<types::ConstrainedRequest> requests(kRequestCount);
-    const std::vector<types::ConstrainedResponse> responses;
-
+    types::ConstrainedRequest request;
     request.set_field(1);
     requests[0] = request;
     request.set_field(0);
@@ -168,9 +148,8 @@ UTEST_P_MT(GrpcClientValidatorTest, AllInvalid, 2) {
     requests[2] = request;
 
     // check unary method
-
     try {
-        [[maybe_unused]] auto response = client.CheckConstraintsUnary(requests[1]);
+        [[maybe_unused]] auto response = GetClient().CheckConstraintsUnary(requests[1]);
         ADD_FAILURE() << "Call must fail";
     } catch (const grpc_protovalidate::client::ResponseError& err) {
         EXPECT_EQ(err.GetErrorInfo().violations_size(), 20);
@@ -179,7 +158,7 @@ UTEST_P_MT(GrpcClientValidatorTest, AllInvalid, 2) {
     }
 
     // check streaming method
-
+    auto stream = GetClient().CheckConstraintsStreaming();
     auto write_task = engine::AsyncNoSpan([&stream, &requests] {
         for (const auto& request : requests) {
             const bool success = stream.Write(request);
@@ -200,6 +179,7 @@ UTEST_P_MT(GrpcClientValidatorTest, AllInvalid, 2) {
         [[maybe_unused]] const bool result = stream.Read(response);
         ADD_FAILURE() << "Call must fail";
     } catch (const grpc_protovalidate::client::ResponseError& err) {
+        const auto& streaming_settings = GetParam().Get("types.UnitTestService/CheckConstraintsStreaming");
         if (streaming_settings.fail_fast) {
             EXPECT_EQ(err.GetErrorInfo().violations_size(), 1);
         } else {
@@ -213,16 +193,22 @@ UTEST_P_MT(GrpcClientValidatorTest, AllInvalid, 2) {
 }
 
 UTEST_P(GrpcClientValidatorTest, InvalidConstraints) {
-    auto client = MakeClient<types::UnitTestServiceClient>();
+    UEXPECT_THROW_MSG(
+        GetClient().CheckInvalidResponseConstraints(google::protobuf::Empty{}),
+        grpc_protovalidate::client::ValidatorError,
+        "'types.UnitTestService/CheckInvalidResponseConstraints' failed: validator internal error"
+    );
+}
 
-    try {
-        [[maybe_unused]] auto response = client.CheckInvalidResponseConstraints(google::protobuf::Empty{});
-        ADD_FAILURE() << "Call must fail";
-    } catch (const grpc_protovalidate::client::ValidatorError&) {
-        // do nothing
-    } catch (...) {
-        ADD_FAILURE() << "'ValidatorError' exception expected";
-    }
+UTEST_P(GrpcClientValidatorTest, InvalidRequest) {
+    types::ConstrainedRequest request;
+    request.set_field(100);
+
+    UEXPECT_THROW_MSG(
+        GetClient().CheckConstraintsUnary(request),
+        grpc_protovalidate::client::RequestError,
+        "'types.UnitTestService/CheckConstraintsUnary' failed: request violates constraints (count=1)"
+    );
 }
 
 USERVER_NAMESPACE_END

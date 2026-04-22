@@ -28,41 +28,41 @@ namespace {
 
 enum class FindHint { kCamelCaseFirst = 1, kOriginalFirst = 2 };
 
-void ReadGeneralMessage(const formats::json::Value&, const ReadOptions&, ::google::protobuf::Message&);
+void ReadGeneralMessage(const formats::json::Value&, ::google::protobuf::Message&, const ParseOptions&);
 
-void ReadAnyMessage(const formats::json::Value&, const ReadOptions&, ::google::protobuf::Message&);
+void ReadAnyMessage(const formats::json::Value&, ::google::protobuf::Message&, const ParseOptions&);
 
-void ReadDurationMessage(const formats::json::Value&, const ReadOptions&, ::google::protobuf::Message&);
+void ReadDurationMessage(const formats::json::Value&, ::google::protobuf::Message&, const ParseOptions&);
 
-void ReadTimestampMessage(const formats::json::Value&, const ReadOptions&, ::google::protobuf::Message&);
+void ReadTimestampMessage(const formats::json::Value&, ::google::protobuf::Message&, const ParseOptions&);
 
-void ReadFieldMaskMessage(const formats::json::Value&, const ReadOptions&, ::google::protobuf::Message&);
+void ReadFieldMaskMessage(const formats::json::Value&, ::google::protobuf::Message&, const ParseOptions&);
 
-void ReadValueMessage(const formats::json::Value&, const ReadOptions&, ::google::protobuf::Message&);
+void ReadValueMessage(const formats::json::Value&, ::google::protobuf::Message&, const ParseOptions&);
 
-void ReadListValueMessage(const formats::json::Value&, const ReadOptions&, ::google::protobuf::Message&);
+void ReadListValueMessage(const formats::json::Value&, ::google::protobuf::Message&, const ParseOptions&);
 
-void ReadStructMessage(const formats::json::Value&, const ReadOptions&, ::google::protobuf::Message&);
+void ReadStructMessage(const formats::json::Value&, ::google::protobuf::Message&, const ParseOptions&);
 
-void ReadDoubleValueMessage(const formats::json::Value&, const ReadOptions&, ::google::protobuf::Message&);
+void ReadDoubleValueMessage(const formats::json::Value&, ::google::protobuf::Message&, const ParseOptions&);
 
-void ReadFloatValueMessage(const formats::json::Value&, const ReadOptions&, ::google::protobuf::Message&);
+void ReadFloatValueMessage(const formats::json::Value&, ::google::protobuf::Message&, const ParseOptions&);
 
-void ReadInt64ValueMessage(const formats::json::Value&, const ReadOptions&, ::google::protobuf::Message&);
+void ReadInt64ValueMessage(const formats::json::Value&, ::google::protobuf::Message&, const ParseOptions&);
 
-void ReadUInt64ValueMessage(const formats::json::Value&, const ReadOptions&, ::google::protobuf::Message&);
+void ReadUInt64ValueMessage(const formats::json::Value&, ::google::protobuf::Message&, const ParseOptions&);
 
-void ReadInt32ValueMessage(const formats::json::Value&, const ReadOptions&, ::google::protobuf::Message&);
+void ReadInt32ValueMessage(const formats::json::Value&, ::google::protobuf::Message&, const ParseOptions&);
 
-void ReadUInt32ValueMessage(const formats::json::Value&, const ReadOptions&, ::google::protobuf::Message&);
+void ReadUInt32ValueMessage(const formats::json::Value&, ::google::protobuf::Message&, const ParseOptions&);
 
-void ReadBoolValueMessage(const formats::json::Value&, const ReadOptions&, ::google::protobuf::Message&);
+void ReadBoolValueMessage(const formats::json::Value&, ::google::protobuf::Message&, const ParseOptions&);
 
-void ReadStringValueMessage(const formats::json::Value&, const ReadOptions&, ::google::protobuf::Message&);
+void ReadStringValueMessage(const formats::json::Value&, ::google::protobuf::Message&, const ParseOptions&);
 
-void ReadBytesValueMessage(const formats::json::Value&, const ReadOptions&, ::google::protobuf::Message&);
+void ReadBytesValueMessage(const formats::json::Value&, ::google::protobuf::Message&, const ParseOptions&);
 
-using ReadMessageFunc = void (*)(const formats::json::Value&, const ReadOptions&, ::google::protobuf::Message&);
+using ReadMessageFunc = void (*)(const formats::json::Value&, ::google::protobuf::Message&, const ParseOptions&);
 
 class SingularSetter {
 public:
@@ -337,7 +337,7 @@ public:
             return ReadBytesValueMessage;
     }
 
-    UINVARIANT(false, "Protobuf message classifed to unknown type");
+    UINVARIANT(false, "Protobuf message classified to unknown type");
 }
 
 [[nodiscard]] bool StartsWith(const std::string_view& str, const std::string_view& prefix) {
@@ -419,13 +419,13 @@ template <typename T, typename TString>
         }
     }
 
-    throw FieldError(ReadErrorCode::kInvalidValue);
+    throw FieldError(ParseErrorCode::kInvalidValue, "can't convert string to number");
 }
 
 [[nodiscard]] std::optional<int> StringToEnumValue(
     const std::string& str,
     const ::google::protobuf::EnumDescriptor& desc,
-    const ReadOptions& options
+    const ParseOptions& options
 ) {
     auto value_desc = desc.FindValueByName(str);
 
@@ -440,14 +440,14 @@ template <typename T, typename TString>
         if (result) {
             return result.value();
         } else {
-            throw FieldError(ReadErrorCode::kInvalidValue);
+            throw FieldError(ParseErrorCode::kInvalidValue, "can't convert string to enum value");
         }
     }
 
     if (options.ignore_unknown_fields) {
         return std::nullopt;
     } else {
-        throw FieldError(ReadErrorCode::kUnknownEnum);
+        throw FieldError(ParseErrorCode::kUnknownEnum);
     }
 }
 
@@ -457,7 +457,7 @@ template <typename T, typename TString>
     const std::string_view prefix
 ) {
     if ((str.size() < digit_count + prefix.size()) || !StartsWith(str, prefix)) {
-        throw FieldError(ReadErrorCode::kInvalidValue);
+        throw FieldError(ParseErrorCode::kInvalidValue, "invalid time format");
     }
 
     str.remove_prefix(prefix.size());
@@ -468,7 +468,7 @@ template <typename T, typename TString>
             result *= 10;
             result += str[i] - '0';
         } else {
-            throw FieldError(ReadErrorCode::kInvalidValue);
+            throw FieldError(ParseErrorCode::kInvalidValue, "digit is expected");
         }
     }
 
@@ -495,7 +495,7 @@ template <typename T, typename TString>
     }
 
     if (digit_count == 0 || digit_count > 9) {
-        throw FieldError(ReadErrorCode::kInvalidValue);
+        throw FieldError(ParseErrorCode::kInvalidValue, "invalid number of digits in nanoseconds part of the time");
     }
 
     nanos = StringToNumber<std::uint32_t>(str.substr(0, digit_count));
@@ -534,10 +534,12 @@ template <typename T, typename TString>
 
 template <typename T>
 [[nodiscard]] T ReadNumber(const formats::json::Value& value) {
-    ReadErrorCode error_code = ReadErrorCode::kInvalidType;
+    ParseErrorCode error_code = ParseErrorCode::kInvalidType;
+    std::string_view error_description{};
 
     if (value.IsNumber()) {
-        error_code = ReadErrorCode::kInvalidValue;
+        error_code = ParseErrorCode::kInvalidValue;
+        error_description = "number does not fit to a protobuf integer/float field";
 
         if constexpr (std::is_same_v<T, std::int32_t>) {
             if (value.IsInt()) {
@@ -579,14 +581,14 @@ template <typename T>
         return StringToNumber<T>(str);
     }
 
-    throw FieldError(error_code);
+    throw FieldError(error_code, error_description);
 }
 
 [[nodiscard]] bool ReadBool(const formats::json::Value& value) {
     if (value.IsBool()) {
         return value.As<bool>();
     } else {
-        throw FieldError(ReadErrorCode::kInvalidType);
+        throw FieldError(ParseErrorCode::kInvalidType);
     }
 }
 
@@ -594,7 +596,7 @@ template <typename T>
     if (value.IsString()) {
         return value.As<std::string>();
     } else {
-        throw FieldError(ReadErrorCode::kInvalidType);
+        throw FieldError(ParseErrorCode::kInvalidType);
     }
 }
 
@@ -605,17 +607,17 @@ template <typename T>
         if (crypto::base64::Base64UniversalDecodeInPlace(data)) {
             return data;
         } else {
-            throw FieldError(ReadErrorCode::kInvalidValue);
+            throw FieldError(ParseErrorCode::kInvalidValue, "failed to decode base64");
         }
     } else {
-        throw FieldError(ReadErrorCode::kInvalidType);
+        throw FieldError(ParseErrorCode::kInvalidType);
     }
 }
 
 [[nodiscard]] std::optional<int> ReadEnum(
     const formats::json::Value& value,
     const ::google::protobuf::EnumDescriptor& desc,
-    const ReadOptions& options
+    const ParseOptions& options
 ) {
     if (value.IsString()) {
         const auto str = value.As<std::string>();
@@ -623,7 +625,7 @@ template <typename T>
     } else if (value.IsNumber()) {
         return ReadNumber<std::int32_t>(value);
     } else {
-        throw FieldError(ReadErrorCode::kInvalidType);
+        throw FieldError(ParseErrorCode::kInvalidType);
     }
 }
 
@@ -633,10 +635,10 @@ void ReadField(
     ::google::protobuf::Message& message,
     const ::google::protobuf::Reflection& reflection,
     const ::google::protobuf::FieldDescriptor& field_desc,
-    const ReadOptions& options,
+    const ParseOptions& options,
     ReadMessageFunc& read_message
 ) {
-    using namespace ::google::protobuf;
+    using ::google::protobuf::FieldDescriptor;
 
     UASSERT(message.GetReflection() == &reflection);
     UASSERT(field_desc.containing_type() == message.GetDescriptor());
@@ -671,7 +673,10 @@ void ReadField(
             if (!field_desc.is_repeated() || field_desc.is_map()) {
                 return;
             } else {
-                throw FieldError(ReadErrorCode::kInvalidValue);
+                throw FieldError(
+                    ParseErrorCode::kInvalidValue,
+                    "array contains null which is prohibited for protobuf repeated fields"
+                );
             }
         }
     }
@@ -737,7 +742,7 @@ void ReadField(
                 read_message = GetReadMessageFunc(field_desc.message_type()->full_name());
             }
 
-            read_message(json_field, options, value);
+            read_message(json_field, value, options);
             return;
         }
     }
@@ -750,7 +755,7 @@ void ReadSingularField(
     ::google::protobuf::Message& message,
     const ::google::protobuf::Reflection& reflection,
     const ::google::protobuf::FieldDescriptor& field_desc,
-    const ReadOptions& options
+    const ParseOptions& options
 ) {
     UASSERT(message.GetReflection() == &reflection);
     UASSERT(field_desc.containing_type() == message.GetDescriptor());
@@ -765,7 +770,7 @@ void ReadRepeatedField(
     ::google::protobuf::Message& message,
     const ::google::protobuf::Reflection& reflection,
     const ::google::protobuf::FieldDescriptor& field_desc,
-    const ReadOptions& options
+    const ParseOptions& options
 ) {
     UASSERT(message.GetReflection() == &reflection);
     UASSERT(field_desc.containing_type() == message.GetDescriptor());
@@ -776,7 +781,7 @@ void ReadRepeatedField(
     }
 
     if (!json_field.IsArray()) {
-        throw FieldError(ReadErrorCode::kInvalidType);
+        throw FieldError(ParseErrorCode::kInvalidType);
     }
 
     ReadMessageFunc read_message = nullptr;
@@ -798,9 +803,9 @@ void ReadMapField(
     ::google::protobuf::Message& message,
     const ::google::protobuf::Reflection& reflection,
     const ::google::protobuf::FieldDescriptor& field_desc,
-    const ReadOptions& options
+    const ParseOptions& options
 ) {
-    using namespace ::google::protobuf;
+    using ::google::protobuf::FieldDescriptor;
 
     UASSERT(message.GetReflection() == &reflection);
     UASSERT(field_desc.containing_type() == message.GetDescriptor());
@@ -811,7 +816,7 @@ void ReadMapField(
     }
 
     if (!json_field.IsObject()) {
-        throw FieldError(ReadErrorCode::kInvalidType);
+        throw FieldError(ParseErrorCode::kInvalidType);
     }
 
     const FieldDescriptor& key_desc = *(field_desc.message_type()->map_key());
@@ -853,7 +858,7 @@ void ReadMapField(
                     } else if (name == "false") {
                         item_reflection.SetBool(&item_message, &key_desc, false);
                     } else {
-                        throw FieldError(ReadErrorCode::kInvalidValue);
+                        throw FieldError(ParseErrorCode::kInvalidValue, "failed to convert string to bool");
                     }
 
                     break;
@@ -877,14 +882,14 @@ void ReadMapField(
 
 void ReadGeneralMessageImpl(
     const formats::json::Value& json,
-    const ReadOptions& options,
     ::google::protobuf::Message& message,
+    const ParseOptions& options,
     bool reading_any_payload = false
 ) {
     UASSERT(!json.IsMissing());
 
     if (!json.IsObject()) {
-        throw FieldError(ReadErrorCode::kInvalidType);
+        throw FieldError(ParseErrorCode::kInvalidType);
     }
 
     const auto& desc = *message.GetDescriptor();
@@ -900,14 +905,14 @@ void ReadGeneralMessageImpl(
                 if (options.ignore_unknown_fields || (reading_any_payload && name == "@type")) {
                     continue;
                 } else {
-                    throw FieldError(ReadErrorCode::kUnknownField);
+                    throw FieldError(ParseErrorCode::kUnknownField);
                 }
             }
 
             if (field_desc->real_containing_oneof() && !value.IsNull()) {
                 // checking that another oneof field is not read already
                 if (!read_oneof_indices.insert(field_desc->real_containing_oneof()->index()).second) {
-                    throw FieldError(ReadErrorCode::kMultipleOneofFields);
+                    throw FieldError(ParseErrorCode::kMultipleOneofFields);
                 }
             }
 
@@ -929,16 +934,16 @@ void ReadGeneralMessageImpl(
 
 void ReadGeneralMessage(
     const formats::json::Value& json,
-    const ReadOptions& options,
-    ::google::protobuf::Message& message
+    ::google::protobuf::Message& message,
+    const ParseOptions& options
 ) {
-    return ReadGeneralMessageImpl(json, options, message);
+    ReadGeneralMessageImpl(json, message, options);
 }
 
 void ReadAnyMessage(
     const formats::json::Value& json,
-    const ReadOptions& options,
-    ::google::protobuf::Message& message
+    ::google::protobuf::Message& message,
+    const ParseOptions& options
 ) {
     const auto& desc = *message.GetDescriptor();
     const auto& type_url_desc = GetMessageFieldDesc(desc, AnyTraits::kTypeUrlFieldNumber, AnyTraits::kTypeUrlFieldType);
@@ -946,7 +951,7 @@ void ReadAnyMessage(
     const auto& reflection = *message.GetReflection();
 
     if (!json.IsObject()) {
-        throw FieldError(ReadErrorCode::kInvalidType);
+        throw FieldError(ParseErrorCode::kInvalidType);
     }
 
     if (json.IsEmpty()) {
@@ -954,7 +959,10 @@ void ReadAnyMessage(
     }
 
     if (!json.HasMember("@type")) {
-        throw FieldError(ReadErrorCode::kInvalidValue);
+        throw FieldError(
+            ParseErrorCode::kInvalidValue,
+            "json object must contain '@type' to be converted to 'google.protobuf.Any'"
+        );
     }
 
     const auto type_url_json = json["@type"];
@@ -962,14 +970,14 @@ void ReadAnyMessage(
     if (!type_url_json.IsString()) {
         // throwing 'kInvalidValue', not 'kInvalidType' because JSON field type here is
         // mapped to 'google.protobuf.Any' itself
-        throw FieldError(ReadErrorCode::kInvalidValue);
+        throw FieldError(ParseErrorCode::kInvalidValue, "'@type' field is not a string");
     }
 
     std::string type_url = type_url_json.As<std::string>();
     const auto payload_desc = FindMessageDescByTypeUrl(*message.GetDescriptor()->file()->pool(), type_url);
 
     if (!payload_desc) {
-        throw FieldError(ReadErrorCode::kInvalidValue);
+        throw FieldError(ParseErrorCode::kInvalidValue, "descriptor identified by '@type' is not found");
     }
 
     ::google::protobuf::DynamicMessageFactory factory;
@@ -981,13 +989,13 @@ void ReadAnyMessage(
         std::unique_ptr<::google::protobuf::Message> payload_message(factory.GetPrototype(payload_desc)->New());
 
         if (read_message == &ReadGeneralMessage) {
-            ReadGeneralMessageImpl(json, options, *payload_message, /*reading_any_payload=*/true);
+            ReadGeneralMessageImpl(json, *payload_message, options, /*reading_any_payload=*/true);
         } else {
             std::size_t expected_field_count = 1;
 
             if (json.HasMember("value")) {
                 const auto value_json = json["value"];
-                read_message(value_json, options, *payload_message);
+                read_message(value_json, *payload_message, options);
                 ++expected_field_count;
             }
 
@@ -995,7 +1003,7 @@ void ReadAnyMessage(
                 // taking first unknown field
                 for (const auto& [name, value] : formats::common::Items(json)) {
                     if (name != "@type" && name != "value") {
-                        throw FieldError(ReadErrorCode::kUnknownField, name);
+                        throw FieldError(ParseErrorCode::kUnknownField, "", name);
                     }
                 }
 
@@ -1010,7 +1018,7 @@ void ReadAnyMessage(
     reflection.SetString(&message, &value_desc, std::move(payload));
 }
 
-void ReadDurationMessage(const formats::json::Value& json, const ReadOptions&, ::google::protobuf::Message& message) {
+void ReadDurationMessage(const formats::json::Value& json, ::google::protobuf::Message& message, const ParseOptions&) {
     const auto& desc = *message.GetDescriptor();
     const auto& seconds_desc =
         GetMessageFieldDesc(desc, DurationTraits::kSecondsFieldNumber, DurationTraits::kSecondsFieldType);
@@ -1039,7 +1047,7 @@ void ReadDurationMessage(const formats::json::Value& json, const ReadOptions&, :
     std::int32_t nanos = TakeNanos(unparsed_str);
 
     if (unparsed_str != "s") {
-        throw FieldError(ReadErrorCode::kInvalidValue);
+        throw FieldError(ParseErrorCode::kInvalidValue, "duration does not end with 's'");
     }
 
     UASSERT(!seconds_str.empty());
@@ -1053,11 +1061,14 @@ void ReadDurationMessage(const formats::json::Value& json, const ReadOptions&, :
         reflection.SetInt64(&message, &seconds_desc, seconds);
         reflection.SetInt32(&message, &nanos_desc, nanos);
     } else {
-        throw FieldError(ReadErrorCode::kInvalidValue);
+        throw FieldError(
+            ParseErrorCode::kInvalidValue,
+            "duration's seconds/nanos combination is invalid or represents out of bounds value"
+        );
     }
 }
 
-void ReadTimestampMessage(const formats::json::Value& json, const ReadOptions&, ::google::protobuf::Message& message) {
+void ReadTimestampMessage(const formats::json::Value& json, ::google::protobuf::Message& message, const ParseOptions&) {
     const auto& desc = *message.GetDescriptor();
     const auto& seconds_desc =
         GetMessageFieldDesc(desc, TimestampTraits::kSecondsFieldNumber, TimestampTraits::kSecondsFieldType);
@@ -1085,7 +1096,7 @@ void ReadTimestampMessage(const formats::json::Value& json, const ReadOptions&, 
     const std::int32_t nanos = TakeNanos(unparsed_str);
 
     if (unparsed_str.empty()) {
-        throw FieldError(ReadErrorCode::kInvalidValue);
+        throw FieldError(ParseErrorCode::kInvalidValue, "timestamp does not contain timezone information");
     }
 
     bool is_negative_offset = false;
@@ -1110,14 +1121,14 @@ void ReadTimestampMessage(const formats::json::Value& json, const ReadOptions&, 
     }
 
     if (!unparsed_str.empty()) {
-        throw FieldError(ReadErrorCode::kInvalidValue);
+        throw FieldError(ParseErrorCode::kInvalidValue, "unexpected timestamp suffix");
     }
 
     reflection.SetInt64(&message, &seconds_desc, seconds_since_epoch);
     reflection.SetInt32(&message, &nanos_desc, nanos);
 }
 
-void ReadFieldMaskMessage(const formats::json::Value& json, const ReadOptions&, ::google::protobuf::Message& message) {
+void ReadFieldMaskMessage(const formats::json::Value& json, ::google::protobuf::Message& message, const ParseOptions&) {
     const auto& reflection = *message.GetReflection();
     const auto& field_desc = GetMessageFieldDesc(
         *message.GetDescriptor(),
@@ -1127,7 +1138,7 @@ void ReadFieldMaskMessage(const formats::json::Value& json, const ReadOptions&, 
     );
 
     if (!json.IsString()) {
-        throw FieldError(ReadErrorCode::kInvalidType);
+        throw FieldError(ParseErrorCode::kInvalidType);
     }
 
     const std::string paths = json.As<std::string>();
@@ -1149,7 +1160,7 @@ void ReadFieldMaskMessage(const formats::json::Value& json, const ReadOptions&, 
             path.push_back('_');
             path.push_back(ascii_tolower(c));
         } else {
-            throw FieldError(ReadErrorCode::kInvalidValue);
+            throw FieldError(ParseErrorCode::kInvalidValue, "field mask path contains unexpected symbol");
         }
     }
 
@@ -1158,8 +1169,8 @@ void ReadFieldMaskMessage(const formats::json::Value& json, const ReadOptions&, 
 
 void ReadValueMessage(
     const formats::json::Value& json,
-    const ReadOptions& options,
-    ::google::protobuf::Message& message
+    ::google::protobuf::Message& message,
+    const ParseOptions& options
 ) {
     const auto& desc = *message.GetDescriptor();
     const auto& reflection = *message.GetReflection();
@@ -1181,10 +1192,10 @@ void ReadValueMessage(
     } else if (json.IsObject()) {
         const auto&
             field_desc = GetMessageFieldDesc(desc, ValueTraits::kStructFieldNumber, ValueTraits::kStructFieldType);
-        ReadStructMessage(json, options, *reflection.MutableMessage(&message, &field_desc));
+        ReadStructMessage(json, *reflection.MutableMessage(&message, &field_desc), options);
     } else if (json.IsArray()) {
         const auto& field_desc = GetMessageFieldDesc(desc, ValueTraits::kListFieldNumber, ValueTraits::kListFieldType);
-        ReadListValueMessage(json, options, *reflection.MutableMessage(&message, &field_desc));
+        ReadListValueMessage(json, *reflection.MutableMessage(&message, &field_desc), options);
     } else {
         UINVARIANT(false, "Unexpected JSON field type");
     }
@@ -1192,8 +1203,8 @@ void ReadValueMessage(
 
 void ReadListValueMessage(
     const formats::json::Value& json,
-    const ReadOptions& options,
-    ::google::protobuf::Message& message
+    ::google::protobuf::Message& message,
+    const ParseOptions& options
 ) {
     const auto& field_desc = GetMessageFieldDesc(
         *message.GetDescriptor(),
@@ -1206,8 +1217,8 @@ void ReadListValueMessage(
 
 void ReadStructMessage(
     const formats::json::Value& json,
-    const ReadOptions& options,
-    ::google::protobuf::Message& message
+    ::google::protobuf::Message& message,
+    const ParseOptions& options
 ) {
     const auto& field_desc = GetMessageFieldDesc(
         *message.GetDescriptor(),
@@ -1219,11 +1230,7 @@ void ReadStructMessage(
     ReadMapField(json, message, *message.GetReflection(), field_desc, options);
 }
 
-void ReadDoubleValueMessage(
-    const formats::json::Value& json,
-    const ReadOptions&,
-    ::google::protobuf::Message& message
-) {
+void ReadDoubleValueMessage(const formats::json::Value& json, ::google::protobuf::Message& message, const ParseOptions&) {
     const auto& field_desc = GetMessageFieldDesc(
         *message.GetDescriptor(),
         DoubleValueTraits::kValueFieldNumber,
@@ -1237,7 +1244,7 @@ void ReadDoubleValueMessage(
     message.GetReflection()->SetDouble(&message, &field_desc, ReadNumber<double>(json));
 }
 
-void ReadFloatValueMessage(const formats::json::Value& json, const ReadOptions&, ::google::protobuf::Message& message) {
+void ReadFloatValueMessage(const formats::json::Value& json, ::google::protobuf::Message& message, const ParseOptions&) {
     const auto& field_desc = GetMessageFieldDesc(
         *message.GetDescriptor(),
         FloatValueTraits::kValueFieldNumber,
@@ -1251,7 +1258,7 @@ void ReadFloatValueMessage(const formats::json::Value& json, const ReadOptions&,
     message.GetReflection()->SetFloat(&message, &field_desc, ReadNumber<float>(json));
 }
 
-void ReadInt64ValueMessage(const formats::json::Value& json, const ReadOptions&, ::google::protobuf::Message& message) {
+void ReadInt64ValueMessage(const formats::json::Value& json, ::google::protobuf::Message& message, const ParseOptions&) {
     const auto& field_desc = GetMessageFieldDesc(
         *message.GetDescriptor(),
         Int64ValueTraits::kValueFieldNumber,
@@ -1265,11 +1272,7 @@ void ReadInt64ValueMessage(const formats::json::Value& json, const ReadOptions&,
     message.GetReflection()->SetInt64(&message, &field_desc, ReadNumber<std::int64_t>(json));
 }
 
-void ReadUInt64ValueMessage(
-    const formats::json::Value& json,
-    const ReadOptions&,
-    ::google::protobuf::Message& message
-) {
+void ReadUInt64ValueMessage(const formats::json::Value& json, ::google::protobuf::Message& message, const ParseOptions&) {
     const auto& field_desc = GetMessageFieldDesc(
         *message.GetDescriptor(),
         UInt64ValueTraits::kValueFieldNumber,
@@ -1283,7 +1286,7 @@ void ReadUInt64ValueMessage(
     message.GetReflection()->SetUInt64(&message, &field_desc, ReadNumber<std::uint64_t>(json));
 }
 
-void ReadInt32ValueMessage(const formats::json::Value& json, const ReadOptions&, ::google::protobuf::Message& message) {
+void ReadInt32ValueMessage(const formats::json::Value& json, ::google::protobuf::Message& message, const ParseOptions&) {
     const auto& field_desc = GetMessageFieldDesc(
         *message.GetDescriptor(),
         Int32ValueTraits::kValueFieldNumber,
@@ -1297,11 +1300,7 @@ void ReadInt32ValueMessage(const formats::json::Value& json, const ReadOptions&,
     message.GetReflection()->SetInt32(&message, &field_desc, ReadNumber<std::int32_t>(json));
 }
 
-void ReadUInt32ValueMessage(
-    const formats::json::Value& json,
-    const ReadOptions&,
-    ::google::protobuf::Message& message
-) {
+void ReadUInt32ValueMessage(const formats::json::Value& json, ::google::protobuf::Message& message, const ParseOptions&) {
     const auto& field_desc = GetMessageFieldDesc(
         *message.GetDescriptor(),
         UInt32ValueTraits::kValueFieldNumber,
@@ -1315,7 +1314,7 @@ void ReadUInt32ValueMessage(
     message.GetReflection()->SetUInt32(&message, &field_desc, ReadNumber<std::uint32_t>(json));
 }
 
-void ReadBoolValueMessage(const formats::json::Value& json, const ReadOptions&, ::google::protobuf::Message& message) {
+void ReadBoolValueMessage(const formats::json::Value& json, ::google::protobuf::Message& message, const ParseOptions&) {
     const auto& field_desc = GetMessageFieldDesc(
         *message.GetDescriptor(),
         BoolValueTraits::kValueFieldNumber,
@@ -1329,11 +1328,7 @@ void ReadBoolValueMessage(const formats::json::Value& json, const ReadOptions&, 
     message.GetReflection()->SetBool(&message, &field_desc, ReadBool(json));
 }
 
-void ReadStringValueMessage(
-    const formats::json::Value& json,
-    const ReadOptions&,
-    ::google::protobuf::Message& message
-) {
+void ReadStringValueMessage(const formats::json::Value& json, ::google::protobuf::Message& message, const ParseOptions&) {
     const auto& field_desc = GetMessageFieldDesc(
         *message.GetDescriptor(),
         StringValueTraits::kValueFieldNumber,
@@ -1347,7 +1342,7 @@ void ReadStringValueMessage(
     message.GetReflection()->SetString(&message, &field_desc, ReadString(json));
 }
 
-void ReadBytesValueMessage(const formats::json::Value& json, const ReadOptions&, ::google::protobuf::Message& message) {
+void ReadBytesValueMessage(const formats::json::Value& json, ::google::protobuf::Message& message, const ParseOptions&) {
     const auto& field_desc = GetMessageFieldDesc(
         *message.GetDescriptor(),
         BytesValueTraits::kValueFieldNumber,
@@ -1363,21 +1358,22 @@ void ReadBytesValueMessage(const formats::json::Value& json, const ReadOptions&,
 
 }  // namespace
 
-void ReadMessage(const formats::json::Value& json, const ReadOptions& options, ::google::protobuf::Message& message) try
-{
+void ReadMessage(const formats::json::Value& json, ::google::protobuf::Message& message, const ParseOptions& options) {
     json.CheckNotMissing();
     message.Clear();
     const auto read = GetReadMessageFunc(message.GetDescriptor()->full_name());
 
-    if (read == &ReadGeneralMessage && json.IsNull()) {
-        // null JSON can be used only for some well-known types
-        // ('google.protobuf.Duration', 'google.protobuf.Struct', etc.))
-        throw FieldError(ReadErrorCode::kInvalidType);
-    }
+    try {
+        if (read == &ReadGeneralMessage && json.IsNull()) {
+            // null JSON can be used only for some well-known types
+            // ('google.protobuf.Duration', 'google.protobuf.Struct', etc.))
+            throw FieldError(ParseErrorCode::kInvalidType, "top-level null can't be converted to a protobuf message");
+        }
 
-    read(json, options, message);
-} catch (FieldError& error) {
-    throw ReadError(error.GetCode<ReadErrorCode>(), std::move(error).GetPath());
+        read(json, message, options);
+    } catch (const FieldError& error) {
+        throw ParseError(error.GetCode<ParseErrorCode>(), error.GetPath(), error.GetDescription());
+    }
 }
 
 }  // namespace protobuf::json::impl

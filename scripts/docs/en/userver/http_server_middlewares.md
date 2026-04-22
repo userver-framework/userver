@@ -62,9 +62,9 @@ For reference, this is the userver-provided default middlewares pipeline:
 
 In general, one should be very careful when modifying the response after the downstream part of the pipeline completed,
 and the reason for that is simple: the modification could be overwritten by the upstream part. This is especially
-apparent when exceptions are involved: consider the case when an exception is propagating through the pipeline, 
+apparent when exceptions are involved: consider the case when an exception is propagating through the pipeline,
 and a middleware is adding a header to the response.
-Depending on the exception type and where in the pipeline middleware is put, the header may or may not be overridden 
+Depending on the exception type and where in the pipeline middleware is put, the header may or may not be overridden
 by the ExceptionsHandling middleware.
 
 Due to this, response-modifying middlewares should be either put before ExceptionsHandling middleware for their changes
@@ -85,7 +85,7 @@ This is how a minimal implementation of a middleware looks like:
 It doesn't have any logic in it and just passes the execution to the downstream.
 This is how a factory for this middleware looks:
 @snippet samples/http_middleware_service/main.cpp  Middlewares sample - minimal factory implementation
-which feels too verbose for the amount of logic the code performs, so we have a shortcut version, which does the same 
+which feels too verbose for the amount of logic the code performs, so we have a shortcut version, which does the same
 and also passes the handler into the middleware constructor. Given the middleware that performs some logic
 @snippet samples/http_middleware_service/main.cpp  Middlewares sample - some middleware implementation
 the factory implementation is just this:
@@ -111,9 +111,9 @@ For some options, it's a good idea to implement both global and per-handler conf
 
 ### Per-handler middleware configuration
 
-Basically, the whole point of having MiddlewareFactory-ies separated from Middleware-s, is to have a possibility to 
+Basically, the whole point of having MiddlewareFactory-ies separated from Middleware-s, is to have a possibility to
 configure a middleware at a per-handler basis.
-In the snippet above that's what "handler-middleware.header-value" is for: given the middleware (which actually 
+In the snippet above that's what "handler-middleware.header-value" is for: given the middleware (which actually
 resembles pretty close to how tracing headers are set to the response in userver)
 @snippet samples/http_middleware_service/main.cpp  Middlewares sample - configurable middleware implementation
 and the factory implementation
@@ -121,7 +121,7 @@ and the factory implementation
 one can configure the middleware behavior (header value, in this particular case) in the handler's static config.
 
 If a global configuration is desired (that is, for every middleware instance there is), the easiest way to achieve that
-would be to have a configuration in the Factory config, and for Factory to pass the configuration into the Middleware 
+would be to have a configuration in the Factory config, and for Factory to pass the configuration into the Middleware
 constructor. This takes away the possibility to declare a Factory as a SimpleHttpMiddlewareFactory, but we find this
 tradeoff acceptable (after all, if a middleware needs a configuration it isn't that "Simple" already).
 

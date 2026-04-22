@@ -50,7 +50,6 @@ components_manager:
             load-enabled: false
         default-secdist-provider: {}
 
-
     task_processors:
         main-task-processor:
             worker_threads: 4

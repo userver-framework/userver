@@ -2,14 +2,9 @@ import collections
 
 import pytest
 
+from chaotic.front import parser as front_parser
 from chaotic.front import ref_resolver
-from chaotic.front import types
-from chaotic.front.parser import ParserConfig
-from chaotic.front.parser import ParserError
-from chaotic.front.parser import SchemaParser
-from chaotic.front.types import Array
-from chaotic.front.types import Integer
-from chaotic.front.types import Ref
+from chaotic.front import types as front_types
 
 
 def test_ref_ok(schema_parser, clear_source_location):
@@ -24,8 +19,8 @@ def test_ref_ok(schema_parser, clear_source_location):
         clear_source_location(schema, None)
 
     assert parsed == {
-        'vfull#/definitions/type1': Integer(),
-        'vfull#/definitions/type2': Ref(
+        'vfull#/definitions/type1': front_types.Integer(),
+        'vfull#/definitions/type2': front_types.Ref(
             ref='vfull#/definitions/type1',
             indirect=False,
             self_ref=False,
@@ -47,9 +42,9 @@ def test_ref_from_items_ok(schema_parser, clear_source_location):
         schema.visit_children(clear_source_location)
         clear_source_location(schema, None)
     assert parsed == {
-        'vfull#/definitions/type1': Integer(),
-        'vfull#/definitions/type2': Array(
-            items=Ref(
+        'vfull#/definitions/type1': front_types.Integer(),
+        'vfull#/definitions/type2': front_types.Array(
+            items=front_types.Ref(
                 ref='vfull#/definitions/type1',
                 indirect=False,
                 self_ref=False,
@@ -79,20 +74,20 @@ def test_ref_invalid(schema_parser):
 
 
 def test_extra_fields(simple_parse):
-    with pytest.raises(ParserError) as exc:
+    with pytest.raises(front_parser.ParserError) as exc:
         simple_parse({'$ref': '123', 'field': 1})
     assert exc.value.infile_path == '/definitions/type'
     assert exc.value.msg == "Unknown field(s) ['field']"
 
 
 def test_sibling_file(schema_parser, clear_source_location):
-    config = ParserConfig(erase_prefix='')
+    config = front_parser.ParserConfig(erase_prefix='')
     schemas = []
     parser = schema_parser
     parser.parse_schema('/definitions/type1', {'type': 'integer'})
     schemas.append(parser.parsed_schemas())
 
-    parser = SchemaParser(
+    parser = front_parser.SchemaParser(
         config=config,
         full_filepath='full2',
         full_vfilepath='vfull2',
@@ -103,12 +98,12 @@ def test_sibling_file(schema_parser, clear_source_location):
     )
     schemas.append(parser.parsed_schemas())
     rr = ref_resolver.RefResolver()
-    parsed_schemas = rr.sort_schemas(types.ParsedSchemas.merge(schemas))
+    parsed_schemas = rr.sort_schemas(front_types.ParsedSchemas.merge(schemas))
     for schema in parsed_schemas.schemas.values():
         schema.visit_children(clear_source_location)
         clear_source_location(schema, None)
 
-    var = Integer(
+    var = front_types.Integer(
         type='integer',
         default=None,
         nullable=False,
@@ -119,7 +114,7 @@ def test_sibling_file(schema_parser, clear_source_location):
     )
     assert parsed_schemas.schemas == {
         'vfull#/definitions/type1': var,
-        'vfull2#/definitions/type2': Ref(
+        'vfull2#/definitions/type2': front_types.Ref(
             ref='vfull#/definitions/type1',
             schema_=var,
             indirect=False,
@@ -141,7 +136,7 @@ def test_forward_reference(schema_parser, clear_source_location):
         schema.visit_children(clear_source_location)
         clear_source_location(schema, None)
 
-    var = Integer(
+    var = front_types.Integer(
         type='integer',
         default=None,
         nullable=False,
@@ -152,19 +147,19 @@ def test_forward_reference(schema_parser, clear_source_location):
     )
     assert parsed_schemas.schemas == collections.OrderedDict({
         'vfull#/definitions/type2': var,
-        'vfull#/definitions/type1': Ref(
+        'vfull#/definitions/type1': front_types.Ref(
             ref='vfull#/definitions/type2',
             schema_=var,
             indirect=False,
             self_ref=False,
         ),
-        'vfull#/definitions/type4': Ref(
+        'vfull#/definitions/type4': front_types.Ref(
             ref='vfull#/definitions/type2',
             schema_=var,
             indirect=False,
             self_ref=False,
         ),
-        'vfull#/definitions/type3': Ref(
+        'vfull#/definitions/type3': front_types.Ref(
             ref='vfull#/definitions/type4',
             schema_=var,
             indirect=False,
@@ -199,12 +194,12 @@ def test_self_ref(schema_parser):
 
 
 def test_no_fragment():
-    config = ParserConfig(erase_prefix='')
-    parser = SchemaParser(
+    config = front_parser.ParserConfig(erase_prefix='')
+    parser = front_parser.SchemaParser(
         config=config,
         full_filepath='full',
         full_vfilepath='vfull',
     )
-    with pytest.raises(ParserError) as exc_info:
+    with pytest.raises(front_parser.ParserError) as exc_info:
         parser.parse_schema('/definitions/type1', {'$ref': '/definitions/type2'})
     assert exc_info.value.msg == 'Error in $ref (/definitions/type2): there should be exactly one "#" inside'

@@ -50,7 +50,7 @@ public:
 
     template <typename T>
     size_type To(T&& val) const {
-        using ValueType = typename std::decay<T>::type;
+        using ValueType = std::remove_cvref_t<T>;
         auto fb = GetBuffer();
         return ReadNullable(fb, std::forward<T>(val), io::traits::IsNullable<ValueType>{});
     }
@@ -63,7 +63,7 @@ private:
 
     template <typename T>
     size_type ReadNullable(const io::FieldBuffer& fb, T&& val, std::true_type) const {
-        using ValueType = typename std::decay<T>::type;
+        using ValueType = std::remove_cvref_t<T>;
         using NullSetter = io::traits::GetSetNull<ValueType>;
         if (fb.is_null) {
             NullSetter::SetNull(val);
@@ -85,7 +85,7 @@ private:
 
     template <typename T>
     void Read(const io::FieldBuffer& buffer, T&& val) const {
-        using ValueType = typename std::decay<T>::type;
+        using ValueType = std::remove_cvref_t<T>;
         io::traits::CheckParser<ValueType>();
         try {
             io::ReadBuffer(buffer, std::forward<T>(val), GetTypeBufferCategories());

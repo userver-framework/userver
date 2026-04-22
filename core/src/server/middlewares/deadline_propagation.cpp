@@ -3,6 +3,7 @@
 #include <server/handlers/http_server_settings.hpp>
 #include <server/request/internal_request_context.hpp>
 
+#include <userver/engine/deadline.hpp>
 #include <userver/http/common_headers.hpp>
 #include <userver/server/handlers/exceptions.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
@@ -83,6 +84,7 @@ struct DeadlinePropagation::RequestScope final {
 DeadlinePropagation::DeadlinePropagation(const handlers::HttpHandlerBase& handler)
     : handler_{handler},
       deadline_propagation_enabled_{handler_.GetConfig().deadline_propagation_enabled},
+      deadline_propagation_prefer_timestamp_{handler_.GetConfig().deadline_propagation_prefer_timestamp},
       deadline_expired_status_code_{handler_.GetConfig().deadline_expired_status_code},
       path_{GetHandlerPath(handler_)}
 {}
@@ -152,28 +154,55 @@ void DeadlinePropagation::SetupInheritedDeadline(
         return;
     }
 
-    const auto timeout = ParseTimeout(request);
-    if (!timeout) {
-        return;
+    const auto& header_str = request.GetHeader(USERVER_NAMESPACE::http::headers::kXRequestDeadline);
+    if (!header_str.empty()) {
+        LOG_DEBUG() << "Got X-Request-Deadline: " << header_str;
     }
-
-    dp_scope.need_log_response = config_snapshot[::dynamic_config::USERVER_LOG_REQUEST];
+    const auto original_deadline = request::impl::ParseXRequestDeadlineString(header_str);
+    if (original_deadline.has_value()) {
+        inherited_data.original_deadline = original_deadline;
+    }
 
     auto* span_opt = tracing::Span::CurrentSpanUnchecked();
-    if (span_opt) {
-        span_opt->AddNonInheritableTag("deadline_received_ms", timeout->count());
+    const auto timeout = ParseTimeout(request);
+
+    std::optional<engine::Deadline> chosen_deadline = request::impl::TryMakeDeadlinePreferringAbsoluteTimestamp(
+        original_deadline,
+        deadline_propagation_prefer_timestamp_,
+        timeout,
+        config_snapshot,
+        span_opt
+    );
+
+    std::chrono::milliseconds span_deadline_received{0};
+    if (!chosen_deadline.has_value()) {
+        if (!timeout.has_value()) {
+            return;
+        }
+        chosen_deadline = engine::Deadline::FromTimePoint(request.GetStartTime() + *timeout);
+        span_deadline_received = *timeout;
+    } else {
+        span_deadline_received =
+            *chosen_deadline == engine::Deadline::Passed()
+                ? std::chrono::milliseconds{0}
+                : std::chrono::duration_cast<
+                      std::chrono::milliseconds>(chosen_deadline->GetTimePoint() - request.GetStartTime());
     }
 
-    const auto deadline = engine::Deadline::FromTimePoint(request.GetStartTime() + *timeout);
-    inherited_data.deadline = deadline;
+    inherited_data.deadline = *chosen_deadline;
+    dp_scope.need_log_response = config_snapshot[::dynamic_config::USERVER_LOG_REQUEST];
 
-    if (deadline.IsSurelyReachedApprox()) {
+    if (span_opt) {
+        span_opt->AddNonInheritableTag("deadline_received_ms", span_deadline_received.count());
+    }
+
+    if (chosen_deadline->IsSurelyReachedApprox()) {
         HandleDeadlineExpired(request, dp_scope, "Immediate timeout (deadline propagation)");
         return;
     }
 
     if (config_snapshot[::dynamic_config::USERVER_CANCEL_HANDLE_REQUEST_BY_DEADLINE]) {
-        engine::current_task::SetDeadline(deadline);
+        engine::current_task::SetDeadline(*chosen_deadline);
     }
 }
 

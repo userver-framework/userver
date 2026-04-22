@@ -126,6 +126,15 @@ TEST(FromStringSaturation, kTaximeterFormat) {
     /// [kTaximeterFormat]
 }
 
+TEST(FromStringSaturation, kAbsoluteDeadlineFormat) {
+    /// [kAbsoluteDeadlineFormat]
+    const auto exp = utils::datetime::FromStringSaturating("2014-03-17 02:47:07.000000", "%Y-%m-%d %H:%M:%E*S");
+    const auto tp =
+        utils::datetime::FromStringSaturating("2014-03-17T02:47:07.000000Z", utils::datetime::kAbsoluteDeadlineFormat);
+    EXPECT_EQ(tp, exp);
+    /// [kAbsoluteDeadlineFormat]
+}
+
 TEST(FromStringSaturation, kDefaultFormat) {
     /// [kDefaultFormat]
     const auto exp = utils::datetime::FromStringSaturating("2014-03-17 02:47:07.000000", "%Y-%m-%d %H:%M:%E*S");

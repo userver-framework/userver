@@ -54,10 +54,10 @@ UTEST_F(ConsumerTest, OneConsumerSmallTopics) {
     const auto topic2 = GenerateTopic();
 
     const std::vector<kafka::utest::Message> test_messages{
-        kafka::utest::Message{topic1, "key-1", "msg-1", /*partition=*/0, /*headers=*/{}},
-        kafka::utest::Message{topic1, "key-2", "msg-2", /*partition=*/0, /*headers=*/{}},
-        kafka::utest::Message{topic2, "key-3", "msg-3", /*partition=*/0, /*headers=*/{}},
-        kafka::utest::Message{topic2, "key-4", "msg-4", /*partition=*/0, /*headers=*/{}}
+        kafka::utest::Message{.topic = topic1, .key = "key-1", .payload = "msg-1", .partition = 0},
+        kafka::utest::Message{.topic = topic1, .key = "key-2", .payload = "msg-2", .partition = 0},
+        kafka::utest::Message{.topic = topic2, .key = "key-3", .payload = "msg-3", .partition = 0},
+        kafka::utest::Message{.topic = topic2, .key = "key-4", .payload = "msg-4", .partition = 0},
     };
     SendMessages(test_messages);
 
@@ -73,10 +73,28 @@ UTEST_F(ConsumerTest, OneConsumerSmallTopicsWithHeaders) {
     const auto topic2 = GenerateTopic();
 
     const std::vector<kafka::utest::Message> test_messages{
-        kafka::utest::Message{topic1, "key-1", "msg-1", /*partition=*/0, {{"key-1", "value-1"}}},
-        kafka::utest::Message{topic1, "key-2", "msg-2", /*partition=*/0, {{"key-1", "value-2"}}},
-        kafka::utest::Message{topic2, "key-3", "msg-3", /*partition=*/0, {{"key-2", "value-3"}, {"key-2", "value-4"}}},
-        kafka::utest::Message{topic2, "key-4", "msg-4", /*partition=*/0, /*headers=*/{}},
+        kafka::utest::Message{
+            .topic = topic1,
+            .key = "key-1",
+            .payload = "msg-1",
+            .partition = 0,
+            .headers = {{"key-1", "value-1"}}
+        },
+        kafka::utest::Message{
+            .topic = topic1,
+            .key = "key-2",
+            .payload = "msg-2",
+            .partition = 0,
+            .headers = {{"key-1", "value-2"}}
+        },
+        kafka::utest::Message{
+            .topic = topic2,
+            .key = "key-3",
+            .payload = "msg-3",
+            .partition = 0,
+            .headers = {{"key-2", "value-3"}, {"key-2", "value-4"}}
+        },
+        kafka::utest::Message{.topic = topic2, .key = "key-4", .payload = "msg-4", .partition = 0},
     };
     SendMessages(test_messages);
 
@@ -94,11 +112,10 @@ UTEST_F(ConsumerTest, OneConsumerLargeTopics) {
     std::generate_n(test_messages.begin(), kMessagesCount, [i = 0]() mutable {
         i += 1;
         return kafka::utest::Message{
-            i % 2 == 0 ? kLargeTopic1 : kLargeTopic2,
-            fmt::format("key-{}", i),
-            fmt::format("msg-{}", i),
-            /*partition=*/i % kNumPartitionsLargeTopic,
-            /*headers=*/{}
+            .topic = i % 2 == 0 ? kLargeTopic1 : kLargeTopic2,
+            .key = fmt::format("key-{}", i),
+            .payload = fmt::format("msg-{}", i),
+            .partition = i % kNumPartitionsLargeTopic,
         };
     });
     SendMessages(test_messages);
@@ -117,11 +134,10 @@ UTEST_F(ConsumerTest, ManyConsumersLargeTopics) {
     std::generate_n(test_messages.begin(), kMessagesCount, [i = 0]() mutable {
         i += 1;
         return kafka::utest::Message{
-            i % 2 == 0 ? kLargeTopic1 : kLargeTopic2,
-            fmt::format("key-{}", i),
-            fmt::format("msg-{}", i),
-            /*partition=*/i % kNumPartitionsLargeTopic,
-            /*headers=*/{}
+            .topic = i % 2 == 0 ? kLargeTopic1 : kLargeTopic2,
+            .key = fmt::format("key-{}", i),
+            .payload = fmt::format("msg-{}", i),
+            .partition = i % kNumPartitionsLargeTopic,
         };
     });
     SendMessages(test_messages);
@@ -154,27 +170,9 @@ UTEST_F(ConsumerTest, ManyConsumersLargeTopics) {
 
 UTEST_F(ConsumerTest, OneConsumerPartitionDistribution) {
     const std::vector<kafka::utest::Message> test_messages{
-        kafka::utest::Message{
-            kLargeTopic1,
-            "key",
-            "msg-1",
-            /*partition=*/std::nullopt,
-            /*headers=*/{}
-        },
-        kafka::utest::Message{
-            kLargeTopic1,
-            "key",
-            "msg-2",
-            /*partition=*/std::nullopt,
-            /*headers=*/{}
-        },
-        kafka::utest::Message{
-            kLargeTopic1,
-            "key",
-            "msg-3",
-            /*partition=*/std::nullopt,
-            /*headers=*/{}
-        }
+        kafka::utest::Message{.topic = kLargeTopic1, .key = "key", .payload = "msg-1"},
+        kafka::utest::Message{.topic = kLargeTopic1, .key = "key", .payload = "msg-2"},
+        kafka::utest::Message{.topic = kLargeTopic1, .key = "key", .payload = "msg-3"},
     };
     SendMessages(test_messages);
 
@@ -194,27 +192,9 @@ UTEST_F(ConsumerTest, OneConsumerPartitionDistribution) {
 UTEST_F(ConsumerTest, OneConsumerRereadAfterCommit) {
     const auto topic = GenerateTopic();
     const std::vector<kafka::utest::Message> test_messages{
-        kafka::utest::Message{
-            topic,
-            "key-1",
-            "msg-1",
-            /*partition=*/std::nullopt,
-            /*headers=*/{}
-        },
-        kafka::utest::Message{
-            topic,
-            "key-2",
-            "msg-2",
-            /*partition=*/std::nullopt,
-            /*headers=*/{}
-        },
-        kafka::utest::Message{
-            topic,
-            "key-3",
-            "msg-3",
-            /*partition=*/std::nullopt,
-            /*headers=*/{}
-        }
+        kafka::utest::Message{.topic = topic, .key = "key-1", .payload = "msg-1"},
+        kafka::utest::Message{.topic = topic, .key = "key-2", .payload = "msg-2"},
+        kafka::utest::Message{.topic = topic, .key = "key-3", .payload = "msg-3"},
     };
     SendMessages(test_messages);
 
@@ -239,7 +219,11 @@ UTEST_F(ConsumerTest, LargeBatch) {
 
     const auto topic = GenerateTopic();
     const auto messages = utils::GenerateFixedArray(kMessagesCount, [&topic](std::size_t i) {
-        return kafka::utest::Message{topic, fmt::format("key-{}", i), fmt::format("msg-{}", i), std::nullopt};
+        return kafka::utest::Message{
+            .topic = topic,
+            .key = fmt::format("key-{}", i),
+            .payload = fmt::format("msg-{}", i)
+        };
     });
     SendMessages(messages);
 
@@ -248,8 +232,8 @@ UTEST_F(ConsumerTest, LargeBatch) {
         {topic},
         kafka::impl::ConsumerConfiguration{},
         kafka::impl::ConsumerExecutionParams{
-            /*max_batch_size=*/100,
-            /*poll_timeout=*/utest::kMaxTestWaitTime / 2
+            .max_batch_size = 100,
+            .poll_timeout = utest::kMaxTestWaitTime / 2,
         }
     );
     auto consumer_scope = consumer.MakeConsumerScope();
@@ -275,10 +259,10 @@ UTEST_F_MT(ConsumerTest, OneConsumerPartitionOffsets, 2) {
     constexpr std::uint32_t kFirstPartition{0};
     const auto messages = utils::GenerateFixedArray(kMessagesCount, [](std::size_t i) {
         return kafka::utest::Message{
-            kBlockingTopic,
-            fmt::format("key-{}", i),
-            fmt::format("msg-{}", i),
-            i % kNumPartitionsBlockingTopic
+            .topic = kBlockingTopic,
+            .key = fmt::format("key-{}", i),
+            .payload = fmt::format("msg-{}", i),
+            .partition = i % kNumPartitionsBlockingTopic,
         };
     });
     SendMessages(messages);
@@ -340,7 +324,13 @@ UTEST_F(ConsumerTest, HeadersProcessing) {
 
     const auto topic = GenerateTopic();
 
-    const std::array messages{kafka::utest::Message{topic, "key", "value", kafka::kUnassignedPartition, headers}};
+    const std::array messages{kafka::utest::Message{
+        .topic = topic,
+        .key = "key",
+        .payload = "value",
+        .partition = kafka::kUnassignedPartition,
+        .headers = headers
+    }};
     SendMessages(messages);
 
     auto consumer = MakeConsumer("kafka-consumer", {topic});
@@ -364,10 +354,10 @@ UTEST_F(ConsumerTest, DISABLED_IN_MAC_OS_TEST_NAME(SeekToBeginning)) {
     const auto topic = GenerateTopic();
 
     const std::array messages{
-        kafka::utest::Message{topic, "key-1", "value-1", 0, {}},
-        kafka::utest::Message{topic, "key-2", "value-2", 0, {}},
-        kafka::utest::Message{topic, "key-3", "value-3", 0, {}},
-        kafka::utest::Message{topic, "key-4", "value-4", 0, {}},
+        kafka::utest::Message{.topic = topic, .key = "key-1", .payload = "value-1", .partition = 0},
+        kafka::utest::Message{.topic = topic, .key = "key-2", .payload = "value-2", .partition = 0},
+        kafka::utest::Message{.topic = topic, .key = "key-3", .payload = "value-3", .partition = 0},
+        kafka::utest::Message{.topic = topic, .key = "key-4", .payload = "value-4", .partition = 0},
     };
     SendMessages(messages);
 
@@ -420,7 +410,11 @@ UTEST_F(ConsumerTest, SeekToOffset) {
 
     const auto topic = GenerateTopic();
     const auto messages = utils::GenerateFixedArray(kMessagesCount, [&topic](std::size_t i) {
-        return kafka::utest::Message{topic, fmt::format("key-{}", i), fmt::format("msg-{}", i), std::nullopt};
+        return kafka::utest::Message{
+            .topic = topic,
+            .key = fmt::format("key-{}", i),
+            .payload = fmt::format("msg-{}", i)
+        };
     });
     SendMessages(messages);
 
@@ -471,13 +465,13 @@ UTEST_F(ConsumerTest, SeekToEnd) {
     const auto topic = GenerateTopic();
 
     const std::array before_messages{
-        kafka::utest::Message{topic, "key-1", "value-1", 0, {}},
-        kafka::utest::Message{topic, "key-2", "value-2", 0, {}},
+        kafka::utest::Message{.topic = topic, .key = "key-1", .payload = "value-1", .partition = 0},
+        kafka::utest::Message{.topic = topic, .key = "key-2", .payload = "value-2", .partition = 0},
     };
     const std::array after_seemessages{
-        kafka::utest::Message{topic, "key-3", "value-3", 0, {}},
-        kafka::utest::Message{topic, "key-4", "value-4", 0, {}},
-        kafka::utest::Message{topic, "key-5", "value-5", 0, {}},
+        kafka::utest::Message{.topic = topic, .key = "key-3", .payload = "value-3", .partition = 0},
+        kafka::utest::Message{.topic = topic, .key = "key-4", .payload = "value-4", .partition = 0},
+        kafka::utest::Message{.topic = topic, .key = "key-5", .payload = "value-5", .partition = 0},
     };
     SendMessages(before_messages);
 
@@ -510,7 +504,7 @@ UTEST_F(ConsumerTest, SeekToEnd) {
                     ));
                 }
 
-                // signals that seek have already occured.
+                // signals that seek have already occurred.
                 seek_completed.Send();
             }
         };
@@ -532,7 +526,13 @@ UTEST_F(ConsumerTest, HeadersSaveAfterMessageDestroy) {
 
     const auto topic = GenerateTopic();
 
-    const std::array messages{kafka::utest::Message{topic, "key", "value", kafka::kUnassignedPartition, headers}};
+    const std::array messages{kafka::utest::Message{
+        .topic = topic,
+        .key = "key",
+        .payload = "value",
+        .partition = kafka::kUnassignedPartition,
+        .headers = headers
+    }};
     SendMessages(messages);
 
     std::vector<kafka::OwningHeader> saved_headers;

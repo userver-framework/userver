@@ -13,6 +13,12 @@ class BaseParser {
 public:
     virtual ~BaseParser() = default;
 
+    BaseParser() = default;
+    BaseParser(BaseParser&&) = delete;
+    BaseParser(const BaseParser&) = delete;
+    BaseParser& operator=(const BaseParser&) = delete;
+    BaseParser& operator=(BaseParser&&) = delete;
+
     virtual void Null() { Throw("null"); }
     virtual void Bool(bool) { Throw("bool"); }
     virtual void Int64(int64_t) { Throw("integer"); }
@@ -32,6 +38,8 @@ public:
     void SetState(ParserState& state) { parser_state_ = &state; }
 
     virtual std::string GetPathItem() const = 0;
+
+    std::string GetCurrentPath() const { return parser_state_->GetCurrentPath(); }
 
 protected:
     [[noreturn]] void Throw(const std::string& found) {

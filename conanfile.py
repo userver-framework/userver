@@ -5,6 +5,7 @@ import re
 
 from conan import ConanFile
 from conan.errors import ConanInvalidConfiguration
+from conan.tools.build import check_min_cppstd
 from conan.tools.cmake import CMake
 from conan.tools.cmake import cmake_layout
 from conan.tools.cmake import CMakeDeps
@@ -49,6 +50,7 @@ class UserverConan(ConanFile):
         'with_s3api': [True, False],
         'with_grpc_reflection': [True, False],
         'with_grpc_protovalidate': [True, False],
+        'with_phdr_cache': [True, False],
     }
 
     default_options = {
@@ -61,7 +63,7 @@ class UserverConan(ConanFile):
         'with_redis': True,
         'with_redis_tls': True,
         'with_grpc': True,
-        'with_clickhouse': True,
+        'with_clickhouse': False,  # TODO: set to True after clickhouse-cpp >= 2.6 appears in Conan Center
         'with_rabbitmq': True,
         'with_utest': True,
         'with_kafka': True,
@@ -71,19 +73,11 @@ class UserverConan(ConanFile):
         'with_s3api': True,
         'with_grpc_reflection': True,
         'with_grpc_protovalidate': False,
+        'with_phdr_cache': True,
         'mongo-c-driver/*:with_sasl': 'cyrus',
-        'grpc/*:php_plugin': False,
-        'grpc/*:node_plugin': False,
-        'grpc/*:ruby_plugin': False,
-        'grpc/*:csharp_plugin': False,
-        'grpc/*:objective_c_plugin': False,
-        'grpc/*:with_libsystemd': False,
         'hiredis/*:with_ssl': True,
         'librdkafka/*:ssl': True,
-        'librdkafka/*:curl': True,
         'librdkafka/*:sasl': True,
-        'librdkafka/*:zlib': True,
-        'librdkafka/*:zstd': True,
         're2/*:with_icu': True,
     }
 
@@ -132,36 +126,36 @@ class UserverConan(ConanFile):
             "with_stacktrace_backtrace": True,
             "without_stacktrace": False,
             "without_cobalt": True
-        })
-        self.requires('c-ares/1.33.1')
-        self.requires('cctz/2.4', transitive_headers=True)
-        self.requires('concurrentqueue/1.0.3', transitive_headers=True)
-        self.requires('cryptopp/8.9.0')
-        self.requires('fmt/11.2.0', transitive_headers=True)
-        self.requires('libiconv/1.17')
-        self.requires('libnghttp2/1.61.0')
-        self.requires('libcurl/8.12.1')
-        self.requires('libev/4.33')
-        self.requires('openssl/3.3.2')
-        self.requires('rapidjson/cci.20220822', transitive_headers=True)
-        self.requires('yaml-cpp/0.8.0')
-        self.requires('zlib/1.3.1')
-        self.requires('zstd/1.5.5')
-        self.requires('icu/74.1', force=True)
-        self.requires('re2/20230301')
+        }) # orig self.requires('boost/[>=1.83 <1.88]', transitive_headers=True)
+        self.requires('c-ares/[^1.33]')
+        self.requires('cctz/[^2.4]', transitive_headers=True)
+        self.requires('concurrentqueue/[^1.0.5]', transitive_headers=True)
+        self.requires('cryptopp/[^8.9]')
+        self.requires('fmt/11.2.0', transitive_headers=True) # orig self.requires('fmt/[>=8.1.1 <13]', transitive_headers=True)
+        self.requires('libiconv/[^1.17]')
+        self.requires('libnghttp2/[^1.61]')
+        self.requires('libcurl/8.12.1') # orig:  self.requires('libcurl/[>=7.86.0 <7.88 || >8.1.2]')
+        self.requires('libev/[^4.33]')
+        self.requires('openssl/[>=1.1 <4]')  # our: self.requires('openssl/3.3.2')
+        self.requires('rapidjson/[>=cci.20230929 <cci.20230930]', transitive_headers=True)
+        self.requires('yaml-cpp/[>=0.8.0 <=0.9.0]')
+        self.requires('zlib/[^1.3]')
+        self.requires('zstd/[^1.5]')
+        self.requires('icu/[>=74.1 <77]', force=True)
+        self.requires('re2/[>=20230301]')
 
         if self.options.with_jemalloc:
-            self.requires('jemalloc/5.3.0')
+            self.requires('jemalloc/[^5.3]')
         if self.options.with_grpc or self.options.with_clickhouse:
-            self.requires('abseil/20240116.2', transitive_headers=True, transitive_libs=True, force=True)
+            self.requires('abseil/20240722.1', transitive_headers=True, transitive_libs=True, force=True)
         if self.options.with_grpc:
             self.requires(
-                'grpc/1.65.0',
+                'grpc/[^1.69.0]',
                 transitive_headers=True,
                 transitive_libs=True,
             )
             self.requires(
-                'protobuf/5.27.0',
+                'protobuf/[^5.27]',
                 transitive_headers=True,
                 transitive_libs=True,
                 force=True,
@@ -170,45 +164,52 @@ class UserverConan(ConanFile):
         if self.options.with_postgresql:
             # `run=True` required to find `pg_config` binary during `psycopg2` python module build
             # without system package. We use system package.
-            self.requires('libpq/14.9')
+            #
+            # `<16` is due to link errors `undefined reference to `gss_release_buffer'`
+            self.requires('libpq/[>=14.9 <16]')
         if self.options.with_mongodb or self.options.with_kafka:
-            self.requires('cyrus-sasl/2.1.28')
+            self.requires('cyrus-sasl/[^2.1]')
         if self.options.with_mongodb:
             self.requires(
-                'mongo-c-driver/1.30.3',
+                'mongo-c-driver/[^1.30]',
                 transitive_headers=True,
                 transitive_libs=True,
             )
         if self.options.with_redis:
-            self.requires('hiredis/1.2.0')
+            self.requires('hiredis/[^1.2]')
         if self.options.with_rabbitmq:
-            self.requires('amqp-cpp/4.3.26')
+            self.requires('amqp-cpp/[^4.3]')
         if self.options.with_clickhouse:
-            self.requires('clickhouse-cpp/2.5.1')
+            # Some C++ Standard libraries require the following fix
+            # https://github.com/ClickHouse/clickhouse-cpp/commit/2ac94d0d5d425cd70a0a8f4f91c4ed57369b72b9
+            # self.requires('clickhouse-cpp/[>=2.6.0 <3]')
+            self.requires('clickhouse-cpp/[>=2.5.1 <3]')
         if self.options.with_utest:
             self.requires(
-                'gtest/1.15.0',
+                'gtest/[>=1.15 <3]',
                 transitive_headers=True,
                 transitive_libs=True,
             )
             self.requires(
-                'benchmark/1.9.0',
+                'benchmark/[>=1.9 <3]',
                 transitive_headers=True,
                 transitive_libs=True,
             )
         if self.options.with_kafka:
-            self.requires('librdkafka/2.6.0')
+            self.requires('librdkafka/[^2.6]')
         if self.options.with_sqlite:
-            self.requires('sqlite3/3.46.1')
+            self.requires('sqlite3/[>=3.46.1 <5]')
         if self.options.with_s3api:
-            self.requires('pugixml/1.14')
+            self.requires('pugixml/[^1.14]')
         if self.options.with_otlp:
-            self.requires('opentelemetry-proto/1.3.0')
+            self.requires('opentelemetry-proto/[^1.3]')
 
     def build_requirements(self):
-        self.tool_requires('protobuf/5.27.0')
+        self.tool_requires('protobuf/<host_version>')
 
     def validate(self):
+        check_min_cppstd(self, 20)
+
         if self.settings.os == 'Windows':
             raise ConanInvalidConfiguration(
                 'userver cannot be built on Windows',
@@ -247,6 +248,7 @@ class UserverConan(ConanFile):
         tool_ch.cache_variables['USERVER_FEATURE_S3API'] = self.options.with_s3api
         tool_ch.cache_variables['USERVER_FEATURE_GRPC_REFLECTION'] = self.options.with_grpc_reflection
         tool_ch.cache_variables['USERVER_FEATURE_GRPC_PROTOVALIDATE'] = self.options.with_grpc_protovalidate
+        tool_ch.cache_variables['USERVER_DISABLE_PHDR_CACHE'] = not self.options.with_phdr_cache
 
         if self.options.with_grpc:
             tool_ch.cache_variables['USERVER_GOOGLE_COMMON_PROTOS'] = (
@@ -267,9 +269,8 @@ class UserverConan(ConanFile):
     def build(self):
         # pg_config is required to build psycopg2 from source without system package.
         # However, this approach fails on later stage, when venv for tests is built.
-        libpq = self.dependencies['libpq']
-        if libpq:
-            os.environ['PATH'] = os.environ['PATH'] + ':' + libpq.package_folder + '/bin'
+        if self.options.with_postgresql:
+            os.environ['PATH'] = os.environ['PATH'] + ':' + self.dependencies['libpq'].package_folder + '/bin'
 
         cmake = CMake(self)
         cmake.configure()

@@ -2,6 +2,7 @@
 
 /// @file userver/utest/log_capture_fixture.hpp
 /// @brief @copybrief utest::LogCaptureFixture
+/// @ingroup userver_universal
 
 #include <iosfwd>
 #include <optional>
@@ -30,7 +31,10 @@ namespace impl {
 class ToStringLogger;
 }  // namespace impl
 
+/// @ingroup userver_utest
+///
 /// @brief Represents single log record, typically written via `LOG_*` macros.
+///
 /// @see @ref utest::LogCaptureLogger
 /// @see @ref utest::LogCaptureFixture
 class LogRecord final {
@@ -83,7 +87,12 @@ LogRecord GetSingleLog(
     const utils::impl::SourceLocation& source_location = utils::impl::SourceLocation::Current()
 );
 
+/// @ingroup userver_utest
+///
 /// @brief A mocked logger that stores the log records in memory.
+///
+/// @snippet grpc/tests/cancel_test.cpp  Sample of LogCaptureFixture
+///
 /// @see @ref utest::LogCaptureFixture
 class LogCaptureLogger final {
 public:
@@ -96,8 +105,7 @@ public:
     /// @see @ref GetSingleLog
     std::vector<LogRecord> GetAll() const;
 
-    /// @returns logs filtered by (optional) text substring and (optional) tags
-    /// substrings.
+    /// @returns logs filtered by (optional) text substring and (optional) tags substrings.
     /// @see @ref GetSingleLog
     std::vector<LogRecord> Filter(
         std::string_view text_substring,
@@ -125,14 +133,19 @@ private:
     utils::SharedRef<impl::ToStringLogger> logger_;
 };
 
-/// @brief Fixture that allows to capture and extract log written into the
-/// default logger.
+/// @ingroup userver_utest
+///
+/// @brief Fixture that allows to capture and extract log written into the default logger.
+///
+/// @snippet grpc/tests/cancel_test.cpp  Sample of LogCaptureFixture
+///
 /// @see @ref utest::LogCaptureLogger
 template <typename Base = ::testing::Test>
 class LogCaptureFixture : public DefaultLoggerFixture<Base> {
 protected:
     LogCaptureFixture() { DefaultLoggerFixture<Base>::SetDefaultLogger(logger_.GetLogger()); }
 
+    /// @returns logger that holds the log records of the unit test
     LogCaptureLogger& GetLogCapture() { return logger_; }
 
 private:

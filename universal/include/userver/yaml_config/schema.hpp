@@ -57,6 +57,7 @@ formats::yaml::Value Serialize(const SchemaPtr& schema, formats::serialize::To<f
 ///
 /// @brief JSON Schema-like type definition
 ///
+/// @see https://json-schema.org/specification
 /// @see @ref static-configs-validation "Static configs validation"
 struct Schema final {
     void UpdateDescription(std::string new_description);
@@ -78,6 +79,7 @@ struct Schema final {
     std::optional<double> maximum;
     std::optional<std::size_t> min_items;
     std::optional<std::size_t> max_items;
+    std::optional<std::unordered_set<std::string>> required;
 };
 
 Schema Parse(const formats::yaml::Value& schema, formats::parse::To<Schema>);

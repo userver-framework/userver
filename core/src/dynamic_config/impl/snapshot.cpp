@@ -51,9 +51,9 @@ ConfigId Register(std::string&& name, Factory factory, std::string&& default_doc
     );
     auto& registry = Registry();
     registry.push_back(VariableMetadata{
-        /*name=*/std::move(name),
-        /*factory=*/factory,
-        /*default_docs_map_string=*/std::move(default_docs_map_string),
+        .name = std::move(name),
+        .factory = factory,
+        .default_docs_map_string = std::move(default_docs_map_string),
     });
     return registry.size() - 1;
 }

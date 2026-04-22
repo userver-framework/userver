@@ -25,6 +25,13 @@ std::vector<NYdb::NTopic::TReadSessionEvent::TEvent> TopicReadSession::GetEvents
     return read_session_->GetEvents(false, max_events_count, max_size_bytes);
 }
 
+std::vector<NYdb::NTopic::TReadSessionEvent::TEvent> TopicReadSession::GetEvents(
+    const NYdb::NTopic::TReadSessionGetEventSettings& settings
+) {
+    impl::GetFutureValue(read_session_->WaitEvent());
+    return read_session_->GetEvents(settings);
+}
+
 bool TopicReadSession::Close(std::chrono::milliseconds timeout) { return read_session_->Close(timeout); }
 
 std::shared_ptr<NYdb::NTopic::IReadSession> TopicReadSession::GetNativeTopicReadSession() { return read_session_; }

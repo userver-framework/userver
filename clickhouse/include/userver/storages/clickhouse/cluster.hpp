@@ -55,7 +55,7 @@ public:
     /// @brief Execute a statement at some host of the cluster
     /// with args as query parameters.
     ///
-    /// It is convinient to keep SQL queries in separate files, see @ref scripts/docs/en/userver/sql_files.md
+    /// It is convenient to keep SQL queries in separate files, see @ref scripts/docs/en/userver/sql_files.md
     /// for more info.
     template <typename... Args>
     ExecutionResult Execute(const Query& query, const Args&... args) const;
@@ -63,7 +63,7 @@ public:
     /// @brief Execute a statement with specified command control settings
     /// at some host of the cluster with args as query parameters.
     ///
-    /// It is convinient to keep SQL queries in separate files, see @ref scripts/docs/en/userver/sql_files.md
+    /// It is convenient to keep SQL queries in separate files, see @ref scripts/docs/en/userver/sql_files.md
     /// for more info.
     ///
     /// # Example usage:

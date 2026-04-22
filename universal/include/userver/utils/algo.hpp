@@ -34,14 +34,10 @@ ResultString StrCat(const Strings&... strings) {
 }
 
 namespace impl {
-template <typename Container, typename = void>
-struct HasMappedType : std::false_type {};
 
 template <typename Container>
-struct HasMappedType<Container, std::void_t<typename Container::mapped_type>> : std::true_type {};
+concept HasMappedType = requires { typename Container::mapped_type; };
 
-template <typename Container>
-inline constexpr bool kHasMappedType = HasMappedType<Container>::value;
 }  // namespace impl
 
 /// @brief Returns nullptr if no key in associative container, otherwise
@@ -49,7 +45,7 @@ inline constexpr bool kHasMappedType = HasMappedType<Container>::value;
 template <typename Container, typename Key>
 auto* FindOrNullptr(Container& container, const Key& key) {
     const auto it = container.find(key);
-    if constexpr (impl::kHasMappedType<Container>) {
+    if constexpr (impl::HasMappedType<Container>) {
         return (it != container.end() ? &(it->second) : nullptr);
     } else {
         return (it != container.end() ? &(*it) : nullptr);
@@ -101,20 +97,16 @@ ToContainer AsContainer(FromContainer&& container) {
 }
 
 namespace impl {
-template <typename Container, typename = void>
-struct HasKeyType : std::false_type {};
 
 template <typename Container>
-struct HasKeyType<Container, std::void_t<typename Container::key_type>> : std::true_type {};
+concept HasKeyType = requires { typename Container::key_type; };
 
-template <typename Container>
-inline constexpr bool kHasKeyType = HasKeyType<Container>::value;
 }  // namespace impl
 
 /// @brief Erased elements and returns number of deleted elements
 template <typename Container, typename Pred>
 auto EraseIf(Container& container, Pred pred) {
-    if constexpr (impl::kHasKeyType<Container>) {
+    if constexpr (impl::HasKeyType<Container>) {
         auto old_size = container.size();
         for (auto it = std::begin(container), last = std::end(container); it != last;) {
             if (pred(*it)) {
@@ -135,7 +127,7 @@ auto EraseIf(Container& container, Pred pred) {
 /// @brief Erased elements and returns number of deleted elements
 template <typename Container, typename T>
 size_t Erase(Container& container, const T& elem) {
-    if constexpr (impl::kHasKeyType<Container>) {
+    if constexpr (impl::HasKeyType<Container>) {
         return container.erase(elem);
     } else {
         // NOLINTNEXTLINE(readability-qualified-auto)
@@ -150,13 +142,13 @@ size_t Erase(Container& container, const T& elem) {
 /// the predicate
 template <typename Container, typename Pred>
 bool ContainsIf(const Container& container, Pred pred) {
-    return std::find_if(std::begin(container), std::end(container), pred) != std::end(container);
+    return std::ranges::find_if(container, pred) != std::end(container);
 }
 
 /// @brief returns true if there is a specified element in the container
 template <typename Container>
 bool Contains(const Container& container, const typename Container::value_type& item) {
-    return std::find(std::begin(container), std::end(container), item) != std::end(container);
+    return std::ranges::find(container, item) != std::end(container);
 }
 
 }  // namespace utils

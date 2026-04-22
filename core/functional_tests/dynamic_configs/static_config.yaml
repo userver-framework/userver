@@ -132,10 +132,6 @@ components_manager:
             throttling_enabled: false
         testsuite-support:
 
-
-        
-
-
     default_task_processor: main-task-processor
 
     task_processors:

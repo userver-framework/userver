@@ -50,7 +50,7 @@ namespace storages::postgres {
 /// ----------
 ///
 /// @htmlonly <div class="bottom-nav"> @endhtmlonly
-/// ⇦ @ref pg_driver | @ref pg_run_queries ⇨
+/// ⇦ @ref scripts/docs/en/userver/pg_driver.md | @ref pg_run_queries ⇨
 /// @htmlonly </div> @endhtmlonly
 
 /// @page pg_run_queries uPg: Running queries
@@ -154,6 +154,24 @@ public:
     // clang-format off
     static constexpr TransactionOptions Deferrable{  // NOLINT(readability-identifier-naming)
         TransactionOptions::Deferrable()
+    };
+    /// Read-write repeatable read transaction
+    static constexpr TransactionOptions RepeatableReadRW{  // NOLINT(readability-identifier-naming)
+        storages::postgres::IsolationLevel::kRepeatableRead
+    };
+    /// Read-write serializable transaction
+    static constexpr TransactionOptions SerializableRW{  // NOLINT(readability-identifier-naming)
+        storages::postgres::IsolationLevel::kSerializable
+    };
+    /// Read-only repeatable read transaction
+    static constexpr TransactionOptions RepeatableReadRO{  // NOLINT(readability-identifier-naming)
+        storages::postgres::IsolationLevel::kRepeatableRead,
+        TransactionOptions::kReadOnly
+    };
+    /// Read-only serializable transaction
+    static constexpr TransactionOptions SerializableRO{  // NOLINT(readability-identifier-naming)
+        storages::postgres::IsolationLevel::kSerializable,
+        TransactionOptions::kReadOnly
     };
     // clang-format on
     //@}

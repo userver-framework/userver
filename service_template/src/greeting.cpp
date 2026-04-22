@@ -19,6 +19,7 @@ std::string SayHelloTo(std::string_view name, UserType type) {
     }
 
     UASSERT(false);
+    return "unreachable";
 }
 
 }  // namespace service_template

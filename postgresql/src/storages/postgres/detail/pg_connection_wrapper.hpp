@@ -30,6 +30,13 @@ public:
     using Duration = Deadline::TimePoint::clock::duration;
     using ResultHandle = detail::ResultWrapper::ResultHandle;
 
+    // https://www.postgresql.org/docs/current/libpq-connect.html#LIBPQ-PARAMKEYWORDS
+    struct ConnectParams final {
+        Dsn dsn;
+        std::optional<std::string> application_name;
+        std::optional<std::string> client_encoding;
+    };
+
     PGConnectionWrapper(
         engine::TaskProcessor& tp,
         concurrent::BackgroundTaskStorageCore& bts,
@@ -53,7 +60,7 @@ public:
     ///
     /// Start asynchronous connection and wait for it's completion (suspending
     /// current coroutine)
-    void AsyncConnect(const Dsn& dsn, Deadline deadline, tracing::ScopeTime&);
+    void AsyncConnect(const ConnectParams& params, Deadline deadline, tracing::ScopeTime&);
 
     /// @brief Causes a connection to enter pipeline mode.
     ///
@@ -149,10 +156,12 @@ public:
 
     void PutPipelineSync();
 
+    void SetSessionId(const std::string& session_id, tracing::Span& span);
+
 private:
     PGTransactionStatusType GetTransactionStatus() const;
 
-    void StartAsyncConnect(const Dsn& dsn);
+    void StartAsyncConnect(const ConnectParams& params);
 
     /// @throws ConnectionTimeoutError if was awakened by the deadline
     void WaitConnectionFinish(Deadline deadline, const Dsn& dsn);

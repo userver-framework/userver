@@ -40,7 +40,7 @@ services:
         entrypoint: /userver/scripts/docker/run_as_user.sh
 
     run-ydb:
-        image: cr.yandex/yc/yandex-docker-local-ydb:latest
+        image: ydbplatform/local-ydb:latest
         privileged: true
         mem_limit: 8G
         environment:

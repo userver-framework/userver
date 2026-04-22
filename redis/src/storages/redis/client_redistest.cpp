@@ -1060,11 +1060,12 @@ UTEST_F(RedisClientTest, TransactionZrem) {
 }
 
 UTEST_F(RedisClientTest, WaitAny) {
-    constexpr auto kReqCount = 10;
+    static constexpr std::size_t kReqCount = 10;
     auto client = GetClient();
 
     std::vector<storages::redis::RequestSet> requests;
-    for (size_t i = 0; i < kReqCount; i++) {
+    requests.reserve(kReqCount);
+    for (std::size_t i = 0; i < kReqCount; i++) {
         requests.push_back(client->Set("key" + std::to_string(i), "value", {}));
     }
 

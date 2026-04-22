@@ -23,7 +23,7 @@ public:
         engine::TaskProcessor& blocking_task_processor
     );
 
-    Pool& SelectPool(OperationType op_type) const;
+    Pool& SelectPool(OperationType operation_type) const;
 
     virtual void WriteStatistics(utils::statistics::Writer& writer) const = 0;
 

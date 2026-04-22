@@ -12,6 +12,7 @@
 #include <urabbitmq/connection.hpp>
 #include <urabbitmq/impl/amqp_channel.hpp>
 #include <urabbitmq/impl/deferred_wrapper.hpp>
+#include <urabbitmq/impl/header_value.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -28,8 +29,7 @@ ConsumerBaseImpl::ConsumerBaseImpl(ConnectionPtr&& connection, const ConsumerSet
       queue_name_{settings.queue.GetUnderlying()},
       prefetch_count_{settings.prefetch_count},
       connection_ptr_{std::move(connection)},
-      channel_{connection_ptr_->GetChannel()}
-{
+      channel_{connection_ptr_->GetChannel()} {
     // We take ownership of the connection, because if it remains pooled
     // things get messy with lifetimes and callbacks
     connection_ptr_.Adopt();
@@ -93,9 +93,10 @@ void ConsumerBaseImpl::Stop() {
 bool ConsumerBaseImpl::IsBroken() const { return broken_ || !connection_ptr_.IsUsable(); }
 
 void ConsumerBaseImpl::OnMessage(const AMQP::Message& message, uint64_t delivery_tag) {
+    const auto& headers = message.headers();
     std::string span_name{fmt::format("consume_{}_{}", queue_name_, consumer_tag_.value_or("ctag:unknown"))};
-    std::string trace_id = message.headers().get("u-trace-id");
-    std::string parent_span_id = message.headers().get("u-parent-span-id");
+    std::string trace_id = headers.get("u-trace-id");
+    std::string parent_span_id = headers.get("u-parent-span-id");
     ConsumedMessage consumed;
     consumed.message = std::string(message.body(), message.bodySize());
     consumed.metadata.exchange = message.exchange();
@@ -106,6 +107,8 @@ void ConsumerBaseImpl::OnMessage(const AMQP::Message& message, uint64_t delivery
     if (message.hasCorrelationID()) {
         consumed.correlation_id = message.correlationID();
     }
+
+    consumed.headers = impl::TableToHeaders(headers);
 
     bts_.Detach(engine::AsyncNoSpan(
         dispatcher_,

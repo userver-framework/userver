@@ -12,7 +12,7 @@
 #include <userver/utils/rand.hpp>
 #include <userver/utils/str_icase.hpp>
 
-#include <userver/internal/http/header_map_tests_helper.hpp>
+#include <http/tests/header_map_tests_helper.hpp>
 
 #include <http/header_map/traits.hpp>
 

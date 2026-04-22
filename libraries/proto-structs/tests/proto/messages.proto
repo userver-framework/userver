@@ -3,6 +3,7 @@ package messages;
 
 import "google/protobuf/any.proto";
 import "google/protobuf/duration.proto";
+import "google/protobuf/struct.proto";
 import "google/protobuf/timestamp.proto";
 import "google/type/date.proto";
 import "google/type/decimal.proto";
@@ -63,6 +64,12 @@ message WellKnownUsrv {
   google.type.TimeOfDay f5 = 5;     // proto_structs::TimeOfDay
   google.type.TimeOfDay f6 = 6;     // utils::datetime::TimeOfDay
   google.type.Decimal f7 = 7;       // decimal64::Decimal
+}
+
+message WellKnownJson {
+  google.protobuf.Value f1 = 1;     // formats::json::Value
+  google.protobuf.ListValue f2 = 2; // formats::json::Array
+  google.protobuf.Struct f3 = 3;    // formats::json::Object
 }
 
 message Optional {

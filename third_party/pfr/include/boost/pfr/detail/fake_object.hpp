@@ -1,5 +1,5 @@
 // Copyright (c) 2023 Bela Schaum, X-Ryl669, Denis Mikhailov.
-// Copyright (c) 2024-2024 Antony Polukhin
+// Copyright (c) 2024-2025 Antony Polukhin
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)

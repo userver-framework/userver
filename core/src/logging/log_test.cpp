@@ -216,7 +216,7 @@ TEST_F(LoggingTest, LoggingContainerElementFields) {
         int foo;
         std::string bar;
     };
-    std::vector<Item> list{{1, "x"}, {2, "y"}};
+    std::vector<Item> list{{.foo = 1, .bar = "x"}, {.foo = 2, .bar = "y"}};
     /// [Example Logging Container Element Fields]
     LOG_INFO() << [&list](auto& out) {
         for (const auto& item : list) {
@@ -232,7 +232,7 @@ TEST_F(LoggingTest, AddingCustomFormatting) {
         int foo;
         std::string bar;
     };
-    std::vector<Item> list{{1, "x"}, {2, "y"}};
+    std::vector<Item> list{{.foo = 1, .bar = "x"}, {.foo = 2, .bar = "y"}};
     /// [Example Adding Custom Formatting]
     LOG_INFO() << [&list](auto& out) {
         bool first = true;
@@ -254,7 +254,7 @@ TEST_F(LoggingTest, LoggingNestedStructures) {
         int foo;
         std::string bar;
     };
-    std::vector<Item> list{{1, "x"}, {2, "y"}};
+    std::vector<Item> list{{.foo = 1, .bar = "x"}, {.foo = 2, .bar = "y"}};
 
     /// [Example Logging Nested Structures]
     LOG_INFO() << [&list](auto& out) {

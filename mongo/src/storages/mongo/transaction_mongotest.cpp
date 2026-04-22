@@ -11,6 +11,8 @@
 
 USERVER_NAMESPACE_BEGIN
 
+#if 0
+
 namespace bson = formats::bson;
 
 // NOLINTNEXTLINE(google-build-using-namespace)
@@ -130,8 +132,10 @@ UTEST_F(MongoTransaction, MultipleOperationsInTransaction) {
     auto collection = txn.GetCollection(kCollectionName);
 
     // Insert multiple documents
+    static constexpr std::size_t kDocCount = 5;
     std::vector<formats::bson::Document> docs;
-    for (int i = 0; i < 5; ++i) {
+    docs.reserve(kDocCount);
+    for (std::size_t i = 0; i < kDocCount; ++i) {
         docs.push_back(bson::MakeDoc("name", fmt::format("user_{}", i), "age", 20 + i));
     }
 
@@ -270,5 +274,48 @@ UTEST_F(MongoTransaction, ParallelTrancactions) {
     auto found_docs = utils::AsContainer<std::vector<formats::bson::Document>>(regular_collection.Find({}, projection));
     EXPECT_THAT(found_docs, ::testing::ElementsAre(bson::MakeDoc("name", "test_user", "age", 30)));
 }
+
+UTEST_F(MongoTransaction, InvalidSessionIdReproducer) {
+    static const std::string kCollectionName = "test_invalid_session_id";
+
+    auto config = MakeTestPoolConfig();
+    config.pool_settings.initial_size = 1;
+    config.pool_settings.max_size = 3;
+    config.pool_settings.idle_limit = 2;
+
+    auto pool = MakePool("userver_mongotest_invalid_session_id", config);
+
+    auto coll = pool.GetCollection(kCollectionName);
+
+    {
+        std::vector<formats::bson::Document> docs;
+        docs.reserve(10);
+        for (int i = 0; i < 10; ++i) {
+            docs.push_back(bson::MakeDoc("foo", "bar", "value", i));
+        }
+        coll.InsertMany(std::move(docs));
+    }
+
+    using formats::bson::MakeDoc;
+
+    auto txn = pool.BeginTransaction();
+    // GetCollection starts a transaction using client_1 from the pool
+    auto coll_txn = txn.GetCollection(kCollectionName);
+
+    // Find uses the same client_1 from the pool because initial_size == 1
+    // and returns a Cursor that holds this client
+    //
+    // TODO: transaction is not usable after that???
+    auto cursor = coll.Find(MakeDoc("foo", "bar"));
+
+    // TODO: Must be fatal or must not compile: two cursors in the same transaction?
+    auto cursor = coll.Find(MakeDoc("foo", "bar"));
+
+    // TODO: Must be fatal or must not compile: executing not in a transaction
+    UASSERT_THROW( coll_txn.InsertOne(MakeDoc("foo", "bar", "value", 11)) );
+    txn.Commit();
+}
+
+#endif
 
 USERVER_NAMESPACE_END

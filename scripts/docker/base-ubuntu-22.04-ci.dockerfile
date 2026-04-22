@@ -22,7 +22,7 @@ RUN \
     rabbitmq-server \
     redis-server \
     clang-16 lld-16 llvm-16 clang-format-16 libclang-rt-16-dev\
-    clang-14 lld-14 llvm clang-format-18 \
+    clang-15 lld-15 llvm-15 clang-format-18 \
     g++-10 gcc-10 \
     g++-11 gcc-11 \
     g++-13 gcc-13 \

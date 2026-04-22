@@ -6,6 +6,8 @@
 
 #include <userver/utils/meta_light.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace proto_structs::impl {
 
 template <typename TSource>
@@ -51,3 +53,5 @@ constexpr bool CanCastFromSeconds(const std::chrono::seconds& duration) {
 }
 
 }  // namespace proto_structs::impl
+
+USERVER_NAMESPACE_END

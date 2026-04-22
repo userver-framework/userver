@@ -9,6 +9,7 @@
 #include <userver/server/handlers/fallback_handlers.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
 #include <userver/storages/secdist/component.hpp>
+#include <userver/utils/resource_scopes.hpp>
 #include <userver/utils/statistics/fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -49,8 +50,6 @@ public:
 
     void AddHandler(const handlers::HttpHandlerBase& handler, engine::TaskProcessor& task_processor);
 
-    size_t GetThrottlableHandlersCount() const;
-
     const http::HttpRequestHandler& GetHttpRequestHandler(bool is_monitor = false) const;
 
     void StartMonitorPort();
@@ -62,11 +61,15 @@ public:
 
     void SetLimit(std::optional<size_t> new_limit) override;
 
+    size_t GetLimitableHandlersCount() const override;
+
     void SetRpsRatelimit(std::optional<size_t> rps);
 
     void SetRpsRatelimitStatusCode(http::HttpStatus status_code);
 
     std::uint64_t GetTotalRequests() const override;
+
+    void WriteMetrics(utils::statistics::Writer& writer) const;
 
 private:
     std::unique_ptr<ServerImpl> pimpl_;

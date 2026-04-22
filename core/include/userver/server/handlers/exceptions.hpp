@@ -269,7 +269,8 @@ public:
     {}
 
     /// @deprecated Use the variadic constructor above instead.
-    template <typename MessageBuilder, typename = std::enable_if_t<impl::kIsMessageBuilder<MessageBuilder>>>
+    template <typename MessageBuilder>
+    requires impl::kIsMessageBuilder<MessageBuilder>
     CustomHandlerException(MessageBuilder&& builder, HandlerErrorCode handler_code)
         : CustomHandlerException(impl::CustomHandlerExceptionData{std::forward<MessageBuilder>(builder), handler_code})
     {}

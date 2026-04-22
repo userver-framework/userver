@@ -412,12 +412,12 @@ Alternatively see @ref userver_install "userver install"
 
 
 @anchor prebuilt_deb_package
-### Using a prebuilt Debian package for Ubuntu 22.04
+### Using a prebuilt Debian package for Ubuntu
 
 You can download and install a `.deb` package that is attached to each
 [userver release](https://github.com/userver-framework/userver/releases).
 
-The package currently targets Ubuntu 22.04, for other Ubuntu versions your mileage may vary.
+The package currently targets latest Ubuntus, for other Ubuntu versions your mileage may vary.
 
 
 @anchor userver_conan
@@ -431,6 +431,7 @@ To build the userver Conan package run the following in the userver root directo
 
 ```shell
 conan profile detect && conan profile show
+conan profile update settings.compiler.cppstd=20 default
 conan create . --build=missing --version=`cat version.txt` -pr:b=default
 ```
 
@@ -452,6 +453,46 @@ target_link_libraries(${PROJECT_NAME} PUBLIC userver::grpc)
 ```
 
 @see @ref userver_libraries
+
+@anchor gentoo_ebuild
+## Gentoo ebuild
+
+You can install userver via Emerge in Gentoo Linux:
+
+1. Set needed use-flags in file `/etc/portage/package.use/userver`:
+
+   ```bash
+   dev-cpp/userver-framework flag1 flag2 ...
+   ```
+
+   Supported use-flags:
+
+   ```
+   postgres - Provide asynchronous driver for PostgreSQL
+   redis - Provide asynchronous driver for Redis
+   mongodb - Provide asynchronous driver for MongoDB
+   mysql - Provide asynchronous driver for MySQL/MariaDB
+   rabbitmq - Provide asynchronous driver for RabbitMQ (AMQP 0-9-1)
+   kafka - Provide asynchronous driver for Apache Kafka
+   utest - Provide utest and ubench for unit testing and benchmarking coroutines
+   testsuite - Enable functional tests via testsuite
+   easy - Build easy HTTP server library
+   odbc - Provide asynchronous driver for ODBC
+   sqlite - Provide asynchronous driver for SQLite
+   uboost-coro - Build with vendored version of Boost.context and Boost.coroutine2
+   ```
+
+2. Install userver:
+
+   ```bash
+   sudo emerge app-portage/eselect-repository
+   sudo eselect repository add userver-framework git https://github.com/userver-framework/userver-overlay.git
+   sudo emerge --sync
+   sudo emerge --ask dev-cpp/userver
+   ```
+
+
+
 
 
 ## Yandex Cloud with Ubuntu 22.04

@@ -75,7 +75,9 @@ public:
     explicit {{service.name}}Client(USERVER_NAMESPACE::ugrpc::client::impl::ClientInternals&& internals);
 
     // For internal use only
-    static USERVER_NAMESPACE::ugrpc::impl::StaticServiceMetadata GetMetadata();
+    static USERVER_NAMESPACE::ugrpc::impl::StaticServiceMetadata GetMetadata(
+        USERVER_NAMESPACE::utils::impl::InternalTag
+    );
     /// @endcond
 
 private:
@@ -152,7 +154,9 @@ public:
     );
 
     // For internal use only
-    static USERVER_NAMESPACE::ugrpc::impl::StaticServiceMetadata GetMetadata();
+    static USERVER_NAMESPACE::ugrpc::impl::StaticServiceMetadata GetMetadata(
+        USERVER_NAMESPACE::utils::impl::InternalTag
+    );
     /// @endcond
 
 private:

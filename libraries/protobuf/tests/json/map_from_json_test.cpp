@@ -17,14 +17,14 @@ namespace protobuf::json::tests {
 struct MapFromJsonSuccessTestParam {
     std::string input = {};
     MapMessageData expected_message = {};
-    ReadOptions options = {};
+    ParseOptions options = {};
 };
 
 struct MapFromJsonFailureTestParam {
     std::string input = {};
-    ReadErrorCode expected_errc = {};
+    ParseErrorCode expected_errc = {};
     std::string expected_path = {};
-    ReadOptions options = {};
+    ParseOptions options = {};
 };
 
 void PrintTo(const MapFromJsonSuccessTestParam& param, std::ostream* os) {
@@ -84,24 +84,24 @@ INSTANTIATE_TEST_SUITE_P(
     ,
     MapFromJsonFailureTest,
     ::testing::Values(
-        MapFromJsonFailureTestParam{R"({"field1":[]})", ReadErrorCode::kInvalidType, "field1"},
-        MapFromJsonFailureTestParam{R"({"field2":1})", ReadErrorCode::kInvalidType, "field2"},
-        MapFromJsonFailureTestParam{R"({"field3":true})", ReadErrorCode::kInvalidType, "field3"},
-        MapFromJsonFailureTestParam{R"({"field7":"test"})", ReadErrorCode::kInvalidType, "field7"},
-        MapFromJsonFailureTestParam{R"({"field1":{"":1}})", ReadErrorCode::kInvalidValue, "field1.''"},
+        MapFromJsonFailureTestParam{R"({"field1":[]})", ParseErrorCode::kInvalidType, "field1"},
+        MapFromJsonFailureTestParam{R"({"field2":1})", ParseErrorCode::kInvalidType, "field2"},
+        MapFromJsonFailureTestParam{R"({"field3":true})", ParseErrorCode::kInvalidType, "field3"},
+        MapFromJsonFailureTestParam{R"({"field7":"test"})", ParseErrorCode::kInvalidType, "field7"},
+        MapFromJsonFailureTestParam{R"({"field1":{"":1}})", ParseErrorCode::kInvalidValue, "field1.''"},
         MapFromJsonFailureTestParam{
             R"({"field2":{"10":1.5,"-10":0,"0":0}})",
-            ReadErrorCode::kInvalidValue,
+            ParseErrorCode::kInvalidValue,
             "field2.-10"
         },
         MapFromJsonFailureTestParam{
             R"({"field3":{"10":true,"10x":false}})",
-            ReadErrorCode::kInvalidValue,
+            ParseErrorCode::kInvalidValue,
             "field3.10x"
         },
-        MapFromJsonFailureTestParam{R"({"field4":{"1.5":"hello"}})", ReadErrorCode::kInvalidValue, "field4.'1.5'"},
-        MapFromJsonFailureTestParam{R"({"field5":{"TRUE":0}})", ReadErrorCode::kInvalidValue, "field5.TRUE"},
-        MapFromJsonFailureTestParam{R"({"field7":{"aaa":"oops"}})", ReadErrorCode::kInvalidValue, "field7.aaa"}
+        MapFromJsonFailureTestParam{R"({"field4":{"1.5":"hello"}})", ParseErrorCode::kInvalidValue, "field4.'1.5'"},
+        MapFromJsonFailureTestParam{R"({"field5":{"TRUE":0}})", ParseErrorCode::kInvalidValue, "field5.TRUE"},
+        MapFromJsonFailureTestParam{R"({"field7":{"aaa":"oops"}})", ParseErrorCode::kInvalidValue, "field7.aaa"}
     )
 );
 
@@ -109,12 +109,14 @@ TEST_P(MapFromJsonSuccessTest, Test) {
     using Message = proto_json::messages::MapMessage;
     const auto& param = GetParam();
 
-    Message message, expected_message, sample_message;
+    Message message;
+    Message expected_message;
+    Message sample_message;
     formats::json::Value input = PrepareJsonTestData(param.input);
     expected_message = PrepareTestData(param.expected_message);
 
     UASSERT_NO_THROW((message = JsonToMessage<Message>(input, param.options)));
-    UASSERT_NO_THROW(InitSampleMessage(param.input, param.options, sample_message));
+    UASSERT_NO_THROW(InitSampleMessage(param.input, sample_message, param.options));
 
     CheckMessageEqual(message, sample_message);
     CheckMessageEqual(message, expected_message);
@@ -127,8 +129,8 @@ TEST_P(MapFromJsonFailureTest, Test) {
     Message sample;
     formats::json::Value input = PrepareJsonTestData(param.input);
 
-    EXPECT_READ_ERROR((void)JsonToMessage<Message>(input, param.options), param.expected_errc, param.expected_path);
-    UEXPECT_THROW(InitSampleMessage(param.input, param.options, sample), SampleError);
+    EXPECT_PARSE_ERROR((void)JsonToMessage<Message>(input, param.options), param.expected_errc, param.expected_path);
+    UEXPECT_THROW(InitSampleMessage(param.input, sample, param.options), SampleError);
 }
 
 }  // namespace protobuf::json::tests

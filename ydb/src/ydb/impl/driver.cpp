@@ -22,31 +22,52 @@ Driver::Driver(std::string dbname, impl::DriverSettings settings)
       retry_budget_(utils::RetryBudgetSettings{})
 {
     NYdb::TDriverConfig driver_config;
-    driver_config.SetEndpoint(settings.endpoint.data())
-        .SetDatabase(settings.database.data())
+    driver_config.SetEndpoint(settings.endpoint)
+        .SetDatabase(settings.database)
         .SetBalancingPolicy(
             settings.prefer_local_dc
                 ? NYdb::EBalancingPolicy::UsePreferableLocation
                 : NYdb::EBalancingPolicy::UseAllNodes
         );
+    if (settings.network_threads_num.has_value()) {
+        driver_config.SetNetworkThreadsNum(*settings.network_threads_num);
+    }
+    if (settings.client_threads_num.has_value()) {
+        driver_config.SetClientThreadsNum(*settings.client_threads_num);
+    }
 
     if (settings.secure_connection_cert.has_value()) {
-        driver_config.UseSecureConnection(settings.secure_connection_cert->data());
+        driver_config.UseSecureConnection(*settings.secure_connection_cert);
     }
 
     if (settings.credentials_provider_factory) {
         driver_config.SetCredentialsProviderFactory(settings.credentials_provider_factory);
     } else if (settings.oauth_token.has_value()) {
-        driver_config.SetAuthToken(settings.oauth_token->c_str());
+        driver_config.SetAuthToken(*settings.oauth_token);
     } else if (settings.iam_jwt_params.has_value()) {
         driver_config.UseSecureConnection().SetCredentialsProviderFactory(
-            NYdb::CreateIamJwtParamsCredentialsProviderFactory({.JwtContent = settings.iam_jwt_params->c_str()})
+            NYdb::CreateIamJwtParamsCredentialsProviderFactory({.JwtContent = *settings.iam_jwt_params})
         );
     } else if (settings.user.has_value() && settings.password.has_value()) {
         NYdb::TLoginCredentialsParams creds{};
-        creds.User = settings.user->c_str();
-        creds.Password = settings.password->c_str();
+        creds.User = *settings.user;
+        creds.Password = *settings.password;
         driver_config.SetCredentialsProviderFactory(NYdb::CreateLoginCredentialsProviderFactory(std::move(creds)));
+    }
+
+    if (settings.tcp_keepalive.has_value()) {
+        driver_config.SetTcpKeepAliveSettings(
+            settings.tcp_keepalive->enabled,
+            settings.tcp_keepalive->idle_sec,
+            settings.tcp_keepalive->probe_count,
+            settings.tcp_keepalive->interval_sec
+        );
+    }
+    if (settings.grpc_keepalive_timeout.has_value()) {
+        driver_config.SetGRpcKeepAliveTimeout(TDuration(*settings.grpc_keepalive_timeout));
+    }
+    if (settings.grpc_keepalive_permit_without_calls.has_value()) {
+        driver_config.SetGRpcKeepAlivePermitWithoutCalls(*settings.grpc_keepalive_permit_without_calls);
     }
 
     driver_ = std::make_unique<NYdb::TDriver>(driver_config);

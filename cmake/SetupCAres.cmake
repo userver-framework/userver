@@ -1,3 +1,4 @@
+# @ingroup download
 option(USERVER_DOWNLOAD_PACKAGE_CARES "Download and setup c-ares if no c-ares of matching version was found"
        ${USERVER_DOWNLOAD_PACKAGES}
 )

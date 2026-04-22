@@ -342,7 +342,7 @@ inline void WriteToStream(const MyKeyValue& data, formats::json::StringBuilder& 
 
 TEST(JsonStringBuilder, ExampleUsage) {
     StringBuilder sb;
-    const MyKeyValue data = {"one", 1};
+    const MyKeyValue data = {.field1 = "one", .field2 = 1};
     WriteToStream(data, sb);
     ASSERT_EQ(sb.GetString(), "{\"field1\":\"one\",\"field2\":1}");
 }

@@ -285,7 +285,7 @@ template <typename... Options>
 void Collection::Drop(Options&&... options) {
     operations::Drop drop_op;
     (drop_op.SetOption(std::forward<Options>(options)), ...);
-    return Execute(drop_op);
+    Execute(drop_op);
 }
 
 template <typename... Options>

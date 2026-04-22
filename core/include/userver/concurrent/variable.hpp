@@ -5,6 +5,7 @@
 #include <optional>
 #include <shared_mutex>  // for shared_lock
 
+#include <userver/compiler/impl/lifetime.hpp>
 #include <userver/engine/mutex.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -27,19 +28,27 @@ public:
           data_(data)
     {}
 
-    Data& operator*() & { return data_; }
-    const Data& operator*() const& { return data_; }
+    Data& operator*() & USERVER_IMPL_LIFETIME_BOUND { return data_; }
+    const Data& operator*() const& USERVER_IMPL_LIFETIME_BOUND { return data_; }
 
     /// Don't use *tmp for temporary value, store it to variable.
     Data& operator*() && { return *GetOnRvalue(); }
 
-    Data* operator->() & { return &data_; }
-    const Data* operator->() const& { return &data_; }
+    Data* operator->() & USERVER_IMPL_LIFETIME_BOUND { return &data_; }
+    const Data* operator->() const& USERVER_IMPL_LIFETIME_BOUND { return &data_; }
 
     /// Don't use tmp-> for temporary value, store it to variable.
     Data* operator->() && { return GetOnRvalue(); }
 
-    Lock& GetLock() { return lock_; }
+    /// For node-based containers, e.g. `std::unordered_map`, where container access needs to be locked,
+    /// but after that the reference is stable and does not need the lock anymore.
+    Data& GetUnsafeForStableSubobject() & { return data_; }
+    const Data& GetUnsafeForStableSubobject() const& { return data_; }
+
+    /// Don't use *tmp for temporary value, store it to variable.
+    Data& GetUnsafeForStableSubobject() && { return *GetOnRvalue(); }
+
+    Lock& GetLock() USERVER_IMPL_LIFETIME_BOUND { return lock_; }
 
 private:
     const Data* GetOnRvalue() {

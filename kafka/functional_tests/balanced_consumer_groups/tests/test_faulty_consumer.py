@@ -36,6 +36,10 @@ async def test_rebalance_after_failure(
     def second_consumer_subscribed(_data):
         logging.info('Second consumer subscribed')
 
+    @testpoint('tp_kafka-consumer-second_revoked')
+    def second_consumer_revoked(_data):
+        logging.info('Second consumer revoked')
+
     @testpoint('tp_kafka-consumer-second_polled')
     def second_consumer_polled(_data):
         logging.info('Second consumer polled')
@@ -66,7 +70,11 @@ async def test_rebalance_after_failure(
         CONSUMERS[1],
     )
     assert len(first_consumer_messages) == 1 and len(second_consumer_messages) == 1
+    first_consumer_messages = first_consumer_messages[0]['partition']
     second_consumer_partition = second_consumer_messages[0]['partition']
+    logging.info(
+        f'First consumer was subscribed to {first_consumer_messages} partition',
+    )
     logging.info(
         f'Second consumer was subscribed to {second_consumer_partition} partition',
     )
@@ -77,12 +85,17 @@ async def test_rebalance_after_failure(
         MESSAGE_TO_FAIL,
         second_consumer_partition,
     )
-    await second_consumer_polled.wait_call()
-    await second_consumer_failed.wait_call()
+    for _ in range(0, 2):
+        await second_consumer_polled.wait_call()
+        await second_consumer_failed.wait_call()
+
+    assert not second_consumer_subscribed.has_calls
+    assert not second_consumer_revoked.has_calls
 
     await stop_consumers(service_client, [CONSUMERS[1]])
 
     await first_consumer_revoked.wait_call()
+    await second_consumer_revoked.wait_call()
     await first_consumer_subscribed.wait_call()
     await first_consumer_subscribed.wait_call()
 
@@ -143,10 +156,12 @@ async def test_message_reprocessed_after_failure(
         CONSUMERS[1],
     )
     assert len(second_consumer_messages) == 2
+    assert {'key-1', 'key-2'} == set(parse_message_keys(second_consumer_messages))
 
     await kafka_producer.send(TOPIC, 'key-3', MESSAGE_TO_FAIL, 0)
-    await second_consumer_polled.wait_call()
-    await second_consumer_failed.wait_call()
+    for _ in range(0, 2):
+        await second_consumer_polled.wait_call()
+        await second_consumer_failed.wait_call()
 
     await make_non_faulty(service_client, CONSUMERS[1])
 

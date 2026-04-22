@@ -13,6 +13,13 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine {
 
+namespace impl {
+
+template <typename T>
+class FutureWaitStrategy;
+
+}  // namespace impl
+
 /// @ingroup userver_concurrency
 ///
 /// @brief A single-producer, single-consumer event.
@@ -32,7 +39,7 @@ namespace engine {
 /// synchronization primitives, like engine::Mutex.
 ///
 /// However, if the wait operation ends in something other than
-/// engine::Future::kReady, then it is the responsibility of the waiter
+/// engine::Future::kReady, then it is the responsibility of the awaiter
 /// to guarantee that it either prevents the oncoming `Send` call or awaits it.
 /// One way to force waiting until the `Send` call happens is to use
 /// engine::SingleUseEvent::WaitNonCancellable.
@@ -64,12 +71,14 @@ public:
     /// @brief Waits until the event is in a signaled state, ignoring task
     /// cancellations.
     ///
-    /// The waiter task can destroy the `SingleUseEvent` object immediately
+    /// The awaiter task can destroy the `SingleUseEvent` object immediately
     /// after waking up, if necessary.
     void WaitNonCancellable() noexcept;
 
     /// Sets the signal flag and wakes a task that waits on it, if any.
     /// `Send` must not be called again.
+    ///
+    /// You can safely invoke Send from outside a coroutine.
     void Send() noexcept;
 
     /// Returns true iff already signaled.
@@ -83,12 +92,10 @@ public:
 private:
     friend class impl::FutureWaitStrategy<SingleUseEvent>;
 
-    impl::EarlyWakeup TryAppendWaiter(impl::TaskContext& waiter) override;
-    void RemoveWaiter(impl::TaskContext& waiter) noexcept override;
-    void RethrowErrorResult() const override;
-    void AfterWait() noexcept override;
+    void TryAppendAwaiter(boost::intrusive_ptr<impl::Awaiter>& awaiter, std::uintptr_t context) override;
+    void RemoveAwaiter(impl::Awaiter& awaiter, std::uintptr_t context) noexcept override;
 
-    impl::FastPimplWaitListLight waiters_;
+    impl::FastPimplWaitListLight awaiters_;
 };
 
 }  // namespace engine

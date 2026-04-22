@@ -9,7 +9,6 @@
 #include <atomic>
 #include <cstdint>
 
-#include <userver/compiler/impl/constexpr.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/utils/assert.hpp>
 
@@ -30,7 +29,7 @@ enum class MembarrierRegistrationStatus : std::uint8_t {
     kUnsupported,
 };
 
-thread_local USERVER_IMPL_CONSTINIT auto thread_registration_status = MembarrierRegistrationStatus::kNotCheckedYet;
+thread_local constinit auto thread_registration_status = MembarrierRegistrationStatus::kNotCheckedYet;
 
 bool IsMembarrierAvailable() noexcept {
     const auto ret = syscall(__NR_membarrier, MEMBARRIER_CMD_QUERY, 0);

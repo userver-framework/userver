@@ -21,6 +21,7 @@ class TaskProcessor;
 
 namespace testsuite {
 class PeriodicTaskControl;
+class TestsuiteTasks;
 }  // namespace testsuite
 
 namespace utils {
@@ -140,10 +141,12 @@ public:
     PeriodicTask(const PeriodicTask&) = delete;
 
     /// Constructs the periodic task and calls Start()
+    /// @see StartPeriodicTask
     PeriodicTask(std::string name, Settings settings, Callback callback);
 
     /// Stops the periodic execution of previous task and starts the periodic
     /// execution of the new task.
+    /// @see StartPeriodicTask
     void Start(std::string name, Settings settings, Callback callback);
 
     ~PeriodicTask();
@@ -213,6 +216,24 @@ private:
     constexpr static std::size_t kAlignment = 16;
     utils::FastPimpl<Impl, kSize, kAlignment> impl_;
 };
+
+/// Starts PeriodicTask for high-level business tasks.
+/// It checks for testsuite and either:
+/// - registers the task in testsuite wihtout actual periodic start
+///   (in testsuite environment);
+/// - actually starts the periodic (otherwise).
+///
+/// This function makes non-deterministic PeriodicTask testable and predictable.
+/// PeriodicTask::Start might lead to unexpected behaviour in tests (especially between the tests) and, as a result, to
+/// flaky tests. Use raw PeriodicTask::Start only for low-level maintenance jobs like network keepalive or other
+/// housekeeping.
+void StartPeriodicTask(
+    PeriodicTask& periodic_task,
+    std::string name,
+    const PeriodicTask::Settings& settings,
+    PeriodicTask::Callback callback,
+    testsuite::TestsuiteTasks& testsuite_tasks
+);
 
 }  // namespace utils
 

@@ -65,6 +65,13 @@ bson::Value Convert(const json::Value& json, parse::To<bson::Value>) {
     return formats::common::PerformMinimalFormatConversion<bson::Value>(json);
 }
 
+formats::json::Value Parse(const formats::bson::Value& bson, formats::parse::To<formats::json::Value>) {
+    return formats::common::PerformMinimalFormatConversion<formats::json::Value>(bson);
+}
+formats::bson::Value Parse(const formats::json::Value& json, formats::parse::To<formats::bson::Value>) {
+    return formats::common::PerformMinimalFormatConversion<formats::bson::Value>(json);
+}
+
 }  // namespace formats::parse
 
 namespace formats::bson {

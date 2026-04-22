@@ -18,7 +18,7 @@ TEST(S3ApiInitiateMultipartUploadResult, ParseResponseBody) {
     EXPECT_EQ(result.upload_id, "123456ABCDEF");
 }
 
-TEST(S3ApiCompleteMultipartUploadeResult, ParseResponseBody) {
+TEST(S3ApiCompleteMultipartUploadResult, ParseResponseBody) {
     const auto result = CompleteMultipartUploadResult::Parse(
         "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
         "<CompleteMultipartUploadResult xmlns=\"http://s3.amazonaws.com/doc/2006-03-01/\">"

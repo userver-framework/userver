@@ -386,8 +386,8 @@ struct BoundedRangeBinaryFormatter : BufferFormatterBase<BoundedRange<T>> {
 
 namespace traits {
 
-template <typename T>
-struct Input<Range<T>, std::enable_if_t<kHasParser<T>>> {
+template <HasParser T>
+struct Input<Range<T>> {
     using type = io::detail::RangeBinaryParser<T>;
 };
 
@@ -395,13 +395,13 @@ template <typename T>
 struct ParserBufferCategory<io::detail::RangeBinaryParser<T>>
     : std::integral_constant<BufferCategory, BufferCategory::kRangeBuffer> {};
 
-template <typename T>
-struct Output<Range<T>, std::enable_if_t<kHasFormatter<T>>> {
+template <HasFormatter T>
+struct Output<Range<T>> {
     using type = io::detail::RangeBinaryFormatter<T>;
 };
 
-template <typename T>
-struct Input<BoundedRange<T>, std::enable_if_t<kHasParser<T>>> {
+template <HasParser T>
+struct Input<BoundedRange<T>> {
     using type = io::detail::BoundedRangeBinaryParser<T>;
 };
 
@@ -409,8 +409,8 @@ template <typename T>
 struct ParserBufferCategory<io::detail::BoundedRangeBinaryParser<T>>
     : std::integral_constant<BufferCategory, BufferCategory::kRangeBuffer> {};
 
-template <typename T>
-struct Output<BoundedRange<T>, std::enable_if_t<kHasFormatter<T>>> {
+template <HasFormatter T>
+struct Output<BoundedRange<T>> {
     using type = io::detail::BoundedRangeBinaryFormatter<T>;
 };
 
@@ -434,7 +434,7 @@ template <typename U, typename>
 Range<T>::Range(U&& lower, U&& upper, RangeBounds bounds)
     : data_{RangeData{std::forward<U>(lower), std::forward<U>(upper), bounds}}
 {
-    if (lower == upper && bounds != RangeBound::kBoth) {
+    if (data_->lower == data_->upper && bounds != RangeBound::kBoth) {
         // this will make an empty range
         data_.reset();
     }

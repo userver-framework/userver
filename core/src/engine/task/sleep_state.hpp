@@ -3,6 +3,7 @@
 #include <atomic>
 #include <cstdint>
 
+#include <userver/engine/impl/epoch.hpp>
 #include <userver/utils/flags.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -23,7 +24,6 @@ enum class SleepFlags : std::uint32_t {
 // calls while GCC outputs code with unaligned atomic operations.
 struct alignas(std::uint64_t) SleepState final {
     using Flags = utils::Flags<SleepFlags>;
-    enum class Epoch : std::uint32_t {};
 
     // 'flags' must go before 'epoch' so that AtomicSleepState::Pack is a no-op.
     Flags flags;
@@ -69,7 +69,7 @@ public:
 
 private:
     static_assert(sizeof(SleepState::Flags::ValueType) == sizeof(std::uint32_t));
-    static_assert(sizeof(SleepState::Epoch) == sizeof(std::uint32_t));
+    static_assert(sizeof(Epoch) == sizeof(std::uint32_t));
 
     static constexpr std::uint64_t Pack(SleepState value) noexcept {
         return (static_cast<std::uint64_t>(value.epoch) << 32) | value.flags.GetValue();
@@ -78,7 +78,7 @@ private:
     static constexpr SleepState Unpack(std::uint64_t value) noexcept {
         return SleepState{
             SleepState::Flags{SleepFlags{static_cast<std::uint32_t>(value)}},
-            SleepState::Epoch{static_cast<std::uint32_t>(value >> 32)}
+            Epoch{static_cast<std::uint32_t>(value >> 32)}
         };
     }
 

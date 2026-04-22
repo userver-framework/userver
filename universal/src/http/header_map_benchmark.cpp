@@ -7,7 +7,7 @@
 #include <userver/utils/fixed_array.hpp>
 #include <userver/utils/string_literal.hpp>
 
-#include <userver/internal/http/header_map_tests_helper.hpp>
+#include <http/tests/header_map_tests_helper.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

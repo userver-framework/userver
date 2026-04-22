@@ -63,22 +63,28 @@ void Fsm::OnEvent(const Event& event) {
 
     switch (state_) {
         case State::kSubscribing:
-            return HandleSubscribing(event);
+            HandleSubscribing(event);
+            return;
 
         case State::kSubscribed:
-            return HandleSubscribed(event);
+            HandleSubscribed(event);
+            return;
 
         case State::kUnsubscribing:
-            return HandleUnsubscribing(event);
+            HandleUnsubscribing(event);
+            return;
 
         case State::kRebalancingWaitSubscribe:
-            return HandleRebalancingWaitSubscribe(event);
+            HandleRebalancingWaitSubscribe(event);
+            return;
 
         case State::kRebalancingWaitUnsubscribe:
-            return HandleRebalancingWaitUnsubscribe(event);
+            HandleRebalancingWaitUnsubscribe(event);
+            return;
 
         case State::kUnsubscribed:
-            return HandleUnsubscribed(event);
+            HandleUnsubscribed(event);
+            return;
     }
 }
 

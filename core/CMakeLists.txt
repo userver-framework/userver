@@ -17,8 +17,6 @@ file(
     GLOB_RECURSE
     SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/include/*.hpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/internal/*.hpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/internal/*.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/*.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp
 )
@@ -30,12 +28,6 @@ list(REMOVE_ITEM SOURCES ${UNIT_TEST_SOURCES})
 file(GLOB_RECURSE BENCH_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/*_benchmark.cpp)
 file(GLOB_RECURSE LIBUBENCH_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/benchmarks/main.cpp)
 list(REMOVE_ITEM SOURCES ${BENCH_SOURCES} ${LIBUBENCH_SOURCES})
-
-file(GLOB_RECURSE INTERNAL_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/internal/*.cpp
-     ${CMAKE_CURRENT_SOURCE_DIR}/internal/*.hpp
-)
-
-list(REMOVE_ITEM SOURCES ${INTERNAL_SOURCES})
 
 find_package_required(ZLIB "zlib1g-dev")
 
@@ -148,14 +140,13 @@ list(
     src/server/handlers/ping.yaml
     src/server/handlers/server_monitor.yaml
     src/server/handlers/tests_control.yaml
+    src/server/handlers/websocket_handler.yaml
     src/server/middlewares/cors.yaml
     src/server/middlewares/configuration.yaml
     src/server/middlewares/headers_propagator.yaml
-    src/server/websocket/websocket_handler.yaml
     src/storages/secdist/component.yaml
     src/storages/secdist/provider_component.yaml
     src/testsuite/testsuite_support.yaml
-    src/tracing/component.yaml
     src/tracing/manager_component.yaml
     src/utils/statistics/system_statistics_collector.yaml
 )
@@ -282,31 +273,13 @@ target_link_libraries(${PROJECT_NAME} PUBLIC ${PROJECT_NAME}-static-config-dns-c
 _check_compile_flags(${PROJECT_NAME})
 
 if(USERVER_FEATURE_UTEST)
-    add_library(userver-core-internal OBJECT ${INTERNAL_SOURCES})
-    target_compile_definitions(userver-core-internal PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},COMPILE_DEFINITIONS>)
-    target_include_directories(
-        userver-core-internal
-        PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
-               $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/internal/include>
-               $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../universal/internal/include>
-    )
-    target_link_libraries(userver-core-internal PUBLIC ${PROJECT_NAME})
-    _userver_directory_install(
-        COMPONENT core
-        DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/internal/include ${CMAKE_CURRENT_SOURCE_DIR}/../universal/internal/include
-        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..
-    )
-    _userver_install_targets(COMPONENT core TARGETS userver-core-internal)
-endif()
-
-if(USERVER_FEATURE_UTEST)
     add_subdirectory(utest)
 endif()
 
 if(USERVER_BUILD_TESTS)
     add_executable(${PROJECT_NAME}-unittest ${UNIT_TEST_SOURCES})
     target_include_directories(${PROJECT_NAME}-unittest PRIVATE $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>)
-    target_link_libraries(${PROJECT_NAME}-unittest PRIVATE userver-utest userver-core-internal)
+    target_link_libraries(${PROJECT_NAME}-unittest PRIVATE userver-utest)
 
     add_google_tests(${PROJECT_NAME}-unittest)
     add_subdirectory(functional_tests)
@@ -319,19 +292,15 @@ if(USERVER_FEATURE_UTEST)
     target_link_libraries(
         userver-ubench
         PUBLIC ${PROJECT_NAME} userver-universal-internal-ubench
-        PRIVATE userver-core-internal
     )
     _userver_install_targets(COMPONENT core TARGETS userver-ubench userver-universal-internal-ubench)
 endif()
 
 if(USERVER_BUILD_TESTS)
     add_executable(${PROJECT_NAME}-benchmark ${BENCH_SOURCES})
+    target_include_directories(${PROJECT_NAME}-benchmark PRIVATE $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>)
+    target_link_libraries(${PROJECT_NAME}-benchmark PRIVATE userver-ubench)
 
-    target_link_libraries(
-        ${PROJECT_NAME}-benchmark
-        PUBLIC userver-ubench
-        PRIVATE userver-core-internal
-    )
     add_google_benchmark_tests(${PROJECT_NAME}-benchmark)
 endif()
 

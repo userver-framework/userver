@@ -40,8 +40,8 @@ FutureStatus SingleUseEvent::WaitUntil(Deadline deadline) {
     // There are no spurious wakeups, because the event is single-use: if a task
     // has ever been notified by this SingleUseEvent, then the task will find
     // the SingleUseEvent ready once it wakes up.
-    if (wakeup_source == impl::TaskContext::WakeupSource::kWaitList) {
-        UASSERT(waiters_->IsSignaled());
+    if (wakeup_source == impl::TaskContext::WakeupSource::kNotify) {
+        UASSERT(awaiters_->IsSignaled());
     }
     return impl::ToFutureStatus(wakeup_source);
 }
@@ -70,23 +70,19 @@ void SingleUseEvent::WaitNonCancellable() noexcept {
 }
 
 void SingleUseEvent::Send() noexcept {
-    UASSERT_MSG(!waiters_->IsSignaled(), "Multiple producers detected for the same SingleUseEvent");
-    waiters_->SetSignalAndWakeupOne();
+    UASSERT_MSG(!awaiters_->IsSignaled(), "Multiple producers detected for the same SingleUseEvent");
+    awaiters_->SetSignalAndNotifyOne();
 }
 
-bool SingleUseEvent::IsReady() const noexcept { return waiters_->IsSignaled(); }
+bool SingleUseEvent::IsReady() const noexcept { return awaiters_->IsSignaled(); }
 
-impl::EarlyWakeup SingleUseEvent::TryAppendWaiter(impl::TaskContext& waiter) {
-    return impl::EarlyWakeup{waiters_->GetSignalOrAppend(&waiter)};
+void SingleUseEvent::TryAppendAwaiter(boost::intrusive_ptr<impl::Awaiter>& awaiter, std::uintptr_t context) {
+    awaiters_->GetSignalOrAppend(awaiter, context);
 }
 
-void SingleUseEvent::RemoveWaiter(impl::TaskContext& waiter) noexcept { waiters_->Remove(waiter); }
-
-void SingleUseEvent::RethrowErrorResult() const {
-    // TODO support failure states in SingleUseEvent, for WaitAllChecked?
+void SingleUseEvent::RemoveAwaiter(impl::Awaiter& awaiter, std::uintptr_t context) noexcept {
+    awaiters_->Remove(awaiter, context);
 }
-
-void SingleUseEvent::AfterWait() noexcept {}
 
 }  // namespace engine
 

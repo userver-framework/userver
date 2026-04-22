@@ -17,10 +17,10 @@ namespace ydb {
  * YDB type      | C++ type
  * ------------------------------
  * Bool          | bool
- * Int8          | N/A
- * Uint8         | N/A
- * Int16         | N/A
- * Uint16        | N/A
+ * Int8          | std::int8_t
+ * Uint8         | std::uint8_t
+ * Int16         | std::int16_t
+ * Uint16        | std::uint16_t
  * Int32         | std::int32_t
  * Uint32        | std::uint32_t
  * Int64         | std::int64_t
@@ -55,6 +55,10 @@ using JsonDocument = utils::StrongTypedef<JsonDocumentTag, formats::json::Value>
 using InsertColumnValue = std::variant<
     std::string,
     bool,
+    std::int8_t,
+    std::uint8_t,
+    std::int16_t,
+    std::uint16_t,
     std::int32_t,
     std::uint32_t,
     std::int64_t,
@@ -64,6 +68,10 @@ using InsertColumnValue = std::variant<
     Timestamp,
     std::optional<std::string>,
     std::optional<bool>,
+    std::optional<std::int8_t>,
+    std::optional<std::uint8_t>,
+    std::optional<std::int16_t>,
+    std::optional<std::uint16_t>,
     std::optional<std::int32_t>,
     std::optional<std::uint32_t>,
     std::optional<std::int64_t>,

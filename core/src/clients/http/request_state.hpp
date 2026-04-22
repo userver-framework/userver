@@ -19,8 +19,10 @@
 #include <userver/crypto/private_key.hpp>
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/future.hpp>
+#include <userver/engine/single_consumer_event.hpp>
 #include <userver/http/common_headers.hpp>
 #include <userver/http/url.hpp>
+#include <userver/server/request/task_inherited_data.hpp>
 #include <userver/tracing/in_place_span.hpp>
 #include <userver/tracing/manager.hpp>
 #include <userver/tracing/span.hpp>
@@ -42,6 +44,7 @@ namespace clients::http {
 constexpr std::string_view kHeaderExpect = "Expect";
 
 class StreamedResponse;
+class WebSocketResponse;
 class ConnectTo;
 
 class RequestState : public std::enable_shared_from_this<RequestState> {
@@ -49,7 +52,7 @@ public:
     RequestState(
         impl::EasyWrapper&&,
         RequestStats&& req_stats,
-        const std::shared_ptr<DestinationStatistics>& dest_stats,
+        DestinationStatistics& dest_stats,
         clients::dns::Resolver* resolver,
         const tracing::TracingManagerBase& tracing_manager
     );
@@ -65,6 +68,10 @@ public:
     /// Perform streaming http request, returns headers future
     engine::Future<void> async_perform_stream(
         const std::shared_ptr<Queue>& queue,
+        utils::impl::SourceLocation location = utils::impl::SourceLocation::Current()
+    );
+
+    engine::Future<WebSocketResponse> async_perform_websocket_handshake(
         utils::impl::SourceLocation location = utils::impl::SourceLocation::Current()
     );
 
@@ -138,6 +145,7 @@ public:
     std::shared_ptr<Response> response_move() { return std::move(response_); }
 
     void SetMiddlewaresList(const std::vector<utils::NotNull<MiddlewareBase*>>& middlewares);
+    void SetIncompleteTlsConnectionCloseExpected(bool expect);
     void SetLoggedUrl(std::string url);
     void SetUrlTemplate(std::string url_template);
     void SetMethod(clients::http::HttpMethod method);
@@ -198,15 +206,19 @@ private:
 
     void ResolveTargetAddress(clients::dns::Resolver& resolver);
 
+    void ResetRequestCompletion();
+    void RequestCompleted();
+    void WaitForRequestCompletion();
+
     // should be the first member to prevent HttpClient destruction before destruction of RequestState fields
     utils::impl::WaitTokenStorageLock wait_token_;
     /// curl handler wrapper
     impl::EasyWrapper easy_;
     RequestStats stats_;
-    std::shared_ptr<RequestStats> dest_req_stats_;
+    std::optional<RequestStats> dest_req_stats_;
     CancellationPolicy cancellation_policy_{CancellationPolicy::kCancel};
 
-    std::shared_ptr<DestinationStatistics> dest_stats_;
+    DestinationStatistics& dest_stats_;
     std::string destination_metric_name_;
 
     std::shared_ptr<const TestsuiteConfig> testsuite_config_;
@@ -225,6 +237,8 @@ private:
     std::chrono::milliseconds remote_timeout_;
 
     DeadlinePropagationConfig deadline_propagation_config_;
+    /// original absolute deadline from task inherited data
+    std::optional<server::request::TaskInheritedOriginalDeadline> inherited_original_deadline_;
     /// deadline from current task
     engine::Deadline deadline_;
     bool timeout_updated_by_deadline_{false};
@@ -250,6 +264,7 @@ private:
     HttpMethod method_{HttpMethod::kGet};
 
     std::atomic<bool> is_cancelled_{false};
+    std::atomic<bool> is_incomplete_tls_connection_close_expected_{false};
     std::array<char, CURL_ERROR_SIZE> errorbuffer_{};
 
     clients::dns::Resolver* resolver_{nullptr};
@@ -270,7 +285,13 @@ private:
         engine::Promise<std::shared_ptr<Response>> promise;
     };
 
-    std::variant<FullBufferedData, StreamData> data_;
+    struct WebSocketHandshakeData {
+        engine::Promise<WebSocketResponse> promise;
+    };
+
+    std::variant<FullBufferedData, StreamData, WebSocketHandshakeData> data_;
+
+    engine::SingleConsumerEvent request_completed_{engine::SingleConsumerEvent::NoAutoReset{}};
 };
 
 }  // namespace clients::http

@@ -1,7 +1,5 @@
 #pragma once
 
-#include <type_traits>
-
 #include <fmt/format.h>
 
 #include <userver/formats/common/meta.hpp>
@@ -12,7 +10,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace http {
 
-template <typename Value, typename = std::enable_if_t<formats::common::kIsFormatValue<Value>>>
+template <typename Value>
+requires formats::common::kIsFormatValue<Value>
 StatusCode Parse(const Value& value, formats::parse::To<StatusCode>) {
     using IntType = std::underlying_type_t<StatusCode>;
     constexpr IntType kMinCode = 100;

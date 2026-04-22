@@ -2,6 +2,7 @@ if(TARGET CryptoPP)
     return()
 endif()
 
+# @ingroup download
 option(USERVER_DOWNLOAD_PACKAGE_CRYPTOPP "Download and setup CryptoPP if no CryptoPP of matching version was found"
        ${USERVER_DOWNLOAD_PACKAGES}
 )

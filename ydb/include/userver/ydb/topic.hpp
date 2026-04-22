@@ -47,6 +47,14 @@ public:
         size_t max_size_bytes = std::numeric_limits<size_t>::max()
     );
 
+    /// @brief Get read session events
+    ///
+    /// Waits until event occurs
+    /// @param settings ydb native read session settings
+    std::vector<NYdb::NTopic::TReadSessionEvent::TEvent> GetEvents(
+        const NYdb::NTopic::TReadSessionGetEventSettings& settings
+    );
+
     /// @brief Close read session
     ///
     /// Waits for all commit acknowledgments to arrive.

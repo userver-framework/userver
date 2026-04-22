@@ -119,7 +119,8 @@ namespace formats::parse {
 /// @code{.cpp}
 /// auto value = json.As<google::protobuf::Value>();
 /// @endcode
-template <typename Message, typename = std::enable_if_t<std::is_base_of_v<google::protobuf::Message, Message>>>
+template <typename Message>
+requires std::is_base_of_v<google::protobuf::Message, Message>
 Message Parse(const json::Value& value, To<Message>) {
     return ugrpc::JsonToMessage<Message>(value);
 }

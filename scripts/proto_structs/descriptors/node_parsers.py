@@ -233,7 +233,13 @@ def _try_transform_enum_wrapper(struct: gen_node.StructNode) -> gen_node.EnumNod
 
     if struct.name.short_name != f'{nested_type.name.short_name}Enum':
         return None
-    return gen_node.EnumNode(vanilla_name=struct.vanilla_name, proto_file=struct.proto_file, values=nested_type.values)
+
+    return gen_node.EnumNode(
+        vanilla_name=struct.vanilla_name,
+        proto_file=struct.proto_file,
+        values=nested_type.values,
+        vanilla_enum_name_postfix=f'_{nested_type.name.short_name}',
+    )
 
 
 def _is_map_entry(message: descriptor.Descriptor) -> bool:

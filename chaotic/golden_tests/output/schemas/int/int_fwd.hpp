@@ -5,3 +5,4 @@ namespace ns {
 struct Int;
 
 }  // namespace ns
+

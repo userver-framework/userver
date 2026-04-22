@@ -72,6 +72,10 @@ constexpr int kNoFd = -1;
 
 }  // namespace
 
+FileDescriptor::FileDescriptor()
+    : fd_(kNoFd)
+{}
+
 FileDescriptor::FileDescriptor(int fd)
     : fd_(fd)
 {
@@ -93,6 +97,12 @@ FileDescriptor FileDescriptor::OpenDirectory(const std::string& path) {
     UASSERT(!path.empty());
     const auto fd = utils::CheckSyscall(::open(path.c_str(), O_RDONLY | O_DIRECTORY), "opening directory '{}'", path);
     return FileDescriptor{fd};
+}
+
+FileDescriptor FileDescriptor::DupFd(int fd) noexcept {
+    UASSERT_MSG(::fcntl(fd, F_GETFD) != -1, "This file descriptor is not valid");
+    const auto dup_fd = utils::CheckSyscall(::dup(fd), "duplicating file descriptor");
+    return FileDescriptor{dup_fd};
 }
 
 FileDescriptor::FileDescriptor(FileDescriptor&& other) noexcept : fd_(std::exchange(other.fd_, kNoFd)) {}

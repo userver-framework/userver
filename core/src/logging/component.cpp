@@ -18,6 +18,7 @@
 #include <userver/os_signals/component.hpp>
 #include <userver/testsuite/testpoint.hpp>
 #include <userver/utils/algo.hpp>
+#include <userver/utils/resource_scopes.hpp>
 #include <userver/utils/statistics/writer.hpp>
 #include <userver/utils/thread_name.hpp>
 #include <userver/yaml_config/map_to_array.hpp>
@@ -54,9 +55,11 @@ void ReportReopeningErrorAndThrow(
 ) {
     std::fputs(
         fmt::format(
-            "[{:%Y-%m-%d %H:%M:%S %Z}] loggers [{}] failed to reopen the log file: logs are getting lost now",
+            "[{:%Y-%m-%d %H:%M:%S %Z}] loggers [{}] failed to reopen the log file: logs are getting lost "
+            "now.\r\nErrors:\r\n{}\r\n",
             std::chrono::system_clock::now(),
-            fmt::join(failed_loggers, ", ")
+            fmt::join(failed_loggers, ", "),
+            fmt::join(result_messages, ",\r\n")
         )
             .c_str(),
         stderr
@@ -67,17 +70,25 @@ void ReportReopeningErrorAndThrow(
 
 }  // namespace
 
-/// [Signals sample - init]
 Logging::Logging(const ComponentConfig& config, const ComponentContext& context)
     : fs_task_processor_{GetFsTaskProcessor(config, context)},
-      metrics_storage_(context.FindComponent<components::StatisticsStorage>().GetMetricsStorage()),
-      signal_subscriber_(context.FindComponent<os_signals::ProcessorComponent>()
-                             .Get()
-                             .AddListener(this, kName, os_signals::kSigUsr1, &Logging::OnLogRotate))
-/// [Signals sample - init]
+      metrics_storage_(context.FindComponent<components::StatisticsStorage>().GetMetricsStorage())
 {
     try {
         Init(config, context);
+
+        /// [Signals sample - init]
+        auto& signals_processor = context.FindComponent<os_signals::ProcessorComponent>().Get();
+        context.Scopes().Register([this, &signals_processor] {
+            auto holder = signals_processor.AddListener(this, kName, os_signals::kSigUsr1, &Logging::OnLogRotate);
+
+            // Force logrotate just after signal subscription to be sure we haven't lost signals during the loading.
+            // If there were no signals, it's OK to re-open log files one more time.
+            OnLogRotate();
+
+            return holder;
+        });
+        /// [Signals sample - init]
     } catch (const std::exception&) {
         Stop();
         throw;
@@ -148,20 +159,18 @@ void Logging::Init(const ComponentConfig& config, const ComponentContext& contex
 
     auto* const statistics_storage = context.FindComponentOptional<components::StatisticsStorage>();
     if (statistics_storage) {
-        utils::statistics::RegisterWriterScope(context, "logger", [this](utils::statistics::Writer& writer) {
-            return WriteStatistics(writer);
-        });
+        RegisterWriterScope(
+            context.Scopes(),
+            statistics_storage->GetStorage(),
+            "logger",
+            [this](utils::statistics::Writer& writer) { WriteStatistics(writer); }
+        );
     }
 }
 
 Logging::~Logging() { Stop(); }
 
 void Logging::Stop() noexcept {
-    /// [Signals sample - destr]
-
-    signal_subscriber_.Unsubscribe();
-
-    /// [Signals sample - destr]
     flush_task_.Stop();
 
     // Loggers could be used from non coroutine environments and should be
@@ -253,12 +262,12 @@ void Logging::TryReopenFiles() {
             failed_loggers.push_back(name);
         }
     }
-    LOG_INFO() << "Log rotated";
+    LOG_INFO() << "Log reopening finished";
 
     const bool error_happened = !result_messages.empty();
     /// [alert_usage]
     if (error_happened) {
-        kLogReopeningAlert.FireAlert(*metrics_storage_);
+        kLogReopeningAlert.FireAlert(*metrics_storage_, alerts::Source::kInfiniteDuration);
         ReportReopeningErrorAndThrow(failed_loggers, result_messages);
     } else {
         kLogReopeningAlert.StopAlertNow(*metrics_storage_);

@@ -57,6 +57,7 @@ const std::string kKey =
     "Index.КАЗАХСТАН:Index.КАЗАХСТАН:Index.КАЗАХСТАН:";
 
 TEST(KeyShardTaximeterCrc32, Multithreads) {
+    static constexpr std::size_t kThreadCount = 32;
     storages::redis::impl::KeyShardTaximeterCrc32 key_shard(kShards);
 
     std::mutex mutex;
@@ -64,7 +65,8 @@ TEST(KeyShardTaximeterCrc32, Multithreads) {
     std::atomic<size_t> count(0);
 
     std::vector<std::thread> threads;
-    for (size_t i = 0; i < 32; ++i) {
+    threads.reserve(kThreadCount);
+    for (size_t i = 0; i < kThreadCount; ++i) {
         threads.emplace_back([&]() -> void {
             std::vector<size_t> tcounts(kShards, 0);
             while (count++ < kCount) {

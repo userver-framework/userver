@@ -21,10 +21,10 @@ Format Parse(const yaml_config::YamlConfig& value, formats::parse::To<Format>) {
 }
 
 TestsuiteCaptureConfig Parse(const yaml_config::YamlConfig& value, formats::parse::To<TestsuiteCaptureConfig>) {
-    TestsuiteCaptureConfig config;
-    config.host = value["host"].As<std::string>();
-    config.port = value["port"].As<int>();
-    return config;
+    return {
+        .host = value["host"].As<std::string>(),
+        .port = value["port"].As<int>(),
+    };
 }
 
 void LoggerConfig::SetName(std::string name) { logger_name = std::move(name); }
@@ -38,6 +38,8 @@ LoggerConfig Parse(const yaml_config::YamlConfig& value, formats::parse::To<Logg
     config.format = value["format"].As<Format>();
 
     config.flush_level = value["flush_level"].As<logging::Level>(config.flush_level);
+
+    config.truncate_on_start = value["truncate-on-start"].As<bool>(config.truncate_on_start);
 
     config.message_queue_size = value["message_queue_size"].As<size_t>(config.message_queue_size);
 

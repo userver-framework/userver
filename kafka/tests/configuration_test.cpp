@@ -138,8 +138,8 @@ UTEST_F(ConfigurationTest, ConsumerNonDefault) {
 UTEST_F(ConfigurationTest, ProducerSaslSsl) {
     kafka::impl::ProducerConfiguration producer_configuration{};
     producer_configuration.security.security_protocol = kafka::impl::SecurityConfiguration::SaslSsl{
-        /*security_mechanism=*/"SCRAM-SHA-512",
-        /*ssl_ca_location=*/"probe",
+        .security_mechanism = "SCRAM-SHA-512",
+        .ssl_ca_location = "probe",
     };
 
     kafka::impl::Secret secrets;
@@ -162,7 +162,7 @@ UTEST_F(ConfigurationTest, ProducerSaslSsl) {
 UTEST_F(ConfigurationTest, ProducerSaslPlaintext) {
     kafka::impl::ProducerConfiguration producer_configuration{};
     producer_configuration.security.security_protocol = kafka::impl::SecurityConfiguration::SaslPlaintext{
-        /*security_mechanism=*/"SCRAM-SHA-512",
+        .security_mechanism = "SCRAM-SHA-512",
     };
 
     kafka::impl::Secret secrets;
@@ -184,8 +184,8 @@ UTEST_F(ConfigurationTest, ProducerSaslPlaintext) {
 UTEST_F(ConfigurationTest, ConsumerSaslSsl) {
     kafka::impl::ConsumerConfiguration consumer_configuration{};
     consumer_configuration.security.security_protocol = kafka::impl::SecurityConfiguration::SaslSsl{
-        /*security_mechanism=*/"SCRAM-SHA-512",
-        /*ssl_ca_location=*/"/etc/ssl/cert.ca",
+        .security_mechanism = "SCRAM-SHA-512",
+        .ssl_ca_location = "/etc/ssl/cert.ca",
     };
 
     kafka::impl::Secret secrets;
@@ -208,7 +208,7 @@ UTEST_F(ConfigurationTest, ConsumerSaslSsl) {
 UTEST_F(ConfigurationTest, ConsumerSaslPlaintext) {
     kafka::impl::ConsumerConfiguration consumer_configuration{};
     consumer_configuration.security.security_protocol = kafka::impl::SecurityConfiguration::SaslPlaintext{
-        /*security_mechanism=*/"SCRAM-SHA-512",
+        .security_mechanism = "SCRAM-SHA-512",
     };
 
     kafka::impl::Secret secrets;
@@ -230,7 +230,7 @@ UTEST_F(ConfigurationTest, ConsumerSaslPlaintext) {
 UTEST_F(ConfigurationTest, ProducerSsl) {
     kafka::impl::ProducerConfiguration producer_configuration{};
     producer_configuration.security.security_protocol = kafka::impl::SecurityConfiguration::Ssl{
-        /*ssl_ca_location=*/"/etc/ssl/ca.crt",
+        .ssl_ca_location = "/etc/ssl/ca.crt",
     };
 
     kafka::impl::Secret secrets;
@@ -254,7 +254,7 @@ UTEST_F(ConfigurationTest, ProducerSsl) {
 UTEST_F(ConfigurationTest, ConsumerSSL) {
     kafka::impl::ConsumerConfiguration consumer_configuration{};
     consumer_configuration.security.security_protocol = kafka::impl::SecurityConfiguration::Ssl{
-        /*ssl_ca_location=*/"/etc/ssl/ca.crt",
+        .ssl_ca_location = "/etc/ssl/ca.crt",
     };
 
     kafka::impl::Secret secrets;
@@ -299,16 +299,16 @@ UTEST_F(ConfigurationTest, ConsumerResolveGroupId) {
 UTEST_F_DEATH(ConfigurationDeathTest, ContradictorySecurityConfiguration) {
     kafka::impl::ProducerConfiguration sasl_ssl{};
     sasl_ssl.security.security_protocol = kafka::impl::SecurityConfiguration::SaslSsl{
-        /*security_mechanism=*/"SCRAM-SHA-512",
-        /*ssl_ca_location=*/"probe",
+        .security_mechanism = "SCRAM-SHA-512",
+        .ssl_ca_location = "probe",
     };
     kafka::impl::ProducerConfiguration sasl_plaintext{};
     sasl_plaintext.security.security_protocol = kafka::impl::SecurityConfiguration::SaslPlaintext{
-        /*security_mechanism=*/"SCRAM-SHA-512",
+        .security_mechanism = "SCRAM-SHA-512",
     };
     kafka::impl::ConsumerConfiguration ssl{};
     ssl.security.security_protocol = kafka::impl::SecurityConfiguration::Ssl{
-        /*ssl_ca_location=*/"/etc/ssl/ca.crt",
+        .ssl_ca_location = "/etc/ssl/ca.crt",
     };
 
     kafka::impl::Secret secrets_none;

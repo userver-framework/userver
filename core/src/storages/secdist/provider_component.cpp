@@ -18,37 +18,6 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace formats::parse {
-
-static formats::json::Value Parse(const formats::yaml::Value& yaml, formats::parse::To<formats::json::Value>) {
-    formats::json::ValueBuilder json_vb;
-
-    if (yaml.IsBool()) {
-        json_vb = yaml.As<bool>();
-    } else if (yaml.IsInt64()) {
-        json_vb = yaml.As<int64_t>();
-    } else if (yaml.IsUInt64()) {
-        json_vb = yaml.As<uint64_t>();
-    } else if (yaml.IsDouble()) {
-        json_vb = yaml.As<double>();
-    } else if (yaml.IsString()) {
-        json_vb = yaml.As<std::string>();
-    } else if (yaml.IsArray()) {
-        json_vb = {formats::common::Type::kArray};
-        for (const auto& elem : yaml) {
-            json_vb.PushBack(elem.As<formats::json::Value>());
-        }
-    } else if (yaml.IsObject()) {
-        json_vb = {formats::common::Type::kObject};
-        for (auto it = yaml.begin(); it != yaml.end(); ++it) {
-            json_vb[it.GetName()] = it->As<formats::json::Value>();
-        }
-    }
-    return json_vb.ExtractValue();
-}
-
-}  // namespace formats::parse
-
 namespace storages::secdist {
 
 namespace {

@@ -37,12 +37,6 @@ void TagWriter::PutLogExtra(const LogExtra& extra) {
     }
 }
 
-void TagWriter::ExtendLogExtra(const LogExtra& extra) {
-    for (const auto& item : *extra.extra_) {
-        PutTag(RuntimeTagKey{item.first}, item.second.GetValue());
-    }
-}
-
 void TagWriter::PutTag(RuntimeTagKey key, std::string_view value) { lh_.PutSwTag(key.GetUnescapedKey(), value); }
 
 TagWriter::TagWriter(LogHelper& lh) noexcept : lh_(lh) {}

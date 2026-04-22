@@ -55,7 +55,7 @@ struct TransformFormatter : detail::BufferFormatterBase<UserType> {
 
     template <typename Buffer>
     void operator()(const UserTypes& types, Buffer& buffer) const {
-        if constexpr (traits::kIsMappedToSystemType<UserType> && traits::kIsMappedToSystemType<WireType>) {
+        if constexpr (traits::IsMappedToSystemType<UserType> && traits::IsMappedToSystemType<WireType>) {
             static_assert(
                 CppToPg<UserType>::type_oid == CppToPg<WireType>::type_oid,
                 "Database type mismatch in TransformFormatter"

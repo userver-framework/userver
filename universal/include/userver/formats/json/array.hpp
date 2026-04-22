@@ -17,8 +17,8 @@ class ValueBuilder;
 ///
 /// @brief Non-mutable JSON array representation.
 ///
-/// This class is implemented in terms of formats::json::Value and cannot represent anything else but a JSON array.
-/// Use it when you need to explicitly state that only JSON array is expected.
+/// This class is implemented in terms of @ref formats::json::Value and cannot represent anything else but a JSON
+/// array. Use it when you need to explicitly state that only JSON array is expected.
 class Array final : private Value {
 public:
     using Value::const_iterator;
@@ -51,10 +51,10 @@ public:
     Array& operator=(const Array&) & = default;
     Array& operator=(Array&&) noexcept = default;
 
-    /// @brief Returns formats::json::Value.
+    /// @brief Returns @ref formats::json::Value.
     const Value& GetValue() const& { return *this; }
 
-    /// @brief Returns formats::json::Value.
+    /// @brief Returns @ref formats::json::Value.
     Value&& ExtractValue() && { return std::move(*this); }
 
     /// @see @ref formats::json::Value::operator[]
@@ -84,10 +84,6 @@ public:
     /// @see @ref formats::json::Value::CheckInBounds
     using Value::CheckInBounds;
 
-    /// @brief Compares values.
-    bool operator==(const Array& other) const { return GetValue() == other.GetValue(); }
-    bool operator!=(const Array& other) const { return GetValue() != other.GetValue(); }
-
     /// @see @ref formats::json::Value::As
     using Value::As;
 
@@ -103,6 +99,14 @@ public:
     /// @brief Returns a deep copy of array (see @ref formats::json::Value::Clone).
     Array Clone() const { return Array{GetValue().Clone()}; }
 };
+
+/// @brief Compares values.
+inline bool operator==(const Array& lhs, const Array& rhs) { return lhs.GetValue() == rhs.GetValue(); }
+inline bool operator==(const Array& lhs, const Value& rhs) { return lhs.GetValue() == rhs; }
+inline bool operator==(const Value& lhs, const Array& rhs) { return lhs == rhs.GetValue(); }
+inline bool operator!=(const Array& lhs, const Array& rhs) { return lhs.GetValue() != rhs.GetValue(); }
+inline bool operator!=(const Array& lhs, const Value& rhs) { return lhs.GetValue() != rhs; }
+inline bool operator!=(const Value& lhs, const Array& rhs) { return lhs != rhs.GetValue(); }
 
 inline Array Parse(const Value& value, parse::To<Array>) { return Array{value}; }
 

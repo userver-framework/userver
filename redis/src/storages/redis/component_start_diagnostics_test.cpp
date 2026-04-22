@@ -95,8 +95,9 @@ TEST(RedisComponentBadConfig, KeyShardCrc32) {
     UEXPECT_THROW_MSG(
         components::RunOnce(MakeRedisConfig("KeyShardCrc32"), MakeRedisComponentList()),
         std::exception,
-        "Cannot start component redis: Failed to connect to redis, shard_group_name=redis-db, shard=unexisting_shard "
-        "in 100 ms, mode=master_or_slave"
+        "Cannot start component redis: Failed to init cluster slots for redis, shard_group_name=redis-db in 100 ms, "
+        "mode=master_or_slave. Nodes received: false; topology received: false. Shards readiness: []. "
+        "Failed to connect to the Redis shards"
     );
 }
 

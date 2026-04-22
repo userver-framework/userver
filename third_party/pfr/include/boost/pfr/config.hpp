@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2024 Antony Polukhin
+// Copyright (c) 2016-2025 Antony Polukhin
 // Copyright (c) 2022 Denis Mikhailov
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
@@ -8,8 +8,12 @@
 #define BOOST_PFR_CONFIG_HPP
 #pragma once
 
-#if __cplusplus >= 201402L || (defined(_MSC_VER) && defined(_MSVC_LANG) && _MSC_VER > 1900)
+#if !defined(BOOST_USE_MODULES) && (__cplusplus >= 201402L || (defined(_MSC_VER) && defined(_MSVC_LANG) && _MSC_VER > 1900))
 #include <type_traits> // to get non standard platform macro definitions (__GLIBCXX__ for example)
+#endif
+
+#if defined(BOOST_USE_MODULES) || __cplusplus >= 202002L
+#include <version>
 #endif
 
 /// \file boost/pfr/config.hpp
@@ -49,6 +53,14 @@
 #   endif
 #endif
 
+#ifndef BOOST_PFR_USE_CPP26
+#if __cpp_structured_bindings >= 202411L && __cpp_lib_forward_like >= 202207L
+#define BOOST_PFR_USE_CPP26 1
+#else
+#define BOOST_PFR_USE_CPP26 0
+#endif
+#endif
+
 #ifndef BOOST_PFR_USE_CPP17
 #   ifdef __cpp_structured_bindings
 #       define BOOST_PFR_USE_CPP17 1
@@ -63,15 +75,17 @@
 #   endif
 #endif
 
-#if (!BOOST_PFR_USE_CPP17 && !BOOST_PFR_USE_LOOPHOLE)
+#if (!BOOST_PFR_USE_CPP26 && !BOOST_PFR_USE_CPP17 && !BOOST_PFR_USE_LOOPHOLE)
 #   if (defined(_MSC_VER) && _MSC_VER < 1916) ///< in Visual Studio 2017 v15.9 PFR library with classic engine normally works
 #      define BOOST_PFR_NOT_SUPPORTED 1
 #   endif
 #endif
 
 #ifndef BOOST_PFR_USE_STD_MAKE_INTEGRAL_SEQUENCE
+#   if defined(BOOST_USE_MODULES)
+#       define BOOST_PFR_USE_STD_MAKE_INTEGRAL_SEQUENCE 1
 // Assume that libstdc++ since GCC-7.3 does not have linear instantiation depth in std::make_integral_sequence
-#   if defined( __GLIBCXX__) && __GLIBCXX__ >= 20180101
+#   elif defined( __GLIBCXX__) && __GLIBCXX__ >= 20180101
 #       define BOOST_PFR_USE_STD_MAKE_INTEGRAL_SEQUENCE 1
 #   elif defined(_MSC_VER)
 #       define BOOST_PFR_USE_STD_MAKE_INTEGRAL_SEQUENCE 1
@@ -145,12 +159,16 @@
 
 #undef BOOST_PFR_NOT_SUPPORTED
 
-#ifndef BOOST_PFR_BEGIN_MODULE_EXPORT
+#ifdef BOOST_PFR_INTERFACE_UNIT
+#   define BOOST_PFR_BEGIN_MODULE_EXPORT export {
+#   define BOOST_PFR_END_MODULE_EXPORT }
+#else
 #   define BOOST_PFR_BEGIN_MODULE_EXPORT
+#   define BOOST_PFR_END_MODULE_EXPORT
 #endif
 
-#ifndef BOOST_PFR_END_MODULE_EXPORT
-#   define BOOST_PFR_END_MODULE_EXPORT
+#if defined(BOOST_USE_MODULES) && !defined(BOOST_PFR_INTERFACE_UNIT)
+import boost.pfr;
 #endif
 
 #endif // BOOST_PFR_CONFIG_HPP

@@ -68,7 +68,8 @@ T ReadAggregate(Reader& reader, std::index_sequence<Indices...>) {
 ///
 /// @warning Don't forget to increment format-version if data layout changes
 template <typename T>
-std::enable_if_t<impl::IsDumpableAggregate<T>()> Write(Writer& writer, const T& value) {
+requires(impl::IsDumpableAggregate<T>())
+void Write(Writer& writer, const T& value) {
     boost::pfr::for_each_field(value, [&writer](const auto& field) { writer.Write(field); });
 }
 
@@ -83,7 +84,8 @@ std::enable_if_t<impl::IsDumpableAggregate<T>()> Write(Writer& writer, const T& 
 ///
 /// @warning Don't forget to increment format-version if data layout changes
 template <typename T>
-std::enable_if_t<impl::IsDumpableAggregate<T>(), T> Read(Reader& reader, To<T>) {
+requires(impl::IsDumpableAggregate<T>())
+T Read(Reader& reader, To<T>) {
     constexpr auto kSize = boost::pfr::tuple_size_v<T>;
     return impl::ReadAggregate<T>(reader, std::make_index_sequence<kSize>{});
 }

@@ -57,15 +57,17 @@ public:
 
 }  // namespace
 
-using GenericServiceTest = ugrpc::tests::ServiceFixture<SampleGenericService>;
+using GenericServiceTest =
+    ugrpc::tests::ServiceWithClientFixture<SampleGenericService, sample::ugrpc::UnitTestServiceClient>;
 
-UTEST_F(GenericServiceTest, UnaryCall) { PerformGenericUnaryCall(MakeClient<sample::ugrpc::UnitTestServiceClient>()); }
+UTEST_F(GenericServiceTest, UnaryCall) { PerformGenericUnaryCall(GetClient()); }
 
-using RealCallNameGenericServiceTest = ugrpc::tests::ServiceFixture<RealCallNameGenericService>;
+using RealCallNameGenericServiceTest =
+    ugrpc::tests::ServiceWithClientFixture<RealCallNameGenericService, sample::ugrpc::UnitTestServiceClient>;
 
 UTEST_F(RealCallNameGenericServiceTest, MetricsRealUnsafe) {
     UEXPECT_THROW_MSG(
-        PerformGenericUnaryCall(MakeClient<sample::ugrpc::UnitTestServiceClient>()),
+        PerformGenericUnaryCall(GetClient()),
         ugrpc::client::UnauthenticatedError,
         "To avoid message parsing bureaucracy"
     );
@@ -101,7 +103,7 @@ UTEST_F(RealCallNameGenericServiceTest, MetricsRealUnsafe) {
 }
 
 UTEST_F(GenericServiceTest, MetricsDefaultCallNameIsFake) {
-    PerformGenericUnaryCall(MakeClient<sample::ugrpc::UnitTestServiceClient>());
+    PerformGenericUnaryCall(GetClient());
 
     // Server writes metrics after Finish, after the client might have returned
     // from Finish.
@@ -122,7 +124,7 @@ UTEST_F(GenericServiceTest, MetricsDefaultCallNameIsFake) {
 using GenericServerLoggingTest = utest::LogCaptureFixture<GenericServiceTest>;
 
 UTEST_F(GenericServerLoggingTest, Logs) {
-    PerformGenericUnaryCall(MakeClient<sample::ugrpc::UnitTestServiceClient>());
+    PerformGenericUnaryCall(GetClient());
 
     // Server writes metrics after Finish, after the client might have returned
     // from Finish.

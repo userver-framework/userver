@@ -62,7 +62,6 @@ async def grpc_mockserver_session(grpc_mockserver_endpoint) -> pytest_userver.gr
 def grpc_mockserver(
     grpc_mockserver_session,
     asyncexc_append,
-    _grpc_mockserver_ignore_errors,
 ) -> pytest_userver.grpc.Mockserver:
     """
     Returns the gRPC mocking server.
@@ -96,7 +95,7 @@ def grpc_mockserver(
 
     @ingroup userver_testsuite_fixtures
     """
-    with grpc_mockserver_session.asyncexc_append_scope(None if _grpc_mockserver_ignore_errors else asyncexc_append):
+    with grpc_mockserver_session.asyncexc_append_scope(asyncexc_append):
         try:
             yield pytest_userver.grpc.Mockserver(mockserver_session=grpc_mockserver_session, experimental=True)
         finally:
@@ -130,14 +129,6 @@ def userver_config_grpc_mockserver(grpc_mockserver_endpoint):
     return patch_config
 
 
-@pytest.fixture
-def grpc_mockserver_new(grpc_mockserver) -> pytest_userver.grpc.Mockserver:
-    """
-    @deprecated Legacy alias for @ref pytest_userver.plugins.grpc.mockserver.grpc_mockserver "grpc_mockserver".
-    """
-    return grpc_mockserver
-
-
 # @cond
 
 
@@ -154,11 +145,6 @@ def pytest_addoption(parser):
         default=0,
         help='gRPC mockserver port, by default random port is used',
     )
-
-
-@pytest.fixture(scope='session')
-def _grpc_mockserver_ignore_errors() -> bool:
-    return False
 
 
 # @endcond

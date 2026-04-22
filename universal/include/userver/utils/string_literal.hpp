@@ -10,7 +10,6 @@
 
 #include <fmt/core.h>
 
-#include <userver/compiler/impl/constexpr.hpp>
 #include <userver/formats/serialize/to.hpp>
 #include <userver/utils/zstring_view.hpp>
 
@@ -31,7 +30,7 @@ public:
     // clang-16 and below lose (optimize out) the pointer to `literal` with consteval. Clang-18 is know to work
     constexpr
 #else
-    USERVER_IMPL_CONSTEVAL
+    consteval
 #endif
         StringLiteral(const char* literal) noexcept
         : zstring_view{literal} {

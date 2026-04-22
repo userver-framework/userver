@@ -6,7 +6,7 @@
 #include <userver/concurrent/queue.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/server/handlers/tests_control.hpp>
-#include <userver/server/websocket/websocket_handler.hpp>
+#include <userver/server/handlers/websocket_handler.hpp>
 #include <userver/utils/async.hpp>
 #include <userver/utils/daemon_run.hpp>
 
@@ -16,28 +16,24 @@ struct HandshakeData {
     std::string origin;
 };
 
-class WebsocketsHandler final : public server::websocket::WebsocketHandlerBase {
+class WebsocketsHandler final : public server::handlers::WebsocketHandlerBase {
 public:
     static constexpr std::string_view kName = "websocket-handler";
 
     using WebsocketHandlerBase::WebsocketHandlerBase;
 
-    bool HandleHandshake(
-        const server::http::HttpRequest& request,
-        server::http::HttpResponse&,
-        server::request::RequestContext& context
-    ) const override {
+    bool HandleHandshake(server::http::HttpRequest& request, server::request::RequestContext& context) const override {
         context.SetUserData(HandshakeData{request.GetHeader("Origin")});
         return true;
     }
 
-    void Handle(server::websocket::WebSocketConnection& chat, server::request::RequestContext& context) const override {
+    void Handle(websocket::WebSocketConnection& chat, server::request::RequestContext& context) const override {
         const auto& origin = context.GetUserData<HandshakeData>().origin;
         if (!origin.empty()) {
             chat.Send({origin, {}, true});
         }
 
-        server::websocket::Message message;
+        websocket::Message message;
         while (!engine::current_task::ShouldCancel()) {
             chat.Recv(message);
 
@@ -46,33 +42,39 @@ public:
             }
 
             if (message.data == "close") {
-                chat.Close(server::websocket::CloseStatus::kGoingAway);
+                chat.Close(websocket::CloseStatus::kGoingAway);
                 break;
             }
 
-            chat.Send(std::move(message));
+            chat.Send(message);
         }
         if (message.close_status) {
             chat.Close(*message.close_status);
         }
     }
+
+    std::string HandleNonWebsocketRequest(server::http::HttpRequest& request, server::request::RequestContext&)
+        const override {
+        request.GetHttpResponse().SetStatus(server::http::HttpStatus::kBadRequest);
+        return "Not a websocket request";
+    }
 };
 
-class WebsocketsHandlerAlt final : public server::websocket::WebsocketHandlerBase {
+class WebsocketsHandlerAlt final : public server::handlers::WebsocketHandlerBase {
 public:
     static constexpr std::string_view kName = "websocket-handler-alt";
 
     using WebsocketHandlerBase::WebsocketHandlerBase;
 
-    void Handle(server::websocket::WebSocketConnection& chat, server::request::RequestContext&) const override {
-        server::websocket::Message message;
+    void Handle(websocket::WebSocketConnection& chat, server::request::RequestContext&) const override {
+        websocket::Message message;
         while (!engine::current_task::ShouldCancel()) {
             const bool msg_is_received = chat.TryRecv(message);
             if (msg_is_received) {
                 if (message.close_status) {
                     break;
                 }
-                chat.Send(std::move(message));
+                chat.Send(message);
             } else {
                 // we could've sent yet another server::websocket::Message
                 // e.g. chat.SendBinary(server::websocket::Message{ "blah", {}, true });
@@ -84,18 +86,18 @@ public:
     }
 };
 
-class WebsocketsFullDuplexHandler final : public server::websocket::WebsocketHandlerBase {
+class WebsocketsFullDuplexHandler final : public server::handlers::WebsocketHandlerBase {
 public:
     static constexpr std::string_view kName = "websocket-duplex-handler";
 
     using WebsocketHandlerBase::WebsocketHandlerBase;
 
-    void Handle(server::websocket::WebSocketConnection& chat, server::request::RequestContext&) const override {
+    void Handle(websocket::WebSocketConnection& chat, server::request::RequestContext&) const override {
         // Some sync data
         auto queue = concurrent::SpscQueue<std::string>::Create();
 
         auto reader = utils::Async("reader", [&chat, producer = queue->GetProducer()] {
-            server::websocket::Message message;
+            websocket::Message message;
             while (!engine::current_task::ShouldCancel()) {
                 chat.Recv(message);
                 if (message.close_status) {
@@ -122,18 +124,18 @@ public:
     }
 };
 
-class WebsocketsPingPongHandler final : public server::websocket::WebsocketHandlerBase {
+class WebsocketsPingPongHandler final : public server::handlers::WebsocketHandlerBase {
 public:
     static constexpr std::string_view kName = "websocket-ping-pong-handler";
 
     using WebsocketHandlerBase::WebsocketHandlerBase;
 
-    void Handle(server::websocket::WebSocketConnection& chat, server::request::RequestContext&) const override {
+    void Handle(websocket::WebSocketConnection& chat, server::request::RequestContext&) const override {
         std::chrono::milliseconds time_without_sends{0};
         while (!engine::current_task::ShouldCancel()) {
             if (chat.NotAnsweredSequentialPingsCount() > 3) {
                 LOG_WARNING() << "Ping not answered, closing connection";
-                chat.Close(server::websocket::CloseStatus::kGoingAway);
+                chat.Close(websocket::CloseStatus::kGoingAway);
                 break;
             }
 

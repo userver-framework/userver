@@ -1,3 +1,5 @@
+import collections
+
 import grpc
 import pytest
 import pytest_userver.client
@@ -18,6 +20,26 @@ async def test_error_status(service_client, grpc_mockserver):
     ex_info.match("'samples.api.GreeterService/SayHello' failed: code=UNAVAILABLE, message='Greeter is down'")
     assert mock_say_hello.times_called == 2
     # /// [Mocked error status]
+
+
+# Taken from grpcio-status.
+class _Status(collections.namedtuple('_Status', ('code', 'details', 'trailing_metadata')), grpc.Status):
+    pass
+
+
+async def test_error_status_via_abort_with_status(service_client, grpc_mockserver):
+    @grpc_mockserver(greeter_services.GreeterServiceServicer.SayHello)
+    async def mock_say_hello(request, context: grpc.aio.ServicerContext):
+        # NOTE: this is a partially internal API in grpcio. Use `abort` syntax instead if possible.
+        # Don't forget the `await`!
+        await context.abort_with_status(
+            _Status(code=grpc.StatusCode.UNAVAILABLE, details='Greeter is down', trailing_metadata=())
+        )
+
+    with pytest.raises(pytest_userver.client.TestsuiteTaskFailed) as ex_info:
+        await service_client.run_task('call-say-hello')
+    ex_info.match("'samples.api.GreeterService/SayHello' failed: code=UNAVAILABLE, message='Greeter is down'")
+    assert mock_say_hello.times_called == 2
 
 
 async def test_error_status_via_result(service_client, grpc_mockserver):

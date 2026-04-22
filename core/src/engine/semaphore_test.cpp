@@ -205,9 +205,11 @@ UTEST_MT(Semaphore, LockPassing, 4) {
 
     while (!test_deadline.IsReached()) {
         std::vector<engine::TaskWithResult<void>> tasks;
+        tasks.reserve(GetThreadCount());
         for (size_t i = 0; i < GetThreadCount(); ++i) {
             tasks.push_back(engine::AsyncNoSpan(work));
         }
+
         for (auto& task : tasks) {
             task.Get();
         }
@@ -218,6 +220,7 @@ UTEST_MT(Semaphore, LockFastPathRace, 5) {
     const auto test_deadline = engine::Deadline::FromDuration(100ms);
     engine::Semaphore sem{-1UL};
     std::vector<engine::TaskWithResult<void>> tasks;
+    tasks.reserve(GetThreadCount());
 
     for (std::size_t i = 0; i < GetThreadCount(); ++i) {
         tasks.push_back(engine::AsyncNoSpan([&] {
@@ -247,6 +250,7 @@ UTEST(Semaphore, AllWaitersWakeUpWhenNeeded) {
     }
 
     std::vector<engine::TaskWithResult<void>> tasks;
+    tasks.reserve(kLocksCount);
 
     std::atomic<std::size_t> locks_acquired{0};
     engine::SingleConsumerEvent all_locks_acquired;

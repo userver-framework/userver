@@ -15,6 +15,9 @@
 #include <userver/proto-structs/io/std/vector_conv.hpp>
 
 #include <userver/proto-structs/io/userver/decimal64/decimal_conv.hpp>
+#include <userver/proto-structs/io/userver/formats/json/array_conv.hpp>
+#include <userver/proto-structs/io/userver/formats/json/object_conv.hpp>
+#include <userver/proto-structs/io/userver/formats/json/value_conv.hpp>
 #include <userver/proto-structs/io/userver/proto_structs/any_conv.hpp>
 #include <userver/proto-structs/io/userver/proto_structs/date_conv.hpp>
 #include <userver/proto-structs/io/userver/proto_structs/duration_conv.hpp>

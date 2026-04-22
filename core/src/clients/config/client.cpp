@@ -95,6 +95,11 @@ formats::json::Value Client::FetchConfigs(
             body.Key("is_prestable");
             WriteToStream(true, body);
         }
+
+        if (!config_.circuit.empty()) {
+            body.Key("circuit");
+            WriteToStream(config_.circuit, body);
+        }
     }
 
     LOG_TRACE() << "request body: " << body.GetStringView();

@@ -57,7 +57,7 @@ private:
 
 const UserAuthInfo& GetUserAuthInfo(const server::request::RequestContext& request_context);
 
-const std::optional<UserAuthInfo> GetUserAuthInfoOpt(const server::request::RequestContext& request_context);
+std::optional<UserAuthInfo> GetUserAuthInfoOpt(const server::request::RequestContext& request_context);
 
 }  // namespace server::auth
 

@@ -1,41 +1,34 @@
 #include <userver/ugrpc/server/impl/service_worker_impl.hpp>
 
-#include <chrono>
-
-#include <grpc/support/time.h>
-
-#include <userver/logging/log.hpp>
-#include <userver/tracing/opentelemetry.hpp>
-#include <userver/tracing/tags.hpp>
-#include <userver/utils/algo.hpp>
-#include <userver/utils/from_string.hpp>
-#include <userver/utils/impl/source_location.hpp>
-#include <userver/utils/impl/userver_experiments.hpp>
-
-#include <ugrpc/impl/rpc_metadata.hpp>
-#include <userver/ugrpc/impl/to_string.hpp>
-#include <userver/ugrpc/status_codes.hpp>
+#include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::server::impl {
 
-void ParseGenericCallName(
-    std::string_view generic_call_name,
-    std::string_view& call_name,
-    std::string_view& service_name,
-    std::string_view& method_name
-) {
+GenericMethodParseResults ParseGenericMethodName(std::string_view generic_method_name) {
     UINVARIANT(
-        !generic_call_name.empty() && generic_call_name[0] == '/',
-        "Generic service call name must start with a '/'"
+        !generic_method_name.empty() && generic_method_name[0] == '/',
+        "Generic service method name must start with a '/'"
     );
-    generic_call_name.remove_prefix(1);
-    const auto slash_pos = generic_call_name.find('/');
-    UINVARIANT(slash_pos != std::string_view::npos, "Generic service call name must contain a '/'");
-    call_name = generic_call_name;
-    service_name = generic_call_name.substr(0, slash_pos);
-    method_name = generic_call_name.substr(slash_pos + 1);
+    const auto slash_pos = generic_method_name.find('/', 1);
+    UINVARIANT(slash_pos != std::string_view::npos, "Generic service method name must contain a '/'");
+
+    /*
+     expected generic_method_name format:
+
+     "/<service-name>/<method-name>"
+
+    */
+    auto call_name = generic_method_name.substr(1);
+    auto service_name = generic_method_name.substr(1, slash_pos - 1);
+    auto method_name = generic_method_name.substr(slash_pos + 1);
+
+    return GenericMethodParseResults{
+        .call_name = call_name,
+        .service_name = service_name,
+        .method_name = method_name,
+    };
 }
 
 }  // namespace ugrpc::server::impl

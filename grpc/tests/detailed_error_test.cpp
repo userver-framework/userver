@@ -50,8 +50,8 @@ public:
         ugrpc::RichStatus rich_status{
             grpc::StatusCode::RESOURCE_EXHAUSTED,
             "message",
-            ugrpc::Help{{{"test_url", "http://help.url/auth/fts-documentation/tvm"}}},
-            ugrpc::QuotaFailure{{{"123-pipepline000", "fts quota [fts-receive] exhausted"}}},
+            ugrpc::Help{{{.description = "test_url", .url = "http://help.url/auth/fts-documentation/tvm"}}},
+            ugrpc::QuotaFailure{{{.subject = "123-pipepline000", .description = "fts quota [fts-receive] exhausted"}}},
         };
 
         return rich_status.ToGrpcStatus();
@@ -80,27 +80,22 @@ void RunUnaryRPCTest(Client& client) {
 
 }  // namespace
 
-using GrpcClientWithDetailedErrorTest = ugrpc::tests::ServiceFixture<UnitTestServiceWithDetailedError>;
+using GrpcClientWithDetailedErrorTest =
+    ugrpc::tests::ServiceWithClientFixture<UnitTestServiceWithDetailedError, sample::ugrpc::UnitTestServiceClient>;
 
-UTEST_F(GrpcClientWithDetailedErrorTest, UnaryRPC) {
-    auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
-    RunUnaryRPCTest(client);
-}
+UTEST_F(GrpcClientWithDetailedErrorTest, UnaryRPC) { RunUnaryRPCTest(GetClient()); }
 
-using GrpcClientWithDetailedRichErrorTest = ugrpc::tests::ServiceFixture<UnitTestServiceWithDetailedRichError>;
+using GrpcClientWithDetailedRichErrorTest =
+    ugrpc::tests::ServiceWithClientFixture<UnitTestServiceWithDetailedRichError, sample::ugrpc::UnitTestServiceClient>;
 
-UTEST_F(GrpcClientWithDetailedRichErrorTest, UnaryRPCCorrectMessage) {
-    auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
-    RunUnaryRPCTest(client);
-}
+UTEST_F(GrpcClientWithDetailedRichErrorTest, UnaryRPCCorrectMessage) { RunUnaryRPCTest(GetClient()); }
 
 /// [try_get_rich_error_detail]
 UTEST_F(GrpcClientWithDetailedRichErrorTest, TryGetErrorDetail) {
-    auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
     sample::ugrpc::GreetingRequest out;
     out.set_name("userver");
     try {
-        client.SayHello(out);
+        GetClient().SayHello(out);
         FAIL() << "Expected ResourceExhaustedError";
     } catch (const ugrpc::client::ResourceExhaustedError& e) {
         const auto& status = e.GetStatus();

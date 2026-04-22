@@ -59,7 +59,7 @@ double FromStr(std::string&& str_value, parse::To<double>);
 template <typename Parameter>
 struct ParseParameter {
     static std::string Parse(typename Parameter::RawType&& t) {
-        static_assert(sizeof(t) && false, "Cannot find `ParseParameter`");
+        static_assert(!sizeof(t), "Cannot find `ParseParameter`");
         return {};
     }
 };

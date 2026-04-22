@@ -210,6 +210,7 @@ UTEST_MT(SingleConsumerEvent, ParallelSend, 3) {
     engine::SingleConsumerEvent event;
 
     std::vector<engine::TaskWithResult<void>> producers;
+    producers.reserve(kProducersCount);
     for (std::size_t i = 0; i < kProducersCount; ++i) {
         producers.push_back(engine::CriticalAsyncNoSpan([&] {
             while (!engine::current_task::ShouldCancel()) {

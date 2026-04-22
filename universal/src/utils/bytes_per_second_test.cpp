@@ -26,9 +26,9 @@ INSTANTIATE_TEST_SUITE_P(
     /*no prefix*/,
     StringToBytesPerSecond,
     ::testing::ValuesIn(TestData{
-        {"bytes", "103B/s", 103},
-        {"megaBytes", "3MiB/s", 3 * 1024 * 1024},
-        {"mb", "3mb/s", 3 * 1000 * 1000},
+        {.name = "bytes", .data = "103B/s", .ethalon = 103},
+        {.name = "megaBytes", .data = "3MiB/s", .ethalon = 3 * 1024 * 1024},
+        {.name = "mb", .data = "3mb/s", .ethalon = 3 * 1000 * 1000},
     }),
     ::testing::PrintToStringParamName()
 );

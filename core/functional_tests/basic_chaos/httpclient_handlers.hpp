@@ -33,6 +33,7 @@ public:
         const auto& port_string = request.GetArg("port");
         const auto& timeout_string = request.GetArg("timeout");
         const auto& attempts_string = request.GetArg("attempts");
+        const auto& reuse_attempts_string = request.GetArg("reuse_attempts");
         const auto& retry_network_errors_string = request.GetArg("retry_network_errors");
 
         const auto port = utils::FromString<std::uint16_t>(port_string);
@@ -41,16 +42,32 @@ public:
                 ? kDefaultTimeout
                 : std::chrono::milliseconds{utils::FromString<std::chrono::milliseconds::rep>(timeout_string)};
         const auto attempts = attempts_string.empty() ? short{1} : utils::FromString<short>(attempts_string);
+        auto
+            reuse_attempts = reuse_attempts_string.empty() ? short{1} : utils::FromString<short>(reuse_attempts_string);
         const auto retry_network_errors =
             retry_network_errors_string.empty() ||
             static_cast<bool>(utils::FromString<int>(retry_network_errors_string));
 
         if (type == "common") {
             auto url = fmt::format("http://localhost:{}/test", port);
-            auto response =
-                client_.CreateRequest().get(url).timeout(timeout).retry(attempts, retry_network_errors).perform();
-            response->raise_for_status();
-            return response->body();
+            auto request = client_.CreateRequest().get(url).timeout(timeout).retry(attempts, retry_network_errors);
+            for (;;) {
+                try {
+                    auto response = request.perform();
+                    response->raise_for_status();
+                    return response->body();
+                } catch (const clients::http::CancelException&) {
+                    if (--reuse_attempts > 0) {
+                        continue;
+                    }
+                    throw;
+                } catch (const clients::http::TimeoutException&) {
+                    if (--reuse_attempts > 0) {
+                        continue;
+                    }
+                    throw;
+                }
+            }
         }
 
         UINVARIANT(false, "Unexpected request type");

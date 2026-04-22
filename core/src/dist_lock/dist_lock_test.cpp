@@ -184,7 +184,7 @@ UTEST_MT(LockedWorker, NotEnabled, 3) {
 
     locked_worker.Start();
     strategy->Allow(true);
-    EXPECT_FALSE(work.WaitForLocked(true, utest::kMaxTestWaitTime));
+    EXPECT_FALSE(work.WaitForLocked(true, std::chrono::seconds{1}));
 
     locked_worker.Stop();
 }

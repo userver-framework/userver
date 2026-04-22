@@ -16,12 +16,14 @@ namespace grpc_protovalidate::client {
 ValidationSettings Parse(const yaml_config::YamlConfig& config, formats::parse::To<ValidationSettings>) {
     ValidationSettings settings;
     settings.fail_fast = config["fail-fast"].As<bool>(settings.fail_fast);
+    settings.validate_requests = config["validate-requests"].As<bool>(settings.validate_requests);
     return settings;
 }
 
 Settings Parse(const yaml_config::YamlConfig& config, formats::parse::To<Settings>) {
     Settings settings;
     settings.global.fail_fast = config["fail-fast"].As<bool>(settings.global.fail_fast);
+    settings.global.validate_requests = config["validate-requests"].As<bool>(settings.global.validate_requests);
     settings.per_method = config["methods"].As<utils::impl::TransparentMap<std::string, ValidationSettings>>({});
     return settings;
 }

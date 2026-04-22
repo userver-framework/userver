@@ -22,6 +22,7 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     endif()
 endif()
 
+# @ingroup compilation
 set(USERVER_USE_LD
     "${USERVER_USE_LD_DEFAULT}"
     CACHE STRING "Linker to use e.g. gold, lld"

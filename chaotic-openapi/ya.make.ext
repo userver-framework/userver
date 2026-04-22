@@ -21,5 +21,6 @@ SET_APPEND(
     ${ARCADIA_ROOT}/taxi/uservices/userver/chaotic-openapi/include/userver/chaotic/openapi/parameters.hpp
     ${ARCADIA_ROOT}/taxi/uservices/userver/chaotic-openapi/include/userver/chaotic/openapi/parameters_read.hpp
     ${ARCADIA_ROOT}/taxi/uservices/userver/chaotic-openapi/include/userver/chaotic/openapi/parameters_write.hpp
+    ${ARCADIA_ROOT}/taxi/uservices/userver/chaotic-openapi/include/userver/chaotic/openapi/server/dependencies.hpp
     ${ARCADIA_ROOT}/taxi/uservices/userver/chaotic-openapi/library.yaml
 )

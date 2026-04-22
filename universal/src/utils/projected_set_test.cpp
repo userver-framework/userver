@@ -57,8 +57,8 @@ TYPED_TEST(ProjectedSet, Sample) {
 
     /// [usage]
     UserProjectedSet set;
-    set.insert({"fabulous_tony", "Anthony", 17});
-    set.insert({"sassy_nancy", "Anne", 71});
+    set.insert({.username = "fabulous_tony", .first_name = "Anthony", .age = 17});
+    set.insert({.username = "sassy_nancy", .first_name = "Anne", .age = 71});
 
     EXPECT_EQ(utils::ProjectedFind(set, "sassy_nancy")->first_name, "Anne");
     EXPECT_EQ(utils::ProjectedFind(set, "meaning_of_life"), set.end());

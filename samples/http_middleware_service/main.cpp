@@ -22,7 +22,6 @@ public:
 
 /// [Middlewares sample - minimal implementation]
 class NoopMiddleware final : public server::middlewares::HttpMiddlewareBase {
-private:
     void HandleRequest(server::http::HttpRequest& request, server::request::RequestContext& context) const override {
         Next(request, context);
     }

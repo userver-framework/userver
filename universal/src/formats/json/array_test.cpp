@@ -28,7 +28,10 @@ TEST(FormatsJsonArray, EmptyByDefault) {
 
     formats::json::Array array;
 
+    ASSERT_TRUE(array.GetValue().IsArray());
     EXPECT_TRUE(array.IsEmpty());
+    EXPECT_EQ(array.begin(), array.end());
+    EXPECT_EQ(array.rbegin(), array.rend());
     EXPECT_EQ(array.GetSize(), std::size_t{0});
     EXPECT_THROW(array.CheckInBounds(std::size_t{1}), formats::json::OutOfBoundsException);
     EXPECT_TRUE(array.IsRoot());
@@ -46,6 +49,7 @@ TEST(FormatsJsonArray, CanBeParsedFromValue) {
     formats::json::Array array;
 
     ASSERT_NO_THROW(array = json["array"].As<formats::json::Array>());
+    ASSERT_TRUE(array.GetValue().IsArray());
     EXPECT_FALSE(array.IsRoot());
     EXPECT_EQ(array.GetPath(), "array");
     EXPECT_FALSE(array.IsEmpty());
@@ -76,6 +80,8 @@ TEST(FormatsJsonArray, CanBeSerializedToBuilder) {
     builder["array2"] = formats::json::Array{FromString("[1001, 1002, 1003]")};
     const auto json = builder.ExtractValue();
 
+    ASSERT_TRUE(json["array1"].IsArray());
+    ASSERT_TRUE(json["array2"].IsArray());
     EXPECT_EQ(json["array1"].As<std::vector<int>>(), (std::vector<int>{1, 2, 3}));
     EXPECT_EQ(json["array2"].As<std::vector<int>>(), (std::vector<int>{1001, 1002, 1003}));
 }
@@ -89,11 +95,20 @@ TEST(FormatsJsonArray, CanBeComparedForEquality) {
 
     EXPECT_TRUE(array1 == array1);
     EXPECT_FALSE(array1 == array2);
+    EXPECT_FALSE(array1 == array2.GetValue());
+    EXPECT_FALSE(array1.GetValue() == array2);
     EXPECT_TRUE(array1 == array3);
+    EXPECT_TRUE(array1 == array3.GetValue());
+    EXPECT_TRUE(array1.GetValue() == array3);
     EXPECT_FALSE(array1 == array4);
+
     EXPECT_FALSE(array1 != array1);
     EXPECT_TRUE(array1 != array2);
+    EXPECT_TRUE(array1 != array2.GetValue());
+    EXPECT_TRUE(array1.GetValue() != array2);
     EXPECT_FALSE(array1 != array3);
+    EXPECT_FALSE(array1 != array3.GetValue());
+    EXPECT_FALSE(array1.GetValue() != array3);
     EXPECT_TRUE(array1 != array4);
 }
 
@@ -111,6 +126,14 @@ TEST(FormatsJsonArray, CanBeConvertedToContainers) {
     const std::vector<int> expected{1, 2, 3};
 
     EXPECT_EQ(array.As<std::vector<int>>(), expected);
+    EXPECT_EQ(array.ConvertTo<std::vector<int>>(), expected);
+}
+
+TEST(FormatsJsonArray, OptionalEmptyArray) {
+    auto array{formats::json::FromString("[]")};
+    const std::vector<int> expected{};
+
+    EXPECT_EQ(array.As<std::optional<std::vector<int>>>(), expected);
     EXPECT_EQ(array.ConvertTo<std::vector<int>>(), expected);
 }
 

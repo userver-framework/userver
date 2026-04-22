@@ -18,6 +18,14 @@ USERVER_NAMESPACE_BEGIN
 
 namespace kafka {
 
+namespace {
+
+std::string TaskProcessorName(std::string_view name, const components::ComponentConfig& config) {
+    return config[name].As<std::string>(name);
+}
+
+}  // namespace
+
 ConsumerComponent::ConsumerComponent(
     const components::ComponentConfig& config,
     const components::ComponentContext& context
@@ -26,9 +34,9 @@ ConsumerComponent::ConsumerComponent(
       consumer_(
           config.Name(),
           config["topics"].As<std::vector<std::string>>(),
-          context.GetTaskProcessor("consumer-task-processor"),
-          context.GetTaskProcessor("consumer-blocking-task-processor"),
-          context.GetTaskProcessor("main-task-processor"),
+          context.GetTaskProcessor(TaskProcessorName("consumer-task-processor", config)),
+          context.GetTaskProcessor(TaskProcessorName("consumer-blocking-task-processor", config)),
+          context.GetTaskProcessor(config["task-processor"].As<std::string>("main-task-processor")),
           config.As<impl::ConsumerConfiguration>(),
           context.FindComponent<components::Secdist>()
               .Get()

@@ -1,6 +1,6 @@
 These headers are imported from https://github.com/cameron314/concurrentqueue
 
-Commit: https://github.com/cameron314/concurrentqueue/commit/6dd38b8a1dbaa7863aa907045f32308a56a6ff5d
+Commit: https://github.com/cameron314/concurrentqueue/commit/9afb99746f0f5fc94ac8aef737053ae0481ba8d1
 
 # moodycamel::ConcurrentQueue<T>
 

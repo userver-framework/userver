@@ -41,12 +41,12 @@ inline constexpr char kIsCidr = 1;
 inline constexpr char kIsInet = 0;
 
 template <typename T>
-inline constexpr bool kIsNetworkType =
+concept NetworkType =
     std::is_same_v<T, USERVER_NAMESPACE::utils::ip::NetworkV4> ||
     std::is_same_v<T, USERVER_NAMESPACE::utils::ip::NetworkV6>;
 
 template <typename T>
-inline constexpr bool kIsAddressType =
+concept AddressType =
     std::is_same_v<T, USERVER_NAMESPACE::utils::ip::AddressV4> ||
     std::is_same_v<T, USERVER_NAMESPACE::utils::ip::AddressV6>;
 
@@ -76,7 +76,7 @@ protected:
     }
 };
 
-template <typename T, typename = std::enable_if_t<kIsAddressType<T>>>
+template <AddressType T>
 struct AddressNetworkBuffer : IpBufferFormatterBase<T> {
     using BaseType = IpBufferFormatterBase<T>;
     using BaseType::BaseType;
@@ -96,7 +96,7 @@ struct AddressNetworkBuffer : IpBufferFormatterBase<T> {
     }
 };
 
-template <typename T, typename = std::enable_if_t<kIsNetworkType<T>>>
+template <NetworkType T>
 struct NetworkBufferFormatter : IpBufferFormatterBase<T> {
     using BaseType = IpBufferFormatterBase<T>;
     using BaseType::BaseType;
@@ -186,7 +186,7 @@ private:
     }
 };
 
-template <typename T, typename = std::enable_if_t<kIsNetworkType<T>>>
+template <NetworkType T>
 struct NetworkBufferParser : IpBufferParserBase<T> {
     using BaseType = IpBufferParserBase<T>;
     using BaseType::BaseType;
@@ -206,7 +206,7 @@ struct NetworkBufferParser : IpBufferParserBase<T> {
     }
 };
 
-template <typename T, typename = std::enable_if_t<kIsAddressType<T>>>
+template <AddressType T>
 struct AddressBufferParser : detail::IpBufferParserBase<T> {
     using BaseType = detail::IpBufferParserBase<T>;
     using BaseType::BaseType;

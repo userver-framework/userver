@@ -34,9 +34,9 @@ constexpr auto kStrongConnect = middlewares::DependencyType::kStrong;
 constexpr auto kWeakConnect = middlewares::DependencyType::kWeak;
 
 const auto kEmptyConfig = middlewares::impl::MiddlewareRunnerConfig{
-    {},
-    /* disable_user_group=*/false,
-    /* disable_all=*/false,
+    .middlewares = {},
+    .disable_user_group = false,
+    .disable_all = false,
 };
 
 template <typename Middleware>
@@ -246,12 +246,12 @@ TEST(MiddlewarePipeline, DisablePerService) {
 
     const middlewares::impl::MiddlewarePipeline pipeline{std::move(dependencies)};
     const auto list = pipeline.GetPerServiceMiddlewares(middlewares::impl::MiddlewareRunnerConfig{
-        {{
+        .middlewares = {{
             {std::string{Deadline::kName}, FalseConf()},
             {std::string{U1::kName}, FalseConf()},
         }},
-        /* disable_user_group=*/false,
-        /* disable_all=*/false,
+        .disable_user_group = false,
+        .disable_all = false,
     });
 
     const std::vector<std::string> expected{
@@ -270,11 +270,11 @@ TEST(MiddlewarePipeline, DisableUserGroup) {
 
     const middlewares::impl::MiddlewarePipeline pipeline{std::move(dependencies)};
     const auto list = pipeline.GetPerServiceMiddlewares(middlewares::impl::MiddlewareRunnerConfig{
-        {{
+        .middlewares = {{
             {std::string{Baggage::kName}, TrueConf()},
         }},
-        /* disable_user_group=*/true,
-        /* disable_all=*/false,
+        .disable_user_group = true,
+        .disable_all = false,
     });
 
     const std::vector<std::string> expected{
@@ -298,13 +298,13 @@ TEST(MiddlewarePipeline, DisableAllPipelineMiddlewares) {
         .emplace(std::string{A2::kName}, Builder().InGroup<middlewares::groups::Auth>().ExtractDependency(A2::kName));
     const middlewares::impl::MiddlewarePipeline pipeline{std::move(dependencies)};
     const auto list = pipeline.GetPerServiceMiddlewares(middlewares::impl::MiddlewareRunnerConfig{
-        {{
+        .middlewares = {{
             {std::string{A1::kName}, TrueConf()},
             {std::string{A2::kName}, TrueConf()},
             {std::string{Deadline::kName}, TrueConf()},
         }},
-        /* disable_user_group=*/false,
-        /* disable_all=*/true,
+        .disable_user_group = false,
+        .disable_all = true,
     });
 
     // Disable the global pipeline, but local force enabled, so there are middlewares from MiddlewareServiceConfig
@@ -321,9 +321,9 @@ TEST(MiddlewarePipeline, DisableAll) {
 
     const middlewares::impl::MiddlewarePipeline pipeline{std::move(dependencies)};
     const auto list = pipeline.GetPerServiceMiddlewares(middlewares::impl::MiddlewareRunnerConfig{
-        {},
-        /* disable_user_group=*/false,
-        /* disable_all=*/true,
+        .middlewares = {},
+        .disable_user_group = false,
+        .disable_all = true,
     });
     ASSERT_TRUE(list.empty());
 }
@@ -336,12 +336,12 @@ TEST(MiddlewarePipeline, GlobalDisableAndPerServiceEnable) {
 
     const middlewares::impl::MiddlewarePipeline pipeline{std::move(dependencies)};
     const auto list = pipeline.GetPerServiceMiddlewares(middlewares::impl::MiddlewareRunnerConfig{
-        {{
+        .middlewares = {{
             {std::string{Log::kName}, TrueConf()},
             {std::string{Baggage::kName}, TrueConf()},
         }},
-        /* disable_user_group=*/false,
-        /* disable_all=*/false,
+        .disable_user_group = false,
+        .disable_all = false,
     });
 
     const std::vector<std::string> expected{

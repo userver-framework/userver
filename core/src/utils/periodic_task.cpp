@@ -14,6 +14,7 @@
 #include <userver/logging/log.hpp>
 #include <userver/rcu/rcu.hpp>
 #include <userver/testsuite/periodic_task_control.hpp>
+#include <userver/testsuite/tasks.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/tracing/tracer.hpp>
 #include <userver/utils/rand.hpp>
@@ -223,6 +224,7 @@ void PeriodicTask::Impl::Run() {
     }
 }
 
+// NOLINTNEXTLINE(readability-make-member-function-const)
 bool PeriodicTask::Impl::DoStep() {
     auto settings_ptr = settings.Read();
     const auto span_log_level = settings_ptr->span_level;
@@ -310,6 +312,21 @@ void PeriodicTask::RegisterInTestsuite(testsuite::PeriodicTaskControl& periodic_
 PeriodicTask::Settings PeriodicTask::GetCurrentSettings() const {
     auto settings_ptr = impl_->settings.Read();
     return *settings_ptr;
+}
+
+void StartPeriodicTask(
+    PeriodicTask& periodic_task,
+    std::string name,
+    const PeriodicTask::Settings& settings,
+    PeriodicTask::Callback callback,
+    testsuite::TestsuiteTasks& testsuite_tasks
+)
+{
+    if (testsuite_tasks.IsEnabled()) {
+        testsuite_tasks.RegisterTask("periodic/" + name, std::move(callback));
+    } else {
+        periodic_task.Start(std::move(name), settings, std::move(callback));
+    }
 }
 
 }  // namespace utils

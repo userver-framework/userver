@@ -1,6 +1,6 @@
 #include "generic_wait_list.hpp"
 
-#include <engine/task/task_context.hpp>
+#include <userver/engine/impl/awaiter.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/overloaded.hpp>
 
@@ -10,49 +10,48 @@ namespace engine::impl {
 
 auto GenericWaitList::CreateWaitList(Task::WaitMode wait_mode) noexcept {
     using ReturnType = std::variant<WaitListLight, WaitListAndSignal>;
-    if (wait_mode == Task::WaitMode::kSingleWaiter) {
+    if (wait_mode == Task::WaitMode::kSingleAwaiter) {
         return ReturnType{std::in_place_type<WaitListLight>};
     }
-    UASSERT_MSG(wait_mode == Task::WaitMode::kMultipleWaiters, "Unexpected Task::WaitMode");
+    UASSERT_MSG(wait_mode == Task::WaitMode::kMultipleAwaiters, "Unexpected Task::WaitMode");
     return ReturnType{std::in_place_type<WaitListAndSignal>};
 }
 
-GenericWaitList::GenericWaitList(Task::WaitMode wait_mode) noexcept : waiters_(CreateWaitList(wait_mode)) {}
+GenericWaitList::GenericWaitList(Task::WaitMode wait_mode) noexcept : awaiters_(CreateWaitList(wait_mode)) {}
 
-bool GenericWaitList::GetSignalOrAppend(boost::intrusive_ptr<TaskContext>&& context) noexcept {
-    return utils::Visit(
-        waiters_,  //
-        [&context](WaitListLight& ws) { return ws.GetSignalOrAppend(std::move(context)); },
-        [&context](WaitListAndSignal& ws) {
+void GenericWaitList::GetSignalOrAppend(boost::intrusive_ptr<Awaiter>& awaiter, std::uintptr_t context) noexcept {
+    utils::Visit(
+        awaiters_,  //
+        [&awaiter, context](WaitListLight& ws) { ws.GetSignalOrAppend(awaiter, context); },
+        [&awaiter, context](WaitListAndSignal& ws) {
             if (ws.signal.load()) {
-                return true;
+                return;
             }
             WaitList::Lock lock{ws.wl};
             if (ws.signal.load()) {
-                return true;
+                return;
             }
-            ws.wl.Append(lock, std::move(context));
-            return false;
+            ws.wl.Append(lock, std::move(awaiter), context);
         }
     );
 }
 
-// noexcept: waiters_ are never valueless_by_exception
-void GenericWaitList::Remove(TaskContext& context) noexcept {
+// noexcept: awaiters_ are never valueless_by_exception
+void GenericWaitList::Remove(Awaiter& awaiter, std::uintptr_t context) noexcept {
     utils::Visit(
-        waiters_,  //
-        [&context](WaitListLight& ws) { ws.Remove(context); },
-        [&context](WaitListAndSignal& ws) {
+        awaiters_,  //
+        [&awaiter, context](WaitListLight& ws) { ws.Remove(awaiter, context); },
+        [&awaiter, context](WaitListAndSignal& ws) {
             WaitList::Lock lock{ws.wl};
-            ws.wl.Remove(lock, context);
+            ws.wl.Remove(lock, awaiter, context);
         }
     );
 }
 
-void GenericWaitList::SetSignalAndWakeupAll() {
+void GenericWaitList::SetSignalAndNotifyAll() {
     utils::Visit(
-        waiters_,  //
-        [](WaitListLight& ws) { ws.SetSignalAndWakeupOne(); },
+        awaiters_,  //
+        [](WaitListLight& ws) { ws.SetSignalAndNotifyOne(); },
         [](WaitListAndSignal& ws) {
             if (ws.signal.load()) {
                 return;
@@ -61,22 +60,22 @@ void GenericWaitList::SetSignalAndWakeupAll() {
             if (ws.signal.load()) {
                 return;
             }
-            // seq_cst is important for the "Append-Check-Wakeup" sequence.
+            // seq_cst is important for the "Append-Check-Notify" sequence.
             ws.signal.store(true, std::memory_order_seq_cst);
-            ws.wl.WakeupAll(lock);
+            ws.wl.NotifyAll(lock);
         }
     );
 }
 
 bool GenericWaitList::IsSignaled() const noexcept {
     return utils::Visit(
-        waiters_,  //
+        awaiters_,  //
         [](const WaitListLight& ws) { return ws.IsSignaled(); },
         [](const WaitListAndSignal& ws) { return ws.signal.load(); }
     );
 }
 
-bool GenericWaitList::IsShared() const noexcept { return std::holds_alternative<WaitListAndSignal>(waiters_); }
+bool GenericWaitList::IsShared() const noexcept { return std::holds_alternative<WaitListAndSignal>(awaiters_); }
 
 }  // namespace engine::impl
 

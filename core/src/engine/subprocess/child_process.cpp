@@ -22,7 +22,7 @@ bool ChildProcess::WaitUntil(Deadline deadline) { return impl_->WaitUntil(deadli
 
 ChildProcessStatus ChildProcess::Get() { return impl_->Get(); }
 
-void ChildProcess::SendSignal(int signum) { return impl_->SendSignal(signum); }
+void ChildProcess::SendSignal(int signum) { impl_->SendSignal(signum); }
 
 }  // namespace engine::subprocess
 

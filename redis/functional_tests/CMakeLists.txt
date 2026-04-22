@@ -11,6 +11,9 @@ endfunction()
 add_subdirectory(basic_chaos)
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-basic-chaos)
 
+add_subdirectory(dynamic_cluster)
+add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-dynamic-cluster)
+
 add_subdirectory(database_index)
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-database-index)
 

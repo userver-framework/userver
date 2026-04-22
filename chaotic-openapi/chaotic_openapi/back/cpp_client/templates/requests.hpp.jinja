@@ -26,8 +26,8 @@ namespace {{ namespace }} {
 
 {% for op in operations %}
   {% if op.client_generate %}
-    {%- if not op.empty_request() -%}
       namespace {{ op.cpp_namespace() }} {
+    {%- if not op.empty_request() -%}
       {% if len(op.request_bodies) == 1 %}
         using Body = {{ op.request_bodies[0].schema.cpp_user_name() }};
       {% elif len(op.request_bodies) > 1 %}
@@ -68,10 +68,12 @@ namespace {{ namespace }} {
               Body body;
           {% endif %}
         };
+    {% else %}
+        struct Request {};
+    {%- endif %}
 
         void SerializeRequest(const Request& request, const std::string& base_url, USERVER_NAMESPACE::clients::http::Request& http_request);
       }
-    {%- endif %}
   {% endif %}
 {% endfor %}
 

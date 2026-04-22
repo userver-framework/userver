@@ -11,21 +11,21 @@ namespace static_test {
 
 namespace tt = io::traits;
 
-static_assert(tt::kHasFormatter<std::string>);
-static_assert(tt::kHasParser<std::string>);
+static_assert(tt::HasFormatter<std::string>);
+static_assert(tt::HasParser<std::string>);
 
 static_assert(tt::kIsMappedToPg<std::string>);
 
-static_assert(tt::kHasFormatter<const char*>);
+static_assert(tt::HasFormatter<const char*>);
 
 static_assert(tt::kIsMappedToPg<const char*>);
 
-static_assert(tt::kHasFormatter<char[5]>);
+static_assert(tt::HasFormatter<char[5]>);
 
 static_assert(tt::kIsMappedToPg<char[5]>);
 
-static_assert(tt::kHasFormatter<char>);
-static_assert(tt::kHasParser<char>);
+static_assert(tt::HasFormatter<char>);
+static_assert(tt::HasParser<char>);
 
 static_assert(tt::kIsMappedToPg<char>);
 

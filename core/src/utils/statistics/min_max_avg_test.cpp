@@ -103,6 +103,7 @@ TEST(MinMaxAvg, Stress) {
     };
 
     std::vector<std::future<MmaType>> futures;
+    futures.reserve(kStressNumThreads);
     for (size_t i = 0; i < kStressNumThreads; ++i) {
         futures.push_back(std::async(std::launch::async, work));
     }

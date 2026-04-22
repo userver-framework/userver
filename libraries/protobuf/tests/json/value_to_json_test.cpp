@@ -19,14 +19,14 @@ namespace protobuf::json::tests {
 struct ValueToJsonSuccessTestParam {
     ValueMessageData input = {};
     std::string expected_json = {};
-    WriteOptions options = {};
+    PrintOptions options = {};
 };
 
 struct ValueToJsonFailureTestParam {
     ValueMessageData input = {};
-    WriteErrorCode expected_errc = {};
+    PrintErrorCode expected_errc = {};
     std::string expected_path = {};
-    WriteOptions options = {};
+    PrintOptions options = {};
 
     // We want to skip some native checks because userver implementation has stricter requirements.
     bool skip_native_check = false;
@@ -42,6 +42,7 @@ INSTANTIATE_TEST_SUITE_P(
         testing::
             Values(
                 ValueToJsonSuccessTestParam{ValueMessageData{}, R"({})"},
+                ValueToJsonSuccessTestParam{ValueMessageData{ProtoValue{std::monostate{}}}, R"({})"},
                 ValueToJsonSuccessTestParam{ValueMessageData{ProtoValue{kProtoNullValue}}, R"({"field1":null})"},
                 ValueToJsonSuccessTestParam{ValueMessageData{ProtoValue{1.5}}, R"({"field1":1.5})"},
                 ValueToJsonSuccessTestParam{ValueMessageData{ProtoValue{"hello"}}, R"({"field1":"hello"})"},
@@ -92,6 +93,12 @@ INSTANTIATE_TEST_SUITE_P(
                     R"({"field1":[null,1.5,"hello",true,[1.5,1.5],{"aaa":"hello","bbb":"world"}]})"
                 },
                 ValueToJsonSuccessTestParam{
+                    ValueMessageData{std::vector<
+                        ProtoValue>{ProtoValue{1.5}, ProtoValue{std::monostate{}}, ProtoValue{true}}},
+                    R"({"field1":[1.5,true]})"
+                },
+
+                ValueToJsonSuccessTestParam{
                     ValueMessageData{
                         std::map<std::string, ProtoValue>{},
                     },
@@ -115,6 +122,16 @@ INSTANTIATE_TEST_SUITE_P(
                         },
                     },
                     R"({"field1":{"aaa":null,"bbb":1.5,"ccc":"hello","ddd":true,"eee":[1.5,1.5],"":{"":"hello","bbb":"world"}}})"
+                },
+                ValueToJsonSuccessTestParam{
+                    ValueMessageData{
+                        std::map<std::string, ProtoValue>{
+                            {"aaa", ProtoValue{1.5}},
+                            {"bbb", ProtoValue{std::monostate{}}},
+                            {"ccc", ProtoValue{true}}
+                        },
+                    },
+                    R"({"field1":{"aaa":1.5,"ccc":true}})"
                 }
             )
 );
@@ -124,38 +141,24 @@ INSTANTIATE_TEST_SUITE_P(
     ValueToJsonFailureTest,
     ::testing::Values(
         ValueToJsonFailureTestParam{
-            ValueMessageData{ProtoValue{std::monostate{}}},
-            WriteErrorCode::kInvalidValue,
-            "field1",
-            {},
-            true  // native implementation silently discards 'Value' without any alternative set which we find bug-prone
-        },
-        ValueToJsonFailureTestParam{
             ValueMessageData{ProtoValue{std::numeric_limits<double>::quiet_NaN()}},
-            WriteErrorCode::kInvalidValue,
+            PrintErrorCode::kInvalidValue,
             "field1.number_value"
         },
         ValueToJsonFailureTestParam{
             ValueMessageData{ProtoValue{std::numeric_limits<double>::signaling_NaN()}},
-            WriteErrorCode::kInvalidValue,
+            PrintErrorCode::kInvalidValue,
             "field1.number_value"
         },
         ValueToJsonFailureTestParam{
             ValueMessageData{ProtoValue{std::numeric_limits<double>::infinity()}},
-            WriteErrorCode::kInvalidValue,
+            PrintErrorCode::kInvalidValue,
             "field1.number_value"
         },
         ValueToJsonFailureTestParam{
             ValueMessageData{ProtoValue{-std::numeric_limits<double>::infinity()}},
-            WriteErrorCode::kInvalidValue,
+            PrintErrorCode::kInvalidValue,
             "field1.number_value"
-        },
-        ValueToJsonFailureTestParam{
-            ValueMessageData{std::vector<ProtoValue>{ProtoValue{1.5}, ProtoValue{std::monostate{}}, ProtoValue{true}}},
-            WriteErrorCode::kInvalidValue,
-            "field1.list_value.values[1]",
-            {},
-            true
         },
         ValueToJsonFailureTestParam{
             ValueMessageData{std::vector<ProtoValue>{
@@ -163,18 +166,8 @@ INSTANTIATE_TEST_SUITE_P(
                 ProtoValue{std::vector<double>{1.5, std::numeric_limits<double>::infinity()}},
                 ProtoValue{true}
             }},
-            WriteErrorCode::kInvalidValue,
+            PrintErrorCode::kInvalidValue,
             "field1.list_value.values[1].list_value.values[1].number_value"
-        },
-        ValueToJsonFailureTestParam{
-            ValueMessageData{std::map<
-                std::string,
-                ProtoValue>{{"aaa", ProtoValue{1.5}}, {"bbb", ProtoValue{std::monostate{}}}, {"ccc", ProtoValue{true}}}
-            },
-            WriteErrorCode::kInvalidValue,
-            "field1.struct_value.fields['bbb']",
-            {},
-            true
         }
     )
 );
@@ -183,7 +176,9 @@ TEST_P(ValueToJsonSuccessTest, Test) {
     const auto& param = GetParam();
 
     auto input = PrepareTestData(param.input);
-    formats::json::Value json, expected_json, sample_json;
+    formats::json::Value json;
+    formats::json::Value expected_json;
+    formats::json::Value sample_json;
 
     UASSERT_NO_THROW((json = MessageToJson(input, param.options)));
     UASSERT_NO_THROW((expected_json = PrepareJsonTestData(param.expected_json)));
@@ -197,7 +192,7 @@ TEST_P(ValueToJsonFailureTest, Test) {
     const auto& param = GetParam();
     auto input = PrepareTestData(param.input);
 
-    EXPECT_WRITE_ERROR((void)MessageToJson(input, param.options), param.expected_errc, param.expected_path);
+    EXPECT_PRINT_ERROR((void)MessageToJson(input, param.options), param.expected_errc, param.expected_path);
 
     if (!param.skip_native_check) {
         UEXPECT_THROW((void)CreateSampleJson(input, param.options), SampleError);
@@ -208,9 +203,10 @@ TEST(ValueToJsonAdditionalTest, InlinedNonNull) {
     {
         ValueMessageData data{kProtoNullValue};
         auto message = PrepareTestData(data);
-        formats::json::Value json, sample;
+        formats::json::Value json;
+        formats::json::Value sample;
 
-        UASSERT_NO_THROW((json = MessageToJson(message.field1())));
+        UASSERT_NO_THROW((json = MessageToJson(message.field1(), {})));
         UASSERT_NO_THROW((sample = CreateSampleJson(message.field1())));
         EXPECT_EQ(json, sample);
         EXPECT_TRUE(json.IsNull());
@@ -219,9 +215,10 @@ TEST(ValueToJsonAdditionalTest, InlinedNonNull) {
     {
         ValueMessageData data{1.5};
         auto message = PrepareTestData(data);
-        formats::json::Value json, sample;
+        formats::json::Value json;
+        formats::json::Value sample;
 
-        UASSERT_NO_THROW((json = MessageToJson(message.field1())));
+        UASSERT_NO_THROW((json = MessageToJson(message.field1(), {})));
         UASSERT_NO_THROW((sample = CreateSampleJson(message.field1())));
         EXPECT_EQ(json, sample);
         ASSERT_TRUE(json.IsNumber());
@@ -231,9 +228,10 @@ TEST(ValueToJsonAdditionalTest, InlinedNonNull) {
     {
         ValueMessageData data{"hello"};
         auto message = PrepareTestData(data);
-        formats::json::Value json, sample;
+        formats::json::Value json;
+        formats::json::Value sample;
 
-        UASSERT_NO_THROW((json = MessageToJson(message.field1())));
+        UASSERT_NO_THROW((json = MessageToJson(message.field1(), {})));
         UASSERT_NO_THROW((sample = CreateSampleJson(message.field1())));
         EXPECT_EQ(json, sample);
         EXPECT_TRUE(json.IsString());
@@ -243,9 +241,10 @@ TEST(ValueToJsonAdditionalTest, InlinedNonNull) {
     {
         ValueMessageData data{true};
         auto message = PrepareTestData(data);
-        formats::json::Value json, sample;
+        formats::json::Value json;
+        formats::json::Value sample;
 
-        UASSERT_NO_THROW((json = MessageToJson(message.field1())));
+        UASSERT_NO_THROW((json = MessageToJson(message.field1(), {})));
         UASSERT_NO_THROW((sample = CreateSampleJson(message.field1())));
         EXPECT_EQ(json, sample);
         EXPECT_TRUE(json.IsBool());
@@ -255,9 +254,10 @@ TEST(ValueToJsonAdditionalTest, InlinedNonNull) {
     {
         ValueMessageData data{std::vector<double>{}};
         auto message = PrepareTestData(data);
-        formats::json::Value json, sample;
+        formats::json::Value json;
+        formats::json::Value sample;
 
-        UASSERT_NO_THROW((json = MessageToJson(message.field1())));
+        UASSERT_NO_THROW((json = MessageToJson(message.field1(), {})));
         UASSERT_NO_THROW((sample = CreateSampleJson(message.field1())));
         EXPECT_EQ(json, sample);
         EXPECT_TRUE(json.IsArray());
@@ -267,9 +267,10 @@ TEST(ValueToJsonAdditionalTest, InlinedNonNull) {
     {
         ValueMessageData data{std::vector<double>{1.5, 0}};
         auto message = PrepareTestData(data);
-        formats::json::Value json, sample;
+        formats::json::Value json;
+        formats::json::Value sample;
 
-        UASSERT_NO_THROW((json = MessageToJson(message.field1())));
+        UASSERT_NO_THROW((json = MessageToJson(message.field1(), {})));
         UASSERT_NO_THROW((sample = CreateSampleJson(message.field1())));
         EXPECT_EQ(json, sample);
         EXPECT_TRUE(json.IsArray());
@@ -281,9 +282,10 @@ TEST(ValueToJsonAdditionalTest, InlinedNonNull) {
     {
         ValueMessageData data{std::map<std::string, std::string>{}};
         auto message = PrepareTestData(data);
-        formats::json::Value json, sample;
+        formats::json::Value json;
+        formats::json::Value sample;
 
-        UASSERT_NO_THROW((json = MessageToJson(message.field1())));
+        UASSERT_NO_THROW((json = MessageToJson(message.field1(), {})));
         UASSERT_NO_THROW((sample = CreateSampleJson(message.field1())));
         EXPECT_EQ(json, sample);
         EXPECT_TRUE(json.IsObject());
@@ -293,9 +295,10 @@ TEST(ValueToJsonAdditionalTest, InlinedNonNull) {
     {
         ValueMessageData data{std::map<std::string, std::string>{{"aaa", "hello"}, {"bbb", "world"}}};
         auto message = PrepareTestData(data);
-        formats::json::Value json, sample;
+        formats::json::Value json;
+        formats::json::Value sample;
 
-        UASSERT_NO_THROW((json = MessageToJson(message.field1())));
+        UASSERT_NO_THROW((json = MessageToJson(message.field1(), {})));
         UASSERT_NO_THROW((sample = CreateSampleJson(message.field1())));
         EXPECT_EQ(json, sample);
         EXPECT_TRUE(json.IsObject());
@@ -311,7 +314,7 @@ TEST(ValueToJsonAdditionalTest, InlinedNull) {
     ValueMessageData data{std::monostate{}};
     auto message = PrepareTestData(data);
 
-    EXPECT_WRITE_ERROR((void)MessageToJson(message.field1()), WriteErrorCode::kInvalidValue, "/");
+    EXPECT_PRINT_ERROR((void)MessageToJson(message.field1(), {}), PrintErrorCode::kInvalidValue, "/");
 }
 
 TEST(ValueToJsonAdditionalTest, DynamicMessage) {
@@ -327,7 +330,7 @@ TEST(ValueToJsonAdditionalTest, DynamicMessage) {
 
         formats::json::Value json;
 
-        UASSERT_NO_THROW((json = MessageToJson(*message)));
+        UASSERT_NO_THROW((json = MessageToJson(*message, {})));
         ASSERT_TRUE(json.IsNull());
     }
 
@@ -340,7 +343,7 @@ TEST(ValueToJsonAdditionalTest, DynamicMessage) {
 
         formats::json::Value json;
 
-        UASSERT_NO_THROW((json = MessageToJson(*message)));
+        UASSERT_NO_THROW((json = MessageToJson(*message, {})));
         ASSERT_TRUE(json.IsNumber());
         EXPECT_EQ(json.As<double>(), 1.5);
     }
@@ -354,7 +357,7 @@ TEST(ValueToJsonAdditionalTest, DynamicMessage) {
 
         formats::json::Value json;
 
-        UASSERT_NO_THROW((json = MessageToJson(*message)));
+        UASSERT_NO_THROW((json = MessageToJson(*message, {})));
         ASSERT_TRUE(json.IsString());
         EXPECT_EQ(json.As<std::string>(), "hello");
     }
@@ -368,7 +371,7 @@ TEST(ValueToJsonAdditionalTest, DynamicMessage) {
 
         formats::json::Value json;
 
-        UASSERT_NO_THROW((json = MessageToJson(*message)));
+        UASSERT_NO_THROW((json = MessageToJson(*message, {})));
         ASSERT_TRUE(json.IsBool());
         EXPECT_EQ(json.As<bool>(), true);
     }
@@ -388,7 +391,7 @@ TEST(ValueToJsonAdditionalTest, DynamicMessage) {
 
         formats::json::Value json;
 
-        UASSERT_NO_THROW((json = MessageToJson(*message)));
+        UASSERT_NO_THROW((json = MessageToJson(*message, {})));
         ASSERT_TRUE(json.IsArray());
         ASSERT_EQ(json.GetSize(), std::size_t{1});
         EXPECT_EQ(json[0].As<double>(), 1.5);
@@ -414,7 +417,7 @@ TEST(ValueToJsonAdditionalTest, DynamicMessage) {
 
         formats::json::Value json;
 
-        UASSERT_NO_THROW((json = MessageToJson(*message)));
+        UASSERT_NO_THROW((json = MessageToJson(*message, {})));
         ASSERT_TRUE(json.IsObject());
         ASSERT_EQ(json.GetSize(), std::size_t{1});
         ASSERT_TRUE(json.HasMember("aaa"));

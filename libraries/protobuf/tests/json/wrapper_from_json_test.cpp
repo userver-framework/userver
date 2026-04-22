@@ -51,14 +51,14 @@ T GetWrappedValue(const ::google::protobuf::Message& msg) {
 struct WrapperFromJsonSuccessTestParam {
     std::string input = {};
     WrapperMessageData expected_message = {};
-    ReadOptions options = {};
+    ParseOptions options = {};
 };
 
 struct WrapperFromJsonFailureTestParam {
     std::string input = {};
-    ReadErrorCode expected_errc = {};
+    ParseErrorCode expected_errc = {};
     std::string expected_path = {};
-    ReadOptions options = {};
+    ParseOptions options = {};
 
     // Protobuf ProtoJSON legacy syntax supports out-of-spec object value for wrappers, which we
     // want to prohibit (because we do not want our clients to use syntax that may break in the
@@ -149,18 +149,20 @@ INSTANTIATE_TEST_SUITE_P(
     ,
     WrapperFromJsonFailureTest,
     ::testing::Values(
-        WrapperFromJsonFailureTestParam{R"({"field1":[]})", ReadErrorCode::kInvalidType, "field1"},
-        WrapperFromJsonFailureTestParam{R"({"field2":{}})", ReadErrorCode::kInvalidType, "field2", {}, true},
-        WrapperFromJsonFailureTestParam{R"({"field3":true})", ReadErrorCode::kInvalidType, "field3"},
-        WrapperFromJsonFailureTestParam{R"({"field4":"hello"})", ReadErrorCode::kInvalidValue, "field4"},
-        WrapperFromJsonFailureTestParam{R"({"field5":1.5})", ReadErrorCode::kInvalidValue, "field5"}
+        WrapperFromJsonFailureTestParam{R"({"field1":[]})", ParseErrorCode::kInvalidType, "field1"},
+        WrapperFromJsonFailureTestParam{R"({"field2":{}})", ParseErrorCode::kInvalidType, "field2", {}, true},
+        WrapperFromJsonFailureTestParam{R"({"field3":true})", ParseErrorCode::kInvalidType, "field3"},
+        WrapperFromJsonFailureTestParam{R"({"field4":"hello"})", ParseErrorCode::kInvalidValue, "field4"},
+        WrapperFromJsonFailureTestParam{R"({"field5":1.5})", ParseErrorCode::kInvalidValue, "field5"}
     )
 );
 
 TEST_P(WrapperFromJsonSuccessTest, Test) {
     const auto& param = GetParam();
 
-    proto_json::messages::WrapperMessage message, expected_message, sample_message;
+    proto_json::messages::WrapperMessage message;
+    proto_json::messages::WrapperMessage expected_message;
+    proto_json::messages::WrapperMessage sample_message;
     formats::json::Value input = PrepareJsonTestData(param.input);
     expected_message = PrepareTestData(param.expected_message);
 
@@ -175,7 +177,7 @@ TEST_P(WrapperFromJsonSuccessTest, Test) {
     message.mutable_field9()->set_value("dump2");
 
     UASSERT_NO_THROW((message = JsonToMessage<proto_json::messages::WrapperMessage>(input, param.options)));
-    UASSERT_NO_THROW(InitSampleMessage(param.input, param.options, sample_message));
+    UASSERT_NO_THROW(InitSampleMessage(param.input, sample_message, param.options));
 
     CheckMessageEqual(message, sample_message);
     CheckMessageEqual(message, expected_message);
@@ -187,14 +189,14 @@ TEST_P(WrapperFromJsonFailureTest, Test) {
     proto_json::messages::WrapperMessage sample_message;
     formats::json::Value input = PrepareJsonTestData(param.input);
 
-    EXPECT_READ_ERROR(
+    EXPECT_PARSE_ERROR(
         (void)JsonToMessage<proto_json::messages::WrapperMessage>(input, param.options),
         param.expected_errc,
         param.expected_path
     );
 
     if (!param.skip_native_check) {
-        UEXPECT_THROW(InitSampleMessage(param.input, param.options, sample_message), SampleError);
+        UEXPECT_THROW(InitSampleMessage(param.input, sample_message, param.options), SampleError);
     }
 }
 
@@ -222,10 +224,11 @@ TYPED_TEST(WrapperFromJsonAdditionalTest, InlinedNonNull) {
     using Message = typename Param::Message;
 
     const auto json = formats::json::FromString(Param::kJson);
-    Message message, sample;
+    Message message;
+    Message sample;
 
     UASSERT_NO_THROW((message = JsonToMessage<Message>(json)));
-    UASSERT_NO_THROW(InitSampleMessage(Param::kJson, {}, sample));
+    UASSERT_NO_THROW(InitSampleMessage(Param::kJson, sample));
     EXPECT_EQ(message.value(), sample.value());
     EXPECT_EQ(message.value(), Param::kValue);
 }
@@ -236,10 +239,11 @@ TYPED_TEST(WrapperFromJsonAdditionalTest, InlinedNull) {
     using Value = std::remove_const_t<decltype(Param::kValue)>;
 
     const auto json = formats::json::FromString("null");
-    Message message, sample;
+    Message message;
+    Message sample;
 
     UASSERT_NO_THROW((message = JsonToMessage<Message>(json)));
-    UASSERT_NO_THROW(InitSampleMessage("null", {}, sample));
+    UASSERT_NO_THROW(InitSampleMessage("null", sample));
     EXPECT_EQ(message.value(), sample.value());
     EXPECT_EQ(message.value(), Value{});
 }
@@ -254,7 +258,7 @@ TYPED_TEST(WrapperFromJsonAdditionalTest, DynamicMessage) {
     {
         std::unique_ptr<::google::protobuf::Message> message(factory.GetPrototype(Message::descriptor())->New());
 
-        UASSERT_NO_THROW(JsonToMessage(json, {}, *message));
+        UASSERT_NO_THROW(JsonToMessage(json, *message));
         EXPECT_EQ(GetWrappedValue<WrappedType<Param>>(*message), Param::kValue);
     }
 }

@@ -3,6 +3,9 @@
 #include <fmt/format.h>
 #include <grpc/support/time.h>
 
+#include <userver/utils/expected.hpp>
+
+#include <userver/ugrpc/client/completion_status.hpp>
 #include <userver/ugrpc/client/exceptions.hpp>
 #include <userver/ugrpc/client/impl/middleware_pipeline.hpp>
 #include <userver/ugrpc/client/impl/tracing.hpp>
@@ -22,6 +25,16 @@ void SetStatusAndResetSpan(CallState& state, const grpc::Status& status) noexcep
 void SetErrorAndResetSpan(CallState& state, std::string_view error_message) noexcept {
     SetErrorForSpan(state.GetSpan(), error_message);
     state.ResetSpan();
+}
+
+void HandleCallStatistics(CallState& state, const grpc::Status& status) noexcept {
+    auto& stats = state.GetStatsScope();
+    if (grpc::StatusCode::DEADLINE_EXCEEDED == status.error_code() && state.IsDeadlinePropagated()) {
+        stats.OnCancelledByDeadlinePropagation();
+    } else {
+        stats.OnExplicitFinish(status.error_code());
+    }
+    stats.Flush();
 }
 
 }  // namespace
@@ -63,33 +76,42 @@ void CheckOk(
     }
 }
 
-void CheckFinishStatus(CallState& state) {
-    auto& status = state.GetStatus();
-    if (!status.ok()) {
-        ThrowErrorWithStatus(state.GetCallName(), std::move(status));
-    }
-}
+void ProcessFinish(
+    StreamingCallState& state,
+    const CompletionStatus& completion_status,
+    const google::protobuf::Message* response
+) {
+    UINVARIANT(completion_status.has_value(), "ProcessFinish must be called only with grpc::Status completions");
+    const auto& status = completion_status.value();
 
-void ProcessFinish(CallState& state, const grpc::Status& status, const google::protobuf::Message* response) {
     RunMiddlewarePipeline(state, MiddlewareHooks::FinishHooks(status, status.ok() ? response : nullptr));
-
-    HandleCallStatistics(state, status);
-
+    impl::HandleCallStatistics(state, status);
     SetStatusAndResetSpan(state, status);
 }
 
-void ProcessFinishAbandoned(CallState& state, const grpc::Status& status) noexcept {
+void ProcessFinishAbandoned(StreamingCallState& state, const grpc::Status& status) noexcept {
+    RunMiddlewarePipeline(
+        state,
+        MiddlewareHooks::FinishHooks(utils::unexpected{SpecialCaseCompletionType::kAbandoned}, nullptr)
+    );
+
     // Nothing to do with statistics, `RpcStatisticsScope` automatically accounts "abandoned-error"
     SetStatusAndResetSpan(state, status);
 }
 
-void ProcessCancelled(CallState& state, std::string_view stage) noexcept {
+void ProcessCancelled(StreamingCallState& state, std::string_view stage) noexcept {
+    CompletionStatus result{utils::unexpected{SpecialCaseCompletionType::kCancelled}};
+    RunMiddlewarePipeline(state, MiddlewareHooks::FinishHooks(result, nullptr));
+
     state.GetStatsScope().OnCancelled();
     state.GetStatsScope().Flush();
     SetErrorAndResetSpan(state, fmt::format("Task cancellation at '{}'", stage));
 }
 
-void ProcessNetworkError(CallState& state, std::string_view stage) noexcept {
+void ProcessNetworkError(StreamingCallState& state, std::string_view stage) noexcept {
+    CompletionStatus result{utils::unexpected{SpecialCaseCompletionType::kNetworkError}};
+    RunMiddlewarePipeline(state, MiddlewareHooks::FinishHooks(result, nullptr));
+
     state.GetStatsScope().OnNetworkError();
     state.GetStatsScope().Flush();
     SetErrorAndResetSpan(state, fmt::format("Network error at '{}'", stage));

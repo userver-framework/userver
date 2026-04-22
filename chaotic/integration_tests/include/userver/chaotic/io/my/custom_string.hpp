@@ -8,9 +8,17 @@ namespace my {
 
 // Definition of a custom user structure
 struct CustomString final {
-    CustomString(const std::string& s)
+    CustomString() = delete;
+
+    explicit CustomString(const std::string& s)
         : s(s)
     {}
+
+    CustomString(const CustomString&) = default;
+    CustomString& operator=(const CustomString&) = default;
+
+    CustomString(CustomString&&) = default;
+    CustomString& operator=(CustomString&&) = default;
 
     std::string s;
 };
@@ -29,8 +37,8 @@ inline std::string Convert(const CustomString& str, USERVER_NAMESPACE::chaotic::
 
 // The std::string -> CustomString Convert() is used during parsing
 // (json::Value -> CustomString)
-inline CustomString Convert(const std::string& str, USERVER_NAMESPACE::chaotic::convert::To<CustomString>) {
-    return CustomString(str);
+inline CustomString Convert(std::string&& str, USERVER_NAMESPACE::chaotic::convert::To<CustomString>) {
+    return CustomString(std::move(str));
 }
 
 }  // namespace my

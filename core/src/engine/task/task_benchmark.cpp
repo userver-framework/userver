@@ -229,7 +229,7 @@ void EngineTasksFromAnotherTaskProcessor(benchmark::State& state) {
         engine::TaskProcessor
             task_processor(std::move(proc_config), engine::current_task::GetTaskProcessor().GetTaskProcessorPools());
         std::deque<engine::TaskWithResult<void>> tasks;
-        for (std::size_t i = 0; i < proc_config.worker_threads; i++) {
+        for (std::size_t i = 0; i < static_cast<std::size_t>(state.range(0)); i++) {
             tasks.push_back(engine::AsyncNoSpan(task_processor, []() {}));
         }
         for ([[maybe_unused]] auto _ : state) {

@@ -4,14 +4,13 @@
 #include <optional>
 
 #include <boost/filesystem/operations.hpp>
+
 #include <userver/crypto/certificate.hpp>
 #include <userver/crypto/private_key.hpp>
 #include <userver/crypto/ssl_ctx.hpp>
 #include <userver/server/request/request_config.hpp>
 #include <userver/storages/secdist/secdist.hpp>
 #include <userver/yaml_config/yaml_config.hpp>
-
-#include <userver/crypto/certificate.hpp>
 
 #include "connection_config.hpp"
 
@@ -24,6 +23,7 @@ struct PortConfig {
     boost::filesystem::perms unix_socket_perms{static_cast<boost::filesystem::perms>(0600)};
     uint16_t port = 0;
     std::string address = "::";
+    std::optional<int> listen_socket_fd;
 
     bool tls{false};
     crypto::CertificatesChain tls_cert_chain;

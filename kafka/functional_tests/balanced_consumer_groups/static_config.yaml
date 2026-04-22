@@ -29,7 +29,8 @@ components_manager:
               - test-topic
             auto_offset_reset: smallest
             max_batch_size: 1
-            restart_after_failure_delay: 1s
+            poll_timeout: 200ms
+            restart_after_failure_delay: 100ms
             security_protocol: PLAINTEXT
 
         kafka-consumer-second: *kafka_consumer
@@ -40,7 +41,8 @@ components_manager:
               - test-cooperative-topic
             auto_offset_reset: smallest
             max_batch_size: 1
-            restart_after_failure_delay: 1s
+            poll_timeout: 200ms
+            restart_after_failure_delay: 100ms
             security_protocol: PLAINTEXT
             rd_kafka_custom_options:
                 partition.assignment.strategy: cooperative-sticky

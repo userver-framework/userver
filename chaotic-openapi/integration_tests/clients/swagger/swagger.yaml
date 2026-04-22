@@ -9,7 +9,7 @@ paths:
                 name: X-Header-123
                 type: string
               - $ref: '#/parameters/Parameter'
-              # - $ref: '#/parameters/Body'
+                # - $ref: '#/parameters/Body'
             responses:
                 '200':
                     description: OK
