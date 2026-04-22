@@ -3,8 +3,8 @@ from typing import Any
 
 import pydantic
 
-from . import base_model
-from . import errors
+from chaotic_openapi.front import base_model
+from chaotic_openapi.front import errors
 
 
 class Info(base_model.BaseModel):

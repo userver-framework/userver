@@ -17,14 +17,14 @@ namespace protobuf::json::tests {
 struct NestedFromJsonSuccessTestParam {
     std::string input = {};
     NestedMessageData expected_message = {};
-    ReadOptions options = {};
+    ParseOptions options = {};
 };
 
 struct NestedFromJsonFailureTestParam {
     std::string input = {};
-    ReadErrorCode expected_errc = {};
+    ParseErrorCode expected_errc = {};
     std::string expected_path = {};
-    ReadOptions options = {};
+    ParseOptions options = {};
 };
 
 void PrintTo(const NestedFromJsonSuccessTestParam& param, std::ostream* os) {
@@ -54,23 +54,23 @@ INSTANTIATE_TEST_SUITE_P(
     ,
     NestedFromJsonFailureTest,
     ::testing::Values(
-        NestedFromJsonFailureTestParam{R"(null)", ReadErrorCode::kInvalidType, "/"},
-        NestedFromJsonFailureTestParam{R"([])", ReadErrorCode::kInvalidType, "/"},
-        NestedFromJsonFailureTestParam{R"(true)", ReadErrorCode::kInvalidType, "/"},
-        NestedFromJsonFailureTestParam{R"(10)", ReadErrorCode::kInvalidType, "/"},
-        NestedFromJsonFailureTestParam{R"("test")", ReadErrorCode::kInvalidType, "/"},
-        NestedFromJsonFailureTestParam{R"({"parent":[]})", ReadErrorCode::kInvalidType, "parent"},
-        NestedFromJsonFailureTestParam{R"({"parent":true})", ReadErrorCode::kInvalidType, "parent"},
-        NestedFromJsonFailureTestParam{R"({"parent":10})", ReadErrorCode::kInvalidType, "parent"},
-        NestedFromJsonFailureTestParam{R"({"parent":"test"})", ReadErrorCode::kInvalidType, "parent"},
+        NestedFromJsonFailureTestParam{R"(null)", ParseErrorCode::kInvalidType, "/"},
+        NestedFromJsonFailureTestParam{R"([])", ParseErrorCode::kInvalidType, "/"},
+        NestedFromJsonFailureTestParam{R"(true)", ParseErrorCode::kInvalidType, "/"},
+        NestedFromJsonFailureTestParam{R"(10)", ParseErrorCode::kInvalidType, "/"},
+        NestedFromJsonFailureTestParam{R"("test")", ParseErrorCode::kInvalidType, "/"},
+        NestedFromJsonFailureTestParam{R"({"parent":[]})", ParseErrorCode::kInvalidType, "parent"},
+        NestedFromJsonFailureTestParam{R"({"parent":true})", ParseErrorCode::kInvalidType, "parent"},
+        NestedFromJsonFailureTestParam{R"({"parent":10})", ParseErrorCode::kInvalidType, "parent"},
+        NestedFromJsonFailureTestParam{R"({"parent":"test"})", ParseErrorCode::kInvalidType, "parent"},
         NestedFromJsonFailureTestParam{
             R"({"parent":{"field1":2147483648}})",
-            ReadErrorCode::kInvalidValue,
+            ParseErrorCode::kInvalidValue,
             "parent.field1"
         },
         NestedFromJsonFailureTestParam{
             R"({"parent":{"field1":-2147483649}})",
-            ReadErrorCode::kInvalidValue,
+            ParseErrorCode::kInvalidValue,
             "parent.field1"
         }
     )
@@ -79,14 +79,16 @@ INSTANTIATE_TEST_SUITE_P(
 TEST_P(NestedFromJsonSuccessTest, Test) {
     const auto& param = GetParam();
 
-    proto_json::messages::NestedMessage message, expected_message, sample_message;
+    proto_json::messages::NestedMessage message;
+    proto_json::messages::NestedMessage expected_message;
+    proto_json::messages::NestedMessage sample_message;
     formats::json::Value input = PrepareJsonTestData(param.input);
     expected_message = PrepareTestData(param.expected_message);
 
     message.mutable_parent()->set_field1(100001);
 
     UASSERT_NO_THROW((message = JsonToMessage<proto_json::messages::NestedMessage>(input, param.options)));
-    UASSERT_NO_THROW(InitSampleMessage(param.input, param.options, sample_message));
+    UASSERT_NO_THROW(InitSampleMessage(param.input, sample_message, param.options));
 
     CheckMessageEqual(message, sample_message);
     CheckMessageEqual(message, expected_message);
@@ -98,12 +100,12 @@ TEST_P(NestedFromJsonFailureTest, Test) {
     proto_json::messages::NestedMessage sample_message;
     formats::json::Value input = PrepareJsonTestData(param.input);
 
-    EXPECT_READ_ERROR(
+    EXPECT_PARSE_ERROR(
         (void)JsonToMessage<proto_json::messages::NestedMessage>(input, param.options),
         param.expected_errc,
         param.expected_path
     );
-    UEXPECT_THROW(InitSampleMessage(param.input, param.options, sample_message), SampleError);
+    UEXPECT_THROW(InitSampleMessage(param.input, sample_message, param.options), SampleError);
 }
 
 }  // namespace protobuf::json::tests

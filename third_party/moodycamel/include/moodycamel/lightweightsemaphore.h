@@ -5,8 +5,12 @@
 
 #pragma once
 
-#include <cstddef> // For std::size_t
 #include <atomic>
+#include <cassert> // assert
+#include <cerrno> // For EINTR
+#include <cstddef> // For std::size_t
+#include <cstdint> // For std::uint64_t
+#include <ctime> // For clock_gettime
 #include <type_traits> // For std::make_signed<T>
 
 #if defined(_WIN32)
@@ -33,6 +37,14 @@ extern "C" {
 #if __GLIBC_PREREQ(2,30)
 #define MOODYCAMEL_LIGHTWEIGHTSEMAPHORE_MONOTONIC
 #endif
+#endif
+#endif
+
+#ifndef MOODYCAMEL_DELETE_FUNCTION
+#if __cplusplus >= 201103L || _MSC_VER >= 1900
+#define MOODYCAMEL_DELETE_FUNCTION = delete
+#else
+#define MOODYCAMEL_DELETE_FUNCTION
 #endif
 #endif
 
@@ -67,7 +79,7 @@ class Semaphore
 {
 private:
 	void* m_hSema;
-
+	
 	Semaphore(const Semaphore& other) MOODYCAMEL_DELETE_FUNCTION;
 	Semaphore& operator=(const Semaphore& other) MOODYCAMEL_DELETE_FUNCTION;
 
@@ -90,12 +102,12 @@ public:
 		const unsigned long infinite = 0xffffffff;
 		return WaitForSingleObject(m_hSema, infinite) == 0;
 	}
-
+	
 	bool try_wait()
 	{
 		return WaitForSingleObject(m_hSema, 0) == 0;
 	}
-
+	
 	bool timed_wait(std::uint64_t usecs)
 	{
 		return WaitForSingleObject(m_hSema, (unsigned long)(usecs / 1000)) == 0;
@@ -137,12 +149,12 @@ public:
 	{
 		return semaphore_wait(m_sema) == KERN_SUCCESS;
 	}
-
+	
 	bool try_wait()
 	{
 		return timed_wait(0);
 	}
-
+	
 	bool timed_wait(std::uint64_t timeout_usecs)
 	{
 		mach_timespec_t ts;
@@ -222,8 +234,8 @@ public:
 #else
 		clock_gettime(CLOCK_REALTIME, &ts);
 #endif
-		ts.tv_sec += (time_t)(usecs / usecs_in_1_sec);
-		ts.tv_nsec += (long)(usecs % usecs_in_1_sec) * 1000;
+		ts.tv_sec += static_cast<time_t>(usecs / usecs_in_1_sec);
+		ts.tv_nsec += static_cast<long>(usecs % usecs_in_1_sec) * 1000;
 		// sem_timedwait bombs if you have more than 1e9 in tv_nsec
 		// so we have to clean things up before passing it in
 		if (ts.tv_nsec >= nsecs_in_1_sec) {
@@ -294,7 +306,7 @@ private:
 			if (m_sema.wait())
 				return true;
 		}
-		if (timeout_usecs > 0 && m_sema.timed_wait((std::uint64_t)timeout_usecs))
+		if (timeout_usecs > 0 && m_sema.timed_wait(static_cast<std::uint64_t>(timeout_usecs)))
 			return true;
 		// At this point, we've timed out waiting for the semaphore, but the
 		// count is still decremented indicating we may still be waiting on
@@ -330,7 +342,7 @@ private:
 		oldCount = m_count.fetch_sub(1, std::memory_order_acquire);
 		if (oldCount <= 0)
 		{
-			if ((timeout_usecs == 0) || (timeout_usecs < 0 && !m_sema.wait()) || (timeout_usecs > 0 && !m_sema.timed_wait((std::uint64_t)timeout_usecs)))
+			if ((timeout_usecs == 0) || (timeout_usecs < 0 && !m_sema.wait()) || (timeout_usecs > 0 && !m_sema.timed_wait(static_cast<std::uint64_t>(timeout_usecs))))
 			{
 				while (true)
 				{
@@ -398,7 +410,7 @@ public:
 			result = waitManyWithPartialSpinning(max, timeout_usecs);
 		return result;
 	}
-
+	
 	ssize_t waitMany(ssize_t max)
 	{
 		ssize_t result = waitMany(max, -1);
@@ -413,10 +425,10 @@ public:
 		ssize_t toRelease = -oldCount < count ? -oldCount : count;
 		if (toRelease > 0)
 		{
-			m_sema.signal((int)toRelease);
+			m_sema.signal(static_cast<int>(toRelease));
 		}
 	}
-
+	
 	std::size_t availableApprox() const
 	{
 		ssize_t count = m_count.load(std::memory_order_relaxed);

@@ -194,12 +194,10 @@ void Span::Impl::PutIntoLogger(logging::impl::TagWriter writer) && {
         const auto events_tag = MakeTagFromEvents(events_);
         writer.PutTag("events", events_tag);
     }
-
-    LogOpenTracing();
 }
 
 void Span::Impl::LogTo(logging::impl::TagWriter writer) const {
-    writer.ExtendLogExtra(log_extra_inheritable_);
+    writer.PutLogExtra(log_extra_inheritable_);
 
     if (const auto span_id = GetSpanIdForChildLogs()) {
         writer.PutTag(kTraceIdTag, GetTraceId());
@@ -435,6 +433,8 @@ void Span::DetachFromCoroStack() {
 void Span::AttachToCoroStack() { pimpl_->AttachToCoroStack(); }
 
 std::chrono::system_clock::time_point Span::GetStartSystemTime() const { return pimpl_->start_system_time_; }
+
+std::chrono::steady_clock::time_point Span::GetStartSteadyTime() const { return pimpl_->start_steady_time_; }
 
 std::string_view Span::GetTraceId() const { return pimpl_->GetTraceId(); }
 

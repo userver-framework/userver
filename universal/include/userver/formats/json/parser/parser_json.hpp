@@ -14,6 +14,9 @@ public:
     JsonValueParser();
     ~JsonValueParser() override;
 
+    JsonValueParser(const JsonValueParser&) = delete;
+    JsonValueParser(JsonValueParser&&) = delete;
+
     void Null() override;
     void Bool(bool) override;
     void Int64(int64_t) override;

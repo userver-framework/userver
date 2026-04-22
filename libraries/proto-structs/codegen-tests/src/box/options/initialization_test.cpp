@@ -9,7 +9,6 @@
 #include <userver/proto-structs/convert.hpp>
 #include <userver/proto-structs/hash_map.hpp>
 #include <userver/proto-structs/type_mapping.hpp>
-#include <userver/utils/box.hpp>
 
 #include <box/options/initialization.pb.h>
 #include <box/options/initialization.structs.usrv.pb.hpp>
@@ -47,8 +46,7 @@ void CheckDependsOnNotDefinedYet() {
     auto test_message = proto_structs::StructToMessage(test_struct);
     auto test_struct_again = proto_structs::MessageToStruct<MessageType>(test_message);
 
-    // TODO re-enable test once operator== is available
-    // ASSERT_EQ(test_struct_again, test_struct);
+    ASSERT_EQ(test_struct_again, test_struct);
 }
 
 }  // namespace

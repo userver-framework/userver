@@ -1,4 +1,3 @@
-#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include <chrono>
@@ -7,6 +6,7 @@
 
 #include <userver/proto-structs/any.hpp>
 #include <userver/proto-structs/io/std/chrono/duration_conv.hpp>
+#include <userver/utest/assert_macros.hpp>
 
 #include "messages.pb.h"
 #include "struct_simple.hpp"
@@ -75,7 +75,7 @@ TEST(AnyTest, Pack) {
 
     EXPECT_FALSE(any.Is<structs::Simple>());
     EXPECT_FALSE(any.Is<messages::Simple>());
-    ASSERT_NO_THROW(any = obj);
+    UASSERT_NO_THROW(any = obj);
     EXPECT_TRUE(any.Is<structs::Simple>());
     EXPECT_TRUE(any.Is<messages::Simple>());
     ASSERT_TRUE(any.GetProtobufAny().UnpackTo(&msg));
@@ -87,7 +87,7 @@ TEST(AnyTest, Pack) {
 
     EXPECT_FALSE(any.Is<structs::Simple>());
     EXPECT_FALSE(any.Is<messages::Simple>());
-    ASSERT_NO_THROW(any.Pack(structs::Simple{obj}));
+    UASSERT_NO_THROW(any.Pack(structs::Simple{obj}));
     EXPECT_TRUE(any.Is<structs::Simple>());
     EXPECT_TRUE(any.Is<messages::Simple>());
     ASSERT_TRUE(any.GetProtobufAny().UnpackTo(&msg));
@@ -99,7 +99,7 @@ TEST(AnyTest, Pack) {
 
     EXPECT_FALSE(any.Is<structs::Simple>());
     EXPECT_FALSE(any.Is<messages::Simple>());
-    ASSERT_NO_THROW(any.Pack(msg));
+    UASSERT_NO_THROW(any.Pack(msg));
     EXPECT_TRUE(any.Is<structs::Simple>());
     EXPECT_TRUE(any.Is<messages::Simple>());
 
@@ -108,7 +108,7 @@ TEST(AnyTest, Pack) {
     ASSERT_TRUE(any.GetProtobufAny().UnpackTo(&msg));
     EXPECT_EQ(obj.f1, msg.f1());
 
-    ASSERT_NO_THROW(any.Pack(std::chrono::nanoseconds(-123'456'789'987'654'321LL)));
+    UASSERT_NO_THROW(any.Pack(std::chrono::nanoseconds(-123'456'789'987'654'321LL)));
     EXPECT_TRUE(any.Is<std::chrono::milliseconds>());  // any duration suits
     EXPECT_TRUE(any.Is<::google::protobuf::Duration>());
 
@@ -122,15 +122,13 @@ TEST(AnyTest, Unpack) {
     structs::Simple obj{.f1 = 1001};
     Any any;
 
-    ASSERT_NO_THROW(any.Pack(obj));
+    UASSERT_NO_THROW(any.Pack(obj));
     ASSERT_TRUE(any.Is<structs::Simple>());
     EXPECT_EQ(any.Unpack<structs::Simple>().f1, obj.f1);
     ASSERT_TRUE(any.Is<messages::Simple>());
     EXPECT_EQ(any.Unpack<messages::Simple>().f1(), obj.f1);
-    EXPECT_THAT(
-        [&any]() { static_cast<void>(any.Unpack<structs::Empty>()); },
-        ::testing::ThrowsMessage<AnyUnpackError>(::testing::HasSubstr("'messages.Empty'"))
-    );
+
+    UEXPECT_THROW_MSG(static_cast<void>(any.Unpack<structs::Empty>()), AnyUnpackError, "'messages.Empty'");
 
     any = {};
     messages::Simple msg;
@@ -138,7 +136,7 @@ TEST(AnyTest, Unpack) {
 
     EXPECT_FALSE(any.Is<structs::Simple>());
     EXPECT_FALSE(any.Is<messages::Simple>());
-    ASSERT_NO_THROW(any.Pack(msg));
+    UASSERT_NO_THROW(any.Pack(msg));
     ASSERT_TRUE(any.Is<structs::Simple>());
     EXPECT_EQ(any.Unpack<structs::Simple>().f1, msg.f1());
     ASSERT_TRUE(any.Is<messages::Simple>());
@@ -146,7 +144,7 @@ TEST(AnyTest, Unpack) {
 
     auto duration = ::google::protobuf::util::TimeUtil::NanosecondsToDuration(123'456'789'987'654'321LL);
 
-    ASSERT_NO_THROW(any.Pack(std::chrono::nanoseconds(123'456'789'987'654'321LL)));
+    UASSERT_NO_THROW(any.Pack(std::chrono::nanoseconds(123'456'789'987'654'321LL)));
     ASSERT_TRUE(any.Is<std::chrono::seconds>());  // any duration suits
     EXPECT_EQ(any.Unpack<std::chrono::nanoseconds>(), std::chrono::nanoseconds(123'456'789'987'654'321LL));
     ASSERT_TRUE(any.Is<::google::protobuf::Duration>());

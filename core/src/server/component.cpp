@@ -2,8 +2,8 @@
 
 #include <server/server_config.hpp>
 #include <userver/components/component.hpp>
-#include <userver/components/scope.hpp>
 #include <userver/components/statistics_storage.hpp>
+#include <userver/utils/resource_scopes.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
 #ifndef ARCADIA_ROOT
@@ -37,19 +37,19 @@ Server::Server(
           component_context
       ))
 {
-    utils::statistics::RegisterWriterScope(component_context, "server", [this](utils::statistics::Writer& writer) {
-        WriteStatistics(writer);
-    });
+    // Early start of monitor port, before all components are loaded,
+    // the service is not ready yet.
     server_->StartMonitorPort();
 
-    utils::statistics::RegisterWriterScope(
-        component_context,
-        "http.handler.total",
-        [this](utils::statistics::Writer& writer) { return server_->WriteTotalHandlerStatistics(writer); }
-    );
+    utils::statistics::RegisterWriterScope(component_context, "", [this](auto& writer) {
+        server_->WriteMetrics(writer);
+    });
 }
 
-void Server::OnAllComponentsLoaded() { server_->Start(); }
+void Server::OnAllComponentsLoaded() {
+    // All handler components are setup with their dependencies, we're ready to handle requests.
+    server_->Start();
+}
 
 void Server::OnAllComponentsAreStopping() {
     /* components::Server has to stop all Listeners before unloading components

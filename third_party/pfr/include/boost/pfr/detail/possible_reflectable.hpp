@@ -10,9 +10,7 @@
 #include <boost/pfr/detail/config.hpp>
 #include <boost/pfr/traits_fwd.hpp>
 
-#ifdef BOOST_PFR_HAS_STD_MODULE
-import std;
-#else
+#if !defined(BOOST_PFR_INTERFACE_UNIT)
 #include <type_traits> // for std::is_aggregate
 #endif
 

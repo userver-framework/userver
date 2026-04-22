@@ -22,7 +22,7 @@ components_manager:
                 grpc-client-logging:
                     enabled: false
 
-# /// [otlp logger]
+        # /// [otlp logger]
         otlp-logger:
             endpoint: '0.0.0.0:4317'
             # You can use separate endpoints for traces and logs
@@ -34,7 +34,7 @@ components_manager:
             # How to rename attributes, if you really need to
             attributes-mapping:
                 module: line
-# /// [otlp logger]
+                # /// [otlp logger]
 
         handler-server-monitor:
             path: /metrics
@@ -64,7 +64,7 @@ components_manager:
         grpc-blocking-task-processor:  # For blocking gRPC channel creation
             worker_threads: 2
             thread_name: grpc-worker
-        main-task-processor:           # For non-blocking operations
+        main-task-processor:  # For non-blocking operations
             worker_threads: 8
-        fs-task-processor:             # For blocking filesystem operations
+        fs-task-processor:  # For blocking filesystem operations
             worker_threads: 2

@@ -14,6 +14,7 @@
 
 #include <fmt/format.h>
 
+#include <userver/compiler/impl/lifetime.hpp>
 #include <userver/utils/zstring_view.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -38,7 +39,7 @@ public:
     {}
 
     /// @brief Get the address in bytes, in network byte order.
-    const BytesType& GetBytes() const noexcept { return address_; }
+    const BytesType& GetBytes() const noexcept USERVER_IMPL_LIFETIME_BOUND { return address_; }
 
     friend bool operator==(const AddressBase<N>& a1, const AddressBase<N>& a2) noexcept {
         return a1.address_ == a2.address_;
@@ -81,7 +82,8 @@ std::string AddressV6ToString(const AddressV6& address);
 /// @ingroup userver_containers
 ///
 /// @brief Base class for IPv4/IPv6 network
-template <typename Address, typename = std::enable_if_t<kIsAddressType<Address>>>
+template <typename Address>
+requires kIsAddressType<Address>
 class NetworkBase final {
 public:
     using AddressType = Address;
@@ -184,7 +186,7 @@ public:
     InetNetwork(std::vector<unsigned char>&& bytes, unsigned char prefix_length, AddressFamily address_family);
 
     /// @brief Get the address in bytes
-    const std::vector<unsigned char>& GetBytes() const noexcept { return bytes_; }
+    const std::vector<unsigned char>& GetBytes() const noexcept USERVER_IMPL_LIFETIME_BOUND { return bytes_; }
 
     /// @brief Get the prefix length of network
     unsigned char GetPrefixLength() const noexcept { return prefix_length_; }

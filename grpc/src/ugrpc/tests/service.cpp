@@ -103,7 +103,8 @@ std::string ServiceBase::GetEndpoint() const {
 }
 
 server::Middlewares GetDefaultServerMiddlewares() {
-    return {std::make_shared<server::middlewares::deadline_propagation::Middleware>()};
+    return {std::make_shared<
+        server::middlewares::deadline_propagation::Middleware>(server::middlewares::deadline_propagation::Settings{})};
 }
 
 client::Middlewares GetDefaultClientMiddlewares() {

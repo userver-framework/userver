@@ -3,7 +3,6 @@
 /// @file userver/logging/log_filepath.hpp
 /// @brief Short source path calculator
 
-#include <userver/compiler/impl/constexpr.hpp>
 #include <userver/utils/string_literal.hpp>
 #include <userver/utils/zstring_view.hpp>
 

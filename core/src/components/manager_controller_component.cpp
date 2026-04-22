@@ -70,7 +70,7 @@ ManagerControllerComponent::ManagerControllerComponent(
         config_source.UpdateAndListen(this, "engine_controller", &ManagerControllerComponent::OnConfigUpdate);
 
     utils::statistics::RegisterWriterScope(context, "engine", [this](utils::statistics::Writer& writer) {
-        return WriteStatistics(writer);
+        WriteStatistics(writer);
     });
 
     auto& logger_component = context.FindComponent<components::Logging>();

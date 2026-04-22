@@ -12,6 +12,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace protobuf::json::tests {
 
+/* NOTE: Uncomment when linkage is fixed (see comment in the convert.hpp)
+
 using ProtobufStringType =
     decltype(std::declval<::google::protobuf::Reflection>()
                  .GetString(std::declval<const ::google::protobuf::Message&>(), nullptr));
@@ -83,8 +85,9 @@ TEST(ComplexToJsonFailureTest, Test) {
     (*bottoms)["aaa"].mutable_field2()->set_nanos(-1);
 
     formats::json::ValueBuilder builder;
-    EXPECT_WRITE_ERROR((builder = message), WriteErrorCode::kInvalidValue, "inters[0].bottoms['aaa'].field2");
+    EXPECT_PRINT_ERROR((builder = message), PrintErrorCode::kInvalidValue, "inters[0].bottoms['aaa'].field2");
 }
+*/
 
 }  // namespace protobuf::json::tests
 

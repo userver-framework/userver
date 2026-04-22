@@ -26,7 +26,12 @@ public:
         (const, override)
     );
 
-    MOCK_METHOD(void, PostFinish, (ugrpc::client::MiddlewareCallContext&, const grpc::Status&), (const, override));
+    MOCK_METHOD(
+        void,
+        PostFinish,
+        (ugrpc::client::MiddlewareCallContext&, (const ugrpc::client::CompletionStatus&)),
+        (const, override)
+    );
 };
 
 }  // namespace tests::client

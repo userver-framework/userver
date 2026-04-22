@@ -12,12 +12,16 @@
 include_guard(GLOBAL)
 
 function(_userver_prepare_venv_variables)
+    # @ingroup dependencies
     set(USERVER_PYTHON_PATH
         "python3"
         CACHE FILEPATH "Path to python3 executable to use"
     )
     message(STATUS "Python: ${USERVER_PYTHON_PATH}")
+    # @ingroup compilation
     option(USERVER_PIP_USE_SYSTEM_PACKAGES "Use system python packages inside venv" OFF)
+
+    # @ingroup dependencies
     set(USERVER_PIP_OPTIONS
         ""
         CACHE STRING "Options for all pip calls"
@@ -49,6 +53,7 @@ function(_userver_append_requirements_from_file output_variable)
     )
 endfunction()
 
+# TODO
 function(userver_venv_setup)
     set(options UNIQUE)
     set(oneValueArgs NAME PYTHON_OUTPUT_VAR)
@@ -120,7 +125,9 @@ function(userver_venv_setup)
 
     message(STATUS "Setting up the venv at ${venv_dir}")
 
-    if(NOT EXISTS "${venv_dir}")
+    if(NOT EXISTS "${venv_dir}/.venv-settled")
+	file(REMOVE_RECURSE "${venv_dir}")
+
         execute_process(
             COMMAND "${USERVER_PYTHON_PATH}" -m venv "${venv_dir}" ${venv_additional_args} RESULT_VARIABLE status
         )
@@ -131,6 +138,9 @@ function(userver_venv_setup)
                             "On Debian-based systems, venv is installed separately:\n" "sudo apt install python3-venv"
             )
         endif()
+
+	# to be sure 'python -m venv' is atomic
+	file(TOUCH "${venv_dir}/.venv-settled")
     endif()
 
     # If pip has already installed packages using the same requirements, then don't run it again. This optimization

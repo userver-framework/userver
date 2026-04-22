@@ -172,7 +172,7 @@ RunnerComponentBase<MiddlewareBase, HandlerInfo>::RunnerComponentBase(
     for (const auto& mid : names) {
         const auto* factory = context.FindComponentOptional<MiddlewareFactory>(mid);
         UINVARIANT(factory != nullptr, fmt::format("The middleware '{}' must exist", mid));
-        middleware_infos_.push_back(MiddlewareInfo{factory, middlewares[mid]});
+        middleware_infos_.push_back(MiddlewareInfo{.factory = factory, .local_config = middlewares[mid]});
     }
 }
 

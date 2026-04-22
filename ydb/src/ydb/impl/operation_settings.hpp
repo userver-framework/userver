@@ -2,7 +2,9 @@
 
 #include <chrono>
 
+#include <ydb-cpp-sdk/client/query/query.h>
 #include <ydb-cpp-sdk/client/retry/retry.h>
+#include <ydb-cpp-sdk/client/table/table.h>
 #include <ydb-cpp-sdk/client/types/request_settings.h>
 
 #include <userver/engine/deadline.hpp>
@@ -14,46 +16,63 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ydb::impl {
 
-std::chrono::milliseconds GetBoundTimeout(std::chrono::milliseconds timeout, engine::Deadline deadline);
+constexpr double kOperationTimeoutMultiplier = 0.8;
 
-template <typename T>
+std::chrono::milliseconds GetBoundTimeout(std::chrono::milliseconds timeout, engine::Deadline deadline);
+std::chrono::milliseconds GetBoundTimeout(std::optional<std::chrono::milliseconds> timeout, engine::Deadline deadline);
+
+template <typename T, typename Settings>
 void ApplyToRequestSettings(
     NYdb::TRequestSettings<T>& result,
-    const OperationSettings& settings,
-    engine::Deadline deadline
+    const Settings& settings,
+    engine::Deadline deadline,
+    std::string_view trace_id
 ) {
     result.ClientTimeout(GetBoundTimeout(settings.client_timeout_ms, deadline));
 
-    if (!settings.trace_id.empty()) {
-        result.TraceId(impl::ToString(settings.trace_id));
+    if (!trace_id.empty()) {
+        result.TraceId(impl::ToString(trace_id));
     }
 }
 
-template <typename T>
+template <typename T, typename Settings>
 void ApplyToRequestSettings(
     NYdb::TOperationRequestSettings<T>& result,
-    const OperationSettings& settings,
-    engine::Deadline deadline
+    const Settings& settings,
+    engine::Deadline deadline,
+    std::string_view trace_id
 ) {
-    result.OperationTimeout(GetBoundTimeout(settings.operation_timeout_ms, deadline));
+    std::chrono::milliseconds timeout;
 
-    if (settings.cancel_after_ms > std::chrono::milliseconds::zero()) {
-        result.CancelAfter(settings.cancel_after_ms);
+    if constexpr (std::is_same_v<Settings, OperationSettings> &&
+                  (std::is_same_v<T, NYdb::NQuery::TCreateSessionSettings> ||
+                   std::is_same_v<T, NYdb::NTable::TCreateSessionSettings>))
+    {
+        timeout = GetBoundTimeout(settings.get_session_timeout_ms, deadline);
+    } else {
+        timeout = GetBoundTimeout(settings.client_timeout_ms, deadline);
     }
 
-    if (settings.client_timeout_ms > std::chrono::milliseconds::zero()) {
-        result.ClientTimeout(settings.client_timeout_ms);
-    }
+    result.ClientTimeout(timeout);
+    result.OperationTimeout(timeout * kOperationTimeoutMultiplier);
+    result.CancelAfter(timeout * kOperationTimeoutMultiplier);
 
-    if (!settings.trace_id.empty()) {
-        result.TraceId(impl::ToString(settings.trace_id));
+    if (!trace_id.empty()) {
+        result.TraceId(impl::ToString(trace_id));
     }
 }
 
 template <typename T>
 T PrepareRequestSettings(const OperationSettings& settings, engine::Deadline deadline) {
     T result;
-    impl::ApplyToRequestSettings(result, settings, deadline);
+    impl::ApplyToRequestSettings(result, settings, deadline, settings.trace_id);
+    return result;
+}
+
+template <typename T, typename Settings>
+T PrepareRequestSettings(const Settings& settings, engine::Deadline deadline, std::string_view trace_id) {
+    T result;
+    impl::ApplyToRequestSettings(result, settings, deadline, trace_id);
     return result;
 }
 

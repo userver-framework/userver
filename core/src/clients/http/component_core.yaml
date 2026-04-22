@@ -12,8 +12,7 @@ properties:
         default: ''
     threads:
         type: integer
-        description: number of threads to process low level HTTP related IO system
-            calls
+        description: number of threads to process low level HTTP related IO system calls
         default: 8
     fs-task-processor:
         type: string
@@ -28,8 +27,7 @@ properties:
         default: 100
     user-agent:
         type: string
-        description: User-Agent HTTP header to show on all requests, result of utils::GetUserverIdentifier()
-            if empty
+        description: User-Agent HTTP header to show on all requests, result of utils::GetUserverIdentifier() if empty
         default: ''
     testsuite-enabled:
         type: boolean
@@ -37,12 +35,11 @@ properties:
         default: false
     testsuite-timeout:
         type: string
-        description: if set, force the request timeout regardless of the value passed
-            in code
+        description: if set, force the request timeout regardless of the value passed in code
     testsuite-allowed-url-prefixes:
         type: array
-        description: if set, checks that all URLs start with any of the passed prefixes,
-            asserts if not. Set for testing purposes only.
+        description: if set, checks that all URLs start with any of the passed prefixes, asserts if not. Set for testing purposes
+            only.
         items:
             type: string
             description: URL prefix

@@ -89,3 +89,19 @@ async def test_happy_path_standalone_with_resubscription(service_client, redis_s
     response = await service_client.put(_get_url('standalone'))
     assert response.status == 200
     assert await _validate_pubsub(redis_standalone_store, service_client, msg, 'standalone')
+
+
+async def test_publisher(service_client, redis_store):
+    p = redis_store.pubsub()
+    p.subscribe('output-channel')
+    response = await service_client.get('/publisher?message=hello')
+    assert response.status == 200
+
+    def get_message(p):
+        for i in range(15):
+            message = p.get_message(timeout=1.0)
+            if message and message['type'] == 'message':
+                return message['data'].decode()
+        return None
+
+    assert get_message(p) == 'hello'

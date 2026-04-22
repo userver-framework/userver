@@ -41,8 +41,7 @@ properties:
         default: false
     testsuite-increased-timeout:
         type: string
-        description: increase timeouts in testing environments. Overrides postgres,
-            redis and grpc timeouts if these are missing
+        description: increase timeouts in testing environments. Overrides postgres, redis and grpc timeouts if these are missing
         default: 0ms
     cache-update-execution:
         type: string

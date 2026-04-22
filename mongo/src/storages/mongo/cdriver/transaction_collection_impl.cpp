@@ -146,7 +146,7 @@ Cursor CDriverTransactionCollectionImpl::Execute(const operations::Aggregate& ag
     return DoExecute(aggregate_op);
 }
 
-void CDriverTransactionCollectionImpl::Execute(const operations::Drop& drop_op) { return DoExecute(drop_op); }
+void CDriverTransactionCollectionImpl::Execute(const operations::Drop& drop_op) { DoExecute(drop_op); }
 
 }  // namespace storages::mongo::impl::cdriver
 

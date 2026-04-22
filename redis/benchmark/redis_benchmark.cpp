@@ -61,7 +61,7 @@ BENCHMARK_DEFINE_TEMPLATE_F(Redis, PipelineGrind)(benchmark::State& state) {
         }
 
         const auto stats = GetSentinel()->GetStatistics({});
-        const auto total = stats.GetShardGroupTotalStatistics();
+        const auto total = stats->GetShardGroupTotalStatistics();
         const auto& timings = total.timings_percentile;
         for (auto p : {95, 99, 100}) {
             state.counters["p" + std::to_string(p)] = timings.GetPercentile(p);

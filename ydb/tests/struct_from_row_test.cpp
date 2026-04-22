@@ -31,6 +31,91 @@ UTEST_F(YdbStructFromRow, StructReadRow) {
     }
 }
 
+UTEST_F(YdbStructFromRow, StructReadRowAsContainer) {
+    CreateTable("test_table", true);
+
+    const ydb::Query select_query{R"(
+    --!syntax_v1
+
+    SELECT value_int, key, value_str
+    FROM test_table
+    ORDER BY key;
+  )"};
+    auto result = GetTableClient().ExecuteDataQuery(select_query);
+    ASSERT_EQ(result.GetSingleCursor().AsContainer<std::vector<tests::RowValue>>(), kPreFilledRows);
+}
+
+UTEST_F(YdbStructFromRow, AsSingleRow) {
+    CreateTable("test_table", true);
+
+    const ydb::Query select_query{R"(
+    --!syntax_v1
+
+    SELECT value_int, key, value_str
+    FROM test_table
+    WHERE key = "key1"
+    ORDER BY key;
+  )"};
+    auto result = GetTableClient().ExecuteDataQuery(select_query);
+    ASSERT_EQ(result.GetSingleCursor().AsSingleRow<tests::RowValue>(), kPreFilledRows[0]);
+}
+
+UTEST_F(YdbStructFromRow, AsSingleRowThrowEmptyResponseError) {
+    CreateTable("test_table", false);
+
+    const ydb::Query select_query{R"(
+    --!syntax_v1
+
+    SELECT value_int, key, value_str
+    FROM test_table
+    WHERE FALSE;
+  )"};
+    auto cursor = GetTableClient().ExecuteDataQuery(select_query).GetSingleCursor();
+    UASSERT_THROW(std::move(cursor).AsSingleRow<tests::RowValue>(), ydb::EmptyResponseError);
+}
+
+UTEST_F(YdbStructFromRow, AsSingleRowThrowIgnoreResultsError) {
+    CreateTable("test_table", true);
+
+    const ydb::Query select_query{R"(
+    --!syntax_v1
+
+    SELECT value_int, key, value_str
+    FROM test_table;
+  )"};
+    auto cursor = GetTableClient().ExecuteDataQuery(select_query).GetSingleCursor();
+    UASSERT_THROW(std::move(cursor).AsSingleRow<tests::RowValue>(), ydb::IgnoreResultsError);
+}
+
+UTEST_F(YdbStructFromRow, AsOptionalSingleRow) {
+    CreateTable("test_table", true);
+
+    const ydb::Query select_query{R"(
+    --!syntax_v1
+
+    SELECT value_int, key, value_str
+    FROM test_table
+    WHERE key = "key1"
+    ORDER BY key;
+  )"};
+    auto result = GetTableClient().ExecuteDataQuery(select_query);
+    ASSERT_EQ(result.GetSingleCursor().AsOptionalSingleRow<tests::RowValue>().value(), kPreFilledRows[0]);
+}
+
+UTEST_F(YdbStructFromRow, AsOptionalSingleRowEmpty) {
+    CreateTable("test_table", false);
+
+    const ydb::Query select_query{R"(
+    --!syntax_v1
+
+    SELECT value_int, key, value_str
+    FROM test_table
+    WHERE FALSE;
+  )"};
+    auto result = GetTableClient().ExecuteDataQuery(select_query);
+    ASSERT_EQ(result.GetSingleCursor().AsOptionalSingleRow<tests::RowValue>(), std::nullopt);
+}
+
 namespace tests {
 
 struct StructReadRowMissingColumn {

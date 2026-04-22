@@ -3,7 +3,7 @@
 #include <atomic>
 
 #include <server/http/http_request_handler.hpp>
-#include <server/net/connection.hpp>
+#include <server/net/http1_connection.hpp>
 #include <server/net/listener_config.hpp>
 
 USERVER_NAMESPACE_BEGIN

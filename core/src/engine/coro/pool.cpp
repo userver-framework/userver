@@ -110,6 +110,7 @@ PoolStats Pool::GetStats() const {
     return stats;
 }
 
+// NOLINTNEXTLINE(readability-make-member-function-const)
 void Pool::PrepareLocalCache() { local_coro_buffer.reserve(config_.local_cache_size); }
 
 void Pool::ClearLocalCache() {
@@ -213,6 +214,10 @@ void Pool::DepopulateLocalCache() {
 std::size_t Pool::GetStackSize() const { return config_.stack_size; }
 
 PoolConfig Pool::FixupConfig(PoolConfig&& config) {
+#ifndef __OPTIMIZE__
+    config.stack_size = static_cast<std::size_t>(config.stack_size * config.unoptimized_stack_size_multiplier);
+#endif
+
     const auto page_size = utils::sys_info::GetPageSize();
     config.stack_size = (config.stack_size + page_size - 1) & ~(page_size - 1);
 

@@ -12,6 +12,8 @@ TempFile::TempFile(engine::TaskProcessor& fs_task_processor, fs::blocking::TempF
       temp_file_(std::move(temp_file))
 {}
 
+TempFile TempFile::Create() { return Create(engine::current_task::GetBlockingTaskProcessor()); }
+
 TempFile TempFile::Create(engine::TaskProcessor& fs_task_processor) {
     return {
         fs_task_processor,

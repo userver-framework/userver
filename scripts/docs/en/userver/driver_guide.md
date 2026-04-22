@@ -13,7 +13,7 @@ interactions of the native library into it:
 
 ```cpp
 template <class... Args>
-auto UserverSide::DoStuff(Args&&... args) { 
+auto UserverSide::DoStuff(Args&&... args) {
   return utils::Async(driver_task_processor, "driver-action", [&]() {
     return native_do_stuff(std::forward<Args>(args));
   }).Get();

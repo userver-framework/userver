@@ -1,3 +1,4 @@
+# @ingroup download
 option(USERVER_DOWNLOAD_PACKAGE_YDBCPPSDK "Download and setup ydb-cpp-sdk" ${USERVER_DOWNLOAD_PACKAGES})
 
 include(DownloadUsingCPM)
@@ -33,7 +34,7 @@ endif()
 
 cpmaddpackage(
     NAME ydb-cpp-sdk
-    GIT_TAG v3.5.1
+    GIT_TAG v3.13.0
     GITHUB_REPOSITORY ydb-platform/ydb-cpp-sdk
     GIT_SHALLOW TRUE
     OPTIONS "Brotli_VERSION ${Brotli_VERSION}" "RAPIDJSON_INCLUDE_DIRS ${RAPIDJSON_INCLUDE_DIRS}"

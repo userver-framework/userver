@@ -108,11 +108,10 @@ struct SomeValue final {
 };
 
 SomeValue Parse(const formats::json::Value& value, formats::parse::To<SomeValue>) {
-    SomeValue result{};
-    const std::string we = formats::json::ToString(value);
-    result.value = value["value"].As<std::size_t>(0);
-
-    return result;
+    [[maybe_unused]] const std::string we = formats::json::ToString(value);
+    return {
+        .value = value["value"].As<std::size_t>(0),
+    };
 }
 
 formats::json::Value Serialize(const SomeValue& value, formats::serialize::To<formats::json::Value>) {
@@ -126,10 +125,9 @@ struct ObjValue final {
 };
 
 ObjValue Parse(const formats::json::Value& value, formats::parse::To<ObjValue>) {
-    ObjValue result{};
-    result.value = value["obj"].As<SomeValue>();
-
-    return result;
+    return {
+        .value = value["obj"].As<SomeValue>(),
+    };
 }
 
 formats::json::Value Serialize(const ObjValue& value, formats::serialize::To<formats::json::Value>) {
@@ -144,10 +142,9 @@ struct ArrayOfValues final {
 };
 
 ArrayOfValues Parse(const formats::json::Value& value, formats::parse::To<ArrayOfValues>) {
-    ArrayOfValues result;
-    result.values = value["data"].As<std::vector<ObjValue>>();
-
-    return result;
+    return {
+        .values = value["data"].As<std::vector<ObjValue>>(),
+    };
 }
 
 formats::json::Value Serialize(const ArrayOfValues& value, formats::serialize::To<formats::json::Value>) {
@@ -167,11 +164,10 @@ struct Data final {
 };
 
 Data Parse(const formats::json::Value& value, formats::parse::To<Data>) {
-    Data result;
-    result.values1 = value["values1"].As<ArrayOfValues>();
-    result.values2 = value["values2"].As<ArrayOfValues>();
-
-    return result;
+    return {
+        .values2 = value["values2"].As<ArrayOfValues>(),
+        .values1 = value["values1"].As<ArrayOfValues>(),
+    };
 }
 
 formats::json::Value Serialize(const Data& value, formats::serialize::To<formats::json::Value>) {

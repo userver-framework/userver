@@ -32,7 +32,6 @@ private:
     static constexpr std::size_t kCodesCount = static_cast<std::size_t>(grpc::StatusCode::UNAUTHENTICATED) + 1;
 
     utils::statistics::RateCounter codes_[kCodesCount]{};
-    utils::statistics::RateCounter non_standard_codes_{0};
 };
 
 class CodeStatistics::Snapshot final {
@@ -49,7 +48,6 @@ public:
 
 private:
     utils::statistics::Rate codes_[kCodesCount]{};
-    utils::statistics::Rate non_standard_codes_{0};
 };
 
 }  // namespace ugrpc::impl

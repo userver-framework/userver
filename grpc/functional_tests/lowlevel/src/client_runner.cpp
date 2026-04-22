@@ -13,9 +13,19 @@ namespace {
 formats::json::Value HandleGet() {
     static const auto kGrpcVersion = utils::text::Split(grpc::Version(), ".");
 
+    bool support_non_standard_codes = true;
+
+#if defined(__has_feature)
+#if __has_feature(undefined_behavior_sanitizer)
+    support_non_standard_codes = false;
+#endif
+#endif
+
     return formats::json::MakeObject(
         "grpc-version",
-        formats::json::MakeObject("major", kGrpcVersion.at(0), "minor", kGrpcVersion.at(1))
+        formats::json::MakeObject("major", kGrpcVersion.at(0), "minor", kGrpcVersion.at(1)),
+        "supports-non-standard-codes",
+        support_non_standard_codes
     );
 }
 
@@ -30,7 +40,12 @@ formats::json::Value HandlePost(const ::samples::api::GreeterServiceClient& clie
         return {};
     }
 
-    return formats::json::MakeObject("grpc-status", ugrpc::ToString(grpc_status->error_code()));
+    return formats::json::MakeObject(
+        "grpc-status",
+        ugrpc::ToString(grpc_status->error_code()),
+        "grpc-message",
+        grpc_status->error_message()
+    );
 }
 
 }  // namespace

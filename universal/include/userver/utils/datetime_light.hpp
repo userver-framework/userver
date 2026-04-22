@@ -23,6 +23,8 @@ namespace utils::datetime {
 inline const std::string kRfc3339Format = "%Y-%m-%dT%H:%M:%E*S%Ez";
 /// @snippet utils/datetime/from_string_saturating_test.cpp  kTaximeterFormat
 inline const std::string kTaximeterFormat = "%Y-%m-%dT%H:%M:%E6SZ";
+/// @snippet utils/datetime/from_string_saturating_test.cpp  kAbsoluteDeadlineFormat
+inline const std::string kAbsoluteDeadlineFormat = "%Y-%m-%dT%H:%M:%E6SZ";
 inline constexpr std::time_t kStartOfTheEpoch = 0;
 /// @snippet utils/datetime_test.cpp  kDefaultDriverTimezone
 inline const std::string kDefaultDriverTimezone = "Europe/Moscow";

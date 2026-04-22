@@ -46,7 +46,7 @@ public:
     /// @brief A human-readable description of the error.
     const std::string& GetDescription() const;
 
-    /// @brief A list of found contraint violations.
+    /// @brief A list of found constraint violations.
     ///
     /// The list is empty if this is a @c Type::kInternal error.
     const std::vector<buf::validate::RuleViolation>& GetViolations() const;
@@ -55,7 +55,10 @@ public:
     ///
     /// Message contains a short human-readable representation of the error.
     /// If include_violations is true, details contain the list of violations. Otherwise, details are empty.
-    grpc::Status GetGrpcStatus(bool include_violations = true) const;
+    grpc::Status GetGrpcStatus(
+        bool include_violations = true,
+        grpc::StatusCode rule_violation_status = grpc::StatusCode::INVALID_ARGUMENT
+    ) const;
 
 private:
     buf::validate::Violations MakeViolationsProto() const;

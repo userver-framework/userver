@@ -106,6 +106,18 @@ bool AddHeaderDoReplace(
     return false;
 }
 
+// Mask out flags, keep only base type (SOCK_STREAM, etc.)
+int StripSocketFlags(int x)
+{
+#ifdef SOCK_CLOEXEC
+    x &= ~SOCK_CLOEXEC;
+#endif
+#ifdef SOCK_NONBLOCK
+    x &= ~SOCK_NONBLOCK;
+#endif
+    return x;
+}
+
 }  // namespace
 
 using BusyMarker = utils::statistics::BusyMarker;
@@ -164,7 +176,7 @@ void easy::async_perform(handler_type handler) {
     if (multi_) {
         multi_->GetThreadControl()
             .RunInEvLoopAsync([self = shared_from_this(), this, handler = std::move(handler), request_num]() mutable {
-                return do_ev_async_perform(std::move(handler), request_num);
+                do_ev_async_perform(std::move(handler), request_num);
             });
     } else {
         throw std::runtime_error("no multi!");
@@ -257,6 +269,9 @@ void easy::reset() {
     retries_count_ = 0;
     sockets_opened_ = 0;
     rate_limit_error_.clear();
+
+    extracted_socket_ = {};
+    extract_socket_enabled_ = false;
 
     set_custom_request(nullptr);
     set_no_body(false);
@@ -586,6 +601,7 @@ void easy::add_resolve(const std::string& host, const std::string& port, const s
             std::move(host_port_addr)
         ))
     {
+        // NOLINTNEXTLINE(bugprone-use-after-move)
         UASSERT_MSG(!host_port_addr.empty(), "ReplaceFirstIf moved the string out, when it shouldn't have done so.");
         resolved_hosts_->add(std::move(host_port_addr));
     }
@@ -815,10 +831,14 @@ native::curl_socket_t easy::opensocket(
         LOG_TRACE() << "skip throttle check";
     }
 
-    if (purpose == native::CURLSOCKTYPE_IPCXN && address->socktype == SOCK_STREAM) {
+    if (purpose == native::CURLSOCKTYPE_IPCXN && StripSocketFlags(address->socktype) == SOCK_STREAM) {
         // Note to self: Why is address->protocol always set to zero?
         s = self->open_tcp_socket(address);
         if (s != -1 && multi_handle) {
+            if (self->extract_socket_enabled_) {
+                self->extracted_socket_ = fs::blocking::FileDescriptor::DupFd(s);
+            }
+
             multi_handle->Statistics().mark_open_socket();
             self->mark_open_socket();
         }
@@ -831,6 +851,7 @@ native::curl_socket_t easy::opensocket(
 
 int easy::closesocket(void* clientp, native::curl_socket_t item) noexcept {
     auto* multi_handle = static_cast<multi*>(clientp);
+
     multi_handle->UnbindEasySocket(item);
 
     const int ret = close(item);

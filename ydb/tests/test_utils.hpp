@@ -71,8 +71,6 @@ protected:
 
         const ydb::OperationSettings query_params = {
             3,                                      // retries
-            kMaxYdbBootTimeout,                     // operation_timeout_ms
-            kMaxYdbBootTimeout,                     // cancel_after_ms
             kMaxYdbBootTimeout,                     // client_timeout_ms
             ydb::TransactionMode::kSerializableRW,  // tx_mode
             kMaxYdbBootTimeout,                     // get_session_timeout_ms

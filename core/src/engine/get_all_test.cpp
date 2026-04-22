@@ -48,9 +48,11 @@ UTEST(GetAll, MultipleResult) {
 UTEST(GetAll, ContainerVoid) {
     for (std::size_t task_count = 0; task_count < 10; ++task_count) {
         std::vector<engine::TaskWithResult<void>> tasks;
+        tasks.reserve(task_count);
         for (std::size_t i = 0; i < task_count; ++i) {
             tasks.push_back(engine::AsyncNoSpan([] {}));
         }
+
         static_assert(std::is_void_v<decltype(engine::GetAll(tasks))>);
         UEXPECT_NO_THROW(engine::GetAll(tasks));
         for (auto& task : tasks) {

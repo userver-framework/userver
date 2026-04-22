@@ -16,8 +16,8 @@ struct MyKeyValue {
 template <class Value>
 MyKeyValue Parse(const Value& data, formats::parse::To<MyKeyValue>) {
     return MyKeyValue{
-        data["field1"].template As<std::string>(),
-        data["field2"].template As<int>(-1),  // return `1` if "field2" is missing
+        .field1 = data["field1"].template As<std::string>(),
+        .field2 = data["field2"].template As<int>(-1),  // return `1` if "field2" is missing
     };
 }
 

@@ -35,7 +35,8 @@ struct Noop {};
 struct HexBase {
     std::uint64_t value;
 
-    template <typename Unsigned, typename = std::enable_if_t<std::is_unsigned_v<Unsigned>>>
+    template <typename Unsigned>
+        requires std::is_unsigned_v<Unsigned>
     explicit constexpr HexBase(Unsigned value) noexcept : value(value) {
         static_assert(sizeof(Unsigned) <= sizeof(value));
     }
@@ -269,7 +270,8 @@ LogHelper& operator<<(LogHelper& lh, const std::optional<T>& value) {
     return lh;
 }
 
-template <typename Fun, typename = std::enable_if_t<std::is_invocable_r_v<void, Fun, LogHelper&>>>
+template <typename Fun>
+requires std::is_invocable_r_v<void, Fun, LogHelper&>
 LogHelper& operator<<(LogHelper& lh, Fun&& value) {
     std::forward<Fun>(value)(lh);
     return lh;

@@ -23,7 +23,7 @@ template <class... Args>
 const char* TrySigdescrNp(Args...) noexcept {
 #if ((__GLIBC__ * 100 + __GLIBC_MINOR__) >= 232)
     static_assert(
-        sizeof...(Args) && false,
+        sizeof...(Args) == 0,
         "This version of glibc is known to have sigdescr_np. Error in "
         "function detection"
     );

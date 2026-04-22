@@ -9,17 +9,22 @@ namespace protobuf::json {
 
 formats::json::ValueBuilder MessageToJsonBuilder(
     const ::google::protobuf::Message& message,
-    const WriteOptions& options
+    const PrintOptions& options
 ) {
     return impl::WriteMessage(message, options);
 }
 
-void JsonToMessage(const formats::json::Value& json, const ReadOptions& options, ::google::protobuf::Message& message) {
-    impl::ReadMessage(json, options, message);
+void JsonToMessage(
+    const formats::json::Value& json,
+    ::google::protobuf::Message& message,
+    const ParseOptions& options
+) {
+    impl::ReadMessage(json, message, options);
 }
 
 }  // namespace protobuf::json
 
+/*
 namespace formats::serialize {
 
 json::Value Serialize(const ::google::protobuf::Message& message, To<json::Value>) {
@@ -27,4 +32,6 @@ json::Value Serialize(const ::google::protobuf::Message& message, To<json::Value
 }
 
 }  // namespace formats::serialize
+*/
+
 USERVER_NAMESPACE_END

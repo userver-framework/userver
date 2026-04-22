@@ -1,6 +1,8 @@
 #pragma once
 #include <userver/utest/using_namespace_userver.hpp>
 
+#include <userver/congestion_control/controller.hpp>
+
 #include <samples/greeter_client.usrv.pb.hpp>
 #include <samples/greeter_service.usrv.pb.hpp>
 
@@ -10,8 +12,7 @@ class GreeterServiceComponent final : public samples::api::GreeterServiceBase::C
 public:
     static constexpr std::string_view kName = "greeter-service";
 
-    GreeterServiceComponent(const components::ComponentConfig& config, const components::ComponentContext& context)
-        : samples::api::GreeterServiceBase::Component(config, context) {}
+    GreeterServiceComponent(const components::ComponentConfig& config, const components::ComponentContext& context);
 
     SayHelloResult SayHello(CallContext& context, samples::api::GreetingRequest&& request) final;
 
@@ -26,6 +27,9 @@ public:
     SayHelloStreamsResult SayHelloStreams(CallContext& context, SayHelloStreamsReaderWriter& stream) final;
 
     static yaml_config::Schema GetStaticConfigSchema();
+
+private:
+    const congestion_control::Controller& congestion_control_controller_;
 };
 
 }  // namespace functional_tests

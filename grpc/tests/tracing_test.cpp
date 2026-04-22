@@ -16,7 +16,7 @@ USERVER_NAMESPACE_BEGIN
 namespace {
 
 template <typename MetadataMap>
-grpc::string GetMetadata(const MetadataMap& metadata, const grpc::string& key) {
+grpc::string GetMetadataValue(const MetadataMap& metadata, const grpc::string& key) {
     return ugrpc::impl::ToGrpcString(utils::FindOrDefault(metadata, key));
 }
 
@@ -66,14 +66,16 @@ private:
         context.AddInitialMetadata(kServerParentSpanId, ugrpc::impl::ToGrpcString(span.GetParentId()));
         context.AddInitialMetadata(kServerParentLink, ugrpc::impl::ToGrpcString(span.GetParentLink()));
 
-        context.AddInitialMetadata(kClientTraceIdEcho, GetMetadata(client_meta, ugrpc::impl::kXYaTraceId));
-        context.AddInitialMetadata(kClientSpanIdEcho, GetMetadata(client_meta, ugrpc::impl::kXYaSpanId));
-        context.AddInitialMetadata(kClientLinkEcho, GetMetadata(client_meta, ugrpc::impl::kXYaRequestId));
+        context.AddInitialMetadata(kClientTraceIdEcho, GetMetadataValue(client_meta, ugrpc::impl::kXYaTraceId));
+        context.AddInitialMetadata(kClientSpanIdEcho, GetMetadataValue(client_meta, ugrpc::impl::kXYaSpanId));
+        context.AddInitialMetadata(kClientLinkEcho, GetMetadataValue(client_meta, ugrpc::impl::kXYaRequestId));
     }
 };
 
-class GrpcTracing : public ugrpc::tests::ServiceFixture<UnitTestServiceWithTracingChecks> {
-private:
+class GrpcTracing
+    : public ugrpc::tests::ServiceWithClientFixture<
+          UnitTestServiceWithTracingChecks,
+          sample::ugrpc::UnitTestServiceClient> {
     logging::DefaultLoggerLevelScope log_level_scope_{logging::Level::kInfo};
 };
 
@@ -90,73 +92,68 @@ void CheckMetadata(const grpc::ClientContext& client_context) {
     // - client uses a detached sub-Span for the RPC
 
     // the checks below follow EXPECT_EQ(cause, effect) order
-    EXPECT_EQ(span.GetTraceId(), GetMetadata(metadata, kClientTraceIdEcho));
-    EXPECT_EQ(GetMetadata(metadata, kClientTraceIdEcho), GetMetadata(metadata, kServerTraceId));
+    EXPECT_EQ(span.GetTraceId(), GetMetadataValue(metadata, kClientTraceIdEcho));
+    EXPECT_EQ(GetMetadataValue(metadata, kClientTraceIdEcho), GetMetadataValue(metadata, kServerTraceId));
 
-    EXPECT_NE(span.GetSpanId(), GetMetadata(metadata, kClientSpanIdEcho));
-    EXPECT_EQ(GetMetadata(metadata, kClientSpanIdEcho), GetMetadata(metadata, kServerParentSpanId));
-    EXPECT_NE(GetMetadata(metadata, kServerParentSpanId), GetMetadata(metadata, kServerSpanId));
+    EXPECT_NE(span.GetSpanId(), GetMetadataValue(metadata, kClientSpanIdEcho));
+    EXPECT_EQ(GetMetadataValue(metadata, kClientSpanIdEcho), GetMetadataValue(metadata, kServerParentSpanId));
+    EXPECT_NE(GetMetadataValue(metadata, kServerParentSpanId), GetMetadataValue(metadata, kServerSpanId));
 
-    EXPECT_EQ(span.GetLink(), GetMetadata(metadata, kClientLinkEcho));
-    EXPECT_EQ(GetMetadata(metadata, kClientLinkEcho), GetMetadata(metadata, kServerParentLink));
-    EXPECT_NE(GetMetadata(metadata, kServerParentLink), GetMetadata(metadata, kServerLink));
+    EXPECT_EQ(span.GetLink(), GetMetadataValue(metadata, kClientLinkEcho));
+    EXPECT_EQ(GetMetadataValue(metadata, kClientLinkEcho), GetMetadataValue(metadata, kServerParentLink));
+    EXPECT_NE(GetMetadataValue(metadata, kServerParentLink), GetMetadataValue(metadata, kServerLink));
 }
 
 }  // namespace
 
 UTEST_F(GrpcTracing, UnaryRPC) {
-    auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
     sample::ugrpc::GreetingRequest out;
     out.set_name("userver");
-    auto future = client.AsyncSayHello(out);
+    auto future = GetClient().AsyncSayHello(out);
     UEXPECT_NO_THROW(future.Get());
     CheckMetadata(future.GetContext().GetClientContext());
 }
 
 UTEST_F(GrpcTracing, InputStream) {
-    auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
     sample::ugrpc::StreamGreetingRequest out;
     out.set_name("userver");
     out.set_number(42);
     sample::ugrpc::StreamGreetingResponse in;
-    auto call = client.ReadMany(out);
+    auto call = GetClient().ReadMany(out);
     EXPECT_FALSE(call.Read(in));
     CheckMetadata(call.GetContext().GetClientContext());
 }
 
 UTEST_F(GrpcTracing, OutputStream) {
-    auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
-    auto call = client.WriteMany();
+    auto call = GetClient().WriteMany();
     UEXPECT_NO_THROW(call.Finish());
     CheckMetadata(call.GetContext().GetClientContext());
 }
 
 UTEST_F(GrpcTracing, BidirectionalStream) {
-    auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
     sample::ugrpc::StreamGreetingResponse in;
-    auto call = client.Chat();
+    auto call = GetClient().Chat();
     EXPECT_FALSE(call.Read(in));
     CheckMetadata(call.GetContext().GetClientContext());
 }
 
 UTEST_F(GrpcTracing, SpansInDifferentRPCs) {
-    auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
     sample::ugrpc::GreetingRequest out;
     out.set_name("userver");
 
-    auto future1 = client.AsyncSayHello(out);
+    auto future1 = GetClient().AsyncSayHello(out);
     future1.Get();
     const auto& metadata1 = future1.GetContext().GetClientContext().GetServerInitialMetadata();
 
-    auto future2 = client.AsyncSayHello(out);
+    auto future2 = GetClient().AsyncSayHello(out);
     future2.Get();
     const auto& metadata2 = future2.GetContext().GetClientContext().GetServerInitialMetadata();
 
-    EXPECT_EQ(GetMetadata(metadata1, kServerTraceId), GetMetadata(metadata2, kServerTraceId));
-    EXPECT_NE(GetMetadata(metadata1, kServerSpanId), GetMetadata(metadata2, kServerSpanId));
-    EXPECT_NE(GetMetadata(metadata1, kServerParentSpanId), GetMetadata(metadata2, kServerParentSpanId));
-    EXPECT_NE(GetMetadata(metadata1, kServerLink), GetMetadata(metadata2, kServerLink));
-    EXPECT_EQ(GetMetadata(metadata1, kServerParentLink), GetMetadata(metadata2, kServerParentLink));
+    EXPECT_EQ(GetMetadataValue(metadata1, kServerTraceId), GetMetadataValue(metadata2, kServerTraceId));
+    EXPECT_NE(GetMetadataValue(metadata1, kServerSpanId), GetMetadataValue(metadata2, kServerSpanId));
+    EXPECT_NE(GetMetadataValue(metadata1, kServerParentSpanId), GetMetadataValue(metadata2, kServerParentSpanId));
+    EXPECT_NE(GetMetadataValue(metadata1, kServerLink), GetMetadataValue(metadata2, kServerLink));
+    EXPECT_EQ(GetMetadataValue(metadata1, kServerParentLink), GetMetadataValue(metadata2, kServerParentLink));
 }
 
 USERVER_NAMESPACE_END

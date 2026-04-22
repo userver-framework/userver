@@ -246,6 +246,7 @@ TYPED_UTEST_P(TypedQueueFixture, Noblock) {
 
         auto value = this->Wrap(2);
         EXPECT_FALSE(producer.PushNoblock(std::move(value)));
+        // NOLINTNEXTLINE(bugprone-use-after-move)
         EXPECT_TRUE(this->CheckWasNotMovedOut(value));
     }
 
@@ -264,10 +265,12 @@ TYPED_UTEST_P(TypedQueueFixture, NotMovedValueOnFalse) {
 
     auto value = this->Wrap(2);
     EXPECT_FALSE(producer.PushNoblock(std::move(value)));
+    // NOLINTNEXTLINE(bugprone-use-after-move)
     EXPECT_TRUE(this->CheckWasNotMovedOut(value));
 
     engine::current_task::GetCancellationToken().RequestCancel();
     EXPECT_FALSE(producer.Push(std::move(value)));
+    // NOLINTNEXTLINE(bugprone-use-after-move)
     EXPECT_TRUE(this->CheckWasNotMovedOut(value));
 }
 

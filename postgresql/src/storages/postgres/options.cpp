@@ -1,6 +1,7 @@
 #include <userver/storages/postgres/options.hpp>
 
 #include <userver/utils/trivial_map.hpp>
+#include <userver/utils/underlying_value.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -50,6 +51,14 @@ constexpr utils::TrivialBiMap kStatements = [](auto selector) {
 
 constexpr utils::StringLiteral kDefaultBeginStatement = "begin";
 
+constexpr utils::TrivialBiMap kIsolationLevels = [](auto selector) {
+    return selector()
+        .Case(IsolationLevel::kReadCommitted, "read committed")
+        .Case(IsolationLevel::kRepeatableRead, "repeatable read")
+        .Case(IsolationLevel::kSerializable, "serializable")
+        .Case(IsolationLevel::kReadUncommitted, "read uncommitted");
+};
+
 }  // namespace
 
 USERVER_NAMESPACE::utils::StringLiteral BeginStatement(TransactionOptions opts) noexcept {
@@ -82,6 +91,8 @@ OptionalCommandControl GetQueryOptionalCommandControl(
     }
     return *value;
 }
+
+std::string_view ToStringView(IsolationLevel lvl) { return utils::impl::EnumToStringView(lvl, kIsolationLevels); }
 
 }  // namespace storages::postgres
 

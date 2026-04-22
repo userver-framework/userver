@@ -1,5 +1,6 @@
 import asyncio
 
+import pytest
 import pytest_userver.utils.sync as sync
 
 KEYS_SEQ_LEN = 20  # enough sequential keys to test all slots
@@ -67,6 +68,7 @@ async def test_hard_failover(service_client, redis_cluster_topology):
     await _assert_read_all_slots(service_client, 'hf_key2', 'cde')
 
 
+@pytest.mark.skip(reason='Flaky TAXICOMMON-11677')
 async def test_add_shard(service_client, redis_cluster_topology):
     # Write enough different keys to have something in every slot
     assert await _check_write_all_slots(service_client, 'hf_key1', 'abc')

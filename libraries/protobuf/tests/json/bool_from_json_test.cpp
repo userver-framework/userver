@@ -17,14 +17,14 @@ namespace protobuf::json::tests {
 struct BoolFromJsonSuccessTestParam {
     std::string input = {};
     BoolMessageData expected_message = {};
-    ReadOptions options = {};
+    ParseOptions options = {};
 };
 
 struct BoolFromJsonFailureTestParam {
     std::string input = {};
-    ReadErrorCode expected_errc = {};
+    ParseErrorCode expected_errc = {};
     std::string expected_path = {};
-    ReadOptions options = {};
+    ParseOptions options = {};
 
     // Protobuf ProtoJSON legacy syntax supports out-of-spec "true"/"false" strings as a value
     // for bool, which we want to prohibit (because we do not want our clients to use syntax
@@ -59,24 +59,26 @@ INSTANTIATE_TEST_SUITE_P(
     ,
     BoolFromJsonFailureTest,
     ::testing::Values(
-        BoolFromJsonFailureTestParam{R"({"field1":[]})", ReadErrorCode::kInvalidType, "field1"},
-        BoolFromJsonFailureTestParam{R"({"field1":{}})", ReadErrorCode::kInvalidType, "field1"},
-        BoolFromJsonFailureTestParam{R"({"field1":"false"})", ReadErrorCode::kInvalidType, "field1", {}, true},
-        BoolFromJsonFailureTestParam{R"({"field1":"true"})", ReadErrorCode::kInvalidType, "field1", {}, true},
-        BoolFromJsonFailureTestParam{R"({"field1":0})", ReadErrorCode::kInvalidType, "field1"},
-        BoolFromJsonFailureTestParam{R"({"field1":1})", ReadErrorCode::kInvalidType, "field1"}
+        BoolFromJsonFailureTestParam{R"({"field1":[]})", ParseErrorCode::kInvalidType, "field1"},
+        BoolFromJsonFailureTestParam{R"({"field1":{}})", ParseErrorCode::kInvalidType, "field1"},
+        BoolFromJsonFailureTestParam{R"({"field1":"false"})", ParseErrorCode::kInvalidType, "field1", {}, true},
+        BoolFromJsonFailureTestParam{R"({"field1":"true"})", ParseErrorCode::kInvalidType, "field1", {}, true},
+        BoolFromJsonFailureTestParam{R"({"field1":0})", ParseErrorCode::kInvalidType, "field1"},
+        BoolFromJsonFailureTestParam{R"({"field1":1})", ParseErrorCode::kInvalidType, "field1"}
     )
 );
 
 TEST_P(BoolFromJsonSuccessTest, Test) {
     const auto& param = GetParam();
 
-    proto_json::messages::BoolMessage message, expected_message, sample_message;
+    proto_json::messages::BoolMessage message;
+    proto_json::messages::BoolMessage expected_message;
+    proto_json::messages::BoolMessage sample_message;
     formats::json::Value input = PrepareJsonTestData(param.input);
     expected_message = PrepareTestData(param.expected_message);
 
     UASSERT_NO_THROW((message = JsonToMessage<proto_json::messages::BoolMessage>(input, param.options)));
-    UASSERT_NO_THROW(InitSampleMessage(param.input, param.options, sample_message));
+    UASSERT_NO_THROW(InitSampleMessage(param.input, sample_message, param.options));
 
     CheckMessageEqual(message, sample_message);
     CheckMessageEqual(message, expected_message);
@@ -88,14 +90,14 @@ TEST_P(BoolFromJsonFailureTest, Test) {
     proto_json::messages::BoolMessage sample_message;
     formats::json::Value input = PrepareJsonTestData(param.input);
 
-    EXPECT_READ_ERROR(
+    EXPECT_PARSE_ERROR(
         (void)JsonToMessage<proto_json::messages::BoolMessage>(input, param.options),
         param.expected_errc,
         param.expected_path
     );
 
     if (!param.skip_native_check) {
-        UEXPECT_THROW(InitSampleMessage(param.input, param.options, sample_message), SampleError);
+        UEXPECT_THROW(InitSampleMessage(param.input, sample_message, param.options), SampleError);
     }
 }
 

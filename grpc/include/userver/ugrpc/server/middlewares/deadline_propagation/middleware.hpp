@@ -10,11 +10,14 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::server::middlewares::deadline_propagation {
 
+struct Settings final {
+    bool prefer_absolute_deadline = false;
+};
+
 class Middleware final : public MiddlewareBase {
 public:
     /// @ingroup userver_component_names
-    /// @brief The default name of
-    // ugrpc::server::middlewares::deadline_propagation::Component
+    /// @brief The default name of @ref ugrpc::server::middlewares::deadline_propagation::Component.
     static inline constexpr std::string_view kName = "grpc-server-deadline-propagation";
 
     /// @brief dependency of this middleware
@@ -23,9 +26,14 @@ public:
             .InGroup<USERVER_NAMESPACE::middlewares::groups::Core>()
             .After<congestion_control::Component>(USERVER_NAMESPACE::middlewares::DependencyType::kWeak);
 
+    explicit Middleware(Settings&& settings);
+
     void OnCallStart(MiddlewareCallContext& context) const override;
 
     void PreSendStatus(MiddlewareCallContext& context, grpc::Status& status) const override;
+
+private:
+    const Settings settings_;
 };
 
 }  // namespace ugrpc::server::middlewares::deadline_propagation

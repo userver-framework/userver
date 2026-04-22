@@ -16,7 +16,7 @@ enum class StrongTypedefOps {
     kNonLoggable = 4,  /// Forbid logging and serializing for StrongTypedef
 };
 
-template <class Tag, class T, StrongTypedefOps Ops = StrongTypedefOps::kCompareStrong, class /*Enable*/ = void>
+template <class Tag, class T, StrongTypedefOps Ops = StrongTypedefOps::kCompareStrong>
 class StrongTypedef;
 
 // Helpers
@@ -25,13 +25,12 @@ namespace impl::strong_typedef {
 struct StrongTypedefTag {};
 
 template <typename T>
-using IsStrongTypedef =
-    std::conjunction<std::is_base_of<StrongTypedefTag, T>, std::is_convertible<T&, StrongTypedefTag&>>;
+concept IsStrongTypedef = std::is_base_of_v<StrongTypedefTag, T> && std::is_convertible_v<T&, StrongTypedefTag&>;
 
 }  // namespace impl::strong_typedef
 
 template <typename T>
-using IsStrongTypedef = impl::strong_typedef::IsStrongTypedef<T>;
+using IsStrongTypedef = std::bool_constant<impl::strong_typedef::IsStrongTypedef<T>>;
 
 }  // namespace utils
 

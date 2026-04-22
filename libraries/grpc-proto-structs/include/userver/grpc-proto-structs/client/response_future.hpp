@@ -25,13 +25,13 @@ public:
     /// @brief Checks if the asynchronous call has completed.
     ///        Note, that once user gets result, IsReady should not be called.
     /// @return true if result ready.
-    [[nodiscard]] bool IsReady() const { return future_->IsReady(); }
+    [[nodiscard]] bool IsReady() const { return future_.IsReady(); }
 
     /// @brief Await response until specified timepoint.
     ///
     /// @throws ugrpc::client::RpcError on an RPC error.
     [[nodiscard]] engine::FutureStatus WaitUntil(engine::Deadline deadline) const noexcept {
-        return future_->WaitUntil(deadline);
+        return future_.WaitUntil(deadline);
     }
 
     /// @brief Await and read the response.
@@ -43,19 +43,21 @@ public:
     /// @returns the response on success.
     /// @throws ugrpc::client::RpcError on an RPC error.
     /// @throws ugrpc::client::RpcCancelledError on task cancellation.
-    Response Get() {
-        const auto response = future_->Get();
-        return proto_structs::MessageToStruct(response);
-    }
+    Response Get() { return proto_structs::MessageToStruct<Response>(future_.Get()); }
 
     /// @brief Cancel call.
-    void Cancel() { return future_->Cancel(); }
+    void Cancel() { return future_.Cancel(); }
 
     /// @brief Get call context, useful e.g. for accessing metadata.
-    ugrpc::client::CallContext& GetContext() { return future_->GetContext(); }
+    ugrpc::client::CallContext& GetContext() { return future_.GetContext(); }
 
     /// @overload
-    const ugrpc::client::CallContext& GetContext() const { return future_->GetContext(); }
+    const ugrpc::client::CallContext& GetContext() const { return future_.GetContext(); }
+
+    /// @cond
+    // For internal use only.
+    engine::impl::ContextAccessor* TryGetContextAccessor() noexcept { return future_.TryGetContextAccessor(); }
+    /// @endcond
 
 private:
     VanillaFuture future_;

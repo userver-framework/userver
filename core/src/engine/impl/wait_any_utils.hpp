@@ -15,12 +15,12 @@ namespace engine::impl {
 
 class WaitAnyWaitStrategy final : public WaitStrategy {
 public:
-    WaitAnyWaitStrategy(utils::span<ContextAccessor*> targets, TaskContext& waiter)
-        : waiter_(waiter),
+    WaitAnyWaitStrategy(utils::span<ContextAccessor*> targets, TaskContext& awaiter)
+        : awaiter_(awaiter),
           targets_(targets)
     {}
 
-    EarlyWakeup SetupWakeups() override {
+    EarlyNotify SetupWakeups() override {
         for (auto*& target : targets_) {
             if (!target) {
                 continue;
@@ -31,16 +31,16 @@ public:
             });
 
             // SetupWakeups might throw.
-            const auto early_wakeup = target->TryAppendWaiter(waiter_);
-
-            if (static_cast<bool>(early_wakeup)) {
-                return EarlyWakeup{true};
+            boost::intrusive_ptr<Awaiter> awaiter_ptr{&awaiter_};
+            target->TryAppendAwaiter(awaiter_ptr, awaiter_.GetAwaiterContext());
+            if (awaiter_ptr != nullptr) {  // target is ready.
+                return EarlyNotify::kYes;
             }
 
             disable_wakeups.Release();
         }
 
-        return EarlyWakeup{false};
+        return EarlyNotify::kNo;
     }
 
     void DisableWakeups() noexcept override { DoDisableWakeups(targets_); }
@@ -51,22 +51,20 @@ private:
             if (!target) {
                 continue;
             }
-            target->RemoveWaiter(waiter_);
+            target->RemoveAwaiter(awaiter_, awaiter_.GetAwaiterContext());
         }
     }
 
-    TaskContext& waiter_;
+    TaskContext& awaiter_;
     const utils::span<ContextAccessor*> targets_;
 };
 
 inline bool AreUniqueValues(utils::span<ContextAccessor*> targets) {
     std::vector<ContextAccessor*> sorted;
     sorted.reserve(targets.size());
-    std::copy_if(targets.begin(), targets.end(), std::back_inserter(sorted), [](const auto& target) {
-        return target != nullptr;
-    });
-    std::sort(sorted.begin(), sorted.end());
-    return std::adjacent_find(sorted.begin(), sorted.end()) == sorted.end();
+    std::ranges::copy_if(targets, std::back_inserter(sorted), [](const auto& target) { return target != nullptr; });
+    std::ranges::sort(sorted);
+    return std::ranges::adjacent_find(sorted) == sorted.end();
 }
 
 }  // namespace engine::impl

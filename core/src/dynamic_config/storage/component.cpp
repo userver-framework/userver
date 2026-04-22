@@ -76,6 +76,12 @@ public:
     void SetConfig(std::string_view updater, dynamic_config::DocsMap&& value);
     void NotifyLoadingFailed(std::string_view updater, std::string_view error);
 
+    concurrent::AsyncEventSubscriberScope UpdateIfHasConfigAndListen(
+        concurrent::FunctionId id,
+        std::string_view name,
+        concurrent::AsyncEventSource<const dynamic_config::Diff&>::Function&& func
+    );
+
 private:
     dynamic_config::impl::SnapshotData ParseConfig(const dynamic_config::DocsMap& value);
 
@@ -332,16 +338,28 @@ void DynamicConfig::Impl::WriteStatistics(utils::statistics::Writer& writer) con
     writer["parse-errors"] = stats_.parse_errors;
 }
 
+concurrent::AsyncEventSubscriberScope DynamicConfig::Impl::UpdateIfHasConfigAndListen(
+    concurrent::FunctionId id,
+    std::string_view name,
+    concurrent::AsyncEventSource<const dynamic_config::Diff&>::Function&& func
+) {
+    std::lock_guard lock{loaded_mutex_};
+    if (is_loaded_) {
+        return cache_.DoUpdateAndListen(id, name, std::move(func));
+    } else {
+        return GetDiffChannel().AddListener(id, name, std::move(func));
+    }
+}
+
 DynamicConfig::NoblockSubscriber::NoblockSubscriber(DynamicConfig& config_component) noexcept
     : config_component_(config_component) {}
 
-concurrent::AsyncEventSource<const dynamic_config::Snapshot&>& DynamicConfig::NoblockSubscriber::GetEventSource()
-    noexcept {
-    return config_component_.impl_->GetChannel();
-}
-
-concurrent::AsyncEventSource<const dynamic_config::Diff&>& DynamicConfig::NoblockSubscriber::GetDiffSource() noexcept {
-    return config_component_.impl_->GetDiffChannel();
+concurrent::AsyncEventSubscriberScope DynamicConfig::NoblockSubscriber::DoUpdateIfHasConfigAndListen(
+    concurrent::FunctionId id,
+    std::string_view name,
+    concurrent::AsyncEventSource<const dynamic_config::Diff&>::Function&& func
+) {
+    return config_component_.impl_->UpdateIfHasConfigAndListen(id, name, std::move(func));
 }
 
 DynamicConfig::DynamicConfig(const ComponentConfig& config, const ComponentContext& context)

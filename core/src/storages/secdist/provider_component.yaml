@@ -20,15 +20,14 @@ properties:
           - yaml_config
     missing-ok:
         type: boolean
-        description: do not terminate components load if no file found by the config
-            option
+        description: do not terminate components load if no file found by the config option
         default: false
     environment-secrets-key:
         type: string
         description: name of environment variable from which to load additional data
     blocking-task-processor:
         type: string
-        description: |
+        description: |-
             Name of task processor for background blocking operations
 
             Default: engine::current_task::GetBlockingTaskProcessor()

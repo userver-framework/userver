@@ -4,7 +4,7 @@ import dataclasses
 from chaotic import cpp_names
 from chaotic import error
 from chaotic.back.cpp import types as cpp_types
-from . import middleware
+from chaotic_openapi.back.cpp_client import middleware
 
 
 @dataclasses.dataclass
@@ -170,6 +170,9 @@ class Operation:
                 return True
         return False
 
+    def destination_metric_name(self) -> str:
+        return self.path.replace('{', '_').replace('}', '_')
+
 
 @dataclasses.dataclass
 class ClientSpec:
@@ -229,6 +232,7 @@ class ClientSpec:
 
     def responses_definitions_includes(self) -> list[str]:
         includes: set[str] = set()
+        includes.add('userver/chaotic/sax_parser.hpp')
         for op in self.operations:
             if not op.client_generate:
                 continue

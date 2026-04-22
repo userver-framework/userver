@@ -15,10 +15,24 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine::impl {
 
-struct DetachedTasksSyncBlock::Token final {
+struct DetachedTasksSyncBlock::Token final : public PolymorphicAwaiter {
     explicit Token(DetachedTasksSyncBlock& owner)
-        : owner(owner)
+        : PolymorphicAwaiter(Awaiter::kOne),
+          owner(owner)
     {}
+
+    void DoNotify(boost::intrusive_ptr<PolymorphicAwaiter> self, std::uintptr_t context) noexcept override {
+        UASSERT(context == 0);
+
+        UASSERT(self->UseCount() == 1);
+        [[maybe_unused]] auto* detached_awaiter = self.detach();
+
+        DetachedTasksSyncBlock::Dispose(*this);
+    }
+
+    void Destroy() noexcept override {
+        utils::AbortWithStacktrace("DetachedTasksSyncBlock::Token should never be removed without notification");
+    }
 
     concurrent::impl::IntrusiveWalkablePoolHook<Token> pool_hook{};
 
@@ -31,6 +45,17 @@ struct DetachedTasksSyncBlock::Token final {
     utils::impl::WaitTokenStorageLock wait_token{};
 };
 
+// Token is non-standard-layout type, because it is a polymorphic class.
+// GCC complains that compilers are not required to implement offsetof for such types.
+// TODO Find some way to work around that, e.g. split Token into multiple types?
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Winvalid-offsetof"
+#elif defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Winvalid-offsetof"
+#endif
+
 struct DetachedTasksSyncBlock::Impl final {
     std::optional<utils::impl::WaitTokenStorage> wait_tokens{};
     concurrent::impl::IntrusiveWalkablePool<  //
@@ -40,6 +65,12 @@ struct DetachedTasksSyncBlock::Impl final {
         cancel_tokens{};
     std::atomic<TaskCancellationReason> cancel_new_tasks{TaskCancellationReason::kNone};
 };
+
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#elif defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif
 
 DetachedTasksSyncBlock::DetachedTasksSyncBlock(StopMode stop_mode) {
     if (stop_mode == StopMode::kCancelAndWait) {
@@ -60,7 +91,11 @@ void DetachedTasksSyncBlock::Add(TaskContext& context) {
         token.wait_token = impl_->wait_tokens->GetToken();
     }
 
-    context.SetDetached(token);
+    boost::intrusive_ptr<Awaiter> awaiter{&token, /*add_ref=*/false};
+    context.TryAppendAwaiter(awaiter, 0);
+    if (awaiter != nullptr) {  // task has already finished.
+        impl::Notify(std::move(awaiter), 0);
+    }
 
     const auto cancel_reason = impl_->cancel_new_tasks.load();
     if (cancel_reason != TaskCancellationReason::kNone) {

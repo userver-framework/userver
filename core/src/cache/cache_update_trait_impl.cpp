@@ -9,7 +9,7 @@
 #include <userver/engine/task/cancel.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/testsuite/cache_control.hpp>
-#include <userver/tracing/tracer.hpp>
+#include <userver/tracing/span.hpp>
 #include <userver/utils/algo.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/async.hpp>

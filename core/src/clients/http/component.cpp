@@ -7,6 +7,7 @@
 #include <userver/clients/http/middlewares/pipeline_component.hpp>
 #include <userver/components/component_config.hpp>
 #include <userver/components/component_context.hpp>
+#include <userver/dynamic_config/storage/component.hpp>
 #include <userver/utils/algo.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
@@ -20,7 +21,7 @@ namespace components {
 
 namespace {
 
-static std::vector<utils::NotNull<clients::http::MiddlewareBase*>> FindMiddlewares(
+std::vector<utils::NotNull<clients::http::MiddlewareBase*>> FindMiddlewares(
     middlewares::impl::MiddlewaresMap middlewares_map,
     const components::ComponentContext& context
 ) {
@@ -43,18 +44,33 @@ static std::vector<utils::NotNull<clients::http::MiddlewareBase*>> FindMiddlewar
                                           }));
 }
 
+bool ShouldWaitForDynamicConfigs(const ComponentConfig& component_config, const ComponentContext& context) {
+    return component_config["wait-for-dynamic-configs"]
+        .As<bool>(context.GetComponentName() != HttpClient::kDynamicConfigClientName);
+}
+
+clients::http::ClientWithMiddlewares MakeHttpClient(
+    const ComponentConfig& component_config,
+    const ComponentContext& context
+) {
+    auto& core_component = context.FindComponent<
+        components::HttpClientCore>(component_config["core-component"].As<std::string>(components::HttpClientCore::kName
+    ));
+    if (ShouldWaitForDynamicConfigs(component_config, context)) {
+        core_component.WaitUntilConfigSet();
+    }
+    return {
+        utils::impl::InternalTag{},
+        core_component.GetHttpClientCore(utils::impl::InternalTag{}),
+        FindMiddlewares(component_config["middlewares"].As<middlewares::impl::MiddlewaresMap>({}), context)
+    };
+}
+
 }  // namespace
 
 HttpClient::HttpClient(const ComponentConfig& component_config, const ComponentContext& context)
     : ComponentBase(component_config, context),
-      http_client_(
-          utils::impl::InternalTag{},
-          context
-              .FindComponent<components::HttpClientCore>(component_config["core-component"]
-                                                             .As<std::string>(components::HttpClientCore::kName))
-              .GetHttpClientCore(utils::impl::InternalTag{}),
-          FindMiddlewares(component_config["middlewares"].As<middlewares::impl::MiddlewaresMap>({}), context)
-      )
+      http_client_(MakeHttpClient(component_config, context))
 {}
 
 clients::http::Client& HttpClient::GetHttpClient() { return http_client_; }

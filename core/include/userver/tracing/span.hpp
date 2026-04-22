@@ -8,8 +8,8 @@
 
 #include <userver/logging/log.hpp>
 #include <userver/logging/log_extra.hpp>
+#include <userver/tracing/fwd.hpp>
 #include <userver/tracing/scope_time.hpp>
-#include <userver/tracing/tracer_fwd.hpp>
 #include <userver/utils/impl/internal_tag.hpp>
 #include <userver/utils/impl/source_location.hpp>
 
@@ -20,9 +20,6 @@ class TracePlugin;
 }
 
 namespace tracing {
-
-class SpanBuilder;
-struct SpanEvent;
 
 /// @brief Measures the execution time of the current code block, links it with
 /// the parent tracing::Spans and stores that info in the log.
@@ -279,6 +276,8 @@ public:
     void AttachToCoroStack();
 
     std::chrono::system_clock::time_point GetStartSystemTime() const;
+
+    std::chrono::steady_clock::time_point GetStartSteadyTime() const;
 
     /// @cond
     // For internal use only.

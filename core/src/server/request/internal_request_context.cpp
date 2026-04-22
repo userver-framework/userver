@@ -2,6 +2,7 @@
 
 #include <stdexcept>
 
+#include <server/handlers/http_handler_base_statistics.hpp>
 #include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -33,6 +34,21 @@ const dynamic_config::Snapshot& InternalRequestContext::GetConfigSnapshot() cons
 }
 
 void InternalRequestContext::ResetConfigSnapshot() { config_snapshot_.reset(); }
+
+void InternalRequestContext::SetHandlerMetricsShard(
+    std::string_view sensor_path_part,
+    utils::statistics::LabelsSpan labels
+) {
+    UINVARIANT(statistics_scope_, "Statistics scope from HandlerMetrics should be present upon this method call");
+
+    statistics_scope_->SetShardedStats(sensor_path_part, labels);
+}
+
+void InternalRequestContext::SaveHttpHandlerStatisticsScope(handlers::HttpHandlerStatisticsScope& statistics_scope) {
+    statistics_scope_ = &statistics_scope;
+}
+
+void InternalRequestContext::RemoveHttpHandlerStatisticsScope() { statistics_scope_ = nullptr; }
 
 DeadlinePropagationContext& InternalRequestContext::GetDPContext() { return dp_context_; }
 

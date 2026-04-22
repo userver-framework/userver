@@ -11,9 +11,9 @@ struct Point {
     double lat;
 };
 
-bool operator==(const Point& a, const Point& b) { return a.lon == b.lon && a.lat == b.lat; }
+inline bool operator==(const Point& a, const Point& b) noexcept { return a.lon == b.lon && a.lat == b.lat; }
 
-inline Point Convert(const std::vector<double>& arr, USERVER_NAMESPACE::chaotic::convert::To<Point>) {
+inline Point Convert(std::vector<double>&& arr, USERVER_NAMESPACE::chaotic::convert::To<Point>) {
     return Point{arr.at(0), arr.at(1)};
 }
 

@@ -154,6 +154,7 @@ UTEST_F_MT(DumperFixture, ThreadSafety, kUpdatersCount + kWritersCount + kReader
 
     std::atomic<bool> keep_running{true};
     std::vector<engine::TaskWithResult<void>> tasks;
+    tasks.reserve(kUpdatersCount + kReadersCount);
 
     for (std::size_t i = 0; i < kUpdatersCount; ++i) {
         tasks.push_back(utils::Async("updater", [&, i] {

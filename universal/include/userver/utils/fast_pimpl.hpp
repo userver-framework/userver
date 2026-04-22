@@ -9,6 +9,8 @@
 #include <type_traits>
 #include <utility>
 
+#include <userver/compiler/impl/lifetime.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace utils {
@@ -76,13 +78,13 @@ public:
         ::new (AsHeld()) T(std::forward<Args>(args)...);
     }
 
-    T* operator->() noexcept { return AsHeld(); }
+    T* operator->() noexcept USERVER_IMPL_LIFETIME_BOUND { return AsHeld(); }
 
-    const T* operator->() const noexcept { return AsHeld(); }
+    const T* operator->() const noexcept USERVER_IMPL_LIFETIME_BOUND { return AsHeld(); }
 
-    T& operator*() noexcept { return *AsHeld(); }
+    T& operator*() noexcept USERVER_IMPL_LIFETIME_BOUND { return *AsHeld(); }
 
-    const T& operator*() const noexcept { return *AsHeld(); }
+    const T& operator*() const noexcept USERVER_IMPL_LIFETIME_BOUND { return *AsHeld(); }
 
     ~FastPimpl() noexcept {
         Validate<sizeof(T), alignof(T), noexcept(std::declval<T*>()->~T())>();

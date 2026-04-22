@@ -1,5 +1,7 @@
 #include <userver/storages/rocks/client.hpp>
 
+#include <rocksdb/version.h>
+
 #include <fmt/format.h>
 
 #include <userver/storages/rocks/exception.hpp>
@@ -15,9 +17,13 @@ Client::Client(const std::string& db_path, engine::TaskProcessor& blocking_task_
     rocksdb::Options options;
     options.create_if_missing = true;
 
+#if ROCKSDB_MAJOR > 9
+    const rocksdb::Status status = rocksdb::DB::Open(options, db_path, &db_);
+#else
     rocksdb::DB* db{};
     const rocksdb::Status status = rocksdb::DB::Open(options, db_path, &db);
     db_.reset(db);
+#endif
     CheckStatus(status, "Create client");
 }
 
@@ -41,13 +47,10 @@ std::string Client::Get(std::string_view key) {
 }
 
 void Client::Delete(std::string_view key) {
-    return engine::AsyncNoSpan(
-               blocking_task_processor_,
-               [this, key] {
-                   const rocksdb::Status status = db_->Delete(rocksdb::WriteOptions(), key);
-                   CheckStatus(status, "Delete");
-               }
-    ).Get();
+    engine::AsyncNoSpan(blocking_task_processor_, [this, key] {
+        const rocksdb::Status status = db_->Delete(rocksdb::WriteOptions(), key);
+        CheckStatus(status, "Delete");
+    }).Get();
 }
 
 void Client::CheckStatus(rocksdb::Status status, std::string_view method_name) {

@@ -62,7 +62,7 @@ See @ref scripts/docs/en/userver/service_monitor.md for info on how to get the m
 ## Usage
 
 To use Valkey or Redis you must add the component components::Redis and configure it
-according to the documentation. After that you can make requests via 
+according to the documentation. After that you can make requests via
 storages::redis::Client:
 
 @snippet storages/redis/client_redistest.cpp Sample Redis Client usage
@@ -72,14 +72,14 @@ Also see @ref scripts/docs/en/userver/tutorial/redis_service.md for a complete e
 
 ### Timeouts
 
-Request timeout can be set for a single request via storages::redis::CommandControl 
+Request timeout can be set for a single request via storages::redis::CommandControl
 argument.
 
-Dynamic option @ref REDIS_DEFAULT_COMMAND_CONTROL can be used to set default 
+Dynamic option @ref REDIS_DEFAULT_COMMAND_CONTROL can be used to set default
 values.
 
-To interrupt a request on the client side, you can use 
-@ref task_cancellation_intro "cancellation mechanism" to cancel the task 
+To interrupt a request on the client side, you can use
+@ref task_cancellation_intro "cancellation mechanism" to cancel the task
 that executes the Redis request:
 
 @snippet storages/redis/client_redistest.cpp Sample Redis Cancel request

@@ -23,12 +23,13 @@ struct Qos final {
     /// See also [the official gRPC docs on retries](https://grpc.io/docs/guides/retry/).
     std::optional<int> attempts;
 
-    /// @brief An upper bound on the deadline applied to the entire RPC.
-    /// If `std::nullopt`, no static deadline is applied, which is reasonable
+    /// @brief Timeout for a single RPC attempt.
+    /// If `std::nullopt`, no static timeout is applied, which is reasonable
     /// for streaming RPCs.
     ///
     /// @ref scripts/docs/en/userver/deadline_propagation.md "Deadline propagation",
-    /// when enabled, also puts an upper bound on the RPC deadline.
+    /// when enabled, uses the minimum of the remaining deadline time and this timeout
+    /// as the actual timeout for the RPC attempt.
     ///
     /// @note The problem of "dead servers" is typically solved using
     /// [keepalive pings](https://github.com/grpc/grpc/blob/master/doc/keepalive.md),

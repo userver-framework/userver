@@ -34,7 +34,7 @@ private:
 
     tracing::Span MakeSpan(const http::HttpRequest& http_request, std::string_view meta_type) const;
 
-    void FillResponseWithTracingContext(const tracing::Span& span, http::HttpResponse& http_request) const;
+    void FillResponseWithTracingContext(const tracing::Span& span, http::HttpResponse& response) const;
 
     LoggingSettings ParseLoggingSettings(request::RequestContext& context) const;
 

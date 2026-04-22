@@ -130,7 +130,7 @@ private:
 //     (NYdb::NTable::TTableClient&) -> NThreading::TFuture<T>
 // RetryOperation -> NThreading::TFuture<T>
 template <typename Fn>
-auto RetryOperation(impl::RequestContext& request_context, Fn&& fn) {
+auto RetryOperation(impl::RequestContext<OperationSettings>& request_context, Fn&& fn) {
     static_assert(std::is_invocable_v<Fn&, NYdb::NTable::TSession> || std::is_invocable_v<Fn&, NYdb::NTable::TTableClient&>);
 
     auto& client = request_context.table_client.GetNativeTableClient();
@@ -149,7 +149,7 @@ auto RetryOperation(impl::RequestContext& request_context, Fn&& fn) {
 //     (NYdb::NQuery::TQueryClient&) -> NThreading::TFuture<T>
 // RetryQuery -> NThreading::TFuture<T>
 template <typename Fn>
-auto RetryQuery(impl::RequestContext& request_context, Fn&& fn) {
+auto RetryQuery(impl::RequestContext<OperationSettings>& request_context, Fn&& fn) {
     static_assert(std::is_invocable_v<Fn&, NYdb::NQuery::TSession> || std::is_invocable_v<Fn&, NYdb::NQuery::TQueryClient&>);
 
     auto& client = request_context.table_client.GetNativeQueryClient();

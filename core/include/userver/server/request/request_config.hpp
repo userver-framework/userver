@@ -22,6 +22,7 @@ struct HttpRequestConfig {
     bool decompress_request = false;
     bool set_tracing_headers = true;
     bool deadline_propagation_enabled = true;
+    bool deadline_propagation_prefer_timestamp = false;
     http::HttpStatus deadline_expired_status_code = http::HttpStatus{498};
 };
 

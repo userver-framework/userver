@@ -65,8 +65,8 @@ TYPED_TEST_SUITE(PostgreIOIntegral, IntTypes);
 
 TYPED_TEST(PostgreIOIntegral, Int) {
     static_assert(tt::kIsMappedToPg<TypeParam>, "missing mapping");
-    static_assert(tt::kHasFormatter<TypeParam>, "missing binary formatter");
-    static_assert(tt::kHasParser<TypeParam>, "missing binary parser");
+    static_assert(tt::HasFormatter<TypeParam>, "missing binary formatter");
+    static_assert(tt::HasParser<TypeParam>, "missing binary parser");
     using Limits = std::numeric_limits<TypeParam>;
 
     for (const TypeParam src :

@@ -3,6 +3,7 @@
 #include <fmt/format.h>
 
 #include <components/component_list_test.hpp>
+#include <engine/io/tests/net_listener.hpp>
 #include <userver/compiler/impl/tsan.hpp>
 #include <userver/components/common_component_list.hpp>
 #include <userver/components/run.hpp>
@@ -10,7 +11,6 @@
 #include <userver/engine/run_standalone.hpp>
 #include <userver/fs/blocking/temp_directory.hpp>  // for fs::blocking::TempDirectory
 #include <userver/fs/blocking/write.hpp>           // for fs::blocking::RewriteFileContents
-#include <userver/internal/net/net_listener.hpp>
 #include <userver/logging/impl/mem_logger.hpp>
 #include <userver/server/handlers/ping.hpp>
 #include <userver/utest/utest.hpp>
@@ -58,8 +58,6 @@ components_manager:
           level: $log_level
           message_queue_size: 4  # small, to test queue overflows
           overflow_behavior: $overflow_behavior
-    tracer:
-        service-name: config-service
     dynamic-config:
       updates-enabled: true
       fs-cache-path: $dynamic-config-cache-path
@@ -232,8 +230,8 @@ struct ServicePorts final {
 ServicePorts FindFreePorts() {
     ServicePorts ports;
     engine::RunStandalone([&ports] {
-        const internal::net::TcpListener listener1;
-        const internal::net::TcpListener listener2;
+        const engine::io::tests::TcpListener listener1;
+        const engine::io::tests::TcpListener listener2;
         ports = {listener1.Port(), listener2.Port()};
     });
     return ports;

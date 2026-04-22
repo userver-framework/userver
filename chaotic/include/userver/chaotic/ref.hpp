@@ -15,8 +15,8 @@ struct Ref {
 
 template <typename Value, typename T>
 utils::Box<formats::common::ParseType<Value, T>> Parse(const Value& value, formats::parse::To<Ref<T>>) {
-    auto result = value.template As<T>();
-    return result;
+    return utils::Box<formats::common::ParseType<Value, T>>::MakeWithFactory([&value] { return value.template As<T>(); }
+    );
 }
 
 template <typename Value, typename T>

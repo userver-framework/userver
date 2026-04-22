@@ -48,9 +48,9 @@ declare a `config_vars` field in the static config and point it to a file with v
 
 @snippet samples/production_service/static_config.yaml Production service sample - static config - config vars
 
-A file with config variables could look @ref samples/production_service/config_vars.yaml "like this". 
+A file with config variables could look @ref samples/production_service/config_vars.yaml "like this".
 
-Now in static config you could use `$variable-name` to refer to a variable, 
+Now in static config you could use `$variable-name` to refer to a variable,
 `*#fallback` fields are used if there is no variable with such name in the config variables file:
 
 @snippet samples/production_service/static_config.yaml Production service sample - static config variables usage
@@ -86,7 +86,7 @@ Your server has the following utility handlers:
 * to @ref scripts/docs/en/userver/memory_profile_running_service.md "profile memory usage" - server::handlers::Jemalloc
 * to @ref scripts/docs/en/userver/log_level_running_service.md "change logging level at runtime" - server::handlers::LogLevel
   and server::handlers::DynamicDebugLog
-* to reopen log files after log rotation (you can also use @ref scripts/docs/en/userver/os_signals.md "signals") - server::handlers::OnLogRotate 
+* to reopen log files after log rotation (you can also use @ref scripts/docs/en/userver/os_signals.md "signals") - server::handlers::OnLogRotate
 * to @ref scripts/docs/en/userver/dns_control.md "control the DNS resolver" - server::handlers::DnsClientControl
 * to @ref scripts/docs/en/userver/service_monitor.md "get statistics" from the service - server::handlers::ServerMonitor
 
@@ -113,7 +113,7 @@ that would stop sending traffic to the server if it responds with codes other th
 @snippet samples/production_service/static_config.yaml Production service sample - static config ping
 
 Note that the ping handler lives on the task processor of all the other handlers. Smart balancers may measure response
-times and send less traffic to the heavy loaded services. 
+times and send less traffic to the heavy loaded services.
 
 ```
 bash
@@ -207,7 +207,7 @@ components::Secdist configuration is straightforward:
 
 @snippet samples/production_service/static_config.yaml Production service sample - static config secdist
 
-Refer to the storages::secdist::SecdistConfig config for more information on the data retrieval. 
+Refer to the storages::secdist::SecdistConfig config for more information on the data retrieval.
 
 
 @anchor prod_service_testsuite_related_components
@@ -260,7 +260,7 @@ tests.
 
 ## Full sources
 
-See the full example at 
+See the full example at
 * @ref samples/production_service/main.cpp
 * @ref samples/production_service/static_config.yaml
 * @ref samples/production_service/config_vars.yaml

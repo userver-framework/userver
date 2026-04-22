@@ -18,7 +18,7 @@ void SetMinAtomic(std::atomic<size_t>& dest, size_t value) {
     }
 }
 
-constexpr TokenBucket::RefillPolicy kInstantRefillPolicy{1, TokenBucket::Duration::zero()};
+constexpr TokenBucket::RefillPolicy kInstantRefillPolicy{.amount = 1, .interval = TokenBucket::Duration::zero()};
 
 }  // namespace
 
@@ -43,7 +43,7 @@ TokenBucket::TokenBucket(size_t max_size, RefillPolicy policy)
 }
 
 TokenBucket::TokenBucket(size_t max_size, Duration single_token_update_interval)
-    : TokenBucket(max_size, RefillPolicy{1, single_token_update_interval})
+    : TokenBucket(max_size, RefillPolicy{.amount = 1, .interval = single_token_update_interval})
 {}
 
 TokenBucket TokenBucket::MakeUnbounded() noexcept { return TokenBucket{-1UL, kInstantRefillPolicy}; }
@@ -92,7 +92,7 @@ void TokenBucket::SetMaxSize(size_t max_size) {
 }
 
 void TokenBucket::SetUpdateInterval(Duration single_token_update_interval) {
-    SetRefillPolicy({1, single_token_update_interval});
+    SetRefillPolicy({.amount = 1, .interval = single_token_update_interval});
 }
 
 void TokenBucket::SetRefillPolicy(RefillPolicy policy) {

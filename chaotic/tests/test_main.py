@@ -1,4 +1,4 @@
-import chaotic.main as main
+from chaotic import main
 
 
 def test_name_map_item():

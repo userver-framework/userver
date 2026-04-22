@@ -58,6 +58,7 @@ std::shared_ptr<const MiddlewareBase> Component::CreateMiddleware(
     const yaml_config::YamlConfig& middleware_config
 ) const {
     auto middleware = std::make_shared<Middleware>(middleware_config.As<Settings>(), rate_limit_);
+    ++limitable_handlers_count_;
     return middleware;
 }
 
@@ -75,6 +76,8 @@ void Component::SetLimit(std::optional<size_t> new_limit) {
         rate_limit_->SetInstantRefillPolicy();
     }
 }
+
+std::size_t Component::GetLimitableHandlersCount() const { return limitable_handlers_count_; }
 
 yaml_config::Schema Component::GetMiddlewareConfigSchema() const { return GetStaticConfigSchema(); }
 

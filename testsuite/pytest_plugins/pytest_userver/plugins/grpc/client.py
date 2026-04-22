@@ -20,8 +20,10 @@ from typing import TypeAlias
 import grpc
 import grpc.aio
 import pytest
+from typing_extensions import override
 
 import pytest_userver.client
+import pytest_userver.grpc
 from . import _hookspec
 
 DEFAULT_TIMEOUT = 15.0
@@ -194,41 +196,37 @@ def pytest_addhooks(pluginmanager: pytest.PytestPluginManager):
     pluginmanager.add_hookspecs(_hookspec)
 
 
-class _UpdateServerStateInterceptor(
+class _AsyncExcCheckInterceptor(
     grpc.aio.UnaryUnaryClientInterceptor,
     grpc.aio.UnaryStreamClientInterceptor,
     grpc.aio.StreamUnaryClientInterceptor,
     grpc.aio.StreamStreamClientInterceptor,
 ):
-    def __init__(self, service_client: pytest_userver.client.Client, asyncexc_check: _AsyncExcCheck):
-        self._service_client = service_client
+    def __init__(self, asyncexc_check: _AsyncExcCheck):
         self._asyncexc_check = asyncexc_check
 
-    async def _before_call_hook(self) -> None:
-        self._asyncexc_check()
-        if hasattr(self._service_client, 'update_server_state'):
-            await self._service_client.update_server_state()
-
+    @override
     async def intercept_unary_unary(
         self,
         continuation: Callable[[grpc.aio.ClientCallDetails, Any], Awaitable[grpc.aio.UnaryUnaryCall]],
         client_call_details: grpc.aio.ClientCallDetails,
         request: Any,
     ) -> grpc.aio.UnaryUnaryCall:
-        await self._before_call_hook()
+        self._asyncexc_check()
         try:
             return await continuation(client_call_details, request)
         finally:
             self._asyncexc_check()
 
     # Note: full type of this function is Callable[[...], Awaitable[AsyncIterator[Any]]]
+    @override
     async def intercept_unary_stream(
         self,
         continuation: Callable[[grpc.aio.ClientCallDetails, Any], grpc.aio.UnaryStreamCall],
         client_call_details: grpc.aio.ClientCallDetails,
         request: Any,
     ) -> AsyncIterator[Any]:
-        await self._before_call_hook()
+        self._asyncexc_check()
         call = await continuation(client_call_details, request)
 
         async def response_stream() -> AsyncIterator[Any]:
@@ -240,19 +238,21 @@ class _UpdateServerStateInterceptor(
 
         return response_stream()
 
+    @override
     async def intercept_stream_unary(
         self,
         continuation: Callable[[grpc.aio.ClientCallDetails, AsyncIterator[Any]], Awaitable[grpc.aio.StreamUnaryCall]],
         client_call_details: grpc.aio.ClientCallDetails,
         request_iterator: AsyncIterator[Any],
     ) -> grpc.aio.StreamUnaryCall:
-        await self._before_call_hook()
+        self._asyncexc_check()
         try:
             return await continuation(client_call_details, request_iterator)
         finally:
             self._asyncexc_check()
 
     # Note: full type of this function is Callable[[...], Awaitable[AsyncIterator[Any]]]
+    @override
     async def intercept_stream_stream(
         self,
         continuation: Callable[[grpc.aio.ClientCallDetails, AsyncIterator[Any]], grpc.aio.StreamStreamCall],
@@ -260,7 +260,6 @@ class _UpdateServerStateInterceptor(
         request_iterator: AsyncIterator[Any],
     ) -> AsyncIterator[Any]:
         self._asyncexc_check()
-        await self._before_call_hook()
         call = await continuation(client_call_details, request_iterator)
 
         async def response_stream() -> AsyncIterator[Any]:
@@ -273,12 +272,20 @@ class _UpdateServerStateInterceptor(
         return response_stream()
 
 
+class _UpdateServerStateInterceptor(pytest_userver.grpc.PreCallClientInterceptor):
+    def __init__(self, service_client: pytest_userver.client.Client):
+        self._service_client = service_client
+
+    @override
+    async def pre_call_hook(self, client_call_details: grpc.aio.ClientCallDetails) -> None:
+        if hasattr(self._service_client, 'update_server_state'):
+            await self._service_client.update_server_state()
+
+
 def pytest_grpc_client_interceptors(request: pytest.FixtureRequest) -> Sequence[grpc.aio.ClientInterceptor]:
     return [
-        _UpdateServerStateInterceptor(
-            request.getfixturevalue('service_client'),
-            request.getfixturevalue('asyncexc_check'),
-        ),
+        _AsyncExcCheckInterceptor(request.getfixturevalue('asyncexc_check')),
+        _UpdateServerStateInterceptor(request.getfixturevalue('service_client')),
     ]
 
 

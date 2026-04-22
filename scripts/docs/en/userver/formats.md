@@ -25,7 +25,7 @@ To iterate over `formats::*::Value` as object use formats::common::Items:
 
 In order for `formats::*::Value` to be able to represent data as a C++ type,
 you should write a special function `Parse` for that C++ type. `Parse` should
-be located in the namespace of the type or may be located in the 
+be located in the namespace of the type or may be located in the
 `formats::common` namespace if the type comes from third-party library that you
 have no control of:
 
@@ -58,7 +58,7 @@ for example a key uniqueness check.
 
 ### `formats::*::ValueBuilder`
 
-Classes `formats::json::ValueBuilder`, `formats::bson::ValueBuilder` and `formats::yaml::ValueBuilder` 
+Classes `formats::json::ValueBuilder`, `formats::bson::ValueBuilder` and `formats::yaml::ValueBuilder`
 are designed for building objects of a given format.
 
 Usage Example:

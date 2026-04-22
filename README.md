@@ -12,6 +12,7 @@
 
 [![Build and publish ubuntu-24.04-userver images](https://github.com/userver-framework/userver/actions/workflows/publish-ubuntu-24.04-images.yaml/badge.svg)](https://github.com/userver-framework/userver/actions/workflows/publish-ubuntu-24.04-images.yaml)
 [![Build and publish ubuntu-22.04-userver images](https://github.com/userver-framework/userver/actions/workflows/publish-ubuntu-22.04-images.yaml/badge.svg)](https://github.com/userver-framework/userver/actions/workflows/publish-ubuntu-22.04-images.yaml)
+[![Gentoo Systemd with Overlay CI](https://github.com/userver-framework/userver-overlay/actions/workflows/gentoo.yml/badge.svg)](https://github.com/userver-framework/userver-overlay/actions/workflows/gentoo.yml)
 
 [![uservice-dynconf CI](https://github.com/userver-framework/uservice-dynconf/actions/workflows/ci.yml/badge.svg)](https://github.com/userver-framework/uservice-dynconf/actions/workflows/ci.yml)
 [![uservice-dynconf Docker build](https://github.com/userver-framework/uservice-dynconf/actions/workflows/docker.yaml/badge.svg?branch=develop)](https://github.com/userver-framework/uservice-dynconf/actions/workflows/docker.yaml)
@@ -32,6 +33,8 @@ guaranteed to execute immediately:
 
 ```cpp
 #include <userver/easy.hpp>
+
+// schemas::KeyRequest and parsers+serializers generated from JSON schema
 #include "schemas/key_value.hpp"
 
 int main(int argc, char* argv[]) {
@@ -39,10 +42,7 @@ int main(int argc, char* argv[]) {
 
     easy::HttpWith<easy::PgDep>(argc, argv)
         // Handles multiple HTTP requests to `/kv` URL concurrently
-        .Get("/kv", [](formats::json::Value request_json, const easy::PgDep& dep) {
-            // JSON parser and serializer are generated from JSON schema by userver
-            auto key = request_json.As<schemas::KeyRequest>().key;
-
+        .Get("/kv", [](schemas::KeyRequest&& request, const easy::PgDep& dep) {
             // Asynchronous execution of the SQL query in transaction. Current thread
             // handles other requests while the response from the DB is being received:
             auto res = dep.pg().Execute(
@@ -50,11 +50,13 @@ int main(int argc, char* argv[]) {
                 // Query is converted into a prepared statement. Subsequent requests
                 // send only parameters in a binary form and meta information is
                 // discarded on the DB side, significantly saving network bandwidth.
-                "SELECT value FROM key_value_table WHERE key=$1", key
+                "SELECT value FROM key_value_table WHERE key=$1", request.key
             );
 
-            schemas::KeyValue response{key, res[0][0].As<std::string>()};
-            return formats::json::ValueBuilder{response}.ExtractValue();
+            return schemas::KeyValue{
+                .key=std::move(request.key),
+                .value=res[0][0].As<std::string>(),
+            };
         });
 }
 ```

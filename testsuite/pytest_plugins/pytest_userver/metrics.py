@@ -132,7 +132,8 @@ class MetricsSnapshot:
     Snapshot of captured metrics that mimics the dict interface. Metrics have
     the 'dict[str(path), Set[Metric]]' format.
 
-    @snippet samples/testsuite-support/tests/test_metrics.py metrics labels
+    Example with @ref pytest_userver.client.ClientMonitor.metrics "await monitor_client.metrics(path_prefix, labels)":
+    @snippet samples/testsuite-support/tests/test_metrics.py metrics metrics
 
     @ingroup userver_testsuite
     """
@@ -154,15 +155,13 @@ class MetricsSnapshot:
 
     def __contains__(self, path: str) -> bool:
         """
-        Returns True if metric with specified path is in the snapshot,
-        False otherwise.
+        Returns True if metric with specified path is in the snapshot, False otherwise.
         """
         return path in self._values
 
     def __eq__(self, other: object) -> bool:
         """
-        Compares the snapshot with a dict of metrics or with
-        another snapshot
+        Compares the snapshot with a dict of metrics or with another snapshot
         """
         return self._values == other
 
@@ -174,8 +173,7 @@ class MetricsSnapshot:
 
     def get(self, path: str, default=None):
         """
-        Returns an list of metrics by path or default if there's no
-        such path
+        Returns an list of metrics by path or default if there's no such path
         """
         return self._values.get(path, default)
 
@@ -202,18 +200,24 @@ class MetricsSnapshot:
         Returns a single metric value at specified path. If a dict of labels
         is provided, does en exact match of labels (i.e. {} stands for no
         labels; {'a': 'b', 'c': 'd'} matches only {'a': 'b', 'c': 'd'} or
-        {'c': 'd', 'a': 'b'} but neither match {'a': 'b'} nor
-        {'a': 'b', 'c': 'd', 'e': 'f'}).
+        {'c': 'd', 'a': 'b'} but neither match {'a': 'b'} nor {'a': 'b', 'c': 'd', 'e': 'f'}).
 
         @throws AssertionError if not one metric by path
+
+        @snippet samples/testsuite-support/tests/test_metrics.py metrics metrics
         """
         entry = self.get(path, set())
         assert entry or default is not None, f'No metrics found by path "{path}"'
 
         if labels is not None:
-            entry = {x for x in entry if x.labels == labels}
-            assert entry or default is not None, f'No metrics found by path "{path}" and labels {labels}'
-            assert len(entry) <= 1, f'Multiple metrics found by path "{path}" and labels {labels}: {entry}'
+            filtered_entries = {x for x in entry if x.labels == labels}
+            assert filtered_entries or default is not None, (
+                f'No metrics found by path "{path}" and labels {labels}. Possible values: {entry}'
+            )
+            assert len(filtered_entries) <= 1, (
+                f'Multiple metrics found by path "{path}" and labels {labels}: {filtered_entries}'
+            )
+            entry = filtered_entries
         else:
             assert len(entry) <= 1, f'Multiple metrics found by path "{path}": {entry}'
 
@@ -235,12 +239,8 @@ class MetricsSnapshot:
         { 'a':'b', 'c':'d', 'e': 'f', 'h':'k'} - match
         { 'a':'x', 'c':'d'} - no match, incorrect value for label 'a'
         { 'a' : 'b'} - required label not found
-        Usage:
-        @code
-        for m in metrics_with_labels(path='something.something.sensor',
-          require_labels={ 'label1': 'value1' }):
-           assert m.value > 0
-        @endcode
+
+        @snippet samples/testsuite-support/tests/test_metrics.py metrics metrics
         """
         entry = self.get(path, set())
 

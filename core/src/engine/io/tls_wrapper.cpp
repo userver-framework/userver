@@ -218,13 +218,11 @@ public:
 
     bool IsReady() const noexcept override;
 
-    engine::impl::EarlyWakeup TryAppendWaiter(engine::impl::TaskContext& waiter) override;
+    void TryAppendAwaiter(boost::intrusive_ptr<engine::impl::Awaiter>& awaiter, std::uintptr_t context) override;
 
-    void RemoveWaiter(engine::impl::TaskContext& waiter) noexcept override;
+    void RemoveAwaiter(engine::impl::Awaiter& awaiter, std::uintptr_t context) noexcept override;
 
-    void AfterWait() noexcept override;
-
-    void RethrowErrorResult() const override;
+    std::exception_ptr GetErrorResult() const noexcept override;
 
     engine::impl::ContextAccessor& GetSocketContextAccessor() const noexcept;
 
@@ -437,22 +435,25 @@ bool TlsWrapper::ReadContextAccessor::IsReady() const noexcept {
     return GetSocketContextAccessor().IsReady();
 }
 
-engine::impl::EarlyWakeup TlsWrapper::ReadContextAccessor::TryAppendWaiter(engine::impl::TaskContext& waiter) {
+void TlsWrapper::ReadContextAccessor::TryAppendAwaiter(
+    boost::intrusive_ptr<engine::impl::Awaiter>& awaiter,
+    std::uintptr_t context
+) {
     auto* ssl = impl.ssl.get();
     if (!ssl || SSL_has_pending(ssl)) {
-        return engine::impl::EarlyWakeup{true};
+        return;
     }
 
-    return GetSocketContextAccessor().TryAppendWaiter(waiter);
+    GetSocketContextAccessor().TryAppendAwaiter(awaiter, context);
 }
 
-void TlsWrapper::ReadContextAccessor::RemoveWaiter(engine::impl::TaskContext& waiter) noexcept {
-    GetSocketContextAccessor().RemoveWaiter(waiter);
+void TlsWrapper::ReadContextAccessor::RemoveAwaiter(engine::impl::Awaiter& awaiter, std::uintptr_t context) noexcept {
+    GetSocketContextAccessor().RemoveAwaiter(awaiter, context);
 }
 
-void TlsWrapper::ReadContextAccessor::AfterWait() noexcept { GetSocketContextAccessor().AfterWait(); }
-
-void TlsWrapper::ReadContextAccessor::RethrowErrorResult() const { GetSocketContextAccessor().RethrowErrorResult(); }
+std::exception_ptr TlsWrapper::ReadContextAccessor::GetErrorResult() const noexcept {
+    return GetSocketContextAccessor().GetErrorResult();
+}
 
 engine::impl::ContextAccessor& TlsWrapper::ReadContextAccessor::GetSocketContextAccessor() const noexcept {
     auto* ca = impl.bio_data.socket.GetReadableBase().TryGetContextAccessor();

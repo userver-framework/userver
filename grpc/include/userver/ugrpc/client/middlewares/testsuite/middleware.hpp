@@ -19,7 +19,7 @@ public:
 
     void PreStartCall(MiddlewareCallContext&) const override;
 
-    void PostFinish(MiddlewareCallContext&, const grpc::Status&) const override;
+    void PostFinish(MiddlewareCallContext&, const CompletionStatus&) const override;
 
 private:
     std::string client_name_;

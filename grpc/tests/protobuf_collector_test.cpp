@@ -7,7 +7,6 @@
 #include <google/protobuf/stubs/common.h>
 #include <gtest/gtest.h>
 
-#include <userver/ugrpc/impl/protobuf_collector.hpp>
 #include <userver/ugrpc/protobuf_visit.hpp>
 
 USERVER_NAMESPACE_BEGIN

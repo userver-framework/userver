@@ -27,12 +27,12 @@ public:
     using Duration = typename Timer::duration;
 
     static_assert(
-        (detail::kResultWantsAddFunction<Result, Counter, Duration> || detail::kResultCanUseAddAssign<Result, Counter>),
+        (detail::ResultWantsAddFunction<Result, Counter, Duration> || detail::ResultCanUseAddAssign<Result, Counter>),
         "The Result template type argument must provide either Add(Counter, "
         "Duration, Duration) function or add assignment operator"
     );
 
-    static constexpr bool kUseAddFunction = detail::kResultWantsAddFunction<Result, Counter, Duration>;
+    static constexpr bool kUseAddFunction = detail::ResultWantsAddFunction<Result, Counter, Duration>;
 
     /**
      * @param epoch_duration duration of epoch.
@@ -122,7 +122,7 @@ private:
             const Duration bucket_epoch = items_[index].epoch.load();
 
             // Second condition allows non-monotonic timeline (that is common for tests)
-            // but still forbids race (rewrite of fresh bucket by sleeped after L113 thread)
+            // but still forbids race (rewrite of fresh bucket by slept after L113 thread)
             if (epoch > bucket_epoch || epoch + max_duration_ < bucket_epoch) {
                 const std::size_t new_index = (index + 1) % items_.size();
 
@@ -157,7 +157,7 @@ private:
     }
 
     struct EpochBucket {
-        static constexpr bool kUseReset = detail::kCanReset<Counter>;
+        static constexpr bool kUseReset = detail::CanReset<Counter>;
         std::atomic<Duration> epoch;
         Counter counter;
 

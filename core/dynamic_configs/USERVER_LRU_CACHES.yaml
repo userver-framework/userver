@@ -1,6 +1,5 @@
 default: {}
-description: Dynamic config for controlling size and cache entry lifetime of the LRU
-    based caches.
+description: Dynamic config for controlling size and cache entry lifetime of the LRU based caches.
 schema:
     type: object
     additionalProperties:

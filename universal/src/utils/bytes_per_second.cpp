@@ -16,27 +16,27 @@ struct PrefixToMultiplier {
 };
 
 constexpr PrefixToMultiplier kPrefixes[] = {
-    {"b/s", 1},
+    {.prefix = "b/s", .multiplier = 1},
 
-    {"kbit/s", 125},
-    {"kibit/s", 128},
-    {"kb/s", 1000},
-    {"kib/s", 1024},
+    {.prefix = "kbit/s", .multiplier = 125},
+    {.prefix = "kibit/s", .multiplier = 128},
+    {.prefix = "kb/s", .multiplier = 1000},
+    {.prefix = "kib/s", .multiplier = 1024},
 
-    {"mbit/s", 125000},
-    {"mibit/s", 131072},
-    {"mb/s", 1000000},
-    {"mib/s", 1048576},
+    {.prefix = "mbit/s", .multiplier = 125000},
+    {.prefix = "mibit/s", .multiplier = 131072},
+    {.prefix = "mb/s", .multiplier = 1000000},
+    {.prefix = "mib/s", .multiplier = 1048576},
 
-    {"gbit/s", 125000000},
-    {"gibit/s", 134217728},
-    {"gb/s", 1000000000},
-    {"gib/s", 1073741824},
+    {.prefix = "gbit/s", .multiplier = 125000000},
+    {.prefix = "gibit/s", .multiplier = 134217728},
+    {.prefix = "gb/s", .multiplier = 1000000000},
+    {.prefix = "gib/s", .multiplier = 1073741824},
 
-    {"tbit/s", 125000000000},
-    {"tibit/s", 137438953472},
-    {"tb/s", 1000000000000},
-    {"tib/s", 1099511627776},
+    {.prefix = "tbit/s", .multiplier = 125000000000},
+    {.prefix = "tibit/s", .multiplier = 137438953472},
+    {.prefix = "tb/s", .multiplier = 1000000000000},
+    {.prefix = "tib/s", .multiplier = 1099511627776},
 };
 
 }  // namespace

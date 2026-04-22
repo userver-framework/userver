@@ -14,11 +14,13 @@ UTEST_F(YdbScanTable, Simple) {
 
     auto results = GetTableClient().ExecuteScanQuery("SELECT * FROM test_table ORDER BY key");
 
-    auto cursor = results.GetNextCursor();
-    ASSERT_TRUE(cursor);
-    AssertArePreFilledRows(std::move(*cursor), {1, 2, 3});
+    {
+        auto cursor = results.GetNextCursor();
+        ASSERT_TRUE(cursor);
+        AssertArePreFilledRows(std::move(*cursor), {1, 2, 3});
+    }
 
-    while (cursor = results.GetNextCursor()) {
+    while (auto cursor = results.GetNextCursor()) {
         EXPECT_THAT(*cursor, testing::IsEmpty());
     }
 }

@@ -117,8 +117,8 @@ Request ClientCore::CreateRequest() {
             auto wrapper = impl::EasyWrapper{std::move(easy), *this};
             return Request{
                 std::move(wrapper),
-                statistics_[idx].CreateRequestStats(),
-                destination_statistics_,
+                RequestStats{statistics_[idx]},
+                *destination_statistics_,
                 resolver_,
                 *tracing_manager_.GetBase()
             };
@@ -133,8 +133,8 @@ Request ClientCore::CreateRequest() {
                     }).Get();
                 return Request{
                     std::move(wrapper),
-                    statistics_[i].CreateRequestStats(),
-                    destination_statistics_,
+                    RequestStats{statistics_[i]},
+                    *destination_statistics_,
                     resolver_,
                     *tracing_manager_.GetBase()
                 };

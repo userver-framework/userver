@@ -8,6 +8,7 @@
 #include <userver/components/statistics_storage.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
 #include <userver/logging/component.hpp>
+#include <userver/utils/resource_scopes.hpp>
 
 #include <userver/utest/using_namespace_userver.hpp>  // only for tests
 
@@ -59,6 +60,14 @@ struct MyStruct {
 
 constexpr std::string_view ContainerName(components::Of<MyStruct>) { return "with-config"; }
 
+struct TypeWithResources {
+    TypeWithResources(utils::ResourceScopeStorage& scope) {
+        scope.Register([] { return 1; });
+    }
+};
+
+constexpr std::string_view ContainerName(components::Of<TypeWithResources>) { return "type-with-resources"; }
+
 }  // namespace
 
 TEST(ComponentsContainer, NoDependencies)
@@ -94,5 +103,13 @@ TEST(ComponentsContainer, WithConfig)
     components::RunOnce(
         components::InMemoryConfig{std::string{tests::kMinimalStaticConfig}},
         components::MinimalComponentList().Append<components::Container<X>>().Append<components::Container<MyStruct>>()
+    );
+}
+
+TEST(ComponentsContainer, ResourceScopeStorage)
+{
+    components::RunOnce(
+        components::InMemoryConfig{std::string{tests::kMinimalStaticConfig}},
+        components::MinimalComponentList().Append<components::Container<TypeWithResources>>()
     );
 }

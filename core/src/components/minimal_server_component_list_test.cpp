@@ -18,7 +18,7 @@
 #include <userver/utils/async.hpp>
 
 #include <components/component_list_test.hpp>
-#include <userver/internal/net/net_listener.hpp>
+#include <engine/io/tests/net_listener.hpp>
 #include <userver/utest/utest.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -28,7 +28,7 @@ namespace {
 std::uint16_t FindFreePort() {
     std::uint16_t result{};
     engine::RunStandalone([&result] {
-        const internal::net::TcpListener listener{};
+        const engine::io::tests::TcpListener listener{};
         result = listener.Port();
     });
     return result;

@@ -4,7 +4,6 @@
 #include <fmt/compile.h>
 #include <fmt/format.h>
 
-#include <userver/compiler/impl/constexpr.hpp>
 #include <userver/compiler/thread_local.hpp>
 #include <userver/logging/impl/logger_base.hpp>
 #include <userver/utils/assert.hpp>

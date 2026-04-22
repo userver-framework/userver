@@ -433,7 +433,7 @@ CommandPtr SubscriptionStorageBase::SubscriptionStorageImpl<
     const auto& command_control = GetCommandControl(channel_name);
     return PrepareCommand(
         CmdArgs{cmd_name, channel},
-        [channel_name,
+        [channel_name,  // NOLINT(clang-analyzer-cplusplus.NewDeleteLeaks)
          pmessage_callback,
          message_callback,
          smessage_callback,

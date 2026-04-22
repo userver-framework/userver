@@ -1,1 +1,0 @@
-RECURSE(proto_json)

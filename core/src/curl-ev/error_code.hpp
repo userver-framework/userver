@@ -111,7 +111,7 @@ enum class MultiErrorCode {
     kBadHandle = native::CURLM_BAD_HANDLE,
     kBadEasyHandle = native::CURLM_BAD_EASY_HANDLE,
     kOutOfMemory = native::CURLM_OUT_OF_MEMORY,
-    kIntenralError = native::CURLM_INTERNAL_ERROR,
+    kInternalError = native::CURLM_INTERNAL_ERROR,
     kBadSocket = native::CURLM_BAD_SOCKET,
     kUnknownOption = native::CURLM_UNKNOWN_OPTION,
     kAddedAlready = native::CURLM_ADDED_ALREADY,

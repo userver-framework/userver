@@ -4,6 +4,8 @@
 
 #include <userver/utils/assert.hpp>
 
+USERVER_NAMESPACE_BEGIN
+
 namespace proto_structs::io::impl {
 
 const ::google::protobuf::FieldDescriptor& FieldAccessor::GetFieldDescriptor() const noexcept {
@@ -17,3 +19,5 @@ const ::google::protobuf::FieldDescriptor& FieldAccessor::GetFieldDescriptor() c
 }
 
 }  // namespace proto_structs::io::impl
+
+USERVER_NAMESPACE_END

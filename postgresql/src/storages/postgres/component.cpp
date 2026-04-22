@@ -181,7 +181,7 @@ Postgres::Postgres(const ComponentConfig& config, const ComponentContext& contex
 
     auto& statistics_storage = context.FindComponent<components::StatisticsStorage>().GetStorage();
     statistics_holder_ = statistics_storage.RegisterWriter(kStatisticsName, [this](utils::statistics::Writer& writer) {
-        return ExtendStatistics(writer);
+        ExtendStatistics(writer);
     });
 
     // Start all clusters here

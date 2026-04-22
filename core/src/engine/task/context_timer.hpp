@@ -40,7 +40,7 @@ public:
         boost::intrusive_ptr<TaskContext> context,
         ev::TimerThreadControl& thread_control,
         Deadline deadline,
-        SleepState::Epoch sleep_epoch
+        Epoch sleep_epoch
     );
 
     /// Restarts a running timer with specified params. More efficient than
@@ -49,7 +49,7 @@ public:
 
     /// Restarts a running timer with specified params. More efficient than
     /// calling Stop() + Start().
-    void RestartWakeup(Deadline deadline, SleepState::Epoch sleep_epoch);
+    void RestartWakeup(Deadline deadline, Epoch sleep_epoch);
 
     /// Asynchronously stops the timer and destroys all held resources.
     /// Invalidates the Timer and makes it unable to be restarted,

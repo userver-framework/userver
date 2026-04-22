@@ -74,7 +74,7 @@ void LoggingConfigurator::OnConfigUpdate(const dynamic_config::Snapshot& config)
             const auto [path, line] = logging::SplitLocation(location);
             logging::EntryState state;
             state.force_disabled_level_plus_one = logging::GetForceDisabledLevelPlusOne(level);
-            AddDynamicDebugLog(path, line, state);
+            SetDynamicDebugLog(path, line, state);
         } catch (const std::exception& e) {
             LOG_ERROR() << "Failed to disable dynamic debug log at '" << location << "': " << e;
             has_error = true;
@@ -86,7 +86,7 @@ void LoggingConfigurator::OnConfigUpdate(const dynamic_config::Snapshot& config)
             const auto [path, line] = logging::SplitLocation(location);
             logging::EntryState state;
             state.force_enabled_level = level;
-            AddDynamicDebugLog(path, line, state);
+            SetDynamicDebugLog(path, line, state);
         } catch (const std::exception& e) {
             LOG_ERROR() << "Failed to enable dynamic debug log at '" << location << "': " << e;
             has_error = true;

@@ -53,12 +53,12 @@ public:
     /// @returns Minimal value in the interval
     ///
     /// \b Complexity: O(window_size)
-    [[nodiscard]] T GetMinimal() const { return *std::min_element(buckets_.begin(), buckets_.end()); }
+    [[nodiscard]] T GetMinimal() const { return *std::ranges::min_element(buckets_); }
 
     /// @returns Maximum value in the interval
     ///
     /// \b Complexity: O(window_size)
-    [[nodiscard]] T GetMaximum() const { return *std::max_element(buckets_.begin(), buckets_.end()); }
+    [[nodiscard]] T GetMaximum() const { return *std::ranges::max_element(buckets_); }
 
     /// @returns Elements count in the interval, i.e. `window_size` passed to
     /// constructor.

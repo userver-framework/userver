@@ -190,6 +190,40 @@ RequestEvalShaCommon ClientImpl::EvalShaCommon(
     ));
 }
 
+RequestEvalCommon ClientImpl::EvalReadOnlyCommon(
+    std::string script,
+    std::vector<std::string> keys,
+    std::vector<std::string> args,
+    const CommandControl& command_control
+) {
+    UASSERT(!keys.empty());
+    auto shard = ShardByKey(keys.at(0), command_control);
+    size_t keys_size = keys.size();
+    return CreateRequest<RequestEvalCommon>(MakeRequest(
+        CmdArgs{"eval_ro", std::move(script), keys_size, std::move(keys), std::move(args)},
+        shard,
+        false,
+        GetCommandControl(command_control)
+    ));
+}
+
+RequestEvalShaCommon ClientImpl::EvalShaReadOnlyCommon(
+    std::string script_hash,
+    std::vector<std::string> keys,
+    std::vector<std::string> args,
+    const CommandControl& command_control
+) {
+    UASSERT(!keys.empty());
+    auto shard = ShardByKey(keys.at(0), command_control);
+    size_t keys_size = keys.size();
+    return CreateRequest<RequestEvalShaCommon>(MakeRequest(
+        CmdArgs{"evalsha_ro", std::move(script_hash), keys_size, std::move(keys), std::move(args)},
+        shard,
+        false,
+        GetCommandControl(command_control)
+    ));
+}
+
 RequestGenericCommon ClientImpl::GenericCommon(
     std::string command,
     std::vector<std::string> args,
@@ -861,9 +895,11 @@ ScanRequest<TScanTag> ClientImpl::ScanTmpl(
     const CommandControl& command_control
 ) {
     auto shard = ShardByKey(key, command_control);
+    // NOLINTNEXTLINE(google-readability-casting)
+    using RequestData = RequestScanData<TScanTag>;
     return ScanRequest<
-        TScanTag>(std::make_unique<RequestScanData<
-                      TScanTag>>(shared_from_this(), std::move(key), shard, std::move(options), command_control));
+        TScanTag>(std::make_unique<
+                  RequestData>(shared_from_this(), std::move(key), shard, std::move(options), command_control));
 }
 
 RequestScard ClientImpl::Scard(std::string key, const CommandControl& command_control) {
@@ -1416,6 +1452,8 @@ RequestZscore ClientImpl::Zscore(std::string key, std::string member, const Comm
 }
 
 // end of redis commands
+
+impl::Sentinel& ClientImpl::GetNative() const { return *redis_client_; }
 
 impl::Request ClientImpl::MakeRequest(
     CmdArgs&& args,

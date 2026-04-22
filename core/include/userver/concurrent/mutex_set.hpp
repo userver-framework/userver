@@ -112,7 +112,7 @@ ItemMutex<Key, Equal> MutexSet<Key, Hash, Equal>::GetMutexForKey(Key key) {
     const auto way = hash_value % size;
     const auto new_hash = hash_value / size;
 
-    return ItemMutex<Key, Equal>(mutex_data_[way], {new_hash, std::move(key)});
+    return ItemMutex<Key, Equal>(mutex_data_[way], {.hash = new_hash, .key = std::move(key)});
 }
 
 template <typename Key, typename Equal>

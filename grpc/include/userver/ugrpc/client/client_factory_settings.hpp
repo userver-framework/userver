@@ -14,6 +14,7 @@
 #include <userver/ugrpc/client/auth_type.hpp>
 #include <userver/ugrpc/client/proxy_settings.hpp>
 #include <userver/ugrpc/client/retry_config.hpp>
+#include <userver/ugrpc/client/retry_limiter.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -32,6 +33,9 @@ struct ClientFactorySettings final {
 
     /// Retry configuration for outgoing RPCs
     RetryConfig retry_config;
+
+    /// Component that creates retry throttlers for each method
+    RetryLimiterFactory* retry_limiter_factory{nullptr};
 
     /// Optional grpc-core channel args
     /// @see https://grpc.github.io/grpc/core/group__grpc__arg__keys.html

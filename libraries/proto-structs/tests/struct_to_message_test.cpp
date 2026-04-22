@@ -5,7 +5,9 @@
 
 #include <google/protobuf/util/time_util.h>
 
+#include <userver/formats/json/value_builder.hpp>
 #include <userver/proto-structs/convert.hpp>
+#include <userver/utest/assert_macros.hpp>
 
 #include "messages.pb.h"
 #include "structs.hpp"
@@ -18,9 +20,9 @@ TEST(StructToMessage, Empty) {
     structs::Empty obj;
     messages::Empty msg;
 
-    ASSERT_NO_THROW(StructToMessage(obj, msg));
-    ASSERT_NO_THROW((msg = StructToMessage(obj)));
-    ASSERT_NO_THROW((msg = StructToMessage(structs::Empty{obj})));
+    UASSERT_NO_THROW(StructToMessage(obj, msg));
+    UASSERT_NO_THROW((msg = StructToMessage(obj)));
+    UASSERT_NO_THROW((msg = StructToMessage(structs::Empty{obj})));
 }
 
 TEST(StructToMessage, Scalar) {
@@ -55,14 +57,14 @@ TEST(StructToMessage, Scalar) {
         msg.set_f3(2);
         msg.set_f8("test");
 
-        ASSERT_NO_THROW(StructToMessage(obj, msg));
+        UASSERT_NO_THROW(StructToMessage(obj, msg));
         CheckScalarEqual(obj, msg);
 
         obj.f8 = "hello";
         obj.f9 = "world";
         obj.f11 = 654;
 
-        ASSERT_NO_THROW(StructToMessage(structs::Scalar{obj}, msg));
+        UASSERT_NO_THROW(StructToMessage(structs::Scalar{obj}, msg));
         CheckScalarEqual(obj, msg);
     }
 
@@ -70,14 +72,7 @@ TEST(StructToMessage, Scalar) {
         structs::Scalar obj;
         obj.f11 = std::numeric_limits<std::size_t>::max();
 
-        try {
-            auto result = StructToMessage(obj);
-            FAIL() << "exception should be thrown";
-        } catch (const ups::WriteError& e) {
-            EXPECT_THAT(e.what(), ::testing::HasSubstr("'messages.Scalar.f11'"));
-        } catch (...) {
-            FAIL() << "unexpected exception type";
-        }
+        UEXPECT_THROW_MSG(static_cast<void>(StructToMessage(obj)), WriteError, "'messages.Scalar.f11'");
     }
 }
 
@@ -115,13 +110,13 @@ TEST(StructToMessage, WellKnownStd) {
         *msg.mutable_f1() = ::google::protobuf::util::TimeUtil::NanosecondsToTimestamp(123'456'789'987'654'321LL);
         *msg.mutable_f2() = ::google::protobuf::util::TimeUtil::NanosecondsToDuration(1001);
 
-        ASSERT_NO_THROW(StructToMessage(obj, msg));
+        UASSERT_NO_THROW(StructToMessage(obj, msg));
         CheckWellKnownStdEqual(obj, msg);
 
         obj.f2 = std::chrono::milliseconds{-987'654'321};
         *msg.mutable_f2() = ::google::protobuf::util::TimeUtil::NanosecondsToDuration(123'456'789'987'654'321LL);
 
-        ASSERT_NO_THROW(StructToMessage(structs::WellKnownStd{obj}, msg));
+        UASSERT_NO_THROW(StructToMessage(structs::WellKnownStd{obj}, msg));
         CheckWellKnownStdEqual(obj, msg);
     }
 
@@ -134,10 +129,7 @@ TEST(StructToMessage, WellKnownStd) {
 
         obj.f1 = TimePoint{std::chrono::seconds{kMaxSecondsInStdTimePoint}};
 
-        EXPECT_THAT(
-            [&obj]() { static_cast<void>(StructToMessage(obj)); },
-            ::testing::ThrowsMessage<WriteError>(::testing::HasSubstr("'messages.WellKnownStd.f1'"))
-        );
+        UEXPECT_THROW_MSG(static_cast<void>(StructToMessage(obj)), WriteError, "'messages.WellKnownStd.f1'");
     }
 
     if ((std::chrono::milliseconds::max().count() / 1000) > ::google::protobuf::util::TimeUtil::kDurationMaxSeconds) {
@@ -146,30 +138,21 @@ TEST(StructToMessage, WellKnownStd) {
 
         obj.f2 = std::chrono::milliseconds::max();
 
-        EXPECT_THAT(
-            [&obj]() { static_cast<void>(StructToMessage(obj)); },
-            ::testing::ThrowsMessage<WriteError>(::testing::HasSubstr("'messages.WellKnownStd.f2'"))
-        );
+        UEXPECT_THROW_MSG(static_cast<void>(StructToMessage(obj)), WriteError, "'messages.WellKnownStd.f2'");
     }
 
     {
         structs::WellKnownStd obj = create_valid();
         obj.f3 = {std::chrono::year{2025}, std::chrono::month{2}, std::chrono::day{29}};
 
-        EXPECT_THAT(
-            [&obj]() { static_cast<void>(StructToMessage(obj)); },
-            ::testing::ThrowsMessage<WriteError>(::testing::HasSubstr("'messages.WellKnownStd.f3'"))
-        );
+        UEXPECT_THROW_MSG(static_cast<void>(StructToMessage(obj)), WriteError, "'messages.WellKnownStd.f3'");
     }
 
     {
         structs::WellKnownStd obj = create_valid();
         obj.f4 = std::chrono::hh_mm_ss<std::chrono::microseconds>{std::chrono::hours{25}};
 
-        EXPECT_THAT(
-            [&obj]() { static_cast<void>(StructToMessage(obj)); },
-            ::testing::ThrowsMessage<WriteError>(::testing::HasSubstr("'messages.WellKnownStd.f4'"))
-        );
+        UEXPECT_THROW_MSG(static_cast<void>(StructToMessage(obj)), WriteError, "'messages.WellKnownStd.f4'");
     }
 }
 
@@ -222,18 +205,98 @@ TEST(StructToMessage, WellKnownUsrv) {
         *msg.mutable_f2() = ::google::protobuf::util::TimeUtil::NanosecondsToTimestamp(123'456'789'987'654'321LL);
         *msg.mutable_f3() = ::google::protobuf::util::TimeUtil::NanosecondsToDuration(1001);
 
-        ASSERT_NO_THROW(StructToMessage(obj, msg));
+        UASSERT_NO_THROW(StructToMessage(obj, msg));
         CheckWellKnownUsrvEqual(obj, msg);
 
-        ASSERT_NO_THROW((obj.f1 = structs::Scalar{.f2 = 5}));
+        UASSERT_NO_THROW((obj.f1 = structs::Scalar{.f2 = 5}));
         obj.f3 = std::chrono::milliseconds{-987'654'321};
         obj.f7 = decimal64::Decimal<3>("-1001.001");
         *msg.mutable_f3() = ::google::protobuf::util::TimeUtil::NanosecondsToDuration(123'456'789'987'654'321LL);
 
-        ASSERT_NO_THROW(StructToMessage(structs::WellKnownUsrv{obj}, msg));
+        UASSERT_NO_THROW(StructToMessage(structs::WellKnownUsrv{obj}, msg));
         CheckWellKnownUsrvEqual(obj, msg);
         ASSERT_TRUE(msg.f1().UnpackTo(&any_payload));
         CheckScalarEqual(obj.f1.Unpack<structs::Scalar>(), any_payload);
+    }
+}
+
+TEST(StructToMessage, WellKnownJson) {
+    const auto create_array = [](double num, const std::string& str, bool b) {
+        formats::json::ValueBuilder builder{formats::common::Type::kArray};
+        builder.PushBack(formats::json::ValueBuilder{formats::common::Type::kNull});
+        builder.PushBack(num);
+        builder.PushBack(str);
+        builder.PushBack(b);
+        return std::move(builder).ExtractValue();
+    };
+
+    const auto create_object = [](double num, const std::string& str, bool b) {
+        formats::json::ValueBuilder builder{formats::common::Type::kObject};
+        builder["key0"] = formats::json::ValueBuilder{formats::common::Type::kNull};
+        builder["key1"] = num;
+        builder["key2"] = str;
+        builder["key3"] = b;
+        return std::move(builder).ExtractValue();
+    };
+
+    {
+        structs::WellKnownJson obj;
+        auto msg = StructToMessage(obj);
+
+        CheckWellKnownJsonEqual(obj, msg);
+    }
+
+    {
+        structs::WellKnownJson obj = {.f1 = formats::json::ValueBuilder{1001}.ExtractValue()};
+        auto msg = StructToMessage(obj);
+
+        CheckWellKnownJsonEqual(obj, msg);
+    }
+
+    {
+        structs::WellKnownJson obj = {.f2 = formats::json::Array{create_array(100, "test", false)}};
+        auto msg = StructToMessage(obj);
+
+        CheckWellKnownJsonEqual(obj, msg);
+    }
+
+    {
+        structs::WellKnownJson obj = {.f3 = formats::json::Object{create_object(200, "oops", true)}};
+        auto msg = StructToMessage(obj);
+
+        CheckWellKnownJsonEqual(obj, msg);
+    }
+
+    {
+        structs::WellKnownJson obj = {
+            .f1 = formats::json::ValueBuilder{1001}.ExtractValue(),
+            .f2 = formats::json::Array{create_array(10, "hello", true)},
+            .f3 = formats::json::Object{create_object(20, "world", false)}
+        };
+        const auto expected = obj;
+        auto msg = StructToMessage(std::move(obj));
+
+        CheckWellKnownJsonEqual(expected, msg);
+    }
+
+    {
+        formats::json::ValueBuilder builder{formats::common::Type::kArray};
+        builder.PushBack(create_array(5, "hola", true));
+        structs::WellKnownJson obj = {.f1 = builder.ExtractValue()};
+        const auto expected = obj;
+        auto msg = StructToMessage(std::move(obj));
+
+        CheckWellKnownJsonEqual(expected, msg);
+    }
+
+    {
+        formats::json::ValueBuilder builder{formats::common::Type::kObject};
+        builder["top"] = create_object(6, "bonjour", false);
+        structs::WellKnownJson obj = {.f1 = builder.ExtractValue()};
+        const auto expected = obj;
+        auto msg = StructToMessage(std::move(obj));
+
+        CheckWellKnownJsonEqual(expected, msg);
     }
 }
 
@@ -259,12 +322,12 @@ TEST(StructToMessage, Optional) {
         msg.set_f3(messages::TestEnum::TEST_ENUM_VALUE2);
         msg.mutable_f4()->set_f1(5);
 
-        ASSERT_NO_THROW(StructToMessage(obj, msg));
+        UASSERT_NO_THROW(StructToMessage(obj, msg));
         CheckOptionalEqual(obj, msg);
 
         obj.f2 = "test3";
 
-        ASSERT_NO_THROW(StructToMessage(structs::Optional{obj}, msg));
+        UASSERT_NO_THROW(StructToMessage(structs::Optional{obj}, msg));
         CheckOptionalEqual(obj, msg);
     }
 }
@@ -301,12 +364,12 @@ TEST(StructToMessage, Repeated) {
         msg.add_f2("test2");
         msg.mutable_f4()->Add()->set_f1(5);
 
-        ASSERT_NO_THROW(StructToMessage(obj, msg));
+        UASSERT_NO_THROW(StructToMessage(obj, msg));
         CheckRepeatedEqual(obj, msg);
 
         obj.f2.push_back("hello");
 
-        ASSERT_NO_THROW(StructToMessage(obj, msg));
+        UASSERT_NO_THROW(StructToMessage(obj, msg));
         CheckRepeatedEqual(obj, msg);
     }
 }
@@ -338,12 +401,12 @@ TEST(StructToMessage, Map) {
         (*msg.mutable_f2())["key1"] = "value1";
         (*msg.mutable_f4())["simple1"].set_f1(1001);
 
-        ASSERT_NO_THROW(StructToMessage(obj, msg));
+        UASSERT_NO_THROW(StructToMessage(obj, msg));
         CheckMapEqual(obj, msg);
 
         obj.f2.emplace("key2", "value2");
 
-        ASSERT_NO_THROW(StructToMessage(obj, msg));
+        UASSERT_NO_THROW(StructToMessage(obj, msg));
         CheckMapEqual(obj, msg);
     }
 }
@@ -367,17 +430,17 @@ TEST(StructToMessage, Oneof) {
         obj.test_oneof.Set<1>("test");
         msg.set_f1(1);
 
-        ASSERT_NO_THROW(StructToMessage(obj, msg));
+        UASSERT_NO_THROW(StructToMessage(obj, msg));
         CheckOneofEqual(obj, msg);
 
         obj.test_oneof.Set<2>(structs::TestEnum::kUnspecified);
 
-        ASSERT_NO_THROW(StructToMessage(obj, msg));
+        UASSERT_NO_THROW(StructToMessage(obj, msg));
         CheckOneofEqual(obj, msg);
 
         obj.test_oneof.Set<3>({.f1 = 1001});
 
-        ASSERT_NO_THROW(StructToMessage(obj, msg));
+        UASSERT_NO_THROW(StructToMessage(obj, msg));
         CheckOneofEqual(obj, msg);
     }
 }
@@ -412,13 +475,13 @@ TEST(StructToMessage, Indirect) {
         msg.mutable_f3()->Add()->set_f1(1002);
         msg.mutable_f5()->set_f1(1003);
 
-        ASSERT_NO_THROW(StructToMessage(obj, msg));
+        UASSERT_NO_THROW(StructToMessage(obj, msg));
         CheckIndirectEqual(obj, msg);
 
         obj.test_oneof.Set<0>(structs::Simple{.f1 = 11});
         msg.add_f8(messages::TEST_ENUM_VALUE1);
 
-        ASSERT_NO_THROW(StructToMessage(obj, msg));
+        UASSERT_NO_THROW(StructToMessage(obj, msg));
         CheckIndirectEqual(obj, msg);
     }
 }
@@ -457,12 +520,12 @@ TEST(StructToMessage, Strong) {
         msg.set_f1(1001);
         msg.add_f3(messages::TestEnum::TEST_ENUM_VALUE2);
 
-        ASSERT_NO_THROW(StructToMessage(obj, msg));
+        UASSERT_NO_THROW(StructToMessage(obj, msg));
         CheckStrongEqual(obj, msg);
 
         obj.test_oneof.Set<0>(structs::Strong::F5Strong{std::chrono::nanoseconds{123'456'789'987'654'321}});
 
-        ASSERT_NO_THROW(StructToMessage(obj, msg));
+        UASSERT_NO_THROW(StructToMessage(obj, msg));
         CheckStrongEqual(obj, msg);
     }
 }
@@ -482,7 +545,7 @@ TEST(StructToMessage, Erroneous) {
         try {
             auto result = StructToMessage(obj);
             FAIL() << "exception should be thrown";
-        } catch (const ups::WriteError& e) {
+        } catch (const WriteError& e) {
             EXPECT_THAT(e.what(), ::testing::HasSubstr("'messages.Erroneous.f1'"));
             EXPECT_THAT(e.what(), ::testing::HasSubstr("conversion_failure_exception"));
         } catch (...) {
@@ -497,7 +560,7 @@ TEST(StructToMessage, Erroneous) {
         try {
             auto result = StructToMessage(std::move(obj));
             FAIL() << "exception should be thrown";
-        } catch (const ups::WriteError& e) {
+        } catch (const WriteError& e) {
             EXPECT_THAT(e.what(), ::testing::HasSubstr("'messages.Erroneous.f2.error_field'"));
             EXPECT_THAT(e.what(), ::testing::HasSubstr("conversion_failure_error"));
         } catch (...) {
@@ -512,7 +575,7 @@ TEST(StructToMessage, Erroneous) {
         try {
             auto result = StructToMessage(obj);
             FAIL() << "exception should be thrown";
-        } catch (const ups::WriteError& e) {
+        } catch (const WriteError& e) {
             EXPECT_THAT(e.what(), ::testing::HasSubstr("'messages.Erroneous.f3.<unknown_1001>'"));
             EXPECT_THAT(e.what(), ::testing::HasSubstr("conversion_failure_error_with_unknown_field"));
         } catch (...) {
@@ -527,7 +590,7 @@ TEST(StructToMessage, Erroneous) {
         try {
             auto result = StructToMessage(obj);
             FAIL() << "exception should be thrown";
-        } catch (const ups::WriteError& e) {
+        } catch (const WriteError& e) {
             EXPECT_THAT(e.what(), ::testing::HasSubstr("'messages.Erroneous.f4.<unknown_1001>'"));
             EXPECT_THAT(e.what(), ::testing::HasSubstr("conversion_failure_error_with_unknown_field"));
         } catch (...) {

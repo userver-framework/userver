@@ -39,7 +39,7 @@ struct IsInstantiationOf<Template, Template<Args...>> : std::true_type {};
 /// @see utils::meta::IsDetected
 struct NotDetected {};
 
-#if defined(__cpp_concepts) || defined(DOXYGEN)
+// NOLINTBEGIN(readability-identifier-naming)
 
 /// @brief Checks whether a trait is correct for the given template args
 ///
@@ -57,13 +57,6 @@ struct NotDetected {};
 /// @endcode
 template <template <typename...> typename Trait, typename... Args>
 concept IsDetected = requires { typename Trait<Args...>; };
-
-#else
-
-template <template <typename...> typename Trait, typename... Args>
-inline constexpr bool IsDetected = impl::Detector<NotDetected, void, Trait, Args...>::value_t::value;
-
-#endif
 
 /// @brief Produces the result type of a trait, or utils::meta::NotDetected if
 /// it's incorrect for the given template args
@@ -83,22 +76,24 @@ using ExpectSame = std::enable_if_t<std::is_same_v<T, U>>;
 
 /// Returns `true` if the type is an instantiation of the specified template.
 template <template <typename...> typename Template, typename T>
-inline constexpr bool kIsInstantiationOf = impl::IsInstantiationOf<Template, T>::value;
+concept kIsInstantiationOf = impl::IsInstantiationOf<Template, T>::value;
 
 /// Returns `true` if the type (with remove cv-qualifiers) is an instantiation of the specified template.
 template <template <typename...> typename Template, typename T>
-inline constexpr bool kIsCvInstantiationOf = kIsInstantiationOf<Template, std::remove_cv_t<T>>;
+concept kIsCvInstantiationOf = kIsInstantiationOf<Template, std::remove_cv_t<T>>;
 
 /// Returns `true` if the type is a fundamental character type.
 /// `signed char` and `unsigned char` are not character types.
 template <typename T>
-inline constexpr bool kIsCharacter =
+concept kIsCharacter =
     std::is_same_v<T, char> || std::is_same_v<T, wchar_t> || std::is_same_v<T, char16_t> || std::is_same_v<T, char32_t>;
 
 /// Returns `true` if the type is a true integer type (not `*char*` or `bool`)
 /// `signed char` and `unsigned char` are integer types
 template <typename T>
-inline constexpr bool kIsInteger = std::is_integral_v<T> && !kIsCharacter<T> && !std::is_same_v<T, bool>;
+concept kIsInteger = std::is_integral_v<T> && !kIsCharacter<T> && !std::is_same_v<T, bool>;
+
+// NOLINTEND(readability-identifier-naming)
 
 }  // namespace meta
 

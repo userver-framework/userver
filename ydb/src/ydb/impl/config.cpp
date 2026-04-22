@@ -45,6 +45,7 @@ TableSettings ParseTableSettings(const yaml_config::YamlConfig& dbconfig, const 
     result.keep_in_query_cache = dbconfig["keep-in-query-cache"].As<bool>(result.keep_in_query_cache);
 
     result.sync_start = dbconfig["sync_start"].As<bool>(result.sync_start);
+    result.use_query_client = dbconfig["use-query-client"].As<bool>(result.use_query_client);
 
     result.by_database_timings_buckets =
         dbconfig["by-database-timings-buckets-ms"].As<std::optional<std::vector<double>>>();
@@ -66,6 +67,21 @@ DriverSettings ParseDriverSettings(
     auto config_database = dbconfig["database"].As<std::optional<std::string>>();
 
     result.prefer_local_dc = dbconfig["prefer_local_dc"].As<bool>(result.prefer_local_dc);
+    result.network_threads_num = dbconfig["network-threads-num"].As<std::optional<std::size_t>>();
+    result.client_threads_num = dbconfig["client-threads-num"].As<std::optional<std::size_t>>();
+
+    if (!dbconfig["tcp-keepalive"].IsMissing()) {
+        const auto tcp = dbconfig["tcp-keepalive"];
+        result.tcp_keepalive = TcpKeepaliveSettings{
+            tcp["enabled"].As<bool>(),
+            tcp["idle-sec"].As<std::size_t>(),
+            tcp["probe-count"].As<std::size_t>(),
+            tcp["interval-sec"].As<std::size_t>(),
+        };
+    }
+    result.grpc_keepalive_timeout = dbconfig["grpc-keepalive-timeout"].As<std::optional<std::chrono::milliseconds>>();
+    result.grpc_keepalive_permit_without_calls =
+        dbconfig["grpc-keepalive-permit-without-calls"].As<std::optional<bool>>();
 
     result.endpoint = MergeWithSecdist(dbsecdist.endpoint, std::move(config_endpoint), dbconfig, "endpoint");
     result.database = MergeWithSecdist(dbsecdist.database, std::move(config_database), dbconfig, "database");
@@ -81,8 +97,6 @@ DriverSettings ParseDriverSettings(
 
     return result;
 }
-
-using OptMs = std::optional<std::chrono::milliseconds>;
 
 const dynamic_config::Key<std::unordered_map<std::string, utils::RetryBudgetSettings>> kRetryBudgetSettings(
     "YDB_RETRY_BUDGET",

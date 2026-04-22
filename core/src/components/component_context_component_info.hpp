@@ -9,10 +9,10 @@
 
 #include <userver/components/component_context.hpp>
 #include <userver/components/raw_component_base.hpp>
-#include <userver/components/scope.hpp>
 #include <userver/engine/condition_variable.hpp>
 #include <userver/engine/mutex.hpp>
 #include <userver/utils/not_null.hpp>
+#include <userver/utils/resource_scopes.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -98,7 +98,7 @@ public:
 
     std::string GetDependencies() const;
 
-    void RegisterScope(ScopePtr);
+    utils::ResourceScopeStorage& GetScopes();
 
 private:
     bool HasComponent() const;
@@ -110,8 +110,7 @@ private:
     mutable engine::Mutex mutex_;
     mutable engine::ConditionVariable cv_;
     std::unique_ptr<RawComponentBase> component_;
-    std::vector<ScopePtr> resource_scopes_;
-    bool scope_registration_finished_{false};
+    utils::ResourceScopeStorage resource_scopes_;
     std::set<ComponentInfoRef> it_depends_on_;
     std::set<ComponentInfoRef> depends_on_it_;
     ComponentLifetimeStage stage_ = ComponentLifetimeStage::kNull;

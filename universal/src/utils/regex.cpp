@@ -82,7 +82,7 @@ regex::~regex() = default;
 
 bool regex::operator==(const regex& other) const { return GetPatternView() == other.GetPatternView(); }
 
-std::string_view regex::GetPatternView() const { return impl_->Get().pattern(); }
+std::string_view regex::GetPatternView() const USERVER_IMPL_LIFETIME_BOUND { return impl_->Get().pattern(); }
 
 std::string regex::str() const { return std::string{GetPatternView()}; }
 
@@ -192,7 +192,7 @@ std::string regex_replace(std::string_view str, const regex& pattern, std::strin
         res += repl;
 
         str.remove_prefix(non_matched_part.size() + match.size());
-        if (__builtin_expect(match.size() == 0, false)) {
+        if (__builtin_expect(match.empty(), false)) {
             if (str.empty()) {
                 break;
             }

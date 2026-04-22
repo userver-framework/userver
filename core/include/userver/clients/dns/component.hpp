@@ -35,8 +35,6 @@ public:
     Resolver& GetResolver();
 
 private:
-    void Write(utils::statistics::Writer& writer);
-
     Resolver resolver_;
 };
 

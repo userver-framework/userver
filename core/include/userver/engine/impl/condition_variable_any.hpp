@@ -33,7 +33,7 @@ public:
     void NotifyAll();
 
 private:
-    FastPimplWaitList waiters_;
+    FastPimplWaitList awaiters_;
 };
 
 template <typename MutexType>

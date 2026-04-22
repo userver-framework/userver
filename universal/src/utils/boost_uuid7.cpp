@@ -97,6 +97,8 @@ public:
     }
 
 private:
+    static constexpr std::uint32_t kMaxSequenceCounterValue = 0x3FFFFF;
+
     void GenerateRandomBlock(utils::span<std::uint8_t> block) {
         int i = 0;
         std::uint64_t random_value = random_generator_();
@@ -117,13 +119,9 @@ private:
             .count();
     }
 
-private:
     boost::random::variate_generator<utils::RandomBase*, boost::uniform_int<std::uint64_t>> random_generator_;
-
     std::uint32_t sequence_counter_{0};
     std::uint64_t previous_timestamp_{0};
-
-    static constexpr std::uint32_t kMaxSequenceCounterValue = 0x3FFFFF;
 };
 
 compiler::ThreadLocal local_uuid_v7_generator = [] {

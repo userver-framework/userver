@@ -13,8 +13,8 @@ import pytest
 import redis
 import redis.asyncio as aredis
 import yatest.common
-import yatest.common.network
 
+from library.python import port_manager
 from library.python import resource
 import pytest_userver.utils.sync as sync
 
@@ -24,7 +24,7 @@ REPLICA_COUNT = 1
 REDIS_CLUSTER_HOST = '127.0.0.1'
 
 logger = logging.getLogger(__name__)
-port_manager = yatest.common.network.PortManager()
+pm = port_manager.PortManager()
 
 
 class RedisClusterTopologyError(Exception):
@@ -293,8 +293,8 @@ class RedisClusterTopology:
         # create 2 nodes
         new_master = _RedisClusterNode(
             REDIS_CLUSTER_HOST,
-            port_manager.get_port(),
-            port_manager.get_port(),
+            pm.get_port(),
+            pm.get_port(),
         )
         self.added_master = new_master
         await new_master.start()
@@ -303,8 +303,8 @@ class RedisClusterTopology:
 
         new_replica = _RedisClusterNode(
             REDIS_CLUSTER_HOST,
-            port_manager.get_port(),
-            port_manager.get_port(),
+            pm.get_port(),
+            pm.get_port(),
         )
         self.added_replica = new_replica
         await new_replica.start()
@@ -627,8 +627,8 @@ class RedisClusterTopology:
 
 class RedisClusterTopologyPlugin:
     def __init__(self):
-        self.ports = [port_manager.get_port() for _ in range(CLUSTER_MINIMUM_NODES_COUNT)]
-        self.cluster_ports = [port_manager.get_port() for _ in range(CLUSTER_MINIMUM_NODES_COUNT)]
+        self.ports = [pm.get_port() for _ in range(CLUSTER_MINIMUM_NODES_COUNT)]
+        self.cluster_ports = [pm.get_port() for _ in range(CLUSTER_MINIMUM_NODES_COUNT)]
 
     @pytest.fixture(scope='session')
     async def redis_cluster_topology_session(self):

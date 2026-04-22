@@ -213,7 +213,9 @@ long Http2Session::OnSend(nghttp2_session* session, const uint8_t* data, size_t 
     UASSERT(data);
     auto& parser = GetParser(user_data);
     if (parser.socket_ != nullptr) {
-        return parser.socket_->WriteAll(data, len, {});
+        const auto send = parser.socket_->WriteAll(data, len, {});
+        LOG_TRACE() << fmt::format("Written {} bytes, expected to write {}.", send, len);
+        return send;
     }
     return NGHTTP2_ERR_WOULDBLOCK;
 }

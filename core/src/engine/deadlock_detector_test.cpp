@@ -14,16 +14,20 @@ TEST(DeadlockDetectorDeathTest, Smoke) {
     engine::TaskProcessorPoolsConfig config;
     config.deadlock_detector = engine::DeadlockDetector::kOn;
 
-    engine::RunStandalone(1, config, [] {
-        engine::Mutex mutex;
-        std::unique_lock lock(mutex);
-
-        auto task = engine::AsyncNoSpan([&mutex] { std::unique_lock lock(mutex); });
-        EXPECT_DEATH(
-            task.Get(),
-            R"(Mutex \(ptr=0x[a-z0-9]*\) => Task \(ptr=0x[a-z0-9]*\) => Task \(ptr=0x[a-z0-9]*\))"
-        );
-    });
+    // engine::RunStandalone should be inside the EXPECT_DEATH. Otherwise the test flaps with waitpid() errors
+    // inside gtest in release builds
+    EXPECT_DEATH(
+        (engine::RunStandalone(
+            1,
+            config,
+            [] {
+                engine::Mutex mutex;
+                std::unique_lock lock(mutex);
+                engine::AsyncNoSpan([&mutex] { std::unique_lock lock(mutex); }).Get();
+            }
+        )),
+        R"(Mutex \(ptr=0x[a-z0-9]*\) => Task \(ptr=0x[a-z0-9]*\) => Task \(ptr=0x[a-z0-9]*\))"
+    );
 }
 
 struct CycleDetected : public std::runtime_error {
@@ -169,6 +173,33 @@ UTEST(DeadlockDetector, NoCycleOnDiamond) {
     state.OnWaitForResourceStart(start, v0);
 
     SUCCEED();
+}
+
+UTEST(DeadlockDetector, ReentrantNoCycle) {
+    MockState state;
+    MockActor actor;
+    MockActor resource;
+
+    state.OnReentrantResourceAcquire(actor, resource);
+    state.OnReentrantResourceAcquire(actor, resource);
+    state.OnResourceRelease(actor, resource);
+    state.OnResourceRelease(actor, resource);
+
+    state.OnWaitForResourceStart(actor, resource);
+    state.OnWaitForResourceFinish(actor, resource);
+
+    SUCCEED();
+}
+
+UTEST(DeadlockDetector, Cycle2ReentrantAcquireWait) {
+    MockState state;
+    MockActor actor;
+    MockActor resource;
+
+    // actor -> resource -> actor
+    state.OnReentrantResourceAcquire(actor, resource);
+    state.OnReentrantResourceAcquire(actor, resource);
+    EXPECT_THROW_CYCLE(state.OnWaitForResourceStart(actor, resource), &resource, &actor);
 }
 
 USERVER_NAMESPACE_END

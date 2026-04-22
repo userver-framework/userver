@@ -40,6 +40,10 @@ public:
     /// @brief The default name of components::HttpClient component
     static constexpr std::string_view kName = "http-client";
 
+    /// @ingroup userver_component_names
+    /// @brief Name of components::HttpClient component used for obtaining dynamic configs
+    static constexpr std::string_view kDynamicConfigClientName = "dynamic-config-http-client";
+
     HttpClient(const ComponentConfig&, const ComponentContext&);
 
     clients::http::Client& GetHttpClient();

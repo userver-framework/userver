@@ -68,56 +68,54 @@ struct OptionalValueFormatter : BufferFormatterBase<Optional<T>> {
 }  // namespace detail
 
 /// Parser specialization for boost::optional
-template <typename T>
-struct BufferParser<boost::optional<T>, std::enable_if_t<traits::kHasParser<T>>>
+template <traits::HasParser T>
+struct BufferParser<boost::optional<T>>
     : detail::OptionalValueParser<boost::optional, T, detail::kParserRequiresTypeCategories<T>> {
     using BaseType = detail::OptionalValueParser<boost::optional, T, detail::kParserRequiresTypeCategories<T>>;
     using BaseType::BaseType;
 };
 
 /// Formatter specialization for boost::optional
-template <typename T>
-struct BufferFormatter<boost::optional<T>, std::enable_if_t<traits::kHasFormatter<T>>>
-    : detail::OptionalValueFormatter<boost::optional, T> {
+template <traits::HasFormatter T>
+struct BufferFormatter<boost::optional<T>> : detail::OptionalValueFormatter<boost::optional, T> {
     using BaseType = detail::OptionalValueFormatter<boost::optional, T>;
     using BaseType::BaseType;
 };
 
 /// Parser specialization for std::optional
-template <typename T>
-struct BufferParser<std::optional<T>, std::enable_if_t<traits::kHasParser<T>>>
+template <traits::HasParser T>
+struct BufferParser<std::optional<T>>
     : detail::OptionalValueParser<std::optional, T, detail::kParserRequiresTypeCategories<T>> {
     using BaseType = detail::OptionalValueParser<std::optional, T, detail::kParserRequiresTypeCategories<T>>;
     using BaseType::BaseType;
 };
 
 /// Formatter specialization for std::optional
-template <typename T>
-struct BufferFormatter<std::optional<T>, std::enable_if_t<traits::kHasFormatter<T>>>
-    : detail::OptionalValueFormatter<std::optional, T> {
+template <traits::HasFormatter T>
+struct BufferFormatter<std::optional<T>> : detail::OptionalValueFormatter<std::optional, T> {
     using BaseType = detail::OptionalValueFormatter<std::optional, T>;
     using BaseType::BaseType;
 };
 
 /// Formatter specialization for utils::OptionalRef
-template <typename T>
-struct BufferFormatter<USERVER_NAMESPACE::utils::OptionalRef<T>, std::enable_if_t<traits::kHasFormatter<T>>>
+template <traits::HasFormatter T>
+struct BufferFormatter<USERVER_NAMESPACE::utils::OptionalRef<T>>
     : detail::OptionalValueFormatter<USERVER_NAMESPACE::utils::OptionalRef, T> {
     using BaseType = detail::OptionalValueFormatter<USERVER_NAMESPACE::utils::OptionalRef, T>;
     using BaseType::BaseType;
 };
 
 /// Pg mapping specialization for boost::optional
-template <typename T>
-struct CppToPg<boost::optional<T>, std::enable_if_t<traits::kIsMappedToPg<T>>> : CppToPg<T> {};
+template <traits::kIsMappedToPg T>
+struct CppToPg<boost::optional<T>> : CppToPg<T> {};
 
 /// Pg mapping specialization for std::optional
-template <typename T>
-struct CppToPg<std::optional<T>, std::enable_if_t<traits::kIsMappedToPg<T>>> : CppToPg<T> {};
+template <traits::kIsMappedToPg T>
+struct CppToPg<std::optional<T>> : CppToPg<T> {};
 
 /// Pg mapping specialization for USERVER_NAMESPACE::utils::OptionalRef
-template <typename T>
-struct CppToPg<USERVER_NAMESPACE::utils::OptionalRef<T>, std::enable_if_t<traits::kIsMappedToPg<T>>> : CppToPg<T> {};
+template <traits::kIsMappedToPg T>
+struct CppToPg<USERVER_NAMESPACE::utils::OptionalRef<T>> : CppToPg<T> {};
 
 namespace traits {
 

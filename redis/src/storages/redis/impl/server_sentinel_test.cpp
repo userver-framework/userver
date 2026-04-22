@@ -20,6 +20,7 @@ auto MakeGetRequest(
     const std::string& key,
     storages::redis::CommandControl cc = {}
 ) {
+    cc.consider_ping = false;
     return sentinel.MakeRequest({"get", key}, key, false, sentinel.GetCommandControl(cc));
 }
 

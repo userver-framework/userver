@@ -59,8 +59,8 @@ struct MyKeyValue {
 //  The function must be declared in the namespace of your type
 MyKeyValue Parse(const formats::yaml::Value& yaml, formats::parse::To<MyKeyValue>) {
     return MyKeyValue{
-        yaml["field1"].As<std::string>(""),
-        yaml["field2"].As<int>(1),  // return `1` if "field2" is missing
+        .field1 = yaml["field1"].As<std::string>(""),
+        .field2 = yaml["field2"].As<int>(1),  // return `1` if "field2" is missing
     };
 }
 
@@ -126,7 +126,7 @@ TEST(FormatsYaml, NodesTags) {
     field_tag_prefix: !example!foo 42
   )");
 
-    for (auto scalar_field :
+    for (const std::string_view scalar_field :
          {"field_int", "field_string", "field_bool", "field_array", "field_obj", "field_array_json", "field_obj_json"})
     {
         EXPECT_EQ(yaml[scalar_field].GetTag(), "?") << "Field: " << scalar_field;
@@ -144,6 +144,25 @@ TEST(FormatsYaml, NodesTags) {
     EXPECT_EQ(yaml["field_custom_tag_string"].GetTag(), "!my_tag");
     EXPECT_EQ(yaml["field_internal_tag"].GetTag(), "tag:yaml.org,2002:str");
     EXPECT_EQ(yaml["field_tag_prefix"].GetTag(), "tag:example,2024:foo");
+}
+
+TEST(FormatsYaml, IsBoolFromParsedScalar) {
+    auto f = formats::yaml::FromString("false");
+    auto t = formats::yaml::FromString("true");
+
+    EXPECT_TRUE(f.IsBool());
+    EXPECT_TRUE(t.IsBool());
+    EXPECT_FALSE(f.As<bool>());
+    EXPECT_TRUE(t.As<bool>());
+
+    EXPECT_FALSE(formats::yaml::FromString("\"false\"").IsBool());
+    EXPECT_FALSE(formats::yaml::FromString("hello").IsBool());
+}
+
+TEST(FormatsYaml, IsIntFromParsedScalar) {
+    auto v = formats::yaml::FromString("42");
+    EXPECT_TRUE(v.IsInt());
+    EXPECT_EQ(v.As<int>(), 42);
 }
 
 USERVER_NAMESPACE_END

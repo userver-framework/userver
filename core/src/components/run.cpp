@@ -102,7 +102,7 @@ void PreheatStacktraceCollector() {
 
     const auto
         initialization_duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>(finish - start).count();
-    if (dummy_stacktrace.size() == 0) {
+    if (dummy_stacktrace.empty()) {
         LOG_WARNING()
             << "Failed to initialize stacktrace collector, an attempt took " << initialization_duration_ms << "ms";
     } else {

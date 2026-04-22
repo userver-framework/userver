@@ -182,7 +182,6 @@ private:
         }
     }
 
-private:
     Type type_;
     std::size_t elements_await_;
     std::string outer_field_name_;
@@ -215,7 +214,7 @@ private:
     Iterator end_;
 };
 
-static constexpr std::size_t kInitialStackDepth = 32;
+constexpr std::size_t kInitialStackDepth = 32;
 
 template <typename T>
 using Stack = boost::container::small_vector<T, kInitialStackDepth>;

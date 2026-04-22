@@ -21,8 +21,53 @@ USERVER_NAMESPACE_BEGIN
 
 namespace formats::parse {
 
+/// @brief Converts a BSON value to JSON format with type conversions
+///
+/// Performs format conversion with special handling for BSON-specific types:
+/// - BSON Timestamp → int64 (milliseconds since epoch)
+/// - BSON Decimal128 → string representation
+/// - BSON Oid → string representation
+/// - BSON Binary → string representation
+/// - BSON MinKey → JSON object `{"$minKey": 1}`
+/// - BSON MaxKey → JSON object `{"$maxKey": 1}`
+/// - Basic types (bool, int32, int64, double, string, datetime) are preserved
+/// - Arrays and objects are recursively converted
+///
+/// @throws formats::bson::ConversionException if the BSON value contains
+///         an unknown type that cannot be converted to JSON
 formats::json::Value Convert(const formats::bson::Value& bson, formats::parse::To<formats::json::Value>);
+
+/// @brief Converts a JSON value to BSON format
+///
+/// Performs a minimal format conversion that preserves basic types
+/// (bool, int, int64, uint64, double, string, null, arrays, objects).
+/// Missing JSON values are converted to BSON null.
 formats::bson::Value Convert(const formats::json::Value& json, formats::parse::To<formats::bson::Value>);
+
+/// @brief Converts a BSON value to JSON format (minimal conversion)
+///
+/// Performs a minimal format conversion that only handles basic types
+/// common to both BSON and JSON (bool, int, int64, uint64, double, string,
+/// null, arrays, objects).
+///
+/// @warning BSON-specific types (Timestamp, Decimal128, Oid, Binary, MinKey,
+///       MaxKey, etc.) are NOT supported by this function. For converting
+///       BSON documents with these types, use Convert() instead, which
+///       provides proper type conversions.
+///
+/// @throws formats::bson::Exception if the BSON value is missing or contains
+///         an unknown/unsupported node type (e.g., BSON-specific types like
+///         Timestamp, Oid, Binary, etc.)
+formats::json::Value Parse(const formats::bson::Value& bson, formats::parse::To<formats::json::Value>);
+
+/// @brief Converts a JSON value to BSON format (minimal conversion)
+///
+/// Performs a minimal format conversion that preserves the structure and basic
+/// types (bool, int, int64, uint64, double, string, null, arrays, objects).
+///
+/// @throws formats::json::Exception if the JSON value is missing or contains
+///         an unknown node type that cannot be converted to BSON
+formats::bson::Value Parse(const formats::json::Value& json, formats::parse::To<formats::bson::Value>);
 
 }  // namespace formats::parse
 

@@ -1,4 +1,5 @@
 import asyncio
+import datetime
 from typing import Any
 
 import pytest
@@ -11,6 +12,17 @@ DEFAULT_DATA = {'hello': 'world'}
 
 DP_TIMEOUT_MS = 'X-YaTaxi-Client-TimeoutMs'
 DP_DEADLINE_EXPIRED = 'X-YaTaxi-Deadline-Expired'
+DP_ABSOLUTE_DEADLINE = 'X-Request-Deadline'
+
+
+def _make_deadline_epoch_us(offset_seconds: float) -> str:
+    deadline_utc = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(
+        seconds=offset_seconds,
+    )
+    unix_epoch_utc = datetime.datetime(1970, 1, 1, tzinfo=datetime.timezone.utc)
+    one_microsecond = datetime.timedelta(microseconds=1)
+    microseconds_since_epoch = (deadline_utc - unix_epoch_utc) // one_microsecond
+    return str(microseconds_since_epoch)
 
 
 @pytest.fixture(name='call')
@@ -89,6 +101,95 @@ async def test_deadline_expired(
 async def test_deadline_propagation_disabled_dynamically(call):
     response = await call(htype='sleep', headers={DP_TIMEOUT_MS: '10'})
     assert isinstance(response, http.ClientResponse)
+    assert response.status == 200
+
+
+async def test_absolute_deadline_used(call):
+    response = await call(
+        headers={
+            **HEADERS,
+            DP_TIMEOUT_MS: '1',
+            DP_ABSOLUTE_DEADLINE: _make_deadline_epoch_us(5.0),
+        },
+    )
+    assert response.status == 200
+
+
+async def test_absolute_deadline_expired(call):
+    response = await call(
+        headers={
+            **HEADERS,
+            DP_ABSOLUTE_DEADLINE: _make_deadline_epoch_us(-120.0),
+        },
+    )
+    _check_deadline_propagation_response(response)
+
+
+async def test_absolute_deadline_expired_with_sleep(call):
+    response = await call(
+        htype='sleep',
+        headers={
+            **HEADERS,
+            DP_ABSOLUTE_DEADLINE: _make_deadline_epoch_us(-120.0),
+        },
+    )
+    _check_deadline_propagation_response(response)
+
+
+@pytest.mark.config(USERVER_DEADLINE_PROPAGATION_ABSOLUTE_TIMESTAMP_ENABLED=False)
+async def test_absolute_deadline_disabled_dynamically(call):
+    response = await call(
+        headers={
+            **HEADERS,
+            DP_TIMEOUT_MS: '5000',
+            DP_ABSOLUTE_DEADLINE: _make_deadline_epoch_us(-1.0),
+        },
+    )
+    assert response.status == 200
+
+
+async def test_absolute_deadline_clock_skew_fallback(call):
+    response = await call(
+        headers={
+            **HEADERS,
+            DP_TIMEOUT_MS: '5000',
+            DP_ABSOLUTE_DEADLINE: _make_deadline_epoch_us(5.0 + 120.0),
+        },
+    )
+    assert response.status == 200
+
+
+async def test_absolute_deadline_clock_skew_fallback_when_negative_skew(call):
+    response = await call(
+        headers={
+            **HEADERS,
+            DP_TIMEOUT_MS: '5000',
+            DP_ABSOLUTE_DEADLINE: _make_deadline_epoch_us(-120.0),
+        },
+    )
+    assert response.status == 200
+
+
+@pytest.mark.config(USERVER_DEADLINE_PROPAGATION_CLOCK_SKEW_THRESHOLD_MS=0)
+async def test_absolute_deadline_threshold_zero_disables_skew_check(call):
+    response = await call(
+        headers={
+            **HEADERS,
+            DP_TIMEOUT_MS: '5000',
+            DP_ABSOLUTE_DEADLINE: _make_deadline_epoch_us(-120.0),
+        },
+    )
+    _check_deadline_propagation_response(response)
+
+
+async def test_absolute_deadline_invalid_format(call):
+    response = await call(
+        headers={
+            **HEADERS,
+            DP_TIMEOUT_MS: '5000',
+            DP_ABSOLUTE_DEADLINE: 'not-a-timestamp',
+        },
+    )
     assert response.status == 200
 
 

@@ -17,6 +17,7 @@ ValidationSettings Parse(const yaml_config::YamlConfig& config, formats::parse::
     ValidationSettings settings;
     settings.fail_fast = config["fail-fast"].As<bool>(settings.fail_fast);
     settings.send_violations = config["send-violations"].As<bool>(settings.send_violations);
+    settings.validate_responses = config["validate-responses"].As<bool>(settings.validate_responses);
     return settings;
 }
 
@@ -24,6 +25,7 @@ Settings Parse(const yaml_config::YamlConfig& config, formats::parse::To<Setting
     Settings settings;
     settings.global.fail_fast = config["fail-fast"].As<bool>(settings.global.fail_fast);
     settings.global.send_violations = config["send-violations"].As<bool>(settings.global.send_violations);
+    settings.global.validate_responses = config["validate-responses"].As<bool>(settings.global.validate_responses);
     settings.per_method = config["methods"].As<utils::impl::TransparentMap<std::string, ValidationSettings>>({});
     return settings;
 }

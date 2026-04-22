@@ -11,8 +11,8 @@ components_manager:
                     overflow_behavior: discard
 
         congestion-control:
-# /// [static config client]
-# yaml
+        # /// [static config client]
+        # yaml
         # Contains machinery common to all gRPC clients
         grpc-client-common:
             # The TaskProcessor for blocking connection initiation
@@ -34,11 +34,11 @@ components_manager:
                 SayHelloRequestStream: 2
             factory-component: grpc-client-factory
 
-# /// [static config client]
+        # /// [static config client]
         grpc-server-middlewares-pipeline:
 
-# /// [static config server]
-# yaml
+        # /// [static config server]
+        # yaml
         # Common configuration for gRPC server
         grpc-server:
             # The single listening port for incoming RPCs
@@ -50,7 +50,7 @@ components_manager:
         greeter-service:
             task-processor: main-task-processor
             greeting-prefix: Hello
-# /// [static config server]
+            # /// [static config server]
 
         # In this example, the tests still communicate with the microservice
         # using HTTP, so we still need an HTTP server and an HTTP handler.
@@ -67,14 +67,14 @@ components_manager:
 
     default_task_processor: main-task-processor  # Task processor in which components start.
 
-# /// [task processor]
-# yaml
+    # /// [task processor]
+    # yaml
     task_processors:
         grpc-blocking-task-processor:  # For blocking gRPC channel creation
             worker_threads: 2
             thread_name: grpc-worker
-# /// [task processor]
-        main-task-processor:           # For non-blocking operations
+            # /// [task processor]
+        main-task-processor:  # For non-blocking operations
             worker_threads: 8
-        fs-task-processor:             # For blocking filesystem operations
+        fs-task-processor:  # For blocking filesystem operations
             worker_threads: 2

@@ -138,12 +138,47 @@ DeliveryResult ProducerImpl::Send(
     HeadersHolder headers_holder
 ) const {
     LOG(operation_log_level_) << fmt::format("Message to topic '{}' is requested to send", topic_name);
+    auto deadline = engine::Deadline::FromDuration(delivery_timeout_);
     auto delivery_result_future =
-        ScheduleMessageDelivery(topic_name, key, message, partition, std::move(headers_holder));
+        ScheduleMessageDelivery(topic_name, key, message, partition, std::move(headers_holder), deadline);
 
     WaitUntilDeliveryReported(delivery_result_future);
 
     return delivery_result_future.get();
+}
+
+std::vector<DeliveryResult> ProducerImpl::Send(
+    utils::zstring_view topic_name,
+    std::string_view key,
+    const Messages& messages,
+    std::optional<std::uint32_t> partition,
+    std::vector<HeadersHolder> headers_holders
+) const {
+    UASSERT(messages.Size() == headers_holders.size());
+
+    LOG(operation_log_level_
+    ) << fmt::format("Messages {} to topic '{}' are requested to send", messages.Size(), topic_name);
+
+    std::vector<engine::Future<DeliveryResult>> delivery_result_futures;
+    delivery_result_futures.reserve(messages.Size());
+
+    auto deadline = engine::Deadline::FromDuration(delivery_timeout_);
+    for (std::size_t i = 0; i < messages.Size(); ++i) {
+        delivery_result_futures.emplace_back(
+            ScheduleMessageDelivery(topic_name, key, messages[i], partition, std::move(headers_holders[i]), deadline)
+        );
+    }
+
+    std::vector<DeliveryResult> delivery_results;
+    delivery_results.reserve(messages.Size());
+
+    for (auto& delivery_result_future : delivery_result_futures) {
+        WaitUntilDeliveryReported(delivery_result_future);
+
+        delivery_results.emplace_back(delivery_result_future.get());
+    }
+
+    return delivery_results;
 }
 
 engine::Future<DeliveryResult> ProducerImpl::ScheduleMessageDelivery(
@@ -151,7 +186,8 @@ engine::Future<DeliveryResult> ProducerImpl::ScheduleMessageDelivery(
     std::string_view key,
     std::string_view message,
     std::optional<std::uint32_t> partition,
-    HeadersHolder headers_holder
+    HeadersHolder headers_holder,
+    engine::Deadline deadline
 ) const {
     auto waiter = std::make_unique<DeliveryWaiter>();
     auto wait_handle = waiter->GetFuture();
@@ -181,34 +217,42 @@ engine::Future<DeliveryResult> ProducerImpl::ScheduleMessageDelivery(
     ///
     /// Headers holder **must** be released if `rd_kafka_producev` succeeded.
 
+    while (!deadline.IsReached() && !engine::current_task::ShouldCancel()) {
 #ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wgnu-statement-expression"
 #endif
-    // NOLINTBEGIN(clang-analyzer-cplusplus.NewDeleteLeaks,cppcoreguidelines-pro-type-const-cast)
-    const rd_kafka_resp_err_t enqueue_error = rd_kafka_producev(
-        producer_.GetHandle(),
-        RD_KAFKA_V_TOPIC(topic_name.c_str()),
-        RD_KAFKA_V_KEY(key.data(), key.size()),
-        RD_KAFKA_V_VALUE(const_cast<char*>(message.data()), message.size()),
-        RD_KAFKA_V_MSGFLAGS(0),
-        RD_KAFKA_V_HEADERS(headers_holder.GetHandle()),
-        RD_KAFKA_V_PARTITION(partition.value_or(RD_KAFKA_PARTITION_UA)),
-        RD_KAFKA_V_OPAQUE(waiter.get()),
-        RD_KAFKA_V_END
-    );
-    // NOLINTEND(clang-analyzer-cplusplus.NewDeleteLeaks,cppcoreguidelines-pro-type-const-cast)
+        // NOLINTBEGIN(clang-analyzer-cplusplus.NewDeleteLeaks,cppcoreguidelines-pro-type-const-cast)
+        const rd_kafka_resp_err_t enqueue_error = rd_kafka_producev(
+            producer_.GetHandle(),
+            RD_KAFKA_V_TOPIC(topic_name.c_str()),
+            RD_KAFKA_V_KEY(key.data(), key.size()),
+            RD_KAFKA_V_VALUE(const_cast<char*>(message.data()), message.size()),
+            RD_KAFKA_V_MSGFLAGS(0),
+            RD_KAFKA_V_HEADERS(headers_holder.GetHandle()),
+            RD_KAFKA_V_PARTITION(partition.value_or(RD_KAFKA_PARTITION_UA)),
+            RD_KAFKA_V_OPAQUE(waiter.get()),
+            RD_KAFKA_V_END
+        );
+        // NOLINTEND(clang-analyzer-cplusplus.NewDeleteLeaks,cppcoreguidelines-pro-type-const-cast)
 
 #ifdef __clang__
 #pragma clang diagnostic pop
 #endif
 
-    if (enqueue_error == RD_KAFKA_RESP_ERR_NO_ERROR) {
-        [[maybe_unused]] const auto headers_holder_ptr = headers_holder.release();
-        [[maybe_unused]] const auto waiter_ptr = waiter.release();
-    } else {
-        LOG_WARNING("Failed to enqueue message to Kafka local queue: {}", rd_kafka_err2str(enqueue_error));
-        waiter->SetDeliveryResult(DeliveryResult{enqueue_error});
+        if (enqueue_error == RD_KAFKA_RESP_ERR_NO_ERROR) {
+            [[maybe_unused]] const auto headers_holder_ptr = headers_holder.release();
+            [[maybe_unused]] const auto waiter_ptr = waiter.release();
+        } else if (enqueue_error == RD_KAFKA_RESP_ERR__QUEUE_FULL) {
+            LOG_LIMITED_WARNING("Kafka local queue is full");
+            /// waiting for a while for the queue to clear up
+            engine::Yield();
+            continue;
+        } else {
+            LOG_WARNING("Failed to enqueue message to Kafka local queue: {}", rd_kafka_err2str(enqueue_error));
+            waiter->SetDeliveryResult(DeliveryResult{enqueue_error});
+        }
+        break;
     }
 
     return wait_handle;
@@ -324,7 +368,7 @@ void ProducerImpl::WaitUntilDeliveryReported(engine::Future<DeliveryResult>& del
             continue;
         }
 
-        auto waked_up_by = engine::WaitAny(waiter.event, delivery_result);
+        auto waked_up_by = engine::MakeWaitAny(waiter.event, delivery_result).Wait();
         LOG(debug_info_log_level_) << fmt::format(
             "Wake up reason: {}",
             waked_up_by.has_value() ? (waked_up_by == 0 ? "EventCallback" : "DeliveryResult") : "Cancel"

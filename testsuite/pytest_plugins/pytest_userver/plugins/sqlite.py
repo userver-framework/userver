@@ -27,9 +27,9 @@ def userver_sqlite_config(tmp_path_factory):
 def _list_dbpath_components(service_config_yaml):
     components_list = list()
     components = service_config_yaml['components_manager']['components']
-    for commponent_name, params in components.items():
+    for component_name, params in components.items():
         if params and 'db-path' in params:
-            components_list.append(commponent_name)
+            components_list.append(component_name)
     return components_list
 
 

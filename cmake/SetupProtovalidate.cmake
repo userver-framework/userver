@@ -1,6 +1,8 @@
+# @ingroup download
 option(USERVER_DOWNLOAD_PACKAGE_PROTOVALIDATE_CC "Download and setup protovalidate-cc if no matching version was found"
        ${USERVER_DOWNLOAD_PACKAGES}
 )
+# @ingroup dependencies
 set(USERVER_PROTOVALIDATE_CC_PATH
     ""
     CACHE PATH "Path to the folder with google common proto files"

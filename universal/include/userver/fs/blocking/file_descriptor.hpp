@@ -37,7 +37,13 @@ public:
     /// @brief Use the file descriptor directly
     static FileDescriptor AdoptFd(int fd) noexcept;
 
-    FileDescriptor() = delete;
+    /// @brief Duplicate the file descriptor
+    static FileDescriptor DupFd(int fd) noexcept;
+
+    /// @brief Default constructor
+    /// @note The file descriptor is not open
+    FileDescriptor();
+
     FileDescriptor(FileDescriptor&& other) noexcept;
     FileDescriptor& operator=(FileDescriptor&& other) noexcept;
     ~FileDescriptor();

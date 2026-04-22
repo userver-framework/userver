@@ -176,6 +176,21 @@ using HasOrderBy = decltype(T::kOrderBy);
 template <typename T>
 inline constexpr bool kHasOrderBy = meta::IsDetected<HasOrderBy, T>;
 
+// Component kTag in policy
+template <typename T>
+using HasTag = decltype(T::kTag);
+template <typename T>
+inline constexpr bool kHasTag = meta::IsDetected<HasTag, T>;
+
+template <typename PostgreCachePolicy>
+auto GetTag() {
+    if constexpr (kHasTag<PostgreCachePolicy>) {
+        return PostgreCachePolicy::kTag;
+    } else {
+        return storages::postgres::kRowTag;
+    }
+}
+
 // Update field
 template <typename T>
 using HasUpdatedField = decltype(T::kUpdatedField);
@@ -740,7 +755,7 @@ void PostgreCache<PostgreCachePolicy>::CacheResults(
     cache::UpdateStatisticsScope& stats_scope,
     tracing::ScopeTime& scope
 ) {
-    auto values = res.AsSetOf<RawValueType>(storages::postgres::kRowTag);
+    auto values = res.AsSetOf<RawValueType>(pg_cache::detail::GetTag<PostgreCachePolicy>());
     utils::CpuRelax relax{cpu_relax_iterations_parse_, &scope};
     for (auto p = values.begin(); p != values.end(); ++p) {
         relax.Relax();

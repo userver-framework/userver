@@ -163,27 +163,23 @@ public:
         };
         std::vector<Task> tasks;
 
+        // Try to obtain unique lock for event_mutex_ to serialize
+        // calls to SendEvent()
+        event_mutex_.lock();
+
+        // Now downgrade the lock to shared to allow new subscriptions
+        event_mutex_.unlock_and_lock_shared();
+
+        // And ensure the lock releases in case of an exception
+        std::shared_lock<engine::SharedMutex> tmp_lock{event_mutex_, std::adopt_lock};
+
+        // Now we want to create N subtasks for callbacks,
+        // which must hold event_mutex_'s std::shared_lock.
+        // A naive implementation would create std::shared_lock{event_mutex_} for each subtask,
+        // however, it might deadlock if any parallel SendEvent() is called and is blocked on
+        // event_mutex_.lock(). It happens due to strict prioritization of writers above readers
+        // in SharedMutex: if there is any pending writer, nobody may lock the mutex for read.
         {
-            // Try to obtain unique lock for event_mutex_ to serialize
-            // calls to SendEvent()
-            event_mutex_.lock();
-
-            // Now downgrade the lock to shared to allow new subscriptions
-            event_mutex_.unlock_and_lock_shared();
-
-            // Now we want to create N subtasks for callbacks,
-            // which must hold event_mutex_'s std::shared_lock.
-            // A naive implementation would create std::shared_lock{event_mutex_} for each subtask,
-            // however, it might deadlock if any parallel SendEvent() is called and is blocked on
-            // event_mutex_.lock(). It happens due to strict prioritization of writers above readers
-            // in SharedMutex: if there is any pending writer, nobody may lock the mutex for read.
-
-            // To avoid std::bad_alloc and leaked mutex shared lock, do the following:
-            // 1) catch the lock into RAII std::shared_lock...
-            std::shared_lock<engine::SharedMutex> tmp_lock{event_mutex_, std::adopt_lock};
-            // 2) ...and move it into std::shared_ptr
-            auto lock = std::make_shared<std::shared_lock<engine::SharedMutex>>(std::move(tmp_lock));
-
             auto data = data_.Lock();
             auto& listeners = data->listeners;
             tasks.reserve(listeners.size());
@@ -193,7 +189,7 @@ public:
                     listener,  // an intentional copy
                     utils::Async(
                         listener->task_name,
-                        [&, &callback = listener->callback, lock, sema_lock = std::shared_lock(listener->sema)] {
+                        [&, &callback = listener->callback, sema_lock = std::shared_lock(listener->sema)] {
                             callback(args...);
                         }
                     ),

@@ -144,7 +144,7 @@ std::optional<Baggage> TryMakeBaggage(std::string header, std::unordered_set<std
 
 template <typename T>
 bool HasInvalidSymbols(const T& obj) {
-    return std::find_if(obj.begin(), obj.end(), [](unsigned char x) {
+    return std::ranges::find_if(obj, [](unsigned char x) {
                return x == ',' || x == ';' || x == '=' || std::isspace(x);
            }) != obj.end();
 }

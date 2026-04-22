@@ -4,6 +4,7 @@
 
 #include <userver/grpc-protovalidate/validate.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/ugrpc/client/exceptions.hpp>
 #include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -46,6 +47,20 @@ void Middleware::PostRecvMessage(ugrpc::server::MiddlewareCallContext& context, 
     }
     LogError(result.GetError());
     context.SetError(result.GetError().GetGrpcStatus(settings.send_violations));
+}
+
+void Middleware::PreSendMessage(ugrpc::server::MiddlewareCallContext& context, google::protobuf::Message& response)
+    const {
+    const ValidationSettings& settings = settings_.Get(context.GetCallName());
+    if (!settings.validate_responses) {
+        return;
+    }
+    const ValidationResult result = ValidateMessage(response, {.fail_fast = settings.fail_fast});
+    if (result.IsSuccess()) {
+        return;
+    }
+    LogError(result.GetError());
+    context.SetError(result.GetError().GetGrpcStatus(settings.send_violations, grpc::StatusCode::DATA_LOSS));
 }
 
 }  // namespace grpc_protovalidate::server

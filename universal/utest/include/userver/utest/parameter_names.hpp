@@ -2,6 +2,7 @@
 
 /// @file userver/utest/parameter_names.hpp
 /// @brief @copybrief utest::PrintTestName
+/// @ingroup userver_universal
 
 #include <string>
 #include <tuple>

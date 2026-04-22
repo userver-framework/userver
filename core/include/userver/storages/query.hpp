@@ -42,7 +42,7 @@ public:
         // clang-16 and below lose (optimize out) the pointer to `literal` with consteval. Clang-18 is know to work
         constexpr
 #else
-        USERVER_IMPL_CONSTEVAL
+        consteval
 #endif
             NameLiteral(const char* literal) noexcept
             : zstring_view{literal} {
@@ -63,7 +63,7 @@ public:
     Query& operator=(Query&& other) = default;
 
     /// Constructor that omits dynamic initialization and relies on `statement` and `name` being string literals
-    constexpr Query(utils::StringLiteral statement, NameLiteral name, LogMode log_mode)
+    constexpr Query(utils::StringLiteral statement, NameLiteral name, LogMode log_mode = LogMode::kFull)
         : data_{StaticStrings{statement, name}},
           log_mode_{log_mode}
     {}

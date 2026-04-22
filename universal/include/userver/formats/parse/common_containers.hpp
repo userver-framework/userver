@@ -7,6 +7,7 @@
 /// @ingroup userver_universal userver_formats_parse
 
 #include <optional>
+#include <string_view>
 #include <type_traits>
 
 #include <userver/formats/common/meta.hpp>
@@ -69,19 +70,20 @@ ObjectType ParseObject(const Value& value, ExtractFunc extract_func) {
     return result;
 }
 
+template <typename T>
+concept RangeNotMap =
+    meta::kIsRange<T> && !meta::kIsMap<T> && !std::is_same_v<T, boost::uuids::uuid> &&
+    !std::is_convertible_v<T&, utils::impl::strong_typedef::StrongTypedefTag&>;
+
 }  // namespace impl
 
-template <typename T, typename Value>
-std::enable_if_t<
-    common::kIsFormatValue<Value> && meta::kIsRange<T> && !meta::kIsMap<T> && !std::is_same_v<T, boost::uuids::uuid> &&
-        !std::is_convertible_v<T&, utils::impl::strong_typedef::StrongTypedefTag&>,
-    T>
-Parse(const Value& value, To<T>) {
+template <impl::RangeNotMap T, common::kIsFormatValue Value>
+T Parse(const Value& value, To<T>) {
     return impl::ParseArray<T>(value, &impl::AsExtractor<meta::RangeValueType<T>, Value>);
 }
 
-template <typename T, typename Value>
-std::enable_if_t<common::kIsFormatValue<Value> && meta::kIsMap<T>, T> Parse(const Value& value, To<T>) {
+template <meta::kIsMap T, common::kIsFormatValue Value>
+T Parse(const Value& value, To<T>) {
     return impl::ParseObject<T>(value, &impl::AsExtractor<typename T::mapped_type, Value>);
 }
 
@@ -99,20 +101,16 @@ std::optional<std::nullptr_t> Parse(const Value&, To<std::optional<std::nullptr_
     return nullptr;
 }
 
-template <typename T, typename Value>
-std::enable_if_t<
-    meta::kIsRange<T> && !meta::kIsMap<T> && !std::is_same_v<T, boost::uuids::uuid> &&
-        !std::is_convertible_v<T&, utils::impl::strong_typedef::StrongTypedefTag&>,
-    T>
-Convert(const Value& value, To<T>) {
+template <impl::RangeNotMap T, typename Value>
+T Convert(const Value& value, To<T>) {
     if (value.IsMissing()) {
         return {};
     }
     return impl::ParseArray<T>(value, &impl::ConvertToExtractor<meta::RangeValueType<T>, Value>);
 }
 
-template <typename T, typename Value>
-std::enable_if_t<meta::kIsMap<T>, T> Convert(const Value& value, To<T>) {
+template <meta::kIsMap T, typename Value>
+T Convert(const Value& value, To<T>) {
     if (value.IsMissing()) {
         return {};
     }

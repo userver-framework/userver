@@ -68,6 +68,11 @@ function(_userver_setup_environment_impl)
             PARENT_SCOPE
         )
     endif()
+
+    if(CMAKE_CXX_STANDARD LESS 20)
+        message(FATAL_ERROR "userver requires CMAKE_CXX_STANDARD >= 20 (got: ${CMAKE_CXX_STANDARD})")
+    endif()
+
     message(STATUS "C++ standard ${CMAKE_CXX_STANDARD}")
     set(CMAKE_CXX_STANDARD_REQUIRED
         ON
@@ -90,6 +95,7 @@ function(_userver_setup_environment_impl)
     add_compile_options("-pipe" "-g" "-fPIC")
     add_compile_definitions("PIC=1")
 
+    # @ingroup compilation
     option(USERVER_COMPILATION_TIME_TRACE "Generate Clang compilation time trace" OFF)
     if(USERVER_COMPILATION_TIME_TRACE)
         if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -117,6 +123,7 @@ function(_userver_setup_environment_impl)
     )
     message(STATUS "Linker global flags: ${CMAKE_EXE_LINKER_FLAGS}")
 
+    # @ingroup compilation
     option(USERVER_USE_CCACHE "Use ccache for build" ON)
     if(USERVER_USE_CCACHE)
         find_program(CCACHE_EXECUTABLE ccache)

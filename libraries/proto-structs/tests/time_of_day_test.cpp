@@ -1,10 +1,10 @@
-#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include <limits>
 
 #include <userver/proto-structs/exceptions.hpp>
 #include <userver/proto-structs/time_of_day.hpp>
+#include <userver/utest/assert_macros.hpp>
 #include <userver/utils/impl/internal_tag.hpp>
 
 using namespace std::literals::chrono_literals;
@@ -48,14 +48,8 @@ TEST(TimeOfDayTest, IsValid) {
         [[maybe_unused]] auto val = TimeOfDay(utils::impl::InternalTag{}, kMinInt, kMinInt, kMinInt, kMinInt),
         ValueError
     );
-    EXPECT_THAT(
-        []() { [[maybe_unused]] TimeOfDay t(25h, 30min, 0s, 123ns); },
-        ::testing::ThrowsMessage<ValueError>(::testing::HasSubstr("25:30:0.123ns"))
-    );
-    EXPECT_THAT(
-        []() { [[maybe_unused]] TimeOfDay t(std::chrono::duration<int64_t, std::pico>{-1}); },
-        ::testing::ThrowsMessage<ValueError>(::testing::HasSubstr("negative"))
-    );
+    UEXPECT_THROW_MSG(TimeOfDay(25h, 30min, 0s, 123ns), ValueError, "25:30:0.123ns");
+    UEXPECT_THROW_MSG(TimeOfDay(std::chrono::duration<int64_t, std::pico>{-1}), ValueError, "negative");
 
     EXPECT_TRUE(TimeOfDay::IsValid(0h, 0min, 0s, 0ns));
     EXPECT_TRUE(TimeOfDay::IsValid(23h, 59min, 59s, 999'999'999ns));

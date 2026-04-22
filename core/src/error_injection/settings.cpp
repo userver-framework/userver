@@ -34,10 +34,11 @@ Verdict Parse(const yaml_config::YamlConfig& yaml, formats::parse::To<Verdict>) 
 }
 
 Settings Parse(const yaml_config::YamlConfig& value, formats::parse::To<Settings>) {
-    Settings settings;
-    settings.enabled = value["enabled"].As<bool>();
-    settings.probability = value["probability"].As<double>();
-    settings.possible_verdicts = value["verdicts"].As<std::vector<Verdict>>();
+    Settings settings{
+        .enabled = value["enabled"].As<bool>(),
+        .probability = value["probability"].As<double>(),
+        .possible_verdicts = value["verdicts"].As<std::vector<Verdict>>(),
+    };
 
     LOG_DEBUG() << "enabled = " << settings.enabled << " probability = " << settings.probability;
 

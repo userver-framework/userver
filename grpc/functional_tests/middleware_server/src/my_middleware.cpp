@@ -14,7 +14,8 @@ void MyMiddleware::PostRecvMessage(ugrpc::server::MiddlewareCallContext& context
         name += " One";
         reflection->SetString(&request, name_field, name);
     } else {
-        return context.SetError(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "Field 'name' not found"));
+        context.SetError(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "Field 'name' not found"));
+        return;
     }
 }
 
@@ -29,7 +30,8 @@ void MyMiddleware::PreSendMessage(ugrpc::server::MiddlewareCallContext& context,
         greeting += " EndOne";
         reflection->SetString(&response, name_field, greeting);
     } else {
-        return context.SetError(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "Field 'greeting' not found"));
+        context.SetError(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "Field 'greeting' not found"));
+        return;
     }
 }
 /// [gRPC CallRequestHook impl example]

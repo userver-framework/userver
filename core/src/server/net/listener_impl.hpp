@@ -7,9 +7,9 @@
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/engine/task/task_with_result.hpp>
 
-#include "connection.hpp"
-#include "endpoint_info.hpp"
-#include "stats.hpp"
+#include <server/net/endpoint_info.hpp>
+#include <server/net/http1_connection.hpp>
+#include <server/net/stats.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

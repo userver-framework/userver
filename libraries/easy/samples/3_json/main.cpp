@@ -15,23 +15,23 @@ int main(int argc, char* argv[]) {
         .DbSchema(kSchema)
         .Get(
             "/kv",
-            [](formats::json::Value request_json, const easy::PgDep& dep) {
-                // Use generated parser for As()
-                auto key = request_json.As<schemas::KeyRequest>().key;
-
+            [](schemas::KeyRequest&& request, const easy::PgDep& dep) {
                 auto res = dep.pg().Execute(
                     storages::postgres::ClusterHostType::kSlave,
                     "SELECT value FROM key_value_table WHERE key=$1",
-                    key
+                    request.key
                 );
 
-                const schemas::KeyValue response{key, res[0][0].As<std::string>()};
-                return formats::json::ValueBuilder{response}.ExtractValue();
+                return schemas::KeyValue{std::move(request.key), res[0][0].As<std::string>()};
             }
         )
-        .Post("/kv", [](formats::json::Value request_json, easy::PgDep dep) {
-            // Use generated parser for As()
-            auto key_value = request_json.As<schemas::KeyValue>();
+        .Post("/kv", [](schemas::KeyValue key_value, easy::PgDep dep) {
+            if (key_value.key == 42) {
+                throw server::handlers::ClientError(
+                    server::handlers::ExternalBody{"We do not accept key 42"},  // goes to HTTP response
+                    server::handlers::InternalMessage{"User sent a 42 key"}     // goes to logs
+                );
+            }
 
             dep.pg().Execute(
                 storages::postgres::ClusterHostType::kMaster,

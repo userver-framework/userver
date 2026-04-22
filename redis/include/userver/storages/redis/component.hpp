@@ -168,7 +168,6 @@ private:
     utils::statistics::Entry statistics_holder_;
     utils::statistics::Entry subscribe_statistics_holder_;
 
-    storages::redis::MetricsSettings::StaticSettings static_metrics_settings_;
     rcu::Variable<storages::redis::MetricsSettings> metrics_settings_;
     rcu::Variable<storages::redis::PubsubMetricsSettings> pubsub_metrics_settings_;
 };

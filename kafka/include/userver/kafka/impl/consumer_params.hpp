@@ -3,11 +3,19 @@
 #include <chrono>
 
 #include <userver/logging/level.hpp>
+#include <userver/utils/zstring_view.hpp>
 #include <userver/yaml_config/fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace kafka::impl {
+
+/// @brief Topic, partition and offset for a single seek (e.g. in MultiSeek).
+struct SeekParams {
+    utils::zstring_view topic;
+    std::uint32_t partition_id;
+    std::uint64_t offset;
+};
 
 /// @brief Specifies the logging format for the message key.
 enum class MessageKeyLogFormat {

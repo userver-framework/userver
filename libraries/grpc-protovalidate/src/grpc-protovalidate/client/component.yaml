@@ -6,6 +6,10 @@ properties:
         type: boolean
         description: do not check remaining constraints after first error is encountered
         defaultDescription: true
+    validate-requests:
+        type: boolean
+        description: whether to validate outgoing request messages
+        defaultDescription: false
     methods:
         type: object
         description: per-method middleware options overrides
@@ -18,3 +22,7 @@ properties:
                 fail-fast:
                     type: boolean
                     description: see 'fail-fast' global option
+                validate-requests:
+                    type: boolean
+                    description: see 'validate-requests' global option
+                    defaultDescription: false

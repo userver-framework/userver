@@ -11,6 +11,7 @@ class ConversionFailure;
 class Scalar;
 class WellKnownStd;
 class WellKnownUsrv;
+class WellKnownJson;
 class Optional;
 class Repeated;
 class Map;
@@ -78,6 +79,14 @@ struct WellKnownUsrv {
     ups::TimeOfDay f5 = {};
     USERVER_NAMESPACE::utils::datetime::TimeOfDay<std::chrono::microseconds> f6 = {};
     USERVER_NAMESPACE::decimal64::Decimal<3> f7 = {};
+};
+
+struct WellKnownJson {
+    using ProtobufMessage = messages::WellKnownJson;
+
+    formats::json::Value f1 = {};
+    formats::json::Array f2 = {};
+    formats::json::Object f3 = {};
 };
 
 struct Optional {
@@ -176,6 +185,10 @@ WellKnownUsrv ReadProtoStruct(ups::io::ReadContext&, ups::io::To<WellKnownUsrv>,
 void WriteProtoStruct(ups::io::WriteContext&, const WellKnownUsrv&, messages::WellKnownUsrv&);
 void WriteProtoStruct(ups::io::WriteContext&, WellKnownUsrv&&, messages::WellKnownUsrv&);
 
+WellKnownJson ReadProtoStruct(ups::io::ReadContext&, ups::io::To<WellKnownJson>, const messages::WellKnownJson&);
+void WriteProtoStruct(ups::io::WriteContext&, const WellKnownJson&, messages::WellKnownJson&);
+void WriteProtoStruct(ups::io::WriteContext&, WellKnownJson&&, messages::WellKnownJson&);
+
 Optional ReadProtoStruct(ups::io::ReadContext&, ups::io::To<Optional>, const messages::Optional&);
 void WriteProtoStruct(ups::io::WriteContext&, const Optional&, messages::Optional&);
 void WriteProtoStruct(ups::io::WriteContext&, Optional&&, messages::Optional&);
@@ -206,6 +219,7 @@ void WriteProtoStruct(ups::io::WriteContext&, const Erroneous&, messages::Errone
 void CheckScalarEqual(const Scalar&, const messages::Scalar&);
 void CheckWellKnownStdEqual(const WellKnownStd&, const messages::WellKnownStd&);
 void CheckWellKnownUsrvEqual(const WellKnownUsrv&, const messages::WellKnownUsrv&);
+void CheckWellKnownJsonEqual(const WellKnownJson&, const messages::WellKnownJson&);
 void CheckOptionalEqual(const Optional&, const messages::Optional&);
 void CheckRepeatedEqual(const Repeated&, const messages::Repeated&);
 void CheckMapEqual(const Map&, const messages::Map&);

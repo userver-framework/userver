@@ -38,7 +38,7 @@ public:
         {
             auto lock = mutex_set_.WriteLock();
 
-            auto it = std::find(plugins_.begin(), plugins_.end(), &plugin);
+            auto it = std::ranges::find(plugins_, &plugin);
             if (it != plugins_.end()) {
                 plugins_.erase(it);
             }

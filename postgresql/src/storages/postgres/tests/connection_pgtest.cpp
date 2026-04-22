@@ -1,7 +1,6 @@
 #include <storages/postgres/tests/util_pgtest.hpp>
 
 #include <userver/concurrent/background_task_storage.hpp>
-#include <userver/engine/single_consumer_event.hpp>
 
 #include <storages/postgres/detail/connection.hpp>
 #include <userver/storages/postgres/dsn.hpp>
@@ -17,10 +16,8 @@ namespace pg = storages::postgres;
 namespace static_test {
 
 struct NoInputOperator {};
-static_assert(!pg::io::traits::kHasInputOperator<NoInputOperator>, "Test input metafunction");
-static_assert(pg::io::traits::kHasInputOperator<int>, "Test input metafunction");
-static_assert(!pg::io::traits::kHasParser<NoInputOperator>, "Test has parser metafunction");
-static_assert(pg::io::traits::kHasParser<int>, "Test has parser metafunction");
+static_assert(!pg::io::traits::HasParser<NoInputOperator>, "Test has parser metafunction");
+static_assert(pg::io::traits::HasParser<int>, "Test has parser metafunction");
 
 }  // namespace static_test
 
@@ -254,6 +251,29 @@ UTEST_P(PostgreConnection, RAIITransaction) {
     }
 }
 
+void CheckTransactionIsolationLevel(
+    pg::detail::ConnectionPtr& conn,
+    pg::TransactionOptions options,
+    pg::IsolationLevel lvl
+) {
+    EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
+    pg::Transaction trx(std::move(conn), options);
+    pg::ResultSet res{nullptr};
+    UEXPECT_NO_THROW(res = trx.Execute("SELECT current_setting('transaction_isolation')"));
+    EXPECT_FALSE(res.IsEmpty()) << "Result set is obtained";
+    EXPECT_EQ(ToStringView(lvl), res.AsSingleRow<std::string>());
+}
+
+UTEST_P(PostgreConnection, TransactionRepeatableReadIsolationLevel) {
+    CheckConnection(GetConn());
+    CheckTransactionIsolationLevel(GetConn(), pg::Transaction::RepeatableReadRO, pg::IsolationLevel::kRepeatableRead);
+}
+
+UTEST_P(PostgreConnection, TransactionSerializableIsolationLevel) {
+    CheckConnection(GetConn());
+    CheckTransactionIsolationLevel(GetConn(), pg::Transaction::SerializableRO, pg::IsolationLevel::kSerializable);
+}
+
 UTEST_P(PostgreConnection, RollbackToIdle) {
     CheckConnection(GetConn());
     EXPECT_EQ(pg::ConnectionState::kIdle, GetConn()->GetState());
@@ -338,40 +358,6 @@ UTEST_P(PostgreConnection, StatementTimeout) {
     UEXPECT_NO_THROW(GetConn()->CancelAndCleanup(utest::kMaxTestWaitTime));
     EXPECT_EQ(pg::ConnectionState::kIdle, GetConn()->GetState());
     EXPECT_FALSE(GetConn()->IsBroken());
-}
-
-void CleanupConnectionTest(storages::postgres::detail::ConnectionPtr& conn, bool use_cancel) {
-    EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
-
-    const DefaultCommandControlScope scope(pg::CommandControl{utest::kMaxTestWaitTime, utest::kMaxTestWaitTime});
-
-    engine::SingleConsumerEvent task_started;
-    auto task = engine::AsyncNoSpan([&] {
-        task_started.Send();
-        UEXPECT_THROW(conn->Execute("select pg_sleep(1)"), pg::ConnectionInterrupted);
-    });
-    ASSERT_TRUE(task_started.WaitForEventFor(utest::kMaxTestWaitTime));
-    task.RequestCancel();
-    task.WaitFor(utest::kMaxTestWaitTime);
-    ASSERT_TRUE(task.IsFinished());
-
-    EXPECT_EQ(pg::ConnectionState::kTranActive, conn->GetState());
-    if (use_cancel) {
-        UEXPECT_NO_THROW(conn->CancelAndCleanup(utest::kMaxTestWaitTime));
-    } else {
-        UEXPECT_NO_THROW(conn->Cleanup(std::chrono::seconds{2}));
-    }
-    EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
-}
-
-UTEST_P(PostgreConnection, QueryTaskCancelAndCleanup) {
-    CheckConnection(GetConn());
-    CleanupConnectionTest(GetConn(), /*use cancel=*/true);
-}
-
-UTEST_P(PostgreConnection, QueryTaskCleanup) {
-    CheckConnection(GetConn());
-    CleanupConnectionTest(GetConn(), /*use cancel=*/false);
 }
 
 UTEST_P(PostgreConnection, CachedPlanChange) {

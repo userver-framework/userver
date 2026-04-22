@@ -2,9 +2,11 @@ if(TARGET GTest::gtest)
     return()
 endif()
 
+# @ingroup download
 option(USERVER_DOWNLOAD_PACKAGE_GTEST "Download and setup gtest if no gtest of matching version was found"
        ${USERVER_DOWNLOAD_PACKAGES}
 )
+# @ingroup download
 option(USERVER_FORCE_DOWNLOAD_GTEST "Download gtest even if there is an installed system package"
        ${USERVER_FORCE_DOWNLOAD_PACKAGES}
 )

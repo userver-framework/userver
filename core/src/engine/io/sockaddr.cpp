@@ -18,6 +18,21 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine::io {
 
+Sockaddr Sockaddr::MakeIPSocketAddress(const utils::zstring_view ip_address) {
+    Sockaddr addr;
+    auto* ipv4_sa = addr.As<struct sockaddr_in>();
+    if (inet_pton(AF_INET, ip_address.c_str(), &ipv4_sa->sin_addr) == 1) {
+        ipv4_sa->sin_family = AF_INET;
+        return addr;
+    }
+    auto* ipv6_sa = addr.As<struct sockaddr_in6>();
+    if (inet_pton(AF_INET6, ip_address.c_str(), &ipv6_sa->sin6_addr) == 1) {
+        ipv6_sa->sin6_family = AF_INET6;
+        return addr;
+    }
+    throw AddrException(fmt::format("Invalid IP address: {}", ip_address));
+}
+
 Sockaddr Sockaddr::MakeUnixSocketAddress(std::string_view path) {
     Sockaddr addr;
     auto* sa = addr.As<struct sockaddr_un>();
@@ -36,6 +51,26 @@ Sockaddr Sockaddr::MakeUnixSocketAddress(std::string_view path) {
 
     std::memcpy(sa->sun_path, path.data(), path.size());
     sa->sun_path[path.size()] = '\0';
+    return addr;
+}
+
+Sockaddr Sockaddr::MakeInaddrAny() noexcept {
+    Sockaddr addr;
+    auto* sa = addr.As<struct sockaddr_in6>();
+    sa->sin6_family = AF_INET6;
+    sa->sin6_addr = in6addr_any;
+    UASSERT(sa->sin6_port == 0);
+    return addr;
+}
+
+Sockaddr Sockaddr::MakeIPv4InaddrAny() noexcept {
+    Sockaddr addr;
+    auto* sa = addr.As<struct sockaddr_in>();
+    sa->sin_family = AF_INET;
+    // may be implemented as a macro
+    // NOLINTNEXTLINE(hicpp-no-assembler, readability-isolate-declaration)
+    sa->sin_addr.s_addr = htonl(INADDR_ANY);
+    UASSERT(sa->sin_port == 0);
     return addr;
 }
 

@@ -19,8 +19,8 @@ namespace openapi = USERVER_NAMESPACE::chaotic::openapi;
 
 {% for op in operations %}
   {% if op.client_generate %}
-    {%- if not op.empty_request() -%}
       namespace {{ op.cpp_namespace() }} {
+    {%- if not op.empty_request() -%}
 
 {% for parameter in op.parameters %}
     static constexpr openapi::Name k{{ parameter.cpp_name }} = "{{ parameter.raw_name }}";
@@ -65,7 +65,6 @@ void SerializeRequest(const Request& request, const std::string& base_url, USERV
 
   {# body #}
   {% if len(op.request_bodies) == 1 %}
-    // http_request.data(ToJsonString(request.body));
     http_request.data(ToString(USERVER_NAMESPACE::formats::json::ValueBuilder(request.body).ExtractValue()));
   {% elif len(op.request_bodies) > 1 %}
     switch (request.body.index()) {
@@ -101,8 +100,26 @@ void SerializeRequest(const Request& request, const std::string& base_url, USERV
 
 }
 
-} // namespace
+    {% else %}
+
+void SerializeRequest(const Request&, const std::string& base_url, USERVER_NAMESPACE::clients::http::Request& http_request)
+{
+  {# parameters #}
+  openapi::ParameterSinkHttpClient sink(
+    http_request,
+    base_url + "{{ op.path }}"
+  );
+
+  sink.Flush();
+
+  {# middlewares #}
+  {% for mw in op.middlewares %}
+      {{ mw.write_member_command('request', 'sink', 'http_request') }}
+  {% endfor %}
+}
+
     {%- endif %}
+} // namespace
   {% endif %}
 {% endfor %}
 

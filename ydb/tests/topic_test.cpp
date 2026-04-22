@@ -162,7 +162,7 @@ TYPED_UTEST(YdbTopicReadSessionWithDataHandler, CommitDataEventsPersistence) {
         return data_events_count.load();
     };
 
-    // Read entire topic without commiting events, leaving consumer's offset unchanged
+    // Read entire topic without committing events, leaving consumer's offset unchanged
     size_t count = read_all(false);
     ASSERT_TRUE(count > 0u);
 

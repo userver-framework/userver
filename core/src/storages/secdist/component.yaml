@@ -4,8 +4,7 @@ additionalProperties: false
 properties:
     update-period:
         type: string
-        description: period between data updates in utils::StringToDuration() suitable
-            format ('0s' for no updates)
+        description: period between data updates in utils::StringToDuration() suitable format ('0s' for no updates)
         default: 10s
     provider:
         type: string

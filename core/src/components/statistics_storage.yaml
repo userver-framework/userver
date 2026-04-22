@@ -1,4 +1,11 @@
 type: object
 description: Component that keeps a utils::statistics::Storage storage for metrics.
 additionalProperties: false
-properties: {}
+properties:
+    captured-metric-tags:
+        type: array
+        items:
+            type: string
+            description: MetricTag path
+        description: List of MetricTag paths, which will be considered in this StatisticsStorage. If the field is omitted or null,
+            then all MetricTag paths are considered. Empty array disables considering all MetricTag paths.

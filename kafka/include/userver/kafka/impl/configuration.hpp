@@ -52,6 +52,7 @@ struct ConsumerConfiguration final {
     std::string group_id;
     std::string auto_offset_reset{"smallest"};
     std::optional<std::string> env_pod_name{};
+    std::optional<std::string> group_instance_id{};
     std::chrono::milliseconds max_callback_duration{300000};
 
     RdKafkaOptions rd_kafka_options;
@@ -127,7 +128,6 @@ private:
     void SetOption(const char* option, std::uint32_t value);
     void SetOption(const char* option, const Secret::SecretType& value);
 
-private:
     std::string name_;
 
     ConfHolder conf_;

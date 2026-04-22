@@ -1,15 +1,7 @@
 import pytest
 
-from chaotic.front.parser import ParserError
-from chaotic.front.types import Boolean
-from chaotic.front.types import DiscMapping
-from chaotic.front.types import Integer
-from chaotic.front.types import Number
-from chaotic.front.types import OneOfWithDiscriminator
-from chaotic.front.types import OneOfWithoutDiscriminator
-from chaotic.front.types import Ref
-from chaotic.front.types import SchemaObject
-from chaotic.front.types import String
+from chaotic.front import parser as front_parser
+from chaotic.front import types as front_types
 
 
 @pytest.fixture(name='parse_after_refs')
@@ -81,32 +73,32 @@ def _parse_after_refs(schema_parser, clear_source_location):
 
 
 REFS = {
-    'vfull#/definitions/type1': SchemaObject(
-        properties={'foo': String(), 'bar': Number()},
+    'vfull#/definitions/type1': front_types.SchemaObject(
+        properties={'foo': front_types.String(), 'bar': front_types.Number()},
         additionalProperties=False,
     ),
-    'vfull#/definitions/type2': SchemaObject(
-        properties={'foo': String(), 'bar': Boolean()},
+    'vfull#/definitions/type2': front_types.SchemaObject(
+        properties={'foo': front_types.String(), 'bar': front_types.Boolean()},
         additionalProperties=False,
     ),
-    'vfull#/definitions/type3': SchemaObject(
-        properties={'version': Integer(), 'prop': String()},
+    'vfull#/definitions/type3': front_types.SchemaObject(
+        properties={'version': front_types.Integer(), 'prop': front_types.String()},
         additionalProperties=False,
     ),
-    'vfull#/definitions/type4': SchemaObject(
-        properties={'version': Integer(), 'prop': Integer()},
+    'vfull#/definitions/type4': front_types.SchemaObject(
+        properties={'version': front_types.Integer(), 'prop': front_types.Integer()},
         additionalProperties=False,
     ),
-    'vfull#/definitions/type_int': Integer(),
-    'vfull#/definitions/wrong_type': SchemaObject(
-        properties={'bar': Integer()},
+    'vfull#/definitions/type_int': front_types.Integer(),
+    'vfull#/definitions/wrong_type': front_types.SchemaObject(
+        properties={'bar': front_types.Integer()},
         additionalProperties=False,
     ),
 }
 
 
 def test_of_none(simple_parse):
-    with pytest.raises(ParserError) as exc:
+    with pytest.raises(front_parser.ParserError) as exc:
         simple_parse({'oneOf': []})
     assert exc.value.infile_path == '/definitions/type/oneOf'
     assert exc.value.msg == 'Empty oneOf'
@@ -116,7 +108,7 @@ def test_of_none(simple_parse):
 def test_wo_discriminator_1(simple_parse):
     parsed = simple_parse({'oneOf': [{'type': 'integer'}]})
     assert parsed.schemas == {
-        'vfull#/definitions/type': OneOfWithoutDiscriminator(oneOf=[Integer()]),
+        'vfull#/definitions/type': front_types.OneOfWithoutDiscriminator(oneOf=[front_types.Integer()]),
     }
 
 
@@ -132,10 +124,10 @@ def test_wo_discriminator_2(simple_parse):
         ],
     })
     assert parsed.schemas == {
-        'vfull#/definitions/type': OneOfWithoutDiscriminator(
+        'vfull#/definitions/type': front_types.OneOfWithoutDiscriminator(
             oneOf=[
-                Integer(),
-                SchemaObject(properties={}, additionalProperties=False),
+                front_types.Integer(),
+                front_types.SchemaObject(properties={}, additionalProperties=False),
             ],
         ),
     }
@@ -147,14 +139,14 @@ def test_wo_discriminator_nullable(simple_parse):
 
 
 def test_wo_discriminator_nullable_wrong_type(simple_parse):
-    with pytest.raises(ParserError) as exc:
+    with pytest.raises(front_parser.ParserError) as exc:
         simple_parse({'oneOf': [{'type': 'integer'}], 'nullable': 1})
     assert exc.value.infile_path == '/definitions/type/nullable'
     assert exc.value.msg == 'Boolean type is expected, 1 is found'
 
 
 def test_wd_no_ref_or_object(simple_parse):
-    with pytest.raises(ParserError) as exc:
+    with pytest.raises(front_parser.ParserError) as exc:
         simple_parse({
             'oneOf': [
                 {'type': 'integer'},
@@ -171,7 +163,7 @@ def test_wd_no_ref_or_object(simple_parse):
 
 
 def test_wd_wrong_property(simple_parse):
-    with pytest.raises(ParserError) as exc:
+    with pytest.raises(front_parser.ParserError) as exc:
         simple_parse({
             'oneOf': [
                 {
@@ -187,7 +179,7 @@ def test_wd_wrong_property(simple_parse):
 
 
 def test_wd_wrong_property2(parse_after_refs):
-    with pytest.raises(ParserError) as exc:
+    with pytest.raises(front_parser.ParserError) as exc:
         parse_after_refs({
             'oneOf': [
                 {'$ref': '#/definitions/type1'},
@@ -201,7 +193,7 @@ def test_wd_wrong_property2(parse_after_refs):
 
 
 def test_wd_wrong_type(parse_after_refs):
-    with pytest.raises(ParserError) as exc:
+    with pytest.raises(front_parser.ParserError) as exc:
         parse_after_refs({
             'oneOf': [{'$ref': '#/definitions/type_int'}],
             'discriminator': {'propertyName': 'foo'},
@@ -220,21 +212,21 @@ def test_wd_ok(parse_after_refs):
     })
     assert schema == {
         **REFS,
-        'vfull#/definitions/type': OneOfWithDiscriminator(
+        'vfull#/definitions/type': front_types.OneOfWithDiscriminator(
             oneOf=[
-                Ref(
+                front_types.Ref(
                     ref='vfull#/definitions/type1',
                     indirect=False,
                     self_ref=False,
                 ),
-                Ref(
+                front_types.Ref(
                     ref='vfull#/definitions/type2',
                     indirect=False,
                     self_ref=False,
                 ),
             ],
             discriminator_property='foo',
-            mapping=DiscMapping(str_values=[['type1'], ['type2']], int_values=None),
+            mapping=front_types.DiscMapping(str_values=[['type1'], ['type2']], int_values=None),
         ),
     }
 
@@ -255,21 +247,21 @@ def test_wd_ok_with_mapping(parse_after_refs):
     })
     assert schema == {
         **REFS,
-        'vfull#/definitions/type': OneOfWithDiscriminator(
+        'vfull#/definitions/type': front_types.OneOfWithDiscriminator(
             oneOf=[
-                Ref(
+                front_types.Ref(
                     ref='vfull#/definitions/type1',
                     indirect=False,
                     self_ref=False,
                 ),
-                Ref(
+                front_types.Ref(
                     ref='vfull#/definitions/type2',
                     indirect=False,
                     self_ref=False,
                 ),
             ],
             discriminator_property='foo',
-            mapping=DiscMapping(str_values=[['t1'], ['t2']], int_values=None),
+            mapping=front_types.DiscMapping(str_values=[['t1'], ['t2']], int_values=None),
         ),
     }
 
@@ -291,27 +283,27 @@ def test_wd_ok_with_int_mapping(parse_after_refs):
     })
     assert schema == {
         **REFS,
-        'vfull#/definitions/type': OneOfWithDiscriminator(
+        'vfull#/definitions/type': front_types.OneOfWithDiscriminator(
             oneOf=[
-                Ref(
+                front_types.Ref(
                     ref='vfull#/definitions/type3',
                     indirect=False,
                     self_ref=False,
                 ),
-                Ref(
+                front_types.Ref(
                     ref='vfull#/definitions/type4',
                     indirect=False,
                     self_ref=False,
                 ),
             ],
             discriminator_property='version',
-            mapping=DiscMapping(str_values=None, int_values=[[0, 1], [2]]),
+            mapping=front_types.DiscMapping(str_values=None, int_values=[[0, 1], [2]]),
         ),
     }
 
 
 def test_wd_non_uniform_mapping(parse_after_refs):
-    with pytest.raises(ParserError) as exc:
+    with pytest.raises(front_parser.ParserError) as exc:
         parse_after_refs({
             'oneOf': [
                 {'$ref': '#/definitions/type3'},
@@ -330,7 +322,7 @@ def test_wd_non_uniform_mapping(parse_after_refs):
 
 
 def test_wd_ok_with_mapping_missing_ref(parse_after_refs):
-    with pytest.raises(ParserError) as exc:
+    with pytest.raises(front_parser.ParserError) as exc:
         parse_after_refs({
             'oneOf': [
                 {'$ref': '#/definitions/type1'},
@@ -346,7 +338,7 @@ def test_wd_ok_with_mapping_missing_ref(parse_after_refs):
 
 
 def test_wd_ok_with_mapping_invalid_ref(parse_after_refs):
-    with pytest.raises(ParserError) as exc:
+    with pytest.raises(front_parser.ParserError) as exc:
         parse_after_refs({
             'oneOf': [
                 {'$ref': '#/definitions/type1'},
@@ -366,7 +358,7 @@ def test_wd_ok_with_mapping_invalid_ref(parse_after_refs):
 
 
 def test_wd_invalidtype_mapping_value(parse_after_refs):
-    with pytest.raises(ParserError) as exc:
+    with pytest.raises(front_parser.ParserError) as exc:
         parse_after_refs({
             'oneOf': [
                 {'$ref': '#/definitions/type1'},
@@ -382,7 +374,7 @@ def test_wd_invalidtype_mapping_value(parse_after_refs):
 
 
 def test_wd_extra_field(simple_parse):
-    with pytest.raises(ParserError) as exc:
+    with pytest.raises(front_parser.ParserError) as exc:
         simple_parse({
             'oneOf': [
                 {

@@ -34,6 +34,7 @@
 #include "redis_secdist.hpp"
 #include "subscribe_client_impl.hpp"
 #include "userver/storages/redis/base.hpp"
+#include "userver/storages/redis/wait_connected_mode.hpp"
 
 #include <boost/range/adaptor/map.hpp>
 
@@ -70,7 +71,7 @@ namespace components {
 struct RedisGroup {
     std::string db;
     std::string config_name;
-    std::string sharding_strategy;
+    storages::redis::ShardingStrategy sharding_strategy{storages::redis::ShardingStrategy::kKeyShardTaximeterCrc32};
     bool allow_reads_from_master{false};
 };
 
@@ -78,7 +79,8 @@ RedisGroup Parse(const yaml_config::YamlConfig& value, formats::parse::To<RedisG
     RedisGroup config;
     config.db = value["db"].As<std::string>();
     config.config_name = value["config_name"].As<std::string>();
-    config.sharding_strategy = value["sharding_strategy"].As<std::string>("");
+    config.sharding_strategy =
+        storages::redis::ToShardingStrategy(value["sharding_strategy"].As<std::string>("KeyShardTaximeterCrc32"));
     config.allow_reads_from_master = value["allow_reads_from_master"].As<bool>(false);
     return config;
 }
@@ -86,7 +88,7 @@ RedisGroup Parse(const yaml_config::YamlConfig& value, formats::parse::To<RedisG
 struct SubscribeRedisGroup {
     std::string db;
     std::string config_name;
-    std::string sharding_strategy;
+    storages::redis::ShardingStrategy sharding_strategy{storages::redis::ShardingStrategy::kKeyShardTaximeterCrc32};
     bool allow_reads_from_master{false};
 };
 
@@ -94,7 +96,8 @@ SubscribeRedisGroup Parse(const yaml_config::YamlConfig& value, formats::parse::
     SubscribeRedisGroup config;
     config.db = value["db"].As<std::string>();
     config.config_name = value["config_name"].As<std::string>();
-    config.sharding_strategy = value["sharding_strategy"].As<std::string>("");
+    config.sharding_strategy =
+        storages::redis::ToShardingStrategy(value["sharding_strategy"].As<std::string>("KeyShardTaximeterCrc32"));
     config.allow_reads_from_master = value["allow_reads_from_master"].As<bool>(false);
     return config;
 }
@@ -109,22 +112,6 @@ RedisPools Parse(const yaml_config::YamlConfig& value, formats::parse::To<RedisP
     pools.sentinel_thread_pool_size = value["sentinel_thread_pool_size"].As<int>();
     pools.redis_thread_pool_size = value["redis_thread_pool_size"].As<int>();
     return pools;
-}
-
-storages::redis::MetricsSettings::Level
-Parse(const yaml_config::YamlConfig& value, formats::parse::To<storages::redis::MetricsSettings::Level>) {
-    constexpr utils::TrivialBiMap converter = [](auto selector) {
-        return selector()
-            .Case("instance", storages::redis::MetricsSettings::Level::kInstance)
-            .Case("shard", storages::redis::MetricsSettings::Level::kShard)
-            .Case("cluster", storages::redis::MetricsSettings::Level::kCluster);
-    };
-    const auto level_str = value.As<std::string>("instance");
-    const auto ret = converter.TryFindByFirst(level_str);
-    if (!ret) {
-        throw std::runtime_error("Invalid metrics_level value: " + level_str);
-    }
-    return *ret;
 }
 
 Redis::Redis(const ComponentConfig& config, const ComponentContext& component_context)
@@ -206,9 +193,7 @@ void Redis::Connect(
 
     auto config_source = component_context.FindComponent<DynamicConfig>().GetSource();
 
-    static_metrics_settings_
-        .level = Parse(config["metrics_level"], formats::parse::To<storages::redis::MetricsSettings::Level>());
-    metrics_settings_.Assign(storages::redis::MetricsSettings({}, static_metrics_settings_));
+    metrics_settings_.Assign(storages::redis::MetricsSettings());
     const auto redis_pools = config["thread_pools"].As<RedisPools>();
 
     thread_pools_ = std::make_shared<
@@ -227,7 +212,7 @@ void Redis::Connect(
             redis_group.config_name,
             config_source,
             redis_group.db,
-            storages::redis::impl::KeyShardFactory{redis_group.sharding_strategy},
+            redis_group.sharding_strategy,
             cc,
             testsuite_redis_control
         );
@@ -290,7 +275,7 @@ Redis::~Redis() {
 void Redis::WriteStatistics(utils::statistics::Writer& writer) {
     auto settings = metrics_settings_.Read();
     for (const auto& [name, redis] : sentinels_) {
-        writer.ValueWithLabels(redis->GetStatistics(*settings), {"redis_database", name});
+        writer.ValueWithLabels(*redis->GetStatistics(*settings), {"redis_database", name});
     }
     auto threads_writer = writer["ev_threads"]["cpu_load_percent"];
     threads_writer.ValueWithLabels(*thread_pools_->GetRedisThreadPool(), {});
@@ -330,8 +315,7 @@ void Redis::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
 
     auto metrics_settings = metrics_settings_.Read();
     if (metrics_settings->dynamic_settings != redis_config.metrics_settings) {
-        metrics_settings_
-            .Assign(storages::redis::MetricsSettings(redis_config.metrics_settings, static_metrics_settings_));
+        metrics_settings_.Assign(storages::redis::MetricsSettings(redis_config.metrics_settings));
     }
 
     auto pubsub_metrics_settings = pubsub_metrics_settings_.Read();

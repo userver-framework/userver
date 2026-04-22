@@ -14,6 +14,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils::statistics {
 
+/// @ingroup userver_universal
+///
 /// @brief Class describing the request for metrics data.
 ///
 /// Metric path and metric name are the same thing. For example for code like

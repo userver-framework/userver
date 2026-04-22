@@ -1,5 +1,6 @@
 #include <userver/utils/strong_typedef.hpp>
 
+#include <compare>
 #include <string>
 #include <unordered_map>
 #include <variant>
@@ -121,7 +122,6 @@ TEST(StrongTypedef, IntTransparentComparisons) {
     EXPECT_EQ(UnderlyingValue(i), 1);
 }
 
-#ifdef USERVER_IMPL_HAS_THREE_WAY_COMPARISON
 TEST(StrongTypedef, IntThreeWayTransparentComparison) {
     MySpecialInt i;
     ASSERT_EQ(0 <=> i, 0 <=> 0);
@@ -137,7 +137,6 @@ TEST(StrongTypedef, IntThreeWayTransparentComparison) {
 
     EXPECT_EQ(UnderlyingValue(i), 1);
 }
-#endif
 
 TEST(StrongTypedef, IntStreamingAndLogging) {
     const MySpecialInt i;

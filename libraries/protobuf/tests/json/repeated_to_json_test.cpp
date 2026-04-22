@@ -14,14 +14,14 @@ namespace protobuf::json::tests {
 struct RepeatedToJsonSuccessTestParam {
     RepeatedMessageData input = {};
     std::string expected_json = {};
-    WriteOptions options = {};
+    PrintOptions options = {};
 };
 
 struct RepeatedToJsonFailureTestParam {
     RepeatedMessageData input = {};
-    WriteErrorCode expected_errc = {};
+    PrintErrorCode expected_errc = {};
     std::string expected_path = {};
-    WriteOptions options = {};
+    PrintOptions options = {};
 };
 
 class RepeatedToJsonSuccessTest : public ::testing::TestWithParam<RepeatedToJsonSuccessTestParam> {};
@@ -34,7 +34,10 @@ INSTANTIATE_TEST_SUITE_P(
         RepeatedToJsonSuccessTestParam{RepeatedMessageData{}, R"({})"},
         RepeatedToJsonSuccessTestParam{
             RepeatedMessageData{},
-            R"({"field1":[],"field2":[],"field3":[]})",
+            R"({
+                "field1":[],"field2":[],"field3":[],"field4":[],"field5":[],"field6":[],"field7":[],
+                "field8":[],"field9":[],"field10":[],"field11":[],"field12":[]
+            })",
             {.always_print_fields_with_no_presence = true}
         },
         RepeatedToJsonSuccessTestParam{RepeatedMessageData{.field1 = {1, 2, 3}}, R"({"field1":[1,2,3]})"},
@@ -47,8 +50,34 @@ INSTANTIATE_TEST_SUITE_P(
             R"({"field3":["123.987s"]})"
         },
         RepeatedToJsonSuccessTestParam{
+            RepeatedMessageData{
+                .field4 = {ProtoValue{}, ProtoValue{-10.0}, ProtoValue{}, ProtoValue{"hello"}, ProtoValue{}}
+            },
+            R"({"field4":[-10,"hello"]})"
+        },
+        RepeatedToJsonSuccessTestParam{
             RepeatedMessageData{.field1 = {0}, .field2 = {{false}}, .field3 = {{.seconds = 0, .nanos = 0}}},
             R"({"field1":[0],"field2":[{}],"field3":["0s"]})"
+        },
+        RepeatedToJsonSuccessTestParam{
+            RepeatedMessageData{
+                .field1 = {0},
+                .field2 = {{false}},
+                .field3 = {{.seconds = 0, .nanos = 0}},
+                .field4 = {ProtoValue{1.5}},
+                .field5 = {1},
+                .field6 = {-1},
+                .field7 = {1},
+                .field8 = {1.5},
+                .field9 = {-1.5},
+                .field10 = {false},
+                .field11 = {"hello"},
+                .field12 = {proto_json::messages::RepeatedMessage::TEST_VALUE1}
+            },
+            R"({
+                "field1":[0],"field2":[{}],"field3":["0s"],"field4":[1.5],"field5":[1],"field6":["-1"],"field7":["1"],
+                "field8":[1.5],"field9":[-1.5],"field10":[false],"field11":["hello"],"field12":["TEST_VALUE1"]
+            })"
         }
     )
 );
@@ -60,7 +89,7 @@ INSTANTIATE_TEST_SUITE_P(
         RepeatedMessageData{
             .field3 = {{.seconds = 1, .nanos = 1}, {.seconds = 1, .nanos = -1}, {.seconds = 0, .nanos = 1}}
         },
-        WriteErrorCode::kInvalidValue,
+        PrintErrorCode::kInvalidValue,
         "field3[1]"
     })
 );
@@ -69,7 +98,9 @@ TEST_P(RepeatedToJsonSuccessTest, Test) {
     const auto& param = GetParam();
 
     auto input = PrepareTestData(param.input);
-    formats::json::Value json, expected_json, sample_json;
+    formats::json::Value json;
+    formats::json::Value expected_json;
+    formats::json::Value sample_json;
 
     UASSERT_NO_THROW((json = MessageToJson(input, param.options)));
     UASSERT_NO_THROW((expected_json = PrepareJsonTestData(param.expected_json)));
@@ -83,7 +114,7 @@ TEST_P(RepeatedToJsonFailureTest, Test) {
     const auto& param = GetParam();
     auto input = PrepareTestData(param.input);
 
-    EXPECT_WRITE_ERROR((void)MessageToJson(input, param.options), param.expected_errc, param.expected_path);
+    EXPECT_PRINT_ERROR((void)MessageToJson(input, param.options), param.expected_errc, param.expected_path);
     UEXPECT_THROW((void)CreateSampleJson(input, param.options), SampleError);
 }
 

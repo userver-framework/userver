@@ -18,7 +18,6 @@ struct PackSection;
 
 bool operator==(const RecursionStarterPack&, const RecursionStarterPack&);
 bool operator==(const PackSection&, const PackSection&);
-bool operator!=(const PackSection&, const PackSection&);
 
 /// [sample]
 struct RecursionStarterPack {
@@ -59,11 +58,9 @@ bool operator==(const RecursionStarterPack& lhs, const RecursionStarterPack& rhs
            std::tie(rhs.structs, rhs.strings, rhs.whats_in_this_section);
 }
 
-bool operator==(const PackSection& lhs, const PackSection& rhs) {
+[[maybe_unused]] bool operator==(const PackSection& lhs, const PackSection& rhs) {
     return std::tie(lhs.box, lhs.here_we_go_again) == std::tie(rhs.box, rhs.here_we_go_again);
 }
-
-bool operator!=(const PackSection& lhs, const PackSection& rhs) { return !(lhs == rhs); }
 
 struct NonDefaulted final {
     explicit NonDefaulted(int) {}

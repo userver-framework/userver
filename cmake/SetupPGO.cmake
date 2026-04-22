@@ -1,3 +1,4 @@
+# @ingroup compilation
 option(USERVER_PGO_GENERATE "Generate PGO profiles on run" OFF)
 if(USERVER_PGO_GENERATE)
     message(STATUS "PGO: generate")
@@ -12,6 +13,7 @@ if(USERVER_PGO_GENERATE)
     endif()
 endif()
 
+# @ingroup compilation
 set(USERVER_PGO_USE
     ""
     CACHE FILEPATH "Path to profile file for PGO"

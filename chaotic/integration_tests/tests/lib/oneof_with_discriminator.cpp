@@ -10,14 +10,14 @@ USERVER_NAMESPACE_BEGIN
 
 namespace {
 
-static const auto kJsonShort = formats::json::MakeObject("type", "ObjectStringWithDiscriminator");
+const auto kJsonShort = formats::json::MakeObject("type", "ObjectStringWithDiscriminator");
 
-static const auto kJson1 =
+const auto kJson1 =
     formats::json::MakeObject("type", "ObjectStringWithDiscriminator", "value", "What is the meaning of life?");
 
-static const auto kJson2 = formats::json::MakeObject("type", "ObjectIntWithDiscriminator", "value", 42);
+const auto kJson2 = formats::json::MakeObject("type", "ObjectIntWithDiscriminator", "value", 42);
 
-static const auto kJsonBad = formats::json::MakeObject("type", "SomeObject", "value", 42);
+const auto kJsonBad = formats::json::MakeObject("type", "SomeObject", "value", 42);
 
 struct ObjectIntWithDiscriminator {
     std::optional<std::string> type;

@@ -10,7 +10,6 @@
 #include <userver/utils/assert.hpp>
 
 #include <storages/redis/impl/command.hpp>
-#include <storages/redis/impl/sentinel_impl.hpp>
 #include <storages/redis/impl/shard.hpp>
 #include <userver/storages/redis/reply.hpp>
 

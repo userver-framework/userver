@@ -25,8 +25,8 @@ async def wait_until(
     Waits for some external event for `total_wait_seconds` and
     calls `func` every `relax_period_seconds`.
     If `func` raises NotReady exception, the waiting continues.
-    If `func` succesfully returns, wait_until() returns the same value.
-    After `total_wait_seconds` of unsuccesfull checks wait_until()
+    If `func` successfully returns, wait_until() returns the same value.
+    After `total_wait_seconds` of unsuccessful checks wait_until()
     raises TimeoutError.
 
     Example:
@@ -39,7 +39,7 @@ async def wait_until(
 
         await wait_until(try_to_connect_db)
 
-    @throws TimeoutError after `total_wait_seconds` of unsuccesfull checks
+    @throws TimeoutError after `total_wait_seconds` of unsuccessful checks
     @note If possible, use @ref testpoint instead. @ref testpoint is
     an explicit message from the server "I'm ready", while wait_until()
     uses an implicit idea "A condition is met, so I can continue".
@@ -71,7 +71,7 @@ async def wait(
     If `check` returns False or raises NotReady exception
     (or any exception type referenced in `catch`), the waiting continues.
     If `check` returns True, wait_until() stops and returns.
-    After `total_wait_seconds` of unsuccesfull checks wait_until()
+    After `total_wait_seconds` of unsuccessful checks wait_until()
     raises TimeoutError.
 
     Example:
@@ -83,7 +83,7 @@ async def wait(
 
         await wait_until(try_to_connect_db)
 
-    @throws TimeoutError after `total_wait_seconds` of unsuccesfull checks
+    @throws TimeoutError after `total_wait_seconds` of unsuccessful checks
     @note If possible, use @ref testpoint instead. @ref testpoint is
     an explicit message from the server "I'm ready", while wait_until()
     uses an implicit idea "A condition is met, so I can continue".

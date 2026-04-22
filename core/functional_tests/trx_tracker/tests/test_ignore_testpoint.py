@@ -1,4 +1,4 @@
-HEAVY_OPERAIONS_IN_TRANSACTIONS = 'engine.heavy-operations-in-transactions'
+HEAVY_OPERATIONS_IN_TRANSACTIONS = 'engine.heavy-operations-in-transactions'
 
 
 async def test_trx_tracker_ignore_testpoint(service_client, monitor_client, testpoint):
@@ -14,5 +14,5 @@ async def test_trx_tracker_ignore_testpoint(service_client, monitor_client, test
 
     # Check that only manual heavy operation in
     # transaction check was triggered
-    metrics = await monitor_client.metrics(prefix=HEAVY_OPERAIONS_IN_TRANSACTIONS)
-    assert metrics.value_at(path=HEAVY_OPERAIONS_IN_TRANSACTIONS) == 1
+    metrics = await monitor_client.metrics(prefix=HEAVY_OPERATIONS_IN_TRANSACTIONS)
+    assert metrics.value_at(path=HEAVY_OPERATIONS_IN_TRANSACTIONS) == 1

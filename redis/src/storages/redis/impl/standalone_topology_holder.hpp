@@ -82,6 +82,7 @@ private:
     ConnectionInfoInt conn_to_create_;
     std::atomic<bool> is_nodes_received_{false};
 
+    StatisticsHolder statistics_holder_;
     rcu::Variable<std::optional<Node>, rcu::BlockingRcuTraits> node_;
     rcu::Variable<ClusterTopology, rcu::BlockingRcuTraits> topology_;
     std::atomic_size_t current_topology_version_{0};

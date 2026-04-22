@@ -101,9 +101,6 @@ void FdControl::Close() {
         UASSERT_MSG(!error_code, "Failed to close fd=" + std::to_string(fd));
         LOG_ERROR() << "Cannot close fd " << fd << ": " << ec.message();
     }
-
-    read_.WakeupWaiters();
-    write_.WakeupWaiters();
 }
 
 void FdControl::Invalidate() {

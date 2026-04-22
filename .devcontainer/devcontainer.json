@@ -1,0 +1,52 @@
+{
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+  "containerEnv": {
+    "CCACHE_DIR": "/home/user/userver/.ccache",
+    "PREFIX": "${PREFIX:-~/.local}",
+    "SHELL": "/bin/bash"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "llvm-vs-code-extensions.vscode-clangd",
+        "ms-vscode.cmake-tools",
+        "ms-vscode.makefile-tools",
+        "vadimcn.vscode-lldb",
+        "ms-azuretools.vscode-docker"
+      ],
+      "settings": {
+        "clangd.arguments": [
+          "--background-index",
+          "--compile-commands-dir=.vscode",
+          "--clang-tidy",
+          "--completion-style=detailed",
+          "--header-insertion=never"
+        ],
+        "clangd.path": "/usr/bin/clangd",
+        "cmake.configureArgs": [
+          "-DUSERVER_BUILD_ALL_COMPONENTS=1",
+          "-DUSERVER_BUILD_SAMPLES=1",
+          "-DUSERVER_BUILD_TESTS=1",
+          "-DCMAKE_CXX_STANDARD=20"
+        ],
+        "cmake.copyCompileCommands": "${workspaceFolder}/.vscode/compile_commands.json"
+      }
+    }
+  },
+  "forwardPorts": [
+    8080
+  ],
+  "mounts": [],
+  "onCreateCommand": "git config --global --add safe.directory /home/user/userver",
+  "remoteUser": "user",
+  "runArgs": [
+    "--cap-add=SYS_PTRACE",
+    "--security-opt",
+    "seccomp=unconfined"
+  ],
+  "workspaceFolder": "/home/user/userver",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/home/user/userver,type=bind"
+}

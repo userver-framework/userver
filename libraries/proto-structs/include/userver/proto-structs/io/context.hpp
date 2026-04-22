@@ -48,7 +48,7 @@ public:
             return ReadProtoField(*this, To<std::remove_cv_t<T>>{}, field_number, message_field);
         } else {
             static_assert(
-                sizeof(T) && false,
+                !sizeof(T),
                 "There is no 'ReadProtoField(proto_structs::io::ReadContext&, proto_structs::io::To<T>, int, const U&) "
                 "in namespace 'proto_structs::io'. Did you forget to include 'conv'-header responsible for reading 'T' "
                 "from 'userver/proto-structs/io'?"
@@ -79,7 +79,7 @@ public:
             return obj;
         } else {
             static_assert(
-                sizeof(TStruct) && false,
+                !sizeof(TStruct),
                 "There is no 'ReadProtoStruct(proto_structs::io::ReadContext&, proto_structs::io::To<TStruct>, int, "
                 "const TMessage&) in namespace of 'TStruct' or 'proto_structs::io'. Probably you have not provided "
                 "'ReadProtoStruct' function overload or have not included 'conv'-header responsible for reading "
@@ -122,7 +122,7 @@ public:
             WriteProtoField(*this, std::forward<T>(struct_field), field_number, message_field);
         } else {
             static_assert(
-                sizeof(T) && false,
+                !sizeof(T),
                 "There is no 'WriteProtoField(proto_structs::io::WriteContext&, T&&, int, U&) in namespace "
                 "'proto_structs::io'. Did you forget to include 'conv'-header responsible for writing 'T' from "
                 "'userver/proto-structs/io'?"
@@ -152,7 +152,7 @@ public:
             PopFromPath();
         } else {
             static_assert(
-                sizeof(TStruct) && false,
+                !sizeof(TStruct),
                 "There is no 'WriteProtoStruct(proto_structs::io::WriteContext&, TStruct&&, TMessage&) in namespace of "
                 "'TStruct' or 'proto_structs::io'. Probably you have not provided 'WriteProtoStruct' function overload "
                 "or have not included 'conv'-header responsible for writing well-known 'TStruct'."
@@ -206,7 +206,7 @@ concept SizeTypeCompatibleWith =
 
 namespace proto_structs::io {
 
-/// @brief Determines compatability between protobuf/std scalar types.
+/// @brief Determines compatibility between protobuf/std scalar types.
 template <typename TStdType, typename TProtobufType>
 concept ScalarCompatibleWith =
     traits::ProtoScalar<TStdType> &&

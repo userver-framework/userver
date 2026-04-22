@@ -1,11 +1,20 @@
 #include <engine/ev/thread_control.hpp>
 
+#include <fcntl.h>
+#include <unistd.h>
+
+#include <string>
+
 #include <engine/ev/thread.hpp>
 #include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace engine::ev {
+
+namespace {
+[[maybe_unused]] bool IsFdValid(int fd) noexcept { return ::fcntl(fd, F_GETFD) != -1; }
+}  // namespace
 
 ThreadControlBase::ThreadControlBase(Thread& thread) noexcept : thread_{thread} {}
 
@@ -59,12 +68,14 @@ void ThreadControlBase::DoSend(ev_async& w) noexcept { ev_async_send(GetEvLoop()
 // NOLINTNEXTLINE(readability-make-member-function-const)
 void ThreadControlBase::DoStart(ev_io& w) noexcept {
     UASSERT(IsInEvThread());
+    UASSERT_MSG(IsFdValid(w.fd), "Invalid fd=" + std::to_string(w.fd));
     ev_io_start(GetEvLoop(), &w);
 }
 
 // NOLINTNEXTLINE(readability-make-member-function-const)
 void ThreadControlBase::DoStop(ev_io& w) noexcept {
     UASSERT(IsInEvThread());
+    UASSERT_MSG(IsFdValid(w.fd), "Invalid fd=" + std::to_string(w.fd));
     ev_io_stop(GetEvLoop(), &w);
 }
 

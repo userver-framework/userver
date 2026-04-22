@@ -1,5 +1,6 @@
 #pragma once
 
+#include <chrono>
 #include <cstddef>
 #include <optional>
 #include <string>
@@ -74,6 +75,10 @@ struct PoolSettings final {
     /// (tcp error/protocol error/write timeout) leads to a errors burst:
     /// all outstanding request will fails at once
     size_t max_in_flight_requests = 5;
+
+    /// Requested AMQP heartbeat interval in seconds.
+    /// Set to 0 to disable heartbeats.
+    size_t heartbeat_interval_seconds = 60;
 };
 
 class TestsHelper;

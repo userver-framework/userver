@@ -165,8 +165,8 @@ private:
 };
 
 template <typename Value, typename T>
-std::enable_if_t<formats::common::kIsFormatValue<Value>, DefaultDict<T>>
-Parse(const Value& value, formats::parse::To<DefaultDict<T>>) {
+requires formats::common::kIsFormatValue<Value>
+DefaultDict<T> Parse(const Value& value, formats::parse::To<DefaultDict<T>>) {
     return DefaultDict<T>{value.GetPath(), value.template As<typename DefaultDict<T>::DictType>()};
 }
 

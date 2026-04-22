@@ -17,9 +17,10 @@ private:
 
 public:
     template <typename TErrorCode>
-    explicit FieldError(const TErrorCode code, std::string_view field_name = "")
+    explicit FieldError(const TErrorCode code, std::string_view description = "", std::string_view field_name = "")
         : ConversionErrorBase("This is an internal error which should not leave library APIs!"),
-          code_(static_cast<int>(code))
+          code_(static_cast<int>(code)),
+          description_(description)
     {
         path_.reserve(128);
 
@@ -33,34 +34,43 @@ public:
         return static_cast<TErrorCode>(code_);
     }
 
-    [[nodiscard]] std::string GetPath() && noexcept {
-        if (path_.empty()) {
-            path_.append(1, '/');
-        } else if (path_.back() == '.') {
-            path_.pop_back();
+    [[nodiscard]] const std::string& GetDescription() const noexcept { return description_; }
+
+    [[nodiscard]] std::string GetPath() const noexcept {
+        std::string path = path_;
+
+        if (path.empty()) {
+            path.append(1, '/');
+        } else if (path.back() == '.') {
+            path.pop_back();
         }
 
-        return std::move(path_);
+        return path;
     }
 
-    void PrependField(std::string_view name) {
+    FieldError& PrependField(std::string_view name) {
         if (!path_.empty() && path_.front() == '[') {
             path_.insert(0, fmt::format(fmt::runtime(GetFormatString(Type::kFieldBeforeIndex, name)), name));
         } else {
             path_.insert(0, fmt::format(fmt::runtime(GetFormatString(Type::kField, name)), name));
         }
+
+        return *this;
     }
 
-    void PrependRepeatedItem(std::string_view name, int index) {
+    FieldError& PrependRepeatedItem(std::string_view name, int index) {
         path_.insert(0, fmt::format(fmt::runtime(GetFormatString(Type::kRepeatedItem, name)), name, index));
+        return *this;
     }
 
-    void PrependMapItem(std::string_view name, std::string_view key) {
+    FieldError& PrependMapItem(std::string_view name, std::string_view key) {
         path_.insert(0, fmt::format(fmt::runtime(GetFormatString(Type::kMapItem, name)), name, key));
+        return *this;
     }
 
-    void PrependRepeatedIndex(int index) {
+    FieldError& PrependRepeatedIndex(int index) {
         path_.insert(0, fmt::format(fmt::runtime(GetFormatString(Type::kRepeatedIndex, "")), index));
+        return *this;
     }
 
 private:
@@ -84,6 +94,7 @@ private:
     }
 
     int code_;
+    std::string description_;
     std::string path_;
 };
 

@@ -139,7 +139,9 @@ public:
     }
 
     /// @brief Return future to read next incoming result.
-    StreamReadFuture<StructsResponse> ReadAsync() { return {reader_writer_.ReadAsync(*response_), *response_}; }
+    StreamReadFuture<StructsResponse> ReadAsync() {
+        return StreamReadFuture{reader_writer_.ReadAsync(*response_), *response_};
+    }
 
     /// @brief Write the next outgoing message.
     ///

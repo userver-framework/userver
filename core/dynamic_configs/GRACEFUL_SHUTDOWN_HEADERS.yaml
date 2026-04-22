@@ -1,0 +1,21 @@
+default:
+    enabled: true
+    headers:
+        x-envoy-immediate-health-check-fail: ["true"]
+description: |
+    Headers that will be automatically added to responses during the graceful shutdown stage
+schema:
+    type: object
+    additionalProperties: false
+    required:
+      - enabled
+      - headers
+    properties:
+        enabled:
+            type: boolean
+        headers:
+            type: object
+            additionalProperties:
+                type: array
+                items:
+                    type: string

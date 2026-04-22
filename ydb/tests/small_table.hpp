@@ -48,6 +48,8 @@ struct RowValue {
     std::string key;
     std::string value_str;
     std::int32_t value_int;
+
+    bool operator==(const RowValue& other) const = default;
 };
 
 }  // namespace tests

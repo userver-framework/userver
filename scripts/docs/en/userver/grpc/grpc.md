@@ -23,7 +23,8 @@ See also:
 * Collection of metrics on driver usage;
 * Cancellation support;
 * Automatic authentication using middlewares;
-* @ref scripts/docs/en/userver/deadline_propagation.md .
+* @ref scripts/docs/en/userver/deadline_propagation.md;
+* @ref scripts/docs/en/userver/grpc/rich_status.md .
 
 ## Installation
 
@@ -260,6 +261,7 @@ Use ugrpc::server::MiddlewareBase to implement new middlewares.
   See Congestion Control section of @ref scripts/docs/en/userver/tutorial/production_service.md.
   4. `grpc-server-baggage` with component ugrpc::server::middlewares::baggage::Component - passes request baggage to subrequests.
   5. `grpc-server-headers-propagator` with component ugrpc::server::middlewares::headers_propagator::Component - propagates headers.
+  6. `grpc-server-graceful-shutdown-headers` with component ugrpc::server::middlewares::graceful_shutdown_headers::Component - sets special headers on graceful shutdown.
 
 ## gRPC compression
 

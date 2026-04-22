@@ -79,7 +79,7 @@ Now we have to configure our new HTTP handle. The configuration is quite straigh
 
 ### int main()
 
-Finally, 
+Finally,
 we add required components to the `components::MinimalServerComponentList()`,
 and start the server with static config `kStaticConfig`.
 

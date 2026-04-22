@@ -1,5 +1,6 @@
 include_guard(GLOBAL)
 
+# @ingroup dependencies
 set(USERVER_OPENTELEMETRY_PROTO
     ""
     CACHE PATH "Path to the folder with opentelemetry proto files"

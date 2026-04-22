@@ -11,7 +11,7 @@ and authentication, ratelimiting, logging, tracing, audit, etc.
 
 ## Default middlewares
 
-There is a `ugrpc::client::MiddlewarePipelineComponent` component for configuring the middlewares's pipeline. 
+There is a `ugrpc::client::MiddlewarePipelineComponent` component for configuring the middlewares's pipeline.
 There are default middlewares:
  - @ref ugrpc::client::middlewares::log::Component
  - @ref ugrpc::client::middlewares::deadline_propagation::Component
@@ -20,7 +20,7 @@ There are default middlewares:
  - @ref ugrpc::client::middlewares::origin::Component
  - @ref ugrpc::client::middlewares::testsuite::Component (used only in testsuite)
 
-If you add these middlewares to the @ref components::ComponentList, these middlewares will be enabled by default. 
+If you add these middlewares to the @ref components::ComponentList, these middlewares will be enabled by default.
 To register core gRPC client components and a set of builtin middlewares use @ref ugrpc::client::DefaultComponentList or @ref ugrpc::client::MinimalComponentList.
 As will be shown below, custom middlewares require additional actions to work: registering in `grpc-client-middleware-pipeline` and writing a required static config entry.
 

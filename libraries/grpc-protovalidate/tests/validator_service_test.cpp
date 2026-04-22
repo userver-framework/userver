@@ -20,7 +20,7 @@ class UnitTestServiceValidator final : public types::UnitTestServiceBase {
 public:
     CheckConstraintsUnaryResult CheckConstraintsUnary(CallContext&, types::ConstrainedRequest&& request) override {
         types::ConstrainedResponse response;
-        response.set_field(request.field());
+        response.set_field(request.field() + 1);
         return response;
     }
 
@@ -44,19 +44,16 @@ public:
 };
 
 class GrpcServerValidatorTest
-    : public ugrpc::tests::ServiceFixtureBase,
+    : public ugrpc::tests::ServiceWithClientFixture<UnitTestServiceValidator, types::UnitTestServiceClient>,
       public testing::WithParamInterface<grpc_protovalidate::server::Settings> {
 public:
-    GrpcServerValidatorTest() {
-        SetServerMiddlewares({std::make_shared<grpc_protovalidate::server::Middleware>(GetParam())});
-        RegisterService(service_);
-        StartServer();
-    }
-
-    ~GrpcServerValidatorTest() override { StopServer(); }
-
-private:
-    UnitTestServiceValidator service_;
+    GrpcServerValidatorTest()
+        : ugrpc::tests::ServiceWithClientFixture<UnitTestServiceValidator, types::UnitTestServiceClient>(
+              ugrpc::server::ServerConfig{},
+              ugrpc::server::Middlewares{std::make_shared<grpc_protovalidate::server::Middleware>(GetParam())},
+              ugrpc::client::Middlewares{}
+          )
+    {}
 };
 
 }  // namespace
@@ -67,68 +64,51 @@ INSTANTIATE_UTEST_SUITE_P(
     testing::Values(
         grpc_protovalidate::server::Settings{
             .per_method =
-                {
-                    {"types.UnitTestService/CheckConstraintsUnary", {.fail_fast = false, .send_violations = true}},
-                    {"/UnknownMethod", {.fail_fast = true, .send_violations = false}},
-                }
+                {{"types.UnitTestService/CheckConstraintsUnary",
+                  {.fail_fast = false, .send_violations = true, .validate_responses = true}},
+                 {"/UnknownMethod", {.fail_fast = true, .send_violations = false}}}
         },
         grpc_protovalidate::server::Settings{
-            .global =
-                {
-                    .fail_fast = false,
-                    .send_violations = true,
-                },
+            .global = {.fail_fast = false, .send_violations = true},
             .per_method =
-                {
-                    {"types.UnitTestService/CheckConstraintsUnary", {.fail_fast = false, .send_violations = true}},
-                    {"/UnknownMethod", {.fail_fast = true, .send_violations = false}},
-                }
+                {{"types.UnitTestService/CheckConstraintsUnary",
+                  {.fail_fast = false, .send_violations = true, .validate_responses = true}},
+                 {"/UnknownMethod", {.fail_fast = true, .send_violations = false}}}
         },
         grpc_protovalidate::server::Settings{
-            .global =
-                {
-                    .fail_fast = true,
-                    .send_violations = true,
-                },
+            .global = {.fail_fast = true, .send_violations = true},
             .per_method =
-                {
-                    {"types.UnitTestService/CheckConstraintsUnary", {.fail_fast = false, .send_violations = true}},
-                    {"/UnknownMethod", {.fail_fast = true, .send_violations = false}},
-                }
+                {{"types.UnitTestService/CheckConstraintsUnary",
+                  {.fail_fast = false, .send_violations = true, .validate_responses = true}},
+                 {"/UnknownMethod", {.fail_fast = true, .send_violations = false}}}
         }
     )
 );
 
 UTEST_P_MT(GrpcServerValidatorTest, AllValid, 2) {
     constexpr std::size_t kRequestCount = 3;
-    auto client = MakeClient<types::UnitTestServiceClient>();
-    auto stream = client.CheckConstraintsStreaming();
 
     std::vector<types::ConstrainedMessage> messages;
-    std::vector<types::ConstrainedRequest> requests(kRequestCount);
-    std::vector<types::ConstrainedResponse> responses;
-
     types::ConstrainedMessage msg;
-    types::ConstrainedResponse response;
-
     msg.set_required_rule(1);
     messages.push_back(std::move(msg));
     messages.push_back(tests::CreateValidMessage(2));
     messages.push_back(tests::CreateValidMessage(3));
 
+    std::vector<types::ConstrainedRequest> requests(kRequestCount);
     for (std::size_t i = 0; i < kRequestCount; ++i) {
         requests[i].set_field(static_cast<int32_t>(i));
         requests[i].mutable_messages()->Add(messages.begin(), messages.end());
     }
 
     // check unary method
-
-    UASSERT_NO_THROW(response = client.CheckConstraintsUnary(requests[0]));
+    types::ConstrainedResponse response;
+    UASSERT_NO_THROW(response = GetClient().CheckConstraintsUnary(requests[0]));
     EXPECT_TRUE(response.has_field());
-    EXPECT_EQ(response.field(), requests[0].field());
+    EXPECT_EQ(response.field(), requests[0].field() + 1);
 
     // check streaming method
-
+    auto stream = GetClient().CheckConstraintsStreaming();
     auto write_task = engine::AsyncNoSpan([&stream, &requests] {
         for (const auto& request : requests) {
             const bool success = stream.Write(request);
@@ -140,6 +120,7 @@ UTEST_P_MT(GrpcServerValidatorTest, AllValid, 2) {
         return stream.WritesDone();
     });
 
+    std::vector<types::ConstrainedResponse> responses;
     while (stream.Read(response)) {
         responses.push_back(std::move(response));
     }
@@ -155,12 +136,6 @@ UTEST_P_MT(GrpcServerValidatorTest, AllValid, 2) {
 
 UTEST_P_MT(GrpcServerValidatorTest, AllInvalid, 2) {
     constexpr std::size_t kRequestCount = 3;
-    const auto& streaming_settings = GetParam().Get("types.UnitTestService/CheckConstraintsStreaming");
-    auto client = MakeClient<types::UnitTestServiceClient>();
-    auto stream = client.CheckConstraintsStreaming();
-
-    std::vector<types::ConstrainedRequest> requests(kRequestCount);
-    const std::vector<types::ConstrainedResponse> responses;
 
     types::ConstrainedRequest request;
     request.set_field(1);
@@ -170,15 +145,15 @@ UTEST_P_MT(GrpcServerValidatorTest, AllInvalid, 2) {
     *invalid_request.add_messages() = types::ConstrainedMessage{};
     *invalid_request.add_messages() = tests::CreateInvalidMessage();
 
+    std::vector<types::ConstrainedRequest> requests(kRequestCount);
     requests[0] = request;
     requests[1] = invalid_request;
     request.set_field(3);
     requests[2] = request;
 
     // check unary method
-
     try {
-        [[maybe_unused]] auto response = client.CheckConstraintsUnary(requests[1]);
+        [[maybe_unused]] auto response = GetClient().CheckConstraintsUnary(requests[1]);
         ADD_FAILURE() << "Call must fail";
     } catch (const ugrpc::client::InvalidArgumentError& err) {
         auto violations = tests::GetViolations(err);
@@ -189,7 +164,7 @@ UTEST_P_MT(GrpcServerValidatorTest, AllInvalid, 2) {
     }
 
     // check streaming method
-
+    auto stream = GetClient().CheckConstraintsStreaming();
     auto write_task = engine::AsyncNoSpan([&stream, &requests] {
         for (const auto& request : requests) {
             const bool success = stream.Write(request);
@@ -210,6 +185,7 @@ UTEST_P_MT(GrpcServerValidatorTest, AllInvalid, 2) {
         [[maybe_unused]] const bool result = stream.Read(response);
         ADD_FAILURE() << "Call must fail";
     } catch (const ugrpc::client::InvalidArgumentError& err) {
+        const auto& streaming_settings = GetParam().Get("types.UnitTestService/CheckConstraintsStreaming");
         auto violations = tests::GetViolations(err);
 
         if (streaming_settings.send_violations) {
@@ -231,18 +207,27 @@ UTEST_P_MT(GrpcServerValidatorTest, AllInvalid, 2) {
 }
 
 UTEST_P(GrpcServerValidatorTest, InvalidConstraints) {
-    auto client = MakeClient<types::UnitTestServiceClient>();
     types::InvalidConstraints request;
     request.set_field(1);
 
-    try {
-        [[maybe_unused]] auto response = client.CheckInvalidRequestConstraints(std::move(request));
-        ADD_FAILURE() << "Call must fail";
-    } catch (const ugrpc::client::InternalError&) {
-        // do nothing
-    } catch (...) {
-        ADD_FAILURE() << "'InternalError' exception expected";
-    }
+    UEXPECT_THROW_MSG(
+        GetClient().CheckInvalidRequestConstraints(std::move(request)),
+        ugrpc::client::InternalError,
+        "'types.UnitTestService/CheckInvalidRequestConstraints' failed: code=INTERNAL, message='Message "
+        "'types.InvalidConstraints' validation error: internal protovalidate error (check constraints syntax in the "
+        "proto file) - INVALID_ARGUMENT: no_such_field : non_existent_field'"
+    );
+}
+
+UTEST_P(GrpcServerValidatorTest, InvalidResponse) {
+    types::ConstrainedRequest request;
+    request.set_field(10);
+
+    UEXPECT_THROW_MSG(
+        GetClient().CheckConstraintsUnary(std::move(request)),
+        ugrpc::client::DataLossError,
+        "Message 'types.ConstrainedResponse' validation error: 1 constraint(s) violated"
+    );
 }
 
 USERVER_NAMESPACE_END

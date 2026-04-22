@@ -44,35 +44,32 @@ public:
 
 }  // namespace
 
-using GrpcClientErrorTest = ugrpc::tests::ServiceFixture<UnitTestServiceWithError>;
+using GrpcClientErrorTest =
+    ugrpc::tests::ServiceWithClientFixture<UnitTestServiceWithError, sample::ugrpc::UnitTestServiceClient>;
 
 UTEST_F(GrpcClientErrorTest, UnaryRPC) {
-    auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
     sample::ugrpc::GreetingRequest out;
     out.set_name("userver");
-    UEXPECT_THROW(client.SayHello(out), ugrpc::client::InternalError);
+    UEXPECT_THROW(GetClient().SayHello(out), ugrpc::client::InternalError);
 }
 
 UTEST_F(GrpcClientErrorTest, InputStream) {
-    auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
     sample::ugrpc::StreamGreetingRequest out;
     out.set_name("userver");
     out.set_number(42);
     sample::ugrpc::StreamGreetingResponse in;
-    auto call = client.ReadMany(out);
+    auto call = GetClient().ReadMany(out);
     UEXPECT_THROW(static_cast<void>(call.Read(in)), ugrpc::client::InternalError);
 }
 
 UTEST_F(GrpcClientErrorTest, OutputStream) {
-    auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
-    auto call = client.WriteMany();
+    auto call = GetClient().WriteMany();
     UEXPECT_THROW(call.Finish(), ugrpc::client::InternalError);
 }
 
 // Disabled due to https://github.com/grpc/grpc/issues/14812
 UTEST_F(GrpcClientErrorTest, DISABLED_OutputStreamErrorOnWrite) {
-    auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
-    auto call = client.WriteMany();
+    auto call = GetClient().WriteMany();
     sample::ugrpc::StreamGreetingRequest out{};
     out.set_name("userver");
     out.set_number(42);
@@ -95,9 +92,8 @@ UTEST_F(GrpcClientErrorTest, DISABLED_OutputStreamErrorOnWrite) {
 }
 
 UTEST_F(GrpcClientErrorTest, BidirectionalStream) {
-    auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
     sample::ugrpc::StreamGreetingResponse in;
-    auto call = client.Chat();
+    auto call = GetClient().Chat();
     UEXPECT_THROW(static_cast<void>(call.Read(in)), ugrpc::client::InternalError);
 }
 
@@ -116,14 +112,14 @@ public:
 
 }  // namespace
 
-using GrpcThrowCustomFinish = ugrpc::tests::ServiceFixture<ThrowCustomService>;
+using GrpcThrowCustomFinish =
+    ugrpc::tests::ServiceWithClientFixture<ThrowCustomService, sample::ugrpc::UnitTestServiceClient>;
 
 UTEST_F(GrpcThrowCustomFinish, InputStream) {
-    auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
     sample::ugrpc::StreamGreetingRequest out;
     out.set_name("userver");
     out.set_number(1);
-    auto is = client.ReadMany(out);
+    auto is = GetClient().ReadMany(out);
 
     sample::ugrpc::StreamGreetingResponse in;
     try {

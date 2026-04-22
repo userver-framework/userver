@@ -19,8 +19,7 @@ inline constexpr HttpMethod kHandlerMethods[] = {
     HttpMethod::kUnknown
 };
 
-inline constexpr size_t
-    kHandlerMethodsMax = static_cast<size_t>(*std::max_element(std::begin(kHandlerMethods), std::end(kHandlerMethods)));
+inline constexpr size_t kHandlerMethodsMax = static_cast<size_t>(*std::ranges::max_element(kHandlerMethods));
 
 bool IsHandlerMethod(HttpMethod method);
 

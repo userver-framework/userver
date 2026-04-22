@@ -739,7 +739,10 @@ UTEST_F(Collection, Distinct) {
 
         EXPECT_GE(result.size(), 4);
 
-        bool has_string = false, has_int = false, has_double = false, has_bool = false;
+        bool has_string = false;
+        bool has_int = false;
+        bool has_double = false;
+        bool has_bool = false;
         for (const auto& value : result) {
             if (value.IsString()) {
                 has_string = true;

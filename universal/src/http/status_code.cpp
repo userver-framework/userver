@@ -185,11 +185,7 @@ std::string ToString(StatusCode status) { return fmt::format("{} {}", status, St
 std::ostream& operator<<(std::ostream& os, StatusCode s) {
     auto string = TryStatusCodeString(s);
     if (string) {
-        if (s == StatusCode::kInvalid) {
-            return os << s << *string;
-        } else {
-            return os << *string;
-        }
+        return os << *string;
     } else {
         return os << static_cast<std::underlying_type_t<StatusCode>>(s);
     }

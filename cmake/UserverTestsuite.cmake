@@ -17,6 +17,7 @@ function(_userver_prepare_testsuite)
     include("${CMAKE_CURRENT_LIST_DIR}/UserverVenv.cmake")
     set_property(GLOBAL PROPERTY userver_cmake_dir "${CMAKE_CURRENT_LIST_DIR}")
 
+    # @ingroup libraries
     option(USERVER_FEATURE_TESTSUITE "Enable functional tests via testsuite" ON)
 
     if(USERVER_FEATURE_TESTSUITE AND NOT USERVER_PYTHON_DEV_CHECKED)
@@ -49,6 +50,8 @@ function(_userver_prepare_testsuite)
     endif()
 endfunction()
 
+# @option TESTSUITE_ONLY
+# @param REQUIREMENTS_FILES_VAR @required Cmake variable name to store path to `requirements.txt` file
 function(userver_testsuite_requirements)
     set(options TESTSUITE_ONLY)
     set(oneValueArgs REQUIREMENTS_FILES_VAR)
@@ -137,6 +140,7 @@ function(userver_testsuite_requirements)
     endif()
 endfunction()
 
+# TODO
 function(userver_testsuite_add)
     set(oneValueArgs SERVICE_TARGET TEST_SUFFIX WORKING_DIRECTORY PYTHON_BINARY PRETTY_LOGS SQL_LIBRARY)
     set(multiValueArgs PYTEST_ARGS REQUIREMENTS PYTHONPATH TEST_ENV)
@@ -274,6 +278,22 @@ endfunction()
 # * configs/dynamic_config_fallback.json [optional]
 # * configs/[secdist|secure_data].json [optional]
 # * [testsuite|tests]/conftest.py
+#
+# @param SERVICE_TARGET
+# @param TEST_SUFFIX
+# @param WORKING_DIRECTORY
+# @param PYTHON_BINARY
+# @param PRETTY_LOGS
+# @param CONFIG_PATH
+# @param CONFIG_VARS_PATH
+# @param DYNAMIC_CONFIG_FALLBACK_PATH
+# @param SECDIST_PATH
+# @param DUMP_CONFIG
+# @param SQL_LIBRARY
+# @multiparam PYTEST_ARGS
+# @multiparam REQUIREMENTS
+# @multiparam PYTHONPATH
+# @multiparam TEST_ENV
 function(userver_testsuite_add_simple)
     set(oneValueArgs
         SERVICE_TARGET
@@ -440,7 +460,13 @@ function(userver_testsuite_add_simple)
     )
 endfunction()
 
-# add utest, test runs in testsuite env
+# Add utest, test runs in testsuite env.
+#
+# @option DISABLE_GTEST_XML_OUTPUT
+# @param oneValueArgs
+# @multiparam DATABASES
+# @multiparam TEST_ENV
+# @multiparam TEST_ARGS
 function(userver_add_utest)
     set(options DISABLE_GTEST_XML_OUTPUT)
     set(oneValueArgs NAME)
@@ -472,6 +498,9 @@ function(userver_add_utest)
     endif()
 endfunction()
 
+# @param NAME
+# @multiparam DATABASES
+# @multiparam TEST_ENV
 function(userver_add_ubench_test)
     set(options)
     set(oneValueArgs NAME)

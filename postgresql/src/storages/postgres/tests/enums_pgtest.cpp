@@ -131,10 +131,17 @@ namespace traits {
 
 // To ensure it is never written to a buffer
 template <>
-struct HasFormatter<RainbowRO> : std::false_type {};
+struct IO<RainbowRO> {
+    using ParserType = typename Input<RainbowRO>::type;
+};
 
 template <>
-struct HasFormatter<AnotherRainbowRO> : std::false_type {};
+struct IO<AnotherRainbowRO> {
+    using ParserType = typename Input<AnotherRainbowRO>::type;
+};
+
+static_assert(!HasFormatter<RainbowRO>);
+static_assert(!HasFormatter<AnotherRainbowRO>);
 
 }  // namespace traits
 
@@ -147,8 +154,8 @@ struct Checker {
     static_assert(tt::IsMappedToPg<T>());
     static_assert(io::detail::EnumerationMap<T>::size == 5);
 
-    static_assert(tt::kHasParser<T>);
-    static_assert(tt::kHasFormatter<T>);
+    static_assert(tt::HasParser<T>);
+    static_assert(tt::HasFormatter<T>);
 };
 template struct Checker<Rainbow>;
 template struct Checker<AnotherRainbow>;

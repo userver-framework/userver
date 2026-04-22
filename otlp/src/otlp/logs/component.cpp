@@ -77,11 +77,13 @@ LoggerComponent::LoggerComponent(const components::ComponentConfig& config, cons
     logger_config.logs_sink = config["sinks"]["logs"].As<SinkType>(SinkType::kOtlp);
     logger_config.tracing_sink = config["sinks"]["tracing"].As<SinkType>(SinkType::kOtlp);
 
+    const SinkType logs_sink_type = logger_config.logs_sink;
+    const SinkType tracing_sink_type = logger_config.tracing_sink;
     logger_ = std::make_shared<Logger>(std::move(client), std::move(trace_client), std::move(logger_config));
     // We must init after the default logger is initialized
     auto& logging_component = context.FindComponent<components::Logging>();
     logging::LoggerPtr default_logger{};
-    if (logger_config.logs_sink == SinkType::kOtlp && logger_config.tracing_sink == SinkType::kOtlp) {
+    if (logs_sink_type == SinkType::kOtlp && tracing_sink_type == SinkType::kOtlp) {
         if (logging_component.GetLoggerOptional("default")) {
             throw std::runtime_error(
                 "You've registered both the 'otlp-logger' component and the "

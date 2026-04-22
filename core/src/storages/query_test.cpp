@@ -1,6 +1,5 @@
 #include <userver/storages/query.hpp>
 
-#include <userver/compiler/impl/constexpr.hpp>
 #include <userver/utest/utest.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -11,14 +10,14 @@ constexpr const char* kStatement = "The query that is too long to fit into SSO b
 constexpr const char* kQueryName = "query_name_that_does_not_fir_into_SSO_because_it_is_too_big";
 
 // Validate that variable initializes without dynamic initialization
-USERVER_IMPL_CONSTINIT const storages::Query kStaticInit{
+constinit const storages::Query kStaticInit{
     kStatement,
     storages::Query::NameLiteral{kQueryName},
     storages::Query::LogMode::kFull,
 };
 
 // Validate that variable initializes without dynamic initialization
-USERVER_IMPL_CONSTINIT const storages::Query kEmptyStaticInit{};
+constinit const storages::Query kEmptyStaticInit{};
 
 }  // namespace
 

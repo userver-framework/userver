@@ -43,6 +43,7 @@ private:
 
     const handlers::HttpHandlerBase& handler_;
     const bool deadline_propagation_enabled_;
+    const bool deadline_propagation_prefer_timestamp_;
     const http::HttpStatus deadline_expired_status_code_;
     const std::string path_;
 };

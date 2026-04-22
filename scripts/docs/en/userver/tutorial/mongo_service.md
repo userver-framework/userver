@@ -106,7 +106,7 @@ $ curl -s http://localhost:8090/v1/translations?last_update=2021-11-01T12:00:00Z
     "hello": {
       "ru": "Дратути"
     },
-    "wellcome": {
+    "welcome": {
       "ru": "Здрасьте"
     }
   },

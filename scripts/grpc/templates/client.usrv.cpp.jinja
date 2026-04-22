@@ -45,7 +45,7 @@ inline const bool k{{service.name}}TypesRegistration =
     false);
 
 {{service.name}}Client::{{service.name}}Client(USERVER_NAMESPACE::ugrpc::client::impl::ClientInternals&& internals)
-    : client_data_(std::move(internals), GetMetadata(),
+    : client_data_(std::move(internals), GetMetadata(USERVER_NAMESPACE::utils::impl::InternalTag{}),
             std::in_place_type<{{utils.namespace_with_colons(proto.namespace)}}::{{service.name}}>) {
     }
 
@@ -127,7 +127,7 @@ inline const bool k{{service.name}}TypesRegistration =
 {% endfor %}
 
 USERVER_NAMESPACE::ugrpc::impl::StaticServiceMetadata
-{{ service.name }}Client::GetMetadata() {
+{{ service.name }}Client::GetMetadata(USERVER_NAMESPACE::utils::impl::InternalTag) {
   (void)k{{service.name}}TypesRegistration;  // odr-use
 
   return USERVER_NAMESPACE::ugrpc::impl::MakeStaticServiceMetadata<
@@ -192,8 +192,8 @@ const {{namespace_path}}::{{service.name}}Client& {{ service.name }}Client::GetP
 {% endfor %}
 
 USERVER_NAMESPACE::ugrpc::impl::StaticServiceMetadata
-{{ service.name }}Client::GetMetadata() {
-    return {{namespace_path}}::{{service.name}}Client::GetMetadata();
+{{ service.name }}Client::GetMetadata(USERVER_NAMESPACE::utils::impl::InternalTag) {
+    return {{namespace_path}}::{{service.name}}Client::GetMetadata(USERVER_NAMESPACE::utils::impl::InternalTag{});
 }
 
 }  // namespace structs

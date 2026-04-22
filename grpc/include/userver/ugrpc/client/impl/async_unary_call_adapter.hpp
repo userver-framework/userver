@@ -30,8 +30,7 @@ public:
                   // so set LogLevel=None
                   tracing::Span::CurrentSpan().SetLogLevel(logging::Level::kNone);
 
-                  unary_call_.Perform();
-                  return unary_call_.ExtractResponse();
+                  return unary_call_.Perform();
               }
           )},
           cancellation_token_{perform_task_}

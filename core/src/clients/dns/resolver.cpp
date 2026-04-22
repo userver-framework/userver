@@ -18,12 +18,16 @@
 #include <userver/utils/from_string.hpp>
 #include <userver/utils/impl/wait_token_storage.hpp>
 #include <userver/utils/mock_now.hpp>
+#include <userver/utils/resource_scopes.hpp>
+#include <userver/utils/statistics/storage.hpp>
 #include <userver/utils/zstring_view.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace clients::dns {
 namespace {
+
+constexpr std::string_view kDnsReplySource = "dns_reply_source";
 
 std::optional<engine::io::Sockaddr> ParseIpV4Addr(utils::zstring_view ip) {
     // inet_pton accepts formats other than ddd.ddd.ddd.ddd on some systems
@@ -460,6 +464,16 @@ void Resolver::ReloadHosts() { impl_->ReloadHosts(); }
 void Resolver::FlushNetworkCache() { impl_->FlushNetworkCache(); }
 
 void Resolver::FlushNetworkCache(const std::string& name) { impl_->FlushNetworkCache(name); }
+
+void Resolver::WriteMetrics(utils::statistics::Writer& writer) const {
+    const auto& counters = GetLookupSourceCounters();
+    writer.ValueWithLabels(counters.file, {kDnsReplySource, "file"});
+    writer.ValueWithLabels(counters.cached, {kDnsReplySource, "cached"});
+    writer.ValueWithLabels(counters.cached_stale, {kDnsReplySource, "cached-stale"});
+    writer.ValueWithLabels(counters.cached_failure, {kDnsReplySource, "cached-failure"});
+    writer.ValueWithLabels(counters.network, {kDnsReplySource, "network"});
+    writer.ValueWithLabels(counters.network_failure, {kDnsReplySource, "network-failure"});
+}
 
 }  // namespace clients::dns
 

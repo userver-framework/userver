@@ -18,7 +18,7 @@ namespace protobuf::json::tests {
 struct AnyToJsonSuccessTestParam {
     AnyMessageData input = {};
     std::string expected_json = {};
-    WriteOptions options = {};
+    PrintOptions options = {};
 
     // This variable is used to disable some checks that fail in the native protobuf implementation.
     bool skip_native_check = false;
@@ -26,9 +26,9 @@ struct AnyToJsonSuccessTestParam {
 
 struct AnyToJsonFailureTestParam {
     AnyMessageData input = {};
-    WriteErrorCode expected_errc = {};
+    PrintErrorCode expected_errc = {};
     std::string expected_path = {};
-    WriteOptions options = {};
+    PrintOptions options = {};
 
     // This variable is used to disable some checks that fail in the native protobuf implementation.
     bool skip_native_check = false;
@@ -161,25 +161,25 @@ INSTANTIATE_TEST_SUITE_P(
     ,
     AnyToJsonFailureTest,
     ::testing::Values(
-        AnyToJsonFailureTestParam{AnyMessageData{RawAnyData{"", "\x08\x01"}}, WriteErrorCode::kInvalidValue, "field1"},
-        AnyToJsonFailureTestParam{AnyMessageData{RawAnyData{"oops", ""}}, WriteErrorCode::kInvalidValue, "field1"},
+        AnyToJsonFailureTestParam{AnyMessageData{RawAnyData{"", "\x08\x01"}}, PrintErrorCode::kInvalidValue, "field1"},
+        AnyToJsonFailureTestParam{AnyMessageData{RawAnyData{"oops", ""}}, PrintErrorCode::kInvalidValue, "field1"},
         AnyToJsonFailureTestParam{
             AnyMessageData{RawAnyData{"type.googleapis.com/proto_json.messages.NonExistent", "\x08\x01"}},
-            WriteErrorCode::kInvalidValue,
+            PrintErrorCode::kInvalidValue,
             "field1"
         },
         // '\x80' is incomplete message
         AnyToJsonFailureTestParam{
             AnyMessageData{RawAnyData{"type.googleapis.com/proto_json.messages.Int32Message", "\x80"}},
-            WriteErrorCode::kInvalidValue,
+            PrintErrorCode::kInvalidValue,
             "field1",
             {},
             true  // native implementation does not fail on invalid binary data and produces strange JSON
         },
-        AnyToJsonFailureTestParam{AnyMessageData{DurationMessageData{1, -1}}, WriteErrorCode::kInvalidValue, "field1"},
+        AnyToJsonFailureTestParam{AnyMessageData{DurationMessageData{1, -1}}, PrintErrorCode::kInvalidValue, "field1"},
         AnyToJsonFailureTestParam{
             AnyMessageData{ValueMessageData{std::vector<double>{std::numeric_limits<double>::infinity()}}},
-            WriteErrorCode::kInvalidValue,
+            PrintErrorCode::kInvalidValue,
             "field1.list_value.values[0].number_value"
         }
     )
@@ -189,7 +189,9 @@ TEST_P(AnyToJsonSuccessTest, Test) {
     const auto& param = GetParam();
 
     auto input = PrepareTestData(param.input);
-    formats::json::Value json, expected_json, sample_json;
+    formats::json::Value json;
+    formats::json::Value expected_json;
+    formats::json::Value sample_json;
 
     UASSERT_NO_THROW((json = MessageToJson(input, param.options)));
     UASSERT_NO_THROW((expected_json = PrepareJsonTestData(param.expected_json)));
@@ -206,7 +208,7 @@ TEST_P(AnyToJsonFailureTest, Test) {
     const auto& param = GetParam();
     auto input = PrepareTestData(param.input);
 
-    EXPECT_WRITE_ERROR((void)MessageToJson(input, param.options), param.expected_errc, param.expected_path);
+    EXPECT_PRINT_ERROR((void)MessageToJson(input, param.options), param.expected_errc, param.expected_path);
 
     if (!param.skip_native_check) {
         UEXPECT_THROW((void)CreateSampleJson(input, param.options), SampleError);
@@ -216,9 +218,10 @@ TEST_P(AnyToJsonFailureTest, Test) {
 TEST(AnyToJsonAdditionalTest, InlinedNonNull) {
     AnyMessageData data{Int32MessageData{1, 2, 3}};
     auto message = PrepareTestData(data);
-    formats::json::Value json, sample;
+    formats::json::Value json;
+    formats::json::Value sample;
 
-    UASSERT_NO_THROW((json = MessageToJson(message.field1())));
+    UASSERT_NO_THROW((json = MessageToJson(message.field1(), {})));
     UASSERT_NO_THROW((sample = CreateSampleJson(message.field1())));
     ASSERT_TRUE(json.IsObject());
     EXPECT_EQ(json, sample);
@@ -230,9 +233,10 @@ TEST(AnyToJsonAdditionalTest, InlinedNonNull) {
 
 TEST(AnyToJsonAdditionalTest, InlinedNull) {
     proto_json::messages::AnyMessage message;
-    formats::json::Value json, sample;
+    formats::json::Value json;
+    formats::json::Value sample;
 
-    UASSERT_NO_THROW((json = MessageToJson(message.field1())));
+    UASSERT_NO_THROW((json = MessageToJson(message.field1(), {})));
     UASSERT_NO_THROW((sample = CreateSampleJson(message.field1())));
     ASSERT_TRUE(json.IsObject());
     EXPECT_EQ(json, sample);
@@ -267,7 +271,7 @@ TEST(AnyToJsonAdditionalTest, DynamicMessage) {
 
         formats::json::Value json;
 
-        UASSERT_NO_THROW((json = MessageToJson(*message)));
+        UASSERT_NO_THROW((json = MessageToJson(*message, {})));
         ASSERT_TRUE(json.IsObject());
         ASSERT_EQ(json.GetSize(), std::size_t{4});
         EXPECT_EQ(json["@type"].As<std::string>(), "type.googleapis.com/proto_json.messages.Int32Message");

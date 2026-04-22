@@ -70,7 +70,7 @@ std::string ProcessPut(const http::HttpRequest& request, request::RequestContext
         throw std::runtime_error("Bad body");
     }
 
-    logging::AddDynamicDebugLog(path, line, state);
+    logging::SetDynamicDebugLog(path, line, state);
     return "OK\n";
 }
 

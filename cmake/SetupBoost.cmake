@@ -1,8 +1,10 @@
 include_guard(GLOBAL)
 
+# @ingroup download
 option(USERVER_DOWNLOAD_PACKAGE_BOOST "Download and setup Boost if no library of matching version was found"
        ${USERVER_DOWNLOAD_PACKAGES}
 )
+# @ingroup download
 option(USERVER_FORCE_DOWNLOAD_BOOST "Download Boost even if there is an installed system package"
        ${USERVER_FORCE_DOWNLOAD_PACKAGES}
 )

@@ -34,6 +34,7 @@ inline server::http::HttpRequestParser CreateBenchmarkParser(server::http::HttpR
         /*.decompress_request = */ false,
         /* set_tracing_headers = */ true,
         /* deadline_propagation_enabled = */ true,
+        /* deadline_propagation_prefer_timestamp = */ false,
         /* deadline_expired_status_code = */ server::http::HttpStatus{498}
     };
     static server::net::ParserStats test_stats;

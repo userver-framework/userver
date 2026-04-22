@@ -25,14 +25,26 @@ namespace {
 constexpr std::string_view kUnixSocketPrefix = "unix:";
 constexpr std::string_view kDefaultLoggerName = "default";
 
+void LogAndThrow(std::string msg) {
+    LOG_ERROR() << msg;
+    throw std::runtime_error(std::move(msg));
+}
+
 void CreateLogDirectory(const std::string& logger_name, const std::string& file_path) {
     try {
         const auto dirname = boost::filesystem::path(file_path).parent_path();
         boost::filesystem::create_directories(dirname);
     } catch (const std::exception& e) {
-        auto msg = "Failed to create directory for log file of logger '" + logger_name + "': " + e.what();
-        LOG_ERROR() << msg;
-        throw std::runtime_error(std::move(msg));
+        LogAndThrow("Failed to create directory for log file of logger '" + logger_name + "': " + e.what());
+    }
+}
+
+void RemoveOldFile(const std::string& logger_name, const std::string& file_path) {
+    try {
+        const auto path = boost::filesystem::path(file_path);
+        boost::filesystem::remove(path);
+    } catch (const std::exception& e) {
+        LogAndThrow("Failed to remove old log file of logger '" + logger_name + "': " + e.what());
     }
 }
 
@@ -54,6 +66,15 @@ SinkPtr MakeOptionalSink(const LoggerConfig& config) {
         return std::make_unique<logging::impl::BufferedUnownedFileSink>(stdout);
     } else {
         CreateLogDirectory(config.logger_name, config.file_path);
+        if (config.truncate_on_start) {
+            if (utils::text::StartsWith(config.file_path, kUnixSocketPrefix)) {
+                LogAndThrow(
+                    "truncate-on-start cannot be combined with unix socket path for logger '" + config.logger_name +
+                    "': "
+                );
+            }
+            RemoveOldFile(config.logger_name, config.file_path);
+        }
         return GetSinkFromFilename(config.file_path);
     }
 }

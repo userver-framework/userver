@@ -19,12 +19,12 @@ set(TEMPLATE
 __asm__(
 #if defined(__APPLE__)
 \".const_data\\n\"
-\".global _@NAME_C_ESCAPED@_start\\n\"
-\".global _@NAME_C_ESCAPED@_end\\n\"
-\".global _@NAME_C_ESCAPED@_size\\n\"
 #else
 \".section .rodata\\n\"
 #endif
+\".global \" APPLE_PREFIX \"@NAME_C_ESCAPED@_begin\\n\"
+\".global \" APPLE_PREFIX \"@NAME_C_ESCAPED@_end\\n\"
+\".global \" APPLE_PREFIX \"@NAME_C_ESCAPED@_size\\n\"
 \".balign 16\\n\"
 APPLE_PREFIX \"@NAME_C_ESCAPED@_begin:\\n\"
 R\"(

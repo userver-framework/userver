@@ -10,7 +10,7 @@ point for designing and configuring an environment.
 
 A simple setup, usually used during development. The request comes directly
 into the service, it is processed, logs are written. During processing the
-service could do direct requests to other services. 
+service could do direct requests to other services.
 
 @dot
 digraph TypicalService
@@ -27,7 +27,7 @@ digraph TypicalService
     shape=component;
     label = "Docker container or host machine";
     center=true;
-    
+
     Service [label = "🐙 Service", shape=component, width=2.0 ];
     logs [label = "File with\nservice logs", shape=note, width=2.0];
     Database [label = "Database", shape=cylinder, width=2.0 ];
@@ -41,7 +41,7 @@ digraph TypicalService
   logs -> Service  [penwidth=3, edgetooltip = "FS write", dir=both  arrowhead=none];
   Service -> OtherService [penwidth=3, edgetooltip = "TCP, UDP, HTTP, HTTP2 or gRPC", dir=both  arrowtail=none];
   Service -> OtherService1 [penwidth=3, edgetooltip = "TCP, UDP, HTTP, HTTP2 or gRPC", dir=both  arrowtail=none];
- 
+
   Request[label = "Request", shape=plaintext, rank="main"];
 }
 @enddot
@@ -68,7 +68,7 @@ such services. For a starting point on configuration see
 
 Note that for a longstanding runs the logs of the service should be cleaned up
 at some point. Configure the `logrotate` like software to move/remove the old
-logs and notify the `🐙 Service` by `SIGUSR1` signal:  
+logs and notify the `🐙 Service` by `SIGUSR1` signal:
 ```
 postrotate
     /usr/bin/killall -USR1 yourapp
@@ -115,28 +115,28 @@ digraph TypicalService
     shape=component;
     label = "Docker container";
     center=true;
-    
+
     Nginx [label = "Nginx", shape=component, width=2.0 ];
-    
+
     Service [label = "🐙 Service", shape=component, width=2.0 ];
     logs [label = "File with\nservice logs", shape=note, width=2.0];
     LogsCollector [label = "Logs Collector", shape=component, width=2.0];
     MetricsUploader[label = "Metrics Uploader", shape=component, width=2.0];
   }
-  
+
   subgraph cluster_ServiceDb {
     label = "DB Cluster";
-    
+
     Database [label = "Database", shape=cylinder, width=2.0 ];
     Database1 [label = "Database", shape=cylinder, width=2.0];
   }
-  
+
   Elasticsearch [shape=cylinder, width=2.0];
   Kibana [shape=component, width=2.0];
-  
+
   MetricsAggregateor [label = "Metrics Aggregateor", shape=cylinder, width=2.0];
   Grafana [shape=component, width=2.0];
-  
+
   BalancerConfigsService [label = "Balancers", shape=octagon, width=2.0];
   ConfigsService [label = "Configs Service", shape=component, width=2.0];
 
@@ -148,7 +148,7 @@ digraph TypicalService
 
   Request -> ServiceBalancer[penwidth=3, edgetooltip = "TCP socket, compressed HTTP", minlen=0, dir=both arrowtail = none];
   ServiceBalancer -> Nginx [penwidth=3, edgetooltip = "TCP socket, compressed HTTP, or gRPC",  dir=both arrowtail = none];
-  
+
   Nginx -> Service [penwidth=3, edgetooltip = "Local Pipe, uncompressed HTTP", labelfloat=true];
   logs -> Service  [penwidth=3, edgetooltip = "FS write, TSKV", dir=both  arrowhead=none];
   Database1 -> Service  [penwidth=3, edgetooltip = "binary protocol", dir=both arrowhead = none];
@@ -254,31 +254,31 @@ digraph TypicalService
     shape=component;
     label = "Docker container";
     center=true;
-    
+
     SidecarProxy [label = "Sidecar Proxy", shape=octagon, width=2.0 ];
-    
+
     Service [label = "🐙 Service", shape=component, width=2.0 ];
     logs [label = "File with\nservice logs", shape=note, width=2.0];
     LogsCollector [label = "Logs Collector", shape=component, width=2.0];
     MetricsUploader[label = "Metrics Uploader", shape=component, width=2.0];
   }
-  
+
   subgraph cluster_ServiceDb {
     label = "DB Cluster";
-    
+
     Database [label = "Database", shape=cylinder, width=2.0 ];
     Database1 [label = "Database", shape=cylinder, width=2.0];
   }
-  
+
   Elasticsearch [shape=cylinder, width=2.0];
   Kibana [shape=component, width=2.0];
-  
+
   MetricsAggregateor [shape=cylinder, width=2.0];
   Grafana [shape=component, width=2.0];
   xDS [shape=component, width=2.0];
-  
+
   ConfigsService [label = "Configs Service", shape=component, width=2.0];
-  
+
   OtherService [label = "Some Other Service", shape=component, width=2.0];
   OtherService1 [label = "Another Service", shape=component, width=2.0];
 
@@ -298,7 +298,7 @@ digraph TypicalService
   Elasticsearch -> Kibana [penwidth=3, edgetooltip = "JSON", dir=both];
   MetricsAggregateor -> Grafana [penwidth=3, edgetooltip = "JSON", dir=both];
 
-  
+
   Request[label = "Request", shape=plaintext, rank="main"];
 
   /* Fake edges for alignment */
@@ -345,26 +345,26 @@ digraph TypicalService
     shape=component;
     label = "Docker container";
     center=true;
-    
-    MainService1 [label = "Main Service", shape=component, width=2.0 ];    
+
+    MainService1 [label = "Main Service", shape=component, width=2.0 ];
     Sidecar1 [label = "🐙 Sidecar", shape=component, width=2.0 ];
   }
-  
+
   subgraph cluster_TypicalService2 {
     shape=component;
     label = "Docker container";
     center=true;
-    
-    MainService2 [label = "Other Service", shape=component, width=2.0 ];    
+
+    MainService2 [label = "Other Service", shape=component, width=2.0 ];
     Sidecar2 [label = "🐙 Sidecar", shape=component, width=2.0 ];
   }
-  
+
   subgraph cluster_TypicalService3 {
     shape=component;
     label = "Docker container";
     center=true;
-    
-    MainService3 [label = "Another Service", shape=component, width=2.0 ];    
+
+    MainService3 [label = "Another Service", shape=component, width=2.0 ];
     Sidecar3 [label = "🐙 Sidecar", shape=component, width=2.0 ];
   }
 

@@ -1,10 +1,8 @@
+from chaotic import main
+from chaotic.back.cpp import translator
 from chaotic.back.cpp import type_name
-from chaotic.back.cpp.translator import Generator
-from chaotic.back.cpp.translator import GeneratorConfig
 from chaotic.front import ref_resolver
-from chaotic.front.types import MappingType
-from chaotic.main import generate_cpp_name_func
-from chaotic.main import NameMapItem
+from chaotic.front import types as front_types
 
 
 def test_simple(simple_gen):
@@ -71,16 +69,16 @@ def test_empty_mapping(clean, schema_parser):
         },
     )
 
-    cpp_name_func = generate_cpp_name_func(
-        [NameMapItem('/definitions/([^/]*)/={0}')],
+    cpp_name_func = main.generate_cpp_name_func(
+        [main.NameMapItem('/definitions/([^/]*)/={0}')],
         '',
     )
 
     schemas = parser.parsed_schemas()
     rr = ref_resolver.RefResolver()
     resolved_schemas = rr.sort_schemas(schemas)
-    gen = Generator(
-        config=GeneratorConfig(
+    gen = translator.Generator(
+        config=translator.GeneratorConfig(
             namespaces={'vfull': ''},
             infile_to_name_func=cpp_name_func,
         ),
@@ -90,7 +88,7 @@ def test_empty_mapping(clean, schema_parser):
 
     foo_schema = cpp_types['::oneof'].fields['foo'].schema
 
-    assert foo_schema.mapping_type == MappingType.STR
+    assert foo_schema.mapping_type == front_types.MappingType.STR
     assert list(foo_schema.variants.keys()) == ['A', 'B']
 
 
@@ -132,16 +130,16 @@ def test_str_mapping(clean, schema_parser):
         },
     )
 
-    cpp_name_func = generate_cpp_name_func(
-        [NameMapItem('/definitions/([^/]*)/={0}')],
+    cpp_name_func = main.generate_cpp_name_func(
+        [main.NameMapItem('/definitions/([^/]*)/={0}')],
         '',
     )
 
     schemas = parser.parsed_schemas()
     rr = ref_resolver.RefResolver()
     resolved_schemas = rr.sort_schemas(schemas)
-    gen = Generator(
-        config=GeneratorConfig(
+    gen = translator.Generator(
+        config=translator.GeneratorConfig(
             namespaces={'vfull': ''},
             infile_to_name_func=cpp_name_func,
         ),
@@ -151,7 +149,7 @@ def test_str_mapping(clean, schema_parser):
 
     foo_schema = cpp_types['::oneof'].fields['foo'].schema
 
-    assert foo_schema.mapping_type == MappingType.STR
+    assert foo_schema.mapping_type == front_types.MappingType.STR
     assert list(foo_schema.variants.keys()) == ['aaa', 'bbb']
 
     assert foo_schema.variants['aaa'].cpp_name == '::A'
@@ -196,16 +194,16 @@ def test_int_mapping(clean, schema_parser):
         },
     )
 
-    cpp_name_func = generate_cpp_name_func(
-        [NameMapItem('/definitions/([^/]*)/={0}')],
+    cpp_name_func = main.generate_cpp_name_func(
+        [main.NameMapItem('/definitions/([^/]*)/={0}')],
         '',
     )
 
     schemas = parser.parsed_schemas()
     rr = ref_resolver.RefResolver()
     resolved_schemas = rr.sort_schemas(schemas)
-    gen = Generator(
-        config=GeneratorConfig(
+    gen = translator.Generator(
+        config=translator.GeneratorConfig(
             namespaces={'vfull': ''},
             infile_to_name_func=cpp_name_func,
         ),
@@ -215,7 +213,7 @@ def test_int_mapping(clean, schema_parser):
 
     foo_schema = cpp_types['::oneof'].fields['foo'].schema
 
-    assert foo_schema.mapping_type == MappingType.INT
+    assert foo_schema.mapping_type == front_types.MappingType.INT
     assert list(foo_schema.variants.keys()) == [0, 1, 2]
 
     assert foo_schema.variants[0].cpp_name == '::A'

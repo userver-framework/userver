@@ -1,8 +1,5 @@
 #pragma once
 
-/// @file
-/// @brief @copybrief engine::TaskProcessor
-
 #include <cstddef>
 #include <functional>
 

@@ -14,12 +14,13 @@ namespace ugrpc::server::middlewares::deadline_propagation {
 
 // clang-format off
 
-/// @ingroup userver_base_classes
+/// @ingroup userver_components
 ///
 /// @brief Component for gRPC server deadline propagation
 /// @see @ref scripts/docs/en/userver/deadline_propagation.md
 ///
-/// The component does **not** have any options for service config.
+/// ## Static options of ugrpc::server::middlewares::deadline_propagation::Component :
+/// @include{doc} scripts/docs/en/components_schema/grpc/src/ugrpc/server/middlewares/deadline_propagation/component.md
 ///
 /// ## Static configuration example:
 ///
@@ -29,9 +30,28 @@ namespace ugrpc::server::middlewares::deadline_propagation {
 
 // clang-format on
 
-using Component = SimpleMiddlewareFactoryComponent<Middleware>;
+class Component final : public MiddlewareFactoryComponentBase {
+public:
+    /// @ingroup userver_component_names
+    /// @brief The default name of @ref ugrpc::server::middlewares::deadline_propagation::Component.
+    static constexpr std::string_view kName = "grpc-server-deadline-propagation";
+
+    Component(const components::ComponentConfig& config, const components::ComponentContext& context);
+
+    static yaml_config::Schema GetStaticConfigSchema();
+
+    yaml_config::Schema GetMiddlewareConfigSchema() const override;
+
+    std::shared_ptr<const MiddlewareBase> CreateMiddleware(
+        const ugrpc::server::ServiceInfo&,
+        const yaml_config::YamlConfig& middleware_config
+    ) const override;
+};
 
 }  // namespace ugrpc::server::middlewares::deadline_propagation
+
+template <>
+inline constexpr bool components::kHasValidate<ugrpc::server::middlewares::deadline_propagation::Component> = true;
 
 template <>
 inline constexpr auto components::kConfigFileMode<

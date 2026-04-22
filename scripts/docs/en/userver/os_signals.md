@@ -28,9 +28,6 @@ after executing [logrotate](https://github.com/logrotate/logrotate).
   components::Logging uses the following code:
   @snippet core/src/logging/component.cpp  Signals sample - init
 
-3. In the component's destructor, unsubscribe from the signal
-  @snippet core/src/logging/component.cpp  Signals sample - destr
-
 
 ----------
 

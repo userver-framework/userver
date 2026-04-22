@@ -62,13 +62,13 @@ private:
 
 }  // namespace
 
-using GrpcClientWaitAnyTest = ugrpc::tests::ServiceFixture<AsyncTestService>;
+using GrpcClientWaitAnyTest =
+    ugrpc::tests::ServiceWithClientFixture<AsyncTestService, sample::ugrpc::UnitTestServiceClient>;
 
 UTEST_F_MT(GrpcClientWaitAnyTest, HappyPath, 4) {
-    auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
     // Make two calls
-    auto future1 = client.AsyncSayHello({});
-    auto future2 = client.AsyncSayHello({});
+    auto future1 = GetClient().AsyncSayHello({});
+    auto future2 = GetClient().AsyncSayHello({});
 
     sample::ugrpc::GreetingResponse response1;
     sample::ugrpc::GreetingResponse response2;
@@ -98,12 +98,10 @@ UTEST_F_MT(GrpcClientWaitAnyTest, HappyPath, 4) {
 }
 
 UTEST_F_MT(GrpcClientWaitAnyTest, GrcpCallCancelledAtFutureDestruction, 4) {
-    auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
-
     // Launch WaitAny in separate task
     auto wait_task = utils::Async("wait_any", [&]() -> bool {
-        auto future1 = client.AsyncSayHello({});
-        auto future2 = client.AsyncSayHello({});
+        auto future1 = GetClient().AsyncSayHello({});
+        auto future2 = GetClient().AsyncSayHello({});
 
         sample::ugrpc::GreetingResponse response1;
         sample::ugrpc::GreetingResponse response2;
@@ -129,9 +127,8 @@ UTEST_F_MT(GrpcClientWaitAnyTest, GrcpCallCancelledAtFutureDestruction, 4) {
 }
 
 UTEST_F_MT(GrpcClientWaitAnyTest, SingleCancel, 2) {
-    auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
     // Make two calls
-    auto future1 = client.AsyncSayHello({});
+    auto future1 = GetClient().AsyncSayHello({});
 
     engine::SingleConsumerEvent wait_task_started;
 
@@ -163,13 +160,11 @@ UTEST_F_MT(GrpcClientWaitAnyTest, SingleCancel, 2) {
 }
 
 UTEST_F_MT(GrpcClientWaitAnyTest, FutureDestructionAtCancel, 2) {
-    auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
-
     engine::SingleConsumerEvent wait_task_started;
 
     // Launch WaitAny in separate task
     auto wait_task = utils::Async("wait_any", [&]() -> std::optional<std::size_t> {
-        auto future1 = client.AsyncSayHello({});
+        auto future1 = GetClient().AsyncSayHello({});
 
         // notify that we have started
         wait_task_started.Send();
@@ -200,8 +195,7 @@ UTEST_F_MT(GrpcClientWaitAnyTest, DoubleCall, 2) {
     // In this test we check that calling WaitAny on future twice, without
     // calling Get() doesn't lead to segfault
 
-    auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
-    auto future1 = client.AsyncSayHello({});
+    auto future1 = GetClient().AsyncSayHello({});
 
     // Launch WaitAny in separate task
     auto wait_task = utils::Async("wait_any", [&]() -> void {
@@ -225,8 +219,7 @@ UTEST_F_MT(GrpcClientWaitAnyTest, CallAfterGet, 2) {
     // In this test we check that calling WaitAny on future after we have called
     // Get on it doesn't lead to segfault
 
-    auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
-    auto future1 = client.AsyncSayHello({});
+    auto future1 = GetClient().AsyncSayHello({});
 
     // Launch WaitAny in separate task
     auto wait_task = utils::Async("wait_any", [&]() -> void {
@@ -250,12 +243,11 @@ UTEST_F_MT(GrpcClientWaitAnyTest, CallAfterGet, 2) {
 UTEST_F_MT(GrpcClientWaitAnyTest, WaitInLoop, 2) {
     // In this test we check common pattern - make requests, put them in array
     // and wait one-by-one until completion
-    auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
     // Make two calls
-    auto future1 = client.AsyncSayHello({});
-    auto future2 = client.AsyncSayHello({});
-    auto future3 = client.AsyncSayHello({});
-    auto future4 = client.AsyncSayHello({});
+    auto future1 = GetClient().AsyncSayHello({});
+    auto future2 = GetClient().AsyncSayHello({});
+    auto future3 = GetClient().AsyncSayHello({});
+    auto future4 = GetClient().AsyncSayHello({});
 
     sample::ugrpc::GreetingResponse response;
 
@@ -307,13 +299,12 @@ UTEST_F_MT(GrpcClientWaitAnyTest, ServerTimeout, 2) {
     // In this test we check that calling with low deadline and not receiving
     // response from server will not cause segfault
 
-    auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
     ugrpc::client::CallOptions call_options;
 
     const std::chrono::milliseconds timeout_ms{1500};
     call_options.SetTimeout(timeout_ms);
 
-    auto future1 = client.AsyncSayHello({}, std::move(call_options));
+    auto future1 = GetClient().AsyncSayHello({}, std::move(call_options));
 
     // Launch WaitAny in separate task
     auto wait_task = utils::Async("wait_any", [&]() -> void {

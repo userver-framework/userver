@@ -33,7 +33,8 @@ void CheckFieldsNames(const formats::yaml::Value& yaml_schema) {
             .Case("minimum")
             .Case("maximum")
             .Case("minItems")
-            .Case("maxItems");
+            .Case("maxItems")
+            .Case("required");
     };
 
     for (const auto& [name, value] : Items(yaml_schema)) {
@@ -82,6 +83,7 @@ void CheckSchemaStructure(const Schema& schema) {
     CheckTypeSupportsField(schema, "maximum", schema.maximum, {FieldType::kInteger, FieldType::kNumber});
     CheckTypeSupportsField(schema, "minItems", schema.min_items, {FieldType::kArray});
     CheckTypeSupportsField(schema, "maxItems", schema.max_items, {FieldType::kArray});
+    CheckTypeSupportsField(schema, "required", schema.required, {FieldType::kObject});
 
     if (schema.type == FieldType::kObject) {
         if (!schema.properties.has_value()) {
@@ -97,6 +99,18 @@ void CheckSchemaStructure(const Schema& schema) {
                 "'additionalProperties'",
                 schema.path
             ));
+        }
+        if (schema.required.has_value()) {
+            const auto& properties = schema.properties.value();
+            for (const auto& name : *schema.required) {
+                if (properties.find(name) == properties.end()) {
+                    throw std::runtime_error(fmt::format(
+                        "Schema field '{}': 'required' contains '{}' which is not declared in 'properties'",
+                        schema.path,
+                        name
+                    ));
+                }
+            }
         }
     } else if (schema.type == FieldType::kArray) {
         if (!schema.items.has_value()) {
@@ -130,7 +144,8 @@ auto TieSchema(const Schema& schema) {
         schema.minimum,
         schema.maximum,
         schema.min_items,
-        schema.max_items
+        schema.max_items,
+        schema.required
     );
 }
 
@@ -215,6 +230,7 @@ Schema Parse(const formats::yaml::Value& schema, formats::parse::To<Schema>) {
 
     result.min_items = schema["minItems"].As<std::optional<std::size_t>>();
     result.max_items = schema["maxItems"].As<std::optional<std::size_t>>();
+    result.required = schema["required"].As<std::optional<std::unordered_set<std::string>>>();
 
     CheckFieldsNames(schema);
 
@@ -257,6 +273,9 @@ formats::yaml::Value Serialize(const Schema& schema, formats::serialize::To<form
     }
     if (schema.max_items) {
         builder["maxItems"] = *schema.max_items;
+    }
+    if (schema.required) {
+        builder["required"] = *schema.required;
     }
     return builder.ExtractValue();
 }

@@ -348,7 +348,7 @@ template <typename T>
 void Row::To(T&& val, RowTag) const {
     detail::AssertSaneTypeToDeserialize<T>();
     // Convert the val into a writable tuple and extract the data
-    using ValueType = std::decay_t<T>;
+    using ValueType = std::remove_cvref_t<T>;
     io::traits::AssertIsValidRowType<ValueType>();
     using RowType = io::RowType<ValueType>;
     using TupleType = typename RowType::TupleType;
@@ -368,7 +368,7 @@ void Row::To(T&& val, RowTag) const {
 template <typename T>
 void Row::To(T&& val, FieldTag) const {
     detail::AssertSaneTypeToDeserialize<T>();
-    using ValueType = std::decay_t<T>;
+    using ValueType = std::remove_cvref_t<T>;
     detail::AssertRowTypeIsMappedToPgOrIsCompositeType<ValueType>();
     // Read the first field into the type
     if (Size() < 1) {

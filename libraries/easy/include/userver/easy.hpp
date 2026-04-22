@@ -6,14 +6,17 @@
 #include <functional>
 #include <string>
 #include <string_view>
+#include <type_traits>
 
 #include <userver/clients/http/client.hpp>
 #include <userver/components/component_base.hpp>
 #include <userver/components/component_list.hpp>
 #include <userver/formats/json.hpp>
 #include <userver/http/content_type.hpp>
+#include <userver/server/handlers/exceptions.hpp>  // out of the box support for server::handlers::ClientError
 #include <userver/server/http/http_request.hpp>
 #include <userver/server/request/request_context.hpp>
+#include <userver/utils/meta_light.hpp>
 
 #include <userver/storages/postgres/cluster.hpp>
 #include <userver/storages/query.hpp>
@@ -31,6 +34,44 @@ public:
     using components::ComponentBase::ComponentBase;
     ~DependenciesBase() override;
 };
+
+template <class T>
+struct FirstFunctionArgument;
+
+template <class Return, class First, class... Args>
+struct FirstFunctionArgument<Return(First, Args...) noexcept> {
+    using type = First;
+};
+
+template <class Return, class First, class... Args>
+struct FirstFunctionArgument<Return(First, Args...)> {
+    using type = First;
+};
+
+template <class Return, class Class, class First, class... Args>
+struct FirstFunctionArgument<Return (Class::*)(First, Args...)> {
+    using type = First;
+};
+
+template <class Return, class Class, class First, class... Args>
+struct FirstFunctionArgument<Return (Class::*)(First, Args...) const> {
+    using type = First;
+};
+
+template <class T>
+struct FirstFunctionArgument : FirstFunctionArgument<decltype(&std::decay_t<T>::operator())> {};
+
+template <typename T>
+using FromJsonStringDetector = decltype(FromJsonString(std::string_view{}, formats::parse::To<T>{}));
+
+template <typename T>
+T ParseFromJsonString(std::string_view json) {
+    if constexpr (std::is_same_v<meta::DetectedType<FromJsonStringDetector, T>, T>) {
+        return FromJsonString(json, formats::parse::To<T>{});
+    } else {
+        return formats::json::FromString(json).As<T>();
+    }
+}
 
 }  // namespace impl
 
@@ -63,7 +104,10 @@ private:
 /// registration functions; use easy::HttpWith if not making a new dependency class.
 class HttpBase final {
 public:
-    using Callback = std::function<std::string(const server::http::HttpRequest&, const impl::DependenciesBase&)>;
+    struct Callback {
+        std::function<std::string(const server::http::HttpRequest&, const impl::DependenciesBase&)> function;
+        std::optional<http::ContentType> content_type;
+    };
 
     /// Sets the default Content-Type header for all the routes
     void DefaultContentType(http::ContentType content_type);
@@ -151,20 +195,23 @@ public:
     /// * std::string(const HttpRequest&, const Dependency&)
     /// * formats::json::Value(const HttpRequest&)
     /// * std::string(const HttpRequest&)
+    /// * JsonSerializableStructure(JsonParseableStructure, const Dependency&)
+    /// * JsonSerializableStructure(JsonParseableStructure)
     ///
-    /// If callback returns formats::json::Value then the default content type is set to `application/json`
+    /// If callback returns formats::json::Value or accepts a JSON parsable structure then the default content type
+    /// is set to `application/json`.
     class Callback final {
     public:
         template <class Function>
         Callback(Function func);
 
-        HttpBase::Callback Extract() && noexcept { return std::move(func_); }
+        HttpBase::Callback Extract() && noexcept { return std::move(callback_); }
 
     private:
         static Dependency GetDependencies(const impl::DependenciesBase& deps) {
             return static_cast<const DependenciesComponent&>(deps).GetDependencies();
         };
-        HttpBase::Callback func_;
+        HttpBase::Callback callback_;
     };
 
     HttpWith(int argc, const char* const argv[])
@@ -261,12 +308,7 @@ HttpWith<Dependency>::Callback::Callback(Function func) {
         (std::is_invocable_r_v<std::string, Function, const HttpRequest&, const Dependency&> << 3) |
         (std::is_invocable_r_v<formats::json::Value, Function, const HttpRequest&> << 4) |
         (std::is_invocable_r_v<std::string, Function, const HttpRequest&> << 5);
-    static_assert(
-        kMatches,
-        "Failed to find a matching signature. See the easy::HttpWith::Callback docs for info on "
-        "supported signatures"
-    );
-    constexpr bool has_single_match = ((kMatches & (kMatches - 1)) == 0);
+    constexpr bool has_single_match = (kMatches == 0 || ((kMatches & (kMatches - 1)) == 0));
     static_assert(
         has_single_match,
         "Found more than one matching signature, probably due to `auto` usage in parameters. See "
@@ -274,32 +316,57 @@ HttpWith<Dependency>::Callback::Callback(Function func) {
     );
 
     if constexpr (kMatches & 1) {
-        func_ = [f = std::move(func)](const HttpRequest& req, const impl::DependenciesBase& deps) {
-            req.GetHttpResponse().SetContentType(http::content_type::kApplicationJson);
+        callback_.content_type = http::content_type::kApplicationJson;
+        callback_.function = [f = std::move(func)](const HttpRequest& req, const impl::DependenciesBase& deps) {
             return formats::json::ToString(f(formats::json::FromString(req.RequestBody()), GetDependencies(deps)));
         };
     } else if constexpr (kMatches & 2) {
-        func_ = [f = std::move(func)](const HttpRequest& req, const impl::DependenciesBase&) {
-            req.GetHttpResponse().SetContentType(http::content_type::kApplicationJson);
+        callback_.content_type = http::content_type::kApplicationJson;
+        callback_.function = [f = std::move(func)](const HttpRequest& req, const impl::DependenciesBase&) {
             return formats::json::ToString(f(formats::json::FromString(req.RequestBody())));
         };
     } else if constexpr (kMatches & 4) {
-        func_ = [f = std::move(func)](const HttpRequest& req, const impl::DependenciesBase& deps) {
-            req.GetHttpResponse().SetContentType(http::content_type::kApplicationJson);
+        callback_.content_type = http::content_type::kApplicationJson;
+        callback_.function = [f = std::move(func)](const HttpRequest& req, const impl::DependenciesBase& deps) {
             return formats::json::ToString(f(req, GetDependencies(deps)));
         };
     } else if constexpr (kMatches & 8) {
-        func_ = [f = std::move(func)](const HttpRequest& req, const impl::DependenciesBase& deps) {
+        callback_.content_type = http::content_type::kApplicationJson;
+        callback_.function = [f = std::move(func)](const HttpRequest& req, const impl::DependenciesBase& deps) {
             return f(req, GetDependencies(deps));
         };
     } else if constexpr (kMatches & 16) {
-        func_ = [f = std::move(func)](const HttpRequest& req, const impl::DependenciesBase&) {
-            req.GetHttpResponse().SetContentType(http::content_type::kApplicationJson);
+        callback_.content_type = http::content_type::kApplicationJson;
+        callback_.function = [f = std::move(func)](const HttpRequest& req, const impl::DependenciesBase&) {
             return formats::json::ToString(f(req));
         };
+    } else if constexpr (kMatches & 32) {
+        callback_.function = [f = std::move(func)](const HttpRequest& req, const impl::DependenciesBase&) {
+            return f(req);
+        };
     } else {
-        static_assert(kMatches & 32);
-        func_ = [f = std::move(func)](const HttpRequest& req, const impl::DependenciesBase&) { return f(req); };
+        using FirstArgument = std::decay_t<typename impl::FirstFunctionArgument<Function>::type>;
+        static_assert(
+            std::is_class_v<FirstArgument>,
+            "First function argument should be a class or structure that is JSON pareseable"
+        );
+
+        callback_.content_type = http::content_type::kApplicationJson;
+        callback_.function = [f = std::move(func)](const HttpRequest& req, const impl::DependenciesBase& deps) {
+            auto arg = impl::ParseFromJsonString<FirstArgument>(req.RequestBody());
+
+            if constexpr (std::is_invocable_v<Function, FirstArgument, const Dependency&>) {
+                return formats::json::ToString(formats::json::ValueBuilder{f(std::move(arg), GetDependencies(deps))}
+                                                   .ExtractValue());
+            } else {
+                static_assert(
+                    std::is_invocable_v<Function, FirstArgument>,
+                    "Found no matching signature, probably due to second argument of the provided function. See "
+                    "the easy::HttpWith::Callback docs for info on supported signatures"
+                );
+                return formats::json::ToString(formats::json::ValueBuilder{f(std::move(arg))}.ExtractValue());
+            }
+        };
     }
 }
 

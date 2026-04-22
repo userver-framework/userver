@@ -1,0 +1,63 @@
+definitions:
+    NoSaxTreeNode:
+        type: object
+        additionalProperties: false
+        properties:
+            data:
+                type: string
+            left:
+                $ref: '#/definitions/NoSaxTreeNode'
+                x-usrv-cpp-indirect: true
+            right:
+                $ref: '#/definitions/NoSaxTreeNode'
+                x-usrv-cpp-indirect: true
+
+    NoSaxCustomStruct1:
+        type: object
+        additionalProperties: false
+        required:
+          - type
+          - field1
+        properties:
+            type:
+                type: string
+            field1:
+                type: integer
+    NoSaxCustomStruct2:
+        type: object
+        additionalProperties: false
+        required:
+          - type
+          - field2
+        properties:
+            type:
+                type: string
+            field2:
+                type: string
+    NoSaxObjWithCustom:
+        type: object
+        additionalProperties: false
+        properties:
+            integer:
+                type: integer
+                x-usrv-cpp-type: std::chrono::milliseconds
+            sizet:
+                type: integer
+                minimum: 0
+                x-usrv-cpp-type: std::size_t
+            boolean:
+                type: boolean
+                x-usrv-cpp-type: my::CustomBoolean
+            number:
+                type: number
+                x-usrv-cpp-type: my::CustomNumber
+            string:
+                type: string
+                x-usrv-cpp-type: my::CustomString
+            decimal:
+                type: string
+                x-usrv-cpp-type: userver::decimal64::Decimal<10>
+
+    NoSaxAOXIndirect:
+        type: number
+        x-usrv-cpp-type: my::CustomNumber

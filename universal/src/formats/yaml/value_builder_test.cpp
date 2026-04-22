@@ -51,7 +51,7 @@ formats::yaml::Value Serialize(const MyKeyValue& data, formats::serialize::To<fo
 }
 
 TEST(YamlValueBuilder, ExampleCustomization) {
-    const MyKeyValue object = {"val", 1};
+    const MyKeyValue object = {.field1 = "val", .field2 = 1};
     formats::yaml::ValueBuilder builder;
     builder["example"] = object;
     auto yaml = builder.ExtractValue();

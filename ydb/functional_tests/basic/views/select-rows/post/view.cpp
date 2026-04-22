@@ -29,8 +29,6 @@ formats::json::
             const {
     const ydb::OperationSettings query_params = {
         3,                                // retries
-        std::chrono::milliseconds(1000),  // operation_timeout
-        std::chrono::milliseconds(1000),  // cancel_after
         std::chrono::milliseconds(1100),  // client_timeout
         ydb::TransactionMode::kStaleRO,
         std::chrono::milliseconds(4999)

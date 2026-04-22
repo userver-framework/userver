@@ -3,13 +3,10 @@
 #include <userver/components/component.hpp>
 #include <userver/server/request/task_inherited_request.hpp>
 #include <userver/testsuite/tasks.hpp>
+#include <userver/ugrpc/client/simple_client_component.hpp>
 #include <userver/utest/using_namespace_userver.hpp>
 
-#include <userver/ugrpc/client/simple_client_component.hpp>
-
 #include <samples/greeter_client.usrv.pb.hpp>
-#include <userver/dynamic_config/storage/component.hpp>
-#include "userver/dynamic_config/storage_mock.hpp"
 
 namespace functional_tests {
 
@@ -35,8 +32,7 @@ public:
 
     GreeterClientTestComponent(const components::ComponentConfig& config, const components::ComponentContext& context)
         : components::ComponentBase(config, context),
-          client_(context.FindComponent<GreeterClientComponent>().GetClient()),
-          src_(context.FindComponent<components::DynamicConfig>().GetSource())
+          client_(context.FindComponent<GreeterClientComponent>().GetClient())
     {
         auto& tasks = testsuite::GetTestsuiteTasks(context);
 
@@ -53,8 +49,6 @@ private:
     void SayHello() { [[maybe_unused]] const auto response = client_.SayHello(MakeGreetingRequest()); }
 
     Client& client_;
-    dynamic_config::Source src_;
-    dynamic_config::StorageMock mock_;
 };
 
 }  // namespace functional_tests

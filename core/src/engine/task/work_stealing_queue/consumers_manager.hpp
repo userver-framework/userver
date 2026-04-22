@@ -20,9 +20,9 @@ public:
 
     void NotifyNewTask();
 
-    void NotifyWakeUp(Consumer* const consumer);
+    void NotifyWakeUp(Consumer* consumer);
 
-    void NotifySleep(Consumer* const consumer);
+    void NotifySleep(Consumer* consumer);
 
     bool AllowStealing() noexcept;
 

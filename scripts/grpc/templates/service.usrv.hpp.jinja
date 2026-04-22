@@ -60,6 +60,9 @@ class {{service.name}}Base
   {% endfor %}
 
  private:
+  USERVER_NAMESPACE::ugrpc::impl::StaticServiceMetadata
+  GetMetadata(USERVER_NAMESPACE::utils::impl::InternalTag) const final;
+
   std::unique_ptr<USERVER_NAMESPACE::ugrpc::server::impl::ServiceWorker>
   MakeWorker(USERVER_NAMESPACE::ugrpc::server::impl::ServiceInternals&& internals) final;
 };

@@ -22,14 +22,20 @@ ClientImpl::ClientImpl(const USERVER_NAMESPACE::chaotic::openapi::client::Config
       ) {
         auto r = http_client_.CreateRequest();
         r.SetUrlTemplate("{{ op.path }}");
+        {% if op.path != op.destination_metric_name() %}
+            r.SetDestinationMetricName(
+                config_.base_url + "{{ op.destination_metric_name() }}"
+            );
+        {% endif %}
         if (core_middlewares_) {
             r.SetMiddlewaresList(*core_middlewares_);
         }
         ApplyConfig(r, command_control, config_);
 
-        {% if not op.empty_request() -%}
+        {%- if op.empty_request() -%}
+            {{ op.cpp_namespace() }}::Request request;
+        {%- endif %}
         SerializeRequest(request, config_.base_url, r);
-        {% endif %}
 
         middleware_manager_.ProcessRequest(r);
 

@@ -1,5 +1,6 @@
 # Relies on variables from: - find_package(Boost) - userver_setup_environment
 function(userver_target_require_dwcas target visibility)
+    # @ingroup some_platforms
     option(USERVER_FEATURE_DWCAS "Require double-width compare-exchange-swap" ON)
 
     if(NOT USERVER_FEATURE_DWCAS AND CMAKE_SYSTEM_NAME MATCHES "Darwin")
@@ -16,7 +17,7 @@ function(userver_target_require_dwcas target visibility)
         return()
     endif()
 
-    set(CMAKE_CXX_STANDARD 17)
+    set(CMAKE_CXX_STANDARD 20)
     set(TEST_DEFINITIONS)
     set(TEST_LIBRARIES)
 

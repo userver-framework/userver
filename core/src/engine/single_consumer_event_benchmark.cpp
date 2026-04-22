@@ -29,11 +29,6 @@ constexpr Waiter kContended = [](engine::SingleConsumerEvent& event) { return ev
 
 constexpr Waiter kFailed = [](engine::SingleConsumerEvent& event) { return event.WaitForEventFor(0s); };
 
-template <typename BenchmarkType>
-void ThreadsArg(BenchmarkType* benchmark) {
-    benchmark->Arg(2)->Arg(3)->Arg(4)->Arg(6)->Arg(8)->Arg(12)->Arg(16)->Arg(32);
-}
-
 }  // namespace
 
 void SingleConsumerEvent(benchmark::State& state, Waiter waiter) {
@@ -73,10 +68,14 @@ void SingleConsumerEvent(benchmark::State& state, Waiter waiter) {
     });
 }
 
-BENCHMARK_CAPTURE(SingleConsumerEvent, Endless, kEndless)->Apply(&ThreadsArg);
-BENCHMARK_CAPTURE(SingleConsumerEvent, Successful, kSuccessful)->Apply(&ThreadsArg);
-BENCHMARK_CAPTURE(SingleConsumerEvent, Contended, kContended)->Apply(&ThreadsArg);
-BENCHMARK_CAPTURE(SingleConsumerEvent, Failed, kFailed)->Apply(&ThreadsArg);
+#define BENCHMARK_THREAD_ARGS ->Arg(2)->Arg(3)->Arg(4)->Arg(6)->Arg(8)->Arg(12)->Arg(16)->Arg(32)
+
+BENCHMARK_CAPTURE(SingleConsumerEvent, Endless, kEndless) BENCHMARK_THREAD_ARGS;
+BENCHMARK_CAPTURE(SingleConsumerEvent, Successful, kSuccessful) BENCHMARK_THREAD_ARGS;
+BENCHMARK_CAPTURE(SingleConsumerEvent, Contended, kContended) BENCHMARK_THREAD_ARGS;
+BENCHMARK_CAPTURE(SingleConsumerEvent, Failed, kFailed) BENCHMARK_THREAD_ARGS;
+
+#undef BENCHMARK_THREAD_ARGS
 
 void SingleConsumerEventPingPong(benchmark::State& state) {
     engine::RunStandalone(2, [&] {

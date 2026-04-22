@@ -1,6 +1,8 @@
 cmake_policy(SET CMP0079 NEW)
 
+# @ingroup download
 option(USERVER_DOWNLOAD_PACKAGE_GRPC "Download and setup gRPC" ${USERVER_DOWNLOAD_PACKAGES})
+# @ingroup download
 option(USERVER_FORCE_DOWNLOAD_GRPC "Download gRPC even if there is an installed system package"
        ${USERVER_FORCE_DOWNLOAD_PACKAGES}
 )

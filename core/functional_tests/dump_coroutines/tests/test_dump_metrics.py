@@ -1,4 +1,4 @@
-SYMBOL = 'server::net::Connection::ListenForRequests()'
+SYMBOL = 'server::net::Http1Connection::ListenForRequests()'
 
 
 async def test_dump_coroutines(monitor_client):

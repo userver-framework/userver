@@ -45,7 +45,10 @@ def merge_descriptions(yaml_node: dict, other: dict) -> dict:
             description += '.'
 
         if DEFAULT_DESCRIPTION_TAG in description:
-            description = description.replace(DEFAULT_DESCRIPTION_TAG, ' <i>Each of the elements:</i> ' + other['description'] + DEFAULT_DESCRIPTION_TAG)
+            description = description.replace(
+                DEFAULT_DESCRIPTION_TAG,
+                ' <i>Each of the elements:</i> ' + other['description'] + DEFAULT_DESCRIPTION_TAG,
+            )
         else:
             description += ' <i>Each of the elements:</i> ' + other['description']
 

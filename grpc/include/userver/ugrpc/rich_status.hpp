@@ -18,13 +18,15 @@ namespace ugrpc {
 /// @brief A wrapper around `google::rpc::Status` that provides a convenient API
 /// for creating and managing gRPC status responses with rich error details.
 ///
+/// Documentation: @see @ref scripts/docs/en/userver/grpc/rich_status.md
+///
 /// `RichStatus` allows you to create gRPC status responses with structured error
 /// information conforming to the Google RPC error model. It supports adding
 /// multiple error details of various types to provide comprehensive error
 /// information to clients.
 ///
-/// @see https:///google.aip.dev/193
-/// @see https:///grpc.io/docs/guides/error/
+/// @see https://google.aip.dev/193
+/// @see https://grpc.io/docs/guides/error/
 /// @see @ref ugrpc::ErrorInfo
 /// @see @ref ugrpc::RetryInfo
 /// @see @ref ugrpc::DebugInfo
@@ -37,7 +39,7 @@ namespace ugrpc {
 /// @see @ref ugrpc::LocalizedMessage
 ///
 /// ## Example usage:
-/// @snippet grpc/tests/rich_status_test.cpp rich_status_usage
+/// @snippet grpc/tests/detailed_error_test.cpp rich_status_usage
 class RichStatus final {
 public:
     /// @brief Constructs an `OK` status with no error details.
@@ -72,7 +74,7 @@ public:
     /// return only the first encountered instance.
     ///
     /// ## Example usage:
-    /// @snippet grpc/tests/rich_status_test.cpp try_get_detail_example
+    /// @snippet grpc/tests/detailed_error_test.cpp try_get_rich_error_detail
     template <typename TRichErrorDetail>
     [[nodiscard]] static std::optional<TRichErrorDetail> TryGetDetail(const google::rpc::Status& status);
 
@@ -91,8 +93,8 @@ private:
 
 /// @brief Provides structured error information about the cause of an error.
 ///
-/// @see https:///google.aip.dev/193
-/// @see https:///github.com/googleapis/googleapis/blob/master/google/rpc/error_details.proto
+/// @see https://google.aip.dev/193
+/// @see https://github.com/googleapis/googleapis/blob/master/google/rpc/error_details.proto
 /// @see @ref ugrpc::RichStatus
 ///
 /// Use this detail to provide a machine-readable error reason, domain, and
@@ -127,7 +129,7 @@ struct ErrorInfo {
 
 /// @brief Describes when the client can retry a failed request.
 ///
-/// @see https:///github.com/googleapis/googleapis/blob/master/google/rpc/error_details.proto
+/// @see https://github.com/googleapis/googleapis/blob/master/google/rpc/error_details.proto
 /// @see @ref ugrpc::RichStatus
 ///
 /// ## Example usage:
@@ -172,7 +174,7 @@ struct QuotaViolation {
 
 /// @brief Describes quota violations that caused the request to fail.
 ///
-/// @see https:///github.com/googleapis/googleapis/blob/master/google/rpc/error_details.proto
+/// @see https://github.com/googleapis/googleapis/blob/master/google/rpc/error_details.proto
 /// @see @ref ugrpc::RichStatus
 ///
 /// ## Example usage:
@@ -211,7 +213,7 @@ struct PreconditionViolation {
 
 /// @brief Describes preconditions that failed during request processing.
 ///
-/// @see https:///github.com/googleapis/googleapis/blob/master/google/rpc/error_details.proto
+/// @see https://github.com/googleapis/googleapis/blob/master/google/rpc/error_details.proto
 /// @see @ref ugrpc::RichStatus
 ///
 /// For example, if an RPC failed because it required the Terms of Service to be
@@ -244,7 +246,7 @@ struct FieldViolation {
 /// @brief Describes violations in a client request. This error type focuses on the
 /// syntactic aspects of the request.
 ///
-/// @see https:///github.com/googleapis/googleapis/blob/master/google/rpc/error_details.proto
+/// @see https://github.com/googleapis/googleapis/blob/master/google/rpc/error_details.proto
 /// @see @ref ugrpc::RichStatus
 ///
 /// ## Example usage:
@@ -260,7 +262,7 @@ struct BadRequest {
 
 /// @brief Contains metadata about the request for debugging and logging.
 ///
-/// @see https:///github.com/googleapis/googleapis/blob/master/google/rpc/error_details.proto
+/// @see https://github.com/googleapis/googleapis/blob/master/google/rpc/error_details.proto
 /// @see @ref ugrpc::RichStatus
 ///
 ///
@@ -281,7 +283,7 @@ struct RequestInfo {
 
 /// @brief Provides information about a resource that is related to the error.
 ///
-/// @see https:///github.com/googleapis/googleapis/blob/master/google/rpc/error_details.proto
+/// @see https://github.com/googleapis/googleapis/blob/master/google/rpc/error_details.proto
 /// @see @ref ugrpc::RichStatus
 ///
 /// Use this detail to describe a resource that caused the error or is
@@ -320,7 +322,7 @@ struct HelpLink {
 /// @brief Provides links to documentation and help resources.
 ///
 /// @see https://google.aip.dev/193
-/// @see https:///github.com/googleapis/googleapis/blob/master/google/rpc/error_details.proto
+/// @see https://github.com/googleapis/googleapis/blob/master/google/rpc/error_details.proto
 /// @see https://nda.ya.ru/t/PmNiceWp7NKDXb
 /// @see @ref ugrpc::RichStatus
 ///
@@ -342,7 +344,7 @@ struct Help {
 /// @brief Provides a localized error message that is safe to return to the user.
 ///
 /// @see https://google.aip.dev/193
-/// @see https:///github.com/googleapis/googleapis/blob/master/google/rpc/error_details.proto
+/// @see https://github.com/googleapis/googleapis/blob/master/google/rpc/error_details.proto
 /// @see @ref ugrpc::RichStatus
 ///
 /// Provides a localized error message that is safe to return to the user

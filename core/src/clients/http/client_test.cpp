@@ -3,6 +3,8 @@
 #include <set>
 
 #include <fmt/format.h>
+#include <gmock/gmock.h>
+
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/trim.hpp>
 
@@ -252,6 +254,18 @@ struct AuthCallback {
         return {
             "HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Type: "
             "text/html\r\nContent-Length: 7\r\n\r\nSuccess",
+            HttpResponse::kWriteAndClose
+        };
+    }
+};
+
+struct ComplexStatusValidateCallback {
+    HttpResponse operator()(const HttpRequest& request) const {
+        LOG_INFO() << "HTTP Server receive: " << request;
+
+        return {
+            "HTTP/1.1 200 This is complex status: success\r\nConnection: close\r\nContent-Length: "
+            "0\r\n\r\n",
             HttpResponse::kWriteAndClose
         };
     }
@@ -1342,6 +1356,29 @@ UTEST(HttpClient, UsingResolverWithIpv6Addrs) {
     EXPECT_EQ(res->body(), kTestData);
 }
 
+UTEST(HttpClient, ReuseWithResolverError) {
+    const utest::SimpleServer http_server{EchoCallback{}, utest::SimpleServer::kTcpIpV6};
+
+    ResolverWrapper resolver_wrapper;
+    auto http_client_ptr = utest::impl::CreateHttpClientCore(resolver_wrapper.fs_task_processor);
+    http_client_ptr->SetDnsResolver(&resolver_wrapper.resolver);
+
+    auto request =
+        http_client_ptr->CreateRequest()
+            .post("http://bad.host.local.:8080", kTestData)
+            .retry(1)
+            .verify(true)
+            .http_version(USERVER_NAMESPACE::http::HttpVersion::k11)
+            .timeout(kTimeout);
+
+    UEXPECT_THROW(request.perform()->status_code(), clients::dns::ResolverException);
+
+    const auto server_url = "http://[::1]:" + std::to_string(http_server.GetPort());
+    auto res = request.post(server_url, kTestData).perform();
+
+    EXPECT_EQ(res->body(), kTestData);
+}
+
 UTEST(HttpClient, RequestReuseBasic) {
     const EchoCallback shared_echo_callback;
     const utest::SimpleServer http_server{shared_echo_callback, utest::SimpleServer::kTcpIpV6};
@@ -1632,6 +1669,119 @@ UTEST(HttpClient, DigestAuth) {
         EXPECT_EQ(*auth_callback.responses_200, 1);
         EXPECT_EQ(res->status_code(), 401);
     }
+}
+
+UTEST(HttpClient, NoContentLengthNoBody) {
+    auto http_client_ptr = utest::CreateHttpClient();
+
+    const utest::SimpleServer http_server{[](const HttpRequest&) {
+        // No "Content-Length" header, a cunning HTTP 1.0 server!
+        return HttpResponse{
+            "HTTP/1.1 222 OK\r\nConnection: close\r\n\r\n",
+            HttpResponse::kWriteAndClose,
+        };
+    }};
+    const auto url = http_server.GetBaseUrl();
+    const std::string data{};
+
+    const auto response = http_client_ptr->CreateRequest().post(url, data).timeout(kTimeout).perform();
+
+    EXPECT_EQ(response->status_code(), 222);
+}
+
+UTEST(HttpClient, NoContentLengthWithBody) {
+    auto http_client_ptr = utest::CreateHttpClient();
+
+    const utest::SimpleServer http_server{[](const HttpRequest&) {
+        // No "Content-Length" header, a cunning HTTP 1.0 server!
+        return HttpResponse{
+            "HTTP/1.1 222 OK\r\nConnection: close\r\n\r\nBody length controlled by server side",
+            HttpResponse::kWriteAndClose,
+        };
+    }};
+    const auto url = http_server.GetBaseUrl();
+    const std::string data{};
+
+    const auto response = http_client_ptr->CreateRequest().post(url, data).timeout(kTimeout).perform();
+
+    EXPECT_EQ(response->status_code(), 222);
+    EXPECT_EQ(response->body(), "Body length controlled by server side");
+}
+
+UTEST(HttpClient, TruncatedHeaders) {
+    auto http_client_ptr = utest::CreateHttpClient();
+
+    const utest::SimpleServer http_server{[](const HttpRequest&) {
+        // No "Content-Length" header, but headers are not over
+        return HttpResponse{
+            //"HTTP/1.1 222 OK\r\nConnection: close\r\n",
+            "HTTP/1.1 222 OK\r\nConnection: ",
+            HttpResponse::kWriteAndClose,
+        };
+    }};
+    const auto url = http_server.GetBaseUrl();
+    const std::string data{};
+
+    UEXPECT_THROW(
+        (void)http_client_ptr->CreateRequest().post(url, data).timeout(kTimeout).perform(),
+        clients::http::NetworkProblemException
+    );
+}
+
+UTEST(HttpClient, EmptyResponse) {
+    auto http_client_ptr = utest::CreateHttpClient();
+
+    const utest::SimpleServer http_server{[](const HttpRequest&) {
+        // No "Content-Length" header, but headers are not over
+        return HttpResponse{
+            "",
+            HttpResponse::kWriteAndClose,
+        };
+    }};
+    const auto url = http_server.GetBaseUrl();
+    const std::string data{};
+
+    UEXPECT_THROW(
+        (void)http_client_ptr->CreateRequest().post(url, data).timeout(kTimeout).perform(),
+        clients::http::TechnicalError
+    );
+}
+
+UTEST(HttpClient, TruncatedBody) {
+    auto http_client_ptr = utest::CreateHttpClient();
+
+    const utest::SimpleServer http_server{[](const HttpRequest&) {
+        // No "Content-Length" header, but headers are not over
+        return HttpResponse{
+            //"HTTP/1.1 222 OK\r\nConnection: close\r\n",
+            "HTTP/1.1 222 OK\r\nContent-Length: 1000\r\n\r\nTruncated body",
+            HttpResponse::kWriteAndClose,
+        };
+    }};
+    const auto url = http_server.GetBaseUrl();
+    const std::string data{};
+
+    UEXPECT_THROW(
+        (void)http_client_ptr->CreateRequest().post(url, data).timeout(kTimeout).perform(),
+        clients::http::TechnicalError
+    );
+}
+
+UTEST(HttpClient, CorrectComplexStatusLineParsing) {
+    const utest::SimpleServer http_server{ComplexStatusValidateCallback{}};
+    auto http_client_ptr = utest::CreateHttpClient();
+
+    auto request =
+        http_client_ptr->CreateRequest()
+            .post(http_server.GetBaseUrl(), "anything")
+            .retry(1)
+            .verify(true)
+            .http_version(USERVER_NAMESPACE::http::HttpVersion::k11)
+            .timeout(kTimeout);
+    auto response = request.perform();
+    const http::headers::HeaderMap expected{{"Connection", "close"}, {"Content-Length", "0"}};
+    // Status line should not be interpreted as a header
+    EXPECT_THAT(response->headers(), testing::ContainerEq(expected));
 }
 
 USERVER_NAMESPACE_END

@@ -2,6 +2,7 @@
 
 #include <functional>
 #include <typeindex>
+#include <unordered_set>
 
 #include <fmt/format.h>
 #include <boost/functional/hash.hpp>
@@ -26,12 +27,21 @@ MetricMetadataMap& GetRegisteredMetrics() {
     return map;
 }
 
-MetricMap InstantiateMetrics() {
+MetricMap InstantiateMetrics(const std::optional<std::vector<std::string>>& allowed_metric_paths) {
     utils::impl::AssertStaticRegistrationFinished();
     const auto& registered_metrics = GetRegisteredMetrics();
 
+    std::optional<std::unordered_set<std::string>> metric_paths;
+    if (allowed_metric_paths.has_value()) {
+        metric_paths = std::unordered_set<std::string>(allowed_metric_paths->begin(), allowed_metric_paths->end());
+    }
+
     MetricMap metrics;
     for (const auto& [key, factory] : registered_metrics) {
+        if (metric_paths.has_value() && !metric_paths->count(key.path)) {
+            continue;
+        }
+
         metrics.emplace(key, factory());
     }
     return metrics;
@@ -57,7 +67,11 @@ void RegisterMetricInfo(const MetricKey& key, MetricFactory factory) {
 }  // namespace impl
 
 MetricsStorage::MetricsStorage()
-    : metrics_(impl::InstantiateMetrics())
+    : MetricsStorage(std::nullopt)
+{}
+
+MetricsStorage::MetricsStorage(const std::optional<std::vector<std::string>>& allowed_metric_paths)
+    : metrics_(impl::InstantiateMetrics(allowed_metric_paths))
 {}
 
 std::vector<Entry> MetricsStorage::RegisterIn(Storage& statistics_storage) {

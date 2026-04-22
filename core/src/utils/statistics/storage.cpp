@@ -7,10 +7,11 @@
 #include <userver/formats/common/utils.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/resource_scopes.hpp>
 #include <userver/utils/text_light.hpp>
-#include <utils/statistics/value_builder_helpers.hpp>
 
 #include <utils/statistics/entry_impl.hpp>
+#include <utils/statistics/value_builder_helpers.hpp>
 #include <utils/statistics/visitation.hpp>
 #include <utils/statistics/writer_state.hpp>
 
@@ -176,6 +177,23 @@ void Storage::UnregisterExtender(impl::StorageIterator iterator, [[maybe_unused]
         }
     }
     metrics_sources_.erase(iterator);
+}
+
+void RegisterWriterScope(
+    ResourceScopeStorage& scope_storage,
+    Storage& storage,
+    std::string common_prefix,
+    WriterFunc func,
+    std::vector<Label> add_labels
+)
+{
+    scope_storage
+        .Register([&storage,
+                   common_prefix = std::move(common_prefix),
+                   func = std::move(func),
+                   add_labels = std::move(add_labels)] {
+            return storage.RegisterWriter(common_prefix, std::move(func), std::move(add_labels));
+        });
 }
 
 }  // namespace utils::statistics

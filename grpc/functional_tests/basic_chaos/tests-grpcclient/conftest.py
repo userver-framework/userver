@@ -72,18 +72,12 @@ async def _gate_ready(_gate_started, greeter_mock):
 @pytest.fixture(scope='session')
 def grpc_mockserver_endpoint(grpc_client_port):
     return f'[::]:{grpc_client_port}'
+    # [grpc_mockserver_endpoint example]
 
 
-# [grpc_mockserver_endpoint example]
-
-
-# [installing mockserver servicer]
 @pytest.fixture(name='greeter_mock')
 def _greeter_mock(grpc_mockserver):
-    mock = GreeterService()
-    grpc_mockserver.install_servicer(mock)
-    return mock
-    # [installing mockserver servicer]
+    return grpc_mockserver.install_servicer(GreeterService())
 
 
 @pytest.fixture(scope='session')

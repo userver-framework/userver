@@ -8,7 +8,6 @@
 #include <userver/components/component_base.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/middlewares/runner.hpp>
-#include <userver/utils/box.hpp>
 #include <userver/yaml_config/fwd.hpp>
 
 #include <userver/ugrpc/server/middlewares/fwd.hpp>
@@ -61,8 +60,8 @@ protected:
 private:
     ServerComponent& server_;
     ServiceConfig config_;
+    std::string component_name_;
     std::atomic<bool> registered_{false};
-    utils::Box<ServiceInfo> info_;
 };
 
 namespace impl {

@@ -1,10 +1,10 @@
 import pytest
 
-from chaotic.front.parser import ParserError
+from chaotic.front import parser as front_parser
 
 
 def test_array_missing_items(simple_parse):
-    with pytest.raises(ParserError) as exc:
+    with pytest.raises(front_parser.ParserError) as exc:
         simple_parse({'type': 'array'})
     assert exc.value.infile_path == '/definitions/type/items'
     assert exc.value.msg == '"items" is missing'

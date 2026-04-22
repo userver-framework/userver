@@ -20,7 +20,7 @@ constexpr float kMin = std::numeric_limits<float>::min();
 
 struct FloatToJsonSuccessTestParam {
     FloatMessageData input = {};
-    WriteOptions options = {};
+    PrintOptions options = {};
 };
 
 void PrintTo(const FloatToJsonSuccessTestParam& param, std::ostream* os) {
@@ -34,7 +34,7 @@ INSTANTIATE_TEST_SUITE_P(
     FloatToJsonSuccessTest,
     ::testing::Values(
         FloatToJsonSuccessTestParam{FloatMessageData{0.0}},
-        FloatToJsonSuccessTestParam{FloatMessageData{0}, WriteOptions{.always_print_fields_with_no_presence = true}},
+        FloatToJsonSuccessTestParam{FloatMessageData{0}, {.always_print_fields_with_no_presence = true}},
         FloatToJsonSuccessTestParam{FloatMessageData{1}},
         FloatToJsonSuccessTestParam{FloatMessageData{-1}},
         FloatToJsonSuccessTestParam{FloatMessageData{100.12357}},
@@ -50,7 +50,8 @@ TEST_P(FloatToJsonSuccessTest, Test) {
     const auto& param = GetParam();
 
     auto input = PrepareTestData(param.input);
-    formats::json::Value json, sample_json;
+    formats::json::Value json;
+    formats::json::Value sample_json;
 
     UASSERT_NO_THROW((json = MessageToJson(input, param.options)));
     UASSERT_NO_THROW((sample_json = CreateSampleJson(input, param.options)));

@@ -1,3 +1,4 @@
+# @ingroup download
 option(USERVER_DOWNLOAD_PACKAGE_CLICKHOUSECPP "Download and setup clickhouse-cpp" ${USERVER_DOWNLOAD_PACKAGES})
 
 if(CMAKE_SYSTEM_NAME MATCHES "Darwin")

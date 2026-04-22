@@ -104,11 +104,8 @@ void IoWatcher::CallWriteCb(std::error_code ec) {
 }
 
 void IoWatcher::Cancel() {
-    LOG_TRACE() << "IoWatcher::Cancel (1)";
     CancelSingle(watcher_write_, cb_write_);
-    LOG_TRACE() << "IoWatcher::Cancel (2)";
     CancelSingle(watcher_read_, cb_read_);
-    LOG_TRACE() << "IoWatcher::Cancel (3)";
 }
 
 void IoWatcher::CancelSingle(Watcher<ev_io>& watcher, Callback& cb) {

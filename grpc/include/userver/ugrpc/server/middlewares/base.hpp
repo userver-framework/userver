@@ -18,6 +18,12 @@
 #include <userver/ugrpc/rpc_type.hpp>
 #include <userver/ugrpc/server/call_context.hpp>
 
+namespace google::protobuf {
+
+class ServiceDescriptor;
+
+}  // namespace google::protobuf
+
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::impl {
@@ -35,7 +41,23 @@ namespace ugrpc::server {
 ///
 /// @brief Service meta info for a middleware construction.
 struct ServiceInfo final {
-    std::string full_service_name{};
+    /// Name of the service component for which the middlewares are being instantiated.
+    std::string service_component_name;
+
+    /// Full gRPC service name in the form `package.name.ServiceName`.
+    ///
+    /// For @ref ugrpc::server::GenericServiceBase "generic services", there is no name,
+    /// and only one middleware instance is created for all RPCs.
+    std::optional<std::string> full_service_name;
+
+    /// Protobuf descriptor of the service.
+    ///
+    /// For @ref ugrpc::server::GenericServiceBase "generic services", there is no descriptor.
+    ///
+    /// If request and response messages are defined in a separate `.proto` file, then there might not be
+    /// a `ServiceDescriptor` for a non-generic RPC,
+    /// see [Protobuf issue](https://github.com/protocolbuffers/protobuf/issues/4221).
+    const google::protobuf::ServiceDescriptor* service_descriptor{nullptr};
 };
 
 /// @ingroup userver_grpc_server_middlewares
@@ -110,7 +132,7 @@ public:
     ///  * stream: 0, 1 or more times
     virtual void PostRecvMessage(MiddlewareCallContext& context, google::protobuf::Message& request) const;
 
-    /// @brief The function is invoked before each sended message.
+    /// @brief The function is invoked before each sent message.
     ///
     /// PreSendMessage is called:
     ///  * unary: 0 or 1 per Call (RPC), depending on whether the RPC returns a response or a failed status

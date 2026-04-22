@@ -14,6 +14,7 @@
 #include <userver/tracing/span.hpp>
 #include <userver/utils/encoding/hex.hpp>
 #include <userver/utils/fast_scope_guard.hpp>
+#include <userver/utils/numeric_cast.hpp>
 #include <userver/utils/span.hpp>
 
 #include <kafka/impl/error_buffer.hpp>
@@ -310,6 +311,7 @@ void ConsumerImpl::LogCallback(const char* facility, const char* message, int lo
 void ConsumerImpl::RebalanceCallback(rd_kafka_resp_err_t err, const rd_kafka_topic_partition_list_t* partitions) {
     tracing::Span span{"rebalance_callback"};
     span.AddTag("kafka_callback", "rebalance_callback");
+    span.AddTag("kafka_consumer", name_);
 
     LOG(execution_params_.operation_log_level,
         "Consumer group rebalanced ('{}' protocol)",
@@ -389,7 +391,7 @@ void ConsumerImpl::CallUserRebalanceCallback(
 void ConsumerImpl::OffsetCommitCallback(
     rd_kafka_resp_err_t err,
     const rd_kafka_topic_partition_list_t* committed_offsets
-) {
+) const {
     tracing::Span span{"offset_commit_callback"};
     span.AddTag("kafka_callback", "offset_commit_callback");
 
@@ -534,10 +536,9 @@ std::vector<std::uint32_t> ConsumerImpl::GetPartitionIds(
 
     const utils::span<const rd_kafka_metadata_topic>
         topics{metadata->topics, static_cast<std::size_t>(metadata->topic_cnt)};
-    const auto*
-        topic_it = std::find_if(topics.begin(), topics.end(), [&topic](const rd_kafka_metadata_topic& topic_raw) {
-            return topic == topic_raw.topic;
-        });
+    const auto topic_it = std::ranges::find_if(topics, [&topic](const rd_kafka_metadata_topic& topic_raw) {
+        return topic == topic_raw.topic;
+    });
     if (topic_it == topics.end()) {
         throw TopicNotFoundException{fmt::format("Failed to find topic: {}", topic)};
     }
@@ -729,6 +730,20 @@ void ConsumerImpl::Seek(
     SeekToOffset(topic, partition_id, static_cast<std::int64_t>(offset), timeout);
 }
 
+void ConsumerImpl::MultiSeek(utils::span<const SeekParams> params, std::chrono::milliseconds timeout) const {
+    if (params.empty()) {
+        return;
+    }
+    for (const auto& p : params) {
+        if (p.offset > static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max())) {
+            throw SeekInvalidArgumentException(
+                fmt::format("Offset value have to be <= std::int64_t::max(). offset: {}", p.offset)
+            );
+        }
+    }
+    SeekToOffsets(params, timeout);
+}
+
 void ConsumerImpl::SeekToOffset(
     utils::zstring_view topic,
     std::uint32_t partition_id,
@@ -768,13 +783,7 @@ void ConsumerImpl::SeekToOffset(
     const auto* err =
         rd_kafka_seek_partitions(consumer_.GetHandle(), topic_partitions_list.GetHandle(), ToRdKafkaTimeout(deadline));
     if (err == nullptr) {
-        LOG_INFO(
-            "Seeked to offset: {}"
-            " for partition: {} topic: {} successfully",
-            offset,
-            partition_id,
-            topic
-        );
+        LOG_INFO("Sought to offset: {} for partition: {} topic: {} successfully", offset, partition_id, topic);
         return;
     }
 
@@ -784,6 +793,50 @@ void ConsumerImpl::SeekToOffset(
         partition_id,
         rd_kafka_error_string(err)
     ));
+}
+
+void ConsumerImpl::SeekToOffsets(utils::span<const SeekParams> params, std::chrono::milliseconds timeout) const {
+    if (params.empty()) {
+        return;
+    }
+    if (timeout.count() <= 0) {
+        throw SeekInvalidArgumentException(fmt::format("Timeout value have to be > 0. value: {}ms", timeout.count()));
+    }
+
+    const auto deadline = engine::Deadline::FromDuration(timeout);
+
+    // Seek is local in librdkafka (next_fetch_position). No poll needed; next Fetch uses new position.
+    TopicPartitionsListHolder topic_partitions_list{
+        rd_kafka_topic_partition_list_new(utils::numeric_cast<int>(params.size()))
+    };
+    for (const auto& p : params) {
+        rd_kafka_topic_partition_t* part = rd_kafka_topic_partition_list_add(
+            topic_partitions_list.GetHandle(),
+            p.topic.c_str(),
+            static_cast<std::int32_t>(p.partition_id)
+        );
+        part->offset = static_cast<std::int64_t>(p.offset);
+    }
+
+    PrintTopicPartitionsList(topic_partitions_list.GetHandle(), [](const rd_kafka_topic_partition_t& partition) {
+        return fmt::format(
+            "Partition {} for topic '{}' seeking to offset: {}",
+            partition.partition,
+            partition.topic,
+            partition.offset
+        );
+    });
+
+    const auto* err =
+        rd_kafka_seek_partitions(consumer_.GetHandle(), topic_partitions_list.GetHandle(), ToRdKafkaTimeout(deadline));
+    if (err == nullptr) {
+        LOG_INFO("MultiSeek: sought {} partition(s) successfully", params.size());
+        return;
+    }
+
+    throw SeekException(
+        fmt::format("Failed to multi-seek {} partition(s). err: {}", params.size(), rd_kafka_error_string(err))
+    );
 }
 
 void ConsumerImpl::SeekToEnd(utils::zstring_view topic, std::uint32_t partition_id, std::chrono::milliseconds timeout)

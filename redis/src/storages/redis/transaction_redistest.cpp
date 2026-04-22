@@ -934,21 +934,6 @@ UTEST_F(RedisClientTransactionTest, Zscore) {
     EXPECT_EQ(Get(client->Zscore("zset", "two")), 2.);
 }
 
-namespace {
-
-std::uint64_t GetCommandCount(std::unordered_map<std::string, storages::redis::impl::ShardStatistics>& stat) {
-    std::uint64_t command_count = 0;
-    std::for_each(stat.begin(), stat.end(), [&](auto& shard) {
-        command_count +=
-            shard.second.shard_total.error_count[static_cast<std::size_t>(storages::redis::ReplyStatus::kOk)]
-                .Load()
-                .value;
-    });
-    return command_count;
-}
-
-}  // namespace
-
 UTEST_F(RedisClientTransactionTest, NotReadOnlySetSet) {
     auto client = GetClient();
     auto sentinel = GetSentinel();
@@ -961,8 +946,8 @@ UTEST_F(RedisClientTransactionTest, NotReadOnlySetSet) {
     transaction->Exec(kDefaultCc).Get();
 
     auto after = sentinel->GetStatistics({});
-    const std::uint64_t master_command_count = GetCommandCount(after.masters) - GetCommandCount(before.masters);
-    const std::uint64_t slave_command_count = GetCommandCount(after.slaves) - GetCommandCount(before.slaves);
+    const std::uint64_t master_command_count = after->master_commands - before->master_commands;
+    const std::uint64_t slave_command_count = after->slaves_commands - before->slaves_commands;
 
     EXPECT_EQ(master_command_count, 4);
     EXPECT_EQ(slave_command_count, 0);
@@ -988,8 +973,8 @@ UTEST_F(RedisClientTransactionTest, NotReadOnlySetGet) {
     }
 
     auto after = sentinel->GetStatistics({});
-    const std::uint64_t master_command_count = GetCommandCount(after.masters) - GetCommandCount(before.masters);
-    const std::uint64_t slave_command_count = GetCommandCount(after.slaves) - GetCommandCount(before.slaves);
+    const std::uint64_t master_command_count = after->master_commands - before->master_commands;
+    const std::uint64_t slave_command_count = after->slaves_commands - before->slaves_commands;
 
     EXPECT_EQ(master_command_count, 8);
     EXPECT_EQ(slave_command_count, 0);
@@ -1007,8 +992,8 @@ UTEST_F(RedisClientTransactionTest, ReadOnlyGetGet) {
     transaction->Exec(kDefaultCc).Get();
 
     auto after = sentinel->GetStatistics({});
-    const std::uint64_t master_command_count = GetCommandCount(after.masters) - GetCommandCount(before.masters);
-    const std::uint64_t slave_command_count = GetCommandCount(after.slaves) - GetCommandCount(before.slaves);
+    const std::uint64_t master_command_count = after->master_commands - before->master_commands;
+    const std::uint64_t slave_command_count = after->slaves_commands - before->slaves_commands;
 
     EXPECT_EQ(master_command_count, 0);
     EXPECT_EQ(slave_command_count, 4);

@@ -1,5 +1,7 @@
 #include <userver/utils/statistics/labels.hpp>
 
+#include <fmt/ranges.h>
+
 #include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -27,6 +29,8 @@ bool operator==(const LabelView& x, const LabelView& y) noexcept {
     return x.Name() == y.Name() && x.Value() == y.Value();
 }
 
+bool operator!=(const LabelView& x, const LabelView& y) noexcept { return !(x == y); }
+
 Label::Label(LabelView view)
     : name_{view.Name()},
       value_{view.Value()}
@@ -38,6 +42,15 @@ bool operator<(const Label& x, const Label& y) noexcept {
 
 bool operator==(const Label& x, const Label& y) noexcept { return x.Name() == y.Name() && x.Value() == y.Value(); }
 
+bool operator!=(const Label& x, const Label& y) noexcept { return !(x == y); }
+
 }  // namespace utils::statistics
 
 USERVER_NAMESPACE_END
+
+fmt::format_context::iterator fmt::formatter<USERVER_NAMESPACE::utils::statistics::LabelsSpan>::format(
+    USERVER_NAMESPACE::utils::statistics::LabelsSpan value,
+    format_context& ctx
+) const {
+    return fmt::format_to(ctx.out(), "{}", fmt::join(value, ";"));
+}

@@ -192,7 +192,7 @@ struct User {
 
 struct ZoneSettingsV1 {
     bool repeat_requests_enabled;
-    std::chrono::seconds order_update_period;  // intentionally missmatch with DB type
+    std::chrono::seconds order_update_period;  // intentionally mismatch with DB type
 };
 
 struct ZoneIntegrationSettingsV1 {
@@ -294,11 +294,11 @@ static_assert(tt::detail::AssertHasCompositeFormatters<pgtest::FooTuple>());
 static_assert(tt::detail::AssertHasCompositeFormatters<pgtest::FooBar>());
 static_assert(tt::detail::AssertHasCompositeFormatters<pgtest::FooClass>());
 
-static_assert(tt::kHasParser<pgtest::BunchOfFoo>);
-static_assert(tt::kHasFormatter<pgtest::BunchOfFoo>);
+static_assert(tt::HasParser<pgtest::BunchOfFoo>);
+static_assert(tt::HasFormatter<pgtest::BunchOfFoo>);
 
-static_assert(tt::kHasParser<pgtest::NoUserMapping>);
-static_assert(!tt::kHasFormatter<pgtest::NoUserMapping>);
+static_assert(tt::HasParser<pgtest::NoUserMapping>);
+static_assert(!tt::HasFormatter<pgtest::NoUserMapping>);
 
 static_assert(tt::kTypeBufferCategory<pgtest::FooTuple> == io::BufferCategory::kCompositeBuffer);
 static_assert(tt::kTypeBufferCategory<pgtest::FooBar> == io::BufferCategory::kCompositeBuffer);
@@ -834,7 +834,7 @@ UTEST_P(PostgreConnection, CompositeTypeParseExceptionReadability) {
     {
         UEXPECT_NO_THROW(GetConn()->Execute(
             "create type __pgtest.zones_settings_v1 as (x1 BOOLEAN, "
-            "x2 BIGINT"  // intentionally missmatch with C++ type
+            "x2 BIGINT"  // intentionally mismatch with C++ type
             ")"
         ));
         UEXPECT_NO_THROW(GetConn()

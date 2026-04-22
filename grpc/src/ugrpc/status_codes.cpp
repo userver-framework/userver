@@ -60,8 +60,8 @@ std::string ToString(grpc::StatusCode code) noexcept {
 
 // See https://opentelemetry.io/docs/specs/semconv/rpc/grpc/
 // Except that we don't mark DEADLINE_EXCEEDED as a server error.
-bool IsServerError(grpc::StatusCode status) noexcept {
-    switch (status) {
+bool IsServerError(grpc::StatusCode code) noexcept {
+    switch (code) {
         case grpc::StatusCode::UNKNOWN:
         case grpc::StatusCode::UNIMPLEMENTED:
         case grpc::StatusCode::INTERNAL:
@@ -72,6 +72,22 @@ bool IsServerError(grpc::StatusCode status) noexcept {
             return false;
     }
 }
+
+/// [retryable]
+bool IsRetryable(grpc::StatusCode code) noexcept {
+    switch (code) {
+        case grpc::StatusCode::CANCELLED:
+        case grpc::StatusCode::UNKNOWN:
+        case grpc::StatusCode::DEADLINE_EXCEEDED:
+        case grpc::StatusCode::INTERNAL:
+        case grpc::StatusCode::UNAVAILABLE:
+            return true;
+
+        default:
+            return false;
+    }
+}
+/// [retryable]
 
 }  // namespace ugrpc
 

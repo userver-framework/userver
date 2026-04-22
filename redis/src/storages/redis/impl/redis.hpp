@@ -15,6 +15,7 @@
 #include <userver/storages/redis/redis_state.hpp>
 
 #include "redis_creation_settings.hpp"
+#include "storages/redis/impl/redis_stats.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -29,7 +30,8 @@ public:
     Redis(
         const std::shared_ptr<engine::ev::ThreadPool>& thread_pool,
         const RedisCreationSettings& redis_settings,
-        const std::string& shard_group_name
+        const std::string& shard_group_name,
+        Statistics& external_statistics
     );
     ~Redis();
 
@@ -53,7 +55,7 @@ public:
     bool CanRetry() const;
 
     State GetState() const;
-    const Statistics& GetStatistics() const;
+    const NonSharedInstanceStatistics& GetStatistics() const;
     ServerId GetServerId() const;
 
     void SetCommandsBufferingSettings(CommandsBufferingSettings commands_buffering_settings);

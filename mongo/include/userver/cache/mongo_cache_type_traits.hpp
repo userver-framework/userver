@@ -69,6 +69,7 @@ inline constexpr bool kHasFindOperation = meta::IsDetected<HasFindOperation, T>;
 template <typename T>
 using HasCorrectFindOperation = meta::ExpectSame<
     storages::mongo::operations::Find,
+    // NOLINTNEXTLINE(readability-static-accessed-through-instance)
     decltype(std::declval<const T&>().GetFindOperation(
         std::declval<cache::UpdateType>(),
         std::declval<const std::chrono::system_clock::time_point&>(),

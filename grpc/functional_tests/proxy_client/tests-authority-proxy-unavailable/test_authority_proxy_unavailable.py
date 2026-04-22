@@ -1,4 +1,4 @@
-import grpc
+import grpc.aio
 import pytest
 import pytest_userver.client
 
@@ -9,7 +9,7 @@ import samples.greeter_pb2_grpc as greeter_services
 @pytest.fixture(autouse=True)
 async def mock_say_hello(grpc_mockserver):
     @grpc_mockserver(greeter_services.GreeterServiceServicer.SayHello)
-    async def mock_say_hello(request, context: grpc.aio.ServicerContext):
+    async def mock_say_hello(request: greeter_protos.GreetingRequest, context: grpc.aio.ServicerContext):
         return greeter_protos.GreetingResponse()
 
     return mock_say_hello
@@ -32,12 +32,12 @@ async def test_authority_proxy_unavailable(service_client, mock_say_hello):
 async def test_proxy_disabled_by_cfg(
     service_client,
     mock_say_hello,
-    taxi_config,
+    dynamic_config,
     grpc_mockserver_endpoint,
     disable_proxy,
     disable_target,
 ):
-    taxi_config.set_values({
+    dynamic_config.set_values({
         'EGRESS_GRPC_PROXY_ENABLED': not disable_proxy,
         'EGRESS_NO_PROXY_TARGETS': {
             'targets': [grpc_mockserver_endpoint] if disable_target else [],

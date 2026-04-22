@@ -17,7 +17,7 @@ namespace protobuf::json::tests {
 struct StringToJsonSuccessTestParam {
     StringMessageData input = {};
     std::string expected_json = {};
-    WriteOptions options = {};
+    PrintOptions options = {};
 };
 
 void PrintTo(const StringToJsonSuccessTestParam& param, std::ostream* os) {
@@ -34,7 +34,7 @@ INSTANTIATE_TEST_SUITE_P(
         StringToJsonSuccessTestParam{
             StringMessageData{""},
             R"({"field1":""})",
-            WriteOptions{.always_print_fields_with_no_presence = true}
+            {.always_print_fields_with_no_presence = true}
         },
         StringToJsonSuccessTestParam{StringMessageData{"hello world"}, R"({"field1":"hello world"})"}
     )
@@ -44,7 +44,9 @@ TEST_P(StringToJsonSuccessTest, Test) {
     const auto& param = GetParam();
 
     auto input = PrepareTestData(param.input);
-    formats::json::Value json, expected_json, sample_json;
+    formats::json::Value json;
+    formats::json::Value expected_json;
+    formats::json::Value sample_json;
 
     UASSERT_NO_THROW((json = MessageToJson(input, param.options)));
     UASSERT_NO_THROW((expected_json = PrepareJsonTestData(param.expected_json)));

@@ -1,10 +1,13 @@
 #include <storages/postgres/postgres_config.hpp>
 
+#include <fmt/format.h>
+
 #include <userver/logging/log.hpp>
 
 #include <storages/postgres/experiments.hpp>
 #include <userver/storages/postgres/component.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
+#include <userver/utils/userver_info.hpp>
 
 #include <userver/formats/common/items.hpp>
 
@@ -95,6 +98,8 @@ ConnectionSettings ParseConnectionSettings(const ConfigType& config) {
             ? ConnectionSettings::kDiscardAll
             : ConnectionSettings::kDiscardNone;
     settings.deadline_propagation_enabled = config["deadline-propagation-enabled"].template As<bool>(true);
+    settings.application_name =
+        config["application_name"].template As<std::string>(USERVER_NAMESPACE::utils::GetUserverIdentifier());
 
     return settings;
 }
@@ -155,6 +160,16 @@ ConnectionSettings Parse(const yaml_config::YamlConfig& config, formats::parse::
 
 namespace {
 
+template <typename T>
+std::string ToString(const std::optional<T>& v) {
+    if (v.has_value()) {
+        return std::to_string(*v);
+    }
+    return "std::nullopt";
+}
+
+std::string ToString(std::size_t v) { return std::to_string(v); }
+
 template <typename T, typename ConfigType>
 T GetField(const ConfigType& config, std::string_view name, T default_val) {
     return config[name].template As<T>(default_val);
@@ -172,7 +187,11 @@ Settings ParsePoolSettings(const ConfigType& config) {
         throw InvalidConfig{"max_pool_size must be greater than 0"};
     }
     if (result.max_size < result.min_size) {
-        throw InvalidConfig{"max_pool_size cannot be less than min_pool_size"};
+        throw InvalidConfig{fmt::format(
+            "max_pool_size cannot be less than min_pool_size. max_pool_size={}, min_pool_size={}",
+            ToString(result.max_size),
+            ToString(result.min_size)
+        )};
     }
 
     return result;
@@ -224,19 +243,18 @@ StatementMetricsSettings Parse(const yaml_config::YamlConfig& config, formats::p
 
 Config Config::Parse(const dynamic_config::DocsMap& docs_map) {
     return Config{
-        /*default_command_control=*/docs_map.Get("POSTGRES_DEFAULT_COMMAND_CONTROL").As<CommandControl>(),
-        /*handlers_command_control=*/
-        docs_map.Get("POSTGRES_HANDLERS_COMMAND_CONTROL").As<CommandControlByHandlerMap>(),
-        /*queries_command_control=*/
-        docs_map.Get("POSTGRES_QUERIES_COMMAND_CONTROL").As<CommandControlByQueryMap>(),
-        /*pool_settings=*/
-        docs_map.Get("POSTGRES_CONNECTION_POOL_SETTINGS").As<dynamic_config::ValueDict<PoolSettingsDynamic>>(),
-        /*topology_settings*/
-        docs_map.Get("POSTGRES_TOPOLOGY_SETTINGS").As<dynamic_config::ValueDict<TopologySettings>>(),
-        /*connection_settings=*/
-        docs_map.Get("POSTGRES_CONNECTION_SETTINGS").As<dynamic_config::ValueDict<ConnectionSettingsDynamic>>(),
-        /*statement_metrics_settings=*/
-        docs_map.Get("POSTGRES_STATEMENT_METRICS_SETTINGS").As<dynamic_config::ValueDict<StatementMetricsSettings>>(),
+        .default_command_control = docs_map.Get("POSTGRES_DEFAULT_COMMAND_CONTROL").As<CommandControl>(),
+        .handlers_command_control = docs_map.Get("POSTGRES_HANDLERS_COMMAND_CONTROL").As<CommandControlByHandlerMap>(),
+        .queries_command_control = docs_map.Get("POSTGRES_QUERIES_COMMAND_CONTROL").As<CommandControlByQueryMap>(),
+        .pool_settings =
+            docs_map.Get("POSTGRES_CONNECTION_POOL_SETTINGS").As<dynamic_config::ValueDict<PoolSettingsDynamic>>(),
+        .topology_settings =
+            docs_map.Get("POSTGRES_TOPOLOGY_SETTINGS").As<dynamic_config::ValueDict<TopologySettings>>(),
+        .connection_settings =
+            docs_map.Get("POSTGRES_CONNECTION_SETTINGS").As<dynamic_config::ValueDict<ConnectionSettingsDynamic>>(),
+        .statement_metrics_settings =
+            docs_map.Get("POSTGRES_STATEMENT_METRICS_SETTINGS")
+                .As<dynamic_config::ValueDict<StatementMetricsSettings>>(),
     };
 }
 

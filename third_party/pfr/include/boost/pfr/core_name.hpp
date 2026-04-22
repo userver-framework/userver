@@ -14,15 +14,19 @@
 
 #include <boost/pfr/detail/config.hpp>
 
+#if !defined(BOOST_USE_MODULES) || defined(BOOST_PFR_INTERFACE_UNIT)
+
 #include <boost/pfr/detail/core_name.hpp>
 
 #include <boost/pfr/detail/sequence_tuple.hpp>
 #include <boost/pfr/detail/stdarray.hpp>
 #include <boost/pfr/detail/make_integer_sequence.hpp>
 
-#include <cstddef> // for std::size_t
-
 #include <boost/pfr/tuple_size.hpp>
+
+#if !defined(BOOST_PFR_INTERFACE_UNIT)
+#include <cstddef> // for std::size_t
+#endif
 
 /// \file boost/pfr/core_name.hpp
 /// Contains functions \forcedlink{get_name} and \forcedlink{names_as_array} to know which names each field of any \aggregate has.
@@ -79,8 +83,7 @@ auto
 names_as_array() noexcept {
     return detail::make_stdarray_from_tietuple(
         detail::tie_as_names_tuple<T>(),
-        detail::make_index_sequence< tuple_size_v<T> >(),
-        1L
+        detail::make_index_sequence< tuple_size_v<T> >()
     );
 }
 
@@ -109,5 +112,7 @@ constexpr void for_each_field_with_name(T&& value, F&& func) {
 BOOST_PFR_END_MODULE_EXPORT
 
 }} // namespace boost::pfr
+
+#endif  // #if !defined(BOOST_USE_MODULES) || defined(BOOST_PFR_INTERFACE_UNIT)
 
 #endif // BOOST_PFR_CORE_NAME_HPP

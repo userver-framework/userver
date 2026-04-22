@@ -117,31 +117,28 @@ bool ClusterShard::AsyncCommand(CommandPtr command) const {
     return false;
 }
 
-void ClusterShard::GetStatistics(bool master, const MetricsSettings& settings, ShardStatistics& stats) const {
-    auto add_to_stats = [&settings, &stats](const auto& instance) {
-        if (!instance) {
-            return;
-        }
-        auto master_host_port = instance->GetServerHost() + ":" + std::to_string(instance->GetServerPort());
-        auto it = stats.instances.emplace(std::move(master_host_port), impl::InstanceStatistics(settings));
-        auto& inst_stats = it.first->second;
-        inst_stats.Fill(instance->GetStatistics());
-        stats.shard_total.Add(inst_stats);
-    };
-
+void ClusterShard::GetConnStats(bool master, ConnStateStatistic& stats) const {
     if (master) {
         if (master_) {
-            add_to_stats(master_->Get());
+            stats.Add(master_->GetState());
         }
     } else {
-        for (const auto& instance : replicas_) {
-            if (instance) {
-                add_to_stats(instance->Get());
-            }
+        for (const auto& replica : replicas_) {
+            stats.Add(replica->GetState());
         }
     }
+}
 
-    stats.is_ready = IsReady(WaitConnectedMode::kMasterAndSlave);
+void ClusterShard::GetCommandsCounter(bool master, size_t& stats) const {
+    if (master) {
+        if (master_) {
+            stats += master_->GetCommandsCounter();
+        }
+    } else {
+        for (const auto& replica : replicas_) {
+            stats += replica->GetCommandsCounter();
+        }
+    }
 }
 
 /// Prioritize first command_control.best_dc_count nearest by ping instances.
@@ -281,7 +278,7 @@ size_t GetStartIndex(
         best_dc_count = std::numeric_limits<size_t>::max();
     }
     const bool first_attempt = (attempt == 0);
-    const bool first_try = prev_instance_idx == SentinelImplBase::kDefaultPrevInstanceIdx;
+    const bool first_try = prev_instance_idx == SentinelImpl::kDefaultPrevInstanceIdx;
     /// For compatibility with non-cluster-autotopology driver:
     /// List of available servers for readonly
     /// requests still contains master. Master is the last server in list.

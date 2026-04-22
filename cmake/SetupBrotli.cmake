@@ -1,3 +1,4 @@
+# @ingroup download
 option(USERVER_DOWNLOAD_PACKAGE_BROTLI "Download and setup Brotli if no Brotli of matching version was found"
        ${USERVER_DOWNLOAD_PACKAGES}
 )

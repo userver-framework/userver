@@ -17,10 +17,15 @@ public:
     using ProtobufResponse = proto_structs::traits::CompatibleMessageType<StructsResponse>;
     using ProtobufStreamFuture = ugrpc::client::StreamReadFuture<ProtobufResponse>;
 
-    explicit StreamReadFuture(ProtobufStreamFuture&& future, ProtobufResponse& response)
+    StreamReadFuture(ProtobufStreamFuture&& future, ProtobufResponse& response)
         : future_{std::move(future)},
           response_(response)
     {}
+
+    /// @brief Checks if the asynchronous call has completed
+    ///        Note, that once user gets result, IsReady should not be called
+    /// @return true if result ready
+    [[nodiscard]] bool IsReady() const noexcept { return future_.IsReady(); }
 
     /// @brief Await response
     ///
@@ -39,11 +44,6 @@ public:
         }
         return std::nullopt;
     }
-
-    /// @brief Checks if the asynchronous call has completed
-    ///        Note, that once user gets result, IsReady should not be called
-    /// @return true if result ready
-    [[nodiscard]] bool IsReady() const noexcept { return future_.IsReady(); }
 
 private:
     ProtobufStreamFuture future_;

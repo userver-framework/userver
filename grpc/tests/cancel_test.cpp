@@ -47,13 +47,12 @@ public:
 
 }  // namespace
 
-using GrpcCancel = ugrpc::tests::ServiceFixture<UnitTestServiceCancelEcho>;
+using GrpcCancel =
+    ugrpc::tests::ServiceWithClientFixture<UnitTestServiceCancelEcho, sample::ugrpc::UnitTestServiceClient>;
 
 UTEST_F(GrpcCancel, TryCancel) {
-    auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
-
     for (int i = 0; i < 2; ++i) {
-        auto call = client.Chat();
+        auto call = GetClient().Chat();
 
         EXPECT_TRUE(call.Write({}));
         sample::ugrpc::StreamGreetingResponse response;
@@ -84,16 +83,15 @@ public:
 
 }  // namespace
 
-using GrpcCancelDeadline = ugrpc::tests::ServiceFixture<UnitTestServiceCancelEchoInf>;
+using GrpcCancelDeadline =
+    ugrpc::tests::ServiceWithClientFixture<UnitTestServiceCancelEchoInf, sample::ugrpc::UnitTestServiceClient>;
 
 UTEST_F_MT(GrpcCancelDeadline, TryCancel, 2) {
-    auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
-
     ugrpc::client::CallOptions call_options;
     call_options.SetTimeout(500ms);
     bool deadline_exception_caught = false;
     try {
-        auto call = client.Chat(std::move(call_options));
+        auto call = GetClient().Chat(std::move(call_options));
         for (;;) {
             if (!call.Write({})) {
                 return;
@@ -130,14 +128,13 @@ public:
 
 }  // namespace
 
-using GrpcCancelWritesDone = ugrpc::tests::ServiceFixture<UnitTestServiceCancelEchoInfWrites>;
+using GrpcCancelWritesDone =
+    ugrpc::tests::ServiceWithClientFixture<UnitTestServiceCancelEchoInfWrites, sample::ugrpc::UnitTestServiceClient>;
 
 UTEST_F_MT(GrpcCancelWritesDone, TryCancel, 2) {
-    auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
-
     ugrpc::client::CallOptions call_options;
     call_options.SetTimeout(500ms);
-    auto call = client.Chat(std::move(call_options));
+    auto call = GetClient().Chat(std::move(call_options));
     const auto is_written = call.Write({});
     if (!is_written) {
         // The call of Write() is failed, so we have to finish the test
@@ -172,14 +169,14 @@ public:
 
 }  // namespace
 
-using GrpcCancelAfterRead = ugrpc::tests::ServiceFixture<UnitTestServiceCancelEchoNoSecondWrite>;
+using GrpcCancelAfterRead = ugrpc::tests::ServiceWithClientFixture<
+    UnitTestServiceCancelEchoNoSecondWrite,
+    sample::ugrpc::UnitTestServiceClient>;
 
 UTEST_F_MT(GrpcCancelAfterRead, TryCancel, 2) {
-    auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
-
     ugrpc::client::CallOptions call_options;
     call_options.SetTimeout(1000ms);
-    auto call = client.Chat(std::move(call_options));
+    auto call = GetClient().Chat(std::move(call_options));
     EXPECT_TRUE(call.Write({}));
 
     sample::ugrpc::StreamGreetingResponse response;
@@ -203,14 +200,13 @@ public:
     }
 };
 
-using GrpcServerEcho = ugrpc::tests::ServiceFixture<UnitTestServiceEcho>;
+using GrpcServerEcho =
+    ugrpc::tests::ServiceWithClientFixture<UnitTestServiceEcho, sample::ugrpc::UnitTestServiceClient>;
 
 }  // namespace
 
 UTEST_F_MT(GrpcServerEcho, DestroyServerDuringRequest, 2) {
-    auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
-
-    auto call = client.Chat();
+    auto call = GetClient().Chat();
     EXPECT_TRUE(call.Write({}));
 
     sample::ugrpc::StreamGreetingResponse response;
@@ -279,11 +275,10 @@ private:
 
 }  // namespace
 
-using GrpcCancelByClient = ugrpc::tests::ServiceFixture<UnitTestServiceCancelHello>;
+using GrpcCancelByClient =
+    ugrpc::tests::ServiceWithClientFixture<UnitTestServiceCancelHello, sample::ugrpc::UnitTestServiceClient>;
 
 UTEST_F_MT(GrpcCancelByClient, CancelByClient, 3) {
-    auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
-
     ugrpc::client::CallOptions call_options;
     call_options.SetTimeout(500ms);
     call_options.SetClientContextFactory([] {
@@ -292,17 +287,15 @@ UTEST_F_MT(GrpcCancelByClient, CancelByClient, 3) {
         return client_context;
     });
 
-    UEXPECT_THROW(client.SayHello({}, std::move(call_options)), ugrpc::client::BaseError);
+    UEXPECT_THROW(GetClient().SayHello({}, std::move(call_options)), ugrpc::client::BaseError);
 
     ASSERT_TRUE(GetService().GetFinishEvent().WaitForEventFor(std::chrono::seconds{5}));
 }
 
 UTEST_F_MT(GrpcCancelByClient, CancelByClientNoReadyWait, 3) {
-    auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
-
     ugrpc::client::CallOptions call_options;
     call_options.SetTimeout(500ms);
-    UEXPECT_THROW(client.SayHello({}, std::move(call_options)), ugrpc::client::BaseError);
+    UEXPECT_THROW(GetClient().SayHello({}, std::move(call_options)), ugrpc::client::BaseError);
 
     ASSERT_TRUE(GetService().GetFinishEvent().WaitForEventFor(std::chrono::seconds{5}));
 }
@@ -320,21 +313,23 @@ public:
 
 }  // namespace
 
-using GrpcCancelSleep = utest::LogCaptureFixture<ugrpc::tests::ServiceFixture<UnitTestServiceCancelSleep>>;
+/// [Sample of LogCaptureFixture]
+using GrpcCancelSleep = utest::LogCaptureFixture<
+    ugrpc::tests::ServiceWithClientFixture<UnitTestServiceCancelSleep, sample::ugrpc::UnitTestServiceClient>>;
 
 UTEST_F(GrpcCancelSleep, CancelByTimeoutLogging) {
-    auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
-
     ugrpc::client::CallOptions call_options;
     call_options.SetTimeout(std::chrono::milliseconds(500));
-    UEXPECT_THROW(client.SayHello({}, std::move(call_options)), ugrpc::client::DeadlineExceededError);
+    UEXPECT_THROW(GetClient().SayHello({}, std::move(call_options)), ugrpc::client::DeadlineExceededError);
 
     // Make sure server logs are written.
     GetServer().StopServing();
 
-    EXPECT_THAT(GetLogCapture().Filter("", {{"error_msg", "RPC interrupted"}}), testing::SizeIs(1))
+    // Check logs via utest::LogCaptureFixture :
+    EXPECT_THAT(GetLogCapture().Filter("", {{"error_msg", "Call is interrupted"}}), testing::SizeIs(1))
         << GetLogCapture().GetAll();
 }
+/// [Sample of LogCaptureFixture]
 
 namespace {
 
@@ -348,7 +343,8 @@ public:
 
 }  // namespace
 
-using GrpcCancelError = utest::LogCaptureFixture<ugrpc::tests::ServiceFixture<UnitTestServiceCancelError>>;
+using GrpcCancelError = utest::LogCaptureFixture<
+    ugrpc::tests::ServiceWithClientFixture<UnitTestServiceCancelError, sample::ugrpc::UnitTestServiceClient>>;
 
 UTEST_F(GrpcCancelError, CancelByError) {
     constexpr std::string_view kAbandoned = "abandoned-error";
@@ -360,8 +356,7 @@ UTEST_F(GrpcCancelError, CancelByError) {
     };
 
     {
-        auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
-        auto call = client.Chat();
+        auto call = GetClient().Chat();
 
         EXPECT_EQ(get_metric(kAbandoned), 0);
         EXPECT_EQ(get_metric(kCancelled), 0);
@@ -397,7 +392,7 @@ UTEST_F(GrpcCancelError, CancelByError) {
         testing::SizeIs(1)
     ) << GetLogCapture().GetAll();
 
-    ASSERT_THAT(GetLogCapture().Filter("", {{"error_msg", "RPC interrupted"}}), testing::SizeIs(1))
+    ASSERT_THAT(GetLogCapture().Filter("", {{"error_msg", "Call is interrupted"}}), testing::SizeIs(1))
         << GetLogCapture().GetAll();
 }
 

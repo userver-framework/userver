@@ -68,7 +68,7 @@ With the setting above `${CMAKE_CURRENT_SOURCE_DIR}/schemas/hello.yaml` will pro
 * `hello_parsers.ipp` contains types generic parsers
 
 Usually you may just include `schemas/hello.hpp` file and that's all.
-If you want to reference a type without actual using it, include `schemas/hello_fwd.hpp` with type forward declaration. 
+If you want to reference a type without actual using it, include `schemas/hello_fwd.hpp` with type forward declaration.
 If you want to use some non-standard parser (e.g. for `formats::bson::Value`), include `schemas/hello_parsers.ipp`.
 
 The most common use-case for JSON parser/serializer is a JSON handler:

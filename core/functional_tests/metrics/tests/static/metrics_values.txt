@@ -118,7 +118,7 @@ engine.ev-threads.cpu-load-percent: ev_thread_name=event-worker_1	GAUGE	0
 # Duration of time the service is running
 engine.load-ms:	GAUGE	0
 
-# Service startup took this amount of time 
+# Service startup took this amount of time
 engine.pre-load-ms:	GAUGE	0
 
 engine.task-processors-load-percent: task_processor=fs-task-processor, thread=0	GAUGE	0
@@ -154,9 +154,14 @@ engine.task-processors.context_switch.spurious_wakeups.v2: task_processor=monito
 engine.task-processors.context_switch.spurious_wakeups: task_processor=fs-task-processor	GAUGE	0
 engine.task-processors.context_switch.spurious_wakeups: task_processor=main-task-processor	GAUGE	0
 engine.task-processors.context_switch.spurious_wakeups: task_processor=monitor-task-processor	GAUGE	0
+
+# The number of tasks in the queue increases when there's a shortage of CPU or when the network/blocking operations in
+# third-party libraries or code/database are bottlenecked. If you're limited by the CPU, its consumption will remain
+# close to 100%.
 engine.task-processors.errors: task_processor=fs-task-processor, task_processor_error=wait_queue_overload	RATE	0
 engine.task-processors.errors: task_processor=main-task-processor, task_processor_error=wait_queue_overload	RATE	0
 engine.task-processors.errors: task_processor=monitor-task-processor, task_processor_error=wait_queue_overload	RATE	0
+
 engine.task-processors.tasks.alive: task_processor=fs-task-processor	GAUGE	0
 engine.task-processors.tasks.alive: task_processor=main-task-processor	GAUGE	0
 engine.task-processors.tasks.alive: task_processor=monitor-task-processor	GAUGE	0

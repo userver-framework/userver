@@ -1,5 +1,6 @@
 include_guard(GLOBAL)
 
+#TODO
 function(userver_embed_file TARGET)
     set(OPTIONS)
     set(ONE_VALUE_ARGS NAME FILEPATH HPP_FILENAME)

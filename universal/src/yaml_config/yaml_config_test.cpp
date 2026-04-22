@@ -93,6 +93,30 @@ TEST(YamlConfig, SampleEnv) {
     /// [sample env]
 }
 
+TEST(YamlConfig, SampleEnvInArray) {
+    auto node = formats::yaml::FromString(R"(
+    some_elements:
+        - some#env: ENV_VARIABLE_NAME_1
+        - some#env: ENV_VARIABLE_NAME_2
+  )");
+
+    // NOLINTNEXTLINE(concurrency-mt-unsafe)
+    ::setenv("ENV_VARIABLE_NAME_1", "100", 1);
+    // NOLINTNEXTLINE(concurrency-mt-unsafe)
+    ::setenv("ENV_VARIABLE_NAME_2", "100", 1);
+
+    const yaml_config::YamlConfig yaml(std::move(node), {}, yaml_config::YamlConfig::Mode::kEnvAllowed);
+    const auto& array = yaml["some_elements"];
+    for (const auto& element : array) {
+        EXPECT_EQ(element["some"].As<int>(), 100);
+    }
+
+    // NOLINTNEXTLINE(concurrency-mt-unsafe)
+    ::unsetenv("ENV_VARIABLE_NAME_1");
+    // NOLINTNEXTLINE(concurrency-mt-unsafe)
+    ::unsetenv("ENV_VARIABLE_NAME_2");
+}
+
 TEST(YamlConfig, SampleMultiple) {
     const auto node = formats::yaml::FromString(R"(
 # /// [sample multiple]
@@ -301,6 +325,7 @@ TEST(YamlConfig, Basic) {
     duration2: 10ms
     duration3: 1
     int: 42
+    null_val: null
   )");
 
     const yaml_config::YamlConfig conf(std::move(node), {});
@@ -309,6 +334,7 @@ TEST(YamlConfig, Basic) {
     EXPECT_EQ(conf["duration2"].As<std::chrono::milliseconds>(), std::chrono::milliseconds(10));
     EXPECT_EQ(conf["duration3"].As<std::chrono::milliseconds>(), std::chrono::seconds(1));
     EXPECT_EQ(conf["int"].As<int>(), 42);
+    EXPECT_EQ(conf["null_val"].As<std::string>("dflt"), "dflt");
 }
 
 TEST(YamlConfig, VariableMap) {

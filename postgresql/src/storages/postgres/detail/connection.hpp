@@ -180,7 +180,6 @@ public:
     bool IsInTransaction() const;
 
     CommandControl GetDefaultCommandControl() const;
-    void UpdateDefaultCommandControl();
 
     /// Get currently accumulated statistics and reset counters
     /// @note May only be called when connection is not in transaction

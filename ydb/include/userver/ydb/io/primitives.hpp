@@ -57,6 +57,34 @@ struct BoolTrait {
     static void Write(NYdb::TValueBuilderBase<Builder>& builder, Type value);
 };
 
+struct Int8Trait {
+    using Type = std::int8_t;
+    static Type Parse(const NYdb::TValueParser& value_parser);
+    template <typename Builder>
+    static void Write(NYdb::TValueBuilderBase<Builder>& builder, Type value);
+};
+
+struct Uint8Trait {
+    using Type = std::uint8_t;
+    static Type Parse(const NYdb::TValueParser& value_parser);
+    template <typename Builder>
+    static void Write(NYdb::TValueBuilderBase<Builder>& builder, Type value);
+};
+
+struct Int16Trait {
+    using Type = std::int16_t;
+    static Type Parse(const NYdb::TValueParser& value_parser);
+    template <typename Builder>
+    static void Write(NYdb::TValueBuilderBase<Builder>& builder, Type value);
+};
+
+struct Uint16Trait {
+    using Type = std::uint16_t;
+    static Type Parse(const NYdb::TValueParser& value_parser);
+    template <typename Builder>
+    static void Write(NYdb::TValueBuilderBase<Builder>& builder, Type value);
+};
+
 struct Int32Trait {
     using Type = std::int32_t;
     static Type Parse(const NYdb::TValueParser& value_parser);
@@ -199,6 +227,30 @@ struct ValueTraits<std::optional<Int32Trait::Type>> : OptionalPrimitiveTraits<In
 
 template <>
 struct ValueTraits<Int32Trait::Type> : PrimitiveTraits<Int32Trait> {};
+
+template <>
+struct ValueTraits<std::optional<Uint16Trait::Type>> : OptionalPrimitiveTraits<Uint16Trait> {};
+
+template <>
+struct ValueTraits<Uint16Trait::Type> : PrimitiveTraits<Uint16Trait> {};
+
+template <>
+struct ValueTraits<std::optional<Int16Trait::Type>> : OptionalPrimitiveTraits<Int16Trait> {};
+
+template <>
+struct ValueTraits<Int16Trait::Type> : PrimitiveTraits<Int16Trait> {};
+
+template <>
+struct ValueTraits<std::optional<Uint8Trait::Type>> : OptionalPrimitiveTraits<Uint8Trait> {};
+
+template <>
+struct ValueTraits<Uint8Trait::Type> : PrimitiveTraits<Uint8Trait> {};
+
+template <>
+struct ValueTraits<std::optional<Int8Trait::Type>> : OptionalPrimitiveTraits<Int8Trait> {};
+
+template <>
+struct ValueTraits<Int8Trait::Type> : PrimitiveTraits<Int8Trait> {};
 
 template <>
 struct ValueTraits<std::optional<BoolTrait::Type>> : OptionalPrimitiveTraits<BoolTrait> {};

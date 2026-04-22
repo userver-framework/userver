@@ -50,7 +50,7 @@ void AreProtobufMapsEqual(const T& lhs, const T& rhs) {
 
 formats::json::Value PrepareJsonTestData(const std::string& json_data) { return formats::json::FromString(json_data); }
 
-formats::json::Value CreateSampleJson(const ::google::protobuf::Message& message, const WriteOptions& options) {
+formats::json::Value CreateSampleJson(const ::google::protobuf::Message& message, const PrintOptions& options) {
     using StringType = std::decay_t<decltype(message.DebugString())>;
 
     StringType result;
@@ -72,7 +72,7 @@ formats::json::Value CreateSampleJson(const ::google::protobuf::Message& message
     }
 }
 
-void InitSampleMessage(const std::string& json, const ReadOptions& options, ::google::protobuf::Message& message) {
+void InitSampleMessage(const std::string& json, ::google::protobuf::Message& message, const ParseOptions& options) {
     ::google::protobuf::util::ParseOptions native_options;
     native_options.ignore_unknown_fields = options.ignore_unknown_fields;
 
@@ -87,7 +87,7 @@ void InitSampleMessage(const std::string& json, const ReadOptions& options, ::go
     struct Visitor {
         ::google::protobuf::Value result;
 
-        ::google::protobuf::Value operator()(std::monostate) { return result; }
+        ::google::protobuf::Value operator()(std::monostate) const { return result; }
 
         ::google::protobuf::Value operator()(ProtoNullValue) {
             result.set_null_value(::google::protobuf::NULL_VALUE);
@@ -246,11 +246,18 @@ void CheckMessageEqual(const proto_json::messages::BytesMessage& lhs, const prot
 proto_json::messages::EnumMessage PrepareTestData(const EnumMessageData& message_data) {
     proto_json::messages::EnumMessage message;
     message.set_field1(message_data.field1);
+
+    if (message_data.field2) {
+        message.set_field2(message_data.field2.value());
+    }
+
     return message;
 }
 
 void CheckMessageEqual(const proto_json::messages::EnumMessage& lhs, const proto_json::messages::EnumMessage& rhs) {
     EXPECT_EQ(lhs.field1(), rhs.field1());
+    EXPECT_EQ(lhs.has_field2(), rhs.has_field2());
+    EXPECT_EQ(lhs.field2(), rhs.field2());
 }
 
 proto_json::messages::NestedMessage PrepareTestData(const NestedMessageData& message_data) {
@@ -262,7 +269,7 @@ proto_json::messages::NestedMessage PrepareTestData(const NestedMessageData& mes
 }
 
 void CheckMessageEqual(const proto_json::messages::NestedMessage& lhs, const proto_json::messages::NestedMessage& rhs) {
-    EXPECT_TRUE((lhs.has_parent() && rhs.has_parent()) || (!lhs.has_parent() && !rhs.has_parent()));
+    EXPECT_EQ(lhs.has_parent(), rhs.has_parent());
     EXPECT_EQ(lhs.parent().field1(), rhs.parent().field1());
 }
 
@@ -311,15 +318,15 @@ void CheckMessageEqual(
     const proto_json::messages::WrapperMessage& lhs,
     const proto_json::messages::WrapperMessage& rhs
 ) {
-    EXPECT_TRUE((lhs.has_field1() && rhs.has_field1()) || (!lhs.has_field1() && !rhs.has_field1()));
-    EXPECT_TRUE((lhs.has_field2() && rhs.has_field2()) || (!lhs.has_field2() && !rhs.has_field2()));
-    EXPECT_TRUE((lhs.has_field3() && rhs.has_field3()) || (!lhs.has_field3() && !rhs.has_field3()));
-    EXPECT_TRUE((lhs.has_field4() && rhs.has_field4()) || (!lhs.has_field4() && !rhs.has_field4()));
-    EXPECT_TRUE((lhs.has_field5() && rhs.has_field5()) || (!lhs.has_field5() && !rhs.has_field5()));
-    EXPECT_TRUE((lhs.has_field6() && rhs.has_field6()) || (!lhs.has_field6() && !rhs.has_field6()));
-    EXPECT_TRUE((lhs.has_field7() && rhs.has_field7()) || (!lhs.has_field7() && !rhs.has_field7()));
-    EXPECT_TRUE((lhs.has_field8() && rhs.has_field8()) || (!lhs.has_field8() && !rhs.has_field8()));
-    EXPECT_TRUE((lhs.has_field9() && rhs.has_field9()) || (!lhs.has_field9() && !rhs.has_field9()));
+    EXPECT_EQ(lhs.has_field1(), rhs.has_field1());
+    EXPECT_EQ(lhs.has_field2(), rhs.has_field2());
+    EXPECT_EQ(lhs.has_field3(), rhs.has_field3());
+    EXPECT_EQ(lhs.has_field4(), rhs.has_field4());
+    EXPECT_EQ(lhs.has_field5(), rhs.has_field5());
+    EXPECT_EQ(lhs.has_field6(), rhs.has_field6());
+    EXPECT_EQ(lhs.has_field7(), rhs.has_field7());
+    EXPECT_EQ(lhs.has_field8(), rhs.has_field8());
+    EXPECT_EQ(lhs.has_field9(), rhs.has_field9());
 
     EXPECT_EQ(lhs.field1().value(), rhs.field1().value());
     EXPECT_EQ(lhs.field2().value(), rhs.field2().value());
@@ -349,7 +356,8 @@ proto_json::messages::FieldMaskMessage PrepareTestData(const FieldMaskMessageDat
 }
 
 void CheckMessageEqual(const ::google::protobuf::FieldMask& lhs, const ::google::protobuf::FieldMask& rhs) {
-    std::vector<std::string> mask_lhs, mask_rhs;
+    std::vector<std::string> mask_lhs;
+    std::vector<std::string> mask_rhs;
 
     for (const auto& path : lhs.paths()) {
         mask_lhs.push_back(path);
@@ -369,7 +377,7 @@ void CheckMessageEqual(
     const proto_json::messages::FieldMaskMessage& lhs,
     const proto_json::messages::FieldMaskMessage& rhs
 ) {
-    EXPECT_TRUE((lhs.has_field1() && rhs.has_field1()) || (!lhs.has_field1() && !rhs.has_field1()));
+    EXPECT_EQ(lhs.has_field1(), rhs.has_field1());
     CheckMessageEqual(lhs.field1(), rhs.field1());
 }
 
@@ -393,7 +401,7 @@ void CheckMessageEqual(
     const proto_json::messages::DurationMessage& lhs,
     const proto_json::messages::DurationMessage& rhs
 ) {
-    EXPECT_TRUE((lhs.has_field1() && rhs.has_field1()) || (!lhs.has_field1() && !rhs.has_field1()));
+    EXPECT_EQ(lhs.has_field1(), rhs.has_field1());
     CheckMessageEqual(lhs.field1(), rhs.field1());
 }
 
@@ -417,7 +425,7 @@ void CheckMessageEqual(
     const proto_json::messages::TimestampMessage& lhs,
     const proto_json::messages::TimestampMessage& rhs
 ) {
-    EXPECT_TRUE((lhs.has_field1() && rhs.has_field1()) || (!lhs.has_field1() && !rhs.has_field1()));
+    EXPECT_EQ(lhs.has_field1(), rhs.has_field1());
     CheckMessageEqual(lhs.field1(), rhs.field1());
 }
 
@@ -494,7 +502,7 @@ void CheckMessageEqual(const ::google::protobuf::Struct& lhs, const ::google::pr
 }
 
 void CheckMessageEqual(const proto_json::messages::ValueMessage& lhs, const proto_json::messages::ValueMessage& rhs) {
-    EXPECT_TRUE((lhs.has_field1() && rhs.has_field1()) || (!lhs.has_field1() && !rhs.has_field1()));
+    EXPECT_EQ(lhs.has_field1(), rhs.has_field1());
     CheckMessageEqual(lhs.field1(), rhs.field1());
 }
 
@@ -503,7 +511,8 @@ void CheckAnyPayloadEqual(const ::google::protobuf::Any& lhs, const ::google::pr
     ASSERT_TRUE(lhs.Is<T>());
     ASSERT_TRUE(rhs.Is<T>());
 
-    T lhs_payload, rhs_payload;
+    T lhs_payload;
+    T rhs_payload;
 
     ASSERT_TRUE(lhs.UnpackTo(&lhs_payload));
     ASSERT_TRUE(rhs.UnpackTo(&rhs_payload));
@@ -591,7 +600,7 @@ void CheckMessageEqual(const ::google::protobuf::Any& lhs, const ::google::proto
 }
 
 void CheckMessageEqual(const proto_json::messages::AnyMessage& lhs, const proto_json::messages::AnyMessage& rhs) {
-    EXPECT_TRUE((lhs.has_field1() && rhs.has_field1()) || (!lhs.has_field1() && !rhs.has_field1()));
+    EXPECT_EQ(lhs.has_field1(), rhs.has_field1());
 
     if (lhs.has_field1()) {
         CheckMessageEqual(lhs.field1(), rhs.field1());
@@ -637,6 +646,42 @@ proto_json::messages::RepeatedMessage PrepareTestData(const RepeatedMessageData&
         *result.add_field3() = PrepareTestData(item).field1();
     }
 
+    for (const auto& item : message_data.field4) {
+        *result.add_field4() = ProtoValueToNative(item);
+    }
+
+    for (const auto& item : message_data.field5) {
+        result.add_field5(item);
+    }
+
+    for (const auto& item : message_data.field6) {
+        result.add_field6(item);
+    }
+
+    for (const auto& item : message_data.field7) {
+        result.add_field7(item);
+    }
+
+    for (const auto& item : message_data.field8) {
+        result.add_field8(item);
+    }
+
+    for (const auto& item : message_data.field9) {
+        result.add_field9(item);
+    }
+
+    for (const auto& item : message_data.field10) {
+        result.add_field10(item);
+    }
+
+    for (const auto& item : message_data.field11) {
+        result.add_field11(item);
+    }
+
+    for (const auto& item : message_data.field12) {
+        result.add_field12(item);
+    }
+
     return result;
 }
 
@@ -647,6 +692,15 @@ void CheckMessageEqual(
     AreProtobufRepeatedEqual(lhs.field1(), rhs.field1());
     AreProtobufRepeatedEqual(lhs.field2(), rhs.field2());
     AreProtobufRepeatedEqual(lhs.field3(), rhs.field3());
+    AreProtobufRepeatedEqual(lhs.field4(), rhs.field4());
+    AreProtobufRepeatedEqual(lhs.field5(), rhs.field5());
+    AreProtobufRepeatedEqual(lhs.field6(), rhs.field6());
+    AreProtobufRepeatedEqual(lhs.field7(), rhs.field7());
+    AreProtobufRepeatedEqual(lhs.field8(), rhs.field8());
+    AreProtobufRepeatedEqual(lhs.field9(), rhs.field9());
+    AreProtobufRepeatedEqual(lhs.field10(), rhs.field10());
+    AreProtobufRepeatedEqual(lhs.field11(), rhs.field11());
+    AreProtobufRepeatedEqual(lhs.field12(), rhs.field12());
 }
 
 proto_json::messages::MapMessage PrepareTestData(const MapMessageData& message_data) {
@@ -680,6 +734,10 @@ proto_json::messages::MapMessage PrepareTestData(const MapMessageData& message_d
         (*result.mutable_field7())[key] = PrepareTestData(val).field1();
     }
 
+    for (const auto& [key, val] : message_data.field8) {
+        (*result.mutable_field8())[key] = ProtoValueToNative(val);
+    }
+
     return result;
 }
 
@@ -691,6 +749,7 @@ void CheckMessageEqual(const proto_json::messages::MapMessage& lhs, const proto_
     AreProtobufMapsEqual(lhs.field5(), rhs.field5());
     AreProtobufMapsEqual(lhs.field6(), rhs.field6());
     AreProtobufMapsEqual(lhs.field7(), rhs.field7());
+    AreProtobufMapsEqual(lhs.field8(), rhs.field8());
 }
 
 proto_json::messages::NullValueMessage PrepareTestData(const NullValueMessageData& message_data) {
@@ -803,7 +862,7 @@ void CheckMessageEqual(
     const proto_json::messages::UnknownFieldMessage& lhs,
     const proto_json::messages::UnknownFieldMessage& rhs
 ) {
-    EXPECT_TRUE((lhs.has_field1() && rhs.has_field1()) || (!lhs.has_field1() && !rhs.has_field1()));
+    EXPECT_EQ(lhs.has_field1(), rhs.has_field1());
     CheckMessageEqual(lhs.field1(), rhs.field1());
 
     AreProtobufRepeatedEqual(lhs.field2(), rhs.field2());

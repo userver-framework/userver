@@ -1,6 +1,5 @@
 #pragma once
 
-#include <set>
 #include <shared_mutex>
 #include <string>
 #include <unordered_map>
@@ -37,6 +36,7 @@ public:
     void SetConnectionSecurity(ConnectionSecurity value);
     ConnectionSecurity GetConnectionSecurity() const;
 
+    /// Returns address as string like "host:port"
     const std::string& Fulltext() const;
 
     void Connect(Redis&) const;
@@ -94,7 +94,7 @@ public:
     bool ProcessStateUpdate();
     bool SetConnectionInfo(std::vector<ConnectionInfoInt> info_array);
     bool IsConnectedToAllServersDebug(bool allow_empty) const;
-    void GetStatistics(bool master, const MetricsSettings& settings, ShardStatistics& stats) const;
+    void GetStatistics(bool master, ShardStatistics& stats) const;
     size_t InstancesSize() const;
     const std::string& ShardName() const;
     boost::signals2::signal<void(ServerId, Redis::State)>& SignalInstanceStateChange();
@@ -102,7 +102,7 @@ public:
 
     void SetCommandsBufferingSettings(CommandsBufferingSettings commands_buffering_settings);
     void SetReplicationMonitoringSettings(const ReplicationMonitoringSettings& replication_monitoring_settings);
-    void SetRetryBudgetSettings(const utils::RetryBudgetSettings& replication_monitoring_settings);
+    void SetRetryBudgetSettings(const utils::RetryBudgetSettings& retry_budget_settings);
 
 private:
     std::vector<unsigned char> GetAvailableServers(
@@ -119,9 +119,16 @@ private:
     std::vector<ConnectionInfoInt> GetConnectionInfosToCreate() const;
     bool UpdateCleanWaitQueue(std::vector<ConnectionStatus>&& add_clean_wait);
 
+    struct InstanceStatistics {
+        std::unique_ptr<Statistics> ptr_to_store;
+        Statistics& ref;
+    };
+    Statistics& StatisticsForInstance();
+
     const std::string shard_name_;
     const std::string shard_group_name_;
     std::atomic_size_t current_{0};
+    std::unique_ptr<Statistics> shared_statistics_;
 
     mutable std::shared_mutex mutex_;
     std::vector<ConnectionInfoInt> connection_infos_;

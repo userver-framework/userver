@@ -10,6 +10,7 @@
 #include <userver/components/component_base.hpp>
 #include <userver/concurrent/async_event_source.hpp>
 #include <userver/dynamic_config/snapshot.hpp>
+#include <userver/engine/multi_consumer_event.hpp>
 #include <userver/utils/statistics/entry.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -59,17 +60,27 @@ public:
     /// @cond
     // For internal use only.
     std::shared_ptr<clients::http::ClientCore> GetHttpClientCore(utils::impl::InternalTag);
+
+    // For internal use only.
+    void WaitUntilConfigSet() const;
     /// @endcond
 
     static yaml_config::Schema GetStaticConfigSchema();
 
 private:
-    void OnConfigUpdate(const dynamic_config::Snapshot& config);
+    void OnLoadingCancelled() override;
+
+    void OnConfigUpdate(const dynamic_config::Diff& diff);
 
     void WriteStatistics(utils::statistics::Writer& writer);
 
     const bool disable_pool_stats_;
     std::shared_ptr<clients::http::ClientCore> http_client_;
+
+    std::atomic<bool> is_loading_cancelled_{false};
+    mutable engine::MultiConsumerEvent config_updated_event_;
+
+    // subscriber_scope_ must be the last field.
     concurrent::AsyncEventSubscriberScope subscriber_scope_;
 };
 

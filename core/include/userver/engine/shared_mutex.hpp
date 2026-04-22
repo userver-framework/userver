@@ -4,6 +4,7 @@
 /// @brief @copybrief engine::SharedMutex
 
 #include <userver/engine/condition_variable.hpp>
+#include <userver/engine/impl/actor.hpp>
 #include <userver/engine/mutex.hpp>
 #include <userver/engine/semaphore.hpp>
 
@@ -109,11 +110,13 @@ public:
     [[nodiscard]] bool try_lock_shared_until(Deadline deadline);
 
 private:
-    bool HasWaitingWriter() const noexcept;
+    bool HasRegisteredWriter() const noexcept;
 
-    bool WaitForNoWaitingWriters(Deadline deadline);
+    bool WaitForNoRegisteredWriters(Deadline deadline);
 
-    void DecWaitingWriters();
+    enum class DeadlockDetectorTrackingStatus : std::uint8_t { kUntracked, kTracked };
+
+    void UnregisterWriter(DeadlockDetectorTrackingStatus tracking_status);
 
     /* Semaphore can be get by 1 or by SIZE_MAX.
      * 1 = reader, SIZE_MAX = writer.
@@ -126,11 +129,29 @@ private:
     Semaphore semaphore_;
 
     /* Readers don't try to hold semaphore_ if there is at least one
-     * waiting writer => writers don't starve.
+     * registered writer => writers don't starve.
      */
-    std::atomic<ssize_t> waiting_writers_count_;
-    Mutex waiting_writers_count_mutex_;
-    ConditionVariable waiting_writers_count_cv_;
+    std::atomic<ssize_t> registered_writers_count_;
+    Mutex registered_writers_count_mutex_;
+    ConditionVariable registered_writers_count_cv_;
+
+    struct RegisteredWritersActor final : public impl::deadlock_detector::Actor {
+        utils::StringLiteral GetActorType() const override;
+    };
+
+    struct MutexActor final : public impl::deadlock_detector::Actor {
+        utils::StringLiteral GetActorType() const override;
+    };
+
+    // An identity actor for registered (waiting and active) writers.
+    // Used to track dependencies between shared readers and registered writers in deadlock detector.
+    // While there are registered writers owning this actor all shared readers will wait for it.
+    RegisteredWritersActor registered_writers_actor_;
+    // An identity actor for the mutex itself.
+    // Used to track ownership of the mutex and waits on the mutex in deadlock detector.
+    // While there is an active writer or a set of active shared readers owning this actor
+    // other writers will waiting for it.
+    MutexActor mutex_actor_;
 };
 
 template <typename Rep, typename Period>

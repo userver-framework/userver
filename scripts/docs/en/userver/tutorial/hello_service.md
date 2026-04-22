@@ -42,7 +42,7 @@ Our application logic is straightforward:
 
 @include samples/hello_service/src/say_hello.cpp
 
-The "say_hello.hpp" contains a signe function declaration, so that the
+The "say_hello.hpp" contains a single function declaration, so that the
 implementation details are hidden and the header is lightweight to include:
 
 @include samples/hello_service/src/say_hello.hpp

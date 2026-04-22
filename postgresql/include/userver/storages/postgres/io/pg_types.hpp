@@ -136,7 +136,7 @@ struct DBTypeDescription {
     bool not_null{false};
     // TODO rest of domain fields. or eliminate them if they are not needed
 
-    DBTypeName GetName() const { return {schema.c_str(), name.c_str()}; }
+    DBTypeName GetName() const { return {schema, name}; }
     std::size_t GetNameHash() const;
 
     struct NameHash {

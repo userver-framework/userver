@@ -5,7 +5,6 @@
 
 #include <type_traits>
 
-#include <userver/compiler/impl/constexpr.hpp>
 #include <userver/compiler/impl/lifetime.hpp>
 #include <userver/compiler/impl/tls.hpp>
 
@@ -140,11 +139,11 @@ class ThreadLocal final {
     static_assert(std::is_same_v<VariableType, std::invoke_result_t<const Factory&>>);
 
 public:
-    USERVER_IMPL_CONSTEVAL ThreadLocal()
+    consteval ThreadLocal()
         : factory_(Factory{})
     {}
 
-    USERVER_IMPL_CONSTEVAL /*implicit*/ ThreadLocal(Factory factory)
+    consteval /*implicit*/ ThreadLocal(Factory factory)
         : factory_(factory)
     {}
 

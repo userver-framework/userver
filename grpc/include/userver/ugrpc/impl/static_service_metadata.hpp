@@ -26,7 +26,7 @@ struct StaticServiceMetadata final {
 
 template <typename GrpcppService>
 constexpr StaticServiceMetadata MakeStaticServiceMetadata(utils::span<const MethodDescriptor> methods) noexcept {
-    return {GrpcppService::service_full_name(), methods};
+    return {.service_full_name = GrpcppService::service_full_name(), .methods = methods};
 }
 
 constexpr std::size_t GetMethodsCount(const StaticServiceMetadata& metadata) noexcept {

@@ -8,7 +8,6 @@
 #include <userver/components/statistics_storage.hpp>
 #include <userver/logging/component.hpp>
 #include <userver/os_signals/component.hpp>
-#include <userver/tracing/component.hpp>
 #include <userver/utils/algo.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
@@ -199,7 +198,6 @@ components::ComponentList MakeComponentList() {
         .Append<os_signals::ProcessorComponent>()
         .Append<components::StatisticsStorage>()
         .Append<components::Logging>()
-        .Append<components::Tracer>()
         // Make sure that order in list does not affect HasDependencyOn
         .Append<Component2>()
         .Append<Component1>()

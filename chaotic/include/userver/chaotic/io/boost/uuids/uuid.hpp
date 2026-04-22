@@ -2,6 +2,8 @@
 
 // Utilitary header for chaotic for a custom type serialization/parsing support
 
+#include <string>
+
 #include <userver/chaotic/convert/to.hpp>
 
 #include <boost/uuid/uuid.hpp>

@@ -34,10 +34,10 @@ using utils_optional_ref_string = utils::OptionalRef<std::string>;
 
 static_assert(tt::kIsMappedToPg<utils_optional_ref_int>);
 static_assert(tt::kIsMappedToPg<utils_optional_ref_string>);
-static_assert(tt::kHasFormatter<utils_optional_ref_int>);
-static_assert(tt::kHasFormatter<utils_optional_ref_string>);
-static_assert(!tt::kHasParser<utils_optional_ref_int>);
-static_assert(!tt::kHasParser<utils_optional_ref_string>);
+static_assert(tt::HasFormatter<utils_optional_ref_int>);
+static_assert(tt::HasFormatter<utils_optional_ref_string>);
+static_assert(!tt::HasParser<utils_optional_ref_int>);
+static_assert(!tt::HasParser<utils_optional_ref_string>);
 
 }  // namespace static_test
 

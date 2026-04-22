@@ -41,10 +41,11 @@ yaml_config::Schema ComponentList::GetStaticConfigSchema() const {
 }
 
 ComponentList& ComponentList::Append(impl::ComponentAdderPtr&& added) & {
+    const auto component_name = added->GetComponentName();
     auto [it, ok] = adders_.insert(std::move(added));
     if (!ok) {
         // Append is typically called from main(), throwing an exception would std::terminate.
-        utils::AbortWithStacktrace(fmt::format("Attempt to add a duplicate component '{}'", added->GetComponentName()));
+        utils::AbortWithStacktrace(fmt::format("Attempt to add a duplicate component '{}'", component_name));
     }
     return *this;
 }

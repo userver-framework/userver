@@ -35,7 +35,7 @@ jobs:
         env:
             CMAKE_FLAGS: >-
                 -DCMAKE_BUILD_TYPE=Debug
-                -DCMAKE_CXX_STANDARD=17
+                -DCMAKE_CXX_STANDARD=20
                 -DUSERVER_USE_LD=lld
                 -DUSERVER_BUILD_ALL_COMPONENTS=1
                 -DUSERVER_BUILD_SAMPLES=1
@@ -49,6 +49,7 @@ jobs:
                 -DUSERVER_FEATURE_CLICKHOUSE=OFF
                 -DUSERVER_FEATURE_RABBITMQ=OFF
                 -DUSERVER_FEATURE_PATCH_LIBPQ=OFF
+                -DUSERVER_FEATURE_YDB=OFF
                 -DUSERVER_DOWNLOAD_PACKAGES=OFF
                 -DUSERVER_FEATURE_STACKTRACE=OFF
 
@@ -131,6 +132,6 @@ jobs:
 
           - name: Run tests
             if: ${{ false }}  # Not working yet
-            run: |
+            run: |-
                 cd build_debug
                 ctest -V

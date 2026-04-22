@@ -114,11 +114,11 @@ TEST(TrivialBiMap, StaticConstexprLocalType) {
     };
     static constexpr utils::TrivialBiMap kKnownTwos = [](auto selector) {
         return selector()
-            .Case(10, IntsPair{1, 0})
-            .Case(11, IntsPair{1, 1})
-            .Case(20, IntsPair{2, 0})
-            .Case(21, IntsPair{2, 1})
-            .Case(22, IntsPair{1, 1});
+            .Case(10, IntsPair{.x = 1, .y = 0})
+            .Case(11, IntsPair{.x = 1, .y = 1})
+            .Case(20, IntsPair{.x = 2, .y = 0})
+            .Case(21, IntsPair{.x = 2, .y = 1})
+            .Case(22, IntsPair{.x = 1, .y = 1});
     };
 
     EXPECT_EQ(kKnownTwos.TryFind(10)->x, 1);
@@ -136,15 +136,15 @@ TEST(TrivialBiMap, StaticConstexprContainsLocalType) {
     };
     static constexpr utils::TrivialSet kKnownTwos = [](auto selector) {
         return selector()
-            .Case(IntsPair{1, 0})
-            .Case(IntsPair{1, 1})
-            .Case(IntsPair{2, 0})
-            .Case(IntsPair{2, 1})
-            .Case(IntsPair{1, 1});
+            .Case(IntsPair{.x = 1, .y = 0})
+            .Case(IntsPair{.x = 1, .y = 1})
+            .Case(IntsPair{.x = 2, .y = 0})
+            .Case(IntsPair{.x = 2, .y = 1})
+            .Case(IntsPair{.x = 1, .y = 1});
     };
 
-    EXPECT_TRUE(kKnownTwos.Contains(IntsPair{2, 0}));
-    EXPECT_FALSE(kKnownTwos.Contains(IntsPair{9, 0}));
+    EXPECT_TRUE(kKnownTwos.Contains((IntsPair{.x = 2, .y = 0})));
+    EXPECT_FALSE(kKnownTwos.Contains((IntsPair{.x = 9, .y = 0})));
 }
 
 TEST(TrivialBiMap, StringToString) {

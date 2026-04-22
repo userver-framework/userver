@@ -25,6 +25,7 @@
 #include <curl-ev/url.hpp>
 
 #include <userver/clients/http/local_stats.hpp>
+#include <userver/fs/blocking/file_descriptor.hpp>
 #include <userver/utils/zstring_view.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -514,7 +515,7 @@ public:
         ip_resolve_v6 = CURL_IPRESOLVE_V6
     };
     IMPLEMENT_CURL_OPTION_ENUM(set_ip_resolve, native::CURLOPT_IPRESOLVE, ip_resolve_t, long);
-    IMPLEMENT_CURL_OPTION_BOOLEAN(set_connect_only, native::CURLOPT_CONNECT_ONLY);
+    IMPLEMENT_CURL_OPTION(set_connect_only, native::CURLOPT_CONNECT_ONLY, long);
     enum use_ssl_t {
         use_ssl_none = CURL_8_13_NAMESPACE CURLUSESSL_NONE,
         use_ssl_try = CURL_8_13_NAMESPACE CURLUSESSL_TRY,
@@ -684,6 +685,11 @@ public:
 
     time_point::duration time_to_start() const;
 
+    // WebSocket support: enable socket duplication for later extraction
+    void enable_socket_extraction() { extract_socket_enabled_ = true; }
+
+    fs::blocking::FileDescriptor& extracted_socket() { return extracted_socket_; }
+
 private:
     static size_t header_function(void* ptr, size_t size, size_t nmemb, void* userdata);
 
@@ -738,6 +744,9 @@ private:
 
     time_point start_performing_ts_{};
     const time_point construct_ts_;
+
+    fs::blocking::FileDescriptor extracted_socket_{};
+    bool extract_socket_enabled_{false};
 };
 }  // namespace curl
 

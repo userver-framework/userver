@@ -20,6 +20,7 @@
 #include <views/describe-table/post/view.hpp>
 #include <views/select-list/post/view.hpp>
 #include <views/select-rows/post/view.hpp>
+#include <views/upsert-row-old/post/view.hpp>
 #include <views/upsert-row/post/view.hpp>
 
 namespace sample {
@@ -100,6 +101,7 @@ int main(int argc, char* argv[]) {
             .Append<sample::DescribeTableHandler>()
             .Append<sample::SelectListHandler>()
             .Append<sample::UpsertRowHandler>()
+            .Append<sample::UpsertRowOldHandler>()
             .Append<ydb::YdbComponent>()
             .Append<sample::SampleDistLock>();
 

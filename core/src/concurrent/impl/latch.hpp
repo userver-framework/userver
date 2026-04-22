@@ -46,7 +46,7 @@ public:
 
     inline void wait() {
         std::unique_lock lk{mtx_};
-        cv_.wait(lk, [=] { return expected_ == 0; });
+        cv_.wait(lk, [this] { return expected_ == 0; });
     }
 
 private:

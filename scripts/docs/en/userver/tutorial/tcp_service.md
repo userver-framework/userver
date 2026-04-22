@@ -19,7 +19,7 @@ function to get the new sockets:
 
 @snippet samples/tcp_service/main.cpp  TCP sample - component
 
-@warning `ProcessSocket` functions are invoked concurrently on the same 
+@warning `ProcessSocket` functions are invoked concurrently on the same
 instance of the class. Use @ref scripts/docs/en/userver/synchronization.md "synchronization primitives"
 or do not modify shared data in `ProcessSocket`.
 

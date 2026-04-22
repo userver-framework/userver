@@ -21,6 +21,7 @@
 #include <userver/utils/impl/internal_tag_fwd.hpp>
 #include <userver/utils/not_null.hpp>
 #include <userver/utils/periodic_task.hpp>
+#include <userver/utils/statistics/fwd.hpp>
 #include <userver/utils/swappingsmart.hpp>
 #include <userver/yaml_config/fwd.hpp>
 
@@ -162,6 +163,8 @@ private:
     clients::dns::Resolver* resolver_{nullptr};
     utils::NotNull<const tracing::TracingManagerBase*> tracing_manager_;
 };
+
+void DumpMetric(utils::statistics::Writer& writer, const DestinationStatistics& stats);
 
 }  // namespace clients::http
 

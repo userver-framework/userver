@@ -111,7 +111,7 @@ formats::json::Value Serialize(const MyKeyValue& data, formats::serialize::To<fo
 }
 
 TEST(JsonValueBuilder, ExampleCustomization) {
-    const MyKeyValue object = {"val", 1};
+    const MyKeyValue object = {.field1 = "val", .field2 = 1};
     formats::json::ValueBuilder builder;
     builder["example"] = object;
     auto json = builder.ExtractValue();

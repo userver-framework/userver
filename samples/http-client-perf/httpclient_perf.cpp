@@ -21,7 +21,7 @@ namespace http = clients::http;
 
 struct Config {
     std::string log_level = "error";
-    std::string logfile = "";
+    std::string logfile{};
     std::size_t count = 1000;
     std::size_t coroutines = 1;
     std::size_t worker_threads = 1;

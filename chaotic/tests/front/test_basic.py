@@ -1,18 +1,18 @@
 import pytest
 
+from chaotic.front import parser as front_parser
 from chaotic.front import ref_resolver
-from chaotic.front.parser import ParserError
 
 
 def test_generic_error(simple_parse):
-    with pytest.raises(ParserError) as exc:
+    with pytest.raises(front_parser.ParserError) as exc:
         simple_parse({'type': 'integer', 'unknown_field': '1'})
     assert exc.value.full_filepath == 'full'
     assert exc.value.schema_type == 'jsonschema'
 
 
 def test_unknown_field(simple_parse):
-    with pytest.raises(ParserError) as exc:
+    with pytest.raises(front_parser.ParserError) as exc:
         simple_parse({'type': 'integer', 'unknown_field': '1'})
     assert exc.value.infile_path == '/definitions/type'
     assert exc.value.msg == (
@@ -23,7 +23,7 @@ def test_unknown_field(simple_parse):
 
 
 def test_duplicate_path(schema_parser):
-    with pytest.raises(ParserError) as exc:
+    with pytest.raises(front_parser.ParserError) as exc:
         parser = schema_parser
         parser.parse_schema('/definitions/type', {'type': 'integer'})
         parser.parse_schema('/definitions/type', {'type': 'number'})
@@ -40,14 +40,14 @@ def test_x_known_field(simple_parse):
 
 
 def test_wrong_field_type(simple_parse):
-    with pytest.raises(ParserError) as exc:
+    with pytest.raises(front_parser.ParserError) as exc:
         simple_parse({'type': 'intxxxx'})
     assert exc.value.infile_path == '/definitions/type/type'
     assert exc.value.msg == 'Unknown type "intxxxx"'
 
 
 def test_no_schema_type(simple_parse):
-    with pytest.raises(ParserError) as exc:
+    with pytest.raises(front_parser.ParserError) as exc:
         simple_parse({'enum': [1, 2, 3]})
     assert exc.value.infile_path == '/definitions/type'
     assert exc.value.msg == '"type" is missing'

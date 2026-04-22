@@ -12,7 +12,7 @@ For more information about grpc middlewares see:
 ## Step by step guide
 
 In this example, you will write an authentication middleware for both
-`GreeterService` and `GreeterClient` of the basic gRPC service. 
+`GreeterService` and `GreeterClient` of the basic gRPC service.
 See @ref scripts/docs/en/userver/tutorial/grpc_service.md.
 
 ### Installation

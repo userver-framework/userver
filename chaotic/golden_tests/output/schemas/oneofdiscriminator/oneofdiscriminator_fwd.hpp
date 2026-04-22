@@ -15,3 +15,4 @@ struct IntegerOneOfDiscriminator;
 struct OneOfDiscriminator;
 
 }  // namespace ns
+

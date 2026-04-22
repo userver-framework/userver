@@ -38,6 +38,29 @@ struct DecomposedUrlView {
 /// @endcode
 std::string UrlEncode(std::string_view input_string);
 
+/// @brief Encode a URL path segment (for use in S3 and similar APIs)
+/// @param input_string String to encode
+/// @returns URL-encoded string where special characters are encoded as %XX sequences,
+///          but path-safe characters (-, _, ., ~, $, &, ,, :, =, @) are kept unescaped
+/// @note This is less aggressive than UrlEncode and is suitable for encoding path segments
+///       where you want to preserve readability of certain special characters
+/// @code
+///   auto encoded = UrlEncodePathSegment("file-name_with spaces.txt");
+///   // Returns: "file-name_with%20spaces.txt"
+/// @endcode
+std::string UrlEncodePathSegment(std::string_view input_string);
+
+/// @brief Encode an S3 object key for use in URL path
+/// @param key S3 object key (may contain '/' as part of the key name)
+/// @returns URL-encoded path where each segment is encoded but '/' separators are preserved
+/// @note S3 object keys can contain '/' which should be preserved as path separators,
+///       while other special characters should be encoded
+/// @code
+///   auto encoded = EncodeS3Key("folder/file with spaces.txt");
+///   // Returns: "folder/file%20with%20spaces.txt"
+/// @endcode
+std::string EncodeS3Key(std::string_view key);
+
 using Args = std::unordered_map<std::string, std::string, utils::StrCaseHash>;
 using MultiArgs = std::multimap<std::string, std::string>;
 using PathArgs = std::unordered_map<std::string, std::string>;

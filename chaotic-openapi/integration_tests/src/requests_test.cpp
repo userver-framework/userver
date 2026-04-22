@@ -1,14 +1,19 @@
 #include <userver/utest/utest.hpp>
 
 #include <userver/clients/http/client.hpp>
+#include <userver/clients/http/client_core.hpp>
+#include <userver/dump/operations_mock.hpp>
 #include <userver/http/content_type.hpp>
 #include <userver/utest/assert_macros.hpp>
 #include <userver/utest/http_client.hpp>
 #include <userver/utest/http_server_mock.hpp>
 #include <userver/utest/log_capture_fixture.hpp>
+#include <userver/utils/statistics/storage.hpp>
+#include <userver/utils/statistics/testing.hpp>
 #include <userver/utils/text_light.hpp>
 
 #include <clients/multiple_content_types/requests.hpp>
+#include <clients/operation/client_impl.hpp>
 #include <clients/parameters/requests.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -16,6 +21,40 @@ USERVER_NAMESPACE_BEGIN
 namespace {
 
 namespace client = ::clients::multiple_content_types::test1::post;
+
+UTEST(Requests, RegexDestinationName) {
+    const utest::HttpServerMock http_server([&](const utest::HttpServerMock::HttpRequest&) {
+        return utest::HttpServerMock::HttpResponse{200};
+    });
+
+    chaotic::openapi::client::Config config;
+    config.base_url = http_server.GetBaseUrl() + "/";
+
+    auto http_client_ptr = utest::impl::CreateHttpClientCore();
+    ::clients::operation::ClientImpl client(config, *http_client_ptr);
+
+    client.WithRegex({"123"});
+
+    utils::statistics::Storage stat_storage;
+    auto stat_holder = stat_storage.RegisterWriter(
+        "test",
+        [&http_client_ptr](utils::statistics::Writer& writer) {
+            DumpMetric(writer, http_client_ptr->GetDestinationStatistics());
+        },
+        {}
+    );
+    utils::statistics::Snapshot stats(stat_storage);
+    auto expected_destination_name = config.base_url + "/path/with/_regex_/";
+    EXPECT_EQ(
+        stats
+            .SingleMetric(
+                "test.reply-statuses",
+                {{"http_destination", expected_destination_name}, {"http_code", "200"}}
+            )
+            .AsRate(),
+        1
+    );
+}
 
 UTEST(RequestsMultipleContentTypes, Json) {
     const utest::HttpServerMock http_server([&](const utest::HttpServerMock::HttpRequest& request) {

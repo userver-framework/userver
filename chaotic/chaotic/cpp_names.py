@@ -1,4 +1,4 @@
-from . import cpp_keywords
+from chaotic import cpp_keywords
 
 
 def camel_case(string: str, no_lower_casing: bool = False) -> str:
@@ -14,6 +14,8 @@ def camel_case(string: str, no_lower_casing: bool = False) -> str:
                 char = char.lower()
             result += char
             set_upper = False
+    if not result and set_upper:
+        result += '_'
     return result
 
 
@@ -35,6 +37,8 @@ def namespace(http_path: str) -> str:
         return 'root_'
 
     path = http_path.strip('/')
+    for char in ('}', '{'):
+        path = path.replace(char, '')
     for char in ('/', '.', '-', ':'):
         path = path.replace(char, '_')
 

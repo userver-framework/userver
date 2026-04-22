@@ -2,12 +2,11 @@
 
 #include <fmt/format.h>
 #include <fmt/ranges.h>
-#include <boost/range/adaptor/reversed.hpp>
 #include <boost/range/adaptor/transformed.hpp>
 
 #include <userver/components/component_context.hpp>
 #include <userver/logging/log.hpp>
-#include <userver/tracing/tracer.hpp>
+#include <userver/tracing/span.hpp>
 #include <userver/utils/string_literal.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -59,17 +58,7 @@ void ComponentInfo::SetComponent(std::unique_ptr<RawComponentBase>&& component) 
 
 void ComponentInfo::AfterConstruction()
 {
-    scope_registration_finished_ = true;
-
-    // A tweak to be sure in case of parial initialization only
-    // already initialized scopes' before_dtr() are called
-    auto tmp_resource_scopes = std::move(resource_scopes_);
-    resource_scopes_.clear();  // for clang-static-analyzer
-    for (auto& resource_scope : tmp_resource_scopes) {
-        resource_scope->AfterConstruction();
-
-        resource_scopes_.push_back(std::move(resource_scope));
-    }
+    resource_scopes_.AfterConstruction();
 }
 
 void ComponentInfo::ClearComponent() {
@@ -82,11 +71,7 @@ void ComponentInfo::ClearComponent() {
     auto component = ExtractComponent();
     LOG_DEBUG() << "Stopping component";
 
-    // Call Scopes' pre-destruction callbacks in reverse order
-    for (auto& scope : resource_scopes_ | boost::adaptors::reversed) {
-        scope.reset();
-    }
-    resource_scopes_.clear();
+    resource_scopes_.BeforeDestruction();
 
     component.reset();
     LOG_DEBUG() << "Stopped component";
@@ -217,10 +202,9 @@ std::string ComponentInfo::GetDependencies() const {
     return fmt::format(R"("{}" -> "{}" )", name_, JoinNamesFromInfo(it_depends_on_, delimiter));
 }
 
-void ComponentInfo::RegisterScope(ScopePtr resource_scope)
+utils::ResourceScopeStorage& ComponentInfo::GetScopes()
 {
-    UINVARIANT(!scope_registration_finished_, "Scope registration is available only in component constructor");
-    resource_scopes_.push_back(std::move(resource_scope));
+    return resource_scopes_;
 }
 
 bool ComponentInfo::HasComponent() const {

@@ -28,9 +28,9 @@ public:
 
     [[noreturn]] void ThrowError(const std::string& err_msg);
 
-private:
     std::string GetCurrentPath() const;
 
+private:
     BaseParser& GetTopParser() const;
 
     struct Impl;

@@ -68,7 +68,7 @@ struct CheckForBufferWriterODR final {
 /// @brief Read a value from input buffer
 template <typename T>
 void ReadBuffer(const FieldBuffer& buffer, T&& value) {
-    using ValueType = std::decay_t<T>;
+    using ValueType = std::remove_cvref_t<T>;
     traits::CheckParser<ValueType>();
     using BufferReader = typename traits::IO<ValueType>::ParserType;
     static_assert(
@@ -91,7 +91,7 @@ void ReadBuffer(const FieldBuffer& buffer, T&& value) {
 
 template <typename T>
 void ReadBuffer(const FieldBuffer& buffer, T&& value, const TypeBufferCategory& categories) {
-    using ValueType = std::decay_t<T>;
+    using ValueType = std::remove_cvref_t<T>;
     traits::CheckParser<ValueType>();
     using BufferReader = typename traits::IO<ValueType>::ParserType;
     if (traits::kParserBufferCategory<BufferReader> != buffer.category) {

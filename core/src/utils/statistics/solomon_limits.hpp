@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <string_view>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -12,8 +13,8 @@ inline constexpr std::array<std::string_view, 6> kReservedLabelNames =
 
 // https://solomon.yandex-team.ru/docs/concepts/data-model#limits
 // "application" is in commonLabels and can be overridden (nginx system metrics)
-inline constexpr std::size_t kMaxLabels = 16 - kReservedLabelNames.size() - 1;
-inline constexpr std::size_t kMaxLabelNameLen = 31;
+inline constexpr std::size_t kMaxLabels = 32 - kReservedLabelNames.size() - 1;
+inline constexpr std::size_t kMaxLabelNameLen = 32;
 inline constexpr std::size_t kMaxLabelValueLen = 200;
 
 inline constexpr std::size_t kMaxHistogramBuckets = 50;

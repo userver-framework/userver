@@ -1,7 +1,7 @@
 project(userver-grpc-protovalidate CXX)
 
 # TODO: this is an early version of CMakeLists.txt. It is known to not work due to different issues. PRs with fixes are
-# wellcome!
+# welcome!
 
 include(SetupProtovalidate)
 

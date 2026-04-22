@@ -289,7 +289,7 @@ def _get_alive_shards_by_service(master_nodes):
             break
     client = alive_node.get_client()
 
-    # find shard nubers for master as it is in service
+    # find shard numbers for master as it is in service
     slots = client.cluster('slots')
     masters_shards = dict()
     i = 0

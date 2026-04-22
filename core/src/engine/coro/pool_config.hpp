@@ -12,6 +12,7 @@ struct PoolConfig {
     std::size_t initial_size = 1000;
     std::size_t max_size = 4000;
     std::size_t stack_size = 256 * 1024ULL;
+    double unoptimized_stack_size_multiplier = 1.0;
     std::size_t local_cache_size = 8;
     bool is_stack_usage_monitor_enabled = true;
     DeadlockDetector deadlock_detector{DeadlockDetector::kOff};

@@ -39,11 +39,6 @@ TaskBuilder& TaskBuilder::Background() {
     return *this;
 }
 
-engine::impl::TaskConfig TaskBuilder::MakeConfig() const {
-    auto& tp = tp_ ? *tp_ : engine::current_task::GetTaskProcessor();
-    return {tp, importance_, wait_mode_, deadline_};
-}
-
 }  // namespace utils
 
 USERVER_NAMESPACE_END

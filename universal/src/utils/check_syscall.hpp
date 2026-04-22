@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cerrno>
+#include <iterator>
 #include <system_error>
 
 #include <fmt/format.h>

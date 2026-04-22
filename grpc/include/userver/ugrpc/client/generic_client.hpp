@@ -42,6 +42,11 @@ namespace ugrpc::client {
 /// There are no per-call-name metrics by default,
 /// for details see @ref GenericOptions::metrics_call_name.
 ///
+/// @warning Retry limiters (configured via `retry-throttler` in
+/// @ref ugrpc::client::CommonComponent) are not supported for GenericClient.
+/// The setting is ignored, and retry limiting will not be applied to generic
+/// calls. For retry limiting functionality, use regular typed gRPC clients.
+///
 /// ## Example GenericClient usage with known message types
 ///
 /// @snippet grpc/tests/generic_client_test.cpp  sample
@@ -74,7 +79,10 @@ public:
     // For internal use only.
     explicit GenericClient(impl::ClientInternals&&);
 
-    static std::optional<ugrpc::impl::StaticServiceMetadata> GetMetadata() { return std::nullopt; }
+    // For internal use only.
+    static std::optional<ugrpc::impl::StaticServiceMetadata> GetMetadata(utils::impl::InternalTag) {
+        return std::nullopt;
+    }
     /// @endcond
 
 private:

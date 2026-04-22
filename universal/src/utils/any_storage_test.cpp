@@ -16,6 +16,12 @@ struct BoolStorage {};
 
 const utils::AnyStorageDataTag<BoolStorage, bool> kBool;
 
+TEST(AnyStorage, Move) {
+    utils::AnyStorage<MyStorage> storage;
+    auto tmp = std::move(storage);
+    SUCCEED();
+}
+
 TEST(AnyStorage, Simple) {
     utils::AnyStorage<MyStorage> storage;
 

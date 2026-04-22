@@ -6,6 +6,7 @@ set(CPACK_PACKAGE_DESCRIPTION
     services and utilities."
 )
 
+# @ingroup compilation
 option(USERVER_INSTALL_MULTIPACKAGE "Whether create per-component packages" OFF)
 if(USERVER_INSTALL_MULTIPACKAGE)
     set(CPACK_COMPONENTS_GROUPING ONE_PER_GROUP)

@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
 
+#include <unordered_map>
+
 #include <userver/formats/json/exception.hpp>
 #include <userver/formats/json/object.hpp>
 #include <userver/formats/json/serialize.hpp>
@@ -26,7 +28,9 @@ TEST(FormatsJsonObject, EmptyByDefault) {
 
     formats::json::Object object;
 
+    ASSERT_TRUE(object.GetValue().IsObject());
     EXPECT_TRUE(object.IsEmpty());
+    EXPECT_EQ(object.begin(), object.end());
     EXPECT_EQ(object.GetSize(), std::size_t{0});
     EXPECT_TRUE(object.IsRoot());
     EXPECT_EQ(object.GetPath(), "/");
@@ -46,6 +50,7 @@ TEST(FormatsJsonObject, CanBeParsedFromValue) {
     formats::json::Object object;
 
     ASSERT_NO_THROW(object = json["object"].As<formats::json::Object>());
+    ASSERT_TRUE(object.GetValue().IsObject());
     EXPECT_FALSE(object.IsRoot());
     EXPECT_EQ(object.GetPath(), "object");
     EXPECT_FALSE(object.IsEmpty());
@@ -54,6 +59,10 @@ TEST(FormatsJsonObject, CanBeParsedFromValue) {
     ASSERT_TRUE(object.HasMember("key2"));
     EXPECT_EQ(object["key1"].As<int>(), 1);
     EXPECT_EQ(object["key2"].As<std::string>(), "hello");
+
+    ASSERT_NO_THROW(object = formats::json::Object{object_value});
+    ASSERT_NE(object.begin(), object.end());
+    EXPECT_EQ((*object.begin()).As<int>(), 3);
 
     ASSERT_NO_THROW(
         object = json["non_existent"].As<formats::json::Object>(formats::json::Value::DefaultConstructed{})
@@ -78,6 +87,8 @@ TEST(FormatsJsonObject, CanBeSerializedToBuilder) {
     builder["object2"] = formats::json::Object{FromString(R"({"key3": 3})")};
     const auto json = builder.ExtractValue();
 
+    ASSERT_TRUE(json["object1"].IsObject());
+    ASSERT_TRUE(json["object2"].IsObject());
     EXPECT_EQ(json["object1"]["key1"].As<int>(), 1);
     EXPECT_EQ(json["object1"]["key2"].As<std::string>(), "hello");
     EXPECT_EQ(json["object2"]["key3"].As<int>(), 3);
@@ -101,11 +112,20 @@ TEST(FormatsJsonObject, CanBeComparedForEquality) {
 
     EXPECT_TRUE(object1 == object1);
     EXPECT_FALSE(object1 == object2);
+    EXPECT_FALSE(object1 == object2.GetValue());
+    EXPECT_FALSE(object1.GetValue() == object2);
     EXPECT_TRUE(object1 == object3);
+    EXPECT_TRUE(object1 == object3.GetValue());
+    EXPECT_TRUE(object1.GetValue() == object3);
     EXPECT_FALSE(object1 == object4);
+
     EXPECT_FALSE(object1 != object1);
     EXPECT_TRUE(object1 != object2);
+    EXPECT_TRUE(object1 != object2.GetValue());
+    EXPECT_TRUE(object1.GetValue() != object2);
     EXPECT_FALSE(object1 != object3);
+    EXPECT_FALSE(object1 != object3.GetValue());
+    EXPECT_FALSE(object1.GetValue() != object3);
     EXPECT_TRUE(object1 != object4);
 }
 

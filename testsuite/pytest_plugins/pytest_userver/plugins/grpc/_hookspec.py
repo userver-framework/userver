@@ -14,6 +14,6 @@ def pytest_grpc_client_interceptors(request: pytest.FixtureRequest) -> Sequence[
     Interceptors are accomulated over all implementations of this hook from all plugins.
 
     @see @ref scripts/docs/en/userver/grpc/grpc.md
-    @ingroup userver_testsuite_fixtures
+    @ingroup userver_testsuite
     """
     raise NotImplementedError()

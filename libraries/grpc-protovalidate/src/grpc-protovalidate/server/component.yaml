@@ -10,6 +10,10 @@ properties:
         type: boolean
         description: send found constraint violations in grpc::Status
         defaultDescription: false
+    validate-responses:
+        type: boolean
+        description: whether to validate outgoing response messages
+        defaultDescription: false
     methods:
         type: object
         description: per-method middleware options overrides
@@ -25,3 +29,7 @@ properties:
                 send-violations:
                     type: boolean
                     description: see 'send-violations' global option
+                validate-responses:
+                    type: boolean
+                    description: see 'validate-responses' global option
+                    defaultDescription: false

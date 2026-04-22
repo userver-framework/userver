@@ -20,7 +20,7 @@ constexpr double kMin = std::numeric_limits<double>::min();
 
 struct DoubleToJsonSuccessTestParam {
     DoubleMessageData input = {};
-    WriteOptions options = {};
+    PrintOptions options = {};
 };
 
 void PrintTo(const DoubleToJsonSuccessTestParam& param, std::ostream* os) {
@@ -34,7 +34,7 @@ INSTANTIATE_TEST_SUITE_P(
     DoubleToJsonSuccessTest,
     ::testing::Values(
         DoubleToJsonSuccessTestParam{DoubleMessageData{0.0}},
-        DoubleToJsonSuccessTestParam{DoubleMessageData{0}, WriteOptions{.always_print_fields_with_no_presence = true}},
+        DoubleToJsonSuccessTestParam{DoubleMessageData{0}, {.always_print_fields_with_no_presence = true}},
         DoubleToJsonSuccessTestParam{DoubleMessageData{1}},
         DoubleToJsonSuccessTestParam{DoubleMessageData{-1}},
         DoubleToJsonSuccessTestParam{DoubleMessageData{100.12357}},
@@ -50,7 +50,8 @@ TEST_P(DoubleToJsonSuccessTest, Test) {
     const auto& param = GetParam();
 
     auto input = PrepareTestData(param.input);
-    formats::json::Value json, sample_json;
+    formats::json::Value json;
+    formats::json::Value sample_json;
 
     UASSERT_NO_THROW((json = MessageToJson(input, param.options)));
     UASSERT_NO_THROW((sample_json = CreateSampleJson(input, param.options)));

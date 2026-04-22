@@ -5,6 +5,7 @@
 //
 // Do not include this header in your code, use non-impl includes instead!
 
+#include <array>
 #include <string_view>
 #include <utility>
 

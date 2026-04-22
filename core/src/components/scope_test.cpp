@@ -4,10 +4,10 @@
 #include <userver/components/component_context.hpp>
 #include <userver/components/minimal_component_list.hpp>
 #include <userver/components/run.hpp>
-#include <userver/components/scope.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utest/utest.hpp>
 #include <userver/utils/fast_scope_guard.hpp>
+#include <userver/utils/resource_scopes.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -47,10 +47,10 @@ TEST(ComponentsScope, Smoke)
         ComponentWithResource(const components::ComponentConfig& config, const components::ComponentContext& context)
             : components::ComponentBase(config, context)
         {
-            context.RegisterScope(components::MakeScope([] {
+            context.Scopes().Register([] {
                 init_called = true;
                 return utils::FastScopeGuard([]() noexcept { destroy_called = true; });
-            }));
+            });
         }
     };
 
@@ -75,15 +75,15 @@ TEST(ComponentsScope, HappyPathOrder)
         {
             trace.push_back(0);
 
-            context.RegisterScope(components::MakeScope([] {
+            context.Scopes().Register([] {
                 trace.push_back(1);
                 return utils::FastScopeGuard([]() noexcept { trace.push_back(2); });
-            }));
+            });
 
-            context.RegisterScope(components::MakeScope([] {
+            context.Scopes().Register([] {
                 trace.push_back(3);
                 return utils::FastScopeGuard([]() noexcept { trace.push_back(4); });
-            }));
+            });
         }
     };
 
@@ -107,15 +107,15 @@ TEST(ComponentsScope, CtrThrow)
         {
             trace.push_back(0);
 
-            context.RegisterScope(components::MakeScope([] {
+            context.Scopes().Register([] {
                 trace.push_back(1);
                 return utils::FastScopeGuard([]() noexcept { trace.push_back(2); });
-            }));
+            });
 
-            context.RegisterScope(components::MakeScope([] {
+            context.Scopes().Register([] {
                 trace.push_back(3);
                 return utils::FastScopeGuard([]() noexcept { trace.push_back(4); });
-            }));
+            });
 
             throw std::runtime_error("1");
         }
@@ -145,16 +145,16 @@ TEST(ComponentsScope, CallbackThrow)
         {
             trace.push_back(0);
 
-            context.RegisterScope(components::MakeScope([] {
+            context.Scopes().Register([] {
                 trace.push_back(1);
                 return utils::FastScopeGuard([]() noexcept { trace.push_back(2); });
-            }));
+            });
 
-            context.RegisterScope(components::MakeScope([] {
+            context.Scopes().Register([] {
                 trace.push_back(3);
                 throw std::runtime_error("1");
                 return utils::FastScopeGuard([]() noexcept { trace.push_back(4); });
-            }));
+            });
         }
     };
 

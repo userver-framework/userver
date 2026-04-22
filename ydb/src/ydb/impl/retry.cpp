@@ -17,7 +17,7 @@ NYdb::NRetry::TRetryOperationSettings PrepareRetrySettings(
 
     UASSERT(operation_settings.retries.has_value());
     retry_settings.MaxRetries(retry_budget.CanRetry() ? operation_settings.retries.value() : 0);
-
+    retry_settings.Idempotent(operation_settings.is_idempotent);
     retry_settings.GetSessionClientTimeout(GetBoundTimeout(operation_settings.get_session_timeout_ms, deadline));
 
     return retry_settings;

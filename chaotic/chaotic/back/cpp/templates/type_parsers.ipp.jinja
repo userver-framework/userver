@@ -6,14 +6,10 @@
 {%- endfor %}
 
 
-{% macro generate_global_struct_field_definition(name, type) %}
+{% macro generate_global_struct_field_definition(type) %}
     {# handle subtypes #}
     {%- for schema in type.subtypes() -%}
-        {{ generate_global_struct_field_definition(
-                schema.cpp_global_name(),
-                schema,
-           )
-        }}
+        {{ generate_global_struct_field_definition(schema) }}
     {% endfor %}
 
     {% if type.get_py_type() == 'CppStruct' %}
@@ -33,18 +29,18 @@
     {% elif type.get_py_type() == 'CppIntEnum' %}
         static constexpr {{ userver }}::utils::TrivialBiMap k{{ type.cpp_global_struct_field_name() }}_Mapping =
             [](auto selector) {
-            return selector().template Type<{{ type.cpp_global_name() }}, int>()
+            return selector().template Type<{{ shortest_cpp_name(type) }}, int>()
                 {%- for item in type.enums %}
-                    .Case({{ type.cpp_global_name() }}::k{{ item.cpp_name }}, {{ item.value }})
+                    .Case({{ shortest_cpp_name(type) }}::k{{ item.cpp_name }}, {{ item.value }})
                 {%- endfor -%}
                 ;
         };
     {% elif type.get_py_type() == 'CppStringEnum' %}
         static constexpr {{ userver }}::utils::TrivialBiMap k{{ type.cpp_global_struct_field_name() }}_Mapping =
             [](auto selector) {
-            return selector().template Type<{{ type.cpp_global_name() }}, std::string_view>()
+            return selector().template Type<{{ shortest_cpp_name(type) }}, std::string_view>()
                 {%- for item in type.enums %}
-                    .Case({{ type.cpp_global_name() }}::{{ item.cpp_name }}, "{{ item.raw_name }}")
+                    .Case({{ shortest_cpp_name(type) }}::{{ item.cpp_name }}, "{{ item.raw_name }}")
                 {%- endfor -%}
                 ;
         };
@@ -56,26 +52,22 @@
 {% endmacro %}
 
 
-{% macro generate_parser_definition(name, type) %}
+{% macro generate_parser_definition(type) %}
     {# handle subtypes #}
     {%- for schema in type.subtypes() -%}
-        {{ generate_parser_definition(
-                schema.cpp_global_name(),
-                schema,
-           )
-        }}
+        {{ generate_parser_definition(schema) }}
     {% endfor %}
 
     {% if type.get_py_type() == 'CppStruct' %}
         {# parse object #}
-	template<typename Value>
-        {{ name }} Parse(Value value,
-                         {{userver}}::formats::parse::To<{{ name }}>)
+        template<typename Value, typename = std::enable_if_t<{{ userver }}::formats::common::kIsFormatValue<Value>>>
+        {{ shortest_cpp_name(type, blacklist=['Value']) }} Parse(Value value,
+                         {{ userver }}::formats::parse::To<{{ shortest_cpp_name(type, blacklist=['Value']) }}>)
         {
             value.CheckNotMissing();
             value.CheckObjectOrNull();
 
-            {{ name }} res;
+            {{ shortest_cpp_name(type, blacklist=['Value']) }} res;
 
             {# properties #}
             {%- for fname, field in type.fields.items() -%}
@@ -88,20 +80,20 @@
             {% if type.extra_type %}
                 res.extra =
                     {%- if type.extra_type == True %}
-                        {{userver}}::chaotic::ExtractAdditionalPropertiesTrue(
+                        {{ userver }}::chaotic::ExtractAdditionalPropertiesTrue(
                     {%- else %}
-                        {{userver}}::chaotic::ExtractAdditionalProperties<
+                        {{ userver }}::chaotic::ExtractAdditionalProperties<
                             {{ extra_cpp_parser_type(type.extra_type) }},
                             {{ type.extra_container() }}
                         >(
                     {%- endif -%}
-                        value, k{{type.cpp_global_struct_field_name()}}_PropertiesNames
+                        Parse(std::move(value), {{ userver }}::formats::parse::To<{{ userver }}::formats::json::Value>()), k{{type.cpp_global_struct_field_name()}}_PropertiesNames
                         );
 
             {% endif %}
 
             {% if cpp_struct_is_strict_parsing(type) %}
-                {{userver}}::chaotic::ValidateNoAdditionalProperties(
+                {{ userver }}::chaotic::ValidateNoAdditionalProperties(
                     value, k{{type.cpp_global_struct_field_name()}}_PropertiesNames
                 );
             {% endif %}
@@ -110,38 +102,38 @@
     {% elif type.get_py_type() in ('CppPrimitiveType', 'CppStringWithFormat', 'CppArray', 'CppRef', 'CppVariant', 'CppVariant', 'CppVariantWithDiscriminator') %}
         {# No new type #}
     {% elif type.get_py_type() == 'CppIntEnum' %}
-	template<typename Value>
-        {{ name }} Parse(Value val,
-                         {{userver}}::formats::parse::To<{{ name }}>)
+        template<typename Value, typename = std::enable_if_t<{{ userver }}::formats::common::kIsFormatValue<Value>>>
+        {{ shortest_cpp_name(type, blacklist=['Value']) }} Parse(Value val,
+                         {{ userver }}::formats::parse::To<{{ shortest_cpp_name(type, blacklist=['Value']) }}>)
         {
-            const auto value = val.template As<std::int32_t>();
-            const auto result = k{{ type.cpp_global_struct_field_name() }}_Mapping.TryFindBySecond(value);
-            if (result.has_value()) {
-                return *result;
+            const auto value = val.template As<std::int64_t>();
+            const auto converted_opt = TryConvert(value, {{ userver }}::chaotic::convert::To<{{ shortest_cpp_name(type) }}>{});
+            if (!converted_opt) {
+              {{ userver }}::chaotic::ThrowForValue(fmt::format("Invalid enum value ({}) for type {{ type.cpp_global_name() }}", value), val);
             }
-            {{ userver }}::chaotic::ThrowForValue(fmt::format("Invalid enum value ({}) for type {{name}}", value), val);
+            return *converted_opt;
         }
     {% elif type.get_py_type() == 'CppStringEnum' %}
-	template<typename Value>
-        {{ name }} Parse(Value val,
-                         {{userver}}::formats::parse::To<{{ name }}>)
+        template<typename Value, typename = std::enable_if_t<{{ userver }}::formats::common::kIsFormatValue<Value>>>
+        {{ shortest_cpp_name(type, blacklist=['Value']) }} Parse(Value val,
+                         {{ userver }}::formats::parse::To<{{ shortest_cpp_name(type, blacklist=['Value']) }}>)
         {
             const auto value = val.template As<std::string>();
             const auto result = k{{ type.cpp_global_struct_field_name() }}_Mapping.TryFindBySecond(value);
             if (result.has_value()) {
                 return *result;
             }
-            {{ userver }}::chaotic::ThrowForValue(fmt::format("Invalid enum value ({}) for type {{name}}", value), val);
+            {{ userver }}::chaotic::ThrowForValue(fmt::format("Invalid enum value ({}) for type {{ type.cpp_global_name() }}", value), val);
         }
     {% elif type.get_py_type() == 'CppStructAllOf' %}
         {# parse allOf #}
-	template<typename Value>
-        {{ name }} Parse(Value value,
-                         {{userver}}::formats::parse::To<{{ name }}>)
+        template<typename Value, typename = std::enable_if_t<{{ userver }}::formats::common::kIsFormatValue<Value>>>
+        {{ shortest_cpp_name(type, blacklist=['Value']) }} Parse(Value value,
+                         {{ userver }}::formats::parse::To<{{ shortest_cpp_name(type, blacklist=['Value']) }}>)
         {
-            return {{ name }}(
+            return {{ shortest_cpp_name(type, blacklist=['Value']) }}(
                 {%- for parent in type.parents -%}
-                    value.template As<{{ parent.cpp_global_name() }}>()
+                    value.template As<{{ shortest_cpp_name(parent, blacklist=['Value']) }}>()
                     {%- if not loop.last %} , {% endif -%}
                 {%- endfor -%}
             );
@@ -156,9 +148,9 @@
 {% for name, type in types.items() %}
     {{ common.switch_namespace(cpp_namespace(name)) }}
 
-    {{ generate_global_struct_field_definition(name, type) }}
+    {{ generate_global_struct_field_definition(type) }}
 
-    {{ generate_parser_definition(name, type) }}
+    {{ generate_parser_definition(type) }}
 {% endfor %}
 
 {{ common.switch_namespace('') }}

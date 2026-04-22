@@ -60,7 +60,7 @@ const std::vector<buf::validate::RuleViolation>& ValidationError::GetViolations(
     return result_->violations();
 }
 
-grpc::Status ValidationError::GetGrpcStatus(bool include_violations) const {
+grpc::Status ValidationError::GetGrpcStatus(bool include_violations, grpc::StatusCode rule_violation_status) const {
     google::rpc::Status gstatus;
     gstatus.set_message(GetDescription());
     switch (GetType()) {
@@ -68,7 +68,7 @@ grpc::Status ValidationError::GetGrpcStatus(bool include_violations) const {
             gstatus.set_code(grpc::StatusCode::INTERNAL);
             break;
         case Type::kRule: {
-            gstatus.set_code(grpc::StatusCode::INVALID_ARGUMENT);
+            gstatus.set_code(rule_violation_status);
             break;
         }
     }

@@ -23,6 +23,7 @@ UTEST_MT(StripedReadIndicator, LockPassingStress, kReadersCount + kCheckersCount
 
     std::atomic<bool> keep_running{true};
     std::vector<engine::TaskWithResult<void>> tasks;
+    tasks.reserve(kReadersCount + kCheckersCount);
 
     for (std::size_t i = 0; i < kReadersCount; ++i) {
         tasks.push_back(engine::AsyncNoSpan([&] {

@@ -18,7 +18,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine::impl {
 
-template <class Waiters>
+template <class Awaiters>
 class MutexImpl : public deadlock_detector::Actor {
 public:
     MutexImpl();
@@ -46,7 +46,7 @@ private:
     bool LockSlowPath(TaskContext&, Deadline);
 
     std::atomic<TaskContext*> owner_;
-    Waiters lock_waiters_;
+    Awaiters lock_awaiters_;
 };
 
 template <>
@@ -55,29 +55,29 @@ public:
     MutexWaitStrategy(MutexImpl<WaitList>& mutex, TaskContext& current)
         : mutex_(mutex),
           current_(current),
-          waiter_token_(mutex_.lock_waiters_)
+          awaiter_token_(mutex_.lock_awaiters_)
     {}
 
-    EarlyWakeup SetupWakeups() override {
-        WaitList::Lock lock(mutex_.lock_waiters_);
+    EarlyNotify SetupWakeups() override {
+        WaitList::Lock lock(mutex_.lock_awaiters_);
         if (mutex_.LockFastPath(current_)) {
-            return EarlyWakeup{true};
+            return EarlyNotify{true};
         }
         // A race is not possible here, because check + Append is performed under
         // WaitList::Lock, and notification also takes WaitList::Lock.
-        mutex_.lock_waiters_.Append(lock, &current_);
-        return EarlyWakeup{false};
+        mutex_.lock_awaiters_.Append(lock, &current_, current_.GetAwaiterContext());
+        return EarlyNotify{false};
     }
 
     void DisableWakeups() noexcept override {
-        WaitList::Lock lock(mutex_.lock_waiters_);
-        mutex_.lock_waiters_.Remove(lock, current_);
+        WaitList::Lock lock(mutex_.lock_awaiters_);
+        mutex_.lock_awaiters_.Remove(lock, current_, current_.GetAwaiterContext());
     }
 
 private:
     MutexImpl<WaitList>& mutex_;
     TaskContext& current_;
-    const WaitList::WaitersScopeCounter waiter_token_;
+    const WaitList::AwaitersScopeCounter awaiter_token_;
 };
 
 template <>
@@ -88,19 +88,19 @@ public:
           current_(current)
     {}
 
-    EarlyWakeup SetupWakeups() override {
+    EarlyNotify SetupWakeups() override {
         if (TryLock()) {
-            return EarlyWakeup{true};
+            return EarlyNotify{true};
         }
-        mutex_.lock_waiters_.Append(&current_);
+        mutex_.lock_awaiters_.Append(&current_, current_.GetAwaiterContext());
         if (mutex_.owner_.load() == nullptr) {
-            mutex_.lock_waiters_.Remove(current_);
-            return EarlyWakeup{true};
+            mutex_.lock_awaiters_.Remove(current_, current_.GetAwaiterContext());
+            return EarlyNotify{true};
         }
-        return EarlyWakeup{false};
+        return EarlyNotify{false};
     }
 
-    void DisableWakeups() noexcept override { mutex_.lock_waiters_.Remove(current_); }
+    void DisableWakeups() noexcept override { mutex_.lock_awaiters_.Remove(current_, current_.GetAwaiterContext()); }
 
 private:
     bool TryLock() {
@@ -116,8 +116,8 @@ private:
     TaskContext& current_;
 };
 
-template <class Waiters>
-MutexImpl<Waiters>::MutexImpl()
+template <class Awaiters>
+MutexImpl<Awaiters>::MutexImpl()
     : owner_(nullptr)
 {
 #if USERVER_IMPL_HAS_TSAN
@@ -125,22 +125,22 @@ MutexImpl<Waiters>::MutexImpl()
 #endif
 }
 
-template <class Waiters>
-MutexImpl<Waiters>::~MutexImpl() {
+template <class Awaiters>
+MutexImpl<Awaiters>::~MutexImpl() {
     UASSERT(!owner_);
 #if USERVER_IMPL_HAS_TSAN
     __tsan_mutex_destroy(this, __tsan_mutex_not_static);
 #endif
 }
 
-template <class Waiters>
-bool MutexImpl<Waiters>::LockFastPath(TaskContext& current) noexcept {
+template <class Awaiters>
+bool MutexImpl<Awaiters>::LockFastPath(TaskContext& current) noexcept {
     TaskContext* expected = nullptr;
     return owner_.compare_exchange_strong(expected, &current, std::memory_order_acquire);
 }
 
-template <class Waiters>
-bool MutexImpl<Waiters>::LockSlowPath(TaskContext& current, Deadline deadline) {
+template <class Awaiters>
+bool MutexImpl<Awaiters>::LockSlowPath(TaskContext& current, Deadline deadline) {
     const engine::TaskCancellationBlocker block_cancels;
     MutexWaitStrategy wait_manager{*this, current};
     while (true) {
@@ -155,13 +155,13 @@ bool MutexImpl<Waiters>::LockSlowPath(TaskContext& current, Deadline deadline) {
     return true;
 }
 
-template <class Waiters>
-void MutexImpl<Waiters>::lock() {
+template <class Awaiters>
+void MutexImpl<Awaiters>::lock() {
     try_lock_until(Deadline{});
 }
 
-template <class Waiters>
-void MutexImpl<Waiters>::unlock() {
+template <class Awaiters>
+void MutexImpl<Awaiters>::unlock() {
     auto& dd_state = engine::deadlock_detector::GetState();
     dd_state.OnResourceRelease(current_task::GetCurrentTaskContext(), *this);
 
@@ -171,14 +171,14 @@ void MutexImpl<Waiters>::unlock() {
     auto* old_owner = owner_.exchange(nullptr, std::memory_order_acq_rel);
     UASSERT(old_owner && old_owner->IsCurrent());
 
-    if constexpr (std::is_same_v<Waiters, WaitList>) {
-        if (lock_waiters_.GetCountOfSleepies()) {
-            WaitList::Lock lock(lock_waiters_);
-            lock_waiters_.WakeupOne(lock);
+    if constexpr (std::is_same_v<Awaiters, WaitList>) {
+        if (lock_awaiters_.GetCountOfSleepies()) {
+            WaitList::Lock lock(lock_awaiters_);
+            lock_awaiters_.NotifyOne(lock);
         }
     } else {
-        static_assert(std::is_same_v<Waiters, WaitListLight>);
-        lock_waiters_.WakeupOne();
+        static_assert(std::is_same_v<Awaiters, WaitListLight>);
+        lock_awaiters_.NotifyOne();
     }
 
 #if USERVER_IMPL_HAS_TSAN
@@ -186,8 +186,8 @@ void MutexImpl<Waiters>::unlock() {
 #endif
 }
 
-template <class Waiters>
-bool MutexImpl<Waiters>::try_lock() {
+template <class Awaiters>
+bool MutexImpl<Awaiters>::try_lock() {
     auto& current = current_task::GetCurrentTaskContext();
 
 #if USERVER_IMPL_HAS_TSAN
@@ -200,14 +200,14 @@ bool MutexImpl<Waiters>::try_lock() {
 
     auto& dd_state = engine::deadlock_detector::GetState();
     if (result) {
-        dd_state.OnResourceAcquire(current_task::GetCurrentTaskContext(), *this);
+        dd_state.OnResourceAcquire(current, *this);
     }
 
     return result;
 }
 
-template <class Waiters>
-bool MutexImpl<Waiters>::try_lock_until(Deadline deadline) {
+template <class Awaiters>
+bool MutexImpl<Awaiters>::try_lock_until(Deadline deadline) {
     bool result = false;
 #if USERVER_IMPL_HAS_TSAN
     __tsan_mutex_pre_lock(this, __tsan_mutex_try_lock);
@@ -236,7 +236,7 @@ bool MutexImpl<Waiters>::try_lock_until(Deadline deadline) {
 
     auto& dd_state = engine::deadlock_detector::GetState();
     if (result) {
-        dd_state.OnResourceAcquire(current_task::GetCurrentTaskContext(), *this);
+        dd_state.OnResourceAcquire(current, *this);
     }
 
     return result;

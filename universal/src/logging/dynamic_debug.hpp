@@ -50,11 +50,9 @@ using LogEntryContentSet = bi::multiset<  //
         >                                 //
     >;
 
-void AddDynamicDebugLog(
-    const std::string& location_relative,
-    int line,
-    EntryState state = EntryState{/*force_enabled_level=*/Level::kTrace}
-);
+void SetDynamicDebugLog(const std::string& location_relative, int line, EntryState state);
+
+void AddDynamicDebugLog(const std::string& location_relative, int line);
 
 void RemoveDynamicDebugLog(const std::string& location_relative, int line);
 

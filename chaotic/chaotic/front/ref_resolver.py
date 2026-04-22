@@ -167,4 +167,13 @@ class RefResolver:
 
         sorted_nodes = sort_dfs(set(nodes), edges)
 
-        return {key + '/': types[key + '/'] for key in sorted_nodes}
+        result = dict()
+        for key in sorted_nodes:
+            value = types.get(key + '/')
+            if not value:
+                raise Exception(
+                    f'$ref to unknown type "{key}", known refs:\n{sorted_nodes}',
+                )
+            result[key + '/'] = value
+
+        return result

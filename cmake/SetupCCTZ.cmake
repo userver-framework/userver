@@ -1,3 +1,4 @@
+# @ingroup download
 option(USERVER_DOWNLOAD_PACKAGE_CCTZ "Download and setup cctz if no cctz of matching version was found"
        ${USERVER_DOWNLOAD_PACKAGES}
 )

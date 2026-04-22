@@ -44,8 +44,8 @@ ValueBuilder GetAtPath(ValueBuilder& parent, std::vector<std::string>&& path, st
 /// @note For empty `path` this function returns `parent`.
 /// @throws TypeMismatchException if there is a non-object node in the middle of
 /// `path`
-template <typename Value>
-std::enable_if_t<common::kIsFormatValue<Value>, Value> GetAtPath(Value parent, const std::vector<std::string>& path) {
+template <common::kIsFormatValue Value>
+Value GetAtPath(Value parent, const std::vector<std::string>& path) {
     auto current_value = std::move(parent);
     for (const auto& current_key : path) {
         current_value = current_value[current_key];
@@ -58,10 +58,8 @@ std::enable_if_t<common::kIsFormatValue<Value>, Value> GetAtPath(Value parent, c
 /// @throws TypeMismatchException if there is a non-object node in the middle of
 /// `path`
 template <typename ValueBuilder>
-std::enable_if_t<!common::kIsFormatValue<ValueBuilder>, ValueBuilder> GetAtPath(
-    ValueBuilder& parent,
-    std::vector<std::string>&& path
-) {
+requires(!common::kIsFormatValue<ValueBuilder>)
+ValueBuilder GetAtPath(ValueBuilder& parent, std::vector<std::string>&& path) {
     return impl::GetAtPath(parent, std::move(path), path.size());
 }
 

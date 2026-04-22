@@ -6,13 +6,13 @@
 #include <algorithm>
 #include <array>
 #include <chrono>
+#include <compare>
 #include <string_view>
 #include <type_traits>
 #include <vector>
 
 #include <fmt/format.h>
 
-#include <userver/compiler/impl/three_way_comparison.hpp>
 #include <userver/utils/fmt_compat.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -86,17 +86,7 @@ public:
 
     //@{
     /** @name Comparison operators */
-
-#ifdef USERVER_IMPL_HAS_THREE_WAY_COMPARISON
     constexpr auto operator<=>(const TimeOfDay&) const = default;
-#else
-    constexpr bool operator==(const TimeOfDay&) const;
-    constexpr bool operator!=(const TimeOfDay&) const;
-    constexpr bool operator<(const TimeOfDay&) const;
-    constexpr bool operator<=(const TimeOfDay&) const;
-    constexpr bool operator>(const TimeOfDay&) const;
-    constexpr bool operator>=(const TimeOfDay&) const;
-#endif
     //@}
 
     //@{
@@ -421,38 +411,6 @@ template <typename Rep, typename Period>
 constexpr TimeOfDay<std::chrono::duration<Rep, Period>>::TimeOfDay(std::string_view str)
     : since_midnight_{detail::TimeOfDayParser<Rep, Period>{}(str)}
 {}
-
-#ifndef USERVER_IMPL_HAS_THREE_WAY_COMPARISON
-template <typename Rep, typename Period>
-constexpr bool TimeOfDay<std::chrono::duration<Rep, Period>>::operator==(const TimeOfDay& rhs) const {
-    return since_midnight_ == rhs.since_midnight_;
-}
-
-template <typename Rep, typename Period>
-constexpr bool TimeOfDay<std::chrono::duration<Rep, Period>>::operator!=(const TimeOfDay& rhs) const {
-    return !(*this == rhs);
-}
-
-template <typename Rep, typename Period>
-constexpr bool TimeOfDay<std::chrono::duration<Rep, Period>>::operator<(const TimeOfDay& rhs) const {
-    return since_midnight_ < rhs.since_midnight_;
-}
-
-template <typename Rep, typename Period>
-constexpr bool TimeOfDay<std::chrono::duration<Rep, Period>>::operator<=(const TimeOfDay& rhs) const {
-    return since_midnight_ <= rhs.since_midnight_;
-}
-
-template <typename Rep, typename Period>
-constexpr bool TimeOfDay<std::chrono::duration<Rep, Period>>::operator>(const TimeOfDay& rhs) const {
-    return since_midnight_ > rhs.since_midnight_;
-}
-
-template <typename Rep, typename Period>
-constexpr bool TimeOfDay<std::chrono::duration<Rep, Period>>::operator>=(const TimeOfDay& rhs) const {
-    return since_midnight_ >= rhs.since_midnight_;
-}
-#endif
 
 template <typename Rep, typename Period>
 constexpr std::chrono::minutes TimeOfDay<std::chrono::duration<Rep, Period>>::Minutes() const noexcept {

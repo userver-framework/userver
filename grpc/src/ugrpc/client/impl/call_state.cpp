@@ -25,20 +25,20 @@ namespace ugrpc::client::impl {
 
 namespace {
 
-void SetupSpan(
-    std::optional<tracing::InPlaceSpan>& span_holder,
+void ConstructSpan(std::optional<tracing::InPlaceSpan>& span_storage, std::string_view call_name) {
+    UASSERT(!span_storage.has_value());
+    span_storage.emplace(std::string{call_name}, utils::impl::SourceLocation::Current());
+    span_storage->Get().DetachFromCoroStack();
+}
+
+void AddServiceMethodTags(
+    tracing::Span& span,
     std::string_view endpoint,
-    std::string_view call_name,
     std::string_view service_name,
     std::string_view method_name
 ) {
-    UASSERT(!span_holder);
-    span_holder.emplace(std::string{call_name}, utils::impl::SourceLocation::Current());
-    auto& span = span_holder->Get();
-    span.DetachFromCoroStack();
-
-    span.AddNonInheritableTag(tracing::kServerAddress, USERVER_NAMESPACE::http::ExtractHostname(endpoint));
     span.AddNonInheritableTag(tracing::kRpcSystem, "grpc");
+    span.AddNonInheritableTag(tracing::kServerAddress, USERVER_NAMESPACE::http::ExtractHostname(endpoint));
     span.AddNonInheritableTag(tracing::kRpcService, std::string{service_name});
     span.AddNonInheritableTag(tracing::kRpcMethod, std::string{method_name});
 }
@@ -68,7 +68,7 @@ RpcConfigValues::RpcConfigValues(const dynamic_config::Snapshot& config)
 {}
 
 CallState::CallState(CallParams&& params)
-    : stub_(std::move(params.stub)),
+    : method_stubs_(std::move(params.method_stubs)),
       client_name_(params.client_name),
       call_name_(std::move(params.call_name)),
       rpc_type_(params.rpc_type),
@@ -76,14 +76,16 @@ CallState::CallState(CallParams&& params)
       queue_(params.queue),
       config_values_(params.config),
       middleware_pipeline_(params.middlewares),
-      testsuite_grpc_(params.testsuite_grpc)
+      testsuite_grpc_(params.testsuite_grpc),
+      retry_limiter_(params.retry_limiter)
 {
     UINVARIANT(!client_name_.empty(), "client name should not be empty");
 
-    SetupSpan(span_, params.endpoint, call_name_.Get(), params.service_name, params.method_name);
+    ConstructSpan(span_, call_name_.Get());
+    AddServiceMethodTags(span_->Get(), params.endpoint, params.service_name, params.method_name);
 }
 
-StubHandle& CallState::GetStub() noexcept { return stub_; }
+ugrpc::impl::StubAny& CallState::GetStub() const noexcept { return method_stubs_.GetStub(); }
 
 void CallState::SetClientContext(std::unique_ptr<grpc::ClientContext> client_context) noexcept {
     client_context_ = std::move(client_context);
@@ -99,6 +101,17 @@ grpc::ClientContext& CallState::GetClientContext() noexcept {
     return *client_context_;
 }
 
+std::string_view CallState::GetClientName() const noexcept { return client_name_; }
+
+std::string_view CallState::GetCallName() const noexcept { return call_name_.Get(); }
+
+RpcType CallState::GetRpcType() const noexcept { return rpc_type_; }
+
+tracing::Span& CallState::GetSpan() noexcept {
+    UASSERT(span_);
+    return span_->Get();
+}
+
 grpc::CompletionQueue& CallState::GetQueue() const noexcept { return queue_; }
 
 const RpcConfigValues& CallState::GetConfigValues() const noexcept { return config_values_; }
@@ -107,15 +120,23 @@ const MiddlewarePipeline& CallState::GetMiddlewarePipeline() const noexcept { re
 
 const testsuite::GrpcControl& CallState::GetTestsuiteControl() const noexcept { return testsuite_grpc_; }
 
-std::string_view CallState::GetClientName() const noexcept { return client_name_; }
+RetryLimiter* CallState::GetRetryLimiter() const noexcept { return retry_limiter_; }
 
-RpcType CallState::GetRpcType() const noexcept { return rpc_type_; }
+ugrpc::impl::RpcStatisticsScope& CallState::GetStatsScope() noexcept { return stats_scope_; }
 
-std::string_view CallState::GetCallName() const noexcept { return call_name_.Get(); }
+bool CallState::IsDeadlinePropagated() const noexcept { return is_deadline_propagated_; }
 
-tracing::Span& CallState::GetSpan() noexcept {
-    UASSERT(span_);
-    return span_->Get();
+void CallState::SetDeadlinePropagated() noexcept {
+    stats_scope_.OnDeadlinePropagated();
+    is_deadline_propagated_ = true;
+}
+
+void CallState::Commit() noexcept { committed_.store(true, std::memory_order_release); }
+
+grpc::ClientContext& CallState::GetClientContextCommitted() {
+    UINVARIANT(committed_.load(std::memory_order_acquire), "Call state should be committed");
+    UINVARIANT(client_context_, "GetClientContext should not be called on cancelled RPC");
+    return *client_context_;
 }
 
 void CallState::ResetSpan() noexcept {
@@ -123,29 +144,12 @@ void CallState::ResetSpan() noexcept {
     span_.reset();
 }
 
-ugrpc::impl::RpcStatisticsScope& CallState::GetStatsScope() noexcept { return stats_scope_; }
-
-void CallState::SetDeadlinePropagated() noexcept {
-    stats_scope_.OnDeadlinePropagated();
-    is_deadline_propagated_ = true;
-}
-
-bool CallState::IsDeadlinePropagated() const noexcept { return is_deadline_propagated_; }
-
-grpc::Status& CallState::GetStatus() noexcept { return status_; }
-
-void CallState::Commit() noexcept { committed_.store(true, std::memory_order_release); }
-
-grpc::ClientContext& CallState::GetClientContextCommitted() {
-    UINVARIANT(committed_, "Call state should be committed");
-    UINVARIANT(client_context_, "GetClientContext should not be called on cancelled RPC");
-    return *client_context_;
-}
-
 StreamingCallState::StreamingCallState(CallParams&& params)
     : CallState(std::move(params))
 {
-    SetupClientContext(*this, params.call_options);
+    // CallState constructor does not consume call_options.
+    // NOLINTNEXTLINE(bugprone-use-after-move)
+    SetupClientContext(*this, params.call_options, /*attempt*/ 1);
     Commit();
 }
 
@@ -212,22 +216,17 @@ bool IsWriteAndCheckAvailable(const StreamingCallState& state) noexcept {
     return !state.AreWritesFinished() && !state.IsFinished();
 }
 
-void SetupClientContext(CallState& state, const CallOptions& call_options) {
+void SetupClientContext(CallState& state, const CallOptions& call_options, int attempt) {
     auto client_context = CallOptionsAccessor::CreateClientContext(call_options);
+
+    if (1 < attempt) {
+        const auto prev_attempts = ugrpc::impl::ToGrpcString(std::to_string(attempt - 1));
+        client_context->AddMetadata(ugrpc::impl::kXPrevAttempts, prev_attempts);
+    }
 
     AddTracingMetadata(*client_context, state.GetSpan());
 
     state.SetClientContext(std::move(client_context));
-}
-
-void HandleCallStatistics(CallState& state, const grpc::Status& status) noexcept {
-    auto& stats = state.GetStatsScope();
-    if (grpc::StatusCode::DEADLINE_EXCEEDED == status.error_code() && state.IsDeadlinePropagated()) {
-        stats.OnCancelledByDeadlinePropagation();
-    } else {
-        stats.OnExplicitFinish(status.error_code());
-    }
-    stats.Flush();
 }
 
 void RunMiddlewarePipeline(CallState& state, const MiddlewareHooks& hooks) {

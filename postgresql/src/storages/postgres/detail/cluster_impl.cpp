@@ -1,6 +1,7 @@
 #include <storages/postgres/detail/cluster_impl.hpp>
 
 #include <fmt/format.h>
+#include <algorithm>
 
 #include <userver/dynamic_config/value.hpp>
 #include <userver/engine/async.hpp>
@@ -99,7 +100,13 @@ ClusterImpl::ClusterImpl(
       ei_settings_(ei_settings),
       metrics_(std::move(metrics)),
       rr_host_idx_(0),
-      connlimit_watchdog_(*this, testsuite_tasks, shard_number, [this]() { OnConnlimitChanged(); })
+      connlimit_watchdog_(
+          *this,
+          testsuite_tasks,
+          shard_number,
+          cluster_settings.pool_settings.min_size,
+          [this]() { OnConnlimitChanged(); }
+      )
 {
     CreateTopology(dsns);
 
@@ -379,21 +386,27 @@ void ClusterImpl::SetPoolSettings(const PoolSettings& new_settings) {
     {
         auto cluster = cluster_settings_.StartWrite();
 
+        cluster->original_min_pool_size = new_settings.min_size;
         cluster->pool_settings = new_settings;
-        auto& settings = cluster->pool_settings;
         if (IsConnlimitModeAuto(*cluster)) {
             auto connlimit = connlimit_watchdog_.GetConnlimit();
             if (connlimit > 0) {
-                settings.max_size = connlimit;
-                if (settings.min_size > settings.max_size) {
-                    settings.min_size = settings.max_size;
-                }
+                AdjustPoolSettings(*cluster, connlimit);
             }
         }
 
         cluster.Commit();
     }
 
+    PropagateSettingsToPools();
+}
+
+void ClusterImpl::AdjustPoolSettings(ExtendedClusterSettings& cluster, std::size_t max_size) {
+    cluster.pool_settings.max_size = max_size;
+    cluster.pool_settings.min_size = std::min(cluster.original_min_pool_size, max_size);
+}
+
+void ClusterImpl::PropagateSettingsToPools() {
     auto td = topology_data_.SharedLock();
     auto cluster_settings = cluster_settings_.Read();
     for (const auto& pool : td->host_pools) {
@@ -409,6 +422,7 @@ void ClusterImpl::SetTopologySettings(const TopologySettings& settings) {
 void ClusterImpl::OnConnlimitChanged() {
     auto max_size = connlimit_watchdog_.GetConnlimit();
     auto cluster = cluster_settings_.StartWrite();
+
     if (!IsConnlimitModeAuto(*cluster)) {
         return;
     }
@@ -416,11 +430,11 @@ void ClusterImpl::OnConnlimitChanged() {
     if (cluster->pool_settings.max_size == max_size) {
         return;
     }
-    cluster->pool_settings.max_size = max_size;
+    AdjustPoolSettings(*cluster, max_size);
+
     cluster.Commit();
 
-    auto cluster_settings = cluster_settings_.Read();
-    SetPoolSettings(cluster_settings->pool_settings);
+    PropagateSettingsToPools();
 }
 
 bool ClusterImpl::IsConnlimitModeAuto(const ClusterSettings& settings) {
@@ -477,6 +491,11 @@ void ClusterImpl::SetDsnList(const DsnList& dsn) {
 
     TESTPOINT("postgres-new-dsn-list", {});
 }
+
+ClusterImpl::ExtendedClusterSettings::ExtendedClusterSettings(const ClusterSettings& settings)
+    : ClusterSettings(settings),
+      original_min_pool_size(settings.pool_settings.min_size)
+{}
 
 }  // namespace storages::postgres::detail
 

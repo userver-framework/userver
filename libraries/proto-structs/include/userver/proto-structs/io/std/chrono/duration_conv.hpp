@@ -21,13 +21,15 @@ std::chrono::duration<TRep, TPeriod> ReadProtoStruct(
     ReadContext& ctx,
     To<std::chrono::duration<TRep, TPeriod>>,
     const ::google::protobuf::Duration& msg
-) try
-{
+) {
     using ChronoDuration = std::chrono::duration<TRep, TPeriod>;
-    return Duration(::utils::impl::InternalTag{}, msg.seconds(), msg.nanos()).ToChronoDuration<ChronoDuration>();
-} catch (const ValueError& e) {
-    ctx.AddError(e.what());
-    return std::chrono::duration<TRep, TPeriod>{0};
+
+    try {
+        return Duration(::utils::impl::InternalTag{}, msg.seconds(), msg.nanos()).ToChronoDuration<ChronoDuration>();
+    } catch (const ValueError& e) {
+        ctx.AddError(e.what());
+        return std::chrono::duration<TRep, TPeriod>{0};
+    }
 }
 
 template <typename TRep, typename TPeriod>
@@ -35,13 +37,14 @@ void WriteProtoStruct(
     WriteContext& ctx,
     const std::chrono::duration<TRep, TPeriod>& obj,
     ::google::protobuf::Duration& msg
-) try
-{
-    Duration duration{obj};
-    msg.set_seconds(duration.Seconds().count());
-    msg.set_nanos(static_cast<std::int32_t>(duration.Nanos().count()));
-} catch (const ValueError& e) {
-    ctx.AddError(e.what());
+) {
+    try {
+        Duration duration{obj};
+        msg.set_seconds(duration.Seconds().count());
+        msg.set_nanos(static_cast<std::int32_t>(duration.Nanos().count()));
+    } catch (const ValueError& e) {
+        ctx.AddError(e.what());
+    }
 }
 
 }  // namespace proto_structs::io

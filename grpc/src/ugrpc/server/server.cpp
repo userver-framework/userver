@@ -383,13 +383,13 @@ ugrpc::impl::CompletionQueuePoolBase& Server::GetCompletionQueues(utils::impl::I
     return impl_->GetCompletionQueues();
 }
 
-void Server::Start() { return impl_->Start(); }
+void Server::Start() { impl_->Start(); }
 
 int Server::GetPort() const noexcept { return impl_->GetPort(); }
 
-void Server::Stop() noexcept { return impl_->Stop(); }
+void Server::Stop() noexcept { impl_->Stop(); }
 
-void Server::StopServing() noexcept { return impl_->StopServing(); }
+void Server::StopServing() noexcept { impl_->StopServing(); }
 
 std::uint64_t Server::GetTotalRequests() const { return impl_->GetTotalRequests(); }
 

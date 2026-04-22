@@ -1,12 +1,11 @@
-#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include <limits>
 
 #include <userver/proto-structs/exceptions.hpp>
 #include <userver/proto-structs/timestamp.hpp>
-#include "userver/proto-structs/duration.hpp"
-#include "userver/utils/impl/internal_tag.hpp"
+#include <userver/utest/assert_macros.hpp>
+#include <userver/utils/impl/internal_tag.hpp>
 
 using namespace std::literals::chrono_literals;
 
@@ -44,14 +43,8 @@ TEST(TimestampTest, IsValid) {
         ValueError
     );
 
-    EXPECT_THAT(
-        []() { [[maybe_unused]] Timestamp t(-100'654'321'000s, 123'456'789ns); },
-        ::testing::ThrowsMessage<ValueError>(::testing::HasSubstr("-100654321000s.123456789ns"))
-    );
-    EXPECT_THAT(
-        []() { [[maybe_unused]] Timestamp t(OverflowingDuration::max()); },
-        ::testing::ThrowsMessage<ValueError>(::testing::HasSubstr("will overflow"))
-    );
+    UEXPECT_THROW_MSG(Timestamp(-100'654'321'000s, 123'456'789ns), ValueError, "-100654321000s.123456789ns");
+    UEXPECT_THROW_MSG((Timestamp{OverflowingDuration::max()}), ValueError, "will overflow");
 
     EXPECT_TRUE(Timestamp::IsValid(0s, 0ns));
     EXPECT_TRUE(Timestamp::IsValid(0s, 1ns));

@@ -1,8 +1,6 @@
 #pragma once
 
-#include <atomic>
 #include <chrono>
-#include <optional>
 #include <string>
 #include <vector>
 
@@ -69,8 +67,6 @@ struct CommandsBufferingSettings {
 };
 
 struct MetricsSettings {
-    enum class Level { kCluster, kShard, kInstance };
-
     struct DynamicSettings {
         bool timings_enabled{true};
         bool command_timings_enabled{false};
@@ -85,20 +81,10 @@ struct MetricsSettings {
         constexpr bool operator!=(const DynamicSettings& rhs) const { return !(*this == rhs); }
     };
 
-    struct StaticSettings {
-        Level level{Level::kInstance};
-
-        constexpr bool operator==(const StaticSettings& rhs) const { return level == rhs.level; }
-
-        constexpr bool operator!=(const StaticSettings& rhs) const { return !(*this == rhs); }
-    };
-
-    StaticSettings static_settings;
     DynamicSettings dynamic_settings;
 
-    MetricsSettings(const DynamicSettings& dynamic_settings, const StaticSettings& static_settings)
-        : static_settings(static_settings),
-          dynamic_settings(dynamic_settings)
+    MetricsSettings(const DynamicSettings& dynamic_settings)
+        : dynamic_settings(dynamic_settings)
     {}
     MetricsSettings() = default;
     MetricsSettings(const MetricsSettings&) = default;
@@ -106,13 +92,10 @@ struct MetricsSettings {
     MetricsSettings& operator=(const MetricsSettings&) = default;
     MetricsSettings& operator=(MetricsSettings&&) = default;
 
-    constexpr bool operator==(const MetricsSettings& rhs) const {
-        return static_settings == rhs.static_settings && dynamic_settings == rhs.dynamic_settings;
-    }
+    constexpr bool operator==(const MetricsSettings& rhs) const { return dynamic_settings == rhs.dynamic_settings; }
 
     constexpr bool operator!=(const MetricsSettings& rhs) const { return !(*this == rhs); }
 
-    Level GetMetricsLevel() const { return static_settings.level; }
     bool IsTimingsEnabled() const { return dynamic_settings.timings_enabled; }
     bool IsCommandTimingsEnabled() const { return dynamic_settings.command_timings_enabled; }
     bool IsRequestSizesEnabled() const { return dynamic_settings.request_sizes_enabled; }

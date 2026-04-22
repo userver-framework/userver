@@ -1,5 +1,4 @@
 import pytest
-import pytest_userver.utils.sync as sync
 
 pytest_plugins = ['pytest_userver.plugins.core']
 
@@ -17,85 +16,8 @@ def config_echo_url(mockserver_info):
     return _do_patch
 
 
-@pytest.fixture(name='jaeger_logs_path', scope='session')
-def _jaeger_logs_path(service_tmpdir):
-    return str(service_tmpdir / 'opentracing_log.txt')
-
-
-# Overriding the default testsuite behavior
-@pytest.fixture(name='userver_config_logging', scope='session')
-def _userver_config_logging(userver_config_logging, jaeger_logs_path):
-    def _patch_config(config_yaml, config_vars):
-        userver_config_logging(config_yaml, config_vars)
-        logging = config_yaml['components_manager']['components']['logging']
-        logging['loggers']['opentracing'] = {
-            'file_path': jaeger_logs_path,
-            'level': 'info',
-            'flush_level': 'info',
-            'overflow_behavior': 'block',
-        }
-
-    return _patch_config
-
-
 # Overriding userver fixture
 @pytest.fixture(name='userver_service_client_options')
 def _userver_service_client_options(userver_service_client_options):
     userver_service_client_options['headers'] = {}
     return userver_service_client_options
-
-
-@pytest.fixture
-async def assert_ids_in_file(service_client, jaeger_logs_path):
-    with open(jaeger_logs_path, 'w') as jaeger_file:
-        jaeger_file.truncate(0)
-
-    trace_id = ''
-
-    # Checking the capture only after the capturing was stopped, to make sure
-    # that the logs were flushed
-    async def _check_the_files(check_trace_id: str):
-        nonlocal trace_id
-        assert not trace_id, 'Fixture assert_ids_in_file was invoked twice'
-        trace_id = check_trace_id
-
-    async with service_client.capture_logs() as capture:
-        yield _check_the_files
-        assert trace_id, 'Fixture assert_ids_in_file was not invoked'
-
-    records = capture.select(trace_id=trace_id)
-    assert len(records) >= 1, capture.select()
-
-    required_data = {
-        f'\ttrace_id={trace_id}',
-        'service_name=http-tracing-test',
-        'duration=',
-        'operation_name=GET localhost',
-        'tags=[{"',
-        'test-service/echo-no-body"',
-        '"key":"url.full"',
-        '"key":"http.response.status_code"',
-        '"value":"200"',
-        '}]',
-    }
-
-    probable_lines = []
-
-    async def check_ready() -> None:
-        nonlocal probable_lines
-        probable_lines = []
-        with open(jaeger_logs_path, 'r') as jaeger_file:
-            for line in reversed(jaeger_file.read().split('\n')):
-                if trace_id in line:
-                    probable_lines.append(line)
-
-                if all(substr in line for substr in required_data):
-                    return
-        raise sync.NotReady()
-
-    try:
-        await sync.wait_until(check_ready)
-    except TimeoutError:
-        assert False, (
-            f'Missing substrings {required_data} in opentracing file for trace id {trace_id}. Lines:\n {probable_lines}'
-        )

@@ -52,7 +52,7 @@ public:
     SharedTask& operator=(SharedTask&& other) noexcept;
 
     /// @cond
-    static constexpr WaitMode kWaitMode = WaitMode::kMultipleWaiters;
+    static constexpr WaitMode kWaitMode = WaitMode::kMultipleAwaiters;
 
 protected:
     // For internal use only.

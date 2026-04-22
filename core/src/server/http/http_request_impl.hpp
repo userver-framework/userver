@@ -57,7 +57,6 @@ struct HttpRequest::Impl {
     engine::io::Sockaddr remote_address;
     engine::TaskProcessor* task_processor{nullptr};
     const handlers::HttpHandlerBase* handler{nullptr};
-    handlers::HttpRequestStatistics* request_statistics{nullptr};
 };
 
 }  // namespace server::http

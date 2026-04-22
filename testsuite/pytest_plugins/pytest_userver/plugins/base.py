@@ -136,6 +136,16 @@ def monitor_port(pytestconfig, _original_service_config, choose_free_port) -> in
     )
 
 
+@pytest.fixture(scope='session')
+def congestion_control_fake_mode() -> bool:
+    """
+    Returns congestion control fake-mode value.
+
+    @ingroup userver_testsuite_fixtures
+    """
+    return True
+
+
 def _get_port(
     original_service_config,
     choose_free_port,
@@ -215,13 +225,13 @@ def _is_port_free(port_num: int, family: int, address: str) -> bool:
 
 
 @pytest.fixture(scope='session')
-def userver_base_prepare_service_config():
+def userver_base_prepare_service_config(congestion_control_fake_mode):
     def patch_config(config, config_vars):
         components = config['components_manager']['components']
         if 'congestion-control' in components:
             if components['congestion-control'] is None:
                 components['congestion-control'] = {}
 
-            components['congestion-control']['fake-mode'] = True
+            components['congestion-control']['fake-mode'] = congestion_control_fake_mode
 
     return patch_config

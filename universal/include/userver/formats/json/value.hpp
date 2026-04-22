@@ -352,11 +352,9 @@ private:
 template <typename T>
 auto Value::As() const {
     static_assert(
-        formats::common::impl::kHasParse<Value, T>,
-        "There is no `Parse(const Value&, formats::parse::To<T>)` "
-        "in namespace of `T` or `formats::parse`. "
-        "Probably you forgot to include the "
-        "<userver/formats/parse/common_containers.hpp> or you "
+        formats::common::impl::HasParse<Value, T>,
+        "There is no `Parse(const Value&, formats::parse::To<T>)` in namespace of `T` or `formats::parse`. "
+        "Probably you forgot to include the <userver/formats/parse/common_containers.hpp> or you "
         "have not provided a `Parse` function overload."
     );
 
@@ -405,17 +403,15 @@ auto Value::As(Value::DefaultConstructed) const {
 
 template <typename T>
 T Value::ConvertTo() const {
-    if constexpr (formats::common::impl::kHasConvert<Value, T>) {
+    if constexpr (formats::common::impl::HasConvert<Value, T>) {
         return Convert(*this, formats::parse::To<T>{});
-    } else if constexpr (formats::common::impl::kHasParse<Value, T>) {
+    } else if constexpr (formats::common::impl::HasParse<Value, T>) {
         return Parse(*this, formats::parse::To<T>{});
     } else {
         static_assert(
             !sizeof(T),
-            "There is no `Convert(const Value&, formats::parse::To<T>)` or"
-            "`Parse(const Value&, formats::parse::To<T>)`"
-            "in namespace of `T` or `formats::parse`. "
-            "Probably you have not provided a `Convert` function overload."
+            "There is no `Convert(const Value&, formats::parse::To<T>)` or `Parse(const Value&, formats::parse::To<T>)`"
+            "in namespace of `T` or `formats::parse`. Probably you have not provided a `Convert` function overload."
         );
     }
 }
@@ -430,6 +426,8 @@ T Value::ConvertTo(First&& default_arg, Rest&&... more_default_args) const {
 }
 
 inline Value Parse(const Value& value, parse::To<Value>) { return value; }
+
+inline Value Parse(Value&& value, parse::To<Value>) { return std::move(value); }
 
 std::chrono::microseconds Parse(const Value& value, parse::To<std::chrono::microseconds>);
 

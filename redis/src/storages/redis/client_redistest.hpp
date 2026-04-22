@@ -9,7 +9,9 @@ public:
     void SetUp() override {
         BaseRedisClientTest::SetUp();
 
-        GetSentinel()->MakeRequest({"flushdb"}, "none", true).Get();
+        for (size_t shard = 0; shard < GetSentinel()->ShardsCount(); shard++) {
+            GetSentinel()->MakeRequest({"flushdb"}, shard, true).Get();
+        }
     }
 };
 

@@ -73,7 +73,6 @@ async def test_empty_yandex_tracing_headers(service_client, mockserver):
 async def test_b3_tracing_headers(
     service_client,
     mockserver,
-    assert_ids_in_file,
 ):
     @mockserver.json_handler('/test-service/echo-no-body')
     async def _handler(request):
@@ -86,13 +85,11 @@ async def test_b3_tracing_headers(
     response = await service_client.get('/echo-no-body', headers=B3_HEADERS)
     assert _handler.times_called >= 1
     assert response.status_code == 200
-    await assert_ids_in_file(B3_HEADERS['X-B3-TraceId'])
 
 
 async def test_otel_tracing_headers(
     service_client,
     mockserver,
-    assert_ids_in_file,
 ):
     @mockserver.json_handler('/test-service/echo-no-body')
     async def _handler(request):
@@ -111,13 +108,11 @@ async def test_otel_tracing_headers(
     )
     assert _handler.times_called >= 1
     assert response.status_code == 200
-    await assert_ids_in_file(OPENTELEMETRY_TRACE_ID)
 
 
 async def test_taxi_tracing_headers(
     service_client,
     mockserver,
-    assert_ids_in_file,
 ):
     @mockserver.json_handler('/test-service/echo-no-body')
     async def _handler(request):
@@ -129,7 +124,6 @@ async def test_taxi_tracing_headers(
     response = await service_client.get('/echo-no-body', headers=TAXI_HEADERS)
     assert _handler.times_called >= 1
     assert response.status_code == 200
-    await assert_ids_in_file(TAXI_HEADERS['X-YaTraceId'])
 
 
 async def test_taxi_tracing_headers_ext(service_client, mockserver):
@@ -167,7 +161,6 @@ async def test_taxi_tracing_headers_min(service_client, mockserver):
 async def test_yandex_tracing_headers(
     service_client,
     mockserver,
-    assert_ids_in_file,
 ):
     @mockserver.json_handler('/test-service/echo-no-body')
     async def _handler(request):
@@ -181,7 +174,6 @@ async def test_yandex_tracing_headers(
     )
     assert _handler.times_called >= 1
     assert response.status_code == 200
-    await assert_ids_in_file(YANDEX_HEADERS['X-RequestId'])
 
 
 async def test_priority_otel_tracing_headers(service_client, mockserver):

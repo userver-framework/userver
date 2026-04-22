@@ -9,6 +9,7 @@
 #include <userver/engine/io/sockaddr.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/utils/fast_pimpl.hpp>
+#include <userver/utils/resource_scopes.hpp>
 #include <userver/utils/statistics/rate_counter.hpp>
 
 #include <userver/static_config/dns_client.hpp>
@@ -62,6 +63,8 @@ public:
 
     /// Removes the specified domain name from the network results cache.
     void FlushNetworkCache(const std::string& name);
+
+    void WriteMetrics(utils::statistics::Writer& writer) const;
 
 private:
     class Impl;

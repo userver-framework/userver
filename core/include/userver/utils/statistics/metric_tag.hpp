@@ -36,6 +36,8 @@ namespace utils::statistics {
 /// @snippet samples/tcp_full_duplex_service/main.cpp  TCP sample - Stats definition
 ///
 /// For a full usage example see @ref samples/tcp_full_duplex_service/main.cpp
+///
+/// For introduction to metrics see @ref scripts/docs/en/userver/metrics.md
 template <typename Metric>
 class MetricTag final {
 public:

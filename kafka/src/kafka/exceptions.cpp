@@ -13,6 +13,13 @@ SendException::SendException(const char* what, bool is_retryable)
       is_retryable_(is_retryable)
 {}
 
+BulkSendException::BulkSendException(BulkSendException::ExceptionMap nested_exceptions)
+    : std::runtime_error(kWhat),
+      nested_exceptions_(std::move(nested_exceptions))
+{}
+
+const BulkSendException::ExceptionMap& BulkSendException::GetExceptions() const noexcept { return nested_exceptions_; }
+
 DeliveryTimeoutException::DeliveryTimeoutException()
     : SendException(kWhat, /*is_retryable=*/true)
 {}

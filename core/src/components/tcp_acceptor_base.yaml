@@ -28,7 +28,7 @@ properties:
         default: true
     sockets_task_processor:
         type: string
-        description: |
+        description: |-
             Task processor to process accepted sockets.
 
             Default: value of `task_processor`

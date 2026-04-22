@@ -13,7 +13,7 @@ properties:
         default: 0
     fs-task-processor:
         type: string
-        description: |
+        description: |-
             Task processor to do filesystem operations
 
             Default: engine::current_task::GetBlockingTaskProcessor()

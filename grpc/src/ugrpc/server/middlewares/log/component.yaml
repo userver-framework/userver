@@ -24,7 +24,7 @@ properties:
         additionalProperties:
             type: string
             description: log level
-        description: |
+        description: |-
             gRPC status code string -> log level map.
             Allows overriding the log level for the response for individual statuses.
             See grpcpp StatusCode documentation for the list of possible values:

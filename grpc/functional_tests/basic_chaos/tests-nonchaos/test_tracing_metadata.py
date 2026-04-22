@@ -3,6 +3,10 @@ import pytest
 import samples.greeter_pb2 as greeter_pb2
 
 
+def issubset(needle: dict[str, object], haystack: dict[str, object]) -> bool:
+    return haystack | needle == haystack
+
+
 @pytest.mark.parametrize(
     'metadata,logs',
     [
@@ -22,13 +26,15 @@ import samples.greeter_pb2 as greeter_pb2
     ],
 )
 async def test_tracing_metadata(grpc_client, service_client, metadata, logs):
-    request = greeter_pb2.GreetingRequest(name='Python')
     async with service_client.capture_logs() as capture:
-        response = await grpc_client.SayHello(
-            request,
-            wait_for_ready=True,
-            metadata=metadata,
-        )
+
+        @capture.subscribe(trace_id='traceid', stopwatch_units='ms')
+        def server_span(**tags):
+            pass
+
+        response = await grpc_client.SayHello(greeter_pb2.GreetingRequest(name='Python'), metadata=metadata)
         assert response.greeting == 'Hello, Python!'
 
-    assert capture.select(**logs)
+        # Server span is written after response is sent to the client, so we have to wait until the span appears.
+        call = await server_span.wait_call()
+        assert issubset(logs, call['tags'])

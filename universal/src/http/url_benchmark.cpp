@@ -26,8 +26,8 @@ BENCHMARK(MakeUrlBig);
 
 void MakeQuery(benchmark::State& state) {
     http::Args query_args;
-    const auto agrs_count = state.range(0);
-    for (int i = 0; i < agrs_count; i++) {
+    const auto args_count = state.range(0);
+    for (int i = 0; i < args_count; i++) {
         const std::string str = std::to_string(i);
         query_args[str] = str;
     }

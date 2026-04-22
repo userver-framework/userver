@@ -44,30 +44,26 @@ public:
     }
 };
 
-class GrpcServerTestBaggage : public ugrpc::tests::ServiceFixtureBase {
+class GrpcServerTestBaggage
+    : public ugrpc::tests::ServiceWithClientFixture<ServerBaggageTestService, sample::ugrpc::UnitTestServiceClient> {
 public:
-    GrpcServerTestBaggage() {
-        SetServerMiddlewares({std::make_shared<ugrpc::server::middlewares::baggage::Middleware>()});
-
+    GrpcServerTestBaggage()
+        : ugrpc::tests::ServiceWithClientFixture<ServerBaggageTestService, sample::ugrpc::UnitTestServiceClient>(
+              ugrpc::server::ServerConfig{},
+              ugrpc::server::Middlewares{std::make_shared<ugrpc::server::middlewares::baggage::Middleware>()},
+              ugrpc::client::Middlewares{}
+          )
+    {
         ExtendDynamicConfig({
             {::dynamic_config::BAGGAGE_SETTINGS, {{"key1", "key2", "key3"}}},
             {::dynamic_config::USERVER_BAGGAGE_ENABLED, true},
         });
-
-        RegisterService(service_);
-        StartServer();
     }
-
-    ~GrpcServerTestBaggage() override { StopServer(); }
-
-private:
-    ServerBaggageTestService service_;
 };
 
 }  // namespace
 
 UTEST_F(GrpcServerTestBaggage, TestGrpcBaggage) {
-    auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
     sample::ugrpc::GreetingRequest out;
     ugrpc::client::CallOptions call_options;
     const std::string baggage = "key1=value1";
@@ -75,12 +71,11 @@ UTEST_F(GrpcServerTestBaggage, TestGrpcBaggage) {
     call_options.AddMetadata(ugrpc::impl::kXBaggage, baggage);
 
     sample::ugrpc::GreetingResponse in;
-    UEXPECT_NO_THROW(in = client.SayHello(out, std::move(call_options)));
+    UEXPECT_NO_THROW(in = GetClient().SayHello(out, std::move(call_options)));
     ASSERT_EQ(in.name(), baggage);
 }
 
 UTEST_F(GrpcServerTestBaggage, TestGrpcBaggageMultiply) {
-    auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
     sample::ugrpc::GreetingRequest out;
     ugrpc::client::CallOptions call_options;
 
@@ -88,29 +83,27 @@ UTEST_F(GrpcServerTestBaggage, TestGrpcBaggageMultiply) {
     call_options.AddMetadata(ugrpc::impl::kXBaggage, baggage);
 
     sample::ugrpc::GreetingResponse in;
-    UEXPECT_NO_THROW(in = client.SayHello(out, std::move(call_options)));
+    UEXPECT_NO_THROW(in = GetClient().SayHello(out, std::move(call_options)));
     ASSERT_EQ(in.name(), baggage);
 }
 
 UTEST_F(GrpcServerTestBaggage, TestGrpcBaggageNoBaggage) {
-    auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
     sample::ugrpc::GreetingRequest out;
     ugrpc::client::CallOptions call_options;
 
     sample::ugrpc::GreetingResponse in;
-    UEXPECT_NO_THROW(in = client.SayHello(out, std::move(call_options)));
+    UEXPECT_NO_THROW(in = GetClient().SayHello(out, std::move(call_options)));
     ASSERT_EQ(in.name(), "null");
 }
 
 UTEST_F(GrpcServerTestBaggage, TestGrpcBaggageWrongKey) {
-    auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
     sample::ugrpc::GreetingRequest out;
     ugrpc::client::CallOptions call_options;
 
     call_options.AddMetadata(ugrpc::impl::kXBaggage, "wrong_key=wrong_value");
 
     sample::ugrpc::GreetingResponse in;
-    UEXPECT_NO_THROW(in = client.SayHello(out, std::move(call_options)));
+    UEXPECT_NO_THROW(in = GetClient().SayHello(out, std::move(call_options)));
     ASSERT_EQ(in.name(), "");
 }
 
@@ -133,31 +126,31 @@ public:
     }
 };
 
-class GrpcClientTestBaggage : public ugrpc::tests::ServiceFixtureBase {
+class GrpcClientTestBaggage
+    : public ugrpc::tests::ServiceWithClientFixture<ClientBaggageTestService, sample::ugrpc::UnitTestServiceClient> {
 public:
-    GrpcClientTestBaggage() {
+    GrpcClientTestBaggage()
+        : ugrpc::tests::ServiceWithClientFixture<ClientBaggageTestService, sample::ugrpc::UnitTestServiceClient>(
+              ugrpc::server::ServerConfig{},
+              ugrpc::server::Middlewares{},
+              ugrpc::client::Middlewares{std::make_shared<ugrpc::client::middlewares::baggage::Middleware>()}
+          )
+    {
         ExtendDynamicConfig({
             {::dynamic_config::BAGGAGE_SETTINGS, {{"key1", "key2", "key3"}}},
             {::dynamic_config::USERVER_BAGGAGE_ENABLED, true},
         });
-        SetClientMiddlewares({std::make_shared<ugrpc::client::middlewares::baggage::Middleware>()});
-        RegisterService(service_);
-        StartServer();
-    };
-
-    ~GrpcClientTestBaggage() override { StopServer(); }
+    }
 
     baggage::BaggageManager& BaggageManager() { return baggage_manager_; }
 
 private:
-    ClientBaggageTestService service_;
     baggage::BaggageManager baggage_manager_ = baggage::BaggageManager(GetConfigSource());
 };
 
 }  // namespace
 
 UTEST_F(GrpcClientTestBaggage, TestGrpcClientBaggage) {
-    auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
     const std::string baggage = "key1=value1";
 
     sample::ugrpc::GreetingRequest request;
@@ -167,12 +160,11 @@ UTEST_F(GrpcClientTestBaggage, TestGrpcClientBaggage) {
     ugrpc::client::CallOptions call_options;
 
     sample::ugrpc::GreetingResponse in;
-    UEXPECT_NO_THROW(in = client.SayHello(request, std::move(call_options)));
+    UEXPECT_NO_THROW(in = GetClient().SayHello(request, std::move(call_options)));
     ASSERT_EQ(in.name(), baggage);
 }
 
 UTEST_F(GrpcClientTestBaggage, TestGrpcClientBaggageMultiply) {
-    auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
     const std::string baggage = "key1=value1;key2=value2;key3";
 
     sample::ugrpc::GreetingRequest request;
@@ -182,25 +174,21 @@ UTEST_F(GrpcClientTestBaggage, TestGrpcClientBaggageMultiply) {
     ugrpc::client::CallOptions call_options;
 
     sample::ugrpc::GreetingResponse in;
-    UEXPECT_NO_THROW(in = client.SayHello(request, std::move(call_options)));
+    UEXPECT_NO_THROW(in = GetClient().SayHello(request, std::move(call_options)));
     ASSERT_EQ(in.name(), baggage);
 }
 
 UTEST_F(GrpcClientTestBaggage, TestGrpcClientNoBaggage) {
-    auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
-
     sample::ugrpc::GreetingRequest request;
 
     ugrpc::client::CallOptions call_options;
 
     sample::ugrpc::GreetingResponse in;
-    UEXPECT_NO_THROW(in = client.SayHello(request, std::move(call_options)));
+    UEXPECT_NO_THROW(in = GetClient().SayHello(request, std::move(call_options)));
     ASSERT_EQ(in.name(), "null");
 }
 
 UTEST_F(GrpcClientTestBaggage, TestGrpcClientWrongKey) {
-    auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
-
     sample::ugrpc::GreetingRequest request;
 
     BaggageManager().SetBaggage("wrong_key=wrong_value");
@@ -208,7 +196,7 @@ UTEST_F(GrpcClientTestBaggage, TestGrpcClientWrongKey) {
     ugrpc::client::CallOptions call_options;
 
     sample::ugrpc::GreetingResponse in;
-    UEXPECT_NO_THROW(in = client.SayHello(request, std::move(call_options)));
+    UEXPECT_NO_THROW(in = GetClient().SayHello(request, std::move(call_options)));
     ASSERT_EQ(in.name(), "");
 }
 

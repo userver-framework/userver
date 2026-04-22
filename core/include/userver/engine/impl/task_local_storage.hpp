@@ -164,6 +164,7 @@ private:
     // Provides strong exception guarantee. Does not delete the old data, if any.
     template <typename T, VariableKind Kind, typename... Args>
     T& DoEmplace(Key key, bool has_existing_variable, Args&&... args) {
+        // NOLINTNEXTLINE(google-readability-casting)
         auto new_data = std::make_unique<DataImpl<T, Kind>>(key, std::forward<Args>(args)...);
         SetGeneric(key, *new_data, has_existing_variable);
         return new_data.release()->Get();

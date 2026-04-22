@@ -21,7 +21,7 @@ char* Append(char* output, const Args&... args) {
     };
     (append_impl(args), ...);
     return output;
-};
+}
 
 }  // namespace
 
@@ -91,7 +91,7 @@ void Tskv::AddTag(std::string_view key, const LogExtra::Value& value) {
     );
 }
 
-void Tskv::AddTag(std::string_view key, std::string_view value) { return DoAddTag(key, value, false); }
+void Tskv::AddTag(std::string_view key, std::string_view value) { DoAddTag(key, value, false); }
 
 void Tskv::DoAddTag(std::string_view key, std::string_view value, bool value_is_escaped) {
     // TODO: repeated tags

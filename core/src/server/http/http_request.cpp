@@ -277,7 +277,7 @@ void HttpRequest::ParseArgsFromBody() {
     );
 }
 
-bool HttpRequest::IsFinal() const { return pimpl_->is_final; }
+bool HttpRequest::IsFinal() const noexcept { return pimpl_->is_final; }
 
 void HttpRequest::SetResponseStatus(HttpStatus status) const { pimpl_->response.SetStatus(status); }
 
@@ -286,7 +286,7 @@ bool HttpRequest::IsBodyCompressed() const {
     return !encoding.empty() && encoding != "identity";
 }
 
-HttpResponse& HttpRequest::GetHttpResponse() const { return pimpl_->response; }
+HttpResponse& HttpRequest::GetHttpResponse() const noexcept { return pimpl_->response; }
 
 std::chrono::steady_clock::time_point HttpRequest::GetStartTime() const { return pimpl_->start_time; }
 
@@ -311,14 +311,6 @@ void HttpRequest::SetPathArgs(std::vector<std::pair<std::string, std::string>> a
     }
 }
 
-void HttpRequest::AccountResponseTime() {
-    if (pimpl_->request_statistics) {
-        auto timing = std::chrono::duration_cast<
-            std::chrono::milliseconds>(pimpl_->finish_send_response_time - pimpl_->start_time);
-        pimpl_->request_statistics->ForMethod(GetMethod()).Account(handlers::HttpRequestStatisticsEntry{timing});
-    }
-}
-
 void HttpRequest::MarkAsInternalServerError() const {
     // TODO : refactor, this being here is a bit ridiculous
     pimpl_->response.SetStatus(http::HttpStatus::kInternalServerError);
@@ -333,10 +325,6 @@ const handlers::HttpHandlerBase* HttpRequest::GetHttpHandler() const { return pi
 void HttpRequest::SetTaskProcessor(engine::TaskProcessor& task_processor) { pimpl_->task_processor = &task_processor; }
 
 engine::TaskProcessor* HttpRequest::GetTaskProcessor() const { return pimpl_->task_processor; }
-
-void HttpRequest::SetHttpHandlerStatistics(handlers::HttpRequestStatistics& stats) {
-    pimpl_->request_statistics = &stats;
-}
 
 void HttpRequest::SetResponseStreamId(std::int32_t stream_id) { pimpl_->response.SetStreamId(stream_id); }
 
@@ -354,12 +342,11 @@ void HttpRequest::SetResponseNotifyTime(std::chrono::steady_clock::time_point no
     pimpl_->response_notify_time = now;
 }
 
-void HttpRequest::SetStartSendResponseTime() { pimpl_->start_send_response_time = std::chrono::steady_clock::now(); }
-
-void HttpRequest::SetFinishSendResponseTime() {
-    pimpl_->finish_send_response_time = std::chrono::steady_clock::now();
-    AccountResponseTime();
+void HttpRequest::SetStartSendResponseTime() noexcept {
+    pimpl_->start_send_response_time = std::chrono::steady_clock::now();
 }
+
+void HttpRequest::SetFinishSendResponseTime() { pimpl_->finish_send_response_time = std::chrono::steady_clock::now(); }
 
 void HttpRequest::WriteAccessLogs(
     const logging::TextLoggerPtr& logger_access,

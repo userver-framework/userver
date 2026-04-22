@@ -21,14 +21,14 @@ constexpr double kMin = std::numeric_limits<double>::min();
 struct DoubleFromJsonSuccessTestParam {
     std::string input = {};
     DoubleMessageData expected_message = {};
-    ReadOptions options = {};
+    ParseOptions options = {};
 };
 
 struct DoubleFromJsonFailureTestParam {
     std::string input = {};
-    ReadErrorCode expected_errc = {};
+    ParseErrorCode expected_errc = {};
     std::string expected_path = {};
-    ReadOptions options = {};
+    ParseOptions options = {};
 
     // Native implementation does not emit error on some cases which we want to detect.
     // This variable turns off checks for native implementation.
@@ -79,26 +79,28 @@ INSTANTIATE_TEST_SUITE_P(
     ,
     DoubleFromJsonFailureTest,
     ::testing::Values(
-        DoubleFromJsonFailureTestParam{R"({"field1":[]})", ReadErrorCode::kInvalidType, "field1"},
-        DoubleFromJsonFailureTestParam{R"({"field1":{}})", ReadErrorCode::kInvalidType, "field1"},
-        DoubleFromJsonFailureTestParam{R"({"field1":true})", ReadErrorCode::kInvalidType, "field1"},
-        DoubleFromJsonFailureTestParam{R"({"field1":" 123"})", ReadErrorCode::kInvalidValue, "field1", {}, true},
-        DoubleFromJsonFailureTestParam{R"({"field1":"123 "})", ReadErrorCode::kInvalidValue, "field1", {}, true},
-        DoubleFromJsonFailureTestParam{R"({"field1":"1a3"})", ReadErrorCode::kInvalidValue, "field1"}
+        DoubleFromJsonFailureTestParam{R"({"field1":[]})", ParseErrorCode::kInvalidType, "field1"},
+        DoubleFromJsonFailureTestParam{R"({"field1":{}})", ParseErrorCode::kInvalidType, "field1"},
+        DoubleFromJsonFailureTestParam{R"({"field1":true})", ParseErrorCode::kInvalidType, "field1"},
+        DoubleFromJsonFailureTestParam{R"({"field1":" 123"})", ParseErrorCode::kInvalidValue, "field1", {}, true},
+        DoubleFromJsonFailureTestParam{R"({"field1":"123 "})", ParseErrorCode::kInvalidValue, "field1", {}, true},
+        DoubleFromJsonFailureTestParam{R"({"field1":"1a3"})", ParseErrorCode::kInvalidValue, "field1"}
     )
 );
 
 TEST_P(DoubleFromJsonSuccessTest, Test) {
     const auto& param = GetParam();
 
-    proto_json::messages::DoubleMessage message, expected_message, sample_message;
+    proto_json::messages::DoubleMessage message;
+    proto_json::messages::DoubleMessage expected_message;
+    proto_json::messages::DoubleMessage sample_message;
     formats::json::Value input = PrepareJsonTestData(param.input);
     expected_message = PrepareTestData(param.expected_message);
 
     message.set_field1(100.001);
 
     UASSERT_NO_THROW((message = JsonToMessage<proto_json::messages::DoubleMessage>(input, param.options)));
-    UASSERT_NO_THROW(InitSampleMessage(param.input, param.options, sample_message));
+    UASSERT_NO_THROW(InitSampleMessage(param.input, sample_message, param.options));
 
     CheckMessageEqual(message, sample_message);
     CheckMessageEqual(message, expected_message);
@@ -110,14 +112,14 @@ TEST_P(DoubleFromJsonFailureTest, Test) {
     proto_json::messages::DoubleMessage sample_message;
     formats::json::Value input = PrepareJsonTestData(param.input);
 
-    EXPECT_READ_ERROR(
+    EXPECT_PARSE_ERROR(
         (void)JsonToMessage<proto_json::messages::DoubleMessage>(input, param.options),
         param.expected_errc,
         param.expected_path
     );
 
     if (!param.skip_native_check) {
-        UEXPECT_THROW(InitSampleMessage(param.input, param.options, sample_message), SampleError);
+        UEXPECT_THROW(InitSampleMessage(param.input, sample_message, param.options), SampleError);
     }
 }
 

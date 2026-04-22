@@ -148,6 +148,11 @@ html.dark-mode {
   --side-nav-background: var(--black-color-1);
 }
 
+/* We do not need it displayed, but we use it to make our own TOC */
+#side-nav {
+  display: none;
+}
+
 #doc-content {
   /* Disable standard Doxygen content margin */
   margin-left: 0 !important;

@@ -1,0 +1,3 @@
+jinja2
+tree-sitter
+tree-sitter-cmake

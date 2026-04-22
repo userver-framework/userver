@@ -5,6 +5,8 @@
 {{ do_render_namespace(node) -}}
 {% elif node.kind == "struct" %}
 {{ do_render_struct(node, context) -}}
+{% elif node.kind == "enum" %}
+{{ do_render_enum(node, context) -}}
 {% endif %}
 {% endmacro %}
 
@@ -198,6 +200,51 @@ USERVER_NAMESPACE::proto_structs::io::WriteContext& ctx,
 {{ struct.contextual_cpp_name(context=context) }}&& obj,
 ::{{ struct.vanilla_full_name }}& msg) {
 WriteProtoStructImpl(ctx, std::move(obj), msg);
+{% endfilter %}
+}
+{% endmacro %}
+
+{% macro do_render_enum(enum, context) %}
+
+// ---------- IO for {{ enum.full_cpp_name() }} ----------
+{{ do_render_to_string(enum, context) -}}
+{{ do_render_to_string_view(enum, context) -}}
+{{ do_render_parse(enum, context) -}}
+{% endmacro %}
+
+{% macro do_render_to_string(enum, context) %}
+
+const std::string& ToString(
+{{- enum.contextual_cpp_name(context=context) }} value) {
+{% filter indent(width=4, first=True) %}
+return ::{{ enum.vanilla_full_enum_name }}_Name(static_cast<::{{ enum.vanilla_full_enum_name }}>(value));
+{% endfilter %}
+}
+{% endmacro %}
+
+{% macro do_render_to_string_view(enum, context) %}
+
+std::string_view ToStringView(
+{{- enum.contextual_cpp_name(context=context) }} value) {
+{% filter indent(width=4, first=True) %}
+return ::{{ enum.vanilla_full_enum_name }}_Name(static_cast<::{{ enum.vanilla_full_enum_name }}>(value));
+{% endfilter %}
+}
+{% endmacro %}
+
+{% macro do_render_parse(enum, context) %}
+
+{{ enum.contextual_cpp_name(context=context) }} Parse(
+{% filter indent(width=4, first=True) %}
+std::string_view name,
+USERVER_NAMESPACE::formats::parse::To<{{ enum.contextual_cpp_name(context=context) }}>) {
+::{{ enum.vanilla_full_enum_name }} parsed;
+if (!::{{ enum.vanilla_full_enum_name }}_Parse(name, &parsed)) {
+{% filter indent(width=4, first=True) %}
+throw proto_structs::ConversionError(fmt::format("unknown enum value: {}", name));
+{% endfilter %}
+}
+return static_cast<{{ enum.contextual_cpp_name(context=context) }}>(parsed);
 {% endfilter %}
 }
 {% endmacro %}
