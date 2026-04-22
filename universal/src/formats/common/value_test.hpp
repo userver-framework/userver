@@ -1,10 +1,5 @@
-#include <userver/formats/common/type.hpp>
-#include <userver/formats/parse/boost_flat_containers.hpp>
-#include <userver/formats/parse/boost_optional.hpp>
-#include <userver/formats/parse/time_of_day.hpp>
-#include <userver/formats/parse/to.hpp>
-#include <userver/formats/parse/variant.hpp>
-#include <userver/utils/meta_light.hpp>
+#include <gmock/gmock.h>
+#include <gtest/gtest.h>
 
 #include <limits>
 #include <map>
@@ -16,11 +11,17 @@
 #include <unordered_set>
 #include <vector>
 
-#include <gmock/gmock.h>
-#include <gtest/gtest.h>
 #include <boost/container/flat_map.hpp>
 #include <boost/container/flat_set.hpp>
 #include <boost/optional.hpp>
+
+#include <userver/formats/common/type.hpp>
+#include <userver/formats/parse/boost_flat_containers.hpp>
+#include <userver/formats/parse/boost_optional.hpp>
+#include <userver/formats/parse/time_of_day.hpp>
+#include <userver/formats/parse/to.hpp>
+#include <userver/formats/parse/variant.hpp>
+#include <userver/utils/meta_light.hpp>
 
 namespace boost {
 template <class T>

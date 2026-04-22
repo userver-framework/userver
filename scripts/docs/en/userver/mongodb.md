@@ -127,5 +127,5 @@ the service, then something is wrong with the database. Service or database main
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref scripts/docs/en/userver/sqlite/design_and_details.md | @ref scripts/docs/en/userver/redis.md ⇨
+⇦ @ref scripts/docs/en/userver/odbc.md | @ref scripts/docs/en/userver/redis.md ⇨
 @htmlonly </div> @endhtmlonly

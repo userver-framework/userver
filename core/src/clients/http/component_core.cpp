@@ -107,16 +107,12 @@ HttpClientCore::HttpClientCore(const ComponentConfig& component_config, const Co
 
     const auto thread_name_prefix = component_config["thread-name-prefix"].As<std::string>("");
     auto stats_name = "httpclient" + (thread_name_prefix.empty() ? "" : ("-" + thread_name_prefix));
-    auto& storage = context.FindComponent<components::StatisticsStorage>().GetStorage();
-    statistics_holder_ = storage.RegisterWriter(std::move(stats_name), [this](utils::statistics::Writer& writer) {
+    utils::statistics::RegisterWriterScope(context, std::move(stats_name), [this](utils::statistics::Writer& writer) {
         return WriteStatistics(writer);
     });
 }
 
-HttpClientCore::~HttpClientCore() {
-    subscriber_scope_.Unsubscribe();
-    statistics_holder_.Unregister();
-}
+HttpClientCore::~HttpClientCore() { subscriber_scope_.Unsubscribe(); }
 
 std::shared_ptr<clients::http::ClientCore> HttpClientCore::GetHttpClientCore(utils::impl::InternalTag) {
     return http_client_;

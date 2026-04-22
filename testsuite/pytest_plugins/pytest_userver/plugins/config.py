@@ -44,6 +44,7 @@ USERVER_CONFIG_HOOKS = [
     'userver_config_testsuite',
     'userver_config_secdist',
     'userver_config_testsuite_middleware',
+    'userver_config_deadlock_detector',
 ]
 
 ServiceConfigPatch: TypeAlias = Callable[[dict, dict], None]
@@ -739,3 +740,34 @@ def userver_config_testsuite_middleware(userver_testsuite_middleware_enabled: bo
 def userver_testsuite_middleware_enabled() -> bool:
     """Whether testsuite middleware is enabled."""
     return True
+
+
+@pytest.fixture(scope='session')
+def userver_config_deadlock_detector(userver_deadlock_detector_mode: str) -> ServiceConfigPatch:
+    """
+    Returns a function that adjusts the static configuration file for testsuite.
+    Sets the `deadlock_detector` parameter of the `coro_pool` component to the value of
+    @ref pytest_userver.plugins.config.userver_deadlock_detector_mode "userver_deadlock_detector_mode"
+    fixture.
+
+    @ingroup userver_testsuite_fixtures
+    """
+
+    def patch_config(config_yaml, config_vars):
+        coro_pool = config_yaml['components_manager'].setdefault('coro_pool', {})
+        coro_pool['deadlock_detector'] = userver_deadlock_detector_mode
+
+    return patch_config
+
+
+@pytest.fixture(scope='session')
+def userver_deadlock_detector_mode() -> str:
+    """
+    Returns Deadlock detector mode for testsuite.
+    Override this fixture to modify the deadlock detector settings.
+    By default, it operates in `detect-only` mode. For a full list of available options, refer to the
+    `coro_pool.deadlock_detector` parameter in the `components::ManagerControllerComponent`.
+
+    @ingroup userver_testsuite_fixtures
+    """
+    return 'detect-only'

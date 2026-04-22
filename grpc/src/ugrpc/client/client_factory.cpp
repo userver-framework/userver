@@ -60,8 +60,12 @@ impl::ClientInternals ClientFactory::MakeClientInternals(
     impl::ChannelFactory
         channel_factory{channel_task_processor_, std::move(channel_credentials), client_factory_settings_.auth_type};
 
+    std::string destination_prefix_in_metrics =
+        client_settings.destination_prefix_in_metrics.value_or(fmt::format("client({})", client_settings.client_name));
+
     return impl::ClientInternals{
         std::move(client_settings.client_name),
+        std::move(destination_prefix_in_metrics),
         std::move(client_settings.endpoint),
         std::move(middlewares),
         completion_queues_,

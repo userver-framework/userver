@@ -36,6 +36,8 @@ ClientSettings SimpleClientComponentAny::MakeClientSettings(
     ClientSettings client_settings;
     client_settings.client_name = config["client-name"].As<std::string>(config.Name());
     client_settings.endpoint = config["endpoint"].As<std::string>();
+    client_settings
+        .destination_prefix_in_metrics = config["destination-prefix-in-metrics"].As<std::optional<std::string>>();
     client_settings.client_qos = client_qos;
     client_settings.dedicated_methods_config =
         config["dedicated-channel-counts"].As<DedicatedMethodsConfig>(client_settings.dedicated_methods_config);

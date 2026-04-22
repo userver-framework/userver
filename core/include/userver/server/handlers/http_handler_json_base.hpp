@@ -42,14 +42,6 @@ public:
     static yaml_config::Schema GetStaticConfigSchema();
 
 protected:
-    /// @returns A pointer to json request if it was parsed successfully or
-    /// nullptr otherwise.
-    static const formats::json::Value* GetRequestJson(const request::RequestContext& context);
-
-    /// @returns a pointer to json response if it was returned successfully by
-    /// `HandleRequestJsonThrow()` or nullptr otherwise.
-    static const formats::json::Value* GetResponseJson(const request::RequestContext& context);
-
     void ParseRequestData(const http::HttpRequest& request, request::RequestContext& context) const override;
 
 private:

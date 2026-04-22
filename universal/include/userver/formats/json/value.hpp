@@ -158,6 +158,9 @@ public:
     /// @brief Returns true if *this holds a double.
     bool IsDouble() const noexcept;
 
+    /// @brief Returns true if *this holds a number (integer or floating point).
+    bool IsNumber() const noexcept;
+
     /// @brief Returns true if *this is holds a std::string.
     bool IsString() const noexcept;
 

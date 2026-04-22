@@ -28,11 +28,9 @@ WebsocketHandlerBase::WebsocketHandlerBase(
     : server::handlers::HttpHandlerBase(config, context),
       config_(config.As<Config>())
 {
-    auto& statistics_storage = context.FindComponent<components::StatisticsStorage>().GetStorage();
-    statistics_holder_ =
-        statistics_storage.RegisterWriter("ws." + config.Name(), [this](utils::statistics::Writer& writer) {
-            return WriteMetrics(writer);
-        });
+    utils::statistics::RegisterWriterScope(context, "ws." + config.Name(), [this](utils::statistics::Writer& writer) {
+        return WriteMetrics(writer);
+    });
 }
 
 std::string WebsocketHandlerBase::HandleRequestThrow(

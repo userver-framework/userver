@@ -149,7 +149,7 @@ void MethodStatisticsSnapshot::Add(const MethodStatisticsSnapshot& other) {
 void DumpMetricWithLabels(
     utils::statistics::Writer& writer,
     const MethodStatisticsSnapshot& stats,
-    std::optional<std::string_view> client_name,
+    std::optional<std::string_view> destination_prefix_in_metrics,
     std::string_view call_name,
     std::string_view service_name
 ) {
@@ -162,8 +162,8 @@ void DumpMetricWithLabels(
         {"grpc_destination", call_name},
     };
 
-    if (client_name) {
-        grpc_destination_full = utils::StrCat(*client_name, "/", call_name);
+    if (destination_prefix_in_metrics) {
+        grpc_destination_full = utils::StrCat(*destination_prefix_in_metrics, "/", call_name);
         labels.emplace_back("grpc_destination_full", grpc_destination_full);
     }
 
@@ -213,7 +213,7 @@ const StaticServiceMetadata& ServiceStatistics::GetMetadata() const { return met
 
 void ServiceStatistics::DumpAndCountTotal(
     utils::statistics::Writer& writer,
-    std::optional<std::string_view> client_name,
+    std::optional<std::string_view> destination_prefix_in_metrics,
     MethodStatisticsSnapshot& total
 ) const {
     for (const auto& [i, method_descriptor] : utils::enumerate(metadata_.methods)) {
@@ -222,7 +222,7 @@ void ServiceStatistics::DumpAndCountTotal(
         DumpMetricWithLabels(
             writer,
             snapshot,
-            client_name,
+            destination_prefix_in_metrics,
             method_descriptor.method_full_name,
             metadata_.service_full_name
         );

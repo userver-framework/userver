@@ -17,14 +17,12 @@ USERVER_NAMESPACE_BEGIN
 
 namespace cache::impl {
 
-utils::statistics::Entry RegisterOnStatisticsStorage(
+void RegisterOnStatisticsStorage(
     const components::ComponentContext& context,
     const std::string& name,
     std::function<void(utils::statistics::Writer&)> func
 ) {
-    return context.FindComponent<components::StatisticsStorage>()
-        .GetStorage()
-        .RegisterWriter("cache", std::move(func), {{"cache_name", name}});
+    utils::statistics::RegisterWriterScope(context, "cache", std::move(func), {{"cache_name", name}});
 }
 
 dynamic_config::Source FindDynamicConfigSource(const components::ComponentContext& context) {

@@ -14,6 +14,7 @@
 #include <engine/task/task_counter.hpp>
 #include <engine/task/task_processor_config.hpp>
 #include <engine/task/task_queue.hpp>
+#include <engine/task/task_queue_pull_pin.hpp>
 #include <engine/task/task_queue_tsan.hpp>
 #include <engine/task/work_stealing_queue/task_queue.hpp>
 #include <engine/tracer_plugin.hpp>
@@ -40,6 +41,8 @@ class ThreadPool;
 
 class TaskProcessor final {
 public:
+    using TaskQueueVariant = std::variant<TaskQueue, WorkStealingTaskQueue, TaskQueuePullPin, TaskQueueTSan>;
+
     TaskProcessor(TaskProcessorConfig, std::shared_ptr<impl::TaskProcessorPools>);
     ~TaskProcessor();
 
@@ -133,7 +136,7 @@ private:
         impl::DetachedTasksSyncBlock::StopMode::kCancel
     };
     concurrent::impl::InterferenceShield<OverloadedCache> overloaded_cache_;
-    std::variant<TaskQueue, WorkStealingTaskQueue, TaskQueueTSan> task_queue_;
+    TaskQueueVariant task_queue_;
     impl::TaskCounter task_counter_;
 
     const TaskProcessorConfig config_;

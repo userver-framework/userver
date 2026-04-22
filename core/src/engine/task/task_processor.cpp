@@ -114,15 +114,16 @@ auto MakeTaskQueue(TaskProcessorConfig config) {
         config.task_processor_queue = TaskQueueType::kTSanTaskQueue;
     }
 #endif
-
-    using ResultType = std::variant<TaskQueue, WorkStealingTaskQueue, TaskQueueTSan>;
+    using TaskQueueVariant = TaskProcessor::TaskQueueVariant;
     switch (config.task_processor_queue) {
         case TaskQueueType::kGlobalTaskQueue:
-            return ResultType{std::in_place_index<0>, std::move(config)};
+            return TaskQueueVariant{std::in_place_type<TaskQueue>, std::move(config)};
         case TaskQueueType::kWorkStealingTaskQueue:
-            return ResultType{std::in_place_index<1>, std::move(config)};
+            return TaskQueueVariant{std::in_place_type<WorkStealingTaskQueue>, std::move(config)};
+        case TaskQueueType::kPullPinTaskQueue:
+            return TaskQueueVariant{std::in_place_type<TaskQueuePullPin>, std::move(config)};
         case TaskQueueType::kTSanTaskQueue:
-            return ResultType{std::in_place_index<2>, std::move(config)};
+            return TaskQueueVariant{std::in_place_type<TaskQueueTSan>, std::move(config)};
     }
     UINVARIANT(false, "Unexpected value of TaskQueueType enum");
 }
@@ -192,6 +193,7 @@ void TaskProcessor::InitiateShutdown() {
 
 void TaskProcessor::Schedule(impl::TaskContext* context) {
     UASSERT(context);
+    UASSERT(&context->GetTaskProcessor() == this);
     const auto [action, max_queue_length] = GetOverloadActionAndValue(action_bit_and_max_task_queue_wait_length_);
     if (max_queue_length && !context->IsCritical()) {
         UASSERT(max_queue_length > 0);

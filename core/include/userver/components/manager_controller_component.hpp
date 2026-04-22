@@ -62,7 +62,7 @@ class Manager;
 /// worker_threads | threads count for the task processor | -
 /// os-scheduling | OS scheduling mode for the task processor threads. 'idle' sets the lowest priority. 'low-priority' sets the priority below 'normal' but higher than 'idle'. | normal
 /// spinning-iterations | tunes the number of spin-wait iterations in case of an empty task queue before threads go to sleep | 1000
-/// task-processor-queue | Task queue mode for the task processor. `global-task-queue` default task queue. `work-stealing-task-queue` experimental with potentially better scalability than `global-task-queue`. | global-task-queue
+/// task-processor-queue | Task queue mode for the task processor. `global-task-queue` default task queue. `work-stealing-task-queue` experimental with potentially better scalability than `global-task-queue`. 'pull-pin-task-queue' - experimental queue where each task gets pinned to a thread-specific queue and is executed only in that thread. See also @ref engine::TaskQueueType | global-task-queue
 /// task-trace | optional dictionary of tracing options | empty (disabled)
 /// task-trace.every | set N to trace each Nth task | 1000
 /// task-trace.max-context-switch-count | set upper limit of context switches to trace for a single task | 1000
@@ -92,7 +92,6 @@ private:
     void OnConfigUpdate(const dynamic_config::Snapshot& cfg);
 
     const components::impl::Manager& components_manager_;
-    utils::statistics::Entry statistics_holder_;
     concurrent::AsyncEventSubscriberScope config_subscription_;
 };
 

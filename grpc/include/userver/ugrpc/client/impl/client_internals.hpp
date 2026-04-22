@@ -29,6 +29,7 @@ class ClientQosErrorsReporter;
 /// Contains all non-code-generated dependencies for creating a gRPC client
 struct ClientInternals final {
     std::string client_name;
+    std::string destination_prefix_in_metrics;
     std::string endpoint;
     Middlewares middlewares;
     ugrpc::impl::CompletionQueuePoolBase& completion_queues;

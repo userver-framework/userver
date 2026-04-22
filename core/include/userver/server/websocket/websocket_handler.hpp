@@ -68,7 +68,6 @@ private:
 
     websocket::Config config_;
     mutable Statistics stats_;
-    utils::statistics::Entry statistics_holder_;
 };
 
 }  // namespace server::websocket

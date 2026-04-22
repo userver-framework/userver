@@ -70,7 +70,6 @@ struct Component::Impl {
 
     // These subscriptions and tasks must be the last fields!
     Watchdog wd;
-    utils::statistics::Entry statistics_holder;
     concurrent::AsyncEventSubscriberScope config_subscription;
     // See the comment above before adding new fields.
 
@@ -128,16 +127,12 @@ Component::Component(const components::ComponentConfig& config, const components
 
     pimpl_->config_subscription = pimpl_->dynamic_config.UpdateAndListen(this, kName, &Component::OnConfigUpdate);
 
-    auto& storage = context.FindComponent<components::StatisticsStorage>().GetStorage();
-    pimpl_->statistics_holder = storage.RegisterWriter(std::string{kName}, [this](utils::statistics::Writer& writer) {
+    utils::statistics::RegisterWriterScope(context, std::string{kName}, [this](utils::statistics::Writer& writer) {
         ExtendWriter(writer);
     });
 }
 
-Component::~Component() {
-    pimpl_->config_subscription.Unsubscribe();
-    pimpl_->statistics_holder.Unregister();
-}
+Component::~Component() { pimpl_->config_subscription.Unsubscribe(); }
 
 void Component::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
     const bool is_enabled_dynamic = cfg[::dynamic_config::USERVER_RPS_CCONTROL_ENABLED];

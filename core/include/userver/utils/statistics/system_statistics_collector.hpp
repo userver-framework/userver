@@ -8,8 +8,7 @@
 #include <userver/concurrent/variable.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/utils/periodic_task.hpp>
-#include <userver/utils/statistics/entry.hpp>
-#include <userver/utils/statistics/system_statistics.hpp>
+#include <utils/statistics/system_statistics.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -37,7 +36,6 @@ public:
     static constexpr std::string_view kName = "system-statistics-collector";
 
     SystemStatisticsCollector(const ComponentConfig&, const ComponentContext&);
-    ~SystemStatisticsCollector() override;
 
     static yaml_config::Schema GetStaticConfigSchema();
 
@@ -53,7 +51,6 @@ private:
 
     const bool with_nginx_;
     engine::TaskProcessor& fs_task_processor_;
-    utils::statistics::Entry statistics_holder_;
     concurrent::Variable<Data> data_;
     utils::PeriodicTask periodic_;
 };

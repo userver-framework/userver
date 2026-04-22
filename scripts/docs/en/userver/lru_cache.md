@@ -48,6 +48,8 @@ Here's a brief introduction into LRU types:
 * Concurrency-safe expirable container @ref cache::ExpirableLruCache with precise
   control over the expiration logic.
 * Concurrency-safe non-expirable container @ref cache::NWayLRU.
+* Non-expirable @ref scripts/docs/en/userver/libraries/multi_index_lru.md that provides the same
+  concurrency guarantees as the standard library containers. Based on Boost.MultiIndex C++ library.
 * Non-expirable container @ref cache::LruMap that provides the same concurrency
   guarantees as the standard library containers.
 * Non-expirable @ref cache::LruSet that provides the same concurrency guarantees as

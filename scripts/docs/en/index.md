@@ -177,6 +177,10 @@ and make sure that it builds and passes tests.
 * @ref scripts/docs/en/userver/sqlite/design_and_details.md
 
 
+## ODBC
+* @ref scripts/docs/en/userver/odbc.md
+
+
 ## Non relational databases
 * @ref scripts/docs/en/userver/mongodb.md
 * @ref scripts/docs/en/userver/redis.md

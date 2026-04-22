@@ -18,8 +18,9 @@ Component::Component(const components::ComponentConfig& config, const components
     : ComponentBase{config, context},
       resolver_{GetFsTaskProcessor(config, context), config.As<::userver::static_config::DnsClient>()}
 {
-    auto& storage = context.FindComponent<components::StatisticsStorage>().GetStorage();
-    statistics_holder_ = storage.RegisterWriter(config.Name() + ".replies", [this](auto& writer) { Write(writer); });
+    utils::statistics::RegisterWriterScope(context, config.Name() + ".replies", [this](auto& writer) {
+        Write(writer);
+    });
 }
 
 Resolver& Component::GetResolver() { return resolver_; }

@@ -107,9 +107,6 @@ private:
     mutable engine::Mutex loaded_mutex_;
     mutable engine::ConditionVariable loaded_cv_;
     DynamicConfigStatistics stats_;
-
-    // Must be the last field
-    utils::statistics::Entry statistics_holder_;
 };
 
 DynamicConfig::Impl::Impl(const ComponentConfig& config, const ComponentContext& context)
@@ -122,10 +119,9 @@ DynamicConfig::Impl::Impl(const ComponentConfig& config, const ComponentContext&
     ReadFallback(config);
     ReadFsCache();
 
-    statistics_holder_ =
-        context.FindComponent<components::StatisticsStorage>()
-            .GetStorage()
-            .RegisterWriter("dynamic-config", [this](auto& writer) { WriteStatistics(writer); });
+    utils::statistics::RegisterWriterScope(context, "dynamic-config", [this](auto& writer) {
+        WriteStatistics(writer);
+    });
 }
 
 dynamic_config::Source DynamicConfig::Impl::GetSource() {

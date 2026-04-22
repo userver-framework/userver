@@ -71,7 +71,6 @@ private:
     const bool disable_pool_stats_;
     std::shared_ptr<clients::http::ClientCore> http_client_;
     concurrent::AsyncEventSubscriberScope subscriber_scope_;
-    utils::statistics::Entry statistics_holder_;
 };
 
 template <>

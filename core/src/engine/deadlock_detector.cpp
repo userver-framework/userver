@@ -163,6 +163,11 @@ void StateBase::AddDependency(const Actor& from, const Actor& to) {
             }
             LOG_CRITICAL() << "Deadlocked task " << ToAssertString(*actor) << boost::stacktrace::to_string(it->second);
         }
+    } else {
+        LOG_CRITICAL()
+            << "A deadlock has been identified, but stacktrace collection is currently disabled. To enable "
+               "stacktrace collection, set the `coro_pool.deadlock_detector` option in the "
+               "`components::ManagerControllerComponent` static configuration to `enabled`.";
     }
 
     OnCycleFound(*cycle);
@@ -178,9 +183,11 @@ void StateBase::RemoveDependency(const Actor& from, const Actor& to) noexcept {
 
     auto it = std::find(v.begin(), v.end(), &to);
     if (it == v.end()) {
-        utils::AbortWithStacktrace(
-            fmt::format("Trying to stop waiting while not waiting! {} => {}", ToAssertString(from), ToAssertString(to))
-        );
+        utils::AbortWithStacktrace(fmt::format(
+            "Trying to remove dependency that does not exist! {} => {}",
+            ToAssertString(from),
+            ToAssertString(to)
+        ));
     }
     if (v.size() == 1) {
         edges->erase(&from);

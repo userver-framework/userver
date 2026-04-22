@@ -30,14 +30,20 @@ constexpr utils::StringLiteral kTracingBody = "body";
 constexpr utils::StringLiteral kTracingUri = "uri";
 
 std::string GetHeadersLogString(const http::HttpResponse& response) {
-    formats::json::ValueBuilder json_headers(formats::json::Type::kObject);
+    std::string result;
+    auto write_header = [&](std::string_view header_name, std::string_view header_value) {
+        for (auto header_part : std::array<std::string_view, 4>{header_name, ": ", header_value, "\n"}) {
+            result += header_part;
+        }
+    };
+
     for (const auto& header_name : response.GetSystemHeaderNames()) {
-        json_headers[header_name] = response.GetHeader(header_name);
+        write_header(header_name, response.GetHeader(header_name));
     }
     for (const auto& header_name : response.GetUserHeaderNames()) {
-        json_headers[header_name] = response.GetHeader(header_name);
+        write_header(header_name, response.GetHeader(header_name));
     }
-    return formats::json::ToString(json_headers.ExtractValue());
+    return result;
 }
 
 void LogYandexHeaders(const http::HttpRequest& http_request) {

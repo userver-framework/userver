@@ -1,0 +1,175 @@
+syntax = "proto3";
+package proto_json.messages;
+
+import "google/protobuf/any.proto";
+import "google/protobuf/duration.proto";
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/wrappers.proto";
+
+message Int32Message {
+  int32 field1 = 1;
+  sint32 field2 = 2;
+  sfixed32 field3 = 3;
+}
+
+message UInt32Message {
+  uint32 field1 = 1;
+  fixed32 field2 = 2;
+}
+
+message Int64Message {
+  int64 field1 = 1;
+  sint64 field2 = 2;
+  sfixed64 field3 = 3;
+}
+
+message UInt64Message {
+  uint64 field1 = 1;
+  fixed64 field2 = 2;
+}
+
+message FloatMessage {
+  float field1 = 1;
+}
+
+message DoubleMessage {
+  double field1 = 1;
+}
+
+message BoolMessage {
+  bool field1 = 1;
+}
+
+message StringMessage {
+  string field1 = 1;
+}
+
+message BytesMessage {
+  bytes field1 = 1;
+}
+
+message EnumMessage {
+  enum Test {
+    option allow_alias = true;
+    TEST_UNSPECIFIED = 0;
+    TEST_VALUE1 = 1;
+    TEST_VALUE2 = 2;
+    TEST_VALUE2_ALIAS = 2;
+    TEST_VALUE3 = 3;
+  }
+
+  Test field1 = 1;
+}
+
+message EmptyMessage {}
+
+message NestedMessage {
+  message Nested {
+    int32 field1 = 1;
+  }
+
+  Nested parent = 1;
+}
+
+message WrapperMessage {
+  google.protobuf.DoubleValue field1 = 1;
+  google.protobuf.FloatValue field2 = 2;
+  google.protobuf.Int64Value field3 = 3;
+  google.protobuf.UInt64Value field4 = 4;
+  google.protobuf.Int32Value field5 = 5;
+  google.protobuf.UInt32Value field6 = 6;
+  google.protobuf.BoolValue field7 = 7;
+  google.protobuf.StringValue field8 = 8;
+  google.protobuf.BytesValue field9 = 9;
+}
+
+message FieldMaskMessage {
+  google.protobuf.FieldMask field1 = 1;
+}
+
+message DurationMessage {
+  google.protobuf.Duration field1 = 1;
+}
+
+message TimestampMessage {
+  google.protobuf.Timestamp field1 = 1;
+}
+
+message ValueMessage {
+  google.protobuf.Value field1 = 1;
+}
+
+message AnyMessage {
+  google.protobuf.Any field1 = 1;
+}
+
+message OneofMessage {
+  oneof test {
+    int32 field1 = 1;
+    string field2 = 2;
+  }
+}
+
+message RepeatedMessage {
+  repeated int32 field1 = 1;
+  repeated BoolMessage field2 = 2;
+  repeated google.protobuf.Duration field3 = 3;
+}
+
+message MapMessage {
+  enum TestEnum {
+    TEST_ENUM_VALUE0 = 0;
+    TEST_ENUM_VALUE1 = 1;
+  }
+
+  map<int32, int32> field1 = 1;
+  map<uint32, double> field2 = 2;
+  map<int64, bool> field3 = 3;
+  map<uint64, string> field4 = 4;
+  map<bool, TestEnum> field5 = 5;
+  map<string, BoolMessage> field6 = 6;
+  map<string, google.protobuf.Duration> field7 = 7;
+}
+
+message NullValueMessage {
+  google.protobuf.NullValue field1 = 1;
+  optional google.protobuf.NullValue field2 = 2;
+  repeated google.protobuf.NullValue field3 = 3;
+  map<int32, google.protobuf.NullValue> field4 = 4;
+}
+
+message ComplexMessage {
+  message Bottom {
+    uint32 field1 = 1;
+    google.protobuf.Duration field2 = 2;
+  }
+
+  message Inter {
+    map<string, Bottom> bottoms = 1;
+  }
+
+  repeated Inter inters = 1;
+}
+
+message CustomNameMessage {
+  optional int32 field = 1 [json_name = "___"];
+  double another_field = 2 [json_name = "_Custom_namE_"];
+  string one_more_field = 3;
+  bool last_field = 4 [json_name = "last_field"];
+}
+
+message PresenceMessage {
+  bool field1 = 1;
+  optional bool field2 = 2;
+  Int32Message field3 = 3;
+  repeated bool field4 = 4;
+  map<int32, bool> field5 = 5;
+}
+
+message UnknownFieldMessage {
+  StringMessage field1 = 1;
+  repeated StringMessage field2 = 2;
+  map<int32, StringMessage> field3 = 3;
+}

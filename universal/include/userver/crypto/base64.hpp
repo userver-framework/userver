@@ -4,6 +4,7 @@
 /// @brief @copybrief crypto::base64
 /// @ingroup userver_universal
 
+#include <string>
 #include <string_view>
 
 USERVER_NAMESPACE_BEGIN
@@ -34,6 +35,10 @@ std::string Base64UrlEncode(std::string_view data, Pad pad = Pad::kWith);
 /// @brief Decodes data from Base64 (using URL alphabet)
 /// @throws CryptoException internal library exception
 std::string Base64UrlDecode(std::string_view data);
+
+/// @brief Decodes @a data in-place and returns `true` on success.
+/// @note Supports both traditional and "web-safe" base64 encodings.
+[[nodiscard]] bool Base64UniversalDecodeInPlace(std::string& data) noexcept;
 
 #endif
 

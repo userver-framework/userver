@@ -23,13 +23,10 @@ SystemStatisticsCollector::SystemStatisticsCollector(const ComponentConfig& conf
           [this] { ProcessTimer(); }
       )
 {
-    statistics_holder_ =
-        context.FindComponent<components::StatisticsStorage>()
-            .GetStorage()
-            .RegisterWriter("", [this](utils::statistics::Writer& writer) { ExtendStatistics(writer); });
+    utils::statistics::RegisterWriterScope(context, "", [this](utils::statistics::Writer& writer) {
+        ExtendStatistics(writer);
+    });
 }
-
-SystemStatisticsCollector::~SystemStatisticsCollector() { statistics_holder_.Unregister(); }
 
 void SystemStatisticsCollector::ProcessTimer() {
     engine::CriticalAsyncNoSpan(fs_task_processor_, [&] {

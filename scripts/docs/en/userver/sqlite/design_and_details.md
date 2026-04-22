@@ -126,5 +126,5 @@ transaction.Rollback();
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref scripts/docs/en/userver/sqlite/supported_types.md | @ref scripts/docs/en/userver/mongodb.md ⇨
+⇦ @ref scripts/docs/en/userver/sqlite/supported_types.md | @ref scripts/docs/en/userver/odbc.md ⇨
 @htmlonly </div> @endhtmlonly

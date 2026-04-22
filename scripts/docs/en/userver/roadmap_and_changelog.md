@@ -41,7 +41,8 @@ Changelog news also go to the
   structured details following Google's error model
 * Added a @ref utils::statistics::RegisterWriterScope for safe and easy registration of statistics.
 * No more need to call `CacheUpdateTrait::StartPeriodicUpdates()` from your caching components.  
-* Implemented a Multi Index LRU container, thanks to [hzhdlrp](https://github.com/hzhdlrp).
+* Implemented a @ref scripts/docs/en/userver/libraries/multi_index_lru.md, thanks to
+  [hzhdlrp](https://github.com/hzhdlrp).
 * Statement name is now logged when using @ref storages::postgres::Portal.
 * Monitor port is now opened before all the components and handlers are started, leading to more control and
   information on service start.
@@ -49,17 +50,17 @@ Changelog news also go to the
 * Added @ref utils::TaskBuilder
 * ‎@ref scripts/docs/en/userver/libraries/s3api.md now has @ref QUALITY_TIERS "Platinum Tier".
 * Kafka is now more accurate in computing message time spent in @ref kafka::ConsumerComponent queue.
-* @ref utils::statistics::RecentPeriod is does not lose precision under heavy contention.
+* @ref utils::statistics::RecentPeriod now does not lose precision under heavy contention.
 * Added functionality to @ref scripts/docs/en/userver/dump_coroutines.md
 * Added DeadlockDetector that can be enabled via `coro_pool.deadlock_detector` option
   in @ref components::ManagerControllerComponent.
 * Added @ref storages::mongo::Transaction
 * Added @ref server::middlewares::Cors
 * Added @ref utils::FromStringNoThrow
-* Fixed unnecessary lock in TaskContext desctructor when there are no plugins. Many thanks to
+* Fixed unnecessary lock in TaskContext destructor when there are no plugins. Many thanks to
   [Ivan Trofimov](https://github.com/itrofimow) for the PR
 * @ref formats::yaml::Value now checks for key uniqueness in mappings.
-* @ref scripts/docs/en/userver/gdb_debugging.md "Stack monitor usage" is not automatically disabled under GDB.
+* @ref scripts/docs/en/userver/gdb_debugging.md "Stack monitor usage" is now automatically disabled under GDB.
 * Disabled phdr cache if ASAN is enabled. Many thanks to
   [Yury Bogomolov](https://github.com/ybogo) for the PR
 * Allowed using mapped enums in @ref storages::postgres::ParameterStore. Many thanks to Aleksey Popov for the patch and

@@ -14,7 +14,7 @@
 #include <userver/rcu/rcu_map.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 #include <userver/utils/periodic_task.hpp>
-#include <userver/utils/statistics/entry.hpp>
+#include <userver/utils/statistics/metrics_storage.hpp>
 #include <userver/utils/statistics/writer.hpp>
 
 #include "logger.hpp"
@@ -139,7 +139,6 @@ private:
 
     // Subscriptions must be the last fields.
     os_signals::Subscriber signal_subscriber_;
-    utils::statistics::Entry statistics_holder_;
 };
 
 template <>

@@ -266,6 +266,8 @@ bool Value::IsUInt64() const noexcept {
 
 bool Value::IsDouble() const noexcept { return !IsMissing() && GetNative().IsNumber(); }
 
+bool Value::IsNumber() const noexcept { return !IsMissing() && GetNative().IsNumber(); }
+
 bool Value::IsString() const noexcept { return !IsMissing() && GetNative().IsString(); }
 bool Value::IsArray() const noexcept { return !IsMissing() && GetNative().IsArray(); }
 bool Value::IsObject() const noexcept { return !IsMissing() && GetNative().IsObject(); }

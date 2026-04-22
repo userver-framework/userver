@@ -10,7 +10,6 @@
 
 #include <userver/dynamic_config/source.hpp>
 #include <userver/logging/level.hpp>
-#include <userver/utils/statistics/entry.hpp>
 #include <userver/utils/token_bucket.hpp>
 
 #include <userver/server/handlers/exceptions.hpp>
@@ -214,7 +213,6 @@ private:
     const dynamic_config::Source config_source_;
     const std::vector<http::HttpMethod> allowed_methods_;
     const std::string handler_name_;
-    utils::statistics::Entry statistics_holder_;
     std::optional<logging::Level> log_level_;
     std::unordered_map<int, logging::Level> log_level_for_status_codes_;
 

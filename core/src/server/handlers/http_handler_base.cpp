@@ -184,8 +184,8 @@ HttpHandlerBase::HttpHandlerBase(
             GetConfig().path
         );
 
-        auto& statistics_storage = context.FindComponent<components::StatisticsStorage>().GetStorage();
-        statistics_holder_ = statistics_storage.RegisterWriter(
+        utils::statistics::RegisterWriterScope(
+            context,
             std::move(prefix),
             [this](utils::statistics::Writer& result) {
                 FormatStatistics(result["handler"], *handler_statistics_);
@@ -201,7 +201,7 @@ HttpHandlerBase::HttpHandlerBase(
         GetConfig().set_response_server_hostname.value_or(server.GetConfig().set_response_server_hostname);
 }
 
-HttpHandlerBase::~HttpHandlerBase() { statistics_holder_.Unregister(); }
+HttpHandlerBase::~HttpHandlerBase() = default;
 
 void HttpHandlerBase::HandleRequestStream(http::HttpRequest& http_request, request::RequestContext& context) const {
     auto& http_response = http_request.GetHttpResponse();

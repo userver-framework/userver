@@ -24,7 +24,7 @@ namespace cache {
 
 namespace impl {
 
-utils::statistics::Entry RegisterOnStatisticsStorage(
+void RegisterOnStatisticsStorage(
     const components::ComponentContext& context,
     const std::string& name,
     std::function<void(utils::statistics::Writer&)> func
@@ -107,7 +107,6 @@ private:
 
     // Subscriptions must be the last fields.
     concurrent::AsyncEventSubscriberScope config_subscription_;
-    utils::statistics::Entry statistics_holder_;
     testsuite::CacheResetRegistration reset_registration_;
     // See the comment above before adding a new field.
 };
@@ -145,9 +144,7 @@ LruCacheComponent<
         LOG_INFO() << "Dynamic LRU cache config is disabled, cache=" << name_;
     }
 
-    statistics_holder_ = impl::RegisterOnStatisticsStorage(context, name_, [this](utils::statistics::Writer& writer) {
-        writer = *cache_;
-    });
+    impl::RegisterOnStatisticsStorage(context, name_, [this](utils::statistics::Writer& writer) { writer = *cache_; });
 
     reset_registration_ = testsuite::RegisterCache(context, this, &LruCacheComponent::DropCache);
 }
@@ -155,7 +152,6 @@ LruCacheComponent<
 template <typename Key, typename Value, typename Hash, typename Equal>
 LruCacheComponent<Key, Value, Hash, Equal>::~LruCacheComponent() {
     reset_registration_.Unregister();
-    statistics_holder_.Unregister();
     config_subscription_.Unsubscribe();
 
     if (dumper_) {

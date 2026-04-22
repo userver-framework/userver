@@ -1,4 +1,4 @@
-# LRU Container
+# MultiIndex LRU Container
 
 ## Introduction
 

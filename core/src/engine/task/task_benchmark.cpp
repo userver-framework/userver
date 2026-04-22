@@ -34,8 +34,12 @@ void EngineTaskCreate(benchmark::State& state) {
 }
 BENCHMARK(EngineTaskCreate);
 
+template <engine::TaskQueueType Scheduler>
 void EngineTaskYieldSingleThread(benchmark::State& state) {
-    engine::RunStandalone([&] {
+    engine::TaskProcessorPoolsConfig config{};
+    config.queue_type = Scheduler;
+
+    engine::RunStandalone(1, config, [&] {
         RunParallelBenchmark(state, [](auto& range) {
             for ([[maybe_unused]] auto _ : range) {
                 engine::Yield();
@@ -43,7 +47,16 @@ void EngineTaskYieldSingleThread(benchmark::State& state) {
         });
     });
 }
-BENCHMARK(EngineTaskYieldSingleThread)->RangeMultiplier(2)->Range(1, 128);
+
+void EngineTaskYieldSingleThreadDefault(benchmark::State& state) {
+    EngineTaskYieldSingleThread<engine::TaskQueueType::kGlobalTaskQueue>(state);
+}
+BENCHMARK(EngineTaskYieldSingleThreadDefault)->RangeMultiplier(2)->Range(1, 128);
+
+void EngineTaskYieldSingleThreadPullPin(benchmark::State& state) {
+    EngineTaskYieldSingleThread<engine::TaskQueueType::kPullPinTaskQueue>(state);
+}
+BENCHMARK(EngineTaskYieldSingleThreadPullPin)->RangeMultiplier(2)->Range(1, 128);
 
 void EngineTaskYieldSingleThreadTraced(benchmark::State& state) {
     engine::RunStandalone([&] {
@@ -62,8 +75,12 @@ void EngineTaskYieldSingleThreadTraced(benchmark::State& state) {
 }
 BENCHMARK(EngineTaskYieldSingleThreadTraced)->RangeMultiplier(2)->Range(1, 128);
 
+template <engine::TaskQueueType Scheduler>
 void EngineTaskYieldMultipleThreads(benchmark::State& state) {
-    engine::RunStandalone(state.range(0), [&] {
+    engine::TaskProcessorPoolsConfig config{};
+    config.queue_type = Scheduler;
+
+    engine::RunStandalone(state.range(0), config, [&] {
         std::atomic<std::uint64_t> total_yields{0};
 
         RunParallelBenchmark(state, [&](auto& range) {
@@ -80,7 +97,16 @@ void EngineTaskYieldMultipleThreads(benchmark::State& state) {
             benchmark::Counter(static_cast<double>(total_yields) / state.range(0), benchmark::Counter::kIsRate);
     });
 }
-BENCHMARK(EngineTaskYieldMultipleThreads)->RangeMultiplier(2)->Range(1, 32)->Arg(6)->Arg(12);
+
+void EngineTaskYieldMultipleThreadsDefault(benchmark::State& state) {
+    EngineTaskYieldMultipleThreads<engine::TaskQueueType::kGlobalTaskQueue>(state);
+}
+BENCHMARK(EngineTaskYieldMultipleThreadsDefault)->RangeMultiplier(2)->Range(1, 32)->Arg(6)->Arg(12);
+
+void EngineTaskYieldMultipleThreadsPullPin(benchmark::State& state) {
+    EngineTaskYieldMultipleThreads<engine::TaskQueueType::kPullPinTaskQueue>(state);
+}
+BENCHMARK(EngineTaskYieldMultipleThreadsPullPin)->RangeMultiplier(2)->Range(1, 32)->Arg(6)->Arg(12);
 
 void EngineTaskYieldMultipleTaskProcessors(benchmark::State& state) {
     engine::RunStandalone([&] {

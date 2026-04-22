@@ -81,17 +81,14 @@ public:
             collector_.Start("task-processors-load-collector", settings, [this] { CollectCurrentLoad(); });
         }
 
-        auto& storage = context.FindComponent<components::StatisticsStorage>().GetStorage();
-        statistics_holder_ =
-            storage.RegisterWriter("engine.task-processors-load-percent", [this](utils::statistics::Writer& writer) {
-                ExtendWriter(writer);
-            });
+        utils::statistics::RegisterWriterScope(
+            context,
+            "engine.task-processors-load-percent",
+            [this](utils::statistics::Writer& writer) { ExtendWriter(writer); }
+        );
     }
 
-    ~Impl() {
-        statistics_holder_.Unregister();
-        collector_.Stop();
-    }
+    ~Impl() { collector_.Stop(); }
 
 private:
     static constexpr std::chrono::seconds kCollectInterval{5};
@@ -128,7 +125,6 @@ private:
 
     std::vector<TaskProcessorMeta> task_processors_;
 
-    utils::statistics::Entry statistics_holder_;
     utils::PeriodicTask collector_;
 };
 

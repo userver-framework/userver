@@ -28,10 +28,13 @@ public:
 
     ServiceStatistics& GetServiceStatistics(
         const StaticServiceMetadata& metadata,
-        std::optional<std::string> client_name
+        std::optional<std::string> destination_prefix_in_metrics
     );
 
-    MethodStatistics& GetGenericStatistics(std::string_view call_name, std::optional<std::string_view> client_name);
+    MethodStatistics& GetGenericStatistics(
+        std::string_view call_name,
+        std::optional<std::string_view> destination_prefix_in_metrics
+    );
 
     std::uint64_t GetStartedRequests() const;
 
@@ -41,19 +44,19 @@ private:
 
     struct ServiceKey {
         ServiceId service_id{};
-        std::optional<std::string> client_name;
+        std::optional<std::string> destination_prefix_in_metrics;
     };
 
     struct GenericKey {
         std::string call_name;
-        std::optional<std::string> client_name;
+        std::optional<std::string> destination_prefix_in_metrics;
     };
 
     struct GenericKeyView {
         GenericKey Dereference() const;
 
         std::string_view call_name;
-        std::optional<std::string_view> client_name;
+        std::optional<std::string_view> destination_prefix_in_metrics;
     };
 
     struct ServiceKeyComparer {

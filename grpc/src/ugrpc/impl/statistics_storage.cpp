@@ -35,12 +35,12 @@ StatisticsStorage::~StatisticsStorage() { statistics_holder_.Unregister(); }
 
 ServiceStatistics& StatisticsStorage::GetServiceStatistics(
     const StaticServiceMetadata& metadata,
-    std::optional<std::string> client_name
+    std::optional<std::string> destination_prefix_in_metrics
 ) {
     // We exploit the fact that 'service_full_name' always points to the same
     // static string for a given service.
     const ServiceId service_id = metadata.service_full_name.data();
-    ServiceKey service_key{service_id, std::move(client_name)};
+    ServiceKey service_key{service_id, std::move(destination_prefix_in_metrics)};
 
     {
         auto service_statistics = service_statistics_map_.SharedMutableLockUnsafe();
@@ -61,7 +61,7 @@ ServiceStatistics& StatisticsStorage::GetServiceStatistics(
 
 MethodStatistics& StatisticsStorage::GetGenericStatistics(
     std::string_view call_name,
-    std::optional<std::string_view> client_name
+    std::optional<std::string_view> destination_prefix_in_metrics
 ) {
     UASSERT_MSG(!call_name.empty(), "call_name must NOT be empty");
     UASSERT_MSG(call_name[0] != '/', utils::StrCat("call_name must NOT start with /, given: ", call_name));
@@ -70,7 +70,7 @@ MethodStatistics& StatisticsStorage::GetGenericStatistics(
         utils::StrCat("call_name must contain /, given: ", call_name)
     );
 
-    const GenericKeyView generic_key{call_name, client_name};
+    const GenericKeyView generic_key{call_name, destination_prefix_in_metrics};
 
     {
         auto generic_statistics = generic_statistics_map_.SharedMutableLockUnsafe();
@@ -96,7 +96,7 @@ void StatisticsStorage::ExtendStatistics(utils::statistics::Writer& writer) {
         {
             auto service_statistics_map = service_statistics_map_.SharedLock();
             for (const auto& [key, service_stats] : *service_statistics_map) {
-                service_stats.DumpAndCountTotal(by_destination, key.client_name, total);
+                service_stats.DumpAndCountTotal(by_destination, key.destination_prefix_in_metrics, total);
             }
         }
         {
@@ -114,7 +114,13 @@ void StatisticsStorage::ExtendStatistics(utils::statistics::Writer& writer) {
 
                 const MethodStatisticsSnapshot snapshot{method_stats};
                 total.Add(snapshot);
-                DumpMetricWithLabels(by_destination, snapshot, key.client_name, call_name, service_name);
+                DumpMetricWithLabels(
+                    by_destination,
+                    snapshot,
+                    key.destination_prefix_in_metrics,
+                    call_name,
+                    service_name
+                );
             }
         }
     }
@@ -128,7 +134,7 @@ StatisticsStorage::GenericKey  //
 StatisticsStorage::GenericKeyView::Dereference() const {
     return GenericKey{
         std::string{call_name},
-        client_name ? std::make_optional(std::string{*client_name}) : std::nullopt,
+        destination_prefix_in_metrics ? std::make_optional(std::string{*destination_prefix_in_metrics}) : std::nullopt,
     };
 }
 

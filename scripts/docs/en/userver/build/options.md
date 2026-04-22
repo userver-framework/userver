@@ -26,6 +26,8 @@ userver is split into multiple CMake libraries.
 | `userver::rabbitmq`        | `USERVER_FEATURE_RABBITMQ`                        | `rabbitmq`            | @ref rabbitmq_driver                                      |
 | `userver::mysql`           | `USERVER_FEATURE_MYSQL`                           | `mysql`               | @ref scripts/docs/en/userver/mysql/mysql_driver.md        |
 | `userver::rocks`           | `USERVER_FEATURE_ROCKS`                           | `rocks`               | TODO                                                      |
+| `userver::sqlite`          | `USERVER_FEATURE_SQLITE`                          | `sqlite`              | @ref scripts/docs/en/userver/sqlite/sqlite_driver.md      |
+| `userver::odbc`            | `USERVER_FEATURE_ODBC`                            | `odbc`                | @ref scripts/docs/en/userver/odbc.md                      |
 | `userver::ydb`             | `USERVER_FEATURE_YDB`                             | `ydb`                 | @ref scripts/docs/en/userver/ydb.md                       |
 | `userver::otlp`            | `USERVER_FEATURE_OTLP`                            | `otlp`                | @ref opentelemetry "OpenTelemetry Protocol"               |
 | `userver::s3api`           | `USERVER_FEATURE_S3API`                           | `s3api`               | @ref scripts/docs/en/userver/libraries/s3api.md           |
@@ -78,6 +80,8 @@ The exact format of setting cmake options varies depending on the method of buil
 | `USERVER_FEATURE_RABBITMQ`        | Provide asynchronous driver for RabbitMQ (AMQP 0-9-1)                             | `${USERVER_BUILD_ALL_COMPONENTS}`                           |
 | `USERVER_FEATURE_MYSQL`           | Provide asynchronous driver for MySQL/MariaDB                                     | `${USERVER_BUILD_ALL_COMPONENTS}`                           |
 | `USERVER_FEATURE_ROCKS`           | Provide asynchronous driver for RocksDB                                           | `${USERVER_BUILD_ALL_COMPONENTS}`                           |
+| `USERVER_FEATURE_SQLITE`          | Provide asynchronous driver for SQLite                                            | `${USERVER_BUILD_ALL_COMPONENTS}`                           |
+| `USERVER_FEATURE_ODBC`            | Provide asynchronous driver for ODBC                                              | `${USERVER_BUILD_ALL_COMPONENTS}`                           |
 | `USERVER_FEATURE_YDB`             | Provide asynchronous driver for YDB                                               | `${USERVER_BUILD_ALL_COMPONENTS}` AND C++ standard >= 20    |
 | `USERVER_FEATURE_OTLP`            | Provide Logger for OpenTelemetry protocol                                         | `${USERVER_BUILD_ALL_COMPONENTS}`                           |
 | `USERVER_FEATURE_GRPC_REFLECTION` | Provide reflection service for gRPC                                               | `${USERVER_BUILD_ALL_COMPONENTS}`                           |
@@ -188,7 +192,10 @@ The exact format of setting cmake options varies depending on the method of buil
 | `USERVER_CONAN`                        | Build userver using Conan packages                                                                         | `ON` if build is launched from Conan, `OFF` otherwise       |
 | `USERVER_CHAOTIC_FORMAT`               | Whether to format generated code if FORMAT option is missing                                               | `ON`                                                        |
 
-@warning Using LTO can lead to [some problems](https://github.com/userver-framework/userver/issues/242). We don't recommend using `USERVER_LTO`.
+@warning Using LTO can lead to [some problems](https://github.com/userver-framework/userver/issues/242). We don't
+         recommend using `USERVER_LTO` or consider using thread pinning schedulers (see @ref engine::TaskQueueType
+         for a list of queues and `task-processor-queue` static config option of
+         @ref components::ManagerControllerComponent for a ways to choose a queue).
 
 [tsan]: https://github.com/userver-framework/userver/blob/develop/cmake/tsan.suppressions.txt
 
