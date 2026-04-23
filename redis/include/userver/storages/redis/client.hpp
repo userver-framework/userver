@@ -4,7 +4,6 @@
 /// @brief @copybrief storages::redis::Client
 
 #include <chrono>
-#include <memory>
 #include <string>
 
 #include <userver/storages/redis/base.hpp>
@@ -13,17 +12,17 @@
 #include <userver/storages/redis/bit_operation.hpp>
 #include <userver/storages/redis/client_fwd.hpp>
 #include <userver/storages/redis/command_options.hpp>
+#include <userver/storages/redis/pipeline.hpp>
 #include <userver/storages/redis/request.hpp>
 #include <userver/storages/redis/request_eval.hpp>
 #include <userver/storages/redis/request_evalsha.hpp>
 #include <userver/storages/redis/request_generic.hpp>
-#include <userver/storages/redis/transaction.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::redis {
 
-enum class PubShard {
+enum class PubShard : std::uint8_t {
     kZeroShard,
     kRoundRobin,
 };
@@ -158,7 +157,8 @@ public:
         size_t key_index,
         const CommandControl& command_control
     ) {
-        return RequestGeneric<ReplyType>{GenericCommon(std::move(command), std::move(args), key_index, command_control)
+        return RequestGeneric<ReplyType>{
+            GenericCommon(std::move(command), std::move(args), key_index, command_control)
         };
     }
 
@@ -373,9 +373,22 @@ public:
         const CommandControl& command_control
     ) = 0;
 
-    virtual TransactionPtr Multi() = 0;
+    /// @brief Atomic sequence of Redis commands (https://redis.io/docs/latest/develop/using-commands/transactions)
+    ///
+    /// @note Redis transaction implements isolation, but not
+    /// all-or-nothing semantics (IOW a subcommand may fail, but the following
+    /// subcommands will succeed).
+    /// Implemented via pipeline mechanism
+    virtual PipelinePtr Multi() = 0;
 
-    virtual TransactionPtr Multi(Transaction::CheckShards check_shards) = 0;
+    /// @brief Atomic sequence of Redis commands (https://redis.io/docs/latest/develop/using-commands/transactions)
+    ///
+    /// @note check_shards controls if all subcommands should belong to same shard or not
+    virtual PipelinePtr Multi(Pipeline::CheckShards check_shards) = 0;
+
+    virtual PipelinePtr Pipeline() = 0;
+
+    virtual PipelinePtr Pipeline(Pipeline::CheckShards check_shards) = 0;
 
     virtual RequestPersist Persist(std::string key, const CommandControl& command_control) = 0;
 

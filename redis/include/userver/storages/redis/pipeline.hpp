@@ -1,7 +1,7 @@
 #pragma once
 
-/// @file userver/storages/redis/transaction.hpp
-/// @brief @copybrief storages::redis::Transaction
+/// @file userver/storages/redis/pipeline.hpp
+/// @brief @copybrief storages::redis::Pipeline
 
 #include <memory>
 #include <string>
@@ -14,27 +14,23 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::redis {
 
-/// @brief Atomic sequence of Redis commands (https://redis.io/topics/transactions), that is usually retrieved from
-/// storages::redis::Client::Multi().
+/// @brief Sequence of Redis commands (https://redis.io/docs/latest/develop/using-commands/pipelining), that is usually
+/// retrieved from storages::redis::Client::Pipeline().
 ///
-/// @note Redis transaction implements isolation, but not
-/// all-or-nothing semantics (IOW a subcommand may fail, but the following
-/// subcommands will succeed).
-///
-/// Membef functions add commands to the `Transaction` object. For each added command a future-like object is returned.
-/// You can get the result of each transaction's subcommand by calling `Get()` method for these objects.
+/// @note Member functions add commands to the `Pipeline` object. For each added command a future-like object is
+/// returned. You can get the result of each pipeline's subcommand by calling `Get()` method for these objects.
 /// Commands are be sent to a server after calling `Exec()` that returns `RequestExec` object.
 /// You should not call `Get()` method in a future-like subcommand's object
 /// before calling `Get()` method on `RequestExec` object.
 ///
-/// @snippet redis/src/storages/redis/client_redistest.cpp  redis transaction sample
-class Transaction {
+/// @snippet redis/src/storages/redis/client_redistest.cpp  redis pipeline sample
+class Pipeline {
 public:
-    enum class CheckShards { kNo, kSame };
+    enum class CheckShards : std::uint8_t { kNo, kSame };
 
-    virtual ~Transaction() = default;
+    virtual ~Pipeline() = default;
 
-    /// Finish current atomic sequence of commands and send it to a server.
+    /// Finish current sequence of commands and send it to a server.
     /// Returns 'future-like' request object.
     /// The data will not be set for the future-like objects for subcommands if
     /// `Get()` method of the returned object is not called or redis did not return an array with command responses.
@@ -316,14 +312,14 @@ public:
     // end of redis commands
 };
 
-using TransactionPtr = std::unique_ptr<Transaction>;
+using PipelinePtr = std::unique_ptr<Pipeline>;
 
-class EmptyTransactionException : public Exception {
+class EmptyPipelineException : public Exception {
 public:
     using Exception::Exception;
 };
 
-class NotStartedTransactionException : public Exception {
+class NotStartedPipelineException : public Exception {
 public:
     using Exception::Exception;
 };

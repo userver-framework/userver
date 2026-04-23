@@ -2,15 +2,15 @@
 
 #include <userver/utest/utest.hpp>
 
-#include <userver/storages/redis/transaction.hpp>
+#include <userver/storages/redis/pipeline.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::redis {
 
-class MockTransactionImplBase {
+class MockPipelineImplBase {
 public:
-    virtual ~MockTransactionImplBase() = default;
+    virtual ~MockPipelineImplBase() = default;
 
     // redis commands:
 

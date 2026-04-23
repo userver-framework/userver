@@ -1,7 +1,7 @@
 #pragma once
 
 /// @file
-/// @brief Valkey/Redis futures for storages::redis::Client and storages::redis::Transaction.
+/// @brief Valkey/Redis futures for storages::redis::Client and storages::redis::Pipeline.
 
 #include <memory>
 #include <optional>
@@ -26,7 +26,7 @@ class RequestScanData;
 
 /// @brief Valkey or Redis future for a non-scan and non-eval responses.
 ///
-/// Member functions of classes storages::redis::Client and storages::redis::Transaction that do send request to the
+/// Member functions of classes storages::redis::Client and storages::redis::Pipeline that do send request to the
 /// Redis return this type or storages::redis::ScanRequest.
 template <typename ResultType, typename ReplyType>
 class [[nodiscard]] Request final {
@@ -34,14 +34,12 @@ public:
     using Result = ResultType;
     using Reply = ReplyType;
 
-    explicit Request(std::unique_ptr<RequestDataBase<ReplyType>>&& impl)
-        : impl_(std::move(impl))
-    {}
+    explicit Request(std::unique_ptr<RequestDataBase<ReplyType>>&& impl) : impl_(std::move(impl)) {}
 
     /// Wait for the request to finish on Redis server, server or request errors (if any) are logged but not thrown.
     ///
-    /// @throws Exceptions on misuse (for example, calling Wait() on a single result from a transaction before waiting
-    /// for the transaction itself).
+    /// @throws Exceptions on misuse (for example, calling Wait() on a single result from a pipeline before waiting
+    /// for the pipeline itself).
     void Wait() { impl_->Wait(); }
 
     /// Ignore the query result and do not wait for the Redis server to finish executing it
@@ -76,16 +74,14 @@ private:
 
 /// @brief Redis future for a SCAN-like responses.
 ///
-/// Member functions of classes storages::redis::Client and storages::redis::Transaction that do send SCAN-like request
+/// Member functions of classes storages::redis::Client and storages::redis::Pipeline that do send SCAN-like request
 /// to the Redis return this type or storages::redis::ScanRequest.
 template <ScanTag TScanTag>
 class ScanRequest final {
 public:
     using ReplyElem = typename ScanReplyElem<TScanTag>::type;
 
-    explicit ScanRequest(std::unique_ptr<RequestScanDataBase<TScanTag>>&& impl)
-        : impl_(std::move(impl))
-    {}
+    explicit ScanRequest(std::unique_ptr<RequestScanDataBase<TScanTag>>&& impl) : impl_(std::move(impl)) {}
 
     template <typename T = std::vector<ReplyElem>>
     T GetAll(std::string request_description) {
@@ -110,9 +106,7 @@ public:
         using reference = value_type&;
         using pointer = value_type*;
 
-        explicit Iterator(ScanRequest* stream)
-            : stream_(stream)
-        {
+        explicit Iterator(ScanRequest* stream) : stream_(stream) {
             if (stream_ && !stream_->HasMore()) {
                 stream_ = nullptr;
             }
@@ -120,9 +114,7 @@ public:
 
         class ReplyElemHolder {
         public:
-            ReplyElemHolder(value_type reply_elem)
-                : reply_elem_(std::move(reply_elem))
-            {}
+            ReplyElemHolder(value_type reply_elem) : reply_elem_(std::move(reply_elem)) {}
 
             value_type& operator*() { return reply_elem_; }
 

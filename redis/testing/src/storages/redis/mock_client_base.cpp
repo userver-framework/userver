@@ -2,7 +2,7 @@
 
 #include <userver/utils/assert.hpp>
 
-#include <userver/storages/redis/mock_transaction.hpp>
+#include <userver/storages/redis/mock_pipeline.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -15,16 +15,13 @@ constexpr std::string_view kNotMocked{"Redis method is not mocked"};
 }
 
 MockClientBase::MockClientBase()
-    : mock_transaction_impl_creator_(std::make_unique<MockTransactionImplCreator<MockTransactionImplBase>>())
-{}
+    : mock_pipeline_impl_creator_(std::make_unique<MockPipelineImplCreator<MockPipelineImplBase>>()) {}
 
 MockClientBase::MockClientBase(
-    std::shared_ptr<MockTransactionImplCreatorBase> mock_transaction_impl_creator,
+    std::shared_ptr<MockPipelineImplCreatorBase> mock_pipeline_impl_creator,
     std::optional<size_t> force_shard_idx
 )
-    : mock_transaction_impl_creator_(std::move(mock_transaction_impl_creator)),
-      force_shard_idx_(force_shard_idx)
-{}
+    : mock_pipeline_impl_creator_(std::move(mock_pipeline_impl_creator)), force_shard_idx_(force_shard_idx) {}
 
 MockClientBase::~MockClientBase() = default;
 
@@ -910,14 +907,25 @@ RequestZscore MockClientBase::Zscore(
 
 // end of redis commands
 
-TransactionPtr MockClientBase::Multi() {
-    UASSERT_MSG(!!mock_transaction_impl_creator_, "MockTransactionImpl type not set");
-    return std::make_unique<MockTransaction>(shared_from_this(), (*mock_transaction_impl_creator_)());
+// TODO(): probably use another creator here
+PipelinePtr MockClientBase::Multi() {
+    UASSERT_MSG(!!mock_pipeline_impl_creator_, "MockPipelineImpl type not set");
+    return std::make_unique<MockPipeline>(shared_from_this(), (*mock_pipeline_impl_creator_)());
 }
 
-TransactionPtr MockClientBase::Multi(Transaction::CheckShards check_shards) {
-    UASSERT_MSG(!!mock_transaction_impl_creator_, "MockTransactionImpl type not set");
-    return std::make_unique<MockTransaction>(shared_from_this(), (*mock_transaction_impl_creator_)(), check_shards);
+PipelinePtr MockClientBase::Multi(Pipeline::CheckShards check_shards) {
+    UASSERT_MSG(!!mock_pipeline_impl_creator_, "MockPipelineImpl type not set");
+    return std::make_unique<MockPipeline>(shared_from_this(), (*mock_pipeline_impl_creator_)(), check_shards);
+}
+
+PipelinePtr MockClientBase::Pipeline() {
+    UASSERT_MSG(!!mock_pipeline_impl_creator_, "MockPipelineImpl type not set");
+    return std::make_unique<MockPipeline>(shared_from_this(), (*mock_pipeline_impl_creator_)());
+}
+
+PipelinePtr MockClientBase::Pipeline(Pipeline::CheckShards check_shards) {
+    UASSERT_MSG(!!mock_pipeline_impl_creator_, "MockPipelineImpl type not set");
+    return std::make_unique<MockPipeline>(shared_from_this(), (*mock_pipeline_impl_creator_)(), check_shards);
 }
 
 }  // namespace storages::redis
