@@ -48,7 +48,7 @@ public:
     /// Sentinel sends received message to callback and callback should
     /// notify it about the outcome. This is internal mechanism for
     /// communicating between our sentinel and our SubscriptionTokenImpl
-    enum class Outcome : std::uint8_t {
+    enum class Outcome {
         // everything is ok. Basically, means that message was pushed to the
         // SubscriptionQueue. Doesn't mean that actual user read it or processed
         // it or anything like that.

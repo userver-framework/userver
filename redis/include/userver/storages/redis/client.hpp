@@ -22,7 +22,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::redis {
 
-enum class PubShard : std::uint8_t {
+enum class PubShard {
     kZeroShard,
     kRoundRobin,
 };

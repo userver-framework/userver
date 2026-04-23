@@ -26,7 +26,7 @@ namespace storages::redis {
 /// @snippet redis/src/storages/redis/client_redistest.cpp  redis pipeline sample
 class Pipeline {
 public:
-    enum class CheckShards : std::uint8_t { kNo, kSame };
+    enum class CheckShards { kNo, kSame };
 
     virtual ~Pipeline() = default;
 
