@@ -49,7 +49,6 @@ libsnappy-dev
 librdkafka-dev
 libre2-dev
 libsasl2-dev
-libsnappy-dev
 libssl-dev
 libxxhash-dev
 libyaml-cpp-dev
