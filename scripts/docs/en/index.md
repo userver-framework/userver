@@ -63,6 +63,7 @@ and make sure that it builds and passes tests.
 * @ref scripts/docs/en/userver/tutorial/grpc_middleware_service.md
 * @ref scripts/docs/en/userver/tutorial/postgres_service.md
 * @ref scripts/docs/en/userver/tutorial/mongo_service.md
+* @ref scripts/docs/en/userver/tutorial/scylla_service.md
 * @ref scripts/docs/en/userver/tutorial/redis_service.md
 * @ref scripts/docs/en/userver/tutorial/kafka_service.md
 * @ref scripts/docs/en/userver/tutorial/auth_postgres.md
@@ -186,6 +187,7 @@ and make sure that it builds and passes tests.
 
 ## Non relational databases
 * @ref scripts/docs/en/userver/mongodb.md
+* @ref scripts/docs/en/userver/scylladb.md
 * @ref scripts/docs/en/userver/redis.md
 * @ref clickhouse_driver
 
