@@ -10,9 +10,7 @@ namespace storages::scylla::operations {
 
 namespace {
 
-NamedValue Make(std::string name, Value value) {
-    return NamedValue{std::move(name), std::move(value)};
-}
+NamedValue Make(std::string name, Value value) { return NamedValue{std::move(name), std::move(value)}; }
 
 }  // namespace
 
@@ -60,9 +58,7 @@ void SelectOne::AddAllColumns() {
     impl_->select_all = true;
     impl_->columns.clear();
 }
-void SelectOne::Where(std::string c, Value v) {
-    impl_->conditions.push_back(Make(std::move(c), std::move(v)));
-}
+void SelectOne::Where(std::string c, Value v) { impl_->conditions.push_back(Make(std::move(c), std::move(v))); }
 void SelectOne::WhereString(std::string c, std::string v) { Where(std::move(c), Value{std::move(v)}); }
 void SelectOne::WhereInt32(std::string c, std::int32_t v) { Where(std::move(c), Value{v}); }
 void SelectOne::WhereInt64(std::string c, std::int64_t v) { Where(std::move(c), Value{v}); }
@@ -81,9 +77,7 @@ DeleteOne::DeleteOne(DeleteOne&&) noexcept = default;
 DeleteOne& DeleteOne::operator=(const DeleteOne&) = default;
 DeleteOne& DeleteOne::operator=(DeleteOne&&) noexcept = default;
 
-void DeleteOne::Where(std::string c, Value v) {
-    impl_->conditions.push_back(Make(std::move(c), std::move(v)));
-}
+void DeleteOne::Where(std::string c, Value v) { impl_->conditions.push_back(Make(std::move(c), std::move(v))); }
 void DeleteOne::WhereString(std::string c, std::string v) { Where(std::move(c), Value{std::move(v)}); }
 void DeleteOne::WhereInt32(std::string c, std::int32_t v) { Where(std::move(c), Value{v}); }
 void DeleteOne::WhereInt64(std::string c, std::int64_t v) { Where(std::move(c), Value{v}); }
@@ -93,9 +87,7 @@ void DeleteOne::WhereDouble(std::string c, double v) { Where(std::move(c), Value
 void DeleteOne::WhereUuid(std::string c, Uuid v) { Where(std::move(c), Value{v}); }
 void DeleteOne::WhereTimestamp(std::string c, Timestamp v) { Where(std::move(c), Value{v}); }
 
-void DeleteOne::If(std::string c, Value v) {
-    impl_->if_conditions.push_back(Make(std::move(c), std::move(v)));
-}
+void DeleteOne::If(std::string c, Value v) { impl_->if_conditions.push_back(Make(std::move(c), std::move(v))); }
 void DeleteOne::IfExists() { impl_->if_exists = true; }
 void DeleteOne::IfString(std::string c, std::string v) { If(std::move(c), Value{std::move(v)}); }
 void DeleteOne::IfInt32(std::string c, std::int32_t v) { If(std::move(c), Value{v}); }
@@ -119,9 +111,7 @@ void SelectMany::AddAllColumns() {
     impl_->select_all = true;
     impl_->columns.clear();
 }
-void SelectMany::Where(std::string c, Value v) {
-    impl_->conditions.push_back(Make(std::move(c), std::move(v)));
-}
+void SelectMany::Where(std::string c, Value v) { impl_->conditions.push_back(Make(std::move(c), std::move(v))); }
 void SelectMany::WhereString(std::string c, std::string v) { Where(std::move(c), Value{std::move(v)}); }
 void SelectMany::WhereInt32(std::string c, std::int32_t v) { Where(std::move(c), Value{v}); }
 void SelectMany::WhereInt64(std::string c, std::int64_t v) { Where(std::move(c), Value{v}); }
@@ -142,9 +132,7 @@ UpdateOne::UpdateOne(UpdateOne&&) noexcept = default;
 UpdateOne& UpdateOne::operator=(const UpdateOne&) = default;
 UpdateOne& UpdateOne::operator=(UpdateOne&&) noexcept = default;
 
-void UpdateOne::Set(std::string c, Value v) {
-    impl_->assignments.push_back(Make(std::move(c), std::move(v)));
-}
+void UpdateOne::Set(std::string c, Value v) { impl_->assignments.push_back(Make(std::move(c), std::move(v))); }
 void UpdateOne::SetString(std::string c, std::string v) { Set(std::move(c), Value{std::move(v)}); }
 void UpdateOne::SetInt32(std::string c, std::int32_t v) { Set(std::move(c), Value{v}); }
 void UpdateOne::SetInt64(std::string c, std::int64_t v) { Set(std::move(c), Value{v}); }
@@ -158,9 +146,7 @@ void UpdateOne::SetList(std::string c, List v) { Set(std::move(c), Value{std::mo
 void UpdateOne::SetMap(std::string c, Map v) { Set(std::move(c), Value{std::move(v)}); }
 void UpdateOne::SetNull(std::string c) { Set(std::move(c), Value::Null()); }
 
-void UpdateOne::Where(std::string c, Value v) {
-    impl_->conditions.push_back(Make(std::move(c), std::move(v)));
-}
+void UpdateOne::Where(std::string c, Value v) { impl_->conditions.push_back(Make(std::move(c), std::move(v))); }
 void UpdateOne::WhereString(std::string c, std::string v) { Where(std::move(c), Value{std::move(v)}); }
 void UpdateOne::WhereInt32(std::string c, std::int32_t v) { Where(std::move(c), Value{v}); }
 void UpdateOne::WhereInt64(std::string c, std::int64_t v) { Where(std::move(c), Value{v}); }
@@ -169,9 +155,7 @@ void UpdateOne::WhereFloat(std::string c, float v) { Where(std::move(c), Value{v
 void UpdateOne::WhereDouble(std::string c, double v) { Where(std::move(c), Value{v}); }
 void UpdateOne::WhereUuid(std::string c, Uuid v) { Where(std::move(c), Value{v}); }
 
-void UpdateOne::If(std::string c, Value v) {
-    impl_->if_conditions.push_back(Make(std::move(c), std::move(v)));
-}
+void UpdateOne::If(std::string c, Value v) { impl_->if_conditions.push_back(Make(std::move(c), std::move(v))); }
 void UpdateOne::IfExists() { impl_->if_exists = true; }
 void UpdateOne::IfString(std::string c, std::string v) { If(std::move(c), Value{std::move(v)}); }
 void UpdateOne::IfInt32(std::string c, std::int32_t v) { If(std::move(c), Value{v}); }
@@ -190,9 +174,7 @@ Count::Count(Count&&) noexcept = default;
 Count& Count::operator=(const Count&) = default;
 Count& Count::operator=(Count&&) noexcept = default;
 
-void Count::Where(std::string c, Value v) {
-    impl_->conditions.push_back(Make(std::move(c), std::move(v)));
-}
+void Count::Where(std::string c, Value v) { impl_->conditions.push_back(Make(std::move(c), std::move(v))); }
 void Count::WhereString(std::string c, std::string v) { Where(std::move(c), Value{std::move(v)}); }
 void Count::WhereInt32(std::string c, std::int32_t v) { Where(std::move(c), Value{v}); }
 void Count::WhereInt64(std::string c, std::int64_t v) { Where(std::move(c), Value{v}); }
@@ -208,9 +190,7 @@ InsertMany& InsertMany::operator=(const InsertMany&) = default;
 InsertMany& InsertMany::operator=(InsertMany&&) noexcept = default;
 
 void InsertMany::NextRow() { impl_->rows.emplace_back(); }
-void InsertMany::Bind(std::string c, Value v) {
-    impl_->rows.back().push_back(Make(std::move(c), std::move(v)));
-}
+void InsertMany::Bind(std::string c, Value v) { impl_->rows.back().push_back(Make(std::move(c), std::move(v))); }
 void InsertMany::BindString(std::string c, std::string v) { Bind(std::move(c), Value{std::move(v)}); }
 void InsertMany::BindInt32(std::string c, std::int32_t v) { Bind(std::move(c), Value{v}); }
 void InsertMany::BindInt64(std::string c, std::int64_t v) { Bind(std::move(c), Value{v}); }

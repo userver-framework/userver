@@ -42,9 +42,8 @@ CassInet ParseCassInet(const Inet& inet) {
 }
 
 cass_int64_t TimestampToMs(const Timestamp& ts) noexcept {
-    return static_cast<cass_int64_t>(
-        std::chrono::duration_cast<std::chrono::milliseconds>(ts.time_since_epoch()).count()
-    );
+    return static_cast<
+        cass_int64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(ts.time_since_epoch()).count());
 }
 
 CassCollectionPtr BuildList(const List& list);
@@ -56,9 +55,7 @@ public:
     StatementWriter(CassStatement* stmt, std::size_t idx) noexcept : stmt_{stmt}, idx_{idx} {}
 
     void WriteNull() { CheckRc(cass_statement_bind_null(stmt_, idx_), "bind_null"); }
-    void WriteBool(bool v) {
-        CheckRc(cass_statement_bind_bool(stmt_, idx_, v ? cass_true : cass_false), "bind_bool");
-    }
+    void WriteBool(bool v) { CheckRc(cass_statement_bind_bool(stmt_, idx_, v ? cass_true : cass_false), "bind_bool"); }
     void WriteInt8(std::int8_t v) { CheckRc(cass_statement_bind_int8(stmt_, idx_, v), "bind_int8"); }
     void WriteInt16(std::int16_t v) { CheckRc(cass_statement_bind_int16(stmt_, idx_, v), "bind_int16"); }
     void WriteInt32(std::int32_t v) { CheckRc(cass_statement_bind_int32(stmt_, idx_, v), "bind_int32"); }
@@ -68,15 +65,11 @@ public:
     void WriteString(std::string_view v) {
         CheckRc(cass_statement_bind_string_n(stmt_, idx_, v.data(), v.size()), "bind_string");
     }
-    void WriteUuid(const Uuid& v) {
-        CheckRc(cass_statement_bind_uuid(stmt_, idx_, ToCassUuid(v)), "bind_uuid");
-    }
+    void WriteUuid(const Uuid& v) { CheckRc(cass_statement_bind_uuid(stmt_, idx_, ToCassUuid(v)), "bind_uuid"); }
     void WriteTimestamp(const Timestamp& v) {
         CheckRc(cass_statement_bind_int64(stmt_, idx_, TimestampToMs(v)), "bind_timestamp");
     }
-    void WriteDate(const Date& v) {
-        CheckRc(cass_statement_bind_uint32(stmt_, idx_, v.days_since_epoch), "bind_date");
-    }
+    void WriteDate(const Date& v) { CheckRc(cass_statement_bind_uint32(stmt_, idx_, v.days_since_epoch), "bind_date"); }
     void WriteTime(const Time& v) {
         CheckRc(cass_statement_bind_int64(stmt_, idx_, v.nanoseconds_of_day), "bind_time");
     }
@@ -86,9 +79,7 @@ public:
             "bind_bytes"
         );
     }
-    void WriteInet(const Inet& v) {
-        CheckRc(cass_statement_bind_inet(stmt_, idx_, ParseCassInet(v)), "bind_inet");
-    }
+    void WriteInet(const Inet& v) { CheckRc(cass_statement_bind_inet(stmt_, idx_, ParseCassInet(v)), "bind_inet"); }
     void WriteList(const List& v) {
         const auto col = BuildList(v);
         CheckRc(cass_statement_bind_collection(stmt_, idx_, col.get()), "bind_list");
@@ -111,9 +102,7 @@ class CollectionWriter {
 public:
     explicit CollectionWriter(CassCollection* col) noexcept : col_{col} {}
 
-    [[noreturn]] void WriteNull() const {
-        throw QueryException("Cannot append NULL inside a CQL collection");
-    }
+    [[noreturn]] void WriteNull() const { throw QueryException("Cannot append NULL inside a CQL collection"); }
     [[noreturn]] void WriteList(const List&) const { ThrowNestedCollection(); }
     [[noreturn]] void WriteSet(const Set&) const { ThrowNestedCollection(); }
     [[noreturn]] void WriteMap(const Map&) const { ThrowNestedCollection(); }

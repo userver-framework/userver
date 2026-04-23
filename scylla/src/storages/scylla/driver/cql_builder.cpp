@@ -40,10 +40,15 @@ bool IsValidCqlIdentifier(std::string_view name) noexcept {
 
 ValidatedCql MakeValidatedIdentifier(std::string_view name, std::string_view role) {
     if (!IsValidCqlIdentifier(name)) {
-        throw InvalidQueryArgumentException(fmt::format(
-            "Invalid {}: '{}'. Expected a plain identifier matching "
-            "[a-zA-Z][a-zA-Z0-9_]* (up to {} characters). ",
-            role, name, kMaxCqlIdentifierLength));
+        throw InvalidQueryArgumentException(
+            fmt::format(
+                "Invalid {}: '{}'. Expected a plain identifier matching "
+                "[a-zA-Z][a-zA-Z0-9_]* (up to {} characters). ",
+                role,
+                name,
+                kMaxCqlIdentifierLength
+            )
+        );
     }
     return ValidatedCql{std::string{name}};
 }

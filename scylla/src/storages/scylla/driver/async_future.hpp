@@ -14,16 +14,15 @@ inline void AsyncWaitFuture(CassFuture* future) noexcept {
     engine::SingleUseEvent event;
     const auto rc = cass_future_set_callback(
         future,
-        [](CassFuture*, void* data) noexcept {
-            static_cast<engine::SingleUseEvent*>(data)->Send();
-        },
-        &event);
+        [](CassFuture*, void* data) noexcept { static_cast<engine::SingleUseEvent*>(data)->Send(); },
+        &event
+    );
 
     UASSERT(rc == CASS_OK);
     (void)rc;
     event.WaitNonCancellable();
 }
 
-}
+}  // namespace storages::scylla::impl::driver
 
 USERVER_NAMESPACE_END

@@ -21,6 +21,6 @@ TableImpl::TableImpl(std::string keyspace_name, std::string table_name)
 const std::string& TableImpl::GetKeyspaceName() const { return keyspace_name_; }
 const std::string& TableImpl::GetTableName() const { return table_name_; }
 
-}
+}  // namespace storages::scylla::impl
 
 USERVER_NAMESPACE_END

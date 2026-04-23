@@ -145,7 +145,6 @@ private:
 
 class SpeculativeExecution {
 public:
-
     SpeculativeExecution(int32_t max_attempts, std::chrono::milliseconds delay)
         : max_attempts_(max_attempts), delay_(delay) {}
 
@@ -177,6 +176,6 @@ private:
     std::string value_;
 };
 
-}
+}  // namespace storages::scylla::options
 
 USERVER_NAMESPACE_END

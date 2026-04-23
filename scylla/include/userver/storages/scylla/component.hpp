@@ -31,6 +31,6 @@ private:
     concurrent::AsyncEventSubscriberScope secdist_subscriber_;
 };
 
-}
+}  // namespace components
 
 USERVER_NAMESPACE_END

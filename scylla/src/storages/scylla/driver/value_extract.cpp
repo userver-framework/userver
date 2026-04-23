@@ -19,7 +19,9 @@ Value ExtractCollection(const CassValue* cass_val);
 Value ExtractMap(const CassValue* cass_val);
 
 Value ExtractScalar(const CassValue* cass_val) {
-    if (!cass_val || cass_value_is_null(cass_val)) return Value::Null();
+    if (!cass_val || cass_value_is_null(cass_val)) {
+        return Value::Null();
+    }
 
     switch (cass_value_type(cass_val)) {
         case CASS_VALUE_TYPE_VARCHAR:
@@ -131,7 +133,8 @@ Value ExtractMap(const CassValue* cass_val) {
     while (cass_iterator_next(it.get())) {
         m.entries.emplace_back(
             ExtractScalar(cass_iterator_get_map_key(it.get())),
-            ExtractScalar(cass_iterator_get_map_value(it.get())));
+            ExtractScalar(cass_iterator_get_map_value(it.get()))
+        );
     }
     return Value{std::move(m)};
 }
@@ -142,7 +145,9 @@ Value ExtractValue(const CassValue* cass_val) { return ExtractScalar(cass_val); 
 
 Row ExtractRow(const CassResult* result, const CassRow* cass_row) {
     Row::Cells cells;
-    if (!cass_row) return Row{std::move(cells)};
+    if (!cass_row) {
+        return Row{std::move(cells)};
+    }
 
     const std::size_t col_count = cass_result_column_count(result);
     cells.reserve(col_count);
@@ -151,9 +156,7 @@ Row ExtractRow(const CassResult* result, const CassRow* cass_row) {
         std::size_t col_name_length = 0;
         cass_result_column_name(result, i, &col_name, &col_name_length);
 
-        cells.emplace_back(
-            std::string(col_name, col_name_length),
-            ExtractScalar(cass_row_get_column(cass_row, i)));
+        cells.emplace_back(std::string(col_name, col_name_length), ExtractScalar(cass_row_get_column(cass_row, i)));
     }
     return Row{std::move(cells)};
 }
@@ -172,7 +175,9 @@ Rows ExtractAllRows(const CassResult* result) {
 operations::LwtResult ExtractLwtResult(const CassResult* result) {
     operations::LwtResult out;
     const CassRow* row = cass_result_first_row(result);
-    if (!row) return out;
+    if (!row) {
+        return out;
+    }
 
     Row::Cells previous_cells;
     const std::size_t col_count = cass_result_column_count(result);

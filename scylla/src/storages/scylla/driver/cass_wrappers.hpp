@@ -34,31 +34,41 @@ struct CassSslDeleter {
 
 struct CassPreparedDeleter {
     void operator()(const CassPrepared* p) const {
-        if (p) cass_prepared_free(p);
+        if (p) {
+            cass_prepared_free(p);
+        }
     }
 };
 
 struct CassResultDeleter {
     void operator()(const CassResult* r) const {
-        if (r) cass_result_free(r);
+        if (r) {
+            cass_result_free(r);
+        }
     }
 };
 
 struct CassIteratorDeleter {
     void operator()(CassIterator* it) const {
-        if (it) cass_iterator_free(it);
+        if (it) {
+            cass_iterator_free(it);
+        }
     }
 };
 
 struct CassBatchDeleter {
     void operator()(CassBatch* b) const {
-        if (b) cass_batch_free(b);
+        if (b) {
+            cass_batch_free(b);
+        }
     }
 };
 
 struct CassCollectionDeleter {
     void operator()(CassCollection* c) const {
-        if (c) cass_collection_free(c);
+        if (c) {
+            cass_collection_free(c);
+        }
     }
 };
 
@@ -74,6 +84,6 @@ using CassIteratorPtr = std::unique_ptr<CassIterator, CassIteratorDeleter>;
 using CassBatchPtr = std::unique_ptr<CassBatch, CassBatchDeleter>;
 using CassCollectionPtr = std::unique_ptr<CassCollection, CassCollectionDeleter>;
 
-}
+}  // namespace storages::scylla::impl::driver
 
 USERVER_NAMESPACE_END

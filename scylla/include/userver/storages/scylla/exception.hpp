@@ -76,6 +76,6 @@ private:
     bool by_deadline_propagation_{false};
 };
 
-}
+}  // namespace storages::scylla
 
 USERVER_NAMESPACE_END

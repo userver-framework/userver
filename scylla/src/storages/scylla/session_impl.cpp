@@ -16,6 +16,6 @@ const stats::ScyllaSessionStatistics& SessionImpl::GetStatistics() const { retur
 
 stats::ScyllaSessionStatistics& SessionImpl::GetStatistics() { return statistics_; }
 
-}
+}  // namespace storages::scylla::impl
 
 USERVER_NAMESPACE_END

@@ -77,7 +77,9 @@ void DumpMetric(utils::statistics::Writer& writer, const OperationStatisticsItem
     Rate total_errors;
     for (std::size_t i = 0; i < kErrorTypesCount; ++i) {
         const auto type = static_cast<ErrorType>(i);
-        if (type == ErrorType::kSuccess) continue;
+        if (type == ErrorType::kSuccess) {
+            continue;
+        }
         const auto value = item.counters[i].Load();
         total_errors += value;
         writer["errors"].ValueWithLabels(value, {"scylla_error", std::string{ToString(type)}});
@@ -95,6 +97,6 @@ void DumpMetric(utils::statistics::Writer& writer, const SessionStatistics& stat
     writer["queries"] = *stats.queries;
 }
 
-}
+}  // namespace storages::scylla::stats
 
 USERVER_NAMESPACE_END

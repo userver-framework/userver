@@ -17,12 +17,10 @@ struct CommandControl final {
     std::optional<SerialConsistency> serial_consistency;
 };
 
-CommandControl Parse(const formats::json::Value& value,
-                     formats::parse::To<CommandControl>);
+CommandControl Parse(const formats::json::Value& value, formats::parse::To<CommandControl>);
 
-extern const dynamic_config::Key<utils::DefaultDict<CommandControl>>
-    kScyllaDefaultCommandControl;
+extern const dynamic_config::Key<utils::DefaultDict<CommandControl>> kScyllaDefaultCommandControl;
 
-}
+}  // namespace storages::scylla
 
 USERVER_NAMESPACE_END

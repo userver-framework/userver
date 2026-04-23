@@ -15,7 +15,7 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::scylla::impl::driver {
 class DriverTableImpl;
 class DriverSessionImpl;
-}
+}  // namespace storages::scylla::impl::driver
 
 namespace storages::scylla::operations {
 

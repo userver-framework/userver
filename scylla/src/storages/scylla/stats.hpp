@@ -17,13 +17,8 @@ namespace storages::scylla::stats {
 
 using Rate = utils::statistics::Rate;
 using Counter = utils::statistics::RateCounter;
-using TimingsPercentile = utils::statistics::Percentile<
-    1000,
-    uint32_t,
-    780,
-    50>;
-using AggregatedTimingsPercentile =
-    utils::statistics::RecentPeriod<TimingsPercentile, TimingsPercentile>;
+using TimingsPercentile = utils::statistics::Percentile<1000, uint32_t, 780, 50>;
+using AggregatedTimingsPercentile = utils::statistics::RecentPeriod<TimingsPercentile, TimingsPercentile>;
 
 enum class ErrorType : std::size_t {
     kSuccess,
@@ -39,8 +34,7 @@ enum class ErrorType : std::size_t {
     kErrorTypesCount,
 };
 
-inline constexpr auto kErrorTypesCount =
-    static_cast<std::size_t>(ErrorType::kErrorTypesCount);
+inline constexpr auto kErrorTypesCount = static_cast<std::size_t>(ErrorType::kErrorTypesCount);
 
 std::string_view ToString(ErrorType type);
 
@@ -75,12 +69,11 @@ struct SessionStatistics final {
 void DumpMetric(utils::statistics::Writer& writer, const SessionStatistics& stats);
 
 struct ScyllaSessionStatistics final {
-    ScyllaSessionStatistics()
-        : session(utils::MakeSharedRef<SessionStatistics>()) {}
+    ScyllaSessionStatistics() : session(utils::MakeSharedRef<SessionStatistics>()) {}
 
     utils::SharedRef<SessionStatistics> session;
 };
 
-}
+}  // namespace storages::scylla::stats
 
 USERVER_NAMESPACE_END
