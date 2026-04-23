@@ -12,8 +12,6 @@
 #include <variant>
 #include <vector>
 
-#include <userver/utils/zstring_view.hpp>
-
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::scylla {
@@ -24,7 +22,7 @@ struct Uuid {
 
     static Uuid Random();
     static Uuid TimeBased();
-    static Uuid FromString(utils::zstring_view text);
+    static Uuid FromString(std::string_view text);
 
     std::string ToString() const;
 

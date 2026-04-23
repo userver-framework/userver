@@ -43,9 +43,10 @@ Uuid Uuid::TimeBased() {
     return FromCass(out);
 }
 
-Uuid Uuid::FromString(utils::zstring_view text) {
+Uuid Uuid::FromString(std::string_view text) {
+    const std::string zero_terminated{text};
     CassUuid out;
-    if (cass_uuid_from_string(text.c_str(), &out) != CASS_OK) {
+    if (cass_uuid_from_string(zero_terminated.c_str(), &out) != CASS_OK) {
         throw InvalidQueryArgumentException(utils::StrCat("Uuid::FromString: invalid UUID '", text, "'"));
     }
     return FromCass(out);

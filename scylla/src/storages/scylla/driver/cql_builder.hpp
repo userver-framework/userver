@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cstddef>
-#include <cstdint>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -21,8 +20,6 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::scylla::impl::driver::cql {
-
-void BindValue(CassStatement* statement, std::size_t index, const Value& value);
 
 struct CqlQuery {
     std::string text;
