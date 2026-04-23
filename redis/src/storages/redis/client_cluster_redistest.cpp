@@ -178,9 +178,9 @@ UTEST_F(RedisClusterClientTest, TransactionCrossSlot) {
     UASSERT_THROW(transaction->Exec(kDefaultCc).Get(), storages::redis::RequestFailedException);
 }
 
-UTEST_F(RedisClusterClientTest, TransactionDistinctShards) {
+UTEST_F(RedisClusterClientTest, PipelineDistinctShards) {
     auto client = GetClient();
-    auto transaction = client->Multi(storages::redis::Transaction::CheckShards::kNo);
+    auto transaction = client->Pipeline(storages::redis::Pipeline::CheckShards::kNo);
 
     const size_t num_keys = 10;
     const int add = 100;
@@ -204,33 +204,33 @@ UTEST_F(RedisClusterClientTest, Generic) {
 
 // Must abort in debug builds
 #ifdef NDEBUG
-UTEST_F(RedisClusterClientTest, NotStartedTransactionNoExec) {
+UTEST_F(RedisClusterClientTest, NotStartedPipelineNoExec) {
     auto client = GetClient();
-    auto transaction = client->Multi(storages::redis::Transaction::CheckShards::kNo);
+    auto transaction = client->Pipeline(storages::redis::Pipeline::CheckShards::kNo);
 
     auto get_req = transaction->Get("key1");
     auto set_req = transaction->Set("key1", "value");
 
-    EXPECT_THROW(get_req.Get(), storages::redis::NotStartedTransactionException);
-    EXPECT_THROW(get_req.Wait(), storages::redis::NotStartedTransactionException);
+    EXPECT_THROW(get_req.Get(), storages::redis::NotStartedPipelineException);
+    EXPECT_THROW(get_req.Wait(), storages::redis::NotStartedPipelineException);
 
-    EXPECT_THROW(set_req.Get(), storages::redis::NotStartedTransactionException);
-    EXPECT_THROW(set_req.Wait(), storages::redis::NotStartedTransactionException);
+    EXPECT_THROW(set_req.Get(), storages::redis::NotStartedPipelineException);
+    EXPECT_THROW(set_req.Wait(), storages::redis::NotStartedPipelineException);
 }
 
-UTEST_F(RedisClusterClientTest, NotStartedTransactionTransactionNoGet) {
+UTEST_F(RedisClusterClientTest, NotStartedPipelineNoGet) {
     auto client = GetClient();
-    auto transaction = client->Multi(storages::redis::Transaction::CheckShards::kNo);
+    auto transaction = client->Pipeline(storages::redis::Pipeline::CheckShards::kNo);
 
     auto get_req = transaction->Get("key2");
     auto set_req = transaction->Set("key2", "value");
     auto request = transaction->Exec({});
 
-    EXPECT_THROW(get_req.Get(), storages::redis::NotStartedTransactionException);
-    EXPECT_THROW(get_req.Wait(), storages::redis::NotStartedTransactionException);
+    EXPECT_THROW(get_req.Get(), storages::redis::NotStartedPipelineException);
+    EXPECT_THROW(get_req.Wait(), storages::redis::NotStartedPipelineException);
 
-    EXPECT_THROW(set_req.Get(), storages::redis::NotStartedTransactionException);
-    EXPECT_THROW(set_req.Wait(), storages::redis::NotStartedTransactionException);
+    EXPECT_THROW(set_req.Get(), storages::redis::NotStartedPipelineException);
+    EXPECT_THROW(set_req.Wait(), storages::redis::NotStartedPipelineException);
 }
 #endif
 
