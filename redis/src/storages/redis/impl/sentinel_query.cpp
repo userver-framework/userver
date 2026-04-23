@@ -154,9 +154,7 @@ private:
 };
 
 InstanceUpChecker::InstanceUpChecker(const InstanceStatus& status, size_t sentinel_count)
-    : sentinel_count_(sentinel_count),
-      quorum_(sentinel_count / 2 + 1)
-{
+    : sentinel_count_(sentinel_count), quorum_(sentinel_count / 2 + 1) {
     /* A single sentinel might go crazy and see invalid redis instance state,
      * believe only a quorum of sentinels.
      */
@@ -349,9 +347,12 @@ ClusterSlotsResponseStatus ParseClusterSlotsResponse(
                 return ClusterSlotsResponseStatus::kFail;
             }
 
-            ConnectionInfoInt conn_info{
-                {GetIpFromHostInfo(host_info_array), static_cast<int>(host_info_array[1].GetInt()), {}}
-            };
+            ConnectionInfoInt conn_info{ConnectionInfo{
+                GetIpFromHostInfo(host_info_array),
+                static_cast<int>(host_info_array[1].GetInt()),
+                Username{},
+                Password{}
+            }};
             const SlotInterval slot_interval(array[0].GetInt(), array[1].GetInt());
             if (i == 2) {
                 const bool is_master_overwritten =
@@ -383,15 +384,16 @@ ClusterSlotsResponseStatus ParseClusterSlotsResponse(
 
 GetHostsContext::GetHostsContext(
     bool allow_empty,
+    const Username& username,
     const Password& password,
     ProcessGetHostsRequestCb&& callback,
     size_t expected_responses_cnt
 )
     : allow_empty_(allow_empty),
+      username_(username),
       password_(password),
       callback_(std::move(callback)),
-      expected_responses_cnt_(expected_responses_cnt)
-{}
+      expected_responses_cnt_(expected_responses_cnt) {}
 
 std::function<void(const CommandPtr&, const ReplyPtr&)> GetHostsContext::GenerateCallback() {
     return [self = shared_from_this()](const CommandPtr& command, const ReplyPtr& reply) {
@@ -446,7 +448,7 @@ void GetHostsContext::ProcessResponsesOnce() {
             const auto& properties = group.second.front();
 
             try {
-                ConnectionInfoInt info{{properties.at("ip"), std::stoi(properties.at("port")), password_}};
+                ConnectionInfoInt info{{properties.at("ip"), std::stoi(properties.at("port")), username_, password_}};
                 info.SetName(properties.at("name"));
 
                 const InstanceUpChecker instance_up_checker(status, expected_responses_cnt_);
@@ -473,7 +475,8 @@ void ProcessGetHostsRequest(GetHostsRequest request, ProcessGetHostsRequestCb ca
     const auto allow_empty = !request.master;
 
     auto ids = request.sentinel_shard.GetAllInstancesServerId();
-    auto context = std::make_shared<GetHostsContext>(allow_empty, request.password, std::move(callback), ids.size());
+    auto context = std::make_shared<
+        GetHostsContext>(allow_empty, request.username, request.password, std::move(callback), ids.size());
 
     for (const auto& id : ids) {
         auto cmd = PrepareCommand(request.command.Clone(), context->GenerateCallback());
@@ -494,6 +497,7 @@ void ProcessGetClusterHostsRequest(
 ) {
     auto ids = request.sentinel_shard.GetAllInstancesServerId();
     auto context = std::make_shared<GetClusterHostsContext>(
+        request.username,
         request.password,
         std::move(shard_names),
         request.shard_group_name,
@@ -513,6 +517,7 @@ void ProcessGetClusterHostsRequest(
 }
 
 GetClusterHostsContext::GetClusterHostsContext(
+    Username username,
     Password password,
     std::shared_ptr<const std::vector<std::string>> shard_names,
     std::string shard_group_name,
@@ -520,11 +525,11 @@ GetClusterHostsContext::GetClusterHostsContext(
     size_t expected_responses_cnt
 )
     : shard_group_name_(std::move(shard_group_name)),
+      username_(std::move(username)),
       password_(std::move(password)),
       shard_names_(std::move(shard_names)),
       callback_(std::move(callback)),
-      expected_responses_cnt_(expected_responses_cnt)
-{}
+      expected_responses_cnt_(expected_responses_cnt) {}
 
 void GetClusterHostsContext::OnAsyncCommandFailed() {
     --expected_responses_cnt_;
@@ -661,9 +666,11 @@ void GetClusterHostsContext::ProcessResponsesOnce() {
         } else {
             std::sort(res.begin(), res.end());
             for (auto& shard_host_info : res) {
+                shard_host_info.master.SetUsername(username_);
                 shard_host_info.master.SetPassword(password_);
                 shard_host_info.master.SetName((*shard_names_)[shard_index]);
                 for (auto& slave : shard_host_info.slaves) {
+                    slave.SetUsername(username_);
                     slave.SetPassword(password_);
                     slave.SetName((*shard_names_)[shard_index]);
                 }

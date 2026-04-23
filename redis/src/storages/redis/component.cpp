@@ -115,9 +115,7 @@ RedisPools Parse(const yaml_config::YamlConfig& value, formats::parse::To<RedisP
 }
 
 Redis::Redis(const ComponentConfig& config, const ComponentContext& component_context)
-    : ComponentBase(config, component_context),
-      config_(component_context.FindComponent<DynamicConfig>().GetSource())
-{
+    : ComponentBase(config, component_context), config_(component_context.FindComponent<DynamicConfig>().GetSource()) {
     const auto&
         testsuite_redis_control = component_context.FindComponent<components::TestsuiteSupport>().GetRedisControl();
     Connect(config, component_context, testsuite_redis_control);
@@ -145,11 +143,13 @@ std::shared_ptr<storages::redis::Client> Redis::GetClient(
 ) const {
     auto it = clients_.find(name);
     if (it == clients_.end()) {
-        throw std::runtime_error(fmt::format(
-            "{} redis client not found. Available clients: [{}]",
-            name,
-            fmt::join(clients_ | boost::adaptors::map_keys, ", ")
-        ));
+        throw std::runtime_error(
+            fmt::format(
+                "{} redis client not found. Available clients: [{}]",
+                name,
+                fmt::join(clients_ | boost::adaptors::map_keys, ", ")
+            )
+        );
     }
     it->second->WaitConnectedOnce(wait_connected);
     return it->second;
@@ -158,11 +158,13 @@ std::shared_ptr<storages::redis::Client> Redis::GetClient(
 std::shared_ptr<storages::redis::impl::Sentinel> Redis::Client(const std::string& name) const {
     auto it = sentinels_.find(name);
     if (it == sentinels_.end()) {
-        throw std::runtime_error(fmt::format(
-            "{} redis client not found. Available clients: [{}]",
-            name,
-            fmt::join(clients_ | boost::adaptors::map_keys, ", ")
-        ));
+        throw std::runtime_error(
+            fmt::format(
+                "{} redis client not found. Available clients: [{}]",
+                name,
+                fmt::join(clients_ | boost::adaptors::map_keys, ", ")
+            )
+        );
     }
     return it->second;
 }
@@ -173,12 +175,14 @@ std::shared_ptr<storages::redis::SubscribeClient> Redis::GetSubscribeClient(
 ) const {
     auto it = subscribe_clients_.find(name);
     if (it == subscribe_clients_.end()) {
-        throw std::runtime_error(fmt::format(
-            "{} redis subscribe-client not found. Available subscribe-clients: "
-            "[{}]",
-            name,
-            fmt::join(subscribe_clients_ | boost::adaptors::map_keys, ", ")
-        ));
+        throw std::runtime_error(
+            fmt::format(
+                "{} redis subscribe-client not found. Available subscribe-clients: "
+                "[{}]",
+                name,
+                fmt::join(subscribe_clients_ | boost::adaptors::map_keys, ", ")
+            )
+        );
     }
     it->second->WaitConnectedOnce(wait_connected);
     return std::static_pointer_cast<storages::redis::SubscribeClient>(it->second);
@@ -331,11 +335,13 @@ void Redis::OnSecdistUpdate(const storages::secdist::SecdistConfig& cfg) {
 
         std::vector<storages::redis::ConnectionInfo> cii;
         for (const auto& host_port : settings.sentinels) {
-            const storages::redis::ConnectionInfo ci(host_port.host, host_port.port, settings.password);
+            const storages::redis::ConnectionInfo
+                ci(host_port.host, host_port.port, settings.username, settings.password);
             cii.push_back(ci);
         }
 
         sentinel->SetConnectionInfo(cii);
+        sentinel->UpdateUsername(settings.username);
         sentinel->UpdatePassword(settings.password);
     }
 }

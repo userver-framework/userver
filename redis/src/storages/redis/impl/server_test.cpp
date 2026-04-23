@@ -163,7 +163,13 @@ TEST(Redis, NoPassword) {
     storages::redis::impl::Statistics stats;
     auto redis = std::make_shared<
         storages::redis::impl::Redis>(pool->GetRedisThreadPool(), redis_settings, kDbName, stats);
-    redis->Connect({kLocalhost}, server.GetPort(), storages::redis::Password(""), kDatabaseIndex);
+    redis->Connect(
+        {kLocalhost},
+        server.GetPort(),
+        storages::redis::Username(""),
+        storages::redis::Password(""),
+        kDatabaseIndex
+    );
 
     EXPECT_TRUE(ping_handler->WaitForFirstReply(kSmallPeriod));
 }
@@ -178,7 +184,13 @@ TEST(Redis, Auth) {
     storages::redis::impl::Statistics stats;
     auto redis = std::make_shared<
         storages::redis::impl::Redis>(pool->GetRedisThreadPool(), redis_settings, kDbName, stats);
-    redis->Connect({kLocalhost}, server.GetPort(), storages::redis::Password("password"), kDatabaseIndex);
+    redis->Connect(
+        {kLocalhost},
+        server.GetPort(),
+        storages::redis::Username("username"),
+        storages::redis::Password("password"),
+        kDatabaseIndex
+    );
 
     EXPECT_TRUE(auth_handler->WaitForFirstReply(kSmallPeriod));
     EXPECT_TRUE(ping_handler->WaitForFirstReply(kSmallPeriod));
@@ -194,7 +206,13 @@ TEST(Redis, AuthFail) {
     storages::redis::impl::Statistics stats;
     auto redis = std::make_shared<
         storages::redis::impl::Redis>(pool->GetRedisThreadPool(), redis_settings, kDbName, stats);
-    redis->Connect({kLocalhost}, server.GetPort(), storages::redis::Password("password"), kDatabaseIndex);
+    redis->Connect(
+        {kLocalhost},
+        server.GetPort(),
+        storages::redis::Username("username"),
+        storages::redis::Password("password"),
+        kDatabaseIndex
+    );
 
     EXPECT_TRUE(auth_error_handler->WaitForFirstReply(kSmallPeriod));
     PeriodicCheck([&] { return !IsConnected(*redis); });
@@ -211,7 +229,13 @@ TEST(Redis, AuthTimeout) {
     storages::redis::impl::Statistics stats;
     auto redis = std::make_shared<
         storages::redis::impl::Redis>(pool->GetRedisThreadPool(), redis_settings, kDbName, stats);
-    redis->Connect({kLocalhost}, server.GetPort(), storages::redis::Password("password"), kDatabaseIndex);
+    redis->Connect(
+        {kLocalhost},
+        server.GetPort(),
+        storages::redis::Username("username"),
+        storages::redis::Password("password"),
+        kDatabaseIndex
+    );
 
     EXPECT_TRUE(auth_error_handler->WaitForFirstReply(sleep_period + kSmallPeriod));
     PeriodicCheck([&] { return !IsConnected(*redis); });
@@ -447,7 +471,13 @@ TEST(Redis, Select) {
     storages::redis::impl::Statistics stats;
     auto redis = std::make_shared<
         storages::redis::impl::Redis>(pool->GetRedisThreadPool(), redis_settings, kDbName, stats);
-    redis->Connect({kLocalhost}, server.GetPort(), {}, kRedisDatabaseIndex);
+    redis->Connect(
+        {kLocalhost},
+        server.GetPort(),
+        storages::redis::Username{},
+        storages::redis::Password{},
+        kRedisDatabaseIndex
+    );
 
     EXPECT_TRUE(select_handler->WaitForFirstReply(kSmallPeriod));
     EXPECT_TRUE(ping_handler->WaitForFirstReply(kSmallPeriod));
@@ -463,7 +493,13 @@ TEST(Redis, SelectFail) {
     storages::redis::impl::Statistics stats;
     auto redis = std::make_shared<
         storages::redis::impl::Redis>(pool->GetRedisThreadPool(), redis_settings, kDbName, stats);
-    redis->Connect({kLocalhost}, server.GetPort(), {}, kRedisDatabaseIndex);
+    redis->Connect(
+        {kLocalhost},
+        server.GetPort(),
+        storages::redis::Username{},
+        storages::redis::Password{},
+        kRedisDatabaseIndex
+    );
 
     EXPECT_TRUE(select_error_handler->WaitForFirstReply(kSmallPeriod));
     PeriodicCheck([&] { return !IsConnected(*redis); });
@@ -480,7 +516,13 @@ TEST(Redis, SelectTimeout) {
     storages::redis::impl::Statistics stats;
     auto redis = std::make_shared<
         storages::redis::impl::Redis>(pool->GetRedisThreadPool(), redis_settings, kDbName, stats);
-    redis->Connect({kLocalhost}, server.GetPort(), {}, kRedisDatabaseIndex);
+    redis->Connect(
+        {kLocalhost},
+        server.GetPort(),
+        storages::redis::Username{},
+        storages::redis::Password{},
+        kRedisDatabaseIndex
+    );
 
     EXPECT_TRUE(select_error_handler->WaitForFirstReply(sleep_period + kSmallPeriod));
     PeriodicCheck([&] { return !IsConnected(*redis); });
@@ -497,7 +539,13 @@ TEST(Redis, SlaveREADONLY) {
     storages::redis::impl::Statistics stats;
     auto redis = std::make_shared<
         storages::redis::impl::Redis>(pool->GetRedisThreadPool(), redis_settings, kDbName, stats);
-    redis->Connect({kLocalhost}, server.GetPort(), {}, kDatabaseIndex);
+    redis->Connect(
+        {kLocalhost},
+        server.GetPort(),
+        storages::redis::Username{},
+        storages::redis::Password{},
+        kDatabaseIndex
+    );
 
     EXPECT_TRUE(readonly_handler->WaitForFirstReply(kSmallPeriod));
     PeriodicWait([&] { return IsConnected(*redis); });
@@ -514,7 +562,13 @@ TEST(Redis, SlaveREADONLYFail) {
     storages::redis::impl::Statistics stats;
     auto redis = std::make_shared<
         storages::redis::impl::Redis>(pool->GetRedisThreadPool(), redis_settings, kDbName, stats);
-    redis->Connect({kLocalhost}, server.GetPort(), {}, kDatabaseIndex);
+    redis->Connect(
+        {kLocalhost},
+        server.GetPort(),
+        storages::redis::Username{},
+        storages::redis::Password{},
+        kDatabaseIndex
+    );
 
     EXPECT_TRUE(readonly_handler->WaitForFirstReply(kSmallPeriod));
     PeriodicWait([&] { return !IsConnected(*redis); });
@@ -529,7 +583,13 @@ TEST(Redis, PingFail) {
     storages::redis::impl::Statistics stats;
     auto redis = std::make_shared<
         storages::redis::impl::Redis>(pool->GetRedisThreadPool(), redis_settings, kDbName, stats);
-    redis->Connect({kLocalhost}, server.GetPort(), storages::redis::Password(""), kDatabaseIndex);
+    redis->Connect(
+        {kLocalhost},
+        server.GetPort(),
+        storages::redis::Username(""),
+        storages::redis::Password(""),
+        kDatabaseIndex
+    );
 
     EXPECT_TRUE(ping_error_handler->WaitForFirstReply(kSmallPeriod));
     PeriodicWait([&] { return !IsConnected(*redis); });
@@ -558,7 +618,13 @@ TEST_P(RedisDisconnectingReplies, X) {
     storages::redis::impl::Statistics stats;
     auto redis = std::make_shared<
         storages::redis::impl::Redis>(pool->GetRedisThreadPool(), redis_settings, kDbName, stats);
-    redis->Connect({kLocalhost}, server.GetPort(), storages::redis::Password(""), kDatabaseIndex);
+    redis->Connect(
+        {kLocalhost},
+        server.GetPort(),
+        storages::redis::Username(""),
+        storages::redis::Password(""),
+        kDatabaseIndex
+    );
 
     EXPECT_TRUE(ping_handler->WaitForFirstReply(kSmallPeriod));
     PeriodicWait([&] { return IsConnected(*redis); });

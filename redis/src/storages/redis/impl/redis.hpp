@@ -40,6 +40,7 @@ public:
     void Connect(
         const ConnectionInfo::HostVector& host_addrs,
         int port,
+        const Username& username,
         const Password& password,
         std::size_t database_index
     );

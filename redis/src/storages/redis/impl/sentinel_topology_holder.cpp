@@ -41,6 +41,7 @@ SentinelTopologyHolder::SentinelTopologyHolder(
     const engine::ev::ThreadControl& sentinel_thread_control,
     const std::shared_ptr<engine::ev::ThreadPool>& redis_thread_pool,
     const std::string& shard_group_name,
+    const Username& username,
     const Password& password,
     std::size_t database_index,
     const std::vector<std::string>& shard_names,
@@ -50,12 +51,17 @@ SentinelTopologyHolder::SentinelTopologyHolder(
     : ev_thread_(sentinel_thread_control),
       redis_thread_pool_(redis_thread_pool),
       shard_group_name_(shard_group_name),
+      username_(username),
       password_(password),
       database_index_(database_index),
       name_by_shard_(shard_names),
       conns_(conns),
       statistics_holder_(),
-      update_topology_timer_(ev_thread_, [this] { UpdateClusterTopology(); }, kSentinelGetHostsCheckInterval),
+      update_topology_timer_(
+          ev_thread_,
+          [this] { UpdateClusterTopology(); },
+          kSentinelGetHostsCheckInterval
+      ),
       update_topology_watch_(
           ev_thread_,
           [this] {
@@ -98,8 +104,7 @@ SentinelTopologyHolder::SentinelTopologyHolder(
               sentinels_process_state_update_watch_.Start();
           }
       ),
-      connection_security_(connection_security)
-{
+      connection_security_(connection_security) {
     log_extra_.Extend("shard_group_name", shard_group_name_);
     LOG_DEBUG() << log_extra_ << "Created ClusterTopologyHolder";
     size_t shard_count = 0;
@@ -261,9 +266,19 @@ boost::signals2::signal<void(size_t)>& SentinelTopologyHolder::GetSignalTopology
     return signal_topology_changed_;
 }
 
+void SentinelTopologyHolder::UpdateUsername(const Username& username) {
+    auto lock = username_.UniqueLock();
+    *lock = username;
+}
+
 void SentinelTopologyHolder::UpdatePassword(const Password& password) {
     auto lock = password_.UniqueLock();
     *lock = password;
+}
+
+Username SentinelTopologyHolder::GetUsername() {
+    const auto lock = username_.Lock();
+    return *lock;
 }
 
 Password SentinelTopologyHolder::GetPassword() {
@@ -293,6 +308,7 @@ std::shared_ptr<RedisConnectionHolder> SentinelTopologyHolder::CreateRedisInstan
         shard_group_name_,
         host,
         port,
+        GetUsername(),
         GetPassword(),
         database_index_,
         buffering_settings_ptr->value_or(CommandsBufferingSettings{}),
@@ -411,9 +427,10 @@ void SentinelTopologyHolder::UpdateClusterTopology() {
     auto reset_update_topology_flag = MakeSharedScopeGuard([&]() { update_topology_flag_ = false; });
 
     ProcessGetHostsRequest(
-        GetHostsRequest::QuerySentinelMasters(*sentinels_, GetPassword()),
+        GetHostsRequest::QuerySentinelMasters(*sentinels_, GetUsername(), GetPassword()),
         [this,
-         reset{std::move(reset_update_topology_flag)
+         reset{
+             std::move(reset_update_topology_flag)
          }](const ConnInfoByShard& info, size_t requests_sent, size_t responses_parsed) mutable {
             if (!CheckQuorum(requests_sent, responses_parsed)) {
                 LOG_WARNING()
@@ -469,7 +486,7 @@ void SentinelTopologyHolder::UpdateClusterTopology() {
             for (auto& shard_conn : watcher->host_infos) {
                 const auto& shard_name = shard_conn.master.Name();
                 ProcessGetHostsRequest(
-                    GetHostsRequest::QuerySentinelSlaves(*sentinels_, shard_name, GetPassword()),
+                    GetHostsRequest::QuerySentinelSlaves(*sentinels_, shard_name, GetUsername(), GetPassword()),
                     [this,
                      watcher,
                      shard_name,

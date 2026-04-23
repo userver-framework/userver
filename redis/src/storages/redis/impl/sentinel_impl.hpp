@@ -47,11 +47,7 @@ public:
 
         SentinelCommand() = default;
         SentinelCommand(CommandPtr command, bool master, size_t shard, std::chrono::steady_clock::time_point start)
-            : command(command),
-              master(master),
-              shard(shard),
-              start(start)
-        {}
+            : command(command), master(master), shard(shard), start(start) {}
     };
 
     SentinelImpl(
@@ -62,6 +58,7 @@ public:
         const std::vector<ConnectionInfo>& conns,
         std::string shard_group_name,
         const std::string& client_name,
+        const Username& username,
         const Password& password,
         ConnectionSecurity connection_security,
         KeyShardFactory&& key_shard_factory,
@@ -101,6 +98,8 @@ public:
     static size_t GetClusterSlotsCalledCounter();
 
     void SetConnectionInfo(const std::vector<ConnectionInfoInt>& info_array);
+
+    void UpdateUsername(const Username& username);
     void UpdatePassword(const Password& password);
 
 private:

@@ -20,6 +20,7 @@ struct RedisSettings {
 
     std::vector<std::string> shards;
     std::vector<HostPort> sentinels;
+    storages::redis::Username username{std::string()};
     storages::redis::Password password{std::string()};
     storages::redis::Password sentinel_password{std::string()};
     storages::redis::ConnectionSecurity secure_connection{storages::redis::ConnectionSecurity::kNone};

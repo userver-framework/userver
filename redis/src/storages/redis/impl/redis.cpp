@@ -112,6 +112,7 @@ public:
     void Connect(
         const ConnectionInfo::HostVector& host_addrs,
         int port,
+        const Username& username,
         const Password& password,
         std::size_t database_index
     );
@@ -208,7 +209,13 @@ private:
 
     static bool WatchCommandTimerEnabled(const CommandsBufferingSettings& commands_buffering_settings);
 
-    bool Connect(const std::string& host, int port, const Password& password, size_t database_index);
+    bool Connect(
+        const std::string& host,
+        int port,
+        const Username& username,
+        const Password& password,
+        size_t database_index
+    );
 
     Redis* redis_obj_;
     engine::ev::ThreadControl ev_thread_control_;
@@ -229,6 +236,7 @@ private:
     std::string host_;
     uint16_t port_ = 0;
     std::string server_;
+    Username username_{std::string()};
     Password password_{std::string()};
     std::size_t database_index_ = 0;
     std::atomic<size_t> commands_size_ = 0;
@@ -286,8 +294,7 @@ Redis::Redis(
     const std::string& shard_group_name,
     Statistics& statistics
 )
-    : thread_control_(thread_pool->NextThread())
-{
+    : thread_control_(thread_pool->NextThread()) {
     impl_ = std::make_shared<
         RedisImpl>(thread_pool, thread_control_, *this, redis_settings, shard_group_name, statistics);
 }
@@ -303,10 +310,11 @@ Redis::~Redis() {
 void Redis::Connect(
     const ConnectionInfo::HostVector& host_addrs,
     int port,
+    const Username& username,
     const Password& password,
     size_t database_index
 ) {
-    impl_->Connect(host_addrs, port, password, database_index);
+    impl_->Connect(host_addrs, port, username, password, database_index);
 }
 
 bool Redis::AsyncCommand(const CommandPtr& command) { return impl_->AsyncCommand(command); }
@@ -360,8 +368,7 @@ Redis::RedisImpl::RedisImpl(
       connection_security_(redis_settings.connection_security),
       statistics_(statistics),
       server_id_(ServerId::Generate()),
-      retry_budget_(utils::RetryBudgetSettings{100, 0.1, false})
-{
+      retry_budget_(utils::RetryBudgetSettings{100, 0.1, false}) {
     SetCommandsBufferingSettings(CommandsBufferingSettings{});
     log_extra_.Extend("shard_group_name", shard_group_name_);
     log_extra_.Extend("server_id", GetServerId().GetId());
@@ -416,11 +423,12 @@ void Redis::RedisImpl::Detach() {
 void Redis::RedisImpl::Connect(
     const ConnectionInfo::HostVector& host_addrs,
     int port,
+    const Username& username,
     const Password& password,
     size_t database_index
 ) {
     for (const auto& host : host_addrs) {
-        if (Connect(host, port, password, database_index)) {
+        if (Connect(host, port, username, password, database_index)) {
             return;
         }
     }
@@ -430,7 +438,13 @@ void Redis::RedisImpl::Connect(
     SetState(State::kInitError);
 }
 
-bool Redis::RedisImpl::Connect(const std::string& host, int port, const Password& password, size_t database_index) {
+bool Redis::RedisImpl::Connect(
+    const std::string& host,
+    int port,
+    const Username& username,
+    const Password& password,
+    size_t database_index
+) {
     UASSERT(context_ == nullptr);
     UASSERT(state_ == State::kInit);
 
@@ -439,6 +453,7 @@ bool Redis::RedisImpl::Connect(const std::string& host, int port, const Password
     host_ = host;
     port_ = port;
     log_extra_.Extend("redis_server", GetServer());
+    username_ = username;
     password_ = password;
     database_index_ = database_index;
     LOG_INFO() << log_extra_ << "Async connect to Redis server=" << GetServer();
@@ -817,10 +832,9 @@ void Redis::RedisImpl::SetState(State state) {
             << log_extra_ << "skipped SetState() from " << StateToString(state_) << " to " << StateToString(state);
         return;
     }
-    LOG(StateChangeToLogLevel(state_, state)
-    ) << log_extra_
-      << "Redis server connection state for server=" << GetServer() << " (server_id=" << GetServerId().GetId()
-      << ") changed from " << StateToString(state_) << " to " << StateToString(state);
+    LOG(StateChangeToLogLevel(state_, state))
+        << log_extra_ << "Redis server connection state for server=" << GetServer() << " (server_id="
+        << GetServerId().GetId() << ") changed from " << StateToString(state_) << " to " << StateToString(state);
     state_ = state;
     if (!IsDestroying()) {
         statistics_.AccountStateChanged(state);
@@ -1023,34 +1037,36 @@ void Redis::RedisImpl::Authenticate() {
     if (password_.GetUnderlying().empty()) {
         SendReadOnly();
     } else {
-        ProcessCommand(PrepareCommand(
-            CmdArgs{"AUTH", password_.GetUnderlying()},
-            [this](const CommandPtr&, ReplyPtr reply) {
-                if (*reply && reply->data.IsStatus()) {
-                    SendReadOnly();
-                } else {
-                    if (*reply) {
-                        if (reply->IsUnknownCommandError()) {
-                            LOG_WARNING()
-                                << log_extra_
-                                << "AUTH failed: unknown command `AUTH` - "
-                                   "possible when connecting to sentinel instead "
-                                   "of RedisCluster instance";
-                            Disconnect();
-                            return;
-                        }
-                        LOG_LIMITED_ERROR()
-                            << log_extra_ << "AUTH failed: response type=" << reply->data.GetTypeString()
-                            << " msg=" << reply->data.ToDebugString();
-                    } else {
-                        LOG_LIMITED_ERROR()
-                            << "AUTH failed with status " << reply->status << " (" << reply->GetStatusString() << ") "
-                            << log_extra_;
+        auto args =
+            username_.GetUnderlying().empty()
+                ? CmdArgs{"AUTH", password_.GetUnderlying()}
+                : CmdArgs{"AUTH", username_.GetUnderlying(), password_.GetUnderlying()};
+
+        ProcessCommand(PrepareCommand(std::move(args), [this](const CommandPtr&, ReplyPtr reply) {
+            if (*reply && reply->data.IsStatus()) {
+                SendReadOnly();
+            } else {
+                if (*reply) {
+                    if (reply->IsUnknownCommandError()) {
+                        LOG_WARNING()
+                            << log_extra_
+                            << "AUTH failed: unknown command `AUTH` - "
+                               "possible when connecting to sentinel instead "
+                               "of RedisCluster instance";
+                        Disconnect();
+                        return;
                     }
-                    Disconnect();
+                    LOG_LIMITED_ERROR()
+                        << log_extra_ << "AUTH failed: response type=" << reply->data.GetTypeString()
+                        << " msg=" << reply->data.ToDebugString();
+                } else {
+                    LOG_LIMITED_ERROR()
+                        << "AUTH failed with status " << reply->status << " (" << reply->GetStatusString() << ") "
+                        << log_extra_;
                 }
+                Disconnect();
             }
-        ));
+        }));
     }
 }
 

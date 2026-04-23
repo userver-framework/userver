@@ -12,6 +12,7 @@ StandaloneTopologyHolder::StandaloneTopologyHolder(
     const engine::ev::ThreadControl& sentinel_thread_control,
     const std::shared_ptr<engine::ev::ThreadPool>& redis_thread_pool,
     const std::string& shard_group_name,
+    const Username& username,
     const Password& password,
     std::size_t database_index,
     ConnectionInfo conn
@@ -19,18 +20,15 @@ StandaloneTopologyHolder::StandaloneTopologyHolder(
     : ev_thread_(sentinel_thread_control),
       redis_thread_pool_(redis_thread_pool),
       shard_group_name_(shard_group_name),
-      password_(std::move(password)),
+      username_(username),
+      password_(password),
       database_index_(database_index),
       conn_to_create_(conn),
-      create_node_watch_(
-          ev_thread_,
-          [this] {
-              // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDelete)
-              CreateNode();
-              create_node_watch_.Start();
-          }
-      )
-{
+      create_node_watch_(ev_thread_, [this] {
+          // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDelete)
+          CreateNode();
+          create_node_watch_.Start();
+      }) {
     LOG_DEBUG() << "Created StandaloneTopologyHolder with " << conn.host << ":" << conn.port;
 }
 
@@ -166,6 +164,7 @@ std::shared_ptr<RedisConnectionHolder> StandaloneTopologyHolder::CreateRedisInst
         shard_group_name_,
         info.HostPort().first,
         info.HostPort().second,
+        GetUsername(),
         GetPassword(),
         database_index_,
         buffering_settings_ptr->value_or(CommandsBufferingSettings{}),
@@ -220,9 +219,19 @@ void StandaloneTopologyHolder::CreateNode() {
     signal_topology_changed_(1);
 }
 
+void StandaloneTopologyHolder::UpdateUsername(const Username& username) {
+    auto lock = username_.UniqueLock();
+    *lock = username;
+}
+
 void StandaloneTopologyHolder::UpdatePassword(const Password& password) {
     auto lock = password_.UniqueLock();
     *lock = password;
+}
+
+Username StandaloneTopologyHolder::GetUsername() {
+    const auto lock = username_.Lock();
+    return *lock;
 }
 
 Password StandaloneTopologyHolder::GetPassword() {

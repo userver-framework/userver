@@ -25,6 +25,7 @@ public:
         const engine::ev::ThreadControl& sentinel_thread_control,
         const std::shared_ptr<engine::ev::ThreadPool>& redis_thread_pool,
         std::string shard_group_name,
+        Username username,
         Password password,
         const std::vector<std::string>& /*shards*/,
         const std::vector<ConnectionInfo>& conns,
@@ -47,8 +48,13 @@ public:
     void SetConnectionInfo(const std::vector<ConnectionInfoInt>& info_array) override;
     boost::signals2::signal<void(HostPort, Redis::State)>& GetSignalNodeStateChanged() override;
     boost::signals2::signal<void(size_t)>& GetSignalTopologyChanged() override;
+
+    void UpdateUsername(const Username& username) override;
     void UpdatePassword(const Password& password) override;
+
+    Username GetUsername() override;
     Password GetPassword() override;
+
     std::string GetReadinessInfo() const override;
 
     static size_t GetClusterSlotsCalledCounter() { return cluster_slots_call_counter.load(std::memory_order_relaxed); }
@@ -61,6 +67,7 @@ private:
 
     const std::string shard_group_name_;
     logging::LogExtra log_extra_;
+    concurrent::Variable<Username, std::mutex> username_;
     concurrent::Variable<Password, std::mutex> password_;
     std::shared_ptr<const std::vector<std::string>> shards_names_;
     const std::vector<ConnectionInfo> conns_;

@@ -25,7 +25,8 @@ public:
 
     std::pair<std::string, int> HostPort() const;
 
-    void SetPassword(Password);
+    void SetUsername(Username username);
+    void SetPassword(Password password);
 
     void SetDatabaseIndex(size_t index);
     size_t DatabaseIndex() const;

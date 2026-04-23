@@ -22,6 +22,7 @@ public:
         std::string shard_group_name,
         dynamic_config::Source dynamic_config_source,
         const std::string& client_name,
+        const Username& username,
         const Password& password,
         ConnectionSecurity connection_security,
         KeyShardFactory key_shard_factory,

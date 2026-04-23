@@ -128,6 +128,7 @@ ClusterTopologyHolder::ClusterTopologyHolder(
     const engine::ev::ThreadControl& sentinel_thread_control,
     const std::shared_ptr<engine::ev::ThreadPool>& redis_thread_pool,
     std::string shard_group_name,
+    Username username,
     Password password,
     const std::vector<std::string>& /*shards*/,
     const std::vector<ConnectionInfo>& conns,
@@ -136,11 +137,16 @@ ClusterTopologyHolder::ClusterTopologyHolder(
     : ev_thread_(sentinel_thread_control),
       redis_thread_pool_(redis_thread_pool),
       shard_group_name_(std::move(shard_group_name)),
+      username_(std::move(username)),
       password_(std::move(password)),
       shards_names_(MakeShardNames()),
       conns_(conns),
       statistics_holder_(),
-      update_topology_timer_(ev_thread_, [this] { UpdateClusterTopology(); }, kSentinelGetHostsCheckInterval),
+      update_topology_timer_(
+          ev_thread_,
+          [this] { UpdateClusterTopology(); },
+          kSentinelGetHostsCheckInterval
+      ),
       update_topology_watch_(
           ev_thread_,
           [this] {
@@ -155,7 +161,11 @@ ClusterTopologyHolder::ClusterTopologyHolder(
               explore_nodes_watch_.Start();
           }
       ),
-      explore_nodes_timer_(ev_thread_, [this] { ExploreNodes(); }, kSentinelGetHostsCheckInterval),
+      explore_nodes_timer_(
+          ev_thread_,
+          [this] { ExploreNodes(); },
+          kSentinelGetHostsCheckInterval
+      ),
       create_nodes_watch_(
           ev_thread_,
           [this] {
@@ -163,7 +173,11 @@ ClusterTopologyHolder::ClusterTopologyHolder(
               create_nodes_watch_.Start();
           }
       ),
-      delete_expired_nodes_timer_(ev_thread_, [this] { DeleteNodes(); }, kDeleteNodesCheckInterval),
+      delete_expired_nodes_timer_(
+          ev_thread_,
+          [this] { DeleteNodes(); },
+          kDeleteNodesCheckInterval
+      ),
       sentinels_process_creation_timer_(
           ev_thread_,
           [this] {
@@ -194,8 +208,7 @@ ClusterTopologyHolder::ClusterTopologyHolder(
       ),
       is_topology_received_(false),
       update_cluster_slots_flag_(false),
-      connection_security_(connection_security)
-{
+      connection_security_(connection_security) {
     log_extra_.Extend("shard_group_name", shard_group_name_);
     LOG_DEBUG() << log_extra_ << "Created ClusterTopologyHolder";
 }
@@ -339,9 +352,19 @@ boost::signals2::signal<void(size_t)>& ClusterTopologyHolder::GetSignalTopologyC
     return signal_topology_changed_;
 }
 
+void ClusterTopologyHolder::UpdateUsername(const Username& username) {
+    auto lock = username_.UniqueLock();
+    *lock = username;
+}
+
 void ClusterTopologyHolder::UpdatePassword(const Password& password) {
     auto lock = password_.UniqueLock();
     *lock = password;
+}
+
+Username ClusterTopologyHolder::GetUsername() {
+    const auto lock = username_.Lock();
+    return *lock;
 }
 
 Password ClusterTopologyHolder::GetPassword() {
@@ -471,6 +494,7 @@ std::shared_ptr<RedisConnectionHolder> ClusterTopologyHolder::CreateRedisInstanc
         shard_group_name_,
         host,
         port,
+        GetUsername(),
         GetPassword(),
         kClusterDatabaseIndex,
         buffering_settings_ptr->value_or(CommandsBufferingSettings{}),
@@ -497,11 +521,14 @@ void ClusterTopologyHolder::UpdateClusterTopology() {
     /// ...
     ProcessGetClusterHostsRequest(
         shards_names_,
-        GetClusterHostsRequest(*sentinels_, GetPassword(), shard_group_name_),
+        GetClusterHostsRequest(*sentinels_, GetUsername(), GetPassword(), shard_group_name_),
         [this,
-         reset{std::move(reset_update_cluster_slots)
-         }](ClusterShardHostInfos shard_infos, size_t requests_sent, size_t responses_parsed, bool is_non_cluster_error
-        ) {
+         reset{
+             std::move(reset_update_cluster_slots)
+         }](ClusterShardHostInfos shard_infos,
+            size_t requests_sent,
+            size_t responses_parsed,
+            bool is_non_cluster_error) {
             LOG_DEBUG()
                 << log_extra_ << "Parsing response from cluster slots: shard_infos.size(): " << shard_infos.size()
                 << ", requests_sent=" << requests_sent << ", responses_parsed=" << responses_parsed;

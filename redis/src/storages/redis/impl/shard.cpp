@@ -18,9 +18,7 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::redis::impl {
 
 ConnectionInfoInt::ConnectionInfoInt(ConnectionInfo conn_info)
-    : conn_info_(std::move(conn_info)),
-      fulltext_(fmt::format(FMT_COMPILE("{}:{}"), conn_info_.host, conn_info_.port))
-{
+    : conn_info_(std::move(conn_info)), fulltext_(fmt::format(FMT_COMPILE("{}:{}"), conn_info_.host, conn_info_.port)) {
     UASSERT(!conn_info_.host.empty());
 }
 
@@ -29,6 +27,8 @@ void ConnectionInfoInt::SetName(std::string name) { name_ = std::move(name); }
 const std::string& ConnectionInfoInt::Name() const { return name_; }
 
 std::pair<std::string, int> ConnectionInfoInt::HostPort() const { return {conn_info_.host, conn_info_.port}; }
+
+void ConnectionInfoInt::SetUsername(Username username) { conn_info_.username = std::move(username); }
 
 void ConnectionInfoInt::SetPassword(Password password) { conn_info_.password = std::move(password); }
 
@@ -47,7 +47,13 @@ ConnectionSecurity ConnectionInfoInt::GetConnectionSecurity() const { return con
 const std::string& ConnectionInfoInt::Fulltext() const { return fulltext_; }
 
 void ConnectionInfoInt::Connect(Redis& instance) const {
-    instance.Connect({conn_info_.host}, conn_info_.port, conn_info_.password, conn_info_.database_index);
+    instance.Connect(
+        {conn_info_.host},
+        conn_info_.port,
+        conn_info_.username,
+        conn_info_.password,
+        conn_info_.database_index
+    );
 }
 
 bool operator==(const ConnectionInfoInt& lhs, const ConnectionInfoInt& rhs) { return lhs.Fulltext() == rhs.Fulltext(); }
@@ -59,8 +65,7 @@ Shard::Shard(Options options)
       shard_group_name_(std::move(options.shard_group_name)),
       shared_statistics_(std::make_unique<Statistics>()),
       ready_change_callback_(std::move(options.ready_change_callback)),
-      cluster_mode_(options.cluster_mode)
-{
+      cluster_mode_(options.cluster_mode) {
     for (const auto& conn : options.connection_infos) {
         connection_infos_.emplace_back(conn);
     }

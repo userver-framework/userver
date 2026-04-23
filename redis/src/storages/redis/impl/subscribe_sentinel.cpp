@@ -40,6 +40,7 @@ SubscribeSentinel::SubscribeSentinel(
     std::string shard_group_name,
     dynamic_config::Source dynamic_config_source,
     const std::string& client_name,
+    const Username& username,
     const Password& password,
     ConnectionSecurity connection_security,
     KeyShardFactory key_shard_factory,
@@ -53,6 +54,7 @@ SubscribeSentinel::SubscribeSentinel(
           conns,
           std::move(shard_group_name),
           client_name,
+          username,
           password,
           connection_security,
           dynamic_config_source,
@@ -61,8 +63,7 @@ SubscribeSentinel::SubscribeSentinel(
           testsuite_redis_control,
           kSubscriptionDatabaseIndex
       ),
-      storage_(CreateSubscriptionStorage(thread_pools, shards, is_cluster_mode))
-{
+      storage_(CreateSubscriptionStorage(thread_pools, shards, is_cluster_mode)) {
     InitStorage();
 }
 
@@ -102,6 +103,7 @@ std::shared_ptr<SubscribeSentinel> SubscribeSentinel::Create(
         conns.emplace_back(
             sentinel.host,
             sentinel.port,
+            settings.username,
             (is_cluster_mode ? password : sentinel_password),
             false,
             settings.secure_connection
@@ -122,6 +124,7 @@ std::shared_ptr<SubscribeSentinel> SubscribeSentinel::Create(
         std::move(shard_group_name),
         dynamic_config_source,
         client_name,
+        settings.username,
         password,
         settings.secure_connection,
         std::move(keys_shard_factory),

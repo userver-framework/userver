@@ -221,6 +221,7 @@ SentinelImpl::SentinelImpl(
     const std::vector<ConnectionInfo>& conns,
     std::string shard_group_name,
     const std::string& client_name,
+    const Username& username,
     const Password& password,
     ConnectionSecurity connection_security,
     KeyShardFactory&& key_shard_factory,
@@ -229,11 +230,13 @@ SentinelImpl::SentinelImpl(
 )
     : sentinel_obj_(sentinel),
       ev_thread_(sentinel_thread_control),
-      process_waiting_commands_timer_(std::make_unique<engine::ev::PeriodicWatcher>(
-          ev_thread_,
-          [this] { ProcessWaitingCommands(); },
-          kSentinelGetHostsCheckInterval
-      )),
+      process_waiting_commands_timer_(
+          std::make_unique<engine::ev::PeriodicWatcher>(
+              ev_thread_,
+              [this] { ProcessWaitingCommands(); },
+              kSentinelGetHostsCheckInterval
+          )
+      ),
       key_shard_factory_(std::move(key_shard_factory)),
       key_shard_(key_shard_factory_(shards.size())),
       shard_group_name_(std::move(shard_group_name)),
@@ -241,8 +244,7 @@ SentinelImpl::SentinelImpl(
       redis_thread_pool_(redis_thread_pool),
       client_name_(client_name),
       dynamic_config_source_(std::move(dynamic_config_source)),
-      database_index_(database_index)
-{
+      database_index_(database_index) {
     log_extra_.Extend("shard_group_name", shard_group_name_);
 
     const auto& key_shard_type = key_shard_factory_.GetShardingStrategy();
@@ -252,6 +254,7 @@ SentinelImpl::SentinelImpl(
                 ev_thread_,
                 redis_thread_pool,
                 shard_group_name_,
+                username,
                 password,
                 shards,
                 conns,
@@ -265,6 +268,7 @@ SentinelImpl::SentinelImpl(
                 ev_thread_,
                 redis_thread_pool,
                 shard_group_name_,
+                username,
                 password,
                 database_index_,
                 conns.front()
@@ -275,6 +279,7 @@ SentinelImpl::SentinelImpl(
             ev_thread_,
             redis_thread_pool,
             shard_group_name_,
+            username,
             password,
             database_index_,
             shards,
@@ -558,6 +563,8 @@ size_t SentinelImpl::GetClusterSlotsCalledCounter() { return ClusterTopologyHold
 void SentinelImpl::SetConnectionInfo(const std::vector<ConnectionInfoInt>& info_array) {
     topology_holder_->SetConnectionInfo(info_array);
 }
+
+void SentinelImpl::UpdateUsername(const Username& username) { topology_holder_->UpdateUsername(username); }
 
 void SentinelImpl::UpdatePassword(const Password& password) { topology_holder_->UpdatePassword(password); }
 

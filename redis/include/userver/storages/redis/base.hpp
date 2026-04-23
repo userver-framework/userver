@@ -14,6 +14,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::redis {
 
+using Username = utils::StrongTypedef<class UsernameTag, std::string>;
 using Password = utils::NonLoggable<class PasswordTag, std::string>;
 
 enum class ConnectionSecurity { kNone, kTLS };
@@ -21,6 +22,7 @@ enum class ConnectionSecurity { kNone, kTLS };
 struct ConnectionInfo {
     std::string host = "localhost";
     int port = 26379;
+    Username username;
     Password password;
     bool read_only = false;
     ConnectionSecurity connection_security = ConnectionSecurity::kNone;
@@ -31,6 +33,7 @@ struct ConnectionInfo {
     ConnectionInfo(
         std::string host,
         int port,
+        Username username,
         Password password,
         bool read_only = false,
         ConnectionSecurity security = ConnectionSecurity::kNone,
@@ -38,11 +41,11 @@ struct ConnectionInfo {
     )
         : host{std::move(host)},
           port{port},
+          username{std::move(username)},
           password{std::move(password)},
           read_only{read_only},
           connection_security(security),
-          database_index(db_index)
-    {}
+          database_index(db_index) {}
 };
 
 struct Stat {
@@ -81,9 +84,7 @@ struct MetricsSettings {
 
     DynamicSettings dynamic_settings;
 
-    MetricsSettings(const DynamicSettings& dynamic_settings)
-        : dynamic_settings(dynamic_settings)
-    {}
+    MetricsSettings(const DynamicSettings& dynamic_settings) : dynamic_settings(dynamic_settings) {}
     MetricsSettings() = default;
     MetricsSettings(const MetricsSettings&) = default;
     MetricsSettings(MetricsSettings&&) = default;

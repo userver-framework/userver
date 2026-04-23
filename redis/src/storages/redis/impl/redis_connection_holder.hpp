@@ -38,6 +38,7 @@ public:
         const std::string& shard_group_name,
         const std::string& host,
         uint16_t port,
+        Username username,
         Password password,
         std::size_t database_index,
         CommandsBufferingSettings buffering_settings,
@@ -56,6 +57,7 @@ public:
         const std::string& shard_group_name,
         const std::string& host,
         uint16_t port,
+        Username username,
         Password password,
         std::size_t database_index,
         CommandsBufferingSettings buffering_settings,
@@ -90,6 +92,7 @@ private:
     const std::string shard_group_name_;
     const std::string host_;
     const uint16_t port_;
+    const Username username_;
     const Password password_;
     const std::size_t database_index_;
     Statistics& statistics_;

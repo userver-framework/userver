@@ -19,6 +19,7 @@ public:
         const engine::ev::ThreadControl& sentinel_thread_control,
         const std::shared_ptr<engine::ev::ThreadPool>& redis_thread_pool,
         const std::string& shard_group_name,
+        const Username& username,
         const Password& password,
         std::size_t database_index,
         ConnectionInfo conn
@@ -54,8 +55,10 @@ public:
 
     boost::signals2::signal<void(size_t)>& GetSignalTopologyChanged() override;
 
+    void UpdateUsername(const Username& username) override;
     void UpdatePassword(const Password& password) override;
 
+    Username GetUsername() override;
     Password GetPassword() override;
 
     std::string GetReadinessInfo() const override;
@@ -73,6 +76,7 @@ private:
     engine::ev::ThreadControl ev_thread_;
     std::shared_ptr<engine::ev::ThreadPool> redis_thread_pool_;
     const std::string shard_group_name_;
+    concurrent::Variable<Username, std::mutex> username_;
     concurrent::Variable<Password, std::mutex> password_;
     const std::size_t database_index_;
 

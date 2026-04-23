@@ -63,6 +63,7 @@ public:
         const std::vector<ConnectionInfo>& conns,
         std::string shard_group_name,
         const std::string& client_name,
+        const Username& username,
         const Password& password,
         ConnectionSecurity connection_security,
         dynamic_config::Source dynamic_config_source,
@@ -153,6 +154,7 @@ public:
     void SetConnectionInfo(std::vector<ConnectionInfo> info_array);
     const std::string& ShardGroupName() const;
 
+    void UpdateUsername(const Username& username);
     void UpdatePassword(const Password& password);
 
     using UserMessageCallback = std::function<Outcome(const std::string& channel, const std::string& message)>;

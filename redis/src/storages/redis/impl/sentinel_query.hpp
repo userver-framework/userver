@@ -12,21 +12,26 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::redis::impl {
 
 struct GetHostsRequest {
-    static GetHostsRequest QuerySentinelMasters(Shard& sentinel_shard, Password password) {
-        return GetHostsRequest(sentinel_shard, std::move(password));
+    static GetHostsRequest QuerySentinelMasters(Shard& sentinel_shard, Username username, Password password) {
+        return GetHostsRequest(sentinel_shard, std::move(username), std::move(password));
     }
-    static GetHostsRequest QuerySentinelSlaves(Shard& sentinel_shard, std::string shard_name, Password password) {
-        return GetHostsRequest(sentinel_shard, std::move(shard_name), std::move(password));
+    static GetHostsRequest QuerySentinelSlaves(
+        Shard& sentinel_shard,
+        std::string shard_name,
+        Username username,
+        Password password
+    ) {
+        return GetHostsRequest(sentinel_shard, std::move(shard_name), std::move(username), std::move(password));
     }
 
 private:
     // For MASTERS
-    GetHostsRequest(Shard& sentinel_shard, Password password)
+    GetHostsRequest(Shard& sentinel_shard, Username username, Password password)
         : sentinel_shard(sentinel_shard),
           command({"SENTINEL", "MASTERS"}),
           master(true),
-          password(std::move(password))
-    {
+          username(std::move(username)),
+          password(std::move(password)) {
         UASSERT(command.GetCommandCount() == 1);
         UASSERT_MSG(
             fmt::to_string(command.begin()->GetJoinedArgs(";")) == "SENTINEL;MASTERS",
@@ -35,12 +40,12 @@ private:
     }
 
     // For SLAVES
-    GetHostsRequest(Shard& sentinel_shard, std::string shard_name, Password password)
+    GetHostsRequest(Shard& sentinel_shard, std::string shard_name, Username username, Password password)
         : sentinel_shard(sentinel_shard),
           command({"SENTINEL", "SLAVES", std::move(shard_name)}),
           master(false),
-          password(std::move(password))
-    {
+          username(std::move(username)),
+          password(std::move(password)) {
         UASSERT(command.GetCommandCount() == 1);
     }
 
@@ -49,6 +54,7 @@ public:
     CmdArgs command;
 
     bool master;
+    Username username;
     Password password;
 };
 
@@ -65,6 +71,7 @@ class GetHostsContext : public std::enable_shared_from_this<GetHostsContext> {
 public:
     GetHostsContext(
         bool allow_empty,
+        const Username& username,
         const Password& password,
         ProcessGetHostsRequestCb&& callback,
         size_t expected_responses_cnt
@@ -78,6 +85,7 @@ private:
 
     std::mutex mutex_;
     const bool allow_empty_;
+    const Username username_;
     const Password password_;
     const ProcessGetHostsRequestCb callback_;
     size_t response_got_{0};
@@ -91,16 +99,17 @@ private:
 static constexpr size_t kClusterHashSlots = 16384;
 
 struct GetClusterHostsRequest {
-    GetClusterHostsRequest(Shard& sentinel_shard, Password password, std::string shard_group_name)
+    GetClusterHostsRequest(Shard& sentinel_shard, Username username, Password password, std::string shard_group_name)
         : sentinel_shard(sentinel_shard),
           command({"CLUSTER", "SLOTS"}),
+          username(std::move(username)),
           password(std::move(password)),
-          shard_group_name(std::move(shard_group_name))
-    {}
+          shard_group_name(std::move(shard_group_name)) {}
 
     Shard& sentinel_shard;
     CmdArgs command;
 
+    Username username;
     Password password;
     std::string shard_group_name;
 };
@@ -109,10 +118,7 @@ struct SlotInterval {
     size_t slot_min;
     size_t slot_max;
 
-    SlotInterval(size_t slot_min, size_t slot_max)
-        : slot_min(slot_min),
-          slot_max(slot_max)
-    {}
+    SlotInterval(size_t slot_min, size_t slot_max) : slot_min(slot_min), slot_max(slot_max) {}
 
     bool operator<(const SlotInterval& r) const { return slot_min < r.slot_min; }
     bool operator==(const SlotInterval& r) const { return slot_min == r.slot_min && slot_max == r.slot_max; }
@@ -153,6 +159,7 @@ using ClusterSlotsResponse = std::map<SlotInterval, MasterSlavesConnInfos>;
 class GetClusterHostsContext {
 public:
     GetClusterHostsContext(
+        Username username,
         Password password,
         std::shared_ptr<const std::vector<std::string>> shard_names,
         std::string shard_group_name,
@@ -173,6 +180,7 @@ private:
     void ProcessResponsesOnce();
 
     const std::string shard_group_name_;
+    const Username username_;
     const Password password_;
     const std::shared_ptr<const std::vector<std::string>> shard_names_;
     const ProcessGetClusterHostsRequestCb callback_;

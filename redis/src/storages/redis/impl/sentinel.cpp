@@ -66,6 +66,7 @@ Sentinel::Sentinel(
     const std::vector<ConnectionInfo>& conns,
     std::string shard_group_name,
     const std::string& client_name,
+    const Username& username,
     const Password& password,
     ConnectionSecurity connection_security,
     dynamic_config::Source dynamic_config_source,
@@ -78,8 +79,7 @@ Sentinel::Sentinel(
       thread_pools_(thread_pools),
       secdist_default_command_control_(command_control),
       testsuite_redis_control_(testsuite_redis_control),
-      is_in_cluster_mode_(key_shard_factory.IsClusterStrategy())
-{
+      is_in_cluster_mode_(key_shard_factory.IsClusterStrategy()) {
     config_default_command_control_.Set(std::make_shared<CommandControl>(secdist_default_command_control_));
 
     if (!thread_pools_) {
@@ -101,6 +101,7 @@ Sentinel::Sentinel(
             conns,
             std::move(shard_group_name),
             client_name,
+            username,
             password,
             connection_security,
             std::move(key_shard_factory),
@@ -153,6 +154,7 @@ std::shared_ptr<Sentinel> Sentinel::CreateSentinel(
         conns.emplace_back(
             sentinel.host,
             sentinel.port,
+            settings.username,
             (key_shard_factory.IsClusterStrategy() ? password : sentinel_password),
             false,
             settings.secure_connection
@@ -168,6 +170,7 @@ std::shared_ptr<Sentinel> Sentinel::CreateSentinel(
             conns,
             std::move(shard_group_name),
             client_name,
+            settings.username,
             password,
             settings.secure_connection,
             dynamic_config_source,
@@ -390,6 +393,8 @@ void Sentinel::SetConfigDefaultCommandControl(const std::shared_ptr<CommandContr
 }
 
 const std::string& Sentinel::ShardGroupName() const { return shard_group_name_; }
+
+void Sentinel::UpdateUsername(const Username& username) { impl_->UpdateUsername(username); }
 
 void Sentinel::UpdatePassword(const Password& password) { impl_->UpdatePassword(password); }
 
