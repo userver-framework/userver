@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <iterator>
+#include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -46,9 +47,9 @@ template <typename Container, typename Key>
 auto* FindOrNullptr(Container& container, const Key& key) {
     const auto it = container.find(key);
     if constexpr (impl::HasMappedType<Container>) {
-        return (it != container.end() ? &(it->second) : nullptr);
+        return (it != container.end() ? std::addressof(it->second) : nullptr);
     } else {
-        return (it != container.end() ? &(*it) : nullptr);
+        return (it != container.end() ? std::addressof(*it) : nullptr);
     }
 }
 

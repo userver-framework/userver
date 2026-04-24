@@ -46,6 +46,47 @@ TEST(UtilsAlgo, FindOrNullptrSets) {
     EXPECT_EQ(*utils::FindOrNullptr(us, "1"), "1");
 }
 
+TEST(UtilsAlgo, FindOrNullptrMapAddressof) {
+    struct Overloaded {
+        bool used = false;
+        auto operator&() {
+            used = true;
+            return this;
+        }
+    };
+
+    const std::map<std::string, Overloaded> m{{"1", {}}};
+
+    const auto ptr = utils::FindOrNullptr(m, "1");
+
+    ASSERT_TRUE(ptr);
+
+    EXPECT_FALSE(ptr->used);
+}
+
+TEST(UtilsAlgo, FindOrNullptrSetAddressof) {
+    struct Overloaded {
+        bool used = false;
+        auto operator&() {
+            used = true;
+            return this;
+        }
+
+        std::string key;
+        bool operator<(const Overloaded& that) const {
+            return key < that.key;
+        }
+    };
+
+    const std::set<Overloaded> s{{.key = "1"}};
+
+    const auto ptr = utils::FindOrNullptr(s, Overloaded{.key = "1"});
+
+    ASSERT_TRUE(ptr);
+
+    EXPECT_FALSE(ptr->used);
+}
+
 TEST(UtilsAlgo, FindOrDefaultMaps) {
     constexpr int kFallback = 42;
     std::map<std::string, int> m = {{"1", 2}};
