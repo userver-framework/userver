@@ -22,6 +22,18 @@ TEST(Custom, Int) {
     EXPECT_EQ(custom2, custom);
 }
 
+TEST(Custom, Ms) {
+    auto json = formats::json::MakeObject("ms", "12ms");
+    auto custom = json.As<ns::ObjWithCustom>();
+    EXPECT_EQ(custom.ms, std::chrono::milliseconds(12));
+
+    auto json_back = formats::json::ValueBuilder{custom}.ExtractValue();
+    EXPECT_EQ(json_back, json);
+
+    const auto custom2 = FromJsonString(ToString(json), formats::parse::To<ns::ObjWithCustom>{});
+    EXPECT_EQ(custom2, custom);
+}
+
 TEST(Custom, String) {
     auto json = formats::json::MakeObject("string", "make love");
     auto custom = json.As<ns::ObjWithCustom>();

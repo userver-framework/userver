@@ -28,6 +28,9 @@ definitions:
             integer:
                 type: integer
                 x-usrv-cpp-type: std::chrono::milliseconds
+            ms:
+                type: string
+                x-usrv-cpp-type: std::chrono::milliseconds
             sizet:
                 type: integer
                 minimum: 0
