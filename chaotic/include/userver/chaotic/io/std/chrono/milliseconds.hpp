@@ -14,9 +14,12 @@ USERVER_NAMESPACE_BEGIN
 namespace chaotic::convert {
 
 template <typename T>
+requires std::is_integral_v<T> || std::is_floating_point_v<T>
 T Convert(std::chrono::milliseconds value, chaotic::convert::To<T>) {
     return utils::numeric_cast<T>(value.count());
 }
+
+std::string Convert(const std::chrono::milliseconds& value, chaotic::convert::To<std::string>);
 
 std::chrono::milliseconds Convert(const std::string& str, chaotic::convert::To<std::chrono::milliseconds>);
 

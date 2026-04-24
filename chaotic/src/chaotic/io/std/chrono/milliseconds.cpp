@@ -6,6 +6,10 @@ USERVER_NAMESPACE_BEGIN
 
 namespace chaotic::convert {
 
+std::string Convert(const std::chrono::milliseconds& value, chaotic::convert::To<std::string>) {
+    return std::to_string(value.count()) + "ms";
+}
+
 std::chrono::milliseconds Convert(const std::string& str, chaotic::convert::To<std::chrono::milliseconds>) {
     return std::chrono::milliseconds{utils::StringToDuration(str)};
 }
