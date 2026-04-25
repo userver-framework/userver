@@ -1,4 +1,6 @@
 #include <array>
+#include <type_traits>
+#include <utility>
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
@@ -8,6 +10,31 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace {
+
+template <typename Container>
+using EnumerateImpl = decltype(utils::enumerate(std::declval<Container>()));
+
+template <typename Container, bool ConstWrapper>
+using Enumerate = std::conditional_t<ConstWrapper, const EnumerateImpl<Container>, EnumerateImpl<Container>>;
+
+template <typename Container, bool ConstWrapper>
+using EnumerateElem = decltype(*std::begin(std::declval<Enumerate<Container, ConstWrapper>&>()))::second_type;
+
+static_assert(std::is_same_v<int&, EnumerateElem<std::vector<int>, false>>);
+static_assert(std::is_same_v<int&, EnumerateElem<std::vector<int>&, false>>);
+static_assert(std::is_same_v<int&, EnumerateElem<std::vector<int>&&, false>>);
+
+static_assert(std::is_same_v<const int&, EnumerateElem<const std::vector<int>, false>>);
+static_assert(std::is_same_v<const int&, EnumerateElem<const std::vector<int>&, false>>);
+static_assert(std::is_same_v<const int&, EnumerateElem<const std::vector<int>&&, false>>);
+
+static_assert(std::is_same_v<const int&, EnumerateElem<std::vector<int>, true>>);
+static_assert(std::is_same_v<const int&, EnumerateElem<std::vector<int>&, true>>);
+static_assert(std::is_same_v<const int&, EnumerateElem<std::vector<int>&&, true>>);
+
+static_assert(std::is_same_v<const int&, EnumerateElem<const std::vector<int>, true>>);
+static_assert(std::is_same_v<const int&, EnumerateElem<const std::vector<int>&, true>>);
+static_assert(std::is_same_v<const int&, EnumerateElem<const std::vector<int>&&, true>>);
 
 constexpr int ConstexprTest(std::array<int, 2> data) {
     int result = 0;
