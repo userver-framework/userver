@@ -79,7 +79,7 @@ public:
 
     /// @brief Return reference to the value or throws bad_expected_access
     /// if it's not available
-    /// @throws utils::bad_expected_access if *this contain an unexpected value
+    /// @throws utils::bad_expected_access if the value is not available
     S& value() & USERVER_IMPL_LIFETIME_BOUND;
 
     /// @overload
@@ -90,7 +90,7 @@ public:
 
     /// @brief Return reference to the error value or throws bad_expected_access
     /// if it's not available
-    /// @throws utils::bad_expected_access if success value is not available
+    /// @throws utils::bad_expected_access if the error value is not available
     E& error() USERVER_IMPL_LIFETIME_BOUND;
 
     /// @overload
