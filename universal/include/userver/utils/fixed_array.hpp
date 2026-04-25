@@ -193,7 +193,7 @@ FixedArray<T>::~FixedArray() {
 
 template <class GeneratorFunc>
 auto GenerateFixedArray(std::size_t size, GeneratorFunc&& generator) {
-    using ResultType = std::remove_reference_t<std::invoke_result_t<GeneratorFunc&, std::size_t>>;
+    using ResultType = std::remove_cvref_t<std::invoke_result_t<GeneratorFunc&, std::size_t>>;
     return FixedArray<ResultType>(impl::InternalTag{}, size, std::forward<GeneratorFunc>(generator));
 }
 
