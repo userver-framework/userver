@@ -57,7 +57,8 @@ auto* FindOrNullptr(Container& container, const Key& key) {
 template <typename Container, typename Key, typename Default>
 auto FindOrDefault(Container& container, const Key& key, Default&& def) {
     const auto* ptr = USERVER_NAMESPACE::utils::FindOrNullptr(container, key);
-    return (ptr ? *ptr : decltype(*ptr){std::forward<Default>(def)});
+    using R = std::remove_cvref_t<decltype(*ptr)>;
+    return (ptr ? *ptr : R(std::forward<Default>(def)));
 }
 
 /// @brief Returns default value if no key in associative container, otherwise
@@ -65,7 +66,8 @@ auto FindOrDefault(Container& container, const Key& key, Default&& def) {
 template <typename Container, typename Key>
 auto FindOrDefault(Container& container, const Key& key) {
     const auto* ptr = USERVER_NAMESPACE::utils::FindOrNullptr(container, key);
-    return (ptr ? *ptr : decltype(*ptr){});
+    using R = std::remove_cvref_t<decltype(*ptr)>;
+    return (ptr ? *ptr : R());
 }
 
 /// @brief Returns std::nullopt if no key in associative container, otherwise

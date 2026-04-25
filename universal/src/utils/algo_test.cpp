@@ -48,21 +48,26 @@ TEST(UtilsAlgo, FindOrNullptrSets) {
 
 TEST(UtilsAlgo, FindOrDefaultMaps) {
     constexpr int kFallback = 42;
+    constexpr int kDefault = int();
     std::map<std::string, int> m = {{"1", 2}};
     std::unordered_map<std::string, int> um = {{"1", 2}};
 
     EXPECT_EQ(utils::FindOrDefault(m, "2", kFallback), kFallback);
     EXPECT_EQ(utils::FindOrDefault(um, "2", kFallback), kFallback);
 
-    ASSERT_EQ(utils::FindOrDefault(m, "1", kFallback), 2);
-    ASSERT_EQ(utils::FindOrDefault(um, "1", kFallback), 2);
-
     EXPECT_EQ(utils::FindOrDefault(m, "1", kFallback), 2);
     EXPECT_EQ(utils::FindOrDefault(um, "1", kFallback), 2);
+
+    EXPECT_EQ(utils::FindOrDefault(m, "2"), kDefault);
+    EXPECT_EQ(utils::FindOrDefault(um, "2"), kDefault);
+
+    EXPECT_EQ(utils::FindOrDefault(m, "1"), 2);
+    EXPECT_EQ(utils::FindOrDefault(um, "1"), 2);
 }
 
 TEST(UtilsAlgo, FindOrDefaultSets) {
     constexpr int kFallback = 42;
+    constexpr int kDefault = int();
     std::set<int> s = {1};
     std::unordered_set<int> us = {1};
 
@@ -71,6 +76,12 @@ TEST(UtilsAlgo, FindOrDefaultSets) {
 
     EXPECT_EQ(utils::FindOrDefault(s, 1, kFallback), 1);
     EXPECT_EQ(utils::FindOrDefault(us, 1, kFallback), 1);
+
+    EXPECT_EQ(utils::FindOrDefault(s, 2), kDefault);
+    EXPECT_EQ(utils::FindOrDefault(us, 2), kDefault);
+
+    EXPECT_EQ(utils::FindOrDefault(s, 1), 1);
+    EXPECT_EQ(utils::FindOrDefault(us, 1), 1);
 }
 
 TEST(UtilsAlgo, FindOptionalMaps) {
