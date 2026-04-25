@@ -25,12 +25,6 @@ constexpr bool operator==(const CachedHash<T>& x, const CachedHash<T>& y) {
     return x.hash == y.hash && x.key == y.key;
 }
 
-/// @brief Compares utils::CachedHash by hash first and then by keys
-template <class T>
-constexpr bool operator!=(const CachedHash<T>& x, const CachedHash<T>& y) {
-    return !(x.key == y.key);
-}
-
 /// @brief Compares utils::CachedHash only by keys
 template <class Equal>
 class CachedHashKeyEqual {
