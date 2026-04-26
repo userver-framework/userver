@@ -3,8 +3,8 @@
 /// @file userver/utils/expected.hpp
 /// @brief @copybrief utils::expected
 
-#include <stdexcept>
 #include <string>
+#include <utility>
 #include <variant>
 
 #include <userver/compiler/impl/lifetime.hpp>
@@ -88,6 +88,9 @@ public:
     /// @overload
     const S& value() const& USERVER_IMPL_LIFETIME_BOUND;
 
+    /// @brief Check whether *this contains an error
+    bool has_error() const noexcept;
+
     /// @brief Return reference to the error value or throws bad_expected_access
     /// if it's not available
     /// @throws utils::bad_expected_access if the error value is not available
@@ -119,6 +122,7 @@ public:
     explicit operator bool() const noexcept;
     void value() const;
 
+    bool has_error() const noexcept;
     E& error() USERVER_IMPL_LIFETIME_BOUND;
     const E& error() const USERVER_IMPL_LIFETIME_BOUND;
 
@@ -128,12 +132,12 @@ private:
 
 template <class E>
 unexpected<E>::unexpected(const E& error)
-    : value_{error}
+    : value_(error)
 {}
 
 template <class E>
 unexpected<E>::unexpected(E&& error)
-    : value_{std::forward<E>(error)}
+    : value_(std::move(error))
 {}
 
 template <class E>
@@ -165,41 +169,41 @@ constexpr expected<S, E>::expected()
 
 template <class S, class E>
 expected<S, E>::expected(const S& success)
-    : data_(success)
+    : data_(std::in_place_index<0>, success)
 {}
 
 template <class S, class E>
 expected<S, E>::expected(S&& success)
-    : data_(std::forward<S>(success))
+    : data_(std::in_place_index<0>, std::move(success))
 {}
 
 template <class S, class E>
 expected<S, E>::expected(const unexpected<E>& error)
-    : data_(error.error())
+    : data_(std::in_place_index<1>, error.error())
 {}
 
 template <class S, class E>
 expected<S, E>::expected(unexpected<E>&& error)
-    : data_(std::forward<unexpected<E>>(error.error()))
+    : data_(std::in_place_index<1>, std::move(error.error()))
 {}
 
 template <class S, class E>
 template <class G>
 requires std::is_convertible_v<G, E>
 expected<S, E>::expected(const unexpected<G>& error)
-    : data_(utils::unexpected<E>(std::forward<G>(error.error())))
+    : data_(std::in_place_index<1>, error.error())
 {}
 
 template <class S, class E>
 template <class G>
 requires std::is_convertible_v<G, E>
 expected<S, E>::expected(unexpected<G>&& error)
-    : data_(utils::unexpected<E>(std::forward<G>(error.error())))
+    : data_(std::in_place_index<1>, std::move(error.error()))
 {}
 
 template <class S, class E>
 bool expected<S, E>::has_value() const noexcept {
-    return std::holds_alternative<S>(data_);
+    return data_.index() == 0;
 }
 
 template <class S, class E>
@@ -208,71 +212,66 @@ expected<S, E>::operator bool() const noexcept {
 }
 
 template <class S, class E>
-    S& expected<S, E>::value() & USERVER_IMPL_LIFETIME_BOUND {
-    S* result = std::get_if<S>(&data_);
-    if (result == nullptr) {
-        throw bad_expected_access("Trying to get undefined value from utils::expected");
-    }
-    return *result;
+S& expected<S, E>::value() & USERVER_IMPL_LIFETIME_BOUND {
+    return const_cast<S&>(std::as_const(*this).value());
 }
 
 template <class S, class E>
-    S&& expected<S, E>::value() && USERVER_IMPL_LIFETIME_BOUND {
+S&& expected<S, E>::value() && USERVER_IMPL_LIFETIME_BOUND {
     return std::move(value());
 }
 
 template <class S, class E>
 const S& expected<S, E>::value() const& USERVER_IMPL_LIFETIME_BOUND {
-    const S* result = std::get_if<S>(&data_);
-    if (result == nullptr) {
-        throw bad_expected_access("Trying to get undefined value from utils::expected");
+    if (const auto* result = std::get_if<0>(&data_)) {
+        return *result;
     }
-    return *result;
+    throw bad_expected_access("Trying to get undefined value from utils::expected");
+}
+
+template <class S, class E>
+bool expected<S, E>::has_error() const noexcept {
+    return data_.index() == 1;
 }
 
 template <class S, class E>
 E& expected<S, E>::error() USERVER_IMPL_LIFETIME_BOUND {
-    auto* result = std::get_if<unexpected<E>>(&data_);
-    if (result == nullptr) {
-        throw bad_expected_access("Trying to get undefined error value from utils::expected");
-    }
-    return result->error();
+    return const_cast<E&>(std::as_const(*this).error());
 }
 
 template <class S, class E>
 const E& expected<S, E>::error() const USERVER_IMPL_LIFETIME_BOUND {
-    const auto* result = std::get_if<unexpected<E>>(&data_);
-    if (result == nullptr) {
-        throw bad_expected_access("Trying to get undefined error value from utils::expected");
+    if (const auto* result = std::get_if<1>(&data_)) {
+        return result->error();
     }
-    return result->error();
+    throw bad_expected_access("Trying to get undefined error value from utils::expected");
 }
 
 template <class E>
-constexpr expected<void, E>::expected() noexcept: data_(std::in_place_index<0>) {}
+constexpr expected<void, E>::expected() noexcept : data_(std::in_place_index<0>) {}
 
 template <class E>
 expected<void, E>::expected(const unexpected<E>& error)
-    : data_(error.error())
+    : data_(std::in_place_index<1>, error.error())
 {}
 
 template <class E>
 expected<void, E>::expected(unexpected<E>&& error)
-    : data_(std::forward<unexpected<E>>(error.error()))
+    : data_(std::in_place_index<1>, std::move(error.error()))
 {}
 
 template <class E>
 template <class G>
 requires std::is_convertible_v<G, E>
 expected<void, E>::expected(const unexpected<G>& error)
-    : data_(utils::unexpected<E>(std::forward<G>(error.error())))
+    : data_(std::in_place_index<1>, error.error())
 {}
 
 template <class E>
 template <class G>
 requires std::is_convertible_v<G, E>
 expected<void, E>::expected(unexpected<G>&& error)
-    : data_(utils::unexpected<E>(std::forward<G>(error.error())))
+    : data_(std::in_place_index<1>, std::move(error.error()))
 {}
 
 template <class E>
@@ -287,27 +286,28 @@ expected<void, E>::operator bool() const noexcept {
 
 template <class E>
 void expected<void, E>::value() const {
-    if (!has_value()) {
-        throw bad_expected_access("Trying to get undefined value from utils::expected");
+    if (has_value()) {
+        return;
     }
+    throw bad_expected_access("Trying to get undefined value from utils::expected");
+}
+
+template <class E>
+bool expected<void, E>::has_error() const noexcept {
+    return data_.index() == 1;
 }
 
 template <class E>
 E& expected<void, E>::error() USERVER_IMPL_LIFETIME_BOUND {
-    auto* result = std::get_if<unexpected<E>>(&data_);
-    if (result == nullptr) {
-        throw bad_expected_access("Trying to get undefined error value from utils::expected");
-    }
-    return result->error();
+    return const_cast<E&>(std::as_const(*this).error());
 }
 
 template <class E>
 const E& expected<void, E>::error() const USERVER_IMPL_LIFETIME_BOUND {
-    const auto* result = std::get_if<unexpected<E>>(&data_);
-    if (result == nullptr) {
-        throw bad_expected_access("Trying to get undefined error value from utils::expected");
+    if (const auto* result = std::get_if<1>(&data_)) {
+        return result->error();
     }
-    return result->error();
+    throw bad_expected_access("Trying to get undefined error value from utils::expected");
 }
 
 // NOLINTEND(readability-identifier-naming)

@@ -1,4 +1,5 @@
 #include <string>
+#include <utility>
 
 #include <gtest/gtest.h>
 
@@ -42,8 +43,12 @@ TEST(Expected, ErrorCtor) {
     EXPECT_FALSE(ei);
     EXPECT_FALSE(ev.has_value());
     EXPECT_FALSE(ev);
-    EXPECT_EQ(const_cast<const ExpectedInt&>(ei).error(), "string error");
-    EXPECT_EQ(const_cast<const ExpectedVoid&>(ev).error(), "string error");
+    ASSERT_TRUE(ei.has_error());
+    ASSERT_TRUE(ev.has_error());
+    ASSERT_NO_THROW(ei.error());
+    ASSERT_NO_THROW(ev.error());
+    EXPECT_EQ(std::as_const(ei).error(), "string error");
+    EXPECT_EQ(std::as_const(ev).error(), "string error");
 
     ei.error() = "another error";
     ev.error() = "one more error";
@@ -51,37 +56,67 @@ TEST(Expected, ErrorCtor) {
     EXPECT_EQ(ei.error(), "another error");
     EXPECT_EQ(ev.error(), "one more error");
 
-    ei = ExpectedInt{utils::unexpected<const char*>("converted error")};
-    ev = ExpectedVoid{utils::unexpected<const char*>("converted error")};
+    auto error2 = utils::unexpected<const char*>("converted error");
+
+    ei = ExpectedInt{error2};
+    ev = ExpectedVoid{std::move(error2)};
 
     EXPECT_FALSE(ei.has_value());
     EXPECT_FALSE(ei);
     EXPECT_FALSE(ev.has_value());
     EXPECT_FALSE(ev);
+    ASSERT_TRUE(ei.has_error());
+    ASSERT_TRUE(ev.has_error());
+    ASSERT_NO_THROW(ei.error());
+    ASSERT_NO_THROW(ev.error());
     EXPECT_EQ(ei.error(), "converted error");
     EXPECT_EQ(ev.error(), "converted error");
 }
 
-TEST(Expected, ValueThrowsIfExpectedContainsError) {
+TEST(Expected, ValueThrowsIfExpectedContainsNoValue) {
     auto error = utils::unexpected{std::string("string error")};
 
     ExpectedInt ei{error};
     ExpectedVoid ev{std::move(error)};
 
-    EXPECT_THROW(const_cast<const ExpectedInt&>(ei).value(), utils::bad_expected_access);
+    ASSERT_FALSE(ei.has_value());
+    ASSERT_FALSE(ev.has_value());
+    EXPECT_THROW(std::as_const(ei).value(), utils::bad_expected_access);
     EXPECT_THROW(ei.value(), utils::bad_expected_access);
     EXPECT_THROW(std::move(ei).value(), utils::bad_expected_access);
     EXPECT_THROW(ev.value(), utils::bad_expected_access);
 }
 
-TEST(Expected, ErrorThrowsIfExpectedContainsValue) {
+TEST(Expected, ErrorThrowsIfExpectedContainsNoError) {
     ExpectedInt ei{10};
     ExpectedVoid ev;
 
-    EXPECT_THROW(const_cast<const ExpectedInt&>(ei).error(), utils::bad_expected_access);
+    ASSERT_FALSE(ei.has_error());
+    ASSERT_FALSE(ev.has_error());
+    EXPECT_THROW(std::as_const(ei).error(), utils::bad_expected_access);
     EXPECT_THROW(ei.error(), utils::bad_expected_access);
-    EXPECT_THROW(const_cast<const ExpectedVoid&>(ev).error(), utils::bad_expected_access);
+    EXPECT_THROW(std::as_const(ev).error(), utils::bad_expected_access);
     EXPECT_THROW(ev.error(), utils::bad_expected_access);
+}
+
+TEST(Expected, ValuelessByException) {
+    struct Throw {
+        Throw() = default;
+        Throw(const Throw&) { throw 0; }
+        Throw& operator=(const Throw&) { throw 0; }
+    };
+    using Expected = utils::expected<Throw, int>;
+
+    Expected e(utils::unexpected(0));
+    try {
+        e = Expected{};
+        FAIL();
+    } catch (...) {}
+
+    EXPECT_FALSE(e.has_value());
+    EXPECT_THROW(e.value(), utils::bad_expected_access);
+    EXPECT_FALSE(e.has_error());
+    EXPECT_THROW(e.error(), utils::bad_expected_access);
 }
 
 USERVER_NAMESPACE_END
