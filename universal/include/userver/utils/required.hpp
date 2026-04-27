@@ -4,6 +4,7 @@
 /// @brief @copybrief utils::Required
 
 #include <concepts>
+#include <memory>
 #include <string_view>
 #include <type_traits>
 #include <utility>
@@ -31,7 +32,7 @@ public:
     Required() = delete;
 
     /// @brief Construct `T` from a value (conditionally explicit).
-    template <typename U = T>
+    template <typename U>
     requires(!std::same_as<std::decay_t<U>, Required> && std::constructible_from<T, U &&>)
     constexpr explicit(!std::convertible_to<U&&, T>) Required(U&& value)
         : value_(std::forward<U>(value))
@@ -59,10 +60,10 @@ public:
     constexpr T&& operator*() && noexcept { return std::move(value_); }
 
     /// @brief Access members of the contained value.
-    constexpr T* operator->() noexcept USERVER_IMPL_LIFETIME_BOUND { return &value_; }
+    constexpr T* operator->() noexcept USERVER_IMPL_LIFETIME_BOUND { return std::addressof(value_); }
 
     /// @overload
-    constexpr const T* operator->() const noexcept USERVER_IMPL_LIFETIME_BOUND { return &value_; }
+    constexpr const T* operator->() const noexcept USERVER_IMPL_LIFETIME_BOUND { return std::addressof(value_); }
 
     /// @brief Implicit conversion to `T&`.
     constexpr /*implicit*/ operator T&() & noexcept USERVER_IMPL_LIFETIME_BOUND { return value_; }

@@ -87,6 +87,19 @@ TEST(UtilsRequired, DerefMove) {
     EXPECT_EQ(moved, "move-me");
 }
 
+TEST(UtilsRequired, DerefAddressof) {
+    struct Overloaded {
+        bool used = false;
+        auto operator&() {
+            used = true;
+            return this;
+        }
+    };
+
+    utils::Required<Overloaded> r{false};
+    EXPECT_FALSE(r->used);
+}
+
 TEST(UtilsRequired, Mutate) {
     utils::Required<std::string> r{"initial"};
     *r = "modified";
