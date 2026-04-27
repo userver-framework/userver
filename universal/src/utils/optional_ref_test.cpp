@@ -2,6 +2,8 @@
 
 #include <gtest/gtest.h>
 
+#include <optional>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace {
@@ -27,6 +29,27 @@ TEST(OptionalRef, Constructions) {
     static_assert(!std::is_constructible_v<OptionalRef<float>, int&>);
     static_assert(!std::is_constructible_v<OptionalRef<int>, short&>);
     static_assert(!std::is_constructible_v<OptionalRef<short>, int&>);
+}
+
+TEST(OptionalRef, ConstructionsAddressof) {
+    struct Overloaded {
+        bool used = false;
+        auto operator& () {
+            used = true;
+            return this;
+        }
+    };
+
+    {
+        Overloaded over;
+        utils::OptionalRef<Overloaded> ref(over);
+        EXPECT_FALSE(over.used);
+    }
+    {
+        std::optional<Overloaded> over(std::in_place);
+        utils::OptionalRef<Overloaded> ref(over);
+        EXPECT_FALSE(over->used);
+    }
 }
 
 TEST(OptionalRef, Values) {
