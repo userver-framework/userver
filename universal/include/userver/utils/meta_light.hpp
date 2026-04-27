@@ -75,7 +75,6 @@ template <typename T, template <typename...> typename Template>
 concept IsInstantiationOf = impl::IsInstantiationOf<Template, T>::value;
 
 /// @brief Returns `true` if the type (with remove cv-qualifiers) is an instantiation of the specified template.
-/// @deprecated Use @ref meta::IsCvInstantiationOf instead.
 template <typename T, template <typename...> typename Template>
 concept IsCvInstantiationOf = IsInstantiationOf<std::remove_cv_t<T>, Template>;
 
