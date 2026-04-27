@@ -86,6 +86,21 @@ TEST(TransparentMap, FindTransparentOrNullptr) {
     EXPECT_EQ(FindTransparentOrNullptr(const_map, "bar"), nullptr);
 }
 
+TEST(TransparentMap, FindTransparentOrNullptrAddressof) {
+    struct Overloaded {
+        bool used = false;
+        auto operator&() {
+            used = true;
+            return this;
+        };
+    };
+
+    utils::impl::TransparentMap<std::string, Overloaded> m{{{"1"}, {.used = false}}};
+    const auto* ptr = FindTransparentOrNullptr(m, "1");
+    ASSERT_TRUE(ptr);
+    EXPECT_FALSE(ptr->used);
+}
+
 TEST(TransparentMap, CustomValue) {
     using Map = utils::impl::TransparentMap<StringViewable, int>;
     static_assert(meta::IsUniqueMap<Map>);

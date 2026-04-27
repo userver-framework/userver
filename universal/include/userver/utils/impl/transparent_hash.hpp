@@ -1,6 +1,7 @@
 #pragma once
 
 #include <functional>
+#include <memory>
 #include <string_view>
 
 #if defined(USERVER_IMPL_ORIGINAL_CXX_STANDARD)
@@ -85,7 +86,7 @@ template <typename TransparentMap, typename Key>
 auto* FindTransparentOrNullptr(TransparentMap&& map, const Key& key) {
     static_assert(!std::is_rvalue_reference_v<TransparentMap>, "Dangling");
     const auto iterator = FindTransparent(map, key);
-    return iterator == map.end() ? nullptr : &iterator->second;
+    return iterator == map.end() ? nullptr : std::addressof(iterator->second);
 }
 
 template <typename TransparentMap, typename Key, typename Value>
