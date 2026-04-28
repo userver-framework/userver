@@ -11,7 +11,6 @@
 #include <vector>
 
 #include <userver/engine/impl/context_accessor.hpp>
-#include <userver/formats/json/value.hpp>
 #include <userver/storages/redis/exception.hpp>
 #include <userver/storages/redis/fwd.hpp>
 #include <userver/storages/redis/reply_types.hpp>
