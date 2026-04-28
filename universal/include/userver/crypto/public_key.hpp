@@ -14,6 +14,7 @@ USERVER_NAMESPACE_BEGIN
 namespace crypto {
 
 class Certificate;
+class PrivateKey;
 
 /// @ingroup userver_universal userver_containers
 ///
@@ -48,6 +49,11 @@ public:
     ///
     /// @throw crypto::KeyParseError if failed to load the key.
     static PublicKey LoadFromCertificate(const Certificate& cert);
+
+    /// Extracts PublicKey from private key.
+    ///
+    /// @throw crypto::KeyParseError if failed to load the key.
+    static PublicKey LoadFromPrivateKey(const PrivateKey& private_key);
 
     /// Creates RSA PublicKey from components
     ///

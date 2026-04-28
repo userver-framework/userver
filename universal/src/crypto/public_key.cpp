@@ -1,6 +1,7 @@
 #include <userver/crypto/public_key.hpp>
 
 #include <userver/crypto/certificate.hpp>
+#include <userver/crypto/private_key.hpp>
 
 #include <openssl/bn.h>
 #include <openssl/pem.h>
@@ -111,6 +112,26 @@ PublicKey PublicKey::LoadFromCertificate(const Certificate& cert) {
     if (!pubkey) {
         throw KeyParseError(FormatSslError("Error getting public key from certificate"));
     }
+    return PublicKey{std::move(pubkey)};
+}
+
+PublicKey PublicKey::LoadFromPrivateKey(const PrivateKey& private_key) {
+    Openssl::Init();
+
+    if (!private_key) {
+        throw KeyParseError(FormatSslError("Failed to load public key from private key: private key is empty"));
+    }
+
+    auto pubkey_bio = MakeBioMemoryBuffer();
+    if (1 != ::PEM_write_bio_PUBKEY(pubkey_bio.get(), private_key.GetNative())) {
+        throw KeyParseError(FormatSslError("Failed to write public key from private key"));
+    }
+
+    std::shared_ptr<EVP_PKEY> pubkey(::PEM_read_bio_PUBKEY(pubkey_bio.get(), nullptr, &NoPasswordCb, nullptr), ::EVP_PKEY_free);
+    if (!pubkey) {
+        throw KeyParseError(FormatSslError("Failed to load public key from private key"));
+    }
+
     return PublicKey{std::move(pubkey)};
 }
 
