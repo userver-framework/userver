@@ -11,6 +11,7 @@
 #include <vector>
 
 #include <userver/engine/impl/context_accessor.hpp>
+#include <userver/formats/json/value.hpp>
 #include <userver/storages/redis/exception.hpp>
 #include <userver/storages/redis/fwd.hpp>
 #include <userver/storages/redis/reply_types.hpp>
@@ -34,9 +35,7 @@ public:
     using Result = ResultType;
     using Reply = ReplyType;
 
-    explicit Request(std::unique_ptr<RequestDataBase<ReplyType>>&& impl)
-        : impl_(std::move(impl))
-    {}
+    explicit Request(std::unique_ptr<RequestDataBase<ReplyType>>&& impl) : impl_(std::move(impl)) {}
 
     /// Wait for the request to finish on Redis server, server or request errors (if any) are logged but not thrown.
     ///
@@ -83,9 +82,7 @@ class ScanRequest final {
 public:
     using ReplyElem = typename ScanReplyElem<TScanTag>::type;
 
-    explicit ScanRequest(std::unique_ptr<RequestScanDataBase<TScanTag>>&& impl)
-        : impl_(std::move(impl))
-    {}
+    explicit ScanRequest(std::unique_ptr<RequestScanDataBase<TScanTag>>&& impl) : impl_(std::move(impl)) {}
 
     template <typename T = std::vector<ReplyElem>>
     T GetAll(std::string request_description) {
@@ -110,9 +107,7 @@ public:
         using reference = value_type&;
         using pointer = value_type*;
 
-        explicit Iterator(ScanRequest* stream)
-            : stream_(stream)
-        {
+        explicit Iterator(ScanRequest* stream) : stream_(stream) {
             if (stream_ && !stream_->HasMore()) {
                 stream_ = nullptr;
             }
@@ -120,9 +115,7 @@ public:
 
         class ReplyElemHolder {
         public:
-            ReplyElemHolder(value_type reply_elem)
-                : reply_elem_(std::move(reply_elem))
-            {}
+            ReplyElemHolder(value_type reply_elem) : reply_elem_(std::move(reply_elem)) {}
 
             value_type& operator*() { return reply_elem_; }
 
@@ -263,6 +256,9 @@ using RequestZremrangebyrank = Request<size_t>;
 using RequestZremrangebyscore = Request<size_t>;
 using RequestZscan = ScanRequest<ScanTag::kZscan>;
 using RequestZscore = Request<std::optional<double>>;
+using RequestJsonGet = Request<std::optional<std::string>>;
+using RequestJsonSet = Request<StatusOk, void>;
+using RequestJsonDel = Request<size_t>;
 /// @}
 
 }  // namespace storages::redis

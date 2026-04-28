@@ -503,6 +503,17 @@ RequestZscore MockTransactionImplBase::Zscore(std::string /*key*/, std::string /
     AbortWithStacktrace("Redis method not mocked");
 }
 
+RequestJsonGet MockTransactionImplBase::JsonGet(std::string /*key*/) { AbortWithStacktrace("Redis method not mocked"); }
+
+RequestJsonSet MockTransactionImplBase::JsonSet(
+    std::string /*key*/,
+    std::string /*value*/
+) {
+    AbortWithStacktrace("Redis method not mocked");
+}
+
+RequestJsonDel MockTransactionImplBase::JsonDel(std::string /*key*/) { AbortWithStacktrace("Redis method not mocked"); }
+
 // end of redis commands
 
 }  // namespace storages::redis

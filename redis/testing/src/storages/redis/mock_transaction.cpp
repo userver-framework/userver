@@ -15,8 +15,7 @@ class MockTransaction::ResultPromise {
 public:
     template <typename Result, typename ReplyType>
     ResultPromise(engine::Promise<ReplyType>&& promise, Request<Result, ReplyType>&& subrequest)
-        : impl_(std::make_unique<ResultPromiseImpl<Result, ReplyType>>(std::move(promise), std::move(subrequest)))
-    {}
+        : impl_(std::make_unique<ResultPromiseImpl<Result, ReplyType>>(std::move(promise), std::move(subrequest))) {}
 
     ResultPromise(ResultPromise&& other) = default;
 
@@ -34,9 +33,7 @@ private:
     class ResultPromiseImpl : public ResultPromiseImplBase {
     public:
         ResultPromiseImpl(engine::Promise<ReplyType>&& promise, Request<Result, ReplyType>&& subrequest)
-            : promise_(std::move(promise)),
-              subrequest_(std::move(subrequest))
-        {}
+            : promise_(std::move(promise)), subrequest_(std::move(subrequest)) {}
 
         void ProcessReply(const std::string& request_description) override {
             try {
@@ -64,8 +61,7 @@ private:
 class MockTransaction::MockRequestExecDataImpl final : public RequestDataBase<void> {
 public:
     MockRequestExecDataImpl(std::vector<std::unique_ptr<ResultPromise>>&& result_promises)
-        : result_promises_(std::move(result_promises))
-    {}
+        : result_promises_(std::move(result_promises)) {}
 
     void Wait() override {}
 
@@ -94,10 +90,7 @@ MockTransaction::MockTransaction(
     std::unique_ptr<MockTransactionImplBase> impl,
     CheckShards check_shards
 )
-    : client_(std::move(client)),
-      check_shards_(check_shards),
-      impl_(std::move(impl))
-{}
+    : client_(std::move(client)), check_shards_(check_shards), impl_(std::move(impl)) {}
 
 MockTransaction::~MockTransaction() = default;
 
@@ -695,6 +688,21 @@ RequestZremrangebyscore MockTransaction::Zremrangebyscore(std::string key, std::
 RequestZscore MockTransaction::Zscore(std::string key, std::string member) {
     UpdateShard(key);
     return AddSubrequest(impl_->Zscore(std::move(key), std::move(member)));
+}
+
+RequestJsonGet MockTransaction::JsonGet(std::string key) {
+    UpdateShard(key);
+    return AddSubrequest(impl_->JsonGet(std::move(key)));
+}
+
+RequestJsonSet MockTransaction::JsonSet(std::string key, std::string value) {
+    UpdateShard(key);
+    return AddSubrequest(impl_->JsonSet(std::move(key), std::move(value)));
+}
+
+RequestJsonDel MockTransaction::JsonDel(std::string key) {
+    UpdateShard(key);
+    return AddSubrequest(impl_->JsonDel(std::move(key)));
 }
 
 // end of redis commands

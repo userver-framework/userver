@@ -279,6 +279,12 @@ public:
 
     virtual RequestZscore Zscore(std::string key, std::string member);
 
+    virtual RequestJsonGet JsonGet(std::string key);
+
+    virtual RequestJsonSet JsonSet(std::string key, std::string value);
+
+    virtual RequestJsonDel JsonDel(std::string key);
+
     // end of redis commands
 };
 

@@ -30,8 +30,10 @@ public:
     MOCK_METHOD(
         RequestBitop,
         Bitop,
-        (BitOperation op, std::string dest_key, std::vector<std::string> src_keys, const CommandControl& command_control
-        ),
+        (BitOperation op,
+         std::string dest_key,
+         std::vector<std::string> src_keys,
+         const CommandControl& command_control),
         (override)
     );
 
@@ -540,6 +542,17 @@ public:
         (std::string key, std::string member, const CommandControl& command_control),
         (override)
     );
+
+    MOCK_METHOD(RequestJsonGet, JsonGet, (std::string key, const CommandControl& command_control), (override));
+
+    MOCK_METHOD(
+        RequestJsonSet,
+        JsonSet,
+        (std::string key, std::string value, const CommandControl& command_control),
+        (override)
+    );
+
+    MOCK_METHOD(RequestJsonDel, JsonDel, (std::string key, const CommandControl& command_control), (override));
 
     MOCK_METHOD(
         RequestEvalCommon,

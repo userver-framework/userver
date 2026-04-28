@@ -19,10 +19,7 @@ RequestExec CreateExecRequest(impl::Request&& request, std::vector<TransactionIm
 }  // namespace
 
 TransactionImpl::TransactionImpl(std::shared_ptr<ClientImpl> client, CheckShards check_shards)
-    : client_(std::move(client)),
-      check_shards_(check_shards),
-      cmd_args_({"MULTI"})
-{}
+    : client_(std::move(client)), check_shards_(check_shards), cmd_args_({"MULTI"}) {}
 
 RequestExec TransactionImpl::Exec(const CommandControl& command_control) {
     if (!shard_) {
@@ -704,6 +701,21 @@ RequestZremrangebyscore TransactionImpl::Zremrangebyscore(std::string key, std::
 RequestZscore TransactionImpl::Zscore(std::string key, std::string member) {
     UpdateShard(key);
     return AddCmd<RequestZscore>("zscore", false, std::move(key), std::move(member));
+}
+
+RequestJsonGet TransactionImpl::JsonGet(std::string key) {
+    UpdateShard(key);
+    return AddCmd<RequestJsonGet>("json.get", /* master = */ false, std::move(key), /* path = */ "$");
+}
+
+RequestJsonSet TransactionImpl::JsonSet(std::string key, std::string value) {
+    UpdateShard(key);
+    return AddCmd<RequestJsonSet>("json.set", /* master = */ true, std::move(key), /* path = */ "$", std::move(value));
+}
+
+RequestJsonDel TransactionImpl::JsonDel(std::string key) {
+    UpdateShard(key);
+    return AddCmd<RequestJsonDel>("json.del", /* master = */ true, std::move(key), /* path = */ "$");
 }
 
 // end of redis commands

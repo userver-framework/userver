@@ -38,8 +38,7 @@ public:
         T&& matcher,
         size_t times_called = 1
     )
-        : debug_channel_name_(std::move(debug_channel_name))
-    {
+        : debug_channel_name_(std::move(debug_channel_name)) {
         UINVARIANT(times_called > 0, "times_called must be > 0");
 
         using ::testing::_;
@@ -57,9 +56,8 @@ public:
     }
 
     void Wait() {
-        EXPECT_TRUE(on_received_.WaitForEventFor(std::chrono::seconds{30})
-        ) << "Failed to detect publishing to channel "
-          << debug_channel_name_ << " within 30 seconds";
+        EXPECT_TRUE(on_received_.WaitForEventFor(std::chrono::seconds{30}))
+            << "Failed to detect publishing to channel " << debug_channel_name_ << " within 30 seconds";
     }
 
     const std::string& GetPublishedMessage(size_t index) const { return published_messages_.at(index); }

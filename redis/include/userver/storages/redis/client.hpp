@@ -158,7 +158,8 @@ public:
         size_t key_index,
         const CommandControl& command_control
     ) {
-        return RequestGeneric<ReplyType>{GenericCommon(std::move(command), std::move(args), key_index, command_control)
+        return RequestGeneric<ReplyType>{
+            GenericCommon(std::move(command), std::move(args), key_index, command_control)
         };
     }
 
@@ -694,6 +695,12 @@ public:
     RequestSscan Sscan(std::string key, const CommandControl& command_control);
 
     RequestZscan Zscan(std::string key, const CommandControl& command_control);
+
+    virtual RequestJsonGet JsonGet(std::string key, const CommandControl& command_control) = 0;
+
+    virtual RequestJsonSet JsonSet(std::string key, std::string value, const CommandControl& command_control) = 0;
+
+    virtual RequestJsonDel JsonDel(std::string key, const CommandControl& command_control) = 0;
 
 protected:
     virtual RequestEvalCommon EvalCommon(

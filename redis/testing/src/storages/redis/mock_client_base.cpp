@@ -15,16 +15,13 @@ constexpr std::string_view kNotMocked{"Redis method is not mocked"};
 }
 
 MockClientBase::MockClientBase()
-    : mock_transaction_impl_creator_(std::make_unique<MockTransactionImplCreator<MockTransactionImplBase>>())
-{}
+    : mock_transaction_impl_creator_(std::make_unique<MockTransactionImplCreator<MockTransactionImplBase>>()) {}
 
 MockClientBase::MockClientBase(
     std::shared_ptr<MockTransactionImplCreatorBase> mock_transaction_impl_creator,
     std::optional<size_t> force_shard_idx
 )
-    : mock_transaction_impl_creator_(std::move(mock_transaction_impl_creator)),
-      force_shard_idx_(force_shard_idx)
-{}
+    : mock_transaction_impl_creator_(std::move(mock_transaction_impl_creator)), force_shard_idx_(force_shard_idx) {}
 
 MockClientBase::~MockClientBase() = default;
 
@@ -905,6 +902,22 @@ RequestZscore MockClientBase::Zscore(
     std::string /*member*/,
     const CommandControl& /*command_control*/
 ) {
+    AbortWithStacktrace(kNotMocked);
+}
+
+RequestJsonGet MockClientBase::JsonGet(std::string /*key*/, const CommandControl& /*command_control*/) {
+    AbortWithStacktrace(kNotMocked);
+}
+
+RequestJsonSet MockClientBase::JsonSet(
+    std::string /*key*/,
+    std::string /*value*/,
+    const CommandControl& /*command_control*/
+) {
+    AbortWithStacktrace(kNotMocked);
+}
+
+RequestJsonDel MockClientBase::JsonDel(std::string /*key*/, const CommandControl& /*command_control*/) {
     AbortWithStacktrace(kNotMocked);
 }
 

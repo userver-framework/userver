@@ -1022,6 +1022,20 @@ UTEST_F(RedisClientTest, Zscore) {
     EXPECT_EQ(client->Zscore("zset", "two", {}).Get(), 2.);
 }
 
+UTEST_F(RedisClientTest, JsonSetGetDel) {
+    auto client = GetClient();
+
+    auto expected_json_string = R"({"some-key": "some-value"})";
+
+    EXPECT_EQ(client->JsonGet("json.set", {}).Get(), std::nullopt);
+
+    client->JsonSet("json.set", expected_json_string, {}).Get();
+
+    EXPECT_EQ(client->JsonGet("json.set", {}).Get(), expected_json_string);
+    EXPECT_EQ(client->JsonDel("json.set", {}).Get(), 1);
+    EXPECT_EQ(client->JsonGet("json.set", {}).Get(), std::nullopt);
+}
+
 UTEST_F(RedisClientTest, TransactionType) {
     auto client = GetClient();
     /// [redis transaction sample]

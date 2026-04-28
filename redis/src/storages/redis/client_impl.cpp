@@ -40,9 +40,7 @@ void DoCheckShard(size_t shard, std::optional<size_t> force_shard_idx) {
 
 }  // namespace
 
-ClientImpl::ClientImpl(std::shared_ptr<impl::Sentinel> sentinel)
-    : redis_client_(std::move(sentinel))
-{}
+ClientImpl::ClientImpl(std::shared_ptr<impl::Sentinel> sentinel) : redis_client_(std::move(sentinel)) {}
 
 void ClientImpl::WaitConnectedOnce(RedisWaitConnected wait_connected) {
     redis_client_->WaitConnectedOnce(wait_connected);
@@ -115,8 +113,8 @@ RequestBitop ClientImpl::Bitop(
 
 RequestDbsize ClientImpl::Dbsize(size_t shard, const CommandControl& command_control) {
     CheckShard(shard, command_control);
-    return CreateRequest<RequestDbsize>(MakeRequest(CmdArgs{"dbsize"}, shard, false, GetCommandControl(command_control))
-    );
+    return CreateRequest<
+        RequestDbsize>(MakeRequest(CmdArgs{"dbsize"}, shard, false, GetCommandControl(command_control)));
 }
 
 RequestDecr ClientImpl::Decr(std::string key, const CommandControl& command_control) {
@@ -151,8 +149,8 @@ RequestUnlink ClientImpl::Unlink(std::vector<std::string> keys, const CommandCon
         return CreateDummyRequest<RequestUnlink>(std::make_shared<Reply>("unlink", 0));
     }
     auto shard = ShardByKey(keys.at(0), command_control);
-    return CreateRequest<
-        RequestUnlink>(MakeRequest(CmdArgs{"unlink", std::move(keys)}, shard, true, GetCommandControl(command_control))
+    return CreateRequest<RequestUnlink>(
+        MakeRequest(CmdArgs{"unlink", std::move(keys)}, shard, true, GetCommandControl(command_control))
     );
 }
 
@@ -244,8 +242,8 @@ RequestScriptLoad ClientImpl::ScriptLoad(std::string script, size_t shard, const
 
 RequestExists ClientImpl::Exists(std::string key, const CommandControl& command_control) {
     auto shard = ShardByKey(key, command_control);
-    return CreateRequest<
-        RequestExists>(MakeRequest(CmdArgs{"exists", std::move(key)}, shard, false, GetCommandControl(command_control))
+    return CreateRequest<RequestExists>(
+        MakeRequest(CmdArgs{"exists", std::move(key)}, shard, false, GetCommandControl(command_control))
     );
 }
 
@@ -254,8 +252,8 @@ RequestExists ClientImpl::Exists(std::vector<std::string> keys, const CommandCon
         return CreateDummyRequest<RequestExists>(std::make_shared<Reply>("exists", 0));
     }
     auto shard = ShardByKey(keys.at(0), command_control);
-    return CreateRequest<
-        RequestExists>(MakeRequest(CmdArgs{"exists", std::move(keys)}, shard, false, GetCommandControl(command_control))
+    return CreateRequest<RequestExists>(
+        MakeRequest(CmdArgs{"exists", std::move(keys)}, shard, false, GetCommandControl(command_control))
     );
 }
 
@@ -749,8 +747,8 @@ TransactionPtr ClientImpl::Multi(Transaction::CheckShards check_shards) {
 
 RequestPersist ClientImpl::Persist(std::string key, const CommandControl& command_control) {
     auto shard = ShardByKey(key, command_control);
-    return CreateRequest<
-        RequestPersist>(MakeRequest(CmdArgs{"persist", std::move(key)}, shard, true, GetCommandControl(command_control))
+    return CreateRequest<RequestPersist>(
+        MakeRequest(CmdArgs{"persist", std::move(key)}, shard, true, GetCommandControl(command_control))
     );
 }
 
@@ -883,9 +881,8 @@ RequestSadd ClientImpl::Sadd(std::string key, std::vector<std::string> members, 
 ScanRequest<ScanTag::kScan> ClientImpl::Scan(size_t shard, ScanOptions options, const CommandControl& command_control) {
     CheckShard(shard, command_control);
     return ScanRequest<
-        ScanTag::kScan>(std::make_unique<
-                        RequestScanData<ScanTag::kScan>>(shared_from_this(), shard, std::move(options), command_control)
-    );
+        ScanTag::kScan>(std::make_unique<RequestScanData<
+                            ScanTag::kScan>>(shared_from_this(), shard, std::move(options), command_control));
 }
 
 template <ScanTag TScanTag>
@@ -1089,8 +1086,8 @@ ScanRequest<ScanTag::kSscan> ClientImpl::Sscan(
 
 RequestStrlen ClientImpl::Strlen(std::string key, const CommandControl& command_control) {
     auto shard = ShardByKey(key, command_control);
-    return CreateRequest<
-        RequestStrlen>(MakeRequest(CmdArgs{"strlen", std::move(key)}, shard, false, GetCommandControl(command_control))
+    return CreateRequest<RequestStrlen>(
+        MakeRequest(CmdArgs{"strlen", std::move(key)}, shard, false, GetCommandControl(command_control))
     );
 }
 
@@ -1447,6 +1444,36 @@ RequestZscore ClientImpl::Zscore(std::string key, std::string member, const Comm
         CmdArgs{"zscore", std::move(key), std::move(member)},
         shard,
         false,
+        GetCommandControl(command_control)
+    ));
+}
+
+RequestJsonGet ClientImpl::JsonGet(std::string key, const CommandControl& command_control) {
+    auto shard = ShardByKey(key, command_control);
+    return CreateRequest<RequestJsonGet>(MakeRequest(
+        CmdArgs{"json.get", std::move(key), /* path = */ "$"},
+        shard,
+        false,
+        GetCommandControl(command_control)
+    ));
+}
+
+RequestJsonSet ClientImpl::JsonSet(std::string key, std::string value, const CommandControl& command_control) {
+    auto shard = ShardByKey(key, command_control);
+    return CreateRequest<RequestJsonSet>(MakeRequest(
+        CmdArgs{"json.set", std::move(key), /* path = */ "$", std::move(value)},
+        shard,
+        true,
+        GetCommandControl(command_control)
+    ));
+}
+
+RequestJsonDel ClientImpl::JsonDel(std::string key, const CommandControl& command_control) {
+    auto shard = ShardByKey(key, command_control);
+    return CreateRequest<RequestJsonDel>(MakeRequest(
+        CmdArgs{"json.del", std::move(key), /* path = */ "$"},
+        shard,
+        true,
         GetCommandControl(command_control)
     ));
 }
