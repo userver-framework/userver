@@ -49,16 +49,16 @@ std::size_t FieldBuffer::ReadRaw(T&& value, const TypeBufferCategory& categories
     auto consumed = Read(field_length, BufferCategory::kPlainBuffer);
     if (field_length == kPgNullBufferSize) {
         // NULL value
-        traits::GetSetNull<ValueType>::SetNull(std::forward<T>(value));
+        traits::GetSetNull<ValueType>::SetNull(value);
         return consumed;
     } else if (field_length < 0) {
         // invalid length value
         throw InvalidInputBufferSize(fmt::format("Negative buffer size value {}", field_length));
     } else if (field_length == 0) {
-        traits::GetSetNull<ValueType>::SetDefault(std::forward<T>(value));
+        traits::GetSetNull<ValueType>::SetDefault(value);
         return consumed;
     } else {
-        return consumed + Read(value, categories, field_length, cat);
+        return consumed + Read(std::forward<T>(value), categories, field_length, cat);
     }
 }
 
