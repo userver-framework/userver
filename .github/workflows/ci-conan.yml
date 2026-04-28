@@ -53,6 +53,8 @@ jobs:
                 brew update
                 brew tap mongodb/brew
                 brew install clang-format postgresql redis kafka rabbitmq mongodb-community
+                mkdir -p "$(brew --prefix)/etc/rabbitmq/conf.d"
+                echo 'deprecated_features.permit.transient_nonexcl_queues = true' > "$(brew --prefix)/etc/rabbitmq/conf.d/10-userver-ci.conf"
                 brew install python@3.11
 
           - name: Checkout
