@@ -31,3 +31,10 @@ mkdir /tmp/fake && ln -s /bin/true/ /tmp/fake/initctl && \
               ln -s /bin/true /tmp/fake/service && \
               ln -s /bin/true /tmp/fake/deb-systemd-helper
 sudo PATH=/tmp/fake:$PATH apt install -y rabbitmq-server
+
+# rabbitmq gives false positive errors even if this feature is not in use:
+# https://github.com/rabbitmq/rabbitmq-server/issues/12802
+sudo mkdir -p /etc/rabbitmq/conf.d
+sudo tee /etc/rabbitmq/conf.d/10-userver-ci.conf <<'EOF'
+deprecated_features.permit.transient_nonexcl_queues = true
+EOF
