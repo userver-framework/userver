@@ -76,6 +76,8 @@ jobs:
             run: |
                 brew tap mongodb/brew
                 brew install clickhouse redis kafka mongodb-community rabbitmq
+                mkdir -p "$(brew --prefix)/etc/rabbitmq/conf.d"
+                echo 'deprecated_features.permit.transient_nonexcl_queues = true' > "$(brew --prefix)/etc/rabbitmq/conf.d/10-userver-ci.conf"
 
           - name: Setup ccache
             run: |
