@@ -66,8 +66,8 @@ jobs:
 
                   - cmake-flags: >-
                         -GNinja
-                        -DCMAKE_CXX_COMPILER=clang++-14
-                        -DCMAKE_C_COMPILER=clang-14
+                        -DCMAKE_CXX_COMPILER=clang++-16
+                        -DCMAKE_C_COMPILER=clang-16
                         -DCMAKE_BUILD_TYPE=Debug
                         -DCMAKE_CXX_STANDARD=20
                         -DUSERVER_SANITIZE="ub addr"
@@ -81,8 +81,8 @@ jobs:
                         v1 {"
                         -DUSERVER_NAMESPACE_END="}}"
                     os: ubuntu-22.04
-                    info: clang-14 + debug + sanitize addr+ub
-                    id: ubuntu22_clang14_debug_sanitize-addr-ub
+                    info: clang-16 + debug + sanitize addr+ub
+                    id: ubuntu22_clang16_debug_sanitize-addr-ub
                     tests-flags: '--gtest_filter=-LoggingTest.Format:LoggingTest.CallFormat'
                     tests-env: ''
 
@@ -134,6 +134,7 @@ jobs:
                 sudo apt update
                 # Instructions from https://clickhouse.com/docs/en/getting-started/install/
                 sudo apt install -y apt-transport-https ca-certificates dirmngr
+
                 curl -fsSL 'https://packages.clickhouse.com/rpm/lts/repodata/repomd.xml.key' | sudo gpg --dearmor -o /usr/share/keyrings/clickhouse-keyring.gpg
                 echo "deb [signed-by=/usr/share/keyrings/clickhouse-keyring.gpg arch=amd64] https://packages.clickhouse.com/deb stable main" | sudo tee /etc/apt/sources.list.d/clickhouse.list
 
@@ -151,11 +152,28 @@ jobs:
                       | sudo tee -a /etc/apt/sources.list.d/mongodb-org-7.0.list
                 # Mongo is not officially supported on Ubuntu 24.04, so install it from jammy
 
+          - name: Add clang/llvm repositories
+            if: matrix.os == 'ubuntu-22.04'
+            run: |
+                # Adding clang/llvm repositories as in scripts/docker/setup-base-ubuntu-22.04-env.sh
+                curl -fsSL https://apt.llvm.org/llvm-snapshot.gpg.key | sudo gpg --dearmor -o /usr/share/keyrings/llvm-snapshot.gpg
+                sudo chmod a+r /usr/share/keyrings/llvm-snapshot.gpg
+                printf "\
+                deb [signed-by=/usr/share/keyrings/llvm-snapshot.gpg] http://apt.llvm.org/jammy/ llvm-toolchain-$(lsb_release -cs)-16 main \n\
+                deb-src [signed-by=/usr/share/keyrings/llvm-snapshot.gpg] http://apt.llvm.org/jammy/ llvm-toolchain-$(lsb_release -cs)-16 main\n" \
+                  | sudo tee /etc/apt/sources.list.d/llvm.list
+
           - name: Install common deps
             run: |
                 sudo apt update
                 sudo apt purge -y libpq5 libpq-dev postgresql-*
                 sudo apt install --allow-downgrades -y clickhouse-common-static redis-server postgresql $(cat scripts/docs/en/deps/${{matrix.os}}.md | tr '\n' ' ')
+
+          - name: Install clang/llvm packages
+            if: matrix.os == 'ubuntu-22.04'
+            run: |
+                sudo apt update
+                sudo apt install -y clang-16 lld-16 llvm-16 clang-format-16 clang-tidy-16 libclang-rt-16-dev
 
           - name: Setup ccache
             run: |
@@ -183,7 +201,7 @@ jobs:
                 cmake -S . -B build_debug ${{matrix.cmake-flags}}
 
           - name: Run clang-tidy
-            if: matrix.info == 'clang-14 + debug + sanitize addr+ub'
+            if: matrix.info == 'clang-16 + debug + sanitize addr+ub'
             run: |
                 [[ -z "${GITHUB_BASE_REF}" ]] && BRANCH_VAR=HEAD~1 || BRANCH_VAR=origin/${GITHUB_BASE_REF}
                 echo "${BRANCH_VAR}"
@@ -192,9 +210,9 @@ jobs:
                 LIST_CHECK_FILES=$(git diff --name-only ${BRANCH_VAR} | grep --color=never '.cpp' | grep -v ${EXCLUDE_PATTERNS} | tr '\n' ' ')
                 if [[ -n ${LIST_CHECK_FILES} ]]
                 then
-                  sudo apt install -y clang-tidy-14
+                  sudo apt install -y clang-tidy-16
                   curl -o tools/run-clang-tidy https://raw.githubusercontent.com/llvm-mirror/clang-tools-extra/release_90/clang-tidy/tool/run-clang-tidy.py
-                  python3 ./tools/run-clang-tidy -clang-tidy-binary clang-tidy-14 -p build_debug -q -j$(nproc) ${LIST_CHECK_FILES}
+                  python3 ./tools/run-clang-tidy -clang-tidy-binary clang-tidy-16 -p build_debug -q -j$(nproc) ${LIST_CHECK_FILES}
                 else
                   echo "Nothing check in clang-tidy"
                 fi
@@ -276,9 +294,16 @@ jobs:
                 cd build_debug
                 mkdir mongo || :
                 cd mongo
-                if [ -f ./userver-mongo-unittest ]; then ./userver-mongo-unittest ; fi
-                # Mongo is not available on Ubuntu 22.04 from default repos
-                if [ "${{matrix.os}}" != "ubuntu-22.04" ]; then ctest -V -R userver-mongo-mongotest ; fi
+                test ! -f ./userver-mongo-unittest || ./userver-mongo-unittest
+
+          - name: Run tests (mongo/mongotest)
+            # Mongo is not available on Ubuntu 22.04 from default repos
+            if: matrix.os != 'ubuntu-22.04'
+            run: |
+                cd build_debug
+                mkdir mongo || :
+                cd mongo
+                ctest -V -R userver-mongo-mongotest
 
           - name: Run tests (gRPC)
             if: matrix.os != 'ubuntu-24.04'
