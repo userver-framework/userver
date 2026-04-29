@@ -34,6 +34,24 @@ constexpr auto IsDefinedAndAggregate(Args...) -> bool {
     return false;
 }
 
+template <typename Superset, typename Field, typename T>
+auto&& GetSupersetField(T &t, InternalTag) noexcept {
+    if constexpr (std::is_reference_v<Field>) {
+        return std::forward<Field>(t);
+    } else {
+        return utils::ForwardLike<Superset>(t);
+    }
+}
+
+template <typename T>
+struct SubsetField : std::type_identity<T> {};
+
+template <typename T>
+struct SubsetFieldRef : std::type_identity<const T&> {};
+
+template <typename T>
+struct SubsetFieldRef<T&&> : std::type_identity<T&&> {};
+
 }  // namespace utils::impl
 
 USERVER_NAMESPACE_END
@@ -41,8 +59,9 @@ USERVER_NAMESPACE_END
 /// @cond
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define USERVER_IMPL_STRUCT_MAP(r, data, elem) \
-    USERVER_NAMESPACE::utils::ForwardLike<OtherDeps, decltype(other.elem)>(other.elem),
+#define USERVER_IMPL_STRUCT_MAP(r, data, elem)                                         \
+    USERVER_NAMESPACE::utils::impl::GetSupersetField<OtherDeps, decltype(other.elem)>( \
+        other.elem, USERVER_NAMESPACE::utils::impl::InternalTag{}),
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define USERVER_IMPL_MAKE_FROM_SUPERSET(Self, ...)                                                     \
@@ -56,14 +75,14 @@ USERVER_NAMESPACE_END
     }
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define USERVER_IMPL_STRUCT_SUBSET_MAP(r, data, elem) \
-    /* NOLINTNEXTLINE(bugprone-macro-parentheses) */  \
-    decltype(data::elem) elem;
+#define USERVER_IMPL_STRUCT_SUBSET_MAP(r, data, elem)                             \
+    /* NOLINTNEXTLINE(bugprone-macro-parentheses) */                              \
+    USERVER_NAMESPACE::utils::impl::SubsetField<decltype(data::elem)>::type elem;
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define USERVER_IMPL_STRUCT_SUBSET_REF_MAP(r, data, elem) \
-    /* NOLINTNEXTLINE(bugprone-macro-parentheses) */      \
-    std::add_const_t<decltype(data::elem)>& elem;
+#define USERVER_IMPL_STRUCT_SUBSET_REF_MAP(r, data, elem)                            \
+    /* NOLINTNEXTLINE(bugprone-macro-parentheses) */                                 \
+    USERVER_NAMESPACE::utils::impl::SubsetFieldRef<decltype(data::elem)>::type elem;
 
 /// @endcond
 

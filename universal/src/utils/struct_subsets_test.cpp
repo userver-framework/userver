@@ -4,6 +4,8 @@
 
 #include <userver/utils/from_string.hpp>
 
+#include <utility>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace {
@@ -234,6 +236,146 @@ TEST(DefineStructSubsetRef, Sample) {
     EXPECT_EQ(Bar(dependencies), 4);
     /// [ref usage]
 }
+
+namespace rvalue {
+
+struct Movable {
+    int value;
+    Movable(int v) : value(v) {}
+    Movable(Movable&& that) noexcept : value(std::exchange(that.value, 0)) {}
+};
+
+struct Deps {
+    Movable a;
+    Movable& b;
+    Movable&& c;
+    const Movable&& d;
+
+    USERVER_ALLOW_CONVERSIONS_TO_SUBSET();
+};
+
+struct TestData {
+    Movable b{42};
+    Movable c{43};
+    Movable d{44};
+    Deps deps = {.a = {41}, .b = b, .c = std::move(c), .d = std::move(d)};
+};
+
+USERVER_DEFINE_STRUCT_SUBSET(SmolDeps, Deps, c, d);
+
+static_assert(std::is_same_v<decltype(SmolDeps::c), Movable&&>);
+static_assert(std::is_same_v<decltype(SmolDeps::d), const Movable&&>);
+
+TEST(DefineStructSubset, RRefCopy) {
+    TestData data;
+    auto& [b, c, d, deps] = data;
+
+    SmolDeps smol = deps;
+    EXPECT_EQ(deps.a.value, 41);
+    EXPECT_EQ(deps.b.value, 42);
+    EXPECT_EQ(deps.c.value, 43);
+    EXPECT_EQ(deps.d.value, 44);
+    smol.c.value = 1;
+    EXPECT_EQ(c.value, 1);
+}
+
+TEST(DefineStructSubset, RRefCopyConst) {
+    TestData data;
+    const auto& [b, c, d, deps] = data;
+
+    SmolDeps smol = deps;
+    EXPECT_EQ(deps.a.value, 41);
+    EXPECT_EQ(deps.b.value, 42);
+    EXPECT_EQ(deps.c.value, 43);
+    EXPECT_EQ(deps.d.value, 44);
+    smol.c.value = 1;
+    EXPECT_EQ(c.value, 1);
+}
+
+TEST(DefineStructSubset, RRefMove) {
+    TestData data;
+    auto& [b, c, d, deps] = data;
+
+    SmolDeps smol = std::move(deps);
+    EXPECT_EQ(deps.a.value, 41);
+    EXPECT_EQ(deps.b.value, 42);
+    EXPECT_EQ(deps.c.value, 43);
+    EXPECT_EQ(deps.d.value, 44);
+    smol.c.value = 1;
+    EXPECT_EQ(c.value, 1);
+}
+
+TEST(DefineStructSubset, RRefMoveConst) {
+    TestData data;
+    const auto& [b, c, d, deps] = data;
+
+    SmolDeps smol = std::move(deps);
+    EXPECT_EQ(deps.a.value, 41);
+    EXPECT_EQ(deps.b.value, 42);
+    EXPECT_EQ(deps.c.value, 43);
+    EXPECT_EQ(deps.d.value, 44);
+    smol.c.value = 1;
+    EXPECT_EQ(c.value, 1);
+}
+
+USERVER_DEFINE_STRUCT_SUBSET(SmolDepsRef, Deps, c, d);
+
+static_assert(std::is_same_v<decltype(SmolDepsRef::c), Movable&&>);
+static_assert(std::is_same_v<decltype(SmolDepsRef::d), const Movable&&>);
+
+TEST(DefineStructSubsetRef, RRefCopy) {
+    TestData data;
+    auto& [b, c, d, deps] = data;
+
+    SmolDepsRef smol = deps;
+    EXPECT_EQ(deps.a.value, 41);
+    EXPECT_EQ(deps.b.value, 42);
+    EXPECT_EQ(deps.c.value, 43);
+    EXPECT_EQ(deps.d.value, 44);
+    smol.c.value = 1;
+    EXPECT_EQ(c.value, 1);
+}
+
+TEST(DefineStructSubsetRef, RRefCopyConst) {
+    TestData data;
+    const auto& [b, c, d, deps] = data;
+
+    SmolDepsRef smol = deps;
+    EXPECT_EQ(deps.a.value, 41);
+    EXPECT_EQ(deps.b.value, 42);
+    EXPECT_EQ(deps.c.value, 43);
+    EXPECT_EQ(deps.d.value, 44);
+    smol.c.value = 1;
+    EXPECT_EQ(c.value, 1);
+}
+
+TEST(DefineStructSubsetRef, RRefMove) {
+    TestData data;
+    auto& [b, c, d, deps] = data;
+
+    SmolDepsRef smol = std::move(deps);
+    EXPECT_EQ(deps.a.value, 41);
+    EXPECT_EQ(deps.b.value, 42);
+    EXPECT_EQ(deps.c.value, 43);
+    EXPECT_EQ(deps.d.value, 44);
+    smol.c.value = 1;
+    EXPECT_EQ(c.value, 1);
+}
+
+TEST(DefineStructSubsetRef, RRefMoveConst) {
+    TestData data;
+    const auto& [b, c, d, deps] = data;
+
+    SmolDepsRef smol = std::move(deps);
+    EXPECT_EQ(deps.a.value, 41);
+    EXPECT_EQ(deps.b.value, 42);
+    EXPECT_EQ(deps.c.value, 43);
+    EXPECT_EQ(deps.d.value, 44);
+    smol.c.value = 1;
+    EXPECT_EQ(c.value, 1);
+}
+
+}  // namespace rvalue
 
 }  // namespace
 

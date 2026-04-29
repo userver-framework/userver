@@ -4,26 +4,35 @@
 /// @brief @copybrief utils::ForwardLike
 
 #include <type_traits>
-#include <utility>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace utils {
 
-// Analogue of std::forward_like from c++23.
-template <typename TOwner, typename TMember>
-decltype(auto) ForwardLike(TMember& member) {
-    if constexpr (std::is_lvalue_reference_v<TOwner> || std::is_lvalue_reference_v<TMember>) {
-        return member;
-    } else {
-        return std::move(member);
-    }
-}
+namespace impl {
+
+template <typename T, typename U>
+struct ForwardLikeHelper;
+
+template <typename T, typename U>
+struct ForwardLikeHelper<T&, U&> : std::type_identity<U&> {};
+
+template <typename T, typename U>
+struct ForwardLikeHelper<const T&, U&> : std::type_identity<const U&> {};
+
+template <typename T, typename U>
+struct ForwardLikeHelper<T&&, U&> : std::type_identity<U&&> {};
+
+template <typename T, typename U>
+struct ForwardLikeHelper<const T&&, U&> : std::type_identity<const U&&> {};
+
+}  // namespace impl
 
 // Analogue of std::forward_like from c++23.
 template <typename TOwner, typename TMember>
-decltype(auto) ForwardLike(const TMember& member) {
-    return member;
+constexpr auto&& ForwardLike(TMember&& member) noexcept {
+    using RType = impl::ForwardLikeHelper<TOwner&&, TMember&>::type;
+    return static_cast<RType>(member);
 }
 
 }  // namespace utils
