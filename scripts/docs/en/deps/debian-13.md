@@ -18,7 +18,7 @@ libcurl4-openssl-dev
 libev-dev
 libfmt-dev
 libgmock-dev
-libgrpc++1
+libgrpc++1.51t64
 libgrpc++-dev
 libgrpc-dev
 libgtest-dev
