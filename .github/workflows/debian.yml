@@ -22,10 +22,10 @@ jobs:
             matrix:
                 include:
                   - cmake-flags: >-
-                        -DCMAKE_C_COMPILER=clang-16
-                        -DCMAKE_CXX_COMPILER=clang++-16
+                        -DCMAKE_C_COMPILER=gcc-12
+                        -DCMAKE_CXX_COMPILER=g++-12
                     image: debian:12
-                    info: Debian 12 + clang-16
+                    info: Debian 12 + gcc-12
                     deps-file: debian-12.md
 
                 # TODO: fails with:
@@ -52,7 +52,6 @@ jobs:
             CMAKE_FLAGS: >-
                 -DCMAKE_BUILD_TYPE=Debug
                 -DCMAKE_CXX_STANDARD=20
-                -DUSERVER_USE_LD=lld
                 -DUSERVER_NO_WERROR=OFF
                 -DUSERVER_BUILD_ALL_COMPONENTS=1
                 -DUSERVER_BUILD_SAMPLES=1
@@ -89,35 +88,11 @@ jobs:
                 mkdir -p ${{env.CCACHE_DIR}}
                 mkdir -p ${{env.CPM_SOURCE_CACHE}}
 
-          - name: Install repository tools
-            run: |
-                apt-get update
-                apt-get install -y ca-certificates lsb-release wget gnupg
-
-          - name: Add clang/llvm repositories
-            if: matrix.image == 'debian:12'
-            run: |
-                # Adding clang/llvm repositories as in scripts/docker/setup-base-ubuntu-22.04-env.sh
-                wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | gpg --dearmor -o /usr/share/keyrings/llvm-snapshot.gpg
-                chmod a+r /usr/share/keyrings/llvm-snapshot.gpg
-                printf "\
-                deb [signed-by=/usr/share/keyrings/llvm-snapshot.gpg] http://apt.llvm.org/bookworm/ llvm-toolchain-$(lsb_release -cs)-16 main \n\
-                deb-src [signed-by=/usr/share/keyrings/llvm-snapshot.gpg] http://apt.llvm.org/bookworm/ llvm-toolchain-$(lsb_release -cs)-16 main\n" \
-                  | tee /etc/apt/sources.list.d/llvm.list
-
           - name: Install dependencies
             run: |
                 apt-get update
                 # Install project dependencies
-                apt-get install -y $(cat scripts/docs/en/deps/${{ matrix.deps-file }})
-
-          - name: Install clang/llvm packages
-            if: matrix.image == 'debian:12'
-            run: |
-                apt-get update
-                apt-get install -y clang-16 lld-16 llvm-16 clang-format-16 libclang-rt-16-dev
-                update-alternatives --install /usr/bin/lld lld /usr/bin/lld-16 100
-                update-alternatives --install /usr/bin/ld.lld ld.lld /usr/bin/ld.lld-16 100
+                apt-get install -y build-essential $(cat scripts/docs/en/deps/${{ matrix.deps-file }})
 
           - name: Install test dependencies
             if: ${{ false }}
