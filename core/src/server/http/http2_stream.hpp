@@ -43,7 +43,7 @@ public:
     bool CheckUrlComplete();
     void PushChunk(std::string&& chunk);
     ssize_t GetMaxSize(std::size_t max_len, std::uint32_t* flags);
-    void Send(engine::io::Socket& socket, std::string_view data_frame_header, std::size_t max_len);
+    void Send(engine::io::RwBase& socket, std::string_view data_frame_header, std::size_t max_len);
     nghttp2_data_provider* GetNativeProvider() { return &nghttp2_provider_; }
 
 private:

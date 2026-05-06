@@ -239,10 +239,7 @@ int Http2Session::OnDataFrameSend(
     auto& stream = *static_cast<Stream*>(source->ptr);
 
     const auto frame_header{ToStringView(framehd, kFrameHeaderSize)};
-    // TODO: doesn't work with TLS?!
-    UASSERT(dynamic_cast<engine::io::Socket*>(parser.socket_));
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
-    stream.Send(*static_cast<engine::io::Socket*>(parser.socket_), frame_header, max_len);
+    stream.Send(*parser.socket_, frame_header, max_len);
     return 0;
 }
 
