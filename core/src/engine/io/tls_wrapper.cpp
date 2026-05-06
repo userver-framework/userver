@@ -582,7 +582,7 @@ size_t TlsWrapper::SendAll(const void* buf, size_t len, Deadline deadline) {
     );
 }
 
-[[nodiscard]] size_t TlsWrapper::WriteAll(std::initializer_list<IoData> list, Deadline deadline) {
+[[nodiscard]] size_t TlsWrapper::WriteAll(std::span<const IoData> list, Deadline deadline) {
     static constexpr std::size_t kBufSize = 4'096;
     std::byte buf[kBufSize];
 

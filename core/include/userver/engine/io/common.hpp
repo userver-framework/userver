@@ -6,6 +6,7 @@
 #include <cstddef>
 #include <memory>
 #include <optional>
+#include <span>
 
 #include <userver/engine/deadline.hpp>
 #include <userver/utils/assert.hpp>
@@ -106,12 +107,20 @@ public:
     /// @note Can return less than len if stream is closed by peer.
     [[nodiscard]] virtual size_t WriteAll(const void* buf, size_t len, Deadline deadline) = 0;
 
-    [[nodiscard]] virtual size_t WriteAll(std::initializer_list<IoData> list, Deadline deadline) {
+    /// @brief Sends IoData array using vector I/O (e.g. writev).
+    /// @note Can return less than total bytes if stream is closed by peer.
+    [[nodiscard]] virtual size_t WriteAll(std::span<const IoData> list, Deadline deadline) {
         size_t result{0};
         for (const auto& io_data : list) {
             result += WriteAll(io_data.data, io_data.len, deadline);
         }
         return result;
+    }
+
+    /// @brief Sends IoData initializer list using vector I/O (e.g. writev).
+    /// @note Can return less than total bytes if stream is closed by peer.
+    [[nodiscard]] virtual size_t WriteAll(std::initializer_list<IoData> list, Deadline deadline) {
+        return WriteAll(std::span<const IoData>{list.begin(), list.size()}, deadline);
     }
 };
 

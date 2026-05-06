@@ -5,7 +5,7 @@
 
 #include <sys/socket.h>
 
-#include <initializer_list>
+#include <span>
 
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/io/common.hpp>
@@ -102,7 +102,9 @@ public:
     /// @snippet src/engine/io/socket_test.cpp send vector data in socket
     [[nodiscard]] size_t SendAll(std::initializer_list<IoData> list, Deadline deadline);
 
-    [[nodiscard]] size_t WriteAll(std::initializer_list<IoData> list, Deadline deadline) override {
+    [[nodiscard]] size_t SendAll(std::span<const IoData> list, Deadline deadline);
+
+    [[nodiscard]] size_t WriteAll(std::span<const IoData> list, Deadline deadline) override {
         return SendAll(list, deadline);
     }
 
