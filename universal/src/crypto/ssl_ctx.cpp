@@ -64,6 +64,64 @@ std::unique_ptr<SslCtx::Impl> SslCtx::Impl::MakeSslCtx() {
 
 void* SslCtx::GetRawSslCtx() const noexcept { return static_cast<void*>(impl_->Get()); }
 
+
+// https://www.rfc-editor.org/rfc/rfc7540#section-3.1
+static constexpr unsigned char kAlpnHttp1Only[] = "\x08http/1.1";
+// https://www.rfc-editor.org/rfc/rfc9112.html#section-12.4
+static constexpr unsigned char kAlpnHttp2Only[] = "\x02h2";
+static constexpr unsigned char kAlpnHttp2FallbackHttp1[] = "\x02h2\x08http/1.1";
+
+static int AlpnSelectCallback(SSL *,
+    const unsigned char **out,
+    unsigned char *outlen,
+    const unsigned char *in,
+    unsigned int inlen,
+    void *arg) {
+
+    auto * context = reinterpret_cast<SslCtx*>(arg);
+
+    if (SSL_select_next_proto(const_cast<unsigned char **>(out), outlen, context->GetAlpn().data(), context->GetAlpn().size(),
+                              in, inlen)
+        != OPENSSL_NPN_NEGOTIATED)
+    {
+        LOG_ERROR() << crypto::FormatSslError("SSL_select_next_proto failed");
+        return SSL_TLSEXT_ERR_ALERT_FATAL;
+    }
+
+    LOG_INFO() << "successfully negotiated ALPN";
+
+    return SSL_TLSEXT_ERR_OK;
+}
+
+void SslCtx::SetHttpVersion(http::HttpVersion http_version) {
+
+    switch (http_version) {
+        case http::HttpVersion::k10:
+        case http::HttpVersion::k11:
+            alpn_ = kAlpnHttp1Only;
+            LOG_INFO() << "set ALPN for HTTP/1.1 only";
+            break;
+        case http::HttpVersion::k2:
+            alpn_ = kAlpnHttp2FallbackHttp1;
+            LOG_INFO() << "set ALPN for HTTP/2 with fallback to HTTP/1.1";
+            break;
+        case http::HttpVersion::k2Tls:
+        case http::HttpVersion::k2PriorKnowledge:
+            LOG_INFO() << "set ALPN for HTTP/2 only";
+            alpn_ = kAlpnHttp2Only;
+            break;
+        default:
+            LOG_INFO() << "skip setting ALPN";
+            return;
+    }
+
+    SSL_CTX_set_alpn_select_cb(impl_->Get(), AlpnSelectCallback, this);
+}
+
+std::span<const unsigned char> SslCtx::GetAlpn() const noexcept {
+    return alpn_;
+}
+
 SslCtx::SslCtx(std::unique_ptr<Impl>&& impl)
     : impl_(std::move(impl))
 {}
@@ -197,3 +255,4 @@ SslCtx SslCtx::CreateServerTlsContext(
 }  // namespace crypto
 
 USERVER_NAMESPACE_END
+
