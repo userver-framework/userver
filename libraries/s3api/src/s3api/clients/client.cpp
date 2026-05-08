@@ -106,15 +106,8 @@ bool IsS3ResponseTruncated(utils::zstring_view s3_response) {
             s3_response
         ));
     }
-
-    try {
-        const auto is_truncated = xml.child("ListBucketResult").child("IsTruncated").child_value();
-        return std::strcmp(is_truncated, "true") == 0;
-    } catch (const pugi::xpath_exception& ex) {
-        throw ListBucketError(
-            fmt::format("Bad xml structure for S3 list response, error: {}, response: {}", ex.what(), s3_response)
-        );
-    }
+    const auto is_truncated = xml.child("ListBucketResult").child("IsTruncated").child_value();
+    return std::strcmp(is_truncated, "true") == 0;
 }
 
 std::vector<ObjectMeta> ParseS3ListResponse(utils::zstring_view s3_response) {
