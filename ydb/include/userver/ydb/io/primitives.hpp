@@ -50,6 +50,23 @@ struct PrimitiveTraits {
     static NYdb::TType MakeType();
 };
 
+template <typename DecimalLikeTrait>
+struct DecimalTraits {
+    static typename DecimalLikeTrait::Type Parse(NYdb::TValueParser& parser, const ParseContext& context);
+
+    static void Write(
+        NYdb::TValueBuilderBase<NYdb::TValueBuilder>& builder,
+        const typename DecimalLikeTrait::Type& value
+    );
+
+    static void Write(
+        NYdb::TValueBuilderBase<NYdb::TParamValueBuilder>& builder,
+        const typename DecimalLikeTrait::Type& value
+    );
+
+    static NYdb::TType MakeType();
+};
+
 struct BoolTrait {
     using Type = bool;
     static Type Parse(const NYdb::TValueParser& value_parser);
@@ -162,11 +179,43 @@ struct JsonDocumentTrait {
     static void Write(NYdb::TValueBuilderBase<Builder>& builder, const Type& value);
 };
 
+struct DecimalTrait {
+    using Type = Decimal;
+    static Type Parse(const NYdb::TValueParser& value_parser);
+    template <typename Builder>
+    static void Write(NYdb::TValueBuilderBase<Builder>& builder, const Type& value);
+};
+
 template <>
 struct ValueTraits<std::optional<JsonDocumentTrait::Type>> : OptionalPrimitiveTraits<JsonDocumentTrait> {};
 
 template <>
 struct ValueTraits<JsonDocument> : PrimitiveTraits<JsonDocumentTrait> {};
+
+template <>
+struct ValueTraits<DecimalTrait::Type> : DecimalTraits<DecimalTrait> {};
+
+// `std::optional<ydb::Decimal>` is supported on read only. Writing a NULL
+// `ydb::Decimal` would require knowing the YDB column's precision and scale,
+// which an empty optional does not carry. For nullable Decimal columns whose
+// schema is `Decimal(22, Prec)`, use `std::optional<decimal64::Decimal<Prec>>`
+// instead -- its precision/scale are encoded in the C++ type.
+template <>
+struct ValueTraits<std::optional<DecimalTrait::Type>> {
+    static std::optional<DecimalTrait::Type> Parse(NYdb::TValueParser& parser, const ParseContext& context);
+
+    template <typename Builder>
+    static void Write(NYdb::TValueBuilderBase<Builder>& /*builder*/, const std::optional<DecimalTrait::Type>& /*value*/) {
+        static_assert(
+            sizeof(Builder) == 0,
+            "Writing std::optional<ydb::Decimal> is not supported: an empty optional carries no "
+            "precision/scale, and YDB Decimal type requires them. Use std::optional<decimal64::Decimal<Prec>> "
+            "or write a non-optional ydb::Decimal{value, precision, scale}."
+        );
+    }
+
+    static NYdb::TType MakeType() = delete;
+};
 
 template <>
 struct ValueTraits<std::optional<JsonTrait::Type>> : OptionalPrimitiveTraits<JsonTrait> {};

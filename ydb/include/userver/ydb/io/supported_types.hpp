@@ -17,12 +17,14 @@
 ///  * ValueType::Utf8,        ydb::Utf8
 ///  * ValueType::Timestamp,   std::chrono::system_clock::time_point
 ///  * ValueType::Uuid,        boost::uuids::uuid
+///  * ValueType::Decimal,     ydb::Decimal, decimal64::Decimal<Prec, RoundPolicy>
 ///
 /// Available composite types:
 ///  * Optional,    std::optional for primitive types, List and Struct
 ///  * List,        std::vector and non-map containers
 ///  * Struct,      @ref ydb::kStructMemberNames "C++ structs"
 
+#include <userver/ydb/io/decimal64.hpp>
 #include <userver/ydb/io/insert_row.hpp>
 #include <userver/ydb/io/list.hpp>
 #include <userver/ydb/io/primitives.hpp>
