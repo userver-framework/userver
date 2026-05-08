@@ -96,6 +96,27 @@ std::string GeneratePresignedUrl(
     return generated_url.str();
 }
 
+bool IsS3ResponseTruncated(utils::zstring_view s3_response) {
+    pugi::xml_document xml;
+    const pugi::xml_parse_result parse_result = xml.load_string(s3_response.c_str());
+    if (parse_result.status != pugi::status_ok) {
+        throw ListBucketError(fmt::format(
+            "Failed to parse S3 list response as xml, error: {}, response: {}",
+            parse_result.description(),
+            s3_response
+        ));
+    }
+
+    try {
+        const auto is_truncated = xml.child("ListBucketResult").child("IsTruncated").child_value();
+        return std::strcmp(is_truncated, "true") == 0;
+    } catch (const pugi::xpath_exception& ex) {
+        throw ListBucketError(
+            fmt::format("Bad xml structure for S3 list response, error: {}, response: {}", ex.what(), s3_response)
+        );
+    }
+}
+
 std::vector<ObjectMeta> ParseS3ListResponse(utils::zstring_view s3_response) {
     std::vector<ObjectMeta> result;
     pugi::xml_document xml;
@@ -344,7 +365,7 @@ void ClientImpl::Auth(Request& request) const {
     {
         auto it = std::find_if(
             auth_headers.cbegin(),
-            auth_headers.cend(),
+            auth_headers.cend() ,
             [&request](const decltype(auth_headers)::value_type& header) {
                 return request.headers.count(std::get<0>(header));
             }
@@ -416,7 +437,7 @@ std::vector<ObjectMeta> ClientImpl::ListBucketContentsParsed(std::string_view pa
         if (response_result.empty()) {
             break;
         }
-        if (response_result.size() < kMaxS3Keys) {
+        if (!IsS3ResponseTruncated(*response)) {
             is_finished = true;
         }
         result.insert(
