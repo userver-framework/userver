@@ -365,7 +365,7 @@ void ClientImpl::Auth(Request& request) const {
     {
         auto it = std::find_if(
             auth_headers.cbegin(),
-            auth_headers.cend() ,
+            auth_headers.cend(),
             [&request](const decltype(auth_headers)::value_type& header) {
                 return request.headers.count(std::get<0>(header));
             }
