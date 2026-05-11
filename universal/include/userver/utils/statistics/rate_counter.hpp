@@ -15,7 +15,7 @@ class Writer;
 
 /// @ingroup userver_universal
 ///
-/// @brief Atomic counter of type Rate with relaxed memory ordering
+/// @brief Atomic counter of type Rate with relaxed memory ordering by default
 ///
 /// This class is represented as Rate metric when serializing to statistics.
 /// Otherwise it is the same class as @ref utils::statistics::RelaxedCounter.
