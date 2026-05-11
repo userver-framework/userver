@@ -3,6 +3,7 @@
 #include <type_traits>
 
 #include <userver/cache/lru_map.hpp>
+#include <../../src/utils/overloaded_address_operator_test.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -235,6 +236,19 @@ TEST(Lru, TransparentComparison) {
     EXPECT_FALSE(cache.GetTransparent("not in there"));
     EXPECT_FALSE(cache.GetTransparent(std::string_view{"not in there"}));
     EXPECT_FALSE(cache.GetTransparent(std::string{"not in there"}));
+}
+
+TEST(Lru, Addressof) {
+    cache::LruMap<std::string, utils::OverloadedAddressOperator> cache(1);
+
+    constexpr utils::OverloadedAddressOperator kOne{.payload = 1};
+    cache.Emplace("1", kOne);
+
+    EXPECT_TRUE(cache.Get("1"));
+    
+    auto* const least_used = cache.GetLeastUsed();
+    ASSERT_TRUE(least_used);
+    EXPECT_EQ(*least_used, kOne);
 }
 
 USERVER_NAMESPACE_END

@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include <userver/cache/lru_set.hpp>
+#include <../../src/utils/overloaded_address_operator_test.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -126,6 +127,19 @@ TEST(LruSet, GetLeastUsed) {
     EXPECT_EQ(*cache.GetLeastUsed(), 1);
     cache.Has(1);
     EXPECT_EQ(*cache.GetLeastUsed(), 2);
+}
+
+TEST(LruSet, Addressof) {
+    cache::LruSet<utils::OverloadedAddressOperator> cache(1);
+
+    constexpr utils::OverloadedAddressOperator kOne{.payload = 1};
+    cache.Put(kOne);
+
+    EXPECT_TRUE(cache.Has(kOne));
+    
+    auto* const least_used = cache.GetLeastUsed();
+    ASSERT_TRUE(least_used);
+    EXPECT_EQ(*least_used, kOne);
 }
 
 USERVER_NAMESPACE_END
