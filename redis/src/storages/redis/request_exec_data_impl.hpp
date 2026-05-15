@@ -1,7 +1,7 @@
 #pragma once
 
+#include "pipeline_impl.hpp"
 #include "request_data_impl.hpp"
-#include "transaction_impl.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -9,7 +9,7 @@ namespace storages::redis {
 
 class RequestExecDataImpl final : public RequestDataBase<void> {
 public:
-    RequestExecDataImpl(impl::Request&& request, std::vector<TransactionImpl::ResultPromise>&& result_promises);
+    RequestExecDataImpl(impl::Request&& request, std::vector<PipelineImpl::ResultPromise>&& result_promises);
 
     void Wait() noexcept override;
 
@@ -26,7 +26,7 @@ private:
     ReplyPtr GetReply() { return request_.Get(); }
 
     impl::Request request_;
-    std::vector<TransactionImpl::ResultPromise> result_promises_;
+    std::vector<PipelineImpl::ResultPromise> result_promises_;
 };
 
 }  // namespace storages::redis

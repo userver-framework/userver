@@ -11,14 +11,12 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::redis::impl {
 
-[[noreturn]] void ThrowTransactionNotStarted(std::string_view description);
+[[noreturn]] void ThrowPipelineNotStarted(std::string_view description);
 
 template <typename ReplyType>
-class TransactionSubrequestDataImpl final : public RequestDataBase<ReplyType> {
+class PipelineSubrequestDataImpl final : public RequestDataBase<ReplyType> {
 public:
-    TransactionSubrequestDataImpl(engine::Future<ReplyType> future)
-        : future_(std::move(future))
-    {}
+    PipelineSubrequestDataImpl(engine::Future<ReplyType> future) : future_(std::move(future)) {}
 
     void Wait() override { ThrowIfNotReady("Wait() for"); }
 
@@ -27,7 +25,7 @@ public:
         return future_.get();
     }
 
-    ReplyPtr GetRaw() override { throw std::logic_error("call TransactionSubrequestDataImpl::GetRaw()"); }
+    ReplyPtr GetRaw() override { throw std::logic_error("call PipelineSubrequestDataImpl::GetRaw()"); }
 
     engine::impl::ContextAccessor* TryGetContextAccessor() noexcept override {
         UASSERT_MSG(false, "Not implemented");
@@ -37,7 +35,7 @@ public:
 private:
     void ThrowIfNotReady(std::string_view description) {
         if (future_.wait_until(engine::Deadline::Passed()) != engine::FutureStatus::kReady) {
-            ThrowTransactionNotStarted(description);
+            ThrowPipelineNotStarted(description);
         }
     }
 

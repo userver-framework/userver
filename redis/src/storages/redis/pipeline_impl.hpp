@@ -1,25 +1,70 @@
 #pragma once
 
-#include <userver/storages/redis/mock_transaction_impl_base.hpp>
-#include <userver/storages/redis/transaction.hpp>
+#include <string>
+#include <vector>
+
+#include <userver/engine/future.hpp>
+#include <userver/storages/redis/base.hpp>
+#include <userver/storages/redis/client.hpp>
+#include <userver/storages/redis/pipeline.hpp>
+
+#include <storages/redis/impl/cmd_args.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::redis {
 
-class MockClientBase;
+class ClientImpl;
 
-class MockTransaction final : public Transaction {
+class PipelineImpl : public Pipeline {
 public:
-    MockTransaction(
-        std::shared_ptr<MockClientBase> client,
-        std::unique_ptr<MockTransactionImplBase> impl,
-        CheckShards check_shards = CheckShards::kSame
-    );
-
-    ~MockTransaction() override;
+    explicit PipelineImpl(std::shared_ptr<ClientImpl> client, CheckShards check_shards = CheckShards::kSame);
 
     RequestExec Exec(const CommandControl& command_control) override;
+
+    class ResultPromise {
+    public:
+        template <typename Result, typename ReplyType>
+        ResultPromise(engine::Promise<ReplyType>&& promise, To<Request<Result, ReplyType>>)
+            : impl_(std::make_unique<ResultPromiseImpl<Result, ReplyType>>(std::move(promise))) {}
+        ResultPromise(ResultPromise&& other) = default;
+
+        void ProcessReply(ReplyData&& reply_data, const std::string& request_description) {
+            impl_->ProcessReply(std::move(reply_data), request_description);
+        }
+
+    private:
+        class ResultPromiseImplBase {
+        public:
+            virtual ~ResultPromiseImplBase() = default;
+
+            virtual void ProcessReply(ReplyData&& reply_data, const std::string& request_description) = 0;
+        };
+
+        template <typename Result, typename ReplyType>
+        class ResultPromiseImpl : public ResultPromiseImplBase {
+        public:
+            ResultPromiseImpl(engine::Promise<ReplyType>&& promise) : promise_(std::move(promise)) {}
+
+            void ProcessReply(ReplyData&& reply_data, const std::string& request_description) override {
+                try {
+                    if constexpr (std::same_as<ReplyType, void>) {
+                        Parse(std::move(reply_data), request_description, To<Result, ReplyType>{});
+                        promise_.set_value();
+                    } else {
+                        promise_.set_value(Parse(std::move(reply_data), request_description, To<Result, ReplyType>{}));
+                    }
+                } catch (const std::exception&) {
+                    promise_.set_exception(std::current_exception());
+                }
+            }
+
+        private:
+            engine::Promise<ReplyType> promise_;
+        };
+
+        std::unique_ptr<ResultPromiseImplBase> impl_;
+    };
 
     // redis commands:
 
@@ -189,8 +234,11 @@ public:
 
     RequestSetIfNotExistOrGet SetIfNotExistOrGet(std::string key, std::string value) override;
 
-    RequestSetIfNotExistOrGet SetIfNotExistOrGet(std::string key, std::string value, std::chrono::milliseconds ttl)
-        override;
+    RequestSetIfNotExistOrGet SetIfNotExistOrGet(
+        std::string key,
+        std::string value,
+        std::chrono::milliseconds ttl
+    ) override;
 
     RequestSetex Setex(std::string key, std::chrono::seconds seconds, std::string value) override;
 
@@ -242,8 +290,12 @@ public:
 
     RequestZrangebyscore Zrangebyscore(std::string key, std::string min, std::string max) override;
 
-    RequestZrangebyscore Zrangebyscore(std::string key, double min, double max, const RangeOptions& range_options)
-        override;
+    RequestZrangebyscore Zrangebyscore(
+        std::string key,
+        double min,
+        double max,
+        const RangeOptions& range_options
+    ) override;
 
     RequestZrangebyscore Zrangebyscore(
         std::string key,
@@ -284,27 +336,29 @@ public:
 
     // end of redis commands
 
-private:
-    class ResultPromise;
-    class MockRequestExecDataImpl;
+protected:
+    impl::CmdArgs& CmdArgs() { return cmd_args_; }
 
+private:
     void UpdateShard(const std::string& key);
     void UpdateShard(const std::vector<std::string>& keys);
     void UpdateShard(const std::vector<std::pair<std::string, std::string>>& key_values);
     void UpdateShard(size_t shard);
 
     template <typename Result, typename ReplyType>
-    Request<Result, ReplyType> AddSubrequest(Request<Result, ReplyType>&& subrequest);
+    Request<Result, ReplyType> DoAddCmd(To<Request<Result, ReplyType>>);
 
-    RequestExec CreateMockExecRequest();
+    template <typename Request, typename... Args>
+    Request AddCmd(std::string command, bool master, Args&&... args);
 
-    std::shared_ptr<MockClientBase> client_;
+    std::shared_ptr<ClientImpl> client_;
     const CheckShards check_shards_;
 
-    std::unique_ptr<MockTransactionImplBase> impl_;
-
     std::optional<size_t> shard_;
-    std::vector<std::unique_ptr<ResultPromise>> result_promises_;
+
+    bool master_{};
+    impl::CmdArgs cmd_args_;
+    std::vector<ResultPromise> result_promises_;
 };
 
 }  // namespace storages::redis

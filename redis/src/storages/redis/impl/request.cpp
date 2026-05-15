@@ -18,11 +18,7 @@ namespace {
 
 class ReplyState {
 public:
-    explicit ReplyState(std::string&& span_name)
-        : span_(std::move(span_name))
-    {
-        span_.Get().DetachFromCoroStack();
-    }
+    explicit ReplyState(std::string&& span_name) : span_(std::move(span_name)) { span_.Get().DetachFromCoroStack(); }
 
     ~ReplyState() {
         if (!executed_) {
@@ -49,7 +45,10 @@ std::string MakeSpanName(const CmdArgs& cmd_args) {
     }
 
     if (cmd_args.GetCommandCount() > 1) {
-        return "redis_multi";
+        if (cmd_args.begin()->GetCommandName() == "MULTI") {
+            return "redis_multi";
+        }
+        return "redis_pipeline";
     }
 
     return "redis_" + cmd_args.GetCommandName(0);

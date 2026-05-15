@@ -32,7 +32,7 @@ public:
     }
 
 private:
-    storages::redis::TransactionPtr transaction_;
+    storages::redis::PipelinePtr transaction_;
 };
 }  // namespace
 
@@ -270,6 +270,8 @@ UTEST_P(RedisExpireOptionsTransactionTest, ExpireOptionsTest) {
         case ExpireReply::kTimeoutWasSet:
             EXPECT_EQ(Get(client->Ttl("mykey")).GetExpire().count(), new_expire);
             break;
+        default:
+            ADD_FAILURE();
     }
 }
 
@@ -1024,14 +1026,14 @@ UTEST_F(RedisClientTransactionTest, NotStartedTransactionNoExec) {
     auto get_req = transaction->Get("key1");
     auto set_req = transaction->Set("key1", "value");
 
-    EXPECT_THROW(get_req.Wait(), storages::redis::NotStartedTransactionException);
-    EXPECT_THROW(get_req.Get(), storages::redis::NotStartedTransactionException);
+    EXPECT_THROW(get_req.Wait(), storages::redis::NotStartedPipelineException);
+    EXPECT_THROW(get_req.Get(), storages::redis::NotStartedPipelineException);
 
-    EXPECT_THROW(set_req.Wait(), storages::redis::NotStartedTransactionException);
-    EXPECT_THROW(set_req.Get(), storages::redis::NotStartedTransactionException);
+    EXPECT_THROW(set_req.Wait(), storages::redis::NotStartedPipelineException);
+    EXPECT_THROW(set_req.Get(), storages::redis::NotStartedPipelineException);
 }
 
-UTEST_F(RedisClientTransactionTest, NotStartedTransactionTransactionNoGet) {
+UTEST_F(RedisClientTransactionTest, NotStartedPipelineNoGet) {
     auto client = GetClient();
     auto transaction = client->Multi();
 
@@ -1039,11 +1041,11 @@ UTEST_F(RedisClientTransactionTest, NotStartedTransactionTransactionNoGet) {
     auto set_req = transaction->Set("key2", "value");
     auto request = transaction->Exec({});
 
-    EXPECT_THROW(get_req.Wait(), storages::redis::NotStartedTransactionException);
-    EXPECT_THROW(get_req.Get(), storages::redis::NotStartedTransactionException);
+    EXPECT_THROW(get_req.Wait(), storages::redis::NotStartedPipelineException);
+    EXPECT_THROW(get_req.Get(), storages::redis::NotStartedPipelineException);
 
-    EXPECT_THROW(set_req.Wait(), storages::redis::NotStartedTransactionException);
-    EXPECT_THROW(set_req.Get(), storages::redis::NotStartedTransactionException);
+    EXPECT_THROW(set_req.Wait(), storages::redis::NotStartedPipelineException);
+    EXPECT_THROW(set_req.Get(), storages::redis::NotStartedPipelineException);
 }
 #endif
 

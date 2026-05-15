@@ -3,6 +3,7 @@
 .DS_Store
 .mypy_cache
 .pytest_cache
+.python-version
 *.orig
 /Makefile.local
 *.yawiki
@@ -12,6 +13,7 @@
 /build*/
 /cmake-build-*/
 CMakeLists.txt.user
+CMakeUserPresets.json
 compile_commands.json
 tags
 static-analyzer-report

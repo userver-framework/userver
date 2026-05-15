@@ -161,6 +161,8 @@ private:
 
 class CmdArgs {
 public:
+    CmdArgs() = default;
+
     template <typename... Args>
     CmdArgs(std::string command_name, Args&&... arguments) {
         commands_.emplace_back(std::move(command_name), std::forward<Args>(arguments)...);
@@ -207,8 +209,6 @@ public:
     }
 
 private:
-    CmdArgs() = default;
-
     static constexpr std::size_t kTypicalCommandsCount = 1;
     boost::container::small_vector<CmdWithArgs, kTypicalCommandsCount> commands_;
 

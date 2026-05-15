@@ -13,9 +13,9 @@
 #include <userver/storages/redis/command_options.hpp>
 
 #include <userver/storages/redis/client.hpp>
+#include <userver/storages/redis/mock_pipeline_impl_base.hpp>
 #include <userver/storages/redis/mock_request.hpp>
-#include <userver/storages/redis/mock_transaction_impl_base.hpp>
-#include <userver/storages/redis/transaction.hpp>
+#include <userver/storages/redis/pipeline.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -123,11 +123,17 @@ public:
 
     RequestGeoadd Geoadd(std::string key, GeoaddArg point_member, const CommandControl& command_control) override;
 
-    RequestGeoadd Geoadd(std::string key, std::vector<GeoaddArg> point_members, const CommandControl& command_control)
-        override;
+    RequestGeoadd Geoadd(
+        std::string key,
+        std::vector<GeoaddArg> point_members,
+        const CommandControl& command_control
+    ) override;
 
-    RequestGeopos Geopos(std::string key, std::vector<std::string> members, const CommandControl& command_control)
-        override;
+    RequestGeopos Geopos(
+        std::string key,
+        std::vector<std::string> members,
+        const CommandControl& command_control
+    ) override;
 
     RequestGeoradius Georadius(
         std::string key,
@@ -188,8 +194,12 @@ public:
 
     RequestHgetall Hgetall(std::string key, const CommandControl& command_control) override;
 
-    RequestHincrby Hincrby(std::string key, std::string field, int64_t increment, const CommandControl& command_control)
-        override;
+    RequestHincrby Hincrby(
+        std::string key,
+        std::string field,
+        int64_t increment,
+        const CommandControl& command_control
+    ) override;
 
     RequestHincrbyfloat Hincrbyfloat(
         std::string key,
@@ -202,8 +212,11 @@ public:
 
     RequestHlen Hlen(std::string key, const CommandControl& command_control) override;
 
-    RequestHmget Hmget(std::string key, std::vector<std::string> fields, const CommandControl& command_control)
-        override;
+    RequestHmget Hmget(
+        std::string key,
+        std::vector<std::string> fields,
+        const CommandControl& command_control
+    ) override;
 
     RequestHmset Hmset(
         std::string key,
@@ -211,14 +224,25 @@ public:
         const CommandControl& command_control
     ) override;
 
-    ScanRequest<ScanTag::kHscan> Hscan(std::string key, HscanOptions options, const CommandControl& command_control)
-        override;
+    ScanRequest<ScanTag::kHscan> Hscan(
+        std::string key,
+        HscanOptions options,
+        const CommandControl& command_control
+    ) override;
 
-    RequestHset Hset(std::string key, std::string field, std::string value, const CommandControl& command_control)
-        override;
+    RequestHset Hset(
+        std::string key,
+        std::string field,
+        std::string value,
+        const CommandControl& command_control
+    ) override;
 
-    RequestHsetnx Hsetnx(std::string key, std::string field, std::string value, const CommandControl& command_control)
-        override;
+    RequestHsetnx Hsetnx(
+        std::string key,
+        std::string field,
+        std::string value,
+        const CommandControl& command_control
+    ) override;
 
     RequestHvals Hvals(std::string key, const CommandControl& command_control) override;
 
@@ -234,34 +258,50 @@ public:
 
     RequestLpush Lpush(std::string key, std::string value, const CommandControl& command_control) override;
 
-    RequestLpush Lpush(std::string key, std::vector<std::string> values, const CommandControl& command_control)
-        override;
+    RequestLpush Lpush(
+        std::string key,
+        std::vector<std::string> values,
+        const CommandControl& command_control
+    ) override;
 
     RequestLpushx Lpushx(std::string key, std::string element, const CommandControl& command_control) override;
 
     RequestLrange Lrange(std::string key, int64_t start, int64_t stop, const CommandControl& command_control) override;
 
-    RequestLrem Lrem(std::string key, int64_t count, std::string element, const CommandControl& command_control)
-        override;
+    RequestLrem Lrem(
+        std::string key,
+        int64_t count,
+        std::string element,
+        const CommandControl& command_control
+    ) override;
 
     RequestLtrim Ltrim(std::string key, int64_t start, int64_t stop, const CommandControl& command_control) override;
 
     RequestMget Mget(std::vector<std::string> keys, const CommandControl& command_control) override;
 
-    RequestMset Mset(std::vector<std::pair<std::string, std::string>> key_values, const CommandControl& command_control)
-        override;
+    RequestMset Mset(
+        std::vector<std::pair<std::string, std::string>> key_values,
+        const CommandControl& command_control
+    ) override;
 
     RequestPersist Persist(std::string key, const CommandControl& command_control) override;
 
-    RequestPexpire Pexpire(std::string key, std::chrono::milliseconds ttl, const CommandControl& command_control)
-        override;
+    RequestPexpire Pexpire(
+        std::string key,
+        std::chrono::milliseconds ttl,
+        const CommandControl& command_control
+    ) override;
 
     RequestPing Ping(size_t shard, const CommandControl& command_control) override;
 
     RequestPingMessage Ping(size_t shard, std::string message, const CommandControl& command_control) override;
 
-    void Publish(std::string channel, std::string message, const CommandControl& command_control, PubShard policy)
-        override;
+    void Publish(
+        std::string channel,
+        std::string message,
+        const CommandControl& command_control,
+        PubShard policy
+    ) override;
 
     void Spublish(std::string channel, std::string message, const CommandControl& command_control) override;
 
@@ -271,8 +311,11 @@ public:
 
     RequestRpush Rpush(std::string key, std::string value, const CommandControl& command_control) override;
 
-    RequestRpush Rpush(std::string key, std::vector<std::string> values, const CommandControl& command_control)
-        override;
+    RequestRpush Rpush(
+        std::string key,
+        std::vector<std::string> values,
+        const CommandControl& command_control
+    ) override;
 
     RequestRpushx Rpushx(std::string key, std::string element, const CommandControl& command_control) override;
 
@@ -302,8 +345,11 @@ public:
         const CommandControl& command_control
     ) override;
 
-    RequestSetIfNotExist SetIfNotExist(std::string key, std::string value, const CommandControl& command_control)
-        override;
+    RequestSetIfNotExist SetIfNotExist(
+        std::string key,
+        std::string value,
+        const CommandControl& command_control
+    ) override;
 
     RequestSetIfNotExist SetIfNotExist(
         std::string key,
@@ -344,8 +390,11 @@ public:
 
     RequestSrem Srem(std::string key, std::vector<std::string> members, const CommandControl& command_control) override;
 
-    ScanRequest<ScanTag::kSscan> Sscan(std::string key, SscanOptions options, const CommandControl& command_control)
-        override;
+    ScanRequest<ScanTag::kSscan> Sscan(
+        std::string key,
+        SscanOptions options,
+        const CommandControl& command_control
+    ) override;
 
     RequestStrlen Strlen(std::string key, const CommandControl& command_control) override;
 
@@ -378,8 +427,12 @@ public:
         const CommandControl& command_control
     ) override;
 
-    RequestZaddIncr ZaddIncr(std::string key, double score, std::string member, const CommandControl& command_control)
-        override;
+    RequestZaddIncr ZaddIncr(
+        std::string key,
+        double score,
+        std::string member,
+        const CommandControl& command_control
+    ) override;
 
     RequestZaddIncrExisting ZaddIncrExisting(
         std::string key,
@@ -401,8 +454,12 @@ public:
         const CommandControl& command_control
     ) override;
 
-    RequestZrangebyscore Zrangebyscore(std::string key, double min, double max, const CommandControl& command_control)
-        override;
+    RequestZrangebyscore Zrangebyscore(
+        std::string key,
+        double min,
+        double max,
+        const CommandControl& command_control
+    ) override;
 
     RequestZrangebyscore Zrangebyscore(
         std::string key,
@@ -482,48 +539,55 @@ public:
         const CommandControl& command_control
     ) override;
 
-    ScanRequest<ScanTag::kZscan> Zscan(std::string key, ZscanOptions options, const CommandControl& command_control)
-        override;
+    ScanRequest<ScanTag::kZscan> Zscan(
+        std::string key,
+        ZscanOptions options,
+        const CommandControl& command_control
+    ) override;
 
     RequestZscore Zscore(std::string key, std::string member, const CommandControl& command_control) override;
 
     // end of redis commands
 
-    TransactionPtr Multi() final;
+    PipelinePtr Multi() final;
 
-    TransactionPtr Multi(Transaction::CheckShards check_shards) final;
+    PipelinePtr Multi(Pipeline::CheckShards check_shards) final;
 
-    class MockTransactionImplCreatorBase {
+    PipelinePtr Pipeline() final;
+
+    PipelinePtr Pipeline(Pipeline::CheckShards check_shards) final;
+
+    class MockPipelineImplCreatorBase {
     public:
-        virtual ~MockTransactionImplCreatorBase() = default;
+        virtual ~MockPipelineImplCreatorBase() = default;
 
-        virtual std::unique_ptr<MockTransactionImplBase> operator()() const = 0;
+        virtual std::unique_ptr<MockPipelineImplBase> operator()() const = 0;
     };
 
-    template <typename MockTransactionImpl>
-    void SetMockTransactionImplType() {
-        mock_transaction_impl_creator_ = std::make_shared<MockTransactionImplCreator<MockTransactionImpl>>();
+    template <typename MockPipelineImpl>
+    void SetMockPipelineImplType() {
+        mock_pipeline_impl_creator_ = std::make_shared<MockPipelineImplCreator<MockPipelineImpl>>();
     }
 
-    void SetMockTransactionImplCreator(std::shared_ptr<MockTransactionImplCreatorBase> mock_transaction_impl_creator) {
-        mock_transaction_impl_creator_ = std::move(mock_transaction_impl_creator);
+    void SetMockPipelineImplCreator(std::shared_ptr<MockPipelineImplCreatorBase> mock_pipeline_impl_creator) {
+        mock_pipeline_impl_creator_ = std::move(mock_pipeline_impl_creator);
     }
 
     MockClientBase(
-        std::shared_ptr<MockTransactionImplCreatorBase> mock_transaction_impl_creator,
+        std::shared_ptr<MockPipelineImplCreatorBase> mock_pipeline_impl_creator,
         std::optional<size_t> force_shard_idx
     );
 
 private:
-    template <typename MockTransactionImpl>
-    class MockTransactionImplCreator : public MockTransactionImplCreatorBase {
+    template <typename MockPipelineImpl>
+    class MockPipelineImplCreator : public MockPipelineImplCreatorBase {
     public:
-        std::unique_ptr<MockTransactionImplBase> operator()() const override {
-            return std::make_unique<MockTransactionImpl>();
+        std::unique_ptr<MockPipelineImplBase> operator()() const override {
+            return std::make_unique<MockPipelineImpl>();
         }
     };
 
-    std::shared_ptr<MockTransactionImplCreatorBase> mock_transaction_impl_creator_;
+    std::shared_ptr<MockPipelineImplCreatorBase> mock_pipeline_impl_creator_;
     std::optional<size_t> force_shard_idx_;
 };
 
