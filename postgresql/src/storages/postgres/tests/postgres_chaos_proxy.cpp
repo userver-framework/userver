@@ -115,7 +115,7 @@ void BackwardProxy(engine::io::Socket& src, engine::io::Socket& dst) {
         // Intentionally delay some responses in order to trigger
         // incorrect handling of PG messages
         if (kResponseMessagesToDelay.contains(message.type)) {
-            engine::InterruptibleSleepFor(std::chrono::milliseconds{1});
+            // engine::InterruptibleSleepFor(std::chrono::milliseconds{1});
         }
 
         WritePgMessage(message, dst);
