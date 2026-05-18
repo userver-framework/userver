@@ -490,6 +490,8 @@ function(userver_add_utest)
         list(APPEND ARG_TEST_ARGS "--gtest_output=xml:${CMAKE_BINARY_DIR}/test-results/${ARG_NAME}.xml")
     endif()
 
+    list(APPEND ARG_TEST_ARGS "--log-level=info")
+
     add_test(NAME "${ARG_NAME}" COMMAND "${CMAKE_BINARY_DIR}/testsuite/env" ${additional_args} run --
                                         $<TARGET_FILE:${ARG_NAME}> ${ARG_TEST_ARGS}
     )
