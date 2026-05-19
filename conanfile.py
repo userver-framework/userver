@@ -126,17 +126,17 @@ class UserverConan(ConanFile):
             "with_stacktrace_backtrace": True,
             "without_stacktrace": False,
             "without_cobalt": True
-        }) # orig self.requires('boost/[>=1.83 <1.88]', transitive_headers=True)
+        })
         self.requires('c-ares/[^1.33]')
         self.requires('cctz/[^2.4]', transitive_headers=True)
         self.requires('concurrentqueue/[^1.0.5]', transitive_headers=True)
         self.requires('cryptopp/[^8.9]')
-        self.requires('fmt/11.2.0', transitive_headers=True) # orig self.requires('fmt/[>=8.1.1 <13]', transitive_headers=True)
+        self.requires('fmt/11.2.0', transitive_headers=True)
         self.requires('libiconv/[^1.17]')
         self.requires('libnghttp2/[^1.61]')
-        self.requires('libcurl/8.12.1') # orig:  self.requires('libcurl/[>=7.86.0 <7.88 || >8.1.2]')
+        self.requires('libcurl/8.12.1')
         self.requires('libev/[^4.33]')
-        self.requires('openssl/[>=3.6.2 <4]')  # our: self.requires('openssl/3.3.2')
+        self.requires('openssl/[>=3.6.2 <4]')
         self.requires('rapidjson/[>=cci.20230929 <cci.20230930]', transitive_headers=True)
         self.requires('yaml-cpp/[>=0.8.0 <=0.9.0]')
         self.requires('zlib/[^1.3]')
@@ -166,7 +166,7 @@ class UserverConan(ConanFile):
             # without system package. We use system package.
             #
             # `<16` is due to link errors `undefined reference to `gss_release_buffer'`
-            self.requires('libpq/[>=14.9 <16]')
+            self.requires('libpq/[>=15.17 <16]')
         if self.options.with_mongodb or self.options.with_kafka:
             self.requires('cyrus-sasl/[^2.1]')
         if self.options.with_mongodb:
