@@ -1,4 +1,4 @@
-project(userver-llhttp VERSION 9.2.0)
+project(userver-llhttp VERSION 9.4.1)
 
 set(CMAKE_C_STANDARD 99)
 
