@@ -75,7 +75,9 @@ CertificatesChain LoadCertificatesChainFromString(std::string_view chain) {
     std::size_t start = 0;
     while ((start = chain.find(kBeginMarker, start)) != std::string::npos) {
         auto end = chain.find(kEndMarker, start);
-        UINVARIANT(end != std::string::npos, "No matching end marker found for certificate");
+        if (end == std::string::npos) {
+            throw KeyParseError("No matching end marker found for certificate");
+        }
 
         end += kEndMarker.length();
         certificates.push_back(Certificate::LoadFromString(chain.substr(start, end - start)));
