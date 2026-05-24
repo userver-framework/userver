@@ -69,7 +69,7 @@ constexpr utils::TrivialBiMap kCurveToNid = [](auto selector) {
 int CurveStringToNid(const std::string_view& curve_str) {
     auto opt_value = kCurveToNid.TryFindICaseByFirst(curve_str);
     if (!opt_value) {
-        throw KeyParseError{FormatSslError(fmt::format("Unsupported curve type {}", curve_str))};
+        throw KeyParseError{fmt::format("Unsupported curve type {}", curve_str)};
     }
     return *opt_value;
 }
@@ -119,7 +119,7 @@ PublicKey PublicKey::LoadFromPrivateKey(const PrivateKey& private_key) {
     Openssl::Init();
 
     if (!private_key) {
-        throw KeyParseError(FormatSslError("Failed to load public key from private key: private key is empty"));
+        throw KeyParseError("Failed to load public key from private key: private key is empty");
     }
 
     auto pubkey_bio = MakeBioMemoryBuffer();

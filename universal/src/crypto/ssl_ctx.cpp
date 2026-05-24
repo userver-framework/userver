@@ -112,7 +112,7 @@ void SslCtx::SetCertificate(const crypto::Certificate& cert) {
 
 void SslCtx::SetCertificates(const crypto::CertificatesChain& cert_chain) {
     if (cert_chain.empty()) {
-        throw CryptoException(crypto::FormatSslError("Empty certificate chain provided"));
+        throw CryptoException("Empty certificate chain provided");
     }
 
     SetCertificate(*cert_chain.begin());
@@ -143,7 +143,7 @@ void SslCtx::SetPrivateKey(const crypto::PrivateKey& key) {
     LOG_INFO() << "Loaded server private key";
 
     if (1 != SSL_CTX_check_private_key(impl_->Get())) {
-        throw CryptoException("Private key does not match the certificate public key");
+        throw CryptoException(crypto::FormatSslError("Private key does not match the certificate public key"));
     }
 }
 
