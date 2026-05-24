@@ -166,7 +166,7 @@ PublicKey PublicKey::LoadECFromComponents(CurveTypeView curve_view, CoordinateVi
     }
 
     if (!EVP_PKEY_set1_EC_KEY(pubkey.get(), ec.get())) {
-        throw KeyParseError{FormatSslError("Cannot set RSA key to EVP_PKEY")};
+        throw KeyParseError{FormatSslError("Cannot set EC key to EVP_PKEY")};
     }
 
     return PublicKey{std::move(pubkey)};
