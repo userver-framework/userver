@@ -155,7 +155,7 @@ class UserverConan(ConanFile):
                 transitive_libs=True,
             )
             self.requires(
-                'protobuf/[^5.27]',
+                'protobuf/7.35.0',
                 transitive_headers=True,
                 transitive_libs=True,
                 force=True,
