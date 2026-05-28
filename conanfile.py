@@ -191,7 +191,7 @@ class UserverConan(ConanFile):
                 transitive_libs=True,
             )
             self.requires(
-                'benchmark/[>=1.9 <3]',
+                'benchmark/[>=1.9.5 <3]',
                 transitive_headers=True,
                 transitive_libs=True,
             )
