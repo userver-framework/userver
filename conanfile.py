@@ -160,6 +160,7 @@ class UserverConan(ConanFile):
             self.requires('amqp-cpp/[^4.3]')
         if self.options.with_clickhouse:
             self.requires('clickhouse-cpp/[>=2.6.0 <3]')
+            self.requires('lz4/[^1.10.0]', force=True)
         if self.options.with_utest:
             self.requires(
                 'gtest/[>=1.15 <3]',
