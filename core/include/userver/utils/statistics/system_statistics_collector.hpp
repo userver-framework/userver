@@ -8,7 +8,7 @@
 #include <userver/concurrent/variable.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/utils/periodic_task.hpp>
-#include <utils/statistics/system_statistics.hpp>
+#include <userver/utils/statistics/system_statistics.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
