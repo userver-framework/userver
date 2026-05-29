@@ -60,7 +60,7 @@ class UserverConan(ConanFile):
         'with_redis': True,
         'with_redis_tls': True,
         'with_grpc': True,
-        'with_clickhouse': False,  # TODO: set to True after clickhouse-cpp >= 2.6 appears in Conan Center
+        'with_clickhouse': True,
         'with_rabbitmq': True,
         'with_utest': True,
         'with_kafka': True,
@@ -159,10 +159,7 @@ class UserverConan(ConanFile):
         if self.options.with_rabbitmq:
             self.requires('amqp-cpp/[^4.3]')
         if self.options.with_clickhouse:
-            # Some C++ Standard libraries require the following fix
-            # https://github.com/ClickHouse/clickhouse-cpp/commit/2ac94d0d5d425cd70a0a8f4f91c4ed57369b72b9
-            # self.requires('clickhouse-cpp/[>=2.6.0 <3]')
-            self.requires('clickhouse-cpp/[>=2.5.1 <3]')
+            self.requires('clickhouse-cpp/[>=2.6.0 <3]')
         if self.options.with_utest:
             self.requires(
                 'gtest/[>=1.15 <3]',
