@@ -171,7 +171,7 @@ class UserverConan(ConanFile):
             self.requires('cyrus-sasl/[^2.1]')
         if self.options.with_mongodb:
             self.requires(
-                'mongo-c-driver/[^1.30]',
+                'mongo-c-driver/1.30.3',
                 transitive_headers=True,
                 transitive_libs=True,
             )
